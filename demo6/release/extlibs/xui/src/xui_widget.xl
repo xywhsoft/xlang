@@ -132,29 +132,9 @@ export func xuiWidgetSetRect(point pWidget, point tRect) as c_int
     return __xl6_xuiWidgetSetRect(pWidget, tRect)
 end
 
-extern "xuiWidgetGetRect" func __xl6_xuiWidgetGetRect(point pWidget) as point
-export func xuiWidgetGetRect(point pWidget) as point
-    return __xl6_xuiWidgetGetRect(pWidget)
-end
-
-extern "xuiWidgetGetWorldRect" func __xl6_xuiWidgetGetWorldRect(point pWidget) as point
-export func xuiWidgetGetWorldRect(point pWidget) as point
-    return __xl6_xuiWidgetGetWorldRect(pWidget)
-end
-
-extern "xuiWidgetGetContentRect" func __xl6_xuiWidgetGetContentRect(point pWidget) as point
-export func xuiWidgetGetContentRect(point pWidget) as point
-    return __xl6_xuiWidgetGetContentRect(pWidget)
-end
-
 extern "xuiWidgetSetLayout" func __xl6_xuiWidgetSetLayout(point pWidget, point pLayout) as c_int
 export func xuiWidgetSetLayout(point pWidget, point pLayout) as c_int
     return __xl6_xuiWidgetSetLayout(pWidget, pLayout)
-end
-
-extern "xuiWidgetGetLayout" func __xl6_xuiWidgetGetLayout(point pWidget) as point
-export func xuiWidgetGetLayout(point pWidget) as point
-    return __xl6_xuiWidgetGetLayout(pWidget)
 end
 
 extern "xuiWidgetSetContentMeasureCallback" func __xl6_xuiWidgetSetContentMeasureCallback(point pWidget, point onMeasure, point pUser) as c_int
@@ -167,14 +147,34 @@ export func xuiWidgetGetContentMeasureCallback(point pWidget, point pMeasure, po
     return __xl6_xuiWidgetGetContentMeasureCallback(pWidget, pMeasure, ppUser)
 end
 
-extern "xuiWidgetSetLayoutCallbacks" func __xl6_xuiWidgetSetLayoutCallbacks(point pWidget, point onMeasure, point onArrange, point pUser) as c_int
-export func xuiWidgetSetLayoutCallbacks(point pWidget, point onMeasure, point onArrange, point pUser) as c_int
-    return __xl6_xuiWidgetSetLayoutCallbacks(pWidget, onMeasure, onArrange, pUser)
+extern "xuiWidgetSetLayoutPrepareCallback" func __xl6_xuiWidgetSetLayoutPrepareCallback(point pWidget, point onPrepare, point pUser) as c_int
+export func xuiWidgetSetLayoutPrepareCallback(point pWidget, point onPrepare, point pUser) as c_int
+    return __xl6_xuiWidgetSetLayoutPrepareCallback(pWidget, onPrepare, pUser)
 end
 
-extern "xuiWidgetGetLayoutCallbacks" func __xl6_xuiWidgetGetLayoutCallbacks(point pWidget, point pMeasure, point pArrange, point ppUser) as c_int
-export func xuiWidgetGetLayoutCallbacks(point pWidget, point pMeasure, point pArrange, point ppUser) as c_int
-    return __xl6_xuiWidgetGetLayoutCallbacks(pWidget, pMeasure, pArrange, ppUser)
+extern "xuiWidgetGetLayoutPrepareCallback" func __xl6_xuiWidgetGetLayoutPrepareCallback(point pWidget, point pPrepare, point ppUser) as c_int
+export func xuiWidgetGetLayoutPrepareCallback(point pWidget, point pPrepare, point ppUser) as c_int
+    return __xl6_xuiWidgetGetLayoutPrepareCallback(pWidget, pPrepare, ppUser)
+end
+
+extern "xuiWidgetSetLayoutChildrenCallback" func __xl6_xuiWidgetSetLayoutChildrenCallback(point pWidget, point onChildren, point pUser) as c_int
+export func xuiWidgetSetLayoutChildrenCallback(point pWidget, point onChildren, point pUser) as c_int
+    return __xl6_xuiWidgetSetLayoutChildrenCallback(pWidget, onChildren, pUser)
+end
+
+extern "xuiWidgetGetLayoutChildrenCallback" func __xl6_xuiWidgetGetLayoutChildrenCallback(point pWidget, point pChildren, point ppUser) as c_int
+export func xuiWidgetGetLayoutChildrenCallback(point pWidget, point pChildren, point ppUser) as c_int
+    return __xl6_xuiWidgetGetLayoutChildrenCallback(pWidget, pChildren, ppUser)
+end
+
+extern "xuiWidgetSetLayoutCompleteCallback" func __xl6_xuiWidgetSetLayoutCompleteCallback(point pWidget, point onComplete, point pUser) as c_int
+export func xuiWidgetSetLayoutCompleteCallback(point pWidget, point onComplete, point pUser) as c_int
+    return __xl6_xuiWidgetSetLayoutCompleteCallback(pWidget, onComplete, pUser)
+end
+
+extern "xuiWidgetGetLayoutCompleteCallback" func __xl6_xuiWidgetGetLayoutCompleteCallback(point pWidget, point pComplete, point ppUser) as c_int
+export func xuiWidgetGetLayoutCompleteCallback(point pWidget, point pComplete, point ppUser) as c_int
+    return __xl6_xuiWidgetGetLayoutCompleteCallback(pWidget, pComplete, ppUser)
 end
 
 extern "xuiWidgetMeasureContent" func __xl6_xuiWidgetMeasureContent(point pWidget, point tConstraint, point pContentSize) as c_int
@@ -257,19 +257,9 @@ export func xuiWidgetSetPreferredSize(point pWidget, point tSize) as c_int
     return __xl6_xuiWidgetSetPreferredSize(pWidget, tSize)
 end
 
-extern "xuiWidgetGetPreferredSize" func __xl6_xuiWidgetGetPreferredSize(point pWidget) as point
-export func xuiWidgetGetPreferredSize(point pWidget) as point
-    return __xl6_xuiWidgetGetPreferredSize(pWidget)
-end
-
 extern "xuiWidgetSetMinSize" func __xl6_xuiWidgetSetMinSize(point pWidget, point tSize) as c_int
 export func xuiWidgetSetMinSize(point pWidget, point tSize) as c_int
     return __xl6_xuiWidgetSetMinSize(pWidget, tSize)
-end
-
-extern "xuiWidgetGetMinSize" func __xl6_xuiWidgetGetMinSize(point pWidget) as point
-export func xuiWidgetGetMinSize(point pWidget) as point
-    return __xl6_xuiWidgetGetMinSize(pWidget)
 end
 
 extern "xuiWidgetSetMaxSize" func __xl6_xuiWidgetSetMaxSize(point pWidget, point tSize) as c_int
@@ -277,29 +267,14 @@ export func xuiWidgetSetMaxSize(point pWidget, point tSize) as c_int
     return __xl6_xuiWidgetSetMaxSize(pWidget, tSize)
 end
 
-extern "xuiWidgetGetMaxSize" func __xl6_xuiWidgetGetMaxSize(point pWidget) as point
-export func xuiWidgetGetMaxSize(point pWidget) as point
-    return __xl6_xuiWidgetGetMaxSize(pWidget)
-end
-
 extern "xuiWidgetSetMargin" func __xl6_xuiWidgetSetMargin(point pWidget, point tMargin) as c_int
 export func xuiWidgetSetMargin(point pWidget, point tMargin) as c_int
     return __xl6_xuiWidgetSetMargin(pWidget, tMargin)
 end
 
-extern "xuiWidgetGetMargin" func __xl6_xuiWidgetGetMargin(point pWidget) as point
-export func xuiWidgetGetMargin(point pWidget) as point
-    return __xl6_xuiWidgetGetMargin(pWidget)
-end
-
 extern "xuiWidgetSetPadding" func __xl6_xuiWidgetSetPadding(point pWidget, point tPadding) as c_int
 export func xuiWidgetSetPadding(point pWidget, point tPadding) as c_int
     return __xl6_xuiWidgetSetPadding(pWidget, tPadding)
-end
-
-extern "xuiWidgetGetPadding" func __xl6_xuiWidgetGetPadding(point pWidget) as point
-export func xuiWidgetGetPadding(point pWidget) as point
-    return __xl6_xuiWidgetGetPadding(pWidget)
 end
 
 extern "xuiWidgetSetGap" func __xl6_xuiWidgetSetGap(point pWidget, c_float fGap) as c_int
@@ -497,6 +472,56 @@ export func xuiWidgetGetImeCandidateRect(point pWidget, point pRect, point ppUse
     return __xl6_xuiWidgetGetImeCandidateRect(pWidget, pRect, ppUser)
 end
 
+extern "xuiWidgetSetAccessibilityProvider" func __xl6_xuiWidgetSetAccessibilityProvider(point pWidget, point onCount, point onGet, point onAction, point pUser) as c_int
+export func xuiWidgetSetAccessibilityProvider(point pWidget, point onCount, point onGet, point onAction, point pUser) as c_int
+    return __xl6_xuiWidgetSetAccessibilityProvider(pWidget, onCount, onGet, onAction, pUser)
+end
+
+extern "xuiWidgetSetAccessibleName" func __xl6_xuiWidgetSetAccessibleName(point pWidget, string sName) as c_int
+export func xuiWidgetSetAccessibleName(point pWidget, string sName) as c_int
+    return __xl6_xuiWidgetSetAccessibleName(pWidget, sName)
+end
+
+extern "xuiWidgetGetAccessibleName" func __xl6_xuiWidgetGetAccessibleName(point pWidget) as string
+export func xuiWidgetGetAccessibleName(point pWidget) as string
+    return __xl6_xuiWidgetGetAccessibleName(pWidget)
+end
+
+extern "xuiWidgetSetAccessibleDescription" func __xl6_xuiWidgetSetAccessibleDescription(point pWidget, string sDescription) as c_int
+export func xuiWidgetSetAccessibleDescription(point pWidget, string sDescription) as c_int
+    return __xl6_xuiWidgetSetAccessibleDescription(pWidget, sDescription)
+end
+
+extern "xuiWidgetGetAccessibleDescription" func __xl6_xuiWidgetGetAccessibleDescription(point pWidget) as string
+export func xuiWidgetGetAccessibleDescription(point pWidget) as string
+    return __xl6_xuiWidgetGetAccessibleDescription(pWidget)
+end
+
+extern "xuiWidgetGetAccessibleNodeCount" func __xl6_xuiWidgetGetAccessibleNodeCount(point pWidget) as c_int
+export func xuiWidgetGetAccessibleNodeCount(point pWidget) as c_int
+    return __xl6_xuiWidgetGetAccessibleNodeCount(pWidget)
+end
+
+extern "xuiWidgetGetAccessibleNode" func __xl6_xuiWidgetGetAccessibleNode(point pWidget, c_int iIndex, point pNode) as c_int
+export func xuiWidgetGetAccessibleNode(point pWidget, c_int iIndex, point pNode) as c_int
+    return __xl6_xuiWidgetGetAccessibleNode(pWidget, iIndex, pNode)
+end
+
+extern "xuiWidgetPerformAccessibleAction" func __xl6_xuiWidgetPerformAccessibleAction(point pWidget, c_ulonglong iNodeId, c_int iAction, point pData) as c_int
+export func xuiWidgetPerformAccessibleAction(point pWidget, c_ulonglong iNodeId, c_int iAction, point pData) as c_int
+    return __xl6_xuiWidgetPerformAccessibleAction(pWidget, iNodeId, iAction, pData)
+end
+
+extern "xuiWidgetGetAccessibilityRevision" func __xl6_xuiWidgetGetAccessibilityRevision(point pWidget) as c_uint
+export func xuiWidgetGetAccessibilityRevision(point pWidget) as c_uint
+    return __xl6_xuiWidgetGetAccessibilityRevision(pWidget)
+end
+
+extern "xuiWidgetNotifyAccessibility" func __xl6_xuiWidgetNotifyAccessibility(point pWidget, c_int iEventType, c_ulonglong iNodeId) as c_int
+export func xuiWidgetNotifyAccessibility(point pWidget, c_int iEventType, c_ulonglong iNodeId) as c_int
+    return __xl6_xuiWidgetNotifyAccessibility(pWidget, iEventType, iNodeId)
+end
+
 extern "xuiWidgetSetEventCallback" func __xl6_xuiWidgetSetEventCallback(point pWidget, point onEvent, point pUser) as c_int
 export func xuiWidgetSetEventCallback(point pWidget, point onEvent, point pUser) as c_int
     return __xl6_xuiWidgetSetEventCallback(pWidget, onEvent, pUser)
@@ -565,11 +590,6 @@ end
 extern "xuiWidgetTooltipGetOwner" func __xl6_xuiWidgetTooltipGetOwner(point pContext) as point
 export func xuiWidgetTooltipGetOwner(point pContext) as point
     return __xl6_xuiWidgetTooltipGetOwner(pContext)
-end
-
-extern "xuiWidgetTooltipGetRect" func __xl6_xuiWidgetTooltipGetRect(point pContext) as point
-export func xuiWidgetTooltipGetRect(point pContext) as point
-    return __xl6_xuiWidgetTooltipGetRect(pContext)
 end
 
 extern "xuiWidgetInvalidate" func __xl6_xuiWidgetInvalidate(point pWidget, c_uint iFlags) as c_int
@@ -685,11 +705,6 @@ end
 extern "xuiWidgetSetCachePolicy" func __xl6_xuiWidgetSetCachePolicy(point pWidget, point pPolicy) as c_int
 export func xuiWidgetSetCachePolicy(point pWidget, point pPolicy) as c_int
     return __xl6_xuiWidgetSetCachePolicy(pWidget, pPolicy)
-end
-
-extern "xuiWidgetGetCachePolicy" func __xl6_xuiWidgetGetCachePolicy(point pWidget) as point
-export func xuiWidgetGetCachePolicy(point pWidget) as point
-    return __xl6_xuiWidgetGetCachePolicy(pWidget)
 end
 
 extern "xuiWidgetSetCacheRenderCallback" func __xl6_xuiWidgetSetCacheRenderCallback(point pWidget, point onRender, point pUser) as c_int

@@ -116,7 +116,7 @@
             "third_party/libzip/lib/zip_unchange_data.c",
             "third_party/libzip/lib/zip_utf-8.c",
             "third_party/libzip/lib/zip_err_str.c",
-            "platform/zip_source_file_disabled.c",
+            "platform/zip_source_file_xrt.c",
             "platform/zip_random_xrt.c"
         ],
         "xlSources": []

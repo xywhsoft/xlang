@@ -3,12 +3,24 @@ import socks
 
 
 func main(...) as int
-    println("SOCKS version: ", socks.version())
-    println("Greeting (no auth) size: ", socks.buildGreeting(false))
-    println("Connect to 93.184.216.34:80 size: ", socks.buildConnect("93.184.216.34", 80))
-    println("Connect to example.com:443 size: ", socks.buildConnect("example.com", 443))
-    println("Reply 0: ", socks.replyString(0))
-    println("Reply 4: ", socks.replyString(4))
+    // 方法协商
+    println("greeting:", socks.greeting([0, 2]))
+    var choice = socks.parseChoice("0500")
+    println("server selected method:", choice["method"])
+
+    // CONNECT 请求
+    println("domain frame:", socks.connectDomain("example.com", 443))
+    println("ipv4 frame:  ", socks.connectIpv4("192.168.1.10", 8080))
+
+    // 服务器应答
+    var reply = socks.parseReply("05000001c0a8010a01bb")
+    println("status:", reply["status"], "bound:", reply["bindAddress"], ":", reply["bindPort"])
+
+    // 完整握手序列（伪代码说明）：
+    // TcpStream s = tcp.connect(proxyHost, proxyPort)
+    // s.send(hexToBytes(socks.greeting([0])))       -> 收 2 字节 -> parseChoice
+    // s.send(hexToBytes(socks.connectDomain(...))) -> 收应答   -> parseReply
+    // status == 0 即可通过该连接访问目标
 
     println("socks example: PASS")
     return 0

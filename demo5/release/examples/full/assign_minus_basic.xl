@@ -1,5 +1,0 @@
-func main() as int
-	int value = 50
-	value -= 8
-	return value
-end

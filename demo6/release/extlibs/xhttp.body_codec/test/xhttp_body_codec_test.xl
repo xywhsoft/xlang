@@ -1,0 +1,64 @@
+import xhttp.body
+import xhttp.body_async
+import xhttp.body_codec
+import xhttp.body_stream
+from xhttp.body import Body, BodyChunk
+from xhttp.body_async import AsyncBodyReader
+from xhttp.body_codec import DeflateConfig, InflateConfig
+from xhttp.body_stream import BodyStream
+
+
+
+async func collect(AsyncBodyReader reader) as string
+    string output = ""
+
+    while true
+        BodyChunk? chunk = await reader.nextAsync(3)
+        if chunk == null then
+            return output
+        end
+        output += chunk.text()
+    end
+end
+
+
+
+async func exerciseAsyncInflate(Buffer packed) as string
+    BodyStream stream = BodyStream.open(4096, 4)
+    InflateConfig config = InflateConfig(
+        xhttp.body_codec.INFLATE_GZIP)
+    AsyncBodyReader reader = AsyncBodyReader(
+        xhttp.body_codec.inflate(stream.body(), config))
+    future<string> reading = collect(reader)
+
+    assert stream.writeTake(packed) == xhttp.body_stream.STREAM_OK
+    assert packed.len() == 0
+    assert stream.close()
+    return await reading
+end
+
+
+
+Body source = Body.fromText("streaming body codec roundtrip")
+Body gzip = xhttp.body_codec.deflate(source)
+assert gzip.replayable
+Buffer packed = gzip.readAll()
+assert packed.len() > 0
+
+InflateConfig gzipConfig = InflateConfig(
+    xhttp.body_codec.INFLATE_GZIP)
+Body decoded = xhttp.body_codec.inflate(gzip, gzipConfig)
+assert decoded.text() == "streaming body codec roundtrip"
+
+DeflateConfig zlibConfig = DeflateConfig(
+    xhttp.body_codec.DEFLATE_ZLIB)
+InflateConfig zlibInflate = InflateConfig(
+    xhttp.body_codec.INFLATE_ZLIB)
+assert xhttp.body_codec.inflate(
+    xhttp.body_codec.deflate(source, zlibConfig),
+    zlibInflate).text() == "streaming body codec roundtrip"
+
+string asyncResult = await exerciseAsyncInflate(packed)
+assert asyncResult == "streaming body codec roundtrip"
+
+println("xhttp.body_codec package ok")

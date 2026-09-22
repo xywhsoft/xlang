@@ -1,0 +1,116 @@
+import xmail
+from xmail import ImapClient, ImapConfig, ImapEvent, ImapMailbox
+
+
+
+// 接收到协议分隔符为止；测试严格使用本地回环连接。
+func recvUntil(TcpStream stream, string marker) as string
+    string result = ""
+    while not string.contains(result, marker)
+        string part = stream.recv(8000, 65536)
+        assert part != "", "IMAP loopback server received an early close"
+        result = result + part
+    end
+    return result
+end
+
+
+
+// 模拟 PREAUTH、SELECT、带 literal 的 FETCH 和 LOGOUT。
+async func serveImap(TcpServer server) as int
+    TcpStream stream = await server.acceptAsync()
+    assert stream.send("* PREAUTH loopback ready\r\n")
+
+    assert recvUntil(stream, "\r\n") == "A00000001 CAPABILITY\r\n"
+    assert stream.send(
+        "* CAPABILITY IMAP4rev1 UIDPLUS IDLE\r\n" +
+        "A00000001 OK capability complete\r\n")
+
+    assert recvUntil(stream, "\r\n") == "A00000002 SELECT \"INBOX\"\r\n"
+    assert stream.send(
+        "* 3 EXISTS\r\n" +
+        "* 1 RECENT\r\n" +
+        "* OK [UNSEEN 2] unseen\r\n" +
+        "* OK [UIDVALIDITY 42] valid\r\n" +
+        "A00000002 OK [READ-WRITE] selected\r\n")
+
+    assert recvUntil(stream, "\r\n") == "A00000003 FETCH 1 BODY[]\r\n"
+    assert stream.send(
+        "* 1 FETCH (BODY[] {5}\r\nhello)\r\n" +
+        "A00000003 OK fetch complete\r\n")
+
+    assert recvUntil(stream, "\r\n") == "A00000004 LOGOUT\r\n"
+    assert stream.send(
+        "* BYE signing off\r\n" +
+        "A00000004 OK logout complete\r\n")
+    stream.shutdownWrite()
+    stream.close()
+    return 0
+end
+
+
+
+// 等待 Listener 关闭，避免全局网络运行时退出时仍有活动对象。
+func closeServer(TcpServer server) as bool
+    if not server.close() and server.state != 2 then
+        return false
+    end
+    for attempt in range(0, 500)
+        if server.state == 2 then
+            return true
+        end
+        time.sleep(1)
+    end
+    return false
+end
+
+
+
+async func run() as int
+    TcpServer server = tcp.listen(0)
+    future<int> serving = serveImap(server)
+    NetEngine engine = NetEngine(1)
+    assert engine.start(), "IMAP client engine could not start"
+
+    ImapConfig config = ImapConfig(
+        "127.0.0.1", server.port(), xmail.SECURITY_PLAIN, 8000)
+    ImapClient client = ImapClient.open(engine, config)
+    assert client.valid and client.state == xmail.IMAP_AUTHENTICATED
+    assert client.capabilities >= xmail.IMAP_CAP_UIDPLUS
+
+    ImapMailbox mailbox = client.select("INBOX")
+    assert client.state == xmail.IMAP_SELECTED
+    assert mailbox.exists == 3 and mailbox.recent == 1
+    assert mailbox.unseen == 2 and mailbox.uidValidity == 42
+    assert not mailbox.readOnly
+
+    assert client.begin("FETCH", "1 BODY[]")
+    ImapEvent event = client.next()
+    assert event.nextState == xmail.IMAP_NEXT_ITEM
+    assert event.eventKind == xmail.IMAP_EVENT_RESPONSE
+    assert event.responseKind == xmail.IMAP_RESPONSE_UNTAGGED
+    assert event.hasLiteral and event.literalSize == 5
+    Buffer first = client.readLiteral(2)
+    Buffer second = client.readLiteral()
+    assert first.text() == "he" and second.text() == "llo"
+    assert client.literalRemaining == 0
+
+    ImapEvent fragment = client.next()
+    assert fragment.nextState == xmail.IMAP_NEXT_ITEM
+    assert fragment.eventKind == xmail.IMAP_EVENT_FRAGMENT
+    ImapEvent done = client.next()
+    assert done.nextState == xmail.IMAP_NEXT_END
+    assert client.lastResponse().status == xmail.IMAP_STATUS_OK
+
+    assert client.logout()
+    assert client.state == xmail.IMAP_CLOSED
+    assert await serving == 0
+    assert closeServer(server)
+    engine.stop()
+    return 0
+end
+
+
+
+assert await run() == 0
+println("xmail IMAP loopback package ok")

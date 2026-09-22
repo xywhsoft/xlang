@@ -1,4 +1,0 @@
-async func stream() as int
-	yield 1
-	return 2
-end

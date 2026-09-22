@@ -1058,27 +1058,51 @@ static int __xuiPropertyGridRender(xui_widget pWidget, xui_draw_context pDraw, u
 	return tProxy.drawText(&tProxy, pDraw, pData->pFont, sText, xuiInternalSnapRect(tText), pData->tStyle.iNameTextColor, XUI_TEXT_ALIGN_LEFT | XUI_TEXT_ALIGN_TOP | XUI_TEXT_CLIP);
 }
 
-static int __xuiPropertyGridArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiPropertyGridPrepare(xui_widget pWidget, void* pUser)
+{
+	xui_property_grid_data_t* pData;
+	xui_table_track_t tTrack;
+	int bPanel;
+
+	pData = __xuiPropertyGridGetData(pWidget);
+	if ( (pData == NULL) || (pData->pTableGrid == NULL) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	bPanel = ((pData->iDescriptionMode == XUI_PROPERTY_GRID_DESCRIPTION_PANEL) ||
+	          (pData->iDescriptionMode == XUI_PROPERTY_GRID_DESCRIPTION_BOTH)) &&
+	         (pData->fDescriptionPanelHeight > 0.0f);
+	memset(&tTrack, 0, sizeof(tTrack));
+	tTrack.iSizeMode = XUI_SIZE_FIXED;
+	tTrack.fValue = bPanel ? pData->fDescriptionPanelHeight : 0.0f;
+	tTrack.fMax = bPanel ? pData->fDescriptionPanelHeight : 0.0f;
+	tTrack.fShrink = 1.0f;
+	return xuiWidgetSetTableRow(pWidget, 1, &tTrack);
+}
+
+static int __xuiPropertyGridLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
 {
 	xui_property_grid_data_t* pData;
 	xui_rect_t tTable;
-	float fPanelHeight;
+	float fDescriptionY;
+	float fDescriptionHeight;
 
 	(void)pUser;
 	pData = __xuiPropertyGridGetData(pWidget);
 	if ( (pData == NULL) || (pData->pTableGrid == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	tTable = tContentRect;
-	pData->tDescriptionRect = (xui_rect_t){0.0f, 0.0f, 0.0f, 0.0f};
-	if ( ((pData->iDescriptionMode == XUI_PROPERTY_GRID_DESCRIPTION_PANEL) || (pData->iDescriptionMode == XUI_PROPERTY_GRID_DESCRIPTION_BOTH)) &&
-	     (pData->fDescriptionPanelHeight > 0.0f) &&
-	     (tContentRect.fH > pData->fDescriptionPanelHeight + 20.0f) ) {
-		fPanelHeight = __xuiPropertyGridMin(pData->fDescriptionPanelHeight, tContentRect.fH - 20.0f);
-		tTable.fH = __xuiPropertyGridMax(1.0f, tContentRect.fH - fPanelHeight);
-		pData->tDescriptionRect = (xui_rect_t){tContentRect.fX, tContentRect.fY + tTable.fH, tContentRect.fW, fPanelHeight};
+	tTable = xuiWidgetGetRect(pData->pTableGrid);
+	fDescriptionY = tTable.fY + tTable.fH;
+	fDescriptionHeight = __xuiPropertyGridMax(0.0f,
+		tContentRect.fY + tContentRect.fH - fDescriptionY);
+	if ( fDescriptionHeight > 0.0f &&
+	     ((pData->iDescriptionMode == XUI_PROPERTY_GRID_DESCRIPTION_PANEL) ||
+	      (pData->iDescriptionMode == XUI_PROPERTY_GRID_DESCRIPTION_BOTH)) ) {
+		pData->tDescriptionRect = xuiInternalSnapRect((xui_rect_t){
+			tContentRect.fX, fDescriptionY, tContentRect.fW, fDescriptionHeight});
+	} else {
+		pData->tDescriptionRect = (xui_rect_t){0.0f, 0.0f, 0.0f, 0.0f};
 	}
-	(void)xuiWidgetArrange(pData->pTableGrid, tTable);
 	__xuiPropertyGridSyncColumns(pData);
 	return XUI_OK;
 }
@@ -1099,7 +1123,7 @@ static int __xuiPropertyGridUpdate(xui_widget pWidget, float fDelta, void* pUser
 static void __xuiPropertyGridDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_TABLE;
 	pLayout->iWidthMode = XUI_SIZE_CONTENT;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -1137,6 +1161,7 @@ static int __xuiPropertyGridInit(xui_widget pWidget, void* pTypeData, const void
 	const xui_property_grid_desc_t* pDesc;
 	xui_table_grid_desc_t tGridDesc;
 	xui_widget pFrame;
+	xui_table_track_t tTrack;
 	int iRet;
 
 	(void)pUser;
@@ -1149,6 +1174,18 @@ static int __xuiPropertyGridInit(xui_widget pWidget, void* pTypeData, const void
 	pData->pWidget = pWidget;
 	pData->iSelectedProperty = -1;
 	__xuiPropertyGridApplyDesc(pData, pDesc);
+	iRet = xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_TABLE);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTableSize(pWidget, 2, 1);
+	memset(&tTrack, 0, sizeof(tTrack));
+	tTrack.iSizeMode = XUI_SIZE_FILL;
+	tTrack.fMin = 20.0f;
+	tTrack.fMax = XUI_LAYOUT_UNBOUNDED;
+	tTrack.fWeight = 1.0f;
+	tTrack.fShrink = 1.0f;
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTableRow(pWidget, 0, &tTrack);
+	tTrack.fMin = 0.0f;
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTableColumn(pWidget, 0, &tTrack);
+	if ( iRet != XUI_OK ) return iRet;
 	memset(&tGridDesc, 0, sizeof(tGridDesc));
 	tGridDesc.iSize = sizeof(tGridDesc);
 	tGridDesc.arrColumns = pData->arrColumns;
@@ -1179,6 +1216,10 @@ static int __xuiPropertyGridInit(xui_widget pWidget, void* pTypeData, const void
 	(void)xuiWidgetSetRect(pData->pTableGrid, (xui_rect_t){0.0f, 0.0f, 360.0f, 240.0f});
 	iRet = xuiWidgetAddChild(pWidget, pData->pTableGrid);
 	if ( iRet != XUI_OK ) return iRet;
+	(void)xuiWidgetSetFlowMode(pData->pTableGrid, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pTableGrid, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pTableGrid, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
+	(void)xuiWidgetSetTableCell(pData->pTableGrid, 0, 0, 1, 1);
 	pData->pTableView = xuiTableGridGetTableView(pData->pTableGrid);
 	if ( pData->pTableView == NULL ) return XUI_ERROR_NOT_INITIALIZED;
 	(void)xuiTableViewSetSelect(pData->pTableView, __xuiPropertyGridSelectProc, pData);
@@ -1189,7 +1230,6 @@ static int __xuiPropertyGridInit(xui_widget pWidget, void* pTypeData, const void
 	}
 	(void)xuiTableGridSetSelectionMode(pData->pTableGrid, XUI_TABLE_VIEW_SELECTION_CELL);
 	(void)xuiTableGridSetDefaultMetrics(pData->pTableGrid, 120.0f, pData->fRowHeight, 0.0f);
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
 	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_VISIBLE);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
@@ -1251,7 +1291,8 @@ XUI_API xui_widget_type xuiPropertyGridGetType(xui_context pContext)
 	tDesc.onInit = __xuiPropertyGridInit;
 	tDesc.onDestroy = __xuiPropertyGridDestroy;
 	tDesc.onContentMeasure = __xuiPropertyGridContentMeasure;
-	tDesc.onLayoutArrange = __xuiPropertyGridArrange;
+	tDesc.onLayoutPrepare = __xuiPropertyGridPrepare;
+	tDesc.onLayoutComplete = __xuiPropertyGridLayoutComplete;
 	tDesc.onCacheRender = __xuiPropertyGridRender;
 	tDesc.onUpdate = __xuiPropertyGridUpdate;
 	__xuiPropertyGridDefaultLayout(&tDesc.tLayout);

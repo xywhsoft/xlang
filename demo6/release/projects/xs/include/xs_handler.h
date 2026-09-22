@@ -18,7 +18,7 @@ extern "C" {
 #define XS_HANDLER_ABI_VERSION 1u
 #define XS_HANDLER_ENTRY_NAME "xs_handler"
 
-typedef struct xvalue_struct* xvalue;
+typedef struct xvalue xvalue;
 typedef struct xs_handler_frame xs_handler_frame;
 typedef struct xs_handler_host_api xs_handler_host_api;
 
@@ -73,7 +73,7 @@ struct xs_handler_host_api {
 
     uint64_t (*now_ms)(void);
     int (*is_cancelled)(const xs_handler_frame* frame);
-    int (*set_output)(xs_handler_frame* frame, xvalue value);
+    int (*set_output)(xs_handler_frame* frame, xvalue* value);
     int (*set_output_text)(xs_handler_frame* frame, const char* text);
     void (*log)(const xs_handler_frame* frame, int level, const char* message);
 
@@ -97,8 +97,8 @@ struct xs_handler_frame {
     void* request;
     void* response;
 
-    xvalue input;
-    xvalue output;
+    xvalue* input;
+    xvalue* output;
 
     const xs_handler_host_api* api;
     void* host;

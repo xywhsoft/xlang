@@ -1739,18 +1739,27 @@ static int __xuiTimeLineContentMeasure(xui_widget pWidget, xui_vec2_t tConstrain
 	return XUI_OK;
 }
 
-static int __xuiTimeLineArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiTimeLinePrepare(xui_widget pWidget, void* pUser)
 {
 	xui_timeline_view_data_t* pData;
-	xui_rect_t tFrame;
+	xui_thickness_t tMargin;
+	int iRet;
+	pData = (xui_timeline_view_data_t*)pUser;
+	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	tMargin = (xui_thickness_t){pData->fLayerHeaderWidth, pData->fRulerHeight, 0.0f, 0.0f};
+	iRet = xuiWidgetSetMargin(pData->pFrame, tMargin);
+	if ( iRet != XUI_OK ) return iRet;
+	return __xuiTimeLineApplyFrameStyle(pWidget, pData);
+}
+
+static int __xuiTimeLineLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_timeline_view_data_t* pData;
 	int iRet;
 	(void)tContentRect;
 	pData = (xui_timeline_view_data_t*)pUser;
 	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	tFrame = __xuiTimeLineFrameRect(pWidget, pData);
 	iRet = __xuiTimeLineUpdateContentSize(pWidget, pData);
-	if ( iRet == XUI_OK ) iRet = xuiWidgetArrange(pData->pFrame, tFrame);
-	if ( iRet == XUI_OK ) iRet = xuiScrollFrameLayout(pData->pFrame);
 	return iRet;
 }
 
@@ -1824,7 +1833,9 @@ static int __xuiTimeLineCreateFrame(xui_widget pWidget, xui_timeline_view_data_t
 		pData->pFrame = NULL;
 		return iRet;
 	}
-	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_ABSOLUTE);
+	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pFrame, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pFrame, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	pData->pViewport = xuiScrollFrameGetViewportWidget(pData->pFrame);
 	if ( pData->pViewport == NULL ) {
 		xuiWidgetDestroy(pData->pFrame);
@@ -1909,7 +1920,7 @@ static int __xuiTimeLineInit(xui_widget pWidget, void* pTypeData, const void* pC
 	__xuiTimeLineDefaults(pData);
 	__xuiTimeLineApplyDesc(pData, pDesc);
 	if ( pData->pFont == NULL ) pData->pFont = xuiGetDefaultFont(xuiWidgetGetContext(pWidget));
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_OVERLAY);
 	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
@@ -1985,7 +1996,8 @@ XUI_API xui_widget_type xuiTimeLineViewGetType(xui_context pContext)
 	tDesc.onInit = __xuiTimeLineInit;
 	tDesc.onDestroy = __xuiTimeLineDestroy;
 	tDesc.onContentMeasure = __xuiTimeLineContentMeasure;
-	tDesc.onLayoutArrange = __xuiTimeLineArrange;
+	tDesc.onLayoutPrepare = __xuiTimeLinePrepare;
+	tDesc.onLayoutComplete = __xuiTimeLineLayoutComplete;
 	tDesc.onCacheRender = __xuiTimeLineCacheRender;
 	__xuiTimeLineDefaultLayout(&tLayout);
 	__xuiTimeLineDefaultCachePolicy(&tPolicy);

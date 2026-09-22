@@ -1,7 +1,0 @@
-async func next_text() as string
-	return "b"
-end
-
-async func main() as int
-	return (("a" + await next_text()) == "ab") ? 14 : 0
-end

@@ -1,5 +1,11 @@
 import lz4
 
+class FileProgress
+    int calls = 0
+    int inputBytes = 0
+    int totalBytes = 0
+end
+
 
 
 func main(...) as int
@@ -12,6 +18,9 @@ func main(...) as int
     Buffer packed = lz4.compress(source)
     Buffer plain = lz4.decompress(packed)
     assert plain == source, "lz4 Buffer round trip failed"
+    for i in range(packed.len() - 8, packed.len())
+        assert packed[i] == 0, "lz4 member end record must be deterministic"
+    end
     println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
     // 直接压缩字符串（内部自动转 Buffer）。
@@ -44,6 +53,20 @@ func main(...) as int
     assert restored.text() == "hello stream", "lz4 incremental round trip failed"
     println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
 
+    // 前一成员完整时，不能掩盖后一成员缺失结束记录。
+    Buffer chainedTruncated = Buffer()
+    chainedTruncated.append(packed)
+    for i in range(0, streamPacked.len() - 12)
+        chainedTruncated.appendByte(streamPacked[i])
+    end
+    bool truncatedRejected = false
+    try
+        lz4.decompress(chainedTruncated)
+    catch CompressionError e
+        truncatedRejected = true
+    end
+    assert truncatedRejected, "truncated final lz4 member must be rejected"
+
     // ─── 4. 加速因子调优（1..65537，越大越快但压缩率越低）───
     auto tuned = lz4.compressor(lz4.LZ4_MAX_ACCELERATION)
     tuned.update("tune me")
@@ -66,7 +89,17 @@ func main(...) as int
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
     dir.createAll("tmp")
     file.writeBytes("tmp/lz4_example_source.bin", source)
-    lz4.compressFile("tmp/lz4_example_source.bin", "tmp/lz4_example.lz4")
+    FileProgress progress = FileProgress()
+    lz4.compressFile("tmp/lz4_example_source.bin", "tmp/lz4_example.lz4",
+        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+            progress.calls += 1
+            progress.inputBytes = inputBytes
+            progress.totalBytes = totalBytes
+            return true
+        end)
+    assert progress.calls > 0
+    assert progress.inputBytes == source.len()
+    assert progress.totalBytes == source.len()
     lz4.decompressFile("tmp/lz4_example.lz4", "tmp/lz4_example_plain.bin")
     assert file.readBytes("tmp/lz4_example_plain.bin") == source
     file.delete("tmp/lz4_example_source.bin")

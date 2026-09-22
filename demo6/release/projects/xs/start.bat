@@ -2,8 +2,12 @@
 setlocal
 
 set "XS_DIR=%~dp0"
-set "XL_EXE=%XS_DIR%..\..\xl.exe"
-if not exist "%XL_EXE%" set "XL_EXE=xl"
+set "XS_EXE=%XS_DIR%xs.exe"
 
-"%XL_EXE%" run "%XS_DIR%xs.xl" -- %*
+if not exist "%XS_EXE%" (
+    echo xs.exe is missing. Build it with: xl build projects\xs\xs.xl -o projects\xs\xs.exe
+    exit /b 1
+)
+
+"%XS_EXE%" %*
 exit /b %errorlevel%

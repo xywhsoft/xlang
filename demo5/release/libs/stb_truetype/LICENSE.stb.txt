@@ -1,6 +1,0 @@
-stb_truetype is public domain or MIT licensed at your option.
-
-The bundled header in include/stb_truetype.h contains the complete upstream
-license and copyright notice from the stb project:
-
-https://github.com/nothings/stb

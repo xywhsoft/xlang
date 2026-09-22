@@ -1,7 +1,15 @@
 #ifndef XRT_PLIST_H
 #define XRT_PLIST_H
 
-#include "../../../../lib/xrt/xrt.h"
+/* Plist 公共契约直接依赖连续缓冲和通用 Reader/Writer。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+
+#include "xrt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,74 +67,74 @@ typedef struct {
 	char sMessage[256];
 } xrtplisterror;
 
-XXAPI void xrtPlistOptionsInit(xrtplistoptions* pOptions);
-XXAPI void xrtPlistErrorInit(xrtplisterror* pError);
+XRT_API void xrtPlistOptionsInit(xrtplistoptions* pOptions);
+XRT_API void xrtPlistErrorInit(xrtplisterror* pError);
 
-XXAPI xrtplistdocument* xrtPlistParse(xreader pReader, bool bTakeOwnership,
+XRT_API xrtplistdocument* xrtPlistParse(xreader* pReader, bool bTakeOwnership,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
-XXAPI xrtplistdocument* xrtPlistParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtplistdocument* xrtPlistParseMemory(const void* pData, uint64 iSize,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
-XXAPI xrtplistdocument* xrtPlistLoad(str sPath,
+XRT_API xrtplistdocument* xrtPlistLoad(str sPath,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
 
-XXAPI xrtplistdocument* xrtPlistCreate(void);
-XXAPI void xrtPlistDestroy(xrtplistdocument* pDocument);
-XXAPI xrtplistnode* xrtPlistRoot(const xrtplistdocument* pDocument);
-XXAPI bool xrtPlistSetRoot(xrtplistdocument* pDocument,
+XRT_API xrtplistdocument* xrtPlistCreate(void);
+XRT_API void xrtPlistDestroy(xrtplistdocument* pDocument);
+XRT_API xrtplistnode* xrtPlistRoot(const xrtplistdocument* pDocument);
+XRT_API bool xrtPlistSetRoot(xrtplistdocument* pDocument,
 	xrtplistnode* pRoot);
 
-XXAPI xrtplistnode* xrtPlistCreateNull(xrtplistdocument* pDocument);
-XXAPI xrtplistnode* xrtPlistCreateBool(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateNull(xrtplistdocument* pDocument);
+XRT_API xrtplistnode* xrtPlistCreateBool(xrtplistdocument* pDocument,
 	bool bValue);
-XXAPI xrtplistnode* xrtPlistCreateInt(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateInt(xrtplistdocument* pDocument,
 	int64 iValue);
-XXAPI xrtplistnode* xrtPlistCreateReal(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateReal(xrtplistdocument* pDocument,
 	double fValue);
-XXAPI xrtplistnode* xrtPlistCreateString(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateString(xrtplistdocument* pDocument,
 	str sValue);
-XXAPI xrtplistnode* xrtPlistCreateStringEx(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateStringEx(xrtplistdocument* pDocument,
 	const void* pValue, uint64 iSize);
-XXAPI xrtplistnode* xrtPlistCreateData(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateData(xrtplistdocument* pDocument,
 	const void* pValue, uint64 iSize);
-XXAPI xrtplistnode* xrtPlistCreateDate(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateDate(xrtplistdocument* pDocument,
 	xtime tValue);
-XXAPI xrtplistnode* xrtPlistCreateArray(xrtplistdocument* pDocument);
-XXAPI xrtplistnode* xrtPlistCreateDict(xrtplistdocument* pDocument);
-XXAPI xrtplistnode* xrtPlistCreateUid(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateArray(xrtplistdocument* pDocument);
+XRT_API xrtplistnode* xrtPlistCreateDict(xrtplistdocument* pDocument);
+XRT_API xrtplistnode* xrtPlistCreateUid(xrtplistdocument* pDocument,
 	uint64 iValue);
 
-XXAPI int xrtPlistNodeType(const xrtplistnode* pNode);
-XXAPI bool xrtPlistBool(const xrtplistnode* pNode);
-XXAPI int64 xrtPlistInt(const xrtplistnode* pNode);
-XXAPI double xrtPlistReal(const xrtplistnode* pNode);
-XXAPI xtime xrtPlistDate(const xrtplistnode* pNode);
-XXAPI uint64 xrtPlistUid(const xrtplistnode* pNode);
-XXAPI const void* xrtPlistBytes(const xrtplistnode* pNode);
-XXAPI uint64 xrtPlistByteSize(const xrtplistnode* pNode);
+XRT_API int xrtPlistNodeType(const xrtplistnode* pNode);
+XRT_API bool xrtPlistBool(const xrtplistnode* pNode);
+XRT_API int64 xrtPlistInt(const xrtplistnode* pNode);
+XRT_API double xrtPlistReal(const xrtplistnode* pNode);
+XRT_API xtime xrtPlistDate(const xrtplistnode* pNode);
+XRT_API uint64 xrtPlistUid(const xrtplistnode* pNode);
+XRT_API const void* xrtPlistBytes(const xrtplistnode* pNode);
+XRT_API uint64 xrtPlistByteSize(const xrtplistnode* pNode);
 
-XXAPI uint32 xrtPlistArrayCount(const xrtplistnode* pNode);
-XXAPI xrtplistnode* xrtPlistArrayGet(const xrtplistnode* pNode,
+XRT_API uint32 xrtPlistArrayCount(const xrtplistnode* pNode);
+XRT_API xrtplistnode* xrtPlistArrayGet(const xrtplistnode* pNode,
 	uint32 iIndex);
-XXAPI bool xrtPlistArrayAppend(xrtplistnode* pNode,
+XRT_API bool xrtPlistArrayAppend(xrtplistnode* pNode,
 	xrtplistnode* pValue);
-XXAPI uint32 xrtPlistDictCount(const xrtplistnode* pNode);
-XXAPI const void* xrtPlistDictKey(const xrtplistnode* pNode,
+XRT_API uint32 xrtPlistDictCount(const xrtplistnode* pNode);
+XRT_API const void* xrtPlistDictKey(const xrtplistnode* pNode,
 	uint32 iIndex);
-XXAPI uint64 xrtPlistDictKeySize(const xrtplistnode* pNode,
+XRT_API uint64 xrtPlistDictKeySize(const xrtplistnode* pNode,
 	uint32 iIndex);
-XXAPI xrtplistnode* xrtPlistDictValue(const xrtplistnode* pNode,
+XRT_API xrtplistnode* xrtPlistDictValue(const xrtplistnode* pNode,
 	uint32 iIndex);
-XXAPI xrtplistnode* xrtPlistDictGet(const xrtplistnode* pNode,
+XRT_API xrtplistnode* xrtPlistDictGet(const xrtplistnode* pNode,
 	const void* pKey, uint64 iKeySize);
-XXAPI bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
+XRT_API bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 	uint64 iKeySize, xrtplistnode* pValue);
 
-XXAPI xbuffer xrtPlistStringify(const xrtplistdocument* pDocument,
+XRT_API xbuffer* xrtPlistStringify(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
-XXAPI bool xrtPlistWrite(const xrtplistdocument* pDocument, xwriter pWriter,
+XRT_API bool xrtPlistWrite(const xrtplistdocument* pDocument, xwriter* pWriter,
 	bool bTakeOwnership, const xrtplistoptions* pOptions,
 	xrtplisterror* pError);
-XXAPI bool xrtPlistSave(str sPath, const xrtplistdocument* pDocument,
+XRT_API bool xrtPlistSave(str sPath, const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
 
 #ifdef __cplusplus

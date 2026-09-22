@@ -1,5 +1,0 @@
-extern func sdk_add_one(int value) as int
-
-func main() as int
-	return sdk_add_one(41) - 42
-end

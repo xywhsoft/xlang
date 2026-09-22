@@ -18,7 +18,8 @@
             "src/xge_shape.xl",
             "src/xge_scene.xl",
             "src/xge_async.xl",
-            "src/xge_platform.xl"
+            "src/xge_platform.xl",
+            "src/xge_oop.xl"
         ]
     },
     "links": [],

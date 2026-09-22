@@ -1,3 +1,0 @@
-func add(auto x) as int
-	return x
-end

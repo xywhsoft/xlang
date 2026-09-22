@@ -12,7 +12,7 @@ try {
         Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
-        'src/ir/xl6_hir_type.c','src/ir/xl6_hir.c','src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
+        'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c','src/common/xl6_output.c','src/common/xl6_console.c',
         'src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',
@@ -72,9 +72,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Conditional storage typed fixture strict C build failed' }
     & "$prefix.typed.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Conditional storage typed fixture runtime failed' }
-    # These are XLIR-only contracts: legacy emits invalid tagged nullable C
-    # and fails the pre-existing nullable-class coalesce baseline at runtime.
-    # Keep all language assertions, without making old miscompilation an oracle.
+    # These are canonical XLIR contracts for tagged nullable storage and the
+    # pre-existing nullable-class coalesce baseline.
     & gcc @strict -DXLIR_GENERATED_MODULE_PREINCLUDED -DXLIR_GENERATED_MODULE_USER_ENTRY -include build/test/xlir_nullable_sentinel_assign_if_null_generated.c test/cases/xlir_generated_module_host.c release/xl.dll -o "$prefix.baseline.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Conditional storage sentinel baseline strict C build failed' }
     & "$prefix.baseline.exe"

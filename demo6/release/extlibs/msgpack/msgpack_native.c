@@ -1,171 +1,332 @@
-/* msgpack_native.c - MessagePack encoder/decoder */
+/* MessagePack 的 xvalue/xbuffer 绑定，不使用固定大小或共享结果缓冲。 */
+#include <limits.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
-static char hex_buf[16384];
-static char str_buf[4096];
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_CODEC_HEX
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_VALUE_CONTAINER
+#include "xrt.h"
 
-static void to_hex(const unsigned char *data, int len, char *out) {
-    int i;
-    for (i = 0; i < len; i++) sprintf(out + i*2, "%02x", data[i]);
-    out[len*2] = '\0';
+#define XMSGPACK_DOMAIN "xlang.extlib.msgpack"
+#define XMSGPACK_MAX_DEPTH 64u
+#define XMSGPACK_MAX_ITEMS 1000000u
+#define XMSGPACK_MAX_BYTES (64u * 1024u * 1024u)
+#define XMSGPACK_RESULT_SLOTS 8u
+
+#if defined(_WIN32) || defined(_WIN64)
+#define XMSGPACK_THREAD __declspec(thread)
+#elif defined(__GNUC__) || defined(__clang__)
+#define XMSGPACK_THREAD __thread
+#else
+#define XMSGPACK_THREAD
+#endif
+
+typedef struct xmsgpack_reader {
+    const uint8* Data;
+    size_t Size;
+    size_t Offset;
+    size_t Items;
+} xmsgpack_reader;
+
+static XMSGPACK_THREAD xbuffer g_xmsgpack_results[XMSGPACK_RESULT_SLOTS];
+static XMSGPACK_THREAD size_t g_xmsgpack_result_index;
+
+static void xmsgpack_error(xerrkind Kind, cstr sMessage)
+{
+    xrtSetErrorInfo(Kind, XMSGPACK_DOMAIN, 0, sMessage);
 }
 
-static int from_hex(const char *hex, unsigned char *out) {
-    int len = (int)strlen(hex) / 2, i;
-    for (i = 0; i < len; i++) { unsigned int v; sscanf(hex+i*2, "%02x", &v); out[i] = (unsigned char)v; }
-    return len;
+static bool xmsgpack_append(xbuffer* pOutput, const void* pData, size_t iSize)
+{
+    if (iSize > XMSGPACK_MAX_BYTES || pOutput->Size > XMSGPACK_MAX_BYTES - iSize) {
+        xmsgpack_error(XERR_RANGE, "MessagePack output exceeds the 64 MiB safety limit");
+        return false;
+    }
+    return xrtBufferAppend(pOutput, (xbytesview){ (cbytes)pData, iSize });
 }
 
-/* Encode integer */
-const char *xmsgpack_encode_int(long long value) {
-    unsigned char buf[16]; int pos = 0;
-    if (value >= 0 && value <= 127) { buf[pos++] = (unsigned char)value; }
-    else if (value < 0 && value >= -32) { buf[pos++] = (unsigned char)(0xe0 | (value + 32)); }
-    else if (value >= 0 && value <= 255) { buf[pos++] = 0xcc; buf[pos++] = (unsigned char)value; }
-    else if (value >= -128 && value <= 127) { buf[pos++] = 0xd0; buf[pos++] = (unsigned char)(signed char)value; }
-    else if (value >= 0 && value <= 65535) { buf[pos++] = 0xcd; buf[pos++] = (unsigned char)(value>>8); buf[pos++] = (unsigned char)value; }
-    else if (value >= -32768 && value <= 32767) { buf[pos++] = 0xd1; buf[pos++] = (unsigned char)(value>>8); buf[pos++] = (unsigned char)value; }
-    else if (value >= 0 && value <= 4294967295LL) { buf[pos++] = 0xce; int i; for(i=3;i>=0;i--) buf[pos++]=(unsigned char)(value>>(i*8)); }
-    else if (value >= -2147483648LL && value <= 2147483647LL) { buf[pos++] = 0xd2; int i; for(i=3;i>=0;i--) buf[pos++]=(unsigned char)(value>>(i*8)); }
-    else if (value >= 0) { buf[pos++] = 0xcf; int i; for(i=7;i>=0;i--) buf[pos++]=(unsigned char)(value>>(i*8)); }
-    else { buf[pos++] = 0xd3; int i; for(i=7;i>=0;i--) buf[pos++]=(unsigned char)(value>>(i*8)); }
-    to_hex(buf, pos, hex_buf); return hex_buf;
+static bool xmsgpack_u8(xbuffer* pOutput, uint8 iValue)
+{
+    return xmsgpack_append(pOutput, &iValue, 1u);
 }
 
-/* Decode integer */
-long long xmsgpack_decode_int(const char *hex) {
-    unsigned char buf[16]; from_hex(hex, buf);
-    unsigned char c = buf[0];
-    if (c <= 0x7f) return c;
-    if (c >= 0xe0) return (long long)(signed char)c;
-    if (c == 0xcc) return buf[1];
-    if (c == 0xd0) return (signed char)buf[1];
-    if (c == 0xcd) return (buf[1]<<8)|buf[2];
-    if (c == 0xd1) return (short)((buf[1]<<8)|buf[2]);
-    if (c == 0xce) return ((long long)buf[1]<<24)|((long long)buf[2]<<16)|((long long)buf[3]<<8)|buf[4];
-    if (c == 0xd2) return (int)(((long long)buf[1]<<24)|((long long)buf[2]<<16)|((long long)buf[3]<<8)|buf[4]);
-    if (c == 0xcf) { long long v=0; int i; for(i=0;i<8;i++) v=(v<<8)|buf[1+i]; return v; }
-    if (c == 0xd3) { long long v=0; int i; for(i=0;i<8;i++) v=(v<<8)|buf[1+i]; return v; }
-    return 0;
+static bool xmsgpack_uint(xbuffer* pOutput, uint64 iValue, uint8 iBytes)
+{
+    uint8 aBytes[8];
+    size_t i;
+    for (i = 0u; i < iBytes; ++i) {
+        aBytes[i] = (uint8)(iValue >> ((iBytes - 1u - i) * 8u));
+    }
+    return xmsgpack_append(pOutput, aBytes, iBytes);
 }
 
-/* Encode string */
-const char *xmsgpack_encode_str(const char *s) {
-    unsigned char buf[4096]; int slen = (int)strlen(s); int pos = 0;
-    if (slen <= 31) { buf[pos++] = (unsigned char)(0xa0 | slen); }
-    else if (slen <= 255) { buf[pos++] = 0xd9; buf[pos++] = (unsigned char)slen; }
-    else { buf[pos++] = 0xda; buf[pos++] = (unsigned char)(slen>>8); buf[pos++] = (unsigned char)slen; }
-    memcpy(buf + pos, s, slen); pos += slen;
-    to_hex(buf, pos, hex_buf); return hex_buf;
+static bool xmsgpack_unsigned(xbuffer* pOutput, uint64 iValue)
+{
+    if (iValue <= 127u) { return xmsgpack_u8(pOutput, (uint8)iValue); }
+    if (iValue <= UINT8_MAX) { return xmsgpack_u8(pOutput, 0xccu) && xmsgpack_uint(pOutput, iValue, 1u); }
+    if (iValue <= UINT16_MAX) { return xmsgpack_u8(pOutput, 0xcdu) && xmsgpack_uint(pOutput, iValue, 2u); }
+    if (iValue <= UINT32_MAX) { return xmsgpack_u8(pOutput, 0xceu) && xmsgpack_uint(pOutput, iValue, 4u); }
+    return xmsgpack_u8(pOutput, 0xcfu) && xmsgpack_uint(pOutput, iValue, 8u);
 }
 
-/* Decode string */
-const char *xmsgpack_decode_str(const char *hex) {
-    unsigned char buf[4096]; from_hex(hex, buf);
-    int pos = 0, slen;
-    unsigned char c = buf[0];
-    if (c >= 0xa0 && c <= 0xbf) { slen = c & 0x1f; pos = 1; }
-    else if (c == 0xd9) { slen = buf[1]; pos = 2; }
-    else if (c == 0xda) { slen = (buf[1]<<8)|buf[2]; pos = 3; }
-    else { slen = 0; pos = 1; }
-    memcpy(str_buf, buf + pos, slen);
-    str_buf[slen] = '\0';
-    return str_buf;
+static bool xmsgpack_signed(xbuffer* pOutput, int64 iValue)
+{
+    if (iValue >= 0) { return xmsgpack_unsigned(pOutput, (uint64)iValue); }
+    if (iValue >= -32) { return xmsgpack_u8(pOutput, (uint8)iValue); }
+    if (iValue >= INT8_MIN) { return xmsgpack_u8(pOutput, 0xd0u) && xmsgpack_uint(pOutput, (uint8)iValue, 1u); }
+    if (iValue >= INT16_MIN) { return xmsgpack_u8(pOutput, 0xd1u) && xmsgpack_uint(pOutput, (uint16)iValue, 2u); }
+    if (iValue >= INT32_MIN) { return xmsgpack_u8(pOutput, 0xd2u) && xmsgpack_uint(pOutput, (uint32)iValue, 4u); }
+    return xmsgpack_u8(pOutput, 0xd3u) && xmsgpack_uint(pOutput, (uint64)iValue, 8u);
 }
 
-/* Encode binary from hex */
-const char *xmsgpack_encode_bin(const char *data_hex) {
-    unsigned char data[4096]; int dlen = from_hex(data_hex, data);
-    unsigned char buf[4200]; int pos = 0;
-    if (dlen <= 255) { buf[pos++] = 0xc4; buf[pos++] = (unsigned char)dlen; }
-    else { buf[pos++] = 0xc5; buf[pos++] = (unsigned char)(dlen>>8); buf[pos++] = (unsigned char)dlen; }
-    memcpy(buf + pos, data, dlen); pos += dlen;
-    to_hex(buf, pos, hex_buf); return hex_buf;
+static bool xmsgpack_length(xbuffer* pOutput, uint8 iFixedBase, uint8 iFixedMax,
+    uint8 i8, uint8 i16, uint8 i32, size_t iSize)
+{
+    if (iFixedBase != 0u && iSize <= iFixedMax) { return xmsgpack_u8(pOutput, (uint8)(iFixedBase | iSize)); }
+    if (iSize <= UINT8_MAX && i8 != 0u) { return xmsgpack_u8(pOutput, i8) && xmsgpack_uint(pOutput, iSize, 1u); }
+    if (iSize <= UINT16_MAX) { return xmsgpack_u8(pOutput, i16) && xmsgpack_uint(pOutput, iSize, 2u); }
+    if (iSize <= UINT32_MAX) { return xmsgpack_u8(pOutput, i32) && xmsgpack_uint(pOutput, iSize, 4u); }
+    xmsgpack_error(XERR_RANGE, "MessagePack collection exceeds uint32 length");
+    return false;
 }
 
-/* Decode binary to hex */
-const char *xmsgpack_decode_bin(const char *hex) {
-    unsigned char buf[4096]; from_hex(hex, buf);
-    int pos, dlen;
-    if (buf[0] == 0xc4) { dlen = buf[1]; pos = 2; }
-    else { dlen = (buf[1]<<8)|buf[2]; pos = 3; }
-    to_hex(buf + pos, dlen, hex_buf); return hex_buf;
+static bool xmsgpack_value(xbuffer* pOutput, const xvalue* pValue, size_t iDepth);
+
+static bool xmsgpack_array(xbuffer* pOutput, const xvalue* pValue, size_t iDepth)
+{
+    size_t iCount = xrtValueCount(pValue);
+    size_t i;
+    if (iCount > XMSGPACK_MAX_ITEMS || !xmsgpack_length(pOutput, 0x90u, 15u, 0u, 0xdcu, 0xddu, iCount)) { return false; }
+    for (i = 0u; i < iCount; ++i) {
+        xvalue* pItem = xrtValueArrayGet(pValue, i);
+        if (pItem == NULL || !xmsgpack_value(pOutput, pItem, iDepth + 1u)) { return false; }
+    }
+    return true;
 }
 
-/* Encode nil */
-const char *xmsgpack_encode_nil(void) { return "c0"; }
-
-/* Encode bool */
-const char *xmsgpack_encode_bool(long long val) { return val ? "c3" : "c2"; }
-
-/* Decode bool */
-long long xmsgpack_decode_bool(const char *hex) {
-    unsigned char buf[4]; from_hex(hex, buf);
-    return buf[0] == 0xc3 ? 1 : 0;
+static bool xmsgpack_object(xbuffer* pOutput, const xvalue* pValue, size_t iDepth)
+{
+    size_t iCount = xrtValueCount(pValue);
+    size_t i;
+    if (iCount > XMSGPACK_MAX_ITEMS || !xmsgpack_length(pOutput, 0x80u, 15u, 0u, 0xdeu, 0xdfu, iCount)) { return false; }
+    for (i = 0u; i < iCount; ++i) {
+        xstrview Key;
+        xvalue* pItem = xrtValueObjectAt(pValue, i, &Key);
+        if (pItem == NULL || !xmsgpack_length(pOutput, 0xa0u, 31u, 0xd9u, 0xdau, 0xdbu, Key.Size) ||
+            !xmsgpack_append(pOutput, Key.Data, Key.Size) || !xmsgpack_value(pOutput, pItem, iDepth + 1u)) { return false; }
+    }
+    return true;
 }
 
-/* Encode float64 */
-const char *xmsgpack_encode_float(double val) {
-    unsigned char buf[9]; buf[0] = 0xcb;
-    unsigned long long bits; memcpy(&bits, &val, 8);
-    int i; for(i=7;i>=0;i--) buf[8-i] = (unsigned char)(bits>>(i*8));
-    to_hex(buf, 9, hex_buf); return hex_buf;
+static bool xmsgpack_value(xbuffer* pOutput, const xvalue* pValue, size_t iDepth)
+{
+    xvaluetype Type;
+    bool bValue;
+    int64 iValue;
+    double fValue;
+    uint64 iBits;
+    xstrview Text;
+    xbytesview Bytes;
+
+    if (pValue == NULL || iDepth > XMSGPACK_MAX_DEPTH) {
+        xmsgpack_error(XERR_RANGE, "MessagePack value is missing or nested too deeply");
+        return false;
+    }
+    Type = xrtValueType(pValue);
+    switch (Type) {
+        case XVALUE_NULL: return xmsgpack_u8(pOutput, 0xc0u);
+        case XVALUE_BOOL: return xrtValueGetBool(pValue, &bValue) && xmsgpack_u8(pOutput, bValue ? 0xc3u : 0xc2u);
+        case XVALUE_INT: return xrtValueGetInt(pValue, &iValue) && xmsgpack_signed(pOutput, iValue);
+        case XVALUE_FLOAT:
+            if (!xrtValueGetFloat(pValue, &fValue)) { return false; }
+            memcpy(&iBits, &fValue, sizeof(iBits));
+            return xmsgpack_u8(pOutput, 0xcbu) && xmsgpack_uint(pOutput, iBits, 8u);
+        case XVALUE_STRING:
+            return xrtValueGetString(pValue, &Text) && xmsgpack_length(pOutput, 0xa0u, 31u, 0xd9u, 0xdau, 0xdbu, Text.Size) &&
+                xmsgpack_append(pOutput, Text.Data, Text.Size);
+        case XVALUE_BYTES:
+            return xrtValueGetBytes(pValue, &Bytes) && xmsgpack_length(pOutput, 0u, 0u, 0xc4u, 0xc5u, 0xc6u, Bytes.Size) &&
+                xmsgpack_append(pOutput, Bytes.Data, Bytes.Size);
+        case XVALUE_ARRAY: return xmsgpack_array(pOutput, pValue, iDepth);
+        case XVALUE_OBJECT: return xmsgpack_object(pOutput, pValue, iDepth);
+        default:
+            xmsgpack_error(XERR_UNSUPPORTED, "MessagePack accepts null, bool, int, float, string, bytes, array and dict");
+            return false;
+    }
 }
 
-/* Decode float64 */
-double xmsgpack_decode_float(const char *hex) {
-    unsigned char buf[16]; from_hex(hex, buf);
-    unsigned long long bits = 0;
-    int i; for(i=0;i<8;i++) bits = (bits<<8)|buf[1+i];
-    double val; memcpy(&val, &bits, 8);
-    return val;
+static bool xmsgpack_need(xmsgpack_reader* pReader, size_t iSize)
+{
+    if (iSize > pReader->Size - pReader->Offset) { xmsgpack_error(XERR_PROTOCOL, "truncated MessagePack input"); return false; }
+    return true;
 }
 
-/* Encode array header */
-const char *xmsgpack_encode_array_hdr(long long count) {
-    unsigned char buf[8]; int pos = 0;
-    if (count <= 15) { buf[pos++] = (unsigned char)(0x90 | count); }
-    else if (count <= 65535) { buf[pos++] = 0xdc; buf[pos++] = (unsigned char)(count>>8); buf[pos++] = (unsigned char)count; }
-    else { buf[pos++] = 0xdd; int i; for(i=3;i>=0;i--) buf[pos++]=(unsigned char)(count>>(i*8)); }
-    to_hex(buf, pos, hex_buf); return hex_buf;
+static bool xmsgpack_read_uint(xmsgpack_reader* pReader, uint8 iBytes, uint64* pValue)
+{
+    uint64 iValue = 0u;
+    size_t i;
+    if (!xmsgpack_need(pReader, iBytes)) { return false; }
+    for (i = 0u; i < iBytes; ++i) { iValue = (iValue << 8u) | pReader->Data[pReader->Offset++]; }
+    *pValue = iValue;
+    return true;
 }
 
-/* Encode map header */
-const char *xmsgpack_encode_map_hdr(long long pairs) {
-    unsigned char buf[8]; int pos = 0;
-    if (pairs <= 15) { buf[pos++] = (unsigned char)(0x80 | pairs); }
-    else if (pairs <= 65535) { buf[pos++] = 0xde; buf[pos++] = (unsigned char)(pairs>>8); buf[pos++] = (unsigned char)pairs; }
-    else { buf[pos++] = 0xdf; int i; for(i=3;i>=0;i--) buf[pos++]=(unsigned char)(pairs>>(i*8)); }
-    to_hex(buf, pos, hex_buf); return hex_buf;
+static xvalue* xmsgpack_read_value(xmsgpack_reader* pReader, size_t iDepth);
+
+static xvalue* xmsgpack_read_array(xmsgpack_reader* pReader, uint64 iCount, size_t iDepth)
+{
+    uint64 i;
+    xvalue* pResult;
+    if (iCount > XMSGPACK_MAX_ITEMS || pReader->Items > XMSGPACK_MAX_ITEMS - (size_t)iCount) { xmsgpack_error(XERR_RANGE, "MessagePack array has too many items"); return NULL; }
+    pReader->Items += (size_t)iCount;
+    pResult = xrtValueArray();
+    if (pResult == NULL) { return NULL; }
+    for (i = 0u; i < iCount; ++i) {
+        xvalue* pItem = xmsgpack_read_value(pReader, iDepth + 1u);
+        if (pItem == NULL || !xrtValueArrayAppendTake(pResult, &pItem)) { xrtValueRelease(pItem); xrtValueRelease(pResult); return NULL; }
+    }
+    return pResult;
 }
 
-/* Get type name */
-const char *xmsgpack_type_name(const char *hex) {
-    unsigned char buf[4]; from_hex(hex, buf);
-    unsigned char c = buf[0];
-    if (c <= 0x7f) return "int";
-    if (c >= 0xe0) return "int";
-    if (c >= 0x80 && c <= 0x8f) return "map";
-    if (c >= 0x90 && c <= 0x9f) return "array";
-    if (c >= 0xa0 && c <= 0xbf) return "str";
-    if (c == 0xc0) return "nil";
-    if (c == 0xc2 || c == 0xc3) return "bool";
-    if (c == 0xc4 || c == 0xc5 || c == 0xc6) return "bin";
-    if (c == 0xca || c == 0xcb) return "float";
-    if (c >= 0xcc && c <= 0xcf) return "int";
-    if (c >= 0xd0 && c <= 0xd3) return "int";
-    if (c == 0xd9 || c == 0xda || c == 0xdb) return "str";
-    if (c == 0xdc || c == 0xdd) return "array";
-    if (c == 0xde || c == 0xdf) return "map";
-    return "unknown";
+static xvalue* xmsgpack_read_object(xmsgpack_reader* pReader, uint64 iCount, size_t iDepth)
+{
+    uint64 i;
+    xvalue* pResult;
+    if (iCount > XMSGPACK_MAX_ITEMS || pReader->Items > XMSGPACK_MAX_ITEMS - (size_t)iCount) { xmsgpack_error(XERR_RANGE, "MessagePack map has too many items"); return NULL; }
+    pReader->Items += (size_t)iCount;
+    pResult = xrtValueObject();
+    if (pResult == NULL) { return NULL; }
+    for (i = 0u; i < iCount; ++i) {
+        xvalue* pKey = xmsgpack_read_value(pReader, iDepth + 1u);
+        xvalue* pItem;
+        xstrview Key;
+        if (pKey == NULL || !xrtValueGetString(pKey, &Key)) { xrtValueRelease(pKey); xrtValueRelease(pResult); xmsgpack_error(XERR_PROTOCOL, "MessagePack map keys must be UTF-8 strings"); return NULL; }
+        pItem = xmsgpack_read_value(pReader, iDepth + 1u);
+        if (pItem == NULL || !xrtValueObjectSetTake(pResult, Key, &pItem)) { xrtValueRelease(pKey); xrtValueRelease(pItem); xrtValueRelease(pResult); return NULL; }
+        xrtValueRelease(pKey);
+    }
+    return pResult;
 }
 
-/* Concat */
-const char *xmsgpack_concat(const char *a, const char *b) {
-    static char cat[16384];
-    int la = (int)strlen(a);
-    memcpy(cat, a, la); strcpy(cat + la, b);
-    return cat;
+static xvalue* xmsgpack_read_blob(xmsgpack_reader* pReader, uint64 iSize, bool bText)
+{
+    xvalue* pResult;
+    if (iSize > XMSGPACK_MAX_BYTES || iSize > SIZE_MAX || !xmsgpack_need(pReader, (size_t)iSize)) { return NULL; }
+    if (bText && !xrtUtf8Valid((xstrview){ (cstr)(pReader->Data + pReader->Offset), (size_t)iSize }, NULL)) { xmsgpack_error(XERR_PROTOCOL, "MessagePack text is not valid UTF-8"); return NULL; }
+    pResult = bText ? xrtValueString((xstrview){ (cstr)(pReader->Data + pReader->Offset), (size_t)iSize }) :
+        xrtValueBytes((xbytesview){ pReader->Data + pReader->Offset, (size_t)iSize });
+    pReader->Offset += (size_t)iSize;
+    return pResult;
+}
+
+static xvalue* xmsgpack_read_value(xmsgpack_reader* pReader, size_t iDepth)
+{
+    uint8 iHead;
+    uint64 iValue;
+    if (iDepth > XMSGPACK_MAX_DEPTH || !xmsgpack_need(pReader, 1u)) { return NULL; }
+    iHead = pReader->Data[pReader->Offset++];
+    if (iHead <= 0x7fu) { return xrtValueInt(iHead); }
+    if (iHead >= 0xe0u) { return xrtValueInt((int8)iHead); }
+    if ((iHead & 0xe0u) == 0xa0u) { return xmsgpack_read_blob(pReader, iHead & 31u, true); }
+    if ((iHead & 0xf0u) == 0x90u) { return xmsgpack_read_array(pReader, iHead & 15u, iDepth); }
+    if ((iHead & 0xf0u) == 0x80u) { return xmsgpack_read_object(pReader, iHead & 15u, iDepth); }
+    switch (iHead) {
+        case 0xc0u: return xrtValueRetain(xrtValueNull()); case 0xc2u: return xrtValueRetain(xrtValueBool(false)); case 0xc3u: return xrtValueRetain(xrtValueBool(true));
+        case 0xccu: if (!xmsgpack_read_uint(pReader, 1u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
+        case 0xcdu: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
+        case 0xceu: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
+        case 0xcfu: if (!xmsgpack_read_uint(pReader, 8u, &iValue) || iValue > INT64_MAX) { xmsgpack_error(XERR_RANGE, "MessagePack uint64 exceeds int64"); return NULL; } return xrtValueInt((int64)iValue);
+        case 0xd0u: if (!xmsgpack_read_uint(pReader, 1u, &iValue)) return NULL; return xrtValueInt((int8)iValue);
+        case 0xd1u: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xrtValueInt((int16)iValue);
+        case 0xd2u: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xrtValueInt((int32)iValue);
+        case 0xd3u: if (!xmsgpack_read_uint(pReader, 8u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
+        case 0xcau: { uint32 iBits; float fValue; if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; iBits = (uint32)iValue; memcpy(&fValue, &iBits, sizeof(fValue)); return xrtValueFloat((double)fValue); }
+        case 0xcbu: { double fValue; if (!xmsgpack_read_uint(pReader, 8u, &iValue)) return NULL; memcpy(&fValue, &iValue, sizeof(fValue)); return xrtValueFloat(fValue); }
+        case 0xd9u: if (!xmsgpack_read_uint(pReader, 1u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, true);
+        case 0xdau: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, true);
+        case 0xdbu: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, true);
+        case 0xc4u: if (!xmsgpack_read_uint(pReader, 1u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, false);
+        case 0xc5u: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, false);
+        case 0xc6u: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, false);
+        case 0xdcu: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xmsgpack_read_array(pReader, iValue, iDepth);
+        case 0xddu: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xmsgpack_read_array(pReader, iValue, iDepth);
+        case 0xdeu: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xmsgpack_read_object(pReader, iValue, iDepth);
+        case 0xdfu: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xmsgpack_read_object(pReader, iValue, iDepth);
+        default: xmsgpack_error(XERR_UNSUPPORTED, "unsupported MessagePack value type"); return NULL;
+    }
+}
+
+xbuffer* xmsgpack_encode(xvalue* pValue)
+{
+    xbuffer* pOutput = xrtBufferCreate();
+    if (pOutput == NULL || !xmsgpack_value(pOutput, pValue, 0u)) { xrtBufferDestroy(pOutput); return NULL; }
+    xrtClearError();
+    return pOutput;
+}
+
+xvalue* xmsgpack_decode(const void* pData, size_t iSize)
+{
+    xmsgpack_reader Reader = { (const uint8*)pData, iSize, 0u, 0u };
+    xvalue* pValue;
+    if ((pData == NULL && iSize != 0u) || iSize == 0u || iSize > XMSGPACK_MAX_BYTES) { xmsgpack_error(XERR_ARGUMENT, "MessagePack input must contain at most 64 MiB"); return xrtValueNull(); }
+    pValue = xmsgpack_read_value(&Reader, 0u);
+    if (pValue == NULL || Reader.Offset != Reader.Size) { xrtValueRelease(pValue); if (pValue != NULL) xmsgpack_error(XERR_PROTOCOL, "trailing bytes after MessagePack value"); return xrtValueNull(); }
+    xrtClearError();
+    return pValue;
+}
+
+xbuffer* xmsgpack_encode_bytes(const void* pData, size_t iSize)
+{
+    xvalue* pValue;
+    xbuffer* pResult;
+    if ((pData == NULL && iSize != 0u) || iSize > XMSGPACK_MAX_BYTES) { xmsgpack_error(XERR_ARGUMENT, "MessagePack byte input is invalid"); return NULL; }
+    pValue = xrtValueBytes((xbytesview){ (cbytes)pData, iSize });
+    if (pValue == NULL) { return NULL; }
+    pResult = xmsgpack_encode(pValue);
+    xrtValueRelease(pValue);
+    return pResult;
+}
+
+xbuffer* xmsgpack_decode_bytes(const void* pData, size_t iSize)
+{
+    xvalue* pValue = xmsgpack_decode(pData, iSize);
+    xbytesview Bytes;
+    xbuffer* pResult = NULL;
+    if (pValue == NULL || !xrtValueGetBytes(pValue, &Bytes)) { xrtValueRelease(pValue); xmsgpack_error(XERR_PROTOCOL, "MessagePack input must contain exactly one byte string"); return NULL; }
+    pResult = xrtBufferFrom(Bytes);
+    xrtValueRelease(pValue);
+    return pResult;
+}
+
+str xmsgpack_to_hex(const void* pData, size_t iSize)
+{
+    size_t iSlot;
+    xbuffer* pSlot;
+    str sHex;
+    if ((pData == NULL && iSize != 0u) || iSize > XMSGPACK_MAX_BYTES) {
+        xmsgpack_error(XERR_ARGUMENT, "MessagePack data is invalid");
+        return "";
+    }
+    sHex = xrtHexEncodeNew((cbytes)pData, iSize, 0u);
+    if (sHex == NULL) { return ""; }
+    iSlot = g_xmsgpack_result_index++ % XMSGPACK_RESULT_SLOTS;
+    pSlot = &g_xmsgpack_results[iSlot];
+    xrtBufferUnit(pSlot);
+    if (!xrtBufferSetTake(pSlot, (bytes*)&sHex, strlen(sHex), strlen(sHex) + 1u)) {
+        xrtFree(sHex);
+        return "";
+    }
+    return (str)pSlot->Data;
+}
+
+xbuffer* xmsgpack_from_hex(cstr sText)
+{
+    return sText == NULL ? NULL : xrtBufferFromHex(xrtStrView(sText), 0u);
+}
+
+cstr xmsgpack_error_message(void)
+{
+    const xerror* pError = xrtGetError();
+    return pError != NULL ? xrtErrorMessage(pError) : "MessagePack operation failed";
 }

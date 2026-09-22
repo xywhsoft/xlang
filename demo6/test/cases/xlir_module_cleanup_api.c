@@ -41,7 +41,11 @@ int main(void)
             module_cleanup_configure(mode); xlClearLastError(ctx);
             assert(xlActivateModule(ctx, module, NULL) == (mode != 6 && mode != 7));
             if (mode != 6 && mode != 7) {
-                assert(xlDeactivateModule(ctx, module) == (mode <= 1));
+                int deactivated = xlDeactivateModule(ctx, module);
+                if (deactivated != (mode <= 1))
+                    fprintf(stderr, "module deactivate mismatch: repeat=%d mode=%d result=%d error=%s\n",
+                        repeat, mode, deactivated, xlGetLastError(ctx));
+                assert(deactivated == (mode <= 1));
                 assert(xlDeactivateModule(ctx, module));
             }
             assert(module_cleanup_complete() && xrtGetError() == NULL);

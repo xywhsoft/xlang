@@ -69,12 +69,19 @@ Copy-SyncFile "$XgeRoot\xge.h" "$PkgDir\xge.h"
 Copy-SyncFile "$XgeRoot\xui.h" "$PkgDir\xui.h"
 
 # ---- 3. 同步第三方库 (排除 xrt) ----
+# xlayout: XUI 布局引擎，被 xui_layout.c / xui_dock_panel.c / xui_rich_edit.c 引用
+# zstd: 内建 emoji / 资源压缩解压，xge_impl.c 内联编译 lib/zstd/zstddeclib.c
 Write-Host "[sync_xge] Syncing lib/ (excluding xrt) ..."
-$libDirs = @("sokol", "stb", "miniaudio")
+$libDirs = @("sokol", "stb", "miniaudio", "xlayout", "zstd")
 foreach ($libName in $libDirs) {
     $libSrc = "$XgeRoot\lib\$libName"
     if (Test-Path $libSrc) {
-        $libFiles = Get-ChildItem -Path $libSrc -File -Recurse
+        # 排除 test 子目录和二进制产物（.exe/.o/.obj/.lib/.pdb）
+        $libFiles = Get-ChildItem -Path $libSrc -File -Recurse | Where-Object {
+            $rel = $_.FullName.Substring($libSrc.Length).TrimStart('\','/')
+            ($rel -notmatch '^(test|tests|examples)\\') -and
+            ($_.Extension -notin '.exe','.o','.obj','.lib','.pdb','.exp')
+        }
         foreach ($f in $libFiles) {
             $relPath = $f.FullName.Substring($libSrc.Length).TrimStart('\','/')
             Copy-SyncFile $f.FullName "$PkgDir\lib\$libName\$relPath"

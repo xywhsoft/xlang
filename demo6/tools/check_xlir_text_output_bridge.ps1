@@ -74,8 +74,11 @@ try {
         $c = [System.IO.File]::ReadAllText($cPath)
         if ($c -cne [System.IO.File]::ReadAllText($repeat)) { throw "$name is not deterministic" }
         if ([regex]::Matches($c, 'static void xl6_output_write_text\(').Count -ne 1 -or
-            !$c.Contains("fflush(stdout)") -or
-            $c -match '<[^>]*(?:xrt|xruntime|xl_runtime)\.h>') { throw "$name imports a private runtime or loses the single flush component" }
+            !$c.Contains("xrtConsoleFlush(XCONSOLE_STDOUT)") -or
+            !$c.Contains('#include <__xl_runtime/xruntime_decl.h>') -or
+            $c -match '#include\s*[<\"][^>\"]*(?<!_decl)\b(?:xrt|xruntime)\.h[>\"]') {
+            throw "$name loses the declarations-only XRT console boundary"
+        }
         foreach ($operation in @("write", "writeln")) {
             $expected = $fixture.Bridges -contains "text-$operation"
             if (([regex]::Matches($c, ('void xl6_xrt_' + $operation + '\(')).Count -eq 1) -ne $expected) {
@@ -90,13 +93,13 @@ try {
         & cmd.exe /d /v:on /c $command
         if ($LASTEXITCODE -ne 0) { throw "$name strict standalone C failed" }
         Invoke-Captured $strictExe "" 0 $fixture.Output
-        foreach ($backend in @("xlir", "legacy")) {
+        foreach ($backend in @("xlir")) {
             Invoke-Captured $xl ('run "{0}" --backend {1}' -f $source,$backend) 0 $fixture.Output
             $exe = Join-Path $outputDir "$name.$backend.exe"
             Invoke-Captured $xl ('build "{0}" --backend {1} -o "{2}"' -f $source,$backend,$exe) 0 $null
             Invoke-Captured $exe "" 0 $fixture.Output
         }
-        Write-Output "${name}: exact IR, isolated deterministic strict C and XLIR/legacy output verified"
+        Write-Output "${name}: exact IR, isolated deterministic strict C and canonical output verified"
     }
     foreach ($suffix in @("wrong_input", "wrong_result", "missing_input", "extra_input")) {
         $source = Join-Path $Root "test\cases\bad_xlir_text_output_$suffix.xl"
@@ -106,5 +109,5 @@ try {
         if (Test-Path -LiteralPath $badC) { throw "Malformed text output ABI emitted C: $suffix" }
     }
 } finally { Pop-Location }
-Write-Output "XLIR text output bridge ok: exact borrowed string/void/no-raise ABI, operation isolation, no value-boxing dependency for text-only output, UTF-8/empty/newline/temporary/capture/continuation output parity, four ABI negatives, deterministic strict C and XLIR/legacy run/build."
+Write-Output "XLIR text output bridge ok: exact borrowed string/void/no-raise ABI, declarations-only XRT console boundary, operation isolation, no value-boxing dependency for text-only output, UTF-8/empty/newline/temporary/capture/continuation output parity, four ABI negatives, deterministic strict C and canonical run/build."
 exit 0

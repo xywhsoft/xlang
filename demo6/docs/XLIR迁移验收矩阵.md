@@ -90,11 +90,11 @@ lowering 阶段明确拒绝，不能被 XLIR Cgen 回溯为 AST/HIR 或暗中调
   C emitter 的单向边界。
 - `tools/check_xlir_cgen_determinism.ps1`：对所有 `xlir_*.xl` 及迁移矩阵明确接纳的
   既有 `cgen_*` 代表样例连续生成两次 C，要求字节一致并以 `-Werror` 严格编译。
-- `tools/check_xlir_cgen_differential.ps1`：以不同 ABI host 分别执行 legacy 与
-  XLIR C 产物，比较标量（包括 `f64 -> i64`）、受管错误、动态值以及 Future/async
-  的可观察行为。
+- `tools/check_xlir_cgen_runtime_matrix.ps1`：使用适配各 ABI 的 host 编译并执行
+  canonical XLIR C 产物，覆盖标量（包括 `f64 -> i64`）、受管错误、动态值以及
+  Future/async 的可观察行为。
 - `tools/check_xlir_migration_coverage.ps1`：把下表的语义簇、代表性用例、全量
-  生成门和运行时差分门绑定；删除或脱接任何一项都会失败。
+  生成门和 canonical 运行时合同绑定；删除或脱接任何一项都会失败。
 - `tools/check_xlir_xcall.ps1`：验证 `xcall` 不再进入 legacy `XL6_Function` 兼容层。
   closure→callable 与 dynamic call 分别是显式 runtime op；后者消费拥有型参数，二者
   均紧邻 `ERROR_TEST`。生成 C 按 verified TypeId 去重 bool/int/float adapter，只调用
@@ -660,28 +660,23 @@ raw bytes，零长度不能回退到 `strlen`；解码结果是 owned Buffer，�
 模块初始化器；生成模块只被包含进宿主一个翻译单元，外部支持 C 文件独立编译，
 不要求编译器重新发射进程级 `main`。迁移后的这些编译调用使用 `-Werror`。
 
-默认 `cgen`、`run` 与 `build` 已切换到 XLIR；`--backend legacy` 只作为显式兼容和
-legacy-vs-XLIR 行为差分基线保留。编译器上下文以 `XLC_BACKEND_XLIR` 初始化，CLI 的
-三条主路径统一通过同一后端选择状态进入 API，不再由命令分支私自决定 lowering 或 Cgen。
+`cgen`、`run`、`build`、调试构建和编译器 DLL 只使用 XLIR。旧 AST/HIR Cgen、HIR
+构建器、构建接线和 `XLC_BACKEND_LEGACY` 已物理删除；CLI 在参数解析阶段拒绝
+`--backend legacy`。`xlcSetBackend` 只接受 `XLC_BACKEND_XLIR`，保留该调用是为了
+显式选择和 ABI 稳定，而不是保留第二条语义路径。
 `cgen` 的产物边界是可嵌入 C 模块：有语言入口时保留 `xlang_main`，但不生成进程级
 `main`；`build` 才请求 native main wrapper，内存 `run` 则请求 script host entry。
 
-默认切换不允许恢复后端猜测或静默回退：可表示语义必须先形成已验证 XLIR，无法满足
+单一后端不允许恢复语义猜测或静默回退：可表示语义必须先形成已验证 XLIR，无法满足
 明确类型、所有权、effect、调用或运行时桥接契约的输入继续在 lowering/verifier fail-closed。
 `check_xlir_default_backend_boundary.ps1` 同时验证 API/CLI 静态边界以及默认与显式 XLIR
-生成 C 的逐字节一致性，并确认显式 legacy 仍是独立产物。
+生成 C 的逐字节一致性；它还验证非法后端值被拒绝后，同一 context 可以继续正常编译。
 
-`check_xlir_default_admission.ps1` 从全部 suite 提取默认 `cgen/run/build` 覆盖源，
-使用与 suite 相同的 package 搜索路径，只把 legacy 确实能够生成的源计入可比较正例。
-suite 临时生成的 `build/tmp` 源仍由原 suite 验证，不以残留产物充当持久准入基线。
-当前门槛为 512 个持久候选源、499 个 legacy 正例、499 个 XLIR 正例和 0 个迁移缺口；
-候选覆盖、任一成功数下降或缺口重新出现都会失败。检查同时验证退出码、非空生成 C
-以及检查前后的 CLI/DLL SHA-256；崩溃、无诊断失败、成功但无产物或并发重建均使检查失败，
-不能算作 legacy 不支持而被排除。逐项退出码、诊断与编译器标识保存至
-`build/tmp/xlir_default_admission.results.json`。补充门 runner 另保存逐门状态和脚本哈希，
-中途停止只能证明已记录通过的门，不能视为完整回归通过。
-默认后端之后仍必须维持严格生成 C 编译、运行时专用契约与 legacy-vs-XLIR 差分门，
-而不是把一次切换视为迁移结束。
+`check_xlir_current_source_admission.ps1` 守护 canonical backend、退役 selector 拒绝、
+冻结的源码 provenance、批量 identity 证据和场景所有权；`check_xlir_migration_coverage.ps1`
+继续从 suite 和专项门提取语义覆盖。suite 临时生成的 `build/tmp` 源仍由原 suite 验证，
+不以残留产物充当持久准入基线。后续仍必须维持 verifier 变异拒绝、严格生成 C 编译、
+JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本身视为语义验收完成。
 
 ## 2026-09-05 阶段性验证与未完成项（18:28 快照）
 

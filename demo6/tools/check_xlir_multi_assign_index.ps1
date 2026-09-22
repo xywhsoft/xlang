@@ -15,7 +15,6 @@ $callableTyped = Join-Path $Root "build\test\xlir_multi_assign_callable.typed.js
 $callableLowered = Join-Path $Root "build\test\xlir_multi_assign_callable.lowered.json"
 $callableGenerated = Join-Path $Root "build\test\xlir_multi_assign_callable.c"
 $callableGeneratedRepeat = Join-Path $Root "build\test\xlir_multi_assign_callable.repeat.c"
-$callableLegacy = Join-Path $Root "build\test\xlir_multi_assign_callable.legacy.c"
 foreach ( $path in @($xl, $source, $callableSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR multi-assignment index gate input is missing: $path"
@@ -159,20 +158,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR callable multi-assignment strict-C runtime failed"
     }
-
-    & $xl cgen $callableSource --backend legacy --emit $callableLegacy
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy callable multi-assignment Cgen failed" }
-    $legacyCommand = "call test\suites\common.bat && " +
-        "!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror " +
-        "build\test\xlir_multi_assign_callable.legacy.c test\cases\cgen_class_host.c " +
-        "!XL6_CGEN_XLANG_LINKS! -o build\test\xlir_multi_assign_callable.legacy.exe && " +
-        "build\test\xlir_multi_assign_callable.legacy.exe"
-    & cmd.exe /v:on /d /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy callable multi-assignment differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR multi-assignment index gate ok: product evaluation is shared, managed/trivial/callable projections are explicit, callable erasure owns a typed may-raise ExitPlan plus adjacent Lowered ERROR_TEST, every INDEX target has one exact write, generated C is deterministic, -Werror clean, and XLIR/legacy runtime semantics pass."
+Write-Output "XLIR multi-assignment index gate ok: product evaluation is shared, managed/trivial/callable projections are explicit, callable erasure owns a typed may-raise ExitPlan plus adjacent Lowered ERROR_TEST, every INDEX target has one exact write, generated C is deterministic, -Werror clean, and runtime semantics pass."

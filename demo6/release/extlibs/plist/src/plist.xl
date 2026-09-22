@@ -217,7 +217,7 @@ export func isUid(var value) as bool
 end
 
 export func uidValue(var value) as uint64
-    if not value is UID then throw TypeError "value is not a plist UID" end
+    if not (value is UID) then throw TypeError "value is not a plist UID" end
     UID typed = value as UID
     return typed.value
 end

@@ -1,149 +1,130 @@
+#define XRT_MODULE_ALL
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static void require_line(const char* name, int ok)
+
+
+/* 输出一项对照结果，失败时立即终止。 */
+static void require_line(cstr sName, bool bOk)
 {
-    if ( !ok ) {
-        fprintf(stderr, "%s=fail\n", name);
+    if ( !bOk ) {
+        fprintf(stderr, "%s=fail\n", sName);
         exit(1);
     }
-    printf("%s=ok\n", name);
+    printf("%s=ok\n", sName);
 }
 
-static int trim_equals(const void* data, size_t size, const char* expected)
-{
-    str trimmed;
-    int ok;
 
-    if ( data == NULL ) {
-        return expected != NULL && expected[0] == '\0';
+
+/* 比较去除两侧 ASCII 空白后的进程输出。 */
+static bool output_equal(cbytes pData, size_t iSize, cstr sExpected)
+{
+    xstrview Actual = xrtStrTrim(xrtStrViewN((cstr)pData, iSize));
+
+    return xrtStrEqual(Actual, xrtStrView(sExpected));
+}
+
+
+
+/* 判断结构化进程状态是否为指定退出码。 */
+static bool status_code(const xprocessstatus* pStatus, int32 iCode)
+{
+    return (pStatus != NULL) &&
+        (pStatus->Kind == XPROCESS_EXIT_CODE) &&
+        (pStatus->Code == iCode);
+}
+
+
+
+/* 用直接程序配置验证 startFile 对应的低级 Spawn/Wait 路径。 */
+static bool check_start_file(void)
+{
+    const cstr pArgs[] = { "/c", "echo", "os-start-file" };
+    xprocessconfig Config;
+    xprocessstatus Status;
+    xprocess* pProcess;
+    bool bOk;
+
+    if ( !xrtProcessConfigInit(&Config) ) {
+        return false;
     }
-
-    trimmed = xrtTrim((str)data, size, NULL, 0, FALSE, NULL);
-    if ( trimmed == NULL ) {
-        return 0;
+    Config.Program = "cmd";
+    Config.Args = pArgs;
+    Config.ArgCount = sizeof(pArgs) / sizeof(pArgs[0]);
+    Config.Stdout.Mode = XPROCESS_IO_NULL;
+    Config.Stderr.Mode = XPROCESS_IO_NULL;
+    pProcess = xrtProcessSpawn(&Config);
+    if ( pProcess == NULL ) {
+        return false;
     }
-    ok = xrtStrComp(trimmed, (str)expected, 0, FALSE) == 0;
-    xrtFree(trimmed);
-    return ok;
+    bOk = (xrtProcessWaitFor(
+        pProcess, UINT64_C(5000000)
+    ) == XWAIT_OK) && xrtProcessStatus(
+        pProcess, &Status
+    ) && status_code(&Status, 0);
+    xrtProcessDestroy(pProcess);
+    return bOk;
 }
 
-static int result_stdout_equals(const xprocessresult* result, const char* expected)
-{
-    if ( result == NULL || result->pStdout == NULL ) {
-        return expected != NULL && expected[0] == '\0';
-    }
-    return trim_equals(result->pStdout, result->iStdoutSize, expected);
-}
 
-static void config_shell(xprocessconfig* config, const char* command)
-{
-    xrtProcessConfigInit(config);
-    config->iTargetKind = XPROC_TARGET_SHELL;
-    config->sCommand = (str)command;
-    config->Stdout.iMode = XPROC_STDIO_PIPE;
-    config->Stderr.iMode = XPROC_STDIO_PIPE;
-}
 
-static void config_exec(xprocessconfig* config, const char* program, str* args, uint32 count)
-{
-    xrtProcessConfigInit(config);
-    config->iTargetKind = XPROC_TARGET_EXEC;
-    config->sProgram = (str)program;
-    config->arrArgs = args;
-    config->iArgCount = count;
-    config->Stdout.iMode = XPROC_STDIO_PIPE;
-    config->Stderr.iMode = XPROC_STDIO_PIPE;
-}
-
-static int check_interactive_process(void)
-{
-    xprocessconfig config;
-    xprocess* process;
-    void* output;
-    size_t size = 0;
-    str args[] = {(str)"/c", (str)"more"};
-    int ok;
-
-    config_exec(&config, "cmd", args, 2);
-    config.Stdin.iMode = XPROC_STDIO_PIPE;
-
-    process = xrtProcessSpawn(&config);
-    if ( process == NULL ) {
-        return 0;
-    }
-
-    ok =
-        xrtProcessIsRunning(process) &&
-        xrtProcessWriteText(process, (str)"os-start-file\n", 0) > 0 &&
-        xrtProcessCloseStdin(process) &&
-        xrtProcessWaitTimeout(process, 5000) == 0 &&
-        xrtProcessExitCode(process) == 0;
-
-    output = xrtProcessGetStdout(process, &size);
-    ok = ok && trim_equals(output, size, "os-start-file");
-    xrtFree(output);
-    xrtProcessDestroy(process);
-    return ok;
-}
-
+/* 演示参数、平台、目录、环境和同步进程基础能力。 */
 int main(int argc, char** argv)
 {
-    str oldCwd;
-    str tempRoot;
-    str tempDir;
-    str missingEnv;
-    xprocessconfig config;
-    xprocessresult result;
-    int ok;
+    xprocessresult Run;
+    xprocessresult Chain;
+    str sOldCwd;
+    str sTempRoot;
+    str sTempDir;
+    str sMissing;
+    bool bCwd;
 
     (void)argv;
-    xrtInit();
-
     require_line("args", argc > 0);
+    require_line("platform", true);
 
-#if defined(_WIN32)
-    require_line("platform", 1);
-#else
-    require_line("platform", 1);
-#endif
+    sOldCwd = xrtPathCwd();
+    sTempRoot = xrtPathTemp();
+    sTempDir = (sTempRoot != NULL) ?
+        xrtPathJoin(sTempRoot, "xl6_stdlib_os_c") : NULL;
+    bCwd = (sOldCwd != NULL) && (sTempDir != NULL) &&
+        xrtDirCreateAll(sTempDir) &&
+        xrtPathSetCwd(sTempDir) && xrtPathSetCwd(sOldCwd);
+    require_line("cwd", bCwd);
 
-    oldCwd = xrtPathCwd();
-    tempRoot = xrtPathTemp();
-    tempDir = xrtPathJoin(2, tempRoot, "xl6_stdlib_os_c");
-    xrtDirCreateAll(tempDir);
+    sMissing = xrtEnvGet("__XLANG_DEMO6_MISSING_ENV__");
+    require_line("env", sMissing == NULL);
 
-    ok =
-        oldCwd != NULL &&
-        tempDir != NULL &&
-        xrtPathSetCwd(tempDir) &&
-        xrtPathSetCwd(oldCwd);
-    require_line("cwd", ok);
+    memset(&Run, 0, sizeof(Run));
+    require_line(
+        "run",
+        xrtProcessShell("cmd /c echo os-run", &Run) &&
+        xrtProcessResultSuccess(&Run) &&
+        status_code(&Run.Status, 0) &&
+        output_equal(Run.Stdout, Run.StdoutSize, "os-run")
+    );
+    xrtProcessResultUnit(&Run);
 
-    missingEnv = xrtEnvGet((str)"__XLANG_DEMO6_MISSING_ENV__");
-    require_line("env", missingEnv == NULL);
+    require_line("startFile", check_start_file());
 
-    memset(&result, 0, sizeof(result));
-    config_shell(&config, "cmd /c echo os-run");
-    ok =
-        xrtProcessRun(&config, NULL, 0, &result, 5000) &&
-        xrtProcessResultSuccess(&result) &&
-        result.iExitCode == 0 &&
-        result_stdout_equals(&result, "os-run");
-    xrtProcessResultUnit(&result);
-    require_line("run", ok);
+    memset(&Chain, 0, sizeof(Chain));
+    require_line(
+        "chain",
+        xrtProcessShell("cmd /c exit /b 0", &Chain) &&
+        xrtProcessResultSuccess(&Chain) &&
+        status_code(&Chain.Status, 0)
+    );
+    xrtProcessResultUnit(&Chain);
 
-    require_line("startFile", check_interactive_process());
-    require_line("chain", xrtChain((str)"cmd /c exit /b 0", 0) == 0);
-
-    xrtDirDelete(tempDir);
-    xrtFree(oldCwd);
-    xrtFree(tempRoot);
-    xrtFree(tempDir);
-    xrtFree(missingEnv);
-    xrtUnit();
+    if ( sTempDir != NULL ) {
+        (void)xrtDirRemoveAll(sTempDir);
+    }
+    xrtFree(sMissing);
+    xrtFree(sTempDir);
+    xrtFree(sTempRoot);
+    xrtFree(sOldCwd);
     return 0;
 }

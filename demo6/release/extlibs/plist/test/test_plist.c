@@ -1,3 +1,6 @@
+/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_plist.h"
 
 #include <stdio.h>
@@ -13,7 +16,7 @@ static int testFormat(int iFormat)
 	const uint8 sData[] = { 0u, 255u, 'X', 'L' };
 	xrtplistoptions tOptions;
 	xrtplisterror tError;
-	xbuffer pEncoded;
+	xbuffer* pEncoded;
 	xrtplistdocument* pParsed;
 	xrtplistnode* pParsedRoot;
 	int bOk = pDocument != NULL && pRoot != NULL && pArray != NULL;
@@ -23,7 +26,7 @@ static int testFormat(int iFormat)
 		xrtPlistDictSet(pRoot, "data", 4u,
 			xrtPlistCreateData(pDocument, sData, sizeof(sData))) &&
 		xrtPlistArrayAppend(pArray, xrtPlistCreateInt(pDocument, -7)) &&
-		xrtPlistArrayAppend(pArray, xrtPlistCreateBool(pDocument, TRUE)) &&
+		xrtPlistArrayAppend(pArray, xrtPlistCreateBool(pDocument, true)) &&
 		xrtPlistDictSet(pRoot, "items", 5u, pArray);
 	if ( iFormat == XRT_PLIST_FORMAT_BINARY ) {
 		bOk = bOk && xrtPlistDictSet(pRoot, "uid", 3u,
@@ -33,11 +36,11 @@ static int testFormat(int iFormat)
 	}
 	xrtPlistOptionsInit(&tOptions);
 	tOptions.iFormat = iFormat;
-	tOptions.bPretty = TRUE;
-	tOptions.bSortKeys = TRUE;
+	tOptions.bPretty = true;
+	tOptions.bSortKeys = true;
 	pEncoded = bOk ? xrtPlistStringify(pDocument, &tOptions, &tError) : NULL;
-	pParsed = pEncoded != NULL ? xrtPlistParseMemory(pEncoded->Buffer,
-		pEncoded->Length, NULL, &tError) : NULL;
+	pParsed = pEncoded != NULL ? xrtPlistParseMemory(pEncoded->Data,
+		pEncoded->Size, NULL, &tError) : NULL;
 	pParsedRoot = pParsed != NULL ? xrtPlistRoot(pParsed) : NULL;
 	bOk = bOk && pEncoded != NULL && pParsedRoot != NULL &&
 		xrtPlistNodeType(pParsedRoot) == XRT_PLIST_DICT &&
@@ -48,8 +51,8 @@ static int testFormat(int iFormat)
 		bOk = bOk && xrtPlistUid(xrtPlistDictGet(pParsedRoot,
 			"uid", 3u)) == UINT64_MAX;
 	} else {
-		bOk = bOk && xrtBufferAppend(pEncoded, "\0", 1u, XBUF_BINARY) &&
-			strstr((const char*)pEncoded->Buffer,
+		bOk = bOk && xrtBufferAppendByte(pEncoded, 0u) &&
+			strstr((const char*)pEncoded->Data,
 			"<!DOCTYPE plist PUBLIC") != NULL;
 	}
 	xrtPlistDestroy(pParsed);
@@ -73,6 +76,58 @@ static int testIndentedXmlData(void)
 	xrtPlistDestroy(pDocument);
 	return bOk;
 }
+
+
+
+/* 用外部规范字节验证 binary plist 日期的秒单位，避免同源读写互相掩盖错误。 */
+static int testBinaryDateUnit(void)
+{
+	static const uint8 sExpectedObject[] = {
+		0x33u, 0x3fu, 0xf0u, 0u, 0u, 0u, 0u, 0u, 0u
+	};
+	uint8 sExternal[50] = {0};
+	xdatetime tDateTime;
+	xtime tEpoch;
+	xrtplistdocument* pParsed;
+	xrtplistdocument* pDocument;
+	xrtplistoptions tOptions;
+	xrtplisterror tError;
+	xbuffer* pEncoded;
+	int bOk;
+
+	memset(&tDateTime, 0, sizeof(tDateTime));
+	tDateTime.Year = 2001;
+	tDateTime.Month = 1;
+	tDateTime.Day = 1;
+	if ( !xrtTimeMake(&tDateTime, &tEpoch) ) { return 0; }
+
+	memcpy(sExternal, "bplist00", 8u);
+	memcpy(sExternal + 8u, sExpectedObject, sizeof(sExpectedObject));
+	sExternal[17] = 8u;
+	sExternal[24] = 1u;
+	sExternal[25] = 1u;
+	sExternal[33] = 1u;
+	sExternal[49] = 17u;
+	pParsed = xrtPlistParseMemory(sExternal, sizeof(sExternal), NULL, &tError);
+	bOk = pParsed != NULL &&
+		xrtPlistDate(xrtPlistRoot(pParsed)) == tEpoch + XRT_TIME_SECOND;
+	xrtPlistDestroy(pParsed);
+
+	pDocument = xrtPlistCreate();
+	bOk = bOk && pDocument != NULL && xrtPlistSetRoot(pDocument,
+		xrtPlistCreateDate(pDocument, tEpoch + XRT_TIME_SECOND));
+	xrtPlistOptionsInit(&tOptions);
+	tOptions.iFormat = XRT_PLIST_FORMAT_BINARY;
+	pEncoded = bOk ? xrtPlistStringify(pDocument, &tOptions, &tError) : NULL;
+	bOk = bOk && pEncoded != NULL && pEncoded->Size >= 17u &&
+		memcmp(pEncoded->Data + 8u, sExpectedObject,
+			sizeof(sExpectedObject)) == 0;
+	xrtBufferDestroy(pEncoded);
+	xrtPlistDestroy(pDocument);
+	return bOk;
+}
+
+
 
 static int testInvalidInputs(void)
 {
@@ -120,11 +175,9 @@ static int testInvalidInputs(void)
 int main(void)
 {
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	bOk = testFormat(XRT_PLIST_FORMAT_XML) &&
 		testFormat(XRT_PLIST_FORMAT_BINARY) && testIndentedXmlData() &&
-		testInvalidInputs();
-	xrtUnit();
+		testBinaryDateUnit() && testInvalidInputs();
 	if ( bOk ) { puts("test_plist: PASS"); }
 	return bOk ? 0 : 2;
 }

@@ -1,0 +1,21 @@
+import xmail
+
+
+
+func main(...) as int
+    var fields = xmail.message({
+        "from": xmail.address("sender@example.com", "Sender"),
+        "to": [xmail.address("receiver@example.com", "Receiver")],
+        "subject": "phase-one xmail",
+        "text": "local message body"
+    })
+
+    assert xmail.valid(fields), "xmail message validation"
+
+    string raw = xmail.compose(fields)
+    assert string.contains(raw, "Subject: phase-one xmail"), "xmail subject serialization"
+
+    var parsed = xmail.parse(raw)
+    assert int(parsed["partCount"]) >= 1, "xmail MIME parse"
+    return 0
+end

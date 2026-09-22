@@ -1,7 +1,0 @@
-import std.task
-
-async func main() as int
-	var pending = task.delay(41)
-	task waited = pending
-	return await waited + 1
-end

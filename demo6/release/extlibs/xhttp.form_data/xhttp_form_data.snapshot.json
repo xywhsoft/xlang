@@ -1,0 +1,16 @@
+{
+  "format": "xlang-xhttp-form-data-snapshot-1",
+  "modules": [
+    "form_data",
+    "form_data_multipart",
+    "form_data_parse"
+  ],
+  "files": {
+    "include/xhttp/features.h": "b5ef61dc988be48988b30311c8384c63efc33147fc7b4647b23d42b988f35217",
+    "include/xrt/form_data.h": "3f0399862ef9129dfcf5150db2a408f694efe4a2d2388f0f0cc4aa6903b32ba9",
+    "src/http/form_data.c": "2e0378564d365c410901b1d84a884478470667c64ca37e0564aa16b9918a4ba6",
+    "src/http/form_data_multipart.c": "de0c8ecacca1cae381c8ec810c5a1c7cc5bc7c9d8dafc857eee16c97d56de78b",
+    "src/http/form_data_parse.c": "30c84758c500a7075d31d5a0140b72a24e945c82561eb5767ef2fd4308519244",
+    "src/internal/xrt_form_data.h": "68811f12b20b72e8a29474d7d0633a1874019b249ec269eaf07b17ab06fc737f"
+  }
+}

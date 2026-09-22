@@ -1,6 +1,14 @@
 #ifndef XRT_INI_H
 #define XRT_INI_H
 
+/* INI 公共契约直接依赖连续缓冲和通用 Reader/Writer。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -42,35 +50,35 @@ typedef struct {
 
 typedef struct xrtiniconfig xrtiniconfig;
 
-XXAPI void xrtIniOptionsInit(xrtinioptions* pOptions);
-XXAPI void xrtIniErrorInit(xrtinierror* pError);
-XXAPI xrtiniconfig* xrtIniCreate(const xrtinioptions* pOptions);
-XXAPI xrtiniconfig* xrtIniParse(xreader pReader, bool bTakeOwnership,
+XRT_API void xrtIniOptionsInit(xrtinioptions* pOptions);
+XRT_API void xrtIniErrorInit(xrtinierror* pError);
+XRT_API xrtiniconfig* xrtIniCreate(const xrtinioptions* pOptions);
+XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	const xrtinioptions* pOptions);
-XXAPI xrtiniconfig* xrtIniParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtiniconfig* xrtIniParseMemory(const void* pData, uint64 iSize,
 	const xrtinioptions* pOptions);
-XXAPI xrtiniconfig* xrtIniLoad(str sPath, const xrtinioptions* pOptions);
-XXAPI const xrtinierror* xrtIniError(const xrtiniconfig* pConfig);
-XXAPI void xrtIniDestroy(xrtiniconfig* pConfig);
+XRT_API xrtiniconfig* xrtIniLoad(str sPath, const xrtinioptions* pOptions);
+XRT_API const xrtinierror* xrtIniError(const xrtiniconfig* pConfig);
+XRT_API void xrtIniDestroy(xrtiniconfig* pConfig);
 
-XXAPI uint32 xrtIniSectionCount(const xrtiniconfig* pConfig);
-XXAPI const char* xrtIniSectionName(const xrtiniconfig* pConfig, uint32 iIndex);
-XXAPI bool xrtIniHasSection(const xrtiniconfig* pConfig, str sSection);
-XXAPI uint32 xrtIniKeyCount(const xrtiniconfig* pConfig, str sSection);
-XXAPI const char* xrtIniKeyName(const xrtiniconfig* pConfig, str sSection, uint32 iIndex);
-XXAPI bool xrtIniHas(const xrtiniconfig* pConfig, str sSection, str sKey);
-XXAPI const char* xrtIniGetRaw(const xrtiniconfig* pConfig, str sSection, str sKey);
-XXAPI str xrtIniGet(const xrtiniconfig* pConfig, str sSection, str sKey);
-XXAPI bool xrtIniGetInt(const xrtiniconfig* pConfig, str sSection, str sKey, int64* pValue);
-XXAPI bool xrtIniGetFloat(const xrtiniconfig* pConfig, str sSection, str sKey, double* pValue);
-XXAPI bool xrtIniGetBool(const xrtiniconfig* pConfig, str sSection, str sKey, bool* pValue);
+XRT_API uint32 xrtIniSectionCount(const xrtiniconfig* pConfig);
+XRT_API const char* xrtIniSectionName(const xrtiniconfig* pConfig, uint32 iIndex);
+XRT_API bool xrtIniHasSection(const xrtiniconfig* pConfig, str sSection);
+XRT_API uint32 xrtIniKeyCount(const xrtiniconfig* pConfig, str sSection);
+XRT_API const char* xrtIniKeyName(const xrtiniconfig* pConfig, str sSection, uint32 iIndex);
+XRT_API bool xrtIniHas(const xrtiniconfig* pConfig, str sSection, str sKey);
+XRT_API const char* xrtIniGetRaw(const xrtiniconfig* pConfig, str sSection, str sKey);
+XRT_API str xrtIniGet(const xrtiniconfig* pConfig, str sSection, str sKey);
+XRT_API bool xrtIniGetInt(const xrtiniconfig* pConfig, str sSection, str sKey, int64* pValue);
+XRT_API bool xrtIniGetFloat(const xrtiniconfig* pConfig, str sSection, str sKey, double* pValue);
+XRT_API bool xrtIniGetBool(const xrtiniconfig* pConfig, str sSection, str sKey, bool* pValue);
 
-XXAPI bool xrtIniSet(xrtiniconfig* pConfig, str sSection, str sKey, str sValue);
-XXAPI bool xrtIniRemove(xrtiniconfig* pConfig, str sSection, str sKey);
-XXAPI bool xrtIniRemoveSection(xrtiniconfig* pConfig, str sSection);
-XXAPI xbuffer xrtIniStringify(const xrtiniconfig* pConfig);
-XXAPI bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter pWriter, bool bTakeOwnership);
-XXAPI bool xrtIniSave(const xrtiniconfig* pConfig, str sPath);
+XRT_API bool xrtIniSet(xrtiniconfig* pConfig, str sSection, str sKey, str sValue);
+XRT_API bool xrtIniRemove(xrtiniconfig* pConfig, str sSection, str sKey);
+XRT_API bool xrtIniRemoveSection(xrtiniconfig* pConfig, str sSection);
+XRT_API xbuffer* xrtIniStringify(const xrtiniconfig* pConfig);
+XRT_API bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter* pWriter, bool bTakeOwnership);
+XRT_API bool xrtIniSave(const xrtiniconfig* pConfig, str sPath);
 
 #ifdef __cplusplus
 }

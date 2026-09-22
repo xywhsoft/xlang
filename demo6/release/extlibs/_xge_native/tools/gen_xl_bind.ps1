@@ -187,6 +187,36 @@ function Get-XuiModule([string]$funcName) {
 }
 
 # ============================================================
+# 结构体按值传递 bridge 映射表
+# xge_native.c 为这些函数提供了 __xl6_ 前缀的标量参数 bridge，
+# 把结构体参数拆成标量，避免 xlang 侧直接传递 C 结构体。
+# key = 原始 C 函数名, value = bridge 标量参数列表（名称和 xlang 类型）
+# ============================================================
+$BridgeFuncs = @{
+    'xgeShapeRectFill'           = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRectFillPx'         = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRectStroke'         = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fWidth';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRectStrokePx'       = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fWidth';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRoundRectFill'      = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fRadius';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRoundRectStroke'    = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fRadius';XlType='c_float'},@{Name='fWidth';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRoundRectDraw'      = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fRadius';XlType='c_float'},@{Name='iFillColor';XlType='c_uint'},@{Name='fStrokeWidth';XlType='c_float'},@{Name='iStrokeColor';XlType='c_uint'})
+    'xgeShapeRoundRectFillEx'    = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fTL';XlType='c_float'},@{Name='fTR';XlType='c_float'},@{Name='fBR';XlType='c_float'},@{Name='fBL';XlType='c_float'},@{Name='iMode';XlType='c_int'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRoundRectStrokeEx'  = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fTL';XlType='c_float'},@{Name='fTR';XlType='c_float'},@{Name='fBR';XlType='c_float'},@{Name='fBL';XlType='c_float'},@{Name='iMode';XlType='c_int'},@{Name='fWidth';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeCapsuleFill'        = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeCapsuleStroke'      = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'},@{Name='fWidth';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeTriangleFill'       = @(@{Name='fX0';XlType='c_float'},@{Name='fY0';XlType='c_float'},@{Name='fX1';XlType='c_float'},@{Name='fY1';XlType='c_float'},@{Name='fX2';XlType='c_float'},@{Name='fY2';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeTriangleStroke'     = @(@{Name='fX0';XlType='c_float'},@{Name='fY0';XlType='c_float'},@{Name='fX1';XlType='c_float'},@{Name='fY1';XlType='c_float'},@{Name='fX2';XlType='c_float'},@{Name='fY2';XlType='c_float'},@{Name='fWidth';XlType='c_float'},@{Name='iColor';XlType='c_uint'})
+    'xgeClipSet'                 = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'})
+    'xgeViewportSet'             = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'})
+    'xgeInvalidateRect'          = @(@{Name='fX';XlType='c_float'},@{Name='fY';XlType='c_float'},@{Name='fW';XlType='c_float'},@{Name='fH';XlType='c_float'})
+    # 像素精确几何（xge_rect_i_t / xge_edges_i_t 按值参数拆标量，bridge 在 xge_native.c）
+    'xgeShapeRectFillPixels'     = @(@{Name='iX';XlType='c_int'},@{Name='iY';XlType='c_int'},@{Name='iW';XlType='c_int'},@{Name='iH';XlType='c_int'},@{Name='iColor';XlType='c_uint'})
+    'xgeShapeRectBorderPixels'   = @(@{Name='iX';XlType='c_int'},@{Name='iY';XlType='c_int'},@{Name='iW';XlType='c_int'},@{Name='iH';XlType='c_int'},@{Name='iLeft';XlType='c_int'},@{Name='iTop';XlType='c_int'},@{Name='iRight';XlType='c_int'},@{Name='iBottom';XlType='c_int'},@{Name='iColor';XlType='c_uint'})
+    'xgeViewportSetPixels'       = @(@{Name='iX';XlType='c_int'},@{Name='iY';XlType='c_int'},@{Name='iW';XlType='c_int'},@{Name='iH';XlType='c_int'})
+    'xgeClipSetPixels'           = @(@{Name='iX';XlType='c_int'},@{Name='iY';XlType='c_int'},@{Name='iW';XlType='c_int'},@{Name='iH';XlType='c_int'})
+}
+
+# ============================================================
 # 生成 .xl 文件内容
 # ============================================================
 function Generate-XlFile([string]$moduleName, [array]$functions, [array]$constants) {
@@ -230,24 +260,30 @@ function Generate-XlFile([string]$moduleName, [array]$functions, [array]$constan
     if ($functions.Count -gt 0) {
         [void]$sb.AppendLine("// === Functions ===")
         foreach ($fn in $functions) {
+            # 检查是否有结构体 bridge（参数拆标量）
+            $useBridge = $BridgeFuncs.ContainsKey($fn.Name)
+            if ($useBridge) {
+                $bridgeParams = $BridgeFuncs[$fn.Name]
+                $externName = "__xl6_$($fn.Name)"
+            } else {
+                $bridgeParams = $fn.Params
+                $externName = $fn.Name
+            }
+
             # 生成 extern 声明
             $paramParts = @()
             $callArgs = @()
-            foreach ($p in $fn.Params) {
-                if ($p.XlType -ne '') {
-                    $paramParts += "$($p.XlType) $($p.Name)"
-                    $callArgs += $p.Name
-                } else {
-                    $paramParts += "point $($p.Name)"
-                    $callArgs += $p.Name
-                }
+            foreach ($p in $bridgeParams) {
+                $xlType = if ($p.XlType -ne '') { $p.XlType } else { 'point' }
+                $paramParts += "$xlType $($p.Name)"
+                $callArgs += $p.Name
             }
             $paramStr = ($paramParts -join ', ')
             $callStr = ($callArgs -join ', ')
             $retStr = if ($fn.RetType -ne '') { " as $($fn.RetType)" } else { '' }
             $internName = "__xl6_$($fn.Name)"
 
-            [void]$sb.AppendLine("extern `"$($fn.Name)`" func $internName($paramStr)$retStr")
+            [void]$sb.AppendLine("extern `"$externName`" func $internName($paramStr)$retStr")
             # 生成 export 包装函数
             [void]$sb.AppendLine("export func $($fn.Name)($paramStr)$retStr")
             if ($fn.RetType -ne '') {

@@ -5,6 +5,11 @@
 /*
     sokol_app.h -- cross-platform application wrapper
 
+    XGE FORK:
+    The Win32 message loop supports SOKOL_WIN32_PRETRANSLATE_MESSAGE so XGE
+    can hand keyboard messages to TSF before TranslateMessage generates
+    WM_CHAR. Keep this hook when synchronizing with upstream sokol_app.h.
+
     Project URL: https://github.com/floooh/sokol
 
     Do this:
@@ -10199,6 +10204,11 @@ _SOKOL_PRIVATE void _sapp_win32_run(const sapp_desc* desc) {
                 done = true;
                 continue;
             } else {
+                #if defined(SOKOL_WIN32_PRETRANSLATE_MESSAGE)
+                if (SOKOL_WIN32_PRETRANSLATE_MESSAGE(&msg)) {
+                    continue;
+                }
+                #endif
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }

@@ -1,5 +1,5 @@
 // blake3 — BLAKE3 高性能哈希（支持哈希/MAC/KDF 三模式），Buffer/string/文件/流式。
-extern "xrtGetError" func __blake3_error() as string
+extern "xl6_xrt_last_error_text" func __blake3_error() as string
 extern "xblake3_version" func __blake3_version() as string
 extern "xblake3_hash_hex" func __blake3_hash_hex(point data, c_size size, c_size outLen) as string
 extern "xblake3_hash_str_hex" func __blake3_hash_str(string data, c_size size, c_size outLen) as string
@@ -9,7 +9,8 @@ extern "xblake3_hash_mac_hex" func __blake3_hash_mac_hex(point data, c_size size
 extern "xblake3_hash_mac_str_hex" func __blake3_hash_mac_str(string data, c_size size, string key, c_size keyLen, c_size outLen) as string
 extern "xblake3_hash_kdf_hex" func __blake3_hash_kdf_hex(point keyMat, c_size keyMatLen, string context, c_size outLen) as string
 extern "xblake3_hash_kdf_str_hex" func __blake3_hash_kdf_str(string keyMat, c_size keyMatLen, string context, c_size outLen) as string
-extern "xblake3_file_hex" func __blake3_file_hex(string path, c_ulonglong maxInput, c_size outLen) as string
+extern "xblake3_file_hex" func __blake3_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as string
+extern "xblake3_file_status" func __blake3_file_status() as c_int
 
 
 
@@ -110,10 +111,18 @@ end
 
 // 文件 BLAKE3 哈希。
 export func hashFileHex(string path, int maxInput = 268435456,
-    int outLen = BLAKE3_OUT_LEN) as string
+    int outLen = BLAKE3_OUT_LEN,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __blake3_check_limit(maxInput, "maxInput")
-    string result = __blake3_file_hex(path, c_ulonglong(maxInput), c_size(outLen))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __blake3_file_hex(path, c_ulonglong(maxInput), c_size(outLen), progress)
+    int status = __blake3_file_status()
+    if status == -1 then
+        throw CancelledError "blake3 operation cancelled"
+    elseif status != 1 then
         throw FileError __blake3_error()
     end
     return result

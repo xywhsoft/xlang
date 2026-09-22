@@ -21,9 +21,6 @@ $compoundGeneratedPath = Join-Path $outputDir "xlir_checked_integer_compound_err
 $compoundGeneratedAgainPath = Join-Path $outputDir "xlir_checked_integer_compound_error_abi_generated_again.c"
 $continuationGeneratedPath = Join-Path $outputDir "xlir_checked_integer_continuation_abi_generated.c"
 $continuationGeneratedAgainPath = Join-Path $outputDir "xlir_checked_integer_continuation_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_checked_integer_arithmetic_abi_legacy.c"
-$continuationLegacyPath = Join-Path $outputDir "xlir_checked_integer_continuation_abi_legacy.c"
-
 foreach ( $path in @(
     $xl, $source, $compoundSource, $continuationSource, $programHost, $moduleHost
 ) ) {
@@ -215,20 +212,26 @@ foreach ( $pair in @(
 $continuationGenerated = [System.IO.File]::ReadAllText(
     $continuationGeneratedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static xfuture* xlir_async_start_1(int64_t a0);",
+    "typedef struct xlir_result_future { bool ok; struct xfuture* value; } xlir_result_future;",
+    "static xlir_result_future xlir_async_start_1(int64_t a0);",
+    "static xfuture* xlir_async_start_raw_1(int64_t a0)",
     "xlir_async_machine_resume_2_0",
     "xlir_generator_resume_3",
-    "xlir_async_start_1(v",
+    "xlir_result_future r",
+    " = xlir_async_start_1(v",
     "xlir_i64_binary_checked("
 ) ) {
     if ( ! $continuationGenerated.Contains($required) ) {
         throw "XLIR checked integer continuation C emission is incomplete: $required"
     }
 }
+# The async checked operation appears in both the start path and its resume
+# callback; the generator contributes two more physical sites.  Typed/lowered
+# checks above prove that these are three semantic RuntimeOps.
 if ( $continuationGenerated -notmatch
-     'if \(v[0-9]+ != NULL\) goto ap[0-9]+; else goto ap[0-9]+;' -or
+     'xlir_result_future (?<launch>r[0-9]+) = xlir_async_start_1\(v[0-9]+\);\s*if \(\k<launch>\.ok\) \{ v[0-9]+ = \k<launch>\.value; goto ap[0-9]+; \} else goto ap[0-9]+;' -or
      ([regex]::Matches($continuationGenerated,
-        'xlir_i64_binary_checked\(').Count - 1) -ne 3 ) {
+        'xlir_i64_binary_checked\(').Count - 1) -ne 4 ) {
     throw "XLIR continuation C does not mechanically preserve nested-launch and checked-operation ABIs"
 }
 $generated = [System.IO.File]::ReadAllText(
@@ -267,23 +270,8 @@ try {
         throw "XLIR checked integer continuation strict-C runtime failed"
     }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy checked integer arithmetic differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_checked_integer_arithmetic_abi_legacy.exe && build\test\xlir_checked_integer_arithmetic_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy checked integer arithmetic differential runtime failed"
-    }
-
-    Invoke-Xl @("cgen", $continuationSource, "--backend", "legacy", "--emit", $continuationLegacyPath) `
-        "Legacy checked integer continuation differential Cgen failed"
-    $continuationLegacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $continuationLegacyPath !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_checked_integer_continuation_abi_legacy.exe && build\test\xlir_checked_integer_continuation_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $continuationLegacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy checked integer continuation differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR checked integer arithmetic ABI gate ok: twenty exact div/mod/shift RuntimeOps across i8/u8/i64/u64, Typed may-raise effects, adjacent ERROR_TEST CFG, compound assignment errors, nested async launch plus async/generator machine ownership, deterministic strict C and supported legacy differential runtime semantics."
+Write-Output "XLIR checked integer arithmetic ABI gate ok: twenty exact div/mod/shift RuntimeOps across i8/u8/i64/u64, Typed may-raise effects, adjacent ERROR_TEST CFG, compound assignment errors, nested async launch plus async/generator machine ownership, and deterministic strict-C runtime semantics."

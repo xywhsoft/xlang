@@ -1,35 +1,21 @@
-extern "xepub_version" func __version(int id) as string
-extern "xepub_mimetype" func __mimetype(int id) as string
-extern "xepub_spine_prop" func __spine_prop(int id) as string
-extern "xepub_nav_type" func __nav_type(int id) as string
-extern "xepub_metadata_field" func __metadata_field(int id) as string
-extern "xepub_validate_isbn" func __validate_isbn(string isbn) as int
-extern "xepub_encryption" func __encryption(int id) as string
+extern "xep_build" func __epub_build(string path, var meta, var chapters) as int
+extern "xep_read_entry" func __epub_read_entry(string path, string name) as string
 
-export func version(int id) as string
-    return __version(id)
+
+
+// build 生成一本 EPUB 3 电子书（存储式 ZIP，无需压缩依赖）
+// meta 支持 title、author、language、identifier 字段
+// chapters 为 [{title, text}] 数组；text 支持简单的 "# "/"## " 标题与空行分段
+// 返回文件字节数；生成失败抛 ValueError
+export func build(string path, var meta, var chapters) as int
+    int size = __epub_build(path, meta, chapters)
+    if size <= 0 then
+        throw ValueError "epub: build failed (1-100 chapters required, write error possible)"
+    end
+    return size
 end
 
-export func mimetype(int id) as string
-    return __mimetype(id)
-end
-
-export func spineProp(int id) as string
-    return __spine_prop(id)
-end
-
-export func navType(int id) as string
-    return __nav_type(id)
-end
-
-export func metadataField(int id) as string
-    return __metadata_field(id)
-end
-
-export func validateIsbn(string isbn) as int
-    return __validate_isbn(isbn)
-end
-
-export func encryption(int id) as string
-    return __encryption(id)
+// readEntry 读取 epub 内指定文本条目（用于验证与调试）；不存在返回空字符串
+export func readEntry(string path, string name) as string
+    return __epub_read_entry(path, name)
 end

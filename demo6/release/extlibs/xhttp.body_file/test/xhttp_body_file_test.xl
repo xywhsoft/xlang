@@ -1,0 +1,66 @@
+import xhttp.body
+import xhttp.body_async
+import xhttp.body_file
+from xhttp.body import Body, BodyChunk
+from xhttp.body_async import AsyncBodyReader
+from xhttp.body_file import BodyFileConfig
+
+
+
+async func collect(Body body, int chunkSize = 2) as string
+    AsyncBodyReader reader = AsyncBodyReader(body)
+    string output = ""
+
+    while true
+        BodyChunk? chunk = await reader.nextAsync(chunkSize)
+        if chunk == null then
+            return output
+        end
+        output += chunk.text()
+    end
+end
+
+
+
+string path = "xhttp_body_file_test.tmp"
+string content = "0123456789abcdef"
+
+file.delete(path)
+assert file.writeText(path, content)
+
+Body complete = await xhttp.body_file.open(
+    path,
+    BodyFileConfig(3)
+)
+assert complete.length == content.byteLen()
+assert not complete.replayable
+assert await collect(complete, 2) == content
+
+Body range = await xhttp.body_file.openRange(
+    path,
+    4,
+    6,
+    BodyFileConfig(2)
+)
+assert range.length == 6
+assert await collect(range, 3) == "456789"
+
+bool rejected = false
+try
+    await xhttp.body_file.openRange(path, 15, 2)
+catch error
+    rejected = true
+end
+assert rejected, "out-of-file range did not reject its Future"
+
+AsyncFile source = file.openAsync(
+    path,
+    file.asyncRead,
+    file.shareRead + file.shareWrite + file.shareDelete
+)
+Body adopted = xhttp.body_file.adopt(source, 1, 4, BodyFileConfig(2))
+assert source.nativeHandle() == null
+assert await collect(adopted) == "1234"
+
+assert file.delete(path)
+println("xhttp.body_file package ok")

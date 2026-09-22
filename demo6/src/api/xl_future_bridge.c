@@ -1285,14 +1285,27 @@ static xfuture* __xl6FutureAggregateArray(unsigned mode, const xvalue* array, XL
     xfuture** futures; xfuture* output; size_t count;
     if (!array || !(count = xrtValueCount(array)) || count > SIZE_MAX / sizeof(*futures) ||
         count > (size_t)INT64_MAX || (mode != XL6_AGGREGATE_ANY && count > (size_t)INT_MAX)) {
-        __xl6FutureSetAggregateError("task aggregate requires a non-empty representable Future array"); return NULL;
+        __xl6FutureSetAggregateError(mode == XL6_AGGREGATE_ALL
+            ? "task.all requires a non-empty future array"
+            : mode == XL6_AGGREGATE_RACE
+                ? "task.race requires a non-empty future array"
+                : "task.whenAny requires a non-empty future array");
+        return NULL;
     }
     futures = xrtMalloc(count * sizeof(*futures));
     if (!futures) { __xl6FutureSetAggregateError("task aggregate Future array allocation failed"); return NULL; }
     for (size_t i = 0; i < count; ++i) {
         const xvalue* item = xrtValueArrayGet(array, i);
         futures[i] = item ? xrtValueGetFuture(item) : NULL;
-        if (!futures[i]) { xrtFree(futures); __xl6FutureSetAggregateError("task aggregate array contains a non-Future value"); return NULL; }
+        if (!futures[i]) {
+            xrtFree(futures);
+            __xl6FutureSetAggregateError(mode == XL6_AGGREGATE_ALL
+                ? "task.all source future is null"
+                : mode == XL6_AGGREGATE_RACE
+                    ? "task.race source future is null"
+                    : "task.whenAny source future is null");
+            return NULL;
+        }
     }
     output = __xl6FutureAggregateStart(mode, futures, count, box, owner, true);
     xrtFree(futures); return output;

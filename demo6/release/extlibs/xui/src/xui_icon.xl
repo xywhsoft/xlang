@@ -197,11 +197,6 @@ export func xuiIconGetRefCount(point pIcon) as c_int
     return __xl6_xuiIconGetRefCount(pIcon)
 end
 
-extern "xuiIconGetId" func __xl6_xuiIconGetId(point pIcon) as point
-export func xuiIconGetId(point pIcon) as point
-    return __xl6_xuiIconGetId(pIcon)
-end
-
 extern "xuiIconGetName" func __xl6_xuiIconGetName(point pIcon) as string
 export func xuiIconGetName(point pIcon) as string
     return __xl6_xuiIconGetName(pIcon)

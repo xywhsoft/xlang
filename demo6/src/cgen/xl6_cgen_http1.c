@@ -689,21 +689,18 @@ long long xl6_xrt_http_decoder_pending(void* pHandle) { return pHandle != 0 ? (l
 
 
 /* 输出 HTTP/1 报头、正文和快速封包桥。 */
-void xl6CgenEmitHttp1Runtime(XL6_Output* out, int xlirAbi)
+void xl6CgenEmitHttp1Runtime(XL6_Output* out)
 {
 	if ( out != NULL ) {
-		xl6CgenEmitNativeVoidAbiBegin(out,xlirAbi);
-		if ( xlirAbi ) {
-			xl6OutputPuts(
-				"static char* xlir_http1_string_dup(const char* value, size_t size)\n"
-				"{ const char* source = value != NULL ? value : \"\"; return size == 0 ? xrtStrDup(source) : xrtStrDupN(source, size); }\n"
-				"#define xl6_xrt_string_dup xlir_http1_string_dup\n",
-				out);
-		}
+		xl6CgenEmitNativeVoidAbiBegin(out);
+		xl6OutputPuts(
+			"static char* xlir_http1_string_dup(const char* value, size_t size)\n"
+			"{ const char* source = value != NULL ? value : \"\"; return size == 0 ? xrtStrDup(source) : xrtStrDupN(source, size); }\n"
+			"#define xl6_xrt_string_dup xlir_http1_string_dup\n",
+			out);
 		xl6OutputPuts(xl6Http1RuntimeSource, out);
 		xl6CgenEmitNativeVoidAbiEnd(out);
-		if ( xlirAbi )
-			xl6OutputPuts("\n#undef xl6_xrt_string_dup", out);
+		xl6OutputPuts("\n#undef xl6_xrt_string_dup", out);
 		xl6OutputPuts("\n\n", out);
 	}
 }

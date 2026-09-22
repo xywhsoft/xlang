@@ -1,24 +1,25 @@
 import msgpack
 
-
-
 func main(...) as int
-    // Encode various types
-    println("int 42:    ", msgpack.encodeInt(42))
-    println("int -10:   ", msgpack.encodeInt(-10))
-    println("str hello: ", msgpack.encodeStr("hello"))
-    println("bool true: ", msgpack.encodeBool(true))
-    println("nil:       ", msgpack.encodeNil())
-    println("float 1.5: ", msgpack.encodeFloat(1.5))
+    var message = {
+        "service": "xlang",
+        "version": 6,
+        "tags": ["binary", "compact"],
+        "enabled": true
+    }
+    Buffer packed = msgpack.encode(message)
+    println("MessagePack hex: ", msgpack.toHex(packed))
 
-    // Build [1, "two", true]
-    auto arr = msgpack.concat(msgpack.arrayHdr(3), msgpack.concat(msgpack.encodeInt(1), msgpack.concat(msgpack.encodeStr("two"), msgpack.encodeBool(true))))
-    println("array:     ", arr)
+    var restored = msgpack.decode(packed)
+    println("service: ", restored["service"])
+    println("second tag: ", restored["tags"][1])
 
-    // Decode
-    println("decode 999: ", msgpack.decodeInt(msgpack.encodeInt(999)))
-    println("decode str: ", msgpack.decodeStr(msgpack.encodeStr("world")))
-
+    Buffer raw = Buffer()
+    raw.appendByte(0xca)
+    raw.appendByte(0xfe)
+    Buffer binary = msgpack.encodeBytes(raw)
+    println("binary MessagePack: ", msgpack.toHex(binary))
+    println("binary payload: ", msgpack.toHex(msgpack.decodeBytes(binary)))
     println("msgpack example: PASS")
     return 0
 end

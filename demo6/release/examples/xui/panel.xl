@@ -1,0 +1,37 @@
+// panel.xl — 面板：Panel 容器 + Row 布局放多个 Label
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Panel Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Panel Demo (Row layout)", font)
+    root.addChild(title)
+
+    xui.Panel row = xui.Panel(ctx)
+    row.setLayoutType(2)  // XUI_LAYOUT_ROW
+    row.setGap(12.0)
+    row.setPreferredSize(700.0, 60.0)
+
+    xui.Label lbl1 = xui.Label(ctx, "Left", font)
+    row.addChild(lbl1)
+
+    xui.Label lbl2 = xui.Label(ctx, "Center", font)
+    row.addChild(lbl2)
+
+    xui.Label lbl3 = xui.Label(ctx, "Right", font)
+    row.addChild(lbl3)
+
+    root.addChild(row)
+
+    g_app.run(onFrame)
+    return 0
+end

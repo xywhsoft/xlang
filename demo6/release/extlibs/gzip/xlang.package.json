@@ -16,13 +16,7 @@
     },
     "links": [],
     "loadlibs": [],
-    "dependencies": [
-        {
-            "name": "_zlib",
-            "version": "1.3.2",
-            "abiVersion": "1"
-        }
-    ],
+    "dependencies": [],
     "native": {
         "singleton": false,
         "loadName": "",

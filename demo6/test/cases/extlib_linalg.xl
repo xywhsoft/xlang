@@ -1,88 +1,54 @@
 import linalg
 
-
-
 func main(...) as int
-    // Dot product 2D
-    auto d2 = linalg.dot2(1.0, 2.0, 3.0, 4.0)
-    assert d2 > 10.99 and d2 < 11.01, "dot2"
+    assert linalg.dot2(1.0, 2.0, 3.0, 4.0) == 11.0, "dot2"
+    assert linalg.dot3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0) == 32.0, "dot3"
+    assert linalg.mag2(3.0, 4.0) == 5.0, "mag2"
+    assert linalg.mag3(1.0, 2.0, 2.0) == 3.0, "mag3"
 
-    // Dot product 3D
-    auto d3 = linalg.dot3(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-    assert d3 > 31.99 and d3 < 32.01, "dot3"
+    float nx = 0.0
+    float ny = 0.0
+    nx, ny = linalg.normalize2(3.0, 4.0)
+    assert nx > 0.59 and nx < 0.61, "normalize2 x"
+    assert ny > 0.79 and ny < 0.81, "normalize2 y"
 
-    // Magnitude 2D
-    auto m2 = linalg.mag2(3.0, 4.0)
-    assert m2 > 4.99 and m2 < 5.01, "mag2"
+    float cx = 0.0
+    float cy = 0.0
+    float cz = 0.0
+    cx, cy, cz = linalg.cross3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    assert cx == 0.0 and cy == 0.0 and cz == 1.0, "cross3"
 
-    // Magnitude 3D
-    auto m3 = linalg.mag3(1.0, 2.0, 2.0)
-    assert m3 > 2.99 and m3 < 3.01, "mag3"
+    float ia = 0.0
+    float ib = 0.0
+    float ic = 0.0
+    float id = 0.0
+    ia, ib, ic, id = linalg.inverse2(1.0, 2.0, 3.0, 4.0)
+    assert ia == -2.0 and ib == 1.0 and ic == 1.5 and id == -0.5, "inverse2"
 
-    // Normalize 2D
-    auto nx = linalg.norm2x(3.0, 4.0)
-    auto ny = linalg.norm2y()
-    assert nx > 0.59 and nx < 0.61, "norm2x"
-    assert ny > 0.79 and ny < 0.81, "norm2y"
+    float ma = 0.0
+    float mb = 0.0
+    float mc = 0.0
+    float md = 0.0
+    ma, mb, mc, md = linalg.multiply2(1.0, 0.0, 0.0, 1.0, 5.0, 6.0, 7.0, 8.0)
+    assert ma == 5.0 and mb == 6.0 and mc == 7.0 and md == 8.0, "multiply2"
 
-    // Cross product 3D: (1,0,0) x (0,1,0) = (0,0,1)
-    auto cx = linalg.crossX(1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
-    auto cy = linalg.crossY()
-    auto cz = linalg.crossZ()
-    assert cx > -0.01 and cx < 0.01, "cross x"
-    assert cy > -0.01 and cy < 0.01, "cross y"
-    assert cz > 0.99 and cz < 1.01, "cross z"
+    assert linalg.det2(1.0, 2.0, 3.0, 4.0) == -2.0, "det2"
+    assert linalg.angle2(1.0, 0.0, 0.0, 1.0) > 1.56, "angle2"
+    assert linalg.dist2(0.0, 0.0, 3.0, 4.0) == 5.0, "dist2"
+    assert linalg.dist3(0.0, 0.0, 0.0, 1.0, 2.0, 2.0) == 3.0, "dist3"
+    assert linalg.lerp(0.0, 10.0, 0.5) == 5.0, "lerp"
+    assert linalg.clamp(15.0, 0.0, 10.0) == 10.0, "clamp"
+    assert linalg.deg2rad(180.0) > 3.14, "deg2rad"
+    assert linalg.rad2deg(3.14159265358979) > 179.9, "rad2deg"
 
-    // Determinant 2x2
-    auto det = linalg.det2(1.0, 2.0, 3.0, 4.0)
-    assert det > -2.01 and det < -1.99, "det2"
-
-    // Inverse 2x2: [[1,2],[3,4]] inv = [[-2,1],[1.5,-0.5]]
-    auto ia = linalg.inv2a(1.0, 2.0, 3.0, 4.0)
-    auto ib = linalg.inv2b()
-    auto ic = linalg.inv2c()
-    auto id = linalg.inv2d()
-    assert ia > -2.01 and ia < -1.99, "inv2a"
-    assert ib > 0.99 and ib < 1.01, "inv2b"
-    assert ic > 1.49 and ic < 1.51, "inv2c"
-    assert id > -0.51 and id < -0.49, "inv2d"
-
-    // Matrix multiply 2x2: I * A = A
-    auto ma = linalg.mul2a(1.0, 0.0, 0.0, 1.0, 5.0, 6.0, 7.0, 8.0)
-    auto mb = linalg.mul2b()
-    auto mc = linalg.mul2c()
-    auto md = linalg.mul2d()
-    assert ma > 4.99 and ma < 5.01, "mul2a"
-    assert mb > 5.99 and mb < 6.01, "mul2b"
-    assert mc > 6.99 and mc < 7.01, "mul2c"
-    assert md > 7.99 and md < 8.01, "mul2d"
-
-    // Angle between (1,0) and (0,1) = pi/2
-    auto ang = linalg.angle2(1.0, 0.0, 0.0, 1.0)
-    assert ang > 1.56 and ang < 1.58, "angle2"
-
-    // Distance 2D
-    auto dist = linalg.dist2(0.0, 0.0, 3.0, 4.0)
-    assert dist > 4.99 and dist < 5.01, "dist2"
-
-    // Distance 3D
-    auto dist3d = linalg.dist3(0.0, 0.0, 0.0, 1.0, 2.0, 2.0)
-    assert dist3d > 2.99 and dist3d < 3.01, "dist3"
-
-    // Lerp
-    auto lp = linalg.lerp(0.0, 10.0, 0.5)
-    assert lp > 4.99 and lp < 5.01, "lerp"
-
-    // Clamp
-    assert linalg.clamp(15.0, 0.0, 10.0) > 9.99, "clamp high"
-    assert linalg.clamp(-5.0, 0.0, 10.0) < 0.01, "clamp low"
-    assert linalg.clamp(5.0, 0.0, 10.0) > 4.99, "clamp mid"
-
-    // Deg/Rad conversion
-    auto rad = linalg.deg2rad(180.0)
-    assert rad > 3.13 and rad < 3.15, "deg2rad"
-    auto deg = linalg.rad2deg(3.14159265358979)
-    assert deg > 179.9 and deg < 180.1, "rad2deg"
-
+    bool caught = false
+    try
+        float badX = 0.0
+        float badY = 0.0
+        badX, badY = linalg.normalize2(0.0, 0.0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "zero vector must throw"
     return 0
 end

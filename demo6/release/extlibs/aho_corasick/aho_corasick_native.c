@@ -1,683 +1,773 @@
-/*
- * aho_corasick_native.c - Aho-Corasick multi-pattern matching engine
- *
- * Redesigned for structured results, case-insensitive support,
- * and optimized contains/count paths.
- */
-#include <stdlib.h>
+#define XRT_MODULE_IO_BUFFER
+#include "include/xrt_aho_corasick.h"
+
+#include <limits.h>
 #include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-extern void xrtSetError(const void *msg, int bFree);
-extern void *xrtTempMemory(size_t size);
 
-/* ------------------------------------------------------------------ */
-/* Trie node                                                           */
-/* ------------------------------------------------------------------ */
-#define AC_ALPHABET 256
 
-typedef struct ACNode {
-    struct ACNode *children[AC_ALPHABET];
-    struct ACNode *fail;
-    int *outputs;
-    int output_count;
-    int output_cap;
-} ACNode;
 
-/* ------------------------------------------------------------------ */
-/* Match result storage                                                */
-/* ------------------------------------------------------------------ */
-typedef struct {
-    int pattern_idx;
-    int start;
-    int end;
-} ACMatchEntry;
+#if defined(_WIN32) || defined(_WIN64)
+	#define XAHO_EXPORT __declspec(dllexport)
+#else
+	#define XAHO_EXPORT
+#endif
 
-typedef struct {
-    ACMatchEntry *items;
-    int count;
-    int cap;
-} ACMatchVec;
 
-/* ------------------------------------------------------------------ */
-/* Result set (opaque handle for xlang MatchList)                      */
-/* ------------------------------------------------------------------ */
-typedef struct {
-    ACMatchEntry *items;
-    int count;
-    char **patterns;       /* borrowed pattern strings */
-    int pattern_count;
-} ACResultSet;
 
-/* ------------------------------------------------------------------ */
-/* Main automaton                                                      */
-/* ------------------------------------------------------------------ */
-typedef struct {
-    ACNode *root;
-    char **patterns;
-    int *pattern_lens;
-    int pattern_count;
-    int pattern_cap;
-    int built;
-    int ignore_case;
-} XAhoCorasick;
+typedef struct xaho_native_result {
+	xrtahoresult* Result;
+	xrtaho* Automaton;
+	xrtahomatch Match;
+	bool Single;
+} xaho_native_result;
 
-/* ------------------------------------------------------------------ */
-/* Node helpers                                                        */
-/* ------------------------------------------------------------------ */
-static ACNode *ac_new_node(void) {
-    return (ACNode *)calloc(1, sizeof(ACNode));
+
+
+typedef struct xaho_native_scan {
+	xrtahostate* State;
+	xstrview Text;
+	str Owned;
+	size_t Offset;
+	xrtahomatch Match;
+	bool Finished;
+} xaho_native_scan;
+
+
+
+typedef xaho_native_scan xaho_native_stream;
+
+
+
+/* 返回当前结构化错误的消息。 */
+XAHO_EXPORT const char* xac_last_error(void)
+{
+	const xerror* pError = xrtGetError();
+	cstr sMessage = pError != NULL ? xrtErrorMessage(pError) : NULL;
+
+	return sMessage != NULL && sMessage[0] != 0 ?
+		sMessage : "Aho-Corasick operation failed";
 }
 
-static void ac_free_node(ACNode *n) {
-    int i;
-    if (!n) return;
-    for (i = 0; i < AC_ALPHABET; i++) {
-        if (n->children[i]) ac_free_node(n->children[i]);
-    }
-    free(n->outputs);
-    free(n);
+
+
+/* 创建 XLang 自动机句柄。 */
+XAHO_EXPORT void* xac_create(
+	int bIgnoreAsciiCase,
+	uint64 iMaxPatterns,
+	uint64 iMaxPatternBytes,
+	uint64 iMaxTotalPatternBytes,
+	uint64 iMaxNodes,
+	uint64 iMaxMatches,
+	uint64 iMaxInputBytes,
+	uint64 iMaxOutputBytes
+)
+{
+	xrtahooptions Options;
+
+	xrtAhoOptionsInit(&Options);
+	Options.bIgnoreAsciiCase = bIgnoreAsciiCase != 0;
+	Options.iMaxPatterns = iMaxPatterns;
+	Options.iMaxPatternBytes = iMaxPatternBytes;
+	Options.iMaxTotalPatternBytes = iMaxTotalPatternBytes;
+	Options.iMaxNodes = iMaxNodes;
+	Options.iMaxMatches = iMaxMatches;
+	Options.iMaxInputBytes = iMaxInputBytes;
+	Options.iMaxOutputBytes = iMaxOutputBytes;
+	return xrtAhoCreate(&Options);
 }
 
-static unsigned char ac_tolower(unsigned char c) {
-    return (c >= 'A' && c <= 'Z') ? (unsigned char)(c + 32) : c;
+
+
+/* 释放 XLang 自动机句柄。 */
+XAHO_EXPORT void xac_destroy(void* pHandle)
+{
+	xrtAhoDestroy((xrtaho*)pHandle);
 }
 
-/* ------------------------------------------------------------------ */
-/* Lifecycle                                                           */
-/* ------------------------------------------------------------------ */
-void *xac_create(int ignore_case) {
-    XAhoCorasick *ac = (XAhoCorasick *)calloc(1, sizeof(XAhoCorasick));
-    if (!ac) { xrtSetError("aho_corasick: out of memory", 0); return NULL; }
-    ac->root = ac_new_node();
-    if (!ac->root) { free(ac); xrtSetError("aho_corasick: out of memory", 0); return NULL; }
-    ac->pattern_cap = 16;
-    ac->patterns = (char **)malloc(sizeof(char *) * ac->pattern_cap);
-    ac->pattern_lens = (int *)malloc(sizeof(int) * ac->pattern_cap);
-    if (!ac->patterns || !ac->pattern_lens) {
-        free(ac->patterns); free(ac->pattern_lens);
-        ac_free_node(ac->root); free(ac);
-        xrtSetError("aho_corasick: out of memory", 0);
-        return NULL;
-    }
-    ac->ignore_case = ignore_case;
-    return ac;
+
+
+/* 添加明确长度模式。 */
+XAHO_EXPORT int xac_add_pattern(
+	void* pHandle,
+	const char* sPattern,
+	size_t iSize
+)
+{
+	xstrview Pattern = { sPattern, iSize };
+
+	return xrtAhoAdd((xrtaho*)pHandle, Pattern) ? 1 : 0;
 }
 
-void xac_destroy(void *ptr) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    int i;
-    if (!ac) return;
-    ac_free_node(ac->root);
-    for (i = 0; i < ac->pattern_count; i++) free(ac->patterns[i]);
-    free(ac->patterns);
-    free(ac->pattern_lens);
-    free(ac);
+
+
+/* 构建自动机。 */
+XAHO_EXPORT int xac_build(void* pHandle)
+{
+	return xrtAhoBuild((xrtaho*)pHandle) ? 1 : 0;
 }
 
-/* ------------------------------------------------------------------ */
-/* Pattern management                                                  */
-/* ------------------------------------------------------------------ */
-void xac_add_pattern(void *ptr, const char *pattern) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACNode *cur;
-    const unsigned char *p;
-    int idx, len;
 
-    if (!ac || !pattern || !pattern[0]) return;
-    if (ac->built) { xrtSetError("aho_corasick: cannot add after build", 0); return; }
 
-    if (ac->pattern_count >= ac->pattern_cap) {
-        ac->pattern_cap *= 2;
-        ac->patterns = (char **)realloc(ac->patterns, sizeof(char *) * ac->pattern_cap);
-        ac->pattern_lens = (int *)realloc(ac->pattern_lens, sizeof(int) * ac->pattern_cap);
-    }
-    idx = ac->pattern_count;
-    ac->patterns[idx] = strdup(pattern);
-    ac->pattern_lens[idx] = (int)strlen(pattern);
-    ac->pattern_count++;
-
-    /* insert into trie */
-    cur = ac->root;
-    p = (const unsigned char *)pattern;
-    while (*p) {
-        unsigned char c = ac->ignore_case ? ac_tolower(*p) : *p;
-        if (!cur->children[c]) cur->children[c] = ac_new_node();
-        cur = cur->children[c];
-        p++;
-    }
-    /* mark output */
-    if (cur->output_count >= cur->output_cap) {
-        cur->output_cap = cur->output_cap ? cur->output_cap * 2 : 4;
-        cur->outputs = (int *)realloc(cur->outputs, sizeof(int) * cur->output_cap);
-    }
-    cur->outputs[cur->output_count++] = idx;
-    (void)len;
+/* 返回构建状态。 */
+XAHO_EXPORT int xac_is_built(void* pHandle)
+{
+	return xrtAhoBuilt((const xrtaho*)pHandle) ? 1 : 0;
 }
 
-/* ------------------------------------------------------------------ */
-/* Build failure links (BFS)                                           */
-/* ------------------------------------------------------------------ */
-void xac_build(void *ptr) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACNode **queue;
-    int qhead = 0, qtail = 0, qcap;
-    int i;
 
-    if (!ac || ac->built) return;
 
-    qcap = 4096;
-    queue = (ACNode **)malloc(sizeof(ACNode *) * qcap);
-    if (!queue) { xrtSetError("aho_corasick: out of memory", 0); return; }
+/* 返回模式数量，超出 XLang int 范围时失败。 */
+XAHO_EXPORT int64 xac_pattern_count(void* pHandle)
+{
+	size_t iCount = xrtAhoPatternCount((const xrtaho*)pHandle);
 
-    for (i = 0; i < AC_ALPHABET; i++) {
-        if (ac->root->children[i]) {
-            ac->root->children[i]->fail = ac->root;
-            if (qtail >= qcap) { qcap *= 2; queue = (ACNode **)realloc(queue, sizeof(ACNode *) * qcap); }
-            queue[qtail++] = ac->root->children[i];
-        }
-    }
-
-    while (qhead < qtail) {
-        ACNode *cur = queue[qhead++];
-        for (i = 0; i < AC_ALPHABET; i++) {
-            ACNode *child = cur->children[i];
-            ACNode *f;
-            if (!child) continue;
-            f = cur->fail;
-            while (f && !f->children[i]) f = f->fail;
-            child->fail = f ? f->children[i] : ac->root;
-            if (child->fail == child) child->fail = ac->root;
-            /* merge outputs from fail chain */
-            if (child->fail->output_count > 0) {
-                int j;
-                for (j = 0; j < child->fail->output_count; j++) {
-                    if (child->output_count >= child->output_cap) {
-                        child->output_cap = child->output_cap ? child->output_cap * 2 : 4;
-                        child->outputs = (int *)realloc(child->outputs, sizeof(int) * child->output_cap);
-                    }
-                    child->outputs[child->output_count++] = child->fail->outputs[j];
-                }
-            }
-            if (qtail >= qcap) { qcap *= 2; queue = (ACNode **)realloc(queue, sizeof(ACNode *) * qcap); }
-            queue[qtail++] = child;
-        }
-    }
-    free(queue);
-    ac->built = 1;
+	if ( iCount > (size_t)INT64_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick pattern count exceeds int range");
+		return -1;
+	}
+	return (int64)iCount;
 }
 
-/* ------------------------------------------------------------------ */
-/* Search: returns result set handle                                   */
-/* ------------------------------------------------------------------ */
-void *xac_search(void *ptr, const char *text) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACResultSet *rs;
-    ACMatchVec vec;
-    ACNode *cur;
-    const unsigned char *p;
-    int pos = 0;
 
-    if (!ac || !text) return NULL;
-    if (!ac->built) { xrtSetError("aho_corasick: must build before search", 0); return NULL; }
 
-    vec.items = NULL;
-    vec.count = 0;
-    vec.cap = 0;
+/* 返回指定模式的独立 Buffer。 */
+XAHO_EXPORT void* xac_pattern(void* pHandle, int64 iIndex)
+{
+	xstrview Pattern;
+	xbytesview Data;
 
-    cur = ac->root;
-    p = (const unsigned char *)text;
-
-    while (*p) {
-        unsigned char c = ac->ignore_case ? ac_tolower(*p) : *p;
-        while (cur && !cur->children[c] && cur != ac->root) cur = cur->fail;
-        if (cur->children[c]) cur = cur->children[c];
-        else cur = ac->root;
-
-        if (cur->output_count > 0) {
-            int j;
-            for (j = 0; j < cur->output_count; j++) {
-                int pidx = cur->outputs[j];
-                int start = pos - ac->pattern_lens[pidx] + 1;
-                if (vec.count >= vec.cap) {
-                    vec.cap = vec.cap ? vec.cap * 2 : 32;
-                    vec.items = (ACMatchEntry *)realloc(vec.items, sizeof(ACMatchEntry) * vec.cap);
-                }
-                vec.items[vec.count].pattern_idx = pidx;
-                vec.items[vec.count].start = start;
-                vec.items[vec.count].end = pos + 1;
-                vec.count++;
-            }
-        }
-        p++;
-        pos++;
-    }
-
-    rs = (ACResultSet *)calloc(1, sizeof(ACResultSet));
-    if (!rs) { free(vec.items); xrtSetError("aho_corasick: out of memory", 0); return NULL; }
-    rs->items = vec.items;
-    rs->count = vec.count;
-    rs->patterns = ac->patterns;
-    rs->pattern_count = ac->pattern_count;
-    return rs;
+	if ( iIndex < 0 ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick pattern index is out of range");
+		return NULL;
+	}
+	Pattern = xrtAhoPattern((const xrtaho*)pHandle, (size_t)iIndex);
+	if ( Pattern.Data == NULL ) { return NULL; }
+	Data.Data = (const unsigned char*)Pattern.Data;
+	Data.Size = Pattern.Size;
+	return xrtBufferFrom(Data);
 }
 
-/* ------------------------------------------------------------------ */
-/* Result set accessors                                                */
-/* ------------------------------------------------------------------ */
-int xac_result_count(void *rptr) {
-    ACResultSet *rs = (ACResultSet *)rptr;
-    return rs ? rs->count : 0;
+
+
+/* 创建普通结果包装。 */
+static xaho_native_result* xac_wrap_result(xrtahoresult* pResult)
+{
+	xaho_native_result* pHandle;
+
+	if ( pResult == NULL ) { return NULL; }
+	pHandle = (xaho_native_result*)xrtCalloc(1u, sizeof(*pHandle));
+	if ( pHandle == NULL ) {
+		xrtAhoResultDestroy(pResult);
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_MEMORY, "Aho-Corasick result allocation failed");
+		return NULL;
+	}
+	pHandle->Result = pResult;
+	return pHandle;
 }
 
-const char *xac_result_pattern(void *rptr, int index) {
-    ACResultSet *rs = (ACResultSet *)rptr;
-    if (!rs || index < 0 || index >= rs->count) return "";
-    return rs->patterns[rs->items[index].pattern_idx];
+
+
+/* 搜索全部匹配。 */
+XAHO_EXPORT void* xac_search(
+	void* pHandle,
+	const char* sText,
+	size_t iSize
+)
+{
+	xstrview Text = { sText, iSize };
+
+	return xac_wrap_result(xrtAhoSearch((xrtaho*)pHandle, Text));
 }
 
-int xac_result_start(void *rptr, int index) {
-    ACResultSet *rs = (ACResultSet *)rptr;
-    if (!rs || index < 0 || index >= rs->count) return -1;
-    return rs->items[index].start;
+
+
+/* 搜索左优先最长非重叠匹配。 */
+XAHO_EXPORT void* xac_search_non_overlapping(
+	void* pHandle,
+	const char* sText,
+	size_t iSize
+)
+{
+	xstrview Text = { sText, iSize };
+
+	return xac_wrap_result(
+		xrtAhoSearchNonOverlapping((xrtaho*)pHandle, Text));
 }
 
-int xac_result_end(void *rptr, int index) {
-    ACResultSet *rs = (ACResultSet *)rptr;
-    if (!rs || index < 0 || index >= rs->count) return -1;
-    return rs->items[index].end;
+
+
+/* 查找第一个匹配，不创建完整结果数组。 */
+XAHO_EXPORT void* xac_find(
+	void* pHandle,
+	const char* sText,
+	size_t iSize
+)
+{
+	xrtaho* pAutomaton = (xrtaho*)pHandle;
+	xstrview Text = { sText, iSize };
+	xaho_native_result* pResult;
+	xrtahomatch Match;
+	bool bFound;
+
+	if ( !xrtAhoFind(pAutomaton, Text, &Match, &bFound) ) {
+		return NULL;
+	}
+	if ( !bFound ) {
+		pResult = (xaho_native_result*)xrtCalloc(1u, sizeof(*pResult));
+		if ( pResult == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick",
+				XRT_AHO_ERROR_MEMORY, "Aho-Corasick result allocation failed");
+			return NULL;
+		}
+		pResult->Single = true;
+		return pResult;
+	}
+	pResult = (xaho_native_result*)xrtCalloc(1u, sizeof(*pResult));
+	if ( pResult == NULL ) {
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_MEMORY, "Aho-Corasick result allocation failed");
+		return NULL;
+	}
+	pResult->Match = Match;
+	if ( xrtAhoRef(pAutomaton) == NULL ) {
+		xrtFree(pResult);
+		return NULL;
+	}
+	pResult->Automaton = pAutomaton;
+	pResult->Single = true;
+	return pResult;
 }
 
-void xac_result_destroy(void *rptr) {
-    ACResultSet *rs = (ACResultSet *)rptr;
-    if (!rs) return;
-    free(rs->items);
-    free(rs);
+
+
+/* 返回结果数量。 */
+XAHO_EXPORT int64 xac_result_count(void* pHandle)
+{
+	xaho_native_result* pResult = (xaho_native_result*)pHandle;
+	size_t iCount;
+
+	if ( pResult == NULL ) { return 0; }
+	iCount = pResult->Single ? (pResult->Automaton != NULL ? 1u : 0u) :
+		xrtAhoResultCount(pResult->Result);
+	if ( iCount > (size_t)INT64_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick result count exceeds int range");
+		return -1;
+	}
+	return (int64)iCount;
 }
 
-/* ------------------------------------------------------------------ */
-/* Optimized contains: early exit on first match                       */
-/* ------------------------------------------------------------------ */
-int xac_contains(void *ptr, const char *text) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACNode *cur;
-    const unsigned char *p;
 
-    if (!ac || !text) return 0;
-    if (!ac->built) { xrtSetError("aho_corasick: must build before contains", 0); return 0; }
 
-    cur = ac->root;
-    p = (const unsigned char *)text;
-
-    while (*p) {
-        unsigned char c = ac->ignore_case ? ac_tolower(*p) : *p;
-        while (cur && !cur->children[c] && cur != ac->root) cur = cur->fail;
-        if (cur->children[c]) cur = cur->children[c];
-        else cur = ac->root;
-
-        if (cur->output_count > 0) return 1;
-        p++;
-    }
-    return 0;
+/* 读取结果并统一单项、数组两种包装。 */
+static bool xac_result_at(
+	xaho_native_result* pResult,
+	size_t iIndex,
+	xrtahomatch* pMatch
+)
+{
+	if ( pResult == NULL ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_ARGUMENT, "Aho-Corasick result is null");
+		return false;
+	}
+	if ( pResult->Single ) {
+		if ( pResult->Automaton == NULL || iIndex != 0u ) {
+			xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+				XRT_AHO_ERROR_RANGE, "Aho-Corasick result index is out of range");
+			return false;
+		}
+		*pMatch = pResult->Match;
+		return true;
+	}
+	return xrtAhoResultAt(pResult->Result, iIndex, pMatch);
 }
 
-/* ------------------------------------------------------------------ */
-/* Optimized count: no result allocation                               */
-/* ------------------------------------------------------------------ */
-int xac_count(void *ptr, const char *text) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACNode *cur;
-    const unsigned char *p;
-    int total = 0;
 
-    if (!ac || !text) return 0;
-    if (!ac->built) { xrtSetError("aho_corasick: must build before count", 0); return 0; }
 
-    cur = ac->root;
-    p = (const unsigned char *)text;
+/* 返回包含匹配模式的独立 Buffer。 */
+XAHO_EXPORT void* xac_result_pattern(void* pHandle, int64 iIndex)
+{
+	xrtahomatch Match;
+	xbytesview Data;
 
-    while (*p) {
-        unsigned char c = ac->ignore_case ? ac_tolower(*p) : *p;
-        while (cur && !cur->children[c] && cur != ac->root) cur = cur->fail;
-        if (cur->children[c]) cur = cur->children[c];
-        else cur = ac->root;
-
-        total += cur->output_count;
-        p++;
-    }
-    return total;
+	if ( iIndex < 0 || !xac_result_at((xaho_native_result*)pHandle,
+		(size_t)iIndex, &Match) ) { return NULL; }
+	Data.Data = (const unsigned char*)Match.Pattern.Data;
+	Data.Size = Match.Pattern.Size;
+	return xrtBufferFrom(Data);
 }
 
-/* ------------------------------------------------------------------ */
-/* Streaming scan: one match at a time, no bulk allocation             */
-/* ------------------------------------------------------------------ */
-typedef struct {
-    XAhoCorasick *ac;
-    const unsigned char *text;
-    const unsigned char *p;
-    ACNode *cur;
-    int pos;
-    int out_idx;       /* current output index within current node */
-    int finished;
-    /* last match fields (accessed via getters) */
-    int match_start;
-    int match_end;
-    int match_pidx;
-} ACScanCtx;
 
-void *xac_scan_begin(void *ptr, const char *text) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACScanCtx *ctx;
 
-    if (!ac || !text) return NULL;
-    if (!ac->built) { xrtSetError("aho_corasick: must build before scan", 0); return NULL; }
+/* 返回匹配开始位置。 */
+XAHO_EXPORT int64 xac_result_start(void* pHandle, int64 iIndex)
+{
+	xrtahomatch Match;
 
-    ctx = (ACScanCtx *)calloc(1, sizeof(ACScanCtx));
-    if (!ctx) { xrtSetError("aho_corasick: out of memory", 0); return NULL; }
-    ctx->ac = ac;
-    ctx->text = (const unsigned char *)text;
-    ctx->p = ctx->text;
-    ctx->cur = ac->root;
-    ctx->pos = 0;
-    ctx->out_idx = 0;
-    ctx->finished = 0;
-    return ctx;
+	if ( iIndex < 0 || !xac_result_at((xaho_native_result*)pHandle,
+		(size_t)iIndex, &Match) || Match.iStart > (uint64)INT64_MAX ) {
+		return -1;
+	}
+	return (int64)Match.iStart;
 }
 
-/*
- * Advance to next match. Returns 1 if a match is found, 0 if exhausted.
- * Caller retrieves match data via xac_scan_start/end/pidx.
- * Caller can stop early by calling xac_scan_end.
- */
-int xac_scan_next(void *sptr) {
-    ACScanCtx *ctx = (ACScanCtx *)sptr;
-    XAhoCorasick *ac;
 
-    if (!ctx || ctx->finished) return 0;
-    ac = ctx->ac;
 
-    for (;;) {
-        /* If current node has pending outputs, emit them first */
-        if (ctx->cur && ctx->out_idx < ctx->cur->output_count) {
-            int pidx = ctx->cur->outputs[ctx->out_idx];
-            ctx->out_idx++;
-            ctx->match_pidx = pidx;
-            ctx->match_start = ctx->pos - ac->pattern_lens[pidx];
-            ctx->match_end = ctx->pos;
-            return 1;
-        }
+/* 返回匹配结束位置。 */
+XAHO_EXPORT int64 xac_result_end(void* pHandle, int64 iIndex)
+{
+	xrtahomatch Match;
 
-        /* Advance to next character */
-        if (*ctx->p == '\0') {
-            ctx->finished = 1;
-            return 0;
-        }
-
-        {
-            unsigned char c = ac->ignore_case ? ac_tolower(*ctx->p) : *ctx->p;
-            ACNode *cur = ctx->cur;
-            while (cur && !cur->children[c] && cur != ac->root) cur = cur->fail;
-            if (cur->children[c]) cur = cur->children[c];
-            else cur = ac->root;
-            ctx->cur = cur;
-        }
-        ctx->p++;
-        ctx->pos++;
-        ctx->out_idx = 0;
-    }
+	if ( iIndex < 0 || !xac_result_at((xaho_native_result*)pHandle,
+		(size_t)iIndex, &Match) || Match.iEnd > (uint64)INT64_MAX ) {
+		return -1;
+	}
+	return (int64)Match.iEnd;
 }
 
-int xac_scan_start(void *sptr) {
-    ACScanCtx *ctx = (ACScanCtx *)sptr;
-    return ctx ? ctx->match_start : -1;
+
+
+/* 释放结果包装。 */
+XAHO_EXPORT void xac_result_destroy(void* pHandle)
+{
+	xaho_native_result* pResult = (xaho_native_result*)pHandle;
+
+	if ( pResult == NULL ) { return; }
+	if ( pResult->Single ) {
+		xrtAhoDestroy(pResult->Automaton);
+	}
+	else {
+		xrtAhoResultDestroy(pResult->Result);
+	}
+	xrtFree(pResult);
 }
 
-int xac_scan_end_pos(void *sptr) {
-    ACScanCtx *ctx = (ACScanCtx *)sptr;
-    return ctx ? ctx->match_end : -1;
+
+
+/* 三态返回 contains，避免 false 与失败混淆。 */
+XAHO_EXPORT int xac_contains(
+	void* pHandle,
+	const char* sText,
+	size_t iSize
+)
+{
+	xstrview Text = { sText, iSize };
+	bool bContains;
+
+	if ( !xrtAhoContains((xrtaho*)pHandle, Text, &bContains) ) { return -1; }
+	return bContains ? 1 : 0;
 }
 
-const char *xac_scan_pattern(void *sptr) {
-    ACScanCtx *ctx = (ACScanCtx *)sptr;
-    if (!ctx) return "";
-    return ctx->ac->patterns[ctx->match_pidx];
+
+
+/* 返回匹配数量，负数表示失败。 */
+XAHO_EXPORT int64 xac_count(
+	void* pHandle,
+	const char* sText,
+	size_t iSize
+)
+{
+	xstrview Text = { sText, iSize };
+	uint64 iCount;
+
+	if ( !xrtAhoCount((xrtaho*)pHandle, Text, &iCount) ) { return -1; }
+	if ( iCount > (uint64)INT64_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick match count exceeds int range");
+		return -1;
+	}
+	return (int64)iCount;
 }
 
-void xac_scan_end(void *sptr) {
-    free(sptr);
+
+
+/* 把核心返回的独立字符串交给 XLang Buffer。 */
+static xbuffer* xac_take_string(str sText, size_t iSize)
+{
+	bytes pData = (bytes)sText;
+	xbuffer* pBuffer;
+
+	if ( sText == NULL ) { return NULL; }
+	pBuffer = xrtBufferCreateTake(&pData, iSize, iSize + 1u);
+	if ( pBuffer == NULL ) { xrtFree(sText); }
+	return pBuffer;
 }
 
-/* ------------------------------------------------------------------ */
-/* Metadata                                                            */
-/* ------------------------------------------------------------------ */
-int xac_pattern_count(void *ptr) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    return ac ? ac->pattern_count : 0;
+
+
+/* 返回明确字节范围的 Buffer。 */
+XAHO_EXPORT void* xac_text_range(
+	const char* sText,
+	size_t iTextSize,
+	size_t iStart,
+	size_t iCount
+)
+{
+	xbytesview Data;
+
+	if ( sText == NULL || iStart > iTextSize || iCount > (iTextSize - iStart) ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick text range is out of bounds");
+		return NULL;
+	}
+	Data.Data = (const unsigned char*)sText + iStart;
+	Data.Size = iCount;
+	return xrtBufferFrom(Data);
 }
 
-int xac_is_built(void *ptr) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    return ac ? ac->built : 0;
+
+
+/* 固定替换并返回 Buffer。 */
+XAHO_EXPORT void* xac_replace(
+	void* pHandle,
+	const char* sText,
+	size_t iTextSize,
+	const char* sReplacement,
+	size_t iReplacementSize
+)
+{
+	xstrview Text = { sText, iTextSize };
+	xstrview Replacement = { sReplacement, iReplacementSize };
+	size_t iOutputSize;
+	str sOutput;
+
+	sOutput = xrtAhoReplace((xrtaho*)pHandle, Text,
+		Replacement, &iOutputSize);
+	return xac_take_string(sOutput, iOutputSize);
 }
 
-/* ------------------------------------------------------------------ */
-/* Interval collection + merge helper                                  */
-/* ------------------------------------------------------------------ */
-typedef struct { int start; int end; } ACInterval;
 
-/*
- * Collect all matches, sort by start, merge overlapping.
- * Returns merged interval count; caller frees *out with free().
- */
-static int ac_merged_intervals(XAhoCorasick *ac, const char *text,
-                               ACInterval **out) {
-    ACMatchVec vec = {NULL, 0, 0};
-    ACNode *cur;
-    const unsigned char *p;
-    int pos = 0, i, n, mc, mi;
-    ACInterval *merged;
 
-    /* --- scan --- */
-    cur = ac->root;
-    p = (const unsigned char *)text;
-    while (*p) {
-        unsigned char c = ac->ignore_case ? ac_tolower(*p) : *p;
-        while (cur && !cur->children[c] && cur != ac->root) cur = cur->fail;
-        if (cur->children[c]) cur = cur->children[c];
-        else cur = ac->root;
-        if (cur->output_count > 0) {
-            int j;
-            for (j = 0; j < cur->output_count; j++) {
-                int pidx = cur->outputs[j];
-                if (vec.count >= vec.cap) {
-                    vec.cap = vec.cap ? vec.cap * 2 : 32;
-                    vec.items = (ACMatchEntry *)realloc(vec.items,
-                                    sizeof(ACMatchEntry) * vec.cap);
-                }
-                vec.items[vec.count].pattern_idx = pidx;
-                vec.items[vec.count].start = pos - ac->pattern_lens[pidx] + 1;
-                vec.items[vec.count].end = pos + 1;
-                vec.count++;
-            }
-        }
-        p++; pos++;
-    }
+/* Unicode 标量遮盖并返回 Buffer。 */
+XAHO_EXPORT void* xac_mask(
+	void* pHandle,
+	const char* sText,
+	size_t iTextSize,
+	const char* sMask,
+	size_t iMaskSize
+)
+{
+	xstrview Text = { sText, iTextSize };
+	xstrview Mask = { sMask, iMaskSize };
+	size_t iOutputSize;
+	str sOutput;
 
-    if (vec.count == 0) { free(vec.items); *out = NULL; return 0; }
-
-    /* --- sort by start (insertion) --- */
-    n = vec.count;
-    for (i = 1; i < n; i++) {
-        ACMatchEntry key = vec.items[i];
-        int j = i - 1;
-        while (j >= 0 && vec.items[j].start > key.start) {
-            vec.items[j + 1] = vec.items[j]; j--;
-        }
-        vec.items[j + 1] = key;
-    }
-
-    /* --- merge --- */
-    merged = (ACInterval *)malloc(sizeof(ACInterval) * n);
-    mc = 0;
-    for (mi = 0; mi < n; ) {
-        int s = vec.items[mi].start;
-        int e = vec.items[mi].end;
-        mi++;
-        while (mi < n && vec.items[mi].start <= e) {
-            if (vec.items[mi].end > e) e = vec.items[mi].end;
-            mi++;
-        }
-        merged[mc].start = s;
-        merged[mc].end = e;
-        mc++;
-    }
-    free(vec.items);
-    *out = merged;
-    return mc;
+	sOutput = xrtAhoMask((xrtaho*)pHandle, Text, Mask, &iOutputSize);
+	return xac_take_string(sOutput, iOutputSize);
 }
 
-/* ------------------------------------------------------------------ */
-/* replace: pre-calculate + single allocation                          */
-/* ------------------------------------------------------------------ */
-const char *xac_replace(void *ptr, const char *text, const char *repl) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACInterval *iv;
-    int mc, i, textLen, replLen;
-    size_t outLen;
-    char *out, *w;
-    int pos;
 
-    if (!ac || !text) return text ? text : "";
-    if (!ac->built) { xrtSetError("aho_corasick: must build before replace", 0); return text; }
 
-    mc = ac_merged_intervals(ac, text, &iv);
-    if (mc == 0) return text;
+/* 高亮并返回 Buffer。 */
+XAHO_EXPORT void* xac_highlight(
+	void* pHandle,
+	const char* sText,
+	size_t iTextSize,
+	const char* sOpen,
+	size_t iOpenSize,
+	const char* sClose,
+	size_t iCloseSize
+)
+{
+	xstrview Text = { sText, iTextSize };
+	xstrview Open = { sOpen, iOpenSize };
+	xstrview Close = { sClose, iCloseSize };
+	size_t iOutputSize;
+	str sOutput;
 
-    textLen = (int)strlen(text);
-    replLen = (int)strlen(repl);
-
-    /* compute output length */
-    outLen = 0;
-    pos = 0;
-    for (i = 0; i < mc; i++) {
-        outLen += (iv[i].start - pos);  /* gap */
-        outLen += replLen;
-        pos = iv[i].end;
-    }
-    outLen += (textLen - pos);  /* tail */
-
-    out = (char *)xrtTempMemory(outLen + 1);
-    if (!out) { free(iv); xrtSetError("aho_corasick: out of memory", 0); return text; }
-
-    /* fill */
-    w = out;
-    pos = 0;
-    for (i = 0; i < mc; i++) {
-        int gap = iv[i].start - pos;
-        if (gap > 0) { memcpy(w, text + pos, gap); w += gap; }
-        if (replLen > 0) { memcpy(w, repl, replLen); w += replLen; }
-        pos = iv[i].end;
-    }
-    if (textLen - pos > 0) memcpy(w, text + pos, textLen - pos);
-    out[outLen] = '\0';
-
-    free(iv);
-    return out;
+	sOutput = xrtAhoHighlight((xrtaho*)pHandle, Text,
+		Open, Close, &iOutputSize);
+	return xac_take_string(sOutput, iOutputSize);
 }
 
-/* ------------------------------------------------------------------ */
-/* mask: replace each matched char with mask char(s)                   */
-/* ------------------------------------------------------------------ */
-const char *xac_mask(void *ptr, const char *text, const char *ch) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACInterval *iv;
-    int mc, i, textLen, chLen;
-    size_t outLen;
-    char *out, *w;
-    int pos, j;
 
-    if (!ac || !text) return text ? text : "";
-    if (!ac->built) { xrtSetError("aho_corasick: must build before mask", 0); return text; }
 
-    mc = ac_merged_intervals(ac, text, &iv);
-    if (mc == 0) return text;
+/* 保存一个增量扫描匹配并主动暂停。 */
+static bool xac_scan_capture(const xrtahomatch* pMatch, ptr pUserData)
+{
+	xaho_native_scan* pScan = (xaho_native_scan*)pUserData;
 
-    textLen = (int)strlen(text);
-    chLen = (int)strlen(ch);
-
-    /* output = gaps + (span * chLen) for each interval */
-    outLen = 0;
-    pos = 0;
-    for (i = 0; i < mc; i++) {
-        outLen += (iv[i].start - pos);
-        outLen += (size_t)(iv[i].end - iv[i].start) * chLen;
-        pos = iv[i].end;
-    }
-    outLen += (textLen - pos);
-
-    out = (char *)xrtTempMemory(outLen + 1);
-    if (!out) { free(iv); xrtSetError("aho_corasick: out of memory", 0); return text; }
-
-    w = out;
-    pos = 0;
-    for (i = 0; i < mc; i++) {
-        int gap = iv[i].start - pos;
-        int span = iv[i].end - iv[i].start;
-        if (gap > 0) { memcpy(w, text + pos, gap); w += gap; }
-        for (j = 0; j < span; j++) {
-            memcpy(w, ch, chLen); w += chLen;
-        }
-        pos = iv[i].end;
-    }
-    if (textLen - pos > 0) memcpy(w, text + pos, textLen - pos);
-    out[outLen] = '\0';
-
-    free(iv);
-    return out;
+	pScan->Match = *pMatch;
+	return false;
 }
 
-/* ------------------------------------------------------------------ */
-/* highlight: wrap merged intervals with open/close tags               */
-/* ------------------------------------------------------------------ */
-const char *xac_highlight(void *ptr, const char *text,
-                          const char *openTag, const char *closeTag) {
-    XAhoCorasick *ac = (XAhoCorasick *)ptr;
-    ACInterval *iv;
-    int mc, i, textLen, openLen, closeLen;
-    size_t outLen;
-    char *out, *w;
-    int pos;
 
-    if (!ac || !text) return text ? text : "";
-    if (!ac->built) { xrtSetError("aho_corasick: must build before highlight", 0); return text; }
 
-    mc = ac_merged_intervals(ac, text, &iv);
-    if (mc == 0) return text;
+/* 创建借用 XLang 字符串的拉取式扫描包装。 */
+XAHO_EXPORT void* xac_scan_begin(
+	void* pHandle,
+	const char* sText,
+	size_t iSize
+)
+{
+	xaho_native_scan* pScan;
 
-    textLen = (int)strlen(text);
-    openLen = (int)strlen(openTag);
-    closeLen = (int)strlen(closeTag);
+	if ( sText == NULL && iSize != 0u ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_ARGUMENT, "Aho-Corasick text view is invalid");
+		return NULL;
+	}
+	pScan = (xaho_native_scan*)xrtCalloc(1u, sizeof(*pScan));
+	if ( pScan == NULL ) {
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_MEMORY, "Aho-Corasick scan allocation failed");
+		return NULL;
+	}
+	pScan->State = xrtAhoStateCreate((xrtaho*)pHandle);
+	if ( pScan->State == NULL ) {
+		xrtFree(pScan);
+		return NULL;
+	}
+	pScan->Text.Data = sText;
+	pScan->Text.Size = iSize;
+	return pScan;
+}
 
-    /* output = textLen + (openLen + closeLen) * mc */
-    outLen = (size_t)textLen + (size_t)(openLen + closeLen) * mc;
 
-    out = (char *)xrtTempMemory(outLen + 1);
-    if (!out) { free(iv); xrtSetError("aho_corasick: out of memory", 0); return text; }
 
-    w = out;
-    pos = 0;
-    for (i = 0; i < mc; i++) {
-        int gap = iv[i].start - pos;
-        int span = iv[i].end - iv[i].start;
-        if (gap > 0) { memcpy(w, text + pos, gap); w += gap; }
-        memcpy(w, openTag, openLen); w += openLen;
-        memcpy(w, text + iv[i].start, span); w += span;
-        memcpy(w, closeTag, closeLen); w += closeLen;
-        pos = iv[i].end;
-    }
-    if (textLen - pos > 0) memcpy(w, text + pos, textLen - pos);
-    out[outLen] = '\0';
+/* 拉取下一个匹配：1 为命中，0 为结束，-1 为失败。 */
+XAHO_EXPORT int xac_scan_next(void* pHandle)
+{
+	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
+	xstrview Chunk;
+	size_t iConsumed = 0u;
+	xrtahoscanstatus iStatus;
 
-    free(iv);
-    return out;
+	if ( pScan == NULL ) { return -1; }
+	if ( pScan->Finished ) { return 0; }
+	Chunk.Data = pScan->Text.Size != 0u ?
+		pScan->Text.Data + pScan->Offset : NULL;
+	Chunk.Size = pScan->Text.Size - pScan->Offset;
+	iStatus = xrtAhoStateFeed(pScan->State, Chunk,
+		xac_scan_capture, pScan, &iConsumed);
+	pScan->Offset += iConsumed;
+	if ( iStatus == XRT_AHO_SCAN_ERROR ) { return -1; }
+	if ( iStatus == XRT_AHO_SCAN_STOPPED ) { return 1; }
+	xrtFree(pScan->Owned);
+	pScan->Owned = NULL;
+	pScan->Text.Data = NULL;
+	pScan->Text.Size = 0u;
+	pScan->Offset = 0u;
+	pScan->Finished = true;
+	return 0;
+}
+
+
+
+/* 返回当前扫描匹配开始位置。 */
+XAHO_EXPORT int64 xac_scan_start(void* pHandle)
+{
+	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
+
+	return pScan != NULL && pScan->Match.iStart <= (uint64)INT64_MAX ?
+		(int64)pScan->Match.iStart : -1;
+}
+
+
+
+/* 返回当前扫描匹配结束位置。 */
+XAHO_EXPORT int64 xac_scan_end_pos(void* pHandle)
+{
+	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
+
+	return pScan != NULL && pScan->Match.iEnd <= (uint64)INT64_MAX ?
+		(int64)pScan->Match.iEnd : -1;
+}
+
+
+
+/* 返回包含当前扫描模式的独立 Buffer。 */
+XAHO_EXPORT void* xac_scan_pattern(void* pHandle)
+{
+	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
+	xbytesview Data;
+
+	if ( pScan == NULL ) { return NULL; }
+	Data.Data = (const unsigned char*)pScan->Match.Pattern.Data;
+	Data.Size = pScan->Match.Pattern.Size;
+	return xrtBufferFrom(Data);
+}
+
+
+
+/* 释放拉取式扫描包装。 */
+XAHO_EXPORT void xac_scan_end(void* pHandle)
+{
+	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
+
+	if ( pScan == NULL ) { return; }
+	xrtFree(pScan->Owned);
+	xrtAhoStateDestroy(pScan->State);
+	xrtFree(pScan);
+}
+
+
+
+/* 创建持有自动机引用的 XLang 增量扫描器。 */
+XAHO_EXPORT void* xac_stream_create(void* pHandle)
+{
+	xaho_native_stream* pStream =
+		(xaho_native_stream*)xrtCalloc(1u, sizeof(*pStream));
+
+	if ( pStream == NULL ) {
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_MEMORY, "Aho-Corasick stream allocation failed");
+		return NULL;
+	}
+	pStream->State = xrtAhoStateCreate((xrtaho*)pHandle);
+	if ( pStream->State == NULL ) {
+		xrtFree(pStream);
+		return NULL;
+	}
+	pStream->Finished = true;
+	return pStream;
+}
+
+
+
+/* 复制一个新分块；上一个分块必须已经消费完成。 */
+XAHO_EXPORT int xac_stream_feed(
+	void* pHandle,
+	const char* sChunk,
+	size_t iSize
+)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+	str sCopy = NULL;
+
+	if ( pStream == NULL || (sChunk == NULL && iSize != 0u) ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_ARGUMENT, "Aho-Corasick stream chunk is invalid");
+		return 0;
+	}
+	if ( !pStream->Finished ) {
+		xrtSetErrorInfo(XERR_STATE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_STATE, "Aho-Corasick stream chunk must be resumed first");
+		return 0;
+	}
+	if ( iSize != 0u ) {
+		if ( iSize == SIZE_MAX ) {
+			xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+				XRT_AHO_ERROR_RANGE, "Aho-Corasick stream chunk is too large");
+			return 0;
+		}
+		sCopy = (str)xrtMalloc(iSize + 1u);
+		if ( sCopy == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.aho_corasick",
+				XRT_AHO_ERROR_MEMORY, "Aho-Corasick stream chunk allocation failed");
+			return 0;
+		}
+		memcpy(sCopy, sChunk, iSize);
+		sCopy[iSize] = 0;
+	}
+	xrtFree(pStream->Owned);
+	pStream->Owned = sCopy;
+	pStream->Text.Data = sCopy;
+	pStream->Text.Size = iSize;
+	pStream->Offset = 0u;
+	pStream->Finished = false;
+	return 1;
+}
+
+
+
+/* 拉取当前分块的下一个结果。 */
+XAHO_EXPORT int xac_stream_next(void* pHandle)
+{
+	return xac_scan_next(pHandle);
+}
+
+
+
+/* 返回当前增量流是否仍有未消费分块。 */
+XAHO_EXPORT int xac_stream_pending(void* pHandle)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+
+	return pStream != NULL && !pStream->Finished ? 1 : 0;
+}
+
+
+
+/* 返回增量流累计字节偏移。 */
+XAHO_EXPORT int64 xac_stream_offset(void* pHandle)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+	uint64 iOffset = pStream != NULL ? xrtAhoStateOffset(pStream->State) : 0u;
+
+	if ( iOffset > (uint64)INT64_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick stream offset exceeds int range");
+		return -1;
+	}
+	return (int64)iOffset;
+}
+
+
+
+/* 返回增量流累计匹配数。 */
+XAHO_EXPORT int64 xac_stream_matches(void* pHandle)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+	uint64 iMatches = pStream != NULL ? xrtAhoStateMatches(pStream->State) : 0u;
+
+	if ( iMatches > (uint64)INT64_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick stream match count exceeds int range");
+		return -1;
+	}
+	return (int64)iMatches;
+}
+
+
+
+/* 返回当前增量流匹配开始位置。 */
+XAHO_EXPORT int64 xac_stream_start(void* pHandle)
+{
+	return xac_scan_start(pHandle);
+}
+
+
+
+/* 返回当前增量流匹配结束位置。 */
+XAHO_EXPORT int64 xac_stream_end_pos(void* pHandle)
+{
+	return xac_scan_end_pos(pHandle);
+}
+
+
+
+/* 返回当前增量流模式的独立 Buffer。 */
+XAHO_EXPORT void* xac_stream_pattern(void* pHandle)
+{
+	return xac_scan_pattern(pHandle);
+}
+
+
+
+/* 重置增量流并丢弃未消费分块。 */
+XAHO_EXPORT void xac_stream_reset(void* pHandle)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+
+	if ( pStream == NULL ) { return; }
+	xrtFree(pStream->Owned);
+	pStream->Owned = NULL;
+	pStream->Text.Data = NULL;
+	pStream->Text.Size = 0u;
+	pStream->Offset = 0u;
+	pStream->Finished = true;
+	xrtAhoStateReset(pStream->State);
+}
+
+
+
+/* 释放增量流。 */
+XAHO_EXPORT void xac_stream_destroy(void* pHandle)
+{
+	xac_scan_end(pHandle);
 }

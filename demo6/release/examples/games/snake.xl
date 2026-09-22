@@ -1,0 +1,217 @@
+// snake.xl — 贪吃蛇（键盘经典游戏）
+// 方向键/WASD 移动，ESC 退出，R 重开。
+// 无头冒烟：xl run snake.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int CELL = 24                       // 格子边长（像素精确）
+int COLS = 30                       // 列数
+int ROWS = 22                       // 行数
+int HUD_H = 48                      // 顶部 HUD 高度
+float STEP = 0.12                   // 每步间隔（秒）
+int MAXLEN = 800                    // 蛇身最大长度
+
+// --- 游戏状态 ---
+array<int> bodyX = [10, 9, 8, 7, 6] // 蛇身（头在下标 0）
+array<int> bodyY = [11, 11, 11, 11, 11]
+int snakeLen = 5
+int dirX = 1
+int dirY = 0
+int pendingX = 1
+int pendingY = 0
+int foodX = 15
+int foodY = 11
+int score = 0
+bool dead = false
+float timer = 0.0
+xge.Font hudFont
+Random rng = Random(uint64(2026), uint64(7))
+
+// --- 初始化 ---
+func reset()
+    int i = 0
+    while i < 5
+        bodyX[i] = 10 - i
+        bodyY[i] = 11
+        i += 1
+    end
+    snakeLen = 5
+    dirX = 1
+    dirY = 0
+    pendingX = 1
+    pendingY = 0
+    score = 0
+    dead = false
+    timer = 0.0
+    spawnFood()
+end
+
+func spawnFood()
+    bool ok = false
+    while not ok
+        foodX = int(rng.u32()) % COLS
+        foodY = int(rng.u32()) % ROWS
+        ok = true
+        int i = 0
+        while i < snakeLen
+            if bodyX[i] == foodX and bodyY[i] == foodY then
+                ok = false
+            end
+            i += 1
+        end
+    end
+end
+
+// --- 逻辑更新 ---
+func handleInput()
+    if xge.Input.keyPressed(xge.XGE_KEY_UP) or xge.Input.keyPressed(87) then
+        if dirY != 1 then
+            pendingX = 0
+            pendingY = -1
+        end
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_DOWN) or xge.Input.keyPressed(83) then
+        if dirY != -1 then
+            pendingX = 0
+            pendingY = 1
+        end
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_LEFT) or xge.Input.keyPressed(65) then
+        if dirX != 1 then
+            pendingX = -1
+            pendingY = 0
+        end
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_RIGHT) or xge.Input.keyPressed(68) then
+        if dirX != -1 then
+            pendingX = 1
+            pendingY = 0
+        end
+    end
+    if dead and xge.Input.keyPressed(82) then
+        reset()
+    end
+end
+
+func step()
+    dirX = pendingX
+    dirY = pendingY
+
+    int headX = bodyX[0] + dirX
+    int headY = bodyY[0] + dirY
+
+    // 撞墙
+    if headX < 0 or headX >= COLS or headY < 0 or headY >= ROWS then
+        dead = true
+        return
+    end
+
+    // 撞自己（尾巴即将移走，检查到 length-1 即可）
+    int i = 0
+    while i < snakeLen - 1
+        if bodyX[i] == headX and bodyY[i] == headY then
+            dead = true
+            return
+        end
+        i += 1
+    end
+
+    // 吃到食物则生长（尾部保留），否则整体后移
+    if headX == foodX and headY == foodY then
+        if snakeLen < MAXLEN then
+            bodyX.append(bodyX[snakeLen - 1])
+            bodyY.append(bodyY[snakeLen - 1])
+            snakeLen += 1
+        end
+        score += 10
+        spawnFood()
+    end
+
+    // 从尾到头逐节前移
+    int j = snakeLen - 1
+    while j > 0
+        bodyX[j] = bodyX[j - 1]
+        bodyY[j] = bodyY[j - 1]
+        j -= 1
+    end
+    bodyX[0] = headX
+    bodyY[0] = headY
+end
+
+// --- 绘制 ---
+func draw()
+    uint32 bg = xge.Color.rgba(13, 17, 22, 255)
+    uint32 gridC = xge.Color.rgba(24, 30, 38, 255)
+    uint32 bodyC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 headC = xge.Color.rgba(255, 255, 255, 255)
+    uint32 foodC = xge.Color.rgba(255, 107, 94, 255)
+
+    // HUD 背景
+    xge.Shape.rectFillPixels(0, 0, COLS * CELL, HUD_H, xge.Color.rgba(18, 24, 32, 255))
+    if hudFont.valid then
+        hudFont.drawText("SCORE " + string(score), 12, 12, xge.Color.rgba(79, 216, 194, 255))
+        hudFont.drawText(dead ? "GAME OVER - press R" : "SNAKE", COLS * CELL - 200, 12, dead ? foodC : gridC)
+    end
+
+    // 棋盘
+    xge.Shape.rectFill(0, float(HUD_H), float(COLS * CELL), float(ROWS * CELL), bg)
+    int y = 0
+    while y < ROWS
+        int x = 0
+        while x < COLS
+            if (x + y) % 2 == 0 then
+                xge.Shape.rectFillPixels(x * CELL, HUD_H + y * CELL, CELL, CELL, gridC)
+            end
+            x += 1
+        end
+        y += 1
+    end
+
+    // 食物（圆形）
+    xge.Shape.circleFill(float(foodX * CELL + CELL / 2), float(HUD_H + foodY * CELL + CELL / 2), float(CELL / 2 - 2), foodC)
+
+    // 蛇身
+    int i = 0
+    while i < snakeLen
+        uint32 c = i == 0 ? headC : bodyC
+        xge.Shape.rectFillPixels(bodyX[i] * CELL + 1, HUD_H + bodyY[i] * CELL + 1, CELL - 2, CELL - 2, c)
+        i += 1
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    handleInput()
+    if not dead then
+        timer += xge.XgeApp.delta()
+        while timer >= STEP
+            timer -= STEP
+            step()
+        end
+    end
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run snake.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(COLS * CELL, HUD_H + ROWS * CELL, "xlang snake")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

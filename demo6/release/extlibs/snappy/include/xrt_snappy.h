@@ -17,7 +17,8 @@ typedef enum {
 	XRT_SNAPPY_ERROR_TRUNCATED = 4,
 	XRT_SNAPPY_ERROR_LIMIT = 5,
 	XRT_SNAPPY_ERROR_IO = 6,
-	XRT_SNAPPY_ERROR_STATE = 7
+	XRT_SNAPPY_ERROR_STATE = 7,
+	XRT_SNAPPY_ERROR_CANCELLED = 8
 } xrtsnappystatus;
 
 typedef struct {
@@ -38,41 +39,41 @@ typedef struct {
 typedef struct xrtsnappycompressor xrtsnappycompressor;
 typedef struct xrtsnappydecompressor xrtsnappydecompressor;
 
-XXAPI void xrtSnappyOptionsInit(xrtsnappyoptions* pOptions);
-XXAPI void xrtSnappyErrorInit(xrtsnappyerror* pError);
+XRT_API void xrtSnappyOptionsInit(xrtsnappyoptions* pOptions);
+XRT_API void xrtSnappyErrorInit(xrtsnappyerror* pError);
 
-XXAPI xrtsnappycompressor* xrtSnappyCompressorCreate(const xrtsnappyoptions* pOptions);
-XXAPI bool xrtSnappyCompressorUpdate(xrtsnappycompressor* pCompressor, const void* pData, size_t iSize);
-XXAPI bool xrtSnappyCompressorFinish(xrtsnappycompressor* pCompressor);
-XXAPI bool xrtSnappyCompressorDrain(xrtsnappycompressor* pCompressor, xwriter pWriter);
-XXAPI xbuffer xrtSnappyCompressorTakeBuffer(xrtsnappycompressor* pCompressor);
-XXAPI xbuffer xrtSnappyCompressorDrainBuffer(xrtsnappycompressor* pCompressor);
-XXAPI uint64 xrtSnappyCompressorInputBytes(const xrtsnappycompressor* pCompressor);
-XXAPI uint64 xrtSnappyCompressorOutputBytes(const xrtsnappycompressor* pCompressor);
-XXAPI const xrtsnappyerror* xrtSnappyCompressorError(const xrtsnappycompressor* pCompressor);
-XXAPI void xrtSnappyCompressorDestroy(xrtsnappycompressor* pCompressor);
+XRT_API xrtsnappycompressor* xrtSnappyCompressorCreate(const xrtsnappyoptions* pOptions);
+XRT_API bool xrtSnappyCompressorUpdate(xrtsnappycompressor* pCompressor, const void* pData, size_t iSize);
+XRT_API bool xrtSnappyCompressorFinish(xrtsnappycompressor* pCompressor);
+XRT_API bool xrtSnappyCompressorDrain(xrtsnappycompressor* pCompressor, xwriter* pWriter);
+XRT_API xbuffer* xrtSnappyCompressorTakeBuffer(xrtsnappycompressor* pCompressor);
+XRT_API xbuffer* xrtSnappyCompressorDrainBuffer(xrtsnappycompressor* pCompressor);
+XRT_API uint64 xrtSnappyCompressorInputBytes(const xrtsnappycompressor* pCompressor);
+XRT_API uint64 xrtSnappyCompressorOutputBytes(const xrtsnappycompressor* pCompressor);
+XRT_API const xrtsnappyerror* xrtSnappyCompressorError(const xrtsnappycompressor* pCompressor);
+XRT_API void xrtSnappyCompressorDestroy(xrtsnappycompressor* pCompressor);
 
-XXAPI xrtsnappydecompressor* xrtSnappyDecompressorCreate(const xrtsnappyoptions* pOptions);
-XXAPI bool xrtSnappyDecompressorUpdate(xrtsnappydecompressor* pDecompressor, const void* pData, size_t iSize);
-XXAPI bool xrtSnappyDecompressorFinish(xrtsnappydecompressor* pDecompressor);
-XXAPI bool xrtSnappyDecompressorDrain(xrtsnappydecompressor* pDecompressor, xwriter pWriter);
-XXAPI xbuffer xrtSnappyDecompressorTakeBuffer(xrtsnappydecompressor* pDecompressor);
-XXAPI xbuffer xrtSnappyDecompressorDrainBuffer(xrtsnappydecompressor* pDecompressor);
-XXAPI uint64 xrtSnappyDecompressorInputBytes(const xrtsnappydecompressor* pDecompressor);
-XXAPI uint64 xrtSnappyDecompressorOutputBytes(const xrtsnappydecompressor* pDecompressor);
-XXAPI bool xrtSnappyDecompressorFinished(const xrtsnappydecompressor* pDecompressor);
-XXAPI uint64 xrtSnappyDecompressorMembers(const xrtsnappydecompressor* pDecompressor);
-XXAPI const xrtsnappyerror* xrtSnappyDecompressorError(const xrtsnappydecompressor* pDecompressor);
-XXAPI void xrtSnappyDecompressorDestroy(xrtsnappydecompressor* pDecompressor);
+XRT_API xrtsnappydecompressor* xrtSnappyDecompressorCreate(const xrtsnappyoptions* pOptions);
+XRT_API bool xrtSnappyDecompressorUpdate(xrtsnappydecompressor* pDecompressor, const void* pData, size_t iSize);
+XRT_API bool xrtSnappyDecompressorFinish(xrtsnappydecompressor* pDecompressor);
+XRT_API bool xrtSnappyDecompressorDrain(xrtsnappydecompressor* pDecompressor, xwriter* pWriter);
+XRT_API xbuffer* xrtSnappyDecompressorTakeBuffer(xrtsnappydecompressor* pDecompressor);
+XRT_API xbuffer* xrtSnappyDecompressorDrainBuffer(xrtsnappydecompressor* pDecompressor);
+XRT_API uint64 xrtSnappyDecompressorInputBytes(const xrtsnappydecompressor* pDecompressor);
+XRT_API uint64 xrtSnappyDecompressorOutputBytes(const xrtsnappydecompressor* pDecompressor);
+XRT_API bool xrtSnappyDecompressorFinished(const xrtsnappydecompressor* pDecompressor);
+XRT_API uint64 xrtSnappyDecompressorMembers(const xrtsnappydecompressor* pDecompressor);
+XRT_API const xrtsnappyerror* xrtSnappyDecompressorError(const xrtsnappydecompressor* pDecompressor);
+XRT_API void xrtSnappyDecompressorDestroy(xrtsnappydecompressor* pDecompressor);
 
-XXAPI bool xrtSnappyCompress(const void* pData, size_t iSize, const xrtsnappyoptions* pOptions,
-	xbuffer* pOutput, xrtsnappyerror* pError);
-XXAPI bool xrtSnappyDecompress(const void* pData, size_t iSize, const xrtsnappyoptions* pOptions,
-	xbuffer* pOutput, xrtsnappyerror* pError);
-XXAPI bool xrtSnappyCompressStream(xreader pReader, xwriter pWriter, const xrtsnappyoptions* pOptions,
-	xrtsnappyerror* pError);
-XXAPI bool xrtSnappyDecompressStream(xreader pReader, xwriter pWriter, const xrtsnappyoptions* pOptions,
-	xrtsnappyerror* pError);
+XRT_API bool xrtSnappyCompress(const void* pData, size_t iSize, const xrtsnappyoptions* pOptions,
+	xbuffer** ppOutput, xrtsnappyerror* pError);
+XRT_API bool xrtSnappyDecompress(const void* pData, size_t iSize, const xrtsnappyoptions* pOptions,
+	xbuffer** ppOutput, xrtsnappyerror* pError);
+XRT_API bool xrtSnappyCompressStream(xreader* pReader, xwriter* pWriter, const xrtsnappyoptions* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtsnappyerror* pError);
+XRT_API bool xrtSnappyDecompressStream(xreader* pReader, xwriter* pWriter, const xrtsnappyoptions* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtsnappyerror* pError);
 
 #ifdef __cplusplus
 }

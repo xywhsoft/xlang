@@ -1,10 +1,13 @@
 #include <windows.h>
 #include <shellapi.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xrt.h"
 
 #if defined(__TINYC__)
 #ifndef CF_HDROP
@@ -21,44 +24,6 @@ UINT WINAPI DragQueryFileW(HDROP hDrop, UINT iFile, LPWSTR lpszFile, UINT cch);
 #else
 #define XL_EXPORT
 #endif
-
-typedef unsigned int XL_ArtifactUInt32;
-typedef long long XL_ArtifactInt64;
-typedef const char* XL_ArtifactStr;
-typedef void* XL_ArtifactPtr;
-
-typedef struct XL_ArtifactXValueStruct {
-	union {
-		struct {
-			XL_ArtifactUInt32 Type:4;
-			XL_ArtifactUInt32 Reserve:1;
-			XL_ArtifactUInt32 IsStatic:1;
-			XL_ArtifactUInt32 RefCount:26;
-		};
-		volatile XL_ArtifactUInt32 Header;
-	};
-	XL_ArtifactUInt32 Size;
-	union {
-		int vBool;
-		XL_ArtifactInt64 vInt;
-		double vFloat;
-		XL_ArtifactStr vText;
-		XL_ArtifactPtr vPoint;
-	};
-} *XL_ArtifactXValue;
-
-#define XL_ARTIFACT_XVO_DT_NULL 0
-#define XL_ARTIFACT_XVO_DT_BOOL 1
-#define XL_ARTIFACT_XVO_DT_INT 2
-#define XL_ARTIFACT_XVO_DT_FLOAT 3
-#define XL_ARTIFACT_XVO_DT_TEXT 4
-#define XL_ARTIFACT_XVO_DT_POINT 6
-
-extern XL_ArtifactXValue xvoCreateArray(void);
-extern XL_ArtifactXValue xvoCreateText(void* sVal, XL_ArtifactUInt32 iSize, int bColloc);
-extern int xvoArrayAppendValue(XL_ArtifactXValue pArr, XL_ArtifactXValue pVal, int bUnrefVal);
-extern XL_ArtifactUInt32 xvoArrayItemCount(XL_ArtifactXValue pArr);
-extern XL_ArtifactXValue xvoArrayGetValue(XL_ArtifactXValue pArr, XL_ArtifactUInt32 iIndex);
 
 typedef struct XClipDropFiles {
 	DWORD pFiles;
@@ -183,6 +148,28 @@ static void xclip_copy_cstr(char* out, size_t out_size, const char* text)
 static void xclip_set_error(const char* text)
 {
 	xclip_copy_cstr(g_xclip_error, sizeof(g_xclip_error), text);
+}
+
+
+/* 创建字符串 Value 并把所有权移入数组。 */
+static int xclip_array_append_text(xvalue* pArray, const char* sText)
+{
+	xvalue* pValue;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	pValue = xrtValueString((xstrview){ sText, strlen(sText) });
+	if ( pValue == NULL ) {
+		xclip_set_error("out of memory");
+		return 0;
+	}
+	if ( !xrtValueArrayAppendTake(pArray, &pValue) ) {
+		xrtValueRelease(pValue);
+		xclip_set_error("cannot append clipboard value");
+		return 0;
+	}
+	return 1;
 }
 
 static void xclip_set_win_error(const char* op)
@@ -352,21 +339,30 @@ static wchar_t* xclip_utf8_to_wide_alloc(const char* src)
 	return out;
 }
 
-static wchar_t* xclip_xvalue_text_to_wide_alloc(XL_ArtifactXValue value)
+static wchar_t* xclip_xvalue_text_to_wide_alloc(const xvalue* pValue)
 {
+	xstrview Text;
 	wchar_t* out;
 	int n;
 	UINT cp = CP_UTF8;
 	int size;
-	if ( value == NULL || value->Type != XL_ARTIFACT_XVO_DT_TEXT || value->vText == NULL ) {
+	if ( !xrtValueGetString(pValue, &Text) ||
+		(Text.Size > (size_t)INT_MAX) ) {
 		xclip_set_error("file path item is not a string");
 		return NULL;
 	}
-	size = (int)value->Size;
-	n = MultiByteToWideChar(CP_UTF8, 0, value->vText, size, NULL, 0);
+	if ( Text.Size == 0u ) {
+		out = (wchar_t*)calloc(1u, sizeof(wchar_t));
+		if ( out == NULL ) {
+			xclip_set_error("out of memory");
+		}
+		return out;
+	}
+	size = (int)Text.Size;
+	n = MultiByteToWideChar(CP_UTF8, 0, Text.Data, size, NULL, 0);
 	if ( n <= 0 ) {
 		cp = CP_ACP;
-		n = MultiByteToWideChar(cp, 0, value->vText, size, NULL, 0);
+		n = MultiByteToWideChar(cp, 0, Text.Data, size, NULL, 0);
 	}
 	if ( n < 0 ) {
 		xclip_set_win_error("MultiByteToWideChar");
@@ -377,7 +373,7 @@ static wchar_t* xclip_xvalue_text_to_wide_alloc(XL_ArtifactXValue value)
 		xclip_set_error("out of memory");
 		return NULL;
 	}
-	if ( n > 0 && MultiByteToWideChar(cp, 0, value->vText, size, out, n) <= 0 ) {
+	if ( n > 0 && MultiByteToWideChar(cp, 0, Text.Data, size, out, n) <= 0 ) {
 		free(out);
 		xclip_set_win_error("MultiByteToWideChar");
 		return NULL;
@@ -927,9 +923,9 @@ XL_EXPORT int x_clipboard_count_formats(void)
 	return CountClipboardFormats();
 }
 
-XL_EXPORT XL_ArtifactXValue x_clipboard_formats(void)
+XL_EXPORT xvalue* x_clipboard_formats(void)
 {
-	XL_ArtifactXValue out = xvoCreateArray();
+	xvalue* out = xrtValueArray();
 	UINT fmt = 0u;
 	if ( out == NULL ) {
 		return NULL;
@@ -941,7 +937,11 @@ XL_EXPORT XL_ArtifactXValue x_clipboard_formats(void)
 	while ( (fmt = EnumClipboardFormats(fmt)) != 0u ) {
 		char name[256];
 		xclip_format_name_buf(fmt, name, sizeof(name));
-		xvoArrayAppendValue(out, xvoCreateText(name, (XL_ArtifactUInt32)strlen(name), 0), 1);
+		if ( !xclip_array_append_text(out, name) ) {
+			CloseClipboard();
+			xrtValueRelease(out);
+			return NULL;
+		}
 	}
 	if ( GetLastError() != NO_ERROR ) {
 		xclip_set_win_error("EnumClipboardFormats");
@@ -1134,9 +1134,9 @@ XL_EXPORT int x_clipboard_set_text(const char* text)
 	return 1;
 }
 
-XL_EXPORT XL_ArtifactXValue x_clipboard_get_files(void)
+XL_EXPORT xvalue* x_clipboard_get_files(void)
 {
-	XL_ArtifactXValue out = xvoCreateArray();
+	xvalue* out = xrtValueArray();
 	HDROP drop;
 	UINT count;
 	UINT i;
@@ -1170,7 +1170,13 @@ XL_EXPORT XL_ArtifactXValue x_clipboard_get_files(void)
 				utf8 = (char*)malloc((size_t)n);
 				if ( utf8 != NULL ) {
 					WideCharToMultiByte(CP_UTF8, 0, wide, -1, utf8, n, NULL, NULL);
-					xvoArrayAppendValue(out, xvoCreateText(utf8, (XL_ArtifactUInt32)strlen(utf8), 0), 1);
+					if ( !xclip_array_append_text(out, utf8) ) {
+						free(utf8);
+						free(wide);
+						CloseClipboard();
+						xrtValueRelease(out);
+						return NULL;
+					}
 					free(utf8);
 				}
 			}
@@ -1217,7 +1223,7 @@ XL_EXPORT const char* x_clipboard_get_file(void)
 	return out;
 }
 
-static int xclip_set_files_wide(wchar_t** paths, XL_ArtifactUInt32 count)
+static int xclip_set_files_wide(wchar_t** paths, size_t count)
 {
 	SIZE_T total_chars = 1u;
 	SIZE_T bytes;
@@ -1225,7 +1231,7 @@ static int xclip_set_files_wide(wchar_t** paths, XL_ArtifactUInt32 count)
 	void* memory;
 	XClipDropFiles* drop;
 	wchar_t* dst;
-	XL_ArtifactUInt32 i;
+	size_t i;
 	if ( paths == NULL || count == 0u ) {
 		xclip_set_error("file list is empty");
 		return 0;
@@ -1275,11 +1281,11 @@ static int xclip_set_files_wide(wchar_t** paths, XL_ArtifactUInt32 count)
 	return 1;
 }
 
-XL_EXPORT int x_clipboard_set_files(XL_ArtifactXValue paths_value)
+XL_EXPORT int x_clipboard_set_files(xvalue* paths_value)
 {
-	XL_ArtifactUInt32 count = xvoArrayItemCount(paths_value);
+	size_t count = xrtValueCount(paths_value);
 	wchar_t** paths;
-	XL_ArtifactUInt32 i;
+	size_t i;
 	int ok;
 	if ( count == 0u ) {
 		xclip_set_error("file list is empty");
@@ -1291,9 +1297,10 @@ XL_EXPORT int x_clipboard_set_files(XL_ArtifactXValue paths_value)
 		return 0;
 	}
 	for ( i = 0u; i < count; ++i ) {
-		paths[i] = xclip_xvalue_text_to_wide_alloc(xvoArrayGetValue(paths_value, i));
+		paths[i] = xclip_xvalue_text_to_wide_alloc(
+			xrtValueArrayGet(paths_value, i));
 		if ( paths[i] == NULL ) {
-			XL_ArtifactUInt32 j;
+			size_t j;
 			for ( j = 0u; j < count; ++j ) {
 				free(paths[j]);
 			}

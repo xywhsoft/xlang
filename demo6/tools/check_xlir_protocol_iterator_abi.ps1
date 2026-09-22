@@ -14,13 +14,12 @@ $managedHost = Join-Path $Root "test\cases\xlir_protocol_iterator_managed_item_h
 $nativeSource = Join-Path $Root "test\cases\extlib_native_iter_protocol_min.xl"
 $nativeHost = Join-Path $Root "test\cases\xlir_protocol_iterator_native_host.c"
 $scalarSource = Join-Path $Root "test\cases\cgen_protocol_iter.xl"
-$legacyHost = Join-Path $Root "test\cases\xlir_protocol_iterator_legacy_host.c"
 $fileProbeSource = Join-Path $Root "test\cases\stdlib_buffer_file_runtime.xl"
 $outputDir = Join-Path $Root "build\test\xlir_protocol_iterator_abi"
 
 foreach ( $path in @(
     $xl, $managedSource, $managedHost, $nativeSource, $nativeHost,
-    $scalarSource, $legacyHost, $fileProbeSource
+    $scalarSource, $fileProbeSource
 ) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR protocol iterator ABI gate input is missing: $path"
@@ -78,7 +77,7 @@ function Assert-SourceClosedOnce {
 }
 
 function Emit-ProtocolCase {
-    param([string]$Name, [string]$Source, [bool]$Legacy)
+    param([string]$Name, [string]$Source)
     $typedPath = Join-Path $outputDir "$Name.typed.json"
     $loweredPath = Join-Path $outputDir "$Name.lowered.json"
     $cPath = Join-Path $outputDir "$Name.xlir.c"
@@ -93,18 +92,12 @@ function Emit-ProtocolCase {
         ) ) {
         throw "XLIR protocol iterator $Name C is not deterministic"
     }
-    $legacyPath = ""
-    if ( $Legacy ) {
-        $legacyPath = Join-Path $outputDir "$Name.legacy.c"
-        Invoke-Xl @("cgen", $Source, "--backend", "legacy", "--emit", $legacyPath) "$Name legacy Cgen"
-    }
     return [pscustomobject]@{
         Name = $Name
         Source = $Source
         TypedPath = $typedPath
         LoweredPath = $loweredPath
         CPath = $cPath
-        LegacyPath = $legacyPath
         Typed = ([System.IO.File]::ReadAllText(
             $typedPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json)
         Lowered = ([System.IO.File]::ReadAllText(
@@ -206,10 +199,10 @@ function Assert-ProtocolLoops {
     return $loops
 }
 
-$scalar = Emit-ProtocolCase "scalar" $scalarSource $true
-$managed = Emit-ProtocolCase "managed" $managedSource $true
-$native = Emit-ProtocolCase "native" $nativeSource $true
-$fileProbe = Emit-ProtocolCase "buffer_file_probe" $fileProbeSource $false
+$scalar = Emit-ProtocolCase "scalar" $scalarSource
+$managed = Emit-ProtocolCase "managed" $managedSource
+$native = Emit-ProtocolCase "native" $nativeSource
+$fileProbe = Emit-ProtocolCase "buffer_file_probe" $fileProbeSource
 
 $scalarLoops = Assert-ProtocolLoops $scalar 2 1 "protocol-product-value"
 $managedLoops = Assert-ProtocolLoops $managed 7 1 "protocol-product-take"
@@ -339,42 +332,32 @@ foreach ( $case in @($scalar, $managed, $native, $fileProbe) ) {
 $scalarXlirExe = Join-Path $outputDir "scalar.xlir.exe"
 $managedXlirExe = Join-Path $outputDir "managed.xlir.exe"
 $nativeXlirExe = Join-Path $outputDir "native.xlir.exe"
-$legacyHostObject = Join-Path $outputDir "legacy.host.o"
 $compileCommands = @(
     "call test\suites\common.bat",
     ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $scalar.CPath, $managedHost, $scalarXlirExe),
     ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $managed.CPath, $managedHost, $managedXlirExe),
-    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -DXLIR_GENERATED_OWNS_BUFFER_RUNTIME -include "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $native.CPath, $nativeHost, $nativeXlirExe),
-    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -ffunction-sections -c "{0}" -o "{1}"' -f $legacyHost, $legacyHostObject)
+    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -DXLIR_GENERATED_OWNS_BUFFER_RUNTIME -include "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $native.CPath, $nativeHost, $nativeXlirExe)
 )
-foreach ( $case in @($scalar, $managed, $native) ) {
-    $legacyObject = Join-Path $outputDir "$($case.Name).legacy.o"
-    $legacyExe = Join-Path $outputDir "$($case.Name).legacy.exe"
-    $compileCommands += ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -ffunction-sections -Dmain=xlir_legacy_generated_main -c "{0}" -o "{1}"' -f $case.LegacyPath, $legacyObject)
-    $compileCommands += ('!XL6_CGEN_CC! -Wl,--gc-sections "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $legacyObject, $legacyHostObject, $legacyExe)
-}
 
 Push-Location $Root
+$savedPath = $env:PATH
 try {
+    # The executables live below build/test, so make the canonical runtime DLL
+    # discoverable without copying release artifacts into test directories.
+    $env:PATH = (Join-Path $Root "release") + [System.IO.Path]::PathSeparator + $savedPath
     & $env:ComSpec /d /v:on /c ($compileCommands -join " && ")
     if ( $LASTEXITCODE -ne 0 ) {
-        throw "Protocol iterator strict generated-C/legacy compile failed"
+        throw "Protocol iterator strict generated-C compile failed"
     }
     foreach ( $name in @("scalar", "managed", "native") ) {
         $xlirExe = Join-Path $outputDir "$name.xlir.exe"
-        $legacyExe = Join-Path $outputDir "$name.legacy.exe"
-        $legacyOutput = @(& $legacyExe 2>&1)
-        $legacyExit = $LASTEXITCODE
-        $xlirOutput = @(& $xlirExe 2>&1)
-        $xlirExit = $LASTEXITCODE
-        $legacyText = ($legacyOutput -join "`n").Trim()
-        $xlirText = ($xlirOutput -join "`n").Trim()
-        if ( $legacyExit -ne 0 -or $xlirExit -ne 0 -or
-             $legacyText -ne $xlirText ) {
-            throw "Protocol iterator legacy differential runtime failed for ${name}: legacy=$legacyExit '$legacyText', XLIR=$xlirExit '$xlirText'"
+        & $xlirExe
+        if ( $LASTEXITCODE -ne 0 ) {
+            throw "Protocol iterator runtime failed for ${name}"
         }
     }
 } finally {
+    $env:PATH = $savedPath
     Pop-Location
 }
 
@@ -382,5 +365,5 @@ try {
 # continue/break/return/throw cleanup. Buffer also proves that standard-library
 # extern properties remain exact borrowed call targets after its managed-class
 # migration.
-Write-Output "XLIR protocol iterator ABI gate ok: scalar and managed product projection, stable-borrow and owned-temporary iterable acquisition, native-backed-class-managed-iterator-release, no language-level native cursor split, managed iterator/item ownership, standard-library extern property classification, direct CALL targets, deterministic mechanical C, -Werror, and legacy differential runtime."
+Write-Output "XLIR protocol iterator ABI gate ok: scalar and managed product projection, stable-borrow and owned-temporary iterable acquisition, native-backed-class-managed-iterator-release, no language-level native cursor split, managed iterator/item ownership, standard-library extern property classification, direct CALL targets, deterministic mechanical C, -Werror, and canonical runtime execution."
 exit 0

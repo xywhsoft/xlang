@@ -1,5 +1,0 @@
-func main() as int
-	set values = set{1, 2}
-	values.append(3)
-	return 0
-end

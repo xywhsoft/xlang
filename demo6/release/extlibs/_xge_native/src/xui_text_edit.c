@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define XUI_TEXT_EDIT_KEY_BACKSPACE	8
-#define XUI_TEXT_EDIT_KEY_DELETE	46
 #define XUI_TEXT_EDIT_HISTORY_LIMIT	64
 #define XUI_TEXT_EDIT_SCROLLBAR_SIZE	8.0f
 
@@ -35,6 +33,10 @@ typedef struct xui_text_edit_data_t {
 	int iScratchCapacity;
 	char* sLineText;
 	int iLineTextCapacity;
+	char* sImeText;
+	int iImeTextCapacity;
+	char* sImeDisplay;
+	int iImeDisplayCapacity;
 	char* sFindPattern;
 	int iFindPatternCapacity;
 	char* sFindReplacement;
@@ -43,6 +45,8 @@ typedef struct xui_text_edit_data_t {
 	xui_text_edit_line_t* pLines;
 	int iLineCount;
 	int iLineCapacity;
+	xui_text_edit_line_t* pImeLines;
+	int iImeLineCapacity;
 	xui_find_result_t* pFindResults;
 	int iFindResultCount;
 	int iFindResultCapacity;
@@ -77,6 +81,12 @@ typedef struct xui_text_edit_data_t {
 	int iAnchor;
 	int iSelectStart;
 	int iSelectEnd;
+	int bImeActive;
+	int iImeAnchorStart;
+	int iImeAnchorEnd;
+	int iImeCursor;
+	int iImeSelectionStart;
+	int iImeSelectionEnd;
 	int bDragging;
 	int bPressPending;
 	int bPressInsideSelection;
@@ -266,73 +276,19 @@ static void __xuiTextEditDestroyFindData(xui_text_edit_data_t* pData)
 	__xuiTextEditClearFindResults(pData);
 }
 
-static int __xuiTextEditUtf8IsCont(unsigned char c)
-{
-	return (c & 0xc0u) == 0x80u;
-}
-
 static int __xuiTextEditUtf8Next(const char* sText, int iLen, int iPos)
 {
-	unsigned char c;
-	int iNext;
-
-	if ( sText == NULL ) {
-		return 0;
-	}
-	if ( iPos < 0 ) {
-		iPos = 0;
-	}
-	if ( iPos >= iLen ) {
-		return iLen;
-	}
-	c = (unsigned char)sText[iPos];
-	if ( c < 0x80u ) {
-		iNext = iPos + 1;
-	} else if ( (c & 0xe0u) == 0xc0u ) {
-		iNext = iPos + 2;
-	} else if ( (c & 0xf0u) == 0xe0u ) {
-		iNext = iPos + 3;
-	} else if ( (c & 0xf8u) == 0xf0u ) {
-		iNext = iPos + 4;
-	} else {
-		iNext = iPos + 1;
-	}
-	if ( iNext > iLen ) {
-		iNext = iLen;
-	}
-	return iNext;
+	return xuiInternalTextGraphemeNext(sText, iLen, iPos);
 }
 
 static int __xuiTextEditUtf8Prev(const char* sText, int iLen, int iPos)
 {
-	if ( sText == NULL ) {
-		return 0;
-	}
-	if ( iPos > iLen ) {
-		iPos = iLen;
-	}
-	if ( iPos <= 0 ) {
-		return 0;
-	}
-	iPos--;
-	while ( (iPos > 0) && __xuiTextEditUtf8IsCont((unsigned char)sText[iPos]) ) {
-		iPos--;
-	}
-	return iPos;
+	return xuiInternalTextGraphemePrev(sText, iLen, iPos);
 }
 
 static int __xuiTextEditUtf8Clamp(const char* sText, int iLen, int iPos)
 {
-	if ( iPos < 0 ) {
-		return 0;
-	}
-	if ( iPos > iLen ) {
-		return iLen;
-	}
-	while ( (iPos > 0) && (iPos < iLen) && __xuiTextEditUtf8IsCont((unsigned char)sText[iPos]) ) {
-		iPos--;
-	}
-	return iPos;
+	return xuiInternalTextGraphemeClamp(sText, iLen, iPos);
 }
 
 static int __xuiTextEditUtf8ClampBytes(const char* sText, int iMaxBytes)
@@ -357,6 +313,75 @@ static int __xuiTextEditUtf8ClampBytes(const char* sText, int iMaxBytes)
 		iPos = iNext;
 	}
 	return iPos;
+}
+
+static void __xuiTextEditImeReset(xui_text_edit_data_t* pData)
+{
+	if ( pData == NULL ) return;
+	pData->bImeActive = 0;
+	pData->iImeAnchorStart = pData->iCursor;
+	pData->iImeAnchorEnd = pData->iCursor;
+	pData->iImeCursor = 0;
+	pData->iImeSelectionStart = 0;
+	pData->iImeSelectionEnd = 0;
+	if ( pData->sImeText != NULL ) pData->sImeText[0] = '\0';
+}
+
+static int __xuiTextEditImeSetText(xui_text_edit_data_t* pData, const char* sText, int iTextSize)
+{
+	int iRet;
+
+	if ( pData == NULL || sText == NULL || iTextSize < 0 ) return XUI_ERROR_INVALID_ARGUMENT;
+	iRet = __xuiTextEditTextReserve(&pData->sImeText, &pData->iImeTextCapacity, iTextSize + 1);
+	if ( iRet != XUI_OK ) return iRet;
+	if ( iTextSize > 0 ) memcpy(pData->sImeText, sText, (size_t)iTextSize);
+	pData->sImeText[iTextSize] = '\0';
+	return XUI_OK;
+}
+
+static int __xuiTextEditImeBuildDisplay(xui_text_edit_data_t* pData)
+{
+	int iDocumentSize;
+	int iCompositionSize;
+	int iStart;
+	int iEnd;
+	int iDisplaySize;
+	int iRet;
+
+	if ( pData == NULL || pData->sText == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	iDocumentSize = (int)strlen(pData->sText);
+	iCompositionSize = (pData->sImeText != NULL) ? (int)strlen(pData->sImeText) : 0;
+	iStart = __xuiTextEditUtf8Clamp(pData->sText, iDocumentSize, pData->iImeAnchorStart);
+	iEnd = __xuiTextEditUtf8Clamp(pData->sText, iDocumentSize, pData->iImeAnchorEnd);
+	if ( iStart > iEnd ) {
+		int iSwap = iStart;
+		iStart = iEnd;
+		iEnd = iSwap;
+	}
+	iDisplaySize = iStart + iCompositionSize + (iDocumentSize - iEnd);
+	iRet = __xuiTextEditTextReserve(&pData->sImeDisplay, &pData->iImeDisplayCapacity, iDisplaySize + 1);
+	if ( iRet != XUI_OK ) return iRet;
+	if ( iStart > 0 ) memcpy(pData->sImeDisplay, pData->sText, (size_t)iStart);
+	if ( iCompositionSize > 0 ) memcpy(pData->sImeDisplay + iStart, pData->sImeText, (size_t)iCompositionSize);
+	if ( iDocumentSize > iEnd ) {
+		memcpy(pData->sImeDisplay + iStart + iCompositionSize,
+			pData->sText + iEnd, (size_t)(iDocumentSize - iEnd));
+	}
+	pData->sImeDisplay[iDisplaySize] = '\0';
+	pData->iImeAnchorStart = iStart;
+	pData->iImeAnchorEnd = iEnd;
+	pData->iImeCursor = __xuiTextEditUtf8Clamp(pData->sImeText != NULL ? pData->sImeText : "",
+		iCompositionSize, pData->iImeCursor);
+	pData->iImeSelectionStart = __xuiTextEditUtf8Clamp(pData->sImeText != NULL ? pData->sImeText : "",
+		iCompositionSize, pData->iImeSelectionStart);
+	pData->iImeSelectionEnd = __xuiTextEditUtf8Clamp(pData->sImeText != NULL ? pData->sImeText : "",
+		iCompositionSize, pData->iImeSelectionEnd);
+	if ( pData->iImeSelectionStart > pData->iImeSelectionEnd ) {
+		int iSwap = pData->iImeSelectionStart;
+		pData->iImeSelectionStart = pData->iImeSelectionEnd;
+		pData->iImeSelectionEnd = iSwap;
+	}
+	return XUI_OK;
 }
 
 static int __xuiTextEditCharClass(const char* sText, int iPos)
@@ -2043,9 +2068,48 @@ static int __xuiTextEditDrawFindLine(xui_widget pWidget, xui_draw_context pDraw,
 	return XUI_OK;
 }
 
-static int __xuiTextEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, uint32_t iStateId, void* pUser)
+static int __xuiTextEditDrawImeUnderlineLine(xui_widget pWidget, xui_draw_context pDraw, xui_proxy pProxy,
+	xui_text_edit_data_t* pData, xui_text_edit_data_t* pResolved, xui_rect_t tContent, int iLine)
 {
-	xui_text_edit_data_t* pData;
+	xui_text_edit_line_t* pLine;
+	xui_vec2_t tPrefix0;
+	xui_vec2_t tPrefix1;
+	xui_rect_t tUnderline;
+	int iCompositionSize;
+	int iStart;
+	int iEnd;
+	int iHitStart;
+	int iHitEnd;
+	float fX0;
+	float fX1;
+
+	if ( pData == NULL || !pData->bImeActive || iLine < 0 || iLine >= pData->iLineCount ) return XUI_OK;
+	iCompositionSize = (pData->sImeText != NULL) ? (int)strlen(pData->sImeText) : 0;
+	if ( iCompositionSize <= 0 ) return XUI_OK;
+	iStart = pData->iImeAnchorStart;
+	iEnd = iStart + iCompositionSize;
+	pLine = &pData->pLines[iLine];
+	iHitStart = (iStart > pLine->iStart) ? iStart : pLine->iStart;
+	iHitEnd = (iEnd < pLine->iEnd) ? iEnd : pLine->iEnd;
+	if ( iHitEnd <= iHitStart ) return XUI_OK;
+	tPrefix0 = __xuiTextEditMeasureRange(pWidget, pData, pResolved->pFont, pLine->iStart, iHitStart);
+	tPrefix1 = __xuiTextEditMeasureRange(pWidget, pData, pResolved->pFont, pLine->iStart, iHitEnd);
+	fX0 = tContent.fX + tPrefix0.fX - pData->fScrollX;
+	fX1 = tContent.fX + tPrefix1.fX - pData->fScrollX;
+	if ( fX0 < tContent.fX ) fX0 = tContent.fX;
+	if ( fX1 > tContent.fX + tContent.fW ) fX1 = tContent.fX + tContent.fW;
+	if ( fX1 <= fX0 ) return XUI_OK;
+	tUnderline.fX = fX0;
+	tUnderline.fY = tContent.fY + pLine->fY - pData->fScrollY + pData->fLineHeight - 2.0f;
+	tUnderline.fW = fX1 - fX0;
+	tUnderline.fH = 1.0f;
+	if ( tUnderline.fY < tContent.fY || tUnderline.fY >= tContent.fY + tContent.fH ) return XUI_OK;
+	return __xuiTextEditDrawRectFill(pProxy, pDraw, tUnderline, pResolved->iCursorColor);
+}
+
+static int __xuiTextEditCacheRenderCore(xui_widget pWidget, xui_draw_context pDraw, uint32_t iStateId,
+	void* pUser, xui_text_edit_data_t* pData)
+{
 	xui_text_edit_data_t tResolved;
 	xui_proxy pProxy;
 	xui_rect_t tRect;
@@ -2068,7 +2132,6 @@ static int __xuiTextEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, 
 	if ( (pWidget == NULL) || (pDraw == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	pData = __xuiTextEditGetData(pWidget);
 	if ( pData == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
@@ -2111,7 +2174,7 @@ static int __xuiTextEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, 
 	iRet = __xuiTextEditDrawLineNumbers(pWidget, pDraw, pProxy, pData, &tResolved, tContent);
 	if ( iRet != XUI_OK ) return iRet;
 	iLen = (pData->sText != NULL) ? (int)strlen(pData->sText) : 0;
-	if ( (iLen == 0) && (pData->sPlaceholder != NULL) && (pData->sPlaceholder[0] != '\0') &&
+	if ( (iLen == 0) && !pData->bImeActive && (pData->sPlaceholder != NULL) && (pData->sPlaceholder[0] != '\0') &&
 	     (tResolved.pFont != NULL) && (pProxy->drawText != NULL) && (__xuiTextEditAlpha(tResolved.iPlaceholderColor) != 0) ) {
 		iRet = pProxy->drawText(pProxy, pDraw, tResolved.pFont, pData->sPlaceholder, tContent, tResolved.iPlaceholderColor,
 			XUI_TEXT_ALIGN_LEFT | XUI_TEXT_ALIGN_TOP | XUI_TEXT_CLIP);
@@ -2127,9 +2190,13 @@ static int __xuiTextEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, 
 			if ( fY > tContent.fY + tContent.fH ) {
 				break;
 			}
-			iRet = __xuiTextEditDrawFindLine(pWidget, pDraw, pProxy, pData, &tResolved, tContent, i);
-			if ( iRet != XUI_OK ) return iRet;
+			if ( !pData->bImeActive ) {
+				iRet = __xuiTextEditDrawFindLine(pWidget, pDraw, pProxy, pData, &tResolved, tContent, i);
+				if ( iRet != XUI_OK ) return iRet;
+			}
 			iRet = __xuiTextEditDrawSelectionLine(pWidget, pDraw, pProxy, pData, &tResolved, tContent, i);
+			if ( iRet != XUI_OK ) return iRet;
+			iRet = __xuiTextEditDrawImeUnderlineLine(pWidget, pDraw, pProxy, pData, &tResolved, tContent, i);
 			if ( iRet != XUI_OK ) return iRet;
 			iRet = __xuiTextEditBuildLineText(pData, pLine->iStart, pLine->iEnd, &sLineText);
 			if ( iRet != XUI_OK ) return iRet;
@@ -2173,6 +2240,79 @@ static int __xuiTextEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, 
 		if ( iRet != XUI_OK ) return iRet;
 	}
 	return XUI_OK;
+}
+
+static int __xuiTextEditCacheRender(xui_widget pWidget, xui_draw_context pDraw, uint32_t iStateId, void* pUser)
+{
+	xui_text_edit_data_t* pData;
+	char* sDocument;
+	xui_text_edit_line_t* pDocumentLines;
+	int iDocumentCapacity;
+	int iDocumentLineCount;
+	int iDocumentLineCapacity;
+	int iDocumentCursor;
+	int iDocumentAnchor;
+	int iDocumentSelectStart;
+	int iDocumentSelectEnd;
+	int bDocumentLinesDirty;
+	float fDocumentLastLayoutWidth;
+	float fDocumentContentWidth;
+	float fDocumentContentHeight;
+	float fDocumentLineHeight;
+	int iRet;
+
+	if ( pWidget == NULL || pDraw == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	pData = __xuiTextEditGetData(pWidget);
+	if ( pData == NULL || !pData->bImeActive ) {
+		return __xuiTextEditCacheRenderCore(pWidget, pDraw, iStateId, pUser, pData);
+	}
+	iRet = __xuiTextEditImeBuildDisplay(pData);
+	if ( iRet != XUI_OK ) return iRet;
+	sDocument = pData->sText;
+	iDocumentCapacity = pData->iTextCapacity;
+	pDocumentLines = pData->pLines;
+	iDocumentLineCount = pData->iLineCount;
+	iDocumentLineCapacity = pData->iLineCapacity;
+	iDocumentCursor = pData->iCursor;
+	iDocumentAnchor = pData->iAnchor;
+	iDocumentSelectStart = pData->iSelectStart;
+	iDocumentSelectEnd = pData->iSelectEnd;
+	bDocumentLinesDirty = pData->bLinesDirty;
+	fDocumentLastLayoutWidth = pData->fLastLayoutWidth;
+	fDocumentContentWidth = pData->fContentWidth;
+	fDocumentContentHeight = pData->fContentHeight;
+	fDocumentLineHeight = pData->fLineHeight;
+
+	pData->sText = pData->sImeDisplay;
+	pData->iTextCapacity = pData->iImeDisplayCapacity;
+	pData->pLines = pData->pImeLines;
+	pData->iLineCount = 0;
+	pData->iLineCapacity = pData->iImeLineCapacity;
+	pData->iCursor = pData->iImeAnchorStart + pData->iImeCursor;
+	pData->iAnchor = pData->iImeAnchorStart + pData->iImeSelectionStart;
+	pData->iSelectStart = pData->iAnchor;
+	pData->iSelectEnd = pData->iImeAnchorStart + pData->iImeSelectionEnd;
+	pData->bLinesDirty = 1;
+	pData->fLastLayoutWidth = -1.0f;
+	iRet = __xuiTextEditCacheRenderCore(pWidget, pDraw, iStateId, pUser, pData);
+
+	pData->pImeLines = pData->pLines;
+	pData->iImeLineCapacity = pData->iLineCapacity;
+	pData->sText = sDocument;
+	pData->iTextCapacity = iDocumentCapacity;
+	pData->pLines = pDocumentLines;
+	pData->iLineCount = iDocumentLineCount;
+	pData->iLineCapacity = iDocumentLineCapacity;
+	pData->iCursor = iDocumentCursor;
+	pData->iAnchor = iDocumentAnchor;
+	pData->iSelectStart = iDocumentSelectStart;
+	pData->iSelectEnd = iDocumentSelectEnd;
+	pData->bLinesDirty = bDocumentLinesDirty;
+	pData->fLastLayoutWidth = fDocumentLastLayoutWidth;
+	pData->fContentWidth = fDocumentContentWidth;
+	pData->fContentHeight = fDocumentContentHeight;
+	pData->fLineHeight = fDocumentLineHeight;
+	return iRet;
 }
 
 static int __xuiTextEditUpdateMenu(xui_widget pWidget, xui_text_edit_data_t* pData)
@@ -2377,7 +2517,7 @@ static int __xuiTextEditHandleKey(xui_widget pWidget, xui_text_edit_data_t* pDat
 			(void)__xuiTextEditInsertText(pWidget, pData, "\n", 1);
 		}
 		return XUI_EVENT_DISPATCH_STOP;
-	case XUI_TEXT_EDIT_KEY_BACKSPACE:
+	case XUI_KEY_BACKSPACE:
 		if ( pData->bReadonly ) return XUI_EVENT_DISPATCH_STOP;
 		if ( __xuiTextEditHasSelectionData(pData) ) {
 			(void)xuiTextEditDeleteSelection(pWidget);
@@ -2387,7 +2527,7 @@ static int __xuiTextEditHandleKey(xui_widget pWidget, xui_text_edit_data_t* pDat
 				pData->iCursor, 1, 1);
 		}
 		return XUI_EVENT_DISPATCH_STOP;
-	case XUI_TEXT_EDIT_KEY_DELETE:
+	case XUI_KEY_DELETE:
 		if ( pData->bReadonly ) return XUI_EVENT_DISPATCH_STOP;
 		if ( __xuiTextEditHasSelectionData(pData) ) {
 			(void)xuiTextEditDeleteSelection(pWidget);
@@ -2437,7 +2577,9 @@ static int __xuiTextEditEvent(xui_widget pWidget, const xui_event_t* pEvent, voi
 	case XUI_EVENT_VISIBLE_CHANGED:
 		return __xuiTextEditInvalidatePaint(pWidget);
 	case XUI_EVENT_FOCUS:
+		return __xuiTextEditInvalidateText(pWidget);
 	case XUI_EVENT_BLUR:
+		if ( pData->bImeActive ) __xuiTextEditImeReset(pData);
 		return __xuiTextEditInvalidateText(pWidget);
 	case XUI_EVENT_BOUNDS_CHANGED:
 		__xuiTextEditMarkLinesDirty(pData);
@@ -2570,10 +2712,52 @@ static int __xuiTextEditEvent(xui_widget pWidget, const xui_event_t* pEvent, voi
 		if ( pData->bReadonly ) {
 			return XUI_EVENT_DISPATCH_STOP;
 		}
-		if ( pEvent->iCompositionLength == 0 && pEvent->iTextSize > 0 && pEvent->sText[0] != '\0' ) {
-			(void)__xuiTextEditInsertText(pWidget, pData, pEvent->sText, pEvent->iTextSize);
+		if ( pEvent->bCompositionActive ) {
+			if ( pEvent->bCompositionReplacementRange ) {
+				iTextSize = (int)strlen(pData->sText);
+				pData->iImeAnchorStart = __xuiTextEditUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementStart);
+				pData->iImeAnchorEnd = __xuiTextEditUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementEnd);
+				if ( pData->iImeAnchorEnd < pData->iImeAnchorStart ) {
+					pData->iImeAnchorEnd = pData->iImeAnchorStart;
+				}
+				pData->bImeActive = 1;
+			} else if ( !pData->bImeActive ) {
+				__xuiTextEditSelectionRange(pData, &pData->iImeAnchorStart, &pData->iImeAnchorEnd);
+				pData->bImeActive = 1;
+			}
+			if ( __xuiTextEditImeSetText(pData, pEvent->sText, pEvent->iTextSize) != XUI_OK ) {
+				return XUI_EVENT_DISPATCH_STOP;
+			}
+			pData->iImeCursor = pEvent->iCompositionCursor;
+			pData->iImeSelectionStart = pEvent->iCompositionSelectionStart;
+			pData->iImeSelectionEnd = pEvent->iCompositionSelectionEnd;
+			(void)__xuiTextEditInvalidateText(pWidget);
+			return XUI_EVENT_DISPATCH_STOP;
 		}
-		return __xuiTextEditInvalidatePaint(pWidget) == XUI_OK ? XUI_EVENT_DISPATCH_STOP : XUI_OK;
+		if ( pEvent->iTextSize > 0 && pEvent->sText[0] != '\0' ) {
+			if ( pEvent->bCompositionReplacementRange ) {
+				iTextSize = (int)strlen(pData->sText);
+				iStart = __xuiTextEditUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementStart);
+				iEnd = __xuiTextEditUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementEnd);
+				if ( iEnd < iStart ) iEnd = iStart;
+			} else if ( pData->bImeActive ) {
+				iStart = pData->iImeAnchorStart;
+				iEnd = pData->iImeAnchorEnd;
+			} else {
+				__xuiTextEditSelectionRange(pData, &iStart, &iEnd);
+			}
+			__xuiTextEditImeReset(pData);
+			(void)__xuiTextEditSetSelectionData(pData, iStart, iEnd);
+			(void)__xuiTextEditInsertText(pWidget, pData, pEvent->sText, pEvent->iTextSize);
+		} else if ( pData->bImeActive ) {
+			__xuiTextEditImeReset(pData);
+			(void)__xuiTextEditInvalidateText(pWidget);
+		}
+		return XUI_EVENT_DISPATCH_STOP;
 	default:
 		break;
 	}
@@ -2585,6 +2769,21 @@ static xui_rect_t __xuiTextEditImeRect(xui_widget pWidget, void* pUser)
 	xui_text_edit_data_t* pData;
 	xui_rect_t tWorld;
 	xui_rect_t tRect;
+	char* sDocument;
+	xui_text_edit_line_t* pDocumentLines;
+	int iDocumentCapacity;
+	int iDocumentLineCount;
+	int iDocumentLineCapacity;
+	int iDocumentCursor;
+	int iDocumentAnchor;
+	int iDocumentSelectStart;
+	int iDocumentSelectEnd;
+	int bDocumentLinesDirty;
+	float fDocumentLastLayoutWidth;
+	float fDocumentContentWidth;
+	float fDocumentContentHeight;
+	float fDocumentLineHeight;
+	int iRet;
 
 	(void)pUser;
 	pData = __xuiTextEditGetData(pWidget);
@@ -2592,7 +2791,55 @@ static xui_rect_t __xuiTextEditImeRect(xui_widget pWidget, void* pUser)
 	if ( pData == NULL ) {
 		return tRect;
 	}
-	(void)__xuiTextEditUpdateCursorRect(pWidget, pData);
+	if ( !pData->bImeActive ) {
+		(void)__xuiTextEditUpdateCursorRect(pWidget, pData);
+	} else if ( __xuiTextEditImeBuildDisplay(pData) == XUI_OK ) {
+		sDocument = pData->sText;
+		iDocumentCapacity = pData->iTextCapacity;
+		pDocumentLines = pData->pLines;
+		iDocumentLineCount = pData->iLineCount;
+		iDocumentLineCapacity = pData->iLineCapacity;
+		iDocumentCursor = pData->iCursor;
+		iDocumentAnchor = pData->iAnchor;
+		iDocumentSelectStart = pData->iSelectStart;
+		iDocumentSelectEnd = pData->iSelectEnd;
+		bDocumentLinesDirty = pData->bLinesDirty;
+		fDocumentLastLayoutWidth = pData->fLastLayoutWidth;
+		fDocumentContentWidth = pData->fContentWidth;
+		fDocumentContentHeight = pData->fContentHeight;
+		fDocumentLineHeight = pData->fLineHeight;
+
+		pData->sText = pData->sImeDisplay;
+		pData->iTextCapacity = pData->iImeDisplayCapacity;
+		pData->pLines = pData->pImeLines;
+		pData->iLineCount = 0;
+		pData->iLineCapacity = pData->iImeLineCapacity;
+		pData->iCursor = pData->iImeAnchorStart + pData->iImeCursor;
+		pData->iAnchor = pData->iImeAnchorStart + pData->iImeSelectionStart;
+		pData->iSelectStart = pData->iAnchor;
+		pData->iSelectEnd = pData->iImeAnchorStart + pData->iImeSelectionEnd;
+		pData->bLinesDirty = 1;
+		pData->fLastLayoutWidth = -1.0f;
+		iRet = __xuiTextEditUpdateCursorRect(pWidget, pData);
+
+		pData->pImeLines = pData->pLines;
+		pData->iImeLineCapacity = pData->iLineCapacity;
+		pData->sText = sDocument;
+		pData->iTextCapacity = iDocumentCapacity;
+		pData->pLines = pDocumentLines;
+		pData->iLineCount = iDocumentLineCount;
+		pData->iLineCapacity = iDocumentLineCapacity;
+		pData->iCursor = iDocumentCursor;
+		pData->iAnchor = iDocumentAnchor;
+		pData->iSelectStart = iDocumentSelectStart;
+		pData->iSelectEnd = iDocumentSelectEnd;
+		pData->bLinesDirty = bDocumentLinesDirty;
+		pData->fLastLayoutWidth = fDocumentLastLayoutWidth;
+		pData->fContentWidth = fDocumentContentWidth;
+		pData->fContentHeight = fDocumentContentHeight;
+		pData->fLineHeight = fDocumentLineHeight;
+		(void)iRet;
+	}
 	tWorld = xuiWidgetGetWorldRect(pWidget);
 	tRect = pData->tCursorRect;
 	tRect.fX += tWorld.fX;
@@ -2839,7 +3086,10 @@ static void __xuiTextEditDestroy(xui_widget pWidget, void* pTypeData, void* pUse
 	if ( pData->sPlaceholder != NULL ) xrtFree(pData->sPlaceholder);
 	if ( pData->sScratch != NULL ) xrtFree(pData->sScratch);
 	if ( pData->sLineText != NULL ) xrtFree(pData->sLineText);
+	if ( pData->sImeText != NULL ) xrtFree(pData->sImeText);
+	if ( pData->sImeDisplay != NULL ) xrtFree(pData->sImeDisplay);
 	if ( pData->pLines != NULL ) xrtFree(pData->pLines);
+	if ( pData->pImeLines != NULL ) xrtFree(pData->pImeLines);
 	__xuiTextEditDestroyFindData(pData);
 	for ( i = 0; i < XUI_INPUT_MENU_COUNT; i++ ) {
 		if ( pData->arrMenuTitle[i] != NULL ) {

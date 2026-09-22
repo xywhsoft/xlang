@@ -1,21 +1,39 @@
-extern "xchardet_detect_name" func __chardet_name(string data) as string
-extern "xchardet_detect_conf" func __chardet_conf(string data) as int
+extern "xchardet_detect_name_n" func __chardet_name(point data,
+    c_ulonglong size) as point
+extern "xchardet_detect_conf_n" func __chardet_conf(point data,
+    c_ulonglong size) as int
+extern "xchardet_detect_bom_size_n" func __chardet_bom_size(point data,
+    c_ulonglong size) as int
 
-
-
-export func detect(string data) as string
-    return __chardet_name(data)
+func __chardet_bytes(Buffer data) as string
+    return __xl_std_runtime_take_cstr(__chardet_name(data.data(),
+        c_ulonglong(data.len())))
 end
 
-export func confidence(string data) as int
-    return __chardet_conf(data)
+export func detect(string text) as string
+    Buffer data = Buffer()
+    data.append(text)
+    return __chardet_bytes(data)
 end
 
-export func isUtf8(string data) as bool
-    auto enc = __chardet_name(data)
-    return enc == "UTF-8" or enc == "UTF-8-BOM"
+export func confidence(string text) as int
+    Buffer data = Buffer()
+    data.append(text)
+    return __chardet_conf(data.data(), c_ulonglong(data.len()))
 end
 
-export func isAscii(string data) as bool
-    return __chardet_name(data) == "ASCII"
+export func bomSize(string text) as int
+    Buffer data = Buffer()
+    data.append(text)
+    return __chardet_bom_size(data.data(), c_ulonglong(data.len()))
+end
+
+export func isUtf8(string text) as bool
+    string encoding = detect(text)
+    return encoding == "UTF-8" or encoding == "UTF-8-BOM"
+end
+
+export func isAscii(string text) as bool
+    // XRT 将 ASCII 识别为无 BOM 的合法 UTF-8；这是 Unicode 层的正确结论。
+    return detect(text) == "UTF-8" and confidence(text) == 40
 end

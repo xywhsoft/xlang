@@ -41,7 +41,6 @@ try {
         $generatedPath = Join-Path $outputDir ("{0}.managed_callback.xlir.c" -f $case.Name)
         $generatedAgainPath = Join-Path $outputDir ("{0}.managed_callback.xlir_again.c" -f $case.Name)
         $xlirExe = Join-Path $outputDir ("{0}.managed_callback.xlir.exe" -f $case.Name)
-        $legacyExe = Join-Path $outputDir ("{0}.managed_callback.legacy.exe" -f $case.Name)
         if ( ! (Test-Path -LiteralPath $source -PathType Leaf) ) {
             throw "XLIR WebSocket managed callback source is missing: $source"
         }
@@ -100,10 +99,11 @@ try {
         })
         if ( $adapters.Count -ne 2 -or
              @($adapters | Where-Object {
-                 $_.kind -ne 2 -or $_.captureCount -ne 0 -or
-                 $_.rawCallbackAbiName -ne "none" -or $_.adaptedTargetSymbol -eq 0
-             }).Count -ne 0 ) {
-            throw "WebSocket handlers are not exact capture-free named XL6_Function adapters"
+                  $_.kind -ne 2 -or $_.captureCount -ne 0 -or
+                  $_.rawCallbackAbiName -ne "foreign-scope-thunk" -or
+                  $_.adaptedTargetSymbol -eq 0
+              }).Count -ne 0 ) {
+            throw "WebSocket handlers are not exact capture-free foreign-scope XL6_Function adapters"
         }
 
         Invoke-Xl @("cgen", $source, "--backend", "xlir", "--emit", $generatedPath) `
@@ -180,20 +180,15 @@ try {
             throw "XLIR WebSocket managed callback runtime failed: $($case.Name)"
         }
 
-        Invoke-Xl @("build", $source, "--backend", "legacy", "-o", $legacyExe) `
-            "Legacy WebSocket callback differential build failed: $($case.Name)"
-        $legacyOutput = @(& $legacyExe 2>&1)
-        if ( $LASTEXITCODE -ne 0 -or
-             -not (($legacyOutput | Out-String).Contains($case.Result)) ) {
-            throw "Legacy WebSocket callback differential runtime failed: $($case.Name)"
-        }
     }
 
     $runtime = [System.IO.File]::ReadAllText(
         $runtimeSource, [System.Text.Encoding]::UTF8)
     foreach ( $required in @(
         "xrtValueUInt(iValue)",
-        "xrtValueUInt((uint64)iSize)"
+        "xrtValueUInt((uint64)iSize)",
+        "xnetstream* pSource = (xnetstream*)xl6ValueHandleData(pOwner)",
+        "xtlsstream* pSource = (xtlsstream*)xl6ValueHandleData(pOwner)"
     ) ) {
         if ( ! $runtime.Contains($required) ) {
             throw "WebSocket fallback invoke_var lost unsigned callback boxing: $required"
@@ -201,7 +196,8 @@ try {
     }
     foreach ( $forbidden in @(
         "xrtValueInt((int64)iValue)",
-        "xrtValueInt((int64)iSize)"
+        "xrtValueInt((int64)iSize)",
+        "xl6_xrt_tls_stream_native(pWrapper)"
     ) ) {
         if ( $runtime.Contains($forbidden) ) {
             throw "WebSocket fallback invoke_var retained signed callback boxing: $forbidden"
@@ -211,5 +207,5 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR WebSocket managed callback ABI gate ok: borrowed unconstrained XL6_Function handlers, fixed uint64/raw-pointer/c_size adapters, deterministic C, unsigned fallback boxing, and TCP/TLS legacy differential runtime semantics."
+Write-Output "XLIR WebSocket managed callback ABI gate ok: borrowed unconstrained XL6_Function handlers, fixed uint64/raw-pointer/c_size foreign-scope adapters, deterministic C, unsigned fallback boxing, and TCP/TLS canonical runtime semantics."
 exit 0

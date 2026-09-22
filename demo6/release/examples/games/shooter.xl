@@ -1,0 +1,376 @@
+// shooter.xl — 纵版太空射击（精灵纹理 + 音效）
+// 鼠标 X / 左右键移动，鼠标左键 / 空格射击，R 重开。
+// 资产相对路径：assets/player.png、assets/laser.wav、assets/boom.wav（缺失时自动降级为纯形状/静音，游戏照常可玩）。
+// BGM 占位：可改用 xge.Music bgm = xge.Music("assets/coin.wav") + bgm.play() 播放循环背景音乐（本示例未启用）。
+// 无头冒烟：xl run shooter.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int W = 540                        // 画布宽
+int H = 760                        // 画布高
+float P_HALF = 20.0                // 玩家碰撞盒半宽（40x40）
+float E_HALF = 18.0                // 敌机碰撞盒半宽（36x36）
+float B_HALF_W = 4.0               // 子弹半宽（8x16）
+float B_HALF_H = 8.0
+float P_SPEED = 380.0              // 键盘移动速度（px/s）
+float BULLET_SPD = 620.0           // 子弹速度（px/s）
+float FIRE_CD = 0.15               // 射速间隔（秒）
+float INV_TIME = 1.5               // 受击无敌（秒）
+float DIFF_STEP = 10.0             // 每 10 秒难度 +1
+int MAXB = 96                      // 子弹上限
+int MAXE = 48                      // 敌机上限
+int STAR_N = 90                    // 星星总数（两层视差）
+
+// --- 游戏状态 ---
+float px = 270.0                   // 玩家位置
+float py = 690.0
+int hp = 3
+int score = 0
+int diff = 1
+bool dead = false
+float fireT = 0.0
+float invT = 0.0
+int frames = 0                     // 帧计数（无敌闪烁用）
+float diffT = 0.0
+float spawnT = 0.0
+int bCount = 0                     // 活跃子弹数（swap-remove 压缩）
+int eCount = 0                     // 活跃敌机数
+array<float> bx = []
+array<float> by = []
+array<float> ex = []
+array<float> ey = []
+array<float> es = []               // 敌机下落速度
+array<float> starX = []            // 星空：两层速度带做视差
+array<float> starY = []
+array<float> starV = []
+array<float> starS = []
+xge.Texture playerTex
+xge.Sound laserSnd
+xge.Sound boomSnd
+xge.Font hudFont
+Random rng = Random(uint64(7), uint64(7))
+
+// --- 星空初始化：慢层（远）+ 快层（近） ---
+func initStars()
+    starX = []
+    starY = []
+    starV = []
+    starS = []
+    int i = 0
+    while i < STAR_N
+        starX.append(float(int(rng.u32()) % W))
+        starY.append(float(int(rng.u32()) % H))
+        if i % 2 == 0 then
+            starV.append(30.0 + float(int(rng.u32()) % 40))
+            starS.append(1.0)
+        else
+            starV.append(140.0 + float(int(rng.u32()) % 100))
+            starS.append(2.0)
+        end
+        i += 1
+    end
+end
+
+// --- 完整重开 ---
+func reset()
+    bCount = 0
+    eCount = 0
+    px = float(W / 2)
+    py = 690.0
+    hp = 3
+    score = 0
+    diff = 1
+    dead = false
+    fireT = 0.0
+    invT = 0.0
+    frames = 0
+    diffT = 0.0
+    spawnT = 0.5
+    initStars()
+end
+
+// --- 生成敌机：顶部随机 X，速度随难度递增 ---
+func spawnEnemy()
+    if eCount >= MAXE then
+        return
+    end
+    ex.append(float(int(rng.u32()) % (W - 60)) + 30.0)
+    ey.append(-30.0)
+    es.append(90.0 + 25.0 * float(diff) + float(int(rng.u32()) % 60))
+    eCount += 1
+end
+
+// --- 发射子弹（带音效） ---
+func fire()
+    if bCount >= MAXB then
+        return
+    end
+    bx.append(px)
+    by.append(py - 30.0)
+    bCount += 1
+    fireT = FIRE_CD
+    if laserSnd.valid then
+        laserSnd.play()
+    end
+end
+
+// --- swap-with-last 删除 ---
+func removeEnemy(int i)
+    ex[i] = ex[eCount - 1]
+    ey[i] = ey[eCount - 1]
+    es[i] = es[eCount - 1]
+    eCount -= 1
+end
+
+func removeBullet(int i)
+    bx[i] = bx[bCount - 1]
+    by[i] = by[bCount - 1]
+    bCount -= 1
+end
+
+// --- 一维区间重叠（AABB 单轴） ---
+func overlap1d(float a, float b, float halfSum) as bool
+    return a > b - halfSum and a < b + halfSum
+end
+
+// --- 逻辑更新 ---
+func update(float dt)
+    frames += 1
+    if dead then
+        if xge.Input.keyPressed(82) then
+            reset()
+        end
+        return
+    end
+
+    // 每 10 秒难度 +1（生成更密更快）
+    diffT += dt
+    if diffT >= DIFF_STEP then
+        diffT -= DIFF_STEP
+        diff += 1
+    end
+
+    // 敌机生成（难度越高间隔越短）
+    spawnT -= dt
+    if spawnT <= 0.0 then
+        spawnEnemy()
+        spawnT = 1.4 - 0.13 * float(diff)
+        if spawnT < 0.35 then
+            spawnT = 0.35
+        end
+    end
+
+    // 玩家移动：键盘 + 鼠标 X 跟随（含边界钳制）
+    if xge.Input.keyDown(xge.XGE_KEY_LEFT) then
+        px -= P_SPEED * dt
+    end
+    if xge.Input.keyDown(xge.XGE_KEY_RIGHT) then
+        px += P_SPEED * dt
+    end
+    float mx = xge.Input.mouseX()
+    if mx > 4.0 and mx < float(W) - 4.0 then
+        px = mx
+    end
+    if px < 24.0 then
+        px = 24.0
+    end
+    if px > float(W) - 24 then
+        px = float(W) - 24
+    end
+
+    // 射击（按住连发，射速限制）
+    if fireT > 0.0 then
+        fireT -= dt
+    end
+    if (xge.Input.mouseLeftDown() or xge.Input.keyDown(xge.XGE_KEY_SPACE)) and fireT <= 0.0 then
+        fire()
+    end
+
+    // 无敌计时
+    if invT > 0.0 then
+        invT -= dt
+    end
+
+    // 子弹上移，出顶删除（swap-remove）
+    int i = 0
+    while i < bCount
+        by[i] -= BULLET_SPD * dt
+        if by[i] < -20.0 then
+            removeBullet(i)
+        else
+            i += 1
+        end
+    end
+
+    // 敌机下落，出底删除（swap-remove）
+    i = 0
+    while i < eCount
+        ey[i] += es[i] * dt
+        if ey[i] > float(H) + 40 then
+            removeEnemy(i)
+        else
+            i += 1
+        end
+    end
+
+    // 子弹 vs 敌机（AABB：8x16 vs 36x36）
+    i = 0
+    while i < eCount
+        bool hit = false
+        int j = 0
+        while j < bCount
+            if overlap1d(bx[j], ex[i], E_HALF + B_HALF_W) and overlap1d(by[j], ey[i], E_HALF + B_HALF_H) then
+                removeBullet(j)
+                hit = true
+            else
+                j += 1
+            end
+            if hit then
+                j = bCount  // 跳出内层
+            end
+        end
+        if hit then
+            score += 100
+            if boomSnd.valid then
+                boomSnd.play()
+            end
+            removeEnemy(i)
+            // swap 来的敌机本帧待处理，不 i += 1
+        else
+            i += 1
+        end
+    end
+
+    // 敌机 vs 玩家（AABB：40x40 vs 36x36）：HP -1 并进入无敌
+    if invT <= 0.0 then
+        i = 0
+        while i < eCount
+            if overlap1d(px, ex[i], P_HALF + E_HALF) and overlap1d(py, ey[i], P_HALF + E_HALF) then
+                hp -= 1
+                removeEnemy(i)
+                if hp <= 0 then
+                    dead = true
+                else
+                    invT = INV_TIME
+                end
+                i = eCount  // 跳出循环
+            end
+            i += 1
+        end
+    end
+
+    // 星空滚动（下移循环，回顶换随机 X）
+    i = 0
+    while i < STAR_N
+        starY[i] += starV[i] * dt
+        if starY[i] > float(H) then
+            starY[i] -= float(H)
+            starX[i] = float(int(rng.u32()) % W)
+        end
+        i += 1
+    end
+end
+
+// --- 绘制 ---
+func draw()
+    uint32 starFarC = xge.Color.rgba(70, 80, 96, 255)
+    uint32 starNearC = xge.Color.rgba(150, 165, 185, 255)
+    uint32 bulletC = xge.Color.rgba(109, 210, 255, 255)
+    uint32 enemyC = xge.Color.rgba(255, 107, 94, 255)
+    uint32 enemyCoreC = xge.Color.rgba(120, 40, 36, 255)
+    uint32 shipC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 textC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 warnC = xge.Color.rgba(255, 107, 94, 255)
+
+    // 星空两层视差：快层亮、慢层暗
+    int i = 0
+    while i < STAR_N
+        if starV[i] > 100.0 then
+            xge.Shape.circleFill(starX[i], starY[i], starS[i], starNearC)
+        else
+            xge.Shape.circleFill(starX[i], starY[i], starS[i], starFarC)
+        end
+        i += 1
+    end
+
+    // 敌机（36x36 方块 + 内核）
+    i = 0
+    while i < eCount
+        xge.Shape.rectFillPixels(int(ex[i]) - 18, int(ey[i]) - 18, 36, 36, enemyC)
+        xge.Shape.rectFillPixels(int(ex[i]) - 8, int(ey[i]) - 8, 16, 16, enemyCoreC)
+        i += 1
+    end
+
+    // 子弹（8x16 细长条）
+    i = 0
+    while i < bCount
+        xge.Shape.rectFillPixels(int(bx[i]) - 4, int(by[i]) - 8, 8, 16, bulletC)
+        i += 1
+    end
+
+    // 玩家：纹理优先，无资产时三角形降级；无敌期闪烁（frames % 8 < 4 跳过绘制）
+    bool blink = invT > 0.0 and frames % 8 < 4
+    if not dead and not blink then
+        if playerTex.valid then
+            playerTex.drawScaled(px - 24.0, py - 24.0, 48.0, 48.0, xge.Color.rgba(255, 255, 255, 255))
+        else
+            xge.Shape.triangleFill(px, py - 20.0, px - 16.0, py + 16.0, px + 16.0, py + 16.0, shipC)
+            xge.Shape.rectFillPixels(int(px) - 2, int(py) - 4, 4, 12, bulletC)
+        end
+    end
+
+    // HUD：分数 / 生命 / 难度
+    if hudFont.valid then
+        hudFont.drawText("SCORE " + string(score), 12, 10, textC)
+        hudFont.drawText("LV " + string(diff), float(W) - 70.0, 10.0, textC)
+        if dead then
+            hudFont.drawText("GAME OVER - press R", float(W / 2) - 105.0, float(H / 2) - 12.0, warnC)
+        end
+    end
+    int k = 0
+    while k < hp
+        xge.Shape.rectFillPixels(W - 210 + k * 22, 10, 16, 10, warnC)
+        k += 1
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    update(xge.XgeApp.delta())
+    xge.XgeApp.beginFrame(xge.Color.rgba(9, 11, 20, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run shooter.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(W, H, "xlang shooter")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+
+    // 资产相对路径：加载失败返回 null handle，valid 检查后跳过，无资产也能玩
+    playerTex = xge.Texture("assets/player.png")
+    laserSnd = xge.Sound("assets/laser.wav")
+    boomSnd = xge.Sound("assets/boom.wav")
+    if laserSnd.valid then
+        laserSnd.setVolume(0.5)
+    end
+    if boomSnd.valid then
+        boomSnd.setVolume(0.6)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

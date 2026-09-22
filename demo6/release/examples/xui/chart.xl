@@ -1,0 +1,29 @@
+// chart.xl — 图表：Chart 控件（标题 + 图例）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Chart Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Chart Demo", font)
+    root.addChild(title)
+
+    xui.Chart chart = xui.Chart(ctx)
+    chart.setFlex(1.0, 1.0)
+
+    xui.xuiChartSetTitle(chart.handle, "Monthly Sales")
+    xui.xuiChartSetLegendVisible(chart.handle, 1)
+
+    root.addChild(chart)
+
+    g_app.run(onFrame)
+    return 0
+end

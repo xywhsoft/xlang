@@ -2,7 +2,7 @@
 //      memory R/W, process enumeration, clipboard, image operations.
 // Pure Win32 API implementation (user32 + gdi32 + kernel32). No COM, TCC-compatible.
 
-extern "xrtGetError" func __op_error() as string
+extern "xl6_xrt_last_error_text" func __op_error() as string
 
 export class Op
     native point handle

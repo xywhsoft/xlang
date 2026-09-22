@@ -1,0 +1,42 @@
+import statistics
+
+
+
+func main(...) as int
+    // 一组延迟采样数据（毫秒）
+    var samples = [12, 15, 11, 19, 13, 25, 14, 12, 30, 16, 13, 12, 88, 15, 14]
+
+    println("count:", statistics.count(samples))
+    println("sum:", statistics.sum(samples))
+    println("mean:", statistics.mean(samples))
+    println("median:", statistics.median(samples))
+    println("mode:", statistics.mode(samples))
+    println("min/max:", statistics.min(samples), "/", statistics.max(samples))
+    println("stdev(sample):", statistics.stdevSample(samples))
+
+    auto q1, q2, q3 = statistics.quartiles(samples)
+    println("quartiles:", q1, q2, q3, "iqr:", statistics.iqr(samples))
+    println("p95:", statistics.percentile(samples, 95.0))
+
+    // 直方图
+    var hist = statistics.histogram(samples, 4)
+    print("histogram(4):")
+    int total = 0
+    for bin in hist
+        int c = int(bin)
+        total = total + c
+        print(" ", c)
+    end
+    println(" total:", total)
+
+    // 请求量与延迟的线性关系
+    var load = [10, 20, 30, 40, 50]
+    var latency = [21, 42, 58, 85, 99]
+    println("correlation:", statistics.correlation(load, latency))
+    auto slope, intercept = statistics.linearFit(load, latency)
+    println("fit: latency =", slope, "* load +", intercept)
+    println("predicted at 60:", slope * 60 + intercept)
+
+    println("statistics example: PASS")
+    return 0
+end

@@ -116,7 +116,16 @@ class Process
 	end
 
 	func release() as bool
-		return x_uia_process_release(self.handle)
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_process_release(released)
+	end
+
+	destroy()
+		self.release()
 	end
 end
 
@@ -161,7 +170,16 @@ class TestWindow
 	end
 
 	func release() as bool
-		return x_uia_test_window_release(self.handle)
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_test_window_release(released)
+	end
+
+	destroy()
+		self.release()
 	end
 end
 
@@ -174,7 +192,16 @@ class Condition
 
 
 	func release() as bool
-		return x_uia_condition_release(self.handle)
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_condition_release(released)
+	end
+
+	destroy()
+		self.release()
 	end
 
 	func valid() as bool
@@ -191,7 +218,16 @@ class Element
 
 
 	func release() as bool
-		return x_uia_element_release(self.handle)
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_element_release(released)
+	end
+
+	destroy()
+		self.release()
 	end
 
 	func valid() as bool
@@ -242,16 +278,26 @@ class Element
 		return Element(x_uia_element_find_first(self.handle, condition.handle, scope, timeout_ms))
 	end
 
-	func find_all(Condition condition, int scope, int timeout_ms) as var
-		return x_uia_element_find_all(self.handle, condition.handle, scope, timeout_ms)
+	func find_all(Condition condition, int scope, int timeout_ms) as array<Element>
+		var handles = x_uia_element_find_all(self.handle, condition.handle, scope, timeout_ms)
+		array<Element> result = array<Element>[]
+		for handle in handles
+			result.append(Element(point(handle)))
+		end
+		return result
 	end
 
 	func parent() as Element
 		return Element(x_uia_element_parent(self.handle))
 	end
 
-	func children() as var
-		return x_uia_element_children(self.handle)
+	func children() as array<Element>
+		var handles = x_uia_element_children(self.handle)
+		array<Element> result = array<Element>[]
+		for handle in handles
+			result.append(Element(point(handle)))
+		end
+		return result
 	end
 
 	func set_focus() as bool
@@ -352,7 +398,16 @@ class Events
 	end
 
 	func release() as bool
-		return x_uia_events_release(self.handle)
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_events_release(released)
+	end
+
+	destroy()
+		self.release()
 	end
 end
 

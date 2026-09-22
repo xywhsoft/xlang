@@ -21,8 +21,8 @@ struct xui_icon_category_t {
 	xui_context pContext;
 	xui_icon_category pNextAll;
 	char* sName;
-	xdict_struct mapIcons;
-	xarray_struct arrIcons;
+	xmap mapIcons;
+	xarray arrIcons;
 	xui_icon_category_desc_t tDesc;
 	uint32_t iGeneration;
 	int iRefCount;
@@ -324,7 +324,7 @@ static void __xuiIconCategoryDestroyOne(xui_icon_category pCategory)
 	for ( i = 1; i <= pCategory->arrIcons.Count; i++ ) {
 		xui_icon* ppIcon;
 
-		ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, i);
+		ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, i);
 		if ( (ppIcon != NULL) && (*ppIcon != NULL) ) {
 			xui_icon pIcon;
 
@@ -337,7 +337,7 @@ static void __xuiIconCategoryDestroyOne(xui_icon_category pCategory)
 	}
 	pCategory->iIconCount = 0;
 	__xuiIconCategoryUnlinkAll(pCategory);
-	xrtDictUnit(&pCategory->mapIcons);
+	xrtMapUnit(&pCategory->mapIcons);
 	xrtArrayUnit(&pCategory->arrIcons);
 	if ( pCategory->sName != NULL ) xrtFree(pCategory->sName);
 	pCategory->iMagic = 0;
@@ -900,7 +900,7 @@ static int __xuiIconRegister(xui_icon_category pCategory, const char* sName, int
 	     !__xuiIconDescValid(pDesc) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	pExistingId = (uint32_t*)xrtDictGet(&pCategory->mapIcons, (void*)sName, (uint32_t)strlen(sName));
+	pExistingId = (uint32_t*)__xuiMapGet(&pCategory->mapIcons, (void*)sName, (uint32_t)strlen(sName));
 	if ( pExistingId != NULL ) return XUI_ERROR_ALREADY_INITIALIZED;
 	pIcon = (xui_icon)xrtMalloc(sizeof(*pIcon));
 	if ( pIcon == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
@@ -936,7 +936,7 @@ static int __xuiIconRegister(xui_icon_category pCategory, const char* sName, int
 	pIcon->iGeneration = 1;
 	pIcon->iRefCount = 1;
 	pIcon->bRegistered = 1;
-	iId = xrtArrayAppend(&pCategory->arrIcons, 1u);
+	iId = __xuiArraySlotAdd(&pCategory->arrIcons, 1u);
 	if ( iId == 0u ) {
 		pIcon->iMagic = 0;
 		if ( pIcon->sTags != NULL ) xrtFree(pIcon->sTags);
@@ -946,9 +946,9 @@ static int __xuiIconRegister(xui_icon_category pCategory, const char* sName, int
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	pIcon->iId = iId;
-	ppSlot = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, iId);
+	ppSlot = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, iId);
 	*ppSlot = pIcon;
-	pStoredId = (uint32_t*)xrtDictSet(&pCategory->mapIcons, (void*)sName, (uint32_t)strlen(sName), NULL);
+	pStoredId = (uint32_t*)__xuiMapGetOrAdd(&pCategory->mapIcons, (void*)sName, (uint32_t)strlen(sName), NULL);
 	if ( pStoredId == NULL ) {
 		*ppSlot = NULL;
 		pIcon->bRegistered = 0;
@@ -977,8 +977,8 @@ static void __xuiIconRollbackRegistration(xui_icon pIcon)
 
 	if ( !__xuiIconValid(pIcon) || !__xuiIconCategoryValid(pIcon->pCategory) ) return;
 	pCategory = pIcon->pCategory;
-	(void)xrtDictRemove(&pCategory->mapIcons, pIcon->sName, (uint32_t)strlen(pIcon->sName));
-	ppSlot = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, pIcon->iId);
+	(void)__xuiMapRemove(&pCategory->mapIcons, pIcon->sName, (uint32_t)strlen(pIcon->sName));
+	ppSlot = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, pIcon->iId);
 	if ( ppSlot != NULL ) *ppSlot = NULL;
 	if ( pCategory->iIconCount > 0 ) pCategory->iIconCount--;
 	pIcon->bRegistered = 0;
@@ -1042,7 +1042,7 @@ XUI_API int xuiIconCategoryCreate(xui_context pContext, const char* sName, const
 	if ( !__xuiIconContextValid(pContext) || (sName == NULL) || (sName[0] == '\0') ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	if ( xrtDictGetPtr(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName)) != NULL ) {
+	if ( __xuiMapGetPtr(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName)) != NULL ) {
 		return XUI_ERROR_ALREADY_INITIALIZED;
 	}
 	if ( pDesc == NULL ) {
@@ -1068,24 +1068,24 @@ XUI_API int xuiIconCategoryCreate(xui_context pContext, const char* sName, const
 	pCategory->iGeneration = 1;
 	pCategory->iRefCount = 1;
 	pCategory->bRegistered = 1;
-	xrtDictInit(&pCategory->mapIcons, sizeof(uint32_t), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pCategory->arrIcons, sizeof(xui_icon), XRT_OBJMODE_LOCAL);
-	iSlot = xrtArrayAppend(&pContext->arrIconCategories, 1u);
+	xrtMapInit(&pCategory->mapIcons, sizeof(uint32_t));
+	xrtArrayInit(&pCategory->arrIcons, sizeof(xui_icon));
+	iSlot = __xuiArraySlotAdd(&pContext->arrIconCategories, 1u);
 	if ( iSlot == 0u ) {
 		pCategory->iMagic = 0;
-		xrtDictUnit(&pCategory->mapIcons);
+		xrtMapUnit(&pCategory->mapIcons);
 		xrtArrayUnit(&pCategory->arrIcons);
 		xrtFree(pCategory->sName);
 		xrtFree(pCategory);
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
-	ppSlot = (xui_icon_category*)xrtArrayGet(&pContext->arrIconCategories, iSlot);
+	ppSlot = (xui_icon_category*)__xuiArraySlotGet(&pContext->arrIconCategories, iSlot);
 	*ppSlot = pCategory;
 	pOld = NULL;
-	if ( !xrtDictSetPtr(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName), pCategory, &pOld) ) {
+	if ( !__xuiMapSetPtr(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName), pCategory, &pOld) ) {
 		*ppSlot = NULL;
 		pCategory->iMagic = 0;
-		xrtDictUnit(&pCategory->mapIcons);
+		xrtMapUnit(&pCategory->mapIcons);
 		xrtArrayUnit(&pCategory->arrIcons);
 		xrtFree(pCategory->sName);
 		xrtFree(pCategory);
@@ -1105,7 +1105,7 @@ XUI_API xui_icon_category xuiIconCategoryFind(xui_context pContext, const char* 
 	if ( !__xuiIconContextValid(pContext) || (sName == NULL) || (sName[0] == '\0') ) {
 		return NULL;
 	}
-	return (xui_icon_category)xrtDictGetPtr(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName));
+	return (xui_icon_category)__xuiMapGetPtr(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName));
 }
 
 XUI_API int xuiIconCategoryRemove(xui_context pContext, const char* sName)
@@ -1115,11 +1115,11 @@ XUI_API int xuiIconCategoryRemove(xui_context pContext, const char* sName)
 
 	pCategory = xuiIconCategoryFind(pContext, sName);
 	if ( pCategory == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	(void)xrtDictRemove(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName));
+	(void)__xuiMapRemove(&pContext->mapIconCategories, (void*)sName, (uint32_t)strlen(sName));
 	for ( i = 1; i <= pContext->arrIconCategories.Count; i++ ) {
 		xui_icon_category* ppCategory;
 
-		ppCategory = (xui_icon_category*)xrtArrayGet(&pContext->arrIconCategories, i);
+		ppCategory = (xui_icon_category*)__xuiArraySlotGet(&pContext->arrIconCategories, i);
 		if ( (ppCategory != NULL) && (*ppCategory == pCategory) ) {
 			*ppCategory = NULL;
 			break;
@@ -1141,7 +1141,7 @@ XUI_API void xuiIconCategoryClear(xui_context pContext)
 	for ( i = 1; i <= pContext->arrIconCategories.Count; i++ ) {
 		xui_icon_category* ppCategory;
 
-		ppCategory = (xui_icon_category*)xrtArrayGet(&pContext->arrIconCategories, i);
+		ppCategory = (xui_icon_category*)__xuiArraySlotGet(&pContext->arrIconCategories, i);
 		if ( (ppCategory != NULL) && (*ppCategory != NULL) ) {
 			xui_icon_category pCategory;
 
@@ -1151,10 +1151,10 @@ XUI_API void xuiIconCategoryClear(xui_context pContext)
 			__xuiIconCategoryReleaseOwner(pCategory);
 		}
 	}
-	xrtDictUnit(&pContext->mapIconCategories);
-	xrtDictInit(&pContext->mapIconCategories, sizeof(void*), XRT_OBJMODE_LOCAL);
+	xrtMapUnit(&pContext->mapIconCategories);
+	xrtMapInit(&pContext->mapIconCategories, sizeof(void*));
 	xrtArrayUnit(&pContext->arrIconCategories);
-	xrtArrayInit(&pContext->arrIconCategories, sizeof(xui_icon_category), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pContext->arrIconCategories, sizeof(xui_icon_category));
 	pContext->iIconGeneration++;
 	xuiInternalContextBumpGeneration(pContext);
 	(void)xuiInternalContextInvalidateAll(pContext);
@@ -1183,7 +1183,7 @@ XUI_API xui_icon_category xuiIconCategoryGetAt(xui_context pContext, int iIndex)
 	for ( i = 1; i <= pContext->arrIconCategories.Count; i++ ) {
 		xui_icon_category* ppCategory;
 
-		ppCategory = (xui_icon_category*)xrtArrayGet(&pContext->arrIconCategories, i);
+		ppCategory = (xui_icon_category*)__xuiArraySlotGet(&pContext->arrIconCategories, i);
 		if ( (ppCategory != NULL) && (*ppCategory != NULL) ) {
 			if ( iActive == iIndex ) return *ppCategory;
 			iActive++;
@@ -1243,7 +1243,7 @@ XUI_API int xuiIconCategorySetDesc(xui_icon_category pCategory, const xui_icon_c
 	for ( i = 1; i <= pCategory->arrIcons.Count; i++ ) {
 		xui_icon* ppIcon;
 
-		ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, i);
+		ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, i);
 		if ( (ppIcon != NULL) && (*ppIcon != NULL) ) {
 			__xuiIconClearCache(*ppIcon);
 		}
@@ -1301,7 +1301,7 @@ XUI_API xui_icon xuiIconCategoryGetIconAt(xui_icon_category pCategory, int iInde
 	for ( i = 1; i <= pCategory->arrIcons.Count; i++ ) {
 		xui_icon* ppIcon;
 
-		ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, i);
+		ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, i);
 		if ( (ppIcon != NULL) && (*ppIcon != NULL) ) {
 			if ( iActive == iIndex ) return *ppIcon;
 			iActive++;
@@ -1319,7 +1319,7 @@ XUI_API int xuiIconCategoryPreload(xui_icon_category pCategory, float fWidth, fl
 	for ( i = 1; i <= pCategory->arrIcons.Count; i++ ) {
 		xui_icon* ppIcon;
 
-		ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, i);
+		ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, i);
 		if ( (ppIcon != NULL) && (*ppIcon != NULL) ) {
 			iRet = xuiIconPrepare(*ppIcon, fWidth, fHeight);
 			if ( iRet != XUI_OK ) return iRet;
@@ -1525,7 +1525,7 @@ XUI_API xui_icon xuiIconFind(xui_icon_category pCategory, const char* sName)
 	if ( !__xuiIconCategoryValid(pCategory) || (sName == NULL) || (sName[0] == '\0') ) {
 		return NULL;
 	}
-	pId = (uint32_t*)xrtDictGet(&pCategory->mapIcons, (void*)sName, (uint32_t)strlen(sName));
+	pId = (uint32_t*)__xuiMapGet(&pCategory->mapIcons, (void*)sName, (uint32_t)strlen(sName));
 	return (pId != NULL) ? xuiIconFindById(pCategory, *pId) : NULL;
 }
 
@@ -1537,7 +1537,7 @@ XUI_API xui_icon xuiIconFindById(xui_icon_category pCategory, xui_icon_id iId)
 	     (iId > pCategory->arrIcons.Count) ) {
 		return NULL;
 	}
-	ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, iId);
+	ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, iId);
 	return (ppIcon != NULL) ? *ppIcon : NULL;
 }
 
@@ -1548,8 +1548,8 @@ XUI_API int xuiIconRemoveById(xui_icon_category pCategory, xui_icon_id iId)
 
 	pIcon = xuiIconFindById(pCategory, iId);
 	if ( pIcon == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	(void)xrtDictRemove(&pCategory->mapIcons, pIcon->sName, (uint32_t)strlen(pIcon->sName));
-	ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, iId);
+	(void)__xuiMapRemove(&pCategory->mapIcons, pIcon->sName, (uint32_t)strlen(pIcon->sName));
+	ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, iId);
 	if ( ppIcon != NULL ) *ppIcon = NULL;
 	if ( pCategory->iIconCount > 0 ) pCategory->iIconCount--;
 	pIcon->bRegistered = 0;
@@ -1575,7 +1575,7 @@ XUI_API void xuiIconClear(xui_icon_category pCategory)
 	for ( i = 1; i <= pCategory->arrIcons.Count; i++ ) {
 		xui_icon* ppIcon;
 
-		ppIcon = (xui_icon*)xrtArrayGet(&pCategory->arrIcons, i);
+		ppIcon = (xui_icon*)__xuiArraySlotGet(&pCategory->arrIcons, i);
 		if ( (ppIcon != NULL) && (*ppIcon != NULL) ) {
 			xui_icon pIcon;
 
@@ -1587,8 +1587,8 @@ XUI_API void xuiIconClear(xui_icon_category pCategory)
 		}
 	}
 	pCategory->iIconCount = 0;
-	xrtDictUnit(&pCategory->mapIcons);
-	xrtDictInit(&pCategory->mapIcons, sizeof(uint32_t), XRT_OBJMODE_LOCAL);
+	xrtMapUnit(&pCategory->mapIcons);
+	xrtMapInit(&pCategory->mapIcons, sizeof(uint32_t));
 	__xuiIconCategoryChanged(pCategory);
 }
 

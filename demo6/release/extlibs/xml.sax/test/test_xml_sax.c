@@ -1,3 +1,6 @@
+/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_xml.h"
 
 #include <stdio.h>
@@ -31,7 +34,7 @@ static bool onEvent(ptr pContext, const xrtxmlevent* pEvent)
 	} else if ( pEvent->iType == XRT_XML_EVENT_TEXT ) {
 		pState->iTexts++;
 	}
-	return TRUE;
+	return true;
 }
 
 int main(void)
@@ -44,7 +47,9 @@ int main(void)
 	xrtxmlerror tError;
 	test_state tState;
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
+	int iStatus;
+	const xrtxmlevent* pEvent;
+	xrtxmlsax* pPull;
 	memset(&tState, 0, sizeof(tState));
 	xrtXmlOptionsInit(&tOptions);
 	bOk = xrtXmlSaxParseMemory(sXml, strlen(sXml), &tOptions, onEvent,
@@ -57,7 +62,20 @@ int main(void)
 	tOptions.tLimits.iMaxDepth = 2u;
 	bOk = bOk && !xrtXmlSaxParseMemory(sDeep, strlen(sDeep), &tOptions,
 		onEvent, &tState, &tError) && tError.iCode == XRT_XML_ERROR_LIMIT;
-	xrtUnit();
+
+	/* pull API 必须在全部事件消费后明确返回 END，而不能悬挂事件指针。 */
+	xrtXmlOptionsInit(&tOptions);
+	pPull = xrtXmlSaxOpenMemory("<root>ok</root>", 15u, &tOptions, &tError);
+	bOk = bOk && pPull != NULL;
+	if ( pPull != NULL ) {
+		int iEvents = 0;
+		do {
+			iStatus = xrtXmlSaxNext(pPull, &pEvent, &tError);
+			if ( iStatus == XRT_XML_NEXT_EVENT && pEvent != NULL ) { iEvents++; }
+		} while ( iStatus == XRT_XML_NEXT_EVENT );
+		bOk = bOk && iEvents == 3 && iStatus == XRT_XML_NEXT_END && pEvent == NULL;
+		xrtXmlSaxDestroy(pPull);
+	}
 	if ( bOk ) { puts("test_xml_sax: PASS"); }
 	return bOk ? 0 : 2;
 }

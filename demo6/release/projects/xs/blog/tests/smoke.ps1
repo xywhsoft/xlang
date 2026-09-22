@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $releaseDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
 $xlPath = Join-Path $releaseDir 'xl.exe'
-$xsPath = Join-Path $releaseDir 'projects\xs\xs.xl'
+$xsPath = Join-Path $releaseDir 'projects\xs\xs.exe'
 $setupPath = Join-Path $releaseDir 'projects\xs\blog\setup.xl'
 $configPath = Join-Path $releaseDir 'projects\xs\blog\xs.json'
 $dataDir = Join-Path $releaseDir 'projects\xs\blog\data'
@@ -36,7 +36,9 @@ function Remove-SmokeDatabase {
 }
 
 function Wait-Server {
-    $deadline = [DateTime]::UtcNow.AddSeconds(20)
+    # Blog handler imports the SQLite source package on a cold process.
+    # The released xs.exe is used here, but first-run preparation still needs a bounded warm-up window.
+    $deadline = [DateTime]::UtcNow.AddSeconds(90)
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($server.HasExited) {
             $stdout = $server.StandardOutput.ReadToEnd()
@@ -57,9 +59,10 @@ function Wait-Server {
 
 function Start-SmokeServer {
     $info = New-Object System.Diagnostics.ProcessStartInfo
-    $info.FileName = $xlPath
-    $info.WorkingDirectory = $releaseDir
-    $info.Arguments = "run `"$xsPath`" -- --config `"$configPath`" --duration $DurationMs"
+    # Verify the released standalone xs.exe without compiling xs.xl during the health check.
+    $info.FileName = $xsPath
+    $info.WorkingDirectory = Split-Path -Parent $xsPath
+    $info.Arguments = "--config `"$configPath`" --duration $DurationMs"
     $info.UseShellExecute = $false
     $info.CreateNoWindow = $true
     $info.RedirectStandardOutput = $true

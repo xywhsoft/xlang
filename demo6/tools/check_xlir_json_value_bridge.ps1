@@ -79,7 +79,7 @@ try {
         $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED=1 -include "{0}" test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o "{1}" && "{1}"' -f $cPath, $strictExe
         & cmd.exe /d /v:on /c $command
         if ( $LASTEXITCODE -ne 0 ) { throw "$fixture strict standalone C/runtime failed" }
-        foreach ( $backend in @("xlir", "legacy") ) {
+        foreach ( $backend in @("xlir") ) {
             Invoke-Xl @("run", $source, "--backend", $backend)
             $exe = Join-Path $outputDir "$fixture.$backend.exe"
             Invoke-Xl @("build", $source, "--backend", $backend, "-o", $exe)
@@ -113,5 +113,5 @@ try {
     }
 } finally { Pop-Location }
 
-Write-Output "XLIR JSON value bridge ok: five exact reserved ABIs, operation-level shared emission, validation-only closure, five malformed-ABI rejections, deterministic strict standalone C, and XLIR/legacy run/build parity."
+Write-Output "XLIR JSON value bridge ok: five exact reserved ABIs, operation-level shared emission, validation-only closure, five malformed-ABI rejections, deterministic strict standalone C, and canonical run/build parity."
 exit 0

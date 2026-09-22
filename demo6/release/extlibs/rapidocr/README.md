@@ -65,3 +65,12 @@ Current xlang-pipeline coverage:
 - Result assembly supports up to four recognized text entries in the current V1 path.
 
 Remaining OCR quality work is broader batching, PP-OCR-style geometric unclip/box scoring, and accuracy tuning against real OCR fixtures.
+
+## C Boundary
+
+The public C header exposes the optional `rapidocr_xlang.dll` bridge plus the
+standalone result/postprocess helpers. When the optional shim is absent, C calls
+remain safe and return an empty failed result; the complete model fallback is
+currently implemented in the xlang layer because it reuses the xlang OpenCV and
+ONNX Runtime object wrappers. C users that need full native inference must ship
+the shim or invoke the xlang package through the embedding API.

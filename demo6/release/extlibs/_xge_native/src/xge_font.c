@@ -1020,6 +1020,22 @@ int xgeFontCreate(xge_font pFont, xge_font_face pFace, const xge_font_instance_d
 	return XGE_OK;
 }
 
+int xgeFontCreateSized(xge_font pFont, xge_font pSource, float fPixelSize)
+{
+	xge_font_instance_backend_t* pBackend;
+	xge_font_instance_desc_t tDesc;
+	if ( pFont == NULL || pSource == NULL || fPixelSize <= 0.0f || pFont->iRefCount > 0 )
+		return XGE_ERROR_INVALID_ARGUMENT;
+	pBackend = (xge_font_instance_backend_t*)pSource->pBackend;
+	if ( pSource->iRefCount <= 0 || pBackend == NULL || pBackend->pFace == NULL )
+		return XGE_ERROR_UNSUPPORTED;
+	memset(&tDesc, 0, sizeof(tDesc));
+	tDesc.iSize = sizeof(tDesc);
+	tDesc.fPixelSize = fPixelSize;
+	tDesc.iFlags = pSource->iFlags & XGE_FONT_SIZE_EM;
+	return xgeFontCreate(pFont, pBackend->pFace, &tDesc);
+}
+
 int xgeFontLoad(xge_font pFont, const char* sPath, float fSize)
 {
 	xge_font_face pFace;
@@ -1966,17 +1982,25 @@ static xge_vec2_t __xgeTextMeasureBounded(xge_font pFont, const char* sText, int
 {
 	xge_vec2_t tSize;
 	xge_glyph_metrics_t tMetrics;
+	xge_emoji_match_t tEmojiMatch;
+	xge_emoji_pack pEmojiPack;
 	xge_font pGlyphFont;
 	xge_font pPreviousFont;
 	stbtt_fontinfo* pInfo;
 	const char* sScan;
 	const char* sEnd;
+	const char* sBefore;
 	uint32_t iCodepoint;
 	float fLineWidth;
 	float fLineRight;
 	float fGlyphRight;
 	float fKerning;
 	float fLineHeight;
+	float fEmojiAdvance;
+	float fEmojiWidth;
+	float fEmojiHeight;
+	float fEmojiAbove;
+	float fEmojiBelow;
 	int iGlyph;
 	int iPreviousGlyph;
 	int iLineCount;
@@ -1992,7 +2016,9 @@ static xge_vec2_t __xgeTextMeasureBounded(xge_font pFont, const char* sText, int
 	fLineRight = 0.0f;
 	iPreviousGlyph = -1;
 	pPreviousFont = NULL;
+	pEmojiPack = NULL;
 	while ( sScan < sEnd ) {
+		sBefore = sScan;
 		if ( __xgeTextUTF8DecodeBounded(&sScan, sEnd, &iCodepoint) != XGE_OK ) break;
 		if ( iCodepoint == '\r' ) {
 			if ( (sScan < sEnd) && (*sScan == '\n') ) continue;
@@ -2005,6 +2031,24 @@ static xge_vec2_t __xgeTextMeasureBounded(xge_font pFont, const char* sText, int
 			iPreviousGlyph = -1;
 			pPreviousFont = NULL;
 			iLineCount++;
+			continue;
+		}
+		if ( (pEmojiPack == NULL) && __xgeEmojiMayStart(iCodepoint) ) {
+			pEmojiPack = __xgeEmojiDefaultAcquire();
+		}
+		if ( (pEmojiPack != NULL) &&
+		     (__xgeEmojiMatchForText(pEmojiPack, sBefore, sEnd, XGE_EMOJI_PRESENTATION_AUTO, &tEmojiMatch) == XGE_OK) ) {
+			__xgeEmojiResolveLayout(
+				pFont, &tEmojiMatch.tMetrics, 1.0f, XGE_EMOJI_LINE_STABLE,
+				&fEmojiAdvance, &fEmojiWidth, &fEmojiHeight, &fEmojiAbove, &fEmojiBelow
+			);
+			sScan = sBefore + tEmojiMatch.iTextSize;
+			fGlyphRight = fLineWidth + (fEmojiAdvance - fEmojiWidth) * 0.5f + fEmojiWidth;
+			if ( fGlyphRight > fLineRight ) fLineRight = fGlyphRight;
+			fLineWidth += fEmojiAdvance;
+			if ( fLineWidth > fLineRight ) fLineRight = fLineWidth;
+			iPreviousGlyph = -1;
+			pPreviousFont = NULL;
 			continue;
 		}
 		pGlyphFont = __xgeFontResolveCodepoint(pFont, iCodepoint, &iGlyph);
@@ -2026,6 +2070,7 @@ static xge_vec2_t __xgeTextMeasureBounded(xge_font pFont, const char* sText, int
 	}
 	if ( fLineRight > tSize.fX ) tSize.fX = fLineRight;
 	tSize.fY = fLineHeight * (float)iLineCount;
+	xgeEmojiPackFree(pEmojiPack);
 	return tSize;
 }
 
@@ -2216,6 +2261,7 @@ int xgeFontFamilyAddFace(xge_font_family pFamily, xge_font_face pFace) { (void)p
 int xgeFontFamilyResolve(xge_font_family pFamily, int iWeight, int iSlant, xge_font_face* ppFace) { (void)pFamily; (void)iWeight; (void)iSlant; (void)ppFace; return XGE_ERROR_UNSUPPORTED; }
 int xgeFontFamilyResolveEx(xge_font_family pFamily, int iWeight, int iStretch, int iSlant, xge_font_face* ppFace) { (void)pFamily; (void)iWeight; (void)iStretch; (void)iSlant; (void)ppFace; return XGE_ERROR_UNSUPPORTED; }
 int xgeFontCreate(xge_font pFont, xge_font_face pFace, const xge_font_instance_desc_t* pDesc) { (void)pFont; (void)pFace; (void)pDesc; return XGE_ERROR_UNSUPPORTED; }
+int xgeFontCreateSized(xge_font pFont, xge_font pSource, float fPixelSize) { (void)pFont; (void)pSource; (void)fPixelSize; return XGE_ERROR_UNSUPPORTED; }
 int xgeFontLoad(xge_font pFont, const char* sPath, float fSize) { (void)pFont; (void)sPath; (void)fSize; return XGE_ERROR_UNSUPPORTED; }
 int xgeFontLoadMemory(xge_font pFont, const void* pData, int iSize, float fSize) { (void)pFont; (void)pData; (void)iSize; (void)fSize; return XGE_ERROR_UNSUPPORTED; }
 int xgeFontLoadXRF(xge_font pFont, const char* sPath) { (void)pFont; (void)sPath; return XGE_ERROR_UNSUPPORTED; }

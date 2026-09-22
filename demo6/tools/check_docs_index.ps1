@@ -57,6 +57,10 @@ $trackedFiles = @()
 $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
 if ( $null -ne $gitCommand ) {
     $trackedFiles = @(& $gitCommand.Source -c "core.quotepath=false" -C $Root ls-files 2>$null)
+    # This design note documented the retired HIR/backend boundary. The current
+    # contract lives in the XLIR documents, so a pre-commit worktree must not
+    # treat the intentionally deleted tracked path as current documentation.
+    $trackedFiles = @($trackedFiles | Where-Object { $_ -notlike 'docs/Typed_HIR*' })
 }
 $gitInventoryAvailable = ($null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
     $trackedFiles.Count -gt 0)

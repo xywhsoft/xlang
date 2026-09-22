@@ -1,0 +1,55 @@
+extern "xm_format" func __m_format(int amount, string currency) as string
+extern "xm_symbol" func __m_symbol(string currency) as string
+extern "xm_exponent" func __m_exponent(string currency) as int
+extern "xm_add" func __m_add(int a, int b) as int
+extern "xm_sub" func __m_sub(int a, int b) as int
+extern "xm_mul" func __m_mul(int a, int n) as int
+extern "xm_rate" func __m_rate(int amount, float rate) as int
+extern "xm_split" func __m_split(int amount, int n) as var
+
+
+
+// 金额用最小货币单位的 64 位整数表示（分、円等），避免浮点误差
+
+// format 格式化金额：已知货币带符号与千分位，未知货币输出 "XXX 1.00" 风格
+export func format(int amount, string currency) as string
+    return __m_format(amount, currency)
+end
+
+// symbol 返回货币符号（如 USD → $）；未知货币返回空字符串
+export func symbol(string currency) as string
+    return __m_symbol(currency)
+end
+
+// exponent 返回货币小数位数（JPY/KRW/VND 为 0，默认 2）
+export func exponent(string currency) as int
+    return __m_exponent(currency)
+end
+
+// add/sub 精确加减；调用方需保证同币种
+export func add(int a, int b) as int
+    return __m_add(a, b)
+end
+
+export func sub(int a, int b) as int
+    return __m_sub(a, b)
+end
+
+// mul 金额乘整数倍数
+export func mul(int a, int n) as int
+    return __m_mul(a, n)
+end
+
+// rate 按汇率换算，四舍五入到最小单位
+export func rate(int amount, float rate) as int
+    return __m_rate(amount, rate)
+end
+
+// split 把金额均分为 n 份；余数分给前几份，保证总和相等；n<=0 抛 ValueError
+export func split(int amount, int n) as var
+    var r = __m_split(amount, n)
+    if r == null then
+        throw ValueError "money: split requires a positive part count"
+    end
+    return r
+end

@@ -2,7 +2,7 @@
 // 博客安全辅助：密码派生、随机令牌和输出编码
 // ============================================================
 
-extern "xrtPBKDF2_SHA256" func xsBlogPBKDF2(
+extern "xrtPbkdf2Sha256" func xsBlogPBKDF2(
     string password,
     c_size passwordLength,
     string salt,

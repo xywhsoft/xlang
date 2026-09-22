@@ -1,0 +1,123 @@
+import graph
+
+
+
+func main(...) as int
+    // 构建依赖图：包依赖关系
+    var deps = [
+        ["app", "web"], ["app", "db"],
+        ["web", "core"], ["web", "http"],
+        ["db", "core"],
+        ["http", "core"]
+    ]
+
+    // DAG 判定与拓扑排序
+    assert graph.isDag(deps), "deps are acyclic"
+    var order = graph.topoSort(deps)
+    assert order.length == 5, "all nodes ordered"
+    assert order[0] == "app", "app first"
+    assert order[4] == "core", "core last"
+    // 每条边的起点都在终点之前
+    int okOrder = 1
+    for edge in deps
+        int ui = -1
+        int vi = -1
+        for i in range(0, order.length)
+            if order[i] == edge[0] then
+                ui = i
+            end
+            if order[i] == edge[1] then
+                vi = i
+            end
+        end
+        if ui >= vi then
+            okOrder = 0
+        end
+    end
+    assert okOrder == 1, "every edge points forward"
+
+    // 环检测
+    var cyclic = [["a", "b"], ["b", "c"], ["c", "a"]]
+    assert not graph.isDag(cyclic), "cycle detected"
+    int raised = 0
+    try
+        graph.topoSort(cyclic)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "topoSort raises on cycle"
+
+    // BFS
+    var bfsOrder = graph.bfs(deps, "app")
+    assert bfsOrder[0] == "app", "bfs starts at app"
+    assert bfsOrder.length == 5, "bfs visits all"
+
+    // 最短路径
+    var path = graph.shortestPath(deps, "app", "core")
+    assert path.length == 3, "shortest hop count"
+    assert path[0] == "app" and path[2] == "core", "path endpoints"
+
+    raised = 0
+    try
+        graph.shortestPath([["a", "b"]], "a", "zzz")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "unknown node raises"
+
+    // Dijkstra 带权最短路
+    var roads = [
+        ["a", "b", 1], ["a", "c", 4],
+        ["b", "c", 2], ["b", "d", 6],
+        ["c", "d", 1]
+    ]
+    var dist = graph.dijkstra(roads, "a")
+    assert dist["a"] == 0, "dist a"
+    assert dist["b"] == 1, "dist b"
+    assert dist["c"] == 3, "dist c via b"
+    assert dist["d"] == 4, "dist d via c"
+
+    // 连通分量（无向）
+    var islands = [
+        ["a", "b"], ["b", "c"],
+        ["d", "e"],
+        ["f"]
+    ]
+    var comps = graph.components(islands)
+    assert comps.length == 3, "three islands"
+
+    // 强连通分量
+    var sccGraph = [
+        ["a", "b"], ["b", "c"], ["c", "a"],
+        ["b", "d"], ["d", "e"], ["e", "f"], ["f", "d"],
+        ["g"]
+    ]
+    var sccs = graph.scc(sccGraph)
+    assert sccs.length == 3, "three sccs"
+    int big = 0
+    for c in sccs
+        if c.length == 3 then
+            big = big + 1
+        end
+    end
+    assert big == 2, "two cyclic sccs of size 3"
+
+    // 节点与邻居
+    var all = graph.nodes(deps)
+    assert all.length == 5, "node count"
+    assert all[0] == "app", "sorted nodes"
+    var nb = graph.neighbors(deps, "web")
+    assert nb.length == 2, "web neighbors"
+    assert nb[0] == "core" and nb[1] == "http", "neighbors content"
+
+    // 错误路径
+    raised = 0
+    try
+        graph.nodes("not an array")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "invalid edges raise"
+
+    return 0
+end

@@ -22,7 +22,8 @@ println(await job)
 
 future<int> failed = fail()
 if not failed.wait() then
-    println(failed.error())
+auto failedError = failed.error()
+println(failedError.message)
 end
 
 int index = await task.whenAny([slow(1), fast(2)])

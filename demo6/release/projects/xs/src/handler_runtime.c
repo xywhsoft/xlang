@@ -3,6 +3,8 @@
 
 #include "../include/xs_handler.h"
 
+#define XRT_MODULE_STRING
+#define XRT_MODULE_COND
 #include "xrt.h"
 
 /* ------------------------------------ Slot 数据结构 ------------------------------------ */
@@ -14,8 +16,8 @@ typedef struct xs2_generation_ref {
 } xs2_generation_ref;
 
 typedef struct xs2_handler_slot {
-    xmutex mutex;
-    xcond changed;
+    xmutex* mutex;
+    xcond* changed;
     xs2_generation_ref* current;
     xs2_generation_ref* retired;
 
@@ -47,7 +49,7 @@ static char* xs2SlotCopyText(const char* text)
     if ( text == NULL ) {
         text = "";
     }
-    return (char*)xrtCopyStr((str)(void*)text, 0u);
+    return xrtStrDup(text);
 }
 
 static void xs2SlotSetErrorUnlocked(xs2_handler_slot* slot, const char* text)

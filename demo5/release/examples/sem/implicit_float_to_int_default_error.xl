@@ -1,7 +1,0 @@
-func bad(int value = 1.2) as int
-	return value
-end
-
-func main() as int
-	return bad()
-end

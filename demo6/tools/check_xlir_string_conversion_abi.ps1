@@ -15,9 +15,7 @@ $typedPath = Join-Path $Root "build\test\xlir_string_conversion_abi.typed.json"
 $loweredPath = Join-Path $Root "build\test\xlir_string_conversion_abi.lowered.json"
 $generatedPath = Join-Path $Root "build\test\xlir_string_conversion_abi.gate.c"
 $repeatPath = Join-Path $Root "build\test\xlir_string_conversion_abi.gate.repeat.c"
-$legacyPath = Join-Path $Root "build\test\xlir_string_conversion_abi.gate.legacy.c"
 $xlirExe = Join-Path $Root "build\test\xlir_string_conversion_abi.gate.exe"
-$legacyExe = Join-Path $Root "build\test\xlir_string_conversion_abi.gate.legacy.exe"
 
 foreach ( $path in @($xl, $source, $runtimeHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -124,16 +122,6 @@ try {
     & cmd.exe /d /v:on /c $command
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR string conversion strict-C/runtime gate failed"
-    }
-
-    & $xl cgen $source --backend legacy --emit $legacyPath
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR string conversion legacy differential Cgen failed"
-    }
-    $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath !XL6_CGEN_XLANG_LINKS! -o $legacyExe && $legacyExe"
-    & cmd.exe /d /v:on /c $command
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR string conversion legacy differential gate failed"
     }
 } finally {
     Pop-Location

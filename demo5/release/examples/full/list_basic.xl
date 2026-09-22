@@ -1,4 +1,0 @@
-func main() as int
-	list values = list{40, 2}
-	return values[0] + values[1]
-end

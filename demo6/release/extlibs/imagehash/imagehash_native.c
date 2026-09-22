@@ -56,9 +56,11 @@ static void xihash_set_error(const char* text)
 
 static const char* xihash_format(uint64_t value)
 {
-	snprintf(g_xihash_hex, sizeof(g_xihash_hex), "%016llx", (unsigned long long)value);
+	char* output = g_xihash_hex[g_xihash_hex_index++ % XIHASH_HEX_SLOTS];
+
+	snprintf(output, sizeof(g_xihash_hex[0]), "%016llx", (unsigned long long)value);
 	xihash_set_error("");
-	return g_xihash_hex;
+	return output;
 }
 
 static unsigned char* xihash_load_resized_gray(const char* path, int width, int height)

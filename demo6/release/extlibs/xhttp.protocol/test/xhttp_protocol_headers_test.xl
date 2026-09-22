@@ -1,0 +1,49 @@
+import xhttp.protocol
+from xhttp.protocol import Header, Headers
+
+
+
+func main(...) as int
+    Headers headers = Headers()
+    assert headers.count == 0
+    assert headers.add("Set-Cookie", "a=1")
+    assert headers.add("set-cookie", "b=2")
+    assert headers.set("Content-Type", "application/json")
+    assert headers.count == 3
+    assert headers.countName("SET-COOKIE") == 2
+    assert headers.has("content-type")
+    assert (headers.get("set-cookie") ?? "") == "a=1"
+    assert (headers.get("Set-Cookie", 1) ?? "") == "b=2"
+    assert headers.get("missing") == null
+    array<string> cookieValues = headers.getAll("set-cookie")
+    assert cookieValues.length == 2
+    assert headers.nativeHandle() != null
+
+    int iterated = 0
+    for field in headers
+        Header item = field
+        assert item.name != ""
+        iterated += 1
+    end
+    assert iterated == headers.count
+
+    Headers copy = headers.clone()
+    assert copy.build() == headers.build()
+    assert copy.remove("set-cookie") == 2
+    assert headers.countName("Set-Cookie") == 2
+    assert copy.compact()
+    copy.clear()
+    assert copy.count == 0
+    assert copy.addBlock("X-One: 1\r\nX-Two: 2\r\n\r\n")
+    assert copy.count == 2
+
+    Headers parsed = Headers.parse(
+        "Content-Type: text/plain\r\nX-Test: yes\r\n\r\n")
+    assert parsed.count == 2
+    assert parsed.at(1).name == "X-Test"
+    assert parsed.at(1).value == "yes"
+    assert parsed.build() == "Content-Type: text/plain\r\nX-Test: yes\r\n\r\n"
+
+    println("xhttp.protocol Headers package ok")
+    return 0
+end

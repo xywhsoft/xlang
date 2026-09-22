@@ -1,7 +1,6 @@
-/* The legacy backend still declares native destroy hooks as integer-returning,
- * while verified XLIR models the source-level destroy() declaration as void.
- * Keep one differential support surface without weakening either generated
- * translation unit's prototype checks. */
+/* Verified XLIR models the source-level destroy() declaration as void. Keep
+ * the support surface explicit so the host fixture's historical integer
+ * declaration cannot weaken generated prototype checks. */
 #if defined(XLIR_GENERATED_MODULE_PREINCLUDED)
 #define XLIR_NATIVE_PROPERTY_VOID_DESTROY
 #endif

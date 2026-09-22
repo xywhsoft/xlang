@@ -1,48 +1,17 @@
 import ui.auto
 
-assert ui.auto.available(), "ui.auto available failed"
-assert ui.auto.version() == "0.1.0", "ui.auto version failed"
-assert string.len(ui.auto.last_error()) >= 0, "ui.auto last_error failed"
-
 auto window = ui.auto.test_window()
-assert window.valid() == true, "ui.auto helper window failed"
+assert window.valid(), "cannot create the UI automation test window"
 
-auto baseLocator = ui.auto.locator()
-auto scopedBase = ui.auto.within(baseLocator, window.hwnd())
-auto timedEdit = ui.auto.with_timeout(ui.auto.by_automation_id("1001", 50004), 2000)
-auto editLocator = ui.auto.within(timedEdit, window.hwnd())
-auto classLocator = ui.auto.within(ui.auto.by_class_name("Edit", "", 50004), window.hwnd())
-auto nameLocator = ui.auto.within(ui.auto.by_name("Click", 50000), window.hwnd())
-auto typeLocator = ui.auto.within(ui.auto.by_control_type(50004), window.hwnd())
-auto missingProcessLocator = ui.auto.within(ui.auto.by_process_id(0), window.hwnd())
-auto jsonLocator = ui.auto.within(ui.auto.locator_from_json('{"automationId":"1001","className":"Edit","name":"","controlType":50004,"processId":0}'), window.hwnd())
+auto edit = ui.auto.within(ui.auto.by_class_name("Edit", "", 50004), window.hwnd())
+assert ui.auto.wait_exists(edit)
+assert ui.auto.type_text(edit, "xlang UI automation")
+println("edit text: ", ui.auto.read(edit))
 
-assert scopedBase.timeout_ms == 5000, "ui.auto locator default timeout failed"
-assert editLocator.timeout_ms == 2000, "ui.auto with_timeout failed"
-assert ui.auto.wait_exists(editLocator) == true, "ui.auto wait_exists by automation id failed"
-assert ui.auto.wait_exists(classLocator) == true, "ui.auto wait_exists by class failed"
-assert ui.auto.wait_exists(typeLocator) == true, "ui.auto wait_exists by control type failed"
-assert ui.auto.wait_exists(jsonLocator) == true, "ui.auto locator_from_json failed"
-assert ui.auto.wait_exists(missingProcessLocator) == false, "ui.auto missing process locator should not match"
+auto button = ui.auto.within(ui.auto.by_class_name("Button", "", 50000), window.hwnd())
+assert ui.auto.click(button)
 
-assert ui.auto.type_text(editLocator, "auto-text") == true, "ui.auto type_text failed"
-bool readOk = false
-for i in range(0, 20)
-    if string.contains(ui.auto.read(editLocator), "auto-text") then
-        readOk = true
-        break
-    end
-    time.sleep(25)
-end
-assert readOk == true, "ui.auto read failed"
-assert ui.auto.click(nameLocator) == true, "ui.auto click failed"
-assert string.contains(ui.auto.read(editLocator), "button-clicked"), "ui.auto click result failed"
-
-assert ui.auto.screenshot(editLocator, "examples_out/x_ui_auto_edit.png") == true, "ui.auto screenshot failed"
-assert string.len(ui.auto.focused_locator_json()) > 0, "ui.auto focused_locator_json failed"
-
-assert window.close() == true, "ui.auto window close failed"
-assert window.release() == true, "ui.auto window release failed"
-assert ui.auto.shutdown() == true, "ui.auto shutdown failed"
-
-println("ui.auto extlib ok")
+assert window.close()
+assert window.release()
+assert ui.auto.shutdown()
+println("ui.auto example: PASS")

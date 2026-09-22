@@ -12,7 +12,7 @@ try {
         Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
     }
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
-        'src/ir/xl6_hir_type.c','src/ir/xl6_hir.c','src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
+        'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c','src/common/xl6_output.c','src/common/xl6_console.c',
         'src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',
@@ -76,12 +76,6 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Conditional index raising RHS strict C build failed' }
     & "$prefix.raise.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Conditional index raising RHS generated-C runtime failed' }
-    & release/xl.exe cgen test/cases/xlir_nullable_index_assign_if_null_may_raise.xl --backend legacy --emit "$prefix.raise.legacy.c"
-    if ($LASTEXITCODE -ne 0) { throw 'Conditional index raising RHS legacy generation failed' }
-    & gcc @strict "$prefix.raise.legacy.c" release/xl.dll -o "$prefix.raise.legacy.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Conditional index raising RHS legacy strict C build failed' }
-    & "$prefix.raise.legacy.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Conditional index raising RHS legacy differential failed' }
 } finally { Pop-Location }
-Write-Output 'XLIR conditional index passed: lazy typed/dynamic address transactions, raising RHS, ownership/merge rejection, genuine suspension/short-circuit, deterministic C/header, strict C, JIT/AOT, raising RHS legacy differential and module finalization.'
+Write-Output 'XLIR conditional index passed: lazy typed/dynamic address transactions, raising RHS, ownership/merge rejection, genuine suspension/short-circuit, deterministic C/header, strict C, JIT/AOT, and module finalization.'
 exit 0

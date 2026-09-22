@@ -1,0 +1,103 @@
+import xmail
+from xmail import SmtpClient, SmtpConfig, SmtpReply
+
+
+
+// 接收到协议分隔符为止；测试严格使用本地回环连接。
+func recvUntil(TcpStream stream, string marker) as string
+    string result = ""
+    while not string.contains(result, marker)
+        string part = stream.recv(8000, 65536)
+        assert part != "", "SMTP loopback server received an early close"
+        result = result + part
+    end
+    return result
+end
+
+
+
+// 模拟一条完整 SMTP 明文事务并核对线路上的 dot transparency。
+async func serveSmtp(TcpServer server) as int
+    TcpStream stream = await server.acceptAsync()
+    assert stream.send("220 loopback ready\r\n")
+
+    assert recvUntil(stream, "\r\n") == "EHLO client.test\r\n"
+    assert stream.send(
+        "250-loopback\r\n250-SIZE 4096\r\n250 PIPELINING\r\n")
+
+    assert recvUntil(stream, "\r\n") == "MAIL FROM:<sender@test>\r\n"
+    assert stream.send("250 sender accepted\r\n")
+
+    assert recvUntil(stream, "\r\n") == "RCPT TO:<target@test>\r\n"
+    assert stream.send("250 recipient accepted\r\n")
+
+    assert recvUntil(stream, "\r\n") == "DATA\r\n"
+    assert stream.send("354 continue\r\n")
+    string data = recvUntil(stream, "\r\n.\r\n")
+    assert data == "Subject: loopback\r\n\r\n..first\r\nsecond\r\n.\r\n"
+    assert stream.send("250 queued\r\n")
+
+    assert recvUntil(stream, "\r\n") == "NOOP\r\n"
+    assert stream.send("250 still here\r\n")
+
+    assert recvUntil(stream, "\r\n") == "QUIT\r\n"
+    assert stream.send("221 bye\r\n")
+    stream.shutdownWrite()
+    stream.close()
+    return 0
+end
+
+
+
+// 等待 Listener 关闭，避免全局网络运行时退出时仍有活动对象。
+func closeServer(TcpServer server) as bool
+    if not server.close() and server.state != 2 then
+        return false
+    end
+    for attempt in range(0, 500)
+        if server.state == 2 then
+            return true
+        end
+        time.sleep(1)
+    end
+    return false
+end
+
+
+
+async func run() as int
+    TcpServer server = tcp.listen(0)
+    future<int> serving = serveSmtp(server)
+    NetEngine engine = NetEngine(1)
+    assert engine.start(), "SMTP client engine could not start"
+
+    SmtpConfig config = SmtpConfig(
+        "127.0.0.1", server.port(), xmail.SECURITY_PLAIN,
+        "client.test", 8000)
+    SmtpClient client = SmtpClient.open(engine, config)
+    assert client.valid and client.state == xmail.SMTP_READY
+    assert client.security == xmail.SECURITY_PLAIN
+    assert client.sizeLimit == 4096
+
+    assert client.mailFrom("sender@test")
+    assert client.recipient("target@test")
+    assert client.dataBegin()
+    assert client.dataWrite("Subject: loopback\r\n\r\n.first\r\n")
+    assert client.dataWrite("second")
+    assert client.dataEnd()
+    SmtpReply queued = client.lastReply()
+    assert queued.code == 250 and queued.text == "queued"
+    assert client.noop()
+    assert client.quit()
+    assert client.state == xmail.SMTP_CLOSED
+
+    assert await serving == 0
+    assert closeServer(server)
+    engine.stop()
+    return 0
+end
+
+
+
+assert await run() == 0
+println("xmail SMTP loopback package ok")

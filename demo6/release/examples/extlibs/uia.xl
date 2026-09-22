@@ -19,7 +19,8 @@ assert window.focus_button() == true, "uia focus_button failed"
 auto desktopElement = uia.desktop()
 assert desktopElement.valid() == true, "uia desktop failed"
 assert string.len(desktopElement.snapshot_json(1, 8)) > 0, "uia desktop snapshot failed"
-assert desktopElement.children().length >= 0, "uia desktop children failed"
+auto desktopChildren = desktopElement.children()
+assert desktopChildren.length >= 0, "uia desktop children failed"
 
 auto root = uia.from_hwnd(window.hwnd())
 assert root.valid() == true, "uia from_hwnd window failed"
@@ -77,10 +78,12 @@ auto foundEdit = root.find_first(editCondition, 2000)
 assert foundEdit.valid() == true, "uia find_first failed"
 auto foundEditScoped = root.find_first_scope(editCondition, 7, 2000)
 assert foundEditScoped.valid() == true, "uia find_first_scope failed"
-assert root.find_all(editCondition, 7, 2000).length >= 1, "uia find_all failed"
+auto foundEdits = root.find_all(editCondition, 7, 2000)
+assert foundEdits.length >= 1, "uia find_all failed"
 auto parent = edit.parent()
 assert parent.valid() == true, "uia parent failed"
-assert root.children().length >= 0, "uia element children failed"
+auto rootChildren = root.children()
+assert rootChildren.length >= 0, "uia element children failed"
 
 auto focusElement = uia.focused()
 assert focusElement.valid() == true, "uia focused failed"
@@ -103,6 +106,15 @@ assert string.len(eventQueue.poll_json(1)) > 0, "uia poll_json failed"
 
 assert eventQueue.release() == true, "uia events release failed"
 assert emptyElement.release() == false, "uia empty element release should fail"
+for item in desktopChildren
+	item.release()
+end
+for item in foundEdits
+	item.release()
+end
+for item in rootChildren
+	item.release()
+end
 if pointElement.valid() == true then
 	assert pointElement.release() == true, "uia point element release failed"
 end

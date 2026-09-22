@@ -1,4 +1,0 @@
-func main() as int
-	int value = null
-	return value
-end

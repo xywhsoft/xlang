@@ -42,6 +42,11 @@ export func xgeImageLoadMemoryEx(point pImage, point pData, c_int iSize, c_uint 
     return __xl6_xgeImageLoadMemoryEx(pImage, pData, iSize, iFlags)
 end
 
+extern "xgeImageGetPixels" func __xl6_xgeImageGetPixels(point pImage) as point
+export func xgeImageGetPixels(point pImage) as point
+    return __xl6_xgeImageGetPixels(pImage)
+end
+
 extern "xgeImagePremultiply" func __xl6_xgeImagePremultiply(point pImage)
 export func xgeImagePremultiply(point pImage)
     __xl6_xgeImagePremultiply(pImage)
@@ -110,11 +115,6 @@ end
 extern "xgeTextureSetSampler" func __xl6_xgeTextureSetSampler(point pTexture, point pSampler) as c_int
 export func xgeTextureSetSampler(point pTexture, point pSampler) as c_int
     return __xl6_xgeTextureSetSampler(pTexture, pSampler)
-end
-
-extern "xgeTextureGetSampler" func __xl6_xgeTextureGetSampler(point pTexture) as point
-export func xgeTextureGetSampler(point pTexture) as point
-    return __xl6_xgeTextureGetSampler(pTexture)
 end
 
 extern "xgeTextureFallbackSetRGBA" func __xl6_xgeTextureFallbackSetRGBA(c_int iWidth, c_int iHeight, point pPixels) as c_int

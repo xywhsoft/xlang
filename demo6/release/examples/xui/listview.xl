@@ -1,0 +1,37 @@
+// listview.xl — 列表视图：ListView 控件（列表项）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "ListView Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "ListView Demo", font)
+    root.addChild(title)
+
+    xui.ListView list = xui.ListView(ctx)
+    list.setFlex(1.0, 1.0)
+
+    xui.Label row1 = xui.Label(ctx, "Inbox - Alice", font)
+    list.addChild(row1)
+    xui.Label row2 = xui.Label(ctx, "Inbox - Bob", font)
+    list.addChild(row2)
+    xui.Label row3 = xui.Label(ctx, "Sent - Report", font)
+    list.addChild(row3)
+    xui.Label row4 = xui.Label(ctx, "Sent - Invoice", font)
+    list.addChild(row4)
+    xui.Label row5 = xui.Label(ctx, "Draft - Notes", font)
+    list.addChild(row5)
+
+    root.addChild(list)
+
+    g_app.run(onFrame)
+    return 0
+end

@@ -1,0 +1,42 @@
+import color
+
+
+
+func main(...) as int
+    // 解析与规范化
+    println("normalize('#f80') =", color.normalize("#f80"))
+    println("components:", color.red("#3366CC"), color.green("#3366CC"), color.blue("#3366CC"))
+
+    // HSV / HSL
+    string base = "#3366CC"
+    println("hue:", color.hue(base), "sat:", color.saturation(base), "val:", color.value(base))
+    println("fromHsv round trip:", color.fromHsv(color.hue(base), color.saturation(base), color.value(base)))
+    println("fromHsl(210, 0.6, 0.5):", color.fromHsl(210.0, 0.6, 0.5))
+
+    // 色阶生成
+    for i in range(0, 5)
+        float t = float(i) / 4.0
+        print(color.mix("#3366CC", "#FF9900", t), " ")
+    end
+    println()
+
+    // WCAG 可访问性检查
+    array<string> palette = ["#FFFFFF", "#F5F5F5", "#999999", "#3366CC", "#000000"]
+    for fg in palette
+        float ratio = color.contrast(fg, "#FFFFFF")
+        string level = "fail"
+        if ratio >= 7 then
+            level = "AAA"
+        elseif ratio >= 4.5 then
+            level = "AA"
+        end
+        println("contrast", fg, "on white:", ratio, "=>", level)
+    end
+
+    // 命名色
+    println("fromName('rebeccapurple'):", color.fromName("rebeccapurple"))
+    println("toName('#A52A2A'):", color.toName("#A52A2A"))
+
+    println("color example: PASS")
+    return 0
+end

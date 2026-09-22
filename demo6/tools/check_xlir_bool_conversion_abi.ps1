@@ -11,15 +11,13 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_bool_conversion_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_bool_conversion_abi_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_bool_conversion_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_bool_conversion_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_bool_conversion_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_bool_conversion_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_bool_conversion_abi_legacy.c"
 
-foreach ( $path in @($xl, $source, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR bool conversion gate input is missing: $path"
     }
@@ -139,13 +137,8 @@ try {
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR bool conversion strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy bool conversion differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $legacySupport !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_bool_conversion_abi_legacy.exe && build\test\xlir_bool_conversion_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy bool conversion differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR bool conversion ABI gate ok: explicit typed truth semantics, closed scalar/null/xvalue partitions, mechanical nonzero/runtime lowering, deterministic strict C and legacy differential runtime semantics."
+Write-Output "XLIR bool conversion ABI gate ok: explicit typed truth semantics, closed scalar/null/xvalue partitions, mechanical nonzero/runtime lowering, and deterministic strict-C runtime semantics."

@@ -1,0 +1,44 @@
+import ical
+
+
+
+
+func main(...) as int
+    // 构造一周日程并生成 iCalendar
+    var events = [
+        {
+            "uid": "standup@team",
+            "summary": "晨会",
+            "dtstart": "20260817T013000Z",
+            "dtend": "20260817T020000Z",
+            "location": "线上",
+            "rrule": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
+        },
+        {
+            "uid": "review@team",
+            "summary": "设计评审：扩展库生态",
+            "dtstart": "20260818T060000Z",
+            "dtend": "20260818T070000Z",
+            "location": "会议室 A; 需要\n投影仪",
+            "description": "评审 semver/qr/graph 等新库的收尾状态"
+        }
+    ]
+    var todos = [
+        {"uid": "notes@me", "summary": "发布生态审计报告", "due": "20260821T170000Z"}
+    ]
+    string ics = ical.build({"events": events, "todos": todos})
+    println(ics)
+
+    // 写盘并读回
+    string path = "examples_out/extlibs/demo.ics"
+    file.writeText(path, ics)
+    var back = ical.parse(file.readText(path))
+    println("---")
+    println("events:", back["events"].length, "todos:", back["todos"].length)
+    println("first:", back["events"][0]["summary"])
+    string loc = string(back["events"][1]["location"])
+    println("location with newline:", loc)
+
+    println("ical example: PASS")
+    return 0
+end

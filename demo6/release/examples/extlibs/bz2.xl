@@ -1,5 +1,11 @@
 import bz2
 
+class FileProgress
+    int calls = 0
+    int inputBytes = 0
+    int totalBytes = 0
+end
+
 
 
 func main(...) as int
@@ -43,6 +49,29 @@ func main(...) as int
     assert restored.text() == "hello stream", "bz2 incremental round trip failed"
     println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
 
+    Buffer chained = Buffer()
+    chained.append(packed)
+    chained.append(streamPacked)
+    Buffer chainedPlain = bz2.decompress(chained)
+    Buffer chainedExpected = Buffer()
+    chainedExpected.append(source)
+    chainedExpected.append("hello stream")
+    assert chainedPlain == chainedExpected, "concatenated bz2 member mismatch"
+
+    // 前一成员完整时，不能掩盖后一成员尾部截断。
+    Buffer chainedTruncated = Buffer()
+    chainedTruncated.append(packed)
+    for i in range(0, streamPacked.len() - 1)
+        chainedTruncated.appendByte(streamPacked[i])
+    end
+    bool truncatedRejected = false
+    try
+        bz2.decompress(chainedTruncated)
+    catch CompressionError e
+        truncatedRejected = true
+    end
+    assert truncatedRejected, "truncated final bz2 member must be rejected"
+
     // ─── 4. workFactor 调优（0..250，控制压缩率/速度权衡）───
     auto tuned = bz2.compressor(bz2.BZ2_MAX_LEVEL, bz2.BZ2_MAX_WORK_FACTOR)
     tuned.update("tune me")
@@ -62,7 +91,17 @@ func main(...) as int
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
     dir.createAll("tmp")
     file.writeBytes("tmp/bz2_example_source.bin", source)
-    bz2.compressFile("tmp/bz2_example_source.bin", "tmp/bz2_example.bz2")
+    FileProgress progress = FileProgress()
+    bz2.compressFile("tmp/bz2_example_source.bin", "tmp/bz2_example.bz2",
+        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+            progress.calls += 1
+            progress.inputBytes = inputBytes
+            progress.totalBytes = totalBytes
+            return true
+        end)
+    assert progress.calls > 0
+    assert progress.inputBytes == source.len()
+    assert progress.totalBytes == source.len()
     bz2.decompressFile("tmp/bz2_example.bz2", "tmp/bz2_example_plain.bin")
     assert file.readBytes("tmp/bz2_example_plain.bin") == source
     file.delete("tmp/bz2_example_source.bin")

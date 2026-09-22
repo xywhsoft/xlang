@@ -1,4 +1,8 @@
-#include "include/xrt_sha3.h"
+﻿#include "include/xrt_sha3.h"
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
+#include "../xlang_extlib_runtime.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +26,16 @@
 
 static XSHA3_THREAD char g_xsha3_hex[XSHA3_HEX_SLOTS][XSHA3_MAX_HEX + 1];
 static XSHA3_THREAD size_t g_xsha3_hex_index;
+static XSHA3_THREAD int g_xsha3_file_status;
+
+static void xsha3_path_error(const char *prefix, const char *path)
+{
+	char message[512];
+	snprintf(message, sizeof(message), "%s%s", prefix,
+		path != NULL ? path : "");
+	message[sizeof(message) - 1u] = '\0';
+	xl6ExtlibSetError(XERR_IO, "xlang.extlib.sha3", message);
+}
 
 static const char* xsha3_format_hex(const uint8* pDigest, size_t iLen)
 {
@@ -42,14 +56,14 @@ static void xsha3_publish_error(const xrtsha3error* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "sha3 operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	xl6ExtlibSetError(XERR_VALUE, "xlang.extlib.sha3", sMessage);
 }
 
 
 
 XSHA3_EXPORT bool xsha3_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XSHA3_EXPORT const char* xsha3_version(void)
@@ -62,9 +76,14 @@ XSHA3_EXPORT const char* xsha3_last_error(void)
 	return xrtGetError();
 }
 
+XSHA3_EXPORT int xsha3_file_status(void)
+{
+	return g_xsha3_file_status;
+}
 
 
-/* ---- 一次性哈希 ---- */
+
+/* ---- 涓€娆℃€у搱甯?---- */
 
 XSHA3_EXPORT const char* xsha3_hash_hex(const void* pData, size_t iSize, int iBits)
 {
@@ -101,7 +120,7 @@ XSHA3_EXPORT void* xsha3_hash_bytes(const void* pData, size_t iSize, int iBits)
 		xsha3_publish_error(&tError);
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, iOutLen);
+	return xl6ExtlibBufferTake(pOut, iOutLen);
 }
 
 XSHA3_EXPORT void* xsha3_hash_str_bytes(const char* sText, size_t iSize, int iBits)
@@ -131,43 +150,56 @@ XSHA3_EXPORT const char* xshake_hash_str_hex(const char* sText, size_t iSize, in
 
 
 
-/* ---- 文件哈希 ---- */
+/* ---- 鏂囦欢鍝堝笇 ---- */
 
-XSHA3_EXPORT const char* xsha3_file_hex(str sPath, unsigned long long iMaxInput, int iBits)
+XSHA3_EXPORT const char* xsha3_file_hex(str sPath, unsigned long long iMaxInput, int iBits,
+	xvalue* pCallback)
 {
 	xrtsha3options tOptions;
 	xrtsha3error tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint8 pOut[XRT_SHA3_MAX_OUT];
 	size_t iOutLen;
 	bool bResult;
 	xrtClearError();
+	g_xsha3_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	iOutLen = (size_t)(iBits / 8);
 	if (iOutLen == 0 || iOutLen > XRT_SHA3_MAX_OUT) iOutLen = 32;
 	xrtSha3OptionsInit(&tOptions);
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	if (sPath == NULL || sPath[0] == 0) {
-		xrtSetError(xrtFormat("sha3 file path is required"), TRUE);
+		xl6ExtlibSetError(XERR_ARGUMENT, "xlang.extlib.sha3", "sha3 file path is required");
 		return "";
 	}
 	if (!xrtPathExists(sPath)) {
-		xrtSetError(xrtFormat("sha3 file does not exist: %s", sPath), TRUE);
+		xsha3_path_error("sha3 file does not exist: ", sPath);
 		return "";
 	}
 	pReader = xrtReaderOpen(sPath);
 	if (pReader == NULL) {
-		xrtSetError(xrtFormat("cannot open sha3 file: %s", sPath), TRUE);
+		xsha3_path_error("cannot open sha3 file: ", sPath);
 		return "";
 	}
-	bResult = xrtSha3File(pReader, &tOptions.tLimits, iBits, pOut, iOutLen, &tError);
+	bResult = xrtSha3File(pReader, &tOptions.tLimits, iBits, pOut, iOutLen,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
 	xrtReaderDestroy(pReader);
-	if (!bResult) { xsha3_publish_error(&tError); return ""; }
+	if (!bResult) {
+		if (tProgress.InvokeFailed) { g_xsha3_file_status = -2; }
+		else {
+			g_xsha3_file_status = tError.iCode == XRT_SHA3_ERROR_CANCELLED ? -1 : 0;
+			xsha3_publish_error(&tError);
+		}
+		return "";
+	}
+	g_xsha3_file_status = 1;
 	return xsha3_format_hex(pOut, iOutLen);
 }
 
 
 
-/* ---- 流式哈希器 ---- */
+/* ---- 娴佸紡鍝堝笇鍣?---- */
 
 XSHA3_EXPORT void* xsha3_hasher_create(int iBits, unsigned long long iMaxInput)
 {
@@ -178,7 +210,7 @@ XSHA3_EXPORT void* xsha3_hasher_create(int iBits, unsigned long long iMaxInput)
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	pHasher = xrtSha3HasherCreate(&tOptions, iBits);
 	if (pHasher == NULL) {
-		xrtSetError(xrtFormat("sha3 hasher create failed"), TRUE);
+		xl6ExtlibSetError(XERR_MEMORY, "xlang.extlib.sha3", "sha3 hasher create failed");
 		return NULL;
 	}
 	return pHasher;
@@ -193,7 +225,7 @@ XSHA3_EXPORT void* xsha3_shake_hasher_create(int iStrength, unsigned long long i
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	pHasher = xrtSha3ShakeHasherCreate(&tOptions, iStrength);
 	if (pHasher == NULL) {
-		xrtSetError(xrtFormat("shake hasher create failed"), TRUE);
+		xl6ExtlibSetError(XERR_MEMORY, "xlang.extlib.sha3", "shake hasher create failed");
 		return NULL;
 	}
 	return pHasher;
@@ -209,9 +241,9 @@ XSHA3_EXPORT bool xsha3_hasher_update(void* pHandle, const void* pData, size_t i
 	xrtsha3hasher* pHasher = (xrtsha3hasher*)pHandle;
 	if (!xrtSha3HasherUpdate(pHasher, pData, iSize)) {
 		xsha3_publish_error(xrtSha3HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XSHA3_EXPORT bool xsha3_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -243,7 +275,7 @@ XSHA3_EXPORT void* xsha3_hasher_digest_bytes(void* pHandle, size_t iOutLen)
 		xsha3_publish_error(xrtSha3HasherError(pHasher));
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, iOutLen);
+	return xl6ExtlibBufferTake(pOut, iOutLen);
 }
 
 XSHA3_EXPORT bool xsha3_hasher_reset(void* pHandle)
@@ -251,9 +283,9 @@ XSHA3_EXPORT bool xsha3_hasher_reset(void* pHandle)
 	xrtsha3hasher* pHasher = (xrtsha3hasher*)pHandle;
 	if (!xrtSha3HasherReset(pHasher)) {
 		xsha3_publish_error(xrtSha3HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XSHA3_EXPORT unsigned long long xsha3_hasher_input_bytes(void* pHandle)

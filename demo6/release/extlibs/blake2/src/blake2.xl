@@ -1,5 +1,5 @@
 // blake2 — BLAKE2b/BLAKE2s 高性能哈希（支持 keyed MAC），Buffer/string/文件/流式。
-extern "xrtGetError" func __blake2_error() as string
+extern "xl6_xrt_last_error_text" func __blake2_error() as string
 extern "xblake2_version" func __blake2_version() as string
 extern "xblake2b_hash_hex" func __blake2b_hash_hex(point data, c_size size, c_size outLen, point key, c_size keyLen) as string
 extern "xblake2b_hash_str_hex" func __blake2b_hash_str(string data, c_size size, c_size outLen, string key, c_size keyLen) as string
@@ -13,8 +13,9 @@ extern "xblake2s_hash_bytes" func __blake2s_hash_bytes(point data, c_size size, 
 extern "xblake2s_hash_str_bytes" func __blake2s_hash_str_bytes(string data, c_size size, c_size outLen) as point
 extern "xblake2s_hash_mac_bytes" func __blake2s_hash_mac_bytes(point data, c_size size, point key, c_size keyLen, c_size outLen) as point
 extern "xblake2s_hash_mac_str_bytes" func __blake2s_hash_mac_str_bytes(string data, c_size size, string key, c_size keyLen, c_size outLen) as point
-extern "xblake2b_file_hex" func __blake2b_file_hex(string path, c_ulonglong maxInput, c_size outLen) as string
-extern "xblake2s_file_hex" func __blake2s_file_hex(string path, c_ulonglong maxInput, c_size outLen) as string
+extern "xblake2b_file_hex" func __blake2b_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as string
+extern "xblake2s_file_hex" func __blake2s_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as string
+extern "xblake2_file_status" func __blake2_file_status() as c_int
 
 
 
@@ -200,20 +201,36 @@ end
 // ═══════════════ 文件哈希 ═══════════════
 
 export func blake2bFileHex(string path, int maxInput = 268435456,
-    int digestSize = BLAKE2B_OUT_LEN) as string
+    int digestSize = BLAKE2B_OUT_LEN,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __blake2_check_limit(maxInput, "maxInput")
-    string result = __blake2b_file_hex(path, c_ulonglong(maxInput), c_size(digestSize))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __blake2b_file_hex(path, c_ulonglong(maxInput), c_size(digestSize), progress)
+    int status = __blake2_file_status()
+    if status == -1 then
+        throw CancelledError "blake2 operation cancelled"
+    elseif status != 1 then
         throw FileError __blake2_error()
     end
     return result
 end
 
 export func blake2sFileHex(string path, int maxInput = 268435456,
-    int digestSize = BLAKE2S_OUT_LEN) as string
+    int digestSize = BLAKE2S_OUT_LEN,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __blake2_check_limit(maxInput, "maxInput")
-    string result = __blake2s_file_hex(path, c_ulonglong(maxInput), c_size(digestSize))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __blake2s_file_hex(path, c_ulonglong(maxInput), c_size(digestSize), progress)
+    int status = __blake2_file_status()
+    if status == -1 then
+        throw CancelledError "blake2 operation cancelled"
+    elseif status != 1 then
         throw FileError __blake2_error()
     end
     return result

@@ -1,9 +1,0 @@
-import std.io
-
-func main() as int
-	std.io.eprint("hello")
-	std.io.eprintln()
-	std.io.eprintln(" world")
-	std.io.flush()
-	return 0
-end

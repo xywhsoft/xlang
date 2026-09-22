@@ -1,0 +1,29 @@
+{
+  "format": "xlang-featured-extlibs-1",
+  "description": "RC regression manifest for the extension libraries documented on the website.",
+  "packages": [
+    { "name": "aho_corasick", "case": "extlib_aho_corasick.xl", "example": "aho_corasick.xl", "cSmoke": "release/extlibs/aho_corasick/test/test_aho_corasick.c", "cExamples": ["release/examples/extlibs/aho_corasick_c.c"] },
+    { "name": "argon2", "case": "extlib_argon2.xl", "example": "argon2.xl", "cSmoke": "release/extlibs/argon2/test/test_argon2.c" },
+    { "name": "blake2", "case": "extlib_blake2.xl", "example": "blake2.xl" },
+    { "name": "blake3", "case": "extlib_blake3.xl", "example": "blake3.xl" },
+    { "name": "bloom", "case": "extlib_bloom.xl", "example": "bloom.xl", "cSmoke": "release/extlibs/bloom/test/test_bloom.c" },
+    { "name": "brotli", "case": "extlib_brotli.xl", "example": "brotli.xl" },
+    { "name": "bson", "case": "extlib_bson.xl", "example": "bson.xl", "cSmoke": "release/extlibs/bson/test/test_bson_smoke.c" },
+    { "name": "bz2", "case": "extlib_bz2.xl", "example": "bz2.xl", "cSmoke": "release/extlibs/bz2/test/test_bz2.c" },
+    { "name": "crc32", "case": "extlib_hash_progress.xl", "example": "crc32.xl" },
+    { "name": "lz4", "case": "extlib_lz4.xl", "example": "lz4.xl" },
+    { "name": "lzma", "case": "extlib_lzma.xl", "example": "lzma.xl" },
+    { "name": "md5", "case": "extlib_hash_progress.xl", "example": "md5.xl" },
+    { "name": "miniz", "case": "extlib_miniz.xl", "example": "miniz.xl" },
+    { "name": "murmur3", "case": "extlib_murmur3.xl", "example": "murmur3.xl" },
+    { "name": "sha3", "case": "extlib_sha3.xl", "example": "sha3.xl" },
+    { "name": "siphash", "case": "extlib_siphash.xl", "example": "siphash.xl" },
+    { "name": "snappy", "case": "extlib_snappy.xl", "example": "snappy.xl" },
+    { "name": "xxhash", "case": "extlib_xxhash.xl", "example": "xxhash.xl" },
+    { "name": "zstd", "case": "extlib_zstd.xl", "example": "zstd.xl" }
+  ],
+  "sharedCases": [
+    "extlib_hash_progress.xl",
+    "extlib_hash_progress_cancel.xl"
+  ]
+}

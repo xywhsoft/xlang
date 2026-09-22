@@ -56,7 +56,7 @@ try {
     & "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Scope plan language AOT runtime failed' }
     $compilerSources = @('src/ast/xl6_ast.c', 'src/type/xl6_type_model.c',
-        'src/ir/xl6_hir_type.c', 'src/ir/xl6_hir.c', 'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
+        'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c', 'src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c', 'src/common/xl6_output.c', 'src/common/xl6_console.c')
     & gcc @strict test/cases/xlir_scope_exit_plan_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"

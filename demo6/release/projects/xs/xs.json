@@ -55,6 +55,7 @@
       "host": "127.0.0.1",
       "port": 18081,
       "workerCount": 4,
+      "connectionWorkerCount": 8,
       "queueLimit": 1024,
       "framing": "raw",
       "frameLimit": 1048576,

@@ -1336,7 +1336,7 @@ future<int> cancelAllLeft = slowRaceAsync(201)
 future<int> cancelAllRight = slowRaceAsync(202)
 future<array<int>> cancelAllGroup = task.all([cancelAllLeft, cancelAllRight])
 assert task.cancel(cancelAllGroup), "task.cancel should cancel pending task.all group"
-assert task.cancel(cancelAllGroup), "already canceled task.all group should acknowledge cancel again"
+assert not task.cancel(cancelAllGroup), "already canceled task.all group should reject cancel again"
 
 int cancelAllGroupState = 0
 try
@@ -1359,7 +1359,7 @@ catch e
     end
 end
 assert cancelAllGroupStateAgain == 1, "canceled task.all group repeated await should stay canceled"
-assert task.cancel(cancelAllGroup), "canceled task.all group should acknowledge cancel after await"
+assert not task.cancel(cancelAllGroup), "canceled task.all group should reject cancel after await"
 
 int cancelAllGroupStateAfterCancel = 0
 try
@@ -1382,11 +1382,11 @@ catch e
     end
 end
 assert cancelAllSourceState == 1, "task.cancel task.all should cancel sources"
-assert task.cancel(cancelAllLeft), "already canceled task.all source should acknowledge cancel again"
+assert not task.cancel(cancelAllLeft), "already canceled task.all source should reject cancel again"
 
 future<int> repeatCancelFuture = slowRaceAsync(206)
 assert task.cancel(repeatCancelFuture), "pending async future should accept cancel"
-assert task.cancel(repeatCancelFuture), "already canceled async future should acknowledge cancel again"
+assert not task.cancel(repeatCancelFuture), "already canceled async future should reject cancel again"
 
 int repeatCancelState = 0
 try
@@ -1398,13 +1398,13 @@ catch e
     end
 end
 assert repeatCancelState == 1, "already canceled async future should await as canceled"
-assert task.cancel(repeatCancelFuture), "canceled async future should still acknowledge cancel after await"
+assert not task.cancel(repeatCancelFuture), "canceled async future should reject cancel after await"
 
 future<int> cancelRaceLeft = slowRaceAsync(301)
 future<int> cancelRaceRight = slowRaceAsync(302)
 future<int> cancelRaceGroup = task.race([cancelRaceLeft, cancelRaceRight])
 assert task.cancel(cancelRaceGroup), "task.cancel should cancel pending task.race group"
-assert task.cancel(cancelRaceGroup), "already canceled task.race group should acknowledge cancel again"
+assert not task.cancel(cancelRaceGroup), "already canceled task.race group should reject cancel again"
 
 int cancelRaceGroupState = 0
 try
@@ -1427,7 +1427,7 @@ catch e
     end
 end
 assert cancelRaceGroupStateAgain == 1, "canceled task.race group repeated await should stay canceled"
-assert task.cancel(cancelRaceGroup), "canceled task.race group should acknowledge cancel after await"
+assert not task.cancel(cancelRaceGroup), "canceled task.race group should reject cancel after await"
 
 int cancelRaceGroupStateAfterCancel = 0
 try
@@ -1450,7 +1450,7 @@ catch e
     end
 end
 assert cancelRaceSourceState == 1, "task.cancel task.race should cancel sources"
-assert task.cancel(cancelRaceRight), "already canceled task.race source should acknowledge cancel again"
+assert not task.cancel(cancelRaceRight), "already canceled task.race source should reject cancel again"
 time.sleep(320)
 
 future<int> cancelTypedAllLeft = slowRaceAsync(211)
@@ -1458,7 +1458,7 @@ future<int> cancelTypedAllRight = slowRaceAsync(212)
 array<future<int>> cancelTypedAllJobs = array[cancelTypedAllLeft, cancelTypedAllRight]
 future<array<int>> cancelTypedAllGroup = task.all(cancelTypedAllJobs)
 assert task.cancel(cancelTypedAllGroup), "task.cancel should cancel pending typed-array task.all group"
-assert task.cancel(cancelTypedAllGroup), "already canceled typed-array task.all group should acknowledge cancel again"
+assert not task.cancel(cancelTypedAllGroup), "already canceled typed-array task.all group should reject cancel again"
 
 int cancelTypedAllGroupState = 0
 try
@@ -1481,7 +1481,7 @@ catch e
     end
 end
 assert cancelTypedAllGroupStateAgain == 1, "canceled typed-array task.all group repeated await should stay canceled"
-assert task.cancel(cancelTypedAllGroup), "canceled typed-array task.all group should acknowledge cancel after await"
+assert not task.cancel(cancelTypedAllGroup), "canceled typed-array task.all group should reject cancel after await"
 
 int cancelTypedAllGroupStateAfterCancel = 0
 try
@@ -1510,7 +1510,7 @@ future<int> cancelTypedRaceRight = slowRaceAsync(312)
 array<future<int>> cancelTypedRaceJobs = array[cancelTypedRaceLeft, cancelTypedRaceRight]
 future<int> cancelTypedRaceGroup = task.race(cancelTypedRaceJobs)
 assert task.cancel(cancelTypedRaceGroup), "task.cancel should cancel pending typed-array task.race group"
-assert task.cancel(cancelTypedRaceGroup), "already canceled typed-array task.race group should acknowledge cancel again"
+assert not task.cancel(cancelTypedRaceGroup), "already canceled typed-array task.race group should reject cancel again"
 
 int cancelTypedRaceGroupState = 0
 try
@@ -1533,7 +1533,7 @@ catch e
     end
 end
 assert cancelTypedRaceGroupStateAgain == 1, "canceled typed-array task.race group repeated await should stay canceled"
-assert task.cancel(cancelTypedRaceGroup), "canceled typed-array task.race group should acknowledge cancel after await"
+assert not task.cancel(cancelTypedRaceGroup), "canceled typed-array task.race group should reject cancel after await"
 
 int cancelTypedRaceGroupStateAfterCancel = 0
 try
@@ -2877,7 +2877,7 @@ catch e
     end
 end
 assert duplicateCanceledAllSourceState == 1, "duplicate canceled task.all source remains canceled"
-assert task.cancel(duplicateCanceledAllSource), "duplicate canceled task.all source cancel is idempotent"
+assert not task.cancel(duplicateCanceledAllSource), "duplicate canceled task.all source rejects repeated cancel"
 
 future<int> duplicateCanceledRaceSource = slowRaceAsync(510)
 future<int> duplicateCanceledRaceGroup = task.race([duplicateCanceledRaceSource, duplicateCanceledRaceSource])
@@ -2902,7 +2902,7 @@ catch e
     end
 end
 assert duplicateCanceledRaceSourceState == 1, "duplicate canceled task.race source remains canceled"
-assert task.cancel(duplicateCanceledRaceSource), "duplicate canceled task.race source cancel is idempotent"
+assert not task.cancel(duplicateCanceledRaceSource), "duplicate canceled task.race source rejects repeated cancel"
 
 future<int> sourceCanceledAllLeft = slowRaceAsync(518)
 future<int> sourceCanceledAllRight = slowRaceAsync(519)
@@ -2971,7 +2971,7 @@ catch e
     end
 end
 assert duplicateTypedCanceledAllSourceState == 1, "typed duplicate canceled task.all source remains canceled"
-assert task.cancel(duplicateTypedCanceledAllSource), "typed duplicate canceled task.all source cancel is idempotent"
+assert not task.cancel(duplicateTypedCanceledAllSource), "typed duplicate canceled task.all source rejects repeated cancel"
 
 future<int> sourceCanceledTypedAllLeft = slowRaceAsync(522)
 future<int> sourceCanceledTypedAllRight = slowRaceAsync(523)
@@ -3033,7 +3033,7 @@ catch e
     end
 end
 assert duplicateTypedCanceledRaceSourceState == 1, "typed duplicate canceled task.race source remains canceled"
-assert task.cancel(duplicateTypedCanceledRaceSource), "typed duplicate canceled task.race source cancel is idempotent"
+assert not task.cancel(duplicateTypedCanceledRaceSource), "typed duplicate canceled task.race source rejects repeated cancel"
 
 future<int> cancelTarget = addAsync(30, 12)
 bool cancelRequested = task.cancel(cancelTarget)

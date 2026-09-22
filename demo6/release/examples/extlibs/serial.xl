@@ -1,20 +1,40 @@
 import serial
+from serial import Serial
 
 
 
 func main(...) as int
-    // Open loopback port for demonstration
-    auto sp = serial.openLoopback(9600)
-    println("port: ", sp.port)
-    println("baudrate: ", sp.baudrate)
-    println("open: ", sp.isOpen)
+    // 演示使用内存回环；真实 Windows 设备可换成 serial.open("COM3", 115200)。
+    Serial sp = serial.openLoopback(115200)
+    println(f"port: {sp.port}")
+    println(f"baudrate: {sp.baudrate}")
+    println(f"open: {sp.isOpen}")
 
-    sp.write("AT+OK\r\n")
-    println("wrote command, available: ", sp.available)
+    // 返回值与 maxLen 都以字节计数，不是字符数。
+    println(f"text bytes: {sp.write('你好')}")
+    println(f"text: {sp.read(6)}")
 
-    auto resp = sp.read(1024)
-    println("read back: ", resp)
+    // 协议报文用 Buffer，零字节和非 UTF-8 字节不会被截断。
+    Buffer payload = Buffer()
+    assert payload.appendByte(0) and payload.appendByte(255) and payload.appendByte(65)
+    assert sp.writeBytes(payload) == 3
+    Buffer received = sp.readBytes(3)
+    println(f"binary: {received.len()},{received.byteAt(0)},{received.byteAt(1)},{received.byteAt(2)}")
 
+    // 读取允许返回小于 maxLen 的结果，未读部分保留在队列中。
+    assert sp.write("abcd") == 4 and sp.read(2) == "ab"
+    println(f"pending: {sp.available}")
+    sp.flush()
+
+    // 回环容量为 4096；检查实际写入量，满队列不会谎报成功。
+    Buffer large = Buffer()
+    for i in range(5000)
+        assert large.appendByte(i % 256)
+    end
+    println(f"short write: {sp.writeBytes(large)}")
+    println(f"full write: {sp.write('more')}")
+    println(f"drained: {sp.readBytes(65536).len()}")
+    println(f"after flush: {sp.available}")
     println("serial example: PASS")
     return 0
 end

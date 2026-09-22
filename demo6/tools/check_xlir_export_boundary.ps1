@@ -91,8 +91,8 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR managed export generated-C runtime fail
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR exported class-method lowering failed" }
 $methodText = [System.IO.File]::ReadAllText($methodIr, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "cname=xl6_point_move return=t3/value/type error-abi=1 body-error-abi=1 params=[self:t4/borrow/type,dx:t3/value/type,dy:t3/value/type]",
-    "cname=xl6_point_pair return=t12/value/type error-abi=1 body-error-abi=1 params=[self:t4/borrow/type]",
+    "cname=xl6_point_move return=t3/value/type error-abi=1 body-error-abi=2 params=[self:t4/borrow/type,dx:t3/value/type,dy:t3/value/type]",
+    "cname=xl6_point_pair return=t13/value/type error-abi=1 body-error-abi=2 params=[self:t4/borrow/type]",
     "origin=n73 kind=7 target=3 result=t3 receiver=n75"
 ) ) {
     if ( ! $methodText.Contains($required) ) {
@@ -124,14 +124,14 @@ $methodGenerated = [System.IO.File]::ReadAllText($methodC, [System.Text.Encoding
 $methodPublic = [System.IO.File]::ReadAllText($methodHeader, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "int64_t xl6_point_move(xvalue* self, int64_t dx, int64_t dy)",
-    "xlir_product_t12 xl6_point_pair(xvalue* self)"
+    "xlir_product_t13 xl6_point_pair(xvalue* self)"
 ) ) {
     if ( ! $methodGenerated.Contains((Implementation-Prototype $required)) -or
          ! $methodPublic.Contains("$required;") ) {
         throw "XLIR exported class-method C/header ABI is incomplete: $required"
     }
 }
-if ( ! $methodGenerated.Contains("return (xlir_product_t12){0};") ) {
+if ( ! $methodGenerated.Contains("return (xlir_product_t13){0};") ) {
     throw "XLIR exported product method has no valid initialization-failure value"
 }
 $methodCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $methodHostSource !XL6_CGEN_LINKS! -o $methodExe && $methodExe"

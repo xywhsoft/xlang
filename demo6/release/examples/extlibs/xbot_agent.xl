@@ -1,0 +1,19 @@
+from xbot.agent import AgentPolicy, AgentToolkit, CreateAgentToolkit, RegisterBuiltinTools, ToolCall
+
+func main(...) as int
+    AgentPolicy policy = AgentPolicy()
+    AgentToolkit toolkit = CreateAgentToolkit(".", null, policy)
+    string examplePath = "release/examples/extlibs/xbot_agent.xl"
+    if not path.exists(examplePath) then
+        examplePath = "examples/extlibs/xbot_agent.xl"
+    end
+    RegisterBuiltinTools(toolkit, ["fs_stat", "fs_list"])
+
+    auto result = toolkit.Execute(ToolCall(
+        "fs_stat", "{\"path\":\"" + examplePath + "\"}", "example-stat"))
+    assert result.success, "xbot.agent fs_stat failed"
+    println(toolkit.ToolSchemas())
+    toolkit.Close()
+    println("xbot.agent extlib ok")
+    return 0
+end

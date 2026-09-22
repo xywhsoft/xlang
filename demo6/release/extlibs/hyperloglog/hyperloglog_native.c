@@ -5,10 +5,14 @@
  * Supports precision 4-18 (default 14, ~0.81% standard error).
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include "xl_runtime.h"
 #include <math.h>
-extern void xrtSetError(const void *msg, int bFree);
+
+/* 所有错误统一写入当前 XRT 错误槽，不能调用已经废弃的 xrtSetError ABI。 */
+static void hll_error(int kind, const char *message)
+{
+    xrtSetErrorInfo(kind, "xlang.extlib.hyperloglog", 0, message);
+}
 /* ------------------------------------------------------------------ */
 /* Hashing                                                             */
 /* ------------------------------------------------------------------ */
@@ -56,20 +60,22 @@ void *xhll_create(int precision) {
     XHll *hll;
     unsigned int m;
 
-    if (precision < 4) precision = 4;
-    if (precision > 18) precision = 18;
+    if (precision < 4 || precision > 18) {
+        hll_error(1, "hyperloglog precision must be 4..18");
+        return NULL;
+    }
 
     m = 1u << precision;
 
-    hll = (XHll *)calloc(1, sizeof(XHll));
+    hll = (XHll *)xrtCalloc(1u, sizeof(XHll));
     if (!hll) {
-        xrtSetError("hyperloglog: out of memory", 0);
+        hll_error(6, "cannot allocate HyperLogLog state");
         return NULL;
     }
-    hll->registers = (unsigned char *)calloc(m, 1);
+    hll->registers = (unsigned char *)xrtCalloc(m, 1u);
     if (!hll->registers) {
-        free(hll);
-        xrtSetError("hyperloglog: out of memory for registers", 0);
+        xrtFree(hll);
+        hll_error(6, "cannot allocate HyperLogLog registers");
         return NULL;
     }
     hll->precision = (unsigned int)precision;
@@ -81,8 +87,8 @@ void *xhll_create(int precision) {
 void xhll_destroy(void *ptr) {
     XHll *hll = (XHll *)ptr;
     if (hll) {
-        free(hll->registers);
-        free(hll);
+        xrtFree(hll->registers);
+        xrtFree(hll);
     }
 }
 
@@ -159,7 +165,7 @@ int xhll_merge(void *dst_ptr, void *src_ptr) {
 
     if (!dst || !src) return 0;
     if (dst->precision != src->precision) {
-        xrtSetError("hyperloglog: cannot merge HLLs with different precision", 0);
+        hll_error(3, "cannot merge HyperLogLog values with different precision");
         return 0;
     }
 
@@ -168,6 +174,7 @@ int xhll_merge(void *dst_ptr, void *src_ptr) {
             dst->registers[i] = src->registers[i];
         }
     }
+    dst->added += src->added;
     return 1;
 }
 

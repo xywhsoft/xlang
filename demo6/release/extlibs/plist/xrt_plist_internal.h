@@ -1,6 +1,8 @@
 #ifndef XRT_PLIST_INTERNAL_H
 #define XRT_PLIST_INTERNAL_H
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "include/xrt_plist.h"
 
 #include <math.h>
@@ -15,6 +17,8 @@ typedef struct {
 	uint64 iKeySize;
 	xrtplistnode* pValue;
 } xrtplistdictitem;
+
+bool __xrtPlistAppleEpoch(xtime* pResult);
 
 struct xrtplistnode_struct {
 	xrtplistdocument* pDocument;
@@ -58,9 +62,9 @@ xrtplistdocument* __xrtPlistParseXml(const void* pData, uint64 iSize,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
 xrtplistdocument* __xrtPlistParseBinary(const void* pData, uint64 iSize,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
-xbuffer __xrtPlistWriteXml(const xrtplistdocument* pDocument,
+xbuffer* __xrtPlistWriteXml(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
-xbuffer __xrtPlistWriteBinary(const xrtplistdocument* pDocument,
+xbuffer* __xrtPlistWriteBinary(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError);
 
 #endif

@@ -1,4 +1,5 @@
 #include "xui_internal.h"
+#include "xui_time_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -529,9 +530,9 @@ static xtime __xuiTableGridParseDateValue(const char* sText, int iType, const ch
 	if ( sText == NULL || sText[0] == '\0' ) {
 		return xrtNow();
 	}
-	if ( sFormat != NULL && sFormat[0] != '\0' ) {
-		tValue = xrtTimeParse((str)sText, (str)sFormat);
-		if ( tValue > 0 ) return tValue;
+	if ( (sFormat != NULL) && (sFormat[0] != '\0') &&
+		 __xuiTimeParseFormat(sText, sFormat, &tValue) ) {
+		return tValue;
 	}
 	iYear = 0;
 	iMonth = 0;
@@ -540,18 +541,25 @@ static xtime __xuiTableGridParseDateValue(const char* sText, int iType, const ch
 	iMinute = 0;
 	iSecond = 0;
 	if ( iType == XUI_TABLE_CELL_TYPE_TIME ) {
-		if ( sscanf(sText, "%d:%d:%d", &iHour, &iMinute, &iSecond) >= 2 ) {
-			return (xtime)iHour * XRT_TIME_HOUR + (xtime)iMinute * XRT_TIME_MINUTE + (xtime)iSecond;
+		if ( (sscanf(sText, "%d:%d:%d", &iHour, &iMinute, &iSecond) >= 2) &&
+			 __xuiDateTimeValue(1970, 1, 1,
+				iHour, iMinute, iSecond, &tValue) ) {
+			return xrtTimePart(tValue);
 		}
 		return xrtNow();
 	}
 	if ( iType == XUI_TABLE_CELL_TYPE_DATETIME ) {
-		if ( sscanf(sText, "%d-%d-%d %d:%d:%d", &iYear, &iMonth, &iDay, &iHour, &iMinute, &iSecond) >= 5 ) {
-			return xrtDateSerial(iYear, iMonth, iDay) + (xtime)iHour * XRT_TIME_HOUR + (xtime)iMinute * XRT_TIME_MINUTE + (xtime)iSecond;
+		if ( (sscanf(sText, "%d-%d-%d %d:%d:%d",
+			&iYear, &iMonth, &iDay,
+			&iHour, &iMinute, &iSecond) >= 5) &&
+			 __xuiDateTimeValue(iYear, iMonth, iDay,
+				iHour, iMinute, iSecond, &tValue) ) {
+			return tValue;
 		}
 	}
-	if ( sscanf(sText, "%d-%d-%d", &iYear, &iMonth, &iDay) == 3 ) {
-		return xrtDateSerial(iYear, iMonth, iDay);
+	if ( (sscanf(sText, "%d-%d-%d", &iYear, &iMonth, &iDay) == 3) &&
+		 xrtDate(iYear, iMonth, iDay, &tValue) ) {
+		return tValue;
 	}
 	return xrtNow();
 }
@@ -1077,21 +1085,6 @@ static int __xuiTableGridEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 	return XUI_OK;
 }
 
-static int __xuiTableGridArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
-{
-	xui_table_grid_data_t* pData;
-	int iRet;
-
-	(void)pUser;
-	pData = __xuiTableGridGetData(pWidget);
-	if ( (pWidget == NULL) || (pData == NULL) || (pData->pTable == NULL) ) {
-		return XUI_ERROR_INVALID_ARGUMENT;
-	}
-	iRet = xuiWidgetArrange(pData->pTable, tContentRect);
-	(void)__xuiTableGridSyncActiveEditorRect(pWidget, pData);
-	return iRet;
-}
-
 static int __xuiTableGridUpdate(xui_widget pWidget, float fDelta, void* pUser)
 {
 	xui_table_grid_data_t* pData;
@@ -1108,7 +1101,7 @@ static int __xuiTableGridUpdate(xui_widget pWidget, float fDelta, void* pUser)
 static void __xuiTableGridDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_CONTENT;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -1335,13 +1328,15 @@ static int __xuiTableGridInit(xui_widget pWidget, void* pTypeData, const void* p
 	tTableDesc.pAdapterUser = pData;
 	iRet = xuiTableViewCreate(xuiWidgetGetContext(pWidget), &pData->pTable, &tTableDesc);
 	if ( iRet != XUI_OK ) return iRet;
-	(void)xuiWidgetSetRect(pData->pTable, (xui_rect_t){0.0f, 0.0f, 360.0f, 220.0f});
+	(void)xuiWidgetSetFlowMode(pData->pTable, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pTable, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pTable, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	iRet = xuiWidgetAddChild(pWidget, pData->pTable);
 	if ( iRet != XUI_OK ) return iRet;
 	iRet = __xuiTableGridCreateEditors(pWidget, pData, pDesc);
 	if ( iRet != XUI_OK ) return iRet;
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
-	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_OVERLAY);
+	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_BLOCK);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_VISIBLE);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
 	(void)xuiWidgetSetTabStop(pWidget, 1);
@@ -1403,7 +1398,6 @@ XUI_API xui_widget_type xuiTableGridGetType(xui_context pContext)
 	tDesc.onInit = __xuiTableGridInit;
 	tDesc.onDestroy = __xuiTableGridDestroy;
 	tDesc.onContentMeasure = __xuiTableGridContentMeasure;
-	tDesc.onLayoutArrange = __xuiTableGridArrange;
 	tDesc.onUpdate = __xuiTableGridUpdate;
 	__xuiTableGridDefaultLayout(&tDesc.tLayout);
 	if ( xuiWidgetRegisterType(pContext, &pType, &tDesc) != XUI_OK ) {

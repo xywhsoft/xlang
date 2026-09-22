@@ -1,0 +1,14 @@
+import xmail
+
+
+var fields = {
+    "from": xmail.address("sender@example.com", "Sender"),
+    "to": [xmail.address("receiver@example.com", "Receiver")],
+    "subject": "xmail example",
+    "text": "hello from xlang"
+}
+
+string raw = xmail.compose(fields)
+var tree = xmail.parse(raw)
+println(string.contains(raw, "Subject: xmail example"))
+println(tree["partCount"])

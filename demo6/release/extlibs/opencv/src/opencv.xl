@@ -21,21 +21,22 @@ extern "opencv_height_native" func opencv_height_native(point image) as int
 extern "opencv_channels_native" func opencv_channels_native(point image) as int
 extern "opencv_release_native" func opencv_release_native(point image) as int
 
-const int IMREAD_GRAYSCALE = 0
-const int IMREAD_COLOR = 1
-const int IMREAD_UNCHANGED = -1
+// OpenCV 兼容常量是模块 API 的一部分，必须与函数一起导出。
+export const int IMREAD_GRAYSCALE = 0
+export const int IMREAD_COLOR = 1
+export const int IMREAD_UNCHANGED = -1
 
-const int COLOR_BGR2GRAY = 6
-const int COLOR_GRAY2BGR = 8
-const int COLOR_BGR2RGB = 4
-const int COLOR_RGB2BGR = 4
+export const int COLOR_BGR2GRAY = 6
+export const int COLOR_GRAY2BGR = 8
+export const int COLOR_BGR2RGB = 4
+export const int COLOR_RGB2BGR = 4
 
-const int BORDER_CONSTANT = 0
-const int BORDER_REPLICATE = 1
-const int BORDER_REFLECT = 2
-const int BORDER_WRAP = 3
-const int BORDER_REFLECT_101 = 4
-const int BORDER_DEFAULT = 4
+export const int BORDER_CONSTANT = 0
+export const int BORDER_REPLICATE = 1
+export const int BORDER_REFLECT = 2
+export const int BORDER_WRAP = 3
+export const int BORDER_REFLECT_101 = 4
+export const int BORDER_DEFAULT = 4
 
 class Image
 	point handle

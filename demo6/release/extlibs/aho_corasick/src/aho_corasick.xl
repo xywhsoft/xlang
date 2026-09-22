@@ -1,30 +1,46 @@
-extern "xrtGetError" func __aho_corasick_error() as string
-extern "xac_scan_begin" func __ac_scan_begin(point automaton, string text) as point
-extern "xac_replace" func __ac_replace_native(point automaton, string text, string repl) as string
-extern "xac_mask" func __ac_mask_native(point automaton, string text, string ch) as string
-extern "xac_highlight" func __ac_highlight_native(point automaton, string text, string openTag, string closeTag) as string
+extern "xac_last_error" func __aho_corasick_error() as string
+extern "xac_scan_begin" func __ac_scan_begin(point automaton,
+    string text, c_size size) as point
+extern "xac_search_non_overlapping" func __ac_search_non_overlapping(
+    point automaton, string text, c_size size) as point
+extern "xac_text_range" func __ac_text_range(string text, c_size textSize,
+    c_size start, c_size count) as point
+extern "xac_replace" func __ac_replace_native(point automaton,
+    string text, c_size textSize, string replacement,
+    c_size replacementSize) as point
+extern "xac_mask" func __ac_mask_native(point automaton,
+    string text, c_size textSize, string mask, c_size maskSize) as point
+extern "xac_highlight" func __ac_highlight_native(point automaton,
+    string text, c_size textSize, string openTag, c_size openSize,
+    string closeTag, c_size closeSize) as point
 
-// ─── Internal result set handle ───
+
+
+// 原生结果集同时承载完整结果和 searchFirst 的单项结果。
 class ResultHandle
     native point handle
     extern "xac_result_destroy" destroy()
-    extern "xac_result_count" func countNative() as int
-    extern "xac_result_pattern" func patternNative(int index) as string
-    extern "xac_result_start" func startNative(int index) as int
-    extern "xac_result_end" func endNative(int index) as int
+    extern "xac_result_count" func countNative() as c_longlong
+    extern "xac_result_pattern" func patternNative(c_longlong index) as point
+    extern "xac_result_start" func startNative(c_longlong index) as c_longlong
+    extern "xac_result_end" func endNative(c_longlong index) as c_longlong
 end
 
-// ─── Internal streaming scan handle ───
+
+
+// 原生扫描句柄在 scan 调用期间借用输入字符串。
 class ScanHandle
     native point handle
     extern "xac_scan_end" destroy()
-    extern "xac_scan_next" func nextNative() as int
-    extern "xac_scan_start" func startNative() as int
-    extern "xac_scan_end_pos" func endNative() as int
-    extern "xac_scan_pattern" func patternNative() as string
+    extern "xac_scan_next" func nextNative() as c_int
+    extern "xac_scan_start" func startNative() as c_longlong
+    extern "xac_scan_end_pos" func endNative() as c_longlong
+    extern "xac_scan_pattern" func patternNative() as point
 end
 
-// ─── Single match result ───
+
+
+// 单次命中使用 UTF-8 原始字节偏移，结束位置不包含在区间内。
 export class Match
     string pattern
     int start
@@ -41,40 +57,183 @@ export class Match
     end
 end
 
-// ─── Multi-pattern matching automaton ───
+
+
+// Scanner 持有自动机引用和当前分块副本，可安全暂停并继续。
+export class Scanner
+    native point handle
+    extern "xac_stream_create" create(point automaton)
+    extern "xac_stream_destroy" destroy()
+    extern "xac_stream_feed" func feedNative(string chunk,
+        c_size size) as c_int
+    extern "xac_stream_next" func nextNative() as c_int
+    extern "xac_stream_pending" func pendingNative() as c_int
+    extern "xac_stream_offset" func offsetNative() as c_longlong
+    extern "xac_stream_matches" func matchesNative() as c_longlong
+    extern "xac_stream_start" func startNative() as c_longlong
+    extern "xac_stream_end_pos" func endNative() as c_longlong
+    extern "xac_stream_pattern" func patternNative() as point
+    extern "xac_stream_reset" func resetNative()
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get pending() as bool
+        return self.pendingNative() != 0
+    end
+
+    get offset() as int
+        c_longlong result = self.offsetNative()
+        if result < 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return int(result)
+    end
+
+    get matchCount() as int
+        c_longlong result = self.matchesNative()
+        if result < 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return int(result)
+    end
+
+    func reset()
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: scanner is destroyed"
+        end
+        self.resetNative()
+    end
+
+    // 继续消费当前分块；false 表示被回调暂停，之后可再次 resume。
+    func resume(func(Match) as bool fn) as bool
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: scanner is destroyed"
+        end
+        while true
+            c_int status = self.nextNative()
+            if status < 0 then
+                throw RuntimeError __aho_corasick_error()
+            elseif status == 0 then
+                return true
+            end
+            c_longlong nativeStart = self.startNative()
+            c_longlong nativeEnd = self.endNative()
+            if nativeStart < 0 or nativeEnd < 0 then
+                throw RuntimeError __aho_corasick_error()
+            end
+            Match item = Match(__ac_text_result(self.patternNative()),
+                int(nativeStart), int(nativeEnd))
+            if not fn(item) then
+                return false
+            end
+        end
+        return true
+    end
+
+    // 复制并消费一个分块；当前分块暂停时必须先调用 resume。
+    func feed(string chunk, func(Match) as bool fn) as bool
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: scanner is destroyed"
+        end
+        if self.feedNative(chunk, c_size(string.byteLen(chunk))) == 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return self.resume(fn)
+    end
+end
+
+
+
+// 把原生结果中的一个条目转换为稳定的 XLang 对象。
+func __ac_match(ResultHandle result, int index) as Match
+    c_longlong nativeIndex = c_longlong(index)
+    c_longlong nativeStart = result.startNative(nativeIndex)
+    c_longlong nativeEnd = result.endNative(nativeIndex)
+    if nativeStart < 0 or nativeEnd < 0 then
+        throw RuntimeError __aho_corasick_error()
+    end
+    return Match(__ac_text_result(result.patternNative(nativeIndex)),
+        int(nativeStart), int(nativeEnd))
+end
+
+
+
+// 接管原生 Buffer 并转换为字符串，空 Buffer 也是合法结果。
+func __ac_text_result(point result) as string
+    if result == null then
+        throw RuntimeError __aho_corasick_error()
+    end
+    return Buffer(result).text()
+end
+
+
+
+// 创建一个明确字节范围的独立字符串。
+func __ac_slice(string text, int start, int count) as string
+    point result = __ac_text_range(text, c_size(string.byteLen(text)),
+        c_size(start), c_size(count))
+    return __ac_text_result(result)
+end
+
+
+
+// 构建后自动机只读，可被多个搜索并发共享。
 export class Automaton
     native point handle
-    extern "xac_create" create(c_int ignore_case)
+    extern "xac_create" create(c_int ignoreAsciiCase,
+        c_ulonglong maxPatterns, c_ulonglong maxPatternBytes,
+        c_ulonglong maxTotalPatternBytes, c_ulonglong maxNodes,
+        c_ulonglong maxMatches, c_ulonglong maxInputBytes,
+        c_ulonglong maxOutputBytes)
     extern "xac_destroy" destroy()
 
-    extern "xac_add_pattern" func addPatternNative(string pattern)
-    extern "xac_build" func buildNative()
-    extern "xac_search" func searchNative(string text) as point
-    extern "xac_contains" func containsNative(string text) as bool
-    extern "xac_count" func countNative(string text) as int
-    extern "xac_pattern_count" func patternCountNative() as int
-    extern "xac_is_built" func isBuiltNative() as bool
+    extern "xac_add_pattern" func addPatternNative(string pattern,
+        c_size size) as c_int
+    extern "xac_build" func buildNative() as c_int
+    extern "xac_search" func searchNative(string text, c_size size) as point
+    extern "xac_find" func findNative(string text, c_size size) as point
+    extern "xac_contains" func containsNative(string text, c_size size) as c_int
+    extern "xac_count" func countNative(string text, c_size size) as c_longlong
+    extern "xac_pattern_count" func patternCountNative() as c_longlong
+    extern "xac_pattern" func patternNative(c_longlong index) as point
+    extern "xac_is_built" func isBuiltNative() as c_int
 
     get valid() as bool
         return self.handle != null
     end
 
     get patternCount() as int
-        return self.patternCountNative()
+        c_longlong result = self.patternCountNative()
+        if result < 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return int(result)
     end
 
     get built() as bool
-        return self.isBuiltNative()
+        return self.isBuiltNative() != 0
+    end
+
+    func pattern(int index) as string
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        if index < 0 or index >= self.patternCount then
+            throw IndexError "aho_corasick: pattern index is out of range"
+        end
+        return __ac_text_result(self.patternNative(c_longlong(index)))
     end
 
     func addPattern(string pattern)
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        if self.isBuiltNative() then
-            throw RuntimeError "aho_corasick: cannot add patterns after build"
+        if self.addPatternNative(pattern,
+            c_size(string.byteLen(pattern))) == 0 then
+            throw RuntimeError __aho_corasick_error()
         end
-        self.addPatternNative(pattern)
     end
 
     func addPatterns(array<string> patterns)
@@ -89,103 +248,187 @@ export class Automaton
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        self.buildNative()
+        if self.buildNative() == 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
     end
 
     func search(string text) as array<Match>
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        point rp = self.searchNative(text)
-        if rp == null then
+        point nativeResult = self.searchNative(text,
+            c_size(string.byteLen(text)))
+        if nativeResult == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ResultHandle rh = ResultHandle()
-        rh.handle = rp
-        int n = rh.countNative()
-        array<Match> results = []
+        ResultHandle result = ResultHandle()
+        result.handle = nativeResult
+        c_longlong nativeCount = result.countNative()
+        if nativeCount < 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        int count = int(nativeCount)
+        array<Match> matches = []
         int i = 0
-        while i < n
-            results.push(Match(rh.patternNative(i), rh.startNative(i), rh.endNative(i)))
+        while i < count
+            matches.push(__ac_match(result, i))
             i += 1
         end
-        return results
+        return matches
     end
 
     func searchFirst(string text) as Match?
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        point rp = self.searchNative(text)
-        if rp == null then
+        point nativeResult = self.findNative(text,
+            c_size(string.byteLen(text)))
+        if nativeResult == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ResultHandle rh = ResultHandle()
-        rh.handle = rp
-        if rh.countNative() == 0 then
+        ResultHandle result = ResultHandle()
+        result.handle = nativeResult
+        c_longlong nativeCount = result.countNative()
+        if nativeCount < 0 then
+            throw RuntimeError __aho_corasick_error()
+        elseif nativeCount == 0 then
             return null
         end
-        return Match(rh.patternNative(0), rh.startNative(0), rh.endNative(0))
+        return __ac_match(result, 0)
     end
 
     func contains(string text) as bool
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        return self.containsNative(text)
+        c_int status = self.containsNative(text,
+            c_size(string.byteLen(text)))
+        if status < 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return status != 0
     end
 
     func count(string text) as int
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        return self.countNative(text)
+        c_longlong result = self.countNative(text,
+            c_size(string.byteLen(text)))
+        if result < 0 then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return int(result)
     end
 
-    func replace(string text, string repl) as string
+    func replace(string text, string replacement) as string
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        return __ac_replace_native(self.handle, text, repl)
+        return __ac_text_result(__ac_replace_native(self.handle,
+            text, c_size(string.byteLen(text)), replacement,
+            c_size(string.byteLen(replacement))))
     end
 
     func replaceWith(string text, func(Match) as string fn) as string
-        array<Match> matches = self.search(text)
-        if matches.length == 0 then
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        point nativeResult = __ac_search_non_overlapping(self.handle,
+            text, c_size(string.byteLen(text)))
+        if nativeResult == null then
+            throw RuntimeError __aho_corasick_error()
+        end
+        ResultHandle result = ResultHandle()
+        result.handle = nativeResult
+        c_longlong nativeCount = result.countNative()
+        if nativeCount < 0 then
+            throw RuntimeError __aho_corasick_error()
+        elseif nativeCount == 0 then
             return text
         end
-        return __ac_replace_callback(text, matches, fn)
+
+        int count = int(nativeCount)
+        Buffer output = Buffer()
+        int position = 0
+        int i = 0
+        while i < count
+            Match item = __ac_match(result, i)
+            if item.start > position then
+                output.append(__ac_slice(text, position,
+                    item.start - position))
+            end
+            output.append(fn(item))
+            position = item.endPos
+            i += 1
+        end
+        int textBytes = string.byteLen(text)
+        if position < textBytes then
+            output.append(__ac_slice(text, position, textBytes - position))
+        end
+        return output.text()
     end
 
-    func mask(string text, string ch) as string
+    func mask(string text, string mask = "*") as string
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        return __ac_mask_native(self.handle, text, ch)
+        return __ac_text_result(__ac_mask_native(self.handle,
+            text, c_size(string.byteLen(text)), mask,
+            c_size(string.byteLen(mask))))
     end
 
-    func highlight(string text, string openTag, string closeTag) as string
+    func highlight(string text, string openTag,
+        string closeTag) as string
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        return __ac_highlight_native(self.handle, text, openTag, closeTag)
+        return __ac_text_result(__ac_highlight_native(self.handle,
+            text, c_size(string.byteLen(text)), openTag,
+            c_size(string.byteLen(openTag)), closeTag,
+            c_size(string.byteLen(closeTag))))
     end
 
-    // ─── Streaming scan: no array allocation, early-stop ───
-    // Returns true if scan completed, false if stopped by callback.
+    // 创建持有自动机引用的跨分块扫描器。
+    func scanner() as Scanner
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        Scanner result = Scanner(self.handle)
+        if result.handle == null then
+            throw RuntimeError __aho_corasick_error()
+        end
+        return result
+    end
+
+    // scan 按结束位置流式发送匹配，回调返回 false 时立即停止。
     func scan(string text, func(Match) as bool fn) as bool
         if self.handle == null then
             throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        point sp = __ac_scan_begin(self.handle, text)
-        if sp == null then
+        point nativeScan = __ac_scan_begin(self.handle, text,
+            c_size(string.byteLen(text)))
+        if nativeScan == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ScanHandle sh = ScanHandle()
-        sh.handle = sp
-        while sh.nextNative() != 0
-            Match m = Match(sh.patternNative(), sh.startNative(), sh.endNative())
-            if not fn(m) then
+        ScanHandle scan = ScanHandle()
+        scan.handle = nativeScan
+        while true
+            c_int status = scan.nextNative()
+            if status < 0 then
+                throw RuntimeError __aho_corasick_error()
+            elseif status == 0 then
+                return true
+            end
+            c_longlong nativeStart = scan.startNative()
+            c_longlong nativeEnd = scan.endNative()
+            if nativeStart < 0 or nativeEnd < 0 then
+                throw RuntimeError __aho_corasick_error()
+            end
+            Match item = Match(__ac_text_result(scan.patternNative()),
+                int(nativeStart), int(nativeEnd))
+            if not fn(item) then
                 return false
             end
         end
@@ -193,60 +436,45 @@ export class Automaton
     end
 end
 
-// ─── Internal: replace with callback (xlang-side, callback cannot go to C) ───
-func __ac_replace_callback(string text, array<Match> matches, func(Match) as string fn) as string
-    // sort by start
-    int n = matches.length
-    int i = 1
-    while i < n
-        Match key = matches[i]
-        int j = i - 1
-        while j >= 0 and matches[j].start > key.start
-            matches[j + 1] = matches[j]
-            j -= 1
-        end
-        matches[j + 1] = key
-        i += 1
-    end
 
-    Buffer buf = Buffer()
-    int pos = 0
-    i = 0
-    while i < n
-        int s = matches[i].start
-        int e = matches[i].endPos
-        if s < pos then
-            // skip overlapping match
-            i += 1
-        else
-            if s > pos then
-                buf.append(string.mid(text, pos, s - pos))
-            end
-            buf.append(fn(matches[i]))
-            pos = e
-            i += 1
-        end
+
+// 带模式的常用路径自动构建；空模式列表保留手动构建能力。
+func __ac_limit(int value, string name) as c_ulonglong
+    if value < 0 then
+        throw ValueError name + " must be zero or greater"
     end
-    if pos < string.len(text) then
-        buf.append(string.mid(text, pos, string.len(text) - pos))
-    end
-    return buf.text()
+    return c_ulonglong(value)
 end
 
-// ─── Factory functions ───
-export func create(var patterns = [], bool ignoreCase = false) as Automaton
-    int ic = 0
+
+
+export func create(var patterns = [], bool ignoreCase = false,
+    int maxPatterns = 0, int maxPatternBytes = 0,
+    int maxTotalPatternBytes = 0, int maxNodes = 0,
+    int maxMatches = 0, int maxInputBytes = 0,
+    int maxOutputBytes = 0) as Automaton
+    int ignoreAsciiCase = 0
     if ignoreCase then
-        ic = 1
+        ignoreAsciiCase = 1
     end
-    Automaton ac = Automaton(c_int(ic))
+    Automaton automaton = Automaton(c_int(ignoreAsciiCase),
+        __ac_limit(maxPatterns, "maxPatterns"),
+        __ac_limit(maxPatternBytes, "maxPatternBytes"),
+        __ac_limit(maxTotalPatternBytes, "maxTotalPatternBytes"),
+        __ac_limit(maxNodes, "maxNodes"),
+        __ac_limit(maxMatches, "maxMatches"),
+        __ac_limit(maxInputBytes, "maxInputBytes"),
+        __ac_limit(maxOutputBytes, "maxOutputBytes"))
+    if automaton.handle == null then
+        throw RuntimeError __aho_corasick_error()
+    end
     int i = 0
     while i < patterns.length
-        ac.addPattern(string(patterns[i]))
+        automaton.addPattern(string(patterns[i]))
         i += 1
     end
     if patterns.length > 0 then
-        ac.build()
+        automaton.build()
     end
-    return ac
+    return automaton
 end

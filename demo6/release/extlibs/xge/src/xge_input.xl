@@ -52,6 +52,26 @@ export func xgeMouseDown(c_int iButton) as c_int
     return __xl6_xgeMouseDown(iButton)
 end
 
+extern "xgeInputEventGet" func __xl6_xgeInputEventGet(point pEvent) as c_int
+export func xgeInputEventGet(point pEvent) as c_int
+    return __xl6_xgeInputEventGet(pEvent)
+end
+
+extern "xgeInputEventPost" func __xl6_xgeInputEventPost(point pEvent) as c_int
+export func xgeInputEventPost(point pEvent) as c_int
+    return __xl6_xgeInputEventPost(pEvent)
+end
+
+extern "xgeInputEventPendingCount" func __xl6_xgeInputEventPendingCount() as c_int
+export func xgeInputEventPendingCount() as c_int
+    return __xl6_xgeInputEventPendingCount()
+end
+
+extern "xgeInputEventDroppedCount" func __xl6_xgeInputEventDroppedCount() as c_ulonglong
+export func xgeInputEventDroppedCount() as c_ulonglong
+    return __xl6_xgeInputEventDroppedCount()
+end
+
 extern "xgeTouchGetCount" func __xl6_xgeTouchGetCount() as c_int
 export func xgeTouchGetCount() as c_int
     return __xl6_xgeTouchGetCount()

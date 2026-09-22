@@ -1,0 +1,9 @@
+import xfeat
+
+func main(...) as int
+    assert xfeat.available() and xfeat.reset_stats(), "runtime"
+    assert xfeat.open("__missing_query__.onnx", "__missing_target__.onnx") == null, "missing models"
+    string result = xfeat.locate_json("__missing_query__.png", "__missing_target__.png")
+    assert string.contains(result, "\"found\":false"), "missing image"
+    return 0
+end

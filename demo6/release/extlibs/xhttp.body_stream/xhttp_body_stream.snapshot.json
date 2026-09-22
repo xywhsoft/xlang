@@ -1,0 +1,15 @@
+{
+  "format": "xlang-xhttp-body-stream-snapshot-1",
+  "modules": [
+    "http_body_stream"
+  ],
+  "files": {
+    "include/xhttp/features.h": "b5ef61dc988be48988b30311c8384c63efc33147fc7b4647b23d42b988f35217",
+    "include/xrt/http_body.h": "40b918091fc2e91696fc9b172d44a847075b5daffd76a124def7532b9b7bbad1",
+    "include/xrt/http_body_stream.h": "3ecf2c4104b3230331d5534da7d0c8201002f7431c6235d6a666460935df78d4",
+    "src/http/http_body_stream.c": "eb4729f00e46332f697c0a4dda11985a89ed0990b7b19179622a1913b035c33d",
+    "src/internal/xhttp_internal.h": "7da8a15be8d39ba438cc422817c24d1fb93f28280216b3ce9f7e942f5fc823d9",
+    "src/internal/xrt_http_body.h": "f6eb474098872fcf1a223824539ac4e2781af3aa76c45b96ec90814a09c57b57",
+    "src/internal/xrt_http_body_stream.h": "bfca2b305b92c53e60038092cccf73356af2b31d48582d2d56b8915de20808c2"
+  }
+}

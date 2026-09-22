@@ -1,0 +1,147 @@
+import xws
+from xws import WsConnection
+
+
+
+channel<int> serverEvents = channel::<int>(32)
+channel<int> clientEvents = channel::<int>(32)
+channel<string> serverPayloads = channel::<string>(8)
+channel<string> clientPayloads = channel::<string>(8)
+
+
+
+func makeHandler(channel<int> events,
+    channel<string> payloads) as func(int, int, int, int, point, int)
+    return func(int event, int opcode, int flags,
+        int value, point data, int size)
+        events.send(event)
+        if event == xws.EVENT_MESSAGE_DATA then
+            Buffer payload = Buffer()
+            if payload.appendRaw(data, c_size(size)) then
+                payloads.send(payload.text())
+            end
+        end
+    end
+end
+
+
+
+func waitTlsBytes(TlsStream stream, int minimum, int timeoutMs) as Buffer
+    int elapsed = 0
+    Buffer snapshot = stream.peek()
+    while snapshot.len() < minimum and elapsed < timeoutMs
+        stream.waitReadable(10)
+        time.sleep(1)
+        elapsed += 11
+        snapshot = stream.peek()
+    end
+    return snapshot
+end
+
+
+
+func waitEvent(channel<int> events, int expected, int timeoutMs) as bool
+    int elapsed = 0
+    int event = -1
+    while elapsed < timeoutMs
+        if events.recvTimeoutInto(event, 50) and event == expected then
+            return true
+        end
+        elapsed += 50
+    end
+    return false
+end
+
+
+
+async func run() as int
+    TlsConfig serverConfig = TlsConfig()
+    assert serverConfig.certificate(
+        "release/examples/fixtures/tls_cert.pem",
+        "release/examples/fixtures/tls_key.pem"
+    ), "xws TLS identity load failed"
+    assert serverConfig.alpn("http/1.1"), "xws TLS server ALPN failed"
+    TlsServer listener = tls.listen(0, serverConfig)
+    assert listener.port > 0, "xws TLS listener did not bind"
+
+    future<TlsStream> accepting = listener.acceptAsync()
+    TlsConfig clientConfig = TlsConfig()
+    clientConfig.verifyPeer(false)
+    assert clientConfig.host("localhost"), "xws TLS client host failed"
+    assert clientConfig.alpn("http/1.1"), "xws TLS client ALPN failed"
+    TlsStream clientTransport = tls.connect(
+        "127.0.0.1", listener.port, clientConfig, 8000)
+    TlsStream serverTransport = await accepting
+    auto serverHandler = makeHandler(serverEvents, serverPayloads)
+    auto clientHandler = makeHandler(clientEvents, clientPayloads)
+
+    WsUpgrade clientUpgrade = WsUpgrade.client(
+        "localhost", "chat", true, true)
+    Buffer requestHead = Http1.requestHead(
+        "GET", "/secure", clientUpgrade.fields())
+    Buffer firstPayload = Buffer()
+    assert firstPayload.append("secure-first")
+    WsFrame firstFrame = WsFrame.make(
+        xws.OPCODE_TEXT,
+        uint64(firstPayload.len()),
+        true,
+        true,
+        uint32(1432778632)
+    )
+    Buffer firstFrameHead = firstFrame.write()
+    assert WsFrame.applyMask(firstPayload, uint32(1432778632))
+    Buffer requestWire = Buffer()
+    assert requestWire.append(requestHead)
+    assert requestWire.append(firstFrameHead)
+    assert requestWire.append(firstPayload)
+    assert clientTransport.send(requestWire, 8000), "xws TLS upgrade send failed"
+
+    Buffer requestSnapshot = waitTlsBytes(
+        serverTransport, requestWire.len(), 8000)
+    assert requestSnapshot.len() >= requestWire.len(), "xws TLS request is incomplete"
+    Http1Head request = Http1Head.request(requestSnapshot)
+    assert request.ready, "xws TLS request parse failed"
+
+    WsUpgrade serverUpgrade = WsUpgrade.server(request, "chat", true, true)
+    assert serverUpgrade.ready and serverUpgrade.deflateEnabled, "xws TLS server negotiation failed"
+    Buffer responseHead = Http1.responseHead(
+        101, "Switching Protocols", serverUpgrade.fields())
+    assert serverTransport.send(responseHead, 8000), "xws TLS response send failed"
+
+    auto connectionConfig = xws.WsConnectionConfig.fromUpgrade(serverUpgrade)
+    WsConnection serverSocket = WsConnection.attachTlsWithConfig(
+        serverTransport, connectionConfig, serverHandler, request.headerBytes)
+    assert serverSocket.valid, "xws TLS server attach failed"
+
+    Buffer responseSnapshot = waitTlsBytes(
+        clientTransport, responseHead.len(), 8000)
+    Http1Head response = Http1Head.response(responseSnapshot)
+    assert response.ready and clientUpgrade.check(response), "xws TLS client negotiation failed"
+    WsConnection clientSocket = WsConnection.attachTls(
+        clientTransport, clientUpgrade, clientHandler, response.headerBytes)
+    assert clientSocket.valid, "xws TLS client attach failed"
+    assert clientSocket.deflateEnabled and serverSocket.deflateEnabled, "xws TLS compression state mismatch"
+
+    string payload = ""
+    assert serverPayloads.recvTimeoutInto(payload, 8000), "xws TLS first frame timed out"
+    assert payload == "secure-first", "xws TLS first frame was corrupted"
+
+    assert clientSocket.send("secure-client", true), "xws TLS client send failed"
+    assert serverPayloads.recvTimeoutInto(payload, 8000), "xws TLS client message timed out"
+    assert payload == "secure-client", "xws TLS client message was corrupted"
+
+    assert serverSocket.send("secure-server", true), "xws TLS server send failed"
+    assert clientPayloads.recvTimeoutInto(payload, 8000), "xws TLS server message timed out"
+    assert payload == "secure-server", "xws TLS server message was corrupted"
+
+    assert clientSocket.close(1000, "done"), "xws TLS close send failed"
+    assert waitEvent(serverEvents, xws.EVENT_CLOSE, 8000), "xws TLS server close timed out"
+    assert waitEvent(clientEvents, xws.EVENT_CLOSE, 8000), "xws TLS client close timed out"
+    return 0
+end
+
+
+
+int exitCode = await run()
+assert exitCode == 0
+println("xws TLS loopback package ok")

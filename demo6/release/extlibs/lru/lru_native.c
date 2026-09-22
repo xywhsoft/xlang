@@ -2,9 +2,7 @@
  * lru_native.c - LRU and LFU cache implementations
  * Hash map + doubly linked list for O(1) get/put/evict.
  */
-#include <stdlib.h>
-#include <string.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 static char lru_buf[4096];
 
 /* ------------------------------------------------------------------ */
@@ -108,9 +106,9 @@ static void lru_evict(XLru *c) {
 
 void *xlru_create(long long capacity, int mode) {
     XLru *c;
-    if (capacity <= 0) { xrtSetError("lru: capacity must be positive", 0); return NULL; }
+    if (capacity <= 0) { xl6ExtlibError(XL6_EXTERR_ARGUMENT, "xlang.extlib.lru", "LRU capacity must be positive"); return NULL; }
     c = (XLru *)calloc(1, sizeof(XLru));
-    if (!c) { xrtSetError("lru: out of memory", 0); return NULL; }
+    if (!c) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.lru", "cannot allocate LRU cache"); return NULL; }
     c->capacity = capacity;
     c->mode = mode;
     return c;
@@ -143,7 +141,7 @@ void xlru_put(void *ptr, const char *key, const char *value) {
     if (c->count >= c->capacity) lru_evict(c);
 
     e = (LruEntry *)calloc(1, sizeof(LruEntry));
-    if (!e) { xrtSetError("lru: out of memory", 0); return; }
+    if (!e) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.lru", "cannot allocate LRU entry"); return; }
     e->key = strdup(key);
     e->value = strdup(value ? value : "");
     e->freq = 1;

@@ -1,0 +1,1346 @@
+[
+    {
+        "name":  "acme",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "aho_corasick",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ansi",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "argon2",
+        "version":  "2.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "barcode",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "blake2",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "blake3",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "bloom",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "brotli",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "bson",
+        "version":  "3.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "bz2",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "canbus",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "cbor",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "chardet",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "cli",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "clickhouse",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "clip",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "clipboard",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "coap",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "color",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "com",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "consistent_hash",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "crc32",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "crontab",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "css",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "csv",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "cuckoo",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "daemon",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "dataframe",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "diff",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "dinov3",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  2
+    },
+    {
+        "name":  "dns",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "docker",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "docx",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "dotenv",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "duckdb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "embeddings",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "enet",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "epub",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "etcd",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "faiss",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ffmpeg",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "fix",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "flatbuffers",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "freetype",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ftp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "fuzzy",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "geohash",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "gettext",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ggml",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "git",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "glad",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "gpio",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "graph",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "grpc",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "gzip",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "harfbuzz",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "hcl",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "hnswlib",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "html5",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "hyperloglog",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ical",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "icu",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "imagehash",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "imgui",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "influxdb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ini",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "jieba",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "json.patch",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "json5",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "jwt",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "kubernetes",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "langdetect",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ldap",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "leveldb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "libsndfile",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "libsvm",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "libtorch",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "libusb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "linalg",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "llama",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "lmdb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "lru",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "lz4",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "lzma",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mail.imap",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "mail.mime",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mail.pop3",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "mail.smtp",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "md4c",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "md5",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mdns",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "memcached",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "minio",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "miniz",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mnn",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "modbus",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "money",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mongodb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mqtt",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "msgpack",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "murmur3",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "mysql",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "nanomsg",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "nats",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ncnn",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "neo4j",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "netrc",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "nsq",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ntp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "oauth2",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "onnxruntime",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "op",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "opencv",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "opentelemetry",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "openvino",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "opus",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "passkey",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pcap",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pdf",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pdfium",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pinyin",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pkcs",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pkg.math",
+        "version":  "1.0.0",
+        "hasC":  false,
+        "deps":  0
+    },
+    {
+        "name":  "plist",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "portaudio",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "postgresql",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "pptx",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "procps",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "progress",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "prometheus",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "protobuf",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "qr",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "quic",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "rabbitmq",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "rapidocr",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  2
+    },
+    {
+        "name":  "ratatui",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "redis",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "roaring",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "rocksdb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "rss",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "rtmp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "rtree",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sciter",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "semver",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sentencepiece",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "serial",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sha3",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sharedmem",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "shellwords",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "singleinstance",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "siphash",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sitemap",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "skiplist",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "slugify",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "snappy",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "snmp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "socks",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sox",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sqlite",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "srt",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ssh",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "stablediffusion",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "statistics",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "stb_image",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "stb_image_resize2",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "stb_image_write",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "stb_truetype",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "sysinfo",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "tabulate",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "taglib",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "tar",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  3
+    },
+    {
+        "name":  "tdengine",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "tensorrt",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "terraform_state",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "tokenizers",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "toml",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "totp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "treesitter",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "trie",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "ui.auto",
+        "version":  "0.1.0",
+        "hasC":  false,
+        "deps":  2
+    },
+    {
+        "name":  "uia",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "units",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "upnp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "vault",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "vcard",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "vectordb",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "volc.core",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "volc.phone",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "volc.sts",
+        "version":  "0.1.0",
+        "hasC":  false,
+        "deps":  1
+    },
+    {
+        "name":  "watch",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "webrtc",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "webview",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "whisper",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xbot",
+        "version":  "0.1.0",
+        "hasC":  false,
+        "deps":  0
+    },
+    {
+        "name":  "xbot.agent",
+        "version":  "0.1.0",
+        "hasC":  false,
+        "deps":  0
+    },
+    {
+        "name":  "xbot.all",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  6
+    },
+    {
+        "name":  "xbot.core",
+        "version":  "0.1.0",
+        "hasC":  false,
+        "deps":  0
+    },
+    {
+        "name":  "xfeat",
+        "version":  "0.1.0",
+        "hasC":  true,
+        "deps":  2
+    },
+    {
+        "name":  "xge",
+        "version":  "2.0.0",
+        "hasC":  false,
+        "deps":  1
+    },
+    {
+        "name":  "xge_shape_ex",
+        "version":  "2.0.0",
+        "hasC":  false,
+        "deps":  1
+    },
+    {
+        "name":  "xhttp",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xhttp.body",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xhttp.body_async",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xhttp.body_codec",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xhttp.body_decode",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  2
+    },
+    {
+        "name":  "xhttp.body_file",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xhttp.body_stream",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xhttp.client",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  5
+    },
+    {
+        "name":  "xhttp.form_data",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  2
+    },
+    {
+        "name":  "xhttp.multipart",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xhttp.protocol",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xlsx",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xml.dom",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xml.etree",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xml.sax",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "xregex",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xui",
+        "version":  "2.0.0",
+        "hasC":  false,
+        "deps":  1
+    },
+    {
+        "name":  "xws",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "xxhash",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "yaml",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "zeromq",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    },
+    {
+        "name":  "zip",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  1
+    },
+    {
+        "name":  "zstd",
+        "version":  "1.0.0",
+        "hasC":  true,
+        "deps":  0
+    }
+]

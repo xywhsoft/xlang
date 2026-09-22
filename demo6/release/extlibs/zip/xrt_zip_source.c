@@ -1,8 +1,23 @@
 #include "xrt_zip_internal.h"
 
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+
+
+/* 创建带初始容量的 Buffer，失败时不泄漏半初始化对象。 */
+xbuffer* __xrtZipBufferCreate(size_t iCapacity)
+{
+	xbuffer* pBuffer = xrtBufferCreate();
+
+	if ( (pBuffer != NULL) && !xrtBufferReserve(pBuffer, iCapacity) ) {
+		xrtBufferDestroy(pBuffer);
+		pBuffer = NULL;
+	}
+	return pBuffer;
+}
 
 
 
@@ -10,21 +25,21 @@ static bool __xrtZipSourceBeginWrite(xrtzipmemorysource* pMemory)
 {
 	if ( pMemory->Write != NULL ) {
 		zip_error_set(&pMemory->Error, ZIP_ER_INUSE, 0);
-		return FALSE;
+		return false;
 	}
-	pMemory->Write = xrtBufferCreate(65536u);
+	pMemory->Write = __xrtZipBufferCreate(65536u);
 	if ( pMemory->Write == NULL ) {
 		zip_error_set(&pMemory->Error, ZIP_ER_MEMORY, 0);
-		return FALSE;
+		return false;
 	}
-	pMemory->Writer = xrtWriterFromBuffer(pMemory->Write, XRT_STREAM_BORROW);
+	pMemory->Writer = xrtWriterFromBuffer(pMemory->Write);
 	if ( pMemory->Writer == NULL ) {
 		xrtBufferDestroy(pMemory->Write);
 		pMemory->Write = NULL;
 		zip_error_set(&pMemory->Error, ZIP_ER_MEMORY, 0);
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 static void __xrtZipSourceRollback(xrtzipmemorysource* pMemory)
@@ -55,11 +70,11 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 			zip_error_set(&pMemory->Error, ZIP_ER_INVAL, 0);
 			return -1;
 		}
-		iRemain = pMemory->Base != NULL && pMemory->ReadPosition < pMemory->Base->Length ?
-			pMemory->Base->Length - pMemory->ReadPosition : 0u;
+		iRemain = pMemory->Base != NULL && pMemory->ReadPosition < pMemory->Base->Size ?
+			pMemory->Base->Size - pMemory->ReadPosition : 0u;
 		iRead = iLength < iRemain ? iLength : iRemain;
 		if ( iRead != 0u ) {
-			memcpy(pData, pMemory->Base->Buffer + pMemory->ReadPosition, (size_t)iRead);
+			memcpy(pData, pMemory->Base->Data + pMemory->ReadPosition, (size_t)iRead);
 			pMemory->ReadPosition += iRead;
 		}
 		return (zip_int64_t)iRead;
@@ -77,7 +92,7 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 		pStat = (zip_stat_t*)pData;
 		zip_stat_init(pStat);
 		pStat->mtime = time(NULL);
-		pStat->size = pMemory->Base != NULL ? pMemory->Base->Length : 0u;
+		pStat->size = pMemory->Base != NULL ? pMemory->Base->Size : 0u;
 		pStat->comp_size = pStat->size;
 		pStat->comp_method = ZIP_CM_STORE;
 		pStat->encryption_method = ZIP_EM_NONE;
@@ -90,12 +105,11 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 		return zip_error_to_data(&pMemory->Error, pData, iLength);
 
 	case ZIP_SOURCE_FREE:
-		pMemory->SourceFreed = TRUE;
 		return 0;
 
 	case ZIP_SOURCE_SEEK: {
 		zip_int64_t iOffset = zip_source_seek_compute_offset(pMemory->ReadPosition,
-			pMemory->Base != NULL ? pMemory->Base->Length : 0u, pData, iLength, &pMemory->Error);
+			pMemory->Base != NULL ? pMemory->Base->Size : 0u, pData, iLength, &pMemory->Error);
 		if ( iOffset < 0 ) { return -1; }
 		pMemory->ReadPosition = (uint64)iOffset;
 		return 0;
@@ -112,7 +126,11 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 			zip_error_set(&pMemory->Error, ZIP_ER_INVAL, 0);
 			return -1;
 		}
-		xrtWriterDestroy(pMemory->Writer);
+		if ( !xrtWriterDestroy(pMemory->Writer) ) {
+			pMemory->Writer = NULL;
+			zip_error_set(&pMemory->Error, ZIP_ER_WRITE, EIO);
+			return -1;
+		}
 		pMemory->Writer = NULL;
 		xrtBufferDestroy(pMemory->Base);
 		pMemory->Base = pMemory->Write;
@@ -125,14 +143,14 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 
 	case ZIP_SOURCE_WRITE: {
 		uint64 iPosition = 0u;
-		if ( pMemory->Writer == NULL || !xrtWriterTell(pMemory->Writer, &iPosition) ||
+		if ( pMemory->Writer == NULL || iLength > SIZE_MAX ||
+			!xrtWriterTell(pMemory->Writer, &iPosition) ||
 			iLength > UINT64_MAX - iPosition ||
-			(pMemory->MaxBytes != 0u && iPosition + iLength > pMemory->MaxBytes) ||
-			iPosition + iLength > UINT32_MAX ) {
+			(pMemory->MaxBytes != 0u && iPosition + iLength > pMemory->MaxBytes) ) {
 			zip_error_set(&pMemory->Error, ZIP_ER_WRITE, EFBIG);
 			return -1;
 		}
-		if ( !xrtWriterWriteAll(pMemory->Writer, pData, iLength) ) {
+		if ( !xrtWriterWriteFull(pMemory->Writer, pData, (size_t)iLength, NULL) ) {
 			zip_error_set(&pMemory->Error, ZIP_ER_WRITE, ENOMEM);
 			return -1;
 		}
@@ -142,12 +160,20 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 	case ZIP_SOURCE_SEEK_WRITE: {
 		struct zip_source_args_seek* pSeek;
 		uint64 iPosition;
+		xseek Origin;
 		if ( pMemory->Writer == NULL || iLength < sizeof(*pSeek) ) {
 			zip_error_set(&pMemory->Error, ZIP_ER_INVAL, 0);
 			return -1;
 		}
 		pSeek = (struct zip_source_args_seek*)pData;
-		if ( !xrtWriterSeek(pMemory->Writer, pSeek->offset, pSeek->whence, &iPosition) ) {
+		if ( pSeek->whence == SEEK_SET ) { Origin = XSEEK_START; }
+		else if ( pSeek->whence == SEEK_CUR ) { Origin = XSEEK_CURRENT; }
+		else if ( pSeek->whence == SEEK_END ) { Origin = XSEEK_END; }
+		else {
+			zip_error_set(&pMemory->Error, ZIP_ER_INVAL, EINVAL);
+			return -1;
+		}
+		if ( !xrtWriterSeek(pMemory->Writer, pSeek->offset, Origin, &iPosition) ) {
 			zip_error_set(&pMemory->Error, ZIP_ER_SEEK, EINVAL);
 			return -1;
 		}
@@ -165,8 +191,8 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 	}
 
 	case ZIP_SOURCE_REMOVE:
-		xrtBufferDestroy(pMemory->Base);
-		pMemory->Base = xrtBufferCreate(1u);
+		if ( pMemory->Base == NULL ) { pMemory->Base = xrtBufferCreate(); }
+		else { xrtBufferClear(pMemory->Base); }
 		if ( pMemory->Base == NULL ) {
 			zip_error_set(&pMemory->Error, ZIP_ER_MEMORY, 0);
 			return -1;
@@ -191,7 +217,7 @@ xrtzipmemorysource* __xrtZipMemorySourceCreate(const void* pData, size_t iSize, 
 	xrtzipmemorysource* pMemory;
 	zip_source_t* pZipSource;
 	if ( pSource != NULL ) { *pSource = NULL; }
-	if ( pSource == NULL || (pData == NULL && iSize != 0u) || iSize > UINT32_MAX ||
+	if ( pSource == NULL || (pData == NULL && iSize != 0u) ||
 		(iMaxBytes != 0u && iSize > iMaxBytes) ) {
 		zip_error_set(pError, ZIP_ER_INVAL, 0);
 		return NULL;
@@ -204,9 +230,10 @@ xrtzipmemorysource* __xrtZipMemorySourceCreate(const void* pData, size_t iSize, 
 	memset(pMemory, 0, sizeof(*pMemory));
 	zip_error_init(&pMemory->Error);
 	pMemory->MaxBytes = iMaxBytes;
-	pMemory->Base = xrtBufferCreate(iSize > 65536u ? (uint32)iSize : 65536u);
-	if ( pMemory->Base == NULL ||
-		(iSize != 0u && !xrtBufferAppend(pMemory->Base, (ptr)pData, (uint32)iSize, XBUF_BINARY)) ) {
+	pMemory->Base = __xrtZipBufferCreate(iSize > 65536u ? iSize : 65536u);
+	if ( pMemory->Base == NULL || (iSize != 0u &&
+		!xrtBufferAppend(pMemory->Base,
+			(xbytesview){ (const unsigned char*)pData, iSize })) ) {
 		__xrtZipMemorySourceDestroy(pMemory);
 		zip_error_set(pError, ZIP_ER_MEMORY, 0);
 		return NULL;
@@ -229,9 +256,9 @@ void __xrtZipMemorySourceDestroy(xrtzipmemorysource* pMemory)
 	xrtFree(pMemory);
 }
 
-xbuffer __xrtZipMemorySourceTake(xrtzipmemorysource* pMemory)
+xbuffer* __xrtZipMemorySourceTake(xrtzipmemorysource* pMemory)
 {
-	xbuffer pResult;
+	xbuffer* pResult;
 	if ( pMemory == NULL || pMemory->Write != NULL ) { return NULL; }
 	pResult = pMemory->Base;
 	pMemory->Base = NULL;

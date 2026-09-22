@@ -1,0 +1,112 @@
+import json.patch
+
+
+
+func main(...) as int
+    // JSON Pointer 定位
+    var doc = {"name": "xlang", "tags": ["fast", "small"], "meta": {"os": "windows", "level": 5}}
+    assert json.patch.has(doc, "/name"), "has /name"
+    assert json.patch.has(doc, "/tags/1"), "has array element"
+    assert json.patch.has(doc, "/meta/os"), "has nested"
+    assert not json.patch.has(doc, "/missing"), "missing key"
+    assert not json.patch.has(doc, "/tags/9"), "missing index"
+    assert not json.patch.has(doc, "bad-pointer"), "invalid pointer"
+
+    assert json.patch.get(doc, "/name") == "xlang", "get string"
+    assert json.patch.get(doc, "/tags/0") == "fast", "get array element"
+    assert json.patch.get(doc, "/meta/level") == 5, "get int"
+    var whole = json.patch.get(doc, "")
+    assert json.patch.has(whole, "/name"), "empty pointer is whole doc"
+
+    // RFC 6901 转义：~1 是 /，~0 是 ~
+    var weird = {"a/b": 1, "c~d": 2}
+    assert json.patch.get(weird, "/a~1b") == 1, "escaped slash key"
+    assert json.patch.get(weird, "/c~0d") == 2, "escaped tilde key"
+    assert json.patch.encodePointer("a/b") == "/a~1b", "encode slash"
+    assert json.patch.encodePointer("c~d") == "/c~0d", "encode tilde"
+
+    // add：对象新键、对象替换、数组插入与追加
+    var r = json.patch.apply(doc, [{"op": "add", "path": "/license", "value": "MIT"}])
+    assert json.patch.get(r, "/license") == "MIT", "add object key"
+    assert json.patch.has(doc, "/license") == false, "source doc untouched"
+
+    r = json.patch.apply(doc, [{"op": "add", "path": "/tags/1", "value": "new"}])
+    assert json.patch.get(r, "/tags/1") == "new", "add inserted at 1"
+    assert json.patch.get(r, "/tags/2") == "small", "add shifted tail"
+    assert json.patch.get(r, "/tags/0") == "fast", "add keeps head"
+
+    r = json.patch.apply(doc, [{"op": "add", "path": "/tags/-", "value": "tail"}])
+    assert json.patch.get(r, "/tags/2") == "tail", "add dash appends"
+
+    // remove 与 replace
+    r = json.patch.apply(doc, [{"op": "remove", "path": "/meta/os"}])
+    assert not json.patch.has(r, "/meta/os"), "remove key"
+    assert json.patch.has(r, "/meta/level"), "remove keeps siblings"
+
+    r = json.patch.apply(doc, [{"op": "remove", "path": "/tags/0"}])
+    assert json.patch.get(r, "/tags/0") == "small", "remove array shifts"
+
+    r = json.patch.apply(doc, [{"op": "replace", "path": "/name", "value": "x"}])
+    assert json.patch.get(r, "/name") == "x", "replace value"
+
+    // move 与 copy
+    r = json.patch.apply(doc, [{"op": "move", "path": "/os", "from": "/meta/os"}])
+    assert json.patch.get(r, "/os") == "windows", "move value"
+    assert not json.patch.has(r, "/meta/os"), "move removes source"
+
+    r = json.patch.apply(doc, [{"op": "copy", "path": "/os", "from": "/meta/os"}])
+    assert json.patch.get(r, "/os") == "windows", "copy value"
+    assert json.patch.get(r, "/meta/os") == "windows", "copy keeps source"
+
+    // test：成功与失败
+    var ok = true
+    try
+        json.patch.apply(doc, [{"op": "test", "path": "/name", "value": "xlang"}])
+    catch e
+        ok = false
+    end
+    assert ok, "test passes on equal"
+
+    ok = false
+    try
+        json.patch.apply(doc, [{"op": "test", "path": "/name", "value": "wrong"}])
+    catch e
+        ok = true
+    end
+    assert ok, "test fails on different"
+
+    // 原子性：失败的补丁不产出部分结果
+    ok = false
+    try
+        json.patch.apply(doc, [
+            {"op": "add", "path": "/x", "value": 1},
+            {"op": "remove", "path": "/definitely-missing"}
+        ])
+    catch e
+        ok = true
+    end
+    assert ok, "failed patch raises"
+    assert not json.patch.has(doc, "/x"), "failed patch leaves source intact"
+
+    // set/remove/get 快捷路径
+    r = json.patch.set(doc, "/meta/level", 9)
+    assert json.patch.get(r, "/meta/level") == 9, "set nested"
+    r = json.patch.remove(r, "/meta/level")
+    assert not json.patch.has(r, "/meta/level"), "remove via helper"
+
+    // RFC 7386 合并补丁
+    var cfg = {"host": "localhost", "port": 8080, "debug": true, "tls": {"cert": "a.pem", "verify": true}}
+    r = json.patch.merge(cfg, {"port": 9090, "debug": null, "tls": {"verify": false}})
+    assert json.patch.get(r, "/port") == 9090, "merge replaces scalar"
+    assert not json.patch.has(r, "/debug"), "merge null deletes key"
+    assert json.patch.get(r, "/tls/cert") == "a.pem", "merge keeps sibling keys"
+    assert json.patch.get(r, "/tls/verify") == false, "merge recurses"
+    assert json.patch.get(r, "/host") == "localhost", "merge keeps others"
+    assert json.patch.get(cfg, "/port") == 8080, "merge keeps source intact"
+
+    // 合并补丁把非对象目标整体替换
+    var scalar = json.patch.merge(42, {"a": 1})
+    assert json.patch.get(scalar, "/a") == 1, "merge replaces non-object"
+
+    return 0
+end

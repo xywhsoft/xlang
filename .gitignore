@@ -1,13 +1,6 @@
 # repository-local build output
 /release/
 
-# DEMO5 generated output
-/demo5/release/tmp/
-/demo5/release/dump/
-/demo5/release/bin/
-/demo5/release/examples/native/release/
-/demo5/release/xl5_test_*.exe
-
 # DEMO6 generated output
 /demo6/release/*
 !/demo6/release/README.md
@@ -27,6 +20,29 @@
 /demo6/*.lib
 /demo6/*.exp
 /demo6/*.pdb
+/demo6/*.def
+/demo6/tmp_*.xl
+/demo6/op_*_capture.bmp
+
+# DEMO6 workspace-only output
+/demo6/out/
+/demo6/tmp/
+/demo6/logs/
+/demo6/blog/
+/demo6/test_min_out/
+/demo6/test_progress_cancel/
+/demo6/test_progress_out/
+/demo6/**/__pycache__/
+/demo6/**/*.py[cod]
+/demo6/dev/**/*.exe
+/demo6/dev/**/*.dll
+/demo6/dev/**/*.obj
+/demo6/dev/**/*.o
+/demo6/dev/**/*.pdb
+/demo6/dev/**/*.ilk
+/demo6/dev/deferred/xhttp/projects/procmgr/logs/*.log
+/demo6/release/projects/function_interop/build/
+/demo6/release/projects/xs/projects/
 
 # DEMO6 parser trace output
 /demo6/src/parser/xl6_parser.out
@@ -35,3 +51,5 @@
 /ide/release/option/History.json
 /demo6/examples_out
 /demo6/build
+/www_build
+/ide

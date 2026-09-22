@@ -16,10 +16,8 @@
 //   portscan 127.0.0.1 1 1024 200 --async
 //
 // Design notes:
-//   * tcp.connect on failure returns a ZERO handle point (== default point).
-//     Success returns a non-zero handle. We compare the returned point to a
-//     default-initialized point to decide OPEN vs CLOSED.
-//   * point 是不透明句柄，连接结果与默认零句柄比较，不构造无用的 TcpStream。
+//   * tcp.connect returns a typed TcpStream owner. A null native handle means
+//     CLOSED/filtered; successful probes close the stream immediately.
 //   * await is only allowed in async func / top-level, NOT in func main. So
 //     the whole scan (sync + async paths) lives in `async func scanAll`;
 //     main parses args and blocks on future.wait() until it finishes.
@@ -30,8 +28,6 @@ const int DEFAULT_END = 1024
 const int DEFAULT_TIMEOUT = 200
 const int DEFAULT_CONCURRENCY = 8
 const int MAX_CONCURRENCY = 256
-
-point ZERO
 
 // scan state (globals so helpers can mutate without container passing; see B11/B12)
 int gOpen = 0
@@ -70,10 +66,11 @@ end
 
 // probe one TCP port: 1 = OPEN, 0 = CLOSED/filtered.
 async func probe(string host, int port, int timeout) as int
-    point p = tcp.connect(host, port, timeout)
-    if p == ZERO then
+    TcpStream stream = tcp.connect(host, port, timeout)
+    if stream.handle == null then
         return 0
     end
+    stream.close()
     return 1
 end
 
@@ -107,11 +104,12 @@ async func scanAll(string host, int startPort, int endPort, int timeout, bool us
     if not useAsync then
         int port = startPort
         while port <= endPort
-            point p = tcp.connect(host, port, timeout)
+            TcpStream stream = tcp.connect(host, port, timeout)
             int result
-            if p == ZERO then
+            if stream.handle == null then
                 result = 0
             else
+                stream.close()
                 result = 1
             end
             tally(port, result)

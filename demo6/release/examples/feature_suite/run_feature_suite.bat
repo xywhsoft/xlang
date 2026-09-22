@@ -18,12 +18,12 @@ echo Running executable examples...
 if not exist build\test\feature_suite mkdir build\test\feature_suite
 release\xl.exe cgen release\examples\feature_suite\06_function_values_closures.xl --emit build\test\feature_suite\06_function_values_closures.c
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl6_xrt_value_to_i64_release(xvalue value)" build\test\feature_suite\06_function_values_closures.c >nul
+findstr /C:"static long long xl6_xrt_value_to_i64_release(xvalue* value)" build\test\feature_suite\06_function_values_closures.c >nul
 if errorlevel 1 (
-    echo Function-value needs closure omitted the xvalue conversion helper.
+    echo Function-value suite omitted the xvalue conversion helper.
     exit /b 1
 )
-findstr /C:"xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);" build\test\feature_suite\06_function_values_closures.c >nul
+findstr /C:"xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease);" build\test\feature_suite\06_function_values_closures.c >nul
 if errorlevel 1 (
     echo Function-value conversion helper does not release managed temporaries safely.
     exit /b 1
@@ -63,7 +63,8 @@ if not exist build\test\feature_exports mkdir build\test\feature_exports
 release\xl.exe cgen release\examples\feature_suite\09_c_export_abi.xl --emit build\test\feature_exports\09_c_export_abi.c --emit-header build\test\feature_exports\09_c_export_abi.h
 if errorlevel 1 exit /b 1
 
-"%XL6_TCC%" -DXL6_EXAMPLE_LINK_EXPORTS -Ibuild\test\feature_exports %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\feature_exports\09_c_export_abi.c release\examples\feature_suite\host_exports.c %XL6_DEFAULT_LINKS% -o build\test\feature_exports\host_exports.exe
+rem Compile the exported ABI as an independent C consumer with the bootstrap toolchain.
+"%XL6_BOOTSTRAP_CC%" -std=c11 -Wall -Wextra -Werror -Wno-unused-function -DXL6_EXAMPLE_LINK_EXPORTS -Ibuild\test\feature_exports -Ibuild\test -Irelease\include -I. build\test\feature_exports\09_c_export_abi.c release\examples\feature_suite\host_exports.c tools\xrt_single_header_impl.c -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\feature_exports\host_exports.exe
 if errorlevel 1 exit /b 1
 
 build\test\feature_exports\host_exports.exe

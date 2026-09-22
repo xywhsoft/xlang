@@ -16,33 +16,33 @@ func draw_scene()
         float y0 = cy + r * math.sin(a0)
         float x1 = cx + r * math.cos(a1)
         float y1 = cy + r * math.sin(a1)
-        xge.xgeShapeLine(c_float(x0), c_float(y0), c_float(x1), c_float(y1), c_float(3.0), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+        xge.Shape.line(x0, y0, x1, y1, 3.0, xge.Color.rgba(79, 216, 194, 255))
         i = i + 1
     end
 
     // 中心点
-    xge.xgeShapeCircleFill(c_float(cx), c_float(cy), c_float(6), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+    xge.Shape.circleFill(cx, cy, 6, xge.Color.rgba(255, 180, 84, 255))
 
     // 旋转轴指示线
-    xge.xgeShapeLine(c_float(cx), c_float(cy), c_float(cx + r * math.cos(angle)), c_float(cy + r * math.sin(angle)),
-        c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(200)))
+    xge.Shape.line(cx, cy, cx + r * math.cos(angle), cy + r * math.sin(angle),
+        1.5, xge.Color.rgba(255, 107, 94, 200))
 
     // 轨迹圆
-    xge.xgeShapeCircleStroke(c_float(cx), c_float(cy), c_float(r), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(100), c_uint(120), c_uint(140), c_uint(120)))
+    xge.Shape.circleStroke(cx, cy, r, 1.0, xge.Color.rgba(100, 120, 140, 120))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch03")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch03")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

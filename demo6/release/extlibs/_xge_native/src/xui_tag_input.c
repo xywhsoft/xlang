@@ -3,7 +3,6 @@
 #include <ctype.h>
 #include <string.h>
 
-#define XUI_TAG_INPUT_KEY_BACKSPACE	8
 #define XUI_TAG_INPUT_STATE_NORMAL	0
 #define XUI_TAG_INPUT_STATE_HOVER	XUI_WIDGET_STATE_HOVER
 #define XUI_TAG_INPUT_STATE_FOCUS	XUI_WIDGET_STATE_FOCUS
@@ -720,13 +719,19 @@ static int __xuiTagInputContentMeasure(xui_widget pWidget, xui_vec2_t tConstrain
 	return XUI_OK;
 }
 
-static int __xuiTagInputLayoutArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiTagInputLayoutPrepare(xui_widget pWidget, void* pUser)
+{
+	xui_tag_input_data_t* pData = (xui_tag_input_data_t*)pUser;
+	if ( (pWidget == NULL) || (pData == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pData->pInput == NULL ) return XUI_OK;
+	return __xuiTagInputSyncInputStyle(pWidget, pData);
+}
+
+static int __xuiTagInputLayoutChildren(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
 {
 	xui_tag_input_data_t* pData;
 	xui_tag_input_data_t tResolved;
-	int iRet;
 
-	(void)tContentRect;
 	pData = (xui_tag_input_data_t*)pUser;
 	if ( (pWidget == NULL) || (pData == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
@@ -735,16 +740,12 @@ static int __xuiTagInputLayoutArrange(xui_widget pWidget, xui_rect_t tContentRec
 		return XUI_OK;
 	}
 	__xuiTagInputResolve(pWidget, pData, &tResolved);
-	__xuiTagInputLayoutRects(pWidget, &tResolved, xuiWidgetGetContentRect(pWidget), 1);
+	__xuiTagInputLayoutRects(pWidget, &tResolved, tContentRect, 1);
 	pData->tInputRect = tResolved.tInputRect;
 	pData->fMeasuredHeight = tResolved.fMeasuredHeight;
 	memcpy(pData->arrTagRect, tResolved.arrTagRect, sizeof(pData->arrTagRect));
 	memcpy(pData->arrCloseRect, tResolved.arrCloseRect, sizeof(pData->arrCloseRect));
-	iRet = __xuiTagInputSyncInputStyle(pWidget, pData);
-	if ( iRet != XUI_OK ) {
-		return iRet;
-	}
-	return xuiWidgetArrange(pData->pInput, pData->tInputRect);
+	return xuiLayoutArrangeChild(pWidget, pData->pInput, pData->tInputRect);
 }
 
 static int __xuiTagInputCacheRender(xui_widget pWidget, xui_draw_context pDraw, uint32_t iStateId, void* pUser)
@@ -913,7 +914,7 @@ static int __xuiTagInputEvent(xui_widget pWidget, const xui_event_t* pEvent, voi
 			iRet = xuiTagInputCommit(pWidget);
 			return (iRet == XUI_OK) ? (int)XUI_EVENT_DISPATCH_STOP : iRet;
 		}
-		if ( pEvent->iKey == XUI_TAG_INPUT_KEY_BACKSPACE && pData->pInput != NULL ) {
+		if ( pEvent->iKey == XUI_KEY_BACKSPACE && pData->pInput != NULL ) {
 			sText = xuiInputGetText(pData->pInput);
 			if ( (sText == NULL || sText[0] == '\0') && pData->iTagCount > 0 ) {
 				iRet = __xuiTagInputRemoveAt(pWidget, pData, pData->iTagCount - 1, 1);
@@ -959,7 +960,7 @@ static int __xuiTagInputChildKeyDown(xui_widget pInput, const xui_event_t* pEven
 		iRet = xuiTagInputCommit(pTagInput);
 		return (iRet == XUI_OK) ? (int)XUI_EVENT_DISPATCH_STOP : iRet;
 	}
-	if ( pEvent->iKey == XUI_TAG_INPUT_KEY_BACKSPACE ) {
+	if ( pEvent->iKey == XUI_KEY_BACKSPACE ) {
 		sText = xuiInputGetText(pInput);
 		if ( (sText == NULL || sText[0] == '\0') && pData->iTagCount > 0 ) {
 			iRet = __xuiTagInputRemoveAt(pTagInput, pData, pData->iTagCount - 1, 1);
@@ -992,7 +993,7 @@ static void __xuiTagInputInputChanged(xui_widget pInput, const char* sText, void
 static void __xuiTagInputDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_FIXED;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -1277,7 +1278,8 @@ XUI_API xui_widget_type xuiTagInputGetType(xui_context pContext)
 	tDesc.onInit = __xuiTagInputInit;
 	tDesc.onDestroy = __xuiTagInputDestroy;
 	tDesc.onContentMeasure = __xuiTagInputContentMeasure;
-	tDesc.onLayoutArrange = __xuiTagInputLayoutArrange;
+	tDesc.onLayoutPrepare = __xuiTagInputLayoutPrepare;
+	tDesc.onLayoutChildren = __xuiTagInputLayoutChildren;
 	tDesc.onCacheRender = __xuiTagInputCacheRender;
 	__xuiTagInputDefaultLayout(&tLayout);
 	__xuiTagInputDefaultCachePolicy(&tPolicy);

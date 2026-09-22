@@ -1,0 +1,15 @@
+{
+  "format": "xlang-xhttp-body-decode-snapshot-1",
+  "modules": [
+    "http_body_decode"
+  ],
+  "files": {
+    "include/xhttp/features.h": "b5ef61dc988be48988b30311c8384c63efc33147fc7b4647b23d42b988f35217",
+    "include/xrt/http_body.h": "40b918091fc2e91696fc9b172d44a847075b5daffd76a124def7532b9b7bbad1",
+    "include/xrt/http_body_decode.h": "417c69d6ebce997fc69f0d436731d7cb1767c3387dc4ee5eca6a39036704cad7",
+    "include/xrt/http_body_inflate.h": "1ef092e7aaaf35700d57b59a9637cc4a1361ceb85a8d82a0c56defe8750272bd",
+    "include/xrt/http_headers.h": "5728226c3e5ba5799a61840fcccbe7ccdac7e1f64cdf8f932830e7d701498401",
+    "src/http/http_body_decode.c": "bfc6de455fa84d637037a1c7d46c8b81920cdbff52114f696db7dab586741a04",
+    "src/internal/xhttp_internal.h": "79b584fc99f794a1836b800ac8f4ea3ff5a32466aedc08f0445501c4279f4176"
+  }
+}

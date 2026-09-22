@@ -1,6 +1,0 @@
-import std.core
-
-func main() as int
-	std.core.println("hello world")
-	return 0
-end

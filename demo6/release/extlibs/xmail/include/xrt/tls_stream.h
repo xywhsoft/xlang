@@ -1,0 +1,6 @@
+#ifndef XLANG_XMAIL_XRT_TLS_STREAM_FORWARD_H
+#define XLANG_XMAIL_XRT_TLS_STREAM_FORWARD_H
+
+#include <xrt.h>
+
+#endif

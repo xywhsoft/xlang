@@ -3,57 +3,104 @@ import mqtt
 
 
 func main(...) as int
-    // CONNECT packet
-    auto conn = mqtt.connect("test-client", 60, 1)
-    assert mqtt.packetType(conn) == 1, "connect type"
-    assert mqtt.typeName(1) == "CONNECT", "connect name"
+    // CONNECT 帧：client "demo"，QoS 级别 4，keepalive 60
+    string conn = mqtt.connect("demo", "", "", 60, true)
+    // 10 10 + MQTT 长度4 + 级别4 + 标志2 + keepalive + client
+    assert conn.contains("101000044d5154540402003c000464656d6f"), "connect frame body"
+    assert conn.length == 36, "connect frame hex length"
 
-    // PUBLISH packet
-    auto pub = mqtt.publish("sensor/temp", "25.5")
-    assert mqtt.packetType(pub) == 3, "publish type"
-    assert mqtt.typeName(3) == "PUBLISH", "publish name"
-    assert mqtt.getQos(pub) == 0, "publish qos0"
+    // 匿名 CONNECT（cleanSession false）
+    string conn2 = mqtt.connect("ab", "", "", 0, false)
+    assert conn2.contains("00044d5154540400"), "no clean flag"
 
-    // SUBSCRIBE packet
-    auto sub = mqtt.subscribe(1, "sensor/#")
-    assert mqtt.packetType(sub) == 8, "subscribe type"
-    assert mqtt.typeName(8) == "SUBSCRIBE", "subscribe name"
+    // PUBLISH qos0
+    string pub0 = mqtt.publish(0, "a/b", "hi", 0)
+    assert pub0 == "30070003612f626869", "publish qos0 frame"
 
-    // PINGREQ
-    auto ping = mqtt.pingreq()
-    assert ping == "c000", "pingreq hex"
-    assert mqtt.packetType(ping) == 12, "ping type"
-    assert mqtt.typeName(12) == "PINGREQ", "ping name"
+    // PUBLISH qos1 带 packetId
+    string pub1 = mqtt.publish(1, "t", "x", 7)
+    assert pub1 == "3206000174000778", "publish qos1 frame"
 
-    // DISCONNECT
-    auto disc = mqtt.disconnect()
-    assert disc == "e000", "disconnect hex"
-    assert mqtt.packetType(disc) == 14, "disc type"
-    assert mqtt.typeName(14) == "DISCONNECT", "disc name"
+    // PUBACK
+    assert mqtt.puback(7) == "40020007", "puback frame"
 
-    // CONNACK
-    auto ack = mqtt.connack(0)
-    assert mqtt.packetType(ack) == 2, "connack type"
-    assert mqtt.typeName(2) == "CONNACK", "connack name"
+    // SUBSCRIBE
+    string sub = mqtt.subscribe(1, "news/#", 0)
+    assert sub == "820b000100066e6577732f2300", "subscribe frame"
 
-    // Topic validation
-    assert mqtt.validTopic("home/living/temp") == 1, "valid topic"
-    assert mqtt.validTopic("a") == 1, "single char topic"
-    assert mqtt.validTopic("") == 0, "empty topic invalid"
-    assert mqtt.validTopic("home/#") == 0, "wildcard in topic"
-    assert mqtt.validTopic("home/+/temp") == 0, "plus in topic"
+    // PINGREQ / DISCONNECT
+    assert mqtt.pingreq() == "c000", "pingreq frame"
+    assert mqtt.disconnect() == "e000", "disconnect frame"
 
-    // Filter validation
-    assert mqtt.validFilter("home/#") == 1, "hash filter"
-    assert mqtt.validFilter("home/+/temp") == 1, "plus filter"
-    assert mqtt.validFilter("#") == 1, "lone hash"
-    assert mqtt.validFilter("") == 0, "empty filter"
-    assert mqtt.validFilter("home/#/x") == 0, "hash not last"
+    // CONNACK 解析：接受
+    var ack = mqtt.parse("20020000")
+    assert ack["type"] == 2, "connack type"
+    assert ack["returnCode"] == 0, "accepted"
+    assert ack["sessionPresent"] == 0, "no session"
 
-    // Type names
-    assert mqtt.typeName(4) == "PUBACK", "puback"
-    assert mqtt.typeName(9) == "SUBACK", "suback"
-    assert mqtt.typeName(99) == "UNKNOWN", "unknown"
+    // CONNACK 拒绝码 5（未授权）
+    var nack = mqtt.parse("20020005")
+    assert nack["returnCode"] == 5, "not authorized"
+
+    // PUBLISH 应答解析（qos0）
+    var msg = mqtt.parse("300c0005746f70696368656c6c6f")
+    assert msg["type"] == 3, "publish type"
+    assert msg["topic"] == "topic", "publish topic"
+    assert msg["payload"] == "hello", "publish payload"
+    assert msg["qos"] == 0, "publish qos"
+
+    // PUBLISH qos1 带 packetId
+    var msg1 = mqtt.parse("320e0005746f706963000b776f726c64")
+    assert msg1["qos"] == 1, "qos1 flag"
+    assert msg1["packetId"] == 11, "packet id"
+    assert msg1["payload"] == "world", "qos1 payload"
+
+    // SUBACK：granted qos 列表
+    var suback = mqtt.parse("9003000100")
+    assert suback["type"] == 9, "suback type"
+    assert suback["granted"][0] == 0, "granted qos"
+
+    // PINGRESP
+    var pongP = mqtt.parse("d000")
+    assert pongP["type"] == 13, "pingresp type"
+
+    // hex ↔ Buffer 往返
+    Buffer frame = mqtt.hexToFrame(pub0)
+    assert int(frame.len()) == 9, "frame buffer size"
+    assert mqtt.frameToHex(frame) == pub0, "frame round trip"
+
+    // 剩余长度多字节 varint：300 字节负载
+    string big = longA(300)
+    string bigPub = mqtt.publish(0, "t", big, 0)
+    Buffer bigFrame = mqtt.hexToFrame(bigPub)
+    var bigMsg = mqtt.parse(mqtt.frameToHex(bigFrame))
+    assert bigMsg["payload"] == big, "varint round trip"
+
+    // 错误路径
+    int raised = 0
+    try
+        mqtt.publish(2, "t", "x", 0)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "qos 2 raises"
+
+    raised = 0
+    try
+        mqtt.parse("20")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "truncated frame raises"
 
     return 0
+end
+
+func longA(int n) as string
+    string acc = ""
+    while n > 0
+        acc = acc + "a"
+        n = n - 1
+    end
+    return acc
 end

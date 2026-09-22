@@ -1,0 +1,27 @@
+import qr
+
+
+
+func main(...) as int
+    // 生成一个 URL 二维码
+    string url = "https://xlang.dev"
+    int v = qr.version(url, "M")
+    println("version:", v, "size:", v * 4 + 17)
+
+    // 半块字符渲染（终端可直接显示）
+    print(qr.utf8(url, "M"))
+
+    // 生成 SVG 并落盘
+    string path = "examples_out/extlibs/qr_demo.svg"
+    file.writeText(path, qr.svg(url, "M", 4, 8))
+    println("svg written:", path)
+
+    // 中文内容与不同纠错级别
+    print(qr.utf8("你好，xlang", "H"))
+
+    // 纯数字用数值模式，容量更大
+    println("numeric v:", qr.version("20260814", "L"))
+
+    println("qr example: PASS")
+    return 0
+end

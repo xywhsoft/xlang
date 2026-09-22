@@ -3,9 +3,7 @@
  * Supports insert, search, prefix search, delete, and prefix counting.
  * Uses compact child arrays (sorted by byte value).
  */
-#include <stdlib.h>
-#include <string.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 typedef struct TrieNode {
     struct TrieNode **children;
     unsigned char *keys;
@@ -77,9 +75,9 @@ static TrieNode *trie_add_child(TrieNode *n, unsigned char c) {
 
 void *xtrie_create(void) {
     XTrie *t = (XTrie *)calloc(1, sizeof(XTrie));
-    if (!t) { xrtSetError("trie: out of memory", 0); return NULL; }
+    if (!t) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.trie", "cannot allocate trie"); return NULL; }
     t->root = trie_new_node();
-    if (!t->root) { free(t); xrtSetError("trie: out of memory", 0); return NULL; }
+    if (!t->root) { free(t); xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.trie", "cannot allocate trie root"); return NULL; }
     t->count = 0;
     return t;
 }
@@ -99,7 +97,7 @@ void xtrie_insert(void *ptr, const char *word) {
     cur = t->root;
     for (s = (const unsigned char *)word; *s; s++) {
         cur = trie_add_child(cur, *s);
-        if (!cur) { xrtSetError("trie: out of memory", 0); return; }
+        if (!cur) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.trie", "cannot allocate trie node"); return; }
     }
     if (!cur->is_end) {
         cur->is_end = 1;

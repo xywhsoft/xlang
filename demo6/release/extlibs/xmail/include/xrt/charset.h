@@ -1,0 +1,6 @@
+#ifndef XLANG_XMAIL_XRT_CHARSET_FORWARD_H
+#define XLANG_XMAIL_XRT_CHARSET_FORWARD_H
+
+#include <xrt.h>
+
+#endif

@@ -1,4 +1,0 @@
-func main() as int
-	dict values = dict{"answer": 42}
-	return values["answer"]
-end

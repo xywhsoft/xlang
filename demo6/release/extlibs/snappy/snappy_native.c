@@ -1,3 +1,7 @@
+#define XRT_MODULE_ERROR_FORMAT
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
 #include "include/xrt_snappy.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -8,13 +12,46 @@
 
 
 
+/* 把 Snappy 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xsnappy_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_SNAPPY_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_SNAPPY_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_SNAPPY_ERROR_DATA:
+		case XRT_SNAPPY_ERROR_TRUNCATED:
+			return XERR_PROTOCOL;
+		case XRT_SNAPPY_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_SNAPPY_ERROR_STATE:
+			return XERR_STATE;
+		case XRT_SNAPPY_ERROR_CANCELLED:
+			return XERR_CANCELLED;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 发布可被 XLang 和 C 调用方统一读取的结构化错误。 */
 static void xsnappy_publish_error(const xrtsnappyerror* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "snappy operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_SNAPPY_ERROR_IO;
+
+	xrtSetErrorInfo(
+		xsnappy_error_kind(iCode),
+		"xlang.extlib.snappy",
+		iCode,
+		sMessage
+	);
 }
 
+
+/* 用调用参数覆盖 Snappy 默认资源限制。 */
 static void xsnappy_options(xrtsnappyoptions* pOptions, uint64 iMaxInput,
 	uint64 iMaxOutput, uint32 iMaxRatio)
 {
@@ -24,54 +61,94 @@ static void xsnappy_options(xrtsnappyoptions* pOptions, uint64 iMaxInput,
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
 }
 
-static bool xsnappy_transform_file(str sSource, str sDestination, bool bCompress,
-	bool bOverwrite, const xrtsnappyoptions* pOptions)
+
+/* 删除失败事务的临时文件，同时保留原始失败原因。 */
+static void xsnappy_remove_temp(cstr sTemp)
+{
+	xerror* pError;
+
+	if ( sTemp == NULL ) { return; }
+	pError = xrtTakeError();
+	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pError != NULL ) {
+		xrtSetError(pError);
+		xrtErrorFree(pError);
+	}
+}
+
+/* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
+static int xsnappy_transform_file(str sSource, str sDestination, bool bCompress,
+	bool bOverwrite, const xrtsnappyoptions* pOptions, xvalue* pCallback)
 {
 	xrtsnappyerror tError;
-	xreader pReader = NULL;
-	xwriter pWriter = NULL;
+	xrtprogresscall tProgress;
+	xfile TempFile = NULL;
+	xreader* pReader = NULL;
+	xwriter* pWriter = NULL;
+	str sDirectory = NULL;
 	str sTemp = NULL;
-	bool bResult = FALSE;
+	bool bResult = false;
+	int iResult = 0;
+
+	xrtSnappyErrorInit(&tError);
+	xrtProgressCallInit(&tProgress, pCallback);
+	pCallback = tProgress.Callback;
 	if ( sSource == NULL || sSource[0] == 0 || sDestination == NULL || sDestination[0] == 0 ) {
-		xrtSetError(xrtFormat("snappy source and destination paths are required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.snappy",
+			XRT_SNAPPY_ERROR_ARGUMENT, "snappy source and destination paths are required");
+		return 0;
 	}
 	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetError(xrtFormat("snappy destination already exists: %s", sDestination), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.snappy", XRT_SNAPPY_ERROR_IO,
+			"snappy destination already exists: %s", sDestination);
+		return 0;
 	}
-	sTemp = xrtPathRandom(sDestination, 0u, (str)".xrt-snappy-tmp", 0u, 8u);
 	pReader = xrtReaderOpen(sSource);
-	pWriter = sTemp != NULL ? xrtWriterOpen(sTemp, TRUE) : NULL;
-	if ( pReader == NULL || pWriter == NULL ) {
-		xrtSetError(xrtFormat("cannot open snappy file stream: %s", sSource), TRUE);
-		goto cleanup;
-	}
-	bResult = bCompress ? xrtSnappyCompressStream(pReader, pWriter, pOptions, &tError) :
-		xrtSnappyDecompressStream(pReader, pWriter, pOptions, &tError);
-	if ( !bResult ) { xsnappy_publish_error(&tError); }
+	if ( pReader == NULL ) { goto cleanup; }
+	sDirectory = xrtPathParent(sDestination);
+	if ( sDirectory == NULL ) { goto cleanup; }
+	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
+		".xrt-snappy-", ".tmp", &sTemp);
+	if ( TempFile == NULL ) { goto cleanup; }
+	pWriter = xrtWriterTakeFile(&TempFile);
+	if ( pWriter == NULL ) { goto cleanup; }
+
+	bResult = bCompress ? xrtSnappyCompressStream(pReader, pWriter, pOptions,
+		pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError) :
+		xrtSnappyDecompressStream(pReader, pWriter, pOptions,
+			pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
+	if ( !bResult && !tProgress.InvokeFailed ) { xsnappy_publish_error(&tError); }
 	if ( bResult && !xrtWriterFlush(pWriter) ) {
-		xrtSetError(xrtFormat("cannot flush snappy destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+		bResult = false;
 	}
 
 cleanup:
-	xrtReaderDestroy(pReader);
-	xrtWriterDestroy(pWriter);
-	if ( bResult && !xrtFileRename(sTemp, sDestination, bOverwrite) ) {
-		xrtSetError(xrtFormat("cannot commit snappy destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
+	if ( !bResult ) {
+		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
+			(tError.iCode == XRT_SNAPPY_OK) ) {
+			xrtSetErrorInfo(XERR_IO, "xlang.extlib.snappy",
+				XRT_SNAPPY_ERROR_IO, "snappy file operation failed");
+		}
+		xsnappy_remove_temp(sTemp);
 	}
-	if ( !bResult && sTemp != NULL && xrtFileExists(sTemp) ) { xrtFileDelete(sTemp); }
+	xrtFree(sDirectory);
 	xrtFree(sTemp);
-	return bResult;
+	if ( bResult ) { iResult = 1; }
+	else if ( tProgress.InvokeFailed ) { iResult = -2; }
+	else if ( tError.iCode == XRT_SNAPPY_ERROR_CANCELLED ) { iResult = -1; }
+	return iResult;
 }
 
 
 
 XSNAPPY_EXPORT bool xsnappy_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XSNAPPY_EXPORT const char* xsnappy_version(void)
@@ -82,7 +159,7 @@ XSNAPPY_EXPORT const char* xsnappy_version(void)
 
 XSNAPPY_EXPORT const char* xsnappy_last_error(void)
 {
-	return xrtGetError();
+	return xrtErrorMessage(xrtGetError());
 }
 
 
@@ -92,7 +169,7 @@ XSNAPPY_EXPORT void* xsnappy_compress(const void* pData, size_t iSize,
 {
 	xrtsnappyoptions tOptions;
 	xrtsnappyerror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xsnappy_options(&tOptions, iMaxInput, iMaxOutput, 0u);
 	if ( !xrtSnappyCompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -113,7 +190,7 @@ XSNAPPY_EXPORT void* xsnappy_decompress(const void* pData, size_t iSize, uint64 
 {
 	xrtsnappyoptions tOptions;
 	xrtsnappyerror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xsnappy_options(&tOptions, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtSnappyDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -123,22 +200,22 @@ XSNAPPY_EXPORT void* xsnappy_decompress(const void* pData, size_t iSize, uint64 
 	return pOutput;
 }
 
-XSNAPPY_EXPORT bool xsnappy_compress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput)
+XSNAPPY_EXPORT int xsnappy_compress_file(str sSource, str sDestination, bool bOverwrite,
+	uint64 iMaxInput, uint64 iMaxOutput, xvalue* pCallback)
 {
 	xrtsnappyoptions tOptions;
 	xrtClearError();
 	xsnappy_options(&tOptions, iMaxInput, iMaxOutput, 0u);
-	return xsnappy_transform_file(sSource, sDestination, TRUE, bOverwrite, &tOptions);
+	return xsnappy_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XSNAPPY_EXPORT bool xsnappy_decompress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
+XSNAPPY_EXPORT int xsnappy_decompress_file(str sSource, str sDestination, bool bOverwrite,
+	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio, xvalue* pCallback)
 {
 	xrtsnappyoptions tOptions;
 	xrtClearError();
 	xsnappy_options(&tOptions, iMaxInput, iMaxOutput, iMaxRatio);
-	return xsnappy_transform_file(sSource, sDestination, FALSE, bOverwrite, &tOptions);
+	return xsnappy_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
 
@@ -168,9 +245,9 @@ XSNAPPY_EXPORT bool xsnappy_compressor_update(void* pHandle, const void* pData, 
 	xrtsnappycompressor* pCompressor = (xrtsnappycompressor*)pHandle;
 	if ( !xrtSnappyCompressorUpdate(pCompressor, pData, iSize) ) {
 		xsnappy_publish_error(xrtSnappyCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XSNAPPY_EXPORT bool xsnappy_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -183,15 +260,15 @@ XSNAPPY_EXPORT bool xsnappy_compressor_finish(void* pHandle)
 	xrtsnappycompressor* pCompressor = (xrtsnappycompressor*)pHandle;
 	if ( !xrtSnappyCompressorFinish(pCompressor) ) {
 		xsnappy_publish_error(xrtSnappyCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XSNAPPY_EXPORT void* xsnappy_compressor_drain(void* pHandle)
 {
 	xrtsnappycompressor* pCompressor = (xrtsnappycompressor*)pHandle;
-	xbuffer pOutput = xrtSnappyCompressorDrainBuffer(pCompressor);
+	xbuffer* pOutput = xrtSnappyCompressorDrainBuffer(pCompressor);
 	if ( pOutput == NULL ) {
 		xsnappy_publish_error(xrtSnappyCompressorError(pCompressor));
 		return NULL;
@@ -237,9 +314,9 @@ XSNAPPY_EXPORT bool xsnappy_decompressor_update(void* pHandle, const void* pData
 	xrtsnappydecompressor* pDecompressor = (xrtsnappydecompressor*)pHandle;
 	if ( !xrtSnappyDecompressorUpdate(pDecompressor, pData, iSize) ) {
 		xsnappy_publish_error(xrtSnappyDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XSNAPPY_EXPORT bool xsnappy_decompressor_finish(void* pHandle)
@@ -247,15 +324,15 @@ XSNAPPY_EXPORT bool xsnappy_decompressor_finish(void* pHandle)
 	xrtsnappydecompressor* pDecompressor = (xrtsnappydecompressor*)pHandle;
 	if ( !xrtSnappyDecompressorFinish(pDecompressor) ) {
 		xsnappy_publish_error(xrtSnappyDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XSNAPPY_EXPORT void* xsnappy_decompressor_drain(void* pHandle)
 {
 	xrtsnappydecompressor* pDecompressor = (xrtsnappydecompressor*)pHandle;
-	xbuffer pOutput = xrtSnappyDecompressorDrainBuffer(pDecompressor);
+	xbuffer* pOutput = xrtSnappyDecompressorDrainBuffer(pDecompressor);
 	if ( pOutput == NULL ) {
 		xsnappy_publish_error(xrtSnappyDecompressorError(pDecompressor));
 		return NULL;

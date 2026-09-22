@@ -1,5 +1,8 @@
 #include "x_uia_min.h"
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
+
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -11,35 +14,6 @@
 #else
 #define XL_EXPORT
 #endif
-
-typedef unsigned int XL_ArtifactUInt32;
-typedef long long XL_ArtifactInt64;
-typedef const char* XL_ArtifactStr;
-typedef void* XL_ArtifactPtr;
-
-typedef struct XL_ArtifactXValueStruct {
-	union {
-		struct {
-			XL_ArtifactUInt32 Type:4;
-			XL_ArtifactUInt32 Reserve:1;
-			XL_ArtifactUInt32 IsStatic:1;
-			XL_ArtifactUInt32 RefCount:26;
-		};
-		volatile XL_ArtifactUInt32 Header;
-	};
-	XL_ArtifactUInt32 Size;
-	union {
-		int vBool;
-		XL_ArtifactInt64 vInt;
-		double vFloat;
-		XL_ArtifactStr vText;
-		XL_ArtifactPtr vPoint;
-	};
-} *XL_ArtifactXValue;
-
-extern XL_ArtifactXValue xvoCreateArray(void);
-extern XL_ArtifactXValue xvoCreatePoint(void* point);
-extern int xvoArrayAppendValue(XL_ArtifactXValue pArr, XL_ArtifactXValue pVal, int bUnrefVal);
 
 #define X_UIA_VERSION "0.1.0"
 #define X_UIA_MAGIC_PROCESS UINT32_C(0x58554950)
@@ -373,11 +347,17 @@ static void x_uia_append_text(char* dst, size_t dst_size, const char* text)
 static void x_uia_set_error(const char* text)
 {
 	x_uia_copy_text(g_x_uia_error, sizeof(g_x_uia_error), text);
+	if ( text != NULL && text[0] != '\0' ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", 1, text);
+	} else {
+		xrtClearError();
+	}
 }
 
 static void x_uia_set_hresult_error(const char* op, HRESULT hr)
 {
 	snprintf(g_x_uia_error, sizeof(g_x_uia_error), "%s: HRESULT 0x%08lx", op, (unsigned long)hr);
+	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", (int)hr, g_x_uia_error);
 }
 
 static void x_uia_json_init(XUiaJsonBuilder* json, char* buffer, size_t capacity)
@@ -1045,6 +1025,7 @@ XL_EXPORT int x_uia_process_release(void* handle)
 		process->process = NULL;
 	}
 	process->magic = 0u;
+	free(process);
 	return 1;
 }
 
@@ -1180,6 +1161,7 @@ XL_EXPORT int x_uia_test_window_release(void* handle)
 		win->ready_event = NULL;
 	}
 	win->magic = 0u;
+	free(win);
 	return 1;
 }
 
@@ -1454,6 +1436,7 @@ XL_EXPORT int x_uia_events_release(void* handle)
 	}
 	DeleteCriticalSection(&queue->lock);
 	queue->magic = 0u;
+	free(queue);
 	x_uia_set_error("");
 	return 1;
 }
@@ -1536,6 +1519,7 @@ XL_EXPORT int x_uia_element_release(void* handle)
 		wrapped->element = NULL;
 	}
 	wrapped->magic = 0u;
+	free(wrapped);
 	return 1;
 }
 
@@ -2250,6 +2234,7 @@ XL_EXPORT int x_uia_condition_release(void* handle)
 		wrapped->condition = NULL;
 	}
 	wrapped->magic = 0u;
+	free(wrapped);
 	return 1;
 }
 
@@ -2312,11 +2297,11 @@ XL_EXPORT void* x_uia_element_find_first(void* element_handle, void* condition_h
 	return NULL;
 }
 
-XL_EXPORT XL_ArtifactXValue x_uia_element_find_all(void* element_handle, void* condition_handle, int scope, int timeout_ms)
+XL_EXPORT xvalue* x_uia_element_find_all(void* element_handle, void* condition_handle, int scope, int timeout_ms)
 {
 	XUiaElement* element = x_uia_element_from_handle(element_handle);
 	XUiaCondition* condition = x_uia_condition_from_handle(condition_handle);
-	XL_ArtifactXValue out = xvoCreateArray();
+	xvalue* out = xrtValueArray();
 	IUIAutomationElementArray* found = NULL;
 	IUIAutomationElement* item = NULL;
 	HRESULT hr;
@@ -2338,7 +2323,11 @@ XL_EXPORT XL_ArtifactXValue x_uia_element_find_all(void* element_handle, void* c
 			item = NULL;
 			if ( SUCCEEDED(found->lpVtbl->GetElement(found, i, &item)) && (item != NULL) ) {
 				if ( x_uia_condition_matches_element(condition, item) ) {
-					xvoArrayAppendValue(out, xvoCreatePoint(x_uia_wrap_element(item)), 1);
+					XUiaElement* wrapped = x_uia_wrap_element(item);
+					if ( wrapped == NULL || !xrtValueArrayAppendNew(out,
+						xrtValuePointer(wrapped)) ) {
+						x_uia_element_release(wrapped);
+					}
 				} else {
 					item->lpVtbl->Release(item);
 				}
@@ -2349,9 +2338,9 @@ XL_EXPORT XL_ArtifactXValue x_uia_element_find_all(void* element_handle, void* c
 	return out;
 }
 
-static XL_ArtifactXValue x_uia_element_array_to_xvalue(IUIAutomationElementArray* found)
+static xvalue* x_uia_element_array_to_xvalue(IUIAutomationElementArray* found)
 {
-	XL_ArtifactXValue out = xvoCreateArray();
+	xvalue* out = xrtValueArray();
 	IUIAutomationElement* item = NULL;
 	HRESULT hr;
 	int count = 0;
@@ -2368,7 +2357,13 @@ static XL_ArtifactXValue x_uia_element_array_to_xvalue(IUIAutomationElementArray
 	for ( i = 0; i < count; ++i ) {
 		item = NULL;
 		if ( SUCCEEDED(found->lpVtbl->GetElement(found, i, &item)) && (item != NULL) ) {
-			xvoArrayAppendValue(out, xvoCreatePoint(x_uia_wrap_element(item)), 1);
+		{
+			XUiaElement* wrapped = x_uia_wrap_element(item);
+			if ( wrapped == NULL || !xrtValueArrayAppendNew(out,
+				xrtValuePointer(wrapped)) ) {
+				x_uia_element_release(wrapped);
+			}
+		}
 		}
 	}
 	return out;
@@ -2402,10 +2397,10 @@ XL_EXPORT void* x_uia_element_parent(void* handle)
 	return x_uia_wrap_element(parent);
 }
 
-XL_EXPORT XL_ArtifactXValue x_uia_element_children(void* handle)
+XL_EXPORT xvalue* x_uia_element_children(void* handle)
 {
 	XUiaElement* wrapped = x_uia_element_from_handle(handle);
-	XL_ArtifactXValue out = xvoCreateArray();
+	xvalue* out = xrtValueArray();
 	IUIAutomationCondition* true_condition = NULL;
 	IUIAutomationElementArray* found = NULL;
 	HRESULT hr;

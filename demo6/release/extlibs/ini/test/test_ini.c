@@ -1,3 +1,6 @@
+/* INI 使用 IO/file，独立 C 测试显式请求完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_ini.h"
 
 #include <math.h>
@@ -36,8 +39,8 @@ static int testParseAndModel(void)
 	xrtiniconfig* pConfig = xrtIniParseMemory(sText, sizeof(sText) - 1u, NULL);
 	int64 iPort = 0;
 	double fRatio = 0.0;
-	bool bEnabled = FALSE;
-	xbuffer pOutput;
+	bool bEnabled = false;
+	xbuffer* pOutput;
 	int bOk = 1;
 	bOk &= check(pConfig != NULL && xrtIniError(pConfig)->iCode == XRT_INI_OK,
 		pConfig != NULL ? xrtIniError(pConfig)->sMessage : "cannot create INI config");
@@ -70,7 +73,8 @@ static int testParseAndModel(void)
 		!xrtIniHas(pConfig, (str)"server", (str)"enabled"), "INI remove failed");
 	pOutput = xrtIniStringify(pConfig);
 	{
-		str sOutput = pOutput != NULL ? xrtCopyStr((str)pOutput->Buffer, pOutput->Length) : NULL;
+		str sOutput = pOutput != NULL ?
+			xrtStrDupN((const char*)pOutput->Data, pOutput->Size) : NULL;
 		bOk &= check(sOutput != NULL &&
 			strstr((const char*)sOutput, "# leading comment\n") != NULL &&
 			strstr((const char*)sOutput, "; before name\nname = \xe6\xb5\x8b\xe8\xaf\x95\n") != NULL &&
@@ -98,7 +102,7 @@ static int testInterpolation(void)
 	str sValue;
 	int bOk = 1;
 	xrtIniOptionsInit(&tOptions);
-	tOptions.bInterpolation = TRUE;
+	tOptions.bInterpolation = true;
 	pConfig = xrtIniParseMemory(sText, sizeof(sText) - 1u, &tOptions);
 	sValue = xrtIniGet(pConfig, (str)"server", (str)"url");
 	bOk &= check(sValue != NULL && strcmp((const char*)sValue,
@@ -173,7 +177,7 @@ static int testCaseAndFile(void)
 	xrtiniconfig* pLoaded;
 	int bOk = 1;
 	xrtIniOptionsInit(&tOptions);
-	tOptions.bCaseSensitive = FALSE;
+	tOptions.bCaseSensitive = false;
 	pConfig = xrtIniParseMemory("[Main]\nName=Value\n", 18u, &tOptions);
 	bOk &= check(xrtIniHas(pConfig, (str)"main", (str)"name"),
 		"case-insensitive INI lookup failed");
@@ -184,7 +188,7 @@ static int testCaseAndFile(void)
 		"UTF-8 INI path round trip failed");
 	xrtIniDestroy(pLoaded);
 	xrtIniDestroy(pConfig);
-	xrtDirDelete((str)"build/tmp/ini_\xe8\xb7\xaf\xe5\xbe\x84");
+	xrtDirRemoveAll("build/tmp/ini_\xe8\xb7\xaf\xe5\xbe\x84");
 	return bOk;
 }
 
@@ -193,12 +197,15 @@ static int testCaseAndFile(void)
 int main(void)
 {
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	bOk = testParseAndModel();
 	bOk &= testInterpolation();
 	bOk &= testErrorsAndLimits();
 	bOk &= testCaseAndFile();
-	xrtUnit();
 	if ( bOk ) { puts("test_ini: PASS"); }
 	return bOk ? 0 : 1;
 }
+
+/* 单文件 C smoke：声明、实现与测试共享同一份 XRT 模块配置。 */
+#include "../xrt_ini_model.c"
+#include "../xrt_ini_parser.c"
+#include "../xrt_ini_writer.c"

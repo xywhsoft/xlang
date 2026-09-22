@@ -1,8 +1,0 @@
-func bad_local<T>(T value) as T
-	T local = "bad"
-	return local
-end
-
-func main() as int
-	return bad_local<int>(12)
-end

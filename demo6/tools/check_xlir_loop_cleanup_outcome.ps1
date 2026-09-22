@@ -14,7 +14,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
         '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
     $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
-        'src/ir/xl6_hir_type.c','src/ir/xl6_hir.c','src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
+        'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c','src/common/xl6_output.c','src/common/xl6_console.c',
         'src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',
@@ -26,7 +26,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup verifier build failed' }
     & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup verifier mutation failed' }
-    & "$prefix.contract.exe" "$prefix.repeat.c" "$prefix.repeat.h" "$prefix.repeat.json"
+    # The first invocation already rejects every mutation.  The repeat lane
+    # only proves byte-for-byte emission determinism; replaying thousands of
+    # identical verifier mutations used to double this gate's runtime.
+    & "$prefix.contract.exe" "$prefix.repeat.c" "$prefix.repeat.h" "$prefix.repeat.json" --emit-only
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup repeated verifier mutation failed' }
     foreach ($suffix in @('c','h','json','json.typed.json')) {
         if ([IO.File]::ReadAllText("$prefix.$suffix") -cne [IO.File]::ReadAllText("$prefix.repeat.$suffix")) {
@@ -50,7 +53,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup lost an outcome, pending owner or visible binding' }
     & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup C-host JIT failed' }
-    & release/xl.exe build $runtime $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    $artifactRuntimeSources = @(
+        'src/runtime/xl6_slot.c', 'src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_cell.c', 'src/runtime/xl6_closure.c',
+        'src/runtime/xl6_capture.c', 'src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_generator.c', 'src/runtime/xl6_code_finalizer.c')
+    & release/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Loop cleanup AOT runtime failed' }

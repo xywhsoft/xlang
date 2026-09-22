@@ -1,0 +1,32 @@
+import memcached
+
+
+
+func main(...) as int
+    // 命令构造（实际缓存交互走 TcpStream）
+    println(memcached.buildSet("session:42", 0, 3600, 18))
+    println(memcached.buildGet(["session:42", "session:43"]))
+    println(memcached.buildTouch("session:42", 7200))
+    println(memcached.buildDelete("session:42"))
+
+    // 模拟服务器应答
+    var stored = memcached.parseResponse("STORED\r\n")
+    println("set status:", stored["status"])
+
+    var hit = memcached.parseResponse("VALUE session:42 0 18\r\n{\"user\":\"alice\"}\r\nEND\r\n")
+    println("get:", hit["key"], "=", hit["data"])
+
+    var miss = memcached.parseResponse("END\r\n")
+    println("miss status:", miss["status"])
+
+    var stats = memcached.parseResponse("STAT cmd_get 1024\r\nSTAT cmd_set 512\r\nSTAT hit_ratio 0.99\r\nEND\r\n")
+    println("stats:", stats["stats"]["cmd_get"], "gets,", stats["stats"]["cmd_set"], "sets")
+
+    // 与真实服务器交互：
+    // TcpStream mc = tcp.connect("127.0.0.1", 11211)
+    // memcached.set(mc, "key", "value", 900)
+    // println(memcached.get(mc, "key"))
+
+    println("memcached example: PASS")
+    return 0
+end

@@ -17,7 +17,8 @@ typedef enum {
 	XRT_ZSTD_ERROR_TRUNCATED = 4,
 	XRT_ZSTD_ERROR_LIMIT = 5,
 	XRT_ZSTD_ERROR_IO = 6,
-	XRT_ZSTD_ERROR_STATE = 7
+	XRT_ZSTD_ERROR_STATE = 7,
+	XRT_ZSTD_ERROR_CANCELLED = 8
 } xrtzstdstatus;
 
 typedef struct {
@@ -39,41 +40,41 @@ typedef struct {
 typedef struct xrtzstdcompressor xrtzstdcompressor;
 typedef struct xrtzstddecompressor xrtzstddecompressor;
 
-XXAPI void xrtZstdOptionsInit(xrtzstdoptions* pOptions);
-XXAPI void xrtZstdErrorInit(xrtzstderror* pError);
+XRT_API void xrtZstdOptionsInit(xrtzstdoptions* pOptions);
+XRT_API void xrtZstdErrorInit(xrtzstderror* pError);
 
-XXAPI xrtzstdcompressor* xrtZstdCompressorCreate(const xrtzstdoptions* pOptions);
-XXAPI bool xrtZstdCompressorUpdate(xrtzstdcompressor* pCompressor, const void* pData, size_t iSize);
-XXAPI bool xrtZstdCompressorFinish(xrtzstdcompressor* pCompressor);
-XXAPI bool xrtZstdCompressorDrain(xrtzstdcompressor* pCompressor, xwriter pWriter);
-XXAPI xbuffer xrtZstdCompressorTakeBuffer(xrtzstdcompressor* pCompressor);
-XXAPI xbuffer xrtZstdCompressorDrainBuffer(xrtzstdcompressor* pCompressor);
-XXAPI uint64 xrtZstdCompressorInputBytes(const xrtzstdcompressor* pCompressor);
-XXAPI uint64 xrtZstdCompressorOutputBytes(const xrtzstdcompressor* pCompressor);
-XXAPI const xrtzstderror* xrtZstdCompressorError(const xrtzstdcompressor* pCompressor);
-XXAPI void xrtZstdCompressorDestroy(xrtzstdcompressor* pCompressor);
+XRT_API xrtzstdcompressor* xrtZstdCompressorCreate(const xrtzstdoptions* pOptions);
+XRT_API bool xrtZstdCompressorUpdate(xrtzstdcompressor* pCompressor, const void* pData, size_t iSize);
+XRT_API bool xrtZstdCompressorFinish(xrtzstdcompressor* pCompressor);
+XRT_API bool xrtZstdCompressorDrain(xrtzstdcompressor* pCompressor, xwriter* pWriter);
+XRT_API xbuffer* xrtZstdCompressorTakeBuffer(xrtzstdcompressor* pCompressor);
+XRT_API xbuffer* xrtZstdCompressorDrainBuffer(xrtzstdcompressor* pCompressor);
+XRT_API uint64 xrtZstdCompressorInputBytes(const xrtzstdcompressor* pCompressor);
+XRT_API uint64 xrtZstdCompressorOutputBytes(const xrtzstdcompressor* pCompressor);
+XRT_API const xrtzstderror* xrtZstdCompressorError(const xrtzstdcompressor* pCompressor);
+XRT_API void xrtZstdCompressorDestroy(xrtzstdcompressor* pCompressor);
 
-XXAPI xrtzstddecompressor* xrtZstdDecompressorCreate(const xrtzstdoptions* pOptions);
-XXAPI bool xrtZstdDecompressorUpdate(xrtzstddecompressor* pDecompressor, const void* pData, size_t iSize);
-XXAPI bool xrtZstdDecompressorFinish(xrtzstddecompressor* pDecompressor);
-XXAPI bool xrtZstdDecompressorDrain(xrtzstddecompressor* pDecompressor, xwriter pWriter);
-XXAPI xbuffer xrtZstdDecompressorTakeBuffer(xrtzstddecompressor* pDecompressor);
-XXAPI xbuffer xrtZstdDecompressorDrainBuffer(xrtzstddecompressor* pDecompressor);
-XXAPI uint64 xrtZstdDecompressorInputBytes(const xrtzstddecompressor* pDecompressor);
-XXAPI uint64 xrtZstdDecompressorOutputBytes(const xrtzstddecompressor* pDecompressor);
-XXAPI bool xrtZstdDecompressorFinished(const xrtzstddecompressor* pDecompressor);
-XXAPI uint64 xrtZstdDecompressorMembers(const xrtzstddecompressor* pDecompressor);
-XXAPI const xrtzstderror* xrtZstdDecompressorError(const xrtzstddecompressor* pDecompressor);
-XXAPI void xrtZstdDecompressorDestroy(xrtzstddecompressor* pDecompressor);
+XRT_API xrtzstddecompressor* xrtZstdDecompressorCreate(const xrtzstdoptions* pOptions);
+XRT_API bool xrtZstdDecompressorUpdate(xrtzstddecompressor* pDecompressor, const void* pData, size_t iSize);
+XRT_API bool xrtZstdDecompressorFinish(xrtzstddecompressor* pDecompressor);
+XRT_API bool xrtZstdDecompressorDrain(xrtzstddecompressor* pDecompressor, xwriter* pWriter);
+XRT_API xbuffer* xrtZstdDecompressorTakeBuffer(xrtzstddecompressor* pDecompressor);
+XRT_API xbuffer* xrtZstdDecompressorDrainBuffer(xrtzstddecompressor* pDecompressor);
+XRT_API uint64 xrtZstdDecompressorInputBytes(const xrtzstddecompressor* pDecompressor);
+XRT_API uint64 xrtZstdDecompressorOutputBytes(const xrtzstddecompressor* pDecompressor);
+XRT_API bool xrtZstdDecompressorFinished(const xrtzstddecompressor* pDecompressor);
+XRT_API uint64 xrtZstdDecompressorMembers(const xrtzstddecompressor* pDecompressor);
+XRT_API const xrtzstderror* xrtZstdDecompressorError(const xrtzstddecompressor* pDecompressor);
+XRT_API void xrtZstdDecompressorDestroy(xrtzstddecompressor* pDecompressor);
 
-XXAPI bool xrtZstdCompress(const void* pData, size_t iSize, const xrtzstdoptions* pOptions,
-	xbuffer* pOutput, xrtzstderror* pError);
-XXAPI bool xrtZstdDecompress(const void* pData, size_t iSize, const xrtzstdoptions* pOptions,
-	xbuffer* pOutput, xrtzstderror* pError);
-XXAPI bool xrtZstdCompressStream(xreader pReader, xwriter pWriter, const xrtzstdoptions* pOptions,
-	xrtzstderror* pError);
-XXAPI bool xrtZstdDecompressStream(xreader pReader, xwriter pWriter, const xrtzstdoptions* pOptions,
-	xrtzstderror* pError);
+XRT_API bool xrtZstdCompress(const void* pData, size_t iSize, const xrtzstdoptions* pOptions,
+	xbuffer** ppOutput, xrtzstderror* pError);
+XRT_API bool xrtZstdDecompress(const void* pData, size_t iSize, const xrtzstdoptions* pOptions,
+	xbuffer** ppOutput, xrtzstderror* pError);
+XRT_API bool xrtZstdCompressStream(xreader* pReader, xwriter* pWriter, const xrtzstdoptions* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtzstderror* pError);
+XRT_API bool xrtZstdDecompressStream(xreader* pReader, xwriter* pWriter, const xrtzstdoptions* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtzstderror* pError);
 
 #ifdef __cplusplus
 }

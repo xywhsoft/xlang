@@ -1,0 +1,41 @@
+extern "xqr_matrix" func __qr_matrix(string text, string level) as var
+extern "xqr_version" func __qr_version(string text, string level) as int
+extern "xqr_ascii" func __qr_ascii(string text, string level, string dark, string light) as string
+extern "xqr_utf8" func __qr_utf8(string text, string level) as string
+extern "xqr_svg" func __qr_svg(string text, string level, int border, int scale) as string
+
+
+
+// matrix 生成二维码模块矩阵，返回行数组的数组，每个元素为 0/1
+// level 取 "L"/"M"/"Q"/"H"；文本为空、纠错级别非法或内容过长抛 ValueError
+export func matrix(string text, string level) as var
+    var r = __qr_matrix(text, level)
+    if r == null then
+        throw ValueError "qr: cannot encode text (empty input, bad level, or too long)"
+    end
+    return r
+end
+
+// version 返回将要使用的版本号 1-40；不满足时报错
+export func version(string text, string level) as int
+    int v = __qr_version(text, level)
+    if v <= 0 then
+        throw ValueError "qr: cannot encode text"
+    end
+    return v
+end
+
+// ascii 用给定明暗字符渲染二维码（默认可传空串使用 "##" 与 "  "）
+export func ascii(string text, string level, string dark, string light) as string
+    return __qr_ascii(text, level, dark, light)
+end
+
+// utf8 用半块字符渲染，两行模块合并为一行输出
+export func utf8(string text, string level) as string
+    return __qr_utf8(text, level)
+end
+
+// svg 生成矢量图；border 为静区模块数，scale 为每模块像素
+export func svg(string text, string level, int border, int scale) as string
+    return __qr_svg(text, level, border, scale)
+end

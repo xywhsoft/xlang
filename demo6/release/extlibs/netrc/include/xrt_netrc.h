@@ -1,6 +1,17 @@
 #ifndef XRT_NETRC_H
 #define XRT_NETRC_H
 
+/* NETRC 公共契约直接依赖 Value、连续缓冲和通用 Reader/Writer。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+#ifndef XRT_MODULE_VALUE
+#define XRT_MODULE_VALUE
+#endif
+
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -37,20 +48,20 @@ typedef struct {
 	char sMessage[256];
 } xrtnetrcerror;
 
-XXAPI void xrtNetrcOptionsInit(xrtnetrcoptions* pOptions);
-XXAPI void xrtNetrcErrorInit(xrtnetrcerror* pError);
-XXAPI xvalue xrtNetrcParse(xreader pReader, bool bTakeOwnership,
+XRT_API void xrtNetrcOptionsInit(xrtnetrcoptions* pOptions);
+XRT_API void xrtNetrcErrorInit(xrtnetrcerror* pError);
+XRT_API xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError);
-XXAPI xvalue xrtNetrcParseMemory(const void* pData, uint64 iSize,
+XRT_API xvalue* xrtNetrcParseMemory(const void* pData, uint64 iSize,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError);
-XXAPI xvalue xrtNetrcLoad(str sPath, const xrtnetrcoptions* pOptions,
+XRT_API xvalue* xrtNetrcLoad(str sPath, const xrtnetrcoptions* pOptions,
 	xrtnetrcerror* pError);
-XXAPI xbuffer xrtNetrcStringify(xvalue pDocument,
+XRT_API xbuffer* xrtNetrcStringify(xvalue* pDocument,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError);
-XXAPI bool xrtNetrcWrite(xvalue pDocument, xwriter pWriter,
+XRT_API bool xrtNetrcWrite(xvalue* pDocument, xwriter* pWriter,
 	bool bTakeOwnership, const xrtnetrcoptions* pOptions,
 	xrtnetrcerror* pError);
-XXAPI bool xrtNetrcSave(str sPath, xvalue pDocument,
+XRT_API bool xrtNetrcSave(str sPath, xvalue* pDocument,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError);
 
 #ifdef __cplusplus

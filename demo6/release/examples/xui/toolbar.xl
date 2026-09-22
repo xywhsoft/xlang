@@ -1,0 +1,38 @@
+// toolbar.xl — 工具栏：Toolbar 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Toolbar Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Toolbar bar = xui.Toolbar(ctx)
+    bar.setPreferredSize(780.0, 44.0)
+
+    xui.Button btnNew = xui.Button(ctx, "New", font)
+    bar.addChild(btnNew)
+
+    xui.Button btnOpen = xui.Button(ctx, "Open", font)
+    bar.addChild(btnOpen)
+
+    xui.Separator sep = xui.Separator(ctx)
+    bar.addChild(sep)
+
+    xui.Button btnSave = xui.Button(ctx, "Save", font)
+    bar.addChild(btnSave)
+
+    root.addChild(bar)
+
+    xui.Label body = xui.Label(ctx, "Main content below the toolbar", font)
+    root.addChild(body)
+
+    g_app.run(onFrame)
+    return 0
+end

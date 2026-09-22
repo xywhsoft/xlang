@@ -1,0 +1,1376 @@
+{
+  "format": "xlang-extlib-review-refresh-1",
+  "generatedAt": "2026-09-05T18:03:28.0516405+08:00",
+  "platform": "Windows x64",
+  "backend": "default XLIR",
+  "scope": "132 focused and package-declared cases; not whole-ecosystem production certification",
+  "unchangedAcrossRun": true,
+  "binariesBefore": [
+    {
+      "path": "release/xl.exe",
+      "sha256": "3AEFD2C274B8A1385254CCBD8A2BF5B0C30615787C5145B737F3877B95BCE114"
+    },
+    {
+      "path": "release/xl.dll",
+      "sha256": "BE65FAD90F729A49B885B026DA8F86D4A2015A179C3D0AC341F932DBE90F2559"
+    },
+    {
+      "path": "release/xlc.dll",
+      "sha256": "C2D1AEB819FCAD3671C97BC442F317A918F09FEEB6AA27F3FA472BB73AE8ED80"
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "B92768CBCD746E2A2524F53223A60C4D6E41C97F4C2E47537E120CC47B7BC84F"
+    }
+  ],
+  "binariesAfter": [
+    {
+      "path": "release/xl.exe",
+      "sha256": "3AEFD2C274B8A1385254CCBD8A2BF5B0C30615787C5145B737F3877B95BCE114"
+    },
+    {
+      "path": "release/xl.dll",
+      "sha256": "BE65FAD90F729A49B885B026DA8F86D4A2015A179C3D0AC341F932DBE90F2559"
+    },
+    {
+      "path": "release/xlc.dll",
+      "sha256": "C2D1AEB819FCAD3671C97BC442F317A918F09FEEB6AA27F3FA472BB73AE8ED80"
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "B92768CBCD746E2A2524F53223A60C4D6E41C97F4C2E47537E120CC47B7BC84F"
+    }
+  ],
+  "summary": {
+    "total": 132,
+    "passed": 94,
+    "failed": 38,
+    "timeout": 0,
+    "recovered": 0,
+    "regressed": 0
+  },
+  "results": [
+    {
+      "case": "test/cases/extlib_semver.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.074,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "B27C22F6B410750F6F7AB345AA52A4C6D00FC4BA15EE8FF292474A5660BE18C4"
+    },
+    {
+      "case": "test/cases/extlib_color.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.061,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "623408866BEC5D5633EC381F7E2D5A99E37D5AEAB3A163FAC3ADAD610446886A"
+    },
+    {
+      "case": "test/cases/extlib_ansi.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.052,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "1F314831C1F62E16789B7F18B8BAB08D64E2CF7EC7C541080E9C9E249C7D4C17"
+    },
+    {
+      "case": "test/cases/extlib_statistics.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.097,
+      "stdout": "",
+      "stderr": "uncaught xlang error: TypeError: value has an incompatible type\n",
+      "sourceSha256": "D11107F865AEC74B92E63B6A064624AF1C19E1FF33FD0F22335EAAEE6DBED5B9"
+    },
+    {
+      "case": "test/cases/extlib_json_patch.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.092,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "19E6A3DDF3D1DE7DBDB3488DC18FC8FE62566CD8CD1D4A9AABC0111350B4875D"
+    },
+    {
+      "case": "test/cases/extlib_rss.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.078,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "F2AA045C91E145808B1AC6A8812E91069B421911EA900A29BB03739C30CF37D4"
+    },
+    {
+      "case": "test/cases/extlib_cli.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.073,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6_xrt_os_args'\n",
+      "sourceSha256": "D198C992702409A8AD3B11DD0068C59EC05F104AB5108E79E16B79D22F49280E"
+    },
+    {
+      "case": "test/cases/extlib_shellwords.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "02FC9AD7E8B49A236FE0C461A7550869655F491765C049029A54241A7EAE08D7"
+    },
+    {
+      "case": "test/cases/extlib_units.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.051,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "DEEF6AA5145B5EBFB4951811865BBA02BB37622AAAC9E408ADA7E128C0B26B8E"
+    },
+    {
+      "case": "test/cases/extlib_sitemap.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "EBCC5C97444E9057774EFAF8B54B4DED4BD3AE6B42474A003C94A154328101EC"
+    },
+    {
+      "case": "test/cases/extlib_srt.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.072,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "61A5B9C9B03C2E5DA3219246EBCFFFBBB66316E6FA2F4A790E0CBFD34784C496"
+    },
+    {
+      "case": "test/cases/extlib_qr.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.095,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "681B6A9D61E7B7EF28384065F9263F5C75B9482667C8808A30E00A8D441D1C6F"
+    },
+    {
+      "case": "test/cases/extlib_graph.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.082,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "1A37FC1F894B3286E78DDB4BFCAE22317965467E34B7B594FBB8C8FFDE2414AA"
+    },
+    {
+      "case": "test/cases/extlib_money.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.078,
+      "stdout": "share 1 = $22.35\r\nshare 2 = $22.34\r\nshare 3 = $22.34\r\nshare 4 = $22.34\r\n",
+      "stderr": "",
+      "sourceSha256": "AD83F1AC1E40F53A2E4D53023EC0D04893859F7FD873A207BBA47B37D0699372"
+    },
+    {
+      "case": "test/cases/extlib_gettext.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.055,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "2CFC198AC6816C0594131D9DE4853F462B68185EC2DC5A5AE7F5CD3484C2F2B3"
+    },
+    {
+      "case": "test/cases/extlib_ical.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.067,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "C57471D67055CC01B2DA0D092E556B119E21C31501583FF4C192EC0269A321AE"
+    },
+    {
+      "case": "test/cases/extlib_barcode.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.074,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "0402B85F8E552409792F92C3342D9CB59A9A71EFE2A2B983AFF778A2FC05E6B9"
+    },
+    {
+      "case": "test/cases/extlib_redis.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.118,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "898519AA97984F70EB97162BEDF5AE133FBCCE9A72C02389785769093FAC6B2F"
+    },
+    {
+      "case": "test/cases/extlib_ntp.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.064,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "7E7338971B8F23D1513CA977EBB280C3F44E6D7EFB87972E10700A4A9967D665"
+    },
+    {
+      "case": "test/cases/extlib_socks.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.066,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "6FD5D298BB3D0E70973D1B9120AB60F756667138B3D5E310B3ABBD4F9216B6DD"
+    },
+    {
+      "case": "test/cases/extlib_xssh.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.2,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "027A6017B47BF0489D99B7910AD22651C7CEC23793801A3692F3C17A1356AC7E"
+    },
+    {
+      "case": "test/cases/extlib_xmail.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.448,
+      "stdout": "",
+      "stderr": "tcc: __xlvfs__/module.c:1681: error: identifier expected\n",
+      "sourceSha256": "83D668DE792BFFEA41CDAA26FA9D66C32549E21CD671B7F3DB953AE9FFD7E43C"
+    },
+    {
+      "case": "test/cases/extlib_xregex.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.281,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "FC68ECADBBABC3A35D9D77FFE03FC035DBD484AFAD3544726C9487DB91837A82"
+    },
+    {
+      "case": "test/cases/extlib_modbus.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.114,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "60FF48EC8FAA4BE82F0851333F82FE5A3CDA3927B35C3A250ED8685AB68BCFE8"
+    },
+    {
+      "case": "test/cases/extlib_oauth2.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.066,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "E989D4B2CEF94A9B0E68A3CAF0D62E408BCEDED597787BAB6CBC759CC80A6ED1"
+    },
+    {
+      "case": "test/cases/extlib_epub.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.071,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "173C54F0A5D0C7B87912DC99788F5E00A13D43D92A664303D61416B528358C9A"
+    },
+    {
+      "case": "test/cases/extlib_mqtt.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.136,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "EF77814974277BC561D97CBE2D8C195CC94DFCB097D5D07D63B6D7A7DF7712FE"
+    },
+    {
+      "case": "test/cases/extlib_memcached.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.116,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "13183E565C7582161C95500FD293970E81ACBCF379CB97A6C4DFD26DF672230C"
+    },
+    {
+      "case": "test/cases/extlib_vcard.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.067,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "6A90056D893234443FC7731F0224490B142FA8C0DE3C1EB1E2641F8FDA1A55CD"
+    },
+    {
+      "case": "test/cases/extlib_slugify.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.053,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "AE7F74A73AD62E05DA477AE27C9B5C5020FF8985AE5B3E65E6AA247F4904DED3"
+    },
+    {
+      "case": "test/cases/extlib_aho_corasick.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 3,
+      "seconds": 0.592,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "6E49588BB7FA3629F72590184958F58735E993ECB222C64C2C1AF8F0FD1D76E5"
+    },
+    {
+      "case": "test/cases/extlib_argon2.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 1.084,
+      "stdout": "auto-salt:  $argon2id$v=19$m=64,t=2,p=1$63ze8MWI/zXwJKGXw7agBg$poFKg4YshMpV2ttKVp3zVUSbsl+9LP95r+BG+m+Ogf0\r\nargon2: all tests passed\r\n",
+      "stderr": "",
+      "sourceSha256": "7E26A577D384B0B05180CC24384411827B3245028460D6136473B431959F4480"
+    },
+    {
+      "case": "test/cases/extlib_blake2.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.238,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "957AC065EA75429DE10196B7C3DF5FC770F10F92E1CE31AB42472776B1959662"
+    },
+    {
+      "case": "test/cases/extlib_blake3.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.167,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "5C926F59BA6348409EEC64E0D8EEF71FB4BD2342E22D6E5BD75356421B3112F7"
+    },
+    {
+      "case": "test/cases/extlib_bloom.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.266,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "C125B878B9DC39189ADF98F8DEFFC00827FC63C5C4B62C56B572C2EE7E44F14B"
+    },
+    {
+      "case": "test/cases/extlib_brotli.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.587,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "2852A624D7E7176B3688B64CCAD96DF21E1BFE24BE606871EDFAE4CE6FFBC865"
+    },
+    {
+      "case": "test/cases/extlib_bson.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.095,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6_xrt_time_from_unix'\n",
+      "sourceSha256": "2FA5A4AB8E548260909E317B87E762CB9F072772FE4F550833D5616C02B8AB3E"
+    },
+    {
+      "case": "test/cases/extlib_bz2.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.421,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "7CF19BB0C200AD68E79DB97EAAD7FEDB942FBE50C18D538B290441308755BDA6"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 2.018,
+      "stdout": "",
+      "stderr": "uncaught xlang error: FileError: the callable entry failed\ntcc: D:/GIT/x-lang/demo6/release/extlibs/siphash/siphash_native.c:89: warning: assignment from incompatible pointer type\n",
+      "sourceSha256": "D5954BB8FE63D3CFFF6DD3029AD7C7876825696F456B6BD9D66B95654856D3A7"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress_cancel.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 1.963,
+      "stdout": "",
+      "stderr": "uncaught xlang error: FileError: the callable entry failed\ntcc: D:/GIT/x-lang/demo6/release/extlibs/siphash/siphash_native.c:89: warning: assignment from incompatible pointer type\n",
+      "sourceSha256": "FEE2222098F642D9FA2B5EDECBE1BFAA65F1A2F54EB0D1DF5D9AB68E105B1EB8"
+    },
+    {
+      "case": "test/cases/extlib_lz4.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.217,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "402F5DA59F4D625FE2156702858C4E7823B7FC6A062AC92DD1D4AFE66836659C"
+    },
+    {
+      "case": "test/cases/extlib_lzma.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.285,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "7A567E6A0C21B9BDF4CA82DACC3C8B0CF00A7B89F505E0C91419CC1F305A65A8"
+    },
+    {
+      "case": "test/cases/extlib_miniz.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.216,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "D9067EA898D0BF2C91BBCF48372DAAF34D8A830908365841132A9E29C2277536"
+    },
+    {
+      "case": "test/cases/extlib_murmur3.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.162,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "F3F2330827C95E4DE769ADEA1B4D80FEE43957360FBBCC285C6320953280AD20"
+    },
+    {
+      "case": "test/cases/extlib_sha3.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.184,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "C8B85FAFEAA7181A2A4690CA3A2522A7928C6C44CC3577D002757411661437E0"
+    },
+    {
+      "case": "test/cases/extlib_siphash.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.179,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "E3923B2BBDA5386B61879180BE1DEC83BF28AC83807BEFA5093D57E2A82A2E0C"
+    },
+    {
+      "case": "test/cases/extlib_snappy.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.194,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "919C555E1096372822ADB40C6D4E38D34784221EECF61EC9D5A2BD896280F819"
+    },
+    {
+      "case": "test/cases/extlib_xxhash.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.147,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "B487A43577D7074DED7B55083F67B11E2B1F62F30493F91DA2A9EBDCB179B8E8"
+    },
+    {
+      "case": "test/cases/extlib_zstd.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.387,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "2025F51D410A2B1CDADE46FEAB7C2DA61E4CD74D027008194354F756DACC6FA5"
+    },
+    {
+      "case": "test/cases/extlib_plist.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.769,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "49A61B0C8FC1D1B6554F390CC472CE7092FCB20D551936DBF9E1C3C144CA053D"
+    },
+    {
+      "case": "test/cases/extlib_onnxruntime.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.137,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "842589DA8BA5AAB7002D66BC4094F78EF2C60ED405B4062DFABFE58A2BB10955"
+    },
+    {
+      "case": "test/cases/extlib_rapidocr.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 1.35,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "3BBB2C8084111CC1B2A83040660D5AE024109EDB69C4538231F53E1840EF1D97"
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 12.498,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6ExtlibErrorClear'\n",
+      "sourceSha256": "A8CA733E3BE9C6D039EC7F4FE44FF19FBAC0798203C07327CA80E85A102626A9"
+    },
+    {
+      "case": "test/cases/extlib_css.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.066,
+      "stdout": "",
+      "stderr": "uncaught xlang error: IOError: CSS comment is not terminated\n",
+      "sourceSha256": "8AC659AC433F69236CB2F725F5F46E939D14682A17EE6DB2207991D65CE0E576"
+    },
+    {
+      "case": "test/cases/extlib_consistent_hash.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.062,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "824AE450EE9067A5C76A2A45281393A9DCC4BAECC89F91B4B976278800D508D3"
+    },
+    {
+      "case": "test/cases/extlib_crontab.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.047,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "FAA59552244A37026860F979411E3401B0B3371D4AB5E4A3316697CDE31A0768"
+    },
+    {
+      "case": "test/cases/extlib_diff.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.059,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "D0CE4B9050BD94405A434C03D97CF707B4395EBCEB7D676E5CF26A61CB5A93F7"
+    },
+    {
+      "case": "test/cases/extlib_fuzzy.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.045,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "7F45CAD6BA01D7FB94596F7210C006E8C55A0929406551961D76D926B3468C1C"
+    },
+    {
+      "case": "test/cases/extlib_fix.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.063,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "61ED09337C2A72A63F3330FE738664F27F09BE30F7552A4C20B354F69C9E0501"
+    },
+    {
+      "case": "test/cases/extlib_geohash.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.049,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "C3301AE6EFDA105C5A52C957E29982F88B12F89ED5B2B52665C4DF55B7801BA2"
+    },
+    {
+      "case": "test/cases/extlib_hyperloglog.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.068,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "6E31A73CBEF8B04ECAFCB0C48FD2DD31A55FDFB2F99C35128191774AEA148789"
+    },
+    {
+      "case": "test/cases/extlib_hcl.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.068,
+      "stdout": "",
+      "stderr": "uncaught xlang error: IOError: HCL string is not terminated\n",
+      "sourceSha256": "DB7B0ED6D9B2123B0D1E0782FD81E3FEE6917E1F523A38198762C29EF5778F45"
+    },
+    {
+      "case": "test/cases/extlib_lru.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "505E3224A36D9025D89BB89C76551C3C28F4ABEEC6861B2FB55D2852B0A30A7A"
+    },
+    {
+      "case": "test/cases/extlib_trie.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.066,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "E4D064963EB0ABB47FA8D259362F8479FABC60F8185CFFA591DCD2C913B8EAFD"
+    },
+    {
+      "case": "test/cases/extlib_cuckoo.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.064,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "4EEE12741525DCEEAB50331FF14ED175DEB78D777A42F8AF2630FA8FE9B27B15"
+    },
+    {
+      "case": "test/cases/extlib_dotenv.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.053,
+      "stdout": "",
+      "stderr": "tcc: __xlvfs__/module.c:940: error: identifier expected\n",
+      "sourceSha256": "FF8209C31C364F29BCE3D88DF9DD9D45B9B7D0A4586E37C29B83795AAD9D7332"
+    },
+    {
+      "case": "test/cases/extlib_chardet.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.069,
+      "stdout": "",
+      "stderr": "uncaught xlang error: ValueError: invalid argument\n",
+      "sourceSha256": "EDD9F25BB22397F9BACB8BEDBAC847DBF90A670779DAF73064DED316F60CCB12"
+    },
+    {
+      "case": "test/cases/extlib_langdetect.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.064,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "E7292C4BEB51C064563BB6462FA3A9359795AD6365287F84481DC15DC72E829C"
+    },
+    {
+      "case": "test/cases/extlib_terraform_state.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.065,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "A62D296BB3EFA1489982219D19416BCA7B0091124A07D0658305510DDF2C3855"
+    },
+    {
+      "case": "test/cases/extlib_imagehash.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.09,
+      "stdout": "imagehash case ok\r\n",
+      "stderr": "",
+      "sourceSha256": "B75A55D586BB4FD822C120CD406AE7BF0851A91E8D30BDCC6EF25D44C15DCF04"
+    },
+    {
+      "case": "test/cases/extlib_md4c.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.091,
+      "stdout": "md4c case ok\r\n",
+      "stderr": "uncaught xlang error: FileError: failed to open the file\ntcc: D:/GIT/x-lang/demo6/release/extlibs/md4c/third_party/md4c/md4c.c:2596: warning: function might return no value: 'md_opener_stack'\n",
+      "sourceSha256": "606C0032CBA3D9D86E198D76AD9E9654AA1995099CB169E53D70CF5342D9BE98"
+    },
+    {
+      "case": "test/cases/extlib_sqlite.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.202,
+      "stdout": "sqlite case ok\r\n",
+      "stderr": "",
+      "sourceSha256": "EF2DA4978E1458A4D3B81F6C833521032629501426B6FBBFCC2AB7E8FBEC33EB"
+    },
+    {
+      "case": "test/cases/extlib_jwt.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.074,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "F014C7CC4CFEFC17B61D5958DF57FA6784B865FC04D39A669100745D4CD519DA"
+    },
+    {
+      "case": "test/cases/extlib_dns.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.074,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "BD78446FA7606D701277FC2CA2A8404AF501B82ED299D0C1078ACDF79FD79670"
+    },
+    {
+      "case": "test/cases/extlib_cbor.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.09,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "169459EC07793E0508BB9B79A91C2C88E02ACC18E2C299B41FA26ADDE2B3EEA8"
+    },
+    {
+      "case": "test/cases/extlib_pkcs.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "stdout": "",
+      "stderr": "uncaught xlang error: IOError: DER set elements are not in canonical order\n",
+      "sourceSha256": "8EF8CB9FFA75879B7E6C4A8B311AF3EA918804994D481CFC69695B9B08E89DB6"
+    },
+    {
+      "case": "test/cases/extlib_linalg.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.079,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "94F63D1863EFC18F10CD2990E1F6C308C134DFB73A7469036402349070B39071"
+    },
+    {
+      "case": "test/cases/extlib_csv.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 3,
+      "seconds": 0.486,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "F2A5A5F1CCF8C2CD08FAD7115696E54E4CCE25A97B2781B8A50B67BF87169900"
+    },
+    {
+      "case": "test/cases/extlib_ini.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.23,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "56507A17C5E38E08092F70B194432BF025A26580DABB4726563224445C458BF5"
+    },
+    {
+      "case": "test/cases/extlib_gzip.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.13,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "35D4D912AE9905CD159FEF00298B2A4815AA8A1FBDDE0C8A587BECEBFADF263D"
+    },
+    {
+      "case": "test/cases/extlib_tar_p2.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 1.031,
+      "stdout": "P2 PAX/GNU tests passed!",
+      "stderr": "",
+      "sourceSha256": "D3A871E94E55AD3CB4CE8704441A9F6081AEB183497B4F78ADF1505AC9D53164"
+    },
+    {
+      "case": "test/cases/extlib_zip.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 1.291,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "DE9A8DBAAAEFFD4059B2E500BC99873A87A3F2396BBA0F470574BC6DCF5D84F6"
+    },
+    {
+      "case": "test/cases/extlib_netrc.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.202,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "C662945CBF108D699ED709AFD9AAD53030F77EEA0A9D542EC17C5FCC230F434B"
+    },
+    {
+      "case": "test/cases/extlib_toml.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.252,
+      "stdout": "",
+      "stderr": "uncaught xlang error: ValueError: invalid argument\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/toml/toml_native.c:1:\nD:/GIT/x-lang/demo6/release/extlibs/toml/xrt_toml_internal.h:4: warning: XRT_MODULE_ALL redefined\n",
+      "sourceSha256": "C66D1AF94B183A49B76781A257C9400EEF12A45A530B1B72D67F3EAEC304ECFA"
+    },
+    {
+      "case": "test/cases/extlib_xml_sax.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.283,
+      "stdout": "",
+      "stderr": "uncaught xlang error: AssertionError: malformed XML must throw XmlError\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/xml.sax/xml_sax_native.c:1:\nD:/GIT/x-lang/demo6/release/extlibs/xml.sax/xrt_xml_internal.h:4: warning: XRT_MODULE_ALL redefined\n",
+      "sourceSha256": "498B04A8CBB56C85DDB82D68DF18FC96E2B06D3BAEBF5EC8B3C83E0BD12EBFF4"
+    },
+    {
+      "case": "test/cases/extlib_xml_dom.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.45,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "BE07EB5C35DB57636B3075FD8ABF16E2DD524C71789425753F8B01D6B5D956EF"
+    },
+    {
+      "case": "test/cases/extlib_xml_etree.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.443,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "67324DF2102E01886FA01825ED12581F350EC33488AB9DC366B599827E7180F0"
+    },
+    {
+      "case": "test/cases/extlib_xbot.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.042,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "A43EF81F9921730FFEE6104B6CDB54E6470EE47538717EA1D38E028AB4039D25"
+    },
+    {
+      "case": "test/cases/extlib_xbot_agent.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.214,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6_xrt_dir_list'\n",
+      "sourceSha256": "F1F651BB862563E68DDF67BDB5CE171CBF1CF32D7758BC23E280C98167936B71"
+    },
+    {
+      "case": "test/cases/extlib_dinov3.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.365,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "AD78890B5E9EDFE53990562C7EFF13B72EEC77AAC5735002596C3610EEA892BB"
+    },
+    {
+      "case": "test/cases/extlib_xfeat.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.527,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "1DD33C22E03AF257CA0C026A43DD3A3A71A60A633A7591F4DA4402D000E36F10"
+    },
+    {
+      "case": "test/cases/extlib_stb_image.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.052,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "498DDDE858D9A4B11906D1B1E2FAF8CC40B7AD6F1AC37946609ADB4B26A7C898"
+    },
+    {
+      "case": "test/cases/extlib_stb_image_resize2.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.095,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "15358E38CA53516B617E93B4795FBC3D85987B1F46875CB83CC171CEE9BC2AA8"
+    },
+    {
+      "case": "test/cases/extlib_stb_image_write.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.046,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "49056455BB18C44B9FBB4100998477D6A83D653EC73AFD4CED26E16F5002E586"
+    },
+    {
+      "case": "test/cases/extlib_stb_truetype.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.053,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "8570A8BDF3631198043EDF60189C46B65EBEC15C36E48FB0ADDBEB95CF027A26"
+    },
+    {
+      "case": "test/cases/extlib_opencv.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.101,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "A7A27E847C2055038E189C041D7DB1CD43E8D3BCFE695E9BED9030F71FF20149"
+    },
+    {
+      "case": "test/cases/extlib_skiplist.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.062,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "C5524B152D8ED8AAF0DD098D9FD4CAAA1CDEA5A73EC1DF714B9E058A089842B8"
+    },
+    {
+      "case": "test/cases/extlib_rtree.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.053,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "58F84CA371BEB14BB89FAFB8B7C93C23CC30BAFAB874F5373D64E415E7EAC1B2"
+    },
+    {
+      "case": "test/cases/extlib_roaring.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.061,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "FCE6ABA2EEA7EFC2D5420FDF739F88E828B6D07F94B103C57578D3FF5B0720B6"
+    },
+    {
+      "case": "test/cases/extlib_totp.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.047,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "873BEAC86207374F09844A9C754ABF4EA016E1D1A69C1BCD2B35050F46143805"
+    },
+    {
+      "case": "test/cases/extlib_pinyin.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.042,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "A107AA21F3C508F50597BA023722C64C8B238C8F1C24BC6EBD6EDF0684FDC3BD"
+    },
+    {
+      "case": "test/cases/extlib_json5.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.043,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "EF1654AA3C6FCB9FCCE5631ED71CF8FF53420A97F1B29F0C8ED3BD1566F995D5"
+    },
+    {
+      "case": "test/cases/extlib_msgpack.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.076,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "59A5D8822BD44D5B88B6769D41B35DF2E8FC188904DEA715D29700D374A570AE"
+    },
+    {
+      "case": "test/cases/extlib_yaml.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.046,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "E55264AD3D804CD2890AD03B195D8333463CB55901C5E13CB7C2CB33EC703585"
+    },
+    {
+      "case": "test/cases/extlib_tabulate.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.059,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "24647891CE530B6C4B5A32FEB54E6FE5AD778BE68C57A6AA34362A0225E16C40"
+    },
+    {
+      "case": "test/cases/extlib_progress.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.061,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "03769AD188F5E975BDEB22E6372350EEBABFD042F24B5336E9A8E1D88596A769"
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 3,
+      "seconds": 1.083,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "D2E89C4B95B7638DFBFA46E7349A12E6383DCA39AA6987C2B4F45B86D1BD5F36"
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.843,
+      "stdout": "",
+      "stderr": "uncaught xlang error: ValueError: invalid value\n",
+      "sourceSha256": "EE8680EA4D6561D601427F6E4477D85733F08DD24705A7F0FA0D67BDAF0FEC37"
+    },
+    {
+      "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.273,
+      "stdout": "xhttp.body package ok\r\n",
+      "stderr": "",
+      "sourceSha256": "21134BE6A8483DCD4F25962DA207117C2FCD37C3D4289122C5B05367A302DA60"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.045,
+      "stdout": "",
+      "stderr": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n",
+      "sourceSha256": "73CBBD8F4E13B006FB26E24ED9B8CFCA61C0AC466FA624AC70A9CE1966E1AD58"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.073,
+      "stdout": "",
+      "stderr": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl:152:5: [checked] XLIR async task ABI requires a result ownership ABI and explicit task-frame captures\n",
+      "sourceSha256": "4D70A8C9713CA608098F1AE4C59734CAA333A287BCA560BA24F47C15E6DB2E09"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 1.362,
+      "stdout": "xhttp.body_decode package ok\r\n",
+      "stderr": "",
+      "sourceSha256": "4C859A9E083898C9BC855FF411792D0ED47D9BAF2630013B2E6B1C751156731B"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "stdout": "",
+      "stderr": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n",
+      "sourceSha256": "63CBC498B8B5EEC04790BEF382493A71290ABC002C921326F18B7B4C17E06F2D"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.075,
+      "stdout": "",
+      "stderr": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n",
+      "sourceSha256": "12E0561488E5BCF439452AE474316CA7A7DEE35F459B3AE36B263F3009248054"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 12.976,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6ExtlibErrorClear'\n",
+      "sourceSha256": "98F8B0B9EDBDE054D627B18C61F0F697786CE2B8BDEE2FBBB7BC741B6606C7E0"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 12.641,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6ExtlibErrorClear'\n",
+      "sourceSha256": "17756356BADACD123D9A19A833278DFDF2C17DB3220AAB5B3154EAAF13FFF02F"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 7.07,
+      "stdout": "",
+      "stderr": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl:266:1: [checked] XLIR async suspension result ABI is not admitted\n",
+      "sourceSha256": "E4804F2EF25649EB9293BE1D375FA6B0255C0D51E84C902C8178BAA0B9646215"
+    },
+    {
+      "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 3,
+      "seconds": 3.922,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "DFEC5106B8983AEE4989C0F8C1E4DE9463FBA245FE836DA13FBB7FF909CF561E"
+    },
+    {
+      "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 2.289,
+      "stdout": "xhttp.multipart package ok\r\n",
+      "stderr": "",
+      "sourceSha256": "8207952CB1DBB28CC3E842599F9BF0964FA62DF77F73D61DB72A51DFC431F89C"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.789,
+      "stdout": "",
+      "stderr": "uncaught xlang error: ValueError: invalid value\n",
+      "sourceSha256": "F22FA4E7B5AC3630DDFAB90E369EB39EB692A3AB85729CE5BE2014CF6CF5E3CF"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 3,
+      "seconds": 0.966,
+      "stdout": "",
+      "stderr": "",
+      "sourceSha256": "7F48CD4518DE5E3FD83A004EB11752567F3D8AFDF2ADCBFD4FDD034263F70E36"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.733,
+      "stdout": "xhttp.protocol MIME package ok\r\n",
+      "stderr": "",
+      "sourceSha256": "26141D8C11AF3A824B8F1C39E61CB01C689354CDA743E392B08F12D6A0876029"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 1.894,
+      "stdout": "",
+      "stderr": "tcc: __xlvfs__/module.c:292: error: struct/union/enum already defined\n",
+      "sourceSha256": "5449E74FAC876F74824DC88AD03960AB6D0192FBB7718469D7404A164B76AA8B"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 1.088,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to 'xl6ExtlibErrorClear'\n",
+      "sourceSha256": "2FD34171CCACAAAF30B778EBC3380F89ED5F4270515229310EC11432FA6EA238"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 1.456,
+      "stdout": "",
+      "stderr": "tcc: __xlvfs__/module.c:300: error: struct/union/enum already defined\n",
+      "sourceSha256": "03BAFB688A1013CDF46C7AA68E03AF1F4DEC6564BB7F8653B07763DCC46BC047"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.487,
+      "stdout": "",
+      "stderr": "tcc: __xlvfs__/module.c:2305: error: identifier expected\n",
+      "sourceSha256": "2731E4484817638E7F9E4AF64096B8D4EC983CCFDAD11E6987C8DDB61940BC51"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_smtp_loopback_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.411,
+      "stdout": "",
+      "stderr": "release/extlibs/xmail/test/xmail_smtp_loopback_test.xl:68:1: [checked] XLIR async runtime instruction ABI is not admitted\n",
+      "sourceSha256": "FCFCCA244648531F8E35F3096FAD88F74CF53AE57533E3C13E49BFDD3CD85674"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_pop3_loopback_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.457,
+      "stdout": "",
+      "stderr": "release/extlibs/xmail/test/xmail_pop3_loopback_test.xl:72:1: [checked] XLIR async runtime instruction ABI is not admitted\n",
+      "sourceSha256": "199140681DEDAAD9794D4310D93CE265D14B0DA06C7625763B376D01CCE0A54C"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_imap_loopback_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.458,
+      "stdout": "",
+      "stderr": "release/extlibs/xmail/test/xmail_imap_loopback_test.xl:69:1: [checked] XLIR async runtime instruction ABI is not admitted\n",
+      "sourceSha256": "E370A9324D837F1ED5621C532982B37B281EECD6CC20D28A1A71420E7D82F7D5"
+    },
+    {
+      "case": "release/extlibs/xregex/test/xregex_test.xl",
+      "status": "failed",
+      "previousStatus": "failed",
+      "exitCode": 1,
+      "seconds": 0.454,
+      "stdout": "",
+      "stderr": "uncaught xlang error: ValueError: RegexSet patterns must be an array of strings\ntcc: D:/GIT/x-lang/demo6/release/extlibs/xregex/xregex_native.c:1: warning: XRT_MODULE_ERROR_FORMAT redefined\n",
+      "sourceSha256": "CBDCD68227FD338158CC80D5D99F37CE9B0253F3A0BE25402400D0DD3DB1F5BE"
+    },
+    {
+      "case": "release/extlibs/xssh/test/xssh_test.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.356,
+      "stdout": "xssh package ok\r\n",
+      "stderr": "",
+      "sourceSha256": "47FE0D4FF44A5BDB1103928D7700888DA432D093A41B7FE8E64D96E7E278CEBB"
+    },
+    {
+      "case": "release/extlibs/xbot/test/xbot_test.xl",
+      "status": "passed",
+      "previousStatus": "passed",
+      "exitCode": 0,
+      "seconds": 0.043,
+      "stdout": "xbot package test ok\r\n",
+      "stderr": "",
+      "sourceSha256": "D28CCFB826C7D5006BAFFCABAE18591F002429127F6DC9D2CDF27FD6CCA71385"
+    }
+  ],
+  "inventory": "extlib_reassessment_2026-09-05_1803.inventory.json",
+  "serialSupplement": "extlib_serial_2026-09-05_1804.results.json"
+}

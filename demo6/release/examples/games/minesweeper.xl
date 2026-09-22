@@ -1,0 +1,338 @@
+// minesweeper.xl — 扫雷（鼠标经典游戏）
+// 左键翻开，右键插旗，16x16 / 40 雷，R 重开，ESC 退出。
+// 无头冒烟：xl run minesweeper.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int COLS = 16
+int ROWS = 16
+int MINES = 40
+int CELL = 30
+int NCELL = 256                     // COLS * ROWS
+int HUD_H = 56
+int W = 480                         // COLS * CELL
+int H = 536                         // HUD_H + ROWS * CELL
+
+// --- 游戏状态 ---
+array<int> mines = [0]              // 0=无雷 1=雷
+array<int> state = [0]              // 0=未开 1=已开 2=旗
+array<int> counts = [0]             // 预计算的相邻雷数
+int gameState = 0                   // 0=进行中 1=WIN 2=GAME OVER
+bool firstClick = true              // 首点保护
+int openedCount = 0
+int flagCount = 0
+int boomIdx = -1                    // 踩中的雷（红色高亮）
+bool wasClicked = false             // 左键边沿检测
+bool wasFlagged = false             // 右键边沿检测
+xge.Font hudFont
+xge.Font numFont
+Random rng = Random(uint64(40), uint64(7))
+
+// --- 初始化 ---
+func reset()
+    while mines.length < NCELL
+        mines.append(0)
+        state.append(0)
+        counts.append(0)
+    end
+    int i = 0
+    while i < NCELL
+        mines[i] = 0
+        state[i] = 0
+        counts[i] = 0
+        i += 1
+    end
+    placeMines()
+    computeCounts()
+    gameState = 0
+    firstClick = true
+    openedCount = 0
+    flagCount = 0
+    boomIdx = -1
+end
+
+func placeMines()
+    int placed = 0
+    while placed < MINES
+        int idx = int(rng.u32()) % NCELL
+        if mines[idx] == 0 then
+            mines[idx] = 1
+            placed += 1
+        end
+    end
+end
+
+func computeCounts()
+    int i = 0
+    while i < NCELL
+        counts[i] = 0
+        int r = i / COLS
+        int c = i % COLS
+        int dr = -1
+        while dr <= 1
+            int dc = -1
+            while dc <= 1
+                if not (dr == 0 and dc == 0) then
+                    int nr = r + dr
+                    int nc = c + dc
+                    if nr >= 0 and nr < ROWS and nc >= 0 and nc < COLS then
+                        counts[i] += mines[nr * COLS + nc]
+                    end
+                end
+                dc += 1
+            end
+            dr += 1
+        end
+        i += 1
+    end
+end
+
+// 首点保护：第一次点到雷则把雷移到最靠前的空格
+func moveMine(int idx)
+    mines[idx] = 0
+    int i = 0
+    while i < NCELL
+        if mines[i] == 0 then
+            mines[i] = 1
+            computeCounts()
+            return
+        end
+        i += 1
+    end
+end
+
+// --- 交互 ---
+// 洪泛展开：显式栈（head 指针出栈，避免深递归）
+func reveal(int startIdx)
+    array<int> stack = [startIdx]
+    int head = 0
+    while head < stack.length
+        int cur = stack[head]
+        head += 1
+        if state[cur] == 0 then
+            state[cur] = 1
+            openedCount += 1
+            if counts[cur] == 0 then
+                // 空白格才向 8 邻域扩散
+                int r = cur / COLS
+                int c = cur % COLS
+                int dr = -1
+                while dr <= 1
+                    int dc = -1
+                    while dc <= 1
+                        if not (dr == 0 and dc == 0) then
+                            int nr = r + dr
+                            int nc = c + dc
+                            if nr >= 0 and nr < ROWS and nc >= 0 and nc < COLS then
+                                int n = nr * COLS + nc
+                                if state[n] == 0 and mines[n] == 0 then
+                                    stack.append(n)
+                                end
+                            end
+                        end
+                        dc += 1
+                    end
+                    dr += 1
+                end
+            end
+        end
+    end
+    if openedCount == NCELL - MINES then
+        gameState = 1
+    end
+end
+
+func explode(int idx)
+    boomIdx = idx
+    gameState = 2
+    // 踩雷后全部翻开
+    int i = 0
+    while i < NCELL
+        if mines[i] == 1 then
+            state[i] = 1
+        end
+        i += 1
+    end
+end
+
+func toggleFlag(int idx)
+    if state[idx] == 0 then
+        state[idx] = 2
+        flagCount += 1
+    else
+        if state[idx] == 2 then
+            state[idx] = 0
+            flagCount -= 1
+        end
+    end
+end
+
+func handleInput()
+    bool clicked = xge.Input.mouseLeftDown() and not wasClicked
+    wasClicked = xge.Input.mouseLeftDown()
+    bool rclicked = xge.Input.mouseRightDown() and not wasFlagged
+    wasFlagged = xge.Input.mouseRightDown()
+
+    if gameState != 0 then
+        return
+    end
+
+    int mx = int(xge.Input.mouseX())
+    int my = int(xge.Input.mouseY())
+    bool inside = mx >= 0 and mx < W and my >= HUD_H and my < H
+    if not inside then
+        return
+    end
+    int idx = ((my - HUD_H) / CELL) * COLS + mx / CELL
+
+    if clicked then
+        if firstClick then
+            firstClick = false
+            if mines[idx] == 1 then
+                moveMine(idx)
+            end
+        end
+        if state[idx] == 0 then
+            if mines[idx] == 1 then
+                explode(idx)
+            else
+                reveal(idx)
+            end
+        end
+    end
+    if rclicked then
+        toggleFlag(idx)
+    end
+end
+
+// --- 绘制 ---
+func numColor(int n) as uint32
+    if n == 1 then
+        return xge.Color.rgba(40, 110, 245, 255)
+    end
+    if n == 2 then
+        return xge.Color.rgba(60, 160, 70, 255)
+    end
+    if n == 3 then
+        return xge.Color.rgba(225, 70, 62, 255)
+    end
+    if n == 4 then
+        return xge.Color.rgba(30, 55, 180, 255)
+    end
+    if n == 5 then
+        return xge.Color.rgba(146, 92, 40, 255)
+    end
+    if n == 6 then
+        return xge.Color.rgba(40, 165, 165, 255)
+    end
+    if n == 7 then
+        return xge.Color.rgba(15, 15, 18, 255)
+    end
+    return xge.Color.rgba(120, 126, 136, 255)
+end
+
+func drawMine(int x, int y, uint32 c)
+    int cx = x + CELL / 2
+    int cy = y + CELL / 2
+    xge.Shape.line(float(cx - 9), float(cy), float(cx + 9), float(cy), 2.0, c)
+    xge.Shape.line(float(cx), float(cy - 9), float(cx), float(cy + 9), 2.0, c)
+    xge.Shape.circleFill(float(cx), float(cy), 6.5, c)
+end
+
+func drawFlag(int x, int y)
+    int cx = x + CELL / 2
+    xge.Shape.line(float(cx - 3), float(y + 7), float(cx - 3), float(y + 23), 2.0, xge.Color.rgba(220, 226, 235, 255))
+    xge.Shape.rectFillPixels(cx - 3, y + 7, 9, 8, xge.Color.rgba(235, 90, 70, 255))
+    xge.Shape.rectFillPixels(x + 8, y + 24, CELL - 16, 2, xge.Color.rgba(200, 206, 216, 255))
+end
+
+func draw()
+    // HUD
+    xge.Shape.rectFillPixels(0, 0, W, HUD_H, xge.Color.rgba(18, 24, 32, 255))
+    if hudFont.valid then
+        string msg = gameState == 1 ? "WIN! - press R" : (gameState == 2 ? "BOOM - press R" : "MINES " + string(MINES - flagCount))
+        hudFont.drawText(msg, 12, 16, xge.Color.rgba(79, 216, 194, 255))
+        hudFont.drawText("L/R click = open/flag", W - 230, 16, xge.Color.rgba(100, 112, 128, 255))
+    end
+
+    // 棋盘
+    int i = 0
+    while i < NCELL
+        int x = (i % COLS) * CELL
+        int y = HUD_H + (i / COLS) * CELL
+        if state[i] == 0 or state[i] == 2 then
+            // 未开：轻微棋盘格底色
+            uint32 cc = ((i / COLS) + (i % COLS)) % 2 == 0 ? xge.Color.rgba(58, 68, 86, 255) : xge.Color.rgba(51, 60, 76, 255)
+            xge.Shape.rectFillPixels(x, y, CELL, CELL, cc)
+            if state[i] == 2 then
+                drawFlag(x, y)
+            end
+        else
+            // 已开：浅灰
+            xge.Shape.rectFillPixels(x, y, CELL, CELL, xge.Color.rgba(170, 177, 189, 255))
+            if mines[i] == 1 then
+                // 输了以后雷全部翻开：踩中的红底
+                if i == boomIdx then
+                    xge.Shape.rectFillPixels(x, y, CELL, CELL, xge.Color.rgba(200, 60, 50, 255))
+                end
+                drawMine(x, y, xge.Color.rgba(20, 20, 24, 255))
+            else
+                if counts[i] > 0 and numFont.valid then
+                    numFont.drawText(string(counts[i]), float(x + 11), float(y + 5), numColor(counts[i]))
+                end
+            end
+        end
+        i += 1
+    end
+
+    // 网格线
+    int gx = 0
+    while gx <= COLS
+        xge.Shape.line(float(gx * CELL), float(HUD_H), float(gx * CELL), float(H), 1.0, xge.Color.rgba(13, 17, 22, 255))
+        gx += 1
+    end
+    int gy = 0
+    while gy <= ROWS
+        xge.Shape.line(0.0, float(HUD_H + gy * CELL), float(W), float(HUD_H + gy * CELL), 1.0, xge.Color.rgba(13, 17, 22, 255))
+        gy += 1
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    if xge.Input.keyPressed(82) then
+        reset()
+    end
+    if gameState == 0 then
+        handleInput()
+    end
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run minesweeper.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(W, H, "xlang minesweeper")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+    numFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 16.0)
+    if not numFont.valid then
+        numFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 16.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

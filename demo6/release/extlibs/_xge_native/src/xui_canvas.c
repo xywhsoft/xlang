@@ -281,30 +281,10 @@ static int __xuiCanvasViewportEvent(xui_widget pViewport, const xui_event_t* pEv
 	return XUI_OK;
 }
 
-static int __xuiCanvasLayoutMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
-{
-	xui_canvas_data_t* pData;
-
-	(void)pWidget;
-	pData = (xui_canvas_data_t*)pUser;
-	if ( (pData == NULL) || (pData->pFrame == NULL) || (pSize == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	return xuiWidgetMeasure(pData->pFrame, tConstraint, pSize);
-}
-
-static int __xuiCanvasLayoutArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
-{
-	xui_canvas_data_t* pData;
-
-	(void)pWidget;
-	pData = (xui_canvas_data_t*)pUser;
-	if ( (pData == NULL) || (pData->pFrame == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	return xuiWidgetArrange(pData->pFrame, tContentRect);
-}
-
 static void __xuiCanvasDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_CONTENT;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -389,7 +369,9 @@ static int __xuiCanvasInit(xui_widget pWidget, void* pTypeData, const void* pCre
 		pData->pFrame = NULL;
 		return iRet;
 	}
-	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_ABSOLUTE);
+	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pFrame, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pFrame, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	iRet = xuiScrollFrameSetChange(pData->pFrame, __xuiCanvasFrameChanged, pWidget);
 	if ( iRet != XUI_OK ) return iRet;
 	pData->pViewport = xuiScrollFrameGetViewportWidget(pData->pFrame);
@@ -463,8 +445,6 @@ XUI_API xui_widget_type xuiCanvasGetType(xui_context pContext)
 	tDesc.iTypeDataSize = sizeof(xui_canvas_data_t);
 	tDesc.onInit = __xuiCanvasInit;
 	tDesc.onDestroy = __xuiCanvasDestroy;
-	tDesc.onLayoutMeasure = __xuiCanvasLayoutMeasure;
-	tDesc.onLayoutArrange = __xuiCanvasLayoutArrange;
 	__xuiCanvasDefaultLayout(&tDesc.tLayout);
 	__xuiCanvasDefaultCachePolicy(&tDesc.tCachePolicy);
 	iRet = xuiWidgetRegisterType(pContext, &pType, &tDesc);

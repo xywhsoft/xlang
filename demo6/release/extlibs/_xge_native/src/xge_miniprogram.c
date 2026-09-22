@@ -43,6 +43,31 @@ static void __xgeMiniProgramResourceProviderAdd(void)
 	(void)xgeResourceProviderAdd(&tProvider);
 }
 
+static void __xgeMiniProgramSetDimensions(int iWidth, int iHeight, float fDevicePixelRatio)
+{
+	int iFramebufferWidth;
+	int iFramebufferHeight;
+
+	iFramebufferWidth = (int)floorf((float)iWidth * fDevicePixelRatio);
+	iFramebufferHeight = (int)floorf((float)iHeight * fDevicePixelRatio);
+	if ( iFramebufferWidth < 1 ) iFramebufferWidth = 1;
+	if ( iFramebufferHeight < 1 ) iFramebufferHeight = 1;
+	g_xge.iWindowWidth = iWidth;
+	g_xge.iWindowHeight = iHeight;
+	g_xge.iFramebufferWidth = iFramebufferWidth;
+	g_xge.iFramebufferHeight = iFramebufferHeight;
+	g_xge.fDpiScale = fDevicePixelRatio;
+	g_xge.iWidth = iFramebufferWidth;
+	g_xge.iHeight = iFramebufferHeight;
+	g_xge.tPlatformRuntime.iWindowWidth = iWidth;
+	g_xge.tPlatformRuntime.iWindowHeight = iHeight;
+	g_xge.tPlatformRuntime.iFramebufferWidth = iFramebufferWidth;
+	g_xge.tPlatformRuntime.iFramebufferHeight = iFramebufferHeight;
+	g_xge.tPlatformRuntime.fDpiScale = fDevicePixelRatio;
+	g_xge.tCamera.tViewport.fW = (float)iFramebufferWidth;
+	g_xge.tCamera.tViewport.fH = (float)iFramebufferHeight;
+}
+
 int xgeMiniProgramInit(const xge_miniprogram_desc_t* pDesc)
 {
 	xge_platform_backend_t tPlatform;
@@ -55,11 +80,9 @@ int xgeMiniProgramInit(const xge_miniprogram_desc_t* pDesc)
 	if ( g_xge.tMiniProgramDesc.fDevicePixelRatio <= 0.0f ) {
 		g_xge.tMiniProgramDesc.fDevicePixelRatio = 1.0f;
 	}
-	if ( g_xge.tMiniProgramDesc.iWidth > 0 ) {
-		g_xge.iWidth = g_xge.tMiniProgramDesc.iWidth;
-	}
-	if ( g_xge.tMiniProgramDesc.iHeight > 0 ) {
-		g_xge.iHeight = g_xge.tMiniProgramDesc.iHeight;
+	if ( g_xge.tMiniProgramDesc.iWidth > 0 && g_xge.tMiniProgramDesc.iHeight > 0 ) {
+		__xgeMiniProgramSetDimensions(g_xge.tMiniProgramDesc.iWidth,
+			g_xge.tMiniProgramDesc.iHeight, g_xge.tMiniProgramDesc.fDevicePixelRatio);
 	}
 	memset(&tPlatform, 0, sizeof(tPlatform));
 	tPlatform.iType = XGE_PLATFORM_BACKEND_MINIPROGRAM;
@@ -126,10 +149,7 @@ int xgeMiniProgramResize(int iWidth, int iHeight, float fDevicePixelRatio)
 	g_xge.tMiniProgramDesc.iWidth = iWidth;
 	g_xge.tMiniProgramDesc.iHeight = iHeight;
 	g_xge.tMiniProgramDesc.fDevicePixelRatio = fDevicePixelRatio;
-	g_xge.iWidth = iWidth;
-	g_xge.iHeight = iHeight;
-	g_xge.tCamera.tViewport.fW = (float)iWidth;
-	g_xge.tCamera.tViewport.fH = (float)iHeight;
+	__xgeMiniProgramSetDimensions(iWidth, iHeight, fDevicePixelRatio);
 	return XGE_OK;
 }
 
@@ -138,12 +158,17 @@ int xgeMiniProgramTouch(int iPhase, const xge_miniprogram_touch_t* pTouches, int
 	xge_event_t tEvent;
 	xge_touch_event_t tTouch;
 	xge_touch_point_t* pPoint;
+	float fDevicePixelRatio;
+	float fX;
+	float fY;
 	int i;
 	int iIndex;
 
 	if ( (pTouches == NULL) || (iCount < 0) || (iCount > XGE_TOUCH_MAX) ) {
 		return XGE_ERROR_INVALID_ARGUMENT;
 	}
+	fDevicePixelRatio = (g_xge.tMiniProgramDesc.fDevicePixelRatio > 0.0f) ?
+		g_xge.tMiniProgramDesc.fDevicePixelRatio : 1.0f;
 	__xgeTouchResetStationary();
 	for ( i = 0; i < iCount; i++ ) {
 		iIndex = __xgeTouchFindIndex(pTouches[i].iId);
@@ -156,10 +181,12 @@ int xgeMiniProgramTouch(int iPhase, const xge_miniprogram_touch_t* pTouches, int
 			g_xge.arrTouches[iIndex].iId = pTouches[i].iId;
 		}
 		pPoint = &g_xge.arrTouches[iIndex];
-		pPoint->fDX = pTouches[i].fX - pPoint->fX;
-		pPoint->fDY = pTouches[i].fY - pPoint->fY;
-		pPoint->fX = pTouches[i].fX;
-		pPoint->fY = pTouches[i].fY;
+		fX = pTouches[i].fX * fDevicePixelRatio;
+		fY = pTouches[i].fY * fDevicePixelRatio;
+		pPoint->fDX = fX - pPoint->fX;
+		pPoint->fDY = fY - pPoint->fY;
+		pPoint->fX = fX;
+		pPoint->fY = fY;
 		pPoint->iPhase = iPhase;
 		pPoint->bChanged = 1;
 		pPoint->bDown = ((iPhase == XGE_TOUCH_END) || (iPhase == XGE_TOUCH_CANCEL)) ? 0 : 1;
@@ -203,6 +230,13 @@ int xgeMiniProgramTouch(int iPhase, const xge_miniprogram_touch_t* pTouches, int
 		tEvent.fDX = tTouch.arrPoints[0].fDX;
 		tEvent.fDY = tTouch.arrPoints[0].fDY;
 	}
+	for ( i = 0; i < tTouch.iCount; i++ ) {
+		if ( tTouch.arrPoints[i].bChanged == 0 ) continue;
+		__xgeInputQueuePointerEvent(tEvent.iType, tTouch.arrPoints[i].iId,
+			XGE_MOUSE_LEFT, tTouch.arrPoints[i].bDown ? XGE_MOUSE_LEFT : 0u,
+			0u, tTouch.arrPoints[i].fX, tTouch.arrPoints[i].fY,
+			tTouch.arrPoints[i].fDX, tTouch.arrPoints[i].fDY);
+	}
 	xgeSceneDispatchEvent(&tEvent);
 	return XGE_OK;
 }
@@ -225,11 +259,17 @@ int xgeMiniProgramTouchOne(int iPhase, int iId, float fX, float fY, float fForce
 int xgeMiniProgramText(uint32_t iCodepoint)
 {
 	xge_event_t tEvent;
+	xge_input_event_t tInput;
 
 	if ( iCodepoint == 0 ) {
 		return XGE_ERROR_INVALID_ARGUMENT;
 	}
 	__xgeTextPush(iCodepoint);
+	memset(&tInput, 0, sizeof(tInput));
+	tInput.iSize = sizeof(tInput);
+	tInput.iType = XGE_EVENT_TEXT;
+	tInput.iCodepoint = iCodepoint;
+	if ( !__xgeInputEventQueuePush(&tInput) ) return XGE_ERROR_OUT_OF_MEMORY;
 	memset(&tEvent, 0, sizeof(tEvent));
 	tEvent.iType = XGE_EVENT_TEXT;
 	tEvent.iCodepoint = iCodepoint;

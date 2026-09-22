@@ -1,0 +1,33 @@
+// treeview.xl — 树视图：TreeView 控件（多级节点）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "TreeView Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "TreeView Demo", font)
+    root.addChild(title)
+
+    xui.TreeView tree = xui.TreeView(ctx)
+    tree.setFlex(1.0, 1.0)
+
+    // (widget, id, parentId, text)
+    xui.xuiTreeViewAddNode(tree.handle, 1, 0, "src")
+    xui.xuiTreeViewAddNode(tree.handle, 2, 1, "main.xl")
+    xui.xuiTreeViewAddNode(tree.handle, 3, 1, "util.xl")
+    xui.xuiTreeViewAddNode(tree.handle, 4, 0, "docs")
+    xui.xuiTreeViewAddNode(tree.handle, 5, 4, "README.md")
+
+    root.addChild(tree)
+
+    g_app.run(onFrame)
+    return 0
+end

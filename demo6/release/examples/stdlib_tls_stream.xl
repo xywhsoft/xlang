@@ -1,0 +1,59 @@
+func require(string name, bool condition)
+    assert condition, name
+end
+
+
+
+async func run() as int
+    TlsConfig serverConfig = TlsConfig()
+    require(
+        "server identity",
+        serverConfig.certificate(
+            "release/examples/fixtures/tls_cert.pem",
+            "release/examples/fixtures/tls_key.pem"
+        )
+    )
+    require("server alpn", serverConfig.alpn("http/1.1"))
+
+    TlsConfig clientConfig = TlsConfig()
+    clientConfig.verifyPeer(false)
+    require("client host", clientConfig.host("localhost"))
+    require("client alpn", clientConfig.alpn("http/1.1"))
+
+    TlsServer server = tls.listen(0, serverConfig)
+    require("server open", server.state == 0 and server.port > 0)
+
+    future<TlsStream> acceptingAsync = server.acceptAsync()
+    future<TlsStream> connectingAsync = tls.connectAsync(
+        "127.0.0.1",
+        server.port,
+        clientConfig,
+        8000
+    )
+    TlsStream asyncClient = await connectingAsync
+    TlsStream asyncPeer = await acceptingAsync
+    require("async connect", asyncClient.nativeHandle() != null and asyncPeer.nativeHandle() != null)
+    require("async client close", asyncClient.close())
+    require("async peer close", asyncPeer.close())
+
+    future<TlsStream> accepting = server.acceptAsync()
+    TlsStream client = tls.connect("127.0.0.1", server.port, clientConfig, 8000)
+    TlsStream peer = await accepting
+    require("sync connect", client.nativeHandle() != null and peer.nativeHandle() != null)
+
+    future<NetBytes> receiving = peer.recvBytesAsync()
+    require("send", client.send("ping", 8000))
+    NetBytes payload = await receiving
+    require("receive", payload.len() == 4 and payload.text() == "ping")
+
+    require("client close", client.close())
+    require("peer close", peer.close())
+    require("server close", server.close())
+    println("tls-stream=ok")
+    return 0
+end
+
+
+
+int exitCode = await run()
+assert exitCode == 0

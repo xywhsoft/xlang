@@ -1,30 +1,16 @@
 {
-    "native":  {
-                   "singleton":  false,
-                   "loadName":  "",
-                   "version":  ""
-               },
-    "kind":  "demo6-extlib",
-    "version":  "0.1.0",
-    "format":  "xlang-package-1",
-    "dependencies":  [
-
-                     ],
-    "name":  "redis",
-    "links":  [
-                  "ws2_32"
-              ],
-    "artifact":  {
-                     "cSources":  [
-                                      "xredis_tcp_native.c"
-                                  ],
-                     "xlSources":  [
-                                       "src/redis.xl"
-                                   ],
-                     "kind":  "source"
-                 },
-    "loadlibs":  [
-
-                 ],
-    "abiVersion":  "1"
+    "format": "xlang-package-1",
+    "name": "redis",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["redis_native.c"],
+        "xlSources": ["src/redis.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
 }

@@ -1,0 +1,22 @@
+// 与 stdlib_string_boundaries_c.c 输出一致。
+// UTF-8 字符切片与网络协议中的字节计数需要分清单位。
+string text = "A你好B"
+println(string.len(text))
+println(string.byteLen(text))
+println(string.byteAt(text, 1))
+println(string.slice(text, 1, 2))
+println(string.replace(text, "你好", "hello"))
+
+// 协议前后缀可以显式忽略大小写；默认仍是大小写敏感。
+println(int(string.startsWith("Content-Type", "content", true)))
+println(int(string.endsWith("report.TXT", ".txt", true)))
+
+// 拆分保留空片段，所得数组独立拥有内容。
+array parts = string.split("red||你好", "|")
+for part in parts
+    println("[" + string(part) + "]")
+end
+array lines = string.splitLines("first\r\nsecond\nthird")
+for line in lines
+    println(string(line))
+end

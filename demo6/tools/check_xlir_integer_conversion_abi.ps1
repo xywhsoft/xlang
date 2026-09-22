@@ -18,12 +18,10 @@ $typedPath = Join-Path $outputDir "xlir_integer_conversion_source_abi.typed.json
 $loweredPath = Join-Path $outputDir "xlir_integer_conversion_source_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_integer_conversion_source_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_integer_conversion_source_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_integer_conversion_source_abi_legacy.c"
 $narrowTypedPath = Join-Path $outputDir "type_int_narrowing_wrap.typed.json"
 $narrowLoweredPath = Join-Path $outputDir "type_int_narrowing_wrap.lowered.json"
 $narrowGeneratedPath = Join-Path $outputDir "type_int_narrowing_wrap_xlir.c"
 $narrowGeneratedAgainPath = Join-Path $outputDir "type_int_narrowing_wrap_xlir_again.c"
-$narrowLegacyPath = Join-Path $outputDir "type_int_narrowing_wrap_legacy.c"
 
 foreach ( $path in @($xl, $source, $hostSource, $narrowSource, $genericHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -195,23 +193,12 @@ try {
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR integer conversion strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy integer conversion differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_integer_conversion_source_abi_legacy.exe && build\test\xlir_integer_conversion_source_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy integer conversion differential runtime failed" }
-
     $narrowXlirCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include $narrowGeneratedPath $genericHost !XL6_CGEN_LINKS! -o build\test\type_int_narrowing_wrap_xlir.exe && build\test\type_int_narrowing_wrap_xlir.exe"
     & $env:ComSpec /d /v:on /c $narrowXlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR narrow integer strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $narrowSource, "--backend", "legacy", "--emit", $narrowLegacyPath) `
-        "Legacy narrow integer differential Cgen failed"
-    $narrowLegacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $narrowLegacyPath !XL6_CGEN_XLANG_LINKS! -o build\test\type_int_narrowing_wrap_legacy.exe && build\test\type_int_narrowing_wrap_legacy.exe"
-    & $env:ComSpec /d /v:on /c $narrowLegacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy narrow integer differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR integer conversion ABI gate ok: explicit source/target metadata, checked failure CFG, static modulo wrapping, narrow initializer/compound normalization, deterministic mechanical C, strict compile and legacy differential runtime semantics."
+Write-Output "XLIR integer conversion ABI gate ok: explicit source/target metadata, checked failure CFG, static modulo wrapping, narrow initializer/compound normalization, deterministic mechanical C, and strict runtime semantics."

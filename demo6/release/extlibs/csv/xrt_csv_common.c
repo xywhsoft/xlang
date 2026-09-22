@@ -6,7 +6,7 @@
 
 
 
-XXAPI void xrtCsvDialectInit(xrtcsvdialect* pDialect)
+XRT_API void xrtCsvDialectInit(xrtcsvdialect* pDialect)
 {
 	if ( pDialect == NULL ) { return; }
 	memset(pDialect, 0, sizeof(*pDialect));
@@ -15,11 +15,11 @@ XXAPI void xrtCsvDialectInit(xrtcsvdialect* pDialect)
 	pDialect->iDelimiter = ',';
 	pDialect->iQuote = '"';
 	pDialect->iNewline = XRT_CSV_NEWLINE_LF;
-	pDialect->bStrict = TRUE;
+	pDialect->bStrict = true;
 	xrtResourceLimitsInit(&pDialect->tLimits);
 }
 
-XXAPI void xrtCsvErrorInit(xrtcsverror* pError)
+XRT_API void xrtCsvErrorInit(xrtcsverror* pError)
 {
 	if ( pError == NULL ) { return; }
 	memset(pError, 0, sizeof(*pError));
@@ -31,7 +31,7 @@ bool __xrtCsvCopyDialect(xrtcsvdialect* pOutput, const xrtcsvdialect* pInput)
 	if ( pInput != NULL ) {
 		if ( pInput->iVersion != XRT_CSV_DIALECT_VERSION ||
 			pInput->iSize < offsetof(xrtcsvdialect, tLimits) + sizeof(xrtresourcelimits) ) {
-			return FALSE;
+			return false;
 		}
 		memcpy(pOutput, pInput, pInput->iSize < sizeof(*pOutput) ?
 			pInput->iSize : sizeof(*pOutput));
@@ -57,7 +57,9 @@ static void __xrtCsvSetError(xrtcsverror* pError, int iCode, uint64 iRow,
 	pError->iOffset = iOffset;
 	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, tArgs);
 	pError->sMessage[sizeof(pError->sMessage) - 1u] = 0;
-	xrtSetError(xrtCopyStr((str)pError->sMessage, 0u), TRUE);
+	/* 结构化错误保存在 Reader/Writer 上，同时发布到当前 XRT 上下文。 */
+	xrtSetErrorInfo(XERR_STATE, "xlang.extlib.csv", iCode,
+		pError->sMessage);
 }
 
 void __xrtCsvSetReaderError(xrtcsvreader* pReader, int iCode, const char* sFormat, ...)
@@ -68,7 +70,7 @@ void __xrtCsvSetReaderError(xrtcsvreader* pReader, int iCode, const char* sForma
 	__xrtCsvSetError(&pReader->Error, iCode, pReader->RowNumber,
 		pReader->Column, pReader->Offset, sFormat, tArgs);
 	va_end(tArgs);
-	pReader->Failed = TRUE;
+	pReader->Failed = true;
 }
 
 void __xrtCsvSetWriterError(xrtcsvwriter* pWriter, int iCode, const char* sFormat, ...)
@@ -79,25 +81,25 @@ void __xrtCsvSetWriterError(xrtcsvwriter* pWriter, int iCode, const char* sForma
 	__xrtCsvSetError(&pWriter->Error, iCode, pWriter->RowNumber,
 		0u, pWriter->OutputBytes, sFormat, tArgs);
 	va_end(tArgs);
-	pWriter->Failed = TRUE;
+	pWriter->Failed = true;
 }
 
 bool __xrtCsvWriterWriteAll(xrtcsvwriter* pWriter, const void* pData, uint64 iSize)
 {
 	if ( pWriter == NULL || pWriter->Writer == NULL || pWriter->Failed || pWriter->Closed ) {
-		return FALSE;
+		return false;
 	}
 	if ( pWriter->Dialect.tLimits.iMaxOutputBytes != 0u &&
 		(iSize > pWriter->Dialect.tLimits.iMaxOutputBytes ||
 		 pWriter->OutputBytes > pWriter->Dialect.tLimits.iMaxOutputBytes - iSize) ) {
 		__xrtCsvSetWriterError(pWriter, XRT_CSV_ERROR_LIMIT,
 			"CSV output exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	if ( !xrtWriterWriteAll(pWriter->Writer, pData, iSize) ) {
+	if ( !xrtWriterWriteFull(pWriter->Writer, pData, (size_t)iSize, NULL) ) {
 		__xrtCsvSetWriterError(pWriter, XRT_CSV_ERROR_IO, "cannot write CSV stream");
-		return FALSE;
+		return false;
 	}
 	pWriter->OutputBytes += iSize;
-	return TRUE;
+	return true;
 }

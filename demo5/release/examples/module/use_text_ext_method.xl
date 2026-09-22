@@ -1,9 +1,0 @@
-import text_ext_method
-
-func main() as int
-	auto value = "ok".wrap("<", ">").exclaim()
-	if value == "<ok>!" then
-		return 77
-	end
-	return 0
-end

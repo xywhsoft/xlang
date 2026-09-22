@@ -1660,14 +1660,13 @@ static int __xuiTableViewContentMeasure(xui_widget pWidget, xui_vec2_t tConstrai
 	return XUI_OK;
 }
 
-static int __xuiTableViewArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiTableViewPrepare(xui_widget pWidget, void* pUser)
 {
 	xui_table_view_data_t* pData;
 	xui_table_view_data_t tResolved;
-	xui_rect_t tFrame;
+	xui_thickness_t tMargin;
 	int iRet;
 
-	(void)tContentRect;
 	pData = (xui_table_view_data_t*)pUser;
 	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
@@ -1678,10 +1677,25 @@ static int __xuiTableViewArrange(xui_widget pWidget, xui_rect_t tContentRect, vo
 	pData->fDefaultRowHeight = tResolved.fDefaultRowHeight;
 	pData->fHeaderHeight = tResolved.fHeaderHeight;
 	pData->fBorderWidth = tResolved.fBorderWidth;
-	tFrame = __xuiTableViewFrameRect(pWidget, pData);
+	tMargin = (xui_thickness_t){
+		tResolved.fBorderWidth,
+		tResolved.fBorderWidth + tResolved.fHeaderHeight,
+		tResolved.fBorderWidth,
+		tResolved.fBorderWidth
+	};
+	iRet = xuiWidgetSetMargin(pData->pFrame, tMargin);
+	if ( iRet != XUI_OK ) return iRet;
+	return __xuiTableViewApplyFrameStyle(pWidget, pData);
+}
+
+static int __xuiTableViewLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_table_view_data_t* pData;
+	int iRet;
+	(void)tContentRect;
+	pData = (xui_table_view_data_t*)pUser;
+	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	iRet = __xuiTableViewUpdateContentSize(pWidget, pData);
-	if ( iRet == XUI_OK ) iRet = xuiWidgetArrange(pData->pFrame, tFrame);
-	if ( iRet == XUI_OK ) iRet = xuiScrollFrameLayout(pData->pFrame);
 	return iRet;
 }
 
@@ -2087,7 +2101,9 @@ static int __xuiTableViewCreateFrame(xui_widget pWidget, xui_table_view_data_t* 
 		pData->pFrame = NULL;
 		return iRet;
 	}
-	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_ABSOLUTE);
+	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pFrame, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pFrame, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	pData->pViewport = xuiScrollFrameGetViewportWidget(pData->pFrame);
 	if ( pData->pViewport == NULL ) {
 		xuiWidgetDestroy(pData->pFrame);
@@ -2120,7 +2136,7 @@ static int __xuiTableViewInit(xui_widget pWidget, void* pTypeData, const void* p
 	}
 	__xuiTableViewDefaults(pData);
 	__xuiTableViewApplyDesc(pData, pDesc);
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_OVERLAY);
 	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
@@ -2254,7 +2270,8 @@ XUI_API xui_widget_type xuiTableViewGetType(xui_context pContext)
 	tDesc.onInit = __xuiTableViewInit;
 	tDesc.onDestroy = __xuiTableViewDestroy;
 	tDesc.onContentMeasure = __xuiTableViewContentMeasure;
-	tDesc.onLayoutArrange = __xuiTableViewArrange;
+	tDesc.onLayoutPrepare = __xuiTableViewPrepare;
+	tDesc.onLayoutComplete = __xuiTableViewLayoutComplete;
 	tDesc.onCacheRender = __xuiTableViewCacheRender;
 	__xuiTableViewDefaultLayout(&tLayout);
 	__xuiTableViewDefaultCachePolicy(&tPolicy);

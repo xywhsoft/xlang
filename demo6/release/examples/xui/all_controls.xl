@@ -1,0 +1,229 @@
+// all_controls.xl — 全部 53 个控件综合验证
+// 一次性创建所有控件实例，验证 OOP API 完整性
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(1280, 800, "All XUI Controls")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    // === Batch 1: 基础控件 ===
+    xui.Label lbl = xui.Label(ctx, "Label", font)
+    root.addChild(lbl)
+
+    xui.Button btn = xui.Button(ctx, "Button", font)
+    root.addChild(btn)
+
+    xui.Panel pnl = xui.Panel(ctx)
+    root.addChild(pnl)
+
+    xui.CheckBox chk = xui.CheckBox(ctx, "CheckBox", font)
+    root.addChild(chk)
+
+    xui.Radio rad = xui.Radio(ctx, "Radio", font)
+    root.addChild(rad)
+
+    xui.Toggle tog = xui.Toggle(ctx, "Toggle", font)
+    root.addChild(tog)
+
+    xui.Slider sld = xui.Slider(ctx, 0.0, 100.0, 50.0)
+    root.addChild(sld)
+
+    xui.Progress prg = xui.Progress(ctx, 0.0, 100.0, 50.0)
+    root.addChild(prg)
+
+    xui.Separator sep = xui.Separator(ctx)
+    root.addChild(sep)
+
+    xui.Hyperlink hlink = xui.Hyperlink(ctx, "Hyperlink", font)
+    root.addChild(hlink)
+
+    xui.Image img = xui.Image(ctx)
+    root.addChild(img)
+
+    xui.QrCode qr = xui.QrCode(ctx, "Hello XUI")
+    root.addChild(qr)
+
+    xui.StepBar step = xui.StepBar(ctx, 3, 1, font)
+    root.addChild(step)
+
+    xui.RangeSlider rsld = xui.RangeSlider(ctx, 0.0, 100.0, 20.0, 80.0)
+    root.addChild(rsld)
+
+    xui.ScrollBar scbar = xui.ScrollBar(ctx, 0)
+    root.addChild(scbar)
+
+    xui.CheckCard ccard = xui.CheckCard(ctx, "CheckCard", font)
+    root.addChild(ccard)
+
+    // === Batch 2: 容器/布局控件 ===
+    xui.Tabs tabs = xui.Tabs(ctx)
+    root.addChild(tabs)
+
+    xui.Window win = xui.Window(ctx, "Window", font)
+    root.addChild(win)
+
+    xui.Accordion acc = xui.Accordion(ctx)
+    root.addChild(acc)
+
+    xui.Page page = xui.Page(ctx)
+    root.addChild(page)
+
+    xui.Carousel car = xui.Carousel(ctx)
+    root.addChild(car)
+
+    xui.VirtualJoystick vjs = xui.VirtualJoystick(ctx)
+    root.addChild(vjs)
+
+    xui.Breadcrumb bc = xui.Breadcrumb(ctx)
+    root.addChild(bc)
+
+    xui.Canvas cvs = xui.Canvas(ctx)
+    root.addChild(cvs)
+
+    xui.Popup popup = xui.Popup(ctx)
+    root.addChild(popup)
+
+    xui.Menu menu = xui.Menu(ctx)
+    root.addChild(menu)
+
+    xui.MenuBar mbar = xui.MenuBar(ctx)
+    root.addChild(mbar)
+
+    xui.Toolbar tbar = xui.Toolbar(ctx)
+    root.addChild(tbar)
+
+    xui.StatusBar sbar = xui.StatusBar(ctx)
+    root.addChild(sbar)
+
+    xui.ScrollFrame sf = xui.ScrollFrame(ctx)
+    root.addChild(sf)
+
+    xui.ScrollView sv = xui.ScrollView(ctx)
+    root.addChild(sv)
+
+    xui.SplitLayout sl = xui.SplitLayout(ctx, 0)
+    root.addChild(sl)
+
+    xui.MessageList ml = xui.MessageList(ctx)
+    root.addChild(ml)
+
+    // === Batch 3: 数据视图控件 ===
+    xui.ListView lv = xui.ListView(ctx)
+    root.addChild(lv)
+
+    xui.TreeView tv = xui.TreeView(ctx)
+    root.addChild(tv)
+
+    xui.TableView tav = xui.TableView(ctx)
+    root.addChild(tav)
+
+    xui.TableGrid tg = xui.TableGrid(ctx)
+    root.addChild(tg)
+
+    xui.PropertyGrid pg = xui.PropertyGrid(ctx)
+    root.addChild(pg)
+
+    xui.TimeLineView tl = xui.TimeLineView(ctx)
+    root.addChild(tl)
+
+    xui.InventoryGrid ig = xui.InventoryGrid(ctx)
+    root.addChild(ig)
+
+    xui.Terminal term = xui.Terminal(ctx)
+    root.addChild(term)
+
+    // === Batch 4: 复杂控件 ===
+    xui.ComboBox cmb = xui.ComboBox(ctx, font)
+    root.addChild(cmb)
+
+    xui.Cascader cas = xui.Cascader(ctx, font)
+    root.addChild(cas)
+
+    xui.ColorPicker cp = xui.ColorPicker(ctx)
+    root.addChild(cp)
+
+    xui.IconPicker ip = xui.IconPicker(ctx)
+    root.addChild(ip)
+
+    xui.DatePicker dp = xui.DatePicker(ctx, font)
+    root.addChild(dp)
+
+    xui.DockPanel dock = xui.DockPanel(ctx)
+    root.addChild(dock)
+
+    xui.Chart chart = xui.Chart(ctx)
+    root.addChild(chart)
+
+    xui.CodeEdit ce = xui.CodeEdit(ctx, font)
+    root.addChild(ce)
+
+    // === 输入类控件 ===
+    xui.Input inp = xui.Input(ctx, "Input text", font)
+    root.addChild(inp)
+
+    xui.TagInput ti = xui.TagInput(ctx, "Tag", font)
+    root.addChild(ti)
+
+    xui.TextEdit te = xui.TextEdit(ctx, "Text Edit", font)
+    root.addChild(te)
+
+    xui.NumericInput ni = xui.NumericInput(ctx, font)
+    root.addChild(ni)
+
+    xui.RichEdit re = xui.RichEdit(ctx, font)
+    root.addChild(re)
+
+    // === 验证 Widget 通用方法（在 Button 上测试） ===
+    btn.setLayoutType(2)        // ROW
+    btn.setFlex(1.0, 0.0)
+    btn.setAlign(1, 1)          // CENTER
+    btn.setMargin(4.0, 2.0, 4.0, 2.0)
+    btn.setPadding(8.0, 4.0, 8.0, 4.0)
+    btn.setPreferredSize(120.0, 32.0)
+    btn.setEnabled(1)
+    btn.setVisible(1)
+
+    // === 验证控件特定方法 ===
+    chk.setChecked(1)
+    rad.setChecked(1)
+    tog.setChecked(1)
+    sld.setValue(75.0)
+    prg.setValue(80.0)
+
+    // === 辅助对象（模式 B/C） ===
+    xui.MsgBox msgbox = xui.MsgBox(ctx, "Title", "Message content", font)
+    msgbox.setType(1)
+    msgbox.setButtons(1)
+
+    xui.MsgTip msgtip = xui.MsgTip(ctx)
+    msgtip.setText("Tip text")
+
+    xui.Toast toast = xui.Toast(ctx, font)
+    toast.setPlacement(0)
+    toast.show(0, "Hello", "Toast message", 3.0)
+
+    xui.FileDialog fdlg = xui.FileDialog(ctx)
+    fdlg.setFilter("*.txt")
+
+    xui.Path path = xui.Path()
+    path.moveTo(10.0, 10.0)
+    path.lineTo(100.0, 100.0)
+    path.closePath()
+
+    xui.FlowGraph fgraph = xui.FlowGraph()
+    xui.CodeDocument cdoc = xui.CodeDocument()
+    xui.RichDocument rdoc = xui.RichDocument()
+
+    println("All 53 controls + 8 helper objects created successfully")
+
+    g_app.run(onFrame)
+    return 0
+end

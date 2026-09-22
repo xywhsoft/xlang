@@ -4,8 +4,7 @@
 
 str __xrtXmlEtreeCopy(const char* sText)
 {
-	return xrtCopyStr((str)(sText != NULL ? sText : ""),
-		strlen(sText != NULL ? sText : ""));
+	return xrtStrDup(sText != NULL ? sText : "");
 }
 
 void __xrtXmlEtreeSetError(xrtxmlerror* pError, int iCode,
@@ -21,13 +20,13 @@ void __xrtXmlEtreeSetError(xrtxmlerror* pError, int iCode,
 static bool __xrtXmlEtreeValidName(const char* sName)
 {
 	const unsigned char* p = (const unsigned char*)sName;
-	if ( p == NULL || *p == 0u ) { return FALSE; }
+	if ( p == NULL || *p == 0u ) { return false; }
 	while ( *p != 0u ) {
 		if ( *p <= 0x20u || *p == '<' || *p == '>' || *p == '&' ||
-			*p == '\'' || *p == '"' || *p == '/' || *p == '=' ) { return FALSE; }
+			*p == '\'' || *p == '"' || *p == '/' || *p == '=' ) { return false; }
 		p++;
 	}
-	return TRUE;
+	return true;
 }
 
 xrtxmlelement* __xrtXmlEtreeCreateNode(xrtxmldocument* pDocument,
@@ -87,20 +86,20 @@ bool __xrtXmlEtreeAppendNode(xrtxmlelement* pParent,
 	uint32 iCapacity;
 	if ( pParent == NULL || pChild == NULL ||
 		pParent->pDocument != pChild->pDocument || pChild->pParent != NULL ) {
-		return FALSE;
+		return false;
 	}
 	if ( pParent->iChildCount == pParent->iChildCapacity ) {
 		iCapacity = pParent->iChildCapacity != 0u ?
 			pParent->iChildCapacity * 2u : 4u;
 		pItems = (xrtxmlelement**)xrtRealloc(pParent->pChildren,
 			sizeof(xrtxmlelement*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pParent->pChildren = pItems;
 		pParent->iChildCapacity = iCapacity;
 	}
 	pChild->pParent = pParent;
 	pParent->pChildren[pParent->iChildCount++] = pChild;
-	return TRUE;
+	return true;
 }
 
 bool __xrtXmlEtreeAppendText(str* psTarget, const char* sText)
@@ -108,21 +107,21 @@ bool __xrtXmlEtreeAppendText(str* psTarget, const char* sText)
 	size_t iOld;
 	size_t iAdd;
 	char* sResult;
-	if ( psTarget == NULL || sText == NULL ) { return FALSE; }
+	if ( psTarget == NULL || sText == NULL ) { return false; }
 	iOld = *psTarget != NULL ? strlen((const char*)*psTarget) : 0u;
 	iAdd = strlen(sText);
-	if ( iAdd > SIZE_MAX - iOld - 1u ) { return FALSE; }
+	if ( iAdd > SIZE_MAX - iOld - 1u ) { return false; }
 	sResult = (char*)xrtMalloc(iOld + iAdd + 1u);
-	if ( sResult == NULL ) { return FALSE; }
+	if ( sResult == NULL ) { return false; }
 	if ( iOld != 0u ) { memcpy(sResult, *psTarget, iOld); }
 	if ( iAdd != 0u ) { memcpy(sResult + iOld, sText, iAdd); }
 	sResult[iOld + iAdd] = 0;
 	xrtFree(*psTarget);
 	*psTarget = (str)sResult;
-	return TRUE;
+	return true;
 }
 
-XXAPI xrtxmlelement* xrtXmlElementCreate(str sName)
+XRT_API xrtxmlelement* xrtXmlElementCreate(str sName)
 {
 	xrtxmldocument* pDocument;
 	xrtxmlelement* pRoot;
@@ -138,7 +137,7 @@ XXAPI xrtxmlelement* xrtXmlElementCreate(str sName)
 	return pRoot;
 }
 
-XXAPI xrtxmlelement* xrtXmlElementAppend(xrtxmlelement* pParent, str sName)
+XRT_API xrtxmlelement* xrtXmlElementAppend(xrtxmlelement* pParent, str sName)
 {
 	xrtxmlelement* pChild;
 	if ( pParent == NULL || sName == NULL ) { return NULL; }
@@ -151,7 +150,7 @@ XXAPI xrtxmlelement* xrtXmlElementAppend(xrtxmlelement* pParent, str sName)
 	return xrtXmlElementRetain(pChild);
 }
 
-XXAPI xrtxmlelement* xrtXmlElementRetain(xrtxmlelement* pElement)
+XRT_API xrtxmlelement* xrtXmlElementRetain(xrtxmlelement* pElement)
 {
 	if ( pElement == NULL || pElement->pDocument == NULL ||
 		pElement->pDocument->iReferences == UINT32_MAX ) { return NULL; }
@@ -159,7 +158,7 @@ XXAPI xrtxmlelement* xrtXmlElementRetain(xrtxmlelement* pElement)
 	return pElement;
 }
 
-XXAPI void xrtXmlElementRelease(xrtxmlelement* pElement)
+XRT_API void xrtXmlElementRelease(xrtxmlelement* pElement)
 {
 	xrtxmldocument* pDocument;
 	if ( pElement == NULL || pElement->pDocument == NULL ) { return; }
@@ -169,67 +168,67 @@ XXAPI void xrtXmlElementRelease(xrtxmlelement* pElement)
 	xrtFree(pDocument);
 }
 
-XXAPI int xrtXmlElementKind(const xrtxmlelement* pElement)
+XRT_API int xrtXmlElementKind(const xrtxmlelement* pElement)
 {
 	return pElement != NULL ? pElement->iKind : 0;
 }
 
-XXAPI const xrtxmlelement* xrtXmlElementParent(const xrtxmlelement* pElement)
+XRT_API const xrtxmlelement* xrtXmlElementParent(const xrtxmlelement* pElement)
 {
 	return pElement != NULL ? pElement->pParent : NULL;
 }
 
-XXAPI str xrtXmlElementName(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sName : NULL; }
-XXAPI str xrtXmlElementLocalName(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sLocalName : NULL; }
-XXAPI str xrtXmlElementNamespaceUri(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sNamespaceUri : NULL; }
-XXAPI str xrtXmlElementPrefix(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sPrefix : NULL; }
-XXAPI str xrtXmlElementText(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sText : NULL; }
-XXAPI str xrtXmlElementTail(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sTail : NULL; }
+XRT_API str xrtXmlElementName(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sName : NULL; }
+XRT_API str xrtXmlElementLocalName(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sLocalName : NULL; }
+XRT_API str xrtXmlElementNamespaceUri(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sNamespaceUri : NULL; }
+XRT_API str xrtXmlElementPrefix(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sPrefix : NULL; }
+XRT_API str xrtXmlElementText(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sText : NULL; }
+XRT_API str xrtXmlElementTail(const xrtxmlelement* pElement) { return pElement != NULL ? pElement->sTail : NULL; }
 
 static bool __xrtXmlEtreeSetString(str* psTarget, str sText)
 {
 	str sCopy = __xrtXmlEtreeCopy((const char*)(sText != NULL ? sText : (str)""));
-	if ( sCopy == NULL ) { return FALSE; }
+	if ( sCopy == NULL ) { return false; }
 	xrtFree(*psTarget);
 	*psTarget = sCopy;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtXmlElementSetText(xrtxmlelement* pElement, str sText)
+XRT_API bool xrtXmlElementSetText(xrtxmlelement* pElement, str sText)
 {
 	return pElement != NULL && __xrtXmlEtreeSetString(&pElement->sText, sText);
 }
 
-XXAPI bool xrtXmlElementSetTail(xrtxmlelement* pElement, str sText)
+XRT_API bool xrtXmlElementSetTail(xrtxmlelement* pElement, str sText)
 {
 	return pElement != NULL && __xrtXmlEtreeSetString(&pElement->sTail, sText);
 }
 
-XXAPI uint32 xrtXmlElementChildCount(const xrtxmlelement* pElement)
+XRT_API uint32 xrtXmlElementChildCount(const xrtxmlelement* pElement)
 {
 	return pElement != NULL ? pElement->iChildCount : 0u;
 }
 
-XXAPI xrtxmlelement* xrtXmlElementChild(const xrtxmlelement* pElement,
+XRT_API xrtxmlelement* xrtXmlElementChild(const xrtxmlelement* pElement,
 	uint32 iIndex)
 {
 	return pElement != NULL && iIndex < pElement->iChildCount ?
 		xrtXmlElementRetain(pElement->pChildren[iIndex]) : NULL;
 }
 
-XXAPI uint32 xrtXmlElementAttributeCount(const xrtxmlelement* pElement)
+XRT_API uint32 xrtXmlElementAttributeCount(const xrtxmlelement* pElement)
 {
 	return pElement != NULL ? pElement->iAttributeCount : 0u;
 }
 
-XXAPI str xrtXmlElementAttributeName(const xrtxmlelement* pElement,
+XRT_API str xrtXmlElementAttributeName(const xrtxmlelement* pElement,
 	uint32 iIndex)
 {
 	return pElement != NULL && iIndex < pElement->iAttributeCount ?
 		pElement->pAttributes[iIndex].sName : NULL;
 }
 
-XXAPI str xrtXmlElementAttributeValue(const xrtxmlelement* pElement,
+XRT_API str xrtXmlElementAttributeValue(const xrtxmlelement* pElement,
 	uint32 iIndex)
 {
 	return pElement != NULL && iIndex < pElement->iAttributeCount ?
@@ -249,13 +248,13 @@ static int __xrtXmlEtreeAttributeIndex(const xrtxmlelement* pElement,
 	return -1;
 }
 
-XXAPI str xrtXmlElementGetAttribute(const xrtxmlelement* pElement, str sName)
+XRT_API str xrtXmlElementGetAttribute(const xrtxmlelement* pElement, str sName)
 {
 	int i = __xrtXmlEtreeAttributeIndex(pElement, (const char*)sName);
 	return i >= 0 ? pElement->pAttributes[i].sValue : NULL;
 }
 
-XXAPI bool xrtXmlElementSetAttribute(xrtxmlelement* pElement, str sName,
+XRT_API bool xrtXmlElementSetAttribute(xrtxmlelement* pElement, str sName,
 	str sValue)
 {
 	int iIndex;
@@ -263,7 +262,7 @@ XXAPI bool xrtXmlElementSetAttribute(xrtxmlelement* pElement, str sName,
 	xrtxmlattribute* pItem;
 	uint32 iCapacity;
 	if ( pElement == NULL || !__xrtXmlEtreeValidName((const char*)sName) ) {
-		return FALSE;
+		return false;
 	}
 	iIndex = __xrtXmlEtreeAttributeIndex(pElement, (const char*)sName);
 	if ( iIndex >= 0 ) {
@@ -275,7 +274,7 @@ XXAPI bool xrtXmlElementSetAttribute(xrtxmlelement* pElement, str sName,
 			pElement->iAttributeCapacity * 2u : 4u;
 		pItems = (xrtxmlattribute*)xrtRealloc(pElement->pAttributes,
 			sizeof(xrtxmlattribute) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		memset(pItems + pElement->iAttributeCapacity, 0,
 			sizeof(xrtxmlattribute) * (iCapacity - pElement->iAttributeCapacity));
 		pElement->pAttributes = pItems;
@@ -289,16 +288,16 @@ XXAPI bool xrtXmlElementSetAttribute(xrtxmlelement* pElement, str sName,
 	pItem->sValue = __xrtXmlEtreeCopy((const char*)(sValue != NULL ? sValue : (str)""));
 	if ( pItem->sName == NULL || pItem->sLocalName == NULL ||
 		pItem->sNamespaceUri == NULL || pItem->sPrefix == NULL ||
-		pItem->sValue == NULL ) { return FALSE; }
+		pItem->sValue == NULL ) { return false; }
 	pElement->iAttributeCount++;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtXmlElementRemoveAttribute(xrtxmlelement* pElement, str sName)
+XRT_API bool xrtXmlElementRemoveAttribute(xrtxmlelement* pElement, str sName)
 {
 	int iIndex = __xrtXmlEtreeAttributeIndex(pElement, (const char*)sName);
 	xrtxmlattribute* pItem;
-	if ( iIndex < 0 ) { return FALSE; }
+	if ( iIndex < 0 ) { return false; }
 	pItem = &pElement->pAttributes[iIndex];
 	xrtFree(pItem->sName); xrtFree(pItem->sLocalName);
 	xrtFree(pItem->sNamespaceUri); xrtFree(pItem->sPrefix);
@@ -311,13 +310,13 @@ XXAPI bool xrtXmlElementRemoveAttribute(xrtxmlelement* pElement, str sName)
 	pElement->iAttributeCount--;
 	memset(&pElement->pAttributes[pElement->iAttributeCount], 0,
 		sizeof(xrtxmlattribute));
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlEtreeNameMatches(const xrtxmlelement* pElement,
 	const char* sName, size_t iSize)
 {
-	return pElement != NULL && (iSize == 1u && sName[0] == '*' ? TRUE :
+	return pElement != NULL && (iSize == 1u && sName[0] == '*' ? true :
 		strlen((const char*)pElement->sName) == iSize &&
 		memcmp(pElement->sName, sName, iSize) == 0);
 }
@@ -336,7 +335,7 @@ static xrtxmlelement* __xrtXmlEtreeFindDescendant(
 	return NULL;
 }
 
-XXAPI xrtxmlelement* xrtXmlElementFind(const xrtxmlelement* pElement,
+XRT_API xrtxmlelement* xrtXmlElementFind(const xrtxmlelement* pElement,
 	str sPath)
 {
 	const char* p = (const char*)sPath;
@@ -370,34 +369,37 @@ XXAPI xrtxmlelement* xrtXmlElementFind(const xrtxmlelement* pElement,
 }
 
 static bool __xrtXmlEtreeCollect(const xrtxmlelement* pElement,
-	const char* sName, size_t iSize, xvalue pResult, bool bRecursive)
+	const char* sName, size_t iSize, xvalue* pResult, bool bRecursive)
 {
 	uint32 i;
 	for ( i = 0u; pElement != NULL && i < pElement->iChildCount; i++ ) {
 		xrtxmlelement* pChild = pElement->pChildren[i];
-		if ( __xrtXmlEtreeNameMatches(pChild, sName, iSize) &&
-			!xvoArrayAppendPoint(pResult, xrtXmlElementRetain(pChild)) ) {
-			return FALSE;
+		if ( __xrtXmlEtreeNameMatches(pChild, sName, iSize) ) {
+			xvalue* pValue = xrtValuePointer(xrtXmlElementRetain(pChild));
+			if ( pValue == NULL || !xrtValueArrayAppendTake(pResult, &pValue) ) {
+				xrtValueRelease(pValue);
+				return false;
+			}
 		}
 		if ( bRecursive && !__xrtXmlEtreeCollect(pChild, sName, iSize,
-			pResult, TRUE) ) { return FALSE; }
+			pResult, true) ) { return false; }
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI xvalue xrtXmlElementFindAll(const xrtxmlelement* pElement, str sPath)
+XRT_API xvalue* xrtXmlElementFindAll(const xrtxmlelement* pElement, str sPath)
 {
 	const char* p = (const char*)sPath;
 	bool bRecursive;
-	xvalue pResult;
+	xvalue* pResult;
 	if ( pElement == NULL || p == NULL || *p == 0 ) { return NULL; }
 	bRecursive = p[0] == '/' && p[1] == '/';
 	if ( bRecursive ) { p += 2; }
 	if ( strchr(p, '/') != NULL ) { return NULL; }
-	pResult = xvoCreateArray();
+	pResult = xrtValueArray();
 	if ( pResult == NULL || !__xrtXmlEtreeCollect(pElement, p, strlen(p),
 		pResult, bRecursive) ) {
-		xvoUnref(pResult);
+		xrtValueRelease(pResult);
 		return NULL;
 	}
 	return pResult;

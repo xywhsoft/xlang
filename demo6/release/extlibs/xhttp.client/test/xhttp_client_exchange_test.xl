@@ -1,0 +1,139 @@
+import xhttp
+import xhttp.protocol
+from xhttp.protocol import Headers
+import xhttp.client
+from xhttp.client import Request, Http1RequestPlan, Http1Exchange
+from xhttp.client import Http1Output, Http1FeedResult, Response
+from xhttp.client import HTTP1_OUTPUT_DATA, HTTP1_OUTPUT_DONE
+from xhttp.client import HTTP1_FEED_MORE, HTTP1_FEED_DONE, HTTP1_FEED_UPGRADED
+from xhttp.client import REQUEST_BODY_NONE
+
+
+
+// 使用很小的输出窗口压实借出、短写确认和终态切换。
+func drain(Http1Exchange exchange) as Buffer
+    Buffer wire = Buffer()
+    int guard = 0
+    while guard < 1024
+        Http1Output output = exchange.takeOutput(7)
+        if output.status == HTTP1_OUTPUT_DATA then
+            Buffer data = output.data as Buffer
+            assert data.len() > 0
+            assert data.len() <= 7
+            assert wire.append(data)
+        else
+            assert output.status == HTTP1_OUTPUT_DONE
+            return wire
+        end
+        guard += 1
+    end
+    assert false
+    return wire
+end
+
+
+
+func main(...) as int
+    Request request = Request.make(
+        "GET", "https://example.test/api?q=1")
+    request.setHeader("Accept", "text/plain")
+
+    Http1RequestPlan plan = request.prepare()
+    assert plan.valid
+    assert plan.method == "GET"
+    assert plan.url == "https://example.test/api?q=1"
+    assert plan.target == "/api?q=1"
+    assert plan.host == "example.test"
+    assert plan.port == 443
+    assert plan.secure
+    assert plan.bodyMode == REQUEST_BODY_NONE
+    assert plan.bodyLength == 0
+    assert plan.body() == null
+    assert string.contains(plan.head.text(), "GET /api?q=1 HTTP/1.1\r\n")
+    assert plan.endBytes.len() == 0
+
+    Http1Exchange exchange = plan.open()
+    assert exchange.valid
+    assert not plan.valid
+    Buffer wire = drain(exchange)
+    assert string.contains(wire.text(), "Host: example.test\r\n")
+    assert string.contains(wire.text(), "Accept: text/plain\r\n")
+    assert exchange.requestComplete
+    assert exchange.requestWireBytes == wire.len()
+
+    Buffer first = Buffer()
+    assert first.append(
+        "HTTP/1.1 200 OK\r\n" +
+        "Content-Type: text/plain\r\n" +
+        "Transfer-Encoding: chunked\r\n" +
+        "Trailer: X-End\r\n\r\n" +
+        "5\r\nhe")
+    Http1FeedResult firstResult = exchange.feed(first)
+    assert firstResult.status == HTTP1_FEED_MORE
+    assert firstResult.accepted == first.len()
+
+    Buffer second = Buffer()
+    assert second.append("llo\r\n0\r\nX-End: yes\r\n\r\n")
+    Http1FeedResult secondResult = exchange.feed(second)
+    assert secondResult.status == HTTP1_FEED_DONE
+    assert secondResult.accepted == second.len()
+    assert exchange.responseComplete
+    assert exchange.reusable
+    assert exchange.informationalCount == 0
+
+    Response response = exchange.takeResponse()
+    assert response.valid
+    assert response.version == 11
+    assert response.status == 200
+    assert response.success
+    assert response.reason == "OK"
+    assert response.url == request.url
+    assert response.parsedUrl.host() == "example.test"
+    assert response.redirects == 0
+    assert response.headerCount == 3
+    assert response.trailerCount == 1
+    assert (response.header("content-type") ?? "") == "text/plain"
+    assert (response.trailer("x-end") ?? "") == "yes"
+    assert response.bodyBytes == 5
+    assert response.wireBodyBytes == 5
+    assert response.text() == "hello"
+
+    Headers responseHeaders = response.headers()
+    Headers responseTrailers = response.trailers()
+    assert responseHeaders.count == 3
+    assert responseTrailers.count == 1
+    assert (responseTrailers.get("X-End") ?? "") == "yes"
+
+    Request upgradeRequest = Request.make(
+        "GET", "http://example.test/socket")
+    upgradeRequest.setHeader("Connection", "Upgrade")
+    upgradeRequest.setHeader("Upgrade", "websocket")
+    Http1Exchange upgrade = upgradeRequest.prepare().open()
+    drain(upgrade)
+
+    Buffer switching = Buffer()
+    assert switching.append(
+        "HTTP/1.1 101 Switching Protocols\r\n" +
+        "Connection: Upgrade\r\n" +
+        "Upgrade: websocket\r\n\r\n" +
+        "raw")
+    Http1FeedResult upgradeResult = upgrade.feed(switching)
+    assert upgradeResult.status == HTTP1_FEED_UPGRADED
+    assert upgrade.upgraded
+    assert not upgrade.reusable
+    assert switching.len() - upgradeResult.accepted == 3
+    assert upgrade.remainder().len() == 0
+    Response upgradeResponse = upgrade.takeResponse()
+    assert upgradeResponse.status == 101
+
+    bool invalidTarget = false
+    try
+        request.prepare(5, "/bad target")
+    catch RuntimeError error
+        invalidTarget = true
+    end
+    assert invalidTarget
+
+    println("xhttp.client HTTP/1 plan, exchange and response ok")
+    return 0
+end

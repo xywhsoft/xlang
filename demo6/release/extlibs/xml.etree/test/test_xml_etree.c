@@ -1,3 +1,6 @@
+/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_xml_etree.h"
 
 #include <stdio.h>
@@ -14,9 +17,8 @@ int main(void)
 	xrtxmlelement* pRoot;
 	xrtxmlelement* pItem;
 	xrtxmlelement* pInvalid;
-	xbuffer pText;
+	xbuffer* pText;
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	xrtXmlOptionsInit(&tOptions);
 	pRoot = xrtXmlElementParseMemory(sXml, strlen(sXml), &tOptions, &tError);
 	pItem = pRoot != NULL ? xrtXmlElementFind(pRoot, (str)"p:item") : NULL;
@@ -29,9 +31,9 @@ int main(void)
 		xrtXmlElementChildCount(pRoot) == 2u;
 	xrtXmlElementWriteOptionsInit(&tWrite);
 	pText = bOk ? xrtXmlElementStringify(pRoot, &tWrite, &tError) : NULL;
-	bOk = bOk && pText != NULL && xrtBufferAppend(pText, "\0", 1u, XBUF_BINARY) &&
-		strstr((const char*)pText->Buffer, "xmlns:p=\"urn:test\"") != NULL &&
-		strstr((const char*)pText->Buffer, "changed &amp; safe") != NULL;
+	bOk = bOk && pText != NULL && xrtBufferAppendByte(pText, 0u) &&
+		strstr((const char*)pText->Data, "xmlns:p=\"urn:test\"") != NULL &&
+		strstr((const char*)pText->Data, "changed &amp; safe") != NULL;
 	pInvalid = xrtXmlElementParseMemory("<root><x></root>",
 		strlen("<root><x></root>"), &tOptions, &tError);
 	bOk = bOk && pInvalid == NULL && tError.iCode == XRT_XML_ERROR_FORMAT;
@@ -44,7 +46,6 @@ int main(void)
 	xrtBufferDestroy(pText);
 	xrtXmlElementRelease(pItem);
 	xrtXmlElementRelease(pRoot);
-	xrtUnit();
 	if ( bOk ) { puts("test_xml_etree: PASS"); }
 	else { fprintf(stderr, "test_xml_etree: %s\n", tError.sMessage); }
 	return bOk ? 0 : 2;

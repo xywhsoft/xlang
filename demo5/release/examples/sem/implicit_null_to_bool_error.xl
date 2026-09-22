@@ -1,4 +1,0 @@
-func main() as int
-	bool flag = null
-	return 0
-end

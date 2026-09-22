@@ -1,4 +1,5 @@
 #include "../xui.h"
+#include "xui_regex_internal.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,7 +32,7 @@ static int __xuiCodeLexerAddToken(xui_code_token_t* pTokens, int iCapacity, int*
 
 XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xui_code_regex_rule_t* pRules, int iRuleCount, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount, char* sError, int iErrorCapacity)
 {
-#ifdef XRT_NO_REGEX
+#ifdef XUI_NO_REGEX
 	(void)sText;
 	(void)iTextSize;
 	(void)pRules;
@@ -42,8 +43,7 @@ XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xu
 	__xuiCodeLexerSetError(sError, iErrorCapacity, "XRT regex support is disabled");
 	return XUI_ERROR_UNSUPPORTED;
 #else
-	xregex** pRegexes;
-	xregexbuilder* pBuilder;
+	xui_regex_internal_t** pRegexes;
 	xregexspan tSpan;
 	size_t iBegin;
 	size_t iEnd;
@@ -56,22 +56,19 @@ XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xu
 	*pTokenCount = 0;
 	if ( (sText == NULL) || (pRules == NULL) || (iRuleCount < 0) ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
-	pRegexes = (xregex**)xrtMalloc(sizeof(*pRegexes) * (size_t)iRuleCount);
+	pRegexes = (xui_regex_internal_t**)xrtMalloc(sizeof(*pRegexes) * (size_t)iRuleCount);
 	if ( pRegexes == NULL ) {
 		__xuiCodeLexerSetError(sError, iErrorCapacity, "out of memory");
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	memset(pRegexes, 0, sizeof(*pRegexes) * (size_t)iRuleCount);
 	for ( i = 0; i < iRuleCount; i++ ) {
-		iRet = xrtRegexBuilderCreate(&pBuilder, pRules[i].sPattern, (pRules[i].sPattern != NULL) ? strlen(pRules[i].sPattern) : 0u, NULL);
-		if ( iRet != 0 || pBuilder == NULL ) {
-			__xuiCodeLexerSetError(sError, iErrorCapacity, "regex builder create failed");
-			goto fail;
-		}
-		xrtRegexBuilderSetFlags(pBuilder, pRules[i].iFlags);
-		iRet = xrtRegexCreateFromBuilder(&pRegexes[i], pBuilder, NULL);
-		xrtRegexBuilderDestroy(pBuilder);
-		if ( iRet != 0 || pRegexes[i] == NULL ) {
+		pRegexes[i] = __xuiRegexCreate(
+			pRules[i].sPattern,
+			(pRules[i].sPattern != NULL) ? strlen(pRules[i].sPattern) : 0u,
+			pRules[i].iFlags
+		);
+		if ( pRegexes[i] == NULL ) {
 			__xuiCodeLexerSetError(sError, iErrorCapacity, "regex compile failed");
 			goto fail;
 		}
@@ -80,10 +77,10 @@ XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xu
 	while ( iPos < iTextSize ) {
 		iMatched = 0;
 		for ( i = 0; i < iRuleCount; i++ ) {
-			iRet = xrtRegexFindAt(pRegexes[i], sText, (size_t)iTextSize, (size_t)iPos, &tSpan);
+			iRet = __xuiRegexFindAt(pRegexes[i], sText, (size_t)iTextSize, (size_t)iPos, &tSpan);
 			if ( iRet != 1 ) continue;
-			iBegin = tSpan.iBegin;
-			iEnd = tSpan.iEnd;
+			iBegin = tSpan.Begin;
+			iEnd = tSpan.End;
 			if ( (int)iBegin != iPos || iEnd <= iBegin ) continue;
 			(void)__xuiCodeLexerAddToken(pTokens, iTokenCapacity, pTokenCount, (int)iBegin, (int)iEnd, pRules[i].iTokenKind, pRules[i].iStyle);
 			iPos = (int)iEnd;
@@ -96,7 +93,7 @@ XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xu
 		}
 	}
 	for ( i = 0; i < iRuleCount; i++ ) {
-		if ( pRegexes[i] != NULL ) xrtRegexDestroy(pRegexes[i]);
+		if ( pRegexes[i] != NULL ) __xuiRegexDestroy(pRegexes[i]);
 	}
 	xrtFree(pRegexes);
 	__xuiCodeLexerSetError(sError, iErrorCapacity, "");
@@ -104,7 +101,7 @@ XUI_API int xuiCodeLexerRegexTokenize(const char* sText, int iTextSize, const xu
 
 fail:
 	for ( i = 0; i < iRuleCount; i++ ) {
-		if ( pRegexes[i] != NULL ) xrtRegexDestroy(pRegexes[i]);
+		if ( pRegexes[i] != NULL ) __xuiRegexDestroy(pRegexes[i]);
 	}
 	xrtFree(pRegexes);
 	return XUI_ERROR_INVALID_ARGUMENT;

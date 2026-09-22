@@ -309,7 +309,8 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         (unsigned long)instructionIndex, (unsigned long)instructionIndex, (unsigned long)instructionIndex);
     if (!isVoid) xl6OutputPrintf(out, "    %s* value = NULL;\n", payloadType);
     xl6OutputPuts(
-        "    if (frame == NULL || frame->callable == NULL || result == NULL) {\n"
+        "    if (frame == NULL || frame->callable == NULL ||\n"
+        "        frame->callable->invoke == NULL || result == NULL) {\n"
         "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"AsyncError\", \"task worker frame is invalid\"));\n"
         "        goto complete;\n"
         "    }\n", out);
@@ -360,7 +361,10 @@ static int xl6IrCgenEmitTaskSpawnHelper(
     xl6OutputPrintf(out,
         ")\n{\n"
         "    xfuture* future; xlir_task_spawn_frame_%lu* frame;\n"
-        "    if (callable == NULL) { if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"TaskError\", \"task.spawn callable is null\")); return NULL; }\n",
+        "    if (callable == NULL || callable->invoke == NULL) {\n"
+        "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"TaskError\", \"task.spawn requires a callable func value\"));\n"
+        "        return NULL;\n"
+        "    }\n",
         (unsigned long)instructionIndex);
     if (!xl6IrCgenEmitCallbackCapture(out, module, boundary, "xlir_task_spawn", instructionIndex)) return 0;
     xl6OutputPrintf(out,

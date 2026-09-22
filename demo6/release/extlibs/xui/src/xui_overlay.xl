@@ -152,26 +152,6 @@ export func xuiMsgBoxGetButtonCount(point pBox) as c_int
     return __xl6_xuiMsgBoxGetButtonCount(pBox)
 end
 
-extern "xuiMsgBoxGetIconRect" func __xl6_xuiMsgBoxGetIconRect(point pBox) as point
-export func xuiMsgBoxGetIconRect(point pBox) as point
-    return __xl6_xuiMsgBoxGetIconRect(pBox)
-end
-
-extern "xuiMsgBoxGetMessageRect" func __xl6_xuiMsgBoxGetMessageRect(point pBox) as point
-export func xuiMsgBoxGetMessageRect(point pBox) as point
-    return __xl6_xuiMsgBoxGetMessageRect(pBox)
-end
-
-extern "xuiMsgBoxGetButtonRect" func __xl6_xuiMsgBoxGetButtonRect(point pBox, c_int iIndex) as point
-export func xuiMsgBoxGetButtonRect(point pBox, c_int iIndex) as point
-    return __xl6_xuiMsgBoxGetButtonRect(pBox, iIndex)
-end
-
-extern "xuiMsgBoxGetBackdropRect" func __xl6_xuiMsgBoxGetBackdropRect(point pBox) as point
-export func xuiMsgBoxGetBackdropRect(point pBox) as point
-    return __xl6_xuiMsgBoxGetBackdropRect(pBox)
-end
-
 extern "xuiMsgBoxGetWrapLineCount" func __xl6_xuiMsgBoxGetWrapLineCount(point pBox) as c_int
 export func xuiMsgBoxGetWrapLineCount(point pBox) as c_int
     return __xl6_xuiMsgBoxGetWrapLineCount(pBox)
@@ -280,21 +260,6 @@ end
 extern "xuiToastGetItemWidget" func __xl6_xuiToastGetItemWidget(point pToast, c_int iSlot) as point
 export func xuiToastGetItemWidget(point pToast, c_int iSlot) as point
     return __xl6_xuiToastGetItemWidget(pToast, iSlot)
-end
-
-extern "xuiToastGetItemRect" func __xl6_xuiToastGetItemRect(point pToast, c_int iSlot) as point
-export func xuiToastGetItemRect(point pToast, c_int iSlot) as point
-    return __xl6_xuiToastGetItemRect(pToast, iSlot)
-end
-
-extern "xuiToastGetIconRect" func __xl6_xuiToastGetIconRect(point pToast, c_int iSlot) as point
-export func xuiToastGetIconRect(point pToast, c_int iSlot) as point
-    return __xl6_xuiToastGetIconRect(pToast, iSlot)
-end
-
-extern "xuiToastGetCloseRect" func __xl6_xuiToastGetCloseRect(point pToast, c_int iSlot) as point
-export func xuiToastGetCloseRect(point pToast, c_int iSlot) as point
-    return __xl6_xuiToastGetCloseRect(pToast, iSlot)
 end
 
 extern "xuiToastGetShowCount" func __xl6_xuiToastGetShowCount(point pToast) as c_int
@@ -410,16 +375,6 @@ end
 extern "xuiMessageListGetNodeAt" func __xl6_xuiMessageListGetNodeAt(point pWidget, c_float fX, c_float fY) as c_int
 export func xuiMessageListGetNodeAt(point pWidget, c_float fX, c_float fY) as c_int
     return __xl6_xuiMessageListGetNodeAt(pWidget, fX, fY)
-end
-
-extern "xuiMessageListGetNodeRect" func __xl6_xuiMessageListGetNodeRect(point pWidget, c_int iIndex) as point
-export func xuiMessageListGetNodeRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiMessageListGetNodeRect(pWidget, iIndex)
-end
-
-extern "xuiMessageListGetBubbleRect" func __xl6_xuiMessageListGetBubbleRect(point pWidget, c_int iIndex) as point
-export func xuiMessageListGetBubbleRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiMessageListGetBubbleRect(pWidget, iIndex)
 end
 
 extern "xuiMessageListSetScroll" func __xl6_xuiMessageListSetScroll(point pWidget, c_float fOffsetY) as c_int
@@ -590,11 +545,6 @@ end
 extern "xuiPopupClearAnchorRect" func __xl6_xuiPopupClearAnchorRect(point pWidget) as c_int
 export func xuiPopupClearAnchorRect(point pWidget) as c_int
     return __xl6_xuiPopupClearAnchorRect(pWidget)
-end
-
-extern "xuiPopupGetAnchorRect" func __xl6_xuiPopupGetAnchorRect(point pWidget) as point
-export func xuiPopupGetAnchorRect(point pWidget) as point
-    return __xl6_xuiPopupGetAnchorRect(pWidget)
 end
 
 extern "xuiPopupSetAnchor" func __xl6_xuiPopupSetAnchor(point pWidget, c_int iAnchor) as c_int
@@ -772,21 +722,6 @@ export func xuiPopupGetModel(point pWidget) as point
     return __xl6_xuiPopupGetModel(pWidget)
 end
 
-extern "xuiPopupGetPopupRect" func __xl6_xuiPopupGetPopupRect(point pWidget) as point
-export func xuiPopupGetPopupRect(point pWidget) as point
-    return __xl6_xuiPopupGetPopupRect(pWidget)
-end
-
-extern "xuiPopupGetViewportRect" func __xl6_xuiPopupGetViewportRect(point pWidget) as point
-export func xuiPopupGetViewportRect(point pWidget) as point
-    return __xl6_xuiPopupGetViewportRect(pWidget)
-end
-
-extern "xuiPopupGetContentRect" func __xl6_xuiPopupGetContentRect(point pWidget) as point
-export func xuiPopupGetContentRect(point pWidget) as point
-    return __xl6_xuiPopupGetContentRect(pWidget)
-end
-
 extern "xuiPopupSetColors" func __xl6_xuiPopupSetColors(point pWidget, c_uint iPanel, c_uint iBorder, c_uint iShadow, c_uint iBackdrop) as c_int
 export func xuiPopupSetColors(point pWidget, c_uint iPanel, c_uint iBorder, c_uint iShadow, c_uint iBackdrop) as c_int
     return __xl6_xuiPopupSetColors(pWidget, iPanel, iBorder, iShadow, iBackdrop)
@@ -850,11 +785,6 @@ end
 extern "xuiMenuGetItem" func __xl6_xuiMenuGetItem(point pWidget, c_int iIndex) as point
 export func xuiMenuGetItem(point pWidget, c_int iIndex) as point
     return __xl6_xuiMenuGetItem(pWidget, iIndex)
-end
-
-extern "xuiMenuGetItemRect" func __xl6_xuiMenuGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiMenuGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiMenuGetItemRect(pWidget, iIndex)
 end
 
 extern "xuiMenuSetItemState" func __xl6_xuiMenuSetItemState(point pWidget, c_int iIndex, c_uint iMask, c_uint iState) as c_int
@@ -995,11 +925,6 @@ end
 extern "xuiMenuBarGetItem" func __xl6_xuiMenuBarGetItem(point pWidget, c_int iIndex) as point
 export func xuiMenuBarGetItem(point pWidget, c_int iIndex) as point
     return __xl6_xuiMenuBarGetItem(pWidget, iIndex)
-end
-
-extern "xuiMenuBarGetItemRect" func __xl6_xuiMenuBarGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiMenuBarGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiMenuBarGetItemRect(pWidget, iIndex)
 end
 
 extern "xuiMenuBarSetItemMenu" func __xl6_xuiMenuBarSetItemMenu(point pWidget, c_int iIndex, point pMenu) as c_int
@@ -1162,11 +1087,6 @@ export func xuiToolbarGetItem(point pWidget, c_int iIndex) as point
     return __xl6_xuiToolbarGetItem(pWidget, iIndex)
 end
 
-extern "xuiToolbarGetItemRect" func __xl6_xuiToolbarGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiToolbarGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiToolbarGetItemRect(pWidget, iIndex)
-end
-
 extern "xuiToolbarGetItemAt" func __xl6_xuiToolbarGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
 export func xuiToolbarGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
     return __xl6_xuiToolbarGetItemAt(pWidget, fX, fY)
@@ -1260,11 +1180,6 @@ end
 extern "xuiToolbarGetOverflowCount" func __xl6_xuiToolbarGetOverflowCount(point pWidget) as c_int
 export func xuiToolbarGetOverflowCount(point pWidget) as c_int
     return __xl6_xuiToolbarGetOverflowCount(pWidget)
-end
-
-extern "xuiToolbarGetOverflowRect" func __xl6_xuiToolbarGetOverflowRect(point pWidget) as point
-export func xuiToolbarGetOverflowRect(point pWidget) as point
-    return __xl6_xuiToolbarGetOverflowRect(pWidget)
 end
 
 extern "xuiToolbarSetFont" func __xl6_xuiToolbarSetFont(point pWidget, point pFont) as c_int

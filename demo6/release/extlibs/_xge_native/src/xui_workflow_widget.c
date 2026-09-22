@@ -109,17 +109,6 @@ static int __xuiWorkflowWidgetInit(xui_widget pWidget, void* pTypeData, const vo
 	return XUI_OK;
 }
 
-static int __xuiWorkflowWidgetArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
-{
-	xui_workflow_widget_data_t* pData;
-
-	(void)pUser;
-	pData = __xuiWorkflowWidgetGetData(pWidget);
-	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	if ( pData->pCanvas == NULL ) return XUI_OK;
-	return xuiWidgetArrange(pData->pCanvas, tContentRect);
-}
-
 static void __xuiWorkflowWidgetDestroy(xui_widget pWidget, void* pTypeData, void* pUser)
 {
 	xui_workflow_widget_data_t* pData;
@@ -156,7 +145,6 @@ XUI_API xui_widget_type xuiWorkflowGetType(xui_context pContext)
 	tDesc.iTypeDataSize = sizeof(xui_workflow_widget_data_t);
 	tDesc.onInit = __xuiWorkflowWidgetInit;
 	tDesc.onDestroy = __xuiWorkflowWidgetDestroy;
-	tDesc.onLayoutArrange = __xuiWorkflowWidgetArrange;
 	__xuiWorkflowWidgetDefaultLayout(&tDesc.tLayout);
 	iRet = xuiWidgetRegisterType(pContext, &pType, &tDesc);
 	return (iRet == XUI_OK) ? pType : NULL;

@@ -1,4 +1,4 @@
-#include "../xui.h"
+#include "xui_internal.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -71,44 +71,52 @@ static char __xuiCodeEditingByteAt(xui_code_document pDocument, int iOffset)
 	return c;
 }
 
+static int __xuiCodeEditingUnicodeRead(void* pUser, int iOffset, unsigned char* pByte)
+{
+	char c;
+
+	if ( pUser == NULL || pByte == NULL ) return 0;
+	c = '\0';
+	if ( xuiCodeDocumentGetByte((xui_code_document)pUser, iOffset, &c) != XUI_OK ) return 0;
+	*pByte = (unsigned char)c;
+	return 1;
+}
+
 static int __xuiCodeEditingUtf8Next(xui_code_document pDocument, int iLength, int iOffset)
 {
-	unsigned char c;
-	int iStep;
-
 	if ( pDocument == NULL ) return 0;
-	if ( iOffset < 0 ) return 0;
-	if ( iOffset >= iLength ) return iLength;
-	c = (unsigned char)__xuiCodeEditingByteAt(pDocument, iOffset);
-	if ( c < 0x80u ) iStep = 1;
-	else if ( (c & 0xE0u) == 0xC0u ) iStep = 2;
-	else if ( (c & 0xF0u) == 0xE0u ) iStep = 3;
-	else if ( (c & 0xF8u) == 0xF0u ) iStep = 4;
-	else iStep = 1;
-	if ( iOffset + iStep > iLength ) return iLength;
-	return iOffset + iStep;
+	return xuiInternalTextGraphemeNextRead(__xuiCodeEditingUnicodeRead,
+		pDocument, iLength, iOffset);
 }
 
 static int __xuiCodeEditingUtf8Prev(xui_code_document pDocument, int iLength, int iOffset)
 {
 	if ( pDocument == NULL ) return 0;
-	if ( iOffset <= 0 ) return 0;
-	if ( iOffset > iLength ) iOffset = iLength;
-	iOffset--;
-	while ( iOffset > 0 && (((unsigned char)__xuiCodeEditingByteAt(pDocument, iOffset) & 0xC0u) == 0x80u) ) {
-		iOffset--;
-	}
-	return iOffset;
+	return xuiInternalTextGraphemePrevRead(__xuiCodeEditingUnicodeRead,
+		pDocument, iLength, iOffset);
 }
 
 static int __xuiCodeEditingWordLeft(xui_code_document pDocument, int iOffset)
 {
+	int iLength;
+	int iPrevious;
+
+	iLength = xuiCodeDocumentGetLength(pDocument);
 	if ( iOffset < 0 ) iOffset = 0;
-	if ( iOffset > xuiCodeDocumentGetLength(pDocument) ) iOffset = xuiCodeDocumentGetLength(pDocument);
-	if ( iOffset > 0 && __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset - 1)) ) {
-		while ( iOffset > 0 && __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset - 1)) ) iOffset--;
+	if ( iOffset > iLength ) iOffset = iLength;
+	iPrevious = __xuiCodeEditingUtf8Prev(pDocument, iLength, iOffset);
+	if ( iOffset > 0 && __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iPrevious)) ) {
+		while ( iOffset > 0 ) {
+			iPrevious = __xuiCodeEditingUtf8Prev(pDocument, iLength, iOffset);
+			if ( !__xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iPrevious)) ) break;
+			iOffset = iPrevious;
+		}
 	} else {
-		while ( iOffset > 0 && !__xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset - 1)) ) iOffset--;
+		while ( iOffset > 0 ) {
+			iPrevious = __xuiCodeEditingUtf8Prev(pDocument, iLength, iOffset);
+			if ( __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iPrevious)) ) break;
+			iOffset = iPrevious;
+		}
 	}
 	return iOffset;
 }
@@ -116,14 +124,23 @@ static int __xuiCodeEditingWordLeft(xui_code_document pDocument, int iOffset)
 static int __xuiCodeEditingWordRight(xui_code_document pDocument, int iOffset)
 {
 	int iLength;
+	int iNext;
 
 	iLength = xuiCodeDocumentGetLength(pDocument);
 	if ( iOffset < 0 ) iOffset = 0;
 	if ( iOffset > iLength ) iOffset = iLength;
 	if ( iOffset < iLength && __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset)) ) {
-		while ( iOffset < iLength && __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset)) ) iOffset++;
+		while ( iOffset < iLength && __xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset)) ) {
+			iNext = __xuiCodeEditingUtf8Next(pDocument, iLength, iOffset);
+			if ( iNext <= iOffset ) break;
+			iOffset = iNext;
+		}
 	} else {
-		while ( iOffset < iLength && !__xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset)) ) iOffset++;
+		while ( iOffset < iLength && !__xuiCodeEditingWordChar(__xuiCodeEditingByteAt(pDocument, iOffset)) ) {
+			iNext = __xuiCodeEditingUtf8Next(pDocument, iLength, iOffset);
+			if ( iNext <= iOffset ) break;
+			iOffset = iNext;
+		}
 	}
 	return iOffset;
 }

@@ -1,5 +1,0 @@
-func value() as int
-	return 40
-end
-
-export value

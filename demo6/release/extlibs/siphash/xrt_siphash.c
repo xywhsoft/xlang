@@ -33,14 +33,14 @@ static void __xrtSipHashSetError(xrtsiphasherror* pError, int iCode, int iBacken
 	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
 }
 
-XXAPI void xrtSipHashErrorInit(xrtsiphasherror* pError)
+XRT_API void xrtSipHashErrorInit(xrtsiphasherror* pError)
 {
 	if (pError == NULL) { return; }
 	memset(pError, 0, sizeof(*pError));
 	pError->iCode = XRT_SIPHASH_OK;
 }
 
-XXAPI void xrtSipHashOptionsInit(xrtsiphashoptions* pOptions)
+XRT_API void xrtSipHashOptionsInit(xrtsiphashoptions* pOptions)
 {
 	if (pOptions == NULL) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -49,7 +49,7 @@ XXAPI void xrtSipHashOptionsInit(xrtsiphashoptions* pOptions)
 	xrtResourceLimitsInit(&pOptions->tLimits);
 }
 
-XXAPI xrtsiphasher* xrtSipHasherCreate(const xrtsiphashoptions* pOptions,
+XRT_API xrtsiphasher* xrtSipHasherCreate(const xrtsiphashoptions* pOptions,
 	const uint8 pKey[XRT_SIPHASH_KEY_LEN])
 {
 	xrtsiphasher* pHasher;
@@ -67,35 +67,35 @@ XXAPI xrtsiphasher* xrtSipHasherCreate(const xrtsiphashoptions* pOptions,
 	siphash_init(&pHasher->State, pKey);
 	siphash_init(&pHasher->State128, pKey);
 	pHasher->State128.v1 ^= 0xee; /* 128-bit variant: XOR before message processing */
-	pHasher->Initialized = TRUE;
+	pHasher->Initialized = true;
 	return pHasher;
 }
 
-XXAPI bool xrtSipHasherUpdate(xrtsiphasher* pHasher, const void* pData, size_t iSize)
+XRT_API bool xrtSipHasherUpdate(xrtsiphasher* pHasher, const void* pData, size_t iSize)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	if (iSize != 0u && pData == NULL) {
 		__xrtSipHashSetError(&pHasher->Error, XRT_SIPHASH_ERROR_ARGUMENT, 0,
 			pHasher->InputBytes, 0, "invalid siphash input");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
 		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
 		__xrtSipHashSetError(&pHasher->Error, XRT_SIPHASH_ERROR_LIMIT, 0,
 			pHasher->InputBytes, 0, "siphash input exceeds maxInput limit");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (iSize != 0u) {
 		siphash_update(&pHasher->State, pData, iSize);
 		siphash_update(&pHasher->State128, pData, iSize);
 	}
 	pHasher->InputBytes += (uint64)iSize;
-	return TRUE;
+	return true;
 }
 
-XXAPI uint64 xrtSipHasherDigest64(const xrtsiphasher* pHasher)
+XRT_API uint64 xrtSipHasherDigest64(const xrtsiphasher* pHasher)
 {
 	siphash_state copy;
 	if (pHasher == NULL || pHasher->Failed) { return 0u; }
@@ -103,31 +103,31 @@ XXAPI uint64 xrtSipHasherDigest64(const xrtsiphasher* pHasher)
 	return siphash_final(&copy);
 }
 
-XXAPI bool xrtSipHasherDigest128(const xrtsiphasher* pHasher, uint8* pOut)
+XRT_API bool xrtSipHasherDigest128(const xrtsiphasher* pHasher, uint8* pOut)
 {
 	siphash_state copy;
-	if (pHasher == NULL || pHasher->Failed || pOut == NULL) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed || pOut == NULL) { return false; }
 	memcpy(&copy, &pHasher->State128, sizeof(copy));
 	siphash_final128(&copy, pOut);
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtSipHasherReset(xrtsiphasher* pHasher)
+XRT_API bool xrtSipHasherReset(xrtsiphasher* pHasher)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	siphash_init(&pHasher->State, pHasher->Key);
 	siphash_init(&pHasher->State128, pHasher->Key);
 	pHasher->State128.v1 ^= 0xee;
 	pHasher->InputBytes = 0u;
-	return TRUE;
+	return true;
 }
 
-XXAPI uint64 xrtSipHasherInputBytes(const xrtsiphasher* pHasher)
+XRT_API uint64 xrtSipHasherInputBytes(const xrtsiphasher* pHasher)
 {
 	return pHasher != NULL ? pHasher->InputBytes : 0u;
 }
 
-XXAPI xrtsiphasher* xrtSipHasherClone(const xrtsiphasher* pSrc)
+XRT_API xrtsiphasher* xrtSipHasherClone(const xrtsiphasher* pSrc)
 {
 	xrtsiphasher* pNew;
 	if (pSrc == NULL) { return NULL; }
@@ -137,12 +137,12 @@ XXAPI xrtsiphasher* xrtSipHasherClone(const xrtsiphasher* pSrc)
 	return pNew;
 }
 
-XXAPI const xrtsiphasherror* xrtSipHasherError(const xrtsiphasher* pHasher)
+XRT_API const xrtsiphasherror* xrtSipHasherError(const xrtsiphasher* pHasher)
 {
 	return pHasher != NULL ? &pHasher->Error : NULL;
 }
 
-XXAPI void xrtSipHasherDestroy(xrtsiphasher* pHasher)
+XRT_API void xrtSipHasherDestroy(xrtsiphasher* pHasher)
 {
 	if (pHasher == NULL) { return; }
 	xrtFree(pHasher);
@@ -151,7 +151,7 @@ XXAPI void xrtSipHasherDestroy(xrtsiphasher* pHasher)
 
 /* ---- 一次性哈希 ---- */
 
-XXAPI uint64 xrtSipHash64(const void* pData, size_t iSize,
+XRT_API uint64 xrtSipHash64(const void* pData, size_t iSize,
 	const uint8 pKey[XRT_SIPHASH_KEY_LEN], xrtsiphasherror* pError)
 {
 	xrtSipHashErrorInit(pError);
@@ -162,32 +162,37 @@ XXAPI uint64 xrtSipHash64(const void* pData, size_t iSize,
 	return siphash_2_4(pData, iSize, pKey);
 }
 
-XXAPI bool xrtSipHash128(const void* pData, size_t iSize,
+XRT_API bool xrtSipHash128(const void* pData, size_t iSize,
 	const uint8 pKey[XRT_SIPHASH_KEY_LEN], uint8* pOut, xrtsiphasherror* pError)
 {
 	xrtSipHashErrorInit(pError);
 	if (pKey == NULL || pOut == NULL || (pData == NULL && iSize != 0u)) {
 		__xrtSipHashSetError(pError, XRT_SIPHASH_ERROR_ARGUMENT, 0, 0, 0, "invalid siphash input");
-		return FALSE;
+		return false;
 	}
 	siphash_2_4_128(pData, iSize, pKey, pOut);
-	return TRUE;
+	return true;
 }
 
 
 /* ---- 文件流式哈希 ---- */
 
-XXAPI uint64 xrtSipHashFile64(xreader pReader, const xrtresourcelimits* pLimits,
-	const uint8 pKey[XRT_SIPHASH_KEY_LEN], xrtsiphasherror* pError)
+XRT_API uint64 xrtSipHashFile64(xreader* pReader, const xrtresourcelimits* pLimits,
+	const uint8 pKey[XRT_SIPHASH_KEY_LEN], xrtprogressproc pProgress, ptr pUserData,
+	xrtsiphasherror* pError)
 {
 	uint8 sInput[XRT_SIPHASH_CHUNK];
 	siphash_state state;
 	uint64 iTotal = 0u;
+	uint64 iExpected = 0u;
+	bool bTotalKnown;
 	xrtSipHashErrorInit(pError);
 	if (pReader == NULL || pKey == NULL) {
 		__xrtSipHashSetError(pError, XRT_SIPHASH_ERROR_ARGUMENT, 0, 0, 0, "invalid siphash stream");
 		return 0u;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
+	if (!bTotalKnown) { xrtClearError(); }
 	siphash_init(&state, pKey);
 	for (;;) {
 		uint64 iRead = 0u;
@@ -204,6 +209,18 @@ XXAPI uint64 xrtSipHashFile64(xreader pReader, const xrtresourcelimits* pLimits,
 			return 0u;
 		}
 		siphash_update(&state, sInput, (size_t)iRead);
+		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
+			__xrtSipHashSetError(pError, XRT_SIPHASH_ERROR_CANCELLED, 0, iTotal, 0,
+				"siphash operation cancelled");
+			return 0u;
+		}
+	}
+	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
+		__xrtSipHashSetError(pError, XRT_SIPHASH_ERROR_CANCELLED, 0, iTotal, 0,
+			"siphash operation cancelled");
+		return 0u;
 	}
 	return siphash_final(&state);
 }

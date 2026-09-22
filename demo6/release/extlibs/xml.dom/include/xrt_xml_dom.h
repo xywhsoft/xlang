@@ -1,6 +1,11 @@
 #ifndef XRT_XML_DOM_H
 #define XRT_XML_DOM_H
 
+/* DOM 序列化接口返回连续缓冲。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+
 #include "../../xml.sax/include/xrt_xml.h"
 
 #ifdef __cplusplus
@@ -28,58 +33,58 @@ typedef struct {
 	uint64 iMaxOutputBytes;
 } xrtxmldomwriteoptions;
 
-XXAPI void xrtXmlDomWriteOptionsInit(xrtxmldomwriteoptions* pOptions);
-XXAPI xrtxmldomnode* xrtXmlDomParse(xreader pReader, bool bTakeOwnership,
+XRT_API void xrtXmlDomWriteOptionsInit(xrtxmldomwriteoptions* pOptions);
+XRT_API xrtxmldomnode* xrtXmlDomParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
-XXAPI xrtxmldomnode* xrtXmlDomParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtxmldomnode* xrtXmlDomParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
-XXAPI xrtxmldomnode* xrtXmlDomLoad(str sPath,
+XRT_API xrtxmldomnode* xrtXmlDomLoad(str sPath,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
 
-XXAPI xrtxmldomnode* xrtXmlDomCreateDocument(void);
-XXAPI xrtxmldomnode* xrtXmlDomCreateElement(xrtxmldomnode* pDocument,
+XRT_API xrtxmldomnode* xrtXmlDomCreateDocument(void);
+XRT_API xrtxmldomnode* xrtXmlDomCreateElement(xrtxmldomnode* pDocument,
 	str sName);
-XXAPI xrtxmldomnode* xrtXmlDomCreateText(xrtxmldomnode* pDocument,
+XRT_API xrtxmldomnode* xrtXmlDomCreateText(xrtxmldomnode* pDocument,
 	str sText);
-XXAPI xrtxmldomnode* xrtXmlDomCreateComment(xrtxmldomnode* pDocument,
+XRT_API xrtxmldomnode* xrtXmlDomCreateComment(xrtxmldomnode* pDocument,
 	str sText);
-XXAPI xrtxmldomnode* xrtXmlDomCreateProcessingInstruction(
+XRT_API xrtxmldomnode* xrtXmlDomCreateProcessingInstruction(
 	xrtxmldomnode* pDocument, str sTarget, str sText);
-XXAPI xrtxmldomnode* xrtXmlDomNodeRetain(xrtxmldomnode* pNode);
-XXAPI void xrtXmlDomNodeRelease(xrtxmldomnode* pNode);
+XRT_API xrtxmldomnode* xrtXmlDomNodeRetain(xrtxmldomnode* pNode);
+XRT_API void xrtXmlDomNodeRelease(xrtxmldomnode* pNode);
 
-XXAPI int xrtXmlDomNodeType(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomNodeTypeName(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomNodeName(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomNodeLocalName(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomNodeNamespaceUri(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomNodePrefix(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomNodeValue(const xrtxmldomnode* pNode);
-XXAPI bool xrtXmlDomNodeSetValue(xrtxmldomnode* pNode, str sValue);
-XXAPI xrtxmldomnode* xrtXmlDomNodeParent(const xrtxmldomnode* pNode);
-XXAPI uint32 xrtXmlDomNodeChildCount(const xrtxmldomnode* pNode);
-XXAPI xrtxmldomnode* xrtXmlDomNodeChild(const xrtxmldomnode* pNode,
+XRT_API int xrtXmlDomNodeType(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomNodeTypeName(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomNodeName(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomNodeLocalName(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomNodeNamespaceUri(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomNodePrefix(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomNodeValue(const xrtxmldomnode* pNode);
+XRT_API bool xrtXmlDomNodeSetValue(xrtxmldomnode* pNode, str sValue);
+XRT_API xrtxmldomnode* xrtXmlDomNodeParent(const xrtxmldomnode* pNode);
+XRT_API uint32 xrtXmlDomNodeChildCount(const xrtxmldomnode* pNode);
+XRT_API xrtxmldomnode* xrtXmlDomNodeChild(const xrtxmldomnode* pNode,
 	uint32 iIndex);
-XXAPI xrtxmldomnode* xrtXmlDomDocumentElement(const xrtxmldomnode* pDocument);
-XXAPI bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
+XRT_API xrtxmldomnode* xrtXmlDomDocumentElement(const xrtxmldomnode* pDocument);
+XRT_API bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 	xrtxmldomnode* pChild);
-XXAPI bool xrtXmlDomRemoveChild(xrtxmldomnode* pParent,
+XRT_API bool xrtXmlDomRemoveChild(xrtxmldomnode* pParent,
 	xrtxmldomnode* pChild);
-XXAPI str xrtXmlDomTextContent(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomTextContent(const xrtxmldomnode* pNode);
 
-XXAPI uint32 xrtXmlDomAttributeCount(const xrtxmldomnode* pNode);
-XXAPI str xrtXmlDomAttributeName(const xrtxmldomnode* pNode, uint32 iIndex);
-XXAPI str xrtXmlDomAttributeValue(const xrtxmldomnode* pNode, uint32 iIndex);
-XXAPI str xrtXmlDomGetAttribute(const xrtxmldomnode* pNode, str sName);
-XXAPI bool xrtXmlDomSetAttribute(xrtxmldomnode* pNode, str sName, str sValue);
-XXAPI bool xrtXmlDomRemoveAttribute(xrtxmldomnode* pNode, str sName);
+XRT_API uint32 xrtXmlDomAttributeCount(const xrtxmldomnode* pNode);
+XRT_API str xrtXmlDomAttributeName(const xrtxmldomnode* pNode, uint32 iIndex);
+XRT_API str xrtXmlDomAttributeValue(const xrtxmldomnode* pNode, uint32 iIndex);
+XRT_API str xrtXmlDomGetAttribute(const xrtxmldomnode* pNode, str sName);
+XRT_API bool xrtXmlDomSetAttribute(xrtxmldomnode* pNode, str sName, str sValue);
+XRT_API bool xrtXmlDomRemoveAttribute(xrtxmldomnode* pNode, str sName);
 
-XXAPI xbuffer xrtXmlDomStringify(const xrtxmldomnode* pNode,
+XRT_API xbuffer* xrtXmlDomStringify(const xrtxmldomnode* pNode,
 	const xrtxmldomwriteoptions* pOptions, xrtxmlerror* pError);
-XXAPI bool xrtXmlDomWrite(const xrtxmldomnode* pNode, xwriter pWriter,
+XRT_API bool xrtXmlDomWrite(const xrtxmldomnode* pNode, xwriter* pWriter,
 	bool bTakeOwnership, const xrtxmldomwriteoptions* pOptions,
 	xrtxmlerror* pError);
-XXAPI bool xrtXmlDomSave(str sPath, const xrtxmldomnode* pNode,
+XRT_API bool xrtXmlDomSave(str sPath, const xrtxmldomnode* pNode,
 	const xrtxmldomwriteoptions* pOptions, xrtxmlerror* pError);
 
 #ifdef __cplusplus

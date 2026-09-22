@@ -1,4 +1,5 @@
 #include "../xui.h"
+#include "xui_regex_internal.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -9,8 +10,8 @@ typedef struct xui_find_engine_t {
 	char* sReplacement;
 	int iPatternLength;
 	uint32_t iFlags;
-#ifndef XRT_NO_REGEX
-	xregex* pRegex;
+#ifndef XUI_NO_REGEX
+	xui_regex_internal_t* pRegex;
 #endif
 } xui_find_engine_t;
 
@@ -298,28 +299,22 @@ static int __xuiFindPlainInRange(const char* sText, int iTextLength, const xui_f
 	return XUI_ERROR_UNSUPPORTED;
 }
 
-#ifndef XRT_NO_REGEX
+#ifndef XUI_NO_REGEX
 static int __xuiFindRegexCreate(xui_find_engine_t* pEngine, char* sError, int iErrorCapacity)
 {
-	xregexbuilder* pBuilder;
-	xregexflags iRegexFlags;
-	int iRet;
+	uint32_t iRegexFlags;
 
 	pEngine->pRegex = NULL;
-	pBuilder = NULL;
-	iRet = xrtRegexBuilderCreate(&pBuilder, pEngine->sPattern, strlen(pEngine->sPattern), NULL);
-	if ( iRet != 0 || pBuilder == NULL ) {
-		__xuiFindSetError(sError, iErrorCapacity, "regex builder create failed");
-		return XUI_ERROR_INVALID_ARGUMENT;
-	}
 	iRegexFlags = 0;
-	if ( (pEngine->iFlags & XUI_FIND_CASE_SENSITIVE) == 0 ) iRegexFlags |= XRT_REGEX_FLAG_INSENSITIVE;
-	if ( (pEngine->iFlags & XUI_FIND_MULTILINE) != 0 ) iRegexFlags |= XRT_REGEX_FLAG_MULTILINE;
-	if ( (pEngine->iFlags & XUI_FIND_DOT_NEWLINE) != 0 ) iRegexFlags |= XRT_REGEX_FLAG_DOTNEWLINE;
-	xrtRegexBuilderSetFlags(pBuilder, iRegexFlags);
-	iRet = xrtRegexCreateFromBuilder(&pEngine->pRegex, pBuilder, NULL);
-	xrtRegexBuilderDestroy(pBuilder);
-	if ( iRet != 0 || pEngine->pRegex == NULL ) {
+	if ( (pEngine->iFlags & XUI_FIND_CASE_SENSITIVE) == 0 ) iRegexFlags |= XREGEX_IGNORE_CASE;
+	if ( (pEngine->iFlags & XUI_FIND_MULTILINE) != 0 ) iRegexFlags |= XREGEX_MULTILINE;
+	if ( (pEngine->iFlags & XUI_FIND_DOT_NEWLINE) != 0 ) iRegexFlags |= XREGEX_DOT_ALL;
+	pEngine->pRegex = __xuiRegexCreate(
+		pEngine->sPattern,
+		strlen(pEngine->sPattern),
+		iRegexFlags
+	);
+	if ( pEngine->pRegex == NULL ) {
 		__xuiFindSetError(sError, iErrorCapacity, "regex compile failed");
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
@@ -335,23 +330,23 @@ static int __xuiFindRegexFillResult(xui_find_engine_t* pEngine, const char* sTex
 	int iRet;
 
 	if ( (pEngine->iFlags & XUI_FIND_WHOLE_WORD) != 0 ) {
-		if ( !__xuiFindIsWholeWord(sText, iTextLength, (int)tSpan.iBegin, (int)tSpan.iEnd) ) return XUI_ERROR_UNSUPPORTED;
+		if ( !__xuiFindIsWholeWord(sText, iTextLength, (int)tSpan.Begin, (int)tSpan.End) ) return XUI_ERROR_UNSUPPORTED;
 	}
 	memset(pResult, 0, sizeof(*pResult));
 	pResult->iSize = sizeof(*pResult);
-	pResult->iStart = (int)tSpan.iBegin;
-	pResult->iEnd = (int)tSpan.iEnd;
-	iCaptureCount = xrtRegexCaptureCount(pEngine->pRegex);
+	pResult->iStart = (int)tSpan.Begin;
+	pResult->iEnd = (int)tSpan.End;
+	iCaptureCount = (uint32_t)__xuiRegexCaptureCount(pEngine->pRegex);
 	if ( iCaptureCount > XUI_FIND_MAX_CAPTURES ) iCaptureCount = XUI_FIND_MAX_CAPTURES;
 	memset(arrCaptures, 0, sizeof(arrCaptures));
 	memset(arrMatched, 0, sizeof(arrMatched));
-	iRet = xrtRegexWhichCaptures(pEngine->pRegex, sText + tSpan.iBegin, (size_t)(tSpan.iEnd - tSpan.iBegin), arrCaptures, arrMatched, iCaptureCount);
+	iRet = __xuiRegexCaptures(pEngine->pRegex, arrCaptures, arrMatched, iCaptureCount);
 	if ( iRet == 1 ) {
 		pResult->iCaptureCount = (int)iCaptureCount;
 		for ( i = 0; i < iCaptureCount; i++ ) {
 			if ( arrMatched[i] ) {
-				pResult->arrCaptures[i].iStart = (int)(tSpan.iBegin + arrCaptures[i].iBegin);
-				pResult->arrCaptures[i].iEnd = (int)(tSpan.iBegin + arrCaptures[i].iEnd);
+				pResult->arrCaptures[i].iStart = (int)(tSpan.Begin + arrCaptures[i].Begin);
+				pResult->arrCaptures[i].iEnd = (int)(tSpan.Begin + arrCaptures[i].End);
 			} else {
 				pResult->arrCaptures[i].iStart = -1;
 				pResult->arrCaptures[i].iEnd = -1;
@@ -369,10 +364,10 @@ static int __xuiFindRegexForward(xui_find_engine_t* pEngine, const char* sText, 
 
 	iPos = iStart;
 	while ( iPos <= iEnd ) {
-		iRet = xrtRegexFindAt(pEngine->pRegex, sText, (size_t)iTextLength, (size_t)iPos, &tSpan);
-		if ( iRet != 1 || (int)tSpan.iBegin > iEnd ) return XUI_ERROR_UNSUPPORTED;
-		if ( (int)tSpan.iEnd <= iEnd && __xuiFindRegexFillResult(pEngine, sText, iTextLength, tSpan, pResult) == XUI_OK ) return XUI_OK;
-		iPos = ((int)tSpan.iEnd > iPos) ? (int)tSpan.iEnd : (int)tSpan.iBegin + 1;
+		iRet = __xuiRegexFindAt(pEngine->pRegex, sText, (size_t)iTextLength, (size_t)iPos, &tSpan);
+		if ( iRet != 1 || (int)tSpan.Begin > iEnd ) return XUI_ERROR_UNSUPPORTED;
+		if ( (int)tSpan.End <= iEnd && __xuiFindRegexFillResult(pEngine, sText, iTextLength, tSpan, pResult) == XUI_OK ) return XUI_OK;
+		iPos = ((int)tSpan.End > iPos) ? (int)tSpan.End : (int)tSpan.Begin + 1;
 	}
 	return XUI_ERROR_UNSUPPORTED;
 }
@@ -421,7 +416,7 @@ static int __xuiFindEngineCreate(xui_find_engine_t* pEngine, const char* sPatter
 		if ( iRet != XUI_OK ) return iRet;
 	}
 	if ( (iFlags & XUI_FIND_REGEX) != 0 ) {
-#ifdef XRT_NO_REGEX
+#ifdef XUI_NO_REGEX
 		__xuiFindSetError(sError, iErrorCapacity, "XRT regex support is disabled");
 		return XUI_ERROR_UNSUPPORTED;
 #else
@@ -435,8 +430,8 @@ static int __xuiFindEngineCreate(xui_find_engine_t* pEngine, const char* sPatter
 static void __xuiFindEngineDestroy(xui_find_engine_t* pEngine)
 {
 	if ( pEngine == NULL ) return;
-#ifndef XRT_NO_REGEX
-	if ( pEngine->pRegex != NULL ) xrtRegexDestroy(pEngine->pRegex);
+#ifndef XUI_NO_REGEX
+	if ( pEngine->pRegex != NULL ) __xuiRegexDestroy(pEngine->pRegex);
 #endif
 	xrtFree(pEngine->sPattern);
 	xrtFree(pEngine->sReplacement);
@@ -456,7 +451,7 @@ static int __xuiFindEngineFind(const xui_find_engine_t* pEngineConst, const char
 	iRangeEnd = __xuiFindClamp(iRangeEnd, 0, iTextLength);
 	iStartOffset = __xuiFindClamp(iStartOffset, iRangeStart, iRangeEnd);
 	if ( (iFlags & XUI_FIND_REGEX) != 0 ) {
-#ifdef XRT_NO_REGEX
+#ifdef XUI_NO_REGEX
 		return XUI_ERROR_UNSUPPORTED;
 #else
 		if ( (iFlags & XUI_FIND_BACKWARD) != 0 ) {
@@ -665,6 +660,35 @@ cleanup:
 	__xuiFindEngineDestroy(&tEngine);
 	if ( iRet == XUI_ERROR_OUT_OF_MEMORY ) __xuiFindSetError(sError, iErrorCapacity, "out of memory");
 	return iRet;
+}
+
+XUI_API int xuiFindBuildReplacement(const char* sText, int iTextLength, const char* sPattern,
+	const char* sReplacement, uint32_t iFlags, const xui_find_result_t* pResult,
+	char** psOutput, int* pOutputLength, char* sError, int iErrorCapacity)
+{
+	xui_find_engine_t tEngine;
+	char* sOutput = NULL;
+	int iLength = 0;
+	int iCapacity = 0;
+	int iRet;
+	if ( sText == NULL || sPattern == NULL || sReplacement == NULL || pResult == NULL || psOutput == NULL )
+		return XUI_ERROR_INVALID_ARGUMENT;
+	*psOutput = NULL;
+	if ( pOutputLength != NULL ) *pOutputLength = 0;
+	iTextLength = __xuiFindTextLength(sText, iTextLength);
+	if ( pResult->iStart < 0 || pResult->iEnd < pResult->iStart || pResult->iEnd > iTextLength )
+		return XUI_ERROR_INVALID_ARGUMENT;
+	memset(&tEngine, 0, sizeof(tEngine));
+	iRet = __xuiFindEngineCreate(&tEngine, sPattern, sReplacement, iFlags, sError, iErrorCapacity);
+	if ( iRet == XUI_OK ) iRet = __xuiFindAppendReplacement(&tEngine, &sOutput, &iLength, &iCapacity, sText, pResult);
+	if ( iRet == XUI_OK ) iRet = __xuiFindAppendBytes(&sOutput, &iLength, &iCapacity, "", 1);
+	__xuiFindEngineDestroy(&tEngine);
+	if ( iRet != XUI_OK ) { xrtFree(sOutput); return iRet; }
+	iLength--;
+	*psOutput = sOutput;
+	if ( pOutputLength != NULL ) *pOutputLength = iLength;
+	__xuiFindSetError(sError, iErrorCapacity, "");
+	return XUI_OK;
 }
 
 XUI_API void xuiFindFreeText(char* sText)

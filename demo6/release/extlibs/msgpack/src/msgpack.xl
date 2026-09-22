@@ -1,77 +1,52 @@
-extern "xmsgpack_encode_int" func __mp_enc_int(int value) as string
-extern "xmsgpack_decode_int" func __mp_dec_int(string hex) as int
-extern "xmsgpack_encode_str" func __mp_enc_str(string s) as string
-extern "xmsgpack_decode_str" func __mp_dec_str(string hex) as string
-extern "xmsgpack_encode_bin" func __mp_enc_bin(string data_hex) as string
-extern "xmsgpack_decode_bin" func __mp_dec_bin(string hex) as string
-extern "xmsgpack_encode_nil" func __mp_enc_nil() as string
-extern "xmsgpack_encode_bool" func __mp_enc_bool(bool val) as string
-extern "xmsgpack_decode_bool" func __mp_dec_bool(string hex) as bool
-extern "xmsgpack_encode_float" func __mp_enc_float(float val) as string
-extern "xmsgpack_decode_float" func __mp_dec_float(string hex) as float
-extern "xmsgpack_encode_array_hdr" func __mp_arr_hdr(int count) as string
-extern "xmsgpack_encode_map_hdr" func __mp_map_hdr(int pairs) as string
-extern "xmsgpack_type_name" func __mp_tname(string hex) as string
-extern "xmsgpack_concat" func __mp_cat(string a, string b) as string
+// MessagePack uses binary Buffer values. Hex is diagnostics only.
+extern "xmsgpack_encode" func __encode(var value) as point
+extern "xmsgpack_decode" func __decode(point data, c_size size) as var
+extern "xmsgpack_encode_bytes" func __encode_bytes(point data, c_size size) as point
+extern "xmsgpack_decode_bytes" func __decode_bytes(point data, c_size size) as point
+extern "xmsgpack_to_hex" func __to_hex(point data, c_size size) as string
+extern "xmsgpack_from_hex" func __from_hex(string text) as point
+extern "xmsgpack_error_message" func __error() as string
 
-
-
-export func encodeInt(int value) as string
-    return __mp_enc_int(value)
+export func encode(var value) as Buffer
+    point result = __encode(value)
+    if result == null then
+        throw ValueError __error()
+    end
+    return Buffer(result)
 end
 
-export func decodeInt(string hex) as int
-    return __mp_dec_int(hex)
+export func decode(Buffer data) as var
+    var result = __decode(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError __error()
+    end
+    return result
 end
 
-export func encodeStr(string s) as string
-    return __mp_enc_str(s)
+export func encodeBytes(Buffer data) as Buffer
+    point result = __encode_bytes(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError __error()
+    end
+    return Buffer(result)
 end
 
-export func decodeStr(string hex) as string
-    return __mp_dec_str(hex)
+export func decodeBytes(Buffer data) as Buffer
+    point result = __decode_bytes(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError __error()
+    end
+    return Buffer(result)
 end
 
-export func encodeBin(string data_hex) as string
-    return __mp_enc_bin(data_hex)
+export func toHex(Buffer data) as string
+    return __to_hex(data.data(), c_size(data.len()))
 end
 
-export func decodeBin(string hex) as string
-    return __mp_dec_bin(hex)
-end
-
-export func encodeNil() as string
-    return __mp_enc_nil()
-end
-
-export func encodeBool(bool val) as string
-    return __mp_enc_bool(val)
-end
-
-export func decodeBool(string hex) as bool
-    return __mp_dec_bool(hex)
-end
-
-export func encodeFloat(float val) as string
-    return __mp_enc_float(val)
-end
-
-export func decodeFloat(string hex) as float
-    return __mp_dec_float(hex)
-end
-
-export func arrayHdr(int count) as string
-    return __mp_arr_hdr(count)
-end
-
-export func mapHdr(int pairs) as string
-    return __mp_map_hdr(pairs)
-end
-
-export func typeName(string hex) as string
-    return __mp_tname(hex)
-end
-
-export func concat(string a, string b) as string
-    return __mp_cat(a, b)
+export func fromHex(string text) as Buffer
+    point result = __from_hex(text)
+    if result == null then
+        throw ValueError "invalid MessagePack hexadecimal text"
+    end
+    return Buffer(result)
 end

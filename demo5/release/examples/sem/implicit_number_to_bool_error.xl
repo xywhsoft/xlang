@@ -1,7 +1,0 @@
-func main() as int
-	bool value = 1
-	if 1 then
-		return 1
-	end
-	return value
-end

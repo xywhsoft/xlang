@@ -549,7 +549,7 @@ static void xl6SemSetLvaluePlan(
 
 /*
     直接名称左值不会走普通表达式读取检查，但它仍是一个有符号身份和类型的值位置。
-    HIR 与后端必须能仅凭语义结果取得这些信息，不能再按名称查表或重新推断。
+    XLIR 必须能仅凭语义结果取得这些信息，不能再按名称查表或重新推断。
 */
 static int xl6SemBindNameLvalue(
     XL6_SemContext* ctx,
@@ -1138,7 +1138,7 @@ static void xl6SemInvalidateFlowSymbol(
 
 /*
  * var 的 C 存储始终是 xvalue，但顺序控制流中可以知道它当前保存的具体 class。
- * 该事实属于语义层：成员解析、HIR 类型和后端派发必须共同消费同一份结果。
+ * 该事实属于语义层：成员解析、XLIR 类型和派发必须共同消费同一份结果。
  */
 static int xl6SemRecordAssignedClassFlow(
     XL6_SemContext* ctx,
@@ -1396,7 +1396,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
     if ( typeInfo->kind == XL6_TYPE_PROTOCOL ) {
         /*
             protocol 值由 xvalue 携带具体运行时类型，witness 独立存放在 XRT。
-            这个标记让后续 HIR/Cgen 复用 xvalue 的完整生命周期。
+            这个标记让后续 XLIR 复用 xvalue 的完整生命周期。
         */
         typeNode->flags |= XL6_AST_FLAG_PROTOCOL_HANDLE;
     } else if ( typeInfo->kind == XL6_TYPE_TAGGED_ENUM ) {
@@ -6109,8 +6109,8 @@ static XL6_AstNode* xl6SemCloneMemberReceiverType(XL6_SemContext* ctx, XL6_AstNo
         }
         /*
             base.member() 的接收者是当前 class 的直接父类型。
-            语义检查和 typed HIR 必须共享这个静态类型；否则调用虽能由 C 后端
-            特判生成，返回值却会在 HIR 中退化成“未知类型”。
+            语义检查和 typed XLIR 必须共享这个静态类型；否则调用虽然完成解析，
+            返回值却会在 XLIR 中退化成“未知类型”。
         */
         if ( xl6TextEquals(receiver->text, "base") &&
              ctx->currentClass != NULL &&
@@ -7116,7 +7116,7 @@ static XL6_AstNode* xl6SemCallReturnTypes(XL6_SemContext* ctx, XL6_AstNode* expr
 
 /*
     async 成员调用的公开类型是 future<T>，而声明中的返回类型只是任务完成值 T。
-    这里同时代入 class 泛型和方法泛型，避免语义检查、HIR 与 C 后端分别推断。
+    这里同时代入 class 泛型和方法泛型，避免语义检查与 XLIR 分别推断。
 */
 static XL6_AstNode* xl6SemCloneAsyncMemberCallResultType(
     XL6_SemContext* ctx,
@@ -7178,7 +7178,7 @@ static XL6_AstNode* xl6SemCloneResolvedMemberCallResultType(
         return NULL;
     }
 
-    /* 重载已经确定，HIR 类型必须直接来自该目标，不能再次执行可能受流状态影响的解析。 */
+    /* 重载已经确定，XLIR 类型必须直接来自该目标，不能再次执行可能受流状态影响的解析。 */
     classTypeArgs = xl6SemTypeNodeGenericArgs(concreteClassType);
     methodTypeArgs = xl6SemInferCallTypeArgs(ctx, call, method);
     concreteReturns = xl6SemCloneConcreteReturnTypes(
@@ -10707,9 +10707,9 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
             if ( !persistenceStdlibOk || !ok ) {
                 return 0;
             }
-            /* Managed non-class values keep their ordinary resolved call plan
-             * for the legacy backend.  Typed XLIR normalizes that canonical
-             * stdlib target into PersistenceValueAbi after type interning. */
+            /* Managed non-class values keep their ordinary resolved call plan.
+             * Typed XLIR normalizes that canonical stdlib target into
+             * PersistenceValueAbi after type interning. */
         }
     }
     {
@@ -10862,8 +10862,8 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
                 xl6SemSetCallPlan(node, XL6_SEM_CALL_GENERIC_DIRECT, func);
                 /*
                  * 显式泛型实参已经给出，调用所有权必须按代入后的真实形参决定。
-                 * 若继续读取 T，managed class 会被误记为普通值，HIR 随后只能把
-                 * 名字表达式恢复成 borrow，造成语义计划和 cgen 互相矛盾。
+                 * 若继续读取 T，managed class 会被误记为普通值，XLIR 随后只能把
+                 * 名字表达式恢复成 borrow，造成语义计划和 lowering 互相矛盾。
                  */
                 xl6SemAnnotateResolvedCallOwnership(
                     node,
@@ -13232,7 +13232,7 @@ static XL6_AstNode* xl6SemCloneContainerItemType(XL6_SemContext* ctx, const XL6_
         /*
          * 无类型容器与可变参数的内部 array<var>/dict<var> 形态，
          * 索引结果都是真实的动态值。把 var 类型留在语义层，
-         * HIR 和后端便不需要根据 AST 拼写再次猜测。
+         * XLIR 便不需要根据 AST 拼写再次猜测。
          */
         return xl6AstNewText(XL6_AST_TYPE, "var", 3, NULL);
     }
@@ -13453,7 +13453,7 @@ static XL6_AstNode* xl6SemInferContainerLiteralType(
 /*
  * 推断类型同样必须携带规范类型身份，不能只保留类型文本。
  * 这里不重新做类型检查，只把注册类型和当前泛型参数已经确定的身份递归写入副本，
- * 让 typed HIR、ABI 和后端始终读取同一份语义事实。
+ * 让 typed XLIR 与 ABI 始终读取同一份语义事实。
  */
 static void xl6SemBindInferredTypeIdentity(
     XL6_SemContext* ctx,
@@ -13884,7 +13884,7 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
 
                 /*
                  * 动态成员调用的结果不是“没有类型”，而是静态 var。
-                 * typed HIR 必须显式记录这层动态边界。
+                 * typed XLIR 必须显式记录这层动态边界。
                  */
                 if ( concreteReceiver != NULL &&
                      xl6TextEquals(concreteReceiver->text, "var") ) {
@@ -17676,7 +17676,7 @@ static int xl6SemCheckBlock(XL6_SemContext* ctx, XL6_AstNode* block, int pushSco
         XL6_AstNode* statement = block->children[i];
 
         /*
-            终止语句之后的源码仍要完成名称、类型和调用检查，保证 HIR 信息完整；
+            终止语句之后的源码仍要完成名称、类型和调用检查，保证 XLIR 信息完整；
             但它不属于任何可达执行路径，不能再产生“未确定赋值”的伪错误。
         */
         if ( linearFlowEnded ) {
@@ -23721,7 +23721,7 @@ static int xl6SemIsTopLevelRuntimeStmt(const XL6_AstNode* node)
 }
 
 /*
- * AST 上的语义身份只是迁移到 HIR 的桥梁。
+ * AST 上的语义身份是构建 XLIR 时使用的前端事实。
  * 这里统一补齐推断类型和编译器生成类型，避免各个推断分支重复维护注册表查询。
  */
 static void xl6SemAnnotateTypeIdentities(XL6_SemContext* ctx, XL6_AstNode* node)

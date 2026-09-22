@@ -9,6 +9,7 @@
 #include <time.h>
 
 #include "xrt.h"
+#include "../xhttp.client/include/xhttp_client_package.h"
 
 #define XVOLC_CORE_VERSION "0.1.0"
 #define XVOLC_DEFAULT_TIMEOUT_MS 30000u
@@ -24,7 +25,8 @@ typedef struct xvolc_buf {
 	size_t cap;
 } xvolc_buf;
 
-static xmutex g_xvolc_lock = NULL;
+/* XRT exposes mutexes as values; the package keeps a pointer handle. */
+static xmutex* g_xvolc_lock = NULL;
 static char* g_xvolc_returns[8];
 static size_t g_xvolc_return_slot = 0u;
 static char g_xvolc_error[512] = "";
@@ -281,14 +283,14 @@ static int xvolc_hex_to_bytes(const char* hex, unsigned char* out, size_t out_le
 static int xvolc_sha256_hex_into(const char* text, char out_hex[65])
 {
 	unsigned char digest[32];
-	xrtSHA256((const ptr)(text ? text : ""), text ? strlen(text) : 0u, digest);
+	xrtSha256(text ? text : "", text ? strlen(text) : 0u, digest);
 	xvolc_hex_lower(digest, sizeof(digest), out_hex);
 	return 1;
 }
 
 static int xvolc_hmac_sha256_raw(const unsigned char* key, size_t key_len, const char* text, unsigned char out[32])
 {
-	xrtHMAC_SHA256(key, key_len, (const uint8*)(text ? text : ""), text ? strlen(text) : 0u, out);
+	xrtHmacSha256(key, key_len, text ? text : "", text ? strlen(text) : 0u, out);
 	return 1;
 }
 
@@ -750,12 +752,15 @@ const char* x_volc_core_request(const char* method,
 	char* signed_headers = NULL;
 	char* authorization = NULL;
 	xvolc_buf url;
-	xhttprequest req;
-	xhttpresponse* resp = NULL;
+	xhttprequest* req = NULL;
+	const xhttpresponse* resp = NULL;
+	xhttpresult* result = NULL;
 	xnetengineconfig engine_cfg;
 	xnetengine* engine = NULL;
-	xnet_result status = XRT_NET_ERROR;
-	uint32 timeout = timeout_ms > 0 ? (uint32)timeout_ms : XVOLC_DEFAULT_TIMEOUT_MS;
+	xhttpclientconfig client_cfg;
+	xhttpclient* client = NULL;
+	xhttpcalloptions call_options;
+	uint64 timeout = (uint64)(timeout_ms > 0 ? timeout_ms : XVOLC_DEFAULT_TIMEOUT_MS) * UINT64_C(1000);
 	const char* ret = "";
 	const char* p_method = method && method[0] ? method : "POST";
 	const char* p_path = path && path[0] ? path : "/";
@@ -764,54 +769,81 @@ const char* x_volc_core_request(const char* method,
 	xvolc_set_error("");
 	g_xvolc_last_status = 0;
 	xvolc_buf_init(&url);
-	xrtHttpRequestInit(&req);
 	query = xvolc_build_canonical_query(action, version, extra_pairs);
 	if ( query == NULL ) goto done;
 	if ( !xvolc_sign(p_method, host, p_path, service, region, access_key, secret_key, session_token,
 		p_content_type, query, p_body, NULL, &signed_x_date, &payload_hash, &signed_headers, &authorization) ) goto done;
 	if ( !xvolc_buf_appendf(&url, "https://%s%s?%s", host ? host : "", p_path, query) ) goto done;
 	xrtNetEngineConfigInit(&engine_cfg);
-	engine_cfg.iWorkerCount = 1u;
+	engine_cfg.Workers = 1u;
 	engine = xrtNetEngineCreate(&engine_cfg);
-	if ( engine == NULL || xrtNetEngineStart(engine) != XRT_NET_OK ) {
+	if ( engine == NULL || !xrtNetEngineStart(engine) ) {
 		xvolc_set_error("failed to start xrt HTTP net engine");
 		goto done;
 	}
-	if ( !xrtHttpRequestSetMethod(&req, p_method) || !xrtHttpRequestSetURL(&req, url.data ? url.data : "") ) {
+	xrtHttpClientConfigInit(&client_cfg);
+	client_cfg.Timeout = timeout;
+	client_cfg.IdleTimeout = timeout;
+	client = xrtHttpClientCreate(engine, &client_cfg);
+	if ( client == NULL ) {
+		xvolc_set_error("failed to create xrt HTTP client");
+		goto done;
+	}
+	req = xrtHttpRequestCreate(
+		(xstrview){ p_method, strlen(p_method) },
+		(xstrview){ url.data ? url.data : "", url.data ? url.len : 0u }
+	);
+	if ( req == NULL ) {
 		xvolc_set_error("failed to initialize xrt HTTP request");
 		goto done;
 	}
-	xrtHttpRequestSetTimeout(&req, timeout);
-	xrtHttpRequestSetIdleTimeout(&req, timeout);
-	xrtHttpRequestSetVerifyPeer(&req, true);
-	xrtHttpRequestSetHeader(&req, "Host", host ? host : "");
-	xrtHttpRequestSetHeader(&req, "X-Date", signed_x_date);
-	xrtHttpRequestSetHeader(&req, "X-Content-Sha256", payload_hash);
-	xrtHttpRequestSetHeader(&req, "Authorization", authorization);
-	if ( session_token && session_token[0] ) {
-		xrtHttpRequestSetHeader(&req, "X-Security-Token", session_token);
-	}
-	if ( strcmp(p_method, "GET") != 0 && strcmp(p_method, "get") != 0 ) {
-		xrtHttpRequestSetBodyCopy(&req, p_body, strlen(p_body), p_content_type);
-	} else {
-		xrtHttpRequestSetHeader(&req, "Content-Type", p_content_type);
-	}
-	resp = xrtHttpExecuteSync(engine, &req, &status);
-	if ( status != XRT_NET_OK || resp == NULL ) {
-		xvolc_set_errorf("xrt HTTP request failed: status=%d", (int)status);
+	if ( !xrtHttpRequestSetHeader(req, XRT_STR_LITERAL("Host"), (xstrview){ host ? host : "", host ? strlen(host) : 0u }) ||
+		!xrtHttpRequestSetHeader(req, XRT_STR_LITERAL("X-Date"), (xstrview){ signed_x_date, strlen(signed_x_date) }) ||
+		!xrtHttpRequestSetHeader(req, XRT_STR_LITERAL("X-Content-Sha256"), (xstrview){ payload_hash, strlen(payload_hash) }) ||
+		!xrtHttpRequestSetHeader(req, XRT_STR_LITERAL("Authorization"), (xstrview){ authorization, strlen(authorization) }) ) {
+		xvolc_set_error("failed to set xrt HTTP headers");
 		goto done;
 	}
-	g_xvolc_last_status = (int)resp->iStatusCode;
-	ret = xvolc_return_copy(resp->pBody ? resp->pBody : "", resp->pBody ? resp->iBodyLen : 0u);
-	if ( resp->iStatusCode < 200u || resp->iStatusCode >= 300u ) {
-		xvolc_set_errorf("HTTP returned status %u", (unsigned)resp->iStatusCode);
+	if ( session_token && session_token[0] ) {
+		if ( !xrtHttpRequestSetHeader(req, XRT_STR_LITERAL("X-Security-Token"), (xstrview){ session_token, strlen(session_token) }) ) {
+			xvolc_set_error("failed to set xrt security token");
+			goto done;
+		}
+	}
+	if ( strcmp(p_method, "GET") != 0 && strcmp(p_method, "get") != 0 ) {
+		if ( !xrtHttpRequestSetBytes(req, (xbytesview){ (const unsigned char*)p_body, strlen(p_body) }, (xstrview){ p_content_type, strlen(p_content_type) }) ) {
+			xvolc_set_error("failed to set xrt HTTP request body");
+			goto done;
+		}
+	} else {
+		if ( !xrtHttpRequestSetHeader(req, XRT_STR_LITERAL("Content-Type"), (xstrview){ p_content_type, strlen(p_content_type) }) ) {
+			xvolc_set_error("failed to set xrt content type");
+			goto done;
+		}
+	}
+	xrtHttpCallOptionsInit(&call_options);
+	call_options.Timeout = timeout;
+	call_options.IdleTimeout = timeout;
+	result = xrtHttpClientDoSync(client, req, &call_options);
+	if ( result == NULL || (resp = xrtHttpResultResponse(result)) == NULL ) {
+		xvolc_set_error("xrt HTTP request failed");
+		goto done;
+	}
+	g_xvolc_last_status = (int)xrtHttpResponseStatus(resp);
+	{
+		xbytesview response_body = xrtHttpResponseBody(resp);
+		ret = xvolc_return_copy((const char*)response_body.Data, response_body.Size);
+	}
+	if ( g_xvolc_last_status < 200 || g_xvolc_last_status >= 300 ) {
+		xvolc_set_errorf("HTTP returned status %d", g_xvolc_last_status);
 	}
 done:
-	if ( resp ) xrtHttpResponseDestroy(resp);
-	xrtHttpRequestUnit(&req);
+	if ( result ) xrtHttpResultDestroy(result);
+	if ( req ) xrtHttpRequestDestroy(req);
+	if ( client ) xrtHttpClientDestroy(client);
 	if ( engine ) {
-		xrtNetEngineStop(engine);
-		xrtNetEngineDestroy(engine);
+		(void)xrtNetEngineStop(engine);
+		(void)xrtNetEngineDestroy(engine);
 	}
 	if ( query ) xrtFree(query);
 	if ( signed_x_date ) xrtFree(signed_x_date);

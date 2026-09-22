@@ -11,7 +11,6 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_erased_collection_iterator_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.typed.json"
 $typedRepeatPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.typed.repeat.json"
@@ -19,11 +18,9 @@ $loweredPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.lowered
 $loweredRepeatPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.lowered.repeat.json"
 $cPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.c"
 $cRepeatPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.repeat.c"
-$legacyCPath = Join-Path $outputDir "xlir_erased_collection_iterator_abi.legacy.c"
 $xlirExe = Join-Path $outputDir "xlir_erased_collection_iterator_abi.xlir.exe"
-$legacyExe = Join-Path $outputDir "xlir_erased_collection_iterator_abi.legacy.exe"
 
-foreach ( $path in @($xl, $source, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR erased collection iterator gate input is missing: $path"
     }
@@ -240,13 +237,11 @@ foreach ( $cursorSymbol in $cursorSymbols ) {
     }
 }
 
-& $xl cgen $source --backend legacy --emit $legacyCPath
-if ( $LASTEXITCODE -ne 0 ) { throw "Legacy erased collection iterator Cgen failed" }
-$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror `"$legacyCPath`" `"$legacySupport`" !XL6_CGEN_LINKS! -o `"$legacyExe`" && `"$legacyExe`""
+$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`""
 & $env:ComSpec /d /v:on /c $command
 if ( $LASTEXITCODE -ne 0 ) {
-    throw "Erased collection iterator strict compile or legacy differential runtime failed"
+    throw "Erased collection iterator strict compile/runtime failed"
 }
 
-Write-Output "XLIR erased collection iterator ABI gate ok: four statically shaped zero-parameter collection TypeIds, canonical dynamic item carrier, source-bound cursors, orthogonal key/item projections, explicit cleanup on continue/break/return/finally, deterministic mechanical C, strict compile, and legacy differential runtime semantics."
+Write-Output "XLIR erased collection iterator ABI gate ok: four statically shaped zero-parameter collection TypeIds, canonical dynamic item carrier, source-bound cursors, orthogonal key/item projections, explicit cleanup on continue/break/return/finally, deterministic mechanical C, and strict compile/runtime semantics."
 exit 0

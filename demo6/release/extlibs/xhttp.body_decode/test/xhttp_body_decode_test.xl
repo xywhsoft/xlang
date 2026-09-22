@@ -1,0 +1,43 @@
+import xhttp.body
+import xhttp.body_codec
+import xhttp.body_decode
+import xhttp.protocol
+from xhttp.body import Body
+from xhttp.body_codec import DeflateConfig
+from xhttp.body_decode import BodyDecodeResult
+from xhttp.protocol import Headers
+
+
+
+func main(...) as int
+    Body source = Body.fromText("nested content encoding")
+    Body gzip = xhttp.body_codec.deflate(source)
+
+    BodyDecodeResult decoded = xhttp.body_decode.decode(gzip, "gzip")
+    assert decoded.applied and decoded.supported
+    assert not decoded.unchanged
+    assert decoded.body.text() == "nested content encoding"
+
+    BodyDecodeResult unknown = xhttp.body_decode.decode(gzip, "br")
+    assert unknown.status == xhttp.body_decode.DECODE_UNSUPPORTED
+    assert not unknown.supported and not unknown.applied
+    assert unknown.body.nativeHandle() == gzip.nativeHandle()
+
+    DeflateConfig zlib = DeflateConfig(xhttp.body_codec.DEFLATE_ZLIB)
+    Body nested = xhttp.body_codec.deflate(gzip, zlib)
+    Headers headers = Headers()
+    assert headers.add("Content-Encoding", "gzip")
+    assert headers.add("Content-Encoding", "deflate")
+
+    BodyDecodeResult fields = xhttp.body_decode.decode(nested, headers)
+    assert fields.applied
+    assert fields.body.text() == "nested content encoding"
+
+    Headers plainHeaders = Headers()
+    BodyDecodeResult plain = xhttp.body_decode.decode(source, plainHeaders)
+    assert plain.unchanged and plain.supported
+    assert plain.body.nativeHandle() == source.nativeHandle()
+
+    println("xhttp.body_decode package ok")
+    return 0
+end

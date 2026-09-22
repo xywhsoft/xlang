@@ -1,6 +1,6 @@
 #include "src/cgen/xl6_cgen_xlang.h"
 
-void xl6EmitXlangRuntimeComponent(XL6_Output* out, int xlirAbi)
+void xl6EmitXlangRuntimeComponent(XL6_Output* out)
 {
     if ( out == NULL ) {
         return;
@@ -24,12 +24,9 @@ void xl6EmitXlangRuntimeComponent(XL6_Output* out, int xlirAbi)
     xl6OutputPuts("    return xlCreateContext(0);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "void xl6_xlang_context_destroy(void* ctx)\n"
-        : "long long xl6_xlang_context_destroy(void* ctx)\n", out);
+    xl6OutputPuts("void xl6_xlang_context_destroy(void* ctx)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( ctx != 0 ) { xlDestroyContext((XL_Context*)ctx); }\n", out);
-    if ( !xlirAbi ) xl6OutputPuts("    return 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xlang_context_last_error_copy(void* ctx)\n", out);
@@ -38,33 +35,19 @@ void xl6EmitXlangRuntimeComponent(XL6_Output* out, int xlirAbi)
     xl6OutputPuts("    return xrtStrDup(text != 0 ? text : \"\");\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_set_work_dir(void* ctx, const char* path)\n"
-        : "int xl6_xlang_context_set_work_dir(void* ctx, const char* path)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_set_work_dir(void* ctx, const char* path)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlSetWorkDir((XL_Context*)ctx, path) != 0; }\n\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_set_temp_dir(void* ctx, const char* path)\n"
-        : "int xl6_xlang_context_set_temp_dir(void* ctx, const char* path)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_set_temp_dir(void* ctx, const char* path)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlSetTempDir((XL_Context*)ctx, path) != 0; }\n\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_set_save_temps(void* ctx, bool enabled)\n"
-        : "int xl6_xlang_context_set_save_temps(void* ctx, int enabled)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_set_save_temps(void* ctx, bool enabled)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlSetSaveTemps((XL_Context*)ctx, enabled ? 1 : 0) != 0; }\n\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_run_source(void* ctx, const char* source)\n"
-        : "int xl6_xlang_context_run_source(void* ctx, const char* source)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_run_source(void* ctx, const char* source)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlRunScriptString((XL_Context*)ctx, source) != 0; }\n\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_run_file(void* ctx, const char* path)\n"
-        : "int xl6_xlang_context_run_file(void* ctx, const char* path)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_run_file(void* ctx, const char* path)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlRunScriptFile((XL_Context*)ctx, path) != 0; }\n\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_run_source_args(void* ctx, const char* source, xvalue* args)\n"
-        : "int xl6_xlang_context_run_source_args(void* ctx, const char* source, xvalue* args)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_run_source_args(void* ctx, const char* source, xvalue* args)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlRunScriptStringArg((XL_Context*)ctx, source, args) != 0; }\n\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_context_run_file_args(void* ctx, const char* path, xvalue* args)\n"
-        : "int xl6_xlang_context_run_file_args(void* ctx, const char* path, xvalue* args)\n", out);
+    xl6OutputPuts("bool xl6_xlang_context_run_file_args(void* ctx, const char* path, xvalue* args)\n", out);
     xl6OutputPuts("{ return ctx != 0 && xlRunScriptFileArg((XL_Context*)ctx, path, args) != 0; }\n\n", out);
     xl6OutputPuts("void xl6_xlang_context_clear_last_error(void* ctx)\n", out);
     xl6OutputPuts("{ if ( ctx != 0 ) xlClearLastError((XL_Context*)ctx); }\n\n", out);
@@ -102,9 +85,7 @@ void xl6EmitXlangRuntimeComponent(XL6_Output* out, int xlirAbi)
     xl6OutputPuts("    return handler;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "void xl6_xlang_handler_destroy(void* value)\n"
-        : "long long xl6_xlang_handler_destroy(void* value)\n", out);
+    xl6OutputPuts("void xl6_xlang_handler_destroy(void* value)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XlangHandler* handler = (XL6_XlangHandler*)value;\n", out);
     xl6OutputPuts("    if ( handler != 0 ) {\n", out);
@@ -113,12 +94,9 @@ void xl6EmitXlangRuntimeComponent(XL6_Output* out, int xlirAbi)
     xl6OutputPuts("        if ( handler->lock != 0 ) { xrtMutexDestroy(handler->lock); }\n", out);
     xl6OutputPuts("        xrtFree(handler);\n", out);
     xl6OutputPuts("    }\n", out);
-    if ( !xlirAbi ) xl6OutputPuts("    return 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "bool xl6_xlang_handler_run_args(void* value, xvalue* args)\n"
-        : "int xl6_xlang_handler_run_args(void* value, xvalue* args)\n", out);
+    xl6OutputPuts("bool xl6_xlang_handler_run_args(void* value, xvalue* args)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XlangHandler* handler = (XL6_XlangHandler*)value;\n", out);
     xl6OutputPuts("    int result;\n", out);

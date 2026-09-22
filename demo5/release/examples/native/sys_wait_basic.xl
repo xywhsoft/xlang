@@ -1,9 +1,0 @@
-import std.sys.wait
-
-async func main() as int
-	wait.sleep(1)
-	auto delayed = wait.delay(9)
-	auto ready = wait.delay(4)
-
-	return await wait.wait(delayed) + await ready
-end

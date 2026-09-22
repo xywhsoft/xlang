@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_callsite_variadic.xl"
-$legacyFixture = Join-Path $Root "test\cases\cgen_extern_xvalue_vararg.xl"
+$xvalueVarargFixture = Join-Path $Root "test\cases\cgen_extern_xvalue_vararg.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_callsite_variadic_host.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_callsite_variadic.typed.xlir"
@@ -18,10 +18,10 @@ $loweredPath = Join-Path $outputDir "xlir_callsite_variadic.lowered.xlir"
 $jsonPath = Join-Path $outputDir "xlir_callsite_variadic.lowered.json"
 $cPath = Join-Path $outputDir "xlir_callsite_variadic_generated.c"
 $headerPath = Join-Path $outputDir "xlir_callsite_variadic_generated.h"
-$legacyCPath = Join-Path $outputDir "cgen_extern_xvalue_vararg.xlir.c"
+$xvalueVarargCPath = Join-Path $outputDir "cgen_extern_xvalue_vararg.xlir.c"
 $exePath = Join-Path $outputDir "xlir_callsite_variadic_host.exe"
 
-foreach ( $path in @($xl, $source, $legacyFixture, $hostSource) ) {
+foreach ( $path in @($xl, $source, $xvalueVarargFixture, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR variadic CallSite gate input is missing: $path"
     }
@@ -77,7 +77,7 @@ for ( $i = 0; $i -lt 4; ++$i ) {
 
 & $xl cgen $source --backend xlir --emit $cPath --emit-header $headerPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR variadic CallSite Cgen failed" }
-& $xl cgen $legacyFixture --backend xlir --emit $legacyCPath
+& $xl cgen $xvalueVarargFixture --backend xlir --emit $xvalueVarargCPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR existing extern xvalue vararg fixture no longer lowers through CallSite" }
 $header = [System.IO.File]::ReadAllText($headerPath, [System.Text.Encoding]::UTF8)
 if ( ! $header.Contains("int64_t xlir_callsite_variadic_probe(void);") ) {

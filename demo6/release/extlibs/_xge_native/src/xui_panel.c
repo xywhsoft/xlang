@@ -309,17 +309,14 @@ static int __xuiPanelCacheRender(xui_widget pWidget, xui_draw_context pDraw, uin
 	return __xuiPanelDrawRectStroke(pProxy, pDraw, tRect, tResolved.fBorderWidth, tResolved.iBorderColor);
 }
 
-static int __xuiPanelMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
+static int __xuiPanelPrepareLayout(xui_widget pWidget, void* pUser)
 {
 	xui_panel_data_t* pData;
 	xui_panel_resolved_t tResolved;
-	xui_vec2_t tHeaderSize;
-	xui_vec2_t tClientSize;
-	float fClientConstraintH;
 	int iRet;
 
 	(void)pUser;
-	if ( (pWidget == NULL) || (pSize == NULL) ) {
+	if ( pWidget == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	pData = __xuiPanelGetData(pWidget);
@@ -327,57 +324,22 @@ static int __xuiPanelMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	iRet = __xuiPanelSyncResolved(pWidget, pData, &tResolved);
-	if ( iRet != XUI_OK ) return iRet;
-	memset(&tHeaderSize, 0, sizeof(tHeaderSize));
-	memset(&tClientSize, 0, sizeof(tClientSize));
-	if ( (pData->pHeader != NULL) && (tResolved.fHeaderHeight > 0.0f) ) {
-		iRet = xuiWidgetMeasure(pData->pHeader, (xui_vec2_t){tConstraint.fX, tResolved.fHeaderHeight}, &tHeaderSize);
-		if ( iRet != XUI_OK ) return iRet;
-		tHeaderSize.fY = tResolved.fHeaderHeight;
-	}
-	if ( pData->pClient != NULL ) {
-		fClientConstraintH = (tConstraint.fY > tHeaderSize.fY) ? (tConstraint.fY - tHeaderSize.fY) : XUI_LAYOUT_UNBOUNDED;
-		iRet = xuiWidgetMeasure(pData->pClient, (xui_vec2_t){tConstraint.fX, fClientConstraintH}, &tClientSize);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	pSize->fX = (tHeaderSize.fX > tClientSize.fX) ? tHeaderSize.fX : tClientSize.fX;
-	pSize->fY = tHeaderSize.fY + tClientSize.fY;
-	if ( pSize->fX < 180.0f ) pSize->fX = 180.0f;
-	if ( pSize->fY < tResolved.fHeaderHeight + 64.0f ) pSize->fY = tResolved.fHeaderHeight + 64.0f;
-	return XUI_OK;
+	return iRet;
 }
 
-static int __xuiPanelArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiPanelContentMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
 {
 	xui_panel_data_t* pData;
 	xui_panel_resolved_t tResolved;
-	xui_rect_t tHeader;
-	xui_rect_t tClient;
-	float fHeaderHeight;
-	int iRet;
 
+	(void)tConstraint;
 	(void)pUser;
+	if ( (pWidget == NULL) || (pSize == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	pData = __xuiPanelGetData(pWidget);
-	if ( pData == NULL ) {
-		return XUI_ERROR_INVALID_ARGUMENT;
-	}
-	iRet = __xuiPanelSyncResolved(pWidget, pData, &tResolved);
-	if ( iRet != XUI_OK ) return iRet;
-	fHeaderHeight = (tResolved.fHeaderHeight > tContentRect.fH) ? tContentRect.fH : tResolved.fHeaderHeight;
-	if ( fHeaderHeight < 0.0f ) fHeaderHeight = 0.0f;
-	if ( pData->pHeader != NULL ) {
-		tHeader = (xui_rect_t){tContentRect.fX, tContentRect.fY, tContentRect.fW, fHeaderHeight};
-		iRet = xuiWidgetArrange(pData->pHeader, tHeader);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	if ( pData->pClient != NULL ) {
-		tClient.fX = tContentRect.fX;
-		tClient.fY = tContentRect.fY + fHeaderHeight;
-		tClient.fW = tContentRect.fW;
-		tClient.fH = (tContentRect.fH > fHeaderHeight) ? (tContentRect.fH - fHeaderHeight) : 0.0f;
-		iRet = xuiWidgetArrange(pData->pClient, tClient);
-		if ( iRet != XUI_OK ) return iRet;
-	}
+	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	__xuiPanelResolve(pWidget, pData, &tResolved);
+	pSize->fX = 180.0f;
+	pSize->fY = tResolved.fHeaderHeight + 64.0f;
 	return XUI_OK;
 }
 
@@ -624,8 +586,8 @@ XUI_API xui_widget_type xuiPanelGetType(xui_context pContext)
 	tDesc.iTypeDataSize = sizeof(xui_panel_data_t);
 	tDesc.onInit = __xuiPanelInit;
 	tDesc.onDestroy = __xuiPanelDestroy;
-	tDesc.onLayoutMeasure = __xuiPanelMeasure;
-	tDesc.onLayoutArrange = __xuiPanelArrange;
+	tDesc.onLayoutPrepare = __xuiPanelPrepareLayout;
+	tDesc.onContentMeasure = __xuiPanelContentMeasure;
 	tDesc.onCacheRender = __xuiPanelCacheRender;
 	__xuiPanelDefaultLayout(&tDesc.tLayout);
 	__xuiPanelDefaultCachePolicy(&tDesc.tCachePolicy);

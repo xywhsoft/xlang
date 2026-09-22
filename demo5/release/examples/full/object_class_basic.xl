@@ -1,9 +1,0 @@
-class Node extends object
-	var id as int
-end
-
-func main() as int
-	auto node = Node()
-	node.id = 42
-	return node.id
-end

@@ -1,0 +1,19 @@
+// C 函数接收普通 C 回调；xlang 具名函数会直接映射为对应函数指针。
+extern "c_apply_i32" func cApply(func(c_int) as c_int callback, c_int value) as c_int
+
+func twice(c_int value) as c_int
+    return value * 2
+end
+
+// C 调用该导出函数，间接验证 xlang -> C 回调方向。
+export "xl_run_xlang_callback" func runXlangCallback() as c_int
+    return cApply(twice, 21)
+end
+
+// C 回调进入 xlang 后会被包装为带签名、带生命周期的 func 值。
+export "xl_apply_c_callback" func applyCCallback(
+    func(c_int) as c_int callback,
+    c_int value
+) as c_int
+    return callback(value)
+end

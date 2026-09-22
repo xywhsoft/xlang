@@ -35,13 +35,13 @@
           "name": "blog",
           "kind": "handler",
           "method": "*",
-          "pattern": "/*",
+          "pattern": "/{path...}",
           "contentType": "text/html; charset=utf-8",
           "handler": {
             "language": "xlang",
             "path": "handlers/blog_handler.xl",
             "mode": "embedded",
-            "poolSize": 4,
+            "poolSize": 1,
             "queueLimit": 1024,
             "queueTimeoutMs": 2000,
             "timeoutMs": 30000

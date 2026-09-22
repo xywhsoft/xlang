@@ -1,4 +1,0 @@
-func bad(...) as int
-	auto arg = []
-	return 0
-end

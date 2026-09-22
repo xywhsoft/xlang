@@ -1,0 +1,9 @@
+import xml.sax
+
+func main(...) as int
+    auto source = xml.sax.reader("<root>ok</root>")
+    var first = source.next()
+    assert first != null, "first SAX event must exist"
+    println("xml.sax direct next passed")
+    return 0
+end

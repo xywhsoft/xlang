@@ -45,9 +45,9 @@ func main(...) as int
     println("OID 1: ", oid1)
     println("OID 2: ", oid2)
 
-    // 从 ObjectId 提取创建时间 (返回 xtime 秒数)
-    int oidSecs = bson.oidTime(oid1)
-    println("OID 年份: ", time.year(time(oidSecs)))
+    // 从 ObjectId 提取创建时间，直接得到 xlang time。
+    time oidMoment = bson.oidTime(oid1)
+    println("OID 年份: ", time.year(oidMoment))
 
     // ═══ 6. Hex 调试 ═══
     // 将 BSON 二进制转为可读 hex 字符串

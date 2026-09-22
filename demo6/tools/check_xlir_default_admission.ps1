@@ -3,13 +3,8 @@ param(
     [Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [int]$MinimumSourceCount = 531,
-    # xlir_scope_exit_plan adds a default-backend candidate but its nested
-    # generic call is XLIR-only. The return_commit fixture adds one supported
-    # legacy intersection source; keep that distinction in the floors.
-    [int]$MinimumLegacySuccess = 514,
     [int]$MinimumXlirSuccess = 514,
     [int]$MinimumDefaultSuccess = 514,
-    [int]$MaximumAdmissionGaps = 0,
     [ValidateRange(60, 600)][int]$CompilerTimeoutSeconds = 600,
     [string]$ReportPath = ''
 )
@@ -75,11 +70,8 @@ $sourceSnapshot = @(New-XlirPublicCgenSnapshot -Paths @($sources | ForEach-Objec
 
 $scratch = Join-Path $outputPath 'scratch'
 [IO.Directory]::CreateDirectory($scratch) | Out-Null
-$legacySuccess = 0
 $defaultSuccess = 0
 $xlirSuccess = 0
-$gaps = [System.Collections.Generic.List[object]]::new()
-$legacyFailures = [System.Collections.Generic.List[object]]::new()
 $defaultMismatches = [System.Collections.Generic.List[object]]::new()
 $executionFailures = [System.Collections.Generic.List[object]]::new()
 $results = [System.Collections.Generic.List[object]]::new()
@@ -107,24 +99,21 @@ for ($offset = 0; $offset -lt $orderedSources.Count; $offset += $sourceBatchSize
     $sourceBatch = @($orderedSources | Select-Object -Skip $offset -First $sourceBatchSize)
     $requests = [System.Collections.Generic.List[object]]::new()
     foreach ($source in $sourceBatch) {
-        $slot = [int]($requests.Count / 3)
-        $requests.Add([pscustomobject]@{ Source = $source; Backend = 'legacy'; Output = (Join-Path $scratch "slot$slot-legacy.c") })
+        $slot = [int]($requests.Count / 2)
         $requests.Add([pscustomobject]@{ Source = $source; Backend = 'default'; Output = (Join-Path $scratch "slot$slot-default.c") })
         $requests.Add([pscustomobject]@{ Source = $source; Backend = 'xlir'; Output = (Join-Path $scratch "slot$slot-xlir.c") })
     }
     $batch = @(Invoke-XlirPublicCgenBatch -Session $session -Requests $requests.ToArray() `
         -TimeoutSeconds $CompilerTimeoutSeconds)
-    if ($batch.Count -ne $sourceBatch.Count * 3) {
+    if ($batch.Count -ne $sourceBatch.Count * 2) {
         throw 'XLIR default-admission batch returned an incomplete result set'
     }
     for ($sourceIndex = 0; $sourceIndex -lt $sourceBatch.Count; ++$sourceIndex) {
         ++$index
         $source = $sourceBatch[$sourceIndex]
-        $legacy = $batch[$sourceIndex * 3]
-        $default = $batch[$sourceIndex * 3 + 1]
-        $xlir = $batch[$sourceIndex * 3 + 2]
-    $sourceHashesMatch = $legacy.SourceSha256 -eq $default.SourceSha256 -and
-        $default.SourceSha256 -eq $xlir.SourceSha256
+        $default = $batch[$sourceIndex * 2]
+        $xlir = $batch[$sourceIndex * 2 + 1]
+    $sourceHashesMatch = $default.SourceSha256 -eq $xlir.SourceSha256
     if (!$sourceHashesMatch) {
         $executionFailures.Add([pscustomobject]@{
             Source = $source
@@ -133,7 +122,7 @@ for ($offset = 0; $offset -lt $orderedSources.Count; $offset += $sourceBatchSize
             Diagnostic = ''
         })
     }
-    foreach ($invocation in @($legacy, $default, $xlir)) {
+    foreach ($invocation in @($default, $xlir)) {
         if ($invocation.ExecutionFailure) {
             $executionFailures.Add([pscustomobject]@{
                 Source = $source
@@ -166,36 +155,16 @@ for ($offset = 0; $offset -lt $orderedSources.Count; $offset += $sourceBatchSize
         Source = $source
         SourceSha256 = $default.SourceSha256
         SourceHashesMatch = $sourceHashesMatch
-        LegacyExitCode = $legacy.ExitCode
         DefaultExitCode = $default.ExitCode
         XlirExitCode = $xlir.ExitCode
         DefaultMatchesXlir = $defaultMatches
-        LegacySha256 = $legacy.ArtifactSha256
         DefaultSha256 = $default.ArtifactSha256
         XlirSha256 = $xlir.ArtifactSha256
-        LegacyMilliseconds = $legacy.DurationMilliseconds
         DefaultMilliseconds = $default.DurationMilliseconds
         XlirMilliseconds = $xlir.DurationMilliseconds
     })
-    if (!$legacy.ExecutionFailure -and $legacy.ExitCode -eq 0) { ++$legacySuccess }
-    elseif (!$legacy.ExecutionFailure) {
-        $diagnostic = @($legacy.Output -split "`r?`n" | Where-Object { $_.Trim() }) | Select-Object -Last 1
-        $legacyFailures.Add([pscustomobject]@{
-            Source = $source
-            Diagnostic = if ($diagnostic) { $diagnostic.Trim() } else { 'legacy cgen exited without a diagnostic' }
-        })
-    }
     if (!$default.ExecutionFailure -and $default.ExitCode -eq 0) { ++$defaultSuccess }
     if (!$xlir.ExecutionFailure -and $xlir.ExitCode -eq 0) { ++$xlirSuccess }
-    if (!$legacy.ExecutionFailure -and !$xlir.ExecutionFailure -and
-        $legacy.ExitCode -eq 0 -and $xlir.ExitCode -ne 0) {
-        $diagnostic = @($xlir.Output -split "`r?`n" | Where-Object { $_.Trim() }) | Select-Object -Last 1
-        if (!$diagnostic) { $diagnostic = 'XLIR cgen exited without a diagnostic' }
-        $gaps.Add([pscustomobject]@{
-            Source = $source
-            Kind = ($diagnostic.Trim() -replace '^.*?:\d+:\d+:\s*', '')
-        })
-    }
     if (($index % 50) -eq 0) {
         Write-Output "XLIR current-source default admission progress: $index / $($sources.Count)"
     }
@@ -217,17 +186,15 @@ if ($inputsUnchanged) {
     }
 }
 
-$summary = 'XLIR current-source default admission: sources={0}, legacy-ok={1}, default-ok={2}, xlir-ok={3}, gaps={4}, default-mismatches={5}' -f
-    $sources.Count, $legacySuccess, $defaultSuccess, $xlirSuccess, $gaps.Count, $defaultMismatches.Count
+$summary = 'XLIR current-source default admission: sources={0}, default-ok={1}, xlir-ok={2}, default-mismatches={3}' -f
+    $sources.Count, $defaultSuccess, $xlirSuccess, $defaultMismatches.Count
 $report = [ordered]@{
-    SchemaVersion = 3
+    SchemaVersion = 4
     RecordedAt = [DateTime]::UtcNow.ToString('o')
     Commands = @('cgen', 'run', 'build')
     SourceCount = $sources.Count
-    LegacySuccess = $legacySuccess
     DefaultSuccess = $defaultSuccess
     XlirSuccess = $xlirSuccess
-    GapCount = $gaps.Count
     DefaultMismatchCount = $defaultMismatches.Count
     ExecutionFailureCount = $executionFailures.Count
     CompilerTimeoutSeconds = $CompilerTimeoutSeconds
@@ -247,8 +214,6 @@ $report = [ordered]@{
     })
     Sources = @($sources | Sort-Object)
     SuiteOwnedGeneratedSources = @($generatedSources | Sort-Object)
-    Gaps = @($gaps.ToArray())
-    LegacyFailures = @($legacyFailures.ToArray())
     DefaultMismatches = @($defaultMismatches.ToArray())
     ExecutionFailures = @($executionFailures.ToArray())
     Results = @($results.ToArray())
@@ -256,14 +221,6 @@ $report = [ordered]@{
 [IO.Directory]::CreateDirectory((Split-Path -Parent $ReportPath)) | Out-Null
 [IO.File]::WriteAllText($ReportPath, ($report | ConvertTo-Json -Depth 7), [Text.UTF8Encoding]::new($false))
 Write-Output $summary
-if ($legacyFailures.Count) {
-    Write-Output '  legacy baseline failures:'
-    $legacyFailures | ForEach-Object { Write-Output ("    {0} [{1}]" -f $_.Diagnostic, $_.Source) }
-}
-$gaps | Group-Object Kind | Sort-Object Count -Descending | ForEach-Object {
-    $examples = @($_.Group | Select-Object -First 3 -ExpandProperty Source) -join ', '
-    Write-Output ("  {0,3}  {1} [{2}]" -f $_.Count, $_.Name, $examples)
-}
 $defaultMismatches | Select-Object -First 10 | ForEach-Object {
     Write-Output ("  default mismatch: {0} [default={1}, xlir={2}]" -f
         $_.Source, $_.DefaultExitCode, $_.XlirExitCode)
@@ -276,9 +233,7 @@ if (!$inputsUnchanged) { throw "XLIR default-admission evidence was invalidated:
 if ($executionFailures.Count) { throw "XLIR default admission encountered $($executionFailures.Count) compiler execution failures" }
 if ($defaultMismatches.Count) { throw "Default backend diverged from explicit XLIR for $($defaultMismatches.Count) sources" }
 if ($sources.Count -lt $MinimumSourceCount) { throw "XLIR default admission source coverage regressed below $MinimumSourceCount" }
-if ($legacySuccess -lt $MinimumLegacySuccess) { throw "XLIR default admission legacy baseline regressed below $MinimumLegacySuccess" }
 if ($defaultSuccess -lt $MinimumDefaultSuccess) { throw "XLIR default admission default success count regressed below $MinimumDefaultSuccess" }
 if ($xlirSuccess -lt $MinimumXlirSuccess) { throw "XLIR default admission XLIR success count regressed below $MinimumXlirSuccess" }
-if ($gaps.Count -gt $MaximumAdmissionGaps) { throw "XLIR default admission gap count regressed above $MaximumAdmissionGaps" }
 
 exit 0

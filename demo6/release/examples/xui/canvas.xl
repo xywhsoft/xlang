@@ -1,0 +1,28 @@
+// canvas.xl — 画布：Canvas 控件（自绘区域）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Canvas Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Canvas Demo", font)
+    root.addChild(title)
+
+    xui.Canvas canvas = xui.Canvas(ctx)
+    canvas.setFlex(1.0, 1.0)
+    root.addChild(canvas)
+
+    xui.Label hint = xui.Label(ctx, "Free drawing area fills the window", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

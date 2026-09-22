@@ -1,0 +1,46 @@
+import graph
+
+
+
+func main(...) as int
+    // 微服务依赖拓扑：构建顺序
+    var services = [
+        ["gateway", "auth"], ["gateway", "orders"],
+        ["auth", "users"], ["orders", "users"],
+        ["orders", "billing"], ["billing", "users"]
+    ]
+    println("build order:", graph.topoSort(services))
+    println("is dag:", graph.isDag(services))
+
+    // 服务调用链最短路径
+    var chain = graph.shortestPath(services, "gateway", "users")
+    println("gateway -> users:", chain)
+
+    // 带权延迟最短路（毫秒）
+    var links = [
+        ["core", "edge-1", 4], ["core", "edge-2", 2],
+        ["edge-1", "cache", 3], ["edge-2", "cache", 1],
+        ["edge-2", "db", 7], ["cache", "db", 2]
+    ]
+    var lat = graph.dijkstra(links, "core")
+    println("latency from core:")
+    for name, value in lat
+        println("  ", name, "=", value, "ms")
+    end
+
+    // 故障域分析：强连通分量与连通分量
+    var calls = [
+        ["a", "b"], ["b", "c"], ["c", "a"],
+        ["c", "d"], ["d", "e"], ["e", "d"],
+        ["f"]
+    ]
+    println("scc groups:", graph.scc(calls))
+    println("islands:", graph.components(calls))
+
+    // 环告警
+    var dep = [["liba", "libb"], ["libb", "libc"], ["libc", "liba"]]
+    println("circular dependency:", not graph.isDag(dep))
+
+    println("graph example: PASS")
+    return 0
+end

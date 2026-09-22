@@ -1,8 +1,0 @@
-class Bag extends object
-end
-
-func main() as int
-	auto bag = Bag()
-	delete bag
-	return bag.length
-end

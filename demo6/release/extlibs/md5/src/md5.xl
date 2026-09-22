@@ -1,13 +1,14 @@
 // md5 — MD5 消息摘要（128 位），支持 Buffer/string/文件/流式四种输入模式。
 // 输入统一使用 Buffer，避免二进制数据经过字符串转换。
-extern "xrtGetError" func __md5_error() as string
+extern "xl6_xrt_last_error_text" func __md5_error() as string
 extern "xmd5_version" func __md5_version() as string
 extern "xmd5_hash_hex" func __md5_hash_hex(point data, c_size size) as string
 extern "xmd5_hash_str_hex" func __md5_hash_str(string data, c_size size) as string
 extern "xmd5_hash_bytes" func __md5_hash_bytes(point data, c_size size) as point
 extern "xmd5_hash_str_bytes" func __md5_hash_str_bytes(string data, c_size size) as point
-extern "xmd5_file_hex" func __md5_file_hex(string path, c_ulonglong maxInput) as string
-extern "xmd5_file_bytes" func __md5_file_bytes(string path, c_ulonglong maxInput) as point
+extern "xmd5_file_hex" func __md5_file_hex(string path, c_ulonglong maxInput, var onProgress) as string
+extern "xmd5_file_bytes" func __md5_file_bytes(string path, c_ulonglong maxInput, var onProgress) as point
+extern "xmd5_file_status" func __md5_file_status() as c_int
 
 
 
@@ -68,19 +69,35 @@ end
 
 
 // 文件 MD5 哈希（XRT reader 分块读取，受 maxInput 限制）。
-export func hashFileHex(string path, int maxInput = 268435456) as string
+export func hashFileHex(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __md5_check_limit(maxInput, "maxInput")
-    string result = __md5_file_hex(path, c_ulonglong(maxInput))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __md5_file_hex(path, c_ulonglong(maxInput), progress)
+    int status = __md5_file_status()
+    if status == -1 then
+        throw CancelledError "md5 operation cancelled"
+    elseif status != 1 then
         throw FileError __md5_error()
     end
     return result
 end
 
-export func hashFile(string path, int maxInput = 268435456) as Buffer
+export func hashFile(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as Buffer
     __md5_check_limit(maxInput, "maxInput")
-    point result = __md5_file_bytes(path, c_ulonglong(maxInput))
-    if result == null then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    point result = __md5_file_bytes(path, c_ulonglong(maxInput), progress)
+    int status = __md5_file_status()
+    if status == -1 then
+        throw CancelledError "md5 operation cancelled"
+    elseif status != 1 then
         throw FileError __md5_error()
     end
     return Buffer(result)

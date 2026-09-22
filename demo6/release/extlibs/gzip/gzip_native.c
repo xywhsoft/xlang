@@ -1,3 +1,8 @@
+#define XRT_MODULE_ERROR_FORMAT
+#define XRT_MODULE_FILE_TEMP
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_PATH
+
 #include "include/xrt_gzip.h"
 
 #include <string.h>
@@ -10,11 +15,40 @@
 
 
 
+/* 把 gzip 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xgzip_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_GZIP_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_GZIP_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_GZIP_ERROR_DATA:
+		case XRT_GZIP_ERROR_TRUNCATED:
+			return XERR_PROTOCOL;
+		case XRT_GZIP_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_GZIP_ERROR_STATE:
+			return XERR_STATE;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 发布可被 XLang 和 C 调用方统一读取的结构化错误。 */
 static void xgzip_publish_error(const xrtgziperror* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "gzip operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_GZIP_ERROR_IO;
+
+	xrtSetErrorInfo(
+		xgzip_error_kind(iCode),
+		"xlang.extlib.gzip",
+		iCode,
+		sMessage
+	);
 }
 
 static void xgzip_options(xrtgzipoptions* pOptions, int iLevel, uint32 iMTime,
@@ -28,47 +62,83 @@ static void xgzip_options(xrtgzipoptions* pOptions, int iLevel, uint32 iMTime,
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
 }
 
+
+/* 删除失败事务的临时文件，同时保留原始失败原因。 */
+static void xgzip_remove_temp(cstr sTemp)
+{
+	xerror* pError;
+
+	if ( sTemp == NULL ) { return; }
+	pError = xrtTakeError();
+	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pError != NULL ) {
+		xrtSetError(pError);
+		xrtErrorFree(pError);
+	}
+}
+
 static bool xgzip_transform_file(str sSource, str sDestination, bool bCompress,
 	bool bOverwrite, const xrtgzipoptions* pOptions)
 {
 	xrtgziperror tError;
-	xreader pReader = NULL;
-	xwriter pWriter = NULL;
+	xfile TempFile = NULL;
+	xreader* pReader = NULL;
+	xwriter* pWriter = NULL;
+	str sDirectory = NULL;
 	str sTemp = NULL;
-	bool bResult = FALSE;
+	bool bResult = false;
+
+	xrtGzipErrorInit(&tError);
 	if ( sSource == NULL || sSource[0] == 0 || sDestination == NULL || sDestination[0] == 0 ) {
-		xrtSetError(xrtFormat("gzip source and destination paths are required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.gzip",
+			XRT_GZIP_ERROR_ARGUMENT, "gzip source and destination paths are required");
+		return false;
 	}
 	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetError(xrtFormat("gzip destination already exists: %s", sDestination), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.gzip", XRT_GZIP_ERROR_IO,
+			"gzip destination already exists: %s", sDestination);
+		return false;
 	}
-	sTemp = xrtPathRandom(sDestination, 0u, (str)".xrt-gzip-tmp", 0u, 8u);
 	pReader = xrtReaderOpen(sSource);
-	pWriter = sTemp != NULL ? xrtWriterOpen(sTemp, TRUE) : NULL;
-	if ( pReader == NULL || pWriter == NULL ) {
-		xrtSetError(xrtFormat("cannot open gzip file stream: %s", sSource), TRUE);
-		goto cleanup;
-	}
+	if ( pReader == NULL ) { goto cleanup; }
+	sDirectory = xrtPathParent(sDestination);
+	if ( sDirectory == NULL ) { goto cleanup; }
+	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
+		".xrt-gzip-", ".tmp", &sTemp);
+	if ( TempFile == NULL ) { goto cleanup; }
+	pWriter = xrtWriterTakeFile(&TempFile);
+	if ( pWriter == NULL ) { goto cleanup; }
+
 	bResult = bCompress ? xrtGzipCompressStream(pReader, pWriter, pOptions, &tError) :
 		xrtGzipDecompressStream(pReader, pWriter, pOptions, &tError);
 	if ( !bResult ) { xgzip_publish_error(&tError); }
 	if ( bResult && !xrtWriterFlush(pWriter) ) {
-		xrtSetError(xrtFormat("cannot flush gzip destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+		bResult = false;
 	}
 
 cleanup:
-	xrtReaderDestroy(pReader);
-	xrtWriterDestroy(pWriter);
-	if ( bResult && !xrtFileRename(sTemp, sDestination, bOverwrite) ) {
-		xrtSetError(xrtFormat("cannot commit gzip destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
+	if ( !bResult ) {
+		if ( (xrtGetError() == NULL) && (tError.iCode == XRT_GZIP_OK) ) {
+			xrtSetErrorInfo(XERR_IO, "xlang.extlib.gzip",
+				XRT_GZIP_ERROR_IO, "gzip file operation failed");
+		}
+		xgzip_remove_temp(sTemp);
 	}
-	if ( !bResult && sTemp != NULL && xrtFileExists(sTemp) ) { xrtFileDelete(sTemp); }
+	xrtFree(sDirectory);
 	xrtFree(sTemp);
 	return bResult;
+}
+
+
+
+XGZIP_EXPORT const char* xgzip_last_error(void)
+{
+	return xrtErrorMessage(xrtGetError());
 }
 
 
@@ -78,7 +148,7 @@ XGZIP_EXPORT void* xgzip_compress(const void* pData, size_t iSize, int iLevel,
 {
 	xrtgzipoptions tOptions;
 	xrtgziperror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xgzip_options(&tOptions, iLevel, iMTime, iMaxInput, iMaxOutput, 0u);
 	if ( !xrtGzipCompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -99,7 +169,7 @@ XGZIP_EXPORT void* xgzip_decompress(const void* pData, size_t iSize,
 {
 	xrtgzipoptions tOptions;
 	xrtgziperror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xgzip_options(&tOptions, -1, 0u, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtGzipDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -115,7 +185,7 @@ XGZIP_EXPORT bool xgzip_compress_file(str sSource, str sDestination, int iLevel,
 	xrtgzipoptions tOptions;
 	xrtClearError();
 	xgzip_options(&tOptions, iLevel, iMTime, iMaxInput, iMaxOutput, 0u);
-	return xgzip_transform_file(sSource, sDestination, TRUE, bOverwrite, &tOptions);
+	return xgzip_transform_file(sSource, sDestination, true, bOverwrite, &tOptions);
 }
 
 XGZIP_EXPORT bool xgzip_decompress_file(str sSource, str sDestination,
@@ -124,7 +194,7 @@ XGZIP_EXPORT bool xgzip_decompress_file(str sSource, str sDestination,
 	xrtgzipoptions tOptions;
 	xrtClearError();
 	xgzip_options(&tOptions, -1, 0u, iMaxInput, iMaxOutput, iMaxRatio);
-	return xgzip_transform_file(sSource, sDestination, FALSE, bOverwrite, &tOptions);
+	return xgzip_transform_file(sSource, sDestination, false, bOverwrite, &tOptions);
 }
 
 
@@ -155,9 +225,9 @@ XGZIP_EXPORT bool xgzip_compressor_update(void* pHandle, const void* pData, size
 	xrtgzipcompressor* pCompressor = (xrtgzipcompressor*)pHandle;
 	if ( !xrtGzipCompressorUpdate(pCompressor, pData, iSize) ) {
 		xgzip_publish_error(xrtGzipCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XGZIP_EXPORT bool xgzip_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -203,9 +273,9 @@ XGZIP_EXPORT bool xgzip_decompressor_update(void* pHandle, const void* pData, si
 	xrtgzipdecompressor* pDecompressor = (xrtgzipdecompressor*)pHandle;
 	if ( !xrtGzipDecompressorUpdate(pDecompressor, pData, iSize) ) {
 		xgzip_publish_error(xrtGzipDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XGZIP_EXPORT void* xgzip_decompressor_finish(void* pHandle)

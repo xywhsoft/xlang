@@ -1,0 +1,48 @@
+import vcard
+
+
+
+
+func main(...) as int
+    // 构造联系人并生成 vCard
+    var contact = {
+        "version": "3.0",
+        "fn": "王小明",
+        "n": "王;小明;;;",
+        "email": "wxming@example.com",
+        "tel": "13800138000",
+        "org": "示例科技;平台部",
+        "title": "高级工程师",
+        "note": "邮箱优先联系\n备用电话见公司通讯录"
+    }
+    string text = vcard.build(contact)
+    println(text)
+
+    // 写入 .vcf 文件
+    dir.createAll("examples_out/extlibs")
+    string path = "examples_out/extlibs/contact.vcf"
+    file.writeText(path, text)
+    println("vcf written:", path)
+
+    // 读回解析
+    var back = vcard.parse(file.readText(path))
+    println("name:", back["fn"])
+    println("tel:", back["tel"])
+    string org = string(back["org"])
+    println("org:", org)
+
+    // 读取一个多值名片
+    string multi = """BEGIN:VCARD
+VERSION:3.0
+FN: Alice
+EMAIL: alice@home.com
+EMAIL: alice@work.com
+TEL;TYPE=CELL: 13900000000
+END:VCARD
+"""
+    var card = vcard.parse(multi)
+    println("alice emails:", card["email"].length)
+
+    println("vcard example: PASS")
+    return 0
+end

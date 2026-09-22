@@ -2,24 +2,24 @@
 // Module: xui_controls
 
 // === Functions ===
-extern "xuiInputPointerMove" func __xl6_xuiInputPointerMove(point pContext, c_float fX, c_float fY, c_uint iButtons) as c_int
-export func xuiInputPointerMove(point pContext, c_float fX, c_float fY, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerMove(pContext, fX, fY, iButtons)
+extern "xuiInputPointerMove" func __xl6_xuiInputPointerMove(point pContext, c_int iX, c_int iY, c_uint iButtons) as c_int
+export func xuiInputPointerMove(point pContext, c_int iX, c_int iY, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerMove(pContext, iX, iY, iButtons)
 end
 
-extern "xuiInputPointerDown" func __xl6_xuiInputPointerDown(point pContext, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-export func xuiInputPointerDown(point pContext, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerDown(pContext, fX, fY, iButton, iButtons)
+extern "xuiInputPointerDown" func __xl6_xuiInputPointerDown(point pContext, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+export func xuiInputPointerDown(point pContext, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerDown(pContext, iX, iY, iButton, iButtons)
 end
 
-extern "xuiInputPointerUp" func __xl6_xuiInputPointerUp(point pContext, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-export func xuiInputPointerUp(point pContext, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerUp(pContext, fX, fY, iButton, iButtons)
+extern "xuiInputPointerUp" func __xl6_xuiInputPointerUp(point pContext, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+export func xuiInputPointerUp(point pContext, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerUp(pContext, iX, iY, iButton, iButtons)
 end
 
-extern "xuiInputPointerWheel" func __xl6_xuiInputPointerWheel(point pContext, c_float fX, c_float fY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
-export func xuiInputPointerWheel(point pContext, c_float fX, c_float fY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerWheel(pContext, fX, fY, fWheelX, fWheelY, iButtons)
+extern "xuiInputPointerWheel" func __xl6_xuiInputPointerWheel(point pContext, c_int iX, c_int iY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
+export func xuiInputPointerWheel(point pContext, c_int iX, c_int iY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerWheel(pContext, iX, iY, fWheelX, fWheelY, iButtons)
 end
 
 extern "xuiInputPointerLeave" func __xl6_xuiInputPointerLeave(point pContext) as c_int
@@ -27,24 +27,24 @@ export func xuiInputPointerLeave(point pContext) as c_int
     return __xl6_xuiInputPointerLeave(pContext)
 end
 
-extern "xuiInputPointerMoveEx" func __xl6_xuiInputPointerMoveEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_uint iButtons) as c_int
-export func xuiInputPointerMoveEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerMoveEx(pContext, iPointerId, iPointerType, fX, fY, iButtons)
+extern "xuiInputPointerMoveEx" func __xl6_xuiInputPointerMoveEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_uint iButtons) as c_int
+export func xuiInputPointerMoveEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerMoveEx(pContext, iPointerId, iPointerType, iX, iY, iButtons)
 end
 
-extern "xuiInputPointerDownEx" func __xl6_xuiInputPointerDownEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-export func xuiInputPointerDownEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerDownEx(pContext, iPointerId, iPointerType, fX, fY, iButton, iButtons)
+extern "xuiInputPointerDownEx" func __xl6_xuiInputPointerDownEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+export func xuiInputPointerDownEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerDownEx(pContext, iPointerId, iPointerType, iX, iY, iButton, iButtons)
 end
 
-extern "xuiInputPointerUpEx" func __xl6_xuiInputPointerUpEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-export func xuiInputPointerUpEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_int iButton, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerUpEx(pContext, iPointerId, iPointerType, fX, fY, iButton, iButtons)
+extern "xuiInputPointerUpEx" func __xl6_xuiInputPointerUpEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+export func xuiInputPointerUpEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_int iButton, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerUpEx(pContext, iPointerId, iPointerType, iX, iY, iButton, iButtons)
 end
 
-extern "xuiInputPointerWheelEx" func __xl6_xuiInputPointerWheelEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
-export func xuiInputPointerWheelEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_float fX, c_float fY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
-    return __xl6_xuiInputPointerWheelEx(pContext, iPointerId, iPointerType, fX, fY, fWheelX, fWheelY, iButtons)
+extern "xuiInputPointerWheelEx" func __xl6_xuiInputPointerWheelEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
+export func xuiInputPointerWheelEx(point pContext, c_ulonglong iPointerId, c_int iPointerType, c_int iX, c_int iY, c_float fWheelX, c_float fWheelY, c_uint iButtons) as c_int
+    return __xl6_xuiInputPointerWheelEx(pContext, iPointerId, iPointerType, iX, iY, fWheelX, fWheelY, iButtons)
 end
 
 extern "xuiInputPointerCancelEx" func __xl6_xuiInputPointerCancelEx(point pContext, c_ulonglong iPointerId, c_int iPointerType) as c_int
@@ -97,9 +97,14 @@ export func xuiInputImeComposition(point pContext, string sText, c_int iTextSize
     return __xl6_xuiInputImeComposition(pContext, sText, iTextSize, iCompositionStart, iCompositionLength)
 end
 
-extern "xuiInputViewport" func __xl6_xuiInputViewport(point pContext, c_float fWidth, c_float fHeight) as c_int
-export func xuiInputViewport(point pContext, c_float fWidth, c_float fHeight) as c_int
-    return __xl6_xuiInputViewport(pContext, fWidth, fHeight)
+extern "xuiInputImeCompositionEx" func __xl6_xuiInputImeCompositionEx(point pContext, point pComposition) as c_int
+export func xuiInputImeCompositionEx(point pContext, point pComposition) as c_int
+    return __xl6_xuiInputImeCompositionEx(pContext, pComposition)
+end
+
+extern "xuiInputViewport" func __xl6_xuiInputViewport(point pContext, c_int iWidth, c_int iHeight) as c_int
+export func xuiInputViewport(point pContext, c_int iWidth, c_int iHeight) as c_int
+    return __xl6_xuiInputViewport(pContext, iWidth, iHeight)
 end
 
 extern "xuiInputDpi" func __xl6_xuiInputDpi(point pContext, c_float fDpiScale) as c_int
@@ -282,6 +287,16 @@ export func xuiCodeEditGetText(point pWidget) as string
     return __xl6_xuiCodeEditGetText(pWidget)
 end
 
+extern "xuiCodeEditSetInputHandler" func __xl6_xuiCodeEditSetInputHandler(point pWidget, point onInput, point pUser) as c_int
+export func xuiCodeEditSetInputHandler(point pWidget, point onInput, point pUser) as c_int
+    return __xl6_xuiCodeEditSetInputHandler(pWidget, onInput, pUser)
+end
+
+extern "xuiCodeEditApplyTextEdits" func __xl6_xuiCodeEditApplyTextEdits(point pWidget, point pEdits, c_int iEditCount, c_int iSelectionAnchor, c_int iSelectionCaret) as c_int
+export func xuiCodeEditApplyTextEdits(point pWidget, point pEdits, c_int iEditCount, c_int iSelectionAnchor, c_int iSelectionCaret) as c_int
+    return __xl6_xuiCodeEditApplyTextEdits(pWidget, pEdits, iEditCount, iSelectionAnchor, iSelectionCaret)
+end
+
 extern "xuiCodeEditSetInlineCompletion" func __xl6_xuiCodeEditSetInlineCompletion(point pWidget, c_int iOffset, string sText) as c_int
 export func xuiCodeEditSetInlineCompletion(point pWidget, c_int iOffset, string sText) as c_int
     return __xl6_xuiCodeEditSetInlineCompletion(pWidget, iOffset, sText)
@@ -365,6 +380,66 @@ end
 extern "xuiCodeEditGetCompletionOptions" func __xl6_xuiCodeEditGetCompletionOptions(point pWidget, point pAutoShow, point pMinPrefix, point pMaxItems, point pDelay) as c_int
 export func xuiCodeEditGetCompletionOptions(point pWidget, point pAutoShow, point pMinPrefix, point pMaxItems, point pDelay) as c_int
     return __xl6_xuiCodeEditGetCompletionOptions(pWidget, pAutoShow, pMinPrefix, pMaxItems, pDelay)
+end
+
+extern "xuiCodeEditShowSignatureHelp" func __xl6_xuiCodeEditShowSignatureHelp(point pWidget, point pHelp) as c_int
+export func xuiCodeEditShowSignatureHelp(point pWidget, point pHelp) as c_int
+    return __xl6_xuiCodeEditShowSignatureHelp(pWidget, pHelp)
+end
+
+extern "xuiCodeEditRequestSignatureHelp" func __xl6_xuiCodeEditRequestSignatureHelp(point pWidget) as c_int
+export func xuiCodeEditRequestSignatureHelp(point pWidget) as c_int
+    return __xl6_xuiCodeEditRequestSignatureHelp(pWidget)
+end
+
+extern "xuiCodeEditCloseSignatureHelp" func __xl6_xuiCodeEditCloseSignatureHelp(point pWidget) as c_int
+export func xuiCodeEditCloseSignatureHelp(point pWidget) as c_int
+    return __xl6_xuiCodeEditCloseSignatureHelp(pWidget)
+end
+
+extern "xuiCodeEditIsSignatureHelpOpen" func __xl6_xuiCodeEditIsSignatureHelpOpen(point pWidget) as c_int
+export func xuiCodeEditIsSignatureHelpOpen(point pWidget) as c_int
+    return __xl6_xuiCodeEditIsSignatureHelpOpen(pWidget)
+end
+
+extern "xuiCodeEditShowHint" func __xl6_xuiCodeEditShowHint(point pWidget, point pHint) as c_int
+export func xuiCodeEditShowHint(point pWidget, point pHint) as c_int
+    return __xl6_xuiCodeEditShowHint(pWidget, pHint)
+end
+
+extern "xuiCodeEditCloseHint" func __xl6_xuiCodeEditCloseHint(point pWidget) as c_int
+export func xuiCodeEditCloseHint(point pWidget) as c_int
+    return __xl6_xuiCodeEditCloseHint(pWidget)
+end
+
+extern "xuiCodeEditIsHintOpen" func __xl6_xuiCodeEditIsHintOpen(point pWidget) as c_int
+export func xuiCodeEditIsHintOpen(point pWidget) as c_int
+    return __xl6_xuiCodeEditIsHintOpen(pWidget)
+end
+
+extern "xuiCodeEditGetOffsetRect" func __xl6_xuiCodeEditGetOffsetRect(point pWidget, c_int iOffset, point pRect) as c_int
+export func xuiCodeEditGetOffsetRect(point pWidget, c_int iOffset, point pRect) as c_int
+    return __xl6_xuiCodeEditGetOffsetRect(pWidget, iOffset, pRect)
+end
+
+extern "xuiCodeEditSetPlaceholders" func __xl6_xuiCodeEditSetPlaceholders(point pWidget, point pPlaceholders, c_int iCount, c_int iActiveIndex) as c_int
+export func xuiCodeEditSetPlaceholders(point pWidget, point pPlaceholders, c_int iCount, c_int iActiveIndex) as c_int
+    return __xl6_xuiCodeEditSetPlaceholders(pWidget, pPlaceholders, iCount, iActiveIndex)
+end
+
+extern "xuiCodeEditClearPlaceholders" func __xl6_xuiCodeEditClearPlaceholders(point pWidget) as c_int
+export func xuiCodeEditClearPlaceholders(point pWidget) as c_int
+    return __xl6_xuiCodeEditClearPlaceholders(pWidget)
+end
+
+extern "xuiCodeEditMovePlaceholder" func __xl6_xuiCodeEditMovePlaceholder(point pWidget, c_int iDirection) as c_int
+export func xuiCodeEditMovePlaceholder(point pWidget, c_int iDirection) as c_int
+    return __xl6_xuiCodeEditMovePlaceholder(pWidget, iDirection)
+end
+
+extern "xuiCodeEditGetActivePlaceholder" func __xl6_xuiCodeEditGetActivePlaceholder(point pWidget, point pPlaceholder) as c_int
+export func xuiCodeEditGetActivePlaceholder(point pWidget, point pPlaceholder) as c_int
+    return __xl6_xuiCodeEditGetActivePlaceholder(pWidget, pPlaceholder)
 end
 
 extern "xuiCodeEditSetFindScope" func __xl6_xuiCodeEditSetFindScope(point pWidget, point pScope) as c_int
@@ -510,11 +585,6 @@ end
 extern "xuiCodeEditGetMinimap" func __xl6_xuiCodeEditGetMinimap(point pWidget, point pVisible, point pWidth) as c_int
 export func xuiCodeEditGetMinimap(point pWidget, point pVisible, point pWidth) as c_int
     return __xl6_xuiCodeEditGetMinimap(pWidget, pVisible, pWidth)
-end
-
-extern "xuiCodeEditGetMinimapRect" func __xl6_xuiCodeEditGetMinimapRect(point pWidget) as point
-export func xuiCodeEditGetMinimapRect(point pWidget) as point
-    return __xl6_xuiCodeEditGetMinimapRect(pWidget)
 end
 
 extern "xuiCodeEditSetWordWrap" func __xl6_xuiCodeEditSetWordWrap(point pWidget, c_int bWordWrap) as c_int
@@ -807,11 +877,6 @@ export func xuiInputDecorationGetDesc(point pWidget, point pDecoration, point pD
     return __xl6_xuiInputDecorationGetDesc(pWidget, pDecoration, pDesc)
 end
 
-extern "xuiInputDecorationGetRect" func __xl6_xuiInputDecorationGetRect(point pWidget, point pDecoration) as point
-export func xuiInputDecorationGetRect(point pWidget, point pDecoration) as point
-    return __xl6_xuiInputDecorationGetRect(pWidget, pDecoration)
-end
-
 extern "xuiInputSetMenuTitle" func __xl6_xuiInputSetMenuTitle(point pWidget, c_int iCommand, string sTitle) as c_int
 export func xuiInputSetMenuTitle(point pWidget, c_int iCommand, string sTitle) as c_int
     return __xl6_xuiInputSetMenuTitle(pWidget, iCommand, sTitle)
@@ -830,16 +895,6 @@ end
 extern "xuiInputGetMenuWidget" func __xl6_xuiInputGetMenuWidget(point pWidget) as point
 export func xuiInputGetMenuWidget(point pWidget) as point
     return __xl6_xuiInputGetMenuWidget(pWidget)
-end
-
-extern "xuiInputGetTextRect" func __xl6_xuiInputGetTextRect(point pWidget) as point
-export func xuiInputGetTextRect(point pWidget) as point
-    return __xl6_xuiInputGetTextRect(pWidget)
-end
-
-extern "xuiInputGetCursorRect" func __xl6_xuiInputGetCursorRect(point pWidget) as point
-export func xuiInputGetCursorRect(point pWidget) as point
-    return __xl6_xuiInputGetCursorRect(pWidget)
 end
 
 extern "xuiInputGetState" func __xl6_xuiInputGetState(point pWidget) as c_uint
@@ -1130,16 +1185,6 @@ end
 extern "xuiTextEditGetMenuWidget" func __xl6_xuiTextEditGetMenuWidget(point pWidget) as point
 export func xuiTextEditGetMenuWidget(point pWidget) as point
     return __xl6_xuiTextEditGetMenuWidget(pWidget)
-end
-
-extern "xuiTextEditGetTextRect" func __xl6_xuiTextEditGetTextRect(point pWidget) as point
-export func xuiTextEditGetTextRect(point pWidget) as point
-    return __xl6_xuiTextEditGetTextRect(pWidget)
-end
-
-extern "xuiTextEditGetCursorRect" func __xl6_xuiTextEditGetCursorRect(point pWidget) as point
-export func xuiTextEditGetCursorRect(point pWidget) as point
-    return __xl6_xuiTextEditGetCursorRect(pWidget)
 end
 
 extern "xuiTextEditGetLineCount" func __xl6_xuiTextEditGetLineCount(point pWidget) as c_int
@@ -1512,16 +1557,6 @@ export func xuiCheckBoxGetUseBuiltinAtlas(point pWidget) as c_int
     return __xl6_xuiCheckBoxGetUseBuiltinAtlas(pWidget)
 end
 
-extern "xuiCheckBoxGetIndicatorRect" func __xl6_xuiCheckBoxGetIndicatorRect(point pWidget) as point
-export func xuiCheckBoxGetIndicatorRect(point pWidget) as point
-    return __xl6_xuiCheckBoxGetIndicatorRect(pWidget)
-end
-
-extern "xuiCheckBoxGetTextRect" func __xl6_xuiCheckBoxGetTextRect(point pWidget) as point
-export func xuiCheckBoxGetTextRect(point pWidget) as point
-    return __xl6_xuiCheckBoxGetTextRect(pWidget)
-end
-
 extern "xuiCheckBoxGetState" func __xl6_xuiCheckBoxGetState(point pWidget) as c_uint
 export func xuiCheckBoxGetState(point pWidget) as c_uint
     return __xl6_xuiCheckBoxGetState(pWidget)
@@ -1650,16 +1685,6 @@ end
 extern "xuiRadioGetUseBuiltinAtlas" func __xl6_xuiRadioGetUseBuiltinAtlas(point pWidget) as c_int
 export func xuiRadioGetUseBuiltinAtlas(point pWidget) as c_int
     return __xl6_xuiRadioGetUseBuiltinAtlas(pWidget)
-end
-
-extern "xuiRadioGetIndicatorRect" func __xl6_xuiRadioGetIndicatorRect(point pWidget) as point
-export func xuiRadioGetIndicatorRect(point pWidget) as point
-    return __xl6_xuiRadioGetIndicatorRect(pWidget)
-end
-
-extern "xuiRadioGetTextRect" func __xl6_xuiRadioGetTextRect(point pWidget) as point
-export func xuiRadioGetTextRect(point pWidget) as point
-    return __xl6_xuiRadioGetTextRect(pWidget)
 end
 
 extern "xuiRadioGetState" func __xl6_xuiRadioGetState(point pWidget) as c_uint
@@ -1907,26 +1932,6 @@ export func xuiToggleGetUseBuiltinAtlas(point pWidget) as c_int
     return __xl6_xuiToggleGetUseBuiltinAtlas(pWidget)
 end
 
-extern "xuiToggleGetTrackRect" func __xl6_xuiToggleGetTrackRect(point pWidget) as point
-export func xuiToggleGetTrackRect(point pWidget) as point
-    return __xl6_xuiToggleGetTrackRect(pWidget)
-end
-
-extern "xuiToggleGetThumbRect" func __xl6_xuiToggleGetThumbRect(point pWidget) as point
-export func xuiToggleGetThumbRect(point pWidget) as point
-    return __xl6_xuiToggleGetThumbRect(pWidget)
-end
-
-extern "xuiToggleGetTextRect" func __xl6_xuiToggleGetTextRect(point pWidget) as point
-export func xuiToggleGetTextRect(point pWidget) as point
-    return __xl6_xuiToggleGetTextRect(pWidget)
-end
-
-extern "xuiToggleGetInnerTextRect" func __xl6_xuiToggleGetInnerTextRect(point pWidget) as point
-export func xuiToggleGetInnerTextRect(point pWidget) as point
-    return __xl6_xuiToggleGetInnerTextRect(pWidget)
-end
-
 extern "xuiToggleGetState" func __xl6_xuiToggleGetState(point pWidget) as c_uint
 export func xuiToggleGetState(point pWidget) as c_uint
     return __xl6_xuiToggleGetState(pWidget)
@@ -2020,21 +2025,6 @@ end
 extern "xuiSliderGetKnobBorderColor" func __xl6_xuiSliderGetKnobBorderColor(point pWidget) as c_uint
 export func xuiSliderGetKnobBorderColor(point pWidget) as c_uint
     return __xl6_xuiSliderGetKnobBorderColor(pWidget)
-end
-
-extern "xuiSliderGetTrackRect" func __xl6_xuiSliderGetTrackRect(point pWidget) as point
-export func xuiSliderGetTrackRect(point pWidget) as point
-    return __xl6_xuiSliderGetTrackRect(pWidget)
-end
-
-extern "xuiSliderGetFillRect" func __xl6_xuiSliderGetFillRect(point pWidget) as point
-export func xuiSliderGetFillRect(point pWidget) as point
-    return __xl6_xuiSliderGetFillRect(pWidget)
-end
-
-extern "xuiSliderGetKnobRect" func __xl6_xuiSliderGetKnobRect(point pWidget) as point
-export func xuiSliderGetKnobRect(point pWidget) as point
-    return __xl6_xuiSliderGetKnobRect(pWidget)
 end
 
 extern "xuiSliderGetState" func __xl6_xuiSliderGetState(point pWidget) as c_uint

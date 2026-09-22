@@ -1,0 +1,120 @@
+import xhttp
+from xhttp import QueryParams
+import xhttp.protocol
+from xhttp.protocol import Headers
+import xhttp.body
+from xhttp.body import Body
+import xhttp.multipart
+from xhttp.multipart import MultipartBoundary
+import xhttp.form_data
+from xhttp.form_data import FormData
+import xhttp.client
+from xhttp.client import Request
+
+
+
+func main(...) as int
+    Request request = Request.make("POST", "https://example.test/api")
+    assert request.valid
+    assert request.nativeHandle() != null
+    assert request.method == "POST"
+    assert request.url == "https://example.test/api"
+    assert request.parsedUrl.host() == "example.test"
+
+    bool methodFailed = false
+    try
+        request.setMethod("bad method")
+    catch ValueError error
+        methodFailed = true
+    end
+    assert methodFailed
+    assert request.method == "POST"
+
+    bool urlFailed = false
+    try
+        request.setUrl("relative/path")
+    catch ValueError error
+        urlFailed = true
+    end
+    assert urlFailed
+    assert request.url == "https://example.test/api"
+
+    request.addHeader("X-Trace", "one")
+    request.addHeader("X-Trace", "two")
+    request.setHeader("Accept", "application/json")
+    assert request.headerCount == 3
+    assert (request.header("x-trace") ?? "") == "one"
+
+    Headers headerSnapshot = request.headers()
+    request.setHeader("Accept", "text/plain")
+    assert (headerSnapshot.get("Accept") ?? "") == "application/json"
+    assert (request.header("Accept") ?? "") == "text/plain"
+
+    request.addTrailer("Digest", "sha-256=:test:")
+    assert request.trailerCount == 1
+    assert (request.trailer("digest") ?? "") == "sha-256=:test:"
+    Headers trailerSnapshot = request.trailers()
+    request.clearTrailers()
+    assert request.trailerCount == 0
+    assert trailerSnapshot.count == 1
+
+    request.acceptResponseTrailers()
+    assert string.contains(request.header("TE") ?? "", "trailers")
+    assert string.contains(request.header("Connection") ?? "", "TE")
+
+    QueryParams query = QueryParams()
+    assert query.append("q", "xrt runtime")
+    assert query.append("page", "2")
+    request.setQuery(query)
+    assert string.contains(request.url, "q=xrt+runtime")
+    assert string.contains(request.url, "page=2")
+
+    QueryParams form = QueryParams()
+    assert form.append("name", "xlang")
+    request.setForm(form)
+    assert (request.header("Content-Type") ?? "") == "application/x-www-form-urlencoded"
+    Body? formBodyMaybe = request.body()
+    assert formBodyMaybe != null
+    Body formBody = formBodyMaybe as Body
+    assert formBody.text() == "name=xlang"
+
+    Buffer binary = Buffer()
+    assert binary.append("a")
+    assert binary.appendByte(0)
+    assert binary.append("b")
+    request.setBody(binary, "application/octet-stream")
+    Body? binaryBodyMaybe = request.body()
+    assert binaryBodyMaybe != null
+    Body binaryBody = binaryBodyMaybe as Body
+    Buffer binaryCopy = binaryBody.readAll()
+    assert binaryCopy.len() == 3
+    assert binaryCopy.byteAt(1) == 0
+
+    FormData multipart = FormData()
+    multipart.append("message", "hello")
+    MultipartBoundary boundary = request.setFormData(multipart)
+    assert boundary.text.byteLen() == 45
+    assert string.startsWith(
+        request.header("Content-Type") ?? "", "multipart/form-data;")
+    Body? multipartBodyMaybe = request.body()
+    assert multipartBodyMaybe != null
+    Body multipartBody = multipartBodyMaybe as Body
+    string wire = multipartBody.text()
+    assert string.contains(wire, "name=\"message\"")
+    assert string.contains(wire, "hello")
+
+    Request clone = request.clone()
+    request.setMethod("PUT")
+    request.setUrl("https://example.test/replaced")
+    assert clone.method == "POST"
+    assert string.contains(clone.url, "q=xrt+runtime")
+    assert clone.body() != null
+
+    request.clearBody()
+    assert request.body() == null
+    request.clearHeaders()
+    assert request.headerCount == 0
+
+    println("xhttp.client Request package ok")
+    return 0
+end

@@ -9,16 +9,28 @@
  *   "src/xge_gl.h"          -> "xge_gl.h"
  * 末尾的 #include "xge_core.c" 等解析到同目录 src/ 下的文件。
  */
-/* TCC PE 链接器要求外部变量必须声明 dllimport。
- * xCore 是 xrt 的全局变量，由 xlang 宿主进程提供。 */
+/* TCC PE 链接器要求 XRT 导入符号使用 dllimport。
+ * 具体符号由 xlang 宿主进程注入，不依赖已移除的全局状态。 */
 #if defined(_WIN32) && defined(__TINYC__)
-#define XXAPI __declspec(dllimport)
+#define XRT_API __declspec(dllimport)
 #endif
 
-/* TCC 不支持 SSE2 intrinsics，禁用 stb 库的 SIMD 路径 */
-#ifndef STBI_NO_SIMD
-#define STBI_NO_SIMD
+/* TCC 不提供完整 SIMD intrinsic 头，源码包构建时关闭对应快速路径。 */
+#if defined(__TINYC__)
+	#ifndef STBI_NO_SIMD
+		#define STBI_NO_SIMD
+	#endif
+	#ifndef ZSTD_NO_INTRINSICS
+		#define ZSTD_NO_INTRINSICS
+	#endif
 #endif
 
+/*
+ * Native packages compile beside generated C. Include the current XRT public
+ * header directly instead of relying on the generated runtime's narrow
+ * declaration subset; XGE uses path, file and structured-error facilities.
+ */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "xge.h"
 #include "src/xge_impl.c"

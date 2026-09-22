@@ -1,0 +1,57 @@
+import xhttp.body
+from xhttp.body import Body, BodyChunk, BodyReader
+
+
+
+extern "xhttp_body_async_wait" func __xhttp_body_async_wait(
+    point reader) as future<null>
+
+
+
+// AsyncBodyReader 保留同步 Next 状态机，并在 AGAIN 时提供可等待路径。
+export class AsyncBodyReader
+    BodyReader reader
+
+    create(Body body)
+        self.reader = body.open()
+    end
+
+    get lastStatus() as int
+        return self.reader.lastStatus
+    end
+
+    get bytesRead() as int
+        return self.reader.bytesRead
+    end
+
+    func nativeHandle() as point
+        return self.reader.nativeHandle()
+    end
+
+    func next(int maxBytes = 65536) as BodyChunk?
+        return self.reader.next(maxBytes)
+    end
+
+    func waitReadable() as future<null>
+        if self.reader.lastStatus != xhttp.body.BODY_AGAIN then
+            throw RuntimeError "BodyReader wait requires an AGAIN result"
+        end
+        return __xhttp_body_async_wait(self.reader.nativeHandle())
+    end
+
+    async func nextAsync(int maxBytes = 65536) as BodyChunk?
+        while true
+            BodyChunk? chunk = self.reader.next(maxBytes)
+            if chunk != null then
+                return chunk
+            end
+            if self.reader.lastStatus == xhttp.body.BODY_EOF then
+                return null
+            end
+            if self.reader.lastStatus != xhttp.body.BODY_AGAIN then
+                throw RuntimeError "HTTP body reader entered an invalid state"
+            end
+            await self.waitReadable()
+        end
+    end
+end

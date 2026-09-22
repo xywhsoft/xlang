@@ -150,7 +150,25 @@ static const xui_i18n_builtin_entry_t g_arrXuiBuiltinText[] = {
 	{XUI_TR_TIMELINE_CLEAR_SPAN, "Clear Span", "\xE6\xB8\x85\xE9\x99\xA4\xE7\x89\x87\xE6\xAE\xB5", "\xD0\x9E\xD1\x87\xD0\xB8\xD1\x81\xD1\x82. \xD0\xB4\xD0\xB8\xD0\xB0\xD0\xBF.", "\xE3\x82\xB9\xE3\x83\x91\xE3\x83\xB3\xE3\x82\x92\xE3\x82\xAF\xE3\x83\xAA\xE3\x82\xA2", "Effacer segment", "Borrar tramo"},
 	{XUI_TR_MESSAGE_COPY, "Copy", "\xE5\xA4\x8D\xE5\x88\xB6", "\xD0\x9A\xD0\xBE\xD0\xBF\xD0\xB8\xD1\x80\xD0\xBE\xD0\xB2\xD0\xB0\xD1\x82\xD1\x8C", "\xE3\x82\xB3\xE3\x83\x94\xE3\x83\xBC", "Copier", "Copiar"},
 	{XUI_TR_MESSAGE_TOOL, "Tool", "\xE5\xB7\xA5\xE5\x85\xB7", "\xD0\x98\xD0\xBD\xD1\x81\xD1\x82\xD1\x80\xD1\x83\xD0\xBC\xD0\xB5\xD0\xBD\xD1\x82", "\xE3\x83\x84\xE3\x83\xBC\xE3\x83\xAB", "Outil", "Herramienta"},
-	{XUI_TR_MESSAGE_THINKING, "Thinking", "\xE6\x80\x9D\xE8\x80\x83", "\xD0\xA0\xD0\xB0\xD0\xB7\xD0\xBC\xD1\x8B\xD1\x88\xD0\xBB\xD0\xB5\xD0\xBD\xD0\xB8\xD0\xB5", "\xE6\x80\x9D\xE8\x80\x83", "R\xC3\xA9" "flexion", "Razonamiento"}
+	{XUI_TR_MESSAGE_THINKING, "Thinking", "\xE6\x80\x9D\xE8\x80\x83", "\xD0\xA0\xD0\xB0\xD0\xB7\xD0\xBC\xD1\x8B\xD1\x88\xD0\xBB\xD0\xB5\xD0\xBD\xD0\xB8\xD0\xB5", "\xE6\x80\x9D\xE8\x80\x83", "R\xC3\xA9" "flexion", "Razonamiento"},
+	{XUI_TR_RICH_BOLD, "Bold", "\xE7\xB2\x97\xE4\xBD\x93", "\xD0\x96\xD0\xB8\xD1\x80\xD0\xBD\xD1\x8B\xD0\xB9", "\xE5\xA4\xAA\xE5\xAD\x97", "Gras", "Negrita"},
+	{XUI_TR_RICH_ITALIC, "Italic", "\xE6\x96\x9C\xE4\xBD\x93", "\xD0\x9A\xD1\x83\xD1\x80\xD1\x81\xD0\xB8\xD0\xB2", "\xE6\x96\x9C\xE4\xBD\x93", "Italique", "Cursiva"},
+	{XUI_TR_RICH_UNDERLINE, "Underline", "\xE4\xB8\x8B\xE5\x88\x92\xE7\xBA\xBF", "\xD0\x9F\xD0\xBE\xD0\xB4\xD1\x87\xD1\x91\xD1\x80\xD0\xBA\xD0\xB8\xD0\xB2\xD0\xB0\xD0\xBD\xD0\xB8\xD0\xB5", "\xE4\xB8\x8B\xE7\xB7\x9A", "Souligner", "Subrayado"},
+	{XUI_TR_RICH_STRIKEOUT, "Strikeout", "\xE5\x88\xA0\xE9\x99\xA4\xE7\xBA\xBF", "\xD0\x97\xD0\xB0\xD1\x87\xD1\x91\xD1\x80\xD0\xBA\xD0\xB8\xD0\xB2\xD0\xB0\xD0\xBD\xD0\xB8\xD0\xB5", "\xE5\x8F\x96\xE3\x82\x8A\xE6\xB6\x88\xE3\x81\x97\xE7\xB7\x9A", "Barrer", "Tachado"},
+	{XUI_TR_RICH_ALIGN_LEFT, "Align left", "\xE5\xB7\xA6\xE5\xAF\xB9\xE9\xBD\x90", "\xD0\x9F\xD0\xBE \xD0\xBB\xD0\xB5\xD0\xB2\xD0\xBE\xD0\xBC\xD1\x83 \xD0\xBA\xD1\x80\xD0\xB0\xD1\x8E", "\xE5\xB7\xA6\xE6\x8F\x83\xE3\x81\x88", "Aligner a gauche", "Alinear a la izquierda"},
+	{XUI_TR_RICH_ALIGN_CENTER, "Align center", "\xE5\xB1\x85\xE4\xB8\xAD", "\xD0\x9F\xD0\xBE \xD1\x86\xD0\xB5\xD0\xBD\xD1\x82\xD1\x80\xD1\x83", "\xE4\xB8\xAD\xE5\xA4\xAE\xE6\x8F\x83\xE3\x81\x88", "Centrer", "Centrar"},
+	{XUI_TR_RICH_ALIGN_RIGHT, "Align right", "\xE5\x8F\xB3\xE5\xAF\xB9\xE9\xBD\x90", "\xD0\x9F\xD0\xBE \xD0\xBF\xD1\x80\xD0\xB0\xD0\xB2\xD0\xBE\xD0\xBC\xD1\x83 \xD0\xBA\xD1\x80\xD0\xB0\xD1\x8E", "\xE5\x8F\xB3\xE6\x8F\x83\xE3\x81\x88", "Aligner a droite", "Alinear a la derecha"},
+	{XUI_TR_RICH_ALIGN_JUSTIFY, "Justify", "\xE4\xB8\xA4\xE7\xAB\xAF\xE5\xAF\xB9\xE9\xBD\x90", "\xD0\x9F\xD0\xBE \xD1\x88\xD0\xB8\xD1\x80\xD0\xB8\xD0\xBD\xD0\xB5", "\xE4\xB8\xA1\xE7\xAB\xAF\xE6\x8F\x83\xE3\x81\x88", "Justifier", "Justificar"},
+	{XUI_TR_RICH_PARAGRAPH, "Paragraph", "\xE6\xAE\xB5\xE8\x90\xBD", "\xD0\x90\xD0\xB1\xD0\xB7\xD0\xB0\xD1\x86", "\xE6\xAE\xB5\xE8\x90\xBD", "Paragraphe", "Parrafo"},
+	{XUI_TR_RICH_HEADING_1, "Heading 1", "\xE4\xB8\x80\xE7\xBA\xA7\xE6\xA0\x87\xE9\xA2\x98", "\xD0\x97\xD0\xB0\xD0\xB3\xD0\xBE\xD0\xBB\xD0\xBE\xD0\xB2\xD0\xBE\xD0\xBA 1", "\xE8\xA6\x8B\xE5\x87\xBA\xE3\x81\x97 1", "Titre 1", "Encabezado 1"},
+	{XUI_TR_RICH_HEADING_2, "Heading 2", "\xE4\xBA\x8C\xE7\xBA\xA7\xE6\xA0\x87\xE9\xA2\x98", "\xD0\x97\xD0\xB0\xD0\xB3\xD0\xBE\xD0\xBB\xD0\xBE\xD0\xB2\xD0\xBE\xD0\xBA 2", "\xE8\xA6\x8B\xE5\x87\xBA\xE3\x81\x97 2", "Titre 2", "Encabezado 2"},
+	{XUI_TR_RICH_HEADING_3, "Heading 3", "\xE4\xB8\x89\xE7\xBA\xA7\xE6\xA0\x87\xE9\xA2\x98", "\xD0\x97\xD0\xB0\xD0\xB3\xD0\xBE\xD0\xBB\xD0\xBE\xD0\xB2\xD0\xBE\xD0\xBA 3", "\xE8\xA6\x8B\xE5\x87\xBA\xE3\x81\x97 3", "Titre 3", "Encabezado 3"},
+	{XUI_TR_RICH_BLOCK_QUOTE, "Block quote", "\xE5\xBC\x95\xE7\x94\xA8", "\xD0\xA6\xD0\xB8\xD1\x82\xD0\xB0\xD1\x82\xD0\xB0", "\xE5\xBC\x95\xE7\x94\xA8", "Citation", "Cita"},
+	{XUI_TR_RICH_BULLET_LIST, "Bullet list", "\xE9\xA1\xB9\xE7\x9B\xAE\xE7\xAC\xA6\xE5\x8F\xB7\xE5\x88\x97\xE8\xA1\xA8", "\xD0\x9C\xD0\xB0\xD1\x80\xD0\xBA\xD0\xB8\xD1\x80\xD0\xBE\xD0\xB2\xD0\xB0\xD0\xBD\xD0\xBD\xD1\x8B\xD0\xB9 \xD1\x81\xD0\xBF\xD0\xB8\xD1\x81\xD0\xBE\xD0\xBA", "\xE7\xAE\x87\xE6\x9D\xA1\xE6\x9B\xB8\xE3\x81\x8D", "Liste a puces", "Lista con vinetas"},
+	{XUI_TR_RICH_NUMBER_LIST, "Numbered list", "\xE7\xBC\x96\xE5\x8F\xB7\xE5\x88\x97\xE8\xA1\xA8", "\xD0\x9D\xD1\x83\xD0\xBC\xD0\xB5\xD1\x80\xD0\xBE\xD0\xB2\xD0\xB0\xD0\xBD\xD0\xBD\xD1\x8B\xD0\xB9 \xD1\x81\xD0\xBF\xD0\xB8\xD1\x81\xD0\xBE\xD0\xBA", "\xE7\x95\xAA\xE5\x8F\xB7\xE4\xBB\x98\xE3\x81\x8D\xE3\x83\xAA\xE3\x82\xB9\xE3\x83\x88", "Liste numerotee", "Lista numerada"},
+	{XUI_TR_RICH_CHECK_LIST, "Check list", "\xE4\xBB\xBB\xE5\x8A\xA1\xE5\x88\x97\xE8\xA1\xA8", "\xD0\xA1\xD0\xBF\xD0\xB8\xD1\x81\xD0\xBE\xD0\xBA \xD0\xB7\xD0\xB0\xD0\xB4\xD0\xB0\xD1\x87", "\xE3\x82\xBF\xE3\x82\xB9\xE3\x82\xAF\xE3\x83\xAA\xE3\x82\xB9\xE3\x83\x88", "Liste de taches", "Lista de tareas"},
+	{XUI_TR_RICH_INDENT, "Increase indent", "\xE5\xA2\x9E\xE5\x8A\xA0\xE7\xBC\xA9\xE8\xBF\x9B", "\xD0\xA3\xD0\xB2\xD0\xB5\xD0\xBB\xD0\xB8\xD1\x87\xD0\xB8\xD1\x82\xD1\x8C \xD0\xBE\xD1\x82\xD1\x81\xD1\x82\xD1\x83\xD0\xBF", "\xE3\x82\xA4\xE3\x83\xB3\xE3\x83\x87\xE3\x83\xB3\xE3\x83\x88\xE3\x82\x92\xE5\xA2\x97\xE3\x82\x84\xE3\x81\x99", "Augmenter le retrait", "Aumentar sangria"},
+	{XUI_TR_RICH_OUTDENT, "Decrease indent", "\xE5\x87\x8F\xE5\xB0\x91\xE7\xBC\xA9\xE8\xBF\x9B", "\xD0\xA3\xD0\xBC\xD0\xB5\xD0\xBD\xD1\x8C\xD1\x88\xD0\xB8\xD1\x82\xD1\x8C \xD0\xBE\xD1\x82\xD1\x81\xD1\x82\xD1\x83\xD0\xBF", "\xE3\x82\xA4\xE3\x83\xB3\xE3\x83\x87\xE3\x83\xB3\xE3\x83\x88\xE3\x82\x92\xE6\xB8\x9B\xE3\x82\x89\xE3\x81\x99", "Reduire le retrait", "Reducir sangria"}
 };
 
 static int g_iXuiDefaultLanguage = XUI_LANGUAGE_EN;
@@ -159,8 +177,8 @@ static void __xuiContextDestroyLanguages(xui_context pContext);
 
 static void __xuiContextInitIcons(xui_context pContext)
 {
-	xrtDictInit(&pContext->mapIconCategories, sizeof(void*), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pContext->arrIconCategories, sizeof(xui_icon_category), XRT_OBJMODE_LOCAL);
+	xrtMapInit(&pContext->mapIconCategories, sizeof(void*));
+	xrtArrayInit(&pContext->arrIconCategories, sizeof(xui_icon_category));
 	pContext->iIconGeneration = 1;
 }
 
@@ -169,7 +187,7 @@ static void __xuiContextDestroyIcons(xui_context pContext)
 	if ( pContext->onDestroyIcons != NULL ) {
 		pContext->onDestroyIcons(pContext);
 	}
-	xrtDictUnit(&pContext->mapIconCategories);
+	xrtMapUnit(&pContext->mapIconCategories);
 	xrtArrayUnit(&pContext->arrIconCategories);
 	pContext->onDestroyIcons = NULL;
 }
@@ -245,7 +263,7 @@ static xui_language_text_t* __xuiLanguageGetTextSlot(xui_language pLanguage, int
 	if ( pLanguage->arrTexts.Count < (uint32_t)iTextId ) {
 		return NULL;
 	}
-	return (xui_language_text_t*)xrtArrayGet_Unsafe(&pLanguage->arrTexts, (uint32_t)iTextId);
+	return (xui_language_text_t*)__xuiArraySlotGet(&pLanguage->arrTexts, (uint32_t)iTextId);
 }
 
 static const char* __xuiBuiltinTextForLanguage(const xui_i18n_builtin_entry_t* pEntry, int iLanguageId)
@@ -273,7 +291,7 @@ static void __xuiLanguageFreeTextArray(xui_language pLanguage)
 		return;
 	}
 	for ( i = 1u; i <= pLanguage->arrTexts.Count; ++i ) {
-		pText = (xui_language_text_t*)xrtArrayGet_Unsafe(&pLanguage->arrTexts, i);
+		pText = (xui_language_text_t*)__xuiArraySlotGet(&pLanguage->arrTexts, i);
 		if ( pText->bOwned && pText->sText != NULL ) {
 			xrtFree(pText->sText);
 		}
@@ -308,7 +326,7 @@ static xui_language __xuiContextFindLanguage(xui_context pContext, int iLanguage
 		return NULL;
 	}
 	for ( i = 1u; i <= pContext->arrLanguages.Count; ++i ) {
-		ppLanguage = (xui_language*)xrtArrayGet_Unsafe(&pContext->arrLanguages, i);
+		ppLanguage = (xui_language*)__xuiArraySlotGet(&pContext->arrLanguages, i);
 		if ( __xuiLanguageValid(*ppLanguage) && (*ppLanguage)->iLanguageId == iLanguageId ) {
 			return *ppLanguage;
 		}
@@ -326,11 +344,11 @@ static int __xuiLanguageEnsureTextSlots(xui_language pLanguage)
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	while ( pLanguage->arrTexts.Count < (uint32_t)(XUI_TR_COUNT - 1) ) {
-		iPos = xrtArrayAppend(&pLanguage->arrTexts, 1u);
+		iPos = __xuiArraySlotAdd(&pLanguage->arrTexts, 1u);
 		if ( iPos == 0u ) {
 			return XUI_ERROR_OUT_OF_MEMORY;
 		}
-		pText = (xui_language_text_t*)xrtArrayGet_Unsafe(&pLanguage->arrTexts, iPos);
+		pText = (xui_language_text_t*)__xuiArraySlotGet(&pLanguage->arrTexts, iPos);
 		memset(pText, 0, sizeof(*pText));
 		pText->iTextId = (int)iPos;
 	}
@@ -362,19 +380,19 @@ static xui_language __xuiLanguageCreateRaw(xui_context pContext, int iLanguageId
 	pLanguage->iLanguageId = iLanguageId;
 	pLanguage->iFallbackLanguageId = iFallbackLanguageId;
 	pLanguage->bBuiltin = bBuiltin ? 1 : 0;
-	xrtArrayInit(&pLanguage->arrTexts, sizeof(xui_language_text_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pLanguage->arrTexts, sizeof(xui_language_text_t));
 	pLanguage->sCode = __xuiCoreStringDuplicate(sCode);
 	pLanguage->sName = __xuiCoreStringDuplicate(sName);
 	if ( pLanguage->sCode == NULL || pLanguage->sName == NULL || __xuiLanguageEnsureTextSlots(pLanguage) != XUI_OK ) {
 		__xuiLanguageDestroyOne(pLanguage);
 		return NULL;
 	}
-	iPos = xrtArrayAppend(&pContext->arrLanguages, 1u);
+	iPos = __xuiArraySlotAdd(&pContext->arrLanguages, 1u);
 	if ( iPos == 0u ) {
 		__xuiLanguageDestroyOne(pLanguage);
 		return NULL;
 	}
-	ppSlot = (xui_language*)xrtArrayGet_Unsafe(&pContext->arrLanguages, iPos);
+	ppSlot = (xui_language*)__xuiArraySlotGet(&pContext->arrLanguages, iPos);
 	*ppSlot = pLanguage;
 	return pLanguage;
 }
@@ -403,7 +421,7 @@ static int __xuiContextInitLanguages(xui_context pContext)
 	if ( !__xuiContextValid(pContext) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	xrtArrayInit(&pContext->arrLanguages, sizeof(xui_language), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pContext->arrLanguages, sizeof(xui_language));
 	pContext->iCurrentLanguageId = XUI_LANGUAGE_EN;
 	pContext->iNextCustomLanguageId = XUI_LANGUAGE_CUSTOM_BASE;
 	pContext->iLanguageRevision = 1;
@@ -432,7 +450,7 @@ static void __xuiContextDestroyLanguages(xui_context pContext)
 		return;
 	}
 	for ( i = 1u; i <= pContext->arrLanguages.Count; ++i ) {
-		ppLanguage = (xui_language*)xrtArrayGet_Unsafe(&pContext->arrLanguages, i);
+		ppLanguage = (xui_language*)__xuiArraySlotGet(&pContext->arrLanguages, i);
 		__xuiLanguageDestroyOne(*ppLanguage);
 		*ppLanguage = NULL;
 	}
@@ -573,7 +591,7 @@ XUI_API void xuiLanguageTouch(xui_context pContext, xui_language pLanguage)
 	__xuiContextTouchLanguage(pContext, pLanguage);
 }
 
-XUI_API xarray xuiGetLanguageTextArray(xui_language pLanguage)
+XUI_API xarray* xuiGetLanguageTextArray(xui_language pLanguage)
 {
 	return __xuiLanguageValid(pLanguage) ? &pLanguage->arrTexts : NULL;
 }
@@ -886,6 +904,70 @@ void xuiInternalContextBumpGeneration(xui_context pContext)
 	}
 }
 
+XUI_API int xuiSetErrorCallback(xui_context pContext, xui_error_proc onError, void* pUser)
+{
+	if ( !__xuiContextValid(pContext) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	pContext->onError = onError;
+	pContext->pErrorUser = (onError != NULL) ? pUser : NULL;
+	return XUI_OK;
+}
+
+XUI_API int xuiSetAccessibilityEventCallback(xui_context pContext,
+	xui_accessibility_event_proc onEvent, void* pUser)
+{
+	if ( !__xuiContextValid(pContext) ) return XUI_ERROR_INVALID_ARGUMENT;
+	pContext->onAccessibilityEvent = onEvent;
+	pContext->pAccessibilityEventUser = onEvent != NULL ? pUser : NULL;
+	return XUI_OK;
+}
+
+XUI_API int xuiReportError(xui_context pContext, const xui_error_info_t* pError)
+{
+	xui_error_info_t tError;
+
+	if ( !__xuiContextValid(pContext) || (pError == NULL) ||
+	     (pError->iSize < sizeof(*pError)) || (pError->iCode == XUI_OK) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( (pContext->onError == NULL) || pContext->bReportingError ) {
+		return XUI_OK;
+	}
+	tError = *pError;
+	tError.iSize = sizeof(tError);
+	pContext->bReportingError = 1;
+	pContext->onError(pContext, &tError, pContext->pErrorUser);
+	pContext->bReportingError = 0;
+	return XUI_OK;
+}
+
+void xuiInternalReportError(xui_context pContext, xui_widget pWidget, int iCode, int iStage,
+	int bRecoverable, const char* sOperation, const char* sMessage)
+{
+	xui_error_info_t tError;
+
+	if ( !__xuiContextValid(pContext) || (iCode == XUI_OK) ) {
+		return;
+	}
+	memset(&tError, 0, sizeof(tError));
+	tError.iSize = sizeof(tError);
+	tError.iCode = iCode;
+	tError.iStage = iStage;
+	tError.bRecoverable = bRecoverable != 0;
+	tError.pWidget = pWidget;
+	if ( (pWidget != NULL) && xuiInternalWidgetIsValid(pWidget) ) {
+		tError.tRect = xuiWidgetGetWorldRect(pWidget);
+	}
+	tError.sOperation = sOperation;
+	tError.sMessage = sMessage;
+	if ( tError.bRecoverable &&
+	     ((iStage == XUI_ERROR_STAGE_CACHE) || (iStage == XUI_ERROR_STAGE_RENDER)) ) {
+		pContext->tRenderStats.iRecoveredErrors++;
+	}
+	(void)xuiReportError(pContext, &tError);
+}
+
 void xuiInternalContextDestroyRenderTree(xui_context pContext)
 {
 	if ( !__xuiContextValid(pContext) ) {
@@ -1052,6 +1134,14 @@ void xuiInternalContextDetachWidget(xui_context pContext, xui_widget pWidget)
 	if ( !__xuiContextValid(pContext) || (pWidget == NULL) ) {
 		return;
 	}
+	if ( __xuiContextWidgetContains(pWidget, pContext->pDragAdornerOwner) ) {
+		xuiInternalDragAdornerHide(pContext, pContext->pDragAdornerOwner);
+	}
+	if ( pContext->pDragAdornerWidget == pWidget ) {
+		pContext->pDragAdornerWidget = NULL;
+		pContext->pDragAdornerOwner = NULL;
+		pContext->iDragAdornerPrimitiveCount = 0;
+	}
 	if ( __xuiContextWidgetContains(pWidget, pContext->pHoverWidget) ) {
 		if ( pContext->pHoverWidget != NULL ) {
 			pContext->pHoverWidget->iInputState &= ~XUI_WIDGET_STATE_HOVER;
@@ -1158,6 +1248,7 @@ static int __xuiProxyRequiredCallbacks(const xui_proxy_t* pProxy)
 	       (pProxy->imeSetCandidateRect != NULL) &&
 	       (pProxy->surfaceCreate != NULL) &&
 	       (pProxy->surfaceCreateRGBA != NULL) &&
+	       (pProxy->zstdDecompress != NULL) &&
 	       (pProxy->surfaceLoadFile != NULL) &&
 	       (pProxy->surfaceLoadMemory != NULL) &&
 	       (pProxy->surfaceUpdateRGBA != NULL) &&
@@ -1260,6 +1351,12 @@ XUI_API int xuiCreate(xui_context* ppContext)
 	}
 	memset(pContext, 0, sizeof(*pContext));
 	pContext->iMagic = XUI_CONTEXT_MAGIC;
+	pContext->pLayoutContext = xLayoutContextCreate(NULL);
+	if ( pContext->pLayoutContext == NULL ) {
+		pContext->iMagic = 0;
+		xrtFree(pContext);
+		return XUI_ERROR_OUT_OF_MEMORY;
+	}
 	pContext->fDpiScale = 1.0f;
 	pContext->iGeneration = 1;
 	pContext->iNextStylePropertyId = 1;
@@ -1275,6 +1372,7 @@ XUI_API int xuiCreate(xui_context* ppContext)
 	__xuiContextInitIcons(pContext);
 	if ( __xuiContextInitLanguages(pContext) != XUI_OK ) {
 		__xuiContextDestroyIcons(pContext);
+		xLayoutContextDestroy(pContext->pLayoutContext);
 		pContext->iMagic = 0;
 		xrtFree(pContext);
 		return XUI_ERROR_OUT_OF_MEMORY;
@@ -1319,6 +1417,13 @@ XUI_API void xuiDestroy(xui_context pContext)
 	if ( !__xuiContextValid(pContext) ) {
 		return;
 	}
+	if ( pContext->bHasProxy && pContext->tProxy.imeSetEnabled != NULL ) {
+		(void)pContext->tProxy.imeSetEnabled(&pContext->tProxy, 0);
+	}
+	if ( pContext->onImeDetach != NULL ) {
+		pContext->onImeDetach(pContext);
+		pContext->onImeDetach = NULL;
+	}
 	if ( pContext->pRoot != NULL ) {
 		xuiWidgetDestroy(pContext->pRoot);
 		pContext->pRoot = NULL;
@@ -1341,8 +1446,22 @@ XUI_API void xuiDestroy(xui_context pContext)
 	xuiInternalContextDestroyWidgetTypes(pContext);
 	__xuiContextDestroyLanguages(pContext);
 	__xuiContextDestroyFonts(pContext);
+	if ( pContext->pLayoutTrackScratch != NULL ) {
+		xrtFree(pContext->pLayoutTrackScratch);
+		pContext->pLayoutTrackScratch = NULL;
+		pContext->iLayoutTrackScratchCapacity = 0u;
+	}
+	xLayoutContextDestroy(pContext->pLayoutContext);
+	pContext->pLayoutContext = NULL;
 	pContext->iMagic = 0;
 	xrtFree(pContext);
+}
+
+XUI_API int xuiInternalContextSetImeDetach(xui_context pContext, void (*onDetach)(xui_context pContext))
+{
+	if ( !__xuiContextValid(pContext) ) return XUI_ERROR_INVALID_ARGUMENT;
+	pContext->onImeDetach = onDetach;
+	return XUI_OK;
 }
 
 XUI_API int xuiSetProxy(xui_context pContext, const xui_proxy_t* pProxy)
@@ -1391,35 +1510,41 @@ XUI_API int xuiGetProxyCaps(xui_context pContext, xui_proxy_caps_t* pCaps)
 	return XUI_OK;
 }
 
-XUI_API int xuiSetViewportSize(xui_context pContext, float fWidth, float fHeight)
+XUI_API int xuiSetViewportSize(xui_context pContext, int iWidth, int iHeight)
 {
-	if ( !__xuiContextValid(pContext) || !__xuiFloatValid(fWidth) || !__xuiFloatValid(fHeight) ) {
+	if ( !__xuiContextValid(pContext) || (iWidth < 0) || (iHeight < 0) ||
+	     (iWidth > XUI_CONTEXT_MAX_VIEWPORT) || (iHeight > XUI_CONTEXT_MAX_VIEWPORT) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	if ( (pContext->fViewportWidth == fWidth) && (pContext->fViewportHeight == fHeight) ) {
+	if ( (pContext->fViewportWidth == iWidth) && (pContext->fViewportHeight == iHeight) ) {
 		return XUI_OK;
 	}
-	pContext->fViewportWidth = fWidth;
-	pContext->fViewportHeight = fHeight;
+	pContext->fViewportWidth = iWidth;
+	pContext->fViewportHeight = iHeight;
 	pContext->iDamageCount = 0;
-	if ( (__xuiContextCeilPositive(fWidth) <= 0) || (__xuiContextCeilPositive(fHeight) <= 0) ) {
+	if ( (iWidth <= 0) || (iHeight <= 0) ) {
 		__xuiContextBumpGeneration(pContext);
 		return XUI_OK;
 	}
 	return __xuiContextAddDamage(pContext, __xuiContextFullRect(pContext));
 }
 
-XUI_API xui_vec2_t xuiGetViewportSize(xui_context pContext)
+XUI_API xui_size_t xuiGetViewportSize(xui_context pContext)
 {
-	xui_vec2_t tSize;
+	xui_size_t tSize;
 
-	tSize.fX = 0.0f;
-	tSize.fY = 0.0f;
+	tSize.iW = 0;
+	tSize.iH = 0;
 	if ( __xuiContextValid(pContext) ) {
-		tSize.fX = pContext->fViewportWidth;
-		tSize.fY = pContext->fViewportHeight;
+		tSize.iW = pContext->fViewportWidth;
+		tSize.iH = pContext->fViewportHeight;
 	}
 	return tSize;
+}
+
+XUI_API xui_rect_t xuiRectFromFloatNearest(float fX, float fY, float fWidth, float fHeight)
+{
+	return xuiInternalRectFromFloatNearest(fX, fY, fWidth, fHeight);
 }
 
 XUI_API int xuiSetVirtualDpi(xui_context pContext, float fDpiScale)
@@ -2675,7 +2800,9 @@ static int __xuiCoreComposeRenderTree(xui_context pContext, xui_surface pTarget,
 			}
 			iRet = __xuiCoreDrawRenderNode(pContext, pTarget, pNode, tDamage);
 			if ( iRet != XUI_OK ) {
-				return iRet;
+				pContext->tRenderStats.iSkippedWidgets++;
+				xuiInternalReportError(pContext, pNode->pWidget, iRet, XUI_ERROR_STAGE_RENDER, 1,
+					"render.compose", "The render node failed and was skipped.");
 			}
 		}
 	}
@@ -2697,25 +2824,38 @@ XUI_API int xuiRender(xui_context pContext, xui_surface pTarget, const xui_rect_
 	int i;
 	int iRet;
 
-	if ( !__xuiContextValid(pContext) || (pTarget == NULL) || (iRectCount < 0) || ((iRectCount > 0) && (pRects == NULL)) ) {
+	if ( !__xuiContextValid(pContext) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( (pTarget == NULL) || (iRectCount < 0) || ((iRectCount > 0) && (pRects == NULL)) ) {
+		xuiInternalReportError(pContext, NULL, XUI_ERROR_INVALID_ARGUMENT, XUI_ERROR_STAGE_RENDER, 0,
+			"render.arguments", "The render target or damage rectangle arguments are invalid.");
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	if ( !pContext->bHasProxy ) {
+		xuiInternalReportError(pContext, NULL, XUI_ERROR_NOT_INITIALIZED, XUI_ERROR_STAGE_RENDER, 0,
+			"render.proxy", "No render proxy is attached to the XUI context.");
 		return XUI_ERROR_NOT_INITIALIZED;
 	}
 	for ( i = 0; i < iRectCount; i++ ) {
 		if ( !__xuiRectValid(pRects[i]) ) {
+			xuiInternalReportError(pContext, NULL, XUI_ERROR_INVALID_ARGUMENT, XUI_ERROR_STAGE_RENDER, 0,
+				"render.damage", "A damage rectangle is empty or invalid.");
 			return XUI_ERROR_INVALID_ARGUMENT;
 		}
 	}
 	memset(&tDesc, 0, sizeof(tDesc));
 	iRet = pContext->tProxy.surfaceGetDesc(&pContext->tProxy, pTarget, &tDesc);
 	if ( iRet != XUI_OK ) {
+		xuiInternalReportError(pContext, NULL, iRet, XUI_ERROR_STAGE_RENDER, 0,
+			"render.target", "The target surface description could not be read.");
 		return iRet;
 	}
 	if ( (tDesc.iKind != XUI_SURFACE_KIND_TEXTURE) ||
 	     (tDesc.iFormat != XUI_SURFACE_FORMAT_RGBA8) ||
 	     ((tDesc.iFlags & XUI_SURFACE_USAGE_TARGET) == 0) ) {
+		xuiInternalReportError(pContext, NULL, XUI_ERROR_INVALID_ARGUMENT, XUI_ERROR_STAGE_RENDER, 0,
+			"render.target", "The target surface is not a supported RGBA8 render target.");
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	if ( pContext->pRoot != NULL ) {

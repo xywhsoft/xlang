@@ -40,6 +40,7 @@ export const c_int XGE_KEY_ESCAPE = 256
 export const c_int XGE_KEY_ENTER = 257
 export const c_int XGE_KEY_TAB = 258
 export const c_int XGE_KEY_BACKSPACE = 259
+export const c_int XGE_KEY_INSERT = 260
 export const c_int XGE_KEY_DELETE = 261
 export const c_int XGE_KEY_RIGHT = 262
 export const c_int XGE_KEY_LEFT = 263
@@ -49,7 +50,31 @@ export const c_int XGE_KEY_PAGE_UP = 266
 export const c_int XGE_KEY_PAGE_DOWN = 267
 export const c_int XGE_KEY_HOME = 268
 export const c_int XGE_KEY_END = 269
+export const c_int XGE_KEY_F1 = 290
+export const c_int XGE_KEY_F2 = 291
+export const c_int XGE_KEY_F3 = 292
+export const c_int XGE_KEY_F4 = 293
+export const c_int XGE_KEY_F5 = 294
+export const c_int XGE_KEY_F6 = 295
+export const c_int XGE_KEY_F7 = 296
+export const c_int XGE_KEY_F8 = 297
+export const c_int XGE_KEY_F9 = 298
 export const c_int XGE_KEY_F10 = 299
+export const c_int XGE_KEY_F11 = 300
+export const c_int XGE_KEY_F12 = 301
+export const c_int XGE_KEY_F13 = 302
+export const c_int XGE_KEY_F14 = 303
+export const c_int XGE_KEY_F15 = 304
+export const c_int XGE_KEY_F16 = 305
+export const c_int XGE_KEY_F17 = 306
+export const c_int XGE_KEY_F18 = 307
+export const c_int XGE_KEY_F19 = 308
+export const c_int XGE_KEY_F20 = 309
+export const c_int XGE_KEY_F21 = 310
+export const c_int XGE_KEY_F22 = 311
+export const c_int XGE_KEY_F23 = 312
+export const c_int XGE_KEY_F24 = 313
+export const c_int XGE_KEY_F25 = 314
 export const c_int XGE_KEY_MENU = 348
 export const c_int XGE_TEXT_MAX = 32
 export const c_int XGE_TOUCH_MAX = 8
@@ -206,8 +231,18 @@ export const c_int XGE_FONT_SLANT_ITALIC = 1
 export const c_int XGE_FONT_SLANT_OBLIQUE = 2
 export const c_int XGE_FONT_STRETCH_NORMAL = 100
 export const c_int XGE_TEXT_SHAPE_KERNING = 0x0001
-// export const c_int XGE_TEXT_SHAPE_DEFAULT = XGE_TEXT_SHAPE_KERNING
+export const c_int XGE_TEXT_SHAPE_EMOJI = 0x0002
+// export const c_int XGE_TEXT_SHAPE_DEFAULT = (XGE_TEXT_SHAPE_KERNING | XGE_TEXT_SHAPE_EMOJI)
 export const c_int XGE_GLYPH_POSITION_LINE_BREAK = 0x0001
+export const c_int XGE_TEXT_ITEM_GLYPH = 0
+export const c_int XGE_TEXT_ITEM_EMOJI = 1
+export const c_int XGE_EMOJI_PRESENTATION_AUTO = 0
+export const c_int XGE_EMOJI_PRESENTATION_COLOR = 1
+export const c_int XGE_EMOJI_PRESENTATION_TEXT = 2
+export const c_int XGE_EMOJI_PRESENTATION_DISABLED = 3
+export const c_int XGE_EMOJI_LINE_STABLE = 0
+export const c_int XGE_EMOJI_LINE_EXPAND = 1
+export const c_int XGE_EMOJI_ENTRY_TEXT_DEFAULT = 0x0001
 export const c_int XGE_TEXT_DECORATION_UNDERLINE = 1
 export const c_int XGE_TEXT_DECORATION_OVERLINE = 2
 export const c_int XGE_TEXT_DECORATION_STRIKE = 3
@@ -256,6 +291,15 @@ export const c_int XGE_EVENT_IME_END = 16
 export const c_int XGE_EVENT_IME_COMMIT = 17
 export const c_int XGE_EVENT_GAMEPAD_CONNECTED = 19
 export const c_int XGE_EVENT_GAMEPAD_DISCONNECTED = 20
+export const c_int XGE_EVENT_IME_CANDIDATE_START = 21
+export const c_int XGE_EVENT_IME_CANDIDATE_UPDATE = 22
+export const c_int XGE_EVENT_IME_CANDIDATE_END = 23
+export const c_int XGE_INPUT_EVENT_FLAG_REPEAT = 0x00000001
+export const c_int XGE_INPUT_EVENT_FLAG_NATIVE_IME = 0x00000002
+export const c_int XGE_INPUT_EVENT_FLAG_SYNTHETIC = 0x00000004
+export const c_int XGE_IME_MODE_NATIVE = 0
+export const c_int XGE_IME_MODE_COMPOSITION = 1
+export const c_int XGE_IME_MODE_FULL = 2
 export const c_int XGE_KEY_MOD_SHIFT = 0x0001
 export const c_int XGE_KEY_MOD_CTRL = 0x0002
 export const c_int XGE_KEY_MOD_ALT = 0x0004
@@ -281,6 +325,8 @@ export const c_int XGE_TOUCH_MOVE = 2
 export const c_int XGE_TOUCH_STATIONARY = 3
 export const c_int XGE_TOUCH_END = 4
 export const c_int XGE_TOUCH_CANCEL = 5
+// export const c_int XGE_CLIPBOARD_FORMAT_TEXT_UTF8 = "text/plain;charset=utf-8"
+// export const c_int XGE_CLIPBOARD_FORMAT_HTML = "text/html"
 
 // === Functions ===
 extern "xgeInit" func __xl6_xgeInit(point pDesc) as c_int
@@ -318,11 +364,6 @@ export func xgeFrameStatsReset()
     __xl6_xgeFrameStatsReset()
 end
 
-extern "xgeFrameStatsGet" func __xl6_xgeFrameStatsGet() as point
-export func xgeFrameStatsGet() as point
-    return __xl6_xgeFrameStatsGet()
-end
-
 extern "xgeLogSetLevel" func __xl6_xgeLogSetLevel(c_int iLevel) as c_int
 export func xgeLogSetLevel(c_int iLevel) as c_int
     return __xl6_xgeLogSetLevel(iLevel)
@@ -343,19 +384,19 @@ export func xgeLogFlush() as c_int
     return __xl6_xgeLogFlush()
 end
 
-extern "xgeGraphicsBackendDefault" func __xl6_xgeGraphicsBackendDefault() as point
-export func xgeGraphicsBackendDefault() as point
-    return __xl6_xgeGraphicsBackendDefault()
+extern "xgeSetErrorCallback" func __xl6_xgeSetErrorCallback(point onError, point pUser) as c_int
+export func xgeSetErrorCallback(point onError, point pUser) as c_int
+    return __xl6_xgeSetErrorCallback(onError, pUser)
+end
+
+extern "xgeReportError" func __xl6_xgeReportError(point pError) as c_int
+export func xgeReportError(point pError) as c_int
+    return __xl6_xgeReportError(pError)
 end
 
 extern "xgeGraphicsBackendSet" func __xl6_xgeGraphicsBackendSet(point pBackend) as c_int
 export func xgeGraphicsBackendSet(point pBackend) as c_int
     return __xl6_xgeGraphicsBackendSet(pBackend)
-end
-
-extern "xgeGraphicsBackendGet" func __xl6_xgeGraphicsBackendGet() as point
-export func xgeGraphicsBackendGet() as point
-    return __xl6_xgeGraphicsBackendGet()
 end
 
 extern "xgeGpuCapsGet" func __xl6_xgeGpuCapsGet(point pCaps) as c_int
@@ -428,19 +469,14 @@ export func xgePresent()
     __xl6_xgePresent()
 end
 
-extern "xgeInvalidateRect" func __xl6_xgeInvalidateRect(point tRect)
-export func xgeInvalidateRect(point tRect)
-    __xl6_xgeInvalidateRect(tRect)
+extern "__xl6_xgeInvalidateRect" func __xl6_xgeInvalidateRect(c_float fX, c_float fY, c_float fW, c_float fH)
+export func xgeInvalidateRect(c_float fX, c_float fY, c_float fW, c_float fH)
+    __xl6_xgeInvalidateRect(fX, fY, fW, fH)
 end
 
 extern "xgeColorRGBA" func __xl6_xgeColorRGBA(c_int iR, c_int iG, c_int iB, c_int iA) as c_uint
 export func xgeColorRGBA(c_int iR, c_int iG, c_int iB, c_int iA) as c_uint
     return __xl6_xgeColorRGBA(iR, iG, iB, iA)
-end
-
-extern "xgeColorUnpack" func __xl6_xgeColorUnpack(c_uint iColor) as point
-export func xgeColorUnpack(c_uint iColor) as point
-    return __xl6_xgeColorUnpack(iColor)
 end
 
 extern "xgeBlendSet" func __xl6_xgeBlendSet(c_int iBlend)
@@ -461,16 +497,6 @@ end
 extern "xgeDepthTestGet" func __xl6_xgeDepthTestGet() as c_int
 export func xgeDepthTestGet() as c_int
     return __xl6_xgeDepthTestGet()
-end
-
-extern "xgeWorldToScreen" func __xl6_xgeWorldToScreen(point tPoint) as point
-export func xgeWorldToScreen(point tPoint) as point
-    return __xl6_xgeWorldToScreen(tPoint)
-end
-
-extern "xgeScreenToWorld" func __xl6_xgeScreenToWorld(point tPoint) as point
-export func xgeScreenToWorld(point tPoint) as point
-    return __xl6_xgeScreenToWorld(tPoint)
 end
 
 extern "xgeResourceProviderAdd" func __xl6_xgeResourceProviderAdd(point pProvider) as c_int
@@ -501,6 +527,11 @@ end
 extern "xgeResourceFree" func __xl6_xgeResourceFree(point pResource)
 export func xgeResourceFree(point pResource)
     __xl6_xgeResourceFree(pResource)
+end
+
+extern "xgeZstdDecompress" func __xl6_xgeZstdDecompress(point pOutput, c_int iOutputCapacity, point pInput, c_int iInputSize, point pOutputSize) as c_int
+export func xgeZstdDecompress(point pOutput, c_int iOutputCapacity, point pInput, c_int iInputSize, point pOutputSize) as c_int
+    return __xl6_xgeZstdDecompress(pOutput, iOutputCapacity, pInput, iInputSize, pOutputSize)
 end
 
 extern "xgeMiniProgramInit" func __xl6_xgeMiniProgramInit(point pDesc) as c_int
@@ -583,14 +614,54 @@ export func xgeGlyphBitmapFree(point pBitmap)
     __xl6_xgeGlyphBitmapFree(pBitmap)
 end
 
+extern "xgeEmojiPackCreate" func __xl6_xgeEmojiPackCreate(point ppPack) as c_int
+export func xgeEmojiPackCreate(point ppPack) as c_int
+    return __xl6_xgeEmojiPackCreate(ppPack)
+end
+
+extern "xgeEmojiPackLoadBuiltin" func __xl6_xgeEmojiPackLoadBuiltin(point ppPack) as c_int
+export func xgeEmojiPackLoadBuiltin(point ppPack) as c_int
+    return __xl6_xgeEmojiPackLoadBuiltin(ppPack)
+end
+
+extern "xgeEmojiPackAddRef" func __xl6_xgeEmojiPackAddRef(point pPack) as c_int
+export func xgeEmojiPackAddRef(point pPack) as c_int
+    return __xl6_xgeEmojiPackAddRef(pPack)
+end
+
+extern "xgeEmojiPackFree" func __xl6_xgeEmojiPackFree(point pPack)
+export func xgeEmojiPackFree(point pPack)
+    __xl6_xgeEmojiPackFree(pPack)
+end
+
+extern "xgeEmojiPackAddSvgMemory" func __xl6_xgeEmojiPackAddSvgMemory(point pPack, string sSequence, point pSvgData, c_int iSvgSize, point pMetrics, point pEmojiId) as c_int
+export func xgeEmojiPackAddSvgMemory(point pPack, string sSequence, point pSvgData, c_int iSvgSize, point pMetrics, point pEmojiId) as c_int
+    return __xl6_xgeEmojiPackAddSvgMemory(pPack, sSequence, pSvgData, iSvgSize, pMetrics, pEmojiId)
+end
+
+extern "xgeEmojiPackMatch" func __xl6_xgeEmojiPackMatch(point pPack, string sText, c_int iTextSize, point pMatch) as c_int
+export func xgeEmojiPackMatch(point pPack, string sText, c_int iTextSize, point pMatch) as c_int
+    return __xl6_xgeEmojiPackMatch(pPack, sText, iTextSize, pMatch)
+end
+
+extern "xgeEmojiPackSetDefault" func __xl6_xgeEmojiPackSetDefault(point pPack) as c_int
+export func xgeEmojiPackSetDefault(point pPack) as c_int
+    return __xl6_xgeEmojiPackSetDefault(pPack)
+end
+
+extern "xgeEmojiPackGetDefault" func __xl6_xgeEmojiPackGetDefault(point ppPack) as c_int
+export func xgeEmojiPackGetDefault(point ppPack) as c_int
+    return __xl6_xgeEmojiPackGetDefault(ppPack)
+end
+
+extern "xgeEmojiPackClearDefault" func __xl6_xgeEmojiPackClearDefault()
+export func xgeEmojiPackClearDefault()
+    __xl6_xgeEmojiPackClearDefault()
+end
+
 extern "xgeGlyphRunFree" func __xl6_xgeGlyphRunFree(point pRun)
 export func xgeGlyphRunFree(point pRun)
     __xl6_xgeGlyphRunFree(pRun)
-end
-
-extern "xgeGlyphRunMeasure" func __xl6_xgeGlyphRunMeasure(point pRun) as point
-export func xgeGlyphRunMeasure(point pRun) as point
-    return __xl6_xgeGlyphRunMeasure(pRun)
 end
 
 extern "xgeGlyphRunHitTest" func __xl6_xgeGlyphRunHitTest(point pRun, c_float fX, c_float fY, point pCluster, point pTrailing) as c_int
@@ -611,11 +682,6 @@ end
 extern "xgeGlyphRunAppendShapeEx" func __xl6_xgeGlyphRunAppendShapeEx(point pRun, point pShape, c_float fX, c_float fY) as c_int
 export func xgeGlyphRunAppendShapeEx(point pRun, point pShape, c_float fX, c_float fY) as c_int
     return __xl6_xgeGlyphRunAppendShapeEx(pRun, pShape, fX, fY)
-end
-
-extern "xgeSamplerDefault" func __xl6_xgeSamplerDefault() as point
-export func xgeSamplerDefault() as point
-    return __xl6_xgeSamplerDefault()
 end
 
 extern "xgeBufferCreate" func __xl6_xgeBufferCreate(point pBuffer, c_int iType, c_int iUsage, point pData, c_int iSize) as c_int
@@ -663,14 +729,9 @@ export func xgeNinePatchDraw(point pPatch, point tDst, c_uint iFlags)
     __xl6_xgeNinePatchDraw(pPatch, tDst, iFlags)
 end
 
-extern "xgeViewportSet" func __xl6_xgeViewportSet(point tRect)
-export func xgeViewportSet(point tRect)
-    __xl6_xgeViewportSet(tRect)
-end
-
-extern "xgeViewportGet" func __xl6_xgeViewportGet() as point
-export func xgeViewportGet() as point
-    return __xl6_xgeViewportGet()
+extern "__xl6_xgeViewportSet" func __xl6_xgeViewportSet(c_float fX, c_float fY, c_float fW, c_float fH)
+export func xgeViewportSet(c_float fX, c_float fY, c_float fW, c_float fH)
+    __xl6_xgeViewportSet(fX, fY, fW, fH)
 end
 
 extern "xgeViewportClear" func __xl6_xgeViewportClear()
@@ -678,19 +739,34 @@ export func xgeViewportClear()
     __xl6_xgeViewportClear()
 end
 
-extern "xgeClipSet" func __xl6_xgeClipSet(point tRect)
-export func xgeClipSet(point tRect)
-    __xl6_xgeClipSet(tRect)
-end
-
-extern "xgeClipGet" func __xl6_xgeClipGet() as point
-export func xgeClipGet() as point
-    return __xl6_xgeClipGet()
+extern "__xl6_xgeClipSet" func __xl6_xgeClipSet(c_float fX, c_float fY, c_float fW, c_float fH)
+export func xgeClipSet(c_float fX, c_float fY, c_float fW, c_float fH)
+    __xl6_xgeClipSet(fX, fY, fW, fH)
 end
 
 extern "xgeClipClear" func __xl6_xgeClipClear()
 export func xgeClipClear()
     __xl6_xgeClipClear()
+end
+
+extern "__xl6_xgeViewportSetPixels" func __xl6_xgeViewportSetPixels(c_int iX, c_int iY, c_int iW, c_int iH)
+export func xgeViewportSetPixels(c_int iX, c_int iY, c_int iW, c_int iH)
+    __xl6_xgeViewportSetPixels(iX, iY, iW, iH)
+end
+
+extern "__xl6_xgeClipSetPixels" func __xl6_xgeClipSetPixels(c_int iX, c_int iY, c_int iW, c_int iH)
+export func xgeClipSetPixels(c_int iX, c_int iY, c_int iW, c_int iH)
+    __xl6_xgeClipSetPixels(iX, iY, iW, iH)
+end
+
+extern "xgeClipboardSetItems" func __xl6_xgeClipboardSetItems(point pItems, c_int iItemCount) as c_int
+export func xgeClipboardSetItems(point pItems, c_int iItemCount) as c_int
+    return __xl6_xgeClipboardSetItems(pItems, iItemCount)
+end
+
+extern "xgeClipboardGetData" func __xl6_xgeClipboardGetData(string sFormat, point pData, c_size iCapacity) as c_int
+export func xgeClipboardGetData(string sFormat, point pData, c_size iCapacity) as c_int
+    return __xl6_xgeClipboardGetData(sFormat, pData, iCapacity)
 end
 
 extern "xgeClipboardSetText" func __xl6_xgeClipboardSetText(string sText)
@@ -711,6 +787,61 @@ end
 extern "xgeImeSetEnabled" func __xl6_xgeImeSetEnabled(c_int bEnabled) as c_int
 export func xgeImeSetEnabled(c_int bEnabled) as c_int
     return __xl6_xgeImeSetEnabled(bEnabled)
+end
+
+extern "xgeImeGetMode" func __xl6_xgeImeGetMode() as c_int
+export func xgeImeGetMode() as c_int
+    return __xl6_xgeImeGetMode()
+end
+
+extern "xgeImeSetMode" func __xl6_xgeImeSetMode(c_int iMode) as c_int
+export func xgeImeSetMode(c_int iMode) as c_int
+    return __xl6_xgeImeSetMode(iMode)
+end
+
+extern "xgeImeSetCandidatePresenterReady" func __xl6_xgeImeSetCandidatePresenterReady(c_int bReady) as c_int
+export func xgeImeSetCandidatePresenterReady(c_int bReady) as c_int
+    return __xl6_xgeImeSetCandidatePresenterReady(bReady)
+end
+
+extern "xgeImeSetCandidateRect" func __xl6_xgeImeSetCandidateRect(point tRect) as c_int
+export func xgeImeSetCandidateRect(point tRect) as c_int
+    return __xl6_xgeImeSetCandidateRect(tRect)
+end
+
+extern "xgeImeGetCandidateRect" func __xl6_xgeImeGetCandidateRect(point pRect) as c_int
+export func xgeImeGetCandidateRect(point pRect) as c_int
+    return __xl6_xgeImeGetCandidateRect(pRect)
+end
+
+extern "xgeImeSetTextClient" func __xl6_xgeImeSetTextClient(point pClient) as c_int
+export func xgeImeSetTextClient(point pClient) as c_int
+    return __xl6_xgeImeSetTextClient(pClient)
+end
+
+extern "xgeImeRefreshTextClient" func __xl6_xgeImeRefreshTextClient() as c_int
+export func xgeImeRefreshTextClient() as c_int
+    return __xl6_xgeImeRefreshTextClient()
+end
+
+extern "xgeImeCandidateGetInfo" func __xl6_xgeImeCandidateGetInfo(point pInfo) as c_int
+export func xgeImeCandidateGetInfo(point pInfo) as c_int
+    return __xl6_xgeImeCandidateGetInfo(pInfo)
+end
+
+extern "xgeImeCandidateGetText" func __xl6_xgeImeCandidateGetText(c_int iIndex, string sText, c_int iCapacity) as c_int
+export func xgeImeCandidateGetText(c_int iIndex, string sText, c_int iCapacity) as c_int
+    return __xl6_xgeImeCandidateGetText(iIndex, sText, iCapacity)
+end
+
+extern "xgeImeCandidateSelect" func __xl6_xgeImeCandidateSelect(c_int iIndex) as c_int
+export func xgeImeCandidateSelect(c_int iIndex) as c_int
+    return __xl6_xgeImeCandidateSelect(iIndex)
+end
+
+extern "xgeImeCandidateFinalize" func __xl6_xgeImeCandidateFinalize() as c_int
+export func xgeImeCandidateFinalize() as c_int
+    return __xl6_xgeImeCandidateFinalize()
 end
 
 extern "xgeImeEventGet" func __xl6_xgeImeEventGet(point pEvent) as c_int

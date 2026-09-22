@@ -1,0 +1,41 @@
+// accordion.xl — 手风琴：Accordion 控件（3 个折叠分组）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Accordion Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Accordion Demo", font)
+    root.addChild(title)
+
+    xui.Accordion accordion = xui.Accordion(ctx)
+    accordion.setFlex(1.0, 1.0)
+
+    xui.Panel group1 = xui.Panel(ctx)
+    xui.Label lbl1 = xui.Label(ctx, "Group One content", font)
+    group1.addChild(lbl1)
+    accordion.addChild(group1)
+
+    xui.Panel group2 = xui.Panel(ctx)
+    xui.Label lbl2 = xui.Label(ctx, "Group Two content", font)
+    group2.addChild(lbl2)
+    accordion.addChild(group2)
+
+    xui.Panel group3 = xui.Panel(ctx)
+    xui.Label lbl3 = xui.Label(ctx, "Group Three content", font)
+    group3.addChild(lbl3)
+    accordion.addChild(group3)
+
+    root.addChild(accordion)
+
+    g_app.run(onFrame)
+    return 0
+end

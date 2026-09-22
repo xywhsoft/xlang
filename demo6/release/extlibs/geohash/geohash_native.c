@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-extern void xrtSetError(const void *msg, int bFree);
 static char geo_buf[4096];
 
 static const char GEO_BASE32[] = "0123456789bcdefghjkmnpqrstuvwxyz";

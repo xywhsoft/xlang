@@ -2,6 +2,11 @@
 
 #include "../include/xs_handler.h"
 #include "xl.h"
+#define XRT_MODULE_STRING
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_COND
+#define XRT_MODULE_LOGGER_CORE
+#define XRT_MODULE_TIME
 #include "xrt.h"
 
 #include <string.h>
@@ -23,13 +28,13 @@ struct xs2_handler_generation {
     int execution_timeout_ms;
     int waiting_count;
     int closing;
-    xmutex mutex;
-    xcond changed;
+    xmutex* mutex;
+    xcond* changed;
 };
 
 typedef struct xs2_handler_call_state {
     xs2_handler_generation* generation;
-    xbuffer response;
+    xbuffer* response;
 } xs2_handler_call_state;
 
 /* ------------------------------------ 基础工具 ------------------------------------ */
@@ -39,7 +44,7 @@ static char* xs2CopyText(const char* text)
     if ( text == NULL ) {
         text = "";
     }
-    return (char*)xrtCopyStr((str)(void*)text, 0u);
+    return xrtStrDup(text);
 }
 
 static void xs2SetError(char** error_text, const char* text)
@@ -88,7 +93,7 @@ static int xs2HostIsCancelled(const xs_handler_frame* frame)
     return frame->deadline_ms != 0u && xs2NowMs() >= frame->deadline_ms;
 }
 
-static int xs2HostSetOutput(xs_handler_frame* frame, xvalue value)
+static int xs2HostSetOutput(xs_handler_frame* frame, xvalue* value)
 {
     if ( frame == NULL ) {
         return 0;
@@ -108,7 +113,7 @@ static int xs2HostClearOutput(xs_handler_frame* frame)
     if ( state->response == NULL ) {
         return 0;
     }
-    state->response->Length = 0u;
+    xrtBufferClear(state->response);
     return 1;
 }
 
@@ -126,7 +131,7 @@ static int xs2HostAppendOutput(xs_handler_frame* frame, const void* data, size_t
     if ( size == 0u ) {
         return 1;
     }
-    if ( !xrtBufferAppend(state->response, (void*)data, (uint32)size, XBUF_BINARY) ) {
+    if ( !xrtBufferAppend(state->response, (xbytesview){ (cbytes)data, size }) ) {
         return 0;
     }
     frame->flags |= XS_HANDLER_FRAME_RESPONSE_STARTED;
@@ -146,6 +151,7 @@ static int xs2HostSetOutputText(xs_handler_frame* frame, const char* text)
 
 static void xs2HostLog(const xs_handler_frame* frame, int level, const char* message)
 {
+    xlogger* logger;
     xloglevel log_level;
 
     (void)frame;
@@ -155,7 +161,12 @@ static void xs2HostLog(const xs_handler_frame* frame, int level, const char* mes
         level = XS_HANDLER_LOG_FATAL;
     }
     log_level = (xloglevel)level;
-    xlogWrite(xlogDefault(), log_level, __FILE__, (uint32)__LINE__, __func__, "%s", message != NULL ? message : "");
+    message = message != NULL ? message : "";
+    logger = xrtLogDefault();
+    if ( logger != NULL ) {
+        (void)xrtLog(logger, log_level, (xstrview){ message, strlen(message) });
+        xrtLogFree(logger);
+    }
 }
 
 static const xs_handler_host_api xs2HostApi = {
@@ -176,13 +187,13 @@ static int xs2InvokeLifecycle(xs2_handler_instance* instance, int kind)
 {
     xs_handler_frame frame;
     xs2_handler_call_state state;
-    xbuffer response;
+    xbuffer* response;
     int result;
 
     if ( instance == NULL || instance->entry == NULL ) {
         return 0;
     }
-    response = xrtBufferCreate(256u);
+    response = xrtBufferCreate();
     if ( response == NULL ) {
         return 0;
     }
@@ -358,11 +369,13 @@ void xs2GenerationDestroy(xs2_handler_generation* generation)
 
 static int xs2GenerationAcquire(xs2_handler_generation* generation)
 {
-    uint64_t deadline;
+    xdeadline deadline;
     int i;
-    int wait_result;
+    xwaitresult wait_result;
 
-    deadline = generation->queue_timeout_ms > 0 ? xs2NowMs() + (uint64_t)generation->queue_timeout_ms : 0u;
+    deadline = generation->queue_timeout_ms > 0
+        ? xrtDeadlineAfter((uint64)generation->queue_timeout_ms * 1000u)
+        : XRT_DEADLINE_NEVER;
     xrtMutexLock(generation->mutex);
     for ( ;; ) {
         if ( generation->closing ) {
@@ -386,13 +399,13 @@ static int xs2GenerationAcquire(xs2_handler_generation* generation)
         }
 
         generation->waiting_count += 1;
-        wait_result = xrtCondWaitTimeout(generation->changed, generation->mutex, (uint32)generation->queue_timeout_ms);
+        wait_result = xrtCondWaitUntil(generation->changed, generation->mutex, deadline);
         generation->waiting_count -= 1;
-        if ( wait_result == XRT_WAIT_TIMEOUT || (deadline != 0u && xs2NowMs() >= deadline) ) {
+        if ( wait_result == XWAIT_TIMEOUT ) {
             xrtMutexUnlock(generation->mutex);
             return -3;
         }
-        if ( wait_result == XRT_WAIT_ERROR ) {
+        if ( wait_result != XWAIT_OK ) {
             xrtMutexUnlock(generation->mutex);
             return -1;
         }
@@ -452,8 +465,8 @@ int xs2GenerationCall(
 
     memset(&state, 0, sizeof(state));
     state.generation = generation;
-    state.response = (xbuffer)response_buffer;
-    state.response->Length = 0u;
+    state.response = (xbuffer*)response_buffer;
+    xrtBufferClear(state.response);
 
     memset(&frame, 0, sizeof(frame));
     frame.struct_size = (uint32_t)sizeof(frame);
@@ -478,7 +491,7 @@ int xs2GenerationCall(
     result = generation->instances[index].entry(&frame);
     elapsed = xs2NowMs() - started;
     if ( generation->execution_timeout_ms > 0 && elapsed > (uint64_t)generation->execution_timeout_ms ) {
-        state.response->Length = 0u;
+        xrtBufferClear(state.response);
         xs2SetError(error_text, "handler execution exceeded its deadline");
         result = XS_HANDLER_TIMEOUT;
     } else if ( result < XS_HANDLER_OK || result > XS_HANDLER_UNAVAILABLE ) {

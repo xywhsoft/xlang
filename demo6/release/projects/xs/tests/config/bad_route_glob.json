@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "http",
+      "name": "bad-route-glob",
+      "host": "127.0.0.1",
+      "port": 0,
+      "routes": [
+        {
+          "name": "all",
+          "kind": "handler",
+          "method": "*",
+          "pattern": "/*",
+          "handler": {
+            "language": "c",
+            "path": "../handlers/abi_c.c"
+          }
+        }
+      ]
+    }
+  ]
+}

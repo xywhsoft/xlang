@@ -63,8 +63,9 @@ foreach ( $required in @(
     }
 }
 if ( $generated -notmatch 'v[0-9]+ = xl6_counter;' -or
-     $generated -notmatch 'xl6_counter = v[0-9]+;' ) {
-    throw "XLIR LOAD/STORE emission did not use the verified public storage name"
+     $generated -notmatch '\{ &\(xl6_counter\), &\(xlir_committed\), sizeof\(xl6_counter\) \}' -or
+     !$generated.Contains('(xl6SlotRuntimeV1Get()->Apply)') ) {
+    throw "XLIR LOAD/transactional STORE emission did not use the verified public storage name"
 }
 foreach ( $required in @(
     "extern int64_t xl6_counter;",
@@ -82,5 +83,5 @@ $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_C
 & $env:ComSpec /d /v:on /c $command
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR global export generated-C runtime failed" }
 
-Write-Output "XLIR global export boundary gate ok: static scalar initialization, mutable/const storage, C/header linkage, and direct host access."
+Write-Output "XLIR global export boundary gate ok: static scalar initialization, mutable/const storage, transactional writes, C/header linkage, and direct host access."
 exit 0

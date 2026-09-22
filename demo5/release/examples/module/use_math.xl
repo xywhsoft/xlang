@@ -1,5 +1,0 @@
-import math
-
-func 入口() as int
-	return math.加一(math.基数)
-end

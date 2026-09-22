@@ -1,8 +1,0 @@
-import std.fmt, std.str
-
-func main() as int
-	if str.contains(fmt.int_text(42, ","), "42") == false
-		return 1
-	end
-	return 0
-end

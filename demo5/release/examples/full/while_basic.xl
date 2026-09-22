@@ -1,9 +1,0 @@
-func 入口() as int
-	int value = 7
-
-	while true do
-		break
-	end
-
-	return value
-end

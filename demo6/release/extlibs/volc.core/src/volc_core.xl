@@ -1,3 +1,7 @@
+import xhttp.client
+
+
+
 // Source package exports. The compiler imports this source file directly.
 
 extern "x_volc_core_available" func __xl6_native_volc_core_available() as bool

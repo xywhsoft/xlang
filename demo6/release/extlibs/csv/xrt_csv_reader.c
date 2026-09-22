@@ -33,10 +33,10 @@ static int __xrtCsvRawGet(xrtcsvreader* pReader)
 static bool __xrtCsvPreparePrefix(xrtcsvreader* pReader)
 {
 	int c;
-	if ( pReader->PrefixReady ) { return TRUE; }
+	if ( pReader->PrefixReady ) { return true; }
 	while ( pReader->PrefixCount < 3u ) {
 		c = __xrtCsvRawGet(pReader);
-		if ( c == -2 ) { return FALSE; }
+		if ( c == -2 ) { return false; }
 		if ( c == -1 ) { break; }
 		pReader->Prefix[pReader->PrefixCount++] = (unsigned char)c;
 	}
@@ -45,8 +45,8 @@ static bool __xrtCsvPreparePrefix(xrtcsvreader* pReader)
 		pReader->PrefixIndex = 3u;
 		pReader->Offset = 3u;
 	}
-	pReader->PrefixReady = TRUE;
-	return TRUE;
+	pReader->PrefixReady = true;
+	return true;
 }
 
 static int __xrtCsvGet(xrtcsvreader* pReader)
@@ -71,23 +71,23 @@ static void __xrtCsvClearFields(xrtcsvreader* pReader)
 	uint32 i;
 	for ( i = 0u; i < pReader->FieldCount; ++i ) { xrtFree(pReader->Fields[i]); }
 	pReader->FieldCount = 0u;
-	if ( pReader->Field != NULL ) { pReader->Field->Length = 0u; }
+	if ( pReader->Field != NULL ) { pReader->Field->Size = 0u; }
 }
 
 static bool __xrtCsvAppendByte(xrtcsvreader* pReader, unsigned char c)
 {
 	if ( pReader->Dialect.tLimits.iMaxItemBytes != 0u &&
-		pReader->Field->Length >= pReader->Dialect.tLimits.iMaxItemBytes ) {
+		pReader->Field->Size >= pReader->Dialect.tLimits.iMaxItemBytes ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
 			"CSV field exceeds the configured item limit");
-		return FALSE;
+		return false;
 	}
-	if ( !xrtBufferAppend(pReader->Field, &c, 1u, XBUF_BINARY) ) {
+	if ( !xrtBufferAppendByte(pReader->Field, c) ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_MEMORY,
 			"cannot grow CSV field buffer");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtCsvFinishField(xrtcsvreader* pReader)
@@ -98,53 +98,54 @@ static bool __xrtCsvFinishField(xrtcsvreader* pReader)
 		pReader->TotalFields >= pReader->Dialect.tLimits.iMaxNodes ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
 			"CSV field count exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
 	/* xrtIsUTF8 的长度 0 表示 NUL 结尾输入；空字段无需调用该接口。 */
-	if ( pReader->Field->Length != 0u &&
-		!xrtIsUTF8((str)pReader->Field->Buffer, pReader->Field->Length) ) {
+	if ( pReader->Field->Size != 0u &&
+		!xrtUtf8Valid((xstrview){ (cstr)pReader->Field->Data,
+			pReader->Field->Size }, NULL) ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_FORMAT,
 			"CSV field is not valid UTF-8");
-		return FALSE;
+		return false;
 	}
 	if ( pReader->Dialect.tLimits.iMaxOutputBytes != 0u &&
-		(pReader->Field->Length > pReader->Dialect.tLimits.iMaxOutputBytes ||
+		(pReader->Field->Size > pReader->Dialect.tLimits.iMaxOutputBytes ||
 		 pReader->OutputBytes > pReader->Dialect.tLimits.iMaxOutputBytes -
-		 pReader->Field->Length) ) {
+		 pReader->Field->Size) ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
 			"CSV decoded output exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	sValue = pReader->Field->Length != 0u ?
-		xrtCopyStr((str)pReader->Field->Buffer, pReader->Field->Length) :
-		xrtCopyStr((str)"", 0u);
+	sValue = pReader->Field->Size != 0u ?
+		xrtStrDupN((cstr)pReader->Field->Data, pReader->Field->Size) :
+		xrtStrDup("");
 	if ( sValue == NULL ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_MEMORY,
 			"cannot copy CSV field");
-		return FALSE;
+		return false;
 	}
 	if ( pReader->FieldCount == pReader->FieldCapacity ) {
 		uint32 iCapacity = pReader->FieldCapacity != 0u ? pReader->FieldCapacity * 2u : 16u;
 		if ( iCapacity < pReader->FieldCapacity ) {
 			xrtFree(sValue);
 			__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT, "too many CSV fields");
-			return FALSE;
+			return false;
 		}
 		pFields = (str*)xrtRealloc(pReader->Fields, (size_t)iCapacity * sizeof(str));
 		if ( pFields == NULL ) {
 			xrtFree(sValue);
 			__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_MEMORY,
 				"cannot grow CSV row");
-			return FALSE;
+			return false;
 		}
 		pReader->Fields = pFields;
 		pReader->FieldCapacity = iCapacity;
 	}
 	pReader->Fields[pReader->FieldCount++] = sValue;
-	pReader->OutputBytes += pReader->Field->Length;
+	pReader->OutputBytes += pReader->Field->Size;
 	pReader->TotalFields += 1u;
-	pReader->Field->Length = 0u;
-	return TRUE;
+	pReader->Field->Size = 0u;
+	return true;
 }
 
 static int __xrtCsvNewline(xrtcsvreader* pReader, int c, int* pSecond)
@@ -159,7 +160,7 @@ static int __xrtCsvNewline(xrtcsvreader* pReader, int c, int* pSecond)
 	return 1;
 }
 
-XXAPI xrtcsvreader* xrtCsvReaderCreate(xreader pInput, bool bTakeOwnership,
+XRT_API xrtcsvreader* xrtCsvReaderCreate(xreader* pInput, bool bTakeOwnership,
 	const xrtcsvdialect* pDialect)
 {
 	xrtcsvreader* pReader = (xrtcsvreader*)xrtCalloc(1u, sizeof(*pReader));
@@ -171,8 +172,9 @@ XXAPI xrtcsvreader* xrtCsvReaderCreate(xreader pInput, bool bTakeOwnership,
 	pReader->Line = 1u;
 	pReader->Column = 1u;
 	pReader->Pending = -1;
-	pReader->Field = xrtBufferCreate(256u);
+	pReader->Field = xrtBufferCreate();
 	if ( pInput == NULL || pReader->Field == NULL ||
+		!xrtBufferReserve(pReader->Field, 256u) ||
 		!__xrtCsvCopyDialect(&pReader->Dialect, pDialect) ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_ARGUMENT,
 			"invalid CSV reader or dialect");
@@ -186,67 +188,68 @@ XXAPI xrtcsvreader* xrtCsvReaderCreate(xreader pInput, bool bTakeOwnership,
 	return pReader;
 }
 
-XXAPI xrtcsvreader* xrtCsvReaderOpenMemory(const void* pData, uint64 iSize,
+XRT_API xrtcsvreader* xrtCsvReaderOpenMemory(const void* pData, uint64 iSize,
 	const xrtcsvdialect* pDialect)
 {
-	xreader pInput = pData != NULL || iSize == 0u ? xrtReaderFromMemory(pData, iSize) : NULL;
-	return xrtCsvReaderCreate(pInput, TRUE, pDialect);
+	xreader* pInput = pData != NULL || iSize == 0u ?
+		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	return xrtCsvReaderCreate(pInput, true, pDialect);
 }
 
-XXAPI xrtcsvreader* xrtCsvReaderOpenFile(str sPath, const xrtcsvdialect* pDialect)
+XRT_API xrtcsvreader* xrtCsvReaderOpenFile(str sPath, const xrtcsvdialect* pDialect)
 {
-	xreader pInput = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
-	return xrtCsvReaderCreate(pInput, TRUE, pDialect);
+	xreader* pInput = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	return xrtCsvReaderCreate(pInput, true, pDialect);
 }
 
-XXAPI const xrtcsverror* xrtCsvReaderError(const xrtcsvreader* pReader)
+XRT_API const xrtcsverror* xrtCsvReaderError(const xrtcsvreader* pReader)
 {
 	return pReader != NULL ? &pReader->Error : NULL;
 }
 
-XXAPI bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
+XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 {
 	int iState = XRT_CSV_FIELD_START;
-	bool bSawInput = FALSE;
-	if ( pReader == NULL || pRow == NULL || pReader->Failed || pReader->EOFReached ) { return FALSE; }
+	bool bSawInput = false;
+	if ( pReader == NULL || pRow == NULL || pReader->Failed || pReader->EOFReached ) { return false; }
 	if ( pReader->Dialect.tLimits.iMaxEntries != 0u &&
 		pReader->RowNumber >= pReader->Dialect.tLimits.iMaxEntries ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
 			"CSV row count exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
 	__xrtCsvClearFields(pReader);
 	for ( ;; ) {
 		int c = __xrtCsvGet(pReader);
 		int iSecond = -1;
 		int iNewline;
-		if ( c == -2 ) { return FALSE; }
+		if ( c == -2 ) { return false; }
 		if ( c == -1 ) {
 			if ( iState == XRT_CSV_FIELD_QUOTED && pReader->Dialect.bStrict ) {
 				__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_FORMAT,
 					"unterminated quoted CSV field");
-				return FALSE;
+				return false;
 			}
-			if ( !bSawInput && pReader->FieldCount == 0u && pReader->Field->Length == 0u ) {
-				pReader->EOFReached = TRUE;
-				return FALSE;
+			if ( !bSawInput && pReader->FieldCount == 0u && pReader->Field->Size == 0u ) {
+				pReader->EOFReached = true;
+				return false;
 			}
 			if ( iState != XRT_CSV_FIELD_START || pReader->FieldCount != 0u ||
-				pReader->Field->Length != 0u ) {
-				if ( !__xrtCsvFinishField(pReader) ) { return FALSE; }
+				pReader->Field->Size != 0u ) {
+				if ( !__xrtCsvFinishField(pReader) ) { return false; }
 			}
-			pReader->EOFReached = TRUE;
+			pReader->EOFReached = true;
 			break;
 		}
-		bSawInput = TRUE;
+		bSawInput = true;
 		iNewline = c == '\r' || c == '\n' ? __xrtCsvNewline(pReader, c, &iSecond) : 0;
-		if ( iNewline < 0 ) { return FALSE; }
+		if ( iNewline < 0 ) { return false; }
 		if ( iState == XRT_CSV_FIELD_QUOTED ) {
 			if ( c == pReader->Dialect.iQuote ) { iState = XRT_CSV_FIELD_AFTER_QUOTE; }
 			else {
 				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ||
 					(iSecond >= 0 && !__xrtCsvAppendByte(pReader, (unsigned char)iSecond)) ) {
-					return FALSE;
+					return false;
 				}
 				if ( iNewline ) { pReader->Line += 1u; pReader->Column = 1u; }
 				else { pReader->Column += 1u; }
@@ -256,7 +259,7 @@ XXAPI bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 		if ( iNewline ) {
 			if ( iState == XRT_CSV_FIELD_AFTER_QUOTE || iState == XRT_CSV_FIELD_UNQUOTED ||
 				pReader->FieldCount != 0u ) {
-				if ( !__xrtCsvFinishField(pReader) ) { return FALSE; }
+				if ( !__xrtCsvFinishField(pReader) ) { return false; }
 			}
 			pReader->Line += 1u;
 			pReader->Column = 1u;
@@ -265,41 +268,41 @@ XXAPI bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 		if ( iState == XRT_CSV_FIELD_START ) {
 			if ( c == pReader->Dialect.iQuote ) { iState = XRT_CSV_FIELD_QUOTED; }
 			else if ( c == pReader->Dialect.iDelimiter ) {
-				if ( !__xrtCsvFinishField(pReader) ) { return FALSE; }
+				if ( !__xrtCsvFinishField(pReader) ) { return false; }
 			}
 			else {
-				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return FALSE; }
+				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return false; }
 				iState = XRT_CSV_FIELD_UNQUOTED;
 			}
 		}
 		else if ( iState == XRT_CSV_FIELD_UNQUOTED ) {
 			if ( c == pReader->Dialect.iDelimiter ) {
-				if ( !__xrtCsvFinishField(pReader) ) { return FALSE; }
+				if ( !__xrtCsvFinishField(pReader) ) { return false; }
 				iState = XRT_CSV_FIELD_START;
 			}
 			else if ( c == pReader->Dialect.iQuote && pReader->Dialect.bStrict ) {
 				__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_FORMAT,
 					"unexpected quote in unquoted CSV field");
-				return FALSE;
+				return false;
 			}
-			else if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return FALSE; }
+			else if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return false; }
 		}
 		else {
 			if ( c == pReader->Dialect.iQuote ) {
-				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return FALSE; }
+				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return false; }
 				iState = XRT_CSV_FIELD_QUOTED;
 			}
 			else if ( c == pReader->Dialect.iDelimiter ) {
-				if ( !__xrtCsvFinishField(pReader) ) { return FALSE; }
+				if ( !__xrtCsvFinishField(pReader) ) { return false; }
 				iState = XRT_CSV_FIELD_START;
 			}
 			else if ( pReader->Dialect.bStrict ) {
 				__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_FORMAT,
 					"unexpected character after closing CSV quote");
-				return FALSE;
+				return false;
 			}
 			else {
-				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return FALSE; }
+				if ( !__xrtCsvAppendByte(pReader, (unsigned char)c) ) { return false; }
 				iState = XRT_CSV_FIELD_UNQUOTED;
 			}
 		}
@@ -309,15 +312,15 @@ XXAPI bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 	pRow->iCount = pReader->FieldCount;
 	pRow->pFields = (const char* const*)pReader->Fields;
 	pReader->RowNumber += 1u;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtCsvReaderEOF(const xrtcsvreader* pReader)
+XRT_API bool xrtCsvReaderEOF(const xrtcsvreader* pReader)
 {
 	return pReader != NULL && pReader->EOFReached && !pReader->Failed;
 }
 
-XXAPI void xrtCsvReaderDestroy(xrtcsvreader* pReader)
+XRT_API void xrtCsvReaderDestroy(xrtcsvreader* pReader)
 {
 	if ( pReader == NULL ) { return; }
 	if ( pReader->TakeReader && pReader->Reader != NULL ) { xrtReaderDestroy(pReader->Reader); }

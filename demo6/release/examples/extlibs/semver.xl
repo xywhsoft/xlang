@@ -1,0 +1,46 @@
+import semver
+
+
+
+func main(...) as int
+    // 解析版本分量
+    string v = "2.4.1-beta.2+build.88"
+    println("version:", v)
+    println("valid:", semver.valid(v))
+    println("major:", semver.major(v), "minor:", semver.minor(v), "patch:", semver.patch(v))
+    println("prerelease:", semver.prerelease(v))
+    println("build:", semver.build(v))
+    println("clean('v2.4.1'):", semver.clean("v2.4.1"))
+
+    // 优先级比较
+    println("compare 1.10.0 vs 1.9.0:", semver.compare("1.10.0", "1.9.0"))
+    println("compare 1.0.0-alpha vs 1.0.0:", semver.compare("1.0.0-alpha", "1.0.0"))
+    println("compare 1.0.0+a vs 1.0.0+b:", semver.compare("1.0.0+a", "1.0.0+b"))
+
+    // 包管理器场景：依赖范围
+    array<string> deps = ["^1.2.0", "~2.4.0", ">=3.0.0 <4.0.0", "1.x"]
+    array<string> versions = ["1.9.0", "2.4.9", "3.5.2", "1.42.0", "2.5.0", "4.0.0"]
+    for dep in deps
+        print(dep, " -> ")
+        for ver in versions
+            if semver.satisfies(ver, dep) then
+                print(ver, " ")
+            end
+        end
+        println()
+    end
+
+    // 升级决策：只允许兼容升级（同主版本且不降级）
+    string current = "2.4.1"
+    string candidate = "2.5.0"
+    if semver.compare(candidate, current) > 0 and semver.satisfies(candidate, "^" + current) then
+        println("upgrade", current, "->", candidate, "is compatible")
+    end
+    string breaking = "3.0.0"
+    if not semver.satisfies(breaking, "^" + current) then
+        println("upgrade", current, "->", breaking, "is breaking")
+    end
+
+    println("semver example: PASS")
+    return 0
+end

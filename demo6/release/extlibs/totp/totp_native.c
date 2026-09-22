@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-extern void xrtSetError(const void *msg, int bFree);
 static char totp_buf[64];
 
 /* ------------------------------------------------------------------ */

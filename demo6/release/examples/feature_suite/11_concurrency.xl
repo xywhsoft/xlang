@@ -2576,7 +2576,7 @@ catch e
     end
 end
 assert cancelAllGroupState == 1, "canceled task.all group should await as canceled"
-assert task.cancel(cancelAllGroup), "canceled task.all group should allow repeated cancel"
+assert not task.cancel(cancelAllGroup), "canceled task.all group should reject repeated cancel"
 try
     array<int> cancelAllAgainValues = await cancelAllGroup
     cancelAllGroupState = cancelAllAgainValues.length
@@ -2625,7 +2625,7 @@ catch e
     end
 end
 assert cancelRaceGroupState == 1, "canceled task.race group should await as canceled"
-assert task.cancel(cancelRaceGroup), "canceled task.race group should allow repeated cancel"
+assert not task.cancel(cancelRaceGroup), "canceled task.race group should reject repeated cancel"
 try
     int cancelRaceAgainValue = await cancelRaceGroup
     cancelRaceGroupState = cancelRaceAgainValue

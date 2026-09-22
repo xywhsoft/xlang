@@ -1,10 +1,8 @@
 /*
  * progress_native.c - Terminal progress bar
  */
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 static char prog_buf[4096];
 
 typedef struct {
@@ -16,9 +14,9 @@ typedef struct {
 
 void *xprog_create(long long total) {
     XProg *p;
-    if (total <= 0) { xrtSetError("progress: total must be positive", 0); return NULL; }
+    if (total <= 0) { xl6ExtlibError(XL6_EXTERR_ARGUMENT, "xlang.extlib.progress", "progress total must be positive"); return NULL; }
     p = (XProg *)calloc(1, sizeof(XProg));
-    if (!p) { xrtSetError("progress: out of memory", 0); return NULL; }
+    if (!p) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.progress", "cannot allocate progress state"); return NULL; }
     p->total = total;
     p->bar_width = 40;
     strcpy(p->prefix, "Progress");

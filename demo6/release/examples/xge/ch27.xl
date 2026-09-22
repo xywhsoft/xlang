@@ -10,49 +10,49 @@ func draw_scene()
     float d2 = 0.20
     float d3 = 0.20
 
-    c_uint c0 = xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255))
-    c_uint c1 = xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255))
-    c_uint c2 = xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(255))
-    c_uint c3 = xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255))
+    uint32 c0 = xge.Color.rgba(79, 216, 194, 255)
+    uint32 c1 = xge.Color.rgba(255, 180, 84, 255)
+    uint32 c2 = xge.Color.rgba(255, 107, 94, 255)
+    uint32 c3 = xge.Color.rgba(109, 179, 242, 255)
 
     float start = 0.0 - pi / 2.0
 
     // 饼图
-    float end = start + d0 * 2.0 * pi
-    xge.xgeShapePieFill(c_float(250), c_float(280), c_float(140), c_float(140), c_float(start), c_float(end), c0)
-    start = end
-    end = start + d1 * 2.0 * pi
-    xge.xgeShapePieFill(c_float(250), c_float(280), c_float(140), c_float(140), c_float(start), c_float(end), c1)
-    start = end
-    end = start + d2 * 2.0 * pi
-    xge.xgeShapePieFill(c_float(250), c_float(280), c_float(140), c_float(140), c_float(start), c_float(end), c2)
-    start = end
-    end = start + d3 * 2.0 * pi
-    xge.xgeShapePieFill(c_float(250), c_float(280), c_float(140), c_float(140), c_float(start), c_float(end), c3)
+    float endAngle = start + d0 * 2.0 * pi
+    xge.Shape.pieFill(250, 280, 140, 140, start, endAngle, c0)
+    start = endAngle
+    endAngle = start + d1 * 2.0 * pi
+    xge.Shape.pieFill(250, 280, 140, 140, start, endAngle, c1)
+    start = endAngle
+    endAngle = start + d2 * 2.0 * pi
+    xge.Shape.pieFill(250, 280, 140, 140, start, endAngle, c2)
+    start = endAngle
+    endAngle = start + d3 * 2.0 * pi
+    xge.Shape.pieFill(250, 280, 140, 140, start, endAngle, c3)
 
     // 技能冷却遮罩
-    xge.xgeShapeCircleFill(c_float(600), c_float(200), c_float(40), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
-    xge.xgeShapePieFill(c_float(600), c_float(200), c_float(40), c_float(40),
-        c_float(0.0 - pi / 2.0), c_float(0.0 - pi / 2.0 + 0.7 * 2.0 * pi),
-        xge.XGE_COLOR_RGBA(c_uint(0), c_uint(0), c_uint(0), c_uint(160)))
+    xge.Shape.circleFill(600, 200, 40, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.pieFill(600, 200, 40, 40,
+        0.0 - pi / 2.0, 0.0 - pi / 2.0 + 0.7 * 2.0 * pi,
+        xge.Color.rgba(0, 0, 0, 160))
 
     // 弓形
-    xge.xgeShapeChordFill(c_float(600), c_float(430), c_float(100), c_float(100), c_float(0), c_float(pi),
-        xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(128)))
+    xge.Shape.chordFill(600, 430, 100, 100, 0, pi,
+        xge.Color.rgba(255, 180, 84, 128))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch27")
-    if ret != c_int(0) then
-        println("xgeInit failed: " + string(ret))
+    int ret = xge.XgeApp.init(840, 640, "ch27")
+    if ret != 0 then
+        println("XgeApp.init failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

@@ -1,5 +1,0 @@
-func main() as int
-	const int value = 2
-	value **= 5
-	return value
-end

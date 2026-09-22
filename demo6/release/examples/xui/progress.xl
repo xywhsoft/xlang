@@ -1,0 +1,39 @@
+// progress.xl — 进度条：3 个 Progress（25% / 60% / 100%）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Progress Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Progress Demo", font)
+    root.addChild(title)
+
+    xui.Label lbl25 = xui.Label(ctx, "Downloading 25%", font)
+    root.addChild(lbl25)
+    xui.Progress progress1 = xui.Progress(ctx, 0.0, 100.0, 25.0)
+    progress1.setPreferredSize(600.0, 16.0)
+    root.addChild(progress1)
+
+    xui.Label lbl60 = xui.Label(ctx, "Downloading 60%", font)
+    root.addChild(lbl60)
+    xui.Progress progress2 = xui.Progress(ctx, 0.0, 100.0, 60.0)
+    progress2.setPreferredSize(600.0, 16.0)
+    root.addChild(progress2)
+
+    xui.Label lbl100 = xui.Label(ctx, "Completed 100%", font)
+    root.addChild(lbl100)
+    xui.Progress progress3 = xui.Progress(ctx, 0.0, 100.0, 100.0)
+    progress3.setPreferredSize(600.0, 16.0)
+    root.addChild(progress3)
+
+    g_app.run(onFrame)
+    return 0
+end

@@ -1,0 +1,39 @@
+// splitlayout.xl — 分割布局：SplitLayout 控件（水平）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "SplitLayout Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "SplitLayout Demo", font)
+    root.addChild(title)
+
+    // orientation: 0 = horizontal（左右两栏）
+    xui.SplitLayout split = xui.SplitLayout(ctx, 0)
+    split.setFlex(1.0, 1.0)
+
+    xui.Panel left = xui.Panel(ctx)
+    xui.Label lblLeft = xui.Label(ctx, "Left pane", font)
+    left.addChild(lblLeft)
+    left.setFlex(1.0, 1.0)
+    split.addChild(left)
+
+    xui.Panel right = xui.Panel(ctx)
+    xui.Label lblRight = xui.Label(ctx, "Right pane", font)
+    right.addChild(lblRight)
+    right.setFlex(1.0, 1.0)
+    split.addChild(right)
+
+    root.addChild(split)
+
+    g_app.run(onFrame)
+    return 0
+end

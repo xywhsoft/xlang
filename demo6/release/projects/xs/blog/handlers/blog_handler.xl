@@ -10,7 +10,7 @@ point gDatabase = null
 
 func initialize(point raw) as bool
     auto frame = sdk.handler.wrap(raw)
-    string databasePath = os.env("XS_BLOG_DB", "projects/xs/blog/data/blog.db")
+    string databasePath = os.env("XS_BLOG_DB", path.abs("blog/data/blog.db"))
     string directory = path.dir(databasePath)
     if directory != "" and not dir.createAll(directory) then
         frame.log(sdk.handler.LOG_ERROR, "cannot create blog data directory: " + directory)
@@ -74,7 +74,7 @@ func handleHttp(point raw) as c_int
     if request.method() == "GET" and request.path() == "/assets/blog.css" then
         response.header("Cache-Control", "public, max-age=3600")
         response.header("Content-Type", "text/css; charset=utf-8")
-        if response.file("projects/xs/blog/static/blog.css") then return c_int(sdk.handler.OK) end
+        if response.file(path.abs("blog/static/blog.css")) then return c_int(sdk.handler.OK) end
         return c_int(sdk.handler.NOT_FOUND)
     end
 

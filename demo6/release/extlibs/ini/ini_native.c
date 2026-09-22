@@ -1,10 +1,16 @@
-#include "include/xrt_ini.h"
+#include "xrt_ini_internal.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XINI_EXPORT __declspec(dllexport)
 #else
 #define XINI_EXPORT
 #endif
+
+static void xini_error(xerrkind Kind, const char* sMessage)
+{
+	xrtSetErrorInfo(Kind, "xlang.extlib.ini", 0,
+		sMessage != NULL ? sMessage : "INI operation failed");
+}
 
 
 
@@ -26,8 +32,8 @@ static void xini_options(xrtinioptions* pOptions, bool bCaseSensitive,
 static void xini_publish_error(const xrtiniconfig* pConfig)
 {
 	const xrtinierror* pError = xrtIniError(pConfig);
-	xrtSetError(xrtFormat("%s", pError != NULL && pError->sMessage[0] != 0 ?
-		pError->sMessage : "INI operation failed"), TRUE);
+	xini_error(XERR_STATE, pError != NULL && pError->sMessage[0] != 0 ?
+		pError->sMessage : "INI operation failed");
 }
 
 static void* xini_validate(xrtiniconfig* pConfig)
@@ -115,10 +121,10 @@ XINI_EXPORT void* xini_section_name(void* pValue, int iIndex)
 	const char* sName = iIndex >= 0 ?
 		xrtIniSectionName((xrtiniconfig*)pValue, (uint32)iIndex) : NULL;
 	if ( sName == NULL ) {
-		xrtSetError(xrtFormat("INI section index is out of range"), TRUE);
+		xini_error(XERR_ARGUMENT, "INI section index is out of range");
 		return NULL;
 	}
-	return xrtCopyStr((str)sName, 0u);
+	return xrtStrDup(sName);
 }
 
 XINI_EXPORT bool xini_has_section(void* pValue, str sSection)
@@ -136,10 +142,10 @@ XINI_EXPORT void* xini_key_name(void* pValue, str sSection, int iIndex)
 	const char* sName = iIndex >= 0 ?
 		xrtIniKeyName((xrtiniconfig*)pValue, sSection, (uint32)iIndex) : NULL;
 	if ( sName == NULL ) {
-		xrtSetError(xrtFormat("INI key index is out of range"), TRUE);
+		xini_error(XERR_ARGUMENT, "INI key index is out of range");
 		return NULL;
 	}
-	return xrtCopyStr((str)sName, 0u);
+	return xrtStrDup(sName);
 }
 
 XINI_EXPORT bool xini_has(void* pValue, str sSection, str sKey)
@@ -174,7 +180,7 @@ XINI_EXPORT double xini_get_float(void* pValue, str sSection, str sKey)
 
 XINI_EXPORT bool xini_get_bool(void* pValue, str sSection, str sKey)
 {
-	bool bValue = FALSE;
+	bool bValue = false;
 	if ( !xrtIniGetBool((xrtiniconfig*)pValue, sSection, sKey, &bValue) ) {
 		xini_publish_error((xrtiniconfig*)pValue);
 	}
@@ -185,9 +191,9 @@ XINI_EXPORT bool xini_set(void* pValue, str sSection, str sKey, str sValue)
 {
 	if ( !xrtIniSet((xrtiniconfig*)pValue, sSection, sKey, sValue) ) {
 		xini_publish_error((xrtiniconfig*)pValue);
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XINI_EXPORT bool xini_remove(void* pValue, str sSection, str sKey)
@@ -202,7 +208,7 @@ XINI_EXPORT bool xini_remove_section(void* pValue, str sSection)
 
 XINI_EXPORT void* xini_stringify(void* pValue)
 {
-	xbuffer pOutput = xrtIniStringify((xrtiniconfig*)pValue);
+	xbuffer* pOutput = xrtIniStringify((xrtiniconfig*)pValue);
 	if ( pOutput == NULL ) { xini_publish_error((xrtiniconfig*)pValue); }
 	return pOutput;
 }
@@ -211,7 +217,7 @@ XINI_EXPORT bool xini_save(void* pValue, str sPath)
 {
 	if ( !xrtIniSave((xrtiniconfig*)pValue, sPath) ) {
 		xini_publish_error((xrtiniconfig*)pValue);
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }

@@ -12,7 +12,8 @@ expect(binary(20, 22), 42)
 
 // bare func 类型用于只表达“任意函数值”。
 func anyFunction = binary
-var boxedAny = anyFunction
+// 动态调用必须从带完整签名的 func 显式创建 XCall。
+var boxedAny = xcall(binary)
 expect(int(boxedAny(1, 2)), 3)
 
 // 匿名函数：箭头写法。
@@ -74,8 +75,8 @@ end
 func(string, ***) as int optionFn = optionCount
 expect(optionFn("demo.txt", mode = "fast", retry = 3), 2)
 
-// func 可进入 var 并动态调用。
-var boxedBinary = binary
+// typed func 经 xcall 显式进入 var 并动态调用。
+var boxedBinary = xcall(binary)
 var dynamicResult = boxedBinary(20, 22)
 expect(int(dynamicResult), 42)
 

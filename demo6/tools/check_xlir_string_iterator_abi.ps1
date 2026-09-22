@@ -27,7 +27,6 @@ $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_string_iterator_abi.xl"
 $historicalSource = Join-Path $Root "test\cases\stdlib_string.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_string_iterator_abi.typed.json"
 $typedRepeatPath = Join-Path $outputDir "xlir_string_iterator_abi.typed.repeat.json"
@@ -35,16 +34,14 @@ $loweredPath = Join-Path $outputDir "xlir_string_iterator_abi.lowered.json"
 $loweredRepeatPath = Join-Path $outputDir "xlir_string_iterator_abi.lowered.repeat.json"
 $cPath = Join-Path $outputDir "xlir_string_iterator_abi.c"
 $cRepeatPath = Join-Path $outputDir "xlir_string_iterator_abi.repeat.c"
-$legacyCPath = Join-Path $outputDir "xlir_string_iterator_abi.legacy.c"
 $historicalTypedPath = Join-Path $outputDir "stdlib_string.string_iterator.typed.json"
 $historicalCPath = Join-Path $outputDir "stdlib_string.string_iterator.xlir.c"
 $historicalCRepeatPath = Join-Path $outputDir "stdlib_string.string_iterator.xlir.repeat.c"
 $xlirExe = Join-Path $outputDir "xlir_string_iterator_abi.xlir.exe"
-$legacyExe = Join-Path $outputDir "xlir_string_iterator_abi.legacy.exe"
 $historicalObject = Join-Path $outputDir "stdlib_string.string_iterator.xlir.o"
 
 foreach ( $path in @(
-    $xl, $source, $historicalSource, $hostSource, $legacySupport
+    $xl, $source, $historicalSource, $hostSource
 ) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR string iterator gate input is missing: $path"
@@ -263,18 +260,16 @@ foreach ( $symbol in @($snapshotSymbols + $itemSymbols) ) {
     }
 }
 
-& $xl cgen $source --backend legacy --emit $legacyCPath
-if ( $LASTEXITCODE -ne 0 ) { throw "Legacy string iterator Cgen failed" }
-$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror `"$legacyCPath`" `"$legacySupport`" !XL6_CGEN_LINKS! -o `"$legacyExe`" && `"$legacyExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$historicalCPath`" -c `"$hostSource`" -o `"$historicalObject`""
+$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$historicalCPath`" -c `"$hostSource`" -o `"$historicalObject`""
 Push-Location $Root
 try {
     & $env:ComSpec /d /v:on /c $command
     if ( $LASTEXITCODE -ne 0 ) {
-        throw "String iterator strict compile, runtime differential, or stdlib compile failed"
+        throw "String iterator strict compile/runtime or stdlib compile failed"
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR string iterator ABI gate ok: canonical UTF-8 scalar ordinals, owned code-point projection, named-source snapshot copy, owned-rvalue transfer, empty/continue/break/return/finally/throw cleanup, emoji runtime semantics, deterministic mechanical C, legacy differential runtime, and established stdlib string migration."
+Write-Output "XLIR string iterator ABI gate ok: canonical UTF-8 scalar ordinals, owned code-point projection, named-source snapshot copy, owned-rvalue transfer, empty/continue/break/return/finally/throw cleanup, emoji runtime semantics, deterministic mechanical C, strict runtime, and established stdlib string migration."
 exit 0

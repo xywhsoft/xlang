@@ -15,7 +15,6 @@ $outputDir = Join-Path $Root "build\tmp"
 $loweredJson = Join-Path $outputDir "xlir_safe_index_nullable_collection_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_safe_index_nullable_collection_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_safe_index_nullable_collection_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_safe_index_nullable_collection_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -143,18 +142,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR safe-index nullable-collection strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR safe-index nullable-collection legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_safe_index_nullable_collection_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_safe_index_nullable_collection_abi.legacy.exe && build\test\xlir_safe_index_nullable_collection_abi.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR safe-index nullable-collection legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR safe-index nullable-collection ABI gate passed: exact nullable/non-null collection shapes, canonical-null projections, explicit flow unwrap, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR safe-index nullable-collection ABI gate passed: exact nullable/non-null collection shapes, canonical-null projections, explicit flow unwrap, deterministic mechanical C, and strict runtime."

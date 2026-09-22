@@ -5,6 +5,7 @@ extern "xdns_opcode_name" func __opcode_name(int opcode) as string
 extern "xdns_encode_name" func __encode_name(string domain) as string
 extern "xdns_valid_name" func __valid_name(string name) as int
 extern "xdns_is_ipv4" func __is_ipv4(string addr) as int
+extern "xdns_resolve" func __resolve(string host, int family) as var
 
 export func typeName(int type) as string
     return __type_name(type)
@@ -32,4 +33,13 @@ end
 
 export func isIpv4(string addr) as int
     return __is_ipv4(addr)
+end
+
+export func resolve(string host, int family = 0) as array<string>
+    var values = __resolve(host, family)
+    array<string> result = array<string>[]
+    for value in values
+        result.append(string(value))
+    end
+    return result
 end

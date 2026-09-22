@@ -1,3 +1,10 @@
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_ERROR_FORMAT
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_PATH
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
 #include "include/xrt_md5.h"
 
 #include <stdio.h>
@@ -21,6 +28,38 @@
 
 static XMD5_THREAD char g_xmd5_hex[XMD5_HEX_SLOTS][33];
 static XMD5_THREAD size_t g_xmd5_hex_index;
+static XMD5_THREAD int g_xmd5_file_status;
+
+
+/* 把 MD5 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xmd5_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_MD5_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_MD5_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_MD5_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_MD5_ERROR_STATE:
+			return XERR_STATE;
+		case XRT_MD5_ERROR_CANCELLED:
+			return XERR_CANCELLED;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 把已分配摘要内存移交给 Buffer，创建失败时释放来源。 */
+static xbuffer* xmd5_take_buffer(uint8* pData, size_t iSize)
+{
+	bytes pOwned = pData;
+	xbuffer* pBuffer = xrtBufferCreateTake(&pOwned, iSize, iSize);
+
+	xrtFree(pOwned);
+	return pBuffer;
+}
 
 static const char* xmd5_format_digest(const uint8 pDigest[XRT_MD5_DIGEST_SIZE])
 {
@@ -40,14 +79,21 @@ static void xmd5_publish_error(const xrtmd5error* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "md5 operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_MD5_ERROR_IO;
+
+	xrtSetErrorInfo(
+		xmd5_error_kind(iCode),
+		"xlang.extlib.md5",
+		iCode,
+		sMessage
+	);
 }
 
 
 
 XMD5_EXPORT bool xmd5_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XMD5_EXPORT const char* xmd5_version(void)
@@ -57,7 +103,12 @@ XMD5_EXPORT const char* xmd5_version(void)
 
 XMD5_EXPORT const char* xmd5_last_error(void)
 {
-	return xrtGetError();
+	return xrtErrorMessage(xrtGetError());
+}
+
+XMD5_EXPORT int xmd5_file_status(void)
+{
+	return g_xmd5_file_status;
 }
 
 
@@ -93,7 +144,7 @@ XMD5_EXPORT void* xmd5_hash_bytes(const void* pData, size_t iSize)
 		xmd5_publish_error(&tError);
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, XRT_MD5_DIGEST_SIZE);
+	return xmd5_take_buffer(pOut, XRT_MD5_DIGEST_SIZE);
 }
 
 XMD5_EXPORT void* xmd5_hash_str_bytes(const char* sText, size_t iSize)
@@ -110,56 +161,87 @@ static bool xmd5_file_options(str sPath, uint64 iMaxInput, xrtmd5options* pOptio
 	xrtMd5OptionsInit(pOptions);
 	if (iMaxInput != 0u) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
 	if (sPath == NULL || sPath[0] == 0) {
-		xrtSetError(xrtFormat("md5 file path is required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.md5",
+			XRT_MD5_ERROR_ARGUMENT, "md5 file path is required");
+		return false;
 	}
 	if (!xrtPathExists(sPath)) {
-		xrtSetError(xrtFormat("md5 file does not exist: %s", sPath), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_NOT_FOUND, "xlang.extlib.md5",
+			XRT_MD5_ERROR_IO, "md5 file does not exist: %s", sPath);
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-XMD5_EXPORT const char* xmd5_file_hex(str sPath, unsigned long long iMaxInput)
+XMD5_EXPORT const char* xmd5_file_hex(str sPath, unsigned long long iMaxInput,
+	xvalue* pCallback)
 {
 	xrtmd5options tOptions;
 	xrtmd5error tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint8 pDigest[XRT_MD5_DIGEST_SIZE];
 	bool bResult;
 	xrtClearError();
+	g_xmd5_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	if (!xmd5_file_options(sPath, (uint64)iMaxInput, &tOptions)) { return ""; }
 	pReader = xrtReaderOpen(sPath);
 	if (pReader == NULL) {
-		xrtSetError(xrtFormat("cannot open md5 file: %s", sPath), TRUE);
+		xrtSetErrorFormat(XERR_IO, "xlang.extlib.md5",
+			XRT_MD5_ERROR_IO, "cannot open md5 file: %s", sPath);
 		return "";
 	}
-	bResult = xrtMd5File(pReader, &tOptions.tLimits, pDigest, &tError);
+	bResult = xrtMd5File(pReader, &tOptions.tLimits, pDigest,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
 	xrtReaderDestroy(pReader);
-	if (!bResult) { xmd5_publish_error(&tError); return ""; }
+	if (!bResult) {
+		if (tProgress.InvokeFailed) { g_xmd5_file_status = -2; }
+		else {
+			g_xmd5_file_status = tError.iCode == XRT_MD5_ERROR_CANCELLED ? -1 : 0;
+			xmd5_publish_error(&tError);
+		}
+		return "";
+	}
+	g_xmd5_file_status = 1;
 	return xmd5_format_digest(pDigest);
 }
 
-XMD5_EXPORT void* xmd5_file_bytes(str sPath, unsigned long long iMaxInput)
+XMD5_EXPORT void* xmd5_file_bytes(str sPath, unsigned long long iMaxInput,
+	xvalue* pCallback)
 {
 	xrtmd5options tOptions;
 	xrtmd5error tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint8* pOut;
 	bool bResult;
 	xrtClearError();
+	g_xmd5_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	if (!xmd5_file_options(sPath, (uint64)iMaxInput, &tOptions)) { return NULL; }
 	pReader = xrtReaderOpen(sPath);
 	if (pReader == NULL) {
-		xrtSetError(xrtFormat("cannot open md5 file: %s", sPath), TRUE);
+		xrtSetErrorFormat(XERR_IO, "xlang.extlib.md5",
+			XRT_MD5_ERROR_IO, "cannot open md5 file: %s", sPath);
 		return NULL;
 	}
 	pOut = (uint8*)xrtMalloc(XRT_MD5_DIGEST_SIZE);
 	if (pOut == NULL) { xrtReaderDestroy(pReader); return NULL; }
-	bResult = xrtMd5File(pReader, &tOptions.tLimits, pOut, &tError);
+	bResult = xrtMd5File(pReader, &tOptions.tLimits, pOut,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
 	xrtReaderDestroy(pReader);
-	if (!bResult) { xrtFree(pOut); xmd5_publish_error(&tError); return NULL; }
-	return xrtBufferAdopt(pOut, XRT_MD5_DIGEST_SIZE);
+	if (!bResult) {
+		xrtFree(pOut);
+		if (tProgress.InvokeFailed) { g_xmd5_file_status = -2; }
+		else {
+			g_xmd5_file_status = tError.iCode == XRT_MD5_ERROR_CANCELLED ? -1 : 0;
+			xmd5_publish_error(&tError);
+		}
+		return NULL;
+	}
+	g_xmd5_file_status = 1;
+	return xmd5_take_buffer(pOut, XRT_MD5_DIGEST_SIZE);
 }
 
 
@@ -192,9 +274,9 @@ XMD5_EXPORT bool xmd5_hasher_update(void* pHandle, const void* pData, size_t iSi
 	xrtmd5hasher* pHasher = (xrtmd5hasher*)pHandle;
 	if (!xrtMd5HasherUpdate(pHasher, pData, iSize)) {
 		xmd5_publish_error(xrtMd5HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XMD5_EXPORT bool xmd5_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -224,7 +306,7 @@ XMD5_EXPORT void* xmd5_hasher_digest_bytes(void* pHandle)
 		xmd5_publish_error(xrtMd5HasherError(pHasher));
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, XRT_MD5_DIGEST_SIZE);
+	return xmd5_take_buffer(pOut, XRT_MD5_DIGEST_SIZE);
 }
 
 XMD5_EXPORT bool xmd5_hasher_reset(void* pHandle)
@@ -232,9 +314,9 @@ XMD5_EXPORT bool xmd5_hasher_reset(void* pHandle)
 	xrtmd5hasher* pHasher = (xrtmd5hasher*)pHandle;
 	if (!xrtMd5HasherReset(pHasher)) {
 		xmd5_publish_error(xrtMd5HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XMD5_EXPORT unsigned long long xmd5_hasher_input_bytes(void* pHandle)

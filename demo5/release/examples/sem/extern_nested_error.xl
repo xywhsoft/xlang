@@ -1,4 +1,0 @@
-func main() as int
-	extern "atoi" func parse_int(string text) as int
-	return 0
-end

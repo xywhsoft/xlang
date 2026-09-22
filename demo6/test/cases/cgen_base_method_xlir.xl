@@ -1,0 +1,35 @@
+class CallResult
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+end
+
+class BaseDevice
+    func swipe(var start, var finish, float duration) as CallResult
+        return CallResult(int(start) + int(finish) + int(duration))
+    end
+
+    func key(string name) as CallResult
+        return CallResult(string.len(name))
+    end
+end
+
+class DerivedDevice extends BaseDevice
+    func drag(var start, var finish, float duration) as CallResult
+        return base.swipe(start, finish, duration)
+    end
+
+    func enter() as CallResult
+        return base.key("enter")
+    end
+end
+
+func main(...) as int
+    DerivedDevice device = DerivedDevice()
+    assert device.drag(10, 20, 12.0).value == 42
+    assert device.enter().value == 5
+    println("base lowered XLIR ok")
+    return 0
+end

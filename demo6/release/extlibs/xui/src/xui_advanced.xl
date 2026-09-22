@@ -262,16 +262,6 @@ export func xuiVirtualJoystickGetChangeCount(point pWidget) as c_int
     return __xl6_xuiVirtualJoystickGetChangeCount(pWidget)
 end
 
-extern "xuiVirtualJoystickGetBaseRect" func __xl6_xuiVirtualJoystickGetBaseRect(point pWidget) as point
-export func xuiVirtualJoystickGetBaseRect(point pWidget) as point
-    return __xl6_xuiVirtualJoystickGetBaseRect(pWidget)
-end
-
-extern "xuiVirtualJoystickGetKnobRect" func __xl6_xuiVirtualJoystickGetKnobRect(point pWidget) as point
-export func xuiVirtualJoystickGetKnobRect(point pWidget) as point
-    return __xl6_xuiVirtualJoystickGetKnobRect(pWidget)
-end
-
 extern "xuiInventoryGridGetType" func __xl6_xuiInventoryGridGetType(point pContext) as point
 export func xuiInventoryGridGetType(point pContext) as point
     return __xl6_xuiInventoryGridGetType(pContext)

@@ -1,34 +1,43 @@
 #ifndef XRT_ZIP_INTERNAL_H
 #define XRT_ZIP_INTERNAL_H
 
+#define XRT_MODULE_DIR
+#define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_PATH_SAFE
+#define XRT_MODULE_STRING_FORMAT
+
 #include "include/xrt_zip.h"
 #include "../_libzip/third_party/libzip/lib/zip.h"
 
 typedef struct {
-	xbuffer Base;
-	xbuffer Write;
-	xwriter Writer;
+	xbuffer* Base;
+	xbuffer* Write;
+	xwriter* Writer;
 	uint64 ReadPosition;
 	uint64 MaxBytes;
 	zip_error_t Error;
-	bool SourceFreed;
 } xrtzipmemorysource;
 
 struct xrtziparchive {
 	zip_t* Zip;
 	xrtzipmemorysource* Memory;
 	str Path;
+	str TempPath;
 	xrtzipoptions Options;
 	xrtziperror Error;
 	bool ReadOnly;
 	bool Committed;
 	bool Saved;
+	bool ReplaceTarget;
 };
 
 xrtzipmemorysource* __xrtZipMemorySourceCreate(const void* pData, size_t iSize, uint64 iMaxBytes,
 	zip_error_t* pError, zip_source_t** pSource);
 void __xrtZipMemorySourceDestroy(xrtzipmemorysource* pMemory);
-xbuffer __xrtZipMemorySourceTake(xrtzipmemorysource* pMemory);
+xbuffer* __xrtZipMemorySourceTake(xrtzipmemorysource* pMemory);
+xbuffer* __xrtZipBufferCreate(size_t iCapacity);
 
 void __xrtZipSetError(xrtziparchive* pArchive, int iCode, int iBackend, int iSystem,
 	uint64 iEntry, const char* sFormat, ...);

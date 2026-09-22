@@ -14,24 +14,6 @@ extern "x_com_missing" func x_com_missing() as point
 extern "x_com_invoke_array" func x_com_invoke_array(point handle, string name, array args) as var
 extern "x_com_invoke_out" func x_com_invoke_out(point handle, string name, array args, array byrefs) as var
 extern "x_com_invoke_named" func x_com_invoke_named(point handle, string name, array args, array names) as var
-extern "x_com_invoke_var0" func x_com_invoke_var0(point handle, string name) as var
-extern "x_com_invoke_var1" func x_com_invoke_var1(point handle, string name, var a0) as var
-extern "x_com_invoke_var2" func x_com_invoke_var2(point handle, string name, var a0, var a1) as var
-extern "x_com_invoke_var3" func x_com_invoke_var3(point handle, string name, var a0, var a1, var a2) as var
-extern "x_com_invoke_var4" func x_com_invoke_var4(point handle, string name, var a0, var a1, var a2, var a3) as var
-extern "x_com_invoke_var5" func x_com_invoke_var5(point handle, string name, var a0, var a1, var a2, var a3, var a4) as var
-extern "x_com_invoke_var6" func x_com_invoke_var6(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5) as var
-extern "x_com_invoke_var7" func x_com_invoke_var7(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6) as var
-extern "x_com_invoke_var8" func x_com_invoke_var8(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7) as var
-extern "x_com_invoke_var9" func x_com_invoke_var9(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8) as var
-extern "x_com_invoke_var10" func x_com_invoke_var10(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9) as var
-extern "x_com_invoke_var11" func x_com_invoke_var11(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10) as var
-extern "x_com_invoke_var12" func x_com_invoke_var12(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11) as var
-extern "x_com_invoke_var13" func x_com_invoke_var13(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12) as var
-extern "x_com_invoke_var14" func x_com_invoke_var14(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12, var a13) as var
-extern "x_com_invoke_var15" func x_com_invoke_var15(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12, var a13, var a14) as var
-extern "x_com_invoke_var16" func x_com_invoke_var16(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12, var a13, var a14, var a15) as var
-
 class ComObject extends object
 	point handle
 

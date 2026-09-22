@@ -65,7 +65,6 @@ try {
         $loweredPath = Join-Path $outputDir "$name.lowered.json"
         $generatedPath = Join-Path $outputDir "$name.xlir.c"
         $repeatPath = Join-Path $outputDir "$name.xlir.repeat.c"
-        $legacyPath = Join-Path $outputDir "$name.legacy.c"
 
         Invoke-Xl @("ir", $source, "--lowered", "--format", "json", "--emit", $loweredPath) `
             "XLIR internal property lowering failed: $name"
@@ -83,17 +82,10 @@ try {
             ) ) {
             throw "XLIR internal property C output is not byte-for-byte deterministic: $name"
         }
-        Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-            "Legacy internal property differential Cgen failed: $name"
-
         $xlirExe = "build\test\$name.xlir.exe"
-        $legacyExe = "build\test\$name.legacy.exe"
         Invoke-CheckedCmd `
             "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\test\$name.xlir.c test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o $xlirExe && $xlirExe" `
             "XLIR internal property strict-C/runtime gate failed: $name"
-        Invoke-CheckedCmd `
-            "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\test\$name.legacy.c !XL6_CGEN_LINKS! -o $legacyExe && $legacyExe" `
-            "Legacy internal property differential runtime failed: $name"
     }
 } finally {
     Pop-Location
@@ -107,7 +99,8 @@ $normalSpecs = @(
 )
 foreach ( $spec in $normalSpecs ) {
     $target = Get-CallTargetForDeclarationLine $normal $spec.DeclarationLine
-    if ( $target.kind -ne 1 -or $target.errorAbiName -ne "no-raise" -or
+    if ( $target.kind -ne 1 -or $target.errorAbiName -ne "may-raise" -or
+         $target.errorPhysicalAbiName -ne "result-carrier" -or
          $target.returnType -eq 0 -or
          $target.parameterCount -ne $spec.Parameters -or
          @($target.parameterTypes).Count -ne $spec.Parameters -or
@@ -116,7 +109,7 @@ foreach ( $spec in $normalSpecs ) {
         throw "Internal property getter lost its exact synchronous CallTarget ABI at line $($spec.DeclarationLine)"
     }
     $propertyNodes = @($normal.nodes | Where-Object {
-        $_.line -eq $spec.UseLine -and $_.kindName -eq "member" -and
+        $_.line -eq $spec.UseLine -and $_.kindName -eq $spec.OriginKind -and
         $_.callKindName -eq "property-get" -and
         $_.targetSymbol -eq $target.symbol
     })
@@ -133,8 +126,7 @@ foreach ( $spec in $normalSpecs ) {
     }
     $origin = @($normal.nodes | Where-Object { $_.id -eq $calls[0].origin })
     if ( $origin.Count -ne 1 -or $origin[0].kindName -ne $spec.OriginKind -or
-         ($spec.OriginKind -eq "member" -and $origin[0].id -ne $property.id) -or
-         ($spec.OriginKind -eq "index" -and $property.parent -ne $origin[0].id) ) {
+         $origin[0].id -ne $property.id ) {
         throw "Container-property/indexed-property origin partition is ambiguous at line $($spec.UseLine)"
     }
     if ( @($normal.exitPlans | Where-Object {
@@ -142,10 +134,26 @@ foreach ( $spec in $normalSpecs ) {
          }).Count -ne 1 ) {
         throw "Resolved property has no frontend-owned throw cleanup plan at line $($spec.UseLine)"
     }
-    if ( @($normal.instructions | Where-Object {
-            $_.kindName -eq "error-test" -and $_.targetSymbol -eq $target.symbol
-         }).Count -ne 0 ) {
-        throw "No-raise property acquired a spurious error edge at line $($spec.UseLine)"
+    $outcome = $normal.instructions[[int]$calls[0].index + 1]
+    $errorBlock = if ( $outcome.falseTarget -gt 0 ) {
+        $normal.blocks[[int]$outcome.falseTarget - 1]
+    } else { $null }
+    $errorBegin = if ( $null -ne $errorBlock ) {
+        $normal.instructions[[int]$errorBlock.firstInstruction]
+    } else { $null }
+    $errorTerminal = if ( $null -ne $errorBlock -and $errorBlock.instructionCount -gt 0 ) {
+        $normal.instructions[[int]$errorBlock.firstInstruction + [int]$errorBlock.instructionCount - 1]
+    } else { $null }
+    if ( $outcome.kindName -ne "error-test" -or
+         $outcome.origin -ne $property.id -or
+         $outcome.targetSymbol -ne $target.symbol -or
+         @($outcome.operands).Count -ne 1 -or
+         $outcome.operands[0] -ne $calls[0].result -or
+         $outcome.trueTarget -le 0 -or $outcome.trueTarget -eq $outcome.falseTarget -or
+         $null -eq $errorBegin -or $errorBegin.kindName -ne "error-unwind-begin" -or
+         $errorBegin.origin -ne $property.id -or
+         $null -eq $errorTerminal -or $errorTerminal.kindName -ne "throw" ) {
+        throw "May-raise property lost its adjacent result-carrier ERROR_TEST/cleanup CFG at line $($spec.UseLine)"
     }
 }
 
@@ -161,6 +169,7 @@ $failingCall = @($failing.instructions | Where-Object {
 })
 if ( $failingTarget.kind -ne 1 -or
      $failingTarget.errorAbiName -ne "may-raise" -or
+     $failingTarget.errorPhysicalAbiName -ne "result-carrier" -or
      $failingTarget.returnType -eq 0 -or $failingTarget.parameterCount -ne 1 -or
      $failingProperty.Count -ne 1 -or $failingCall.Count -ne 1 ) {
     throw "May-raise internal property has no exact typed CallTarget/CALL contract"
@@ -199,4 +208,4 @@ foreach ( $required in @(
     }
 }
 
-Write-Output "XLIR internal property CallTarget ABI gate passed: container getter then ordinary index, indexed getter argument frame, exact no-raise calls, may-raise result carrier with cleanup-complete ERROR_TEST and frontend-owned cleanup CFG, byte-for-byte deterministic strict C, and legacy differential runtime semantics."
+Write-Output "XLIR internal property CallTarget ABI gate passed: container getter then ordinary index, indexed getter argument frame, exact may-raise result carriers, adjacent cleanup-complete ERROR_TESTs, frontend-owned cleanup CFG, and byte-for-byte deterministic strict-C runtime semantics."

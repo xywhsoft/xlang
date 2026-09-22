@@ -743,12 +743,12 @@ static int __xuiMenuShortcutToken(const char* sToken, int iLen, int* pKey, uint3
 	if ( __xuiMenuAsciiEqual(sToken, "end", iLen) ) { *pKey = XUI_KEY_END; return 1; }
 	if ( __xuiMenuAsciiEqual(sToken, "pageup", iLen) || __xuiMenuAsciiEqual(sToken, "pgup", iLen) ) { *pKey = XUI_KEY_PAGE_UP; return 1; }
 	if ( __xuiMenuAsciiEqual(sToken, "pagedown", iLen) || __xuiMenuAsciiEqual(sToken, "pgdn", iLen) ) { *pKey = XUI_KEY_PAGE_DOWN; return 1; }
-	if ( __xuiMenuAsciiEqual(sToken, "delete", iLen) || __xuiMenuAsciiEqual(sToken, "del", iLen) ) { *pKey = 46; return 1; }
-	if ( __xuiMenuAsciiEqual(sToken, "backspace", iLen) || __xuiMenuAsciiEqual(sToken, "bksp", iLen) ) { *pKey = 8; return 1; }
+	if ( __xuiMenuAsciiEqual(sToken, "delete", iLen) || __xuiMenuAsciiEqual(sToken, "del", iLen) ) { *pKey = XUI_KEY_DELETE; return 1; }
+	if ( __xuiMenuAsciiEqual(sToken, "backspace", iLen) || __xuiMenuAsciiEqual(sToken, "bksp", iLen) ) { *pKey = XUI_KEY_BACKSPACE; return 1; }
 	if ( (iLen >= 2) && (iLen <= 3) && (tolower((unsigned char)sToken[0]) == 'f') ) {
 		iValue = atoi(sToken + 1);
 		if ( (iValue >= 1) && (iValue <= 24) ) {
-			*pKey = 111 + iValue;
+			*pKey = XUI_KEY_F1 + iValue - 1;
 			return 1;
 		}
 	}

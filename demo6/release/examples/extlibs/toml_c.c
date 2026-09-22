@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/toml/include/xrt_toml.h"
 
 #include <stdio.h>
@@ -13,27 +15,34 @@ int main(void)
 		"host = \"127.0.0.1\"\n"
 		"port = 8080\n";
 	xrttomlerror tError;
-	xvalue pConfig;
-	xbuffer pText;
-	if ( xrtInit() == NULL ) { return 1; }
+	xvalue* pConfig;
+	xvalue* pServer;
+	xbuffer* pText;
+	xstrview tTitle;
+	xstrview tHost;
+	bool bOk;
 	pConfig = xrtTomlParseMemory(sSource, sizeof(sSource) - 1u, NULL, &tError);
 	if ( pConfig == NULL ) {
 		fprintf(stderr, "%s\n", tError.sMessage);
-		xrtUnit();
 		return 2;
 	}
-	printf("%s\n", (const char*)xvoTableGetText(pConfig, "title", 0u));
-	printf("%s\n", (const char*)xvoTableGetText(
-		xvoTableGetValue(pConfig, "server", 0u), "host", 0u));
-	xvoTableSetValue(pConfig, "released", 0u,
-		xrtTomlCreateDate(2026, 7, 16), TRUE);
+	pServer = xrtValueObjectGet(pConfig, xrtStrView("server"));
+	if ( !xrtValueGetString(xrtValueObjectGet(pConfig, xrtStrView("title")), &tTitle) ||
+		!xrtValueGetString(xrtValueObjectGet(pServer, xrtStrView("host")), &tHost) ||
+		!xrtValueObjectSetNew(pConfig, xrtStrView("released"),
+			xrtTomlCreateDate(2026, 7, 16)) ) {
+		xrtValueRelease(pConfig);
+		return 3;
+	}
+	printf("%.*s\n", (int)tTitle.Size, tTitle.Data);
+	printf("%.*s\n", (int)tHost.Size, tHost.Data);
 	pText = xrtTomlStringify(pConfig, NULL, &tError);
-	if ( pText != NULL ) { printf("%.*s", (int)pText->Length, pText->Buffer); }
+	bOk = pText != NULL;
+	if ( pText != NULL ) { printf("%.*s", (int)pText->Size, pText->Data); }
 	xrtBufferDestroy(pText);
-	xvoUnref(pConfig);
-	xrtUnit();
+	xrtValueRelease(pConfig);
 	puts("toml C example: PASS");
-	return 0;
+	return bOk ? 0 : 4;
 }
 
 /* 单文件范例由 xl 注入 XRT；正式 package 通过依赖清单编译。 */

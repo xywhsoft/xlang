@@ -1,7 +1,0 @@
-func same<T>(T a, T b) as T
-	return a
-end
-
-func main() as int
-	return same(1, "two")
-end

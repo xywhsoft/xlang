@@ -877,75 +877,23 @@ static void __xuiAccordionUpdateClientPadding(xui_accordion_data_t* pData, float
 	}
 }
 
-static int __xuiAccordionMeasureClient(xui_widget pClient, float fWidth, xui_vec2_t* pOut)
-{
-	xui_vec2_t tConstraint;
-	xui_vec2_t tMeasured;
-	int iRet;
-
-	if ( pOut == NULL ) {
-		return XUI_ERROR_INVALID_ARGUMENT;
-	}
-	pOut->fX = 0.0f;
-	pOut->fY = 0.0f;
-	if ( pClient == NULL ) {
-		return XUI_OK;
-	}
-	tConstraint.fX = (fWidth > 0.0f) ? fWidth : XUI_LAYOUT_UNBOUNDED;
-	tConstraint.fY = XUI_LAYOUT_UNBOUNDED;
-	iRet = xuiWidgetMeasure(pClient, tConstraint, &tMeasured);
-	if ( iRet != XUI_OK ) {
-		return iRet;
-	}
-	*pOut = tMeasured;
-	return XUI_OK;
-}
-
 static int __xuiAccordionContentMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
 {
-	xui_accordion_data_t* pData;
-	xui_accordion_resolved_t tResolved;
-	xui_vec2_t tClient;
-	float fWidth;
-	float fHeight;
-	int i;
-
+	(void)pWidget;
+	(void)tConstraint;
 	(void)pUser;
-	pData = __xuiAccordionGetData(pWidget);
-	if ( (pData == NULL) || (pSize == NULL) ) {
+	if ( pSize == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	__xuiAccordionResolve(pWidget, pData, &tResolved);
-	__xuiAccordionUpdateClientPadding(pData, tResolved.fContentPadding);
-	fWidth = (tConstraint.fX > 0.0f && tConstraint.fX < XUI_LAYOUT_UNBOUNDED) ? tConstraint.fX : 320.0f;
-	fHeight = 0.0f;
-	for ( i = 0; i < pData->iSectionCount; i++ ) {
-		if ( i > 0 ) fHeight += tResolved.fSpacing;
-		fHeight += tResolved.fHeaderHeight;
-		if ( pData->arrSections[i].bExpanded ) {
-			if ( __xuiAccordionMeasureClient(pData->arrSections[i].pClient, fWidth, &tClient) == XUI_OK ) {
-				fHeight += tClient.fY;
-				fWidth = __xuiAccordionMaxFloat(fWidth, tClient.fX);
-			}
-		}
-	}
-	if ( fWidth <= 0.0f ) fWidth = 320.0f;
-	pSize->fX = fWidth;
-	pSize->fY = fHeight;
+	pSize->fX = 320.0f;
+	pSize->fY = 0.0f;
 	return XUI_OK;
 }
 
-static int __xuiAccordionArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiAccordionPrepare(xui_widget pWidget, void* pUser)
 {
 	xui_accordion_data_t* pData;
 	xui_accordion_resolved_t tResolved;
-	xui_accordion_section_t* pSection;
-	xui_vec2_t tClientSize;
-	xui_rect_t tSectionRect;
-	xui_rect_t tHeaderRect;
-	xui_rect_t tClientRect;
-	float fY;
-	float fClientHeight;
 	int iRet;
 	int i;
 
@@ -955,46 +903,62 @@ static int __xuiAccordionArrange(xui_widget pWidget, xui_rect_t tContentRect, vo
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	__xuiAccordionResolve(pWidget, pData, &tResolved);
-	__xuiAccordionUpdateClientPadding(pData, tResolved.fContentPadding);
-	fY = tContentRect.fY;
+	iRet = xuiWidgetSetGap(pWidget, tResolved.fSpacing);
+	if ( iRet != XUI_OK ) return iRet;
+	for ( i = 0; i < pData->iSectionCount; i++ ) {
+		if ( pData->arrSections[i].pHeader != NULL ) {
+			iRet = xuiWidgetSetPreferredSize(pData->arrSections[i].pHeader,
+				(xui_vec2_t){0.0f, tResolved.fHeaderHeight});
+			if ( iRet != XUI_OK ) return iRet;
+		}
+		if ( pData->arrSections[i].pClient != NULL ) {
+			iRet = xuiWidgetSetPadding(pData->arrSections[i].pClient,
+				__xuiAccordionThickness(tResolved.fContentPadding, tResolved.fContentPadding,
+					tResolved.fContentPadding, tResolved.fContentPadding));
+			if ( iRet != XUI_OK ) return iRet;
+		}
+	}
+	return XUI_OK;
+}
+
+static int __xuiAccordionLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_accordion_data_t* pData;
+	xui_accordion_section_t* pSection;
+	xui_rect_t tHeader;
+	xui_rect_t tClient;
+	float fBottom;
+	int i;
+
+	(void)pUser;
+	pData = __xuiAccordionGetData(pWidget);
+	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	pData->fContentHeight = 0.0f;
 	for ( i = 0; i < pData->iSectionCount; i++ ) {
 		pSection = &pData->arrSections[i];
-		if ( i > 0 ) {
-			fY += tResolved.fSpacing;
-			pData->fContentHeight += tResolved.fSpacing;
-		}
-		fClientHeight = 0.0f;
+		pSection->tSectionRect = xuiWidgetGetRect(pSection->pSection);
+		tHeader = xuiWidgetGetRect(pSection->pHeader);
+		pSection->tHeaderRect = (xui_rect_t){
+			pSection->tSectionRect.fX + tHeader.fX,
+			pSection->tSectionRect.fY + tHeader.fY, tHeader.fW, tHeader.fH};
 		if ( pSection->bExpanded ) {
-			iRet = __xuiAccordionMeasureClient(pSection->pClient, tContentRect.fW, &tClientSize);
-			if ( iRet != XUI_OK ) return iRet;
-			fClientHeight = tClientSize.fY;
+			tClient = xuiWidgetGetRect(pSection->pClient);
+			pSection->tClientRect = (xui_rect_t){
+				pSection->tSectionRect.fX + tClient.fX,
+				pSection->tSectionRect.fY + tClient.fY, tClient.fW, tClient.fH};
+		} else {
+			pSection->tClientRect = (xui_rect_t){
+				pSection->tHeaderRect.fX,
+				pSection->tHeaderRect.fY + pSection->tHeaderRect.fH,
+				pSection->tHeaderRect.fW, 0.0f};
 		}
-		tSectionRect = xuiInternalSnapRect((xui_rect_t){tContentRect.fX, fY, tContentRect.fW, tResolved.fHeaderHeight + fClientHeight});
-		tHeaderRect = xuiInternalSnapRect((xui_rect_t){0.0f, 0.0f, tSectionRect.fW, tResolved.fHeaderHeight});
-		tClientRect = xuiInternalSnapRect((xui_rect_t){0.0f, tResolved.fHeaderHeight, tSectionRect.fW, fClientHeight});
-		pSection->tSectionRect = tSectionRect;
-		pSection->tHeaderRect = (xui_rect_t){tSectionRect.fX + tHeaderRect.fX, tSectionRect.fY + tHeaderRect.fY, tHeaderRect.fW, tHeaderRect.fH};
-		pSection->tClientRect = (xui_rect_t){tSectionRect.fX + tClientRect.fX, tSectionRect.fY + tClientRect.fY, tClientRect.fW, tClientRect.fH};
-		pSection->tArrowRect = (xui_rect_t){pSection->tHeaderRect.fX + 8.0f, pSection->tHeaderRect.fY + (pSection->tHeaderRect.fH - 12.0f) * 0.5f, 12.0f, 12.0f};
-		pSection->tTextRect = (xui_rect_t){pSection->tHeaderRect.fX + 28.0f, pSection->tHeaderRect.fY, __xuiAccordionMaxFloat(0.0f, pSection->tHeaderRect.fW - 36.0f), pSection->tHeaderRect.fH};
-		if ( pSection->pSection != NULL ) {
-			iRet = xuiWidgetArrange(pSection->pSection, tSectionRect);
-			if ( iRet != XUI_OK ) return iRet;
-		}
-		if ( pSection->pHeader != NULL ) {
-			iRet = xuiWidgetArrange(pSection->pHeader, tHeaderRect);
-			if ( iRet != XUI_OK ) return iRet;
-			(void)xuiWidgetSetCacheRenderCallback(pSection->pHeader, __xuiAccordionHeaderRender, pWidget);
-		}
-		if ( pSection->pClient != NULL ) {
-			(void)xuiWidgetSetVisible(pSection->pClient, pSection->bExpanded);
-			iRet = xuiWidgetArrange(pSection->pClient, tClientRect);
-			if ( iRet != XUI_OK ) return iRet;
-			(void)xuiWidgetSetCacheRenderCallback(pSection->pClient, __xuiAccordionClientRender, pWidget);
-		}
-		fY += tSectionRect.fH;
-		pData->fContentHeight += tSectionRect.fH;
+		pSection->tArrowRect = (xui_rect_t){pSection->tHeaderRect.fX + 8.0f,
+			pSection->tHeaderRect.fY + (pSection->tHeaderRect.fH - 12.0f) * 0.5f, 12.0f, 12.0f};
+		pSection->tTextRect = (xui_rect_t){pSection->tHeaderRect.fX + 28.0f,
+			pSection->tHeaderRect.fY, __xuiAccordionMaxFloat(0.0f, pSection->tHeaderRect.fW - 36.0f),
+			pSection->tHeaderRect.fH};
+		fBottom = pSection->tSectionRect.fY + pSection->tSectionRect.fH - tContentRect.fY;
+		if ( fBottom > pData->fContentHeight ) pData->fContentHeight = fBottom;
 	}
 	return XUI_OK;
 }
@@ -1002,7 +966,7 @@ static int __xuiAccordionArrange(xui_widget pWidget, xui_rect_t tContentRect, vo
 static void __xuiAccordionDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_COLUMN;
 	pLayout->iWidthMode = XUI_SIZE_FIXED;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -1049,8 +1013,10 @@ static void __xuiAccordionDefaultData(xui_accordion_data_t* pData)
 static int __xuiAccordionConfigureSectionWidget(xui_widget pWidget)
 {
 	if ( pWidget == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_COLUMN);
 	(void)xuiWidgetSetSizeMode(pWidget, XUI_SIZE_FILL, XUI_SIZE_CONTENT);
+	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetAlign(pWidget, XUI_ALIGN_STRETCH, XUI_ALIGN_START);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 0);
 	(void)xuiWidgetSetTabStop(pWidget, 0);
@@ -1068,6 +1034,8 @@ static int __xuiAccordionConfigureHeaderWidget(xui_widget pAccordion, xui_widget
 	iRet = xuiWidgetSetCachePolicy(pHeader, &tPolicy);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetLayoutType(pHeader, XUI_LAYOUT_MANUAL);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetSizeMode(pHeader, XUI_SIZE_FILL, XUI_SIZE_FIXED);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFlowMode(pHeader, XUI_FLOW_BLOCK);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetAlign(pHeader, XUI_ALIGN_STRETCH, XUI_ALIGN_START);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetOverflow(pHeader, XUI_OVERFLOW_CLIP);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFocusable(pHeader, 0);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTabStop(pHeader, 0);
@@ -1077,15 +1045,16 @@ static int __xuiAccordionConfigureHeaderWidget(xui_widget pAccordion, xui_widget
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEventHandler(pHeader, XUI_EVENT_POINTER_DOWN, __xuiAccordionHeaderEvent, pAccordion);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEventHandler(pHeader, XUI_EVENT_POINTER_UP, __xuiAccordionHeaderEvent, pAccordion);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEventHandler(pHeader, XUI_EVENT_POINTER_CAPTURE_LOST, __xuiAccordionHeaderEvent, pAccordion);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetCacheRenderCallback(pHeader, __xuiAccordionHeaderRender, pAccordion);
 	return iRet;
 }
 
-static int __xuiAccordionConfigureClientWidget(xui_widget pWidget, float fContentPadding)
+static int __xuiAccordionConfigureClientWidget(xui_widget pAccordion, xui_widget pWidget, float fContentPadding)
 {
 	xui_cache_policy_t tPolicy;
 	int iRet;
 
-	if ( pWidget == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pAccordion == NULL) || (pWidget == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	__xuiAccordionDefaultCachePolicy(&tPolicy);
 	iRet = xuiWidgetSetCachePolicy(pWidget, &tPolicy);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_COLUMN);
@@ -1096,6 +1065,8 @@ static int __xuiAccordionConfigureClientWidget(xui_widget pWidget, float fConten
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFocusable(pWidget, 0);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTabStop(pWidget, 0);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetAlign(pWidget, XUI_ALIGN_STRETCH, XUI_ALIGN_START);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFlowMode(pWidget, XUI_FLOW_BLOCK);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetCacheRenderCallback(pWidget, __xuiAccordionClientRender, pAccordion);
 	return iRet;
 }
 
@@ -1123,7 +1094,7 @@ static int __xuiAccordionCreateSectionWidgets(xui_widget pAccordion, xui_accordi
 	if ( iRet == XUI_OK ) iRet = xuiWidgetCreate(pContext, &pClient);
 	if ( iRet == XUI_OK ) iRet = __xuiAccordionConfigureSectionWidget(pSection);
 	if ( iRet == XUI_OK ) iRet = __xuiAccordionConfigureHeaderWidget(pAccordion, pHeader);
-	if ( iRet == XUI_OK ) iRet = __xuiAccordionConfigureClientWidget(pClient, pData->fContentPadding);
+	if ( iRet == XUI_OK ) iRet = __xuiAccordionConfigureClientWidget(pAccordion, pClient, pData->fContentPadding);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetAddChild(pSection, pHeader);
 	if ( iRet == XUI_OK ) bHeaderAdded = 1;
 	if ( iRet == XUI_OK ) iRet = xuiWidgetAddChild(pSection, pClient);
@@ -1171,7 +1142,7 @@ static int __xuiAccordionInit(xui_widget pWidget, void* pTypeData, const void* p
 		if ( __xuiAccordionAlpha(pDesc->iActiveTextColor) != 0 ) pData->iActiveTextColor = pDesc->iActiveTextColor;
 		if ( __xuiAccordionAlpha(pDesc->iDisabledTextColor) != 0 ) pData->iDisabledTextColor = pDesc->iDisabledTextColor;
 	}
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_COLUMN);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
 	(void)xuiWidgetSetTabStop(pWidget, 1);
@@ -1265,7 +1236,8 @@ XUI_API xui_widget_type xuiAccordionGetType(xui_context pContext)
 	tDesc.onInit = __xuiAccordionInit;
 	tDesc.onDestroy = __xuiAccordionDestroy;
 	tDesc.onContentMeasure = __xuiAccordionContentMeasure;
-	tDesc.onLayoutArrange = __xuiAccordionArrange;
+	tDesc.onLayoutPrepare = __xuiAccordionPrepare;
+	tDesc.onLayoutComplete = __xuiAccordionLayoutComplete;
 	tDesc.onCacheRender = __xuiAccordionCacheRender;
 	__xuiAccordionDefaultLayout(&tDesc.tLayout);
 	__xuiAccordionDefaultCachePolicy(&tPolicy);

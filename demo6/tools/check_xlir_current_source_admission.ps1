@@ -34,9 +34,10 @@ function Get-XlirAdmissionMandatoryParameters([string]$RelativePath) {
 }
 
 $driver = Read-XlirAdmissionText 'test\cases\xlir_public_source_driver.c'
-foreach ($required in @('cgen-default', 'cgen-xlir', 'cgen-legacy', 'ir-typed', 'ir-lowered',
+foreach ($required in @('cgen-default', 'cgen-xlir', 'ir-typed', 'ir-lowered',
     'xlcSetBackend(compiler, XLC_BACKEND_XLIR)',
-    'xlcSetBackend(compiler, XLC_BACKEND_LEGACY)',
+    'xlcSetBackend(compiler, (XLC_Backend)1)',
+    'retired-backend rejection and successful reuse',
     'xlcEmitC(compiler, argv[3])',
     'rootLength >= sizeof(root)', 'moduleLength >= sizeof(headers)')) {
     if (!$driver.Contains($required)) {
@@ -48,7 +49,7 @@ $output = Read-XlirAdmissionText 'src\common\xl6_output.c'
 $api = Read-XlirAdmissionText 'src\api\xl_api.c'
 if (!$output.Contains('xrtFileWriteAtomic(out->path') -or
     !$output.Contains('void xl6OutputDiscard(XL6_Output* out)') -or
-    @([regex]::Matches($api, 'xl6OutputDiscard\(&out\)')).Count -lt 4) {
+    @([regex]::Matches($api, 'xl6OutputDiscard\(&out\)')).Count -lt 3) {
     throw 'Public compiler file emission lost atomic commit or failed-generation discard semantics'
 }
 
@@ -64,6 +65,9 @@ foreach ($required in @('SourceXrt', 'RuntimeOnly', 'EnableExeCompiler',
     if (!$helper.Contains($required)) {
         throw "Current-source Cgen helper lost provenance, stability or bounded execution: $required"
     }
+}
+if ($helper.Contains("'default','xlir','legacy'") -or $helper.Contains("'legacy'")) {
+    throw 'Current-source Cgen helper still accepts the retired backend'
 }
 
 $admission = Read-XlirAdmissionText 'tools\check_xlir_default_admission.ps1'
@@ -93,11 +97,11 @@ foreach ($required in @('Invoke-XlirPublicCgenBatch', 'DefaultMatchesXlir',
     'DefaultMismatchCount', 'ArtifactSha256', 'Get-AdmissionDiagnostic',
     'CompilerTimeoutSeconds', 'SuiteInputs', 'SourceInputs', 'SourceHashesMatch')) {
     if (!$admission.Contains($required)) {
-        throw "Default admission lost three-way behavior and byte-identity evidence: $required"
+        throw "Default admission lost canonical-backend byte-identity evidence: $required"
     }
 }
-foreach ($required in @('DefaultEqualsExplicitXlir', 'LegacyIsDistinct',
-    'xlir_module_init', 'xlang_main', 'BoundaryInputs')) {
+foreach ($required in @('DefaultEqualsExplicitXlir', 'RetiredBackendRejected',
+    'ContextReusableAfterRejectedBackend', 'xlir_module_init', 'xlang_main', 'BoundaryInputs')) {
     if (!$boundary.Contains($required)) {
         throw "Default-backend boundary lost a required current-source assertion: $required"
     }
@@ -105,7 +109,7 @@ foreach ($required in @('DefaultEqualsExplicitXlir', 'LegacyIsDistinct',
 foreach ($required in @('MaximumUnexpectedRejections', 'ExpectedXlirRejection',
     'MaximumUnexpectedRejections = 0', 'ExpectedContractViolationCount',
     'ExecutionFailureCount', 'CompilerManifestSha256', 'CompilerTimeoutSeconds',
-    'SourceInputs', 'SourceHashesMatch')) {
+    'SourceInputs', 'SourceUnchanged')) {
     if (!$audit.Contains($required)) {
         throw "Migration audit lost classification or provenance evidence: $required"
     }
@@ -119,5 +123,5 @@ foreach ($required in @('check_xlir_default_admission.ps1',
     }
 }
 
-Write-Output 'XLIR current-source admission contract ok: exact backend modes, frozen provenance, batched differential evidence and scenario ownership are enforced.'
+Write-Output 'XLIR current-source admission contract ok: the canonical backend, retired-selector rejection, frozen provenance, batched identity evidence and scenario ownership are enforced.'
 exit 0

@@ -7,7 +7,9 @@
     "artifact": {
         "kind": "source",
         "cSources": ["serial_native.c"],
-        "xlSources": ["src/serial.xl"]
+        "xlSources": ["src/serial.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_FILE", "XRT_MODULE_MUTEX", "XRT_MODULE_STRING"]
     },
     "links": [],
     "loadlibs": [],

@@ -1,9 +1,0 @@
-import std.task
-
-func choose_expr(task left, task right, bool pick_right) as task
-	return pick_right ? right : left
-end
-
-async func main() as int
-	return await choose_expr(task.delay(1), task.delay(41), true) + 1
-end

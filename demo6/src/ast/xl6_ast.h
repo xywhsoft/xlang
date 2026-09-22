@@ -130,7 +130,7 @@ typedef struct XL6_AstNode {
     /* 语义阶段写入的规范化静态类型；由当前节点独占。 */
     struct XL6_AstNode* inferredType;
     /*
-     * 语义身份只作为 AST 到 HIR 的迁移桥梁。
+     * 语义身份是 AST 到 XLIR 的前端交接事实。
      * 零值表示该节点不声明或不引用对应实体。
      */
     uint32 semanticTypeId;

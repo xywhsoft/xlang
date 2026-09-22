@@ -1,5 +1,11 @@
 import zstd
 
+class FileProgress
+    int calls = 0
+    int inputBytes = 0
+    int totalBytes = 0
+end
+
 
 
 func main(...) as int
@@ -44,6 +50,35 @@ func main(...) as int
     assert restored.text() == "hello stream", "zstd incremental round trip failed"
     println("帧数: ", decoder.members) // 1；>1 表示串联多帧流
 
+    // 一次性和跨 update 解压都必须完整处理串联帧。
+    Buffer concatenated = Buffer()
+    concatenated.append(packed)
+    concatenated.append(streamPacked)
+    Buffer concatenatedPlain = Buffer()
+    concatenatedPlain.append(source)
+    concatenatedPlain.append("hello stream")
+    assert zstd.decompress(concatenated) == concatenatedPlain
+    auto multiDecoder = zstd.decompressor()
+    multiDecoder.update(packed)
+    multiDecoder.update(streamPacked)
+    multiDecoder.finish()
+    assert multiDecoder.drain() == concatenatedPlain
+    assert multiDecoder.members == 2
+
+    // 完整首帧不能掩盖末帧截断。
+    Buffer concatenatedTruncated = Buffer()
+    concatenatedTruncated.append(packed)
+    for i in range(0, streamPacked.len() - 1)
+        concatenatedTruncated.appendByte(streamPacked[i])
+    end
+    bool truncatedRejected = false
+    try
+        zstd.decompress(concatenatedTruncated)
+    catch CompressionError e
+        truncatedRejected = true
+    end
+    assert truncatedRejected, "truncated final zstd frame must be rejected"
+
     // ─── 4. 压缩级别调优（-131072..22，负数更快、正数压缩率更高）───
     auto tuned = zstd.compressor(zstd.ZSTD_MAX_LEVEL)
     tuned.update("tune me")
@@ -66,7 +101,17 @@ func main(...) as int
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
     dir.createAll("tmp")
     file.writeBytes("tmp/zstd_example_source.bin", source)
-    zstd.compressFile("tmp/zstd_example_source.bin", "tmp/zstd_example.zst")
+    FileProgress progress = FileProgress()
+    zstd.compressFile("tmp/zstd_example_source.bin", "tmp/zstd_example.zst",
+        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+            progress.calls += 1
+            progress.inputBytes = inputBytes
+            progress.totalBytes = totalBytes
+            return true
+        end)
+    assert progress.calls > 0
+    assert progress.inputBytes == source.len()
+    assert progress.totalBytes == source.len()
     zstd.decompressFile("tmp/zstd_example.zst", "tmp/zstd_example_plain.bin")
     assert file.readBytes("tmp/zstd_example_plain.bin") == source
     file.delete("tmp/zstd_example_source.bin")

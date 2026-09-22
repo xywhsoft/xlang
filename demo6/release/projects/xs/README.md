@@ -6,6 +6,7 @@
 
 - HTTP/HTTPS、静态文件、精确 Host、通配 Host 和 TLS SNI。
 - TCP/UDP 固定工作池、有界队列、超时和运行指标。
+- TCP 的 `workerCount` 控制 XRT 网络 I/O；`connectionWorkerCount` 控制会阻塞等待连接数据的业务线程，省略时默认是前者的两倍。
 - TCP 支持 `raw`、UTF-8 `text`、自定义 `delimiter` 和 4 字节网络序 `length-prefix` framing。
 - C 与 xlang 共用 `xs_handler` ABI，不使用子进程和临时文件交换请求。
 - 每个动态处理器使用固定大小实例池；reload 先完整构建新代，再原子切换。
@@ -46,6 +47,10 @@ xl run xs.xl
 配置中的 handler、静态目录、证书和日志路径均相对配置文件所在目录解析。
 
 默认端口：HTTP `18080`、TCP `18081`、UDP `18082`。
+
+## Route Templates
+
+HTTP routes use XRT templates: `/article/{slug}` matches one segment, while `/{path...}` matches the root path and all descendants. `*` is not a path wildcard, so `/*` only matches that literal path.
 
 ## Handler
 

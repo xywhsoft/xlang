@@ -3,7 +3,7 @@
 
 #include "xrt.h"
 
-static xmutex g_xvolc_phone_lock = NULL;
+static xmutex* g_xvolc_phone_lock = NULL;
 static char* g_xvolc_phone_returns[8];
 static size_t g_xvolc_phone_return_slot = 0u;
 

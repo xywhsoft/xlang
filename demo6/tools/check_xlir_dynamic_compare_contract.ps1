@@ -79,7 +79,7 @@ try {
     }
 
     # Unit tests exercise malformed physical IR, not merely textual snapshots.
-    $unit = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -o build\test\xlir_cgen.exe test\cases\xlir_cgen.c src\ast\xl6_ast.c src\type\xl6_type_model.c src\ir\xl6_hir_type.c src\ir\xl6_hir.c src\ir\xl6_ir.c src\ir\xl6_ir_lower.c src\cgen\xl6_ir_cgen.c src\cgen\xl6_cgen_shared_runtime.c src\diag\xl6_diag.c src\common\xl6_output.c src\common\xl6_console.c !XL6_CGEN_LINKS! && build\test\xlir_cgen.exe'
+    $unit = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -o build\test\xlir_cgen.exe test\cases\xlir_cgen.c src\ast\xl6_ast.c src\type\xl6_type_model.c src\ir\xl6_ir.c src\ir\xl6_ir_lower.c src\cgen\xl6_ir_cgen.c src\cgen\xl6_cgen_shared_runtime.c src\diag\xl6_diag.c src\common\xl6_output.c src\common\xl6_console.c !XL6_CGEN_LINKS! && build\test\xlir_cgen.exe'
     $compareHostCommand = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror test\cases\xlir_dynamic_compare_contract_host.c !XL6_CGEN_LINKS! -o build\test\xlir_dynamic_compare_contract_host.exe && build\test\xlir_dynamic_compare_contract_host.exe'
     $original = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include build\test\cgen_var_values_generated.c -DXLIR_GENERATED_MODULE_PREINCLUDED test\cases\xlir_generated_module_host.c -x none !XL6_CGEN_LINKS! -o build\test\cgen_var_values_compare_host.exe'
     # Compile the C import host separately; it must not include the XLIR module.

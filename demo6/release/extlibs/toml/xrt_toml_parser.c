@@ -5,7 +5,7 @@
 
 
 
-XXAPI void xrtTomlOptionsInit(xrttomloptions* pOptions)
+XRT_API void xrtTomlOptionsInit(xrttomloptions* pOptions)
 {
 	if ( pOptions == NULL ) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -14,7 +14,7 @@ XXAPI void xrtTomlOptionsInit(xrttomloptions* pOptions)
 	xrtResourceLimitsInit(&pOptions->tLimits);
 }
 
-XXAPI void xrtTomlErrorInit(xrttomlerror* pError)
+XRT_API void xrtTomlErrorInit(xrttomlerror* pError)
 {
 	if ( pError != NULL ) { memset(pError, 0, sizeof(*pError)); }
 }
@@ -51,19 +51,19 @@ bool __xrtTomlLimitNode(xrt_toml_context* pContext, uint32 iDepth,
 		iDepth > pContext->Options.tLimits.iMaxDepth ) {
 		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT, iLine,
 			iColumn, 0u, "TOML nesting depth exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
 	pContext->Nodes += 1u;
 	if ( pContext->Options.tLimits.iMaxNodes != 0u &&
 		pContext->Nodes > pContext->Options.tLimits.iMaxNodes ) {
 		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT, iLine,
 			iColumn, 0u, "TOML node count exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-static xvalue __xrtTomlConvertDateTime(const toml_datum_t* pDatum)
+static xvalue* __xrtTomlConvertDateTime(const toml_datum_t* pDatum)
 {
 	switch ( pDatum->type ) {
 	case TOML_DATE:
@@ -78,25 +78,19 @@ static xvalue __xrtTomlConvertDateTime(const toml_datum_t* pDatum)
 			pDatum->u.ts.second, pDatum->u.ts.usec);
 	case TOML_DATETIMETZ:
 		/* XRT time 为秒精度；有小数秒时使用专用值，禁止静默丢失精度。 */
-		if ( pDatum->u.ts.usec != 0 ) {
-			return xrtTomlCreateOffsetDateTime(pDatum->u.ts.year,
-				pDatum->u.ts.month, pDatum->u.ts.day, pDatum->u.ts.hour,
-				pDatum->u.ts.minute, pDatum->u.ts.second,
-				pDatum->u.ts.usec, pDatum->u.ts.tz);
-		}
-		return xvoCreateTime(xrtDateTimeSerial(pDatum->u.ts.year,
+		return xrtTomlCreateOffsetDateTime(pDatum->u.ts.year,
 			pDatum->u.ts.month, pDatum->u.ts.day, pDatum->u.ts.hour,
-			pDatum->u.ts.minute, pDatum->u.ts.second) -
-			((xtime)pDatum->u.ts.tz * XRT_TIME_MINUTE));
+			pDatum->u.ts.minute, pDatum->u.ts.second,
+			pDatum->u.ts.usec, pDatum->u.ts.tz);
 	default:
 		return NULL;
 	}
 }
 
-xvalue __xrtTomlConvertDatum(xrt_toml_context* pContext,
+xvalue* __xrtTomlConvertDatum(xrt_toml_context* pContext,
 	const toml_datum_t* pDatum, uint32 iDepth)
 {
-	xvalue pResult = NULL;
+	xvalue* pResult = NULL;
 	int i;
 	if ( pDatum == NULL || !__xrtTomlLimitNode(pContext, iDepth,
 		(uint64)pDatum->lineno, (uint64)pDatum->colno) ) { return NULL; }
@@ -110,11 +104,11 @@ xvalue __xrtTomlConvertDatum(xrt_toml_context* pContext,
 				"TOML string exceeds the configured item limit");
 			return NULL;
 		}
-		return xvoCreateText((ptr)pDatum->u.str.ptr,
-			(uint32)pDatum->u.str.len, FALSE);
-	case TOML_INT64: return xvoCreateInt(pDatum->u.int64);
-	case TOML_FP64: return xvoCreateFloat(pDatum->u.fp64);
-	case TOML_BOOLEAN: return xvoCreateBool(pDatum->u.boolean);
+		return xrtValueString((xstrview){ pDatum->u.str.ptr,
+			(size_t)pDatum->u.str.len });
+	case TOML_INT64: return xrtValueInt(pDatum->u.int64);
+	case TOML_FP64: return xrtValueFloat(pDatum->u.fp64);
+	case TOML_BOOLEAN: return xrtValueBool(pDatum->u.boolean);
 	case TOML_DATE:
 	case TOML_TIME:
 	case TOML_DATETIME:
@@ -130,13 +124,13 @@ xvalue __xrtTomlConvertDatum(xrt_toml_context* pContext,
 				"TOML array exceeds the configured entry limit");
 			return NULL;
 		}
-		pResult = xvoCreateArray();
+		pResult = xrtValueArray();
 		for ( i = 0; pResult != NULL && i < pDatum->u.arr.size; ++i ) {
-			xvalue pItem = __xrtTomlConvertDatum(pContext,
+			xvalue* pItem = __xrtTomlConvertDatum(pContext,
 				&pDatum->u.arr.elem[i], iDepth + 1u);
-			if ( pItem == NULL || !xvoArrayAppendValue(pResult, pItem, TRUE) ) {
-				if ( pItem != NULL ) { xvoUnref(pItem); }
-				xvoUnref(pResult);
+			if ( pItem == NULL || !xrtValueArrayAppendTake(pResult, &pItem) ) {
+				xrtValueRelease(pItem);
+				xrtValueRelease(pResult);
 				pResult = NULL;
 			}
 		}
@@ -150,24 +144,24 @@ xvalue __xrtTomlConvertDatum(xrt_toml_context* pContext,
 				"TOML table exceeds the configured entry limit");
 			return NULL;
 		}
-		pResult = xvoCreateTable();
+		pResult = xrtValueObject();
 		for ( i = 0; pResult != NULL && i < pDatum->u.tab.size; ++i ) {
-			xvalue pItem;
+			xvalue* pItem;
 			int iKeySize = pDatum->u.tab.len[i];
 			if ( iKeySize < 0 || (pContext->Options.tLimits.iMaxItemBytes != 0u &&
 				(uint64)iKeySize > pContext->Options.tLimits.iMaxItemBytes) ) {
 				__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_LIMIT,
 					pDatum->u.tab.value[i].lineno, pDatum->u.tab.value[i].colno,
 					0u, "TOML key exceeds the configured item limit");
-				xvoUnref(pResult);
+				xrtValueRelease(pResult);
 				return NULL;
 			}
 			pItem = __xrtTomlConvertDatum(pContext, &pDatum->u.tab.value[i],
 				iDepth + 1u);
-			if ( pItem == NULL || !xvoTableSetValue(pResult,
-				pDatum->u.tab.key[i], (uint32)iKeySize, pItem, TRUE) ) {
-				if ( pItem != NULL ) { xvoUnref(pItem); }
-				xvoUnref(pResult);
+			if ( pItem == NULL || !xrtValueObjectSetTake(pResult,
+				(xstrview){ pDatum->u.tab.key[i], (size_t)iKeySize }, &pItem) ) {
+				xrtValueRelease(pItem);
+				xrtValueRelease(pResult);
 				pResult = NULL;
 			}
 		}
@@ -190,13 +184,13 @@ static uint64 __xrtTomlErrorLine(const char* sMessage)
 	return pLine != NULL ? (uint64)strtoull(pLine + 6, NULL, 10) : 0u;
 }
 
-XXAPI xvalue xrtTomlParse(xreader pReader, bool bTakeOwnership,
+XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 	const xrttomloptions* pOptions, xrttomlerror* pError)
 {
 	xrttomlerror tLocalError;
 	xrt_toml_context tContext;
-	xbuffer pInput = NULL;
-	xvalue pResult = NULL;
+	xbuffer* pInput = NULL;
+	xvalue* pResult = NULL;
 	toml_result_t tParsed;
 	uint64 iSize = 0u;
 	uint64 iLimit;
@@ -224,24 +218,25 @@ XXAPI xvalue xrtTomlParse(xreader pReader, bool bTakeOwnership,
 			"cannot read TOML stream or input limit was exceeded");
 		goto cleanup;
 	}
-	if ( pInput->Length > INT_MAX ) {
+	if ( pInput->Size > INT_MAX ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_LIMIT, 0u, 0u, 0u,
 			"TOML input exceeds the parser limit");
 		goto cleanup;
 	}
-	if ( !xrtIsUTF8((str)pInput->Buffer, pInput->Length) ) {
+	if ( !xrtUtf8Valid((xstrview){ (const char*)pInput->Data, pInput->Size },
+		NULL) ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_FORMAT, 1u, 1u, 0u,
 			"TOML input is not valid UTF-8");
 		goto cleanup;
 	}
-	iParseSize = pInput->Length;
+	iParseSize = (uint32)pInput->Size;
 	/* tomlc17 明确要求 len 后还有一个 NUL；流和 Buffer 不承诺该哨兵。 */
-	if ( !xrtBufferAppend(pInput, "\0", 1u, XBUF_BINARY) ) {
+	if ( !xrtBufferAppendByte(pInput, 0u) ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_MEMORY, 0u, 0u, 0u,
 			"cannot terminate TOML parser input");
 		goto cleanup;
 	}
-	tParsed = toml_parse((const char*)pInput->Buffer, (int)iParseSize);
+	tParsed = toml_parse((const char*)pInput->Data, (int)iParseSize);
 	if ( !tParsed.ok ) {
 		__xrtTomlSetError(pError, XRT_TOML_ERROR_FORMAT,
 			__xrtTomlErrorLine(tParsed.errmsg), 0u, 0u, "%s",
@@ -258,17 +253,17 @@ cleanup:
 	return pResult;
 }
 
-XXAPI xvalue xrtTomlParseMemory(const void* pData, uint64 iSize,
+XRT_API xvalue* xrtTomlParseMemory(const void* pData, uint64 iSize,
 	const xrttomloptions* pOptions, xrttomlerror* pError)
 {
-	xreader pReader = pData != NULL || iSize == 0u ?
-		xrtReaderFromMemory(pData, iSize) : NULL;
-	return xrtTomlParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = pData != NULL || iSize == 0u ?
+		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	return xrtTomlParse(pReader, true, pOptions, pError);
 }
 
-XXAPI xvalue xrtTomlLoad(str sPath, const xrttomloptions* pOptions,
+XRT_API xvalue* xrtTomlLoad(str sPath, const xrttomloptions* pOptions,
 	xrttomlerror* pError)
 {
-	xreader pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
-	return xrtTomlParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	return xrtTomlParse(pReader, true, pOptions, pError);
 }

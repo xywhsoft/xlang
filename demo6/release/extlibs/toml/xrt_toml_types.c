@@ -1,80 +1,16 @@
 #include "xrt_toml_internal.h"
 
+#include <limits.h>
 
-
-static int __xrtTomlDateTimeCompare(const ptr pLeft, const ptr pRight)
-{
-	return memcmp(pLeft, pRight, sizeof(xrttomldatetime));
-}
-
-static uint64 __xrtTomlDateTimeHash(const ptr pValue)
-{
-	return xrtHash64(pValue, sizeof(xrttomldatetime));
-}
-
-static str __xrtTomlDateTimeTypeToString(const void* pValue, uint32* pSize)
-{
-	str sText = xrtTomlDateTimeToString((const xrttomldatetime*)pValue);
-	if ( pSize != NULL ) { *pSize = sText != NULL ? (uint32)strlen((const char*)sText) : 0u; }
-	return sText;
-}
-
-static const xrt_type_ops __xrtTomlDateTimeOps = {
-	.compare = __xrtTomlDateTimeCompare,
-	.hash = __xrtTomlDateTimeHash,
-	.to_string = __xrtTomlDateTimeTypeToString
-};
-
-#define XRT_TOML_TYPE_DESC(symbol, id, name) \
-	static const xrt_type_desc symbol = { \
-		.TypeId = id, .Kind = XRT_TYPE_KIND_RECORD, \
-		.Name = name, .NameSize = (uint32)(sizeof(name) - 1u), \
-		.AbiName = "xrttomldatetime", .AbiNameSize = 16u, \
-		.Size = sizeof(xrttomldatetime), .Align = _Alignof(xrttomldatetime), \
-		.Ops = &__xrtTomlDateTimeOps \
-	}
-
-XRT_TOML_TYPE_DESC(__xrtTomlDateType, 0x544f4d11u, "toml.LocalDate");
-XRT_TOML_TYPE_DESC(__xrtTomlTimeType, 0x544f4d12u, "toml.LocalTime");
-XRT_TOML_TYPE_DESC(__xrtTomlDateTimeType, 0x544f4d13u, "toml.LocalDateTime");
-XRT_TOML_TYPE_DESC(__xrtTomlOffsetDateTimeType, 0x544f4d14u, "toml.OffsetDateTime");
-
-
-
-XXAPI const xrt_type_desc* xrtTomlDateType(void) { return &__xrtTomlDateType; }
-XXAPI const xrt_type_desc* xrtTomlTimeType(void) { return &__xrtTomlTimeType; }
-XXAPI const xrt_type_desc* xrtTomlDateTimeType(void) { return &__xrtTomlDateTimeType; }
-XXAPI const xrt_type_desc* xrtTomlOffsetDateTimeType(void) { return &__xrtTomlOffsetDateTimeType; }
-
-static const xrt_type_desc* __xrtTomlTypeForKind(int iKind)
+static const char* __xrtTomlKindName(int iKind)
 {
 	switch ( iKind ) {
-	case XRT_TOML_DATE: return xrtTomlDateType();
-	case XRT_TOML_TIME: return xrtTomlTimeType();
-	case XRT_TOML_DATETIME: return xrtTomlDateTimeType();
-	case XRT_TOML_OFFSET_DATETIME: return xrtTomlOffsetDateTimeType();
+	case XRT_TOML_DATE: return "date";
+	case XRT_TOML_TIME: return "time";
+	case XRT_TOML_DATETIME: return "datetime";
+	case XRT_TOML_OFFSET_DATETIME: return "offset-datetime";
 	default: return NULL;
 	}
-}
-
-static bool __xrtTomlValidDateTime(const xrttomldatetime* pValue)
-{
-	if ( pValue == NULL || pValue->iKind < XRT_TOML_DATE ||
-		pValue->iKind > XRT_TOML_OFFSET_DATETIME ) { return FALSE; }
-	if ( pValue->iMicrosecond < 0 || pValue->iMicrosecond > 999999 ) { return FALSE; }
-	if ( pValue->iKind != XRT_TOML_TIME &&
-		(pValue->iYear < 0 || pValue->iYear > 9999 ||
-		 pValue->iMonth < 1 || pValue->iMonth > 12 ||
-		 pValue->iDay < 1 || pValue->iDay > xrtDaysInMonth(pValue->iYear, pValue->iMonth)) ) {
-		return FALSE;
-	}
-	if ( pValue->iKind != XRT_TOML_DATE &&
-		(pValue->iHour < 0 || pValue->iHour > 23 || pValue->iMinute < 0 ||
-		 pValue->iMinute > 59 || pValue->iSecond < 0 || pValue->iSecond > 59) ) {
-		return FALSE;
-	}
-	return pValue->iKind != XRT_TOML_OFFSET_DATETIME ||
-		(pValue->iTimezoneMinutes >= -1439 && pValue->iTimezoneMinutes <= 1439);
 }
 
 static bool __xrtTomlValidDateParts(int iYear, int iMonth, int iDay)
@@ -91,14 +27,78 @@ static bool __xrtTomlValidTimeParts(int iHour, int iMinute, int iSecond,
 		iMicrosecond <= 999999;
 }
 
-static xvalue __xrtTomlCreateDateTimeValue(const xrttomldatetime* pValue)
+static bool __xrtTomlSetInt(xvalue* pObject, const char* sKey, int iValue)
 {
-	const xrt_type_desc* pType = __xrtTomlTypeForKind(pValue != NULL ? pValue->iKind : 0);
-	return pType != NULL && __xrtTomlValidDateTime(pValue) ?
-		xvoCreateRecord(pType, (ptr)pValue) : NULL;
+	xvalue* pValue = xrtValueInt(iValue);
+	return pValue != NULL && xrtValueObjectSetTake(pObject, xrtStrView(sKey),
+		&pValue);
 }
 
-XXAPI xvalue xrtTomlCreateDate(int iYear, int iMonth, int iDay)
+static bool __xrtTomlSetText(xvalue* pObject, const char* sKey,
+	const char* sValue)
+{
+	xvalue* pValue = xrtValueString(xrtStrView(sValue));
+	return pValue != NULL && xrtValueObjectSetTake(pObject, xrtStrView(sKey),
+		&pValue);
+}
+
+static bool __xrtTomlGetInt(const xvalue* pObject, const char* sKey,
+	int* pResult)
+{
+	int64 iValue;
+	xvalue* pValue = xrtValueObjectGet(pObject, xrtStrView(sKey));
+	if ( !xrtValueGetInt(pValue, &iValue) || iValue < INT_MIN ||
+		iValue > INT_MAX ) {
+		return false;
+	}
+	*pResult = (int)iValue;
+	return true;
+}
+
+static bool __xrtTomlGetShort(const xvalue* pObject, const char* sKey,
+	int16* pResult)
+{
+	int iValue;
+	if ( !__xrtTomlGetInt(pObject, sKey, &iValue) || iValue < INT16_MIN ||
+		iValue > INT16_MAX ) {
+		return false;
+	}
+	*pResult = (int16)iValue;
+	return true;
+}
+
+static xvalue* __xrtTomlCreateDateTimeValue(const xrttomldatetime* pValue)
+{
+	xvalue* pResult;
+	const char* sKind = pValue != NULL ? __xrtTomlKindName(pValue->iKind) : NULL;
+
+	if ( sKind == NULL ||
+		(pValue->iKind != XRT_TOML_TIME &&
+		 !__xrtTomlValidDateParts(pValue->iYear, pValue->iMonth, pValue->iDay)) ||
+		(pValue->iKind != XRT_TOML_DATE &&
+		 !__xrtTomlValidTimeParts(pValue->iHour, pValue->iMinute,
+			pValue->iSecond, pValue->iMicrosecond)) ||
+		(pValue->iKind == XRT_TOML_OFFSET_DATETIME &&
+		 (pValue->iTimezoneMinutes < -1439 || pValue->iTimezoneMinutes > 1439)) ) {
+		return NULL;
+	}
+	pResult = xrtValueObject();
+	if ( pResult == NULL || !__xrtTomlSetText(pResult, "__toml_type", sKind) ||
+		!__xrtTomlSetInt(pResult, "year", pValue->iYear) ||
+		!__xrtTomlSetInt(pResult, "month", pValue->iMonth) ||
+		!__xrtTomlSetInt(pResult, "day", pValue->iDay) ||
+		!__xrtTomlSetInt(pResult, "hour", pValue->iHour) ||
+		!__xrtTomlSetInt(pResult, "minute", pValue->iMinute) ||
+		!__xrtTomlSetInt(pResult, "second", pValue->iSecond) ||
+		!__xrtTomlSetInt(pResult, "microsecond", pValue->iMicrosecond) ||
+		!__xrtTomlSetInt(pResult, "offsetMinutes", pValue->iTimezoneMinutes) ) {
+		xrtValueRelease(pResult);
+		return NULL;
+	}
+	return pResult;
+}
+
+XRT_API xvalue* xrtTomlCreateDate(int iYear, int iMonth, int iDay)
 {
 	if ( !__xrtTomlValidDateParts(iYear, iMonth, iDay) ) { return NULL; }
 	xrttomldatetime tValue = { (int16)iYear, (int16)iMonth, (int16)iDay,
@@ -106,64 +106,108 @@ XXAPI xvalue xrtTomlCreateDate(int iYear, int iMonth, int iDay)
 	return __xrtTomlCreateDateTimeValue(&tValue);
 }
 
-XXAPI xvalue xrtTomlCreateTime(int iHour, int iMinute, int iSecond,
+XRT_API xvalue* xrtTomlCreateTime(int iHour, int iMinute, int iSecond,
 	int iMicrosecond)
 {
-	if ( !__xrtTomlValidTimeParts(iHour, iMinute, iSecond, iMicrosecond) ) { return NULL; }
+	if ( !__xrtTomlValidTimeParts(iHour, iMinute, iSecond, iMicrosecond) ) {
+		return NULL;
+	}
 	xrttomldatetime tValue = { 0, 0, 0, (int16)iHour, (int16)iMinute,
 		(int16)iSecond, iMicrosecond, 0, XRT_TOML_TIME, 0 };
 	return __xrtTomlCreateDateTimeValue(&tValue);
 }
 
-XXAPI xvalue xrtTomlCreateDateTime(int iYear, int iMonth, int iDay,
+XRT_API xvalue* xrtTomlCreateDateTime(int iYear, int iMonth, int iDay,
 	int iHour, int iMinute, int iSecond, int iMicrosecond)
 {
 	if ( !__xrtTomlValidDateParts(iYear, iMonth, iDay) ||
-		!__xrtTomlValidTimeParts(iHour, iMinute, iSecond, iMicrosecond) ) { return NULL; }
+		!__xrtTomlValidTimeParts(iHour, iMinute, iSecond, iMicrosecond) ) {
+		return NULL;
+	}
 	xrttomldatetime tValue = { (int16)iYear, (int16)iMonth, (int16)iDay,
 		(int16)iHour, (int16)iMinute, (int16)iSecond, iMicrosecond, 0,
 		XRT_TOML_DATETIME, 0 };
 	return __xrtTomlCreateDateTimeValue(&tValue);
 }
 
-XXAPI xvalue xrtTomlCreateOffsetDateTime(int iYear, int iMonth, int iDay,
+XRT_API xvalue* xrtTomlCreateOffsetDateTime(int iYear, int iMonth, int iDay,
 	int iHour, int iMinute, int iSecond, int iMicrosecond,
 	int iTimezoneMinutes)
 {
 	if ( !__xrtTomlValidDateParts(iYear, iMonth, iDay) ||
 		!__xrtTomlValidTimeParts(iHour, iMinute, iSecond, iMicrosecond) ||
-		iTimezoneMinutes < -1439 || iTimezoneMinutes > 1439 ) { return NULL; }
+		iTimezoneMinutes < -1439 || iTimezoneMinutes > 1439 ) {
+		return NULL;
+	}
 	xrttomldatetime tValue = { (int16)iYear, (int16)iMonth, (int16)iDay,
 		(int16)iHour, (int16)iMinute, (int16)iSecond, iMicrosecond,
 		(int16)iTimezoneMinutes, XRT_TOML_OFFSET_DATETIME, 0 };
 	return __xrtTomlCreateDateTimeValue(&tValue);
 }
 
-XXAPI bool xrtTomlIsDateTimeValue(xvalue pValue, int* pKind)
+XRT_API bool xrtTomlGetDateTime(const xvalue* pValue,
+	xrttomldatetime* pResult)
 {
-	const xrt_type_desc* pType = xvoTypeDesc(pValue);
-	int iKind = 0;
-	if ( pType == xrtTomlDateType() ) { iKind = XRT_TOML_DATE; }
-	else if ( pType == xrtTomlTimeType() ) { iKind = XRT_TOML_TIME; }
-	else if ( pType == xrtTomlDateTimeType() ) { iKind = XRT_TOML_DATETIME; }
-	else if ( pType == xrtTomlOffsetDateTimeType() ) { iKind = XRT_TOML_OFFSET_DATETIME; }
-	if ( pKind != NULL ) { *pKind = iKind; }
-	return iKind != 0;
+	xstrview Kind;
+	int iKind;
+
+	if ( pValue == NULL || pResult == NULL ||
+		xrtValueType(pValue) != XVALUE_OBJECT ||
+		!xrtValueGetString(xrtValueObjectGet(pValue,
+			xrtStrView("__toml_type")), &Kind) ) {
+		return false;
+	}
+	if ( Kind.Size == 4u && memcmp(Kind.Data, "date", 4u) == 0 ) {
+		iKind = XRT_TOML_DATE;
+	} else if ( Kind.Size == 4u && memcmp(Kind.Data, "time", 4u) == 0 ) {
+		iKind = XRT_TOML_TIME;
+	} else if ( Kind.Size == 8u && memcmp(Kind.Data, "datetime", 8u) == 0 ) {
+		iKind = XRT_TOML_DATETIME;
+	} else if ( Kind.Size == 15u &&
+		memcmp(Kind.Data, "offset-datetime", 15u) == 0 ) {
+		iKind = XRT_TOML_OFFSET_DATETIME;
+	} else {
+		return false;
+	}
+	memset(pResult, 0, sizeof(*pResult));
+	pResult->iKind = (uint8)iKind;
+	return __xrtTomlGetShort(pValue, "year", &pResult->iYear) &&
+		__xrtTomlGetShort(pValue, "month", &pResult->iMonth) &&
+		__xrtTomlGetShort(pValue, "day", &pResult->iDay) &&
+		__xrtTomlGetShort(pValue, "hour", &pResult->iHour) &&
+		__xrtTomlGetShort(pValue, "minute", &pResult->iMinute) &&
+		__xrtTomlGetShort(pValue, "second", &pResult->iSecond) &&
+		__xrtTomlGetInt(pValue, "microsecond", &pResult->iMicrosecond) &&
+		__xrtTomlGetShort(pValue, "offsetMinutes", &pResult->iTimezoneMinutes) &&
+		((pResult->iKind == XRT_TOML_TIME ||
+			__xrtTomlValidDateParts(pResult->iYear, pResult->iMonth,
+				pResult->iDay)) &&
+		 (pResult->iKind == XRT_TOML_DATE ||
+			__xrtTomlValidTimeParts(pResult->iHour, pResult->iMinute,
+				pResult->iSecond, pResult->iMicrosecond)) &&
+		 (pResult->iKind != XRT_TOML_OFFSET_DATETIME ||
+			(pResult->iTimezoneMinutes >= -1439 &&
+			 pResult->iTimezoneMinutes <= 1439)));
 }
 
-XXAPI const xrttomldatetime* xrtTomlGetDateTime(xvalue pValue)
+XRT_API bool xrtTomlIsDateTimeValue(const xvalue* pValue, int* pKind)
 {
-	return xrtTomlIsDateTimeValue(pValue, NULL) ?
-		(const xrttomldatetime*)xvoGetRecordData(pValue) : NULL;
+	xrttomldatetime Value;
+	bool bResult = xrtTomlGetDateTime(pValue, &Value);
+	if ( pKind != NULL ) { *pKind = bResult ? Value.iKind : 0; }
+	return bResult;
 }
 
-XXAPI str xrtTomlDateTimeToString(const xrttomldatetime* pValue)
+XRT_API str xrtTomlDateTimeToString(const xrttomldatetime* pValue)
 {
 	char sText[96];
 	char sFraction[16] = "";
 	char sZone[16] = "";
 	int iSize;
-	if ( !__xrtTomlValidDateTime(pValue) ) { return NULL; }
+
+	if ( pValue == NULL || __xrtTomlKindName(pValue->iKind) == NULL ) {
+		return NULL;
+	}
 	if ( pValue->iMicrosecond != 0 ) {
 		int iEnd;
 		snprintf(sFraction, sizeof(sFraction), ".%06d", pValue->iMicrosecond);
@@ -172,10 +216,7 @@ XXAPI str xrtTomlDateTimeToString(const xrttomldatetime* pValue)
 	}
 	if ( pValue->iKind == XRT_TOML_OFFSET_DATETIME ) {
 		int iOffset = pValue->iTimezoneMinutes;
-		if ( iOffset == 0 ) {
-			sZone[0] = 'Z';
-			sZone[1] = 0;
-		}
+		if ( iOffset == 0 ) { strcpy(sZone, "Z"); }
 		else {
 			char cSign = iOffset < 0 ? '-' : '+';
 			if ( iOffset < 0 ) { iOffset = -iOffset; }
@@ -194,5 +235,5 @@ XXAPI str xrtTomlDateTimeToString(const xrttomldatetime* pValue)
 			pValue->iYear, pValue->iMonth, pValue->iDay, pValue->iHour,
 			pValue->iMinute, pValue->iSecond, sFraction, sZone);
 	}
-	return iSize > 0 && (size_t)iSize < sizeof(sText) ? xrtCopyStr((str)sText, (size_t)iSize) : NULL;
+	return iSize > 0 && (size_t)iSize < sizeof(sText) ? xrtStrDup(sText) : NULL;
 }

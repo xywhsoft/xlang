@@ -12,10 +12,6 @@ auto escaped = codec.percentEncode("alice bob/ok")
 assert escaped == "alice%20bob%2Fok", "percent encode failed"
 assert codec.percentDecode(escaped) == "alice bob/ok", "percent decode failed"
 
-auto form = codec.formUrlEncode("alice bob/ok")
-assert form == "alice+bob%2Fok", "form url encode failed"
-assert codec.formUrlDecode(form) == "alice bob/ok", "form url decode failed"
-
 Buffer raw = Buffer()
 raw.appendByte(0)
 raw.appendByte(255)

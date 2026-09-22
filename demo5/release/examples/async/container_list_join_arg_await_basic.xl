@@ -1,8 +1,0 @@
-async func sep_text() as string
-	return "|"
-end
-
-async func main() as int
-	const string text = list{"A", "B"}.join(await sep_text())
-	return text == "A|B" ? 21 : 0
-end

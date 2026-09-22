@@ -1,0 +1,70 @@
+{
+  "format": "xlang-platform-extlibs-1",
+  "description": "Explicit platform integration gates. These cases may require a real desktop session, device, service, credentials, or may temporarily affect host state.",
+  "packages": [
+    {
+      "name": "clipboard",
+      "platform": "windows-desktop",
+      "example": "clipboard.xl",
+      "notes": "The example snapshots and restores the system clipboard. Run only in an interactive desktop session."
+    },
+    {
+      "name": "com",
+      "platform": "windows-desktop",
+      "example": "com.xl",
+      "cSmoke": "release/extlibs/com/test/test_com.c",
+      "notes": "Uses an in-process IDispatch test object and verifies COM VARIANT to current XRT xvalue conversion."
+    },
+    {
+      "name": "uia",
+      "platform": "windows-desktop",
+      "example": "uia.xl",
+      "cSmoke": "release/extlibs/uia/test/test_uia.c",
+      "notes": "Creates an in-process native test window and verifies UI Automation element collections use current XRT xvalue arrays."
+    },
+    {
+      "name": "ui.auto",
+      "platform": "windows-desktop",
+      "example": "ui_auto.xl",
+      "notes": "Exercises the high-level locator, wait, input, read, and click flow against the UIA package test window."
+    },
+    {
+      "name": "daemon",
+      "platform": "windows-desktop",
+      "example": "daemon.xl",
+      "notes": "Creates a named daemon service object, reads pid/running/daemonized status, checks process liveness, and stops the service before exit."
+    },
+    {
+      "name": "sysinfo",
+      "platform": "windows-desktop",
+      "example": "sysinfo.xl",
+      "notes": "Reads OS, architecture, CPU, memory, page size, and uptime facts from the local host. Read-only queries with no host state change."
+    },
+    {
+      "name": "watch",
+      "platform": "windows-desktop",
+      "example": "watch.xl",
+      "notes": "Registers filesystem watch handles on package-local files, polls one event batch, and removes the watches before exit."
+    },
+    {
+      "name": "singleinstance",
+      "platform": "windows-desktop",
+      "example": "singleinstance.xl",
+      "notes": "Acquires a named single-instance lock, verifies acquisition state, and releases the lock before exit."
+    },
+    {
+      "name": "sharedmem",
+      "platform": "windows-desktop",
+      "example": "sharedmem.xl",
+      "notes": "Creates a named Windows shared-memory block, writes and reads back string and integer payloads, and destroys the block before exit."
+    },
+    {
+      "name": "serial",
+      "platform": "windows-desktop",
+      "case": "extlib_serial.xl",
+      "example": "serial.xl",
+      "cSmoke": "release/extlibs/serial/test/test_serial.c",
+      "notes": "Loopback byte/text I/O, capacity/short-write, lifetime and error tests; C also covers concurrent streams. Allocation failure is verified separately by check_extlib_serial.ps1. No physical serial device is required; real device validation is separate."
+    }
+  ]
+}

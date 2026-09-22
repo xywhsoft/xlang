@@ -1,0 +1,78 @@
+import memcached
+
+
+
+func main(...) as int
+    // 命令构造
+    assert memcached.buildGet(["key1"]) == "get key1\r\n", "single get"
+    assert memcached.buildGet(["a", "b", "c"]) == "get a b c\r\n", "multi get"
+    assert memcached.buildSet("foo", 0, 900, 5) == "set foo 0 900 5\r\n", "set command"
+    assert memcached.buildAdd("foo", 0, 0, 3) == "add foo 0 0 3\r\n", "add command"
+    assert memcached.buildDelete("foo") == "delete foo\r\n", "delete command"
+    assert memcached.buildTouch("foo", 3600) == "touch foo 3600\r\n", "touch command"
+    assert memcached.buildStats() == "stats\r\n", "stats command"
+    assert memcached.buildFlushAll() == "flush_all\r\n", "flush command"
+    assert memcached.buildVersion() == "version\r\n", "version command"
+
+    // 状态应答
+    var r = memcached.parseResponse("STORED\r\n")
+    assert r["status"] == "stored", "stored status"
+    r = memcached.parseResponse("NOT_STORED\r\n")
+    assert r["status"] == "not_stored", "not stored"
+    r = memcached.parseResponse("DELETED\r\n")
+    assert r["status"] == "deleted", "deleted"
+    r = memcached.parseResponse("NOT_FOUND\r\n")
+    assert r["status"] == "not_found", "not found"
+    r = memcached.parseResponse("TOUCHED\r\n")
+    assert r["status"] == "touched", "touched"
+    r = memcached.parseResponse("END\r\n")
+    assert r["status"] == "end", "end"
+
+    // VALUE 应答（含数据块）
+    r = memcached.parseResponse("VALUE foo 0 5\r\nhello\r\nEND\r\n")
+    assert r["status"] == "value", "value status"
+    assert r["key"] == "foo", "value key"
+    assert r["flags"] == 0, "value flags"
+    assert r["bytes"] == 5, "value bytes"
+    assert r["data"] == "hello", "value data"
+
+    // 带 cas 的 VALUE
+    r = memcached.parseResponse("VALUE foo 1 3 42\r\nabc\r\n")
+    assert r["cas"] == 42, "value cas"
+    assert r["data"] == "abc", "cas data"
+
+    // VERSION 应答
+    r = memcached.parseResponse("VERSION 1.6.20\r\n")
+    assert r["status"] == "version", "version status"
+    assert r["version"] == "1.6.20", "version text"
+
+    // SERVER_ERROR
+    r = memcached.parseResponse("SERVER_ERROR out of memory\r\n")
+    assert r["status"] == "server_error", "server error"
+    assert r["message"] == "out of memory", "error message"
+
+    // stats 多行
+    r = memcached.parseResponse("STAT pid 1234\r\nSTAT version 1.6.20\r\nEND\r\n")
+    assert r["status"] == "stats", "stats status"
+    assert r["stats"]["pid"] == "1234", "stats pid"
+    assert r["stats"]["version"] == "1.6.20", "stats version"
+
+    // 错误路径
+    int raised = 0
+    try
+        memcached.buildGet([])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "empty get raises"
+
+    raised = 0
+    try
+        memcached.parseResponse("???")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "unknown response raises"
+
+    return 0
+end

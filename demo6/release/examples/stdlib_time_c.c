@@ -1,9 +1,14 @@
+#define XRT_MODULE_TIME_LOCAL
+#define XRT_MODULE_TIME_TEXT
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
+
+/* 输出一个与 xlang 示例相同的验证结果。 */
 static void require_line(const char* name, int ok)
 {
     if ( !ok ) {
@@ -13,53 +18,130 @@ static void require_line(const char* name, int ok)
     printf("%s=ok\n", name);
 }
 
+
+
+/* 验证并释放 XRT 返回的所有权字符串。 */
 static int owned_text_eq(char* text, const char* expected)
 {
     int ok = text != NULL && strcmp(text, expected) == 0;
+
     xrtFree(text);
     return ok;
 }
 
-static int owned_text_not_empty(char* text)
+
+
+/* 把 xlang 的本地墙上时间语义映射到 XRT 的绝对时间 API。 */
+static xtime local_to_utc(xtime value)
 {
-    int ok = text != NULL && text[0] != '\0';
-    xrtFree(text);
-    return ok;
+    xdatetime dateTime;
+    xtime result = 0;
+
+    if ( !xrtTimeSplit(value, &dateTime) ||
+         !xrtTimeFromLocal(&dateTime, XTIME_FOLD_EARLIER, &result) ) {
+        return 0;
+    }
+    return result;
 }
 
+
+
+/* 把绝对时间转换为使用 UTC 结构保存的本地墙上时间。 */
+static xtime utc_to_local(xtime value)
+{
+    xdatetime dateTime;
+    xtime result = 0;
+
+    if ( !xrtTimeLocal(value, &dateTime) ) {
+        return 0;
+    }
+    dateTime.Offset = 0;
+    if ( !xrtTimeMake(&dateTime, &result) ) {
+        return 0;
+    }
+    return result;
+}
+
+
+
+/* 返回以星期一开始的月内周序号。 */
+static int week_of_month(xtime value)
+{
+    xdatetime dateTime;
+    xtime first = 0;
+    int firstWeekday;
+    int firstDayOffset;
+
+    if ( !xrtTimeSplit(value, &dateTime) ||
+         !xrtDate(dateTime.Year, dateTime.Month, 1, &first) ) {
+        return 0;
+    }
+    firstWeekday = xrtWeekday(first);
+    firstDayOffset = firstWeekday == XTIME_SUNDAY ? 6 : firstWeekday - 1;
+    return ((dateTime.Day - 1 + firstDayOffset) / 7) + 1;
+}
+
+
+
+/* 使用当前 XRT API 完成与 xlang 时间标准库示例相同的操作。 */
 int main(void)
 {
-    xtime releaseDay = xrtDateSerial(2026, 6, 18);
-    xtime releaseClock = xrtTimeSerial(9, 30, 0);
-    xtime releaseMoment = xrtDateTimeSerial(2026, 6, 18, 9, 30, 0);
-    xtime defaultMoment = xrtDateTimeSerial(2026, 6, 18, 0, 0, 0);
+    xtime releaseDay = 0;
+    xtime releaseClock = 0;
+    xtime releaseMoment = 0;
+    xtime defaultMoment = 0;
+    bool constructOk;
 
+    constructOk =
+        xrtDate(2026, 6, 18, &releaseDay) &&
+        xrtDateTime(1970, 1, 1, 9, 30, 0, 0, &releaseClock) &&
+        xrtDateTime(2026, 6, 18, 9, 30, 0, 0, &releaseMoment) &&
+        xrtDateTime(2026, 6, 18, 0, 0, 0, 0, &defaultMoment);
     require_line("construct",
-        releaseDay == xrtStrToTime("2026-06-18", 0) &&
-        releaseClock == xrtStrToTime("09:30:00", 0) &&
-        releaseMoment == xrtStrToTime("2026-06-18 09:30:00", 0) &&
+        constructOk &&
+        releaseMoment != 0 &&
         defaultMoment == releaseDay);
 
-    xtime parsedMoment = xrtStrToTime("2026-06-18 09:30:00", 0);
-    xtime parsedPattern = xrtTimeParse("2026/06/18 09:30:00", "yyyy/mm/dd hh:mm:ss");
-    xtime tryMoment = 0;
-    xtime tryZero = -1;
-    xtime tryPattern = 0;
-    xtime ignored = 0;
-    int tryOk = xrtTryStrToTime("2026-06-18 09:30:00", 0, &tryMoment);
-    int tryZeroOk = xrtTryStrToTime("00:00:00", 0, &tryZero);
-    int tryBadOk = xrtTryStrToTime("bad", 0, &ignored);
-    int tryPatternOk = xrtTryTimeParse("2026/06/18 09:30:00", "yyyy/mm/dd hh:mm:ss", &tryPattern);
-    int tryPatternBadOk = xrtTryTimeParse("bad", "yyyy/mm/dd", &ignored);
+    {
+        xtime parsedMoment = 0;
+        xtime parsedPattern = 0;
+        xtime tryMoment = 0;
+        xtime tryZero = -1;
+        xtime zeroMoment = 0;
+        xtime tryPattern = 0;
+        xtime ignored = 0;
+        bool parsedOk = xrtTimeParseAny(
+            XRT_STR_LITERAL("2026-06-18 09:30:00"), &parsedMoment);
+        bool parsedPatternOk = xrtTimeParse(
+            XRT_STR_LITERAL("2026/06/18 09:30:00"),
+            XRT_STR_LITERAL("%Y/%m/%d %H:%M:%S"), &parsedPattern);
+        bool tryOk = xrtTimeParseAny(
+            XRT_STR_LITERAL("2026-06-18 09:30:00"), &tryMoment);
+        bool tryZeroOk = xrtTimeParseAny(
+            XRT_STR_LITERAL("00:00:00"), &tryZero);
+        bool zeroOk = xrtTimeParseAny(
+            XRT_STR_LITERAL("00:00:00"), &zeroMoment);
+        bool tryBadOk = xrtTimeParseAny(
+            XRT_STR_LITERAL("bad"), &ignored);
+        bool tryPatternOk;
+        bool tryPatternBadOk;
 
-    require_line("parse",
-        parsedMoment == releaseMoment &&
-        parsedPattern == releaseMoment &&
-        tryOk && tryMoment == releaseMoment &&
-        tryZeroOk && tryZero == xrtStrToTime("00:00:00", 0) &&
-        !tryBadOk &&
-        tryPatternOk && tryPattern == releaseMoment &&
-        !tryPatternBadOk);
+        xrtClearError();
+        tryPatternOk = xrtTimeParse(
+            XRT_STR_LITERAL("2026/06/18 09:30:00"),
+            XRT_STR_LITERAL("%Y/%m/%d %H:%M:%S"), &tryPattern);
+        tryPatternBadOk = xrtTimeParse(
+            XRT_STR_LITERAL("bad"), XRT_STR_LITERAL("%Y/%m/%d"), &ignored);
+        xrtClearError();
+        require_line("parse",
+            parsedOk && parsedMoment == releaseMoment &&
+            parsedPatternOk && parsedPattern == releaseMoment &&
+            tryOk && tryMoment == releaseMoment &&
+            tryZeroOk && zeroOk && tryZero == zeroMoment &&
+            !tryBadOk &&
+            tryPatternOk && tryPattern == releaseMoment &&
+            !tryPatternBadOk);
+    }
 
     require_line("parts",
         xrtYear(releaseMoment) == 2026 &&
@@ -68,87 +150,158 @@ int main(void)
         xrtHour(releaseMoment) == 9 &&
         xrtMinute(releaseMoment) == 30 &&
         xrtSecond(releaseMoment) == 0 &&
-        xrtWeekday(releaseMoment) >= 0 &&
+        xrtWeekday(releaseMoment) >= XTIME_SUNDAY &&
         xrtDayOfYear(releaseMoment) == 169 &&
         xrtQuarter(releaseMoment) == 2);
 
-    xtime nextYear = xrtDateAdd(XRT_TIME_INTERVAL_YEAR, 1, releaseMoment);
-    xtime nextMonth = xrtDateAdd(XRT_TIME_INTERVAL_MONTH, 1, releaseMoment);
-    xtime nextDay = xrtDateAdd(XRT_TIME_INTERVAL_DAY, 1, releaseMoment);
-    xtime nextHour = xrtDateAdd(XRT_TIME_INTERVAL_HOUR, 1, releaseMoment);
-    xtime nextMinute = xrtDateAdd(XRT_TIME_INTERVAL_MINUTE, 1, releaseMoment);
-    xtime nextSecond = xrtDateAdd(XRT_TIME_INTERVAL_SECOND, 1, releaseMoment);
-    xtime nextWeek = xrtDateAdd(XRT_TIME_INTERVAL_WEEKDAY, 1, releaseMoment);
-    xtime nextQuarter = xrtDateAdd(XRT_TIME_INTERVAL_QUARTER, 1, releaseMoment);
+    {
+        xtime nextYear = 0;
+        xtime nextMonth = 0;
+        xtime nextDay = 0;
+        xtime nextHour = 0;
+        xtime nextMinute = 0;
+        xtime nextSecond = 0;
+        xtime nextWeek = 0;
+        xtime nextQuarter = 0;
+        bool addOk =
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_YEAR, &nextYear) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_MONTH, &nextMonth) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_DAY, &nextDay) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_HOUR, &nextHour) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_MINUTE, &nextMinute) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_SECOND, &nextSecond) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_WEEK, &nextWeek) &&
+            xrtTimeAdd(releaseMoment, 1, XTIME_UNIT_QUARTER, &nextQuarter);
 
-    require_line("add",
-        xrtYear(nextYear) == 2027 &&
-        xrtMonth(nextMonth) == 7 &&
-        xrtDay(nextDay) == 19 &&
-        xrtHour(nextHour) == 10 &&
-        xrtMinute(nextMinute) == 31 &&
-        xrtSecond(nextSecond) == 1 &&
-        xrtDay(nextWeek) == 25 &&
-        xrtMonth(nextQuarter) == 9);
+        require_line("add",
+            addOk &&
+            xrtYear(nextYear) == 2027 &&
+            xrtMonth(nextMonth) == 7 &&
+            xrtDay(nextDay) == 19 &&
+            xrtHour(nextHour) == 10 &&
+            xrtMinute(nextMinute) == 31 &&
+            xrtSecond(nextSecond) == 1 &&
+            xrtDay(nextWeek) == 25 &&
+            xrtMonth(nextQuarter) == 9);
 
-    require_line("diff",
-        xrtDateDiff(XRT_TIME_INTERVAL_YEAR, releaseMoment, nextYear) == 1 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_MONTH, releaseMoment, nextYear) == 12 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_DAY, releaseMoment, nextDay) == 1 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_HOUR, releaseMoment, nextHour) == 1 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_MINUTE, releaseMoment, nextMinute) == 1 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_SECOND, releaseMoment, nextSecond) == 1 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_WEEKDAY, releaseMoment, nextWeek) == 1 &&
-        xrtDateDiff(XRT_TIME_INTERVAL_QUARTER, releaseMoment, nextYear) == 4);
+        {
+            int64 years = 0;
+            int64 months = 0;
+            int64 days = 0;
+            int64 hours = 0;
+            int64 minutes = 0;
+            int64 seconds = 0;
+            int64 weeks = 0;
+            int64 quarters = 0;
+            bool diffOk =
+                xrtTimeDiff(releaseMoment, nextYear,
+                    XTIME_UNIT_YEAR, &years) &&
+                xrtTimeDiff(releaseMoment, nextYear,
+                    XTIME_UNIT_MONTH, &months) &&
+                xrtTimeDiff(releaseMoment, nextDay,
+                    XTIME_UNIT_DAY, &days) &&
+                xrtTimeDiff(releaseMoment, nextHour,
+                    XTIME_UNIT_HOUR, &hours) &&
+                xrtTimeDiff(releaseMoment, nextMinute,
+                    XTIME_UNIT_MINUTE, &minutes) &&
+                xrtTimeDiff(releaseMoment, nextSecond,
+                    XTIME_UNIT_SECOND, &seconds) &&
+                xrtTimeDiff(releaseMoment, nextWeek,
+                    XTIME_UNIT_WEEK, &weeks) &&
+                xrtTimeDiff(releaseMoment, nextYear,
+                    XTIME_UNIT_QUARTER, &quarters);
 
-    require_line("compare",
-        xrtDatePart(releaseMoment) == releaseDay &&
-        xrtTimePart(releaseMoment) == releaseClock &&
-        xrtIsSameDay(releaseMoment, nextHour) &&
-        xrtIsSameMonth(releaseMoment, nextDay) &&
-        xrtIsSameYear(releaseMoment, nextMonth) &&
-        xrtTimeInRange(releaseMoment, releaseDay, nextWeek) &&
-        xrtTimeRangeOverlap(releaseDay, nextWeek, releaseMoment, nextWeek) &&
-        xrtTimeApprox(releaseMoment, releaseMoment));
+            require_line("diff",
+                diffOk && years == 1 && months == 12 &&
+                days == 1 && hours == 1 && minutes == 1 &&
+                seconds == 1 && weeks == 1 && quarters == 4);
+        }
 
-    require_line("calendar",
-        xrtIsLeapYear(2024) &&
-        !xrtIsLeapYear(2023) &&
-        xrtDaysInMonth(2024, 2) == 29 &&
-        xrtDaysInYear(2024) == 366 &&
-        xrtMonth(xrtFirstDayOfMonth(releaseMoment)) == 6 &&
-        xrtDay(xrtFirstDayOfMonth(releaseMoment)) == 1 &&
-        xrtDay(xrtLastDayOfMonth(releaseMoment)) == 30 &&
-        xrtMonth(xrtFirstDayOfYear(releaseMoment)) == 1 &&
-        xrtMonth(xrtLastDayOfYear(releaseMoment)) == 12 &&
-        xrtFirstDayOfWeek(releaseMoment, 1) <= releaseMoment &&
-        xrtLastDayOfWeek(releaseMoment, 1) >= releaseMoment &&
-        xrtWeekOfYear(releaseMoment) > 0 &&
-        xrtWeekOfMonth(releaseMoment) > 0);
+        require_line("compare",
+            xrtDatePart(releaseMoment) == releaseDay &&
+            xrtTimePart(releaseMoment) == releaseClock &&
+            xrtTimeSameDay(releaseMoment, nextHour) &&
+            xrtTimeSameMonth(releaseMoment, nextDay) &&
+            xrtTimeSameYear(releaseMoment, nextMonth) &&
+            xrtTimeIn(releaseMoment, releaseDay, nextWeek) &&
+            xrtTimeOverlap(releaseDay, nextWeek, releaseMoment, nextWeek) &&
+            xrtTimeNear(releaseMoment, releaseMoment,
+                (uint64)(10 * XRT_TIME_SECOND)));
 
-    int64 unixSeconds = xrtToUnixTime(releaseMoment);
-    xtime unixMoment = xrtFromUnixTime(unixSeconds);
-    xtime utcMoment = xrtLocalToUTC(releaseMoment);
-    xtime localMoment = xrtUTCToLocal(utcMoment);
+        {
+            xtime monthStart = 0;
+            xtime monthEnd = 0;
+            xtime yearStart = 0;
+            xtime yearEnd = 0;
+            xtime weekStart = 0;
+            xtime weekEnd = 0;
+            int64 weekYear = 0;
+            int week = 0;
+            int weekday = 0;
+            bool calendarOk =
+                xrtMonthRange(releaseMoment, &monthStart, &monthEnd) &&
+                xrtYearRange(releaseMoment, &yearStart, &yearEnd) &&
+                xrtWeekRange(releaseMoment, XTIME_MONDAY,
+                    &weekStart, &weekEnd) &&
+                xrtISOWeek(releaseMoment, &weekYear, &week, &weekday);
 
-    require_line("system",
-        unixMoment == releaseMoment &&
-        localMoment == releaseMoment &&
-        xrtYear(xrtNow()) >= 1970 &&
-        xrtYear(xrtDate()) >= 1970 &&
-        xrtHour(xrtTime()) >= 0 &&
-        xrtYear(xrtNowUTC()) >= 1970 &&
-        xrtTimezoneOffset() == xrtTimezoneOffset());
+            require_line("calendar",
+                calendarOk &&
+                xrtIsLeapYear(2024) &&
+                !xrtIsLeapYear(2023) &&
+                xrtDaysInMonth(2024, 2) == 29 &&
+                xrtDaysInYear(2024) == 366 &&
+                xrtMonth(monthStart) == 6 &&
+                xrtDay(monthStart) == 1 &&
+                xrtDay(monthEnd - XRT_TIME_DAY) == 30 &&
+                xrtMonth(yearStart) == 1 &&
+                xrtMonth(yearEnd - XRT_TIME_DAY) == 12 &&
+                weekStart <= releaseMoment &&
+                (weekEnd - XRT_TIME_DAY) >= releaseMoment &&
+                weekYear == 2026 && week > 0 && weekday > 0 &&
+                week_of_month(releaseMoment) > 0);
+        }
+    }
+
+    {
+        int64 unixSeconds = xrtTimeUnix(releaseMoment);
+        xtime unixMoment = 0;
+        xtime utcMoment = local_to_utc(releaseMoment);
+        xtime localMoment = utc_to_local(utcMoment);
+        xtime now = xrtNow();
+        xtime nowLocal = utc_to_local(now);
+        xdatetime localDateTime;
+        bool systemOk =
+            xrtTimeFromUnix(unixSeconds, &unixMoment) &&
+            xrtTimeLocal(now, &localDateTime);
+
+        require_line("system",
+            systemOk &&
+            unixMoment == releaseMoment &&
+            localMoment == releaseMoment &&
+            xrtYear(nowLocal) >= 1970 &&
+            xrtYear(xrtDatePart(nowLocal)) >= 1970 &&
+            xrtHour(xrtTimePart(nowLocal)) >= 0 &&
+            xrtYear(now) >= 1970 &&
+            localDateTime.Offset > -86400 &&
+            localDateTime.Offset < 86400);
+    }
 
     require_line("format",
-        owned_text_eq(xrtTimeToStr(releaseMoment, XRT_TIME_FORMAT_DATETIME), "2026-06-18 09:30:00") &&
-        owned_text_eq(xrtTimeFormat(releaseMoment, "yyyy/mm/dd hh:mm:ss"), "2026/06/18 09:30:00") &&
-        owned_text_eq(xrtTimeToStr(releaseMoment, XRT_TIME_FORMAT_DATE), "2026-06-18") &&
-        owned_text_eq(xrtTimeToStr(releaseMoment, XRT_TIME_FORMAT_TIME), "09:30:00") &&
-        owned_text_not_empty(xrtRelativeTime(xrtDateAdd(XRT_TIME_INTERVAL_SECOND, 90, releaseMoment), releaseMoment)));
+        owned_text_eq(xrtTimeFormat(releaseMoment, 0,
+            XRT_STR_LITERAL("%Y-%m-%d %H:%M:%S")),
+            "2026-06-18 09:30:00") &&
+        owned_text_eq(xrtTimeFormat(releaseMoment, 0,
+            XRT_STR_LITERAL("%Y/%m/%d %H:%M:%S")),
+            "2026/06/18 09:30:00") &&
+        owned_text_eq(xrtTimeFormat(releaseMoment, 0,
+            XRT_STR_LITERAL("%Y-%m-%d")), "2026-06-18") &&
+        owned_text_eq(xrtTimeFormat(releaseMoment, 0,
+            XRT_STR_LITERAL("%H:%M:%S")), "09:30:00") &&
+        owned_text_eq(xrtTimeRFC3339(releaseMoment, 0),
+            "2026-06-18T09:30:00Z"));
 
     require_line("timer", xrtTimer() >= 0.0);
     xrtSleep(0);
-
     return 0;
 }

@@ -1,4 +1,0 @@
-func main() as int
-	array values = [1, 2]
-	return values.has(1)
-end

@@ -1,0 +1,14 @@
+import stb_image
+import stb_image_resize2
+
+func main(...) as int
+    point source = stb_image.load("release/examples/extlibs/assets/tiny.png", 4)
+    if stb_image.valid(source) == 0 then return 1 end
+    point output = stb_image_resize2.resize_uint8(stb_image.data(source), stb_image.width(source), stb_image.height(source), 4, 3, 5, 0)
+    if stb_image_resize2.valid(output) == 0 then return 2 end
+    if stb_image_resize2.width(output) != 3 or stb_image_resize2.height(output) != 5 then return 3 end
+    if stb_image_resize2.channels(output) != 4 or stb_image_resize2.data(output) == null then return 4 end
+    if stb_image_resize2.release(output) == 0 then return 5 end
+    if stb_image.release(source) == 0 then return 6 end
+    return 0
+end

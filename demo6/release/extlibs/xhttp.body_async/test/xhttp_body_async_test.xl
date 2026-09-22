@@ -1,0 +1,39 @@
+import xhttp.body
+import xhttp.body_async
+from xhttp.body import Body, BodyChunk
+from xhttp.body_async import AsyncBodyReader
+
+
+
+async func readFixedBody() as string
+    AsyncBodyReader reader = AsyncBodyReader(Body.fromText("async body"))
+    string output = ""
+
+    while true
+        BodyChunk? chunk = await reader.nextAsync(3)
+        if chunk == null then
+            break
+        end
+        output += chunk.text()
+    end
+    assert reader.lastStatus == xhttp.body.BODY_EOF
+    assert reader.bytesRead == 10
+    assert reader.nativeHandle() != null
+    return output
+end
+
+
+
+assert await readFixedBody() == "async body"
+
+AsyncBodyReader invalid = AsyncBodyReader(Body.empty())
+assert await invalid.nextAsync() == null
+bool rejected = false
+try
+    await invalid.waitReadable()
+catch error
+    rejected = true
+end
+assert rejected, "waitReadable accepted a Reader outside AGAIN"
+
+println("xhttp.body_async package ok")

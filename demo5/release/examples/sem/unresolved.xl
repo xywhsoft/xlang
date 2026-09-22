@@ -1,3 +1,0 @@
-func 入口() as int
-	return 未定义
-end

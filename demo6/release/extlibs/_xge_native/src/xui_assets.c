@@ -1,4 +1,5 @@
 #include "xui_internal.h"
+#include "xui_builtin_atlas.h"
 
 #include <string.h>
 
@@ -57,10 +58,10 @@ XUI_API int xuiBuiltinAssetGetAtlasSize(int* pWidth, int* pHeight)
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	if ( pWidth != NULL ) {
-		*pWidth = XUI_BUILTIN_ATLAS_WIDTH;
+		*pWidth = g_iXuiBuiltinAtlasWidth;
 	}
 	if ( pHeight != NULL ) {
-		*pHeight = XUI_BUILTIN_ATLAS_HEIGHT;
+		*pHeight = g_iXuiBuiltinAtlasHeight;
 	}
 	return XUI_OK;
 }
@@ -99,6 +100,9 @@ XUI_API int xuiBuiltinAssetGetAtlas(xui_context pContext, xui_surface* ppSurface
 	xui_resource pResource;
 	xui_surface pSurface;
 	xui_resource_desc_t tDesc;
+	unsigned char* pPixels;
+	int iPixelSize;
+	int iDecodedSize;
 	int iRet;
 
 	if ( !xuiInternalContextIsValid(pContext) || (ppSurface == NULL) ) {
@@ -114,11 +118,26 @@ XUI_API int xuiBuiltinAssetGetAtlas(xui_context pContext, xui_surface* ppSurface
 		return XUI_ERROR_NOT_INITIALIZED;
 	}
 	pProxy = xuiInternalContextGetProxy(pContext);
-	if ( (pProxy == NULL) || (pProxy->surfaceLoadMemory == NULL) ) {
+	if ( (pProxy == NULL) || (pProxy->surfaceCreateRGBA == NULL) || (pProxy->zstdDecompress == NULL) ) {
 		return XUI_ERROR_UNSUPPORTED;
 	}
+	iPixelSize = g_iXuiBuiltinAtlasRgbaSize;
+	pPixels = (unsigned char*)xrtMalloc((size_t)iPixelSize);
+	if ( pPixels == NULL ) {
+		return XUI_ERROR_OUT_OF_MEMORY;
+	}
+	iDecodedSize = 0;
+	iRet = pProxy->zstdDecompress(pProxy, pPixels, iPixelSize,
+		g_arrXuiBuiltinAtlasRgbaZstd, g_iXuiBuiltinAtlasRgbaZstdSize, &iDecodedSize);
+	if ( (iRet != XUI_OK) || (iDecodedSize != iPixelSize) ) {
+		xrtFree(pPixels);
+		return (iRet != XUI_OK) ? iRet : XUI_ERROR_RESOURCE_FAILED;
+	}
 	pSurface = NULL;
-	iRet = pProxy->surfaceLoadMemory(pProxy, &pSurface, g_arrXuiBuiltinAtlasPng, g_iXuiBuiltinAtlasPngSize, XUI_SURFACE_ALPHA_PREMULTIPLIED);
+	iRet = pProxy->surfaceCreateRGBA(pProxy, &pSurface,
+		g_iXuiBuiltinAtlasWidth, g_iXuiBuiltinAtlasHeight, pPixels,
+		g_iXuiBuiltinAtlasStride, XUI_SURFACE_ALPHA_PREMULTIPLIED);
+	xrtFree(pPixels);
 	if ( iRet != XUI_OK ) {
 		return iRet;
 	}

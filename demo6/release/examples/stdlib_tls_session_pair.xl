@@ -58,7 +58,8 @@ func makeServerConfig() as TlsConfig
     assert config.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
     assert config.alpn("http/1.1")
     config.verifyPeer(false)
-    config.maxVersion(0x0303)
+    // 会话票据是 TLS 1.3 能力；TLS 1.2 互通由独立协议测试覆盖。
+    config.maxVersion(0x0304)
     return config
 end
 
@@ -68,7 +69,7 @@ func makeClientConfig() as TlsConfig
     assert config.alpn("h2,http/1.1")
     config.verifyPeer(false)
     assert config.verifyCallback(acceptVerify)
-    config.maxVersion(0x0303)
+    config.maxVersion(0x0304)
     return config
 end
 
@@ -77,6 +78,10 @@ TlsConfig clientConfig = makeClientConfig()
 TlsSession client = clientConfig.session()
 TlsSession server = serverConfig.session(true)
 assert handshakeTlsPair(client, server)
+assert client.version == 0x0304
+assert server.version == 0x0304
+assert client.cipher == 0x1301
+assert server.cipher == 0x1301
 assert server.sni() == "localhost"
 assert client.alpn() == "http/1.1"
 assert server.alpn() == "http/1.1"
@@ -101,7 +106,7 @@ assert tlsStatusOk(client.close())
 assert client.pendingCipher == closeBytes
 
 TlsSession resumedClient = clientConfig.session(resume)
-TlsSession resumedServer = serverConfig.session(true)
+TlsSession resumedServer = serverConfig.session(resume, true)
 assert handshakeTlsPair(resumedClient, resumedServer)
 assert resumedClient.resumed
 assert resumedServer.resumed
@@ -128,7 +133,7 @@ TlsConfig rejectConfig = TlsConfig()
 assert rejectConfig.host("localhost")
 rejectConfig.verifyPeer(false)
 assert rejectConfig.verifyCallback(rejectVerify)
-rejectConfig.maxVersion(0x0303)
+rejectConfig.maxVersion(0x0304)
 assert not handshakeTlsPair(rejectConfig.session(), serverConfig.session(true))
 
 println("tls_session_pair=ok")

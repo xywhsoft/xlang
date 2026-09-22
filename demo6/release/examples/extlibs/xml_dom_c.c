@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/xml.dom/include/xrt_xml_dom.h"
 
 #include <stdio.h>
@@ -12,8 +14,8 @@ int main(void)
 	xrtxmldomnode* pText;
 	xrtxmldomwriteoptions tOptions;
 	xrtxmlerror tError;
-	xbuffer pXml;
-	if ( xrtInit() == NULL ) { return 1; }
+	xbuffer* pXml;
+	bool bOk;
 	pDocument = xrtXmlDomCreateDocument();
 	pCatalog = xrtXmlDomCreateElement(pDocument, (str)"catalog");
 	pBook = xrtXmlDomCreateElement(pDocument, (str)"book");
@@ -23,17 +25,17 @@ int main(void)
 	xrtXmlDomAppendChild(pCatalog, pBook);
 	xrtXmlDomAppendChild(pBook, pText);
 	xrtXmlDomWriteOptionsInit(&tOptions);
-	tOptions.bPretty = TRUE;
-	tOptions.bXmlDeclaration = TRUE;
+	tOptions.bPretty = true;
+	tOptions.bXmlDeclaration = true;
 	pXml = xrtXmlDomStringify(pDocument, &tOptions, &tError);
-	if ( pXml != NULL ) { printf("%.*s", (int)pXml->Length, pXml->Buffer); }
+	bOk = pXml != NULL;
+	if ( pXml != NULL ) { printf("%.*s", (int)pXml->Size, pXml->Data); }
 	xrtBufferDestroy(pXml);
 	xrtXmlDomNodeRelease(pText);
 	xrtXmlDomNodeRelease(pBook);
 	xrtXmlDomNodeRelease(pCatalog);
 	xrtXmlDomNodeRelease(pDocument);
-	xrtUnit();
-	return pXml != NULL ? 0 : 2;
+	return bOk ? 0 : 2;
 }
 
 /* xl run 可直接执行；包构建时不编译这一段。 */

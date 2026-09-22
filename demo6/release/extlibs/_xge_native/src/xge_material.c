@@ -32,7 +32,7 @@ int xgeShaderCreate(xge_shader pShader, const char* sVertexSource, const char* s
 	glDeleteShader(iFS);
 	if ( bSuccess == 0 ) {
 		glGetProgramInfoLog((GLuint)pShader->iProgram, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.material", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "material program link failed: %s", arrLog);
 		glDeleteProgram((GLuint)pShader->iProgram);
 		memset(pShader, 0, sizeof(*pShader));

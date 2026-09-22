@@ -315,7 +315,7 @@ static int __xgeRenderThreadFlushWithEGL(xge_context_t* pContext)
 #endif
 }
 
-static uint32 __xgeRenderThreadProc(void* pUser)
+static int32 __xgeRenderThreadProc(void* pUser)
 {
 	xge_context_t* pContext;
 
@@ -338,8 +338,8 @@ static void __xgeRenderThreadJoin(void)
 	if ( g_xge.pRenderThread == NULL ) {
 		return;
 	}
-	xrtThreadWait((xthread)g_xge.pRenderThread);
-	xrtThreadDestroy((xthread)g_xge.pRenderThread);
+	(void)xrtThreadWait(g_xge.pRenderThread);
+	(void)xrtThreadDestroy(g_xge.pRenderThread);
 	g_xge.pRenderThread = NULL;
 	g_xge.bRenderThreadBusy = 0;
 }
@@ -351,7 +351,7 @@ static int __xgeRenderCommandFlushThreaded(void)
 	}
 	g_xge.iRenderThreadResult = XGE_OK;
 	g_xge.bRenderThreadBusy = 1;
-	g_xge.pRenderThread = xrtThreadCreate((ptr)__xgeRenderThreadProc, &g_xge, 0);
+	g_xge.pRenderThread = xrtThreadCreate(__xgeRenderThreadProc, &g_xge, 0u);
 	if ( g_xge.pRenderThread == NULL ) {
 		g_xge.bRenderThreadBusy = 0;
 		return XGE_ERROR_THREAD_FAILED;

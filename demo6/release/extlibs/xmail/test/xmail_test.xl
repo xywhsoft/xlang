@@ -1,0 +1,37 @@
+import xmail
+
+
+var sender = xmail.address("sender@example.com", "Sender")
+var recipient = xmail.address("receiver@example.com", "Receiver")
+var note = xmail.attachment("note.txt", "text/plain", "attachment body")
+var fields = xmail.message({
+    "from": sender,
+    "to": [recipient],
+    "subject": "xmail package",
+    "text": "plain body",
+    "attachments": [note],
+    "headers": [{"name": "X-XLang-Test", "value": "ok"}]
+})
+
+assert fields["from"] != null, "xmail message helper dropped from"
+assert string(fields["subject"]) == "xmail package", "xmail message helper dropped subject"
+
+bool fieldsValid = xmail.valid(fields)
+if not fieldsValid then
+    println(xmail.lastError())
+end
+assert fieldsValid, "xmail message should be valid"
+
+xmail.Message message = xmail.Message(fields)
+assert message.valid, "xmail Message.valid failed"
+string raw = message.compose()
+assert string.contains(raw, "Subject: xmail package"), "xmail subject missing"
+assert string.contains(raw, "X-XLang-Test: ok"), "xmail custom header missing"
+assert string.contains(raw, "note.txt"), "xmail attachment missing"
+
+var tree = xmail.parse(raw)
+assert int(tree["partCount"]) >= 2, "xmail MIME tree part count is incomplete"
+assert string(tree["root"]["mediaType"]) == "multipart", "xmail MIME root type mismatch"
+assert string(tree["root"]["children"][1]["fileName"]) == "note.txt", "xmail MIME attachment mismatch"
+
+println("xmail package ok")

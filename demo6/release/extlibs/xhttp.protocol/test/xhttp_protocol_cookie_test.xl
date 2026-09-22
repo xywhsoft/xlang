@@ -1,0 +1,59 @@
+import xhttp.protocol
+from xhttp.protocol import CookiePair, Cookies, SetCookie, SetCookieAttribute
+
+
+
+func main(...) as int
+    Cookies cookies = Cookies.parse(
+        " a = 1 ; theme=\"dark\"; empty=; dup=1; dup=2")
+    assert cookies.count == 5
+    assert Cookies.countOf(cookies.text()) == 5
+    assert cookies.nameAt(0) == "a"
+    assert cookies.valueAt(1) == "\"dark\""
+    assert (cookies.get("dup") ?? "") == "1"
+    assert (cookies.get("dup", 1) ?? "") == "2"
+    assert cookies.get("DUP") == null
+    assert cookies.nativeHandle() != null
+    assert cookies.build() == "a=1; theme=\"dark\"; empty=; dup=1; dup=2"
+
+    int iterated = 0
+    for pair in cookies
+        CookiePair item = pair
+        assert item.name != ""
+        iterated += 1
+    end
+    assert iterated == cookies.count
+
+    Cookies copy = cookies.clone()
+    assert copy.text() == cookies.text()
+    assert copy.build() == cookies.build()
+
+    string source = "sid=abc123; Path=/; Domain=.Example.COM; HttpOnly; Secure; SameSite=Lax; Partitioned; Priority=High; SameParty"
+    SetCookie cookie = SetCookie.parse(source)
+    assert cookie.name() == "sid"
+    assert cookie.value() == "abc123"
+    assert cookie.path() == "/"
+    assert cookie.domain() == "Example.COM"
+    assert cookie.secure and cookie.httpOnly and cookie.partitioned
+    assert cookie.sameSite == xhttp.protocol.SAME_SITE_LAX
+    assert cookie.priority == xhttp.protocol.COOKIE_PRIORITY_HIGH
+    assert cookie.attributeCount == 8
+    SetCookieAttribute extension = cookie.attribute(7)
+    assert extension.name == "SameParty"
+    assert not extension.hasValue and extension.value == null
+    assert cookie.nativeHandle() != null
+    SetCookie cookieCopy = cookie.clone()
+    assert cookieCopy.text() == source
+
+    assert SetCookie.validate(
+        "sid=x; Path=/; SameSite=None; Secure; HttpOnly")
+    assert not SetCookie.validate("sid=x; SameSite=None")
+    string built = SetCookie.build(
+        "sid", "x", "example.com", "/", false, 0,
+        true, 60, xhttp.protocol.SAME_SITE_LAX,
+        xhttp.protocol.COOKIE_PRIORITY_HIGH, true, true, true)
+    assert built == "sid=x; Domain=example.com; Path=/; Max-Age=60; SameSite=Lax; Secure; HttpOnly; Partitioned; Priority=High"
+
+    println("xhttp.protocol Cookie package ok")
+    return 0
+end

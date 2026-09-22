@@ -61,6 +61,7 @@
 
 - `stdlib_math.xl`
 - `stdlib_string.xl`
+- `stdlib_string_boundaries.xl` / `stdlib_string_boundaries_c.c`：UTF-8 字符与字节单位、前后缀、空片段和行拆分的双语言对照；由 `check_xlir_string_bridges.ps1` 比较输出。
 - `stdlib_time.xl`
 - `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 - `stdlib_random.xl`
@@ -98,24 +99,17 @@
 - `stdlib_id_net_c.c`：与 `stdlib_id_net.xl` 对照的 C/XRT XID 和本机网络信息范例。
 - `stdlib_net_tcp_udp.xl`
 - `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
-- `stdlib_url.xl`
-- `stdlib_url_c.c`：与 `stdlib_url.xl` 对照的 C/XRT URL 解析、解析片段、resolve 和路径归一化范例。
-- `stdlib_query.xl`
-- `stdlib_query_c.c`：与 `stdlib_query.xl` 对照的 C/XRT query/form-url 编解码范例。
+- `stdlib_net_fast_path.xl`：网络快速路径范例，展示地址批量解析、异步解析、解析器统计与引擎统计。
+- `stdlib_net_interfaces.xl`：网络接口快照、跨平台标志以及名称/索引双向转换范例。
+- `stdlib_net_interfaces_c.c`：与 `stdlib_net_interfaces.xl` 对照的 C/XRT 网络接口范例。
+- `stdlib_tls_stream.xl`：TLS stream 范例，展示配置复用、同步/异步连接与接收、读写及关闭生命周期。
 - `stdlib_log.xl`
 - `stdlib_log_c.c`：与 `stdlib_log.xl` 对照的 C/XRT logger 范例，展示默认 logger、独立 `Logger`、文件 appender 和滚动文件。
 - `stdlib_template.xl`
 - `stdlib_template_c.c`：与 `stdlib_template.xl` 对照的 C/XRT template 范例，展示预编译模板、控制流、定界符配置和文件模板渲染。
-- `stdlib_regex.xl`
-- `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，展示懒加载 match object 和 regex set。
 - `stdlib_process.xl`
 - `stdlib_process_c.c`：与 `stdlib_process.xl` 对照的 C/XRT process 库范例，展示结构化执行、pipeline 和长生命周期进程。
 - `stdlib_signal.xl`：`signal` 标准库范例，展示信号常量、普通回调、一次性回调、channel 路由、任务组取消桥接和默认行为恢复。
-- `stdlib_http_client.xl`：`http` 客户端范例，展示 GET、POST、通用 request、请求对象、响应对象、header、body 和超时配置。
-- `stdlib_http_client_c.c`：与 `stdlib_http_client.xl` 对照的 C/XRT HTTP client 范例。
-- `stdlib_http_server.xl`：`http.server` 基础服务示例，展示简化路由、对象化路由、静态文件、流式响应、流式请求体上传、HTTPS 创建、错误处理器和统计接口。
-- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由、静态文件和流式请求体 route。
-- `stdlib_http_server_app.xl`：`http.server` app、vhost、reload 和 `appError` 示例，展示默认 app 替换、虚拟主机、错误处理器和 app 句柄释放后的 server 持有语义。
 - `stdlib_tcc_xlang_embed.xl`：TCC C 脚本、动态 VFS、编译输出和内嵌 xlang 运行范例。
 
 ## 复合应用范例
@@ -131,7 +125,35 @@
 - `apps/static_site_builder.xl`：静态 HTML 页面生成。
 - `apps/template_mail_merge.xl`：f-string 模板合并。
 - `apps/todo_json_store.xl`：class value JSON 持久化。
-- `apps/url_batch_builder.xl`：URL 和 query string 批量构造。
+
+## 游戏范例（XGE）
+
+`games/` 目录下的完整小游戏，基于 `xge` 扩展库 OOP 游戏栈（`XgeApp` 引擎循环 + `Input` 输入 + `Shape` 绘制 + `Font` HUD + `Texture`/`Sound` 资产）。
+完整运行方式、游戏清单和通用开发模式见 `games/README.md`。
+
+- `games/snake.xl`：贪吃蛇（方向键/WASD，像素精确网格，SCORE HUD，支持 `--frames` 无头冒烟）；回归：`check`（游戏栈完整语义检查）。
+- `games/2048.xl`、`games/tetris.xl`、`games/flappy.xl`：键盘经典（合并/消行下落/重力飞行）；回归：`parse`。
+- `games/pong.xl`、`games/breakout.xl`、`games/minesweeper.xl`：鼠标游戏（挡板跟随/AABB 碰撞/洪泛展开）；回归：`parse`。
+- `games/asteroids.xl`、`games/shooter.xl`：射击游戏（旋转推进/波次难度/精灵纹理与音效，`assets/` 下 PNG/WAV 缺失时自动降级为形状绘制并静音）；回归：`parse`。
+- 入口：`games/run_games.bat`（`tools/run_game_examples.ps1`，`-FullCheck` 全量 `check`）。
+- 无头冒烟：`xl run games/snake.xl -- 60`（达到 60 帧自动退出，不长时间弹窗）。
+
+## 图形与 UI 范例（XGE/XUI）
+
+XGE/XUI 范例基于 `_xge_native` 扩展库的 OOP 封装（native-backed class），回归只做 `check`/`parse`（窗口程序不做无头运行）。
+
+### `xge/` 引擎图形范例
+
+- `xge/ch02.xl` ~ `xge/ch30.xl`：渐进式图形教程（引擎初始化、形状原语、坐标/相机、场景栈、扇形/弓形等），使用 `xge.XgeApp` / `xge.Shape` / `xge.Color` / `xge.Camera` OOP API；回归：`check`（入口 `xge/run_xge_examples.bat`）。
+- `xge/shape_ex.xl`：增强矢量形状（路径 + 填充/描边 + 圆/矩形追加），使用 `xge_shape_ex.ShapeEx` class；回归：`check`。
+- `xge/test_callback.xl`：帧回调传递最小示例；回归：`check`。
+
+### `xui/` 控件范例
+
+- `xui/all_controls.xl`：全部 53 个控件 + 8 个辅助对象（MsgBox/FileDialog/MsgTip/Toast/Path/FlowGraph/CodeDocument/RichDocument）的综合创建验证；回归：`check`（完整 native 编译）。
+- `xui/basic.xl`：Button/CheckBox/Radio/Toggle/Slider/Progress 六类基础控件演示（迁移自 XGE `audit_xui_basic`）；回归：`check`。
+- `xui/button.xl`：按钮点击计数 + Label 联动（含 `onClick` 回调）；回归：`check`。
+- 其余 `xui/<控件名>.xl`（约 45 个）：每控件一个范例，覆盖输入、容器、数据视图、复杂控件四类；回归：`parse`（语义覆盖由 `xui/all_controls.xl` 统一承担，入口 `xui/run_xui_examples.bat`，`-FullCheck` 可全量 `check`）。
 
 ## DLL 宿主范例
 
@@ -155,9 +177,6 @@
 - `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
 - `stdlib_log_c.c`：与 `stdlib_log.xl` 对照的 C/XRT logger 范例，主回归会比较两者输出。
 - `stdlib_template_c.c`：与 `stdlib_template.xl` 对照的 C/XRT template 范例，主回归会比较两者输出。
-- `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，主回归会比较两者输出。
-- `stdlib_http_client_c.c`：与 `stdlib_http_client.xl` 对照的 C/XRT HTTP client 范例。
-- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由、静态文件和流式请求体 route。
 
 ## 回归入口
 
@@ -168,6 +187,9 @@ test_tutorial.bat
 test_feature_suite.bat
 test_apps.bat
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_examples.ps1
+release\examples\xge\run_xge_examples.bat
+release\examples\xui\run_xui_examples.bat
+release\examples\games\run_games.bat
 ```
 
 完整主回归使用：

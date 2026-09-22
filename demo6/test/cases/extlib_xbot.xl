@@ -1,0 +1,17 @@
+from xbot import XBOT_VERSION, Size, Pixel, Ratio, OpResult
+
+func main(...) as int
+    assert string.startsWith(XBOT_VERSION, "0.1."), "xbot version"
+
+    Size size = Size(1920, 1080)
+    Pixel point = Pixel(12.5, 24.5)
+    Ratio ratio = Ratio(0.5, 0.5)
+    assert size.width == 1920 and size.height == 1080, "size model"
+    assert point.x == 12.5 and point.y == 24.5, "pixel model"
+    assert ratio.x == 0.5 and ratio.y == 0.5, "ratio model"
+
+    OpResult result = OpResult(true, "ready", "")
+    assert result.ok() and result.fail() == false, "operation result"
+
+    return 0
+end

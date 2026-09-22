@@ -40,7 +40,7 @@ static bool __xrtXmlEtreeRememberNamespace(xrtxmltreebuilder* pBuilder,
 			pBuilder->iPendingNamespaceCapacity * 2u : 4u;
 		pItems = (xrtxmlattribute*)xrtRealloc(pBuilder->pPendingNamespaces,
 			sizeof(xrtxmlattribute) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		memset(pItems + pBuilder->iPendingNamespaceCapacity, 0,
 			sizeof(xrtxmlattribute) *
 			(iCapacity - pBuilder->iPendingNamespaceCapacity));
@@ -48,7 +48,7 @@ static bool __xrtXmlEtreeRememberNamespace(xrtxmltreebuilder* pBuilder,
 		pBuilder->iPendingNamespaceCapacity = iCapacity;
 	}
 	sName = (char*)xrtMalloc(6u + (iPrefix != 0u ? 1u + iPrefix : 0u));
-	if ( sName == NULL ) { return FALSE; }
+	if ( sName == NULL ) { return false; }
 	memcpy(sName, "xmlns", 5u);
 	if ( iPrefix != 0u ) {
 		sName[5] = ':';
@@ -60,15 +60,15 @@ static bool __xrtXmlEtreeRememberNamespace(xrtxmltreebuilder* pBuilder,
 	pItem = &pBuilder->pPendingNamespaces[pBuilder->iPendingNamespaceCount];
 	pItem->sName = (str)sName;
 	pItem->sValue = __xrtXmlEtreeCopy((const char*)pEvent->sNamespaceUri);
-	if ( pItem->sValue == NULL ) { xrtFree(sName); pItem->sName = NULL; return FALSE; }
+	if ( pItem->sValue == NULL ) { xrtFree(sName); pItem->sName = NULL; return false; }
 	pBuilder->iPendingNamespaceCount++;
-	return TRUE;
+	return true;
 }
 
 static void __xrtXmlEtreeBuilderError(xrtxmltreebuilder* pBuilder,
 	const xrtxmlevent* pEvent, const char* sMessage)
 {
-	pBuilder->bFailed = TRUE;
+	pBuilder->bFailed = true;
 	pBuilder->tError.iCode = XRT_XML_ERROR_MEMORY;
 	pBuilder->tError.iLine = pEvent != NULL ? pEvent->iLine : 0u;
 	pBuilder->tError.iColumn = pEvent != NULL ? pEvent->iColumn : 0u;
@@ -86,12 +86,12 @@ static bool __xrtXmlEtreePush(xrtxmltreebuilder* pBuilder,
 		iCapacity = pBuilder->iCapacity != 0u ? pBuilder->iCapacity * 2u : 16u;
 		pItems = (xrtxmlelement**)xrtRealloc(pBuilder->pStack,
 			sizeof(xrtxmlelement*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pBuilder->pStack = pItems;
 		pBuilder->iCapacity = iCapacity;
 	}
 	pBuilder->pStack[pBuilder->iDepth++] = pElement;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlEtreeCopyEventName(xrtxmlelement* pElement,
@@ -102,12 +102,12 @@ static bool __xrtXmlEtreeCopyEventName(xrtxmlelement* pElement,
 	str sPrefix = __xrtXmlEtreeCopy((const char*)pEvent->sPrefix);
 	if ( sLocal == NULL || sUri == NULL || sPrefix == NULL ) {
 		xrtFree(sLocal); xrtFree(sUri); xrtFree(sPrefix);
-		return FALSE;
+		return false;
 	}
 	xrtFree(pElement->sLocalName); pElement->sLocalName = sLocal;
 	xrtFree(pElement->sNamespaceUri); pElement->sNamespaceUri = sUri;
 	xrtFree(pElement->sPrefix); pElement->sPrefix = sPrefix;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlEtreeCopyAttributes(xrtxmlelement* pElement,
@@ -117,7 +117,7 @@ static bool __xrtXmlEtreeCopyAttributes(xrtxmlelement* pElement,
 	for ( i = 0u; i < pEvent->iAttributeCount; i++ ) {
 		const xrtxmlattribute* pSource = &pEvent->pAttributes[i];
 		if ( !xrtXmlElementSetAttribute(pElement, pSource->sName,
-			pSource->sValue) ) { return FALSE; }
+			pSource->sValue) ) { return false; }
 		{
 			xrtxmlattribute* pTarget =
 				&pElement->pAttributes[pElement->iAttributeCount - 1u];
@@ -126,14 +126,14 @@ static bool __xrtXmlEtreeCopyAttributes(xrtxmlelement* pElement,
 			str sPrefix = __xrtXmlEtreeCopy((const char*)pSource->sPrefix);
 			if ( sLocal == NULL || sUri == NULL || sPrefix == NULL ) {
 				xrtFree(sLocal); xrtFree(sUri); xrtFree(sPrefix);
-				return FALSE;
+				return false;
 			}
 			xrtFree(pTarget->sLocalName); pTarget->sLocalName = sLocal;
 			xrtFree(pTarget->sNamespaceUri); pTarget->sNamespaceUri = sUri;
 			xrtFree(pTarget->sPrefix); pTarget->sPrefix = sPrefix;
 		}
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlEtreeStartElement(xrtxmltreebuilder* pBuilder,
@@ -158,7 +158,7 @@ static bool __xrtXmlEtreeStartElement(xrtxmltreebuilder* pBuilder,
 		pBuilder->pDocument->pRoot = pNode;
 	}
 	pBuilder->pLastClosed = NULL;
-	return TRUE;
+	return true;
 
 failed:
 	if ( pNode != NULL && pNode->pParent == NULL &&
@@ -167,27 +167,27 @@ failed:
 	}
 	__xrtXmlEtreeBuilderError(pBuilder, pEvent,
 		"could not build XML element");
-	return FALSE;
+	return false;
 }
 
 static bool __xrtXmlEtreeOnEvent(ptr pContext, const xrtxmlevent* pEvent)
 {
 	xrtxmltreebuilder* pBuilder = (xrtxmltreebuilder*)pContext;
 	xrtxmlelement* pNode;
-	if ( pBuilder->bFailed ) { return FALSE; }
+	if ( pBuilder->bFailed ) { return false; }
 	if ( pEvent->iType == XRT_XML_EVENT_START_NAMESPACE ) {
 		if ( !__xrtXmlEtreeRememberNamespace(pBuilder, pEvent) ) {
 			__xrtXmlEtreeBuilderError(pBuilder, pEvent,
 				"could not preserve XML namespace declaration");
-			return FALSE;
+			return false;
 		}
 	} else if ( pEvent->iType == XRT_XML_EVENT_START ) {
-		if ( !__xrtXmlEtreeStartElement(pBuilder, pEvent) ) { return FALSE; }
+		if ( !__xrtXmlEtreeStartElement(pBuilder, pEvent) ) { return false; }
 	} else if ( pEvent->iType == XRT_XML_EVENT_END ) {
 		if ( pBuilder->iDepth == 0u ) {
 			__xrtXmlEtreeBuilderError(pBuilder, pEvent,
 				"unbalanced XML element events");
-			return FALSE;
+			return false;
 		}
 		pBuilder->pLastClosed = pBuilder->pStack[--pBuilder->iDepth];
 	} else if ( pEvent->iType == XRT_XML_EVENT_TEXT ) {
@@ -202,7 +202,7 @@ static bool __xrtXmlEtreeOnEvent(ptr pContext, const xrtxmlevent* pEvent)
 		}
 	} else if ( pEvent->iType == XRT_XML_EVENT_COMMENT ||
 		pEvent->iType == XRT_XML_EVENT_PROCESSING_INSTRUCTION ) {
-		if ( pBuilder->iDepth == 0u ) { return TRUE; }
+		if ( pBuilder->iDepth == 0u ) { return true; }
 		pNode = __xrtXmlEtreeCreateNode(pBuilder->pDocument,
 			pEvent->iType == XRT_XML_EVENT_COMMENT ? XRT_XML_COMMENT :
 			XRT_XML_PROCESSING_INSTRUCTION,
@@ -218,19 +218,19 @@ static bool __xrtXmlEtreeOnEvent(ptr pContext, const xrtxmlevent* pEvent)
 			}
 			__xrtXmlEtreeBuilderError(pBuilder, pEvent,
 				"could not build XML special node");
-			return FALSE;
+			return false;
 		}
 		pBuilder->pLastClosed = pNode;
 	}
-	return TRUE;
+	return true;
 
 text_failed:
 	__xrtXmlEtreeBuilderError(pBuilder, pEvent,
 		"could not append XML text");
-	return FALSE;
+	return false;
 }
 
-XXAPI xrtxmlelement* xrtXmlElementParse(xreader pReader, bool bTakeOwnership,
+XRT_API xrtxmlelement* xrtXmlElementParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
 	xrtxmltreebuilder tBuilder;
@@ -266,21 +266,22 @@ XXAPI xrtxmlelement* xrtXmlElementParse(xreader pReader, bool bTakeOwnership,
 	return pDocument->pRoot;
 }
 
-XXAPI xrtxmlelement* xrtXmlElementParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtxmlelement* xrtXmlElementParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderFromMemory(pData, iSize);
-	return xrtXmlElementParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = xrtReaderFromMemory(
+		(xbytesview){ (cbytes)pData, (size_t)iSize });
+	return xrtXmlElementParse(pReader, true, pOptions, pError);
 }
 
-XXAPI xrtxmlelement* xrtXmlElementLoad(str sPath,
+XRT_API xrtxmlelement* xrtXmlElementLoad(str sPath,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderOpen(sPath);
+	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
 		__xrtXmlEtreeSetError(pError, XRT_XML_ERROR_IO,
 			"could not open XML file");
 		return NULL;
 	}
-	return xrtXmlElementParse(pReader, TRUE, pOptions, pError);
+	return xrtXmlElementParse(pReader, true, pOptions, pError);
 }

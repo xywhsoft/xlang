@@ -5,7 +5,10 @@ Push-Location $Root
 try {
     # Use one runtime DLL from two separately linked clients. A generated
     # module-local TLS implementation would fail this test.
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    if (!(Test-Path -LiteralPath build/test/xl.dll) -or
+        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    }
     $strictFlags = @('-std=c11', '-Wall', '-Wextra', '-Werror',
         '-Wno-unused-function', '-Wno-unused-label', '-Wno-unused-variable',
         '-Wno-unused-parameter', '-Wno-unused-const-variable', '-Wno-missing-field-initializers',

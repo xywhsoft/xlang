@@ -32,8 +32,8 @@
 //     is used with explicit shifts and masks.
 //
 // Design constraints:
-//   * portscan BUG: `point is null` is always false; we compare against a
-//     default-initialized `point ZERO` to detect failed recv.
+//   * Network APIs return typed owners. A null native handle represents bind or
+//     receive failure, so callers never re-wrap the same raw handle.
 //   * int(): defensive parsing of arg strings.
 
 const int TYPE_A     = 1
@@ -46,8 +46,6 @@ const int CACHE_TTL       = 300
 const int RECV_TIMEOUT    = 5000
 const int SERVE_TIMEOUT   = 1000
 const int DEFAULT_PORT    = 5353
-
-point ZERO
 
 var g_zone  = {}
 var g_cache = {}
@@ -636,8 +634,8 @@ func serverLoop(UdpSocket sock, int maxRequests, int timeoutMs) as int
     int count = 0
     int idleRounds = 0
     while maxRequests <= 0 or count < maxRequests
-        point pktHandle = sock.recv(timeoutMs)
-        if pktHandle == ZERO then
+        UdpPacket packet = sock.recv(timeoutMs)
+        if packet.handle == null then
             if maxRequests > 0 then
                 idleRounds += 1
                 if idleRounds > 5 then break end
@@ -646,7 +644,6 @@ func serverLoop(UdpSocket sock, int maxRequests, int timeoutMs) as int
         end
         idleRounds = 0
 
-        UdpPacket packet = UdpPacket(pktHandle)
         Buffer reqBytes = packet.bytes()
         string clientAddr = packet.addr()
         int clientPort = packet.port()
@@ -770,12 +767,11 @@ end
 func runClientTest() as int
     time.sleep(200)   // let server enter recv
 
-    point cp = udp.bind(0, "127.0.0.1")
-    if cp == ZERO then
+    UdpSocket client = udp.bind(0, "127.0.0.1")
+    if client.handle == null then
         println("FATAL: client udp.bind failed")
         return 1
     end
-    UdpSocket client = UdpSocket(cp)
     int serverPort = g_testPort
 
     int nextId = 0x1000
@@ -786,12 +782,11 @@ func runClientTest() as int
     Buffer q1 = Buffer()
     buildQuery(q1, nextId, "a.test.local", TYPE_A)
     client.sendBytes("127.0.0.1", uint16(serverPort), q1.data(), c_size(q1.len()))
-    point rp1 = client.recv(5000)
-    if rp1 == ZERO then
+    UdpPacket p1 = client.recv(5000)
+    if p1.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test1_A: no response")
     else
-        UdpPacket p1 = UdpPacket(rp1)
         Buffer r1 = p1.bytes()
         dnsCheck(r1, nextId, 0, 2, "test1_A_basic")
         dnsCheckAData(r1, 0, "10.0.0.1", "test1_A_data1")
@@ -803,12 +798,11 @@ func runClientTest() as int
     Buffer q2 = Buffer()
     buildQuery(q2, nextId, "cname.test.local", TYPE_A)
     client.sendBytes("127.0.0.1", uint16(serverPort), q2.data(), c_size(q2.len()))
-    point rp2 = client.recv(5000)
-    if rp2 == ZERO then
+    UdpPacket p2 = client.recv(5000)
+    if p2.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test2_CNAME_chase: no response")
     else
-        UdpPacket p2 = UdpPacket(rp2)
         Buffer r2 = p2.bytes()
         dnsCheck(r2, nextId, 0, 3, "test2_CNAME_chase")
     end
@@ -818,12 +812,11 @@ func runClientTest() as int
     Buffer q3 = Buffer()
     buildQuery(q3, nextId, "cname.test.local", TYPE_CNAME)
     client.sendBytes("127.0.0.1", uint16(serverPort), q3.data(), c_size(q3.len()))
-    point rp3 = client.recv(5000)
-    if rp3 == ZERO then
+    UdpPacket p3 = client.recv(5000)
+    if p3.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test3_CNAME_direct: no response")
     else
-        UdpPacket p3 = UdpPacket(rp3)
         Buffer r3 = p3.bytes()
         dnsCheck(r3, nextId, 0, 1, "test3_CNAME_direct")
     end
@@ -833,12 +826,11 @@ func runClientTest() as int
     Buffer q4 = Buffer()
     buildQuery(q4, nextId, "mx.test.local", TYPE_MX)
     client.sendBytes("127.0.0.1", uint16(serverPort), q4.data(), c_size(q4.len()))
-    point rp4 = client.recv(5000)
-    if rp4 == ZERO then
+    UdpPacket p4 = client.recv(5000)
+    if p4.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test4_MX: no response")
     else
-        UdpPacket p4 = UdpPacket(rp4)
         Buffer r4 = p4.bytes()
         dnsCheck(r4, nextId, 0, 1, "test4_MX")
     end
@@ -848,12 +840,11 @@ func runClientTest() as int
     Buffer q5 = Buffer()
     buildQuery(q5, nextId, "txt.test.local", TYPE_TXT)
     client.sendBytes("127.0.0.1", uint16(serverPort), q5.data(), c_size(q5.len()))
-    point rp5 = client.recv(5000)
-    if rp5 == ZERO then
+    UdpPacket p5 = client.recv(5000)
+    if p5.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test5_TXT: no response")
     else
-        UdpPacket p5 = UdpPacket(rp5)
         Buffer r5 = p5.bytes()
         dnsCheck(r5, nextId, 0, 1, "test5_TXT")
     end
@@ -863,12 +854,11 @@ func runClientTest() as int
     Buffer q6 = Buffer()
     buildQuery(q6, nextId, "nx.test.local", TYPE_A)
     client.sendBytes("127.0.0.1", uint16(serverPort), q6.data(), c_size(q6.len()))
-    point rp6 = client.recv(5000)
-    if rp6 == ZERO then
+    UdpPacket p6 = client.recv(5000)
+    if p6.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test6_NXDOMAIN: no response")
     else
-        UdpPacket p6 = UdpPacket(rp6)
         Buffer r6 = p6.bytes()
         dnsCheck(r6, nextId, 3, 0, "test6_NXDOMAIN")
     end
@@ -878,12 +868,11 @@ func runClientTest() as int
     Buffer q7 = Buffer()
     buildQuery(q7, nextId, "A.TEST.LOCAL", TYPE_A)
     client.sendBytes("127.0.0.1", uint16(serverPort), q7.data(), c_size(q7.len()))
-    point rp7 = client.recv(5000)
-    if rp7 == ZERO then
+    UdpPacket p7 = client.recv(5000)
+    if p7.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test7_caseinsensitive: no response")
     else
-        UdpPacket p7 = UdpPacket(rp7)
         Buffer r7 = p7.bytes()
         dnsCheck(r7, nextId, 0, 2, "test7_caseinsensitive")
     end
@@ -893,12 +882,11 @@ func runClientTest() as int
     Buffer q8 = Buffer()
     buildQuery(q8, nextId, "a.test.local", TYPE_A)
     client.sendBytes("127.0.0.1", uint16(serverPort), q8.data(), c_size(q8.len()))
-    point rp8 = client.recv(5000)
-    if rp8 == ZERO then
+    UdpPacket p8 = client.recv(5000)
+    if p8.handle == null then
         g_failed = g_failed + 1
         println("  FAIL test8_cache: no response")
     else
-        UdpPacket p8 = UdpPacket(rp8)
         Buffer r8 = p8.bytes()
         dnsCheck(r8, nextId, 0, 2, "test8_cache_response")
     end
@@ -917,12 +905,11 @@ func serveMode(int port, string zonePath) as int
     int domainCount = zoneSummary()
     println("zone: " + domainCount.toString() + " domains loaded")
 
-    point lp = udp.bind(port, "127.0.0.1")
-    if lp == ZERO then
+    UdpSocket sock = udp.bind(port, "127.0.0.1")
+    if sock.handle == null then
         println("FATAL: cannot bind 127.0.0.1:" + port.toString())
         return 1
     end
-    UdpSocket sock = UdpSocket(lp)
     int bound = sock.port()
     println("DNS server listening on 127.0.0.1:" + bound.toString())
     println("press Ctrl+C to stop")
@@ -945,13 +932,11 @@ func queryMode(string domain, string typeStr, string serverHost, int serverPort)
         return 1
     end
 
-    point cp = udp.bind(0, "127.0.0.1")
-    if cp == ZERO then
+    UdpSocket sock = udp.bind(0, "127.0.0.1")
+    if sock.handle == null then
         println("ERROR: cannot create UDP socket")
         return 1
     end
-    UdpSocket sock = UdpSocket(cp)
-
     int qid = 0x1234
     Buffer q = Buffer()
     buildQuery(q, qid, domain, qtype)
@@ -963,13 +948,12 @@ func queryMode(string domain, string typeStr, string serverHost, int serverPort)
         return 1
     end
 
-    point rp = sock.recv(5000)
-    if rp == ZERO then
+    UdpPacket pkt = sock.recv(5000)
+    if pkt.handle == null then
         println("ERROR: no response within 5s")
         return 1
     end
 
-    UdpPacket pkt = UdpPacket(rp)
     Buffer respBytes = pkt.bytes()
     println("Response (" + respBytes.len().toString() + " bytes) from " + pkt.addr() + ":" + pkt.port().toString())
     parseAndPrintResponse(respBytes)
@@ -1044,12 +1028,11 @@ func main(...) as int
     println("zone: " + zoneSummary().toString() + " domains")
     g_cache.clear()
 
-    point lp = udp.bind(0, "127.0.0.1")
-    if lp == ZERO then
+    UdpSocket srvSock = udp.bind(0, "127.0.0.1")
+    if srvSock.handle == null then
         println("FATAL: udp.bind failed")
         return 1
     end
-    UdpSocket srvSock = UdpSocket(lp)
     g_testPort = srvSock.port()
     println("test server on 127.0.0.1:" + g_testPort.toString())
 

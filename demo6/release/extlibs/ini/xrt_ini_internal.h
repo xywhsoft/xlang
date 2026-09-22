@@ -1,6 +1,8 @@
 #ifndef XRT_INI_INTERNAL_H
 #define XRT_INI_INTERNAL_H
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "include/xrt_ini.h"
 
 typedef struct {

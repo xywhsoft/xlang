@@ -1,0 +1,97 @@
+// basic.xl — XUI 基础控件演示（迁移自 audit_xui_basic）
+// 展示 xui.Button / xui.CheckBox / xui.Radio / xui.Toggle / xui.Slider / Progress
+import xui
+
+int clickCount = 0
+
+func createUI(xui.XuiApp app)
+    point ctx = app.context()
+    point font = app.font()
+    xui.Widget root = xui.Widget(app.rootHandle())
+
+    // Row 1: Buttons
+    xui.Label lblButtons = xui.Label(ctx, "Buttons:", font)
+    root.addChild(lblButtons)
+
+    xui.Button btnNormal = xui.Button(ctx, "Normal", font)
+    btnNormal.onClick(func(xui.Widget w)
+        clickCount += 1
+        println("xui.Button clicked: " + string(clickCount))
+    end)
+    root.addChild(btnNormal)
+
+    xui.Button btnDisabled = xui.Button(ctx, "Disabled", font)
+    btnDisabled.setEnabled(0)
+    root.addChild(btnDisabled)
+
+    // Row 2: Checkboxes
+    xui.Label lblCheck = xui.Label(ctx, "Checkboxes:", font)
+    root.addChild(lblCheck)
+
+    xui.CheckBox chkUnchecked = xui.CheckBox(ctx, "Unchecked", font)
+    root.addChild(chkUnchecked)
+
+    xui.CheckBox chkChecked = xui.CheckBox(ctx, "Checked", font)
+    chkChecked.setChecked(1)
+    root.addChild(chkChecked)
+
+    // Row 3: Radios
+    xui.Label lblRadio = xui.Label(ctx, "Radios:", font)
+    root.addChild(lblRadio)
+
+    xui.Radio radioA = xui.Radio(ctx, "Option A", font)
+    root.addChild(radioA)
+
+    xui.Radio radioB = xui.Radio(ctx, "Option B", font)
+    radioB.setChecked(1)
+    root.addChild(radioB)
+
+    // Row 4: Toggles
+    xui.Label lblToggle = xui.Label(ctx, "Toggles:", font)
+    root.addChild(lblToggle)
+
+    xui.Toggle togOff = xui.Toggle(ctx, "Off", font)
+    root.addChild(togOff)
+
+    xui.Toggle togOn = xui.Toggle(ctx, "On", font)
+    togOn.setChecked(1)
+    root.addChild(togOn)
+
+    // Row 5: Sliders
+    xui.Label lblSlider = xui.Label(ctx, "Sliders:", font)
+    root.addChild(lblSlider)
+
+    xui.Slider slider1 = xui.Slider(ctx, 0.0, 100.0, 30.0)
+    root.addChild(slider1)
+
+    xui.Slider slider2 = xui.Slider(ctx, 0.0, 100.0, 70.0)
+    root.addChild(slider2)
+
+    // Row 6: xui.Progress bars
+    xui.Label lblProgress = xui.Label(ctx, "Progress:", font)
+    root.addChild(lblProgress)
+
+    xui.Progress progress1 = xui.Progress(ctx, 0.0, 100.0, 25.0)
+    root.addChild(progress1)
+
+    xui.Progress progress2 = xui.Progress(ctx, 0.0, 100.0, 60.0)
+    root.addChild(progress2)
+
+    xui.Progress progress3 = xui.Progress(ctx, 0.0, 100.0, 100.0)
+    root.addChild(progress3)
+end
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)  // XUI_COLOR_RGBA(40, 45, 55, 255)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(940, 560, "XUI Basic Controls")
+
+    createUI(g_app)
+
+    g_app.run(onFrame)
+    return 0
+end

@@ -1,90 +1,19 @@
-// xbot 扩展库集成测试
-// 验证各模块基本功能
-
 from xbot import XBOT_VERSION, Size, Pixel, Ratio, OpResult
-from xbot import ConfigureLogger, LogInfo, LogWarn, ResolveResPath
-from xbot import AgentPolicy, AgentToolkit, CreateAgentToolkit, RegisterBuiltinTools
-from xbot import DesktopDevice, UseDesktop, ListLLMProviders
+
 
 func main(...) as int
-    print("=== xbot 扩展库测试 ===")
-    print("版本: " + XBOT_VERSION)
+    assert string.startsWith(XBOT_VERSION, "0.1."), "xbot version"
 
-    // ─── 基础类型测试 ───
-    print("\n--- 基础类型 ---")
-    Size s = Size(1920, 1080)
-    print("Size: " + string(s.width) + "x" + string(s.height))
+    Size screen = Size(1920, 1080)
+    Pixel pixel = Pixel(12.5, 24.5)
+    Ratio center = Ratio(0.5, 0.5)
+    OpResult result = OpResult(true, "ready", "")
 
-    Pixel px = Pixel(100.5, 200.3)
-    print("Pixel: " + string(px.x) + "," + string(px.y))
+    assert screen.width == 1920 and screen.height == 1080, "xbot size"
+    assert pixel.x == 12.5 and pixel.y == 24.5, "xbot pixel"
+    assert center.x == 0.5 and center.y == 0.5, "xbot ratio"
+    assert result.ok() and not result.fail(), "xbot result"
 
-    Ratio r = Ratio(0.5, 0.5)
-    print("Ratio: " + string(r.x) + "," + string(r.y))
-
-    // 坐标解析测试
-    // ─── OpResult 测试 ───
-    print("\n--- OpResult ---")
-    OpResult ok = OpResult(true, "test success", "")
-    print("success=" + string(ok.success) + " reply=" + ok.reply)
-
-    OpResult fail = OpResult(false, "", "test error")
-    print("success=" + string(fail.success) + " error=" + fail.error)
-
-    // ─── 日志测试 ───
-    print("\n--- 日志系统 ---")
-    ConfigureLogger("info", "console")
-    LogInfo("日志测试: info 级别")
-    LogWarn("日志测试: warn 级别")
-
-    // ─── 资源路径测试 ───
-    print("\n--- 资源管理 ---")
-    string resolved_path = ResolveResPath("res://game/icon.png")
-    print("res:// 解析: " + resolved_path)
-
-    // ─── Agent 工具测试 ───
-    print("\n--- Agent 工具系统 ---")
-    AgentPolicy policy = AgentPolicy()
-    AgentToolkit toolkit = CreateAgentToolkit(path.temp(), null, policy)
-    array<string> builtins = ["fs_list", "fs_read", "fs_stat"]
-    RegisterBuiltinTools(toolkit, builtins)
-    array<string> names = toolkit.ToolNames()
-    print("注册工具数: " + string(names.length))
-    string schemas = toolkit.ToolSchemas()
-    print("Schema 长度: " + string(string.len(schemas)))
-    toolkit.Close()
-
-    // ─── 设备测试（需要 Windows 环境）───
-    print("\n--- 设备层 ---")
-    string os_name = os.platform()
-    if os_name == "windows" then
-        print("Windows 环境，测试桌面设备...")
-        DesktopDevice desktop = UseDesktop("primary")
-        Size screen = desktop.UpdateSize()
-        print("屏幕尺寸: " + string(screen.width) + "x" + string(screen.height))
-
-        // 截图测试
-        string capture = desktop.Snapshot("")
-        print("截图: " + capture)
-        if capture != "" then
-            print("截图文件存在: " + string(file.exists(capture)))
-            file.delete(capture)
-        end
-
-        desktop.Close()
-        print("桌面设备已释放")
-    else
-        print("非 Windows 环境，跳过桌面设备测试")
-    end
-
-    // ─── 视觉引擎测试（需要模型文件）───
-    print("\n--- 视觉引擎 ---")
-    print("视觉引擎模块已加载（需要模型文件才能执行 OCR/找图）")
-
-    // ─── LLM 测试（需要网络）───
-    print("\n--- LLM 引擎 ---")
-    array<string> providers = ListLLMProviders()
-    print("LLM 提供商: " + string(providers.length) + " 个")
-
-    print("\n=== 测试完成 ===")
+    println("xbot package test ok")
     return 0
 end

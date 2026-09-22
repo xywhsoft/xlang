@@ -1,0 +1,17 @@
+import xml.sax
+
+func main(...) as int
+    auto source = xml.sax.reader("<root>ok</root>")
+    int count = 0
+    while true
+        var event = source.next()
+        if event == null then
+            break
+        end
+        count += 1
+        assert count < 16, "SAX reader must reach EOF"
+    end
+    assert count == 3
+    println("xml.sax direct loop passed")
+    return 0
+end

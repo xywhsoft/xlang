@@ -265,6 +265,7 @@ func main(...) as int
         return 5
     end
 
+
     int boundPort = http.server.port(server)
     if cfg.verbose then
         println(cfg.name, " listening on http://127.0.0.1:", boundPort.toString())

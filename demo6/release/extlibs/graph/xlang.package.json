@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "graph",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["graph_native.c"],
+        "xlSources": ["src/graph.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

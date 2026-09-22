@@ -11,15 +11,13 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_typed_container_index_assign.xl"
 $runtimeHost = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\cgen_class_host.c"
 $outputDir = Join-Path $Root "build\tmp"
 $typedJson = Join-Path $outputDir "xlir_dynamic_key_scalar_projection.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_dynamic_key_scalar_projection.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_dynamic_key_scalar_projection.c"
 $generatedCSecond = Join-Path $outputDir "xlir_dynamic_key_scalar_projection.second.c"
-$legacyC = Join-Path $outputDir "xlir_dynamic_key_scalar_projection.legacy.c"
 
-foreach ( $path in @($xl, $source, $runtimeHost, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $runtimeHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR dynamic-key scalar projection gate input is missing: $path"
     }
@@ -122,18 +120,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR dynamic-key scalar projection strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR dynamic-key scalar projection legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_dynamic_key_scalar_projection.legacy.c test\cases\cgen_class_host.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_dynamic_key_scalar_projection.legacy.exe && build\test\xlir_dynamic_key_scalar_projection.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR dynamic-key scalar projection legacy differential gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR dynamic-key scalar projection gate passed: canonical borrowed lookup, exact payload TypeId, invariant-checked trivial scalar copy, deterministic strict C, runtime assertions, and legacy differential semantics."
+Write-Output "XLIR dynamic-key scalar projection gate passed: canonical borrowed lookup, exact payload TypeId, invariant-checked trivial scalar copy, deterministic strict C, and runtime assertions."

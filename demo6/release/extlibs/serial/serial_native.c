@@ -1,196 +1,305 @@
-/* serial_native.c - Serial port communication (Windows API + loopback simulation) */
+#include "include/serial.h"
+
 #include <string.h>
-#include <stdlib.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-typedef struct {
-    int is_open;
-    int simulated;      /* loopback mode for testing */
-    int baudrate;
-    int databits;
-    int stopbits;
-    int parity;         /* 0=none, 1=odd, 2=even */
-    char port_name[128];
-    /* Simulation buffer */
-    char sim_buf[4096];
-    int sim_len;
-#ifdef _WIN32
-    HANDLE hPort;
-#endif
-} SerialPort;
 
-static char err_buf[256];
-static char read_buf[4096];
 
-const char *xserial_error(void) { return err_buf; }
+/* 设备句柄与字节缓冲由 XRT 管理；配置完成后保持不变。 */
+typedef struct xserial_port {
+    xfile File;
+    xmutex* Mutex;
+    xbuffer Queue;
+    str Name;
+    int64_t Baudrate;
+    bool Loopback;
+} xserial_port;
 
-void *xserial_open(const char *port, long long baudrate, long long databits, long long stopbits, long long parity) {
-    SerialPort *sp = (SerialPort *)calloc(1, sizeof(SerialPort));
-    strncpy(sp->port_name, port, 127);
-    sp->baudrate = (int)baudrate;
-    sp->databits = (int)databits;
-    sp->stopbits = (int)stopbits;
-    sp->parity = (int)parity;
-    sp->sim_len = 0;
 
-    /* If port is "LOOPBACK" or "SIM", use simulation mode */
-    if (strcmp(port, "LOOPBACK") == 0 || strcmp(port, "SIM") == 0) {
-        sp->simulated = 1;
-        sp->is_open = 1;
-        return sp;
+
+static void serial_error(xerrkind kind, const char* message)
+{
+    xrtSetErrorInfo(kind, "xlang.extlib.serial", 0, message);
+}
+
+
+
+const char* xserial_error(void)
+{
+    const xerror* error = xrtGetError();
+    return error != NULL ? xrtErrorMessage(error) : "";
+}
+
+
+
+static bool serial_lock(xserial_port* port)
+{
+    if (port == NULL) {
+        serial_error(XERR_CLOSED, "serial: port is closed");
+        return false;
     }
+    return xrtMutexLock(port->Mutex);
+}
+
+
 
 #ifdef _WIN32
-    {
-        char full_port[160];
-        DCB dcb;
-        COMMTIMEOUTS timeouts;
-        sprintf(full_port, "\\\\.\\%s", port);
-        sp->hPort = CreateFileA(full_port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-        if (sp->hPort == INVALID_HANDLE_VALUE) {
-            sprintf(err_buf, "serial: cannot open port %s", port);
-            free(sp);
+static bool serial_windows_error(const char* operation)
+{
+    xerrordesc error = {XERR_IO, 0, (int32)GetLastError(),
+        "xlang.extlib.serial", operation, "serial: device operation failed", NULL, NULL};
+    xrtSetErrorTake(xrtErrorBuild(&error));
+    return false;
+}
+
+
+
+/* UTF-8 路径转换和句柄关闭统一交给 XRT，只在这里配置串口设备。 */
+static bool serial_open_device(xserial_port* port,
+    int64_t databits, int64_t stopbits, int64_t parity)
+{
+    xfileoptions options;
+    str device = strncmp(port->Name, "\\\\.\\", 4) == 0
+        ? xrtStrDup(port->Name)
+        : xrtStrConcat(xrtStrView("\\\\.\\"), xrtStrView(port->Name));
+    HANDLE handle;
+    DCB config;
+    COMMTIMEOUTS timeouts;
+
+    if (device == NULL) return false;
+    xrtFileOptionsInit(&options);
+    options.Flags = XFILE_READ | XFILE_WRITE;
+    options.Share = 0;
+    port->File = xrtFileOpen(device, &options);
+    xrtFree(device);
+    if (port->File == NULL) return false;
+    handle = (HANDLE)xrtFileNative(port->File);
+    memset(&config, 0, sizeof(config));
+    config.DCBlength = sizeof(config);
+    if (!GetCommState(handle, &config)) return serial_windows_error("get-state");
+    config.BaudRate = (DWORD)port->Baudrate;
+    config.ByteSize = (BYTE)databits;
+    config.StopBits = stopbits == 2 ? TWOSTOPBITS : ONESTOPBIT;
+    config.Parity = parity == 1 ? ODDPARITY : parity == 2 ? EVENPARITY : NOPARITY;
+    config.fBinary = TRUE;
+    config.fParity = parity != 0;
+    config.fOutxCtsFlow = FALSE;
+    config.fOutxDsrFlow = FALSE;
+    config.fDsrSensitivity = FALSE;
+    config.fOutX = FALSE;
+    config.fInX = FALSE;
+    config.fErrorChar = FALSE;
+    config.fNull = FALSE;
+    config.fAbortOnError = FALSE;
+    config.fDtrControl = DTR_CONTROL_ENABLE;
+    config.fRtsControl = RTS_CONTROL_ENABLE;
+    if (!SetCommState(handle, &config)) return serial_windows_error("set-state");
+    memset(&timeouts, 0, sizeof(timeouts));
+    timeouts.ReadIntervalTimeout = MAXDWORD;
+    timeouts.ReadTotalTimeoutConstant = 50;
+    timeouts.WriteTotalTimeoutConstant = 1000;
+    if (!SetCommTimeouts(handle, &timeouts)) return serial_windows_error("set-timeouts");
+    return true;
+}
+#endif
+
+
+
+void* xserial_open(const char* name, int64_t baudrate,
+    int64_t databits, int64_t stopbits, int64_t parity)
+{
+    xserial_port* port;
+    if (name == NULL || name[0] == '\0' || baudrate <= 0 ||
+        (uint64_t)baudrate > UINT32_MAX || databits < 5 || databits > 8 ||
+        (stopbits != 1 && stopbits != 2) || parity < 0 || parity > 2) {
+        serial_error(XERR_ARGUMENT, "serial: invalid port or serial configuration");
+        return NULL;
+    }
+    port = (xserial_port*)xrtCalloc(1, sizeof(*port));
+    if (port == NULL) return NULL;
+    port->Baudrate = baudrate;
+    port->Loopback = strcmp(name, "LOOPBACK") == 0 || strcmp(name, "SIM") == 0;
+    port->Name = xrtStrDup(name);
+    port->Mutex = xrtMutexCreate();
+    if (port->Name == NULL || port->Mutex == NULL) {
+        xserial_close(port);
+        return NULL;
+    }
+    if (!port->Loopback) {
+#ifdef _WIN32
+        if (!serial_open_device(port, databits, stopbits, parity)) {
+            xserial_close(port);
             return NULL;
         }
-        memset(&dcb, 0, sizeof(dcb));
-        dcb.DCBlength = sizeof(dcb);
-        GetCommState(sp->hPort, &dcb);
-        dcb.BaudRate = (int)baudrate;
-        dcb.ByteSize = (BYTE)databits;
-        dcb.StopBits = stopbits == 2 ? TWOSTOPBITS : ONESTOPBIT;
-        dcb.Parity = parity == 1 ? ODDPARITY : (parity == 2 ? EVENPARITY : NOPARITY);
-        dcb.fParity = parity != 0;
-        SetCommState(sp->hPort, &dcb);
-        memset(&timeouts, 0, sizeof(timeouts));
-        timeouts.ReadIntervalTimeout = 50;
-        timeouts.ReadTotalTimeoutConstant = 50;
-        timeouts.ReadTotalTimeoutMultiplier = 10;
-        timeouts.WriteTotalTimeoutConstant = 50;
-        timeouts.WriteTotalTimeoutMultiplier = 10;
-        SetCommTimeouts(sp->hPort, &timeouts);
-        sp->is_open = 1;
-        sp->simulated = 0;
-    }
 #else
-    sprintf(err_buf, "serial: platform not supported");
-    free(sp);
-    return NULL;
+        serial_error(XERR_UNSUPPORTED, "serial: physical ports require Windows");
+        xserial_close(port);
+        return NULL;
 #endif
-    return sp;
-}
-
-void xserial_close(void *handle) {
-    SerialPort *sp = (SerialPort *)handle;
-    if (!sp) return;
-#ifdef _WIN32
-    if (!sp->simulated && sp->hPort != INVALID_HANDLE_VALUE)
-        CloseHandle(sp->hPort);
-#endif
-    sp->is_open = 0;
-    free(sp);
-}
-
-long long xserial_is_open(void *handle) {
-    SerialPort *sp = (SerialPort *)handle;
-    return sp ? sp->is_open : 0;
-}
-
-long long xserial_write(void *handle, const char *data, long long len) {
-    SerialPort *sp = (SerialPort *)handle;
-    if (!sp || !sp->is_open) return -1;
-    if (sp->simulated) {
-        /* Loopback: append to sim buffer */
-        int i;
-        for (i = 0; i < (int)len && sp->sim_len < 4096; i++)
-            sp->sim_buf[sp->sim_len++] = data[i];
-        return len;
     }
-#ifdef _WIN32
-    {
-        DWORD written;
-        if (WriteFile(sp->hPort, data, (DWORD)len, &written, NULL))
-            return (long long)written;
-    }
-#endif
-    return -1;
+    return port;
 }
 
-/* Read returns data via static buffer, returns bytes read */
-const char *xserial_read(void *handle, long long max_len) {
-    SerialPort *sp = (SerialPort *)handle;
-    if (!sp || !sp->is_open) { read_buf[0] = '\0'; return read_buf; }
-    if (sp->simulated) {
-        int n = sp->sim_len < (int)max_len ? sp->sim_len : (int)max_len;
-        memcpy(read_buf, sp->sim_buf, n);
-        read_buf[n] = '\0';
-        /* Remove read bytes from sim buffer */
-        memmove(sp->sim_buf, sp->sim_buf + n, sp->sim_len - n);
-        sp->sim_len -= n;
-        return read_buf;
+
+
+/* 调用方必须先结束使用该句柄的操作；close 消费句柄，不允许再次使用。 */
+void xserial_close(void* handle)
+{
+    xserial_port* port = (xserial_port*)handle;
+    if (port == NULL) return;
+    if (port->File != NULL) (void)xrtClose(port->File);
+    xrtBufferUnit(&port->Queue);
+    if (port->Mutex != NULL) (void)xrtMutexDestroy(port->Mutex);
+    xrtFree(port->Name);
+    xrtFree(port);
+}
+
+
+
+bool xserial_is_open(void* handle)
+{
+    return handle != NULL;
+}
+
+
+
+int64_t xserial_write(void* handle, const void* data, size_t size)
+{
+    xserial_port* port = (xserial_port*)handle;
+    size_t count = 0;
+    bool ok;
+    if (size != 0 && data == NULL) {
+        serial_error(XERR_ARGUMENT, "serial: nonempty write requires data");
+        return -1;
     }
-#ifdef _WIN32
-    {
-        DWORD nread;
-        if (ReadFile(sp->hPort, read_buf, (DWORD)max_len - 1, &nread, NULL)) {
-            read_buf[nread] = '\0';
-            return read_buf;
+    if (!serial_lock(port)) return -1;
+    if (port->Loopback) {
+        size_t room = XSERIAL_LOOPBACK_CAPACITY - port->Queue.Size;
+        count = size < room ? size : room;
+        ok = count == 0 || xrtBufferAppend(&port->Queue,
+            (xbytesview){(cbytes)data, count});
+    } else {
+        size_t request = size < XSERIAL_IO_CHUNK ? size : XSERIAL_IO_CHUNK;
+        ok = xrtWrite(port->File, data, request, &count);
+    }
+    (void)xrtMutexUnlock(port->Mutex);
+    return ok ? (int64_t)count : -1;
+}
+
+
+
+/* C 字符串长度就是字节数，不把 UTF-8 字符数量传给设备。 */
+int64_t xserial_write_text(void* handle, const char* text)
+{
+    if (text == NULL) {
+        serial_error(XERR_ARGUMENT, "serial: text is null");
+        return -1;
+    }
+    return xserial_write(handle, text, strlen(text));
+}
+
+
+
+int64_t xserial_write_bytes(void* handle, void* data, size_t size)
+{
+    return xserial_write(handle, data, size);
+}
+
+
+
+/* 返回独立拥有的 xbuffer；先完成分配，失败时不消费接收队列。 */
+void* xserial_read(void* handle, int64_t maxBytes)
+{
+    xserial_port* port = (xserial_port*)handle;
+    xbuffer* result;
+    size_t count;
+    bool ok = true;
+    if (maxBytes < 0) {
+        serial_error(XERR_ARGUMENT, "serial: maxBytes must be nonnegative");
+        return NULL;
+    }
+    if (!serial_lock(port)) return NULL;
+    count = (uint64_t)maxBytes < XSERIAL_IO_CHUNK
+        ? (size_t)maxBytes : XSERIAL_IO_CHUNK;
+    if (port->Loopback && count > port->Queue.Size) count = port->Queue.Size;
+    result = xrtBufferCreate();
+    if (result == NULL || !xrtBufferReserve(result, count)) {
+        xrtBufferDestroy(result);
+        (void)xrtMutexUnlock(port->Mutex);
+        return NULL;
+    }
+    if (port->Loopback) {
+        if (count != 0) {
+            memcpy(result->Data, port->Queue.Data, count);
+            ok = xrtBufferRemove(&port->Queue, 0, count);
         }
+    } else if (count != 0) {
+        ok = xrtRead(port->File, result->Data, count, &count);
     }
-#endif
-    read_buf[0] = '\0';
-    return read_buf;
+    result->Size = ok ? count : 0;
+    (void)xrtMutexUnlock(port->Mutex);
+    if (!ok) {
+        xrtBufferDestroy(result);
+        return NULL;
+    }
+    return result;
 }
 
-long long xserial_read_len(void *handle, long long max_len) {
-    SerialPort *sp = (SerialPort *)handle;
-    if (!sp || !sp->is_open) return 0;
-    if (sp->simulated) {
-        return sp->sim_len < (int)max_len ? sp->sim_len : (int)max_len;
+
+
+int64_t xserial_available(void* handle)
+{
+    xserial_port* port = (xserial_port*)handle;
+    int64_t result = -1;
+    if (!serial_lock(port)) return -1;
+    if (port->Loopback) {
+        result = (int64_t)port->Queue.Size;
     }
 #ifdef _WIN32
-    {
-        COMSTAT stat;
+    else {
+        COMSTAT status;
         DWORD errors;
-        ClearCommError(sp->hPort, &errors, &stat);
-        return (long long)stat.cbInQue;
+        if (ClearCommError((HANDLE)xrtFileNative(port->File), &errors, &status))
+            result = (int64_t)status.cbInQue;
+        else (void)serial_windows_error("available");
     }
 #endif
-    return 0;
+    (void)xrtMutexUnlock(port->Mutex);
+    return result;
 }
 
-long long xserial_available(void *handle) {
-    SerialPort *sp = (SerialPort *)handle;
-    if (!sp || !sp->is_open) return 0;
-    if (sp->simulated) return sp->sim_len;
+
+
+/* flush 丢弃排队的数据，不等待设备把数据发送完毕。 */
+bool xserial_flush(void* handle)
+{
+    xserial_port* port = (xserial_port*)handle;
+    bool ok = true;
+    if (!serial_lock(port)) return false;
+    if (port->Loopback) xrtBufferClear(&port->Queue);
 #ifdef _WIN32
-    {
-        COMSTAT stat;
-        DWORD errors;
-        ClearCommError(sp->hPort, &errors, &stat);
-        return (long long)stat.cbInQue;
-    }
+    else if (!PurgeComm((HANDLE)xrtFileNative(port->File), PURGE_RXCLEAR | PURGE_TXCLEAR))
+        ok = serial_windows_error("flush");
 #endif
-    return 0;
+    (void)xrtMutexUnlock(port->Mutex);
+    return ok;
 }
 
-void xserial_flush(void *handle) {
-    SerialPort *sp = (SerialPort *)handle;
-    if (!sp || !sp->is_open) return;
-    if (sp->simulated) { sp->sim_len = 0; return; }
-#ifdef _WIN32
-    FlushFileBuffers(sp->hPort);
-#endif
+
+
+int64_t xserial_get_baudrate(void* handle)
+{
+    const xserial_port* port = (const xserial_port*)handle;
+    return port != NULL ? port->Baudrate : 0;
 }
 
-long long xserial_get_baudrate(void *handle) {
-    SerialPort *sp = (SerialPort *)handle;
-    return sp ? sp->baudrate : 0;
-}
 
-const char *xserial_get_port(void *handle) {
-    SerialPort *sp = (SerialPort *)handle;
-    return sp ? sp->port_name : "";
+
+const char* xserial_get_port(void* handle)
+{
+    const xserial_port* port = (const xserial_port*)handle;
+    return port != NULL ? port->Name : "";
 }

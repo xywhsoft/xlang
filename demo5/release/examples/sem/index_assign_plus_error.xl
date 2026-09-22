@@ -1,5 +1,0 @@
-func main() as int
-	array values = [1, 2]
-	values[0] += 1
-	return values[0]
-end

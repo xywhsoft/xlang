@@ -1,0 +1,39 @@
+{
+    "format": "xlang-package-1",
+    "name": "xbot.all",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "../xbot/native/xbot_adb.c",
+            "../xbot/native/xbot_crypto.c"
+        ],
+        "xlSources": [
+            "../xbot/src/types.xl",
+            "../xbot/src/http.xl",
+            "../xbot/src/logger.xl",
+            "../xbot/src/resource.xl",
+            "../xbot/src/llm.xl",
+            "../xbot/src/agent.xl",
+            "../xbot/src/vision.xl",
+            "../xbot/src/device.xl",
+            "../xbot/src/device_windows.xl",
+            "../xbot/src/device_android.xl",
+            "../xbot/src/device_cloud.xl",
+            "../xbot/src/xbot.xl"
+        ]
+    },
+    "links": ["user32", "kernel32", "ole32", "advapi32"],
+    "loadlibs": [],
+    "dependencies": [
+        { "name": "op", "version": "1.0.0", "abiVersion": "1" },
+        { "name": "rapidocr", "version": "0.1.0", "abiVersion": "1" },
+        { "name": "dinov3", "version": "0.1.0", "abiVersion": "1" },
+        { "name": "xfeat", "version": "0.1.0", "abiVersion": "1" },
+        { "name": "opencv", "version": "0.1.0", "abiVersion": "1" },
+        { "name": "imagehash", "version": "0.1.0", "abiVersion": "1" }
+    ],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

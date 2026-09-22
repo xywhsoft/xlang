@@ -9,7 +9,7 @@ $support = Join-Path $Root "test\cases\xlir_dynamic_boxing_extended_support.c"
 $runtimeHost = Join-Path $Root "test\cases\xlir_dynamic_boxing_extended_host.c"
 $devSource = Join-Path $Root "test\cases\cgen_dev_handfeel_regression.xl"
 $unionSource = Join-Path $Root "test\cases\cgen_union.xl"
-$differentialSupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
+$expectSupport = Join-Path $Root "test\cases\xlir_expect_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_dynamic_boxing_extended.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_dynamic_boxing_extended.lowered.json"
@@ -17,7 +17,7 @@ $generatedPath = Join-Path $outputDir "xlir_dynamic_boxing_extended.c"
 $exePath = Join-Path $outputDir "xlir_dynamic_boxing_extended.exe"
 
 foreach ( $path in @($xl, $source, $support, $runtimeHost, $devSource,
-                      $unionSource, $differentialSupport) ) {
+                      $unionSource, $expectSupport) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR extended dynamic-boxing gate input is missing: $path"
     }
@@ -78,7 +78,6 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR extended dynamic-boxing Cgen failed" }
 $generated = [System.IO.File]::ReadAllText(
     $generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xlir_xvalue_type_bind(xrtValueFloat((double)",
     "static xvalue* xlir_xvalue_error_ref(const xerror* error, uint64_t typeId)",
     "xlir_error_value_handle_clone",
     "xrtErrorRef(error)",
@@ -87,6 +86,9 @@ foreach ( $required in @(
     if ( ! $generated.Contains($required) ) {
         throw "XLIR extended dynamic-boxing C emission is incomplete: $required"
     }
+}
+if ( $generated -notmatch '(?m)^\s*(?<boxed>v[0-9]+) = xrtValueFloat\(\(double\)v[0-9]+\);\r?\n\s*if \(\k<boxed> != NULL\) \k<boxed> = xlir_xvalue_type_bind\(\k<boxed>, 0x[0-9A-F]+ULL\);' ) {
+    throw "XLIR foreign float boxing does not bind its exact TypeId through one null-guarded SSA value"
 }
 
 Push-Location $Root
@@ -100,21 +102,13 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR dynamic error-boxing package runtime failed"
     }
-    & $xl run $devSource --backend legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR dynamic error-boxing legacy differential failed"
-    }
-    & $xl run $unionSource $differentialSupport --backend xlir
+    & $xl run $unionSource $expectSupport --backend xlir
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR foreign-float/inline-union package runtime failed"
-    }
-    & $xl run $unionSource $differentialSupport --backend legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR foreign-float/inline-union legacy differential failed"
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR extended dynamic-boxing ABI gate passed: resolved inline-union members, exact foreign float/error identities, retained cloneable error handle, strict C, and legacy differential runtime."
+Write-Output "XLIR extended dynamic-boxing ABI gate passed: resolved inline-union members, exact foreign float/error identities, retained cloneable error handle, strict C, and package runtime."
 exit 0

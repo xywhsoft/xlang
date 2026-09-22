@@ -1,10 +1,8 @@
 /*
  * roaring_native.c - Simplified Roaring Bitmap (array + bitmap containers)
  */
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 static char rb_buf[8192];
 
 #define RB_CONTAINER_SIZE 65536
@@ -113,7 +111,7 @@ static void container_remove(Container *c, unsigned short val) {
 
 void *xroaring_create(void) {
     XRoaring *rb = (XRoaring *)calloc(1, sizeof(XRoaring));
-    if (!rb) { xrtSetError("roaring: out of memory", 0); return NULL; }
+    if (!rb) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.roaring", "cannot allocate roaring bitmap"); return NULL; }
     rb->cap = 16;
     rb->keys = (unsigned short *)malloc(sizeof(unsigned short) * rb->cap);
     rb->containers = (Container *)calloc(rb->cap, sizeof(Container));

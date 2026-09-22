@@ -1,0 +1,26 @@
+{
+  "format": "xlang-xhttp-multipart-snapshot-1",
+  "modules": [
+    "multipart",
+    "multipart_write",
+    "multipart_stream",
+    "multipart_random"
+  ],
+  "files": {
+    "include/xhttp/features.h": "b5ef61dc988be48988b30311c8384c63efc33147fc7b4647b23d42b988f35217",
+    "include/xrt/http_content_disposition.h": "85c5790a0efb0aac8e5d1cbb2efd830d1c512cfc91d0babbb6b11db680a47ec0",
+    "include/xrt/http_ext_value.h": "2a26a88f5e79e0c2498dedfa8f5de2480f445ae8e53b72c9ec401a482cad1168",
+    "include/xrt/http_headers.h": "5728226c3e5ba5799a61840fcccbe7ccdac7e1f64cdf8f932830e7d701498401",
+    "include/xrt/mime.h": "818e36fa9b9b5a6af2c13891e99e205d03f9080e0cad2c0aebf84f05dddd0e48",
+    "include/xrt/multipart.h": "3e44e3c440921336dc714b1dc073cc797203bddee8e5ed3323369a6bbb479917",
+    "src/http/http_content_disposition.c": "67841e1ff92d98ac55c87a84d3a5dccf3e6931b255e47270797092d73786879b",
+    "src/http/http_ext_value.c": "70943b391508ad1caf988f58320bad8d60917665a2f4de75cce620b30c2fb6a5",
+    "src/http/http_language_common.c": "1ffcc762c815e71f6bbab2be536ce00381fe7026c1792a8992e1d2014adfad84",
+    "src/http/multipart.c": "3d6a41b2799c917804b9f6408d0d9f3ab41f520fc59c46885e90da3a0ea20595",
+    "src/http/multipart_random.c": "fbee7b7ba84bd962de233c4e2d6d8ed331c3ead09ebb0163e239f2df7bdbaf3a",
+    "src/http/multipart_stream.c": "69c51377eb5050d7be9d0e5c0151604bca3e5de39065b8a16da608568b916f7d",
+    "src/http/multipart_write.c": "bd802c3d0bce0b26b1ddeb38fd752ba6ce500af296a1e41ae43c418f7373634a",
+    "src/internal/xhttp_internal.h": "24c7ae695ca0e5902af57fada79fa4ba471efbe44cb8374a8794857d969e5b7e",
+    "src/internal/xrt_http.h": "ca7597667766b11f0c10daccafe01651a48b5c76ed8e186b216cdeb543f4366a"
+  }
+}

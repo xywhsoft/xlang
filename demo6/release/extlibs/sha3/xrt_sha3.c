@@ -33,14 +33,14 @@ static void __xrtSha3SetError(xrtsha3error* pError, int iCode, int iBackend,
 	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
 }
 
-XXAPI void xrtSha3ErrorInit(xrtsha3error* pError)
+XRT_API void xrtSha3ErrorInit(xrtsha3error* pError)
 {
 	if (pError == NULL) { return; }
 	memset(pError, 0, sizeof(*pError));
 	pError->iCode = XRT_SHA3_OK;
 }
 
-XXAPI void xrtSha3OptionsInit(xrtsha3options* pOptions)
+XRT_API void xrtSha3OptionsInit(xrtsha3options* pOptions)
 {
 	if (pOptions == NULL) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -49,7 +49,7 @@ XXAPI void xrtSha3OptionsInit(xrtsha3options* pOptions)
 	xrtResourceLimitsInit(&pOptions->tLimits);
 }
 
-XXAPI xrtsha3hasher* xrtSha3HasherCreate(const xrtsha3options* pOptions, int iBits)
+XRT_API xrtsha3hasher* xrtSha3HasherCreate(const xrtsha3options* pOptions, int iBits)
 {
 	xrtsha3hasher* pHasher = (xrtsha3hasher*)xrtMalloc(sizeof(xrtsha3hasher));
 	if (pHasher == NULL) { return NULL; }
@@ -63,11 +63,11 @@ XXAPI xrtsha3hasher* xrtSha3HasherCreate(const xrtsha3options* pOptions, int iBi
 	pHasher->Bits = iBits;
 	pHasher->IsShake = 0;
 	sha3_init(&pHasher->Ctx, iBits);
-	pHasher->Initialized = TRUE;
+	pHasher->Initialized = true;
 	return pHasher;
 }
 
-XXAPI xrtsha3hasher* xrtSha3ShakeHasherCreate(const xrtsha3options* pOptions, int iStrength)
+XRT_API xrtsha3hasher* xrtSha3ShakeHasherCreate(const xrtsha3options* pOptions, int iStrength)
 {
 	xrtsha3hasher* pHasher = (xrtsha3hasher*)xrtMalloc(sizeof(xrtsha3hasher));
 	if (pHasher == NULL) { return NULL; }
@@ -81,71 +81,71 @@ XXAPI xrtsha3hasher* xrtSha3ShakeHasherCreate(const xrtsha3options* pOptions, in
 	pHasher->Bits = iStrength;
 	pHasher->IsShake = 1;
 	shake_init(&pHasher->Ctx, iStrength);
-	pHasher->Initialized = TRUE;
+	pHasher->Initialized = true;
 	return pHasher;
 }
 
-XXAPI bool xrtSha3HasherUpdate(xrtsha3hasher* pHasher, const void* pData, size_t iSize)
+XRT_API bool xrtSha3HasherUpdate(xrtsha3hasher* pHasher, const void* pData, size_t iSize)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	if (iSize != 0u && pData == NULL) {
 		__xrtSha3SetError(&pHasher->Error, XRT_SHA3_ERROR_ARGUMENT, 0,
 			pHasher->InputBytes, 0, "invalid sha3 input");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
 		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
 		__xrtSha3SetError(&pHasher->Error, XRT_SHA3_ERROR_LIMIT, 0,
 			pHasher->InputBytes, 0, "sha3 input exceeds maxInput limit");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (iSize != 0u) {
 		sha3_update(&pHasher->Ctx, pData, iSize);
 	}
 	pHasher->InputBytes += (uint64)iSize;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtSha3HasherDigest(const xrtsha3hasher* pHasher, uint8* pOut, size_t iOutLen)
+XRT_API bool xrtSha3HasherDigest(const xrtsha3hasher* pHasher, uint8* pOut, size_t iOutLen)
 {
 	sha3_ctx copy;
-	if (pHasher == NULL || pHasher->Failed || pOut == NULL || iOutLen == 0u) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed || pOut == NULL || iOutLen == 0u) { return false; }
 	memcpy(&copy, &pHasher->Ctx, sizeof(copy));
 	if (pHasher->IsShake) {
 		shake_final(&copy, pOut, iOutLen);
 	} else {
 		sha3_final(&copy, pOut, iOutLen);
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtSha3HasherReset(xrtsha3hasher* pHasher)
+XRT_API bool xrtSha3HasherReset(xrtsha3hasher* pHasher)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	if (pHasher->IsShake) {
 		shake_init(&pHasher->Ctx, pHasher->Bits);
 	} else {
 		sha3_init(&pHasher->Ctx, pHasher->Bits);
 	}
 	pHasher->InputBytes = 0u;
-	return TRUE;
+	return true;
 }
 
-XXAPI uint64 xrtSha3HasherInputBytes(const xrtsha3hasher* pHasher)
+XRT_API uint64 xrtSha3HasherInputBytes(const xrtsha3hasher* pHasher)
 {
 	return pHasher != NULL ? pHasher->InputBytes : 0u;
 }
 
-XXAPI int xrtSha3HasherOutBytes(const xrtsha3hasher* pHasher)
+XRT_API int xrtSha3HasherOutBytes(const xrtsha3hasher* pHasher)
 {
 	if (pHasher == NULL) { return 32; }
 	if (pHasher->IsShake) { return 32; }
 	return pHasher->Bits / 8;
 }
 
-XXAPI xrtsha3hasher* xrtSha3HasherClone(const xrtsha3hasher* pSrc)
+XRT_API xrtsha3hasher* xrtSha3HasherClone(const xrtsha3hasher* pSrc)
 {
 	xrtsha3hasher* pNew;
 	if (pSrc == NULL) { return NULL; }
@@ -155,12 +155,12 @@ XXAPI xrtsha3hasher* xrtSha3HasherClone(const xrtsha3hasher* pSrc)
 	return pNew;
 }
 
-XXAPI const xrtsha3error* xrtSha3HasherError(const xrtsha3hasher* pHasher)
+XRT_API const xrtsha3error* xrtSha3HasherError(const xrtsha3hasher* pHasher)
 {
 	return pHasher != NULL ? &pHasher->Error : NULL;
 }
 
-XXAPI void xrtSha3HasherDestroy(xrtsha3hasher* pHasher)
+XRT_API void xrtSha3HasherDestroy(xrtsha3hasher* pHasher)
 {
 	if (pHasher == NULL) { return; }
 	xrtFree(pHasher);
@@ -169,61 +169,78 @@ XXAPI void xrtSha3HasherDestroy(xrtsha3hasher* pHasher)
 
 /* ---- 一次性哈希 ---- */
 
-XXAPI bool xrtSha3Hash(const void* pData, size_t iSize, int iBits,
+XRT_API bool xrtSha3Hash(const void* pData, size_t iSize, int iBits,
 	uint8* pOut, size_t iOutLen, xrtsha3error* pError)
 {
 	xrtSha3ErrorInit(pError);
 	if (pOut == NULL || iOutLen == 0 || (pData == NULL && iSize != 0u)) {
 		__xrtSha3SetError(pError, XRT_SHA3_ERROR_ARGUMENT, 0, 0, 0, "invalid sha3 input");
-		return FALSE;
+		return false;
 	}
 	sha3_hash(pData, iSize, iBits, pOut, iOutLen);
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtShakeHash(const void* pData, size_t iSize, int iStrength,
+XRT_API bool xrtShakeHash(const void* pData, size_t iSize, int iStrength,
 	uint8* pOut, size_t iOutLen, xrtsha3error* pError)
 {
 	xrtSha3ErrorInit(pError);
 	if (pOut == NULL || iOutLen == 0 || (pData == NULL && iSize != 0u)) {
 		__xrtSha3SetError(pError, XRT_SHA3_ERROR_ARGUMENT, 0, 0, 0, "invalid shake input");
-		return FALSE;
+		return false;
 	}
 	shake_hash(pData, iSize, iStrength, pOut, iOutLen);
-	return TRUE;
+	return true;
 }
 
 
 /* ---- 文件流式哈希 ---- */
 
-XXAPI bool xrtSha3File(xreader pReader, const xrtresourcelimits* pLimits, int iBits,
-	uint8* pOut, size_t iOutLen, xrtsha3error* pError)
+XRT_API bool xrtSha3File(xreader* pReader, const xrtresourcelimits* pLimits, int iBits,
+	uint8* pOut, size_t iOutLen, xrtprogressproc pProgress, ptr pUserData,
+	xrtsha3error* pError)
 {
 	uint8 sInput[XRT_SHA3_CHUNK];
 	sha3_ctx ctx;
 	uint64 iTotal = 0u;
+	uint64 iExpected = 0u;
+	bool bTotalKnown;
 	xrtSha3ErrorInit(pError);
 	if (pReader == NULL || pOut == NULL || iOutLen == 0) {
 		__xrtSha3SetError(pError, XRT_SHA3_ERROR_ARGUMENT, 0, 0, 0, "invalid sha3 stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
+	if (!bTotalKnown) { xrtClearError(); }
 	sha3_init(&ctx, iBits);
 	for (;;) {
 		uint64 iRead = 0u;
 		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
 			__xrtSha3SetError(pError, XRT_SHA3_ERROR_IO, 0, iTotal, 0,
 				"cannot read sha3 input stream");
-			return FALSE;
+			return false;
 		}
 		if (iRead == 0u) { break; }
 		iTotal += iRead;
 		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
 			__xrtSha3SetError(pError, XRT_SHA3_ERROR_LIMIT, 0, iTotal, 0,
 				"sha3 input exceeds maxInput limit");
-			return FALSE;
+			return false;
 		}
 		sha3_update(&ctx, sInput, (size_t)iRead);
+		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
+			__xrtSha3SetError(pError, XRT_SHA3_ERROR_CANCELLED, 0, iTotal, 0,
+				"sha3 operation cancelled");
+			return false;
+		}
 	}
 	sha3_final(&ctx, pOut, iOutLen);
-	return TRUE;
+	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
+		__xrtSha3SetError(pError, XRT_SHA3_ERROR_CANCELLED, 0, iTotal, 0,
+			"sha3 operation cancelled");
+		return false;
+	}
+	return true;
 }

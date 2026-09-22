@@ -1,7 +1,0 @@
-#loadlib "../xle_native/libs/pkg.probe/bin/pkg_probe.dll"
-
-extern "pkg_clock_artifact_add_one" func int.native_add_one(int self) as int
-
-func main() as int
-	return 41.native_add_one()
-end

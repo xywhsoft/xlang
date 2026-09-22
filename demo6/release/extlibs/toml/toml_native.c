@@ -1,4 +1,4 @@
-#include "include/xrt_toml.h"
+#include "xrt_toml_internal.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XTOML_EXPORT __declspec(dllexport)
@@ -8,10 +8,38 @@
 
 
 
+static xonce __xtomlErrorOnce = XRT_ONCE_INIT;
+static xthreadkey* __xtomlErrorKey = NULL;
+
+static bool __xtomlInitErrorKey(ptr pContext)
+{
+	(void)pContext;
+	__xtomlErrorKey = xrtThreadKeyCreate(xrtFree);
+	return __xtomlErrorKey != NULL;
+}
+
 static xrttomlerror* __xtomlErrorGet(void)
 {
-	return (xrttomlerror*)xrtThreadLocalGetOrCreate(
-		"xlang.toml.error.v1", sizeof(xrttomlerror));
+	xrttomlerror* pError;
+	if ( !xrtOnce(&__xtomlErrorOnce, __xtomlInitErrorKey, NULL) ||
+		__xtomlErrorKey == NULL ) { return NULL; }
+	pError = (xrttomlerror*)xrtThreadKeyGet(__xtomlErrorKey);
+	if ( pError != NULL ) { return pError; }
+	pError = (xrttomlerror*)xrtMalloc(sizeof(*pError));
+	if ( pError == NULL || !xrtThreadKeySet(__xtomlErrorKey, pError) ) {
+		xrtFree(pError);
+		return NULL;
+	}
+	xrtTomlErrorInit(pError);
+	return pError;
+}
+
+static void __xtomlPublishError(const xrttomlerror* pError)
+{
+	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.toml",
+		pError != NULL ? pError->iCode : XRT_TOML_ERROR_MEMORY,
+		pError != NULL && pError->sMessage[0] != 0 ? pError->sMessage :
+			"TOML operation failed");
 }
 
 static void __xtomlOptions(xrttomloptions* pOptions, uint64 iMaxInput,
@@ -54,114 +82,124 @@ XTOML_EXPORT void* xtoml_error_message(void)
 	xrttomlerror* pError = __xtomlErrorGet();
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "TOML operation failed";
-	return xrtCopyStr((str)sMessage, 0u);
+	return xrtStrDup(sMessage);
 }
 
-XTOML_EXPORT xvalue xtoml_parse(const void* pData, uint64 iSize,
+XTOML_EXPORT xvalue* xtoml_parse(const void* pData, uint64 iSize,
 	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
-	xvalue pResult;
-	if ( pError == NULL ) { return xvoCreateNull(); }
+	xvalue* pResult;
+	if ( pError == NULL ) { return xrtValueNull(); }
 	__xtomlOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem,
 		iMaxEntries, iMaxNodes, iMaxDepth, pError);
 	pResult = xrtTomlParseMemory(pData, iSize, &tOptions, pError);
-	return pResult != NULL ? pResult : xvoCreateNull();
+	if ( pResult == NULL ) { __xtomlPublishError(pError); }
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT xvalue xtoml_load(str sPath, uint64 iMaxInput,
+XTOML_EXPORT xvalue* xtoml_load(str sPath, uint64 iMaxInput,
 	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
 	uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
-	xvalue pResult;
-	if ( pError == NULL ) { return xvoCreateNull(); }
+	xvalue* pResult;
+	if ( pError == NULL ) { return xrtValueNull(); }
 	__xtomlOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem,
 		iMaxEntries, iMaxNodes, iMaxDepth, pError);
 	pResult = xrtTomlLoad(sPath, &tOptions, pError);
-	return pResult != NULL ? pResult : xvoCreateNull();
+	if ( pResult == NULL ) { __xtomlPublishError(pError); }
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT void* xtoml_stringify(xvalue pValue, uint64 iMaxOutput,
+XTOML_EXPORT void* xtoml_stringify(xvalue* pValue, uint64 iMaxOutput,
 	uint64 iMaxItem, uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
-	xbuffer pResult;
+	xbuffer* pResult;
 	if ( pError == NULL ) { return NULL; }
 	__xtomlOptions(&tOptions, 0u, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth, pError);
 	pResult = xrtTomlStringify(pValue, &tOptions, pError);
+	if ( pResult == NULL ) { __xtomlPublishError(pError); }
 	return pResult;
 }
 
-XTOML_EXPORT bool xtoml_save(str sPath, xvalue pValue,
+XTOML_EXPORT bool xtoml_save(str sPath, xvalue* pValue,
 	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
 	uint64 iMaxNodes, uint32 iMaxDepth)
 {
 	xrttomloptions tOptions;
 	xrttomlerror* pError = __xtomlErrorGet();
 	bool bResult;
-	if ( pError == NULL ) { return FALSE; }
+	if ( pError == NULL ) { return false; }
 	__xtomlOptions(&tOptions, 0u, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth, pError);
 	bResult = xrtTomlSave(sPath, pValue, &tOptions, pError);
+	if ( !bResult ) { __xtomlPublishError(pError); }
 	return bResult;
 }
 
-XTOML_EXPORT xvalue xtoml_date(int iYear, int iMonth, int iDay)
+XTOML_EXPORT xvalue* xtoml_date(int iYear, int iMonth, int iDay)
 {
-	return xrtTomlCreateDate(iYear, iMonth, iDay);
+	xvalue* pResult = xrtTomlCreateDate(iYear, iMonth, iDay);
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT xvalue xtoml_time(int iHour, int iMinute, int iSecond,
+XTOML_EXPORT xvalue* xtoml_time(int iHour, int iMinute, int iSecond,
 	int iMicrosecond)
 {
-	return xrtTomlCreateTime(iHour, iMinute, iSecond, iMicrosecond);
+	xvalue* pResult = xrtTomlCreateTime(iHour, iMinute, iSecond, iMicrosecond);
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT xvalue xtoml_datetime(int iYear, int iMonth, int iDay,
+XTOML_EXPORT xvalue* xtoml_datetime(int iYear, int iMonth, int iDay,
 	int iHour, int iMinute, int iSecond, int iMicrosecond)
 {
-	return xrtTomlCreateDateTime(iYear, iMonth, iDay, iHour, iMinute,
-		iSecond, iMicrosecond);
+	xvalue* pResult = xrtTomlCreateDateTime(iYear, iMonth, iDay, iHour,
+		iMinute, iSecond, iMicrosecond);
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT xvalue xtoml_offset_datetime(int iYear, int iMonth, int iDay,
+XTOML_EXPORT xvalue* xtoml_offset_datetime(int iYear, int iMonth, int iDay,
 	int iHour, int iMinute, int iSecond, int iMicrosecond, int iOffset)
 {
-	return xrtTomlCreateOffsetDateTime(iYear, iMonth, iDay, iHour, iMinute,
-		iSecond, iMicrosecond, iOffset);
+	xvalue* pResult = xrtTomlCreateOffsetDateTime(iYear, iMonth, iDay, iHour,
+		iMinute, iSecond, iMicrosecond, iOffset);
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XTOML_EXPORT int xtoml_datetime_kind(xvalue pValue)
+XTOML_EXPORT int xtoml_datetime_kind(xvalue* pValue)
 {
 	int iKind = 0;
 	xrtTomlIsDateTimeValue(pValue, &iKind);
 	return iKind;
 }
 
-XTOML_EXPORT int xtoml_datetime_part(xvalue pValue, int iPart)
+XTOML_EXPORT int xtoml_datetime_part(xvalue* pValue, int iPart)
 {
-	const xrttomldatetime* pTime = xrtTomlGetDateTime(pValue);
-	if ( pTime == NULL ) { return 0; }
+	xrttomldatetime Time;
+	if ( !xrtTomlGetDateTime(pValue, &Time) ) { return 0; }
 	switch ( iPart ) {
-	case 0: return pTime->iYear;
-	case 1: return pTime->iMonth;
-	case 2: return pTime->iDay;
-	case 3: return pTime->iHour;
-	case 4: return pTime->iMinute;
-	case 5: return pTime->iSecond;
-	case 6: return pTime->iMicrosecond;
-	case 7: return pTime->iTimezoneMinutes;
+	case 0: return Time.iYear;
+	case 1: return Time.iMonth;
+	case 2: return Time.iDay;
+	case 3: return Time.iHour;
+	case 4: return Time.iMinute;
+	case 5: return Time.iSecond;
+	case 6: return Time.iMicrosecond;
+	case 7: return Time.iTimezoneMinutes;
 	default: return 0;
 	}
 }
 
-XTOML_EXPORT void* xtoml_datetime_text(xvalue pValue)
+XTOML_EXPORT void* xtoml_datetime_text(xvalue* pValue)
 {
-	return xrtTomlDateTimeToString(xrtTomlGetDateTime(pValue));
+	xrttomldatetime Time;
+	return xrtTomlGetDateTime(pValue, &Time) ?
+		xrtTomlDateTimeToString(&Time) : NULL;
 }

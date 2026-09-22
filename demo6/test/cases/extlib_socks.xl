@@ -3,36 +3,73 @@ import socks
 
 
 func main(...) as int
-    // Version
-    assert socks.version() == 5, "socks5"
+    // 方法协商帧
+    assert socks.greeting([0]) == "050100", "no-auth greeting"
+    assert socks.greeting([0, 2]) == "05020002", "two methods greeting"
 
-    // Build greeting (no auth)
-    auto glen = socks.buildGreeting(false)
-    assert glen == 3, "greeting len 3"
+    // 服务器选择
+    var choice = socks.parseChoice("0500")
+    assert choice["method"] == 0, "server chose no auth"
+    choice = socks.parseChoice("0502")
+    assert choice["method"] == 2, "server chose userpass"
 
-    // Build greeting (with auth)
-    auto glen2 = socks.buildGreeting(true)
-    assert glen2 == 4, "greeting auth len 4"
+    // 域名 CONNECT 帧：example.com:443
+    string domain = socks.connectDomain("example.com", 443)
+    assert domain.contains("05010003" + "0b6578616d706c652e636f6d"), "domain frame"
+    assert domain.length == 36, "domain frame length"
+    assert domain.contains("01bb"), "port 443"
 
-    // Build connect to IP
-    auto clen = socks.buildConnect("192.168.1.1", 8080)
-    assert clen == 10, "connect ip len 10"
+    // IPv4 CONNECT 帧：127.0.0.1:8080
+    string ipv4 = socks.connectIpv4("127.0.0.1", 8080)
+    assert ipv4 == "050100017f0000011f90", "ipv4 frame"
 
-    // Build connect to domain
-    auto dlen = socks.buildConnect("example.com", 443)
-    assert dlen > 10, "connect domain len"
+    // 应答解析：IPv4 绑定地址
+    var reply = socks.parseReply("0500000100000000c000")
+    assert reply["status"] == 0, "success status"
+    assert reply["bindAddress"] == "0.0.0.0", "bind address"
+    assert reply["bindPort"] == 49152, "bind port 0xc000"
 
-    // Build auth
-    auto alen = socks.buildAuth("user", "pass")
-    assert alen == 11, "auth len"
+    // 失败状态
+    reply = socks.parseReply("05040001000000000000")
+    assert reply["status"] == 4, "host unreachable status"
 
-    // Reply strings
-    assert socks.replyString(0) == "succeeded", "reply 0"
-    assert socks.replyString(5) == "connection refused", "reply 5"
+    // 域名应答
+    reply = socks.parseReply("050000030b6578616d706c652e636f6d01bb")
+    assert reply["bindAddress"] == "example.com", "domain bind"
+    assert reply["bindPort"] == 443, "domain bind port"
 
-    // Valid greeting check
-    assert socks.validGreeting("0500", 2), "valid greeting"
-    assert not socks.validGreeting("0400", 2), "invalid greeting"
+    // 错误路径
+    int raised = 0
+    try
+        socks.parseChoice("0600")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "wrong version raises"
+
+    raised = 0
+    try
+        socks.connectDomain("", 80)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "empty domain raises"
+
+    raised = 0
+    try
+        socks.connectIpv4("not-an-ip", 80)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "bad ipv4 raises"
+
+    raised = 0
+    try
+        socks.greeting([])
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "empty methods raise"
 
     return 0
 end

@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/xml.etree/include/xrt_xml_etree.h"
 
 #include <stdio.h>
@@ -10,25 +12,24 @@ int main(void)
 	xrtxmlelement* pBook;
 	xrtxmletreewriteoptions tOptions;
 	xrtxmlerror tError;
-	xbuffer pText;
+	xbuffer* pText;
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	pCatalog = xrtXmlElementCreate((str)"catalog");
 	pBook = xrtXmlElementAppend(pCatalog, (str)"book");
 	bOk = pCatalog != NULL && pBook != NULL &&
 		xrtXmlElementSetAttribute(pBook, (str)"id", (str)"xlang") &&
 		xrtXmlElementSetText(pBook, (str)"XLang");
 	xrtXmlElementWriteOptionsInit(&tOptions);
-	tOptions.bPretty = TRUE;
-	tOptions.bXmlDeclaration = TRUE;
+	tOptions.bPretty = true;
+	tOptions.bXmlDeclaration = true;
 	pText = bOk ? xrtXmlElementStringify(pCatalog, &tOptions, &tError) : NULL;
-	if ( pText != NULL ) { fwrite(pText->Buffer, 1u, pText->Length, stdout); }
+	bOk = bOk && pText != NULL;
+	if ( pText != NULL ) { fwrite(pText->Data, 1u, pText->Size, stdout); }
 	xrtBufferDestroy(pText);
 	xrtXmlElementRelease(pBook);
 	xrtXmlElementRelease(pCatalog);
-	xrtUnit();
-	if ( bOk && pText != NULL ) { puts("xml.etree C example: PASS"); }
-	return bOk && pText != NULL ? 0 : 2;
+	if ( bOk ) { puts("xml.etree C example: PASS"); }
+	return bOk ? 0 : 2;
 }
 
 /* 单文件范例入口；包导入时由清单分别编译源码。 */

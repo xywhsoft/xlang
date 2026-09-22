@@ -30,8 +30,6 @@ const int QUIT_CLOSE_DELAY = 200
 const int B64_LINE_WIDTH = 76
 const string BOUNDARY = "----=_XLANGSMTPCLI_6F3A9B21_4C7E"
 
-point ZERO
-
 // ============================================================
 // self-test accounting + server/client shared state
 // ============================================================
@@ -352,12 +350,11 @@ end
 // All client TcpStream usage is inline.
 // ============================================================
 func smtpSend(string host, int port, string heloName, string fromAddr, string toAddrs, string ccAddrs, string user, string pass, string subject, string body, array<string> attachments, int timeoutMs, bool useAuth) as int
-    point cp = tcp.connect(host, port, timeoutMs)
-    if cp == ZERO then
+    TcpStream sock = tcp.connect(host, port, timeoutMs)
+    if sock.handle == null then
         println("Error: cannot connect to " + host + ":" + string(port))
         return 3
     end
-    TcpStream sock = TcpStream(cp)
     string inbuf = ""
     string reply
     string nb
@@ -493,8 +490,7 @@ end
 // TEST SERVER: minimal SMTP server for self-test verification.
 // Handles ONE client then returns. Records what it received into globals.
 // ============================================================
-func handleSmtpClient(point clientHandle) as int
-    TcpStream peer = TcpStream(clientHandle)
+func handleSmtpClient(TcpStream peer) as int
     string inbuf = ""
     string reply
     string nb
@@ -577,21 +573,20 @@ func runSelfTest(int port) as int
     string attachFile = path.join(path.temp(), path.random("smtpcli_", ".bin"))
 
     // retry-connect: the server thread may not have called accept yet
-    point cp = ZERO
+    TcpStream sock = TcpStream()
     int attempts = 0
-    while cp == ZERO and attempts < 60
-        cp = tcp.connect("127.0.0.1", port, 2000)
-        if cp == ZERO then
+    while sock.handle == null and attempts < 60
+        sock = tcp.connect("127.0.0.1", port, 2000)
+        if sock.handle == null then
             time.sleep(50)
         end
         attempts = attempts + 1
     end
-    if cp == ZERO then
+    if sock.handle == null then
         check(false, "0. connect to test server", "could not connect on port " + string(port))
         return 1
     end
 
-    TcpStream sock = TcpStream(cp)
     string inbuf = ""
     string reply
     string nb
@@ -761,12 +756,11 @@ func main(...) as int
         // native-backed (cannot be captured by value into a closure), so we
         // follow ftpserver's pattern: accept in main, run the CLIENT (which
         // only needs the bound port — a plain int) in a worker thread.
-        point lp = tcp.listen(0, "127.0.0.1", 4)
-        if lp == ZERO then
+        TcpServer srv = tcp.listen(0, "127.0.0.1", 4)
+        if srv.handle == null then
             println("FATAL: tcp.listen failed")
             return 1
         end
-        TcpServer srv = TcpServer(lp)
         int boundPort = srv.port()
         println("test SMTP server listening on 127.0.0.1:" + string(boundPort))
 
@@ -779,9 +773,9 @@ func main(...) as int
 
         time.sleep(200)
 
-        point ch = srv.accept(60000)
-        if ch != ZERO then
-            handleSmtpClient(ch)
+        TcpStream client = srv.accept(60000)
+        if client.handle != null then
+            handleSmtpClient(client)
         else
             println("FATAL: no client connected within 60s")
             gFailed = gFailed + 1

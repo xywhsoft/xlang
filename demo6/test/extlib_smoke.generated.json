@@ -1,0 +1,1321 @@
+{
+    "format":  "xlang-extlib-catalog-smoke-1",
+    "generatedAt":  "2026-08-19T03:39:00.3522439Z",
+    "timeoutSeconds":  30,
+    "results":  [
+                    {
+                        "case":  "extlib_acme.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_aho_corasick.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "aho_corasick: all tests passed"
+                    },
+                    {
+                        "case":  "extlib_ansi.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_argon2.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "auto-salt:  $argon2id$v=19$m=64,t=2,p=1$WqrNZHVA5D8KCRzsAe+u/g$XvqhRCwTamqNM8Zohyo7RLYD4VtAiCH/08rUPyFgRpQ\r\nargon2: all tests passed"
+                    },
+                    {
+                        "case":  "extlib_argon2_smoke.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "argon2_smoke=ok"
+                    },
+                    {
+                        "case":  "extlib_barcode.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_blake2.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/blake2/blake2_native.c:230: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_blake3.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/blake3/blake3_native.c:179: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_bloom.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_brotli.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/brotli/brotli_native.c:88: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_brotli_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/brotli/brotli_native.c:88: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_bson.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_bz2.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/bz2/bz2_native.c:91: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_bz2_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/bz2/bz2_native.c:91: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_canbus.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_cbor.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_chardet.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_cli.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_clickhouse.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_clip.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_coap.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_color.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_com.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "com extlib ok"
+                    },
+                    {
+                        "case":  "extlib_consistent_hash.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_crontab.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_css.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_csv.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_cuckoo.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_daemon.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_dataframe.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_diff.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_dinov3.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_dns.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_docker.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_docx.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_dotenv.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_duckdb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_embeddings.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_enet.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_epub.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_etcd.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_faiss.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ffmpeg.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_fix.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_flatbuffers.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_freetype.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ftp.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_fuzzy.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_geohash.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_gettext.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ggml.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_git.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_glad.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_gpio.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_graph.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_grpc.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_gzip.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_harfbuzz.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_hash_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/blake2/blake2_native.c:230: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_hash_progress_cancel.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/blake2/blake2_native.c:230: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_hcl.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_hnswlib.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_html5.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_hyperloglog.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ical.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_icu.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_imagehash.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "imagehash case ok"
+                    },
+                    {
+                        "case":  "extlib_imgui.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_influxdb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ini.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_jieba.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_json_patch.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_json5.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_jwt.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_kubernetes.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_langdetect.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ldap.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_leveldb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_libsndfile.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_libsvm.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_libtorch.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_libusb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_linalg.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_llama.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_lmdb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_lru.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_lz4.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/lz4/lz4_native.c:84: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_lz4_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/lz4/lz4_native.c:84: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_lzma.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/lzma/lzma_native.c:84: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_lzma_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/lzma/lzma_native.c:84: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_md4c.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "md4c case ok"
+                    },
+                    {
+                        "case":  "extlib_mdns.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_memcached.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_minio.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_miniz.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/miniz/miniz_native.c:82: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_miniz_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/miniz/miniz_native.c:82: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_mnn.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_modbus.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_money.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "share 1 = $22.35\r\nshare 2 = $22.34\r\nshare 3 = $22.34\r\nshare 4 = $22.34"
+                    },
+                    {
+                        "case":  "extlib_mongodb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_mqtt.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_msgpack.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_murmur3.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/murmur3/murmur3_native.c:189: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_mysql.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_nanomsg.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_native_iter_protocol_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "native iterator protocol passed"
+                    },
+                    {
+                        "case":  "extlib_nats.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ncnn.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_neo4j.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_netrc.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_nsq.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ntp.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_oauth2.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_onnxruntime.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_op.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_opencv.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_opentelemetry.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_openvino.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_opus.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_passkey.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pcap.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pdf.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pdfium.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pinyin.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pkcs.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pkg_math.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_plist.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_portaudio.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_postgresql.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_pptx.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_procps.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_progress.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_prometheus.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_protobuf.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_qr.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_quic.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_rabbitmq.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_rapidocr.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ratatui.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_redis.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_roaring.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_rocksdb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_rss.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_rtmp.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_rtree.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_sciter.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_semver.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_sentencepiece.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_serial.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_sha3.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/sha3/sha3_native.c:157: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_sharedmem.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_shellwords.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_singleinstance.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_siphash.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/siphash/siphash_native.c:252: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_sitemap.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_skiplist.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_slugify.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_snappy.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/snappy/snappy_native.c:81: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_snappy_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/snappy/snappy_native.c:81: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_snmp.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_socks.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_sox.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_sqlite.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "sqlite case ok"
+                    },
+                    {
+                        "case":  "extlib_srt.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_stablediffusion.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_statistics.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_stb_image.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_stb_image_resize2.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_stb_image_write.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_stb_truetype.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_sysinfo.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_tabulate.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_taglib.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_tar.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/tar/tar_native.c:43: error: \u0027,\u0027 expected (got \u0027*\u0027)\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...ected (got \u0027*\u0027):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_tar_compressed.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/tar/tar_native.c:43: error: \u0027,\u0027 expected (got \u0027*\u0027)\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...ected (got \u0027*\u0027):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_tar_p2.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/tar/tar_native.c:43: error: \u0027,\u0027 expected (got \u0027*\u0027)\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...ected (got \u0027*\u0027):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_tar_pax_metadata.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/tar/tar_native.c:43: error: \u0027,\u0027 expected (got \u0027*\u0027)\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...ected (got \u0027*\u0027):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_tar_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/tar/tar_native.c:43: error: \u0027,\u0027 expected (got \u0027*\u0027)\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...ected (got \u0027*\u0027):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_tar_progress_min.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/tar/tar_native.c:43: error: \u0027,\u0027 expected (got \u0027*\u0027)\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...ected (got \u0027*\u0027):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_tdengine.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_tensorrt.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_terraform_state.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_tokenizers.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_toml.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_totp.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_treesitter.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_trie.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_ui_auto.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "ui.auto extlib ok"
+                    },
+                    {
+                        "case":  "extlib_units.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_upnp.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_vault.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_vcard.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_vectordb.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_volc_core.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/volc.core/x_volc_core_native.c:754: error: \u0027xhttprequest\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...est\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_watch.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_webrtc.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_webview.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_whisper.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xbot.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_xbot.xl:3:26: [sem] 鏈煡绫诲瀷: HttpClientRequest\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (D:\\GIT\\x-lang\\d...tpClientRequest:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_xbot_agent.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_xbot_agent.xl:3:26: [sem] 鏈煡绫诲瀷: HttpClientRequest\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (D:\\GIT\\x-lang\\d...tpClientRequest:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_xbot_core.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xfeat.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xlsx.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xml_dom.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xml_etree.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xml_sax.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_xml_sax_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "xml.sax minimal passed"
+                    },
+                    {
+                        "case":  "extlib_xml_sax_named_for_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "xml.sax named for passed"
+                    },
+                    {
+                        "case":  "extlib_xml_sax_next_eof_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "xml.sax EOF passed"
+                    },
+                    {
+                        "case":  "extlib_xml_sax_next_loop_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "xml.sax direct loop passed"
+                    },
+                    {
+                        "case":  "extlib_xml_sax_next_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "xml.sax direct next passed"
+                    },
+                    {
+                        "case":  "extlib_xml_sax_next_sequence_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "xml.sax event sequence passed"
+                    },
+                    {
+                        "case":  "extlib_xml_sax_protocol_min.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  "ok"
+                    },
+                    {
+                        "case":  "extlib_xxhash.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/xxhash/xxhash_native.c:207: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_yaml.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_zeromq.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_zip.xl",
+                        "status":  "pass",
+                        "exitCode":  0,
+                        "output":  ""
+                    },
+                    {
+                        "case":  "extlib_zstd.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/zstd/zstd_native.c:84: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    },
+                    {
+                        "case":  "extlib_zstd_progress.xl",
+                        "status":  "fail",
+                        "exitCode":  1,
+                        "output":  "xl.exe : tcc: D:/GIT/x-lang/demo6/release/extlibs/zstd/zstd_native.c:84: error: \u0027xrtprogresscall\u0027 undeclared\r\n所在位置 D:\\GIT\\x-lang\\demo6\\tools\\smoke_extlib_catalog.ps1:37 字符: 17\r\n+     $outText = (\u0026 $xl run $case.FullName 2\u003e\u00261 | Out-String)\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (tcc: D:/GIT/x-l...all\u0027 undeclared:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+                    }
+                ]
+}

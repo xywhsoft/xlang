@@ -2,6 +2,7 @@
 #include "third_party/lz4.h"
 
 #include <stdarg.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -22,13 +23,12 @@
  * 解压侧据此精确定位块边界、校验完整性并统计 members。 */
 
 struct xrtlz4compressor {
-	xbuffer Pending;            /* 尚未成块的原始输入 */
-	xbuffer Output;             /* 已产出的压缩字节 */
+	xbuffer* Pending;            /* 尚未成块的原始输入 */
+	xbuffer* Output;             /* 已产出的压缩字节 */
 	xrtlz4options Options;
 	xrtlz4error Error;
 	uint64 InputBytes;
 	uint64 OutputBytes;
-	bool Initialized;
 	bool Finished;
 	bool Failed;
 };
@@ -39,8 +39,8 @@ typedef enum {
 } xrtlz4decstate;
 
 struct xrtlz4decompressor {
-	xbuffer Carry;              /* 尚未消费完的输入字节 */
-	xbuffer Output;             /* 已产出的原始字节 */
+	xbuffer* Carry;              /* 尚未消费完的输入字节 */
+	xbuffer* Output;             /* 已产出的原始字节 */
 	xrtlz4options Options;
 	xrtlz4error Error;
 	uint64 InputBytes;
@@ -49,9 +49,7 @@ struct xrtlz4decompressor {
 	size_t BlockDeclared;       /* 当前块声明的原始大小 */
 	size_t BlockCompressed;     /* 当前块声明的压缩大小 */
 	uint32 BlockCrc;            /* 当前块声明的原始数据 CRC32 */
-	size_t BlockConsumed;       /* 当前块已消费的压缩字节 */
 	int State;
-	bool Initialized;
 	bool MemberEnded;
 	bool Finished;
 	bool Failed;
@@ -80,16 +78,33 @@ static void __xrtLz4CopyError(xrtlz4error* pDst, const xrtlz4error* pSrc)
 	*pDst = *pSrc;
 }
 
-static bool __xrtLz4OverOutputLimit(const xrtresourcelimits* pLimits, uint64 iOutput)
-{
-	return pLimits->iMaxOutputBytes != 0u && iOutput > pLimits->iMaxOutputBytes;
-}
-
 static bool __xrtLz4OverRatio(const xrtresourcelimits* pLimits, uint64 iInput, uint64 iOutput)
 {
 	uint64 iRatio = pLimits->iMaxCompressionRatio;
-	if ( iRatio == 0u || iInput == 0u ) { return FALSE; }
+	if ( iRatio == 0u || iInput == 0u ) { return false; }
+	if ( iInput > (UINT64_MAX / iRatio) ) { return false; }
 	return iOutput > iInput * iRatio;
+}
+
+/* 检查计数累加是否溢出或越过非零硬上限。 */
+static bool __xrtLz4AddOverLimit(uint64 iCurrent, size_t iAdded, uint64 iLimit)
+{
+	uint64 iIncrement = (uint64)iAdded;
+
+	if ( iIncrement > (UINT64_MAX - iCurrent) ) { return true; }
+	return (iLimit != 0u) && ((iCurrent + iIncrement) > iLimit);
+}
+
+/* 创建带初始容量的 Buffer，失败时不泄漏半初始化对象。 */
+static xbuffer* __xrtLz4BufferCreate(size_t iCapacity)
+{
+	xbuffer* pBuffer = xrtBufferCreate();
+
+	if ( (pBuffer != NULL) && !xrtBufferReserve(pBuffer, iCapacity) ) {
+		xrtBufferDestroy(pBuffer);
+		pBuffer = NULL;
+	}
+	return pBuffer;
 }
 
 static void __xrtLz4WriteU32LE(uint8* pDst, uint32 iValue)
@@ -125,14 +140,14 @@ static uint32 __xrtLz4Crc32(const void* pData, size_t iLen)
 
 
 
-XXAPI void xrtLz4ErrorInit(xrtlz4error* pError)
+XRT_API void xrtLz4ErrorInit(xrtlz4error* pError)
 {
 	if ( pError == NULL ) { return; }
 	memset(pError, 0, sizeof(*pError));
 	pError->iCode = XRT_LZ4_OK;
 }
 
-XXAPI void xrtLz4OptionsInit(xrtlz4options* pOptions)
+XRT_API void xrtLz4OptionsInit(xrtlz4options* pOptions)
 {
 	if ( pOptions == NULL ) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -146,7 +161,7 @@ XXAPI void xrtLz4OptionsInit(xrtlz4options* pOptions)
 
 // ------------------------------------ 压缩器 ------------------------------------
 
-XXAPI xrtlz4compressor* xrtLz4CompressorCreate(const xrtlz4options* pOptions)
+XRT_API xrtlz4compressor* xrtLz4CompressorCreate(const xrtlz4options* pOptions)
 {
 	xrtlz4compressor* pCompressor;
 	pCompressor = (xrtlz4compressor*)xrtMalloc(sizeof(xrtlz4compressor));
@@ -159,15 +174,14 @@ XXAPI xrtlz4compressor* xrtLz4CompressorCreate(const xrtlz4options* pOptions)
 		xrtLz4OptionsInit(&pCompressor->Options);
 	}
 	if ( pCompressor->Options.iAcceleration < 1 ) { pCompressor->Options.iAcceleration = 1; }
-	pCompressor->Pending = xrtBufferCreate(XRT_LZ4_CHUNK);
-	pCompressor->Output = xrtBufferCreate(XRT_LZ4_CHUNK);
+	pCompressor->Pending = __xrtLz4BufferCreate(XRT_LZ4_CHUNK);
+	pCompressor->Output = __xrtLz4BufferCreate(XRT_LZ4_CHUNK);
 	if ( pCompressor->Pending == NULL || pCompressor->Output == NULL ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_MEMORY, 0, 0, 0,
 			"cannot allocate lz4 compressor");
-		pCompressor->Failed = TRUE;
+		pCompressor->Failed = true;
 		return pCompressor;
 	}
-	pCompressor->Initialized = TRUE;
 	return pCompressor;
 }
 
@@ -178,163 +192,189 @@ static bool __xrtLz4FlushBlock(xrtlz4compressor* pCompressor, size_t iSize)
 	int iWritten;
 	uint8 sHeader[XRT_LZ4_HEADER_SIZE];
 	ptr pCompressed;
-	if ( iSize == 0u ) { return TRUE; }
+	xbytesview Pending;
+	size_t iGenerated;
+	if ( iSize == 0u ) { return true; }
+	Pending = xrtBufferView(pCompressor->Pending);
+	if ( iSize > Pending.Size ) {
+		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_STATE, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid lz4 pending state");
+		pCompressor->Failed = true;
+		return false;
+	}
 	iBound = LZ4_compressBound((int)iSize);
 	if ( iBound <= 0 ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_ARGUMENT, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 block too large");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	pCompressed = xrtMalloc((size_t)iBound);
 	if ( pCompressed == NULL ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "out of memory");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
-	iWritten = LZ4_compress_fast((const char*)pCompressor->Pending->Buffer,
+	iWritten = LZ4_compress_fast((const char*)Pending.Data,
 		(char*)pCompressed, (int)iSize, iBound, pCompressor->Options.iAcceleration);
 	if ( iWritten <= 0 ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_DATA, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 block compression failed");
 		xrtFree(pCompressed);
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	__xrtLz4WriteU32LE(sHeader, (uint32)iSize);
 	__xrtLz4WriteU32LE(sHeader + 4u, (uint32)iWritten);
 	__xrtLz4WriteU32LE(sHeader + 8u,
-		__xrtLz4Crc32(pCompressor->Pending->Buffer, iSize));
-	if ( !xrtBufferAppend(pCompressor->Output, (ptr)sHeader, XRT_LZ4_HEADER_SIZE, XBUF_BINARY) ||
-		!xrtBufferAppend(pCompressor->Output, pCompressed, (uint32)iWritten, XBUF_BINARY) ) {
+		__xrtLz4Crc32(Pending.Data, iSize));
+	iGenerated = XRT_LZ4_HEADER_SIZE + (size_t)iWritten;
+	if ( __xrtLz4AddOverLimit(pCompressor->OutputBytes, iGenerated,
+		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
+		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 output exceeds maxOutput limit");
+		xrtFree(pCompressed);
+		pCompressor->Failed = true;
+		return false;
+	}
+	if ( !xrtBufferAppend(pCompressor->Output,
+			(xbytesview){ (const unsigned char*)sHeader, XRT_LZ4_HEADER_SIZE }) ||
+		 !xrtBufferAppend(pCompressor->Output,
+			(xbytesview){ (const unsigned char*)pCompressed, (size_t)iWritten }) ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow lz4 output buffer");
 		xrtFree(pCompressed);
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	xrtFree(pCompressed);
-	pCompressor->OutputBytes += (uint64)(XRT_LZ4_HEADER_SIZE + (size_t)iWritten);
-	/* 移除已消费的前 iSize 字节。 */
-	if ( pCompressor->Pending->Length > iSize ) {
-		memmove(pCompressor->Pending->Buffer, (uint8*)pCompressor->Pending->Buffer + iSize,
-			pCompressor->Pending->Length - iSize);
+	pCompressor->OutputBytes += (uint64)iGenerated;
+	if ( !xrtBufferRemove(pCompressor->Pending, 0u, iSize) ) {
+		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_STATE, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot consume lz4 pending buffer");
+		pCompressor->Failed = true;
+		return false;
 	}
-	pCompressor->Pending->Length -= (uint32)iSize;
-	if ( __xrtLz4OverOutputLimit(&pCompressor->Options.tLimits, pCompressor->OutputBytes) ) {
-		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 output exceeds maxOutput limit");
-		pCompressor->Failed = TRUE;
-		return FALSE;
-	}
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLz4CompressorUpdate(xrtlz4compressor* pCompressor, const void* pData, size_t iSize)
+XRT_API bool xrtLz4CompressorUpdate(xrtlz4compressor* pCompressor, const void* pData, size_t iSize)
 {
-	if ( pCompressor == NULL || pCompressor->Failed ) { return FALSE; }
+	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
 	if ( pCompressor->Finished ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_STATE, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 compressor already finished");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_ARGUMENT, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid lz4 input");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
-	if ( pCompressor->Options.tLimits.iMaxInputBytes != 0u &&
-		pCompressor->InputBytes + iSize > pCompressor->Options.tLimits.iMaxInputBytes ) {
+	if ( __xrtLz4AddOverLimit(pCompressor->InputBytes, iSize,
+		pCompressor->Options.tLimits.iMaxInputBytes) ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 input exceeds maxInput limit");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	if ( iSize != 0u &&
-		!xrtBufferAppend(pCompressor->Pending, (ptr)pData, (uint32)iSize, XBUF_BINARY) ) {
+		!xrtBufferAppend(pCompressor->Pending,
+			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow lz4 pending buffer");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	pCompressor->InputBytes += iSize;
-	while ( pCompressor->Pending->Length >= XRT_LZ4_BLOCK_SIZE ) {
-		if ( !__xrtLz4FlushBlock(pCompressor, XRT_LZ4_BLOCK_SIZE) ) { return FALSE; }
+	while ( xrtBufferView(pCompressor->Pending).Size >= XRT_LZ4_BLOCK_SIZE ) {
+		if ( !__xrtLz4FlushBlock(pCompressor, XRT_LZ4_BLOCK_SIZE) ) { return false; }
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLz4CompressorFinish(xrtlz4compressor* pCompressor)
+XRT_API bool xrtLz4CompressorFinish(xrtlz4compressor* pCompressor)
 {
-	uint8 sEnd[XRT_LZ4_HEADER_SIZE];
-	if ( pCompressor == NULL || pCompressor->Failed ) { return FALSE; }
-	if ( pCompressor->Finished ) { return TRUE; }
-	if ( pCompressor->Pending->Length != 0u ) {
-		if ( !__xrtLz4FlushBlock(pCompressor, pCompressor->Pending->Length) ) { return FALSE; }
+	uint8 sEnd[XRT_LZ4_HEADER_SIZE] = { 0 };
+	size_t iPending;
+	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
+	if ( pCompressor->Finished ) { return true; }
+	iPending = xrtBufferView(pCompressor->Pending).Size;
+	if ( iPending != 0u ) {
+		if ( !__xrtLz4FlushBlock(pCompressor, iPending) ) { return false; }
 	}
-	__xrtLz4WriteU32LE(sEnd, 0u);
-	if ( !xrtBufferAppend(pCompressor->Output, (ptr)sEnd, XRT_LZ4_HEADER_SIZE, XBUF_BINARY) ) {
+	if ( __xrtLz4AddOverLimit(pCompressor->OutputBytes, XRT_LZ4_HEADER_SIZE,
+		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
+		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 output exceeds maxOutput limit");
+		pCompressor->Failed = true;
+		return false;
+	}
+	if ( !xrtBufferAppend(pCompressor->Output,
+		(xbytesview){ (const unsigned char*)sEnd, sizeof(sEnd) }) ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow lz4 output buffer");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	pCompressor->OutputBytes += XRT_LZ4_HEADER_SIZE;
-	pCompressor->Finished = TRUE;
-	return TRUE;
+	pCompressor->Finished = true;
+	return true;
 }
 
-XXAPI bool xrtLz4CompressorDrain(xrtlz4compressor* pCompressor, xwriter pWriter)
+XRT_API bool xrtLz4CompressorDrain(xrtlz4compressor* pCompressor, xwriter* pWriter)
 {
-	if ( pCompressor == NULL || pCompressor->Failed || pWriter == NULL ) { return FALSE; }
-	if ( pCompressor->Output->Length != 0u &&
-		!xrtWriterWriteAll(pWriter, pCompressor->Output->Buffer, pCompressor->Output->Length) ) {
+	xbytesview Output;
+	if ( pCompressor == NULL || pCompressor->Failed || pWriter == NULL ) { return false; }
+	Output = xrtBufferView(pCompressor->Output);
+	if ( Output.Size != 0u &&
+		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
 		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_IO, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write lz4 output stream");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
-	pCompressor->Output->Length = 0u;
-	return TRUE;
+	xrtBufferClear(pCompressor->Output);
+	return true;
 }
 
-XXAPI xbuffer xrtLz4CompressorTakeBuffer(xrtlz4compressor* pCompressor)
+XRT_API xbuffer* xrtLz4CompressorTakeBuffer(xrtlz4compressor* pCompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pCompressor == NULL || pCompressor->Failed || !pCompressor->Finished ) { return NULL; }
 	pOutput = pCompressor->Output;
 	pCompressor->Output = NULL;
 	return pOutput;
 }
 
-XXAPI xbuffer xrtLz4CompressorDrainBuffer(xrtlz4compressor* pCompressor)
+XRT_API xbuffer* xrtLz4CompressorDrainBuffer(xrtlz4compressor* pCompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom((ptr)pCompressor->Output->Buffer, (size_t)pCompressor->Output->Length);
-	pCompressor->Output->Length = 0u;
+	pOutput = xrtBufferFrom(xrtBufferView(pCompressor->Output));
+	if ( pOutput != NULL ) { xrtBufferClear(pCompressor->Output); }
 	return pOutput;
 }
 
-XXAPI uint64 xrtLz4CompressorInputBytes(const xrtlz4compressor* pCompressor)
+XRT_API uint64 xrtLz4CompressorInputBytes(const xrtlz4compressor* pCompressor)
 {
 	return pCompressor != NULL ? pCompressor->InputBytes : 0u;
 }
 
-XXAPI uint64 xrtLz4CompressorOutputBytes(const xrtlz4compressor* pCompressor)
+XRT_API uint64 xrtLz4CompressorOutputBytes(const xrtlz4compressor* pCompressor)
 {
 	return pCompressor != NULL ? pCompressor->OutputBytes : 0u;
 }
 
-XXAPI const xrtlz4error* xrtLz4CompressorError(const xrtlz4compressor* pCompressor)
+XRT_API const xrtlz4error* xrtLz4CompressorError(const xrtlz4compressor* pCompressor)
 {
 	return pCompressor != NULL ? &pCompressor->Error : NULL;
 }
 
-XXAPI void xrtLz4CompressorDestroy(xrtlz4compressor* pCompressor)
+XRT_API void xrtLz4CompressorDestroy(xrtlz4compressor* pCompressor)
 {
 	if ( pCompressor == NULL ) { return; }
 	xrtBufferDestroy(pCompressor->Pending);
@@ -346,7 +386,7 @@ XXAPI void xrtLz4CompressorDestroy(xrtlz4compressor* pCompressor)
 
 // ------------------------------------ 解压器 ------------------------------------
 
-XXAPI xrtlz4decompressor* xrtLz4DecompressorCreate(const xrtlz4options* pOptions)
+XRT_API xrtlz4decompressor* xrtLz4DecompressorCreate(const xrtlz4options* pOptions)
 {
 	xrtlz4decompressor* pDecompressor;
 	pDecompressor = (xrtlz4decompressor*)xrtMalloc(sizeof(xrtlz4decompressor));
@@ -358,16 +398,15 @@ XXAPI xrtlz4decompressor* xrtLz4DecompressorCreate(const xrtlz4options* pOptions
 	} else {
 		xrtLz4OptionsInit(&pDecompressor->Options);
 	}
-	pDecompressor->Carry = xrtBufferCreate(XRT_LZ4_CHUNK);
-	pDecompressor->Output = xrtBufferCreate(XRT_LZ4_CHUNK);
+	pDecompressor->Carry = __xrtLz4BufferCreate(XRT_LZ4_CHUNK);
+	pDecompressor->Output = __xrtLz4BufferCreate(XRT_LZ4_CHUNK);
 	if ( pDecompressor->Carry == NULL || pDecompressor->Output == NULL ) {
 		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_MEMORY, 0, 0, 0,
 			"cannot allocate lz4 decompressor");
-		pDecompressor->Failed = TRUE;
+		pDecompressor->Failed = true;
 		return pDecompressor;
 	}
 	pDecompressor->State = XRT_LZ4_DEC_HEADER;
-	pDecompressor->Initialized = TRUE;
 	return pDecompressor;
 }
 
@@ -375,8 +414,9 @@ XXAPI xrtlz4decompressor* xrtLz4DecompressorCreate(const xrtlz4options* pOptions
 static bool __xrtLz4DecompressConsume(xrtlz4decompressor* pDecompressor, size_t* pConsumed)
 {
 	size_t iPos = 0u;
-	const uint8* pBuf = (const uint8*)pDecompressor->Carry->Buffer;
-	size_t iLen = pDecompressor->Carry->Length;
+	xbytesview Carry = xrtBufferView(pDecompressor->Carry);
+	const uint8* pBuf = (const uint8*)Carry.Data;
+	size_t iLen = Carry.Size;
 	while ( iPos < iLen ) {
 		if ( pDecompressor->State == XRT_LZ4_DEC_HEADER ) {
 			uint32 iDeclared;
@@ -386,34 +426,51 @@ static bool __xrtLz4DecompressConsume(xrtlz4decompressor* pDecompressor, size_t*
 			iCompressed = __xrtLz4ReadU32LE(pBuf + iPos + 4u);
 			iPos += XRT_LZ4_HEADER_SIZE;
 			if ( iDeclared == 0u ) {
-				pDecompressor->MemberEnded = TRUE;
+				pDecompressor->MemberEnded = true;
 				pDecompressor->MemberCount += 1u;
 				continue;   /* 可能紧跟下一个成员 */
 			}
+			pDecompressor->MemberEnded = false;
 			pDecompressor->BlockDeclared = (size_t)iDeclared;
 			pDecompressor->BlockCompressed = (size_t)iCompressed;
 			pDecompressor->BlockCrc = __xrtLz4ReadU32LE(pBuf + iPos - 4u);
-			pDecompressor->BlockConsumed = 0u;
 			pDecompressor->State = XRT_LZ4_DEC_BLOCK;
 		} else {
 			int iWritten;
 			ptr pPlain;
-			if ( pDecompressor->BlockDeclared > LZ4_MAX_INPUT_SIZE ) {
+			if ( (pDecompressor->BlockDeclared > LZ4_MAX_INPUT_SIZE) ||
+				 (pDecompressor->BlockCompressed == 0u) ||
+				 (pDecompressor->BlockCompressed > INT_MAX) ) {
 				__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_DATA, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"lz4 block declares too large output");
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			if ( iLen - iPos < pDecompressor->BlockCompressed ) { break; }
-			pPlain = xrtMalloc(pDecompressor->BlockDeclared + 1u);
+			if ( ((pDecompressor->Options.tLimits.iMaxItemBytes != 0u) &&
+				  (pDecompressor->BlockDeclared > pDecompressor->Options.tLimits.iMaxItemBytes)) ||
+				 __xrtLz4AddOverLimit(pDecompressor->OutputBytes,
+					pDecompressor->BlockDeclared,
+					pDecompressor->Options.tLimits.iMaxOutputBytes) ||
+				 __xrtLz4OverRatio(&pDecompressor->Options.tLimits,
+					pDecompressor->InputBytes,
+					pDecompressor->OutputBytes + (uint64)pDecompressor->BlockDeclared) ) {
+				__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
+					pDecompressor->InputBytes, pDecompressor->OutputBytes,
+					"lz4 output exceeds decompression limit");
+				pDecompressor->Failed = true;
+				*pConsumed = iPos;
+				return false;
+			}
+			pPlain = xrtMalloc(pDecompressor->BlockDeclared);
 			if ( pPlain == NULL ) {
 				__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			iWritten = LZ4_decompress_safe((const char*)(pBuf + iPos), (char*)pPlain,
 				(int)pDecompressor->BlockCompressed, (int)pDecompressor->BlockDeclared);
@@ -422,9 +479,9 @@ static bool __xrtLz4DecompressConsume(xrtlz4decompressor* pDecompressor, size_t*
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"lz4 block decompression failed");
 				xrtFree(pPlain);
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			iPos += pDecompressor->BlockCompressed;
 			if ( __xrtLz4Crc32(pPlain, (size_t)iWritten) != pDecompressor->BlockCrc ) {
@@ -432,148 +489,143 @@ static bool __xrtLz4DecompressConsume(xrtlz4decompressor* pDecompressor, size_t*
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"lz4 block checksum mismatch");
 				xrtFree(pPlain);
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
-			if ( !xrtBufferAppend(pDecompressor->Output, pPlain, (uint32)iWritten, XBUF_BINARY) ) {
+			if ( !xrtBufferAppend(pDecompressor->Output,
+				(xbytesview){ (const unsigned char*)pPlain, (size_t)iWritten }) ) {
 				__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"cannot grow lz4 output buffer");
 				xrtFree(pPlain);
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			xrtFree(pPlain);
 			pDecompressor->OutputBytes += (uint64)iWritten;
-			if ( __xrtLz4OverOutputLimit(&pDecompressor->Options.tLimits, pDecompressor->OutputBytes) ||
-				__xrtLz4OverRatio(&pDecompressor->Options.tLimits, pDecompressor->InputBytes,
-					pDecompressor->OutputBytes) ) {
-				__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"lz4 output exceeds decompression limit");
-				pDecompressor->Failed = TRUE;
-				*pConsumed = iPos;
-				return FALSE;
-			}
 			pDecompressor->State = XRT_LZ4_DEC_HEADER;
 		}
 	}
 	*pConsumed = iPos;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLz4DecompressorUpdate(xrtlz4decompressor* pDecompressor, const void* pData, size_t iSize)
+XRT_API bool xrtLz4DecompressorUpdate(xrtlz4decompressor* pDecompressor, const void* pData, size_t iSize)
 {
 	size_t iConsumed = 0u;
-	size_t iRemaining;
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return FALSE; }
+	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_ARGUMENT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid lz4 input");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	if ( pDecompressor->Options.tLimits.iMaxInputBytes != 0u &&
-		pDecompressor->InputBytes + iSize > pDecompressor->Options.tLimits.iMaxInputBytes ) {
+	if ( __xrtLz4AddOverLimit(pDecompressor->InputBytes, iSize,
+		pDecompressor->Options.tLimits.iMaxInputBytes) ) {
 		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_LIMIT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "lz4 input exceeds maxInput limit");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
 	if ( iSize != 0u &&
-		!xrtBufferAppend(pDecompressor->Carry, (ptr)pData, (uint32)iSize, XBUF_BINARY) ) {
+		!xrtBufferAppend(pDecompressor->Carry,
+			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
 		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_MEMORY, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot grow lz4 input buffer");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->MemberEnded = FALSE;
+	pDecompressor->MemberEnded = false;
 	pDecompressor->InputBytes += iSize;
-	if ( !__xrtLz4DecompressConsume(pDecompressor, &iConsumed) ) { return FALSE; }
-	/* 移除已消费字节。 */
-	iRemaining = pDecompressor->Carry->Length - iConsumed;
-	if ( iRemaining != 0u && iConsumed != 0u ) {
-		memmove(pDecompressor->Carry->Buffer, (uint8*)pDecompressor->Carry->Buffer + iConsumed, iRemaining);
+	if ( !__xrtLz4DecompressConsume(pDecompressor, &iConsumed) ) { return false; }
+	if ( (iConsumed != 0u) &&
+		 !xrtBufferRemove(pDecompressor->Carry, 0u, iConsumed) ) {
+		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_STATE, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot consume lz4 input buffer");
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->Carry->Length = (uint32)iRemaining;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLz4DecompressorFinish(xrtlz4decompressor* pDecompressor)
+XRT_API bool xrtLz4DecompressorFinish(xrtlz4decompressor* pDecompressor)
 {
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return FALSE; }
-	if ( pDecompressor->Finished ) { return TRUE; }
-	if ( pDecompressor->MemberCount == 0u || !pDecompressor->MemberEnded ||
-		pDecompressor->Carry->Length != 0u ) {
+	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
+	if ( pDecompressor->Finished ) { return true; }
+	if ( (pDecompressor->MemberCount == 0u) || !pDecompressor->MemberEnded ||
+		(pDecompressor->State != XRT_LZ4_DEC_HEADER) ||
+		(xrtBufferView(pDecompressor->Carry).Size != 0u) ) {
 		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_TRUNCATED, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "lz4 stream is truncated or empty");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->Finished = TRUE;
-	return TRUE;
+	pDecompressor->Finished = true;
+	return true;
 }
 
-XXAPI bool xrtLz4DecompressorDrain(xrtlz4decompressor* pDecompressor, xwriter pWriter)
+XRT_API bool xrtLz4DecompressorDrain(xrtlz4decompressor* pDecompressor, xwriter* pWriter)
 {
-	if ( pDecompressor == NULL || pDecompressor->Failed || pWriter == NULL ) { return FALSE; }
-	if ( pDecompressor->Output->Length != 0u &&
-		!xrtWriterWriteAll(pWriter, pDecompressor->Output->Buffer, pDecompressor->Output->Length) ) {
+	xbytesview Output;
+	if ( pDecompressor == NULL || pDecompressor->Failed || pWriter == NULL ) { return false; }
+	Output = xrtBufferView(pDecompressor->Output);
+	if ( Output.Size != 0u &&
+		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
 		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_IO, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write lz4 output stream");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->Output->Length = 0u;
-	return TRUE;
+	xrtBufferClear(pDecompressor->Output);
+	return true;
 }
 
-XXAPI xbuffer xrtLz4DecompressorTakeBuffer(xrtlz4decompressor* pDecompressor)
+XRT_API xbuffer* xrtLz4DecompressorTakeBuffer(xrtlz4decompressor* pDecompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pDecompressor == NULL || pDecompressor->Failed || !pDecompressor->Finished ) { return NULL; }
 	pOutput = pDecompressor->Output;
 	pDecompressor->Output = NULL;
 	return pOutput;
 }
 
-XXAPI xbuffer xrtLz4DecompressorDrainBuffer(xrtlz4decompressor* pDecompressor)
+XRT_API xbuffer* xrtLz4DecompressorDrainBuffer(xrtlz4decompressor* pDecompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pDecompressor == NULL || pDecompressor->Failed || pDecompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom((ptr)pDecompressor->Output->Buffer, (size_t)pDecompressor->Output->Length);
-	pDecompressor->Output->Length = 0u;
+	pOutput = xrtBufferFrom(xrtBufferView(pDecompressor->Output));
+	if ( pOutput != NULL ) { xrtBufferClear(pDecompressor->Output); }
 	return pOutput;
 }
 
-XXAPI uint64 xrtLz4DecompressorInputBytes(const xrtlz4decompressor* pDecompressor)
+XRT_API uint64 xrtLz4DecompressorInputBytes(const xrtlz4decompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? pDecompressor->InputBytes : 0u;
 }
 
-XXAPI uint64 xrtLz4DecompressorOutputBytes(const xrtlz4decompressor* pDecompressor)
+XRT_API uint64 xrtLz4DecompressorOutputBytes(const xrtlz4decompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? pDecompressor->OutputBytes : 0u;
 }
 
-XXAPI bool xrtLz4DecompressorFinished(const xrtlz4decompressor* pDecompressor)
+XRT_API bool xrtLz4DecompressorFinished(const xrtlz4decompressor* pDecompressor)
 {
 	return pDecompressor != NULL && pDecompressor->MemberEnded;
 }
 
-XXAPI uint64 xrtLz4DecompressorMembers(const xrtlz4decompressor* pDecompressor)
+XRT_API uint64 xrtLz4DecompressorMembers(const xrtlz4decompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? pDecompressor->MemberCount : 0u;
 }
 
-XXAPI const xrtlz4error* xrtLz4DecompressorError(const xrtlz4decompressor* pDecompressor)
+XRT_API const xrtlz4error* xrtLz4DecompressorError(const xrtlz4decompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? &pDecompressor->Error : NULL;
 }
 
-XXAPI void xrtLz4DecompressorDestroy(xrtlz4decompressor* pDecompressor)
+XRT_API void xrtLz4DecompressorDestroy(xrtlz4decompressor* pDecompressor)
 {
 	if ( pDecompressor == NULL ) { return; }
 	xrtBufferDestroy(pDecompressor->Carry);
@@ -585,51 +637,53 @@ XXAPI void xrtLz4DecompressorDestroy(xrtlz4decompressor* pDecompressor)
 
 // ------------------------------------ 一次性接口 ------------------------------------
 
-XXAPI bool xrtLz4Compress(const void* pData, size_t iSize, const xrtlz4options* pOptions,
-	xbuffer* pOutput, xrtlz4error* pError)
+XRT_API bool xrtLz4Compress(const void* pData, size_t iSize, const xrtlz4options* pOptions,
+	xbuffer** ppOutput, xrtlz4error* pError)
 {
 	xrtlz4options tOptions;
 	xrtlz4compressor* pCompressor;
 	bool bRet;
 	xrtLz4ErrorInit(pError);
-	if ( pOutput == NULL || (pData == NULL && iSize != 0u) ) {
+	if ( ppOutput != NULL ) { *ppOutput = NULL; }
+	if ( ppOutput == NULL || (pData == NULL && iSize != 0u) ) {
 		__xrtLz4SetError(pError, XRT_LZ4_ERROR_ARGUMENT, 0, 0, 0, "invalid lz4 input");
-		return FALSE;
+		return false;
 	}
 	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtLz4OptionsInit(&tOptions); }
 	pCompressor = xrtLz4CompressorCreate(&tOptions);
 	if ( pCompressor == NULL ) {
 		__xrtLz4SetError(pError, XRT_LZ4_ERROR_MEMORY, 0, iSize, 0, "cannot allocate lz4 compressor");
-		return FALSE;
+		return false;
 	}
 	bRet = xrtLz4CompressorUpdate(pCompressor, pData, iSize) &&
 		xrtLz4CompressorFinish(pCompressor);
-	if ( bRet ) { *pOutput = xrtLz4CompressorTakeBuffer(pCompressor); bRet = *pOutput != NULL; }
+	if ( bRet ) { *ppOutput = xrtLz4CompressorTakeBuffer(pCompressor); bRet = *ppOutput != NULL; }
 	if ( !bRet ) { __xrtLz4CopyError(pError, &pCompressor->Error); }
 	xrtLz4CompressorDestroy(pCompressor);
 	return bRet;
 }
 
-XXAPI bool xrtLz4Decompress(const void* pData, size_t iSize, const xrtlz4options* pOptions,
-	xbuffer* pOutput, xrtlz4error* pError)
+XRT_API bool xrtLz4Decompress(const void* pData, size_t iSize, const xrtlz4options* pOptions,
+	xbuffer** ppOutput, xrtlz4error* pError)
 {
 	xrtlz4options tOptions;
 	xrtlz4decompressor* pDecompressor;
 	bool bRet;
 	xrtLz4ErrorInit(pError);
-	if ( pOutput == NULL || (pData == NULL && iSize != 0u) ) {
+	if ( ppOutput != NULL ) { *ppOutput = NULL; }
+	if ( ppOutput == NULL || (pData == NULL && iSize != 0u) ) {
 		__xrtLz4SetError(pError, XRT_LZ4_ERROR_ARGUMENT, 0, 0, 0, "invalid lz4 input");
-		return FALSE;
+		return false;
 	}
 	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtLz4OptionsInit(&tOptions); }
 	pDecompressor = xrtLz4DecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
 		__xrtLz4SetError(pError, XRT_LZ4_ERROR_MEMORY, 0, iSize, 0, "cannot allocate lz4 decompressor");
-		return FALSE;
+		return false;
 	}
 	bRet = xrtLz4DecompressorUpdate(pDecompressor, pData, iSize) &&
 		xrtLz4DecompressorFinish(pDecompressor);
-	if ( bRet ) { *pOutput = xrtLz4DecompressorTakeBuffer(pDecompressor); bRet = *pOutput != NULL; }
+	if ( bRet ) { *ppOutput = xrtLz4DecompressorTakeBuffer(pDecompressor); bRet = *ppOutput != NULL; }
 	if ( !bRet ) { __xrtLz4CopyError(pError, &pDecompressor->Error); }
 	xrtLz4DecompressorDestroy(pDecompressor);
 	return bRet;
@@ -639,63 +693,99 @@ XXAPI bool xrtLz4Decompress(const void* pData, size_t iSize, const xrtlz4options
 
 // ------------------------------------ 文件流接口 ------------------------------------
 
-XXAPI bool xrtLz4CompressStream(xreader pReader, xwriter pWriter, const xrtlz4options* pOptions,
-	xrtlz4error* pError)
+XRT_API bool xrtLz4CompressStream(xreader* pReader, xwriter* pWriter, const xrtlz4options* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtlz4error* pError)
 {
 	uint8 sInput[XRT_LZ4_CHUNK];
 	xrtlz4compressor* pCompressor;
-	bool bRet = TRUE;
+	uint64 iTotal = 0u;
+	bool bTotalKnown;
+	bool bRet = true;
 	xrtLz4ErrorInit(pError);
 	if ( pReader == NULL || pWriter == NULL ) {
 		__xrtLz4SetError(pError, XRT_LZ4_ERROR_ARGUMENT, 0, 0, 0, "invalid lz4 stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
+	if ( !bTotalKnown ) { xrtClearError(); }
 	pCompressor = xrtLz4CompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return FALSE; }
+	if ( pCompressor == NULL ) { return false; }
 	while ( bRet ) {
-		uint64 iRead = 0u;
+		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
 			__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_IO, 0,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "cannot read lz4 input stream");
-			bRet = FALSE;
+			bRet = false;
 			break;
 		}
 		if ( iRead == 0u ) { break; }
 		bRet = xrtLz4CompressorUpdate(pCompressor, sInput, (size_t)iRead) &&
 			xrtLz4CompressorDrain(pCompressor, pWriter);
+		if ( bRet && !xrtProgressReport(pProgress, pUserData, pCompressor->InputBytes,
+			iTotal, pCompressor->OutputBytes,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u) ) {
+			__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_CANCELLED, 0,
+				pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 operation cancelled");
+			bRet = false;
+		}
 	}
 	if ( bRet ) { bRet = xrtLz4CompressorFinish(pCompressor) && xrtLz4CompressorDrain(pCompressor, pWriter); }
+	if ( bRet && !xrtProgressReport(pProgress, pUserData, pCompressor->InputBytes,
+		iTotal, pCompressor->OutputBytes, XRT_PROGRESS_FINAL |
+		(bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) ) {
+		__xrtLz4SetError(&pCompressor->Error, XRT_LZ4_ERROR_CANCELLED, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "lz4 operation cancelled");
+		bRet = false;
+	}
 	if ( !bRet ) { __xrtLz4CopyError(pError, &pCompressor->Error); }
 	xrtLz4CompressorDestroy(pCompressor);
 	return bRet;
 }
 
-XXAPI bool xrtLz4DecompressStream(xreader pReader, xwriter pWriter, const xrtlz4options* pOptions,
-	xrtlz4error* pError)
+XRT_API bool xrtLz4DecompressStream(xreader* pReader, xwriter* pWriter, const xrtlz4options* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtlz4error* pError)
 {
 	uint8 sInput[XRT_LZ4_CHUNK];
 	xrtlz4decompressor* pDecompressor;
-	bool bRet = TRUE;
+	uint64 iTotal = 0u;
+	bool bTotalKnown;
+	bool bRet = true;
 	xrtLz4ErrorInit(pError);
 	if ( pReader == NULL || pWriter == NULL ) {
 		__xrtLz4SetError(pError, XRT_LZ4_ERROR_ARGUMENT, 0, 0, 0, "invalid lz4 stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
+	if ( !bTotalKnown ) { xrtClearError(); }
 	pDecompressor = xrtLz4DecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return FALSE; }
+	if ( pDecompressor == NULL ) { return false; }
 	while ( bRet ) {
-		uint64 iRead = 0u;
+		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
 			__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_IO, 0,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot read lz4 input stream");
-			bRet = FALSE;
+			bRet = false;
 			break;
 		}
 		if ( iRead == 0u ) { break; }
 		bRet = xrtLz4DecompressorUpdate(pDecompressor, sInput, (size_t)iRead) &&
 			xrtLz4DecompressorDrain(pDecompressor, pWriter);
+		if ( bRet && !xrtProgressReport(pProgress, pUserData, pDecompressor->InputBytes,
+			iTotal, pDecompressor->OutputBytes,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u) ) {
+			__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_CANCELLED, 0,
+				pDecompressor->InputBytes, pDecompressor->OutputBytes, "lz4 operation cancelled");
+			bRet = false;
+		}
 	}
 	if ( bRet ) { bRet = xrtLz4DecompressorFinish(pDecompressor) && xrtLz4DecompressorDrain(pDecompressor, pWriter); }
+	if ( bRet && !xrtProgressReport(pProgress, pUserData, pDecompressor->InputBytes,
+		iTotal, pDecompressor->OutputBytes, XRT_PROGRESS_FINAL |
+		(bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) ) {
+		__xrtLz4SetError(&pDecompressor->Error, XRT_LZ4_ERROR_CANCELLED, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes, "lz4 operation cancelled");
+		bRet = false;
+	}
 	if ( !bRet ) { __xrtLz4CopyError(pError, &pDecompressor->Error); }
 	xrtLz4DecompressorDestroy(pDecompressor);
 	return bRet;

@@ -1,0 +1,247 @@
+func hello(string method, string path, string query, string body) as string
+    if method == "GET" and path == "/legacy" then
+        return "legacy handler"
+    end
+    return "xlang http server"
+end
+
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Server", "xlang")
+
+    if not req.connectionOpen() then
+        return false
+    end
+
+    if req.method() == "GET" and req.path() == "/hello" then
+        return resp.text("hello from xlang")
+    end
+
+    if req.method() == "GET" and req.param("id") == "42" then
+        if req.queryValue("name") == "xlang" then
+            resp.addHeader("X-First-Header", req.headerName(0))
+            resp.addHeader("X-Route-Param-Name", req.paramName(0))
+            resp.addHeader("X-Route-Param-Value", req.paramValue(0))
+            resp.addHeader("X-Query-Param-Name", req.queryName(0))
+            resp.addHeader("X-Query-Param-Value", req.queryValueAt(0))
+            resp.addHeader("X-Cookie-Param-Name", req.cookieName(0))
+            resp.addHeader("X-Cookie-Param-Value", req.cookieValueAt(0))
+            resp.addHeader("X-Session", req.cookie("sid"))
+            return resp.text("user 42 xlang")
+        end
+        return resp.text("user 42")
+    end
+
+    if req.method() == "POST" and req.path() == "/echo" then
+        return resp.text(req.body())
+    end
+
+    if req.method() == "POST" and req.path() == "/form" then
+        if req.isFormUrlEncoded() and req.formValue("name") == "alice bob" and req.formValue("city") == "shanghai" then
+            resp.addHeader("X-Form-Name", req.formName(0))
+            return resp.text(req.formValueAt(0))
+        end
+        resp.status(400)
+        return resp.text("bad form")
+    end
+
+    if req.method() == "POST" and req.path() == "/multipart" then
+        if req.isMultipartForm() and req.multipartValue("title") != "" and req.multipartIsFile(1) then
+            Buffer data = req.multipartBytes(1)
+            resp.addHeader("X-Part-Name", req.multipartName(0))
+            resp.addHeader("X-File-Name", req.multipartFileName(1))
+            resp.addHeader("X-File-Bytes", data.len().toString())
+            return resp.text(req.multipartText(0))
+        end
+        resp.status(400)
+        return resp.text("bad multipart")
+    end
+
+    if req.method() == "POST" and req.path() == "/echo-bytes" then
+        return resp.body(req.bodyData(), c_size(req.bodySize()), "application/octet-stream")
+    end
+
+    if req.path() == "/json" then
+        return resp.jsonText("{\"ok\":true}")
+    end
+
+    if req.path() == "/append-body" then
+        resp.status(200, "Append")
+        resp.addHeader("X-Duplicate", "first")
+        resp.addHeader("X-Duplicate", "second")
+        if not resp.reserveBody(16) then
+            resp.status(500)
+            return resp.text("append reserve failed")
+        end
+        if not resp.appendText("append") then
+            resp.status(500)
+            return resp.text("append failed")
+        end
+        if not resp.appendText("-body") then
+            resp.status(500)
+            return resp.text("append failed")
+        end
+        Buffer responseBytes = resp.bodyBytes()
+        assert resp.statusCode() == 200 and resp.reason() == "Append", "response status metadata mismatch"
+        assert resp.header("X-Duplicate") == "first" and resp.headerCount() >= 3, "response header metadata mismatch"
+        assert resp.bodySize() == 11 and responseBytes.len() == 11 and not resp.committed(), "response body view mismatch"
+        return true
+    end
+
+    if req.path() == "/download" then
+        return resp.file("examples_out/example_http_static/index.txt")
+    end
+
+    if req.path() == "/download-range" then
+        resp.status(206, "Partial Content")
+        return resp.fileRange("examples_out/example_http_static/index.txt", 7, 4)
+    end
+
+    if req.path() == "/close" then
+        return req.closeConnection()
+    end
+
+    if req.path() == "/go" then
+        return resp.redirect("/hello", 302)
+    end
+
+    if req.path() == "/cookie" then
+        int flags = http.server.cookieHttpOnly
+        resp.cookie("sid", "example", "/", 3600, http.server.sameSiteLax, flags)
+        return resp.text("cookie set")
+    end
+
+    if req.path() == "/stream" then
+        resp.header("Content-Type", "text/plain; charset=utf-8")
+        if not resp.start() then
+            return false
+        end
+        resp.write("hello ")
+        resp.write("stream")
+        return resp.finish()
+    end
+
+    if req.path() == "/any" then
+        return resp.text(req.method())
+    end
+
+    if req.path() == "/generic-method" then
+        return resp.text(req.method())
+    end
+
+    resp.status(404)
+    return resp.text("not found")
+end
+
+func errorPage(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Error-Path", req.path())
+    return resp.text("error " + status.toString() + ": " + message)
+end
+
+func uploadBegin(point reqHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    string name = req.param("name")
+    string path = "examples_out/upload_"
+    path = path + name
+    path = path + ".tmp"
+    return file.writeText(path, "")
+end
+
+func uploadChunk(point reqHandle, point data, int size) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    Buffer bytes = http.server.chunkBytes(data, size)
+    if bytes.len() != size then
+        return false
+    end
+    string name = req.param("name")
+    string path = "examples_out/upload_"
+    path = path + name
+    path = path + ".tmp"
+    return file.appendText(path, http.server.chunkText(data, size))
+end
+
+func uploadEnd(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    string name = req.param("name")
+    string path = "examples_out/upload_"
+    path = path + name
+    path = path + ".tmp"
+    string body = file.readText(path)
+    string text = "upload "
+    text = text + name
+    text = text + ": "
+    text = text + body
+    return resp.text(text)
+end
+
+func(string, string, string, string) as string handler = hello
+func(point, point) as bool requestHandler = route
+func(int, string, point, point) as bool errorHandler = errorPage
+func(point) as bool uploadBeginHandler = uploadBegin
+func(point, point, int) as bool uploadChunkHandler = uploadChunk
+func(point, point) as bool uploadEndHandler = uploadEnd
+
+dir.createAll("examples_out/example_http_static")
+file.writeText("examples_out/example_http_static/index.txt", "static from xlang")
+file.writeText("examples_out/example_http_static/home.txt", "static ex from xlang")
+
+point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+point tlsProbe = http.server.createTls("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem", 0)
+assert tlsProbe != null, "createTls should create an HTTPS-capable server"
+assert http.server.tlsHost(tlsProbe, "127.0.0.1", "release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem"), "tlsHost should register an SNI certificate"
+assert http.server.removeTlsHost(tlsProbe, "127.0.0.1"), "removeTlsHost should remove an SNI certificate"
+http.server.destroy(tlsProbe)
+int staticFlags = http.server.staticPortable + http.server.staticAllowHidden
+int cookieFlags = http.server.cookieSecure + http.server.cookieHttpOnly + http.server.cookiePartitioned
+int sameSiteSum = http.server.sameSiteUnspecified + http.server.sameSiteLax + http.server.sameSiteStrict + http.server.sameSiteNone
+assert staticFlags >= http.server.staticPortable, "static flags should be numeric"
+assert cookieFlags > 0, "cookie flags should be numeric"
+assert sameSiteSum == 6, "sameSite constants should be stable"
+http.server.get(server, "/legacy", handler)
+http.server.post(server, "/legacy-post", handler)
+http.server.any(server, "/legacy-any", handler)
+http.server.getRequest(server, "/hello", requestHandler)
+http.server.getRequest(server, "/users/{id}", requestHandler)
+http.server.postRequest(server, "/echo", requestHandler)
+http.server.postRequest(server, "/form", requestHandler)
+http.server.postRequest(server, "/multipart", requestHandler)
+http.server.postRequest(server, "/echo-bytes", requestHandler)
+http.server.postStreamRequest(server, "/upload/{name}", uploadBeginHandler, uploadChunkHandler, uploadEndHandler)
+http.server.routeStreamRequest(server, "PUT|PATCH", "/upload-route/{name}", uploadBeginHandler, uploadChunkHandler, uploadEndHandler)
+http.server.anyStreamRequest(server, "/upload-any/{name}", uploadBeginHandler, uploadChunkHandler, uploadEndHandler)
+http.server.anyRequest(server, "/any", requestHandler)
+http.server.anyRequest(server, "/json", requestHandler)
+http.server.getRequest(server, "/append-body", requestHandler)
+http.server.route(server, "OPTIONS", "/legacy-route", handler)
+http.server.routeRequest(server, "PUT|PATCH|DELETE|OPTIONS", "/generic-method", requestHandler)
+http.server.getRequest(server, "/download", requestHandler)
+http.server.getRequest(server, "/download-range", requestHandler)
+http.server.getRequest(server, "/close", requestHandler)
+http.server.getRequest(server, "/go", requestHandler)
+http.server.getRequest(server, "/cookie", requestHandler)
+http.server.getRequest(server, "/stream", requestHandler)
+http.server.static(server, "/public", "examples_out/example_http_static")
+http.server.staticEx(server, "/assets", "examples_out/example_http_static", "home.txt", "max-age=60", 65536, staticFlags)
+http.server.error(server, errorHandler)
+assert http.server.mimeByPath("data.json") == "application/json", "mimeByPath should inspect extension"
+
+if http.server.start(server) then
+    int boundPort = http.server.port(server)
+    auto portText = boundPort.toString()
+    assert http.server.requestCount(server) >= 0, "requestCount should be available"
+    assert http.server.connectionCount(server) >= 0, "connectionCount should be available"
+    time.sleep(1000)
+    assert http.server.drain(server, 1000), "drain should gracefully stop active HTTP server"
+    http.server.stop(server)
+end
+
+http.server.destroy(server)
+file.delete("examples_out/example_http_static/index.txt")
+file.delete("examples_out/example_http_static/home.txt")
+dir.delete("examples_out/example_http_static")

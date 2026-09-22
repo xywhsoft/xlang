@@ -3,13 +3,30 @@ import mqtt
 
 
 func main(...) as int
-    println("CONNECT:    ", mqtt.connect("demo-client", 120, 1))
-    println("PUBLISH:    ", mqtt.publish("devices/sensor1", "{\"temp\":22.5}"))
-    println("SUBSCRIBE:  ", mqtt.subscribe(42, "devices/+/status"))
-    println("PINGREQ:    ", mqtt.pingreq())
-    println("DISCONNECT: ", mqtt.disconnect())
-    println("CONNACK:    ", mqtt.connack(0))
-    println("Type(3):    ", mqtt.typeName(3))
+    // 构造各类帧（实际 broker 交互走 TcpStream）
+    println("connect:  ", mqtt.connect("sensor-1", "", "", 60, true))
+    println("publish:  ", mqtt.publish(0, "home/livingroom/temp", "22.5", 0))
+    println("publish1: ", mqtt.publish(1, "alert/motion", "detected", 42))
+    println("subscribe:", mqtt.subscribe(1, "home/+/temp", 0))
+    println("puback:   ", mqtt.puback(42))
+    println("ping:     ", mqtt.pingreq())
+    println("disconnect:", mqtt.disconnect())
+
+    // 模拟服务器应答
+    var ack = mqtt.parse("20020000")
+    println("connack code:", ack["returnCode"])
+
+    var msg = mqtt.parse("320e0005746f706963000b776f726c64")
+    println("publish reply:", msg["topic"], "->", msg["payload"], "qos", msg["qos"], "pid", msg["packetId"])
+
+    var suback = mqtt.parse("9003000100")
+    println("suback granted:", suback["granted"][0])
+
+    // 与真实 broker 交互：
+    // TcpStream broker = tcp.connect("broker.example.com", 1883)
+    // mqtt.handshake(broker, "sensor-1", "", "", 60)
+    // 发送 publish 帧 / 接收并 parse 应答
+
     println("mqtt example: PASS")
     return 0
 end

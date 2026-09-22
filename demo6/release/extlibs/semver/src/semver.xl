@@ -1,0 +1,57 @@
+extern "xsemver_valid" func __semver_valid(string version) as bool
+extern "xsemver_major" func __semver_major(string version) as int
+extern "xsemver_minor" func __semver_minor(string version) as int
+extern "xsemver_patch" func __semver_patch(string version) as int
+extern "xsemver_prerelease" func __semver_prerelease(string version) as string
+extern "xsemver_build" func __semver_build(string version) as string
+extern "xsemver_clean" func __semver_clean(string version) as string
+extern "xsemver_compare" func __semver_compare(string a, string b) as int
+extern "xsemver_satisfies" func __semver_satisfies(string version, string range) as bool
+
+
+
+// valid 判断字符串是否是严格的 SemVer 2.0.0 版本号
+export func valid(string version) as bool
+    return __semver_valid(version)
+end
+
+// major 返回主版本号；输入非法时返回 -1
+export func major(string version) as int
+    return __semver_major(version)
+end
+
+// minor 返回次版本号；输入非法时返回 -1
+export func minor(string version) as int
+    return __semver_minor(version)
+end
+
+// patch 返回修订号；输入非法时返回 -1
+export func patch(string version) as int
+    return __semver_patch(version)
+end
+
+// prerelease 返回先行版本号；无先行版本或输入非法时返回空字符串
+export func prerelease(string version) as string
+    return __semver_prerelease(version)
+end
+
+// build 返回编译元数据；无元数据或输入非法时返回空字符串
+export func build(string version) as string
+    return __semver_build(version)
+end
+
+// clean 去掉前导 v/V/= 与空白后返回规范化版本号；无法解析时返回空字符串
+export func clean(string version) as string
+    return __semver_clean(version)
+end
+
+// compare 按 SemVer 优先级比较：a<b 返回 -1，相等返回 0，a>b 返回 1；任一非法返回 -2
+export func compare(string a, string b) as int
+    return __semver_compare(a, b)
+end
+
+// satisfies 判断版本是否满足 node-semver 风格范围表达式
+// 支持：精确/部分版本、x 通配、比较运算符、~ 与 ^、空格交集、|| 并集、A - B 区间
+export func satisfies(string version, string range) as bool
+    return __semver_satisfies(version, range)
+end

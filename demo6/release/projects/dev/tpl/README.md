@@ -27,9 +27,12 @@ tpl demo
 
 `foreach` 循环体内可用的变量：
 
-- `__index__`：当前序号（从 0 开始）
-- `__value__`：当前元素
-- `__key__`：当前键（仅字典遍历）
+- `loop.index`：当前序号（从 0 开始）
+- `loop.number`：当前序号（从 1 开始）
+- `loop.value`：当前元素
+- `loop.key`：当前键
+- `loop.first` / `loop.last`：是否为首项 / 末项
+- `loop.depth`：当前循环嵌套深度
 - 若元素本身是对象，其字段也会直接进入作用域（例如遍历 `users` 时可直接写 `{$name}`）
 
 ## 定界符（bracket）
@@ -76,15 +79,11 @@ xl build projects\dev\tpl\tpl.xl -o projects\dev\tpl\tpl.exe
 
 ## 验证结论
 
-`std.template` 全部能力正常工作：`template.compile(text)` / `compile(text, bracket)`、
-`template.render(text, data)` / `render(text, data, bracket)`、`template.renderFile(path, data, bracket)`、
+`std.template` 全部能力正常工作：`template.compile(text)` / `compile(text, open, close)`、
+`template.render(text, data)` / `render(text, data, open, close)`、`template.renderFile(path, data, open, close)`、
 `Template` 类的 `render(data)` 与统计属性 `nodeCount` / `exprCount` / `argCount` / `stringPoolSize`，
-以及 `{$var}` 插值、`{#if}` 分支、`{#foreach}` 遍历（含 `__index__` / `__value__` / `__key__`）、
+以及 `{$var}` 插值、`{#if}` 分支、`{#foreach}` 遍历（含 `loop.index` / `loop.value` / `loop.key`）、
 数组下标 `{$items[0]}`、自定义定界符 `{{}}` / `<>` 等。
 
 > 注意：PowerShell 调试时双引号字符串会把 `$title` 当 PS 变量展开成空串，
 > 传模板参数要用单引号（`'Hello {$title}'`）。这是 shell 行为，与 xlang / 模板引擎无关。
-
-## 已知手感问题
-
-见 `../BUGS.md` BUG-T1（`Template.render()` 方法返回类型未被标注为 string）。

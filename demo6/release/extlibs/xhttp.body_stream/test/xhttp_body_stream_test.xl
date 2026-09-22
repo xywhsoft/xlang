@@ -1,0 +1,73 @@
+import xhttp.body
+import xhttp.body_async
+import xhttp.body_stream
+from xhttp.body import BodyChunk
+from xhttp.body_async import AsyncBodyReader
+from xhttp.body_stream import BodyStream, BodyStreamInfo
+
+
+
+async func collect(AsyncBodyReader reader, int chunkSize = 2) as string
+    string output = ""
+
+    while true
+        BodyChunk? chunk = await reader.nextAsync(chunkSize)
+        if chunk == null then
+            return output
+        end
+        output += chunk.text()
+    end
+end
+
+
+
+async func exerciseBackpressure() as string
+    BodyStream stream = BodyStream.open(4, 1)
+    AsyncBodyReader reader = stream.reader()
+    future<string> reading = collect(reader)
+
+    assert stream.writeText("abcd") == xhttp.body_stream.STREAM_OK
+    assert stream.writeText("x") == xhttp.body_stream.STREAM_AGAIN
+    await stream.waitWritable()
+    assert await stream.writeTextAsync("x")
+    assert stream.close()
+    string result = await reading
+
+    BodyStreamInfo info = stream.info()
+    assert info.pendingBytes == 0
+    assert info.pendingChunks == 0
+    assert info.writtenBytes == 5
+    assert info.readBytes == 5
+    assert info.opened and info.inputClosed
+    assert not info.consumerClosed and not info.failed
+    return result
+end
+
+
+
+async func exerciseTake() as string
+    BodyStream stream = BodyStream.open(4, 1)
+    AsyncBodyReader reader = stream.reader()
+    future<string> reading = collect(reader, 4)
+    Buffer owned = Buffer()
+
+    owned.append("take")
+    assert stream.writeTake(owned) == xhttp.body_stream.STREAM_OK
+    assert owned.len() == 0
+    assert stream.close()
+    return await reading
+end
+
+
+
+string backpressureResult = await exerciseBackpressure()
+assert backpressureResult == "abcdx"
+assert await exerciseTake() == "take"
+
+BodyStream original = BodyStream.open(8, 2)
+BodyStream shared = original.share()
+assert original.nativeHandle() == shared.nativeHandle()
+assert original.close()
+assert shared.close()
+
+println("xhttp.body_stream package ok")

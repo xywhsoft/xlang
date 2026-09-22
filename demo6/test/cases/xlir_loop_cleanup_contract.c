@@ -4,6 +4,7 @@
 #include "src/stdlib/xl6_stdlib.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 static size_t mutations;
 static void reject(XL6_IrModule* ir, const char* field)
@@ -36,18 +37,20 @@ int main(int argc, char** argv)
     XL6_Output out;
     char typedPath[1024];
     size_t i, j, regions = 0, releases = 0, ordered = 0, next = 0;
-    assert(argc == 1 || argc == 4);
+    assert(argc == 1 || argc == 4 ||
+        (argc == 5 && strcmp(argv[4], "--emit-only") == 0));
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile("test/cases/xlir_loop_cleanup_outcome.xl", &parse) ||
         !xl6StdlibExpandModule(parse.root, &parse.diags) ||
         !xl6SemCheckModule(parse.root, &parse.diags, "loop_cleanup_contract") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||
         !xl6IrVerifyModule(&ir, &parse.diags)) goto failed;
-    if (argc == 4) {
+    if (argc >= 4) {
         assert(snprintf(typedPath, sizeof(typedPath), "%s.typed.json", argv[3]) > 0);
         assert(xl6OutputOpenFile(&out, typedPath)); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);
     }
     if (!xl6IrLowerModule(&ir, &parse.diags) || !xl6IrVerifyModule(&ir, &parse.diags)) goto failed;
+    if (argc == 5) goto emit_artifacts;
     for (i = 0; i < ir.loopOwnerCount; ++i) {
         XL6_IrLoopOwner* owner = &ir.loopOwners[i];
         MUTATE(XL6_IrLoopOwner, owner, origin, 0);
@@ -116,8 +119,9 @@ int main(int argc, char** argv)
         (unsigned long)ir.loopOwnerCount, (unsigned long)regions, (unsigned long)releases,
         (unsigned long)ordered, (unsigned long)next, (unsigned long)mutations);
     assert(regions >= 20 && releases >= 40 && ordered > 0 && next >= 4 && mutations >= 200);
+emit_artifacts:
     assert(xl6IrVerifyModule(&ir, NULL));
-    if (argc == 4) {
+    if (argc >= 4) {
         assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
         assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "LOOP_CLEANUP", &parse.diags)); xl6OutputClose(&out);
         assert(xl6OutputOpenFile(&out, argv[3])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);

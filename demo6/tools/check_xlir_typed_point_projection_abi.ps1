@@ -16,7 +16,6 @@ $typedJson = Join-Path $outputDir "xlir_typed_point_projection.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_typed_point_projection.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_typed_point_projection.c"
 $generatedCSecond = Join-Path $outputDir "xlir_typed_point_projection.second.c"
-$legacyC = Join-Path $outputDir "xlir_typed_point_projection.legacy.c"
 
 foreach ( $path in @($xl, $source, $runtimeHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -131,18 +130,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR typed point projection strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed point projection legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_typed_point_projection.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_typed_point_projection.legacy.exe && build\test\xlir_typed_point_projection.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed point projection legacy differential gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR typed point projection gate passed: exact pointer-sentinel TypeId, explicit raw-pointer box/project operations, canonical borrowed carrier ABI, deterministic strict C, runtime assertions, and legacy differential semantics."
+Write-Output "XLIR typed point projection gate passed: exact pointer-sentinel TypeId, explicit raw-pointer box/project operations, canonical borrowed carrier ABI, deterministic strict C, and runtime assertions."

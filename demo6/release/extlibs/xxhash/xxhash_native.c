@@ -1,3 +1,7 @@
+#define XRT_MODULE_ERROR_FORMAT
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
 #include "include/xrt_xxhash.h"
 
 #define XXH_STATIC_LINKING_ONLY
@@ -26,6 +30,7 @@
 
 static XXXHASH_THREAD char g_xxxhash_hex[XXXHASH_HEX_SLOTS][24];
 static XXXHASH_THREAD size_t g_xxxhash_hex_index;
+static XXXHASH_THREAD int g_xxxhash_file_status;
 
 static const char* xxxhash_format64(uint64 iValue)
 {
@@ -43,18 +48,46 @@ static const char* xxxhash_format32(uint32 iValue)
 	return sSlot;
 }
 
+/* 把 xxHash 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xxxhash_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_XXHASH_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_XXHASH_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_XXHASH_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_XXHASH_ERROR_STATE:
+			return XERR_STATE;
+		case XRT_XXHASH_ERROR_CANCELLED:
+			return XERR_CANCELLED;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 发布可被 XLang 和 C 调用方统一读取的结构化错误。 */
 static void xxxhash_publish_error(const xrtxxhasherror* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "xxhash operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_XXHASH_ERROR_IO;
+
+	xrtSetErrorInfo(
+		xxxhash_error_kind(iCode),
+		"xlang.extlib.xxhash",
+		iCode,
+		sMessage
+	);
 }
 
 
 
 XXXHASH_EXPORT bool xxxhash_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XXXHASH_EXPORT const char* xxxhash_version(void)
@@ -71,12 +104,17 @@ XXXHASH_EXPORT const char* xxxhash_version(void)
 
 XXXHASH_EXPORT const char* xxxhash_last_error(void)
 {
-	return xrtGetError();
+	return xrtErrorMessage(xrtGetError());
+}
+
+XXXHASH_EXPORT int xxxhash_file_status(void)
+{
+	return g_xxxhash_file_status;
 }
 
 
 
-XXXHASH_EXPORT unsigned long long xxxhash_hash64(const void* pData, size_t iSize,
+XXXHASH_EXPORT long long xxxhash_hash64(const void* pData, size_t iSize,
 	unsigned long long iSeed)
 {
 	uint64 iHash = 0u;
@@ -102,7 +140,7 @@ XXXHASH_EXPORT const char* xxxhash_hash64_hex(const void* pData, size_t iSize,
 	return xxxhash_format64(iHash);
 }
 
-XXXHASH_EXPORT unsigned int xxxhash_hash32(const void* pData, size_t iSize, unsigned int iSeed)
+XXXHASH_EXPORT long long xxxhash_hash32(const void* pData, size_t iSize, unsigned int iSeed)
 {
 	uint32 iHash = 0u;
 	xrtxxhasherror tError;
@@ -126,7 +164,7 @@ XXXHASH_EXPORT const char* xxxhash_hash32_hex(const void* pData, size_t iSize, u
 	return xxxhash_format32(iHash);
 }
 
-XXXHASH_EXPORT unsigned long long xxxhash_hash64_str(const char* sText, size_t iSize,
+XXXHASH_EXPORT long long xxxhash_hash64_str(const char* sText, size_t iSize,
 	unsigned long long iSeed)
 {
 	return xxxhash_hash64((const void*)sText, iSize, iSeed);
@@ -153,42 +191,56 @@ static bool xxxhash_file_options(str sPath, uint64 iSeed, uint64 iMaxInput,
 	pOptions->iSeed = iSeed;
 	if ( iMaxInput != 0u ) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
 	if ( sPath == NULL || sPath[0] == 0 ) {
-		xrtSetError(xrtFormat("xxhash file path is required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.xxhash",
+			XRT_XXHASH_ERROR_ARGUMENT, "xxhash file path is required");
+		return false;
 	}
 	if ( !xrtPathExists(sPath) ) {
-		xrtSetError(xrtFormat("xxhash file does not exist: %s", sPath), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_NOT_FOUND, "xlang.extlib.xxhash", XRT_XXHASH_ERROR_IO,
+			"xxhash file does not exist: %s", sPath);
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-XXXHASH_EXPORT unsigned long long xxxhash_file64(str sPath, unsigned long long iSeed,
-	unsigned long long iMaxInput)
+XXXHASH_EXPORT long long xxxhash_file64(str sPath, unsigned long long iSeed,
+	unsigned long long iMaxInput, xvalue* pCallback)
 {
 	xrtxxhashoptions tOptions;
 	xrtxxhasherror tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint64 iHash = 0u;
 	bool bResult;
 	xrtClearError();
+	g_xxxhash_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	if ( !xxxhash_file_options(sPath, (uint64)iSeed, (uint64)iMaxInput, &tOptions) ) { return 0u; }
 	pReader = xrtReaderOpen(sPath);
-	if ( pReader == NULL ) {
-		xrtSetError(xrtFormat("cannot open xxhash file: %s", sPath), TRUE);
+	if ( pReader == NULL ) { return 0u; }
+	bResult = xrtXxhashFile64(pReader, tOptions.iSeed, &tOptions.tLimits, &iHash,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
+	if ( !xrtReaderDestroy(pReader) && bResult ) {
+		g_xxxhash_file_status = 0;
 		return 0u;
 	}
-	bResult = xrtXxhashFile64(pReader, tOptions.iSeed, &tOptions.tLimits, &iHash, &tError);
-	xrtReaderDestroy(pReader);
-	if ( !bResult ) { xxxhash_publish_error(&tError); return 0u; }
-	return (unsigned long long)iHash;
+	if ( !bResult ) {
+		if ( tProgress.InvokeFailed ) { g_xxxhash_file_status = -2; }
+		else {
+			g_xxxhash_file_status = tError.iCode == XRT_XXHASH_ERROR_CANCELLED ? -1 : 0;
+			xxxhash_publish_error(&tError);
+		}
+		return 0u;
+	}
+	g_xxxhash_file_status = 1;
+	return (long long)iHash;
 }
 
 XXXHASH_EXPORT const char* xxxhash_file64_hex(str sPath, unsigned long long iSeed,
-	unsigned long long iMaxInput)
+	unsigned long long iMaxInput, xvalue* pCallback)
 {
-	unsigned long long iHash = xxxhash_file64(sPath, iSeed, iMaxInput);
-	if ( xrtGetError()[0] != 0 ) { return ""; }
+	uint64 iHash = (uint64)xxxhash_file64(sPath, iSeed, iMaxInput, pCallback);
+	if ( g_xxxhash_file_status != 1 ) { return ""; }
 	return xxxhash_format64((uint64)iHash);
 }
 
@@ -221,9 +273,9 @@ XXXHASH_EXPORT bool xxxhash_hasher_update(void* pHandle, const void* pData, size
 	xrtxxhashhasher* pHasher = (xrtxxhashhasher*)pHandle;
 	if ( !xrtXxhashHasherUpdate(pHasher, pData, iSize) ) {
 		xxxhash_publish_error(xrtXxhashHasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XXXHASH_EXPORT bool xxxhash_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -231,7 +283,7 @@ XXXHASH_EXPORT bool xxxhash_hasher_update_str(void* pHandle, const char* sText, 
 	return xxxhash_hasher_update(pHandle, (const void*)sText, iSize);
 }
 
-XXXHASH_EXPORT unsigned long long xxxhash_hasher_digest(void* pHandle)
+XXXHASH_EXPORT long long xxxhash_hasher_digest(void* pHandle)
 {
 	xrtxxhashhasher* pHasher = (xrtxxhashhasher*)pHandle;
 	uint64 iHash = 0u;
@@ -258,12 +310,12 @@ XXXHASH_EXPORT bool xxxhash_hasher_reset(void* pHandle)
 	xrtxxhashhasher* pHasher = (xrtxxhashhasher*)pHandle;
 	if ( !xrtXxhashHasherReset(pHasher) ) {
 		xxxhash_publish_error(xrtXxhashHasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-XXXHASH_EXPORT unsigned long long xxxhash_hasher_input_bytes(void* pHandle)
+XXXHASH_EXPORT long long xxxhash_hasher_input_bytes(void* pHandle)
 {
 	return (unsigned long long)xrtXxhashHasherInputBytes((const xrtxxhashhasher*)pHandle);
 }

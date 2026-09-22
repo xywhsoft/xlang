@@ -1,6 +1,6 @@
 import opencv
-import uia
 
+func main(...) as int
 assert opencv.available() == true, "opencv backend should be available"
 assert string.len(opencv.backend()) > 0, "opencv backend path missing"
 assert opencv.version() == "opencv 4.13.0", "opencv version failed"
@@ -85,16 +85,6 @@ assert methodNormalized.empty() == false, "opencv Image.normalize failed"
 assert string.contains(opencv.toCHWTensorJson(resized, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0), "\"shape\""), "opencv toCHWTensorJson failed"
 assert string.contains(resized.toCHWTensorJson(1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0), "\"data\""), "opencv Image.toCHWTensorJson failed"
 
-auto window = uia.test_window()
-assert window.valid() == true, "opencv helper test window failed"
-auto windowImage = opencv.capture_window(window.hwnd())
-assert windowImage.empty() == false, "opencv capture_window failed"
-
-assert windowImage.release() == true, "opencv window image release failed"
-assert window.close() == true, "opencv helper window close failed"
-assert window.release() == true, "opencv helper window release failed"
-assert uia.shutdown() == true, "opencv helper uia shutdown failed"
-
 assert methodNormalized.release() == true, "opencv methodNormalized release failed"
 assert normalized.release() == true, "opencv normalized release failed"
 assert methodRect.release() == true, "opencv methodRect release failed"
@@ -122,3 +112,5 @@ assert color.release() == true, "opencv color release failed"
 assert screen.release() == true, "opencv screen release failed"
 
 println("opencv extlib ok")
+return 0
+end

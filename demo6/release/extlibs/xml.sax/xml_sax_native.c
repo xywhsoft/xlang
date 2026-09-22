@@ -1,28 +1,17 @@
-#include "include/xrt_xml.h"
+#include "xrt_xml_internal.h"
 
 #include <stdio.h>
 #include <string.h>
 
 
 
-typedef struct {
-	xrtxmlerror tError;
-	int iNextStatus;
-} xlangsaxstate;
-
-static xlangsaxstate* __xlangSaxState(void)
-{
-	return (xlangsaxstate*)xrtThreadLocalGetOrCreate("xlang.xml.sax.error.v1",
-		sizeof(xlangsaxstate));
-}
-
 static void __xlangSaxStoreError(const xrtxmlerror* pError, int iStatus)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	if ( pState == NULL ) { return; }
-	if ( pError != NULL ) { pState->tError = *pError; }
-	else { xrtXmlErrorInit(&pState->tError); }
-	pState->iNextStatus = iStatus;
+	if ( iStatus != XRT_XML_NEXT_ERROR ) { return; }
+	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.xml.sax",
+		pError != NULL ? pError->iCode : XRT_XML_ERROR_FORMAT,
+		pError != NULL && pError->sMessage[0] != 0 ?
+			pError->sMessage : "XML SAX operation failed");
 }
 
 static void __xlangSaxOptions(xrtxmloptions* pOptions, bool bNamespaceAware,
@@ -57,19 +46,27 @@ static const char* __xlangSaxEventName(int iType)
 	}
 }
 
-static bool __xlangSaxSetText(xvalue pTable, const char* sKey,
+static bool __xlangSaxSetText(xvalue* pTable, const char* sKey,
 	const char* sValue)
 {
-	return xvoTableSetText(pTable, sKey, (uint32)strlen(sKey),
-		(ptr)(sValue != NULL ? sValue : ""),
-		(uint32)strlen(sValue != NULL ? sValue : ""), FALSE);
+	xvalue* pText = xrtValueString(xrtStrView(
+		sValue != NULL ? sValue : ""));
+	return pText != NULL && xrtValueObjectSetTake(pTable,
+		xrtStrView(sKey), &pText);
 }
 
-static xvalue __xlangSaxEventValue(const xrtxmlevent* pEvent)
+static bool __xlangSaxSetInt(xvalue* pTable, const char* sKey, int64 iValue)
 {
-	xvalue pResult = xvoCreateTable();
-	xvalue pAttributes = NULL;
-	xvalue pAttributeList = NULL;
+	xvalue* pNumber = xrtValueInt(iValue);
+	return pNumber != NULL && xrtValueObjectSetTake(pTable,
+		xrtStrView(sKey), &pNumber);
+}
+
+static xvalue* __xlangSaxEventValue(const xrtxmlevent* pEvent)
+{
+	xvalue* pResult = xrtValueObject();
+	xvalue* pAttributes = NULL;
+	xvalue* pAttributeList = NULL;
 	uint32 i;
 	if ( pResult == NULL ) { return NULL; }
 	if ( !__xlangSaxSetText(pResult, "type", __xlangSaxEventName(pEvent->iType)) ||
@@ -79,47 +76,49 @@ static xvalue __xlangSaxEventValue(const xrtxmlevent* pEvent)
 		!__xlangSaxSetText(pResult, "prefix", (const char*)pEvent->sPrefix) ||
 		!__xlangSaxSetText(pResult, "text", (const char*)pEvent->sText) ||
 		!__xlangSaxSetText(pResult, "target", (const char*)pEvent->sTarget) ||
-		!xvoTableSetInt(pResult, "depth", 5u, pEvent->iDepth) ||
-		!xvoTableSetInt(pResult, "line", 4u, (int64)pEvent->iLine) ||
-		!xvoTableSetInt(pResult, "column", 6u, (int64)pEvent->iColumn) ||
-		!xvoTableSetInt(pResult, "offset", 6u, (int64)pEvent->iOffset) ) {
-		xvoUnref(pResult);
+		!__xlangSaxSetInt(pResult, "depth", pEvent->iDepth) ||
+		!__xlangSaxSetInt(pResult, "line", (int64)pEvent->iLine) ||
+		!__xlangSaxSetInt(pResult, "column", (int64)pEvent->iColumn) ||
+		!__xlangSaxSetInt(pResult, "offset", (int64)pEvent->iOffset) ) {
+		xrtValueRelease(pResult);
 		return NULL;
 	}
-	pAttributes = xvoCreateTable();
-	pAttributeList = xvoCreateArray();
+	pAttributes = xrtValueObject();
+	pAttributeList = xrtValueArray();
 	if ( pAttributes == NULL || pAttributeList == NULL ) { goto failed; }
 	for ( i = 0u; i < pEvent->iAttributeCount; i++ ) {
 		const xrtxmlattribute* pItem = &pEvent->pAttributes[i];
-		xvalue pDescription = xvoCreateTable();
+		xvalue* pDescription = xrtValueObject();
+		xvalue* pAttributeValue = xrtValueString(xrtStrView(
+			(const char*)(pItem->sValue != NULL ? pItem->sValue : (str)"")));
 		if ( pDescription == NULL ||
-			!xvoTableSetText(pAttributes, pItem->sName,
-				(uint32)strlen((const char*)pItem->sName), pItem->sValue,
-				(uint32)strlen((const char*)pItem->sValue), FALSE) ||
+			pAttributeValue == NULL || !xrtValueObjectSetTake(pAttributes,
+				xrtStrView((const char*)pItem->sName), &pAttributeValue) ||
 			!__xlangSaxSetText(pDescription, "name", (const char*)pItem->sName) ||
 			!__xlangSaxSetText(pDescription, "localName", (const char*)pItem->sLocalName) ||
 			!__xlangSaxSetText(pDescription, "namespaceUri", (const char*)pItem->sNamespaceUri) ||
 			!__xlangSaxSetText(pDescription, "prefix", (const char*)pItem->sPrefix) ||
 			!__xlangSaxSetText(pDescription, "value", (const char*)pItem->sValue) ||
-			!xvoArrayAppendValue(pAttributeList, pDescription, TRUE) ) {
-			xvoUnref(pDescription);
+			!xrtValueArrayAppendTake(pAttributeList, &pDescription) ) {
+			xrtValueRelease(pAttributeValue);
+			xrtValueRelease(pDescription);
 			goto failed;
 		}
 	}
-	if ( !xvoTableSetValue(pResult, "attributes", 10u, pAttributes, TRUE) ||
-		!xvoTableSetValue(pResult, "attributeList", 13u, pAttributeList, TRUE) ) {
+	if ( !xrtValueObjectSetTake(pResult, xrtStrView("attributes"), &pAttributes) ||
+		!xrtValueObjectSetTake(pResult, xrtStrView("attributeList"), &pAttributeList) ) {
 		goto failed;
 	}
 	return pResult;
 
 failed:
-	xvoUnref(pAttributes);
-	xvoUnref(pAttributeList);
-	xvoUnref(pResult);
+	xrtValueRelease(pAttributes);
+	xrtValueRelease(pAttributeList);
+	xrtValueRelease(pResult);
 	return NULL;
 }
 
-XXAPI ptr xsax_open_memory(ptr pData, uint64 iSize, bool bNamespaceAware,
+XRT_API ptr xsax_open_memory(ptr pData, uint64 iSize, bool bNamespaceAware,
 	bool bPreserveComments, bool bAllowDtd, bool bAllowExternalEntities,
 	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
@@ -130,13 +129,14 @@ XXAPI ptr xsax_open_memory(ptr pData, uint64 iSize, bool bNamespaceAware,
 	__xlangSaxOptions(&tOptions, bNamespaceAware, bPreserveComments, bAllowDtd,
 		bAllowExternalEntities, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
+	xrtClearError();
 	pParser = xrtXmlSaxOpenMemory(pData, iSize, &tOptions, &tError);
 	__xlangSaxStoreError(pParser != NULL ? NULL : &tError,
 		pParser != NULL ? XRT_XML_NEXT_EVENT : XRT_XML_NEXT_ERROR);
 	return pParser;
 }
 
-XXAPI ptr xsax_open_file(str sPath, bool bNamespaceAware,
+XRT_API ptr xsax_open_file(str sPath, bool bNamespaceAware,
 	bool bPreserveComments, bool bAllowDtd, bool bAllowExternalEntities,
 	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
@@ -147,18 +147,21 @@ XXAPI ptr xsax_open_file(str sPath, bool bNamespaceAware,
 	__xlangSaxOptions(&tOptions, bNamespaceAware, bPreserveComments, bAllowDtd,
 		bAllowExternalEntities, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
+	xrtClearError();
 	pParser = xrtXmlSaxOpenFile(sPath, &tOptions, &tError);
 	__xlangSaxStoreError(pParser != NULL ? NULL : &tError,
 		pParser != NULL ? XRT_XML_NEXT_EVENT : XRT_XML_NEXT_ERROR);
 	return pParser;
 }
 
-XXAPI xvalue xsax_next(ptr pHandle)
+XRT_API xvalue* xsax_next(ptr pHandle)
 {
 	const xrtxmlevent* pEvent;
 	xrtxmlerror tError;
-	int iStatus = xrtXmlSaxNext((xrtxmlsax*)pHandle, &pEvent, &tError);
-	xvalue pResult = NULL;
+	int iStatus;
+	xvalue* pResult = NULL;
+	xrtClearError();
+	iStatus = xrtXmlSaxNext((xrtxmlsax*)pHandle, &pEvent, &tError);
 	if ( iStatus == XRT_XML_NEXT_EVENT ) {
 		pResult = __xlangSaxEventValue(pEvent);
 		if ( pResult == NULL ) {
@@ -170,53 +173,54 @@ XXAPI xvalue xsax_next(ptr pHandle)
 		}
 	}
 	__xlangSaxStoreError(iStatus == XRT_XML_NEXT_ERROR ? &tError : NULL, iStatus);
-	return pResult;
+	/*
+	    xlang 的 var 空值由 xrtValueNull() 表示，不是 C 的 NULL 指针。
+	    EOF 必须返回这个规范空值；否则 xlang 的 result == null 不成立，
+	    迭代协议会继续读取并最终破坏临时作用域栈。
+	*/
+	return pResult != NULL ? pResult : xrtValueNull();
 }
 
-XXAPI void xsax_destroy(ptr pHandle)
+XRT_API void xsax_destroy(ptr pHandle)
 {
 	xrtXmlSaxDestroy((xrtxmlsax*)pHandle);
 }
 
-XXAPI ptr xsax_retain(ptr pHandle)
+XRT_API ptr xsax_retain(ptr pHandle)
 {
 	return xrtXmlSaxRetain((xrtxmlsax*)pHandle);
 }
 
-XXAPI int64 xsax_status(void)
+XRT_API int64 xsax_status(void)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	return pState != NULL ? pState->iNextStatus : XRT_XML_NEXT_ERROR;
+	return xrtGetError() != NULL ? XRT_XML_NEXT_ERROR : XRT_XML_NEXT_EVENT;
 }
 
-XXAPI int64 xsax_error_code(void)
+XRT_API int64 xsax_error_code(void)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	return pState != NULL ? pState->tError.iCode : XRT_XML_ERROR_MEMORY;
+	const xerror* pError = xrtGetError();
+	return pError != NULL ? (int64)xrtErrorCode(pError) : 0;
 }
 
-XXAPI int64 xsax_error_line(void)
+XRT_API int64 xsax_error_line(void)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	return pState != NULL ? (int64)pState->tError.iLine : 0;
+	return 0;
 }
 
-XXAPI int64 xsax_error_column(void)
+XRT_API int64 xsax_error_column(void)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	return pState != NULL ? (int64)pState->tError.iColumn : 0;
+	return 0;
 }
 
-XXAPI int64 xsax_error_offset(void)
+XRT_API int64 xsax_error_offset(void)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	return pState != NULL ? (int64)pState->tError.iOffset : 0;
+	return 0;
 }
 
-XXAPI str xsax_error_message(void)
+XRT_API str xsax_error_message(void)
 {
-	xlangsaxstate* pState = __xlangSaxState();
-	const char* sMessage = pState != NULL ? pState->tError.sMessage :
-		"XML SAX state is unavailable";
-	return xrtCopyStr((str)sMessage, strlen(sMessage));
+	const xerror* pError = xrtGetError();
+	const char* sMessage = pError != NULL ? xrtErrorMessage(pError) :
+		"XML SAX operation failed";
+	return xrtStrDup(sMessage);
 }

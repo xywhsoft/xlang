@@ -1,14 +1,165 @@
 /*
  * bson_native.c - BSON <-> xlang var bidirectional codec
  * Based on cloudwu/lua-bson (MIT License) - buffer management & primitives
- * Architecture: BSON binary <-> xvalue (table/list/primitives) direct conversion
+ * Architecture: BSON binary <-> xvalue* (table/list/primitives) direct conversion
  */
-#include "xrt.h"
+#include "xl_runtime.h"
 
-#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+
+
+
+static void bson_error(const char *message) {
+    xrtSetErrorInfo(3, "xlang.extlib.bson", 0, message);
+}
+
+/*
+ * BSON needs only a small compatibility vocabulary for var values.  Keep it
+ * local: extensions must use the published XRT value API rather than revive
+ * the old xvo ABI as a second runtime contract.
+ */
+static xvalue *bson_null(void) {
+    return xrtValueRetain(xrtValueNull());
+}
+
+static bool xvoIsNull(const xvalue *value) {
+    return value == NULL || xrtValueType(value) == XVALUE_NULL;
+}
+
+static bool xvoIsBool(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_BOOL;
+}
+
+static bool xvoIsInt(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_INT;
+}
+
+static bool xvoIsFloat(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_FLOAT;
+}
+
+static bool xvoIsText(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_STRING;
+}
+
+static bool xvoIsTime(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_TIME;
+}
+
+static bool xvoIsArray(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_ARRAY;
+}
+
+static bool xvoIsList(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_INT_MAP;
+}
+
+static bool xvoIsTable(const xvalue *value) {
+    return value != NULL && xrtValueType(value) == XVALUE_OBJECT;
+}
+
+static bool xvoGetBool(const xvalue *value) {
+    bool result = false;
+    (void)xrtValueGetBool(value, &result);
+    return result;
+}
+
+static int64 xvoGetInt(const xvalue *value) {
+    int64 result = 0;
+    (void)xrtValueGetInt(value, &result);
+    return result;
+}
+
+static double xvoGetFloat(const xvalue *value) {
+    double result = 0.0;
+    (void)xrtValueGetFloat(value, &result);
+    return result;
+}
+
+static xtime xvoGetTime(const xvalue *value) {
+    xtime result = 0;
+    (void)xrtValueGetTime(value, &result);
+    return result;
+}
+
+static const char *xvoGetText(const xvalue *value) {
+    xstrview result = { 0, 0 };
+    return xrtValueGetString(value, &result) ? result.Data : NULL;
+}
+
+static uint32 xvoGetSize(const xvalue *value) {
+    xstrview result = { 0, 0 };
+    return xrtValueGetString(value, &result) && result.Size <= UINT32_MAX
+        ? (uint32)result.Size : 0u;
+}
+
+static xvalue *bson_string(const char *data, size_t size) {
+    return xrtValueString((xstrview){ data != NULL ? data : "", size });
+}
+
+static xvalue *xvoCreateNull(void) {
+    return bson_null();
+}
+
+static xvalue *xvoCreateText(ptr data, uint32 size, bool take) {
+    if (take) {
+        str owned = (str)data;
+        xvalue *value = xrtValueStringTake(&owned, (size_t)size);
+        if (value == NULL && owned != NULL) {
+            xrtFree(owned);
+        }
+        return value;
+    }
+    return bson_string((const char *)data, (size_t)size);
+}
+
+static xvalue *xvoCreateArray(void) {
+    return xrtValueArray();
+}
+
+static xvalue *xvoCreateTable(void) {
+    return xrtValueObject();
+}
+
+static void xvoUnref(xvalue *value) {
+    if (value != NULL) {
+        xrtValueRelease(value);
+    }
+}
+
+static bool xvoArrayAppendValue(xvalue *array, xvalue *value, bool take) {
+    return take ? xrtValueArrayAppendTake(array, &value)
+        : xrtValueArrayAppend(array, value);
+}
+
+static uint32 xvoArrayItemCount(const xvalue *array) {
+    size_t count = xrtValueCount(array);
+    return count <= UINT32_MAX ? (uint32)count : UINT32_MAX;
+}
+
+static xvalue *xvoArrayGetValue(const xvalue *array, uint32 index) {
+    xvalue *value = xrtValueArrayGet(array, (size_t)index);
+    return value != NULL ? xrtValueRetain(value) : NULL;
+}
+
+static bool xvoTableSetValue(xvalue *table, const void *key, uint32 keySize,
+    xvalue *value, bool take) {
+    xstrview name = { (const char *)key, (size_t)keySize };
+    return take ? xrtValueObjectSetTake(table, name, &value)
+        : xrtValueObjectSet(table, name, value);
+}
+
+static uint32 xvoListItemCount(const xvalue *list) {
+    size_t count = xrtValueCount(list);
+    return count <= UINT32_MAX ? (uint32)count : UINT32_MAX;
+}
+
+static xvalue *xvoListGetValue(const xvalue *list, int64 index) {
+    xvalue *value = xrtValueIntMapGet(list, index);
+    return value != NULL ? xrtValueRetain(value) : NULL;
+}
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -44,13 +195,11 @@
 #define DEFAULT_CAP 256
 #define MAX_DEPTH   128
 
-/* xtime epoch offset: seconds from 0001-01-01 to 1970-01-01 */
-#define XTIME_UNIX_EPOCH 62167219200LL
-
 /* ─── Dynamic buffer (from lua-bson) ─── */
 struct bson {
     int size;
     int cap;
+    bool failed;
     uint8_t *ptr;
     uint8_t buffer[DEFAULT_CAP];
 };
@@ -63,36 +212,55 @@ struct bson_reader {
 static void bson_init(struct bson *b) {
     b->size = 0;
     b->cap = DEFAULT_CAP;
+    b->failed = false;
     b->ptr = b->buffer;
 }
 
 static void bson_free(struct bson *b) {
-    if (b->ptr != b->buffer) free(b->ptr);
+    if (b->ptr != b->buffer) xrtFree(b->ptr);
     b->ptr = NULL;
     b->size = 0;
     b->cap = 0;
 }
 
-static void bson_reserve(struct bson *b, int sz) {
-    if (b->size + sz <= b->cap) return;
-    do { b->cap *= 2; } while (b->cap <= b->size + sz);
+static bool bson_reserve(struct bson *b, int sz) {
+    int next_cap;
+
+    if (b->failed) return false;
+    if (b->size + sz <= b->cap) return true;
+    next_cap = b->cap;
+    do { next_cap *= 2; } while (next_cap <= b->size + sz);
     if (b->ptr == b->buffer) {
-        b->ptr = (uint8_t *)malloc(b->cap);
-        memcpy(b->ptr, b->buffer, b->size);
+        uint8_t *next = (uint8_t *)xrtMalloc((size_t)next_cap);
+        if (next == NULL) {
+            bson_error("bson: out of memory");
+            b->failed = true;
+            return false;
+        }
+        memcpy(next, b->buffer, b->size);
+        b->ptr = next;
     } else {
-        b->ptr = (uint8_t *)realloc(b->ptr, b->cap);
+        uint8_t *next = (uint8_t *)xrtRealloc(b->ptr, (size_t)next_cap);
+        if (next == NULL) {
+            bson_error("bson: out of memory");
+            b->failed = true;
+            return false;
+        }
+        b->ptr = next;
     }
+    b->cap = next_cap;
+    return true;
 }
 
 /* ─── Write primitives ─── */
 static void w_byte(struct bson *b, uint8_t v) {
-    bson_reserve(b, 1);
+    if (!bson_reserve(b, 1)) return;
     b->ptr[b->size++] = v;
 }
 
 static void w_int32(struct bson *b, int32_t v) {
     uint32_t uv = (uint32_t)v;
-    bson_reserve(b, 4);
+    if (!bson_reserve(b, 4)) return;
     b->ptr[b->size++] = uv & 0xff;
     b->ptr[b->size++] = (uv >> 8) & 0xff;
     b->ptr[b->size++] = (uv >> 16) & 0xff;
@@ -102,7 +270,7 @@ static void w_int32(struct bson *b, int32_t v) {
 static void w_int64(struct bson *b, int64_t v) {
     uint64_t uv = (uint64_t)v;
     int i;
-    bson_reserve(b, 8);
+    if (!bson_reserve(b, 8)) return;
     for (i = 0; i < 64; i += 8)
         b->ptr[b->size++] = (uv >> i) & 0xff;
 }
@@ -111,13 +279,13 @@ static void w_double(struct bson *b, double d) {
     union { double d; uint64_t i; } v;
     int i;
     v.d = d;
-    bson_reserve(b, 8);
+    if (!bson_reserve(b, 8)) return;
     for (i = 0; i < 64; i += 8)
         b->ptr[b->size++] = (v.i >> i) & 0xff;
 }
 
 static void w_cstring(struct bson *b, const char *s, int len) {
-    bson_reserve(b, len + 1);
+    if (!bson_reserve(b, len + 1)) return;
     memcpy(b->ptr + b->size, s, len);
     b->ptr[b->size + len] = '\0';
     b->size += len + 1;
@@ -125,6 +293,7 @@ static void w_cstring(struct bson *b, const char *s, int len) {
 
 static void w_length_at(struct bson *b, int32_t v, int off) {
     uint32_t uv = (uint32_t)v;
+    if (b->failed || off < 0) return;
     b->ptr[off++] = uv & 0xff;
     b->ptr[off++] = (uv >> 8) & 0xff;
     b->ptr[off++] = (uv >> 16) & 0xff;
@@ -133,7 +302,7 @@ static void w_length_at(struct bson *b, int32_t v, int off) {
 
 static int w_reserve_length(struct bson *b) {
     int off = b->size;
-    bson_reserve(b, 4);
+    if (!bson_reserve(b, 4)) return -1;
     b->size += 4;
     return off;
 }
@@ -259,24 +428,24 @@ static void gen_oid(uint8_t *out12) {
 }
 
 /* ═══════════════════════════════════════════
-   BSON Decode: binary → xvalue (var)
+   BSON Decode: binary → xvalue* (var)
    ═══════════════════════════════════════════ */
 
-static xvalue bson_decode_doc(struct bson_reader *br);
-static xvalue bson_decode_array(struct bson_reader *br);
+static xvalue* bson_decode_doc(struct bson_reader *br);
+static xvalue* bson_decode_array(struct bson_reader *br);
 
-static xvalue bson_decode_value(struct bson_reader *br, int bt) {
+static xvalue* bson_decode_value(struct bson_reader *br, int bt) {
     switch (bt) {
     case BSON_REAL:
-        return xvoCreateFloat(r_double(br));
+        return xrtValueFloat(r_double(br));
     case BSON_STRING:
     case BSON_JSCODE:
     case BSON_SYMBOL: {
         int32_t slen = r_int32(br);
-        xvalue val;
-        if (slen <= 0) return xvoCreateText((ptr)"", 0, FALSE);
-        if (slen > br->size) { br->size = 0; return xvoCreateText((ptr)"", 0, FALSE); }
-        val = xvoCreateText((ptr)br->ptr, (uint32)(slen - 1), FALSE);
+        xvalue* val;
+        if (slen <= 0) return bson_string("", 0);
+        if (slen > br->size) { br->size = 0; return bson_string("", 0); }
+        val = bson_string((const char*)br->ptr, (size_t)(slen - 1));
         br->ptr += slen; br->size -= slen;
         return val;
     }
@@ -286,44 +455,47 @@ static xvalue bson_decode_value(struct bson_reader *br, int bt) {
         return bson_decode_array(br);
     case BSON_BOOLEAN: {
         int v = r_byte(br);
-        return xvoCreateBool(v ? TRUE : FALSE);
+        return xrtValueRetain(xrtValueBool(v ? true : false));
     }
     case BSON_INT32:
-        return xvoCreateInt((int64)r_int32(br));
+        return xrtValueInt((int64)r_int32(br));
     case BSON_INT64:
     case BSON_TIMESTAMP:
-        return xvoCreateInt(r_int64(br));
+        return xrtValueInt(r_int64(br));
     case BSON_DATE: {
         int64_t ms = r_int64(br);
-        int64_t secs = ms / 1000;
-        xtime t = (xtime)(XTIME_UNIX_EPOCH + secs);
-        return xvoCreateTime(t);
+        xtime t;
+        if (!xrtTimeFromUnixMs(ms, &t)) {
+            bson_error("bson: date is outside the XRT time range");
+            return bson_null();
+        }
+        return xrtValueTime(t);
     }
     case BSON_NULL:
     case BSON_UNDEFINED:
     case BSON_MINKEY:
     case BSON_MAXKEY:
-        return xvoCreateNull();
+        return bson_null();
     case BSON_OBJECTID: {
         static const char *hex = "0123456789abcdef";
         char out[25];
         int i;
-        if (br->size < 12) { br->size = 0; return xvoCreateNull(); }
+        if (br->size < 12) { br->size = 0; return bson_null(); }
         for (i = 0; i < 12; i++) {
             out[i*2]   = hex[br->ptr[i] >> 4];
             out[i*2+1] = hex[br->ptr[i] & 0xf];
         }
         out[24] = '\0';
         br->ptr += 12; br->size -= 12;
-        return xvoCreateText((ptr)out, 24, FALSE);
+        return bson_string(out, 24);
     }
     case BSON_BINARY: {
         int32_t blen = r_int32(br);
         int subtype = r_byte(br);
-        xvalue val;
+        xvalue* val;
         (void)subtype;
-        if (blen < 0 || blen > br->size) { br->size = 0; return xvoCreateText((ptr)"", 0, FALSE); }
-        val = xvoCreateText((ptr)br->ptr, (uint32)blen, FALSE);
+        if (blen < 0 || blen > br->size) { br->size = 0; return bson_string("", 0); }
+        val = bson_string((const char*)br->ptr, (size_t)blen);
         br->ptr += blen; br->size -= blen;
         return val;
     }
@@ -333,15 +505,15 @@ static xvalue bson_decode_value(struct bson_reader *br, int bt) {
         const char *p2 = r_cstring(br, &rl2);
         /* encode as "/pattern/options" string */
         int total = 1 + rl1 + 1 + rl2 + 1;
-        char *buf = (char *)malloc(total + 1);
-        xvalue val;
+        char *buf = (char *)xrtMalloc((size_t)total + 1u);
+        xvalue* val;
         buf[0] = '/';
         memcpy(buf + 1, p1, rl1);
         buf[1 + rl1] = '/';
         memcpy(buf + 2 + rl1, p2, rl2);
         buf[total - 1] = '\0';
-        val = xvoCreateText((ptr)buf, (uint32)(total - 1), FALSE);
-        free(buf);
+        val = bson_string(buf, (size_t)(total - 1));
+        xrtFree(buf);
         return val;
     }
     case BSON_DBPOINTER: {
@@ -368,14 +540,20 @@ static int bson_validate_header(struct bson_reader *br) {
     return doc_len;
 }
 
-static xvalue bson_decode_doc(struct bson_reader *br) {
+static xvalue* bson_decode_doc(struct bson_reader *br) {
     int32_t doc_len;
     struct bson_reader sub;
-    xvalue tbl;
+    xvalue* tbl;
 
-    if (br->size < 5) return xvoCreateNull();
+    if (br->size < 5) {
+        bson_error("bson: truncated document");
+        return xvoCreateNull();
+    }
     doc_len = r_int32(br);
-    if (doc_len < 5 || doc_len - 4 > br->size) return xvoCreateNull();
+    if (doc_len < 5 || doc_len - 4 > br->size || br->ptr[doc_len - 5] != 0) {
+        bson_error("bson: invalid document");
+        return xvoCreateNull();
+    }
 
     sub.ptr = br->ptr;
     sub.size = doc_len - 5; /* exclude length(4) and terminator(1) */
@@ -387,20 +565,20 @@ static xvalue bson_decode_doc(struct bson_reader *br) {
         int bt = r_byte(&sub);
         int klen = 0;
         const char *key;
-        xvalue val;
+        xvalue* val;
         if (bt == 0 || bt < 0) break;
         key = r_cstring(&sub, &klen);
         val = bson_decode_value(&sub, bt);
-        xvoTableSetValue(tbl, (const void*)key, (uint32)klen, val, TRUE);
+        xvoTableSetValue(tbl, (const void*)key, (uint32)klen, val, true);
     }
     return tbl;
 }
 
 /* Decode BSON array → xlang array (0-based indexed) */
-static xvalue bson_decode_array(struct bson_reader *br) {
+static xvalue* bson_decode_array(struct bson_reader *br) {
     int32_t doc_len;
     struct bson_reader sub;
-    xvalue arr;
+    xvalue* arr;
 
     if (br->size < 5) return xvoCreateArray();
     doc_len = r_int32(br);
@@ -415,21 +593,21 @@ static xvalue bson_decode_array(struct bson_reader *br) {
     while (sub.size > 0) {
         int bt = r_byte(&sub);
         int klen = 0;
-        xvalue val;
+        xvalue* val;
         if (bt == 0 || bt < 0) break;
         r_cstring(&sub, &klen); /* skip index key "0","1",... */
         val = bson_decode_value(&sub, bt);
-        xvoArrayAppendValue(arr, val, TRUE);
+        xvoArrayAppendValue(arr, val, true);
     }
     return arr;
 }
 
 /* ═══════════════════════════════════════════
-   BSON Encode: xvalue (var) → binary
+   BSON Encode: xvalue* (var) → binary
    ═══════════════════════════════════════════ */
 
 static void bson_encode_value(struct bson *b, const char *key, int klen,
-                              xvalue val, int depth);
+                              xvalue* val, int depth);
 
 /* Table walk context for encoding */
 struct encode_ctx {
@@ -437,16 +615,8 @@ struct encode_ctx {
     int depth;
 };
 
-static bool encode_table_proc(Dict_Key *pKey, ptr pRawValue, ptr pArg) {
-    struct encode_ctx *ctx = (struct encode_ctx *)pArg;
-    xvalue val = *(xvalue*)pRawValue;
-    bson_encode_value(ctx->b, (const char*)pKey->Key, (int)pKey->KeyLen,
-                      val, ctx->depth);
-    return FALSE; /* continue walking */
-}
-
 static void bson_encode_value(struct bson *b, const char *key, int klen,
-                              xvalue val, int depth) {
+                               xvalue* val, int depth) {
     if (depth > MAX_DEPTH) return;
 
     if (val == NULL || xvoIsNull(val)) {
@@ -476,18 +646,23 @@ static void bson_encode_value(struct bson *b, const char *key, int klen,
           w_length_at(b, slen + 1, off); }
     } else if (xvoIsTime(val)) {
         xtime t = xvoGetTime(val);
-        int64_t unix_secs = (int64_t)t - XTIME_UNIX_EPOCH;
-        int64_t ms = unix_secs * 1000;
+        int64_t ms = xrtTimeUnixMs(t);
         w_key(b, BSON_DATE, key, klen);
         w_int64(b, ms);
     } else if (xvoIsTable(val)) {
         int off;
-        struct encode_ctx ctx;
+        size_t i;
         w_key(b, BSON_DOCUMENT, key, klen);
         off = w_reserve_length(b);
-        ctx.b = b;
-        ctx.depth = depth + 1;
-        xvoTableWalk(val, (Dict_EachProc)encode_table_proc, (ptr)&ctx);
+        for (i = 0; i < xrtValueCount(val); ++i) {
+            xstrview itemKey;
+            xvalue* item = xrtValueObjectAt(val, i, &itemKey);
+            if (item != NULL) {
+                bson_encode_value(b, itemKey.Data, (int)itemKey.Size,
+                    item, depth + 1);
+                /* ObjectAt returns a borrowed value. */
+            }
+        }
         w_byte(b, 0);
         w_length_at(b, b->size - off, off);
     } else if (xvoIsArray(val)) {
@@ -498,9 +673,11 @@ static void bson_encode_value(struct bson *b, const char *key, int klen,
         off = w_reserve_length(b);
         count = xvoArrayItemCount(val);
         for (i = 0; i < count; i++) {
-            xvalue item = xvoArrayGetValue(val, i);
+            xvalue* item = xvoArrayGetValue(val, i);
             int idxlen = sprintf(idxbuf, "%u", i);
             bson_encode_value(b, idxbuf, idxlen, item, depth + 1);
+            /* Array/IntMap adapter returned an owned retain. */
+            if (item != NULL) xrtValueRelease(item);
         }
         w_byte(b, 0);
         w_length_at(b, b->size - off, off);
@@ -512,9 +689,11 @@ static void bson_encode_value(struct bson *b, const char *key, int klen,
         off = w_reserve_length(b);
         count = xvoListItemCount(val);
         for (i = 0; i < count; i++) {
-            xvalue item = xvoListGetValue(val, (int64)i);
+            xvalue* item = xvoListGetValue(val, (int64)i);
             int idxlen = sprintf(idxbuf, "%u", i);
             bson_encode_value(b, idxbuf, idxlen, item, depth + 1);
+            /* Array/IntMap adapter returned an owned retain. */
+            if (item != NULL) xrtValueRelease(item);
         }
         w_byte(b, 0);
         w_length_at(b, b->size - off, off);
@@ -528,45 +707,58 @@ static void bson_encode_value(struct bson *b, const char *key, int klen,
    Exported API
    ═══════════════════════════════════════════ */
 
-/* Decode BSON binary → var (table); accepts xvalue text with embedded nulls */
-xvalue xbson_decode(xvalue data) {
+/* Decode BSON binary → var (table); accepts xvalue* text with embedded nulls */
+xvalue* xbson_decode(xvalue* data) {
     struct bson_reader br;
     const char *ptr;
     uint32_t len;
-    if (data == NULL || xvoIsNull(data)) { xrtSetError("bson: invalid data", FALSE); return xvoCreateNull(); }
+    if (data == NULL || xvoIsNull(data)) { bson_error("bson: invalid data"); return xvoCreateNull(); }
     ptr = (const char *)xvoGetText(data);
     len = xvoGetSize(data);
-    if (!ptr || len < 5) { xrtSetError("bson: invalid data", FALSE); return xvoCreateNull(); }
+    if (!ptr || len < 5) { bson_error("bson: invalid data"); return xvoCreateNull(); }
     br.ptr = (const uint8_t *)ptr;
     br.size = (int)len;
     return bson_decode_doc(&br);
 }
 
 /* Decode concatenated BSON stream → array of tables */
-xvalue xbson_decode_all(xvalue data) {
+xvalue* xbson_decode_all(xvalue* data) {
     struct bson_reader br;
     const char *ptr;
     uint32_t len;
-    xvalue arr;
-    if (data == NULL || xvoIsNull(data)) { xrtSetError("bson: invalid data", FALSE); return xvoCreateArray(); }
+    xvalue* arr;
+    if (data == NULL || xvoIsNull(data)) { bson_error("bson: invalid data"); return xvoCreateNull(); }
     ptr = (const char *)xvoGetText(data);
     len = xvoGetSize(data);
-    if (!ptr || len < 5) { xrtSetError("bson: invalid data", FALSE); return xvoCreateArray(); }
+    if (!ptr || len < 5) { bson_error("bson: invalid data"); return xvoCreateNull(); }
     br.ptr = (const uint8_t *)ptr;
     br.size = (int)len;
     arr = xvoCreateArray();
     while (br.size >= 5) {
         int32_t doc_len = bson_validate_header(&br);
-        xvalue doc;
-        if (doc_len < 0) break;
+        xvalue* doc;
+        if (doc_len < 0) {
+            xvoUnref(arr);
+            bson_error("bson: invalid document stream");
+            return xvoCreateNull();
+        }
         doc = bson_decode_doc(&br);
-        xvoArrayAppendValue(arr, doc, TRUE);
+        if (doc == NULL || xvoIsNull(doc)) {
+            xvoUnref(arr);
+            return xvoCreateNull();
+        }
+        xvoArrayAppendValue(arr, doc, true);
+    }
+    if (br.size != 0) {
+        xvoUnref(arr);
+        bson_error("bson: truncated document stream");
+        return xvoCreateNull();
     }
     return arr;
 }
 
 /* Binary-safe concatenation of two BSON vars */
-xvalue xbson_concat(xvalue a, xvalue b) {
+xvalue* xbson_concat(xvalue* a, xvalue* b) {
     const char *pa, *pb;
     uint32_t la, lb, total;
     char *buf;
@@ -578,14 +770,14 @@ xvalue xbson_concat(xvalue a, xvalue b) {
     if (!pb || lb == 0) return a;
     total = la + lb;
     buf = (char *)xrtMalloc(total);
-    if (!buf) { xrtSetError("bson: out of memory", FALSE); return xvoCreateNull(); }
+    if (!buf) { bson_error("bson: out of memory"); return xvoCreateNull(); }
     memcpy(buf, pa, la);
     memcpy(buf + la, pb, lb);
-    return xvoCreateText((ptr)buf, total, TRUE);
+    return xvoCreateText((ptr)buf, total, true);
 }
 
 /* Encode var (table) → BSON binary (returned as var text with explicit length) */
-xvalue xbson_encode(xvalue val) {
+xvalue* xbson_encode(xvalue* val) {
     struct bson b;
     int off;
     struct encode_ctx ctx;
@@ -593,77 +785,84 @@ xvalue xbson_encode(xvalue val) {
     char *result;
 
     if (val == NULL || !xvoIsTable(val)) {
-        xrtSetError("bson: encode requires a table (var dict)", FALSE);
+        bson_error("bson: encode requires a table (var dict)");
         return xvoCreateNull();
     }
     bson_init(&b);
     off = w_reserve_length(&b);
     ctx.b = &b;
     ctx.depth = 0;
-    xvoTableWalk(val, (Dict_EachProc)encode_table_proc, (ptr)&ctx);
+    {
+        size_t i;
+        for (i = 0; i < xrtValueCount(val); ++i) {
+            xstrview itemKey;
+            xvalue* item = xrtValueObjectAt(val, i, &itemKey);
+            if (item != NULL) {
+                bson_encode_value(&b, itemKey.Data, (int)itemKey.Size,
+                    item, 0);
+                /* ObjectAt returns a borrowed value. */
+            }
+        }
+    }
     w_byte(&b, 0);
+    if (b.failed) {
+        bson_free(&b);
+        return xvoCreateNull();
+    }
     total = b.size;
     w_length_at(&b, total, off);
 
     result = (char *)xrtMalloc(total);
-    if (!result) { bson_free(&b); xrtSetError("bson: out of memory", FALSE); return xvoCreateNull(); }
+    if (!result) { bson_free(&b); bson_error("bson: out of memory"); return xvoCreateNull(); }
     memcpy(result, b.ptr, total);
     bson_free(&b);
-    return xvoCreateText((ptr)result, (uint32)total, TRUE);
+    return xvoCreateText((ptr)result, (uint32)total, true);
 }
 
 /* Load BSON file → var (table) */
-xvalue xbson_load(const char *path) {
-    FILE *f;
-    long fsize;
-    char *buf;
+xvalue* xbson_load(const char *path) {
+    unsigned char *buf;
+    size_t size;
     struct bson_reader br;
-    xvalue result;
+    xvalue* result;
 
-    if (!path) { xrtSetError("bson: null path", FALSE); return xvoCreateNull(); }
-    f = fopen(path, "rb");
-    if (!f) { xrtSetError("bson: cannot open file", FALSE); return xvoCreateNull(); }
-    fseek(f, 0, SEEK_END);
-    fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    if (fsize < 5) { fclose(f); xrtSetError("bson: file too small", FALSE); return xvoCreateNull(); }
-    buf = (char *)malloc(fsize);
-    if (!buf) { fclose(f); xrtSetError("bson: out of memory", FALSE); return xvoCreateNull(); }
-    if ((long)fread(buf, 1, fsize, f) != fsize) {
-        free(buf); fclose(f);
-        xrtSetError("bson: read error", FALSE);
+    if (!path) { bson_error("bson: null path"); return xvoCreateNull(); }
+    buf = xrtFileReadAll(path, &size);
+    if (!buf) return xvoCreateNull();
+    if (size < 5 || size > (size_t)INT32_MAX) {
+        xrtFree(buf);
+        bson_error("bson: file size is invalid");
         return xvoCreateNull();
     }
-    fclose(f);
     br.ptr = (const uint8_t *)buf;
-    br.size = (int)fsize;
+    br.size = (int)size;
     result = bson_decode_doc(&br);
-    free(buf);
+    xrtFree(buf);
     return result;
 }
 
 /* Save var (table) → BSON file */
-long long xbson_save(const char *path, xvalue val) {
-    xvalue encoded;
+long long xbson_save(const char *path, xvalue* val) {
+    xvalue* encoded;
     const char *data;
     uint32_t len;
-    FILE *f;
 
     encoded = xbson_encode(val);
     if (encoded == NULL || xvoIsNull(encoded)) return 0;
     data = (const char *)xvoGetText(encoded);
     len = xvoGetSize(encoded);
-    if (!data || len < 5) { xvoUnref(encoded); return 0; }
-    f = fopen(path, "wb");
-    if (!f) { xvoUnref(encoded); xrtSetError("bson: cannot write file", FALSE); return 0; }
-    fwrite(data, 1, len, f);
-    fclose(f);
+    if (!data || len < 5) { xvoUnref(encoded); bson_error("bson: encoded document is invalid"); return 0; }
+    if (!xrtFileWriteAll(path, (xbytesview){
+            (const unsigned char *)data, (size_t)len })) {
+        xvoUnref(encoded);
+        return 0;
+    }
     xvoUnref(encoded);
     return (long long)len;
 }
 
 /* BSON binary var → hex string (debug) */
-const char *xbson_to_hex(xvalue data) {
+const char *xbson_to_hex(xvalue* data) {
     static const char *hex = "0123456789abcdef";
     const char *ptr;
     uint32_t n;
@@ -673,7 +872,7 @@ const char *xbson_to_hex(xvalue data) {
     ptr = (const char *)xvoGetText(data);
     n = xvoGetSize(data);
     if (!ptr || n == 0) return "";
-    out = (char *)xrtTempMemory(n * 2 + 1);
+    out = (char *)xrtTemp(n * 2 + 1);
     if (!out) return "";
     for (i = 0; i < n; i++) {
         out[i*2]   = hex[((uint8_t)ptr[i]) >> 4];
@@ -687,7 +886,7 @@ const char *xbson_to_hex(xvalue data) {
 const char *xbson_gen_oid(void) {
     uint8_t oid[12];
     static const char *hex = "0123456789abcdef";
-    char *out = (char *)xrtTempMemory(25);
+    char *out = (char *)xrtTemp(25);
     int i;
     if (!out) return "";
     gen_oid(oid);
@@ -700,7 +899,7 @@ const char *xbson_gen_oid(void) {
 }
 
 /* Get BSON document length from binary var header */
-long long xbson_doc_length(xvalue data) {
+long long xbson_doc_length(xvalue* data) {
     const char *ptr;
     if (data == NULL || xvoIsNull(data)) return 0;
     ptr = (const char *)xvoGetText(data);
@@ -712,11 +911,21 @@ long long xbson_doc_length(xvalue data) {
 long long xbson_oid_time(const char *hex24) {
     uint32_t ts = 0;
     int i;
-    if (!hex24 || strlen(hex24) < 8) return 0;
-    for (i = 0; i < 8; i++) {
-        char c = hex24[i];
-        int d = (c >= 'a') ? c - 'a' + 10 : (c >= 'A') ? c - 'A' + 10 : c - '0';
-        ts = (ts << 4) | (uint32_t)d;
+    if (!hex24 || strlen(hex24) != 24) {
+        bson_error("bson: ObjectId must contain exactly 24 hexadecimal characters");
+        return 0;
     }
-    return (long long)(XTIME_UNIX_EPOCH + (int64_t)ts);
+    for (i = 0; i < 24; i++) {
+        char c = hex24[i];
+        int d;
+        if (c >= '0' && c <= '9') d = c - '0';
+        else if (c >= 'a' && c <= 'f') d = c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F') d = c - 'A' + 10;
+        else {
+            bson_error("bson: ObjectId must contain exactly 24 hexadecimal characters");
+            return 0;
+        }
+        if (i < 8) ts = (ts << 4) | (uint32_t)d;
+    }
+    return (long long)ts;
 }

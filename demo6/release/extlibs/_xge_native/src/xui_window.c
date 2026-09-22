@@ -406,7 +406,7 @@ static xui_rect_t __xuiWindowParentRect(xui_widget pWidget)
 {
 	xui_context pContext;
 	xui_widget pParent;
-	xui_vec2_t tViewport;
+	xui_size_t tViewport;
 	xui_rect_t tRect;
 
 	memset(&tRect, 0, sizeof(tRect));
@@ -415,9 +415,9 @@ static xui_rect_t __xuiWindowParentRect(xui_widget pWidget)
 	}
 	pContext = xuiWidgetGetContext(pWidget);
 	tViewport = xuiGetViewportSize(pContext);
-	if ( tViewport.fX > 0.0f && tViewport.fY > 0.0f ) {
-		tRect.fW = tViewport.fX;
-		tRect.fH = tViewport.fY;
+	if ( tViewport.iW > 0 && tViewport.iH > 0 ) {
+		tRect.fW = tViewport.iW;
+		tRect.fH = tViewport.iH;
 		return tRect;
 	}
 	pParent = xuiWidgetGetParent(pWidget);
@@ -734,6 +734,32 @@ static xui_rect_t __xuiWindowBuildInteractionRect(xui_widget pWidget, xui_window
 	return __xuiWindowClampRect(pWidget, pData, &tResolved, tRect);
 }
 
+static xui_rect_t __xuiWindowInteractionWorldRect(xui_widget pWidget, xui_rect_t tRect)
+{
+	xui_rect_t tLocal;
+	xui_rect_t tWorld;
+
+	tLocal = xuiWidgetGetRect(pWidget);
+	tWorld = xuiWidgetGetWorldRect(pWidget);
+	tRect.fX += tWorld.fX - tLocal.fX;
+	tRect.fY += tWorld.fY - tLocal.fY;
+	return tRect;
+}
+
+static int __xuiWindowUpdateInteractionAdorner(xui_widget pWidget, xui_window_data_t* pData, xui_rect_t tRect)
+{
+	xui_drag_adorner_primitive_t tPrimitive;
+	xui_window_resolved_t tResolved;
+
+	__xuiWindowResolve(pWidget, pData, &tResolved);
+	memset(&tPrimitive, 0, sizeof(tPrimitive));
+	tPrimitive.iType = XUI_DRAG_ADORNER_RECT_STROKE;
+	tPrimitive.tRect = __xuiWindowInteractionWorldRect(pWidget, tRect);
+	tPrimitive.fWidth = 2.0f;
+	tPrimitive.iColor = tResolved.iActiveBorderColor;
+	return xuiInternalDragAdornerSet(xuiWidgetGetContext(pWidget), pWidget, &tPrimitive, 1);
+}
+
 static int __xuiWindowSetHoverPart(xui_widget pWidget, xui_window_data_t* pData, int iPart)
 {
 	if ( pData->iHoverPart == iPart ) {
@@ -1008,15 +1034,13 @@ static int __xuiWindowCacheRender(xui_widget pWidget, xui_draw_context pDraw, ui
 	return __xuiWindowDrawBottomSquareStroke(pProxy, pDraw, tRect, tResolved.fBorderWidth, iBottomFill, iBorder);
 }
 
-static int __xuiWindowMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
+static int __xuiWindowContentMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
 {
 	xui_window_data_t* pData;
 	xui_window_resolved_t tResolved;
-	xui_vec2_t tClientSize;
-	xui_vec2_t tClientConstraint;
 	float fChrome;
-	int iRet;
 
+	(void)tConstraint;
 	(void)pUser;
 	if ( (pWidget == NULL) || (pSize == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
@@ -1026,25 +1050,41 @@ static int __xuiWindowMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_ve
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	__xuiWindowResolve(pWidget, pData, &tResolved);
-	memset(&tClientSize, 0, sizeof(tClientSize));
 	fChrome = tResolved.fBorderWidth * 2.0f + (pData->bShowTitleBar ? tResolved.fTitleBarHeight : 0.0f);
-	if ( (pData->pClient != NULL) && !pData->bCollapsed ) {
-		tClientConstraint.fX = (tConstraint.fX > tResolved.fBorderWidth * 2.0f) ? (tConstraint.fX - tResolved.fBorderWidth * 2.0f) : XUI_LAYOUT_UNBOUNDED;
-		tClientConstraint.fY = (tConstraint.fY > fChrome) ? (tConstraint.fY - fChrome) : XUI_LAYOUT_UNBOUNDED;
-		iRet = xuiWidgetMeasure(pData->pClient, tClientConstraint, &tClientSize);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	pSize->fX = __xuiWindowMax(__xuiWindowMinWidth(pData, &tResolved), tClientSize.fX + tResolved.fBorderWidth * 2.0f);
-	pSize->fY = pData->bCollapsed ? __xuiWindowCollapsedHeight(pData, &tResolved) :
-		__xuiWindowMax(__xuiWindowMinHeight(pData, &tResolved), tClientSize.fY + fChrome);
+	pSize->fX = __xuiWindowMax(0.0f,
+		__xuiWindowMinWidth(pData, &tResolved) - tResolved.fBorderWidth * 2.0f);
+	pSize->fY = pData->bCollapsed ? 0.0f : __xuiWindowMax(0.0f,
+		__xuiWindowMinHeight(pData, &tResolved) - fChrome);
 	return XUI_OK;
 }
 
-static int __xuiWindowArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiWindowPrepare(xui_widget pWidget, void* pUser)
 {
-	xui_window_data_t* pData;
+	xui_window_data_t* pData = (xui_window_data_t*)pUser;
 	xui_window_resolved_t tResolved;
-	xui_rect_t tRect;
+	xui_thickness_t tPadding;
+	int iRet;
+	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	__xuiWindowResolve(pWidget, pData, &tResolved);
+	tPadding.fLeft = tResolved.fBorderWidth;
+	tPadding.fTop = tResolved.fBorderWidth + (pData->bShowTitleBar ? tResolved.fTitleBarHeight : 0.0f);
+	tPadding.fRight = tResolved.fBorderWidth;
+	tPadding.fBottom = tResolved.fBorderWidth;
+	iRet = xuiWidgetSetPadding(pWidget, tPadding);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetVisible(pData->pClient, !pData->bCollapsed);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetVisible(pData->pCollapseButton,
+		pData->bShowTitleBar && pData->bShowCollapse);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetVisible(pData->pMaximizeButton,
+		pData->bShowTitleBar && pData->bShowMaximize);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetVisible(pData->pCloseButton,
+		pData->bShowTitleBar && pData->bShowClose);
+	return iRet;
+}
+
+static int __xuiWindowLayoutChildren(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_window_data_t* pData = (xui_window_data_t*)pUser;
+	xui_window_resolved_t tResolved;
 	xui_rect_t tClient;
 	xui_rect_t tButton;
 	float fRight;
@@ -1052,27 +1092,17 @@ static int __xuiWindowArrange(xui_widget pWidget, xui_rect_t tContentRect, void*
 	float fTitleH;
 	int iRet;
 
-	(void)pUser;
-	pData = __xuiWindowGetData(pWidget);
 	if ( pData == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	__xuiWindowResolve(pWidget, pData, &tResolved);
-	tRect = (xui_rect_t){tContentRect.fX, tContentRect.fY, tContentRect.fW, tContentRect.fH};
-	if ( tRect.fW <= 0.0f || tRect.fH <= 0.0f ) {
-		tRect = xuiWidgetGetRect(pWidget);
-		tRect.fX = 0.0f;
-		tRect.fY = 0.0f;
-	}
-	fTitleH = pData->bShowTitleBar ? __xuiWindowMin(tResolved.fTitleBarHeight, tRect.fH) : 0.0f;
-	pData->tTitleBarRect = (xui_rect_t){tRect.fX + tResolved.fBorderWidth, tRect.fY + tResolved.fBorderWidth,
-		__xuiWindowMax(0.0f, tRect.fW - tResolved.fBorderWidth * 2.0f), fTitleH};
-	tClient.fX = tRect.fX + tResolved.fBorderWidth;
-	tClient.fY = tRect.fY + tResolved.fBorderWidth + fTitleH;
-	tClient.fW = __xuiWindowMax(0.0f, tRect.fW - tResolved.fBorderWidth * 2.0f);
-	tClient.fH = pData->bCollapsed ? 0.0f : __xuiWindowMax(0.0f, tRect.fH - tResolved.fBorderWidth * 2.0f - fTitleH);
+	fTitleH = pData->bShowTitleBar ? tResolved.fTitleBarHeight : 0.0f;
+	pData->tTitleBarRect = (xui_rect_t){tContentRect.fX, tContentRect.fY - fTitleH,
+		tContentRect.fW, fTitleH};
+	tClient = tContentRect;
+	if ( pData->bCollapsed ) tClient.fH = 0.0f;
 	pData->tClientRect = xuiInternalSnapRect(tClient);
-	fRight = tRect.fX + tRect.fW - tResolved.fBorderWidth - 5.0f;
+	fRight = tContentRect.fX + tContentRect.fW - 5.0f;
 	fGap = 4.0f;
 	tButton.fW = tResolved.fButtonSize;
 	tButton.fH = tResolved.fButtonSize;
@@ -1097,30 +1127,11 @@ static int __xuiWindowArrange(xui_widget pWidget, xui_rect_t tContentRect, void*
 	} else {
 		memset(&pData->tCollapseButtonRect, 0, sizeof(pData->tCollapseButtonRect));
 	}
-	if ( pData->pClient != NULL ) {
-		iRet = xuiWidgetSetVisible(pData->pClient, !pData->bCollapsed);
-		if ( iRet != XUI_OK ) return iRet;
-		iRet = xuiWidgetArrange(pData->pClient, pData->tClientRect);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	if ( pData->pCollapseButton != NULL ) {
-		iRet = xuiWidgetSetVisible(pData->pCollapseButton, pData->bShowTitleBar && pData->bShowCollapse);
-		if ( iRet != XUI_OK ) return iRet;
-		iRet = xuiWidgetArrange(pData->pCollapseButton, pData->tCollapseButtonRect);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	if ( pData->pMaximizeButton != NULL ) {
-		iRet = xuiWidgetSetVisible(pData->pMaximizeButton, pData->bShowTitleBar && pData->bShowMaximize);
-		if ( iRet != XUI_OK ) return iRet;
-		iRet = xuiWidgetArrange(pData->pMaximizeButton, pData->tMaximizeButtonRect);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	if ( pData->pCloseButton != NULL ) {
-		iRet = xuiWidgetSetVisible(pData->pCloseButton, pData->bShowTitleBar && pData->bShowClose);
-		if ( iRet != XUI_OK ) return iRet;
-		iRet = xuiWidgetArrange(pData->pCloseButton, pData->tCloseButtonRect);
-		if ( iRet != XUI_OK ) return iRet;
-	}
+	iRet = xuiLayoutArrangeChild(pWidget, pData->pClient, pData->tClientRect);
+	if ( iRet == XUI_OK ) iRet = xuiLayoutArrangeChild(pWidget, pData->pCollapseButton, pData->tCollapseButtonRect);
+	if ( iRet == XUI_OK ) iRet = xuiLayoutArrangeChild(pWidget, pData->pMaximizeButton, pData->tMaximizeButtonRect);
+	if ( iRet == XUI_OK ) iRet = xuiLayoutArrangeChild(pWidget, pData->pCloseButton, pData->tCloseButtonRect);
+	if ( iRet != XUI_OK ) return iRet;
 	return XUI_OK;
 }
 
@@ -1167,17 +1178,14 @@ static int __xuiWindowEvent(xui_widget pWidget, const xui_event_t* pEvent, void*
 			pData->tDragStartRect = xuiWidgetGetRect(pWidget);
 			(void)__xuiWindowSetActivePart(pWidget, pData, iPart);
 			(void)xuiSetPointerCapture(pContext, pWidget);
+			(void)__xuiWindowUpdateInteractionAdorner(pWidget, pData, pData->tDragStartRect);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		break;
 	case XUI_EVENT_POINTER_MOVE:
 		if ( (xuiGetPointerCapture(pContext) == pWidget) && (pData->iInteractionEdges != 0) ) {
 			tRect = __xuiWindowBuildInteractionRect(pWidget, pData, pEvent->fX, pEvent->fY);
-			(void)xuiWidgetSetRect(pWidget, tRect);
-			if ( !pData->bCollapsed ) {
-				pData->fExpandedHeight = tRect.fH;
-			}
-			pData->iChangeCount++;
+			(void)__xuiWindowUpdateInteractionAdorner(pWidget, pData, tRect);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		iEdges = __xuiWindowResizeEdgesAtData(pWidget, pData, &tResolved, pEvent->fX, pEvent->fY);
@@ -1191,7 +1199,12 @@ static int __xuiWindowEvent(xui_widget pWidget, const xui_event_t* pEvent, void*
 		break;
 	case XUI_EVENT_POINTER_UP:
 		if ( bLeftButton && (pData->iInteractionEdges != 0) ) {
+			tRect = __xuiWindowBuildInteractionRect(pWidget, pData, pEvent->fX, pEvent->fY);
+			(void)xuiWidgetSetRect(pWidget, tRect);
+			if ( !pData->bCollapsed ) pData->fExpandedHeight = tRect.fH;
+			pData->iChangeCount++;
 			pData->iInteractionEdges = 0;
+			xuiInternalDragAdornerHide(pContext, pWidget);
 			(void)__xuiWindowSetActivePart(pWidget, pData, XUI_WINDOW_PART_NONE);
 			(void)xuiReleasePointerCapture(pContext, pWidget);
 			return XUI_EVENT_DISPATCH_STOP;
@@ -1204,11 +1217,13 @@ static int __xuiWindowEvent(xui_widget pWidget, const xui_event_t* pEvent, void*
 		break;
 	case XUI_EVENT_POINTER_CAPTURE_LOST:
 		pData->iInteractionEdges = 0;
+		xuiInternalDragAdornerHide(pContext, pWidget);
 		(void)__xuiWindowSetActivePart(pWidget, pData, XUI_WINDOW_PART_NONE);
 		return XUI_EVENT_DISPATCH_STOP;
 	case XUI_EVENT_KEY_DOWN:
 		if ( (pEvent->iKey == XUI_KEY_ESCAPE) && (pData->iInteractionEdges != 0) ) {
 			pData->iInteractionEdges = 0;
+			xuiInternalDragAdornerHide(pContext, pWidget);
 			(void)__xuiWindowSetActivePart(pWidget, pData, XUI_WINDOW_PART_NONE);
 			(void)xuiReleasePointerCapture(pContext, pWidget);
 			return XUI_EVENT_DISPATCH_STOP;
@@ -1231,7 +1246,7 @@ static int __xuiWindowEvent(xui_widget pWidget, const xui_event_t* pEvent, void*
 static void __xuiWindowDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_FIXED;
 	pLayout->iHeightMode = XUI_SIZE_FIXED;
 	pLayout->iFlowMode = XUI_FLOW_ABSOLUTE;
@@ -1579,8 +1594,9 @@ XUI_API xui_widget_type xuiWindowGetType(xui_context pContext)
 	tDesc.iTypeDataSize = sizeof(xui_window_data_t);
 	tDesc.onInit = __xuiWindowInit;
 	tDesc.onDestroy = __xuiWindowDestroy;
-	tDesc.onLayoutMeasure = __xuiWindowMeasure;
-	tDesc.onLayoutArrange = __xuiWindowArrange;
+	tDesc.onContentMeasure = __xuiWindowContentMeasure;
+	tDesc.onLayoutPrepare = __xuiWindowPrepare;
+	tDesc.onLayoutChildren = __xuiWindowLayoutChildren;
 	tDesc.onCacheRender = __xuiWindowCacheRender;
 	__xuiWindowDefaultLayout(&tDesc.tLayout);
 	__xuiWindowDefaultCachePolicy(&tDesc.tCachePolicy);

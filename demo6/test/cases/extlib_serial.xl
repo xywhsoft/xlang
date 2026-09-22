@@ -1,16 +1,32 @@
 import serial
+from serial import Serial
+
+
+
+func retainedRead() as Buffer
+    Serial port = serial.openLoopback()
+    assert port.write("owned") == 5
+    return port.readBytes()
+end
+
+
+
+func retainedName() as string
+    Serial port = serial.openLoopback()
+    return port.port
+end
 
 
 
 func main(...) as int
-    // Test loopback mode (no hardware needed)
+    // 回环不访问真实设备，测试无需管理员权限或串口硬件。
     auto sp = serial.openLoopback(115200)
     assert sp.valid, "valid"
     assert sp.isOpen, "is open"
     assert sp.baudrate == 115200, "baudrate"
     assert sp.port == "LOOPBACK", "port name"
 
-    // Write and read back (loopback)
+    // 文本写入和读取。
     auto n = sp.write("Hello Serial")
     assert n == 12, "wrote 12 bytes"
     assert sp.available == 12, "available 12"
@@ -19,13 +35,81 @@ func main(...) as int
     assert data == "Hello Serial", "read back: " + data
     assert sp.available == 0, "available 0 after read"
 
-    // Write more
     sp.write("ABC")
     assert sp.available == 3, "available 3"
 
-    // Flush clears buffer
+    // flush 明确表示丢弃队列，不是等待发送完成。
     sp.flush()
     assert sp.available == 0, "available 0 after flush"
 
+    // UTF-8 长度按字节传递，不能截断中文内容。
+    assert sp.write("你好") == 6, "UTF-8 bytes"
+    assert sp.available == 6
+    assert sp.read(6) == "你好"
+
+    // 二进制读写保留嵌入零字节；结果不借用串口的暂存区。
+    Buffer bytes = Buffer()
+    assert bytes.appendByte(0) and bytes.appendByte(255) and bytes.appendByte(65)
+    assert sp.writeBytes(bytes) == 3
+    Buffer saved = sp.readBytes(3)
+    assert saved.len() == 3 and saved.byteAt(0) == 0 and saved.byteAt(1) == 255
+    assert sp.write("new") == 3
+    assert sp.read() == "new"
+    assert saved.byteAt(2) == 65
+    Buffer retained = retainedRead()
+    assert retained.text() == "owned", "read result outlives port"
+    string name = retainedName()
+    assert sp.writeBytes(Buffer()) == 0
+    assert name == "LOOPBACK", "borrowed C port name is copied before native destroy"
+
+    // 回环队列有界，必须报告真实短写，不能丢数据后谎报成功。
+    Buffer large = Buffer()
+    for i in range(5000)
+        assert large.appendByte(i % 256)
+    end
+    assert sp.writeBytes(large) == 4096
+    assert sp.write("full") == 0
+    assert sp.readBytes(0).len() == 0 and sp.available == 4096
+    Buffer full = sp.readBytes(9223372036854775807)
+    assert full.len() == 4096 and full.byteAt(4095) == 255
+    assert sp.available == 0 and sp.readBytes().len() == 0
+
+    bool invalidRead = false
+    try
+        sp.readBytes(-1)
+    catch error
+        invalidRead = error.kind == "ValueError"
+    end
+    assert invalidRead, "negative read length"
+
+    bool invalidOpen = false
+    try
+        serial.openLoopback(0)
+    catch error
+        invalidOpen = error.kind == "ValueError"
+    end
+    assert invalidOpen, "invalid baudrate"
+
+    bool missingPort = false
+    try
+        serial.open("XLANG_SERIAL_NO_SUCH_DEVICE_91D783AB")
+    catch error
+        missingPort = error.kind == "IOError"
+    end
+    assert missingPort, "native device failure is catchable"
+
+    // 独立句柄互不影响，公开类型可直接导入并用于声明。
+    Serial another = serial.openLoopback()
+    Serial alias = another
+    assert alias.write("alias") == 5 and another.read() == "alias"
+    assert sp.write("first") == 5 and another.write("second") == 6
+    assert sp.read(2) == "fi" and sp.available == 3
+    assert another.read() == "second" and sp.read() == "rst"
+    for i in range(200)
+        Serial temporary = serial.openLoopback()
+        assert temporary.write("ok") == 2 and temporary.read() == "ok"
+    end
+
+    println("serial xlang boundaries: PASS")
     return 0
 end

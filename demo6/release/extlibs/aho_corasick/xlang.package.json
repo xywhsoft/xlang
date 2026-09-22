@@ -6,7 +6,10 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["aho_corasick_native.c"],
+        "cSources": [
+            "xrt_aho_corasick.c",
+            "aho_corasick_native.c"
+        ],
         "xlSources": ["src/aho_corasick.xl"]
     },
     "links": [],

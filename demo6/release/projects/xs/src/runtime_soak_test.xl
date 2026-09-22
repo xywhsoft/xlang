@@ -24,7 +24,7 @@ while cycle < 5
     int tcpPort = servicePort(status, "tcp-echo")
     int udpPort = servicePort(status, "udp-echo")
     require(httpPort > 0 and tcpPort > 0 and udpPort > 0, "soak services must bind")
-    UdpSocket udpClient = UdpSocket(udp.bind(0, "127.0.0.1"))
+    UdpSocket udpClient = udp.bind(0, "127.0.0.1")
 
     int round = 0
     while round < 60
@@ -37,14 +37,14 @@ while cycle < 5
         require(httpResponse.status() == 200 and httpResponse.body() == "c:" + payload, "HTTP soak request failed")
 
         if round % 5 == 0 then
-            TcpStream tcpClient = TcpStream(tcp.connect("127.0.0.1", tcpPort, 3000))
+            TcpStream tcpClient = tcp.connect("127.0.0.1", tcpPort, 3000)
             require(tcpClient.handle != null, "TCP soak connect failed")
             require(tcpClient.send(payload) and tcpClient.drain(3000), "TCP soak send failed")
             require(tcpClient.recv(3000) == "c:" + payload, "TCP soak response failed")
             tcpClient.close()
 
             require(udpClient.send("127.0.0.1", uint16(udpPort), payload), "UDP soak send failed")
-            UdpPacket udpResponse = UdpPacket(udpClient.recv(3000))
+            UdpPacket udpResponse = udpClient.recv(3000)
             require(udpResponse.handle != null and udpResponse.text() == "xl:" + payload, "UDP soak response failed")
         end
         if round > 0 and round % 15 == 0 then

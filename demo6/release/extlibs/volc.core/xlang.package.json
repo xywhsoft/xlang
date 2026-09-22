@@ -20,7 +20,11 @@
 
                  ],
     "dependencies":  [
-
+                         {
+                             "name":  "xhttp.client",
+                             "version":  "1.0.0",
+                             "abiVersion":  "1"
+                         }
                      ],
     "native":  {
                    "singleton":  false,

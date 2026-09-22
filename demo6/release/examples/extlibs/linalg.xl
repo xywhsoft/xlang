@@ -1,14 +1,24 @@
 import linalg
 
-
-
 func main(...) as int
-    println("dot2(1,2,3,4):  ", linalg.dot2(1.0, 2.0, 3.0, 4.0))
-    println("mag2(3,4):      ", linalg.mag2(3.0, 4.0))
-    println("det2(1,2,3,4):  ", linalg.det2(1.0, 2.0, 3.0, 4.0))
+    float nx = 0.0
+    float ny = 0.0
+    nx, ny = linalg.normalize2(3.0, 4.0)
+    println("normalize2(3,4): ", nx, ", ", ny)
+
+    float x = 0.0
+    float y = 0.0
+    float z = 0.0
+    x, y, z = linalg.cross3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    println("cross3(x,y): ", x, ", ", y, ", ", z)
+
+    float ia = 0.0
+    float ib = 0.0
+    float ic = 0.0
+    float id = 0.0
+    ia, ib, ic, id = linalg.inverse2(1.0, 2.0, 3.0, 4.0)
+    println("inverse2: ", ia, ", ", ib, ", ", ic, ", ", id)
     println("dist2(0,0,3,4): ", linalg.dist2(0.0, 0.0, 3.0, 4.0))
-    println("lerp(0,10,0.5): ", linalg.lerp(0.0, 10.0, 0.5))
-    println("deg2rad(90):    ", linalg.deg2rad(90.0))
     println("linalg example: PASS")
     return 0
 end

@@ -1,57 +1,94 @@
-extern "xmodbus_crc16" func __mb_crc(string data_hex) as string
-extern "xmodbus_build_rtu" func __mb_rtu(int addr, int fcode, string payload) as string
-extern "xmodbus_build_tcp" func __mb_tcp(int tid, int unit, int fcode, string payload) as string
-extern "xmodbus_rtu_addr" func __mb_raddr(string frame) as int
-extern "xmodbus_rtu_func" func __mb_rfunc(string frame) as int
-extern "xmodbus_rtu_payload" func __mb_rpay(string frame) as string
-extern "xmodbus_verify_crc" func __mb_vcrc(string frame) as bool
-extern "xmodbus_read_coils_req" func __mb_rc(int slave, int start, int count) as string
-extern "xmodbus_read_holding_req" func __mb_rh(int slave, int start, int count) as string
-extern "xmodbus_write_register_req" func __mb_wr(int slave, int reg, int value) as string
-extern "xmodbus_func_name" func __mb_fname(int code) as string
+extern "xm_build_read" func __mb_build_read(int transaction, int unit, int startAddr, int quantity, int function) as string
+extern "xm_build_write_single" func __mb_build_write(int transaction, int unit, int addr, int value) as string
+extern "xm_parse_response" func __mb_parse_response(string hex) as var
+extern "xm_hex_to_frame" func __mb_hex_to_frame(string hex) as point
+extern "xm_frame_to_hex" func __mb_frame_to_hex(point data, c_size size) as string
 
 
 
-export func crc16(string data_hex) as string
-    return __mb_crc(data_hex)
+// 帧编解码（hex 跨 ABI）
+
+// buildReadHolding 构造 FC3 读保持寄存器请求（16 进制 MBAP 帧）
+export func buildReadHolding(int transaction, int unit, int startAddr, int quantity) as string
+    string frame = __mb_build_read(transaction, unit, startAddr, quantity, 3)
+    if frame == "" then
+        throw ValueError "modbus: read parameters out of range"
+    end
+    return frame
 end
 
-export func buildRtu(int addr, int fcode, string payload_hex) as string
-    return __mb_rtu(addr, fcode, payload_hex)
+// buildReadCoils 构造 FC1 读线圈请求
+export func buildReadCoils(int transaction, int unit, int startAddr, int quantity) as string
+    string frame = __mb_build_read(transaction, unit, startAddr, quantity, 1)
+    if frame == "" then
+        throw ValueError "modbus: read parameters out of range"
+    end
+    return frame
 end
 
-export func buildTcp(int trans_id, int unit_id, int fcode, string payload_hex) as string
-    return __mb_tcp(trans_id, unit_id, fcode, payload_hex)
+// buildWriteSingle 构造 FC6 写单寄存器请求
+export func buildWriteSingle(int transaction, int unit, int addr, int value) as string
+    string frame = __mb_build_write(transaction, unit, addr, value)
+    if frame == "" then
+        throw ValueError "modbus: write parameters out of range"
+    end
+    return frame
 end
 
-export func rtuAddr(string frame) as int
-    return __mb_raddr(frame)
+// parseResponse 解析应答帧，返回 {transaction, unit, function, exception, ...}
+// 读应答含 values 数组；写应答含 address 与 value；异常帧含 exceptionCode
+export func parseResponse(string hex) as var
+    var r = __mb_parse_response(hex)
+    if r == null then
+        throw ValueError "modbus: response is not a valid mbap frame"
+    end
+    return r
 end
 
-export func rtuFunc(string frame) as int
-    return __mb_rfunc(frame)
+// hexToFrame 把 hex 帧包装为 Buffer（用于 sendBytes）
+export func hexToFrame(string hex) as Buffer
+    return Buffer(__mb_hex_to_frame(hex))
 end
 
-export func rtuPayload(string frame) as string
-    return __mb_rpay(frame)
+// frameToHex 把接收到的 Buffer 转回 hex
+export func frameToHex(Buffer buffer) as string
+    return __mb_frame_to_hex(buffer.data(), c_size(buffer.len()))
 end
 
-export func verifyCrc(string frame) as bool
-    return __mb_vcrc(frame)
+// 客户端：在 TcpStream 上执行读写（事务号自动递增模块内计数）
+
+int __modbus_txn = 0
+
+export func readHolding(TcpStream stream, int unit, int startAddr, int quantity) as var
+    __modbus_txn = __modbus_txn + 1
+    string frame = buildReadHolding(__modbus_txn, unit, startAddr, quantity)
+    if not stream.sendBytes(hexToFrame(frame).data(), c_size(12)) then
+        throw ValueError "modbus: send failed"
+    end
+    Buffer response = stream.recvBytes(5000)
+    if int(response.len()) < 9 then
+        throw ValueError "modbus: response too short"
+    end
+    var parsed = parseResponse(frameToHex(response))
+    if parsed["exception"] == 1 then
+        throw ValueError "modbus exception " + string(parsed["exceptionCode"])
+    end
+    return parsed["values"]
 end
 
-export func readCoilsReq(int slave, int start, int count) as string
-    return __mb_rc(slave, start, count)
-end
-
-export func readHoldingReq(int slave, int start, int count) as string
-    return __mb_rh(slave, start, count)
-end
-
-export func writeRegisterReq(int slave, int reg, int value) as string
-    return __mb_wr(slave, reg, value)
-end
-
-export func funcName(int code) as string
-    return __mb_fname(code)
+export func writeSingle(TcpStream stream, int unit, int addr, int value) as int
+    __modbus_txn = __modbus_txn + 1
+    string frame = buildWriteSingle(__modbus_txn, unit, addr, value)
+    if not stream.sendBytes(hexToFrame(frame).data(), c_size(12)) then
+        throw ValueError "modbus: send failed"
+    end
+    Buffer response = stream.recvBytes(5000)
+    if int(response.len()) < 10 then
+        throw ValueError "modbus: response too short"
+    end
+    var parsed = parseResponse(frameToHex(response))
+    if parsed["exception"] == 1 then
+        throw ValueError "modbus exception " + string(parsed["exceptionCode"])
+    end
+    return int(parsed["value"])
 end

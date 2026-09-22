@@ -6,7 +6,7 @@
 //   ircserver -h | --help       -> 帮助
 //
 // 验证范围：
-//   1. TCP server          tcp.listen / TcpServer.acceptAsync 接受客户端连接
+//   1. TCP server          tcp.listen / TcpServer.accept 接受客户端连接
 //   2. IRC 协议解析        `[:prefix] COMMAND param :trailing` 行解析（含多行粘包）
 //   3. 注册                NICK / USER -> 001/002/003/004 + MOTD(375/372/376)
 //   4. 频道                JOIN / PART / 创建 / 销毁 / 成员管理 / 消息广播
@@ -38,8 +38,6 @@ string SERVER_NAME = "irc.xlang.local"
 string SERVER_VERSION = "xlang-irc1.0"
 string USER_MODES = "iwo"             // 用户模式（本子集仅做声明）
 string CHAN_MODES = "nstspm"          // 频道模式（n/t/s/p/m 无参，o 带参）
-
-point ZERO                            // 默认零句柄（tcp.connect/listen 失败判定）
 
 // ============================================================
 // 共享状态
@@ -1958,10 +1956,9 @@ end
 // ============================================================
 
 // 每个客户端连接的处理 thread 独占一个 TcpStream。
-func makeClientLoop(int connId, point handle) as func() as int
+func makeClientLoop(int connId, TcpStream conn) as func() as int
     return func() as int
-        // 连接线程负责构造、使用并释放自己的流对象。
-        TcpStream conn = TcpStream(handle)
+        // 连接线程负责使用并释放自己的流对象。
         string recvBuf = ""
         bool alive = true
         int idleTicks = 0
@@ -2041,14 +2038,13 @@ func makeClientLoop(int connId, point handle) as func() as int
     end
 end
 
-// accept 主循环（async 以便 await acceptAsync）
+// 异步服务入口内部使用有界 accept，以便定期检查停止状态
 async func serveMode(int port) as int
-    point lh = tcp.listen(port)
-    if lh == ZERO then
+    TcpServer server = tcp.listen(port)
+    if server.handle == null then
         println("FATAL: tcp.listen failed on port " + string(port))
         return 1
     end
-    TcpServer server = TcpServer(lh)
     int boundPort = int(server.port())
     gServing = 1
     println("listening on port " + string(boundPort) + "  (server: " + SERVER_NAME + " " + SERVER_VERSION + ")")
@@ -2057,17 +2053,16 @@ async func serveMode(int port) as int
     println("")
 
     while gServing == 1
-        future<point> af = server.acceptAsync(500)
-        point handle = ZERO
+        TcpStream connection = TcpStream()
         try
-            handle = await af
+            connection = server.accept(500)
         catch e
-            handle = ZERO
+            connection = TcpStream()
         end
-        if handle != ZERO then
+        if connection.handle != null then
             int connId = allocConn("127.0.0.1")
             gTotalConns = gTotalConns + 1
-            thread t = thread(makeClientLoop(connId, handle))
+            thread t = thread(makeClientLoop(connId, connection))
             println("[conn] accepted id=" + string(connId) + " active=" + string(gTotalConns))
         end
     end

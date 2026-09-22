@@ -1,16 +1,27 @@
+#define XRT_MODULE_FILE_ASYNC
+#define XRT_MODULE_FILE_ASYNC_WHOLE
+#define XRT_MODULE_FILE_ASYNC_MANAGE
+#define XRT_MODULE_DIR_ASYNC
+#define XRT_MODULE_FILE_TREE_ASYNC
+#define XRT_MODULE_FILE_TEXT
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
+
+/* 输出与 xlang 示例一致的失败并终止进程。 */
 static void fail(const char* name)
 {
     fprintf(stderr, "%s=fail\n", name);
-    xrtUnit();
     exit(1);
 }
 
+
+
+/* 输出与 xlang 示例一致的检查结果。 */
 static void require_line(const char* name, int ok)
 {
     if ( !ok ) {
@@ -19,6 +30,9 @@ static void require_line(const char* name, int ok)
     printf("%s=ok\n", name);
 }
 
+
+
+/* 执行不需要输出文本的边界检查。 */
 static void require_ok(const char* name, int ok)
 {
     if ( !ok ) {
@@ -26,86 +40,118 @@ static void require_ok(const char* name, int ok)
     }
 }
 
-static unsigned long long wait_file_io(const char* name, xfuture* future)
-{
-    xasyncfileio* info;
-    unsigned long long value;
-    int owned;
 
-    if ( future == NULL || !xFutureWait(future) ) {
-        fail(name);
-    }
-    info = (xasyncfileio*)xFutureValue(future);
-    if ( info == NULL ) {
-        xFutureRelease(future);
-        fail(name);
-    }
-    value = (unsigned long long)info->iValue;
-    owned = xFutureValueIsOwned(future);
-    if ( !owned ) {
-        xrtAsyncFileIoDestroy(info);
-    }
-    xFutureRelease(future);
-    return value;
-}
 
-static int wait_file_text(xfuture* future, const char* expected)
-{
-    xasyncfilebuf* buf;
-    const char* text;
-    int ok;
-    int owned;
-
-    if ( future == NULL || !xFutureWait(future) ) {
-        if ( future != NULL ) { xFutureRelease(future); }
-        return 0;
-    }
-    buf = (xasyncfilebuf*)xFutureValue(future);
-    text = (buf != NULL && buf->pData != NULL) ? (const char*)buf->pData : "";
-    ok = strcmp(text, expected) == 0;
-    owned = xFutureValueIsOwned(future);
-    if ( buf != NULL && !owned ) {
-        xrtAsyncFileBufDestroy(buf);
-    }
-    xFutureRelease(future);
-    return ok;
-}
-
-static int wait_file_bytes(xfuture* future, const unsigned char* expected, size_t expectedSize)
-{
-    xasyncfilebuf* buf;
-    int ok;
-    int owned;
-
-    if ( future == NULL || !xFutureWait(future) ) {
-        if ( future != NULL ) { xFutureRelease(future); }
-        return 0;
-    }
-    buf = (xasyncfilebuf*)xFutureValue(future);
-    ok = buf != NULL &&
-        buf->iSize == expectedSize &&
-        (expectedSize == 0u || (buf->pData != NULL && memcmp(buf->pData, expected, expectedSize) == 0));
-    owned = xFutureValueIsOwned(future);
-    if ( buf != NULL && !owned ) {
-        xrtAsyncFileBufDestroy(buf);
-    }
-    xFutureRelease(future);
-    return ok;
-}
-
+/* 等待 Future 成功并在返回前释放消费端引用。 */
 static int wait_future_ok(xfuture* future)
 {
     int ok;
 
-    if ( future == NULL || !xFutureWait(future) ) {
-        if ( future != NULL ) { xFutureRelease(future); }
+    if ( future == NULL ) {
         return 0;
     }
-    ok = xFutureStatus(future) >= 0;
-    xFutureRelease(future);
+    ok = (xrtFutureWait(future) == XWAIT_OK) &&
+        (xrtFutureState(future) == XFUTURE_RESOLVED);
+    xrtFutureDestroy(future);
     return ok;
 }
 
+
+
+/* 等待写入类操作并返回其实际字节数。 */
+static uint64 wait_file_change(const char* name, xfuture* future)
+{
+    const xfilechange* change;
+    uint64 size;
+
+    if ( (future == NULL) ||
+         (xrtFutureWait(future) != XWAIT_OK) ||
+         (xrtFutureState(future) != XFUTURE_RESOLVED) ) {
+        xrtFutureDestroy(future);
+        fail(name);
+    }
+    change = (const xfilechange*)xrtFutureValue(future);
+    if ( change == NULL ) {
+        xrtFutureDestroy(future);
+        fail(name);
+    }
+    size = change->Size;
+    xrtFutureDestroy(future);
+    return size;
+}
+
+
+
+/* 等待大小查询并返回 64 位结果。 */
+static uint64 wait_file_size(const char* name, xfuture* future)
+{
+    const xfilesize* size;
+    uint64 value;
+
+    if ( (future == NULL) ||
+         (xrtFutureWait(future) != XWAIT_OK) ||
+         (xrtFutureState(future) != XFUTURE_RESOLVED) ) {
+        xrtFutureDestroy(future);
+        fail(name);
+    }
+    size = (const xfilesize*)xrtFutureValue(future);
+    if ( size == NULL ) {
+        xrtFutureDestroy(future);
+        fail(name);
+    }
+    value = size->Size;
+    xrtFutureDestroy(future);
+    return value;
+}
+
+
+
+/* 比较 Future 借用的整文件结果和预期字节。 */
+static int wait_file_bytes(
+    xfuture* future,
+    const void* expected,
+    size_t expectedSize)
+{
+    const xfiledata* data;
+    int ok;
+
+    if ( (future == NULL) ||
+         (xrtFutureWait(future) != XWAIT_OK) ||
+         (xrtFutureState(future) != XFUTURE_RESOLVED) ) {
+        xrtFutureDestroy(future);
+        return 0;
+    }
+    data = (const xfiledata*)xrtFutureValue(future);
+    ok = (data != NULL) &&
+        (data->Size == expectedSize) &&
+        ((expectedSize == 0) ||
+         ((data->Data != NULL) &&
+          (memcmp(data->Data, expected, expectedSize) == 0)));
+    xrtFutureDestroy(future);
+    return ok;
+}
+
+
+
+/* 比较 UTF-8 整文件结果，不依赖额外零结尾。 */
+static int wait_file_text(xfuture* future, const char* expected)
+{
+    return wait_file_bytes(future, expected, strlen(expected));
+}
+
+
+
+/* 清理示例创建的目录树，不把不存在视为错误。 */
+static void remove_tree_if_exists(const char* path)
+{
+    if ( xrtPathExists(path) ) {
+        xrtDirRemoveAll(path);
+    }
+}
+
+
+
+/* 演示整文件、随机访问文件和目录树的当前异步契约。 */
 int main(void)
 {
     const char* filePath = "examples_out/example_file_async.txt";
@@ -116,76 +162,189 @@ int main(void)
     const char* dirRoot = "examples_out/example_dir_async";
     const char* dirSource = "examples_out/example_dir_async/source";
     const char* dirNested = "examples_out/example_dir_async/source/nested";
-    const char* dirValue = "examples_out/example_dir_async/source/nested/value.txt";
+    const char* dirValue =
+        "examples_out/example_dir_async/source/nested/value.txt";
     const char* dirCopy = "examples_out/example_dir_async/copy";
     const char* dirMoved = "examples_out/example_dir_async/moved";
-    const unsigned char bytes[] = { 0u, 127u, 255u };
-    const unsigned char truncated[] = { 0u, 127u };
-    xasyncfileconfig config;
+    const unsigned char binary[] = {0, 127, 255};
+    const unsigned char truncated[] = {0, 127};
+    xfileoptions options;
+    xtaskpool* pool;
     xasyncfile* asyncFile;
 
-    xrtInit();
-    xrtDirCreateAll((str)"examples_out");
+    /* 一个有界任务池服务全部示例操作，并在退出前统一排空。 */
+    pool = xrtTaskPoolCreate(NULL);
+    require_ok("taskPoolCreate", pool != NULL);
 
-    xrtFileDelete((str)filePath);
-    xrtFileDelete((str)copyPath);
-    xrtFileDelete((str)movePath);
-    xrtFileDelete((str)binaryPath);
-    xrtFileDelete((str)handlePath);
-    xrtDirDelete((str)dirRoot);
+    /* 只清理本示例拥有的路径。 */
+    xrtDirCreateAll("examples_out");
+    xrtFileDelete(filePath);
+    xrtFileDelete(copyPath);
+    xrtFileDelete(movePath);
+    xrtFileDelete(binaryPath);
+    xrtFileDelete(handlePath);
+    remove_tree_if_exists(dirRoot);
 
+    /* 整文件 Future 的成功值由 Future 拥有，消费端只借用检查。 */
     require_line(
         "write_read",
-        wait_file_io("write_read", xrtFileWriteAllAsync((str)filePath, (str)"hello", 0, XRT_CP_UTF8)) > 0 &&
-        wait_file_text(xrtFileReadAllAsync((str)filePath, XRT_CP_UTF8), "hello"));
+        (wait_file_change(
+            "write_read",
+            xrtFileWriteAllAsync(
+                pool,
+                filePath,
+                XRT_BYTES_LITERAL("hello")
+            )
+        ) == 5) &&
+        wait_file_text(xrtFileReadAllAsync(pool, filePath), "hello")
+    );
 
     require_line(
         "append_copy",
-        wait_file_io("append_copy", xrtFileAppendAsync((str)filePath, (str)" async", 0, XRT_CP_UTF8)) > 0 &&
-        wait_file_io("append_copy", xrtFileCopyAsync((str)filePath, (str)copyPath, true)) > 0 &&
-        wait_file_text(xrtFileReadAllAsync((str)copyPath, XRT_CP_UTF8), "hello async"));
+        (wait_file_change(
+            "append_copy",
+            xrtFileAppendAsync(
+                pool,
+                filePath,
+                XRT_BYTES_LITERAL(" async")
+            )
+        ) == 6) &&
+        wait_future_ok(xrtFileCopyAsync(pool, filePath, copyPath, true)) &&
+        wait_file_text(
+            xrtFileReadAllAsync(pool, copyPath),
+            "hello async"
+        )
+    );
 
     require_line(
         "move_delete",
-        wait_file_io("move_delete", xrtFileMoveAsync((str)copyPath, (str)movePath, true)) > 0 &&
-        !xrtFileExists((str)copyPath) &&
-        wait_file_io("move_delete", xrtFileDeleteAsync((str)filePath)) > 0 &&
-        wait_file_io("move_delete", xrtFileDeleteAsync((str)movePath)) > 0);
+        wait_future_ok(xrtFileMoveAsync(pool, copyPath, movePath, true)) &&
+        !xrtFileExists(copyPath) &&
+        wait_future_ok(xrtFileDeleteAsync(pool, filePath)) &&
+        wait_future_ok(xrtFileDeleteAsync(pool, movePath))
+    );
 
+    /* 二进制整文件接口保留零字节和高位字节。 */
     require_ok(
         "binary",
-        wait_file_io("binary_write", xrtFilePutAllAsync((str)binaryPath, bytes, sizeof(bytes))) > 0 &&
-        wait_file_bytes(xrtFileGetAllAsync((str)binaryPath), bytes, sizeof(bytes)));
+        (wait_file_change(
+            "binary_write",
+            xrtFileWriteAllAsync(
+                pool,
+                binaryPath,
+                (xbytesview){binary, sizeof(binary)}
+            )
+        ) == sizeof(binary)) &&
+        wait_file_bytes(
+            xrtFileReadAllAsync(pool, binaryPath),
+            binary,
+            sizeof(binary)
+        )
+    );
 
-    xrtAsyncFileConfigInit(&config);
-    config.sPath = (str)handlePath;
-    config.iFlags = XAFILE_F_READ | XAFILE_F_WRITE | XAFILE_F_CREATE | XAFILE_F_TRUNCATE;
-    config.iShareFlags = XAFILE_SHARE_READ | XAFILE_SHARE_WRITE | XAFILE_SHARE_DELETE;
-    asyncFile = xrtAsyncFileOpen(&config);
+    /* 持久对象覆盖偏移 IO、刷新、大小查询、截断和异步关闭。 */
+    xrtFileOptionsInit(&options);
+    options.Flags = XFILE_READ | XFILE_WRITE | XFILE_CREATE | XFILE_TRUNCATE;
+    options.Share = XFILE_SHARE_ALL;
+    asyncFile = xrtAsyncFileOpen(pool, handlePath, &options);
     require_ok("asyncFileOpen", asyncFile != NULL);
-    require_ok("asyncFileWrite", wait_file_io("asyncFileWrite", xrtAsyncFileWriteAt(asyncFile, 0u, bytes, sizeof(bytes))) == sizeof(bytes));
+    require_ok(
+        "asyncFileWrite",
+        wait_file_change(
+            "asyncFileWrite",
+            xrtAsyncFileWriteAt(
+                asyncFile,
+                0,
+                (xbytesview){binary, sizeof(binary)}
+            )
+        ) == sizeof(binary)
+    );
     require_ok("asyncFileFlush", wait_future_ok(xrtAsyncFileFlush(asyncFile)));
-    require_ok("asyncFileSize", wait_file_io("asyncFileSize", xrtAsyncFileGetSize(asyncFile)) == sizeof(bytes));
-    require_ok("asyncFileRead", wait_file_bytes(xrtAsyncFileReadAt(asyncFile, 0u, sizeof(bytes)), bytes, sizeof(bytes)));
-    require_ok("asyncFileSetSize", wait_file_io("asyncFileSetSize", xrtAsyncFileSetSize(asyncFile, sizeof(truncated))) == sizeof(truncated));
-    require_ok("asyncFileTruncatedSize", wait_file_io("asyncFileTruncatedSize", xrtAsyncFileGetSize(asyncFile)) == sizeof(truncated));
-    xrtAsyncFileClose(asyncFile);
-    require_ok("asyncFileTruncatedBytes", wait_file_bytes(xrtFileGetAllAsync((str)handlePath), truncated, sizeof(truncated)));
+    require_ok(
+        "asyncFileSize",
+        wait_file_size("asyncFileSize", xrtAsyncFileSize(asyncFile)) ==
+            sizeof(binary)
+    );
+    require_ok(
+        "asyncFileRead",
+        wait_file_bytes(
+            xrtAsyncFileReadAt(asyncFile, 0, sizeof(binary)),
+            binary,
+            sizeof(binary)
+        )
+    );
+    require_ok(
+        "asyncFileResize",
+        wait_file_change(
+            "asyncFileResize",
+            xrtAsyncFileResize(asyncFile, sizeof(truncated))
+        ) == sizeof(truncated)
+    );
+    require_ok(
+        "asyncFileTruncatedSize",
+        wait_file_size("asyncFileTruncatedSize", xrtAsyncFileSize(asyncFile)) ==
+            sizeof(truncated)
+    );
+    require_ok("asyncFileClose", wait_future_ok(xrtAsyncFileClose(asyncFile)));
+    require_ok(
+        "asyncFileTruncatedBytes",
+        wait_file_bytes(
+            xrtFileReadAllAsync(pool, handlePath),
+            truncated,
+            sizeof(truncated)
+        )
+    );
 
-    wait_file_io("dirCreate", xrtDirCreateAsync((str)dirRoot));
-    wait_file_io("dirCreateAll", xrtDirCreateAllAsync((str)dirNested));
-    require_ok("dirWrite", xrtFileWriteAll((str)dirValue, (str)"dir async", 0u, XRT_CP_UTF8) > 0);
-    wait_file_io("dirCopy", xrtDirCopyAsync((str)dirSource, (str)dirCopy, true));
-    require_ok("dirCopyText", wait_file_text(xrtFileReadAllAsync((str)"examples_out/example_dir_async/copy/nested/value.txt", XRT_CP_UTF8), "dir async"));
-    wait_file_io("dirMove", xrtDirMoveAsync((str)dirCopy, (str)dirMoved, true));
-    require_ok("dirMoved", !xrtDirExists((str)dirCopy));
-    wait_file_io("dirDeleteMoved", xrtDirDeleteAsync((str)dirMoved));
-    wait_file_io("dirDeleteSource", xrtDirDeleteAsync((str)dirSource));
-    wait_file_io("dirDeleteRoot", xrtDirDeleteAsync((str)dirRoot));
+    /* 目录异步接口与整文件接口复用同一任务池和 Future 语义。 */
+    require_ok("dirCreate", wait_future_ok(xrtDirCreateAsync(pool, dirRoot)));
+    require_ok(
+        "dirCreateAll",
+        wait_future_ok(xrtDirCreateAllAsync(pool, dirNested))
+    );
+    require_ok(
+        "dirWrite",
+        xrtFileWriteText(
+            dirValue,
+            XRT_STR_LITERAL("dir async"),
+            XENCODING_UTF8,
+            XUTF_STRICT,
+            false
+        )
+    );
+    require_ok(
+        "dirCopy",
+        wait_future_ok(xrtDirCopyAsync(pool, dirSource, dirCopy, true))
+    );
+    require_ok(
+        "dirCopyText",
+        wait_file_text(
+            xrtFileReadAllAsync(
+                pool,
+                "examples_out/example_dir_async/copy/nested/value.txt"
+            ),
+            "dir async"
+        )
+    );
+    require_ok(
+        "dirMove",
+        wait_future_ok(xrtDirMoveAsync(pool, dirCopy, dirMoved, true))
+    );
+    require_ok("dirMoved", !xrtDirExists(dirCopy));
+    require_ok(
+        "dirDeleteMoved",
+        wait_future_ok(xrtDirRemoveAllAsync(pool, dirMoved))
+    );
+    require_ok(
+        "dirDeleteSource",
+        wait_future_ok(xrtDirRemoveAllAsync(pool, dirSource))
+    );
+    require_ok(
+        "dirDeleteRoot",
+        wait_future_ok(xrtDirRemoveAllAsync(pool, dirRoot))
+    );
 
-    xrtFileDelete((str)binaryPath);
-    xrtFileDelete((str)handlePath);
-
-    xrtUnit();
+    xrtFileDelete(binaryPath);
+    xrtFileDelete(handlePath);
+    require_ok("taskPoolDestroy", xrtTaskPoolDestroy(pool));
     return 0;
 }

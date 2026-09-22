@@ -1,0 +1,4396 @@
+{
+  "format": "xlang-extlib-inventory-review-1",
+  "generatedAt": "2026-09-05T16:21:23.8242615+08:00",
+  "packageCount": 225,
+  "note": "Historical labels are not current acceptance. Passed-in-tested-scope covers only the listed cases, not complete API, C, examples, backend, performance, platform or production verification.",
+  "packages": [
+    {
+      "name": "_bzip2",
+      "version": "1.0.8",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 7,
+      "declaredXlSourceCount": 0,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "_expat",
+      "version": "2.8.2",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 0,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "_libzip",
+      "version": "1.11.4",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 111,
+      "declaredXlSourceCount": 0,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "_tomlc17",
+      "version": "260618",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 0,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "_xge_native",
+      "version": "2.0.0",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 96,
+      "declaredXlSourceCount": 0,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "_zlib",
+      "version": "1.3.2",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 11,
+      "declaredXlSourceCount": 0,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "acme",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "aho_corasick",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/aho_corasick/test/test_aho_corasick.c",
+      "example": "aho_corasick.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_aho_corasick.xl",
+          "status": "failed",
+          "exitCode": 3
+        }
+      ]
+    },
+    {
+      "name": "ansi",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "ansi.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ansi.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "argon2",
+      "version": "2.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 6,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/argon2/test/test_argon2.c",
+      "example": "argon2.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_argon2.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "barcode",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "barcode.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_barcode.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "blake2",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "blake2.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_blake2.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "blake3",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "blake3.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_blake3.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "bloom",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/bloom/test/test_bloom.c",
+      "example": "bloom.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_bloom.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "brotli",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 33,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "brotli.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_brotli.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "bson",
+      "version": "3.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/bson/test/test_bson_smoke.c",
+      "example": "bson.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_bson.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "bz2",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/bz2/test/test_bz2.c",
+      "example": "bz2.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_bz2.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "canbus",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "cbor",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/cbor/test/test_cbor.c",
+      "example": "cbor.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_cbor.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "chardet",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/chardet/test/test_chardet.c",
+      "example": "chardet.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_chardet.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "cli",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "cli.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_cli.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "clickhouse",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "clip",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "clipboard",
+      "version": "0.1.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "clipboard.xl",
+      "observedCases": []
+    },
+    {
+      "name": "coap",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "color",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "color.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_color.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "com",
+      "version": "0.1.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/com/test/test_com.c",
+      "example": "com.xl",
+      "observedCases": []
+    },
+    {
+      "name": "consistent_hash",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "consistent_hash.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_consistent_hash.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "crc32",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "crc32.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hash_progress.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "crontab",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "crontab.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_crontab.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "css",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/css/test/test_css.c",
+      "example": "css.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_css.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "csv",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/csv/test/test_csv.c",
+      "example": "csv.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_csv.xl",
+          "status": "failed",
+          "exitCode": 3
+        }
+      ]
+    },
+    {
+      "name": "cuckoo",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "cuckoo.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_cuckoo.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "daemon",
+      "version": "1.0.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "daemon.xl",
+      "observedCases": []
+    },
+    {
+      "name": "dataframe",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "diff",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "diff.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_diff.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "dinov3",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "dinov3.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_dinov3.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "dns",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/dns/test/test_dns.c",
+      "example": "dns.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_dns.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "docker",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "docx",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "dotenv",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "dotenv.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_dotenv.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "duckdb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "embeddings",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "enet",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "epub",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "epub.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_epub.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "etcd",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "faiss",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "ffmpeg",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "fix",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/fix/test/test_fix.c",
+      "example": "fix.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_fix.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "flatbuffers",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "freetype",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "ftp",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "fuzzy",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "fuzzy.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_fuzzy.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "geohash",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "geohash.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_geohash.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "gettext",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "gettext.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_gettext.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "ggml",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "git",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "glad",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "gpio",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "graph",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "graph.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_graph.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "grpc",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "gzip",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/gzip/test/test_gzip.c",
+      "example": "gzip.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_gzip.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "harfbuzz",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "hcl",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/hcl/test/test_hcl.c",
+      "example": "hcl.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hcl.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "hnswlib",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "html5",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "hyperloglog",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/hyperloglog/test/test_hyperloglog.c",
+      "example": "hyperloglog.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hyperloglog.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "ical",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "ical.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ical.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "icu",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "imagehash",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/imagehash/test/test_imagehash.c",
+      "example": "imagehash.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_imagehash.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "imgui",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "influxdb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "ini",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/ini/test/test_ini.c",
+      "example": "ini.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ini.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "jieba",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "json.patch",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "json_patch.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_json_patch.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "json5",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "json5.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_json5.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "jwt",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/jwt/test/test_jwt.c",
+      "example": "jwt.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_jwt.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "kubernetes",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "langdetect",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/langdetect/test/test_langdetect.c",
+      "example": "langdetect.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_langdetect.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "ldap",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "leveldb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "libsndfile",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "libsvm",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "libtorch",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "libusb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "linalg",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/linalg/test/test_linalg.c",
+      "example": "linalg.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_linalg.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "llama",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "lmdb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "lru",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "lru.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_lru.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "lz4",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "lz4.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_lz4.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "lzma",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 7,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "lzma.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_lzma.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "md4c",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/md4c/test/test_md4c.c",
+      "example": "md4c.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_md4c.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "md5",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "md5.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hash_progress.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "mdns",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "memcached",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "memcached.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_memcached.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "minio",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "miniz",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "miniz.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_miniz.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "mnn",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "modbus",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "modbus.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_modbus.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "money",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "money.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_money.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "mongodb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "mqtt",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "mqtt.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_mqtt.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "msgpack",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/msgpack/test/test_msgpack.c",
+      "example": "msgpack.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_msgpack.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "murmur3",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "murmur3.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_murmur3.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "mysql",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "nanomsg",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "nats",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "ncnn",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "neo4j",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "netrc",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/netrc/test/test_netrc.c",
+      "example": "netrc.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_netrc.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "nsq",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "ntp",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "ntp.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ntp.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "oauth2",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "oauth2.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_oauth2.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "onnxruntime",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/onnxruntime/test/test_onnxruntime.c",
+      "example": "onnxruntime.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_onnxruntime.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "op",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "opencv",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "opencv.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_opencv.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "opentelemetry",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "openvino",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "opus",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "passkey",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "pcap",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "pdf",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "pdfium",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "pinyin",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "pinyin.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_pinyin.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "pkcs",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/pkcs/test/test_pkcs.c",
+      "example": "pkcs.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_pkcs.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "pkg.math",
+      "version": "1.0.0",
+      "historicalLabel": "internal",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "plist",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 7,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/plist/test/test_plist.c",
+      "example": "plist.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_plist.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "portaudio",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "postgresql",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "pptx",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "procps",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "progress",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "progress.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_progress.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "prometheus",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "protobuf",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "qr",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "qr.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_qr.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "quic",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "rabbitmq",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "rapidocr",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/rapidocr/test/test_rapidocr.c",
+      "example": "rapidocr.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_rapidocr.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "ratatui",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "redis",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "redis.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_redis.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "roaring",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "roaring.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_roaring.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "rocksdb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "rss",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "rss.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_rss.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "rtmp",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "rtree",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "rtree.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_rtree.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "sciter",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "semver",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "semver.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_semver.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "sentencepiece",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "serial",
+      "version": "1.0.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "serial.xl",
+      "observedCases": []
+    },
+    {
+      "name": "sha3",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "sha3.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_sha3.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "sharedmem",
+      "version": "1.0.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "sharedmem.xl",
+      "observedCases": []
+    },
+    {
+      "name": "shellwords",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "shellwords.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_shellwords.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "singleinstance",
+      "version": "1.0.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "singleinstance.xl",
+      "observedCases": []
+    },
+    {
+      "name": "siphash",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "siphash.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_siphash.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "sitemap",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "sitemap.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_sitemap.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "skiplist",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "skiplist.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_skiplist.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "slugify",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "slugify.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_slugify.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "snappy",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "snappy.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_snappy.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "snmp",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "socks",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "socks.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_socks.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "sox",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "sqlite",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/sqlite/test/test_sqlite.c",
+      "example": "sqlite.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_sqlite.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "srt",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "srt.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_srt.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "stablediffusion",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "statistics",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "statistics.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_statistics.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "stb_image",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "stb_image.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_image.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "stb_image_resize2",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "stb_image_resize2.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_image_resize2.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "stb_image_write",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "stb_image_write.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_image_write.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "stb_truetype",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "stb_truetype.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_truetype.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "sysinfo",
+      "version": "1.0.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "sysinfo.xl",
+      "observedCases": []
+    },
+    {
+      "name": "tabulate",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "tabulate.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_tabulate.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "taglib",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "tar",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 5,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/tar/test/test_tar.c",
+      "example": "tar.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_tar_p2.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "tdengine",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "tensorrt",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "terraform_state",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/terraform_state/test/test_terraform_state.c",
+      "example": "terraform_state.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_terraform_state.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "tokenizers",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "toml",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/toml/test/test_toml.c",
+      "example": "toml.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_toml.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "totp",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "totp.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_totp.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "treesitter",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "trie",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "trie.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_trie.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "ui.auto",
+      "version": "0.1.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "ui_auto.xl",
+      "observedCases": []
+    },
+    {
+      "name": "uia",
+      "version": "0.1.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/uia/test/test_uia.c",
+      "example": "uia.xl",
+      "observedCases": []
+    },
+    {
+      "name": "units",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "units.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_units.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "upnp",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "vault",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "vcard",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "vcard.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_vcard.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "vectordb",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "volc.core",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/volc.core/test/test_volc_core.c",
+      "example": "volc_core.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_volc_core.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "volc.phone",
+      "version": "0.1.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "volc.sts",
+      "version": "0.1.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "watch",
+      "version": "1.0.0",
+      "historicalLabel": "platform-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "platform",
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "watch.xl",
+      "observedCases": []
+    },
+    {
+      "name": "webrtc",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "webview",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "whisper",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "xbot",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xbot_test.xl"
+      ],
+      "cSmoke": null,
+      "example": "xbot.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xbot.xl",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "case": "release/extlibs/xbot/test/xbot_test.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xbot.agent",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "xbot_agent.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xbot_agent.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xfeat",
+      "version": "0.1.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "xfeat.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xfeat.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xge",
+      "version": "2.0.0",
+      "historicalLabel": "existing-hardening",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 12,
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "xge_shape_ex",
+      "version": "2.0.0",
+      "historicalLabel": "existing-hardening",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 3,
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "xhttp",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 8,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_url_test.xl",
+        "test/xhttp_query_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+          "status": "failed",
+          "exitCode": 3
+        },
+        {
+          "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_body_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_async",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_body_async_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_codec",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_body_codec_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_decode",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_body_decode_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_file",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_body_file_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_stream",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 2,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_body_stream_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xhttp.client",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 21,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_client_request_test.xl",
+        "test/xhttp_client_exchange_test.xl",
+        "test/xhttp_client_transport_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xhttp.form_data",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 6,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_form_data_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+          "status": "failed",
+          "exitCode": 3
+        }
+      ]
+    },
+    {
+      "name": "xhttp.multipart",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 11,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_multipart_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xhttp.protocol",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 9,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xhttp_protocol_headers_test.xl",
+        "test/xhttp_protocol_cookie_test.xl",
+        "test/xhttp_protocol_mime_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+          "status": "failed",
+          "exitCode": 3
+        },
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xlsx",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-large",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "xmail",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xmail_test.xl",
+        "test/xmail_smtp_loopback_test.xl",
+        "test/xmail_pop3_loopback_test.xl",
+        "test/xmail_imap_loopback_test.xl"
+      ],
+      "cSmoke": null,
+      "example": "xmail.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xmail.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_smtp_loopback_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_pop3_loopback_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_imap_loopback_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xml.dom",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/xml.dom/test/test_xml_dom.c",
+      "example": "xml_dom.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xml_dom.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xml.etree",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/xml.etree/test/test_xml_etree.c",
+      "example": "xml_etree.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xml_etree.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xml.sax",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/xml.sax/test/test_xml_sax.c",
+      "example": "xml_sax.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xml_sax.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xregex",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 8,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xregex_test.xl"
+      ],
+      "cSmoke": null,
+      "example": "xregex.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xregex.xl",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "case": "release/extlibs/xregex/test/xregex_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xssh",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xssh_test.xl"
+      ],
+      "cSmoke": "release/extlibs/xssh/test/test_xssh.c",
+      "example": "xssh.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xssh.xl",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "case": "release/extlibs/xssh/test/xssh_test.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "xui",
+      "version": "2.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 0,
+      "declaredXlSourceCount": 14,
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "xws",
+      "version": "1.0.0",
+      "historicalLabel": "placeholder",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "blocked-in-tested-scope",
+      "declaredCSourceCount": 12,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        "test/xws_test.xl",
+        "test/xws_loopback_test.xl",
+        "test/xws_tls_loopback_test.xl"
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": [
+        {
+          "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xws/test/xws_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+          "status": "failed",
+          "exitCode": 1
+        }
+      ]
+    },
+    {
+      "name": "xxhash",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "xxhash.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xxhash.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "yaml",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "yaml.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_yaml.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "zeromq",
+      "version": "1.0.0",
+      "historicalLabel": "deferred-platform",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": null,
+      "currentObservation": "not-rerun",
+      "declaredCSourceCount": 1,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": null,
+      "observedCases": []
+    },
+    {
+      "name": "zip",
+      "version": "1.0.0",
+      "historicalLabel": "phase1-verified",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "phase1",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 4,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": "release/extlibs/zip/test/test_zip.c",
+      "example": "zip.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_zip.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "name": "zstd",
+      "version": "1.0.0",
+      "historicalLabel": "featured-rc",
+      "historicalLabelIsAcceptance": false,
+      "scheduledGate": "featured",
+      "currentObservation": "passed-in-tested-scope",
+      "declaredCSourceCount": 3,
+      "declaredXlSourceCount": 1,
+      "coverageTests": [
+        null
+      ],
+      "cSmoke": null,
+      "example": "zstd.xl",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_zstd.xl",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    }
+  ]
+}

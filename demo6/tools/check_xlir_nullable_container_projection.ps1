@@ -33,9 +33,7 @@ $loweredPath = Join-Path $outputDir "typed_nullable_container_matrix.lowered.jso
 $loweredRepeatPath = Join-Path $outputDir "typed_nullable_container_matrix.lowered.repeat.json"
 $xlirCPath = Join-Path $outputDir "typed_nullable_container_matrix.xlir.c"
 $xlirCRepeatPath = Join-Path $outputDir "typed_nullable_container_matrix.xlir.repeat.c"
-$legacyCPath = Join-Path $outputDir "typed_nullable_container_matrix.legacy.c"
 $xlirExe = Join-Path $outputDir "typed_nullable_container_matrix.xlir.exe"
-$legacyExe = Join-Path $outputDir "typed_nullable_container_matrix.legacy.exe"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -56,8 +54,6 @@ if ( $LASTEXITCODE -ne 0 ) { throw "Repeated XLIR nullable container lowering fa
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR nullable container Cgen failed" }
 & $xl cgen $source --backend xlir --emit $xlirCRepeatPath
 if ( $LASTEXITCODE -ne 0 ) { throw "Repeated XLIR nullable container Cgen failed" }
-& $xl cgen $source --backend legacy --emit $legacyCPath
-if ( $LASTEXITCODE -ne 0 ) { throw "Legacy nullable container Cgen failed" }
 
 Assert-Deterministic $typedPath $typedRepeatPath
 Assert-Deterministic $loweredPath $loweredRepeatPath
@@ -218,29 +214,23 @@ foreach ( $forbidden in @(
 
 $compileCommands = @(
     "call test\suites\common.bat",
-    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror "{0}" !XL6_CGEN_XLANG_LINKS! -o "{1}"' -f $legacyCPath, $legacyExe),
     ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $xlirCPath, $hostSource, $xlirExe)
 )
 Push-Location $Root
 try {
     & $env:ComSpec /d /v:on /c ($compileCommands -join " && ")
     if ( $LASTEXITCODE -ne 0 ) {
-        throw "Nullable container strict legacy/XLIR compile failed"
+        throw "Nullable container strict XLIR compile failed"
     }
-    $legacyOutput = @(& $legacyExe 2>&1)
-    $legacyExit = $LASTEXITCODE
     $xlirOutput = @(& $xlirExe 2>&1)
     $xlirExit = $LASTEXITCODE
-    $legacyText = $legacyOutput -join "`n"
     $xlirText = $xlirOutput -join "`n"
-    if ( $legacyExit -ne 0 -or $xlirExit -ne 0 -or
-         $legacyText -ne "typed nullable container matrix ok" -or
-         $xlirText -ne $legacyText ) {
-        throw "Nullable container runtime differential failed: legacy=$legacyExit '$legacyText', XLIR=$xlirExit '$xlirText'"
+    if ( $xlirExit -ne 0 -or $xlirText -ne "typed nullable container matrix ok" ) {
+        throw "Nullable container runtime failed: XLIR=$xlirExit '$xlirText'"
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR nullable container projection gate ok: tagged/string/closure/protocol layouts, array/list/set/dict indexing and iteration, safe missing reads, discarded keys, ownership-only exact-TypeId retain, explicit VALUE rebinds, named print tag ABI, deterministic mechanical C, strict compile, heap-clean exit, and legacy differential runtime."
+Write-Output "XLIR nullable container projection gate ok: tagged/string/closure/protocol layouts, array/list/set/dict indexing and iteration, safe missing reads, discarded keys, ownership-only exact-TypeId retain, explicit VALUE rebinds, named print tag ABI, deterministic mechanical C, strict compile, and heap-clean exit."
 exit 0

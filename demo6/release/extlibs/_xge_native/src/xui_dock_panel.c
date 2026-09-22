@@ -1,4 +1,5 @@
 #include "xui_internal.h"
+#include "xui_value_internal.h"
 
 #include <string.h>
 
@@ -83,6 +84,8 @@ typedef struct xui_dock_node_slot_t {
 	float fRatio;
 	xui_rect_t tRect;
 	xui_rect_t tSplitterRect;
+	xlayout_node_t iLayoutNode;
+	xlayout_node_t iLayoutDivider;
 } xui_dock_node_slot_t;
 
 typedef struct xui_dock_region_slot_t {
@@ -97,6 +100,10 @@ typedef struct xui_dock_region_slot_t {
 } xui_dock_region_slot_t;
 
 struct xui_dock_panel_data_t {
+	xlayout_context_t* pLayoutContext;
+	xlayout_node_t iRegionLayoutRoot;
+	xlayout_node_t arrRegionLayoutAreas[XUI_DOCK_PANEL_REGION_COUNT];
+	xlayout_node_t arrRegionLayoutSplitters[4];
 	xui_font pFont;
 	xui_dock_panel_metrics_t tMetrics;
 	xui_dock_panel_colors_t tColors;
@@ -126,7 +133,9 @@ struct xui_dock_panel_data_t {
 	float fDragStartX;
 	float fDragStartY;
 	float fDragStartRatio;
+	float fDragPendingValue;
 	xui_rect_t tDragStartRect;
+	xui_rect_t tDragPendingRect;
 	xui_dock_drop_info_t tDragPreview;
 	xui_dock_drop_info_t tDragIndicator;
 	xui_dock_window_state_proc onStateChanged;
@@ -153,7 +162,9 @@ struct xui_dock_panel_data_t {
 };
 
 static xui_dock_panel_data_t* __xuiDockPanelGetData(xui_widget pWidget);
-static int __xuiDockPanelArrangeNow(xui_widget pWidget, xui_dock_panel_data_t* pData, xui_rect_t tRect);
+static int __xuiDockPanelPrepare(xui_widget pWidget, void* pUser);
+static int __xuiDockPanelLayoutChildren(xui_widget pWidget, xui_rect_t tRect, void* pUser);
+static int __xuiDockPanelLayoutComplete(xui_widget pWidget, xui_rect_t tRect, void* pUser);
 static int __xuiDockOpenPaneMenu(xui_widget pWidget, xui_dock_panel_data_t* pData, int iPane);
 static int __xuiDockOpenOverflowMenu(xui_widget pWidget, xui_dock_panel_data_t* pData, int iPane);
 static xui_rect_t __xuiDockClampFloatRect(xui_widget pPanel, xui_rect_t r);
@@ -163,10 +174,38 @@ static int __xuiDockPointerTargetIsFloatingHost(xui_dock_panel_data_t* pData, xu
 static const char* __xuiDockTooltipTextForId(xui_context pContext, xui_dock_panel_data_t* pData, int iTooltip);
 static int __xuiDockDragOverlayRender(xui_widget pOverlay, xui_draw_context pDraw, uint32_t iStateId, void* pUser);
 static void __xuiDockSyncDragOverlay(xui_widget pWidget, xui_dock_panel_data_t* pData);
+static float __xuiDockNodeMinimumAxis(xui_dock_panel_data_t* pData, int iNode, int iOrientation);
 
 static float __xuiDockMin(float a, float b) { return (a < b) ? a : b; }
 static float __xuiDockMax(float a, float b) { return (a > b) ? a : b; }
 static float __xuiDockAbs(float a) { return (a < 0.0f) ? -a : a; }
+
+static xui_rect_t __xuiDockAdornerWorldRect(xui_widget pPanel, xui_rect_t tRect)
+{
+	xui_rect_t tWorld = xuiWidgetGetWorldRect(pPanel);
+	tRect.fX += tWorld.fX;
+	tRect.fY += tWorld.fY;
+	return tRect;
+}
+
+static int __xuiDockShowAdorner(xui_widget pPanel, xui_dock_panel_data_t* pData,
+	xui_rect_t tRect, int iType, uint32_t iColor, float fWidth)
+{
+	xui_drag_adorner_primitive_t tPrimitive;
+
+	if ( (pPanel == NULL) || (pData == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	memset(&tPrimitive, 0, sizeof(tPrimitive));
+	tPrimitive.iType = iType;
+	tPrimitive.tRect = __xuiDockAdornerWorldRect(pPanel, tRect);
+	tPrimitive.fWidth = fWidth;
+	tPrimitive.iColor = iColor;
+	return xuiInternalDragAdornerSet(xuiWidgetGetContext(pPanel), pPanel, &tPrimitive, 1);
+}
+
+static void __xuiDockHideAdorner(xui_widget pPanel)
+{
+	if ( pPanel != NULL ) xuiInternalDragAdornerHide(xuiWidgetGetContext(pPanel), pPanel);
+}
 
 static float __xuiDockClamp(float v, float mn, float mx)
 {
@@ -174,6 +213,22 @@ static float __xuiDockClamp(float v, float mn, float mx)
 	if ( v < mn ) return mn;
 	if ( v > mx ) return mx;
 	return v;
+}
+
+static xui_rect_t __xuiDockSplitterHitRect(xui_dock_panel_data_t* pData,
+	xui_rect_t tRect, int iOrientation)
+{
+	float fExpand;
+	if ( iOrientation == XUI_DOCK_ORIENTATION_VERTICAL ) {
+		fExpand = __xuiDockMax(0.0f, pData->tMetrics.fSplitterHitSize - tRect.fW) * 0.5f;
+		tRect.fX -= fExpand;
+		tRect.fW += fExpand * 2.0f;
+	} else {
+		fExpand = __xuiDockMax(0.0f, pData->tMetrics.fSplitterHitSize - tRect.fH) * 0.5f;
+		tRect.fY -= fExpand;
+		tRect.fH += fExpand * 2.0f;
+	}
+	return tRect;
 }
 
 static int __xuiDockAlpha(uint32_t c)
@@ -340,8 +395,8 @@ static void __xuiDockDefaultMetrics(xui_dock_panel_metrics_t* m)
 	m->fButtonSize = 16.0f;
 	m->fButtonGap = 4.0f;
 	m->fBorderWidth = 1.0f;
-	m->fSplitterSize = 5.0f;
-	m->fSplitterHitSize = 7.0f;
+	m->fSplitterSize = 3.0f;
+	m->fSplitterHitSize = 11.0f;
 	m->fMinPaneWidth = 96.0f;
 	m->fMinPaneHeight = 72.0f;
 	m->fTabMinWidth = 68.0f;
@@ -654,6 +709,23 @@ static int __xuiDockAllocNode(xui_dock_panel_data_t* pData, int iType)
 	return -1;
 }
 
+static void __xuiDockDestroyLayoutNode(xui_dock_panel_data_t* pData, xui_dock_node_slot_t* pNode)
+{
+	xlayout_node_t iChild;
+	if ( pData == NULL || pNode == NULL || pData->pLayoutContext == NULL ) return;
+	if ( xLayoutNodeIsValid(pData->pLayoutContext, pNode->iLayoutNode) ) {
+		while ( (iChild = xLayoutNodeFirstChild(pData->pLayoutContext, pNode->iLayoutNode)) != XLAYOUT_NODE_INVALID ) {
+			(void)xLayoutNodeRemove(pData->pLayoutContext, iChild);
+		}
+		xLayoutNodeDestroy(pData->pLayoutContext, pNode->iLayoutNode);
+	}
+	if ( xLayoutNodeIsValid(pData->pLayoutContext, pNode->iLayoutDivider) ) {
+		xLayoutNodeDestroy(pData->pLayoutContext, pNode->iLayoutDivider);
+	}
+	pNode->iLayoutNode = XLAYOUT_NODE_INVALID;
+	pNode->iLayoutDivider = XLAYOUT_NODE_INVALID;
+}
+
 static int __xuiDockAllocPane(xui_dock_panel_data_t* pData, int iRegion)
 {
 	int i;
@@ -692,6 +764,7 @@ static int __xuiDockAllocPaneNode(xui_dock_panel_data_t* pData, int iRegion)
 static void __xuiDockFreeNode(xui_dock_panel_data_t* pData, int iNode)
 {
 	if ( (iNode < 0) || (iNode >= XUI_DOCK_PANEL_NODE_CAPACITY) || !pData->arrNodes[iNode].bUsed ) return;
+	__xuiDockDestroyLayoutNode(pData, &pData->arrNodes[iNode]);
 	memset(&pData->arrNodes[iNode], 0, sizeof(pData->arrNodes[iNode]));
 	pData->iNodeCount--;
 }
@@ -822,6 +895,22 @@ static int __xuiDockSetDragIndicator(xui_widget pWidget, xui_dock_panel_data_t* 
 		__xuiDockSyncDragOverlay(pWidget, pData);
 	}
 	return XUI_OK;
+}
+
+static void __xuiDockResetDragSession(xui_widget pWidget, xui_dock_panel_data_t* pData)
+{
+	if ( pData == NULL ) return;
+	pData->iDragType = XUI_DOCK_DRAG_NONE;
+	pData->iDragNode = -1;
+	pData->iDragRegion = -1;
+	pData->iDragPane = -1;
+	pData->iDragWindow = -1;
+	pData->iDragSourceIndex = -1;
+	pData->iDragInsertIndex = -1;
+	pData->iDragSide = 0;
+	pData->bDragFloating = 0;
+	__xuiDockHideAdorner(pWidget);
+	(void)__xuiDockSetDragPreview(pWidget, pData, NULL);
 }
 
 static int __xuiDockFloatOrderIndex(xui_dock_panel_data_t* pData, int iWindow)
@@ -1863,124 +1952,124 @@ static const char* __xuiDockStateAxisName(int iOrientation)
 	return (iOrientation == XUI_DOCK_ORIENTATION_HORIZONTAL) ? "horizontal" : "vertical";
 }
 
-static int __xuiDockStateSetText(xvalue pTable, const char* sKey, const char* sValue)
+static int __xuiDockStateSetText(xvalue* pTable, const char* sKey, const char* sValue)
 {
 	if ( (pTable == NULL) || (sKey == NULL) || (sValue == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	return xvoTableSetText(pTable, sKey, 0, (ptr)(void*)sValue, 0, FALSE) ? XUI_OK : XUI_ERROR_OUT_OF_MEMORY;
+	return __xuiValueObjectSetText(pTable, sKey, 0, (ptr)(void*)sValue, 0, false) ? XUI_OK : XUI_ERROR_OUT_OF_MEMORY;
 }
 
-static int __xuiDockStateSetObject(xvalue pTable, const char* sKey, xvalue pChild)
+static int __xuiDockStateSetObject(xvalue* pTable, const char* sKey, xvalue* pChild)
 {
 	if ( (pTable == NULL) || (sKey == NULL) || (pChild == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	if ( !xvoTableSetValue(pTable, sKey, 0, pChild, TRUE) ) {
-		xvoUnref(pChild);
+	if ( !__xuiValueObjectSetValue(pTable, sKey, 0, pChild, true) ) {
+		xrtValueRelease(pChild);
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	return XUI_OK;
 }
 
-static xvalue __xuiDockStateCreateRect(xui_rect_t r)
+static xvalue* __xuiDockStateCreateRect(xui_rect_t r)
 {
-	xvalue pRect = xvoCreateArray();
+	xvalue* pRect = xrtValueArray();
 	if ( pRect == NULL ) return NULL;
-	if ( !xvoArrayAppendFloat(pRect, r.fX) ||
-	     !xvoArrayAppendFloat(pRect, r.fY) ||
-	     !xvoArrayAppendFloat(pRect, r.fW) ||
-	     !xvoArrayAppendFloat(pRect, r.fH) ) {
-		xvoUnref(pRect);
+	if ( !__xuiValueArrayAppendFloat(pRect, r.fX) ||
+	     !__xuiValueArrayAppendFloat(pRect, r.fY) ||
+	     !__xuiValueArrayAppendFloat(pRect, r.fW) ||
+	     !__xuiValueArrayAppendFloat(pRect, r.fH) ) {
+		xrtValueRelease(pRect);
 		return NULL;
 	}
 	return pRect;
 }
 
-static int __xuiDockStateSetRect(xvalue pTable, const char* sKey, xui_rect_t r)
+static int __xuiDockStateSetRect(xvalue* pTable, const char* sKey, xui_rect_t r)
 {
-	xvalue pRect = __xuiDockStateCreateRect(r);
+	xvalue* pRect = __xuiDockStateCreateRect(r);
 	if ( pRect == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	return __xuiDockStateSetObject(pTable, sKey, pRect);
 }
 
-static xvalue __xuiDockStateCreateNode(xui_dock_panel_data_t* pData, int iNode)
+static xvalue* __xuiDockStateCreateNode(xui_dock_panel_data_t* pData, int iNode)
 {
 	xui_dock_node_slot_t* pNode;
 	xui_dock_pane_slot_t* pPane;
-	xvalue pState;
-	xvalue pChild;
-	xvalue pTabs;
+	xvalue* pState;
+	xvalue* pChild;
+	xvalue* pTabs;
 	int i;
-	if ( iNode < 0 ) return xvoCreateNull();
+	if ( iNode < 0 ) return xrtValueNull();
 	pNode = __xuiDockNodeAt(pData, iNode);
-	if ( pNode == NULL ) return xvoCreateNull();
-	pState = xvoCreateTable();
+	if ( pNode == NULL ) return xrtValueNull();
+	pState = xrtValueObject();
 	if ( pState == NULL ) return NULL;
 	if ( pNode->iType == XUI_DOCK_NODE_SPLIT ) {
 		if ( (__xuiDockStateSetText(pState, "type", "split") != XUI_OK) ||
 		     (__xuiDockStateSetText(pState, "axis", __xuiDockStateAxisName(pNode->iOrientation)) != XUI_OK) ||
-		     !xvoTableSetFloat(pState, "ratio", 0, pNode->fRatio) ) {
-			xvoUnref(pState);
+		     !__xuiValueObjectSetFloat(pState, "ratio", 0, pNode->fRatio) ) {
+			xrtValueRelease(pState);
 			return NULL;
 		}
 		pChild = __xuiDockStateCreateNode(pData, pNode->iFirst);
 		if ( (pChild == NULL) || (__xuiDockStateSetObject(pState, "first", pChild) != XUI_OK) ) {
-			xvoUnref(pState);
+			xrtValueRelease(pState);
 			return NULL;
 		}
 		pChild = __xuiDockStateCreateNode(pData, pNode->iSecond);
 		if ( (pChild == NULL) || (__xuiDockStateSetObject(pState, "second", pChild) != XUI_OK) ) {
-			xvoUnref(pState);
+			xrtValueRelease(pState);
 			return NULL;
 		}
 		return pState;
 	}
 	if ( pNode->iType != XUI_DOCK_NODE_PANE ) {
-		xvoUnref(pState);
-		return xvoCreateNull();
+		xrtValueRelease(pState);
+		return xrtValueNull();
 	}
 	if ( __xuiDockStateSetText(pState, "type", "pane") != XUI_OK ) {
-		xvoUnref(pState);
+		xrtValueRelease(pState);
 		return NULL;
 	}
 	pPane = __xuiDockPaneAt(pData, pNode->iPane);
-	if ( (pPane != NULL) && !xvoTableSetInt(pState, "active", 0, pPane->iActiveIndex) ) {
-		xvoUnref(pState);
+	if ( (pPane != NULL) && !__xuiValueObjectSetInt(pState, "active", 0, pPane->iActiveIndex) ) {
+		xrtValueRelease(pState);
 		return NULL;
 	}
-	pTabs = xvoCreateArray();
+	pTabs = xrtValueArray();
 	if ( pTabs == NULL ) {
-		xvoUnref(pState);
+		xrtValueRelease(pState);
 		return NULL;
 	}
 	if ( pPane != NULL ) {
 		for ( i = 0; i < pPane->iWindowCount; i++ ) {
-			if ( !xvoArrayAppendInt(pTabs, pPane->arrWindows[i]) ) {
-				xvoUnref(pTabs);
-				xvoUnref(pState);
+			if ( !__xuiValueArrayAppendInt(pTabs, pPane->arrWindows[i]) ) {
+				xrtValueRelease(pTabs);
+				xrtValueRelease(pState);
 				return NULL;
 			}
 		}
 	}
 	if ( __xuiDockStateSetObject(pState, "tabs", pTabs) != XUI_OK ) {
-		xvoUnref(pState);
+		xrtValueRelease(pState);
 		return NULL;
 	}
 	return pState;
 }
 
-static int __xuiDockStateAppendRegion(xui_dock_panel_data_t* pData, xvalue pRegions, int iRegion)
+static int __xuiDockStateAppendRegion(xui_dock_panel_data_t* pData, xvalue* pRegions, int iRegion)
 {
 	xui_dock_region_slot_t* pRegion;
-	xvalue pItem;
-	xvalue pRoot;
+	xvalue* pItem;
+	xvalue* pRoot;
 	int ret;
 	if ( (pData == NULL) || (pRegions == NULL) || !__xuiDockRegionValid(iRegion) ) return XUI_ERROR_INVALID_ARGUMENT;
 	pRegion = &pData->arrRegions[iRegion];
-	pItem = xvoCreateTable();
+	pItem = xrtValueObject();
 	if ( pItem == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	ret = __xuiDockStateSetText(pItem, "kind", __xuiDockStateRegionName(iRegion));
-	if ( ret == XUI_OK && !xvoTableSetFloat(pItem, "value", 0, pRegion->fValue) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetFloat(pItem, "value", 0, pRegion->fValue) ) ret = XUI_ERROR_OUT_OF_MEMORY;
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetText(pItem, "sizeMode", (pRegion->iSizeMode == XUI_DOCK_PANEL_SIZE_PIXEL) ? "pixel" : "portion");
-	if ( ret == XUI_OK && !xvoTableSetFloat(pItem, (pRegion->iSizeMode == XUI_DOCK_PANEL_SIZE_PIXEL) ? "pixelSize" : "portion", 0, pRegion->fValue) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret == XUI_OK && !xvoTableSetBool(pItem, "visible", 0, pRegion->bVisible ? TRUE : FALSE) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetFloat(pItem, (pRegion->iSizeMode == XUI_DOCK_PANEL_SIZE_PIXEL) ? "pixelSize" : "portion", 0, pRegion->fValue) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetBool(pItem, "visible", 0, pRegion->bVisible ? true : false) ) ret = XUI_ERROR_OUT_OF_MEMORY;
 	if ( ret == XUI_OK ) {
 		pRoot = __xuiDockStateCreateNode(pData, pRegion->iRootNode);
 		if ( pRoot == NULL ) {
@@ -1989,111 +2078,120 @@ static int __xuiDockStateAppendRegion(xui_dock_panel_data_t* pData, xvalue pRegi
 			ret = __xuiDockStateSetObject(pItem, "root", pRoot);
 		}
 	}
-	if ( ret == XUI_OK && !xvoArrayAppendValue(pRegions, pItem, TRUE) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret != XUI_OK ) xvoUnref(pItem);
+	if ( ret == XUI_OK && !__xuiValueArrayAppendValue(pRegions, pItem, true) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret != XUI_OK ) xrtValueRelease(pItem);
 	return ret;
 }
 
-static int __xuiDockStateAppendWindow(xvalue pWindows, const xui_dock_window_slot_t* pWin)
+static int __xuiDockStateAppendWindow(xvalue* pWindows, const xui_dock_window_slot_t* pWin)
 {
-	xvalue pItem;
+	xvalue* pItem;
 	int ret;
 	if ( (pWindows == NULL) || (pWin == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	pItem = xvoCreateTable();
+	pItem = xrtValueObject();
 	if ( pItem == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	ret = XUI_OK;
-	if ( !xvoTableSetInt(pItem, "id", 0, pWin->iWindow) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( !__xuiValueObjectSetInt(pItem, "id", 0, pWin->iWindow) ) ret = XUI_ERROR_OUT_OF_MEMORY;
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetText(pItem, "title", pWin->sTitle);
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetText(pItem, "state", __xuiDockStateWindowStateName(pWin->iState));
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetText(pItem, "lastRegion", __xuiDockStateRegionName(pWin->iLastRegion));
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetText(pItem, "autoHideRegion", __xuiDockStateRegionName(__xuiDockWindowAutoHideRegion(pWin)));
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetText(pItem, "lastSide", __xuiDockStateSideName(pWin->iLastSide));
-	if ( ret == XUI_OK && !xvoTableSetInt(pItem, "lastTabIndex", 0, pWin->iLastTabIndex) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret == XUI_OK && !xvoTableSetBool(pItem, "closable", 0, pWin->bClosable ? TRUE : FALSE) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret == XUI_OK && !xvoTableSetBool(pItem, "dockable", 0, pWin->bDockable ? TRUE : FALSE) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetInt(pItem, "lastTabIndex", 0, pWin->iLastTabIndex) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetBool(pItem, "closable", 0, pWin->bClosable ? true : false) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetBool(pItem, "dockable", 0, pWin->bDockable ? true : false) ) ret = XUI_ERROR_OUT_OF_MEMORY;
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetRect(pItem, "floatRect", pWin->tFloatRect);
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetRect(pItem, "lastDockRect", pWin->tLastDockRect);
-	if ( ret == XUI_OK && !xvoArrayAppendValue(pWindows, pItem, TRUE) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret != XUI_OK ) xvoUnref(pItem);
+	if ( ret == XUI_OK && !__xuiValueArrayAppendValue(pWindows, pItem, true) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret != XUI_OK ) xrtValueRelease(pItem);
 	return ret;
 }
 
-static int __xuiDockStateAppendFloating(xvalue pFloating, const xui_dock_window_slot_t* pWin, int iZ)
+static int __xuiDockStateAppendFloating(xvalue* pFloating, const xui_dock_window_slot_t* pWin, int iZ)
 {
-	xvalue pItem;
+	xvalue* pItem;
 	int ret;
 	if ( (pFloating == NULL) || (pWin == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	pItem = xvoCreateTable();
+	pItem = xrtValueObject();
 	if ( pItem == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	ret = XUI_OK;
-	if ( !xvoTableSetInt(pItem, "id", 0, pWin->iWindow) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret == XUI_OK && !xvoTableSetInt(pItem, "z", 0, iZ) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( !__xuiValueObjectSetInt(pItem, "id", 0, pWin->iWindow) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetInt(pItem, "z", 0, iZ) ) ret = XUI_ERROR_OUT_OF_MEMORY;
 	if ( ret == XUI_OK ) ret = __xuiDockStateSetRect(pItem, "rect", pWin->tFloatRect);
-	if ( ret == XUI_OK && !xvoArrayAppendValue(pFloating, pItem, TRUE) ) ret = XUI_ERROR_OUT_OF_MEMORY;
-	if ( ret != XUI_OK ) xvoUnref(pItem);
+	if ( ret == XUI_OK && !__xuiValueArrayAppendValue(pFloating, pItem, true) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret != XUI_OK ) xrtValueRelease(pItem);
 	return ret;
 }
 
-static xvalue __xuiDockStateGet(xvalue pTable, const char* sKey)
+static xvalue* __xuiDockStateGet(xvalue* pTable, const char* sKey)
 {
-	if ( (pTable == NULL) || (pTable->Type != XVO_DT_TABLE) || (sKey == NULL) ) return NULL;
-	return xvoTableGetValue(pTable, sKey, 0);
+	if ( (pTable == NULL) || (xrtValueType(pTable) != XVALUE_OBJECT) || (sKey == NULL) ) return NULL;
+	return __xuiValueObjectGet(pTable, sKey, 0);
 }
 
-static const char* __xuiDockStateGetText(xvalue pValue)
+static const char* __xuiDockStateGetText(xvalue* pValue)
 {
-	return (pValue != NULL && pValue->Type == XVO_DT_TEXT) ? (const char*)xvoGetText(pValue) : NULL;
+	return (pValue != NULL && xrtValueType(pValue) == XVALUE_STRING) ? (const char*)__xuiValueGetText(pValue) : NULL;
 }
 
-static int __xuiDockStateValueToFloat(xvalue pValue, float* pOut)
+static int __xuiDockStateValueToFloat(xvalue* pValue, float* pOut)
 {
 	if ( pOut == NULL || pValue == NULL ) return 0;
-	if ( pValue->Type == XVO_DT_INT ) {
-		*pOut = (float)xvoGetInt(pValue);
+	if ( xrtValueType(pValue) == XVALUE_INT ) {
+		*pOut = (float)__xuiValueGetInt(pValue);
 		return 1;
 	}
-	if ( pValue->Type == XVO_DT_FLOAT ) {
-		*pOut = (float)xvoGetFloat(pValue);
+	if ( xrtValueType(pValue) == XVALUE_FLOAT ) {
+		*pOut = (float)__xuiValueGetFloat(pValue);
 		return 1;
 	}
 	return 0;
 }
 
-static int __xuiDockStateValueToInt(xvalue pValue, int* pOut)
+static int __xuiDockStateValueToInt(xvalue* pValue, int* pOut)
 {
 	if ( pOut == NULL || pValue == NULL ) return 0;
-	if ( pValue->Type == XVO_DT_INT ) {
-		*pOut = (int)xvoGetInt(pValue);
+	if ( xrtValueType(pValue) == XVALUE_INT ) {
+		*pOut = (int)__xuiValueGetInt(pValue);
 		return 1;
 	}
-	if ( pValue->Type == XVO_DT_FLOAT ) {
-		*pOut = (int)xvoGetFloat(pValue);
+	if ( xrtValueType(pValue) == XVALUE_FLOAT ) {
+		*pOut = (int)__xuiValueGetFloat(pValue);
 		return 1;
 	}
 	return 0;
 }
 
-static int __xuiDockStateValueToBool(xvalue pValue, int* pOut)
+static int __xuiDockStateValueToBool(xvalue* pValue, int* pOut)
 {
 	if ( pOut == NULL || pValue == NULL ) return 0;
-	if ( pValue->Type == XVO_DT_BOOL ) {
-		*pOut = xvoGetBool(pValue) ? 1 : 0;
+	if ( xrtValueType(pValue) == XVALUE_BOOL ) {
+		*pOut = __xuiValueGetBool(pValue) ? 1 : 0;
 		return 1;
 	}
-	if ( pValue->Type == XVO_DT_INT ) {
-		*pOut = (xvoGetInt(pValue) != 0) ? 1 : 0;
+	if ( xrtValueType(pValue) == XVALUE_INT ) {
+		*pOut = (__xuiValueGetInt(pValue) != 0) ? 1 : 0;
 		return 1;
 	}
 	return 0;
 }
 
-static int __xuiDockStateReadRect(xvalue pValue, xui_rect_t* pRect)
+static int __xuiDockStateReadRect(xvalue* pValue, xui_rect_t* pRect)
 {
-	if ( (pRect == NULL) || (pValue == NULL) || (pValue->Type != XVO_DT_ARRAY) || (xvoArrayItemCount(pValue) != 4u) ) return 0;
-	return __xuiDockStateValueToFloat(xvoArrayGetValue(pValue, 0), &pRect->fX) &&
-	       __xuiDockStateValueToFloat(xvoArrayGetValue(pValue, 1), &pRect->fY) &&
-	       __xuiDockStateValueToFloat(xvoArrayGetValue(pValue, 2), &pRect->fW) &&
-	       __xuiDockStateValueToFloat(xvoArrayGetValue(pValue, 3), &pRect->fH);
+	float fX;
+	float fY;
+	float fW;
+	float fH;
+
+	if ( (pRect == NULL) || (pValue == NULL) ||
+		 (xrtValueType(pValue) != XVALUE_ARRAY) ||
+		 (xrtValueCount(pValue) != 4u) ) return 0;
+	if ( !__xuiDockStateValueToFloat(xrtValueArrayGet(pValue, 0), &fX) ||
+	     !__xuiDockStateValueToFloat(xrtValueArrayGet(pValue, 1), &fY) ||
+	     !__xuiDockStateValueToFloat(xrtValueArrayGet(pValue, 2), &fW) ||
+	     !__xuiDockStateValueToFloat(xrtValueArrayGet(pValue, 3), &fH) ) return 0;
+	*pRect = xuiInternalRectFromFloatNearest(fX, fY, fW, fH);
+	return 1;
 }
 
 static int __xuiDockStateRegionValue(const char* sText, int* pRegion)
@@ -2137,7 +2235,7 @@ static int __xuiDockStateAxisValue(const char* sText, int* pOrientation)
 	return 0;
 }
 
-static int __xuiDockStateFindWindow(xui_dock_panel_data_t* pData, xvalue pValue, int* pWindow)
+static int __xuiDockStateFindWindow(xui_dock_panel_data_t* pData, xvalue* pValue, int* pWindow)
 {
 	const char* sText;
 	int id;
@@ -2159,9 +2257,9 @@ static int __xuiDockStateFindWindow(xui_dock_panel_data_t* pData, xvalue pValue,
 	return 0;
 }
 
-static int __xuiDockLoadPrepareWindows(xui_dock_panel_data_t* pData, xvalue pState, xui_dock_state_window_t* arrInfo)
+static int __xuiDockLoadPrepareWindows(xui_dock_panel_data_t* pData, xvalue* pState, xui_dock_state_window_t* arrInfo)
 {
-	xvalue pWindows;
+	xvalue* pWindows;
 	uint32_t i;
 	int w;
 	if ( (pData == NULL) || (pState == NULL) || (arrInfo == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
@@ -2177,12 +2275,12 @@ static int __xuiDockLoadPrepareWindows(xui_dock_panel_data_t* pData, xvalue pSta
 		arrInfo[w].tLastDockRect = pData->arrWindows[w].bUsed ? pData->arrWindows[w].tLastDockRect : __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
 	}
 	pWindows = __xuiDockStateGet(pState, "windows");
-	if ( (pWindows == NULL) || (pWindows->Type != XVO_DT_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
-	for ( i = 0u; i < xvoArrayItemCount(pWindows); i++ ) {
-		xvalue pItem = xvoArrayGetValue(pWindows, i);
-		xvalue pValue;
+	if ( (pWindows == NULL) || (xrtValueType(pWindows) != XVALUE_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0u; i < xrtValueCount(pWindows); i++ ) {
+		xvalue* pItem = xrtValueArrayGet(pWindows, i);
+		xvalue* pValue;
 		const char* sText;
-		if ( (pItem == NULL) || (pItem->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( (pItem == NULL) || (xrtValueType(pItem) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( !__xuiDockStateFindWindow(pData, __xuiDockStateGet(pItem, "id"), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( arrInfo[w].bInState ) return XUI_ERROR_INVALID_ARGUMENT;
 		arrInfo[w].bInState = 1;
@@ -2199,31 +2297,31 @@ static int __xuiDockLoadPrepareWindows(xui_dock_panel_data_t* pData, xvalue pSta
 		sText = __xuiDockStateGetText(pValue);
 		if ( sText != NULL && !__xuiDockStateSideValue(sText, &arrInfo[w].iLastSide) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pValue = __xuiDockStateGet(pItem, "lastTabIndex");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToInt(pValue, &arrInfo[w].iLastTabIndex) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToInt(pValue, &arrInfo[w].iLastTabIndex) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pValue = __xuiDockStateGet(pItem, "closable");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToBool(pValue, &arrInfo[w].bClosable) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToBool(pValue, &arrInfo[w].bClosable) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pValue = __xuiDockStateGet(pItem, "dockable");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToBool(pValue, &arrInfo[w].bDockable) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToBool(pValue, &arrInfo[w].bDockable) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pValue = __xuiDockStateGet(pItem, "floatRect");
 		if ( pValue == NULL ) pValue = __xuiDockStateGet(pItem, "lastFloatRect");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateReadRect(pValue, &arrInfo[w].tFloatRect) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateReadRect(pValue, &arrInfo[w].tFloatRect) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pValue = __xuiDockStateGet(pItem, "lastDockRect");
 		if ( pValue == NULL ) pValue = __xuiDockStateGet(pItem, "dockRect");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateReadRect(pValue, &arrInfo[w].tLastDockRect) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateReadRect(pValue, &arrInfo[w].tLastDockRect) ) return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	return XUI_OK;
 }
 
-static int __xuiDockLoadValidateNode(xui_dock_panel_data_t* pData, xvalue pNodeState, xui_dock_state_window_t* arrInfo, int* pNodeCount, int* pPaneCount)
+static int __xuiDockLoadValidateNode(xui_dock_panel_data_t* pData, xvalue* pNodeState, xui_dock_state_window_t* arrInfo, int* pNodeCount, int* pPaneCount)
 {
 	const char* sType;
-	xvalue pValue;
-	xvalue pTabs;
+	xvalue* pValue;
+	xvalue* pTabs;
 	uint32_t i;
 	int w;
 	(void)pData;
-	if ( (pNodeState == NULL) || (pNodeState->Type == XVO_DT_NULL) ) return XUI_OK;
-	if ( pNodeState->Type != XVO_DT_TABLE ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pNodeState == NULL) || (xrtValueType(pNodeState) == XVALUE_NULL) ) return XUI_OK;
+	if ( xrtValueType(pNodeState) != XVALUE_OBJECT ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( (pNodeCount == NULL) || (pPaneCount == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	(*pNodeCount)++;
 	if ( *pNodeCount > XUI_DOCK_PANEL_NODE_CAPACITY ) return XUI_ERROR_OUT_OF_MEMORY;
@@ -2232,18 +2330,19 @@ static int __xuiDockLoadValidateNode(xui_dock_panel_data_t* pData, xvalue pNodeS
 	if ( strcmp(sType, "split") == 0 ) {
 		int orientation = XUI_DOCK_ORIENTATION_VERTICAL;
 		int ret;
-		xvalue pFirst;
-		xvalue pSecond;
+		xvalue* pFirst;
+		xvalue* pSecond;
 		pValue = __xuiDockStateGet(pNodeState, "axis");
 		if ( __xuiDockStateGetText(pValue) != NULL && !__xuiDockStateAxisValue(__xuiDockStateGetText(pValue), &orientation) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pValue = __xuiDockStateGet(pNodeState, "ratio");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL ) {
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL ) {
 			float ratio;
 			if ( !__xuiDockStateValueToFloat(pValue, &ratio) ) return XUI_ERROR_INVALID_ARGUMENT;
 		}
 		pFirst = __xuiDockStateGet(pNodeState, "first");
 		pSecond = __xuiDockStateGet(pNodeState, "second");
-		if ( (pFirst == NULL) || (pFirst->Type == XVO_DT_NULL) || (pSecond == NULL) || (pSecond->Type == XVO_DT_NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( (pFirst == NULL) || (xrtValueType(pFirst) == XVALUE_NULL) ||
+			 (pSecond == NULL) || (xrtValueType(pSecond) == XVALUE_NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 		ret = __xuiDockLoadValidateNode(pData, pFirst, arrInfo, pNodeCount, pPaneCount);
 		if ( ret != XUI_OK ) return ret;
 		ret = __xuiDockLoadValidateNode(pData, pSecond, arrInfo, pNodeCount, pPaneCount);
@@ -2254,54 +2353,55 @@ static int __xuiDockLoadValidateNode(xui_dock_panel_data_t* pData, xvalue pNodeS
 	(*pPaneCount)++;
 	if ( *pPaneCount > XUI_DOCK_PANEL_PANE_CAPACITY ) return XUI_ERROR_OUT_OF_MEMORY;
 	pValue = __xuiDockStateGet(pNodeState, "active");
-	if ( pValue != NULL && pValue->Type != XVO_DT_NULL ) {
+	if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL ) {
 		int active;
 		if ( !__xuiDockStateValueToInt(pValue, &active) ) return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	pTabs = __xuiDockStateGet(pNodeState, "tabs");
-	if ( (pTabs == NULL) || (pTabs->Type != XVO_DT_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
-	for ( i = 0u; i < xvoArrayItemCount(pTabs); i++ ) {
-		if ( !__xuiDockStateFindWindow(pData, xvoArrayGetValue(pTabs, i), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pTabs == NULL) || (xrtValueType(pTabs) != XVALUE_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0u; i < xrtValueCount(pTabs); i++ ) {
+		if ( !__xuiDockStateFindWindow(pData, xrtValueArrayGet(pTabs, i), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( !arrInfo[w].bInState || arrInfo[w].iState != XUI_DOCK_PANEL_WINDOW_DOCKED || arrInfo[w].bInTree || arrInfo[w].bInFloating ) return XUI_ERROR_INVALID_ARGUMENT;
 		arrInfo[w].bInTree = 1;
 	}
 	return XUI_OK;
 }
 
-static int __xuiDockLoadValidateRegions(xui_dock_panel_data_t* pData, xvalue pState, xui_dock_state_window_t* arrInfo, int* pRegionSeen)
+static int __xuiDockLoadValidateRegions(xui_dock_panel_data_t* pData, xvalue* pState, xui_dock_state_window_t* arrInfo, int* pRegionSeen)
 {
-	xvalue pRegions;
+	xvalue* pRegions;
 	uint32_t i;
 	int nodeCount;
 	int paneCount;
 	if ( (pData == NULL) || (pState == NULL) || (arrInfo == NULL) || (pRegionSeen == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	pRegions = __xuiDockStateGet(pState, "regions");
-	if ( (pRegions == NULL) || (pRegions->Type != XVO_DT_ARRAY) || (xvoArrayItemCount(pRegions) != XUI_DOCK_PANEL_REGION_COUNT) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pRegions == NULL) || (xrtValueType(pRegions) != XVALUE_ARRAY) ||
+		 (xrtValueCount(pRegions) != XUI_DOCK_PANEL_REGION_COUNT) ) return XUI_ERROR_INVALID_ARGUMENT;
 	nodeCount = 0;
 	paneCount = 0;
-	for ( i = 0u; i < xvoArrayItemCount(pRegions); i++ ) {
-		xvalue pItem = xvoArrayGetValue(pRegions, i);
+	for ( i = 0u; i < xrtValueCount(pRegions); i++ ) {
+		xvalue* pItem = xrtValueArrayGet(pRegions, i);
 		const char* sKind;
 		int region = (int)i;
-		if ( (pItem == NULL) || (pItem->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( (pItem == NULL) || (xrtValueType(pItem) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 		sKind = __xuiDockStateGetText(__xuiDockStateGet(pItem, "kind"));
 		if ( sKind != NULL && !__xuiDockStateRegionValue(sKind, &region) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( !__xuiDockRegionValid(region) || pRegionSeen[region] ) return XUI_ERROR_INVALID_ARGUMENT;
 		{
-			xvalue pValue;
+			xvalue* pValue;
 			const char* sText;
 			float fValue;
 			int bValue;
 			sText = __xuiDockStateGetText(__xuiDockStateGet(pItem, "sizeMode"));
 			if ( sText != NULL && strcmp(sText, "pixel") != 0 && strcmp(sText, "portion") != 0 ) return XUI_ERROR_INVALID_ARGUMENT;
 			pValue = __xuiDockStateGet(pItem, "value");
-			if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToFloat(pValue, &fValue) ) return XUI_ERROR_INVALID_ARGUMENT;
+			if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToFloat(pValue, &fValue) ) return XUI_ERROR_INVALID_ARGUMENT;
 			pValue = __xuiDockStateGet(pItem, "pixelSize");
-			if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToFloat(pValue, &fValue) ) return XUI_ERROR_INVALID_ARGUMENT;
+			if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToFloat(pValue, &fValue) ) return XUI_ERROR_INVALID_ARGUMENT;
 			pValue = __xuiDockStateGet(pItem, "portion");
-			if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToFloat(pValue, &fValue) ) return XUI_ERROR_INVALID_ARGUMENT;
+			if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToFloat(pValue, &fValue) ) return XUI_ERROR_INVALID_ARGUMENT;
 			pValue = __xuiDockStateGet(pItem, "visible");
-			if ( pValue != NULL && pValue->Type != XVO_DT_NULL && !__xuiDockStateValueToBool(pValue, &bValue) ) return XUI_ERROR_INVALID_ARGUMENT;
+			if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL && !__xuiDockStateValueToBool(pValue, &bValue) ) return XUI_ERROR_INVALID_ARGUMENT;
 		}
 		pRegionSeen[region] = 1;
 		{
@@ -2315,22 +2415,22 @@ static int __xuiDockLoadValidateRegions(xui_dock_panel_data_t* pData, xvalue pSt
 	return XUI_OK;
 }
 
-static int __xuiDockLoadValidateFloating(xui_dock_panel_data_t* pData, xvalue pState, xui_dock_state_window_t* arrInfo)
+static int __xuiDockLoadValidateFloating(xui_dock_panel_data_t* pData, xvalue* pState, xui_dock_state_window_t* arrInfo)
 {
-	xvalue pFloating;
+	xvalue* pFloating;
 	uint32_t i;
 	int w;
 	if ( (pData == NULL) || (pState == NULL) || (arrInfo == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	pFloating = __xuiDockStateGet(pState, "floating");
-	if ( (pFloating == NULL) || (pFloating->Type != XVO_DT_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
-	for ( i = 0u; i < xvoArrayItemCount(pFloating); i++ ) {
-		xvalue pItem = xvoArrayGetValue(pFloating, i);
-		xvalue pRect;
-		if ( (pItem == NULL) || (pItem->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pFloating == NULL) || (xrtValueType(pFloating) != XVALUE_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0u; i < xrtValueCount(pFloating); i++ ) {
+		xvalue* pItem = xrtValueArrayGet(pFloating, i);
+		xvalue* pRect;
+		if ( (pItem == NULL) || (xrtValueType(pItem) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( !__xuiDockStateFindWindow(pData, __xuiDockStateGet(pItem, "id"), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( !arrInfo[w].bInState || arrInfo[w].iState != XUI_DOCK_PANEL_WINDOW_FLOATING || arrInfo[w].bInTree || arrInfo[w].bInFloating ) return XUI_ERROR_INVALID_ARGUMENT;
 		pRect = __xuiDockStateGet(pItem, "rect");
-		if ( pRect != NULL && pRect->Type != XVO_DT_NULL && !__xuiDockStateReadRect(pRect, &arrInfo[w].tFloatRect) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( pRect != NULL && xrtValueType(pRect) != XVALUE_NULL && !__xuiDockStateReadRect(pRect, &arrInfo[w].tFloatRect) ) return XUI_ERROR_INVALID_ARGUMENT;
 		arrInfo[w].bInFloating = 1;
 	}
 	for ( w = 0; w < XUI_DOCK_PANEL_WINDOW_CAPACITY; w++ ) {
@@ -2352,7 +2452,10 @@ static void __xuiDockLoadClearLayout(xui_widget pWidget, xui_dock_panel_data_t* 
 	(void)xuiReleasePointerCapture(xuiWidgetGetContext(pWidget), pWidget);
 	for ( i = 0; i < XUI_DOCK_PANEL_REGION_COUNT; i++ ) pData->arrRegions[i].iRootNode = -1;
 	for ( i = 0; i < XUI_DOCK_PANEL_PANE_CAPACITY; i++ ) memset(&pData->arrPanes[i], 0, sizeof(pData->arrPanes[i]));
-	for ( i = 0; i < XUI_DOCK_PANEL_NODE_CAPACITY; i++ ) memset(&pData->arrNodes[i], 0, sizeof(pData->arrNodes[i]));
+	for ( i = 0; i < XUI_DOCK_PANEL_NODE_CAPACITY; i++ ) {
+		if ( pData->arrNodes[i].bUsed ) __xuiDockDestroyLayoutNode(pData, &pData->arrNodes[i]);
+		memset(&pData->arrNodes[i], 0, sizeof(pData->arrNodes[i]));
+	}
 	pData->iPaneCount = 0;
 	pData->iNodeCount = 0;
 	pData->iDragType = XUI_DOCK_DRAG_NONE;
@@ -2378,18 +2481,18 @@ static void __xuiDockLoadClearLayout(xui_widget pWidget, xui_dock_panel_data_t* 
 	}
 }
 
-static int __xuiDockLoadBuildNode(xui_widget pWidget, xui_dock_panel_data_t* pData, xvalue pNodeState, int iRegion, xui_dock_state_window_t* arrInfo, int* pNode)
+static int __xuiDockLoadBuildNode(xui_widget pWidget, xui_dock_panel_data_t* pData, xvalue* pNodeState, int iRegion, xui_dock_state_window_t* arrInfo, int* pNode)
 {
 	const char* sType;
 	if ( pNode == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	*pNode = -1;
-	if ( (pNodeState == NULL) || (pNodeState->Type == XVO_DT_NULL) ) return XUI_OK;
-	if ( pNodeState->Type != XVO_DT_TABLE ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pNodeState == NULL) || (xrtValueType(pNodeState) == XVALUE_NULL) ) return XUI_OK;
+	if ( xrtValueType(pNodeState) != XVALUE_OBJECT ) return XUI_ERROR_INVALID_ARGUMENT;
 	sType = __xuiDockStateGetText(__xuiDockStateGet(pNodeState, "type"));
 	if ( sType == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( strcmp(sType, "split") == 0 ) {
 		xui_dock_node_slot_t* pSplit;
-		xvalue pValue;
+		xvalue* pValue;
 		float ratio;
 		int orientation;
 		int first;
@@ -2401,7 +2504,7 @@ static int __xuiDockLoadBuildNode(xui_widget pWidget, xui_dock_panel_data_t* pDa
 		if ( __xuiDockStateGetText(pValue) != NULL ) (void)__xuiDockStateAxisValue(__xuiDockStateGetText(pValue), &orientation);
 		ratio = 0.5f;
 		pValue = __xuiDockStateGet(pNodeState, "ratio");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL ) (void)__xuiDockStateValueToFloat(pValue, &ratio);
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL ) (void)__xuiDockStateValueToFloat(pValue, &ratio);
 		ret = __xuiDockLoadBuildNode(pWidget, pData, __xuiDockStateGet(pNodeState, "first"), iRegion, arrInfo, &first);
 		if ( ret != XUI_OK ) return ret;
 		ret = __xuiDockLoadBuildNode(pWidget, pData, __xuiDockStateGet(pNodeState, "second"), iRegion, arrInfo, &second);
@@ -2421,8 +2524,8 @@ static int __xuiDockLoadBuildNode(xui_widget pWidget, xui_dock_panel_data_t* pDa
 	}
 	if ( strcmp(sType, "pane") == 0 ) {
 		xui_dock_pane_slot_t* pPane;
-		xvalue pTabs;
-		xvalue pValue;
+		xvalue* pTabs;
+		xvalue* pValue;
 		uint32_t i;
 		int node;
 		int pane;
@@ -2434,13 +2537,13 @@ static int __xuiDockLoadBuildNode(xui_widget pWidget, xui_dock_panel_data_t* pDa
 		if ( pPane == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 		active = -1;
 		pValue = __xuiDockStateGet(pNodeState, "active");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL ) (void)__xuiDockStateValueToInt(pValue, &active);
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL ) (void)__xuiDockStateValueToInt(pValue, &active);
 		pTabs = __xuiDockStateGet(pNodeState, "tabs");
-		if ( (pTabs == NULL) || (pTabs->Type != XVO_DT_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
-		for ( i = 0u; i < xvoArrayItemCount(pTabs); i++ ) {
+		if ( (pTabs == NULL) || (xrtValueType(pTabs) != XVALUE_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
+		for ( i = 0u; i < xrtValueCount(pTabs); i++ ) {
 			xui_dock_window_slot_t* pWin;
 			int w;
-			if ( !__xuiDockStateFindWindow(pData, xvoArrayGetValue(pTabs, i), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
+			if ( !__xuiDockStateFindWindow(pData, xrtValueArrayGet(pTabs, i), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
 			if ( pPane->iWindowCount >= XUI_DOCK_PANEL_PANE_WINDOW_CAPACITY ) return XUI_ERROR_OUT_OF_MEMORY;
 			pPane->arrWindows[pPane->iWindowCount++] = w;
 			pWin = __xuiDockWindowAt(pData, w);
@@ -2467,22 +2570,22 @@ static int __xuiDockLoadBuildNode(xui_widget pWidget, xui_dock_panel_data_t* pDa
 	return XUI_ERROR_INVALID_ARGUMENT;
 }
 
-static int __xuiDockLoadApplyRegions(xui_widget pWidget, xui_dock_panel_data_t* pData, xvalue pState, xui_dock_state_window_t* arrInfo)
+static int __xuiDockLoadApplyRegions(xui_widget pWidget, xui_dock_panel_data_t* pData, xvalue* pState, xui_dock_state_window_t* arrInfo)
 {
-	xvalue pRegions = __xuiDockStateGet(pState, "regions");
+	xvalue* pRegions = __xuiDockStateGet(pState, "regions");
 	uint32_t i;
 	int ret;
-	if ( (pRegions == NULL) || (pRegions->Type != XVO_DT_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
-	for ( i = 0u; i < xvoArrayItemCount(pRegions); i++ ) {
-		xvalue pItem = xvoArrayGetValue(pRegions, i);
-		xvalue pValue;
+	if ( (pRegions == NULL) || (xrtValueType(pRegions) != XVALUE_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0u; i < xrtValueCount(pRegions); i++ ) {
+		xvalue* pItem = xrtValueArrayGet(pRegions, i);
+		xvalue* pValue;
 		const char* sText;
 		float value;
 		int region;
 		int root;
 		int visible;
 		int sizeMode;
-		if ( (pItem == NULL) || (pItem->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( (pItem == NULL) || (xrtValueType(pItem) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 		region = (int)i;
 		sText = __xuiDockStateGetText(__xuiDockStateGet(pItem, "kind"));
 		if ( sText != NULL ) (void)__xuiDockStateRegionValue(sText, &region);
@@ -2491,11 +2594,11 @@ static int __xuiDockLoadApplyRegions(xui_widget pWidget, xui_dock_panel_data_t* 
 		if ( sText != NULL ) sizeMode = (strcmp(sText, "pixel") == 0) ? XUI_DOCK_PANEL_SIZE_PIXEL : XUI_DOCK_PANEL_SIZE_PORTION;
 		value = pData->arrRegions[region].fValue;
 		pValue = __xuiDockStateGet(pItem, "value");
-		if ( pValue == NULL || pValue->Type == XVO_DT_NULL ) pValue = __xuiDockStateGet(pItem, sizeMode == XUI_DOCK_PANEL_SIZE_PIXEL ? "pixelSize" : "portion");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL ) (void)__xuiDockStateValueToFloat(pValue, &value);
+		if ( pValue == NULL || xrtValueType(pValue) == XVALUE_NULL ) pValue = __xuiDockStateGet(pItem, sizeMode == XUI_DOCK_PANEL_SIZE_PIXEL ? "pixelSize" : "portion");
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL ) (void)__xuiDockStateValueToFloat(pValue, &value);
 		visible = 1;
 		pValue = __xuiDockStateGet(pItem, "visible");
-		if ( pValue != NULL && pValue->Type != XVO_DT_NULL ) (void)__xuiDockStateValueToBool(pValue, &visible);
+		if ( pValue != NULL && xrtValueType(pValue) != XVALUE_NULL ) (void)__xuiDockStateValueToBool(pValue, &visible);
 		pData->arrRegions[region].iSizeMode = (region == XUI_DOCK_PANEL_REGION_DOCUMENT) ? XUI_DOCK_PANEL_SIZE_PORTION : sizeMode;
 		pData->arrRegions[region].fValue = __xuiDockMax(0.0f, value);
 		pData->arrRegions[region].bVisible = visible ? 1 : 0;
@@ -2506,16 +2609,16 @@ static int __xuiDockLoadApplyRegions(xui_widget pWidget, xui_dock_panel_data_t* 
 	return XUI_OK;
 }
 
-static int __xuiDockLoadApplyFloating(xui_widget pWidget, xui_dock_panel_data_t* pData, xvalue pState, xui_dock_state_window_t* arrInfo)
+static int __xuiDockLoadApplyFloating(xui_widget pWidget, xui_dock_panel_data_t* pData, xvalue* pState, xui_dock_state_window_t* arrInfo)
 {
-	xvalue pFloating = __xuiDockStateGet(pState, "floating");
+	xvalue* pFloating = __xuiDockStateGet(pState, "floating");
 	uint32_t i;
-	if ( (pFloating == NULL) || (pFloating->Type != XVO_DT_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
-	for ( i = 0u; i < xvoArrayItemCount(pFloating); i++ ) {
-		xvalue pItem = xvoArrayGetValue(pFloating, i);
+	if ( (pFloating == NULL) || (xrtValueType(pFloating) != XVALUE_ARRAY) ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0u; i < xrtValueCount(pFloating); i++ ) {
+		xvalue* pItem = xrtValueArrayGet(pFloating, i);
 		xui_dock_window_slot_t* pWin;
 		int w;
-		if ( (pItem == NULL) || (pItem->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( (pItem == NULL) || (xrtValueType(pItem) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 		if ( !__xuiDockStateFindWindow(pData, __xuiDockStateGet(pItem, "id"), &w) ) return XUI_ERROR_INVALID_ARGUMENT;
 		pWin = __xuiDockWindowAt(pData, w);
 		if ( pWin == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
@@ -2547,26 +2650,18 @@ static xui_rect_t __xuiDockHostClientLocal(xui_dock_window_slot_t* pWin, const x
 	return __xuiDockRect(0.0f, 0.0f, pWin->tRect.fW, pWin->tRect.fH);
 }
 
-static void __xuiDockArrangeWindowHost(xui_dock_window_slot_t* pWin, const xui_dock_panel_metrics_t* m, int bVisible)
+static int __xuiDockHostLayoutChildren(xui_widget pHost, xui_rect_t tContentRect, void* pUser)
 {
+	xui_dock_window_slot_t* pWin = (xui_dock_window_slot_t*)pUser;
 	xui_rect_t local;
-	if ( pWin->pHostWidget == NULL ) return;
-	__xuiDockSetHostLayer(pWin);
-	(void)xuiWidgetSetVisible(pWin->pHostWidget, bVisible);
-	if ( !bVisible ) {
-		if ( pWin->pClientWidget != NULL ) (void)xuiWidgetSetVisible(pWin->pClientWidget, 0);
-		return;
+	(void)tContentRect;
+	if ( (pWin == NULL) || (pWin->pHostWidget != pHost) || (pWin->pOwner == NULL) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	(void)xuiWidgetSetRect(pWin->pHostWidget, pWin->tRect);
-	(void)xuiWidgetArrange(pWin->pHostWidget, pWin->tRect);
-	if ( pWin->pClientWidget != NULL ) {
-		local = __xuiDockHostClientLocal(pWin, m);
-		pWin->tClientRect = local;
-		(void)xuiWidgetSetVisible(pWin->pClientWidget, 1);
-		(void)xuiWidgetSetRect(pWin->pClientWidget, local);
-		(void)xuiWidgetArrange(pWin->pClientWidget, local);
-	}
-	(void)xuiWidgetInvalidate(pWin->pHostWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
+	if ( pWin->pClientWidget == NULL ) return XUI_OK;
+	local = __xuiDockHostClientLocal(pWin, &pWin->pOwner->tMetrics);
+	pWin->tClientRect = local;
+	return xuiLayoutArrangeChild(pHost, pWin->pClientWidget, local);
 }
 
 static void __xuiDockLayoutPane(xui_dock_panel_data_t* pData, int iPane, xui_rect_t r)
@@ -2693,41 +2788,174 @@ static void __xuiDockLayoutTabs(xui_dock_panel_data_t* pData, xui_dock_pane_slot
 	}
 }
 
-static void __xuiDockLayoutNode(xui_dock_panel_data_t* pData, int iNode, xui_rect_t r)
+static int __xuiDockEnsureLayoutHandle(xui_dock_panel_data_t* pData, xui_dock_node_slot_t* pNode, int bDivider)
+{
+	xlayout_node_t* pHandle = bDivider ? &pNode->iLayoutDivider : &pNode->iLayoutNode;
+	if ( xLayoutNodeIsValid(pData->pLayoutContext, *pHandle) ) return XUI_OK;
+	*pHandle = xLayoutNodeCreate(pData->pLayoutContext, XLAYOUT_ROLE_LEAF);
+	return *pHandle != XLAYOUT_NODE_INVALID ? XUI_OK : XUI_ERROR_OUT_OF_MEMORY;
+}
+
+static int __xuiDockSetLayoutChildren(
+	xui_dock_panel_data_t* pData,
+	xlayout_node_t iParent,
+	const xlayout_node_t* pChildren,
+	int iCount)
+{
+	xlayout_node_t iCurrent = xLayoutNodeFirstChild(pData->pLayoutContext, iParent);
+	int i;
+	for ( i = 0; i < iCount && iCurrent != XLAYOUT_NODE_INVALID; ++i ) {
+		if ( iCurrent != pChildren[i] ) break;
+		iCurrent = xLayoutNodeNextSibling(pData->pLayoutContext, iCurrent);
+	}
+	if ( i == iCount && iCurrent == XLAYOUT_NODE_INVALID ) return XUI_OK;
+	while ( (iCurrent = xLayoutNodeFirstChild(pData->pLayoutContext, iParent)) != XLAYOUT_NODE_INVALID ) {
+		(void)xLayoutNodeRemove(pData->pLayoutContext, iCurrent);
+	}
+	for ( i = 0; i < iCount; ++i ) {
+		if ( !xLayoutNodeAppend(pData->pLayoutContext, iParent, pChildren[i]) ) return XUI_ERROR_OUT_OF_MEMORY;
+	}
+	return XUI_OK;
+}
+
+static xlayout_style_t __xuiDockLayoutItemStyle(int iRow, int iColumn)
+{
+	xlayout_style_t tStyle = xLayoutStyleDefault();
+	tStyle.item.row = iRow >= 0 ? (uint32_t)iRow : 0u;
+	tStyle.item.column = iColumn >= 0 ? (uint32_t)iColumn : 0u;
+	tStyle.item.row_span = 1u;
+	tStyle.item.column_span = 1u;
+	return tStyle;
+}
+
+static int __xuiDockSetLayoutCell(
+	xui_dock_panel_data_t* pData,
+	xlayout_node_t iNode,
+	int iRow,
+	int iColumn,
+	int iRowSpan,
+	int iColumnSpan)
+{
+	xlayout_style_t tStyle;
+	if ( !xLayoutNodeGetStyle(pData->pLayoutContext, iNode, &tStyle) ) return XUI_ERROR_INVALID_ARGUMENT;
+	tStyle.item.row = (uint32_t)iRow;
+	tStyle.item.column = (uint32_t)iColumn;
+	tStyle.item.row_span = (uint32_t)iRowSpan;
+	tStyle.item.column_span = (uint32_t)iColumnSpan;
+	return xLayoutNodeSetStyle(pData->pLayoutContext, iNode, &tStyle) ? XUI_OK : XUI_ERROR_OUT_OF_MEMORY;
+}
+
+static int __xuiDockEnsureRegionLayoutHandle(xui_dock_panel_data_t* pData, xlayout_node_t* pNode, xlayout_role_t iRole)
+{
+	if ( xLayoutNodeIsValid(pData->pLayoutContext, *pNode) ) {
+		return xLayoutNodeSetRole(pData->pLayoutContext, *pNode, iRole) ? XUI_OK : XUI_ERROR_INVALID_ARGUMENT;
+	}
+	*pNode = xLayoutNodeCreate(pData->pLayoutContext, iRole);
+	return *pNode != XLAYOUT_NODE_INVALID ? XUI_OK : XUI_ERROR_OUT_OF_MEMORY;
+}
+
+static int __xuiDockBuildLayoutNode(xui_dock_panel_data_t* pData, int iNode, int iRow, int iColumn)
 {
 	xui_dock_node_slot_t* pNode = __xuiDockNodeAt(pData, iNode);
-	float splitSize;
-	float minA;
-	float minB;
-	float firstSize;
-	xui_rect_t a;
-	xui_rect_t b;
-	if ( pNode == NULL ) return;
-	pNode->tRect = xuiInternalSnapRect(r);
+	xlayout_style_t tStyle;
+	int iRet;
+	if ( pNode == NULL || pData->pLayoutContext == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	iRet = __xuiDockEnsureLayoutHandle(pData, pNode, 0);
+	if ( iRet != XUI_OK ) return iRet;
+	tStyle = __xuiDockLayoutItemStyle(iRow, iColumn);
 	if ( pNode->iType == XUI_DOCK_NODE_PANE ) {
-		__xuiDockLayoutPane(pData, pNode->iPane, r);
+		xlayout_node_t iChild;
+		while ( (iChild = xLayoutNodeFirstChild(pData->pLayoutContext, pNode->iLayoutNode)) != XLAYOUT_NODE_INVALID ) {
+			(void)xLayoutNodeRemove(pData->pLayoutContext, iChild);
+		}
+		if ( !xLayoutNodeSetRole(pData->pLayoutContext, pNode->iLayoutNode, XLAYOUT_ROLE_LEAF)
+			|| !xLayoutNodeSetStyle(pData->pLayoutContext, pNode->iLayoutNode, &tStyle) ) {
+			return XUI_ERROR_OUT_OF_MEMORY;
+		}
+		return XUI_OK;
+	}
+	if ( pNode->iType == XUI_DOCK_NODE_SPLIT ) {
+		xui_dock_node_slot_t* pFirst = __xuiDockNodeAt(pData, pNode->iFirst);
+		xui_dock_node_slot_t* pSecond = __xuiDockNodeAt(pData, pNode->iSecond);
+		xlayout_style_t tDividerStyle;
+		xlayout_track_t arrColumns[3];
+		xlayout_track_t arrRows[3];
+		xlayout_node_t arrChildren[3];
+		float fMinimumFirst;
+		float fMinimumSecond;
+		if ( pFirst == NULL || pSecond == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+		iRet = __xuiDockEnsureLayoutHandle(pData, pNode, 1);
+		if ( iRet != XUI_OK ) return iRet;
+		tStyle.container.format = XLAYOUT_FORMAT_TRACK;
+		tStyle.container.align_items = XLAYOUT_ALIGN_STRETCH;
+		tStyle.container.justify_items = XLAYOUT_ALIGN_STRETCH;
+		fMinimumFirst = __xuiDockNodeMinimumAxis(pData, pNode->iFirst, pNode->iOrientation);
+		fMinimumSecond = __xuiDockNodeMinimumAxis(pData, pNode->iSecond, pNode->iOrientation);
+		if ( pNode->iOrientation == XUI_DOCK_ORIENTATION_VERTICAL ) {
+			arrColumns[0] = xLayoutTrackPercent(pNode->fRatio);
+			arrColumns[0].min_size = fMinimumFirst;
+			arrColumns[0].shrink = 1.0f;
+			arrColumns[1] = xLayoutTrackFixed(pData->tMetrics.fSplitterSize);
+			arrColumns[2] = xLayoutTrackFraction(1.0f);
+			arrColumns[2].min_size = fMinimumSecond;
+			arrColumns[2].shrink = 1.0f;
+			arrRows[0] = xLayoutTrackFraction(1.0f);
+			tDividerStyle = __xuiDockLayoutItemStyle(0, 1);
+			iRet = __xuiDockBuildLayoutNode(pData, pNode->iFirst, 0, 0);
+			if ( iRet == XUI_OK ) iRet = __xuiDockBuildLayoutNode(pData, pNode->iSecond, 0, 2);
+			if ( iRet == XUI_OK && (!xLayoutNodeSetColumns(pData->pLayoutContext, pNode->iLayoutNode, arrColumns, 3u)
+				|| !xLayoutNodeSetRows(pData->pLayoutContext, pNode->iLayoutNode, arrRows, 1u)) ) iRet = XUI_ERROR_OUT_OF_MEMORY;
+		} else {
+			arrColumns[0] = xLayoutTrackFraction(1.0f);
+			arrRows[0] = xLayoutTrackPercent(pNode->fRatio);
+			arrRows[0].min_size = fMinimumFirst;
+			arrRows[0].shrink = 1.0f;
+			arrRows[1] = xLayoutTrackFixed(pData->tMetrics.fSplitterSize);
+			arrRows[2] = xLayoutTrackFraction(1.0f);
+			arrRows[2].min_size = fMinimumSecond;
+			arrRows[2].shrink = 1.0f;
+			tDividerStyle = __xuiDockLayoutItemStyle(1, 0);
+			iRet = __xuiDockBuildLayoutNode(pData, pNode->iFirst, 0, 0);
+			if ( iRet == XUI_OK ) iRet = __xuiDockBuildLayoutNode(pData, pNode->iSecond, 2, 0);
+			if ( iRet == XUI_OK && (!xLayoutNodeSetColumns(pData->pLayoutContext, pNode->iLayoutNode, arrColumns, 1u)
+				|| !xLayoutNodeSetRows(pData->pLayoutContext, pNode->iLayoutNode, arrRows, 3u)) ) iRet = XUI_ERROR_OUT_OF_MEMORY;
+		}
+		if ( iRet != XUI_OK ) return iRet;
+		if ( !xLayoutNodeSetRole(pData->pLayoutContext, pNode->iLayoutNode, XLAYOUT_ROLE_CONTAINER)
+			|| !xLayoutNodeSetStyle(pData->pLayoutContext, pNode->iLayoutNode, &tStyle)
+			|| !xLayoutNodeSetStyle(pData->pLayoutContext, pNode->iLayoutDivider, &tDividerStyle) ) {
+			return XUI_ERROR_OUT_OF_MEMORY;
+		}
+		arrChildren[0] = pFirst->iLayoutNode;
+		arrChildren[1] = pNode->iLayoutDivider;
+		arrChildren[2] = pSecond->iLayoutNode;
+		return __xuiDockSetLayoutChildren(pData, pNode->iLayoutNode, arrChildren, 3);
+	}
+	return XUI_ERROR_INVALID_ARGUMENT;
+}
+
+static int __xuiDockApplyLayoutNode(xui_dock_panel_data_t* pData, int iNode)
+{
+	xui_dock_node_slot_t* pNode = __xuiDockNodeAt(pData, iNode);
+	xlayout_result_t tResult;
+	if ( pNode == NULL || !xLayoutNodeGetResult(pData->pLayoutContext, pNode->iLayoutNode, &tResult) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	pNode->tRect = __xuiDockRect(tResult.rect.x, tResult.rect.y, tResult.rect.width, tResult.rect.height);
+	if ( pNode->iType == XUI_DOCK_NODE_PANE ) {
+		__xuiDockLayoutPane(pData, pNode->iPane, pNode->tRect);
 		__xuiDockLayoutTabs(pData, __xuiDockPaneAt(pData, pNode->iPane));
-		return;
+		return XUI_OK;
 	}
-	if ( pNode->iType != XUI_DOCK_NODE_SPLIT ) return;
-	splitSize = pData->tMetrics.fSplitterSize;
-	minA = (pNode->iOrientation == XUI_DOCK_ORIENTATION_VERTICAL) ? pData->tMetrics.fMinPaneWidth : pData->tMetrics.fMinPaneHeight;
-	minB = minA;
-	if ( pNode->iOrientation == XUI_DOCK_ORIENTATION_VERTICAL ) {
-		firstSize = (r.fW - splitSize) * pNode->fRatio;
-		firstSize = __xuiDockClamp(firstSize, minA, __xuiDockMax(minA, r.fW - splitSize - minB));
-		a = __xuiDockRect(r.fX, r.fY, firstSize, r.fH);
-		pNode->tSplitterRect = __xuiDockRect(r.fX + firstSize, r.fY, splitSize, r.fH);
-		b = __xuiDockRect(r.fX + firstSize + splitSize, r.fY, __xuiDockMax(0.0f, r.fW - firstSize - splitSize), r.fH);
-	} else {
-		firstSize = (r.fH - splitSize) * pNode->fRatio;
-		firstSize = __xuiDockClamp(firstSize, minA, __xuiDockMax(minA, r.fH - splitSize - minB));
-		a = __xuiDockRect(r.fX, r.fY, r.fW, firstSize);
-		pNode->tSplitterRect = __xuiDockRect(r.fX, r.fY + firstSize, r.fW, splitSize);
-		b = __xuiDockRect(r.fX, r.fY + firstSize + splitSize, r.fW, __xuiDockMax(0.0f, r.fH - firstSize - splitSize));
+	if ( pNode->iType == XUI_DOCK_NODE_SPLIT ) {
+		if ( !xLayoutNodeGetResult(pData->pLayoutContext, pNode->iLayoutDivider, &tResult) ) {
+			return XUI_ERROR_INVALID_ARGUMENT;
+		}
+		pNode->tSplitterRect = __xuiDockRect(tResult.rect.x, tResult.rect.y, tResult.rect.width, tResult.rect.height);
+		if ( __xuiDockApplyLayoutNode(pData, pNode->iFirst) != XUI_OK ) return XUI_ERROR_INVALID_ARGUMENT;
+		return __xuiDockApplyLayoutNode(pData, pNode->iSecond);
 	}
-	__xuiDockLayoutNode(pData, pNode->iFirst, a);
-	__xuiDockLayoutNode(pData, pNode->iSecond, b);
+	return XUI_ERROR_INVALID_ARGUMENT;
 }
 
 static int __xuiDockRegionHasContent(xui_dock_panel_data_t* pData, int iRegion)
@@ -2771,24 +2999,109 @@ static float __xuiDockRegionCurrentSize(xui_dock_panel_data_t* pData, int iRegio
 	return 0.0f;
 }
 
-static int __xuiDockSetRegionDragSize(xui_widget pWidget, xui_dock_panel_data_t* pData, int iRegion, float fSize)
+static float __xuiDockNodeMinimumAxis(xui_dock_panel_data_t* pData, int iNode, int iOrientation)
+{
+	xui_dock_node_slot_t* pNode = __xuiDockNodeAt(pData, iNode);
+	float fFirst;
+	float fSecond;
+	float fMinimum;
+	if ( pNode == NULL ) return 0.0f;
+	fMinimum = iOrientation == XUI_DOCK_ORIENTATION_VERTICAL ?
+		pData->tMetrics.fMinPaneWidth : pData->tMetrics.fMinPaneHeight;
+	if ( pNode->iType == XUI_DOCK_NODE_PANE ) return fMinimum;
+	if ( pNode->iType != XUI_DOCK_NODE_SPLIT ) return 0.0f;
+	fFirst = __xuiDockNodeMinimumAxis(pData, pNode->iFirst, iOrientation);
+	fSecond = __xuiDockNodeMinimumAxis(pData, pNode->iSecond, iOrientation);
+	if ( pNode->iOrientation == iOrientation ) {
+		return fFirst + pData->tMetrics.fSplitterSize + fSecond;
+	}
+	return __xuiDockMax(fFirst, fSecond);
+}
+
+static float __xuiDockClampNodeSplitterStart(xui_dock_panel_data_t* pData,
+	xui_dock_node_slot_t* pNode, float fStart, float* pRatio)
+{
+	float fNodeStart;
+	float fNodeSize;
+	float fBasis;
+	float fMinimumFirst;
+	float fMinimumSecond;
+	float fMinimumStart;
+	float fMaximumStart;
+	if ( (pData == NULL) || (pNode == NULL) || (pNode->iType != XUI_DOCK_NODE_SPLIT) ) {
+		if ( pRatio != NULL ) *pRatio = 0.5f;
+		return fStart;
+	}
+	if ( pNode->iOrientation == XUI_DOCK_ORIENTATION_VERTICAL ) {
+		fNodeStart = pNode->tRect.fX;
+		fNodeSize = pNode->tRect.fW;
+	} else {
+		fNodeStart = pNode->tRect.fY;
+		fNodeSize = pNode->tRect.fH;
+	}
+	fBasis = __xuiDockMax(0.0f, fNodeSize - pData->tMetrics.fSplitterSize);
+	fMinimumFirst = __xuiDockNodeMinimumAxis(pData, pNode->iFirst, pNode->iOrientation);
+	fMinimumSecond = __xuiDockNodeMinimumAxis(pData, pNode->iSecond, pNode->iOrientation);
+	fMinimumStart = fNodeStart + fMinimumFirst;
+	fMaximumStart = fNodeStart + fBasis - fMinimumSecond;
+	if ( fMaximumStart < fMinimumStart ) {
+		fStart = fMinimumStart;
+	} else {
+		fStart = __xuiDockClamp(fStart, fMinimumStart, fMaximumStart);
+	}
+	if ( pRatio != NULL ) {
+		*pRatio = fBasis > 0.0f ? __xuiDockClamp((fStart - fNodeStart) / fBasis, 0.0f, 1.0f) : 0.5f;
+	}
+	return fStart;
+}
+
+static float __xuiDockOppositeRegionSpace(xui_dock_panel_data_t* pData, int iRegion)
+{
+	int iOpposite;
+	if ( iRegion == XUI_DOCK_PANEL_REGION_LEFT ) iOpposite = XUI_DOCK_PANEL_REGION_RIGHT;
+	else if ( iRegion == XUI_DOCK_PANEL_REGION_RIGHT ) iOpposite = XUI_DOCK_PANEL_REGION_LEFT;
+	else if ( iRegion == XUI_DOCK_PANEL_REGION_TOP ) iOpposite = XUI_DOCK_PANEL_REGION_BOTTOM;
+	else if ( iRegion == XUI_DOCK_PANEL_REGION_BOTTOM ) iOpposite = XUI_DOCK_PANEL_REGION_TOP;
+	else return 0.0f;
+	if ( !__xuiDockRegionHasContent(pData, iOpposite) ) return 0.0f;
+	return __xuiDockRegionCurrentSize(pData, iOpposite) + pData->tMetrics.fSplitterSize;
+}
+
+static float __xuiDockClampRegionDragSize(xui_widget pWidget, xui_dock_panel_data_t* pData, int iRegion, float fSize)
 {
 	xui_dock_region_slot_t* r;
 	float basis;
 	float minSize;
 	float maxSize;
+
+	if ( (pWidget == NULL) || (pData == NULL) || !__xuiDockRegionIsSide(iRegion) ) return fSize;
+	r = &pData->arrRegions[iRegion];
+	basis = __xuiDockRegionDragBasis(pWidget, iRegion);
+	if ( basis <= 1.0f ) return fSize;
+	minSize = __xuiDockMax(r->fMinSize,
+		(iRegion == XUI_DOCK_PANEL_REGION_LEFT || iRegion == XUI_DOCK_PANEL_REGION_RIGHT) ?
+		pData->tMetrics.fMinPaneWidth : pData->tMetrics.fMinPaneHeight);
+	maxSize = basis - pData->tMetrics.fSplitterSize -
+		__xuiDockOppositeRegionSpace(pData, iRegion) -
+		((iRegion == XUI_DOCK_PANEL_REGION_LEFT || iRegion == XUI_DOCK_PANEL_REGION_RIGHT) ?
+		pData->tMetrics.fMinPaneWidth : pData->tMetrics.fMinPaneHeight);
+	if ( r->fMaxSize > 0.0f ) maxSize = __xuiDockMin(maxSize, r->fMaxSize);
+	return __xuiDockClamp(fSize, minSize, __xuiDockMax(minSize, maxSize));
+}
+
+static int __xuiDockSetRegionDragSize(xui_widget pWidget, xui_dock_panel_data_t* pData, int iRegion, float fSize)
+{
+	xui_dock_region_slot_t* r;
+	float basis;
 	if ( (pWidget == NULL) || (pData == NULL) || !__xuiDockRegionIsSide(iRegion) ) return XUI_ERROR_INVALID_ARGUMENT;
 	r = &pData->arrRegions[iRegion];
 	basis = __xuiDockRegionDragBasis(pWidget, iRegion);
 	if ( basis <= 1.0f ) return XUI_OK;
-	minSize = __xuiDockMax(r->fMinSize, (iRegion == XUI_DOCK_PANEL_REGION_LEFT || iRegion == XUI_DOCK_PANEL_REGION_RIGHT) ? pData->tMetrics.fMinPaneWidth : pData->tMetrics.fMinPaneHeight);
-	maxSize = (r->fMaxSize > 0.0f) ? r->fMaxSize : basis * 0.80f;
-	maxSize = __xuiDockMin(maxSize, basis * 0.80f);
-	fSize = __xuiDockClamp(fSize, minSize, __xuiDockMax(minSize, maxSize));
+	fSize = __xuiDockClampRegionDragSize(pWidget, pData, iRegion, fSize);
 	if ( r->iSizeMode == XUI_DOCK_PANEL_SIZE_PIXEL ) {
 		r->fValue = fSize;
 	} else {
-		r->fValue = __xuiDockClamp(fSize / basis, 0.05f, 0.80f);
+		r->fValue = __xuiDockClamp(fSize / basis, 0.0f, 1.0f);
 	}
 	pData->iLayoutChangeCount++;
 	pData->iChangeCount++;
@@ -2796,52 +3109,117 @@ static int __xuiDockSetRegionDragSize(xui_widget pWidget, xui_dock_panel_data_t*
 	return XUI_OK;
 }
 
-static void __xuiDockLayoutRegions(xui_dock_panel_data_t* pData, xui_rect_t r)
+static xlayout_track_t __xuiDockRegionTrack(xui_dock_panel_data_t* pData, int iRegion, float fTotal)
 {
-	xui_rect_t center = r;
-	xui_dock_panel_metrics_t* m = &pData->tMetrics;
-	float split = m->fSplitterSize;
-	float size;
-	xui_dock_region_slot_t* left = &pData->arrRegions[XUI_DOCK_PANEL_REGION_LEFT];
-	xui_dock_region_slot_t* right = &pData->arrRegions[XUI_DOCK_PANEL_REGION_RIGHT];
-	xui_dock_region_slot_t* top = &pData->arrRegions[XUI_DOCK_PANEL_REGION_TOP];
-	xui_dock_region_slot_t* bottom = &pData->arrRegions[XUI_DOCK_PANEL_REGION_BOTTOM];
-	if ( __xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_LEFT) ) {
-		size = __xuiDockMin(__xuiDockRegionSize(left, r.fW), __xuiDockMax(0.0f, center.fW - m->fMinPaneWidth - split));
-		left->tRect = __xuiDockRect(center.fX, center.fY, size, center.fH);
-		left->tSplitterRect = __xuiDockRect(center.fX + size, center.fY, split, center.fH);
-		center.fX += size + split;
-		center.fW = __xuiDockMax(0.0f, center.fW - size - split);
-	} else {
-		left->tRect = left->tSplitterRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+	xui_dock_region_slot_t* pRegion = &pData->arrRegions[iRegion];
+	xlayout_track_t tTrack;
+	if ( !__xuiDockRegionHasContent(pData, iRegion) ) return xLayoutTrackFixed(0.0f);
+	tTrack = xLayoutTrackFixed(__xuiDockRegionSize(pRegion, fTotal));
+	tTrack.min_size = pRegion->fMinSize;
+	tTrack.max_size = pRegion->fMaxSize > 0.0f ? pRegion->fMaxSize : XLAYOUT_UNBOUNDED;
+	tTrack.shrink = 1.0f;
+	return tTrack;
+}
+
+static int __xuiDockLayoutRegions(xui_dock_panel_data_t* pData, xui_rect_t r)
+{
+	static const int arrRows[XUI_DOCK_PANEL_REGION_COUNT] = { 2, 0, 0, 0, 4 };
+	static const int arrColumns[XUI_DOCK_PANEL_REGION_COUNT] = { 2, 0, 4, 2, 2 };
+	static const int arrRowSpans[XUI_DOCK_PANEL_REGION_COUNT] = { 1, 5, 5, 1, 1 };
+	xlayout_track_t arrColumnTracks[5];
+	xlayout_track_t arrRowTracks[5];
+	xlayout_node_t arrChildren[XUI_DOCK_PANEL_REGION_COUNT + 4];
+	xlayout_style_t tStyle;
+	xlayout_result_t tResult;
+	int iChildCount = 0;
+	int iRet;
+	int i;
+	iRet = __xuiDockEnsureRegionLayoutHandle(pData, &pData->iRegionLayoutRoot, XLAYOUT_ROLE_CONTAINER);
+	if ( iRet != XUI_OK ) return iRet;
+	tStyle = xLayoutStyleDefault();
+	tStyle.container.format = XLAYOUT_FORMAT_TRACK;
+	if ( !xLayoutNodeSetStyle(pData->pLayoutContext, pData->iRegionLayoutRoot, &tStyle) ) return XUI_ERROR_OUT_OF_MEMORY;
+
+	arrColumnTracks[0] = __xuiDockRegionTrack(pData, XUI_DOCK_PANEL_REGION_LEFT, r.fW);
+	arrColumnTracks[1] = xLayoutTrackFixed(__xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_LEFT) ? pData->tMetrics.fSplitterSize : 0.0f);
+	arrColumnTracks[2] = xLayoutTrackFraction(1.0f);
+	arrColumnTracks[2].min_size = pData->tMetrics.fMinPaneWidth;
+	arrColumnTracks[3] = xLayoutTrackFixed(__xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_RIGHT) ? pData->tMetrics.fSplitterSize : 0.0f);
+	arrColumnTracks[4] = __xuiDockRegionTrack(pData, XUI_DOCK_PANEL_REGION_RIGHT, r.fW);
+	arrRowTracks[0] = __xuiDockRegionTrack(pData, XUI_DOCK_PANEL_REGION_TOP, r.fH);
+	arrRowTracks[1] = xLayoutTrackFixed(__xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_TOP) ? pData->tMetrics.fSplitterSize : 0.0f);
+	arrRowTracks[2] = xLayoutTrackFraction(1.0f);
+	arrRowTracks[2].min_size = pData->tMetrics.fMinPaneHeight;
+	arrRowTracks[3] = xLayoutTrackFixed(__xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_BOTTOM) ? pData->tMetrics.fSplitterSize : 0.0f);
+	arrRowTracks[4] = __xuiDockRegionTrack(pData, XUI_DOCK_PANEL_REGION_BOTTOM, r.fH);
+	if ( !xLayoutNodeSetColumns(pData->pLayoutContext, pData->iRegionLayoutRoot, arrColumnTracks, 5u)
+		|| !xLayoutNodeSetRows(pData->pLayoutContext, pData->iRegionLayoutRoot, arrRowTracks, 5u) ) {
+		return XUI_ERROR_OUT_OF_MEMORY;
 	}
-	if ( __xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_RIGHT) ) {
-		size = __xuiDockMin(__xuiDockRegionSize(right, r.fW), __xuiDockMax(0.0f, center.fW - m->fMinPaneWidth - split));
-		right->tRect = __xuiDockRect(center.fX + center.fW - size, center.fY, size, center.fH);
-		right->tSplitterRect = __xuiDockRect(right->tRect.fX - split, center.fY, split, center.fH);
-		center.fW = __xuiDockMax(0.0f, center.fW - size - split);
-	} else {
-		right->tRect = right->tSplitterRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+
+	for ( i = 0; i < XUI_DOCK_PANEL_REGION_COUNT; ++i ) {
+		xlayout_node_t arrAreaChild[1];
+		iRet = __xuiDockEnsureRegionLayoutHandle(pData, &pData->arrRegionLayoutAreas[i], XLAYOUT_ROLE_CONTAINER);
+		if ( iRet != XUI_OK ) return iRet;
+		tStyle = __xuiDockLayoutItemStyle(arrRows[i], arrColumns[i]);
+		tStyle.item.row_span = (uint32_t)arrRowSpans[i];
+		tStyle.container.format = XLAYOUT_FORMAT_LAYER;
+		if ( !xLayoutNodeSetStyle(pData->pLayoutContext, pData->arrRegionLayoutAreas[i], &tStyle) ) return XUI_ERROR_OUT_OF_MEMORY;
+		if ( pData->arrRegions[i].iRootNode >= 0 ) {
+			xui_dock_node_slot_t* pRootNode;
+			iRet = __xuiDockBuildLayoutNode(pData, pData->arrRegions[i].iRootNode, 0, 0);
+			if ( iRet != XUI_OK ) return iRet;
+			pRootNode = __xuiDockNodeAt(pData, pData->arrRegions[i].iRootNode);
+			if ( pRootNode == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+			arrAreaChild[0] = pRootNode->iLayoutNode;
+			iRet = __xuiDockSetLayoutChildren(pData, pData->arrRegionLayoutAreas[i], arrAreaChild, 1);
+		} else {
+			iRet = __xuiDockSetLayoutChildren(pData, pData->arrRegionLayoutAreas[i], NULL, 0);
+		}
+		if ( iRet != XUI_OK ) return iRet;
+		arrChildren[iChildCount++] = pData->arrRegionLayoutAreas[i];
 	}
-	if ( __xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_TOP) ) {
-		size = __xuiDockMin(__xuiDockRegionSize(top, r.fH), __xuiDockMax(0.0f, center.fH - m->fMinPaneHeight - split));
-		top->tRect = __xuiDockRect(center.fX, center.fY, center.fW, size);
-		top->tSplitterRect = __xuiDockRect(center.fX, center.fY + size, center.fW, split);
-		center.fY += size + split;
-		center.fH = __xuiDockMax(0.0f, center.fH - size - split);
-	} else {
-		top->tRect = top->tSplitterRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+
+	for ( i = 0; i < 4; ++i ) {
+		int iRegion = i + 1;
+		int iRow = iRegion == XUI_DOCK_PANEL_REGION_BOTTOM ? 3 : iRegion == XUI_DOCK_PANEL_REGION_TOP ? 1 : 0;
+		int iColumn = iRegion == XUI_DOCK_PANEL_REGION_RIGHT ? 3 : iRegion == XUI_DOCK_PANEL_REGION_LEFT ? 1 : 2;
+		int iRowSpan = iRegion == XUI_DOCK_PANEL_REGION_LEFT || iRegion == XUI_DOCK_PANEL_REGION_RIGHT ? 5 : 1;
+		iRet = __xuiDockEnsureRegionLayoutHandle(pData, &pData->arrRegionLayoutSplitters[i], XLAYOUT_ROLE_LEAF);
+		if ( iRet != XUI_OK ) return iRet;
+		tStyle = __xuiDockLayoutItemStyle(iRow, iColumn);
+		tStyle.item.row_span = (uint32_t)iRowSpan;
+		if ( !xLayoutNodeSetStyle(pData->pLayoutContext, pData->arrRegionLayoutSplitters[i], &tStyle) ) return XUI_ERROR_OUT_OF_MEMORY;
+		arrChildren[iChildCount++] = pData->arrRegionLayoutSplitters[i];
 	}
-	if ( __xuiDockRegionHasContent(pData, XUI_DOCK_PANEL_REGION_BOTTOM) ) {
-		size = __xuiDockMin(__xuiDockRegionSize(bottom, r.fH), __xuiDockMax(0.0f, center.fH - m->fMinPaneHeight - split));
-		bottom->tRect = __xuiDockRect(center.fX, center.fY + center.fH - size, center.fW, size);
-		bottom->tSplitterRect = __xuiDockRect(center.fX, bottom->tRect.fY - split, center.fW, split);
-		center.fH = __xuiDockMax(0.0f, center.fH - size - split);
-	} else {
-		bottom->tRect = bottom->tSplitterRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+	iRet = __xuiDockSetLayoutChildren(pData, pData->iRegionLayoutRoot, arrChildren, iChildCount);
+	if ( iRet != XUI_OK ) return iRet;
+	if ( !xLayoutArrange(pData->pLayoutContext, pData->iRegionLayoutRoot,
+		(xlayout_rect_t){ r.fX, r.fY, r.fW, r.fH }) ) return XUI_ERROR_OUT_OF_MEMORY;
+
+	for ( i = 0; i < XUI_DOCK_PANEL_REGION_COUNT; ++i ) {
+		if ( !xLayoutNodeGetResult(pData->pLayoutContext, pData->arrRegionLayoutAreas[i], &tResult) ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( i == XUI_DOCK_PANEL_REGION_DOCUMENT || __xuiDockRegionHasContent(pData, i) ) {
+			pData->arrRegions[i].tRect = __xuiDockRect(tResult.rect.x, tResult.rect.y, tResult.rect.width, tResult.rect.height);
+		} else {
+			pData->arrRegions[i].tRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+		}
+		if ( pData->arrRegions[i].iRootNode >= 0 ) {
+			iRet = __xuiDockApplyLayoutNode(pData, pData->arrRegions[i].iRootNode);
+			if ( iRet != XUI_OK ) return iRet;
+		}
 	}
-	pData->arrRegions[XUI_DOCK_PANEL_REGION_DOCUMENT].tRect = __xuiDockRect(center.fX, center.fY, center.fW, center.fH);
+	for ( i = 0; i < 4; ++i ) {
+		int iRegion = i + 1;
+		if ( __xuiDockRegionHasContent(pData, iRegion) ) {
+			if ( !xLayoutNodeGetResult(pData->pLayoutContext, pData->arrRegionLayoutSplitters[i], &tResult) ) return XUI_ERROR_INVALID_ARGUMENT;
+			pData->arrRegions[iRegion].tSplitterRect = __xuiDockRect(tResult.rect.x, tResult.rect.y, tResult.rect.width, tResult.rect.height);
+		} else {
+			pData->arrRegions[iRegion].tSplitterRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
 	pData->arrRegions[XUI_DOCK_PANEL_REGION_DOCUMENT].tSplitterRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
+	return XUI_OK;
 }
 
 static float __xuiDockAutoHideExpandWidth(const xui_dock_window_slot_t* pWin, xui_rect_t r, float strip)
@@ -2941,12 +3319,44 @@ static void __xuiDockLayoutAutoHide(xui_dock_panel_data_t* pData, xui_rect_t r)
 		pData->tAutoHideCloseRect.fY, pData->tMetrics.fButtonSize, pData->tMetrics.fButtonSize);
 }
 
-static void __xuiDockUpdateWindowHosts(xui_widget pWidget, xui_dock_panel_data_t* pData)
+static int __xuiDockWindowLogicallyVisible(xui_dock_panel_data_t* pData, xui_dock_window_slot_t* pWin)
+{
+	if ( (pData == NULL) || (pWin == NULL) || !pWin->bUsed ) return 0;
+	if ( pWin->iState == XUI_DOCK_PANEL_WINDOW_DOCKED ) {
+		xui_dock_pane_slot_t* pPane = __xuiDockPaneAt(pData, pWin->iPane);
+		return (pPane != NULL) && (__xuiDockPaneActiveWindow(pPane) == pWin->iWindow);
+	}
+	if ( pWin->iState == XUI_DOCK_PANEL_WINDOW_FLOATING ) return 1;
+	return pWin->iState == XUI_DOCK_PANEL_WINDOW_AUTO_HIDE
+		&& pData->iAutoHideExpandWindow == pWin->iWindow;
+}
+
+static int __xuiDockPanelPrepare(xui_widget pWidget, void* pUser)
+{
+	xui_dock_panel_data_t* pData = __xuiDockPanelGetData(pWidget);
+	int i;
+	(void)pUser;
+	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	for ( i = 0; i < XUI_DOCK_PANEL_WINDOW_CAPACITY; ++i ) {
+		xui_dock_window_slot_t* pWin = &pData->arrWindows[i];
+		int bVisible;
+		if ( !pWin->bUsed || pWin->pHostWidget == NULL ) continue;
+		bVisible = __xuiDockWindowLogicallyVisible(pData, pWin);
+		(void)xuiWidgetSetVisible(pWin->pHostWidget, bVisible);
+		if ( pWin->pClientWidget != NULL ) (void)xuiWidgetSetVisible(pWin->pClientWidget, bVisible);
+	}
+	if ( pData->pDragOverlayWidget != NULL ) {
+		(void)xuiWidgetSetVisible(pData->pDragOverlayWidget, __xuiDockDragVisualActive(pData));
+	}
+	return XUI_OK;
+}
+
+static int __xuiDockArrangeWindowHosts(xui_widget pWidget, xui_dock_panel_data_t* pData)
 {
 	int i;
 	for ( i = 0; i < XUI_DOCK_PANEL_WINDOW_CAPACITY; i++ ) {
 		xui_dock_window_slot_t* w = &pData->arrWindows[i];
-		int bVisible = 0;
+		xui_rect_t tRect = __xuiDockRect(0.0f, 0.0f, 0.0f, 0.0f);
 		if ( !w->bUsed ) continue;
 		if ( w->iState == XUI_DOCK_PANEL_WINDOW_DOCKED ) {
 			xui_dock_pane_slot_t* pPane = __xuiDockPaneAt(pData, w->iPane);
@@ -2955,56 +3365,63 @@ static void __xuiDockUpdateWindowHosts(xui_widget pWidget, xui_dock_panel_data_t
 			}
 			if ( (pPane != NULL) && (__xuiDockPaneActiveWindow(pPane) == w->iWindow) ) {
 				w->tRect = pPane->tClientRect;
-				bVisible = 1;
+				tRect = w->tRect;
 			}
 		} else if ( w->iState == XUI_DOCK_PANEL_WINDOW_FLOATING ) {
 			w->tRect = w->tFloatRect;
-			bVisible = 1;
+			tRect = w->tRect;
 		} else if ( w->iState == XUI_DOCK_PANEL_WINDOW_AUTO_HIDE && pData->iAutoHideExpandWindow == w->iWindow ) {
 			w->tRect = pData->tAutoHideExpandRect;
-			bVisible = 1;
+			tRect = w->tRect;
 		}
-		__xuiDockArrangeWindowHost(w, &pData->tMetrics, bVisible);
-	}
-	__xuiDockRefreshHostInputOrder(pData);
-	(void)__xuiDockApplyPendingFocus(pWidget, pData);
-	(void)pWidget;
-}
-
-static void __xuiDockArrangeDragOverlay(xui_widget pWidget, xui_dock_panel_data_t* pData, xui_rect_t tRect)
-{
-	if ( (pWidget == NULL) || (pData == NULL) || (pData->pDragOverlayWidget == NULL) ) return;
-	(void)xuiWidgetSetRect(pData->pDragOverlayWidget, tRect);
-	(void)xuiWidgetArrange(pData->pDragOverlayWidget, tRect);
-	(void)xuiWidgetSetHitTestVisible(pData->pDragOverlayWidget, 0);
-	(void)xuiWidgetSetLayer(pData->pDragOverlayWidget, XUI_LAYER_DRAG, XUI_WINDOW_Z_TOPMOST + 200);
-	(void)xuiWidgetSetVisible(pData->pDragOverlayWidget, __xuiDockDragVisualActive(pData));
-}
-
-static int __xuiDockPanelArrangeNow(xui_widget pWidget, xui_dock_panel_data_t* pData, xui_rect_t tRect)
-{
-	int i;
-	if ( (pWidget == NULL) || (pData == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
-	tRect = xuiInternalSnapRect(tRect);
-	__xuiDockLayoutRegions(pData, tRect);
-	for ( i = 0; i < XUI_DOCK_PANEL_REGION_COUNT; i++ ) {
-		if ( pData->arrRegions[i].iRootNode >= 0 ) {
-			__xuiDockLayoutNode(pData, pData->arrRegions[i].iRootNode, pData->arrRegions[i].tRect);
+		if ( xuiLayoutArrangeChild(pWidget, w->pHostWidget, tRect) != XUI_OK ) {
+			return XUI_ERROR_INVALID_ARGUMENT;
 		}
 	}
-	__xuiDockLayoutAutoHide(pData, tRect);
-	__xuiDockUpdateWindowHosts(pWidget, pData);
-	__xuiDockArrangeDragOverlay(pWidget, pData, tRect);
 	return XUI_OK;
 }
 
-static int __xuiDockPanelArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiDockArrangeDragOverlay(xui_widget pWidget, xui_dock_panel_data_t* pData, xui_rect_t tRect)
 {
-	xui_dock_panel_data_t* pData;
+	if ( (pWidget == NULL) || (pData == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pData->pDragOverlayWidget == NULL ) return XUI_OK;
+	return xuiLayoutArrangeChild(pWidget, pData->pDragOverlayWidget, tRect);
+}
+
+static int __xuiDockPanelLayoutChildren(xui_widget pWidget, xui_rect_t tRect, void* pUser)
+{
+	xui_dock_panel_data_t* pData = __xuiDockPanelGetData(pWidget);
+	int iRet;
 	(void)pUser;
-	pData = __xuiDockPanelGetData(pWidget);
+	if ( (pWidget == NULL) || (pData == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	tRect = xuiInternalSnapRect(tRect);
+	iRet = __xuiDockLayoutRegions(pData, tRect);
+	if ( iRet != XUI_OK ) return iRet;
+	__xuiDockLayoutAutoHide(pData, tRect);
+	iRet = __xuiDockArrangeWindowHosts(pWidget, pData);
+	if ( iRet != XUI_OK ) return iRet;
+	return __xuiDockArrangeDragOverlay(pWidget, pData, tRect);
+}
+
+static int __xuiDockPanelLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_dock_panel_data_t* pData = __xuiDockPanelGetData(pWidget);
+	int i;
+	(void)tContentRect;
+	(void)pUser;
 	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	return __xuiDockPanelArrangeNow(pWidget, pData, tContentRect);
+	for ( i = 0; i < XUI_DOCK_PANEL_WINDOW_CAPACITY; ++i ) {
+		xui_dock_window_slot_t* pWin = &pData->arrWindows[i];
+		if ( !pWin->bUsed || pWin->pHostWidget == NULL ) continue;
+		__xuiDockSetHostLayer(pWin);
+		(void)xuiWidgetInvalidate(pWin->pHostWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
+	}
+	if ( pData->pDragOverlayWidget != NULL ) {
+		(void)xuiWidgetSetHitTestVisible(pData->pDragOverlayWidget, 0);
+		(void)xuiWidgetSetLayer(pData->pDragOverlayWidget, XUI_LAYER_DRAG, XUI_WINDOW_Z_TOPMOST + 200);
+	}
+	__xuiDockRefreshHostInputOrder(pData);
+	return __xuiDockApplyPendingFocus(pWidget, pData);
 }
 
 static int __xuiDockHitLocal(xui_dock_panel_data_t* pData, float x, float y, xui_dock_hit_t* hit)
@@ -3051,8 +3468,12 @@ static int __xuiDockHitLocal(xui_dock_panel_data_t* pData, float x, float y, xui
 	}
 	for ( i = 0; i < XUI_DOCK_PANEL_REGION_COUNT; i++ ) {
 		xui_dock_region_slot_t* r = &pData->arrRegions[i];
+		xui_rect_t tHitRect;
 		if ( !__xuiDockRegionIsSide(i) || !__xuiDockRegionHasContent(pData, i) ) continue;
-		if ( __xuiDockRectContains(r->tSplitterRect, x, y) && r->tSplitterRect.fW > 0.0f && r->tSplitterRect.fH > 0.0f ) {
+		tHitRect = __xuiDockSplitterHitRect(pData, r->tSplitterRect,
+			(i == XUI_DOCK_PANEL_REGION_LEFT || i == XUI_DOCK_PANEL_REGION_RIGHT) ?
+			XUI_DOCK_ORIENTATION_VERTICAL : XUI_DOCK_ORIENTATION_HORIZONTAL);
+		if ( __xuiDockRectContains(tHitRect, x, y) && r->tSplitterRect.fW > 0.0f && r->tSplitterRect.fH > 0.0f ) {
 			if ( hit != NULL ) {
 				hit->iType = XUI_DOCK_PANEL_HIT_SPLITTER;
 				hit->iNode = -1;
@@ -3064,7 +3485,10 @@ static int __xuiDockHitLocal(xui_dock_panel_data_t* pData, float x, float y, xui
 	}
 	for ( i = 0; i < XUI_DOCK_PANEL_NODE_CAPACITY; i++ ) {
 		xui_dock_node_slot_t* n = &pData->arrNodes[i];
-		if ( n->bUsed && n->iType == XUI_DOCK_NODE_SPLIT && __xuiDockRectContains(n->tSplitterRect, x, y) ) {
+		xui_rect_t tHitRect;
+		if ( !n->bUsed || n->iType != XUI_DOCK_NODE_SPLIT ) continue;
+		tHitRect = __xuiDockSplitterHitRect(pData, n->tSplitterRect, n->iOrientation);
+		if ( __xuiDockRectContains(tHitRect, x, y) ) {
 			if ( hit != NULL ) {
 				hit->iType = XUI_DOCK_PANEL_HIT_SPLITTER;
 				hit->iNode = i;
@@ -3664,15 +4088,21 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 				pData->iDragSide = 0;
 				pData->fDragStartX = lx;
 				pData->fDragStartY = ly;
+				pData->tDragStartRect = hit.tRect;
+				pData->tDragPendingRect = hit.tRect;
 				if ( hit.iNode >= 0 ) {
 					xui_dock_node_slot_t* n = __xuiDockNodeAt(pData, hit.iNode);
 					pData->iDragNode = hit.iNode;
 					pData->fDragStartRatio = (n != NULL) ? n->fRatio : 0.5f;
+					pData->fDragPendingValue = pData->fDragStartRatio;
 				} else if ( __xuiDockRegionIsSide(hit.iRegion) ) {
 					pData->iDragRegion = hit.iRegion;
 					pData->fDragStartRatio = __xuiDockRegionCurrentSize(pData, hit.iRegion);
+					pData->fDragPendingValue = pData->fDragStartRatio;
 				}
 				(void)xuiSetPointerCapture(xuiWidgetGetContext(pWidget), pWidget);
+				(void)__xuiDockShowAdorner(pWidget, pData, hit.tRect,
+					XUI_DRAG_ADORNER_RECT_FILL, pData->tColors.iSplitterActiveColor, 0.0f);
 			}
 			return XUI_EVENT_DISPATCH_STOP;
 		} else if ( pData->iAutoHideExpandWindow >= 0 ) {
@@ -3685,6 +4115,7 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 	case XUI_EVENT_POINTER_MOVE:
 		if ( (pData->iDragType == XUI_DOCK_DRAG_SPLITTER) && (xuiGetPointerCapture(xuiWidgetGetContext(pWidget)) == pWidget) ) {
 			xui_dock_node_slot_t* n = __xuiDockNodeAt(pData, pData->iDragNode);
+			xui_rect_t preview = pData->tDragStartRect;
 			if ( pData->iDragRegion >= 0 ) {
 				float delta;
 				if ( pData->iDragRegion == XUI_DOCK_PANEL_REGION_LEFT || pData->iDragRegion == XUI_DOCK_PANEL_REGION_RIGHT ) {
@@ -3694,17 +4125,27 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 					delta = ly - pData->fDragStartY;
 					if ( pData->iDragRegion == XUI_DOCK_PANEL_REGION_BOTTOM ) delta = -delta;
 				}
-				(void)__xuiDockSetRegionDragSize(pWidget, pData, pData->iDragRegion, pData->fDragStartRatio + delta);
+				pData->fDragPendingValue = __xuiDockClampRegionDragSize(pWidget, pData,
+					pData->iDragRegion, pData->fDragStartRatio + delta);
+				delta = pData->fDragPendingValue - pData->fDragStartRatio;
+				if ( pData->iDragRegion == XUI_DOCK_PANEL_REGION_LEFT ) preview.fX += delta;
+				else if ( pData->iDragRegion == XUI_DOCK_PANEL_REGION_RIGHT ) preview.fX -= delta;
+				else if ( pData->iDragRegion == XUI_DOCK_PANEL_REGION_TOP ) preview.fY += delta;
+				else if ( pData->iDragRegion == XUI_DOCK_PANEL_REGION_BOTTOM ) preview.fY -= delta;
 			} else if ( n != NULL ) {
 				if ( n->iOrientation == XUI_DOCK_ORIENTATION_VERTICAL ) {
-					n->fRatio = __xuiDockClamp((lx - n->tRect.fX) / __xuiDockMax(1.0f, n->tRect.fW), 0.10f, 0.90f);
+					preview.fX = __xuiDockClampNodeSplitterStart(pData, n,
+						pData->tDragStartRect.fX + lx - pData->fDragStartX,
+						&pData->fDragPendingValue);
 				} else {
-					n->fRatio = __xuiDockClamp((ly - n->tRect.fY) / __xuiDockMax(1.0f, n->tRect.fH), 0.10f, 0.90f);
+					preview.fY = __xuiDockClampNodeSplitterStart(pData, n,
+						pData->tDragStartRect.fY + ly - pData->fDragStartY,
+						&pData->fDragPendingValue);
 				}
-				pData->iLayoutChangeCount++;
-				pData->iChangeCount++;
-				__xuiDockInvalidate(pWidget, 1);
 			}
+			pData->tDragPendingRect = preview;
+			(void)__xuiDockShowAdorner(pWidget, pData, preview,
+				XUI_DRAG_ADORNER_RECT_FILL, pData->tColors.iSplitterActiveColor, 0.0f);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		if ( (pData->iDragType == XUI_DOCK_DRAG_DOCKED) && (xuiGetPointerCapture(xuiWidgetGetContext(pWidget)) == pWidget) ) {
@@ -3718,33 +4159,31 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 			if ( w == NULL ) return XUI_EVENT_DISPATCH_STOP;
 			dx = lx - pData->fDragStartX;
 			dy = ly - pData->fDragStartY;
-			if ( !pData->bDragFloating ) {
-				xui_dock_pane_slot_t* pSourcePane;
-				int insert;
-				if ( __xuiDockAbs(dx) < XUI_DOCK_DRAG_THRESHOLD && __xuiDockAbs(dy) < XUI_DOCK_DRAG_THRESHOLD ) {
-					return XUI_EVENT_DISPATCH_STOP;
-				}
-				pSourcePane = __xuiDockPaneAt(pData, pData->iDragPane);
-				insert = ((pEvent->iModifiers & XUI_MOD_CTRL) == 0u) ? __xuiDockPaneTabInsertIndex(pData, pSourcePane, lx, ly) : -1;
+			if ( __xuiDockAbs(dx) < XUI_DOCK_DRAG_THRESHOLD && __xuiDockAbs(dy) < XUI_DOCK_DRAG_THRESHOLD ) {
+				return XUI_EVENT_DISPATCH_STOP;
+			}
+			{
+				xui_dock_pane_slot_t* pSourcePane = __xuiDockPaneAt(pData, pData->iDragPane);
+				int insert = ((pEvent->iModifiers & XUI_MOD_CTRL) == 0u) ?
+					__xuiDockPaneTabInsertIndex(pData, pSourcePane, lx, ly) : -1;
 				if ( pSourcePane != NULL && __xuiDockRectContains(pSourcePane->tTabStripRect, lx, ly) ) {
 					if ( insert == pData->iDragSourceIndex || insert == pData->iDragSourceIndex + 1 ) insert = -1;
+					pData->bDragFloating = 0;
 					ret = __xuiDockSetTabInsertPreview(pWidget, pData, pSourcePane, w->iWindow, insert);
 					if ( ret != XUI_OK ) return ret;
+					__xuiDockHideAdorner(pWidget);
 					__xuiDockInvalidate(pWidget, 0);
 					return XUI_EVENT_DISPATCH_STOP;
 				}
-				r = pData->tDragStartRect;
-				r.fX += dx;
-				r.fY += dy;
-				ret = xuiDockPanelFloatWindow(pWidget, w->iWindow, r);
-				if ( ret != XUI_OK ) return ret;
-				pData->bDragFloating = 1;
 			}
+			pData->bDragFloating = 1;
 			pData->iDragInsertIndex = -1;
 			r = pData->tDragStartRect;
 			r.fX += dx;
 			r.fY += dy;
-			w->tFloatRect = __xuiDockClampFloatRect(pWidget, r);
+			pData->tDragPendingRect = __xuiDockClampFloatRect(pWidget, r);
+			(void)__xuiDockShowAdorner(pWidget, pData, pData->tDragPendingRect,
+				XUI_DRAG_ADORNER_RECT_STROKE, pData->tColors.iFloatBorderColor, 1.5f);
 			if ( (pEvent->iModifiers & XUI_MOD_CTRL) != 0u ) {
 				ret = __xuiDockSetDragPreview(pWidget, pData, NULL);
 			} else {
@@ -3753,9 +4192,7 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 				if ( ret == XUI_OK ) ret = __xuiDockSetDragIndicator(pWidget, pData, &indicator);
 			}
 			if ( ret != XUI_OK ) return ret;
-			pData->iChangeCount++;
-			pData->iLayoutChangeCount++;
-			__xuiDockInvalidate(pWidget, 1);
+			__xuiDockInvalidate(pWidget, 0);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		(void)__xuiDockHitLocal(pData, lx, ly, &hit);
@@ -3771,21 +4208,34 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 	case XUI_EVENT_POINTER_UP:
 		if ( left && pData->iDragType != XUI_DOCK_DRAG_NONE ) {
 			int ret = XUI_OK;
-			if ( pData->iDragType == XUI_DOCK_DRAG_FLOAT || (pData->iDragType == XUI_DOCK_DRAG_DOCKED && pData->bDragFloating) ) {
-				ret = __xuiDockCommitDropPreview(pWidget, pData);
+			if ( pData->iDragType == XUI_DOCK_DRAG_SPLITTER ) {
+				if ( pData->iDragRegion >= 0 ) {
+					ret = __xuiDockSetRegionDragSize(pWidget, pData, pData->iDragRegion, pData->fDragPendingValue);
+				} else {
+					xui_dock_node_slot_t* n = __xuiDockNodeAt(pData, pData->iDragNode);
+					if ( n != NULL && __xuiDockAbs(n->fRatio - pData->fDragPendingValue) > 0.0001f ) {
+						n->fRatio = pData->fDragPendingValue;
+						pData->iLayoutChangeCount++;
+						pData->iChangeCount++;
+						__xuiDockInvalidate(pWidget, 1);
+					}
+				}
+			} else if ( pData->iDragType == XUI_DOCK_DRAG_FLOAT ) {
+				xui_dock_window_slot_t* w = __xuiDockWindowAt(pData, pData->iDragWindow);
+				if ( pData->tDragPreview.bValid ) ret = __xuiDockCommitDropPreview(pWidget, pData);
+				else if ( w != NULL ) {
+					w->tFloatRect = pData->tDragPendingRect;
+					pData->iChangeCount++;
+					pData->iLayoutChangeCount++;
+					__xuiDockInvalidate(pWidget, 1);
+				}
+			} else if ( pData->iDragType == XUI_DOCK_DRAG_DOCKED && pData->bDragFloating ) {
+				if ( pData->tDragPreview.bValid ) ret = __xuiDockCommitDropPreview(pWidget, pData);
+				else ret = xuiDockPanelFloatWindow(pWidget, pData->iDragWindow, pData->tDragPendingRect);
 			} else if ( pData->iDragType == XUI_DOCK_DRAG_DOCKED && pData->iDragInsertIndex >= 0 ) {
 				ret = __xuiDockPaneMoveWindow(pWidget, pData, __xuiDockPaneAt(pData, pData->iDragPane), pData->iDragSourceIndex, pData->iDragInsertIndex);
 			}
-			pData->iDragType = XUI_DOCK_DRAG_NONE;
-			pData->iDragNode = -1;
-			pData->iDragRegion = -1;
-			pData->iDragPane = -1;
-			pData->iDragWindow = -1;
-			pData->iDragSourceIndex = -1;
-			pData->iDragInsertIndex = -1;
-			pData->iDragSide = 0;
-			pData->bDragFloating = 0;
-			(void)__xuiDockSetDragPreview(pWidget, pData, NULL);
+			__xuiDockResetDragSession(pWidget, pData);
 			(void)xuiReleasePointerCapture(xuiWidgetGetContext(pWidget), pWidget);
 			if ( ret != XUI_OK ) return ret;
 			return XUI_EVENT_DISPATCH_STOP;
@@ -3807,29 +4257,11 @@ static int __xuiDockPanelEvent(xui_widget pWidget, const xui_event_t* pEvent, vo
 		     (pData->iDragType == XUI_DOCK_DRAG_FLOAT || pData->iDragType == XUI_DOCK_DRAG_FLOAT_RESIZE) ) {
 			break;
 		}
-		pData->iDragType = XUI_DOCK_DRAG_NONE;
-		pData->iDragNode = -1;
-		pData->iDragRegion = -1;
-		pData->iDragPane = -1;
-		pData->iDragWindow = -1;
-		pData->iDragSourceIndex = -1;
-		pData->iDragInsertIndex = -1;
-		pData->iDragSide = 0;
-		pData->bDragFloating = 0;
-		(void)__xuiDockSetDragPreview(pWidget, pData, NULL);
+		__xuiDockResetDragSession(pWidget, pData);
 		break;
 	case XUI_EVENT_KEY_DOWN:
 		if ( (pEvent->iKey == XUI_KEY_ESCAPE) && (pData->iDragType != XUI_DOCK_DRAG_NONE) ) {
-			pData->iDragType = XUI_DOCK_DRAG_NONE;
-			pData->iDragNode = -1;
-			pData->iDragRegion = -1;
-			pData->iDragPane = -1;
-			pData->iDragWindow = -1;
-			pData->iDragSourceIndex = -1;
-			pData->iDragInsertIndex = -1;
-			pData->iDragSide = 0;
-			pData->bDragFloating = 0;
-			(void)__xuiDockSetDragPreview(pWidget, pData, NULL);
+			__xuiDockResetDragSession(pWidget, pData);
 			(void)xuiReleasePointerCapture(xuiWidgetGetContext(pWidget), pWidget);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
@@ -3940,8 +4372,11 @@ static int __xuiDockHostEvent(xui_widget pHost, const xui_event_t* pEvent, void*
 			pData->fDragStartX = pEvent->fX;
 			pData->fDragStartY = pEvent->fY;
 			pData->tDragStartRect = w->tFloatRect;
+			pData->tDragPendingRect = w->tFloatRect;
 			(void)__xuiDockSetDragPreview(w->pPanelWidget, pData, NULL);
 			(void)xuiSetPointerCapture(xuiWidgetGetContext(pHost), pHost);
+			(void)__xuiDockShowAdorner(w->pPanelWidget, pData, w->tFloatRect,
+				XUI_DRAG_ADORNER_RECT_STROKE, pData->tColors.iFloatBorderColor, 1.5f);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		if ( left && resizeSide != 0 ) {
@@ -3957,18 +4392,21 @@ static int __xuiDockHostEvent(xui_widget pHost, const xui_event_t* pEvent, void*
 			pData->fDragStartX = pEvent->fX;
 			pData->fDragStartY = pEvent->fY;
 			pData->tDragStartRect = w->tFloatRect;
+			pData->tDragPendingRect = w->tFloatRect;
 			(void)__xuiDockSetDragPreview(w->pPanelWidget, pData, NULL);
 			(void)xuiSetPointerCapture(xuiWidgetGetContext(pHost), pHost);
+			(void)__xuiDockShowAdorner(w->pPanelWidget, pData, w->tFloatRect,
+				XUI_DRAG_ADORNER_RECT_STROKE, pData->tColors.iFloatBorderColor, 1.5f);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		break;
 	case XUI_EVENT_POINTER_MOVE:
 		if ( (pData->iDragType == XUI_DOCK_DRAG_FLOAT_RESIZE) && (pData->iDragWindow == w->iWindow) && (xuiGetPointerCapture(xuiWidgetGetContext(pHost)) == pHost) ) {
-			w->tFloatRect = __xuiDockResizeFloatRect(w->pPanelWidget, pData->tDragStartRect, pData->iDragSide, pEvent->fX - pData->fDragStartX, pEvent->fY - pData->fDragStartY);
+			pData->tDragPendingRect = __xuiDockResizeFloatRect(w->pPanelWidget, pData->tDragStartRect,
+				pData->iDragSide, pEvent->fX - pData->fDragStartX, pEvent->fY - pData->fDragStartY);
 			(void)__xuiDockSetDragPreview(w->pPanelWidget, pData, NULL);
-			pData->iChangeCount++;
-			pData->iLayoutChangeCount++;
-			__xuiDockInvalidate(w->pPanelWidget, 1);
+			(void)__xuiDockShowAdorner(w->pPanelWidget, pData, pData->tDragPendingRect,
+				XUI_DRAG_ADORNER_RECT_STROKE, pData->tColors.iFloatBorderColor, 1.5f);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		if ( (pData->iDragType == XUI_DOCK_DRAG_FLOAT) && (pData->iDragWindow == w->iWindow) && (xuiGetPointerCapture(xuiWidgetGetContext(pHost)) == pHost) ) {
@@ -3979,7 +4417,9 @@ static int __xuiDockHostEvent(xui_widget pHost, const xui_event_t* pEvent, void*
 			int ret;
 			r.fX += pEvent->fX - pData->fDragStartX;
 			r.fY += pEvent->fY - pData->fDragStartY;
-			w->tFloatRect = __xuiDockClampFloatRect(w->pPanelWidget, r);
+			pData->tDragPendingRect = __xuiDockClampFloatRect(w->pPanelWidget, r);
+			(void)__xuiDockShowAdorner(w->pPanelWidget, pData, pData->tDragPendingRect,
+				XUI_DRAG_ADORNER_RECT_STROKE, pData->tColors.iFloatBorderColor, 1.5f);
 			panelWorld = xuiWidgetGetWorldRect(w->pPanelWidget);
 			if ( (pEvent->iModifiers & XUI_MOD_CTRL) != 0u ) {
 				ret = __xuiDockSetDragPreview(w->pPanelWidget, pData, NULL);
@@ -3989,39 +4429,32 @@ static int __xuiDockHostEvent(xui_widget pHost, const xui_event_t* pEvent, void*
 				if ( ret == XUI_OK ) ret = __xuiDockSetDragIndicator(w->pPanelWidget, pData, &indicator);
 			}
 			if ( ret != XUI_OK ) return ret;
-			pData->iChangeCount++;
-			pData->iLayoutChangeCount++;
-			__xuiDockInvalidate(w->pPanelWidget, 1);
+			__xuiDockInvalidate(w->pPanelWidget, 0);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		break;
 	case XUI_EVENT_POINTER_UP:
 		if ( left && (pData->iDragType == XUI_DOCK_DRAG_FLOAT_RESIZE) && (pData->iDragWindow == w->iWindow) ) {
-			pData->iDragType = XUI_DOCK_DRAG_NONE;
-			pData->iDragNode = -1;
-			pData->iDragRegion = -1;
-			pData->iDragPane = -1;
-			pData->iDragWindow = -1;
-			pData->iDragSourceIndex = -1;
-			pData->iDragInsertIndex = -1;
-			pData->iDragSide = 0;
-			pData->bDragFloating = 0;
-			(void)__xuiDockSetDragPreview(w->pPanelWidget, pData, NULL);
+			w->tFloatRect = pData->tDragPendingRect;
+			pData->iChangeCount++;
+			pData->iLayoutChangeCount++;
+			__xuiDockInvalidate(w->pPanelWidget, 1);
+			__xuiDockResetDragSession(w->pPanelWidget, pData);
 			(void)xuiReleasePointerCapture(xuiWidgetGetContext(pHost), pHost);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
 		if ( left && (pData->iDragType == XUI_DOCK_DRAG_FLOAT) && (pData->iDragWindow == w->iWindow) ) {
 			int ret;
-			ret = __xuiDockCommitDropPreview(w->pPanelWidget, pData);
-			pData->iDragType = XUI_DOCK_DRAG_NONE;
-			pData->iDragNode = -1;
-			pData->iDragRegion = -1;
-			pData->iDragPane = -1;
-			pData->iDragWindow = -1;
-			pData->iDragSourceIndex = -1;
-			pData->iDragInsertIndex = -1;
-			pData->iDragSide = 0;
-			pData->bDragFloating = 0;
+			if ( pData->tDragPreview.bValid ) {
+				ret = __xuiDockCommitDropPreview(w->pPanelWidget, pData);
+			} else {
+				w->tFloatRect = pData->tDragPendingRect;
+				pData->iChangeCount++;
+				pData->iLayoutChangeCount++;
+				__xuiDockInvalidate(w->pPanelWidget, 1);
+				ret = XUI_OK;
+			}
+			__xuiDockResetDragSession(w->pPanelWidget, pData);
 			(void)xuiReleasePointerCapture(xuiWidgetGetContext(pHost), pHost);
 			if ( ret != XUI_OK ) return ret;
 			return XUI_EVENT_DISPATCH_STOP;
@@ -4030,16 +4463,15 @@ static int __xuiDockHostEvent(xui_widget pHost, const xui_event_t* pEvent, void*
 	case XUI_EVENT_POINTER_CAPTURE_LOST:
 		if ( (pEvent->pTarget == pHost) && (pData->iDragWindow == w->iWindow) &&
 		     (pData->iDragType == XUI_DOCK_DRAG_FLOAT || pData->iDragType == XUI_DOCK_DRAG_FLOAT_RESIZE) ) {
-			pData->iDragType = XUI_DOCK_DRAG_NONE;
-			pData->iDragNode = -1;
-			pData->iDragRegion = -1;
-			pData->iDragPane = -1;
-			pData->iDragWindow = -1;
-			pData->iDragSourceIndex = -1;
-			pData->iDragInsertIndex = -1;
-			pData->iDragSide = 0;
-			pData->bDragFloating = 0;
-			(void)__xuiDockSetDragPreview(w->pPanelWidget, pData, NULL);
+			__xuiDockResetDragSession(w->pPanelWidget, pData);
+		}
+		break;
+	case XUI_EVENT_KEY_DOWN:
+		if ( (pEvent->iKey == XUI_KEY_ESCAPE) && (pData->iDragWindow == w->iWindow) &&
+		     (pData->iDragType == XUI_DOCK_DRAG_FLOAT || pData->iDragType == XUI_DOCK_DRAG_FLOAT_RESIZE) ) {
+			__xuiDockResetDragSession(w->pPanelWidget, pData);
+			(void)xuiReleasePointerCapture(xuiWidgetGetContext(pHost), pHost);
+			return XUI_EVENT_DISPATCH_STOP;
 		}
 		break;
 	default:
@@ -4421,7 +4853,7 @@ static int __xuiDockDragOverlayRender(xui_widget pOverlay, xui_draw_context pDra
 static void __xuiDockDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_FILL;
 	pLayout->iHeightMode = XUI_SIZE_FILL;
 	pLayout->iFlowMode = XUI_FLOW_ABSOLUTE;
@@ -4527,9 +4959,10 @@ static int __xuiDockPanelInit(xui_widget pWidget, void* pTypeData, const void* p
 	if ( (pWidget == NULL) || (pTypeData == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	pData = (xui_dock_panel_data_t*)pTypeData;
 	__xuiDockDefaults(pData);
+	pData->pLayoutContext = pWidget->pContext->pLayoutContext;
 	__xuiDockApplyDesc(pData, (const xui_dock_panel_desc_t*)pCreateData);
 	if ( pData->pFont == NULL ) pData->pFont = xuiGetDefaultFont(xuiWidgetGetContext(pWidget));
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_OVERLAY);
 	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
@@ -4559,6 +4992,12 @@ static void __xuiDockPanelDestroy(xui_widget pWidget, void* pTypeData, void* pUs
 		for ( i = 0; i < XUI_DOCK_PANEL_TOOLTIP_TEXT_COUNT; ++i ) {
 			xrtFree(pData->arrTooltipText[i]);
 			pData->arrTooltipText[i] = NULL;
+		}
+		for ( i = 0; i < XUI_DOCK_PANEL_NODE_CAPACITY; ++i ) {
+			if ( pData->arrNodes[i].bUsed ) __xuiDockDestroyLayoutNode(pData, &pData->arrNodes[i]);
+		}
+		if ( xLayoutNodeIsValid(pData->pLayoutContext, pData->iRegionLayoutRoot) ) {
+			xLayoutNodeDestroy(pData->pLayoutContext, pData->iRegionLayoutRoot);
 		}
 		memset(pData, 0, sizeof(*pData));
 	}
@@ -4593,7 +5032,9 @@ XUI_API xui_widget_type xuiDockPanelGetType(xui_context pContext)
 	desc.iTypeDataSize = sizeof(xui_dock_panel_data_t);
 	desc.onInit = __xuiDockPanelInit;
 	desc.onDestroy = __xuiDockPanelDestroy;
-	desc.onLayoutArrange = __xuiDockPanelArrange;
+	desc.onLayoutPrepare = __xuiDockPanelPrepare;
+	desc.onLayoutChildren = __xuiDockPanelLayoutChildren;
+	desc.onLayoutComplete = __xuiDockPanelLayoutComplete;
 	desc.onCacheRender = __xuiDockCacheRender;
 	__xuiDockDefaultLayout(&layout);
 	__xuiDockDefaultCachePolicy(&policy);
@@ -4616,6 +5057,7 @@ XUI_API int xuiDockPanelCreate(xui_context pContext, xui_widget* ppWidget, const
 XUI_API int xuiDockPanelClear(xui_widget pWidget)
 {
 	xui_dock_panel_data_t* pData = __xuiDockPanelGetData(pWidget);
+	xlayout_context_t* pLayoutContext;
 	xui_font pFont;
 	xui_dock_panel_metrics_t metrics;
 	xui_dock_panel_colors_t colors;
@@ -4632,6 +5074,7 @@ XUI_API int xuiDockPanelClear(xui_widget pWidget)
 	char* arrTooltipText[XUI_DOCK_PANEL_TOOLTIP_TEXT_COUNT];
 	int i;
 	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	pLayoutContext = pData->pLayoutContext;
 	pFont = pData->pFont;
 	metrics = pData->tMetrics;
 	colors = pData->tColors;
@@ -4659,7 +5102,11 @@ XUI_API int xuiDockPanelClear(xui_widget pWidget)
 			xuiWidgetDestroy(pData->arrWindows[i].pHostWidget);
 		}
 	}
+	if ( xLayoutNodeIsValid(pData->pLayoutContext, pData->iRegionLayoutRoot) ) {
+		xLayoutNodeDestroy(pData->pLayoutContext, pData->iRegionLayoutRoot);
+	}
 	__xuiDockDefaults(pData);
+	pData->pLayoutContext = pLayoutContext;
 	pData->pFont = pFont;
 	pData->tMetrics = metrics;
 	pData->tColors = colors;
@@ -4695,7 +5142,7 @@ XUI_API int xuiDockPanelAddWindow(xui_widget pWidget, const char* sTitle, xui_wi
 	ret = xuiWidgetCreate(xuiWidgetGetContext(pWidget), &host);
 	if ( ret != XUI_OK ) return ret;
 	__xuiDockDefaultCachePolicy(&policy);
-	(void)xuiWidgetSetLayoutType(host, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(host, XUI_LAYOUT_OVERLAY);
 	(void)xuiWidgetSetFlowMode(host, XUI_FLOW_ABSOLUTE);
 	(void)xuiWidgetSetOverflow(host, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(host, 0);
@@ -4729,7 +5176,9 @@ XUI_API int xuiDockPanelAddWindow(xui_widget pWidget, const char* sTitle, xui_wi
 	(void)xuiWidgetSetEventHandler(host, XUI_EVENT_POINTER_MOVE, __xuiDockHostEvent, w);
 	(void)xuiWidgetSetEventHandler(host, XUI_EVENT_POINTER_UP, __xuiDockHostEvent, w);
 	(void)xuiWidgetSetEventHandler(host, XUI_EVENT_POINTER_CAPTURE_LOST, __xuiDockHostEvent, w);
+	(void)xuiWidgetSetEventHandler(host, XUI_EVENT_KEY_DOWN, __xuiDockHostEvent, w);
 	(void)xuiWidgetSetTooltipResolver(host, __xuiDockHostTooltipResolve, w);
+	(void)xuiWidgetSetLayoutChildrenCallback(host, __xuiDockHostLayoutChildren, w);
 	(void)xuiWidgetSetVisible(host, 0);
 	pData->iWindowCount++;
 	if ( pWindow != NULL ) *pWindow = i;
@@ -5310,30 +5759,30 @@ XUI_API int xuiDockPanelOpenOverflowMenu(xui_widget pWidget, int iPane)
 	return __xuiDockOpenOverflowMenu(pWidget, pData, iPane);
 }
 
-XUI_API int xuiDockPanelSaveState(xui_widget pWidget, xvalue* ppState)
+XUI_API int xuiDockPanelSaveState(xui_widget pWidget, xvalue** ppState)
 {
 	xui_dock_panel_data_t* pData = __xuiDockPanelGetData(pWidget);
-	xvalue pRoot;
-	xvalue pRegions;
-	xvalue pWindows;
-	xvalue pFloating;
+	xvalue* pRoot;
+	xvalue* pRegions;
+	xvalue* pWindows;
+	xvalue* pFloating;
 	int ret;
 	int i;
 	if ( (pData == NULL) || (ppState == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	*ppState = NULL;
-	pRoot = xvoCreateTable();
-	pRegions = xvoCreateArray();
-	pWindows = xvoCreateArray();
-	pFloating = xvoCreateArray();
+	pRoot = xrtValueObject();
+	pRegions = xrtValueArray();
+	pWindows = xrtValueArray();
+	pFloating = xrtValueArray();
 	if ( (pRoot == NULL) || (pRegions == NULL) || (pWindows == NULL) || (pFloating == NULL) ) {
-		if ( pRoot != NULL ) xvoUnref(pRoot);
-		if ( pRegions != NULL ) xvoUnref(pRegions);
-		if ( pWindows != NULL ) xvoUnref(pWindows);
-		if ( pFloating != NULL ) xvoUnref(pFloating);
+		if ( pRoot != NULL ) xrtValueRelease(pRoot);
+		if ( pRegions != NULL ) xrtValueRelease(pRegions);
+		if ( pWindows != NULL ) xrtValueRelease(pWindows);
+		if ( pFloating != NULL ) xrtValueRelease(pFloating);
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	ret = __xuiDockStateSetText(pRoot, "kind", "xui.dockpanel");
-	if ( ret == XUI_OK && !xvoTableSetInt(pRoot, "version", 0, 1) ) ret = XUI_ERROR_OUT_OF_MEMORY;
+	if ( ret == XUI_OK && !__xuiValueObjectSetInt(pRoot, "version", 0, 1) ) ret = XUI_ERROR_OUT_OF_MEMORY;
 	for ( i = 0; ret == XUI_OK && i < XUI_DOCK_PANEL_REGION_COUNT; i++ ) {
 		ret = __xuiDockStateAppendRegion(pData, pRegions, i);
 	}
@@ -5354,48 +5803,49 @@ XUI_API int xuiDockPanelSaveState(xui_widget pWidget, xvalue* ppState)
 		}
 	}
 	if ( ret == XUI_OK ) {
-		if ( !xvoTableSetValue(pRoot, "regions", 0, pRegions, TRUE) ) {
+		if ( !__xuiValueObjectSetValue(pRoot, "regions", 0, pRegions, true) ) {
 			ret = XUI_ERROR_OUT_OF_MEMORY;
 		} else {
 			pRegions = NULL;
 		}
 	}
 	if ( ret == XUI_OK ) {
-		if ( !xvoTableSetValue(pRoot, "windows", 0, pWindows, TRUE) ) {
+		if ( !__xuiValueObjectSetValue(pRoot, "windows", 0, pWindows, true) ) {
 			ret = XUI_ERROR_OUT_OF_MEMORY;
 		} else {
 			pWindows = NULL;
 		}
 	}
 	if ( ret == XUI_OK ) {
-		if ( !xvoTableSetValue(pRoot, "floating", 0, pFloating, TRUE) ) {
+		if ( !__xuiValueObjectSetValue(pRoot, "floating", 0, pFloating, true) ) {
 			ret = XUI_ERROR_OUT_OF_MEMORY;
 		} else {
 			pFloating = NULL;
 		}
 	}
 	if ( ret != XUI_OK ) {
-		if ( pRegions != NULL ) xvoUnref(pRegions);
-		if ( pWindows != NULL ) xvoUnref(pWindows);
-		if ( pFloating != NULL ) xvoUnref(pFloating);
-		xvoUnref(pRoot);
+		if ( pRegions != NULL ) xrtValueRelease(pRegions);
+		if ( pWindows != NULL ) xrtValueRelease(pWindows);
+		if ( pFloating != NULL ) xrtValueRelease(pFloating);
+		xrtValueRelease(pRoot);
 		return ret;
 	}
 	*ppState = pRoot;
 	return XUI_OK;
 }
 
-XUI_API int xuiDockPanelLoadState(xui_widget pWidget, xvalue pState)
+XUI_API int xuiDockPanelLoadState(xui_widget pWidget, xvalue* pState)
 {
 	xui_dock_panel_data_t* pData = __xuiDockPanelGetData(pWidget);
 	xui_dock_state_window_t arrInfo[XUI_DOCK_PANEL_WINDOW_CAPACITY];
 	int arrRegionSeen[XUI_DOCK_PANEL_REGION_COUNT];
-	xvalue pValue;
+	xvalue* pValue;
 	const char* sKind;
 	int version;
 	int ret;
 	int i;
-	if ( (pData == NULL) || (pState == NULL) || (pState->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pData == NULL) || (pState == NULL) ||
+		 (xrtValueType(pState) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 	sKind = __xuiDockStateGetText(__xuiDockStateGet(pState, "kind"));
 	if ( sKind != NULL && strcmp(sKind, "xui.dockpanel") != 0 ) return XUI_ERROR_INVALID_ARGUMENT;
 	pValue = __xuiDockStateGet(pState, "version");
@@ -5455,55 +5905,56 @@ XUI_API int xuiDockPanelLoadState(xui_widget pWidget, xvalue pState)
 	return XUI_OK;
 }
 
-XUI_API void xuiDockPanelStateFree(xvalue pState)
+XUI_API void xuiDockPanelStateFree(xvalue* pState)
 {
-	if ( pState != NULL ) xvoUnref(pState);
+	if ( pState != NULL ) xrtValueRelease(pState);
 }
 
-XUI_API int xuiDockPanelStateGetCounts(xvalue pState, int* pRegionCount, int* pWindowCount, int* pFloatingCount)
+XUI_API int xuiDockPanelStateGetCounts(xvalue* pState, int* pRegionCount, int* pWindowCount, int* pFloatingCount)
 {
-	xvalue pRegions;
-	xvalue pWindows;
-	xvalue pFloating;
-	if ( (pState == NULL) || (pState->Type != XVO_DT_TABLE) ) return XUI_ERROR_INVALID_ARGUMENT;
+	xvalue* pRegions;
+	xvalue* pWindows;
+	xvalue* pFloating;
+	if ( (pState == NULL) || (xrtValueType(pState) != XVALUE_OBJECT) ) return XUI_ERROR_INVALID_ARGUMENT;
 	pRegions = __xuiDockStateGet(pState, "regions");
 	pWindows = __xuiDockStateGet(pState, "windows");
 	pFloating = __xuiDockStateGet(pState, "floating");
-	if ( (pRegions == NULL) || (pRegions->Type != XVO_DT_ARRAY) ||
-	     (pWindows == NULL) || (pWindows->Type != XVO_DT_ARRAY) ||
-	     (pFloating == NULL) || (pFloating->Type != XVO_DT_ARRAY) ) {
+	if ( (pRegions == NULL) || (xrtValueType(pRegions) != XVALUE_ARRAY) ||
+	     (pWindows == NULL) || (xrtValueType(pWindows) != XVALUE_ARRAY) ||
+	     (pFloating == NULL) || (xrtValueType(pFloating) != XVALUE_ARRAY) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	if ( pRegionCount != NULL ) *pRegionCount = (int)xvoArrayItemCount(pRegions);
-	if ( pWindowCount != NULL ) *pWindowCount = (int)xvoArrayItemCount(pWindows);
-	if ( pFloatingCount != NULL ) *pFloatingCount = (int)xvoArrayItemCount(pFloating);
+	if ( pRegionCount != NULL ) *pRegionCount = (int)xrtValueCount(pRegions);
+	if ( pWindowCount != NULL ) *pWindowCount = (int)xrtValueCount(pWindows);
+	if ( pFloatingCount != NULL ) *pFloatingCount = (int)xrtValueCount(pFloating);
 	return XUI_OK;
 }
 
 XUI_API int xuiDockPanelSaveXSONFile(xui_widget pWidget, const char* sPath)
 {
-	xvalue pState;
+	xvalue* pState;
 	int ret;
 	if ( (sPath == NULL) || (sPath[0] == 0) ) return XUI_ERROR_INVALID_ARGUMENT;
 	ret = xuiDockPanelSaveState(pWidget, &pState);
 	if ( ret != XUI_OK ) return ret;
-	ret = xrtStringifyXSON_File((str)(void*)sPath, pState, TRUE, 0) ? XUI_OK : XUI_ERROR_RESOURCE_FAILED;
-	xvoUnref(pState);
+	ret = xrtXsonStringifyFile(sPath, pState, true) ?
+		XUI_OK : XUI_ERROR_RESOURCE_FAILED;
+	xrtValueRelease(pState);
 	return ret;
 }
 
 XUI_API int xuiDockPanelLoadXSONFile(xui_widget pWidget, const char* sPath)
 {
-	xvalue pState;
+	xvalue* pState;
 	int ret;
 	if ( (sPath == NULL) || (sPath[0] == 0) ) return XUI_ERROR_INVALID_ARGUMENT;
-	pState = xrtParseXSON_File((str)(void*)sPath);
-	if ( (pState == NULL) || (pState->Type == XVO_DT_NULL) ) {
-		if ( pState != NULL ) xvoUnref(pState);
+	pState = xrtXsonParseFile(sPath);
+	if ( (pState == NULL) || (xrtValueType(pState) == XVALUE_NULL) ) {
+		if ( pState != NULL ) xrtValueRelease(pState);
 		return XUI_ERROR_RESOURCE_FAILED;
 	}
 	ret = xuiDockPanelLoadState(pWidget, pState);
-	xvoUnref(pState);
+	xrtValueRelease(pState);
 	return ret;
 }
 

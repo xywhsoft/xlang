@@ -1,6 +1,5 @@
 param(
     [string]$Root = "",
-    [int]$MinCgenFiles = 63,
     [int]$MaxLinesPerFile = 2400,
     [int]$MaxBytesPerFile = 95000,
     [int]$LargeLineThreshold = 1200,
@@ -32,8 +31,17 @@ if ( $files.Count -eq 0 ) {
     exit 1
 }
 
-if ( $files.Count -lt $MinCgenFiles ) {
-    Add-Failure "cgen source file baseline regressed: $($files.Count) < $MinCgenFiles"
+$irRoot = @($files | Where-Object Name -eq 'xl6_ir_cgen.c')
+$irShards = @($files | Where-Object Name -Like 'xl6_ir_cgen_*.c')
+$runtimeRoot = @($files | Where-Object Name -eq 'xl6_cgen_shared_runtime.c')
+$runtimeComponents = @($files | Where-Object {
+    $_.Name -Like 'xl6_cgen_*.c' -and $_.Name -ne 'xl6_cgen_shared_runtime.c'
+})
+if ( $irRoot.Count -ne 1 -or $irShards.Count -eq 0 ) {
+    Add-Failure 'canonical XLIR emitter root/shards are missing'
+}
+if ( $runtimeRoot.Count -ne 1 -or $runtimeComponents.Count -eq 0 ) {
+    Add-Failure 'canonical generated-runtime emitter root/components are missing'
 }
 
 $records = New-Object System.Collections.Generic.List[object]
@@ -71,5 +79,5 @@ if ( $failures.Count -ne 0 ) {
 }
 
 $largest = @($records | Sort-Object Lines -Descending | Select-Object -First 1)[0]
-Write-Host "Cgen module size ok: $($files.Count) files, largest $($largest.Name) has $($largest.Lines) lines, $($largeFiles.Count) files over $LargeLineThreshold lines."
+Write-Host "Cgen module size ok: $($irShards.Count) XLIR shards, $($runtimeComponents.Count) runtime components, largest $($largest.Name) has $($largest.Lines) lines, $($largeFiles.Count) files over $LargeLineThreshold lines."
 exit 0

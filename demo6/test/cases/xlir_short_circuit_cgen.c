@@ -1,4 +1,3 @@
-#include "src/ir/xl6_hir.h"
 #include "src/ir/xl6_ir.h"
 #include "src/cgen/xl6_ir_cgen.h"
 
@@ -58,7 +57,6 @@ static int testFunctionUsesOnlyCfg(const char* text, const char* signature)
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_Output out;
@@ -68,13 +66,12 @@ int main(void)
 
     memset(&diags, 0, sizeof(diags));
     memset(&out, 0, sizeof(out));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     if ( root == NULL ) return 1;
     xl6AstAddChild(root, testShortCircuitFunction(21, "andValue", "and", "false", "true"));
     xl6AstAddChild(root, testShortCircuitFunction(22, "orValue", "or", "true", "false"));
     ok = root->childCount == 2 && root->children[0] != NULL && root->children[1] != NULL &&
-         xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+         xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags) &&
          ir.functionCount == 4 && ir.abi.finalizerFunction == 4 &&
          ir.functions[3].kind == XL6_IR_FUNCTION_MODULE_FINI &&
@@ -95,7 +92,6 @@ int main(void)
     if ( !ok ) fprintf(stderr, "XLIR short-circuit C emitter test failed: %s output=%s\n",
                        diags.count > 0 ? diags.items[0].message : "<none>", text != NULL ? text : "<null>");
     xrtFree(text);
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);

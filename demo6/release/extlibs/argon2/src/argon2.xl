@@ -26,6 +26,7 @@ extern "xargon2_recommended_memory" func __a2_rec_memory() as int
 extern "xargon2_recommended_parallelism" func __a2_rec_p() as int
 extern "xargon2_recommended_hashlen" func __a2_rec_hl() as int
 extern "xargon2_recommended_saltlen" func __a2_rec_sl() as int
+extern "xl6_xrt_last_error_text" func __a2_error() as string
 
 // ─── 变体常量 ───
 export const int ARGON2D = 0    // 数据依赖（抗 GPU，有侧信道风险）
@@ -43,6 +44,15 @@ export const int PROFILE_HIGH_MEMORY_TIME = 4
 export const int PROFILE_HIGH_MEMORY_MEMORY = 2097152
 export const int PROFILE_HIGH_MEMORY_PARALLELISM = 4
 
+
+
+func __a2_require(string result) as string
+    if result == "" then
+        throw ValueError __a2_error()
+    end
+    return result
+end
+
 // ─── 核心 API ───
 
 // hash: 计算密码哈希，返回 PHC 编码字符串
@@ -50,12 +60,12 @@ export const int PROFILE_HIGH_MEMORY_PARALLELISM = 4
 // secret: 可选密钥（即使数据库泄露也无法暴力破解）
 // ad: 可选附加数据（如用户ID，绑定哈希到特定上下文）
 export func hash(string password, string salt = "", string secret = "", string ad = "", int timeCost = 3, int memoryCost = 65536, int parallelism = 4, int hashLen = 32, int saltLen = 16, int type = ARGON2ID) as string
-    return __a2_hash(password, salt, secret, ad, timeCost, memoryCost, parallelism, hashLen, saltLen, type)
+    return __a2_require(__a2_hash(password, salt, secret, ad, timeCost, memoryCost, parallelism, hashLen, saltLen, type))
 end
 
 // hashRaw: 返回原始 hex 字符串（不含元数据）
 export func hashRaw(string password, string salt = "", string secret = "", string ad = "", int timeCost = 3, int memoryCost = 65536, int parallelism = 4, int hashLen = 32, int saltLen = 16, int type = ARGON2ID) as string
-    return __a2_hash_raw(password, salt, secret, ad, timeCost, memoryCost, parallelism, hashLen, saltLen, type)
+    return __a2_require(__a2_hash_raw(password, salt, secret, ad, timeCost, memoryCost, parallelism, hashLen, saltLen, type))
 end
 
 // verify: 验证密码是否匹配 PHC 编码字符串
@@ -145,7 +155,7 @@ end
 
 // generateSalt: 生成 CSPRNG 随机盐（hex 字符串）
 export func generateSalt(int len = 16) as string
-    return __a2_gen_salt(len)
+    return __a2_require(__a2_gen_salt(len))
 end
 
 // ─── 推荐参数 ───

@@ -1,0 +1,32 @@
+import srt
+
+
+
+func main(...) as int
+    // 一段双语字幕
+    var bilingual = [
+        {"startMs": 1000, "endMs": 3500, "lines": ["你好，世界", "Hello, world"]},
+        {"startMs": 4000, "endMs": 6000, "lines": ["第二句", "Second line"]},
+        {"startMs": 6500, "endMs": 9000, "lines": ["再见", "Goodbye"]}
+    ]
+    string doc = srt.build(bilingual)
+    println(doc)
+
+    // 时间轴整体平移 500ms 后转成 WebVTT
+    var shifted = []
+    for cue in bilingual
+        var moved = {"startMs": int(cue["startMs"]) + 500, "endMs": int(cue["endMs"]) + 500, "lines": cue["lines"]}
+        shifted.append(moved)
+    end
+    string vtt = srt.buildVtt(shifted)
+    println(vtt)
+
+    // 重新解析校验
+    var back = srt.parse(doc)
+    println("srt cues:", back.length)
+    var vback = srt.parseVtt(vtt)
+    println("vtt first start:", srt.formatTime(int(vback[0]["startMs"])))
+
+    println("srt example: PASS")
+    return 0
+end

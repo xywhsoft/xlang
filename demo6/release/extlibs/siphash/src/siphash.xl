@@ -1,5 +1,5 @@
 // siphash — SipHash-2-4 短输入哈希（MAC），Buffer/string/文件/流式。
-extern "xrtGetError" func __siphash_error() as string
+extern "xl6_xrt_last_error_text" func __siphash_error() as string
 extern "xsiphash_version" func __siphash_version() as string
 extern "xsiphash_hash64" func __siphash_hash64(point data, c_size size, point key, c_size keyLen) as int
 extern "xsiphash_hash64_str" func __siphash_hash64_str_int(string data, c_size size, point key, c_size keyLen) as int
@@ -15,7 +15,8 @@ extern "xsiphash_hash64_str_bytes" func __siphash_hash64_str_bytes_bufkey(string
 extern "xsiphash_hash128_bytes" func __siphash_hash128_bytes(point data, c_size size, point key, c_size keyLen) as point
 extern "xsiphash_hash128_str_str_bytes" func __siphash_hash128_str_bytes(string data, c_size size, string key, c_size keyLen) as point
 extern "xsiphash_hash128_str_bytes" func __siphash_hash128_str_bytes_bufkey(string data, c_size size, point key, c_size keyLen) as point
-extern "xsiphash_file64" func __siphash_file64(string path, c_ulonglong maxInput, point key, c_size keyLen) as int
+extern "xsiphash_file64" func __siphash_file64(string path, c_ulonglong maxInput, point key, c_size keyLen, var onProgress) as int
+extern "xsiphash_file_status" func __siphash_file_status() as c_int
 
 
 
@@ -124,14 +125,19 @@ end
 
 // ═══════════════ 文件哈希 ═══════════════
 
-export func hashFile64(string path, Buffer key, int maxInput = 268435456) as int
+export func hashFile64(string path, Buffer key, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as int
     __siphash_check_limit(maxInput, "maxInput")
-    int result = __siphash_file64(path, c_ulonglong(maxInput), key.data(), c_size(key.len()))
-    if result == 0 then
-        string err = __siphash_error()
-        if err != "" then
-            throw FileError err
-        end
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    int result = __siphash_file64(path, c_ulonglong(maxInput), key.data(), c_size(key.len()), progress)
+    int status = __siphash_file_status()
+    if status == -1 then
+        throw CancelledError "siphash operation cancelled"
+    elseif status != 1 then
+        throw FileError __siphash_error()
     end
     return result
 end

@@ -1,0 +1,66 @@
+import xhttp.body
+from xhttp.body import Body, BodyChunk, BodyReader
+
+
+
+func main(...) as int
+    Body body = Body.fromText("hello body")
+    assert body.length == 10
+    assert body.lengthKnown
+    assert body.replayable
+    assert body.nativeHandle() != null
+    Buffer? view = body.view()
+    if view == null then
+        throw RuntimeError "fixed HTTP body must expose a view"
+    end
+    assert view.text() == "hello body"
+
+    BodyReader reader = body.open()
+    assert reader.nativeHandle() != null
+    BodyChunk? first = reader.next(4)
+    if first == null then
+        throw RuntimeError "first HTTP body chunk is missing"
+    end
+    assert first.size == 4
+    assert first.data() != null
+    assert first.nativeHandle() != null
+    assert first.text() == "hell"
+
+    BodyChunk? second = reader.next(4)
+    if second == null then
+        throw RuntimeError "second HTTP body chunk is missing"
+    end
+    assert second.text() == "o bo"
+
+    BodyChunk? third = reader.next(4)
+    if third == null then
+        throw RuntimeError "third HTTP body chunk is missing"
+    end
+    assert third.text() == "dy"
+    assert reader.bytesRead == 10
+    assert reader.next(4) == null
+    assert reader.lastStatus == xhttp.body.BODY_EOF
+
+    Body copy = body.share()
+    assert copy.text() == "hello body"
+    Body composed = Body.fromText("{").concat(
+        Body.fromText("\"value\":42}"))
+    assert composed.text() == "{\"value\":42}"
+    Body decorated = body.prependText("[").appendText("]")
+    assert decorated.text() == "[hello body]"
+
+    Buffer binary = Buffer()
+    binary.appendByte(0)
+    binary.appendByte(255)
+    Body bytes = Body.fromBuffer(binary)
+    Buffer all = bytes.readAll(2)
+    assert all.len() == 2
+    assert all.byteAt(0) == 0 and all.byteAt(1) == 255
+
+    Body empty = Body.empty()
+    assert empty.length == 0
+    assert empty.readAll().len() == 0
+
+    println("xhttp.body package ok")
+    return 0
+end

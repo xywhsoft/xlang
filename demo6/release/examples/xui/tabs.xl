@@ -1,0 +1,41 @@
+// tabs.xl — 标签页：Tabs 控件 + 3 个子 Panel
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Tabs Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Tabs Demo", font)
+    root.addChild(title)
+
+    xui.Tabs tabs = xui.Tabs(ctx)
+    tabs.setFlex(1.0, 1.0)
+
+    xui.Panel page1 = xui.Panel(ctx)
+    xui.Label lbl1 = xui.Label(ctx, "Content of Tab One", font)
+    page1.addChild(lbl1)
+    tabs.addChild(page1)
+
+    xui.Panel page2 = xui.Panel(ctx)
+    xui.Label lbl2 = xui.Label(ctx, "Content of Tab Two", font)
+    page2.addChild(lbl2)
+    tabs.addChild(page2)
+
+    xui.Panel page3 = xui.Panel(ctx)
+    xui.Label lbl3 = xui.Label(ctx, "Content of Tab Three", font)
+    page3.addChild(lbl3)
+    tabs.addChild(page3)
+
+    root.addChild(tabs)
+
+    g_app.run(onFrame)
+    return 0
+end

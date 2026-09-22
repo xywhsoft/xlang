@@ -1,0 +1,44 @@
+import slugify
+
+
+
+func main(...) as int
+    // 基本 ASCII
+    assert slugify.slugify("Hello World") == "hello-world", "basic"
+    assert slugify.slugify("Hello  --  World") == "hello-world", "collapse separators"
+    assert slugify.slugify("  leading and trailing  ") == "leading-and-trailing", "trim"
+    assert slugify.slugify("Already-Slugged") == "already-slugged", "existing hyphens"
+
+    // 大小写与数字
+    assert slugify.slugify("Post #42: The Answer") == "post-42-the-answer", "numbers kept"
+    assert slugify.slugify("MIXED Case TEXT") == "mixed-case-text", "case fold"
+
+    // 标点剥离
+    assert slugify.slugify("It's fine!") == "its-fine", "apostrophe dropped"
+    assert slugify.slugify("foo.bar/baz") == "foo-bar-baz", "dots and slashes"
+
+    // 符号词
+    assert slugify.slugify("Tom & Jerry") == "tom-and-jerry", "ampersand"
+    assert slugify.slugify("user@example.com") == "useratexample-com", "at sign"
+
+    // Latin 变音转写
+    assert slugify.slugify("café münchen") == "cafe-munchen", "latin1 transliteration"
+    assert slugify.slugify("Čapek Žluťoučký") == "capek-zlutoucky", "latin extended"
+    assert slugify.slugify("Ærø Øland") == "aero-oland", "ae and o-slash"
+
+    // CJK 原样保留
+    assert slugify.slugify("你好 World") == "你好-world", "cjk preserved"
+    assert slugify.slugify("深入理解 类型系统") == "深入理解-类型系统", "cjk separators"
+    assert slugify.slugify("第 1 章：开始") == "第-1-章-开始", "cjk with numbers"
+
+    // 空与全符号
+    assert slugify.slugify("") == "", "empty"
+    assert slugify.slugify("!!!") == "", "symbols only"
+
+    // isAscii
+    assert slugify.isAscii("plain text"), "ascii true"
+    assert not slugify.isAscii("café"), "latin1 false"
+    assert not slugify.isAscii("你好"), "cjk false"
+
+    return 0
+end

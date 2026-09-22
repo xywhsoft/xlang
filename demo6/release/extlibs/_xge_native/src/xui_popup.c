@@ -475,7 +475,7 @@ static int __xuiPopupArrange(xui_widget pWidget, xui_popup_data_t* pData, float 
 	tScroll.fH = __xuiPopupMax(1.0f, tPanel.fH - fInset * 2.0f);
 	iRet = xuiWidgetSetRect(pData->pScrollView, xuiInternalSnapRect(tScroll));
 	if ( iRet != XUI_OK ) return iRet;
-	iRet = xuiScrollViewLayout(pData->pScrollView);
+	iRet = xuiWidgetArrange(pData->pScrollView, xuiInternalSnapRect(tScroll));
 	if ( iRet != XUI_OK ) return iRet;
 	(void)xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
 	return xuiWidgetInvalidate(pData->pPanel, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
@@ -484,7 +484,7 @@ static int __xuiPopupArrange(xui_widget pWidget, xui_popup_data_t* pData, float 
 static int __xuiPopupApplyPlacementData(xui_widget pWidget, xui_popup_data_t* pData)
 {
 	xui_context pContext;
-	xui_vec2_t tWindow;
+	xui_size_t tWindow;
 	xui_rect_t tAnchor;
 	xui_rect_t tRect;
 	xui_rect_t arrCandidate[4];
@@ -507,15 +507,15 @@ static int __xuiPopupApplyPlacementData(xui_widget pWidget, xui_popup_data_t* pD
 	}
 	pContext = xuiWidgetGetContext(pWidget);
 	tWindow = xuiGetViewportSize(pContext);
-	if ( tWindow.fX <= 0.0f ) tWindow.fX = 1.0f;
-	if ( tWindow.fY <= 0.0f ) tWindow.fY = 1.0f;
+	if ( tWindow.iW <= 0 ) tWindow.iW = 1;
+	if ( tWindow.iH <= 0 ) tWindow.iH = 1;
 	tAnchor = __xuiPopupResolveAnchor(pWidget, pData);
 	__xuiPopupResolveContentSize(pWidget, pData, tAnchor, &fContentW, &fContentH);
 	pData->fContentWidth = fContentW;
 	pData->fContentHeight = fContentH;
 	iRet = xuiScrollViewSetContentSize(pData->pScrollView, fContentW, fContentH);
 	if ( iRet != XUI_OK ) return iRet;
-	__xuiPopupResolveOuterSize(pData, tWindow.fX, tWindow.fY, fContentW, fContentH, &fOuterW, &fOuterH);
+	__xuiPopupResolveOuterSize(pData, (float)tWindow.iW, (float)tWindow.iH, fContentW, fContentH, &fOuterW, &fOuterH);
 	fMargin = __xuiPopupMax(0.0f, pData->fMargin);
 	arrDirection[0] = pData->iDirection;
 	arrDirection[1] = __xuiPopupFlipVertical(pData->iDirection);
@@ -530,21 +530,21 @@ static int __xuiPopupApplyPlacementData(xui_widget pWidget, xui_popup_data_t* pD
 		arrCandidate[i] = __xuiPopupRectFrom(tPoint, fOuterW, fOuterH, pData->fGap, arrDirection[i]);
 		arrCandidate[i].fX += pData->fOffsetX;
 		arrCandidate[i].fY += pData->fOffsetY;
-		if ( __xuiPopupRectFits(arrCandidate[i], tWindow.fX, tWindow.fY, fMargin) ) {
+		if ( __xuiPopupRectFits(arrCandidate[i], (float)tWindow.iW, (float)tWindow.iH, fMargin) ) {
 			break;
 		}
 	}
 	if ( i >= 4 ) {
 		tRect = arrCandidate[0];
-		tRect.fX = __xuiPopupClamp(tRect.fX, fMargin, tWindow.fX - fOuterW - fMargin);
-		tRect.fY = __xuiPopupClamp(tRect.fY, fMargin, tWindow.fY - fOuterH - fMargin);
+		tRect.fX = __xuiPopupClamp(tRect.fX, fMargin, (float)tWindow.iW - fOuterW - fMargin);
+		tRect.fY = __xuiPopupClamp(tRect.fY, fMargin, (float)tWindow.iH - fOuterH - fMargin);
 	} else {
 		tRect = arrCandidate[i];
 	}
 	tRect.fW = fOuterW;
 	tRect.fH = fOuterH;
 	pData->tPopupRect = xuiInternalSnapRect(tRect);
-	return __xuiPopupArrange(pWidget, pData, tWindow.fX, tWindow.fY);
+	return __xuiPopupArrange(pWidget, pData, (float)tWindow.iW, (float)tWindow.iH);
 }
 
 static xui_widget __xuiPopupFindFirstFocusable(xui_widget pWidget)

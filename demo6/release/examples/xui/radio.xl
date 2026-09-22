@@ -1,0 +1,34 @@
+// radio.xl — 单选按钮：3 个 Radio 选项，默认选中第二个
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Radio Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Radio Demo", font)
+    root.addChild(title)
+
+    xui.Label prompt = xui.Label(ctx, "Pick your favorite language:", font)
+    root.addChild(prompt)
+
+    xui.Radio radioA = xui.Radio(ctx, "XLang", font)
+    root.addChild(radioA)
+
+    xui.Radio radioB = xui.Radio(ctx, "C / C++", font)
+    radioB.setChecked(1)
+    root.addChild(radioB)
+
+    xui.Radio radioC = xui.Radio(ctx, "Python", font)
+    root.addChild(radioC)
+
+    g_app.run(onFrame)
+    return 0
+end

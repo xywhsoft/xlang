@@ -1,3 +1,0 @@
-func broken()
-	await_only
-end

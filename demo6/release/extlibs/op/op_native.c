@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "xrt.h"
 #include "op_dxgi_defs.h"
 
 /* Manual Toolhelp32 declarations (TCC has no tlhelp32.h) */
@@ -28,6 +29,11 @@ typedef struct tagPROCESSENTRY32 {
     char  szExeFile[260];
 } PROCESSENTRY32;
 
+/*
+ * Toolhelp 的 64 位结构必须与 Win32 ABI 完全一致。
+ * 缺少 dwSize 时 Process32First/Module32First 可能直接写越界，
+ * 因此不自行猜测窄化结构，也不把系统 PID 当作可靠测试对象。
+ */
 typedef struct tagMODULEENTRY32 {
     DWORD   dwSize;
     DWORD   th32ModuleID;
@@ -104,7 +110,11 @@ static void op_init_user32(void) {
         p_SendInput = (PFN_SendInput)GetProcAddress(u32, "SendInput");
     }
 }
-extern void xrtSetError(const void *msg, int bFree);
+static void opSetError(const char* sMessage)
+{
+    xrtSetErrorInfo(XERR_STATE, "xlang.extlib.op", 0,
+        sMessage != NULL ? sMessage : "op error");
+}
 /* Context definition (needed early for DXGI/hook capture) */
 typedef struct op_context {
     HWND    bind_hwnd;
@@ -179,7 +189,7 @@ static int op_dxgi_init(void) {
 
 static int op_dxgi_capture(op_context *ctx) {
     if (!op_dxgi_init()) {
-        xrtSetError("op: DXGI Desktop Duplication init failed", 0);
+        opSetError("op: DXGI Desktop Duplication init failed");
         return 0;
     }
 
@@ -189,7 +199,7 @@ static int op_dxgi_capture(op_context *ctx) {
     if (FAILED(hr) || !desktop_res) {
         /* timeout or no new frame - try to use last frame */
         if (ctx->frame_buf && ctx->frame_w > 0) return 1;
-        xrtSetError("op: DXGI AcquireNextFrame failed", 0);
+        opSetError("op: DXGI AcquireNextFrame failed");
         return 0;
     }
 
@@ -304,14 +314,14 @@ static int op_hook_inject(op_context *ctx, const char *mode) {
 
     /* Check DLL exists */
     if (GetFileAttributesA(g_hook.dll_path) == INVALID_FILE_ATTRIBUTES) {
-        xrtSetError("op: hook DLL not found", 0);
+        opSetError("op: hook DLL not found");
         return 0;
     }
 
     /* Get target PID from hwnd */
     DWORD pid = 0;
     GetWindowThreadProcessId(ctx->bind_hwnd, &pid);
-    if (!pid) { xrtSetError("op: cannot get target PID", 0); return 0; }
+    if (!pid) { opSetError("op: cannot get target PID"); return 0; }
     g_hook.pid = pid;
 
     /* Create shared memory */
@@ -320,18 +330,18 @@ static int op_hook_inject(op_context *ctx, const char *mode) {
     DWORD map_size = 4 * 1024 * 1024;
     g_hook.map_handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL,
                                            PAGE_READWRITE, 0, map_size, g_hook.map_name);
-    if (!g_hook.map_handle) { xrtSetError("op: CreateFileMapping failed", 0); return 0; }
+    if (!g_hook.map_handle) { opSetError("op: CreateFileMapping failed"); return 0; }
     g_hook.map_ptr = (BYTE*)MapViewOfFile(g_hook.map_handle, FILE_MAP_ALL_ACCESS, 0, 0, map_size);
-    if (!g_hook.map_ptr) { xrtSetError("op: MapViewOfFile failed", 0); return 0; }
+    if (!g_hook.map_ptr) { opSetError("op: MapViewOfFile failed"); return 0; }
     memset(g_hook.map_ptr, 0, map_size);
 
     /* Inject DLL via CreateRemoteThread + LoadLibraryA */
     HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (!hProc) { xrtSetError("op: OpenProcess failed", 0); return 0; }
+    if (!hProc) { opSetError("op: OpenProcess failed"); return 0; }
 
     void *remote_mem = VirtualAllocEx(hProc, NULL, strlen(g_hook.dll_path) + 1,
                                       MEM_COMMIT, PAGE_READWRITE);
-    if (!remote_mem) { CloseHandle(hProc); xrtSetError("op: VirtualAllocEx failed", 0); return 0; }
+    if (!remote_mem) { CloseHandle(hProc); opSetError("op: VirtualAllocEx failed"); return 0; }
 
     WriteProcessMemory(hProc, remote_mem, g_hook.dll_path, strlen(g_hook.dll_path) + 1, NULL);
 
@@ -342,7 +352,7 @@ static int op_hook_inject(op_context *ctx, const char *mode) {
                                               remote_mem, 0, NULL);
     CloseHandle(hProc);
 
-    if (!g_hook.remote_thread) { xrtSetError("op: CreateRemoteThread failed", 0); return 0; }
+    if (!g_hook.remote_thread) { opSetError("op: CreateRemoteThread failed"); return 0; }
 
     /* Wait for injection to complete */
     WaitForSingleObject(g_hook.remote_thread, 5000);
@@ -355,7 +365,7 @@ static int op_hook_inject(op_context *ctx, const char *mode) {
 
 static int op_hook_capture(op_context *ctx) {
     if (!g_hook.injected || !g_hook.map_ptr) {
-        xrtSetError("op: hook not injected", 0);
+        opSetError("op: hook not injected");
         return 0;
     }
 
@@ -363,7 +373,7 @@ static int op_hook_capture(op_context *ctx) {
     if (hdr->magic != OP_HOOK_MAGIC) {
         /* hook not ready yet */
         if (ctx->frame_buf && ctx->frame_w > 0) return 1; /* use last frame */
-        xrtSetError("op: hook not ready", 0);
+        opSetError("op: hook not ready");
         return 0;
     }
 
@@ -404,7 +414,7 @@ static char op_buf[65536];
 
 void *xop_create(void) {
     op_context *ctx = (op_context *)calloc(1, sizeof(op_context));
-    if (!ctx) { xrtSetError("op: out of memory", 0); return NULL; }
+    if (!ctx) { opSetError("op: out of memory"); return NULL; }
     strcpy(ctx->display_mode, "normal");
     strcpy(ctx->mouse_mode, "normal");
     strcpy(ctx->keypad_mode, "normal");
@@ -431,8 +441,8 @@ void xop_destroy(void *ptr) {
 long long xop_bind_window(void *ptr, long long hwnd, const char *display,
                           const char *mouse, const char *keypad, long long mode) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
-    if (!IsWindow((HWND)(intptr_t)hwnd)) { xrtSetError("op: invalid hwnd", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
+    if (!IsWindow((HWND)(intptr_t)hwnd)) { opSetError("op: invalid hwnd"); return 0; }
 
     ctx->bind_hwnd = (HWND)(intptr_t)hwnd;
     ctx->bound = 1;
@@ -451,7 +461,7 @@ long long xop_bind_window(void *ptr, long long hwnd, const char *display,
 
 long long xop_unbind(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     if (ctx->mem_dc) {
         if (ctx->old_bmp) SelectObject(ctx->mem_dc, ctx->old_bmp);
         DeleteDC(ctx->mem_dc);
@@ -510,7 +520,7 @@ static int op_ensure_frame(op_context *ctx, int w, int h) {
 
 static int op_capture_frame(op_context *ctx) {
     if (!ctx->bound || !ctx->bind_hwnd) {
-        xrtSetError("op: not bound", 0);
+        opSetError("op: not bound");
         return 0;
     }
 
@@ -533,9 +543,9 @@ static int op_capture_frame(op_context *ctx) {
     GetClientRect(ctx->bind_hwnd, &rc);
     int w = rc.right - rc.left;
     int h = rc.bottom - rc.top;
-    if (w <= 0 || h <= 0) { xrtSetError("op: window has zero size", 0); return 0; }
+    if (w <= 0 || h <= 0) { opSetError("op: window has zero size"); return 0; }
 
-    if (!op_ensure_frame(ctx, w, h)) { xrtSetError("op: frame alloc failed", 0); return 0; }
+    if (!op_ensure_frame(ctx, w, h)) { opSetError("op: frame alloc failed"); return 0; }
 
     if (strcmp(ctx->display_mode, "gdi") == 0) {
         /* PrintWindow - works for occluded/minimized windows */
@@ -586,10 +596,10 @@ static int op_capture_frame(op_context *ctx) {
 
 const char *xop_get_color(void *ptr, long long x, long long y) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
     if (!op_capture_frame(ctx)) return "";
     if (x < 0 || x >= ctx->frame_w || y < 0 || y >= ctx->frame_h) {
-        xrtSetError("op: coordinates out of range", 0);
+        opSetError("op: coordinates out of range");
         return "";
     }
     int idx = ((int)y * ctx->frame_w + (int)x) * 4;
@@ -603,7 +613,7 @@ const char *xop_get_color(void *ptr, long long x, long long y) {
 const char *xop_get_colors(void *ptr, long long x1, long long y1,
                            long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     int pos = 0;
@@ -656,24 +666,24 @@ static int op_save_bmp(const char *path, BYTE *buf, int w, int h) {
 long long xop_capture(void *ptr, long long x1, long long y1,
                       long long x2, long long y2, const char *file) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
-    if (!file || !*file) { xrtSetError("op: empty file path", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
+    if (!file || !*file) { opSetError("op: empty file path"); return 0; }
     if (!op_capture_frame(ctx)) return 0;
 
     int w = (int)(x2 - x1);
     int h = (int)(y2 - y1);
-    if (w <= 0 || h <= 0) { xrtSetError("op: invalid capture region", 0); return 0; }
+    if (w <= 0 || h <= 0) { opSetError("op: invalid capture region"); return 0; }
 
     /* clip to frame */
     if (x1 < 0) x1 = 0;
     if (y1 < 0) y1 = 0;
     if (x1 + w > ctx->frame_w) w = ctx->frame_w - (int)x1;
     if (y1 + h > ctx->frame_h) h = ctx->frame_h - (int)y1;
-    if (w <= 0 || h <= 0) { xrtSetError("op: capture region out of bounds", 0); return 0; }
+    if (w <= 0 || h <= 0) { opSetError("op: capture region out of bounds"); return 0; }
 
     /* copy sub-region */
     BYTE *sub = (BYTE *)malloc(w * h * 4);
-    if (!sub) { xrtSetError("op: out of memory", 0); return 0; }
+    if (!sub) { opSetError("op: out of memory"); return 0; }
     int row;
     for (row = 0; row < h; row++) {
         memcpy(sub + row * w * 4,
@@ -683,13 +693,13 @@ long long xop_capture(void *ptr, long long x1, long long y1,
 
     int ok = op_save_bmp(file, sub, w, h);
     free(sub);
-    if (!ok) xrtSetError("op: failed to write bmp file", 0);
+    if (!ok) opSetError("op: failed to write bmp file");
     return ok;
 }
 
 const char *xop_get_frame_info(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return "0x0"; }
+    if (!ctx) { opSetError("op: null context"); return "0x0"; }
     if (!op_capture_frame(ctx)) return "0x0";
     snprintf(op_buf, sizeof(op_buf), "%dx%d", ctx->frame_w, ctx->frame_h);
     return op_buf;
@@ -783,13 +793,13 @@ const char *xop_find_color(void *ptr, long long x1, long long y1,
                            long long x2, long long y2,
                            const char *color, double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!color || !*color) { xrtSetError("op: empty color", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!color || !*color) { opSetError("op: empty color"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) { xrtSetError("op: invalid color format", 0); return ""; }
+    if (ncolors == 0) { opSetError("op: invalid color format"); return ""; }
 
     int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
     if (sx1 < 0) sx1 = 0;
@@ -825,13 +835,13 @@ const char *xop_find_color_ex(void *ptr, long long x1, long long y1,
                               long long x2, long long y2,
                               const char *color, double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!color || !*color) { xrtSetError("op: empty color", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!color || !*color) { opSetError("op: empty color"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) { xrtSetError("op: invalid color format", 0); return ""; }
+    if (ncolors == 0) { opSetError("op: invalid color format"); return ""; }
 
     int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
     if (sx1 < 0) sx1 = 0;
@@ -909,18 +919,18 @@ const char *xop_find_multi_color(void *ptr, long long x1, long long y1,
                                  const char *first_color, const char *offset_color,
                                  double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!first_color || !*first_color) { xrtSetError("op: empty first_color", 0); return ""; }
-    if (!offset_color || !*offset_color) { xrtSetError("op: empty offset_color", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!first_color || !*first_color) { opSetError("op: empty first_color"); return ""; }
+    if (!offset_color || !*offset_color) { opSetError("op: empty offset_color"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     op_color_t first_colors[OP_MAX_COLORS];
     int nfirst = op_parse_colors(first_color, first_colors, OP_MAX_COLORS);
-    if (nfirst == 0) { xrtSetError("op: invalid first_color", 0); return ""; }
+    if (nfirst == 0) { opSetError("op: invalid first_color"); return ""; }
 
     op_offset_point_t offsets[OP_MAX_OFFSETS];
     int noffsets = op_parse_offsets(offset_color, offsets, OP_MAX_OFFSETS);
-    if (noffsets == 0) { xrtSetError("op: invalid offset_color", 0); return ""; }
+    if (noffsets == 0) { opSetError("op: invalid offset_color"); return ""; }
 
     int sx1 = (int)x1, sy1 = (int)y1, sx2 = (int)x2, sy2 = (int)y2;
     if (sx1 < 0) sx1 = 0;
@@ -1063,12 +1073,12 @@ const char *xop_find_pic(void *ptr, long long x1, long long y1,
                          const char *pic_file, const char *delta_color,
                          double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!pic_file || !*pic_file) { xrtSetError("op: empty pic_file", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     op_bitmap_t tmpl;
-    if (!op_load_bmp(pic_file, &tmpl)) { xrtSetError("op: failed to load bmp", 0); return ""; }
+    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return ""; }
 
     /* parse delta color "RRGGBB" as tolerance */
     int dr = 0, dg = 0, db = 0;
@@ -1117,12 +1127,12 @@ const char *xop_find_pic_ex(void *ptr, long long x1, long long y1,
                             const char *pic_file, const char *delta_color,
                             double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!pic_file || !*pic_file) { xrtSetError("op: empty pic_file", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     op_bitmap_t tmpl;
-    if (!op_load_bmp(pic_file, &tmpl)) { xrtSetError("op: failed to load bmp", 0); return ""; }
+    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return ""; }
 
     int dr = 0, dg = 0, db = 0;
     if (delta_color && strlen(delta_color) >= 6) {
@@ -1218,14 +1228,14 @@ static void op_mouse_send(op_context *ctx, DWORD flags, int x, int y, DWORD data
 
 long long xop_move_to(void *ptr, long long x, long long y) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_MOVE, (int)x, (int)y, 0);
     return 1;
 }
 
 long long xop_left_click(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
     op_mouse_send(ctx, MOUSEEVENTF_LEFTUP, 0, 0, 0);
     return 1;
@@ -1233,7 +1243,7 @@ long long xop_left_click(void *ptr) {
 
 long long xop_right_click(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
     op_mouse_send(ctx, MOUSEEVENTF_RIGHTUP, 0, 0, 0);
     return 1;
@@ -1241,7 +1251,7 @@ long long xop_right_click(void *ptr) {
 
 long long xop_middle_click(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0);
     op_mouse_send(ctx, MOUSEEVENTF_MIDDLEUP, 0, 0, 0);
     return 1;
@@ -1249,42 +1259,42 @@ long long xop_middle_click(void *ptr) {
 
 long long xop_left_down(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
     return 1;
 }
 
 long long xop_left_up(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_LEFTUP, 0, 0, 0);
     return 1;
 }
 
 long long xop_right_down(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_RIGHTDOWN, 0, 0, 0);
     return 1;
 }
 
 long long xop_right_up(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_RIGHTUP, 0, 0, 0);
     return 1;
 }
 
 long long xop_wheel_up(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_WHEEL, 0, 0, 120);
     return 1;
 }
 
 long long xop_wheel_down(void *ptr) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_WHEEL, 0, 0, (DWORD)(-120));
     return 1;
 }
@@ -1292,7 +1302,7 @@ long long xop_wheel_down(void *ptr) {
 long long xop_drag_to(void *ptr, long long x1, long long y1,
                       long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_mouse_send(ctx, MOUSEEVENTF_MOVE, (int)x1, (int)y1, 0);
     op_mouse_send(ctx, MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
     op_mouse_send(ctx, MOUSEEVENTF_MOVE, (int)x2, (int)y2, 0);
@@ -1306,7 +1316,7 @@ long long xop_drag_to(void *ptr, long long x1, long long y1,
 
 long long xop_key_press(void *ptr, long long vk) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd) {
         PostMessage(ctx->bind_hwnd, WM_KEYDOWN, (WPARAM)vk, 0);
         PostMessage(ctx->bind_hwnd, WM_KEYUP, (WPARAM)vk, 0);
@@ -1319,7 +1329,7 @@ long long xop_key_press(void *ptr, long long vk) {
 
 long long xop_key_down(void *ptr, long long vk) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd) {
         PostMessage(ctx->bind_hwnd, WM_KEYDOWN, (WPARAM)vk, 0);
     } else {
@@ -1330,7 +1340,7 @@ long long xop_key_down(void *ptr, long long vk) {
 
 long long xop_key_up(void *ptr, long long vk) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd) {
         PostMessage(ctx->bind_hwnd, WM_KEYUP, (WPARAM)vk, 0);
     } else {
@@ -1341,7 +1351,7 @@ long long xop_key_up(void *ptr, long long vk) {
 
 long long xop_key_press_str(void *ptr, const char *str, long long delay) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     if (!str) return 0;
     op_init_user32();
     int ms = (delay > 0) ? (int)delay : 50;
@@ -1369,7 +1379,7 @@ long long xop_key_press_str(void *ptr, const char *str, long long delay) {
 
 long long xop_key_char(void *ptr, long long char_code) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     op_init_user32();
     if (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd) {
         PostMessage(ctx->bind_hwnd, WM_CHAR, (WPARAM)char_code, 0);
@@ -1616,13 +1626,13 @@ const char *xop_find_color_block(void *ptr, long long x1, long long y1,
                                  const char *color, double sim,
                                  long long width, long long height) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!color || !*color) { xrtSetError("op: empty color", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!color || !*color) { opSetError("op: empty color"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     op_color_t colors[OP_MAX_COLORS];
     int ncolors = op_parse_colors(color, colors, OP_MAX_COLORS);
-    if (ncolors == 0) { xrtSetError("op: invalid color format", 0); return ""; }
+    if (ncolors == 0) { opSetError("op: invalid color format"); return ""; }
 
     int bw = (int)width, bh = (int)height;
     if (bw < 1) bw = 1;
@@ -1662,8 +1672,8 @@ long long xop_get_color_num(void *ptr, long long x1, long long y1,
                             long long x2, long long y2,
                             const char *color, double sim) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
-    if (!color || !*color) { xrtSetError("op: empty color", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
+    if (!color || !*color) { opSetError("op: empty color"); return 0; }
     if (!op_capture_frame(ctx)) return 0;
 
     op_color_t colors[OP_MAX_COLORS];
@@ -1701,8 +1711,8 @@ const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
                            const char *pic_files, const char *delta_color,
                            double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
-    if (!pic_files || !*pic_files) { xrtSetError("op: empty pic_files", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
+    if (!pic_files || !*pic_files) { opSetError("op: empty pic_files"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     int dr = 0, dg = 0, db = 0;
@@ -1765,12 +1775,12 @@ const char *xop_find_pic_n(void *ptr, long long x1, long long y1,
 const char *xop_capture_to_mem(void *ptr, long long x1, long long y1,
                                long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     int w = (int)(x2 - x1);
     int h = (int)(y2 - y1);
-    if (w <= 0 || h <= 0) { xrtSetError("op: invalid region", 0); return ""; }
+    if (w <= 0 || h <= 0) { opSetError("op: invalid region"); return ""; }
     if (x1 < 0) x1 = 0;
     if (y1 < 0) y1 = 0;
     if (x1 + w > ctx->frame_w) w = ctx->frame_w - (int)x1;
@@ -1805,12 +1815,12 @@ double xop_image_compare(void *ptr, long long x1, long long y1,
                          long long x2, long long y2,
                          const char *pic_file, double sim) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0.0; }
-    if (!pic_file || !*pic_file) { xrtSetError("op: empty pic_file", 0); return 0.0; }
+    if (!ctx) { opSetError("op: null context"); return 0.0; }
+    if (!pic_file || !*pic_file) { opSetError("op: empty pic_file"); return 0.0; }
     if (!op_capture_frame(ctx)) return 0.0;
 
     op_bitmap_t tmpl;
-    if (!op_load_bmp(pic_file, &tmpl)) { xrtSetError("op: failed to load bmp", 0); return 0.0; }
+    if (!op_load_bmp(pic_file, &tmpl)) { opSetError("op: failed to load bmp"); return 0.0; }
 
     int w = (int)(x2 - x1);
     int h = (int)(y2 - y1);
@@ -1840,7 +1850,7 @@ double xop_image_compare(void *ptr, long long x1, long long y1,
 const char *xop_image_hash(void *ptr, long long x1, long long y1,
                            long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return ""; }
+    if (!ctx) { opSetError("op: null context"); return ""; }
     if (!op_capture_frame(ctx)) return "";
 
     int w = (int)(x2 - x1);
@@ -1882,7 +1892,7 @@ const char *xop_image_hash(void *ptr, long long x1, long long y1,
 long long xop_move_to_smooth(void *ptr, long long x, long long y,
                              long long steps, long long delay) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
     int n = (steps > 0) ? (int)steps : 10;
     int ms = (delay > 0) ? (int)delay : 10;
 
@@ -1908,8 +1918,8 @@ long long xop_move_to_smooth(void *ptr, long long x, long long y,
 
 long long xop_drag_path(void *ptr, const char *points, long long delay) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
-    if (!points || !*points) { xrtSetError("op: empty points", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
+    if (!points || !*points) { opSetError("op: empty points"); return 0; }
 
     int ms = (delay > 0) ? (int)delay : 20;
     char tmp[4096];
@@ -1926,7 +1936,7 @@ long long xop_drag_path(void *ptr, const char *points, long long delay) {
         coords[ncoords++] = atoi(p);
         p = sep ? sep + 1 : NULL;
     }
-    if (ncoords < 4) { xrtSetError("op: need at least 2 points", 0); return 0; }
+    if (ncoords < 4) { opSetError("op: need at least 2 points"); return 0; }
     ncoords &= ~1; /* make even */
 
     /* move to first point and press */
@@ -1985,8 +1995,8 @@ static int op_parse_vk(const char *name) {
 
 long long xop_key_combo(void *ptr, const char *combo) {
     op_context *ctx = (op_context *)ptr;
-    if (!ctx) { xrtSetError("op: null context", 0); return 0; }
-    if (!combo || !*combo) { xrtSetError("op: empty combo", 0); return 0; }
+    if (!ctx) { opSetError("op: null context"); return 0; }
+    if (!combo || !*combo) { opSetError("op: empty combo"); return 0; }
 
     char tmp[256];
     strncpy(tmp, combo, sizeof(tmp) - 1);
@@ -2006,7 +2016,7 @@ long long xop_key_combo(void *ptr, const char *combo) {
         if (vk) vks[nvk++] = vk;
         p = sep ? sep + 1 : NULL;
     }
-    if (nvk == 0) { xrtSetError("op: no valid keys in combo", 0); return 0; }
+    if (nvk == 0) { opSetError("op: no valid keys in combo"); return 0; }
 
     int bg = (strcmp(ctx->keypad_mode, "windows") == 0 && ctx->bind_hwnd);
     int i;
@@ -2035,7 +2045,7 @@ static HANDLE op_open_proc(long long pid) {
 
 long long xop_read_int(long long pid, long long addr) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return 0; }
+    if (!h) { opSetError("op: cannot open process"); return 0; }
     int val = 0;
     SIZE_T rd = 0;
     ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, &val, sizeof(val), &rd);
@@ -2045,7 +2055,7 @@ long long xop_read_int(long long pid, long long addr) {
 
 double xop_read_float(long long pid, long long addr) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return 0.0; }
+    if (!h) { opSetError("op: cannot open process"); return 0.0; }
     float val = 0.0f;
     SIZE_T rd = 0;
     ReadProcessMemory(h, (LPCVOID)(intptr_t)addr, &val, sizeof(val), &rd);
@@ -2055,7 +2065,7 @@ double xop_read_float(long long pid, long long addr) {
 
 const char *xop_read_string(long long pid, long long addr, long long len) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return ""; }
+    if (!h) { opSetError("op: cannot open process"); return ""; }
     int n = (len > 0 && len < (long long)sizeof(op_buf) - 1) ? (int)len : 256;
     SIZE_T rd = 0;
     memset(op_buf, 0, n + 1);
@@ -2067,7 +2077,7 @@ const char *xop_read_string(long long pid, long long addr, long long len) {
 
 long long xop_write_int(long long pid, long long addr, long long value) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return 0; }
+    if (!h) { opSetError("op: cannot open process"); return 0; }
     int val = (int)value;
     SIZE_T wr = 0;
     BOOL ok = WriteProcessMemory(h, (LPVOID)(intptr_t)addr, &val, sizeof(val), &wr);
@@ -2077,7 +2087,7 @@ long long xop_write_int(long long pid, long long addr, long long value) {
 
 long long xop_write_float(long long pid, long long addr, double value) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return 0; }
+    if (!h) { opSetError("op: cannot open process"); return 0; }
     float val = (float)value;
     SIZE_T wr = 0;
     BOOL ok = WriteProcessMemory(h, (LPVOID)(intptr_t)addr, &val, sizeof(val), &wr);
@@ -2087,7 +2097,7 @@ long long xop_write_float(long long pid, long long addr, double value) {
 
 long long xop_write_string(long long pid, long long addr, const char *value) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return 0; }
+    if (!h) { opSetError("op: cannot open process"); return 0; }
     if (!value) value = "";
     SIZE_T wr = 0;
     BOOL ok = WriteProcessMemory(h, (LPVOID)(intptr_t)addr, value, strlen(value) + 1, &wr);
@@ -2098,7 +2108,7 @@ long long xop_write_string(long long pid, long long addr, const char *value) {
 const char *xop_find_memory(long long pid, long long start_addr,
                             long long end_addr, const char *pattern) {
     HANDLE h = op_open_proc(pid);
-    if (!h) { xrtSetError("op: cannot open process", 0); return ""; }
+    if (!h) { opSetError("op: cannot open process"); return ""; }
     if (!pattern || !*pattern) { CloseHandle(h); return ""; }
 
     /* parse hex pattern "AABB CC DD" (spaces = wildcards) */
@@ -2148,10 +2158,10 @@ const char *xop_find_memory(long long pid, long long start_addr,
 const char *xop_enum_process(const char *filter) {
     op_init_toolhelp();
     if (!p_CreateToolhelp32Snapshot || !p_Process32First || !p_Process32Next) {
-        xrtSetError("op: toolhelp not available", 0); return "";
+        opSetError("op: toolhelp not available"); return "";
     }
     HANDLE snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snap == INVALID_HANDLE_VALUE) { xrtSetError("op: snapshot failed", 0); return ""; }
+    if (snap == INVALID_HANDLE_VALUE) { opSetError("op: snapshot failed"); return ""; }
 
     PROCESSENTRY32 pe;
     memset(&pe, 0, sizeof(pe));
@@ -2175,10 +2185,10 @@ const char *xop_enum_process(const char *filter) {
 const char *xop_get_process_modules(long long pid) {
     op_init_toolhelp();
     if (!p_CreateToolhelp32Snapshot || !p_Module32First || !p_Module32Next) {
-        xrtSetError("op: toolhelp not available", 0); return "";
+        opSetError("op: toolhelp not available"); return "";
     }
     HANDLE snap = p_CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, (DWORD)pid);
-    if (snap == INVALID_HANDLE_VALUE) { xrtSetError("op: module snapshot failed", 0); return ""; }
+    if (snap == INVALID_HANDLE_VALUE) { opSetError("op: module snapshot failed"); return ""; }
 
     MODULEENTRY32 me;
     memset(&me, 0, sizeof(me));
@@ -2214,7 +2224,7 @@ long long xop_random_int(long long min, long long max) {
 
 long long xop_set_clipboard(const char *text) {
     if (!text) text = "";
-    if (!OpenClipboard(NULL)) { xrtSetError("op: cannot open clipboard", 0); return 0; }
+    if (!OpenClipboard(NULL)) { opSetError("op: cannot open clipboard"); return 0; }
     EmptyClipboard();
     int len = (int)strlen(text) + 1;
     HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, len);
@@ -2228,7 +2238,7 @@ long long xop_set_clipboard(const char *text) {
 }
 
 const char *xop_get_clipboard(void) {
-    if (!OpenClipboard(NULL)) { xrtSetError("op: cannot open clipboard", 0); return ""; }
+    if (!OpenClipboard(NULL)) { opSetError("op: cannot open clipboard"); return ""; }
     HANDLE hg = GetClipboardData(CF_TEXT);
     if (!hg) { CloseClipboard(); op_buf[0] = '\0'; return op_buf; }
     char *src = (char *)GlobalLock(hg);

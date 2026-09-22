@@ -1,5 +1,5 @@
 // murmur3 — MurmurHash3 高性能非加密哈希（32/128 位），Buffer/string/文件/流式。
-extern "xrtGetError" func __murmur3_error() as string
+extern "xl6_xrt_last_error_text" func __murmur3_error() as string
 extern "xmurmur3_version" func __murmur3_version() as string
 extern "xmurmur3_hash32" func __murmur3_hash32(point data, c_size size, c_uint seed) as int
 extern "xmurmur3_hash32_str" func __murmur3_hash32_str_int(string data, c_size size, c_uint seed) as int
@@ -11,8 +11,9 @@ extern "xmurmur3_hash32_bytes" func __murmur3_hash32_bytes(point data, c_size si
 extern "xmurmur3_hash32_str_bytes" func __murmur3_hash32_str_bytes(string data, c_size size, c_uint seed) as point
 extern "xmurmur3_hash128_bytes" func __murmur3_hash128_bytes(point data, c_size size, c_uint seed) as point
 extern "xmurmur3_hash128_str_bytes" func __murmur3_hash128_str_bytes(string data, c_size size, c_uint seed) as point
-extern "xmurmur3_file32" func __murmur3_file32(string path, c_ulonglong maxInput, c_uint seed) as int
-extern "xmurmur3_file128_hex" func __murmur3_file128_hex(string path, c_ulonglong maxInput, c_uint seed) as string
+extern "xmurmur3_file32" func __murmur3_file32(string path, c_ulonglong maxInput, c_uint seed, var onProgress) as int
+extern "xmurmur3_file128_hex" func __murmur3_file128_hex(string path, c_ulonglong maxInput, c_uint seed, var onProgress) as string
+extern "xmurmur3_file_status" func __murmur3_file_status() as c_int
 
 
 
@@ -108,22 +109,35 @@ end
 
 // ═══════════════ 文件哈希 ═══════════════
 
-export func hashFile32(string path, int seed = 0, int maxInput = 268435456) as int
+export func hashFile32(string path, int seed = 0, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as int
     __murmur3_check_limit(maxInput, "maxInput")
-    int result = __murmur3_file32(path, c_ulonglong(maxInput), c_uint(seed))
-    if result == 0 then
-        string err = __murmur3_error()
-        if err != "" then
-            throw FileError err
-        end
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    int result = __murmur3_file32(path, c_ulonglong(maxInput), c_uint(seed), progress)
+    int status = __murmur3_file_status()
+    if status == -1 then
+        throw CancelledError "murmur3 operation cancelled"
+    elseif status != 1 then
+        throw FileError __murmur3_error()
     end
     return result
 end
 
-export func hashFile128Hex(string path, int seed = 0, int maxInput = 268435456) as string
+export func hashFile128Hex(string path, int seed = 0, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __murmur3_check_limit(maxInput, "maxInput")
-    string result = __murmur3_file128_hex(path, c_ulonglong(maxInput), c_uint(seed))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __murmur3_file128_hex(path, c_ulonglong(maxInput), c_uint(seed), progress)
+    int status = __murmur3_file_status()
+    if status == -1 then
+        throw CancelledError "murmur3 operation cancelled"
+    elseif status != 1 then
         throw FileError __murmur3_error()
     end
     return result

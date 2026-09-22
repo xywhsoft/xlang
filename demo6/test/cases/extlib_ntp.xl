@@ -3,28 +3,52 @@ import ntp
 
 
 func main(...) as int
-    // Local time should be positive
-    auto ts = ntp.now()
-    assert ts > 1000000000, "timestamp after 2001"
+    // 客户端请求：48 字节，首字节 0x23（LI=0 VN=4 Mode=3），其余为零
+    string req = ntp.buildRequest()
+    assert req.length == 96, "request is 48 bytes"
+    assert req.contains("23"), "version and mode marker"
+    assert req == "23" + repeatZero(94), "rest all zero"
 
-    // Format UTC
-    auto utc = ntp.formatUtc(ts)
-    assert string.len(utc) > 0, "utc format non-empty"
-    // Should contain 'T' and 'Z'
-    assert string.len(utc) == 20, "utc format length 20"
+    // 已知应答向量： Transmit Timestamp = 0xE9353E46 0x80000000
+    // 0xE9353E46 = 3912580678；Unix = 3912580678 - 2208988800 = 1703591878
+    string resp = "24" + repeatZero(78) + "e9353e46" + "80000000"
+    var r = ntp.parseResponse(resp)
+    assert r["leapIndicator"] == 0, "leap"
+    assert r["version"] == 4, "version 4"
+    assert r["mode"] == 4, "server mode"
+    assert r["stratum"] == 0, "stratum zero"
+    assert r["ntpSeconds"] == 3912580678, "ntp seconds"
+    assert int(r["unixSeconds"]) == 1703591878, "unix seconds"
+    assert r["unixSeconds"] > 1703591878 and r["unixSeconds"] < 1703591879, "half fraction"
 
-    // Format local
-    auto local = ntp.formatLocal(ts)
-    assert string.len(local) > 0, "local format non-empty"
+    // 常量
+    assert ntp.unixOffset() == 2208988800, "epoch offset"
 
-    // NTP to Unix conversion (known value)
-    // NTP timestamp for 2020-01-01 00:00:00 UTC = 3786825600
-    auto unix_ts = ntp.ntpToUnix(3786825600)
-    assert unix_ts == 1577836800, "ntp to unix: " + string(unix_ts)
+    // 错误路径
+    int raised = 0
+    try
+        ntp.parseResponse("deadbeef")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "short response raises"
 
-    // Timezone offset should be reasonable (-12h to +14h)
-    auto tz = ntp.tzOffset()
-    assert tz >= -43200 and tz <= 50400, "tz offset in range"
+    raised = 0
+    try
+        ntp.parseResponse("zz" + "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "non hex raises"
 
     return 0
+end
+
+func repeatZero(int n) as string
+    string acc = ""
+    while n > 0
+        acc = acc + "0"
+        n = n - 1
+    end
+    return acc
 end

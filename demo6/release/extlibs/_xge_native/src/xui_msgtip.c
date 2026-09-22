@@ -234,7 +234,7 @@ static int __xuiMsgTipHasIcon(xui_msgtip pTip)
 
 static xui_rect_t __xuiMsgTipRootRect(xui_msgtip pTip)
 {
-	xui_vec2_t tViewport;
+	xui_size_t tViewport;
 	xui_widget pRoot;
 	xui_rect_t tRect;
 
@@ -248,8 +248,8 @@ static xui_rect_t __xuiMsgTipRootRect(xui_msgtip pTip)
 	}
 	if ( (tRect.fW <= 1.0f) || (tRect.fH <= 1.0f) ) {
 		tViewport = xuiGetViewportSize(pTip->pContext);
-		if ( (tViewport.fX > 1.0f) && (tViewport.fY > 1.0f) ) {
-			tRect = (xui_rect_t){0.0f, 0.0f, tViewport.fX, tViewport.fY};
+		if ( (tViewport.iW > 1) && (tViewport.iH > 1) ) {
+			tRect = (xui_rect_t){0, 0, tViewport.iW, tViewport.iH};
 		}
 	}
 	return tRect;

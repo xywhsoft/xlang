@@ -1,0 +1,18 @@
+import onnxruntime
+
+func main(...) as int
+    assert onnxruntime.available(), "runtime"
+    assert string.contains(onnxruntime.get_available_providers(), "CPUExecutionProvider"), "providers"
+
+    auto options = onnxruntime.SessionOptions()
+    assert options.valid() and options.set_threads(1, 1), "session options"
+    auto tensor = onnxruntime.TensorZerosF32("[1,2]")
+    assert tensor.valid(), "tensor"
+    auto session = onnxruntime.InferenceSession("__missing_model__.onnx", options)
+    assert session.valid() == false and session.get_inputs() == "[]", "missing model"
+
+    assert session.release() == false
+    assert tensor.release()
+    assert options.release()
+    return 0
+end

@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/ini/include/xrt_ini.h"
 
 #include <stdio.h>
@@ -13,7 +15,6 @@ int main(void)
 	xrtiniconfig* pConfig;
 	int64 iPort = 0;
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	pConfig = xrtIniParseMemory(sSource, sizeof(sSource) - 1u, NULL);
 	bOk = pConfig != NULL && xrtIniError(pConfig)->iCode == XRT_INI_OK &&
 		xrtIniGetInt(pConfig, (str)"server", (str)"port", &iPort) && iPort == 8080;
@@ -22,7 +23,6 @@ int main(void)
 			(long long)iPort);
 	}
 	xrtIniDestroy(pConfig);
-	xrtUnit();
 	if ( bOk ) { puts("ini C example: PASS"); }
 	return bOk ? 0 : 2;
 }

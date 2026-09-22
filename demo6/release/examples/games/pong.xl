@@ -1,0 +1,262 @@
+// pong.xl — 乒乓（鼠标经典游戏）
+// 左挡板鼠标 Y 控制，右挡板 AI，先到 7 分胜，R 重开，ESC 退出。
+// 无头冒烟：xl run pong.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int W = 900
+int H = 600
+int PAD_W = 14
+int PAD_H = 90
+int MARGIN = 32                 // 挡板距边
+float BALL_R = 9.0
+float BASE_SPEED = 400.0        // 基础球速（像素/秒）
+float MAX_SPEED = 700.0         // 每次击拍加速的上限
+float AI_SPEED = 310.0          // AI 挡板限速
+int WIN_SCORE = 7
+float SERVE_WAIT = 1.0          // 每球开球前停顿（秒）
+
+// --- 游戏状态 ---
+float lpY = 300.0               // 左挡板中心 Y
+float rpY = 300.0               // 右挡板中心 Y
+float ballX = 450.0
+float ballY = 300.0
+float vx = 0.0
+float vy = 0.0
+float speed = BASE_SPEED
+int scoreL = 0
+int scoreR = 0
+bool over = false
+bool serving = true             // true = 停表待发球
+float serveTimer = SERVE_WAIT
+int serveDir = -1               // 发球水平方向：-1 向左 1 向右
+xge.Font scoreFont
+xge.Font hudFont
+Random rng = Random(uint64(4), uint64(7))
+
+// --- 工具 ---
+func clampF(float v, float lo, float hi) as float
+    if v < lo then
+        return lo
+    end
+    if v > hi then
+        return hi
+    end
+    return v
+end
+
+func absF(float v) as float
+    if v < 0.0 then
+        return -v
+    end
+    return v
+end
+
+// --- 初始化 ---
+func reset()
+    scoreL = 0
+    scoreR = 0
+    over = false
+    serveDir = -1
+    serveBall()
+end
+
+func serveBall()
+    lpY = float(H) / 2.0
+    rpY = float(H) / 2.0
+    ballX = float(W) / 2.0
+    ballY = float(H) / 2.0
+    speed = BASE_SPEED
+    // 随机垂直角（-0.6..0.6 比例，避免过平/过陡）
+    float rel = (float(int(rng.u32()) % 121) - 60.0) / 100.0
+    vx = speed * serveDir * (1.0 - 0.55 * absF(rel))
+    vy = speed * 0.8 * rel
+    serving = true
+    serveTimer = SERVE_WAIT
+end
+
+// --- 逻辑更新 ---
+func handleInput()
+    // 左挡板跟随鼠标 Y（钳制在场内）
+    lpY = clampF(xge.Input.mouseY(), float(PAD_H) / 2.0, float(H) - float(PAD_H) / 2.0)
+    if xge.Input.keyPressed(82) then
+        reset()
+    end
+end
+
+func updateAI(float dt)
+    // 简单 AI：球朝右时追球，否则回中；限速 + 死区防抖
+    float target = float(H) / 2.0
+    if vx > 0.0 then
+        target = ballY
+    end
+    float diff = target - rpY
+    if absF(diff) > 6.0 then
+        float step = AI_SPEED * dt
+        if diff > step then
+            rpY += step
+        else
+            if diff < -step then
+                rpY -= step
+            else
+                rpY += diff
+            end
+        end
+    end
+    rpY = clampF(rpY, float(PAD_H) / 2.0, float(H) - float(PAD_H) / 2.0)
+end
+
+// 挡板反弹：按撞击点偏移改变出射角，方向 = -1 左拍 / 1 右拍
+func bouncePaddle(float padY, int side)
+    float rel = clampF((ballY - padY) / (float(PAD_H) / 2.0), -1.0, 1.0)
+    if speed < MAX_SPEED then
+        speed += 18.0
+    end
+    vx = speed * float(side) * (1.0 - 0.55 * absF(rel))
+    vy = speed * 0.8 * rel
+end
+
+func updateBall(float dt)
+    ballX += vx * dt
+    ballY += vy * dt
+
+    // 上下墙反弹
+    if ballY < BALL_R then
+        ballY = BALL_R
+        vy = absF(vy)
+    end
+    if ballY > float(H) - BALL_R then
+        ballY = float(H) - BALL_R
+        vy = -absF(vy)
+    end
+
+    // 左挡板
+    float lx0 = float(MARGIN)
+    if vx < 0.0 and ballX - BALL_R <= lx0 + float(PAD_W) and ballX - BALL_R >= lx0 - 8.0 then
+        if ballY >= lpY - float(PAD_H) / 2.0 - BALL_R and ballY <= lpY + float(PAD_H) / 2.0 + BALL_R then
+            ballX = lx0 + float(PAD_W) + BALL_R
+            bouncePaddle(lpY, 1)
+        end
+    end
+
+    // 右挡板
+    float rx0 = float(W - MARGIN - PAD_W)
+    if vx > 0.0 and ballX + BALL_R >= rx0 and ballX + BALL_R <= rx0 + float(PAD_W) + 8.0 then
+        if ballY >= rpY - float(PAD_H) / 2.0 - BALL_R and ballY <= rpY + float(PAD_H) / 2.0 + BALL_R then
+            ballX = rx0 - BALL_R
+            bouncePaddle(rpY, -1)
+        end
+    end
+
+    // 出界得分
+    if ballX < -30.0 then
+        scoreR += 1
+        if scoreR >= WIN_SCORE then
+            over = true
+        else
+            serveDir = 1
+            serveBall()
+        end
+    end
+    if ballX > float(W) + 30.0 then
+        scoreL += 1
+        if scoreL >= WIN_SCORE then
+            over = true
+        else
+            serveDir = -1
+            serveBall()
+        end
+    end
+end
+
+// --- 绘制 ---
+func draw()
+    uint32 bg = xge.Color.rgba(13, 17, 22, 255)
+    uint32 lineC = xge.Color.rgba(60, 72, 88, 255)
+    uint32 padC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 aiC = xge.Color.rgba(255, 159, 90, 255)
+    uint32 ballC = xge.Color.rgba(240, 244, 250, 255)
+    uint32 textC = xge.Color.rgba(220, 228, 238, 255)
+
+    // 中线虚线
+    int y = 10
+    while y < H - 10
+        xge.Shape.rectFillPixels(W / 2 - 3, y, 6, 22, lineC)
+        y += 40
+    end
+
+    // 挡板
+    xge.Shape.rectFillPixels(MARGIN, int(lpY - float(PAD_H) / 2.0), PAD_W, PAD_H, padC)
+    xge.Shape.rectFillPixels(W - MARGIN - PAD_W, int(rpY - float(PAD_H) / 2.0), PAD_W, PAD_H, aiC)
+
+    // 球
+    xge.Shape.circleFill(ballX, ballY, BALL_R, ballC)
+
+    // 比分（居中大字）
+    if scoreFont.valid then
+        scoreFont.drawText(string(scoreL), float(W / 2 - 110), 18.0, textC)
+        scoreFont.drawText(string(scoreR), float(W / 2 + 70), 18.0, textC)
+    end
+    if hudFont.valid then
+        if over then
+            string msg = scoreL > scoreR ? "YOU WIN - press R" : "AI WINS - press R"
+            hudFont.drawText(msg, float(W / 2 - 90), float(H - 40), textC)
+        else
+            if serving then
+                hudFont.drawText("GET READY...", float(W / 2 - 60), float(H - 40), lineC)
+            else
+                hudFont.drawText("first to 7 - mouse controls left paddle", 12.0, float(H - 30), lineC)
+            end
+        end
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    if not over then
+        handleInput()
+        float dt = xge.XgeApp.delta()
+        updateAI(dt)
+        if serving then
+            serveTimer -= dt
+            if serveTimer <= 0.0 then
+                serving = false
+            end
+        else
+            updateBall(dt)
+        end
+    else
+        if xge.Input.keyPressed(82) then
+            reset()
+        end
+    end
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run pong.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(W, H, "xlang pong")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    scoreFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 32.0)
+    if not scoreFont.valid then
+        scoreFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 32.0)
+    end
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

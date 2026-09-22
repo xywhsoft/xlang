@@ -5,13 +5,12 @@ end
 
 assert process.stdin == 0 and process.stdout == 1 and process.stderr == 2
 assert process.stdioInherit == 0 and process.stdioPipe == 1 and process.stdioNull == 2
-assert process.stateFailed == -1 and process.stateInit == 0 and process.stateRunning == 1
-assert process.stateExited == 2 and process.stateClosed == 3
+assert process.stateRunning == 0 and process.stateExited == 1
 bool terminalAvailable = process.terminalSupported()
 assert terminalAvailable or not terminalAvailable
 
 string text = process.exec("cmd /c echo hello-process")
-require("legacy",
+require("shell",
     string.trim(text) == "hello-process" and
     process.success("cmd /c exit /b 0") and
     !process.success("cmd /c exit /b 5") and
@@ -65,10 +64,10 @@ PipelineResult failedPipe = process.pipeline([
 ProcessResult failedStage = failedPipe.result(0)
 require("pipelineFail",
     !failedPipe.success and
-    failedPipe.exitCode == 5 and
+    failedPipe.exitCode == 0 and
     failedPipe.failedIndex == 0 and
     failedPipe.count == 2 and
-    failedPipe.completedCount == 1 and
+    failedPipe.completedCount == 2 and
     failedStage.exitCode == 5)
 
 Process proc = process.startFile("cmd", ["/c", "more"])

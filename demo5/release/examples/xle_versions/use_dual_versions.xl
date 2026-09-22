@@ -1,6 +1,0 @@
-import pkg.a
-import pkg.b
-
-func main() as int
-	return pkg.a.value() + pkg.b.value()
-end

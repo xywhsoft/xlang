@@ -32,7 +32,7 @@ end
 func(int) as (int, int) pairFn = makePair
 auto left, right = pairFn(10)
 
-var boxedPairFn = pairFn
+var boxedPairFn = xcall(pairFn)
 var firstValue = boxedPairFn(20)
 int optionTotal = optionCount(path = "demo.txt", mode = "fast", retry = 3)
 

@@ -1,0 +1,51 @@
+// scrollview.xl — 滚动视图：ScrollView 内放多个 Label（超出视口）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "ScrollView Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "ScrollView Demo", font)
+    root.addChild(title)
+
+    xui.ScrollView scroll = xui.ScrollView(ctx)
+    scroll.setFlex(1.0, 1.0)
+
+    xui.Label item1 = xui.Label(ctx, "Item 1", font)
+    scroll.addChild(item1)
+    xui.Label item2 = xui.Label(ctx, "Item 2", font)
+    scroll.addChild(item2)
+    xui.Label item3 = xui.Label(ctx, "Item 3", font)
+    scroll.addChild(item3)
+    xui.Label item4 = xui.Label(ctx, "Item 4", font)
+    scroll.addChild(item4)
+    xui.Label item5 = xui.Label(ctx, "Item 5", font)
+    scroll.addChild(item5)
+    xui.Label item6 = xui.Label(ctx, "Item 6", font)
+    scroll.addChild(item6)
+    xui.Label item7 = xui.Label(ctx, "Item 7", font)
+    scroll.addChild(item7)
+    xui.Label item8 = xui.Label(ctx, "Item 8", font)
+    scroll.addChild(item8)
+    xui.Label item9 = xui.Label(ctx, "Item 9", font)
+    scroll.addChild(item9)
+    xui.Label item10 = xui.Label(ctx, "Item 10", font)
+    scroll.addChild(item10)
+    xui.Label item11 = xui.Label(ctx, "Item 11", font)
+    scroll.addChild(item11)
+    xui.Label item12 = xui.Label(ctx, "Item 12", font)
+    scroll.addChild(item12)
+
+    root.addChild(scroll)
+
+    g_app.run(onFrame)
+    return 0
+end

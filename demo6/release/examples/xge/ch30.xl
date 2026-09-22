@@ -3,34 +3,34 @@ import xge
 
 func draw_scene()
     // 仅上方圆角（卡片头部）
-    xge.xgeShapeRoundRectFillEx(c_float(100), c_float(80), c_float(300), c_float(60),
-        c_float(16), c_float(16), c_float(0), c_float(0), c_int(0),
-        xge.XGE_COLOR_RGBA(c_uint(42), c_uint(74), c_uint(80), c_uint(255)))
+    xge.Shape.roundRectFillEx(100, 80, 300, 60,
+        16, 16, 0, 0, 0,
+        xge.Color.rgba(42, 74, 80, 255))
     // 下方主体
-    xge.xgeShapeRectFill(c_float(100), c_float(140), c_float(300), c_float(140), xge.XGE_COLOR_RGBA(c_uint(26), c_uint(42), c_uint(48), c_uint(255)))
+    xge.Shape.rectFill(100, 140, 300, 140, xge.Color.rgba(26, 42, 48, 255))
 
     // 对角圆角（标签样式）
-    xge.xgeShapeRoundRectFillEx(c_float(500), c_float(100), c_float(150), c_float(45),
-        c_float(12), c_float(0), c_float(12), c_float(0), c_int(1),
-        xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+    xge.Shape.roundRectFillEx(500, 100, 150, 45,
+        12, 0, 12, 0, 1,
+        xge.Color.rgba(255, 180, 84, 255))
 
     // 大圆角 SDF
-    xge.xgeShapeRoundRectFill(c_float(200), c_float(380), c_float(400), c_float(150), c_float(40.0), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(200)))
-    xge.xgeShapeRoundRectStroke(c_float(200), c_float(380), c_float(400), c_float(150), c_float(40.0), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(255), c_uint(255), c_uint(100)))
+    xge.Shape.roundRectFill(200, 380, 400, 150, 40.0, xge.Color.rgba(79, 216, 194, 200))
+    xge.Shape.roundRectStroke(200, 380, 400, 150, 40.0, 2.0, xge.Color.rgba(255, 255, 255, 100))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch30")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch30")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

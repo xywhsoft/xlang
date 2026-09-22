@@ -3,8 +3,13 @@ import dotenv
 
 
 func main(...) as int
-    // Load .env file
-    int n = dotenv.load("test/data/dotenv_test.env")
+    // 范例自带输入，发布目录下可以独立运行。
+    string envPath = "examples_out/extlibs/dotenv_sample.env"
+    dir.createAll("examples_out/extlibs")
+    file.writeText(envPath, "DB_HOST=localhost\nDB_PORT=5432\nDB_NAME=mydb\nAPI_KEY=secret123\n")
+
+    int n = dotenv.load(envPath)
+    assert n == 4, "dotenv example input should load"
     println("loaded", n, "variables")
 
     println("DB_HOST:", dotenv.get("DB_HOST"))

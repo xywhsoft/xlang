@@ -3,20 +3,26 @@ import modbus
 
 
 func main(...) as int
-    // Build a Read Holding Registers request
-    auto req = modbus.readHoldingReq(1, 0, 10)
-    println("FC03 request: ", req)
-    println("  addr: ", modbus.rtuAddr(req))
-    println("  func: ", modbus.funcName(modbus.rtuFunc(req)))
-    println("  crc ok: ", modbus.verifyCrc(req))
+    // 构造请求帧（实际设备交互走 TcpStream）
+    println("FC3 read 2 regs from 0:", modbus.buildReadHolding(1, 1, 0, 2))
+    println("FC6 write 0x1234 to 100:", modbus.buildWriteSingle(7, 2, 100, 4660))
+    println("FC1 read 10 coils:", modbus.buildReadCoils(1, 1, 0, 10))
 
-    // Write register
-    auto wr = modbus.writeRegisterReq(1, 100, 1234)
-    println("FC06 request: ", wr)
+    // 模拟 PLC 应答
+    var r = modbus.parseResponse("00010000000501030412345678")
+    println("registers:", r["values"][0], r["values"][1])
 
-    // TCP frame
-    auto tcp = modbus.buildTcp(1, 1, 3, "00640001")
-    println("TCP frame: ", tcp)
+    var err = modbus.parseResponse("000100000003018302")
+    println("exception frame, code:", err["exceptionCode"])
+
+    // 帧 ↔ Buffer 往返（sendBytes/recvBytes 通道）
+    Buffer frame = modbus.hexToFrame(modbus.buildReadHolding(1, 1, 0, 5))
+    println("frame bytes:", int(frame.len()), "hex back:", modbus.frameToHex(frame))
+
+    // 与真实设备交互：
+    // TcpStream plc = tcp.connect("192.168.1.50", 502)
+    // var regs = modbus.readHolding(plc, 1, 0, 4)
+    // modbus.writeSingle(plc, 1, 100, 1234)
 
     println("modbus example: PASS")
     return 0

@@ -7,7 +7,6 @@ $typedJson = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.typed.js
 $loweredJson = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.lowered.json"
 $generatedC = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.c"
 $generatedCSecond = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.second.c"
-$legacyC = Join-Path $root "build\tmp\xlir_special_queue_resource_abi.legacy.c"
 
 foreach ( $path in @($xl, $source) ) {
     if ( ! (Test-Path $path) ) { throw "missing XLIR special queue gate input: $path" }
@@ -289,13 +288,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR special queue strict-C/runtime gate failed"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyC
-if ( $LASTEXITCODE -ne 0 ) { throw "special queue legacy C generation failed" }
-$legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! build\tmp\xlir_special_queue_resource_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_special_queue_resource_abi.legacy.exe && build\test\xlir_special_queue_resource_abi.legacy.exe'
-& $env:ComSpec /d /v:on /c $legacyCommand
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR special queue legacy differential runtime gate failed"
-}
-
-Write-Output "XLIR special queue resource ABI gate passed: exact queue/payload/array identities, scalar and batch effects, storage refs and error edges, retained thread captures, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR special queue resource ABI gate passed: exact queue/payload/array identities, scalar and batch effects, storage refs and error edges, retained thread captures, deterministic mechanical C, and strict runtime."
 exit 0

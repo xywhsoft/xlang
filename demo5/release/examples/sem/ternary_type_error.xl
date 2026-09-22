@@ -1,4 +1,0 @@
-func main() as int
-	const int value = 1
-	return value ? 42 : 7
-end

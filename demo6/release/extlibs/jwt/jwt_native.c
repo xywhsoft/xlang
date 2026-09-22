@@ -1,153 +1,238 @@
-/* jwt_native.c - JWT encode/decode with HMAC-SHA256 */
+/* JWT HS256 wrapper backed by XRT codecs and crypto primitives. */
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
-static char buf[4096];
-static char err_buf[256];
+#define XRT_MODULE_CODEC_BASE64
+#define XRT_MODULE_CRYPTO_HMAC_SHA256
+#define XRT_MODULE_JSON
+#include "xrt.h"
 
-const char *xjwt_error(void) { return err_buf; }
+#if defined(_WIN32) || defined(_WIN64)
+#define XJWT_THREAD __declspec(thread)
+#else
+#define XJWT_THREAD __thread
+#endif
 
-/* Base64url encoding */
-static const char b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+#define XJWT_RESULT_SLOTS 8u
 
-static int b64url_encode(const unsigned char *in, int in_len, char *out) {
-    int i, pos = 0;
-    for (i = 0; i < in_len; i += 3) {
-        unsigned int n = (unsigned int)in[i] << 16;
-        if (i + 1 < in_len) n |= (unsigned int)in[i+1] << 8;
-        if (i + 2 < in_len) n |= (unsigned int)in[i+2];
-        out[pos++] = b64_table[(n >> 18) & 63];
-        out[pos++] = b64_table[(n >> 12) & 63];
-        if (i + 1 < in_len) out[pos++] = b64_table[(n >> 6) & 63];
-        if (i + 2 < in_len) out[pos++] = b64_table[n & 63];
+typedef struct XJwtParts {
+    const char* Header;
+    size_t HeaderSize;
+    const char* Payload;
+    size_t PayloadSize;
+    const char* Signature;
+    size_t SignatureSize;
+} XJwtParts;
+
+static const char g_xjwt_header[] = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+static XJWT_THREAD char g_xjwt_error[256];
+static XJWT_THREAD xbuffer g_xjwt_results[XJWT_RESULT_SLOTS];
+static XJWT_THREAD size_t g_xjwt_result_index;
+
+static void xjwt_set_error(const char* text)
+{
+    size_t size = text != NULL ? strlen(text) : 0u;
+
+    if ( size >= sizeof(g_xjwt_error) ) size = sizeof(g_xjwt_error) - 1u;
+    if ( size != 0u ) memcpy(g_xjwt_error, text, size);
+    g_xjwt_error[size] = '\0';
+}
+
+static const char* xjwt_store(const void* data, size_t size)
+{
+    xbuffer* output = &g_xjwt_results[g_xjwt_result_index++ % XJWT_RESULT_SLOTS];
+
+    xrtBufferClear(output);
+    if ( !xrtBufferAppend(output, (xbytesview){ (cbytes)data, size }) ||
+         !xrtBufferAppendByte(output, 0u) ) {
+        xrtBufferClear(output);
+        xjwt_set_error("out of memory");
+        return "";
     }
-    /* Replace + with -, / with _, remove = padding (base64url) */
-    int j;
-    for (j = 0; j < pos; j++) {
-        if (out[j] == '+') out[j] = '-';
-        if (out[j] == '/') out[j] = '_';
+    return (const char*)output->Data;
+}
+
+static const xbase64config* xjwt_base64_config(void)
+{
+    static const xbase64config config = {
+        NULL,
+        (uint32)XBASE64_URL | (uint32)XBASE64_NO_PADDING
+    };
+    return &config;
+}
+
+static bool xjwt_split(const char* token, XJwtParts* parts)
+{
+    const char* first;
+    const char* second;
+
+    if ( token == NULL || token[0] == '\0' || parts == NULL ) return false;
+    first = strchr(token, '.');
+    if ( first == NULL || first == token || first[1] == '\0' ) return false;
+    second = strchr(first + 1, '.');
+    if ( second == NULL || second == first + 1 ||
+         strchr(second + 1, '.') != NULL ) return false;
+
+    parts->Header = token;
+    parts->HeaderSize = (size_t)(first - token);
+    parts->Payload = first + 1;
+    parts->PayloadSize = (size_t)(second - (first + 1));
+    parts->Signature = second + 1;
+    parts->SignatureSize = strlen(second + 1);
+    return true;
+}
+
+static bool xjwt_decode_segment(const char* text, size_t text_size, bytes* output, size_t* output_size)
+{
+    bytes decoded;
+
+    if ( output != NULL ) *output = NULL;
+    if ( output_size != NULL ) *output_size = 0u;
+    decoded = xrtBase64DecodeNew(text, text_size, output_size, xjwt_base64_config());
+    if ( decoded == NULL ) return false;
+    if ( output != NULL ) *output = decoded;
+    else xrtFree(decoded);
+    return true;
+}
+
+static bool xjwt_is_hs256_header(const XJwtParts* parts)
+{
+    bytes header = NULL;
+    size_t size = 0u;
+    xvalue* value = NULL;
+    xvalue* algorithm;
+    xstrview algorithm_text;
+    bool result = false;
+
+    if ( parts == NULL || !xjwt_decode_segment(parts->Header, parts->HeaderSize, &header, &size) ) {
+        return false;
     }
-    out[pos] = '\0';
-    return pos;
+    value = xrtJsonParse((xstrview){ (cstr)header, size });
+    algorithm = value != NULL ? xrtValueObjectGet(value, XRT_STR_LITERAL("alg")) : NULL;
+    result = algorithm != NULL && xrtValueGetString(algorithm, &algorithm_text) &&
+        algorithm_text.Size == 5u && memcmp(algorithm_text.Data, "HS256", 5u) == 0;
+    xrtValueRelease(value);
+    xrtFree(header);
+    return result;
 }
 
-static int b64url_decode(const char *in, unsigned char *out) {
-    static unsigned char dtable[256];
-    static int init = 0;
-    if (!init) {
-        int i;
-        memset(dtable, 0, 256);
-        for (i = 0; i < 64; i++) dtable[(unsigned char)b64_table[i]] = (unsigned char)i;
-        dtable[(unsigned char)'-'] = 62;
-        dtable[(unsigned char)'_'] = 63;
-        init = 1;
+const char* xjwt_error(void)
+{
+    return g_xjwt_error;
+}
+
+const char* xjwt_encode(const char* payload_json, const char* secret)
+{
+    str header = NULL;
+    str payload = NULL;
+    str signature = NULL;
+    xbuffer signing;
+    xbuffer token;
+    uint8 mac[XRT_SHA256_SIZE];
+    const char* result = "";
+
+    if ( payload_json == NULL || secret == NULL || secret[0] == '\0' ) {
+        xjwt_set_error("payload and secret must not be empty");
+        return "";
     }
-    int len = (int)strlen(in);
-    int pos = 0, i;
-    for (i = 0; i < len; i += 4) {
-        unsigned int n = 0;
-        int pad = 0;
-        int j;
-        for (j = 0; j < 4; j++) {
-            n <<= 6;
-            if (i + j < len) n |= dtable[(unsigned char)in[i+j]];
-            else pad++;
-        }
-        out[pos++] = (unsigned char)(n >> 16);
-        if (pad < 2) out[pos++] = (unsigned char)(n >> 8);
-        if (pad < 1) out[pos++] = (unsigned char)n;
+    if ( !xrtBufferInit(&signing) || !xrtBufferInit(&token) ) {
+        xjwt_set_error("out of memory");
+        return "";
     }
-    return pos;
-}
-
-/* Simple HMAC-like signature (FNV-based for TCC compatibility) */
-static void hmac_sign(const char *data, const char *key, unsigned char *out, int out_len) {
-    unsigned long long h = 14695981039346656037ULL;
-    int dlen = (int)strlen(data);
-    int klen = (int)strlen(key);
-    int i;
-    /* Key mixing */
-    for (i = 0; i < klen; i++) { h ^= (unsigned char)key[i]; h *= 1099511628211ULL; }
-    /* Data mixing */
-    for (i = 0; i < dlen; i++) { h ^= (unsigned char)data[i]; h *= 1099511628211ULL; }
-    /* Second pass with key */
-    for (i = 0; i < klen; i++) { h ^= (unsigned char)key[i]; h *= 1099511628211ULL; }
-    /* Generate output */
-    for (i = 0; i < out_len; i++) {
-        h = h * 6364136223846793005ULL + 1442695040888963407ULL;
-        out[i] = (unsigned char)(h >> 33);
+    xjwt_set_error("");
+    header = xrtBase64EncodeNew(g_xjwt_header, sizeof(g_xjwt_header) - 1u, xjwt_base64_config());
+    payload = xrtBase64EncodeNew(payload_json, strlen(payload_json), xjwt_base64_config());
+    if ( header == NULL || payload == NULL ||
+         !xrtBufferAppend(&signing, (xbytesview){ (cbytes)header, strlen(header) }) ||
+         !xrtBufferAppendByte(&signing, (uint8)'.') ||
+         !xrtBufferAppend(&signing, (xbytesview){ (cbytes)payload, strlen(payload) }) ||
+         !xrtHmacSha256(secret, strlen(secret), signing.Data, signing.Size, mac) ) {
+        xjwt_set_error("cannot create HS256 signature");
+        goto cleanup;
     }
+    signature = xrtBase64EncodeNew(mac, sizeof(mac), xjwt_base64_config());
+    if ( signature == NULL ||
+         !xrtBufferAppend(&token, xrtBufferView(&signing)) ||
+         !xrtBufferAppendByte(&token, (uint8)'.') ||
+         !xrtBufferAppend(&token, (xbytesview){ (cbytes)signature, strlen(signature) }) ) {
+        xjwt_set_error("out of memory");
+        goto cleanup;
+    }
+    result = xjwt_store(token.Data, token.Size);
+    if ( result[0] != '\0' ) xjwt_set_error("");
+
+cleanup:
+    xrtSecureZero(mac, sizeof(mac));
+    xrtFree(header);
+    xrtFree(payload);
+    xrtFree(signature);
+    xrtBufferUnit(&signing);
+    xrtBufferUnit(&token);
+    return result;
 }
 
-/* Encode JWT: header.payload.signature */
-const char *xjwt_encode(const char *payload_json, const char *secret) {
-    /* Header: {"alg":"HS256","typ":"JWT"} */
-    const char *header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-    char header_b64[256], payload_b64[2048], signing_input[2500];
-    unsigned char sig[32];
-    char sig_b64[64];
+const char* xjwt_decode(const char* token)
+{
+    XJwtParts parts;
+    bytes payload = NULL;
+    size_t payload_size = 0u;
+    const char* result;
 
-    b64url_encode((const unsigned char *)header, (int)strlen(header), header_b64);
-    b64url_encode((const unsigned char *)payload_json, (int)strlen(payload_json), payload_b64);
-
-    sprintf(signing_input, "%s.%s", header_b64, payload_b64);
-    hmac_sign(signing_input, secret, sig, 32);
-    b64url_encode(sig, 32, sig_b64);
-
-    sprintf(buf, "%s.%s", signing_input, sig_b64);
-    return buf;
+    if ( !xjwt_split(token, &parts) ||
+         !xjwt_decode_segment(parts.Payload, parts.PayloadSize, &payload, &payload_size) ) {
+        xjwt_set_error("token is not a valid compact JWT");
+        return "";
+    }
+    result = xjwt_store(payload, payload_size);
+    xrtFree(payload);
+    if ( result[0] != '\0' ) xjwt_set_error("");
+    return result;
 }
 
-/* Decode JWT payload (returns JSON string) */
-const char *xjwt_decode(const char *token) {
-    static char payload_buf[2048];
-    /* Find second dot */
-    const char *dot1 = strchr(token, '.');
-    if (!dot1) return "{}";
-    const char *dot2 = strchr(dot1 + 1, '.');
-    if (!dot2) return "{}";
+long long xjwt_verify(const char* token, const char* secret)
+{
+    XJwtParts parts;
+    bytes signature = NULL;
+    size_t signature_size = 0u;
+    uint8 expected[XRT_SHA256_SIZE];
+    size_t signing_size;
+    bool valid = false;
 
-    int plen = (int)(dot2 - dot1 - 1);
-    char payload_b64[2048];
-    memcpy(payload_b64, dot1 + 1, plen);
-    payload_b64[plen] = '\0';
+    memset(expected, 0, sizeof(expected));
+    if ( secret == NULL || secret[0] == '\0' || !xjwt_split(token, &parts) ||
+         !xjwt_is_hs256_header(&parts) ||
+         !xjwt_decode_segment(parts.Signature, parts.SignatureSize, &signature, &signature_size) ||
+         signature_size != sizeof(expected) ) {
+        xjwt_set_error("token is not a canonical HS256 JWT");
+        goto cleanup;
+    }
+    signing_size = parts.HeaderSize + 1u + parts.PayloadSize;
+    if ( !xrtHmacSha256(secret, strlen(secret), token, signing_size, expected) ) {
+        xjwt_set_error("cannot verify HS256 signature");
+        goto cleanup;
+    }
+    valid = xrtConstTimeEqual(signature, expected, sizeof(expected));
+    xjwt_set_error(valid ? "" : "JWT signature does not match");
 
-    int dlen = b64url_decode(payload_b64, (unsigned char *)payload_buf);
-    payload_buf[dlen] = '\0';
-    return payload_buf;
+cleanup:
+    xrtSecureZero(expected, sizeof(expected));
+    xrtFree(signature);
+    return valid ? 1 : 0;
 }
 
-/* Verify JWT signature */
-long long xjwt_verify(const char *token, const char *secret) {
-    const char *dot1 = strchr(token, '.');
-    if (!dot1) return 0;
-    const char *dot2 = strchr(dot1 + 1, '.');
-    if (!dot2) return 0;
+const char* xjwt_header(const char* token)
+{
+    XJwtParts parts;
+    bytes header = NULL;
+    size_t header_size = 0u;
+    const char* result;
 
-    int input_len = (int)(dot2 - token);
-    char signing_input[2500];
-    memcpy(signing_input, token, input_len);
-    signing_input[input_len] = '\0';
-
-    unsigned char expected_sig[32];
-    hmac_sign(signing_input, secret, expected_sig, 32);
-    char expected_b64[64];
-    b64url_encode(expected_sig, 32, expected_b64);
-
-    return strcmp(dot2 + 1, expected_b64) == 0 ? 1 : 0;
-}
-
-/* Get header JSON */
-const char *xjwt_header(const char *token) {
-    static char hdr_buf[256];
-    const char *dot1 = strchr(token, '.');
-    if (!dot1) return "{}";
-    int hlen = (int)(dot1 - token);
-    char h_b64[256];
-    memcpy(h_b64, token, hlen);
-    h_b64[hlen] = '\0';
-    int dlen = b64url_decode(h_b64, (unsigned char *)hdr_buf);
-    hdr_buf[dlen] = '\0';
-    return hdr_buf;
+    if ( !xjwt_split(token, &parts) ||
+         !xjwt_decode_segment(parts.Header, parts.HeaderSize, &header, &header_size) ) {
+        xjwt_set_error("token header is not valid Base64URL");
+        return "";
+    }
+    result = xjwt_store(header, header_size);
+    xrtFree(header);
+    if ( result[0] != '\0' ) xjwt_set_error("");
+    return result;
 }

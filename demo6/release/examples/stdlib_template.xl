@@ -18,18 +18,16 @@ var data = {
 
 Template compiled = template.compile("<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}")
 requireLine("basic", compiled.render(data) == "<h1>xlang</h1>Y:Ada;Lin;")
-requireLine("stats", compiled.nodeCount > 0 and compiled.exprCount > 0 and compiled.argCount > 0 and compiled.stringPoolSize > 0)
+requireLine("inspect", compiled.valid and compiled.nodeCount > 0 and int(compiled.node(0)["type"]) > 0)
 requireLine("render", template.render("Hello {$title}", data) == "Hello xlang")
-requireLine("bracket", template.render("{{$title}}", data, "{{}}") == "xlang" and template.render("<$title>", data, "<>") == "xlang")
+requireLine("bracket", template.render("{{$title}}", data, "{{", "}}") == "xlang" and template.render("<$title>", data, "<", ">") == "xlang")
 
 dir.createAll("examples_out/stdlib_template_example")
 file.writeText("examples_out/stdlib_template_example/page.xte", "File {$title}")
 requireLine("file", template.renderFile("examples_out/stdlib_template_example/page.xte", data) == "File xlang")
-assert compiled.save("examples_out/stdlib_template_example/page.xteb")
-Template loaded = template.load("examples_out/stdlib_template_example/page.xteb")
-assert loaded.render(data) == "<h1>xlang</h1>Y:Ada;Lin;"
+Template loaded = template.compileFile("examples_out/stdlib_template_example/page.xte")
+assert loaded.render(data) == "File xlang"
 TemplateEngine engine = template.engine()
 assert engine.compile("Engine {$title}").render(data) == "Engine xlang"
 file.delete("examples_out/stdlib_template_example/page.xte")
-file.delete("examples_out/stdlib_template_example/page.xteb")
 dir.delete("examples_out/stdlib_template_example")

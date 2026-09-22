@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-extern void xrtSetError(const void *msg, int bFree);
 /* Levenshtein edit distance */
 long long xfuzzy_levenshtein(const char *a, const char *b) {
     int la, lb, i, j;

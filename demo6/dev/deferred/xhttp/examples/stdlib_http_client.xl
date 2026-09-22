@@ -1,0 +1,190 @@
+string streamedHttpBody = ""
+int streamedHttpStatus = 0
+
+assert http.responseStreamed == 1 and http.responseDecompressed == 2 and http.responseUpgraded == 4
+assert http.stateQueued == 0 and http.stateSucceeded == 4 and http.stateCancelled == 6
+assert http.phaseQueued == 0 and http.phasePool == 3 and http.phaseConnect == 4
+assert http.phaseResponseHeaders == 8 and http.phaseResponseBody == 9
+assert http.resultError == -1 and http.resultOk == 0 and http.resultCancelled == 5
+assert http.errorNone == 0 and http.errorArgument == 1 and http.errorDial == 8
+assert http.errorProtocol == 12 and http.errorCallback == 13
+assert http.errorTimeoutTotal == 14 and http.errorTimeoutIdle == 15
+assert http.errorCancelled == 16 and http.errorInternal == 24
+
+func requireLine(string name, bool ok)
+    assert ok, name
+    println(name + "=ok")
+end
+
+func streamHeaders(int status, string reason) as bool
+    streamedHttpStatus = status
+    return reason == "OK"
+end
+
+func streamBody(point data, int size) as bool
+    Buffer chunk = http.copyChunk(data, size)
+    streamedHttpBody += chunk.text()
+    return true
+end
+
+func abortStreamBody(point data, int size) as bool
+    return size == 0
+end
+
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    if req.method() == "GET" and req.path() == "/hello" then
+        resp.header("X-Reply", "hello")
+        return resp.text("client hello")
+    end
+
+    if req.method() == "POST" and req.path() == "/echo" then
+        resp.header("X-Echo", req.header("X-Test"))
+        return resp.text(req.body())
+    end
+
+    if req.path() == "/method" then
+        return resp.text(req.method())
+    end
+
+    if req.path() == "/meta" then
+        resp.header("X-Meta", "yes")
+        resp.addHeader("Set-Cookie", "a=1")
+        resp.addHeader("Set-Cookie", "b=2")
+        return resp.text("stream-body")
+    end
+
+    if req.path() == "/slow" then
+        time.sleep(300)
+        return resp.text("slow-body")
+    end
+
+    resp.status(404)
+    return resp.text("not found")
+end
+
+func(point, point) as bool handler = route
+point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+http.server.getRequest(server, "/hello", handler)
+http.server.postRequest(server, "/echo", handler)
+http.server.routeRequest(server, "PUT|PATCH", "/method", handler)
+http.server.getRequest(server, "/meta", handler)
+http.server.getRequest(server, "/slow", handler)
+assert http.server.start(server), "http server should start"
+
+int port = http.server.port(server)
+string base = "http://127.0.0.1:" + port.toString()
+time.sleep(20)
+
+HttpClientResponse getResp = http.get(base + "/hello", 5000)
+requireLine(
+    "http_get",
+    getResp.status() == 200 and
+        getResp.ok() and
+        getResp.header("X-Reply") == "hello" and
+        getResp.body() == "client hello" and
+        getResp.bodySize() == 12 and
+        getResp.contentLength() == 12
+)
+
+HttpClientRequest req = HttpClientRequest(base + "/echo")
+req.method("POST")
+req.header("X-Test", "client")
+assert req.timeout(5000)
+assert req.idleTimeout(5000)
+req.text("payload")
+HttpClientResponse postObjResp = req.execute()
+requireLine(
+    "http_request_object",
+    postObjResp.status() == 200 and
+        postObjResp.header("X-Echo") == "client" and
+        postObjResp.body() == "payload" and
+        postObjResp.bodySize() == 7
+)
+
+HttpClientResponse postResp = http.post(base + "/echo", "via-post", "text/plain; charset=utf-8", 5000)
+requireLine(
+    "http_post",
+    postResp.status() == 200 and
+        postResp.body() == "via-post" and
+        postResp.contentLength() == 8
+)
+
+HttpClientResponse putResp = http.request("PUT", base + "/method", "", "", 5000)
+requireLine("http_request_method", putResp.status() == 200 and putResp.body() == "PUT")
+
+// HttpClient 保留连接池，响应对象同时公开协议、原始头和诊断数据。
+HttpClient client = http.client()
+HttpClientRequest firstReq = HttpClientRequest(base + "/meta")
+HttpClientResponse firstResp = firstReq.execute(client)
+HttpClientRequest secondReq = HttpClientRequest(base + "/meta")
+HttpClientResponse secondResp = secondReq.execute(client)
+HttpCallInfo info = secondResp.callInfo()
+
+int cookieCount = 0
+int i = 0
+while i < secondResp.headerCount()
+    if secondResp.headerName(i) == "Set-Cookie" then
+        cookieCount += 1
+    end
+    i += 1
+end
+requireLine(
+    "http_response_metadata",
+    firstResp.status() == 200 and
+        secondResp.version() == "HTTP/1.1" and
+        (secondResp.flags() & (http.responseStreamed | http.responseDecompressed | http.responseUpgraded)) == 0 and
+        cookieCount == 2 and
+        secondResp.bodyBytes().text() == "stream-body"
+)
+requireLine(
+    "http_call_info",
+    info.state == http.stateSucceeded and
+        info.phase == http.phaseResponseBody and
+        info.result == http.resultOk and
+        info.error == http.errorNone and
+        info.reusedConnection and
+        info.responseBodyBytes == 11
+)
+
+// 普通异步请求、流式接收和回调中止都使用同一套 future 模型。
+HttpClientRequest asyncReq = HttpClientRequest(base + "/hello")
+HttpClientResponse asyncResp = await asyncReq.executeAsync(client)
+requireLine("http_async", asyncResp.status() == 200 and asyncResp.body() == "client hello")
+
+func(int, string) as bool headersFn = streamHeaders
+func(point, int) as bool bodyFn = streamBody
+HttpClientRequest streamReq = HttpClientRequest(base + "/meta")
+HttpClientResponse streamResp = await streamReq.stream(client, headersFn, bodyFn)
+requireLine(
+    "http_stream",
+    streamResp.status() == 200 and streamedHttpStatus == 200 and streamedHttpBody == "stream-body"
+)
+
+bool abortCaught = false
+func(point, int) as bool abortFn = abortStreamBody
+try
+    HttpClientRequest abortReq = HttpClientRequest(base + "/meta")
+    HttpClientResponse ignored = await abortReq.stream(client, headersFn, abortFn)
+catch e
+    abortCaught = true
+end
+requireLine("http_stream_abort", abortCaught)
+
+HttpClientRequest slowReq = HttpClientRequest(base + "/slow")
+future<HttpClientResponse> slowFuture = slowReq.executeAsync(client)
+bool cancelAccepted = task.cancel(slowFuture)
+bool cancelCaught = false
+try
+    HttpClientResponse ignored = await slowFuture
+catch e
+    cancelCaught = true
+end
+requireLine("http_async_cancel", cancelAccepted and cancelCaught)
+
+client.closeIdle()
+
+http.server.stop(server)
+http.server.destroy(server)

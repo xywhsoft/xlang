@@ -65,7 +65,7 @@ static int __xgeEGLFail(xge_egl_context_t* pContext, const char* sStage, int iRe
 		__xgeEGLStageCopy(pContext->sLastStage, (int)sizeof(pContext->sLastStage), sStage);
 	}
 	snprintf(arrError, sizeof(arrError), "EGL failed at %s: 0x%04X", (sStage != NULL) ? sStage : "unknown", (unsigned int)iError);
-	xrtSetError(arrError, false);
+	xrtSetErrorInfo(XERR_STATE, "xge.platform", 0, arrError);
 	__xgeLogFormat(XGE_LOG_ERROR, "egl", "%s", arrError);
 	return iResult;
 }

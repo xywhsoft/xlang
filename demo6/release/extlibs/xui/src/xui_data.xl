@@ -112,11 +112,6 @@ export func xuiChartSetPadding(point pWidget, point tPadding) as c_int
     return __xl6_xuiChartSetPadding(pWidget, tPadding)
 end
 
-extern "xuiChartGetPadding" func __xl6_xuiChartGetPadding(point pWidget) as point
-export func xuiChartGetPadding(point pWidget) as point
-    return __xl6_xuiChartGetPadding(pWidget)
-end
-
 extern "xuiChartGetDirtyFlags" func __xl6_xuiChartGetDirtyFlags(point pWidget) as c_uint
 export func xuiChartGetDirtyFlags(point pWidget) as c_uint
     return __xl6_xuiChartGetDirtyFlags(pWidget)
@@ -332,11 +327,6 @@ export func xuiChartGetPieInnerRadius(point pWidget) as c_float
     return __xl6_xuiChartGetPieInnerRadius(pWidget)
 end
 
-extern "xuiChartGetPlotRect" func __xl6_xuiChartGetPlotRect(point pWidget) as point
-export func xuiChartGetPlotRect(point pWidget) as point
-    return __xl6_xuiChartGetPlotRect(pWidget)
-end
-
 extern "xuiChartDataToPixel" func __xl6_xuiChartDataToPixel(point pWidget, c_double fX, c_double fY, point pPoint) as c_int
 export func xuiChartDataToPixel(point pWidget, c_double fX, c_double fY, point pPoint) as c_int
     return __xl6_xuiChartDataToPixel(pWidget, fX, fY, pPoint)
@@ -535,16 +525,6 @@ end
 extern "xuiListViewGetModel" func __xl6_xuiListViewGetModel(point pWidget) as point
 export func xuiListViewGetModel(point pWidget) as point
     return __xl6_xuiListViewGetModel(pWidget)
-end
-
-extern "xuiListViewGetViewportRect" func __xl6_xuiListViewGetViewportRect(point pWidget) as point
-export func xuiListViewGetViewportRect(point pWidget) as point
-    return __xl6_xuiListViewGetViewportRect(pWidget)
-end
-
-extern "xuiListViewGetItemRect" func __xl6_xuiListViewGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiListViewGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiListViewGetItemRect(pWidget, iIndex)
 end
 
 extern "xuiListViewGetItemAt" func __xl6_xuiListViewGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
@@ -797,16 +777,6 @@ export func xuiTreeViewGetModel(point pWidget) as point
     return __xl6_xuiTreeViewGetModel(pWidget)
 end
 
-extern "xuiTreeViewGetViewportRect" func __xl6_xuiTreeViewGetViewportRect(point pWidget) as point
-export func xuiTreeViewGetViewportRect(point pWidget) as point
-    return __xl6_xuiTreeViewGetViewportRect(pWidget)
-end
-
-extern "xuiTreeViewGetItemRect" func __xl6_xuiTreeViewGetItemRect(point pWidget, c_int iVisible) as point
-export func xuiTreeViewGetItemRect(point pWidget, c_int iVisible) as point
-    return __xl6_xuiTreeViewGetItemRect(pWidget, iVisible)
-end
-
 extern "xuiTreeViewGetItemAt" func __xl6_xuiTreeViewGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
 export func xuiTreeViewGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
     return __xl6_xuiTreeViewGetItemAt(pWidget, fX, fY)
@@ -1045,11 +1015,6 @@ end
 extern "xuiTableViewGetModel" func __xl6_xuiTableViewGetModel(point pWidget) as point
 export func xuiTableViewGetModel(point pWidget) as point
     return __xl6_xuiTableViewGetModel(pWidget)
-end
-
-extern "xuiTableViewGetViewportRect" func __xl6_xuiTableViewGetViewportRect(point pWidget) as point
-export func xuiTableViewGetViewportRect(point pWidget) as point
-    return __xl6_xuiTableViewGetViewportRect(pWidget)
 end
 
 extern "xuiTableViewGetItemAt" func __xl6_xuiTableViewGetItemAt(point pWidget, c_float fX, c_float fY, point pRow, point pColumn) as c_int

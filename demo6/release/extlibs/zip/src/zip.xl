@@ -1,4 +1,4 @@
-extern "xrtGetError" func __zip_error() as string
+extern "xzip_last_error" func __zip_error() as string
 
 
 

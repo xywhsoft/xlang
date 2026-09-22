@@ -1,6 +1,8 @@
 #ifndef XRT_XML_INTERNAL_H
 #define XRT_XML_INTERNAL_H
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "include/xrt_xml.h"
 #include "../_expat/vendor/expat/lib/expat_config.h"
 #include "../_expat/vendor/expat/lib/expat.h"
@@ -15,7 +17,7 @@
 struct xrtxmlsax_struct {
 	uint32 iReferences;
 	XML_Parser pExpat;
-	xreader pReader;
+	xreader* pReader;
 	bool bTakeReader;
 	bool bPull;
 	bool bSuspended;

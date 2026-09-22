@@ -1,5 +1,0 @@
-import pkg.probe
-
-func main() as int
-	return pkg.probe.add_one(1.2)
-end

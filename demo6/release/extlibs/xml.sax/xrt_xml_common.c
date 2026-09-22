@@ -4,7 +4,8 @@
 
 static str __xrtXmlDup(const char* sText, size_t iSize)
 {
-	return xrtCopyStr((str)(sText != NULL ? sText : ""), iSize);
+	return iSize != 0u ? xrtStrDupN(sText != NULL ? sText : "", iSize) :
+		xrtStrDup("");
 }
 
 static void __xrtXmlFreeAttribute(xrtxmlattribute* pAttribute)
@@ -18,23 +19,23 @@ static void __xrtXmlFreeAttribute(xrtxmlattribute* pAttribute)
 	memset(pAttribute, 0, sizeof(*pAttribute));
 }
 
-XXAPI void xrtXmlOptionsInit(xrtxmloptions* pOptions)
+XRT_API void xrtXmlOptionsInit(xrtxmloptions* pOptions)
 {
 	if ( pOptions == NULL ) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
 	pOptions->iSize = sizeof(*pOptions);
 	pOptions->iVersion = XRT_XML_OPTIONS_VERSION;
 	xrtResourceLimitsInit(&pOptions->tLimits);
-	pOptions->bNamespaceAware = TRUE;
-	pOptions->bPreserveComments = TRUE;
+	pOptions->bNamespaceAware = true;
+	pOptions->bPreserveComments = true;
 }
 
-XXAPI void xrtXmlErrorInit(xrtxmlerror* pError)
+XRT_API void xrtXmlErrorInit(xrtxmlerror* pError)
 {
 	if ( pError != NULL ) { memset(pError, 0, sizeof(*pError)); }
 }
 
-XXAPI void xrtXmlEventClear(xrtxmlevent* pEvent)
+XRT_API void xrtXmlEventClear(xrtxmlevent* pEvent)
 {
 	uint32 i;
 	if ( pEvent == NULL ) { return; }
@@ -62,7 +63,7 @@ static void __xrtXmlCopyError(const xrtxmlsax* pParser, xrtxmlerror* pError)
 void __xrtXmlSetError(xrtxmlsax* pParser, int iCode, const char* sMessage)
 {
 	if ( pParser == NULL || pParser->bFailed ) { return; }
-	pParser->bFailed = TRUE;
+	pParser->bFailed = true;
 	pParser->tError.iCode = iCode;
 	pParser->tError.iLine = pParser->pExpat != NULL ?
 		(uint64)XML_GetCurrentLineNumber(pParser->pExpat) : 0u;
@@ -85,25 +86,25 @@ void __xrtXmlSetExpatError(xrtxmlsax* pParser)
 
 bool __xrtXmlPrepareEvent(xrtxmlsax* pParser, int iType)
 {
-	if ( pParser == NULL || pParser->bFailed ) { return FALSE; }
+	if ( pParser == NULL || pParser->bFailed ) { return false; }
 	xrtXmlEventClear(&pParser->tEvent);
 	pParser->tEvent.iType = iType;
 	pParser->tEvent.iDepth = pParser->iDepth;
 	pParser->tEvent.iLine = (uint64)XML_GetCurrentLineNumber(pParser->pExpat);
 	pParser->tEvent.iColumn = (uint64)XML_GetCurrentColumnNumber(pParser->pExpat);
 	pParser->tEvent.iOffset = (uint64)XML_GetCurrentByteIndex(pParser->pExpat);
-	return TRUE;
+	return true;
 }
 
 bool __xrtXmlEmitEvent(xrtxmlsax* pParser)
 {
 	bool bSuspend;
-	if ( pParser == NULL || pParser->bFailed ) { return FALSE; }
+	if ( pParser == NULL || pParser->bFailed ) { return false; }
 	if ( pParser->pHandler != NULL &&
 		!pParser->pHandler(pParser->pHandlerContext, &pParser->tEvent) ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_CALLBACK,
 			"XML event callback rejected the event");
-		return FALSE;
+		return false;
 	}
 	if ( pParser->bPull ) {
 		xrtxmlevent* pEvents;
@@ -115,7 +116,7 @@ bool __xrtXmlEmitEvent(xrtxmlsax* pParser)
 			if ( pEvents == NULL ) {
 				__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 					"out of memory while queuing XML event");
-				return FALSE;
+				return false;
 			}
 			memset(pEvents + pParser->iPendingCapacity, 0,
 				sizeof(xrtxmlevent) * (iCapacity - pParser->iPendingCapacity));
@@ -134,13 +135,13 @@ bool __xrtXmlEmitEvent(xrtxmlsax* pParser)
 			return pParser->bSuspended;
 		}
 	}
-	return TRUE;
+	return true;
 }
 
 bool __xrtXmlTakePendingEvent(xrtxmlsax* pParser)
 {
 	if ( pParser == NULL || pParser->iPendingIndex >= pParser->iPendingCount ) {
-		return FALSE;
+		return false;
 	}
 	xrtXmlEventClear(&pParser->tEvent);
 	pParser->tEvent = pParser->pPendingEvents[pParser->iPendingIndex];
@@ -151,7 +152,7 @@ bool __xrtXmlTakePendingEvent(xrtxmlsax* pParser)
 		pParser->iPendingIndex = 0u;
 		pParser->iPendingCount = 0u;
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlSplitName(const char* sName, str* psQualified,
@@ -203,9 +204,9 @@ bool __xrtXmlSetEventName(xrtxmlsax* pParser, const XML_Char* sName)
 		&pParser->tEvent.sPrefix) ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 			"out of memory while copying XML name");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 bool __xrtXmlSetEventText(xrtxmlsax* pParser, const XML_Char* sText,
@@ -216,36 +217,36 @@ bool __xrtXmlSetEventText(xrtxmlsax* pParser, const XML_Char* sText,
 		pParser->iTextBytes > pParser->tOptions.tLimits.iMaxOutputBytes - iLength ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
 			"XML text exceeds the configured resource limit");
-		return FALSE;
+		return false;
 	}
 	pParser->tEvent.sText = __xrtXmlDup(sText, (size_t)iLength);
 	if ( pParser->tEvent.sText == NULL ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 			"out of memory while copying XML text");
-		return FALSE;
+		return false;
 	}
 	pParser->iTextBytes += iLength;
-	return TRUE;
+	return true;
 }
 
 bool __xrtXmlSetAttributes(xrtxmlsax* pParser, const XML_Char** pAttributes)
 {
 	uint32 iCount = 0u;
 	uint32 i;
-	if ( pAttributes == NULL ) { return TRUE; }
+	if ( pAttributes == NULL ) { return true; }
 	while ( pAttributes[iCount * 2u] != NULL ) { iCount++; }
 	if ( pParser->iAttributes > pParser->tOptions.tLimits.iMaxEntries - iCount ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
 			"XML attributes exceed the configured resource limit");
-		return FALSE;
+		return false;
 	}
-	if ( iCount == 0u ) { return TRUE; }
+	if ( iCount == 0u ) { return true; }
 	pParser->tEvent.pAttributes = (xrtxmlattribute*)xrtMalloc(
 		sizeof(xrtxmlattribute) * iCount);
 	if ( pParser->tEvent.pAttributes == NULL ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 			"out of memory while allocating XML attributes");
-		return FALSE;
+		return false;
 	}
 	memset(pParser->tEvent.pAttributes, 0, sizeof(xrtxmlattribute) * iCount);
 	pParser->tEvent.iAttributeCount = iCount;
@@ -256,17 +257,17 @@ bool __xrtXmlSetAttributes(xrtxmlsax* pParser, const XML_Char** pAttributes)
 			&pItem->sLocalName, &pItem->sNamespaceUri, &pItem->sPrefix) ) {
 			__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 				"out of memory while copying XML attribute name");
-			return FALSE;
+			return false;
 		}
 		pItem->sValue = __xrtXmlDup(sValue, strlen(sValue));
 		if ( pItem->sValue == NULL ) {
 			__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 				"out of memory while copying XML attribute value");
-			return FALSE;
+			return false;
 		}
 	}
 	pParser->iAttributes += iCount;
-	return TRUE;
+	return true;
 }
 
 void __xrtXmlCopyParserError(const xrtxmlsax* pParser, xrtxmlerror* pError)

@@ -4,60 +4,60 @@
 
 
 
-static bool __xrtIniOutput(xrtiniconfig* pConfig, xbuffer pOutput,
+static bool __xrtIniOutput(xrtiniconfig* pConfig, xbuffer* pOutput,
 	const void* pData, size_t iSize)
 {
-	if ( iSize == 0u ) { return TRUE; }
+	if ( iSize == 0u ) { return true; }
 	if ( iSize > UINT32_MAX ||
 		(pConfig->Options.tLimits.iMaxOutputBytes != 0u &&
 		 ((uint64)iSize > pConfig->Options.tLimits.iMaxOutputBytes ||
-		  pOutput->Length > pConfig->Options.tLimits.iMaxOutputBytes - (uint64)iSize)) ) {
+		  pOutput->Size > pConfig->Options.tLimits.iMaxOutputBytes - (uint64)iSize)) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
 			"INI output exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	if ( !xrtBufferAppend(pOutput, (ptr)pData, (uint32)iSize, XBUF_BINARY) ) {
+	if ( !xrtBufferAppend(pOutput, (xbytesview){ (cbytes)pData, iSize }) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
 			"cannot grow INI output buffer");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-static bool __xrtIniOutputText(xrtiniconfig* pConfig, xbuffer pOutput, const char* sText)
+static bool __xrtIniOutputText(xrtiniconfig* pConfig, xbuffer* pOutput, const char* sText)
 {
 	return __xrtIniOutput(pConfig, pOutput, sText, sText != NULL ? strlen(sText) : 0u);
 }
 
-static bool __xrtIniOutputValue(xrtiniconfig* pConfig, xbuffer pOutput, const char* sValue)
+static bool __xrtIniOutputValue(xrtiniconfig* pConfig, xbuffer* pOutput, const char* sValue)
 {
 	const char* p = sValue != NULL ? sValue : "";
 	const char* pLine = p;
-	bool bFirst = TRUE;
+	bool bFirst = true;
 	for ( ;; ) {
 		const char* pEnd = strchr(pLine, '\n');
 		size_t iLength = pEnd != NULL ? (size_t)(pEnd - pLine) : strlen(pLine);
-		if ( !bFirst && !__xrtIniOutputText(pConfig, pOutput, "    ") ) { return FALSE; }
+		if ( !bFirst && !__xrtIniOutputText(pConfig, pOutput, "    ") ) { return false; }
 		if ( !__xrtIniOutput(pConfig, pOutput, pLine, iLength) ||
-			!__xrtIniOutputText(pConfig, pOutput, "\n") ) { return FALSE; }
+			!__xrtIniOutputText(pConfig, pOutput, "\n") ) { return false; }
 		if ( pEnd == NULL ) { break; }
 		pLine = pEnd + 1;
-		bFirst = FALSE;
+		bFirst = false;
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI xbuffer xrtIniStringify(const xrtiniconfig* pConst)
+XRT_API xbuffer* xrtIniStringify(const xrtiniconfig* pConst)
 {
 	xrtiniconfig* pConfig = (xrtiniconfig*)pConst;
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	uint32 i;
 	uint32 j;
 	if ( pConfig == NULL ) { return NULL; }
 	xrtIniErrorInit(&pConfig->Error);
-	pConfig->Failed = FALSE;
-	pOutput = xrtBufferCreate(4096u);
-	if ( pOutput == NULL ) {
+	pConfig->Failed = false;
+	pOutput = xrtBufferCreate();
+	if ( pOutput == NULL || !xrtBufferReserve(pOutput, 4096u) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
 			"cannot allocate INI output buffer");
 		return NULL;
@@ -92,21 +92,21 @@ XXAPI xbuffer xrtIniStringify(const xrtiniconfig* pConst)
 		xrtBufferDestroy(pOutput);
 		return NULL;
 	}
-	pConfig->OutputBytes = pOutput->Length;
+	pConfig->OutputBytes = pOutput->Size;
 	return pOutput;
 }
 
-XXAPI bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter pWriter, bool bTakeOwnership)
+XRT_API bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter* pWriter, bool bTakeOwnership)
 {
-	xbuffer pOutput;
-	bool bResult = FALSE;
+	xbuffer* pOutput;
+	bool bResult = false;
 	if ( pConfig == NULL || pWriter == NULL ) {
 		if ( bTakeOwnership ) { xrtWriterDestroy(pWriter); }
-		return FALSE;
+		return false;
 	}
 	pOutput = xrtIniStringify(pConfig);
 	if ( pOutput != NULL ) {
-		bResult = xrtWriterWriteAll(pWriter, pOutput->Buffer, pOutput->Length) &&
+		bResult = xrtWriterWriteFull(pWriter, pOutput->Data, pOutput->Size, NULL) &&
 			xrtWriterFlush(pWriter);
 		if ( !bResult ) {
 			__xrtIniSetError((xrtiniconfig*)pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
@@ -118,15 +118,15 @@ XXAPI bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter pWriter, bool bTakeO
 	return bResult;
 }
 
-XXAPI bool xrtIniSave(const xrtiniconfig* pConfig, str sPath)
+XRT_API bool xrtIniSave(const xrtiniconfig* pConfig, str sPath)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	bool bResult;
-	if ( pConfig == NULL || sPath == NULL ) { return FALSE; }
+	if ( pConfig == NULL || sPath == NULL ) { return false; }
 	pOutput = xrtIniStringify(pConfig);
-	if ( pOutput == NULL ) { return FALSE; }
-	bResult = xrtFileWriteAllAtomic(sPath, (str)pOutput->Buffer,
-		pOutput->Length, XRT_CP_BINARY);
+	if ( pOutput == NULL ) { return false; }
+	bResult = xrtFileWriteAll(sPath,
+		(xbytesview){ pOutput->Data, pOutput->Size });
 	if ( !bResult ) {
 		__xrtIniSetError((xrtiniconfig*)pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
 			"cannot save INI file: %s", sPath);

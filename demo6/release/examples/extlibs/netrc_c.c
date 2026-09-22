@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/netrc/include/xrt_netrc.h"
 #include <stdio.h>
 #include <string.h>
@@ -8,33 +10,34 @@ int main(void)
 		"machine api.example.com login agent password token-123\n"
 		"default login guest password guest\n";
 	xrtnetrcerror tError;
-	xvalue pDocument;
-	xvalue pHosts;
-	xvalue pAuth;
-	xbuffer pText;
-	xrtInit();
+	xvalue* pDocument;
+	xvalue* pHosts;
+	xvalue* pAuth;
+	xbuffer* pText;
+	xstrview tLogin;
 	pDocument = xrtNetrcParseMemory(sSource, strlen(sSource), NULL, &tError);
 	if ( pDocument == NULL ) {
 		fprintf(stderr, "%s\n", tError.sMessage);
-		xrtUnit();
 		return 1;
 	}
-	pHosts = xvoTableGetValue(pDocument, "hosts", 5u);
-	pAuth = xvoTableGetValue(pHosts, "api.example.com", 15u);
-	printf("%s@api.example.com\n", (const char*)xvoTableGetText(pAuth,
-		"login", 5u));
-	pText = xrtNetrcStringify(pDocument, NULL, &tError);
-	if ( pText == NULL ) {
-		xvoUnref(pDocument);
-		xrtUnit();
+	pHosts = xrtValueObjectGet(pDocument, xrtStrView("hosts"));
+	pAuth = xrtValueObjectGet(pHosts, xrtStrView("api.example.com"));
+	if ( !xrtValueGetString(xrtValueObjectGet(pAuth, xrtStrView("login")),
+		&tLogin) ) {
+		xrtValueRelease(pDocument);
 		return 2;
 	}
-	fwrite(pText->Buffer, 1u, pText->Length, stdout);
+	printf("%.*s@api.example.com\n", (int)tLogin.Size, tLogin.Data);
+	pText = xrtNetrcStringify(pDocument, NULL, &tError);
+	if ( pText == NULL ) {
+		xrtValueRelease(pDocument);
+		return 3;
+	}
+	fwrite(pText->Data, 1u, pText->Size, stdout);
 	putchar('\n');
 	puts("netrc example: PASS");
 	xrtBufferDestroy(pText);
-	xvoUnref(pDocument);
-	xrtUnit();
+	xrtValueRelease(pDocument);
 	return 0;
 }
 

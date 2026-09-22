@@ -18,7 +18,6 @@ for %%f in (
     static_site_builder.xl
     template_mail_merge.xl
     todo_json_store.xl
-    url_batch_builder.xl
 ) do (
     echo CHECK %%f
     release\xl.exe check "release\examples\apps\%%f"
@@ -35,7 +34,6 @@ for %%f in (
     static_site_builder.xl
     template_mail_merge.xl
     todo_json_store.xl
-    url_batch_builder.xl
 ) do (
     echo RUN %%f
     release\xl.exe run "release\examples\apps\%%f" %XL6_XL_DEFAULT_LINK_ARGS%

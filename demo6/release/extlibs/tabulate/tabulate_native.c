@@ -1,10 +1,8 @@
 /*
  * tabulate_native.c - Terminal table formatting
  */
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 static char tab_buf[16384];
 
 #define TAB_MAX_COLS 32
@@ -22,7 +20,7 @@ typedef struct {
 
 void *xtab_create(void) {
     XTab *t = (XTab *)calloc(1, sizeof(XTab));
-    if (!t) { xrtSetError("tabulate: out of memory", 0); return NULL; }
+    if (!t) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.tabulate", "cannot allocate table"); return NULL; }
     return t;
 }
 

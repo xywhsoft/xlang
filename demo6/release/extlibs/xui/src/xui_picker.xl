@@ -277,16 +277,6 @@ export func xuiComboBoxGetInputWidget(point pWidget) as point
     return __xl6_xuiComboBoxGetInputWidget(pWidget)
 end
 
-extern "xuiComboBoxGetButtonRect" func __xl6_xuiComboBoxGetButtonRect(point pWidget) as point
-export func xuiComboBoxGetButtonRect(point pWidget) as point
-    return __xl6_xuiComboBoxGetButtonRect(pWidget)
-end
-
-extern "xuiComboBoxGetTextRect" func __xl6_xuiComboBoxGetTextRect(point pWidget) as point
-export func xuiComboBoxGetTextRect(point pWidget) as point
-    return __xl6_xuiComboBoxGetTextRect(pWidget)
-end
-
 extern "xuiComboBoxGetState" func __xl6_xuiComboBoxGetState(point pWidget) as c_uint
 export func xuiComboBoxGetState(point pWidget) as c_uint
     return __xl6_xuiComboBoxGetState(pWidget)
@@ -542,26 +532,6 @@ export func xuiCascaderGetColumnCount(point pWidget) as c_int
     return __xl6_xuiCascaderGetColumnCount(pWidget)
 end
 
-extern "xuiCascaderGetItemRect" func __xl6_xuiCascaderGetItemRect(point pWidget, c_int iColumn, c_int iItem) as point
-export func xuiCascaderGetItemRect(point pWidget, c_int iColumn, c_int iItem) as point
-    return __xl6_xuiCascaderGetItemRect(pWidget, iColumn, iItem)
-end
-
-extern "xuiCascaderGetButtonRect" func __xl6_xuiCascaderGetButtonRect(point pWidget) as point
-export func xuiCascaderGetButtonRect(point pWidget) as point
-    return __xl6_xuiCascaderGetButtonRect(pWidget)
-end
-
-extern "xuiCascaderGetClearRect" func __xl6_xuiCascaderGetClearRect(point pWidget) as point
-export func xuiCascaderGetClearRect(point pWidget) as point
-    return __xl6_xuiCascaderGetClearRect(pWidget)
-end
-
-extern "xuiCascaderGetTextRect" func __xl6_xuiCascaderGetTextRect(point pWidget) as point
-export func xuiCascaderGetTextRect(point pWidget) as point
-    return __xl6_xuiCascaderGetTextRect(pWidget)
-end
-
 extern "xuiCascaderGetState" func __xl6_xuiCascaderGetState(point pWidget) as c_uint
 export func xuiCascaderGetState(point pWidget) as c_uint
     return __xl6_xuiCascaderGetState(pWidget)
@@ -762,56 +732,6 @@ export func xuiColorPickerGetPanelWidget(point pWidget) as point
     return __xl6_xuiColorPickerGetPanelWidget(pWidget)
 end
 
-extern "xuiColorPickerGetSwatchRect" func __xl6_xuiColorPickerGetSwatchRect(point pWidget) as point
-export func xuiColorPickerGetSwatchRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetSwatchRect(pWidget)
-end
-
-extern "xuiColorPickerGetButtonRect" func __xl6_xuiColorPickerGetButtonRect(point pWidget) as point
-export func xuiColorPickerGetButtonRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetButtonRect(pWidget)
-end
-
-extern "xuiColorPickerGetTextRect" func __xl6_xuiColorPickerGetTextRect(point pWidget) as point
-export func xuiColorPickerGetTextRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetTextRect(pWidget)
-end
-
-extern "xuiColorPickerGetSvRect" func __xl6_xuiColorPickerGetSvRect(point pWidget) as point
-export func xuiColorPickerGetSvRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetSvRect(pWidget)
-end
-
-extern "xuiColorPickerGetHueRect" func __xl6_xuiColorPickerGetHueRect(point pWidget) as point
-export func xuiColorPickerGetHueRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetHueRect(pWidget)
-end
-
-extern "xuiColorPickerGetAlphaRect" func __xl6_xuiColorPickerGetAlphaRect(point pWidget) as point
-export func xuiColorPickerGetAlphaRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetAlphaRect(pWidget)
-end
-
-extern "xuiColorPickerGetHexRect" func __xl6_xuiColorPickerGetHexRect(point pWidget) as point
-export func xuiColorPickerGetHexRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetHexRect(pWidget)
-end
-
-extern "xuiColorPickerGetOldRect" func __xl6_xuiColorPickerGetOldRect(point pWidget) as point
-export func xuiColorPickerGetOldRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetOldRect(pWidget)
-end
-
-extern "xuiColorPickerGetNewRect" func __xl6_xuiColorPickerGetNewRect(point pWidget) as point
-export func xuiColorPickerGetNewRect(point pWidget) as point
-    return __xl6_xuiColorPickerGetNewRect(pWidget)
-end
-
-extern "xuiColorPickerGetPaletteRect" func __xl6_xuiColorPickerGetPaletteRect(point pWidget, c_int iIndex) as point
-export func xuiColorPickerGetPaletteRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiColorPickerGetPaletteRect(pWidget, iIndex)
-end
-
 extern "xuiColorPickerGetHoverPart" func __xl6_xuiColorPickerGetHoverPart(point pWidget) as c_int
 export func xuiColorPickerGetHoverPart(point pWidget) as c_int
     return __xl6_xuiColorPickerGetHoverPart(pWidget)
@@ -865,11 +785,6 @@ end
 extern "xuiIconPickerSetSelectedId" func __xl6_xuiIconPickerSetSelectedId(point pWidget, point iId) as c_int
 export func xuiIconPickerSetSelectedId(point pWidget, point iId) as c_int
     return __xl6_xuiIconPickerSetSelectedId(pWidget, iId)
-end
-
-extern "xuiIconPickerGetSelectedId" func __xl6_xuiIconPickerGetSelectedId(point pWidget) as point
-export func xuiIconPickerGetSelectedId(point pWidget) as point
-    return __xl6_xuiIconPickerGetSelectedId(pWidget)
 end
 
 extern "xuiIconPickerGetSelectedIcon" func __xl6_xuiIconPickerGetSelectedIcon(point pWidget) as point
@@ -935,11 +850,6 @@ end
 extern "xuiIconPickerSetValuePadding" func __xl6_xuiIconPickerSetValuePadding(point pWidget, point tPadding) as c_int
 export func xuiIconPickerSetValuePadding(point pWidget, point tPadding) as c_int
     return __xl6_xuiIconPickerSetValuePadding(pWidget, tPadding)
-end
-
-extern "xuiIconPickerGetValuePadding" func __xl6_xuiIconPickerGetValuePadding(point pWidget) as point
-export func xuiIconPickerGetValuePadding(point pWidget) as point
-    return __xl6_xuiIconPickerGetValuePadding(pWidget)
 end
 
 extern "xuiIconPickerSetPopupPlacement" func __xl6_xuiIconPickerSetPopupPlacement(point pWidget, c_int iPlacement) as c_int
@@ -1062,21 +972,6 @@ export func xuiIconPickerGetViewportWidget(point pWidget) as point
     return __xl6_xuiIconPickerGetViewportWidget(pWidget)
 end
 
-extern "xuiIconPickerGetButtonRect" func __xl6_xuiIconPickerGetButtonRect(point pWidget) as point
-export func xuiIconPickerGetButtonRect(point pWidget) as point
-    return __xl6_xuiIconPickerGetButtonRect(pWidget)
-end
-
-extern "xuiIconPickerGetValueRect" func __xl6_xuiIconPickerGetValueRect(point pWidget) as point
-export func xuiIconPickerGetValueRect(point pWidget) as point
-    return __xl6_xuiIconPickerGetValueRect(pWidget)
-end
-
-extern "xuiIconPickerGetItemRect" func __xl6_xuiIconPickerGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiIconPickerGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiIconPickerGetItemRect(pWidget, iIndex)
-end
-
 extern "xuiIconPickerGetHoverIndex" func __xl6_xuiIconPickerGetHoverIndex(point pWidget) as c_int
 export func xuiIconPickerGetHoverIndex(point pWidget) as c_int
     return __xl6_xuiIconPickerGetHoverIndex(pWidget)
@@ -1155,11 +1050,6 @@ end
 extern "xuiDatePickerSetValue" func __xl6_xuiDatePickerSetValue(point pWidget, point tValue) as c_int
 export func xuiDatePickerSetValue(point pWidget, point tValue) as c_int
     return __xl6_xuiDatePickerSetValue(pWidget, tValue)
-end
-
-extern "xuiDatePickerGetValue" func __xl6_xuiDatePickerGetValue(point pWidget) as point
-export func xuiDatePickerGetValue(point pWidget) as point
-    return __xl6_xuiDatePickerGetValue(pWidget)
 end
 
 extern "xuiDatePickerHasValue" func __xl6_xuiDatePickerHasValue(point pWidget) as c_int
@@ -1250,11 +1140,6 @@ end
 extern "xuiDatePickerSetDefaultRangeSpan" func __xl6_xuiDatePickerSetDefaultRangeSpan(point pWidget, point tSpan) as c_int
 export func xuiDatePickerSetDefaultRangeSpan(point pWidget, point tSpan) as c_int
     return __xl6_xuiDatePickerSetDefaultRangeSpan(pWidget, tSpan)
-end
-
-extern "xuiDatePickerGetDefaultRangeSpan" func __xl6_xuiDatePickerGetDefaultRangeSpan(point pWidget) as point
-export func xuiDatePickerGetDefaultRangeSpan(point pWidget) as point
-    return __xl6_xuiDatePickerGetDefaultRangeSpan(pWidget)
 end
 
 extern "xuiDatePickerOpen" func __xl6_xuiDatePickerOpen(point pWidget) as c_int
@@ -1370,56 +1255,6 @@ end
 extern "xuiDatePickerGetPanelWidget" func __xl6_xuiDatePickerGetPanelWidget(point pWidget) as point
 export func xuiDatePickerGetPanelWidget(point pWidget) as point
     return __xl6_xuiDatePickerGetPanelWidget(pWidget)
-end
-
-extern "xuiDatePickerGetButtonRect" func __xl6_xuiDatePickerGetButtonRect(point pWidget) as point
-export func xuiDatePickerGetButtonRect(point pWidget) as point
-    return __xl6_xuiDatePickerGetButtonRect(pWidget)
-end
-
-extern "xuiDatePickerGetTextRect" func __xl6_xuiDatePickerGetTextRect(point pWidget) as point
-export func xuiDatePickerGetTextRect(point pWidget) as point
-    return __xl6_xuiDatePickerGetTextRect(pWidget)
-end
-
-extern "xuiDatePickerGetCalendarPanelRect" func __xl6_xuiDatePickerGetCalendarPanelRect(point pWidget, c_int iPanel) as point
-export func xuiDatePickerGetCalendarPanelRect(point pWidget, c_int iPanel) as point
-    return __xl6_xuiDatePickerGetCalendarPanelRect(pWidget, iPanel)
-end
-
-extern "xuiDatePickerGetTimePanelRect" func __xl6_xuiDatePickerGetTimePanelRect(point pWidget, c_int iPanel) as point
-export func xuiDatePickerGetTimePanelRect(point pWidget, c_int iPanel) as point
-    return __xl6_xuiDatePickerGetTimePanelRect(pWidget, iPanel)
-end
-
-extern "xuiDatePickerGetPrevRect" func __xl6_xuiDatePickerGetPrevRect(point pWidget, c_int iPanel) as point
-export func xuiDatePickerGetPrevRect(point pWidget, c_int iPanel) as point
-    return __xl6_xuiDatePickerGetPrevRect(pWidget, iPanel)
-end
-
-extern "xuiDatePickerGetNextRect" func __xl6_xuiDatePickerGetNextRect(point pWidget, c_int iPanel) as point
-export func xuiDatePickerGetNextRect(point pWidget, c_int iPanel) as point
-    return __xl6_xuiDatePickerGetNextRect(pWidget, iPanel)
-end
-
-extern "xuiDatePickerGetDayRect" func __xl6_xuiDatePickerGetDayRect(point pWidget, c_int iPanel, c_int iIndex) as point
-export func xuiDatePickerGetDayRect(point pWidget, c_int iPanel, c_int iIndex) as point
-    return __xl6_xuiDatePickerGetDayRect(pWidget, iPanel, iIndex)
-end
-
-extern "xuiDatePickerGetDayValue" func __xl6_xuiDatePickerGetDayValue(point pWidget, c_int iPanel, c_int iIndex) as point
-export func xuiDatePickerGetDayValue(point pWidget, c_int iPanel, c_int iIndex) as point
-    return __xl6_xuiDatePickerGetDayValue(pWidget, iPanel, iIndex)
-end
-
-extern "xuiDatePickerGetTimeRect" func __xl6_xuiDatePickerGetTimeRect(point pWidget, c_int iPanel, c_int iField) as point
-export func xuiDatePickerGetTimeRect(point pWidget, c_int iPanel, c_int iField) as point
-    return __xl6_xuiDatePickerGetTimeRect(pWidget, iPanel, iField)
-end
-
-extern "xuiDatePickerGetFooterRect" func __xl6_xuiDatePickerGetFooterRect(point pWidget, c_int iIndex) as point
-export func xuiDatePickerGetFooterRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiDatePickerGetFooterRect(pWidget, iIndex)
 end
 
 extern "xuiDatePickerGetHoverPart" func __xl6_xuiDatePickerGetHoverPart(point pWidget) as c_int

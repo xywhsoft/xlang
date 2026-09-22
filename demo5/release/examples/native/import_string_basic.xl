@@ -1,8 +1,0 @@
-import "std/str"
-
-func main() as int
-	if str.contains("alphabet", "pha") == false
-		return 1
-	end
-	return 0
-end

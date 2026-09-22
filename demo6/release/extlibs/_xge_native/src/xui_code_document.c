@@ -1,4 +1,4 @@
-#include "../xui.h"
+#include "xui_internal.h"
 
 #include <limits.h>
 #include <string.h>
@@ -65,6 +65,18 @@ struct xui_code_document_t {
 };
 
 static int __xuiCodeDocumentRebuildLines(xui_code_document pDocument);
+static unsigned char __xuiCodeDocumentByteAt(xui_code_document pDocument, int iOffset);
+
+static int __xuiCodeDocumentUnicodeRead(void* pUser, int iOffset, unsigned char* pByte)
+{
+	xui_code_document pDocument;
+
+	pDocument = (xui_code_document)pUser;
+	if ( pDocument == NULL || pByte == NULL ||
+	     iOffset < 0 || iOffset >= pDocument->iLength ) return 0;
+	*pByte = __xuiCodeDocumentByteAt(pDocument, iOffset);
+	return 1;
+}
 
 static void __xuiCodeDocumentMaterializeLineShift(xui_code_document pDocument)
 {
@@ -151,31 +163,16 @@ static void __xuiCodeDocumentSetError(xui_code_document pDocument, const char* s
 
 static int __xuiCodeDocumentUtf8Next(xui_code_document pDocument, int iOffset)
 {
-	unsigned char c;
-	int iStep;
-
 	if ( pDocument == NULL ) return 0;
-	if ( iOffset < 0 ) return 0;
-	if ( iOffset >= pDocument->iLength ) return pDocument->iLength;
-	c = __xuiCodeDocumentByteAt(pDocument, iOffset);
-	if ( c < 0x80u ) iStep = 1;
-	else if ( (c & 0xE0u) == 0xC0u ) iStep = 2;
-	else if ( (c & 0xF0u) == 0xE0u ) iStep = 3;
-	else if ( (c & 0xF8u) == 0xF0u ) iStep = 4;
-	else iStep = 1;
-	if ( iOffset + iStep > pDocument->iLength ) return pDocument->iLength;
-	return iOffset + iStep;
+	return xuiInternalTextGraphemeNextRead(__xuiCodeDocumentUnicodeRead,
+		pDocument, pDocument->iLength, iOffset);
 }
 
 static int __xuiCodeDocumentClampOffset(xui_code_document pDocument, int iOffset)
 {
 	if ( pDocument == NULL ) return 0;
-	if ( iOffset <= 0 ) return 0;
-	if ( iOffset >= pDocument->iLength ) return pDocument->iLength;
-	while ( iOffset > 0 && (__xuiCodeDocumentByteAt(pDocument, iOffset) & 0xC0u) == 0x80u ) {
-		iOffset--;
-	}
-	return iOffset;
+	return xuiInternalTextGraphemeClampRead(__xuiCodeDocumentUnicodeRead,
+		pDocument, pDocument->iLength, iOffset);
 }
 
 static int __xuiCodeDocumentReserveSnapshot(xui_code_document pDocument, int iCapacity)
@@ -565,7 +562,7 @@ static int __xuiCodeDocumentValidateUtf8(xui_code_document pDocument, const char
 {
 	if ( sText == NULL ) return XUI_OK;
 	if ( iLength < 0 ) iLength = (int)strlen(sText);
-	if ( !xrtIsUTF8((str)sText, (size_t)iLength) ) {
+	if ( !xrtUtf8Valid(xrtStrViewN(sText, (size_t)iLength), NULL) ) {
 		__xuiCodeDocumentSetError(pDocument, "invalid UTF-8 input");
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
@@ -897,9 +894,19 @@ XUI_API int xuiCodeDocumentCopyRange(xui_code_document pDocument,
 	return XUI_OK;
 }
 
-XUI_API int xuiCodeDocumentLoadTextFile(xui_code_document pDocument, const char* sPath, int iCharset)
+/* 读取 Unicode 文本文件并转换为文档内部使用的 UTF-8。 */
+XUI_API int xuiCodeDocumentLoadTextFile(
+	xui_code_document pDocument,
+	const char* sPath,
+	xencoding Encoding
+)
 {
+	bytes pFile;
+	bytes pConverted;
+	xbytesview Source;
+	xencoding Detected;
 	char* sText;
+	size_t iBomSize;
 	size_t iSize;
 	int iLength;
 	int iRet;
@@ -907,11 +914,52 @@ XUI_API int xuiCodeDocumentLoadTextFile(xui_code_document pDocument, const char*
 	if ( (pDocument == NULL) || (sPath == NULL) || (sPath[0] == '\0') ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	iSize = 0;
-	sText = (char*)xrtFileReadAll((str)sPath, iCharset, &iSize);
-	if ( sText == NULL ) {
+	if ( (Encoding < XENCODING_UNKNOWN) || (Encoding > XENCODING_UTF32_BE) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iSize = 0u;
+	pFile = xrtFileReadAll(sPath, &iSize);
+	if ( pFile == NULL ) {
 		__xuiCodeDocumentSetError(pDocument, "file read failed");
 		return XUI_ERROR_FILE_NOT_FOUND;
+	}
+	Source.Data = pFile;
+	Source.Size = iSize;
+	iBomSize = 0u;
+	Detected = xrtEncodingBom(Source, &iBomSize);
+	if ( Encoding == XENCODING_UNKNOWN ) {
+		Encoding = (Detected != XENCODING_UNKNOWN) ? Detected : XENCODING_UTF8;
+	} else if ( (Detected != XENCODING_UNKNOWN) && (Detected != Encoding) ) {
+		__xuiCodeDocumentSetError(pDocument, "file encoding BOM mismatch");
+		xrtFree(pFile);
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( Detected == Encoding ) {
+		Source.Data += iBomSize;
+		Source.Size -= iBomSize;
+	}
+	if ( Encoding == XENCODING_UTF8 ) {
+		if ( Source.Data != pFile ) {
+			memmove(pFile, Source.Data, Source.Size);
+		}
+		pFile[Source.Size] = 0u;
+		sText = (char*)pFile;
+		iSize = Source.Size;
+	} else {
+		pConverted = xrtTranscode(
+			Source,
+			Encoding,
+			XENCODING_UTF8,
+			XUTF_STRICT,
+			false,
+			&iSize
+		);
+		xrtFree(pFile);
+		if ( pConverted == NULL ) {
+			__xuiCodeDocumentSetError(pDocument, "file decode failed");
+			return XUI_ERROR_RESOURCE_FAILED;
+		}
+		sText = (char*)pConverted;
 	}
 	if ( iSize > (size_t)INT_MAX ) {
 		__xuiCodeDocumentSetError(pDocument, "file too large");
@@ -944,15 +992,51 @@ XUI_API int xuiCodeDocumentLoadTextFile(xui_code_document pDocument, const char*
 	return iRet;
 }
 
-XUI_API int xuiCodeDocumentSaveTextFile(xui_code_document pDocument, const char* sPath, int iCharset)
+/* 将 UTF-8 文档保存为指定 Unicode 编码。 */
+XUI_API int xuiCodeDocumentSaveTextFile(
+	xui_code_document pDocument,
+	const char* sPath,
+	xencoding Encoding
+)
 {
-	int iRet;
+	bytes pOutput;
+	xbytesview Data;
+	xbytesview Source;
+	size_t iOutputSize;
+	bool bRet;
 
 	if ( (pDocument == NULL) || (sPath == NULL) || (sPath[0] == '\0') ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	iRet = xrtFileWriteAll((str)sPath, (str)xuiCodeDocumentGetText(pDocument), (size_t)pDocument->iLength, iCharset);
-	if ( iRet == 0 && pDocument->iLength > 0 ) {
+	if ( Encoding == XENCODING_UNKNOWN ) Encoding = XENCODING_UTF8;
+	if ( (Encoding < XENCODING_UTF8) || (Encoding > XENCODING_UTF32_BE) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	Source.Data = (const unsigned char*)xuiCodeDocumentGetText(pDocument);
+	Source.Size = (size_t)pDocument->iLength;
+	pOutput = NULL;
+	if ( Encoding == XENCODING_UTF8 ) {
+		Data = Source;
+	} else {
+		iOutputSize = 0u;
+		pOutput = xrtTranscode(
+			Source,
+			XENCODING_UTF8,
+			Encoding,
+			XUTF_STRICT,
+			true,
+			&iOutputSize
+		);
+		if ( pOutput == NULL ) {
+			__xuiCodeDocumentSetError(pDocument, "file encode failed");
+			return XUI_ERROR_RESOURCE_FAILED;
+		}
+		Data.Data = pOutput;
+		Data.Size = iOutputSize;
+	}
+	bRet = xrtFileWriteAll(sPath, Data);
+	if ( pOutput != NULL ) xrtFree(pOutput);
+	if ( !bRet ) {
 		__xuiCodeDocumentSetError(pDocument, "file write failed");
 		return XUI_ERROR_RESOURCE_FAILED;
 	}

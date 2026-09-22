@@ -5,9 +5,7 @@
  * Uses 16-bit fingerprints, 4 entries per bucket, partial-key cuckoo hashing.
  */
 
-#include <stdlib.h>
-#include <string.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 /* ------------------------------------------------------------------ */
 /* Hashing                                                             */
 /* ------------------------------------------------------------------ */
@@ -62,7 +60,7 @@ void *xcuckoo_create(long long capacity) {
     unsigned long long total_entries;
 
     if (capacity <= 0) {
-        xrtSetError("cuckoo: capacity must be positive", 0);
+        xl6ExtlibError(XL6_EXTERR_ARGUMENT, "xlang.extlib.cuckoo", "cuckoo capacity must be positive");
         return NULL;
     }
 
@@ -80,13 +78,13 @@ void *xcuckoo_create(long long capacity) {
 
     cf = (XCuckoo *)calloc(1, sizeof(XCuckoo));
     if (!cf) {
-        xrtSetError("cuckoo: out of memory", 0);
+        xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.cuckoo", "cannot allocate cuckoo filter");
         return NULL;
     }
     cf->buckets = (unsigned short *)calloc(total_entries, sizeof(unsigned short));
     if (!cf->buckets) {
         free(cf);
-        xrtSetError("cuckoo: out of memory for buckets", 0);
+        xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.cuckoo", "cannot allocate cuckoo buckets");
         return NULL;
     }
     cf->nbuckets = nbuckets;
@@ -190,7 +188,7 @@ int xcuckoo_add(void *ptr, const char *data, long long len) {
         }
     }
 
-    xrtSetError("cuckoo: filter is full", 0);
+    xl6ExtlibError(XL6_EXTERR_VALUE, "xlang.extlib.cuckoo", "cuckoo filter is full");
     return 0;
 }
 

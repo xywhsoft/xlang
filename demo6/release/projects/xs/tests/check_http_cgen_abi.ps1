@@ -22,11 +22,11 @@ Invoke-Cgen "projects\xs\tests\xrt_owned_tls.xl" $tlsOut
 $plain = Get-Content -LiteralPath $plainOut -Raw -Encoding UTF8
 $tls = Get-Content -LiteralPath $tlsOut -Raw -Encoding UTF8
 
-if ( !$plain.Contains("xrtWebServerCreateHostFullEx(") ) {
-    throw "plain HTTP cgen does not use the stable scalar XRT constructor"
+if ( !$plain.Contains("xrtHttpServerMuxStart(") ) {
+    throw "plain HTTP cgen does not use the current XRT HTTP server constructor"
 }
-if ( !$tls.Contains("xrtWebServerCreateHostTlsFullEx(") ) {
-    throw "TLS HTTP cgen does not use the stable scalar XRT constructor"
+if ( !$tls.Contains("xrtHttpServerMuxStartTls(") ) {
+    throw "TLS HTTP cgen does not use the current XRT TLS server constructor"
 }
 
 $generated = $plain + "`n" + $tls

@@ -1,0 +1,139 @@
+import xhttp.protocol
+import xhttp.multipart
+from xhttp.protocol import Headers
+from xhttp.multipart import MultipartBoundary, MultipartEvent, MultipartLimits
+from xhttp.multipart import MultipartParser, MultipartPart, MultipartReader
+from xhttp.multipart import MultipartWriter
+
+
+
+func append(Buffer output, Buffer data)
+    assert output.append(data)
+end
+
+
+
+func main(...) as int
+    MultipartBoundary boundary = MultipartBoundary.parse("xlang-test-boundary")
+    assert boundary.text == "xlang-test-boundary"
+    assert boundary.nativeHandle() != null
+
+    MultipartBoundary fromType = MultipartBoundary.fromContentType(
+        "multipart/form-data; boundary=\"xlang-test-boundary\"")
+    assert fromType.text == boundary.text
+    assert MultipartBoundary.random().text.byteLen() == 45
+
+    MultipartWriter writer = MultipartWriter(boundary)
+	assert writer.contentType == "multipart/form-data; boundary=\"xlang-test-boundary\""
+
+    Buffer fileBody = Buffer()
+    assert fileBody.append("binary")
+    assert fileBody.appendByte(0)
+    assert fileBody.append("data")
+
+    Buffer body = Buffer()
+    append(body, writer.fieldText("message", "hello"))
+    append(body, writer.file(
+        "upload", "sample.bin", fileBody, "application/octet-stream"))
+    append(body, writer.close())
+
+    MultipartParser parser = MultipartParser.parse(
+        body, boundary, MultipartLimits(maxParts = 4, maxBodyBytes = 4096))
+    MultipartPart? firstMaybe = parser.next()
+    assert firstMaybe != null
+    MultipartPart first = firstMaybe as MultipartPart
+    assert first.isFormData
+    assert (first.name ?? "") == "message"
+    assert first.fileName == null
+    assert first.body().text() == "hello"
+    assert first.headerCount == 1
+    assert first.headers().get("Content-Disposition") != null
+    assert string.contains(first.rawHeaders(), "form-data")
+
+    MultipartPart? secondMaybe = parser.next()
+    assert secondMaybe != null
+    MultipartPart second = secondMaybe as MultipartPart
+    assert (second.name ?? "") == "upload"
+    assert (second.fileName ?? "") == "sample.bin"
+    assert (second.contentType ?? "") == "application/octet-stream"
+    assert second.size == 11
+    assert second.body() == fileBody
+    assert parser.next() == null
+    assert parser.done
+    assert parser.parts == 2
+    assert not parser.failed
+
+    assert parser.reset()
+    int count = 0
+    for part in parser
+        MultipartPart item = part
+        assert item.nativeHandle() != null
+        count += 1
+    end
+    assert count == 2
+
+    Headers rawHeaders = Headers()
+    assert rawHeaders.add("Content-Type", "text/plain")
+    Buffer rawBody = Buffer()
+    assert rawBody.append("raw")
+    Buffer segmented = Buffer()
+    append(segmented, writer.partHead(rawHeaders))
+    append(segmented, rawBody)
+    append(segmented, writer.partEnd())
+    append(segmented, writer.close())
+    MultipartPart? rawMaybe = MultipartParser.borrow(
+        segmented, boundary).next()
+    assert rawMaybe != null
+    MultipartPart raw = rawMaybe as MultipartPart
+    assert raw.name == null
+    assert (raw.contentType ?? "") == "text/plain"
+    assert raw.body().text() == "raw"
+
+    MultipartReader reader = MultipartReader.open(
+        boundary, MultipartLimits(maxParts = 4, maxBodyBytes = 4096))
+    int offset = 0
+    int streamParts = 0
+    Buffer streamed = Buffer()
+    while not reader.done
+        MultipartEvent event = reader.read(
+            body, offset, body.len() - offset, true)
+        offset += event.consumed
+        if event.status == xhttp.multipart.MULTIPART_READ_PART then
+            MultipartPart? itemMaybe = event.part()
+            assert itemMaybe != null
+            MultipartPart item = itemMaybe as MultipartPart
+            assert item.name != null
+            streamParts += 1
+        elseif event.status == xhttp.multipart.MULTIPART_READ_DATA then
+            Buffer? dataMaybe = event.buffer()
+            assert dataMaybe != null
+            Buffer data = dataMaybe as Buffer
+            append(streamed, data)
+        elseif event.status == xhttp.multipart.MULTIPART_READ_ERROR then
+            assert false, xhttp.multipart.lastError()
+        end
+    end
+    assert streamParts == 2
+    assert streamed.len() == 16
+    assert streamed.byteAt(0) == 104
+    assert streamed.byteAt(4) == 111
+    assert streamed.byteAt(11) == 0
+    assert streamed.byteAt(15) == 97
+    assert reader.bodyBytes == streamed.len()
+    assert reader.parts == 2
+    assert reader.wireBytes == body.len()
+
+    bool limited = false
+    try
+        MultipartParser.parse(
+            body,
+            boundary,
+            MultipartLimits(maxParts = 1, maxBodyBytes = 4096))
+    catch error
+        limited = true
+    end
+    assert limited
+
+    println("xhttp.multipart package ok")
+    return 0
+end

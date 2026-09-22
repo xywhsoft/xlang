@@ -1,6 +1,6 @@
-/* Shared public-XRT adapters. Dependencies are selected by verified IR
- * operations. Visitor arguments are owned events; the callable is borrowed.
- * Writer scalar/destructor representation is explicit backend ABI input. */
+/* Public-XRT adapters selected by verified XLIR operations. Visitor arguments
+ * are owned events, the callable is borrowed, and writer scalars/destruction
+ * use the canonical XLIR physical ABI. */
 static const char xl6XsonView[] =
     "static xstrview xl6_xson_view(const char* text)\n"
     "{\n"
@@ -346,7 +346,7 @@ static const char xl6XsonWriter[] =
     "}\n"
     "\n";
 
-void xl6CgenEmitXsonRuntime(XL6_Output* out, unsigned operations, int xlirAbi)
+void xl6CgenEmitXsonRuntime(XL6_Output* out, unsigned operations)
 {
     if (out == NULL || operations == 0) return;
     xl6OutputPuts("extern size_t strlen(const char*);\n", out);
@@ -365,9 +365,9 @@ void xl6CgenEmitXsonRuntime(XL6_Output* out, unsigned operations, int xlirAbi)
         xl6OutputPuts(xl6XsonVisitor, out);
     }
     if (operations & XL6_CGEN_XSON_WRITER) {
-        xl6OutputPuts(xlirAbi
-            ? "#define XL6_XSON_BOOL bool\n#define XL6_XSON_INT int64_t\n#define XL6_XSON_DESTROY void\n#define XL6_XSON_DESTROY_RETURN return\n"
-            : "#define XL6_XSON_BOOL int\n#define XL6_XSON_INT long long\n#define XL6_XSON_DESTROY long long\n#define XL6_XSON_DESTROY_RETURN return 0\n", out);
+        xl6OutputPuts(
+            "#define XL6_XSON_BOOL bool\n#define XL6_XSON_INT int64_t\n#define XL6_XSON_DESTROY void\n#define XL6_XSON_DESTROY_RETURN return\n",
+            out);
         xl6OutputPuts(xl6XsonWriter, out);
         xl6OutputPuts("#undef XL6_XSON_BOOL\n#undef XL6_XSON_INT\n#undef XL6_XSON_DESTROY\n#undef XL6_XSON_DESTROY_RETURN\n", out);
     }

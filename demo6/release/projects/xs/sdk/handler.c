@@ -1,5 +1,8 @@
 #include "../include/xs_handler.h"
+#define XRT_MODULE_STRING
 #include "xrt.h"
+
+#include <string.h>
 
 void* xs2_handler_frame_wrap(void* frame)
 {
@@ -76,9 +79,9 @@ void* xs2_handler_frame_text_copy(void* frame)
     xs_handler_frame* value = (xs_handler_frame*)frame;
 
     if ( !xsHandlerFrameHasData(value) || value->data == NULL || value->data_size == 0u ) {
-        return xrtCopyStr((str)(void*)"", 0u);
+        return xrtStrDup("");
     }
-    return xrtCopyStr((str)(void*)value->data, value->data_size);
+    return xrtStrDupN((cstr)value->data, value->data_size);
 }
 
 int xs2_handler_frame_cancelled(void* frame)
@@ -108,7 +111,7 @@ int xs2_handler_frame_write_text(void* frame, const char* text)
 int xs2_handler_frame_append_text(void* frame, const char* text)
 {
     xs_handler_frame* value = (xs_handler_frame*)frame;
-    size_t size = text != NULL ? xrtStrByteLen(text, 0u) : 0u;
+    size_t size = text != NULL ? strlen(text) : 0u;
     return xsHandlerApiHasBinaryOutput(value != NULL ? value->api : NULL)
         ? value->api->append_output(value, text, size)
         : 0;

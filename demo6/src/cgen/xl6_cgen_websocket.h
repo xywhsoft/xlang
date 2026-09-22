@@ -3,10 +3,8 @@
 
 #include "src/common/xl6_output.h"
 
-/* WebSocket protocol and stream wrappers are generated-program runtime
- * components shared by both C backends.  The caller supplies an already
- * resolved component closure; this emitter never discovers features from
- * source names or generated C text. */
+/* The caller supplies an XLIR-verified WebSocket component closure; this
+ * emitter never discovers features from source names or generated C text. */
 void xl6CgenEmitWebSocketProtocolRuntime(
     XL6_Output* out,
     int hasFrame,
@@ -14,7 +12,6 @@ void xl6CgenEmitWebSocketProtocolRuntime(
     int hasUpgrade,
     int hasStreamConfig,
     int hasStream,
-    int hasStreamTls,
-    int xlirAbi);
+    int hasStreamTls);
 
 #endif

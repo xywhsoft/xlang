@@ -1,3 +1,6 @@
+/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_csv.h"
 
 #include <stdio.h>
@@ -34,13 +37,13 @@ static bool shortRead(ptr pContext, ptr pBuffer, uint64 iRequest, uint64* pRead)
 		pSource->Position += iSize;
 	}
 	*pRead = iSize;
-	return TRUE;
+	return true;
 }
 
 static bool shortClose(ptr pContext)
 {
 	(void)pContext;
-	return TRUE;
+	return true;
 }
 
 static int fieldEquals(const xrtcsvrow* pRow, uint32 iIndex, const char* sExpected)
@@ -58,7 +61,7 @@ static int testReader(void)
 		",\r\n"
 		"\r\n";
 	short_reader tSource;
-	xreader_ops tOps;
+	xreaderops tOps;
 	xrtcsvdialect tDialect;
 	xrtcsvreader* pReader;
 	xrtcsvrow tRow;
@@ -72,7 +75,7 @@ static int testReader(void)
 	tSource.Chunk = 2u;
 	xrtCsvDialectInit(&tDialect);
 	tDialect.tLimits.iMaxInputBytes = sizeof(sCsv) - 1u;
-	pReader = xrtCsvReaderCreate(xrtReaderCreate(&tOps, &tSource), TRUE, &tDialect);
+	pReader = xrtCsvReaderCreate(xrtReaderCreate(&tOps, &tSource), true, &tDialect);
 
 	bOk &= check(xrtCsvReaderNext(pReader, &tRow) && tRow.iRow == 0u &&
 		tRow.iCount == 3u && fieldEquals(&tRow, 0u, "name") &&
@@ -162,11 +165,11 @@ static int testWriterRoundTrip(void)
 	xrtcsvwriter* pWriter;
 	xrtcsvreader* pReader;
 	xrtcsvrow tRow;
-	xbuffer pData;
+	xbuffer* pData;
 	int bOk = 1;
 	xrtCsvDialectInit(&tDialect);
 	tDialect.iNewline = XRT_CSV_NEWLINE_CRLF;
-	tDialect.bWriteBOM = TRUE;
+	tDialect.bWriteBOM = true;
 	pWriter = xrtCsvWriterCreateMemory(&tDialect);
 	bOk &= check(pWriter != NULL && xrtCsvWriterError(pWriter)->iCode == XRT_CSV_OK,
 		"cannot create CSV memory writer");
@@ -176,12 +179,12 @@ static int testWriterRoundTrip(void)
 		xrtCsvWriterError(pWriter)->sMessage);
 	bOk &= check(xrtCsvWriterClose(pWriter), xrtCsvWriterError(pWriter)->sMessage);
 	pData = xrtCsvWriterTakeBuffer(pWriter);
-	bOk &= check(pData != NULL && pData->Length > 3u &&
-		memcmp(pData->Buffer, "\xef\xbb\xbf", 3u) == 0,
+	bOk &= check(pData != NULL && pData->Size > 3u &&
+		memcmp(pData->Data, "\xef\xbb\xbf", 3u) == 0,
 		"CSV BOM was not written");
 	xrtCsvWriterDestroy(pWriter);
 
-	pReader = xrtCsvReaderOpenMemory(pData->Buffer, pData->Length, NULL);
+	pReader = xrtCsvReaderOpenMemory(pData->Data, pData->Size, NULL);
 	bOk &= check(xrtCsvReaderNext(pReader, &tRow) && tRow.iCount == 3u &&
 		fieldEquals(&tRow, 0u, "name"), "written header cannot be parsed");
 	bOk &= check(xrtCsvReaderNext(pReader, &tRow) && tRow.iCount == 3u &&
@@ -200,17 +203,17 @@ static int testWriterOptionsAndLimits(void)
 	const str sFields[] = { (str)"a", (str)"b,c" };
 	xrtcsvdialect tDialect;
 	xrtcsvwriter* pWriter;
-	xbuffer pData;
+	xbuffer* pData;
 	int bOk = 1;
 	xrtCsvDialectInit(&tDialect);
 	tDialect.iDelimiter = ';';
-	tDialect.bQuoteAll = TRUE;
+	tDialect.bQuoteAll = true;
 	pWriter = xrtCsvWriterCreateMemory(&tDialect);
 	bOk &= check(xrtCsvWriterWrite(pWriter, 2u, sFields) && xrtCsvWriterClose(pWriter),
 		xrtCsvWriterError(pWriter)->sMessage);
 	pData = xrtCsvWriterTakeBuffer(pWriter);
-	bOk &= check(pData != NULL && pData->Length == 10u &&
-		memcmp(pData->Buffer, "\"a\";\"b,c\"\n", 10u) == 0,
+	bOk &= check(pData != NULL && pData->Size == 10u &&
+		memcmp(pData->Data, "\"a\";\"b,c\"\n", 10u) == 0,
 		"custom CSV dialect output mismatch");
 	xrtBufferDestroy(pData);
 	xrtCsvWriterDestroy(pWriter);
@@ -253,7 +256,7 @@ static int testUtf8File(void)
 		tRow.iCount == 2u && fieldEquals(&tRow, 1u, "value"),
 		pReader != NULL ? xrtCsvReaderError(pReader)->sMessage : "cannot read UTF-8 CSV path");
 	xrtCsvReaderDestroy(pReader);
-	xrtDirDelete((str)"build/tmp/csv_\xe8\xb7\xaf\xe5\xbe\x84");
+	xrtDirRemoveAll("build/tmp/csv_\xe8\xb7\xaf\xe5\xbe\x84");
 	return bOk;
 }
 
@@ -262,13 +265,16 @@ static int testUtf8File(void)
 int main(void)
 {
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	bOk = testReader();
 	bOk &= testReaderErrorsAndLimits();
 	bOk &= testWriterRoundTrip();
 	bOk &= testWriterOptionsAndLimits();
 	bOk &= testUtf8File();
-	xrtUnit();
 	if ( bOk ) { puts("test_csv: PASS"); }
 	return bOk ? 0 : 1;
 }
+
+/* 单文件 C smoke：声明、实现与测试共享同一份 XRT 模块配置。 */
+#include "../xrt_csv_common.c"
+#include "../xrt_csv_reader.c"
+#include "../xrt_csv_writer.c"

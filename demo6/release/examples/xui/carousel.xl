@@ -1,0 +1,35 @@
+// carousel.xl — 轮播：Carousel 控件（3 个轮播项）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Carousel Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Carousel Demo", font)
+    root.addChild(title)
+
+    xui.Carousel carousel = xui.Carousel(ctx)
+    carousel.setFlex(1.0, 1.0)
+
+    xui.Label slide1 = xui.Label(ctx, "Slide One", font)
+    carousel.addChild(slide1)
+
+    xui.Label slide2 = xui.Label(ctx, "Slide Two", font)
+    carousel.addChild(slide2)
+
+    xui.Label slide3 = xui.Label(ctx, "Slide Three", font)
+    carousel.addChild(slide3)
+
+    root.addChild(carousel)
+
+    g_app.run(onFrame)
+    return 0
+end

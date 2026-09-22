@@ -227,3 +227,21 @@ void xgeResourceFree(xge_resource_t* pResource)
 	}
 	memset(pResource, 0, sizeof(*pResource));
 }
+
+int xgeZstdDecompress(void* pOutput, int iOutputCapacity, const void* pInput, int iInputSize, int* pOutputSize)
+{
+	size_t iDecoded;
+
+	if ( (pOutput == NULL) || (iOutputCapacity <= 0) || (pInput == NULL) || (iInputSize <= 0) || (pOutputSize == NULL) ) {
+		return XGE_ERROR_INVALID_ARGUMENT;
+	}
+	*pOutputSize = 0;
+	iDecoded = ZSTD_decompress(pOutput, (size_t)iOutputCapacity, pInput, (size_t)iInputSize);
+	if ( ZSTD_isError(iDecoded) || (iDecoded > (size_t)INT_MAX) ) {
+		__xgeReportErrorInternal(XGE_ERROR_RESOURCE_FAILED, 1, "resource", "decompress Zstd data",
+			ZSTD_isError(iDecoded) ? ZSTD_getErrorName(iDecoded) : "decoded data is too large");
+		return XGE_ERROR_RESOURCE_FAILED;
+	}
+	*pOutputSize = (int)iDecoded;
+	return XGE_OK;
+}

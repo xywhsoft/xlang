@@ -1,0 +1,38 @@
+// dockpanel.xl — 停靠面板：DockPanel 控件（多区域停靠）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "DockPanel Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.DockPanel dock = xui.DockPanel(ctx)
+    dock.setFlex(1.0, 1.0)
+
+    xui.Panel top = xui.Panel(ctx)
+    xui.Label lblTop = xui.Label(ctx, "Top area", font)
+    top.addChild(lblTop)
+    dock.addChild(top)
+
+    xui.Panel left = xui.Panel(ctx)
+    xui.Label lblLeft = xui.Label(ctx, "Left area", font)
+    left.addChild(lblLeft)
+    dock.addChild(left)
+
+    xui.Panel center = xui.Panel(ctx)
+    xui.Label lblCenter = xui.Label(ctx, "Center area", font)
+    center.addChild(lblCenter)
+    dock.addChild(center)
+
+    root.addChild(dock)
+
+    g_app.run(onFrame)
+    return 0
+end

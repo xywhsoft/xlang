@@ -1,0 +1,130 @@
+import xregex
+from xregex import Regex, RegexMatch, RegexMatcher, RegexSet, RegexSetMatcher, RegexSplitPart
+
+
+
+func main(...) as int
+    assert xregex.escape("a+b?") == "a\\+b\\?"
+    assert xregex.valid("(?<word>[a-z]+)")
+    assert not xregex.valid("(")
+    assert xregex.test("[0-9]+", "id=42")
+    assert xregex.fullMatch("[0-9]+", "42")
+    assert not xregex.fullMatch("[0-9]+", "id=42")
+
+    Regex emptyPattern = xregex.compile("")
+    RegexMatch? emptyMatch = emptyPattern.find("")
+    if emptyMatch == null then
+        throw RuntimeError "empty expression must match empty input"
+    end
+    assert emptyMatch.begin == 0 and emptyMatch.endPos == 0
+    assert emptyMatch.text == ""
+
+    Regex words = xregex.compile("(?<word>[A-Za-z]+)-([0-9]+)", xregex.IGNORE_CASE)
+    assert words.valid
+    assert words.pattern == "(?<word>[A-Za-z]+)-([0-9]+)"
+    assert words.flags == xregex.IGNORE_CASE
+    assert words.captureCount == 3
+    assert words.captureName(1) == "word"
+    assert words.captureIndex("word") == 1
+    assert words.captureIndex("missing") == -1
+    assert words.test("prefix abC-42 suffix")
+    assert words.fullTest("abC-42")
+
+    RegexMatch? found = words.find("prefix abC-42 suffix")
+    if found == null then
+        throw RuntimeError "expected regex match"
+    end
+    assert found.begin == 7
+    assert found.endPos == 13
+    assert found.length == 6
+    assert found.text == "abC-42"
+    assert words.matchAt("abC-42", 0) != null
+    assert words.matchAt(" abC-42", 0) == null
+
+    auto matcher = words.matcher()
+    assert matcher.find("ab-1 cd-22")
+    assert matcher.capture(1).text == "ab"
+    assert matcher.capture(2).text == "1"
+    assert matcher.next()
+    assert matcher.capture().text == "cd-22"
+    assert not matcher.next()
+
+    Regex digits = xregex.compile("[0-9]+")
+    array<RegexMatch> matches = digits.findAll("a1 b22 c333")
+    assert matches.length == 3
+    assert matches[0].text == "1"
+    assert matches[2].text == "333"
+    assert digits.replace("a1 b22", "<$0>") == "a<1> b<22>"
+    assert digits.replaceFirst("a1 b22", "x") == "ax b22"
+    assert digits.replace("a1", "x", 0) == "a1"
+
+    string callback = digits.replaceWith("a1 b22", func(RegexMatcher current) as string
+        return "[" + current.capture().text + "]"
+    end)
+    assert callback == "a[1] b[22]"
+
+    Regex comma = xregex.compile("(,)")
+    array<string> splitAll = comma.split("a,b,,c")
+    array<string> splitNonEmpty = comma.split("a,b,,c", skipEmpty = true)
+    assert splitAll.length == 4
+    assert splitNonEmpty.length == 3
+    auto parts = comma.splitParts("a,b", includeCaptures = true)
+    assert parts.length == 3
+    assert not parts[0].isCapture
+    assert parts[1].isCapture
+    assert parts[1].capture == 1
+    assert parts[1].text == ","
+
+    auto splitter = comma.splitter("甲,乙")
+    RegexSplitPart? firstPart = splitter.next()
+    RegexSplitPart? secondPart = splitter.next()
+    if firstPart == null or secondPart == null then
+        throw RuntimeError "expected split parts"
+    end
+    assert firstPart.text == "甲"
+    assert secondPart.text == "乙"
+    assert splitter.next() == null
+
+    RegexSet set = xregex.compileSet(["error", "warn(ing)?", "[0-9]+"])
+    assert set.valid
+    assert set.count == 3
+    assert set.regex(0).pattern == "error"
+    assert set.test("warning 42")
+    array<int> setMatches = set.matches("warning 42")
+    assert setMatches.length == 2
+    assert setMatches[0] == 1 and setMatches[1] == 2
+    assert set.first("warning 42") == 1
+    assert set.first("clean") == -1
+
+    RegexSet emptySet = xregex.compileSet([])
+    assert emptySet.count == 0
+    assert not emptySet.test("anything")
+
+    RegexSetMatcher setMatcher = set.matcher()
+    assert setMatcher.search("error 7")
+    assert setMatcher.count == 2
+    assert setMatcher.matched(0)
+    assert setMatcher.matched(2)
+    array<int> setIndices = setMatcher.indices()
+    assert setIndices.length == 2
+    assert setIndices[0] == 0 and setIndices[1] == 2
+
+    bool badFlags = false
+    try
+        xregex.compile("a", 16)
+    catch ValueError error
+        badFlags = true
+    end
+    assert badFlags
+
+    bool badPattern = false
+    try
+        xregex.compile("(")
+    catch ValueError error
+        badPattern = true
+    end
+    assert badPattern
+
+    println("xregex package ok")
+    return 0
+end

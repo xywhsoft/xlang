@@ -4,6 +4,7 @@ extern "xcss_count_props" func __css_cprops(string css, string sel) as int
 extern "xcss_selector_at" func __css_selat(string css, int idx) as string
 extern "xcss_validate" func __css_valid(string css) as bool
 extern "xcss_strip_comments" func __css_strip(string css) as string
+extern "xcss_last_error" func __css_error() as string
 
 
 
@@ -29,4 +30,8 @@ end
 
 export func stripComments(string css) as string
     return __css_strip(css)
+end
+
+export func lastError() as string
+    return __css_error()
 end

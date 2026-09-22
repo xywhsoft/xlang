@@ -41,19 +41,15 @@
  *   - All operations are single-threaded; no internal synchronization.
  */
 
-#include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "../xlang_extlib_error.h"
 
 /* ------------------------------------------------------------------ */
 /* XRT runtime imports                                                 */
 /* ------------------------------------------------------------------ */
-extern void xrtSetError(const void *msg, int bFree);
-extern void *xrtTempMemory(size_t size);
-extern unsigned long long xrtHash64(const void *key, size_t len);
-
 static void bloom_error(const char *msg) {
-    xrtSetError(msg, 0);
+    xrtSetErrorInfo(2, "xlang.extlib.bloom", 0, msg);
 }
 
 /* ------------------------------------------------------------------ */
@@ -118,12 +114,12 @@ static unsigned char *bloom_hex_decode(const char *hex, size_t *out_len) {
     hex_len = strlen(hex);
     if ((hex_len % 2) != 0) return NULL;
     n = hex_len / 2;
-    buf = (unsigned char *)malloc(n ? n : 1);
+    buf = (unsigned char *)xrtMalloc(n ? n : 1);
     if (!buf) return NULL;
     for (i = 0; i < n; i++) {
         int hi = bloom_hex_val(hex[i * 2]);
         int lo = bloom_hex_val(hex[i * 2 + 1]);
-        if (hi < 0 || lo < 0) { free(buf); return NULL; }
+        if (hi < 0 || lo < 0) { xrtFree(buf); return NULL; }
         buf[i] = (unsigned char)((hi << 4) | lo);
     }
     *out_len = n;
@@ -153,7 +149,7 @@ static unsigned char *bloom_hex_decode(const char *hex, size_t *out_len) {
 /* ------------------------------------------------------------------ */
 typedef struct {
     unsigned long long *blocks;    /* 64-byte aligned view into raw_alloc */
-    void *raw_alloc;               /* original calloc result, for free() */
+    void *raw_alloc;               /* original calloc result, for xrtFree() */
     unsigned long long num_blocks;
     unsigned long long nbits;      /* num_blocks * 512, for reporting */
     unsigned int nhashes;          /* probes per element (k) */
@@ -195,7 +191,7 @@ void *xbloom_create(long long capacity, double fp_rate) {
     num_blocks = (nbits + BLOOM_BLOCK_BITS - 1) / BLOOM_BLOCK_BITS;
     if (num_blocks < 1) num_blocks = 1;
 
-    b = (XBloom *)calloc(1, sizeof(XBloom));
+    b = (XBloom *)xrtCalloc(1, sizeof(XBloom));
     if (!b) {
         bloom_error("bloom: out of memory");
         return NULL;
@@ -205,9 +201,9 @@ void *xbloom_create(long long capacity, double fp_rate) {
      * 64 bytes, guaranteeing each 512-bit block maps to exactly one
      * cache line and never spans two. */
     total_bytes = (size_t)num_blocks * BLOOM_BLOCK_BYTES;
-    raw = (unsigned char *)calloc(1, total_bytes + BLOOM_BLOCK_BYTES);
+    raw = (unsigned char *)xrtCalloc(1, total_bytes + BLOOM_BLOCK_BYTES);
     if (!raw) {
-        free(b);
+        xrtFree(b);
         bloom_error("bloom: out of memory for bit array");
         return NULL;
     }
@@ -226,8 +222,8 @@ void *xbloom_create(long long capacity, double fp_rate) {
 void xbloom_destroy(void *ptr) {
     XBloom *b = (XBloom *)ptr;
     if (b) {
-        free(b->raw_alloc);
-        free(b);
+        xrtFree(b->raw_alloc);
+        xrtFree(b);
     }
 }
 
@@ -359,7 +355,7 @@ const char *xbloom_serialize(void *ptr) {
     if (!b) { bloom_error("bloom: filter is destroyed"); return ""; }
     body_bytes = b->num_blocks * BLOOM_BLOCK_BYTES;
     total_bin = BLOOM_HDR_BYTES + body_bytes;
-    hex = (char *)xrtTempMemory((size_t)(total_bin * 2) + 1);
+    hex = (char *)xrtTemp((size_t)(total_bin * 2) + 1);
     if (!hex) { bloom_error("bloom: out of memory"); return ""; }
     bloom_put_u32(hdr + 0, BLOOM_MAGIC);
     bloom_put_u32(hdr + 4, BLOOM_VERSION);
@@ -390,7 +386,7 @@ void *xbloom_deserialize(const char *hex) {
     bin = bloom_hex_decode(hex, &total_bin);
     if (!bin) { bloom_error("bloom: invalid serialized data"); return NULL; }
     if (total_bin < BLOOM_HDR_BYTES) {
-        free(bin); bloom_error("bloom: truncated data"); return NULL;
+        xrtFree(bin); bloom_error("bloom: truncated data"); return NULL;
     }
     magic = bloom_get_u32(bin + 0);
     version = bloom_get_u32(bin + 4);
@@ -398,19 +394,19 @@ void *xbloom_deserialize(const char *hex) {
     num_blocks = bloom_get_u64(bin + 16);
     count = bloom_get_u64(bin + 24);
     capacity = bloom_get_u64(bin + 32);
-    if (magic != BLOOM_MAGIC) { free(bin); bloom_error("bloom: bad magic"); return NULL; }
-    if (version != BLOOM_VERSION) { free(bin); bloom_error("bloom: unsupported version"); return NULL; }
+    if (magic != BLOOM_MAGIC) { xrtFree(bin); bloom_error("bloom: bad magic"); return NULL; }
+    if (version != BLOOM_VERSION) { xrtFree(bin); bloom_error("bloom: unsupported version"); return NULL; }
     if (num_blocks < 1 || nhashes < 1 || nhashes > 32) {
-        free(bin); bloom_error("bloom: corrupt data"); return NULL;
+        xrtFree(bin); bloom_error("bloom: corrupt data"); return NULL;
     }
     body_bytes = (size_t)num_blocks * BLOOM_BLOCK_BYTES;
     if (total_bin != BLOOM_HDR_BYTES + body_bytes) {
-        free(bin); bloom_error("bloom: size mismatch"); return NULL;
+        xrtFree(bin); bloom_error("bloom: size mismatch"); return NULL;
     }
-    b = (XBloom *)calloc(1, sizeof(XBloom));
-    if (!b) { free(bin); bloom_error("bloom: out of memory"); return NULL; }
-    raw = (unsigned char *)calloc(1, body_bytes + BLOOM_BLOCK_BYTES);
-    if (!raw) { free(bin); free(b); bloom_error("bloom: out of memory"); return NULL; }
+    b = (XBloom *)xrtCalloc(1, sizeof(XBloom));
+    if (!b) { xrtFree(bin); bloom_error("bloom: out of memory"); return NULL; }
+    raw = (unsigned char *)xrtCalloc(1, body_bytes + BLOOM_BLOCK_BYTES);
+    if (!raw) { xrtFree(bin); xrtFree(b); bloom_error("bloom: out of memory"); return NULL; }
     addr = (unsigned long long)raw;
     aligned = (addr + (BLOOM_BLOCK_BYTES - 1)) & ~((unsigned long long)(BLOOM_BLOCK_BYTES - 1));
     b->blocks = (unsigned long long *)aligned;
@@ -421,7 +417,7 @@ void *xbloom_deserialize(const char *hex) {
     b->nhashes = nhashes;
     b->count = count;
     b->capacity = capacity;
-    free(bin);
+    xrtFree(bin);
     return b;
 }
 
@@ -438,11 +434,11 @@ void *xbloom_clone(void *ptr) {
     unsigned long long addr, aligned;
     size_t body_bytes;
     if (!b) { bloom_error("bloom: filter is destroyed"); return NULL; }
-    c = (XBloom *)calloc(1, sizeof(XBloom));
+    c = (XBloom *)xrtCalloc(1, sizeof(XBloom));
     if (!c) { bloom_error("bloom: out of memory"); return NULL; }
     body_bytes = (size_t)b->num_blocks * BLOOM_BLOCK_BYTES;
-    raw = (unsigned char *)calloc(1, body_bytes + BLOOM_BLOCK_BYTES);
-    if (!raw) { free(c); bloom_error("bloom: out of memory"); return NULL; }
+    raw = (unsigned char *)xrtCalloc(1, body_bytes + BLOOM_BLOCK_BYTES);
+    if (!raw) { xrtFree(c); bloom_error("bloom: out of memory"); return NULL; }
     addr = (unsigned long long)raw;
     aligned = (addr + (BLOOM_BLOCK_BYTES - 1)) & ~((unsigned long long)(BLOOM_BLOCK_BYTES - 1));
     c->blocks = (unsigned long long *)aligned;
@@ -487,14 +483,14 @@ void *xcounting_bloom_create(long long capacity, double fp_rate) {
     nslots = nbits;
     nbytes = (nslots + 1) / 2;   /* 4-bit counters: 2 slots per byte */
 
-    cb = (XCountingBloom *)calloc(1, sizeof(XCountingBloom));
+    cb = (XCountingBloom *)xrtCalloc(1, sizeof(XCountingBloom));
     if (!cb) {
         bloom_error("counting bloom: out of memory");
         return NULL;
     }
-    cb->counters = (unsigned char *)calloc(1, (size_t)nbytes);
+    cb->counters = (unsigned char *)xrtCalloc(1, (size_t)nbytes);
     if (!cb->counters) {
-        free(cb);
+        xrtFree(cb);
         bloom_error("counting bloom: out of memory for counters");
         return NULL;
     }
@@ -508,8 +504,8 @@ void *xcounting_bloom_create(long long capacity, double fp_rate) {
 void xcounting_bloom_destroy(void *ptr) {
     XCountingBloom *cb = (XCountingBloom *)ptr;
     if (cb) {
-        free(cb->counters);
-        free(cb);
+        xrtFree(cb->counters);
+        xrtFree(cb);
     }
 }
 
@@ -713,7 +709,7 @@ const char *xcounting_bloom_serialize(void *ptr) {
     if (!cb) { bloom_error("counting bloom: filter is destroyed"); return ""; }
     body_bytes = (cb->nslots + 1) / 2;
     total_bin = BLOOM_HDR_BYTES + body_bytes;
-    hex = (char *)xrtTempMemory((size_t)(total_bin * 2) + 1);
+    hex = (char *)xrtTemp((size_t)(total_bin * 2) + 1);
     if (!hex) { bloom_error("counting bloom: out of memory"); return ""; }
     bloom_put_u32(hdr + 0, BLOOM_CB_MAGIC);
     bloom_put_u32(hdr + 4, BLOOM_VERSION);
@@ -741,7 +737,7 @@ void *xcounting_bloom_deserialize(const char *hex) {
     bin = bloom_hex_decode(hex, &total_bin);
     if (!bin) { bloom_error("counting bloom: invalid serialized data"); return NULL; }
     if (total_bin < BLOOM_HDR_BYTES) {
-        free(bin); bloom_error("counting bloom: truncated data"); return NULL;
+        xrtFree(bin); bloom_error("counting bloom: truncated data"); return NULL;
     }
     magic = bloom_get_u32(bin + 0);
     version = bloom_get_u32(bin + 4);
@@ -749,25 +745,25 @@ void *xcounting_bloom_deserialize(const char *hex) {
     nslots = bloom_get_u64(bin + 16);
     count = bloom_get_u64(bin + 24);
     capacity = bloom_get_u64(bin + 32);
-    if (magic != BLOOM_CB_MAGIC) { free(bin); bloom_error("counting bloom: bad magic"); return NULL; }
-    if (version != BLOOM_VERSION) { free(bin); bloom_error("counting bloom: unsupported version"); return NULL; }
+    if (magic != BLOOM_CB_MAGIC) { xrtFree(bin); bloom_error("counting bloom: bad magic"); return NULL; }
+    if (version != BLOOM_VERSION) { xrtFree(bin); bloom_error("counting bloom: unsupported version"); return NULL; }
     if (nslots < 1 || nhashes < 1 || nhashes > 32) {
-        free(bin); bloom_error("counting bloom: corrupt data"); return NULL;
+        xrtFree(bin); bloom_error("counting bloom: corrupt data"); return NULL;
     }
     body_bytes = (size_t)(nslots + 1) / 2;
     if (total_bin != BLOOM_HDR_BYTES + body_bytes) {
-        free(bin); bloom_error("counting bloom: size mismatch"); return NULL;
+        xrtFree(bin); bloom_error("counting bloom: size mismatch"); return NULL;
     }
-    cb = (XCountingBloom *)calloc(1, sizeof(XCountingBloom));
-    if (!cb) { free(bin); bloom_error("counting bloom: out of memory"); return NULL; }
-    cb->counters = (unsigned char *)calloc(1, body_bytes ? body_bytes : 1);
-    if (!cb->counters) { free(bin); free(cb); bloom_error("counting bloom: out of memory"); return NULL; }
+    cb = (XCountingBloom *)xrtCalloc(1, sizeof(XCountingBloom));
+    if (!cb) { xrtFree(bin); bloom_error("counting bloom: out of memory"); return NULL; }
+    cb->counters = (unsigned char *)xrtCalloc(1, body_bytes ? body_bytes : 1);
+    if (!cb->counters) { xrtFree(bin); xrtFree(cb); bloom_error("counting bloom: out of memory"); return NULL; }
     memcpy(cb->counters, bin + BLOOM_HDR_BYTES, body_bytes);
     cb->nslots = nslots;
     cb->nhashes = nhashes;
     cb->count = count;
     cb->capacity = capacity;
-    free(bin);
+    xrtFree(bin);
     return cb;
 }
 
@@ -782,11 +778,11 @@ void *xcounting_bloom_clone(void *ptr) {
     XCountingBloom *c;
     size_t nbytes;
     if (!cb) { bloom_error("counting bloom: filter is destroyed"); return NULL; }
-    c = (XCountingBloom *)calloc(1, sizeof(XCountingBloom));
+    c = (XCountingBloom *)xrtCalloc(1, sizeof(XCountingBloom));
     if (!c) { bloom_error("counting bloom: out of memory"); return NULL; }
     nbytes = (size_t)(cb->nslots + 1) / 2;
-    c->counters = (unsigned char *)calloc(1, nbytes ? nbytes : 1);
-    if (!c->counters) { free(c); bloom_error("counting bloom: out of memory"); return NULL; }
+    c->counters = (unsigned char *)xrtCalloc(1, nbytes ? nbytes : 1);
+    if (!c->counters) { xrtFree(c); bloom_error("counting bloom: out of memory"); return NULL; }
     memcpy(c->counters, cb->counters, nbytes);
     c->nslots = cb->nslots;
     c->nhashes = cb->nhashes;

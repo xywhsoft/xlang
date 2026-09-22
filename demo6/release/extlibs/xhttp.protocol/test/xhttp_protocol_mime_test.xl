@@ -1,0 +1,41 @@
+import xhttp.protocol
+from xhttp.protocol import MediaParam, MediaType, Mime
+
+
+
+func main(...) as int
+    MediaType media = MediaType.parse(
+        "application/problem+json; charset=UTF-8; note=\"a;b\"")
+    assert media.type() == "application"
+    assert media.subtype() == "problem+json"
+    assert media.suffix() == "json"
+    assert media.matches("APPLICATION", "problem+json")
+    assert media.compressible
+    assert media.nativeHandle() != null
+    assert media.build() == "application/problem+json; charset=UTF-8; note=\"a;b\""
+
+    MediaParam? charset = media.param("charset")
+    if charset == null then
+        throw RuntimeError "charset parameter is missing"
+    end
+    assert charset.value == "UTF-8"
+    assert not charset.quoted
+
+    MediaParam? note = media.param("note")
+    if note == null then
+        throw RuntimeError "note parameter is missing"
+    end
+    assert note.value == "a;b"
+    assert note.quoted
+    assert media.param("missing") == null
+    assert media.clone().text() == media.text()
+
+    assert MediaType.contentCompressible("text/plain; charset=utf-8")
+    assert not MediaType.contentCompressible("image/png")
+    assert Mime.byExt(".JSON") == "application/json"
+    assert Mime.byPath("assets/app.js") == "text/javascript; charset=utf-8"
+    assert Mime.byPath("assets/file.unknown") == ""
+
+    println("xhttp.protocol MIME package ok")
+    return 0
+end

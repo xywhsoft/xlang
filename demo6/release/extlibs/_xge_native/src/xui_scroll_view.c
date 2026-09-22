@@ -82,21 +82,17 @@ static float __xuiScrollViewMaxFloat(float fA, float fB)
 	return (fA > fB) ? fA : fB;
 }
 
-static int __xuiScrollViewSyncContent(xui_widget pWidget, xui_scroll_view_data_t* pData)
+static int __xuiScrollViewContentRect(xui_scroll_view_data_t* pData, float fViewportW, float fViewportH, xui_rect_t* pContent)
 {
-	xui_rect_t tViewport;
-	xui_rect_t tContent;
 	float fContentW;
 	float fContentH;
 	float fOffsetX;
 	float fOffsetY;
 	int iRet;
 
-	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) || (pData->pContent == NULL) ) {
+	if ( pData == NULL || pData->pFrame == NULL || pData->pContent == NULL || pContent == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	(void)pWidget;
-	tViewport = xuiScrollFrameGetViewportRect(pData->pFrame);
 	fContentW = 0.0f;
 	fContentH = 0.0f;
 	fOffsetX = 0.0f;
@@ -105,13 +101,36 @@ static int __xuiScrollViewSyncContent(xui_widget pWidget, xui_scroll_view_data_t
 	if ( iRet != XUI_OK ) return iRet;
 	iRet = xuiScrollFrameGetOffset(pData->pFrame, &fOffsetX, &fOffsetY);
 	if ( iRet != XUI_OK ) return iRet;
-	tContent.fX = -fOffsetX;
-	tContent.fY = -fOffsetY;
-	tContent.fW = __xuiScrollViewMaxFloat(fContentW, tViewport.fW);
-	tContent.fH = __xuiScrollViewMaxFloat(fContentH, tViewport.fH);
-	iRet = xuiWidgetArrange(pData->pContent, tContent);
+	pContent->fX = -fOffsetX;
+	pContent->fY = -fOffsetY;
+	pContent->fW = __xuiScrollViewMaxFloat(fContentW, fViewportW);
+	pContent->fH = __xuiScrollViewMaxFloat(fContentH, fViewportH);
+	return XUI_OK;
+}
+
+static int __xuiScrollViewSyncContent(xui_widget pWidget, xui_scroll_view_data_t* pData)
+{
+	xui_rect_t tViewport;
+	xui_rect_t tContent;
+	int iRet;
+	if ( pWidget == NULL || pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	tViewport = xuiScrollFrameGetViewportRect(pData->pFrame);
+	iRet = __xuiScrollViewContentRect(pData, tViewport.fW, tViewport.fH, &tContent);
 	if ( iRet != XUI_OK ) return iRet;
-	return xuiWidgetInvalidate(pData->pContent, XUI_WIDGET_DIRTY_RENDER);
+	return xuiWidgetSetRect(pData->pContent, tContent);
+}
+
+static int __xuiScrollViewLayoutContent(xui_widget pViewport, xui_rect_t tContentRect, void* pUser)
+{
+	xui_scroll_view_data_t* pData = (xui_scroll_view_data_t*)pUser;
+	xui_rect_t tContent;
+	int iRet;
+	if ( pViewport == NULL || pData == NULL || pData->pContent == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	iRet = __xuiScrollViewContentRect(pData, tContentRect.fW, tContentRect.fH, &tContent);
+	if ( iRet != XUI_OK ) return iRet;
+	tContent.fX += tContentRect.fX;
+	tContent.fY += tContentRect.fY;
+	return xuiLayoutArrangeChild(pViewport, pData->pContent, tContent);
 }
 
 static void __xuiScrollViewFrameChanged(xui_widget pFrame, float fOffsetX, float fOffsetY, void* pUser)
@@ -132,36 +151,22 @@ static void __xuiScrollViewFrameChanged(xui_widget pFrame, float fOffsetX, float
 	}
 }
 
-static int __xuiScrollViewLayoutMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
+static int __xuiScrollViewLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
 {
 	xui_scroll_view_data_t* pData;
 
-	(void)pWidget;
-	pData = (xui_scroll_view_data_t*)pUser;
-	if ( (pData == NULL) || (pSize == NULL) || (pData->pFrame == NULL) ) {
-		return XUI_ERROR_INVALID_ARGUMENT;
-	}
-	return xuiWidgetMeasure(pData->pFrame, tConstraint, pSize);
-}
-
-static int __xuiScrollViewLayoutArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
-{
-	xui_scroll_view_data_t* pData;
-	int iRet;
-
+	(void)tContentRect;
 	pData = (xui_scroll_view_data_t*)pUser;
 	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	iRet = xuiWidgetArrange(pData->pFrame, tContentRect);
-	if ( iRet != XUI_OK ) return iRet;
 	return __xuiScrollViewSyncContent(pWidget, pData);
 }
 
 static void __xuiScrollViewDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_CONTENT;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -213,7 +218,9 @@ static int __xuiScrollViewInit(xui_widget pWidget, void* pTypeData, const void* 
 		pData->pFrame = NULL;
 		return iRet;
 	}
-	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_ABSOLUTE);
+	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pFrame, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pFrame, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	iRet = xuiScrollFrameSetChange(pData->pFrame, __xuiScrollViewFrameChanged, pWidget);
 	if ( iRet != XUI_OK ) {
 		xuiWidgetDestroy(pData->pFrame);
@@ -233,6 +240,14 @@ static int __xuiScrollViewInit(xui_widget pWidget, void* pTypeData, const void* 
 		return iRet;
 	}
 	iRet = xuiWidgetAddChild(pViewport, pData->pContent);
+	if ( iRet != XUI_OK ) {
+		xuiWidgetDestroy(pData->pContent);
+		pData->pContent = NULL;
+		xuiWidgetDestroy(pData->pFrame);
+		pData->pFrame = NULL;
+		return iRet;
+	}
+	iRet = xuiWidgetSetLayoutChildrenCallback(pViewport, __xuiScrollViewLayoutContent, pData);
 	if ( iRet != XUI_OK ) {
 		xuiWidgetDestroy(pData->pContent);
 		pData->pContent = NULL;
@@ -281,8 +296,7 @@ XUI_API xui_widget_type xuiScrollViewGetType(xui_context pContext)
 	tDesc.iTypeDataSize = sizeof(xui_scroll_view_data_t);
 	tDesc.onInit = __xuiScrollViewInit;
 	tDesc.onDestroy = __xuiScrollViewDestroy;
-	tDesc.onLayoutMeasure = __xuiScrollViewLayoutMeasure;
-	tDesc.onLayoutArrange = __xuiScrollViewLayoutArrange;
+	tDesc.onLayoutComplete = __xuiScrollViewLayoutComplete;
 	__xuiScrollViewDefaultLayout(&tDesc.tLayout);
 	__xuiScrollViewDefaultCachePolicy(&tDesc.tCachePolicy);
 	iRet = xuiWidgetRegisterType(pContext, &pType, &tDesc);
@@ -338,16 +352,6 @@ XUI_API xui_scroll_model_t* xuiScrollViewGetModel(xui_widget pWidget)
 {
 	xui_scroll_view_data_t* pData = __xuiScrollViewGetData(pWidget);
 	return (pData != NULL) ? xuiScrollFrameGetModel(pData->pFrame) : NULL;
-}
-
-XUI_API int xuiScrollViewLayout(xui_widget pWidget)
-{
-	xui_scroll_view_data_t* pData = __xuiScrollViewGetData(pWidget);
-	int iRet;
-	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	iRet = xuiScrollFrameLayout(pData->pFrame);
-	if ( iRet != XUI_OK ) return iRet;
-	return __xuiScrollViewSyncContent(pWidget, pData);
 }
 
 XUI_API int xuiScrollViewSetContentSize(xui_widget pWidget, float fWidth, float fHeight)

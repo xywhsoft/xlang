@@ -2,7 +2,7 @@ import "./config.xl"
 import "./http_service.xl"
 
 func rawRequest(int port, string payload) as string
-    TcpStream stream = TcpStream(tcp.connect("127.0.0.1", port, 3000))
+    TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
     assert stream.handle != null, "raw HTTP client must connect"
     assert stream.send(payload), "raw HTTP request must send"
     assert stream.drain(3000), "raw HTTP request must drain"
@@ -16,6 +16,22 @@ assert loaded.ok, loaded.error
 var normalized = json.parse(loaded.json)
 var runtimeConfig = normalized["runtime"]
 var serviceConfig = normalized["services"][0]
+serviceConfig["hosts"][0]["routes"].append({
+    "name": "fault-post",
+    "kind": "handler",
+    "method": "POST",
+    "pattern": "/oversized",
+    "contentType": "text/plain; charset=utf-8",
+    "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c",
+        "poolSize": 2,
+        "queueLimit": 16,
+        "queueTimeoutMs": 250,
+        "timeoutMs": 2000,
+        "mode": "embedded"
+    }
+})
 serviceConfig["recvLimit"] = 1024
 serviceConfig["bodyLimit"] = 8
 serviceConfig["headerLimit"] = 16
@@ -28,7 +44,7 @@ assert service.start(), service.lastError()
 
 string bodyResponse = rawRequest(
     service.port(),
-    "POST / HTTP/1.1\r\nHost: example.test\r\nContent-Length: 9\r\nConnection: close\r\n\r\n123456789")
+    "POST /oversized HTTP/1.1\r\nHost: example.test\r\nContent-Length: 9\r\nConnection: close\r\n\r\n123456789")
 assert string.contains(bodyResponse, "HTTP/1.1 413") != 0, "oversized body must return 413"
 
 string headerResponse = rawRequest(

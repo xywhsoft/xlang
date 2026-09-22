@@ -3,10 +3,10 @@
 
 #include "src/common/xl6_output.h"
 
-/* File is a generated-program runtime component shared by both C backends.
- * xlirAbi selects narrow public-XRT declarations and XLIR error propagation;
- * the implementation body remains single-sourced. */
+/* File is a generated-program runtime component selected by verified XLIR
+ * bridge identities.  It emits only the declarations absent from the shared
+ * public runtime declaration SDK. */
 void xl6CgenEmitFileRuntime(
-    XL6_Output* out, int xlirAbi, int hasXrtDeclarations);
+    XL6_Output* out, int hasXrtDeclarations);
 
 #endif

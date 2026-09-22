@@ -560,7 +560,7 @@ static xui_widget __xuiInputFindFocusable(xui_widget pWidget)
 	return NULL;
 }
 
-static int __xuiInputPointInRect(float fX, float fY, xui_rect_t tRect)
+static int __xuiInputPointInRect(int fX, int fY, xui_rect_t tRect)
 {
 	return (fX >= tRect.fX) &&
 	       (fY >= tRect.fY) &&
@@ -568,7 +568,7 @@ static int __xuiInputPointInRect(float fX, float fY, xui_rect_t tRect)
 	       (fY < (tRect.fY + tRect.fH));
 }
 
-static xui_widget __xuiInputHitTestWidget(xui_widget pWidget, float fX, float fY, uint32_t iFlags)
+static xui_widget __xuiInputHitTestWidget(xui_widget pWidget, int fX, int fY, uint32_t iFlags)
 {
 	xui_widget pChild;
 	xui_widget pHit;
@@ -604,9 +604,10 @@ static xui_widget __xuiInputHitTestWidget(xui_widget pWidget, float fX, float fY
 	return NULL;
 }
 
-static int __xuiInputSetPointer(xui_context pContext, float fX, float fY, uint32_t iButtons)
+static int __xuiInputSetPointer(xui_context pContext, int fX, int fY, uint32_t iButtons)
 {
-	if ( !__xuiInputFloatValid(fX) || !__xuiInputFloatValid(fY) ) {
+	if ( (fX < -XUI_CONTEXT_MAX_VIEWPORT) || (fY < -XUI_CONTEXT_MAX_VIEWPORT) ||
+	     (fX > XUI_CONTEXT_MAX_VIEWPORT) || (fY > XUI_CONTEXT_MAX_VIEWPORT) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	pContext->fPointerX = fX;
@@ -1099,7 +1100,7 @@ static int __xuiInputHandleClickEvents(xui_context pContext, xui_widget pWidget,
 	return XUI_OK;
 }
 
-static int __xuiInputPointerMoveCurrent(xui_context pContext, float fX, float fY, uint32_t iButtons)
+static int __xuiInputPointerMoveCurrent(xui_context pContext, int fX, int fY, uint32_t iButtons)
 {
 	xui_widget pHitWidget;
 	xui_widget pTargetWidget;
@@ -1162,7 +1163,7 @@ static int __xuiInputPointerCanChangeFocus(xui_context pContext)
 	return 1;
 }
 
-static int __xuiInputPointerDownCurrent(xui_context pContext, float fX, float fY, int iButton, uint32_t iButtons)
+static int __xuiInputPointerDownCurrent(xui_context pContext, int fX, int fY, int iButton, uint32_t iButtons)
 {
 	xui_widget pHitWidget;
 	xui_widget pFocusWidget;
@@ -1214,7 +1215,7 @@ static int __xuiInputPointerDownCurrent(xui_context pContext, float fX, float fY
 	return __xuiInputPushPointerEvent(pContext, XUI_EVENT_POINTER_DOWN, pHitWidget, NULL, iButton, 0.0f, 0.0f);
 }
 
-static int __xuiInputPointerUpCurrent(xui_context pContext, float fX, float fY, int iButton, uint32_t iButtons)
+static int __xuiInputPointerUpCurrent(xui_context pContext, int fX, int fY, int iButton, uint32_t iButtons)
 {
 	xui_widget pHitWidget;
 	xui_widget pTargetWidget;
@@ -1268,7 +1269,7 @@ static int __xuiInputPointerUpCurrent(xui_context pContext, float fX, float fY, 
 	return XUI_OK;
 }
 
-static int __xuiInputPointerWheelCurrent(xui_context pContext, float fX, float fY, float fWheelX, float fWheelY, uint32_t iButtons)
+static int __xuiInputPointerWheelCurrent(xui_context pContext, int fX, int fY, float fWheelX, float fWheelY, uint32_t iButtons)
 {
 	xui_widget pHitWidget;
 	int iRet;
@@ -1310,7 +1311,7 @@ static int __xuiInputPointerLeaveCurrent(xui_context pContext)
 	return __xuiInputSetHoverWidget(pContext, NULL);
 }
 
-XUI_API int xuiInputPointerMoveEx(xui_context pContext, uint64_t iPointerId, int iPointerType, float fX, float fY, uint32_t iButtons)
+XUI_API int xuiInputPointerMoveEx(xui_context pContext, uint64_t iPointerId, int iPointerType, int iX, int iY, uint32_t iButtons)
 {
 	xui_pointer_state_t* pState;
 	int iRet;
@@ -1323,12 +1324,12 @@ XUI_API int xuiInputPointerMoveEx(xui_context pContext, uint64_t iPointerId, int
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	__xuiInputPointerStateLoad(pContext, pState);
-	iRet = __xuiInputPointerMoveCurrent(pContext, fX, fY, iButtons);
+	iRet = __xuiInputPointerMoveCurrent(pContext, iX, iY, iButtons);
 	__xuiInputPointerStateStore(pContext, pState);
 	return iRet;
 }
 
-XUI_API int xuiInputPointerDownEx(xui_context pContext, uint64_t iPointerId, int iPointerType, float fX, float fY, int iButton, uint32_t iButtons)
+XUI_API int xuiInputPointerDownEx(xui_context pContext, uint64_t iPointerId, int iPointerType, int iX, int iY, int iButton, uint32_t iButtons)
 {
 	xui_pointer_state_t* pState;
 	int iRet;
@@ -1341,12 +1342,12 @@ XUI_API int xuiInputPointerDownEx(xui_context pContext, uint64_t iPointerId, int
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	__xuiInputPointerStateLoad(pContext, pState);
-	iRet = __xuiInputPointerDownCurrent(pContext, fX, fY, iButton, iButtons);
+	iRet = __xuiInputPointerDownCurrent(pContext, iX, iY, iButton, iButtons);
 	__xuiInputPointerStateStore(pContext, pState);
 	return iRet;
 }
 
-XUI_API int xuiInputPointerUpEx(xui_context pContext, uint64_t iPointerId, int iPointerType, float fX, float fY, int iButton, uint32_t iButtons)
+XUI_API int xuiInputPointerUpEx(xui_context pContext, uint64_t iPointerId, int iPointerType, int iX, int iY, int iButton, uint32_t iButtons)
 {
 	xui_pointer_state_t* pState;
 	int iRet;
@@ -1359,7 +1360,7 @@ XUI_API int xuiInputPointerUpEx(xui_context pContext, uint64_t iPointerId, int i
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	__xuiInputPointerStateLoad(pContext, pState);
-	iRet = __xuiInputPointerUpCurrent(pContext, fX, fY, iButton, iButtons);
+	iRet = __xuiInputPointerUpCurrent(pContext, iX, iY, iButton, iButtons);
 	if ( (iRet == XUI_OK) && (pContext->iInputPointerType != XUI_POINTER_TYPE_MOUSE) ) {
 		iRet = __xuiInputSetHoverWidget(pContext, NULL);
 	}
@@ -1367,7 +1368,7 @@ XUI_API int xuiInputPointerUpEx(xui_context pContext, uint64_t iPointerId, int i
 	return iRet;
 }
 
-XUI_API int xuiInputPointerWheelEx(xui_context pContext, uint64_t iPointerId, int iPointerType, float fX, float fY, float fWheelX, float fWheelY, uint32_t iButtons)
+XUI_API int xuiInputPointerWheelEx(xui_context pContext, uint64_t iPointerId, int iPointerType, int iX, int iY, float fWheelX, float fWheelY, uint32_t iButtons)
 {
 	xui_pointer_state_t* pState;
 	int iRet;
@@ -1380,7 +1381,7 @@ XUI_API int xuiInputPointerWheelEx(xui_context pContext, uint64_t iPointerId, in
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	__xuiInputPointerStateLoad(pContext, pState);
-	iRet = __xuiInputPointerWheelCurrent(pContext, fX, fY, fWheelX, fWheelY, iButtons);
+	iRet = __xuiInputPointerWheelCurrent(pContext, iX, iY, fWheelX, fWheelY, iButtons);
 	__xuiInputPointerStateStore(pContext, pState);
 	return iRet;
 }
@@ -1415,24 +1416,24 @@ XUI_API int xuiInputPointerCancelEx(xui_context pContext, uint64_t iPointerId, i
 	return iRet;
 }
 
-XUI_API int xuiInputPointerMove(xui_context pContext, float fX, float fY, uint32_t iButtons)
+XUI_API int xuiInputPointerMove(xui_context pContext, int iX, int iY, uint32_t iButtons)
 {
-	return xuiInputPointerMoveEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, fX, fY, iButtons);
+	return xuiInputPointerMoveEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, iX, iY, iButtons);
 }
 
-XUI_API int xuiInputPointerDown(xui_context pContext, float fX, float fY, int iButton, uint32_t iButtons)
+XUI_API int xuiInputPointerDown(xui_context pContext, int iX, int iY, int iButton, uint32_t iButtons)
 {
-	return xuiInputPointerDownEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, fX, fY, iButton, iButtons);
+	return xuiInputPointerDownEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, iX, iY, iButton, iButtons);
 }
 
-XUI_API int xuiInputPointerUp(xui_context pContext, float fX, float fY, int iButton, uint32_t iButtons)
+XUI_API int xuiInputPointerUp(xui_context pContext, int iX, int iY, int iButton, uint32_t iButtons)
 {
-	return xuiInputPointerUpEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, fX, fY, iButton, iButtons);
+	return xuiInputPointerUpEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, iX, iY, iButton, iButtons);
 }
 
-XUI_API int xuiInputPointerWheel(xui_context pContext, float fX, float fY, float fWheelX, float fWheelY, uint32_t iButtons)
+XUI_API int xuiInputPointerWheel(xui_context pContext, int iX, int iY, float fWheelX, float fWheelY, uint32_t iButtons)
 {
-	return xuiInputPointerWheelEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, fX, fY, fWheelX, fWheelY, iButtons);
+	return xuiInputPointerWheelEx(pContext, XUI_POINTER_ID_MOUSE, XUI_POINTER_TYPE_MOUSE, iX, iY, fWheelX, fWheelY, iButtons);
 }
 
 XUI_API int xuiInputPointerLeave(xui_context pContext)
@@ -1475,7 +1476,12 @@ static int __xuiInputHotkeyMatches(const xui_hotkey_t* pHotkey, int iKey, uint32
 	       (pHotkey->iModifiers == iModifiers);
 }
 
-static int __xuiInputPushHotkeyEvent(xui_context pContext, const xui_hotkey_t* pHotkey)
+/*
+ * Hotkeys are part of the synchronous key routing contract: handlers must be
+ * able to consume a key before it reaches the focused control. Do not queue
+ * this event, otherwise its result is only known on a later frame.
+ */
+static int __xuiInputDispatchHotkeyEvent(xui_context pContext, const xui_hotkey_t* pHotkey, int* pFlags)
 {
 	xui_event_t tEvent;
 	int iRet;
@@ -1494,8 +1500,12 @@ static int __xuiInputPushHotkeyEvent(xui_context pContext, const xui_hotkey_t* p
 		if ( iRet < 0 ) {
 			return iRet;
 		}
+		if ( (iRet & XUI_EVENT_DISPATCH_STOP) != 0 ) {
+			if ( pFlags != NULL ) *pFlags |= XUI_EVENT_DISPATCH_STOP;
+			return XUI_OK;
+		}
 	}
-	return __xuiInputPushEvent(pContext, &tEvent);
+	return __xuiInputDispatchEventWithFlags(pContext, &tEvent, pFlags);
 }
 
 static int __xuiInputInvokeAction(xui_widget pWidget, int bDefault)
@@ -1516,16 +1526,47 @@ static int __xuiInputInvokeAction(xui_widget pWidget, int bDefault)
 	return 0;
 }
 
-static int __xuiInputDispatchFocusKeyDown(xui_context pContext, int iKey, uint32_t iModifiers, int* pFlags)
+static int __xuiInputDispatchFocusKeyTarget(xui_context pContext, xui_widget pTarget, int iKey, uint32_t iModifiers, int* pFlags)
 {
 	xui_event_t tEvent;
 	int iRet;
 
-	__xuiInputInitEvent(&tEvent, XUI_EVENT_KEY_DOWN, pContext->pFocusWidget, NULL, pContext);
+	if ( pTarget == NULL ) {
+		if ( pFlags != NULL ) *pFlags = 0;
+		return XUI_OK;
+	}
+	__xuiInputInitEvent(&tEvent, XUI_EVENT_KEY_DOWN, pTarget, NULL, pContext);
 	tEvent.iKey = iKey;
 	tEvent.iModifiers = iModifiers;
-	iRet = __xuiInputDispatchEventWithFlags(pContext, &tEvent, pFlags);
+	tEvent.iPhase = XUI_EVENT_PHASE_TARGET;
+	iRet = __xuiInputDispatchToWidget(pTarget, &tEvent);
+	if ( pFlags != NULL ) *pFlags = tEvent.iFlags;
 	if ( iRet != XUI_OK ) return iRet;
+	return XUI_OK;
+}
+
+static int __xuiInputDispatchFocusKeyBubble(xui_context pContext, xui_widget pTarget, int iKey, uint32_t iModifiers, int* pFlags)
+{
+	xui_event_t tEvent;
+	xui_widget pWidget;
+	int iRet;
+
+	if ( pTarget == NULL ) {
+		if ( pFlags != NULL ) *pFlags = 0;
+		return XUI_OK;
+	}
+	__xuiInputInitEvent(&tEvent, XUI_EVENT_KEY_DOWN, pTarget, NULL, pContext);
+	tEvent.iKey = iKey;
+	tEvent.iModifiers = iModifiers;
+	for ( pWidget = pTarget->pParent; pWidget != NULL; pWidget = pWidget->pParent ) {
+		tEvent.iPhase = XUI_EVENT_PHASE_BUBBLE;
+		iRet = __xuiInputDispatchToWidget(pWidget, &tEvent);
+		if ( pFlags != NULL ) *pFlags = tEvent.iFlags;
+		if ( (iRet != XUI_OK) || ((tEvent.iFlags & XUI_EVENT_DISPATCH_STOP) != 0) ) {
+			return iRet;
+		}
+	}
+	if ( pFlags != NULL ) *pFlags = tEvent.iFlags;
 	return XUI_OK;
 }
 
@@ -1533,17 +1574,25 @@ static int __xuiInputDispatchHotkeysEx(xui_context pContext, int iKey, uint32_t 
 {
 	int i;
 	int iRet;
+	int iFlags;
 
 	for ( i = 0; i < pContext->iHotkeyCount; i++ ) {
 		if ( !__xuiInputHotkeyMatches(&pContext->pHotkeys[i], iKey, iModifiers) ) {
 			continue;
 		}
-		iRet = __xuiInputPushHotkeyEvent(pContext, &pContext->pHotkeys[i]);
+		iFlags = 0;
+		iRet = __xuiInputDispatchHotkeyEvent(pContext, &pContext->pHotkeys[i], &iFlags);
 		if ( iRet != XUI_OK ) {
 			return iRet;
 		}
 		if ( pResult != NULL ) {
-			*pResult |= XUI_INPUT_RESULT_HOTKEY | XUI_INPUT_RESULT_CONSUMED;
+			*pResult |= XUI_INPUT_RESULT_HOTKEY;
+			if ( (iFlags & XUI_EVENT_DISPATCH_STOP) != 0 ) {
+				*pResult |= XUI_INPUT_RESULT_CONSUMED;
+			}
+		}
+		if ( (iFlags & XUI_EVENT_DISPATCH_STOP) != 0 ) {
+			return XUI_OK;
 		}
 	}
 	return XUI_OK;
@@ -1554,7 +1603,9 @@ XUI_API int xuiInputKeyDownEx(xui_context pContext, int iKey, uint32_t iModifier
 	xui_event_t tEvent;
 	int iFlags;
 	xui_widget pOldFocus;
+	xui_widget pKeyTarget;
 	int iRet;
+	uint32_t iHotkeyResult;
 
 	if ( pResult != NULL ) {
 		*pResult = 0u;
@@ -1564,8 +1615,27 @@ XUI_API int xuiInputKeyDownEx(xui_context pContext, int iKey, uint32_t iModifier
 	}
 	iModifiers = __xuiInputNormalizeModifiers(iModifiers);
 	pContext->iInputModifiers = iModifiers;
+	pKeyTarget = pContext->pFocusWidget;
+	/* Focus target first. A focused editor can reserve any key for itself. */
 	iFlags = 0;
-	iRet = __xuiInputDispatchFocusKeyDown(pContext, iKey, iModifiers, &iFlags);
+	iRet = __xuiInputDispatchFocusKeyTarget(pContext, pKeyTarget, iKey, iModifiers, &iFlags);
+	if ( iRet != XUI_OK ) {
+		return iRet;
+	}
+	if ( (iFlags & XUI_EVENT_DISPATCH_STOP) != 0 ) {
+		if ( pResult != NULL ) *pResult |= XUI_INPUT_RESULT_CONSUMED;
+		return XUI_OK;
+	}
+	/* Global hotkeys run between the target and the ancestor bubble route. */
+	iHotkeyResult = 0u;
+	iRet = __xuiInputDispatchHotkeysEx(pContext, iKey, iModifiers, &iHotkeyResult);
+	if ( iRet != XUI_OK ) {
+		return iRet;
+	}
+	if ( pResult != NULL ) *pResult |= iHotkeyResult;
+	if ( (iHotkeyResult & XUI_INPUT_RESULT_CONSUMED) != 0u ) return XUI_OK;
+	iFlags = 0;
+	iRet = __xuiInputDispatchFocusKeyBubble(pContext, pKeyTarget, iKey, iModifiers, &iFlags);
 	if ( iRet != XUI_OK ) {
 		return iRet;
 	}
@@ -1615,7 +1685,7 @@ XUI_API int xuiInputKeyDownEx(xui_context pContext, int iKey, uint32_t iModifier
 		}
 		return XUI_OK;
 	}
-	return __xuiInputDispatchHotkeysEx(pContext, iKey, iModifiers, pResult);
+	return XUI_OK;
 }
 
 XUI_API int xuiInputKeyDown(xui_context pContext, int iKey, uint32_t iModifiers)
@@ -1691,46 +1761,97 @@ static int __xuiInputWidgetImeEnabled(xui_widget pWidget)
 	       ((pWidget->iImeMode == XUI_IME_AUTO) && pWidget->bFocusable);
 }
 
-XUI_API int xuiInputImeComposition(xui_context pContext, const char* sText, int iTextSize, int iCompositionStart, int iCompositionLength)
+static int __xuiInputImeCompositionPush(xui_context pContext, const xui_ime_composition_t* pComposition,
+	int iLegacyStart, int iLegacyLength)
 {
 	xui_event_t tEvent;
 	xui_widget pTarget;
-	int iRet;
+	const char* sText;
+	int iTextSize;
 
 	if ( !xuiInternalContextIsValid(pContext) ||
-	     (sText == NULL) ||
-	     (iTextSize < -1) ||
-	     (iCompositionStart < 0) ||
-	     (iCompositionLength < 0) ) {
+	     (pComposition == NULL) ||
+	     (pComposition->iSize < sizeof(*pComposition)) ||
+	     (pComposition->sText == NULL) ||
+	     (pComposition->iTextSize < -1) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
+	sText = pComposition->sText;
+	iTextSize = pComposition->iTextSize;
 	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
+	if ( pComposition->iCursor < 0 || pComposition->iCursor > iTextSize ||
+	     pComposition->iSelectionStart < 0 || pComposition->iSelectionStart > iTextSize ||
+	     pComposition->iSelectionEnd < pComposition->iSelectionStart ||
+	     pComposition->iSelectionEnd > iTextSize ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pComposition->bReplacementRange &&
+	     (pComposition->iReplacementStart < 0 ||
+	      pComposition->iReplacementEnd < pComposition->iReplacementStart) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
 	if ( iTextSize >= (int)sizeof(tEvent.sText) ) return XUI_ERROR_BUFFER_TOO_SMALL;
 	pTarget = pContext->pFocusWidget;
 	if ( !__xuiInputWidgetImeEnabled(pTarget) ) {
 		return XUI_OK;
 	}
-	iRet = xuiInternalInputRefreshImePosition(pContext);
-	if ( iRet != XUI_OK ) {
-		return iRet;
-	}
 	__xuiInputInitEvent(&tEvent, XUI_EVENT_IME_COMPOSITION, pTarget, NULL, pContext);
 	tEvent.iTextSize = __xuiInputTextCopy(tEvent.sText, (int)sizeof(tEvent.sText), sText, iTextSize);
-	tEvent.iCompositionStart = iCompositionStart;
-	tEvent.iCompositionLength = iCompositionLength;
+	tEvent.iCompositionStart = iLegacyStart;
+	tEvent.iCompositionLength = iLegacyLength;
+	tEvent.bCompositionActive = pComposition->bActive != 0;
+	tEvent.iCompositionCursor = pComposition->iCursor;
+	tEvent.iCompositionSelectionStart = pComposition->iSelectionStart;
+	tEvent.iCompositionSelectionEnd = pComposition->iSelectionEnd;
+	tEvent.bCompositionReplacementRange = pComposition->bReplacementRange != 0;
+	tEvent.iCompositionReplacementStart = pComposition->iReplacementStart;
+	tEvent.iCompositionReplacementEnd = pComposition->iReplacementEnd;
 	return __xuiInputPushEvent(pContext, &tEvent);
 }
 
-XUI_API int xuiInputViewport(xui_context pContext, float fWidth, float fHeight)
+XUI_API int xuiInputImeCompositionEx(xui_context pContext, const xui_ime_composition_t* pComposition)
+{
+	int iTextSize;
+	int iLegacyLength;
+
+	if ( pComposition == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	iTextSize = pComposition->iTextSize;
+	if ( iTextSize < 0 && pComposition->sText != NULL ) iTextSize = (int)strlen(pComposition->sText);
+	iLegacyLength = pComposition->bActive ? ((iTextSize > 0) ? iTextSize : 1) : 0;
+	return __xuiInputImeCompositionPush(pContext, pComposition,
+		pComposition->iSelectionStart, iLegacyLength);
+}
+
+XUI_API int xuiInputImeComposition(xui_context pContext, const char* sText, int iTextSize, int iCompositionStart, int iCompositionLength)
+{
+	xui_ime_composition_t tComposition;
+
+	if ( sText == NULL || iTextSize < -1 || iCompositionStart < 0 || iCompositionLength < 0 ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
+	memset(&tComposition, 0, sizeof(tComposition));
+	tComposition.iSize = sizeof(tComposition);
+	tComposition.sText = sText;
+	tComposition.iTextSize = iTextSize;
+	tComposition.bActive = iCompositionLength > 0;
+	tComposition.iCursor = iTextSize;
+	tComposition.iSelectionStart = iCompositionStart;
+	tComposition.iSelectionEnd = iCompositionStart;
+	if ( tComposition.iSelectionStart > iTextSize ) tComposition.iSelectionStart = iTextSize;
+	tComposition.iSelectionEnd = tComposition.iSelectionStart;
+	return __xuiInputImeCompositionPush(pContext, &tComposition,
+		iCompositionStart, iCompositionLength);
+}
+
+XUI_API int xuiInputViewport(xui_context pContext, int fWidth, int fHeight)
 {
 	xui_event_t tEvent;
-	float fOldWidth;
-	float fOldHeight;
+	int fOldWidth;
+	int fOldHeight;
 	int iRet;
 
 	if ( !xuiInternalContextIsValid(pContext) ||
-	     !__xuiInputPositiveFloatValid(fWidth) ||
-	     !__xuiInputPositiveFloatValid(fHeight) ) {
+	     (fWidth <= 0) || (fHeight <= 0) ||
+	     (fWidth > XUI_CONTEXT_MAX_VIEWPORT) || (fHeight > XUI_CONTEXT_MAX_VIEWPORT) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	fOldWidth = pContext->fViewportWidth;
@@ -1883,7 +2004,13 @@ static int __xuiInputDispatchEventWithFlags(xui_context pContext, const xui_even
 
 XUI_API int xuiDispatchEvent(xui_context pContext, const xui_event_t* pEvent)
 {
-	return __xuiInputDispatchEventWithFlags(pContext, pEvent, NULL);
+	int iRet;
+
+	iRet = __xuiInputDispatchEventWithFlags(pContext, pEvent, NULL);
+	if ( iRet == XUI_OK && pEvent != NULL && pEvent->iType == XUI_EVENT_IME_COMPOSITION ) {
+		iRet = xuiInternalInputRefreshImePosition(pContext);
+	}
+	return iRet;
 }
 
 XUI_API int xuiDispatchPendingEvents(xui_context pContext)
@@ -1905,16 +2032,26 @@ XUI_API int xuiDispatchPendingEvents(xui_context pContext)
 		}
 		iRet = xuiDispatchEvent(pContext, &tEvent);
 		if ( iRet != XUI_OK ) {
-			return iRet;
+			xui_widget pErrorWidget;
+
+			pErrorWidget = tEvent.pTarget;
+			if ( (pErrorWidget == NULL) &&
+			     ((tEvent.iType == XUI_EVENT_VIEWPORT) || (tEvent.iType == XUI_EVENT_DPI)) ) {
+				pErrorWidget = pContext->pRoot;
+			}
+			xuiInternalReportError(pContext, pErrorWidget, iRet, XUI_ERROR_STAGE_INPUT, 1,
+				"event.dispatch", "An event handler failed and the pending event pump continued.");
 		}
 	}
 }
 
-XUI_API xui_widget xuiHitTest(xui_context pContext, float fX, float fY, uint32_t iFlags)
+XUI_API xui_widget xuiHitTest(xui_context pContext, int fX, int fY, uint32_t iFlags)
 {
 	xui_widget pHit;
 
-	if ( !xuiInternalContextIsValid(pContext) || !__xuiInputFloatValid(fX) || !__xuiInputFloatValid(fY) ) {
+	if ( !xuiInternalContextIsValid(pContext) ||
+	     (fX < -XUI_CONTEXT_MAX_VIEWPORT) || (fY < -XUI_CONTEXT_MAX_VIEWPORT) ||
+	     (fX > XUI_CONTEXT_MAX_VIEWPORT) || (fY > XUI_CONTEXT_MAX_VIEWPORT) ) {
 		return NULL;
 	}
 	if ( (pContext->pRoot == NULL) && (pContext->pOverlayRoot == NULL) ) {

@@ -428,12 +428,12 @@ for %%F in (
 )
 
 echo Verifying XLIR dynamic method argument dispatch...
-release\xl.exe cgen test\cases\cgen_dynamic_method_arguments.xl --emit build\test\cgen_dynamic_method_arguments.c
+release\xl.exe cgen test\cases\cgen_dynamic_method_arguments.xl --backend xlir --emit build\test\cgen_dynamic_method_arguments.c
 if errorlevel 1 (
-    echo Legacy Cgen failed for dynamic method arguments.
+    echo XLIR Cgen failed for dynamic method arguments.
     exit /b 1
 )
-echo Legacy dynamic method argument Cgen ok.
+echo XLIR dynamic method argument Cgen ok.
 findstr /C:"defaultResult = xl6_var_call(" build\test\cgen_dynamic_method_arguments.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_method_arguments.c lost dynamic var return typing.

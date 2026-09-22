@@ -6,35 +6,14 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": [
-            "native/xbot_adb.c",
-            "native/xbot_crypto.c"
-        ],
+        "cSources": [],
         "xlSources": [
-            "src/types.xl",
-            "src/http.xl",
-            "src/logger.xl",
-            "src/resource.xl",
-            "src/llm.xl",
-            "src/agent.xl",
-            "src/vision.xl",
-            "src/device.xl",
-            "src/device_windows.xl",
-            "src/device_android.xl",
-            "src/device_cloud.xl",
-            "src/xbot.xl"
+            "src/xbot_core_types.xl"
         ]
     },
-    "links": ["user32", "kernel32", "ole32", "advapi32"],
+    "links": [],
     "loadlibs": [],
-    "dependencies": [
-        { "name": "op", "version": "1.0.0", "abiVersion": "1" },
-        { "name": "rapidocr", "version": "0.1.0", "abiVersion": "1" },
-        { "name": "dinov3", "version": "0.1.0", "abiVersion": "1" },
-        { "name": "xfeat", "version": "0.1.0", "abiVersion": "1" },
-        { "name": "opencv", "version": "0.1.0", "abiVersion": "1" },
-        { "name": "imagehash", "version": "0.1.0", "abiVersion": "1" }
-    ],
+    "dependencies": [],
     "coverage": {
         "mode": "suite",
         "tests": ["test/xbot_test.xl"]

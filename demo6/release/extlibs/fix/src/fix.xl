@@ -1,35 +1,34 @@
-extern "xfix_msg_type" func __msg_type(int id) as string
-extern "xfix_side" func __side(int id) as string
-extern "xfix_ord_type" func __ord_type(int id) as string
-extern "xfix_ord_status" func __ord_status(int id) as string
-extern "xfix_time_in_force" func __time_in_force(int id) as string
-extern "xfix_tag_name" func __tag_name(int tag) as string
-extern "xfix_checksum" func __checksum(string msg) as string
+// FIX message codec. Fields are ordered objects so duplicate tags remain representable.
+extern "xfix_field" func __field(int tag, string value) as var
+extern "xfix_build" func __build(string beginString, var fields) as string
+extern "xfix_parse" func __parse(string message) as var
+extern "xfix_validate" func __validate(string message) as bool
+extern "xfix_error_message" func __error() as string
 
-export func msgType(int id) as string
-    return __msg_type(id)
+export func field(int tag, string value) as var
+    var result = __field(tag, value)
+    if result == null then
+        throw ValueError __error()
+    end
+    return result
 end
 
-export func side(int id) as string
-    return __side(id)
+export func build(string beginString, var fields) as string
+    string result = __build(beginString, fields)
+    if result == "" then
+        throw ValueError __error()
+    end
+    return result
 end
 
-export func ordType(int id) as string
-    return __ord_type(id)
+export func parse(string message) as var
+    var result = __parse(message)
+    if result == null then
+        throw ValueError __error()
+    end
+    return result
 end
 
-export func ordStatus(int id) as string
-    return __ord_status(id)
-end
-
-export func timeInForce(int id) as string
-    return __time_in_force(id)
-end
-
-export func tagName(int tag) as string
-    return __tag_name(tag)
-end
-
-export func checksum(string msg) as string
-    return __checksum(msg)
+export func validate(string message) as bool
+    return __validate(message)
 end

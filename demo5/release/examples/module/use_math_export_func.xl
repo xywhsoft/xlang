@@ -1,5 +1,0 @@
-import math_export_func
-
-func 入口() as int
-	return math_export_func.加二(math_export_func.基数)
-end

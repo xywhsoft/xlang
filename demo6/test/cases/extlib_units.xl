@@ -1,0 +1,71 @@
+import units
+
+
+
+func main(...) as int
+    // 字节格式化（1024 进制）
+    assert units.bytes(0.0) == "0 B", "zero bytes"
+    assert units.bytes(512.0) == "512 B", "plain bytes"
+    assert units.bytes(1024.0) == "1.00 KB", "one kb"
+    assert units.bytes(1536.0) == "1.50 KB", "1.5 kb"
+    assert units.bytes(1024.0 * 1024) == "1.00 MB", "one mb"
+    assert units.bytes(3.0 * 1024 * 1024 * 1024) == "3.00 GB", "three gb"
+
+    // 1000 进制
+    assert units.bytesDecimal(1000.0) == "1.00 KB", "decimal kb"
+    assert units.bytesDecimal(1500000.0) == "1.50 MB", "decimal mb"
+
+    // 字节解析
+    assert units.parseBytes("512") == 512, "bare number"
+    assert units.parseBytes("10KB") == 10240, "kb"
+    assert units.parseBytes("10MB") == 10485760, "mb"
+    assert units.parseBytes("1.5GiB") == 1610612736, "gib"
+    assert units.parseBytes("2 GB") == 2 * 1024 * 1024 * 1024, "gb with space"
+    assert units.parseBytes("4T") == 4.0 * 1024 * 1024 * 1024 * 1024, "bare t"
+    assert units.parseBytes("bad") == -1, "invalid bytes"
+    assert units.parseBytes("") == -1, "empty bytes"
+
+    // 往返
+    assert units.parseBytes("1.50 KB") == 1536, "round trip"
+
+    // 时长格式化
+    assert units.duration(45.0) == "45s", "seconds"
+    assert units.duration(60.0) == "1m", "one minute"
+    assert units.duration(3725.0) == "1h 2m 5s", "hms"
+    assert units.duration(93784.0) == "1d 2h 3m 4s", "dhms"
+    assert units.duration(0.0) == "0s", "zero"
+
+    // 短格式
+    assert units.durationShort(45.0) == "0:45", "short seconds"
+    assert units.durationShort(3725.0) == "1:02:05", "short hms"
+    assert units.durationShort(93784.0) == "1d02:03:04", "short dhms"
+
+    // 时长解析
+    assert units.parseDuration("30s") == 30, "parse s"
+    assert units.parseDuration("5m") == 300, "parse m"
+    assert units.parseDuration("2h") == 7200, "parse h"
+    assert units.parseDuration("1d") == 86400, "parse d"
+    assert units.parseDuration("1h30m") == 5400, "parse hm"
+    assert units.parseDuration("1d2h30m") == 95400, "parse dhm"
+    assert units.parseDuration("1m 30s") == 90, "parse with space"
+    assert units.parseDuration("x") == -1, "invalid duration"
+    assert units.parseDuration("") == -1, "empty duration"
+
+    // 往返
+    assert units.parseDuration(units.duration(3725.0)) == 3725, "duration round trip"
+
+    // 计数
+    assert units.count(999.0) == "999", "below thousand"
+    assert units.count(1200.0) == "1.2K", "thousands"
+    assert units.count(3400000.0) == "3.4M", "millions"
+    assert units.count(5600000000.0) == "5.6B", "billions"
+
+    // 2 的幂
+    assert units.isPow2(1), "1 is pow2"
+    assert units.isPow2(64), "64 is pow2"
+    assert units.isPow2(1024), "1024 is pow2"
+    assert not units.isPow2(0), "0 not pow2"
+    assert not units.isPow2(1000), "1000 not pow2"
+
+    return 0
+end

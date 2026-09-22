@@ -63,25 +63,9 @@ static uint64_t __xuiWidgetOwnEventMask(xui_widget pWidget)
 }
 
 static xui_widget_type_t g_xuiWidgetBaseType = {
-	XUI_WIDGET_TYPE_MAGIC,
-	NULL,
-	NULL,
-	NULL,
-	"widget",
-	0,
-	0,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	{0},
-	{0},
-	0,
-	1
+	.iMagic = XUI_WIDGET_TYPE_MAGIC,
+	.sName = "widget",
+	.bBuiltin = 1
 };
 
 struct xui_style_prop_t {
@@ -141,14 +125,14 @@ static int __xuiFloatValid(float fValue)
 	return (fValue == fValue) && (fValue >= -XUI_CONTEXT_MAX_VIEWPORT) && (fValue <= XUI_CONTEXT_MAX_VIEWPORT);
 }
 
-static int __xuiRectValidFloat(xui_rect_t tRect)
+static int __xuiRectValid(xui_rect_t tRect)
 {
-	return __xuiFloatValid(tRect.fX) &&
-	       __xuiFloatValid(tRect.fY) &&
-	       (tRect.fW == tRect.fW) &&
-	       (tRect.fH == tRect.fH) &&
-	       (tRect.fW >= 0.0f) &&
-	       (tRect.fH >= 0.0f) &&
+	return (tRect.fX >= -XUI_CONTEXT_MAX_VIEWPORT) &&
+	       (tRect.fY >= -XUI_CONTEXT_MAX_VIEWPORT) &&
+	       (tRect.fX <= XUI_CONTEXT_MAX_VIEWPORT) &&
+	       (tRect.fY <= XUI_CONTEXT_MAX_VIEWPORT) &&
+	       (tRect.fW >= 0) &&
+	       (tRect.fH >= 0) &&
 	       (tRect.fW <= XUI_CONTEXT_MAX_VIEWPORT) &&
 	       (tRect.fH <= XUI_CONTEXT_MAX_VIEWPORT);
 }
@@ -225,11 +209,12 @@ static int __xuiTableTrackValid(const xui_table_track_t* pTrack)
 	if ( pTrack == NULL ) {
 		return 0;
 	}
-	return __xuiSizeModeValid(pTrack->iSizeMode) &&
+	return (__xuiSizeModeValid(pTrack->iSizeMode) || pTrack->iSizeMode == XUI_TRACK_CROSS) &&
 	       __xuiNonNegativeFloatValid(pTrack->fValue) &&
 	       __xuiNonNegativeFloatValid(pTrack->fMin) &&
 	       __xuiNonNegativeFloatValid(pTrack->fMax) &&
 	       __xuiNonNegativeFloatValid(pTrack->fWeight) &&
+	       __xuiNonNegativeFloatValid(pTrack->fShrink) &&
 	       (pTrack->fMin <= pTrack->fMax);
 }
 
@@ -295,7 +280,7 @@ static int __xuiTooltipDescStructValid(const xui_tooltip_desc_t* pDesc)
 	}
 	if ( !__xuiTooltipTypeValid(pDesc->iType) ||
 	     !__xuiTooltipAnchorValid(pDesc->iAnchor) ||
-	     !__xuiRectValidFloat(pDesc->tAnchorRect) ||
+	     !__xuiRectValid(pDesc->tAnchorRect) ||
 	     !__xuiFloatValid(pDesc->fOffsetX) ||
 	     !__xuiFloatValid(pDesc->fOffsetY) ||
 	     (pDesc->fDelay != pDesc->fDelay) ||
@@ -926,6 +911,7 @@ static xui_table_track_t __xuiTableTrackDefault(void)
 	tTrack.fMin = 0.0f;
 	tTrack.fMax = XUI_LAYOUT_UNBOUNDED;
 	tTrack.fWeight = 1.0f;
+	tTrack.fShrink = 0.0f;
 	return tTrack;
 }
 
@@ -1070,6 +1056,7 @@ static void __xuiWidgetInvalidateMeasureTree(xui_widget pWidget)
 
 	pWidget->bMeasureValid = 0;
 	pWidget->bArrangeValid = 0;
+	xuiInternalLayoutInvalidate(pWidget, 1);
 	for ( pParent = pWidget->pParent; pParent != NULL; pParent = pParent->pParent ) {
 		pParent->bMeasureValid = 0;
 		pParent->bArrangeValid = 0;
@@ -1628,1150 +1615,6 @@ static xui_vec2_t __xuiWidgetMeasureOwnContent(xui_widget pWidget, xui_vec2_t tC
 	return __xuiWidgetClampSize(pWidget, tSize);
 }
 
-static xui_vec2_t __xuiWidgetMeasureCustomLayout(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	xui_vec2_t tSize;
-	int iRet;
-
-	tSize = __xuiVec2(0.0f, 0.0f);
-	if ( pWidget->onLayoutMeasure == NULL ) {
-		return tSize;
-	}
-	tConstraint.fX = __xuiFiniteConstraint(tConstraint.fX);
-	tConstraint.fY = __xuiFiniteConstraint(tConstraint.fY);
-	iRet = pWidget->onLayoutMeasure(pWidget, tConstraint, &tSize, pWidget->pLayoutUser);
-	if ( (iRet != XUI_OK) || !__xuiWidgetSizeValid(tSize) ) {
-		return __xuiVec2(0.0f, 0.0f);
-	}
-	return tSize;
-}
-
-static xui_vec2_t __xuiWidgetMaxSize(xui_vec2_t tA, xui_vec2_t tB)
-{
-	return __xuiVec2(__xuiMaxFloat(tA.fX, tB.fX), __xuiMaxFloat(tA.fY, tB.fY));
-}
-
-static float __xuiWidgetAxisPreferred(xui_widget pWidget, int bHorizontal, xui_vec2_t tContentSize, xui_vec2_t tConstraint)
-{
-	int iMode;
-	float fPreferred;
-	float fRectSize;
-	float fContentSize;
-	float fConstraint;
-
-	iMode = bHorizontal ? pWidget->tLayout.iWidthMode : pWidget->tLayout.iHeightMode;
-	fPreferred = bHorizontal ? pWidget->tLayout.fPreferredWidth : pWidget->tLayout.fPreferredHeight;
-	fRectSize = bHorizontal ? pWidget->tRect.fW : pWidget->tRect.fH;
-	fContentSize = bHorizontal ? tContentSize.fX : tContentSize.fY;
-	fConstraint = bHorizontal ? tConstraint.fX : tConstraint.fY;
-	if ( iMode == XUI_SIZE_FIXED ) {
-		return (fPreferred > 0.0f) ? fPreferred : fRectSize;
-	}
-	if ( iMode == XUI_SIZE_FILL ) {
-		if ( __xuiConstraintIsFinite(fConstraint) ) {
-			return fConstraint;
-		}
-		return (fPreferred > 0.0f) ? fPreferred : fRectSize;
-	}
-	if ( fContentSize > 0.0f ) {
-		return fContentSize;
-	}
-	if ( fPreferred > 0.0f ) {
-		return fPreferred;
-	}
-	return fRectSize;
-}
-
-static int __xuiWidgetVisibleChildCount(xui_widget pWidget)
-{
-	xui_widget pChild;
-	int iCount;
-
-	iCount = 0;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( pChild->bVisible ) {
-			iCount++;
-		}
-	}
-	return iCount;
-}
-
-static xui_vec2_t __xuiWidgetMeasureInternal(xui_widget pWidget, xui_vec2_t tConstraint);
-
-static xui_vec2_t __xuiWidgetMeasureManual(xui_widget pWidget)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_vec2_t tSize;
-	float fRight;
-	float fBottom;
-
-	tSize = __xuiVec2(0.0f, 0.0f);
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, XUI_LAYOUT_UNBOUNDED));
-		fRight = pChild->tRect.fX + tChildSize.fX + pChild->tLayout.tMargin.fLeft + pChild->tLayout.tMargin.fRight;
-		fBottom = pChild->tRect.fY + tChildSize.fY + pChild->tLayout.tMargin.fTop + pChild->tLayout.tMargin.fBottom;
-		tSize.fX = __xuiMaxFloat(tSize.fX, fRight);
-		tSize.fY = __xuiMaxFloat(tSize.fY, fBottom);
-	}
-	return tSize;
-}
-
-static xui_vec2_t __xuiWidgetMeasureOverlay(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_vec2_t tSize;
-	xui_vec2_t tChildConstraint;
-
-	tSize = __xuiVec2(0.0f, 0.0f);
-	tChildConstraint.fX = __xuiFiniteConstraint(tConstraint.fX);
-	tChildConstraint.fY = __xuiFiniteConstraint(tConstraint.fY);
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tChildSize = __xuiWidgetMeasureInternal(pChild, tChildConstraint);
-		tSize.fX = __xuiMaxFloat(tSize.fX, tChildSize.fX + pChild->tLayout.tMargin.fLeft + pChild->tLayout.tMargin.fRight);
-		tSize.fY = __xuiMaxFloat(tSize.fY, tChildSize.fY + pChild->tLayout.tMargin.fTop + pChild->tLayout.tMargin.fBottom);
-	}
-	return tSize;
-}
-
-static xui_vec2_t __xuiWidgetMeasureLinear(xui_widget pWidget, xui_vec2_t tConstraint, int bHorizontal)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_vec2_t tChildConstraint;
-	xui_vec2_t tSize;
-	xui_thickness_t tMargin;
-	int iCount;
-
-	tSize = __xuiVec2(0.0f, 0.0f);
-	iCount = 0;
-	tChildConstraint = tConstraint;
-	if ( bHorizontal ) {
-		tChildConstraint.fX = XUI_LAYOUT_UNBOUNDED;
-	} else {
-		tChildConstraint.fY = XUI_LAYOUT_UNBOUNDED;
-	}
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tChildSize = __xuiWidgetMeasureInternal(pChild, tChildConstraint);
-		if ( bHorizontal ) {
-			tSize.fX += tChildSize.fX + tMargin.fLeft + tMargin.fRight;
-			tSize.fY = __xuiMaxFloat(tSize.fY, tChildSize.fY + tMargin.fTop + tMargin.fBottom);
-		} else {
-			tSize.fX = __xuiMaxFloat(tSize.fX, tChildSize.fX + tMargin.fLeft + tMargin.fRight);
-			tSize.fY += tChildSize.fY + tMargin.fTop + tMargin.fBottom;
-		}
-		iCount++;
-	}
-	if ( iCount > 1 ) {
-		if ( bHorizontal ) {
-			tSize.fX += pWidget->tLayout.fGap * (float)(iCount - 1);
-		} else {
-			tSize.fY += pWidget->tLayout.fGap * (float)(iCount - 1);
-		}
-	}
-	return tSize;
-}
-
-static xui_vec2_t __xuiWidgetMeasureDock(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_vec2_t tSize;
-	xui_thickness_t tMargin;
-	float fSideWidth;
-	float fSideHeight;
-
-	(void)tConstraint;
-	tSize = __xuiVec2(0.0f, 0.0f);
-	fSideWidth = 0.0f;
-	fSideHeight = 0.0f;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, XUI_LAYOUT_UNBOUNDED));
-		tChildSize.fX += tMargin.fLeft + tMargin.fRight;
-		tChildSize.fY += tMargin.fTop + tMargin.fBottom;
-		switch ( pChild->tLayout.iDock ) {
-		case XUI_DOCK_LEFT:
-		case XUI_DOCK_RIGHT:
-			fSideWidth += tChildSize.fX;
-			fSideHeight = __xuiMaxFloat(fSideHeight, tChildSize.fY);
-			break;
-		case XUI_DOCK_TOP:
-		case XUI_DOCK_BOTTOM:
-			tSize.fX = __xuiMaxFloat(tSize.fX, fSideWidth + tChildSize.fX);
-			tSize.fY += __xuiMaxFloat(fSideHeight, tChildSize.fY);
-			fSideWidth = 0.0f;
-			fSideHeight = 0.0f;
-			break;
-		case XUI_DOCK_FILL:
-		default:
-			tSize.fX = __xuiMaxFloat(tSize.fX, fSideWidth + tChildSize.fX);
-			fSideHeight = __xuiMaxFloat(fSideHeight, tChildSize.fY);
-			break;
-		}
-	}
-	tSize.fX = __xuiMaxFloat(tSize.fX, fSideWidth);
-	tSize.fY += fSideHeight;
-	return tSize;
-}
-
-static xui_vec2_t __xuiWidgetMeasureGrid(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_thickness_t tMargin;
-	float fItemWidth;
-	float fItemHeight;
-	int iCount;
-	int iColumns;
-	int iRows;
-
-	(void)tConstraint;
-	fItemWidth = pWidget->tLayout.fGridItemWidth;
-	fItemHeight = pWidget->tLayout.fGridItemHeight;
-	iCount = 0;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, XUI_LAYOUT_UNBOUNDED));
-		fItemWidth = __xuiMaxFloat(fItemWidth, tChildSize.fX + tMargin.fLeft + tMargin.fRight);
-		fItemHeight = __xuiMaxFloat(fItemHeight, tChildSize.fY + tMargin.fTop + tMargin.fBottom);
-		iCount++;
-	}
-	if ( iCount <= 0 ) {
-		return __xuiVec2(0.0f, 0.0f);
-	}
-	iColumns = pWidget->tLayout.iGridColumnCount;
-	if ( iColumns <= 0 ) {
-		iColumns = 1;
-	}
-	if ( iColumns > iCount ) {
-		iColumns = iCount;
-	}
-	iRows = (iCount + iColumns - 1) / iColumns;
-	return __xuiVec2(
-		(fItemWidth * (float)iColumns) + (pWidget->tLayout.fGap * (float)(iColumns - 1)),
-		(fItemHeight * (float)iRows) + (pWidget->tLayout.fGap * (float)(iRows - 1)));
-}
-
-static void __xuiWidgetFlowCloseLine(xui_vec2_t* pSize, float* pLineWidth, float* pLineHeight, int* pLineCount, float fGap)
-{
-	if ( *pLineCount <= 0 ) {
-		return;
-	}
-	pSize->fX = __xuiMaxFloat(pSize->fX, *pLineWidth);
-	if ( pSize->fY > 0.0f ) {
-		pSize->fY += fGap;
-	}
-	pSize->fY += *pLineHeight;
-	*pLineWidth = 0.0f;
-	*pLineHeight = 0.0f;
-	*pLineCount = 0;
-}
-
-static xui_vec2_t __xuiWidgetMeasureFlow(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_vec2_t tSize;
-	xui_vec2_t tChildConstraint;
-	xui_thickness_t tMargin;
-	float fAvailableWidth;
-	float fItemWidth;
-	float fItemHeight;
-	float fLineWidth;
-	float fLineHeight;
-	int iLineCount;
-
-	tSize = __xuiVec2(0.0f, 0.0f);
-	fAvailableWidth = __xuiConstraintIsFinite(tConstraint.fX) ? tConstraint.fX : XUI_LAYOUT_UNBOUNDED;
-	fLineWidth = 0.0f;
-	fLineHeight = 0.0f;
-	iLineCount = 0;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible || (pChild->tLayout.iFlowMode == XUI_FLOW_NONE) || (pChild->tLayout.iFlowMode == XUI_FLOW_ABSOLUTE) ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tChildConstraint.fX = __xuiConstraintIsFinite(fAvailableWidth) ? __xuiMaxFloat(0.0f, fAvailableWidth - tMargin.fLeft - tMargin.fRight) : XUI_LAYOUT_UNBOUNDED;
-		tChildConstraint.fY = XUI_LAYOUT_UNBOUNDED;
-		tChildSize = __xuiWidgetMeasureInternal(pChild, tChildConstraint);
-		fItemWidth = tChildSize.fX + tMargin.fLeft + tMargin.fRight;
-		fItemHeight = tChildSize.fY + tMargin.fTop + tMargin.fBottom;
-		if ( pChild->tLayout.iFlowMode == XUI_FLOW_BLOCK ) {
-			__xuiWidgetFlowCloseLine(&tSize, &fLineWidth, &fLineHeight, &iLineCount, pWidget->tLayout.fGap);
-			tSize.fX = __xuiMaxFloat(tSize.fX, fItemWidth);
-			if ( tSize.fY > 0.0f ) {
-				tSize.fY += pWidget->tLayout.fGap;
-			}
-			tSize.fY += fItemHeight;
-			continue;
-		}
-		if ( (iLineCount > 0) &&
-		     __xuiConstraintIsFinite(fAvailableWidth) &&
-		     ((fLineWidth + pWidget->tLayout.fGap + fItemWidth) > fAvailableWidth) ) {
-			__xuiWidgetFlowCloseLine(&tSize, &fLineWidth, &fLineHeight, &iLineCount, pWidget->tLayout.fGap);
-		}
-		if ( iLineCount > 0 ) {
-			fLineWidth += pWidget->tLayout.fGap;
-		}
-		fLineWidth += fItemWidth;
-		fLineHeight = __xuiMaxFloat(fLineHeight, fItemHeight);
-		iLineCount++;
-	}
-	__xuiWidgetFlowCloseLine(&tSize, &fLineWidth, &fLineHeight, &iLineCount, pWidget->tLayout.fGap);
-	return tSize;
-}
-
-static int __xuiWidgetTableGetCounts(xui_widget pWidget, int* pRows, int* pColumns)
-{
-	xui_widget pChild;
-	int iRows;
-	int iColumns;
-	int iChildEnd;
-
-	iRows = pWidget->iTableRowCount;
-	iColumns = pWidget->iTableColumnCount;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		iChildEnd = pChild->tLayout.iTableRow + pChild->tLayout.iTableRowSpan;
-		if ( iChildEnd > iRows ) {
-			iRows = iChildEnd;
-		}
-		iChildEnd = pChild->tLayout.iTableColumn + pChild->tLayout.iTableColumnSpan;
-		if ( iChildEnd > iColumns ) {
-			iColumns = iChildEnd;
-		}
-	}
-	if ( iRows < 0 ) {
-		iRows = 0;
-	}
-	if ( iColumns < 0 ) {
-		iColumns = 0;
-	}
-	*pRows = iRows;
-	*pColumns = iColumns;
-	return (iRows > 0) && (iColumns > 0);
-}
-
-static xui_table_track_t __xuiWidgetTableRowTrack(xui_widget pWidget, int iRow)
-{
-	if ( (iRow >= 0) && (iRow < pWidget->iTableRowCount) && (pWidget->pTableRows != NULL) ) {
-		return pWidget->pTableRows[iRow];
-	}
-	return __xuiTableTrackDefault();
-}
-
-static xui_table_track_t __xuiWidgetTableColumnTrack(xui_widget pWidget, int iColumn)
-{
-	if ( (iColumn >= 0) && (iColumn < pWidget->iTableColumnCount) && (pWidget->pTableColumns != NULL) ) {
-		return pWidget->pTableColumns[iColumn];
-	}
-	return __xuiTableTrackDefault();
-}
-
-static void __xuiWidgetTableInitTrackSize(float* pSizes, int iCount, xui_widget pWidget, int bColumn)
-{
-	xui_table_track_t tTrack;
-	int i;
-
-	for ( i = 0; i < iCount; i++ ) {
-		tTrack = bColumn ? __xuiWidgetTableColumnTrack(pWidget, i) : __xuiWidgetTableRowTrack(pWidget, i);
-		if ( tTrack.iSizeMode == XUI_SIZE_FIXED ) {
-			pSizes[i] = __xuiClampFloat(tTrack.fValue, tTrack.fMin, tTrack.fMax);
-		} else {
-			pSizes[i] = tTrack.fMin;
-		}
-	}
-}
-
-static float __xuiWidgetTableSpanSum(const float* pSizes, int iStart, int iSpan, float fGap)
-{
-	float fSum;
-	int i;
-
-	fSum = 0.0f;
-	for ( i = 0; i < iSpan; i++ ) {
-		fSum += pSizes[iStart + i];
-	}
-	if ( iSpan > 1 ) {
-		fSum += fGap * (float)(iSpan - 1);
-	}
-	return fSum;
-}
-
-static void __xuiWidgetTableDistributeExtra(float* pSizes, int iStart, int iSpan, float fExtra, xui_widget pWidget, int bColumn)
-{
-	xui_table_track_t tTrack;
-	float fWeight;
-	float fTotalWeight;
-	int i;
-
-	if ( (iSpan <= 0) || (fExtra <= 0.0f) ) {
-		return;
-	}
-	fTotalWeight = 0.0f;
-	for ( i = 0; i < iSpan; i++ ) {
-		tTrack = bColumn ? __xuiWidgetTableColumnTrack(pWidget, iStart + i) : __xuiWidgetTableRowTrack(pWidget, iStart + i);
-		if ( tTrack.iSizeMode != XUI_SIZE_FIXED ) {
-			fTotalWeight += (tTrack.fWeight > 0.0f) ? tTrack.fWeight : 1.0f;
-		}
-	}
-	if ( fTotalWeight <= 0.0f ) {
-		fTotalWeight = (float)iSpan;
-	}
-	for ( i = 0; i < iSpan; i++ ) {
-		tTrack = bColumn ? __xuiWidgetTableColumnTrack(pWidget, iStart + i) : __xuiWidgetTableRowTrack(pWidget, iStart + i);
-		if ( (tTrack.iSizeMode == XUI_SIZE_FIXED) && (fTotalWeight != (float)iSpan) ) {
-			continue;
-		}
-		fWeight = ((tTrack.fWeight > 0.0f) ? tTrack.fWeight : 1.0f) / fTotalWeight;
-		pSizes[iStart + i] = __xuiClampFloat(pSizes[iStart + i] + (fExtra * fWeight), tTrack.fMin, tTrack.fMax);
-	}
-}
-
-static void __xuiWidgetTableDistributeAvailable(float* pSizes, int iCount, xui_widget pWidget, float fAvailable, int bColumn)
-{
-	xui_table_track_t tTrack;
-	float fUsed;
-	float fExtra;
-	float fWeight;
-	float fTotalWeight;
-	int i;
-	int iFillCount;
-
-	if ( !__xuiConstraintIsFinite(fAvailable) || (iCount <= 0) ) {
-		return;
-	}
-	fUsed = 0.0f;
-	fTotalWeight = 0.0f;
-	iFillCount = 0;
-	for ( i = 0; i < iCount; i++ ) {
-		fUsed += pSizes[i];
-		tTrack = bColumn ? __xuiWidgetTableColumnTrack(pWidget, i) : __xuiWidgetTableRowTrack(pWidget, i);
-		if ( tTrack.iSizeMode == XUI_SIZE_FILL ) {
-			fTotalWeight += (tTrack.fWeight > 0.0f) ? tTrack.fWeight : 1.0f;
-			iFillCount++;
-		}
-	}
-	if ( iCount > 1 ) {
-		fUsed += pWidget->tLayout.fGap * (float)(iCount - 1);
-	}
-	fExtra = fAvailable - fUsed;
-	if ( (fExtra <= 0.0f) || (iFillCount <= 0) ) {
-		return;
-	}
-	for ( i = 0; i < iCount; i++ ) {
-		tTrack = bColumn ? __xuiWidgetTableColumnTrack(pWidget, i) : __xuiWidgetTableRowTrack(pWidget, i);
-		if ( tTrack.iSizeMode != XUI_SIZE_FILL ) {
-			continue;
-		}
-		fWeight = ((tTrack.fWeight > 0.0f) ? tTrack.fWeight : 1.0f) / fTotalWeight;
-		pSizes[i] = __xuiClampFloat(pSizes[i] + (fExtra * fWeight), tTrack.fMin, tTrack.fMax);
-	}
-}
-
-static int __xuiWidgetTableCompute(xui_widget pWidget, xui_vec2_t tConstraint, float** ppColumns, int* pColumnCount, float** ppRows, int* pRowCount)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_thickness_t tMargin;
-	float* pColumns;
-	float* pRows;
-	float fNeed;
-	float fHave;
-	int iRows;
-	int iColumns;
-	int iRow;
-	int iColumn;
-	int iRowSpan;
-	int iColumnSpan;
-
-	*ppColumns = NULL;
-	*ppRows = NULL;
-	*pColumnCount = 0;
-	*pRowCount = 0;
-	if ( !__xuiWidgetTableGetCounts(pWidget, &iRows, &iColumns) ) {
-		return XUI_OK;
-	}
-	pColumns = (float*)xrtMalloc(sizeof(float) * (size_t)iColumns);
-	pRows = (float*)xrtMalloc(sizeof(float) * (size_t)iRows);
-	if ( (pColumns == NULL) || (pRows == NULL) ) {
-		if ( pColumns != NULL ) {
-			xrtFree(pColumns);
-		}
-		if ( pRows != NULL ) {
-			xrtFree(pRows);
-		}
-		return XUI_ERROR_OUT_OF_MEMORY;
-	}
-	__xuiWidgetTableInitTrackSize(pColumns, iColumns, pWidget, 1);
-	__xuiWidgetTableInitTrackSize(pRows, iRows, pWidget, 0);
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		iRow = pChild->tLayout.iTableRow;
-		iColumn = pChild->tLayout.iTableColumn;
-		iRowSpan = pChild->tLayout.iTableRowSpan;
-		iColumnSpan = pChild->tLayout.iTableColumnSpan;
-		if ( (iRow < 0) || (iColumn < 0) || (iRowSpan <= 0) || (iColumnSpan <= 0) ||
-		     ((iRow + iRowSpan) > iRows) || ((iColumn + iColumnSpan) > iColumns) ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, XUI_LAYOUT_UNBOUNDED));
-		fNeed = tChildSize.fX + tMargin.fLeft + tMargin.fRight;
-		fHave = __xuiWidgetTableSpanSum(pColumns, iColumn, iColumnSpan, pWidget->tLayout.fGap);
-		if ( fNeed > fHave ) {
-			__xuiWidgetTableDistributeExtra(pColumns, iColumn, iColumnSpan, fNeed - fHave, pWidget, 1);
-		}
-		fNeed = tChildSize.fY + tMargin.fTop + tMargin.fBottom;
-		fHave = __xuiWidgetTableSpanSum(pRows, iRow, iRowSpan, pWidget->tLayout.fGap);
-		if ( fNeed > fHave ) {
-			__xuiWidgetTableDistributeExtra(pRows, iRow, iRowSpan, fNeed - fHave, pWidget, 0);
-		}
-	}
-	__xuiWidgetTableDistributeAvailable(pColumns, iColumns, pWidget, tConstraint.fX, 1);
-	__xuiWidgetTableDistributeAvailable(pRows, iRows, pWidget, tConstraint.fY, 0);
-	*ppColumns = pColumns;
-	*ppRows = pRows;
-	*pColumnCount = iColumns;
-	*pRowCount = iRows;
-	return XUI_OK;
-}
-
-static xui_vec2_t __xuiWidgetMeasureTable(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	float* pColumns;
-	float* pRows;
-	xui_vec2_t tSize;
-	int iColumnCount;
-	int iRowCount;
-	int i;
-	int iRet;
-
-	tSize = __xuiVec2(0.0f, 0.0f);
-	iRet = __xuiWidgetTableCompute(pWidget, tConstraint, &pColumns, &iColumnCount, &pRows, &iRowCount);
-	if ( iRet != XUI_OK ) {
-		return tSize;
-	}
-	for ( i = 0; i < iColumnCount; i++ ) {
-		tSize.fX += pColumns[i];
-	}
-	for ( i = 0; i < iRowCount; i++ ) {
-		tSize.fY += pRows[i];
-	}
-	if ( iColumnCount > 1 ) {
-		tSize.fX += pWidget->tLayout.fGap * (float)(iColumnCount - 1);
-	}
-	if ( iRowCount > 1 ) {
-		tSize.fY += pWidget->tLayout.fGap * (float)(iRowCount - 1);
-	}
-	if ( pColumns != NULL ) {
-		xrtFree(pColumns);
-	}
-	if ( pRows != NULL ) {
-		xrtFree(pRows);
-	}
-	return tSize;
-}
-
-static xui_vec2_t __xuiWidgetMeasureInternal(xui_widget pWidget, xui_vec2_t tConstraint)
-{
-	xui_vec2_t tContentSize;
-	xui_vec2_t tOwnContentSize;
-	xui_vec2_t tSize;
-	xui_thickness_t tPadding;
-
-	tConstraint.fX = __xuiFiniteConstraint(tConstraint.fX);
-	tConstraint.fY = __xuiFiniteConstraint(tConstraint.fY);
-	if ( pWidget->bMeasureValid &&
-	     (pWidget->tMeasureConstraint.fX == tConstraint.fX) &&
-	     (pWidget->tMeasureConstraint.fY == tConstraint.fY) ) {
-		return pWidget->tMeasuredSize;
-	}
-	if ( pWidget->onLayoutMeasure != NULL ) {
-		tContentSize = __xuiWidgetMeasureCustomLayout(pWidget, tConstraint);
-	} else {
-		switch ( pWidget->tLayout.iLayoutType ) {
-		case XUI_LAYOUT_OVERLAY:
-			tContentSize = __xuiWidgetMeasureOverlay(pWidget, tConstraint);
-			break;
-		case XUI_LAYOUT_ROW:
-			tContentSize = __xuiWidgetMeasureLinear(pWidget, tConstraint, 1);
-			break;
-		case XUI_LAYOUT_COLUMN:
-			tContentSize = __xuiWidgetMeasureLinear(pWidget, tConstraint, 0);
-			break;
-		case XUI_LAYOUT_FLOW:
-			tContentSize = __xuiWidgetMeasureFlow(pWidget, tConstraint);
-			break;
-		case XUI_LAYOUT_TABLE:
-			tContentSize = __xuiWidgetMeasureTable(pWidget, tConstraint);
-			break;
-		case XUI_LAYOUT_DOCK:
-			tContentSize = __xuiWidgetMeasureDock(pWidget, tConstraint);
-			break;
-		case XUI_LAYOUT_GRID:
-			tContentSize = __xuiWidgetMeasureGrid(pWidget, tConstraint);
-			break;
-		case XUI_LAYOUT_MANUAL:
-		default:
-			tContentSize = __xuiWidgetMeasureManual(pWidget);
-			break;
-		}
-	}
-	tOwnContentSize = __xuiWidgetMeasureOwnContent(pWidget, tConstraint);
-	tContentSize = __xuiWidgetMaxSize(tContentSize, tOwnContentSize);
-	tPadding = pWidget->tLayout.tPadding;
-	tContentSize.fX += tPadding.fLeft + tPadding.fRight;
-	tContentSize.fY += tPadding.fTop + tPadding.fBottom;
-	tSize.fX = __xuiWidgetAxisPreferred(pWidget, 1, tContentSize, tConstraint);
-	tSize.fY = __xuiWidgetAxisPreferred(pWidget, 0, tContentSize, tConstraint);
-	tSize = __xuiWidgetClampSize(pWidget, tSize);
-	pWidget->tMeasuredSize = tSize;
-	pWidget->tMeasureConstraint = tConstraint;
-	pWidget->bMeasureValid = 1;
-	return tSize;
-}
-
-static float __xuiWidgetChildMainBase(xui_widget pChild, xui_vec2_t tMeasuredSize, int bHorizontal)
-{
-	float fPreferred;
-	float fRectSize;
-	int iMode;
-
-	iMode = bHorizontal ? pChild->tLayout.iWidthMode : pChild->tLayout.iHeightMode;
-	fPreferred = bHorizontal ? pChild->tLayout.fPreferredWidth : pChild->tLayout.fPreferredHeight;
-	fRectSize = bHorizontal ? pChild->tRect.fW : pChild->tRect.fH;
-	if ( iMode == XUI_SIZE_CONTENT ) {
-		return bHorizontal ? tMeasuredSize.fX : tMeasuredSize.fY;
-	}
-	if ( iMode == XUI_SIZE_FILL ) {
-		if ( fPreferred > 0.0f ) {
-			return fPreferred;
-		}
-		return bHorizontal ? pChild->tLayout.fMinWidth : pChild->tLayout.fMinHeight;
-	}
-	if ( fPreferred > 0.0f ) {
-		return fPreferred;
-	}
-	if ( fRectSize > 0.0f ) {
-		return fRectSize;
-	}
-	return bHorizontal ? tMeasuredSize.fX : tMeasuredSize.fY;
-}
-
-static float __xuiWidgetChildGrowWeight(xui_widget pChild, int bHorizontal)
-{
-	int iMode;
-
-	iMode = bHorizontal ? pChild->tLayout.iWidthMode : pChild->tLayout.iHeightMode;
-	if ( pChild->tLayout.fGrow > 0.0f ) {
-		return pChild->tLayout.fGrow;
-	}
-	if ( iMode == XUI_SIZE_FILL ) {
-		return 1.0f;
-	}
-	return 0.0f;
-}
-
-static float __xuiWidgetChildCrossSize(xui_widget pChild, xui_vec2_t tMeasuredSize, float fAvailable, int bHorizontal)
-{
-	int iMode;
-	int iAlign;
-	float fSize;
-	float fPreferred;
-
-	iMode = bHorizontal ? pChild->tLayout.iHeightMode : pChild->tLayout.iWidthMode;
-	iAlign = bHorizontal ? pChild->tLayout.iAlignY : pChild->tLayout.iAlignX;
-	fPreferred = bHorizontal ? pChild->tLayout.fPreferredHeight : pChild->tLayout.fPreferredWidth;
-	if ( (iMode == XUI_SIZE_FILL) || (iAlign == XUI_ALIGN_STRETCH) ) {
-		fSize = fAvailable;
-	} else if ( fPreferred > 0.0f ) {
-		fSize = fPreferred;
-	} else {
-		fSize = bHorizontal ? tMeasuredSize.fY : tMeasuredSize.fX;
-	}
-	if ( bHorizontal ) {
-		fSize = __xuiClampFloat(fSize, pChild->tLayout.fMinHeight, pChild->tLayout.fMaxHeight);
-	} else {
-		fSize = __xuiClampFloat(fSize, pChild->tLayout.fMinWidth, pChild->tLayout.fMaxWidth);
-	}
-	return __xuiMaxFloat(0.0f, fSize);
-}
-
-static float __xuiWidgetAlignOffset(int iAlign, float fAvailable, float fSize)
-{
-	if ( iAlign == XUI_ALIGN_CENTER ) {
-		return (fAvailable - fSize) * 0.5f;
-	}
-	if ( iAlign == XUI_ALIGN_END ) {
-		return fAvailable - fSize;
-	}
-	return 0.0f;
-}
-
-static void __xuiWidgetArrangeInternal(xui_widget pWidget, xui_rect_t tRect);
-
-static void __xuiWidgetArrangeManual(xui_widget pWidget)
-{
-	xui_widget pChild;
-
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		__xuiWidgetArrangeInternal(pChild, pChild->tRect);
-	}
-}
-
-static void __xuiWidgetArrangeOverlay(xui_widget pWidget, xui_rect_t tContent)
-{
-	xui_widget pChild;
-	xui_vec2_t tMeasuredSize;
-	xui_rect_t tChildRect;
-	xui_thickness_t tMargin;
-	float fAvailableWidth;
-	float fAvailableHeight;
-
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		if ( pChild->tLayout.iFlowMode == XUI_FLOW_ABSOLUTE ) {
-			__xuiWidgetArrangeInternal(pChild, pChild->tRect);
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		fAvailableWidth = __xuiMaxFloat(0.0f, tContent.fW - tMargin.fLeft - tMargin.fRight);
-		fAvailableHeight = __xuiMaxFloat(0.0f, tContent.fH - tMargin.fTop - tMargin.fBottom);
-		tMeasuredSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(fAvailableWidth, fAvailableHeight));
-		tChildRect.fW = ((pChild->tLayout.iWidthMode == XUI_SIZE_FILL) || (pChild->tLayout.iAlignX == XUI_ALIGN_STRETCH)) ?
-			fAvailableWidth : __xuiWidgetChildCrossSize(pChild, tMeasuredSize, fAvailableWidth, 0);
-		tChildRect.fH = ((pChild->tLayout.iHeightMode == XUI_SIZE_FILL) || (pChild->tLayout.iAlignY == XUI_ALIGN_STRETCH)) ?
-			fAvailableHeight : __xuiWidgetChildCrossSize(pChild, tMeasuredSize, fAvailableHeight, 1);
-		tChildRect.fX = tContent.fX + tMargin.fLeft + __xuiWidgetAlignOffset(pChild->tLayout.iAlignX, fAvailableWidth, tChildRect.fW);
-		tChildRect.fY = tContent.fY + tMargin.fTop + __xuiWidgetAlignOffset(pChild->tLayout.iAlignY, fAvailableHeight, tChildRect.fH);
-		__xuiWidgetArrangeInternal(pChild, tChildRect);
-	}
-}
-
-static void __xuiWidgetArrangeLinear(xui_widget pWidget, xui_rect_t tContent, int bHorizontal)
-{
-	xui_widget pChild;
-	xui_vec2_t tMeasuredSize;
-	xui_thickness_t tMargin;
-	xui_rect_t tChildRect;
-	float fMainAvailable;
-	float fCrossAvailable;
-	float fTotalBase;
-	float fTotalGrow;
-	float fTotalShrink;
-	float fRemaining;
-	float fGrow;
-	float fBase;
-	float fMainSize;
-	float fCrossSize;
-	float fCursor;
-	float fChildCrossAvailable;
-	float fMinMain;
-	int iCount;
-
-	fMainAvailable = bHorizontal ? tContent.fW : tContent.fH;
-	fCrossAvailable = bHorizontal ? tContent.fH : tContent.fW;
-	iCount = __xuiWidgetVisibleChildCount(pWidget);
-	fTotalBase = (iCount > 1) ? pWidget->tLayout.fGap * (float)(iCount - 1) : 0.0f;
-	fTotalGrow = 0.0f;
-	fTotalShrink = 0.0f;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tMeasuredSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, fCrossAvailable));
-		fBase = __xuiWidgetChildMainBase(pChild, tMeasuredSize, bHorizontal);
-		fTotalBase += fBase;
-		fTotalBase += bHorizontal ? (tMargin.fLeft + tMargin.fRight) : (tMargin.fTop + tMargin.fBottom);
-		fTotalGrow += __xuiWidgetChildGrowWeight(pChild, bHorizontal);
-		fTotalShrink += pChild->tLayout.fShrink;
-	}
-	fRemaining = fMainAvailable - fTotalBase;
-	fCursor = bHorizontal ? tContent.fX : tContent.fY;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tMeasuredSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, fCrossAvailable));
-		fGrow = __xuiWidgetChildGrowWeight(pChild, bHorizontal);
-		fMainSize = __xuiWidgetChildMainBase(pChild, tMeasuredSize, bHorizontal);
-		if ( (fRemaining > 0.0f) && (fTotalGrow > 0.0f) && (fGrow > 0.0f) ) {
-			fMainSize += fRemaining * (fGrow / fTotalGrow);
-		} else if ( (fRemaining < 0.0f) && (fTotalShrink > 0.0f) && (pChild->tLayout.fShrink > 0.0f) ) {
-			fMainSize += fRemaining * (pChild->tLayout.fShrink / fTotalShrink);
-		}
-		fMinMain = bHorizontal ? pChild->tLayout.fMinWidth : pChild->tLayout.fMinHeight;
-		fMainSize = __xuiMaxFloat(fMinMain, fMainSize);
-		fChildCrossAvailable = fCrossAvailable - (bHorizontal ? (tMargin.fTop + tMargin.fBottom) : (tMargin.fLeft + tMargin.fRight));
-		fChildCrossAvailable = __xuiMaxFloat(0.0f, fChildCrossAvailable);
-		fCrossSize = __xuiWidgetChildCrossSize(pChild, tMeasuredSize, fChildCrossAvailable, bHorizontal);
-		if ( bHorizontal ) {
-			tChildRect.fX = fCursor + tMargin.fLeft;
-			tChildRect.fY = tContent.fY + tMargin.fTop + __xuiWidgetAlignOffset(pChild->tLayout.iAlignY, fChildCrossAvailable, fCrossSize);
-			tChildRect.fW = fMainSize;
-			tChildRect.fH = fCrossSize;
-			fCursor += fMainSize + tMargin.fLeft + tMargin.fRight + pWidget->tLayout.fGap;
-		} else {
-			tChildRect.fX = tContent.fX + tMargin.fLeft + __xuiWidgetAlignOffset(pChild->tLayout.iAlignX, fChildCrossAvailable, fCrossSize);
-			tChildRect.fY = fCursor + tMargin.fTop;
-			tChildRect.fW = fCrossSize;
-			tChildRect.fH = fMainSize;
-			fCursor += fMainSize + tMargin.fTop + tMargin.fBottom + pWidget->tLayout.fGap;
-		}
-		__xuiWidgetArrangeInternal(pChild, tChildRect);
-	}
-}
-
-static float __xuiWidgetArrangeAxisSize(xui_widget pChild, xui_vec2_t tMeasuredSize, float fAvailable, int bHorizontal)
-{
-	int iMode;
-	int iAlign;
-	float fSize;
-	float fPreferred;
-
-	iMode = bHorizontal ? pChild->tLayout.iWidthMode : pChild->tLayout.iHeightMode;
-	iAlign = bHorizontal ? pChild->tLayout.iAlignX : pChild->tLayout.iAlignY;
-	fPreferred = bHorizontal ? pChild->tLayout.fPreferredWidth : pChild->tLayout.fPreferredHeight;
-	if ( (iMode == XUI_SIZE_FILL) || (iAlign == XUI_ALIGN_STRETCH) ) {
-		fSize = fAvailable;
-	} else if ( fPreferred > 0.0f ) {
-		fSize = fPreferred;
-	} else {
-		fSize = bHorizontal ? tMeasuredSize.fX : tMeasuredSize.fY;
-	}
-	if ( bHorizontal ) {
-		fSize = __xuiClampFloat(fSize, pChild->tLayout.fMinWidth, pChild->tLayout.fMaxWidth);
-	} else {
-		fSize = __xuiClampFloat(fSize, pChild->tLayout.fMinHeight, pChild->tLayout.fMaxHeight);
-	}
-	return __xuiMaxFloat(0.0f, fSize);
-}
-
-static void __xuiWidgetArrangeFlow(xui_widget pWidget, xui_rect_t tContent)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_rect_t tChildRect;
-	xui_thickness_t tMargin;
-	float fLineX;
-	float fLineY;
-	float fLineHeight;
-	float fItemWidth;
-	float fItemHeight;
-	float fAvailableWidth;
-	int iLineCount;
-
-	fLineX = 0.0f;
-	fLineY = 0.0f;
-	fLineHeight = 0.0f;
-	iLineCount = 0;
-	fAvailableWidth = tContent.fW;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible || (pChild->tLayout.iFlowMode == XUI_FLOW_NONE) || (pChild->tLayout.iFlowMode == XUI_FLOW_ABSOLUTE) ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(__xuiMaxFloat(0.0f, fAvailableWidth - tMargin.fLeft - tMargin.fRight), XUI_LAYOUT_UNBOUNDED));
-		fItemWidth = tChildSize.fX + tMargin.fLeft + tMargin.fRight;
-		fItemHeight = tChildSize.fY + tMargin.fTop + tMargin.fBottom;
-		if ( pChild->tLayout.iFlowMode == XUI_FLOW_BLOCK ) {
-			if ( iLineCount > 0 ) {
-				fLineY += fLineHeight + pWidget->tLayout.fGap;
-				fLineX = 0.0f;
-				fLineHeight = 0.0f;
-				iLineCount = 0;
-			}
-			tChildRect.fW = ((pChild->tLayout.iWidthMode == XUI_SIZE_FILL) || (pChild->tLayout.iAlignX == XUI_ALIGN_STRETCH)) ?
-				__xuiMaxFloat(0.0f, fAvailableWidth - tMargin.fLeft - tMargin.fRight) :
-				__xuiWidgetArrangeAxisSize(pChild, tChildSize, __xuiMaxFloat(0.0f, fAvailableWidth - tMargin.fLeft - tMargin.fRight), 1);
-			tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, tChildSize.fY, 0);
-			tChildRect.fX = tContent.fX + tMargin.fLeft + __xuiWidgetAlignOffset(pChild->tLayout.iAlignX, __xuiMaxFloat(0.0f, fAvailableWidth - tMargin.fLeft - tMargin.fRight), tChildRect.fW);
-			tChildRect.fY = tContent.fY + fLineY + tMargin.fTop;
-			__xuiWidgetArrangeInternal(pChild, tChildRect);
-			fLineY += fItemHeight + pWidget->tLayout.fGap;
-			continue;
-		}
-		if ( (iLineCount > 0) && ((fLineX + pWidget->tLayout.fGap + fItemWidth) > fAvailableWidth) ) {
-			fLineY += fLineHeight + pWidget->tLayout.fGap;
-			fLineX = 0.0f;
-			fLineHeight = 0.0f;
-			iLineCount = 0;
-		}
-		if ( iLineCount > 0 ) {
-			fLineX += pWidget->tLayout.fGap;
-		}
-		tChildRect.fW = __xuiWidgetArrangeAxisSize(pChild, tChildSize, tChildSize.fX, 1);
-		tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, tChildSize.fY, 0);
-		tChildRect.fX = tContent.fX + fLineX + tMargin.fLeft;
-		tChildRect.fY = tContent.fY + fLineY + tMargin.fTop;
-		__xuiWidgetArrangeInternal(pChild, tChildRect);
-		fLineX += fItemWidth;
-		fLineHeight = __xuiMaxFloat(fLineHeight, fItemHeight);
-		iLineCount++;
-	}
-}
-
-static void __xuiWidgetArrangeDock(xui_widget pWidget, xui_rect_t tContent)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_rect_t tRemaining;
-	xui_rect_t tChildRect;
-	xui_thickness_t tMargin;
-	float fAvailableW;
-	float fAvailableH;
-	int iDock;
-
-	tRemaining = tContent;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		iDock = (pChild->tLayout.iDock != 0) ? pChild->tLayout.iDock : XUI_DOCK_FILL;
-		tMargin = pChild->tLayout.tMargin;
-		fAvailableW = __xuiMaxFloat(0.0f, tRemaining.fW - tMargin.fLeft - tMargin.fRight);
-		fAvailableH = __xuiMaxFloat(0.0f, tRemaining.fH - tMargin.fTop - tMargin.fBottom);
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(fAvailableW, fAvailableH));
-		tChildRect = tRemaining;
-		switch ( iDock ) {
-		case XUI_DOCK_LEFT:
-			tChildRect.fW = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableW, 1) + tMargin.fLeft + tMargin.fRight;
-			tRemaining.fX += tChildRect.fW + pWidget->tLayout.fGap;
-			tRemaining.fW = __xuiMaxFloat(0.0f, tRemaining.fW - tChildRect.fW - pWidget->tLayout.fGap);
-			break;
-		case XUI_DOCK_RIGHT:
-			tChildRect.fW = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableW, 1) + tMargin.fLeft + tMargin.fRight;
-			tChildRect.fX = tRemaining.fX + tRemaining.fW - tChildRect.fW;
-			tRemaining.fW = __xuiMaxFloat(0.0f, tRemaining.fW - tChildRect.fW - pWidget->tLayout.fGap);
-			break;
-		case XUI_DOCK_TOP:
-			tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableH, 0) + tMargin.fTop + tMargin.fBottom;
-			tRemaining.fY += tChildRect.fH + pWidget->tLayout.fGap;
-			tRemaining.fH = __xuiMaxFloat(0.0f, tRemaining.fH - tChildRect.fH - pWidget->tLayout.fGap);
-			break;
-		case XUI_DOCK_BOTTOM:
-			tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableH, 0) + tMargin.fTop + tMargin.fBottom;
-			tChildRect.fY = tRemaining.fY + tRemaining.fH - tChildRect.fH;
-			tRemaining.fH = __xuiMaxFloat(0.0f, tRemaining.fH - tChildRect.fH - pWidget->tLayout.fGap);
-			break;
-		case XUI_DOCK_FILL:
-		default:
-			tChildRect = tRemaining;
-			break;
-		}
-		fAvailableW = __xuiMaxFloat(0.0f, tChildRect.fW - tMargin.fLeft - tMargin.fRight);
-		fAvailableH = __xuiMaxFloat(0.0f, tChildRect.fH - tMargin.fTop - tMargin.fBottom);
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(fAvailableW, fAvailableH));
-		tChildRect.fX += tMargin.fLeft;
-		tChildRect.fY += tMargin.fTop;
-		tChildRect.fW = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableW, 1);
-		tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableH, 0);
-		__xuiWidgetArrangeInternal(pChild, tChildRect);
-	}
-}
-
-static void __xuiWidgetArrangeGrid(xui_widget pWidget, xui_rect_t tContent)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_rect_t tChildRect;
-	xui_thickness_t tMargin;
-	float fItemWidth;
-	float fItemHeight;
-	float fCellX;
-	float fCellY;
-	float fAvailableW;
-	float fAvailableH;
-	int iColumns;
-	int iIndex;
-
-	fItemWidth = pWidget->tLayout.fGridItemWidth;
-	fItemHeight = pWidget->tLayout.fGridItemHeight;
-	if ( (fItemWidth <= 0.0f) || (fItemHeight <= 0.0f) ) {
-		for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-			if ( !pChild->bVisible ) {
-				continue;
-			}
-			tMargin = pChild->tLayout.tMargin;
-			tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(XUI_LAYOUT_UNBOUNDED, XUI_LAYOUT_UNBOUNDED));
-			fItemWidth = __xuiMaxFloat(fItemWidth, tChildSize.fX + tMargin.fLeft + tMargin.fRight);
-			fItemHeight = __xuiMaxFloat(fItemHeight, tChildSize.fY + tMargin.fTop + tMargin.fBottom);
-		}
-	}
-	iColumns = pWidget->tLayout.iGridColumnCount;
-	if ( iColumns <= 0 ) {
-		iColumns = 1;
-	}
-	if ( fItemWidth <= 0.0f ) {
-		fItemWidth = tContent.fW;
-	}
-	if ( fItemHeight <= 0.0f ) {
-		fItemHeight = tContent.fH;
-	}
-	iIndex = 0;
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		fCellX = tContent.fX + (float)(iIndex % iColumns) * (fItemWidth + pWidget->tLayout.fGap);
-		fCellY = tContent.fY + (float)(iIndex / iColumns) * (fItemHeight + pWidget->tLayout.fGap);
-		fAvailableW = __xuiMaxFloat(0.0f, fItemWidth - tMargin.fLeft - tMargin.fRight);
-		fAvailableH = __xuiMaxFloat(0.0f, fItemHeight - tMargin.fTop - tMargin.fBottom);
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(fAvailableW, fAvailableH));
-		tChildRect.fW = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableW, 1);
-		tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableH, 0);
-		tChildRect.fX = fCellX + tMargin.fLeft + __xuiWidgetAlignOffset(pChild->tLayout.iAlignX, fAvailableW, tChildRect.fW);
-		tChildRect.fY = fCellY + tMargin.fTop + __xuiWidgetAlignOffset(pChild->tLayout.iAlignY, fAvailableH, tChildRect.fH);
-		__xuiWidgetArrangeInternal(pChild, tChildRect);
-		iIndex++;
-	}
-}
-
-static float __xuiWidgetTableOffset(const float* pSizes, int iCount, int iIndex, float fGap)
-{
-	float fOffset;
-	int i;
-
-	(void)iCount;
-	fOffset = 0.0f;
-	for ( i = 0; i < iIndex; i++ ) {
-		fOffset += pSizes[i];
-		fOffset += fGap;
-	}
-	return fOffset;
-}
-
-static void __xuiWidgetArrangeTable(xui_widget pWidget, xui_rect_t tContent)
-{
-	xui_widget pChild;
-	xui_vec2_t tChildSize;
-	xui_rect_t tChildRect;
-	xui_thickness_t tMargin;
-	float* pColumns;
-	float* pRows;
-	float fCellX;
-	float fCellY;
-	float fCellW;
-	float fCellH;
-	float fAvailableW;
-	float fAvailableH;
-	int iColumnCount;
-	int iRowCount;
-	int iRow;
-	int iColumn;
-	int iRowSpan;
-	int iColumnSpan;
-	int iRet;
-
-	iRet = __xuiWidgetTableCompute(pWidget, __xuiVec2(tContent.fW, tContent.fH), &pColumns, &iColumnCount, &pRows, &iRowCount);
-	if ( iRet != XUI_OK ) {
-		return;
-	}
-	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		if ( !pChild->bVisible ) {
-			continue;
-		}
-		iRow = pChild->tLayout.iTableRow;
-		iColumn = pChild->tLayout.iTableColumn;
-		iRowSpan = pChild->tLayout.iTableRowSpan;
-		iColumnSpan = pChild->tLayout.iTableColumnSpan;
-		if ( (iRow < 0) || (iColumn < 0) || (iRowSpan <= 0) || (iColumnSpan <= 0) ||
-		     ((iRow + iRowSpan) > iRowCount) || ((iColumn + iColumnSpan) > iColumnCount) ) {
-			continue;
-		}
-		tMargin = pChild->tLayout.tMargin;
-		fCellX = tContent.fX + __xuiWidgetTableOffset(pColumns, iColumnCount, iColumn, pWidget->tLayout.fGap);
-		fCellY = tContent.fY + __xuiWidgetTableOffset(pRows, iRowCount, iRow, pWidget->tLayout.fGap);
-		fCellW = __xuiWidgetTableSpanSum(pColumns, iColumn, iColumnSpan, pWidget->tLayout.fGap);
-		fCellH = __xuiWidgetTableSpanSum(pRows, iRow, iRowSpan, pWidget->tLayout.fGap);
-		fAvailableW = __xuiMaxFloat(0.0f, fCellW - tMargin.fLeft - tMargin.fRight);
-		fAvailableH = __xuiMaxFloat(0.0f, fCellH - tMargin.fTop - tMargin.fBottom);
-		tChildSize = __xuiWidgetMeasureInternal(pChild, __xuiVec2(fAvailableW, fAvailableH));
-		tChildRect.fW = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableW, 1);
-		tChildRect.fH = __xuiWidgetArrangeAxisSize(pChild, tChildSize, fAvailableH, 0);
-		tChildRect.fX = fCellX + tMargin.fLeft + __xuiWidgetAlignOffset(pChild->tLayout.iAlignX, fAvailableW, tChildRect.fW);
-		tChildRect.fY = fCellY + tMargin.fTop + __xuiWidgetAlignOffset(pChild->tLayout.iAlignY, fAvailableH, tChildRect.fH);
-		__xuiWidgetArrangeInternal(pChild, tChildRect);
-	}
-	if ( pColumns != NULL ) {
-		xrtFree(pColumns);
-	}
-	if ( pRows != NULL ) {
-		xrtFree(pRows);
-	}
-}
-
-static void __xuiWidgetArrangeInternal(xui_widget pWidget, xui_rect_t tRect)
-{
-	xui_rect_t tContent;
-
-	tRect = xuiInternalSnapRect(tRect);
-	pWidget->tRect = tRect;
-	pWidget->bArrangeValid = 1;
-	tContent = __xuiWidgetContentRect(pWidget);
-	if ( pWidget->onLayoutArrange != NULL ) {
-		(void)pWidget->onLayoutArrange(pWidget, tContent, pWidget->pLayoutUser);
-	} else {
-		switch ( pWidget->tLayout.iLayoutType ) {
-		case XUI_LAYOUT_OVERLAY:
-			__xuiWidgetArrangeOverlay(pWidget, tContent);
-			break;
-		case XUI_LAYOUT_ROW:
-			__xuiWidgetArrangeLinear(pWidget, tContent, 1);
-			break;
-		case XUI_LAYOUT_COLUMN:
-			__xuiWidgetArrangeLinear(pWidget, tContent, 0);
-			break;
-		case XUI_LAYOUT_FLOW:
-			__xuiWidgetArrangeFlow(pWidget, tContent);
-			break;
-		case XUI_LAYOUT_TABLE:
-			__xuiWidgetArrangeTable(pWidget, tContent);
-			break;
-		case XUI_LAYOUT_DOCK:
-			__xuiWidgetArrangeDock(pWidget, tContent);
-			break;
-		case XUI_LAYOUT_GRID:
-			__xuiWidgetArrangeGrid(pWidget, tContent);
-			break;
-		case XUI_LAYOUT_MANUAL:
-		default:
-			__xuiWidgetArrangeManual(pWidget);
-			break;
-		}
-	}
-	pWidget->iDirtyFlags &= ~XUI_WIDGET_DIRTY_LAYOUT;
-	pWidget->iSubtreeDirtyFlags &= ~XUI_WIDGET_DIRTY_LAYOUT;
-}
-
 static int __xuiLayoutStructValid(const xui_layout_t* pLayout)
 {
 	if ( pLayout == NULL ) {
@@ -2885,26 +1728,6 @@ static xui_widget_content_measure_proc __xuiWidgetTypeContentMeasure(xui_widget_
 	for ( ; __xuiWidgetTypeValid(pType); pType = pType->pParent ) {
 		if ( pType->onContentMeasure != NULL ) {
 			return pType->onContentMeasure;
-		}
-	}
-	return NULL;
-}
-
-static xui_widget_layout_measure_proc __xuiWidgetTypeLayoutMeasure(xui_widget_type pType)
-{
-	for ( ; __xuiWidgetTypeValid(pType); pType = pType->pParent ) {
-		if ( pType->onLayoutMeasure != NULL ) {
-			return pType->onLayoutMeasure;
-		}
-	}
-	return NULL;
-}
-
-static xui_widget_layout_arrange_proc __xuiWidgetTypeLayoutArrange(xui_widget_type pType)
-{
-	for ( ; __xuiWidgetTypeValid(pType); pType = pType->pParent ) {
-		if ( pType->onLayoutArrange != NULL ) {
-			return pType->onLayoutArrange;
 		}
 	}
 	return NULL;
@@ -3307,12 +2130,59 @@ void xuiInternalContextDestroyStyles(xui_context pContext)
 	pContext->bStyleDirty = 0;
 }
 
-static int __xuiWidgetLayoutChanged(xui_widget pWidget)
+static void __xuiWidgetBumpLayoutVersion(xui_widget pWidget)
 {
 	pWidget->iLayoutVersion++;
 	if ( pWidget->iLayoutVersion == 0 ) {
 		pWidget->iLayoutVersion = 1;
 	}
+}
+
+static void __xuiWidgetDestroyAccessibilityData(xui_widget pWidget)
+{
+	if ( pWidget->sAccessibleName != NULL ) xrtFree(pWidget->sAccessibleName);
+	if ( pWidget->sAccessibleDescription != NULL ) xrtFree(pWidget->sAccessibleDescription);
+	pWidget->sAccessibleName = NULL;
+	pWidget->sAccessibleDescription = NULL;
+	pWidget->onAccessibleCount = NULL;
+	pWidget->onAccessibleGet = NULL;
+	pWidget->onAccessibleAction = NULL;
+	pWidget->pAccessibleUser = NULL;
+}
+
+static xui_widget_layout_complete_proc __xuiWidgetTypeLayoutComplete(xui_widget_type pType)
+{
+	for ( ; __xuiWidgetTypeValid(pType); pType = pType->pParent ) {
+		if ( pType->onLayoutComplete != NULL ) {
+			return pType->onLayoutComplete;
+		}
+	}
+	return NULL;
+}
+
+static xui_widget_layout_children_proc __xuiWidgetTypeLayoutChildren(xui_widget_type pType)
+{
+	for ( ; __xuiWidgetTypeValid(pType); pType = pType->pParent ) {
+		if ( pType->onLayoutChildren != NULL ) {
+			return pType->onLayoutChildren;
+		}
+	}
+	return NULL;
+}
+
+static xui_widget_layout_prepare_proc __xuiWidgetTypeLayoutPrepare(xui_widget_type pType)
+{
+	for ( ; __xuiWidgetTypeValid(pType); pType = pType->pParent ) {
+		if ( pType->onLayoutPrepare != NULL ) {
+			return pType->onLayoutPrepare;
+		}
+	}
+	return NULL;
+}
+
+static int __xuiWidgetLayoutChanged(xui_widget pWidget)
+{
+	__xuiWidgetBumpLayoutVersion(pWidget);
 	return xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_LAYOUT | XUI_WIDGET_DIRTY_RENDER);
 }
 
@@ -3362,47 +2232,79 @@ XUI_API int xuiLayout(xui_context pContext)
 {
 	xui_widget pRoot;
 	xui_widget pOverlayRoot;
-	xui_vec2_t tViewport;
+	xui_size_t tViewport;
 	xui_rect_t tRootRect;
 	int bNeedRoot;
 	int bNeedOverlay;
+	int bStable;
+	int iPass;
+	int iRet;
+	uint32_t iGeneration;
 
 	if ( !xuiInternalContextIsValid(pContext) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	pRoot = pContext->pRoot;
 	pOverlayRoot = pContext->pOverlayRoot;
+	iGeneration = pContext->tLayoutStats.iGeneration + 1u;
+	memset(&pContext->tLayoutStats, 0, sizeof(pContext->tLayoutStats));
+	pContext->tLayoutStats.iSize = sizeof(pContext->tLayoutStats);
+	pContext->tLayoutStats.iGeneration = iGeneration != 0u ? iGeneration : 1u;
+	pContext->tLayoutStats.iMaxPassCount = XUI_LAYOUT_MAX_PASSES;
+	pContext->tLayoutStats.bStabilized = 1;
 	tViewport = xuiGetViewportSize(pContext);
-	if ( (tViewport.fX <= 0.0f) || (tViewport.fY <= 0.0f) ) {
+	if ( (tViewport.iW <= 0) || (tViewport.iH <= 0) ) {
 		return XUI_OK;
 	}
 	tRootRect.fX = 0.0f;
 	tRootRect.fY = 0.0f;
-	tRootRect.fW = tViewport.fX;
-	tRootRect.fH = tViewport.fY;
-	if ( pRoot != NULL ) {
-		bNeedRoot = ((pRoot->iSubtreeDirtyFlags & XUI_WIDGET_DIRTY_LAYOUT) != 0) ||
-		            !pRoot->bArrangeValid ||
-		            (pRoot->tRect.fX != tRootRect.fX) ||
-		            (pRoot->tRect.fY != tRootRect.fY) ||
-		            (pRoot->tRect.fW != tRootRect.fW) ||
-		            (pRoot->tRect.fH != tRootRect.fH);
+	tRootRect.fW = tViewport.iW;
+	tRootRect.fH = tViewport.iH;
+	tRootRect = xuiInternalSnapRect(tRootRect);
+	for ( iPass = 0; iPass < XUI_LAYOUT_MAX_PASSES; iPass++ ) {
+		bNeedRoot = (pRoot != NULL) &&
+			(((pRoot->iSubtreeDirtyFlags & XUI_WIDGET_DIRTY_LAYOUT) != 0) ||
+			 !pRoot->bArrangeValid ||
+			 (pRoot->tRect.fX != tRootRect.fX) ||
+			 (pRoot->tRect.fY != tRootRect.fY) ||
+			 (pRoot->tRect.fW != tRootRect.fW) ||
+			 (pRoot->tRect.fH != tRootRect.fH));
+		bNeedOverlay = (pOverlayRoot != NULL) &&
+			(((pOverlayRoot->iSubtreeDirtyFlags & XUI_WIDGET_DIRTY_LAYOUT) != 0) ||
+			 !pOverlayRoot->bArrangeValid ||
+			 (pOverlayRoot->tRect.fX != tRootRect.fX) ||
+			 (pOverlayRoot->tRect.fY != tRootRect.fY) ||
+			 (pOverlayRoot->tRect.fW != tRootRect.fW) ||
+			 (pOverlayRoot->tRect.fH != tRootRect.fH));
+		if ( !bNeedRoot && !bNeedOverlay ) break;
+		pContext->tLayoutStats.iPassCount++;
 		if ( bNeedRoot ) {
-			__xuiWidgetArrangeInternal(pRoot, tRootRect);
+			iRet = xuiInternalLayoutArrange(pRoot, tRootRect);
+			if ( iRet != XUI_OK ) return iRet;
+		}
+		if ( bNeedOverlay ) {
+			iRet = xuiInternalLayoutArrange(pOverlayRoot, tRootRect);
+			if ( iRet != XUI_OK ) return iRet;
 		}
 	}
-	if ( pOverlayRoot != NULL ) {
-		bNeedOverlay = ((pOverlayRoot->iSubtreeDirtyFlags & XUI_WIDGET_DIRTY_LAYOUT) != 0) ||
-		               !pOverlayRoot->bArrangeValid ||
-		               (pOverlayRoot->tRect.fX != tRootRect.fX) ||
-		               (pOverlayRoot->tRect.fY != tRootRect.fY) ||
-		               (pOverlayRoot->tRect.fW != tRootRect.fW) ||
-		               (pOverlayRoot->tRect.fH != tRootRect.fH);
-		if ( bNeedOverlay ) {
-			__xuiWidgetArrangeInternal(pOverlayRoot, tRootRect);
-		}
+	bStable = ((pRoot == NULL) || ((pRoot->iSubtreeDirtyFlags & XUI_WIDGET_DIRTY_LAYOUT) == 0)) &&
+		((pOverlayRoot == NULL) || ((pOverlayRoot->iSubtreeDirtyFlags & XUI_WIDGET_DIRTY_LAYOUT) == 0));
+	pContext->tLayoutStats.bStabilized = bStable;
+	if ( !bStable ) {
+		xuiInternalReportError(pContext, pRoot, XUI_ERROR_LAYOUT_UNSTABLE, XUI_ERROR_STAGE_LAYOUT, 1,
+			"layout.stabilize", "Layout did not stabilize; the last completed pass was preserved.");
 	}
 	return xuiInternalInputRefreshIme(pContext);
+}
+
+XUI_API int xuiGetLayoutStats(xui_context pContext, xui_layout_stats_t* pStats)
+{
+	if ( !xuiInternalContextIsValid(pContext) || pStats == NULL ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	*pStats = pContext->tLayoutStats;
+	pStats->iSize = sizeof(*pStats);
+	return XUI_OK;
 }
 
 XUI_API int xuiSetRootWidget(xui_context pContext, xui_widget pWidget)
@@ -3472,8 +2374,9 @@ XUI_API int xuiWidgetRegisterType(xui_context pContext, xui_widget_type* ppType,
 	pType->onInit = pDesc->onInit;
 	pType->onDestroy = pDesc->onDestroy;
 	pType->onContentMeasure = pDesc->onContentMeasure;
-	pType->onLayoutMeasure = pDesc->onLayoutMeasure;
-	pType->onLayoutArrange = pDesc->onLayoutArrange;
+	pType->onLayoutPrepare = pDesc->onLayoutPrepare;
+	pType->onLayoutChildren = pDesc->onLayoutChildren;
+	pType->onLayoutComplete = pDesc->onLayoutComplete;
 	pType->onCacheRender = pDesc->onCacheRender;
 	pType->onUpdate = pDesc->onUpdate;
 	pType->tLayout = pDesc->tLayout;
@@ -4030,15 +2933,28 @@ static int __xuiWidgetCreateInternal(xui_context pContext, xui_widget_type pType
 	}
 	pWidget->onContentMeasure = __xuiWidgetTypeContentMeasure(pType);
 	pWidget->pContentMeasureUser = pWidget->pTypeData;
-	pWidget->onLayoutMeasure = __xuiWidgetTypeLayoutMeasure(pType);
-	pWidget->onLayoutArrange = __xuiWidgetTypeLayoutArrange(pType);
-	pWidget->pLayoutUser = pWidget->pTypeData;
+	pWidget->onLayoutPrepare = __xuiWidgetTypeLayoutPrepare(pType);
+	pWidget->pLayoutPrepareUser = pWidget->pTypeData;
+	pWidget->onLayoutChildren = __xuiWidgetTypeLayoutChildren(pType);
+	pWidget->pLayoutChildrenUser = pWidget->pTypeData;
+	pWidget->onLayoutComplete = __xuiWidgetTypeLayoutComplete(pType);
+	pWidget->pLayoutCompleteUser = pWidget->pTypeData;
 	pWidget->onCacheRender = __xuiWidgetTypeCacheRender(pType);
 	pWidget->pCacheRenderUser = pWidget->pTypeData;
 	pWidget->onUpdate = __xuiWidgetTypeUpdate(pType);
 	pWidget->pUpdateUser = pWidget->pTypeData;
+	iRet = xuiInternalLayoutCreateWidget(pWidget);
+	if ( iRet != XUI_OK ) {
+		if ( pWidget->pTypeData != NULL ) {
+			xrtFree(pWidget->pTypeData);
+		}
+		pWidget->iMagic = 0;
+		xrtFree(pWidget);
+		return iRet;
+	}
 	iRet = __xuiWidgetTypeInitChain(pWidget, pType, pCreateData);
 	if ( iRet != XUI_OK ) {
+		xuiInternalLayoutDestroyWidget(pWidget);
 		if ( pWidget->pTypeData != NULL ) {
 			xrtFree(pWidget->pTypeData);
 		}
@@ -4061,21 +2977,144 @@ XUI_API int xuiWidgetCreateTyped(xui_context pContext, xui_widget_type pType, xu
 	return __xuiWidgetCreateInternal(pContext, pType, ppWidget, pCreateData);
 }
 
+static int __xuiDragAdornerRender(xui_widget pWidget, xui_draw_context pDraw, uint32_t iStateId, void* pUser)
+{
+	xui_context pContext;
+	xui_proxy pProxy;
+	xui_rect_t tRect;
+	int i;
+	int iRet;
+
+	(void)pWidget;
+	(void)iStateId;
+	pContext = (xui_context)pUser;
+	if ( !xuiInternalContextIsValid(pContext) || (pDraw == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	pProxy = xuiInternalContextGetProxy(pContext);
+	if ( pProxy == NULL ) return XUI_ERROR_NOT_INITIALIZED;
+	for ( i = 0; i < pContext->iDragAdornerPrimitiveCount; i++ ) {
+		const xui_drag_adorner_primitive_t* pPrimitive = &pContext->arrDragAdornerPrimitives[i];
+		tRect = pPrimitive->tRect;
+		tRect.fX -= pContext->tDragAdornerBounds.fX;
+		tRect.fY -= pContext->tDragAdornerBounds.fY;
+		if ( pPrimitive->iType == XUI_DRAG_ADORNER_RECT_FILL ) {
+			if ( pProxy->drawRectFill == NULL ) continue;
+			iRet = pProxy->drawRectFill(pProxy, pDraw, tRect, pPrimitive->iColor);
+		} else if ( pPrimitive->iType == XUI_DRAG_ADORNER_RECT_STROKE ) {
+			if ( pProxy->drawRectStroke == NULL ) continue;
+			iRet = pProxy->drawRectStroke(pProxy, pDraw, tRect,
+				(pPrimitive->fWidth > 0.0f) ? pPrimitive->fWidth : 1.0f, pPrimitive->iColor);
+		} else {
+			continue;
+		}
+		if ( iRet != XUI_OK ) return iRet;
+	}
+	return XUI_OK;
+}
+
+static int __xuiDragAdornerEnsure(xui_context pContext)
+{
+	xui_cache_policy_t tPolicy;
+	xui_widget pWidget;
+	int iRet;
+
+	if ( pContext->pDragAdornerWidget != NULL ) return XUI_OK;
+	iRet = xuiWidgetCreate(pContext, &pWidget);
+	if ( iRet != XUI_OK ) return iRet;
+	memset(&tPolicy, 0, sizeof(tPolicy));
+	tPolicy.iSize = sizeof(tPolicy);
+	tPolicy.iPolicy = XUI_CACHE_POLICY_SELF;
+	tPolicy.iFlags = XUI_CACHE_CLEAR_ON_UPDATE;
+	tPolicy.iClearColor = XUI_COLOR_RGBA(0, 0, 0, 0);
+	iRet = xuiWidgetSetCachePolicy(pWidget, &tPolicy);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetCacheRenderCallback(pWidget, __xuiDragAdornerRender, pContext);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_VISIBLE);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEnabled(pWidget, 0);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetHitTestVisible(pWidget, 0);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFocusable(pWidget, 0);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTabStop(pWidget, 0);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetVisible(pWidget, 0);
+	if ( iRet == XUI_OK ) iRet = xuiOverlayAttach(pContext, NULL, pWidget, XUI_LAYER_DRAG, 100);
+	if ( iRet != XUI_OK ) {
+		xuiWidgetDestroy(pWidget);
+		return iRet;
+	}
+	pContext->pDragAdornerWidget = pWidget;
+	return XUI_OK;
+}
+
+int xuiInternalDragAdornerSet(xui_context pContext, xui_widget pOwner,
+	const xui_drag_adorner_primitive_t* pPrimitives, int iPrimitiveCount)
+{
+	xui_rect_t tBounds;
+	float fLeft;
+	float fTop;
+	float fRight;
+	float fBottom;
+	float fPad;
+	int i;
+	int iRet;
+
+	if ( !xuiInternalContextIsValid(pContext) || !xuiInternalWidgetIsValid(pOwner) ||
+	     (xuiWidgetGetContext(pOwner) != pContext) || (pPrimitives == NULL) ||
+	     (iPrimitiveCount <= 0) || (iPrimitiveCount > XUI_DRAG_ADORNER_MAX_PRIMITIVES) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iRet = __xuiDragAdornerEnsure(pContext);
+	if ( iRet != XUI_OK ) return iRet;
+	fLeft = pPrimitives[0].tRect.fX;
+	fTop = pPrimitives[0].tRect.fY;
+	fRight = fLeft + pPrimitives[0].tRect.fW;
+	fBottom = fTop + pPrimitives[0].tRect.fH;
+	for ( i = 0; i < iPrimitiveCount; i++ ) {
+		const xui_drag_adorner_primitive_t* pPrimitive = &pPrimitives[i];
+		fPad = (pPrimitive->iType == XUI_DRAG_ADORNER_RECT_STROKE) ?
+			(((pPrimitive->fWidth > 0.0f) ? pPrimitive->fWidth : 1.0f) + 2.0f) : 1.0f;
+		if ( pPrimitive->tRect.fX - fPad < fLeft ) fLeft = pPrimitive->tRect.fX - fPad;
+		if ( pPrimitive->tRect.fY - fPad < fTop ) fTop = pPrimitive->tRect.fY - fPad;
+		if ( pPrimitive->tRect.fX + pPrimitive->tRect.fW + fPad > fRight ) fRight = pPrimitive->tRect.fX + pPrimitive->tRect.fW + fPad;
+		if ( pPrimitive->tRect.fY + pPrimitive->tRect.fH + fPad > fBottom ) fBottom = pPrimitive->tRect.fY + pPrimitive->tRect.fH + fPad;
+	}
+	tBounds = xuiInternalSnapRect((xui_rect_t){fLeft, fTop, fRight - fLeft, fBottom - fTop});
+	memcpy(pContext->arrDragAdornerPrimitives, pPrimitives,
+		(size_t)iPrimitiveCount * sizeof(pContext->arrDragAdornerPrimitives[0]));
+	pContext->iDragAdornerPrimitiveCount = iPrimitiveCount;
+	pContext->pDragAdornerOwner = pOwner;
+	pContext->pDragAdornerWidget->pOverlayOwner = pOwner;
+	pContext->tDragAdornerBounds = tBounds;
+	iRet = xuiWidgetSetRect(pContext->pDragAdornerWidget, tBounds);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetVisible(pContext->pDragAdornerWidget, 1);
+	if ( iRet == XUI_OK ) iRet = xuiOverlayBringToFront(pContext->pDragAdornerWidget);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetInvalidate(pContext->pDragAdornerWidget,
+		XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER | XUI_WIDGET_DIRTY_TREE);
+	return iRet;
+}
+
+void xuiInternalDragAdornerHide(xui_context pContext, xui_widget pOwner)
+{
+	if ( !xuiInternalContextIsValid(pContext) ) return;
+	if ( (pOwner != NULL) && (pContext->pDragAdornerOwner != pOwner) ) return;
+	pContext->pDragAdornerOwner = NULL;
+	pContext->iDragAdornerPrimitiveCount = 0;
+	memset(&pContext->tDragAdornerBounds, 0, sizeof(pContext->tDragAdornerBounds));
+	if ( pContext->pDragAdornerWidget != NULL ) {
+		pContext->pDragAdornerWidget->pOverlayOwner = NULL;
+		(void)xuiWidgetSetVisible(pContext->pDragAdornerWidget, 0);
+	}
+}
+
 XUI_API void xuiWidgetDestroy(xui_widget pWidget)
 {
 	xui_widget pChild;
-	xui_widget pNext;
 	xui_context pContext;
 
 	if ( !__xuiWidgetValid(pWidget) ) {
 		return;
 	}
 	pContext = pWidget->pContext;
-	pChild = pWidget->pFirstChild;
-	while ( pChild != NULL ) {
-		pNext = pChild->pNextSibling;
+	while ( (pChild = pWidget->pFirstChild) != NULL ) {
 		xuiWidgetDestroy(pChild);
-		pChild = pNext;
 	}
 	if ( pWidget->pParent != NULL ) {
 		(void)xuiWidgetRemoveFromParent(pWidget);
@@ -4097,12 +3136,14 @@ XUI_API void xuiWidgetDestroy(xui_widget pWidget)
 	__xuiWidgetDestroyTableTracks(pWidget);
 	__xuiWidgetDestroyStyleData(pWidget);
 	__xuiWidgetDestroyTooltipData(pWidget);
+	__xuiWidgetDestroyAccessibilityData(pWidget);
 	if ( pWidget->pTypeData != NULL ) {
 		xrtFree(pWidget->pTypeData);
 	}
 	if ( __xuiWidgetTypeValid(pWidget->pType) && (pWidget->pType->iWidgetCount > 0) ) {
 		pWidget->pType->iWidgetCount--;
 	}
+	xuiInternalLayoutDestroyWidget(pWidget);
 	pWidget->iMagic = 0;
 	xrtFree(pWidget);
 }
@@ -4168,6 +3209,8 @@ XUI_API int xuiWidgetAddChild(xui_widget pParent, xui_widget pChild)
 
 XUI_API int xuiWidgetInsertBefore(xui_widget pParent, xui_widget pChild, xui_widget pBefore)
 {
+	int iRet;
+
 	if ( !__xuiWidgetCanAttachChild(pParent, pChild) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
@@ -4175,6 +3218,12 @@ XUI_API int xuiWidgetInsertBefore(xui_widget pParent, xui_widget pChild, xui_wid
 		if ( !__xuiWidgetValid(pBefore) || (pBefore->pParent != pParent) ) {
 			return XUI_ERROR_INVALID_ARGUMENT;
 		}
+	}
+	iRet = xuiInternalLayoutAttach(pParent, pChild, pBefore);
+	if ( iRet != XUI_OK ) {
+		return iRet;
+	}
+	if ( pBefore != NULL ) {
 		pChild->pNextSibling = pBefore;
 		pChild->pPrevSibling = pBefore->pPrevSibling;
 		if ( pBefore->pPrevSibling != NULL ) {
@@ -4194,6 +3243,7 @@ XUI_API int xuiWidgetInsertBefore(xui_widget pParent, xui_widget pChild, xui_wid
 	}
 	pChild->pParent = pParent;
 	pParent->iChildCount++;
+	__xuiWidgetBumpLayoutVersion(pParent);
 	__xuiWidgetUpdateEventMasksToRoot(pParent);
 	(void)xuiWidgetInvalidate(pParent, XUI_WIDGET_DIRTY_TREE | XUI_WIDGET_DIRTY_LAYOUT | XUI_WIDGET_DIRTY_RENDER);
 	return XUI_OK;
@@ -4213,6 +3263,7 @@ XUI_API int xuiWidgetRemoveFromParent(xui_widget pWidget)
 	}
 	xuiInternalContextDetachWidget(pWidget->pContext, pWidget);
 	tWorldRect = xuiWidgetGetWorldRect(pWidget);
+	xuiInternalLayoutDetach(pWidget);
 	if ( pWidget->pPrevSibling != NULL ) {
 		pWidget->pPrevSibling->pNextSibling = pWidget->pNextSibling;
 	} else {
@@ -4229,6 +3280,7 @@ XUI_API int xuiWidgetRemoveFromParent(xui_widget pWidget)
 	if ( pParent->iChildCount > 0 ) {
 		pParent->iChildCount--;
 	}
+	__xuiWidgetBumpLayoutVersion(pParent);
 	(void)__xuiWidgetRecomputeSubtreeEventMask(pWidget);
 	__xuiWidgetUpdateEventMasksToRoot(pParent);
 	(void)__xuiWidgetInvalidateWorldRect(pParent, tWorldRect, XUI_WIDGET_DIRTY_TREE | XUI_WIDGET_DIRTY_LAYOUT | XUI_WIDGET_DIRTY_RENDER);
@@ -4271,7 +3323,7 @@ XUI_API int xuiWidgetSetRect(xui_widget pWidget, xui_rect_t tRect)
 	xui_rect_t tNewRect;
 	int iRet;
 
-	if ( !__xuiWidgetValid(pWidget) || !__xuiRectValidFloat(tRect) ) {
+	if ( !__xuiWidgetValid(pWidget) || !__xuiRectValid(tRect) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	tRect = xuiInternalSnapRect(tRect);
@@ -4283,6 +3335,7 @@ XUI_API int xuiWidgetSetRect(xui_widget pWidget, xui_rect_t tRect)
 	}
 	tOldRect = xuiWidgetGetWorldRect(pWidget);
 	pWidget->tRect = tRect;
+	__xuiWidgetBumpLayoutVersion(pWidget);
 	tNewRect = xuiWidgetGetWorldRect(pWidget);
 	iRet = __xuiWidgetInvalidateWorldRect(pWidget, tOldRect, XUI_WIDGET_DIRTY_LAYOUT | XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
 	if ( iRet != XUI_OK ) {
@@ -4377,35 +3430,83 @@ XUI_API int xuiWidgetGetContentMeasureCallback(xui_widget pWidget, xui_widget_co
 	return XUI_OK;
 }
 
-XUI_API int xuiWidgetSetLayoutCallbacks(xui_widget pWidget, xui_widget_layout_measure_proc onMeasure, xui_widget_layout_arrange_proc onArrange, void* pUser)
+XUI_API int xuiWidgetSetLayoutPrepareCallback(xui_widget pWidget, xui_widget_layout_prepare_proc onPrepare, void* pUser)
 {
 	if ( !__xuiWidgetValid(pWidget) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	if ( (pWidget->onLayoutMeasure == onMeasure) &&
-	     (pWidget->onLayoutArrange == onArrange) &&
-	     (pWidget->pLayoutUser == pUser) ) {
+	if ( pWidget->onLayoutPrepare == onPrepare && pWidget->pLayoutPrepareUser == pUser ) {
 		return XUI_OK;
 	}
-	pWidget->onLayoutMeasure = onMeasure;
-	pWidget->onLayoutArrange = onArrange;
-	pWidget->pLayoutUser = pUser;
+	pWidget->onLayoutPrepare = onPrepare;
+	pWidget->pLayoutPrepareUser = pUser;
 	return __xuiWidgetLayoutChanged(pWidget);
 }
 
-XUI_API int xuiWidgetGetLayoutCallbacks(xui_widget pWidget, xui_widget_layout_measure_proc* pMeasure, xui_widget_layout_arrange_proc* pArrange, void** ppUser)
+XUI_API int xuiWidgetGetLayoutPrepareCallback(xui_widget pWidget, xui_widget_layout_prepare_proc* pPrepare, void** ppUser)
 {
 	if ( !__xuiWidgetValid(pWidget) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	if ( pMeasure != NULL ) {
-		*pMeasure = pWidget->onLayoutMeasure;
-	}
-	if ( pArrange != NULL ) {
-		*pArrange = pWidget->onLayoutArrange;
+	if ( pPrepare != NULL ) {
+		*pPrepare = pWidget->onLayoutPrepare;
 	}
 	if ( ppUser != NULL ) {
-		*ppUser = pWidget->pLayoutUser;
+		*ppUser = pWidget->pLayoutPrepareUser;
+	}
+	return XUI_OK;
+}
+
+XUI_API int xuiWidgetSetLayoutChildrenCallback(xui_widget pWidget, xui_widget_layout_children_proc onChildren, void* pUser)
+{
+	if ( !__xuiWidgetValid(pWidget) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( pWidget->onLayoutChildren == onChildren && pWidget->pLayoutChildrenUser == pUser ) {
+		return XUI_OK;
+	}
+	pWidget->onLayoutChildren = onChildren;
+	pWidget->pLayoutChildrenUser = pUser;
+	return __xuiWidgetLayoutChanged(pWidget);
+}
+
+XUI_API int xuiWidgetGetLayoutChildrenCallback(xui_widget pWidget, xui_widget_layout_children_proc* pChildren, void** ppUser)
+{
+	if ( !__xuiWidgetValid(pWidget) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( pChildren != NULL ) {
+		*pChildren = pWidget->onLayoutChildren;
+	}
+	if ( ppUser != NULL ) {
+		*ppUser = pWidget->pLayoutChildrenUser;
+	}
+	return XUI_OK;
+}
+
+XUI_API int xuiWidgetSetLayoutCompleteCallback(xui_widget pWidget, xui_widget_layout_complete_proc onComplete, void* pUser)
+{
+	if ( !__xuiWidgetValid(pWidget) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( pWidget->onLayoutComplete == onComplete && pWidget->pLayoutCompleteUser == pUser ) {
+		return XUI_OK;
+	}
+	pWidget->onLayoutComplete = onComplete;
+	pWidget->pLayoutCompleteUser = pUser;
+	return __xuiWidgetLayoutChanged(pWidget);
+}
+
+XUI_API int xuiWidgetGetLayoutCompleteCallback(xui_widget pWidget, xui_widget_layout_complete_proc* pComplete, void** ppUser)
+{
+	if ( !__xuiWidgetValid(pWidget) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( pComplete != NULL ) {
+		*pComplete = pWidget->onLayoutComplete;
+	}
+	if ( ppUser != NULL ) {
+		*ppUser = pWidget->pLayoutCompleteUser;
 	}
 	return XUI_OK;
 }
@@ -4413,9 +3514,8 @@ XUI_API int xuiWidgetGetLayoutCallbacks(xui_widget pWidget, xui_widget_layout_me
 XUI_API int xuiWidgetMeasureContent(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pContentSize)
 {
 	if ( !__xuiWidgetValid(pWidget) || (pContentSize == NULL) ||
-	     (tConstraint.fX != tConstraint.fX) || (tConstraint.fY != tConstraint.fY) ||
-	     (tConstraint.fX < 0.0f) || (tConstraint.fY < 0.0f) ||
-	     (tConstraint.fX > XUI_LAYOUT_UNBOUNDED) || (tConstraint.fY > XUI_LAYOUT_UNBOUNDED) ) {
+	     !__xuiNonNegativeFloatValid(tConstraint.fX) ||
+	     !__xuiNonNegativeFloatValid(tConstraint.fY) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	*pContentSize = __xuiWidgetMeasureOwnContent(pWidget, tConstraint);
@@ -4649,6 +3749,9 @@ XUI_API int xuiWidgetSetMargin(xui_widget pWidget, xui_thickness_t tMargin)
 	if ( !__xuiWidgetValid(pWidget) || !__xuiThicknessValid(tMargin) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
+	if ( memcmp(&pWidget->tLayout.tMargin, &tMargin, sizeof(tMargin)) == 0 ) {
+		return XUI_OK;
+	}
 	pWidget->tLayout.tMargin = tMargin;
 	return __xuiWidgetLayoutChanged(pWidget);
 }
@@ -4669,6 +3772,9 @@ XUI_API int xuiWidgetSetPadding(xui_widget pWidget, xui_thickness_t tPadding)
 	if ( !__xuiWidgetValid(pWidget) || !__xuiThicknessValid(tPadding) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
+	if ( memcmp(&pWidget->tLayout.tPadding, &tPadding, sizeof(tPadding)) == 0 ) {
+		return XUI_OK;
+	}
 	pWidget->tLayout.tPadding = tPadding;
 	return __xuiWidgetLayoutChanged(pWidget);
 }
@@ -4688,6 +3794,9 @@ XUI_API int xuiWidgetSetGap(xui_widget pWidget, float fGap)
 {
 	if ( !__xuiWidgetValid(pWidget) || !__xuiNonNegativeFloatValid(fGap) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( pWidget->tLayout.fGap == fGap ) {
+		return XUI_OK;
 	}
 	pWidget->tLayout.fGap = fGap;
 	return __xuiWidgetLayoutChanged(pWidget);
@@ -4726,6 +3835,9 @@ XUI_API int xuiWidgetSetAlign(xui_widget pWidget, int iAlignX, int iAlignY)
 {
 	if ( !__xuiWidgetValid(pWidget) || !__xuiAlignValid(iAlignX) || !__xuiAlignValid(iAlignY) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( pWidget->tLayout.iAlignX == iAlignX && pWidget->tLayout.iAlignY == iAlignY ) {
+		return XUI_OK;
 	}
 	pWidget->tLayout.iAlignX = iAlignX;
 	pWidget->tLayout.iAlignY = iAlignY;
@@ -4783,6 +3895,9 @@ XUI_API int xuiWidgetSetTableRow(xui_widget pWidget, int iRow, const xui_table_t
 	if ( !__xuiWidgetValid(pWidget) || !__xuiTableTrackValid(pTrack) || (iRow < 0) || (iRow >= pWidget->iTableRowCount) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
+	if ( memcmp(&pWidget->pTableRows[iRow], pTrack, sizeof(*pTrack)) == 0 ) {
+		return XUI_OK;
+	}
 	pWidget->pTableRows[iRow] = *pTrack;
 	return __xuiWidgetLayoutChanged(pWidget);
 }
@@ -4800,6 +3915,9 @@ XUI_API int xuiWidgetSetTableColumn(xui_widget pWidget, int iColumn, const xui_t
 {
 	if ( !__xuiWidgetValid(pWidget) || !__xuiTableTrackValid(pTrack) || (iColumn < 0) || (iColumn >= pWidget->iTableColumnCount) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( memcmp(&pWidget->pTableColumns[iColumn], pTrack, sizeof(*pTrack)) == 0 ) {
+		return XUI_OK;
 	}
 	pWidget->pTableColumns[iColumn] = *pTrack;
 	return __xuiWidgetLayoutChanged(pWidget);
@@ -4849,13 +3967,11 @@ XUI_API int xuiWidgetGetTableCell(xui_widget pWidget, int* pRow, int* pColumn, i
 XUI_API int xuiWidgetMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pMeasuredSize)
 {
 	if ( !__xuiWidgetValid(pWidget) || (pMeasuredSize == NULL) ||
-	     (tConstraint.fX != tConstraint.fX) || (tConstraint.fY != tConstraint.fY) ||
-	     (tConstraint.fX < 0.0f) || (tConstraint.fY < 0.0f) ||
-	     (tConstraint.fX > XUI_LAYOUT_UNBOUNDED) || (tConstraint.fY > XUI_LAYOUT_UNBOUNDED) ) {
+	     !__xuiNonNegativeFloatValid(tConstraint.fX) ||
+	     !__xuiNonNegativeFloatValid(tConstraint.fY) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	*pMeasuredSize = __xuiWidgetMeasureInternal(pWidget, tConstraint);
-	return XUI_OK;
+	return xuiInternalLayoutMeasure(pWidget, tConstraint, pMeasuredSize);
 }
 
 XUI_API int xuiWidgetArrange(xui_widget pWidget, xui_rect_t tRect)
@@ -4864,11 +3980,14 @@ XUI_API int xuiWidgetArrange(xui_widget pWidget, xui_rect_t tRect)
 	xui_rect_t tNewRect;
 	int iRet;
 
-	if ( !__xuiWidgetValid(pWidget) || !__xuiRectValidFloat(tRect) ) {
+	if ( !__xuiWidgetValid(pWidget) || !__xuiRectValid(tRect) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	tOldRect = xuiWidgetGetWorldRect(pWidget);
-	__xuiWidgetArrangeInternal(pWidget, tRect);
+	iRet = xuiInternalLayoutArrange(pWidget, tRect);
+	if ( iRet != XUI_OK ) {
+		return iRet;
+	}
 	tNewRect = xuiWidgetGetWorldRect(pWidget);
 	iRet = __xuiWidgetInvalidateWorldRect(pWidget, tOldRect, XUI_WIDGET_DIRTY_RENDER);
 	if ( iRet != XUI_OK ) {
@@ -4887,6 +4006,10 @@ XUI_API int xuiWidgetSetVisible(xui_widget pWidget, int bVisible)
 		return XUI_OK;
 	}
 	pWidget->bVisible = bVisible;
+	__xuiWidgetBumpLayoutVersion(pWidget);
+	if ( pWidget->pParent != NULL ) {
+		__xuiWidgetBumpLayoutVersion(pWidget->pParent);
+	}
 	if ( !bVisible ) {
 		xuiInternalContextDetachWidget(pWidget->pContext, pWidget);
 	}
@@ -5416,15 +4539,30 @@ XUI_API int xuiOverlayBringToFront(xui_widget pOverlay)
 	}
 	iLayer = pOverlay->tLayout.iLayer;
 	iZIndex = pOverlay->tLayout.iZIndex;
-	iRet = xuiWidgetRemoveFromParent(pOverlay);
+	/* Reorder an attached overlay without running the detach lifecycle. */
+	iRet = xuiInternalLayoutAttach(pParent, pOverlay, NULL);
 	if ( iRet != XUI_OK ) {
 		return iRet;
 	}
-	iRet = xuiWidgetAddChild(pParent, pOverlay);
+	if ( pOverlay->pPrevSibling != NULL ) {
+		pOverlay->pPrevSibling->pNextSibling = pOverlay->pNextSibling;
+	} else {
+		pParent->pFirstChild = pOverlay->pNextSibling;
+	}
+	if ( pOverlay->pNextSibling != NULL ) {
+		pOverlay->pNextSibling->pPrevSibling = pOverlay->pPrevSibling;
+	}
+	pOverlay->pPrevSibling = pParent->pLastChild;
+	pOverlay->pNextSibling = NULL;
+	pParent->pLastChild->pNextSibling = pOverlay;
+	pParent->pLastChild = pOverlay;
+	__xuiWidgetBumpLayoutVersion(pParent);
+	iRet = __xuiWidgetSetOverlayTreeLayer(pOverlay, iLayer, iZIndex + 1);
 	if ( iRet != XUI_OK ) {
 		return iRet;
 	}
-	return __xuiWidgetSetOverlayTreeLayer(pOverlay, iLayer, iZIndex + 1);
+	return xuiWidgetInvalidate(pParent,
+		XUI_WIDGET_DIRTY_TREE | XUI_WIDGET_DIRTY_LAYOUT | XUI_WIDGET_DIRTY_RENDER);
 }
 
 XUI_API xui_widget xuiOverlayGetOwner(xui_widget pOverlay)
@@ -5469,7 +4607,7 @@ static void __xuiTooltipNormalizeDesc(xui_tooltip_desc_t* pDesc)
 	if ( pDesc->fDelay < 0.0f ) {
 		pDesc->fDelay = 0.0f;
 	}
-	if ( !__xuiRectValidFloat(pDesc->tAnchorRect) ) {
+	if ( !__xuiRectValid(pDesc->tAnchorRect) ) {
 		memset(&pDesc->tAnchorRect, 0, sizeof(pDesc->tAnchorRect));
 		pDesc->bCustomAnchorRect = 0;
 	}
@@ -5655,6 +4793,10 @@ static xui_vec2_t __xuiTooltipMeasure(xui_context pContext, xui_widget pOwner, c
 	}
 	if ( pDesc->iType == XUI_TOOLTIP_CUSTOM ) {
 		tSize = pDesc->onMeasure(pContext, pOwner, pDesc->pUser);
+		if ( !__xuiWidgetSizeValid(tSize) ) {
+			tSize.fX = 0.0f;
+			tSize.fY = 0.0f;
+		}
 	} else if ( pDesc->iType == XUI_TOOLTIP_TEXT ) {
 		pProxy = xuiInternalContextGetProxy(pContext);
 		pFont = xuiGetDefaultFont(pContext);
@@ -5673,10 +4815,10 @@ static xui_vec2_t __xuiTooltipMeasure(xui_context pContext, xui_widget pOwner, c
 		tSize.fX += 12.0f;
 		tSize.fY += 8.0f;
 	}
-	if ( (tSize.fX != tSize.fX) || (tSize.fX < 12.0f) ) {
+	if ( tSize.fX < 12.0f ) {
 		tSize.fX = 12.0f;
 	}
-	if ( (tSize.fY != tSize.fY) || (tSize.fY < 18.0f) ) {
+	if ( tSize.fY < 18.0f ) {
 		tSize.fY = 18.0f;
 	}
 	tSize.fX = xuiInternalSnapSize(tSize.fX);
@@ -6024,37 +5166,151 @@ int xuiInternalTooltipUpdate(xui_context pContext, float fDelta)
 	return XUI_OK;
 }
 
-static int __xuiWidgetUpdateTree(xui_widget pWidget, float fDelta)
+static void __xuiWidgetUpdateTree(xui_widget pWidget, float fDelta)
 {
 	xui_widget pChild;
 	xui_widget pNext;
 	int iRet;
 
 	if ( pWidget == NULL ) {
-		return XUI_OK;
+		return;
 	}
 	if ( !__xuiWidgetValid(pWidget) ) {
-		return XUI_ERROR_INVALID_ARGUMENT;
+		return;
 	}
 	if ( !pWidget->bVisible ) {
-		return XUI_OK;
+		return;
 	}
 	if ( pWidget->onUpdate != NULL ) {
 		iRet = pWidget->onUpdate(pWidget, fDelta, pWidget->pUpdateUser);
 		if ( iRet != XUI_OK ) {
-			return iRet;
+			xuiInternalReportError(pWidget->pContext, pWidget, iRet, XUI_ERROR_STAGE_UPDATE, 1,
+				"widget.update", "The widget update failed and the remaining update tree continued.");
 		}
 	}
 	if ( !pWidget->bVisible ) {
-		return XUI_OK;
+		return;
 	}
 	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pNext ) {
 		pNext = pChild->pNextSibling;
-		iRet = __xuiWidgetUpdateTree(pChild, fDelta);
-		if ( iRet != XUI_OK ) {
-			return iRet;
-		}
+		__xuiWidgetUpdateTree(pChild, fDelta);
 	}
+}
+
+XUI_API int xuiWidgetSetAccessibilityProvider(xui_widget pWidget,
+	xui_accessible_count_proc onCount, xui_accessible_get_proc onGet,
+	xui_accessible_action_proc onAction, void* pUser)
+{
+	if ( !__xuiWidgetValid(pWidget) || ((onCount == NULL) != (onGet == NULL)) )
+		return XUI_ERROR_INVALID_ARGUMENT;
+	pWidget->onAccessibleCount = onCount;
+	pWidget->onAccessibleGet = onGet;
+	pWidget->onAccessibleAction = onAction;
+	pWidget->pAccessibleUser = onCount != NULL ? pUser : NULL;
+	return xuiWidgetNotifyAccessibility(pWidget, XUI_ACCESSIBLE_EVENT_TREE_CHANGED, 0);
+}
+
+static int __xuiWidgetSetAccessibleText(xui_widget pWidget, char** psTarget, const char* sText)
+{
+	char* sCopy = NULL;
+	if ( !__xuiWidgetValid(pWidget) || psTarget == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( sText != NULL && sText[0] != 0 ) {
+		sCopy = __xuiStringDuplicate(sText);
+		if ( sCopy == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
+	}
+	if ( *psTarget != NULL ) xrtFree(*psTarget);
+	*psTarget = sCopy;
+	return xuiWidgetNotifyAccessibility(pWidget, XUI_ACCESSIBLE_EVENT_NODE_CHANGED, 1);
+}
+
+XUI_API int xuiWidgetSetAccessibleName(xui_widget pWidget, const char* sName)
+{
+	return __xuiWidgetSetAccessibleText(pWidget, pWidget != NULL ? &pWidget->sAccessibleName : NULL, sName);
+}
+
+XUI_API const char* xuiWidgetGetAccessibleName(xui_widget pWidget)
+{
+	return __xuiWidgetValid(pWidget) ? pWidget->sAccessibleName : NULL;
+}
+
+XUI_API int xuiWidgetSetAccessibleDescription(xui_widget pWidget, const char* sDescription)
+{
+	return __xuiWidgetSetAccessibleText(pWidget,
+		pWidget != NULL ? &pWidget->sAccessibleDescription : NULL, sDescription);
+}
+
+XUI_API const char* xuiWidgetGetAccessibleDescription(xui_widget pWidget)
+{
+	return __xuiWidgetValid(pWidget) ? pWidget->sAccessibleDescription : NULL;
+}
+
+XUI_API int xuiWidgetGetAccessibleNodeCount(xui_widget pWidget)
+{
+	int iCount;
+	if ( !__xuiWidgetValid(pWidget) ) return 0;
+	if ( pWidget->onAccessibleCount == NULL )
+		return pWidget->sAccessibleName != NULL || pWidget->sAccessibleDescription != NULL ? 1 : 0;
+	iCount = pWidget->onAccessibleCount(pWidget, pWidget->pAccessibleUser);
+	return iCount > 0 ? iCount : 0;
+}
+
+XUI_API int xuiWidgetGetAccessibleNode(xui_widget pWidget, int iIndex, xui_accessible_node_t* pNode)
+{
+	int iRet;
+	if ( !__xuiWidgetValid(pWidget) || pNode == NULL || iIndex < 0 ||
+	     (pNode->iSize != 0 && pNode->iSize < sizeof(*pNode)) ) return XUI_ERROR_INVALID_ARGUMENT;
+	memset(pNode, 0, sizeof(*pNode));
+	pNode->iSize = sizeof(*pNode);
+	if ( pWidget->onAccessibleGet != NULL ) {
+		iRet = pWidget->onAccessibleGet(pWidget, iIndex, pNode, pWidget->pAccessibleUser);
+		if ( iRet != XUI_OK ) return iRet;
+	} else {
+		if ( iIndex != 0 || (pWidget->sAccessibleName == NULL && pWidget->sAccessibleDescription == NULL) )
+			return XUI_ERROR_INVALID_ARGUMENT;
+		pNode->iId = 1;
+		pNode->iRole = XUI_ACCESSIBLE_ROLE_GENERIC;
+		pNode->tBounds = xuiWidgetGetWorldRect(pWidget);
+	}
+	if ( pNode->sName == NULL ) pNode->sName = pWidget->sAccessibleName;
+	if ( pNode->sDescription == NULL ) pNode->sDescription = pWidget->sAccessibleDescription;
+	if ( pWidget->bFocusable ) pNode->iState |= XUI_ACCESSIBLE_STATE_FOCUSABLE;
+	if ( pWidget->pContext != NULL && pWidget->pContext->pFocusWidget == pWidget )
+		pNode->iState |= XUI_ACCESSIBLE_STATE_FOCUSED;
+	if ( !pWidget->bEnabled ) pNode->iState |= XUI_ACCESSIBLE_STATE_DISABLED;
+	return XUI_OK;
+}
+
+XUI_API int xuiWidgetPerformAccessibleAction(xui_widget pWidget, uint64_t iNodeId,
+	int iAction, const void* pData)
+{
+	if ( !__xuiWidgetValid(pWidget) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pWidget->onAccessibleAction != NULL )
+		return pWidget->onAccessibleAction(pWidget, iNodeId, iAction, pData, pWidget->pAccessibleUser);
+	if ( iAction == XUI_ACCESSIBLE_ACTION_FOCUS && (iNodeId == 0 || iNodeId == 1) )
+		return xuiSetFocusWidget(pWidget->pContext, pWidget);
+	return XUI_ERROR_UNSUPPORTED;
+}
+
+XUI_API uint32_t xuiWidgetGetAccessibilityRevision(xui_widget pWidget)
+{
+	return __xuiWidgetValid(pWidget) ? pWidget->iAccessibilityRevision : 0u;
+}
+
+XUI_API int xuiWidgetNotifyAccessibility(xui_widget pWidget, int iEventType, uint64_t iNodeId)
+{
+	xui_accessibility_event_t tEvent;
+	if ( !__xuiWidgetValid(pWidget) || iEventType < XUI_ACCESSIBLE_EVENT_TREE_CHANGED ||
+	     iEventType > XUI_ACCESSIBLE_EVENT_VALUE_CHANGED ) return XUI_ERROR_INVALID_ARGUMENT;
+	pWidget->iAccessibilityRevision++;
+	if ( pWidget->iAccessibilityRevision == 0u ) pWidget->iAccessibilityRevision = 1u;
+	if ( pWidget->pContext == NULL || pWidget->pContext->onAccessibilityEvent == NULL ) return XUI_OK;
+	memset(&tEvent, 0, sizeof(tEvent));
+	tEvent.iSize = sizeof(tEvent);
+	tEvent.iType = iEventType;
+	tEvent.iNodeId = iNodeId;
+	tEvent.iRevision = pWidget->iAccessibilityRevision;
+	pWidget->pContext->onAccessibilityEvent(pWidget->pContext, pWidget, &tEvent,
+		pWidget->pContext->pAccessibilityEventUser);
 	return XUI_OK;
 }
 
@@ -6073,17 +5329,19 @@ XUI_API int xuiUpdate(xui_context pContext, float fDelta)
 	}
 	iRet = xuiInternalContextPressUpdate(pContext, fDelta);
 	if ( iRet != XUI_OK ) {
-		return iRet;
+		xuiInternalReportError(pContext, pContext->pContextPressWidget, iRet, XUI_ERROR_STAGE_INPUT, 1,
+			"input.context_press", "Context-press dispatch failed and was cancelled.");
+		xuiInternalContextPressCancel(pContext);
 	}
 	iRet = xuiInternalTooltipUpdate(pContext, fDelta);
 	if ( iRet != XUI_OK ) {
-		return iRet;
+		xuiInternalReportError(pContext, pContext->pTooltipOwner, iRet, XUI_ERROR_STAGE_UPDATE, 1,
+			"tooltip.update", "Tooltip update failed and the tooltip was closed.");
+		xuiInternalTooltipCancel(pContext);
 	}
-	iRet = __xuiWidgetUpdateTree(pContext->pRoot, fDelta);
-	if ( iRet != XUI_OK ) {
-		return iRet;
-	}
-	return __xuiWidgetUpdateTree(pContext->pOverlayRoot, fDelta);
+	__xuiWidgetUpdateTree(pContext->pRoot, fDelta);
+	__xuiWidgetUpdateTree(pContext->pOverlayRoot, fDelta);
+	return XUI_OK;
 }
 
 XUI_API int xuiWidgetSetTooltipText(xui_widget pWidget, const char* sText)
@@ -6228,7 +5486,7 @@ XUI_API int xuiWidgetInvalidateRect(xui_widget pWidget, xui_rect_t tRect, uint32
 {
 	xui_rect_t tWorldRect;
 
-	if ( !__xuiWidgetValid(pWidget) || !__xuiRectValidFloat(tRect) ) {
+	if ( !__xuiWidgetValid(pWidget) || !__xuiRectValid(tRect) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	tWorldRect = xuiWidgetGetWorldRect(pWidget);
@@ -6956,6 +6214,9 @@ static int __xuiWidgetPrepareCacheState(xui_widget pWidget, uint32_t iStateId, i
 	}
 	iRet = __xuiWidgetUpdateCacheState(pWidget, iStateId);
 	if ( iRet != XUI_OK ) {
+		if ( pSlot != NULL ) {
+			__xuiWidgetPurgeCacheSlotSurface(pWidget, pSlot);
+		}
 		return iRet;
 	}
 	pWidget->pContext->tRenderStats.iUpdatedWidgets++;
@@ -6993,21 +6254,22 @@ static int __xuiWidgetPrepareCache(xui_widget pWidget)
 	return __xuiWidgetPrepareCacheState(pWidget, pWidget->iStateId, 0);
 }
 
-static int __xuiWidgetRenderPrepareTree(xui_widget pWidget)
+static void __xuiWidgetRenderPrepareTree(xui_widget pWidget)
 {
 	xui_widget pChild;
 	int iRet;
 
 	if ( !pWidget->bVisible ) {
-		return XUI_OK;
+		return;
 	}
 	for ( pChild = pWidget->pFirstChild; pChild != NULL; pChild = pChild->pNextSibling ) {
-		iRet = __xuiWidgetRenderPrepareTree(pChild);
-		if ( iRet != XUI_OK ) {
-			return iRet;
-		}
+		__xuiWidgetRenderPrepareTree(pChild);
 	}
-	return __xuiWidgetPrepareCache(pWidget);
+	iRet = __xuiWidgetPrepareCache(pWidget);
+	if ( iRet != XUI_OK ) {
+		xuiInternalReportError(pWidget->pContext, pWidget, iRet, XUI_ERROR_STAGE_CACHE, 1,
+			"cache.prepare", "The widget cache could not be prepared and was skipped.");
+	}
 }
 
 XUI_API int xuiRenderPrepare(xui_context pContext)
@@ -7019,6 +6281,8 @@ XUI_API int xuiRenderPrepare(xui_context pContext)
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	if ( !xuiInternalContextHasProxy(pContext) ) {
+		xuiInternalReportError(pContext, NULL, XUI_ERROR_NOT_INITIALIZED, XUI_ERROR_STAGE_CACHE, 0,
+			"cache.proxy", "No render proxy is attached to the XUI context.");
 		return XUI_ERROR_NOT_INITIALIZED;
 	}
 	iGeneration = pContext->tRenderStats.iGeneration + 1;
@@ -7030,20 +6294,16 @@ XUI_API int xuiRenderPrepare(xui_context pContext)
 	pContext->tRenderStats.iGeneration = iGeneration;
 	iRet = xuiLayout(pContext);
 	if ( iRet != XUI_OK ) {
+		xuiInternalReportError(pContext, pContext->pRoot, iRet, XUI_ERROR_STAGE_LAYOUT, 0,
+			"layout", "Layout failed; rendering cannot safely continue with a new tree.");
 		return iRet;
 	}
 	if ( pContext->pRoot != NULL ) {
-		iRet = __xuiWidgetRenderPrepareTree(pContext->pRoot);
-		if ( iRet != XUI_OK ) {
-			return iRet;
-		}
+		__xuiWidgetRenderPrepareTree(pContext->pRoot);
 		(void)__xuiWidgetRecomputeSubtreeDirtyFlags(pContext->pRoot);
 	}
 	if ( pContext->pOverlayRoot != NULL ) {
-		iRet = __xuiWidgetRenderPrepareTree(pContext->pOverlayRoot);
-		if ( iRet != XUI_OK ) {
-			return iRet;
-		}
+		__xuiWidgetRenderPrepareTree(pContext->pOverlayRoot);
 		(void)__xuiWidgetRecomputeSubtreeDirtyFlags(pContext->pOverlayRoot);
 	}
 	return XUI_OK;
@@ -7140,6 +6400,8 @@ XUI_API int xuiBuildRenderTree(xui_context pContext)
 	}
 	iRet = xuiLayout(pContext);
 	if ( iRet != XUI_OK ) {
+		xuiInternalReportError(pContext, pContext->pRoot, iRet, XUI_ERROR_STAGE_LAYOUT, 0,
+			"render_tree.layout", "The render tree could not be rebuilt because layout failed.");
 		return iRet;
 	}
 	tRootClip.fX = 0.0f;
@@ -7149,12 +6411,16 @@ XUI_API int xuiBuildRenderTree(xui_context pContext)
 	if ( pContext->pRoot != NULL ) {
 		iRet = __xuiWidgetBuildRenderTreeRecursive(pContext, pContext->pRoot, tRootClip, 1);
 		if ( iRet != XUI_OK ) {
+			xuiInternalReportError(pContext, pContext->pRoot, iRet, XUI_ERROR_STAGE_RENDER, 0,
+				"render_tree.build", "The root render tree could not be built.");
 			return iRet;
 		}
 	}
 	if ( pContext->pOverlayRoot != NULL ) {
 		iRet = __xuiWidgetBuildRenderTreeRecursive(pContext, pContext->pOverlayRoot, tRootClip, 1);
 		if ( iRet != XUI_OK ) {
+			xuiInternalReportError(pContext, pContext->pOverlayRoot, iRet, XUI_ERROR_STAGE_RENDER, 0,
+				"render_tree.build", "The overlay render tree could not be built.");
 			return iRet;
 		}
 	}
@@ -7347,7 +6613,7 @@ static int __xuiDebugDumpTree(xui_widget pWidget, char* sBuffer, int iCapacity, 
 	}
 	sTypeName = (pWidget->pType != NULL) ? pWidget->pType->sName : "widget";
 	iRet = __xuiDebugAppend(sBuffer, iCapacity, pOffset,
-		"%s rect=%.1f,%.1f,%.1f,%.1f visible=%d enabled=%d dirty=0x%08x event=0x%llx\n",
+		"%s rect=%d,%d,%d,%d visible=%d enabled=%d dirty=0x%08x event=0x%llx\n",
 		sTypeName,
 		pWidget->tRect.fX, pWidget->tRect.fY, pWidget->tRect.fW, pWidget->tRect.fH,
 		pWidget->bVisible, pWidget->bEnabled, pWidget->iDirtyFlags,
@@ -7404,7 +6670,7 @@ XUI_API int xuiDebugLayoutSnapshot(xui_context pContext, char* sBuffer, int iCap
 	sBuffer[0] = '\0';
 	iOffset = 0;
 	iRet = __xuiDebugAppend(sBuffer, iCapacity, &iOffset,
-		"viewport=%.1f,%.1f dpi=%.2f damage=%d render_nodes=%d\n",
+		"viewport=%d,%d dpi=%.2f damage=%d render_nodes=%d\n",
 		pContext->fViewportWidth, pContext->fViewportHeight, pContext->fDpiScale,
 		pContext->iDamageCount, pContext->iRenderNodeCount);
 	if ( iRet != XUI_OK ) {
@@ -7419,7 +6685,7 @@ XUI_API int xuiDebugEventTrace(xui_context pContext, const xui_event_t* pEvent, 
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	snprintf(sBuffer, (size_t)iCapacity,
-		"event type=%d phase=%d target=%p current=%p related=%p key=%d button=%d xy=%.1f,%.1f focus=%p capture=%p hover=%p",
+		"event type=%d phase=%d target=%p current=%p related=%p key=%d button=%d xy=%d,%d focus=%p capture=%p hover=%p",
 		pEvent->iType, pEvent->iPhase, (void*)pEvent->pTarget, (void*)pEvent->pCurrentTarget,
 		(void*)pEvent->pRelated, pEvent->iKey, pEvent->iButton, pEvent->fX, pEvent->fY,
 		(void*)pContext->pFocusWidget, (void*)pContext->pPointerCaptureWidget, (void*)pContext->pHoverWidget);

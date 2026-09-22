@@ -1,5 +1,12 @@
 import md5
 
+class FileProgress
+    int calls = 0
+    int inputBytes = 0
+    int totalBytes = 0
+    int outputBytes = -1
+end
+
 string sample = "hello xlang"
 string samplePath = "examples_out/extlibs/md5_sample.txt"
 
@@ -10,7 +17,19 @@ assert md5.version() != "", "md5 version mismatch"
 assert md5.hashHex("") == "d41d8cd98f00b204e9800998ecf8427e", "md5 empty digest mismatch"
 assert md5.hashHex("abc") == "900150983cd24fb0d6963f7d28e17f72", "md5 abc digest mismatch"
 assert md5.hash(sample).len() == md5.MD5_DIGEST_SIZE, "md5 binary digest size mismatch"
-assert md5.hashFileHex(samplePath) == md5.hashHex(sample), "md5 file digest mismatch"
+FileProgress progress = FileProgress()
+assert md5.hashFileHex(samplePath,
+    onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+        progress.calls += 1
+        progress.inputBytes = inputBytes
+        progress.totalBytes = totalBytes
+        progress.outputBytes = outputBytes
+        return true
+    end) == md5.hashHex(sample), "md5 file digest mismatch"
+assert progress.calls > 0
+assert progress.inputBytes == string.byteLen(sample)
+assert progress.totalBytes == progress.inputBytes
+assert progress.outputBytes == 0
 assert md5.hashFile(samplePath).len() == md5.MD5_DIGEST_SIZE, "md5 binary file digest mismatch"
 
 md5.Md5Hasher streaming = md5.hasher()

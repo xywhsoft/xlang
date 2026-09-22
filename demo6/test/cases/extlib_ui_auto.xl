@@ -1,0 +1,22 @@
+import ui.auto
+
+assert ui.auto.available(), "ui.auto requires the Windows UIA and OpenCV adapters"
+
+auto window = ui.auto.test_window()
+assert window.valid(), "test window creation failed"
+
+auto root = ui.auto.within(ui.auto.locator(), window.hwnd())
+auto edit = ui.auto.with_timeout(ui.auto.by_class_name("Edit", "", 50004), 2000)
+edit = ui.auto.within(edit, window.hwnd())
+assert ui.auto.wait_exists(edit), "edit control was not found"
+assert ui.auto.type_text(edit, "ui.auto")
+assert ui.auto.read(edit) == "ui.auto"
+
+auto button = ui.auto.within(ui.auto.by_class_name("Button", "", 50000), window.hwnd())
+assert ui.auto.wait_exists(button), "button control was not found"
+assert ui.auto.click(button)
+
+assert window.close()
+assert window.release()
+assert ui.auto.shutdown()
+println("ui.auto extlib ok")

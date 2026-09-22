@@ -1,6 +1,6 @@
 // gzip 使用 Buffer 表示压缩后的二进制数据。
 
-extern "xrtGetError" func __gzip_error() as string
+extern "xgzip_last_error" func __gzip_error() as string
 extern "xgzip_compress" func __gzip_compress(point data, c_size size, c_int level,
     c_uint mtime, c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xgzip_compress_str" func __gzip_compress_str(string data, c_size size, c_int level,

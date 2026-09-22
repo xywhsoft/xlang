@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "../../build/test/xlir_return_projection_owner.c"
+#include "../../release/include/xrt_decl.h"
+#include "../../build/test/xlir_return_projection_owner.h"
 void return_projection_oom(void);
 static int lane, mode, liveMask, order, observations, calls, finalChecks;
 static void publish(int kind, int code)
@@ -63,7 +64,7 @@ void return_projection_case(int index, int fault)
 #ifdef RETURN_PROJECTION_TRACE
     fprintf(stderr, "return projection start lane=%d mode=%d\n", lane, mode);
 #endif
-    assert(xrtGetError() == NULL && xlir_module_init() && xl6ErrorScopeBegin(&boundary));
+    assert(xrtGetError() == NULL && xl6ErrorScopeBegin(&boundary));
     value = return_projection_probe(lane);
     result = xl6ErrorScopeEnd(&boundary);
     expectedOrder = mode >= 4 || lane == 4 || lane == 5 || lane == 13 || lane == 14 ? 12 : 21;
@@ -77,5 +78,5 @@ void return_projection_case(int index, int fault)
     assert(result.ok == (mode == 0) && xrtErrorCode(result.error) == expectedCode && liveMask == 0 && order == expectedOrder);
     assert(observations == (mode == 0) && calls == 1 && finalChecks == (lane == 7));
     assert(mode != 0 || (value == 41 && result.error == NULL));
-    xrtErrorFree(result.error); xlir_module_fini(); assert(xrtGetError() == NULL);
+    xrtErrorFree(result.error); assert(xrtGetError() == NULL);
 }

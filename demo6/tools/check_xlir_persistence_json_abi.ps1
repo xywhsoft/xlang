@@ -18,7 +18,6 @@ $typedJson = Join-Path $outputDir "xlir_persistence_json_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_persistence_json_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_persistence_json_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_persistence_json_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_persistence_json_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $support, $genericHost, $cgenSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -380,18 +379,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR JSON persistence strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR JSON persistence legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_persistence_json_abi.legacy.c test\cases\cgen_class_host.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_persistence_json_abi.legacy.exe && build\test\xlir_persistence_json_abi.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR JSON persistence legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR JSON/XSON persistence ABI gate passed: one format-parametric schema model, exact stringify/parse/write/read intrinsic and RuntimeOp contracts, explicit scalar/string boxing lifetimes, explicit default-instance reconstruction, format-specific inherited/nested projection, deterministic mechanical C, strict file/runtime behavior, and legacy differential semantics."
+Write-Output "XLIR JSON/XSON persistence ABI gate passed: one format-parametric schema model, exact stringify/parse/write/read intrinsic and RuntimeOp contracts, explicit scalar/string boxing lifetimes, explicit default-instance reconstruction, format-specific inherited/nested projection, deterministic mechanical C, and strict file/runtime behavior."

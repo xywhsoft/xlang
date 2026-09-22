@@ -1,0 +1,29 @@
+// stepbar.xl — 步骤条：StepBar 控件（3 步，当前第 2 步）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "StepBar Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "StepBar Demo", font)
+    root.addChild(title)
+
+    // (ctx, stepCount=3, current=1, font) — 步骤从 0 开始计数
+    xui.StepBar steps = xui.StepBar(ctx, 3, 1, font)
+    steps.setPreferredSize(600.0, 60.0)
+    root.addChild(steps)
+
+    xui.Label hint = xui.Label(ctx, "Step 2 of 3 in progress", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

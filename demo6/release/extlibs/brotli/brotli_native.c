@@ -1,3 +1,7 @@
+#define XRT_MODULE_ERROR_FORMAT
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
 #include "include/xrt_brotli.h"
 #include "third_party/include/brotli/encode.h"
 #include "third_party/include/brotli/decode.h"
@@ -12,13 +16,46 @@
 
 
 
+/* 把 Brotli 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xbrotli_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_BROTLI_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_BROTLI_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_BROTLI_ERROR_DATA:
+		case XRT_BROTLI_ERROR_TRUNCATED:
+			return XERR_PROTOCOL;
+		case XRT_BROTLI_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_BROTLI_ERROR_STATE:
+			return XERR_STATE;
+		case XRT_BROTLI_ERROR_CANCELLED:
+			return XERR_CANCELLED;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 发布可被 XLang 和 C 调用方统一读取的结构化错误。 */
 static void xbrotli_publish_error(const xrtbrotlierror* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "brotli operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_BROTLI_ERROR_IO;
+
+	xrtSetErrorInfo(
+		xbrotli_error_kind(iCode),
+		"xlang.extlib.brotli",
+		iCode,
+		sMessage
+	);
 }
 
+
+/* 用调用参数覆盖 Brotli 默认资源限制。 */
 static void xbrotli_options(xrtbrotlioptions* pOptions, int iQuality, int iWindow,
 	int iMode, uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
 {
@@ -31,47 +68,87 @@ static void xbrotli_options(xrtbrotlioptions* pOptions, int iQuality, int iWindo
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
 }
 
-static bool xbrotli_transform_file(str sSource, str sDestination, bool bCompress,
-	bool bOverwrite, const xrtbrotlioptions* pOptions)
+
+/* 删除失败事务的临时文件，同时保留原始失败原因。 */
+static void xbrotli_remove_temp(cstr sTemp)
+{
+	xerror* pError;
+
+	if ( sTemp == NULL ) { return; }
+	pError = xrtTakeError();
+	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pError != NULL ) {
+		xrtSetError(pError);
+		xrtErrorFree(pError);
+	}
+}
+
+/* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
+static int xbrotli_transform_file(str sSource, str sDestination, bool bCompress,
+	bool bOverwrite, const xrtbrotlioptions* pOptions, xvalue* pCallback)
 {
 	xrtbrotlierror tError;
-	xreader pReader = NULL;
-	xwriter pWriter = NULL;
+	xrtprogresscall tProgress;
+	xfile TempFile = NULL;
+	xreader* pReader = NULL;
+	xwriter* pWriter = NULL;
+	str sDirectory = NULL;
 	str sTemp = NULL;
-	bool bResult = FALSE;
+	bool bResult = false;
+	int iResult = 0;
+
+	xrtBrotliErrorInit(&tError);
+	xrtProgressCallInit(&tProgress, pCallback);
+	pCallback = tProgress.Callback;
 	if ( sSource == NULL || sSource[0] == 0 || sDestination == NULL || sDestination[0] == 0 ) {
-		xrtSetError(xrtFormat("brotli source and destination paths are required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.brotli",
+			XRT_BROTLI_ERROR_ARGUMENT, "brotli source and destination paths are required");
+		return 0;
 	}
 	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetError(xrtFormat("brotli destination already exists: %s", sDestination), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.brotli", XRT_BROTLI_ERROR_IO,
+			"brotli destination already exists: %s", sDestination);
+		return 0;
 	}
-	sTemp = xrtPathRandom(sDestination, 0u, (str)".xrt-brotli-tmp", 0u, 8u);
 	pReader = xrtReaderOpen(sSource);
-	pWriter = sTemp != NULL ? xrtWriterOpen(sTemp, TRUE) : NULL;
-	if ( pReader == NULL || pWriter == NULL ) {
-		xrtSetError(xrtFormat("cannot open brotli file stream: %s", sSource), TRUE);
-		goto cleanup;
-	}
-	bResult = bCompress ? xrtBrotliCompressStream(pReader, pWriter, pOptions, &tError) :
-		xrtBrotliDecompressStream(pReader, pWriter, pOptions, &tError);
-	if ( !bResult ) { xbrotli_publish_error(&tError); }
+	if ( pReader == NULL ) { goto cleanup; }
+	sDirectory = xrtPathParent(sDestination);
+	if ( sDirectory == NULL ) { goto cleanup; }
+	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
+		".xrt-brotli-", ".tmp", &sTemp);
+	if ( TempFile == NULL ) { goto cleanup; }
+	pWriter = xrtWriterTakeFile(&TempFile);
+	if ( pWriter == NULL ) { goto cleanup; }
+
+	bResult = bCompress ? xrtBrotliCompressStream(pReader, pWriter, pOptions,
+		pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError) :
+		xrtBrotliDecompressStream(pReader, pWriter, pOptions,
+			pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
+	if ( !bResult && !tProgress.InvokeFailed ) { xbrotli_publish_error(&tError); }
 	if ( bResult && !xrtWriterFlush(pWriter) ) {
-		xrtSetError(xrtFormat("cannot flush brotli destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+		bResult = false;
 	}
 
 cleanup:
-	xrtReaderDestroy(pReader);
-	xrtWriterDestroy(pWriter);
-	if ( bResult && !xrtFileRename(sTemp, sDestination, bOverwrite) ) {
-		xrtSetError(xrtFormat("cannot commit brotli destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
+	if ( !bResult ) {
+		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
+			(tError.iCode == XRT_BROTLI_OK) ) {
+			xrtSetErrorInfo(XERR_IO, "xlang.extlib.brotli",
+				XRT_BROTLI_ERROR_IO, "brotli file operation failed");
+		}
+		xbrotli_remove_temp(sTemp);
 	}
-	if ( !bResult && sTemp != NULL && xrtFileExists(sTemp) ) { xrtFileDelete(sTemp); }
+	xrtFree(sDirectory);
 	xrtFree(sTemp);
-	return bResult;
+	if ( bResult ) { iResult = 1; }
+	else if ( tProgress.InvokeFailed ) { iResult = -2; }
+	else if ( tError.iCode == XRT_BROTLI_ERROR_CANCELLED ) { iResult = -1; }
+	return iResult;
 }
 
 /* 将 uint32 版本号 0x01010000 格式化为 "主.次.补丁" 静态字符串。 */
@@ -88,7 +165,7 @@ static const char* xbrotli_format_version(uint32 iVersion)
 
 XBROTLI_EXPORT bool xbrotli_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XBROTLI_EXPORT const char* xbrotli_version(void)
@@ -98,7 +175,7 @@ XBROTLI_EXPORT const char* xbrotli_version(void)
 
 XBROTLI_EXPORT const char* xbrotli_last_error(void)
 {
-	return xrtGetError();
+	return xrtErrorMessage(xrtGetError());
 }
 
 
@@ -108,7 +185,7 @@ XBROTLI_EXPORT void* xbrotli_compress(const void* pData, size_t iSize, int iQual
 {
 	xrtbrotlioptions tOptions;
 	xrtbrotlierror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xbrotli_options(&tOptions, iQuality, iWindow, iMode, iMaxInput, iMaxOutput, 0u);
 	if ( !xrtBrotliCompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -129,7 +206,7 @@ XBROTLI_EXPORT void* xbrotli_decompress(const void* pData, size_t iSize, uint64 
 {
 	xrtbrotlioptions tOptions;
 	xrtbrotlierror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xbrotli_options(&tOptions, -1, -1, -1, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtBrotliDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -139,22 +216,23 @@ XBROTLI_EXPORT void* xbrotli_decompress(const void* pData, size_t iSize, uint64 
 	return pOutput;
 }
 
-XBROTLI_EXPORT bool xbrotli_compress_file(str sSource, str sDestination, int iQuality,
-	int iWindow, int iMode, bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput)
+XBROTLI_EXPORT int xbrotli_compress_file(str sSource, str sDestination, int iQuality,
+	int iWindow, int iMode, bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput,
+	xvalue* pCallback)
 {
 	xrtbrotlioptions tOptions;
 	xrtClearError();
 	xbrotli_options(&tOptions, iQuality, iWindow, iMode, iMaxInput, iMaxOutput, 0u);
-	return xbrotli_transform_file(sSource, sDestination, TRUE, bOverwrite, &tOptions);
+	return xbrotli_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XBROTLI_EXPORT bool xbrotli_decompress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
+XBROTLI_EXPORT int xbrotli_decompress_file(str sSource, str sDestination, bool bOverwrite,
+	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio, xvalue* pCallback)
 {
 	xrtbrotlioptions tOptions;
 	xrtClearError();
 	xbrotli_options(&tOptions, -1, -1, -1, iMaxInput, iMaxOutput, iMaxRatio);
-	return xbrotli_transform_file(sSource, sDestination, FALSE, bOverwrite, &tOptions);
+	return xbrotli_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
 
@@ -185,9 +263,9 @@ XBROTLI_EXPORT bool xbrotli_compressor_update(void* pHandle, const void* pData, 
 	xrtbrotlicompressor* pCompressor = (xrtbrotlicompressor*)pHandle;
 	if ( !xrtBrotliCompressorUpdate(pCompressor, pData, iSize) ) {
 		xbrotli_publish_error(xrtBrotliCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBROTLI_EXPORT bool xbrotli_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -200,15 +278,15 @@ XBROTLI_EXPORT bool xbrotli_compressor_finish(void* pHandle)
 	xrtbrotlicompressor* pCompressor = (xrtbrotlicompressor*)pHandle;
 	if ( !xrtBrotliCompressorFinish(pCompressor) ) {
 		xbrotli_publish_error(xrtBrotliCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBROTLI_EXPORT void* xbrotli_compressor_drain(void* pHandle)
 {
 	xrtbrotlicompressor* pCompressor = (xrtbrotlicompressor*)pHandle;
-	xbuffer pOutput = xrtBrotliCompressorDrainBuffer(pCompressor);
+	xbuffer* pOutput = xrtBrotliCompressorDrainBuffer(pCompressor);
 	if ( pOutput == NULL ) {
 		xbrotli_publish_error(xrtBrotliCompressorError(pCompressor));
 		return NULL;
@@ -254,9 +332,9 @@ XBROTLI_EXPORT bool xbrotli_decompressor_update(void* pHandle, const void* pData
 	xrtbrotlidecompressor* pDecompressor = (xrtbrotlidecompressor*)pHandle;
 	if ( !xrtBrotliDecompressorUpdate(pDecompressor, pData, iSize) ) {
 		xbrotli_publish_error(xrtBrotliDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBROTLI_EXPORT bool xbrotli_decompressor_finish(void* pHandle)
@@ -264,15 +342,15 @@ XBROTLI_EXPORT bool xbrotli_decompressor_finish(void* pHandle)
 	xrtbrotlidecompressor* pDecompressor = (xrtbrotlidecompressor*)pHandle;
 	if ( !xrtBrotliDecompressorFinish(pDecompressor) ) {
 		xbrotli_publish_error(xrtBrotliDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBROTLI_EXPORT void* xbrotli_decompressor_drain(void* pHandle)
 {
 	xrtbrotlidecompressor* pDecompressor = (xrtbrotlidecompressor*)pHandle;
-	xbuffer pOutput = xrtBrotliDecompressorDrainBuffer(pDecompressor);
+	xbuffer* pOutput = xrtBrotliDecompressorDrainBuffer(pDecompressor);
 	if ( pOutput == NULL ) {
 		xbrotli_publish_error(xrtBrotliDecompressorError(pDecompressor));
 		return NULL;

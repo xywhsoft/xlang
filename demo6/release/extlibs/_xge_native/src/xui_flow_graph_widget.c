@@ -1,6 +1,7 @@
 #include "xui_internal.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #define XUI_FLOW_NODE_BUCKET_SIZE 256.0f
@@ -47,11 +48,11 @@ typedef struct xui_flow_graph_route_t {
 } xui_flow_graph_route_t;
 
 typedef struct xui_flow_graph_node_bucket_t {
-	xarray_struct arrNodes;
+	xarray arrNodes;
 } xui_flow_graph_node_bucket_t;
 
 typedef struct xui_flow_graph_edge_bucket_t {
-	xarray_struct arrEdges;
+	xarray arrEdges;
 } xui_flow_graph_edge_bucket_t;
 
 typedef struct xui_flow_graph_widget_data_t {
@@ -85,30 +86,30 @@ typedef struct xui_flow_graph_widget_data_t {
 	int iHoverNode;
 	int iHoverPort;
 	int iHoverEdge;
-	xarray_struct arrNodeBuckets;
-	xarray_struct arrVisibleNodes;
+	xarray arrNodeBuckets;
+	xarray arrVisibleNodes;
 	uint32_t iNodeBucketRevision;
 	xui_rect_t tNodeBucketContent;
 	int iNodeBucketCols;
 	int iNodeBucketRows;
-	xarray_struct arrEdgeBuckets;
-	xarray_struct arrVisibleEdges;
+	xarray arrEdgeBuckets;
+	xarray arrVisibleEdges;
 	uint32_t iEdgeBucketRevision;
 	xui_rect_t tEdgeBucketContent;
 	int iEdgeBucketCols;
 	int iEdgeBucketRows;
-	xarray_struct arrGridLines;
+	xarray arrGridLines;
 	xui_rect_t tGridCacheContent;
 	int iGridZoomBucket;
 	float fGridPanX;
 	float fGridPanY;
 	float fGridStep;
-	xarray_struct arrNodeCardStates;
+	xarray arrNodeCardStates;
 	uint32_t iNodeCardRevision;
 	int iNodeCardHoverType;
 	int iNodeCardHoverNode;
 	int iNodeCardEnabled;
-	xarray_struct arrEdgeLayerStates;
+	xarray arrEdgeLayerStates;
 	uint32_t iEdgeLayerRevision;
 	xui_rect_t tEdgeLayerContent;
 	int iEdgeLayerHoverType;
@@ -281,8 +282,8 @@ static char* __xuiFlowGraphWidgetCopyString(const char* sText)
 
 static int __xuiFlowGraphWidgetRectNear(xui_rect_t tA, xui_rect_t tB)
 {
-	return (fabsf(tA.fX - tB.fX) < 0.01f) && (fabsf(tA.fY - tB.fY) < 0.01f) &&
-	       (fabsf(tA.fW - tB.fW) < 0.01f) && (fabsf(tA.fH - tB.fH) < 0.01f);
+	return (tA.fX == tB.fX) && (tA.fY == tB.fY) &&
+	       (tA.fW == tB.fW) && (tA.fH == tB.fH);
 }
 
 static void __xuiFlowGraphWidgetClearNodeBuckets(xui_flow_graph_widget_data_t* pData)
@@ -294,13 +295,13 @@ static void __xuiFlowGraphWidgetClearNodeBuckets(xui_flow_graph_widget_data_t* p
 		return;
 	}
 	for ( i = 1u; i <= pData->arrNodeBuckets.Count; ++i ) {
-		pBucket = (xui_flow_graph_node_bucket_t*)xrtArrayGet_Unsafe(&pData->arrNodeBuckets, i);
+		pBucket = (xui_flow_graph_node_bucket_t*)__xuiArraySlotGet(&pData->arrNodeBuckets, i);
 		xrtArrayUnit(&pBucket->arrNodes);
 	}
 	xrtArrayUnit(&pData->arrNodeBuckets);
-	xrtArrayInit(&pData->arrNodeBuckets, sizeof(xui_flow_graph_node_bucket_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrNodeBuckets, sizeof(xui_flow_graph_node_bucket_t));
 	xrtArrayUnit(&pData->arrVisibleNodes);
-	xrtArrayInit(&pData->arrVisibleNodes, sizeof(int), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrVisibleNodes, sizeof(int));
 	pData->iNodeBucketRevision = 0u;
 	pData->iNodeBucketCols = 0;
 	pData->iNodeBucketRows = 0;
@@ -316,13 +317,13 @@ static void __xuiFlowGraphWidgetClearEdgeBuckets(xui_flow_graph_widget_data_t* p
 		return;
 	}
 	for ( i = 1u; i <= pData->arrEdgeBuckets.Count; ++i ) {
-		pBucket = (xui_flow_graph_edge_bucket_t*)xrtArrayGet_Unsafe(&pData->arrEdgeBuckets, i);
+		pBucket = (xui_flow_graph_edge_bucket_t*)__xuiArraySlotGet(&pData->arrEdgeBuckets, i);
 		xrtArrayUnit(&pBucket->arrEdges);
 	}
 	xrtArrayUnit(&pData->arrEdgeBuckets);
-	xrtArrayInit(&pData->arrEdgeBuckets, sizeof(xui_flow_graph_edge_bucket_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrEdgeBuckets, sizeof(xui_flow_graph_edge_bucket_t));
 	xrtArrayUnit(&pData->arrVisibleEdges);
-	xrtArrayInit(&pData->arrVisibleEdges, sizeof(int), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrVisibleEdges, sizeof(int));
 	pData->iEdgeBucketRevision = 0u;
 	pData->iEdgeBucketCols = 0;
 	pData->iEdgeBucketRows = 0;
@@ -335,7 +336,7 @@ static void __xuiFlowGraphWidgetClearGridCache(xui_flow_graph_widget_data_t* pDa
 		return;
 	}
 	xrtArrayUnit(&pData->arrGridLines);
-	xrtArrayInit(&pData->arrGridLines, sizeof(xui_flow_graph_grid_line_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrGridLines, sizeof(xui_flow_graph_grid_line_t));
 	pData->iGridZoomBucket = 0;
 	pData->fGridPanX = 0.0f;
 	pData->fGridPanY = 0.0f;
@@ -349,7 +350,7 @@ static void __xuiFlowGraphWidgetClearNodeCardStates(xui_flow_graph_widget_data_t
 		return;
 	}
 	xrtArrayUnit(&pData->arrNodeCardStates);
-	xrtArrayInit(&pData->arrNodeCardStates, sizeof(xui_flow_graph_node_card_state_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrNodeCardStates, sizeof(xui_flow_graph_node_card_state_t));
 	pData->iNodeCardRevision = 0u;
 	pData->iNodeCardHoverType = XUI_FLOW_HIT_NONE;
 	pData->iNodeCardHoverNode = -1;
@@ -362,14 +363,14 @@ static void __xuiFlowGraphWidgetClearEdgeLayerStates(xui_flow_graph_widget_data_
 		return;
 	}
 	xrtArrayUnit(&pData->arrEdgeLayerStates);
-	xrtArrayInit(&pData->arrEdgeLayerStates, sizeof(xui_flow_graph_edge_layer_state_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrEdgeLayerStates, sizeof(xui_flow_graph_edge_layer_state_t));
 	pData->iEdgeLayerRevision = 0u;
 	pData->iEdgeLayerHoverType = XUI_FLOW_HIT_NONE;
 	pData->iEdgeLayerHoverEdge = -1;
 	memset(&pData->tEdgeLayerContent, 0, sizeof(pData->tEdgeLayerContent));
 }
 
-static int __xuiFlowGraphWidgetAppendInt(xarray pArray, int iValue)
+static int __xuiFlowGraphWidgetAppendInt(xarray* pArray, int iValue)
 {
 	int* pItem;
 	uint32_t iPos;
@@ -377,16 +378,16 @@ static int __xuiFlowGraphWidgetAppendInt(xarray pArray, int iValue)
 	if ( pArray == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	iPos = xrtArrayAppend(pArray, 1u);
+	iPos = __xuiArraySlotAdd(pArray, 1u);
 	if ( iPos == 0u ) {
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
-	pItem = (int*)xrtArrayGet_Unsafe(pArray, iPos);
+	pItem = (int*)__xuiArraySlotGet(pArray, iPos);
 	*pItem = iValue;
 	return XUI_OK;
 }
 
-static int __xuiFlowGraphWidgetAppendGridLine(xarray pArray, float fPos, int bVertical)
+static int __xuiFlowGraphWidgetAppendGridLine(xarray* pArray, float fPos, int bVertical)
 {
 	xui_flow_graph_grid_line_t* pLine;
 	uint32_t iPos;
@@ -394,11 +395,11 @@ static int __xuiFlowGraphWidgetAppendGridLine(xarray pArray, float fPos, int bVe
 	if ( pArray == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	iPos = xrtArrayAppend(pArray, 1u);
+	iPos = __xuiArraySlotAdd(pArray, 1u);
 	if ( iPos == 0u ) {
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
-	pLine = (xui_flow_graph_grid_line_t*)xrtArrayGet_Unsafe(pArray, iPos);
+	pLine = (xui_flow_graph_grid_line_t*)__xuiArraySlotGet(pArray, iPos);
 	pLine->fPos = fPos;
 	pLine->bVertical = bVertical ? 1 : 0;
 	return XUI_OK;
@@ -515,7 +516,7 @@ static int __xuiFlowGraphWidgetDrawGrid(xui_proxy pProxy, xui_draw_context pDraw
 	iRet = __xuiFlowGraphWidgetRebuildGridCache(pData, tRect, pViewport);
 	if ( iRet != XUI_OK ) return iRet;
 	for ( i = 1u; i <= pData->arrGridLines.Count; ++i ) {
-		pLine = (xui_flow_graph_grid_line_t*)xrtArrayGet_Unsafe(&pData->arrGridLines, i);
+		pLine = (xui_flow_graph_grid_line_t*)__xuiArraySlotGet(&pData->arrGridLines, i);
 		if ( pLine->bVertical ) {
 			iRet = pProxy->drawRectFill(pProxy, pDraw, (xui_rect_t){pLine->fPos, tRect.fY, 1.0f, tRect.fH}, iColor);
 		} else {
@@ -745,14 +746,14 @@ static int __xuiFlowGraphWidgetRebuildNodeBuckets(xui_flow_graph_widget_data_t* 
 	if ( pData->iNodeBucketCols < 1 ) pData->iNodeBucketCols = 1;
 	if ( pData->iNodeBucketRows < 1 ) pData->iNodeBucketRows = 1;
 	iBucketCount = pData->iNodeBucketCols * pData->iNodeBucketRows;
-	iPos = xrtArrayAppend(&pData->arrNodeBuckets, (uint32_t)iBucketCount);
+	iPos = __xuiArraySlotAdd(&pData->arrNodeBuckets, (uint32_t)iBucketCount);
 	if ( iPos == 0u ) {
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	for ( iNode = 0; iNode < iBucketCount; ++iNode ) {
-		pBucket = (xui_flow_graph_node_bucket_t*)xrtArrayGet_Unsafe(&pData->arrNodeBuckets, (uint32_t)iNode + 1u);
+		pBucket = (xui_flow_graph_node_bucket_t*)__xuiArraySlotGet(&pData->arrNodeBuckets, (uint32_t)iNode + 1u);
 		memset(pBucket, 0, sizeof(*pBucket));
-		xrtArrayInit(&pBucket->arrNodes, sizeof(int), XRT_OBJMODE_LOCAL);
+		xrtArrayInit(&pBucket->arrNodes, sizeof(int));
 	}
 	iNodeCount = xuiFlowGraphGetNodeCount(pData->pGraph);
 	for ( iNode = 0; iNode < iNodeCount; ++iNode ) {
@@ -771,7 +772,7 @@ static int __xuiFlowGraphWidgetRebuildNodeBuckets(xui_flow_graph_widget_data_t* 
 		iRow1 = __xuiFlowGraphWidgetClampInt((int)floorf((tNodeRect.fY + tNodeRect.fH - tContent.fY) / XUI_FLOW_NODE_BUCKET_SIZE), 0, pData->iNodeBucketRows - 1);
 		for ( iRow = iRow0; iRow <= iRow1; ++iRow ) {
 			for ( iCol = iCol0; iCol <= iCol1; ++iCol ) {
-				pBucket = (xui_flow_graph_node_bucket_t*)xrtArrayGet_Unsafe(&pData->arrNodeBuckets, (uint32_t)(iRow * pData->iNodeBucketCols + iCol) + 1u);
+				pBucket = (xui_flow_graph_node_bucket_t*)__xuiArraySlotGet(&pData->arrNodeBuckets, (uint32_t)(iRow * pData->iNodeBucketCols + iCol) + 1u);
 				iRet = __xuiFlowGraphWidgetAppendInt(&pBucket->arrNodes, iNode);
 				if ( iRet != XUI_OK ) return iRet;
 			}
@@ -818,14 +819,14 @@ static int __xuiFlowGraphWidgetRebuildEdgeBuckets(xui_flow_graph_widget_data_t* 
 	if ( pData->iEdgeBucketCols < 1 ) pData->iEdgeBucketCols = 1;
 	if ( pData->iEdgeBucketRows < 1 ) pData->iEdgeBucketRows = 1;
 	iBucketCount = pData->iEdgeBucketCols * pData->iEdgeBucketRows;
-	iPos = xrtArrayAppend(&pData->arrEdgeBuckets, (uint32_t)iBucketCount);
+	iPos = __xuiArraySlotAdd(&pData->arrEdgeBuckets, (uint32_t)iBucketCount);
 	if ( iPos == 0u ) {
 		return XUI_ERROR_OUT_OF_MEMORY;
 	}
 	for ( iEdge = 0; iEdge < iBucketCount; ++iEdge ) {
-		pBucket = (xui_flow_graph_edge_bucket_t*)xrtArrayGet_Unsafe(&pData->arrEdgeBuckets, (uint32_t)iEdge + 1u);
+		pBucket = (xui_flow_graph_edge_bucket_t*)__xuiArraySlotGet(&pData->arrEdgeBuckets, (uint32_t)iEdge + 1u);
 		memset(pBucket, 0, sizeof(*pBucket));
-		xrtArrayInit(&pBucket->arrEdges, sizeof(int), XRT_OBJMODE_LOCAL);
+		xrtArrayInit(&pBucket->arrEdges, sizeof(int));
 	}
 	iEdgeCount = xuiFlowGraphGetEdgeCount(pData->pGraph);
 	for ( iEdge = 0; iEdge < iEdgeCount; ++iEdge ) {
@@ -847,7 +848,7 @@ static int __xuiFlowGraphWidgetRebuildEdgeBuckets(xui_flow_graph_widget_data_t* 
 		iRow1 = __xuiFlowGraphWidgetClampInt((int)floorf((tEdgeRect.fY + tEdgeRect.fH - tContent.fY) / XUI_FLOW_NODE_BUCKET_SIZE), 0, pData->iEdgeBucketRows - 1);
 		for ( iRow = iRow0; iRow <= iRow1; ++iRow ) {
 			for ( iCol = iCol0; iCol <= iCol1; ++iCol ) {
-				pBucket = (xui_flow_graph_edge_bucket_t*)xrtArrayGet_Unsafe(&pData->arrEdgeBuckets, (uint32_t)(iRow * pData->iEdgeBucketCols + iCol) + 1u);
+				pBucket = (xui_flow_graph_edge_bucket_t*)__xuiArraySlotGet(&pData->arrEdgeBuckets, (uint32_t)(iRow * pData->iEdgeBucketCols + iCol) + 1u);
 				iRet = __xuiFlowGraphWidgetAppendInt(&pBucket->arrEdges, iEdge);
 				if ( iRet != XUI_OK ) return iRet;
 			}
@@ -886,7 +887,7 @@ static int __xuiFlowGraphWidgetRebuildNodeCardStates(xui_flow_graph_widget_data_
 	pData->iNodeCardHoverNode = pData->iHoverNode;
 	pData->iNodeCardEnabled = bEnabled ? 1 : 0;
 	for ( i = 1; i <= (int)pData->arrVisibleNodes.Count; ++i ) {
-		pNodeIndex = (int*)xrtArrayGet_Unsafe(&pData->arrVisibleNodes, (uint32_t)i);
+		pNodeIndex = (int*)__xuiArraySlotGet(&pData->arrVisibleNodes, (uint32_t)i);
 		if ( pNodeIndex == NULL ) {
 			continue;
 		}
@@ -894,11 +895,11 @@ static int __xuiFlowGraphWidgetRebuildNodeCardStates(xui_flow_graph_widget_data_
 		if ( xuiFlowGraphGetNode(pData->pGraph, iNode, &tNode) != XUI_OK ) {
 			continue;
 		}
-		iPos = xrtArrayAppend(&pData->arrNodeCardStates, 1u);
+		iPos = __xuiArraySlotAdd(&pData->arrNodeCardStates, 1u);
 		if ( iPos == 0u ) {
 			return XUI_ERROR_OUT_OF_MEMORY;
 		}
-		pState = (xui_flow_graph_node_card_state_t*)xrtArrayGet_Unsafe(&pData->arrNodeCardStates, iPos);
+		pState = (xui_flow_graph_node_card_state_t*)__xuiArraySlotGet(&pData->arrNodeCardStates, iPos);
 		memset(pState, 0, sizeof(*pState));
 		pState->iNode = iNode;
 		iFill = xuiFlowGraphIsNodeSelected(pData->pGraph, tNode.sId) ? pData->iSelectedNodeColor : pData->iNodeColor;
@@ -978,7 +979,7 @@ static int __xuiFlowGraphWidgetRebuildEdgeLayerStates(xui_flow_graph_widget_data
 	pData->iEdgeLayerHoverType = pData->iHoverType;
 	pData->iEdgeLayerHoverEdge = pData->iHoverEdge;
 	for ( i = 1; i <= (int)pData->arrVisibleEdges.Count; ++i ) {
-		pEdgeIndex = (int*)xrtArrayGet_Unsafe(&pData->arrVisibleEdges, (uint32_t)i);
+		pEdgeIndex = (int*)__xuiArraySlotGet(&pData->arrVisibleEdges, (uint32_t)i);
 		if ( pEdgeIndex == NULL ) {
 			continue;
 		}
@@ -986,11 +987,11 @@ static int __xuiFlowGraphWidgetRebuildEdgeLayerStates(xui_flow_graph_widget_data
 		if ( xuiFlowGraphGetEdge(pData->pGraph, iEdge, &tEdge) != XUI_OK ) {
 			continue;
 		}
-		iPos = xrtArrayAppend(&pData->arrEdgeLayerStates, 1u);
+		iPos = __xuiArraySlotAdd(&pData->arrEdgeLayerStates, 1u);
 		if ( iPos == 0u ) {
 			return XUI_ERROR_OUT_OF_MEMORY;
 		}
-		pState = (xui_flow_graph_edge_layer_state_t*)xrtArrayGet_Unsafe(&pData->arrEdgeLayerStates, iPos);
+		pState = (xui_flow_graph_edge_layer_state_t*)__xuiArraySlotGet(&pData->arrEdgeLayerStates, iPos);
 		memset(pState, 0, sizeof(*pState));
 		pState->iEdge = iEdge;
 		__xuiFlowGraphWidgetPortCenter(pData->pGraph, tEdge.iFromNode, tEdge.iFromPort, tContent, &pState->fX0, &pState->fY0);
@@ -1160,7 +1161,7 @@ static int __xuiFlowGraphWidgetDrawEdges(xui_proxy pProxy, xui_draw_context pDra
 	iRet = __xuiFlowGraphWidgetRebuildEdgeLayerStates(pData, tContent);
 	if ( iRet != XUI_OK ) return iRet;
 	for ( i = 1; i <= (int)pData->arrEdgeLayerStates.Count; ++i ) {
-		pState = (xui_flow_graph_edge_layer_state_t*)xrtArrayGet_Unsafe(&pData->arrEdgeLayerStates, (uint32_t)i);
+		pState = (xui_flow_graph_edge_layer_state_t*)__xuiArraySlotGet(&pData->arrEdgeLayerStates, (uint32_t)i);
 		if ( pState == NULL ) {
 			continue;
 		}
@@ -1252,7 +1253,7 @@ static int __xuiFlowGraphWidgetDrawNodes(xui_widget pWidget, xui_proxy pProxy, x
 	iRet = __xuiFlowGraphWidgetRebuildNodeCardStates(pData, bEnabled);
 	if ( iRet != XUI_OK ) return iRet;
 	for ( i = 1; i <= (int)pData->arrNodeCardStates.Count; ++i ) {
-		pState = (xui_flow_graph_node_card_state_t*)xrtArrayGet_Unsafe(&pData->arrNodeCardStates, (uint32_t)i);
+		pState = (xui_flow_graph_node_card_state_t*)__xuiArraySlotGet(&pData->arrNodeCardStates, (uint32_t)i);
 		if ( pState == NULL ) {
 			continue;
 		}
@@ -1398,13 +1399,13 @@ static int __xuiFlowGraphWidgetInit(xui_widget pWidget, void* pTypeData, const v
 	pData = (xui_flow_graph_widget_data_t*)pTypeData;
 	pDesc = (const xui_flow_graph_desc_t*)pCreateData;
 	memset(pData, 0, sizeof(*pData));
-	xrtArrayInit(&pData->arrNodeBuckets, sizeof(xui_flow_graph_node_bucket_t), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pData->arrVisibleNodes, sizeof(int), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pData->arrEdgeBuckets, sizeof(xui_flow_graph_edge_bucket_t), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pData->arrVisibleEdges, sizeof(int), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pData->arrGridLines, sizeof(xui_flow_graph_grid_line_t), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pData->arrNodeCardStates, sizeof(xui_flow_graph_node_card_state_t), XRT_OBJMODE_LOCAL);
-	xrtArrayInit(&pData->arrEdgeLayerStates, sizeof(xui_flow_graph_edge_layer_state_t), XRT_OBJMODE_LOCAL);
+	xrtArrayInit(&pData->arrNodeBuckets, sizeof(xui_flow_graph_node_bucket_t));
+	xrtArrayInit(&pData->arrVisibleNodes, sizeof(int));
+	xrtArrayInit(&pData->arrEdgeBuckets, sizeof(xui_flow_graph_edge_bucket_t));
+	xrtArrayInit(&pData->arrVisibleEdges, sizeof(int));
+	xrtArrayInit(&pData->arrGridLines, sizeof(xui_flow_graph_grid_line_t));
+	xrtArrayInit(&pData->arrNodeCardStates, sizeof(xui_flow_graph_node_card_state_t));
+	xrtArrayInit(&pData->arrEdgeLayerStates, sizeof(xui_flow_graph_edge_layer_state_t));
 	pData->iBackgroundColor = XUI_COLOR_RGBA(246, 248, 252, 255);
 	pData->iGridColor = XUI_COLOR_RGBA(214, 220, 230, 120);
 	pData->iNodeColor = XUI_COLOR_RGBA(255, 255, 255, 255);
@@ -1678,9 +1679,9 @@ static int __xuiFlowGraphWidgetHitTestLocal(xui_widget pWidget, float fX, float 
 	}
 	iBucket = __xuiFlowGraphWidgetBucketIndex(pData, fX, fY);
 	if ( iBucket >= 0 && (uint32_t)iBucket < pData->arrNodeBuckets.Count ) {
-		pBucket = (xui_flow_graph_node_bucket_t*)xrtArrayGet_Unsafe(&pData->arrNodeBuckets, (uint32_t)iBucket + 1u);
+		pBucket = (xui_flow_graph_node_bucket_t*)__xuiArraySlotGet(&pData->arrNodeBuckets, (uint32_t)iBucket + 1u);
 		for ( i = (int)pBucket->arrNodes.Count; i >= 1; --i ) {
-			pNodeIndex = (int*)xrtArrayGet_Unsafe(&pBucket->arrNodes, (uint32_t)i);
+			pNodeIndex = (int*)__xuiArraySlotGet(&pBucket->arrNodes, (uint32_t)i);
 			if ( pNodeIndex == NULL ) {
 				continue;
 			}
@@ -1710,9 +1711,9 @@ static int __xuiFlowGraphWidgetHitTestLocal(xui_widget pWidget, float fX, float 
 	}
 	iEdgeBucket = __xuiFlowGraphWidgetEdgeBucketIndex(pData, fX, fY);
 	if ( iEdgeBucket >= 0 && (uint32_t)iEdgeBucket < pData->arrEdgeBuckets.Count ) {
-		pEdgeBucket = (xui_flow_graph_edge_bucket_t*)xrtArrayGet_Unsafe(&pData->arrEdgeBuckets, (uint32_t)iEdgeBucket + 1u);
+		pEdgeBucket = (xui_flow_graph_edge_bucket_t*)__xuiArraySlotGet(&pData->arrEdgeBuckets, (uint32_t)iEdgeBucket + 1u);
 		for ( i = (int)pEdgeBucket->arrEdges.Count; i >= 1; --i ) {
-			pEdgeIndex = (int*)xrtArrayGet_Unsafe(&pEdgeBucket->arrEdges, (uint32_t)i);
+			pEdgeIndex = (int*)__xuiArraySlotGet(&pEdgeBucket->arrEdges, (uint32_t)i);
 			if ( pEdgeIndex == NULL ) {
 				continue;
 			}

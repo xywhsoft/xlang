@@ -56,16 +56,17 @@ require(tlsService.start(), tlsService.lastError())
 
 HttpClientRequest tlsRequest = HttpClientRequest(
     "https://127.0.0.1:" + tlsService.port().toString() + "/")
-tlsRequest.verifyPeer(false)
 tlsRequest.timeout(5000)
-HttpClientResponse tlsResponse = tlsRequest.execute()
-HttpDiagnostics tlsDiagnostics = tlsResponse.diagnostics()
+TlsConfig tlsClientConfig = TlsConfig()
+tlsClientConfig.verifyPeer(false)
+HttpClient tlsClient = http.client(tlsClientConfig)
+HttpClientResponse tlsResponse = tlsRequest.execute(tlsClient)
+HttpCallInfo tlsCallInfo = tlsResponse.callInfo()
 string tlsFailure = (
     "HTTPS service must complete TLS and route: status=" + tlsResponse.status().toString() +
-    ", error=" + tlsDiagnostics.errorName() +
-    ", phase=" + tlsDiagnostics.phaseName() +
-    ", transport=" + tlsDiagnostics.transportStatus.toString() +
-    ", system=" + tlsDiagnostics.systemError.toString())
+    ", error=" + tlsCallInfo.errorName() +
+    ", phase=" + tlsCallInfo.phaseName() +
+    ", transport=" + tlsCallInfo.error.toString())
 require(tlsResponse.status() == 200, tlsFailure)
 require(tlsResponse.body() == "c:", "HTTPS route must invoke the C handler")
 require(tlsService.stop(), tlsService.lastError())

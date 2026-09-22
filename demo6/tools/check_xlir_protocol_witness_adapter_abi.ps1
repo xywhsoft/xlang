@@ -65,21 +65,6 @@ function Invoke-GeneratedRuntime($Case, [string]$Generated) {
     return "ok"
 }
 
-function Invoke-LegacyRuntime($Case) {
-    $legacy = Join-Path $outputDir "$($Case.Name).legacy.c"
-    & $xl cgen $Case.Source --backend legacy --emit $legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR protocol witness legacy C generation failed: $($Case.Name)"
-    }
-    $arguments = @("run", $Case.Source)
-    if ( $Case.Support -ne "" ) { $arguments += $Case.Support }
-    $output = @(& $xl @arguments 2>&1) -join "`n"
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR protocol witness legacy runtime mismatch: $($Case.Name): $output"
-    }
-    return "ok"
-}
-
 $inherited = $cases[0]
 $inheritedTypedPath = Join-Path $outputDir "$($inherited.Name).witness.typed.json"
 $inheritedLoweredPath = Join-Path $outputDir "$($inherited.Name).witness.lowered.json"
@@ -193,11 +178,7 @@ foreach ( $case in $cases ) {
     }
     $generatedOutputs[$case.Name] = [System.IO.File]::ReadAllText(
         $generated, [System.Text.Encoding]::UTF8)
-    $xlirOutput = Invoke-GeneratedRuntime $case $generated
-    $legacyOutput = Invoke-LegacyRuntime $case
-    if ( $xlirOutput -ne $legacyOutput ) {
-        throw "XLIR protocol witness legacy differential output mismatch: $($case.Name)"
-    }
+    [void](Invoke-GeneratedRuntime $case $generated)
 }
 
 $inheritedC = $generatedOutputs[$inherited.Name]
@@ -220,4 +201,4 @@ foreach ( $required in @(
     }
 }
 
-Write-Output "XLIR protocol witness adapter gate passed: inherited concrete-owner rows, native-class-handle-borrow extern adapters, nominal identity closure, byte-for-byte deterministic C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR protocol witness adapter gate passed: inherited concrete-owner rows, native-class-handle-borrow extern adapters, nominal identity closure, byte-for-byte deterministic C, and strict runtime."

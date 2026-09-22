@@ -159,36 +159,39 @@ static void __xuiSeparatorResolve(xui_widget pWidget, const xui_separator_data_t
 static xui_rect_t __xuiSeparatorLineRectFromData(xui_widget pWidget, const xui_separator_data_t* pData)
 {
 	xui_rect_t tRect;
-	float fThickness;
+	int iThickness;
+	int iRemaining;
 
 	memset(&tRect, 0, sizeof(tRect));
 	if ( (pWidget == NULL) || (pData == NULL) ) {
 		return tRect;
 	}
 	tRect = xuiInternalSnapRect(xuiWidgetGetContentRect(pWidget));
-	fThickness = xuiInternalSnapSize(pData->fThickness);
+	iThickness = xuiInternalSnapSize(pData->fThickness);
 	if ( pData->iOrientation == XUI_SEPARATOR_VERTICAL ) {
-		if ( fThickness > tRect.fW ) {
-			fThickness = tRect.fW;
+		if ( iThickness > tRect.fW ) {
+			iThickness = tRect.fW;
 		}
+		iRemaining = tRect.fW - iThickness;
 		if ( pData->iAlign == XUI_ALIGN_CENTER ) {
-			tRect.fX += (tRect.fW - fThickness) * 0.5f;
+			tRect.fX += (iRemaining + 1) / 2;
 		} else if ( pData->iAlign == XUI_ALIGN_END ) {
-			tRect.fX += tRect.fW - fThickness;
+			tRect.fX += iRemaining;
 		}
-		tRect.fW = fThickness;
+		tRect.fW = iThickness;
 	} else {
-		if ( fThickness > tRect.fH ) {
-			fThickness = tRect.fH;
+		if ( iThickness > tRect.fH ) {
+			iThickness = tRect.fH;
 		}
+		iRemaining = tRect.fH - iThickness;
 		if ( pData->iAlign == XUI_ALIGN_CENTER ) {
-			tRect.fY += (tRect.fH - fThickness) * 0.5f;
+			tRect.fY += (iRemaining + 1) / 2;
 		} else if ( pData->iAlign == XUI_ALIGN_END ) {
-			tRect.fY += tRect.fH - fThickness;
+			tRect.fY += iRemaining;
 		}
-		tRect.fH = fThickness;
+		tRect.fH = iThickness;
 	}
-	return xuiInternalSnapRect(tRect);
+	return tRect;
 }
 
 static int __xuiSeparatorDrawSegment(xui_proxy pProxy, xui_draw_context pDraw, xui_rect_t tLine, int bVertical, float fStart, float fLength, uint32_t iColor)

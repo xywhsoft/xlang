@@ -1,6 +1,0 @@
-const int value = 84
-
-func main() as int
-	value /= 2
-	return value
-end

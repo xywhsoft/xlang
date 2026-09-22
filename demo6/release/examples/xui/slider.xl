@@ -1,0 +1,40 @@
+// slider.xl — 滑块：2 个 Slider（不同初始值）+ Progress 跟随滑块值
+import xui
+
+xui.XuiApp g_app
+xui.Slider g_slider
+xui.Progress g_progress
+
+func onFrame()
+    // Progress 每帧跟随第一个 Slider 的值
+    g_progress.setValue(g_slider.getValue())
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Slider Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Slider Demo", font)
+    root.addChild(title)
+
+    g_slider = xui.Slider(ctx, 0.0, 100.0, 30.0)
+    g_slider.setPreferredSize(600.0, 24.0)
+    root.addChild(g_slider)
+
+    xui.Slider slider2 = xui.Slider(ctx, 0.0, 100.0, 70.0)
+    slider2.setPreferredSize(600.0, 24.0)
+    root.addChild(slider2)
+
+    xui.Label lblFollow = xui.Label(ctx, "Progress follows slider 1:", font)
+    root.addChild(lblFollow)
+
+    g_progress = xui.Progress(ctx, 0.0, 100.0, 30.0)
+    g_progress.setPreferredSize(600.0, 16.0)
+    root.addChild(g_progress)
+
+    g_app.run(onFrame)
+    return 0
+end

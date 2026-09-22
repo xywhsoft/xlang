@@ -1,5 +1,0 @@
-import std.core
-
-func 入口() as int
-	return std.core.identity(std.core.version)
-end

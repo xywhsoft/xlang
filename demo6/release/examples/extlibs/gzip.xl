@@ -12,6 +12,30 @@ func main(...) as int
     Buffer packed = gzip.compress(source, 9)
     Buffer plain = gzip.decompress(packed)
     assert plain == source, "gzip Buffer round trip failed"
+    assert packed[0] == 31 and packed[1] == 139 and packed[2] == 8
+
+    Buffer timed = gzip.compress("mtime", 6, 16909060)
+    assert timed[4] == 4 and timed[5] == 3 and timed[6] == 2 and timed[7] == 1
+
+    Buffer members = Buffer()
+    Buffer firstMember = gzip.compress("first")
+    Buffer secondMember = gzip.compress("second")
+    members.append(firstMember)
+    members.append(secondMember)
+    assert gzip.decompressText(members) == "firstsecond"
+
+    Buffer truncatedMembers = Buffer()
+    truncatedMembers.append(firstMember)
+    for i in range(0, secondMember.len() - 1)
+        truncatedMembers.appendByte(secondMember[i])
+    end
+    bool truncatedRejected = false
+    try
+        gzip.decompress(truncatedMembers)
+    catch CompressionError e
+        truncatedRejected = true
+    end
+    assert truncatedRejected, "truncated final gzip member must be rejected"
 
     // 增量对象可多次写入，finish 后一次取得完整结果。
     auto encoder = gzip.compressor(6)

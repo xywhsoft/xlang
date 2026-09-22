@@ -177,13 +177,14 @@ typedef intptr_t xl6_ssize_t;
 
 ### 4.2 规范类型身份
 
-编译期类型身份使用驻留类型池中的 `XL6_HirTypeId`，符号绑定使用稳定
+编译期规范类型身份使用驻留类型池中的 `XL6_TypeId`；进入统一
+XLIR 后以其别名 `XL6_IrTypeId` 记录在 IR 契约中。符号绑定使用稳定
 `XL6_SymbolId`。名称文本只用于诊断、dump 和公开 ABI 名称，不参与同一编译
 单元内的类型相等判断。
 
-`XL6_HirTypeId` 是编译会话内身份，不能直接持久化。XAPI/package 元数据应
-序列化规范类型结构、模块限定名、参数模式和泛型实参，并由此计算 ABI hash；
-读取后重新驻留为当前会话的 TypeId。
+`XL6_TypeId` / `XL6_IrTypeId` 是编译会话内身份，不能直接持久化。
+XAPI/package 元数据应序列化规范类型结构、模块限定名、参数模式和泛型实参，
+并由此计算 ABI hash；读取后重新驻留为当前会话的 TypeId。
 
 以下修饰属于类型身份和 ABI hash，不能在导出时被擦除：
 

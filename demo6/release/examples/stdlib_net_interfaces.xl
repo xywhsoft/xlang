@@ -1,0 +1,44 @@
+func report(string name, bool condition)
+    assert condition, name
+    println(name + "=ok")
+end
+
+
+
+bool flagsValid = (net.interfaceUp == 1 and
+    net.interfaceRunning == 2 and
+    net.interfaceLoopback == 4 and
+    net.interfaceBroadcast == 8 and
+    net.interfacePointToPoint == 16 and
+    net.interfaceMulticast == 32)
+report("interface_flags", flagsValid)
+
+NetInterfaceList interfaces = net.interfaces()
+report("interface_list", interfaces.count() > 0)
+
+bool roundtrip = false
+int i = 0
+while i < interfaces.count()
+    NetInterface value = interfaces[i]
+    int family = 0
+    int index = 0
+
+    if value.ipv6Index > 0 then
+        family = 6
+        index = value.ipv6Index
+    elseif value.ipv4Index > 0 then
+        family = 4
+        index = value.ipv4Index
+    end
+
+    if index > 0 then
+        string name = value.name()
+        roundtrip = (net.interfaceIndex(name, family) == index and
+            net.interfaceName(index, family) == name)
+        if roundtrip then
+            break
+        end
+    end
+    i = i + 1
+end
+report("interface_roundtrip", roundtrip)

@@ -4,6 +4,7 @@
 #include "third_party/LzmaDec.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -26,13 +27,12 @@
  * 并统计 members。 */
 
 struct xrtlzmacompressor {
-	xbuffer Pending;            /* 尚未成块的原始输入 */
-	xbuffer Output;             /* 已产出的压缩字节 */
+	xbuffer* Pending;            /* 尚未成块的原始输入 */
+	xbuffer* Output;             /* 已产出的压缩字节 */
 	xrtlzmaoptions Options;
 	xrtlzmaerror Error;
 	uint64 InputBytes;
 	uint64 OutputBytes;
-	bool Initialized;
 	bool Finished;
 	bool Failed;
 };
@@ -43,8 +43,8 @@ typedef enum {
 } xrtlzmadecstate;
 
 struct xrtlzmadecompressor {
-	xbuffer Carry;              /* 尚未消费完的输入字节 */
-	xbuffer Output;             /* 已产出的原始字节 */
+	xbuffer* Carry;              /* 尚未消费完的输入字节 */
+	xbuffer* Output;             /* 已产出的原始字节 */
 	xrtlzmaoptions Options;
 	xrtlzmaerror Error;
 	uint64 InputBytes;
@@ -55,7 +55,6 @@ struct xrtlzmadecompressor {
 	uint32 BlockCrc;            /* 当前块声明的原始数据 CRC32 */
 	uint8 sBlockProps[LZMA_PROPS_SIZE]; /* 当前块的 LZMA 属性 */
 	int State;
-	bool Initialized;
 	bool MemberEnded;
 	bool Finished;
 	bool Failed;
@@ -84,16 +83,33 @@ static void __xrtLzmaCopyError(xrtlzmaerror* pDst, const xrtlzmaerror* pSrc)
 	*pDst = *pSrc;
 }
 
-static bool __xrtLzmaOverOutputLimit(const xrtresourcelimits* pLimits, uint64 iOutput)
-{
-	return pLimits->iMaxOutputBytes != 0u && iOutput > pLimits->iMaxOutputBytes;
-}
-
 static bool __xrtLzmaOverRatio(const xrtresourcelimits* pLimits, uint64 iInput, uint64 iOutput)
 {
 	uint64 iRatio = pLimits->iMaxCompressionRatio;
-	if ( iRatio == 0u || iInput == 0u ) { return FALSE; }
+	if ( iRatio == 0u || iInput == 0u ) { return false; }
+	if ( iInput > (UINT64_MAX / iRatio) ) { return false; }
 	return iOutput > iInput * iRatio;
+}
+
+/* 检查计数累加是否溢出或越过非零硬上限。 */
+static bool __xrtLzmaAddOverLimit(uint64 iCurrent, size_t iAdded, uint64 iLimit)
+{
+	uint64 iIncrement = (uint64)iAdded;
+
+	if ( iIncrement > (UINT64_MAX - iCurrent) ) { return true; }
+	return (iLimit != 0u) && ((iCurrent + iIncrement) > iLimit);
+}
+
+/* 创建带初始容量的 Buffer，失败时不泄漏半初始化对象。 */
+static xbuffer* __xrtLzmaBufferCreate(size_t iCapacity)
+{
+	xbuffer* pBuffer = xrtBufferCreate();
+
+	if ( (pBuffer != NULL) && !xrtBufferReserve(pBuffer, iCapacity) ) {
+		xrtBufferDestroy(pBuffer);
+		pBuffer = NULL;
+	}
+	return pBuffer;
 }
 
 static void __xrtLzmaWriteU32LE(uint8* pDst, uint32 iValue)
@@ -144,14 +160,14 @@ static const char* __xrtLzmaStatusName(SRes iResult)
 
 
 
-XXAPI void xrtLzmaErrorInit(xrtlzmaerror* pError)
+XRT_API void xrtLzmaErrorInit(xrtlzmaerror* pError)
 {
 	if ( pError == NULL ) { return; }
 	memset(pError, 0, sizeof(*pError));
 	pError->iCode = XRT_LZMA_OK;
 }
 
-XXAPI void xrtLzmaOptionsInit(xrtlzmaoptions* pOptions)
+XRT_API void xrtLzmaOptionsInit(xrtlzmaoptions* pOptions)
 {
 	if ( pOptions == NULL ) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -165,7 +181,7 @@ XXAPI void xrtLzmaOptionsInit(xrtlzmaoptions* pOptions)
 
 // ------------------------------------ 压缩器 ------------------------------------
 
-XXAPI xrtlzmacompressor* xrtLzmaCompressorCreate(const xrtlzmaoptions* pOptions)
+XRT_API xrtlzmacompressor* xrtLzmaCompressorCreate(const xrtlzmaoptions* pOptions)
 {
 	xrtlzmacompressor* pCompressor;
 	pCompressor = (xrtlzmacompressor*)xrtMalloc(sizeof(xrtlzmacompressor));
@@ -179,15 +195,14 @@ XXAPI xrtlzmacompressor* xrtLzmaCompressorCreate(const xrtlzmaoptions* pOptions)
 	}
 	if ( pCompressor->Options.iLevel < 0 ) { pCompressor->Options.iLevel = 0; }
 	if ( pCompressor->Options.iLevel > 9 ) { pCompressor->Options.iLevel = 9; }
-	pCompressor->Pending = xrtBufferCreate(XRT_LZMA_CHUNK);
-	pCompressor->Output = xrtBufferCreate(XRT_LZMA_CHUNK);
+	pCompressor->Pending = __xrtLzmaBufferCreate(XRT_LZMA_CHUNK);
+	pCompressor->Output = __xrtLzmaBufferCreate(XRT_LZMA_CHUNK);
 	if ( pCompressor->Pending == NULL || pCompressor->Output == NULL ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_MEMORY, 0, 0, 0,
 			"cannot allocate lzma compressor");
-		pCompressor->Failed = TRUE;
+		pCompressor->Failed = true;
 		return pCompressor;
 	}
-	pCompressor->Initialized = TRUE;
 	return pCompressor;
 }
 
@@ -202,164 +217,190 @@ static bool __xrtLzmaFlushBlock(xrtlzmacompressor* pCompressor, size_t iSize)
 	SRes iResult;
 	uint8 sHeader[XRT_LZMA_HEADER_SIZE];
 	ptr pCompressed;
-	if ( iSize == 0u ) { return TRUE; }
+	xbytesview Pending;
+	size_t iGenerated;
+	if ( iSize == 0u ) { return true; }
+	Pending = xrtBufferView(pCompressor->Pending);
+	if ( iSize > Pending.Size ) {
+		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_STATE, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid lzma pending state");
+		pCompressor->Failed = true;
+		return false;
+	}
 	iBound = (SizeT)iSize + (SizeT)iSize / 3u + 128u;
 	pCompressed = xrtMalloc((size_t)iBound);
 	if ( pCompressed == NULL ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "out of memory");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	LzmaEncProps_Init(&tProps);
 	tProps.level = pCompressor->Options.iLevel;
 	tProps.reduceSize = (UInt64)iSize;
 	iWritten = iBound;
 	iResult = LzmaEncode((Byte*)pCompressed, &iWritten,
-		(const Byte*)pCompressor->Pending->Buffer, (SizeT)iSize, &tProps,
+		(const Byte*)Pending.Data, (SizeT)iSize, &tProps,
 		sProps, &iPropsSize, 0, NULL, &g_Alloc, &g_Alloc);
 	if ( iResult != SZ_OK || iPropsSize != LZMA_PROPS_SIZE ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_DATA, (int)iResult,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "%s",
 			__xrtLzmaStatusName(iResult));
 		xrtFree(pCompressed);
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	__xrtLzmaWriteU32LE(sHeader, (uint32)iSize);
 	__xrtLzmaWriteU32LE(sHeader + 4u, (uint32)iWritten);
 	__xrtLzmaWriteU32LE(sHeader + 8u,
-		__xrtLzmaCrc32(pCompressor->Pending->Buffer, iSize));
+		__xrtLzmaCrc32(Pending.Data, iSize));
 	memcpy(sHeader + 12u, sProps, LZMA_PROPS_SIZE);
-	if ( !xrtBufferAppend(pCompressor->Output, (ptr)sHeader, XRT_LZMA_HEADER_SIZE, XBUF_BINARY) ||
-		!xrtBufferAppend(pCompressor->Output, pCompressed, (uint32)iWritten, XBUF_BINARY) ) {
+	iGenerated = XRT_LZMA_HEADER_SIZE + (size_t)iWritten;
+	if ( __xrtLzmaAddOverLimit(pCompressor->OutputBytes, iGenerated,
+		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
+		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "lzma output exceeds maxOutput limit");
+		xrtFree(pCompressed);
+		pCompressor->Failed = true;
+		return false;
+	}
+	if ( !xrtBufferAppend(pCompressor->Output,
+			(xbytesview){ (const unsigned char*)sHeader, XRT_LZMA_HEADER_SIZE }) ||
+		 !xrtBufferAppend(pCompressor->Output,
+			(xbytesview){ (const unsigned char*)pCompressed, (size_t)iWritten }) ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow lzma output buffer");
 		xrtFree(pCompressed);
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	xrtFree(pCompressed);
-	pCompressor->OutputBytes += (uint64)(XRT_LZMA_HEADER_SIZE + (size_t)iWritten);
-	/* 移除已消费的前 iSize 字节。 */
-	if ( pCompressor->Pending->Length > iSize ) {
-		memmove(pCompressor->Pending->Buffer, (uint8*)pCompressor->Pending->Buffer + iSize,
-			pCompressor->Pending->Length - iSize);
+	pCompressor->OutputBytes += (uint64)iGenerated;
+	if ( !xrtBufferRemove(pCompressor->Pending, 0u, iSize) ) {
+		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_STATE, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot consume lzma pending buffer");
+		pCompressor->Failed = true;
+		return false;
 	}
-	pCompressor->Pending->Length -= (uint32)iSize;
-	if ( __xrtLzmaOverOutputLimit(&pCompressor->Options.tLimits, pCompressor->OutputBytes) ) {
-		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "lzma output exceeds maxOutput limit");
-		pCompressor->Failed = TRUE;
-		return FALSE;
-	}
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLzmaCompressorUpdate(xrtlzmacompressor* pCompressor, const void* pData, size_t iSize)
+XRT_API bool xrtLzmaCompressorUpdate(xrtlzmacompressor* pCompressor, const void* pData, size_t iSize)
 {
-	if ( pCompressor == NULL || pCompressor->Failed ) { return FALSE; }
+	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
 	if ( pCompressor->Finished ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_STATE, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "lzma compressor already finished");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_ARGUMENT, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid lzma input");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
-	if ( pCompressor->Options.tLimits.iMaxInputBytes != 0u &&
-		pCompressor->InputBytes + iSize > pCompressor->Options.tLimits.iMaxInputBytes ) {
+	if ( __xrtLzmaAddOverLimit(pCompressor->InputBytes, iSize,
+		pCompressor->Options.tLimits.iMaxInputBytes) ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "lzma input exceeds maxInput limit");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	if ( iSize != 0u &&
-		!xrtBufferAppend(pCompressor->Pending, (ptr)pData, (uint32)iSize, XBUF_BINARY) ) {
+		!xrtBufferAppend(pCompressor->Pending,
+			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow lzma pending buffer");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	pCompressor->InputBytes += iSize;
-	while ( pCompressor->Pending->Length >= XRT_LZMA_BLOCK_SIZE ) {
-		if ( !__xrtLzmaFlushBlock(pCompressor, XRT_LZMA_BLOCK_SIZE) ) { return FALSE; }
+	while ( xrtBufferView(pCompressor->Pending).Size >= XRT_LZMA_BLOCK_SIZE ) {
+		if ( !__xrtLzmaFlushBlock(pCompressor, XRT_LZMA_BLOCK_SIZE) ) { return false; }
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLzmaCompressorFinish(xrtlzmacompressor* pCompressor)
+XRT_API bool xrtLzmaCompressorFinish(xrtlzmacompressor* pCompressor)
 {
-	uint8 sEnd[4];
-	if ( pCompressor == NULL || pCompressor->Failed ) { return FALSE; }
-	if ( pCompressor->Finished ) { return TRUE; }
-	if ( pCompressor->Pending->Length != 0u ) {
-		if ( !__xrtLzmaFlushBlock(pCompressor, pCompressor->Pending->Length) ) { return FALSE; }
+	uint8 sEnd[4] = { 0 };
+	size_t iPending;
+	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
+	if ( pCompressor->Finished ) { return true; }
+	iPending = xrtBufferView(pCompressor->Pending).Size;
+	if ( iPending != 0u ) {
+		if ( !__xrtLzmaFlushBlock(pCompressor, iPending) ) { return false; }
 	}
-	__xrtLzmaWriteU32LE(sEnd, 0u);
-	if ( !xrtBufferAppend(pCompressor->Output, (ptr)sEnd, 4u, XBUF_BINARY) ) {
+	if ( __xrtLzmaAddOverLimit(pCompressor->OutputBytes, sizeof(sEnd),
+		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
+		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "lzma output exceeds maxOutput limit");
+		pCompressor->Failed = true;
+		return false;
+	}
+	if ( !xrtBufferAppend(pCompressor->Output,
+		(xbytesview){ (const unsigned char*)sEnd, sizeof(sEnd) }) ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow lzma output buffer");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
 	pCompressor->OutputBytes += 4u;
-	pCompressor->Finished = TRUE;
-	return TRUE;
+	pCompressor->Finished = true;
+	return true;
 }
 
-XXAPI bool xrtLzmaCompressorDrain(xrtlzmacompressor* pCompressor, xwriter pWriter)
+XRT_API bool xrtLzmaCompressorDrain(xrtlzmacompressor* pCompressor, xwriter* pWriter)
 {
-	if ( pCompressor == NULL || pCompressor->Failed || pWriter == NULL ) { return FALSE; }
-	if ( pCompressor->Output->Length != 0u &&
-		!xrtWriterWriteAll(pWriter, pCompressor->Output->Buffer, pCompressor->Output->Length) ) {
+	xbytesview Output;
+	if ( pCompressor == NULL || pCompressor->Failed || pWriter == NULL ) { return false; }
+	Output = xrtBufferView(pCompressor->Output);
+	if ( Output.Size != 0u &&
+		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
 		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_IO, 0,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write lzma output stream");
-		pCompressor->Failed = TRUE;
-		return FALSE;
+		pCompressor->Failed = true;
+		return false;
 	}
-	pCompressor->Output->Length = 0u;
-	return TRUE;
+	xrtBufferClear(pCompressor->Output);
+	return true;
 }
 
-XXAPI xbuffer xrtLzmaCompressorTakeBuffer(xrtlzmacompressor* pCompressor)
+XRT_API xbuffer* xrtLzmaCompressorTakeBuffer(xrtlzmacompressor* pCompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pCompressor == NULL || pCompressor->Failed || !pCompressor->Finished ) { return NULL; }
 	pOutput = pCompressor->Output;
 	pCompressor->Output = NULL;
 	return pOutput;
 }
 
-XXAPI xbuffer xrtLzmaCompressorDrainBuffer(xrtlzmacompressor* pCompressor)
+XRT_API xbuffer* xrtLzmaCompressorDrainBuffer(xrtlzmacompressor* pCompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom((ptr)pCompressor->Output->Buffer, (size_t)pCompressor->Output->Length);
-	pCompressor->Output->Length = 0u;
+	pOutput = xrtBufferFrom(xrtBufferView(pCompressor->Output));
+	if ( pOutput != NULL ) { xrtBufferClear(pCompressor->Output); }
 	return pOutput;
 }
 
-XXAPI uint64 xrtLzmaCompressorInputBytes(const xrtlzmacompressor* pCompressor)
+XRT_API uint64 xrtLzmaCompressorInputBytes(const xrtlzmacompressor* pCompressor)
 {
 	return pCompressor != NULL ? pCompressor->InputBytes : 0u;
 }
 
-XXAPI uint64 xrtLzmaCompressorOutputBytes(const xrtlzmacompressor* pCompressor)
+XRT_API uint64 xrtLzmaCompressorOutputBytes(const xrtlzmacompressor* pCompressor)
 {
 	return pCompressor != NULL ? pCompressor->OutputBytes : 0u;
 }
 
-XXAPI const xrtlzmaerror* xrtLzmaCompressorError(const xrtlzmacompressor* pCompressor)
+XRT_API const xrtlzmaerror* xrtLzmaCompressorError(const xrtlzmacompressor* pCompressor)
 {
 	return pCompressor != NULL ? &pCompressor->Error : NULL;
 }
 
-XXAPI void xrtLzmaCompressorDestroy(xrtlzmacompressor* pCompressor)
+XRT_API void xrtLzmaCompressorDestroy(xrtlzmacompressor* pCompressor)
 {
 	if ( pCompressor == NULL ) { return; }
 	xrtBufferDestroy(pCompressor->Pending);
@@ -371,7 +412,7 @@ XXAPI void xrtLzmaCompressorDestroy(xrtlzmacompressor* pCompressor)
 
 // ------------------------------------ 解压器 ------------------------------------
 
-XXAPI xrtlzmadecompressor* xrtLzmaDecompressorCreate(const xrtlzmaoptions* pOptions)
+XRT_API xrtlzmadecompressor* xrtLzmaDecompressorCreate(const xrtlzmaoptions* pOptions)
 {
 	xrtlzmadecompressor* pDecompressor;
 	pDecompressor = (xrtlzmadecompressor*)xrtMalloc(sizeof(xrtlzmadecompressor));
@@ -383,16 +424,15 @@ XXAPI xrtlzmadecompressor* xrtLzmaDecompressorCreate(const xrtlzmaoptions* pOpti
 	} else {
 		xrtLzmaOptionsInit(&pDecompressor->Options);
 	}
-	pDecompressor->Carry = xrtBufferCreate(XRT_LZMA_CHUNK);
-	pDecompressor->Output = xrtBufferCreate(XRT_LZMA_CHUNK);
+	pDecompressor->Carry = __xrtLzmaBufferCreate(XRT_LZMA_CHUNK);
+	pDecompressor->Output = __xrtLzmaBufferCreate(XRT_LZMA_CHUNK);
 	if ( pDecompressor->Carry == NULL || pDecompressor->Output == NULL ) {
 		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_MEMORY, 0, 0, 0,
 			"cannot allocate lzma decompressor");
-		pDecompressor->Failed = TRUE;
+		pDecompressor->Failed = true;
 		return pDecompressor;
 	}
 	pDecompressor->State = XRT_LZMA_DEC_HEADER;
-	pDecompressor->Initialized = TRUE;
 	return pDecompressor;
 }
 
@@ -400,8 +440,9 @@ XXAPI xrtlzmadecompressor* xrtLzmaDecompressorCreate(const xrtlzmaoptions* pOpti
 static bool __xrtLzmaDecompressConsume(xrtlzmadecompressor* pDecompressor, size_t* pConsumed)
 {
 	size_t iPos = 0u;
-	const uint8* pBuf = (const uint8*)pDecompressor->Carry->Buffer;
-	size_t iLen = pDecompressor->Carry->Length;
+	xbytesview Carry = xrtBufferView(pDecompressor->Carry);
+	const uint8* pBuf = (const uint8*)Carry.Data;
+	size_t iLen = Carry.Size;
 	while ( iPos < iLen ) {
 		if ( pDecompressor->State == XRT_LZMA_DEC_HEADER ) {
 			uint32 iDeclared;
@@ -409,11 +450,12 @@ static bool __xrtLzmaDecompressConsume(xrtlzmadecompressor* pDecompressor, size_
 			iDeclared = __xrtLzmaReadU32LE(pBuf + iPos);
 			if ( iDeclared == 0u ) {
 				iPos += 4u;
-				pDecompressor->MemberEnded = TRUE;
+				pDecompressor->MemberEnded = true;
 				pDecompressor->MemberCount += 1u;
 				continue;   /* 可能紧跟下一个成员 */
 			}
 			if ( iLen - iPos < XRT_LZMA_HEADER_SIZE ) { break; }
+			pDecompressor->MemberEnded = false;
 			pDecompressor->BlockDeclared = (size_t)iDeclared;
 			pDecompressor->BlockCompressed = (size_t)__xrtLzmaReadU32LE(pBuf + iPos + 4u);
 			pDecompressor->BlockCrc = __xrtLzmaReadU32LE(pBuf + iPos + 8u);
@@ -427,13 +469,29 @@ static bool __xrtLzmaDecompressConsume(xrtlzmadecompressor* pDecompressor, size_
 			SRes iResult;
 			ptr pPlain;
 			if ( iLen - iPos < pDecompressor->BlockCompressed ) { break; }
-			pPlain = xrtMalloc(pDecompressor->BlockDeclared + 1u);
+			if ( (pDecompressor->BlockCompressed == 0u) ||
+				 ((pDecompressor->Options.tLimits.iMaxItemBytes != 0u) &&
+				  (pDecompressor->BlockDeclared > pDecompressor->Options.tLimits.iMaxItemBytes)) ||
+				 __xrtLzmaAddOverLimit(pDecompressor->OutputBytes,
+					pDecompressor->BlockDeclared,
+					pDecompressor->Options.tLimits.iMaxOutputBytes) ||
+				 __xrtLzmaOverRatio(&pDecompressor->Options.tLimits,
+					pDecompressor->InputBytes,
+					pDecompressor->OutputBytes + (uint64)pDecompressor->BlockDeclared) ) {
+				__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
+					pDecompressor->InputBytes, pDecompressor->OutputBytes,
+					"lzma output exceeds decompression limit");
+				pDecompressor->Failed = true;
+				*pConsumed = iPos;
+				return false;
+			}
+			pPlain = xrtMalloc(pDecompressor->BlockDeclared);
 			if ( pPlain == NULL ) {
 				__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			iDstLen = (SizeT)pDecompressor->BlockDeclared;
 			iSrcLen = (SizeT)pDecompressor->BlockCompressed;
@@ -445,9 +503,9 @@ static bool __xrtLzmaDecompressConsume(xrtlzmadecompressor* pDecompressor, size_
 					pDecompressor->InputBytes, pDecompressor->OutputBytes, "%s",
 					__xrtLzmaStatusName(iResult == SZ_OK ? SZ_ERROR_DATA : iResult));
 				xrtFree(pPlain);
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			iPos += pDecompressor->BlockCompressed;
 			if ( __xrtLzmaCrc32(pPlain, (size_t)iDstLen) != pDecompressor->BlockCrc ) {
@@ -455,148 +513,143 @@ static bool __xrtLzmaDecompressConsume(xrtlzmadecompressor* pDecompressor, size_
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"lzma block checksum mismatch");
 				xrtFree(pPlain);
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
-			if ( !xrtBufferAppend(pDecompressor->Output, pPlain, (uint32)iDstLen, XBUF_BINARY) ) {
+			if ( !xrtBufferAppend(pDecompressor->Output,
+				(xbytesview){ (const unsigned char*)pPlain, (size_t)iDstLen }) ) {
 				__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"cannot grow lzma output buffer");
 				xrtFree(pPlain);
-				pDecompressor->Failed = TRUE;
+				pDecompressor->Failed = true;
 				*pConsumed = iPos;
-				return FALSE;
+				return false;
 			}
 			xrtFree(pPlain);
 			pDecompressor->OutputBytes += (uint64)iDstLen;
-			if ( __xrtLzmaOverOutputLimit(&pDecompressor->Options.tLimits, pDecompressor->OutputBytes) ||
-				__xrtLzmaOverRatio(&pDecompressor->Options.tLimits, pDecompressor->InputBytes,
-					pDecompressor->OutputBytes) ) {
-				__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"lzma output exceeds decompression limit");
-				pDecompressor->Failed = TRUE;
-				*pConsumed = iPos;
-				return FALSE;
-			}
 			pDecompressor->State = XRT_LZMA_DEC_HEADER;
 		}
 	}
 	*pConsumed = iPos;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLzmaDecompressorUpdate(xrtlzmadecompressor* pDecompressor, const void* pData, size_t iSize)
+XRT_API bool xrtLzmaDecompressorUpdate(xrtlzmadecompressor* pDecompressor, const void* pData, size_t iSize)
 {
 	size_t iConsumed = 0u;
-	size_t iRemaining;
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return FALSE; }
+	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_ARGUMENT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid lzma input");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	if ( pDecompressor->Options.tLimits.iMaxInputBytes != 0u &&
-		pDecompressor->InputBytes + iSize > pDecompressor->Options.tLimits.iMaxInputBytes ) {
+	if ( __xrtLzmaAddOverLimit(pDecompressor->InputBytes, iSize,
+		pDecompressor->Options.tLimits.iMaxInputBytes) ) {
 		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_LIMIT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "lzma input exceeds maxInput limit");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
 	if ( iSize != 0u &&
-		!xrtBufferAppend(pDecompressor->Carry, (ptr)pData, (uint32)iSize, XBUF_BINARY) ) {
+		!xrtBufferAppend(pDecompressor->Carry,
+			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
 		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_MEMORY, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot grow lzma input buffer");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->MemberEnded = FALSE;
+	pDecompressor->MemberEnded = false;
 	pDecompressor->InputBytes += iSize;
-	if ( !__xrtLzmaDecompressConsume(pDecompressor, &iConsumed) ) { return FALSE; }
-	/* 移除已消费字节。 */
-	iRemaining = pDecompressor->Carry->Length - iConsumed;
-	if ( iRemaining != 0u && iConsumed != 0u ) {
-		memmove(pDecompressor->Carry->Buffer, (uint8*)pDecompressor->Carry->Buffer + iConsumed, iRemaining);
+	if ( !__xrtLzmaDecompressConsume(pDecompressor, &iConsumed) ) { return false; }
+	if ( (iConsumed != 0u) &&
+		 !xrtBufferRemove(pDecompressor->Carry, 0u, iConsumed) ) {
+		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_STATE, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot consume lzma input buffer");
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->Carry->Length = (uint32)iRemaining;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtLzmaDecompressorFinish(xrtlzmadecompressor* pDecompressor)
+XRT_API bool xrtLzmaDecompressorFinish(xrtlzmadecompressor* pDecompressor)
 {
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return FALSE; }
-	if ( pDecompressor->Finished ) { return TRUE; }
-	if ( pDecompressor->MemberCount == 0u || !pDecompressor->MemberEnded ||
-		pDecompressor->Carry->Length != 0u ) {
+	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
+	if ( pDecompressor->Finished ) { return true; }
+	if ( (pDecompressor->MemberCount == 0u) || !pDecompressor->MemberEnded ||
+		(pDecompressor->State != XRT_LZMA_DEC_HEADER) ||
+		(xrtBufferView(pDecompressor->Carry).Size != 0u) ) {
 		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_TRUNCATED, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "lzma stream is truncated or empty");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->Finished = TRUE;
-	return TRUE;
+	pDecompressor->Finished = true;
+	return true;
 }
 
-XXAPI bool xrtLzmaDecompressorDrain(xrtlzmadecompressor* pDecompressor, xwriter pWriter)
+XRT_API bool xrtLzmaDecompressorDrain(xrtlzmadecompressor* pDecompressor, xwriter* pWriter)
 {
-	if ( pDecompressor == NULL || pDecompressor->Failed || pWriter == NULL ) { return FALSE; }
-	if ( pDecompressor->Output->Length != 0u &&
-		!xrtWriterWriteAll(pWriter, pDecompressor->Output->Buffer, pDecompressor->Output->Length) ) {
+	xbytesview Output;
+	if ( pDecompressor == NULL || pDecompressor->Failed || pWriter == NULL ) { return false; }
+	Output = xrtBufferView(pDecompressor->Output);
+	if ( Output.Size != 0u &&
+		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
 		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_IO, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write lzma output stream");
-		pDecompressor->Failed = TRUE;
-		return FALSE;
+		pDecompressor->Failed = true;
+		return false;
 	}
-	pDecompressor->Output->Length = 0u;
-	return TRUE;
+	xrtBufferClear(pDecompressor->Output);
+	return true;
 }
 
-XXAPI xbuffer xrtLzmaDecompressorTakeBuffer(xrtlzmadecompressor* pDecompressor)
+XRT_API xbuffer* xrtLzmaDecompressorTakeBuffer(xrtlzmadecompressor* pDecompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pDecompressor == NULL || pDecompressor->Failed || !pDecompressor->Finished ) { return NULL; }
 	pOutput = pDecompressor->Output;
 	pDecompressor->Output = NULL;
 	return pOutput;
 }
 
-XXAPI xbuffer xrtLzmaDecompressorDrainBuffer(xrtlzmadecompressor* pDecompressor)
+XRT_API xbuffer* xrtLzmaDecompressorDrainBuffer(xrtlzmadecompressor* pDecompressor)
 {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	if ( pDecompressor == NULL || pDecompressor->Failed || pDecompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom((ptr)pDecompressor->Output->Buffer, (size_t)pDecompressor->Output->Length);
-	pDecompressor->Output->Length = 0u;
+	pOutput = xrtBufferFrom(xrtBufferView(pDecompressor->Output));
+	if ( pOutput != NULL ) { xrtBufferClear(pDecompressor->Output); }
 	return pOutput;
 }
 
-XXAPI uint64 xrtLzmaDecompressorInputBytes(const xrtlzmadecompressor* pDecompressor)
+XRT_API uint64 xrtLzmaDecompressorInputBytes(const xrtlzmadecompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? pDecompressor->InputBytes : 0u;
 }
 
-XXAPI uint64 xrtLzmaDecompressorOutputBytes(const xrtlzmadecompressor* pDecompressor)
+XRT_API uint64 xrtLzmaDecompressorOutputBytes(const xrtlzmadecompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? pDecompressor->OutputBytes : 0u;
 }
 
-XXAPI bool xrtLzmaDecompressorFinished(const xrtlzmadecompressor* pDecompressor)
+XRT_API bool xrtLzmaDecompressorFinished(const xrtlzmadecompressor* pDecompressor)
 {
 	return pDecompressor != NULL && pDecompressor->MemberEnded;
 }
 
-XXAPI uint64 xrtLzmaDecompressorMembers(const xrtlzmadecompressor* pDecompressor)
+XRT_API uint64 xrtLzmaDecompressorMembers(const xrtlzmadecompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? pDecompressor->MemberCount : 0u;
 }
 
-XXAPI const xrtlzmaerror* xrtLzmaDecompressorError(const xrtlzmadecompressor* pDecompressor)
+XRT_API const xrtlzmaerror* xrtLzmaDecompressorError(const xrtlzmadecompressor* pDecompressor)
 {
 	return pDecompressor != NULL ? &pDecompressor->Error : NULL;
 }
 
-XXAPI void xrtLzmaDecompressorDestroy(xrtlzmadecompressor* pDecompressor)
+XRT_API void xrtLzmaDecompressorDestroy(xrtlzmadecompressor* pDecompressor)
 {
 	if ( pDecompressor == NULL ) { return; }
 	xrtBufferDestroy(pDecompressor->Carry);
@@ -608,51 +661,53 @@ XXAPI void xrtLzmaDecompressorDestroy(xrtlzmadecompressor* pDecompressor)
 
 // ------------------------------------ 一次性接口 ------------------------------------
 
-XXAPI bool xrtLzmaCompress(const void* pData, size_t iSize, const xrtlzmaoptions* pOptions,
-	xbuffer* pOutput, xrtlzmaerror* pError)
+XRT_API bool xrtLzmaCompress(const void* pData, size_t iSize, const xrtlzmaoptions* pOptions,
+	xbuffer** ppOutput, xrtlzmaerror* pError)
 {
 	xrtlzmaoptions tOptions;
 	xrtlzmacompressor* pCompressor;
 	bool bRet;
 	xrtLzmaErrorInit(pError);
-	if ( pOutput == NULL || (pData == NULL && iSize != 0u) ) {
+	if ( ppOutput != NULL ) { *ppOutput = NULL; }
+	if ( ppOutput == NULL || (pData == NULL && iSize != 0u) ) {
 		__xrtLzmaSetError(pError, XRT_LZMA_ERROR_ARGUMENT, 0, 0, 0, "invalid lzma input");
-		return FALSE;
+		return false;
 	}
 	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtLzmaOptionsInit(&tOptions); }
 	pCompressor = xrtLzmaCompressorCreate(&tOptions);
 	if ( pCompressor == NULL ) {
 		__xrtLzmaSetError(pError, XRT_LZMA_ERROR_MEMORY, 0, iSize, 0, "cannot allocate lzma compressor");
-		return FALSE;
+		return false;
 	}
 	bRet = xrtLzmaCompressorUpdate(pCompressor, pData, iSize) &&
 		xrtLzmaCompressorFinish(pCompressor);
-	if ( bRet ) { *pOutput = xrtLzmaCompressorTakeBuffer(pCompressor); bRet = *pOutput != NULL; }
+	if ( bRet ) { *ppOutput = xrtLzmaCompressorTakeBuffer(pCompressor); bRet = *ppOutput != NULL; }
 	if ( !bRet ) { __xrtLzmaCopyError(pError, &pCompressor->Error); }
 	xrtLzmaCompressorDestroy(pCompressor);
 	return bRet;
 }
 
-XXAPI bool xrtLzmaDecompress(const void* pData, size_t iSize, const xrtlzmaoptions* pOptions,
-	xbuffer* pOutput, xrtlzmaerror* pError)
+XRT_API bool xrtLzmaDecompress(const void* pData, size_t iSize, const xrtlzmaoptions* pOptions,
+	xbuffer** ppOutput, xrtlzmaerror* pError)
 {
 	xrtlzmaoptions tOptions;
 	xrtlzmadecompressor* pDecompressor;
 	bool bRet;
 	xrtLzmaErrorInit(pError);
-	if ( pOutput == NULL || (pData == NULL && iSize != 0u) ) {
+	if ( ppOutput != NULL ) { *ppOutput = NULL; }
+	if ( ppOutput == NULL || (pData == NULL && iSize != 0u) ) {
 		__xrtLzmaSetError(pError, XRT_LZMA_ERROR_ARGUMENT, 0, 0, 0, "invalid lzma input");
-		return FALSE;
+		return false;
 	}
 	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtLzmaOptionsInit(&tOptions); }
 	pDecompressor = xrtLzmaDecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
 		__xrtLzmaSetError(pError, XRT_LZMA_ERROR_MEMORY, 0, iSize, 0, "cannot allocate lzma decompressor");
-		return FALSE;
+		return false;
 	}
 	bRet = xrtLzmaDecompressorUpdate(pDecompressor, pData, iSize) &&
 		xrtLzmaDecompressorFinish(pDecompressor);
-	if ( bRet ) { *pOutput = xrtLzmaDecompressorTakeBuffer(pDecompressor); bRet = *pOutput != NULL; }
+	if ( bRet ) { *ppOutput = xrtLzmaDecompressorTakeBuffer(pDecompressor); bRet = *ppOutput != NULL; }
 	if ( !bRet ) { __xrtLzmaCopyError(pError, &pDecompressor->Error); }
 	xrtLzmaDecompressorDestroy(pDecompressor);
 	return bRet;
@@ -662,63 +717,99 @@ XXAPI bool xrtLzmaDecompress(const void* pData, size_t iSize, const xrtlzmaoptio
 
 // ------------------------------------ 文件流接口 ------------------------------------
 
-XXAPI bool xrtLzmaCompressStream(xreader pReader, xwriter pWriter, const xrtlzmaoptions* pOptions,
-	xrtlzmaerror* pError)
+XRT_API bool xrtLzmaCompressStream(xreader* pReader, xwriter* pWriter, const xrtlzmaoptions* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtlzmaerror* pError)
 {
 	uint8 sInput[XRT_LZMA_CHUNK];
 	xrtlzmacompressor* pCompressor;
-	bool bRet = TRUE;
+	uint64 iTotal = 0u;
+	bool bTotalKnown;
+	bool bRet = true;
 	xrtLzmaErrorInit(pError);
 	if ( pReader == NULL || pWriter == NULL ) {
 		__xrtLzmaSetError(pError, XRT_LZMA_ERROR_ARGUMENT, 0, 0, 0, "invalid lzma stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
+	if ( !bTotalKnown ) { xrtClearError(); }
 	pCompressor = xrtLzmaCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return FALSE; }
+	if ( pCompressor == NULL ) { return false; }
 	while ( bRet ) {
-		uint64 iRead = 0u;
+		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
 			__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_IO, 0,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "cannot read lzma input stream");
-			bRet = FALSE;
+			bRet = false;
 			break;
 		}
 		if ( iRead == 0u ) { break; }
 		bRet = xrtLzmaCompressorUpdate(pCompressor, sInput, (size_t)iRead) &&
 			xrtLzmaCompressorDrain(pCompressor, pWriter);
+		if ( bRet && !xrtProgressReport(pProgress, pUserData, pCompressor->InputBytes,
+			iTotal, pCompressor->OutputBytes,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u) ) {
+			__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_CANCELLED, 0,
+				pCompressor->InputBytes, pCompressor->OutputBytes, "lzma operation cancelled");
+			bRet = false;
+		}
 	}
 	if ( bRet ) { bRet = xrtLzmaCompressorFinish(pCompressor) && xrtLzmaCompressorDrain(pCompressor, pWriter); }
+	if ( bRet && !xrtProgressReport(pProgress, pUserData, pCompressor->InputBytes,
+		iTotal, pCompressor->OutputBytes, XRT_PROGRESS_FINAL |
+		(bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) ) {
+		__xrtLzmaSetError(&pCompressor->Error, XRT_LZMA_ERROR_CANCELLED, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "lzma operation cancelled");
+		bRet = false;
+	}
 	if ( !bRet ) { __xrtLzmaCopyError(pError, &pCompressor->Error); }
 	xrtLzmaCompressorDestroy(pCompressor);
 	return bRet;
 }
 
-XXAPI bool xrtLzmaDecompressStream(xreader pReader, xwriter pWriter, const xrtlzmaoptions* pOptions,
-	xrtlzmaerror* pError)
+XRT_API bool xrtLzmaDecompressStream(xreader* pReader, xwriter* pWriter, const xrtlzmaoptions* pOptions,
+	xrtprogressproc pProgress, ptr pUserData, xrtlzmaerror* pError)
 {
 	uint8 sInput[XRT_LZMA_CHUNK];
 	xrtlzmadecompressor* pDecompressor;
-	bool bRet = TRUE;
+	uint64 iTotal = 0u;
+	bool bTotalKnown;
+	bool bRet = true;
 	xrtLzmaErrorInit(pError);
 	if ( pReader == NULL || pWriter == NULL ) {
 		__xrtLzmaSetError(pError, XRT_LZMA_ERROR_ARGUMENT, 0, 0, 0, "invalid lzma stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
+	if ( !bTotalKnown ) { xrtClearError(); }
 	pDecompressor = xrtLzmaDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return FALSE; }
+	if ( pDecompressor == NULL ) { return false; }
 	while ( bRet ) {
-		uint64 iRead = 0u;
+		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
 			__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_IO, 0,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot read lzma input stream");
-			bRet = FALSE;
+			bRet = false;
 			break;
 		}
 		if ( iRead == 0u ) { break; }
 		bRet = xrtLzmaDecompressorUpdate(pDecompressor, sInput, (size_t)iRead) &&
 			xrtLzmaDecompressorDrain(pDecompressor, pWriter);
+		if ( bRet && !xrtProgressReport(pProgress, pUserData, pDecompressor->InputBytes,
+			iTotal, pDecompressor->OutputBytes,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u) ) {
+			__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_CANCELLED, 0,
+				pDecompressor->InputBytes, pDecompressor->OutputBytes, "lzma operation cancelled");
+			bRet = false;
+		}
 	}
 	if ( bRet ) { bRet = xrtLzmaDecompressorFinish(pDecompressor) && xrtLzmaDecompressorDrain(pDecompressor, pWriter); }
+	if ( bRet && !xrtProgressReport(pProgress, pUserData, pDecompressor->InputBytes,
+		iTotal, pDecompressor->OutputBytes, XRT_PROGRESS_FINAL |
+		(bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) ) {
+		__xrtLzmaSetError(&pDecompressor->Error, XRT_LZMA_ERROR_CANCELLED, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes, "lzma operation cancelled");
+		bRet = false;
+	}
 	if ( !bRet ) { __xrtLzmaCopyError(pError, &pDecompressor->Error); }
 	xrtLzmaDecompressorDestroy(pDecompressor);
 	return bRet;

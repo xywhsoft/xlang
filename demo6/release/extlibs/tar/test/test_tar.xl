@@ -1,0 +1,113 @@
+import tar
+
+
+
+class ProgressState
+    int calls
+end
+
+
+
+func main(...) as int
+    string root = "build/tmp/tar_xlang_test"
+    string archive = root + "/archive.tar"
+    string cancelOutput = root + "/cancel"
+    string errorOutput = root + "/error"
+    string selectedOutput = root + "/selected"
+    string whereOutput = root + "/where"
+    string whereErrorOutput = root + "/where-error"
+    dir.delete(root)
+    dir.createAll(root)
+
+    auto writer = tar.create(archive, allowHardlinks = true)
+    writer.hardlink("alias.txt", "target.txt", 416)
+    writer.add("target.txt", "target")
+    writer.close()
+
+    auto appender = tar.openForAppend(archive, allowHardlinks = true)
+    appender.add("second.txt", "second")
+    appender.close()
+
+    auto reader = tar.open(archive, allowHardlinks = true)
+    int seen = 0
+    while reader.next()
+        auto info = reader.info()
+        if info.name == "alias.txt" then
+            assert info.kind == "hardlink", "append changed hardlink into symlink"
+            assert info.linkName == "target.txt", "append changed hardlink target"
+            seen = seen | 1
+            reader.skip()
+        elseif info.name == "target.txt" then
+            assert reader.readText() == "target", "append changed original TAR data"
+            seen = seen | 2
+        elseif info.name == "second.txt" then
+            assert reader.readText() == "second", "append lost new TAR data"
+            seen = seen | 4
+        else
+            reader.skip()
+        end
+    end
+    assert seen == 7, "TAR append entry set mismatch"
+
+    auto memoryWriter = tar.create()
+    memoryWriter.add("one.txt", "1")
+    memoryWriter.add("two.txt", "22")
+    Buffer packed = memoryWriter.finish()
+
+    array<string> selectedNames = ["two.txt"]
+    reader = tar.open(packed)
+    reader.extractSelected(selectedOutput, selectedNames)
+    assert not file.exists(selectedOutput + "/one.txt"), "TAR selected extraction wrote an unselected entry"
+    assert file.readText(selectedOutput + "/two.txt") == "22", "TAR selected extraction lost selected data"
+
+    ProgressState selectState = ProgressState()
+    reader = tar.open(packed)
+    reader.extractWhere(whereOutput,
+        func(string name, string kind, int size) as bool
+            selectState.calls += 1
+            assert kind == "file", "TAR selector received the wrong entry kind"
+            return name == "one.txt" and size == 1
+        end)
+    assert selectState.calls == 2, "TAR selector did not visit every entry"
+    assert file.readText(whereOutput + "/one.txt") == "1", "TAR selector lost selected data"
+    assert not file.exists(whereOutput + "/two.txt"), "TAR selector wrote an unselected entry"
+
+    bool selectorError = false
+    reader = tar.open(packed)
+    try
+        reader.extractWhere(whereErrorOutput,
+            func(string name, string kind, int size) as bool
+                throw RuntimeError "tar selector boom"
+                return false
+            end)
+    catch ArchiveError e
+        selectorError = string.contains(e.message, "tar selector boom")
+    end
+    assert selectorError, "TAR selector error was replaced by an archive error"
+
+    ProgressState progress = ProgressState()
+    reader = tar.open(packed)
+    reader.extractWithProgress(cancelOutput,
+        func(string name, int index, int bytesDone) as bool
+            progress.calls += 1
+            return false
+        end)
+    assert progress.calls == 1, "TAR progress cancellation did not stop at one entry"
+
+    bool callbackError = false
+    reader = tar.open(packed)
+    try
+        reader.extractWithProgress(errorOutput,
+            func(string name, int index, int bytesDone) as bool
+                throw RuntimeError "tar callback boom"
+                return false
+            end)
+    catch ArchiveError e
+        callbackError = string.contains(e.message, "tar callback boom")
+    end
+    assert callbackError, "TAR callback error was replaced by cancellation"
+
+    dir.delete(root)
+    println("test_tar.xl: PASS")
+    return 0
+end

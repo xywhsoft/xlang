@@ -1,4 +1,3 @@
-#include "src/ir/xl6_hir.h"
 #include "src/ir/xl6_ir.h"
 
 #include <stdio.h>
@@ -70,7 +69,6 @@ static int testReleasePlan(
 
 static int testManagedOwnershipIsNotErased(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root;
@@ -83,7 +81,6 @@ static int testManagedOwnershipIsNotErased(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     func = xl6AstNew(XL6_AST_FUNC, NULL);
@@ -112,8 +109,7 @@ static int testManagedOwnershipIsNotErased(void)
         xl6AstAddChild(func, body);
     }
     xl6AstAddChild(root, func);
-    ok = xl6HirBuildModule(&hir, root, &diags) &&
-         xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags);
     for ( i = 0; ok && i < ir.instructionCount; ++i ) {
         const XL6_IrInstruction* instruction = &ir.instructions[i];
@@ -147,7 +143,6 @@ static int testManagedOwnershipIsNotErased(void)
         ok = ok && xl6IrVerifyModule(&ir, &diags);
     }
     ok = ok && sawForeignOwnershipCheck;
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);
@@ -156,7 +151,6 @@ static int testManagedOwnershipIsNotErased(void)
 
 static int testShortCircuitUsesCfg(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root;
@@ -170,7 +164,6 @@ static int testShortCircuitUsesCfg(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     func = xl6AstNew(XL6_AST_FUNC, NULL);
@@ -204,8 +197,7 @@ static int testShortCircuitUsesCfg(void)
         xl6AstAddChild(func, body);
     }
     xl6AstAddChild(root, func);
-    ok = xl6HirBuildModule(&hir, root, &diags) &&
-         xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags) &&
          ir.functionCount == 3 && ir.abi.finalizerFunction == 3 &&
          ir.functions[2].kind == XL6_IR_FUNCTION_MODULE_FINI && ir.functions[1].blockCount == 3 &&
@@ -220,7 +212,6 @@ static int testShortCircuitUsesCfg(void)
     }
     ok = ok && constants == 2 && branches == 1 && jumps == 1 &&
          stores == 2 && loads == 1;
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);
@@ -229,7 +220,6 @@ static int testShortCircuitUsesCfg(void)
 
 static int testNonVoidPathMustTerminate(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root;
@@ -238,7 +228,7 @@ static int testNonVoidPathMustTerminate(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir); xl6IrModuleInit(&ir);
+    xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     func = xl6AstNew(XL6_AST_FUNC, NULL);
     if ( root == NULL || func == NULL ) return 0;
@@ -258,12 +248,12 @@ static int testNonVoidPathMustTerminate(void)
         xl6AstAddChild(func, body);
     }
     xl6AstAddChild(root, func);
-    ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags);
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags);
     lowered = ok ? xl6IrLowerModule(&ir, &diags) : -1;
     ok = ok && !lowered && diags.count > 0 &&
          strstr(diags.items[diags.count - 1].message,
                 "XLIR non-void function has reachable unterminated") != NULL;
-    xl6HirModuleFree(&hir); xl6IrModuleFree(&ir); xl6AstFree(root); xrtFree(diags.items);
+    xl6IrModuleFree(&ir); xl6AstFree(root); xrtFree(diags.items);
     return ok;
 }
 
@@ -470,7 +460,6 @@ static int testStringBridgeContracts(void)
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root;
@@ -485,7 +474,6 @@ int main(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     func = xl6AstNew(XL6_AST_FUNC, NULL);
@@ -514,8 +502,7 @@ int main(void)
         xl6AstAddChild(func, body);
     }
     xl6AstAddChild(root, func);
-    ok = xl6HirBuildModule(&hir, root, &diags) &&
-         xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          testReleasePlan(&ir, XL6_IR_EXIT_POINT_AFTER_SCOPE, NULL, 0) &&
          testReleasePlan(&ir, XL6_IR_EXIT_POINT_BEFORE_NODE, NULL, 0) &&
          xl6IrLowerModule(&ir, &diags) &&
@@ -555,13 +542,11 @@ int main(void)
                 managedOwnershipOk, shortCircuitOk, nonVoidTerminationOk,
                 cleanupMaterializationOk, semanticCleanupOk, stringBridgeOk,
                 diags.count > 0 && diags.items[0].message != NULL ? diags.items[0].message : "<none>");
-        xl6HirModuleFree(&hir);
         xl6IrModuleFree(&ir);
         xl6AstFree(root);
         xrtFree(diags.items);
         return 1;
     }
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);

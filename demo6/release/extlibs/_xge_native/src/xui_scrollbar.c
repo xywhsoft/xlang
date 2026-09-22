@@ -1448,6 +1448,7 @@ XUI_API int xuiScrollBarSetRange(xui_widget pWidget, float fMin, float fMax, flo
 	pData = __xuiScrollBarGetData(pWidget);
 	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	__xuiScrollBarNormalizeRange(&fMin, &fMax, &fPage);
+	if ( pData->fMin == fMin && pData->fMax == fMax && pData->fPage == fPage ) return XUI_OK;
 	pData->fMin = fMin;
 	pData->fMax = fMax;
 	pData->fPage = fPage;
@@ -1469,6 +1470,7 @@ XUI_API int xuiScrollBarSetPage(xui_widget pWidget, float fPage)
 {
 	xui_scrollbar_data_t* pData = __xuiScrollBarGetData(pWidget);
 	if ( (pData == NULL) || (fPage < 0.0f) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pData->fPage == fPage ) return XUI_OK;
 	pData->fPage = fPage;
 	return xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
 }
@@ -1496,6 +1498,7 @@ XUI_API int xuiScrollBarSetSteps(xui_widget pWidget, float fSmallStep, float fLa
 {
 	xui_scrollbar_data_t* pData = __xuiScrollBarGetData(pWidget);
 	if ( (pData == NULL) || (fSmallStep < 0.0f) || (fLargeStep < 0.0f) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pData->fSmallStep == fSmallStep && pData->fLargeStep == fLargeStep ) return XUI_OK;
 	pData->fSmallStep = fSmallStep;
 	pData->fLargeStep = fLargeStep;
 	return XUI_OK;
@@ -1559,8 +1562,12 @@ XUI_API int xuiScrollBarSetMetrics(xui_widget pWidget, float fThickness, float f
 {
 	xui_scrollbar_data_t* pData = __xuiScrollBarGetData(pWidget);
 	if ( (pData == NULL) || (fThickness < 0.0f) || (fMinThumbSize < 0.0f) || (fButtonSize < 0.0f) ) return XUI_ERROR_INVALID_ARGUMENT;
-	pData->fThickness = (fThickness > 0.0f) ? fThickness : 10.0f;
-	pData->fMinThumbSize = (fMinThumbSize > 0.0f) ? fMinThumbSize : 20.0f;
+	fThickness = (fThickness > 0.0f) ? fThickness : 10.0f;
+	fMinThumbSize = (fMinThumbSize > 0.0f) ? fMinThumbSize : 20.0f;
+	if ( pData->fThickness == fThickness && pData->fMinThumbSize == fMinThumbSize &&
+	     pData->fButtonSize == fButtonSize ) return XUI_OK;
+	pData->fThickness = fThickness;
+	pData->fMinThumbSize = fMinThumbSize;
 	pData->fButtonSize = fButtonSize;
 	return xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_LAYOUT | XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
 }
@@ -1579,6 +1586,9 @@ XUI_API int xuiScrollBarSetColors(xui_widget pWidget, uint32_t iTrack, uint32_t 
 {
 	xui_scrollbar_data_t* pData = __xuiScrollBarGetData(pWidget);
 	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pData->iTrackColor == iTrack && pData->iThumbColor == iThumb &&
+	     pData->iHoverColor == iHover && pData->iActiveColor == iActive &&
+	     pData->iFocusColor == iFocus && pData->iDisabledColor == iDisabled ) return XUI_OK;
 	pData->iTrackColor = iTrack;
 	pData->iThumbColor = iThumb;
 	pData->iHoverColor = iHover;
@@ -1605,6 +1615,7 @@ XUI_API int xuiScrollBarSetButtonColors(xui_widget pWidget, uint32_t iButton, ui
 {
 	xui_scrollbar_data_t* pData = __xuiScrollBarGetData(pWidget);
 	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pData->iButtonColor == iButton && pData->iButtonIconColor == iIcon ) return XUI_OK;
 	pData->iButtonColor = iButton;
 	pData->iButtonIconColor = iIcon;
 	return xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);

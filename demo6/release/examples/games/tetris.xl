@@ -1,0 +1,406 @@
+// tetris.xl — 俄罗斯方块（键盘经典游戏）
+// 左右移动，上旋转，下软降，空格硬降，死亡后 R 重开。
+// 无头冒烟：xl run tetris.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int COLS = 10                        // 板宽（格）
+int ROWS = 20                        // 板高（格）
+int CELL = 28                        // 格子边长
+int HUD_H = 48                       // 顶部 HUD 高度
+int BX = 8                           // 棋盘左偏移
+int BY = 8                           // 棋盘顶偏移（相对 HUD 下方）
+int PANEL_X = 296                    // 右侧信息面板 x
+
+// --- 方块旋转表：7 种方块 x 4 旋转态 x 4 格 (x,y) 偏移（4x4 盒内）---
+// 顺序：I O T S Z J L
+array<int> SHAPES = [
+    // I
+    0, 1, 1, 1, 2, 1, 3, 1,   2, 0, 2, 1, 2, 2, 2, 3,   0, 2, 1, 2, 2, 2, 3, 2,   1, 0, 1, 1, 1, 2, 1, 3,
+    // O
+    1, 0, 2, 0, 1, 1, 2, 1,   1, 0, 2, 0, 1, 1, 2, 1,   1, 0, 2, 0, 1, 1, 2, 1,   1, 0, 2, 0, 1, 1, 2, 1,
+    // T
+    1, 0, 0, 1, 1, 1, 2, 1,   1, 0, 1, 1, 2, 1, 1, 2,   0, 1, 1, 1, 2, 1, 1, 2,   1, 0, 0, 1, 1, 1, 1, 2,
+    // S
+    1, 0, 2, 0, 0, 1, 1, 1,   1, 0, 1, 1, 2, 1, 2, 2,   1, 1, 2, 1, 0, 2, 1, 2,   0, 0, 0, 1, 1, 1, 1, 2,
+    // Z
+    0, 0, 1, 0, 1, 1, 2, 1,   2, 0, 1, 1, 2, 1, 1, 2,   0, 1, 1, 1, 1, 2, 2, 2,   1, 0, 0, 1, 1, 1, 0, 2,
+    // J
+    0, 0, 0, 1, 1, 1, 2, 1,   1, 0, 2, 0, 1, 1, 1, 2,   0, 1, 1, 1, 2, 1, 2, 2,   1, 0, 1, 1, 0, 2, 1, 2,
+    // L
+    2, 0, 0, 1, 1, 1, 2, 1,   1, 0, 1, 1, 1, 2, 2, 2,   0, 1, 1, 1, 2, 1, 0, 2,   0, 0, 1, 0, 1, 1, 1, 2
+]
+
+// --- 游戏状态 ---
+array<int> board = [0]               // 扩展到 200（main 里 initBoard 完成）
+int curPiece = 0                      // 0..6
+int curRot = 0                        // 0..3
+int curX = 3                          // 4x4 盒左上角（板坐标）
+int curY = 0
+int nextPiece = 0
+int score = 0
+int linesCleared = 0
+bool dead = false
+float fallT = 0.0
+xge.Font hudFont
+Random rng = Random(uint64(1984), uint64(7))
+
+// --- 形状表访问 ---
+func shapeX(int p, int r, int i) as int
+    return SHAPES[p * 32 + r * 8 + i * 2]
+end
+
+func shapeY(int p, int r, int i) as int
+    return SHAPES[p * 32 + r * 8 + i * 2 + 1]
+end
+
+// --- 初始化 ---
+func initBoard()
+    while board.length < COLS * ROWS
+        board.append(0)
+    end
+    int i = 0
+    while i < COLS * ROWS
+        board[i] = 0
+        i += 1
+    end
+end
+
+func reset()
+    initBoard()
+    score = 0
+    linesCleared = 0
+    dead = false
+    fallT = 0.0
+    nextPiece = int(rng.u32()) % 7
+    spawnPiece()
+end
+
+// --- 碰撞检测 ---
+func canPlace(int px, int py, int rot) as bool
+    int i = 0
+    while i < 4
+        int bx = px + shapeX(curPiece, rot, i)
+        int by = py + shapeY(curPiece, rot, i)
+        if bx < 0 or bx >= COLS or by >= ROWS then
+            return false
+        end
+        if by >= 0 and board[by * COLS + bx] != 0 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// --- 生成 ---
+func spawnPiece()
+    curPiece = nextPiece
+    nextPiece = int(rng.u32()) % 7
+    curRot = 0
+    curX = 3
+    curY = 0
+    if not canPlace(curX, curY, curRot) then
+        dead = true                   // 顶出 GAME OVER
+    end
+end
+
+// --- 消行（无 removeAt：整块下移覆盖）---
+func clearLines() as int
+    int cleared = 0
+    int y = ROWS - 1
+    while y >= 0
+        bool full = true
+        int x = 0
+        while x < COLS
+            if board[y * COLS + x] == 0 then
+                full = false
+            end
+            x += 1
+        end
+        if full then
+            int yy = y
+            while yy > 0
+                int xx = 0
+                while xx < COLS
+                    board[yy * COLS + xx] = board[(yy - 1) * COLS + xx]
+                    xx += 1
+                end
+                yy -= 1
+            end
+            int x2 = 0
+            while x2 < COLS
+                board[x2] = 0
+                x2 += 1
+            end
+            cleared += 1
+            // y 不减，重复检查当前行
+        else
+            y -= 1
+        end
+    end
+    return cleared
+end
+
+// --- 锁定 ---
+func lockPiece()
+    int i = 0
+    while i < 4
+        int bx = curX + shapeX(curPiece, curRot, i)
+        int by = curY + shapeY(curPiece, curRot, i)
+        if by < 0 then
+            dead = true               // 顶出
+        else
+            board[by * COLS + bx] = curPiece + 1
+        end
+        i += 1
+    end
+    if not dead then
+        int cleared = clearLines()
+        if cleared == 1 then
+            score += 100
+        elseif cleared == 2 then
+            score += 300
+        elseif cleared == 3 then
+            score += 500
+        elseif cleared == 4 then
+            score += 800
+        end
+        linesCleared += cleared
+        spawnPiece()
+    end
+end
+
+// --- 下落速度随分数加快 ---
+func fallInterval() as float
+    int lv = score / 1000
+    if lv > 12 then
+        lv = 12
+    end
+    return 0.75 - float(lv) * 0.05
+end
+
+// --- 旋转（带踢墙）---
+func tryRotate()
+    int nr = (curRot + 1) % 4
+    int kick = 0
+    bool ok = false
+    while kick < 5 and not ok
+        int dx = 0
+        if kick == 1 then
+            dx = -1
+        elseif kick == 2 then
+            dx = 1
+        elseif kick == 3 then
+            dx = -2
+        elseif kick == 4 then
+            dx = 2
+        end
+        if canPlace(curX + dx, curY, nr) then
+            curX += dx
+            curRot = nr
+            ok = true
+        end
+        kick += 1
+    end
+end
+
+// --- 硬降 ---
+func hardDrop()
+    bool falling = true
+    while falling
+        if canPlace(curX, curY + 1, curRot) then
+            curY += 1
+            score += 2
+        else
+            falling = false
+        end
+    end
+    lockPiece()
+end
+
+// --- 输入 ---
+func handleInput()
+    if dead then
+        if xge.Input.keyPressed(82) then
+            reset()
+        end
+        return
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_LEFT) or xge.Input.keyPressed(65) then
+        if canPlace(curX - 1, curY, curRot) then
+            curX -= 1
+        end
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_RIGHT) or xge.Input.keyPressed(68) then
+        if canPlace(curX + 1, curY, curRot) then
+            curX += 1
+        end
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_UP) or xge.Input.keyPressed(87) then
+        tryRotate()
+    end
+    if xge.Input.keyPressed(xge.XGE_KEY_SPACE) then
+        hardDrop()
+    end
+end
+
+// --- 逻辑更新 ---
+func update()
+    if dead then
+        return
+    end
+    float dt = xge.XgeApp.delta()
+    float iv = fallInterval()
+    // 软降：按住下键加速
+    if xge.Input.keyDown(xge.XGE_KEY_DOWN) or xge.Input.keyDown(83) then
+        iv = 0.05
+    end
+    fallT += dt
+    bool locked = false
+    while fallT >= iv and not locked
+        fallT -= iv
+        if canPlace(curX, curY + 1, curRot) then
+            curY += 1
+        else
+            lockPiece()
+            locked = true
+        end
+    end
+end
+
+// --- 绘制 ---
+func pieceColor(int v) as uint32
+    if v == 1 then
+        return xge.Color.rgba(80, 227, 230, 255)     // I 青
+    end
+    if v == 2 then
+        return xge.Color.rgba(245, 210, 60, 255)     // O 黄
+    end
+    if v == 3 then
+        return xge.Color.rgba(170, 100, 230, 255)    // T 紫
+    end
+    if v == 4 then
+        return xge.Color.rgba(100, 210, 100, 255)    // S 绿
+    end
+    if v == 5 then
+        return xge.Color.rgba(235, 80, 90, 255)      // Z 红
+    end
+    if v == 6 then
+        return xge.Color.rgba(90, 130, 235, 255)     // J 蓝
+    end
+    return xge.Color.rgba(240, 160, 50, 255)         // L 橙
+end
+
+func drawCell(int bx, int by, int v)
+    int px = BX + bx * CELL
+    int py = HUD_H + BY + by * CELL
+    xge.Shape.rectFillPixels(px + 1, py + 1, CELL - 2, CELL - 2, pieceColor(v))
+end
+
+func draw()
+    uint32 bgC = xge.Color.rgba(18, 24, 32, 255)
+    uint32 emptyC = xge.Color.rgba(22, 28, 38, 255)
+    uint32 borderC = xge.Color.rgba(40, 50, 64, 255)
+
+    // HUD
+    xge.Shape.rectFillPixels(0, 0, 432, HUD_H, xge.Color.rgba(18, 24, 32, 255))
+    if hudFont.valid then
+        hudFont.drawText("SCORE " + string(score), 12, 12, xge.Color.rgba(79, 216, 194, 255))
+        hudFont.drawText(dead ? "GAME OVER - press R" : "LINES " + string(linesCleared), 250, 12, dead ? xge.Color.rgba(255, 107, 94, 255) : xge.Color.rgba(79, 216, 194, 255))
+    end
+
+    // 棋盘底 + 边框
+    xge.Shape.rectFillPixels(BX, HUD_H + BY, COLS * CELL, ROWS * CELL, bgC)
+    xge.Shape.rectStroke(float(BX), float(HUD_H + BY), float(COLS * CELL), float(ROWS * CELL), 2.0, borderC)
+
+    // 已落格子 + 空格底色
+    int y = 0
+    while y < ROWS
+        int x = 0
+        while x < COLS
+            int v = board[y * COLS + x]
+            if v == 0 then
+                xge.Shape.rectFillPixels(BX + x * CELL + 1, HUD_H + BY + y * CELL + 1, CELL - 2, CELL - 2, emptyC)
+            else
+                drawCell(x, y, v)
+            end
+            x += 1
+        end
+        y += 1
+    end
+
+    // 当前方块
+    if not dead then
+        int i = 0
+        while i < 4
+            int bx = curX + shapeX(curPiece, curRot, i)
+            int by = curY + shapeY(curPiece, curRot, i)
+            if by >= 0 then
+                drawCell(bx, by, curPiece + 1)
+            end
+            i += 1
+        end
+    end
+
+    // 右侧面板：NEXT 预览
+    xge.Shape.roundRectFill(float(PANEL_X), float(HUD_H + BY), 120.0, 150.0, 8.0, bgC)
+    if hudFont.valid then
+        hudFont.drawText("NEXT", PANEL_X + 12, HUD_H + BY + 10, xge.Color.rgba(237, 204, 97, 255))
+    end
+    int j = 0
+    while j < 4
+        int ox = shapeX(nextPiece, 0, j)
+        int oy = shapeY(nextPiece, 0, j)
+        xge.Shape.rectFillPixels(PANEL_X + 20 + ox * 22, HUD_H + BY + 46 + oy * 22, 20, 20, pieceColor(nextPiece + 1))
+        j += 1
+    end
+
+    // 面板下方操作提示
+    if hudFont.valid then
+        hudFont.drawText("LEFT/RIGHT", PANEL_X + 12, HUD_H + BY + 180, xge.Color.rgba(120, 140, 160, 255))
+        hudFont.drawText("UP rotate", PANEL_X + 12, HUD_H + BY + 204, xge.Color.rgba(120, 140, 160, 255))
+        hudFont.drawText("DOWN soft", PANEL_X + 12, HUD_H + BY + 228, xge.Color.rgba(120, 140, 160, 255))
+        hudFont.drawText("SPACE drop", PANEL_X + 12, HUD_H + BY + 252, xge.Color.rgba(120, 140, 160, 255))
+    end
+
+    // 死亡遮罩
+    if dead then
+        xge.Shape.rectFillPixels(BX, HUD_H + BY, COLS * CELL, ROWS * CELL, xge.Color.rgba(10, 12, 16, 190))
+        if hudFont.valid then
+            hudFont.drawText("GAME OVER", 90, HUD_H + 240, xge.Color.rgba(255, 107, 94, 255))
+            hudFont.drawText("press R", 118, HUD_H + 272, xge.Color.rgba(200, 210, 220, 255))
+        end
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    handleInput()
+    update()
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run tetris.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(432, 624, "xlang tetris")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

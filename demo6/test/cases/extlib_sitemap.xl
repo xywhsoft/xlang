@@ -1,0 +1,91 @@
+import sitemap
+
+
+
+func main(...) as int
+    // 生成 sitemap.xml
+    var urls = [
+        {"loc": "https://xlang.dev/", "priority": "1.0", "changefreq": "daily"},
+        {"loc": "https://xlang.dev/blog/semver", "lastmod": "2026-08-10", "priority": "0.8"},
+        {"loc": "https://xlang.dev/docs?a=1&b=2"}
+    ]
+    string xml = sitemap.build(urls)
+    assert xml.contains("<urlset"), "urlset root"
+    assert xml.contains("<loc>https://xlang.dev/blog/semver</loc>"), "loc entry"
+    assert xml.contains("<lastmod>2026-08-10</lastmod>"), "lastmod"
+    assert xml.contains("<priority>1.0</priority>"), "priority"
+    assert xml.contains("<changefreq>daily</changefreq>"), "changefreq"
+    assert xml.contains("a=1&amp;b=2"), "url escaped"
+
+    // 生成索引
+    string index = sitemap.buildIndex([
+        {"loc": "https://xlang.dev/sitemap-posts.xml", "lastmod": "2026-08-12"},
+        {"loc": "https://xlang.dev/sitemap-docs.xml"}
+    ])
+    assert index.contains("<sitemapindex"), "index root"
+    assert index.contains("<loc>https://xlang.dev/sitemap-posts.xml</loc>"), "index loc"
+
+    // 解析往返
+    var back = sitemap.parse(xml)
+    assert back.length == 3, "parsed count"
+    assert back[0]["loc"] == "https://xlang.dev/", "parsed loc 0"
+    assert back[1]["lastmod"] == "2026-08-10", "parsed lastmod"
+    assert back[2]["loc"] == "https://xlang.dev/docs?a=1&b=2", "entity decoded"
+
+    var idxBack = sitemap.parseIndex(index)
+    assert idxBack.length == 2, "index parsed count"
+    assert idxBack[0]["loc"] == "https://xlang.dev/sitemap-posts.xml", "index loc back"
+
+    // 解析严格性
+    int raised = 0
+    try
+        sitemap.parse("<html/>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "parse rejects non urlset"
+    raised = 0
+    try
+        sitemap.parseIndex(xml)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "parseIndex rejects urlset"
+
+    // robots.txt 解析
+    string robotsText = """# site robots
+User-agent: *
+Disallow: /admin
+Disallow: /private/
+Allow: /private/public/
+Disallow:
+
+User-agent: GoodBot
+Disallow: /
+
+Sitemap: https://xlang.dev/sitemap.xml
+Sitemap: https://xlang.dev/sitemap-2.xml
+"""
+    var robots = sitemap.robotsParse(robotsText)
+    assert robots["sitemaps"].length == 2, "sitemap directives"
+    assert robots["sitemaps"][0] == "https://xlang.dev/sitemap.xml", "sitemap url"
+
+    // 匹配语义：* 组
+    assert not sitemap.robotsAllows(robots, "BadBot", "/admin/panel"), "admin blocked"
+    assert sitemap.robotsAllows(robots, "BadBot", "/blog/post"), "blog allowed"
+    assert not sitemap.robotsAllows(robots, "BadBot", "/private/data"), "private blocked"
+    assert sitemap.robotsAllows(robots, "BadBot", "/private/public/page"), "specific allow wins"
+
+    // 空Disallow等于全部允许
+    assert sitemap.robotsAllows(robots, "SomeBot", "/"), "empty disallow allows all"
+
+    // 专属组优先：GoodBot 全站禁止
+    assert not sitemap.robotsAllows(robots, "GoodBot", "/blog/post"), "goodbot blocked"
+    assert not sitemap.robotsAllows(robots, "goodbot", "/"), "agent case-insensitive"
+
+    // 未命中任何规则视为允许
+    assert sitemap.robotsAllows(robots, "StrangerBot", "/docs"), "unknown agent falls to star"
+    assert not sitemap.robotsAllows(robots, "GoodBot", "/admin"), "root disallow blocks all paths"
+
+    return 0
+end

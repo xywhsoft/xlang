@@ -1,0 +1,120 @@
+import xssh
+from xssh import BannerResult, KnownHostLine, PublicKeyLine, WireReader, WireWriter
+
+
+
+func main(...) as int
+    assert xssh.codeName(xssh.OK) == "ok"
+    assert xssh.codeName(xssh.NEED_MORE) == "need_more"
+    assert xssh.nameValid("curve25519-sha256")
+    assert not xssh.nameValid("bad name")
+    assert xssh.languageValid("en-US")
+    assert xssh.nameListValid("curve25519-sha256,aes128-gcm@openssh.com")
+    assert not xssh.nameListValid("a,,b")
+    assert xssh.nameListContains("a,b,c", "b")
+    assert not xssh.nameListContains("a,bb,c", "b")
+    assert xssh.nameListHasDuplicate("a,b,a")
+    assert xssh.nameListFirstMatch("b,a", "a,b") == "b"
+    assert xssh.nameListFirstMatch("x,y", "a,b") == ""
+
+    WireWriter writer = WireWriter()
+    assert writer.valid
+    writer.writeByte(127)
+    writer.writeBool(true)
+    writer.writeU32(16909060)
+    writer.writeU64(c_ulonglong(72623859790382856))
+    writer.writeString("abc")
+    writer.writeNameList("a,b")
+    assert writer.length == 28
+
+    WireReader reader = xssh.reader(writer.bytes)
+    assert reader.readByte() == 127
+    assert reader.readBool()
+    assert reader.readU32() == 16909060
+    assert reader.readU64() == c_ulonglong(72623859790382856)
+    int stringStatus = reader.tryString()
+    assert stringStatus == xssh.OK
+    Buffer firstText = reader.last
+    assert firstText.text() == "abc"
+    assert reader.readText() == "a,b"
+    assert reader.remaining == 0
+
+    Buffer shortInput = Buffer()
+    shortInput.appendByte(0)
+    shortInput.appendByte(0)
+    shortInput.appendByte(0)
+    WireReader shortReader = xssh.reader(shortInput)
+    assert shortReader.tryU32() == xssh.NEED_MORE
+    assert shortReader.remaining == 3
+
+    Buffer magnitude = Buffer()
+    magnitude.appendByte(128)
+    writer.clear()
+    writer.writeMpint(magnitude)
+    WireReader mpintReader = xssh.reader(writer.bytes)
+    Buffer mpint = mpintReader.readMpint()
+    assert mpint.len() == 2
+    assert mpint[0] == 0 and mpint[1] == 128
+
+    writer.clear()
+    writer.writeSignedMpint(magnitude, true)
+    WireReader signedReader = xssh.reader(writer.bytes)
+    Buffer signedValue = signedReader.readSignedMpint()
+    assert signedReader.negative
+    assert signedValue.len() > 0
+
+    BannerResult partial = xssh.banner("SSH-2.0-xlang")
+    assert partial.needMore
+    BannerResult banner = xssh.banner("notice\r\nSSH-2.0-xlang_1.0\r\npayload")
+    assert banner.complete
+    assert banner.text == "SSH-2.0-xlang_1.0"
+    assert banner.consumed == 27
+
+    writer.clear()
+    writer.writeBanner("SSH-2.0-xlang_1.0")
+    Buffer bannerBytes = writer.bytes
+    assert bannerBytes.text() == "SSH-2.0-xlang_1.0\r\n"
+
+    string keyText = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA test key"
+    PublicKeyLine key = xssh.publicKeyLine(keyText)
+    assert key.valid
+    assert key.options == ""
+    assert key.algorithm == "ssh-ed25519"
+    assert key.comment == "test key"
+    Buffer keyBlob = key.decode()
+    assert keyBlob.len() == 51
+    assert key.matches(keyBlob)
+    string fingerprint = xssh.fingerprint(keyBlob)
+    assert string.byteLen(fingerprint) == 50
+
+    string hostLine = "@revoked *.example.com,!bad.example.com " + keyText
+    KnownHostLine known = xssh.knownHost(hostLine)
+    assert known.valid
+    assert known.marker == "@revoked"
+    assert known.markerKind == xssh.MARKER_REVOKED
+    assert known.algorithm == "ssh-ed25519"
+    assert known.comment == "test key"
+    assert not known.hashed
+    assert known.matchHost("GOOD.EXAMPLE.COM") == xssh.HOST_MATCH
+    assert known.matchHost("bad.example.com") == xssh.HOST_NEGATED
+    assert xssh.knownHostMatch("[host.example]:2200", "host.example", 2200) == xssh.HOST_MATCH
+
+    Buffer salt = Buffer()
+    int i = 0
+    while i < 20
+        salt.appendByte(32 + i)
+        i += 1
+    end
+    string token = xssh.knownHostHash("hashed.example", salt)
+    assert token == "|1|ICEiIyQlJicoKSorLC0uLzAxMjM=|xBQE+zEva59fZY5Xy11PuF9jNd8="
+    assert xssh.knownHostHashMatch(token, "HASHED.EXAMPLE")
+    assert not xssh.knownHostHashMatch(token, "other.example")
+
+    KnownHostLine hashed = xssh.knownHost(token + " " + keyText)
+    assert hashed.hashed
+    assert hashed.hashMatch("hashed.example")
+    assert not hashed.hashMatch("other.example")
+
+    println("xssh package ok")
+    return 0
+end

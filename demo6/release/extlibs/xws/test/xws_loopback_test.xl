@@ -1,0 +1,270 @@
+import xws
+from xws import WsConnection
+
+
+
+channel<int> serverEvents = channel::<int>(32)
+channel<int> clientEvents = channel::<int>(32)
+channel<string> serverPayloads = channel::<string>(8)
+channel<string> clientPayloads = channel::<string>(8)
+
+
+
+func makeHandler(channel<int> events,
+    channel<string> payloads) as func(int, int, int, int, point, int)
+    return func(int event, int opcode, int flags,
+        int value, point data, int size)
+        events.send(event)
+        if event == xws.EVENT_MESSAGE_DATA then
+            Buffer payload = Buffer()
+            if payload.appendRaw(data, c_size(size)) then
+                payloads.send(payload.text())
+            end
+        end
+    end
+end
+
+
+
+func failingHandler(int event, int opcode, int flags,
+    int value, point data, int size)
+    if event == xws.EVENT_MESSAGE_DATA then
+        throw RuntimeError "xws callback sentinel"
+    end
+end
+
+
+
+func waitTcpBytes(TcpStream stream, int minimum, int timeoutMs) as Buffer
+    int elapsed = 0
+    Buffer snapshot = stream.peek()
+    while snapshot.len() < minimum and elapsed < timeoutMs
+        stream.waitReadable(10)
+        time.sleep(1)
+        elapsed += 11
+        snapshot = stream.peek()
+    end
+    return snapshot
+end
+
+
+
+func waitEvent(channel<int> events, int expected, int timeoutMs) as bool
+    int elapsed = 0
+    int event = -1
+    while elapsed < timeoutMs
+        if events.recvTimeoutInto(event, 50) and event == expected then
+            return true
+        end
+        elapsed += 50
+    end
+    return false
+end
+
+
+
+func waitPayload(channel<string> payloads,
+    string expected, int timeoutMs) as string
+    int elapsed = 0
+    string result = ""
+    string part = ""
+    while string.byteLen(result) < string.byteLen(expected) and elapsed < timeoutMs
+        if payloads.recvTimeoutInto(part, 50) then
+            result += part
+        end
+        elapsed += 50
+    end
+    return result
+end
+
+
+
+func verifyCallbackError(TcpServer listener) as bool
+    TcpStream clientTransport = tcp.connect(
+        "127.0.0.1", listener.port(), 8000)
+    TcpStream serverTransport = listener.accept(8000)
+
+    WsUpgrade clientUpgrade = WsUpgrade.client("127.0.0.1")
+    Buffer requestHead = Http1.requestHead(
+        "GET", "/failure", clientUpgrade.fields())
+    Buffer payload = Buffer()
+    assert payload.append("fail")
+    WsFrame frame = WsFrame.make(
+        xws.OPCODE_TEXT,
+        uint64(payload.len()),
+        true,
+        true,
+        uint32(2712847316)
+    )
+    Buffer frameHead = frame.write()
+    assert WsFrame.applyMask(payload, uint32(2712847316))
+    assert clientTransport.sendVec([requestHead, frameHead, payload])
+    assert clientTransport.waitDrain(8000)
+
+    int requestSize = requestHead.len() + frameHead.len() + payload.len()
+    Buffer requestWire = waitTcpBytes(serverTransport, requestSize, 8000)
+    Http1Head request = Http1Head.request(requestWire)
+    assert request.ready
+    WsUpgrade serverUpgrade = WsUpgrade.server(request)
+    Buffer responseHead = Http1.responseHead(
+        101, "Switching Protocols", serverUpgrade.fields())
+    assert serverTransport.sendBytes(
+        responseHead.data(), c_size(responseHead.len()))
+    assert serverTransport.waitDrain(8000)
+
+    WsConnection socket = WsConnection.attachTcp(
+        serverTransport, serverUpgrade, failingHandler, request.headerBytes)
+    int elapsed = 0
+    while socket.state != xws.STATE_CLOSED and elapsed < 8000
+        time.sleep(1)
+        elapsed += 1
+    end
+    assert socket.state == xws.STATE_CLOSED, "xws callback failure did not close the connection"
+    assert socket.errorMessage() == "xws callback sentinel", "xws callback failure lost its structured error"
+    return true
+end
+
+
+
+func verifyExtendedPaths(WsConnection clientSocket,
+    WsConnection serverSocket) as bool
+    string payload = ""
+    xws.WsWriter writer = clientSocket.writer(xws.OPCODE_TEXT, true)
+    assert writer.valid, "xws fragmented writer creation failed"
+    assert writer.writeResult("fragment-") == xws.RESULT_OK, "xws fragmented writer first write failed"
+    assert writer.finishResult("message") == xws.RESULT_OK, "xws fragmented writer finish failed"
+    assert writer.finished, "xws fragmented writer did not enter terminal state"
+    payload = waitPayload(serverPayloads, "fragment-message", 8000)
+    assert payload == "fragment-message", "xws fragmented compressed message was corrupted"
+
+    Buffer moved = Buffer()
+    assert moved.append("moved-buffer"), "xws move buffer allocation failed"
+    assert clientSocket.sendMove(moved, xws.OPCODE_TEXT), "xws move send failed"
+    assert moved.len() == 0, "xws successful move send retained buffer ownership"
+    payload = waitPayload(serverPayloads, "moved-buffer", 8000)
+    assert payload == "moved-buffer", "xws moved message was corrupted"
+
+    xws.WsFuture sent = serverSocket.sendTextAsync("async-server", true)
+    assert sent.valid, "xws async send future creation failed"
+    assert sent.wait(8000), "xws async send future timed out"
+    assert sent.state == xws.FUTURE_RESOLVED, "xws async send future did not resolve"
+    assert sent.error() == "", "xws resolved send future retained an error"
+    payload = waitPayload(clientPayloads, "async-server", 8000)
+    assert payload == "async-server", "xws async message was corrupted"
+
+    xws.WsGroup group = xws.WsGroup(c_longlong(2))
+    assert group.add(clientSocket) and group.add(serverSocket), "xws group add failed"
+    assert group.add(clientSocket), "xws duplicate group add was not idempotent"
+    assert group.count == 2 and group.has(clientSocket), "xws group membership mismatch"
+    xws.WsGroupSnapshot snapshot = group.snapshot()
+    assert snapshot.valid and snapshot.count == 2, "xws group snapshot mismatch"
+    xws.WsGroupOperation broadcast = group.send("group-broadcast")
+    assert broadcast.valid and broadcast.count == 2, "xws group broadcast creation failed"
+    assert broadcast.accepted == 2 and broadcast.rejected == 0, "xws group broadcast was rejected"
+    assert broadcast.wait(8000), "xws group broadcast timed out"
+    assert broadcast.doneCount == 2, "xws group broadcast did not finish every member"
+    int member = 0
+    while member < broadcast.count
+        xws.WsGroupResult result = broadcast.result(member)
+        assert result.state == xws.GROUP_OP_RESOLVED, "xws group member did not resolve"
+        assert result.hasConnection and result.error == "", "xws group member lost its connection result"
+        member += 1
+    end
+    assert waitPayload(clientPayloads, "group-broadcast", 8000) == "group-broadcast", "xws client group message was corrupted"
+    assert waitPayload(serverPayloads, "group-broadcast", 8000) == "group-broadcast", "xws server group message was corrupted"
+    assert group.remove(clientSocket) and group.remove(serverSocket), "xws group remove failed"
+    assert group.count == 0, "xws group retained removed members"
+    return true
+end
+
+
+
+async func run() as int
+    TcpServer listener = tcp.listen(0)
+    assert listener.port() > 0, "xws listener did not bind"
+
+    future<TcpStream> accepting = listener.acceptAsync()
+    TcpStream clientTransport = tcp.connect("127.0.0.1", listener.port(), 8000)
+    TcpStream serverTransport = await accepting
+    auto serverHandler = makeHandler(serverEvents, serverPayloads)
+    auto clientHandler = makeHandler(clientEvents, clientPayloads)
+
+    WsUpgrade clientUpgrade = WsUpgrade.client(
+        "127.0.0.1", "chat", true, true)
+    Buffer requestHead = Http1.requestHead(
+        "GET", "/socket", clientUpgrade.fields())
+    Buffer firstPayload = Buffer()
+    assert firstPayload.append("first-frame")
+    WsFrame firstFrame = WsFrame.make(
+        xws.OPCODE_TEXT,
+        uint64(firstPayload.len()),
+        true,
+        true,
+        uint32(287454020)
+    )
+    Buffer firstFrameHead = firstFrame.write()
+    assert WsFrame.applyMask(firstPayload, uint32(287454020))
+    assert clientTransport.sendVec([requestHead, firstFrameHead, firstPayload]), "xws upgrade request send failed"
+    assert clientTransport.waitDrain(8000), "xws upgrade request did not drain"
+
+    int requestSize = requestHead.len() + firstFrameHead.len() + firstPayload.len()
+    Buffer requestWire = waitTcpBytes(serverTransport, requestSize, 8000)
+    assert requestWire.len() >= requestSize, "xws coalesced request is incomplete"
+    Http1Head request = Http1Head.request(requestWire)
+    assert request.ready, "xws upgrade request parse failed"
+
+    WsUpgrade serverUpgrade = WsUpgrade.server(request, "chat", true, true)
+    assert serverUpgrade.ready and serverUpgrade.deflateEnabled, "xws server upgrade negotiation failed"
+    Buffer responseHead = Http1.responseHead(
+        101, "Switching Protocols", serverUpgrade.fields())
+    assert serverTransport.sendBytes(responseHead.data(), c_size(responseHead.len())), "xws upgrade response send failed"
+    assert serverTransport.waitDrain(8000), "xws upgrade response did not drain"
+
+    auto serverConfig = xws.WsConnectionConfig.fromUpgrade(serverUpgrade)
+    WsConnection serverSocket = WsConnection.attachTcpWithConfig(
+        serverTransport, serverConfig, serverHandler, request.headerBytes)
+    assert serverSocket.valid, "xws server attach failed"
+
+    Buffer responseWire = waitTcpBytes(clientTransport, responseHead.len(), 8000)
+    Http1Head response = Http1Head.response(responseWire)
+    assert response.ready and clientUpgrade.check(response), "xws client upgrade validation failed"
+    assert clientUpgrade.extensions() == "permessage-deflate", "xws client upgrade lost normalized compression state"
+    WsConnection clientSocket = WsConnection.attachTcp(
+        clientTransport, clientUpgrade, clientHandler, response.headerBytes)
+    assert clientSocket.valid, "xws client attach failed"
+    assert clientSocket.protocol() == "chat", "xws selected protocol mismatch"
+    assert clientSocket.deflateEnabled and serverSocket.deflateEnabled, "xws connection compression state mismatch"
+
+    string payload = ""
+    assert serverPayloads.recvTimeoutInto(payload, 8000), "xws coalesced first frame callback timed out"
+    assert payload == "first-frame", "xws coalesced first frame was corrupted"
+
+    assert clientSocket.send("client-compressed", true), "xws compressed client send failed"
+    assert serverPayloads.recvTimeoutInto(payload, 8000), "xws compressed client message timed out"
+    assert payload == "client-compressed", "xws client message was corrupted"
+
+    assert serverSocket.send("server-compressed", true), "xws compressed server send failed"
+    assert clientPayloads.recvTimeoutInto(payload, 8000), "xws compressed server message timed out"
+    assert payload == "server-compressed", "xws server message was corrupted"
+    assert verifyExtendedPaths(clientSocket, serverSocket)
+
+    Buffer ping = Buffer()
+    assert ping.append("ping"), "xws ping payload allocation failed"
+    assert clientSocket.ping(ping), "xws ping send failed"
+    assert waitEvent(serverEvents, xws.EVENT_PING, 8000), "xws server did not receive ping"
+    assert waitEvent(clientEvents, xws.EVENT_PONG, 8000), "xws client did not receive pong"
+
+    assert clientSocket.close(1000, "done"), "xws close send failed"
+    assert waitEvent(serverEvents, xws.EVENT_CLOSE, 8000), "xws server close callback timed out"
+    assert waitEvent(clientEvents, xws.EVENT_CLOSE, 8000), "xws client close callback timed out"
+    assert clientSocket.remoteCloseCode == 1000, "xws client remote close code mismatch"
+    assert serverSocket.remoteCloseCode == 1000, "xws server remote close code mismatch"
+    assert verifyCallbackError(listener)
+    return 0
+end
+
+
+
+int exitCode = await run()
+assert exitCode == 0
+println("xws loopback package ok")

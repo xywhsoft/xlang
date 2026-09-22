@@ -1,4 +1,8 @@
-#include "include/xrt_murmur3.h"
+﻿#include "include/xrt_murmur3.h"
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
+#include "../xlang_extlib_runtime.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +25,16 @@
 
 static XMURMUR3_THREAD char g_xmurmur3_hex[XMURMUR3_HEX_SLOTS][33];
 static XMURMUR3_THREAD size_t g_xmurmur3_hex_index;
+static XMURMUR3_THREAD int g_xmurmur3_file_status;
+
+static void xmurmur3_path_error(const char *prefix, const char *path)
+{
+	char message[512];
+	snprintf(message, sizeof(message), "%s%s", prefix,
+		path != NULL ? path : "");
+	message[sizeof(message) - 1u] = '\0';
+	xl6ExtlibSetError(XERR_IO, "xlang.extlib.murmur3", message);
+}
 
 static const char* xmurmur3_format_hex(const uint8* pDigest, size_t iLen)
 {
@@ -56,14 +70,14 @@ static void xmurmur3_publish_error(const xrtmurmur3error* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "murmur3 operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	xl6ExtlibSetError(XERR_VALUE, "xlang.extlib.murmur3", sMessage);
 }
 
 
 
 XMURMUR3_EXPORT bool xmurmur3_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XMURMUR3_EXPORT const char* xmurmur3_version(void)
@@ -76,18 +90,23 @@ XMURMUR3_EXPORT const char* xmurmur3_last_error(void)
 	return xrtGetError();
 }
 
+XMURMUR3_EXPORT int xmurmur3_file_status(void)
+{
+	return g_xmurmur3_file_status;
+}
 
 
-/* ---- 一次性哈希 ---- */
 
-XMURMUR3_EXPORT unsigned int xmurmur3_hash32(const void* pData, size_t iSize, unsigned int iSeed)
+/* ---- 涓€娆℃€у搱甯?---- */
+
+XMURMUR3_EXPORT long long xmurmur3_hash32(const void* pData, size_t iSize, unsigned int iSeed)
 {
 	xrtmurmur3error tError;
 	xrtClearError();
 	return (unsigned int)xrtMurmur3Hash32(pData, iSize, (uint32)iSeed, &tError);
 }
 
-XMURMUR3_EXPORT unsigned int xmurmur3_hash32_str(const char* sText, size_t iSize, unsigned int iSeed)
+XMURMUR3_EXPORT long long xmurmur3_hash32_str(const char* sText, size_t iSize, unsigned int iSeed)
 {
 	return xmurmur3_hash32((const void*)sText, iSize, iSeed);
 }
@@ -116,7 +135,7 @@ XMURMUR3_EXPORT void* xmurmur3_hash32_bytes(const void* pData, size_t iSize, uns
 	pOut = (uint8*)xrtMalloc(4);
 	if (pOut == NULL) { return NULL; }
 	memcpy(pOut, &result, 4);
-	return xrtBufferAdopt(pOut, 4);
+	return xl6ExtlibBufferTake(pOut, 4);
 }
 
 XMURMUR3_EXPORT void* xmurmur3_hash32_str_bytes(const char* sText, size_t iSize, unsigned int iSeed)
@@ -153,7 +172,7 @@ XMURMUR3_EXPORT void* xmurmur3_hash128_bytes(const void* pData, size_t iSize, un
 		xmurmur3_publish_error(&tError);
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, 16);
+	return xl6ExtlibBufferTake(pOut, 16);
 }
 
 XMURMUR3_EXPORT void* xmurmur3_hash128_str_bytes(const char* sText, size_t iSize, unsigned int iSeed)
@@ -163,69 +182,94 @@ XMURMUR3_EXPORT void* xmurmur3_hash128_str_bytes(const char* sText, size_t iSize
 
 
 
-/* ---- 文件哈希 ---- */
+/* ---- 鏂囦欢鍝堝笇 ---- */
 
-XMURMUR3_EXPORT unsigned int xmurmur3_file32(str sPath, unsigned long long iMaxInput,
-	unsigned int iSeed)
+XMURMUR3_EXPORT long long xmurmur3_file32(str sPath, unsigned long long iMaxInput,
+	unsigned int iSeed, xvalue* pCallback)
 {
 	xrtmurmur3options tOptions;
 	xrtmurmur3error tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint32 result;
 	xrtClearError();
+	g_xmurmur3_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	xrtMurmur3OptionsInit(&tOptions);
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	if (sPath == NULL || sPath[0] == 0) {
-		xrtSetError(xrtFormat("murmur3 file path is required"), TRUE);
+		xl6ExtlibSetError(XERR_ARGUMENT, "xlang.extlib.murmur3", "murmur3 file path is required");
 		return 0u;
 	}
 	if (!xrtPathExists(sPath)) {
-		xrtSetError(xrtFormat("murmur3 file does not exist: %s", sPath), TRUE);
+		xmurmur3_path_error("murmur3 file does not exist: ", sPath);
 		return 0u;
 	}
 	pReader = xrtReaderOpen(sPath);
 	if (pReader == NULL) {
-		xrtSetError(xrtFormat("cannot open murmur3 file: %s", sPath), TRUE);
+		xmurmur3_path_error("cannot open murmur3 file: ", sPath);
 		return 0u;
 	}
-	result = xrtMurmur3File32(pReader, &tOptions.tLimits, (uint32)iSeed, &tError);
+	result = xrtMurmur3File32(pReader, &tOptions.tLimits, (uint32)iSeed,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
 	xrtReaderDestroy(pReader);
-	return (unsigned int)result;
+	if (tError.iCode != XRT_MURMUR3_OK) {
+		if (tProgress.InvokeFailed) { g_xmurmur3_file_status = -2; }
+		else {
+			g_xmurmur3_file_status = tError.iCode == XRT_MURMUR3_ERROR_CANCELLED ? -1 : 0;
+			xmurmur3_publish_error(&tError);
+		}
+		return 0u;
+	}
+	g_xmurmur3_file_status = 1;
+	return (long long)result;
 }
 
 XMURMUR3_EXPORT const char* xmurmur3_file128_hex(str sPath, unsigned long long iMaxInput,
-	unsigned int iSeed)
+	unsigned int iSeed, xvalue* pCallback)
 {
 	xrtmurmur3options tOptions;
 	xrtmurmur3error tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint8 pOut[16];
 	bool bResult;
 	xrtClearError();
+	g_xmurmur3_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	xrtMurmur3OptionsInit(&tOptions);
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	if (sPath == NULL || sPath[0] == 0) {
-		xrtSetError(xrtFormat("murmur3 file path is required"), TRUE);
+		xl6ExtlibSetError(XERR_ARGUMENT, "xlang.extlib.murmur3", "murmur3 file path is required");
 		return "";
 	}
 	if (!xrtPathExists(sPath)) {
-		xrtSetError(xrtFormat("murmur3 file does not exist: %s", sPath), TRUE);
+		xmurmur3_path_error("murmur3 file does not exist: ", sPath);
 		return "";
 	}
 	pReader = xrtReaderOpen(sPath);
 	if (pReader == NULL) {
-		xrtSetError(xrtFormat("cannot open murmur3 file: %s", sPath), TRUE);
+		xmurmur3_path_error("cannot open murmur3 file: ", sPath);
 		return "";
 	}
-	bResult = xrtMurmur3File128(pReader, &tOptions.tLimits, (uint32)iSeed, pOut, &tError);
+	bResult = xrtMurmur3File128(pReader, &tOptions.tLimits, (uint32)iSeed, pOut,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
 	xrtReaderDestroy(pReader);
-	if (!bResult) { xmurmur3_publish_error(&tError); return ""; }
+	if (!bResult) {
+		if (tProgress.InvokeFailed) { g_xmurmur3_file_status = -2; }
+		else {
+			g_xmurmur3_file_status = tError.iCode == XRT_MURMUR3_ERROR_CANCELLED ? -1 : 0;
+			xmurmur3_publish_error(&tError);
+		}
+		return "";
+	}
+	g_xmurmur3_file_status = 1;
 	return xmurmur3_format_hex(pOut, 16);
 }
 
 
 
-/* ---- 流式哈希器 ---- */
+/* ---- 娴佸紡鍝堝笇鍣?---- */
 
 XMURMUR3_EXPORT void* xmurmur3_hasher_create(unsigned int iSeed, unsigned long long iMaxInput)
 {
@@ -236,7 +280,7 @@ XMURMUR3_EXPORT void* xmurmur3_hasher_create(unsigned int iSeed, unsigned long l
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	pHasher = xrtMurmur3HasherCreate(&tOptions, (uint32)iSeed);
 	if (pHasher == NULL) {
-		xrtSetError(xrtFormat("murmur3 hasher create failed"), TRUE);
+		xl6ExtlibSetError(XERR_MEMORY, "xlang.extlib.murmur3", "murmur3 hasher create failed");
 		return NULL;
 	}
 	return pHasher;
@@ -252,9 +296,9 @@ XMURMUR3_EXPORT bool xmurmur3_hasher_update(void* pHandle, const void* pData, si
 	xrtmurmur3hasher* pHasher = (xrtmurmur3hasher*)pHandle;
 	if (!xrtMurmur3HasherUpdate(pHasher, pData, iSize)) {
 		xmurmur3_publish_error(xrtMurmur3HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XMURMUR3_EXPORT bool xmurmur3_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -285,7 +329,7 @@ XMURMUR3_EXPORT void* xmurmur3_hasher_digest_bytes(void* pHandle)
 		xmurmur3_publish_error(xrtMurmur3HasherError(pHasher));
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, 16);
+	return xl6ExtlibBufferTake(pOut, 16);
 }
 
 XMURMUR3_EXPORT bool xmurmur3_hasher_reset(void* pHandle)
@@ -293,12 +337,12 @@ XMURMUR3_EXPORT bool xmurmur3_hasher_reset(void* pHandle)
 	xrtmurmur3hasher* pHasher = (xrtmurmur3hasher*)pHandle;
 	if (!xrtMurmur3HasherReset(pHasher)) {
 		xmurmur3_publish_error(xrtMurmur3HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-XMURMUR3_EXPORT unsigned long long xmurmur3_hasher_input_bytes(void* pHandle)
+XMURMUR3_EXPORT long long xmurmur3_hasher_input_bytes(void* pHandle)
 {
 	return (unsigned long long)xrtMurmur3HasherInputBytes((const xrtmurmur3hasher*)pHandle);
 }

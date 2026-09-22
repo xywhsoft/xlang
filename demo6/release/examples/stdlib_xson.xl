@@ -1,9 +1,9 @@
 dir.createAll("examples_out")
 
 bool validOk = xson.valid('{"name":"xlang","level":6,"enabled":true}')
-bool validBad = xson.valid('{"keep":1,"skip":ptr(123),"after":2}')
+bool validBad = xson.valid('{"keep":1,"skip":ptr("123"),"after":2}')
 XsonOptions decodeOptions = xson.options(ignoreUnsupportedDecode = true)
-bool validIgnored = xson.valid('{"keep":1,"skip":ptr(123),"after":2}', decodeOptions)
+bool validIgnored = xson.valid('{"keep":1,"skip":ptr("123"),"after":2}', decodeOptions)
 
 var config = xson.parse('{"name":"xlang","level":6,"enabled":true}')
 
@@ -56,7 +56,7 @@ func stopXsonEvent(var event) as bool
     return int(event["depth"]) < 1
 end
 
-string visitSource = '{"items":list[2:"two"],"tags":set{1,2},"when":time(2026-06-18 00:00:00)}'
+string visitSource = '{"items":intmap{2:"two"},"tags":set[1,2],"when":time("2026-06-18T00:00:00Z")}'
 int visitResult = xson.visit(visitSource, onXsonEvent)
 int stopResult = xson.visit(visitSource, stopXsonEvent)
 int invalidResult = xson.visit("{bad}", onXsonEvent)
@@ -72,11 +72,11 @@ assert(validIgnored)
 assert(string.contains(compact, "xlang"))
 assert(string.contains(pretty, "\n"))
 assert(string.contains(jsonText, '"level"'))
-assert(string.contains(writerText, "list["))
+assert(string.contains(writerText, "intmap{"))
 assert(string.contains(writerText, "time("))
 assert(string.contains(optionWriterText, "\n"))
 assert(string.contains(optionWriterText, "time("))
-assert(string.contains(json.stringify(writerCopy), '"name"'))
+assert(string.contains(xson.stringify(writerCopy), '"name"'))
 assert(string.contains(fileText, "enabled"))
 assert(visitCount >= 9)
 assert(listIndex == 2)

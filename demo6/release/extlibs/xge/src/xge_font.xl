@@ -62,6 +62,11 @@ export func xgeFontCreate(point pFont, point pFace, point pDesc) as c_int
     return __xl6_xgeFontCreate(pFont, pFace, pDesc)
 end
 
+extern "xgeFontCreateSized" func __xl6_xgeFontCreateSized(point pFont, point pSource, c_float fPixelSize) as c_int
+export func xgeFontCreateSized(point pFont, point pSource, c_float fPixelSize) as c_int
+    return __xl6_xgeFontCreateSized(pFont, pSource, fPixelSize)
+end
+
 extern "xgeFontLoad" func __xl6_xgeFontLoad(point pFont, string sPath, c_float fSize) as c_int
 export func xgeFontLoad(point pFont, string sPath, c_float fSize) as c_int
     return __xl6_xgeFontLoad(pFont, sPath, fSize)
@@ -190,11 +195,6 @@ end
 extern "xgeFontGlyphOutlineAppendShapeEx" func __xl6_xgeFontGlyphOutlineAppendShapeEx(point pFont, c_int iGlyph, point pShape, c_float fPenX, c_float fBaselineY) as c_int
 export func xgeFontGlyphOutlineAppendShapeEx(point pFont, c_int iGlyph, point pShape, c_float fPenX, c_float fBaselineY) as c_int
     return __xl6_xgeFontGlyphOutlineAppendShapeEx(pFont, iGlyph, pShape, fPenX, fBaselineY)
-end
-
-extern "xgeTextMeasure" func __xl6_xgeTextMeasure(point pFont, string sText) as point
-export func xgeTextMeasure(point pFont, string sText) as point
-    return __xl6_xgeTextMeasure(pFont, sText)
 end
 
 extern "xgeTextDraw" func __xl6_xgeTextDraw(point pFont, string sText, c_float fX, c_float fY, c_uint iColor)

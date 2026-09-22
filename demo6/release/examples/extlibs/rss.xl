@@ -1,0 +1,46 @@
+import rss
+
+
+
+
+func main(...) as int
+    // 组装一份 RSS 2.0
+    var channel = {
+        "title": "xlang release notes",
+        "link": "https://xlang.dev",
+        "description": "compiler, stdlib and ecosystem updates",
+        "updated": "Wed, 12 Aug 2026 08:00:00 GMT"
+    }
+    var items = [
+        {"title": "semver extension library", "link": "https://xlang.dev/blog/semver",
+         "description": "semantic versioning ranges for the package manager", "guid": "post-12"},
+        {"title": "statistics extension library", "link": "https://xlang.dev/blog/statistics",
+         "description": "descriptive statistics over numeric arrays", "guid": "post-11"},
+        {"title": "json.patch extension library", "link": "https://xlang.dev/blog/jsonpatch",
+         "description": "RFC 6902 patching for config hot reload", "guid": "post-10"}
+    ]
+    string xml = rss.buildRSS(channel, items)
+    println(xml)
+
+    // 写入文件并读回解析
+    string path = "examples_out/extlibs/rss_demo.xml"
+    file.writeText(path, xml)
+    string text = file.readText(path)
+    var parsed = rss.parse(text)
+    println("---")
+    println("parsed type:", parsed["type"])
+    println("channel title:", parsed["title"])
+    for item in parsed["items"]
+        println("-", item["title"], "->", item["link"])
+    end
+
+    // Atom 输出
+    var feed = {"title": string(parsed["title"]), "link": string(parsed["link"]), "id": "urn:xlang:notes"}
+    string atom = rss.buildAtom(feed, parsed["items"])
+    var back = rss.parse(atom)
+    println("---")
+    println("atom round trip entries:", back["items"].length)
+
+    println("rss example: PASS")
+    return 0
+end

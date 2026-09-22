@@ -6,12 +6,62 @@ echo Running DEMO6 suite: bundled format extension libraries...
 
 if not exist tmp mkdir tmp
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_fixture_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_release_extlibs.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_xrt_symbols.ps1
+if errorlevel 1 exit /b 1
+
+call release\examples\extlibs\run_extlibs.bat
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_tests.ps1
+if errorlevel 1 exit /b 1
+
+rem Core extension packages with native ownership contracts run their package-local suite.
+release\xl.exe run release\extlibs\xregex\test\xregex_test.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run release\extlibs\xssh\test\xssh_test.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build release\extlibs\xssh\test\xssh_test.xl -o build\test\xssh_package.exe
+if errorlevel 1 exit /b 1
+build\test\xssh_package.exe
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package xssh -Source release\extlibs\xssh\test\test_xssh.c
+if errorlevel 1 exit /b 1
+release\xl.exe run release\extlibs\xmail\test\xmail_test.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build release\extlibs\xmail\test\xmail_test.xl -o build\test\xmail_package.exe
+if errorlevel 1 exit /b 1
+build\test\xmail_package.exe
+if errorlevel 1 exit /b 1
+for %%P in (smtp pop3 imap) do (
+    release\xl.exe run release\extlibs\xmail\test\xmail_%%P_loopback_test.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe build release\extlibs\xmail\test\xmail_%%P_loopback_test.xl -o build\test\xmail_%%P_loopback.exe
+    if errorlevel 1 exit /b 1
+    build\test\xmail_%%P_loopback.exe
+    if errorlevel 1 exit /b 1
+)
+release\xl.exe run release\extlibs\xws\test\xws_test.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run release\extlibs\xws\test\xws_loopback_test.xl
 if errorlevel 1 exit /b 1
 
 where python >nul 2>nul
 if errorlevel 1 (
     echo Python 3 is required for the format interoperability tests.
+    exit /b 1
+)
+python -c "import sys; raise SystemExit(0)" >nul 2>nul
+if errorlevel 1 (
+    echo A working Python 3 interpreter is required for the format interoperability tests.
     exit /b 1
 )
 
@@ -85,6 +135,8 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package gzip -Source release\examples\extlibs\gzip_c.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package bz2 -Source release\examples\extlibs\bz2_c.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package md5 -Source release\examples\extlibs\progress_callback_c.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package zip -Source release\examples\extlibs\zip_c.c
 if errorlevel 1 exit /b 1

@@ -1,0 +1,50 @@
+import cli
+import ansi
+
+
+
+func main(...) as int
+    // 一个复制工具的参数定义
+    var spec = {
+        "flags": ["verbose", "dry-run"],
+        "options": {"output": "o", "jobs": "j"},
+        "defaults": {"jobs": "1"},
+        "positional": ["src", "dst"]
+    }
+
+    // 演示几组参数
+    var samples = [
+        ["--verbose", "-j4", "a.txt", "b.txt"],
+        ["-o", "merged.bin", "--dry-run", "in/"],
+        ["--jobs=8", "--", "-weird-name", "out/"]
+    ]
+    for args in samples
+        print(ansi.bold("tool"), " ")
+        println(args)
+        var r = cli.parse(args, spec)
+        if r["ok"] != true then
+            println("  error:", r["error"])
+            println("  " + cli.usage("tool", spec))
+        else
+            if r["flags"]["verbose"] == true then
+                println("  verbose mode")
+            end
+            if r["flags"]["dry-run"] == true then
+                println("  dry run (no writes)")
+            end
+            println("  jobs:", r["options"]["jobs"], " output:", r["options"]["output"])
+            println("  copy:", r["positional"]["src"], "->", r["positional"]["dst"])
+            if r["rest"].length > 0 then
+                println("  extra: rest count =", r["rest"].length)
+            end
+        end
+        println()
+    end
+
+    // 进程自身参数（xl.exe run 透传 -- 之后的参数）
+    var mine = cli.parseOs({"flags": ["help"], "options": {"tag": "t"}, "defaults": {"tag": "none"}, "positional": ["file"]})
+    println("this process: tag =", mine["options"]["tag"])
+
+    println("cli example: PASS")
+    return 0
+end

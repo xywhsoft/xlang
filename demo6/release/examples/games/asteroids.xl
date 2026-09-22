@@ -1,0 +1,353 @@
+// asteroids.xl — 小行星（纯形状经典射击游戏）
+// 上键推进，左右键旋转，空格射击，R 重开。
+// 无头冒烟：xl run asteroids.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int W = 960                        // 画布宽
+int H = 720                        // 画布高
+float TURN = 2.5                   // 旋转速度（rad/s）
+float THRUST = 320.0               // 推力加速度（px/s^2）
+float DAMP = 0.99                  // 速度阻尼（每帧）
+float SHIP_R = 12.0                // 飞船碰撞半径
+float FIRE_CD = 0.2                // 射速间隔（秒）
+float BULLET_LIFE = 1.2            // 子弹寿命（秒）
+float BULLET_SPD = 460.0           // 子弹速度（px/s）
+int MAXB = 64                      // 子弹上限
+int MAXA = 64                      // 小行星上限
+array<float> RAD = [12.0, 24.0, 40.0]  // 小行星半径：0=小 1=中 2=大
+array<int> PTS = [100, 50, 20]         // 对应分值
+
+// --- 游戏状态 ---
+float px = 480.0                   // 飞船位置
+float py = 360.0
+float ang = -1.5707963             // 飞船朝向（弧度，初始朝上）
+float vx = 0.0                     // 飞船速度向量
+float vy = 0.0
+int lives = 3
+int score = 0
+bool dead = false
+int wave = 0
+float fireT = 0.0
+int bCount = 0                     // 活跃子弹数（swap-remove 压缩）
+int aCount = 0                     // 活跃小行星数
+array<float> bx = []
+array<float> by = []
+array<float> bvx = []
+array<float> bvy = []
+array<float> blife = []
+array<float> ax = []
+array<float> ay = []
+array<float> avx = []
+array<float> avy = []
+array<float> arot = []
+array<float> arotSpd = []
+array<int> asize = []
+xge.Font hudFont
+Random rng = Random(uint64(42), uint64(7))
+
+// --- 生成一颗小行星 ---
+func spawnAsteroid(float x, float y, int size, float minSpd, float maxSpd)
+    if aCount >= MAXA then
+        return
+    end
+    float a = float(int(rng.u32()) % 628) / 100.0
+    float sp = minSpd + float(int(rng.u32()) % 100) / 100.0 * (maxSpd - minSpd)
+    ax.append(x)
+    ay.append(y)
+    avx.append(math.cos(a) * sp)
+    avy.append(math.sin(a) * sp)
+    arot.append(float(int(rng.u32()) % 628) / 100.0)
+    arotSpd.append((float(int(rng.u32()) % 100) / 100.0 - 0.5) * 2.4)
+    asize.append(size)
+    aCount += 1
+end
+
+// --- 生成一波大行星（远离飞船出生点） ---
+func spawnWave()
+    int n = 3 + wave
+    if n > 8 then
+        n = 8
+    end
+    int i = 0
+    while i < n
+        float x = 0.0
+        float y = 0.0
+        bool far = false
+        while not far
+            x = float(int(rng.u32()) % W)
+            y = float(int(rng.u32()) % H)
+            float dx = x - px
+            float dy = y - py
+            far = math.sqrt(dx * dx + dy * dy) > 200.0
+        end
+        spawnAsteroid(x, y, 2, 30.0, 90.0)
+        i += 1
+    end
+end
+
+// --- 重置飞船（被撞后） ---
+func resetShip()
+    px = float(W / 2)
+    py = float(H / 2)
+    ang = -1.5707963
+    vx = 0.0
+    vy = 0.0
+end
+
+// --- 完整重开 ---
+func reset()
+    bCount = 0
+    aCount = 0
+    lives = 3
+    score = 0
+    dead = false
+    wave = 0
+    fireT = 0.0
+    resetShip()
+    spawnWave()
+end
+
+// --- 出界环绕（越过 max+margin 回到 -margin） ---
+func wrap(float v, float max, float margin) as float
+    if v < -margin then
+        return max + margin
+    end
+    if v > max + margin then
+        return -margin
+    end
+    return v
+end
+
+// --- 发射子弹 ---
+func fire()
+    if bCount >= MAXB then
+        return
+    end
+    bx.append(px + math.cos(ang) * 16.0)
+    by.append(py + math.sin(ang) * 16.0)
+    bvx.append(math.cos(ang) * BULLET_SPD + vx)
+    bvy.append(math.sin(ang) * BULLET_SPD + vy)
+    blife.append(BULLET_LIFE)
+    bCount += 1
+    fireT = FIRE_CD
+end
+
+// --- 击中小行星：计分 + 分裂 + swap-with-last 删除 ---
+func hitAsteroid(int i)
+    score += PTS[asize[i]]
+    float x = ax[i]
+    float y = ay[i]
+    if asize[i] > 0 then
+        spawnAsteroid(x, y, asize[i] - 1, 50.0, 120.0)
+        spawnAsteroid(x, y, asize[i] - 1, 50.0, 120.0)
+    end
+    ax[i] = ax[aCount - 1]
+    ay[i] = ay[aCount - 1]
+    avx[i] = avx[aCount - 1]
+    avy[i] = avy[aCount - 1]
+    arot[i] = arot[aCount - 1]
+    arotSpd[i] = arotSpd[aCount - 1]
+    asize[i] = asize[aCount - 1]
+    aCount -= 1
+end
+
+// --- 逻辑更新 ---
+func update(float dt)
+    if dead then
+        if xge.Input.keyPressed(82) then
+            reset()
+        end
+        return
+    end
+
+    // 飞船控制：旋转 + 推力 + 阻尼
+    if xge.Input.keyDown(xge.XGE_KEY_LEFT) then
+        ang -= TURN * dt
+    end
+    if xge.Input.keyDown(xge.XGE_KEY_RIGHT) then
+        ang += TURN * dt
+    end
+    if xge.Input.keyDown(xge.XGE_KEY_UP) then
+        vx += math.cos(ang) * THRUST * dt
+        vy += math.sin(ang) * THRUST * dt
+    end
+    vx *= DAMP
+    vy *= DAMP
+    px = wrap(px + vx * dt, float(W), SHIP_R)
+    py = wrap(py + vy * dt, float(H), SHIP_R)
+
+    // 射击（射速限制）
+    if fireT > 0.0 then
+        fireT -= dt
+    end
+    if xge.Input.keyDown(xge.XGE_KEY_SPACE) and fireT <= 0.0 then
+        fire()
+    end
+
+    // 子弹移动 + 寿命（swap-remove）
+    int i = 0
+    while i < bCount
+        bx[i] += bvx[i] * dt
+        by[i] += bvy[i] * dt
+        blife[i] -= dt
+        if blife[i] <= 0.0 then
+            bx[i] = bx[bCount - 1]
+            by[i] = by[bCount - 1]
+            bvx[i] = bvx[bCount - 1]
+            bvy[i] = bvy[bCount - 1]
+            blife[i] = blife[bCount - 1]
+            bCount -= 1
+        else
+            i += 1
+        end
+    end
+
+    // 小行星移动 + 环绕 + 自转
+    i = 0
+    while i < aCount
+        ax[i] = wrap(ax[i] + avx[i] * dt, float(W), RAD[asize[i]])
+        ay[i] = wrap(ay[i] + avy[i] * dt, float(H), RAD[asize[i]])
+        arot[i] += arotSpd[i] * dt
+        i += 1
+    end
+
+    // 子弹 vs 小行星（圆-圆）
+    i = 0
+    while i < aCount
+        bool destroyed = false
+        float r = RAD[asize[i]] + 3.0
+        int j = 0
+        while j < bCount
+            float dx = bx[j] - ax[i]
+            float dy = by[j] - ay[i]
+            if math.sqrt(dx * dx + dy * dy) < r then
+                bx[j] = bx[bCount - 1]
+                by[j] = by[bCount - 1]
+                bvx[j] = bvx[bCount - 1]
+                bvy[j] = bvy[bCount - 1]
+                blife[j] = blife[bCount - 1]
+                bCount -= 1
+                hitAsteroid(i)
+                destroyed = true
+            else
+                j += 1
+            end
+            if destroyed then
+                j = bCount  // 跳出内层
+            end
+        end
+        // 命中后 swap 来的小行星本帧待处理，不 i += 1
+        if not destroyed then
+            i += 1
+        end
+    end
+
+    // 飞船 vs 小行星（圆-圆）：命 -1 并重置位置
+    i = 0
+    while i < aCount
+        float dx = px - ax[i]
+        float dy = py - ay[i]
+        float r = SHIP_R + RAD[asize[i]]
+        if math.sqrt(dx * dx + dy * dy) < r then
+            lives -= 1
+            if lives <= 0 then
+                dead = true
+            else
+                resetShip()
+            end
+            i = aCount  // 跳出循环
+        end
+        i += 1
+    end
+
+    // 一波清空后进入下一波
+    if aCount == 0 then
+        wave += 1
+        spawnWave()
+    end
+end
+
+// --- 绘制 ---
+func draw()
+    uint32 astC = xge.Color.rgba(139, 148, 158, 255)
+    uint32 astDarkC = xge.Color.rgba(70, 78, 88, 255)
+    uint32 shipC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 bulletC = xge.Color.rgba(255, 255, 255, 255)
+    uint32 textC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 warnC = xge.Color.rgba(255, 107, 94, 255)
+
+    // 小行星：圆环 + 自转刻线
+    int i = 0
+    while i < aCount
+        float r = RAD[asize[i]]
+        xge.Shape.circleStroke(ax[i], ay[i], r, 2.0, astC)
+        xge.Shape.circleFill(ax[i], ay[i], r * 0.35, astDarkC)
+        xge.Shape.line(ax[i], ay[i], ax[i] + math.cos(arot[i]) * r * 0.9, ay[i] + math.sin(arot[i]) * r * 0.9, 1.5, astDarkC)
+        i += 1
+    end
+
+    // 子弹
+    i = 0
+    while i < bCount
+        xge.Shape.circleFill(bx[i], by[i], 2.5, bulletC)
+        i += 1
+    end
+
+    // 飞船：三点绕中心旋转
+    if not dead then
+        float noseX = px + math.cos(ang) * 16.0
+        float noseY = py + math.sin(ang) * 16.0
+        float leftX = px + math.cos(ang + 2.55) * 13.0
+        float leftY = py + math.sin(ang + 2.55) * 13.0
+        float rightX = px + math.cos(ang - 2.55) * 13.0
+        float rightY = py + math.sin(ang - 2.55) * 13.0
+        xge.Shape.triangleFill(noseX, noseY, leftX, leftY, rightX, rightY, shipC)
+    end
+
+    // HUD：计分
+    if hudFont.valid then
+        hudFont.drawText("SCORE " + string(score), 14, 12, textC)
+        if dead then
+            hudFont.drawText("GAME OVER - press R", float(W / 2) - 110.0, float(H / 2) - 12.0, warnC)
+        end
+    end
+
+    // HUD：生命（小三角形图标）
+    int k = 0
+    while k < lives
+        float cx = float(W - 30 - k * 24)
+        xge.Shape.triangleFill(cx, 16.0, cx - 8.0, 34.0, cx + 8.0, 34.0, shipC)
+        k += 1
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    update(xge.XgeApp.delta())
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run asteroids.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(W, H, "xlang asteroids")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

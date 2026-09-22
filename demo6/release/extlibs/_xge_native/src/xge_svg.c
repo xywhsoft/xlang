@@ -631,7 +631,7 @@ static int __xgeSvgUriIsAbsolute(const char* sURI)
 	if ( __xgeUriSchemeLen(sURI) > 0 ) {
 		return 1;
 	}
-	return xrtPathIsAbs((str)sURI, 0) ? 1 : 0;
+	return xrtPathIsAbs(sURI) ? 1 : 0;
 }
 
 static int __xgeSvgRangeDupTrimmed(const char* sText, char** ppOut)

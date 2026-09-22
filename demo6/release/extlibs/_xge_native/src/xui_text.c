@@ -9,6 +9,7 @@ struct xui_text_layout_t {
 	xui_context pContext;
 	xui_text_layout_desc_t tDesc;
 	xui_font_metrics_t tMetrics;
+	xui_text_shape_t tShape;
 	char* sText;
 	int iTextSize;
 	xui_text_line_t* pLines;
@@ -71,6 +72,7 @@ static int __xuiTextDescValid(const xui_text_layout_desc_t* pDesc)
 
 static void __xuiTextLayoutClear(xui_text_layout pLayout)
 {
+	xuiTextShapeFree(&pLayout->tShape);
 	if ( pLayout->sText != NULL ) {
 		xrtFree(pLayout->sText);
 		pLayout->sText = NULL;
@@ -128,27 +130,38 @@ static int __xuiTextScratchReserve(xui_text_layout pLayout, int iCapacity)
 
 static int __xuiTextMeasureRange(xui_text_layout pLayout, const char* sStart, const char* sEnd, xui_vec2_t* pSize)
 {
-	xui_proxy pProxy;
-	int iSize;
-	int iRet;
+	int iStart;
+	int iEnd;
+	int i;
 
 	pSize->fX = 0.0f;
 	pSize->fY = pLayout->tMetrics.fLineHeight;
 	if ( sEnd <= sStart ) {
 		return XUI_OK;
 	}
-	iSize = (int)(sEnd - sStart);
-	iRet = __xuiTextScratchReserve(pLayout, iSize + 1);
-	if ( iRet != XUI_OK ) {
-		return iRet;
+	iStart = (int)(sStart - pLayout->sText);
+	iEnd = (int)(sEnd - pLayout->sText);
+	for ( i = 0; i < pLayout->tShape.iClusterCount; i++ ) {
+		xui_text_cluster_t* pCluster = &pLayout->tShape.pClusters[i];
+		if ( pCluster->iTextEnd <= iStart ) continue;
+		if ( pCluster->iTextStart >= iEnd ) break;
+		pSize->fX += pCluster->fAdvance;
 	}
-	memcpy(pLayout->pScratch, sStart, (size_t)iSize);
-	pLayout->pScratch[iSize] = 0;
-	pProxy = xuiInternalContextGetProxy(pLayout->pContext);
-	if ( pProxy == NULL ) {
-		return XUI_ERROR_NOT_INITIALIZED;
+	return XUI_OK;
+}
+
+static const char* __xuiTextNextCluster(xui_text_layout pLayout, const char* sAt, const char* sEnd)
+{
+	int iOffset = (int)(sAt - pLayout->sText);
+	int iLimit = (int)(sEnd - pLayout->sText);
+	int i;
+	for ( i = 0; i < pLayout->tShape.iClusterCount; i++ ) {
+		xui_text_cluster_t* pCluster = &pLayout->tShape.pClusters[i];
+		if ( pCluster->iTextEnd <= iOffset ) continue;
+		if ( pCluster->iTextStart >= iLimit ) break;
+		return pLayout->sText + (pCluster->iTextEnd < iLimit ? pCluster->iTextEnd : iLimit);
 	}
-	return pProxy->textMeasure(pProxy, pLayout->tDesc.pFont, pLayout->pScratch, pSize);
+	return sAt < sEnd ? sAt + 1 : sEnd;
 }
 
 static const char* __xuiTextPrevUtf8(const char* sBegin, const char* sAt)
@@ -193,56 +206,6 @@ static const char* __xuiTextSkipSpaces(const char* sAt, const char* sEnd)
 		sAt++;
 	}
 	return sAt;
-}
-
-static int __xuiTextUtf8Next(const char** psScan, const char* sEnd, uint32_t* pCodepoint)
-{
-	const unsigned char* pText;
-	uint32_t iCodepoint;
-
-	if ( (psScan == NULL) || (*psScan == NULL) || (pCodepoint == NULL) || (*psScan >= sEnd) ) {
-		return 0;
-	}
-	pText = (const unsigned char*)*psScan;
-	if ( pText[0] < 0x80u ) {
-		*pCodepoint = (uint32_t)pText[0];
-		*psScan += 1;
-		return 1;
-	}
-	if ( ((pText[0] & 0xE0u) == 0xC0u) && ((*psScan + 1) < sEnd) && ((pText[1] & 0xC0u) == 0x80u) ) {
-		iCodepoint = ((uint32_t)(pText[0] & 0x1Fu) << 6) | (uint32_t)(pText[1] & 0x3Fu);
-		if ( iCodepoint >= 0x80u ) {
-			*pCodepoint = iCodepoint;
-			*psScan += 2;
-			return 1;
-		}
-	}
-	if ( ((pText[0] & 0xF0u) == 0xE0u) && ((*psScan + 2) < sEnd) &&
-	     ((pText[1] & 0xC0u) == 0x80u) && ((pText[2] & 0xC0u) == 0x80u) ) {
-		iCodepoint = ((uint32_t)(pText[0] & 0x0Fu) << 12) |
-		             ((uint32_t)(pText[1] & 0x3Fu) << 6) |
-		             (uint32_t)(pText[2] & 0x3Fu);
-		if ( (iCodepoint >= 0x800u) && !((iCodepoint >= 0xD800u) && (iCodepoint <= 0xDFFFu)) ) {
-			*pCodepoint = iCodepoint;
-			*psScan += 3;
-			return 1;
-		}
-	}
-	if ( ((pText[0] & 0xF8u) == 0xF0u) && ((*psScan + 3) < sEnd) &&
-	     ((pText[1] & 0xC0u) == 0x80u) && ((pText[2] & 0xC0u) == 0x80u) && ((pText[3] & 0xC0u) == 0x80u) ) {
-		iCodepoint = ((uint32_t)(pText[0] & 0x07u) << 18) |
-		             ((uint32_t)(pText[1] & 0x3Fu) << 12) |
-		             ((uint32_t)(pText[2] & 0x3Fu) << 6) |
-		             (uint32_t)(pText[3] & 0x3Fu);
-		if ( (iCodepoint >= 0x10000u) && (iCodepoint <= 0x10FFFFu) ) {
-			*pCodepoint = iCodepoint;
-			*psScan += 4;
-			return 1;
-		}
-	}
-	*pCodepoint = 0xFFFDu;
-	*psScan += 1;
-	return 1;
 }
 
 static const char* __xuiTextFindNewline(const char* sStart, const char* sEnd, const char** psAfter)
@@ -323,7 +286,6 @@ static int __xuiTextLayoutWrappedParagraph(xui_text_layout pLayout, const char* 
 	const char* sLastBreakEnd;
 	const char* sLastBreakNext;
 	xui_vec2_t tMeasure;
-	uint32_t iCodepoint;
 	int iRet;
 
 	if ( sStart >= sEnd ) {
@@ -337,10 +299,8 @@ static int __xuiTextLayoutWrappedParagraph(xui_text_layout pLayout, const char* 
 	sLastBreakEnd = NULL;
 	sLastBreakNext = NULL;
 	while ( sScan < sEnd ) {
-		sNext = sScan;
-		if ( !__xuiTextUtf8Next(&sNext, sEnd, &iCodepoint) ) {
-			break;
-		}
+		sNext = __xuiTextNextCluster(pLayout, sScan, sEnd);
+		if ( sNext <= sScan ) break;
 		sMeasureEnd = __xuiTextTrimEndSpaces(sLineStart, sNext);
 		iRet = __xuiTextMeasureRange(pLayout, sLineStart, sMeasureEnd, &tMeasure);
 		if ( iRet != XUI_OK ) {
@@ -484,6 +444,75 @@ static float __xuiTextVerticalOffset(xui_text_layout pLayout, xui_rect_t tRect, 
 	return 0.0f;
 }
 
+XUI_API void xuiTextShapeFree(xui_text_shape_t* pShape)
+{
+	if ( pShape == NULL ) return;
+	if ( pShape->pClusters != NULL ) xrtFree(pShape->pClusters);
+	memset(pShape, 0, sizeof(*pShape));
+}
+
+XUI_API int xuiTextShape(xui_context pContext, xui_font pFont, const char* sText, int iTextSize,
+	uint32_t iFlags, xui_text_shape_t* pShape)
+{
+	xui_proxy pProxy;
+	xui_font_metrics_t tMetrics;
+	xui_vec2_t tSize;
+	int iAt;
+	int iNext;
+	int iCount;
+	int i;
+	int iRet;
+
+	if ( !xuiInternalContextIsValid(pContext) || pFont == NULL || sText == NULL ||
+	     iTextSize < -1 || pShape == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( iTextSize < 0 ) iTextSize = (int)strlen(sText);
+	memset(pShape, 0, sizeof(*pShape));
+	pShape->iSize = sizeof(*pShape);
+	pShape->iFlags = iFlags;
+	pShape->iTextSize = iTextSize;
+	pProxy = xuiInternalContextGetProxy(pContext);
+	if ( pProxy == NULL ) return XUI_ERROR_NOT_INITIALIZED;
+	if ( pProxy->textShape != NULL ) return pProxy->textShape(pProxy, pFont, sText, iTextSize, iFlags, pShape);
+
+	memset(&tMetrics, 0, sizeof(tMetrics));
+	iRet = pProxy->fontGetMetrics(pProxy, pFont, &tMetrics);
+	if ( iRet != XUI_OK ) return iRet;
+	iCount = 0;
+	for ( iAt = 0; iAt < iTextSize; iAt = xuiInternalTextGraphemeNext(sText, iTextSize, iAt) ) iCount++;
+	if ( iCount > 0 ) {
+		pShape->pClusters = (xui_text_cluster_t*)xrtCalloc((size_t)iCount, sizeof(*pShape->pClusters));
+		if ( pShape->pClusters == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
+	}
+	pShape->iClusterCount = iCount;
+	pShape->fAscent = tMetrics.fAscent;
+	pShape->fDescent = tMetrics.fDescent;
+	pShape->fLineHeight = tMetrics.fLineHeight;
+	pShape->fHeight = tMetrics.fLineHeight;
+	i = 0;
+	for ( iAt = 0; iAt < iTextSize; iAt = iNext, i++ ) {
+		char sLocal[32];
+		char* sMeasure = sLocal;
+		int iBytes;
+		iNext = xuiInternalTextGraphemeNext(sText, iTextSize, iAt);
+		pShape->pClusters[i].iSize = sizeof(pShape->pClusters[i]);
+		pShape->pClusters[i].iTextStart = iAt;
+		pShape->pClusters[i].iTextEnd = iNext;
+		iBytes = iNext - iAt;
+		if ( iBytes + 1 > (int)sizeof(sLocal) ) {
+			sMeasure = (char*)xrtMalloc((size_t)iBytes + 1u);
+			if ( sMeasure == NULL ) { xuiTextShapeFree(pShape); return XUI_ERROR_OUT_OF_MEMORY; }
+		}
+		memcpy(sMeasure, sText + iAt, (size_t)iBytes);
+		sMeasure[iBytes] = 0;
+		iRet = pProxy->textMeasure(pProxy, pFont, sMeasure, &tSize);
+		if ( sMeasure != sLocal ) xrtFree(sMeasure);
+		if ( iRet != XUI_OK ) { xuiTextShapeFree(pShape); return iRet; }
+		pShape->pClusters[i].fAdvance = tSize.fX;
+		pShape->fWidth += tSize.fX;
+	}
+	return XUI_OK;
+}
+
 XUI_API int xuiTextLayoutCreate(xui_context pContext, xui_text_layout* ppLayout, const xui_text_layout_desc_t* pDesc)
 {
 	xui_text_layout pLayout;
@@ -561,6 +590,14 @@ XUI_API int xuiTextLayoutReset(xui_text_layout pLayout, const xui_text_layout_de
 	}
 	if ( pLayout->tMetrics.fLineHeight <= 0.0f ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	iRet = xuiTextShape(pLayout->pContext, pLayout->tDesc.pFont, pLayout->sText,
+		pLayout->iTextSize, XUI_TEXT_SHAPE_DEFAULT, &pLayout->tShape);
+	if ( iRet != XUI_OK ) return iRet;
+	if ( pLayout->tShape.fLineHeight > 0.0f ) {
+		pLayout->tMetrics.fAscent = pLayout->tShape.fAscent;
+		pLayout->tMetrics.fDescent = pLayout->tShape.fDescent;
+		pLayout->tMetrics.fLineHeight = pLayout->tShape.fLineHeight;
 	}
 	return __xuiTextLayoutBuild(pLayout);
 }

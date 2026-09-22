@@ -1,0 +1,37 @@
+import mqtt
+
+extern "mqtt_fixture_open" func fixtureOpen() as point
+extern "mqtt_fixture_client" func fixtureClient(point fixture) as point
+extern "mqtt_fixture_close" func fixtureClose(point fixture) as bool
+
+
+
+func conversation(point fixture)
+    TcpStream stream = TcpStream(fixtureClient(fixture))
+    var ack = mqtt.handshake(stream, "xlang-client", keepalive = 0)
+    assert ack["returnCode"] == 0
+    Buffer incoming = mqtt.recvFrame(stream)
+    var message = mqtt.parseFrame(incoming)
+    Buffer binary = mqtt.payloadBytes(incoming)
+    assert message["topic"] == "t" and binary.len() == 4
+    assert binary.byteAt(0) == 0 and binary.byteAt(1) == 255
+    assert mqtt.frameToHex(mqtt.recvFrame(stream)) == "d000", "following frame was not consumed"
+
+    Buffer payload = Buffer()
+    for i in range(16384)
+        assert payload.appendByte(i % 256)
+    end
+    mqtt.sendFrame(stream, mqtt.publishFrame(1, "upload", payload, 7), 10000)
+    assert mqtt.parseFrame(mqtt.recvFrame(stream))["packetId"] == 7
+end
+
+
+
+func main(...) as int
+    point fixture = fixtureOpen()
+    assert fixture != null
+    conversation(fixture)
+    assert fixtureClose(fixture)
+    println("mqtt xlang TCP boundaries: PASS")
+    return 0
+end

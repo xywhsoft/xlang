@@ -1,5 +1,5 @@
 // brotli 的压缩结果和输入统使用 Buffer，避免二进制数据经过字符串转换。
-extern "xrtGetError" func __brotli_error() as string
+extern "xl6_xrt_last_error_text" func __brotli_error() as string
 extern "xbrotli_version" func __brotli_version() as string
 extern "xbrotli_compress" func __brotli_compress(point data, c_size size, c_int quality,
     c_int window, c_int mode, c_ulonglong maxInput, c_ulonglong maxOutput) as point
@@ -9,9 +9,10 @@ extern "xbrotli_decompress" func __brotli_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
 extern "xbrotli_compress_file" func __brotli_compress_file(string source, string destination,
     c_int quality, c_int window, c_int mode, c_bool overwrite,
-    c_ulonglong maxInput, c_ulonglong maxOutput) as bool
+    c_ulonglong maxInput, c_ulonglong maxOutput, var onProgress) as c_int
 extern "xbrotli_decompress_file" func __brotli_decompress_file(string source, string destination,
-    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as bool
+    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio,
+    var onProgress) as c_int
 
 
 
@@ -56,6 +57,14 @@ end
 func __brotli_check_limit(int value, string name)
     if value <= 0 then
         throw ValueError name + " must be greater than zero"
+    end
+end
+
+func __brotli_check_file_result(int status)
+    if status == -1 then
+        throw CancelledError "brotli operation cancelled"
+    elseif status != 1 then
+        throw CompressionError __brotli_error()
     end
 end
 
@@ -114,27 +123,35 @@ end
 export func compressFile(string source, string destination,
     int quality = BROTLI_DEFAULT_QUALITY, int window = BROTLI_DEFAULT_WINDOW,
     int mode = BROTLI_MODE_GENERIC, bool overwrite = true,
-    int maxInput = 268435456, int maxOutput = 536870912)
+    int maxInput = 268435456, int maxOutput = 536870912,
+    (func(int, int, int) as bool)? onProgress = null)
     __brotli_check_quality(quality)
     __brotli_check_window(window)
     __brotli_check_mode(mode)
     __brotli_check_limit(maxInput, "maxInput")
     __brotli_check_limit(maxOutput, "maxOutput")
-    if not __brotli_compress_file(source, destination, c_int(quality), c_int(window),
-        c_int(mode), c_bool(overwrite), c_ulonglong(maxInput), c_ulonglong(maxOutput)) then
-        throw CompressionError __brotli_error()
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
     end
+    int status = __brotli_compress_file(source, destination, c_int(quality), c_int(window),
+        c_int(mode), c_bool(overwrite), c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
+    __brotli_check_file_result(status)
 end
 
 export func decompressFile(string source, string destination, bool overwrite = true,
-    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000)
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
+    (func(int, int, int) as bool)? onProgress = null)
     __brotli_check_limit(maxInput, "maxInput")
     __brotli_check_limit(maxOutput, "maxOutput")
     __brotli_check_limit(maxRatio, "maxRatio")
-    if not __brotli_decompress_file(source, destination, c_bool(overwrite),
-        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio)) then
-        throw CompressionError __brotli_error()
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
     end
+    int status = __brotli_decompress_file(source, destination, c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio), progress)
+    __brotli_check_file_result(status)
 end
 
 

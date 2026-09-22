@@ -16,7 +16,6 @@ $typedPath = Join-Path $outputDir "xlir_scalar_conversion_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_scalar_conversion_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_scalar_conversion_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_scalar_conversion_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_scalar_conversion_abi_legacy.c"
 $promotionSource = Join-Path $Root "test\cases\type_mixed_int_arith_infer.xl"
 $promotionLoweredPath = Join-Path $outputDir "type_mixed_int_arith_infer.lowered.json"
 $promotionGeneratedPath = Join-Path $outputDir "type_mixed_int_arith_infer.generated.c"
@@ -172,13 +171,8 @@ try {
     & $env:ComSpec /d /v:on /c $promotionCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR mixed-width operator promotion strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy scalar conversion differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_scalar_conversion_abi_legacy.exe && build\test\xlir_scalar_conversion_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy scalar conversion differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR scalar conversion ABI gate ok: eight explicit semantic families, lossless mixed-width operator promotion, exact TypeId operands/results, deterministic mechanical C, strict compile, and legacy differential runtime semantics."
+Write-Output "XLIR scalar conversion ABI gate ok: eight explicit semantic families, lossless mixed-width operator promotion, exact TypeId operands/results, deterministic mechanical C, and strict runtime semantics."

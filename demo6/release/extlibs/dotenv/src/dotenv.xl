@@ -8,7 +8,11 @@ extern "xdotenv_has" func __dotenv_has(string key) as bool
 
 
 export func load(string path) as int
-    return __dotenv_load(path)
+    int result = __dotenv_load(path)
+    if result < 0 then
+        throw FileError "cannot load dotenv file: " + path
+    end
+    return result
 end
 
 export func get(string key, string default = "") as string
@@ -20,6 +24,9 @@ export func get(string key, string default = "") as string
 end
 
 export func set(string key, string value)
+    if key == "" then
+        throw ValueError "dotenv key must not be empty"
+    end
     __dotenv_set(key, value)
 end
 

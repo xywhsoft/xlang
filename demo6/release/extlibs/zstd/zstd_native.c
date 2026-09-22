@@ -1,3 +1,7 @@
+#define XRT_MODULE_ERROR_FORMAT
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
 #include "include/xrt_zstd.h"
 #include "third_party/zstd.h"
 
@@ -9,13 +13,46 @@
 
 
 
+/* 把 Zstandard 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xzstd_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_ZSTD_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_ZSTD_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_ZSTD_ERROR_DATA:
+		case XRT_ZSTD_ERROR_TRUNCATED:
+			return XERR_PROTOCOL;
+		case XRT_ZSTD_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_ZSTD_ERROR_STATE:
+			return XERR_STATE;
+		case XRT_ZSTD_ERROR_CANCELLED:
+			return XERR_CANCELLED;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 发布可被 XLang 和 C 调用方统一读取的结构化错误。 */
 static void xzstd_publish_error(const xrtzstderror* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "zstd operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_ZSTD_ERROR_IO;
+
+	xrtSetErrorInfo(
+		xzstd_error_kind(iCode),
+		"xlang.extlib.zstd",
+		iCode,
+		sMessage
+	);
 }
 
+
+/* 用调用参数覆盖 Zstandard 默认资源限制。 */
 static void xzstd_options(xrtzstdoptions* pOptions, int iLevel, uint64 iMaxInput,
 	uint64 iMaxOutput, uint32 iMaxRatio)
 {
@@ -26,54 +63,95 @@ static void xzstd_options(xrtzstdoptions* pOptions, int iLevel, uint64 iMaxInput
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
 }
 
-static bool xzstd_transform_file(str sSource, str sDestination, bool bCompress,
-	bool bOverwrite, const xrtzstdoptions* pOptions)
+
+/* 删除失败事务的临时文件，同时保留原始失败原因。 */
+static void xzstd_remove_temp(cstr sTemp)
+{
+	xerror* pError;
+
+	if ( sTemp == NULL ) { return; }
+	pError = xrtTakeError();
+	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pError != NULL ) {
+		xrtSetError(pError);
+		xrtErrorFree(pError);
+	}
+}
+
+
+/* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
+static int xzstd_transform_file(str sSource, str sDestination, bool bCompress,
+	bool bOverwrite, const xrtzstdoptions* pOptions, xvalue* pCallback)
 {
 	xrtzstderror tError;
-	xreader pReader = NULL;
-	xwriter pWriter = NULL;
+	xrtprogresscall tProgress;
+	xfile TempFile = NULL;
+	xreader* pReader = NULL;
+	xwriter* pWriter = NULL;
+	str sDirectory = NULL;
 	str sTemp = NULL;
-	bool bResult = FALSE;
+	bool bResult = false;
+	int iResult = 0;
+
+	xrtZstdErrorInit(&tError);
+	xrtProgressCallInit(&tProgress, pCallback);
+	pCallback = tProgress.Callback;
 	if ( sSource == NULL || sSource[0] == 0 || sDestination == NULL || sDestination[0] == 0 ) {
-		xrtSetError(xrtFormat("zstd source and destination paths are required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.zstd",
+			XRT_ZSTD_ERROR_ARGUMENT, "zstd source and destination paths are required");
+		return 0;
 	}
 	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetError(xrtFormat("zstd destination already exists: %s", sDestination), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.zstd", XRT_ZSTD_ERROR_IO,
+			"zstd destination already exists: %s", sDestination);
+		return 0;
 	}
-	sTemp = xrtPathRandom(sDestination, 0u, (str)".xrt-zstd-tmp", 0u, 8u);
 	pReader = xrtReaderOpen(sSource);
-	pWriter = sTemp != NULL ? xrtWriterOpen(sTemp, TRUE) : NULL;
-	if ( pReader == NULL || pWriter == NULL ) {
-		xrtSetError(xrtFormat("cannot open zstd file stream: %s", sSource), TRUE);
-		goto cleanup;
-	}
-	bResult = bCompress ? xrtZstdCompressStream(pReader, pWriter, pOptions, &tError) :
-		xrtZstdDecompressStream(pReader, pWriter, pOptions, &tError);
-	if ( !bResult ) { xzstd_publish_error(&tError); }
+	if ( pReader == NULL ) { goto cleanup; }
+	sDirectory = xrtPathParent(sDestination);
+	if ( sDirectory == NULL ) { goto cleanup; }
+	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
+		".xrt-zstd-", ".tmp", &sTemp);
+	if ( TempFile == NULL ) { goto cleanup; }
+	pWriter = xrtWriterTakeFile(&TempFile);
+	if ( pWriter == NULL ) { goto cleanup; }
+
+	bResult = bCompress ? xrtZstdCompressStream(pReader, pWriter, pOptions,
+		pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError) :
+		xrtZstdDecompressStream(pReader, pWriter, pOptions,
+			pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
+	if ( !bResult && !tProgress.InvokeFailed ) { xzstd_publish_error(&tError); }
 	if ( bResult && !xrtWriterFlush(pWriter) ) {
-		xrtSetError(xrtFormat("cannot flush zstd destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+		bResult = false;
 	}
 
 cleanup:
-	xrtReaderDestroy(pReader);
-	xrtWriterDestroy(pWriter);
-	if ( bResult && !xrtFileRename(sTemp, sDestination, bOverwrite) ) {
-		xrtSetError(xrtFormat("cannot commit zstd destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
+	if ( !bResult ) {
+		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
+			(tError.iCode == XRT_ZSTD_OK) ) {
+			xrtSetErrorInfo(XERR_IO, "xlang.extlib.zstd",
+				XRT_ZSTD_ERROR_IO, "zstd file operation failed");
+		}
+		xzstd_remove_temp(sTemp);
 	}
-	if ( !bResult && sTemp != NULL && xrtFileExists(sTemp) ) { xrtFileDelete(sTemp); }
+	xrtFree(sDirectory);
 	xrtFree(sTemp);
-	return bResult;
+	if ( bResult ) { iResult = 1; }
+	else if ( tProgress.InvokeFailed ) { iResult = -2; }
+	else if ( tError.iCode == XRT_ZSTD_ERROR_CANCELLED ) { iResult = -1; }
+	return iResult;
 }
 
 
 
 XZSTD_EXPORT bool xzstd_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XZSTD_EXPORT const char* xzstd_version(void)
@@ -83,7 +161,7 @@ XZSTD_EXPORT const char* xzstd_version(void)
 
 XZSTD_EXPORT const char* xzstd_last_error(void)
 {
-	return xrtGetError();
+	return xrtErrorMessage(xrtGetError());
 }
 
 
@@ -93,7 +171,7 @@ XZSTD_EXPORT void* xzstd_compress(const void* pData, size_t iSize, int iLevel,
 {
 	xrtzstdoptions tOptions;
 	xrtzstderror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xzstd_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
 	if ( !xrtZstdCompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -108,7 +186,7 @@ XZSTD_EXPORT void* xzstd_decompress(const void* pData, size_t iSize, uint64 iMax
 {
 	xrtzstdoptions tOptions;
 	xrtzstderror tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xzstd_options(&tOptions, 0, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtZstdDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -118,22 +196,22 @@ XZSTD_EXPORT void* xzstd_decompress(const void* pData, size_t iSize, uint64 iMax
 	return pOutput;
 }
 
-XZSTD_EXPORT bool xzstd_compress_file(str sSource, str sDestination, int iLevel,
-	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput)
+XZSTD_EXPORT int xzstd_compress_file(str sSource, str sDestination, int iLevel,
+	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput, xvalue* pCallback)
 {
 	xrtzstdoptions tOptions;
 	xrtClearError();
 	xzstd_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
-	return xzstd_transform_file(sSource, sDestination, TRUE, bOverwrite, &tOptions);
+	return xzstd_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XZSTD_EXPORT bool xzstd_decompress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
+XZSTD_EXPORT int xzstd_decompress_file(str sSource, str sDestination, bool bOverwrite,
+	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio, xvalue* pCallback)
 {
 	xrtzstdoptions tOptions;
 	xrtClearError();
 	xzstd_options(&tOptions, 0, iMaxInput, iMaxOutput, iMaxRatio);
-	return xzstd_transform_file(sSource, sDestination, FALSE, bOverwrite, &tOptions);
+	return xzstd_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
 
@@ -163,9 +241,9 @@ XZSTD_EXPORT bool xzstd_compressor_update(void* pHandle, const void* pData, size
 	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
 	if ( !xrtZstdCompressorUpdate(pCompressor, pData, iSize) ) {
 		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XZSTD_EXPORT bool xzstd_compressor_finish(void* pHandle)
@@ -173,15 +251,15 @@ XZSTD_EXPORT bool xzstd_compressor_finish(void* pHandle)
 	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
 	if ( !xrtZstdCompressorFinish(pCompressor) ) {
 		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XZSTD_EXPORT void* xzstd_compressor_drain(void* pHandle)
 {
 	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
-	xbuffer pOutput = xrtZstdCompressorDrainBuffer(pCompressor);
+	xbuffer* pOutput = xrtZstdCompressorDrainBuffer(pCompressor);
 	if ( pOutput == NULL ) {
 		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
 		return NULL;
@@ -227,9 +305,9 @@ XZSTD_EXPORT bool xzstd_decompressor_update(void* pHandle, const void* pData, si
 	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
 	if ( !xrtZstdDecompressorUpdate(pDecompressor, pData, iSize) ) {
 		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XZSTD_EXPORT bool xzstd_decompressor_finish(void* pHandle)
@@ -237,15 +315,15 @@ XZSTD_EXPORT bool xzstd_decompressor_finish(void* pHandle)
 	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
 	if ( !xrtZstdDecompressorFinish(pDecompressor) ) {
 		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XZSTD_EXPORT void* xzstd_decompressor_drain(void* pHandle)
 {
 	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
-	xbuffer pOutput = xrtZstdDecompressorDrainBuffer(pDecompressor);
+	xbuffer* pOutput = xrtZstdDecompressorDrainBuffer(pDecompressor);
 	if ( pOutput == NULL ) {
 		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
 		return NULL;

@@ -1233,8 +1233,10 @@ XUI_API int xuiToolbarGetItemGroup(xui_widget pWidget, int iIndex)
 XUI_API int xuiToolbarSetItemTooltip(xui_widget pWidget, int iIndex, const char* sText)
 {
 	xui_toolbar_data_t* pData = __xuiToolbarGetData(pWidget);
+	const char* sValue = (sText != NULL) ? sText : "";
 	if ( (pData == NULL) || (iIndex < 0) || (iIndex >= pData->iItemCount) ) return XUI_ERROR_INVALID_ARGUMENT;
-	pData->arrItems[iIndex].sTooltip = (sText != NULL) ? sText : "";
+	if ( pData->arrItems[iIndex].sTooltip != NULL && strcmp(pData->arrItems[iIndex].sTooltip, sValue) == 0 ) return XUI_OK;
+	pData->arrItems[iIndex].sTooltip = sValue;
 	pData->iChangeCount++;
 	return XUI_OK;
 }
@@ -1256,8 +1258,11 @@ XUI_API const char* xuiToolbarGetHoverTooltip(xui_widget pWidget)
 XUI_API int xuiToolbarSetItemEnabled(xui_widget pWidget, int iIndex, int bEnabled)
 {
 	xui_toolbar_data_t* pData = __xuiToolbarGetData(pWidget);
+	int bWasEnabled;
 	if ( (pData == NULL) || (iIndex < 0) || (iIndex >= pData->iItemCount) ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( pData->arrItems[iIndex].iType == XUI_TOOLBAR_ITEM_SEPARATOR ) return XUI_OK;
+	bWasEnabled = (pData->arrItems[iIndex].iState & XUI_TOOLBAR_ITEM_ENABLED) != 0;
+	if ( bWasEnabled == (bEnabled != 0) ) return XUI_OK;
 	if ( bEnabled ) pData->arrItems[iIndex].iState |= XUI_TOOLBAR_ITEM_ENABLED;
 	else {
 		pData->arrItems[iIndex].iState &= ~XUI_TOOLBAR_ITEM_ENABLED;
@@ -1279,6 +1284,7 @@ XUI_API int xuiToolbarSetItemChecked(xui_widget pWidget, int iIndex, int bChecke
 {
 	xui_toolbar_data_t* pData = __xuiToolbarGetData(pWidget);
 	if ( (pData == NULL) || (iIndex < 0) || (iIndex >= pData->iItemCount) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( ((pData->arrItems[iIndex].iState & XUI_TOOLBAR_ITEM_CHECKED) != 0) == (bChecked != 0) ) return XUI_OK;
 	if ( bChecked ) pData->arrItems[iIndex].iState |= XUI_TOOLBAR_ITEM_CHECKED;
 	else pData->arrItems[iIndex].iState &= ~XUI_TOOLBAR_ITEM_CHECKED;
 	pData->iChangeCount++;

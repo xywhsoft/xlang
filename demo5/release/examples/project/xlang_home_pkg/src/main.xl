@@ -1,5 +1,0 @@
-import pkg.envonly
-
-func main() as int
-	return pkg.envonly.value()
-end

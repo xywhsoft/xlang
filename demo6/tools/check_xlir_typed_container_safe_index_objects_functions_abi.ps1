@@ -17,7 +17,6 @@ $typedJson = Join-Path $outputDir "xlir_typed_safe_index_objects_functions.typed
 $loweredJson = Join-Path $outputDir "xlir_typed_safe_index_objects_functions.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_typed_safe_index_objects_functions.c"
 $generatedCSecond = Join-Path $outputDir "xlir_typed_safe_index_objects_functions.second.c"
-$legacyC = Join-Path $outputDir "xlir_typed_safe_index_objects_functions.legacy.c"
 
 foreach ( $path in @($xl, $source, $genericHost, $support) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -193,18 +192,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR typed safe-index nominal strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed safe-index nominal legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_typed_safe_index_objects_functions.legacy.c test\cases\cgen_class_host.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_typed_safe_index_objects_functions.legacy.exe && build\test\xlir_typed_safe_index_objects_functions.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed safe-index nominal legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR typed safe-index nominal ABI gate passed: canonical dynamic lookup carriers, exact Pair/native/union/closure nullable projections, null-handle presence, deterministic strict C, runtime assertions, and legacy differential semantics."
+Write-Output "XLIR typed safe-index nominal ABI gate passed: canonical dynamic lookup carriers, exact Pair/native/union/closure nullable projections, null-handle presence, deterministic strict C, and runtime assertions."

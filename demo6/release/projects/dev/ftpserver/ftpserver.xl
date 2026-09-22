@@ -17,19 +17,13 @@
 //     DELE/MKD/RMD, with virtual-path root confinement.
 //
 // Design constraints:
-//   * TcpStream/TcpServer are native-backed. Verified this session that a
-//     TcpStream CAN be passed by value to a helper (the handle survives the
-//     call; "作函数参数传入 OK" holds) — so sendLine/recvLine/
-//     sendBytesRetry take TcpStream directly. However a class must NEVER be
-//     re-wrapped twice from the same point: probing showed that double-wrapping
-//     the same handle corrupts the XRT heap (0xC0000374). So each accepted
-//     handle is wrapped exactly once, for its whole lifetime.
+//   * TcpStream/TcpServer are typed native owners. Helpers pass these objects
+//     directly and never reconstruct another owner from the same raw handle.
 //   * PASV data channel: ONE persistent TcpServer listener per client session,
 //     created up front and reused for every transfer. PASV just reports its
 //     port; the actual accept happens lazily when LIST/RETR/STOR arrives (by
-//     then the client has connected). This avoids (a) re-wrap heap corruption
-//     from recreating the listener per PASV, and (b) starving the command
-//     channel by blocking in accept inside the PASV handler.
+//     then the client has connected). This avoids starving the command channel
+//     by blocking in accept inside the PASV handler.
 //   * int(): defensive parsing of the 227 reply and command verbs.
 
 const int DEFAULT_PORT = 12121
@@ -43,8 +37,6 @@ const int DATA_CLOSE_DELAY = 300        // ms: let OS deliver data before aborti
                                          // (XRT close() is abortive and discards unacked
                                          // send buffer; a short sleep lets the receiver
                                          // drain the kernel buffer first.)
-
-point ZERO                             // default-initialized point; failed connect/accept returns this
 
 // ---- global scalars ----
 string gRootDir = ""                   // absolute filesystem root, set once before serving
@@ -253,11 +245,9 @@ end
 
 
 // ============================================================
-// SERVER: per-client session. point handle passed in; TcpStream
-// constructed exactly once here and used inline for the whole session.
+// SERVER: per-client session. The accepted TcpStream remains the sole owner.
 // ============================================================
-func handleClient(point clientHandle, string peerAddr) as int
-    TcpStream client = TcpStream(clientHandle)
+func handleClient(TcpStream client, string peerAddr) as int
     string inbuf = ""
     bool authenticated = false
     string username = ""
@@ -265,14 +255,15 @@ func handleClient(point clientHandle, string peerAddr) as int
     string typeMode = "I"
 
     // One persistent passive-mode data listener per client session, created up
-    // front and reused for every PASV transfer. This avoids both (a) the XRT
-    // heap corruption that happens when a TcpServer is re-wrapped over the same
-    // point, and (b) the eager-accept deadlock where blocking in accept inside
-    // the PASV handler starves the command channel. The client connects to
+    // front and reused for every PASV transfer. This avoids the eager-accept
+    // deadlock where blocking in accept inside the PASV handler starves the
+    // command channel. The client connects to
     // dataListenPort after each PASV; we accept lazily at transfer time, by
     // which point the client has already connected.
-    point dlp = tcp.listen(0, "127.0.0.1", 4)
-    TcpServer dataListener = TcpServer(dlp)
+    TcpServer dataListener = tcp.listen(0, "127.0.0.1", 4)
+    if dataListener.handle == null then
+        return 1
+    end
     int dataListenPort = dataListener.port()
     bool dataPending = false        // PASV sent; client should be (connecting to) data port
 
@@ -382,11 +373,10 @@ func handleClient(point clientHandle, string peerAddr) as int
             else
                 dataPending = false
                 // Lazily accept the connection the client opened after PASV.
-                point dcp = dataListener.accept(PASV_ACCEPT_TIMEOUT)
-                if dcp == ZERO then
+                TcpStream dataStream = dataListener.accept(PASV_ACCEPT_TIMEOUT)
+                if dataStream.handle == null then
                     sendLine(client, "425 Cannot open data connection.")
                 else
-                    TcpStream dataStream = TcpStream(dcp)
                     string vp = cwd
                     if argStr != "" then
                         vp = resolveVirtual(cwd, argStr)
@@ -411,11 +401,10 @@ func handleClient(point clientHandle, string peerAddr) as int
                 sendLine(client, "501 Missing filename.")
             else
                 dataPending = false
-                point dcp = dataListener.accept(PASV_ACCEPT_TIMEOUT)
-                if dcp == ZERO then
+                TcpStream dataStream = dataListener.accept(PASV_ACCEPT_TIMEOUT)
+                if dataStream.handle == null then
                     sendLine(client, "425 Cannot open data connection.")
                 else
-                    TcpStream dataStream = TcpStream(dcp)
                     string vp = resolveVirtual(cwd, argStr)
                     string fp = virtualToFs(gRootDir, vp)
                     if not (file.exists(fp) and underRoot(gRootDir, fp)) then
@@ -437,11 +426,10 @@ func handleClient(point clientHandle, string peerAddr) as int
                 sendLine(client, "501 Missing filename.")
             else
                 dataPending = false
-                point dcp = dataListener.accept(PASV_ACCEPT_TIMEOUT)
-                if dcp == ZERO then
+                TcpStream dataStream = dataListener.accept(PASV_ACCEPT_TIMEOUT)
+                if dataStream.handle == null then
                     sendLine(client, "425 Cannot open data connection.")
                 else
-                    TcpStream dataStream = TcpStream(dcp)
                     string vp = resolveVirtual(cwd, argStr)
                     string fp = virtualToFs(gRootDir, vp)
                     if not underRoot(gRootDir, fp) then
@@ -524,22 +512,21 @@ end
 // ============================================================
 func runClientTest() as int
     // retry-connect: the server thread may not have called listen() yet
-    point cp = ZERO
+    TcpStream cmd = TcpStream()
     int attempts = 0
-    while cp == ZERO and attempts < 50
-        cp = tcp.connect("127.0.0.1", gTestPort, 2000)
-        if cp == ZERO then
+    while cmd.handle == null and attempts < 50
+        cmd = tcp.connect("127.0.0.1", gTestPort, 2000)
+        if cmd.handle == null then
             time.sleep(50)
         end
         attempts = attempts + 1
     end
-    if cp == ZERO then
+    if cmd.handle == null then
         println("  [ FAIL ] client could not connect to server (port " + gTestPort.toString() + ")")
         gFailed = gFailed + 1
         return 1
     end
 
-    TcpStream cmd = TcpStream(cp)
     string inbuf = ""
     string reply = ""
     string nb = ""
@@ -627,9 +614,8 @@ func runClientTest() as int
         check(o and string.startsWith(r, "227"), "17. PASV", "reply=" + r)
         int dp = parsePasvPort(r)
         check(dp > 0, "17b. parse 227 port", "port=" + dp.toString())
-        point dcp = tcp.connect("127.0.0.1", dp, 5000)
-        check(dcp != ZERO, "17c. connect data channel", "")
-        TcpStream data = TcpStream(dcp)
+        TcpStream data = tcp.connect("127.0.0.1", dp, 5000)
+        check(data.handle != null, "17c. connect data channel", "")
         r, n2, o = cmdExchange(cmd, inbuf, "RETR hello.txt")
         inbuf = n2
         check(o and string.startsWith(r, "150"), "18. RETR hello.txt -> 150", "reply=" + r)
@@ -665,9 +651,8 @@ func runClientTest() as int
         inbuf = n2
         check(o and string.startsWith(r, "227"), "22. PASV (STOR)", "reply=" + r)
         int dp = parsePasvPort(r)
-        point dcp = tcp.connect("127.0.0.1", dp, 5000)
-        check(dcp != ZERO, "22b. connect data channel", "")
-        TcpStream data = TcpStream(dcp)
+        TcpStream data = tcp.connect("127.0.0.1", dp, 5000)
+        check(data.handle != null, "22b. connect data channel", "")
         r, n2, o = cmdExchange(cmd, inbuf, "STOR upload.txt")
         inbuf = n2
         check(o and string.startsWith(r, "150"), "23. STOR upload.txt -> 150", "reply=" + r)
@@ -697,8 +682,7 @@ func runClientTest() as int
         inbuf = n2
         check(o and string.startsWith(r, "227"), "25. PASV (RETR upload)", "reply=" + r)
         int dp = parsePasvPort(r)
-        point dcp = tcp.connect("127.0.0.1", dp, 5000)
-        TcpStream data = TcpStream(dcp)
+        TcpStream data = tcp.connect("127.0.0.1", dp, 5000)
         r, n2, o = cmdExchange(cmd, inbuf, "RETR upload.txt")
         inbuf = n2
         check(o and string.startsWith(r, "150"), "26. RETR upload.txt -> 150", "reply=" + r)
@@ -729,8 +713,7 @@ func runClientTest() as int
         inbuf = n2
         check(o and string.startsWith(r, "227"), "29. PASV (LIST)", "reply=" + r)
         int dp = parsePasvPort(r)
-        point dcp = tcp.connect("127.0.0.1", dp, 5000)
-        TcpStream data = TcpStream(dcp)
+        TcpStream data = tcp.connect("127.0.0.1", dp, 5000)
         r, n2, o = cmdExchange(cmd, inbuf, "LIST")
         inbuf = n2
         check(o and string.startsWith(r, "150"), "30. LIST -> 150", "reply=" + r)
@@ -870,12 +853,11 @@ func main(...) as int
         end
         gVerbose = true
 
-        point lp = tcp.listen(port, "127.0.0.1", 16)
-        if lp == ZERO then
+        TcpServer srv = tcp.listen(port, "127.0.0.1", 16)
+        if srv.handle == null then
             println("FATAL: cannot listen on 127.0.0.1:" + port.toString())
             return 1
         end
-        TcpServer srv = TcpServer(lp)
         int bound = srv.port()
         println("FTP server listening on 127.0.0.1:" + bound.toString())
         println("root: " + gRootDir)
@@ -883,9 +865,9 @@ func main(...) as int
         println("press Ctrl+C to stop")
         println("")
         while true
-            point ch = srv.accept(-1)
-            if ch != ZERO then
-                handleClient(ch, "client")
+            TcpStream client = srv.accept(-1)
+            if client.handle != null then
+                handleClient(client, "client")
             end
         end
         return 0
@@ -901,13 +883,12 @@ func main(...) as int
     gRootDir = gTestRoot
     gVerbose = true
 
-    point lp = tcp.listen(0, "127.0.0.1", 4)
-    if lp == ZERO then
+    TcpServer srv = tcp.listen(0, "127.0.0.1", 4)
+    if srv.handle == null then
         println("FATAL: tcp.listen failed")
         cleanupTestRoot(gTestRoot)
         return 1
     end
-    TcpServer srv = TcpServer(lp)
     gTestPort = srv.port()
     println("test server listening on 127.0.0.1:" + gTestPort.toString())
     println("test root: " + gTestRoot)
@@ -915,10 +896,10 @@ func main(...) as int
     // client runs in a worker thread; server accepts the single client in main.
     thread clientThread = thread(runClientTest)
 
-    point ch = srv.accept(60000)
+    TcpStream client = srv.accept(60000)
     int rc = 0
-    if ch != ZERO then
-        rc = handleClient(ch, "selftest-client")
+    if client.handle != null then
+        rc = handleClient(client, "selftest-client")
     else
         println("FATAL: no client connected within 60s")
         gFailed = gFailed + 1

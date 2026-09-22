@@ -92,7 +92,7 @@ Push-Location $Root
 try {
     & $xl run $source
     if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy nullable coalesce differential runtime failed"
+        throw "XLIR nullable coalesce CLI runtime failed"
     }
     $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\test\nullable_expression_semantics_coalesce_generated.c test\cases\xlir_program_null_args_host.c !XL6_CGEN_LINKS! -o build\tmp\nullable_expression_semantics.coalesce.exe && build\tmp\nullable_expression_semantics.coalesce.exe'
     & $env:ComSpec /d /v:on /c $command
@@ -103,4 +103,4 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR nullable coalesce ABI gate passed: nested T? ?? T? preserves its exact nullable TypeId through explicit unwrap/wrap CFG, outer projection remains non-null, fallback evaluation is lazy, C is deterministic, and strict/legacy runtime semantics agree."
+Write-Output "XLIR nullable coalesce ABI gate passed: nested T? ?? T? preserves its exact nullable TypeId through explicit unwrap/wrap CFG, outer projection remains non-null, fallback evaluation is lazy, and deterministic strict-C and CLI runtimes agree."

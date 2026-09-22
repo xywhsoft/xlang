@@ -1,3 +1,6 @@
+/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_toml.h"
 
 #include <stdio.h>
@@ -30,56 +33,69 @@ static int testParseAndRoundTrip(void)
 		"\n[[users]]\nname = \"Alice\"\n"
 		"\n[[users]]\nname = \"Bob\"\n";
 	xrttomlerror tError;
-	xvalue pRoot = xrtTomlParseMemory(sSource, sizeof(sSource) - 1u, NULL, &tError);
-	xvalue pDate;
-	xvalue pLocal;
-	xvalue pPrecise;
-	xvalue pUsers;
-	xbuffer pEncoded;
-	xvalue pAgain;
+	xvalue* pRoot = xrtTomlParseMemory(sSource, sizeof(sSource) - 1u, NULL, &tError);
+	xvalue* pDate;
+	xvalue* pLocal;
+	xvalue* pPrecise;
+	xvalue* pUsers;
+	xbuffer* pEncoded;
+	xvalue* pAgain;
+	xrttomldatetime tDateTime;
+	xstrview tTitle;
+	xstrview tName;
 	int iKind = 0;
 	int bOk = 1;
 	bOk &= check(pRoot != NULL && tError.iCode == XRT_TOML_OK,
 		tError.sMessage[0] != 0 ? tError.sMessage : "parse failed");
 	if ( pRoot == NULL ) { return 0; }
-	bOk &= check(strcmp((const char*)xvoTableGetText(pRoot, "title", 0u),
-		"TOML example") == 0, "string value mismatch");
-	bOk &= check(xvoTableGetInt(pRoot, "count", 0u) == 42,
-		"integer value mismatch");
-	pDate = xvoTableGetValue(pRoot, "date", 0u);
-	pLocal = xvoTableGetValue(pRoot, "local", 0u);
-	pPrecise = xvoTableGetValue(pRoot, "precise", 0u);
+	bOk &= check(xrtValueGetString(xrtValueObjectGet(pRoot, xrtStrView("title")),
+		&tTitle) && tTitle.Size == 12u && memcmp(tTitle.Data, "TOML example", 12u) == 0,
+		"string value mismatch");
+	{
+		int64 iCount = 0;
+		bOk &= check(xrtValueGetInt(xrtValueObjectGet(pRoot, xrtStrView("count")),
+			&iCount) && iCount == 42, "integer value mismatch");
+	}
+	pDate = xrtValueObjectGet(pRoot, xrtStrView("date"));
+	pLocal = xrtValueObjectGet(pRoot, xrtStrView("local"));
+	pPrecise = xrtValueObjectGet(pRoot, xrtStrView("precise"));
 	bOk &= check(xrtTomlIsDateTimeValue(pDate, &iKind) &&
 		iKind == XRT_TOML_DATE, "local date type mismatch");
 	bOk &= check(xrtTomlIsDateTimeValue(pLocal, &iKind) &&
 		iKind == XRT_TOML_DATETIME &&
-		xrtTomlGetDateTime(pLocal)->iMicrosecond == 123456,
+		xrtTomlGetDateTime(pLocal, &tDateTime) && tDateTime.iMicrosecond == 123456,
 		"local datetime precision mismatch");
-	bOk &= check(xvoType(xvoTableGetValue(pRoot, "instant", 0u)) == XVO_DT_TIME,
-		"offset datetime should map to XRT time at second precision");
+	bOk &= check(xrtTomlIsDateTimeValue(xrtValueObjectGet(pRoot,
+		xrtStrView("instant")), &iKind) && iKind == XRT_TOML_OFFSET_DATETIME,
+		"offset datetime type mismatch");
 	bOk &= check(xrtTomlIsDateTimeValue(pPrecise, &iKind) &&
 		iKind == XRT_TOML_OFFSET_DATETIME &&
-		xrtTomlGetDateTime(pPrecise)->iMicrosecond == 250000,
+		xrtTomlGetDateTime(pPrecise, &tDateTime) && tDateTime.iMicrosecond == 250000,
 		"fractional offset datetime must remain lossless");
-	pUsers = xvoTableGetValue(pRoot, "users", 0u);
-	bOk &= check(xvoIsArray(pUsers) && xvoArrayItemCount(pUsers) == 2u &&
-		strcmp((const char*)xvoTableGetText(xvoArrayGetValue(pUsers, 1u),
-			"name", 0u), "Bob") == 0, "array-of-tables mismatch");
+	pUsers = xrtValueObjectGet(pRoot, xrtStrView("users"));
+	bOk &= check(xrtValueType(pUsers) == XVALUE_ARRAY && xrtValueCount(pUsers) == 2u &&
+		xrtValueGetString(xrtValueObjectGet(xrtValueArrayGet(pUsers, 1u),
+			xrtStrView("name")), &tName) && tName.Size == 3u &&
+		memcmp(tName.Data, "Bob", 3u) == 0, "array-of-tables mismatch");
 
 	pEncoded = xrtTomlStringify(pRoot, NULL, &tError);
-	bOk &= check(pEncoded != NULL && strstr((const char*)pEncoded->Buffer,
+	bOk &= check(pEncoded != NULL && strstr((const char*)pEncoded->Data,
 		"[[users]]") != NULL, "deterministic encoder omitted array table");
-	pAgain = pEncoded != NULL ? xrtTomlParseMemory(pEncoded->Buffer,
-		pEncoded->Length, NULL, &tError) : NULL;
+	pAgain = pEncoded != NULL ? xrtTomlParseMemory(pEncoded->Data,
+		pEncoded->Size, NULL, &tError) : NULL;
 	if ( pAgain == NULL && pEncoded != NULL ) {
 		fprintf(stderr, "encoded TOML:\n%.*s\nparse error: %s\n",
-			(int)pEncoded->Length, (const char*)pEncoded->Buffer, tError.sMessage);
+			(int)pEncoded->Size, (const char*)pEncoded->Data, tError.sMessage);
 	}
-	bOk &= check(pAgain != NULL && xvoTableGetInt(pAgain, "count", 0u) == 42,
-		"encoded TOML did not parse back");
-	xvoUnref(pAgain);
+	{
+		int64 iCount = 0;
+		bOk &= check(pAgain != NULL && xrtValueGetInt(xrtValueObjectGet(pAgain,
+			xrtStrView("count")), &iCount) && iCount == 42,
+			"encoded TOML did not parse back");
+	}
+	xrtValueRelease(pAgain);
 	xrtBufferDestroy(pEncoded);
-	xvoUnref(pRoot);
+	xrtValueRelease(pRoot);
 	return bOk;
 }
 
@@ -87,28 +103,26 @@ static int testErrorsAndLimits(void)
 {
 	xrttomlerror tError;
 	xrttomloptions tOptions;
-	xvalue pValue;
+	xvalue* pValue;
 	int bOk = 1;
 	pValue = xrtTomlParseMemory("a = [1,", 7u, NULL, &tError);
 	bOk &= check(pValue == NULL && tError.iCode == XRT_TOML_ERROR_FORMAT &&
 		tError.iLine != 0u, "invalid input must report a typed location error");
-	xvoUnref(pValue);
+	xrtValueRelease(pValue);
 	xrtTomlOptionsInit(&tOptions);
 	tOptions.tLimits.iMaxInputBytes = 4u;
 	pValue = xrtTomlParseMemory("value = 1", 9u, &tOptions, &tError);
 	bOk &= check(pValue == NULL && tError.iCode == XRT_TOML_ERROR_LIMIT,
 		"input limit was not enforced");
-	xvoUnref(pValue);
+	xrtValueRelease(pValue);
 	return bOk;
 }
 
 int main(void)
 {
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	bOk = testParseAndRoundTrip();
 	bOk &= testErrorsAndLimits();
-	xrtUnit();
 	if ( bOk ) { puts("test_toml: PASS"); }
 	return bOk ? 0 : 2;
 }

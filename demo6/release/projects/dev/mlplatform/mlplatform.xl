@@ -1399,17 +1399,13 @@ end
 // ============================================================================
 
 class TapeNode
-    derive value
-
     array<Tensor> inputs = array[]
     Tensor output
     string opName = "?"
-    var localGradFunc = null
+    func() as int localGradFunc
 end
 
 class Tape
-    derive value
-
     array<TapeNode> nodes = array[]
 end
 
@@ -1422,7 +1418,7 @@ func requiresGrad(Tensor t, bool v)
     t.requiresGrad = v
 end
 
-func tapeRecord(Tape tape, array<Tensor> inputs, Tensor output, string opName, var fn)
+func tapeRecord(Tape tape, array<Tensor> inputs, Tensor output, string opName, func() as int fn)
     if tape == null then
         return
     end
@@ -1464,7 +1460,7 @@ func tapeBackward(Tape tape, Tensor loss, float seed)
     while k >= 0
         TapeNode node = tape.nodes[k]
         if node.output != null and node.output.grad != null and node.localGradFunc != null then
-            var fn = node.localGradFunc
+            func() as int fn = node.localGradFunc
             fn()
         end
         k -= 1
@@ -4554,8 +4550,23 @@ end
 
 func tensorToVar(Tensor t) as var
     var d = dict{}
-    d["shape"] = t.shape
-    d["data"] = t.data
+    var shape = array[]
+    int i = 0
+    while i < t.shape.length
+        shape.append(t.shape[i])
+        i += 1
+    end
+
+    var data = array[]
+    int j = 0
+    while j < t.data.length
+        data.append(t.data[j])
+        j += 1
+    end
+
+    // JSON 持久化边界只保存动态值树，不泄露 typed-container 运行时对象。
+    d["shape"] = shape
+    d["data"] = data
     return d
 end
 
@@ -5539,9 +5550,6 @@ func main(...) as int
 
     return 0
 end
-
-
-
 
 
 

@@ -1,15 +1,0 @@
-xlang-onnxruntime-smoke"
-xlang.demo({2 string tensor and metadata smoke:V
-
-xy
-identity_0"Identityidentity_string_metaZ
-x
-
-
-b
-y
-
-
-Br
-purposestring_tensorr
-ownerxlang

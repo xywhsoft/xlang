@@ -19,10 +19,16 @@ try {
     if ($c -cne [IO.File]::ReadAllText("$prefix.repeat.c")) {
         throw 'Cleanup reentry C is not deterministic'
     }
-    if ($c -notmatch 'xvalue\* xlir_released = (s[0-9]+); \1 = NULL; xrtValueRelease\(xlir_released\)') {
+    $detach = [regex]::Match($c,
+        'xvalue\* xlir_released;.*?\{ &\(xlir_released\), &\((?<source>s[0-9]+)\), sizeof\(xlir_released\) \},.*?\{ &\((?<cleared>s[0-9]+)\), &\(xvalue\*\)\{0\}, sizeof\(s[0-9]+\) \},.*?xl6SlotRuntimeV1Get\(\)->Apply.*?xrtValueRelease\(xlir_released\)',
+        'Singleline')
+    if (!$detach.Success -or $detach.Groups['source'].Value -ne $detach.Groups['cleared'].Value) {
         throw 'RELEASE must detach the owner before invoking its destructor'
     }
-    Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    if (!(Test-Path -LiteralPath build/test/xl.dll) -or
+        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
+        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
+    }
     & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter -Wno-unused-const-variable -Wno-missing-field-initializers -Ibuild/test test/cases/xlir_cleanup_detach_reentry_host.c release/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cleanup reentry strict C compile failed' }
     & "$prefix.exe"

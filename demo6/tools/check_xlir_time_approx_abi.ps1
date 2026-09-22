@@ -8,14 +8,12 @@ if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_time_literals.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $loweredPath = Join-Path $outputDir "xlir_time_approx_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_time_approx_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_time_approx_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_time_approx_abi_legacy.c"
 
-foreach ( $path in @($xl, $source, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR time approximate ABI gate input is missing: $path"
     }
@@ -93,15 +91,8 @@ try {
         throw "XLIR time approximate strict-C runtime failed"
     }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy time approximate differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $legacySupport !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_time_approx_abi_legacy.exe && build\test\xlir_time_approx_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy time approximate differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR time approximate ABI gate passed: exact same-TypeId time/time-to-bool no-raise RuntimeOp, fixed xrtTimeNear tolerance, deterministic strict C and legacy differential runtime semantics."
+Write-Output "XLIR time approximate ABI gate passed: exact same-TypeId time/time-to-bool no-raise RuntimeOp, fixed xrtTimeNear tolerance, and deterministic strict-C runtime semantics."

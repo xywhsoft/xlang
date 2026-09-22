@@ -113,14 +113,14 @@ static void __xrtCrc32SetError(xrtcrc32error* pError, int iCode, int iBackend,
 	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
 }
 
-XXAPI void xrtCrc32ErrorInit(xrtcrc32error* pError)
+XRT_API void xrtCrc32ErrorInit(xrtcrc32error* pError)
 {
 	if (pError == NULL) { return; }
 	memset(pError, 0, sizeof(*pError));
 	pError->iCode = XRT_CRC32_OK;
 }
 
-XXAPI void xrtCrc32OptionsInit(xrtcrc32options* pOptions)
+XRT_API void xrtCrc32OptionsInit(xrtcrc32options* pOptions)
 {
 	if (pOptions == NULL) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -132,7 +132,7 @@ XXAPI void xrtCrc32OptionsInit(xrtcrc32options* pOptions)
 
 /* ---- 流式哈希器 ---- */
 
-XXAPI xrtcrc32hasher* xrtCrc32HasherCreate(const xrtcrc32options* pOptions)
+XRT_API xrtcrc32hasher* xrtCrc32HasherCreate(const xrtcrc32options* pOptions)
 {
 	xrtcrc32hasher* pHasher;
 	crc32_init_tables();
@@ -146,59 +146,59 @@ XXAPI xrtcrc32hasher* xrtCrc32HasherCreate(const xrtcrc32options* pOptions)
 		xrtCrc32OptionsInit(&pHasher->Options);
 	}
 	pHasher->Crc = 0u;
-	pHasher->Initialized = TRUE;
+	pHasher->Initialized = true;
 	return pHasher;
 }
 
-XXAPI bool xrtCrc32HasherUpdate(xrtcrc32hasher* pHasher, const void* pData, size_t iSize)
+XRT_API bool xrtCrc32HasherUpdate(xrtcrc32hasher* pHasher, const void* pData, size_t iSize)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	if (iSize != 0u && pData == NULL) {
 		__xrtCrc32SetError(&pHasher->Error, XRT_CRC32_ERROR_ARGUMENT, 0,
 			pHasher->InputBytes, 0, "invalid crc32 input");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
 		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
 		__xrtCrc32SetError(&pHasher->Error, XRT_CRC32_ERROR_LIMIT, 0,
 			pHasher->InputBytes, 0, "crc32 input exceeds maxInput limit");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (iSize != 0u) {
 		pHasher->Crc = crc32_update(pHasher->Crc, (const unsigned char*)pData, iSize);
 	}
 	pHasher->InputBytes += (uint64)iSize;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtCrc32HasherDigest(const xrtcrc32hasher* pHasher, uint32* pCrc)
+XRT_API bool xrtCrc32HasherDigest(const xrtcrc32hasher* pHasher, uint32* pCrc)
 {
-	if (pHasher == NULL || pHasher->Failed || pCrc == NULL) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed || pCrc == NULL) { return false; }
 	*pCrc = pHasher->Crc;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtCrc32HasherReset(xrtcrc32hasher* pHasher)
+XRT_API bool xrtCrc32HasherReset(xrtcrc32hasher* pHasher)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	pHasher->Crc = 0u;
 	pHasher->InputBytes = 0u;
-	return TRUE;
+	return true;
 }
 
-XXAPI uint64 xrtCrc32HasherInputBytes(const xrtcrc32hasher* pHasher)
+XRT_API uint64 xrtCrc32HasherInputBytes(const xrtcrc32hasher* pHasher)
 {
 	return pHasher != NULL ? pHasher->InputBytes : 0u;
 }
 
-XXAPI const xrtcrc32error* xrtCrc32HasherError(const xrtcrc32hasher* pHasher)
+XRT_API const xrtcrc32error* xrtCrc32HasherError(const xrtcrc32hasher* pHasher)
 {
 	return pHasher != NULL ? &pHasher->Error : NULL;
 }
 
-XXAPI void xrtCrc32HasherDestroy(xrtcrc32hasher* pHasher)
+XRT_API void xrtCrc32HasherDestroy(xrtcrc32hasher* pHasher)
 {
 	if (pHasher == NULL) { return; }
 	xrtFree(pHasher);
@@ -207,48 +207,65 @@ XXAPI void xrtCrc32HasherDestroy(xrtcrc32hasher* pHasher)
 
 /* ---- 一次性哈希 ---- */
 
-XXAPI bool xrtCrc32Hash(const void* pData, size_t iSize, uint32* pCrc, xrtcrc32error* pError)
+XRT_API bool xrtCrc32Hash(const void* pData, size_t iSize, uint32* pCrc, xrtcrc32error* pError)
 {
 	xrtCrc32ErrorInit(pError);
 	if (pCrc == NULL || (pData == NULL && iSize != 0u)) {
 		__xrtCrc32SetError(pError, XRT_CRC32_ERROR_ARGUMENT, 0, 0, 0, "invalid crc32 input");
-		return FALSE;
+		return false;
 	}
 	*pCrc = crc32_compute((const unsigned char*)pData, iSize);
-	return TRUE;
+	return true;
 }
 
 
 /* ---- 文件流式哈希 ---- */
 
-XXAPI bool xrtCrc32File(xreader pReader, const xrtresourcelimits* pLimits,
-	uint32* pCrc, xrtcrc32error* pError)
+XRT_API bool xrtCrc32File(xreader* pReader, const xrtresourcelimits* pLimits,
+	uint32* pCrc, xrtprogressproc pProgress, ptr pUserData, xrtcrc32error* pError)
 {
 	uint8 sInput[XRT_CRC32_CHUNK];
 	uint32 iCrc = 0u;
 	uint64 iTotal = 0u;
+	uint64 iExpected = 0u;
+	bool bTotalKnown;
 	xrtCrc32ErrorInit(pError);
 	crc32_init_tables();
 	if (pReader == NULL || pCrc == NULL) {
 		__xrtCrc32SetError(pError, XRT_CRC32_ERROR_ARGUMENT, 0, 0, 0, "invalid crc32 stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
+	if (!bTotalKnown) { xrtClearError(); }
 	for (;;) {
 		uint64 iRead = 0u;
 		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
 			__xrtCrc32SetError(pError, XRT_CRC32_ERROR_IO, 0, iTotal, 0,
 				"cannot read crc32 input stream");
-			return FALSE;
+			return false;
 		}
 		if (iRead == 0u) { break; }
 		iTotal += iRead;
-		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
+		if (pLimits != NULL && pLimits->iMaxInputBytes != 0u &&
+			iTotal > pLimits->iMaxInputBytes) {
 			__xrtCrc32SetError(pError, XRT_CRC32_ERROR_LIMIT, 0, iTotal, 0,
 				"crc32 input exceeds maxInput limit");
-			return FALSE;
+			return false;
 		}
 		iCrc = crc32_update(iCrc, sInput, (size_t)iRead);
+		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
+			__xrtCrc32SetError(pError, XRT_CRC32_ERROR_CANCELLED, 0, iTotal, 0,
+				"crc32 operation cancelled");
+			return false;
+		}
 	}
 	*pCrc = iCrc;
-	return TRUE;
+	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
+		__xrtCrc32SetError(pError, XRT_CRC32_ERROR_CANCELLED, 0, iTotal, 0,
+			"crc32 operation cancelled");
+		return false;
+	}
+	return true;
 }

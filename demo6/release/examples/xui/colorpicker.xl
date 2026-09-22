@@ -1,0 +1,28 @@
+// colorpicker.xl — 颜色选择器：ColorPicker 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "ColorPicker Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "ColorPicker Demo", font)
+    root.addChild(title)
+
+    xui.ColorPicker picker = xui.ColorPicker(ctx)
+    picker.setPreferredSize(420.0, 320.0)
+    root.addChild(picker)
+
+    xui.Label hint = xui.Label(ctx, "Pick a color from the picker above", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

@@ -3,7 +3,7 @@
 
 
 typedef struct {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	xrtplistcontext Context;
 	xrtplistnode** pStack;
 	uint32 iStackCount;
@@ -14,17 +14,17 @@ static bool __xrtPlistXmlAppend(xrtplistxmlwriter* pWriter,
 	const void* pData, size_t iSize)
 {
 	uint64 iLimit = pWriter->Context.Options.tLimits.iMaxOutputBytes;
-	if ( iSize == 0u ) { return TRUE; }
-	if ( pData == NULL || iSize > UINT32_MAX ||
+	if ( iSize == 0u ) { return true; }
+	if ( pData == NULL ||
 		(iLimit != 0u && ((uint64)iSize > iLimit ||
-		 (uint64)pWriter->pOutput->Length > iLimit - (uint64)iSize)) ||
-		!xrtBufferAppend(pWriter->pOutput, (ptr)pData, (uint32)iSize,
-			XBUF_BINARY) ) {
+		 (uint64)pWriter->pOutput->Size > iLimit - (uint64)iSize)) ||
+		!xrtBufferAppend(pWriter->pOutput,
+			(xbytesview){ (cbytes)pData, iSize }) ) {
 		__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_LIMIT,
 			0u, 0u, 0u, "plist XML output exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistXmlText(xrtplistxmlwriter* pWriter, const char* sText)
@@ -35,12 +35,12 @@ static bool __xrtPlistXmlText(xrtplistxmlwriter* pWriter, const char* sText)
 static bool __xrtPlistXmlIndent(xrtplistxmlwriter* pWriter, uint32 iDepth)
 {
 	uint32 i;
-	if ( !pWriter->Context.Options.bPretty ) { return TRUE; }
-	if ( !__xrtPlistXmlText(pWriter, "\n") ) { return FALSE; }
+	if ( !pWriter->Context.Options.bPretty ) { return true; }
+	if ( !__xrtPlistXmlText(pWriter, "\n") ) { return false; }
 	for ( i = 0u; i < iDepth * pWriter->Context.Options.iIndent; i++ ) {
-		if ( !__xrtPlistXmlText(pWriter, " ") ) { return FALSE; }
+		if ( !__xrtPlistXmlText(pWriter, " ") ) { return false; }
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistXmlCodepoint(const uint8* pData, uint64 iSize,
@@ -50,23 +50,23 @@ static bool __xrtPlistXmlCodepoint(const uint8* pData, uint64 iSize,
 	uint32 iValue;
 	uint32 iExtra;
 	uint32 i;
-	if ( c < 0x80u ) { *pCodepoint = c; (*pIndex)++; return TRUE; }
+	if ( c < 0x80u ) { *pCodepoint = c; (*pIndex)++; return true; }
 	if ( c >= 0xc2u && c <= 0xdfu ) { iValue = c & 0x1fu; iExtra = 1u; }
 	else if ( c >= 0xe0u && c <= 0xefu ) { iValue = c & 0x0fu; iExtra = 2u; }
 	else if ( c >= 0xf0u && c <= 0xf4u ) { iValue = c & 0x07u; iExtra = 3u; }
-	else { return FALSE; }
-	if ((uint64)iExtra >= iSize - *pIndex) { return FALSE; }
+	else { return false; }
+	if ((uint64)iExtra >= iSize - *pIndex) { return false; }
 	for ( i = 1u; i <= iExtra; i++ ) {
 		uint8 d = pData[*pIndex + i];
-		if ( (d & 0xc0u) != 0x80u ) { return FALSE; }
+		if ( (d & 0xc0u) != 0x80u ) { return false; }
 		iValue = (iValue << 6u) | (d & 0x3fu);
 	}
 	if ( (iExtra == 2u && iValue < 0x800u) ||
 		(iExtra == 3u && iValue < 0x10000u) || iValue > 0x10ffffu ||
-		(iValue >= 0xd800u && iValue <= 0xdfffu) ) { return FALSE; }
+		(iValue >= 0xd800u && iValue <= 0xdfffu) ) { return false; }
 	*pCodepoint = iValue;
 	*pIndex += iExtra + 1u;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistXmlEscape(xrtplistxmlwriter* pWriter,
@@ -85,7 +85,7 @@ static bool __xrtPlistXmlEscape(xrtplistxmlwriter* pWriter,
 			  (iCodepoint >= 0x10000u && iCodepoint <= 0x10ffffu)) ) {
 			__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_TYPE,
 				0u, 0u, 0u, "plist string contains a character forbidden by XML 1.0");
-			return FALSE;
+			return false;
 		}
 		if ( iCodepoint == '&' ) { sEscape = "&amp;"; }
 		else if ( iCodepoint == '<' ) { sEscape = "&lt;"; }
@@ -93,7 +93,7 @@ static bool __xrtPlistXmlEscape(xrtplistxmlwriter* pWriter,
 		if ( sEscape != NULL ) {
 			if ( !__xrtPlistXmlAppend(pWriter, pData + iStart,
 				(size_t)(iCharacter - iStart)) ||
-				!__xrtPlistXmlText(pWriter, sEscape) ) { return FALSE; }
+				!__xrtPlistXmlText(pWriter, sEscape) ) { return false; }
 			iStart = i;
 		}
 	}
@@ -111,7 +111,7 @@ static bool __xrtPlistXmlPush(xrtplistxmlwriter* pWriter,
 		if ( pWriter->pStack[i] == pNode ) {
 			__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_FORMAT,
 				0u, 0u, 0u, "plist value graph contains a cycle");
-			return FALSE;
+			return false;
 		}
 	}
 	if ( pWriter->iStackCount == pWriter->iStackCapacity ) {
@@ -119,12 +119,12 @@ static bool __xrtPlistXmlPush(xrtplistxmlwriter* pWriter,
 			pWriter->iStackCapacity * 2u : 16u;
 		pItems = (xrtplistnode**)xrtRealloc(pWriter->pStack,
 			sizeof(xrtplistnode*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pWriter->pStack = pItems;
 		pWriter->iStackCapacity = iCapacity;
 	}
 	pWriter->pStack[pWriter->iStackCount++] = pNode;
-	return TRUE;
+	return true;
 }
 
 static int __xrtPlistKeyCompare(const xrtplistdictitem* pLeft,
@@ -171,9 +171,9 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 {
 	char sNumber[128];
 	uint32 i;
-	bool bResult = FALSE;
+	bool bResult = false;
 	if ( pNode == NULL || !__xrtPlistLimitNode(&pWriter->Context,
-		iDepth, 0u) || !__xrtPlistXmlPush(pWriter, pNode) ) { return FALSE; }
+		iDepth, 0u) || !__xrtPlistXmlPush(pWriter, pNode) ) { return false; }
 	switch ( pNode->iType ) {
 	case XRT_PLIST_BOOL:
 		bResult = __xrtPlistXmlText(pWriter,
@@ -188,7 +188,9 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 		break;
 	case XRT_PLIST_REAL:
 		if ( !isfinite(pNode->Value.fValue) ||
-			xrtNumToStr(pNode->Value.fValue, sNumber) <= 0 ) { break; }
+			snprintf(sNumber, sizeof(sNumber), "%.17g", pNode->Value.fValue) <= 0 ) {
+			break;
+		}
 		bResult = __xrtPlistXmlText(pWriter, "<real>") &&
 			__xrtPlistXmlText(pWriter, sNumber) &&
 			__xrtPlistXmlText(pWriter, "</real>");
@@ -206,7 +208,7 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 		if ( !__xrtPlistLimitItem(&pWriter->Context,
 			pNode->Value.Bytes.iSize, 0u) ) { break; }
 		if ( pNode->Value.Bytes.iSize != 0u ) {
-			sEncoded = xrtBase64Encode(pNode->Value.Bytes.pData,
+			sEncoded = xrtBase64EncodeNew(pNode->Value.Bytes.pData,
 				(size_t)pNode->Value.Bytes.iSize, NULL);
 			if ( sEncoded == NULL ) { break; }
 		}
@@ -218,14 +220,13 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 		break;
 	}
 	case XRT_PLIST_DATE: {
-		int64 iYear;
-		int iMonth, iDay, iHour, iMinute, iSecond;
-		xrtDecodeSerial(pNode->Value.tValue, &iYear, &iMonth, &iDay,
-			&iHour, &iMinute, &iSecond, NULL, NULL);
-		if ( iYear < 0 || iYear > 9999 ) { break; }
+		xdatetime tDateTime;
+		if ( !xrtTimeSplit(pNode->Value.tValue, &tDateTime) ||
+			tDateTime.Year < 0 || tDateTime.Year > 9999 ) { break; }
 		snprintf(sNumber, sizeof(sNumber),
-			"%04lld-%02d-%02dT%02d:%02d:%02dZ", (long long)iYear,
-			iMonth, iDay, iHour, iMinute, iSecond);
+			"%04lld-%02d-%02dT%02d:%02d:%02dZ", (long long)tDateTime.Year,
+			tDateTime.Month, tDateTime.Day, tDateTime.Hour,
+			tDateTime.Minute, tDateTime.Second);
 		bResult = __xrtPlistXmlText(pWriter, "<date>") &&
 			__xrtPlistXmlText(pWriter, sNumber) &&
 			__xrtPlistXmlText(pWriter, "</date>");
@@ -288,7 +289,7 @@ static bool __xrtPlistXmlWriteValue(xrtplistxmlwriter* pWriter,
 	return bResult;
 }
 
-xbuffer __xrtPlistWriteXml(const xrtplistdocument* pDocument,
+xbuffer* __xrtPlistWriteXml(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
 	xrtplistxmlwriter tWriter;
@@ -299,8 +300,9 @@ xbuffer __xrtPlistWriteXml(const xrtplistdocument* pDocument,
 	memset(&tWriter, 0, sizeof(tWriter));
 	tWriter.Context.Options = *pOptions;
 	tWriter.Context.Error = pError;
-	tWriter.pOutput = xrtBufferCreate(1024u);
-	if ( tWriter.pOutput == NULL || pOptions->iIndent > 16u ||
+	tWriter.pOutput = xrtBufferCreate();
+	if ( tWriter.pOutput == NULL || !xrtBufferReserve(tWriter.pOutput, 1024u) ||
+		pOptions->iIndent > 16u ||
 		!__xrtPlistXmlText(&tWriter, sHeader) ||
 		!__xrtPlistXmlIndent(&tWriter, 1u) ||
 		!__xrtPlistXmlWriteValue(&tWriter, pDocument->pRoot, 1u) ||

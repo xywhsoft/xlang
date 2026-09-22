@@ -1,8 +1,0 @@
-import x.cdp
-
-func main() as int
-	if x.cdp.version() == "" then
-		return 1
-	end
-	return 0
-end

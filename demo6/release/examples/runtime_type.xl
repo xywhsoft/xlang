@@ -46,7 +46,7 @@ assert asBase.id == 7, "downcast to Base should preserve base field"
 assert asChild.score == 30, "downcast to Child should preserve child field"
 
 func(int) as int fn = inc
-var boxedFn = fn
+var boxedFn = xcall(fn)
 
 assert boxedFn is func(int) as int, "boxed function should keep signature"
 assert not (boxedFn is func(string) as int), "boxed function signature should be exact"

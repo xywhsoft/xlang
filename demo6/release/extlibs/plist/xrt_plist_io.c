@@ -2,7 +2,7 @@
 
 
 
-XXAPI void xrtPlistOptionsInit(xrtplistoptions* pOptions)
+XRT_API void xrtPlistOptionsInit(xrtplistoptions* pOptions)
 {
 	if ( pOptions == NULL ) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -13,7 +13,7 @@ XXAPI void xrtPlistOptionsInit(xrtplistoptions* pOptions)
 	xrtResourceLimitsInit(&pOptions->tLimits);
 }
 
-XXAPI void xrtPlistErrorInit(xrtplisterror* pError)
+XRT_API void xrtPlistErrorInit(xrtplisterror* pError)
 {
 	if ( pError != NULL ) { memset(pError, 0, sizeof(*pError)); }
 }
@@ -50,16 +50,16 @@ bool __xrtPlistLimitNode(xrtplistcontext* pContext, uint32 iDepth,
 		iDepth > pContext->Options.tLimits.iMaxDepth ) {
 		__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_LIMIT,
 			0u, 0u, iOffset, "plist nesting depth exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
 	pContext->iNodes++;
 	if ( pContext->Options.tLimits.iMaxNodes != 0u &&
 		pContext->iNodes > pContext->Options.tLimits.iMaxNodes ) {
 		__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_LIMIT,
 			0u, 0u, iOffset, "plist node count exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 bool __xrtPlistLimitItem(xrtplistcontext* pContext, uint64 iSize,
@@ -69,18 +69,18 @@ bool __xrtPlistLimitItem(xrtplistcontext* pContext, uint64 iSize,
 		iSize > pContext->Options.tLimits.iMaxItemBytes ) {
 		__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_LIMIT,
 			0u, 0u, iOffset, "plist item exceeds the configured size limit");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI xrtplistdocument* xrtPlistParse(xreader pReader, bool bTakeOwnership,
+XRT_API xrtplistdocument* xrtPlistParse(xreader* pReader, bool bTakeOwnership,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
 	xrtplisterror tLocalError;
 	xrtplisterror* pResolvedError = pError != NULL ? pError : &tLocalError;
 	xrtplistoptions tOptions = __xrtPlistResolveOptions(pOptions);
-	xbuffer pInput = NULL;
+	xbuffer* pInput = NULL;
 	xrtplistdocument* pResult = NULL;
 	uint64 iSize = 0u;
 	uint64 iLimit = tOptions.tLimits.iMaxInputBytes;
@@ -103,12 +103,12 @@ XXAPI xrtplistdocument* xrtPlistParse(xreader pReader, bool bTakeOwnership,
 		goto cleanup;
 	}
 	if ( tOptions.iFormat == XRT_PLIST_FORMAT_BINARY ||
-		(tOptions.iFormat == XRT_PLIST_FORMAT_AUTO && pInput->Length >= 8u &&
-		 memcmp(pInput->Buffer, "bplist00", 8u) == 0) ) {
-		pResult = __xrtPlistParseBinary(pInput->Buffer, pInput->Length,
+		(tOptions.iFormat == XRT_PLIST_FORMAT_AUTO && pInput->Size >= 8u &&
+		 memcmp(pInput->Data, "bplist00", 8u) == 0) ) {
+		pResult = __xrtPlistParseBinary(pInput->Data, pInput->Size,
 			&tOptions, pResolvedError);
 	} else {
-		pResult = __xrtPlistParseXml(pInput->Buffer, pInput->Length,
+		pResult = __xrtPlistParseXml(pInput->Data, pInput->Size,
 			&tOptions, pResolvedError);
 	}
 
@@ -118,22 +118,22 @@ cleanup:
 	return pResult;
 }
 
-XXAPI xrtplistdocument* xrtPlistParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtplistdocument* xrtPlistParseMemory(const void* pData, uint64 iSize,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
-	xreader pReader = pData != NULL || iSize == 0u ?
-		xrtReaderFromMemory(pData, iSize) : NULL;
-	return xrtPlistParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = pData != NULL || iSize == 0u ?
+		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	return xrtPlistParse(pReader, true, pOptions, pError);
 }
 
-XXAPI xrtplistdocument* xrtPlistLoad(str sPath,
+XRT_API xrtplistdocument* xrtPlistLoad(str sPath,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
-	xreader pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
-	return xrtPlistParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	return xrtPlistParse(pReader, true, pOptions, pError);
 }
 
-XXAPI xbuffer xrtPlistStringify(const xrtplistdocument* pDocument,
+XRT_API xbuffer* xrtPlistStringify(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
 	xrtplisterror tLocalError;
@@ -153,15 +153,15 @@ XXAPI xbuffer xrtPlistStringify(const xrtplistdocument* pDocument,
 		__xrtPlistWriteXml(pDocument, &tOptions, pResolvedError);
 }
 
-XXAPI bool xrtPlistWrite(const xrtplistdocument* pDocument, xwriter pWriter,
+XRT_API bool xrtPlistWrite(const xrtplistdocument* pDocument, xwriter* pWriter,
 	bool bTakeOwnership, const xrtplistoptions* pOptions,
 	xrtplisterror* pError)
 {
 	xrtplisterror tLocalError;
 	xrtplisterror* pResolvedError = pError != NULL ? pError : &tLocalError;
-	xbuffer pOutput = xrtPlistStringify(pDocument, pOptions, pResolvedError);
+	xbuffer* pOutput = xrtPlistStringify(pDocument, pOptions, pResolvedError);
 	bool bResult = pOutput != NULL && pWriter != NULL &&
-		xrtWriterWriteAll(pWriter, pOutput->Buffer, pOutput->Length) &&
+		xrtWriterWriteFull(pWriter, pOutput->Data, pOutput->Size, NULL) &&
 		xrtWriterFlush(pWriter);
 	if ( !bResult && pResolvedError->iCode == XRT_PLIST_OK ) {
 		__xrtPlistSetError(pResolvedError, XRT_PLIST_ERROR_IO,
@@ -172,15 +172,14 @@ XXAPI bool xrtPlistWrite(const xrtplistdocument* pDocument, xwriter pWriter,
 	return bResult;
 }
 
-XXAPI bool xrtPlistSave(str sPath, const xrtplistdocument* pDocument,
+XRT_API bool xrtPlistSave(str sPath, const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
 	xrtplisterror tLocalError;
 	xrtplisterror* pResolvedError = pError != NULL ? pError : &tLocalError;
-	xbuffer pOutput = xrtPlistStringify(pDocument, pOptions, pResolvedError);
+	xbuffer* pOutput = xrtPlistStringify(pDocument, pOptions, pResolvedError);
 	bool bResult = pOutput != NULL && sPath != NULL &&
-		xrtFileWriteAllAtomic(sPath, (str)pOutput->Buffer, pOutput->Length,
-			XRT_CP_BINARY);
+		xrtFileWriteAll(sPath, (xbytesview){ pOutput->Data, pOutput->Size });
 	if ( !bResult && pResolvedError->iCode == XRT_PLIST_OK ) {
 		__xrtPlistSetError(pResolvedError, XRT_PLIST_ERROR_IO,
 			0u, 0u, 0u, "could not save plist output file");

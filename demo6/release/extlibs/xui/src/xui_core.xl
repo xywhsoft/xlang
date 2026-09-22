@@ -5,7 +5,8 @@
 export const c_int XUI_VERSION_MAJOR = 2
 export const c_int XUI_VERSION_MINOR = 0
 export const c_int XUI_VERSION_PATCH = 0
-export const c_int XUI_PROXY_VERSION = 5
+export const c_int XUI_PROXY_VERSION = 9
+export const c_int XUI_LAYOUT_MAX_PASSES = 8
 export const c_int XUI_LANGUAGE_EN = 0
 export const c_int XUI_LANGUAGE_ZH = 1
 export const c_int XUI_LANGUAGE_RU = 2
@@ -53,6 +54,88 @@ export const c_int XUI_TEXT_ALIGN_MIDDLE = 0x0010
 export const c_int XUI_TEXT_ALIGN_BOTTOM = 0x0020
 export const c_int XUI_TEXT_CLIP = 0x0100
 export const c_int XUI_TEXT_UNDERLINE = 0x0200
+export const c_int XUI_RICH_STYLE_BOLD = 0x00000001
+export const c_int XUI_RICH_STYLE_ITALIC = 0x00000002
+export const c_int XUI_RICH_STYLE_UNDERLINE = 0x00000004
+export const c_int XUI_RICH_STYLE_STRIKEOUT = 0x00000008
+export const c_int XUI_RICH_STYLE_CODE = 0x00000010
+export const c_int XUI_RICH_STYLE_SUBSCRIPT = 0x00000020
+export const c_int XUI_RICH_STYLE_SUPERSCRIPT = 0x00000040
+export const c_int XUI_RICH_NODE_DOCUMENT = 1
+export const c_int XUI_RICH_NODE_PARAGRAPH = 2
+export const c_int XUI_RICH_NODE_TEXT = 3
+export const c_int XUI_RICH_NODE_INLINE_WIDGET = 4
+export const c_int XUI_RICH_NODE_HEADING = 5
+export const c_int XUI_RICH_NODE_BLOCK_QUOTE = 6
+export const c_int XUI_RICH_NODE_LIST_ITEM = 7
+export const c_int XUI_RICH_NODE_LINK = 8
+export const c_int XUI_RICH_NODE_IMAGE = 9
+export const c_int XUI_RICH_NODE_TABLE = 10
+export const c_int XUI_RICH_NODE_HORIZONTAL_RULE = 11
+export const c_int XUI_RICH_NODE_INLINE_IMAGE = 12
+export const c_int XUI_RICH_ALIGN_LEFT = 0
+export const c_int XUI_RICH_ALIGN_CENTER = 1
+export const c_int XUI_RICH_ALIGN_RIGHT = 2
+export const c_int XUI_RICH_ALIGN_JUSTIFY = 3
+export const c_int XUI_RICH_DIRECTION_AUTO = 0
+export const c_int XUI_RICH_DIRECTION_LTR = 1
+export const c_int XUI_RICH_DIRECTION_RTL = 2
+export const c_int XUI_RICH_LIST_NONE = 0
+export const c_int XUI_RICH_LIST_BULLET = 1
+export const c_int XUI_RICH_LIST_NUMBER = 2
+export const c_int XUI_RICH_LIST_CHECK = 3
+export const c_int XUI_RICH_COMMAND_UNDO = 1
+export const c_int XUI_RICH_COMMAND_REDO = 2
+export const c_int XUI_RICH_COMMAND_CUT = 3
+export const c_int XUI_RICH_COMMAND_COPY = 4
+export const c_int XUI_RICH_COMMAND_PASTE = 5
+export const c_int XUI_RICH_COMMAND_DELETE = 6
+export const c_int XUI_RICH_COMMAND_SELECT_ALL = 7
+export const c_int XUI_RICH_COMMAND_FIND = 8
+export const c_int XUI_RICH_COMMAND_REPLACE = 9
+export const c_int XUI_RICH_COMMAND_BOLD = 10
+export const c_int XUI_RICH_COMMAND_ITALIC = 11
+export const c_int XUI_RICH_COMMAND_UNDERLINE = 12
+export const c_int XUI_RICH_COMMAND_STRIKEOUT = 13
+export const c_int XUI_RICH_COMMAND_ALIGN_LEFT = 20
+export const c_int XUI_RICH_COMMAND_ALIGN_CENTER = 21
+export const c_int XUI_RICH_COMMAND_ALIGN_RIGHT = 22
+export const c_int XUI_RICH_COMMAND_ALIGN_JUSTIFY = 23
+export const c_int XUI_RICH_COMMAND_PARAGRAPH = 30
+export const c_int XUI_RICH_COMMAND_HEADING_1 = 31
+export const c_int XUI_RICH_COMMAND_HEADING_2 = 32
+export const c_int XUI_RICH_COMMAND_HEADING_3 = 33
+export const c_int XUI_RICH_COMMAND_BLOCK_QUOTE = 34
+export const c_int XUI_RICH_COMMAND_BULLET_LIST = 35
+export const c_int XUI_RICH_COMMAND_NUMBER_LIST = 36
+export const c_int XUI_RICH_COMMAND_CHECK_LIST = 37
+export const c_int XUI_RICH_COMMAND_INDENT_LIST = 38
+export const c_int XUI_RICH_COMMAND_OUTDENT_LIST = 39
+export const c_int XUI_RICH_COMMAND_STATE_DISABLED = 0
+export const c_int XUI_RICH_COMMAND_STATE_OFF = 1
+export const c_int XUI_RICH_COMMAND_STATE_ON = 2
+export const c_int XUI_RICH_COMMAND_STATE_MIXED = 3
+export const c_int XUI_RICH_TOOLBAR_HISTORY = 0x00000001
+export const c_int XUI_RICH_TOOLBAR_INLINE_FORMAT = 0x00000002
+export const c_int XUI_RICH_TOOLBAR_ALIGNMENT = 0x00000004
+export const c_int XUI_RICH_TOOLBAR_BLOCKS = 0x00000008
+export const c_int XUI_RICH_TOOLBAR_LISTS = 0x00000010
+export const c_int XUI_RICH_TOOLBAR_FIND = 0x00000020
+export const c_int XUI_RICH_TOOLBAR_DEFAULT = 0x0000003f
+export const c_int XUI_RICH_CHANGE_REPLACE = 1
+export const c_int XUI_RICH_CHANGE_STYLE = 2
+export const c_int XUI_RICH_CHANGE_PARAGRAPH = 3
+export const c_int XUI_RICH_CHANGE_OBJECT = 4
+export const c_int XUI_RICH_CHANGE_RESOURCE = 5
+export const c_int XUI_RICH_CHANGE_HISTORY = 6
+export const c_int XUI_RICH_CHANGE_RESET = 7
+export const c_int XUI_RICH_CHANGE_TEXT = 0x0001
+export const c_int XUI_RICH_CHANGE_FORMAT = 0x0002
+export const c_int XUI_RICH_CHANGE_STRUCTURE = 0x0004
+export const c_int XUI_RICH_CHANGE_GEOMETRY = 0x0008
+export const c_int XUI_RICH_CHANGE_RESOURCE_DATA = 0x0010
+export const c_int XUI_RICH_AFFINITY_BEFORE = 0
+export const c_int XUI_RICH_AFFINITY_AFTER = 1
 export const c_int XUI_TEXT_WRAP_NONE = 0
 export const c_int XUI_TEXT_WRAP_WORD = 1
 export const c_int XUI_TEXT_WRAP_CHAR = 2
@@ -60,6 +143,11 @@ export const c_int XUI_TEXT_BREAK_NONE = 0
 export const c_int XUI_TEXT_BREAK_WRAP = 1
 export const c_int XUI_TEXT_BREAK_NEWLINE = 2
 export const c_int XUI_TEXT_BREAK_END = 3
+export const c_int XUI_TEXT_SHAPE_KERNING = 0x0001
+export const c_int XUI_TEXT_SHAPE_EMOJI = 0x0002
+// export const c_int XUI_TEXT_SHAPE_DEFAULT = (XUI_TEXT_SHAPE_KERNING | XUI_TEXT_SHAPE_EMOJI)
+export const c_int XUI_TEXT_CLUSTER_LINE_BREAK = 0x0001
+export const c_int XUI_TEXT_CLUSTER_EMOJI = 0x0002
 export const c_int XUI_WIDGET_DIRTY_LAYOUT = 0x00000001
 export const c_int XUI_WIDGET_DIRTY_STYLE = 0x00000002
 export const c_int XUI_WIDGET_DIRTY_CACHE = 0x00000004
@@ -160,6 +248,39 @@ export const c_int XUI_EVENT_PHASE_CAPTURE = 1
 export const c_int XUI_EVENT_PHASE_TARGET = 2
 export const c_int XUI_EVENT_PHASE_BUBBLE = 3
 export const c_int XUI_EVENT_DISPATCH_STOP = 0x00000001
+export const c_int XUI_ACCESSIBLE_ROLE_GENERIC = 0
+export const c_int XUI_ACCESSIBLE_ROLE_DOCUMENT = 1
+export const c_int XUI_ACCESSIBLE_ROLE_PARAGRAPH = 2
+export const c_int XUI_ACCESSIBLE_ROLE_HEADING = 3
+export const c_int XUI_ACCESSIBLE_ROLE_LINK = 4
+export const c_int XUI_ACCESSIBLE_ROLE_IMAGE = 5
+export const c_int XUI_ACCESSIBLE_ROLE_TABLE = 6
+export const c_int XUI_ACCESSIBLE_ROLE_CELL = 7
+export const c_int XUI_ACCESSIBLE_ROLE_CHECKBOX = 8
+export const c_int XUI_ACCESSIBLE_ROLE_EMBEDDED_OBJECT = 9
+export const c_int XUI_ACCESSIBLE_ROLE_SEPARATOR = 10
+export const c_int XUI_ACCESSIBLE_ROLE_TEXT = 11
+export const c_int XUI_ACCESSIBLE_ROLE_BLOCK_QUOTE = 12
+export const c_int XUI_ACCESSIBLE_ROLE_LIST_ITEM = 13
+export const c_int XUI_ACCESSIBLE_STATE_FOCUSABLE = 0x00000001
+export const c_int XUI_ACCESSIBLE_STATE_FOCUSED = 0x00000002
+export const c_int XUI_ACCESSIBLE_STATE_READONLY = 0x00000004
+export const c_int XUI_ACCESSIBLE_STATE_SELECTED = 0x00000008
+export const c_int XUI_ACCESSIBLE_STATE_CHECKED = 0x00000010
+export const c_int XUI_ACCESSIBLE_STATE_EDITABLE = 0x00000020
+export const c_int XUI_ACCESSIBLE_STATE_OFFSCREEN = 0x00000040
+export const c_int XUI_ACCESSIBLE_STATE_DISABLED = 0x00000080
+export const c_int XUI_ACCESSIBLE_ACTION_FOCUS = 1
+export const c_int XUI_ACCESSIBLE_ACTION_ACTIVATE = 2
+export const c_int XUI_ACCESSIBLE_ACTION_SET_SELECTION = 3
+export const c_int XUI_ACCESSIBLE_ACTION_SCROLL_INTO_VIEW = 4
+export const c_int XUI_ACCESSIBLE_ACTION_TOGGLE = 5
+export const c_int XUI_ACCESSIBLE_EVENT_TREE_CHANGED = 1
+export const c_int XUI_ACCESSIBLE_EVENT_NODE_CHANGED = 2
+export const c_int XUI_ACCESSIBLE_EVENT_SELECTION_CHANGED = 3
+export const c_int XUI_ACCESSIBLE_EVENT_FOCUS_CHANGED = 4
+export const c_int XUI_ACCESSIBLE_EVENT_BOUNDS_CHANGED = 5
+export const c_int XUI_ACCESSIBLE_EVENT_VALUE_CHANGED = 6
 export const c_int XUI_INPUT_RESULT_CONSUMED = 0x00000001
 export const c_int XUI_INPUT_RESULT_FOCUS_CHANGED = 0x00000002
 export const c_int XUI_INPUT_RESULT_HOTKEY = 0x00000004
@@ -185,23 +306,48 @@ export const c_int XUI_INPUT_RESULT_HOTKEY = 0x00000004
 // export const c_int XUI_EVENT_MASK_TOOLTIP = 0x0000000000080000ull
 // export const c_int XUI_EVENT_MASK_POINTER = (XUI_EVENT_MASK_POINTER_ENTER | XUI_EVENT_MASK_POINTER_LEAVE | XUI_EVENT_MASK_POINTER_MOVE | XUI_EVENT_MASK_POINTER_DOWN | XUI_EVENT_MASK_POINTER_UP | XUI_EVENT_MASK_POINTER_CLICK | XUI_EVENT_MASK_POINTER_WHEEL | XUI_EVENT_MASK_DOUBLE_CLICK | XUI_EVENT_MASK_CONTEXT_MENU)
 // export const c_int XUI_EVENT_MASK_KEYBOARD = (XUI_EVENT_MASK_KEY_DOWN | XUI_EVENT_MASK_KEY_UP | XUI_EVENT_MASK_TEXT | XUI_EVENT_MASK_HOTKEY | XUI_EVENT_MASK_COMMAND)
-export const c_int XUI_KEY_BACKSPACE = 8
-export const c_int XUI_KEY_TAB = 9
+export const c_int XUI_KEY_SPECIAL_BASE = 0x100
+// export const c_int XUI_KEY_BACKSPACE = (XUI_KEY_SPECIAL_BASE + 0)
+// export const c_int XUI_KEY_TAB = (XUI_KEY_SPECIAL_BASE + 1)
 export const c_int XUI_KEY_SPACE = 32
-export const c_int XUI_KEY_ENTER = 13
-export const c_int XUI_KEY_ESCAPE = 27
-export const c_int XUI_KEY_PAGE_UP = 33
-export const c_int XUI_KEY_PAGE_DOWN = 34
-export const c_int XUI_KEY_END = 35
-export const c_int XUI_KEY_HOME = 36
-export const c_int XUI_KEY_LEFT = 37
-export const c_int XUI_KEY_UP = 38
-export const c_int XUI_KEY_RIGHT = 39
-export const c_int XUI_KEY_DOWN = 40
-export const c_int XUI_KEY_DELETE = 46
-export const c_int XUI_KEY_CONTEXT_MENU = 93
-export const c_int XUI_KEY_F3 = 114
-export const c_int XUI_KEY_F10 = 121
+// export const c_int XUI_KEY_ENTER = (XUI_KEY_SPECIAL_BASE + 2)
+// export const c_int XUI_KEY_ESCAPE = (XUI_KEY_SPECIAL_BASE + 3)
+// export const c_int XUI_KEY_INSERT = (XUI_KEY_SPECIAL_BASE + 4)
+// export const c_int XUI_KEY_DELETE = (XUI_KEY_SPECIAL_BASE + 5)
+// export const c_int XUI_KEY_PAGE_UP = (XUI_KEY_SPECIAL_BASE + 6)
+// export const c_int XUI_KEY_PAGE_DOWN = (XUI_KEY_SPECIAL_BASE + 7)
+// export const c_int XUI_KEY_END = (XUI_KEY_SPECIAL_BASE + 8)
+// export const c_int XUI_KEY_HOME = (XUI_KEY_SPECIAL_BASE + 9)
+// export const c_int XUI_KEY_LEFT = (XUI_KEY_SPECIAL_BASE + 10)
+// export const c_int XUI_KEY_UP = (XUI_KEY_SPECIAL_BASE + 11)
+// export const c_int XUI_KEY_RIGHT = (XUI_KEY_SPECIAL_BASE + 12)
+// export const c_int XUI_KEY_DOWN = (XUI_KEY_SPECIAL_BASE + 13)
+// export const c_int XUI_KEY_CONTEXT_MENU = (XUI_KEY_SPECIAL_BASE + 14)
+// export const c_int XUI_KEY_F1 = (XUI_KEY_SPECIAL_BASE + 32)
+// export const c_int XUI_KEY_F2 = (XUI_KEY_F1 + 1)
+// export const c_int XUI_KEY_F3 = (XUI_KEY_F1 + 2)
+// export const c_int XUI_KEY_F4 = (XUI_KEY_F1 + 3)
+// export const c_int XUI_KEY_F5 = (XUI_KEY_F1 + 4)
+// export const c_int XUI_KEY_F6 = (XUI_KEY_F1 + 5)
+// export const c_int XUI_KEY_F7 = (XUI_KEY_F1 + 6)
+// export const c_int XUI_KEY_F8 = (XUI_KEY_F1 + 7)
+// export const c_int XUI_KEY_F9 = (XUI_KEY_F1 + 8)
+// export const c_int XUI_KEY_F10 = (XUI_KEY_F1 + 9)
+// export const c_int XUI_KEY_F11 = (XUI_KEY_F1 + 10)
+// export const c_int XUI_KEY_F12 = (XUI_KEY_F1 + 11)
+// export const c_int XUI_KEY_F13 = (XUI_KEY_F1 + 12)
+// export const c_int XUI_KEY_F14 = (XUI_KEY_F1 + 13)
+// export const c_int XUI_KEY_F15 = (XUI_KEY_F1 + 14)
+// export const c_int XUI_KEY_F16 = (XUI_KEY_F1 + 15)
+// export const c_int XUI_KEY_F17 = (XUI_KEY_F1 + 16)
+// export const c_int XUI_KEY_F18 = (XUI_KEY_F1 + 17)
+// export const c_int XUI_KEY_F19 = (XUI_KEY_F1 + 18)
+// export const c_int XUI_KEY_F20 = (XUI_KEY_F1 + 19)
+// export const c_int XUI_KEY_F21 = (XUI_KEY_F1 + 20)
+// export const c_int XUI_KEY_F22 = (XUI_KEY_F1 + 21)
+// export const c_int XUI_KEY_F23 = (XUI_KEY_F1 + 22)
+// export const c_int XUI_KEY_F24 = (XUI_KEY_F1 + 23)
+// export const c_int XUI_KEY_F25 = (XUI_KEY_F1 + 24)
 export const c_int XUI_IME_DISABLED = 0
 export const c_int XUI_IME_ENABLED = 1
 export const c_int XUI_IME_AUTO = 2
@@ -945,6 +1091,18 @@ export const c_int XUI_CODE_COMMAND_OPEN_REPLACE = 44
 export const c_int XUI_CODE_COMMAND_ACCEPT_INLINE_COMPLETION = 45
 export const c_int XUI_CODE_COMMAND_CANCEL_INLINE_COMPLETION = 46
 export const c_int XUI_CODE_COMMAND_USER_BASE = 10000
+export const c_int XUI_CODE_INPUT_PREVIEW = 1
+export const c_int XUI_CODE_INPUT_COMMITTED = 2
+export const c_int XUI_CODE_INPUT_SOURCE_KEYBOARD = 1
+export const c_int XUI_CODE_INPUT_SOURCE_IME = 2
+export const c_int XUI_CODE_INPUT_SOURCE_PASTE = 3
+export const c_int XUI_CODE_INPUT_SOURCE_COMPLETION = 4
+export const c_int XUI_CODE_INPUT_ACTION_CONSUME = 0x00000001
+export const c_int XUI_CODE_INPUT_ACTION_APPLY_EDITS = 0x00000002
+export const c_int XUI_CODE_INPUT_ACTION_SET_SELECTION = 0x00000004
+export const c_int XUI_CODE_INPUT_ACTION_SHOW_COMPLETION = 0x00000008
+export const c_int XUI_CODE_INPUT_ACTION_SHOW_SIGNATURE = 0x00000010
+export const c_int XUI_CODE_INPUT_ACTION_CLOSE_ASSIST = 0x00000020
 export const c_int XUI_CODE_FOLD_COLLAPSED = 0x00000001
 export const c_int XUI_CODE_FOLD_HEADER = 0x00000002
 export const c_int XUI_CODE_FOLD_COMMENT = 0x00000004
@@ -1020,6 +1178,7 @@ export const c_int XUI_LAYOUT_GRID = 7
 export const c_int XUI_SIZE_FIXED = 0
 export const c_int XUI_SIZE_CONTENT = 1
 export const c_int XUI_SIZE_FILL = 2
+export const c_int XUI_TRACK_CROSS = 3
 export const c_int XUI_FLOW_BLOCK = 0
 export const c_int XUI_FLOW_INLINE = 1
 export const c_int XUI_FLOW_INLINE_BLOCK = 2
@@ -1093,7 +1252,14 @@ export const c_int XUI_FILE_DIALOG_MODE_SELECT_FOLDER = 3
 export const c_int XUI_FILE_DIALOG_RESULT_NONE = 0
 export const c_int XUI_FILE_DIALOG_RESULT_OK = 1
 export const c_int XUI_FILE_DIALOG_RESULT_CANCEL = 2
+export const c_int XUI_RICH_EDIT_EVENT_SELECTION_CHANGED = 1
+export const c_int XUI_RICH_EDIT_EVENT_SCROLL_CHANGED = 2
+export const c_int XUI_RICH_EDIT_EVENT_OBJECT_ACTIVATE = 3
+export const c_int XUI_RICH_EDIT_EVENT_ZOOM_CHANGED = 4
 export const c_int XUI_EVENT_TEXT_CAPACITY = 4096
+// export const c_int XUI_CLIPBOARD_FORMAT_TEXT_UTF8 = "text/plain;charset=utf-8"
+// export const c_int XUI_CLIPBOARD_FORMAT_HTML = "text/html"
+// export const c_int XUI_CLIPBOARD_FORMAT_RICH_DOCUMENT = "application/x-xui-rich-document+json;version=1"
 export const c_int XUI_RANGE_SLIDER_THUMB_NONE = 0
 export const c_int XUI_RANGE_SLIDER_THUMB_START = 1
 export const c_int XUI_RANGE_SLIDER_THUMB_END = 2
@@ -1113,6 +1279,21 @@ end
 extern "xuiDestroy" func __xl6_xuiDestroy(point pContext)
 export func xuiDestroy(point pContext)
     __xl6_xuiDestroy(pContext)
+end
+
+extern "xuiSetErrorCallback" func __xl6_xuiSetErrorCallback(point pContext, point onError, point pUser) as c_int
+export func xuiSetErrorCallback(point pContext, point onError, point pUser) as c_int
+    return __xl6_xuiSetErrorCallback(pContext, onError, pUser)
+end
+
+extern "xuiSetAccessibilityEventCallback" func __xl6_xuiSetAccessibilityEventCallback(point pContext, point onEvent, point pUser) as c_int
+export func xuiSetAccessibilityEventCallback(point pContext, point onEvent, point pUser) as c_int
+    return __xl6_xuiSetAccessibilityEventCallback(pContext, onEvent, pUser)
+end
+
+extern "xuiReportError" func __xl6_xuiReportError(point pContext, point pError) as c_int
+export func xuiReportError(point pContext, point pError) as c_int
+    return __xl6_xuiReportError(pContext, pError)
 end
 
 extern "xuiSetDefaultLanguage" func __xl6_xuiSetDefaultLanguage(c_int iLanguageId) as c_int
@@ -1155,11 +1336,6 @@ export func xuiGetLanguageId(point pLanguage) as c_int
     return __xl6_xuiGetLanguageId(pLanguage)
 end
 
-extern "xuiGetLanguageTextArray" func __xl6_xuiGetLanguageTextArray(point pLanguage) as point
-export func xuiGetLanguageTextArray(point pLanguage) as point
-    return __xl6_xuiGetLanguageTextArray(pLanguage)
-end
-
 extern "xuiGetLanguageCode" func __xl6_xuiGetLanguageCode(point pLanguage) as string
 export func xuiGetLanguageCode(point pLanguage) as string
     return __xl6_xuiGetLanguageCode(pLanguage)
@@ -1195,14 +1371,9 @@ export func xuiUpdate(point pContext, c_float fDelta) as c_int
     return __xl6_xuiUpdate(pContext, fDelta)
 end
 
-extern "xuiSetViewportSize" func __xl6_xuiSetViewportSize(point pContext, c_float fWidth, c_float fHeight) as c_int
-export func xuiSetViewportSize(point pContext, c_float fWidth, c_float fHeight) as c_int
-    return __xl6_xuiSetViewportSize(pContext, fWidth, fHeight)
-end
-
-extern "xuiGetViewportSize" func __xl6_xuiGetViewportSize(point pContext) as point
-export func xuiGetViewportSize(point pContext) as point
-    return __xl6_xuiGetViewportSize(pContext)
+extern "xuiSetViewportSize" func __xl6_xuiSetViewportSize(point pContext, c_int iWidth, c_int iHeight) as c_int
+export func xuiSetViewportSize(point pContext, c_int iWidth, c_int iHeight) as c_int
+    return __xl6_xuiSetViewportSize(pContext, iWidth, iHeight)
 end
 
 extern "xuiSetVirtualDpi" func __xl6_xuiSetVirtualDpi(point pContext, c_float fDpiScale) as c_int
@@ -1258,6 +1429,11 @@ end
 extern "xuiLayout" func __xl6_xuiLayout(point pContext) as c_int
 export func xuiLayout(point pContext) as c_int
     return __xl6_xuiLayout(pContext)
+end
+
+extern "xuiGetLayoutStats" func __xl6_xuiGetLayoutStats(point pContext, point pStats) as c_int
+export func xuiGetLayoutStats(point pContext, point pStats) as c_int
+    return __xl6_xuiGetLayoutStats(pContext, pStats)
 end
 
 extern "xuiSetCacheBudget" func __xl6_xuiSetCacheBudget(point pContext, c_size iBudgetBytes) as c_int
@@ -1475,9 +1651,9 @@ export func xuiDispatchPendingEvents(point pContext) as c_int
     return __xl6_xuiDispatchPendingEvents(pContext)
 end
 
-extern "xuiHitTest" func __xl6_xuiHitTest(point pContext, c_float fX, c_float fY, c_uint iFlags) as point
-export func xuiHitTest(point pContext, c_float fX, c_float fY, c_uint iFlags) as point
-    return __xl6_xuiHitTest(pContext, fX, fY, iFlags)
+extern "xuiHitTest" func __xl6_xuiHitTest(point pContext, c_int iX, c_int iY, c_uint iFlags) as point
+export func xuiHitTest(point pContext, c_int iX, c_int iY, c_uint iFlags) as point
+    return __xl6_xuiHitTest(pContext, iX, iY, iFlags)
 end
 
 extern "xuiGetHoverWidget" func __xl6_xuiGetHoverWidget(point pContext) as point
@@ -1538,6 +1714,16 @@ end
 extern "xuiTextMeasureLayout" func __xl6_xuiTextMeasureLayout(point pContext, point pDesc, point pSize) as c_int
 export func xuiTextMeasureLayout(point pContext, point pDesc, point pSize) as c_int
     return __xl6_xuiTextMeasureLayout(pContext, pDesc, pSize)
+end
+
+extern "xuiTextShape" func __xl6_xuiTextShape(point pContext, point pFont, string sText, c_int iTextSize, c_uint iFlags, point pShape) as c_int
+export func xuiTextShape(point pContext, point pFont, string sText, c_int iTextSize, c_uint iFlags, point pShape) as c_int
+    return __xl6_xuiTextShape(pContext, pFont, sText, iTextSize, iFlags, pShape)
+end
+
+extern "xuiTextShapeFree" func __xl6_xuiTextShapeFree(point pShape)
+export func xuiTextShapeFree(point pShape)
+    __xl6_xuiTextShapeFree(pShape)
 end
 
 extern "xuiLabelGetType" func __xl6_xuiLabelGetType(point pContext) as point
@@ -1825,11 +2011,6 @@ export func xuiImageClearSource(point pWidget) as c_int
     return __xl6_xuiImageClearSource(pWidget)
 end
 
-extern "xuiImageGetSource" func __xl6_xuiImageGetSource(point pWidget) as point
-export func xuiImageGetSource(point pWidget) as point
-    return __xl6_xuiImageGetSource(pWidget)
-end
-
 extern "xuiImageSetColor" func __xl6_xuiImageSetColor(point pWidget, c_uint iColor) as c_int
 export func xuiImageSetColor(point pWidget, c_uint iColor) as c_int
     return __xl6_xuiImageSetColor(pWidget, iColor)
@@ -1868,16 +2049,6 @@ end
 extern "xuiImageSetCustomRect" func __xl6_xuiImageSetCustomRect(point pWidget, c_float fX1, c_float fY1, c_float fX2, c_float fY2) as c_int
 export func xuiImageSetCustomRect(point pWidget, c_float fX1, c_float fY1, c_float fX2, c_float fY2) as c_int
     return __xl6_xuiImageSetCustomRect(pWidget, fX1, fY1, fX2, fY2)
-end
-
-extern "xuiImageGetCustomRect" func __xl6_xuiImageGetCustomRect(point pWidget) as point
-export func xuiImageGetCustomRect(point pWidget) as point
-    return __xl6_xuiImageGetCustomRect(pWidget)
-end
-
-extern "xuiImageGetDrawRect" func __xl6_xuiImageGetDrawRect(point pWidget) as point
-export func xuiImageGetDrawRect(point pWidget) as point
-    return __xl6_xuiImageGetDrawRect(pWidget)
 end
 
 extern "xuiQrCodeGetType" func __xl6_xuiQrCodeGetType(point pContext) as point
@@ -1943,11 +2114,6 @@ end
 extern "xuiQrCodeGetIcon" func __xl6_xuiQrCodeGetIcon(point pWidget) as point
 export func xuiQrCodeGetIcon(point pWidget) as point
     return __xl6_xuiQrCodeGetIcon(pWidget)
-end
-
-extern "xuiQrCodeGetIconSource" func __xl6_xuiQrCodeGetIconSource(point pWidget) as point
-export func xuiQrCodeGetIconSource(point pWidget) as point
-    return __xl6_xuiQrCodeGetIconSource(pWidget)
 end
 
 extern "xuiQrCodeGetIconSize" func __xl6_xuiQrCodeGetIconSize(point pWidget) as c_float
@@ -2038,11 +2204,6 @@ end
 extern "xuiSeparatorGetLineStyle" func __xl6_xuiSeparatorGetLineStyle(point pWidget) as c_int
 export func xuiSeparatorGetLineStyle(point pWidget) as c_int
     return __xl6_xuiSeparatorGetLineStyle(pWidget)
-end
-
-extern "xuiSeparatorGetLineRect" func __xl6_xuiSeparatorGetLineRect(point pWidget) as point
-export func xuiSeparatorGetLineRect(point pWidget) as point
-    return __xl6_xuiSeparatorGetLineRect(pWidget)
 end
 
 extern "xuiProgressGetType" func __xl6_xuiProgressGetType(point pContext) as point
@@ -2215,11 +2376,6 @@ export func xuiProgressGetFillPatchMode(point pWidget) as c_int
     return __xl6_xuiProgressGetFillPatchMode(pWidget)
 end
 
-extern "xuiProgressGetFillRect" func __xl6_xuiProgressGetFillRect(point pWidget) as point
-export func xuiProgressGetFillRect(point pWidget) as point
-    return __xl6_xuiProgressGetFillRect(pWidget)
-end
-
 extern "xuiStepBarGetType" func __xl6_xuiStepBarGetType(point pContext) as point
 export func xuiStepBarGetType(point pContext) as point
     return __xl6_xuiStepBarGetType(pContext)
@@ -2318,16 +2474,6 @@ end
 extern "xuiStepBarGetMetrics" func __xl6_xuiStepBarGetMetrics(point pWidget, point pBarHeight, point pDotRadius, point pLineWidth) as c_int
 export func xuiStepBarGetMetrics(point pWidget, point pBarHeight, point pDotRadius, point pLineWidth) as c_int
     return __xl6_xuiStepBarGetMetrics(pWidget, pBarHeight, pDotRadius, pLineWidth)
-end
-
-extern "xuiStepBarGetStepRect" func __xl6_xuiStepBarGetStepRect(point pWidget, c_int iIndex) as point
-export func xuiStepBarGetStepRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiStepBarGetStepRect(pWidget, iIndex)
-end
-
-extern "xuiStepBarGetIndicatorRect" func __xl6_xuiStepBarGetIndicatorRect(point pWidget, c_int iIndex) as point
-export func xuiStepBarGetIndicatorRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiStepBarGetIndicatorRect(pWidget, iIndex)
 end
 
 extern "xuiStepBarGetChangeCount" func __xl6_xuiStepBarGetChangeCount(point pWidget) as c_int
@@ -2548,6 +2694,11 @@ end
 extern "xuiFindReplaceAllText" func __xl6_xuiFindReplaceAllText(string sText, c_int iTextLength, string sPattern, string sReplacement, c_int iRangeStart, c_int iRangeEnd, c_uint iFlags, point psOutput, point pOutputLength, point pReplaceCount, string sError, c_int iErrorCapacity) as c_int
 export func xuiFindReplaceAllText(string sText, c_int iTextLength, string sPattern, string sReplacement, c_int iRangeStart, c_int iRangeEnd, c_uint iFlags, point psOutput, point pOutputLength, point pReplaceCount, string sError, c_int iErrorCapacity) as c_int
     return __xl6_xuiFindReplaceAllText(sText, iTextLength, sPattern, sReplacement, iRangeStart, iRangeEnd, iFlags, psOutput, pOutputLength, pReplaceCount, sError, iErrorCapacity)
+end
+
+extern "xuiFindBuildReplacement" func __xl6_xuiFindBuildReplacement(string sText, c_int iTextLength, string sPattern, string sReplacement, c_uint iFlags, point pResult, point psOutput, point pOutputLength, string sError, c_int iErrorCapacity) as c_int
+export func xuiFindBuildReplacement(string sText, c_int iTextLength, string sPattern, string sReplacement, c_uint iFlags, point pResult, point psOutput, point pOutputLength, string sError, c_int iErrorCapacity) as c_int
+    return __xl6_xuiFindBuildReplacement(sText, iTextLength, sPattern, sReplacement, iFlags, pResult, psOutput, pOutputLength, sError, iErrorCapacity)
 end
 
 extern "xuiFindFreeText" func __xl6_xuiFindFreeText(string sText)
@@ -3395,21 +3546,6 @@ export func xuiTagInputGetVisualMetrics(point pWidget, point pBorderWidth, point
     return __xl6_xuiTagInputGetVisualMetrics(pWidget, pBorderWidth, pTagHeight)
 end
 
-extern "xuiTagInputGetTagRect" func __xl6_xuiTagInputGetTagRect(point pWidget, c_int iIndex) as point
-export func xuiTagInputGetTagRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTagInputGetTagRect(pWidget, iIndex)
-end
-
-extern "xuiTagInputGetCloseRect" func __xl6_xuiTagInputGetCloseRect(point pWidget, c_int iIndex) as point
-export func xuiTagInputGetCloseRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTagInputGetCloseRect(pWidget, iIndex)
-end
-
-extern "xuiTagInputGetInputRect" func __xl6_xuiTagInputGetInputRect(point pWidget) as point
-export func xuiTagInputGetInputRect(point pWidget) as point
-    return __xl6_xuiTagInputGetInputRect(pWidget)
-end
-
 extern "xuiTagInputGetInputWidget" func __xl6_xuiTagInputGetInputWidget(point pWidget) as point
 export func xuiTagInputGetInputWidget(point pWidget) as point
     return __xl6_xuiTagInputGetInputWidget(pWidget)
@@ -3625,16 +3761,6 @@ export func xuiNumericInputGetInputWidget(point pWidget) as point
     return __xl6_xuiNumericInputGetInputWidget(pWidget)
 end
 
-extern "xuiNumericInputGetSpinnerRect" func __xl6_xuiNumericInputGetSpinnerRect(point pWidget) as point
-export func xuiNumericInputGetSpinnerRect(point pWidget) as point
-    return __xl6_xuiNumericInputGetSpinnerRect(pWidget)
-end
-
-extern "xuiNumericInputGetButtonRect" func __xl6_xuiNumericInputGetButtonRect(point pWidget, c_int iButton) as point
-export func xuiNumericInputGetButtonRect(point pWidget, c_int iButton) as point
-    return __xl6_xuiNumericInputGetButtonRect(pWidget, iButton)
-end
-
 extern "xuiNumericInputGetHoverButton" func __xl6_xuiNumericInputGetHoverButton(point pWidget) as c_int
 export func xuiNumericInputGetHoverButton(point pWidget) as c_int
     return __xl6_xuiNumericInputGetHoverButton(pWidget)
@@ -3663,6 +3789,581 @@ end
 extern "xuiNumericInputGetChangeCount" func __xl6_xuiNumericInputGetChangeCount(point pWidget) as c_int
 export func xuiNumericInputGetChangeCount(point pWidget) as c_int
     return __xl6_xuiNumericInputGetChangeCount(pWidget)
+end
+
+extern "xuiRichDocumentCreate" func __xl6_xuiRichDocumentCreate(point ppDocument) as c_int
+export func xuiRichDocumentCreate(point ppDocument) as c_int
+    return __xl6_xuiRichDocumentCreate(ppDocument)
+end
+
+extern "xuiRichDocumentDestroy" func __xl6_xuiRichDocumentDestroy(point pDocument)
+export func xuiRichDocumentDestroy(point pDocument)
+    __xl6_xuiRichDocumentDestroy(pDocument)
+end
+
+extern "xuiRichDocumentBeginTransaction" func __xl6_xuiRichDocumentBeginTransaction(point pDocument) as c_int
+export func xuiRichDocumentBeginTransaction(point pDocument) as c_int
+    return __xl6_xuiRichDocumentBeginTransaction(pDocument)
+end
+
+extern "xuiRichDocumentEndTransaction" func __xl6_xuiRichDocumentEndTransaction(point pDocument) as c_int
+export func xuiRichDocumentEndTransaction(point pDocument) as c_int
+    return __xl6_xuiRichDocumentEndTransaction(pDocument)
+end
+
+extern "xuiRichDocumentClear" func __xl6_xuiRichDocumentClear(point pDocument) as c_int
+export func xuiRichDocumentClear(point pDocument) as c_int
+    return __xl6_xuiRichDocumentClear(pDocument)
+end
+
+extern "xuiRichDocumentGetRoot" func __xl6_xuiRichDocumentGetRoot(point pDocument) as point
+export func xuiRichDocumentGetRoot(point pDocument) as point
+    return __xl6_xuiRichDocumentGetRoot(pDocument)
+end
+
+extern "xuiRichDocumentAppendParagraph" func __xl6_xuiRichDocumentAppendParagraph(point pDocument) as point
+export func xuiRichDocumentAppendParagraph(point pDocument) as point
+    return __xl6_xuiRichDocumentAppendParagraph(pDocument)
+end
+
+extern "xuiRichDocumentAppendBlock" func __xl6_xuiRichDocumentAppendBlock(point pDocument, c_int iNodeType, point pStyle) as point
+export func xuiRichDocumentAppendBlock(point pDocument, c_int iNodeType, point pStyle) as point
+    return __xl6_xuiRichDocumentAppendBlock(pDocument, iNodeType, pStyle)
+end
+
+extern "xuiRichDocumentAppendText" func __xl6_xuiRichDocumentAppendText(point pDocument, point pParagraph, string sText, point pStyle) as point
+export func xuiRichDocumentAppendText(point pDocument, point pParagraph, string sText, point pStyle) as point
+    return __xl6_xuiRichDocumentAppendText(pDocument, pParagraph, sText, pStyle)
+end
+
+extern "xuiRichDocumentAppendLink" func __xl6_xuiRichDocumentAppendLink(point pDocument, point pParagraph, string sText, string sUrl, point pStyle) as point
+export func xuiRichDocumentAppendLink(point pDocument, point pParagraph, string sText, string sUrl, point pStyle) as point
+    return __xl6_xuiRichDocumentAppendLink(pDocument, pParagraph, sText, sUrl, pStyle)
+end
+
+extern "xuiRichDocumentAppendWidget" func __xl6_xuiRichDocumentAppendWidget(point pDocument, point pParagraph, point pWidget, c_float fWidth, c_float fHeight, c_float fBaseline) as point
+export func xuiRichDocumentAppendWidget(point pDocument, point pParagraph, point pWidget, c_float fWidth, c_float fHeight, c_float fBaseline) as point
+    return __xl6_xuiRichDocumentAppendWidget(pDocument, pParagraph, pWidget, fWidth, fHeight, fBaseline)
+end
+
+extern "xuiRichDocumentAppendInlineImage" func __xl6_xuiRichDocumentAppendInlineImage(point pDocument, point pParagraph, point pDesc) as point
+export func xuiRichDocumentAppendInlineImage(point pDocument, point pParagraph, point pDesc) as point
+    return __xl6_xuiRichDocumentAppendInlineImage(pDocument, pParagraph, pDesc)
+end
+
+extern "xuiRichDocumentAppendImage" func __xl6_xuiRichDocumentAppendImage(point pDocument, point pDesc) as point
+export func xuiRichDocumentAppendImage(point pDocument, point pDesc) as point
+    return __xl6_xuiRichDocumentAppendImage(pDocument, pDesc)
+end
+
+extern "xuiRichDocumentAppendTable" func __xl6_xuiRichDocumentAppendTable(point pDocument, point pDesc) as point
+export func xuiRichDocumentAppendTable(point pDocument, point pDesc) as point
+    return __xl6_xuiRichDocumentAppendTable(pDocument, pDesc)
+end
+
+extern "xuiRichDocumentAppendHorizontalRule" func __xl6_xuiRichDocumentAppendHorizontalRule(point pDocument) as point
+export func xuiRichDocumentAppendHorizontalRule(point pDocument) as point
+    return __xl6_xuiRichDocumentAppendHorizontalRule(pDocument)
+end
+
+extern "xuiRichDocumentInsertImage" func __xl6_xuiRichDocumentInsertImage(point pDocument, c_int iStart, c_int iEnd, point pDesc) as point
+export func xuiRichDocumentInsertImage(point pDocument, c_int iStart, c_int iEnd, point pDesc) as point
+    return __xl6_xuiRichDocumentInsertImage(pDocument, iStart, iEnd, pDesc)
+end
+
+extern "xuiRichDocumentInsertInlineImage" func __xl6_xuiRichDocumentInsertInlineImage(point pDocument, c_int iStart, c_int iEnd, point pDesc) as point
+export func xuiRichDocumentInsertInlineImage(point pDocument, c_int iStart, c_int iEnd, point pDesc) as point
+    return __xl6_xuiRichDocumentInsertInlineImage(pDocument, iStart, iEnd, pDesc)
+end
+
+extern "xuiRichDocumentInsertTable" func __xl6_xuiRichDocumentInsertTable(point pDocument, c_int iStart, c_int iEnd, point pDesc) as point
+export func xuiRichDocumentInsertTable(point pDocument, c_int iStart, c_int iEnd, point pDesc) as point
+    return __xl6_xuiRichDocumentInsertTable(pDocument, iStart, iEnd, pDesc)
+end
+
+extern "xuiRichDocumentInsertHorizontalRule" func __xl6_xuiRichDocumentInsertHorizontalRule(point pDocument, c_int iStart, c_int iEnd) as point
+export func xuiRichDocumentInsertHorizontalRule(point pDocument, c_int iStart, c_int iEnd) as point
+    return __xl6_xuiRichDocumentInsertHorizontalRule(pDocument, iStart, iEnd)
+end
+
+extern "xuiRichDocumentFindNode" func __xl6_xuiRichDocumentFindNode(point pDocument, point iNodeId) as point
+export func xuiRichDocumentFindNode(point pDocument, point iNodeId) as point
+    return __xl6_xuiRichDocumentFindNode(pDocument, iNodeId)
+end
+
+extern "xuiRichNodeGetFirstChild" func __xl6_xuiRichNodeGetFirstChild(point pNode) as point
+export func xuiRichNodeGetFirstChild(point pNode) as point
+    return __xl6_xuiRichNodeGetFirstChild(pNode)
+end
+
+extern "xuiRichNodeGetNextSibling" func __xl6_xuiRichNodeGetNextSibling(point pNode) as point
+export func xuiRichNodeGetNextSibling(point pNode) as point
+    return __xl6_xuiRichNodeGetNextSibling(pNode)
+end
+
+extern "xuiRichNodeGetInfo" func __xl6_xuiRichNodeGetInfo(point pNode, point pInfo) as c_int
+export func xuiRichNodeGetInfo(point pNode, point pInfo) as c_int
+    return __xl6_xuiRichNodeGetInfo(pNode, pInfo)
+end
+
+extern "xuiRichNodeSetText" func __xl6_xuiRichNodeSetText(point pDocument, point pNode, string sText) as c_int
+export func xuiRichNodeSetText(point pDocument, point pNode, string sText) as c_int
+    return __xl6_xuiRichNodeSetText(pDocument, pNode, sText)
+end
+
+extern "xuiRichNodeSetStyle" func __xl6_xuiRichNodeSetStyle(point pDocument, point pNode, point pStyle) as c_int
+export func xuiRichNodeSetStyle(point pDocument, point pNode, point pStyle) as c_int
+    return __xl6_xuiRichNodeSetStyle(pDocument, pNode, pStyle)
+end
+
+extern "xuiRichNodeSetParagraphStyle" func __xl6_xuiRichNodeSetParagraphStyle(point pDocument, point pNode, point pStyle) as c_int
+export func xuiRichNodeSetParagraphStyle(point pDocument, point pNode, point pStyle) as c_int
+    return __xl6_xuiRichNodeSetParagraphStyle(pDocument, pNode, pStyle)
+end
+
+extern "xuiRichNodeSetResource" func __xl6_xuiRichNodeSetResource(point pDocument, point pNode, string sResource, string sAltText) as c_int
+export func xuiRichNodeSetResource(point pDocument, point pNode, string sResource, string sAltText) as c_int
+    return __xl6_xuiRichNodeSetResource(pDocument, pNode, sResource, sAltText)
+end
+
+extern "xuiRichImageSetSurface" func __xl6_xuiRichImageSetSurface(point pDocument, point pImage, point pSurface, c_float fWidth, c_float fHeight) as c_int
+export func xuiRichImageSetSurface(point pDocument, point pImage, point pSurface, c_float fWidth, c_float fHeight) as c_int
+    return __xl6_xuiRichImageSetSurface(pDocument, pImage, pSurface, fWidth, fHeight)
+end
+
+extern "xuiRichTableSetCellText" func __xl6_xuiRichTableSetCellText(point pDocument, point pTable, c_int iRow, c_int iColumn, string sText, point pStyle) as c_int
+export func xuiRichTableSetCellText(point pDocument, point pTable, c_int iRow, c_int iColumn, string sText, point pStyle) as c_int
+    return __xl6_xuiRichTableSetCellText(pDocument, pTable, iRow, iColumn, sText, pStyle)
+end
+
+extern "xuiRichTableGetCellText" func __xl6_xuiRichTableGetCellText(point pTable, c_int iRow, c_int iColumn) as string
+export func xuiRichTableGetCellText(point pTable, c_int iRow, c_int iColumn) as string
+    return __xl6_xuiRichTableGetCellText(pTable, iRow, iColumn)
+end
+
+extern "xuiRichTableGetCellStyle" func __xl6_xuiRichTableGetCellStyle(point pTable, c_int iRow, c_int iColumn, point pStyle) as c_int
+export func xuiRichTableGetCellStyle(point pTable, c_int iRow, c_int iColumn, point pStyle) as c_int
+    return __xl6_xuiRichTableGetCellStyle(pTable, iRow, iColumn, pStyle)
+end
+
+extern "xuiRichTableGetCellDocument" func __xl6_xuiRichTableGetCellDocument(point pDocument, point pTable, c_int iRow, c_int iColumn, point ppCellDocument) as c_int
+export func xuiRichTableGetCellDocument(point pDocument, point pTable, c_int iRow, c_int iColumn, point ppCellDocument) as c_int
+    return __xl6_xuiRichTableGetCellDocument(pDocument, pTable, iRow, iColumn, ppCellDocument)
+end
+
+extern "xuiRichTableResize" func __xl6_xuiRichTableResize(point pDocument, point pTable, c_int iRows, c_int iColumns) as c_int
+export func xuiRichTableResize(point pDocument, point pTable, c_int iRows, c_int iColumns) as c_int
+    return __xl6_xuiRichTableResize(pDocument, pTable, iRows, iColumns)
+end
+
+extern "xuiRichDocumentGetLength" func __xl6_xuiRichDocumentGetLength(point pDocument) as c_int
+export func xuiRichDocumentGetLength(point pDocument) as c_int
+    return __xl6_xuiRichDocumentGetLength(pDocument)
+end
+
+extern "xuiRichDocumentGetText" func __xl6_xuiRichDocumentGetText(point pDocument) as string
+export func xuiRichDocumentGetText(point pDocument) as string
+    return __xl6_xuiRichDocumentGetText(pDocument)
+end
+
+extern "xuiRichDocumentReplace" func __xl6_xuiRichDocumentReplace(point pDocument, c_int iStart, c_int iEnd, string sText, point pStyle) as c_int
+export func xuiRichDocumentReplace(point pDocument, c_int iStart, c_int iEnd, string sText, point pStyle) as c_int
+    return __xl6_xuiRichDocumentReplace(pDocument, iStart, iEnd, sText, pStyle)
+end
+
+extern "xuiRichDocumentApplyStyle" func __xl6_xuiRichDocumentApplyStyle(point pDocument, c_int iStart, c_int iEnd, point pStyle) as c_int
+export func xuiRichDocumentApplyStyle(point pDocument, c_int iStart, c_int iEnd, point pStyle) as c_int
+    return __xl6_xuiRichDocumentApplyStyle(pDocument, iStart, iEnd, pStyle)
+end
+
+extern "xuiRichDocumentUpdateStyleFlags" func __xl6_xuiRichDocumentUpdateStyleFlags(point pDocument, c_int iStart, c_int iEnd, c_uint iSetFlags, c_uint iClearFlags) as c_int
+export func xuiRichDocumentUpdateStyleFlags(point pDocument, c_int iStart, c_int iEnd, c_uint iSetFlags, c_uint iClearFlags) as c_int
+    return __xl6_xuiRichDocumentUpdateStyleFlags(pDocument, iStart, iEnd, iSetFlags, iClearFlags)
+end
+
+extern "xuiRichDocumentApplyLink" func __xl6_xuiRichDocumentApplyLink(point pDocument, c_int iStart, c_int iEnd, string sUrl) as c_int
+export func xuiRichDocumentApplyLink(point pDocument, c_int iStart, c_int iEnd, string sUrl) as c_int
+    return __xl6_xuiRichDocumentApplyLink(pDocument, iStart, iEnd, sUrl)
+end
+
+extern "xuiRichDocumentApplyParagraphStyle" func __xl6_xuiRichDocumentApplyParagraphStyle(point pDocument, c_int iStart, c_int iEnd, point pStyle) as c_int
+export func xuiRichDocumentApplyParagraphStyle(point pDocument, c_int iStart, c_int iEnd, point pStyle) as c_int
+    return __xl6_xuiRichDocumentApplyParagraphStyle(pDocument, iStart, iEnd, pStyle)
+end
+
+extern "xuiRichDocumentSetBlockType" func __xl6_xuiRichDocumentSetBlockType(point pDocument, c_int iStart, c_int iEnd, c_int iNodeType) as c_int
+export func xuiRichDocumentSetBlockType(point pDocument, c_int iStart, c_int iEnd, c_int iNodeType) as c_int
+    return __xl6_xuiRichDocumentSetBlockType(pDocument, iStart, iEnd, iNodeType)
+end
+
+extern "xuiRichDocumentCloneRange" func __xl6_xuiRichDocumentCloneRange(point pDocument, c_int iStart, c_int iEnd, point ppFragment) as c_int
+export func xuiRichDocumentCloneRange(point pDocument, c_int iStart, c_int iEnd, point ppFragment) as c_int
+    return __xl6_xuiRichDocumentCloneRange(pDocument, iStart, iEnd, ppFragment)
+end
+
+extern "xuiRichDocumentInsertDocument" func __xl6_xuiRichDocumentInsertDocument(point pDocument, c_int iStart, c_int iEnd, point pFragment) as c_int
+export func xuiRichDocumentInsertDocument(point pDocument, c_int iStart, c_int iEnd, point pFragment) as c_int
+    return __xl6_xuiRichDocumentInsertDocument(pDocument, iStart, iEnd, pFragment)
+end
+
+extern "xuiRichDocumentOffsetToPosition" func __xl6_xuiRichDocumentOffsetToPosition(point pDocument, c_int iOffset, point pPosition) as c_int
+export func xuiRichDocumentOffsetToPosition(point pDocument, c_int iOffset, point pPosition) as c_int
+    return __xl6_xuiRichDocumentOffsetToPosition(pDocument, iOffset, pPosition)
+end
+
+extern "xuiRichDocumentPositionToOffset" func __xl6_xuiRichDocumentPositionToOffset(point pDocument, point pPosition, point pOffset) as c_int
+export func xuiRichDocumentPositionToOffset(point pDocument, point pPosition, point pOffset) as c_int
+    return __xl6_xuiRichDocumentPositionToOffset(pDocument, pPosition, pOffset)
+end
+
+extern "xuiRichDocumentUndo" func __xl6_xuiRichDocumentUndo(point pDocument) as c_int
+export func xuiRichDocumentUndo(point pDocument) as c_int
+    return __xl6_xuiRichDocumentUndo(pDocument)
+end
+
+extern "xuiRichDocumentRedo" func __xl6_xuiRichDocumentRedo(point pDocument) as c_int
+export func xuiRichDocumentRedo(point pDocument) as c_int
+    return __xl6_xuiRichDocumentRedo(pDocument)
+end
+
+extern "xuiRichDocumentCanUndo" func __xl6_xuiRichDocumentCanUndo(point pDocument) as c_int
+export func xuiRichDocumentCanUndo(point pDocument) as c_int
+    return __xl6_xuiRichDocumentCanUndo(pDocument)
+end
+
+extern "xuiRichDocumentCanRedo" func __xl6_xuiRichDocumentCanRedo(point pDocument) as c_int
+export func xuiRichDocumentCanRedo(point pDocument) as c_int
+    return __xl6_xuiRichDocumentCanRedo(pDocument)
+end
+
+extern "xuiRichDocumentGetVersion" func __xl6_xuiRichDocumentGetVersion(point pDocument) as c_uint
+export func xuiRichDocumentGetVersion(point pDocument) as c_uint
+    return __xl6_xuiRichDocumentGetVersion(pDocument)
+end
+
+extern "xuiRichDocumentGetLastChange" func __xl6_xuiRichDocumentGetLastChange(point pDocument, point pChange) as c_int
+export func xuiRichDocumentGetLastChange(point pDocument, point pChange) as c_int
+    return __xl6_xuiRichDocumentGetLastChange(pDocument, pChange)
+end
+
+extern "xuiRichDocumentSerialize" func __xl6_xuiRichDocumentSerialize(point pDocument, c_int bPretty, point ppText, point pSize) as c_int
+export func xuiRichDocumentSerialize(point pDocument, c_int bPretty, point ppText, point pSize) as c_int
+    return __xl6_xuiRichDocumentSerialize(pDocument, bPretty, ppText, pSize)
+end
+
+extern "xuiRichDocumentDeserialize" func __xl6_xuiRichDocumentDeserialize(string sText, c_size iSize, point ppDocument) as c_int
+export func xuiRichDocumentDeserialize(string sText, c_size iSize, point ppDocument) as c_int
+    return __xl6_xuiRichDocumentDeserialize(sText, iSize, ppDocument)
+end
+
+extern "xuiRichDocumentExportHtml" func __xl6_xuiRichDocumentExportHtml(point pDocument, point ppText, point pSize) as c_int
+export func xuiRichDocumentExportHtml(point pDocument, point ppText, point pSize) as c_int
+    return __xl6_xuiRichDocumentExportHtml(pDocument, ppText, pSize)
+end
+
+extern "xuiRichDocumentImportHtml" func __xl6_xuiRichDocumentImportHtml(string sText, c_size iSize, point ppDocument) as c_int
+export func xuiRichDocumentImportHtml(string sText, c_size iSize, point ppDocument) as c_int
+    return __xl6_xuiRichDocumentImportHtml(sText, iSize, ppDocument)
+end
+
+extern "xuiRichDocumentExportMarkdown" func __xl6_xuiRichDocumentExportMarkdown(point pDocument, point ppText, point pSize) as c_int
+export func xuiRichDocumentExportMarkdown(point pDocument, point ppText, point pSize) as c_int
+    return __xl6_xuiRichDocumentExportMarkdown(pDocument, ppText, pSize)
+end
+
+extern "xuiRichDocumentImportMarkdown" func __xl6_xuiRichDocumentImportMarkdown(string sText, c_size iSize, point ppDocument) as c_int
+export func xuiRichDocumentImportMarkdown(string sText, c_size iSize, point ppDocument) as c_int
+    return __xl6_xuiRichDocumentImportMarkdown(sText, iSize, ppDocument)
+end
+
+extern "xuiRichDocumentFreeSerialized" func __xl6_xuiRichDocumentFreeSerialized(string sText)
+export func xuiRichDocumentFreeSerialized(string sText)
+    __xl6_xuiRichDocumentFreeSerialized(sText)
+end
+
+extern "xuiRichEditGetType" func __xl6_xuiRichEditGetType(point pContext) as point
+export func xuiRichEditGetType(point pContext) as point
+    return __xl6_xuiRichEditGetType(pContext)
+end
+
+extern "xuiRichEditCreate" func __xl6_xuiRichEditCreate(point pContext, point ppWidget, point pDesc) as c_int
+export func xuiRichEditCreate(point pContext, point ppWidget, point pDesc) as c_int
+    return __xl6_xuiRichEditCreate(pContext, ppWidget, pDesc)
+end
+
+extern "xuiRichEditGetDocument" func __xl6_xuiRichEditGetDocument(point pWidget) as point
+export func xuiRichEditGetDocument(point pWidget) as point
+    return __xl6_xuiRichEditGetDocument(pWidget)
+end
+
+extern "xuiRichEditSetDocument" func __xl6_xuiRichEditSetDocument(point pWidget, point pDocument, c_int bOwnDocument) as c_int
+export func xuiRichEditSetDocument(point pWidget, point pDocument, c_int bOwnDocument) as c_int
+    return __xl6_xuiRichEditSetDocument(pWidget, pDocument, bOwnDocument)
+end
+
+extern "xuiRichEditSetChange" func __xl6_xuiRichEditSetChange(point pWidget, point onChange, point pUser) as c_int
+export func xuiRichEditSetChange(point pWidget, point onChange, point pUser) as c_int
+    return __xl6_xuiRichEditSetChange(pWidget, onChange, pUser)
+end
+
+extern "xuiRichEditSetLinkClick" func __xl6_xuiRichEditSetLinkClick(point pWidget, point onClick, point pUser) as c_int
+export func xuiRichEditSetLinkClick(point pWidget, point onClick, point pUser) as c_int
+    return __xl6_xuiRichEditSetLinkClick(pWidget, onClick, pUser)
+end
+
+extern "xuiRichEditSetEvent" func __xl6_xuiRichEditSetEvent(point pWidget, point onEvent, point pUser) as c_int
+export func xuiRichEditSetEvent(point pWidget, point onEvent, point pUser) as c_int
+    return __xl6_xuiRichEditSetEvent(pWidget, onEvent, pUser)
+end
+
+extern "xuiRichEditSetSelection" func __xl6_xuiRichEditSetSelection(point pWidget, c_int iStart, c_int iEnd) as c_int
+export func xuiRichEditSetSelection(point pWidget, c_int iStart, c_int iEnd) as c_int
+    return __xl6_xuiRichEditSetSelection(pWidget, iStart, iEnd)
+end
+
+extern "xuiRichEditGetSelection" func __xl6_xuiRichEditGetSelection(point pWidget, point pStart, point pEnd) as c_int
+export func xuiRichEditGetSelection(point pWidget, point pStart, point pEnd) as c_int
+    return __xl6_xuiRichEditGetSelection(pWidget, pStart, pEnd)
+end
+
+extern "xuiRichEditSelectAll" func __xl6_xuiRichEditSelectAll(point pWidget) as c_int
+export func xuiRichEditSelectAll(point pWidget) as c_int
+    return __xl6_xuiRichEditSelectAll(pWidget)
+end
+
+extern "xuiRichEditInsertText" func __xl6_xuiRichEditInsertText(point pWidget, string sText) as c_int
+export func xuiRichEditInsertText(point pWidget, string sText) as c_int
+    return __xl6_xuiRichEditInsertText(pWidget, sText)
+end
+
+extern "xuiRichEditApplyStyle" func __xl6_xuiRichEditApplyStyle(point pWidget, point pStyle) as c_int
+export func xuiRichEditApplyStyle(point pWidget, point pStyle) as c_int
+    return __xl6_xuiRichEditApplyStyle(pWidget, pStyle)
+end
+
+extern "xuiRichEditApplyLink" func __xl6_xuiRichEditApplyLink(point pWidget, string sUrl) as c_int
+export func xuiRichEditApplyLink(point pWidget, string sUrl) as c_int
+    return __xl6_xuiRichEditApplyLink(pWidget, sUrl)
+end
+
+extern "xuiRichEditApplyParagraphStyle" func __xl6_xuiRichEditApplyParagraphStyle(point pWidget, point pStyle) as c_int
+export func xuiRichEditApplyParagraphStyle(point pWidget, point pStyle) as c_int
+    return __xl6_xuiRichEditApplyParagraphStyle(pWidget, pStyle)
+end
+
+extern "xuiRichEditInsertImage" func __xl6_xuiRichEditInsertImage(point pWidget, point pDesc) as c_int
+export func xuiRichEditInsertImage(point pWidget, point pDesc) as c_int
+    return __xl6_xuiRichEditInsertImage(pWidget, pDesc)
+end
+
+extern "xuiRichEditInsertInlineImage" func __xl6_xuiRichEditInsertInlineImage(point pWidget, point pDesc) as c_int
+export func xuiRichEditInsertInlineImage(point pWidget, point pDesc) as c_int
+    return __xl6_xuiRichEditInsertInlineImage(pWidget, pDesc)
+end
+
+extern "xuiRichEditInsertTable" func __xl6_xuiRichEditInsertTable(point pWidget, point pDesc) as c_int
+export func xuiRichEditInsertTable(point pWidget, point pDesc) as c_int
+    return __xl6_xuiRichEditInsertTable(pWidget, pDesc)
+end
+
+extern "xuiRichEditInsertHorizontalRule" func __xl6_xuiRichEditInsertHorizontalRule(point pWidget) as c_int
+export func xuiRichEditInsertHorizontalRule(point pWidget) as c_int
+    return __xl6_xuiRichEditInsertHorizontalRule(pWidget)
+end
+
+extern "xuiRichEditBeginTableCellEdit" func __xl6_xuiRichEditBeginTableCellEdit(point pWidget, point iTableId, c_int iRow, c_int iColumn) as c_int
+export func xuiRichEditBeginTableCellEdit(point pWidget, point iTableId, c_int iRow, c_int iColumn) as c_int
+    return __xl6_xuiRichEditBeginTableCellEdit(pWidget, iTableId, iRow, iColumn)
+end
+
+extern "xuiRichEditEndTableCellEdit" func __xl6_xuiRichEditEndTableCellEdit(point pWidget) as c_int
+export func xuiRichEditEndTableCellEdit(point pWidget) as c_int
+    return __xl6_xuiRichEditEndTableCellEdit(pWidget)
+end
+
+extern "xuiRichEditGetTableCellEditor" func __xl6_xuiRichEditGetTableCellEditor(point pWidget, point pTableId, point pRow, point pColumn) as point
+export func xuiRichEditGetTableCellEditor(point pWidget, point pTableId, point pRow, point pColumn) as point
+    return __xl6_xuiRichEditGetTableCellEditor(pWidget, pTableId, pRow, pColumn)
+end
+
+extern "xuiRichEditSetFontSet" func __xl6_xuiRichEditSetFontSet(point pWidget, point pFonts) as c_int
+export func xuiRichEditSetFontSet(point pWidget, point pFonts) as c_int
+    return __xl6_xuiRichEditSetFontSet(pWidget, pFonts)
+end
+
+extern "xuiRichEditGetFontSet" func __xl6_xuiRichEditGetFontSet(point pWidget, point pFonts) as c_int
+export func xuiRichEditGetFontSet(point pWidget, point pFonts) as c_int
+    return __xl6_xuiRichEditGetFontSet(pWidget, pFonts)
+end
+
+extern "xuiRichEditExecuteCommand" func __xl6_xuiRichEditExecuteCommand(point pWidget, c_int iCommand, point pData) as c_int
+export func xuiRichEditExecuteCommand(point pWidget, c_int iCommand, point pData) as c_int
+    return __xl6_xuiRichEditExecuteCommand(pWidget, iCommand, pData)
+end
+
+extern "xuiRichEditQueryCommand" func __xl6_xuiRichEditQueryCommand(point pWidget, c_int iCommand, point pState) as c_int
+export func xuiRichEditQueryCommand(point pWidget, c_int iCommand, point pState) as c_int
+    return __xl6_xuiRichEditQueryCommand(pWidget, iCommand, pState)
+end
+
+extern "xuiRichEditSetupToolbar" func __xl6_xuiRichEditSetupToolbar(point pWidget, point pToolbar, c_uint iGroups) as c_int
+export func xuiRichEditSetupToolbar(point pWidget, point pToolbar, c_uint iGroups) as c_int
+    return __xl6_xuiRichEditSetupToolbar(pWidget, pToolbar, iGroups)
+end
+
+extern "xuiRichEditSyncToolbar" func __xl6_xuiRichEditSyncToolbar(point pWidget, point pToolbar) as c_int
+export func xuiRichEditSyncToolbar(point pWidget, point pToolbar) as c_int
+    return __xl6_xuiRichEditSyncToolbar(pWidget, pToolbar)
+end
+
+extern "xuiRichEditExecuteToolbarItem" func __xl6_xuiRichEditExecuteToolbarItem(point pWidget, point pToolbar, c_int iIndex) as c_int
+export func xuiRichEditExecuteToolbarItem(point pWidget, point pToolbar, c_int iIndex) as c_int
+    return __xl6_xuiRichEditExecuteToolbarItem(pWidget, pToolbar, iIndex)
+end
+
+extern "xuiRichEditCopy" func __xl6_xuiRichEditCopy(point pWidget) as c_int
+export func xuiRichEditCopy(point pWidget) as c_int
+    return __xl6_xuiRichEditCopy(pWidget)
+end
+
+extern "xuiRichEditCut" func __xl6_xuiRichEditCut(point pWidget) as c_int
+export func xuiRichEditCut(point pWidget) as c_int
+    return __xl6_xuiRichEditCut(pWidget)
+end
+
+extern "xuiRichEditPaste" func __xl6_xuiRichEditPaste(point pWidget) as c_int
+export func xuiRichEditPaste(point pWidget) as c_int
+    return __xl6_xuiRichEditPaste(pWidget)
+end
+
+extern "xuiRichEditOpenFind" func __xl6_xuiRichEditOpenFind(point pWidget) as c_int
+export func xuiRichEditOpenFind(point pWidget) as c_int
+    return __xl6_xuiRichEditOpenFind(pWidget)
+end
+
+extern "xuiRichEditOpenReplace" func __xl6_xuiRichEditOpenReplace(point pWidget) as c_int
+export func xuiRichEditOpenReplace(point pWidget) as c_int
+    return __xl6_xuiRichEditOpenReplace(pWidget)
+end
+
+extern "xuiRichEditGetFindWindow" func __xl6_xuiRichEditGetFindWindow(point pWidget) as point
+export func xuiRichEditGetFindWindow(point pWidget) as point
+    return __xl6_xuiRichEditGetFindWindow(pWidget)
+end
+
+extern "xuiRichEditFindNext" func __xl6_xuiRichEditFindNext(point pWidget, point pOptions) as c_int
+export func xuiRichEditFindNext(point pWidget, point pOptions) as c_int
+    return __xl6_xuiRichEditFindNext(pWidget, pOptions)
+end
+
+extern "xuiRichEditFindPrevious" func __xl6_xuiRichEditFindPrevious(point pWidget, point pOptions) as c_int
+export func xuiRichEditFindPrevious(point pWidget, point pOptions) as c_int
+    return __xl6_xuiRichEditFindPrevious(pWidget, pOptions)
+end
+
+extern "xuiRichEditReplaceCurrent" func __xl6_xuiRichEditReplaceCurrent(point pWidget, point pOptions) as c_int
+export func xuiRichEditReplaceCurrent(point pWidget, point pOptions) as c_int
+    return __xl6_xuiRichEditReplaceCurrent(pWidget, pOptions)
+end
+
+extern "xuiRichEditReplaceAll" func __xl6_xuiRichEditReplaceAll(point pWidget, point pOptions, point pReplaceCount) as c_int
+export func xuiRichEditReplaceAll(point pWidget, point pOptions, point pReplaceCount) as c_int
+    return __xl6_xuiRichEditReplaceAll(pWidget, pOptions, pReplaceCount)
+end
+
+extern "xuiRichEditClearFind" func __xl6_xuiRichEditClearFind(point pWidget) as c_int
+export func xuiRichEditClearFind(point pWidget) as c_int
+    return __xl6_xuiRichEditClearFind(pWidget)
+end
+
+extern "xuiRichEditGetFindResultCount" func __xl6_xuiRichEditGetFindResultCount(point pWidget) as c_int
+export func xuiRichEditGetFindResultCount(point pWidget) as c_int
+    return __xl6_xuiRichEditGetFindResultCount(pWidget)
+end
+
+extern "xuiRichEditGetFindResult" func __xl6_xuiRichEditGetFindResult(point pWidget, c_int iIndex, point pResult) as c_int
+export func xuiRichEditGetFindResult(point pWidget, c_int iIndex, point pResult) as c_int
+    return __xl6_xuiRichEditGetFindResult(pWidget, iIndex, pResult)
+end
+
+extern "xuiRichEditOpenMenu" func __xl6_xuiRichEditOpenMenu(point pWidget, c_float fX, c_float fY) as c_int
+export func xuiRichEditOpenMenu(point pWidget, c_float fX, c_float fY) as c_int
+    return __xl6_xuiRichEditOpenMenu(pWidget, fX, fY)
+end
+
+extern "xuiRichEditGetMenuWidget" func __xl6_xuiRichEditGetMenuWidget(point pWidget) as point
+export func xuiRichEditGetMenuWidget(point pWidget) as point
+    return __xl6_xuiRichEditGetMenuWidget(pWidget)
+end
+
+extern "xuiRichEditUndo" func __xl6_xuiRichEditUndo(point pWidget) as c_int
+export func xuiRichEditUndo(point pWidget) as c_int
+    return __xl6_xuiRichEditUndo(pWidget)
+end
+
+extern "xuiRichEditRedo" func __xl6_xuiRichEditRedo(point pWidget) as c_int
+export func xuiRichEditRedo(point pWidget) as c_int
+    return __xl6_xuiRichEditRedo(pWidget)
+end
+
+extern "xuiRichEditSetReadonly" func __xl6_xuiRichEditSetReadonly(point pWidget, c_int bReadonly) as c_int
+export func xuiRichEditSetReadonly(point pWidget, c_int bReadonly) as c_int
+    return __xl6_xuiRichEditSetReadonly(pWidget, bReadonly)
+end
+
+extern "xuiRichEditIsReadonly" func __xl6_xuiRichEditIsReadonly(point pWidget) as c_int
+export func xuiRichEditIsReadonly(point pWidget) as c_int
+    return __xl6_xuiRichEditIsReadonly(pWidget)
+end
+
+extern "xuiRichEditSetScroll" func __xl6_xuiRichEditSetScroll(point pWidget, c_float fScrollX, c_float fScrollY) as c_int
+export func xuiRichEditSetScroll(point pWidget, c_float fScrollX, c_float fScrollY) as c_int
+    return __xl6_xuiRichEditSetScroll(pWidget, fScrollX, fScrollY)
+end
+
+extern "xuiRichEditGetScroll" func __xl6_xuiRichEditGetScroll(point pWidget, point pScrollX, point pScrollY) as c_int
+export func xuiRichEditGetScroll(point pWidget, point pScrollX, point pScrollY) as c_int
+    return __xl6_xuiRichEditGetScroll(pWidget, pScrollX, pScrollY)
+end
+
+extern "xuiRichEditScrollBy" func __xl6_xuiRichEditScrollBy(point pWidget, c_float fDeltaX, c_float fDeltaY) as c_int
+export func xuiRichEditScrollBy(point pWidget, c_float fDeltaX, c_float fDeltaY) as c_int
+    return __xl6_xuiRichEditScrollBy(pWidget, fDeltaX, fDeltaY)
+end
+
+extern "xuiRichEditSetZoom" func __xl6_xuiRichEditSetZoom(point pWidget, c_float fZoom) as c_int
+export func xuiRichEditSetZoom(point pWidget, c_float fZoom) as c_int
+    return __xl6_xuiRichEditSetZoom(pWidget, fZoom)
+end
+
+extern "xuiRichEditGetZoom" func __xl6_xuiRichEditGetZoom(point pWidget) as c_float
+export func xuiRichEditGetZoom(point pWidget) as c_float
+    return __xl6_xuiRichEditGetZoom(pWidget)
+end
+
+extern "xuiRichEditGetScrollModel" func __xl6_xuiRichEditGetScrollModel(point pWidget) as point
+export func xuiRichEditGetScrollModel(point pWidget) as point
+    return __xl6_xuiRichEditGetScrollModel(pWidget)
+end
+
+extern "xuiRichEditGetHScrollBarWidget" func __xl6_xuiRichEditGetHScrollBarWidget(point pWidget) as point
+export func xuiRichEditGetHScrollBarWidget(point pWidget) as point
+    return __xl6_xuiRichEditGetHScrollBarWidget(pWidget)
+end
+
+extern "xuiRichEditGetVScrollBarWidget" func __xl6_xuiRichEditGetVScrollBarWidget(point pWidget) as point
+export func xuiRichEditGetVScrollBarWidget(point pWidget) as point
+    return __xl6_xuiRichEditGetVScrollBarWidget(pWidget)
+end
+
+extern "xuiRichEditGetFragmentCount" func __xl6_xuiRichEditGetFragmentCount(point pWidget) as c_int
+export func xuiRichEditGetFragmentCount(point pWidget) as c_int
+    return __xl6_xuiRichEditGetFragmentCount(pWidget)
+end
+
+extern "xuiRichEditGetFragment" func __xl6_xuiRichEditGetFragment(point pWidget, c_int iIndex, point pFragment) as c_int
+export func xuiRichEditGetFragment(point pWidget, c_int iIndex, point pFragment) as c_int
+    return __xl6_xuiRichEditGetFragment(pWidget, iIndex, pFragment)
 end
 
 extern "xuiCheckCardGetType" func __xl6_xuiCheckCardGetType(point pContext) as point
@@ -3733,11 +4434,6 @@ end
 extern "xuiCheckCardGetStateColors" func __xl6_xuiCheckCardGetStateColors(point pWidget, point pDisabledBorder, point pFocus) as c_int
 export func xuiCheckCardGetStateColors(point pWidget, point pDisabledBorder, point pFocus) as c_int
     return __xl6_xuiCheckCardGetStateColors(pWidget, pDisabledBorder, pFocus)
-end
-
-extern "xuiCheckCardGetCornerRect" func __xl6_xuiCheckCardGetCornerRect(point pWidget) as point
-export func xuiCheckCardGetCornerRect(point pWidget) as point
-    return __xl6_xuiCheckCardGetCornerRect(pWidget)
 end
 
 extern "xuiCheckCardGetState" func __xl6_xuiCheckCardGetState(point pWidget) as c_uint
@@ -3863,26 +4559,6 @@ end
 extern "xuiRangeSliderGetKnobBorderColor" func __xl6_xuiRangeSliderGetKnobBorderColor(point pWidget) as c_uint
 export func xuiRangeSliderGetKnobBorderColor(point pWidget) as c_uint
     return __xl6_xuiRangeSliderGetKnobBorderColor(pWidget)
-end
-
-extern "xuiRangeSliderGetTrackRect" func __xl6_xuiRangeSliderGetTrackRect(point pWidget) as point
-export func xuiRangeSliderGetTrackRect(point pWidget) as point
-    return __xl6_xuiRangeSliderGetTrackRect(pWidget)
-end
-
-extern "xuiRangeSliderGetFillRect" func __xl6_xuiRangeSliderGetFillRect(point pWidget) as point
-export func xuiRangeSliderGetFillRect(point pWidget) as point
-    return __xl6_xuiRangeSliderGetFillRect(pWidget)
-end
-
-extern "xuiRangeSliderGetStartKnobRect" func __xl6_xuiRangeSliderGetStartKnobRect(point pWidget) as point
-export func xuiRangeSliderGetStartKnobRect(point pWidget) as point
-    return __xl6_xuiRangeSliderGetStartKnobRect(pWidget)
-end
-
-extern "xuiRangeSliderGetEndKnobRect" func __xl6_xuiRangeSliderGetEndKnobRect(point pWidget) as point
-export func xuiRangeSliderGetEndKnobRect(point pWidget) as point
-    return __xl6_xuiRangeSliderGetEndKnobRect(pWidget)
 end
 
 extern "xuiRangeSliderGetActiveThumb" func __xl6_xuiRangeSliderGetActiveThumb(point pWidget) as c_int
@@ -4185,21 +4861,6 @@ export func xuiMsgTipGetWidget(point pTip) as point
     return __xl6_xuiMsgTipGetWidget(pTip)
 end
 
-extern "xuiMsgTipGetTipRect" func __xl6_xuiMsgTipGetTipRect(point pTip) as point
-export func xuiMsgTipGetTipRect(point pTip) as point
-    return __xl6_xuiMsgTipGetTipRect(pTip)
-end
-
-extern "xuiMsgTipGetIconRect" func __xl6_xuiMsgTipGetIconRect(point pTip) as point
-export func xuiMsgTipGetIconRect(point pTip) as point
-    return __xl6_xuiMsgTipGetIconRect(pTip)
-end
-
-extern "xuiMsgTipGetTextRect" func __xl6_xuiMsgTipGetTextRect(point pTip) as point
-export func xuiMsgTipGetTextRect(point pTip) as point
-    return __xl6_xuiMsgTipGetTextRect(pTip)
-end
-
 extern "xuiMsgTipGetWrapLineCount" func __xl6_xuiMsgTipGetWrapLineCount(point pTip) as c_int
 export func xuiMsgTipGetWrapLineCount(point pTip) as c_int
     return __xl6_xuiMsgTipGetWrapLineCount(pTip)
@@ -4450,11 +5111,6 @@ export func xuiStatusBarGetItem(point pWidget, c_int iIndex) as point
     return __xl6_xuiStatusBarGetItem(pWidget, iIndex)
 end
 
-extern "xuiStatusBarGetItemRect" func __xl6_xuiStatusBarGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiStatusBarGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiStatusBarGetItemRect(pWidget, iIndex)
-end
-
 extern "xuiStatusBarGetItemAt" func __xl6_xuiStatusBarGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
 export func xuiStatusBarGetItemAt(point pWidget, c_float fX, c_float fY) as c_int
     return __xl6_xuiStatusBarGetItemAt(pWidget, fX, fY)
@@ -4585,14 +5241,14 @@ export func xuiGetRootWidget(point pContext) as point
     return __xl6_xuiGetRootWidget(pContext)
 end
 
+extern "xuiLayoutArrangeChild" func __xl6_xuiLayoutArrangeChild(point pParent, point pChild, point tRect) as c_int
+export func xuiLayoutArrangeChild(point pParent, point pChild, point tRect) as c_int
+    return __xl6_xuiLayoutArrangeChild(pParent, pChild, tRect)
+end
+
 extern "xuiHasImeCandidateRect" func __xl6_xuiHasImeCandidateRect(point pContext) as c_int
 export func xuiHasImeCandidateRect(point pContext) as c_int
     return __xl6_xuiHasImeCandidateRect(pContext)
-end
-
-extern "xuiGetImeCandidateRect" func __xl6_xuiGetImeCandidateRect(point pContext) as point
-export func xuiGetImeCandidateRect(point pContext) as point
-    return __xl6_xuiGetImeCandidateRect(pContext)
 end
 
 extern "xuiOverlayRoot" func __xl6_xuiOverlayRoot(point pContext) as point
@@ -4650,9 +5306,9 @@ export func xuiDebugEventTrace(point pContext, point pEvent, string sBuffer, c_i
     return __xl6_xuiDebugEventTrace(pContext, pEvent, sBuffer, iCapacity)
 end
 
-extern "xuiProxyXge" func __xl6_xuiProxyXge() as point
-export func xuiProxyXge() as point
-    return __xl6_xuiProxyXge()
+extern "xuiProxyXgePumpKeyboard" func __xl6_xuiProxyXgePumpKeyboard(point pContext) as c_int
+export func xuiProxyXgePumpKeyboard(point pContext) as c_int
+    return __xl6_xuiProxyXgePumpKeyboard(pContext)
 end
 
 extern "xuiProxyXgePumpInput" func __xl6_xuiProxyXgePumpInput(point pContext) as c_int

@@ -1,4 +1,0 @@
-func 入口() as int
-	assert 1 == 2, "assert boom"
-	return 0
-end

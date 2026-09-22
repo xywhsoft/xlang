@@ -104,6 +104,23 @@ func main(...) as int
     assert h16.length == 32, "16-byte = 32 hex"
     assert h64.length == 128, "64-byte = 128 hex"
 
+    // Invalid inputs must surface as xlang exceptions instead of an empty hash.
+    bool caught = false
+    try
+        argon2.hash("pw", salt = salt, timeCost = 1, memoryCost = 2097153, parallelism = 1)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "memory cost above the published high-memory profile must throw"
+
+    caught = false
+    try
+        argon2.generateSalt(7)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "too-short generated salt must throw"
+
     println("argon2: all tests passed")
     return 0
 end

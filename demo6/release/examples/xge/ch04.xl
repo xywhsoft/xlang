@@ -3,31 +3,31 @@ import xge
 
 func draw_scene()
     // 大圆形（教程示例中的琥珀色圆）
-    xge.xgeShapeCircleFill(c_float(400), c_float(300), c_float(150), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+    xge.Shape.circleFill(400, 300, 150, xge.Color.rgba(255, 180, 84, 255))
 
     // 内圈装饰
-    xge.xgeShapeCircleStroke(c_float(400), c_float(300), c_float(100), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(180)))
-    xge.xgeShapeCircleStroke(c_float(400), c_float(300), c_float(50), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(120)))
+    xge.Shape.circleStroke(400, 300, 100, 2.0, xge.Color.rgba(13, 17, 22, 180))
+    xge.Shape.circleStroke(400, 300, 50, 2.0, xge.Color.rgba(13, 17, 22, 120))
 
     // 中心点
-    xge.xgeShapeCircleFill(c_float(400), c_float(300), c_float(8), xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(200)))
+    xge.Shape.circleFill(400, 300, 8, xge.Color.rgba(13, 17, 22, 200))
 
     // 边框表示离屏帧缓冲
-    xge.xgeShapeRectStroke(c_float(50), c_float(30), c_float(700), c_float(540), c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(100), c_uint(120), c_uint(140), c_uint(150)))
+    xge.Shape.rectStroke(50, 30, 700, 540, 1.5, xge.Color.rgba(100, 120, 140, 150))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch04")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch04")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

@@ -1,12 +1,13 @@
 // crc32 — CRC-32/ISO-HDLC 校验和（slice-by-8 高性能实现），支持 Buffer/string/文件/流式。
-extern "xrtGetError" func __crc32_error() as string
+extern "xl6_xrt_last_error_text" func __crc32_error() as string
 extern "xcrc32_version" func __crc32_version() as string
 extern "xcrc32_hash" func __crc32_hash(point data, c_size size) as int
 extern "xcrc32_hash_hex" func __crc32_hash_hex(point data, c_size size) as string
 extern "xcrc32_hash_str" func __crc32_hash_str(string data, c_size size) as int
 extern "xcrc32_hash_str_hex" func __crc32_hash_str_hex(string data, c_size size) as string
-extern "xcrc32_file" func __crc32_file(string path, c_ulonglong maxInput) as int
-extern "xcrc32_file_hex" func __crc32_file_hex(string path, c_ulonglong maxInput) as string
+extern "xcrc32_file" func __crc32_file(string path, c_ulonglong maxInput, var onProgress) as int
+extern "xcrc32_file_hex" func __crc32_file_hex(string path, c_ulonglong maxInput, var onProgress) as string
+extern "xcrc32_file_status" func __crc32_file_status() as c_int
 
 
 
@@ -52,19 +53,35 @@ end
 
 
 // 文件 CRC32 校验和（XRT reader 分块读取，受 maxInput 限制）。
-export func checksumFile(string path, int maxInput = 268435456) as int
+export func checksumFile(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as int
     __crc32_check_limit(maxInput, "maxInput")
-    int result = __crc32_file(path, c_ulonglong(maxInput))
-    if __crc32_error() != "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    int result = __crc32_file(path, c_ulonglong(maxInput), progress)
+    int status = __crc32_file_status()
+    if status == -1 then
+        throw CancelledError "crc32 operation cancelled"
+    elseif status != 1 then
         throw FileError __crc32_error()
     end
     return result
 end
 
-export func checksumFileHex(string path, int maxInput = 268435456) as string
+export func checksumFileHex(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __crc32_check_limit(maxInput, "maxInput")
-    string result = __crc32_file_hex(path, c_ulonglong(maxInput))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __crc32_file_hex(path, c_ulonglong(maxInput), progress)
+    int status = __crc32_file_status()
+    if status == -1 then
+        throw CancelledError "crc32 operation cancelled"
+    elseif status != 1 then
         throw FileError __crc32_error()
     end
     return result

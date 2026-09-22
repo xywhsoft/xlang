@@ -16,31 +16,31 @@ static void __xrtIniTrim(const unsigned char* pData, size_t* pStart, size_t* pEn
 
 static str __xrtIniCopyRange(const unsigned char* pData, size_t iStart, size_t iEnd)
 {
-	return iEnd > iStart ? xrtCopyStr((str)(pData + iStart), iEnd - iStart) :
-		xrtCopyStr((str)"", 0u);
+	return iEnd > iStart ? xrtStrDupN((cstr)(pData + iStart), iEnd - iStart) :
+		xrtStrDup("");
 }
 
-static bool __xrtIniAppendPending(xrtiniconfig* pConfig, xbuffer pPending,
+static bool __xrtIniAppendPending(xrtiniconfig* pConfig, xbuffer* pPending,
 	const unsigned char* pData, size_t iStart, size_t iEnd)
 {
 	uint64 iAdded = (uint64)(iEnd - iStart) + 1u;
 	if ( pConfig->Options.tLimits.iMaxOutputBytes != 0u &&
 		(iAdded > pConfig->Options.tLimits.iMaxOutputBytes ||
-		 pPending->Length > pConfig->Options.tLimits.iMaxOutputBytes - iAdded) ) {
+		 pPending->Size > pConfig->Options.tLimits.iMaxOutputBytes - iAdded) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, iStart,
 			"INI preserved comment data exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	if ( iEnd > iStart && !xrtBufferAppend(pPending, (ptr)(pData + iStart),
-		(uint32)(iEnd - iStart), XBUF_BINARY) ) { return FALSE; }
-	return xrtBufferAppend(pPending, "\n", 1u, XBUF_BINARY);
+	if ( iEnd > iStart && !xrtBufferAppend(pPending,
+		(xbytesview){ pData + iStart, iEnd - iStart }) ) { return false; }
+	return xrtBufferAppendByte(pPending, '\n');
 }
 
-static str __xrtIniTakePending(xbuffer pPending)
+static str __xrtIniTakePending(xbuffer* pPending)
 {
-	str sResult = pPending->Length != 0u ?
-		xrtCopyStr((str)pPending->Buffer, pPending->Length) : xrtCopyStr((str)"", 0u);
-	pPending->Length = 0u;
+	str sResult = pPending->Size != 0u ?
+		xrtStrDupN((cstr)pPending->Data, pPending->Size) : xrtStrDup("");
+	pPending->Size = 0u;
 	return sResult;
 }
 
@@ -54,13 +54,13 @@ static bool __xrtIniAppendContinuation(xrtiniconfig* pConfig, xrt_ini_entry* pEn
 		((uint64)iOld + 1u + (uint64)iPart > pConfig->Options.tLimits.iMaxItemBytes) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iStart,
 			"INI multiline value exceeds the configured item limit");
-		return FALSE;
+		return false;
 	}
 	sValue = (str)xrtMalloc(iOld + 1u + iPart + 1u);
 	if ( sValue == NULL ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, iStart,
 			"cannot grow INI multiline value");
-		return FALSE;
+		return false;
 	}
 	memcpy(sValue, pEntry->Value, iOld);
 	sValue[iOld] = '\n';
@@ -68,21 +68,21 @@ static bool __xrtIniAppendContinuation(xrtiniconfig* pConfig, xrt_ini_entry* pEn
 	sValue[iOld + 1u + iPart] = 0;
 	xrtFree(pEntry->Value);
 	pEntry->Value = sValue;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pData,
 	size_t iSize)
 {
-	xbuffer pPending = xrtBufferCreate(256u);
+	xbuffer* pPending = xrtBufferCreate();
 	xrt_ini_section* pSection = NULL;
 	xrt_ini_entry* pLastEntry = NULL;
 	size_t iOffset = 0u;
 	uint64 iLine = 1u;
-	if ( pPending == NULL ) {
+	if ( pPending == NULL || !xrtBufferReserve(pPending, 256u) ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
 			"cannot allocate INI parser state");
-		return FALSE;
+		return false;
 	}
 	if ( iSize >= 3u && pData[0] == 0xefu && pData[1] == 0xbbu && pData[2] == 0xbfu ) {
 		iOffset = 3u;
@@ -107,18 +107,18 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 		if ( iStart == iEnd || pData[iStart] == ';' || pData[iStart] == '#' ) {
 			if ( !__xrtIniAppendPending(pConfig, pPending, pData, iLineStart, iLineEnd) ) {
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			pLastEntry = NULL;
 			iLine += 1u;
 			continue;
 		}
 
-		if ( bIndented && pLastEntry != NULL && pPending->Length == 0u ) {
+		if ( bIndented && pLastEntry != NULL && pPending->Size == 0u ) {
 			if ( !__xrtIniAppendContinuation(pConfig, pLastEntry, pData,
 				iStart, iEnd, iLine) ) {
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			iLine += 1u;
 			continue;
@@ -132,7 +132,7 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_FORMAT, iLine, 1u, iLineStart,
 					"invalid INI section header");
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			iStart += 1u;
 			iClose -= 1u;
@@ -143,7 +143,7 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
 					"empty or oversized INI section name");
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			sName = __xrtIniCopyRange(pData, iStart, iClose);
 			sLeading = __xrtIniTakePending(pPending);
@@ -153,13 +153,13 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, iLineStart,
 					"cannot copy INI section header");
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			pSection = __xrtIniAddSection(pConfig, (const char*)sName,
-				(const char*)sLeading, iLine, TRUE);
+				(const char*)sLeading, iLine, true);
 			xrtFree(sName);
 			xrtFree(sLeading);
-			if ( pSection == NULL ) { xrtBufferDestroy(pPending); return FALSE; }
+			if ( pSection == NULL ) { xrtBufferDestroy(pPending); return false; }
 			pLastEntry = NULL;
 			iLine += 1u;
 			continue;
@@ -181,7 +181,7 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_FORMAT, iLine, 1u, iLineStart,
 					"INI entry must contain = or :");
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			iKeyEnd = iDelimiter;
 			iValueStart = iDelimiter + 1u;
@@ -194,21 +194,21 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
 					"empty or oversized INI key/value");
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			if ( pSection == NULL ) {
 				sLeading = __xrtIniTakePending(pPending);
 				pSection = __xrtIniAddSection(pConfig, "", (const char*)sLeading,
-					iLine, FALSE);
+					iLine, false);
 				xrtFree(sLeading);
-				if ( pSection == NULL ) { xrtBufferDestroy(pPending); return FALSE; }
+				if ( pSection == NULL ) { xrtBufferDestroy(pPending); return false; }
 			}
 			sKey = __xrtIniCopyRange(pData, iKeyStart, iKeyEnd);
 			sValue = __xrtIniCopyRange(pData, iValueStart, iValueEnd);
 			sLeading = __xrtIniTakePending(pPending);
 			if ( sKey == NULL || sValue == NULL || sLeading == NULL ||
 				!__xrtIniAddEntry(pConfig, pSection, (const char*)sKey,
-					(const char*)sValue, (const char*)sLeading, iLine, TRUE) ) {
+					(const char*)sValue, (const char*)sLeading, iLine, true) ) {
 				xrtFree(sKey);
 				xrtFree(sValue);
 				xrtFree(sLeading);
@@ -217,7 +217,7 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 						"cannot copy INI entry");
 				}
 				xrtBufferDestroy(pPending);
-				return FALSE;
+				return false;
 			}
 			xrtFree(sKey);
 			xrtFree(sValue);
@@ -226,26 +226,26 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 		}
 		iLine += 1u;
 	}
-	if ( pPending->Length != 0u ) {
+	if ( pPending->Size != 0u ) {
 		pConfig->Trailing = __xrtIniTakePending(pPending);
 		if ( pConfig->Trailing == NULL ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, iSize,
 				"cannot copy trailing INI comments");
 			xrtBufferDestroy(pPending);
-			return FALSE;
+			return false;
 		}
 	}
 	xrtBufferDestroy(pPending);
-	return TRUE;
+	return true;
 }
 
 
 
-XXAPI xrtiniconfig* xrtIniParse(xreader pReader, bool bTakeOwnership,
+XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	const xrtinioptions* pOptions)
 {
 	xrtiniconfig* pConfig = xrtIniCreate(pOptions);
-	xbuffer pData = NULL;
+	xbuffer* pData = NULL;
 	uint64 iSize = 0u;
 	uint64 iLimit;
 	if ( pConfig == NULL ) {
@@ -270,13 +270,14 @@ XXAPI xrtiniconfig* xrtIniParse(xreader pReader, bool bTakeOwnership,
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
 				"cannot read INI stream or input limit was exceeded");
 		} else {
-			pConfig->InputBytes = pData->Length;
-			if ( !xrtIsUTF8((str)pData->Buffer, pData->Length) ) {
+			pConfig->InputBytes = pData->Size;
+			if ( !xrtUtf8Valid((xstrview){ (cstr)pData->Data,
+				pData->Size }, NULL) ) {
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_FORMAT, 1u, 1u, 0u,
 					"INI input is not valid UTF-8");
 			} else {
-				__xrtIniParseBuffer(pConfig, (const unsigned char*)pData->Buffer,
-					pData->Length);
+				__xrtIniParseBuffer(pConfig, (const unsigned char*)pData->Data,
+					pData->Size);
 			}
 		}
 	}
@@ -285,15 +286,16 @@ XXAPI xrtiniconfig* xrtIniParse(xreader pReader, bool bTakeOwnership,
 	return pConfig;
 }
 
-XXAPI xrtiniconfig* xrtIniParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtiniconfig* xrtIniParseMemory(const void* pData, uint64 iSize,
 	const xrtinioptions* pOptions)
 {
-	xreader pReader = pData != NULL || iSize == 0u ? xrtReaderFromMemory(pData, iSize) : NULL;
-	return xrtIniParse(pReader, TRUE, pOptions);
+	xreader* pReader = pData != NULL || iSize == 0u ?
+		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	return xrtIniParse(pReader, true, pOptions);
 }
 
-XXAPI xrtiniconfig* xrtIniLoad(str sPath, const xrtinioptions* pOptions)
+XRT_API xrtiniconfig* xrtIniLoad(str sPath, const xrtinioptions* pOptions)
 {
-	xreader pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
-	return xrtIniParse(pReader, TRUE, pOptions);
+	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	return xrtIniParse(pReader, true, pOptions);
 }

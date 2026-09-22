@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/csv/include/xrt_csv.h"
 
 #include <stdio.h>
@@ -13,17 +15,16 @@ int main(void)
 	xrtcsvwriter* pWriter;
 	xrtcsvreader* pReader;
 	xrtcsvrow tRow;
-	xbuffer pData;
+	xbuffer* pData;
 	int bOk = 1;
-	if ( xrtInit() == NULL ) { return 1; }
 	pWriter = xrtCsvWriterCreateMemory(NULL);
 	bOk = pWriter != NULL && xrtCsvWriterWrite(pWriter, 3u, sHeader) &&
 		xrtCsvWriterWrite(pWriter, 3u, sAlice) && xrtCsvWriterClose(pWriter);
 	pData = bOk ? xrtCsvWriterTakeBuffer(pWriter) : NULL;
 	xrtCsvWriterDestroy(pWriter);
-	if ( pData == NULL ) { xrtUnit(); return 2; }
+	if ( pData == NULL ) { return 2; }
 
-	pReader = xrtCsvReaderOpenMemory(pData->Buffer, pData->Length, NULL);
+	pReader = xrtCsvReaderOpenMemory(pData->Data, pData->Size, NULL);
 	bOk = xrtCsvReaderNext(pReader, &tRow) && tRow.iCount == 3u;
 	bOk = bOk && xrtCsvReaderNext(pReader, &tRow) && tRow.iCount == 3u;
 	if ( bOk ) {
@@ -32,7 +33,6 @@ int main(void)
 	bOk = bOk && !xrtCsvReaderNext(pReader, &tRow) && xrtCsvReaderEOF(pReader);
 	xrtCsvReaderDestroy(pReader);
 	xrtBufferDestroy(pData);
-	xrtUnit();
 	if ( bOk ) { puts("csv C example: PASS"); }
 	return bOk ? 0 : 3;
 }

@@ -37,9 +37,9 @@ int xgeInit(const xge_desc_t* pDesc)
 		objDesc.iTargetFPS = 60;
 	}
 
-	if ( xrtInit() == NULL ) {
-		__xgeLogError("core", "xrtInit failed.");
-		return XGE_ERROR_BACKEND_FAILED;
+	if ( !__xgeInputEventQueueReserve(XGE_INPUT_EVENT_QUEUE_INITIAL_CAPACITY) ) {
+		__xgeLogError("input", "Ordered input queue allocation failed.");
+		return XGE_ERROR_OUT_OF_MEMORY;
 	}
 
 	g_xge.objDesc = objDesc;
@@ -67,6 +67,7 @@ int xgeInit(const xge_desc_t* pDesc)
 	g_xge.iSceneUpdateMode = XGE_UPDATE_VARIABLE;
 	g_xge.iSceneMaxUpdates = 1;
 	g_xge.fSceneFixedStep = 1.0f / 60.0f;
+	g_xge.iImeMode = XGE_IME_MODE_COMPOSITION;
 	g_xge.tCamera = xgeCameraDefault((float)objDesc.iWidth, (float)objDesc.iHeight);
 #ifndef XGE_NO_AUDIO
 	g_xge.tAudioListener.tForward.fZ = -1.0f;
@@ -92,6 +93,7 @@ void xgeUnit(void)
 	__xgeRenderCommandUnit();
 	__xgeShapeAutoBatchReset();
 	__xgeTextureUploadQueueFree();
+	__xgeEmojiGlobalClear();
 	xgeSvgCacheClear();
 	xgeTextureFallbackClear();
 	xgeFontFallbackClear();
@@ -117,8 +119,8 @@ void xgeUnit(void)
 		xrtFree(g_xge.sImeEventText);
 		g_xge.sImeEventText = NULL;
 	}
+	__xgeInputEventQueueUnit();
 	(void)xgeLogFlush();
-	xrtUnit();
 }
 
 void xgeMemoryFree(void* pData)
@@ -249,27 +251,33 @@ static int __xgeSurfaceDirtyGenerationGet(void)
 int xgeLogSetLevel(int iLevel)
 {
 	xlogger* pLogger;
+	int iRet;
 
 	if ( __xgeLogLevelValid(iLevel) == 0 ) {
 		return XGE_ERROR_INVALID_ARGUMENT;
 	}
-	pLogger = xlogDefault();
+	pLogger = xrtLogDefault();
 	if ( pLogger == NULL ) {
 		return XGE_ERROR_BACKEND_FAILED;
 	}
-	xlogSetLevel(pLogger, __xgeLogLevelToXrt(iLevel));
-	return XGE_OK;
+	iRet = xrtLogSetLevel(pLogger, __xgeLogLevelToXrt(iLevel)) ?
+		XGE_OK : XGE_ERROR_BACKEND_FAILED;
+	xrtLogFree(pLogger);
+	return iRet;
 }
 
 int xgeLogGetLevel(void)
 {
 	xlogger* pLogger;
+	int iLevel;
 
-	pLogger = xlogDefault();
+	pLogger = xrtLogDefault();
 	if ( pLogger == NULL ) {
 		return XGE_LOG_OFF;
 	}
-	return __xgeLogLevelFromXrt(xlogGetLevel(pLogger));
+	iLevel = __xgeLogLevelFromXrt(xrtLogLevel(pLogger));
+	xrtLogFree(pLogger);
+	return iLevel;
 }
 
 int xgeLogWrite(int iLevel, const char* sTag, const char* sMessage)
@@ -284,13 +292,15 @@ int xgeLogWrite(int iLevel, const char* sTag, const char* sMessage)
 int xgeLogFlush(void)
 {
 	xlogger* pLogger;
+	int iRet;
 
-	pLogger = xlogDefault();
+	pLogger = xrtLogDefault();
 	if ( pLogger == NULL ) {
 		return XGE_ERROR_BACKEND_FAILED;
 	}
-	xlogFlush(pLogger);
-	return XGE_OK;
+	iRet = xrtLogFlush(pLogger) ? XGE_OK : XGE_ERROR_BACKEND_FAILED;
+	xrtLogFree(pLogger);
+	return iRet;
 }
 
 xge_platform_backend_t xgePlatformBackendDefault(void)

@@ -112,23 +112,11 @@ try {
         & cmd.exe /d /v:on /c $command
         if ($LASTEXITCODE -ne 0) { throw "$name strict standalone C failed" }
         Invoke-Captured $strictExe ""
-        foreach ($backend in @("xlir", "legacy")) {
-            if ($backend -eq "legacy" -and $fixture.LegacyMissing) {
-                # The isolated old backend omits this component. Its failure
-                # is recorded explicitly, never counted as runtime parity.
-                $marker = "unresolved reference to '" + $fixture.LegacyMissing + "'"
-                Invoke-Captured $xl ('run "{0}" --backend legacy' -f $source) 1 $marker
-                $badExe = Join-Path $outputDir "$name.legacy.exe"
-                Invoke-Captured $xl ('build "{0}" --backend legacy -o "{1}"' -f $source,$badExe) 1 $marker
-                continue
-            }
-            Invoke-Captured $xl ('run "{0}" --backend {1}' -f $source,$backend)
-            $exe = Join-Path $outputDir "$name.$backend.exe"
-            Invoke-Captured $xl ('build "{0}" --backend {1} -o "{2}"' -f $source,$backend,$exe)
-            Invoke-Captured $exe ""
-        }
-        $scope = if ($fixture.LegacyMissing) { "XLIR-only; legacy run/build unresolved symbol recorded" } else { "XLIR/legacy run/build" }
-        Write-Output "${name}: exact IR, operation isolation, deterministic strict C and $scope passed"
+        Invoke-Captured $xl ('run "{0}" --backend xlir' -f $source)
+        $exe = Join-Path $outputDir "$name.xlir.exe"
+        Invoke-Captured $xl ('build "{0}" --backend xlir -o "{1}"' -f $source,$exe)
+        Invoke-Captured $exe ""
+        Write-Output "${name}: exact IR, operation isolation, deterministic strict C and canonical run/build passed"
     }
     foreach ($suffix in @("input", "result", "width", "boolean", "collection", "arity")) {
         $source = Join-Path $Root "test\cases\bad_xlir_direct_bridge_$suffix.xl"
@@ -138,5 +126,5 @@ try {
         if (Test-Path -LiteralPath $badC) { throw "Malformed direct bridge emitted C: $suffix" }
     }
 } finally { Pop-Location }
-Write-Output "XLIR system bridges ok: nine exact operations, six ABI negatives, operation isolation, owned process result cleanup including injected timeout/failure, directory metadata/filter/recursion and continuation lifetime, strict C, eight dual-backend contracts and three explicitly XLIR-only isolated directory contracts."
+Write-Output "XLIR system bridges ok: nine exact operations, six ABI negatives, operation isolation, owned process result cleanup including injected timeout/failure, directory metadata/filter/recursion and continuation lifetime, strict C, and canonical run/build contracts."
 exit 0

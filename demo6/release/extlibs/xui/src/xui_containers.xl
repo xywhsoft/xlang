@@ -77,11 +77,6 @@ export func xuiBreadcrumbGetSeparatorIcon(point pWidget) as point
     return __xl6_xuiBreadcrumbGetSeparatorIcon(pWidget)
 end
 
-extern "xuiBreadcrumbGetSeparatorIconSource" func __xl6_xuiBreadcrumbGetSeparatorIconSource(point pWidget) as point
-export func xuiBreadcrumbGetSeparatorIconSource(point pWidget) as point
-    return __xl6_xuiBreadcrumbGetSeparatorIconSource(pWidget)
-end
-
 extern "xuiBreadcrumbGetSeparatorIconSize" func __xl6_xuiBreadcrumbGetSeparatorIconSize(point pWidget) as c_float
 export func xuiBreadcrumbGetSeparatorIconSize(point pWidget) as c_float
     return __xl6_xuiBreadcrumbGetSeparatorIconSize(pWidget)
@@ -135,16 +130,6 @@ end
 extern "xuiBreadcrumbGetMetrics" func __xl6_xuiBreadcrumbGetMetrics(point pWidget, point pGap, point pPaddingX, point pPaddingY) as c_int
 export func xuiBreadcrumbGetMetrics(point pWidget, point pGap, point pPaddingX, point pPaddingY) as c_int
     return __xl6_xuiBreadcrumbGetMetrics(pWidget, pGap, pPaddingX, pPaddingY)
-end
-
-extern "xuiBreadcrumbGetItemRect" func __xl6_xuiBreadcrumbGetItemRect(point pWidget, c_int iIndex) as point
-export func xuiBreadcrumbGetItemRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiBreadcrumbGetItemRect(pWidget, iIndex)
-end
-
-extern "xuiBreadcrumbGetSeparatorRect" func __xl6_xuiBreadcrumbGetSeparatorRect(point pWidget, c_int iIndex) as point
-export func xuiBreadcrumbGetSeparatorRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiBreadcrumbGetSeparatorRect(pWidget, iIndex)
 end
 
 extern "xuiBreadcrumbGetHoverIndex" func __xl6_xuiBreadcrumbGetHoverIndex(point pWidget) as c_int
@@ -262,11 +247,6 @@ export func xuiPanelGetIconSurface(point pWidget) as point
     return __xl6_xuiPanelGetIconSurface(pWidget)
 end
 
-extern "xuiPanelGetIconSource" func __xl6_xuiPanelGetIconSource(point pWidget) as point
-export func xuiPanelGetIconSource(point pWidget) as point
-    return __xl6_xuiPanelGetIconSource(pWidget)
-end
-
 extern "xuiPanelSetIconSize" func __xl6_xuiPanelSetIconSize(point pWidget, c_float fSize) as c_int
 export func xuiPanelSetIconSize(point pWidget, c_float fSize) as c_int
     return __xl6_xuiPanelSetIconSize(pWidget, fSize)
@@ -345,26 +325,6 @@ end
 extern "xuiPanelGetClientClip" func __xl6_xuiPanelGetClientClip(point pWidget) as c_int
 export func xuiPanelGetClientClip(point pWidget) as c_int
     return __xl6_xuiPanelGetClientClip(pWidget)
-end
-
-extern "xuiPanelGetHeaderRect" func __xl6_xuiPanelGetHeaderRect(point pWidget) as point
-export func xuiPanelGetHeaderRect(point pWidget) as point
-    return __xl6_xuiPanelGetHeaderRect(pWidget)
-end
-
-extern "xuiPanelGetIconRect" func __xl6_xuiPanelGetIconRect(point pWidget) as point
-export func xuiPanelGetIconRect(point pWidget) as point
-    return __xl6_xuiPanelGetIconRect(pWidget)
-end
-
-extern "xuiPanelGetTitleRect" func __xl6_xuiPanelGetTitleRect(point pWidget) as point
-export func xuiPanelGetTitleRect(point pWidget) as point
-    return __xl6_xuiPanelGetTitleRect(pWidget)
-end
-
-extern "xuiPanelGetClientRect" func __xl6_xuiPanelGetClientRect(point pWidget) as point
-export func xuiPanelGetClientRect(point pWidget) as point
-    return __xl6_xuiPanelGetClientRect(pWidget)
 end
 
 extern "xuiPanelGetState" func __xl6_xuiPanelGetState(point pWidget) as c_uint
@@ -485,26 +445,6 @@ end
 extern "xuiScrollBarGetButtonColors" func __xl6_xuiScrollBarGetButtonColors(point pWidget, point pButton, point pIcon) as c_int
 export func xuiScrollBarGetButtonColors(point pWidget, point pButton, point pIcon) as c_int
     return __xl6_xuiScrollBarGetButtonColors(pWidget, pButton, pIcon)
-end
-
-extern "xuiScrollBarGetTrackRect" func __xl6_xuiScrollBarGetTrackRect(point pWidget) as point
-export func xuiScrollBarGetTrackRect(point pWidget) as point
-    return __xl6_xuiScrollBarGetTrackRect(pWidget)
-end
-
-extern "xuiScrollBarGetThumbRect" func __xl6_xuiScrollBarGetThumbRect(point pWidget) as point
-export func xuiScrollBarGetThumbRect(point pWidget) as point
-    return __xl6_xuiScrollBarGetThumbRect(pWidget)
-end
-
-extern "xuiScrollBarGetDecreaseRect" func __xl6_xuiScrollBarGetDecreaseRect(point pWidget) as point
-export func xuiScrollBarGetDecreaseRect(point pWidget) as point
-    return __xl6_xuiScrollBarGetDecreaseRect(pWidget)
-end
-
-extern "xuiScrollBarGetIncreaseRect" func __xl6_xuiScrollBarGetIncreaseRect(point pWidget) as point
-export func xuiScrollBarGetIncreaseRect(point pWidget) as point
-    return __xl6_xuiScrollBarGetIncreaseRect(pWidget)
 end
 
 extern "xuiScrollBarGetHoverPart" func __xl6_xuiScrollBarGetHoverPart(point pWidget) as c_int
@@ -782,16 +722,6 @@ export func xuiSplitLayoutSetDividerHitSize(point pWidget, c_float fSize) as c_i
     return __xl6_xuiSplitLayoutSetDividerHitSize(pWidget, fSize)
 end
 
-extern "xuiSplitLayoutSetShadowDrag" func __xl6_xuiSplitLayoutSetShadowDrag(point pWidget, c_int bShadowDrag) as c_int
-export func xuiSplitLayoutSetShadowDrag(point pWidget, c_int bShadowDrag) as c_int
-    return __xl6_xuiSplitLayoutSetShadowDrag(pWidget, bShadowDrag)
-end
-
-extern "xuiSplitLayoutGetShadowDrag" func __xl6_xuiSplitLayoutGetShadowDrag(point pWidget) as c_int
-export func xuiSplitLayoutGetShadowDrag(point pWidget) as c_int
-    return __xl6_xuiSplitLayoutGetShadowDrag(pWidget)
-end
-
 extern "xuiSplitLayoutSetColors" func __xl6_xuiSplitLayoutSetColors(point pWidget, c_uint iDivider, c_uint iHover, c_uint iActive, c_uint iShadow) as c_int
 export func xuiSplitLayoutSetColors(point pWidget, c_uint iDivider, c_uint iHover, c_uint iActive, c_uint iShadow) as c_int
     return __xl6_xuiSplitLayoutSetColors(pWidget, iDivider, iHover, iActive, iShadow)
@@ -800,31 +730,6 @@ end
 extern "xuiSplitLayoutGetColors" func __xl6_xuiSplitLayoutGetColors(point pWidget, point pDivider, point pHover, point pActive, point pShadow) as c_int
 export func xuiSplitLayoutGetColors(point pWidget, point pDivider, point pHover, point pActive, point pShadow) as c_int
     return __xl6_xuiSplitLayoutGetColors(pWidget, pDivider, pHover, pActive, pShadow)
-end
-
-extern "xuiSplitLayoutGetPaneRect" func __xl6_xuiSplitLayoutGetPaneRect(point pWidget, c_int iIndex) as point
-export func xuiSplitLayoutGetPaneRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiSplitLayoutGetPaneRect(pWidget, iIndex)
-end
-
-extern "xuiSplitLayoutGetDividerLayoutRect" func __xl6_xuiSplitLayoutGetDividerLayoutRect(point pWidget, c_int iIndex) as point
-export func xuiSplitLayoutGetDividerLayoutRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiSplitLayoutGetDividerLayoutRect(pWidget, iIndex)
-end
-
-extern "xuiSplitLayoutGetDividerVisualRect" func __xl6_xuiSplitLayoutGetDividerVisualRect(point pWidget, c_int iIndex) as point
-export func xuiSplitLayoutGetDividerVisualRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiSplitLayoutGetDividerVisualRect(pWidget, iIndex)
-end
-
-extern "xuiSplitLayoutGetDividerHitRect" func __xl6_xuiSplitLayoutGetDividerHitRect(point pWidget, c_int iIndex) as point
-export func xuiSplitLayoutGetDividerHitRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiSplitLayoutGetDividerHitRect(pWidget, iIndex)
-end
-
-extern "xuiSplitLayoutGetShadowRect" func __xl6_xuiSplitLayoutGetShadowRect(point pWidget) as point
-export func xuiSplitLayoutGetShadowRect(point pWidget) as point
-    return __xl6_xuiSplitLayoutGetShadowRect(pWidget)
 end
 
 extern "xuiSplitLayoutGetHoverDivider" func __xl6_xuiSplitLayoutGetHoverDivider(point pWidget) as c_int
@@ -1012,49 +917,9 @@ export func xuiTabsGetFrameColors(point pWidget, point pBorder, point pClient) a
     return __xl6_xuiTabsGetFrameColors(pWidget, pBorder, pClient)
 end
 
-extern "xuiTabsGetTabBarRect" func __xl6_xuiTabsGetTabBarRect(point pWidget) as point
-export func xuiTabsGetTabBarRect(point pWidget) as point
-    return __xl6_xuiTabsGetTabBarRect(pWidget)
-end
-
-extern "xuiTabsGetClientRect" func __xl6_xuiTabsGetClientRect(point pWidget) as point
-export func xuiTabsGetClientRect(point pWidget) as point
-    return __xl6_xuiTabsGetClientRect(pWidget)
-end
-
-extern "xuiTabsGetTabRect" func __xl6_xuiTabsGetTabRect(point pWidget, c_int iIndex) as point
-export func xuiTabsGetTabRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTabsGetTabRect(pWidget, iIndex)
-end
-
-extern "xuiTabsGetTextRect" func __xl6_xuiTabsGetTextRect(point pWidget, c_int iIndex) as point
-export func xuiTabsGetTextRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTabsGetTextRect(pWidget, iIndex)
-end
-
-extern "xuiTabsGetIconRect" func __xl6_xuiTabsGetIconRect(point pWidget, c_int iIndex) as point
-export func xuiTabsGetIconRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTabsGetIconRect(pWidget, iIndex)
-end
-
-extern "xuiTabsGetDirtyRect" func __xl6_xuiTabsGetDirtyRect(point pWidget, c_int iIndex) as point
-export func xuiTabsGetDirtyRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTabsGetDirtyRect(pWidget, iIndex)
-end
-
-extern "xuiTabsGetCloseRect" func __xl6_xuiTabsGetCloseRect(point pWidget, c_int iIndex) as point
-export func xuiTabsGetCloseRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiTabsGetCloseRect(pWidget, iIndex)
-end
-
 extern "xuiTabsIsOverflow" func __xl6_xuiTabsIsOverflow(point pWidget) as c_int
 export func xuiTabsIsOverflow(point pWidget) as c_int
     return __xl6_xuiTabsIsOverflow(pWidget)
-end
-
-extern "xuiTabsGetOverflowRect" func __xl6_xuiTabsGetOverflowRect(point pWidget) as point
-export func xuiTabsGetOverflowRect(point pWidget) as point
-    return __xl6_xuiTabsGetOverflowRect(pWidget)
 end
 
 extern "xuiTabsGetOverflowMenu" func __xl6_xuiTabsGetOverflowMenu(point pWidget) as point
@@ -1237,26 +1102,6 @@ export func xuiAccordionGetContentHeight(point pWidget) as c_float
     return __xl6_xuiAccordionGetContentHeight(pWidget)
 end
 
-extern "xuiAccordionGetSectionRect" func __xl6_xuiAccordionGetSectionRect(point pWidget, c_int iIndex) as point
-export func xuiAccordionGetSectionRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiAccordionGetSectionRect(pWidget, iIndex)
-end
-
-extern "xuiAccordionGetHeaderRect" func __xl6_xuiAccordionGetHeaderRect(point pWidget, c_int iIndex) as point
-export func xuiAccordionGetHeaderRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiAccordionGetHeaderRect(pWidget, iIndex)
-end
-
-extern "xuiAccordionGetClientRect" func __xl6_xuiAccordionGetClientRect(point pWidget, c_int iIndex) as point
-export func xuiAccordionGetClientRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiAccordionGetClientRect(pWidget, iIndex)
-end
-
-extern "xuiAccordionGetArrowRect" func __xl6_xuiAccordionGetArrowRect(point pWidget, c_int iIndex) as point
-export func xuiAccordionGetArrowRect(point pWidget, c_int iIndex) as point
-    return __xl6_xuiAccordionGetArrowRect(pWidget, iIndex)
-end
-
 extern "xuiAccordionGetSelected" func __xl6_xuiAccordionGetSelected(point pWidget) as c_int
 export func xuiAccordionGetSelected(point pWidget) as c_int
     return __xl6_xuiAccordionGetSelected(pWidget)
@@ -1355,11 +1200,6 @@ end
 extern "xuiWindowGetIconSurface" func __xl6_xuiWindowGetIconSurface(point pWidget) as point
 export func xuiWindowGetIconSurface(point pWidget) as point
     return __xl6_xuiWindowGetIconSurface(pWidget)
-end
-
-extern "xuiWindowGetIconSource" func __xl6_xuiWindowGetIconSource(point pWidget) as point
-export func xuiWindowGetIconSource(point pWidget) as point
-    return __xl6_xuiWindowGetIconSource(pWidget)
 end
 
 extern "xuiWindowSetOpen" func __xl6_xuiWindowSetOpen(point pWidget, c_int bOpen) as c_int
@@ -1547,31 +1387,6 @@ export func xuiWindowGetStateColors(point pWidget, point pInactiveTitleBar, poin
     return __xl6_xuiWindowGetStateColors(pWidget, pInactiveTitleBar, pInactiveTitleText, pActiveBorder, pCloseHover, pCloseActive)
 end
 
-extern "xuiWindowGetTitleBarRect" func __xl6_xuiWindowGetTitleBarRect(point pWidget) as point
-export func xuiWindowGetTitleBarRect(point pWidget) as point
-    return __xl6_xuiWindowGetTitleBarRect(pWidget)
-end
-
-extern "xuiWindowGetClientRect" func __xl6_xuiWindowGetClientRect(point pWidget) as point
-export func xuiWindowGetClientRect(point pWidget) as point
-    return __xl6_xuiWindowGetClientRect(pWidget)
-end
-
-extern "xuiWindowGetCollapseButtonRect" func __xl6_xuiWindowGetCollapseButtonRect(point pWidget) as point
-export func xuiWindowGetCollapseButtonRect(point pWidget) as point
-    return __xl6_xuiWindowGetCollapseButtonRect(pWidget)
-end
-
-extern "xuiWindowGetMaximizeButtonRect" func __xl6_xuiWindowGetMaximizeButtonRect(point pWidget) as point
-export func xuiWindowGetMaximizeButtonRect(point pWidget) as point
-    return __xl6_xuiWindowGetMaximizeButtonRect(pWidget)
-end
-
-extern "xuiWindowGetCloseButtonRect" func __xl6_xuiWindowGetCloseButtonRect(point pWidget) as point
-export func xuiWindowGetCloseButtonRect(point pWidget) as point
-    return __xl6_xuiWindowGetCloseButtonRect(pWidget)
-end
-
 extern "xuiWindowGetResizeEdgesAt" func __xl6_xuiWindowGetResizeEdgesAt(point pWidget, c_float fX, c_float fY) as c_uint
 export func xuiWindowGetResizeEdgesAt(point pWidget, c_float fX, c_float fY) as c_uint
     return __xl6_xuiWindowGetResizeEdgesAt(pWidget, fX, fY)
@@ -1710,11 +1525,6 @@ end
 extern "xuiDockPanelGetAutoHideExpandedWindow" func __xl6_xuiDockPanelGetAutoHideExpandedWindow(point pWidget) as c_int
 export func xuiDockPanelGetAutoHideExpandedWindow(point pWidget) as c_int
     return __xl6_xuiDockPanelGetAutoHideExpandedWindow(pWidget)
-end
-
-extern "xuiDockPanelGetAutoHideExpandRect" func __xl6_xuiDockPanelGetAutoHideExpandRect(point pWidget) as point
-export func xuiDockPanelGetAutoHideExpandRect(point pWidget) as point
-    return __xl6_xuiDockPanelGetAutoHideExpandRect(pWidget)
 end
 
 extern "xuiDockPanelDockAutoHideWindow" func __xl6_xuiDockPanelDockAutoHideWindow(point pWidget, c_int iWindow) as c_int
@@ -1917,11 +1727,6 @@ export func xuiScrollModelSetViewport(point pModel, point tViewport) as c_int
     return __xl6_xuiScrollModelSetViewport(pModel, tViewport)
 end
 
-extern "xuiScrollModelGetViewport" func __xl6_xuiScrollModelGetViewport(point pModel) as point
-export func xuiScrollModelGetViewport(point pModel) as point
-    return __xl6_xuiScrollModelGetViewport(pModel)
-end
-
 extern "xuiScrollModelSetContentSize" func __xl6_xuiScrollModelSetContentSize(point pModel, c_float fWidth, c_float fHeight) as c_int
 export func xuiScrollModelSetContentSize(point pModel, c_float fWidth, c_float fHeight) as c_int
     return __xl6_xuiScrollModelSetContentSize(pModel, fWidth, fHeight)
@@ -1955,31 +1760,6 @@ end
 extern "xuiScrollModelEnsureRectVisible" func __xl6_xuiScrollModelEnsureRectVisible(point pModel, point tContentRect) as c_int
 export func xuiScrollModelEnsureRectVisible(point pModel, point tContentRect) as c_int
     return __xl6_xuiScrollModelEnsureRectVisible(pModel, tContentRect)
-end
-
-extern "xuiScrollModelScreenToViewport" func __xl6_xuiScrollModelScreenToViewport(point pModel, c_float fX, c_float fY) as point
-export func xuiScrollModelScreenToViewport(point pModel, c_float fX, c_float fY) as point
-    return __xl6_xuiScrollModelScreenToViewport(pModel, fX, fY)
-end
-
-extern "xuiScrollModelViewportToContent" func __xl6_xuiScrollModelViewportToContent(point pModel, c_float fX, c_float fY) as point
-export func xuiScrollModelViewportToContent(point pModel, c_float fX, c_float fY) as point
-    return __xl6_xuiScrollModelViewportToContent(pModel, fX, fY)
-end
-
-extern "xuiScrollModelScreenToContent" func __xl6_xuiScrollModelScreenToContent(point pModel, c_float fX, c_float fY) as point
-export func xuiScrollModelScreenToContent(point pModel, c_float fX, c_float fY) as point
-    return __xl6_xuiScrollModelScreenToContent(pModel, fX, fY)
-end
-
-extern "xuiScrollModelContentToViewport" func __xl6_xuiScrollModelContentToViewport(point pModel, c_float fX, c_float fY) as point
-export func xuiScrollModelContentToViewport(point pModel, c_float fX, c_float fY) as point
-    return __xl6_xuiScrollModelContentToViewport(pModel, fX, fY)
-end
-
-extern "xuiScrollModelContentToScreen" func __xl6_xuiScrollModelContentToScreen(point pModel, c_float fX, c_float fY) as point
-export func xuiScrollModelContentToScreen(point pModel, c_float fX, c_float fY) as point
-    return __xl6_xuiScrollModelContentToScreen(pModel, fX, fY)
 end
 
 extern "xuiScrollFrameGetType" func __xl6_xuiScrollFrameGetType(point pContext) as point
@@ -2020,11 +1800,6 @@ end
 extern "xuiScrollFrameGetCornerWidget" func __xl6_xuiScrollFrameGetCornerWidget(point pWidget) as point
 export func xuiScrollFrameGetCornerWidget(point pWidget) as point
     return __xl6_xuiScrollFrameGetCornerWidget(pWidget)
-end
-
-extern "xuiScrollFrameLayout" func __xl6_xuiScrollFrameLayout(point pWidget) as c_int
-export func xuiScrollFrameLayout(point pWidget) as c_int
-    return __xl6_xuiScrollFrameLayout(pWidget)
 end
 
 extern "xuiScrollFrameSetContentSize" func __xl6_xuiScrollFrameSetContentSize(point pWidget, c_float fWidth, c_float fHeight) as c_int
@@ -2167,26 +1942,6 @@ export func xuiScrollFrameGetCornerColors(point pWidget, point pCorner, point pG
     return __xl6_xuiScrollFrameGetCornerColors(pWidget, pCorner, pGrip)
 end
 
-extern "xuiScrollFrameGetViewportRect" func __xl6_xuiScrollFrameGetViewportRect(point pWidget) as point
-export func xuiScrollFrameGetViewportRect(point pWidget) as point
-    return __xl6_xuiScrollFrameGetViewportRect(pWidget)
-end
-
-extern "xuiScrollFrameGetHScrollBarRect" func __xl6_xuiScrollFrameGetHScrollBarRect(point pWidget) as point
-export func xuiScrollFrameGetHScrollBarRect(point pWidget) as point
-    return __xl6_xuiScrollFrameGetHScrollBarRect(pWidget)
-end
-
-extern "xuiScrollFrameGetVScrollBarRect" func __xl6_xuiScrollFrameGetVScrollBarRect(point pWidget) as point
-export func xuiScrollFrameGetVScrollBarRect(point pWidget) as point
-    return __xl6_xuiScrollFrameGetVScrollBarRect(pWidget)
-end
-
-extern "xuiScrollFrameGetCornerRect" func __xl6_xuiScrollFrameGetCornerRect(point pWidget) as point
-export func xuiScrollFrameGetCornerRect(point pWidget) as point
-    return __xl6_xuiScrollFrameGetCornerRect(pWidget)
-end
-
 extern "xuiScrollFrameIsHScrollBarVisible" func __xl6_xuiScrollFrameIsHScrollBarVisible(point pWidget) as c_int
 export func xuiScrollFrameIsHScrollBarVisible(point pWidget) as c_int
     return __xl6_xuiScrollFrameIsHScrollBarVisible(pWidget)
@@ -2240,11 +1995,6 @@ end
 extern "xuiScrollViewGetModel" func __xl6_xuiScrollViewGetModel(point pWidget) as point
 export func xuiScrollViewGetModel(point pWidget) as point
     return __xl6_xuiScrollViewGetModel(pWidget)
-end
-
-extern "xuiScrollViewLayout" func __xl6_xuiScrollViewLayout(point pWidget) as c_int
-export func xuiScrollViewLayout(point pWidget) as c_int
-    return __xl6_xuiScrollViewLayout(pWidget)
 end
 
 extern "xuiScrollViewSetContentSize" func __xl6_xuiScrollViewSetContentSize(point pWidget, c_float fWidth, c_float fHeight) as c_int
@@ -2390,11 +2140,6 @@ end
 extern "xuiScrollViewGetCornerColors" func __xl6_xuiScrollViewGetCornerColors(point pWidget, point pCorner, point pGrip) as c_int
 export func xuiScrollViewGetCornerColors(point pWidget, point pCorner, point pGrip) as c_int
     return __xl6_xuiScrollViewGetCornerColors(pWidget, pCorner, pGrip)
-end
-
-extern "xuiScrollViewGetViewportRect" func __xl6_xuiScrollViewGetViewportRect(point pWidget) as point
-export func xuiScrollViewGetViewportRect(point pWidget) as point
-    return __xl6_xuiScrollViewGetViewportRect(pWidget)
 end
 
 extern "xuiScrollViewGetChangeCount" func __xl6_xuiScrollViewGetChangeCount(point pWidget) as c_int

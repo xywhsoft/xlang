@@ -1,6 +1,0 @@
-auto base = 40
-
-func 入口() as int
-	auto delta = 2
-	return base + delta
-end

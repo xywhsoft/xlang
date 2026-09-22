@@ -3,43 +3,43 @@ import xge
 
 func draw_scene()
     // 主世界区域
-    xge.xgeShapeRectFill(c_float(20), c_float(20), c_float(560), c_float(560), xge.XGE_COLOR_RGBA(c_uint(15), c_uint(25), c_uint(30), c_uint(255)))
-    xge.xgeShapeRectStroke(c_float(20), c_float(20), c_float(560), c_float(560), c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(100), c_uint(120), c_uint(140), c_uint(120)))
+    xge.Shape.rectFill(20, 20, 560, 560, xge.Color.rgba(15, 25, 30, 255))
+    xge.Shape.rectStroke(20, 20, 560, 560, 1.5, xge.Color.rgba(100, 120, 140, 120))
 
     // 世界中的物体
-    xge.xgeShapeCircleFill(c_float(200), c_float(250), c_float(15), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
-    xge.xgeShapeCircleFill(c_float(400), c_float(350), c_float(15), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
-    xge.xgeShapeRectFill(c_float(100), c_float(400), c_float(80), c_float(60), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(200)))
+    xge.Shape.circleFill(200, 250, 15, xge.Color.rgba(255, 180, 84, 255))
+    xge.Shape.circleFill(400, 350, 15, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.rectFill(100, 400, 80, 60, xge.Color.rgba(109, 179, 242, 200))
 
     // 鼠标拾取线（屏幕→世界）
-    xge.xgeShapeLine(c_float(580), c_float(100), c_float(200), c_float(250), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(150)))
-    xge.xgeShapeCircleFill(c_float(580), c_float(100), c_float(4), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(255)))
+    xge.Shape.line(580, 100, 200, 250, 1.0, xge.Color.rgba(255, 107, 94, 150))
+    xge.Shape.circleFill(580, 100, 4, xge.Color.rgba(255, 107, 94, 255))
 
     // 小地图（右下角）
-    xge.xgeShapeRectFill(c_float(600), c_float(400), c_float(180), c_float(180), xge.XGE_COLOR_RGBA(c_uint(0), c_uint(0), c_uint(0), c_uint(200)))
-    xge.xgeShapeRectStroke(c_float(600), c_float(400), c_float(180), c_float(180), c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(150)))
+    xge.Shape.rectFill(600, 400, 180, 180, xge.Color.rgba(0, 0, 0, 200))
+    xge.Shape.rectStroke(600, 400, 180, 180, 1.5, xge.Color.rgba(79, 216, 194, 150))
 
     // 小地图中的点
-    xge.xgeShapeCircleFill(c_float(640), c_float(470), c_float(3), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
-    xge.xgeShapeCircleFill(c_float(700), c_float(500), c_float(3), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
-    xge.xgeShapeCircleFill(c_float(620), c_float(520), c_float(3), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255)))
+    xge.Shape.circleFill(640, 470, 3, xge.Color.rgba(255, 180, 84, 255))
+    xge.Shape.circleFill(700, 500, 3, xge.Color.rgba(79, 216, 194, 255))
+    xge.Shape.circleFill(620, 520, 3, xge.Color.rgba(109, 179, 242, 255))
 
     // 视口框（小地图中当前可见区域）
-    xge.xgeShapeRectStroke(c_float(620), c_float(450), c_float(60), c_float(50), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(255), c_uint(255), c_uint(150)))
+    xge.Shape.rectStroke(620, 450, 60, 50, 1.0, xge.Color.rgba(255, 255, 255, 150))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch16")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch16")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

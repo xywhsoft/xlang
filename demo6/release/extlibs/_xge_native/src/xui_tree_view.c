@@ -1163,14 +1163,13 @@ static int __xuiTreeViewContentMeasure(xui_widget pWidget, xui_vec2_t tConstrain
 	return XUI_OK;
 }
 
-static int __xuiTreeViewArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiTreeViewPrepare(xui_widget pWidget, void* pUser)
 {
 	xui_tree_view_data_t* pData;
 	xui_tree_view_data_t tResolved;
-	xui_rect_t tFrame;
+	xui_thickness_t tMargin;
 	int iRet;
 
-	(void)tContentRect;
 	pData = (xui_tree_view_data_t*)pUser;
 	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
@@ -1180,10 +1179,20 @@ static int __xuiTreeViewArrange(xui_widget pWidget, xui_rect_t tContentRect, voi
 	pData->fIndent = tResolved.fIndent;
 	pData->fPadding = tResolved.fPadding;
 	pData->fBorderWidth = tResolved.fBorderWidth;
-	tFrame = __xuiTreeViewFrameRect(pWidget, pData);
+	tMargin = (xui_thickness_t){tResolved.fBorderWidth, tResolved.fBorderWidth, tResolved.fBorderWidth, tResolved.fBorderWidth};
+	iRet = xuiWidgetSetMargin(pData->pFrame, tMargin);
+	if ( iRet != XUI_OK ) return iRet;
+	return __xuiTreeViewApplyFrameStyle(pWidget, pData);
+}
+
+static int __xuiTreeViewLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_tree_view_data_t* pData;
+	int iRet;
+	(void)tContentRect;
+	pData = (xui_tree_view_data_t*)pUser;
+	if ( (pWidget == NULL) || (pData == NULL) || (pData->pFrame == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	iRet = __xuiTreeViewUpdateContentSize(pWidget, pData);
-	if ( iRet == XUI_OK ) iRet = xuiWidgetArrange(pData->pFrame, tFrame);
-	if ( iRet == XUI_OK ) iRet = xuiScrollFrameLayout(pData->pFrame);
 	return iRet;
 }
 
@@ -1574,7 +1583,9 @@ static int __xuiTreeViewCreateFrame(xui_widget pWidget, xui_tree_view_data_t* pD
 		pData->pFrame = NULL;
 		return iRet;
 	}
-	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_ABSOLUTE);
+	(void)xuiWidgetSetFlowMode(pData->pFrame, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pFrame, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pFrame, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	pData->pViewport = xuiScrollFrameGetViewportWidget(pData->pFrame);
 	if ( pData->pViewport == NULL ) {
 		xuiWidgetDestroy(pData->pFrame);
@@ -1607,7 +1618,7 @@ static int __xuiTreeViewInit(xui_widget pWidget, void* pTypeData, const void* pC
 	}
 	__xuiTreeViewDefaults(pData);
 	__xuiTreeViewApplyDesc(pData, pDesc);
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_OVERLAY);
 	(void)xuiWidgetSetFlowMode(pWidget, XUI_FLOW_ABSOLUTE);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
@@ -1727,7 +1738,8 @@ XUI_API xui_widget_type xuiTreeViewGetType(xui_context pContext)
 	tDesc.onInit = __xuiTreeViewInit;
 	tDesc.onDestroy = __xuiTreeViewDestroy;
 	tDesc.onContentMeasure = __xuiTreeViewContentMeasure;
-	tDesc.onLayoutArrange = __xuiTreeViewArrange;
+	tDesc.onLayoutPrepare = __xuiTreeViewPrepare;
+	tDesc.onLayoutComplete = __xuiTreeViewLayoutComplete;
 	tDesc.onCacheRender = __xuiTreeViewCacheRender;
 	__xuiTreeViewDefaultLayout(&tLayout);
 	__xuiTreeViewDefaultCachePolicy(&tPolicy);

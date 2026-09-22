@@ -1,0 +1,27 @@
+import xregex
+from xregex import Regex, RegexMatch, RegexMatcher
+
+
+
+func main(...) as int
+    Regex route = xregex.compile("^/users/(?<id>[0-9]+)$")
+    RegexMatch? matched = route.find("/users/42")
+
+    if matched != null then
+        auto matcher = route.matcher()
+        matcher.full("/users/42")
+        println("user id: ", matcher.capture(1).text)
+    end
+
+    string masked = xregex.compile("[0-9]+").replaceWith(
+        "order 120, customer 42",
+        func(RegexMatcher current) as string
+            return "[" + current.capture().text + "]"
+        end)
+    println(masked)
+
+    auto categories = xregex.compileSet(["error", "warning", "timeout"])
+    array<int> matchedCategories = categories.matches("warning: timeout")
+    println("matching pattern count: ", matchedCategories.length)
+    return 0
+end

@@ -1360,6 +1360,57 @@ void xgeShapeRectFillPx(xge_rect_t tRect, uint32_t iColor)
 	__xgeShapeRectFill(tRect, iColor, 1);
 }
 
+void xgeShapeRectFillPixels(xge_rect_i_t tRect, uint32_t iColor)
+{
+	xge_rect_t tFloatRect;
+
+	if ( (tRect.iW <= 0) || (tRect.iH <= 0) ) {
+		return;
+	}
+	tFloatRect = (xge_rect_t){(float)tRect.iX, (float)tRect.iY,
+		(float)tRect.iW, (float)tRect.iH};
+	__xgeShapeRectFill(tFloatRect, iColor, 1);
+}
+
+void xgeShapeRectBorderPixels(xge_rect_i_t tRect, xge_edges_i_t tBorder, uint32_t iColor)
+{
+	xge_rect_i_t tEdge;
+	int iMiddleHeight;
+
+	if ( (tRect.iW <= 0) || (tRect.iH <= 0) || (XGE_COLOR_GET_A(iColor) == 0) ) {
+		return;
+	}
+	if ( tBorder.iLeft < 0 ) tBorder.iLeft = 0;
+	if ( tBorder.iTop < 0 ) tBorder.iTop = 0;
+	if ( tBorder.iRight < 0 ) tBorder.iRight = 0;
+	if ( tBorder.iBottom < 0 ) tBorder.iBottom = 0;
+	if ( tBorder.iLeft > tRect.iW ) tBorder.iLeft = tRect.iW;
+	if ( tBorder.iRight > tRect.iW - tBorder.iLeft ) tBorder.iRight = tRect.iW - tBorder.iLeft;
+	if ( tBorder.iTop > tRect.iH ) tBorder.iTop = tRect.iH;
+	if ( tBorder.iBottom > tRect.iH - tBorder.iTop ) tBorder.iBottom = tRect.iH - tBorder.iTop;
+
+	if ( tBorder.iTop > 0 ) {
+		tEdge = (xge_rect_i_t){tRect.iX, tRect.iY, tRect.iW, tBorder.iTop};
+		xgeShapeRectFillPixels(tEdge, iColor);
+	}
+	if ( tBorder.iBottom > 0 ) {
+		tEdge = (xge_rect_i_t){tRect.iX, tRect.iY + tRect.iH - tBorder.iBottom,
+			tRect.iW, tBorder.iBottom};
+		xgeShapeRectFillPixels(tEdge, iColor);
+	}
+	iMiddleHeight = tRect.iH - tBorder.iTop - tBorder.iBottom;
+	if ( (iMiddleHeight > 0) && (tBorder.iLeft > 0) ) {
+		tEdge = (xge_rect_i_t){tRect.iX, tRect.iY + tBorder.iTop,
+			tBorder.iLeft, iMiddleHeight};
+		xgeShapeRectFillPixels(tEdge, iColor);
+	}
+	if ( (iMiddleHeight > 0) && (tBorder.iRight > 0) ) {
+		tEdge = (xge_rect_i_t){tRect.iX + tRect.iW - tBorder.iRight,
+			tRect.iY + tBorder.iTop, tBorder.iRight, iMiddleHeight};
+		xgeShapeRectFillPixels(tEdge, iColor);
+	}
+}
+
 static void __xgeShapeRectStroke(xge_rect_t tRect, float fWidth, uint32_t iColor, int bScreenSpace)
 {
 	xge_rect_t tEdge;

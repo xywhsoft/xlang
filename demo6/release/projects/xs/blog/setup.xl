@@ -6,7 +6,7 @@ import "./src/auth_store.xl"
 func main(...) as int
     string username = os.env("XS_BLOG_ADMIN_USER", "admin")
     string password = os.env("XS_BLOG_ADMIN_PASSWORD", "")
-    string databasePath = os.env("XS_BLOG_DB", "projects/xs/blog/data/blog.db")
+    string databasePath = os.env("XS_BLOG_DB", path.abs("blog/data/blog.db"))
     if password == "" then
         println("XS_BLOG_ADMIN_PASSWORD is required")
         return 2
@@ -43,4 +43,3 @@ func main(...) as int
     println("blog administrator is ready: " + username)
     return 0
 end
-

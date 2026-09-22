@@ -11,6 +11,7 @@ class SocketService
         int port,
         int backlog,
         int workerCount,
+        int connectionWorkerCount,
         int queueCapacity,
         int recvLimit,
         string framing,
@@ -191,6 +192,7 @@ export func open(
         port,
         backlog,
         workerCount,
+        workerCount * 2,
         queueCapacity,
         recvLimit,
         framing,
@@ -204,6 +206,38 @@ export func open(
         handlerPoolSize,
         handlerQueueCapacity,
         handlerQueueTimeoutMs,
+        handlerTimeoutMs)
+end
+
+// TCP 每条连接会占用一个阻塞式业务 worker；高级配置可独立指定该数量。
+export func openWithConnectionWorkers(
+    string serviceType,
+    string name,
+    string host,
+    int port,
+    int backlog,
+    int workerCount,
+    int connectionWorkerCount,
+    int queueCapacity,
+    int recvLimit,
+    string framing,
+    string delimiter,
+    int frameLimit,
+    int idleTimeoutMs,
+    int writeTimeoutMs,
+    string sourcePath,
+    string workDir,
+    string includeDir,
+    int handlerPoolSize,
+    int handlerQueueCapacity,
+    int handlerQueueTimeoutMs,
+    int handlerTimeoutMs) as SocketService
+    return SocketService(
+        serviceType, name, host, port, backlog, workerCount,
+        connectionWorkerCount > 0 ? connectionWorkerCount : workerCount * 2,
+        queueCapacity, recvLimit, framing, delimiter, frameLimit,
+        idleTimeoutMs, writeTimeoutMs, sourcePath, workDir, includeDir,
+        handlerPoolSize, handlerQueueCapacity, handlerQueueTimeoutMs,
         handlerTimeoutMs)
 end
 
@@ -235,6 +269,7 @@ export func openManaged(
         port,
         backlog,
         workerCount,
+        workerCount * 2,
         queueCapacity,
         recvLimit,
         framing,
@@ -249,4 +284,34 @@ export func openManaged(
         handlerQueueCapacity,
         handlerQueueTimeoutMs,
         handlerTimeoutMs))
+end
+
+export func openManagedWithConnectionWorkers(
+    string serviceType,
+    string name,
+    string host,
+    int port,
+    int backlog,
+    int workerCount,
+    int connectionWorkerCount,
+    int queueCapacity,
+    int recvLimit,
+    string framing,
+    string delimiter,
+    int frameLimit,
+    int idleTimeoutMs,
+    int writeTimeoutMs,
+    string sourcePath,
+    string workDir,
+    string includeDir,
+    int handlerPoolSize,
+    int handlerQueueCapacity,
+    int handlerQueueTimeoutMs,
+    int handlerTimeoutMs) as SocketControl
+    return SocketControl(openWithConnectionWorkers(
+        serviceType, name, host, port, backlog, workerCount,
+        connectionWorkerCount, queueCapacity, recvLimit, framing, delimiter,
+        frameLimit, idleTimeoutMs, writeTimeoutMs, sourcePath, workDir,
+        includeDir, handlerPoolSize, handlerQueueCapacity,
+        handlerQueueTimeoutMs, handlerTimeoutMs))
 end

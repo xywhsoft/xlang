@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define XRT_MODULE_VALUE_CONTAINER
+#include "xrt.h"
+
 /* demo6's embedded TCC Win32 headers do not ship OleAut/OAIdl headers. */
 #ifndef XL_COM_MINIMAL_OLEAUT_DEFINED
 #define XL_COM_MINIMAL_OLEAUT_DEFINED
@@ -291,43 +294,12 @@ typedef struct XComObject {
 	IDispatch* dispatch;
 } XComObject;
 
-typedef unsigned int XL_ArtifactUInt32;
-typedef long long XL_ArtifactInt64;
-typedef const char* XL_ArtifactStr;
-typedef void* XL_ArtifactPtr;
-
-typedef struct XL_ArtifactXValueStruct* XL_ArtifactXValue;
-
-#define XL_ARTIFACT_XVO_DT_NULL 0
-#define XL_ARTIFACT_XVO_DT_BOOL 1
-#define XL_ARTIFACT_XVO_DT_INT 2
-#define XL_ARTIFACT_XVO_DT_FLOAT 3
-#define XL_ARTIFACT_XVO_DT_TEXT 4
-#define XL_ARTIFACT_XVO_DT_POINT 6
-
-extern XL_ArtifactXValue xvoCreateNull(void);
-extern XL_ArtifactXValue xvoCreateBool(int bVal);
-extern XL_ArtifactXValue xvoCreateInt(XL_ArtifactInt64 iVal);
-extern XL_ArtifactXValue xvoCreateFloat(double fVal);
-extern XL_ArtifactXValue xvoCreateText(void* sVal, XL_ArtifactUInt32 iSize, int bColloc);
-extern XL_ArtifactXValue xvoCreatePoint(void* point);
-extern XL_ArtifactXValue xvoCreateArray(void);
-extern int xvoArrayAppendValue(XL_ArtifactXValue pArr, XL_ArtifactXValue pVal, int bUnrefVal);
-extern XL_ArtifactUInt32 xvoArrayItemCount(XL_ArtifactXValue pArr);
-extern XL_ArtifactXValue xvoArrayGetValue(XL_ArtifactXValue pArr, XL_ArtifactUInt32 iIndex);
-extern int xvoType(XL_ArtifactXValue pVal);
-extern int xvoGetBool(XL_ArtifactXValue pVal);
-extern XL_ArtifactInt64 xvoGetInt(XL_ArtifactXValue pVal);
-extern double xvoGetFloat(XL_ArtifactXValue pVal);
-extern XL_ArtifactStr xvoGetText(XL_ArtifactXValue pVal);
-extern XL_ArtifactPtr xvoGetPoint(XL_ArtifactXValue pVal);
-
 static char g_x_com_text[4096];
 static char g_x_com_error[512];
 static int g_x_com_initialized = 0;
 static int g_x_com_missing_sentinel = 0;
 
-static XL_ArtifactXValue x_com_variant_to_xvalue(VARIANT* value);
+static xvalue* x_com_variant_to_xvalue(VARIANT* value);
 
 static void x_com_copy_cstr(char* out, size_t out_size, const char* text)
 {
@@ -385,6 +357,11 @@ static IDispatchVtbl g_x_com_test_vtbl = {
 static void x_com_set_error(const char* text)
 {
 	x_com_copy_cstr(g_x_com_error, sizeof(g_x_com_error), text);
+	if ( text != NULL && text[0] != '\0' ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.com", 0, text);
+	} else {
+		xrtClearError();
+	}
 }
 
 static void x_com_set_hresult_error(const char* prefix, HRESULT hr)
@@ -817,62 +794,61 @@ static int x_com_invoke0_variant(IDispatch* dispatch, const char* name, WORD fla
 	return 1;
 }
 
-static int x_com_variant_from_xvalue(VARIANT* dst, XL_ArtifactXValue value)
+static int x_com_variant_from_xvalue(VARIANT* dst, const xvalue* value)
 {
-	int type;
-	XL_ArtifactInt64 int_value;
-	const char* text_value;
-	XL_ArtifactUInt32 text_size;
-	void* point_value;
+	xvaluetype Type;
+	bool bValue;
+	int64 iValue;
+	xstrview Text;
+	ptr pValue;
 	wchar_t wide_value[1024];
 	if ( dst == NULL ) {
 		return 0;
 	}
 	VariantInit(dst);
-	type = xvoType(value);
-	if ( type == XL_ARTIFACT_XVO_DT_NULL ) {
+	Type = xrtValueType(value);
+	if ( Type == XVALUE_NULL ) {
 		dst->vt = VT_EMPTY;
 		return 1;
 	}
-	switch ( type ) {
-	case XL_ARTIFACT_XVO_DT_BOOL:
+	switch ( Type ) {
+	case XVALUE_BOOL:
 		dst->vt = VT_BOOL;
-		dst->boolVal = xvoGetBool(value) ? VARIANT_TRUE : VARIANT_FALSE;
+		if ( !xrtValueGetBool(value, &bValue) ) { return 0; }
+		dst->boolVal = bValue ? VARIANT_TRUE : VARIANT_FALSE;
 		return 1;
-	case XL_ARTIFACT_XVO_DT_INT:
-		int_value = xvoGetInt(value);
-		if ( int_value >= (XL_ArtifactInt64)LONG_MIN && int_value <= (XL_ArtifactInt64)LONG_MAX ) {
+	case XVALUE_INT:
+		if ( !xrtValueGetInt(value, &iValue) ) { return 0; }
+		if ( iValue >= (int64)LONG_MIN && iValue <= (int64)LONG_MAX ) {
 			dst->vt = VT_I4;
-			dst->lVal = (LONG)int_value;
+			dst->lVal = (LONG)iValue;
 		} else {
 			dst->vt = VT_I8;
-			dst->llVal = int_value;
+			dst->llVal = iValue;
 		}
 		return 1;
-	case XL_ARTIFACT_XVO_DT_FLOAT:
+	case XVALUE_FLOAT:
 		dst->vt = VT_R8;
-		dst->dblVal = xvoGetFloat(value);
-		return 1;
-	case XL_ARTIFACT_XVO_DT_TEXT:
-		text_value = xvoGetText(value);
-		text_size = text_value != NULL ? (XL_ArtifactUInt32)strlen(text_value) : 0u;
+		return xrtValueGetFloat(value, &dst->dblVal) ? 1 : 0;
+	case XVALUE_STRING:
+		if ( !xrtValueGetString(value, &Text) ) { return 0; }
 		dst->vt = VT_BSTR;
-		dst->bstrVal = x_com_bstr_from_utf8_slice(text_value != NULL ? text_value : "", (int)text_size);
+		dst->bstrVal = x_com_bstr_from_utf8_slice(Text.Data, (int)Text.Size);
 		if ( dst->bstrVal == NULL ) {
 			x_com_set_error("argument allocation failed");
 			return 0;
 		}
 		return 1;
-	case XL_ARTIFACT_XVO_DT_POINT:
-		point_value = xvoGetPoint(value);
-		if ( point_value == (void*)&g_x_com_missing_sentinel ) {
+	case XVALUE_POINTER:
+		if ( !xrtValueGetPointer(value, &pValue) ) { return 0; }
+		if ( pValue == (void*)&g_x_com_missing_sentinel ) {
 			dst->vt = VT_ERROR;
 			dst->scode = DISP_E_PARAMNOTFOUND;
 			return 1;
 		}
-		if ( point_value != NULL ) {
+		if ( pValue != NULL ) {
 			dst->vt = VT_DISPATCH;
-			dst->pdispVal = (IDispatch*)point_value;
+			dst->pdispVal = (IDispatch*)pValue;
 			dst->pdispVal->lpVtbl->AddRef(dst->pdispVal);
 			return 1;
 		}
@@ -951,7 +927,7 @@ static int x_com_invoke_text_args_variant(IDispatch* dispatch, const char* name,
 	return 1;
 }
 
-static int x_com_invoke_var_args_variant(IDispatch* dispatch, const char* name, int argc, XL_ArtifactXValue* argv, VARIANT* result)
+static int x_com_invoke_var_args_variant(IDispatch* dispatch, const char* name, int argc, xvalue* const* argv, VARIANT* result)
 {
 	DISPID dispid;
 	DISPPARAMS params;
@@ -1006,7 +982,7 @@ static int x_com_invoke_var_args_variant(IDispatch* dispatch, const char* name, 
 	return 1;
 }
 
-static int x_com_put_var_variant(IDispatch* dispatch, const char* name, XL_ArtifactXValue value)
+static int x_com_put_var_variant(IDispatch* dispatch, const char* name, const xvalue* value)
 {
 	DISPID dispid;
 	DISPID named_arg = DISPID_PROPERTYPUT;
@@ -1205,7 +1181,7 @@ static int x_com_safearray_get_variant(SAFEARRAY* array, VARTYPE item_vt, LONG* 
 	return SUCCEEDED(hr);
 }
 
-static XL_ArtifactXValue x_com_safearray_to_xvalue_rec(
+static xvalue* x_com_safearray_to_xvalue_rec(
 	SAFEARRAY* array,
 	VARTYPE item_vt,
 	UINT dim,
@@ -1215,35 +1191,36 @@ static XL_ArtifactXValue x_com_safearray_to_xvalue_rec(
 	LONG* indices
 )
 {
-	XL_ArtifactXValue result;
+	xvalue* pResult;
 	LONG index;
 
-	result = xvoCreateArray();
-	if ( result == NULL ) {
-		return xvoCreateNull();
+	pResult = xrtValueArray();
+	if ( pResult == NULL ) {
+		return xrtValueNull();
 	}
 	for ( index = lower[dim]; index <= upper[dim]; ++index ) {
-		XL_ArtifactXValue item_value;
+		xvalue* pItem;
 		indices[dim] = index;
 		if ( (dim + 1u) < dim_count ) {
-			item_value = x_com_safearray_to_xvalue_rec(array, item_vt, dim + 1u, dim_count, lower, upper, indices);
+			pItem = x_com_safearray_to_xvalue_rec(array, item_vt, dim + 1u, dim_count, lower, upper, indices);
 		} else {
 			VARIANT item;
 			if ( x_com_safearray_get_variant(array, item_vt, indices, &item) ) {
-				item_value = x_com_variant_to_xvalue(&item);
+				pItem = x_com_variant_to_xvalue(&item);
 				VariantClear(&item);
 			} else {
-				item_value = xvoCreateNull();
+				pItem = xrtValueNull();
 			}
 		}
-		if ( !xvoArrayAppendValue(result, item_value, 1) ) {
-			return result;
+		if ( !xrtValueArrayAppendNew(pResult, pItem) ) {
+			xrtValueRelease(pResult);
+			return xrtValueNull();
 		}
 	}
-	return result;
+	return pResult;
 }
 
-static XL_ArtifactXValue x_com_safearray_to_xvalue(VARIANT* value)
+static xvalue* x_com_safearray_to_xvalue(VARIANT* value)
 {
 	SAFEARRAY* array;
 	UINT dim_count;
@@ -1254,25 +1231,25 @@ static XL_ArtifactXValue x_com_safearray_to_xvalue(VARIANT* value)
 	UINT dim;
 
 	if ( value == NULL || (value->vt & VT_ARRAY) == 0 ) {
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	array = (value->vt & VT_BYREF) ? *value->pparray : value->parray;
 	if ( array == NULL ) {
-		return xvoCreateArray();
+		return xrtValueArray();
 	}
 	dim_count = SafeArrayGetDim(array);
 	if ( dim_count == 0u ) {
-		return xvoCreateArray();
+		return xrtValueArray();
 	}
 	if ( dim_count > 8u ) {
 		x_com_set_error("SAFEARRAY dimension count is too large");
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	for ( dim = 0u; dim < dim_count; ++dim ) {
 		if ( FAILED(SafeArrayGetLBound(array, dim + 1u, &lower[dim])) ||
 			FAILED(SafeArrayGetUBound(array, dim + 1u, &upper[dim])) ) {
 			x_com_set_error("SAFEARRAY bounds failed");
-			return xvoCreateNull();
+			return xrtValueNull();
 		}
 		indices[dim] = lower[dim];
 	}
@@ -1303,95 +1280,93 @@ static const char* x_com_variant_to_text(VARIANT* value)
 	return g_x_com_text;
 }
 
-static XL_ArtifactXValue x_com_variant_to_xvalue(VARIANT* value)
+static xvalue* x_com_variant_to_xvalue(VARIANT* value)
 {
 	VARIANT text;
 	VARTYPE vt;
-	const char* array_text;
 	if ( value == NULL ) {
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	while ( (value->vt & VT_BYREF) != 0 ) {
 		vt = value->vt & ~VT_BYREF;
 		if ( vt == VT_BOOL && value->pboolVal != NULL ) {
-			return xvoCreateBool((*value->pboolVal) != VARIANT_FALSE);
+			return xrtValueBool((*value->pboolVal) != VARIANT_FALSE);
 		}
 		if ( vt == VT_I4 && value->plVal != NULL ) {
-			return xvoCreateInt((XL_ArtifactInt64)(*value->plVal));
+			return xrtValueInt((int64)(*value->plVal));
 		}
 		if ( vt == VT_I8 && value->pllVal != NULL ) {
-			return xvoCreateInt((XL_ArtifactInt64)(*value->pllVal));
+			return xrtValueInt((int64)(*value->pllVal));
 		}
 		if ( vt == VT_R8 && value->pdblVal != NULL ) {
-			return xvoCreateFloat(*value->pdblVal);
+			return xrtValueFloat(*value->pdblVal);
 		}
 		if ( vt == VT_BSTR && value->pbstrVal != NULL ) {
 			const char* sText = x_com_wide_to_utf8(*value->pbstrVal);
-			return xvoCreateText((void*)sText, (XL_ArtifactUInt32)strlen(sText), 0);
+			return xrtValueString(xrtStrView(sText));
 		}
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	if ( (value->vt & VT_ARRAY) != 0 ) {
-		(void)array_text;
 		return x_com_safearray_to_xvalue(value);
 	}
 	switch ( value->vt ) {
 	case VT_EMPTY:
 	case VT_NULL:
-		return xvoCreateNull();
+		return xrtValueNull();
 	case VT_BOOL:
-		return xvoCreateBool(value->boolVal != VARIANT_FALSE);
+		return xrtValueBool(value->boolVal != VARIANT_FALSE);
 	case VT_I1:
-		return xvoCreateInt((XL_ArtifactInt64)value->cVal);
+		return xrtValueInt((int64)value->cVal);
 	case VT_UI1:
-		return xvoCreateInt((XL_ArtifactInt64)value->bVal);
+		return xrtValueInt((int64)value->bVal);
 	case VT_I2:
-		return xvoCreateInt((XL_ArtifactInt64)value->iVal);
+		return xrtValueInt((int64)value->iVal);
 	case VT_UI2:
-		return xvoCreateInt((XL_ArtifactInt64)value->uiVal);
+		return xrtValueInt((int64)value->uiVal);
 	case VT_I4:
 	case VT_INT:
-		return xvoCreateInt((XL_ArtifactInt64)value->lVal);
+		return xrtValueInt((int64)value->lVal);
 	case VT_UI4:
 	case VT_UINT:
-		return xvoCreateInt((XL_ArtifactInt64)value->ulVal);
+		return xrtValueInt((int64)value->ulVal);
 	case VT_I8:
-		return xvoCreateInt((XL_ArtifactInt64)value->llVal);
+		return xrtValueInt((int64)value->llVal);
 	case VT_UI8:
-		return xvoCreateInt((XL_ArtifactInt64)value->ullVal);
+		return xrtValueInt((int64)value->ullVal);
 	case VT_R4:
-		return xvoCreateFloat((double)value->fltVal);
+		return xrtValueFloat((double)value->fltVal);
 	case VT_R8:
-		return xvoCreateFloat(value->dblVal);
+		return xrtValueFloat(value->dblVal);
 	case VT_BSTR:
 	{
 		const char* sText = x_com_wide_to_utf8(value->bstrVal);
-		return xvoCreateText((void*)sText, (XL_ArtifactUInt32)strlen(sText), 0);
+		return xrtValueString(xrtStrView(sText));
 	}
 	case VT_DISPATCH:
 		if ( value->pdispVal != NULL ) {
 			value->pdispVal->lpVtbl->AddRef(value->pdispVal);
 		}
-		return xvoCreatePoint((void*)value->pdispVal);
+		return xrtValuePointer((ptr)value->pdispVal);
 	case VT_UNKNOWN:
 	{
 		IDispatch* dispatch = NULL;
 		if ( value->punkVal != NULL &&
 			SUCCEEDED(value->punkVal->lpVtbl->QueryInterface(value->punkVal, &x_com_iid_idispatch, (void**)&dispatch)) ) {
-			return xvoCreatePoint((void*)dispatch);
+			return xrtValuePointer((ptr)dispatch);
 		}
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	default:
 		VariantInit(&text);
 		if ( SUCCEEDED(VariantChangeType(&text, value, 0, VT_BSTR)) ) {
-			XL_ArtifactXValue result;
+			xvalue* pResult;
 			const char* sText = x_com_wide_to_utf8(text.bstrVal);
-			result = xvoCreateText((void*)sText, (XL_ArtifactUInt32)strlen(sText), 0);
+			pResult = xrtValueString(xrtStrView(sText));
 			VariantClear(&text);
-			return result;
+			return pResult;
 		}
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 }
 
@@ -1539,7 +1514,7 @@ XL_EXPORT int x_com_get_int(void* handle, const char* name)
 	return value;
 }
 
-XL_EXPORT int x_com_put_var(void* handle, const char* name, XL_ArtifactXValue value)
+XL_EXPORT int x_com_put_var(void* handle, const char* name, xvalue* value)
 {
 	XComObject* object = (XComObject*)handle;
 	if ( object == NULL || object->dispatch == NULL ) {
@@ -1554,71 +1529,69 @@ XL_EXPORT void* x_com_missing(void)
 	return (void*)&g_x_com_missing_sentinel;
 }
 
-static int x_com_value_truthy(XL_ArtifactXValue value)
+static int x_com_value_truthy(const xvalue* pValue)
 {
-	int type = xvoType(value);
-	const char* text;
+	xvaluetype Type = xrtValueType(pValue);
+	bool bValue;
+	int64 iValue;
+	double fValue;
+	xstrview Text;
 
-	if ( type == XL_ARTIFACT_XVO_DT_NULL ) {
+	if ( Type == XVALUE_NULL ) {
 		return 0;
 	}
-	if ( type == XL_ARTIFACT_XVO_DT_BOOL ) {
-		return xvoGetBool(value) != 0;
+	if ( Type == XVALUE_BOOL ) {
+		return xrtValueGetBool(pValue, &bValue) && bValue;
 	}
-	if ( type == XL_ARTIFACT_XVO_DT_INT ) {
-		return xvoGetInt(value) != 0;
+	if ( Type == XVALUE_INT ) {
+		return xrtValueGetInt(pValue, &iValue) && iValue != 0;
 	}
-	if ( type == XL_ARTIFACT_XVO_DT_FLOAT ) {
-		return xvoGetFloat(value) != 0.0;
+	if ( Type == XVALUE_FLOAT ) {
+		return xrtValueGetFloat(pValue, &fValue) && fValue != 0.0;
 	}
-	if ( type == XL_ARTIFACT_XVO_DT_TEXT ) {
-		text = xvoGetText(value);
-		return (text != NULL) && (text[0] != '\0');
+	if ( Type == XVALUE_STRING ) {
+		return xrtValueGetString(pValue, &Text) && Text.Size != 0u;
 	}
 	return 1;
 }
 
-static const char* x_com_value_text(XL_ArtifactXValue value)
+static const char* x_com_value_text(const xvalue* pValue)
 {
-	const char* text;
-	XL_ArtifactUInt32 size;
+	xstrview Text;
+	size_t iSize;
 
-	if ( xvoType(value) != XL_ARTIFACT_XVO_DT_TEXT ) {
+	if ( !xrtValueGetString(pValue, &Text) ) {
 		return "";
 	}
-	text = xvoGetText(value);
-	if ( text == NULL ) {
-		return "";
-	}
-	size = (XL_ArtifactUInt32)strlen(text);
-	if ( size >= sizeof(g_x_com_text) ) {
-		memcpy(g_x_com_text, text, sizeof(g_x_com_text) - 1u);
+	iSize = Text.Size;
+	if ( iSize >= sizeof(g_x_com_text) ) {
+		memcpy(g_x_com_text, Text.Data, sizeof(g_x_com_text) - 1u);
 		g_x_com_text[sizeof(g_x_com_text) - 1u] = '\0';
 		return g_x_com_text;
 	}
-	memcpy(g_x_com_text, text, size);
-	g_x_com_text[size] = '\0';
+	memcpy(g_x_com_text, Text.Data, iSize);
+	g_x_com_text[iSize] = '\0';
 	return g_x_com_text;
 }
 
-static int x_com_named_arg_dispid(IDispatch* dispatch, XL_ArtifactXValue name_value, DISPID* dispid)
+static int x_com_named_arg_dispid(IDispatch* dispatch, const xvalue* pName, DISPID* dispid)
 {
 	const char* arg_name;
 
 	if ( (dispatch == NULL) || (dispid == NULL) ||
-		(xvoType(name_value) != XL_ARTIFACT_XVO_DT_TEXT) || (x_com_value_text(name_value)[0] == '\0') ) {
+		(xrtValueType(pName) != XVALUE_STRING) || (x_com_value_text(pName)[0] == '\0') ) {
 		return 0;
 	}
-	arg_name = x_com_value_text(name_value);
+	arg_name = x_com_value_text(pName);
 	return x_com_get_dispid(dispatch, arg_name, dispid);
 }
 
-static XL_ArtifactXValue x_com_invoke_array_internal(
+static xvalue* x_com_invoke_array_internal(
 	void* handle,
 	const char* name,
-	XL_ArtifactXValue args_value,
-	XL_ArtifactXValue names_value,
-	XL_ArtifactXValue byrefs_value,
+	const xvalue* pArgs,
+	const xvalue* pNames,
+	const xvalue* pByRefs,
 	WORD flags,
 	int bReturnOutArgs
 )
@@ -1632,50 +1605,52 @@ static XL_ArtifactXValue x_com_invoke_array_internal(
 	VARIANT invoke_args[64];
 	VARIANT holders[64];
 	VARIANT result;
-	XL_ArtifactUInt32 argc;
-	XL_ArtifactUInt32 i;
+	size_t iCount;
+	size_t i;
 	UINT named_count = 0u;
 	HRESULT hr;
-	XL_ArtifactXValue out;
+	xvalue* pOutput;
 
 	if ( object == NULL || object->dispatch == NULL ) {
 		x_com_set_error("invalid COM handle");
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	if ( !x_com_get_dispid(object->dispatch, name, &dispid) ) {
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
-	argc = args_value != NULL ? xvoArrayItemCount(args_value) : 0u;
-	if ( argc > 64u ) {
+	iCount = pArgs != NULL ? xrtValueCount(pArgs) : 0u;
+	if ( pArgs != NULL && xrtValueType(pArgs) != XVALUE_ARRAY ) {
+		x_com_set_error("arguments must be an array");
+		return xrtValueNull();
+	}
+	if ( iCount > 64u ) {
 		x_com_set_error("unsupported argument count");
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	memset(named_ids, 0, sizeof(named_ids));
-	for ( i = 0; i < 64u; ++i ) {
+	for ( i = 0u; i < 64u; ++i ) {
 		VariantInit(&invoke_args[i]);
 		VariantInit(&holders[i]);
 	}
-	for ( i = 0; i < argc; ++i ) {
-		XL_ArtifactUInt32 src = i;
-		XL_ArtifactUInt32 dst = argc - 1u - i;
-		XL_ArtifactXValue item = args_value != NULL ? xvoArrayGetValue(args_value, src) : NULL;
-		XL_ArtifactXValue byref = byrefs_value != NULL ? xvoArrayGetValue(byrefs_value, src) : NULL;
-		if ( !x_com_variant_from_xvalue(&holders[src], item) ) {
+	for ( i = 0u; i < iCount; ++i ) {
+		size_t iDestination = iCount - 1u - i;
+		const xvalue* pItem = pArgs != NULL ? xrtValueArrayGet(pArgs, i) : NULL;
+		const xvalue* pByRef = pByRefs != NULL ? xrtValueArrayGet(pByRefs, i) : NULL;
+		if ( !x_com_variant_from_xvalue(&holders[i], pItem) ) {
 			goto fail;
 		}
-		if ( x_com_value_truthy(byref) ) {
-			invoke_args[dst].vt = VT_VARIANT | VT_BYREF;
-			invoke_args[dst].pvarVal = &holders[src];
+		if ( x_com_value_truthy(pByRef) ) {
+			invoke_args[iDestination].vt = VT_VARIANT | VT_BYREF;
+			invoke_args[iDestination].pvarVal = &holders[i];
 		} else {
-			invoke_args[dst] = holders[src];
-			VariantInit(&holders[src]);
+			invoke_args[iDestination] = holders[i];
+			VariantInit(&holders[i]);
 		}
 	}
-	if ( names_value != NULL ) {
-		for ( i = 0; i < argc; ++i ) {
-			XL_ArtifactUInt32 src = argc - 1u - i;
-			XL_ArtifactXValue name_item = xvoArrayGetValue(names_value, src);
-			if ( x_com_named_arg_dispid(object->dispatch, name_item, &named_ids[named_count]) ) {
+	if ( pNames != NULL && xrtValueType(pNames) == XVALUE_ARRAY ) {
+		for ( i = 0u; i < iCount; ++i ) {
+			const xvalue* pName = xrtValueArrayGet(pNames, iCount - 1u - i);
+			if ( x_com_named_arg_dispid(object->dispatch, pName, &named_ids[named_count]) ) {
 				named_count += 1u;
 			}
 		}
@@ -1684,8 +1659,8 @@ static XL_ArtifactXValue x_com_invoke_array_internal(
 	memset(&params, 0, sizeof(params));
 	memset(&excep, 0, sizeof(excep));
 	VariantInit(&result);
-	params.cArgs = argc;
-	params.rgvarg = (argc != 0u) ? invoke_args : NULL;
+	params.cArgs = (UINT)iCount;
+	params.rgvarg = (iCount != 0u) ? invoke_args : NULL;
 	params.cNamedArgs = named_count;
 	params.rgdispidNamedArgs = (named_count != 0u) ? named_ids : NULL;
 	hr = object->dispatch->lpVtbl->Invoke(object->dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, flags, &params, &result, &excep, &arg_error);
@@ -1699,49 +1674,49 @@ static XL_ArtifactXValue x_com_invoke_array_internal(
 		goto fail;
 	}
 	if ( bReturnOutArgs ) {
-		out = xvoCreateArray();
-		if ( out == NULL ) {
-			out = xvoCreateNull();
+		pOutput = xrtValueArray();
+		if ( pOutput == NULL ) {
+			pOutput = xrtValueNull();
 		} else {
-			xvoArrayAppendValue(out, x_com_variant_to_xvalue(&result), 1);
-			for ( i = 0; i < argc; ++i ) {
-				xvoArrayAppendValue(out, x_com_variant_to_xvalue(&holders[i]), 1);
+			xrtValueArrayAppendNew(pOutput, x_com_variant_to_xvalue(&result));
+			for ( i = 0u; i < iCount; ++i ) {
+				xrtValueArrayAppendNew(pOutput, x_com_variant_to_xvalue(&holders[i]));
 			}
 		}
 	} else {
-		out = x_com_variant_to_xvalue(&result);
+		pOutput = x_com_variant_to_xvalue(&result);
 	}
 	VariantClear(&result);
-	for ( i = 0; i < argc; ++i ) {
+	for ( i = 0u; i < iCount; ++i ) {
 		VariantClear(&invoke_args[i]);
 		VariantClear(&holders[i]);
 	}
-	return out;
+	return pOutput;
 
 fail:
-	for ( i = 0; i < argc; ++i ) {
+	for ( i = 0u; i < iCount; ++i ) {
 		VariantClear(&invoke_args[i]);
 		VariantClear(&holders[i]);
 	}
-	return xvoCreateNull();
+	return xrtValueNull();
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_array(void* handle, const char* name, XL_ArtifactXValue args)
+XL_EXPORT xvalue* x_com_invoke_array(void* handle, const char* name, xvalue* pArgs)
 {
-	return x_com_invoke_array_internal(handle, name, args, NULL, NULL, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 0);
+	return x_com_invoke_array_internal(handle, name, pArgs, NULL, NULL, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 0);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_out(void* handle, const char* name, XL_ArtifactXValue args, XL_ArtifactXValue byrefs)
+XL_EXPORT xvalue* x_com_invoke_out(void* handle, const char* name, xvalue* pArgs, xvalue* pByRefs)
 {
-	return x_com_invoke_array_internal(handle, name, args, NULL, byrefs, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 1);
+	return x_com_invoke_array_internal(handle, name, pArgs, NULL, pByRefs, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 1);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_named(void* handle, const char* name, XL_ArtifactXValue args, XL_ArtifactXValue names)
+XL_EXPORT xvalue* x_com_invoke_named(void* handle, const char* name, xvalue* pArgs, xvalue* pNames)
 {
-	return x_com_invoke_array_internal(handle, name, args, names, NULL, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 0);
+	return x_com_invoke_array_internal(handle, name, pArgs, pNames, NULL, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 0);
 }
 
-XL_EXPORT int x_com_put_ref(void* handle, const char* name, XL_ArtifactXValue value)
+XL_EXPORT int x_com_put_ref(void* handle, const char* name, xvalue* value)
 {
 	XComObject* object = (XComObject*)handle;
 	DISPID dispid;
@@ -1801,7 +1776,7 @@ static const char* x_com_invoke_text_args(void* handle, const char* name, int ar
 	return text;
 }
 
-static const char* x_com_invoke_var_args(void* handle, const char* name, int argc, XL_ArtifactXValue* argv)
+static const char* x_com_invoke_var_args(void* handle, const char* name, int argc, xvalue* const* argv)
 {
 	XComObject* object = (XComObject*)handle;
 	VARIANT result;
@@ -1820,172 +1795,76 @@ static const char* x_com_invoke_var_args(void* handle, const char* name, int arg
 	return text;
 }
 
-static XL_ArtifactXValue x_com_invoke_value_args(void* handle, const char* name, int argc, XL_ArtifactXValue* argv)
+static xvalue* x_com_invoke_value_args(void* handle, const char* name, int argc, xvalue* const* argv)
 {
 	XComObject* object = (XComObject*)handle;
 	VARIANT result;
-	XL_ArtifactXValue value;
+	xvalue* pValue;
 	if ( object == NULL || object->dispatch == NULL ) {
 		x_com_set_error("invalid COM handle");
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
 	if ( argc == 0 ) {
 		if ( !x_com_invoke0_variant(object->dispatch, name, DISPATCH_PROPERTYGET, &result) ) {
-			return xvoCreateNull();
+			return xrtValueNull();
 		}
 	} else if ( !x_com_invoke_var_args_variant(object->dispatch, name, argc, argv, &result) ) {
-		return xvoCreateNull();
+		return xrtValueNull();
 	}
-	value = x_com_variant_to_xvalue(&result);
+	pValue = x_com_variant_to_xvalue(&result);
 	VariantClear(&result);
-	return value;
+	return pValue;
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var0(void* handle, const char* name)
+XL_EXPORT xvalue* x_com_invoke_var0(void* handle, const char* name)
 {
 	return x_com_invoke_value_args(handle, name, 0, NULL);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var1(void* handle, const char* name, XL_ArtifactXValue a0)
+XL_EXPORT xvalue* x_com_invoke_var1(void* handle, const char* name, xvalue* a0)
 {
-	XL_ArtifactXValue args[1] = { a0 };
+	xvalue* args[1] = { a0 };
 	return x_com_invoke_value_args(handle, name, 1, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var2(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1)
+XL_EXPORT xvalue* x_com_invoke_var2(void* handle, const char* name, xvalue* a0, xvalue* a1)
 {
-	XL_ArtifactXValue args[2] = { a0, a1 };
+	xvalue* args[2] = { a0, a1 };
 	return x_com_invoke_value_args(handle, name, 2, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var3(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2)
+XL_EXPORT xvalue* x_com_invoke_var3(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2)
 {
-	XL_ArtifactXValue args[3] = { a0, a1, a2 };
+	xvalue* args[3] = { a0, a1, a2 };
 	return x_com_invoke_value_args(handle, name, 3, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var4(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3)
+XL_EXPORT xvalue* x_com_invoke_var4(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3)
 {
-	XL_ArtifactXValue args[4] = { a0, a1, a2, a3 };
+	xvalue* args[4] = { a0, a1, a2, a3 };
 	return x_com_invoke_value_args(handle, name, 4, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var5(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4)
+XL_EXPORT xvalue* x_com_invoke_var5(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4)
 {
-	XL_ArtifactXValue args[5] = { a0, a1, a2, a3, a4 };
+	xvalue* args[5] = { a0, a1, a2, a3, a4 };
 	return x_com_invoke_value_args(handle, name, 5, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var6(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5)
+XL_EXPORT xvalue* x_com_invoke_var6(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4, xvalue* a5)
 {
-	XL_ArtifactXValue args[6] = { a0, a1, a2, a3, a4, a5 };
+	xvalue* args[6] = { a0, a1, a2, a3, a4, a5 };
 	return x_com_invoke_value_args(handle, name, 6, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var7(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6)
+XL_EXPORT xvalue* x_com_invoke_var7(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4, xvalue* a5, xvalue* a6)
 {
-	XL_ArtifactXValue args[7] = { a0, a1, a2, a3, a4, a5, a6 };
+	xvalue* args[7] = { a0, a1, a2, a3, a4, a5, a6 };
 	return x_com_invoke_value_args(handle, name, 7, args);
 }
 
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var8(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7)
+XL_EXPORT xvalue* x_com_invoke_var8(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4, xvalue* a5, xvalue* a6, xvalue* a7)
 {
-	XL_ArtifactXValue args[8] = { a0, a1, a2, a3, a4, a5, a6, a7 };
+	xvalue* args[8] = { a0, a1, a2, a3, a4, a5, a6, a7 };
 	return x_com_invoke_value_args(handle, name, 8, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var9(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8)
-{
-	XL_ArtifactXValue args[9] = { a0, a1, a2, a3, a4, a5, a6, a7, a8 };
-	return x_com_invoke_value_args(handle, name, 9, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var10(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9)
-{
-	XL_ArtifactXValue args[10] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9 };
-	return x_com_invoke_value_args(handle, name, 10, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var11(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9, XL_ArtifactXValue a10)
-{
-	XL_ArtifactXValue args[11] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 };
-	return x_com_invoke_value_args(handle, name, 11, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var12(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9, XL_ArtifactXValue a10, XL_ArtifactXValue a11)
-{
-	XL_ArtifactXValue args[12] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 };
-	return x_com_invoke_value_args(handle, name, 12, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var13(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9, XL_ArtifactXValue a10, XL_ArtifactXValue a11, XL_ArtifactXValue a12)
-{
-	XL_ArtifactXValue args[13] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 };
-	return x_com_invoke_value_args(handle, name, 13, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var14(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9, XL_ArtifactXValue a10, XL_ArtifactXValue a11, XL_ArtifactXValue a12, XL_ArtifactXValue a13)
-{
-	XL_ArtifactXValue args[14] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13 };
-	return x_com_invoke_value_args(handle, name, 14, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var15(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9, XL_ArtifactXValue a10, XL_ArtifactXValue a11, XL_ArtifactXValue a12, XL_ArtifactXValue a13, XL_ArtifactXValue a14)
-{
-	XL_ArtifactXValue args[15] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14 };
-	return x_com_invoke_value_args(handle, name, 15, args);
-}
-
-XL_EXPORT XL_ArtifactXValue x_com_invoke_var16(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7, XL_ArtifactXValue a8, XL_ArtifactXValue a9, XL_ArtifactXValue a10, XL_ArtifactXValue a11, XL_ArtifactXValue a12, XL_ArtifactXValue a13, XL_ArtifactXValue a14, XL_ArtifactXValue a15)
-{
-	XL_ArtifactXValue args[16] = { a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15 };
-	return x_com_invoke_value_args(handle, name, 16, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text1(void* handle, const char* name, XL_ArtifactXValue a0)
-{
-	XL_ArtifactXValue args[1] = { a0 };
-	return x_com_invoke_var_args(handle, name, 1, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text2(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1)
-{
-	XL_ArtifactXValue args[2] = { a0, a1 };
-	return x_com_invoke_var_args(handle, name, 2, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text3(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2)
-{
-	XL_ArtifactXValue args[3] = { a0, a1, a2 };
-	return x_com_invoke_var_args(handle, name, 3, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text4(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3)
-{
-	XL_ArtifactXValue args[4] = { a0, a1, a2, a3 };
-	return x_com_invoke_var_args(handle, name, 4, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text5(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4)
-{
-	XL_ArtifactXValue args[5] = { a0, a1, a2, a3, a4 };
-	return x_com_invoke_var_args(handle, name, 5, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text6(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5)
-{
-	XL_ArtifactXValue args[6] = { a0, a1, a2, a3, a4, a5 };
-	return x_com_invoke_var_args(handle, name, 6, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text7(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6)
-{
-	XL_ArtifactXValue args[7] = { a0, a1, a2, a3, a4, a5, a6 };
-	return x_com_invoke_var_args(handle, name, 7, args);
-}
-
-XL_EXPORT const char* x_com_invoke_text8(void* handle, const char* name, XL_ArtifactXValue a0, XL_ArtifactXValue a1, XL_ArtifactXValue a2, XL_ArtifactXValue a3, XL_ArtifactXValue a4, XL_ArtifactXValue a5, XL_ArtifactXValue a6, XL_ArtifactXValue a7)
-{
-	XL_ArtifactXValue args[8] = { a0, a1, a2, a3, a4, a5, a6, a7 };
-	return x_com_invoke_var_args(handle, name, 8, args);
 }

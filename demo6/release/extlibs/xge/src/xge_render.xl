@@ -47,24 +47,9 @@ export func xgeClear(c_uint iColor)
     __xl6_xgeClear(iColor)
 end
 
-extern "xgeCameraDefault" func __xl6_xgeCameraDefault(c_float fWidth, c_float fHeight) as point
-export func xgeCameraDefault(c_float fWidth, c_float fHeight) as point
-    return __xl6_xgeCameraDefault(fWidth, fHeight)
-end
-
-extern "xgeCameraPerspective" func __xl6_xgeCameraPerspective(c_float fWidth, c_float fHeight, c_float fFovY, c_float fNearZ, c_float fFarZ) as point
-export func xgeCameraPerspective(c_float fWidth, c_float fHeight, c_float fFovY, c_float fNearZ, c_float fFarZ) as point
-    return __xl6_xgeCameraPerspective(fWidth, fHeight, fFovY, fNearZ, fFarZ)
-end
-
 extern "xgeCameraSet" func __xl6_xgeCameraSet(point pCamera)
 export func xgeCameraSet(point pCamera)
     __xl6_xgeCameraSet(pCamera)
-end
-
-extern "xgeCameraGet" func __xl6_xgeCameraGet() as point
-export func xgeCameraGet() as point
-    return __xl6_xgeCameraGet()
 end
 
 extern "xgeRenderTargetWindow" func __xl6_xgeRenderTargetWindow(point pTarget) as c_int

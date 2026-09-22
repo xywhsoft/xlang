@@ -1,0 +1,55 @@
+import xhttp
+from xhttp import FormCodec, Query, QueryParam, QueryParams
+
+
+
+func main(...) as int
+    QueryParams params = QueryParams.parse(
+        "page=1&tag=c&tag=network&flag&empty=")
+    assert params.valid
+    assert params.count == 5
+    assert params.countName("tag") == 2
+    assert params.has("flag")
+    assert (params.get("tag") ?? "") == "c"
+    assert (params.get("tag", 1) ?? "") == "network"
+    assert params.get("missing") == null
+    assert params.at(3).name == "flag"
+    assert not params.at(3).hasValue
+    assert params.at(3).value == null
+    assert params.at(4).hasValue and (params.at(4).value ?? "missing") == ""
+
+    assert params.set("page", "2")
+    assert params.append("tag", "xrt")
+    assert params.appendName("present")
+    assert params.parseAppend("space=a+b")
+    assert (params.get("space") ?? "") == "a b"
+    assert params.remove("empty") == 1
+    assert params.sort()
+    assert params.compact()
+    assert params.nativeHandle() != null
+
+    int iterated = 0
+    for pair in params
+        QueryParam item = pair
+        assert item.name != ""
+        iterated += 1
+    end
+    assert iterated == params.count
+
+    QueryParams copy = params.clone()
+    assert copy.build() == params.build()
+    assert copy.setName("page")
+    assert copy.get("page") == null
+    assert (params.get("page") ?? "") == "2"
+
+    assert FormCodec.encode("a b+c") == "a+b%2Bc"
+    assert FormCodec.decodeText("a+b%2Bc") == "a b+c"
+    assert Query.count("?a=1&&b&c=") == 3
+    assert Query.valid("a=1&b=2")
+
+    QueryParams lenient = QueryParams.parse("bad=%GG", true)
+    assert (lenient.get("bad") ?? "") == "%GG"
+
+    println("xhttp Query package ok")
+    return 0
+end

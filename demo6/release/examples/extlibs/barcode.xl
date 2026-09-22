@@ -1,0 +1,30 @@
+import barcode
+
+
+
+func main(...) as int
+    // 商品条码：12 位 + 自动校验位
+    string code = "690123456789"
+    println("code:", code, "check digit:", barcode.checksumEan(code))
+    var modules = barcode.ean13(code)
+    println("modules:", modules.length)
+
+    // ASCII 渲染
+    println(barcode.ean13Ascii(code))
+
+    // 校验常见书号（ISBN-13 前缀 978）
+    string isbn = "9780306406157"
+    println("isbn valid:", barcode.validateEan(isbn))
+
+    // UPC-A
+    println(barcode.ean13Ascii(barcodeChecklessUpc()))
+    string upcSvg = barcode.upcASvg("12345678901", 50, 2)
+    println("upc svg bytes:", upcSvg.length > 0)
+
+    println("barcode example: PASS")
+    return 0
+end
+
+func barcodeChecklessUpc() as string
+    return "012345678905"
+end

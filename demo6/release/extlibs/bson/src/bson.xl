@@ -14,6 +14,7 @@ extern "xbson_to_hex" func _bson_to_hex(var data) as string
 extern "xbson_gen_oid" func _bson_gen_oid() as string
 extern "xbson_doc_length" func _bson_doc_len(var data) as int
 extern "xbson_oid_time" func _bson_oid_time(string hex24) as int
+extern "xl6_xrt_last_error_text" func __bson_error() as string
 
 // ═══════════════════════════════════════════
 // 核心 API
@@ -22,33 +23,57 @@ extern "xbson_oid_time" func _bson_oid_time(string hex24) as int
 // BSON 二进制 → var (table)
 // 自动映射: Document→table, Array→array, Date→xtime
 export func decode(var data) as var
-    return _bson_decode(data)
+    var result = _bson_decode(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
 end
 
 // 拼接 BSON 流 → array of table (多文档解码)
 export func decodeAll(var data) as var
-    return _bson_decode_all(data)
+    var result = _bson_decode_all(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
 end
 
 // 二进制安全拼接两个 BSON var (用于构造多文档流)
 export func concat(var a, var b) as var
-    return _bson_concat(a, b)
+    var result = _bson_concat(a, b)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
 end
 
 // var (table) → BSON 二进制
 // 自动推断: int→Int32/Int64, float→Double, xtime→Date, table→Document, array→Array
 export func encode(var doc) as var
-    return _bson_encode(doc)
+    var result = _bson_encode(doc)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
 end
 
 // 从文件加载 BSON → var
 export func load(string path) as var
-    return _bson_load(path)
+    var result = _bson_load(path)
+    if result == null then
+        throw FileError __bson_error()
+    end
+    return result
 end
 
 // var → BSON 并保存到文件，返回写入字节数
 export func save(string path, var doc) as int
-    return _bson_save(path, doc)
+    int written = _bson_save(path, doc)
+    if written <= 0 then
+        throw FileError __bson_error()
+    end
+    return written
 end
 
 // ═══════════════════════════════════════════
@@ -70,7 +95,11 @@ export func docLength(var data) as int
     return _bson_doc_len(data)
 end
 
-// 从 ObjectId 提取创建时间 → xtime (需 time() 转换)
-export func oidTime(string hex24) as int
-    return _bson_oid_time(hex24)
+// 从 ObjectId 提取创建时间，直接返回 xlang time。
+export func oidTime(string hex24) as time
+    int seconds = _bson_oid_time(hex24)
+    if seconds <= 0 then
+        throw ValueError __bson_error()
+    end
+    return time.fromUnix(seconds)
 end

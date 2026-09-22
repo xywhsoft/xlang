@@ -29,11 +29,11 @@ static bool __xrtPlistBinaryUInt(const uint8* pData, uint8 iSize,
 	uint64 iValue = 0u;
 	uint8 i;
 	if ( pData == NULL || pValue == NULL || iSize == 0u || iSize > 8u ) {
-		return FALSE;
+		return false;
 	}
 	for ( i = 0u; i < iSize; i++ ) { iValue = (iValue << 8u) | pData[i]; }
 	*pValue = iValue;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistBinaryLength(xrtplistbinaryreader* pReader,
@@ -45,49 +45,49 @@ static bool __xrtPlistBinaryLength(xrtplistbinaryreader* pReader,
 	if ( iInline != 0x0fu ) {
 		*pLength = iInline;
 		*pHeaderSize = 1u;
-		return TRUE;
+		return true;
 	}
-	if ( !__xrtPlistBinaryRange(pReader, iOffset + 1u, 1u) ) { return FALSE; }
+	if ( !__xrtPlistBinaryRange(pReader, iOffset + 1u, 1u) ) { return false; }
 	iMarker = pReader->pData[iOffset + 1u];
-	if ( (iMarker >> 4u) != 0x1u || (iMarker & 0x0fu) > 3u ) { return FALSE; }
+	if ( (iMarker >> 4u) != 0x1u || (iMarker & 0x0fu) > 3u ) { return false; }
 	iBytes = 1ull << (iMarker & 0x0fu);
 	if ( !__xrtPlistBinaryRange(pReader, iOffset + 2u, iBytes) ||
 		!__xrtPlistBinaryUInt(pReader->pData + iOffset + 2u,
-			(uint8)iBytes, &iValue) ) { return FALSE; }
+			(uint8)iBytes, &iValue) ) { return false; }
 	*pLength = iValue;
 	*pHeaderSize = 2u + iBytes;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistBinaryUtf16(const uint8* pData, uint64 iUnits,
 	uint8** ppUtf8, uint64* pUtf8Size)
 {
 	uint16* pUtf16;
-	u8str pConverted;
+	str pConverted;
 	size_t iConverted = 0u;
 	uint64 i;
-	if ( iUnits > (SIZE_MAX / sizeof(uint16)) - 1u ) { return FALSE; }
+	if ( iUnits > (SIZE_MAX / sizeof(uint16)) - 1u ) { return false; }
 	pUtf16 = (uint16*)xrtMalloc(((size_t)iUnits + 1u) * sizeof(uint16));
-	if ( pUtf16 == NULL ) { return FALSE; }
+	if ( pUtf16 == NULL ) { return false; }
 	for ( i = 0u; i < iUnits; i++ ) {
 		uint16 c = (uint16)(((uint16)pData[i * 2u] << 8u) | pData[i * 2u + 1u]);
 		if ( c >= 0xd800u && c <= 0xdbffu ) {
-			if ( i + 1u >= iUnits ) { xrtFree(pUtf16); return FALSE; }
+			if ( i + 1u >= iUnits ) { xrtFree(pUtf16); return false; }
 			if ( pData[(i + 1u) * 2u] < 0xdcu ||
-				pData[(i + 1u) * 2u] > 0xdfu ) { xrtFree(pUtf16); return FALSE; }
+				pData[(i + 1u) * 2u] > 0xdfu ) { xrtFree(pUtf16); return false; }
 		} else if ( c >= 0xdc00u && c <= 0xdfffu ) {
 			if ( i == 0u || pUtf16[i - 1u] < 0xd800u ||
-				pUtf16[i - 1u] > 0xdbffu ) { xrtFree(pUtf16); return FALSE; }
+				pUtf16[i - 1u] > 0xdbffu ) { xrtFree(pUtf16); return false; }
 		}
 		pUtf16[i] = c;
 	}
 	pUtf16[iUnits] = 0u;
-	pConverted = xrtUTF16to8(pUtf16, (size_t)iUnits, &iConverted);
+	pConverted = xrtUtf16To8(pUtf16, &iConverted);
 	xrtFree(pUtf16);
-	if ( pConverted == NULL ) { return FALSE; }
+	if ( pConverted == NULL ) { return false; }
 	*ppUtf8 = (uint8*)pConverted;
 	*pUtf8Size = (uint64)iConverted;
-	return TRUE;
+	return true;
 }
 
 static xrtplistnode* __xrtPlistBinaryObject(xrtplistbinaryreader* pReader,
@@ -167,17 +167,22 @@ static xrtplistnode* __xrtPlistBinaryObject(xrtplistbinaryreader* pReader,
 		}
 	} else if ( iKind == 0x3u && iInfo == 0x3u ) {
 		double fSeconds;
-		xtime tEpoch = xrtDateTimeSerial(2001, 1, 1, 0, 0, 0);
+		long double fMicroseconds;
+		xtime tEpoch;
+		if ( !__xrtPlistAppleEpoch(&tEpoch) ) { goto invalid; }
 		if ( !__xrtPlistBinaryRange(pReader, iOffset + 1u, 8u) ||
 			!__xrtPlistBinaryUInt(pReader->pData + iOffset + 1u, 8u, &iRaw) ) {
 			goto invalid;
 		}
 		memcpy(&fSeconds, &iRaw, sizeof(fSeconds));
+		/* 外部格式以秒为单位，换算后再检查 xtime 的微秒范围。 */
+		fMicroseconds = (long double)tEpoch +
+			((long double)fSeconds * (long double)XRT_TIME_SECOND);
 		if ( !isfinite(fSeconds) ||
-			fSeconds < (double)INT64_MIN - (double)tEpoch ||
-			fSeconds > (double)INT64_MAX - (double)tEpoch ) { goto invalid; }
+			fMicroseconds < (long double)INT64_MIN ||
+			fMicroseconds > (long double)INT64_MAX ) { goto invalid; }
 		pNode = xrtPlistCreateDate(pReader->pDocument,
-			tEpoch + (xtime)llround(fSeconds));
+			(xtime)llround((double)fMicroseconds));
 	} else if ( iKind == 0x4u || iKind == 0x5u || iKind == 0x6u ) {
 		uint8* pUtf8 = NULL;
 		uint64 iUtf8Size = 0u;

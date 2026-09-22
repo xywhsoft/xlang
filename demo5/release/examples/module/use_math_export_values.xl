@@ -1,5 +1,0 @@
-import math_export_values
-
-func 入口() as int
-	return math_export_values.基数 + math_export_values.步长
-end

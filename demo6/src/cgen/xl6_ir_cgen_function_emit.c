@@ -22,7 +22,7 @@ static int xl6IrCgenEmitModuleFiniBoundary(XL6_Output* out, const XL6_IrModule* 
 static int xl6IrCgenEmitFunction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrFunction* function, int initializeNet,
-    XL6_DiagList* diags)
+    const XL6_IrCgenOptions* options, XL6_DiagList* diags)
 {
     size_t i;
     const XL6_IrClosureTarget* closure = (function->kind == XL6_IR_FUNCTION_MODULE_INIT ||
@@ -153,6 +153,7 @@ static int xl6IrCgenEmitFunction(
     for ( i = function->firstBlock; i < function->firstBlock + function->blockCount; ++i ) {
         const XL6_IrBlock* block = &module->blocks[i];
         size_t j;
+        int lastDebugLine = 0;
         if ( block->instructionCount == 0 && (XL6_IrBlockId)(i + 1) != function->entryBlock &&
              !xl6IrCgenBlockReferenced(module, function, (XL6_IrBlockId)(i + 1)) ) continue;
         /* A label must precede a statement in C11. The first IR operation
@@ -160,6 +161,13 @@ static int xl6IrCgenEmitFunction(
         xl6OutputPrintf(out, "b%lu:;\n", (unsigned long)(i + 1));
         for ( j = block->firstInstruction; j < block->firstInstruction + block->instructionCount; ++j ) {
             const XL6_IrInstruction* instruction = &module->instructions[j];
+            if ( options != NULL && options->debugMode &&
+                 instruction->sourceSpan.line > 0 &&
+                 instruction->sourceSpan.line != lastDebugLine ) {
+                if ( !xl6IrCgenEmitDebugProbe(
+                        out, function, instruction, options) ) return 0;
+                lastDebugLine = instruction->sourceSpan.line;
+            }
             if ( !xl6IrCgenEmitInstruction(
                     out, module, function, instruction, closure, j, diags) ) return 0;
         }

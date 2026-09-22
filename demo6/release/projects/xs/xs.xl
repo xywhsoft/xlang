@@ -50,12 +50,12 @@ func xsRun(
     end
 
     channel<var> events = channel::<var>(32)
-    SignalHandle intHandle
-    SignalHandle termHandle
-    SignalHandle hupHandle
-    SignalHandle breakHandle
-    SignalHandle closeHandle
-    SignalHandle shutdownHandle
+    SignalHandle intHandle = SignalHandle(null)
+    SignalHandle termHandle = SignalHandle(null)
+    SignalHandle hupHandle = SignalHandle(null)
+    SignalHandle breakHandle = SignalHandle(null)
+    SignalHandle closeHandle = SignalHandle(null)
+    SignalHandle shutdownHandle = SignalHandle(null)
     if signal.supported(signal.INT) then intHandle = signal.sendTo(events, signal.INT) end
     if signal.supported(signal.TERM) then termHandle = signal.sendTo(events, signal.TERM) end
     if signal.supported(signal.HUP) then hupHandle = signal.sendTo(events, signal.HUP) end
@@ -173,5 +173,11 @@ func main(...) as int
         println("xs config ok: " + configPath)
         return 0
     end
-    return xsRun(configPath, includeDir, json.parse(loaded.json), printStatus, durationMs)
+    return xsRun(
+        configPath,
+        includeDir,
+        json.parse(string(loaded.json)),
+        printStatus,
+        durationMs
+    )
 end

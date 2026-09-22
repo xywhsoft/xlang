@@ -11040,6 +11040,25 @@ static int xl6IrLowerBeginFunction(
     function->kind = kind;
     function->symbol = node->symbol;
     function->declaration = declaration;
+    if ( kind == XL6_IR_FUNCTION_MODULE_INIT ||
+         kind == XL6_IR_FUNCTION_MODULE_FINI ) {
+        function->debugName = "<top-level>";
+    } else if ( node->sourceKind == XL6_AST_ANON_FUNC ) {
+        function->debugName = "<anonymous>";
+    } else if ( node->sourceKind == XL6_AST_CREATE ) {
+        function->debugName = "<create>";
+    } else if ( node->childCount != 0 ) {
+        const XL6_IrNode* name = xl6IrNodeGet(
+            module, module->children[node->firstChild]);
+        function->debugName = name != NULL && name->text != NULL &&
+                name->text[0] != '\0'
+            ? name->text
+            : (kind == XL6_IR_FUNCTION_CLASS_FINI
+                ? "<class-finalizer>" : "<function>");
+    } else {
+        function->debugName = kind == XL6_IR_FUNCTION_CLASS_FINI
+            ? "<class-finalizer>" : "<function>";
+    }
     function->errorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
     function->firstBlock = module->blockCount;
     function->firstInstruction = module->instructionCount;
@@ -30850,6 +30869,17 @@ static int xl6IrLowerBeginNamedAdapterFunction(
     function->kind = XL6_IR_FUNCTION_NAMED_ADAPTER;
     function->symbol = closure->targetSymbol;
     function->declaration = closure->declaration;
+    if ( declaration->childCount != 0 ) {
+        const XL6_IrNode* name = xl6IrNodeGet(
+            module, module->children[declaration->firstChild]);
+        function->debugName = name != NULL && name->text != NULL &&
+                name->text[0] != '\0'
+            ? name->text : "<callable-adapter>";
+    } else {
+        function->debugName = declaration->text != NULL &&
+                declaration->text[0] != '\0'
+            ? declaration->text : "<callable-adapter>";
+    }
     function->returnType = signature->callableResultType;
     /* The adapter owns argument evaluation and cleanup, independently of
      * whether the eventual target raises. Closure invocation already has an

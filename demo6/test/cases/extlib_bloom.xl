@@ -110,6 +110,15 @@ func main(...) as int
     end
     assert caught, "deserialize invalid must throw"
 
+    caught = false
+    try
+        string corrupt = "0000" + string.slice(blob, 4, string.len(blob) - 4)
+        bloom.deserialize(corrupt)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "deserialize corrupt header must throw"
+
     // ─── merge (union) ───
     auto m1 = bloom.create(1000)
     auto m2 = bloom.create(1000)
@@ -120,6 +129,7 @@ func main(...) as int
     assert m1.contains("right"), "merge gains right"
     auto big = bloom.create(100000)
     assert not m1.merge(big), "merge incompatible dimensions"
+    assert m1.contains("left") and m1.contains("right"), "failed merge keeps original state"
 
     // ─── counting bloom: estimated / batch / serialize / merge ───
     auto ccf = bloom.createCounting(500)
@@ -138,6 +148,24 @@ func main(...) as int
     assert not crf.contains("absent"), "counting deserialized not contains absent"
     crf.remove("k1")
     assert not crf.contains("k1"), "counting deserialized remove works"
+
+    auto repeated = bloom.createCounting(200)
+    repeated.add("same")
+    repeated.add("same")
+    assert repeated.count == 2 and repeated.contains("same"), "counting bloom keeps repeated adds"
+    repeated.remove("same")
+    assert repeated.count == 1 and repeated.contains("same"), "first remove keeps remaining count"
+    repeated.remove("same")
+    assert repeated.count == 0 and not repeated.contains("same"), "second remove clears repeated item"
+
+    caught = false
+    try
+        string corruptCounting = "0000" + string.slice(cblob, 4, string.len(cblob) - 4)
+        bloom.deserializeCounting(corruptCounting)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "counting deserialize corrupt header must throw"
 
     auto cm1 = bloom.createCounting(500)
     auto cm2 = bloom.createCounting(500)

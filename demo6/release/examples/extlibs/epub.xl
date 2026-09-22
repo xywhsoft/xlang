@@ -1,19 +1,34 @@
 import epub
+import md4c
+
+
 
 func main(...) as int
-    // EPUB e-book format helpers
+    // 用 markdown 写两章内容
+    string ch1Text = "# 引言\n\n本书描述 xlang 扩展库生态的建设过程。\n\n## 目标\n\n让协议逻辑可离线验证。"
+    string ch2Text = "# 架构\n\n编解码在 C 层，连接走标准库 tcp/udp。\n\n字段与帧格式以 hex 跨 ABI。"
 
-    // Version
-    println("EPUB 3 = " + epub.version(3))
+    // markdown 转 XHTML（md4c 扩展库）
+    string ch1Html = md4c.html(ch1Text)
+    println("markdown chapter preview:")
+    println(string.left(ch1Html, 120))
 
-    // MIME types
-    println("MIME 0 = " + epub.mimetype(0))
+    // 生成 EPUB（这里直接用内置文本格式）
+    var meta = {"title": "xlang 生态手记", "author": "xlang 社区", "language": "zh"}
+    var chapters = [
+        {"title": "引言", "text": ch1Text},
+        {"title": "架构", "text": ch2Text}
+    ]
+    dir.createAll("examples_out/extlibs")
+    string path = "examples_out/extlibs/notes.epub"
+    int size = epub.build(path, meta, chapters)
+    println("epub written:", path, size, "bytes")
 
-    // Metadata
-    println("Field 0 = " + epub.metadataField(0))
-
-    // ISBN validation
-    println("ISBN 9780306406157 valid = " + string(epub.validateIsbn("9780306406157")))
+    // 验证内容
+    string opf = epub.readEntry(path, "OEBPS/content.opf")
+    println("opf title present:", opf.contains("xlang 生态手记"))
+    string nav = epub.readEntry(path, "OEBPS/nav.xhtml")
+    println("nav has both chapters:", nav.contains("引言") and nav.contains("架构"))
 
     println("epub example: PASS")
     return 0

@@ -1,0 +1,52 @@
+extern "xb_ean13" func __b_ean13(string digits) as var
+extern "xb_upc_a" func __b_upc_a(string digits) as var
+extern "xb_checksum_ean" func __b_checksum_ean(string digits) as int
+extern "xb_validate_ean" func __b_validate_ean(string code) as bool
+extern "xb_svg" func __b_svg(string digits, int isUpcA, int height, int scale) as string
+extern "xb_ascii" func __b_ascii(string digits, int isUpcA) as string
+
+
+
+// ean13 生成 EAN-13 模块位串（0/1 数组，共 95 位）
+// 输入 12 位时自动补校验位；输入 13 位时校验失败抛 ValueError
+export func ean13(string digits) as var
+    var r = __b_ean13(digits)
+    if r == null then
+        throw ValueError "barcode: ean13 needs 12 digits or a valid 13-digit code"
+    end
+    return r
+end
+
+// upcA 生成 UPC-A 条码（实现为前缀 0 的 EAN-13）
+export func upcA(string digits) as var
+    var r = __b_upc_a(digits)
+    if r == null then
+        throw ValueError "barcode: upcA needs 11 digits or a valid 12-digit code"
+    end
+    return r
+end
+
+// checksumEan 计算给定数字串的 EAN 校验位；非法输入返回 -1
+export func checksumEan(string digits) as int
+    return __b_checksum_ean(digits)
+end
+
+// validateEan 校验 13 位 EAN 码
+export func validateEan(string code) as bool
+    return __b_validate_ean(code)
+end
+
+// ean13Svg 生成矢量条形图
+export func ean13Svg(string digits, int height, int scale) as string
+    return __b_svg(digits, 0, height, scale)
+end
+
+// upcASvg 生成 UPC-A 矢量条形图
+export func upcASvg(string digits, int height, int scale) as string
+    return __b_svg(digits, 1, height, scale)
+end
+
+// ean13Ascii 用明暗字符渲染条码
+export func ean13Ascii(string digits) as string
+    return __b_ascii(digits, 0)
+end

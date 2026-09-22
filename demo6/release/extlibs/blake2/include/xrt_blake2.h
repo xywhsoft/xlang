@@ -19,7 +19,8 @@ typedef enum {
 	XRT_BLAKE2_ERROR_MEMORY = 2,
 	XRT_BLAKE2_ERROR_IO = 3,
 	XRT_BLAKE2_ERROR_LIMIT = 4,
-	XRT_BLAKE2_ERROR_STATE = 5
+	XRT_BLAKE2_ERROR_STATE = 5,
+	XRT_BLAKE2_ERROR_CANCELLED = 6
 } xrtblake2status;
 
 typedef struct {
@@ -39,42 +40,44 @@ typedef struct {
 typedef struct xrtblake2bhasher xrtblake2bhasher;
 typedef struct xrtblake2shasher xrtblake2shasher;
 
-XXAPI void xrtBlake2OptionsInit(xrtblake2options* pOptions);
-XXAPI void xrtBlake2ErrorInit(xrtblake2error* pError);
+XRT_API void xrtBlake2OptionsInit(xrtblake2options* pOptions);
+XRT_API void xrtBlake2ErrorInit(xrtblake2error* pError);
 
 /* BLAKE2b 流式哈希器 */
-XXAPI xrtblake2bhasher* xrtBlake2bHasherCreate(const xrtblake2options* pOptions,
+XRT_API xrtblake2bhasher* xrtBlake2bHasherCreate(const xrtblake2options* pOptions,
 	size_t iOutLen, const void* pKey, size_t iKeyLen);
-XXAPI bool xrtBlake2bHasherUpdate(xrtblake2bhasher* pHasher, const void* pData, size_t iSize);
-XXAPI bool xrtBlake2bHasherDigest(const xrtblake2bhasher* pHasher, uint8* pOut, size_t iOutLen);
-XXAPI bool xrtBlake2bHasherReset(xrtblake2bhasher* pHasher);
-XXAPI uint64 xrtBlake2bHasherInputBytes(const xrtblake2bhasher* pHasher);
-XXAPI xrtblake2bhasher* xrtBlake2bHasherClone(const xrtblake2bhasher* pSrc);
-XXAPI const xrtblake2error* xrtBlake2bHasherError(const xrtblake2bhasher* pHasher);
-XXAPI void xrtBlake2bHasherDestroy(xrtblake2bhasher* pHasher);
+XRT_API bool xrtBlake2bHasherUpdate(xrtblake2bhasher* pHasher, const void* pData, size_t iSize);
+XRT_API bool xrtBlake2bHasherDigest(const xrtblake2bhasher* pHasher, uint8* pOut, size_t iOutLen);
+XRT_API bool xrtBlake2bHasherReset(xrtblake2bhasher* pHasher);
+XRT_API uint64 xrtBlake2bHasherInputBytes(const xrtblake2bhasher* pHasher);
+XRT_API xrtblake2bhasher* xrtBlake2bHasherClone(const xrtblake2bhasher* pSrc);
+XRT_API const xrtblake2error* xrtBlake2bHasherError(const xrtblake2bhasher* pHasher);
+XRT_API void xrtBlake2bHasherDestroy(xrtblake2bhasher* pHasher);
 
 /* BLAKE2s 流式哈希器 */
-XXAPI xrtblake2shasher* xrtBlake2sHasherCreate(const xrtblake2options* pOptions,
+XRT_API xrtblake2shasher* xrtBlake2sHasherCreate(const xrtblake2options* pOptions,
 	size_t iOutLen, const void* pKey, size_t iKeyLen);
-XXAPI bool xrtBlake2sHasherUpdate(xrtblake2shasher* pHasher, const void* pData, size_t iSize);
-XXAPI bool xrtBlake2sHasherDigest(const xrtblake2shasher* pHasher, uint8* pOut, size_t iOutLen);
-XXAPI bool xrtBlake2sHasherReset(xrtblake2shasher* pHasher);
-XXAPI uint64 xrtBlake2sHasherInputBytes(const xrtblake2shasher* pHasher);
-XXAPI xrtblake2shasher* xrtBlake2sHasherClone(const xrtblake2shasher* pSrc);
-XXAPI const xrtblake2error* xrtBlake2sHasherError(const xrtblake2shasher* pHasher);
-XXAPI void xrtBlake2sHasherDestroy(xrtblake2shasher* pHasher);
+XRT_API bool xrtBlake2sHasherUpdate(xrtblake2shasher* pHasher, const void* pData, size_t iSize);
+XRT_API bool xrtBlake2sHasherDigest(const xrtblake2shasher* pHasher, uint8* pOut, size_t iOutLen);
+XRT_API bool xrtBlake2sHasherReset(xrtblake2shasher* pHasher);
+XRT_API uint64 xrtBlake2sHasherInputBytes(const xrtblake2shasher* pHasher);
+XRT_API xrtblake2shasher* xrtBlake2sHasherClone(const xrtblake2shasher* pSrc);
+XRT_API const xrtblake2error* xrtBlake2sHasherError(const xrtblake2shasher* pHasher);
+XRT_API void xrtBlake2sHasherDestroy(xrtblake2shasher* pHasher);
 
 /* 一次性哈希 */
-XXAPI bool xrtBlake2bHash(const void* pData, size_t iSize, size_t iOutLen,
+XRT_API bool xrtBlake2bHash(const void* pData, size_t iSize, size_t iOutLen,
 	const void* pKey, size_t iKeyLen, uint8* pOut, xrtblake2error* pError);
-XXAPI bool xrtBlake2sHash(const void* pData, size_t iSize, size_t iOutLen,
+XRT_API bool xrtBlake2sHash(const void* pData, size_t iSize, size_t iOutLen,
 	const void* pKey, size_t iKeyLen, uint8* pOut, xrtblake2error* pError);
 
 /* 文件流式哈希 */
-XXAPI bool xrtBlake2bFile(xreader pReader, const xrtresourcelimits* pLimits,
-	size_t iOutLen, uint8* pOut, xrtblake2error* pError);
-XXAPI bool xrtBlake2sFile(xreader pReader, const xrtresourcelimits* pLimits,
-	size_t iOutLen, uint8* pOut, xrtblake2error* pError);
+XRT_API bool xrtBlake2bFile(xreader* pReader, const xrtresourcelimits* pLimits,
+	size_t iOutLen, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
+	xrtblake2error* pError);
+XRT_API bool xrtBlake2sFile(xreader* pReader, const xrtresourcelimits* pLimits,
+	size_t iOutLen, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
+	xrtblake2error* pError);
 
 #ifdef __cplusplus
 }

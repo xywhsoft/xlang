@@ -13,7 +13,7 @@ typedef struct {
 } xrtplistbinaryobject;
 
 typedef struct {
-	xbuffer pOutput;
+	xbuffer* pOutput;
 	xrtplistcontext Context;
 	xrtplistbinaryobject* pObjects;
 	uint64 iObjectCount;
@@ -25,17 +25,17 @@ static bool __xrtPlistBinaryAppend(xrtplistbinarywriter* pWriter,
 	const void* pData, uint64 iSize)
 {
 	uint64 iLimit = pWriter->Context.Options.tLimits.iMaxOutputBytes;
-	if ( iSize == 0u ) { return TRUE; }
-	if ( pData == NULL || iSize > UINT32_MAX ||
+	if ( iSize == 0u ) { return true; }
+	if ( pData == NULL ||
 		(iLimit != 0u && (iSize > iLimit ||
-		 (uint64)pWriter->pOutput->Length > iLimit - iSize)) ||
-		!xrtBufferAppend(pWriter->pOutput, (ptr)pData, (uint32)iSize,
-			XBUF_BINARY) ) {
+		 (uint64)pWriter->pOutput->Size > iLimit - iSize)) ||
+		!xrtBufferAppend(pWriter->pOutput,
+			(xbytesview){ (cbytes)pData, (size_t)iSize }) ) {
 		__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_LIMIT,
 			0u, 0u, 0u, "binary plist output exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistBinaryAppendUInt(xrtplistbinarywriter* pWriter,
@@ -127,19 +127,19 @@ static bool __xrtPlistBinaryGrowObjects(xrtplistbinarywriter* pWriter)
 {
 	xrtplistbinaryobject* pItems;
 	uint64 iCapacity;
-	if ( pWriter->iObjectCount < pWriter->iObjectCapacity ) { return TRUE; }
+	if ( pWriter->iObjectCount < pWriter->iObjectCapacity ) { return true; }
 	iCapacity = pWriter->iObjectCapacity != 0u ?
 		pWriter->iObjectCapacity * 2u : 32u;
-	if ( iCapacity > SIZE_MAX / sizeof(xrtplistbinaryobject) ) { return FALSE; }
+	if ( iCapacity > SIZE_MAX / sizeof(xrtplistbinaryobject) ) { return false; }
 	pItems = (xrtplistbinaryobject*)xrtRealloc(pWriter->pObjects,
 		(size_t)iCapacity * sizeof(xrtplistbinaryobject));
-	if ( pItems == NULL ) { return FALSE; }
+	if ( pItems == NULL ) { return false; }
 	memset(pItems + pWriter->iObjectCapacity, 0,
 		(size_t)(iCapacity - pWriter->iObjectCapacity) *
 		sizeof(xrtplistbinaryobject));
 	pWriter->pObjects = pItems;
 	pWriter->iObjectCapacity = iCapacity;
-	return TRUE;
+	return true;
 }
 
 static int64 __xrtPlistBinaryFindNode(const xrtplistbinarywriter* pWriter,
@@ -158,22 +158,22 @@ static bool __xrtPlistBinaryAddKey(xrtplistbinarywriter* pWriter,
 {
 	xrtplistbinaryobject* pItem;
 	if ( !__xrtPlistLimitItem(&pWriter->Context, iKeySize, 0u) ||
-		!__xrtPlistBinaryGrowObjects(pWriter) ) { return FALSE; }
+		!__xrtPlistBinaryGrowObjects(pWriter) ) { return false; }
 	pWriter->Context.iNodes++;
 	if ( pWriter->Context.Options.tLimits.iMaxNodes != 0u &&
 		pWriter->Context.iNodes >
 		pWriter->Context.Options.tLimits.iMaxNodes ) {
 		__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_LIMIT,
 			0u, 0u, 0u, "binary plist object count exceeds the configured limit");
-		return FALSE;
+		return false;
 	}
 	*pObject = pWriter->iObjectCount++;
 	pItem = &pWriter->pObjects[*pObject];
-	pItem->bKey = TRUE;
+	pItem->bKey = true;
 	pItem->pKey = pKey;
 	pItem->iKeySize = iKeySize;
 	pItem->iState = 2u;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistBinaryAddNode(xrtplistbinarywriter* pWriter,
@@ -187,13 +187,13 @@ static bool __xrtPlistBinaryAddNode(xrtplistbinarywriter* pWriter,
 		if ( pWriter->pObjects[iExisting].iState == 1u ) {
 			__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_FORMAT,
 				0u, 0u, 0u, "plist value graph contains a cycle");
-			return FALSE;
+			return false;
 		}
 		*pObject = (uint64)iExisting;
-		return TRUE;
+		return true;
 	}
 	if ( pNode == NULL || !__xrtPlistLimitNode(&pWriter->Context,
-		iDepth, 0u) || !__xrtPlistBinaryGrowObjects(pWriter) ) { return FALSE; }
+		iDepth, 0u) || !__xrtPlistBinaryGrowObjects(pWriter) ) { return false; }
 	iIndex = pWriter->iObjectCount++;
 	pWriter->pObjects[iIndex].pNode = pNode;
 	pWriter->pObjects[iIndex].iState = 1u;
@@ -201,31 +201,31 @@ static bool __xrtPlistBinaryAddNode(xrtplistbinarywriter* pWriter,
 	if ( pNode->iType == XRT_PLIST_ARRAY ) {
 		iRefs = pNode->Value.Array.iCount;
 		if ( pWriter->Context.Options.tLimits.iMaxEntries != 0u &&
-			iRefs > pWriter->Context.Options.tLimits.iMaxEntries ) { return FALSE; }
+			iRefs > pWriter->Context.Options.tLimits.iMaxEntries ) { return false; }
 		if ( iRefs != 0u ) {
 			pWriter->pObjects[iIndex].pReferences =
 				(uint64*)xrtMalloc(sizeof(uint64) * (size_t)iRefs);
-			if ( pWriter->pObjects[iIndex].pReferences == NULL ) { return FALSE; }
+			if ( pWriter->pObjects[iIndex].pReferences == NULL ) { return false; }
 		}
 		pWriter->pObjects[iIndex].iReferenceCount = iRefs;
 		for ( i = 0u; i < iRefs; i++ ) {
 			if ( !__xrtPlistBinaryAddNode(pWriter,
 				pNode->Value.Array.pItems[i], iDepth + 1u,
-				&pWriter->pObjects[iIndex].pReferences[i]) ) { return FALSE; }
+				&pWriter->pObjects[iIndex].pReferences[i]) ) { return false; }
 		}
 	} else if ( pNode->iType == XRT_PLIST_DICT ) {
 		uint32* pOrder;
 		iRefs = pNode->Value.Dict.iCount;
 		if ( pWriter->Context.Options.tLimits.iMaxEntries != 0u &&
-			iRefs > pWriter->Context.Options.tLimits.iMaxEntries ) { return FALSE; }
+			iRefs > pWriter->Context.Options.tLimits.iMaxEntries ) { return false; }
 		pOrder = __xrtPlistBinaryDictOrder(pNode,
 			pWriter->Context.Options.bSortKeys);
-		if ( iRefs != 0u && pOrder == NULL ) { return FALSE; }
+		if ( iRefs != 0u && pOrder == NULL ) { return false; }
 		if ( iRefs != 0u ) {
 			pWriter->pObjects[iIndex].pReferences =
 				(uint64*)xrtMalloc(sizeof(uint64) * (size_t)iRefs * 2u);
 			if ( pWriter->pObjects[iIndex].pReferences == NULL ) {
-				xrtFree(pOrder); return FALSE;
+				xrtFree(pOrder); return false;
 			}
 		}
 		pWriter->pObjects[iIndex].iReferenceCount = iRefs * 2u;
@@ -237,46 +237,47 @@ static bool __xrtPlistBinaryAddNode(xrtplistbinarywriter* pWriter,
 				!__xrtPlistBinaryAddNode(pWriter, pItem->pValue,
 					iDepth + 1u,
 					&pWriter->pObjects[iIndex].pReferences[iRefs + i]) ) {
-				xrtFree(pOrder); return FALSE;
+				xrtFree(pOrder); return false;
 			}
 		}
 		xrtFree(pOrder);
 	}
 	pWriter->pObjects[iIndex].iState = 2u;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistBinaryString(xrtplistbinarywriter* pWriter,
 	const uint8* pData, uint64 iSize)
 {
 	uint64 i;
-	bool bAscii = TRUE;
-	u16str pUtf16;
+	bool bAscii = true;
+	uint16* pUtf16;
 	size_t iUnits = 0u;
 	if ( !__xrtPlistLimitItem(&pWriter->Context, iSize, 0u) ||
 		iSize > SIZE_MAX || (iSize != 0u &&
-		!xrtIsUTF8((str)pData, (size_t)iSize)) ) { return FALSE; }
+		!xrtUtf8Valid((xstrview){ (cstr)pData, (size_t)iSize }, NULL)) ) { return false; }
 	for ( i = 0u; i < iSize; i++ ) {
-		if ( pData[i] > 0x7fu ) { bAscii = FALSE; break; }
+		if ( pData[i] > 0x7fu ) { bAscii = false; break; }
 	}
 	if ( bAscii ) {
 		return __xrtPlistBinaryHeader(pWriter, 0x5u, iSize) &&
 			__xrtPlistBinaryAppend(pWriter, pData, iSize);
 	}
-	pUtf16 = xrtUTF8to16((u8str)pData, (size_t)iSize, &iUnits);
+	pUtf16 = xrtUtf8ViewTo16((xstrview){ (cstr)pData, (size_t)iSize },
+		XUTF_STRICT, &iUnits);
 	if ( pUtf16 == NULL || !__xrtPlistBinaryHeader(pWriter, 0x6u, iUnits) ) {
-		xrtFree(pUtf16); return FALSE;
+		xrtFree(pUtf16); return false;
 	}
 	for ( i = 0u; i < iUnits; i++ ) {
 		uint8 sBytes[2] = {
 			(uint8)(pUtf16[i] >> 8u), (uint8)(pUtf16[i] & 0xffu)
 		};
 		if ( !__xrtPlistBinaryAppend(pWriter, sBytes, 2u) ) {
-			xrtFree(pUtf16); return FALSE;
+			xrtFree(pUtf16); return false;
 		}
 	}
 	xrtFree(pUtf16);
-	return TRUE;
+	return true;
 }
 
 static bool __xrtPlistBinaryWriteObject(xrtplistbinarywriter* pWriter,
@@ -325,8 +326,12 @@ static bool __xrtPlistBinaryWriteObject(xrtplistbinarywriter* pWriter,
 			__xrtPlistBinaryAppend(pWriter, pNode->Value.Bytes.pData,
 				pNode->Value.Bytes.iSize);
 	case XRT_PLIST_DATE: {
-		double fSeconds = (double)(pNode->Value.tValue -
-			xrtDateTimeSerial(2001, 1, 1, 0, 0, 0));
+		xtime tEpoch;
+		double fSeconds;
+		if ( !__xrtPlistAppleEpoch(&tEpoch) ) { return false; }
+		/* binary plist 日期使用 2001-01-01 起的秒数，XRT 时间单位为微秒。 */
+		fSeconds = (double)(((long double)pNode->Value.tValue -
+			(long double)tEpoch) / (long double)XRT_TIME_SECOND);
 		iMarker = 0x33u;
 		memcpy(&iBits, &fSeconds, sizeof(iBits));
 		return __xrtPlistBinaryAppend(pWriter, &iMarker, 1u) &&
@@ -341,28 +346,28 @@ static bool __xrtPlistBinaryWriteObject(xrtplistbinarywriter* pWriter,
 			__xrtPlistBinaryAppendUInt(pWriter, pNode->Value.iUid, iSize);
 	case XRT_PLIST_ARRAY:
 		if ( !__xrtPlistBinaryHeader(pWriter, 0xau,
-			pNode->Value.Array.iCount) ) { return FALSE; }
+			pNode->Value.Array.iCount) ) { return false; }
 		for ( i = 0u; i < pObject->iReferenceCount; i++ ) {
 			if ( !__xrtPlistBinaryAppendUInt(pWriter,
-				pObject->pReferences[i], pWriter->iReferenceSize) ) { return FALSE; }
+				pObject->pReferences[i], pWriter->iReferenceSize) ) { return false; }
 		}
-		return TRUE;
+		return true;
 	case XRT_PLIST_DICT:
 		if ( !__xrtPlistBinaryHeader(pWriter, 0xdu,
-			pNode->Value.Dict.iCount) ) { return FALSE; }
+			pNode->Value.Dict.iCount) ) { return false; }
 		for ( i = 0u; i < pObject->iReferenceCount; i++ ) {
 			if ( !__xrtPlistBinaryAppendUInt(pWriter,
-				pObject->pReferences[i], pWriter->iReferenceSize) ) { return FALSE; }
+				pObject->pReferences[i], pWriter->iReferenceSize) ) { return false; }
 		}
-		return TRUE;
+		return true;
 	default:
 		__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_TYPE,
 			0u, 0u, 0u, "unsupported plist node type");
-		return FALSE;
+		return false;
 	}
 }
 
-xbuffer __xrtPlistWriteBinary(const xrtplistdocument* pDocument,
+xbuffer* __xrtPlistWriteBinary(const xrtplistdocument* pDocument,
 	const xrtplistoptions* pOptions, xrtplisterror* pError)
 {
 	xrtplistbinarywriter tWriter;
@@ -375,8 +380,9 @@ xbuffer __xrtPlistWriteBinary(const xrtplistdocument* pDocument,
 	memset(&tWriter, 0, sizeof(tWriter));
 	tWriter.Context.Options = *pOptions;
 	tWriter.Context.Error = pError;
-	tWriter.pOutput = xrtBufferCreate(1024u);
-	if ( tWriter.pOutput == NULL || !__xrtPlistBinaryAddNode(&tWriter,
+	tWriter.pOutput = xrtBufferCreate();
+	if ( tWriter.pOutput == NULL || !xrtBufferReserve(tWriter.pOutput, 1024u) ||
+		!__xrtPlistBinaryAddNode(&tWriter,
 		pDocument->pRoot, 1u, &iRoot) || tWriter.iObjectCount == 0u ) {
 		goto error;
 	}
@@ -386,12 +392,12 @@ xbuffer __xrtPlistWriteBinary(const xrtplistdocument* pDocument,
 	if ( pOffsets == NULL ||
 		!__xrtPlistBinaryAppend(&tWriter, "bplist00", 8u) ) { goto error; }
 	for ( i = 0u; i < tWriter.iObjectCount; i++ ) {
-		pOffsets[i] = tWriter.pOutput->Length;
+		pOffsets[i] = tWriter.pOutput->Size;
 		if ( !__xrtPlistBinaryWriteObject(&tWriter, &tWriter.pObjects[i]) ) {
 			goto error;
 		}
 	}
-	iOffsetTable = tWriter.pOutput->Length;
+	iOffsetTable = tWriter.pOutput->Size;
 	iOffsetSize = __xrtPlistBinarySize(iOffsetTable);
 	for ( i = 0u; i < tWriter.iObjectCount; i++ ) {
 		if ( !__xrtPlistBinaryAppendUInt(&tWriter, pOffsets[i], iOffsetSize) ) {

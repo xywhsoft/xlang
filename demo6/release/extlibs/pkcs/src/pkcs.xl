@@ -14,6 +14,7 @@ extern "xpkcs_concat" func __pkcs_cat(string a, string b) as string
 extern "xpkcs_der_len" func __pkcs_dlen(string der_hex) as int
 extern "xpkcs_next_offset" func __pkcs_next(string der_hex, int offset) as int
 extern "xpkcs_tag_name" func __pkcs_tname(string der_hex) as string
+extern "xpkcs_last_error" func __pkcs_last_error() as string
 
 
 
@@ -79,4 +80,10 @@ end
 
 export func tagName(string der_hex) as string
     return __pkcs_tname(der_hex)
+end
+
+
+
+export func lastError() as string
+    return __pkcs_last_error()
 end

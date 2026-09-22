@@ -7,11 +7,11 @@ func keepDynamic(var value) as var
     return null
 end
 
-var textValue = keepDynamic("typed HIR")
+var textValue = keepDynamic("lowered XLIR")
 var intValue = keepDynamic(42)
 
 assert(textValue is string)
-assert(string(textValue) == "typed HIR")
+assert(string(textValue) == "lowered XLIR")
 assert(intValue is int)
 assert(int(intValue) == 42)
 println("narrowed var storage return ok")

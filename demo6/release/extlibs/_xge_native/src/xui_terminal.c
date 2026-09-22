@@ -19,7 +19,19 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#include "../xge_tcc_compat.h"
+
+/* TCC 的 Windows 头文件缺少 Windows 10 ConPTY 声明，运行时仍动态探测函数。 */
+#if defined(__TINYC__)
+typedef HANDLE HPCON;
+
+#ifndef PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE
+#define PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE ((DWORD_PTR)0x00020016u)
+#endif
+
+#ifndef EXTENDED_STARTUPINFO_PRESENT
+#define EXTENDED_STARTUPINFO_PRESENT 0x00080000u
+#endif
+#endif
 #endif
 
 #define XUI_TERMINAL_DEFAULT_COLS 80
@@ -74,11 +86,22 @@ typedef struct xui_terminal_parser_t {
 typedef HRESULT (WINAPI* xui_terminal_create_pseudo_console_proc)(COORD, HANDLE, HANDLE, DWORD, HPCON*);
 typedef HRESULT (WINAPI* xui_terminal_resize_pseudo_console_proc)(HPCON, COORD);
 typedef void (WINAPI* xui_terminal_close_pseudo_console_proc)(HPCON);
+typedef BOOL (WINAPI* xui_terminal_initialize_attribute_list_proc)(void*, DWORD, DWORD, SIZE_T*);
+typedef BOOL (WINAPI* xui_terminal_update_attribute_proc)(void*, DWORD, DWORD_PTR, void*, SIZE_T, void*, SIZE_T*);
+typedef void (WINAPI* xui_terminal_delete_attribute_list_proc)(void*);
+
+typedef struct xui_terminal_startup_info_ex_t {
+	STARTUPINFOA StartupInfo;
+	void* pAttributeList;
+} xui_terminal_startup_info_ex_t;
 
 typedef struct xui_terminal_conpty_api_t {
 	xui_terminal_create_pseudo_console_proc createPseudoConsole;
 	xui_terminal_resize_pseudo_console_proc resizePseudoConsole;
 	xui_terminal_close_pseudo_console_proc closePseudoConsole;
+	xui_terminal_initialize_attribute_list_proc initializeAttributeList;
+	xui_terminal_update_attribute_proc updateAttribute;
+	xui_terminal_delete_attribute_list_proc deleteAttributeList;
 } xui_terminal_conpty_api_t;
 #endif
 
@@ -295,7 +318,15 @@ static int __xuiTerminalConptyGetApi(xui_terminal_conpty_api_t* pApi)
 	pApi->createPseudoConsole = (xui_terminal_create_pseudo_console_proc)GetProcAddress(hKernel, "CreatePseudoConsole");
 	pApi->resizePseudoConsole = (xui_terminal_resize_pseudo_console_proc)GetProcAddress(hKernel, "ResizePseudoConsole");
 	pApi->closePseudoConsole = (xui_terminal_close_pseudo_console_proc)GetProcAddress(hKernel, "ClosePseudoConsole");
-	return (pApi->createPseudoConsole != NULL) && (pApi->resizePseudoConsole != NULL) && (pApi->closePseudoConsole != NULL);
+	pApi->initializeAttributeList = (xui_terminal_initialize_attribute_list_proc)GetProcAddress(hKernel, "InitializeProcThreadAttributeList");
+	pApi->updateAttribute = (xui_terminal_update_attribute_proc)GetProcAddress(hKernel, "UpdateProcThreadAttribute");
+	pApi->deleteAttributeList = (xui_terminal_delete_attribute_list_proc)GetProcAddress(hKernel, "DeleteProcThreadAttributeList");
+	return (pApi->createPseudoConsole != NULL) &&
+		(pApi->resizePseudoConsole != NULL) &&
+		(pApi->closePseudoConsole != NULL) &&
+		(pApi->initializeAttributeList != NULL) &&
+		(pApi->updateAttribute != NULL) &&
+		(pApi->deleteAttributeList != NULL);
 }
 
 static COORD __xuiTerminalConptySize(int iColumns, int iRows)
@@ -2850,8 +2881,17 @@ static int __xuiTerminalEvent(xui_widget pWidget, const xui_event_t* pEvent, voi
 		}
 		break;
 	case XUI_EVENT_TEXT:
-		if ( pEvent->iPhase != XUI_EVENT_PHASE_BUBBLE && pEvent->iTextSize > 0 ) {
-			return __xuiTerminalEmitInput(pWidget, pData, (const uint8_t*)pEvent->sText, pEvent->iTextSize) | XUI_EVENT_DISPATCH_STOP;
+		if ( pEvent->iPhase != XUI_EVENT_PHASE_BUBBLE ) {
+			if ( pEvent->iTextSize > 0 ) {
+				return __xuiTerminalEmitInput(pWidget, pData, (const uint8_t*)pEvent->sText, pEvent->iTextSize) | XUI_EVENT_DISPATCH_STOP;
+			}
+			if ( pEvent->iCodepoint != 0u ) {
+				char sUtf8[4];
+				int iSize = __xuiTerminalEncodeUtf8(pEvent->iCodepoint, sUtf8);
+				if ( iSize > 0 ) {
+					return __xuiTerminalEmitInput(pWidget, pData, (const uint8_t*)sUtf8, iSize) | XUI_EVENT_DISPATCH_STOP;
+				}
+			}
 		}
 		break;
 	case XUI_EVENT_KEY_DOWN:
@@ -3113,7 +3153,7 @@ static int __xuiTerminalContentMeasure(xui_widget pWidget, xui_vec2_t tConstrain
 	return XUI_OK;
 }
 
-static int __xuiTerminalArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiTerminalLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
 {
 	(void)tContentRect;
 	(void)pUser;
@@ -3605,7 +3645,7 @@ XUI_API xui_widget_type xuiTerminalGetType(xui_context pContext)
 	tDesc.onInit = __xuiTerminalInit;
 	tDesc.onDestroy = __xuiTerminalDestroy;
 	tDesc.onContentMeasure = __xuiTerminalContentMeasure;
-	tDesc.onLayoutArrange = __xuiTerminalArrange;
+	tDesc.onLayoutComplete = __xuiTerminalLayoutComplete;
 	tDesc.onCacheRender = __xuiTerminalCacheRender;
 	tDesc.onUpdate = __xuiTerminalUpdate;
 	__xuiTerminalDefaultLayout(&tDesc.tLayout);
@@ -4464,10 +4504,10 @@ static int __xuiTerminalProcessCreateConptyTransport(xui_terminal_session_t* pSe
 {
 #if defined(_WIN32) || defined(_WIN64)
 	SECURITY_ATTRIBUTES tSecurity;
-	STARTUPINFOEXA tStartup;
+		xui_terminal_startup_info_ex_t tStartup;
 	PROCESS_INFORMATION tProcessInfo;
 	xui_terminal_conpty_api_t tApi;
-	LPPROC_THREAD_ATTRIBUTE_LIST pAttributeList;
+		void* pAttributeList;
 	SIZE_T iAttributeListSize;
 	HANDLE hInputRead;
 	HANDLE hInputWrite;
@@ -4496,17 +4536,20 @@ static int __xuiTerminalProcessCreateConptyTransport(xui_terminal_session_t* pSe
 	if ( !SetHandleInformation(hOutputRead, HANDLE_FLAG_INHERIT, 0) ) goto failed;
 	iResult = tApi.createPseudoConsole(__xuiTerminalConptySize(__xuiTerminalProcessDescColumns(pDesc), __xuiTerminalProcessDescRows(pDesc)), hInputRead, hOutputWrite, 0, &hPseudoConsole);
 	if ( FAILED(iResult) || hPseudoConsole == NULL ) goto failed;
-	InitializeProcThreadAttributeList(NULL, 1, 0, &iAttributeListSize);
+		tApi.initializeAttributeList(NULL, 1, 0, &iAttributeListSize);
 	if ( iAttributeListSize == 0 ) goto failed;
-	pAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)xrtMalloc((size_t)iAttributeListSize);
+		pAttributeList = xrtMalloc((size_t)iAttributeListSize);
 	if ( pAttributeList == NULL ) goto failed;
-	if ( !InitializeProcThreadAttributeList(pAttributeList, 1, 0, &iAttributeListSize) ) goto failed;
-	bAttributeListReady = 1;
-	if ( !UpdateProcThreadAttribute(pAttributeList, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, hPseudoConsole, sizeof(hPseudoConsole), NULL, NULL) ) goto failed;
+		if ( !tApi.initializeAttributeList(pAttributeList, 1, 0,
+			&iAttributeListSize) ) goto failed;
+		bAttributeListReady = 1;
+		if ( !tApi.updateAttribute(pAttributeList, 0,
+			PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+			hPseudoConsole, sizeof(hPseudoConsole), NULL, NULL) ) goto failed;
 	memset(&tStartup, 0, sizeof(tStartup));
 	memset(&tProcessInfo, 0, sizeof(tProcessInfo));
 	tStartup.StartupInfo.cb = sizeof(tStartup);
-	tStartup.lpAttributeList = pAttributeList;
+		tStartup.pAttributeList = pAttributeList;
 	bCreated = CreateProcessA(NULL, sCommandLine, NULL, NULL, FALSE, EXTENDED_STARTUPINFO_PRESENT, NULL, pDesc->sWorkingDirectory, &tStartup.StartupInfo, &tProcessInfo);
 	if ( !bCreated ) goto failed;
 	if ( hInputRead != NULL ) {
@@ -4518,7 +4561,7 @@ static int __xuiTerminalProcessCreateConptyTransport(xui_terminal_session_t* pSe
 		hOutputWrite = NULL;
 	}
 	if ( tProcessInfo.hThread != NULL ) CloseHandle(tProcessInfo.hThread);
-	if ( bAttributeListReady ) DeleteProcThreadAttributeList(pAttributeList);
+		if ( bAttributeListReady ) tApi.deleteAttributeList(pAttributeList);
 	xrtFree(pAttributeList);
 	pSession->hProcess = tProcessInfo.hProcess;
 	pSession->hInputWrite = hInputWrite;
@@ -4530,7 +4573,7 @@ static int __xuiTerminalProcessCreateConptyTransport(xui_terminal_session_t* pSe
 	return XUI_OK;
 
 failed:
-	if ( bAttributeListReady ) DeleteProcThreadAttributeList(pAttributeList);
+		if ( bAttributeListReady ) tApi.deleteAttributeList(pAttributeList);
 	if ( pAttributeList != NULL ) xrtFree(pAttributeList);
 	if ( hPseudoConsole != NULL ) tApi.closePseudoConsole(hPseudoConsole);
 	if ( hInputRead != NULL ) CloseHandle(hInputRead);

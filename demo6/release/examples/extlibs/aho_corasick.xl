@@ -8,11 +8,11 @@
 // 核心概念：
 //   Aho-Corasick 算法可以在一段文本中同时搜索多个关键词，
 //   只需一次扫描即可找出所有模式的出现位置。
-//   典型场景：敏感词过滤、日志规则匹配、关键词高亮、入侵检测。
+//   典型场景：敏感词过滤、日志规则匹配、关键词高亮、协议字段匹配。
 // ═══════════════════════════════════════════════════════════════════
 
 import aho_corasick as acmod
-from aho_corasick import Match, Automaton
+from aho_corasick import Match, Automaton, Scanner
 
 func main(...) as int
 
@@ -114,6 +114,11 @@ func main(...) as int
     string masked = ac.mask("ushers", "#")
     println("遮盖: ", masked)  // "u#####"（5 个字符被遮盖）
 
+    // mask 按 Unicode 标量数遮盖，不会把一个中文字符扩展成 3 个掩码。
+    Automaton unicodeMask = acmod.create(["你好", "好世"])
+    println("Unicode 遮盖: ", unicodeMask.mask("甲你好世界", "*"))
+    // "甲***界"
+
     // ─────────────────────────────────────────────────────────────
     // 第 7 节：highlight — 标签包裹
     //
@@ -185,6 +190,22 @@ func main(...) as int
         return true
     end)
 
+    // 9d. 跨分块扫描。Scanner 复制当前分块，暂停后可安全恢复。
+    Scanner scanner = levels.scanner()
+    scanner.feed("fa", func(Match m) as bool
+        return true
+    end)
+    bool chunkDone = scanner.feed("tal: crash", func(Match m) as bool
+        println("  跨分块命中: ", m.pattern, " @", m.start)
+        return false
+    end)
+    if not chunkDone then
+        scanner.resume(func(Match m) as bool
+            return true
+        end)
+    end
+    println("累计字节: ", scanner.offset, "，累计匹配: ", scanner.matchCount)
+
     // ─────────────────────────────────────────────────────────────
     // 第 10 节：ignoreCase — 大小写忽略
     //
@@ -219,6 +240,11 @@ func main(...) as int
     manual.build()
     println("构建后: ", manual.built)          // true
     println("搜索: ", manual.count("alphabetagammadelta"))  // 4
+
+    // 资源限制为 0 时不限制；非零限制在操作前严格检查。
+    Automaton limited = acmod.create(["ok"], maxInputBytes = 1024,
+        maxMatches = 128, maxOutputBytes = 4096)
+    println("限制配置搜索: ", limited.contains("ok"))
 
     // 错误处理：build 后不能再添加
     bool caught = false

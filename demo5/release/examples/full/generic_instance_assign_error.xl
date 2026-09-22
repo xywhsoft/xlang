@@ -1,9 +1,0 @@
-func bad_assign<T>(T value) as T
-	T local = value
-	local = "bad"
-	return local
-end
-
-func main() as int
-	return bad_assign<int>(12)
-end

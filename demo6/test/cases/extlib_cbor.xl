@@ -1,66 +1,56 @@
 import cbor
 
-
-
 func main(...) as int
-    // Integer encoding
-    auto c1 = cbor.encodeInt(42)
-    assert cbor.decodeInt(c1) == 42, "int 42"
-    assert cbor.getType(c1) == 0, "uint type"
-    assert cbor.typeName(c1) == "uint", "uint name"
+    var source = {
+        "name": "xlang",
+        "version": 6,
+        "ready": true,
+        "ratio": 3.5,
+        "empty": null,
+        "items": ["one", 2, false],
+        "nested": {"city": "Beijing"}
+    }
+    Buffer encoded = cbor.encode(source)
+    assert encoded.len() > 0, "generic encode returns bytes"
+    assert string.startsWith(cbor.toHex(encoded), "a7"), "top-level map is encoded"
 
-    // Negative integer
-    auto c2 = cbor.encodeInt(-100)
-    assert cbor.decodeInt(c2) == -100, "int -100"
-    assert cbor.getType(c2) == 1, "nint type"
+    var decoded = cbor.decode(encoded)
+    assert decoded["name"] == "xlang", "text roundtrip"
+    assert decoded["version"] == 6, "integer roundtrip"
+    assert decoded["ready"] == true, "boolean roundtrip"
+    assert decoded["ratio"] > 3.49 and decoded["ratio"] < 3.51, "float roundtrip"
+    assert decoded["empty"] == null, "null roundtrip"
+    assert decoded["items"][2] == false, "array roundtrip"
+    assert decoded["nested"]["city"] == "Beijing", "object roundtrip"
 
-    // Zero
-    auto c0 = cbor.encodeInt(0)
-    assert cbor.decodeInt(c0) == 0, "int 0"
+    Buffer raw = Buffer()
+    raw.appendByte(0xde)
+    raw.appendByte(0xad)
+    raw.appendByte(0xbe)
+    raw.appendByte(0xef)
+    Buffer binary = cbor.encodeBytes(raw)
+    assert cbor.toHex(binary) == "44deadbeef", "byte string encoding"
+    assert cbor.toHex(cbor.decodeBytes(binary)) == "deadbeef", "byte string roundtrip"
 
-    // Large int
-    auto cl = cbor.encodeInt(1000000)
-    assert cbor.decodeInt(cl) == 1000000, "int 1M"
+    Buffer parsed = cbor.fromHex("a1616101")
+    assert cbor.decode(parsed)["a"] == 1, "hex input"
 
-    // String
-    auto cs = cbor.encodeStr("hello")
-    assert cbor.decodeStr(cs) == "hello", "string hello"
-    assert cbor.getType(cs) == 3, "text type"
-    assert cbor.typeName(cs) == "text", "text name"
+    bool caught = false
+    try
+        Buffer truncated = cbor.fromHex("a1")
+        cbor.decode(truncated)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "truncated input must throw"
 
-    // Byte string
-    auto cb = cbor.encodeBytes("deadbeef")
-    assert cbor.decodeBytes(cb) == "deadbeef", "bytes roundtrip"
-    assert cbor.getType(cb) == 2, "bytes type"
-
-    // Boolean
-    auto ct = cbor.encodeBool(true)
-    assert cbor.decodeBool(ct) == true, "bool true"
-    assert cbor.typeName(ct) == "bool", "bool name"
-    auto cf = cbor.encodeBool(false)
-    assert cbor.decodeBool(cf) == false, "bool false"
-
-    // Null
-    auto cn = cbor.encodeNull()
-    assert cbor.typeName(cn) == "null", "null name"
-
-    // Float
-    auto cfl = cbor.encodeFloat(3.14)
-    auto decoded_f = cbor.decodeFloat(cfl)
-    assert decoded_f > 3.13 and decoded_f < 3.15, "float 3.14"
-    assert cbor.typeName(cfl) == "float", "float name"
-
-    // Array header
-    auto ah = cbor.arrayHdr(3)
-    assert cbor.getType(ah) == 4, "array type"
-
-    // Map header
-    auto mh = cbor.mapHdr(2)
-    assert cbor.getType(mh) == 5, "map type"
-
-    // Concat
-    auto arr = cbor.concat(ah, cbor.concat(c1, cbor.concat(cs, ct)))
-    assert string.len(arr) > 0, "concat works"
-
+    caught = false
+    try
+        Buffer invalidMap = cbor.fromHex("a10102")
+        cbor.decode(invalidMap)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "non-text map key must throw"
     return 0
 end

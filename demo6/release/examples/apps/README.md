@@ -15,7 +15,6 @@
 - `static_site_builder.xl`：把页面模型渲染为一个简单 HTML 文件。
 - `template_mail_merge.xl`：用 f-string 生成多封通知文本。
 - `todo_json_store.xl`：把待办事项 class 持久化为 JSON 并读回。
-- `url_batch_builder.xl`：批量构造带 query string 的 API URL。
 
 ## 运行
 

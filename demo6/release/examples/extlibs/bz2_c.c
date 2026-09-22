@@ -10,19 +10,18 @@ int main(void)
 	static const unsigned char sSource[] = { 'x', 'l', 'a', 'n', 'g', 0u, 0xffu };
 	xrtbz2options tOptions;
 	xrtbz2error tError;
-	xbuffer pPacked = NULL;
-	xbuffer pPlain = NULL;
+	xbuffer* pPacked = NULL;
+	xbuffer* pPlain = NULL;
 	int iResult = 1;
-	if ( xrtInit() == NULL ) { return 1; }
 	xrtBz2OptionsInit(&tOptions);
 	tOptions.iLevel = 9;
 	if ( !xrtBz2Compress(sSource, sizeof(sSource), &tOptions, &pPacked, &tError) ||
-		!xrtBz2Decompress(pPacked->Buffer, pPacked->Length, NULL, &pPlain, &tError) ) {
+		!xrtBz2Decompress(pPacked->Data, pPacked->Size, NULL, &pPlain, &tError) ) {
 		fprintf(stderr, "bz2 C example: %s\n", tError.sMessage);
 		goto cleanup;
 	}
-	if ( pPlain->Length != sizeof(sSource) ||
-		memcmp(pPlain->Buffer, sSource, sizeof(sSource)) != 0 ) {
+	if ( pPlain->Size != sizeof(sSource) ||
+		memcmp(pPlain->Data, sSource, sizeof(sSource)) != 0 ) {
 		fprintf(stderr, "bz2 C example: round trip mismatch\n");
 		goto cleanup;
 	}
@@ -32,6 +31,5 @@ int main(void)
 cleanup:
 	xrtBufferDestroy(pPlain);
 	xrtBufferDestroy(pPacked);
-	xrtUnit();
 	return iResult;
 }

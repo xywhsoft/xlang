@@ -1,9 +1,7 @@
 import bson
 
-
-
 func main(...) as int
-    // 标量、null 与 int64 往返。
+    // Scalar, null and int64 roundtrip.
     var source = {
         "name": "Alice",
         "age": 30,
@@ -23,7 +21,7 @@ func main(...) as int
     assert decoded["nothing"] == null, "null roundtrip"
     assert decoded["big"] == 9876543210, "int64 roundtrip"
 
-    // 嵌套文档与数组保持结构。
+    // Nested documents and arrays retain their shape.
     var complex = {
         "profile": {"city": "Beijing", "zip": 100000},
         "tags": ["dev", "xlang", "bson"]
@@ -33,7 +31,7 @@ func main(...) as int
     assert complexDecoded["tags"].length == 3, "array length"
     assert complexDecoded["tags"][2] == "bson", "array element"
 
-    // 多文档流必须保持顺序和边界。
+    // Concatenated document streams preserve order and reject trailing bytes.
     var first = {"id": 1, "message": "hello"}
     var second = {"id": 2, "message": "world"}
     var stream = bson.concat(bson.encode(first), bson.encode(second))
@@ -42,11 +40,41 @@ func main(...) as int
     assert documents[0]["id"] == 1, "first document"
     assert documents[1]["message"] == "world", "second document"
 
-    // ObjectId 使用 MongoDB 兼容的 24 位十六进制文本。
     string oid = bson.objectId()
     assert string.len(oid) == 24, "ObjectId text length"
-    assert bson.oidTime(oid) > 0, "ObjectId timestamp"
+    assert time.toUnix(bson.oidTime(oid)) > 0, "ObjectId timestamp"
     assert string.len(bson.toHex(encoded)) == bson.docLength(encoded) * 2, "hex length"
+
+    // XRT file APIs must support an UTF-8 file name on Windows.
+    string filePath = "extlib_bson_测试.bson"
+    assert bson.save(filePath, source) == bson.docLength(encoded), "save returns encoded size"
+    var loaded = bson.load(filePath)
+    assert loaded["name"] == "Alice", "load roundtrip"
+    file.delete(filePath)
+
+    bool caught = false
+    try
+        bson.decode("bad")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "truncated document must throw"
+
+    caught = false
+    try
+        bson.decodeAll(bson.concat(encoded, "bad"))
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "truncated document stream must throw"
+
+    caught = false
+    try
+        bson.oidTime("not-an-object-id")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "invalid ObjectId must throw"
 
     return 0
 end

@@ -1,98 +1,120 @@
-/* ntp_native.c - NTP time utilities (no network dependency for TCC compatibility) */
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-
-/* NTP epoch offset: seconds between 1900-01-01 and 1970-01-01 */
-#define NTP_EPOCH_OFFSET 2208988800UL
-
-static char err_buf[256];
-static char time_buf[64];
-
-const char *xntp_error(void) { return err_buf; }
-
-/* Convert NTP timestamp (seconds since 1900) to Unix timestamp */
-long long xntp_to_unix(long long ntp_sec) {
-    return ntp_sec - (long long)NTP_EPOCH_OFFSET;
-}
-
-/* Convert Unix timestamp to NTP timestamp */
-long long xntp_from_unix(long long unix_sec) {
-    return unix_sec + (long long)NTP_EPOCH_OFFSET;
-}
-
-/* Get local time as Unix timestamp */
-long long xntp_local_time(void) {
-    return (long long)time(NULL);
-}
-
-/* Format Unix timestamp as ISO string (UTC) */
-const char *xntp_format(long long unix_ts) {
-    time_t t = (time_t)unix_ts;
-    struct tm *tm = gmtime(&t);
-    if (!tm) return "invalid";
-    sprintf(time_buf, "%04d-%02d-%02dT%02d:%02d:%02dZ",
-            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-            tm->tm_hour, tm->tm_min, tm->tm_sec);
-    return time_buf;
-}
-
-/* Format as local time */
-const char *xntp_format_local(long long unix_ts) {
-    time_t t = (time_t)unix_ts;
-    struct tm *tm = localtime(&t);
-    if (!tm) return "invalid";
-    sprintf(time_buf, "%04d-%02d-%02d %02d:%02d:%02d",
-            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-            tm->tm_hour, tm->tm_min, tm->tm_sec);
-    return time_buf;
-}
-
 /*
- * Query NTP server - requires network library.
- * Returns -1 (not available in TCC build without ws2_32).
- * In a full build, this would perform UDP query to port 123.
+ * ntp_native.c - NTP (RFC 5905 subset) packet codec over hex strings.
+ *
+ * Binary packets cross the xlang boundary as lowercase hex so no byte
+ * transport is needed. buildRequest emits a 48-byte client poll (NTP
+ * version 4, mode 3). parseResponse reads the fixed header plus the
+ * transmit timestamp and converts it to Unix seconds. Connections run
+ * in the xlang layer over the stdlib udp namespace.
  */
-long long xntp_query(const char *server) {
-    (void)server;
-    strcpy(err_buf, "ntp: network query not available in this build");
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#define XRT_MODULE_VALUE_CONTAINER
+#include "xrt.h"
+
+#define XN_DOMAIN "xlang.extlib.ntp"
+
+#define NTP_UNIX_OFFSET 2208988800.0
+
+static void xn_error(const char *message) {
+    xrtSetErrorInfo(XERR_VALUE, XN_DOMAIN, 0, message);
+}
+
+static xvalue *xn_null(void) {
+    return xrtValueNull();
+}
+
+static xvalue *xn_text(const char *s, size_t n) {
+    str owned = (str)xrtMalloc(n + 1);
+    xvalue *value;
+    if (owned == NULL) return NULL;
+    if (n > 0) memcpy(owned, s, n);
+    owned[n] = '\0';
+    value = xrtValueStringTake(&owned, n);
+    if (value == NULL && owned != NULL) xrtFree(owned);
+    return value;
+}
+
+static int xn_set(xvalue *obj, const char *key, xvalue *value) {
+    xstrview view;
+    view.Data = key;
+    view.Size = strlen(key);
+    return xrtValueObjectSetNew(obj, view, value);
+}
+
+static int xn_hex_digit(int c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
     return -1;
 }
 
-/* Get timezone offset in seconds from UTC */
-long long xntp_tz_offset(void) {
-    time_t now = time(NULL);
-    struct tm local_tm, utc_tm;
-    struct tm *lt = localtime(&now);
-    struct tm *ut = gmtime(&now);
-    if (!lt || !ut) return 0;
-    local_tm = *lt;
-    utc_tm = *ut;
-    long long lsec = (long long)(local_tm.tm_hour * 3600 + local_tm.tm_min * 60 + local_tm.tm_sec);
-    long long usec = (long long)(utc_tm.tm_hour * 3600 + utc_tm.tm_min * 60 + utc_tm.tm_sec);
-    long long diff = lsec - usec;
-    /* Handle day boundary */
-    if (local_tm.tm_mday > utc_tm.tm_mday) diff += 86400;
-    if (local_tm.tm_mday < utc_tm.tm_mday) diff -= 86400;
-    return diff;
-}
-
-/* Get day of week (0=Sunday) for a Unix timestamp */
-long long xntp_day_of_week(long long unix_ts) {
-    time_t t = (time_t)unix_ts;
-    struct tm *tm = gmtime(&t);
-    if (!tm) return -1;
-    return (long long)tm->tm_wday;
-}
-
-/* Get days in month for a given year/month */
-long long xntp_days_in_month(long long year, long long month) {
-    static int days[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    if (month < 1 || month > 12) return 0;
-    if (month == 2) {
-        int leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-        return leap ? 29 : 28;
+static int xn_hex_to_bytes(const char *hex, unsigned char *out, size_t cap) {
+    size_t n = strlen(hex);
+    size_t i;
+    if (n % 2 != 0 || n / 2 > cap) return -1;
+    for (i = 0; i < n / 2; i++) {
+        int hi = xn_hex_digit(hex[i * 2]);
+        int lo = xn_hex_digit(hex[i * 2 + 1]);
+        if (hi < 0 || lo < 0) return -1;
+        out[i] = (unsigned char)((hi << 4) | lo);
     }
-    return days[month];
+    return (int)(n / 2);
+}
+
+static void xn_bytes_to_hex(const unsigned char *in, size_t n, char *out) {
+    static const char *digits = "0123456789abcdef";
+    size_t i;
+    for (i = 0; i < n; i++) {
+        out[i * 2] = digits[in[i] >> 4];
+        out[i * 2 + 1] = digits[in[i] & 0xF];
+    }
+    out[n * 2] = '\0';
+}
+
+const char *xn_build_request(void) {
+    static char hex[97];
+    unsigned char packet[48];
+    memset(packet, 0, sizeof(packet));
+    packet[0] = 0x23; /* LI=0, VN=4, Mode=3 (client) */
+    xn_bytes_to_hex(packet, sizeof(packet), hex);
+    return hex;
+}
+
+xvalue *xn_parse_response(const char *hex) {
+    unsigned char packet[48];
+    xvalue *result;
+    int len = xn_hex_to_bytes(hex, packet, sizeof(packet));
+    unsigned int seconds;
+    unsigned int fraction;
+    double unixTime;
+    if (len != 48) {
+        xn_error("response must be a 48-byte packet in hex");
+        return xn_null();
+    }
+    seconds = ((unsigned int)packet[40] << 24) |
+              ((unsigned int)packet[41] << 16) |
+              ((unsigned int)packet[42] << 8) |
+              (unsigned int)packet[43];
+    fraction = ((unsigned int)packet[44] << 24) |
+               ((unsigned int)packet[45] << 16) |
+               ((unsigned int)packet[46] << 8) |
+               (unsigned int)packet[47];
+    unixTime = (double)seconds - NTP_UNIX_OFFSET +
+        (double)fraction / 4294967296.0;
+    result = xrtValueObject();
+    if (result == NULL) return xn_null();
+    xn_set(result, "leapIndicator", xrtValueInt(packet[0] >> 6));
+    xn_set(result, "version", xrtValueInt((packet[0] >> 3) & 0x07));
+    xn_set(result, "mode", xrtValueInt(packet[0] & 0x07));
+    xn_set(result, "stratum", xrtValueInt(packet[1]));
+    xn_set(result, "ntpSeconds", xrtValueInt((int64)seconds));
+    xn_set(result, "unixSeconds", xrtValueFloat(unixTime));
+    return result;
+}
+
+long long xn_unix_offset(void) {
+    return 2208988800LL;
 }

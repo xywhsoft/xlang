@@ -2,14 +2,13 @@
  * exceptions. Hold an owned callback error across parser unwinding; the XLIR
  * bridge's explicit result carrier, not ambient native diagnostics, signals
  * failure to its caller. Each visit owns its context, including nested visits. */
-void xl6CgenEmitSerializationCallbackRuntime(XL6_Output* out, int xlirAbi)
+void xl6CgenEmitSerializationCallbackRuntime(XL6_Output* out)
 {
     if (out == NULL) return;
     xl6OutputPuts(
         "typedef struct { XL6_Function Visitor; int CallbackFailed; xerror* CallbackError; } xl6_serialization_visitor_context;\n", out);
-    if (xlirAbi) {
-        xl6OutputPuts(
-            "typedef xlir_result_c_int XL6_Serialization_Visit_Result;\n"
+    xl6OutputPuts(
+        "typedef xlir_result_c_int XL6_Serialization_Visit_Result;\n"
             "static void xl6_serialization_callback_fail(xl6_serialization_visitor_context* context)\n"
             "{\n"
             "    if (context->CallbackFailed) return;\n"
@@ -39,20 +38,5 @@ void xl6CgenEmitSerializationCallbackRuntime(XL6_Output* out, int xlirAbi)
             "        return (XL6_Serialization_Visit_Result){ false, 0 };\n"
             "    }\n"
             "    return (XL6_Serialization_Visit_Result){ true, status };\n"
-            "}\n\n", out);
-    } else {
-        xl6OutputPuts(
-            "typedef int XL6_Serialization_Visit_Result;\n"
-            "static xvalue* xl6_function_call_var(XL6_Function, int, ...);\n"
-            "static void xl6_serialization_callback_fail(xl6_serialization_visitor_context* context) { (void)context; }\n"
-            "static int xl6_serialization_callback_call(xl6_serialization_visitor_context* context, xvalue* event, bool* keepGoing)\n"
-            "{\n"
-            "    xvalue* result = xl6_function_call_var(context->Visitor, 1, event);\n"
-            "    int ok = result != NULL && xrtValueGetBool(result, keepGoing);\n"
-            "    xrtValueRelease(result);\n"
-            "    return ok;\n"
-            "}\n"
-            "static XL6_Serialization_Visit_Result xl6_serialization_callback_finish(xl6_serialization_visitor_context* context, int status)\n"
-            "{ (void)context; return status; }\n\n", out);
-    }
+        "}\n\n", out);
 }

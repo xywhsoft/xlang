@@ -7,7 +7,7 @@ void xrtNetrcOptionsInit(xrtnetrcoptions* pOptions)
 	pOptions->iSize = sizeof(*pOptions);
 	pOptions->iVersion = XRT_NETRC_OPTIONS_VERSION;
 	xrtResourceLimitsInit(&pOptions->tLimits);
-	pOptions->bStrictDuplicates = TRUE;
+	pOptions->bStrictDuplicates = true;
 }
 
 void xrtNetrcErrorInit(xrtnetrcerror* pError)
@@ -31,43 +31,43 @@ void __xrtNetrcSetError(xrtnetrcerror* pError, int iCode,
 bool __xrtNetrcLimitNode(xrt_netrc_context* pContext, uint64 iLine,
 	uint64 iColumn, uint64 iOffset)
 {
-	if ( pContext == NULL ) { return FALSE; }
+	if ( pContext == NULL ) { return false; }
 	pContext->iNodes++;
 	if ( pContext->Options.tLimits.iMaxNodes != 0u &&
 		pContext->iNodes > pContext->Options.tLimits.iMaxNodes ) {
 		__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_LIMIT,
 			iLine, iColumn, iOffset, "netrc node limit exceeded");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 bool __xrtNetrcLimitEntry(xrt_netrc_context* pContext, uint64 iLine,
 	uint64 iColumn, uint64 iOffset)
 {
-	if ( pContext == NULL ) { return FALSE; }
+	if ( pContext == NULL ) { return false; }
 	pContext->iEntries++;
 	if ( pContext->Options.tLimits.iMaxEntries != 0u &&
 		pContext->iEntries > pContext->Options.tLimits.iMaxEntries ) {
 		__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_LIMIT,
 			iLine, iColumn, iOffset, "netrc entry limit exceeded");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-bool __xrtNetrcSetValue(xvalue pTable, const char* sKey, xvalue pValue)
+bool __xrtNetrcSetValue(xvalue* pTable, const char* sKey, xvalue* pValue)
 {
-	if ( pTable == NULL || sKey == NULL || pValue == NULL ) { return FALSE; }
-	if ( xvoTableSetValue(pTable, sKey, (uint32)strlen(sKey), pValue, TRUE) ) {
-		return TRUE;
+	if ( pTable == NULL || sKey == NULL || pValue == NULL ) { return false; }
+	if ( xrtValueObjectSetTake(pTable, xrtStrView(sKey), &pValue) ) {
+		return true;
 	}
-	xvoUnref(pValue);
-	return FALSE;
+	xrtValueRelease(pValue);
+	return false;
 }
 
-xvalue __xrtNetrcText(const char* sText, size_t iSize)
+xvalue* __xrtNetrcText(const char* sText, size_t iSize)
 {
-	if ( iSize > UINT32_MAX ) { return NULL; }
-	return xvoCreateText((ptr)(sText != NULL ? sText : ""), (uint32)iSize, FALSE);
+	if ( sText == NULL && iSize != 0u ) { return NULL; }
+	return xrtValueString((xstrview){ sText != NULL ? sText : "", iSize });
 }

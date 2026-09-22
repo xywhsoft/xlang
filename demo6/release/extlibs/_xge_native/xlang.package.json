@@ -8,9 +8,11 @@
         "kind": "source",
         "cSources": [
             "xge_compile.c",
+            "lib/xlayout/xlayout.c",
             "src/xui_accordion.c",
             "src/xui_assets.c",
             "src/xui_breadcrumb.c",
+            "src/xui_builtin_atlas.c",
             "src/xui_button.c",
             "src/xui_canvas.c",
             "src/xui_carousel.c",
@@ -52,6 +54,7 @@
             "src/xui_input_widget.c",
             "src/xui_inventory_grid.c",
             "src/xui_label.c",
+            "src/xui_layout.c",
             "src/xui_list_view.c",
             "src/xui_menu.c",
             "src/xui_menubar.c",
@@ -68,6 +71,8 @@
             "src/xui_qrcode.c",
             "src/xui_radio.c",
             "src/xui_range_slider.c",
+            "src/xui_rich_document.c",
+            "src/xui_rich_edit.c",
             "src/xui_scroll_frame.c",
             "src/xui_scroll_model.c",
             "src/xui_scroll_view.c",
@@ -89,19 +94,23 @@
             "src/xui_toggle.c",
             "src/xui_toolbar.c",
             "src/xui_tree_view.c",
+            "src/xui_unicode.c",
             "src/xui_virtual_joystick.c",
             "src/xui_widget.c",
             "src/xui_window.c",
             "src/xui_workflow.c",
             "src/xui_workflow_widget.c",
             "xge_native.c",
+            "xui_native.c",
             "xge_math_compat.c"
         ],
         "xlSources": []
     },
     "links": ["ws2_32", "iphlpapi", "gdi32", "user32", "shell32", "ole32", "winmm", "avrt", "opengl32"],
     "loadlibs": ["../../xl.def", "xge_win32_extra.def"],
-    "dependencies": [],
+    "dependencies": [
+        { "name": "xregex", "version": "1.0.0", "abiVersion": "1" }
+    ],
     "native": {
         "singleton": false,
         "loadName": "",

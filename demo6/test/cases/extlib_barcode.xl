@@ -1,0 +1,69 @@
+import barcode
+
+
+
+func main(...) as int
+    // 校验位（经典向量：4006381333931）
+    assert barcode.checksumEan("400638133393") == 1, "stabilo checksum"
+    assert barcode.checksumEan("590123412345") == 7, "second checksum"
+    assert barcode.validateEan("4006381333931"), "valid code"
+    assert not barcode.validateEan("4006381333932"), "wrong check digit"
+    assert not barcode.validateEan("12345"), "short code invalid"
+    assert barcode.checksumEan("12x4") == -1, "non-digit checksum"
+
+    // EAN-13 模块结构：95 位，守卫 101，中间 01010，结尾 101
+    var m = barcode.ean13("5901234123457")
+    assert m.length == 95, "module count"
+    assert m[0] == 1 and m[1] == 0 and m[2] == 1, "left guard"
+    assert m[92] == 1 and m[93] == 0 and m[94] == 1, "right guard"
+    assert m[45] == 0 and m[46] == 1 and m[47] == 0 and m[48] == 1 and m[49] == 0, "middle guard"
+
+    // 左侧首位 9 的 L 模式 0001011（首位 5 → 奇偶表 LGGLLG）
+    assert m[3] == 0 and m[4] == 0 and m[5] == 0 and m[6] == 1 and m[7] == 0 and m[8] == 1 and m[9] == 1, "digit 9 L pattern"
+
+    // 右侧首位 1 的 R 模式（L 取反）：1100110
+    assert m[50] == 1 and m[51] == 1 and m[52] == 0 and m[53] == 0 and m[54] == 1 and m[55] == 1 and m[56] == 0, "digit 1 R pattern"
+
+    // 12 位自动补校验位
+    var autoCode = barcode.ean13("590123412345")
+    int same = 1
+    for i in range(0, 95)
+        if autoCode[i] != m[i] then
+            same = 0
+        end
+    end
+    assert same == 1, "auto checksum matches"
+
+    // UPC-A：等价于前缀 0 的 EAN-13
+    var upc = barcode.upcA("12345678901")
+    assert upc.length == 95, "upc module count"
+    // 11 位自动补校验位 2：0123456789012
+    // 首位 0 → 全 L 模式；第二个数字 1 → L(1)=0011001
+    assert upc[3] == 0 and upc[4] == 0 and upc[5] == 1 and upc[6] == 1 and upc[7] == 0 and upc[8] == 0 and upc[9] == 1, "upc first digit L pattern"
+
+    // 渲染
+    string svg = barcode.ean13Svg("4006381333931", 60, 3)
+    assert svg.contains("<svg"), "svg root"
+    assert svg.contains("viewBox=\"0 0 285 60\""), "svg viewBox 95*3"
+    string asci = barcode.ean13Ascii("4006381333931")
+    assert asci.length == 95, "ascii width"
+
+    // 错误路径
+    int raised = 0
+    try
+        barcode.ean13("4006381333932")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "bad check digit raises"
+
+    raised = 0
+    try
+        barcode.ean13("123")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "short input raises"
+
+    return 0
+end

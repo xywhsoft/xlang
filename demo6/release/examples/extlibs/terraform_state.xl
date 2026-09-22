@@ -1,13 +1,26 @@
 import terraform_state
 
 func main(...) as int
-    // Terraform state management
+    string stateText = """
+{
+  "version": 4,
+  "serial": 7,
+  "lineage": "example-lineage",
+  "outputs": { "site_url": { "value": "https://example.test" } },
+  "resources": [
+    { "type": "aws_s3_bucket", "name": "assets", "instances": [ { "attributes": { "id": "assets-bucket" } } ] }
+  ]
+}
+"""
+    var state = terraform_state.parse(stateText)
 
-    println("Resource 0 = " + terraform_state.resourceType(0))
-    println("Action 0 = " + terraform_state.stateAction(0))
-    println("Backend 1 = " + terraform_state.backend(1))
-    println("Valid = " + string(terraform_state.validateAddress("aws_instance.web")))
-
+    println("state version: " + string(terraform_state.version(state)))
+    println("state serial: " + string(terraform_state.serial(state)))
+    for address in terraform_state.addresses(state)
+        var attributes = terraform_state.attributes(state, address as string)
+        println(string(address) + " -> " + string(attributes["id"]))
+    end
+    println("site URL: " + string(terraform_state.output(state, "site_url")["value"]))
     println("terraform_state example: PASS")
     return 0
 end

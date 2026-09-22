@@ -1,0 +1,39 @@
+import money
+
+
+
+func main(...) as int
+    // 订单结算：精确累加（浮点场景经典坑）
+    int subtotal = 0
+    var items = [
+        {"name": "keyboard", "cents": 7999},
+        {"name": "mouse", "cents": 3499},
+        {"name": "cable", "cents": 1200},
+        {"name": "shipping", "cents": 1500}
+    ]
+    for item in items
+        subtotal = money.add(subtotal, int(item["cents"]))
+    end
+    println("subtotal:", money.format(subtotal, "USD"))
+
+    // 折扣与税费：汇率式换算保持整数
+    int discounted = money.rate(subtotal, 0.9)
+    int taxed = money.rate(discounted, 1.07)
+    println("after 10% off:", money.format(discounted, "USD"))
+    println("after 7% tax:", money.format(taxed, "USD"))
+
+    // 三人分摊
+    var parts = money.split(taxed, 3)
+    for i in range(0, parts.length)
+        println("friend", i + 1, "pays", money.format(int(parts[i]), "USD"))
+    end
+
+    // 多币种展示
+    array<string> currencies = ["USD", "EUR", "CNY", "JPY", "GBP"]
+    for c in currencies
+        println(c, money.symbol(c), money.format(123456, c))
+    end
+
+    println("money example: PASS")
+    return 0
+end

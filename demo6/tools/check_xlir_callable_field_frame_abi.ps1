@@ -40,7 +40,6 @@ try {
         $loweredPath = Join-Path $Root "build\tmp\$name.callable-field.lowered.json"
         $generatedPath = Join-Path $Root "build\test\$name.callable-field.xlir.c"
         $repeatPath = Join-Path $Root "build\tmp\$name.callable-field.repeat.c"
-        $legacyPath = Join-Path $Root "build\test\$name.callable-field.legacy.c"
         if ( ! (Test-Path -LiteralPath $source -PathType Leaf) ) {
             throw "XLIR callable-field fixture is missing: $source"
         }
@@ -256,23 +255,14 @@ try {
             }
         }
 
-        & $xl cgen $source --backend legacy --emit $legacyPath
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "Legacy callable-field differential Cgen failed: $name"
-        }
         $relativeGenerated = "build\test\$name.callable-field.xlir.c"
-        $relativeLegacy = "build\test\$name.callable-field.legacy.c"
         $xlirExe = "build\tmp\$name.callable-field.xlir.exe"
-        $legacyExe = "build\tmp\$name.callable-field.legacy.exe"
         Invoke-CheckedCmd `
             "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include $relativeGenerated test\cases\xlir_generated_module_host.c $hostObject !XL6_CGEN_LINKS! -o $xlirExe && $xlirExe" `
             "XLIR callable-field strict-C/runtime gate failed: $name"
-        Invoke-CheckedCmd `
-            "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $relativeLegacy test\cases\cgen_class_host.c !XL6_CGEN_LINKS! -o $legacyExe && $legacyExe" `
-            "Legacy callable-field differential runtime failed: $name"
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR callable-field frame ABI gate passed: void, scalar, managed-string, nominal/collection xvalue and recursive multi-result closure slots remain verifier-owned; ignored managed products use adjacent temporary STORE/RELEASE, C is byte-for-byte deterministic, and strict XLIR/legacy runtimes agree."
+Write-Output "XLIR callable-field frame ABI gate passed: void, scalar, managed-string, nominal/collection xvalue and recursive multi-result closure slots remain verifier-owned; ignored managed products use adjacent temporary STORE/RELEASE, C is byte-for-byte deterministic, and the strict runtime passes."

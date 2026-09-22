@@ -1,0 +1,120 @@
+import xmail
+from xmail import Pop3Auth, Pop3Client, Pop3Config, Pop3Line
+from xmail import Pop3ListItem, Pop3Stat, Pop3UidlItem
+
+
+
+// 接收到协议分隔符为止；测试严格使用本地回环连接。
+func recvUntil(TcpStream stream, string marker) as string
+    string result = ""
+    while not string.contains(result, marker)
+        string part = stream.recv(8000, 65536)
+        assert part != "", "POP3 loopback server received an early close"
+        result = result + part
+    end
+    return result
+end
+
+
+
+// 模拟 CAPA、认证、查询和 RETR 多行响应。
+async func servePop3(TcpServer server) as int
+    TcpStream stream = await server.acceptAsync()
+    assert stream.send("+OK loopback ready\r\n")
+
+    assert recvUntil(stream, "\r\n") == "CAPA\r\n"
+    assert stream.send(
+        "+OK capabilities\r\nUSER\r\nUIDL\r\nTOP\r\nPIPELINING\r\n.\r\n")
+
+    assert recvUntil(stream, "\r\n") == "USER user\r\n"
+    assert stream.send("+OK user accepted\r\n")
+    assert recvUntil(stream, "\r\n") == "PASS pass\r\n"
+    assert stream.send("+OK mailbox locked\r\n")
+
+    assert recvUntil(stream, "\r\n") == "STAT\r\n"
+    assert stream.send("+OK 2 300\r\n")
+    assert recvUntil(stream, "\r\n") == "LIST 1\r\n"
+    assert stream.send("+OK 1 120\r\n")
+    assert recvUntil(stream, "\r\n") == "UIDL 1\r\n"
+    assert stream.send("+OK 1 uid-1\r\n")
+
+    assert recvUntil(stream, "\r\n") == "RETR 1\r\n"
+    assert stream.send(
+        "+OK message follows\r\nSubject: loopback\r\n\r\n..body\r\n.\r\n")
+
+    assert recvUntil(stream, "\r\n") == "NOOP\r\n"
+    assert stream.send("+OK still here\r\n")
+    assert recvUntil(stream, "\r\n") == "QUIT\r\n"
+    assert stream.send("+OK bye\r\n")
+    stream.shutdownWrite()
+    stream.close()
+    return 0
+end
+
+
+
+// 等待 Listener 关闭，避免全局网络运行时退出时仍有活动对象。
+func closeServer(TcpServer server) as bool
+    if not server.close() and server.state != 2 then
+        return false
+    end
+    for attempt in range(0, 500)
+        if server.state == 2 then
+            return true
+        end
+        time.sleep(1)
+    end
+    return false
+end
+
+
+
+async func run() as int
+    TcpServer server = tcp.listen(0)
+    future<int> serving = servePop3(server)
+    NetEngine engine = NetEngine(1)
+    assert engine.start(), "POP3 client engine could not start"
+
+    Pop3Config config = Pop3Config(
+        "127.0.0.1", server.port(), xmail.SECURITY_PLAIN,
+        true, 8000)
+    Pop3Client client = Pop3Client.open(engine, config)
+    assert client.valid and client.state == xmail.POP3_AUTHORIZATION
+    assert client.capabilities >= xmail.POP3_CAP_UIDL
+
+    Pop3Auth auth = Pop3Auth(
+        "user", "pass", xmail.POP3_AUTH_USER_PASS, "", true, true)
+    assert client.auth(auth)
+    assert client.state == xmail.POP3_TRANSACTION
+
+    Pop3Stat stat = client.stat()
+    assert stat.messages == 2 and stat.bytes == 300
+    Pop3ListItem listed = client.list(1)
+    assert listed.message == 1 and listed.bytes == 120
+    Pop3UidlItem uidl = client.uidl(1)
+    assert uidl.message == 1 and uidl.id == "uid-1"
+
+    assert client.retrieve(1)
+    Pop3Line first = client.next()
+    Pop3Line empty = client.next()
+    Pop3Line body = client.next()
+    Pop3Line done = client.next()
+    assert first.state == xmail.POP3_NEXT_ITEM
+    assert first.line == "Subject: loopback"
+    assert empty.state == xmail.POP3_NEXT_ITEM and empty.line == ""
+    assert body.state == xmail.POP3_NEXT_ITEM and body.line == ".body"
+    assert done.state == xmail.POP3_NEXT_END
+
+    assert client.noop()
+    assert client.quit()
+    assert client.state == xmail.POP3_CLOSED
+    assert await serving == 0
+    assert closeServer(server)
+    engine.stop()
+    return 0
+end
+
+
+
+assert await run() == 0
+println("xmail POP3 loopback package ok")

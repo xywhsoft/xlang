@@ -1,0 +1,19 @@
+{
+  "format": "xlang-xhttp-body-codec-snapshot-1",
+  "modules": [
+    "http_body_transform",
+    "http_body_deflate",
+    "http_body_inflate"
+  ],
+  "files": {
+    "include/xhttp/features.h": "b5ef61dc988be48988b30311c8384c63efc33147fc7b4647b23d42b988f35217",
+    "include/xrt/http_body.h": "40b918091fc2e91696fc9b172d44a847075b5daffd76a124def7532b9b7bbad1",
+    "include/xrt/http_body_deflate.h": "6261cbf2167a68d4e8c3b66ffbebfff70f891fa48d90cc400347c2a4f07b48ed",
+    "include/xrt/http_body_inflate.h": "1ef092e7aaaf35700d57b59a9637cc4a1361ceb85a8d82a0c56defe8750272bd",
+    "src/http/http_body_deflate.c": "fcd0f4a7267158d17bd194244842bfb11de58014d8e3edae0e35d2b25549e60a",
+    "src/http/http_body_inflate.c": "4e8fb033218ab0587247732945ad57da8d054122ab9d491d0d8a29e326e2e0e9",
+    "src/http/http_body_transform.c": "eeeeb7b081689461340b7cc9b58d7635b086d688adbf65216c8c7a02f1b6989c",
+    "src/internal/xhttp_internal.h": "9d43808ce65e26005b7f7a3f465a47f663cb3993c29235486c9688be925adc67",
+    "src/internal/xrt_http_body_transform.h": "e4e16ffff0eac01ba2804de9cb3ae367462ba9dba04c68cc6a1572c2d2574625"
+  }
+}

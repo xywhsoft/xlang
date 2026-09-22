@@ -10,107 +10,153 @@
 
 
 
-bool __xrtZipEntryPathSafe(const char* sName, bool bDirectory, xrtziparchive* pArchive,
-	uint64 iEntry)
+/* 验证 ZIP 条目名可安全映射为目标目录中的相对路径。 */
+bool __xrtZipEntryPathSafe(const char* sName, bool bDirectory,
+	xrtziparchive* pArchive, uint64 iEntry)
 {
-	if ( !xrtPathIsSafeArchiveEntry((str)sName, bDirectory) ||
-		(bDirectory && sName != NULL && sName[0] != 0 && sName[strlen(sName) - 1u] != '/') ) {
+	if ( !xrtPathIsSafeEntry(xrtStrView(sName), bDirectory) ||
+		(bDirectory && (sName != NULL) && (sName[0] != 0) &&
+		(sName[strlen(sName) - 1u] != '/')) ) {
 		__xrtZipSetError(pArchive, XRT_ZIP_ERROR_UNSAFE_PATH, ZIP_ER_INVAL, 0, iEntry,
 			"unsafe ZIP entry path: %s", sName != NULL ? sName : "");
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 
 
-XXAPI bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, str sDestination, bool bOverwrite)
+
+
+/* 安全解压全部条目；普通文件通过同目录临时文件流式提交。 */
+XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination,
+	bool bOverwrite)
 {
 	uint64 iCount;
 	uint64 iTotal = 0u;
 	uint64 i;
-	if ( !__xrtZipCheckOpen(pArchive, FALSE) || sDestination == NULL || sDestination[0] == 0 ) {
-		return FALSE;
+
+	if ( !__xrtZipCheckOpen(pArchive, false) ) {
+		return false;
+	}
+	if ( (sDestination == NULL) || (sDestination[0] == 0) ) {
+		__xrtZipSetError(pArchive, XRT_ZIP_ERROR_ARGUMENT, ZIP_ER_INVAL, 0, UINT64_MAX,
+			"ZIP extraction destination is required");
+		return false;
 	}
 	if ( !xrtDirExists(sDestination) && !xrtDirCreateAll(sDestination) ) {
 		__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, UINT64_MAX,
 			"cannot create ZIP extraction directory: %s", sDestination);
-		return FALSE;
+		return false;
 	}
 	iCount = xrtZipArchiveCount(pArchive);
 	for ( i = 0u; i < iCount; ++i ) {
-		xrtzipentry tEntry;
-		str sJoined;
+		xrtzipentry Entry;
 		str sOutput;
 		uint32 iType;
-		if ( !xrtZipArchiveEntryAt(pArchive, i, &tEntry) ||
-			!__xrtZipEntryPathSafe(tEntry.sName, tEntry.bDirectory, pArchive, i) ) { return FALSE; }
-		iType = tEntry.iUnixMode & XRT_ZIP_MODE_MASK;
-		if ( iType != 0u && iType != XRT_ZIP_MODE_FILE && iType != XRT_ZIP_MODE_DIR ) {
-			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_UNSAFE_PATH, ZIP_ER_OPNOTSUPP, 0, i,
-				"ZIP links and special files are disabled: %s", tEntry.sName);
-			return FALSE;
+
+		if ( !xrtZipArchiveEntryAt(pArchive, i, &Entry) ||
+			!__xrtZipEntryPathSafe(Entry.sName, Entry.bDirectory, pArchive, i) ) {
+			return false;
 		}
-		if ( tEntry.iUncompressedSize > UINT64_MAX - iTotal ) {
+		iType = Entry.iUnixMode & XRT_ZIP_MODE_MASK;
+		if ( (iType != 0u) && (iType != XRT_ZIP_MODE_FILE) &&
+			(iType != XRT_ZIP_MODE_DIR) ) {
+			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_UNSAFE_PATH, ZIP_ER_OPNOTSUPP, 0, i,
+				"ZIP links and special files are disabled: %s", Entry.sName);
+			return false;
+		}
+		if ( Entry.iUncompressedSize > (UINT64_MAX - iTotal) ) {
 			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_LIMIT, ZIP_ER_DATA_LENGTH, 0, i,
 				"ZIP extracted size overflow");
-			return FALSE;
+			return false;
 		}
-		iTotal += tEntry.iUncompressedSize;
-		if ( pArchive->Options.tLimits.iMaxOutputBytes != 0u &&
-			iTotal > pArchive->Options.tLimits.iMaxOutputBytes ) {
+		iTotal += Entry.iUncompressedSize;
+		if ( (pArchive->Options.tLimits.iMaxOutputBytes != 0u) &&
+			(iTotal > pArchive->Options.tLimits.iMaxOutputBytes) ) {
 			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_LIMIT, ZIP_ER_DATA_LENGTH, 0, i,
 				"ZIP extraction exceeds the configured output limit");
-			return FALSE;
+			return false;
 		}
-		sJoined = xrtPathJoin(2u, sDestination, tEntry.sName);
-		sOutput = sJoined != NULL ? xrtCopyStr(sJoined, 0u) : NULL;
+
+		sOutput = xrtPathJoin(sDestination, Entry.sName);
 		if ( sOutput == NULL ) {
 			__xrtZipSetError(pArchive, XRT_ZIP_ERROR_MEMORY, ZIP_ER_MEMORY, 0, i,
 				"cannot build ZIP extraction path");
-			return FALSE;
+			return false;
 		}
-		if ( tEntry.bDirectory || iType == XRT_ZIP_MODE_DIR ) {
+		if ( Entry.bDirectory || (iType == XRT_ZIP_MODE_DIR) ) {
 			if ( !xrtDirExists(sOutput) && !xrtDirCreateAll(sOutput) ) {
 				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, i,
 					"cannot create ZIP directory: %s", sOutput);
 				xrtFree(sOutput);
-				return FALSE;
+				return false;
 			}
-		}
-		else {
-			str sParentTemp = xrtPathGetDir(sOutput, 0u);
-			str sParent = sParentTemp != NULL ? xrtCopyStr(sParentTemp, 0u) : NULL;
-			xbuffer pData;
-			if ( sParent == NULL || (!xrtDirExists(sParent) && !xrtDirCreateAll(sParent)) ) {
+		} else {
+			str sParent = xrtPathParent(sOutput);
+			str sTemporary = NULL;
+			xfile File;
+			xwriter* pWriter;
+			bool bRead;
+			bool bFlush;
+			bool bClose;
+
+			if ( (sParent == NULL) ||
+				(!xrtDirExists(sParent) && !xrtDirCreateAll(sParent)) ) {
 				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, i,
 					"cannot create ZIP entry parent directory: %s", sOutput);
 				xrtFree(sParent);
 				xrtFree(sOutput);
-				return FALSE;
+				return false;
 			}
-			xrtFree(sParent);
-			if ( (xrtFileExists(sOutput) || xrtDirExists(sOutput)) && !bOverwrite ) {
+			if ( xrtPathExists(sOutput) && !bOverwrite ) {
 				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_EXISTS, ZIP_ER_EXISTS, 0, i,
 					"ZIP extraction target already exists: %s", sOutput);
+				xrtFree(sParent);
 				xrtFree(sOutput);
-				return FALSE;
+				return false;
 			}
-			pData = xrtZipArchiveReadAt(pArchive, i);
-			if ( pData == NULL || !xrtFileWriteAllAtomic(sOutput,
-				pData != NULL ? (str)pData->Buffer : NULL,
-				pData != NULL ? pData->Length : 0u, XRT_CP_BINARY) ) {
-				if ( pArchive->Error.iCode == XRT_ZIP_OK ) {
+
+			File = xrtFileTemp(sParent, ".xrt-zip-entry-", ".tmp", &sTemporary);
+			xrtFree(sParent);
+			pWriter = File != NULL ? xrtWriterTakeFile(&File) : NULL;
+			if ( pWriter == NULL ) {
+				if ( File != NULL ) { (void)xrtClose(File); }
+				if ( sTemporary != NULL ) { (void)xrtFileDelete(sTemporary); }
+				xrtFree(sTemporary);
+				__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_OPEN, 0, i,
+					"cannot create ZIP entry transaction: %s", sOutput);
+				xrtFree(sOutput);
+				return false;
+			}
+
+			bRead = xrtZipArchiveReadAtTo(pArchive, i, pWriter);
+			bFlush = bRead && xrtWriterFlush(pWriter);
+			bClose = xrtWriterDestroy(pWriter);
+			if ( !bRead || !bFlush || !bClose ) {
+				if ( bRead ) {
 					__xrtZipSetError(pArchive, XRT_ZIP_ERROR_IO, ZIP_ER_WRITE, 0, i,
 						"cannot write ZIP entry: %s", sOutput);
 				}
-				xrtBufferDestroy(pData);
+				(void)xrtFileDelete(sTemporary);
+				xrtFree(sTemporary);
 				xrtFree(sOutput);
-				return FALSE;
+				return false;
 			}
-			xrtBufferDestroy(pData);
+			if ( !xrtPathRename(sTemporary, sOutput, bOverwrite) ) {
+				__xrtZipSetError(pArchive,
+					(!bOverwrite && xrtPathExists(sOutput)) ?
+						XRT_ZIP_ERROR_EXISTS : XRT_ZIP_ERROR_IO,
+					!bOverwrite ? ZIP_ER_EXISTS : ZIP_ER_WRITE,
+					0, i, "cannot commit ZIP entry: %s", sOutput);
+				(void)xrtFileDelete(sTemporary);
+				xrtFree(sTemporary);
+				xrtFree(sOutput);
+				return false;
+			}
+			xrtFree(sTemporary);
 		}
 		xrtFree(sOutput);
 	}
-	return TRUE;
+	return true;
 }

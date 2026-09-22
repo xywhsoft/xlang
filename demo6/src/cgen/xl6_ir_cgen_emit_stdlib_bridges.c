@@ -13,12 +13,12 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
         xl6CgenEmitProcessRunRuntime(out, needs->processRunBridgeOperations);
     if ( needs->needsJsonVisitBridgeRuntime ||
          (needs->xsonBridgeOperations & XL6_CGEN_XSON_VISIT) )
-        xl6CgenEmitSerializationCallbackRuntime(out, 1);
+        xl6CgenEmitSerializationCallbackRuntime(out);
     if ( needs->xsonBridgeOperations != 0 )
-        xl6CgenEmitXsonRuntime(out, needs->xsonBridgeOperations, 1);
+        xl6CgenEmitXsonRuntime(out, needs->xsonBridgeOperations);
     if ( needs->needsJsonVisitBridgeRuntime || needs->needsJsonWriterBridgeRuntime )
         xl6CgenEmitJsonStreamRuntime(out, needs->needsJsonVisitBridgeRuntime,
-            needs->needsJsonWriterBridgeRuntime, 1);
+            needs->needsJsonWriterBridgeRuntime);
     if ( needs->jsonValueBridgeOperations != 0 )
         xl6CgenEmitJsonValueRuntime(out, needs->jsonValueBridgeOperations,
             xl6IrCgenNeedsXrtDeclarations(needs));

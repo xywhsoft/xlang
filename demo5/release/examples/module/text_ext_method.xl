@@ -1,7 +1,0 @@
-export func string.wrap(string self, string left, string right) as string
-	return left + self + right
-end
-
-export func string.exclaim(string self) as string
-	return self + "!"
-end

@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/plist/include/xrt_plist.h"
 
 #include <stdio.h>
@@ -11,8 +13,8 @@ int main(void)
 	xrtplistnode* pTags;
 	xrtplistoptions tOptions;
 	xrtplisterror tError;
-	xbuffer pXml;
-	if ( xrtInit() == NULL ) { return 1; }
+	xbuffer* pXml;
+	bool bOk;
 	pDocument = xrtPlistCreate();
 	pRoot = xrtPlistCreateDict(pDocument);
 	pTags = xrtPlistCreateArray(pDocument);
@@ -28,14 +30,14 @@ int main(void)
 	xrtPlistDictSet(pRoot, "tags", 4u, pTags);
 	xrtPlistOptionsInit(&tOptions);
 	tOptions.iFormat = XRT_PLIST_FORMAT_XML;
-	tOptions.bPretty = TRUE;
-	tOptions.bSortKeys = TRUE;
+	tOptions.bPretty = true;
+	tOptions.bSortKeys = true;
 	pXml = xrtPlistStringify(pDocument, &tOptions, &tError);
-	if ( pXml != NULL ) { printf("%.*s", (int)pXml->Length, pXml->Buffer); }
+	bOk = pXml != NULL;
+	if ( pXml != NULL ) { printf("%.*s", (int)pXml->Size, pXml->Data); }
 	xrtBufferDestroy(pXml);
 	xrtPlistDestroy(pDocument);
-	xrtUnit();
-	return pXml != NULL ? 0 : 2;
+	return bOk ? 0 : 2;
 }
 
 /* xl run 可直接执行；包构建时不编译这一段。 */

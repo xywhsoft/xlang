@@ -1,0 +1,39 @@
+import json.patch
+
+
+
+func main(...) as int
+    // 模拟一份服务配置的热更新
+    var config = {
+        "host": "0.0.0.0",
+        "port": 80,
+        "features": ["http2", "gzip"],
+        "limits": {"maxBody": 1048576, "timeout": 30}
+    }
+    println("before port:", json.patch.get(config, "/port"))
+
+    // RFC 6902：一次原子更新多个位置
+    var patch = [
+        {"op": "replace", "path": "/port", "value": 8443},
+        {"op": "add", "path": "/features/-", "value": "brotli"},
+        {"op": "replace", "path": "/limits/timeout", "value": 15},
+        {"op": "add", "path": "/tls", "value": {"cert": "server.pem", "verify": true}}
+    ]
+    var updated = json.patch.apply(config, patch)
+    println("after port:", json.patch.get(updated, "/port"))
+    println("timeout:", json.patch.get(updated, "/limits/timeout"))
+    println("tls verify:", json.patch.get(updated, "/tls/verify"))
+
+    // RFC 7386：面向用户的局部合并（null 表示删除）
+    var userPatch = {"port": 9000, "features": null}
+    var merged = json.patch.merge(config, userPatch)
+    println("merged port:", json.patch.get(merged, "/port"))
+    println("features removed:", not json.patch.has(merged, "/features"))
+    println("limits kept:", json.patch.get(merged, "/limits/maxBody"))
+
+    // 原文档不受影响
+    println("source port still:", json.patch.get(config, "/port"))
+
+    println("json.patch example: PASS")
+    return 0
+end

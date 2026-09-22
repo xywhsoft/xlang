@@ -22,51 +22,43 @@ $shell = Join-Path $Root 'src\driver\xl6_xlc_shell.c'
 $api = Join-Path $Root 'src\api\xl_api.c'
 $header = Join-Path $Root 'release\include\xlc.h'
 $source = Join-Path $Root 'test\cases\xlir_checked_integer_arithmetic_abi.xl'
-$matrixName = 'XLIR' + ([char]0x8FC1) + ([char]0x79FB) +
-    ([char]0x9A8C) + ([char]0x6536) + ([char]0x77E9) + ([char]0x9635) + '.md'
-$matrix = Join-Path $Root (Join-Path 'docs' $matrixName)
-foreach ($path in @($shell, $api, $header, $source, $matrix)) {
+foreach ($path in @($shell, $api, $header, $source)) {
     if (!(Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "XLIR default-backend boundary input is missing: $path"
     }
 }
-$boundarySnapshot = @(New-XlirPublicCgenSnapshot -Paths @($shell, $api, $header, $source, $matrix))
+$boundarySnapshot = @(New-XlirPublicCgenSnapshot -Paths @($shell, $api, $header, $source))
 
 $shellText = [IO.File]::ReadAllText($shell, [Text.Encoding]::UTF8)
 $apiText = [IO.File]::ReadAllText($api, [Text.Encoding]::UTF8)
 $headerText = [IO.File]::ReadAllText($header, [Text.Encoding]::UTF8)
 if (!$headerText.Contains('XLC_BACKEND_XLIR = 0') -or
-    !$headerText.Contains('XLC_BACKEND_LEGACY = 1')) {
-    throw 'Public compiler API must expose XLIR as the zero/default backend and legacy explicitly'
+    $headerText.Contains('XLC_BACKEND_LEGACY')) {
+    throw 'Public compiler API must expose only XLIR as the zero/default backend'
 }
-if (!$apiText.Contains('ctx->backend = XLC_BACKEND_XLIR;') -or
-    !$apiText.Contains('ctx->backend == XLC_BACKEND_LEGACY') -or
-    !$apiText.Contains('xlEmitUnitXlirCToFile(')) {
-    throw 'Compiler context default or selected-backend C emission routing regressed'
+if (!$apiText.Contains('backend != XLC_BACKEND_XLIR') -or
+    !$apiText.Contains('only the XLIR compiler backend is available') -or
+    !$apiText.Contains('xlEmitUnitCToFile(') -or
+    $apiText.Contains('xlEmitUnitXlirCToFile(') -or
+    $apiText.Contains('ctx->backend')) {
+    throw 'Compiler API must reject retired backend values and route C emission directly through XLIR'
 }
 if (!$shellText.Contains('xlcSetBackend(ctx, XLC_BACKEND_XLIR)') -or
-    !$shellText.Contains('xlcSetBackend(ctx, XLC_BACKEND_LEGACY)') -or
-    !$shellText.Contains('[--backend legacy|xlir]')) {
-    throw 'CLI must expose and apply both explicit backend selections'
-}
-$matrixText = [IO.File]::ReadAllText($matrix, [Text.Encoding]::UTF8)
-if (!$matrixText.Contains('XLC_BACKEND_XLIR') -or
-    !$matrixText.Contains('--backend legacy') -or
-    !$matrixText.Contains('legacy-vs-XLIR')) {
-    throw 'XLIR default-backend contract is undocumented'
+    !$shellText.Contains('[--backend xlir]') -or
+    !$shellText.Contains('only the xlir backend is available') -or
+    $shellText.Contains('--backend legacy')) {
+    throw 'CLI must expose only the canonical XLIR backend selector'
 }
 
 $session = Open-XlirPublicCgen -Root $Root -PublicDirectory $PublicDirectory
 $defaultOutput = Join-Path $outputPath 'default.c'
 $xlirOutput = Join-Path $outputPath 'explicit-xlir.c'
-$legacyOutput = Join-Path $outputPath 'explicit-legacy.c'
 $batch = @(Invoke-XlirPublicCgenBatch -Session $session -Requests @(
     [pscustomobject]@{ Source = $source; Backend = 'default'; Output = $defaultOutput },
-    [pscustomobject]@{ Source = $source; Backend = 'xlir'; Output = $xlirOutput },
-    [pscustomobject]@{ Source = $source; Backend = 'legacy'; Output = $legacyOutput }
+    [pscustomobject]@{ Source = $source; Backend = 'xlir'; Output = $xlirOutput }
 ))
-$default, $xlir, $legacy = $batch
-foreach ($invocation in @($default, $xlir, $legacy)) {
+$default, $xlir = $batch
+foreach ($invocation in @($default, $xlir)) {
     if ($invocation.ExecutionFailure) {
         throw "XLIR default-backend $($invocation.Backend) execution failed: $($invocation.ExecutionFailure)"
     }
@@ -74,33 +66,47 @@ foreach ($invocation in @($default, $xlir, $legacy)) {
         throw "XLIR default-backend $($invocation.Backend) Cgen failed: $($invocation.Output)"
     }
 }
-if ($default.SourceSha256 -ne $xlir.SourceSha256 -or
-    $default.SourceSha256 -ne $legacy.SourceSha256) {
+if ($default.SourceSha256 -ne $xlir.SourceSha256) {
     throw 'Default-backend differential invocations did not consume the same source revision'
 }
 
 if ($default.ArtifactSha256 -cne $xlir.ArtifactSha256) {
     throw 'Cgen without a backend override must be byte-identical to explicit XLIR'
 }
-if ($default.ArtifactSha256 -ceq $legacy.ArtifactSha256) {
-    throw 'Explicit legacy Cgen must remain a distinct differential baseline'
-}
 $defaultText = [IO.File]::ReadAllText($defaultOutput, [Text.Encoding]::UTF8)
-$legacyText = [IO.File]::ReadAllText($legacyOutput, [Text.Encoding]::UTF8)
-if ($legacyText.Contains('xlir_module_init')) {
-    throw 'Explicit legacy Cgen emitted the XLIR module boundary'
-}
 if (!$defaultText.Contains('xlir_module_init') -or !$defaultText.Contains('xlang_main')) {
     throw 'Default Cgen did not emit the verified XLIR module and language entry'
 }
 if ([Text.RegularExpressions.Regex]::IsMatch($defaultText, '(?m)^\s*int\s+main\s*\(')) {
     throw 'Cgen module artifacts must not own the native process main entry'
 }
+
+$recoveryPrefix = Join-Path $outputPath 'retired-backend-recovery'
+$recoveryStdout = Join-Path $outputPath 'retired-backend-recovery.log'
+$recoveryStderr = Join-Path $outputPath 'retired-backend-recovery.err.log'
+$savedErrorActionPreference = $ErrorActionPreference
+try {
+    # Recovery deliberately runs a failing assertion. Windows PowerShell must
+    # not promote that expected native stderr stream into a terminating error.
+    $ErrorActionPreference = 'Continue'
+    & ([string]$session.Driver) $source 'recovery' $recoveryPrefix `
+        1> $recoveryStdout 2> $recoveryStderr
+    $recoveryExitCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $savedErrorActionPreference
+}
+$recoveryText = if (Test-Path -LiteralPath $recoveryStdout) {
+    [IO.File]::ReadAllText($recoveryStdout, [Text.Encoding]::UTF8)
+} else { '' }
+if ($recoveryExitCode -ne 0 -or
+    !$recoveryText.Contains('retired-backend rejection and successful reuse')) {
+    throw 'Public compiler recovery did not reject a retired backend value and remain reusable'
+}
 Assert-XlirPublicCgenUnchanged $session
 Assert-XlirPublicCgenSnapshotUnchanged $boundarySnapshot
 
 $report = [ordered]@{
-    SchemaVersion = 3
+    SchemaVersion = 4
     RecordedAt = [DateTime]::UtcNow.ToString('o')
     Source = $source
     CompilerManifest = $session.ManifestPath
@@ -112,12 +118,13 @@ $report = [ordered]@{
     })
     Default = $default
     ExplicitXlir = $xlir
-    ExplicitLegacy = $legacy
     DefaultEqualsExplicitXlir = $true
-    LegacyIsDistinct = $true
+    RetiredBackendRejected = $true
+    ContextReusableAfterRejectedBackend = $true
+    RecoveryExitCode = $recoveryExitCode
     InputsUnchanged = $true
 }
 [IO.File]::WriteAllText((Join-Path $outputPath 'results.json'),
     ($report | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
-Write-Output 'XLIR current-source default backend boundary ok: default equals explicit XLIR, legacy remains explicit, and Cgen emits an embeddable module.'
+Write-Output 'XLIR current-source backend boundary ok: default equals explicit XLIR, retired backend values are rejected, and Cgen emits an embeddable module.'
 exit 0

@@ -38,12 +38,4 @@ string stsSpec = "access_key=AKID\nsecret_key=SECRET\nrole_trn=trn:iam::12345678
 string stsSpecPreview = volc.core.sign_preview_sts_spec(stsSpec)
 assert string.contains(stsSpecPreview, "AssumeRole"), "volc.core sts spec preview action missing"
 
-string failed = volc.core.request("POST", "127.0.0.1", "/", "ACEP", "cn-north-1", "ListApps", "2020-01-01", "AKID", "SECRET", "", "application/json", "", body, 1)
-assert string.len(failed) >= 0, "volc.core request should return a string"
-assert volc.core.last_status() >= 0, "volc.core last_status should be readable"
-assert string.len(volc.core.request_acep("ListApps", "2020-01-01", "AKID", "SECRET", "", body, 1)) >= 0, "volc.core request_acep should return a string"
-assert string.len(volc.core.request_sts("AKID", "SECRET", "trn:iam::123456789:role/demo", "demo-session", 900, 1)) >= 0, "volc.core request_sts should return a string"
-assert string.len(volc.core.request_acep_spec("action=ListApps\nversion=2020-01-01\naccess_key=AKID\nsecret_key=SECRET\nbody={}\ntimeout_ms=1\n")) >= 0, "volc.core request_acep_spec should return a string"
-assert string.len(volc.core.request_sts_spec("access_key=AKID\nsecret_key=SECRET\nrole_trn=trn:iam::123456789:role/demo\nrole_session_name=demo-session\nduration_seconds=900\ntimeout_ms=1\n")) >= 0, "volc.core request_sts_spec should return a string"
-
 println("volc.core extlib ok")

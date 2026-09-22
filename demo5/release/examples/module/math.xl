@@ -1,8 +1,0 @@
-func 加一(int x) as int
-	return x + 1
-end
-
-const int 基数 = 41
-
-export 加一
-export 基数

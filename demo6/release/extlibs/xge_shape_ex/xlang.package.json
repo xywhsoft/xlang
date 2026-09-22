@@ -9,7 +9,8 @@
         "cSources": [],
         "xlSources": [
             "src/xge_shape_ex.xl",
-            "src/xge_svg.xl"
+            "src/xge_svg.xl",
+            "src/xge_shape_ex_oop.xl"
         ]
     },
     "links": [],

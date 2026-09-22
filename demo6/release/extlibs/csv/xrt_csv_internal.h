@@ -1,14 +1,16 @@
 #ifndef XRT_CSV_INTERNAL_H
 #define XRT_CSV_INTERNAL_H
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "include/xrt_csv.h"
 
 struct xrtcsvreader {
-	xreader Reader;
+	xreader* Reader;
 	bool TakeReader;
 	xrtcsvdialect Dialect;
 	xrtcsverror Error;
-	xbuffer Field;
+	xbuffer* Field;
 	str* Fields;
 	uint32 FieldCount;
 	uint32 FieldCapacity;
@@ -29,9 +31,9 @@ struct xrtcsvreader {
 };
 
 struct xrtcsvwriter {
-	xwriter Writer;
+	xwriter* Writer;
 	bool TakeWriter;
-	xbuffer Memory;
+	xbuffer* Memory;
 	xrtcsvdialect Dialect;
 	xrtcsverror Error;
 	uint64 RowNumber;

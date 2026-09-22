@@ -1,33 +1,34 @@
 import terraform_state
 
 func main(...) as int
-    // Resource types
-    assert terraform_state.resourceType(0) == "aws_instance", "res aws_instance"
-    assert terraform_state.resourceType(5) == "kubernetes_deployment", "res k8s"
+    string text = """
+{
+  "version": 4,
+  "serial": 17,
+  "lineage": "demo-lineage",
+  "outputs": { "endpoint": { "value": "https://example.test", "type": "string" } },
+  "resources": [
+    { "type": "aws_instance", "name": "web", "instances": [ { "attributes": { "id": "i-123", "port": 443 } } ] },
+    { "module": "module.edge", "mode": "data", "type": "aws_ami", "name": "latest", "instances": [ { "attributes": { "id": "ami-456" } } ] }
+  ]
+}
+"""
+    var state = terraform_state.parse(text)
+    var addresses = terraform_state.addresses(state)
 
-    // State actions
-    assert terraform_state.stateAction(0) == "create", "action create"
-    assert terraform_state.stateAction(3) == "delete", "action delete"
-    assert terraform_state.stateAction(4) == "no-op", "action noop"
-
-    // Backends
-    assert terraform_state.backend(0) == "local", "backend local"
-    assert terraform_state.backend(1) == "s3", "backend s3"
-
-    // Lock info fields
-    assert terraform_state.lockInfo(0) == "ID", "lock ID"
-    assert terraform_state.lockInfo(3) == "Who", "lock Who"
-
-    // Validate address
-    assert terraform_state.validateAddress("aws_instance.web") == 1, "valid addr"
-    assert terraform_state.validateAddress("invalid") == 0, "invalid addr"
-
-    // State version
-    assert terraform_state.stateVersion(5) == "4.5", "state ver"
-
-    // Providers
-    assert terraform_state.provider(0) == "hashicorp/aws", "provider aws"
-    assert terraform_state.provider(3) == "hashicorp/kubernetes", "provider k8s"
-
+    assert terraform_state.valid(text), "valid state"
+    assert not terraform_state.valid("[]"), "root must be object"
+    assert terraform_state.version(state) == 4, "version"
+    assert terraform_state.serial(state) == 17, "serial"
+    assert terraform_state.lineage(state) == "demo-lineage", "lineage"
+    assert addresses.length == 2, "address count"
+    assert addresses[0] == "aws_instance.web", "managed address"
+    assert addresses[1] == "module.edge.data.aws_ami.latest", "data address"
+    assert terraform_state.find(state, "missing.resource") == null, "missing resource"
+    assert terraform_state.find(state, "aws_instance.web")["type"] == "aws_instance", "resource lookup"
+    assert terraform_state.instances(state, "aws_instance.web")[0]["attributes"]["id"] == "i-123", "instances"
+    assert terraform_state.attributes(state, "aws_instance.web")["port"] == 443, "attributes"
+    assert terraform_state.output(state, "endpoint")["value"] == "https://example.test", "output"
+    assert terraform_state.output(state, "missing") == null, "missing output"
     return 0
 end

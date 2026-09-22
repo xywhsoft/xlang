@@ -79,14 +79,6 @@ call :run_example release\examples\extlibs\volc_sts.xl volc.sts xl6_export_____x
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\volc_phone.xl volc.phone xl6_export_____xl6__import__volc__phone__product__body
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\mail_mime.xl mail.mime xl6_export_____xl6__import__mail__mime__build__json
-if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\mail_smtp.xl mail.smtp xmail_smtp_send_json_native
-if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\mail_pop3.xl mail.pop3 xmail_pop3_fetch_json_native
-if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\mail_imap.xl mail.imap xmail_imap_watch_json_native
-if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\uia.xl uia x_uia_test_window_create
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\opencv.xl opencv opencv_capture_rect_native
@@ -101,7 +93,7 @@ call :run_example release\examples\extlibs\rapidocr.xl rapidocr xl6_export_____x
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\ui_auto.xl ui.auto xl6_export_____xl6__import__ui__auto__test__window
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\redis.xl redis xl6_export_____xl6__import__redis__resp__encode3
+call :run_example release\examples\extlibs\redis.xl redis xr_encode
 if errorlevel 1 exit /b 1
 
 rem Wires: release/examples/extlibs/*.xl

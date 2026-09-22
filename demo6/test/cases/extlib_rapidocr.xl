@@ -1,0 +1,15 @@
+import rapidocr
+
+func main(...) as int
+    string keys = rapidocr.default_model_dir() + "\\ppocr_keys_v1.txt"
+    assert rapidocr.available(), "runtime"
+    assert rapidocr.box_count(rapidocr.det_boxes_from_output("{}", 320, 240)) == 0, "empty boxes"
+    assert string.len(rapidocr.charset_info(keys)) > 0, "charset"
+
+    auto engine = rapidocr.RapidOCR("__missing_det__.onnx", "__missing_cls__.onnx", "__missing_rec__.onnx", keys)
+    auto result = engine.op_call("__missing_image__.png")
+    assert result.ok() == false, "missing image"
+    assert result.release() == false
+    assert engine.release()
+    return 0
+end

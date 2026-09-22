@@ -51,17 +51,20 @@ func main(...) as int
     println("FindColorBlock(2x2): " + block)
 
     // --- Capture & image ops ---
-    int ok = o.capture(0, 0, 64, 64, "op_demo_capture.bmp")
+    string capturePath = "op_demo_capture.bmp"
+    file.delete(capturePath)
+    int ok = o.capture(0, 0, 64, 64, capturePath)
     println("Capture: " + string(ok))
     string memCap = o.captureToMem(0, 0, 4, 4)
     println("CaptureToMem(4x4): " + string(string.len(memCap)) + " chars")
     println("ImageHash(64x64): " + o.imageHash(0, 0, 64, 64))
-    float cmp = o.imageCompare(0, 0, 64, 64, "op_demo_capture.bmp", 1.0)
+    float cmp = o.imageCompare(0, 0, 64, 64, capturePath, 1.0)
     println("ImageCompare: " + string(cmp))
 
     // --- FindPicN (multi-pic) ---
-    string picN = o.findPicN(0, 0, 200, 200, "op_demo_capture.bmp", "", 0.9, 0)
+    string picN = o.findPicN(0, 0, 200, 200, capturePath, "", 0.9, 0)
     println("FindPicN: " + picN)
+    file.delete(capturePath)
 
     // --- Mouse (safe demos) ---
     o.moveTo(100, 100)

@@ -2,16 +2,44 @@ import ntp
 
 
 
-func main(...) as int
-    auto ts = ntp.now()
-    println("Unix timestamp: ", ts)
-    println("UTC: ", ntp.formatUtc(ts))
-    println("Local: ", ntp.formatLocal(ts))
-    println("TZ offset: ", ntp.tzOffset(), " seconds")
 
-    // NTP epoch conversion
-    println("NTP 3786912000 -> Unix: ", ntp.ntpToUnix(3786912000))
+func main(...) as int
+    // 构造客户端报文
+    string request = ntp.buildRequest()
+    println("request:", request)
+
+    // 模拟服务器应答（ Transmit Timestamp 填入当前时间）
+    int now = 1703591800
+    int ntpNow = now + ntp.unixOffset()
+    // 十六进制手工组装（真实场景从 udp socket 收包后转 hex）
+    string resp = "24" + zeros(78) + hex8(ntpNow) + "80000000"
+    var r = ntp.parseResponse(resp)
+    println("server version:", r["version"], "mode:", r["mode"], "stratum:", r["stratum"])
+    println("server unix time:", int(r["unixSeconds"]))
+    println("local  unix time:", now)
+    println("offset:", int(r["unixSeconds"]) - now, "seconds")
 
     println("ntp example: PASS")
     return 0
+end
+
+func zeros(int n) as string
+    string acc = ""
+    while n > 0
+        acc = acc + "0"
+        n = n - 1
+    end
+    return acc
+end
+
+func hex8(int v) as string
+    string digits = "0123456789abcdef"
+    string acc = ""
+    int i = 7
+    while i >= 0
+        int d = (v >> (i * 4)) & 15
+        acc = acc + digits.charAt(d)
+        i = i - 1
+    end
+    return acc
 end

@@ -56,6 +56,7 @@
 #include "src/cgen/xl6_ir_cgen_runtime_collection_instruction.c"
 #include "src/cgen/xl6_ir_cgen_runtime_async_instruction.c"
 #include "src/cgen/xl6_ir_cgen_instruction_emit.c"
+#include "src/cgen/xl6_ir_cgen_debug.c"
 #include "src/cgen/xl6_ir_cgen_function_emit.c"
 #include "src/cgen/xl6_ir_cgen_dispatch_persistence.c"
 #include "src/cgen/xl6_ir_cgen_verify_declarations.c"

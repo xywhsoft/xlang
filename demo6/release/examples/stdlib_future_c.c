@@ -1,111 +1,132 @@
+#define XRT_MODULE_FUTURE_CONTINUE
 #include "xrt.h"
 
 #include <stdio.h>
-#include <string.h>
 
-static int32 add_two(const xfuture_result* input, ptr arg, xfuture_result* output)
+
+
+/* 把成功结果加二后发布到下一个 Future。 */
+static void addTwo(
+	const xfutureresult* pInput,
+	xpromise* pOutput,
+	ptr pData
+)
 {
-    int64* value = (int64*)arg;
+	int64* pValue = (int64*)pData;
 
-    if ( input == NULL || input->pValue == NULL || value == NULL || output == NULL ) {
-        return XRT_NET_ERROR;
-    }
-    memset(output, 0, sizeof(*output));
-    *value = *(int64*)input->pValue + 2;
-    output->pValue = value;
-    return XRT_NET_OK;
+	if ( (pInput == NULL) || (pInput->Value == NULL) ||
+		(pOutput == NULL) || (pValue == NULL) ) {
+		(void)xrtPromiseClose(pOutput);
+		return;
+	}
+	*pValue = *(const int64*)pInput->Value + 2;
+	(void)xrtPromiseResolve(pOutput, pValue);
 }
 
-static int32 recover(const xfuture_result* input, ptr arg, xfuture_result* output)
-{
-    int64* value = (int64*)arg;
 
-    if ( input == NULL || input->iStatus == XRT_NET_OK || value == NULL || output == NULL ) {
-        return XRT_NET_ERROR;
-    }
-    memset(output, 0, sizeof(*output));
-    *value = 77;
-    output->pValue = value;
-    return XRT_NET_OK;
+
+/* 把失败结果恢复为固定整数。 */
+static void recover(
+	const xfutureresult* pInput,
+	xpromise* pOutput,
+	ptr pData
+)
+{
+	int64* pValue = (int64*)pData;
+
+	if ( (pInput == NULL) || (pInput->State != XFUTURE_FAILED) ||
+		(pOutput == NULL) || (pValue == NULL) ) {
+		(void)xrtPromiseClose(pOutput);
+		return;
+	}
+	*pValue = 77;
+	(void)xrtPromiseResolve(pOutput, pValue);
 }
 
-static int32 cleanup(const xfuture_result* input, ptr arg, xfuture_result* output)
-{
-    int* count = (int*)arg;
 
-    (void)input;
-    (void)output;
-    if ( count == NULL ) {
-        return XRT_NET_ERROR;
-    }
-    *count += 1;
-    return XRT_NET_OK;
+
+/* 记录 Finally 回调执行次数，原 Future 结果由 XRT 自动透传。 */
+static void cleanup(const xfutureresult* pInput, ptr pData)
+{
+	int* pCount = (int*)pData;
+
+	(void)pInput;
+	if ( pCount != NULL ) {
+		*pCount += 1;
+	}
 }
 
+
+
+/* 演示 Then、Catch 和 Finally 的稳定组合契约。 */
 int main(void)
 {
-    xfuture* source = NULL;
-    xfuture* result = NULL;
-    xpromise* promise = NULL;
-    int64 sourceValue = 20;
-    int64 mappedValue = 0;
-    int64 recoveredValue = 0;
-    int finalized = 0;
-    int exitCode = 1;
+	xfuture* pSource = NULL;
+	xfuture* pResult = NULL;
+	xpromise* pPromise = NULL;
+	xerror* pError = NULL;
+	int64 iSourceValue = 20;
+	int64 iMappedValue = 0;
+	int64 iRecoveredValue = 0;
+	int iFinalized = 0;
+	int iExitCode = 1;
 
-    xrtInit();
-
-    source = xFutureCreate();
-    promise = xPromiseCreate(source);
-    result = xFutureThenSourceEx(source, add_two, &mappedValue, NULL);
-    if ( source == NULL || promise == NULL || result == NULL ||
-         !xPromiseResolve(promise, &sourceValue) || !xFutureWait(result) ) {
-        goto cleanup_then;
-    }
-    printf("then=%lld\n", (long long)*(int64*)xFutureValue(result));
+	pPromise = xrtPromiseCreate(&pSource, NULL);
+	pResult = xrtFutureThen(pSource, addTwo, &iMappedValue);
+	if ( (pSource == NULL) || (pPromise == NULL) || (pResult == NULL) ||
+		!xrtPromiseResolve(pPromise, &iSourceValue) ||
+		(xrtFutureWait(pResult) != XWAIT_OK) ) {
+		goto cleanup_then;
+	}
+	printf("then=%lld\n", (long long)*(const int64*)xrtFutureValue(pResult));
 
 cleanup_then:
-    xFutureRelease(result);
-    xPromiseDestroy(promise);
-    xFutureRelease(source);
-    if ( mappedValue != 22 ) {
-        goto cleanup_runtime;
-    }
+	xrtFutureDestroy(pResult);
+	xrtPromiseDestroy(pPromise);
+	xrtFutureDestroy(pSource);
+	if ( iMappedValue != 22 ) {
+		goto cleanup_runtime;
+	}
 
-    source = xFutureCreate();
-    promise = xPromiseCreate(source);
-    result = xFutureCatchSourceEx(source, recover, &recoveredValue, NULL);
-    if ( source == NULL || promise == NULL || result == NULL ||
-         !xPromiseReject(promise, XRT_NET_ERROR, (str)"boom") || !xFutureWait(result) ) {
-        goto cleanup_catch;
-    }
-    printf("catch=%lld\n", (long long)*(int64*)xFutureValue(result));
+	pSource = NULL;
+	pResult = NULL;
+	pPromise = xrtPromiseCreate(&pSource, NULL);
+	pResult = xrtFutureCatch(pSource, recover, &iRecoveredValue);
+	pError = xrtErrorCreate(XERR_INTERNAL, "example.future", 1, "boom");
+	if ( (pSource == NULL) || (pPromise == NULL) || (pResult == NULL) ||
+		(pError == NULL) || !xrtPromiseReject(pPromise, pError) ||
+		(xrtFutureWait(pResult) != XWAIT_OK) ) {
+		goto cleanup_catch;
+	}
+	printf("catch=%lld\n", (long long)*(const int64*)xrtFutureValue(pResult));
 
 cleanup_catch:
-    xFutureRelease(result);
-    xPromiseDestroy(promise);
-    xFutureRelease(source);
-    if ( recoveredValue != 77 ) {
-        goto cleanup_runtime;
-    }
+	xrtErrorFree(pError);
+	xrtFutureDestroy(pResult);
+	xrtPromiseDestroy(pPromise);
+	xrtFutureDestroy(pSource);
+	if ( iRecoveredValue != 77 ) {
+		goto cleanup_runtime;
+	}
 
-    source = xFutureCreate();
-    promise = xPromiseCreate(source);
-    result = xFutureFinallyResultSourceEx(source, cleanup, &finalized, NULL);
-    if ( source == NULL || promise == NULL || result == NULL ||
-         !xPromiseResolve(promise, &sourceValue) || !xFutureWait(result) ) {
-        goto cleanup_finally;
-    }
-    printf("finally=%lld\n", (long long)*(int64*)xFutureValue(result));
-    printf("finalized=%d\n", finalized);
-    exitCode = finalized == 1 ? 0 : 1;
+	pSource = NULL;
+	pResult = NULL;
+	pPromise = xrtPromiseCreate(&pSource, NULL);
+	pResult = xrtFutureFinally(pSource, cleanup, &iFinalized);
+	if ( (pSource == NULL) || (pPromise == NULL) || (pResult == NULL) ||
+		!xrtPromiseResolve(pPromise, &iSourceValue) ||
+		(xrtFutureWait(pResult) != XWAIT_OK) ) {
+		goto cleanup_finally;
+	}
+	printf("finally=%lld\n", (long long)*(const int64*)xrtFutureValue(pResult));
+	printf("finalized=%d\n", iFinalized);
+	iExitCode = (iFinalized == 1) ? 0 : 1;
 
 cleanup_finally:
-    xFutureRelease(result);
-    xPromiseDestroy(promise);
-    xFutureRelease(source);
+	xrtFutureDestroy(pResult);
+	xrtPromiseDestroy(pPromise);
+	xrtFutureDestroy(pSource);
 
 cleanup_runtime:
-    xrtUnit();
-    return exitCode;
+	return iExitCode;
 }

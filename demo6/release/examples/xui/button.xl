@@ -1,0 +1,31 @@
+// button.xl — XUI 按钮控件演示
+import xui
+
+xui.XuiApp g_app
+int g_count = 0
+xui.Label g_label
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(640, 400, "Button Demo")
+
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    g_label = xui.Label(ctx, "Click count: 0", font)
+    root.addChild(g_label)
+
+    xui.Button btn = xui.Button(ctx, "Click Me", font)
+    btn.onClick(func(xui.Widget w)
+        g_count += 1
+        g_label.setText("Click count: " + string(g_count))
+    end)
+    root.addChild(btn)
+
+    g_app.run(onFrame)
+    return 0
+end

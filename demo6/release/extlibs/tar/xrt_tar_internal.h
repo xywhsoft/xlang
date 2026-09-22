@@ -1,6 +1,13 @@
 #ifndef XRT_TAR_INTERNAL_H
 #define XRT_TAR_INTERNAL_H
 
+#define XRT_MODULE_FILE_ROOT
+#define XRT_MODULE_FILE_TEMP
+#define XRT_MODULE_FILE_TREE
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_PATH_SAFE
+#define XRT_MODULE_STRING_FORMAT
+
 #include "include/xrt_tar.h"
 
 #define XRT_TAR_BLOCK_SIZE 512u
@@ -21,7 +28,7 @@ typedef struct {
 } xrttarpax;
 
 struct xrttarreader {
-	xreader Reader;
+	xreader* Reader;
 	bool TakeReader;
 	xrttaroptions Options;
 	xrttarerror Error;
@@ -42,20 +49,25 @@ struct xrttarreader {
 };
 
 struct xrttarwriter {
-	xwriter Writer;
+	xwriter* Writer;
 	bool TakeWriter;
-	xbuffer Memory;
+	xbuffer* Memory;
+	str Path;
+	str Temporary;
 	xrttaroptions Options;
 	xrttarerror Error;
 	uint64 EntryCount;
 	uint64 InputBytes;
 	uint64 OutputBytes;
+	bool Finalized;
 	bool Closed;
 	bool Failed;
 };
 
 void __xrtTarSetReaderError(xrttarreader* pReader, int iCode, const char* sFormat, ...);
 void __xrtTarSetWriterError(xrttarwriter* pWriter, int iCode, const char* sFormat, ...);
+void __xrtTarFailReader(xrttarreader* pReader, int iCode, const char* sFormat, ...);
+void __xrtTarFailWriter(xrttarwriter* pWriter, int iCode, const char* sFormat, ...);
 bool __xrtTarCopyOptions(xrttaroptions* pOutput, const xrttaroptions* pInput);
 bool __xrtTarReadExact(xrttarreader* pReader, void* pData, uint64 iSize);
 bool __xrtTarSkipBytes(xrttarreader* pReader, uint64 iSize);

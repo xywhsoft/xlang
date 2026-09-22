@@ -1,7 +1,0 @@
-func main() as int
-	string text = `he"llo`
-	if text == "he\"llo" then
-		return 42
-	end
-	return 0
-end

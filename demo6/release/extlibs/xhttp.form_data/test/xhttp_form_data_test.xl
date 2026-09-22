@@ -1,0 +1,106 @@
+import xhttp.body
+import xhttp.multipart
+import xhttp.form_data
+from xhttp.body import Body
+from xhttp.multipart import MultipartBoundary, MultipartLimits
+from xhttp.form_data import FormData, FormDataConfig
+from xhttp.form_data import FormDataEncoded, FormDataPart
+
+
+
+func main(...) as int
+    FormData form = FormData()
+    assert form.valid
+    form.reserve(4)
+    form.append("tag", "one")
+    form.append("tag", "two")
+
+    Buffer binary = Buffer()
+    assert binary.append("bin")
+    assert binary.appendByte(0)
+    assert binary.append("ary")
+    form.append(
+        "upload", binary, "sample.bin", "application/octet-stream")
+    form.append("stream", Body.fromText("body-ref"))
+
+    assert form.count == 4
+    assert form.count("tag") == 2
+    assert form.has("upload")
+    assert form.metadataBytes > 0
+    assert form.at(0).name == "tag"
+    assert form.at(0).text() == "one"
+
+    FormDataPart? secondMaybe = form.get("tag", 1)
+    assert secondMaybe != null
+    FormDataPart second = secondMaybe as FormDataPart
+    assert second.text() == "two"
+
+    FormDataPart? fileMaybe = form.get("upload")
+    assert fileMaybe != null
+    FormDataPart file = fileMaybe as FormDataPart
+    assert file.hasFilename
+    assert (file.filename ?? "") == "sample.bin"
+    assert file.hasContentType
+    assert (file.contentType ?? "") == "application/octet-stream"
+    assert file.length == 7
+    Buffer fileBytes = file.bytes()
+    assert fileBytes.len() == 7
+    assert fileBytes.byteAt(3) == 0
+
+    FormDataPart stable = form.at(0)
+    form.set("tag", "replaced")
+    assert form.count("tag") == 1
+    assert stable.text() == "one"
+    assert form.at(0).text() == "replaced"
+
+    int iterated = 0
+    for item in form
+        FormDataPart part = item
+        assert part.valid
+        iterated += 1
+    end
+    assert iterated == form.count
+
+    FormData clone = form.clone()
+    assert clone.count == form.count
+    assert clone.remove("stream") == 1
+    assert clone.count == form.count - 1
+    assert form.has("stream")
+
+    MultipartBoundary boundary = MultipartBoundary.parse(
+        "xlang-form-data-boundary")
+    FormDataEncoded encoded = form.encode(boundary)
+    assert encoded.boundary.text == boundary.text
+    assert encoded.contentType == "multipart/form-data; boundary=\"xlang-form-data-boundary\""
+    assert encoded.body.lengthKnown
+
+    Buffer wire = encoded.body.readAll(65536)
+    FormData parsed = FormData.parse(
+        wire,
+        encoded.contentType,
+        FormDataConfig(maxParts = 8, maxBodyBytes = 65536),
+        MultipartLimits(maxParts = 8, maxBodyBytes = 65536))
+    assert parsed.count == form.count
+    assert parsed.at(0).text() == "replaced"
+    FormDataPart? parsedFileMaybe = parsed.get("upload")
+    assert parsedFileMaybe != null
+    FormDataPart parsedFile = parsedFileMaybe as FormDataPart
+    assert (parsedFile.filename ?? "") == "sample.bin"
+    assert parsedFile.bytes().byteAt(3) == 0
+
+    FormData parsedBoundary = FormData.parse(wire, boundary)
+    assert parsedBoundary.count == form.count
+
+    FormData empty = FormData()
+    FormDataEncoded emptyEncoded = empty.encode(boundary)
+    assert emptyEncoded.body.lengthKnown
+    assert FormData.parse(
+        emptyEncoded.body.readAll(), boundary).count == 0
+
+    FormDataEncoded random = form.encode()
+    assert random.boundary.text.byteLen() == 45
+    assert string.startsWith(random.contentType, "multipart/form-data;")
+
+    println("xhttp.form_data package ok")
+    return 0
+end

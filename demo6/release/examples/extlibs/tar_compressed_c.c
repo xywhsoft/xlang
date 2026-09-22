@@ -12,12 +12,11 @@ int main(void)
 	xrttarreader* pTarReader = NULL;
 	xrttarentry tEntry;
 	xrtgziperror tGzipError;
-	xbuffer pTar = NULL;
-	xbuffer pCompressed = NULL;
-	xbuffer pPlain = NULL;
-	xbuffer pData = NULL;
+	xbuffer* pTar = NULL;
+	xbuffer* pCompressed = NULL;
+	xbuffer* pPlain = NULL;
+	xbuffer* pData = NULL;
 	int iResult = 1;
-	if ( xrtInit() == NULL ) { return 1; }
 	pTarWriter = xrtTarWriterCreateMemory(NULL);
 	xrtTarEntryInit(&tEntry);
 	tEntry.sName = "message.txt";
@@ -27,15 +26,15 @@ int main(void)
 		!xrtTarWriterAdd(pTarWriter, &tEntry, "tar.gz", 6u) ||
 		!xrtTarWriterClose(pTarWriter) ) { goto cleanup; }
 	pTar = xrtTarWriterTakeBuffer(pTarWriter);
-	if ( !xrtGzipCompress(pTar->Buffer, pTar->Length, NULL, &pCompressed, &tGzipError) ||
-		!xrtGzipDecompress(pCompressed->Buffer, pCompressed->Length, NULL, &pPlain, &tGzipError) ) {
+	if ( !xrtGzipCompress(pTar->Data, pTar->Size, NULL, &pCompressed, &tGzipError) ||
+		!xrtGzipDecompress(pCompressed->Data, pCompressed->Size, NULL, &pPlain, &tGzipError) ) {
 		fprintf(stderr, "compressed TAR C example: %s\n", tGzipError.sMessage);
 		goto cleanup;
 	}
-	pTarReader = xrtTarReaderOpenMemory(pPlain->Buffer, pPlain->Length, NULL);
+	pTarReader = xrtTarReaderOpenMemory(pPlain->Data, pPlain->Size, NULL);
 	if ( !xrtTarReaderNext(pTarReader, &tEntry) ) { goto cleanup; }
 	pData = xrtTarReaderRead(pTarReader);
-	if ( pData == NULL || pData->Length != 6u || memcmp(pData->Buffer, "tar.gz", 6u) != 0 ) {
+	if ( pData == NULL || pData->Size != 6u || memcmp(pData->Data, "tar.gz", 6u) != 0 ) {
 		goto cleanup;
 	}
 	puts("compressed TAR C example: PASS");
@@ -48,6 +47,5 @@ cleanup:
 	xrtBufferDestroy(pCompressed);
 	xrtBufferDestroy(pTar);
 	xrtTarWriterDestroy(pTarWriter);
-	xrtUnit();
 	return iResult;
 }

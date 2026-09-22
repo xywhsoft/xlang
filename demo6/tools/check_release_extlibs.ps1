@@ -19,6 +19,7 @@ $fixtureNames = @(
     "counter",
     "dep_value",
     "dep_value@2.0.0",
+    "include_dir_pkg",
     "libprobe",
     "metadata_combo",
     "missing_interface",
@@ -81,6 +82,15 @@ function String-Array($value)
         return @()
     }
     return @($value | ForEach-Object { [string]$_ })
+}
+
+function Validate-XrtModules($packageName, $manifestPath, $modules)
+{
+    foreach ( $module in $modules ) {
+        if ( $module -notmatch '^(XRT_MODULE_|XRUNTIME_MODULE_)[A-Z0-9_]+$' ) {
+            Add-Failure "release extlib $packageName has invalid xrtModules root: $manifestPath -> $module"
+        }
+    }
 }
 
 function Check-PathValue($packageName, $label, $value)
@@ -267,6 +277,30 @@ if ( ! (Test-Path -LiteralPath $runnerPath -PathType Leaf) ) {
     Write-Host "release extlib runner missing: $runnerPath"
     exit 1
 }
+
+function Validate-RelativeDirectoryList($pkg, $manifestRel, $items, $label)
+{
+    foreach ( $item in $items ) {
+        if ( [string]::IsNullOrWhiteSpace($item) ) {
+            Add-Failure "release extlib $label contains empty path: $manifestRel"
+            continue
+        }
+        if ( [System.IO.Path]::IsPathRooted($item) ) {
+            Add-Failure "release extlib $label must be relative: $manifestRel -> $item"
+            continue
+        }
+        if ( $item -match '(^|[\\/])[.][.]([\\/]|$)' ) {
+            Add-Failure "release extlib $label must not use parent traversal: $manifestRel -> $item"
+            continue
+        }
+        Check-PathValue $pkg.Name $label $item
+
+        $fullPath = Join-Path $pkg.FullName $item
+        if ( ! (Test-Path -LiteralPath $fullPath -PathType Container) ) {
+            Add-Failure "release extlib $label missing directory: $manifestRel -> $item"
+        }
+    }
+}
 if ( ! (Test-Path -LiteralPath $dynamicRunnerPath -PathType Leaf) ) {
     Write-Host "release extlib dynamic runner missing: $dynamicRunnerPath"
     exit 1
@@ -406,11 +440,15 @@ foreach ( $pkg in $packages ) {
 
     $manifestXlSources = String-Array $manifest.artifact.xlSources
     $manifestCSources = String-Array $manifest.artifact.cSources
+    $manifestIncludeDirs = String-Array $manifest.artifact.includeDirs
+    $manifestXrtModules = String-Array $manifest.artifact.xrtModules
     if ( ! $isPrivate -and $manifestXlSources.Count -eq 0 ) {
         Add-Failure "release extlib xlSources must not be empty: $name"
     }
     Validate-RelativeFileList $pkg $manifestRel $manifestXlSources "xlSources" ".xl"
     Validate-RelativeFileList $pkg $manifestRel $manifestCSources "cSources" ".c"
+    Validate-RelativeDirectoryList $pkg $manifestRel $manifestIncludeDirs "includeDirs"
+    Validate-XrtModules $name $manifestRel $manifestXrtModules
 
     $coverageMode = [string]$manifest.coverage.mode
     if ( $coverageMode -ne "" -and $coverageMode -ne "suite" ) {

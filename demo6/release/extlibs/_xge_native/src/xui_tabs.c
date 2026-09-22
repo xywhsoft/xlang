@@ -71,6 +71,8 @@ typedef struct xui_tabs_data_t {
 #define XUI_TABS_OVERFLOW_BUTTON	16.0f
 #define XUI_TABS_OVERFLOW_GAP		3.0f
 
+static int __xuiTabsButtonRender(xui_widget pButton, xui_draw_context pDraw, uint32_t iStateId, void* pUser);
+
 static xui_thickness_t __xuiTabsThickness(float fLeft, float fTop, float fRight, float fBottom)
 {
 	xui_thickness_t tValue;
@@ -1027,6 +1029,7 @@ static int __xuiTabsConfigureButton(xui_widget pTabs, xui_widget pButton)
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEventHandler(pButton, XUI_EVENT_POINTER_DOWN, __xuiTabsButtonEvent, pTabs);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEventHandler(pButton, XUI_EVENT_POINTER_UP, __xuiTabsButtonEvent, pTabs);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetEventHandler(pButton, XUI_EVENT_POINTER_CAPTURE_LOST, __xuiTabsButtonEvent, pTabs);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetCacheRenderCallback(pButton, __xuiTabsButtonRender, pTabs);
 	return iRet;
 }
 
@@ -1420,14 +1423,92 @@ static void __xuiTabsComputeRects(xui_tabs_data_t* pData, int iIndex, xui_rect_t
 	if ( pPage->tTextRect.fH < 0.0f ) pPage->tTextRect.fH = 0.0f;
 }
 
-static int __xuiTabsArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static xui_table_track_t __xuiTabsTrack(int iMode, float fValue, float fWeight, float fShrink)
 {
-	xui_tabs_data_t* pData;
-	xui_rect_t tTabBar;
-	xui_rect_t tClient;
+	xui_table_track_t tTrack;
+	tTrack.iSizeMode = iMode;
+	tTrack.fValue = fValue;
+	tTrack.fMin = 0.0f;
+	tTrack.fMax = XUI_LAYOUT_UNBOUNDED;
+	tTrack.fWeight = fWeight;
+	tTrack.fShrink = fShrink;
+	return tTrack;
+}
+
+static int __xuiTabsSetCell(xui_widget pWidget, int iRow, int iColumn)
+{
+	int iCurrentRow;
+	int iCurrentColumn;
+	int iRowSpan;
+	int iColumnSpan;
+	int iRet = xuiWidgetGetTableCell(pWidget, &iCurrentRow, &iCurrentColumn, &iRowSpan, &iColumnSpan);
+	if ( iRet != XUI_OK ) return iRet;
+	if ( iCurrentRow == iRow && iCurrentColumn == iColumn && iRowSpan == 1 && iColumnSpan == 1 ) return XUI_OK;
+	return xuiWidgetSetTableCell(pWidget, iRow, iColumn, 1, 1);
+}
+
+static int __xuiTabsPrepare(xui_widget pWidget, void* pUser)
+{
+	xui_tabs_data_t* pData = (xui_tabs_data_t*)pUser;
+	xui_table_track_t tStrip;
+	xui_table_track_t tFill;
+	float fStrip;
+	int iRows;
+	int iColumns;
+	int iTabRow;
+	int iTabColumn;
+	int iClientRow;
+	int iClientColumn;
+	int iRet;
+	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	__xuiTabsResolve(pWidget, pData);
+	fStrip = pData->fResolvedTabHeight + 2.0f;
+	iRows = __xuiTabsVertical(pData->iPlacement) ? 1 : 2;
+	iColumns = __xuiTabsVertical(pData->iPlacement) ? 2 : 1;
+	if ( pWidget->tLayout.iLayoutType != XUI_LAYOUT_TABLE ) {
+		iRet = xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_TABLE);
+		if ( iRet != XUI_OK ) return iRet;
+	}
+	if ( pWidget->iTableRowCount != iRows || pWidget->iTableColumnCount != iColumns ) {
+		iRet = xuiWidgetSetTableSize(pWidget, iRows, iColumns);
+		if ( iRet != XUI_OK ) return iRet;
+	}
+	tStrip = __xuiTabsTrack(XUI_SIZE_FIXED, fStrip, 0.0f, 1.0f);
+	tFill = __xuiTabsTrack(XUI_SIZE_FILL, 0.0f, 1.0f, 1.0f);
+	if ( __xuiTabsVertical(pData->iPlacement) ) {
+		iRet = xuiWidgetSetTableRow(pWidget, 0, &tFill);
+		if ( iRet != XUI_OK ) return iRet;
+		iRet = xuiWidgetSetTableColumn(pWidget, 0,
+			pData->iPlacement == XUI_TABS_PLACEMENT_LEFT ? &tStrip : &tFill);
+		if ( iRet != XUI_OK ) return iRet;
+		iRet = xuiWidgetSetTableColumn(pWidget, 1,
+			pData->iPlacement == XUI_TABS_PLACEMENT_LEFT ? &tFill : &tStrip);
+		iTabRow = iClientRow = 0;
+		iTabColumn = pData->iPlacement == XUI_TABS_PLACEMENT_LEFT ? 0 : 1;
+		iClientColumn = 1 - iTabColumn;
+	} else {
+		iRet = xuiWidgetSetTableColumn(pWidget, 0, &tFill);
+		if ( iRet != XUI_OK ) return iRet;
+		iRet = xuiWidgetSetTableRow(pWidget, 0,
+			pData->iPlacement == XUI_TABS_PLACEMENT_TOP ? &tStrip : &tFill);
+		if ( iRet != XUI_OK ) return iRet;
+		iRet = xuiWidgetSetTableRow(pWidget, 1,
+			pData->iPlacement == XUI_TABS_PLACEMENT_TOP ? &tFill : &tStrip);
+		iTabColumn = iClientColumn = 0;
+		iTabRow = pData->iPlacement == XUI_TABS_PLACEMENT_TOP ? 0 : 1;
+		iClientRow = 1 - iTabRow;
+	}
+	if ( iRet != XUI_OK ) return iRet;
+	iRet = __xuiTabsSetCell(pData->pTabBar, iTabRow, iTabColumn);
+	if ( iRet != XUI_OK ) return iRet;
+	return __xuiTabsSetCell(pData->pClient, iClientRow, iClientColumn);
+}
+
+static int __xuiTabsLayoutButtons(xui_widget pTabBar, xui_rect_t tContentRect, void* pUser)
+{
+	xui_widget pTabs = (xui_widget)pUser;
+	xui_tabs_data_t* pData = __xuiTabsGetData(pTabs);
 	xui_rect_t tTab;
-	xui_rect_t tButton;
-	xui_rect_t tPage;
 	float fStrip;
 	float fAxis;
 	float fButtonAxis;
@@ -1438,29 +1519,11 @@ static int __xuiTabsArrange(xui_widget pWidget, xui_rect_t tContentRect, void* p
 	int iVisible;
 	int iRet;
 	int i;
-
-	(void)pUser;
-	pData = __xuiTabsGetData(pWidget);
 	if ( pData == NULL ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	__xuiTabsResolve(pWidget, pData);
 	fStrip = pData->fResolvedTabHeight + 2.0f;
-	if ( pData->iPlacement == XUI_TABS_PLACEMENT_BOTTOM ) {
-		tClient = (xui_rect_t){tContentRect.fX, tContentRect.fY, tContentRect.fW, __xuiTabsMaxFloat(0.0f, tContentRect.fH - fStrip)};
-		tTabBar = (xui_rect_t){tContentRect.fX, tContentRect.fY + tClient.fH, tContentRect.fW, fStrip};
-	} else if ( pData->iPlacement == XUI_TABS_PLACEMENT_LEFT ) {
-		tTabBar = (xui_rect_t){tContentRect.fX, tContentRect.fY, fStrip, tContentRect.fH};
-		tClient = (xui_rect_t){tContentRect.fX + fStrip, tContentRect.fY, __xuiTabsMaxFloat(0.0f, tContentRect.fW - fStrip), tContentRect.fH};
-	} else if ( pData->iPlacement == XUI_TABS_PLACEMENT_RIGHT ) {
-		tClient = (xui_rect_t){tContentRect.fX, tContentRect.fY, __xuiTabsMaxFloat(0.0f, tContentRect.fW - fStrip), tContentRect.fH};
-		tTabBar = (xui_rect_t){tContentRect.fX + tClient.fW, tContentRect.fY, fStrip, tContentRect.fH};
-	} else {
-		tTabBar = (xui_rect_t){tContentRect.fX, tContentRect.fY, tContentRect.fW, fStrip};
-		tClient = (xui_rect_t){tContentRect.fX, tContentRect.fY + fStrip, tContentRect.fW, __xuiTabsMaxFloat(0.0f, tContentRect.fH - fStrip)};
-	}
-	pData->tTabBarRect = xuiInternalSnapRect(tTabBar);
-	pData->tClientRect = xuiInternalSnapRect(tClient);
+	pData->tTabBarRect = xuiInternalSnapRect(tContentRect);
 	__xuiTabsUpdateMaxScroll(pData);
 	if ( (pData->iSelected >= 0) && (pData->iSelected < pData->iPageCount) ) {
 		__xuiTabsEnsureVisibleInternal(pData, pData->iSelected);
@@ -1494,10 +1557,6 @@ static int __xuiTabsArrange(xui_widget pWidget, xui_rect_t tContentRect, void* p
 		pData->bOverflowActive = 0;
 		pData->fScrollX = 0.0f;
 	}
-	iRet = xuiWidgetArrange(pData->pTabBar, pData->tTabBarRect);
-	if ( iRet != XUI_OK ) return iRet;
-	iRet = xuiWidgetArrange(pData->pClient, pData->tClientRect);
-	if ( iRet != XUI_OK ) return iRet;
 	fAxis = XUI_TABS_TAB_START;
 	fStep = __xuiTabsTabStep(pData);
 	for ( i = 0; i < pData->iPageCount; i++ ) {
@@ -1509,8 +1568,9 @@ static int __xuiTabsArrange(xui_widget pWidget, xui_rect_t tContentRect, void* p
 			pData->arrPages[i].tDirtyRect = (xui_rect_t){0.0f, 0.0f, 0.0f, 0.0f};
 			pData->arrPages[i].tCloseRect = (xui_rect_t){0.0f, 0.0f, 0.0f, 0.0f};
 			if ( pData->arrPages[i].pButton != NULL ) {
-				(void)xuiWidgetSetVisible(pData->arrPages[i].pButton, 0);
-				(void)xuiWidgetArrange(pData->arrPages[i].pButton, (xui_rect_t){0.0f, 0.0f, 0.0f, 0.0f});
+				iRet = xuiLayoutArrangeChild(pTabBar, pData->arrPages[i].pButton,
+					(xui_rect_t){0.0f, 0.0f, 0.0f, 0.0f});
+				if ( iRet != XUI_OK ) return iRet;
 			}
 			continue;
 		}
@@ -1531,24 +1591,42 @@ static int __xuiTabsArrange(xui_widget pWidget, xui_rect_t tContentRect, void* p
 		}
 		tTab = xuiInternalSnapRect(tTab);
 		__xuiTabsComputeRects(pData, i, tTab);
-		tButton = tTab;
-		tButton.fX -= pData->tTabBarRect.fX;
-		tButton.fY -= pData->tTabBarRect.fY;
 		if ( pData->arrPages[i].pButton != NULL ) {
-			(void)xuiWidgetSetVisible(pData->arrPages[i].pButton, 1);
-			iRet = xuiWidgetArrange(pData->arrPages[i].pButton, tButton);
+			iRet = xuiLayoutArrangeChild(pTabBar, pData->arrPages[i].pButton, tTab);
 			if ( iRet != XUI_OK ) return iRet;
-			(void)xuiWidgetSetCacheRenderCallback(pData->arrPages[i].pButton, __xuiTabsButtonRender, pWidget);
-			(void)xuiWidgetSetLayer(pData->arrPages[i].pButton, XUI_LAYER_NORMAL, (i == pData->iSelected) ? 2 : 1);
 		}
 		fAxis += fStep;
 	}
-	tPage = (xui_rect_t){8.0f, 8.0f, __xuiTabsMaxFloat(0.0f, pData->tClientRect.fW - 16.0f), __xuiTabsMaxFloat(0.0f, pData->tClientRect.fH - 16.0f)};
-	for ( i = 0; i < pData->iPageCount; i++ ) {
-		if ( pData->arrPages[i].pPage != NULL ) {
-			iRet = xuiWidgetArrange(pData->arrPages[i].pPage, tPage);
-			if ( iRet != XUI_OK ) return iRet;
-		}
+	return XUI_OK;
+}
+
+static void __xuiTabsOffsetRect(xui_rect_t* pRect, float fX, float fY)
+{
+	if ( pRect->fW <= 0.0f || pRect->fH <= 0.0f ) return;
+	pRect->fX += fX;
+	pRect->fY += fY;
+}
+
+static int __xuiTabsLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_tabs_data_t* pData = (xui_tabs_data_t*)pUser;
+	float fX;
+	float fY;
+	int i;
+	(void)pWidget;
+	(void)tContentRect;
+	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	pData->tTabBarRect = xuiWidgetGetRect(pData->pTabBar);
+	pData->tClientRect = xuiWidgetGetRect(pData->pClient);
+	fX = pData->tTabBarRect.fX;
+	fY = pData->tTabBarRect.fY;
+	__xuiTabsOffsetRect(&pData->tOverflowRect, fX, fY);
+	for ( i = 0; i < pData->iPageCount; ++i ) {
+		__xuiTabsOffsetRect(&pData->arrPages[i].tTabRect, fX, fY);
+		__xuiTabsOffsetRect(&pData->arrPages[i].tTextRect, fX, fY);
+		__xuiTabsOffsetRect(&pData->arrPages[i].tIconRect, fX, fY);
+		__xuiTabsOffsetRect(&pData->arrPages[i].tDirtyRect, fX, fY);
+		__xuiTabsOffsetRect(&pData->arrPages[i].tCloseRect, fX, fY);
 	}
 	return XUI_OK;
 }
@@ -1556,7 +1634,7 @@ static int __xuiTabsArrange(xui_widget pWidget, xui_rect_t tContentRect, void* p
 static void __xuiTabsDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_TABLE;
 	pLayout->iWidthMode = XUI_SIZE_FIXED;
 	pLayout->iHeightMode = XUI_SIZE_FIXED;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -1624,8 +1702,9 @@ static int __xuiTabsCreateChrome(xui_widget pWidget, xui_tabs_data_t* pData)
 		pData->pTabBar = NULL;
 		return iRet;
 	}
-	(void)xuiWidgetSetLayoutType(pData->pTabBar, XUI_LAYOUT_MANUAL);
-	(void)xuiWidgetSetSizeMode(pData->pTabBar, XUI_SIZE_FIXED, XUI_SIZE_FIXED);
+	(void)xuiWidgetSetLayoutType(pData->pTabBar, XUI_LAYOUT_OVERLAY);
+	(void)xuiWidgetSetSizeMode(pData->pTabBar, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetLayoutChildrenCallback(pData->pTabBar, __xuiTabsLayoutButtons, pWidget);
 	(void)xuiWidgetSetOverflow(pData->pTabBar, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pData->pTabBar, 0);
 	(void)xuiWidgetSetTabStop(pData->pTabBar, 0);
@@ -1688,7 +1767,7 @@ static int __xuiTabsInit(xui_widget pWidget, void* pTypeData, const void* pCreat
 		if ( __xuiTabsAlpha(pDesc->iBorderColor) != 0 ) pData->iBorderColor = pDesc->iBorderColor;
 		if ( __xuiTabsAlpha(pDesc->iClientColor) != 0 ) pData->iClientColor = pDesc->iClientColor;
 	}
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_TABLE);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
 	(void)xuiWidgetSetTabStop(pWidget, 1);
@@ -1783,7 +1862,8 @@ XUI_API xui_widget_type xuiTabsGetType(xui_context pContext)
 	tDesc.onInit = __xuiTabsInit;
 	tDesc.onDestroy = __xuiTabsDestroy;
 	tDesc.onContentMeasure = __xuiTabsContentMeasure;
-	tDesc.onLayoutArrange = __xuiTabsArrange;
+	tDesc.onLayoutPrepare = __xuiTabsPrepare;
+	tDesc.onLayoutComplete = __xuiTabsLayoutComplete;
 	tDesc.onCacheRender = __xuiTabsCacheRender;
 	__xuiTabsDefaultLayout(&tDesc.tLayout);
 	__xuiTabsDefaultCachePolicy(&tPolicy);

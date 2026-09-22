@@ -1,7 +1,14 @@
 #ifndef XRT_XML_H
 #define XRT_XML_H
 
+/* XML SAX 公共契约直接依赖通用 Reader。 */
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+
 #include "xrt.h"
+
+/* 调用方先选择 XRT_MODULE_*；实现文件通过内部头引入完整运行时。 */
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,30 +86,30 @@ typedef struct {
 typedef struct xrtxmlsax_struct xrtxmlsax;
 typedef bool (*xrtxml_event_proc)(ptr pContext, const xrtxmlevent* pEvent);
 
-XXAPI void xrtXmlOptionsInit(xrtxmloptions* pOptions);
-XXAPI void xrtXmlErrorInit(xrtxmlerror* pError);
-XXAPI void xrtXmlEventClear(xrtxmlevent* pEvent);
+XRT_API void xrtXmlOptionsInit(xrtxmloptions* pOptions);
+XRT_API void xrtXmlErrorInit(xrtxmlerror* pError);
+XRT_API void xrtXmlEventClear(xrtxmlevent* pEvent);
 
 /* pull SAX：事件中的字符串在下一次 Next 或 Destroy 前有效。 */
-XXAPI xrtxmlsax* xrtXmlSaxOpen(xreader pReader, bool bTakeOwnership,
+XRT_API xrtxmlsax* xrtXmlSaxOpen(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
-XXAPI xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
+XRT_API xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
-XXAPI xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
+XRT_API xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
-XXAPI int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
+XRT_API int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
 	xrtxmlerror* pError);
-XXAPI xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser);
-XXAPI void xrtXmlSaxDestroy(xrtxmlsax* pParser);
+XRT_API xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser);
+XRT_API void xrtXmlSaxDestroy(xrtxmlsax* pParser);
 
 /* push SAX：回调返回 false 会立即终止解析。 */
-XXAPI bool xrtXmlSaxParse(xreader pReader, bool bTakeOwnership,
+XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError);
-XXAPI bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
+XRT_API bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError);
-XXAPI bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
+XRT_API bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
 	xrtxml_event_proc pHandler, ptr pContext, xrtxmlerror* pError);
 
 #ifdef __cplusplus

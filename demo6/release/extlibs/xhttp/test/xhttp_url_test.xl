@@ -1,0 +1,48 @@
+import xhttp
+from xhttp import Url
+
+
+
+func main(...) as int
+    Url url = Url.parse(
+        "https://user@example.test:8443/api/v1/../items?q=1#result")
+    assert url.valid
+    assert url.hasScheme and url.hasAuthority and url.hasUserInfo
+    assert url.hasHost and url.hasPort and url.hasQuery and url.hasFragment
+    assert url.scheme() == "https"
+    assert url.userInfo() == "user"
+    assert url.host() == "example.test"
+    assert url.portText() == "8443"
+    assert url.explicitPort == 8443 and url.port == 8443
+    assert url.secure and not url.portIsDefault
+    assert url.path() == "/api/v1/../items"
+    assert url.query() == "q=1"
+    assert url.fragment() == "result"
+    assert url.target() == "/api/v1/../items?q=1"
+    assert url.hostText() == "example.test:8443"
+    assert url.authorityText() == "user@example.test:8443"
+    assert url.build() == url.text()
+    assert url.schemeIs("HTTPS")
+    assert url.nativeHandle() != null
+
+    Url resolved = url.resolve("../health?full=1")
+    assert resolved.text() == "https://user@example.test:8443/health?full=1"
+    assert Url.normalizePath("/a//b/../c") == "/a//c"
+    assert Url.defaultPort("http") == 80
+    assert Url.defaultPort("wss") == 443
+
+    Url relative = Url.parse("../asset?q=#")
+    assert not relative.hasScheme and not relative.hasAuthority
+    assert relative.hasQuery and relative.hasFragment
+    bool relativeTargetRejected = false
+    try
+        relative.target()
+    catch RuntimeError error
+        relativeTargetRejected = true
+    end
+    assert relativeTargetRejected
+    assert url.resolve("../asset?q=#").target() == "/asset?q="
+
+    println("xhttp URL package ok")
+    return 0
+end

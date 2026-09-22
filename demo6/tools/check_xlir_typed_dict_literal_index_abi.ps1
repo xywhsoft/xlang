@@ -16,7 +16,6 @@ $outputDir = Join-Path $Root "build\tmp"
 $loweredJson = Join-Path $outputDir "xlir_typed_dict_literal_index_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_typed_dict_literal_index_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_typed_dict_literal_index_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_typed_dict_literal_index_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $support, $genericHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -155,18 +154,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR typed-dict literal-index strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed-dict literal-index legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_typed_dict_literal_index_abi.legacy.c test\cases\cgen_class_host.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_typed_dict_literal_index_abi.legacy.exe && build\test\xlir_typed_dict_literal_index_abi.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed-dict literal-index legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR typed-dict literal-index ABI gate passed: five exact direct projection identities, safe tagged-nullable lookup, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR typed-dict literal-index ABI gate passed: five exact direct projection identities, safe tagged-nullable lookup, deterministic mechanical C, and strict runtime."

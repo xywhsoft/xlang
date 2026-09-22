@@ -1,4 +1,4 @@
-extern "xrtGetError" func __trie_error() as string
+extern "xl6_xrt_last_error_text" func __trie_error() as string
 
 
 

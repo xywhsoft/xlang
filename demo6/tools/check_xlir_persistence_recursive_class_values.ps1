@@ -16,7 +16,6 @@ $typedJson = Join-Path $outputDir "xlir_persistence_recursive_class_values.typed
 $loweredJson = Join-Path $outputDir "xlir_persistence_recursive_class_values.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_persistence_recursive_class_values.c"
 $generatedCSecond = Join-Path $outputDir "xlir_persistence_recursive_class_values.second.c"
-$legacyC = Join-Path $outputDir "xlir_persistence_recursive_class_values.legacy.c"
 
 foreach ( $path in @($xl, $source, $moduleHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -132,18 +131,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR recursive persistence strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR recursive persistence legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_persistence_recursive_class_values.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_persistence_recursive_class_values.legacy.exe && build\test\xlir_persistence_recursive_class_values.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR recursive persistence legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR recursive persistence gate passed: nullable class and array<class> payloads use canonical TypeIds, verified source-free construction, deterministic mechanical C, strict runtime behavior, and legacy differential semantics."
+Write-Output "XLIR recursive persistence gate passed: nullable class and array<class> payloads use canonical TypeIds, verified source-free construction, deterministic mechanical C, and strict runtime behavior."

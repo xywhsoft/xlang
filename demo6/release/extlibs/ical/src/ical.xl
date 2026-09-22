@@ -1,0 +1,21 @@
+extern "xi_parse" func __i_parse(string text) as var
+extern "xi_build" func __i_build(var calendar) as string
+
+
+
+// parse 解析 iCalendar 文本，返回 {events: [...], todos: [...]}
+// 每个事件对象含 uid、summary、dtstart、dtend、location、description 等字段
+// 自动展开折行并解码转义；属性参数（如 TZID）被忽略
+export func parse(string text) as var
+    var r = __i_parse(text)
+    if r == null then
+        throw ValueError "ical: input is null"
+    end
+    return r
+end
+
+// build 由 {events: [...], todos: [...]} 生成 iCalendar 文本
+// 值重新转义，长行按 74 字节折叠
+export func build(var calendar) as string
+    return __i_build(calendar)
+end

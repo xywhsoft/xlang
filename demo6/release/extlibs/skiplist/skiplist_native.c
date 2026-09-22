@@ -2,9 +2,7 @@
  * skiplist_native.c - Skip List ordered key-value store
  * O(log n) insert/lookup/delete with ordered traversal.
  */
-#include <stdlib.h>
-#include <string.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 static char sl_buf[4096];
 
 #define SL_MAX_LEVEL 32
@@ -49,9 +47,9 @@ static int sl_random_level(XSkipList *sl) {
 
 void *xskiplist_create(void) {
     XSkipList *sl = (XSkipList *)calloc(1, sizeof(XSkipList));
-    if (!sl) { xrtSetError("skiplist: out of memory", 0); return NULL; }
+    if (!sl) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.skiplist", "cannot allocate skiplist"); return NULL; }
     sl->header = sl_new_node(SL_MAX_LEVEL, NULL, NULL);
-    if (!sl->header) { free(sl); xrtSetError("skiplist: out of memory", 0); return NULL; }
+    if (!sl->header) { free(sl); xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.skiplist", "cannot allocate skiplist head"); return NULL; }
     sl->level = 1;
     sl->count = 0;
     sl->rng = 12345678901234567ULL;
@@ -96,7 +94,7 @@ void xskiplist_set(void *ptr, const char *key, const char *value) {
 
     {
         SLNode *node = sl_new_node(lvl, key, value ? value : "");
-        if (!node) { xrtSetError("skiplist: out of memory", 0); return; }
+        if (!node) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.skiplist", "cannot allocate skiplist node"); return; }
         for (i = 0; i < lvl; i++) {
             node->forward[i] = update[i]->forward[i];
             update[i]->forward[i] = node;

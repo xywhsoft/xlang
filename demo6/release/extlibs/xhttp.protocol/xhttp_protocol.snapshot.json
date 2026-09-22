@@ -1,0 +1,24 @@
+{
+  "format": "xlang-xhttp-protocol-snapshot-1",
+  "modules": [
+    "http_headers",
+    "cookie",
+    "set_cookie",
+    "mime",
+    "mime_types"
+  ],
+  "files": {
+    "include/xhttp/features.h": "b5ef61dc988be48988b30311c8384c63efc33147fc7b4647b23d42b988f35217",
+    "include/xrt/cookie.h": "e6167a02b515da2f30a8ac5e89700b576756883626021965fccd7c889a0672fc",
+    "include/xrt/http_headers.h": "f9d99db0cba181490624a6fa027bdac0b6a58a9fb6bbc9e48b2862ea1305ca65",
+    "include/xrt/mime.h": "818e36fa9b9b5a6af2c13891e99e205d03f9080e0cad2c0aebf84f05dddd0e48",
+    "src/http/cookie.c": "c1ce0321cd46298e247def479cb86c7d5d54f54292fe7de8868497aafaaaa83c",
+    "src/http/http_headers.c": "5ccb028fa45e79c5119fd0c1f1873fa442c736581dfc6a3e920423e1c32f4108",
+    "src/http/mime.c": "c33e463c85bba86cfbbb7ac4e181d6dfe2ab57cbbba62f270b2e899889d24954",
+    "src/http/mime_types.c": "01ef9dc6548efd5a628af1068296f9ece132f79fad487bd934b18db70278bcc7",
+    "src/http/set_cookie.c": "5046ed5396ef9443a3bd076c9e5d20f2f32f88fc94bb80442701b0ba3e0559c4",
+    "src/internal/xhttp_internal.h": "a07fce0e51087bdccbe1336122cf399691eb016b0bd718688a7760e3b0390579",
+    "src/internal/xrt_cookie.h": "d9df37b89113c7df45bd559c70e2d224d60ebd6e467ab2ffeba02d7053958d96",
+    "src/internal/xrt_mime.h": "a4a37e923dbd196901694bc9b93c05e867b0a88b51bdbd13b3f331130070bc03"
+  }
+}

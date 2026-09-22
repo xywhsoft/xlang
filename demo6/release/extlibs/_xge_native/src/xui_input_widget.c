@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define XUI_INPUT_KEY_BACKSPACE	8
-#define XUI_INPUT_KEY_DELETE	46
 #define XUI_INPUT_PADDING_LEFT	8.0f
 #define XUI_INPUT_PADDING_TOP	4.0f
 #define XUI_INPUT_PADDING_RIGHT	8.0f
@@ -46,6 +44,10 @@ typedef struct xui_input_data_t {
 	int iUndoCapacity;
 	char* sRedoText;
 	int iRedoCapacity;
+	char* sImeText;
+	int iImeTextCapacity;
+	char* sImeDisplay;
+	int iImeDisplayCapacity;
 	char* arrMenuTitle[XUI_INPUT_MENU_COUNT];
 	xui_widget pMenu;
 	xui_input_decoration pLeadingDecoration;
@@ -60,6 +62,12 @@ typedef struct xui_input_data_t {
 	int iAnchor;
 	int iSelectStart;
 	int iSelectEnd;
+	int bImeComposing;
+	int iImeAnchorStart;
+	int iImeAnchorEnd;
+	int iImeCursor;
+	int iImeSelectionStart;
+	int iImeSelectionEnd;
 	int iDragAnchor;
 	int bDragging;
 	int bPressPending;
@@ -239,73 +247,19 @@ static char* __xuiInputStringDuplicate(const char* sText)
 	return sCopy;
 }
 
-static int __xuiInputUtf8IsCont(unsigned char c)
-{
-	return (c & 0xc0u) == 0x80u;
-}
-
 static int __xuiInputUtf8Next(const char* sText, int iLen, int iPos)
 {
-	unsigned char c;
-	int iNext;
-
-	if ( sText == NULL ) {
-		return 0;
-	}
-	if ( iPos < 0 ) {
-		iPos = 0;
-	}
-	if ( iPos >= iLen ) {
-		return iLen;
-	}
-	c = (unsigned char)sText[iPos];
-	if ( c < 0x80u ) {
-		iNext = iPos + 1;
-	} else if ( (c & 0xe0u) == 0xc0u ) {
-		iNext = iPos + 2;
-	} else if ( (c & 0xf0u) == 0xe0u ) {
-		iNext = iPos + 3;
-	} else if ( (c & 0xf8u) == 0xf0u ) {
-		iNext = iPos + 4;
-	} else {
-		iNext = iPos + 1;
-	}
-	if ( iNext > iLen ) {
-		iNext = iLen;
-	}
-	return iNext;
+	return xuiInternalTextGraphemeNext(sText, iLen, iPos);
 }
 
 static int __xuiInputUtf8Prev(const char* sText, int iLen, int iPos)
 {
-	if ( sText == NULL ) {
-		return 0;
-	}
-	if ( iPos > iLen ) {
-		iPos = iLen;
-	}
-	if ( iPos <= 0 ) {
-		return 0;
-	}
-	iPos--;
-	while ( (iPos > 0) && __xuiInputUtf8IsCont((unsigned char)sText[iPos]) ) {
-		iPos--;
-	}
-	return iPos;
+	return xuiInternalTextGraphemePrev(sText, iLen, iPos);
 }
 
 static int __xuiInputUtf8Clamp(const char* sText, int iLen, int iPos)
 {
-	if ( iPos < 0 ) {
-		return 0;
-	}
-	if ( iPos > iLen ) {
-		return iLen;
-	}
-	while ( (iPos > 0) && (iPos < iLen) && __xuiInputUtf8IsCont((unsigned char)sText[iPos]) ) {
-		iPos--;
-	}
-	return iPos;
+	return xuiInternalTextGraphemeClamp(sText, iLen, iPos);
 }
 
 static int __xuiInputUtf8ClampBytes(const char* sText, int iMaxBytes)
@@ -753,6 +707,48 @@ static const char* __xuiInputDisplayAll(xui_input_data_t* pData)
 	return pData->sDisplay;
 }
 
+static void __xuiInputImeReset(xui_input_data_t* pData)
+{
+	if ( pData == NULL ) return;
+	pData->bImeComposing = 0;
+	pData->iImeAnchorStart = 0;
+	pData->iImeAnchorEnd = 0;
+	pData->iImeCursor = 0;
+	pData->iImeSelectionStart = 0;
+	pData->iImeSelectionEnd = 0;
+	if ( pData->sImeText != NULL ) pData->sImeText[0] = '\0';
+	if ( pData->sImeDisplay != NULL ) pData->sImeDisplay[0] = '\0';
+}
+
+static const char* __xuiInputImeDisplay(xui_input_data_t* pData)
+{
+	int iTextLength;
+	int iImeLength;
+	int iNeed;
+	int iRet;
+
+	if ( pData == NULL || !pData->bImeComposing || pData->sText == NULL ) {
+		return __xuiInputDisplayAll(pData);
+	}
+	iTextLength = (int)strlen(pData->sText);
+	iImeLength = (pData->sImeText != NULL) ? (int)strlen(pData->sImeText) : 0;
+	if ( pData->iImeAnchorStart < 0 ) pData->iImeAnchorStart = 0;
+	if ( pData->iImeAnchorEnd < pData->iImeAnchorStart ) pData->iImeAnchorEnd = pData->iImeAnchorStart;
+	if ( pData->iImeAnchorEnd > iTextLength ) pData->iImeAnchorEnd = iTextLength;
+	iNeed = pData->iImeAnchorStart + iImeLength + (iTextLength - pData->iImeAnchorEnd) + 1;
+	iRet = __xuiInputTextReserve(&pData->sImeDisplay, &pData->iImeDisplayCapacity, iNeed);
+	if ( iRet != XUI_OK ) return __xuiInputDisplayAll(pData);
+	if ( pData->iImeAnchorStart > 0 ) {
+		memcpy(pData->sImeDisplay, pData->sText, (size_t)pData->iImeAnchorStart);
+	}
+	if ( iImeLength > 0 ) {
+		memcpy(pData->sImeDisplay + pData->iImeAnchorStart, pData->sImeText, (size_t)iImeLength);
+	}
+	memcpy(pData->sImeDisplay + pData->iImeAnchorStart + iImeLength,
+		pData->sText + pData->iImeAnchorEnd, (size_t)(iTextLength - pData->iImeAnchorEnd + 1));
+	return pData->sImeDisplay;
+}
+
 static const char* __xuiInputDisplayPrefix(xui_input_data_t* pData, int iEnd)
 {
 	if ( pData == NULL || pData->sText == NULL ) {
@@ -792,6 +788,23 @@ static float __xuiInputMeasurePrefix(xui_widget pWidget, xui_input_data_t* pData
 
 	sPrefix = __xuiInputDisplayPrefix(pData, iEnd);
 	tSize = __xuiInputMeasureText(pWidget, pFont, sPrefix);
+	return tSize.fX;
+}
+
+static float __xuiInputMeasureDisplayPrefix(xui_widget pWidget, xui_input_data_t* pData, xui_font pFont, const char* sText, int iEnd)
+{
+	xui_vec2_t tSize;
+	int iLength;
+	int iRet;
+
+	if ( pData == NULL || sText == NULL || iEnd <= 0 ) return 0.0f;
+	iLength = (int)strlen(sText);
+	iEnd = __xuiInputUtf8Clamp(sText, iLength, iEnd);
+	iRet = __xuiInputTextReserve(&pData->sScratch, &pData->iScratchCapacity, iEnd + 1);
+	if ( iRet != XUI_OK ) return 0.0f;
+	memcpy(pData->sScratch, sText, (size_t)iEnd);
+	pData->sScratch[iEnd] = '\0';
+	tSize = __xuiInputMeasureText(pWidget, pFont, pData->sScratch);
 	return tSize.fX;
 }
 
@@ -982,12 +995,16 @@ static void __xuiInputEnsureCursorVisible(xui_widget pWidget, xui_input_data_t* 
 		return;
 	}
 	sDisplay = __xuiInputDisplayAll(pData);
+	if ( pData->bImeComposing ) sDisplay = __xuiInputImeDisplay(pData);
 	tDisplaySize = __xuiInputMeasureText(pWidget, tResolved.pFont, sDisplay);
 	if ( tDisplaySize.fX <= tContent.fW ) {
 		pData->fScrollX = 0.0f;
 		return;
 	}
-	fCursorX = __xuiInputMeasurePrefix(pWidget, pData, tResolved.pFont, pData->iCursor);
+	fCursorX = pData->bImeComposing ?
+		__xuiInputMeasureDisplayPrefix(pWidget, pData, tResolved.pFont, sDisplay,
+			pData->iImeAnchorStart + pData->iImeCursor) :
+		__xuiInputMeasurePrefix(pWidget, pData, tResolved.pFont, pData->iCursor);
 	if ( fCursorX - pData->fScrollX < 2.0f ) {
 		pData->fScrollX = fCursorX - 2.0f;
 	}
@@ -1019,9 +1036,13 @@ static xui_rect_t __xuiInputCalculateCursorRect(xui_widget pWidget, xui_input_da
 	__xuiInputResolve(pWidget, pData, &tResolved);
 	tContent = xuiWidgetGetContentRect(pWidget);
 	sDisplay = __xuiInputDisplayAll(pData);
+	if ( pData->bImeComposing ) sDisplay = __xuiInputImeDisplay(pData);
 	tDisplaySize = __xuiInputMeasureText(pWidget, tResolved.pFont, sDisplay);
 	fOffset = (tDisplaySize.fX <= tContent.fW && pData->fScrollX <= 0.0f) ? __xuiInputAlignOffset(pData, tContent.fW, tDisplaySize.fX) : 0.0f;
-	fCursorX = tContent.fX + fOffset + __xuiInputMeasurePrefix(pWidget, pData, tResolved.pFont, pData->iCursor) - pData->fScrollX;
+	fCursorX = tContent.fX + fOffset + (pData->bImeComposing ?
+		__xuiInputMeasureDisplayPrefix(pWidget, pData, tResolved.pFont, sDisplay,
+			pData->iImeAnchorStart + pData->iImeCursor) :
+		__xuiInputMeasurePrefix(pWidget, pData, tResolved.pFont, pData->iCursor)) - pData->fScrollX;
 	if ( fCursorX < tContent.fX ) fCursorX = tContent.fX;
 	if ( fCursorX > tContent.fX + tContent.fW ) fCursorX = tContent.fX + tContent.fW;
 	return (xui_rect_t){fCursorX, tContent.fY + 4.0f, 1.0f, (tContent.fH > 8.0f) ? tContent.fH - 8.0f : tContent.fH};
@@ -1847,6 +1868,8 @@ static int __xuiInputCacheRender(xui_widget pWidget, xui_draw_context pDraw, uin
 	uint32_t iBorder;
 	uint32_t iText;
 	float fOffset;
+	float fImeX0;
+	float fImeX1;
 	int iLen;
 	int iDrawStart;
 	int iRet;
@@ -1903,16 +1926,31 @@ static int __xuiInputCacheRender(xui_widget pWidget, xui_draw_context pDraw, uin
 	}
 	pData->tTextRect = tContent;
 	__xuiInputEnsureCursorVisible(pWidget, pData);
-	iLen = (pData->sText != NULL) ? (int)strlen(pData->sText) : 0;
-	sDisplay = __xuiInputDisplayAll(pData);
+	sDisplay = pData->bImeComposing ? __xuiInputImeDisplay(pData) : __xuiInputDisplayAll(pData);
+	iLen = (sDisplay != NULL) ? (int)strlen(sDisplay) : 0;
 	tDisplaySize = __xuiInputMeasureText(pWidget, tResolved.pFont, sDisplay);
 	fOffset = (tDisplaySize.fX <= tContent.fW && pData->fScrollX <= 0.0f) ? __xuiInputAlignOffset(pData, tContent.fW, tDisplaySize.fX) : 0.0f;
-	iRet = __xuiInputDrawSelection(pWidget, pDraw, pProxy, pData, &tResolved, tContent, fOffset);
-	if ( iRet != XUI_OK ) return iRet;
+	if ( !pData->bImeComposing ) {
+		iRet = __xuiInputDrawSelection(pWidget, pDraw, pProxy, pData, &tResolved, tContent, fOffset);
+		if ( iRet != XUI_OK ) return iRet;
+	} else if ( pData->iImeSelectionEnd > pData->iImeSelectionStart ) {
+		fImeX0 = tContent.fX + fOffset + __xuiInputMeasureDisplayPrefix(pWidget, pData, tResolved.pFont,
+			sDisplay, pData->iImeAnchorStart + pData->iImeSelectionStart) - pData->fScrollX;
+		fImeX1 = tContent.fX + fOffset + __xuiInputMeasureDisplayPrefix(pWidget, pData, tResolved.pFont,
+			sDisplay, pData->iImeAnchorStart + pData->iImeSelectionEnd) - pData->fScrollX;
+		if ( fImeX0 < tContent.fX ) fImeX0 = tContent.fX;
+		if ( fImeX1 > tContent.fX + tContent.fW ) fImeX1 = tContent.fX + tContent.fW;
+		if ( fImeX1 > fImeX0 ) {
+			iRet = __xuiInputDrawRectFill(pProxy, pDraw,
+				(xui_rect_t){fImeX0, tContent.fY + 3.0f, fImeX1 - fImeX0, tContent.fH - 6.0f},
+				tResolved.iSelectionColor);
+			if ( iRet != XUI_OK ) return iRet;
+		}
+	}
 
 	if ( (tResolved.pFont != NULL) && (pProxy->drawText != NULL) ) {
 		if ( iLen > 0 ) {
-			if ( tDisplaySize.fX > tContent.fW ) {
+			if ( !pData->bImeComposing && tDisplaySize.fX > tContent.fW ) {
 				iDrawStart = __xuiInputFirstVisibleByte(pWidget, pData, tResolved.pFont);
 				(void)__xuiInputBuildDisplayRange(pData, iDrawStart, iLen, &pData->sDisplay, &pData->iDisplayCapacity);
 				sDrawText = pData->sDisplay;
@@ -1930,7 +1968,7 @@ static int __xuiInputCacheRender(xui_widget pWidget, xui_draw_context pDraw, uin
 					XUI_TEXT_ALIGN_LEFT | XUI_TEXT_ALIGN_MIDDLE | XUI_TEXT_CLIP);
 				if ( iRet != XUI_OK ) return iRet;
 			}
-		} else if ( (pData->sPlaceholder != NULL) && (pData->sPlaceholder[0] != '\0') &&
+		} else if ( !pData->bImeComposing && (pData->sPlaceholder != NULL) && (pData->sPlaceholder[0] != '\0') &&
 		            (__xuiInputAlpha(tResolved.iPlaceholderColor) != 0) ) {
 			uint32_t iFlags = XUI_TEXT_ALIGN_LEFT | XUI_TEXT_ALIGN_MIDDLE | XUI_TEXT_CLIP;
 			if ( pData->iTextAlign == XUI_INPUT_ALIGN_CENTER ) iFlags = XUI_TEXT_ALIGN_CENTER | XUI_TEXT_ALIGN_MIDDLE | XUI_TEXT_CLIP;
@@ -1939,11 +1977,25 @@ static int __xuiInputCacheRender(xui_widget pWidget, xui_draw_context pDraw, uin
 			if ( iRet != XUI_OK ) return iRet;
 		}
 	}
+	if ( pData->bImeComposing && pData->sImeText != NULL && pData->sImeText[0] != '\0' ) {
+		fImeX0 = tContent.fX + fOffset + __xuiInputMeasureDisplayPrefix(pWidget, pData, tResolved.pFont,
+			sDisplay, pData->iImeAnchorStart) - pData->fScrollX;
+		fImeX1 = tContent.fX + fOffset + __xuiInputMeasureDisplayPrefix(pWidget, pData, tResolved.pFont,
+			sDisplay, pData->iImeAnchorStart + (int)strlen(pData->sImeText)) - pData->fScrollX;
+		if ( fImeX0 < tContent.fX ) fImeX0 = tContent.fX;
+		if ( fImeX1 > tContent.fX + tContent.fW ) fImeX1 = tContent.fX + tContent.fW;
+		if ( fImeX1 > fImeX0 ) {
+			iRet = __xuiInputDrawRectFill(pProxy, pDraw,
+				(xui_rect_t){fImeX0, tContent.fY + tContent.fH - 2.0f, fImeX1 - fImeX0, 1.0f},
+				tResolved.iCursorColor);
+			if ( iRet != XUI_OK ) return iRet;
+		}
+	}
 	tCursor = __xuiInputCalculateCursorRect(pWidget, pData);
 	pData->tCursorRect = tCursor;
 	if ( ((iState & XUI_WIDGET_STATE_FOCUS) != 0) &&
 	     ((iState & XUI_WIDGET_STATE_DISABLED) == 0) &&
-	     !__xuiInputHasSelectionData(pData) &&
+	     (pData->bImeComposing || !__xuiInputHasSelectionData(pData)) &&
 	     (__xuiInputAlpha(tResolved.iCursorColor) != 0) &&
 	     (tCursor.fH > 0.0f) &&
 	     (pProxy->drawRectFill != NULL) ) {
@@ -2117,7 +2169,7 @@ static int __xuiInputHandleKey(xui_widget pWidget, xui_input_data_t* pData, cons
 	case XUI_KEY_END:
 		(void)__xuiInputMoveCursor(pWidget, pData, iLen, bShift);
 		return XUI_EVENT_DISPATCH_STOP;
-	case XUI_INPUT_KEY_BACKSPACE:
+	case XUI_KEY_BACKSPACE:
 		if ( pData->bReadonly ) return XUI_EVENT_DISPATCH_STOP;
 		if ( __xuiInputHasSelectionData(pData) ) {
 			(void)xuiInputDeleteSelection(pWidget);
@@ -2127,7 +2179,7 @@ static int __xuiInputHandleKey(xui_widget pWidget, xui_input_data_t* pData, cons
 				pData->iCursor, 1, 1);
 		}
 		return XUI_EVENT_DISPATCH_STOP;
-	case XUI_INPUT_KEY_DELETE:
+	case XUI_KEY_DELETE:
 		if ( pData->bReadonly ) return XUI_EVENT_DISPATCH_STOP;
 		if ( __xuiInputHasSelectionData(pData) ) {
 			(void)xuiInputDeleteSelection(pWidget);
@@ -2182,6 +2234,7 @@ static int __xuiInputEvent(xui_widget pWidget, const xui_event_t* pEvent, void* 
 	case XUI_EVENT_FOCUS:
 	case XUI_EVENT_BLUR:
 		if ( pEvent->iType == XUI_EVENT_BLUR ) {
+			__xuiInputImeReset(pData);
 			pData->pHoverDecoration = NULL;
 			pData->pActiveDecoration = NULL;
 		}
@@ -2348,8 +2401,51 @@ static int __xuiInputEvent(xui_widget pWidget, const xui_event_t* pEvent, void* 
 		if ( pData->bReadonly ) {
 			return XUI_EVENT_DISPATCH_STOP;
 		}
-		if ( pEvent->iCompositionLength == 0 && pEvent->iTextSize > 0 && pEvent->sText[0] != '\0' ) {
+		if ( pEvent->bCompositionActive ) {
+			if ( pEvent->bCompositionReplacementRange ) {
+				iTextSize = (int)strlen(pData->sText);
+				pData->iImeAnchorStart = __xuiInputUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementStart);
+				pData->iImeAnchorEnd = __xuiInputUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementEnd);
+				if ( pData->iImeAnchorEnd < pData->iImeAnchorStart ) {
+					pData->iImeAnchorEnd = pData->iImeAnchorStart;
+				}
+			} else if ( !pData->bImeComposing ) {
+				__xuiInputSelectionRange(pData, &pData->iImeAnchorStart, &pData->iImeAnchorEnd);
+			}
+			iTextSize = pEvent->iTextSize;
+			if ( iTextSize < 0 ) iTextSize = (int)strlen(pEvent->sText);
+			if ( __xuiInputTextReserve(&pData->sImeText, &pData->iImeTextCapacity, iTextSize + 1) != XUI_OK ) {
+				return XUI_ERROR_OUT_OF_MEMORY;
+			}
+			if ( iTextSize > 0 ) memcpy(pData->sImeText, pEvent->sText, (size_t)iTextSize);
+			pData->sImeText[iTextSize] = '\0';
+			pData->bImeComposing = 1;
+			pData->iImeCursor = __xuiInputUtf8Clamp(pData->sImeText, iTextSize, pEvent->iCompositionCursor);
+			pData->iImeSelectionStart = __xuiInputUtf8Clamp(pData->sImeText, iTextSize, pEvent->iCompositionSelectionStart);
+			pData->iImeSelectionEnd = __xuiInputUtf8Clamp(pData->sImeText, iTextSize, pEvent->iCompositionSelectionEnd);
+			if ( pData->iImeSelectionEnd < pData->iImeSelectionStart ) pData->iImeSelectionEnd = pData->iImeSelectionStart;
+			return __xuiInputInvalidatePaint(pWidget) == XUI_OK ? XUI_EVENT_DISPATCH_STOP : XUI_OK;
+		}
+		if ( pEvent->iTextSize > 0 && pEvent->sText[0] != '\0' ) {
+			if ( pEvent->bCompositionReplacementRange ) {
+				iTextSize = (int)strlen(pData->sText);
+				pData->iImeAnchorStart = __xuiInputUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementStart);
+				pData->iImeAnchorEnd = __xuiInputUtf8Clamp(pData->sText, iTextSize,
+					pEvent->iCompositionReplacementEnd);
+				if ( pData->iImeAnchorEnd < pData->iImeAnchorStart ) {
+					pData->iImeAnchorEnd = pData->iImeAnchorStart;
+				}
+				(void)__xuiInputSetSelectionData(pData, pData->iImeAnchorStart, pData->iImeAnchorEnd);
+			} else if ( pData->bImeComposing ) {
+				(void)__xuiInputSetSelectionData(pData, pData->iImeAnchorStart, pData->iImeAnchorEnd);
+			}
+			__xuiInputImeReset(pData);
 			(void)__xuiInputInsertText(pWidget, pData, pEvent->sText, pEvent->iTextSize);
+		} else {
+			__xuiInputImeReset(pData);
 		}
 		return __xuiInputInvalidatePaint(pWidget) == XUI_OK ? XUI_EVENT_DISPATCH_STOP : XUI_OK;
 	default:
@@ -2559,6 +2655,8 @@ static void __xuiInputDestroy(xui_widget pWidget, void* pTypeData, void* pUser)
 	if ( pData->sScratch != NULL ) xrtFree(pData->sScratch);
 	if ( pData->sUndoText != NULL ) xrtFree(pData->sUndoText);
 	if ( pData->sRedoText != NULL ) xrtFree(pData->sRedoText);
+	if ( pData->sImeText != NULL ) xrtFree(pData->sImeText);
+	if ( pData->sImeDisplay != NULL ) xrtFree(pData->sImeDisplay);
 	for ( i = 0; i < XUI_INPUT_MENU_COUNT; i++ ) {
 		if ( pData->arrMenuTitle[i] != NULL ) {
 			xrtFree(pData->arrMenuTitle[i]);

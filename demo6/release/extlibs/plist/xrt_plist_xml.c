@@ -8,11 +8,11 @@ static bool __xrtPlistXmlWhitespace(const char* sText)
 	const unsigned char* p = (const unsigned char*)(sText != NULL ? sText : "");
 	while ( *p != 0u ) {
 		if ( *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n' ) {
-			return FALSE;
+			return false;
 		}
 		p++;
 	}
-	return TRUE;
+	return true;
 }
 
 static xrtxmldomnode* __xrtPlistXmlOnlyElement(xrtxmldomnode* pParent,
@@ -76,7 +76,7 @@ static bool __xrtPlistXmlContainerElements(xrtxmldomnode* pParent,
 	}
 	*ppItems = pItems;
 	*pCount = iCount;
-	return TRUE;
+	return true;
 
 memory_error:
 	__xrtPlistSetError(pError, XRT_PLIST_ERROR_MEMORY,
@@ -84,7 +84,7 @@ memory_error:
 error:
 	while ( iCount != 0u ) { xrtXmlDomNodeRelease(pItems[--iCount]); }
 	xrtFree(pItems);
-	return FALSE;
+	return false;
 }
 
 static char* __xrtPlistXmlTrim(str sText)
@@ -95,13 +95,13 @@ static char* __xrtPlistXmlTrim(str sText)
 		*pStart == '\r' || *pStart == '\n') ) { pStart++; }
 	while ( pEnd > pStart && (pEnd[-1] == ' ' || pEnd[-1] == '\t' ||
 		pEnd[-1] == '\r' || pEnd[-1] == '\n') ) { pEnd--; }
-	return (char*)xrtCopyStr((str)pStart, (size_t)(pEnd - pStart));
+	return xrtStrDupN(pStart, (size_t)(pEnd - pStart));
 }
 
 static bool __xrtPlistXmlDate(const char* sText, xtime* pValue)
 {
-	if ( sText == NULL || pValue == NULL ) { return FALSE; }
-	return xrtTryTimeParse((str)sText, (str)"yyyy-mm-ddThh:nn:ssZ", pValue);
+	if ( sText == NULL || pValue == NULL ) { return false; }
+	return xrtTimeParseRFC3339(xrtStrView(sText), pValue);
 }
 
 static bool __xrtPlistBase64(const char* sText, uint8** ppData,
@@ -112,32 +112,31 @@ static bool __xrtPlistBase64(const char* sText, uint8** ppData,
 	size_t iClean = 0u;
 	size_t iPadding = 0u;
 	ptr pDecoded;
-	if ( sClean == NULL ) { return FALSE; }
+	if ( sClean == NULL ) { return false; }
 	for ( i = 0u; i < iLength; i++ ) {
 		unsigned char c = (unsigned char)sText[i];
 		if ( c == ' ' || c == '\t' || c == '\r' || c == '\n' ) { continue; }
 		if ( !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
 			(c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=') ) {
-			xrtFree(sClean); return FALSE;
+			xrtFree(sClean); return false;
 		}
 		sClean[iClean++] = (char)c;
 	}
 	sClean[iClean] = 0;
 	if ( iClean == 0u ) {
-		xrtFree(sClean); *ppData = NULL; *pSize = 0u; return TRUE;
+		xrtFree(sClean); *ppData = NULL; *pSize = 0u; return true;
 	}
-	if ( iClean % 4u != 0u ) { xrtFree(sClean); return FALSE; }
+	if ( iClean % 4u != 0u ) { xrtFree(sClean); return false; }
 	if ( sClean[iClean - 1u] == '=' ) { iPadding++; }
 	if ( iClean > 1u && sClean[iClean - 2u] == '=' ) { iPadding++; }
 	for ( i = 0u; i + iPadding < iClean; i++ ) {
-		if ( sClean[i] == '=' ) { xrtFree(sClean); return FALSE; }
+		if ( sClean[i] == '=' ) { xrtFree(sClean); return false; }
 	}
-	pDecoded = xrtBase64Decode((str)sClean, iClean, NULL);
+	pDecoded = xrtBase64DecodeNew(sClean, iClean, (size_t*)pSize, NULL);
 	xrtFree(sClean);
-	if ( pDecoded == NULL ) { return FALSE; }
+	if ( pDecoded == NULL ) { return false; }
 	*ppData = (uint8*)pDecoded;
-	*pSize = (uint64)(iClean / 4u * 3u - iPadding);
-	return TRUE;
+	return true;
 }
 
 static xrtplistnode* __xrtPlistXmlValue(xrtplistdocument* pDocument,
@@ -279,15 +278,16 @@ xrtplistdocument* __xrtPlistParseXml(const void* pData, uint64 iSize,
 	xrtplistdocument* pDocument = NULL;
 	xrtplistcontext tContext;
 	str sVersion;
-	if ( iSize > SIZE_MAX || !xrtIsUTF8((str)pData, (size_t)iSize) ) {
+	if ( iSize > SIZE_MAX || !xrtUtf8Valid(
+		(xstrview){ (cstr)pData, (size_t)iSize }, NULL) ) {
 		__xrtPlistSetError(pError, XRT_PLIST_ERROR_FORMAT,
 			0u, 0u, 0u, "plist XML input is not valid UTF-8");
 		return NULL;
 	}
 	xrtXmlOptionsInit(&tXmlOptions);
 	tXmlOptions.tLimits = pOptions->tLimits;
-	tXmlOptions.bAllowDtd = TRUE;
-	tXmlOptions.bAllowExternalEntities = FALSE;
+	tXmlOptions.bAllowDtd = true;
+	tXmlOptions.bAllowExternalEntities = false;
 	pXmlDocument = xrtXmlDomParseMemory(pData, iSize, &tXmlOptions, &tXmlError);
 	if ( pXmlDocument == NULL ) {
 		__xrtPlistSetError(pError, XRT_PLIST_ERROR_FORMAT,

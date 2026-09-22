@@ -1,0 +1,126 @@
+import rss
+
+
+
+func main(...) as int
+    // 检测
+    assert rss.detect("<rss version=\"2.0\"><channel></channel></rss>") == "rss", "detect rss"
+    assert rss.detect("<feed xmlns=\"http://www.w3.org/2005/Atom\"></feed>") == "atom", "detect atom"
+    assert rss.detect("<html></html>") == "", "detect neither"
+
+    // RSS 2.0 解析
+    string rssDoc = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>xlang news &amp; updates</title>
+<link>https://xlang.dev</link>
+<description>release notes</description>
+<lastBuildDate>Mon, 10 Aug 2026 00:00:00 GMT</lastBuildDate>
+<item><title>first post</title><link>https://xlang.dev/1</link>
+<description>&lt;b&gt;hello&lt;/b&gt; world</description>
+<pubDate>Tue, 04 Aug 2026 00:00:00 GMT</pubDate>
+<guid isPermaLink="true">https://xlang.dev/1</guid>
+<category>release</category><category>toolchain</category></item>
+<item><title><![CDATA[raw <cdata> & text]]></title>
+<link>https://xlang.dev/2</link><description>second</description></item>
+</channel></rss>"""
+
+    var feed = rss.parse(rssDoc)
+    assert feed["type"] == "rss", "rss type"
+    assert feed["title"] == "xlang news & updates", "rss title entity"
+    assert feed["link"] == "https://xlang.dev", "rss link"
+    assert feed["updated"] == "Mon, 10 Aug 2026 00:00:00 GMT", "rss lastBuildDate"
+    assert feed["items"].length == 2, "rss item count"
+
+    var item1 = feed["items"][0]
+    assert item1["title"] == "first post", "item title"
+    assert item1["description"] == "<b>hello</b> world", "entity decode"
+    assert item1["pubDate"] == "Tue, 04 Aug 2026 00:00:00 GMT", "item pubDate"
+    assert item1["guid"] == "https://xlang.dev/1", "item guid"
+    assert item1["categories"].length == 2, "item categories"
+    assert item1["categories"][0] == "release", "category 0"
+    assert item1["categories"][1] == "toolchain", "category 1"
+
+    var item2 = feed["items"][1]
+    assert item2["title"] == "raw <cdata> & text", "cdata kept raw"
+
+    // Atom 解析
+    string atomDoc = """<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+<title>atom feed</title>
+<subtitle>all updates</subtitle>
+<id>urn:uuid:1234</id>
+<updated>2026-08-12T08:00:00Z</updated>
+<link href="https://example.com/atom" rel="alternate"/>
+<link href="https://example.com/hub" rel="hub"/>
+<entry><title>entry one</title>
+<id>urn:uuid:e1</id>
+<updated>2026-08-11T08:00:00Z</updated>
+<link href="https://example.com/1"/>
+<author><name>alice</name></author>
+<summary>short summary</summary></entry>
+</feed>"""
+
+    var atom = rss.parse(atomDoc)
+    assert atom["type"] == "atom", "atom type"
+    assert atom["title"] == "atom feed", "atom title"
+    assert atom["subtitle"] == "all updates", "atom subtitle"
+    assert atom["link"] == "https://example.com/atom", "atom alternate link wins"
+    assert atom["items"].length == 1, "atom entry count"
+    var entry = atom["items"][0]
+    assert entry["title"] == "entry one", "entry title"
+    assert entry["author"] == "alice", "entry author name"
+    assert entry["summary"] == "short summary", "entry summary"
+    assert entry["link"] == "https://example.com/1", "entry link href"
+
+    // parseRSS/parseAtom 的严格性
+    int raised = 0
+    try
+        rss.parseRSS(atomDoc)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "parseRSS rejects atom"
+
+    raised = 0
+    try
+        rss.parseAtom(rssDoc)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "parseAtom rejects rss"
+
+    raised = 0
+    try
+        rss.parse("<html/>")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "parse rejects other xml"
+
+    // 生成 RSS 并回读（往返）
+    var channel = {"title": "gen feed", "link": "https://gen.dev", "description": "generated"}
+    var items = [
+        {"title": "t <1>", "link": "https://gen.dev/1", "description": "d & d", "guid": "g1"},
+        {"title": "t2", "link": "https://gen.dev/2", "description": "plain"}
+    ]
+    string generated = rss.buildRSS(channel, items)
+    assert generated.contains("<rss version=\"2.0\">"), "build rss root"
+    var reparsed = rss.parse(generated)
+    assert reparsed["title"] == "gen feed", "round trip title"
+    assert reparsed["items"].length == 2, "round trip count"
+    assert reparsed["items"][0]["title"] == "t <1>", "round trip escaped title"
+    assert reparsed["items"][0]["description"] == "d & d", "round trip escaped desc"
+
+    // 生成 Atom 并回读
+    var feedMeta = {"title": "gen atom", "link": "https://gen.dev/atom", "id": "urn:uuid:0", "updated": "2026-08-13T00:00:00Z"}
+    var entries = [
+        {"title": "a1", "link": "https://gen.dev/a1", "id": "urn:uuid:a1", "updated": "2026-08-13T00:00:00Z", "summary": "s1"}
+    ]
+    string atomOut = rss.buildAtom(feedMeta, entries)
+    var atomBack = rss.parse(atomOut)
+    assert atomBack["type"] == "atom", "round trip atom type"
+    assert atomBack["title"] == "gen atom", "round trip atom title"
+    assert atomBack["items"][0]["summary"] == "s1", "round trip summary"
+
+    return 0
+end

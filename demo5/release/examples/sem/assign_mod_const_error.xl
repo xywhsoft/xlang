@@ -1,6 +1,0 @@
-const int value = 85
-
-func main() as int
-	value %= 43
-	return value
-end

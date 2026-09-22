@@ -84,7 +84,7 @@ test\suites\02_language_frontend.bat
 - `future`：future 值、等待、取消和生命周期用例。
 - `generic`：泛型类型基础用例。
 - `generics`：泛型语法基础用例。
-- `hir`：typed HIR 类型覆盖与后端边界用例。
+- `hir`：历史文件名前缀；当前覆盖 typed XLIR 类型与 lowering 边界。
 - `import`：source import/package 导入用例。
 - `invalid`：无效运算和无效 range 负例。
 - `layout`：布局和语句分隔用例。

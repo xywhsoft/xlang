@@ -8,7 +8,7 @@ func tcpStressWorker(int port, int workerId, int rounds) as bool
     int round = 0
     while round < rounds
         string payload = workerId.toString() + ":" + round.toString()
-        TcpStream stream = TcpStream(tcp.connect("127.0.0.1", port, 3000))
+        TcpStream stream = tcp.connect("127.0.0.1", port, 3000)
         if stream.handle == null then return false end
         if not stream.send(payload) or not stream.drain(3000) then return false end
         if stream.recv(3000) != "c:" + payload then return false end
@@ -47,7 +47,7 @@ require(tcpService.ready(), "TCP service must be ready: " + tcpService.lastError
 require(tcpService.start(), "TCP service must start: " + tcpService.lastError)
 require(tcpService.port() > 0, "TCP service must publish its bound port")
 
-TcpStream client = TcpStream(tcp.connect("127.0.0.1", tcpService.port(), 3000))
+TcpStream client = tcp.connect("127.0.0.1", tcpService.port(), 3000)
 require(client.handle != null, "TCP client must connect")
 require(client.send("hello"), "TCP request send must succeed")
 require(client.drain(3000), "TCP request drain must succeed")
@@ -75,7 +75,7 @@ require(not tcpService.started(), "TCP service must report stopped state")
 require(competingService.start(), "released TCP port must be reusable: " + competingService.lastError)
 require(competingService.stop(), "competing TCP service must stop")
 require(tcpService.start(), "stopped TCP service must support a clean restart: " + tcpService.lastError)
-TcpStream restartedClient = TcpStream(tcp.connect("127.0.0.1", tcpService.port(), 3000))
+TcpStream restartedClient = tcp.connect("127.0.0.1", tcpService.port(), 3000)
 require(restartedClient.send("again") and restartedClient.drain(3000), "restarted TCP service must receive")
 require(restartedClient.recv(3000) == "c:again", "restarted TCP service must answer")
 restartedClient.close()
@@ -107,9 +107,9 @@ require(udpService.ready(), "UDP service must be ready: " + udpService.lastError
 require(udpService.start(), "UDP service must start: " + udpService.lastError)
 require(udpService.port() > 0, "UDP service must publish its bound port")
 
-UdpSocket udpClient = UdpSocket(udp.bind(0, "127.0.0.1"))
+UdpSocket udpClient = udp.bind(0, "127.0.0.1")
 require(udpClient.send("127.0.0.1", uint16(udpService.port()), "world"), "UDP request send must succeed")
-UdpPacket reply = UdpPacket(udpClient.recv(3000))
+UdpPacket reply = udpClient.recv(3000)
 require(reply.handle != null, "UDP response packet must arrive")
 require(reply.text() == "xl:world", "UDP response must come from the xlang handler")
 time.sleep(100)

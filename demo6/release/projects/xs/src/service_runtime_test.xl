@@ -32,14 +32,14 @@ HttpClientResponse httpResponse = http.post(
     3000)
 require(httpResponse.status() == 200 and httpResponse.body() == "c:http", "HTTP handler must respond")
 
-TcpStream tcpClient = TcpStream(tcp.connect("127.0.0.1", tcpPort, 3000))
+TcpStream tcpClient = tcp.connect("127.0.0.1", tcpPort, 3000)
 require(tcpClient.send("tcp") and tcpClient.drain(3000), "TCP request must send")
 require(tcpClient.recv(3000) == "c:tcp", "TCP handler must respond")
 tcpClient.close()
 
-UdpSocket udpClient = UdpSocket(udp.bind(0, "127.0.0.1"))
+UdpSocket udpClient = udp.bind(0, "127.0.0.1")
 require(udpClient.send("127.0.0.1", uint16(udpPort), "udp"), "UDP request must send")
-UdpPacket udpResponse = UdpPacket(udpClient.recv(3000))
+UdpPacket udpResponse = udpClient.recv(3000)
 require(udpResponse.text() == "xl:udp", "UDP handler must respond")
 
 require(runtime.reloadHandlers(), runtime.lastError())

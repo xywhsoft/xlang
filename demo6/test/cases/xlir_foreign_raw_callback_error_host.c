@@ -1,5 +1,4 @@
-#define XRT_MODULE_ERROR
-#include "lib/xrt/xrt.h"
+#include "../../build/test/__xl_runtime/xruntime_decl.h"
 #include <assert.h>
 #include <string.h>
 

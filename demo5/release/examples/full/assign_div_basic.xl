@@ -1,5 +1,0 @@
-func main() as int
-	int value = 84
-	value /= 2
-	return value
-end

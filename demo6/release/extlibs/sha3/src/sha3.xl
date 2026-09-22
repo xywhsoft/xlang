@@ -1,5 +1,5 @@
 // sha3 — SHA-3 (Keccak) 哈希 + SHAKE XOF，Buffer/string/文件/流式。
-extern "xrtGetError" func __sha3_error() as string
+extern "xl6_xrt_last_error_text" func __sha3_error() as string
 extern "xsha3_version" func __sha3_version() as string
 extern "xsha3_hash_hex" func __sha3_hash_hex(point data, c_size size, c_int bits) as string
 extern "xsha3_hash_str_hex" func __sha3_hash_str(string data, c_size size, c_int bits) as string
@@ -7,7 +7,8 @@ extern "xsha3_hash_bytes" func __sha3_hash_bytes(point data, c_size size, c_int 
 extern "xsha3_hash_str_bytes" func __sha3_hash_str_bytes(string data, c_size size, c_int bits) as point
 extern "xshake_hash_hex" func __shake_hash_hex(point data, c_size size, c_int strength, c_size outLen) as string
 extern "xshake_hash_str_hex" func __shake_hash_str(string data, c_size size, c_int strength, c_size outLen) as string
-extern "xsha3_file_hex" func __sha3_file_hex(string path, c_ulonglong maxInput, c_int bits) as string
+extern "xsha3_file_hex" func __sha3_file_hex(string path, c_ulonglong maxInput, c_int bits, var onProgress) as string
+extern "xsha3_file_status" func __sha3_file_status() as c_int
 
 
 
@@ -138,10 +139,18 @@ end
 
 // ═══════════════ 文件哈希 ═══════════════
 
-export func hashFileHex(string path, int bits = 256, int maxInput = 268435456) as string
+export func hashFileHex(string path, int bits = 256, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __sha3_check_limit(maxInput, "maxInput")
-    string result = __sha3_file_hex(path, c_ulonglong(maxInput), c_int(bits))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __sha3_file_hex(path, c_ulonglong(maxInput), c_int(bits), progress)
+    int status = __sha3_file_status()
+    if status == -1 then
+        throw CancelledError "sha3 operation cancelled"
+    elseif status != 1 then
         throw FileError __sha3_error()
     end
     return result

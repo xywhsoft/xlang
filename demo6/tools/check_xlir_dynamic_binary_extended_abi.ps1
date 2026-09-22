@@ -8,14 +8,12 @@ if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_dynamic_binary_extended_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $loweredPath = Join-Path $outputDir "xlir_dynamic_binary_extended_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_dynamic_binary_extended_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_dynamic_binary_extended_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_dynamic_binary_extended_abi_legacy.c"
 
-foreach ( $path in @($xl, $source, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR extended dynamic binary gate input is missing: $path"
     }
@@ -130,13 +128,8 @@ try {
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR extended dynamic binary strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy extended dynamic binary differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $legacySupport !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_dynamic_binary_extended_abi_legacy.exe && build\test\xlir_dynamic_binary_extended_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy extended dynamic binary differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR extended dynamic binary ABI gate ok: fourteen explicit borrowed-xvalue operations, nine Typed may-raise effects with adjacent ERROR_TEST CFG, checked integer errors, float-null behavior, string/array addition, deterministic strict C and legacy differential runtime semantics."
+Write-Output "XLIR extended dynamic binary ABI gate ok: fourteen explicit borrowed-xvalue operations, nine Typed may-raise effects with adjacent ERROR_TEST CFG, checked integer errors, float-null behavior, string/array addition, and deterministic strict-C runtime semantics."

@@ -1,4 +1,4 @@
-#include "include/xrt_csv.h"
+#include "xrt_csv_internal.h"
 
 #include <string.h>
 
@@ -25,31 +25,38 @@ typedef struct {
 	bool Memory;
 } xcsv_writer_handle;
 
+static void xcsv_error(xerrkind Kind, const char* sMessage)
+{
+	xrtSetErrorInfo(Kind, "xlang.extlib.csv", 0,
+		sMessage != NULL ? sMessage : "CSV operation failed");
+}
+
 
 
 static void xcsv_publish_reader_error(const xrtcsvreader* pReader)
 {
 	const xrtcsverror* pError = xrtCsvReaderError(pReader);
-	xrtSetError(xrtFormat("%s", pError != NULL && pError->sMessage[0] != 0 ?
-		pError->sMessage : "CSV reader operation failed"), TRUE);
+	xcsv_error(XERR_STATE, pError != NULL && pError->sMessage[0] != 0 ?
+		pError->sMessage : "CSV reader operation failed");
 }
 
 static void xcsv_publish_writer_error(const xrtcsvwriter* pWriter)
 {
 	const xrtcsverror* pError = xrtCsvWriterError(pWriter);
-	xrtSetError(xrtFormat("%s", pError != NULL && pError->sMessage[0] != 0 ?
-		pError->sMessage : "CSV writer operation failed"), TRUE);
+	xcsv_error(XERR_STATE, pError != NULL && pError->sMessage[0] != 0 ?
+		pError->sMessage : "CSV writer operation failed");
 }
 
-static bool xcsv_set_character(char* pOutput, str sValue, const char* sName)
+/* 验证并写入 CSV 方言的单字节可打印字符。 */
+static bool xcsv_set_character(char* pOutput, str sValue)
 {
 	if ( sValue == NULL || strlen((const char*)sValue) != 1u ||
 		(unsigned char)sValue[0] < 0x20u || (unsigned char)sValue[0] > 0x7eu ) {
-		xrtSetError(xrtFormat("CSV %s must be one printable ASCII character", sName), TRUE);
-		return FALSE;
+		xcsv_error(XERR_ARGUMENT, "CSV delimiter and quote must be one printable ASCII character");
+		return false;
 	}
 	*pOutput = (char)sValue[0];
-	return TRUE;
+	return true;
 }
 
 static bool xcsv_reader_dialect(xrtcsvdialect* pDialect, str sDelimiter, str sQuote,
@@ -57,15 +64,15 @@ static bool xcsv_reader_dialect(xrtcsvdialect* pDialect, str sDelimiter, str sQu
 	uint64 iMaxRows, uint64 iMaxFields)
 {
 	xrtCsvDialectInit(pDialect);
-	if ( !xcsv_set_character(&pDialect->iDelimiter, sDelimiter, "delimiter") ||
-		!xcsv_set_character(&pDialect->iQuote, sQuote, "quote") ) { return FALSE; }
+	if ( !xcsv_set_character(&pDialect->iDelimiter, sDelimiter) ||
+		!xcsv_set_character(&pDialect->iQuote, sQuote) ) { return false; }
 	pDialect->bStrict = bStrict;
 	if ( iMaxInput != 0u ) { pDialect->tLimits.iMaxInputBytes = iMaxInput; }
 	if ( iMaxOutput != 0u ) { pDialect->tLimits.iMaxOutputBytes = iMaxOutput; }
 	if ( iMaxItem != 0u ) { pDialect->tLimits.iMaxItemBytes = iMaxItem; }
 	if ( iMaxRows != 0u ) { pDialect->tLimits.iMaxEntries = iMaxRows; }
 	if ( iMaxFields != 0u ) { pDialect->tLimits.iMaxNodes = iMaxFields; }
-	return TRUE;
+	return true;
 }
 
 static bool xcsv_writer_dialect(xrtcsvdialect* pDialect, str sDelimiter, str sQuote,
@@ -73,13 +80,13 @@ static bool xcsv_writer_dialect(xrtcsvdialect* pDialect, str sDelimiter, str sQu
 	uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxRows, uint64 iMaxFields)
 {
 	xrtCsvDialectInit(pDialect);
-	if ( !xcsv_set_character(&pDialect->iDelimiter, sDelimiter, "delimiter") ||
-		!xcsv_set_character(&pDialect->iQuote, sQuote, "quote") ||
+	if ( !xcsv_set_character(&pDialect->iDelimiter, sDelimiter) ||
+		!xcsv_set_character(&pDialect->iQuote, sQuote) ||
 		(iNewline != XRT_CSV_NEWLINE_LF && iNewline != XRT_CSV_NEWLINE_CRLF) ) {
 		if ( iNewline != XRT_CSV_NEWLINE_LF && iNewline != XRT_CSV_NEWLINE_CRLF ) {
-			xrtSetError(xrtFormat("CSV newline must be LF or CRLF"), TRUE);
+			xcsv_error(XERR_ARGUMENT, "CSV newline must be LF or CRLF");
 		}
-		return FALSE;
+		return false;
 	}
 	pDialect->iNewline = iNewline;
 	pDialect->bQuoteAll = bQuoteAll;
@@ -89,7 +96,7 @@ static bool xcsv_writer_dialect(xrtcsvdialect* pDialect, str sDelimiter, str sQu
 	if ( iMaxItem != 0u ) { pDialect->tLimits.iMaxItemBytes = iMaxItem; }
 	if ( iMaxRows != 0u ) { pDialect->tLimits.iMaxEntries = iMaxRows; }
 	if ( iMaxFields != 0u ) { pDialect->tLimits.iMaxNodes = iMaxFields; }
-	return TRUE;
+	return true;
 }
 
 
@@ -106,7 +113,7 @@ static void* xcsv_validate_reader(xrtcsvreader* pReader)
 	pHandle = (xcsv_reader_handle*)xrtCalloc(1u, sizeof(*pHandle));
 	if ( pHandle == NULL ) {
 		xrtCsvReaderDestroy(pReader);
-		xrtSetError(xrtFormat("cannot allocate CSV reader handle"), TRUE);
+		xcsv_error(XERR_MEMORY, "cannot allocate CSV reader handle");
 		return NULL;
 	}
 	pHandle->Reader = pReader;
@@ -146,7 +153,7 @@ XCSV_EXPORT void xcsv_reader_destroy(void* pValue)
 XCSV_EXPORT bool xcsv_reader_next(void* pValue)
 {
 	xcsv_reader_handle* pHandle = (xcsv_reader_handle*)pValue;
-	if ( pHandle == NULL ) { return FALSE; }
+	if ( pHandle == NULL ) { return false; }
 	pHandle->HasRow = xrtCsvReaderNext(pHandle->Reader, &pHandle->Row);
 	if ( !pHandle->HasRow && !xrtCsvReaderEOF(pHandle->Reader) ) {
 		xcsv_publish_reader_error(pHandle->Reader);
@@ -178,11 +185,11 @@ XCSV_EXPORT void* xcsv_reader_field(void* pValue, int iIndex)
 	const char* sValue;
 	if ( pHandle == NULL || !pHandle->HasRow || iIndex < 0 ||
 		(uint32)iIndex >= pHandle->Row.iCount ) {
-		xrtSetError(xrtFormat("CSV field index is out of range"), TRUE);
+		xcsv_error(XERR_ARGUMENT, "CSV field index is out of range");
 		return NULL;
 	}
 	sValue = pHandle->Row.pFields[iIndex];
-	return xrtCopyStr((str)(sValue != NULL ? sValue : ""), 0u);
+	return xrtStrDup(sValue != NULL ? sValue : "");
 }
 
 
@@ -207,7 +214,7 @@ static void* xcsv_validate_writer(xrtcsvwriter* pWriter, bool bMemory)
 	pHandle = (xcsv_writer_handle*)xrtCalloc(1u, sizeof(*pHandle));
 	if ( pHandle == NULL ) {
 		xrtCsvWriterDestroy(pWriter);
-		xrtSetError(xrtFormat("cannot allocate CSV writer handle"), TRUE);
+		xcsv_error(XERR_MEMORY, "cannot allocate CSV writer handle");
 		return NULL;
 	}
 	pHandle->Writer = pWriter;
@@ -223,7 +230,7 @@ XCSV_EXPORT void* xcsv_writer_create_memory(str sDelimiter, str sQuote, int iNew
 	xrtClearError();
 	if ( !xcsv_writer_dialect(&tDialect, sDelimiter, sQuote, iNewline, bQuoteAll,
 		bWriteBOM, iMaxInput, iMaxOutput, iMaxItem, iMaxRows, iMaxFields) ) { return NULL; }
-	return xcsv_validate_writer(xrtCsvWriterCreateMemory(&tDialect), TRUE);
+	return xcsv_validate_writer(xrtCsvWriterCreateMemory(&tDialect), true);
 }
 
 XCSV_EXPORT void* xcsv_writer_open_file(str sPath, str sDelimiter, str sQuote,
@@ -234,7 +241,7 @@ XCSV_EXPORT void* xcsv_writer_open_file(str sPath, str sDelimiter, str sQuote,
 	xrtClearError();
 	if ( !xcsv_writer_dialect(&tDialect, sDelimiter, sQuote, iNewline, bQuoteAll,
 		bWriteBOM, iMaxInput, iMaxOutput, iMaxItem, iMaxRows, iMaxFields) ) { return NULL; }
-	return xcsv_validate_writer(xrtCsvWriterOpenFile(sPath, &tDialect), FALSE);
+	return xcsv_validate_writer(xrtCsvWriterOpenFile(sPath, &tDialect), false);
 }
 
 XCSV_EXPORT void xcsv_writer_destroy(void* pValue)
@@ -250,10 +257,10 @@ XCSV_EXPORT void xcsv_writer_destroy(void* pValue)
 XCSV_EXPORT bool xcsv_writer_begin(void* pValue)
 {
 	xcsv_writer_handle* pHandle = (xcsv_writer_handle*)pValue;
-	if ( pHandle == NULL ) { return FALSE; }
+	if ( pHandle == NULL ) { return false; }
 	xcsv_writer_clear_fields(pHandle);
-	pHandle->RowOpen = TRUE;
-	return TRUE;
+	pHandle->RowOpen = true;
+	return true;
 }
 
 XCSV_EXPORT bool xcsv_writer_field(void* pValue, str sValue)
@@ -261,31 +268,31 @@ XCSV_EXPORT bool xcsv_writer_field(void* pValue, str sValue)
 	xcsv_writer_handle* pHandle = (xcsv_writer_handle*)pValue;
 	str sCopy;
 	if ( pHandle == NULL || !pHandle->RowOpen ) {
-		xrtSetError(xrtFormat("CSV writer row is not open"), TRUE);
-		return FALSE;
+		xcsv_error(XERR_STATE, "CSV writer row is not open");
+		return false;
 	}
 	if ( pHandle->Count == pHandle->Capacity ) {
 		uint32 iCapacity = pHandle->Capacity != 0u ? pHandle->Capacity * 2u : 16u;
 		str* pFields;
 		if ( iCapacity < pHandle->Capacity ) {
-			xrtSetError(xrtFormat("too many CSV fields"), TRUE);
-			return FALSE;
+			xcsv_error(XERR_VALUE, "too many CSV fields");
+			return false;
 		}
 		pFields = (str*)xrtRealloc(pHandle->Fields, (size_t)iCapacity * sizeof(str));
 		if ( pFields == NULL ) {
-			xrtSetError(xrtFormat("cannot grow CSV writer row"), TRUE);
-			return FALSE;
+			xcsv_error(XERR_MEMORY, "cannot grow CSV writer row");
+			return false;
 		}
 		pHandle->Fields = pFields;
 		pHandle->Capacity = iCapacity;
 	}
-	sCopy = xrtCopyStr(sValue != NULL ? sValue : (str)"", 0u);
+	sCopy = xrtStrDup(sValue != NULL ? sValue : "");
 	if ( sCopy == NULL ) {
-		xrtSetError(xrtFormat("cannot copy CSV field"), TRUE);
-		return FALSE;
+		xcsv_error(XERR_MEMORY, "cannot copy CSV field");
+		return false;
 	}
 	pHandle->Fields[pHandle->Count++] = sCopy;
-	return TRUE;
+	return true;
 }
 
 XCSV_EXPORT bool xcsv_writer_end(void* pValue)
@@ -293,12 +300,12 @@ XCSV_EXPORT bool xcsv_writer_end(void* pValue)
 	xcsv_writer_handle* pHandle = (xcsv_writer_handle*)pValue;
 	bool bResult;
 	if ( pHandle == NULL || !pHandle->RowOpen ) {
-		xrtSetError(xrtFormat("CSV writer row is not open"), TRUE);
-		return FALSE;
+		xcsv_error(XERR_STATE, "CSV writer row is not open");
+		return false;
 	}
 	bResult = xrtCsvWriterWrite(pHandle->Writer, pHandle->Count,
 		(const str*)pHandle->Fields);
-	pHandle->RowOpen = FALSE;
+	pHandle->RowOpen = false;
 	xcsv_writer_clear_fields(pHandle);
 	if ( !bResult ) { xcsv_publish_writer_error(pHandle->Writer); }
 	return bResult;
@@ -308,22 +315,22 @@ XCSV_EXPORT bool xcsv_writer_close(void* pValue)
 {
 	xcsv_writer_handle* pHandle = (xcsv_writer_handle*)pValue;
 	if ( pHandle == NULL || pHandle->RowOpen ) {
-		xrtSetError(xrtFormat("cannot close CSV writer while a row is open"), TRUE);
-		return FALSE;
+		xcsv_error(XERR_STATE, "cannot close CSV writer while a row is open");
+		return false;
 	}
 	if ( !xrtCsvWriterClose(pHandle->Writer) ) {
 		xcsv_publish_writer_error(pHandle->Writer);
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XCSV_EXPORT void* xcsv_writer_take_buffer(void* pValue)
 {
 	xcsv_writer_handle* pHandle = (xcsv_writer_handle*)pValue;
-	xbuffer pResult;
+	xbuffer* pResult;
 	if ( pHandle == NULL || !pHandle->Memory || pHandle->RowOpen ) {
-		xrtSetError(xrtFormat("CSV writer has no available memory result"), TRUE);
+		xcsv_error(XERR_STATE, "CSV writer has no available memory result");
 		return NULL;
 	}
 	if ( !xrtCsvWriterClose(pHandle->Writer) ) {
@@ -331,6 +338,6 @@ XCSV_EXPORT void* xcsv_writer_take_buffer(void* pValue)
 		return NULL;
 	}
 	pResult = xrtCsvWriterTakeBuffer(pHandle->Writer);
-	if ( pResult == NULL ) { xrtSetError(xrtFormat("CSV writer result was already taken"), TRUE); }
+	if ( pResult == NULL ) { xcsv_error(XERR_STATE, "CSV writer result was already taken"); }
 	return pResult;
 }

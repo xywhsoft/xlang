@@ -32,11 +32,6 @@ export func xgeAudioListenerSet(point pListener)
     __xl6_xgeAudioListenerSet(pListener)
 end
 
-extern "xgeAudioListenerGet" func __xl6_xgeAudioListenerGet() as point
-export func xgeAudioListenerGet() as point
-    return __xl6_xgeAudioListenerGet()
-end
-
 extern "xgeAudioGroupInit" func __xl6_xgeAudioGroupInit(point pGroup) as c_int
 export func xgeAudioGroupInit(point pGroup) as c_int
     return __xl6_xgeAudioGroupInit(pGroup)

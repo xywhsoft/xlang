@@ -85,6 +85,7 @@ extern "C" {
 #define XGE_KEY_ENTER		257
 #define XGE_KEY_TAB			258
 #define XGE_KEY_BACKSPACE	259
+#define XGE_KEY_INSERT		260
 #define XGE_KEY_DELETE		261
 #define XGE_KEY_RIGHT		262
 #define XGE_KEY_LEFT		263
@@ -94,7 +95,31 @@ extern "C" {
 #define XGE_KEY_PAGE_DOWN	267
 #define XGE_KEY_HOME		268
 #define XGE_KEY_END			269
+#define XGE_KEY_F1			290
+#define XGE_KEY_F2			291
+#define XGE_KEY_F3			292
+#define XGE_KEY_F4			293
+#define XGE_KEY_F5			294
+#define XGE_KEY_F6			295
+#define XGE_KEY_F7			296
+#define XGE_KEY_F8			297
+#define XGE_KEY_F9			298
 #define XGE_KEY_F10			299
+#define XGE_KEY_F11			300
+#define XGE_KEY_F12			301
+#define XGE_KEY_F13			302
+#define XGE_KEY_F14			303
+#define XGE_KEY_F15			304
+#define XGE_KEY_F16			305
+#define XGE_KEY_F17			306
+#define XGE_KEY_F18			307
+#define XGE_KEY_F19			308
+#define XGE_KEY_F20			309
+#define XGE_KEY_F21			310
+#define XGE_KEY_F22			311
+#define XGE_KEY_F23			312
+#define XGE_KEY_F24			313
+#define XGE_KEY_F25			314
 #define XGE_KEY_MENU		348
 #define XGE_TEXT_MAX		32
 #define XGE_TOUCH_MAX		8
@@ -274,9 +299,23 @@ extern "C" {
 #define XGE_FONT_STRETCH_NORMAL	100
 
 #define XGE_TEXT_SHAPE_KERNING		0x0001
-#define XGE_TEXT_SHAPE_DEFAULT		XGE_TEXT_SHAPE_KERNING
+#define XGE_TEXT_SHAPE_EMOJI		0x0002
+#define XGE_TEXT_SHAPE_DEFAULT		(XGE_TEXT_SHAPE_KERNING | XGE_TEXT_SHAPE_EMOJI)
 
 #define XGE_GLYPH_POSITION_LINE_BREAK	0x0001
+
+#define XGE_TEXT_ITEM_GLYPH		0
+#define XGE_TEXT_ITEM_EMOJI		1
+
+#define XGE_EMOJI_PRESENTATION_AUTO		0
+#define XGE_EMOJI_PRESENTATION_COLOR		1
+#define XGE_EMOJI_PRESENTATION_TEXT		2
+#define XGE_EMOJI_PRESENTATION_DISABLED	3
+
+#define XGE_EMOJI_LINE_STABLE	0
+#define XGE_EMOJI_LINE_EXPAND	1
+
+#define XGE_EMOJI_ENTRY_TEXT_DEFAULT	0x0001
 
 #define XGE_TEXT_DECORATION_UNDERLINE	1
 #define XGE_TEXT_DECORATION_OVERLINE	2
@@ -331,6 +370,18 @@ extern "C" {
 #define XGE_EVENT_IME_COMMIT	17
 #define XGE_EVENT_GAMEPAD_CONNECTED	19
 #define XGE_EVENT_GAMEPAD_DISCONNECTED	20
+#define XGE_EVENT_IME_CANDIDATE_START	21
+#define XGE_EVENT_IME_CANDIDATE_UPDATE	22
+#define XGE_EVENT_IME_CANDIDATE_END	23
+
+#define XGE_INPUT_EVENT_FLAG_REPEAT		0x00000001u
+#define XGE_INPUT_EVENT_FLAG_NATIVE_IME	0x00000002u
+#define XGE_INPUT_EVENT_FLAG_SYNTHETIC	0x00000004u
+
+/* Windows IME presentation levels. Other platforms may expose only NATIVE. */
+#define XGE_IME_MODE_NATIVE		0
+#define XGE_IME_MODE_COMPOSITION	1
+#define XGE_IME_MODE_FULL		2
 
 
 
@@ -412,6 +463,17 @@ typedef enum xge_result_t {
 	XGE_ERROR_INVALID_STATE = -15
 } xge_result_t;
 
+typedef struct xge_error_info_t {
+	uint32_t iSize;
+	int iCode;
+	int bRecoverable;
+	const char* sSubsystem;
+	const char* sOperation;
+	const char* sMessage;
+} xge_error_info_t;
+
+typedef void (*xge_error_proc)(const xge_error_info_t* pError, void* pUser);
+
 typedef struct xge_desc_t {
 	int iWidth;
 	int iHeight;
@@ -429,6 +491,32 @@ typedef struct xge_rect_t {
 	float fW;
 	float fH;
 } xge_rect_t;
+
+/* Integer framebuffer-pixel geometry. Rectangles use half-open bounds:
+ * [iX, iX + iW) x [iY, iY + iH). */
+typedef struct xge_point_i_t {
+	int iX;
+	int iY;
+} xge_point_i_t;
+
+typedef struct xge_size_i_t {
+	int iW;
+	int iH;
+} xge_size_i_t;
+
+typedef struct xge_rect_i_t {
+	int iX;
+	int iY;
+	int iW;
+	int iH;
+} xge_rect_i_t;
+
+typedef struct xge_edges_i_t {
+	int iLeft;
+	int iTop;
+	int iRight;
+	int iBottom;
+} xge_edges_i_t;
 
 typedef struct xge_vec2_t {
 	float fX;
@@ -619,6 +707,8 @@ typedef struct xge_shape_ex_scene_t xge_shape_ex_scene_t;
 typedef xge_shape_ex_scene_t* xge_shape_ex_scene;
 typedef struct xge_svg_t xge_svg_t;
 typedef xge_svg_t* xge_svg;
+typedef struct xge_emoji_pack_t xge_emoji_pack_t;
+typedef xge_emoji_pack_t* xge_emoji_pack;
 /* Borrowed SVG paint handles remain valid until the owning SVG is cleared, reloaded, or destroyed. */
 typedef struct xge_svg_draw_item_t* xge_svg_paint;
 typedef int (*xge_svg_paint_visit_proc)(xge_svg_paint pPaint, void* pUser);
@@ -889,6 +979,7 @@ typedef struct xge_miniprogram_desc_t {
 
 typedef struct xge_miniprogram_touch_t {
 	uint64_t iId;
+	/* Window coordinates; XGE converts them to framebuffer pixels using DPR. */
 	float fX;
 	float fY;
 	float fForce;
@@ -996,7 +1087,7 @@ struct xge_async_request_t {
 	char* sURI;
 	xge_async_proc onComplete;
 	void* pUser;
-	void* pThread;
+	xthread* pThread;
 	uint32_t iFlags;
 	float fSize;
 	int bCancel;
@@ -1190,6 +1281,11 @@ typedef struct xge_glyph_position_t {
 	float fAdvanceX;
 	float fOffsetX;
 	float fOffsetY;
+	uint32_t iClusterEnd;
+	uint32_t iItemKind;
+	uint32_t iEmojiId;
+	float fEmojiWidth;
+	float fEmojiHeight;
 } xge_glyph_position_t;
 
 typedef struct xge_glyph_run_t {
@@ -1212,7 +1308,27 @@ typedef struct xge_text_shape_desc_t {
 	const char* sText;
 	int iTextSize;
 	uint32_t iFlags;
+	xge_emoji_pack pEmojiPack;
+	int iEmojiPresentation;
+	int iEmojiLinePolicy;
+	float fEmojiScale;
 } xge_text_shape_desc_t;
+
+typedef struct xge_emoji_metrics_t {
+	uint32_t iSize;
+	float fAdvanceEm;
+	float fWidthEm;
+	float fHeightEm;
+	float fBaselineRatio;
+	uint32_t iFlags;
+} xge_emoji_metrics_t;
+
+typedef struct xge_emoji_match_t {
+	uint32_t iSize;
+	uint32_t iEmojiId;
+	int iTextSize;
+	xge_emoji_metrics_t tMetrics;
+} xge_emoji_match_t;
 
 typedef struct xge_text_decoration_t {
 	uint32_t iSize;
@@ -1272,7 +1388,82 @@ typedef struct xge_ime_event_t {
 	int iCursor;
 	int iSelectStart;
 	int iSelectEnd;
+	int bReplacementRange;
+	int iReplacementStart;
+	int iReplacementEnd;
 } xge_ime_event_t;
+
+/*
+ * Ordered input event delivered on the platform UI thread.
+ * Events keep their native arrival order and are consumed in the same frame.
+ * Pointer fX/fY and unlocked pointer fDX/fDY use framebuffer pixels, matching
+ * xgeGetWidth()/xgeGetHeight(). Wheel fDX/fDY remain device scroll units.
+ * iModifiers is the event-time XGE_KEY_MOD_* snapshot for key, text, mouse,
+ * and native touch events. Sources without modifier support set it to zero.
+ * Synthetic pointer events posted by xgeInputEventPost use the same contract.
+ * sText remains valid until the next xgeInputEventGet call or xgeUnit.
+ */
+typedef struct xge_input_event_t {
+	uint32_t iSize;
+	int iType;
+	uint32_t iFlags;
+	uint64_t iSequence;
+	double fTime;
+	int iKey;
+	int iNativeKey;
+	int iScanCode;
+	uint32_t iModifiers;
+	uint64_t iPointerId;
+	int iButton;
+	uint32_t iButtons;
+	float fX;
+	float fY;
+	float fDX;
+	float fDY;
+	uint32_t iCodepoint;
+	const char* sText;
+	int iTextSize;
+	int iCursor;
+	int iSelectStart;
+	int iSelectEnd;
+	int bReplacementRange;
+	int iReplacementStart;
+	int iReplacementEnd;
+} xge_input_event_t;
+
+/*
+ * Snapshot supplied by the focused text control to the native IME backend.
+ * Text and selection offsets use UTF-8 bytes. The backend copies the data
+ * during onSnapshot; the pointers do not need to remain valid afterwards.
+ */
+typedef struct xge_ime_text_snapshot_t {
+	uint32_t iSize;
+	const char* sText;
+	int iTextSize;
+	int iSelectionStart;
+	int iSelectionEnd;
+	int iDocumentOffset;
+	int iDocumentSize;
+	uint32_t iRevision;
+} xge_ime_text_snapshot_t;
+
+typedef int (*xge_ime_text_snapshot_proc)(void* pUser, xge_ime_text_snapshot_t* pSnapshot);
+
+typedef struct xge_ime_text_client_t {
+	uint32_t iSize;
+	xge_ime_text_snapshot_proc onSnapshot;
+	void* pUser;
+} xge_ime_text_client_t;
+
+typedef struct xge_ime_candidate_info_t {
+	uint32_t iSize;
+	int bVisible;
+	int bCanSelect;
+	int iCount;
+	int iSelection;
+	int iPageStart;
+	int iPageSize;
+} xge_ime_candidate_info_t;
 
 typedef struct xge_touch_point_t {
 	uint64_t iId;
@@ -1321,6 +1512,8 @@ XGE_API int xgeLogSetLevel(int iLevel);
 XGE_API int xgeLogGetLevel(void);
 XGE_API int xgeLogWrite(int iLevel, const char* sTag, const char* sMessage);
 XGE_API int xgeLogFlush(void);
+XGE_API int xgeSetErrorCallback(xge_error_proc onError, void* pUser);
+XGE_API int xgeReportError(const xge_error_info_t* pError);
 XGE_API xge_platform_backend_t xgePlatformBackendDefault(void);
 XGE_API int xgePlatformBackendSet(const xge_platform_backend_t* pBackend);
 XGE_API xge_platform_backend_t xgePlatformBackendGet(void);
@@ -1387,6 +1580,7 @@ XGE_API int xgeResourceXPackProviderAdd(const xge_xpack_provider_t* pProvider);
 XGE_API int xgeResourceLoad(const char* sURI, xge_resource_t* pResource);
 XGE_API int xgeResourceLoadMemory(const void* pData, int iSize, xge_resource_t* pResource);
 XGE_API void xgeResourceFree(xge_resource_t* pResource);
+XGE_API int xgeZstdDecompress(void* pOutput, int iOutputCapacity, const void* pInput, int iInputSize, int* pOutputSize);
 XGE_API int xgeMiniProgramInit(const xge_miniprogram_desc_t* pDesc);
 XGE_API int xgeMiniProgramInitSimple(int iWidth, int iHeight, float fDevicePixelRatio);
 XGE_API void xgeMiniProgramUnit(void);
@@ -1479,6 +1673,7 @@ XGE_API int xgeFontFamilyAddFace(xge_font_family pFamily, xge_font_face pFace);
 XGE_API int xgeFontFamilyResolve(xge_font_family pFamily, int iWeight, int iSlant, xge_font_face* ppFace);
 XGE_API int xgeFontFamilyResolveEx(xge_font_family pFamily, int iWeight, int iStretch, int iSlant, xge_font_face* ppFace);
 XGE_API int xgeFontCreate(xge_font pFont, xge_font_face pFace, const xge_font_instance_desc_t* pDesc);
+XGE_API int xgeFontCreateSized(xge_font pFont, xge_font pSource, float fPixelSize);
 XGE_API int xgeFontLoad(xge_font pFont, const char* sPath, float fSize);
 XGE_API int xgeFontLoadMemory(xge_font pFont, const void* pData, int iSize, float fSize);
 XGE_API int xgeFontLoadXRF(xge_font pFont, const char* sPath);
@@ -1504,6 +1699,15 @@ XGE_API int xgeFontGlyphRasterizeByIndex(xge_font pFont, int iGlyph, xge_glyph_b
 XGE_API int xgeFontGlyphAtlasGet(xge_font pFont, uint32_t iCodepoint, xge_glyph_t* pGlyph);
 XGE_API int xgeFontGlyphAtlasGetByIndex(xge_font pFont, int iGlyph, xge_glyph_t* pGlyph);
 XGE_API void xgeGlyphBitmapFree(xge_glyph_bitmap_t* pBitmap);
+XGE_API int xgeEmojiPackCreate(xge_emoji_pack* ppPack);
+XGE_API int xgeEmojiPackLoadBuiltin(xge_emoji_pack* ppPack);
+XGE_API int xgeEmojiPackAddRef(xge_emoji_pack pPack);
+XGE_API void xgeEmojiPackFree(xge_emoji_pack pPack);
+XGE_API int xgeEmojiPackAddSvgMemory(xge_emoji_pack pPack, const char* sSequence, const void* pSvgData, int iSvgSize, const xge_emoji_metrics_t* pMetrics, uint32_t* pEmojiId);
+XGE_API int xgeEmojiPackMatch(xge_emoji_pack pPack, const char* sText, int iTextSize, xge_emoji_match_t* pMatch);
+XGE_API int xgeEmojiPackSetDefault(xge_emoji_pack pPack);
+XGE_API int xgeEmojiPackGetDefault(xge_emoji_pack* ppPack);
+XGE_API void xgeEmojiPackClearDefault(void);
 XGE_API int xgeTextShape(const xge_text_shape_desc_t* pDesc, xge_glyph_run_t* pRun);
 XGE_API void xgeGlyphRunFree(xge_glyph_run_t* pRun);
 XGE_API xge_vec2_t xgeGlyphRunMeasure(const xge_glyph_run_t* pRun);
@@ -1603,6 +1807,8 @@ XGE_API void xgeShapeRectFill(xge_rect_t tRect, uint32_t iColor);
 XGE_API void xgeShapeRectFillPx(xge_rect_t tRect, uint32_t iColor);
 XGE_API void xgeShapeRectStroke(xge_rect_t tRect, float fWidth, uint32_t iColor);
 XGE_API void xgeShapeRectStrokePx(xge_rect_t tRect, float fWidth, uint32_t iColor);
+XGE_API void xgeShapeRectFillPixels(xge_rect_i_t tRect, uint32_t iColor);
+XGE_API void xgeShapeRectBorderPixels(xge_rect_i_t tRect, xge_edges_i_t tBorder, uint32_t iColor);
 XGE_API void xgeShapeCircleFill(float fX, float fY, float fRadius, uint32_t iColor);
 XGE_API void xgeShapeCircleFillPx(float fX, float fY, float fRadius, uint32_t iColor);
 XGE_API void xgeShapeCircleStroke(float fX, float fY, float fRadius, float fWidth, uint32_t iColor);
@@ -1928,6 +2134,24 @@ XGE_API void xgeViewportClear(void);
 XGE_API void xgeClipSet(xge_rect_t tRect);
 XGE_API xge_rect_t xgeClipGet(void);
 XGE_API void xgeClipClear(void);
+XGE_API xge_rect_i_t xgeRectToPixelsNearest(xge_rect_t tRect);
+XGE_API xge_rect_i_t xgeRectToPixelsOutward(xge_rect_t tRect);
+XGE_API xge_rect_i_t xgeRectToPixelsInward(xge_rect_t tRect);
+XGE_API void xgeViewportSetPixels(xge_rect_i_t tRect);
+XGE_API xge_rect_i_t xgeViewportGetPixels(void);
+XGE_API void xgeClipSetPixels(xge_rect_i_t tRect);
+XGE_API xge_rect_i_t xgeClipGetPixels(void);
+typedef struct xge_clipboard_item_t {
+	const char* sFormat;
+	const void* pData;
+	size_t iDataSize;
+} xge_clipboard_item_t;
+
+#define XGE_CLIPBOARD_FORMAT_TEXT_UTF8 "text/plain;charset=utf-8"
+#define XGE_CLIPBOARD_FORMAT_HTML "text/html"
+
+XGE_API int xgeClipboardSetItems(const xge_clipboard_item_t* pItems, int iItemCount);
+XGE_API int xgeClipboardGetData(const char* sFormat, void* pData, size_t iCapacity);
 XGE_API void xgeClipboardSetText(const char* sText);
 XGE_API const char* xgeClipboardGetText(void);
 
@@ -1942,8 +2166,30 @@ XGE_API void xgeMouseGetDelta(float* pDX, float* pDY);
 XGE_API void xgeMouseGetWheel(float* pX, float* pY);
 XGE_API int xgeMouseDown(int iButton);
 XGE_API uint32_t xgeTextGet(void);
+/*
+ * Ordered input is the preferred API for UI integrations. The legacy key,
+ * text and IME getters remain available as compatibility views; consumers
+ * should choose one model and must not expect two independent deliveries.
+ */
+XGE_API int xgeInputEventGet(xge_input_event_t* pEvent);
+XGE_API int xgeInputEventPost(const xge_input_event_t* pEvent);
+XGE_API int xgeInputEventPendingCount(void);
+XGE_API uint64_t xgeInputEventDroppedCount(void);
 XGE_API int xgeImeGetEnabled(void);
 XGE_API int xgeImeSetEnabled(int bEnabled);
+XGE_API int xgeImeGetMode(void);
+XGE_API int xgeImeSetMode(int iMode);
+/* FULL mode hides native candidate UI only while a complete presenter is ready. */
+XGE_API int xgeImeSetCandidatePresenterReady(int bReady);
+XGE_API int xgeImeSetCandidateRect(xge_rect_t tRect);
+XGE_API int xgeImeGetCandidateRect(xge_rect_t* pRect);
+XGE_API int xgeImeSetTextClient(const xge_ime_text_client_t* pClient);
+XGE_API int xgeImeRefreshTextClient(void);
+XGE_API int xgeImeCandidateGetInfo(xge_ime_candidate_info_t* pInfo);
+/* Returns the complete UTF-8 byte length, excluding the terminator. */
+XGE_API int xgeImeCandidateGetText(int iIndex, char* sText, int iCapacity);
+XGE_API int xgeImeCandidateSelect(int iIndex);
+XGE_API int xgeImeCandidateFinalize(void);
 /* sText remains valid until the next xgeImeEventGet call or xgeUnit. */
 XGE_API int xgeImeEventGet(xge_ime_event_t* pEvent);
 XGE_API int xgeTouchGetCount(void);

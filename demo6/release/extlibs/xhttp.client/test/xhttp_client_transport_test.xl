@@ -1,0 +1,305 @@
+import xhttp.client
+from xhttp.client import HttpCallOptions, HttpClient, HttpClientConfig, HttpResult, Request, Response
+
+
+
+// 接收一个请求并返回有界的普通 HTTP/1.1 响应。
+async func serveResponse(TcpServer server, string body) as int
+    TcpStream stream = await server.acceptAsync()
+    string request = stream.recv(8000, 65536)
+
+    assert request != "", "HTTP test server did not receive a request"
+    string response = "HTTP/1.1 200 OK\r\nContent-Length: "
+    response = response + int.format(string.byteLen(body))
+    response = response + "\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n"
+    response = response + body
+	assert stream.send(response), "HTTP test server could not send a response"
+	stream.shutdownWrite()
+	stream.close()
+	return 0
+end
+
+
+
+// 完成 101 握手并验证升级后的双向 TCP 所有权已经交给调用方。
+async func serveUpgrade(TcpServer server) as int
+    TcpStream stream = await server.acceptAsync()
+    string request = stream.recv(8000, 65536)
+
+    assert request != "", "HTTP upgrade server did not receive a request"
+    string response = "HTTP/1.1 101 Switching Protocols\r\n"
+    response = response + "Connection: Upgrade\r\n"
+    response = response + "Upgrade: websocket\r\n\r\nxyz"
+    assert stream.send(response), "HTTP upgrade server could not send the handshake"
+    assert stream.recv(8000, 16) == "done", "upgraded TCP stream is not writable"
+    stream.close()
+    return 0
+end
+
+
+
+// 接收完整 TLS 请求头，允许握手后的应用数据被拆成多个记录。
+async func recvTlsRequest(TlsStream stream) as string
+	string request = ""
+	while not string.contains(request, "\r\n\r\n")
+		NetBytes chunk = await stream.recvBytesAsync(65536)
+		if chunk.len() == 0 then
+			break
+		end
+		request = request + chunk.text()
+	end
+	return request
+end
+
+
+
+// 通过真实 TLS Stream 返回普通 HTTPS 响应。
+async func serveTlsResponse(TlsServer server, string body) as int
+	TlsStream stream = await server.acceptAsync()
+	string request = await recvTlsRequest(stream)
+
+	assert request != "", "HTTPS test server did not receive a request"
+	string response = "HTTP/1.1 200 OK\r\nContent-Length: "
+	response = response + int.format(string.byteLen(body))
+	response = response + "\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n"
+	response = response + body
+	assert stream.send(response, 8000), "HTTPS test server could not send a response"
+	assert stream.drain(8000), "HTTPS test server could not drain its response"
+	stream.close()
+	return 0
+end
+
+
+
+// 完成 HTTPS Upgrade，并验证移交后的 TLS Stream 仍可双向通信。
+async func serveTlsUpgrade(TlsServer server) as int
+	TlsStream stream = await server.acceptAsync()
+	string request = await recvTlsRequest(stream)
+
+	assert request != "", "HTTPS upgrade server did not receive a request"
+	string response = "HTTP/1.1 101 Switching Protocols\r\n"
+	response = response + "Connection: Upgrade\r\n"
+	response = response + "Upgrade: websocket\r\n\r\ntls"
+	assert stream.send(response, 8000), "HTTPS upgrade server could not send the handshake"
+	assert stream.recvOwned(8000, 16).text() == "done", "upgraded TLS stream is not writable"
+	stream.close()
+	return 0
+end
+
+
+
+// 为本地监听器生成绝对 HTTP URL。
+func localUrl(TcpServer server, string path) as string
+	return "http://127.0.0.1:" + int.format(int(server.port())) + path
+end
+
+
+
+// 为本地 TLS 监听器生成绝对 HTTPS URL。
+func localTlsUrl(TlsServer server, string path) as string
+	return "https://127.0.0.1:" + int.format(server.port) + path
+end
+
+
+
+// 显式关闭 Listener，避免异步协程帧把底层对象保留到运行库清理阶段。
+func closeServer(TcpServer server) as bool
+	if not server.close() and server.state != 2 then
+		return false
+	end
+	for attempt in range(0, 500)
+		if server.state == 2 then
+			return true
+		end
+		time.sleep(1)
+	end
+	return false
+end
+
+
+
+// 等待 TLS Listener 完成异步关闭，避免全局网络引擎退出时仍有持有者。
+func closeTlsServer(TlsServer server) as bool
+	if not server.close() and server.state != 2 then
+		return false
+	end
+	for attempt in range(0, 500)
+		if server.state == 2 then
+			return true
+		end
+		time.sleep(1)
+	end
+	return false
+end
+
+
+
+// 同步调用场景在返回前释放 Listener、请求、结果和响应。
+async func testSync(HttpClient client) as int
+	TcpServer syncServer = tcp.listen(0)
+	future<int> syncServing = serveResponse(syncServer, "sync-body")
+	Request syncRequest = Request.make("GET", localUrl(syncServer, "/sync"))
+	HttpResult syncResult = client.execute(syncRequest)
+	Response syncResponse = syncResult.takeResponse()
+    assert syncResponse.status == 200, "synchronous HTTP status is invalid"
+    assert syncResponse.text() == "sync-body", "synchronous HTTP body is invalid"
+	assert syncResult.state == xhttp.client.CALL_SUCCEEDED, "synchronous HTTP call did not reach success"
+	assert syncResult.responseBodyBytes == 9, "synchronous HTTP diagnostics lost body bytes"
+	assert await syncServing == 0, "synchronous HTTP server failed"
+	assert closeServer(syncServer), "synchronous HTTP listener did not close"
+	return 0
+end
+
+
+
+// 异步场景验证 Future 类型映射、正文读取和诊断时间线。
+async func testAsync(HttpClient client) as int
+	TcpServer asyncServer = tcp.listen(0)
+	future<int> asyncServing = serveResponse(asyncServer, "async-body")
+    Request asyncRequest = Request.make("GET", localUrl(asyncServer, "/async"))
+    HttpCallOptions asyncOptions = HttpCallOptions(8000, 8000, 1024)
+	future<HttpResult> pending = client.executeAsync(asyncRequest, asyncOptions)
+	HttpResult asyncResult = await pending
+	Response asyncResponse = asyncResult.takeResponse()
+    assert asyncResponse.status == 200, "asynchronous HTTP status is invalid"
+	assert asyncResponse.text() == "async-body", "asynchronous HTTP body is invalid"
+	assert asyncResult.completedAt >= asyncResult.submittedAt, "asynchronous HTTP timing snapshot is invalid"
+	assert await asyncServing == 0, "asynchronous HTTP server failed"
+	assert closeServer(asyncServer), "asynchronous HTTP listener did not close"
+	return 0
+end
+
+
+
+// Upgrade 场景验证 101 后缀保留与底层 TCP 所有权转移。
+async func testUpgrade(HttpClient client) as int
+	TcpServer upgradeServer = tcp.listen(0)
+	future<int> upgrading = serveUpgrade(upgradeServer)
+    Request upgradeRequest = Request.make(
+        "GET", localUrl(upgradeServer, "/upgrade"))
+    upgradeRequest.setHeader("Connection", "Upgrade")
+	upgradeRequest.setHeader("Upgrade", "websocket")
+	HttpResult upgradeResult = await client.executeAsync(upgradeRequest)
+	Response upgradeResponse = upgradeResult.takeResponse()
+    assert upgradeResponse.status == 101 and upgradeResult.upgraded, "HTTP upgrade result is invalid"
+    assert upgradeResult.bufferedBytes == 3, "HTTP upgrade prefix length was not preserved"
+    TcpStream? optionalTransport = upgradeResult.takeTcp()
+    assert optionalTransport != null, "HTTP upgrade TCP transport is missing"
+    TcpStream transport = optionalTransport as TcpStream
+    assert transport.peek().text() == "xyz", "HTTP upgrade prefix is corrupted"
+    assert transport.consume(3), "HTTP upgrade prefix could not be consumed"
+    assert transport.send("done"), "HTTP upgrade transport could not send"
+	assert await upgrading == 0, "HTTP upgrade server failed"
+	transport.close()
+	assert closeServer(upgradeServer), "HTTP Upgrade listener did not close"
+	return 0
+end
+
+
+
+// HTTPS 场景验证 TlsConfig 快照、私有验证策略和安全结果标记。
+async func testHttps(HttpClient client) as int
+	TlsConfig serverConfig = TlsConfig()
+	assert serverConfig.certificate(
+		"release/examples/fixtures/tls_cert.pem",
+		"release/examples/fixtures/tls_key.pem"
+	), "HTTPS server identity could not be loaded"
+	assert serverConfig.alpn("http/1.1"), "HTTPS server ALPN could not be configured"
+	TlsServer server = tls.listen(0, serverConfig)
+	assert server.state == 0 and server.port > 0, "HTTPS listener could not start"
+	future<int> serving = serveTlsResponse(server, "secure-body")
+	Request request = Request.make("GET", localTlsUrl(server, "/secure"))
+	HttpCallOptions options = HttpCallOptions(8000, 8000, 1024)
+	HttpResult result = await client.executeAsync(
+		request,
+		options
+	)
+	Response response = result.takeResponse()
+
+	assert response.status == 200, "HTTPS response status is invalid"
+	assert response.text() == "secure-body", "HTTPS response body is invalid"
+	assert result.secure, "HTTPS result lost its secure transport marker"
+	assert await serving == 0, "HTTPS server failed"
+	assert closeTlsServer(server), "HTTPS listener did not close"
+	return 0
+end
+
+
+
+// 安全 Upgrade 场景验证 101 后的 TLS 所有权和缓冲前缀移交。
+async func testHttpsUpgrade(HttpClient client) as int
+	TlsConfig serverConfig = TlsConfig()
+	assert serverConfig.certificate(
+		"release/examples/fixtures/tls_cert.pem",
+		"release/examples/fixtures/tls_key.pem"
+	), "HTTPS upgrade identity could not be loaded"
+	assert serverConfig.alpn("http/1.1"), "HTTPS upgrade ALPN could not be configured"
+	TlsServer server = tls.listen(0, serverConfig)
+	assert server.state == 0 and server.port > 0, "HTTPS upgrade listener could not start"
+	future<int> serving = serveTlsUpgrade(server)
+	Request request = Request.make("GET", localTlsUrl(server, "/upgrade"))
+	request.setHeader("Connection", "Upgrade")
+	request.setHeader("Upgrade", "websocket")
+	HttpCallOptions options = HttpCallOptions(8000, 8000, 1024)
+	HttpResult result = await client.executeAsync(
+		request,
+		options
+	)
+	Response response = result.takeResponse()
+
+	assert response.status == 101 and result.upgraded, "HTTPS Upgrade result is invalid"
+	assert result.secure and result.bufferedBytes == 3, "HTTPS Upgrade transport metadata is invalid"
+	TlsStream? optionalTransport = result.takeTls()
+	assert optionalTransport != null, "HTTPS Upgrade TLS transport is missing"
+	TlsStream transport = optionalTransport as TlsStream
+	assert transport.peek().text() == "tls", "HTTPS Upgrade prefix is corrupted"
+	assert transport.consume(3), "HTTPS Upgrade prefix could not be consumed"
+	assert transport.send("done", 8000), "HTTPS Upgrade transport could not send"
+	assert await serving == 0, "HTTPS Upgrade server failed"
+	transport.close()
+	assert closeTlsServer(server), "HTTPS Upgrade listener did not close"
+	return 0
+end
+
+
+
+async func run() as int
+	NetEngine engine = NetEngine(2)
+	assert engine.start(), "HTTP client network engine could not start"
+	HttpClient client = HttpClient.open(
+		engine,
+		HttpClientConfig(30000, 30000, true)
+	)
+	assert client.valid, "HTTP client could not be created"
+	assert await testSync(client) == 0, "synchronous HTTP scenario failed"
+	assert await testAsync(client) == 0, "asynchronous HTTP scenario failed"
+	assert await testUpgrade(client) == 0, "HTTP Upgrade scenario failed"
+
+	assert client.drain(), "HTTP client could not begin draining"
+    await client.waitClosed()
+    assert int(client.state) == xhttp.client.CLIENT_CLOSED, "HTTP client did not close after draining"
+
+	TlsConfig tlsConfig = TlsConfig()
+	tlsConfig.verifyPeer(false)
+	assert tlsConfig.alpn("http/1.1"), "HTTPS client ALPN could not be configured"
+	HttpClient secureClient = HttpClient.open(
+		engine,
+		tlsConfig,
+		HttpClientConfig(30000, 30000, false)
+	)
+	assert secureClient.valid, "HTTPS client could not be created"
+	assert await testHttps(secureClient) == 0, "HTTPS scenario failed"
+	assert await testHttpsUpgrade(secureClient) == 0, "HTTPS Upgrade scenario failed"
+	assert secureClient.drain(), "HTTPS client could not begin draining"
+	await secureClient.waitClosed()
+	assert int(secureClient.state) == xhttp.client.CLIENT_CLOSED, "HTTPS client did not close after draining"
+
+    engine.stop()
+    return 0
+end
+
+
+
+int exitCode = await run()
+assert exitCode == 0
+println("xhttp.client HTTP, HTTPS, Future and Upgrade package ok")

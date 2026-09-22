@@ -5,40 +5,40 @@ func draw_scene()
     float pi = math.pi
 
     // 半圆弧
-    xge.xgeShapeArc(c_float(200), c_float(150), c_float(80), c_float(pi), c_float(2.0 * pi), c_float(4.0),
-        xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+    xge.Shape.arc(200, 150, 80, pi, 2.0 * pi, 4.0,
+        xge.Color.rgba(79, 216, 194, 255))
 
     // 四分之一弧
-    xge.xgeShapeArc(c_float(200), c_float(150), c_float(50), c_float(0), c_float(pi / 2.0), c_float(3.0),
-        xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+    xge.Shape.arc(200, 150, 50, 0, pi / 2.0, 3.0,
+        xge.Color.rgba(255, 180, 84, 255))
 
     // 加载动画（270° 弧）
-    xge.xgeShapeArc(c_float(550), c_float(150), c_float(50), c_float(0.5), c_float(0.5 + pi * 1.5), c_float(6.0),
-        xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255)))
+    xge.Shape.arc(550, 150, 50, 0.5, 0.5 + pi * 1.5, 6.0,
+        xge.Color.rgba(109, 179, 242, 255))
 
     // 进度环 72%
     float offset = 0.0 - pi / 2.0
     float fEnd = 0.72 * 2.0 * pi
     // 背景环
-    xge.xgeShapeArc(c_float(400), c_float(400), c_float(80), c_float(0), c_float(2.0 * pi), c_float(10.0),
-        xge.XGE_COLOR_RGBA(c_uint(51), c_uint(51), c_uint(51), c_uint(255)))
+    xge.Shape.arc(400, 400, 80, 0, 2.0 * pi, 10.0,
+        xge.Color.rgba(51, 51, 51, 255))
     // 进度弧
-    xge.xgeShapeArc(c_float(400), c_float(400), c_float(80), c_float(offset), c_float(offset + fEnd), c_float(10.0),
-        xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+    xge.Shape.arc(400, 400, 80, offset, offset + fEnd, 10.0,
+        xge.Color.rgba(79, 216, 194, 255))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch24")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch24")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

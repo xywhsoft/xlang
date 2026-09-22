@@ -2,8 +2,10 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
+
+#define XRT_MODULE_BUFFER
+#include "xrt.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XSQLITE_EXPORT __declspec(dllexport)
@@ -21,7 +23,7 @@
 
 static XSQLITE_THREAD char g_xsqlite_error[1024];
 static XSQLITE_THREAD char g_xsqlite_int64[64];
-static XSQLITE_THREAD char* g_xsqlite_returns[8];
+static XSQLITE_THREAD xbuffer g_xsqlite_returns[8];
 static XSQLITE_THREAD size_t g_xsqlite_return_slot;
 
 static void xsqlite_set_error(const char* text)
@@ -42,28 +44,23 @@ static const char* xsqlite_return_text(const char* text)
 {
 	size_t len;
 	size_t slot;
-	char* copy;
+	xbuffer* output;
 
 	if ( text == NULL ) {
 		text = "";
 	}
 	len = strlen(text);
-	copy = (char*)malloc(len + 1u);
-	if ( copy == NULL ) {
+	slot = g_xsqlite_return_slot % (sizeof(g_xsqlite_returns) / sizeof(g_xsqlite_returns[0]));
+	g_xsqlite_return_slot += 1u;
+	output = &g_xsqlite_returns[slot];
+	xrtBufferClear(output);
+	if ( !xrtBufferAppend(output, (xbytesview){ (cbytes)text, len }) ||
+		 !xrtBufferAppendByte(output, 0u) ) {
+		xrtBufferClear(output);
 		xsqlite_set_error("out of memory");
 		return "";
 	}
-	if ( len > 0u ) {
-		memcpy(copy, text, len);
-	}
-	copy[len] = '\0';
-	slot = g_xsqlite_return_slot % (sizeof(g_xsqlite_returns) / sizeof(g_xsqlite_returns[0]));
-	g_xsqlite_return_slot += 1u;
-	if ( g_xsqlite_returns[slot] != NULL ) {
-		free(g_xsqlite_returns[slot]);
-	}
-	g_xsqlite_returns[slot] = copy;
-	return g_xsqlite_returns[slot];
+	return (const char*)output->Data;
 }
 
 XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OK = SQLITE_OK;

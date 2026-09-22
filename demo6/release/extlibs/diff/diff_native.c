@@ -1,10 +1,8 @@
 /*
  * diff_native.c - Line-based diff (LCS algorithm)
  */
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
-extern void xrtSetError(const void *msg, int bFree);
+#include "../xlang_extlib_error.h"
 static char diff_buf[16384];
 
 #define DIFF_MAX_LINES 512
@@ -46,7 +44,7 @@ const char *xdiff_lines(const char *old_text, const char *new_text) {
 
     /* allocate LCS table */
     lcs = (int *)calloc((m + 1) * (n + 1), sizeof(int));
-    if (!lcs) { xrtSetError("diff: out of memory", 0); return ""; }
+    if (!lcs) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.diff", "cannot allocate diff table"); return ""; }
 
     /* fill LCS table */
     for (i = 1; i <= m; i++) {

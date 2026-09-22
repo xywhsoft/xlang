@@ -1,0 +1,54 @@
+import xws
+from xws import WsConnectionConfig, WsGroup, WsGroupOperation, WsGroupSnapshot, WsFuture
+
+
+
+func main(...) as int
+    WsConnectionConfig client = WsConnectionConfig.client()
+    WsConnectionConfig server = WsConnectionConfig.server()
+    assert client.valid
+    assert server.valid
+    assert client.protocol("chat")
+    assert client.limits(1024 * 1024, 256 * 1024, 512 * 1024)
+    assert client.control(512, 5000)
+    assert client.asyncLimits(1024 * 1024, 128, 32)
+    client.autoPong(true)
+    assert client.deflate("permessage-deflate; server_no_context_takeover; client_no_context_takeover")
+
+    WsGroup group = WsGroup(c_longlong(8))
+    assert group.valid
+    assert group.count == 0
+    assert group.limit == 8
+    assert not group.sealed
+
+    WsGroupSnapshot snapshot = group.snapshot()
+    assert snapshot.valid
+    assert snapshot.count == 0
+
+    WsGroupOperation send = group.send("hello")
+    assert send.valid
+    assert send.count == 0
+    assert send.accepted == 0
+    assert send.rejected == 0
+    assert send.doneCount == 0
+    assert send.wait(1000)
+
+    WsFuture aggregate = send.future()
+    assert aggregate.valid
+    assert aggregate.wait(1000)
+    assert aggregate.done
+    assert aggregate.state == xws.FUTURE_RESOLVED
+    assert aggregate.error() == ""
+
+    WsGroupOperation drain = group.waitDrain()
+    assert drain.wait(1000)
+    assert drain.count == 0
+    assert drain.cancel() == 0
+
+    assert group.clear() == 0
+    assert group.seal()
+    assert group.sealed
+
+    println("xws package ok")
+    return 0
+end

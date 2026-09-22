@@ -1,11 +1,14 @@
-extern "xrtGetError" func __tar_error() as string
+extern "xtar_last_error" func __tar_error() as string
 
 import gzip
 import bz2
 import lzma
 
-extern "xtar_read_file" func __tar_read_file(string path) as point
+extern "xtar_read_file" func __tar_read_file(string path, c_ulonglong limit) as point
+extern "xtar_file_compression" func __tar_file_compression(string path) as c_int
 extern "xtar_write_file" func __tar_write_file(string path, point data, c_ulonglong size) as bool
+extern "xtar_reader_extract_names" func __tar_extract_names(point handle,
+    string destination, c_bool overwrite, array<string> names) as bool
 
 
 
@@ -109,6 +112,7 @@ class TarReader
     extern "xtar_reader_extract_all" func extractAllNative(string destination, c_bool overwrite) as bool
     extern "xtar_reader_extract_to" func extractToNative(string destination) as bool
     extern "xtar_reader_extract_progress" func extractProgressNative(string destination, c_bool overwrite, var callback) as bool
+    extern "xtar_reader_extract_where" func extractWhereNative(string destination, c_bool overwrite, var callback) as bool
 
     get valid() as bool
         return self.handle != null
@@ -213,37 +217,16 @@ class TarReader
     end
 
     func extractSelected(string destination, array<string> names, bool overwrite = false)
-        int extracted = 0
-        while self.next()
-            auto info = self.info()
-            if not info.isFile then
-                continue
-            end
-            int i = 0
-            bool matched = false
-            while i < names.length
-                if info.name == names[i] then
-                    matched = true
-                end
-                i = i + 1
-            end
-            if matched then
-                self.extractTo(destination + "/" + info.name)
-                extracted = extracted + 1
-            end
+        if not __tar_extract_names(self.handle, destination,
+            c_bool(overwrite), names) then
+            throw ArchiveError __tar_error()
         end
     end
 
-    func extractFiltered(string destination, string skipPrefix, bool overwrite = false)
-        while self.next()
-            auto info = self.info()
-            if not info.isFile then
-                continue
-            end
-            if string.startsWith(info.name, skipPrefix) then
-                continue
-            end
-            self.extractTo(destination + "/" + info.name)
+    // Selector: func(string name, string kind, int size) as bool
+    func extractWhere(string destination, var selector, bool overwrite = false)
+        if not self.extractWhereNative(destination, c_bool(overwrite), selector) then
+            throw ArchiveError __tar_error()
         end
     end
 end
@@ -258,6 +241,10 @@ class TarWriter
     extern "xtar_writer_open_file" create(string path, c_ulonglong maxInput,
         c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
         c_bool allowSymlinks, c_bool allowHardlinks, c_bool allowSpecialFiles)
+    extern "xtar_writer_open_append" create(string path, c_ulonglong maxInput,
+        c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+        c_bool allowSymlinks, c_bool allowHardlinks, c_bool allowSpecialFiles,
+        c_bool appendMode)
     extern "xtar_writer_destroy" destroy()
 
     extern "xtar_writer_add" func addNative(string name, point data, c_ulonglong size,
@@ -374,8 +361,8 @@ export func version() as string
     return "1.0.0"
 end
 
-export func readFile(string path) as Buffer
-    point result = __tar_read_file(path)
+func __tar_load_file(string path, int maxInput) as Buffer
+    point result = __tar_read_file(path, c_ulonglong(maxInput))
     if result == null then
         throw ArchiveError __tar_error()
     end
@@ -429,13 +416,28 @@ export func open(string path, int maxInput = 268435456, int maxOutput = 53687091
     int maxItem = 268435456, int maxEntries = 100000, bool allowSymlinks = false,
     bool allowHardlinks = false, bool allowSpecialFiles = false,
     bool preservePermissions = false) as TarReader
-    // transparent compression: detect by magic bytes
-    Buffer fileData = readFile(path)
-    string fmt = __tar_detect_compress(fileData)
-    Buffer tarData = fileData
-    if fmt != "none" then
-        tarData = __tar_decompress(fileData, fmt)
+    int compression = int(__tar_file_compression(path))
+    if compression < 0 then
+        throw ArchiveError __tar_error()
     end
+    if compression == 0 then
+        TarReader result = TarReader(path, c_ulonglong(maxInput),
+            c_ulonglong(maxOutput), c_ulonglong(maxItem), c_ulonglong(maxEntries),
+            c_bool(allowSymlinks), c_bool(allowHardlinks),
+            c_bool(allowSpecialFiles), c_bool(preservePermissions))
+        if not result.valid then
+            throw ArchiveError __tar_error()
+        end
+        return result
+    end
+    Buffer fileData = __tar_load_file(path, maxInput)
+    string fmt = "gzip"
+    if compression == 2 then
+        fmt = "bz2"
+    elseif compression == 3 then
+        fmt = "xz"
+    end
+    Buffer tarData = __tar_decompress(fileData, fmt)
     return open(tarData, maxInput, maxOutput, maxItem, maxEntries,
         allowSymlinks, allowHardlinks, allowSpecialFiles, preservePermissions)
 end
@@ -465,32 +467,22 @@ export func create(string path, int maxInput = 268435456, int maxOutput = 536870
 end
 
 export func openForAppend(string path, int maxInput = 268435456, int maxOutput = 536870912,
-    int maxItem = 268435456, int maxEntries = 100000) as TarWriter
-    // read existing tar, copy entries into a new memory writer
-    Buffer fileData = readFile(path)
-    string fmt = __tar_detect_compress(fileData)
-    Buffer tarData = fileData
-    if fmt != "none" then
-        tarData = __tar_decompress(fileData, fmt)
-    end
-    TarWriter writer = TarWriter(c_ulonglong(maxInput), c_ulonglong(maxOutput),
-        c_ulonglong(maxItem), c_ulonglong(maxEntries), c_bool(false),
-        c_bool(false), c_bool(false))
-    if not writer.valid then
+    int maxItem = 268435456, int maxEntries = 100000,
+    bool allowSymlinks = false, bool allowHardlinks = false,
+    bool allowSpecialFiles = false) as TarWriter
+    int compression = int(__tar_file_compression(path))
+    if compression < 0 then
         throw ArchiveError __tar_error()
     end
-    auto reader = open(tarData, maxInput, maxOutput, maxItem, maxEntries)
-    while reader.next()
-        auto info = reader.info()
-        if info.isFile then
-            Buffer content = reader.read()
-            writer.add(info.name, content, info.mode, info.mtime,
-                info.uid, info.gid, info.userName, info.groupName)
-        elseif info.isDirectory then
-            writer.mkdir(info.name, info.mode, info.mtime)
-        elseif info.isLink then
-            writer.symlink(info.name, info.linkName, info.mode, info.mtime)
-        end
+    if compression != 0 then
+        throw ArchiveError "compressed TAR archives cannot be appended in place"
+    end
+    TarWriter writer = TarWriter(path, c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxItem), c_ulonglong(maxEntries),
+        c_bool(allowSymlinks), c_bool(allowHardlinks),
+        c_bool(allowSpecialFiles), c_bool(true))
+    if not writer.valid then
+        throw ArchiveError __tar_error()
     end
     return writer
 end

@@ -42,8 +42,6 @@ function Get-ValueDefinition($Ir, [uint64]$Value)
 $loweredPath = Join-Path $outputDir "xlir_borrowed_call_provenance.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_borrowed_call_provenance.xlir.c"
 $repeatPath = Join-Path $outputDir "xlir_borrowed_call_provenance.xlir.repeat.c"
-$legacyPath = Join-Path $outputDir "xlir_borrowed_call_provenance.legacy.c"
-
 Push-Location $Root
 try {
     Invoke-Xl @("ir", $source, "--lowered", "--format", "json", "--emit", $loweredPath) `
@@ -162,7 +160,7 @@ try {
         $_.kindName -eq "release" -and
         [uint64]$_.targetSymbol -eq [uint64]$receiverStore.targetSymbol
     })
-    if ( $receiverReleases.Count -ne 1 -or
+    if ( $receiverReleases.Count -ne 3 -or
          @($set[0].operands).Count -ne 2 -or
          $set[0].operands[0] -ne $receiverLoad.result -or
          @($binary[0].operands) -notcontains $get[0].result ) {
@@ -173,11 +171,32 @@ try {
     $getIndex = [Array]::IndexOf($instructions, $get[0])
     $binaryIndex = [Array]::IndexOf($instructions, $binary[0])
     $setIndex = [Array]::IndexOf($instructions, $set[0])
-    $releaseIndex = [Array]::IndexOf($instructions, $receiverReleases[0])
     if ( !($storeIndex -lt $loadIndex -and $loadIndex -lt $getIndex -and
-           $getIndex -lt $binaryIndex -and $binaryIndex -lt $setIndex -and
-           $setIndex -lt $releaseIndex) ) {
+           $getIndex -lt $binaryIndex -and $binaryIndex -lt $setIndex) ) {
         throw "Class-field receiver lifetime does not enclose the complete read-modify-write transaction"
+    }
+    $unwindReleases = @($receiverReleases | Where-Object {
+        $_.errorScope -gt 0 -and
+        $instructions[[int]$_.errorScope - 1].kindName -eq "error-unwind-begin" -and
+        $instructions[[int]$_.errorScope - 1].origin -eq $compound[0].id
+    } | Sort-Object index)
+    $successReleases = @($receiverReleases | Where-Object {
+        $_.errorScope -gt 0 -and
+        $instructions[[int]$_.errorScope - 1].kindName -eq "cleanup-begin" -and
+        $instructions[[int]$_.errorScope - 1].origin -eq $compound[0].id
+    })
+    $box = Get-ValueDefinition $ir ([uint64]$set[0].operands[1])
+    $boxOutcome = $instructions[[int]$box.index + 1]
+    $setOutcome = $instructions[[int]$set[0].index + 1]
+    if ( $box.kindName -ne "runtime-call" -or
+         $boxOutcome.kindName -ne "error-test" -or
+         $setOutcome.kindName -ne "error-test" -or
+         $unwindReleases.Count -ne 2 -or $successReleases.Count -ne 1 -or
+         $unwindReleases[0].index -le $boxOutcome.index -or
+         $unwindReleases[0].index -ge $setIndex -or
+         $unwindReleases[1].index -le $setOutcome.index -or
+         $successReleases[0].index -le $setOutcome.index ) {
+        throw "Class-field receiver is not released once on each boxing, setter-error, and success outcome"
     }
 
     Invoke-Xl @("cgen", $source, "--backend", "xlir", "--emit", $generatedPath) `
@@ -190,16 +209,9 @@ try {
         ) ) {
         throw "XLIR borrowed-call provenance C is not byte-for-byte deterministic"
     }
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy borrowed-call provenance differential Cgen failed"
-
     Invoke-CheckedCmd `
         "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\test\xlir_borrowed_call_provenance.xlir.c test\cases\xlir_generated_module_diagnostic_host.c !XL6_CGEN_LINKS! -o build\test\xlir_borrowed_call_provenance.xlir.exe && build\test\xlir_borrowed_call_provenance.xlir.exe" `
         "XLIR borrowed-call provenance strict-C/runtime gate failed"
-    Invoke-CheckedCmd `
-        "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\test\xlir_borrowed_call_provenance.legacy.c !XL6_CGEN_LINKS! -o build\test\xlir_borrowed_call_provenance.legacy.exe && build\test\xlir_borrowed_call_provenance.legacy.exe" `
-        "Legacy borrowed-call provenance differential runtime failed"
-
     foreach ( $integration in @(
         "extlib_hash_progress", "extlib_hash_progress_cancel"
     ) ) {
@@ -215,4 +227,4 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR borrowed-call provenance gate passed: nullable LOAD/WRAP/CALL and UNWRAP/CLOSURE_CALL chains are verifier-visible, rvalue class receivers own one STORE/LOAD/GET/BINARY/SET/RELEASE transaction, deterministic strict XLIR/legacy runtimes agree, and hash progress integrations compile warning-free."
+Write-Output "XLIR borrowed-call provenance gate passed: nullable LOAD/WRAP/CALL and UNWRAP/CLOSURE_CALL chains are verifier-visible, rvalue class receivers share one STORE/LOAD/GET/BINARY/SET SSA transaction and release once on every outcome, the canonical runtime is deterministic and strict-C clean, and hash progress integrations compile warning-free."

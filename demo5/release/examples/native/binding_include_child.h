@@ -1,3 +1,0 @@
-#define BINDING_INCLUDE_BASE 41
-typedef int XL_INCLUDE_INT;
-

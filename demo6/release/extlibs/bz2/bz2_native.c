@@ -1,3 +1,11 @@
+#define XRT_MODULE_ERROR_FORMAT
+#define XRT_MODULE_FILE_TEMP
+#define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_PATH
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
 #include "include/xrt_bz2.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -8,13 +16,41 @@
 
 
 
+/* 把 bz2 模块错误映射为 XRT 通用错误类别。 */
+static xerrkind xbz2_error_kind(int iCode)
+{
+	switch ( iCode ) {
+		case XRT_BZ2_ERROR_ARGUMENT:
+			return XERR_ARGUMENT;
+		case XRT_BZ2_ERROR_MEMORY:
+			return XERR_MEMORY;
+		case XRT_BZ2_ERROR_DATA:
+		case XRT_BZ2_ERROR_TRUNCATED:
+			return XERR_PROTOCOL;
+		case XRT_BZ2_ERROR_LIMIT:
+			return XERR_RANGE;
+		case XRT_BZ2_ERROR_STATE:
+			return XERR_STATE;
+		case XRT_BZ2_ERROR_CANCELLED:
+			return XERR_CANCELLED;
+		default:
+			return XERR_IO;
+	}
+}
+
+
+/* 发布可被 XLang 和 C 调用方统一读取的结构化错误。 */
 static void xbz2_publish_error(const xrtbz2error* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "bz2 operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	int iCode = pError != NULL ? pError->iCode : XRT_BZ2_ERROR_IO;
+
+	xrtSetErrorInfo(xbz2_error_kind(iCode), "xlang.extlib.bz2", iCode, sMessage);
 }
 
+
+/* 用调用参数覆盖 bz2 默认资源限制。 */
 static void xbz2_options(xrtbz2options* pOptions, int iLevel, bool bSmallMemory,
 	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
 {
@@ -29,51 +65,97 @@ static void xbz2_options(xrtbz2options* pOptions, int iLevel, bool bSmallMemory,
 static void xbz2_options_wf(xrtbz2options* pOptions, int iLevel, int iWorkFactor,
 	uint64 iMaxInput, uint64 iMaxOutput)
 {
-	xbz2_options(pOptions, iLevel, FALSE, iMaxInput, iMaxOutput, 0u);
+	xbz2_options(pOptions, iLevel, false, iMaxInput, iMaxOutput, 0u);
 	if ( iWorkFactor != 0 ) { pOptions->iWorkFactor = iWorkFactor; }
 }
 
-static bool xbz2_transform_file(str sSource, str sDestination, bool bCompress,
-	bool bOverwrite, const xrtbz2options* pOptions)
+
+/* 删除失败事务的临时文件，同时保留原始失败原因。 */
+static void xbz2_remove_temp(cstr sTemp)
+{
+	xerror* pError;
+
+	if ( sTemp == NULL ) { return; }
+	pError = xrtTakeError();
+	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pError != NULL ) {
+		xrtSetError(pError);
+		xrtErrorFree(pError);
+	}
+}
+
+
+/* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
+static int xbz2_transform_file(str sSource, str sDestination, bool bCompress,
+	bool bOverwrite, const xrtbz2options* pOptions, xvalue* pCallback)
 {
 	xrtbz2error tError;
-	xreader pReader = NULL;
-	xwriter pWriter = NULL;
+	xrtprogresscall tProgress;
+	xfile TempFile = NULL;
+	xreader* pReader = NULL;
+	xwriter* pWriter = NULL;
+	str sDirectory = NULL;
 	str sTemp = NULL;
-	bool bResult = FALSE;
+	bool bResult = false;
+	int iResult = 0;
+
+	xrtBz2ErrorInit(&tError);
+	xrtProgressCallInit(&tProgress, pCallback);
+	pCallback = tProgress.Callback;
 	if ( sSource == NULL || sSource[0] == 0 || sDestination == NULL || sDestination[0] == 0 ) {
-		xrtSetError(xrtFormat("bz2 source and destination paths are required"), TRUE);
-		return FALSE;
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.bz2",
+			XRT_BZ2_ERROR_ARGUMENT, "bz2 source and destination paths are required");
+		return 0;
 	}
 	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetError(xrtFormat("bz2 destination already exists: %s", sDestination), TRUE);
-		return FALSE;
+		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.bz2", XRT_BZ2_ERROR_IO,
+			"bz2 destination already exists: %s", sDestination);
+		return 0;
 	}
-	sTemp = xrtPathRandom(sDestination, 0u, (str)".xrt-bz2-tmp", 0u, 8u);
 	pReader = xrtReaderOpen(sSource);
-	pWriter = sTemp != NULL ? xrtWriterOpen(sTemp, TRUE) : NULL;
-	if ( pReader == NULL || pWriter == NULL ) {
-		xrtSetError(xrtFormat("cannot open bz2 file stream: %s", sSource), TRUE);
-		goto cleanup;
-	}
-	bResult = bCompress ? xrtBz2CompressStream(pReader, pWriter, pOptions, &tError) :
-		xrtBz2DecompressStream(pReader, pWriter, pOptions, &tError);
-	if ( !bResult ) { xbz2_publish_error(&tError); }
-	if ( bResult && !xrtWriterFlush(pWriter) ) {
-		xrtSetError(xrtFormat("cannot flush bz2 destination: %s", sDestination), TRUE);
-		bResult = FALSE;
-	}
+	if ( pReader == NULL ) { goto cleanup; }
+	sDirectory = xrtPathParent(sDestination);
+	if ( sDirectory == NULL ) { goto cleanup; }
+	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
+		".xrt-bz2-", ".tmp", &sTemp);
+	if ( TempFile == NULL ) { goto cleanup; }
+	pWriter = xrtWriterTakeFile(&TempFile);
+	if ( pWriter == NULL ) { goto cleanup; }
+
+	bResult = bCompress ? xrtBz2CompressStream(pReader, pWriter, pOptions,
+		pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError) :
+		xrtBz2DecompressStream(pReader, pWriter, pOptions,
+			pCallback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
+	if ( !bResult && !tProgress.InvokeFailed ) { xbz2_publish_error(&tError); }
+	if ( bResult && !xrtWriterFlush(pWriter) ) { bResult = false; }
 
 cleanup:
-	xrtReaderDestroy(pReader);
-	xrtWriterDestroy(pWriter);
-	if ( bResult && !xrtFileRename(sTemp, sDestination, bOverwrite) ) {
-		xrtSetError(xrtFormat("cannot commit bz2 destination: %s", sDestination), TRUE);
-		bResult = FALSE;
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
+	if ( !bResult ) {
+		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
+			(tError.iCode == XRT_BZ2_OK) ) {
+			xrtSetErrorInfo(XERR_IO, "xlang.extlib.bz2",
+				XRT_BZ2_ERROR_IO, "bz2 file operation failed");
+		}
+		xbz2_remove_temp(sTemp);
 	}
-	if ( !bResult && sTemp != NULL && xrtFileExists(sTemp) ) { xrtFileDelete(sTemp); }
+	xrtFree(sDirectory);
 	xrtFree(sTemp);
-	return bResult;
+	if ( bResult ) { iResult = 1; }
+	else if ( tProgress.InvokeFailed ) { iResult = -2; }
+	else if ( tError.iCode == XRT_BZ2_ERROR_CANCELLED ) { iResult = -1; }
+	return iResult;
+}
+
+
+
+XBZ2_EXPORT const char* xbz2_last_error(void)
+{
+	return xrtErrorMessage(xrtGetError());
 }
 
 
@@ -83,9 +165,9 @@ XBZ2_EXPORT void* xbz2_compress(const void* pData, size_t iSize, int iLevel,
 {
 	xrtbz2options tOptions;
 	xrtbz2error tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
-	xbz2_options(&tOptions, iLevel, FALSE, iMaxInput, iMaxOutput, 0u);
+	xbz2_options(&tOptions, iLevel, false, iMaxInput, iMaxOutput, 0u);
 	if ( !xrtBz2Compress(pData, iSize, &tOptions, &pOutput, &tError) ) {
 		xbz2_publish_error(&tError);
 		return NULL;
@@ -104,7 +186,7 @@ XBZ2_EXPORT void* xbz2_decompress(const void* pData, size_t iSize, bool bSmallMe
 {
 	xrtbz2options tOptions;
 	xrtbz2error tError;
-	xbuffer pOutput = NULL;
+	xbuffer* pOutput = NULL;
 	xrtClearError();
 	xbz2_options(&tOptions, 9, bSmallMemory, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtBz2Decompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
@@ -114,23 +196,23 @@ XBZ2_EXPORT void* xbz2_decompress(const void* pData, size_t iSize, bool bSmallMe
 	return pOutput;
 }
 
-XBZ2_EXPORT bool xbz2_compress_file(str sSource, str sDestination, int iLevel,
-	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput)
+XBZ2_EXPORT int xbz2_compress_file(str sSource, str sDestination, int iLevel,
+	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput, xvalue* pCallback)
 {
 	xrtbz2options tOptions;
 	xrtClearError();
-	xbz2_options(&tOptions, iLevel, FALSE, iMaxInput, iMaxOutput, 0u);
-	return xbz2_transform_file(sSource, sDestination, TRUE, bOverwrite, &tOptions);
+	xbz2_options(&tOptions, iLevel, false, iMaxInput, iMaxOutput, 0u);
+	return xbz2_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XBZ2_EXPORT bool xbz2_decompress_file(str sSource, str sDestination,
+XBZ2_EXPORT int xbz2_decompress_file(str sSource, str sDestination,
 	bool bSmallMemory, bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput,
-	uint32 iMaxRatio)
+	uint32 iMaxRatio, xvalue* pCallback)
 {
 	xrtbz2options tOptions;
 	xrtClearError();
 	xbz2_options(&tOptions, 9, bSmallMemory, iMaxInput, iMaxOutput, iMaxRatio);
-	return xbz2_transform_file(sSource, sDestination, FALSE, bOverwrite, &tOptions);
+	return xbz2_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
 
@@ -161,9 +243,9 @@ XBZ2_EXPORT bool xbz2_compressor_update(void* pHandle, const void* pData, size_t
 	xrtbz2compressor* pCompressor = (xrtbz2compressor*)pHandle;
 	if ( !xrtBz2CompressorUpdate(pCompressor, pData, iSize) ) {
 		xbz2_publish_error(xrtBz2CompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBZ2_EXPORT bool xbz2_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -176,15 +258,15 @@ XBZ2_EXPORT bool xbz2_compressor_finish(void* pHandle)
 	xrtbz2compressor* pCompressor = (xrtbz2compressor*)pHandle;
 	if ( !xrtBz2CompressorFinish(pCompressor) ) {
 		xbz2_publish_error(xrtBz2CompressorError(pCompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBZ2_EXPORT void* xbz2_compressor_drain(void* pHandle)
 {
 	xrtbz2compressor* pCompressor = (xrtbz2compressor*)pHandle;
-	xbuffer pOutput = xrtBz2CompressorDrainBuffer(pCompressor);
+	xbuffer* pOutput = xrtBz2CompressorDrainBuffer(pCompressor);
 	if ( pOutput == NULL ) {
 		xbz2_publish_error(xrtBz2CompressorError(pCompressor));
 		return NULL;
@@ -230,9 +312,9 @@ XBZ2_EXPORT bool xbz2_decompressor_update(void* pHandle, const void* pData, size
 	xrtbz2decompressor* pDecompressor = (xrtbz2decompressor*)pHandle;
 	if ( !xrtBz2DecompressorUpdate(pDecompressor, pData, iSize) ) {
 		xbz2_publish_error(xrtBz2DecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBZ2_EXPORT bool xbz2_decompressor_finish(void* pHandle)
@@ -240,15 +322,15 @@ XBZ2_EXPORT bool xbz2_decompressor_finish(void* pHandle)
 	xrtbz2decompressor* pDecompressor = (xrtbz2decompressor*)pHandle;
 	if ( !xrtBz2DecompressorFinish(pDecompressor) ) {
 		xbz2_publish_error(xrtBz2DecompressorError(pDecompressor));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBZ2_EXPORT void* xbz2_decompressor_drain(void* pHandle)
 {
 	xrtbz2decompressor* pDecompressor = (xrtbz2decompressor*)pHandle;
-	xbuffer pOutput = xrtBz2DecompressorDrainBuffer(pDecompressor);
+	xbuffer* pOutput = xrtBz2DecompressorDrainBuffer(pDecompressor);
 	if ( pOutput == NULL ) {
 		xbz2_publish_error(xrtBz2DecompressorError(pDecompressor));
 		return NULL;

@@ -1,0 +1,19 @@
+from xbot.agent import AgentPolicy, AgentToolkit, CreateAgentToolkit, RegisterBuiltinTools, ToolCall
+
+func main(...) as int
+    AgentPolicy policy = AgentPolicy()
+    policy.allow_destructive = false
+    AgentToolkit toolkit = CreateAgentToolkit(".", null, policy)
+    RegisterBuiltinTools(toolkit, ["fs_stat", "fs_delete"])
+    if not string.contains(toolkit.ToolSchemas(), "fs_stat") then return 1 end
+
+    auto stat = toolkit.Execute(ToolCall("fs_stat", "{\"path\":\"test/cases/extlib_xbot_agent.xl\"}", "local-stat"))
+    if not stat.success then return 2 end
+    auto directory = toolkit.Execute(ToolCall("fs_stat", "{\"path\":\"test/cases\"}", "local-directory"))
+    if not directory.success or not string.contains(directory.content, "directory") then return 3 end
+    auto denied = toolkit.Execute(ToolCall("fs_delete", "{\"path\":\"missing\"}", "deny-delete"))
+    if denied.success then return 4 end
+    if not string.contains(denied.error, "destructive") then return 5 end
+    toolkit.Close()
+    return 0
+end

@@ -54,8 +54,7 @@ try {
     if ([IO.File]::ReadAllText("$prefix.c") -cne [IO.File]::ReadAllText("$prefix.repeat.c")) {
         throw 'Closure argument conversion C is not deterministic'
     }
-    Invoke-Xl @('cgen', $source, '--backend', 'legacy', '--emit', "$prefix.legacy.c")
-    # Source order is deliberately stronger than legacy host-C argument order.
+    # Source order is deliberately stronger than host-C argument order.
     # Keep its assertions mandatory in a separate XLIR-only contract fixture.
     $orderSource = 'test\cases\xlir_closure_argument_evaluation_order.xl'
     Invoke-Xl @('cgen', $orderSource, '--backend', 'xlir', '--emit', "$prefix.order.c")
@@ -72,11 +71,9 @@ try {
         ' && "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include ' + $prefix + '.c test\cases\xlir_closure_argument_conversion_host.c !XL6_CGEN_LINKS! -o ' + $prefix + '.exe' +
         ' && ' + $prefix + '.exe' +
         ' && "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include ' + $prefix + '.order.c test\cases\xlir_closure_argument_conversion_host.c !XL6_CGEN_LINKS! -o ' + $prefix + '.order.exe' +
-        ' && ' + $prefix + '.order.exe' +
-        ' && "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror ' + $prefix + '.legacy.c !XL6_CGEN_XLANG_LINKS! -o ' + $prefix + '.legacy.exe' +
-        ' && ' + $prefix + '.legacy.exe'
+        ' && ' + $prefix + '.order.exe'
     & $env:ComSpec /d /v:on /c $command
-    if ($LASTEXITCODE -ne 0) { throw 'Closure argument conversion strict C/runtime differential failed' }
+    if ($LASTEXITCODE -ne 0) { throw 'Closure argument conversion strict-C/runtime gate failed' }
 } finally { Pop-Location }
-Write-Output 'XLIR closure argument boundary passed: nine exact SSA call signatures, explicit scalar/nullable/boxed values, unchanged negative semantics, deterministic strict C and legacy runtime differential; source-order contract passed independently on XLIR.'
+Write-Output 'XLIR closure argument boundary passed: nine exact SSA call signatures, explicit scalar/nullable/boxed values, unchanged negative semantics, deterministic strict C, and an independent source-order contract.'
 exit 0

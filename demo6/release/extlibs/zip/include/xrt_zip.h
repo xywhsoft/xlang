@@ -1,6 +1,14 @@
 #ifndef XRT_ZIP_H
 #define XRT_ZIP_H
 
+/* ZIP 公共契约返回 Buffer，并允许把条目流式写入通用 Writer。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -72,35 +80,37 @@ typedef struct {
 
 typedef struct xrtziparchive xrtziparchive;
 
-XXAPI void xrtZipOptionsInit(xrtzipoptions* pOptions);
-XXAPI void xrtZipErrorInit(xrtziperror* pError);
-XXAPI void xrtZipEntryInit(xrtzipentry* pEntry);
+XRT_API void xrtZipOptionsInit(xrtzipoptions* pOptions);
+XRT_API void xrtZipErrorInit(xrtziperror* pError);
+XRT_API void xrtZipEntryInit(xrtzipentry* pEntry);
 
-XXAPI xrtziparchive* xrtZipArchiveCreate(const xrtzipoptions* pOptions);
-XXAPI xrtziparchive* xrtZipArchiveOpenMemory(const void* pData, size_t iSize, bool bWritable,
+XRT_API xrtziparchive* xrtZipArchiveCreate(const xrtzipoptions* pOptions);
+XRT_API xrtziparchive* xrtZipArchiveOpenMemory(const void* pData, size_t iSize, bool bWritable,
 	const xrtzipoptions* pOptions);
-XXAPI xrtziparchive* xrtZipArchiveOpenFile(str sPath, int iMode, const xrtzipoptions* pOptions);
-XXAPI const xrtziperror* xrtZipArchiveError(const xrtziparchive* pArchive);
-XXAPI bool xrtZipArchiveIsOpen(const xrtziparchive* pArchive);
-XXAPI bool xrtZipArchiveIsMemory(const xrtziparchive* pArchive);
-XXAPI uint64 xrtZipArchiveCount(xrtziparchive* pArchive);
-XXAPI int64 xrtZipArchiveLocate(xrtziparchive* pArchive, str sName);
-XXAPI bool xrtZipArchiveEntryAt(xrtziparchive* pArchive, uint64 iIndex, xrtzipentry* pEntry);
-XXAPI xbuffer xrtZipArchiveReadAt(xrtziparchive* pArchive, uint64 iIndex);
-XXAPI xbuffer xrtZipArchiveRead(xrtziparchive* pArchive, str sName);
-XXAPI bool xrtZipArchiveAdd(xrtziparchive* pArchive, str sName, const void* pData, size_t iSize,
+XRT_API xrtziparchive* xrtZipArchiveOpenFile(cstr sPath, int iMode, const xrtzipoptions* pOptions);
+XRT_API const xrtziperror* xrtZipArchiveError(const xrtziparchive* pArchive);
+XRT_API bool xrtZipArchiveIsOpen(const xrtziparchive* pArchive);
+XRT_API bool xrtZipArchiveIsMemory(const xrtziparchive* pArchive);
+XRT_API uint64 xrtZipArchiveCount(xrtziparchive* pArchive);
+XRT_API int64 xrtZipArchiveLocate(xrtziparchive* pArchive, cstr sName);
+XRT_API bool xrtZipArchiveEntryAt(xrtziparchive* pArchive, uint64 iIndex, xrtzipentry* pEntry);
+XRT_API bool xrtZipArchiveReadAtTo(xrtziparchive* pArchive, uint64 iIndex, xwriter* pWriter);
+XRT_API bool xrtZipArchiveReadTo(xrtziparchive* pArchive, cstr sName, xwriter* pWriter);
+XRT_API xbuffer* xrtZipArchiveReadAt(xrtziparchive* pArchive, uint64 iIndex);
+XRT_API xbuffer* xrtZipArchiveRead(xrtziparchive* pArchive, cstr sName);
+XRT_API bool xrtZipArchiveAdd(xrtziparchive* pArchive, cstr sName, const void* pData, size_t iSize,
 	bool bOverwrite, int iMethod, int iLevel);
-XXAPI bool xrtZipArchiveAddFile(xrtziparchive* pArchive, str sName, str sSourcePath,
+XRT_API bool xrtZipArchiveAddFile(xrtziparchive* pArchive, cstr sName, cstr sSourcePath,
 	bool bOverwrite, int iMethod, int iLevel);
-XXAPI bool xrtZipArchiveAddDirectory(xrtziparchive* pArchive, str sName);
-XXAPI bool xrtZipArchiveDelete(xrtziparchive* pArchive, str sName);
-XXAPI bool xrtZipArchiveRename(xrtziparchive* pArchive, str sOldName, str sNewName);
-XXAPI bool xrtZipArchiveSetComment(xrtziparchive* pArchive, str sComment);
-XXAPI bool xrtZipArchiveSetEntryComment(xrtziparchive* pArchive, str sName, str sComment);
-XXAPI bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, str sDestination, bool bOverwrite);
-XXAPI bool xrtZipArchiveClose(xrtziparchive* pArchive);
-XXAPI xbuffer xrtZipArchiveTakeBuffer(xrtziparchive* pArchive);
-XXAPI void xrtZipArchiveDestroy(xrtziparchive* pArchive);
+XRT_API bool xrtZipArchiveAddDirectory(xrtziparchive* pArchive, cstr sName);
+XRT_API bool xrtZipArchiveDelete(xrtziparchive* pArchive, cstr sName);
+XRT_API bool xrtZipArchiveRename(xrtziparchive* pArchive, cstr sOldName, cstr sNewName);
+XRT_API bool xrtZipArchiveSetComment(xrtziparchive* pArchive, cstr sComment);
+XRT_API bool xrtZipArchiveSetEntryComment(xrtziparchive* pArchive, cstr sName, cstr sComment);
+XRT_API bool xrtZipArchiveExtractAll(xrtziparchive* pArchive, cstr sDestination, bool bOverwrite);
+XRT_API bool xrtZipArchiveClose(xrtziparchive* pArchive);
+XRT_API xbuffer* xrtZipArchiveTakeBuffer(xrtziparchive* pArchive);
+XRT_API void xrtZipArchiveDestroy(xrtziparchive* pArchive);
 
 #ifdef __cplusplus
 }

@@ -1,48 +1,42 @@
 import msgpack
 
-
-
 func main(...) as int
-    // Integer roundtrip
-    assert msgpack.decodeInt(msgpack.encodeInt(0)) == 0, "int 0"
-    assert msgpack.decodeInt(msgpack.encodeInt(42)) == 42, "int 42"
-    assert msgpack.decodeInt(msgpack.encodeInt(127)) == 127, "int 127"
-    assert msgpack.decodeInt(msgpack.encodeInt(128)) == 128, "int 128"
-    assert msgpack.decodeInt(msgpack.encodeInt(-1)) == -1, "int -1"
-    assert msgpack.decodeInt(msgpack.encodeInt(-32)) == -32, "int -32"
-    assert msgpack.decodeInt(msgpack.encodeInt(-33)) == -33, "int -33"
-    assert msgpack.decodeInt(msgpack.encodeInt(1000)) == 1000, "int 1000"
-    assert msgpack.decodeInt(msgpack.encodeInt(-1000)) == -1000, "int -1000"
-    assert msgpack.decodeInt(msgpack.encodeInt(100000)) == 100000, "int 100k"
+    var source = {
+        "name": "xlang",
+        "version": 6,
+        "enabled": true,
+        "ratio": 2.5,
+        "items": ["one", 2, false],
+        "none": null
+    }
+    Buffer encoded = msgpack.encode(source)
+    assert encoded.len() > 0, "generic encode returns bytes"
+    assert string.startsWith(msgpack.toHex(encoded), "86"), "top-level map"
 
-    // String roundtrip
-    assert msgpack.decodeStr(msgpack.encodeStr("hello")) == "hello", "str hello"
-    assert msgpack.decodeStr(msgpack.encodeStr("")) == "", "str empty"
-    assert msgpack.decodeStr(msgpack.encodeStr("msgpack test")) == "msgpack test", "str test"
+    var decoded = msgpack.decode(encoded)
+    assert decoded["name"] == "xlang", "string roundtrip"
+    assert decoded["version"] == 6, "integer roundtrip"
+    assert decoded["enabled"] == true, "boolean roundtrip"
+    assert decoded["ratio"] > 2.49 and decoded["ratio"] < 2.51, "float roundtrip"
+    assert decoded["items"][2] == false, "array roundtrip"
+    assert decoded["none"] == null, "null roundtrip"
 
-    // Binary
-    assert msgpack.decodeBin(msgpack.encodeBin("cafe")) == "cafe", "bin cafe"
+    Buffer bytes = Buffer()
+    bytes.appendByte(0xca)
+    bytes.appendByte(0xfe)
+    Buffer encodedBytes = msgpack.encodeBytes(bytes)
+    assert msgpack.toHex(encodedBytes) == "c402cafe", "binary encoding"
+    assert msgpack.toHex(msgpack.decodeBytes(encodedBytes)) == "cafe", "binary roundtrip"
+    Buffer empty = Buffer()
+    assert msgpack.toHex(msgpack.encodeBytes(empty)) == "c400", "empty byte string"
 
-    // Bool
-    assert msgpack.decodeBool(msgpack.encodeBool(true)) == true, "bool true"
-    assert msgpack.decodeBool(msgpack.encodeBool(false)) == false, "bool false"
-
-    // Nil
-    assert msgpack.typeName(msgpack.encodeNil()) == "nil", "nil type"
-
-    // Float
-    auto f = msgpack.decodeFloat(msgpack.encodeFloat(2.718))
-    assert f > 2.71 and f < 2.72, "float 2.718"
-
-    // Type names
-    assert msgpack.typeName(msgpack.encodeInt(5)) == "int", "int type"
-    assert msgpack.typeName(msgpack.encodeStr("x")) == "str", "str type"
-    assert msgpack.typeName(msgpack.arrayHdr(3)) == "array", "array type"
-    assert msgpack.typeName(msgpack.mapHdr(2)) == "map", "map type"
-
-    // Concat
-    auto packed = msgpack.concat(msgpack.arrayHdr(2), msgpack.concat(msgpack.encodeInt(1), msgpack.encodeStr("a")))
-    assert string.len(packed) > 0, "concat works"
-
+    bool caught = false
+    try
+        Buffer truncated = msgpack.fromHex("82a16101")
+        msgpack.decode(truncated)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "truncated map must throw"
     return 0
 end

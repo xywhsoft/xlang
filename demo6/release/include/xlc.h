@@ -23,11 +23,9 @@ extern "C" {
 typedef struct XLC_Context XLC_Context;
 typedef XL_ContextOptions XLC_ContextOptions;
 
-/* XLIR is the production backend.  LEGACY remains available only as an
- * explicit compatibility/debugging boundary while old baselines are retired. */
+/* XLIR is the only compiler backend. */
 typedef enum XLC_Backend {
-    XLC_BACKEND_XLIR = 0,
-    XLC_BACKEND_LEGACY = 1
+    XLC_BACKEND_XLIR = 0
 } XLC_Backend;
 
 XLC_API XLC_ContextOptions xlcDefaultContextOptions(void);
@@ -59,7 +57,7 @@ XLC_API int xlcEmitLoweredIr(XLC_Context* ctx, const char* outputPath, int jsonO
 XLC_API int xlcEmitC(XLC_Context* ctx, const char* outputPath);
 /* Explicit module-form XLIR output (no process main wrapper). */
 XLC_API int xlcEmitXlirC(XLC_Context* ctx, const char* outputPath);
-/* Emits only lowered XLIR export declarations; no legacy AST header model. */
+/* Emits export declarations derived only from lowered XLIR. */
 XLC_API int xlcEmitXlirHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 XLC_API int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 XLC_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);

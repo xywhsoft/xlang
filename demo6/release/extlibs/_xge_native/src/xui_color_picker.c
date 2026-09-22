@@ -1503,7 +1503,7 @@ static int __xuiColorPickerPanelKeyDown(xui_widget pPanel, xui_widget pOwner, xu
 			__xuiColorPickerCancelEdit(pData);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
-		if ( pEvent->iKey == 8 ) {
+		if ( pEvent->iKey == XUI_KEY_BACKSPACE ) {
 			if ( pData->bEditSelectAll ) {
 				pData->iEditLen = 0;
 				pData->sEdit[0] = '\0';
@@ -1515,7 +1515,7 @@ static int __xuiColorPickerPanelKeyDown(xui_widget pPanel, xui_widget pOwner, xu
 			(void)xuiWidgetInvalidate(pPanel, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
 			return XUI_EVENT_DISPATCH_STOP;
 		}
-		if ( pEvent->iKey == 46 ) {
+		if ( pEvent->iKey == XUI_KEY_DELETE ) {
 			pData->iEditLen = 0;
 			pData->sEdit[0] = '\0';
 			pData->bEditError = 0;

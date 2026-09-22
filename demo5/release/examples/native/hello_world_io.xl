@@ -1,6 +1,0 @@
-import std.io
-
-func main() as int
-	std.io.println("hello io")
-	return 0
-end

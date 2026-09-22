@@ -180,7 +180,7 @@ function Start-XlirPublicCgen {
     param(
         [Parameter(Mandatory=$true)]$Session,
         [Parameter(Mandatory=$true)][string]$Source,
-        [Parameter(Mandatory=$true)][ValidateSet('default','xlir','legacy')][string]$Backend,
+        [Parameter(Mandatory=$true)][ValidateSet('default','xlir')][string]$Backend,
         [Parameter(Mandatory=$true)][string]$Output,
         [ValidateRange(1, 600)][int]$TimeoutSeconds = 60
     )
@@ -332,7 +332,7 @@ function Invoke-XlirPublicCgenBatch {
         if (!$request.Source -or !$request.Backend -or !$request.Output) {
             throw 'Every XLIR Cgen batch request requires Source, Backend and Output'
         }
-        if ([string]$request.Backend -notin @('default', 'xlir', 'legacy')) {
+        if ([string]$request.Backend -notin @('default', 'xlir')) {
             throw "XLIR Cgen batch backend is invalid: $($request.Backend)"
         }
         $fullOutput = if ([IO.Path]::IsPathRooted([string]$request.Output)) {
@@ -372,7 +372,7 @@ function Invoke-XlirPublicCgen {
     param(
         [Parameter(Mandatory=$true)]$Session,
         [Parameter(Mandatory=$true)][string]$Source,
-        [Parameter(Mandatory=$true)][ValidateSet('default','xlir','legacy')][string]$Backend,
+        [Parameter(Mandatory=$true)][ValidateSet('default','xlir')][string]$Backend,
         [Parameter(Mandatory=$true)][string]$Output,
         [ValidateRange(1, 600)][int]$TimeoutSeconds = 60
     )

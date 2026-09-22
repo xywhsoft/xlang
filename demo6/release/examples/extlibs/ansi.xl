@@ -1,0 +1,30 @@
+import ansi
+
+
+
+func main(...) as int
+    // 状态行演示（转义序列由终端解释）
+    print(ansi.bold("ANSI") + " " + ansi.fg("styles", 36))
+    print(" " + ansi.fg256("palette", 208) + " " + ansi.fgTrue("truecolor", 255, 128, 0))
+    println(" " + ansi.inverse("inverse") + " " + ansi.strike("strike"))
+
+    // 混合样式
+    println(ansi.bgTrue(ansi.fg(" progress ", 0), 46, 204, 113) + " " + ansi.underline("underlined"))
+
+    // 对齐辅助：显示宽度跳过转义序列、宽字符按 2 列计
+    array<string> rows = [ansi.fg("ok", 32) + " 中文标签", ansi.fg("pending", 33) + " ascii-label"]
+    for row in rows
+        int pad = 24 - ansi.displayWidth(row)
+        for i in range(0, pad)
+            print(" ")
+        end
+        println("[", row, "]")
+    end
+
+    // 去除转义用于日志落盘
+    string raw = ansi.strip(ansi.bold("clean text"))
+    println("stripped:", raw, "width:", ansi.displayWidth(raw))
+
+    println("ansi example: PASS")
+    return 0
+end

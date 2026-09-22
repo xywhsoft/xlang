@@ -22,6 +22,10 @@
 		#define SOKOL_GLCORE
 	#endif
 #endif
+#if defined(_WIN32) || defined(_WIN64)
+static int __xgeWin32PreTranslateMessage(const void* pMessage);
+#define SOKOL_WIN32_PRETRANSLATE_MESSAGE(pMessage) __xgeWin32PreTranslateMessage((const void*)(pMessage))
+#endif
 #ifndef SOKOL_IMPL
 	#define SOKOL_IMPL
 #endif
@@ -113,8 +117,20 @@ typedef struct xge_ime_queue_item_t {
 	int iCursor;
 	int iSelectStart;
 	int iSelectEnd;
+	int bReplacementRange;
+	int iReplacementStart;
+	int iReplacementEnd;
 	char* sText;
 } xge_ime_queue_item_t;
+
+#define XGE_INPUT_EVENT_QUEUE_INITIAL_CAPACITY 256
+#define XGE_INPUT_EVENT_INLINE_TEXT_CAPACITY 96
+
+typedef struct xge_input_queue_item_t {
+	xge_input_event_t tEvent;
+	char sInlineText[XGE_INPUT_EVENT_INLINE_TEXT_CAPACITY];
+	char* sHeapText;
+} xge_input_queue_item_t;
 
 #define STBI_MALLOC(sz) xrtMalloc(sz)
 #define STBI_REALLOC(p, sz) xrtRealloc((p), (sz))
@@ -126,6 +142,9 @@ typedef struct xge_ime_queue_item_t {
 #define STBIW_FREE(p) xrtFree(p)
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../lib/stb/stb_image_write.h"
+
+/* Private, decompression-only Zstandard 1.5.7 build for embedded resources. */
+#include "../lib/zstd/zstddeclib.c"
 
 #ifndef XGE_NO_TEXT
 	#define STBTT_malloc(x, u) ((void)(u), xrtMalloc(x))
@@ -227,6 +246,15 @@ typedef struct xge_context_t {
 	int iImeQueueCount;
 	int iImeQueueCapacity;
 	char* sImeEventText;
+	int iImeMode;
+	xge_input_queue_item_t* pInputEventQueue;
+	int iInputEventQueueHead;
+	int iInputEventQueueCount;
+	int iInputEventQueueCapacity;
+	uint64_t iInputEventSequence;
+	uint64_t iInputEventDroppedCount;
+	char sInputEventInlineText[XGE_INPUT_EVENT_INLINE_TEXT_CAPACITY];
+	char* sInputEventText;
 	unsigned int iMouseButtons;
 	xge_touch_point_t arrTouches[XGE_TOUCH_MAX];
 	int iTouchCount;
@@ -243,7 +271,7 @@ typedef struct xge_context_t {
 	int iRenderCommandCount;
 	int iRenderCommandCapacity;
 	volatile int iRenderCommandLock;
-	void* pRenderThread;
+	xthread* pRenderThread;
 	int bRenderThreadEnabled;
 	int bRenderThreadBusy;
 	int iRenderThreadResult;
@@ -352,6 +380,10 @@ static void __xgeRenderThreadJoin(void);
 static int __xgeRenderCommandDraw(const xge_draw_t* pDraw);
 static void __xgeDrawExImmediate(const xge_draw_t* pDraw);
 static void __xgeRenderRequestInternal(void);
+static int __xgeInputEventQueueReserve(int iCapacity);
+static int __xgeInputEventQueuePush(const xge_input_event_t* pEvent);
+static void __xgeInputEventQueueReset(void);
+static void __xgeInputEventQueueUnit(void);
 #if defined(_WIN32) || defined(_WIN64)
 static void __xgeImeInstallWin32(void);
 static void __xgeImeUninstallWin32(void);
@@ -417,6 +449,9 @@ static char* __xgeStrDup(const char* sText)
 
 static char* __xgePathResolve(const char* sPath)
 {
+	str sAppDirectory;
+	str sResult;
+
 	if ( sPath == NULL ) {
 		return NULL;
 	}
@@ -427,16 +462,19 @@ static char* __xgePathResolve(const char* sPath)
 			return NULL;
 		}
 	}
-	if ( xrtPathIsAbs((str)sPath, 0) ) {
+	if ( xrtPathIsAbs(sPath) ) {
 		return __xgeStrDup(sPath);
 	}
-	if ( xCore.AppPath != NULL ) {
-		return (char*)xrtPathJoin(2, xCore.AppPath, (str)sPath);
+	sAppDirectory = xrtPathAppDir();
+	if ( sAppDirectory == NULL ) {
+		return __xgeStrDup(sPath);
 	}
-	return __xgeStrDup(sPath);
+	sResult = xrtPathJoin(sAppDirectory, sPath);
+	xrtFree(sAppDirectory);
+	return sResult;
 }
 
-// 使用 xrt 读取完整文件，优先基于 AppPath 处理相对路径
+/* 使用 XRT 读取完整文件。 */
 static void* __xgeFileReadCandidate(const char* sPath, size_t* pSize)
 {
 	void* pData;
@@ -450,11 +488,9 @@ static void* __xgeFileReadCandidate(const char* sPath, size_t* pSize)
 	}
 
 	iSize = 0;
-	pData = xrtFileGetAll((str)sPath, &iSize);
-	if ( (pData == NULL) || (pData == (void*)xCore.sNull) || (iSize == 0u) ) {
-		if ( (pData != NULL) && (pData != (void*)xCore.sNull) ) {
-			xrtFree(pData);
-		}
+	pData = xrtFileReadAll(sPath, &iSize);
+	if ( (pData == NULL) || (iSize == 0u) ) {
+		xrtFree(pData);
 		return NULL;
 	}
 
@@ -476,20 +512,16 @@ static void* __xgeFileGetAll(const char* sPath, size_t* pSize)
 		return NULL;
 	}
 
-	if ( xrtPathIsAbs((str)sPath, 0) ) {
+	if ( xrtPathIsAbs(sPath) ) {
 		return __xgeFileReadCandidate(sPath, pSize);
 	}
 
-	pData = NULL;
-	sFullPath = NULL;
-	if ( xCore.AppPath != NULL ) {
-		sFullPath = xrtPathJoin(2, xCore.AppPath, (str)sPath);
-		if ( sFullPath != NULL ) {
-			pData = __xgeFileReadCandidate((const char*)sFullPath, pSize);
-			xrtFree(sFullPath);
-			if ( pData != NULL ) {
-				return pData;
-			}
+	sFullPath = __xgePathResolve(sPath);
+	if ( sFullPath != NULL ) {
+		pData = __xgeFileReadCandidate(sFullPath, pSize);
+		xrtFree(sFullPath);
+		if ( pData != NULL ) {
+			return pData;
 		}
 	}
 
@@ -580,7 +612,7 @@ static void __xgeLogV(int iLevel, const char* sTag, const char* sFormat, va_list
 	if ( (__xgeLogLevelValid(iLevel) == 0) || (iLevel == XGE_LOG_OFF) || (sFormat == NULL) ) {
 		return;
 	}
-	pLogger = xlogDefault();
+	pLogger = xrtLogDefault();
 	if ( pLogger == NULL ) {
 		return;
 	}
@@ -588,7 +620,10 @@ static void __xgeLogV(int iLevel, const char* sTag, const char* sFormat, va_list
 		sTag = "xge";
 	}
 	snprintf(arrFormat, sizeof(arrFormat), "[%s] %s", sTag, sFormat);
-	xlogWriteV(pLogger, __xgeLogLevelToXrt(iLevel), __FILE__, __LINE__, __func__, arrFormat, args);
+	(void)xrtLogSourcePrintfV(pLogger, __xgeLogLevelToXrt(iLevel),
+		NULL, 0u, xrtStrView(__FILE__), xrtStrView(__func__),
+		(uint32)__LINE__, xrtThreadCurrentId(), arrFormat, args);
+	xrtLogFree(pLogger);
 }
 
 static void __xgeLogFormat(int iLevel, const char* sTag, const char* sFormat, ...)
@@ -603,6 +638,64 @@ static void __xgeLogFormat(int iLevel, const char* sTag, const char* sFormat, ..
 static void __xgeLogError(const char* sTag, const char* sMessage)
 {
 	__xgeLogFormat(XGE_LOG_ERROR, sTag, "%s", (sMessage != NULL) ? sMessage : "");
+}
+
+static xspinlock g_xgeErrorSpin = XRT_SPIN_INIT;
+static xge_error_proc g_xgeErrorCallback;
+static void* g_xgeErrorUser;
+static int g_xgeReportingError;
+
+int xgeSetErrorCallback(xge_error_proc onError, void* pUser)
+{
+	(void)xrtSpinLock(&g_xgeErrorSpin);
+	g_xgeErrorCallback = onError;
+	g_xgeErrorUser = (onError != NULL) ? pUser : NULL;
+	(void)xrtSpinUnlock(&g_xgeErrorSpin);
+	return XGE_OK;
+}
+
+int xgeReportError(const xge_error_info_t* pError)
+{
+	xge_error_proc onError;
+	void* pUser;
+	xge_error_info_t tError;
+
+	if ( (pError == NULL) || (pError->iSize < sizeof(*pError)) ||
+	     (pError->iCode == XGE_OK) ) return XGE_ERROR_INVALID_ARGUMENT;
+	(void)xrtSpinLock(&g_xgeErrorSpin);
+	if ( (g_xgeErrorCallback == NULL) || g_xgeReportingError ) {
+		(void)xrtSpinUnlock(&g_xgeErrorSpin);
+		return XGE_OK;
+	}
+	onError = g_xgeErrorCallback;
+	pUser = g_xgeErrorUser;
+	g_xgeReportingError = 1;
+	(void)xrtSpinUnlock(&g_xgeErrorSpin);
+	tError = *pError;
+	tError.iSize = sizeof(tError);
+	onError(&tError, pUser);
+	(void)xrtSpinLock(&g_xgeErrorSpin);
+	g_xgeReportingError = 0;
+	(void)xrtSpinUnlock(&g_xgeErrorSpin);
+	return XGE_OK;
+}
+
+static void __xgeReportErrorInternal(int iCode, int bRecoverable, const char* sSubsystem,
+	const char* sOperation, const char* sMessage)
+{
+	xge_error_info_t tError;
+
+	__xgeLogFormat(XGE_LOG_ERROR, sSubsystem, "%s failed (%d): %s",
+		(sOperation != NULL) ? sOperation : "operation", iCode,
+		(sMessage != NULL) ? sMessage : "");
+	memset(&tError, 0, sizeof(tError));
+	tError.iSize = sizeof(tError);
+	tError.iCode = iCode;
+	tError.bRecoverable = bRecoverable != 0;
+	tError.sSubsystem = sSubsystem;
+	tError.sOperation = sOperation;
+	tError.sMessage = sMessage;
+	(void)xgeReportError(&tError);
 }
 
 #if defined(__EMSCRIPTEN__)
@@ -849,7 +942,7 @@ static GLuint __xgeCompileShader(GLenum iType, const char* sSource)
 	glGetShaderiv(iShader, GL_COMPILE_STATUS, &bSuccess);
 	if ( bSuccess == 0 ) {
 		glGetShaderInfoLog(iShader, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.graphics", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "shader compile failed: %s", arrLog);
 		glDeleteShader(iShader);
 		return 0;
@@ -937,7 +1030,7 @@ static int __xgeTextureRendererInit(void)
 	glDeleteShader(iFS);
 	if ( bSuccess == 0 ) {
 		glGetProgramInfoLog(g_xgeTextureRenderer.iProgram, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.graphics", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "texture program link failed: %s", arrLog);
 		glDeleteShader(iVS);
 		glDeleteShader(iYUVFS);
@@ -953,7 +1046,7 @@ static int __xgeTextureRendererInit(void)
 	glDeleteShader(iYUVFS);
 	if ( bSuccess == 0 ) {
 		glGetProgramInfoLog(g_xgeTextureRenderer.iYUVProgram, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.graphics", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "YUV texture program link failed: %s", arrLog);
 		return XGE_ERROR_GPU_FAILED;
 	}
@@ -1103,7 +1196,7 @@ static int __xgeShapeRendererInit(void)
 	glDeleteShader(iFS);
 	if ( bSuccess == 0 ) {
 		glGetProgramInfoLog(g_xgeShapeRenderer.iProgram, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.graphics", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "shape program link failed: %s", arrLog);
 		return XGE_ERROR_GPU_FAILED;
 	}
@@ -1117,7 +1210,7 @@ static int __xgeShapeRendererInit(void)
 	glDeleteShader(iSdfFS);
 	if ( bSuccess == 0 ) {
 		glGetProgramInfoLog(g_xgeShapeRenderer.iSdfRoundRectProgram, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.graphics", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "shape sdf round rect program link failed: %s", arrLog);
 		return XGE_ERROR_GPU_FAILED;
 	}
@@ -1309,7 +1402,7 @@ static int __xgeQuad3DRendererInit(void)
 	glDeleteShader(iFS);
 	if ( bSuccess == 0 ) {
 		glGetProgramInfoLog(g_xgeQuad3DRenderer.iProgram, 512, NULL, arrLog);
-		xrtSetError(arrLog, false);
+		xrtSetErrorInfo(XERR_STATE, "xge.graphics", 0, arrLog);
 		__xgeLogFormat(XGE_LOG_ERROR, "graphics", "quad3d program link failed: %s", arrLog);
 		return XGE_ERROR_GPU_FAILED;
 	}
@@ -1335,14 +1428,6 @@ static int __xgeQuad3DRendererInit(void)
 
 static void __xgeTouchResetStationary(void);
 static void __xgeTouchRemoveEnded(void);
-
-static float __xgeInputScaleCoord(float fValue)
-{
-	float fScale;
-
-	fScale = (g_xge.fDpiScale > 0.0f) ? g_xge.fDpiScale : 1.0f;
-	return fValue * fScale;
-}
 
 static void __xgeTextPush(uint32_t iCodepoint)
 {
@@ -1376,14 +1461,6 @@ static uint32_t __xgeTextPop(void)
 	return iCodepoint;
 }
 
-static float __xgeInputScaleDelta(float fValue)
-{
-	float fScale;
-
-	fScale = (g_xge.fDpiScale > 0.0f) ? g_xge.fDpiScale : 1.0f;
-	return fValue * fScale;
-}
-
 // 每帧开始时清理瞬时输入状态
 static void __xgeInputBeginFrame(void)
 {
@@ -1400,6 +1477,7 @@ static void __xgeInputBeginFrame(void)
 	g_xge.iTextCodepoint = 0;
 	g_xge.iTextQueueHead = 0;
 	g_xge.iTextQueueCount = 0;
+	__xgeInputEventQueueReset();
 	__xgeTouchRemoveEnded();
 	__xgeTouchResetStationary();
 	for ( i = 0; i < XGE_GAMEPAD_MAX; i++ ) {
@@ -1437,7 +1515,12 @@ static void __xgeSokolInit(void)
 	g_xge.tCamera.tViewport.fW = (float)g_xge.iWidth;
 	g_xge.tCamera.tViewport.fH = (float)g_xge.iHeight;
 	if ( xge_gl_load((XgeGLLoadProc)__xgeGLGetProc) == 0 ) {
-		xrtSetError("OpenGL function load failed.", false);
+		xrtSetErrorInfo(
+			XERR_STATE,
+			"xge.graphics",
+			0,
+			"OpenGL function load failed."
+		);
 		__xgeLogError("platform", "OpenGL function load failed.");
 		sapp_quit();
 		return;
@@ -1551,6 +1634,18 @@ static unsigned int __xgeMouseButtonMask(sapp_mousebutton iButton)
 	return 0;
 }
 
+static uint32_t __xgeModifiersFromSokol(uint32_t iModifiers)
+{
+	uint32_t iResult;
+
+	iResult = 0u;
+	if ( (iModifiers & SAPP_MODIFIER_SHIFT) != 0u ) iResult |= XGE_KEY_MOD_SHIFT;
+	if ( (iModifiers & SAPP_MODIFIER_CTRL) != 0u ) iResult |= XGE_KEY_MOD_CTRL;
+	if ( (iModifiers & SAPP_MODIFIER_ALT) != 0u ) iResult |= XGE_KEY_MOD_ALT;
+	if ( (iModifiers & SAPP_MODIFIER_SUPER) != 0u ) iResult |= XGE_KEY_MOD_SUPER;
+	return iResult;
+}
+
 static int __xgeTouchPhaseFromSokol(sapp_event_type iType)
 {
 	switch ( iType ) {
@@ -1633,15 +1728,51 @@ static void __xgeTouchUpdate(const sapp_event* pEvent)
 		}
 
 		pPoint = &g_xge.arrTouches[iIndex];
-		pPoint->fDX = __xgeInputScaleDelta(pSokolPoint->pos_x) - pPoint->fX;
-		pPoint->fDY = __xgeInputScaleDelta(pSokolPoint->pos_y) - pPoint->fY;
-		pPoint->fX = __xgeInputScaleCoord(pSokolPoint->pos_x);
-		pPoint->fY = __xgeInputScaleCoord(pSokolPoint->pos_y);
+		pPoint->fDX = pSokolPoint->pos_x - pPoint->fX;
+		pPoint->fDY = pSokolPoint->pos_y - pPoint->fY;
+		pPoint->fX = pSokolPoint->pos_x;
+		pPoint->fY = pSokolPoint->pos_y;
 		pPoint->iPhase = iPhase;
 		pPoint->bChanged = pSokolPoint->changed ? 1 : 0;
 		pPoint->bDown = ((iPhase == XGE_TOUCH_END) || (iPhase == XGE_TOUCH_CANCEL)) ? 0 : 1;
 	}
 	(void)iPhase;
+}
+
+static void __xgeInputQueuePointerEvent(int iType, uint64_t iPointerId,
+	int iButton, uint32_t iButtons, uint32_t iModifiers,
+	float fX, float fY, float fDX, float fDY)
+{
+	xge_input_event_t tInput;
+
+	memset(&tInput, 0, sizeof(tInput));
+	tInput.iSize = sizeof(tInput);
+	tInput.iType = iType;
+	tInput.iPointerId = iPointerId;
+	tInput.iButton = iButton;
+	tInput.iButtons = iButtons;
+	tInput.iModifiers = iModifiers & (XGE_KEY_MOD_SHIFT | XGE_KEY_MOD_CTRL |
+		XGE_KEY_MOD_ALT | XGE_KEY_MOD_SUPER);
+	tInput.fX = fX;
+	tInput.fY = fY;
+	tInput.fDX = fDX;
+	tInput.fDY = fDY;
+	(void)__xgeInputEventQueuePush(&tInput);
+}
+
+static void __xgeInputQueueChangedTouches(int iType, uint32_t iModifiers)
+{
+	const xge_touch_point_t* pPoint;
+	uint32_t iButtons;
+	int i;
+
+	for ( i = 0; i < g_xge.iTouchCount; i++ ) {
+		pPoint = &g_xge.arrTouches[i];
+		if ( !pPoint->bChanged ) continue;
+		iButtons = pPoint->bDown ? XGE_MOUSE_LEFT : 0u;
+		__xgeInputQueuePointerEvent(iType, pPoint->iId, XGE_MOUSE_LEFT,
+			iButtons, iModifiers, pPoint->fX, pPoint->fY, pPoint->fDX, pPoint->fDY);
+	}
 }
 
 static void __xgeSokolDispatchSceneEvent(const sapp_event* pEvent)
@@ -1652,7 +1783,7 @@ static void __xgeSokolDispatchSceneEvent(const sapp_event* pEvent)
 
 	memset(&tEvent, 0, sizeof(tEvent));
 	memset(&tTouch, 0, sizeof(tTouch));
-	tEvent.iParam2 = (int)(pEvent->modifiers & (SAPP_MODIFIER_SHIFT | SAPP_MODIFIER_CTRL | SAPP_MODIFIER_ALT | SAPP_MODIFIER_SUPER));
+	tEvent.iParam2 = (int)__xgeModifiersFromSokol(pEvent->modifiers);
 	switch ( pEvent->type ) {
 		case SAPP_EVENTTYPE_KEY_DOWN:
 			tEvent.iType = XGE_EVENT_KEY_DOWN;
@@ -1671,16 +1802,16 @@ static void __xgeSokolDispatchSceneEvent(const sapp_event* pEvent)
 
 		case SAPP_EVENTTYPE_MOUSE_MOVE:
 			tEvent.iType = XGE_EVENT_MOUSE_MOVE;
-			tEvent.fX = __xgeInputScaleCoord(pEvent->mouse_x);
-			tEvent.fY = __xgeInputScaleCoord(pEvent->mouse_y);
-			tEvent.fDX = __xgeInputScaleDelta(pEvent->mouse_dx);
-			tEvent.fDY = __xgeInputScaleDelta(pEvent->mouse_dy);
+			tEvent.fX = pEvent->mouse_x;
+			tEvent.fY = pEvent->mouse_y;
+			tEvent.fDX = pEvent->mouse_dx;
+			tEvent.fDY = pEvent->mouse_dy;
 			break;
 
 		case SAPP_EVENTTYPE_MOUSE_SCROLL:
 			tEvent.iType = XGE_EVENT_MOUSE_WHEEL;
-			tEvent.fX = __xgeInputScaleCoord(pEvent->mouse_x);
-			tEvent.fY = __xgeInputScaleCoord(pEvent->mouse_y);
+			tEvent.fX = pEvent->mouse_x;
+			tEvent.fY = pEvent->mouse_y;
 			tEvent.fDX = pEvent->scroll_x;
 			tEvent.fDY = pEvent->scroll_y;
 			break;
@@ -1688,15 +1819,15 @@ static void __xgeSokolDispatchSceneEvent(const sapp_event* pEvent)
 		case SAPP_EVENTTYPE_MOUSE_DOWN:
 			tEvent.iType = XGE_EVENT_MOUSE_DOWN;
 			tEvent.iParam1 = (int)__xgeMouseButtonMask(pEvent->mouse_button);
-			tEvent.fX = __xgeInputScaleCoord(pEvent->mouse_x);
-			tEvent.fY = __xgeInputScaleCoord(pEvent->mouse_y);
+			tEvent.fX = pEvent->mouse_x;
+			tEvent.fY = pEvent->mouse_y;
 			break;
 
 		case SAPP_EVENTTYPE_MOUSE_UP:
 			tEvent.iType = XGE_EVENT_MOUSE_UP;
 			tEvent.iParam1 = (int)__xgeMouseButtonMask(pEvent->mouse_button);
-			tEvent.fX = __xgeInputScaleCoord(pEvent->mouse_x);
-			tEvent.fY = __xgeInputScaleCoord(pEvent->mouse_y);
+			tEvent.fX = pEvent->mouse_x;
+			tEvent.fY = pEvent->mouse_y;
 			break;
 
 		case SAPP_EVENTTYPE_TOUCHES_BEGAN:
@@ -1772,6 +1903,7 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 		return;
 	}
 
+	/* Sokol pointer positions are already in framebuffer pixels. */
 	switch ( pEvent->type ) {
 		case SAPP_EVENTTYPE_KEY_DOWN:
 			__xgeRenderRequestInternal();
@@ -1785,6 +1917,16 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 				}
 				g_xge.arrKeyDown[iKey] = 1;
 			}
+			{
+				xge_input_event_t tInput;
+				memset(&tInput, 0, sizeof(tInput));
+				tInput.iSize = sizeof(tInput);
+				tInput.iType = XGE_EVENT_KEY_DOWN;
+				tInput.iFlags = pEvent->key_repeat ? XGE_INPUT_EVENT_FLAG_REPEAT : 0u;
+				tInput.iKey = iKey;
+				tInput.iModifiers = __xgeModifiersFromSokol(pEvent->modifiers);
+				(void)__xgeInputEventQueuePush(&tInput);
+			}
 			break;
 
 		case SAPP_EVENTTYPE_KEY_UP:
@@ -1795,21 +1937,44 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 				g_xge.arrKeyDown[iKey] = 0;
 				g_xge.arrKeyReleased[iKey] = 1;
 			}
+			{
+				xge_input_event_t tInput;
+				memset(&tInput, 0, sizeof(tInput));
+				tInput.iSize = sizeof(tInput);
+				tInput.iType = XGE_EVENT_KEY_UP;
+				tInput.iKey = iKey;
+				tInput.iModifiers = __xgeModifiersFromSokol(pEvent->modifiers);
+				(void)__xgeInputEventQueuePush(&tInput);
+			}
 			break;
 
 		case SAPP_EVENTTYPE_CHAR:
 			__xgeRenderRequestInternal();
 			g_xge.tPlatformRuntime.iTextEventCount++;
 			__xgeTextPush(pEvent->char_code);
+			{
+				xge_input_event_t tInput;
+				memset(&tInput, 0, sizeof(tInput));
+				tInput.iSize = sizeof(tInput);
+				tInput.iType = XGE_EVENT_TEXT;
+				tInput.iFlags = pEvent->key_repeat ? XGE_INPUT_EVENT_FLAG_REPEAT : 0u;
+				tInput.iCodepoint = pEvent->char_code;
+				tInput.iModifiers = __xgeModifiersFromSokol(pEvent->modifiers);
+				(void)__xgeInputEventQueuePush(&tInput);
+			}
 			break;
 
 		case SAPP_EVENTTYPE_MOUSE_MOVE:
 			__xgeRenderRequestInternal();
 			g_xge.tPlatformRuntime.iMouseEventCount++;
-			g_xge.fMouseDX += __xgeInputScaleDelta(pEvent->mouse_dx);
-			g_xge.fMouseDY += __xgeInputScaleDelta(pEvent->mouse_dy);
-			g_xge.fMouseX = __xgeInputScaleCoord(pEvent->mouse_x);
-			g_xge.fMouseY = __xgeInputScaleCoord(pEvent->mouse_y);
+			g_xge.fMouseDX += pEvent->mouse_dx;
+			g_xge.fMouseDY += pEvent->mouse_dy;
+			g_xge.fMouseX = pEvent->mouse_x;
+			g_xge.fMouseY = pEvent->mouse_y;
+			__xgeInputQueuePointerEvent(XGE_EVENT_MOUSE_MOVE, 0u, 0,
+				g_xge.iMouseButtons, __xgeModifiersFromSokol(pEvent->modifiers),
+				g_xge.fMouseX, g_xge.fMouseY,
+				pEvent->mouse_dx, pEvent->mouse_dy);
 			break;
 
 		case SAPP_EVENTTYPE_MOUSE_SCROLL:
@@ -1817,6 +1982,12 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 			g_xge.tPlatformRuntime.iMouseEventCount++;
 			g_xge.fMouseWheelX += pEvent->scroll_x;
 			g_xge.fMouseWheelY += pEvent->scroll_y;
+			g_xge.fMouseX = pEvent->mouse_x;
+			g_xge.fMouseY = pEvent->mouse_y;
+			__xgeInputQueuePointerEvent(XGE_EVENT_MOUSE_WHEEL, 0u, 0,
+				g_xge.iMouseButtons, __xgeModifiersFromSokol(pEvent->modifiers),
+				g_xge.fMouseX, g_xge.fMouseY,
+				pEvent->scroll_x, pEvent->scroll_y);
 			break;
 
 		case SAPP_EVENTTYPE_MOUSE_DOWN:
@@ -1824,8 +1995,11 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 			g_xge.tPlatformRuntime.iMouseEventCount++;
 			iButton = __xgeMouseButtonMask(pEvent->mouse_button);
 			g_xge.iMouseButtons |= iButton;
-			g_xge.fMouseX = __xgeInputScaleCoord(pEvent->mouse_x);
-			g_xge.fMouseY = __xgeInputScaleCoord(pEvent->mouse_y);
+			g_xge.fMouseX = pEvent->mouse_x;
+			g_xge.fMouseY = pEvent->mouse_y;
+			__xgeInputQueuePointerEvent(XGE_EVENT_MOUSE_DOWN, 0u, (int)iButton,
+				g_xge.iMouseButtons, __xgeModifiersFromSokol(pEvent->modifiers),
+				g_xge.fMouseX, g_xge.fMouseY, 0.0f, 0.0f);
 			break;
 
 		case SAPP_EVENTTYPE_MOUSE_UP:
@@ -1833,8 +2007,11 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 			g_xge.tPlatformRuntime.iMouseEventCount++;
 			iButton = __xgeMouseButtonMask(pEvent->mouse_button);
 			g_xge.iMouseButtons &= ~iButton;
-			g_xge.fMouseX = __xgeInputScaleCoord(pEvent->mouse_x);
-			g_xge.fMouseY = __xgeInputScaleCoord(pEvent->mouse_y);
+			g_xge.fMouseX = pEvent->mouse_x;
+			g_xge.fMouseY = pEvent->mouse_y;
+			__xgeInputQueuePointerEvent(XGE_EVENT_MOUSE_UP, 0u, (int)iButton,
+				g_xge.iMouseButtons, __xgeModifiersFromSokol(pEvent->modifiers),
+				g_xge.fMouseX, g_xge.fMouseY, 0.0f, 0.0f);
 			break;
 
 		case SAPP_EVENTTYPE_TOUCHES_BEGAN:
@@ -1844,6 +2021,19 @@ static void __xgeSokolEvent(const sapp_event* pEvent)
 			__xgeRenderRequestInternal();
 			g_xge.tPlatformRuntime.iTouchEventCount++;
 			__xgeTouchUpdate(pEvent);
+			if ( pEvent->type == SAPP_EVENTTYPE_TOUCHES_BEGAN ) {
+				__xgeInputQueueChangedTouches(XGE_EVENT_TOUCH_BEGIN,
+					__xgeModifiersFromSokol(pEvent->modifiers));
+			} else if ( pEvent->type == SAPP_EVENTTYPE_TOUCHES_MOVED ) {
+				__xgeInputQueueChangedTouches(XGE_EVENT_TOUCH_MOVE,
+					__xgeModifiersFromSokol(pEvent->modifiers));
+			} else if ( pEvent->type == SAPP_EVENTTYPE_TOUCHES_ENDED ) {
+				__xgeInputQueueChangedTouches(XGE_EVENT_TOUCH_END,
+					__xgeModifiersFromSokol(pEvent->modifiers));
+			} else {
+				__xgeInputQueueChangedTouches(XGE_EVENT_TOUCH_CANCEL,
+					__xgeModifiersFromSokol(pEvent->modifiers));
+			}
 			break;
 
 		case SAPP_EVENTTYPE_RESIZED:
@@ -1917,6 +2107,8 @@ sapp_desc __xgeMakeSokolDesc(void)
 }
 
 
+static void __xgeEmojiGlobalClear(void);
+
 #include "xge_core.c"
 #if XGE_HAS_DEBUGMODE
 #include "xge_debug.c"
@@ -1925,6 +2117,7 @@ sapp_desc __xgeMakeSokolDesc(void)
 #include "xge_miniprogram.c"
 #include "xge_egl.c"
 #include "xge_audio.c"
+#include "xge_emoji.c"
 #include "xge_font.c"
 #include "xge_texture.c"
 #include "xge_command.c"
@@ -1943,3 +2136,20 @@ sapp_desc __xgeMakeSokolDesc(void)
 #include "xge_buffer.c"
 #include "xge_async.c"
 #include "xge_input.c"
+#if defined(_WIN32) || defined(_WIN64)
+static int __xgeWin32PreTranslateMessage(const void* pMessage)
+{
+	const MSG* pMsg = (const MSG*)pMessage;
+
+	if ( pMsg == NULL || pMsg->hwnd != g_xgeWin32Ime.hWnd ) return 0;
+	switch ( pMsg->message ) {
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		return __xgeTsfHandleKey(pMsg->message, pMsg->wParam, pMsg->lParam);
+	default:
+		return 0;
+	}
+}
+#endif

@@ -1,6 +1,0 @@
-func main() as int
-	while 1 do
-		return 1
-	end
-	return 0
-end

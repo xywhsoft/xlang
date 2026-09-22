@@ -1,9 +1,13 @@
+#define XRT_MODULE_BUFFER
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
+
+/* 输出与 xlang 示例一致的检查结果，便于发布门禁直接比较。 */
 static void require_line(const char* name, int ok)
 {
     if ( !ok ) {
@@ -13,69 +17,79 @@ static void require_line(const char* name, int ok)
     printf("%s=ok\n", name);
 }
 
-static int buffer_equals(xbuffer buf, const char* text)
-{
-    size_t len;
 
-    if ( buf == NULL || text == NULL ) {
+
+/* 比较缓冲有效区和零结尾文本。 */
+static int buffer_equals(const xbuffer* buffer, const char* text)
+{
+    size_t length;
+
+    if ( (buffer == NULL) || (text == NULL) ) {
         return 0;
     }
-    len = strlen(text);
-    return buf->Length == len &&
-           (len == 0 || (buf->Buffer != NULL && memcmp(buf->Buffer, text, len) == 0));
+    length = strlen(text);
+    return (buffer->Size == length) &&
+        ((length == 0) ||
+         ((buffer->Data != NULL) &&
+          (memcmp(buffer->Data, text, length) == 0)));
 }
 
+
+
+/* 演示连续字节缓冲的创建、增长、清空和插入契约。 */
 int main(void)
 {
-    unsigned char byte;
-    xbuffer buf;
-    xbuffer stepped;
-    xbuffer inserted;
+    xbuffer* buffer = xrtBufferCreate();
+    xbuffer* stepped = xrtBufferCreate();
+    xbuffer* inserted = xrtBufferCreate();
 
-    xrtInit();
-
-    buf = xrtBufferCreate(0);
     require_line(
         "basic",
-        buf != NULL &&
-        buf->Length == 0 &&
-        xrtBufferAppend(buf, "abc", 3, XBUF_BINARY) &&
-        (byte = 100, xrtBufferAppend(buf, &byte, 1, XBUF_BINARY)) &&
-        buf->Length == 4 &&
-        ((unsigned char*)buf->Buffer)[0] == 97 &&
-        ((unsigned char*)buf->Buffer)[1] == 98 &&
-        (((unsigned char*)buf->Buffer)[1] = 66, 1) &&
-        buffer_equals(buf, "aBcd"));
+        (buffer != NULL) &&
+        (buffer->Size == 0) &&
+        xrtBufferAppend(buffer, XRT_BYTES_LITERAL("abc")) &&
+        xrtBufferAppendByte(buffer, 100) &&
+        (buffer->Size == 4) &&
+        (buffer->Data[0] == 97) &&
+        (buffer->Data[1] == 98) &&
+        ((buffer->Data[1] = 66), 1) &&
+        buffer_equals(buffer, "aBcd")
+    );
 
     require_line(
         "reserve_clear",
-        xrtBufferMalloc(buf, 128) &&
-        buf->AllocLength >= 128 &&
-        (xrtBufferUnit(buf), buf->Length == 0 && buffer_equals(buf, "")));
+        xrtBufferReserve(buffer, 128) &&
+        (buffer->Capacity >= 128) &&
+        ((xrtBufferClear(buffer)),
+         (buffer->Size == 0) && buffer_equals(buffer, ""))
+    );
 
-    stepped = xrtBufferCreate(64);
     require_line(
         "append_bytes",
-        stepped != NULL &&
-        xrtBufferAppend(stepped, "hello", 2, XBUF_BINARY) &&
+        (stepped != NULL) &&
+        xrtBufferReserve(stepped, 64) &&
+        xrtBufferAppend(
+            stepped,
+            (xbytesview){(const unsigned char*)"hello", 2}
+        ) &&
         buffer_equals(stepped, "he") &&
-        /* 标准库 wrapper 将零长度追加视为成功的 no-op。 */
-        1 &&
-        stepped->Length == 2);
+        /* 零长度追加是成功的 no-op。 */
+        xrtBufferAppend(stepped, (xbytesview){NULL, 0}) &&
+        (stepped->Size == 2)
+    );
 
-    inserted = xrtBufferCreate(0);
     require_line(
         "insert",
-        inserted != NULL &&
-        xrtBufferAppend(inserted, "ad", 2, XBUF_BINARY) &&
-        xrtBufferInsert(inserted, 1, "bc", 2, XBUF_BINARY) &&
+        (inserted != NULL) &&
+        xrtBufferAppend(inserted, XRT_BYTES_LITERAL("ad")) &&
+        xrtBufferInsert(inserted, 1, XRT_BYTES_LITERAL("bc")) &&
         buffer_equals(inserted, "abcd") &&
-        xrtBufferInsert(inserted, 0, stepped->Buffer, stepped->Length, XBUF_BINARY) &&
-        buffer_equals(inserted, "heabcd"));
+        xrtBufferInsert(inserted, 0, xrtBufferView(stepped)) &&
+        buffer_equals(inserted, "heabcd")
+    );
 
-    xrtBufferDestroy(buf);
+    xrtBufferDestroy(buffer);
     xrtBufferDestroy(stepped);
     xrtBufferDestroy(inserted);
-    xrtUnit();
     return 0;
 }

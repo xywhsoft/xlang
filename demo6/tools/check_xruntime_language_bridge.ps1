@@ -1,278 +1,248 @@
-param(
-    [string]$Root = ""
-)
+param([string]$Root = '')
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
+if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
+$Root = (Resolve-Path -LiteralPath $Root).Path
 
-if ( $Root -eq "" ) {
-    $Root = Split-Path -Parent $PSScriptRoot
+$matrixDocName = 'XRT' + ([char]0x4E0E) + 'xlang' + ([char]0x80FD) +
+    ([char]0x529B) + ([char]0x77E9) + ([char]0x9635) + '.md'
+$paths = [ordered]@{
+    Runtime = 'release/include/xl_runtime.h'
+    StdlibData = 'src/stdlib/xl6_stdlib_data.c'
+    Stdlib = 'src/stdlib/xl6_stdlib.c'
+    NativeGroups = 'src/cgen/xl6_ir_cgen_native_groups.inc'
+    Needs = 'src/cgen/xl6_ir_cgen_needs.inc'
+    NeedsAnalysis = 'src/cgen/xl6_ir_cgen_needs_analysis.c'
+    XValueEmit = 'src/cgen/xl6_ir_cgen_emit_xvalue_containers.c'
+    Persistence = 'src/cgen/xl6_ir_cgen_dispatch_persistence.c'
+    ResourceEmit = 'src/cgen/xl6_ir_cgen_emit_resource_support.c'
+    CollectionContract = 'src/cgen/xl6_ir_cgen_collection_emit.c'
+    CollectionInstruction = 'src/cgen/xl6_ir_cgen_runtime_collection_instruction.c'
+    Trim = 'src/compile/xl6_xrt_trim.c'
+    ArtifactSymbols = 'src/compile/xl6_artifact_native_symbols.inc'
+    MatrixGenerator = 'tools/gen_xrt_xlang_matrix.py'
+    MatrixDoc = 'docs/' + $matrixDocName
+}
+$text = @{}
+$failures = [System.Collections.Generic.List[string]]::new()
+
+function Add-Failure([string]$Message) {
+    $script:failures.Add($Message)
 }
 
-$runtimePath = Join-Path $Root "release\include\xl_runtime.h"
-$stdlibDataPath = Join-Path $Root "src\stdlib\xl6_stdlib_data.c"
-$stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib.c"
-$modulePath = Join-Path $Root "src\cgen\xl6_cgen_module.c"
-$asyncOwnerPath = Join-Path $Root "src\cgen\xl6_cgen_async_func_emit.c"
-$valueOwnerPath = Join-Path $Root "src\cgen\xl6_cgen_value_object.c"
-$persistencePath = Join-Path $Root "src\cgen\xl6_cgen_class_value_protocol.c"
-$trimPath = Join-Path $Root "src\compile\xl6_xrt_trim.c"
-$matrixGeneratorPath = Join-Path $Root "tools\gen_xrt_xlang_matrix.py"
-$matrixDocName = "XRT$([char]0x4E0E)xlang$([char]0x80FD)$([char]0x529B)$([char]0x77E9)$([char]0x9635).md"
-$matrixDocPath = Join-Path $Root (Join-Path "docs" $matrixDocName)
-$cgenPaths = @(
-    (Join-Path $Root "src\cgen\xl6_cgen_value_object_containers.c"),
-    (Join-Path $Root "src\cgen\xl6_cgen_record_field.c"),
-	(Join-Path $Root "src\cgen\xl6_cgen_special_collection.c"),
-	(Join-Path $Root "src\cgen\xl6_cgen_special_collection_runtime.c")
-)
-$runtime = [System.IO.File]::ReadAllText($runtimePath, [System.Text.Encoding]::UTF8)
-$stdlibData = [System.IO.File]::ReadAllText($stdlibDataPath, [System.Text.Encoding]::UTF8)
-$stdlib = [System.IO.File]::ReadAllText($stdlibPath, [System.Text.Encoding]::UTF8)
-$module = [System.IO.File]::ReadAllText($modulePath, [System.Text.Encoding]::UTF8)
-$ownerCgen = [System.IO.File]::ReadAllText($asyncOwnerPath, [System.Text.Encoding]::UTF8) + "`n" +
-    [System.IO.File]::ReadAllText($valueOwnerPath, [System.Text.Encoding]::UTF8)
-$persistence = [System.IO.File]::ReadAllText($persistencePath, [System.Text.Encoding]::UTF8)
-$trim = [System.IO.File]::ReadAllText($trimPath, [System.Text.Encoding]::UTF8)
-$matrixGenerator = [System.IO.File]::ReadAllText($matrixGeneratorPath, [System.Text.Encoding]::UTF8)
-$matrixDoc = [System.IO.File]::ReadAllText($matrixDocPath, [System.Text.Encoding]::UTF8)
-$cgen = ($cgenPaths | ForEach-Object {
-    [System.IO.File]::ReadAllText($_, [System.Text.Encoding]::UTF8)
-}) -join "`n"
-$containerCgen = [System.IO.File]::ReadAllText($cgenPaths[0], [System.Text.Encoding]::UTF8)
-$failures = New-Object System.Collections.Generic.List[string]
+function Require-Text([string]$Text, [string]$Pattern, [string]$Message) {
+    if (!$Text.Contains($Pattern)) { Add-Failure $Message }
+}
 
-function Require-Text
-{
-    param(
-        [string]$Text,
-        [string]$Pattern,
-        [string]$Message
-    )
+function Get-Section([string]$Text, [string]$Start, [string]$End) {
+    $startIndex = $Text.IndexOf($Start, [StringComparison]::Ordinal)
+    if ($startIndex -lt 0) { return '' }
+    $endIndex = $Text.IndexOf($End, $startIndex, [StringComparison]::Ordinal)
+    if ($endIndex -lt 0) { return '' }
+    return $Text.Substring($startIndex, $endIndex - $startIndex)
+}
 
-    if ( !$Text.Contains($Pattern) ) {
-        $script:failures.Add($Message) | Out-Null
+foreach ($entry in $paths.GetEnumerator()) {
+    $path = Join-Path $Root $entry.Value
+    if (!(Test-Path -LiteralPath $path -PathType Leaf)) {
+        Add-Failure "required xruntime language bridge file is missing: $($entry.Value)"
+        continue
+    }
+    $text[$entry.Key] = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8)
+}
+
+if ($failures.Count -eq 0) {
+    foreach ($call in @(
+        'xrtTypedArrayCapacity(',
+        'xrtTypedArrayData(',
+        'xrtTypedArrayConstData(',
+        'xrtTypedArrayReserve(',
+        'xrtTypedArrayResize(',
+        'xrtTypedArrayTrim(',
+        'xrtTypedListTrim(',
+        'xrtTypedSetCapacity(',
+        'xrtTypedSetReserve(',
+        'xrtTypedSetTrim(',
+        'xrtTypedSetMerge(',
+        'xrtTypedSetUnion(',
+        'xrtTypedSetIntersection(',
+        'xrtTypedSetDifference(',
+        'xrtTypedSetSymmetricDifference(',
+        'xrtTypedSetIsSubset(',
+        'xrtTypedSetIsSuperset(',
+        'xrtTypedSetIsDisjoint(',
+        'xrtTypedSetEquals(',
+        'xrtTypedDictCapacity(',
+        'xrtTypedDictReserve(',
+        'xrtTypedDictTrim(',
+        'xrtTypedDictMerge(',
+        'xrtTypedDictEquals('
+    )) {
+        Require-Text $text.Runtime $call "missing direct xruntime container bridge: $call"
+    }
+
+    foreach ($call in @(
+        'xrtDynamicFieldsGetRef(',
+        'xrtDynamicFieldsSetRef(',
+        'xrtDynamicFieldsClone(',
+        'xrtDynamicFieldsToValue(',
+        'xrtDynamicFieldsFromValue('
+    )) {
+        Require-Text $text.Runtime $call "missing direct xruntime dynamic-field bridge: $call"
+    }
+    foreach ($signature in @(
+        'static inline int xl6_xrt_dynamic_fields_reserve(',
+        'static inline int xl6_xrt_dynamic_fields_set(',
+        'static inline int xl6_xrt_dynamic_fields_merge('
+    )) {
+        Require-Text $text.Runtime $signature "dynamic-field bridge does not use the xlang bool ABI: $signature"
+    }
+
+    foreach ($call in @(
+        'xrtObjectCreate(',
+        'xrtValueRuntimeObjectTake(',
+        'xrtValueGetRuntimeObject(',
+        'xrtWeakSet(',
+        'xrtWeakCopy(',
+        'xrtWeakMove(',
+        'xrtWeakExpired(',
+        'xrtWeakLock('
+    )) {
+        Require-Text $text.Runtime $call "class/weak bridge does not directly use xruntime: $call"
+    }
+    if ($text.Runtime.Contains('xl6_weak_control')) {
+        Add-Failure 'class/weak bridge still contains the retired private weak control block'
+    }
+
+    Require-Text $text.StdlibData '"class DynamicFields\n"' 'DynamicFields language abstraction is missing'
+    Require-Text $text.StdlibData '"    func clone() as DynamicFields\n"' 'DynamicFields clone abstraction is missing'
+    Require-Text $text.StdlibData '"    DynamicFields __fields = __xl6DynamicFieldsDefault()\n"' 'root object is not backed by nominal DynamicFields storage'
+    if ($text.StdlibData.Contains('"    var __fields = dict{}\n"')) {
+        Add-Failure 'root object still uses the retired private dictionary field store'
+    }
+    Require-Text $text.Stdlib 'if ( needsCoreClass )' 'core object classes are not conditionally injected'
+
+    foreach ($contract in @(
+        'XL6_IR_CGEN_NATIVE_GROUP(DYNAMIC_FIELDS, "XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD")',
+        'XL6_IR_CGEN_NATIVE_GROUP(WEAK, "XRUNTIME_MODULE_RUNTIME_VALUE_WEAK")',
+        'XL6_IR_CGEN_NATIVE_GROUP(QUEUES, "XRUNTIME_MODULE_TYPED_QUEUE_SPSC", "XRUNTIME_MODULE_TYPED_QUEUE_MPSC", "XRUNTIME_MODULE_TYPED_QUEUE_MPMC")',
+        'XL6_IR_CGEN_NATIVE_GROUP(STACK, "XRUNTIME_MODULE_TYPED_STACK")',
+        'XL6_IR_CGEN_NATIVE_GROUP(TREE, "XRUNTIME_MODULE_TYPED_TREE")'
+    )) {
+        Require-Text $text.NativeGroups $contract "XLIR native dependency group is missing: $contract"
+    }
+    foreach ($contract in @(
+        'XL6_IR_CGEN_NEED(int, needsXValueDynamicFieldRuntime, DYNAMIC_FIELDS)',
+        'XL6_IR_CGEN_NEED(int, needsPersistenceDynamicFields, DYNAMIC_FIELDS)',
+        'XL6_IR_CGEN_NEED(int, needsDynamicFieldsBridgeRuntime, DYNAMIC_FIELDS)',
+        'XL6_IR_CGEN_NEED(int, needsSpecialQueueBatchRuntime, QUEUES)',
+        'XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, STACK)',
+        'XL6_IR_CGEN_NEED(int, needsAvlTreeResourceRuntime, TREE)'
+    )) {
+        Require-Text $text.Needs $contract "XLIR runtime need is not mapped to an implementation group: $contract"
+    }
+
+    foreach ($contract in @(
+        'needs->needsXValueDynamicFieldRuntime = 1;',
+        'needs->needsChannelResourceRuntime = 1;',
+        'needs->needsSpecialQueueBatchRuntime = 1;'
+    )) {
+        Require-Text $text.NeedsAnalysis $contract "lowered XLIR does not close a runtime dependency: $contract"
+    }
+    foreach ($contract in @(
+        'xrtDynamicFieldsGet(fields, key)',
+        'xrtDynamicFieldsSetNew(fields, key, item)',
+        'xlir_xvalue_dynamic_field_get_or_null',
+        'xlir_xvalue_dynamic_field_set_new'
+    )) {
+        Require-Text $text.XValueEmit $contract "XLIR dynamic-field emitter is missing: $contract"
+    }
+    Require-Text $text.Persistence 'xrtDynamicFieldsToValue(' 'object persistence bypasses xruntime dynamic fields'
+    Require-Text $text.Persistence 'xrtDynamicFieldsFromValue(' 'object restore bypasses xruntime dynamic fields'
+
+    foreach ($contract in @(
+        'xrtValueGetInt(arg0, &first) && first >= 0',
+        'first >= 0 && second >= 0',
+        'xrtValueReserve(collection, (size_t)first)',
+        'xrtValueArraySwap(collection, (size_t)first, (size_t)second)'
+    )) {
+        Require-Text $text.XValueEmit $contract "dynamic collection signed-range contract is missing: $contract"
+    }
+    Require-Text $text.CollectionInstruction 'xlir_xvalue_dynamic_collection_method(' 'dynamic collection RuntimeOp renderer is missing'
+
+    foreach ($contract in @(
+        'XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH',
+        'XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO',
+        'xlir_special_queue_push_batch(',
+        'xlir_special_queue_pop_batch_into('
+    )) {
+        $target = if ($contract.StartsWith('XL6_')) { $text.CollectionContract } else { $text.ResourceEmit }
+        Require-Text $target $contract "special queue bridge is missing: $contract"
+    }
+    foreach ($contract in @(
+        'capacity < 0 || (uint64_t)capacity > (uint64_t)SIZE_MAX',
+        'xrtTypedTreeMerge(',
+        'xrtTypedTreeClone(',
+        'xrtTypedTreeEquals('
+    )) {
+        Require-Text $text.ResourceEmit $contract "typed resource bridge is missing: $contract"
+    }
+
+    $setSection = Get-Section $text.Runtime 'static inline bool xl6TypedSetMerge(' 'static inline xtdict xl6TypedDictCreate('
+    if (!$setSection) {
+        Add-Failure 'cannot locate typed set bridge section'
+    } elseif ($setSection -match '(?m)\bfor\s*\(' -or $setSection -match '(?m)\bwhile\s*\(') {
+        Add-Failure 'typed set algebra must delegate traversal to xruntime'
+    }
+    $dictSection = Get-Section $text.Runtime 'static inline bool xl6TypedDictMerge(' 'static inline const xl6_type_desc* xl6TypedDictItemType('
+    if (!$dictSection) {
+        Add-Failure 'cannot locate typed dictionary bridge section'
+    } elseif ($dictSection -match '(?m)\bfor\s*\(' -or $dictSection -match '(?m)\bwhile\s*\(') {
+        Add-Failure 'typed dictionary merge must delegate traversal to xruntime'
+    }
+
+    foreach ($contract in @(
+        'xl6XrtTrimBuildImplementationSourceFromArtifact(',
+        'deps->xrtModules.items',
+        'deps->xrtModules.count',
+        'xl6XrtTrimEmitModules(&out, modules, moduleCount)',
+        '"XRT_MODULE_ALL"',
+        '"XRUNTIME_MODULE_ALL"',
+        '#define XRUNTIME_IMPLEMENTATION'
+    )) {
+        Require-Text $text.Trim $contract "artifact-driven XRT trim contract is missing: $contract"
+    }
+    foreach ($contract in @(
+        'XL6_ARTIFACT_NATIVE_SYMBOL("xrtDynamicFieldsCreate", "XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD")',
+        'XL6_ARTIFACT_NATIVE_SYMBOL("xrtValueRuntimeObject", "XRUNTIME_MODULE_RUNTIME_VALUE_OBJECT")',
+        'XL6_ARTIFACT_NATIVE_SYMBOL("xrtValueWeak", "XRUNTIME_MODULE_RUNTIME_VALUE_WEAK")'
+    )) {
+        Require-Text $text.ArtifactSymbols $contract "artifact native-symbol module mapping is missing: $contract"
+    }
+    Require-Text $text.MatrixGenerator 'XRUNTIME_CAPABILITY_CONTRACT' 'xruntime capability contract is missing'
+    Require-Text $text.MatrixGenerator '"schema": 2' 'xruntime capability report schema is stale'
+    Require-Text $text.MatrixGenerator '"directIntegratedApiCount"' 'direct integration and semantic abstraction are conflated'
+    Require-Text $text.MatrixDoc 'extlibs/xruntime/include/xrt/runtime_field.h' 'capability matrix omits dynamic fields'
+    if ($text.MatrixDoc.Contains('xlang-private-backend-pending-unification')) {
+        Add-Failure 'capability matrix still marks class/weak support as a private backend'
+    }
+
+    $emitterText = $text.NativeGroups + $text.Needs + $text.NeedsAnalysis +
+        $text.XValueEmit + $text.Persistence + $text.ResourceEmit +
+        $text.CollectionContract + $text.CollectionInstruction
+    if ($emitterText -match 'XL6_Ast|XL6_Hir|->inferredType|xl6Sem') {
+        Add-Failure 'xruntime language bridge reads a retired frontend semantic model'
     }
 }
 
-
-
-function Get-Section
-{
-    param(
-        [string]$Text,
-        [string]$Start,
-        [string]$End
-    )
-
-    $startIndex = $Text.IndexOf($Start, [System.StringComparison]::Ordinal)
-    if ( $startIndex -lt 0 ) { return "" }
-
-    $endIndex = $Text.IndexOf($End, $startIndex, [System.StringComparison]::Ordinal)
-    if ( $endIndex -lt 0 ) { return "" }
-
-    return $Text.Substring($startIndex, ($endIndex - $startIndex))
-}
-
-
-
-$directCalls = @(
-    "xrtTypedArrayCapacity(",
-    "xrtTypedArrayData(",
-    "xrtTypedArrayConstData(",
-    "xrtTypedArrayReserve(",
-    "xrtTypedArrayResize(",
-    "xrtTypedArrayTrim(",
-    "xrtTypedListTrim(",
-    "xrtTypedSetCapacity(",
-    "xrtTypedSetReserve(",
-    "xrtTypedSetTrim(",
-    "xrtTypedSetMerge(",
-    "xrtTypedSetUnion(",
-    "xrtTypedSetIntersection(",
-    "xrtTypedSetDifference(",
-    "xrtTypedSetSymmetricDifference(",
-    "xrtTypedSetIsSubset(",
-    "xrtTypedSetIsSuperset(",
-    "xrtTypedSetIsDisjoint(",
-    "xrtTypedSetEquals(",
-    "xrtTypedDictCapacity(",
-    "xrtTypedDictReserve(",
-    "xrtTypedDictTrim(",
-    "xrtTypedDictMerge(",
-    "xrtTypedDictEquals("
-)
-
-foreach ( $call in $directCalls ) {
-    Require-Text $runtime $call "missing direct xruntime bridge: $call"
-}
-
-foreach ( $call in @(
-    "xrtDynamicFieldsGetRef(",
-    "xrtDynamicFieldsSetRef(",
-    "xrtDynamicFieldsClone(",
-    "xrtDynamicFieldsToValue(",
-    "xrtDynamicFieldsFromValue("
-) ) {
-    Require-Text $runtime $call "missing direct xruntime dynamic-field bridge: $call"
-}
-
-foreach ( $signature in @(
-    "static inline int xl6_xrt_dynamic_fields_reserve(",
-    "static inline int xl6_xrt_dynamic_fields_set(",
-    "static inline int xl6_xrt_dynamic_fields_merge("
-) ) {
-    Require-Text $runtime $signature "dynamic-field bridge does not follow the xlang bool ABI: $signature"
-}
-
-foreach ( $call in @(
-    "xrtObjectCreate(",
-    "xrtValueRuntimeObjectTake(",
-    "xrtValueGetRuntimeObject(",
-    "xrtWeakSet(",
-    "xrtWeakCopy(",
-    "xrtWeakMove(",
-    "xrtWeakExpired(",
-    "xrtWeakLock("
-) ) {
-    Require-Text $runtime $call "class/weak kernel does not directly use xruntime: $call"
-}
-if ( $runtime.Contains("xl6_weak_control") ) {
-    $failures.Add("class/weak kernel still contains the private weak control block") | Out-Null
-}
-Require-Text $ownerCgen "xl6ValueRecordOwnerRef(self)" "managed self does not use the owned runtime-object lookup"
-if ( $ownerCgen.Contains("xl6ValueRecordOwner(self)") ) {
-    $failures.Add("managed self still uses the removed borrowed owner lookup") | Out-Null
-}
-
-Require-Text $stdlibData '"class DynamicFields\n"' "DynamicFields language abstraction is missing"
-Require-Text $stdlibData '"    func clone() as DynamicFields\n"' "DynamicFields clone abstraction is missing"
-Require-Text $stdlibData '"    var __fields = __xl6DynamicFieldsDefault()\n"' "root object is not backed by DynamicFields"
-if ( $stdlibData.Contains('"    var __fields = dict{}\n"') ) {
-    $failures.Add("root object still uses the private dictionary field store") | Out-Null
-}
-Require-Text $stdlib "if ( needsCoreClass )" "core object classes are not conditionally injected"
-Require-Text $module "XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD 1" "dynamic-field cgen trim marker is missing"
-Require-Text $module "XRUNTIME_MODULE_RUNTIME_VALUE_OBJECT 1" "class cgen runtime-object trim marker is missing"
-Require-Text $module "XRUNTIME_MODULE_RUNTIME_VALUE_WEAK 1" "weak cgen runtime-value trim marker is missing"
-Require-Text $module "XRT_MODULE_ATOMIC 1" "class xrttype cache atomic trim marker is missing"
-Require-Text $module "ctx.nullableTypeCount > 0" "nullable generated helpers do not close their runtime dependencies"
-Require-Text $persistence "xl6_xrt_dynamic_fields_to_value_handle" "object persistence bypasses the dynamic-field bridge"
-Require-Text $persistence "xl6_xrt_dynamic_fields_assign_value_handle" "object restore bypasses the dynamic-field bridge"
-Require-Text $trim "keepDynamicFields" "standalone trim config does not retain dynamic fields"
-Require-Text $trim '"XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD"' "standalone trim output omits dynamic fields"
-Require-Text $trim "keepRuntimeWeak" "standalone trim config does not retain xruntime weak values"
-Require-Text $trim '"XRUNTIME_MODULE_RUNTIME_VALUE_OBJECT"' "standalone trim output omits runtime objects"
-Require-Text $trim '"XRUNTIME_MODULE_RUNTIME_VALUE_WEAK"' "standalone trim output omits runtime weak values"
-Require-Text $matrixGenerator "XRUNTIME_CAPABILITY_CONTRACT" "xruntime semantic capability contract is missing"
-Require-Text $matrixGenerator '"schema": 2' "xruntime capability report schema is stale"
-Require-Text $matrixGenerator '"directIntegratedApiCount"' "direct integration and semantic abstraction are still conflated"
-Require-Text $matrixDoc "extlibs/xruntime/include/xrt/runtime_field.h" "generated matrix omits the dynamic-field capability"
-if ( $matrixDoc.Contains("xlang-private-backend-pending-unification") ) {
-    $failures.Add("generated matrix still marks the class/weak backend as private") | Out-Null
-}
-
-$setSection = Get-Section `
-    $runtime `
-    "static inline bool xl6TypedSetMerge(" `
-    "static inline xtdict xl6TypedDictCreate("
-if ( $setSection -eq "" ) {
-    $failures.Add("cannot locate typed set bridge section") | Out-Null
-} elseif ( $setSection -match '(?m)\bfor\s*\(' -or $setSection -match '(?m)\bwhile\s*\(' ) {
-    $failures.Add("typed set algebra must not reimplement xruntime traversal") | Out-Null
-}
-
-$dictMergeSection = Get-Section `
-    $runtime `
-    "static inline bool xl6TypedDictMerge(" `
-    "static inline const xl6_type_desc* xl6TypedDictItemType("
-if ( $dictMergeSection -eq "" ) {
-    $failures.Add("cannot locate typed dictionary merge bridge") | Out-Null
-} elseif ( $dictMergeSection -match '(?m)\bfor\s*\(' -or $dictMergeSection -match '(?m)\bwhile\s*\(' ) {
-    $failures.Add("typed dictionary merge must not reimplement xruntime traversal") | Out-Null
-}
-
-Require-Text `
-    $runtime `
-    "xl6_xrt_container_reserve(xvalue* values, long long count)" `
-    "dynamic reserve must preserve a signed count until validation"
-Require-Text `
-    $runtime `
-    "long long index1," `
-    "dynamic swap must preserve signed indices until validation"
-Require-Text `
-    $runtime `
-    "if ( count < 0 ) { return 0; }" `
-    "dynamic reserve must reject negative counts"
-Require-Text `
-    $runtime `
-    "if ( index1 < 0 || index2 < 0 ) { return 0; }" `
-    "dynamic swap must reject negative indices"
-$dynamicReserveSection = Get-Section `
-    $runtime `
-    "static inline int xl6_xrt_container_reserve(" `
-    "static inline int xl6_xrt_container_swap("
-Require-Text `
-    $dynamicReserveSection `
-    "return xl6TypedArrayReserve(" `
-    "boxed typed arrays must execute reserve instead of reporting a false success"
-Require-Text `
-    $dynamicReserveSection `
-    "(xtarray)xl6ValueHandleData(values), count" `
-    "boxed typed array reserve must preserve its checked signed count"
-Require-Text `
-    $cgen `
-    "xl6_xrt_container_reserve(env->self, xl6_xrt_value_int(frame->Argv[0]))" `
-    "dynamic bound reserve must forward its signed integer unchanged"
-Require-Text `
-    $cgen `
-    "xl6_xrt_container_swap(env->self, xl6_xrt_value_int(frame->Argv[0]), xl6_xrt_value_int(frame->Argv[1]))" `
-    "dynamic bound swap must forward signed indices unchanged"
-
-$reserveCgenSection = Get-Section `
-    $containerCgen `
-    'if ( xl6CTextEquals(name, "reserve")' `
-    'if ( xl6CTextEquals(name, "swap")'
-$swapCgenSection = Get-Section `
-    $containerCgen `
-    'if ( xl6CTextEquals(name, "swap")' `
-    'xl6CgenError(ctx, call, "invalid container method arguments")'
-if ( $reserveCgenSection -eq "" -or $swapCgenSection -eq "" ) {
-    $failures.Add("cannot locate reserve/swap lowering sections") | Out-Null
-} elseif ( $reserveCgenSection.Contains("unsigned") -or
-           $swapCgenSection.Contains("unsigned") ) {
-    $failures.Add("container lowering still contains a pre-validation unsigned cast") | Out-Null
-}
-
-foreach ( $call in @(
-    "xrtTypedStackClone(",
-    "xrtTypedStackEquals(",
-    "xrtTypedTreeMerge(",
-    "xrtTypedTreeClone(",
-    "xrtTypedTreeEquals(",
-    "xrtTypedSPSCQueuePushBatch(",
-    "xrtTypedSPSCQueuePopBatch(",
-    "xrtTypedMPSCQueuePushBatch(",
-    "xrtTypedMPSCQueuePopBatch(",
-    "xrtTypedMPMCQueuePushBatch(",
-    "xrtTypedMPMCQueuePopBatch("
-) ) {
-    Require-Text $cgen $call "missing direct typed queue batch bridge: $call"
-}
-Require-Text `
-    $cgen `
-    "xl6_special_queue_push_batch_raw(" `
-    "typed queue batch push dispatcher is missing"
-Require-Text `
-    $cgen `
-    "xl6_special_queue_pop_batch_raw(" `
-    "typed queue batch pop dispatcher is missing"
-
-if ( $failures.Count -gt 0 ) {
-    foreach ( $failure in $failures | Select-Object -First 30 ) {
-        Write-Host $failure
+if ($failures.Count -ne 0) {
+    Write-Host 'xruntime language bridge check failed.'
+    $failures | Select-Object -First 80 | ForEach-Object { Write-Host "  $_" }
+    if ($failures.Count -gt 80) {
+        Write-Host "  ... $($failures.Count - 80) more failure(s)"
     }
     exit 1
 }
 
-Write-Host "xruntime language bridge ok: containers, dynamic fields, class/weak ownership, ABI, and trim closure preserved."
+Write-Host 'xruntime language bridge ok: direct runtime delegation and verified XLIR dependency closure are preserved.'
 exit 0

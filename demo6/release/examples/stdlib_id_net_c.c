@@ -1,3 +1,5 @@
+#define XRT_MODULE_XID
+#define XRT_MODULE_NET_INTERFACE_TEXT
 #include "xrt.h"
 
 #include <stdio.h>
@@ -22,36 +24,30 @@ int main(void)
     xid decoded;
     str encoded;
 
-    xrtInit();
-
-    requestId = xrtMakeXIDS();
-    localIP = xrtGetLocalIP();
-    localMAC = xrtGetLocalMAC();
-    localName = xrtGetLocalName();
+    requestId = xrtXidMakeString();
+    localIP = xrtNetLocalAddressString(XNET_FAMILY_UNSPEC);
+    localMAC = xrtNetLocalHardwareString();
+    localName = xrtNetHostNameString();
 
     require_id_net(requestId != NULL && strlen((const char*)requestId) == 32u);
     require_id_net(localIP != NULL);
     require_id_net(localMAC != NULL);
     require_id_net(localName != NULL);
 
-    original = xrtMakeXID();
-    require_id_net(original != NULL);
-    encoded = xrtEncodeXID(original);
+    require_id_net(xrtXidMake(&original));
+    encoded = xrtXidFormat(&original);
     require_id_net(encoded != NULL);
-    decoded = xrtDecodeXID(encoded);
-    require_id_net(decoded != NULL && xrtCompXID(original, decoded));
-    require_id_net(xrtDecodeXID((str)"invalid") == NULL);
+    require_id_net(xrtXidParse((xstrview){encoded, strlen(encoded)}, &decoded));
+    require_id_net(xrtXidEqual(&original, &decoded));
+    require_id_net(!xrtXidParse(XRT_STR_LITERAL("invalid"), &decoded));
 
     xrtFree(requestId);
     xrtFree(localIP);
     xrtFree(localMAC);
     xrtFree(localName);
-    xrtFree(decoded);
     xrtFree(encoded);
-    xrtFree(original);
 
     printf("id_net=ok\n");
     fflush(stdout);
-    xrtUnit();
     return 0;
 }

@@ -4,8 +4,7 @@
 
 str __xrtXmlDomCopy(const char* sText)
 {
-	return xrtCopyStr((str)(sText != NULL ? sText : ""),
-		strlen(sText != NULL ? sText : ""));
+	return xrtStrDup(sText != NULL ? sText : "");
 }
 
 void __xrtXmlDomSetError(xrtxmlerror* pError, int iCode,
@@ -21,13 +20,13 @@ void __xrtXmlDomSetError(xrtxmlerror* pError, int iCode,
 bool __xrtXmlDomValidName(const char* sName)
 {
 	const unsigned char* p = (const unsigned char*)sName;
-	if ( p == NULL || *p == 0u ) { return FALSE; }
+	if ( p == NULL || *p == 0u ) { return false; }
 	while ( *p != 0u ) {
 		if ( *p <= 0x20u || *p == '<' || *p == '>' || *p == '&' ||
-			*p == '\'' || *p == '"' || *p == '/' || *p == '=' ) { return FALSE; }
+			*p == '\'' || *p == '"' || *p == '/' || *p == '=' ) { return false; }
 		p++;
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlDomTrackNode(xrtxmldomdocument* pDocument,
@@ -40,12 +39,12 @@ static bool __xrtXmlDomTrackNode(xrtxmldomdocument* pDocument,
 			pDocument->iNodeCapacity * 2u : 32u;
 		pItems = (xrtxmldomnode**)xrtRealloc(pDocument->pNodes,
 			sizeof(xrtxmldomnode*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pDocument->pNodes = pItems;
 		pDocument->iNodeCapacity = iCapacity;
 	}
 	pDocument->pNodes[pDocument->iNodeCount++] = pNode;
-	return TRUE;
+	return true;
 }
 
 xrtxmldomnode* __xrtXmlDomCreateNode(xrtxmldomdocument* pDocument,
@@ -82,18 +81,18 @@ bool __xrtXmlDomAppendText(str* psTarget, const char* sText)
 	size_t iOld;
 	size_t iAdd;
 	char* sResult;
-	if ( psTarget == NULL || sText == NULL ) { return FALSE; }
+	if ( psTarget == NULL || sText == NULL ) { return false; }
 	iOld = *psTarget != NULL ? strlen((const char*)*psTarget) : 0u;
 	iAdd = strlen(sText);
-	if ( iAdd > SIZE_MAX - iOld - 1u ) { return FALSE; }
+	if ( iAdd > SIZE_MAX - iOld - 1u ) { return false; }
 	sResult = (char*)xrtMalloc(iOld + iAdd + 1u);
-	if ( sResult == NULL ) { return FALSE; }
+	if ( sResult == NULL ) { return false; }
 	if ( iOld != 0u ) { memcpy(sResult, *psTarget, iOld); }
 	if ( iAdd != 0u ) { memcpy(sResult + iOld, sText, iAdd); }
 	sResult[iOld + iAdd] = 0;
 	xrtFree(*psTarget);
 	*psTarget = (str)sResult;
-	return TRUE;
+	return true;
 }
 
 static void __xrtXmlDomFreeNode(xrtxmldomnode* pNode)
@@ -126,7 +125,7 @@ void __xrtXmlDomFreeDocument(xrtxmldomdocument* pDocument)
 	xrtFree(pDocument);
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomCreateDocument(void)
+XRT_API xrtxmldomnode* xrtXmlDomCreateDocument(void)
 {
 	xrtxmldomdocument* pDocument =
 		(xrtxmldomdocument*)xrtMalloc(sizeof(*pDocument));
@@ -148,7 +147,7 @@ static xrtxmldomnode* __xrtXmlDomDocumentNode(xrtxmldomnode* pNode)
 		pNode->pDocument->pDocumentNode : NULL;
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomCreateElement(xrtxmldomnode* pDocument,
+XRT_API xrtxmldomnode* xrtXmlDomCreateElement(xrtxmldomnode* pDocument,
 	str sName)
 {
 	xrtxmldomnode* pDoc = __xrtXmlDomDocumentNode(pDocument);
@@ -157,7 +156,7 @@ XXAPI xrtxmldomnode* xrtXmlDomCreateElement(xrtxmldomnode* pDocument,
 	return xrtXmlDomNodeRetain(pNode);
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomCreateText(xrtxmldomnode* pDocument,
+XRT_API xrtxmldomnode* xrtXmlDomCreateText(xrtxmldomnode* pDocument,
 	str sText)
 {
 	xrtxmldomnode* pDoc = __xrtXmlDomDocumentNode(pDocument);
@@ -166,7 +165,7 @@ XXAPI xrtxmldomnode* xrtXmlDomCreateText(xrtxmldomnode* pDocument,
 	return xrtXmlDomNodeRetain(pNode);
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomCreateComment(xrtxmldomnode* pDocument,
+XRT_API xrtxmldomnode* xrtXmlDomCreateComment(xrtxmldomnode* pDocument,
 	str sText)
 {
 	xrtxmldomnode* pDoc = __xrtXmlDomDocumentNode(pDocument);
@@ -175,7 +174,7 @@ XXAPI xrtxmldomnode* xrtXmlDomCreateComment(xrtxmldomnode* pDocument,
 	return xrtXmlDomNodeRetain(pNode);
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomCreateProcessingInstruction(
+XRT_API xrtxmldomnode* xrtXmlDomCreateProcessingInstruction(
 	xrtxmldomnode* pDocument, str sTarget, str sText)
 {
 	xrtxmldomnode* pDoc = __xrtXmlDomDocumentNode(pDocument);
@@ -186,7 +185,7 @@ XXAPI xrtxmldomnode* xrtXmlDomCreateProcessingInstruction(
 	return xrtXmlDomNodeRetain(pNode);
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomNodeRetain(xrtxmldomnode* pNode)
+XRT_API xrtxmldomnode* xrtXmlDomNodeRetain(xrtxmldomnode* pNode)
 {
 	if ( pNode == NULL || pNode->pDocument == NULL ||
 		pNode->pDocument->iReferences == UINT32_MAX ) { return NULL; }
@@ -194,7 +193,7 @@ XXAPI xrtxmldomnode* xrtXmlDomNodeRetain(xrtxmldomnode* pNode)
 	return pNode;
 }
 
-XXAPI void xrtXmlDomNodeRelease(xrtxmldomnode* pNode)
+XRT_API void xrtXmlDomNodeRelease(xrtxmldomnode* pNode)
 {
 	xrtxmldomdocument* pDocument;
 	if ( pNode == NULL || pNode->pDocument == NULL ) { return; }
@@ -203,12 +202,12 @@ XXAPI void xrtXmlDomNodeRelease(xrtxmldomnode* pNode)
 	__xrtXmlDomFreeDocument(pDocument);
 }
 
-XXAPI int xrtXmlDomNodeType(const xrtxmldomnode* pNode)
+XRT_API int xrtXmlDomNodeType(const xrtxmldomnode* pNode)
 {
 	return pNode != NULL ? pNode->iType : 0;
 }
 
-XXAPI str xrtXmlDomNodeTypeName(const xrtxmldomnode* pNode)
+XRT_API str xrtXmlDomNodeTypeName(const xrtxmldomnode* pNode)
 {
 	if ( pNode == NULL ) { return NULL; }
 	switch ( pNode->iType ) {
@@ -221,42 +220,42 @@ XXAPI str xrtXmlDomNodeTypeName(const xrtxmldomnode* pNode)
 	}
 }
 
-XXAPI str xrtXmlDomNodeName(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sName : NULL; }
-XXAPI str xrtXmlDomNodeLocalName(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sLocalName : NULL; }
-XXAPI str xrtXmlDomNodeNamespaceUri(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sNamespaceUri : NULL; }
-XXAPI str xrtXmlDomNodePrefix(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sPrefix : NULL; }
-XXAPI str xrtXmlDomNodeValue(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sValue : NULL; }
+XRT_API str xrtXmlDomNodeName(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sName : NULL; }
+XRT_API str xrtXmlDomNodeLocalName(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sLocalName : NULL; }
+XRT_API str xrtXmlDomNodeNamespaceUri(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sNamespaceUri : NULL; }
+XRT_API str xrtXmlDomNodePrefix(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sPrefix : NULL; }
+XRT_API str xrtXmlDomNodeValue(const xrtxmldomnode* pNode) { return pNode != NULL ? pNode->sValue : NULL; }
 
-XXAPI bool xrtXmlDomNodeSetValue(xrtxmldomnode* pNode, str sValue)
+XRT_API bool xrtXmlDomNodeSetValue(xrtxmldomnode* pNode, str sValue)
 {
 	str sCopy;
 	if ( pNode == NULL || pNode->iType == XRT_XML_DOM_DOCUMENT_NODE ||
-		pNode->iType == XRT_XML_DOM_ELEMENT_NODE ) { return FALSE; }
+		pNode->iType == XRT_XML_DOM_ELEMENT_NODE ) { return false; }
 	sCopy = __xrtXmlDomCopy((const char*)sValue);
-	if ( sCopy == NULL ) { return FALSE; }
+	if ( sCopy == NULL ) { return false; }
 	xrtFree(pNode->sValue);
 	pNode->sValue = sCopy;
-	return TRUE;
+	return true;
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomNodeParent(const xrtxmldomnode* pNode)
+XRT_API xrtxmldomnode* xrtXmlDomNodeParent(const xrtxmldomnode* pNode)
 {
 	return pNode != NULL ? xrtXmlDomNodeRetain(pNode->pParent) : NULL;
 }
 
-XXAPI uint32 xrtXmlDomNodeChildCount(const xrtxmldomnode* pNode)
+XRT_API uint32 xrtXmlDomNodeChildCount(const xrtxmldomnode* pNode)
 {
 	return pNode != NULL ? pNode->iChildCount : 0u;
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomNodeChild(const xrtxmldomnode* pNode,
+XRT_API xrtxmldomnode* xrtXmlDomNodeChild(const xrtxmldomnode* pNode,
 	uint32 iIndex)
 {
 	return pNode != NULL && iIndex < pNode->iChildCount ?
 		xrtXmlDomNodeRetain(pNode->pChildren[iIndex]) : NULL;
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomDocumentElement(const xrtxmldomnode* pDocument)
+XRT_API xrtxmldomnode* xrtXmlDomDocumentElement(const xrtxmldomnode* pDocument)
 {
 	uint32 i;
 	if ( pDocument == NULL || pDocument->iType != XRT_XML_DOM_DOCUMENT_NODE ) {
@@ -274,18 +273,18 @@ static bool __xrtXmlDomIsAncestor(const xrtxmldomnode* pNode,
 	const xrtxmldomnode* pPossibleAncestor)
 {
 	while ( pNode != NULL ) {
-		if ( pNode == pPossibleAncestor ) { return TRUE; }
+		if ( pNode == pPossibleAncestor ) { return true; }
 		pNode = pNode->pParent;
 	}
-	return FALSE;
+	return false;
 }
 
-XXAPI bool xrtXmlDomRemoveChild(xrtxmldomnode* pParent,
+XRT_API bool xrtXmlDomRemoveChild(xrtxmldomnode* pParent,
 	xrtxmldomnode* pChild)
 {
 	uint32 i;
 	if ( pParent == NULL || pChild == NULL || pChild->pParent != pParent ) {
-		return FALSE;
+		return false;
 	}
 	for ( i = 0u; i < pParent->iChildCount; i++ ) {
 		if ( pParent->pChildren[i] == pChild ) {
@@ -295,13 +294,13 @@ XXAPI bool xrtXmlDomRemoveChild(xrtxmldomnode* pParent,
 			}
 			pParent->iChildCount--;
 			pChild->pParent = NULL;
-			return TRUE;
+			return true;
 		}
 	}
-	return FALSE;
+	return false;
 }
 
-XXAPI bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
+XRT_API bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 	xrtxmldomnode* pChild)
 {
 	xrtxmldomnode** pItems;
@@ -312,13 +311,13 @@ XXAPI bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 		pParent->iType == XRT_XML_DOM_TEXT_NODE ||
 		pParent->iType == XRT_XML_DOM_COMMENT_NODE ||
 		pParent->iType == XRT_XML_DOM_PROCESSING_INSTRUCTION_NODE ||
-		__xrtXmlDomIsAncestor(pParent, pChild) ) { return FALSE; }
+		__xrtXmlDomIsAncestor(pParent, pChild) ) { return false; }
 	if ( pParent->iType == XRT_XML_DOM_DOCUMENT_NODE &&
 		pChild->iType == XRT_XML_DOM_ELEMENT_NODE ) {
 		for ( i = 0u; i < pParent->iChildCount; i++ ) {
 			if ( pParent->pChildren[i] != pChild &&
 				pParent->pChildren[i]->iType == XRT_XML_DOM_ELEMENT_NODE ) {
-				return FALSE;
+				return false;
 			}
 		}
 	}
@@ -329,48 +328,46 @@ XXAPI bool xrtXmlDomAppendChild(xrtxmldomnode* pParent,
 			pParent->iChildCapacity * 2u : 4u;
 		pItems = (xrtxmldomnode**)xrtRealloc(pParent->pChildren,
 			sizeof(xrtxmldomnode*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pParent->pChildren = pItems;
 		pParent->iChildCapacity = iCapacity;
 	}
 	if ( pChild->pParent != NULL &&
-		!xrtXmlDomRemoveChild(pChild->pParent, pChild) ) { return FALSE; }
+		!xrtXmlDomRemoveChild(pChild->pParent, pChild) ) { return false; }
 	pParent->pChildren[pParent->iChildCount++] = pChild;
 	pChild->pParent = pParent;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlDomTextContentAppend(const xrtxmldomnode* pNode,
-	xbuffer pBuffer)
+	xbuffer* pBuffer)
 {
 	uint32 i;
 	if ( pNode->iType == XRT_XML_DOM_TEXT_NODE ) {
 		size_t iLength = strlen((const char*)pNode->sValue);
-		uint32 iSize;
-		if ( iLength > UINT32_MAX ) { return FALSE; }
-		iSize = (uint32)iLength;
-		return iSize == 0u || xrtBufferAppend(pBuffer, pNode->sValue,
-			iSize, XBUF_BINARY);
+		return iLength == 0u || xrtBufferAppend(pBuffer,
+			(xbytesview){ (cbytes)pNode->sValue, iLength });
 	}
 	for ( i = 0u; i < pNode->iChildCount; i++ ) {
 		if ( !__xrtXmlDomTextContentAppend(pNode->pChildren[i], pBuffer) ) {
-			return FALSE;
+			return false;
 		}
 	}
-	return TRUE;
+	return true;
 }
 
-XXAPI str xrtXmlDomTextContent(const xrtxmldomnode* pNode)
+XRT_API str xrtXmlDomTextContent(const xrtxmldomnode* pNode)
 {
-	xbuffer pBuffer;
+	xbuffer* pBuffer;
 	str sResult;
 	if ( pNode == NULL ) { return NULL; }
-	pBuffer = xrtBufferCreate(256u);
+	pBuffer = xrtBufferCreate();
+	if ( pBuffer != NULL ) { (void)xrtBufferReserve(pBuffer, 256u); }
 	if ( pBuffer == NULL || !__xrtXmlDomTextContentAppend(pNode, pBuffer) ) {
 		xrtBufferDestroy(pBuffer);
 		return NULL;
 	}
-	sResult = xrtCopyStr((str)pBuffer->Buffer, pBuffer->Length);
+	sResult = xrtStrDupN((const char*)pBuffer->Data, pBuffer->Size);
 	xrtBufferDestroy(pBuffer);
 	return sResult;
 }
@@ -388,24 +385,24 @@ static int __xrtXmlDomAttributeIndex(const xrtxmldomnode* pNode,
 	return -1;
 }
 
-XXAPI uint32 xrtXmlDomAttributeCount(const xrtxmldomnode* pNode)
+XRT_API uint32 xrtXmlDomAttributeCount(const xrtxmldomnode* pNode)
 {
 	return pNode != NULL ? pNode->iAttributeCount : 0u;
 }
 
-XXAPI str xrtXmlDomAttributeName(const xrtxmldomnode* pNode, uint32 iIndex)
+XRT_API str xrtXmlDomAttributeName(const xrtxmldomnode* pNode, uint32 iIndex)
 {
 	return pNode != NULL && iIndex < pNode->iAttributeCount ?
 		pNode->pAttributes[iIndex].sName : NULL;
 }
 
-XXAPI str xrtXmlDomAttributeValue(const xrtxmldomnode* pNode, uint32 iIndex)
+XRT_API str xrtXmlDomAttributeValue(const xrtxmldomnode* pNode, uint32 iIndex)
 {
 	return pNode != NULL && iIndex < pNode->iAttributeCount ?
 		pNode->pAttributes[iIndex].sValue : NULL;
 }
 
-XXAPI str xrtXmlDomGetAttribute(const xrtxmldomnode* pNode, str sName)
+XRT_API str xrtXmlDomGetAttribute(const xrtxmldomnode* pNode, str sName)
 {
 	int i = __xrtXmlDomAttributeIndex(pNode, (const char*)sName);
 	return i >= 0 ? pNode->pAttributes[i].sValue : NULL;
@@ -414,20 +411,20 @@ XXAPI str xrtXmlDomGetAttribute(const xrtxmldomnode* pNode, str sName)
 static bool __xrtXmlDomSetString(str* psTarget, const char* sText)
 {
 	str sCopy = __xrtXmlDomCopy(sText);
-	if ( sCopy == NULL ) { return FALSE; }
+	if ( sCopy == NULL ) { return false; }
 	xrtFree(*psTarget);
 	*psTarget = sCopy;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtXmlDomSetAttribute(xrtxmldomnode* pNode, str sName, str sValue)
+XRT_API bool xrtXmlDomSetAttribute(xrtxmldomnode* pNode, str sName, str sValue)
 {
 	int iIndex;
 	xrtxmlattribute* pItems;
 	xrtxmlattribute* pItem;
 	uint32 iCapacity;
 	if ( pNode == NULL || pNode->iType != XRT_XML_DOM_ELEMENT_NODE ||
-		!__xrtXmlDomValidName((const char*)sName) ) { return FALSE; }
+		!__xrtXmlDomValidName((const char*)sName) ) { return false; }
 	iIndex = __xrtXmlDomAttributeIndex(pNode, (const char*)sName);
 	if ( iIndex >= 0 ) {
 		return __xrtXmlDomSetString(&pNode->pAttributes[iIndex].sValue,
@@ -438,7 +435,7 @@ XXAPI bool xrtXmlDomSetAttribute(xrtxmldomnode* pNode, str sName, str sValue)
 			pNode->iAttributeCapacity * 2u : 4u;
 		pItems = (xrtxmlattribute*)xrtRealloc(pNode->pAttributes,
 			sizeof(xrtxmlattribute) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		memset(pItems + pNode->iAttributeCapacity, 0,
 			sizeof(xrtxmlattribute) * (iCapacity - pNode->iAttributeCapacity));
 		pNode->pAttributes = pItems;
@@ -457,17 +454,17 @@ XXAPI bool xrtXmlDomSetAttribute(xrtxmldomnode* pNode, str sName, str sValue)
 		xrtFree(pItem->sNamespaceUri); xrtFree(pItem->sPrefix);
 		xrtFree(pItem->sValue);
 		memset(pItem, 0, sizeof(*pItem));
-		return FALSE;
+		return false;
 	}
 	pNode->iAttributeCount++;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtXmlDomRemoveAttribute(xrtxmldomnode* pNode, str sName)
+XRT_API bool xrtXmlDomRemoveAttribute(xrtxmldomnode* pNode, str sName)
 {
 	int iIndex = __xrtXmlDomAttributeIndex(pNode, (const char*)sName);
 	xrtxmlattribute* pItem;
-	if ( iIndex < 0 ) { return FALSE; }
+	if ( iIndex < 0 ) { return false; }
 	pItem = &pNode->pAttributes[iIndex];
 	xrtFree(pItem->sName); xrtFree(pItem->sLocalName);
 	xrtFree(pItem->sNamespaceUri); xrtFree(pItem->sPrefix);
@@ -480,5 +477,5 @@ XXAPI bool xrtXmlDomRemoveAttribute(xrtxmldomnode* pNode, str sName)
 	pNode->iAttributeCount--;
 	memset(&pNode->pAttributes[pNode->iAttributeCount], 0,
 		sizeof(xrtxmlattribute));
-	return TRUE;
+	return true;
 }

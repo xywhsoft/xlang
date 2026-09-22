@@ -1,10 +1,8 @@
 /*
  * consistent_hash_native.c - Consistent hashing ring with virtual nodes
  */
-#include <stdlib.h>
-#include <string.h>
+#include "../xlang_extlib_error.h"
 #include <stdio.h>
-extern void xrtSetError(const void *msg, int bFree);
 static char chash_buf[4096];
 
 /* ------------------------------------------------------------------ */
@@ -46,14 +44,14 @@ void *xchash_create(int replicas) {
     XCHash *c;
     if (replicas <= 0) replicas = 150;
     c = (XCHash *)calloc(1, sizeof(XCHash));
-    if (!c) { xrtSetError("consistent_hash: out of memory", 0); return NULL; }
+    if (!c) { xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.consistent_hash", "cannot allocate hash ring"); return NULL; }
     c->replicas = replicas;
     c->node_cap = 16;
     c->nodes = (char **)malloc(sizeof(char *) * c->node_cap);
     c->ring_cap = 256;
     c->ring = (VNode *)malloc(sizeof(VNode) * c->ring_cap);
     if (!c->nodes || !c->ring) {
-        xrtSetError("consistent_hash: out of memory", 0);
+        xl6ExtlibError(XL6_EXTERR_MEMORY, "xlang.extlib.consistent_hash", "cannot allocate hash ring storage");
         free(c->nodes);
         free(c->ring);
         free(c);

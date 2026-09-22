@@ -1,8 +1,0 @@
-func take_var(var value) as int
-	return 41
-end
-
-func main() as int
-	var value = 1
-	return take_var(value) + 1
-end

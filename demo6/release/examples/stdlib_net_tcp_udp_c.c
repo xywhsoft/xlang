@@ -1,225 +1,447 @@
+#define XRT_MODULE_ALL
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
+
+/* Report an example failure and terminate the runtime. */
 static void fail(const char* name)
 {
-    fprintf(stderr, "%s=fail\n", name);
-    xrtUnit();
-    exit(1);
+	fprintf(stderr, "%s=fail\n", name);
+	exit(1);
 }
 
-static void require_line(const char* name, int ok)
+
+
+/* Print one result line shared with the xlang example. */
+static void require_line(const char* name, bool condition)
 {
-    if ( !ok ) {
-        fail(name);
-    }
-    printf("%s=ok\n", name);
+	if ( !condition ) {
+		fail(name);
+	}
+	printf("%s=ok\n", name);
 }
 
-static void* wait_point(const char* name, xfuture* future)
+
+
+/* Wait for a Future to resolve before its deadline. */
+static void wait_future(const char* name, xfuture* future)
 {
-    void** box;
-    void* value;
-
-    if ( future == NULL || !xFutureWait(future) ) {
-        if ( future != NULL ) {
-            xFutureRelease(future);
-        }
-        fail(name);
-    }
-    box = (void**)xFutureValue(future);
-    value = box != NULL ? *box : NULL;
-    xFutureRelease(future);
-    return value;
+	if ( (future == NULL) ||
+		 (xrtFutureWaitFor(future, UINT64_C(8000000)) != XWAIT_OK) ||
+		 (xrtFutureState(future) != XFUTURE_RESOLVED) ) {
+		xrtFutureDestroy(future);
+		fail(name);
+	}
 }
 
-static int wait_bool(const char* name, xfuture* future)
+
+
+/* Take an independent Stream reference from a resolved Future. */
+static xnetstream* wait_stream(const char* name, xfuture* future)
 {
-    int* value;
-    int ok;
+	xnetstream* stream;
 
-    if ( future == NULL || !xFutureWait(future) ) {
-        if ( future != NULL ) {
-            xFutureRelease(future);
-        }
-        fail(name);
-    }
-    value = (int*)xFutureValue(future);
-    ok = value != NULL && *value != 0;
-    xFutureRelease(future);
-    return ok;
+	wait_future(name, future);
+	stream = xrtNetStreamRef((xnetstream*)xrtFutureValue(future));
+	xrtFutureDestroy(future);
+	if ( stream == NULL ) {
+		fail(name);
+	}
+	return stream;
 }
 
-static int wait_text_equals(const char* name, xfuture* future, const char* expected)
+
+
+/* Take an independent UDP packet reference from a resolved Future. */
+static xnetudppacket* wait_packet(const char* name, xfuture* future)
 {
-    char** box;
-    const char* text;
-    int ok;
+	xnetudppacket* packet;
 
-    if ( future == NULL || !xFutureWait(future) ) {
-        if ( future != NULL ) {
-            xFutureRelease(future);
-        }
-        fail(name);
-    }
-    box = (char**)xFutureValue(future);
-    text = (box != NULL && *box != NULL) ? *box : "";
-    ok = strcmp(text, expected) == 0;
-    xFutureRelease(future);
-    return ok;
+	wait_future(name, future);
+	packet = xrtNetUdpPacketRef(
+		(xnetudppacket*)xrtFutureValue(future)
+	);
+	xrtFutureDestroy(future);
+	if ( packet == NULL ) {
+		fail(name);
+	}
+	return packet;
 }
 
+
+
+/* Compare an owned byte Future with an expected payload. */
+static bool wait_bytes_equal(
+	const char* name,
+	xfuture* future,
+	const void* expected,
+	size_t size
+)
+{
+	const xnetbytes* bytes;
+	xbytesview view;
+	bool equal;
+
+	wait_future(name, future);
+	bytes = (const xnetbytes*)xrtFutureValue(future);
+	view = xrtNetBytesView(bytes);
+	equal = (view.Size == size) &&
+		((size == 0u) || (memcmp(view.Data, expected, size) == 0));
+	xrtFutureDestroy(future);
+	return equal;
+}
+
+
+
+/* Compare an owned synchronous receive result with an expected payload. */
+static bool recv_bytes_equal(
+	xnetstream* stream,
+	const void* expected,
+	size_t size
+)
+{
+	xnetbytes* bytes = xrtNetStreamRecv(
+		stream,
+		0u,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+	xbytesview view = xrtNetBytesView(bytes);
+	bool equal = (view.Size == size) &&
+		((size == 0u) || (memcmp(view.Data, expected, size) == 0));
+
+	xrtNetBytesDestroy(bytes);
+	return equal;
+}
+
+
+
+/* Open a pull-mode TCP listener on a dynamic loopback port. */
+static xnetlistener* open_listener(
+	xnetengine* engine,
+	xnetaddr* local
+)
+{
+	xnetlistenconfig config;
+	xnetlistener* listener;
+
+	xrtNetListenConfigInit(&config);
+	(void)xrtNetAddrLoopback(
+		&config.Address,
+		XNET_FAMILY_IPV4,
+		0u
+	);
+	listener = xrtNetListen(
+		engine,
+		&config,
+		NULL,
+		NULL,
+		NULL
+	);
+	if ( (listener == NULL) || !xrtNetListenerLocal(listener, local) ) {
+		fail("tcp");
+	}
+	return listener;
+}
+
+
+
+/* Close a Stream and wait until all internal references leave the Engine. */
+static bool close_stream(xnetstream* stream)
+{
+	return xrtNetStreamClose(stream) && xrtNetStreamWait(
+		stream,
+		XNET_STREAM_WAIT_CLOSE,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+}
+
+
+
+/* Close a listener after all preposted accepts have terminated. */
+static bool close_listener(xnetlistener* listener)
+{
+	xdeadline deadline = xrtDeadlineAfter(UINT64_C(8000000));
+
+	if ( !xrtNetListenerClose(listener) ) {
+		return false;
+	}
+	while ( xrtNetListenerState(listener) != XNET_LISTENER_CLOSED ) {
+		if ( xrtDeadlineExpired(deadline) ) {
+			return false;
+		}
+		xrtThreadYield();
+	}
+	return true;
+}
+
+
+
+/* Open a pull-mode UDP socket on a dynamic loopback port. */
+static xnetudp* open_udp(xnetengine* engine, xnetaddr* local)
+{
+	xnetudpconfig config;
+	xnetaddr address;
+	xnetudp* udp;
+
+	xrtNetUdpConfigInit(&config);
+	(void)xrtNetAddrLoopback(&address, XNET_FAMILY_IPV4, 0u);
+	udp = xrtNetUdpBind(
+		engine,
+		&address,
+		0u,
+		&config,
+		NULL,
+		NULL
+	);
+	if ( (udp == NULL) || !xrtNetUdpWait(
+		udp,
+		XNET_UDP_WAIT_OPEN,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	) || !xrtNetUdpLocal(udp, local) ) {
+		fail("udp");
+	}
+	return udp;
+}
+
+
+
+/* Close a UDP socket and wait for all accepted sends and receives. */
+static bool close_udp(xnetudp* udp)
+{
+	return xrtNetUdpClose(udp) && xrtNetUdpWait(
+		udp,
+		XNET_UDP_WAIT_CLOSE,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+}
+
+
+
+/* Exercise current synchronous and Future TCP/UDP contracts. */
 int main(void)
 {
-    xnetlistener* server;
-    xnetstream* client;
-    xnetstream* peer;
-    xfuture* accepted;
-    xfuture* received;
-    char* reply;
-    unsigned char tcpBytes[] = {0u, 1u, 128u, 255u};
-    void* tcpBytesRecv;
-    size_t tcpBytesRecvLen;
-    int tcpOk;
+	xnetengineconfig engineConfig;
+	xnetdialconfig dialConfig;
+	xnetengine* engine;
+	xnetresolver* resolver;
+	xnetlistener* server;
+	xnetlistener* asyncServer;
+	xnetstream* client;
+	xnetstream* peer;
+	xnetstream* asyncClient;
+	xnetstream* asyncPeer;
+	xfuture* received;
+	xfuture* asyncReceived;
+	xfuture* asyncDrain;
+	xnetaddr serverAddress;
+	xnetaddr asyncServerAddress;
+	static const unsigned char tcpBytes[] = {0u, 1u, 128u, 255u};
+	bool tcpOk;
+	bool tcpAsyncOk;
 
-    xnetlistener* asyncServer;
-    xnetstream* asyncClient;
-    xnetstream* asyncPeer;
-    xfuture* asyncAccepted;
-    xfuture* asyncConnected;
-    xfuture* asyncReceived;
-    int tcpAsyncOk;
+	xnetudp* left;
+	xnetudp* right;
+	xnetudp* asyncLeft;
+	xnetudp* asyncRight;
+	xnetaddr leftAddress;
+	xnetaddr rightAddress;
+	xnetaddr asyncLeftAddress;
+	xnetaddr asyncRightAddress;
+	xnetudppacket* packet;
+	xnetudppacket* replyPacket;
+	xnetudppacket* bytesPacket;
+	xnetudppacket* asyncPacket;
+	static const unsigned char udpBytes[] = {0u, 2u, 127u, 255u};
+	bool udpOk;
+	bool udpAsyncOk;
 
-    xdgramsock* left;
-    xdgramsock* right;
-    xnetdgrampkt* packet;
-    xnetdgrampkt* replyPacket;
-    xnetdgrampkt* bytesPacket;
-    unsigned char udpBytes[] = {0u, 2u, 127u, 255u};
-    void* udpBytesRecv;
-    size_t udpBytesRecvLen;
-    char* packetText;
-    char* replyText;
-    int udpOk;
+	xrtNetEngineConfigInit(&engineConfig);
+	engineConfig.Workers = 2u;
+	engine = xrtNetEngineCreate(&engineConfig);
+	resolver = xrtNetResolverCreate(NULL);
+	if ( (engine == NULL) || (resolver == NULL) ||
+		 !xrtNetEngineStart(engine) ) {
+		fail("network_init");
+	}
+	xrtNetDialConfigInit(&dialConfig);
+	dialConfig.Timeout = UINT64_C(8000000);
 
-    xdgramsock* asyncLeft;
-    xdgramsock* asyncRight;
-    xfuture* packetFuture;
-    xnetdgrampkt* asyncPacket;
-    char* asyncPacketText;
-    int udpAsyncOk;
+	server = open_listener(engine, &serverAddress);
+	received = xrtNetListenerAcceptAsync(server);
+	client = xrtNetConnect(
+		engine,
+		resolver,
+		"127.0.0.1",
+		serverAddress.Port,
+		&dialConfig,
+		NULL,
+		NULL,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+	peer = wait_stream("tcp", received);
+	received = xrtNetStreamRecvAsync(peer, 0u);
+	tcpOk = (serverAddress.Port != 0u) &&
+		(xrtNetStreamSend(client, "ping", 4u) == XNET_RESULT_OK) &&
+		xrtNetStreamWait(
+			client,
+			XNET_STREAM_WAIT_DRAIN,
+			xrtDeadlineAfter(UINT64_C(8000000)),
+			NULL
+		) &&
+		wait_bytes_equal("tcp", received, "ping", 4u) &&
+		(xrtNetStreamSend(peer, "pong", 4u) == XNET_RESULT_OK) &&
+		xrtNetStreamWait(
+			peer,
+			XNET_STREAM_WAIT_DRAIN,
+			xrtDeadlineAfter(UINT64_C(8000000)),
+			NULL
+		) &&
+		recv_bytes_equal(client, "pong", 4u) &&
+		(xrtNetStreamSend(client, tcpBytes, sizeof(tcpBytes)) ==
+			XNET_RESULT_OK) &&
+		xrtNetStreamWait(
+			client,
+			XNET_STREAM_WAIT_DRAIN,
+			xrtDeadlineAfter(UINT64_C(8000000)),
+			NULL
+		) &&
+		recv_bytes_equal(peer, tcpBytes, sizeof(tcpBytes)) &&
+		close_stream(client) && close_stream(peer) &&
+		close_listener(server);
+	xrtNetStreamDestroy(client);
+	xrtNetStreamDestroy(peer);
+	xrtNetListenerDestroy(server);
+	require_line("tcp", tcpOk);
 
-    xrtInit();
+	asyncServer = open_listener(engine, &asyncServerAddress);
+	received = xrtNetListenerAcceptAsync(asyncServer);
+	asyncClient = wait_stream(
+		"tcp_async",
+		xrtNetDialAsync(
+			engine,
+			resolver,
+			"127.0.0.1",
+			asyncServerAddress.Port,
+			&dialConfig,
+			NULL,
+			NULL
+		)
+	);
+	asyncPeer = wait_stream("tcp_async", received);
+	asyncReceived = xrtNetStreamRecvAsync(asyncPeer, 0u);
+	asyncDrain = xrtNetStreamWaitAsync(
+		asyncClient,
+		XNET_STREAM_WAIT_DRAIN
+	);
+	tcpAsyncOk = (asyncServerAddress.Port != 0u) &&
+		(xrtNetStreamSend(asyncClient, "async", 5u) == XNET_RESULT_OK);
+	wait_future("tcp_async", asyncDrain);
+	xrtFutureDestroy(asyncDrain);
+	tcpAsyncOk = tcpAsyncOk && wait_bytes_equal(
+		"tcp_async",
+		asyncReceived,
+		"async",
+		5u
+	) && close_stream(asyncClient) && close_stream(asyncPeer) &&
+		close_listener(asyncServer);
+	xrtNetStreamDestroy(asyncClient);
+	xrtNetStreamDestroy(asyncPeer);
+	xrtNetListenerDestroy(asyncServer);
+	require_line("tcp_async", tcpAsyncOk);
 
-    server = xrtNetTcpListen("127.0.0.1", 0, 128);
-    accepted = xrtNetTcpAcceptAsync(server, 3000);
-    client = xrtNetTcpConnect("127.0.0.1", xrtNetTcpListenerPort(server), 3000);
-    peer = (xnetstream*)wait_point("tcp", accepted);
-    received = xrtNetStreamRecvTextAsync(peer, 0, 3000);
-    tcpOk = xrtNetTcpListenerPort(server) > 0 &&
-            xrtNetStreamSendText(client, "ping") &&
-            xrtNetStreamDrain(client, 3000) &&
-            wait_text_equals("tcp", received, "ping") &&
-            xrtNetStreamSendText(peer, "pong") &&
-            xrtNetStreamDrain(peer, 3000);
-    reply = xrtNetStreamRecvText(client, 0, 3000);
-    tcpOk = tcpOk && reply != NULL && strcmp(reply, "pong") == 0;
-    xrtFree(reply);
-    tcpBytesRecv = NULL;
-    tcpBytesRecvLen = 0;
-    tcpOk = tcpOk &&
-            xrtNetStreamSendBytes(client, tcpBytes, sizeof(tcpBytes)) &&
-            xrtNetStreamDrain(client, 3000);
-    tcpBytesRecv = xrtNetStreamRecvBytes(peer, 0, 3000, &tcpBytesRecvLen);
-    tcpOk = tcpOk &&
-            tcpBytesRecv != NULL &&
-            tcpBytesRecvLen == sizeof(tcpBytes) &&
-            memcmp(tcpBytesRecv, tcpBytes, sizeof(tcpBytes)) == 0;
-    xrtFree(tcpBytesRecv);
-    xrtNetTcpStreamClose(client);
-    xrtNetTcpStreamClose(peer);
-    require_line("tcp", tcpOk);
+	left = open_udp(engine, &leftAddress);
+	right = open_udp(engine, &rightAddress);
+	udpOk = (xrtNetUdpSendTo(
+		left,
+		&rightAddress,
+		"hello",
+		5u
+	) == XNET_RESULT_OK);
+	packet = xrtNetUdpReceiveWait(
+		right,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+	udpOk = udpOk && (packet != NULL) &&
+		(xrtNetUdpPacketSize(packet) == 5u) &&
+		(memcmp(xrtNetUdpPacketData(packet), "hello", 5u) == 0) &&
+		(xrtNetUdpSendTo(
+			right,
+			&leftAddress,
+			"reply",
+			5u
+		) == XNET_RESULT_OK);
+	replyPacket = xrtNetUdpReceiveWait(
+		left,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+	udpOk = udpOk && (replyPacket != NULL) &&
+		(xrtNetUdpPacketSize(replyPacket) == 5u) &&
+		(memcmp(xrtNetUdpPacketData(replyPacket), "reply", 5u) == 0) &&
+		(xrtNetUdpSendTo(
+			left,
+			&rightAddress,
+			udpBytes,
+			sizeof(udpBytes)
+		) == XNET_RESULT_OK);
+	bytesPacket = xrtNetUdpReceiveWait(
+		right,
+		xrtDeadlineAfter(UINT64_C(8000000)),
+		NULL
+	);
+	udpOk = udpOk && (bytesPacket != NULL) &&
+		(xrtNetUdpPacketSize(bytesPacket) == sizeof(udpBytes)) &&
+		(memcmp(
+			xrtNetUdpPacketData(bytesPacket),
+			udpBytes,
+			sizeof(udpBytes)
+		) == 0);
+	xrtNetUdpPacketDestroy(packet);
+	xrtNetUdpPacketDestroy(replyPacket);
+	xrtNetUdpPacketDestroy(bytesPacket);
+	udpOk = udpOk && close_udp(left) && close_udp(right);
+	xrtNetUdpDestroy(left);
+	xrtNetUdpDestroy(right);
+	require_line("udp", udpOk);
 
-    asyncServer = xrtNetTcpListen("127.0.0.1", 0, 128);
-    asyncAccepted = xrtNetTcpAcceptAsync(asyncServer, 3000);
-    asyncConnected = xrtNetTcpConnectAsync("127.0.0.1", xrtNetTcpListenerPort(asyncServer), 3000);
-    asyncClient = (xnetstream*)wait_point("tcp_async", asyncConnected);
-    asyncPeer = (xnetstream*)wait_point("tcp_async", asyncAccepted);
-    asyncReceived = xrtNetStreamRecvTextAsync(asyncPeer, 0, 3000);
-    tcpAsyncOk = xrtNetTcpListenerPort(asyncServer) > 0 &&
-                 wait_bool("tcp_async", xrtNetStreamSendTextAsync(asyncClient, "async")) &&
-                 wait_bool("tcp_async", xrtNetStreamDrainAsync(asyncClient, 3000)) &&
-                 wait_text_equals("tcp_async", asyncReceived, "async");
-    xrtNetTcpStreamClose(asyncClient);
-    xrtNetTcpStreamClose(asyncPeer);
-    require_line("tcp_async", tcpAsyncOk);
+	asyncLeft = open_udp(engine, &asyncLeftAddress);
+	asyncRight = open_udp(engine, &asyncRightAddress);
+	received = xrtNetUdpReceiveAsync(asyncRight);
+	udpAsyncOk = (xrtNetUdpSendTo(
+		asyncLeft,
+		&asyncRightAddress,
+		"async-udp",
+		9u
+	) == XNET_RESULT_OK);
+	asyncPacket = wait_packet("udp_async", received);
+	udpAsyncOk = udpAsyncOk &&
+		(xrtNetUdpPacketSize(asyncPacket) == 9u) &&
+		(memcmp(
+			xrtNetUdpPacketData(asyncPacket),
+			"async-udp",
+			9u
+		) == 0);
+	xrtNetUdpPacketDestroy(asyncPacket);
+	udpAsyncOk = udpAsyncOk && close_udp(asyncLeft) &&
+		close_udp(asyncRight);
+	xrtNetUdpDestroy(asyncLeft);
+	xrtNetUdpDestroy(asyncRight);
+	require_line("udp_async", udpAsyncOk);
 
-    left = xrtNetUdpBind("127.0.0.1", 0);
-    right = xrtNetUdpBind("127.0.0.1", 0);
-    packet = NULL;
-    replyPacket = NULL;
-    bytesPacket = NULL;
-    udpBytesRecv = NULL;
-    udpBytesRecvLen = 0;
-    packetText = NULL;
-    replyText = NULL;
-    xrtSleep(10);
-    udpOk = left != NULL && right != NULL &&
-            xrtNetUdpLocalPort(left) > 0 &&
-            xrtNetUdpLocalPort(right) > 0 &&
-            xrtNetUdpSendText(left, "127.0.0.1", (uint16)xrtNetUdpLocalPort(right), "hello");
-    packet = xrtNetUdpRecv(right, 3000);
-    packetText = xrtNetDgramPacketText(packet);
-    udpOk = udpOk && packetText != NULL && strcmp(packetText, "hello") == 0 &&
-            xrtNetUdpSendText(right, "127.0.0.1", (uint16)xrtNetUdpLocalPort(left), "reply");
-    replyPacket = xrtNetUdpRecv(left, 3000);
-    replyText = xrtNetDgramPacketText(replyPacket);
-    udpOk = udpOk && replyText != NULL && strcmp(replyText, "reply") == 0;
-    udpOk = udpOk &&
-            xrtNetUdpSendBytes(left, "127.0.0.1", (uint16)xrtNetUdpLocalPort(right), udpBytes, sizeof(udpBytes));
-    bytesPacket = xrtNetUdpRecv(right, 3000);
-    udpBytesRecv = xrtNetDgramPacketBytesCopy(bytesPacket, &udpBytesRecvLen);
-    udpOk = udpOk &&
-            udpBytesRecv != NULL &&
-            udpBytesRecvLen == sizeof(udpBytes) &&
-            memcmp(udpBytesRecv, udpBytes, sizeof(udpBytes)) == 0;
-    xrtFree(packetText);
-    xrtFree(replyText);
-    xrtFree(udpBytesRecv);
-    xrtNetDgramPacketDestroy(packet);
-    xrtNetDgramPacketDestroy(replyPacket);
-    xrtNetDgramPacketDestroy(bytesPacket);
-    xrtNetUdpDestroy(left);
-    xrtNetUdpDestroy(right);
-    require_line("udp", udpOk);
-
-    asyncLeft = xrtNetUdpBind("127.0.0.1", 0);
-    asyncRight = xrtNetUdpBind("127.0.0.1", 0);
-    packetFuture = xrtNetUdpRecvAsync(asyncRight, 3000);
-    xrtSleep(10);
-    udpAsyncOk = asyncLeft != NULL && asyncRight != NULL &&
-                 xrtNetUdpLocalPort(asyncLeft) > 0 &&
-                 xrtNetUdpLocalPort(asyncRight) > 0 &&
-                 wait_bool("udp_async", xrtNetUdpSendTextAsync(asyncLeft, "127.0.0.1", (uint16)xrtNetUdpLocalPort(asyncRight), "async-udp"));
-    asyncPacket = (xnetdgrampkt*)wait_point("udp_async", packetFuture);
-    asyncPacketText = xrtNetDgramPacketText(asyncPacket);
-    udpAsyncOk = udpAsyncOk && asyncPacketText != NULL && strcmp(asyncPacketText, "async-udp") == 0;
-    xrtFree(asyncPacketText);
-    xrtNetDgramPacketDestroy(asyncPacket);
-    xrtNetUdpDestroy(asyncLeft);
-    xrtNetUdpDestroy(asyncRight);
-    require_line("udp_async", udpAsyncOk);
-
-    xrtNetTcpStreamDestroy(client);
-    xrtNetTcpStreamDestroy(peer);
-    xrtNetTcpListenerDestroy(server);
-    xrtNetTcpStreamDestroy(asyncClient);
-    xrtNetTcpStreamDestroy(asyncPeer);
-    xrtNetTcpListenerDestroy(asyncServer);
-
-    xrtUnit();
-    return 0;
+	if ( !xrtNetResolverDestroy(resolver) ||
+		 !xrtNetEngineStop(engine) ||
+		 !xrtNetEngineDestroy(engine) ) {
+		fail("network_unit");
+	}
+	return 0;
 }

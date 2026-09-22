@@ -1,9 +1,31 @@
+#define XRT_MODULE_CODEC_HEX
+#define XRT_MODULE_CRYPTO_SHA1
+#define XRT_MODULE_CRYPTO_SHA256
+#define XRT_MODULE_CRYPTO_SHA512
+#define XRT_MODULE_CRYPTO_HMAC_SHA256
+#define XRT_MODULE_CRYPTO_HMAC_SHA512
+#define XRT_MODULE_CRYPTO_CHACHA20_POLY1305
+#define XRT_MODULE_CRYPTO_AES_GCM
+#define XRT_MODULE_CRYPTO_HKDF_SHA256
+#define XRT_MODULE_CRYPTO_HKDF_SHA512
+#define XRT_MODULE_CRYPTO_ED25519_KEYPAIR
+#define XRT_MODULE_CRYPTO_ED25519_SIGN
+#define XRT_MODULE_CRYPTO_ED25519_VERIFY
+#define XRT_MODULE_CRYPTO_X25519_KEYPAIR
+#define XRT_MODULE_CRYPTO_X448_KEYPAIR
+#define XRT_MODULE_CRYPTO_P256_KEYPAIR
+#define XRT_MODULE_CRYPTO_P384_KEYPAIR
+#define XRT_MODULE_CRYPTO_ECDSA_P256_DER
+#define XRT_MODULE_RANDOM_SECURE
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
+
+/* 检查示例步骤并输出与 xlang 示例一致的结果。 */
 static void require_line(const char* name, int ok)
 {
     if ( !ok ) {
@@ -13,245 +35,248 @@ static void require_line(const char* name, int ok)
     printf("%s=ok\n", name);
 }
 
-static int text_eq(const char* a, const char* b)
+
+
+/* 把二进制结果编码为由调用方释放的大写 HEX 文本。 */
+static str hex_of(const void* data, size_t size)
 {
-    return a != NULL && b != NULL && strcmp(a, b) == 0;
+    return xrtHexEncodeNew(data, size, XHEX_UPPER);
 }
 
-static char* hex_of(const unsigned char* data, size_t size)
-{
-    return (char*)xrtHexEncode((void*)data, size);
-}
 
-static char* sha256_hex(const char* text)
-{
-    unsigned char digest[32];
-    xrtSHA256((void*)text, strlen(text), digest);
-    return hex_of(digest, sizeof(digest));
-}
 
-static char* sha384_hex(const char* text)
+/* 使用 AES-GCM 的组合输出形式执行一次往返。 */
+static int aes_gcm_round_trip(
+    const void* key,
+    size_t keySize,
+    const void* nonce,
+    size_t nonceSize,
+    const void* aad,
+    size_t aadSize,
+    const void* plain,
+    size_t plainSize
+)
 {
-    unsigned char digest[48];
-    xrtSHA384((void*)text, strlen(text), digest);
-    return hex_of(digest, sizeof(digest));
-}
+    xaesgcm state;
+    unsigned char sealed[160];
+    unsigned char restored[144];
+    int ok;
 
-static char* sha512_hex(const char* text)
-{
-    unsigned char digest[64];
-    xrtSHA512((void*)text, strlen(text), digest);
-    return hex_of(digest, sizeof(digest));
-}
-
-static char* hmac_sha256_hex(const char* key, const char* text)
-{
-    unsigned char digest[32];
-    xrtHMAC_SHA256((const unsigned char*)key, strlen(key), (const unsigned char*)text, strlen(text), digest);
-    return hex_of(digest, sizeof(digest));
-}
-
-static int valid_hex(const char* text)
-{
-    size_t i;
-    size_t len;
-
-    if ( text == NULL ) {
+    if ( !xrtAesGcmInit(&state, key, keySize, 16u) ) {
         return 0;
     }
-    len = strlen(text);
-    if ( len == 0 || (len & 1u) != 0 ) {
-        return 0;
-    }
-    for ( i = 0; i < len; ++i ) {
-        char ch = text[i];
-        if ( !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) ) {
-            return 0;
-        }
-    }
-    return 1;
+    ok = xrtAesGcmSeal(
+        &state,
+        nonce,
+        nonceSize,
+        aad,
+        aadSize,
+        plain,
+        plainSize,
+        sealed,
+        plainSize + 16u
+    ) && xrtAesGcmOpen(
+        &state,
+        nonce,
+        nonceSize,
+        aad,
+        aadSize,
+        sealed,
+        plainSize + 16u,
+        restored,
+        plainSize
+    ) && (memcmp(restored, plain, plainSize) == 0);
+    xrtAesGcmClear(&state);
+    return ok;
 }
 
+
+
+/* 验证摘要、认证加密、派生、密钥交换和签名公开契约。 */
 int main(void)
 {
-    const char* hmacText = "The quick brown fox jumps over the lazy dog";
-    const unsigned char key16[] = "0123456789abcdef";
-    const unsigned char key32[] = "0123456789abcdef0123456789abcdef";
-    const unsigned char nonce[] = "123456789012";
-    const unsigned char aad[] = "meta";
-    const char* plain = "hello crypto";
-    size_t plainSize = strlen(plain);
-    unsigned char cipher[128];
-    unsigned char decrypted[128];
-    unsigned char digest[64];
-    unsigned char prk[32];
-    unsigned char okm[32];
+    static const char hmacText[] =
+        "The quick brown fox jumps over the lazy dog";
+    static const unsigned char key16[] = "0123456789abcdef";
+    static const unsigned char key32[] =
+        "0123456789abcdef0123456789abcdef";
+    static const unsigned char nonce[] = "123456789012";
+    static const unsigned char aad[] = "meta";
+    static const unsigned char plain[] = "hello crypto";
+    static const unsigned char binary[] = {0u, 1u, 2u, 255u};
+    unsigned char digest1[20];
+    unsigned char digest256[32];
+    unsigned char digest384[48];
+    unsigned char digest512[64];
+    unsigned char changed[32];
+    unsigned char mac256[32];
+    unsigned char mac384[48];
+    unsigned char mac512[64];
+    unsigned char sealed[160];
+    unsigned char restored[144];
+    unsigned char okm256[32];
+    unsigned char okm384[32];
     unsigned char randomBytes[16];
-    char* sha256 = NULL;
-    char* sha256Changed = NULL;
-    char* sha384 = NULL;
-    char* sha512 = NULL;
-    char* hmac = NULL;
-    char* hkdf = NULL;
-    xsha256_ctx sha256Ctx;
-    xsha1_ctx sha1Ctx;
-    xsha512_ctx sha384Ctx;
-    xsha512_ctx sha512Ctx;
-    unsigned char chachaCipher[128];
-    unsigned char chachaPlain[128];
+    unsigned char streamCipher[144];
+    unsigned char streamPlain[144];
     unsigned char seed[32];
-    unsigned char pub[32];
-    unsigned char sig[64];
-    unsigned char x25519PrivA[32], x25519PubA[32], x25519PrivB[32], x25519PubB[32], x25519SecretA[32], x25519SecretB[32];
-    unsigned char x448PrivA[56], x448PubA[56], x448PrivB[56], x448PubB[56], x448SecretA[56], x448SecretB[56];
-    unsigned char p256PrivA[32], p256PubA[65], p256PrivB[32], p256PubB[65], p256SecretA[32], p256SecretB[32];
-    unsigned char p384PrivA[48], p384PubA[97], p384PrivB[48], p384PubB[97], p384SecretA[48], p384SecretB[48];
-    const unsigned char binaryData[] = {0u, 1u, 2u, 255u};
-    unsigned char binaryStreamCipher[sizeof(binaryData)];
-    unsigned char binaryStreamPlain[sizeof(binaryData)];
-    unsigned char binaryRandom[17];
-    char* binaryHashHex;
-    char* binaryHmacHex;
-    int binaryOk;
+    unsigned char publicKey[32];
+    unsigned char signature[64];
+    unsigned char x25519PrivA[32], x25519PubA[32];
+    unsigned char x25519PrivB[32], x25519PubB[32];
+    unsigned char x25519SecretA[32], x25519SecretB[32];
+    unsigned char x448PrivA[56], x448PubA[56];
+    unsigned char x448PrivB[56], x448PubB[56];
+    unsigned char x448SecretA[56], x448SecretB[56];
+    unsigned char p256PrivA[32], p256PubA[65];
+    unsigned char p256PrivB[32], p256PubB[65];
+    unsigned char p256SecretA[32], p256SecretB[32];
+    unsigned char p384PrivA[48], p384PubA[97];
+    unsigned char p384PrivB[48], p384PubB[97];
+    unsigned char p384SecretA[48], p384SecretB[48];
+    xsha1 sha1State;
+    xsha256 sha256State;
+    xsha384 sha384State;
+    xsha512 sha512State;
+    str text256;
+    str textChanged;
+    str text384;
+    str text512;
+    str textMac;
+    int ok;
 
-    xrtInit();
+    ok = xrtSha1("xlang", 5u, digest1) &&
+        xrtSha256("xlang", 5u, digest256) &&
+        xrtSha384("xlang", 5u, digest384) &&
+        xrtSha512("xlang", 5u, digest512) &&
+        xrtSha256("xlang!", 6u, changed);
+    text256 = hex_of(digest256, sizeof(digest256));
+    textChanged = hex_of(changed, sizeof(changed));
+    text384 = hex_of(digest384, sizeof(digest384));
+    text512 = hex_of(digest512, sizeof(digest512));
+    require_line(
+        "hash",
+        ok &&
+        (text256 != NULL) && (strlen(text256) == 64u) &&
+        (text384 != NULL) && (strlen(text384) == 96u) &&
+        (text512 != NULL) && (strlen(text512) == 128u) &&
+        (textChanged != NULL) && (strcmp(text256, textChanged) != 0));
+    xrtFree(text512);
+    xrtFree(text384);
+    xrtFree(textChanged);
+    xrtFree(text256);
 
-    sha256 = sha256_hex("xlang");
-    sha256Changed = sha256_hex("xlang!");
-    sha384 = sha384_hex("xlang");
-    sha512 = sha512_hex("xlang");
-    require_line("hash",
-        strlen(sha256) == 64 &&
-        strlen(sha384) == 96 &&
-        strlen(sha512) == 128 &&
-        !text_eq(sha256, sha256Changed));
-    xrtFree(sha256);
-    xrtFree(sha256Changed);
-    xrtFree(sha384);
-    xrtFree(sha512);
+    ok = xrtHmacSha256("key", 3u, hmacText, strlen(hmacText), mac256) &&
+        xrtHmacSha384("key", 3u, hmacText, strlen(hmacText), mac384) &&
+        xrtHmacSha512("key", 3u, hmacText, strlen(hmacText), mac512);
+    textMac = hex_of(mac256, sizeof(mac256));
+    require_line(
+        "hmac",
+        ok && (textMac != NULL) &&
+        (strcmp(textMac,
+            "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8") == 0));
+    xrtFree(textMac);
 
-    hmac = hmac_sha256_hex("key", hmacText);
-    require_line("hmac", text_eq(hmac, "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8"));
-    xrtFree(hmac);
+    ok = xrtChaCha20Poly1305Seal(
+        key32, nonce, aad, sizeof(aad) - 1u,
+        plain, sizeof(plain) - 1u, sealed, sizeof(plain) - 1u + 16u
+    ) && xrtChaCha20Poly1305Open(
+        key32, nonce, aad, sizeof(aad) - 1u,
+        sealed, sizeof(plain) - 1u + 16u,
+        restored, sizeof(plain) - 1u
+    ) && (memcmp(restored, plain, sizeof(plain) - 1u) == 0) &&
+        aes_gcm_round_trip(
+            key16, 16u, nonce, 12u, aad, 4u, plain, sizeof(plain) - 1u
+        ) && aes_gcm_round_trip(
+            key32, 32u, nonce, 12u, aad, 4u, plain, sizeof(plain) - 1u
+        );
+    require_line("aead", ok);
 
-    memset(cipher, 0, sizeof(cipher));
-    memset(decrypted, 0, sizeof(decrypted));
-    require_line("aead",
-        xrtChaCha20Poly1305Encrypt(cipher, key32, nonce, aad, sizeof(aad) - 1u, (const unsigned char*)plain, plainSize) &&
-        xrtChaCha20Poly1305Decrypt(decrypted, key32, nonce, aad, sizeof(aad) - 1u, cipher, plainSize + 16u) &&
-        memcmp(decrypted, plain, plainSize) == 0 &&
-        xrtAES128GCMEncrypt(cipher, key16, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, (const unsigned char*)plain, plainSize) &&
-        xrtAES128GCMDecrypt(decrypted, key16, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, cipher, plainSize + 16u) &&
-        memcmp(decrypted, plain, plainSize) == 0 &&
-        xrtAES256GCMEncrypt(cipher, key32, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, (const unsigned char*)plain, plainSize) &&
-        xrtAES256GCMDecrypt(decrypted, key32, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, cipher, plainSize + 16u) &&
-        memcmp(decrypted, plain, plainSize) == 0);
+    ok = xrtHkdfSha256(
+        "salt", 4u, "key", 3u, "info", 4u, okm256, sizeof(okm256)
+    ) && xrtHkdfSha384(
+        "salt", 4u, "key", 3u, "info", 4u, okm384, sizeof(okm384)
+    ) && xrtSecureRandom(randomBytes, sizeof(randomBytes));
+    require_line("hkdf_random", ok);
 
-    xrtHKDFExtract(prk, (const unsigned char*)"salt", 4u, (const unsigned char*)"key", 3u);
-    xrtHKDFExpand(okm, sizeof(okm), prk, sizeof(prk), (const unsigned char*)"info", 4u);
-    hkdf = hex_of(okm, sizeof(okm));
-    xrtRandomBytes(randomBytes, sizeof(randomBytes));
-    require_line("hkdf_random", strlen(hkdf) == 64);
-    xrtFree(hkdf);
+    xrtSha1Init(&sha1State);
+    xrtSha256Init(&sha256State);
+    xrtSha384Init(&sha384State);
+    xrtSha512Init(&sha512State);
+    ok = xrtSha1Update(&sha1State, "a", 1u) &&
+        xrtSha1Update(&sha1State, "bc", 2u) &&
+        xrtSha1Final(&sha1State, digest1) &&
+        xrtSha256Update(&sha256State, "a", 1u) &&
+        xrtSha256Update(&sha256State, "bc", 2u) &&
+        xrtSha256Final(&sha256State, digest256) &&
+        xrtSha384Update(&sha384State, "abc", 3u) &&
+        xrtSha384Final(&sha384State, digest384) &&
+        xrtSha512Update(&sha512State, "ab", 2u) &&
+        xrtSha512Update(&sha512State, "c", 1u) &&
+        xrtSha512Final(&sha512State, digest512);
+    text256 = hex_of(digest256, sizeof(digest256));
+    require_line(
+        "stream",
+        ok && (text256 != NULL) &&
+        (strcmp(text256,
+            "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD") == 0));
+    xrtFree(text256);
 
-    xrtSHA1Init(&sha1Ctx);
-    xrtSHA1Update(&sha1Ctx, "a", 1u);
-    xrtSHA1Update(&sha1Ctx, "bc", 2u);
-    xrtSHA1Final(&sha1Ctx, digest);
-    hmac = hex_of(digest, 20u);
-    xrtSHA256Init(&sha256Ctx);
-    xrtSHA256Update(&sha256Ctx, "a", 1u);
-    xrtSHA256Update(&sha256Ctx, "bc", 2u);
-    xrtSHA256Final(&sha256Ctx, digest);
-    sha256 = hex_of(digest, 32u);
-    xrtSHA384Init(&sha384Ctx);
-    xrtSHA512Update(&sha384Ctx, "abc", 3u);
-    xrtSHA384Final(&sha384Ctx, digest);
-    sha384 = hex_of(digest, 48u);
-    xrtSHA512Init(&sha512Ctx);
-    xrtSHA512Update(&sha512Ctx, "ab", 2u);
-    xrtSHA512Update(&sha512Ctx, "c", 1u);
-    xrtSHA512Final(&sha512Ctx, digest);
-    sha512 = hex_of(digest, 64u);
-    require_line("stream",
-        text_eq(hmac, "A9993E364706816ABA3E25717850C26C9CD0D89D") &&
-        text_eq(sha256, "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD") &&
-        text_eq(sha384, "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7") &&
-        text_eq(sha512, "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F"));
-    xrtFree(sha256);
-    xrtFree(sha384);
-    xrtFree(sha512);
-    xrtFree(hmac);
+    ok = xrtSha256(binary, sizeof(binary), digest256) &&
+        xrtHmacSha256("key", 3u, binary, sizeof(binary), mac256) &&
+        xrtChaCha20(key32, nonce, 3u, binary, streamCipher, sizeof(binary)) &&
+        xrtChaCha20(
+            key32, nonce, 3u, streamCipher, streamPlain, sizeof(streamCipher)
+        ) && (memcmp(streamPlain, binary, sizeof(binary)) == 0);
+    text256 = hex_of(digest256, sizeof(digest256));
+    require_line(
+        "binary",
+        ok && (text256 != NULL) &&
+        (strcmp(text256,
+            "3D1F57C984978EF98A18378C8166C1CB8EDE02C03EEB6AEE7E2F121DFEEE3E56") == 0));
+    xrtFree(text256);
 
-    xrtSHA256((void*)binaryData, sizeof(binaryData), digest);
-    binaryHashHex = hex_of(digest, 32u);
-    xrtHMAC_SHA256((const unsigned char*)"key", 3u, binaryData, sizeof(binaryData), digest);
-    binaryHmacHex = hex_of(digest, 32u);
-    xrtChaCha20(binaryStreamCipher, key32, nonce, 3u, binaryData, sizeof(binaryData));
-    xrtChaCha20(binaryStreamPlain, key32, nonce, 3u, binaryStreamCipher, sizeof(binaryStreamCipher));
-    binaryOk =
-        text_eq(binaryHashHex, "3D1F57C984978EF98A18378C8166C1CB8EDE02C03EEB6AEE7E2F121DFEEE3E56") &&
-        strlen(binaryHmacHex) == 64u &&
-        memcmp(binaryStreamPlain, binaryData, sizeof(binaryData)) == 0;
-    binaryOk = binaryOk &&
-        xrtChaCha20Poly1305Encrypt(cipher, key32, nonce, aad, sizeof(aad) - 1u, binaryData, sizeof(binaryData)) &&
-        xrtChaCha20Poly1305Decrypt(decrypted, key32, nonce, aad, sizeof(aad) - 1u, cipher, sizeof(binaryData) + 16u) &&
-        memcmp(decrypted, binaryData, sizeof(binaryData)) == 0;
-    binaryOk = binaryOk &&
-        xrtAES128GCMEncrypt(cipher, key16, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, binaryData, sizeof(binaryData)) &&
-        xrtAES128GCMDecrypt(decrypted, key16, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, cipher, sizeof(binaryData) + 16u) &&
-        memcmp(decrypted, binaryData, sizeof(binaryData)) == 0;
-    binaryOk = binaryOk &&
-        xrtAES256GCMEncrypt(cipher, key32, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, binaryData, sizeof(binaryData)) &&
-        xrtAES256GCMDecrypt(decrypted, key32, nonce, sizeof(nonce) - 1u, aad, sizeof(aad) - 1u, cipher, sizeof(binaryData) + 16u) &&
-        memcmp(decrypted, binaryData, sizeof(binaryData)) == 0;
-    xrtHKDFExtract(prk, (const unsigned char*)"salt", 4u, (const unsigned char*)"key", 3u);
-    xrtHKDFExpand(okm, sizeof(okm), prk, sizeof(prk), (const unsigned char*)"info", 4u);
-    xrtRandomBytes(binaryRandom, sizeof(binaryRandom));
-    require_line("binary", binaryOk);
-    xrtFree(binaryHashHex);
-    xrtFree(binaryHmacHex);
+    ok = xrtChaCha20(
+        key32, nonce, 1u, plain, streamCipher, sizeof(plain) - 1u
+    ) && xrtChaCha20(
+        key32, nonce, 1u, streamCipher, streamPlain, sizeof(plain) - 1u
+    ) && (memcmp(streamPlain, plain, sizeof(plain) - 1u) == 0);
+    require_line("chacha20", ok);
 
-    xrtChaCha20(chachaCipher, key32, nonce, 1u, (const unsigned char*)plain, plainSize);
-    xrtChaCha20(chachaPlain, key32, nonce, 1u, chachaCipher, plainSize);
-    require_line("chacha20", memcmp(chachaPlain, plain, plainSize) == 0);
+    ok = xrtEd25519KeyPair(seed, publicKey) &&
+        xrtEd25519Sign(seed, "message", 7u, signature) &&
+        xrtEd25519Verify(publicKey, "message", 7u, signature) &&
+        !xrtEd25519Verify(publicKey, "message!", 8u, signature);
+    require_line("ed25519", ok);
 
-    xrtEd25519Keypair(seed, pub);
-    xrtEd25519Sign(sig, (const unsigned char*)"message", 7u, seed);
-    require_line("ed25519",
-        xrtEd25519Verify((const unsigned char*)"message", 7u, sig, pub) &&
-        !xrtEd25519Verify((const unsigned char*)"message!", 8u, sig, pub));
+    ok = xrtX25519KeyPair(x25519PrivA, x25519PubA) &&
+        xrtX25519KeyPair(x25519PrivB, x25519PubB) &&
+        xrtX25519Shared(x25519PrivA, x25519PubB, x25519SecretA) &&
+        xrtX25519Shared(x25519PrivB, x25519PubA, x25519SecretB) &&
+        (memcmp(x25519SecretA, x25519SecretB, sizeof(x25519SecretA)) == 0);
+    require_line("x25519", ok);
 
-    xrtX25519Keypair(x25519PrivA, x25519PubA);
-    xrtX25519Keypair(x25519PrivB, x25519PubB);
-    xrtX25519SharedSecret(x25519SecretA, x25519PrivA, x25519PubB);
-    xrtX25519SharedSecret(x25519SecretB, x25519PrivB, x25519PubA);
-    require_line("x25519", memcmp(x25519SecretA, x25519SecretB, sizeof(x25519SecretA)) == 0);
+    ok = xrtX448KeyPair(x448PrivA, x448PubA) &&
+        xrtX448KeyPair(x448PrivB, x448PubB) &&
+        xrtX448Shared(x448PrivA, x448PubB, x448SecretA) &&
+        xrtX448Shared(x448PrivB, x448PubA, x448SecretB) &&
+        (memcmp(x448SecretA, x448SecretB, sizeof(x448SecretA)) == 0);
+    require_line("x448", ok);
 
-    xrtX448Keypair(x448PrivA, x448PubA);
-    xrtX448Keypair(x448PrivB, x448PubB);
-    xrtX448SharedSecret(x448SecretA, x448PrivA, x448PubB);
-    xrtX448SharedSecret(x448SecretB, x448PrivB, x448PubA);
-    require_line("x448", memcmp(x448SecretA, x448SecretB, sizeof(x448SecretA)) == 0);
+    ok = xrtP256KeyPair(p256PrivA, p256PubA) &&
+        xrtP256KeyPair(p256PrivB, p256PubB) &&
+        xrtP256Shared(p256PrivA, p256PubB, p256SecretA) &&
+        xrtP256Shared(p256PrivB, p256PubA, p256SecretB) &&
+        (memcmp(p256SecretA, p256SecretB, sizeof(p256SecretA)) == 0) &&
+        xrtP384KeyPair(p384PrivA, p384PubA) &&
+        xrtP384KeyPair(p384PrivB, p384PubB) &&
+        xrtP384Shared(p384PrivA, p384PubB, p384SecretA) &&
+        xrtP384Shared(p384PrivB, p384PubA, p384SecretB) &&
+        (memcmp(p384SecretA, p384SecretB, sizeof(p384SecretA)) == 0);
+    require_line("ecdh", ok);
 
-    xrtECDHSecp256r1Keypair(p256PrivA, p256PubA);
-    xrtECDHSecp256r1Keypair(p256PrivB, p256PubB);
-    xrtECDHSecp256r1SharedSecret(p256SecretA, p256PrivA, p256PubB);
-    xrtECDHSecp256r1SharedSecret(p256SecretB, p256PrivB, p256PubA);
-    xrtECDHSecp384r1Keypair(p384PrivA, p384PubA);
-    xrtECDHSecp384r1Keypair(p384PrivB, p384PubB);
-    xrtECDHSecp384r1SharedSecret(p384SecretA, p384PrivA, p384PubB);
-    xrtECDHSecp384r1SharedSecret(p384SecretB, p384PrivB, p384PubA);
-    require_line("ecdh",
-        p256PubA[0] == 0x04 && p256PubB[0] == 0x04 &&
-        memcmp(p256SecretA, p256SecretB, sizeof(p256SecretA)) == 0 &&
-        p384PubA[0] == 0x04 && p384PubB[0] == 0x04 &&
-        memcmp(p384SecretA, p384SecretB, sizeof(p384SecretA)) == 0);
-
-    require_line("signature_guard",
-        !xrtECDSAVerify((const unsigned char*)"", 0u, (const unsigned char*)"", 0u, (const unsigned char*)"", 0u) &&
-        !valid_hex("") && !valid_hex("bad"));
-
-    xrtUnit();
+    require_line(
+        "signature_guard",
+        !xrtEcdsaP256VerifyDer(NULL, 0u, NULL, 0u, NULL));
     return 0;
 }

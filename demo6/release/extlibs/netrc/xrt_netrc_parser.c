@@ -52,18 +52,17 @@ static void __xrtNetrcAdvance(xrt_netrc_scanner* pScanner)
 	}
 }
 
-static bool __xrtNetrcAppendChar(xbuffer pBuffer, char c,
+static bool __xrtNetrcAppendChar(xbuffer* pBuffer, char c,
 	xrt_netrc_scanner* pScanner)
 {
 	uint64 iLimit = pScanner->Context->Options.tLimits.iMaxItemBytes;
-	if ( (iLimit != 0u && pBuffer->Length >= iLimit) ||
-		pBuffer->Length >= UINT32_MAX ) {
+	if ( iLimit != 0u && pBuffer->Size >= iLimit ) {
 		__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_LIMIT,
 			pScanner->iLine, pScanner->iColumn, pScanner->iPos,
 			"netrc token exceeds the configured item limit");
-		return FALSE;
+		return false;
 	}
-	return xrtBufferAppend(pBuffer, &c, 1u, XBUF_BINARY);
+	return xrtBufferAppendByte(pBuffer, (uint8)c);
 }
 
 static void __xrtNetrcSkipSpace(xrt_netrc_scanner* pScanner)
@@ -86,22 +85,22 @@ static void __xrtNetrcSkipSpace(xrt_netrc_scanner* pScanner)
 static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 	xrt_netrc_token* pToken, bool* pEof)
 {
-	xbuffer pBuffer = NULL;
+	xbuffer* pBuffer = NULL;
 	char cQuote = 0;
-	bool bClosed = FALSE;
-	if ( pEof ) { *pEof = FALSE; }
-	if ( pScanner == NULL || pToken == NULL ) { return FALSE; }
+	bool bClosed = false;
+	if ( pEof ) { *pEof = false; }
+	if ( pScanner == NULL || pToken == NULL ) { return false; }
 	memset(pToken, 0, sizeof(*pToken));
 	__xrtNetrcSkipSpace(pScanner);
 	if ( pScanner->iPos >= pScanner->iSize ) {
-		if ( pEof ) { *pEof = TRUE; }
-		return TRUE;
+		if ( pEof ) { *pEof = true; }
+		return true;
 	}
 	pToken->iLine = pScanner->iLine;
 	pToken->iColumn = pScanner->iColumn;
 	pToken->iOffset = pScanner->iPos;
-	pBuffer = xrtBufferCreate(32u);
-	if ( pBuffer == NULL ) { goto memory_error; }
+	pBuffer = xrtBufferCreate();
+	if ( pBuffer == NULL || !xrtBufferReserve(pBuffer, 32u) ) { goto memory_error; }
 	if ( pScanner->pData[pScanner->iPos] == '\'' ||
 		pScanner->pData[pScanner->iPos] == '"' ) {
 		cQuote = pScanner->pData[pScanner->iPos];
@@ -111,7 +110,7 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 		char c = pScanner->pData[pScanner->iPos];
 		if ( cQuote != 0 && c == cQuote ) {
 			__xrtNetrcAdvance(pScanner);
-			bClosed = TRUE;
+			bClosed = true;
 			break;
 		}
 		if ( cQuote == 0 && (c == ' ' || c == '\t' || c == '\r' ||
@@ -135,12 +134,12 @@ static bool __xrtNetrcScanToken(xrt_netrc_scanner* pScanner,
 			"unterminated quoted netrc token");
 		goto fail;
 	}
-	if ( pBuffer->Length > 0u ) {
-		pToken->sText = xrtCopyStr((str)pBuffer->Buffer, pBuffer->Length);
+	if ( pBuffer->Size > 0u ) {
+		pToken->sText = xrtStrDupN((cstr)pBuffer->Data, pBuffer->Size);
 	} else {
-		pToken->sText = xrtCopyStr((str)"", 0u);
+		pToken->sText = xrtStrDup("");
 	}
-	pToken->iSize = pBuffer->Length;
+	pToken->iSize = pBuffer->Size;
 	xrtBufferDestroy(pBuffer);
 	return pToken->sText != NULL;
 
@@ -150,7 +149,7 @@ memory_error:
 		"cannot allocate netrc lexer state");
 fail:
 	xrtBufferDestroy(pBuffer);
-	return FALSE;
+	return false;
 }
 
 static bool __xrtNetrcNext(xrt_netrc_parser* pParser,
@@ -159,20 +158,20 @@ static bool __xrtNetrcNext(xrt_netrc_parser* pParser,
 	if ( pParser->bHasPush ) {
 		*pToken = pParser->Push;
 		memset(&pParser->Push, 0, sizeof(pParser->Push));
-		pParser->bHasPush = FALSE;
-		if ( pEof ) { *pEof = FALSE; }
-		return TRUE;
+		pParser->bHasPush = false;
+		if ( pEof ) { *pEof = false; }
+		return true;
 	}
 	return __xrtNetrcScanToken(&pParser->Scanner, pToken, pEof);
 }
 
 static bool __xrtNetrcPush(xrt_netrc_parser* pParser, xrt_netrc_token* pToken)
 {
-	if ( pParser->bHasPush ) { return FALSE; }
+	if ( pParser->bHasPush ) { return false; }
 	pParser->Push = *pToken;
 	memset(pToken, 0, sizeof(*pToken));
-	pParser->bHasPush = TRUE;
-	return TRUE;
+	pParser->bHasPush = true;
+	return true;
 }
 
 static bool __xrtNetrcTokenEquals(const xrt_netrc_token* pToken,
@@ -189,28 +188,28 @@ static bool __xrtNetrcIsTopLevel(const xrt_netrc_token* pToken)
 		__xrtNetrcTokenEquals(pToken, "macdef");
 }
 
-static bool __xrtNetrcSetAuthField(xvalue pAuth, const char* sField,
+static bool __xrtNetrcSetAuthField(xvalue* pAuth, const char* sField,
 	const xrt_netrc_token* pValue)
 {
-	xvalue pText = __xrtNetrcText((const char*)pValue->sText, pValue->iSize);
+	xvalue* pText = __xrtNetrcText((const char*)pValue->sText, pValue->iSize);
 	return pText != NULL && __xrtNetrcSetValue(pAuth, sField, pText);
 }
 
-static xvalue __xrtNetrcParseAuth(xrt_netrc_parser* pParser,
+static xvalue* __xrtNetrcParseAuth(xrt_netrc_parser* pParser,
 	const xrt_netrc_token* pStart)
 {
-	xvalue pAuth = xvoCreateTable();
-	bool bLogin = FALSE, bAccount = FALSE, bPassword = FALSE;
+	xvalue* pAuth = xrtValueObject();
+	bool bLogin = false, bAccount = false, bPassword = false;
 	if ( pAuth == NULL ||
-		!__xrtNetrcSetValue(pAuth, "login", xvoCreateNull()) ||
-		!__xrtNetrcSetValue(pAuth, "account", xvoCreateNull()) ||
-		!__xrtNetrcSetValue(pAuth, "password", xvoCreateNull()) ) {
-		xvoUnref(pAuth);
+		!__xrtNetrcSetValue(pAuth, "login", xrtValueNull()) ||
+		!__xrtNetrcSetValue(pAuth, "account", xrtValueNull()) ||
+		!__xrtNetrcSetValue(pAuth, "password", xrtValueNull()) ) {
+		xrtValueRelease(pAuth);
 		return NULL;
 	}
 	for ( ;; ) {
 		xrt_netrc_token tField, tValue;
-		bool bEof = FALSE;
+		bool bEof = false;
 		const char* sCanonical = NULL;
 		bool* pSeen = NULL;
 		memset(&tField, 0, sizeof(tField));
@@ -259,7 +258,7 @@ static xvalue __xrtNetrcParseAuth(xrt_netrc_parser* pParser,
 			__xrtNetrcTokenUnit(&tValue);
 			goto fail;
 		}
-		*pSeen = TRUE;
+		*pSeen = true;
 		__xrtNetrcTokenUnit(&tField);
 		__xrtNetrcTokenUnit(&tValue);
 	}
@@ -270,7 +269,7 @@ fail:
 			XRT_NETRC_ERROR_MEMORY, pStart->iLine, pStart->iColumn,
 			pStart->iOffset, "cannot allocate netrc machine entry");
 	}
-	xvoUnref(pAuth);
+	xrtValueRelease(pAuth);
 	return NULL;
 }
 
@@ -278,16 +277,16 @@ static bool __xrtNetrcLineBlank(const char* pData, size_t iSize)
 {
 	size_t i;
 	for ( i = 0u; i < iSize; ++i ) {
-		if ( pData[i] != ' ' && pData[i] != '\t' && pData[i] != '\r' ) { return FALSE; }
+		if ( pData[i] != ' ' && pData[i] != '\t' && pData[i] != '\r' ) { return false; }
 	}
-	return TRUE;
+	return true;
 }
 
-static xvalue __xrtNetrcParseMacro(xrt_netrc_parser* pParser,
+static xvalue* __xrtNetrcParseMacro(xrt_netrc_parser* pParser,
 	const xrt_netrc_token* pName)
 {
 	xrt_netrc_scanner* pScanner = &pParser->Scanner;
-	xvalue pLines = xvoCreateArray();
+	xvalue* pLines = xrtValueArray();
 	if ( pLines == NULL ) { return NULL; }
 	while ( pScanner->iPos < pScanner->iSize &&
 		pScanner->pData[pScanner->iPos] != '\n' ) { __xrtNetrcAdvance(pScanner); }
@@ -309,9 +308,9 @@ static xvalue __xrtNetrcParseMacro(xrt_netrc_parser* pParser,
 				!__xrtNetrcLimitEntry(pScanner->Context, iLine, 1u, iStart) ||
 				!__xrtNetrcLimitNode(pScanner->Context, iLine, 1u, iStart) ) { goto fail; }
 			{
-				xvalue pText = __xrtNetrcText(pScanner->pData + iStart, iEnd - iStart);
-				if ( pText == NULL || !xvoArrayAppendValue(pLines, pText, TRUE) ) {
-					if ( pText != NULL ) { xvoUnref(pText); }
+				xvalue* pText = __xrtNetrcText(pScanner->pData + iStart, iEnd - iStart);
+				if ( pText == NULL || !xrtValueArrayAppendTake(pLines, &pText) ) {
+					xrtValueRelease(pText);
 					goto fail;
 				}
 			}
@@ -326,30 +325,32 @@ fail:
 			pName->iLine, pName->iColumn, pName->iOffset,
 			"cannot allocate netrc macro");
 	}
-	xvoUnref(pLines);
+	xrtValueRelease(pLines);
 	return NULL;
 }
 
-static xvalue __xrtNetrcParseDocument(const char* pData, size_t iSize,
+static xvalue* __xrtNetrcParseDocument(const char* pData, size_t iSize,
 	xrt_netrc_context* pContext)
 {
 	xrt_netrc_parser tParser;
-	xvalue pRoot = NULL, pHosts = NULL, pMacros = NULL;
+	xvalue* pRoot = NULL;
+	xvalue* pHosts = NULL;
+	xvalue* pMacros = NULL;
 	memset(&tParser, 0, sizeof(tParser));
 	tParser.Scanner.pData = pData;
 	tParser.Scanner.iSize = iSize;
 	tParser.Scanner.iLine = 1u;
 	tParser.Scanner.iColumn = 1u;
 	tParser.Scanner.Context = pContext;
-	pRoot = xvoCreateTable();
-	pHosts = xvoCreateTable();
-	pMacros = xvoCreateTable();
+	pRoot = xrtValueObject();
+	pHosts = xrtValueObject();
+	pMacros = xrtValueObject();
 	if ( pRoot == NULL || pHosts == NULL || pMacros == NULL ||
 		!__xrtNetrcSetValue(pRoot, "hosts", pHosts) ||
 		!__xrtNetrcSetValue(pRoot, "macros", pMacros) ) { goto fail; }
 	for ( ;; ) {
 		xrt_netrc_token tKeyword, tName;
-		bool bEof = FALSE;
+		bool bEof = false;
 		memset(&tKeyword, 0, sizeof(tKeyword));
 		memset(&tName, 0, sizeof(tName));
 		if ( !__xrtNetrcNext(&tParser, &tKeyword, &bEof) ) { goto fail; }
@@ -358,7 +359,7 @@ static xvalue __xrtNetrcParseDocument(const char* pData, size_t iSize,
 			__xrtNetrcTokenEquals(&tKeyword, "default") ) {
 			const char* sName = "default";
 			size_t iNameSize = 7u;
-			xvalue pAuth;
+			xvalue* pAuth;
 			if ( __xrtNetrcTokenEquals(&tKeyword, "machine") ) {
 				if ( !__xrtNetrcNext(&tParser, &tName, &bEof) || bEof ||
 					__xrtNetrcIsTopLevel(&tName) || tName.iSize == 0u ) {
@@ -372,7 +373,7 @@ static xvalue __xrtNetrcParseDocument(const char* pData, size_t iSize,
 				sName = (const char*)tName.sText;
 				iNameSize = tName.iSize;
 			}
-			if ( xvoTableExists(pHosts, (str)sName, (uint32)iNameSize) &&
+			if ( xrtValueObjectHas(pHosts, (xstrview){ sName, iNameSize }) &&
 				pContext->Options.bStrictDuplicates ) {
 				__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_DUPLICATE,
 					tKeyword.iLine, tKeyword.iColumn, tKeyword.iOffset,
@@ -390,16 +391,16 @@ static xvalue __xrtNetrcParseDocument(const char* pData, size_t iSize,
 				goto fail;
 			}
 			pAuth = __xrtNetrcParseAuth(&tParser, &tKeyword);
-			if ( pAuth == NULL || !xvoTableSetValue(pHosts, sName,
-				(uint32)iNameSize, pAuth, TRUE) ) {
-				if ( pAuth != NULL ) { xvoUnref(pAuth); }
+			if ( pAuth == NULL || !xrtValueObjectSetTake(pHosts,
+				(xstrview){ sName, iNameSize }, &pAuth) ) {
+				xrtValueRelease(pAuth);
 				__xrtNetrcTokenUnit(&tKeyword);
 				__xrtNetrcTokenUnit(&tName);
 				goto fail;
 			}
 			__xrtNetrcTokenUnit(&tName);
 		} else if ( __xrtNetrcTokenEquals(&tKeyword, "macdef") ) {
-			xvalue pLines;
+			xvalue* pLines;
 			if ( !__xrtNetrcNext(&tParser, &tName, &bEof) || bEof ||
 				tName.iSize == 0u || __xrtNetrcIsTopLevel(&tName) ) {
 				__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_SYNTAX,
@@ -409,7 +410,8 @@ static xvalue __xrtNetrcParseDocument(const char* pData, size_t iSize,
 				__xrtNetrcTokenUnit(&tName);
 				goto fail;
 			}
-			if ( xvoTableExists(pMacros, tName.sText, (uint32)tName.iSize) &&
+			if ( xrtValueObjectHas(pMacros,
+				(xstrview){ (const char*)tName.sText, tName.iSize }) &&
 				pContext->Options.bStrictDuplicates ) {
 				__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_DUPLICATE,
 					tName.iLine, tName.iColumn, tName.iOffset,
@@ -426,9 +428,9 @@ static xvalue __xrtNetrcParseDocument(const char* pData, size_t iSize,
 				goto fail;
 			}
 			pLines = __xrtNetrcParseMacro(&tParser, &tName);
-			if ( pLines == NULL || !xvoTableSetValue(pMacros, tName.sText,
-				(uint32)tName.iSize, pLines, TRUE) ) {
-				if ( pLines != NULL ) { xvoUnref(pLines); }
+			if ( pLines == NULL || !xrtValueObjectSetTake(pMacros,
+				(xstrview){ (const char*)tName.sText, tName.iSize }, &pLines) ) {
+				xrtValueRelease(pLines);
 				__xrtNetrcTokenUnit(&tKeyword);
 				__xrtNetrcTokenUnit(&tName);
 				goto fail;
@@ -452,17 +454,17 @@ fail:
 		__xrtNetrcSetError(pContext->Error, XRT_NETRC_ERROR_MEMORY,
 			0u, 0u, 0u, "cannot allocate netrc document");
 	}
-	xvoUnref(pRoot);
+	xrtValueRelease(pRoot);
 	return NULL;
 }
 
-xvalue xrtNetrcParse(xreader pReader, bool bTakeOwnership,
+xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError)
 {
 	xrtnetrcerror tLocalError;
 	xrt_netrc_context tContext;
-	xbuffer pInput = NULL;
-	xvalue pResult = NULL;
+	xbuffer* pInput = NULL;
+	xvalue* pResult = NULL;
 	uint64 iSize = 0u;
 	uint64 iLimit;
 	const char* pData;
@@ -489,14 +491,14 @@ xvalue xrtNetrcParse(xreader pReader, bool bTakeOwnership,
 			"cannot read netrc stream or input limit was exceeded");
 		goto cleanup;
 	}
-	pData = (const char*)pInput->Buffer;
-	iDataSize = pInput->Length;
+	pData = (const char*)pInput->Data;
+	iDataSize = pInput->Size;
 	if ( iDataSize >= 3u && (unsigned char)pData[0] == 0xefu &&
 		(unsigned char)pData[1] == 0xbbu && (unsigned char)pData[2] == 0xbfu ) {
 		pData += 3;
 		iDataSize -= 3u;
 	}
-	if ( !xrtIsUTF8((str)pData, iDataSize) ) {
+	if ( !xrtUtf8Valid((xstrview){ pData, iDataSize }, NULL) ) {
 		__xrtNetrcSetError(pError, XRT_NETRC_ERROR_UTF8, 1u, 1u, 0u,
 			"netrc input is not valid UTF-8");
 		goto cleanup;
@@ -509,17 +511,17 @@ cleanup:
 	return pResult;
 }
 
-xvalue xrtNetrcParseMemory(const void* pData, uint64 iSize,
+xvalue* xrtNetrcParseMemory(const void* pData, uint64 iSize,
 	const xrtnetrcoptions* pOptions, xrtnetrcerror* pError)
 {
-	xreader pReader = pData != NULL || iSize == 0u ?
-		xrtReaderFromMemory(pData, iSize) : NULL;
-	return xrtNetrcParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = pData != NULL || iSize == 0u ?
+		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	return xrtNetrcParse(pReader, true, pOptions, pError);
 }
 
-xvalue xrtNetrcLoad(str sPath, const xrtnetrcoptions* pOptions,
+xvalue* xrtNetrcLoad(str sPath, const xrtnetrcoptions* pOptions,
 	xrtnetrcerror* pError)
 {
-	xreader pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
-	return xrtNetrcParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	return xrtNetrcParse(pReader, true, pOptions, pError);
 }

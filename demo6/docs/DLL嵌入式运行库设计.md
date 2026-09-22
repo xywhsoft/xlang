@@ -110,8 +110,7 @@ Compiler library header:
 `xlc.dll` compiler library API:
 ```c
 typedef enum XLC_Backend {
-    XLC_BACKEND_XLIR = 0,
-    XLC_BACKEND_LEGACY = 1
+    XLC_BACKEND_XLIR = 0
 } XLC_Backend;
 
 XLC_ContextOptions xlcDefaultContextOptions(void);
@@ -158,7 +157,7 @@ int xlcGetLastExitCode(XLC_Context* ctx);
 
 `xlc.dll` owns compiler-library operations that are useful without CLI argument parsing: checking, token/AST/IR/ABI emission, C/header/debug-C emission, executable/debug-executable/shared-library output, in-process relocation, and direct run. `xl.exe` is responsible for command-line parsing and maps those commands onto these APIs.
 
-新建 compiler context 默认选择 `XLC_BACKEND_XLIR`。`xlcSetBackend` 修改该 context 后续 `xlcEmitC`、可执行/共享库输出、重定位与运行所使用的后端；仅接受 `XLC_BACKEND_XLIR` 或显式兼容值 `XLC_BACKEND_LEGACY`，非法枚举返回 `0` 并写入 context 诊断。设置是 context 局部状态，公开调用仍受 DLL API 的全局串行锁保护；宿主不应并发修改同一 context 的配置和执行编译。
+XLIR 是唯一编译后端。`xlcSetBackend` 仅为显式选择和 ABI 兼容保留，传入 `XLC_BACKEND_XLIR` 返回成功；其他枚举值返回 `0` 并写入 context 诊断。公开调用仍受 DLL API 的全局串行锁保护；宿主不应并发修改同一 context 的配置和执行编译。
 
 `xlcEmitIr` 输出语义检查后的 typed XLIR，`xlcEmitLoweredIr` 则先完成显式 lowering，再以文本或 JSON 输出可供后端消费的 lowered XLIR。默认 `xlcEmitC` 服从 context 的后端选择；`xlcEmitXlirC` 和 `xlcEmitXlirHeader` 始终只走统一 XLIR 后端。XLIR 路径都会完成编译及 lowering，并由 verifier 拒绝未确定的 C ABI、所有权或控制流语义。`xlcEmitXlirHeader` 要求非空 include guard。上述函数在上下文、路径、lowering、验证或文件读写失败时返回 `0`，具体诊断由 `xlcGetLastError` 提供。
 

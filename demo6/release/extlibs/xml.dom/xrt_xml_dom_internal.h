@@ -1,6 +1,8 @@
 #ifndef XRT_XML_DOM_INTERNAL_H
 #define XRT_XML_DOM_INTERNAL_H
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "include/xrt_xml_dom.h"
 
 #include <stdio.h>

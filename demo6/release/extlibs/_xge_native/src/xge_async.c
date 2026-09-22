@@ -44,7 +44,7 @@ static int __xgeAsyncFinish(xge_async_request pRequest, int iResult)
 	return __xgeAsyncFinishEx(pRequest, iResult, 1);
 }
 
-static uint32 __xgeAsyncThreadProc(ptr pParam)
+static int32 __xgeAsyncThreadProc(ptr pParam)
 {
 	xge_async_request pRequest;
 	int iRet;
@@ -71,9 +71,9 @@ static uint32 __xgeAsyncThreadProc(ptr pParam)
 
 static int __xgeAsyncStartThread(xge_async_request pRequest)
 {
-	xthread pThread;
+	xthread* pThread;
 
-	pThread = xrtThreadCreate((ptr)__xgeAsyncThreadProc, pRequest, 0);
+	pThread = xrtThreadCreate(__xgeAsyncThreadProc, pRequest, 0u);
 	if ( pThread == NULL ) {
 		return XGE_ERROR_OUT_OF_MEMORY;
 	}
@@ -97,8 +97,8 @@ void xgeAsyncRequestFree(xge_async_request pRequest)
 		return;
 	}
 	if ( pRequest->pThread != NULL ) {
-		xrtThreadWait((xthread)pRequest->pThread);
-		xrtThreadDestroy((xthread)pRequest->pThread);
+		(void)xrtThreadWait(pRequest->pThread);
+		(void)xrtThreadDestroy(pRequest->pThread);
 		pRequest->pThread = NULL;
 	}
 	if ( pRequest->sURI != NULL ) {
@@ -139,10 +139,10 @@ int xgeAsyncPoll(xge_async_request pRequest)
 		return XGE_ERROR_INVALID_ARGUMENT;
 	}
 	if ( pRequest->pThread != NULL ) {
-		if ( xrtThreadWaitTimeout((xthread)pRequest->pThread, 0) == XRT_WAIT_TIMEOUT ) {
+		if ( xrtThreadWaitFor(pRequest->pThread, 0u) == XWAIT_TIMEOUT ) {
 			return XGE_ASYNC_LOADING;
 		}
-		xrtThreadDestroy((xthread)pRequest->pThread);
+		(void)xrtThreadDestroy(pRequest->pThread);
 		pRequest->pThread = NULL;
 	}
 	if ( pRequest->bCallbackPending != 0 ) {

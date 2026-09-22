@@ -23,9 +23,54 @@ $wiringFiles = @(
 
 $failures = New-Object System.Collections.Generic.List[string]
 $trackedFiles = @()
+$retiredTestAssets = [System.Collections.Generic.HashSet[string]]::new(
+    [System.StringComparer]::OrdinalIgnoreCase)
+foreach ( $relative in @(
+    'tools/check_typed_hir_contract.ps1',
+    'tools/check_xlir_cgen_differential.ps1',
+    'test/cases/cgen_base_method_typed_hir.xl',
+    # These extension fixtures were removed together with their unsupported
+    # package surfaces. Keep their retirement explicit so an unrelated missing
+    # tracked test still fails this inventory check.
+    'test/cases/extlib_ceres.xl',
+    'test/cases/extlib_eigen.xl',
+    'test/cases/extlib_fftw.xl',
+    'test/cases/extlib_gdal.xl',
+    'test/cases/extlib_geos.xl',
+    'test/cases/extlib_gmp.xl',
+    'test/cases/extlib_gsl.xl',
+    'test/cases/extlib_kafka.xl',
+    'test/cases/extlib_lapack.xl',
+    'test/cases/extlib_lightgbm.xl',
+    'test/cases/extlib_mpfr.xl',
+    'test/cases/extlib_ncurses.xl',
+    'test/cases/extlib_nlopt.xl',
+    'test/cases/extlib_parquet.xl',
+    'test/cases/extlib_plot.xl',
+    'test/cases/extlib_proj.xl',
+    'test/cases/extlib_pulsar.xl',
+    'test/cases/extlib_rdkit.xl',
+    'test/cases/extlib_s2geometry.xl',
+    'test/cases/extlib_ssh.xl',
+    'test/cases/extlib_ta_lib.xl',
+    'test/cases/extlib_unqlite.xl',
+    'test/cases/extlib_xgboost.xl'
+) ) {
+    $retiredTestAssets.Add($relative) | Out-Null
+}
+$replacementTestAssets = @('test/cases/cgen_base_method_xlir.xl')
 $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
 if ( $null -ne $gitCommand ) {
     $trackedFiles = @(& $gitCommand.Source -c "core.quotepath=false" -C $Root ls-files 2>$null)
+    $trackedFiles = @($trackedFiles | Where-Object {
+        !$retiredTestAssets.Contains($_.Replace("\", "/"))
+    })
+    foreach ( $relative in $replacementTestAssets ) {
+        if ( (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf) -and
+             $relative -notin $trackedFiles ) {
+            $trackedFiles += $relative
+        }
+    }
 }
 $gitInventoryAvailable = ($null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
     $trackedFiles.Count -gt 0)
@@ -43,6 +88,17 @@ function Add-Failure($message)
 function Read-Utf8Text($path)
 {
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
+
+foreach ( $relative in $retiredTestAssets ) {
+    if ( Test-Path -LiteralPath (Join-Path $Root $relative) ) {
+        Add-Failure "retired test asset returned: $relative"
+    }
+}
+foreach ( $relative in $replacementTestAssets ) {
+    if ( ! (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf) ) {
+        Add-Failure "replacement XLIR test asset is missing: $relative"
+    }
 }
 
 function Get-VersionedFilesUnder(
@@ -465,6 +521,9 @@ foreach ( $match in $matches ) {
 }
 
 foreach ( $relative in ($referenced | Sort-Object) ) {
+    if ( $retiredTestAssets.Contains("test/cases/$relative") ) {
+        continue
+    }
     $path = Join-Path $caseDir ($relative.Replace("/", "\"))
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "wired test case file is missing: test/cases/$relative"

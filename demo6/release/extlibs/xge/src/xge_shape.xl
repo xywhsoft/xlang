@@ -42,6 +42,16 @@ export func xgeShapeRectStrokePx(c_float fX, c_float fY, c_float fW, c_float fH,
     __xl6_xgeShapeRectStrokePx(fX, fY, fW, fH, fWidth, iColor)
 end
 
+extern "__xl6_xgeShapeRectFillPixels" func __xl6_xgeShapeRectFillPixels(c_int iX, c_int iY, c_int iW, c_int iH, c_uint iColor)
+export func xgeShapeRectFillPixels(c_int iX, c_int iY, c_int iW, c_int iH, c_uint iColor)
+    __xl6_xgeShapeRectFillPixels(iX, iY, iW, iH, iColor)
+end
+
+extern "__xl6_xgeShapeRectBorderPixels" func __xl6_xgeShapeRectBorderPixels(c_int iX, c_int iY, c_int iW, c_int iH, c_int iLeft, c_int iTop, c_int iRight, c_int iBottom, c_uint iColor)
+export func xgeShapeRectBorderPixels(c_int iX, c_int iY, c_int iW, c_int iH, c_int iLeft, c_int iTop, c_int iRight, c_int iBottom, c_uint iColor)
+    __xl6_xgeShapeRectBorderPixels(iX, iY, iW, iH, iLeft, iTop, iRight, iBottom, iColor)
+end
+
 extern "xgeShapeCircleFill" func __xl6_xgeShapeCircleFill(c_float fX, c_float fY, c_float fRadius, c_uint iColor)
 export func xgeShapeCircleFill(c_float fX, c_float fY, c_float fRadius, c_uint iColor)
     __xl6_xgeShapeCircleFill(fX, fY, fRadius, iColor)
@@ -77,9 +87,19 @@ export func xgeShapeTriangleFill(c_float fX0, c_float fY0, c_float fX1, c_float 
     __xl6_xgeShapeTriangleFill(fX0, fY0, fX1, fY1, fX2, fY2, iColor)
 end
 
+extern "xgeShapeTriangleFillPx" func __xl6_xgeShapeTriangleFillPx(point tA, point tB, point tC, c_uint iColor)
+export func xgeShapeTriangleFillPx(point tA, point tB, point tC, c_uint iColor)
+    __xl6_xgeShapeTriangleFillPx(tA, tB, tC, iColor)
+end
+
 extern "__xl6_xgeShapeTriangleStroke" func __xl6_xgeShapeTriangleStroke(c_float fX0, c_float fY0, c_float fX1, c_float fY1, c_float fX2, c_float fY2, c_float fWidth, c_uint iColor)
 export func xgeShapeTriangleStroke(c_float fX0, c_float fY0, c_float fX1, c_float fY1, c_float fX2, c_float fY2, c_float fWidth, c_uint iColor)
     __xl6_xgeShapeTriangleStroke(fX0, fY0, fX1, fY1, fX2, fY2, fWidth, iColor)
+end
+
+extern "xgeShapeTriangleStrokePx" func __xl6_xgeShapeTriangleStrokePx(point tA, point tB, point tC, c_float fWidth, c_uint iColor)
+export func xgeShapeTriangleStrokePx(point tA, point tB, point tC, c_float fWidth, c_uint iColor)
+    __xl6_xgeShapeTriangleStrokePx(tA, tB, tC, fWidth, iColor)
 end
 
 extern "xgeShapeEllipseFill" func __xl6_xgeShapeEllipseFill(c_float fX, c_float fY, c_float fRadiusX, c_float fRadiusY, c_uint iColor)
@@ -127,9 +147,19 @@ export func xgeShapeCapsuleFill(c_float fX, c_float fY, c_float fW, c_float fH, 
     __xl6_xgeShapeCapsuleFill(fX, fY, fW, fH, iColor)
 end
 
+extern "xgeShapeCapsuleFillPx" func __xl6_xgeShapeCapsuleFillPx(point tRect, c_uint iColor)
+export func xgeShapeCapsuleFillPx(point tRect, c_uint iColor)
+    __xl6_xgeShapeCapsuleFillPx(tRect, iColor)
+end
+
 extern "__xl6_xgeShapeCapsuleStroke" func __xl6_xgeShapeCapsuleStroke(c_float fX, c_float fY, c_float fW, c_float fH, c_float fWidth, c_uint iColor)
 export func xgeShapeCapsuleStroke(c_float fX, c_float fY, c_float fW, c_float fH, c_float fWidth, c_uint iColor)
     __xl6_xgeShapeCapsuleStroke(fX, fY, fW, fH, fWidth, iColor)
+end
+
+extern "xgeShapeCapsuleStrokePx" func __xl6_xgeShapeCapsuleStrokePx(point tRect, c_float fWidth, c_uint iColor)
+export func xgeShapeCapsuleStrokePx(point tRect, c_float fWidth, c_uint iColor)
+    __xl6_xgeShapeCapsuleStrokePx(tRect, fWidth, iColor)
 end
 
 extern "xgeShapeRenderModeSet" func __xl6_xgeShapeRenderModeSet(c_int iMode)
@@ -157,9 +187,19 @@ export func xgeShapeRoundRectFill(c_float fX, c_float fY, c_float fW, c_float fH
     __xl6_xgeShapeRoundRectFill(fX, fY, fW, fH, fRadius, iColor)
 end
 
+extern "xgeShapeRoundRectFillPx" func __xl6_xgeShapeRoundRectFillPx(point tRect, c_float fRadius, c_uint iColor)
+export func xgeShapeRoundRectFillPx(point tRect, c_float fRadius, c_uint iColor)
+    __xl6_xgeShapeRoundRectFillPx(tRect, fRadius, iColor)
+end
+
 extern "__xl6_xgeShapeRoundRectFillEx" func __xl6_xgeShapeRoundRectFillEx(c_float fX, c_float fY, c_float fW, c_float fH, c_float fTL, c_float fTR, c_float fBR, c_float fBL, c_int iMode, c_uint iColor)
 export func xgeShapeRoundRectFillEx(c_float fX, c_float fY, c_float fW, c_float fH, c_float fTL, c_float fTR, c_float fBR, c_float fBL, c_int iMode, c_uint iColor)
     __xl6_xgeShapeRoundRectFillEx(fX, fY, fW, fH, fTL, fTR, fBR, fBL, iMode, iColor)
+end
+
+extern "xgeShapeRoundRectFillExPx" func __xl6_xgeShapeRoundRectFillExPx(point tRect, point tRadii, c_int iMode, c_uint iColor)
+export func xgeShapeRoundRectFillExPx(point tRect, point tRadii, c_int iMode, c_uint iColor)
+    __xl6_xgeShapeRoundRectFillExPx(tRect, tRadii, iMode, iColor)
 end
 
 extern "__xl6_xgeShapeRoundRectStroke" func __xl6_xgeShapeRoundRectStroke(c_float fX, c_float fY, c_float fW, c_float fH, c_float fRadius, c_float fWidth, c_uint iColor)
@@ -167,14 +207,39 @@ export func xgeShapeRoundRectStroke(c_float fX, c_float fY, c_float fW, c_float 
     __xl6_xgeShapeRoundRectStroke(fX, fY, fW, fH, fRadius, fWidth, iColor)
 end
 
+extern "xgeShapeRoundRectStrokePx" func __xl6_xgeShapeRoundRectStrokePx(point tRect, c_float fRadius, c_float fWidth, c_uint iColor)
+export func xgeShapeRoundRectStrokePx(point tRect, c_float fRadius, c_float fWidth, c_uint iColor)
+    __xl6_xgeShapeRoundRectStrokePx(tRect, fRadius, fWidth, iColor)
+end
+
 extern "__xl6_xgeShapeRoundRectStrokeEx" func __xl6_xgeShapeRoundRectStrokeEx(c_float fX, c_float fY, c_float fW, c_float fH, c_float fTL, c_float fTR, c_float fBR, c_float fBL, c_int iMode, c_float fWidth, c_uint iColor)
 export func xgeShapeRoundRectStrokeEx(c_float fX, c_float fY, c_float fW, c_float fH, c_float fTL, c_float fTR, c_float fBR, c_float fBL, c_int iMode, c_float fWidth, c_uint iColor)
     __xl6_xgeShapeRoundRectStrokeEx(fX, fY, fW, fH, fTL, fTR, fBR, fBL, iMode, fWidth, iColor)
 end
 
+extern "xgeShapeRoundRectStrokeExPx" func __xl6_xgeShapeRoundRectStrokeExPx(point tRect, point tRadii, c_int iMode, c_float fWidth, c_uint iColor)
+export func xgeShapeRoundRectStrokeExPx(point tRect, point tRadii, c_int iMode, c_float fWidth, c_uint iColor)
+    __xl6_xgeShapeRoundRectStrokeExPx(tRect, tRadii, iMode, fWidth, iColor)
+end
+
 extern "__xl6_xgeShapeRoundRectDraw" func __xl6_xgeShapeRoundRectDraw(c_float fX, c_float fY, c_float fW, c_float fH, c_float fRadius, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
 export func xgeShapeRoundRectDraw(c_float fX, c_float fY, c_float fW, c_float fH, c_float fRadius, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
     __xl6_xgeShapeRoundRectDraw(fX, fY, fW, fH, fRadius, iFillColor, fStrokeWidth, iStrokeColor)
+end
+
+extern "xgeShapeRoundRectDrawPx" func __xl6_xgeShapeRoundRectDrawPx(point tRect, c_float fRadius, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
+export func xgeShapeRoundRectDrawPx(point tRect, c_float fRadius, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
+    __xl6_xgeShapeRoundRectDrawPx(tRect, fRadius, iFillColor, fStrokeWidth, iStrokeColor)
+end
+
+extern "xgeShapeRoundRectDrawEx" func __xl6_xgeShapeRoundRectDrawEx(point tRect, point tRadii, c_int iMode, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
+export func xgeShapeRoundRectDrawEx(point tRect, point tRadii, c_int iMode, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
+    __xl6_xgeShapeRoundRectDrawEx(tRect, tRadii, iMode, iFillColor, fStrokeWidth, iStrokeColor)
+end
+
+extern "xgeShapeRoundRectDrawExPx" func __xl6_xgeShapeRoundRectDrawExPx(point tRect, point tRadii, c_int iMode, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
+export func xgeShapeRoundRectDrawExPx(point tRect, point tRadii, c_int iMode, c_uint iFillColor, c_float fStrokeWidth, c_uint iStrokeColor)
+    __xl6_xgeShapeRoundRectDrawExPx(tRect, tRadii, iMode, iFillColor, fStrokeWidth, iStrokeColor)
 end
 
 extern "xgeShapePolygonFill" func __xl6_xgeShapePolygonFill(point pPoints, c_int iCount, c_uint iColor)

@@ -14,7 +14,8 @@ typedef enum {
 	XRT_MURMUR3_ERROR_ARGUMENT = 1,
 	XRT_MURMUR3_ERROR_MEMORY = 2,
 	XRT_MURMUR3_ERROR_IO = 3,
-	XRT_MURMUR3_ERROR_LIMIT = 4
+	XRT_MURMUR3_ERROR_LIMIT = 4,
+	XRT_MURMUR3_ERROR_CANCELLED = 5
 } xrtmurmur3status;
 
 typedef struct {
@@ -33,30 +34,31 @@ typedef struct {
 
 typedef struct xrtmurmur3hasher xrtmurmur3hasher;
 
-XXAPI void xrtMurmur3OptionsInit(xrtmurmur3options* pOptions);
-XXAPI void xrtMurmur3ErrorInit(xrtmurmur3error* pError);
+XRT_API void xrtMurmur3OptionsInit(xrtmurmur3options* pOptions);
+XRT_API void xrtMurmur3ErrorInit(xrtmurmur3error* pError);
 
 /* 流式哈希器（128 位变体） */
-XXAPI xrtmurmur3hasher* xrtMurmur3HasherCreate(const xrtmurmur3options* pOptions, uint32 iSeed);
-XXAPI bool xrtMurmur3HasherUpdate(xrtmurmur3hasher* pHasher, const void* pData, size_t iSize);
-XXAPI bool xrtMurmur3HasherDigest(const xrtmurmur3hasher* pHasher, uint8* pOut);
-XXAPI bool xrtMurmur3HasherReset(xrtmurmur3hasher* pHasher);
-XXAPI uint64 xrtMurmur3HasherInputBytes(const xrtmurmur3hasher* pHasher);
-XXAPI xrtmurmur3hasher* xrtMurmur3HasherClone(const xrtmurmur3hasher* pSrc);
-XXAPI const xrtmurmur3error* xrtMurmur3HasherError(const xrtmurmur3hasher* pHasher);
-XXAPI void xrtMurmur3HasherDestroy(xrtmurmur3hasher* pHasher);
+XRT_API xrtmurmur3hasher* xrtMurmur3HasherCreate(const xrtmurmur3options* pOptions, uint32 iSeed);
+XRT_API bool xrtMurmur3HasherUpdate(xrtmurmur3hasher* pHasher, const void* pData, size_t iSize);
+XRT_API bool xrtMurmur3HasherDigest(const xrtmurmur3hasher* pHasher, uint8* pOut);
+XRT_API bool xrtMurmur3HasherReset(xrtmurmur3hasher* pHasher);
+XRT_API uint64 xrtMurmur3HasherInputBytes(const xrtmurmur3hasher* pHasher);
+XRT_API xrtmurmur3hasher* xrtMurmur3HasherClone(const xrtmurmur3hasher* pSrc);
+XRT_API const xrtmurmur3error* xrtMurmur3HasherError(const xrtmurmur3hasher* pHasher);
+XRT_API void xrtMurmur3HasherDestroy(xrtmurmur3hasher* pHasher);
 
 /* 一次性哈希 */
-XXAPI uint32 xrtMurmur3Hash32(const void* pData, size_t iSize, uint32 iSeed,
+XRT_API uint32 xrtMurmur3Hash32(const void* pData, size_t iSize, uint32 iSeed,
 	xrtmurmur3error* pError);
-XXAPI bool xrtMurmur3Hash128(const void* pData, size_t iSize, uint32 iSeed,
+XRT_API bool xrtMurmur3Hash128(const void* pData, size_t iSize, uint32 iSeed,
 	uint8* pOut, xrtmurmur3error* pError);
 
 /* 文件流式哈希 */
-XXAPI uint32 xrtMurmur3File32(xreader pReader, const xrtresourcelimits* pLimits,
-	uint32 iSeed, xrtmurmur3error* pError);
-XXAPI bool xrtMurmur3File128(xreader pReader, const xrtresourcelimits* pLimits,
-	uint32 iSeed, uint8* pOut, xrtmurmur3error* pError);
+XRT_API uint32 xrtMurmur3File32(xreader* pReader, const xrtresourcelimits* pLimits,
+	uint32 iSeed, xrtprogressproc pProgress, ptr pUserData, xrtmurmur3error* pError);
+XRT_API bool xrtMurmur3File128(xreader* pReader, const xrtresourcelimits* pLimits,
+	uint32 iSeed, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
+	xrtmurmur3error* pError);
 
 #ifdef __cplusplus
 }

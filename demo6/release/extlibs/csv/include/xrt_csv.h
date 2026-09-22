@@ -1,6 +1,14 @@
 #ifndef XRT_CSV_H
 #define XRT_CSV_H
 
+/* CSV 公共契约直接依赖连续缓冲和通用 Reader/Writer。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -54,28 +62,28 @@ typedef struct {
 typedef struct xrtcsvreader xrtcsvreader;
 typedef struct xrtcsvwriter xrtcsvwriter;
 
-XXAPI void xrtCsvDialectInit(xrtcsvdialect* pDialect);
-XXAPI void xrtCsvErrorInit(xrtcsverror* pError);
+XRT_API void xrtCsvDialectInit(xrtcsvdialect* pDialect);
+XRT_API void xrtCsvErrorInit(xrtcsverror* pError);
 
-XXAPI xrtcsvreader* xrtCsvReaderCreate(xreader pReader, bool bTakeOwnership,
+XRT_API xrtcsvreader* xrtCsvReaderCreate(xreader* pReader, bool bTakeOwnership,
 	const xrtcsvdialect* pDialect);
-XXAPI xrtcsvreader* xrtCsvReaderOpenMemory(const void* pData, uint64 iSize,
+XRT_API xrtcsvreader* xrtCsvReaderOpenMemory(const void* pData, uint64 iSize,
 	const xrtcsvdialect* pDialect);
-XXAPI xrtcsvreader* xrtCsvReaderOpenFile(str sPath, const xrtcsvdialect* pDialect);
-XXAPI const xrtcsverror* xrtCsvReaderError(const xrtcsvreader* pReader);
-XXAPI bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow);
-XXAPI bool xrtCsvReaderEOF(const xrtcsvreader* pReader);
-XXAPI void xrtCsvReaderDestroy(xrtcsvreader* pReader);
+XRT_API xrtcsvreader* xrtCsvReaderOpenFile(str sPath, const xrtcsvdialect* pDialect);
+XRT_API const xrtcsverror* xrtCsvReaderError(const xrtcsvreader* pReader);
+XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow);
+XRT_API bool xrtCsvReaderEOF(const xrtcsvreader* pReader);
+XRT_API void xrtCsvReaderDestroy(xrtcsvreader* pReader);
 
-XXAPI xrtcsvwriter* xrtCsvWriterCreate(xwriter pWriter, bool bTakeOwnership,
+XRT_API xrtcsvwriter* xrtCsvWriterCreate(xwriter* pWriter, bool bTakeOwnership,
 	const xrtcsvdialect* pDialect);
-XXAPI xrtcsvwriter* xrtCsvWriterCreateMemory(const xrtcsvdialect* pDialect);
-XXAPI xrtcsvwriter* xrtCsvWriterOpenFile(str sPath, const xrtcsvdialect* pDialect);
-XXAPI const xrtcsverror* xrtCsvWriterError(const xrtcsvwriter* pWriter);
-XXAPI bool xrtCsvWriterWrite(xrtcsvwriter* pWriter, uint32 iCount, const str* pFields);
-XXAPI bool xrtCsvWriterClose(xrtcsvwriter* pWriter);
-XXAPI xbuffer xrtCsvWriterTakeBuffer(xrtcsvwriter* pWriter);
-XXAPI void xrtCsvWriterDestroy(xrtcsvwriter* pWriter);
+XRT_API xrtcsvwriter* xrtCsvWriterCreateMemory(const xrtcsvdialect* pDialect);
+XRT_API xrtcsvwriter* xrtCsvWriterOpenFile(str sPath, const xrtcsvdialect* pDialect);
+XRT_API const xrtcsverror* xrtCsvWriterError(const xrtcsvwriter* pWriter);
+XRT_API bool xrtCsvWriterWrite(xrtcsvwriter* pWriter, uint32 iCount, const str* pFields);
+XRT_API bool xrtCsvWriterClose(xrtcsvwriter* pWriter);
+XRT_API xbuffer* xrtCsvWriterTakeBuffer(xrtcsvwriter* pWriter);
+XRT_API void xrtCsvWriterDestroy(xrtcsvwriter* pWriter);
 
 #ifdef __cplusplus
 }

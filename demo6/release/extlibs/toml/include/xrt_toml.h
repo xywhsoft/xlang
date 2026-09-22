@@ -1,6 +1,17 @@
 #ifndef XRT_TOML_H
 #define XRT_TOML_H
 
+/* TOML 公共契约直接依赖 Value、连续缓冲和通用 Reader/Writer。 */
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_IO
+#define XRT_MODULE_IO
+#endif
+#ifndef XRT_MODULE_VALUE
+#define XRT_MODULE_VALUE
+#endif
+
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -54,37 +65,38 @@ typedef struct {
 	uint8 iReserved;
 } xrttomldatetime;
 
-XXAPI void xrtTomlOptionsInit(xrttomloptions* pOptions);
-XXAPI void xrtTomlErrorInit(xrttomlerror* pError);
-XXAPI xvalue xrtTomlParse(xreader pReader, bool bTakeOwnership,
+XRT_API void xrtTomlOptionsInit(xrttomloptions* pOptions);
+XRT_API void xrtTomlErrorInit(xrttomlerror* pError);
+XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 	const xrttomloptions* pOptions, xrttomlerror* pError);
-XXAPI xvalue xrtTomlParseMemory(const void* pData, uint64 iSize,
+XRT_API xvalue* xrtTomlParseMemory(const void* pData, uint64 iSize,
 	const xrttomloptions* pOptions, xrttomlerror* pError);
-XXAPI xvalue xrtTomlLoad(str sPath, const xrttomloptions* pOptions,
+XRT_API xvalue* xrtTomlLoad(str sPath, const xrttomloptions* pOptions,
 	xrttomlerror* pError);
 
-XXAPI xbuffer xrtTomlStringify(xvalue pValue, const xrttomloptions* pOptions,
+XRT_API xbuffer* xrtTomlStringify(xvalue* pValue, const xrttomloptions* pOptions,
 	xrttomlerror* pError);
-XXAPI bool xrtTomlWrite(xvalue pValue, xwriter pWriter, bool bTakeOwnership,
+XRT_API bool xrtTomlWrite(xvalue* pValue, xwriter* pWriter, bool bTakeOwnership,
 	const xrttomloptions* pOptions, xrttomlerror* pError);
-XXAPI bool xrtTomlSave(str sPath, xvalue pValue, const xrttomloptions* pOptions,
+XRT_API bool xrtTomlSave(str sPath, xvalue* pValue, const xrttomloptions* pOptions,
 	xrttomlerror* pError);
 
-XXAPI const xrt_type_desc* xrtTomlDateType(void);
-XXAPI const xrt_type_desc* xrtTomlTimeType(void);
-XXAPI const xrt_type_desc* xrtTomlDateTimeType(void);
-XXAPI const xrt_type_desc* xrtTomlOffsetDateTimeType(void);
-XXAPI xvalue xrtTomlCreateDate(int iYear, int iMonth, int iDay);
-XXAPI xvalue xrtTomlCreateTime(int iHour, int iMinute, int iSecond,
+/*
+ * TOML 的 local date/time 不能无损落入统一 UTC time 值。
+ * 因此以普通 xvalue object 保存：__toml_type、year、month、day、hour、
+ * minute、second、microsecond、offsetMinutes。该表示对 C/xlang 都透明。
+ */
+XRT_API xvalue* xrtTomlCreateDate(int iYear, int iMonth, int iDay);
+XRT_API xvalue* xrtTomlCreateTime(int iHour, int iMinute, int iSecond,
 	int iMicrosecond);
-XXAPI xvalue xrtTomlCreateDateTime(int iYear, int iMonth, int iDay,
+XRT_API xvalue* xrtTomlCreateDateTime(int iYear, int iMonth, int iDay,
 	int iHour, int iMinute, int iSecond, int iMicrosecond);
-XXAPI xvalue xrtTomlCreateOffsetDateTime(int iYear, int iMonth, int iDay,
+XRT_API xvalue* xrtTomlCreateOffsetDateTime(int iYear, int iMonth, int iDay,
 	int iHour, int iMinute, int iSecond, int iMicrosecond,
 	int iTimezoneMinutes);
-XXAPI bool xrtTomlIsDateTimeValue(xvalue pValue, int* pKind);
-XXAPI const xrttomldatetime* xrtTomlGetDateTime(xvalue pValue);
-XXAPI str xrtTomlDateTimeToString(const xrttomldatetime* pValue);
+XRT_API bool xrtTomlIsDateTimeValue(const xvalue* pValue, int* pKind);
+XRT_API bool xrtTomlGetDateTime(const xvalue* pValue, xrttomldatetime* pResult);
+XRT_API str xrtTomlDateTimeToString(const xrttomldatetime* pValue);
 
 #ifdef __cplusplus
 }

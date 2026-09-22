@@ -1,99 +1,128 @@
-#include "xrt.h"
+#define XRUNTIME_MODULE_TYPED_STACK
+#define XRUNTIME_MODULE_TYPED_TREE
+#define XRUNTIME_MODULE_TYPED_QUEUE_SPSC
+#define XRUNTIME_MODULE_TYPED_QUEUE_MPSC
+#define XRUNTIME_MODULE_TYPED_QUEUE_MPMC
+#define XRT_MODULE_CHANNEL
+#define XRUNTIME_MODULE_RUNTIME_TYPE_STRING
+#include "xruntime.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static void require_line(const char* name, int ok)
+
+
+/* 验证一个示例步骤，并保持与 xlang 示例相同的输出。 */
+static void require_line(const char* sName, int bPassed)
 {
-    if ( !ok ) {
-        fprintf(stderr, "%s=fail\n", name);
-        exit(1);
-    }
-    printf("%s=ok\n", name);
-    fflush(stdout);
+	if ( !bPassed ) {
+		fprintf(stderr, "%s=fail\n", sName);
+		exit(1);
+	}
+
+	printf("%s=ok\n", sName);
+	fflush(stdout);
 }
 
+
+
+/* 对照演示新版 XRT 类型集合与等待队列接口。 */
 int main(void)
 {
-    xtstack stack = NULL;
-    xtavltree tree = NULL;
-    xtqueue spsc = NULL;
-    xtqueue mpsc = NULL;
-    xtqueue queue = NULL;
-    xtqueue waits = NULL;
-    xtarray keys = NULL;
-    int64 first = 10;
-    int64 second = 20;
-    int64 value = 0;
-    const char* keyA = "a";
-    const char* keyB = "b";
-    const char* text = NULL;
-    const char* hello = "hello";
+	xtypedstack* pStack = NULL;
+	xtypedtree* pTree = NULL;
+	xtypedspscqueue* pSPSC = NULL;
+	xtypedmpscqueue* pMPSC = NULL;
+	xtypedmpmcqueue* pMPMC = NULL;
+	xchannel* pWaitQueue = NULL;
+	const void* pFirstKey = NULL;
+	const void* pSecondKey = NULL;
+	ptr pReceived = NULL;
+	int64 iFirst = 10;
+	int64 iSecond = 20;
+	int64 iValue = 0;
+	const char* sKeyA = "a";
+	const char* sKeyB = "b";
+	const char* sText = NULL;
+	const char* sHello = "hello";
 
-    xrtInit();
+	/* 类型栈直接复用类型数组的值所有权。 */
+	pStack = xrtTypedStackCreate(xrtTypeInt64());
+	require_line(
+		"stack",
+		(pStack != NULL) &&
+		xrtTypedStackPush(pStack, &iFirst) &&
+		xrtTypedStackPush(pStack, &iSecond) &&
+		xrtTypedStackPop(pStack, &iValue) &&
+		(iValue == iSecond)
+	);
 
-    stack = xrtTypedStackCreate(xrtTypeInt());
-    require_line(
-        "stack",
-        stack != NULL &&
-        xrtTypedStackPush(stack, &first) &&
-        xrtTypedStackPush(stack, &second) &&
-        xrtTypedStackPop(stack, &value) && value == second);
+	/* 类型树按键类型排序，并允许零分配地遍历内部规范键。 */
+	pTree = xrtTypedTreeCreate(xrtTypeString(), xrtTypeInt64());
+	require_line(
+		"avl",
+		(pTree != NULL) &&
+		xrtTypedTreeSet(pTree, &sKeyB, &iSecond) &&
+		xrtTypedTreeSet(pTree, &sKeyA, &iFirst) &&
+		(xrtTypedTreeCount(pTree) == 2u) &&
+		(xrtTypedTreeFirst(pTree, &pFirstKey) != NULL) &&
+		(pFirstKey != NULL) &&
+		(strcmp(*(const char* const*)pFirstKey, "a") == 0) &&
+		(xrtTypedTreeUpperBound(pTree, pFirstKey, &pSecondKey) != NULL) &&
+		(pSecondKey != NULL) &&
+		(strcmp(*(const char* const*)pSecondKey, "b") == 0)
+	);
 
-    tree = xrtTypedAvlTreeCreate(xrtTypeString(), xrtTypeInt(), XRT_OBJMODE_SHARED);
-    require_line(
-        "avl",
-        tree != NULL &&
-        xrtTypedAvlTreeSet(tree, &keyB, &second) &&
-        xrtTypedAvlTreeSet(tree, &keyA, &first) &&
-        (keys = xrtTypedAvlTreeKeys(tree, XRT_OBJMODE_LOCAL)) != NULL &&
-        xrtTypedArrayCount(keys) == 2u &&
-        strcmp(*(const char**)xrtTypedArrayGet(keys, 1u), "a") == 0 &&
-        strcmp(*(const char**)xrtTypedArrayGet(keys, 2u), "b") == 0);
+	/* 并发拓扑由类型明确表达，避免在运行期携带队列模式分支。 */
+	pSPSC = xrtTypedSPSCQueueCreate(xrtTypeInt64(), 4u);
+	iValue = 0;
+	require_line(
+		"spsc",
+		(pSPSC != NULL) &&
+		(xrtTypedSPSCQueueTryPush(pSPSC, &iFirst) == XQUEUE_OK) &&
+		(xrtTypedSPSCQueueTryPop(pSPSC, &iValue) == XQUEUE_OK) &&
+		(iValue == iFirst)
+	);
 
-    spsc = xrtTypedQueueCreate(XRT_TYPED_QUEUE_SPSC, xrtTypeInt(), 4u);
-    value = 0;
-    require_line(
-        "spsc",
-        spsc != NULL &&
-        xrtTypedQueueTryPush(spsc, &first) == XQUEUE_OK &&
-        xrtTypedQueueTryPop(spsc, &value) == XQUEUE_OK &&
-        value == first);
+	pMPSC = xrtTypedMPSCQueueCreate(xrtTypeInt64(), 4u);
+	iValue = 0;
+	require_line(
+		"mpsc",
+		(pMPSC != NULL) &&
+		(xrtTypedMPSCQueueTryPush(pMPSC, &iSecond) == XQUEUE_OK) &&
+		(xrtTypedMPSCQueueTryPop(pMPSC, &iValue) == XQUEUE_OK) &&
+		(iValue == iSecond)
+	);
 
-    mpsc = xrtTypedQueueCreate(XRT_TYPED_QUEUE_MPSC, xrtTypeInt(), 4u);
-    value = 0;
-    require_line(
-        "mpsc",
-        mpsc != NULL &&
-        xrtTypedQueueTryPush(mpsc, &second) == XQUEUE_OK &&
-        xrtTypedQueueTryPop(mpsc, &value) == XQUEUE_OK &&
-        value == second);
+	pMPMC = xrtTypedMPMCQueueCreate(xrtTypeString(), 8u);
+	require_line(
+		"mpmc",
+		(pMPMC != NULL) &&
+		(xrtTypedMPMCQueueTryPush(pMPMC, &sHello) == XQUEUE_OK) &&
+		(xrtTypedMPMCQueueTryPop(pMPMC, &sText) == XQUEUE_OK) &&
+		(sText != NULL) &&
+		(strcmp(sText, sHello) == 0)
+	);
+	xrtTypeDropValue(xrtTypeString(), &sText);
 
-    queue = xrtTypedQueueCreate(XRT_TYPED_QUEUE_MPMC, xrtTypeString(), 8u);
-    require_line(
-        "mpmc",
-        queue != NULL &&
-        xrtTypedQueueTryPush(queue, &hello) == XQUEUE_OK &&
-        xrtTypedQueueTryPop(queue, &text) == XQUEUE_OK &&
-        text != NULL && strcmp(text, hello) == 0);
-    xrtTypeDropValue(xrtTypeString(), &text);
+	/* Channel 提供有界阻塞、超时和关闭语义。 */
+	pWaitQueue = xrtChannelCreate(4u);
+	require_line(
+		"wait_queue",
+		(pWaitQueue != NULL) &&
+		(xrtChannelRecvFor(pWaitQueue, &pReceived, 1000u) == XWAIT_TIMEOUT) &&
+		(xrtChannelSend(pWaitQueue, &iSecond) == XWAIT_OK) &&
+		(xrtChannelRecv(pWaitQueue, &pReceived) == XWAIT_OK) &&
+		(pReceived == &iSecond) &&
+		(*(int64*)pReceived == iSecond)
+	);
 
-    waits = xrtTypedQueueCreate(XRT_TYPED_QUEUE_WAIT, xrtTypeInt(), 4u);
-    require_line(
-        "wait_queue",
-        waits != NULL &&
-        xrtTypedQueuePopTimeout(waits, &value, 1u) == XQUEUE_TIMEOUT &&
-        xrtTypedQueueTryPush(waits, &second) == XQUEUE_OK &&
-        xrtTypedQueuePop(waits, &value) == XQUEUE_OK && value == second);
-
-    xrtTypedQueueRelease(waits);
-    xrtTypedQueueRelease(queue);
-    xrtTypedQueueRelease(mpsc);
-    xrtTypedQueueRelease(spsc);
-    xrtTypedArrayRelease(keys);
-    xrtTypedAvlTreeRelease(tree);
-    xrtTypedStackRelease(stack);
-    xrtUnit();
-    return 0;
+	xrtChannelDestroy(pWaitQueue);
+	xrtTypedMPMCQueueDestroy(pMPMC);
+	xrtTypedMPSCQueueDestroy(pMPSC);
+	xrtTypedSPSCQueueDestroy(pSPSC);
+	xrtTypedTreeDestroy(pTree);
+	xrtTypedStackDestroy(pStack);
+	return 0;
 }

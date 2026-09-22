@@ -440,7 +440,9 @@ static int __xuiCarouselConfigurePage(xui_widget pPage)
 {
 	if ( pPage == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	(void)xuiWidgetSetLayoutType(pPage, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetFlowMode(pPage, XUI_FLOW_BLOCK);
 	(void)xuiWidgetSetSizeMode(pPage, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pPage, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	(void)xuiWidgetSetOverflow(pPage, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pPage, 0);
 	(void)xuiWidgetSetTabStop(pPage, 0);
@@ -462,7 +464,9 @@ static int __xuiCarouselConfigureOverlay(xui_widget pOverlay, xui_widget pCarous
 	iRet = xuiWidgetSetCachePolicy(pOverlay, &tPolicy);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetCacheRenderCallback(pOverlay, __xuiCarouselOverlayRender, pCarousel);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetLayoutType(pOverlay, XUI_LAYOUT_MANUAL);
-	if ( iRet == XUI_OK ) iRet = xuiWidgetSetSizeMode(pOverlay, XUI_SIZE_FIXED, XUI_SIZE_FIXED);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFlowMode(pOverlay, XUI_FLOW_BLOCK);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetSizeMode(pOverlay, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	if ( iRet == XUI_OK ) iRet = xuiWidgetSetAlign(pOverlay, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetOverflow(pOverlay, XUI_OVERFLOW_VISIBLE);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetFocusable(pOverlay, 0);
 	if ( iRet == XUI_OK ) iRet = xuiWidgetSetTabStop(pOverlay, 0);
@@ -712,32 +716,6 @@ static int __xuiCarouselEvent(xui_widget pWidget, const xui_event_t* pEvent, voi
 	return XUI_OK;
 }
 
-static int __xuiCarouselArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
-{
-	xui_carousel_data_t* pData;
-	xui_carousel_data_t tResolved;
-	xui_rect_t tChild;
-	int i;
-	int iRet;
-
-	(void)pUser;
-	pData = __xuiCarouselGetData(pWidget);
-	if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
-	__xuiCarouselResolve(pWidget, pData, &tResolved);
-	__xuiCarouselComputeRects(pWidget, pData, &tResolved, tContentRect);
-	tChild = (xui_rect_t){tContentRect.fX, tContentRect.fY, tContentRect.fW, tContentRect.fH};
-	for ( i = 0; i < pData->iPageCount; i++ ) {
-		if ( pData->arrPages[i] == NULL ) continue;
-		iRet = xuiWidgetArrange(pData->arrPages[i], tChild);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	if ( pData->pOverlay != NULL ) {
-		iRet = xuiWidgetArrange(pData->pOverlay, tChild);
-		if ( iRet != XUI_OK ) return iRet;
-	}
-	return XUI_OK;
-}
-
 static int __xuiCarouselContentMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pSize, void* pUser)
 {
 	(void)pWidget;
@@ -778,7 +756,7 @@ static int __xuiCarouselUpdate(xui_widget pWidget, float fDelta, void* pUser)
 static void __xuiCarouselDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_FIXED;
 	pLayout->iHeightMode = XUI_SIZE_FIXED;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -862,7 +840,7 @@ static int __xuiCarouselInit(xui_widget pWidget, void* pTypeData, const void* pC
 	pData->iIndicatorActiveColor = (pDesc != NULL && pDesc->iIndicatorActiveColor != 0) ? pDesc->iIndicatorActiveColor : XUI_COLOR_RGBA(255, 255, 255, 255);
 	pData->iIndicatorHoverColor = (pDesc != NULL && pDesc->iIndicatorHoverColor != 0) ? pDesc->iIndicatorHoverColor : XUI_COLOR_RGBA(255, 255, 255, 215);
 	pData->iFocusColor = (pDesc != NULL && pDesc->iFocusColor != 0) ? pDesc->iFocusColor : XUI_COLOR_RGBA(255, 255, 255, 110);
-	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_MANUAL);
+	(void)xuiWidgetSetLayoutType(pWidget, XUI_LAYOUT_OVERLAY);
 	(void)xuiWidgetSetOverflow(pWidget, XUI_OVERFLOW_CLIP);
 	(void)xuiWidgetSetFocusable(pWidget, 1);
 	(void)xuiWidgetSetTabStop(pWidget, 1);
@@ -966,7 +944,6 @@ XUI_API xui_widget_type xuiCarouselGetType(xui_context pContext)
 	tDesc.onInit = __xuiCarouselInit;
 	tDesc.onDestroy = __xuiCarouselDestroy;
 	tDesc.onContentMeasure = __xuiCarouselContentMeasure;
-	tDesc.onLayoutArrange = __xuiCarouselArrange;
 	tDesc.onCacheRender = __xuiCarouselBaseRender;
 	tDesc.onUpdate = __xuiCarouselUpdate;
 	__xuiCarouselDefaultLayout(&tDesc.tLayout);

@@ -9,10 +9,10 @@ static bool __xrtXmlCountNode(xrtxmlsax* pParser)
 	if ( pParser->iNodes >= pParser->tOptions.tLimits.iMaxNodes ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_LIMIT,
 			"XML nodes exceed the configured resource limit");
-		return FALSE;
+		return false;
 	}
 	pParser->iNodes++;
-	return TRUE;
+	return true;
 }
 
 static void XMLCALL __xrtXmlStart(void* pUser, const XML_Char* sName,
@@ -68,7 +68,7 @@ static void XMLCALL __xrtXmlPi(void* pUser, const XML_Char* sTarget,
 	if ( !__xrtXmlCountNode(pParser) ||
 		!__xrtXmlPrepareEvent(pParser,
 			XRT_XML_EVENT_PROCESSING_INSTRUCTION) ) { return; }
-	pParser->tEvent.sTarget = xrtCopyStr((str)sTarget, strlen(sTarget));
+	pParser->tEvent.sTarget = xrtStrDup(sTarget);
 	if ( pParser->tEvent.sTarget == NULL ||
 		!__xrtXmlSetEventText(pParser, sData, (int)strlen(sData)) ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
@@ -83,10 +83,8 @@ static void XMLCALL __xrtXmlStartNamespace(void* pUser,
 {
 	xrtxmlsax* pParser = (xrtxmlsax*)pUser;
 	if ( !__xrtXmlPrepareEvent(pParser, XRT_XML_EVENT_START_NAMESPACE) ) { return; }
-	pParser->tEvent.sPrefix = xrtCopyStr((str)(sPrefix != NULL ? sPrefix : ""),
-		sPrefix != NULL ? strlen(sPrefix) : 0u);
-	pParser->tEvent.sNamespaceUri = xrtCopyStr((str)(sUri != NULL ? sUri : ""),
-		sUri != NULL ? strlen(sUri) : 0u);
+	pParser->tEvent.sPrefix = xrtStrDup(sPrefix != NULL ? sPrefix : "");
+	pParser->tEvent.sNamespaceUri = xrtStrDup(sUri != NULL ? sUri : "");
 	if ( pParser->tEvent.sPrefix == NULL || pParser->tEvent.sNamespaceUri == NULL ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 			"out of memory while copying XML namespace");
@@ -99,8 +97,7 @@ static void XMLCALL __xrtXmlEndNamespace(void* pUser, const XML_Char* sPrefix)
 {
 	xrtxmlsax* pParser = (xrtxmlsax*)pUser;
 	if ( !__xrtXmlPrepareEvent(pParser, XRT_XML_EVENT_END_NAMESPACE) ) { return; }
-	pParser->tEvent.sPrefix = xrtCopyStr((str)(sPrefix != NULL ? sPrefix : ""),
-		sPrefix != NULL ? strlen(sPrefix) : 0u);
+	pParser->tEvent.sPrefix = xrtStrDup(sPrefix != NULL ? sPrefix : "");
 	if ( pParser->tEvent.sPrefix == NULL ) {
 		__xrtXmlSetError(pParser, XRT_XML_ERROR_MEMORY,
 			"out of memory while copying XML namespace");
@@ -138,7 +135,7 @@ static bool __xrtXmlValidateOptions(const xrtxmloptions* pOptions,
 	xrtxmloptions* pResult)
 {
 	xrtXmlOptionsInit(pResult);
-	if ( pOptions == NULL ) { return TRUE; }
+	if ( pOptions == NULL ) { return true; }
 	if ( pOptions->iSize != sizeof(*pOptions) ||
 		pOptions->iVersion != XRT_XML_OPTIONS_VERSION ||
 		pOptions->tLimits.iSize != sizeof(xrtresourcelimits) ||
@@ -148,12 +145,12 @@ static bool __xrtXmlValidateOptions(const xrtxmloptions* pOptions,
 		pOptions->tLimits.iMaxItemBytes == 0u ||
 		pOptions->tLimits.iMaxEntries == 0u ||
 		pOptions->tLimits.iMaxNodes == 0u ||
-		pOptions->tLimits.iMaxDepth == 0u ) { return FALSE; }
+		pOptions->tLimits.iMaxDepth == 0u ) { return false; }
 	*pResult = *pOptions;
-	return TRUE;
+	return true;
 }
 
-static xrtxmlsax* __xrtXmlCreate(xreader pReader, bool bTakeOwnership,
+static xrtxmlsax* __xrtXmlCreate(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, bool bPull, xrtxml_event_proc pHandler,
 	ptr pContext, xrtxmlerror* pError)
 {
@@ -223,7 +220,7 @@ int __xrtXmlPump(xrtxmlsax* pParser)
 	if ( pParser->bDone ) { return XRT_XML_NEXT_END; }
 	for (;;) {
 		if ( pParser->bSuspended ) {
-			pParser->bSuspended = FALSE;
+			pParser->bSuspended = false;
 			iStatus = XML_ResumeParser(pParser->pExpat);
 			if ( iStatus == XML_STATUS_SUSPENDED ) { return XRT_XML_NEXT_EVENT; }
 			if ( iStatus == XML_STATUS_ERROR ) {
@@ -231,7 +228,7 @@ int __xrtXmlPump(xrtxmlsax* pParser)
 				return XRT_XML_NEXT_ERROR;
 			}
 			if ( pParser->bFinalSent ) {
-				pParser->bDone = TRUE;
+				pParser->bDone = true;
 				return XRT_XML_NEXT_END;
 			}
 		}
@@ -262,24 +259,24 @@ int __xrtXmlPump(xrtxmlsax* pParser)
 			return XRT_XML_NEXT_ERROR;
 		}
 		if ( pParser->bFinalSent ) {
-			pParser->bDone = TRUE;
+			pParser->bDone = true;
 			return XRT_XML_NEXT_END;
 		}
 	}
 }
 
-XXAPI xrtxmlsax* xrtXmlSaxOpen(xreader pReader, bool bTakeOwnership,
+XRT_API xrtxmlsax* xrtXmlSaxOpen(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	return __xrtXmlCreate(pReader, bTakeOwnership, pOptions, TRUE, NULL, NULL,
+	return __xrtXmlCreate(pReader, bTakeOwnership, pOptions, true, NULL, NULL,
 		pError);
 }
 
-XXAPI xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
+XRT_API xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xbuffer pBuffer;
-	xreader pReader;
+	xbuffer* pBuffer;
+	xreader* pReader;
 	if ( (pData == NULL && iSize != 0u) || iSize > UINT32_MAX ) {
 		xrtXmlErrorInit(pError);
 		if ( pError != NULL ) {
@@ -289,10 +286,11 @@ XXAPI xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
 		}
 		return NULL;
 	}
-	pBuffer = xrtBufferCreate(iSize < XRT_XML_READ_CHUNK ?
-		(uint32)iSize : XRT_XML_READ_CHUNK);
-	if ( pBuffer == NULL || (iSize != 0u &&
-		!xrtBufferAppend(pBuffer, (ptr)pData, (uint32)iSize, XBUF_BINARY)) ) {
+	pBuffer = xrtBufferCreate();
+	if ( pBuffer == NULL || !xrtBufferReserve(pBuffer,
+		(size_t)(iSize < XRT_XML_READ_CHUNK ? iSize : XRT_XML_READ_CHUNK)) ||
+		(iSize != 0u && !xrtBufferAppend(pBuffer,
+			(xbytesview){ (cbytes)pData, (size_t)iSize })) ) {
 		xrtBufferDestroy(pBuffer);
 		xrtXmlErrorInit(pError);
 		if ( pError != NULL ) {
@@ -302,15 +300,15 @@ XXAPI xrtxmlsax* xrtXmlSaxOpenMemory(const void* pData, uint64 iSize,
 		}
 		return NULL;
 	}
-	pReader = xrtReaderFromBuffer(pBuffer, TRUE);
+	pReader = xrtReaderTakeBuffer(&pBuffer);
 	if ( pReader == NULL ) { xrtBufferDestroy(pBuffer); }
-	return xrtXmlSaxOpen(pReader, TRUE, pOptions, pError);
+	return xrtXmlSaxOpen(pReader, true, pOptions, pError);
 }
 
-XXAPI xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
+XRT_API xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderOpen(sPath);
+	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
 		xrtXmlErrorInit(pError);
 		if ( pError != NULL ) {
@@ -320,10 +318,10 @@ XXAPI xrtxmlsax* xrtXmlSaxOpenFile(str sPath,
 		}
 		return NULL;
 	}
-	return xrtXmlSaxOpen(pReader, TRUE, pOptions, pError);
+	return xrtXmlSaxOpen(pReader, true, pOptions, pError);
 }
 
-XXAPI int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
+XRT_API int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
 	xrtxmlerror* pError)
 {
 	int iResult;
@@ -350,7 +348,7 @@ XXAPI int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
 	return iResult;
 }
 
-XXAPI void xrtXmlSaxDestroy(xrtxmlsax* pParser)
+XRT_API void xrtXmlSaxDestroy(xrtxmlsax* pParser)
 {
 	uint32 i;
 	if ( pParser == NULL ) { return; }
@@ -370,14 +368,14 @@ XXAPI void xrtXmlSaxDestroy(xrtxmlsax* pParser)
 	xrtFree(pParser);
 }
 
-XXAPI xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser)
+XRT_API xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser)
 {
 	if ( pParser == NULL || pParser->iReferences == UINT32_MAX ) { return NULL; }
 	pParser->iReferences++;
 	return pParser;
 }
 
-XXAPI bool xrtXmlSaxParse(xreader pReader, bool bTakeOwnership,
+XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError)
 {
@@ -385,11 +383,11 @@ XXAPI bool xrtXmlSaxParse(xreader pReader, bool bTakeOwnership,
 	int iResult;
 	if ( pHandler == NULL ) {
 		if ( pReader != NULL && bTakeOwnership ) { xrtReaderDestroy(pReader); }
-		return FALSE;
+		return false;
 	}
-	pParser = __xrtXmlCreate(pReader, bTakeOwnership, pOptions, FALSE,
+	pParser = __xrtXmlCreate(pReader, bTakeOwnership, pOptions, false,
 		pHandler, pContext, pError);
-	if ( pParser == NULL ) { return FALSE; }
+	if ( pParser == NULL ) { return false; }
 	iResult = __xrtXmlPump(pParser);
 	if ( iResult == XRT_XML_NEXT_ERROR ) {
 		__xrtXmlCopyParserError(pParser, pError);
@@ -398,18 +396,19 @@ XXAPI bool xrtXmlSaxParse(xreader pReader, bool bTakeOwnership,
 	return iResult == XRT_XML_NEXT_END;
 }
 
-XXAPI bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
+XRT_API bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderFromMemory(pData, iSize);
-	return xrtXmlSaxParse(pReader, TRUE, pOptions, pHandler, pContext, pError);
+	xreader* pReader = xrtReaderFromMemory(
+		(xbytesview){ (cbytes)pData, (size_t)iSize });
+	return xrtXmlSaxParse(pReader, true, pOptions, pHandler, pContext, pError);
 }
 
-XXAPI bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
+XRT_API bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
 	xrtxml_event_proc pHandler, ptr pContext, xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderOpen(sPath);
+	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
 		xrtXmlErrorInit(pError);
 		if ( pError != NULL ) {
@@ -417,7 +416,7 @@ XXAPI bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
 			snprintf(pError->sMessage, sizeof(pError->sMessage),
 				"could not open XML file");
 		}
-		return FALSE;
+		return false;
 	}
-	return xrtXmlSaxParse(pReader, TRUE, pOptions, pHandler, pContext, pError);
+	return xrtXmlSaxParse(pReader, true, pOptions, pHandler, pContext, pError);
 }

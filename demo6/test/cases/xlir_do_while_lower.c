@@ -1,5 +1,4 @@
 #include "src/cgen/xl6_ir_cgen.h"
-#include "src/ir/xl6_hir.h"
 
 #include <stdio.h>
 
@@ -13,7 +12,6 @@ static XL6_AstNode* testType(const char* name, XL6_TypeId id, const char* abi)
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_Output out;
@@ -27,7 +25,6 @@ int main(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     /* This fixture inspects generated C, so keep the callable in the verified
@@ -55,7 +52,7 @@ int main(void)
     xl6AstAddChild(func, loop);
     xl6AstAddChild(root, func);
 
-    ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags) &&
          xl6IrCgenEmitC(&out, &ir, &diags);
     text = xl6OutputTakeMemoryText(&out, NULL);
@@ -67,7 +64,6 @@ int main(void)
     }
     if ( !ok ) fprintf(stderr, "XLIR do-while lowering test failed: %s\n", diags.count > 0 ? diags.items[0].message : "<none>");
     xrtFree(text);
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);

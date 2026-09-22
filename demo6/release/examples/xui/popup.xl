@@ -1,0 +1,35 @@
+// popup.xl — 弹出层：Popup 控件（按钮触发显示）
+import xui
+
+xui.XuiApp g_app
+xui.Popup g_popup
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Popup Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Popup Demo", font)
+    root.addChild(title)
+
+    g_popup = xui.Popup(ctx)
+    g_popup.setPreferredSize(260.0, 120.0)
+
+    xui.Label popupText = xui.Label(ctx, "Hello from the popup!", font)
+    g_popup.addChild(popupText)
+    root.addChild(g_popup)
+
+    xui.Button btnShow = xui.Button(ctx, "Show Popup", font)
+    btnShow.onClick(func(xui.Widget w)
+        g_popup.setVisible(1)
+    end)
+    root.addChild(btnShow)
+
+    g_app.run(onFrame)
+    return 0
+end

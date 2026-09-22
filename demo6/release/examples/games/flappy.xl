@@ -1,0 +1,237 @@
+// flappy.xl — 飞扬的小鸟（键盘经典游戏）
+// 空格/W 起飞，死亡后 R 重开。
+// 无头冒烟：xl run flappy.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int WIN_W = 480
+int WIN_H = 640
+int GROUND_H = 90
+int PIPE_W = 64                       // 管道宽
+int PIPE_GAP = 150                    // 上下管开口高度
+int PIPE_STEP = 240                   // 管道水平间距
+float SPEED = 170.0                   // 管道/地面滚动速度（像素/秒）
+float GRAVITY = 1500.0                // 重力加速度
+float FLAP_V = -430.0                 // 起飞速度
+int BIRD_X = 200                      // 小鸟固定横坐标
+int BIRD_R = 14                       // 小鸟半径
+
+// --- 游戏状态 ---
+float birdY = 300.0
+float birdVel = 0.0
+array<int> pipeX = [560, 800, 1040, 1280]
+array<int> gapY = [200, 260, 220, 300] // 开口顶部纵坐标
+array<int> passed = [0, 0, 0, 0]
+int state = 0                          // 0=待开始 1=进行 2=死亡
+int score = 0
+float bobT = 0.0                       // 待开始悬浮相位
+float groundOff = 0.0                  // 地面滚动偏移
+float scrollFrac = 0.0                 // 管道亚像素累积
+xge.Font hudFont
+xge.Font bigFont
+Random rng = Random(uint64(2013), uint64(7))
+
+// --- 初始化 ---
+func reset()
+    birdY = 300.0
+    birdVel = 0.0
+    score = 0
+    state = 0
+    bobT = 0.0
+    groundOff = 0.0
+    scrollFrac = 0.0
+    int i = 0
+    while i < 4
+        pipeX[i] = 560 + i * PIPE_STEP
+        gapY[i] = 80 + int(rng.u32()) % 241
+        passed[i] = 0
+        i += 1
+    end
+end
+
+// --- 碰撞：小鸟 AABB vs 管道矩形 ---
+func hitPipe(int i) as bool
+    int px = pipeX[i]
+    int gy = gapY[i]
+    int bx1 = BIRD_X - 12
+    int bx2 = BIRD_X + 12
+    int by1 = int(birdY) - 12
+    int by2 = int(birdY) + 12
+    if bx2 < px or bx1 > px + PIPE_W then
+        return false
+    end
+    if by1 < gy then
+        return true
+    end
+    if by2 > gy + PIPE_GAP then
+        return true
+    end
+    return false
+end
+
+// --- 输入 ---
+func handleInput()
+    if xge.Input.keyPressed(xge.XGE_KEY_SPACE) or xge.Input.keyPressed(87) then
+        if state == 0 then
+            state = 1
+            birdVel = FLAP_V
+        elseif state == 1 then
+            birdVel = FLAP_V
+        end
+    end
+    if state == 2 and xge.Input.keyPressed(82) then
+        reset()
+    end
+end
+
+// --- 逻辑更新 ---
+func update()
+    float dt = xge.XgeApp.delta()
+
+    // 地面滚动（待开始/进行中）
+    if state != 2 then
+        groundOff += SPEED * dt
+        while groundOff >= 48.0
+            groundOff -= 48.0
+        end
+    end
+
+    if state == 0 then
+        // 待开始：小鸟上下悬浮
+        bobT += dt
+        birdY = 300.0 + math.sin(bobT * 3.0) * 10.0
+        return
+    end
+
+    if state != 1 then
+        return
+    end
+
+    // 物理
+    birdVel += GRAVITY * dt
+    birdY += birdVel * dt
+    if birdY < 16.0 then
+        birdY = 16.0
+        birdVel = 0.0
+    end
+    if birdY + 14.0 > 550.0 then
+        birdY = 550.0 - 14.0
+        state = 2
+    end
+
+    // 管道左移（亚像素累积保证速度精确）
+    scrollFrac += SPEED * dt
+    int adv = int(scrollFrac)
+    scrollFrac -= float(adv)
+    int i = 0
+    while i < 4
+        pipeX[i] -= adv
+        // 出屏回收：搬到最右侧并重随机开口
+        if pipeX[i] < -PIPE_W - 20 then
+            pipeX[i] += 4 * PIPE_STEP
+            gapY[i] = 80 + int(rng.u32()) % 241
+            passed[i] = 0
+        end
+        // 计分
+        if passed[i] == 0 and pipeX[i] + PIPE_W < BIRD_X - 12 then
+            passed[i] = 1
+            score += 1
+        end
+        // 碰撞
+        if hitPipe(i) then
+            state = 2
+        end
+        i += 1
+    end
+end
+
+// --- 绘制 ---
+func draw()
+    uint32 pipeC = xge.Color.rgba(86, 168, 78, 255)
+    uint32 lipC = xge.Color.rgba(60, 130, 55, 255)
+    uint32 sandC = xge.Color.rgba(222, 200, 130, 255)
+    uint32 stripeC = xge.Color.rgba(205, 180, 105, 255)
+    uint32 grassC = xge.Color.rgba(94, 160, 82, 255)
+
+    // 管道
+    int i = 0
+    while i < 4
+        int px = pipeX[i]
+        int gy = gapY[i]
+        xge.Shape.rectFillPixels(px, 0, PIPE_W, gy, pipeC)
+        xge.Shape.rectFillPixels(px - 4, gy - 22, PIPE_W + 8, 22, lipC)
+        xge.Shape.rectFillPixels(px, gy + PIPE_GAP, PIPE_W, 550 - gy - PIPE_GAP, pipeC)
+        xge.Shape.rectFillPixels(px - 4, gy + PIPE_GAP, PIPE_W + 8, 22, lipC)
+        i += 1
+    end
+
+    // 地面 + 滚动条纹
+    xge.Shape.rectFillPixels(0, 550, WIN_W, GROUND_H, sandC)
+    int gx = -int(groundOff)
+    while gx < WIN_W
+        xge.Shape.rectFillPixels(gx, 562, 24, 24, stripeC)
+        gx += 48
+    end
+    xge.Shape.rectFillPixels(0, 550, WIN_W, 10, grassC)
+
+    // 小鸟（身体 + 眼睛 + 嘴）
+    xge.Shape.circleFill(float(BIRD_X), birdY, float(BIRD_R), xge.Color.rgba(250, 210, 70, 255))
+    xge.Shape.circleFill(float(BIRD_X + 5), birdY - 4.0, 5.0, xge.Color.rgba(255, 255, 255, 255))
+    xge.Shape.circleFill(float(BIRD_X + 7), birdY - 4.0, 2.0, xge.Color.rgba(40, 40, 50, 255))
+    xge.Shape.triangleFill(float(BIRD_X + 10), birdY - 5.0, float(BIRD_X + 26), birdY, float(BIRD_X + 10), birdY + 5.0, xge.Color.rgba(240, 130, 40, 255))
+
+    // 计分
+    if bigFont.valid then
+        int sx = 216
+        if score >= 100 then
+            sx = 194
+        elseif score >= 10 then
+            sx = 205
+        end
+        bigFont.drawText(string(score), float(sx), 20.0, xge.Color.rgba(255, 255, 255, 255))
+    end
+
+    // 状态提示
+    if hudFont.valid then
+        if state == 0 then
+            hudFont.drawText("PRESS SPACE TO FLAP", 145, 420, xge.Color.rgba(255, 255, 255, 255))
+        elseif state == 2 then
+            hudFont.drawText("GAME OVER - press R", 150, 420, xge.Color.rgba(255, 107, 94, 255))
+        end
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    handleInput()
+    update()
+    xge.XgeApp.beginFrame(xge.Color.rgba(96, 168, 196, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run flappy.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(WIN_W, WIN_H, "xlang flappy")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+    bigFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 36.0)
+    if not bigFont.valid then
+        bigFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 36.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

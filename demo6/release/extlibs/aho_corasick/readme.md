@@ -1,23 +1,13 @@
-# aho_corasick — 多模式字符串匹配
+# aho_corasick - 多模式匹配
 
-在一段文本中**同时**搜索多个关键词，一次扫描即找出所有命中位置。
+`aho_corasick` 用一次扫描同时查找多组字节模式，并为常用文本场景提供查找、计数、替换、遮盖、高亮和跨分块扫描能力。
 
-基于 Aho-Corasick 自动机算法，时间复杂度 O(文本长度 + 匹配数)，与模式数量无关。
+本库分为两层：
 
----
+- `include/xrt_aho_corasick.h`：完整 C 契约，使用 `xstrview`，支持嵌入零字节。
+- `src/aho_corasick.xl`：XLang 易用层，提供 `Automaton`、`Scanner` 和 `Match`。
 
-## 典型应用场景
 
-| 场景 | 说明 |
-|------|------|
-| 敏感词过滤 | 用户输入中检测违禁词，替换或拦截 |
-| 日志多规则匹配 | 一条日志同时匹配数百条告警规则 |
-| 关键词高亮 | 搜索结果页面标注命中词 |
-| 入侵检测 | 网络载荷中匹配攻击特征库 |
-| 词典标注 | NLP 中对文本进行实体识别 |
-| 代码审计 | 源码中批量搜索危险函数调用 |
-
----
 
 ## 快速开始
 
@@ -25,210 +15,314 @@
 import aho_corasick
 from aho_corasick import Match, Automaton
 
-Automaton ac = aho_corasick.create(["he", "she", "his", "hers"])
+Automaton words = aho_corasick.create(["he", "she", "his", "hers"])
 
-// 搜索所有匹配
-for m in ac.search("ushers")
-    println(m.pattern, " @", m.start, "..", m.endPos)
+for item in words.search("ushers")
+    println(item.pattern, " @", item.start, "..", item.endPos)
 end
-// she @1..4
-// he  @2..4
-// hers @2..6
 
-// 敏感词一行搞定
-Automaton filter = aho_corasick.create(["赌博", "色情"], ignoreCase = true)
-string safe = filter.replace("涉及赌博内容", "***")  // "涉及***内容"
+string safe = words.replace("ushers", "*")
+assert safe == "u*"
 ```
 
----
+C 调用方可以直接使用明确长度视图：
 
-## 核心概念
+```c
+#include "xrt_aho_corasick.h"
 
-### 自动机（Automaton）
+xrtaho* automaton = xrtAhoCreate(NULL);
+xrtAhoAdd(automaton, XRT_STR_LITERAL("error"));
+xrtAhoAdd(automaton, XRT_STR_LITERAL("fatal"));
+xrtAhoBuild(automaton);
 
-自动机是本库的核心对象。它持有一组模式（patterns），构建后形成 Trie + failure link 结构，可对任意文本执行线性扫描。
+bool contains = false;
+xrtAhoContains(automaton, XRT_STR_LITERAL("fatal: disk"), &contains);
+xrtAhoDestroy(automaton);
+```
 
-**生命周期**：`创建 → 添加模式 → 构建 → 搜索（可重复）`
 
-### 匹配结果（Match）
 
-每次命中产出一个 Match 对象：
+## 实现特征
+
+旧实现为每个 Trie 节点固定保存 `children[256]`，64 位目标上仅子节点表就占 2048 字节。当前实现改为：
+
+- 连续节点数组；
+- 构建期稀疏边；
+- 构建后按节点压实、排序的转移区间；
+- failure link 和 output link；
+- 只保存直接输出，不向子节点复制 failure 输出。
+
+普通节点不再承担 256 个指针的固定开销。查找转移使用二分搜索，单次最多比较 8 次；failure 回退仍保持 Aho-Corasick 的线性摊销特征。
+
+经典 `he/she/his/hers` 自动机包含 10 个节点和 9 条压实转移。当前 64 位测试门禁要求模块有效分配量小于 4 KiB；旧固定表仅 10 个节点的子指针就需要约 20 KiB。
+
+`build()` 在分配转移表和 BFS 队列成功后才修改 failure 状态。分配失败时自动机仍处于未构建状态，可直接重试，不会重复合并输出或留下半构建结构。
+
+
+
+## 匹配语义
+
+### 字节模式
+
+核心匹配器处理任意字节序列，不要求 UTF-8，也不以 `\0` 作为结束条件。`xstrview` 中的嵌入零字节属于模式和文本的一部分。
+
+`bIgnoreAsciiCase` 只折叠 ASCII `A-Z`，不会尝试进行 Unicode 大小写映射。Unicode 全量大小写折叠会改变字节长度和一对多映射关系，不属于此自动机的隐式行为。
+
+### 偏移
+
+`Match.start`、`Match.endPos`、`xrtahomatch.iStart` 和 `iEnd` 都是 UTF-8 原始字节偏移，区间为 `[start, end)`。
+
+### 普通结果顺序
+
+`search` / `xrtAhoSearch` 的结果按以下规则稳定排序：
+
+1. 起点升序；
+2. 同起点结束位置升序；
+3. 同区间模式注册索引升序。
+
+`scan` 和增量扫描为了即时发送结果，按扫描结束位置顺序产生匹配，不执行结果排序。
+
+### 非重叠选择
+
+`replaceWith` / `xrtAhoSearchNonOverlapping` 使用独立的左优先最长规则：
+
+1. 选择当前最小起点；
+2. 同起点选择最长模式；
+3. 跳过与已选择结果重叠的后续匹配。
+
+`replace`、`mask` 和 `highlight` 会合并严格重叠区间。相邻区间不合并，因此 `ab` 和 `cd` 在 `abcd` 中仍是两个替换位置。
+
+
+
+## XLang API
+
+### 创建
+
+```xlang
+aho_corasick.create(
+    patterns = [],
+    ignoreCase = false,
+    maxPatterns = 0,
+    maxPatternBytes = 0,
+    maxTotalPatternBytes = 0,
+    maxNodes = 0,
+    maxMatches = 0,
+    maxInputBytes = 0,
+    maxOutputBytes = 0
+) as Automaton
+```
+
+限制字段为零时不限制。非零限制在添加、扫描或创建输出前执行，不会在超限后返回截断结果。
+
+传入非空 `patterns` 时自动调用 `build()`。不传模式时可以逐项添加后手动构建：
+
+```xlang
+Automaton words = aho_corasick.create()
+words.addPattern("warn")
+words.addPatterns(["error", "fatal"])
+words.build()
+```
+
+空模式无定义且会被拒绝。`ignoreCase = true` 时，ASCII 大小写等价的重复模式也会被拒绝。
+
+### Automaton
+
+| 成员 | 返回值 | 说明 |
+|---|---:|---|
+| `valid` | `bool` | 原生句柄是否存在 |
+| `built` | `bool` | 是否已构建 |
+| `patternCount` | `int` | 模式数量 |
+| `pattern(index)` | `string` | 返回指定模式的独立字符串 |
+| `addPattern(pattern)` | - | 添加一个非空模式 |
+| `addPatterns(patterns)` | - | 顺序添加一组模式 |
+| `build()` | - | 构建不可变自动机 |
+| `search(text)` | `array<Match>` | 返回排序后的全部重叠匹配 |
+| `searchFirst(text)` | `Match?` | 无结果数组地返回普通排序下首项 |
+| `contains(text)` | `bool` | 首次命中立即停止 |
+| `count(text)` | `int` | 不创建结果数组地计数 |
+| `scan(text, fn)` | `bool` | 即时回调；`false` 表示被回调停止 |
+| `scanner()` | `Scanner` | 创建跨分块扫描器 |
+| `replace(text, replacement)` | `string` | 合并重叠区间后固定替换 |
+| `replaceWith(text, fn)` | `string` | 左优先最长回调替换 |
+| `mask(text, mask = "*")` | `string` | 按 UTF-8 标量数量遮盖 |
+| `highlight(text, open, close)` | `string` | 包裹合并后的重叠区间 |
+
+### Match
 
 | 字段 | 类型 | 说明 |
-|------|------|------|
-| `pattern` | string | 命中的模式文本 |
-| `start` | int | 起始字节偏移（含） |
-| `endPos` | int | 结束字节偏移（不含） |
-| `length` | int | 匹配长度（= endPos - start） |
+|---|---:|---|
+| `pattern` | `string` | 注册时的原始模式 |
+| `start` | `int` | 起始字节偏移 |
+| `endPos` | `int` | 结束字节偏移 |
+| `length` | `int` | 匹配字节长度 |
 
-### 区间合并
+### Scanner
 
-`replace`、`mask`、`highlight` 会自动合并重叠区间。例如 "ushers" 中 she[1,4)、he[2,4)、hers[2,6) 合并为 [1,6)，替换结果为 `"u*"`。
-
----
-
-## API 参考
-
-### 工厂函数
+`Scanner` 持有自动机引用，并复制当前输入分块。回调暂停或抛出异常时，剩余分块不会引用已经销毁的临时字符串。
 
 ```xlang
-aho_corasick.create(patterns = [], ignoreCase = false) as Automaton
-```
+Scanner scanner = words.scanner()
 
-- `patterns`：模式字符串数组。非空时自动调用 `build()`。
-- `ignoreCase`：匹配时忽略大小写（构建和搜索双侧统一 tolower）。
-
-### Automaton 方法
-
-| 方法 | 返回值 | 说明 |
-|------|--------|------|
-| `addPattern(string)` | — | 添加单个模式（build 前） |
-| `addPatterns(array<string>)` | — | 批量添加 |
-| `build()` | — | 构建自动机（之后不可再添加） |
-| `search(text)` | `array<Match>` | 返回全部匹配 |
-| `searchFirst(text)` | `Match` | 返回首个匹配，无则 null |
-| `contains(text)` | `bool` | 是否存在任意匹配（最快） |
-| `count(text)` | `int` | 匹配总数 |
-| `scan(text, fn)` | `bool` | 流式扫描，fn 返回 false 中断 |
-| `replace(text, repl)` | `string` | 合并区间 → 固定文本替换 |
-| `replaceWith(text, fn)` | `string` | 非重叠匹配 → 回调决定替换 |
-| `mask(text, ch)` | `string` | 合并区间 → 逐字符遮盖 |
-| `highlight(text, open, close)` | `string` | 合并区间 → 标签包裹 |
-
-### Automaton 属性
-
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `valid` | bool | handle 非空（未销毁） |
-| `built` | bool | 是否已构建 |
-| `patternCount` | int | 已添加的模式数 |
-
----
-
-## 由浅入深
-
-### 第 1 步：创建与搜索
-
-```xlang
-Automaton ac = aho_corasick.create(["error", "warn", "fatal"])
-array<Match> hits = ac.search("error: disk\nwarn: mem\nfatal: crash")
-```
-
-### 第 2 步：快速判定
-
-```xlang
-if ac.contains(userInput)
-    // 有敏感内容，需要处理
-end
-int n = ac.count(logText)  // 统计命中数
-```
-
-### 第 3 步：替换与遮盖
-
-```xlang
-string clean = ac.replace(text, "[已过滤]")   // 固定替换
-string masked = ac.mask(text, "*")            // 逐字符遮盖
-string html = ac.highlight(text, "<em>", "</em>")  // 高亮
-```
-
-### 第 4 步：回调替换
-
-```xlang
-string result = ac.replaceWith(text, func(Match m) as string
-    return "<a href='/search?q=" + m.pattern + "'>" + m.pattern + "</a>"
-end)
-```
-
-### 第 5 步：流式扫描（大文本 + 早停）
-
-```xlang
-ac.scan(hugeText, func(Match m) as bool
-    if m.pattern == "fatal" then
-        alert(m.start, m.pattern)
-        return false  // 找到即停，不扫描剩余文本
-    end
+scanner.feed("fa", func(Match item) as bool
     return true
 end)
-```
 
-### 第 6 步：手动构建（模式来源动态）
+scanner.feed("tal", func(Match item) as bool
+    println(item.pattern, " @", item.start)
+    return false
+end)
 
-```xlang
-Automaton ac = aho_corasick.create()
-for line in file.readLines("rules.txt")
-    ac.addPattern(line)
+if scanner.pending then
+    scanner.resume(func(Match item) as bool
+        return true
+    end)
 end
-ac.build()
 ```
 
----
+| 成员 | 说明 |
+|---|---|
+| `feed(chunk, fn)` | 复制并扫描新分块；未恢复旧分块时拒绝新输入 |
+| `resume(fn)` | 继续被回调暂停的当前分块 |
+| `reset()` | 丢弃当前分块并把偏移、计数和 failure 状态归零 |
+| `pending` | 是否仍有未消费分块 |
+| `offset` | 累计消费字节数 |
+| `matchCount` | 累计发送匹配数 |
 
-## 性能特征
 
-| 方法 | 时间复杂度 | 内存分配 | 适用场景 |
-|------|-----------|----------|----------|
-| `contains` | O(到首命中) | 零 | 只需知道有没有 |
-| `count` | O(文本长) | 零 | 只需知道多少个 |
-| `scan` | O(到停止位) | 每步 1 个 Match | 流式处理、条件中断 |
-| `search` | O(文本长 + 匹配数) | N 个 Match + 数组 | 需要全部结果 |
-| `replace` / `mask` / `highlight` | O(文本长) | 1 次精确分配 | 固定替换 |
-| `replaceWith` | O(输出长) | Buffer 自增 | 回调替换 |
 
-### 选型建议
+## C API
 
-```
-只需判定？        → contains / count（零分配，最快）
-需要逐个处理？    → scan（不构建数组，可中断）
-需要全部结果？    → search（结构化数组，可排序/遍历）
-需要文本变换？    → replace / mask / highlight / replaceWith
-```
+### 配置与生命周期
 
-### 实现细节
+| API | 说明 |
+|---|---|
+| `xrtAhoOptionsInit` | 初始化 `xrtahooptions` |
+| `xrtAhoInfoInit` | 初始化 `xrtahoinfo` |
+| `xrtAhoCreate` | 创建空自动机 |
+| `xrtAhoRef` | 增加引用 |
+| `xrtAhoDestroy` | 释放引用 |
+| `xrtAhoAdd` | 添加一个明确长度模式 |
+| `xrtAhoAddMany` | 顺序添加多个模式 |
+| `xrtAhoBuild` | 构建 failure link 和压实转移表 |
+| `xrtAhoBuilt` | 查询构建状态 |
+| `xrtAhoPatternCount` | 查询模式数量 |
+| `xrtAhoPattern` | 返回借用模式视图 |
+| `xrtAhoGetInfo` | 获取模式、节点、转移和有效分配量快照 |
 
-- **replace / mask / highlight**：C 层预计算输出长度 → `xrtTempMemory` 单次分配 → 顺序 memcpy。无中间字符串对象。
-- **replaceWith**：xlang 标准库 `Buffer`（底层 xbuffer，64KB 步长自增）。回调返回值长度不可预知，故不使用预分配。
-- **contains**：命中第一个模式即返回，不消费剩余文本。
-- **scan**：C 层增量步进器，每次 `xac_scan_next` 推进到下一个匹配，回调返回 false 后扫描立即终止。
+`xrtahooptions` 必须由 `xrtAhoOptionsInit` 初始化。`iSize` 和 `iVersion` 用于结构 ABI 校验；当前版本为 `XRT_AHO_OPTIONS_VERSION`。
 
----
+`xrtahoinfo` 必须由 `xrtAhoInfoInit` 初始化，当前版本为 `XRT_AHO_INFO_VERSION`。`iAllocatedBytes` 统计自动机向 XRT 分配器请求的有效字节，不包含底层 allocator 元数据，也不包含结果集和扫描状态。
 
-## 注意事项
+### 搜索与结果
 
-### 偏移是字节偏移
+| API | 说明 |
+|---|---|
+| `xrtAhoSearch` | 创建排序后的完整结果集 |
+| `xrtAhoSearchNonOverlapping` | 创建左优先最长非重叠结果集 |
+| `xrtAhoFind` | 无结果数组地返回首项 |
+| `xrtAhoContains` | 无结果数组地判断命中 |
+| `xrtAhoCount` | 无结果数组地计数 |
+| `xrtAhoResultCount` | 返回结果数量 |
+| `xrtAhoResultAt` | 读取一个 `xrtahomatch` |
+| `xrtAhoResultDestroy` | 释放结果集 |
 
-`Match.start` 和 `Match.endPos` 是**字节**偏移，不是字符偏移。对纯 ASCII 文本两者相同；对 UTF-8 多字节文本（如中文），一个字符占 3 字节。
+结果集持有自动机引用。调用方可以先销毁自己的自动机引用，再读取或销毁结果集；`xrtahomatch.Pattern` 仍然有效。
 
-### build 后不可修改
+### 增量扫描
 
-调用 `build()` 后再调用 `addPattern` 会抛出 `RuntimeError`。如需更新模式集，创建新的 Automaton。
+| API | 说明 |
+|---|---|
+| `xrtAhoStateCreate` | 创建持有自动机引用的增量状态 |
+| `xrtAhoStateFeed` | 扫描一个借用分块 |
+| `xrtAhoStateOffset` | 返回累计字节偏移 |
+| `xrtAhoStateMatches` | 返回累计发送数量 |
+| `xrtAhoStateReset` | 重置状态 |
+| `xrtAhoStateDestroy` | 释放状态 |
+| `xrtAhoScan` | 扫描单个完整视图的便利函数 |
 
-### 重叠匹配
+`xrtAhoStateFeed` 返回：
 
-`search` 返回所有匹配（含重叠）。`replace`/`mask`/`highlight` 会合并重叠区间。`replaceWith` 跳过与前一个替换重叠的匹配（左优先）。
+- `XRT_AHO_SCAN_COMPLETE`：当前分块完整消费；
+- `XRT_AHO_SCAN_STOPPED`：回调返回 false；
+- `XRT_AHO_SCAN_ERROR`：参数、状态、资源或内存错误。
 
-### ignoreCase 的工作方式
+回调停止时，`pConsumed` 包含已经消费的当前分块字节数。同一结束位置可能还有待发送重叠匹配，因此下一次调用可能返回 `pConsumed == 0`。调用方必须再次传入原分块的剩余切片，直到返回 `COMPLETE`。
 
-构建时将模式统一 tolower 插入 Trie，搜索时将文本逐字节 tolower 后匹配。仅对 ASCII 字母有效（A-Z → a-z），不影响 UTF-8 多字节字符。
+C 增量状态不复制分块，只在 `xrtAhoStateFeed` 调用期间借用 `Chunk`。XLang `Scanner` 为了异常和暂停安全，会额外复制当前分块。
 
-### 空模式集
+### 文本变换
 
-`create()` 不带参数时返回未构建的空自动机。对空自动机调用 `search`/`contains`/`count` 前必须先 `build()`，否则抛出异常。空自动机匹配任何文本都返回 0 个结果。
+| API | 说明 |
+|---|---|
+| `xrtAhoReplace` | 固定替换合并后的重叠区间 |
+| `xrtAhoMaskBytes` | 每个匹配字节重复一次 Mask，支持二进制 |
+| `xrtAhoMask` | 每个匹配 UTF-8 标量重复一次 Mask |
+| `xrtAhoHighlight` | 包裹合并后的重叠区间 |
 
----
+四个函数始终返回独立、补零的 XRT 字符串，调用方使用 `xrtFree` 释放。`pOutputSize` 返回真实字节长度，因此输出可以包含嵌入零字节。
+
+`xrtAhoMask` 严格校验文本和 Mask 的 UTF-8。匹配区间不是 UTF-8 标量边界时返回 `XRT_AHO_ERROR_UTF8`。任意二进制遮盖应使用 `xrtAhoMaskBytes`。
+
+
+
+## 错误模型
+
+所有 C 失败都写入 XRT 当前执行上下文的结构化错误，域为 `xlang.extlib.aho_corasick`。
+
+| 错误代码 | 含义 |
+|---|---|
+| `XRT_AHO_ERROR_ARGUMENT` | 空指针、无效视图或空模式 |
+| `XRT_AHO_ERROR_MEMORY` | 分配失败 |
+| `XRT_AHO_ERROR_STATE` | 未构建搜索、构建后添加等状态错误 |
+| `XRT_AHO_ERROR_LIMIT` | 配置的资源限制被超过 |
+| `XRT_AHO_ERROR_RANGE` | 索引或长度溢出 |
+| `XRT_AHO_ERROR_UTF8` | Unicode 遮盖输入无效 |
+| `XRT_AHO_ERROR_EXISTS` | 重复模式 |
+
+XLang 包装不会把失败伪装成 `false`、`0`、空字符串或原始文本，所有失败都会抛出 `RuntimeError`。
+
+
+
+## 所有权与线程规则
+
+- 添加和构建阶段由调用方独占，不允许并发修改。
+- `build()` 成功后自动机不可变，可并发执行搜索、计数和变换。
+- `xrtahoresult`、`xrtahostate` 和 XLang `Scanner` 都持有独立自动机引用。
+- 单个 `xrtahostate` / `Scanner` 不允许被多个线程同时操作。
+- `xrtAhoPattern` 返回借用视图；结果集和匹配中的 `Pattern` 由对应自动机引用保证生命周期。
+
+
+
+## 测试门禁
+
+`test/test_aho_corasick.c` 覆盖：
+
+- 搜索排序、左优先最长和严格重叠合并；
+- 嵌入零字节模式与文本；
+- 结果集、增量状态独立持有自动机引用；
+- 跨分块匹配、回调暂停、零消费待发送结果和恢复；
+- UTF-8 标量遮盖与二进制字节遮盖；
+- 模式、节点、匹配、输入和输出限制；
+- 构建期分配失败后无污染重试；
+- 200 轮随机二进制模式与朴素匹配器差分；
+- XRT memory-debug 下零活动分配、零越界、零重复释放和零 UAF 事件。
+
+
 
 ## 文件结构
 
-```
+```text
 aho_corasick/
-├── aho_corasick_native.c    # C 引擎：Trie、failure link、搜索、替换
-├── src/
-│   └── aho_corasick.xl      # xlang API 层：export class + 工厂函数
-├── xlang.package.json       # 包清单
-└── readme.md                # 本文件
+|- include/xrt_aho_corasick.h   C 公开契约
+|- xrt_aho_corasick.c           稀疏自动机核心
+|- aho_corasick_native.c        XLang 薄适配层
+|- src/aho_corasick.xl          XLang 易用 API
+|- test/test_aho_corasick.c     C 边界与故障注入测试
+|- xlang.package.json           包清单
+`- readme.md                    本文档
 ```
 
----
+完整示例：
 
-## 完整范例
-
-参见 `release/examples/extlibs/aho_corasick.xl`，包含 12 节逐步教学，覆盖全部 API。
+- `release/examples/extlibs/aho_corasick.xl`
+- `release/examples/extlibs/aho_corasick_c.c`

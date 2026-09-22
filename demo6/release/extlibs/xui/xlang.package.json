@@ -20,7 +20,8 @@
             "src/xui_surface.xl",
             "src/xui_input.xl",
             "src/xui_icon.xl",
-            "src/xui_i18n.xl"
+            "src/xui_i18n.xl",
+            "src/xui_oop.xl"
         ]
     },
     "links": [],

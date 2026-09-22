@@ -164,17 +164,18 @@ static void __xrtMd5SetError(xrtmd5error* pError, int iCode, int iBackend,
 
 static bool __xrtMd5OverInputLimit(const xrtresourcelimits* pLimits, uint64 iInput)
 {
-	return pLimits->iMaxInputBytes != 0u && iInput > pLimits->iMaxInputBytes;
+	return pLimits != NULL && pLimits->iMaxInputBytes != 0u &&
+		iInput > pLimits->iMaxInputBytes;
 }
 
-XXAPI void xrtMd5ErrorInit(xrtmd5error* pError)
+XRT_API void xrtMd5ErrorInit(xrtmd5error* pError)
 {
 	if (pError == NULL) { return; }
 	memset(pError, 0, sizeof(*pError));
 	pError->iCode = XRT_MD5_OK;
 }
 
-XXAPI void xrtMd5OptionsInit(xrtmd5options* pOptions)
+XRT_API void xrtMd5OptionsInit(xrtmd5options* pOptions)
 {
 	if (pOptions == NULL) { return; }
 	memset(pOptions, 0, sizeof(*pOptions));
@@ -186,7 +187,7 @@ XXAPI void xrtMd5OptionsInit(xrtmd5options* pOptions)
 
 /* ---- 流式哈希器 ---- */
 
-XXAPI xrtmd5hasher* xrtMd5HasherCreate(const xrtmd5options* pOptions)
+XRT_API xrtmd5hasher* xrtMd5HasherCreate(const xrtmd5options* pOptions)
 {
 	xrtmd5hasher* pHasher;
 	pHasher = (xrtmd5hasher*)xrtMalloc(sizeof(xrtmd5hasher));
@@ -199,62 +200,62 @@ XXAPI xrtmd5hasher* xrtMd5HasherCreate(const xrtmd5options* pOptions)
 		xrtMd5OptionsInit(&pHasher->Options);
 	}
 	md5_init(&pHasher->Ctx);
-	pHasher->Initialized = TRUE;
+	pHasher->Initialized = true;
 	return pHasher;
 }
 
-XXAPI bool xrtMd5HasherUpdate(xrtmd5hasher* pHasher, const void* pData, size_t iSize)
+XRT_API bool xrtMd5HasherUpdate(xrtmd5hasher* pHasher, const void* pData, size_t iSize)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	if (iSize != 0u && pData == NULL) {
 		__xrtMd5SetError(&pHasher->Error, XRT_MD5_ERROR_ARGUMENT, 0,
 			pHasher->InputBytes, 0, "invalid md5 input");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
 		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
 		__xrtMd5SetError(&pHasher->Error, XRT_MD5_ERROR_LIMIT, 0,
 			pHasher->InputBytes, 0, "md5 input exceeds maxInput limit");
-		pHasher->Failed = TRUE;
-		return FALSE;
+		pHasher->Failed = true;
+		return false;
 	}
 	if (iSize != 0u) {
 		md5_update(&pHasher->Ctx, (const unsigned char*)pData, iSize);
 	}
 	pHasher->InputBytes += (uint64)iSize;
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtMd5HasherDigest(const xrtmd5hasher* pHasher, uint8 pDigest[XRT_MD5_DIGEST_SIZE])
+XRT_API bool xrtMd5HasherDigest(const xrtmd5hasher* pHasher, uint8 pDigest[XRT_MD5_DIGEST_SIZE])
 {
 	xrtmd5ctx tmpCtx;
-	if (pHasher == NULL || pHasher->Failed || pDigest == NULL) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed || pDigest == NULL) { return false; }
 	/* 复制上下文以允许 digest 不终结状态 */
 	memcpy(&tmpCtx, &pHasher->Ctx, sizeof(tmpCtx));
 	md5_final(&tmpCtx, pDigest);
-	return TRUE;
+	return true;
 }
 
-XXAPI bool xrtMd5HasherReset(xrtmd5hasher* pHasher)
+XRT_API bool xrtMd5HasherReset(xrtmd5hasher* pHasher)
 {
-	if (pHasher == NULL || pHasher->Failed) { return FALSE; }
+	if (pHasher == NULL || pHasher->Failed) { return false; }
 	md5_init(&pHasher->Ctx);
 	pHasher->InputBytes = 0u;
-	return TRUE;
+	return true;
 }
 
-XXAPI uint64 xrtMd5HasherInputBytes(const xrtmd5hasher* pHasher)
+XRT_API uint64 xrtMd5HasherInputBytes(const xrtmd5hasher* pHasher)
 {
 	return pHasher != NULL ? pHasher->InputBytes : 0u;
 }
 
-XXAPI const xrtmd5error* xrtMd5HasherError(const xrtmd5hasher* pHasher)
+XRT_API const xrtmd5error* xrtMd5HasherError(const xrtmd5hasher* pHasher)
 {
 	return pHasher != NULL ? &pHasher->Error : NULL;
 }
 
-XXAPI void xrtMd5HasherDestroy(xrtmd5hasher* pHasher)
+XRT_API void xrtMd5HasherDestroy(xrtmd5hasher* pHasher)
 {
 	if (pHasher == NULL) { return; }
 	xrtFree(pHasher);
@@ -263,54 +264,71 @@ XXAPI void xrtMd5HasherDestroy(xrtmd5hasher* pHasher)
 
 /* ---- 一次性哈希 ---- */
 
-XXAPI bool xrtMd5Hash(const void* pData, size_t iSize, uint8 pDigest[XRT_MD5_DIGEST_SIZE],
+XRT_API bool xrtMd5Hash(const void* pData, size_t iSize, uint8 pDigest[XRT_MD5_DIGEST_SIZE],
 	xrtmd5error* pError)
 {
 	xrtmd5ctx ctx;
 	xrtMd5ErrorInit(pError);
 	if (pDigest == NULL || (pData == NULL && iSize != 0u)) {
 		__xrtMd5SetError(pError, XRT_MD5_ERROR_ARGUMENT, 0, 0, 0, "invalid md5 input");
-		return FALSE;
+		return false;
 	}
 	md5_init(&ctx);
 	if (iSize != 0u) {
 		md5_update(&ctx, (const unsigned char*)pData, iSize);
 	}
 	md5_final(&ctx, pDigest);
-	return TRUE;
+	return true;
 }
 
 
 /* ---- 文件流式哈希 ---- */
 
-XXAPI bool xrtMd5File(xreader pReader, const xrtresourcelimits* pLimits,
-	uint8 pDigest[XRT_MD5_DIGEST_SIZE], xrtmd5error* pError)
+XRT_API bool xrtMd5File(xreader* pReader, const xrtresourcelimits* pLimits,
+	uint8 pDigest[XRT_MD5_DIGEST_SIZE], xrtprogressproc pProgress, ptr pUserData,
+	xrtmd5error* pError)
 {
 	uint8 sInput[XRT_MD5_CHUNK];
 	xrtmd5ctx ctx;
 	uint64 iTotal = 0u;
+	uint64 iExpected = 0u;
+	bool bTotalKnown;
 	xrtMd5ErrorInit(pError);
 	if (pReader == NULL || pDigest == NULL) {
 		__xrtMd5SetError(pError, XRT_MD5_ERROR_ARGUMENT, 0, 0, 0, "invalid md5 stream");
-		return FALSE;
+		return false;
 	}
+	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
+	if (!bTotalKnown) { xrtClearError(); }
 	md5_init(&ctx);
 	for (;;) {
 		uint64 iRead = 0u;
 		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
 			__xrtMd5SetError(pError, XRT_MD5_ERROR_IO, 0, iTotal, 0,
 				"cannot read md5 input stream");
-			return FALSE;
+			return false;
 		}
 		if (iRead == 0u) { break; }
 		iTotal += iRead;
 		if (__xrtMd5OverInputLimit(pLimits, iTotal)) {
 			__xrtMd5SetError(pError, XRT_MD5_ERROR_LIMIT, 0, iTotal, 0,
 				"md5 input exceeds maxInput limit");
-			return FALSE;
+			return false;
 		}
 		md5_update(&ctx, sInput, (size_t)iRead);
+		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
+			__xrtMd5SetError(pError, XRT_MD5_ERROR_CANCELLED, 0, iTotal, 0,
+				"md5 operation cancelled");
+			return false;
+		}
 	}
 	md5_final(&ctx, pDigest);
-	return TRUE;
+	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
+		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
+		__xrtMd5SetError(pError, XRT_MD5_ERROR_CANCELLED, 0, iTotal, 0,
+			"md5 operation cancelled");
+		return false;
+	}
+	return true;
 }

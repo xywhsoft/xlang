@@ -1,0 +1,44 @@
+import gettext
+
+
+
+func main(...) as int
+    // 一个应用界面的中文目录
+    string po = """msgid ""
+msgstr "Language: zh_CN\\n"
+
+msgid "File"
+msgstr "文件"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Open file"
+msgstr "打开文件"
+
+msgid "Save changes?"
+msgid_plural "Save changes to %d files?"
+msgstr[0] "保存更改？"
+msgstr[1] "保存对 %d 个文件的更改？"
+"""
+    var zh = gettext.parsePo(po)
+
+    // 界面文案查询（缺失时回退英文）
+    println(gettext.t(zh, "File"), " | ", gettext.t(zh, "Edit"), " | ", gettext.t(zh, "Open file"))
+    println("missing:", gettext.t(zh, "Help"))
+
+    // 复数
+    println(gettext.tn(zh, "Save changes?", "Save changes to %d files?", 1))
+    println(gettext.tn(zh, "Save changes?", "Save changes to %d files?", 3))
+
+    // 同时支持从仓库根目录和 release 目录启动示例。
+    string moPath = "test/fixtures/gettext_mini.mo"
+    if not path.exists(moPath) then
+        moPath = "../test/fixtures/gettext_mini.mo"
+    end
+    var mo = gettext.loadMo(moPath)
+    println("mo catalog: hello ->", gettext.t(mo, "hello"))
+
+    println("gettext example: PASS")
+    return 0
+end

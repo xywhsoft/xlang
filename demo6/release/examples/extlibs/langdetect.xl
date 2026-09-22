@@ -5,6 +5,10 @@ import langdetect
 func main(...) as int
     println("detect('the cat is on the table and it is not bad') = ",
         langdetect.detect("the cat is on the table and it is not bad"))
+    println("  code/script/confidence = ",
+        langdetect.code("the cat is on the table and it is not bad"), " / ",
+        langdetect.script("the cat is on the table and it is not bad"), " / ",
+        langdetect.confidence("the cat is on the table and it is not bad"))
     println("detect(' le chat est dans la maison avec une fille ') = ",
         langdetect.detect(" le chat est dans la maison avec une fille "))
     println("detect(' der Hund und die Katze sind nicht das Haus ') = ",
@@ -15,6 +19,8 @@ func main(...) as int
 
     auto ja = "\xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
     println("detect(Japanese text) = ", langdetect.detect(ja))
+
+    println("detect('12345 !!!') = ", langdetect.detect("12345 !!!"))
 
     println("langdetect example: PASS")
     return 0

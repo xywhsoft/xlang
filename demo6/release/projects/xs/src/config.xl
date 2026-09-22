@@ -233,6 +233,10 @@ func xsConfigValidateRoute(var route, string baseDir, string location) as var
     if pattern == "" or not string.startsWith(pattern, "/") then
         return xsConfigResult(false, location + ".pattern must start with /", null)
     end
+    // XRT 路由使用 {name} 与 {name...} 模板，星号不是路径通配符。
+    if string.contains(pattern, "*") then
+        return xsConfigResult(false, location + ".pattern must use /{name...} for a tail route; * is not a path wildcard", null)
+    end
     method = string.upper(method)
     if kind == "handler" and method != "*" and not regex.fullMatch(method, "[A-Z]+(\\|[A-Z]+)*") then
         return xsConfigResult(false, location + ".method must be * or uppercase HTTP methods separated by |", null)
@@ -396,7 +400,7 @@ end
 
 func xsConfigValidateService(var service, string baseDir, string location) as var
     string fieldError = xsConfigCheckFields(service, [
-        "type", "name", "enabled", "host", "port", "backlog", "workerCount",
+        "type", "name", "enabled", "host", "port", "backlog", "workerCount", "connectionWorkerCount",
         "queueLimit",
         "recvLimit", "bodyLimit", "headerLimit", "headerBytesLimit",
         "headerTimeoutMs", "bodyTimeoutMs", "idleTimeoutMs", "writeTimeoutMs",
@@ -410,7 +414,7 @@ func xsConfigValidateService(var service, string baseDir, string location) as va
         service,
         ["type", "name", "host", "framing", "delimiter", "certFile", "keyFile"],
         [
-            "port", "backlog", "workerCount", "queueLimit", "recvLimit", "bodyLimit",
+            "port", "backlog", "workerCount", "connectionWorkerCount", "queueLimit", "recvLimit", "bodyLimit",
             "headerLimit", "headerBytesLimit", "headerTimeoutMs", "bodyTimeoutMs",
             "idleTimeoutMs", "writeTimeoutMs", "frameLimit"
         ],
@@ -444,6 +448,7 @@ func xsConfigValidateService(var service, string baseDir, string location) as va
         "port": port,
         "backlog": xsConfigReadInt(service?.backlog, 128),
         "workerCount": xsConfigReadInt(service?.workerCount, 1),
+        "connectionWorkerCount": xsConfigReadInt(service?.connectionWorkerCount, 0),
         "queueLimit": xsConfigReadInt(service?.queueLimit, xsConfigReadInt(service?.backlog, 128)),
         "recvLimit": xsConfigReadInt(service?.recvLimit, 1048576),
         "bodyLimit": xsConfigReadInt(service?.bodyLimit, 1048576),
@@ -460,6 +465,9 @@ func xsConfigValidateService(var service, string baseDir, string location) as va
     end
     if int(normalized["workerCount"]) <= 0 or int(normalized["workerCount"]) > 256 then
         return xsConfigResult(false, location + ".workerCount must be between 1 and 256", null)
+    end
+    if int(normalized["connectionWorkerCount"]) < 0 or int(normalized["connectionWorkerCount"]) > 256 then
+        return xsConfigResult(false, location + ".connectionWorkerCount must be between 0 and 256", null)
     end
     if int(normalized["queueLimit"]) <= 0 or int(normalized["queueLimit"]) > 65536 then
         return xsConfigResult(false, location + ".queueLimit must be between 1 and 65536", null)

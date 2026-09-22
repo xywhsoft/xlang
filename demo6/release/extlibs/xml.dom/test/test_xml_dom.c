@@ -1,3 +1,6 @@
+/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../include/xrt_xml_dom.h"
 
 #include <stdio.h>
@@ -16,7 +19,7 @@ static int testParseAndRoundTrip(void)
 	xrtxmldomnode* pItem;
 	xrtxmldomnode* pItemText;
 	str sText;
-	xbuffer pEncoded;
+	xbuffer* pEncoded;
 	int bOk;
 	xrtXmlOptionsInit(&tOptions);
 	pDocument = xrtXmlDomParseMemory(sXml, strlen(sXml), &tOptions, &tError);
@@ -36,14 +39,14 @@ static int testParseAndRoundTrip(void)
 		xrtXmlDomSetAttribute(pItem, (str)"quote", (str)"a\"b") &&
 		xrtXmlDomNodeSetValue(pItemText, (str)"changed & safe");
 	xrtXmlDomWriteOptionsInit(&tWrite);
-	tWrite.bPretty = TRUE;
-	tWrite.bXmlDeclaration = TRUE;
+	tWrite.bPretty = true;
+	tWrite.bXmlDeclaration = true;
 	pEncoded = bOk ? xrtXmlDomStringify(pDocument, &tWrite, &tError) : NULL;
 	bOk = bOk && pEncoded != NULL &&
-		xrtBufferAppend(pEncoded, "\0", 1u, XBUF_BINARY) &&
-		strstr((const char*)pEncoded->Buffer, "xmlns:p=\"urn:test\"") != NULL &&
-		strstr((const char*)pEncoded->Buffer, "changed &amp; safe") != NULL &&
-		strstr((const char*)pEncoded->Buffer, "quote=\"a&quot;b\"") != NULL;
+		xrtBufferAppendByte(pEncoded, 0u) &&
+		strstr((const char*)pEncoded->Data, "xmlns:p=\"urn:test\"") != NULL &&
+		strstr((const char*)pEncoded->Data, "changed &amp; safe") != NULL &&
+		strstr((const char*)pEncoded->Data, "quote=\"a&quot;b\"") != NULL;
 	xrtBufferDestroy(pEncoded);
 	xrtXmlDomNodeRelease(pItemText);
 	xrtXmlDomNodeRelease(pItem);
@@ -107,10 +110,8 @@ static int testInvalidInputs(void)
 int main(void)
 {
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	bOk = testParseAndRoundTrip() && testConstructionAndMutation() &&
 		testInvalidInputs();
-	xrtUnit();
 	if ( bOk ) { puts("test_xml_dom: PASS"); }
 	return bOk ? 0 : 2;
 }

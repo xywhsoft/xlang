@@ -1,7 +1,0 @@
-async func get_value() as int
-	return 9
-end
-
-async func main() as int
-	return await get_value()
-end

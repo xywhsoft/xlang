@@ -2,19 +2,9 @@
 // Module: xge_platform
 
 // === Functions ===
-extern "xgePlatformBackendDefault" func __xl6_xgePlatformBackendDefault() as point
-export func xgePlatformBackendDefault() as point
-    return __xl6_xgePlatformBackendDefault()
-end
-
 extern "xgePlatformBackendSet" func __xl6_xgePlatformBackendSet(point pBackend) as c_int
 export func xgePlatformBackendSet(point pBackend) as c_int
     return __xl6_xgePlatformBackendSet(pBackend)
-end
-
-extern "xgePlatformBackendGet" func __xl6_xgePlatformBackendGet() as point
-export func xgePlatformBackendGet() as point
-    return __xl6_xgePlatformBackendGet()
 end
 
 extern "xgePlatformCapsGet" func __xl6_xgePlatformCapsGet(point pCaps) as c_int

@@ -148,7 +148,11 @@ try {
             foreach ( $required in @(
                 "xlir_xvalue_object_set_literal_closure(",
                 "xlir_xvalue_object_get_literal_closure(",
-                "xrtValueRetain(xrtValueNull())", "if (nullable) return NULL"
+                "xrtValueRetain(xrtValueNull())",
+                "xlir_closure* closure; *output = NULL;",
+                "if (source == NULL || entry == NULL) goto incompatible;",
+                "if (nullable && xrtValueType(source) == 0) return true;",
+                "if (xrtValueType(source) == 0 || !xrtValueIsCallable(source)) goto incompatible;"
             ) ) {
                 if ( ! $generated.Contains($required) ) {
                     throw "XLIR nullable class function field C bridge is incomplete: $required"
@@ -158,7 +162,7 @@ try {
 
         & $xl run $source
         if ( $LASTEXITCODE -ne 0 ) {
-            throw "Legacy nullable function-value differential runtime failed: $name"
+            throw "XLIR nullable function-value CLI runtime failed: $name"
         }
         $relativeGenerated = "build\test\$name.function-value.c"
         $relativeExe = "build\tmp\$name.function-value.exe"
@@ -172,4 +176,4 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR nullable function-value ABI gate passed: pointer-sentinel closure returns use explicit NULLABLE_WRAP, explicit-null class fields remain no-raise, field storage TypeId stays distinct from callable signature TypeId, C is deterministic, and strict/legacy runtimes agree."
+Write-Output "XLIR nullable function-value ABI gate passed: pointer-sentinel closure returns use explicit NULLABLE_WRAP, explicit-null class fields remain no-raise, field storage TypeId stays distinct from callable signature TypeId, and deterministic strict-C and CLI runtimes agree."

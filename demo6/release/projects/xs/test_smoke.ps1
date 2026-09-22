@@ -11,19 +11,39 @@ $errLog = Join-Path $outDir "xs_smoke.err.log"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 Remove-Item -LiteralPath $outLog,$errLog -Force -ErrorAction SilentlyContinue
 
+function Read-SharedText {
+    param([string]$Path)
+
+    if (!(Test-Path -LiteralPath $Path)) {
+        return ""
+    }
+    $stream = [System.IO.File]::Open(
+        $Path,
+        [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read,
+        [System.IO.FileShare]::ReadWrite)
+    try {
+        $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8)
+        try {
+            return $reader.ReadToEnd().Trim()
+        } finally {
+            $reader.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 function Wait-HttpReady {
     param(
         [int]$Port,
         [System.Diagnostics.Process]$ServerProcess
     )
 
+    $lastError = ""
     for ($i = 0; $i -lt 80; $i++) {
         if ($ServerProcess.HasExited) {
-            $stderr = if (Test-Path -LiteralPath $errLog) {
-                [System.IO.File]::ReadAllText($errLog, [System.Text.Encoding]::UTF8).Trim()
-            } else {
-                ""
-            }
+            $stderr = Read-SharedText $errLog
             throw "xs process exited before HTTP readiness: code=$($ServerProcess.ExitCode), stderr=$stderr"
         }
         try {
@@ -32,15 +52,12 @@ function Wait-HttpReady {
                 return
             }
         } catch {
+            $lastError = $_.Exception.Message
             Start-Sleep -Milliseconds 100
         }
     }
-    $stderr = if (Test-Path -LiteralPath $errLog) {
-        [System.IO.File]::ReadAllText($errLog, [System.Text.Encoding]::UTF8).Trim()
-    } else {
-        ""
-    }
-    throw "HTTP service did not become ready: stderr=$stderr"
+    $stderr = Read-SharedText $errLog
+    throw "HTTP service did not become ready: lastError=$lastError, stderr=$stderr"
 }
 
 $proc = Start-Process -FilePath $xl `
@@ -64,20 +81,13 @@ try {
             Stop-Process -Id $proc.Id -Force
             $proc.WaitForExit()
         }
-        $serverOut = if (Test-Path -LiteralPath $outLog) {
-            [System.IO.File]::ReadAllText($outLog, [System.Text.Encoding]::UTF8).Trim()
-        } else {
-            ""
-        }
-        $serverErr = if (Test-Path -LiteralPath $errLog) {
-            [System.IO.File]::ReadAllText($errLog, [System.Text.Encoding]::UTF8).Trim()
-        } else {
-            ""
-        }
+        $serverOut = Read-SharedText $outLog
+        $serverErr = Read-SharedText $errLog
         throw "xs smoke client failed with code $($client.ExitCode), stdout=$serverOut, stderr=$serverErr"
     }
 
-    if (!$proc.WaitForExit(16000)) {
+    # Cover the run window and teardown of isolated handler contexts.
+    if (!$proc.WaitForExit(30000)) {
         throw "xs process did not exit after duration"
     }
     $proc.Refresh()

@@ -1,7 +1,12 @@
 #ifndef XRT_NETRC_INTERNAL_H
 #define XRT_NETRC_INTERNAL_H
 
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "include/xrt_netrc.h"
+
+#include <stdio.h>
+#include <string.h>
 
 typedef struct {
 	xrtnetrcoptions Options;
@@ -16,7 +21,7 @@ bool __xrtNetrcLimitNode(xrt_netrc_context* pContext, uint64 iLine,
 	uint64 iColumn, uint64 iOffset);
 bool __xrtNetrcLimitEntry(xrt_netrc_context* pContext, uint64 iLine,
 	uint64 iColumn, uint64 iOffset);
-bool __xrtNetrcSetValue(xvalue pTable, const char* sKey, xvalue pValue);
-xvalue __xrtNetrcText(const char* sText, size_t iSize);
+bool __xrtNetrcSetValue(xvalue* pTable, const char* sKey, xvalue* pValue);
+xvalue* __xrtNetrcText(const char* sText, size_t iSize);
 
 #endif

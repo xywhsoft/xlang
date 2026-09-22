@@ -1,3 +1,5 @@
+#define XRT_MODULE_ALL
+#include "xrt.h"
 #include "../../extlibs/xml.sax/include/xrt_xml.h"
 
 #include <stdio.h>
@@ -13,7 +15,7 @@ static bool printEvent(ptr pContext, const xrtxmlevent* pEvent)
 	} else if ( pEvent->iType == XRT_XML_EVENT_TEXT ) {
 		printf("text: %s\n", pEvent->sText);
 	}
-	return TRUE;
+	return true;
 }
 
 int main(void)
@@ -22,12 +24,10 @@ int main(void)
 	xrtxmloptions tOptions;
 	xrtxmlerror tError;
 	int bOk;
-	if ( xrtInit() == NULL ) { return 1; }
 	xrtXmlOptionsInit(&tOptions);
 	bOk = xrtXmlSaxParseMemory(sXml, strlen(sXml), &tOptions, printEvent,
 		NULL, &tError);
 	if ( !bOk ) { fprintf(stderr, "%s\n", tError.sMessage); }
-	xrtUnit();
 	if ( bOk ) { puts("xml.sax C example: PASS"); }
 	return bOk ? 0 : 2;
 }

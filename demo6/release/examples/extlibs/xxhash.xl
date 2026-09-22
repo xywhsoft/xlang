@@ -1,5 +1,11 @@
 import xxhash
 
+class FileProgress
+    int calls = 0
+    int inputBytes = 0
+    int totalBytes = 0
+end
+
 
 
 func main(...) as int
@@ -45,7 +51,17 @@ func main(...) as int
     // ─── 5. 文件哈希（XRT reader 分块读取，受 maxInput 限制）───
     dir.createAll("tmp")
     file.writeBytes("tmp/xxhash_example_source.bin", data)
-    assert xxhash.hashFile64("tmp/xxhash_example_source.bin") == h64, "xxhash file digest mismatch"
+    FileProgress progress = FileProgress()
+    assert xxhash.hashFile64("tmp/xxhash_example_source.bin",
+        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+            progress.calls += 1
+            progress.inputBytes = inputBytes
+            progress.totalBytes = totalBytes
+            return true
+        end) == h64, "xxhash file digest mismatch"
+    assert progress.calls > 0
+    assert progress.inputBytes == data.len()
+    assert progress.totalBytes == data.len()
     println("文件 XXH64 = ", xxhash.hashFile64Hex("tmp/xxhash_example_source.bin"))
     file.delete("tmp/xxhash_example_source.bin")
 

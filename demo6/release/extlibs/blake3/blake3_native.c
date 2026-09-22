@@ -1,4 +1,8 @@
-#include "include/xrt_blake3.h"
+﻿#include "include/xrt_blake3.h"
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+
+#include "xruntime.h"
+#include "../xlang_extlib_runtime.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +26,16 @@
 
 static XBLAKE3_THREAD char g_xblake3_hex[XBLAKE3_HEX_SLOTS][XBLAKE3_MAX_OUT * 2 + 1];
 static XBLAKE3_THREAD size_t g_xblake3_hex_index;
+static XBLAKE3_THREAD int g_xblake3_file_status;
+
+static void xblake3_path_error(const char *prefix, const char *path)
+{
+	char message[512];
+	snprintf(message, sizeof(message), "%s%s", prefix,
+		path != NULL ? path : "");
+	message[sizeof(message) - 1u] = '\0';
+	xl6ExtlibSetError(XERR_IO, "xlang.extlib.blake3", message);
+}
 
 static const char* xblake3_format_hex(const uint8* pDigest, size_t iLen)
 {
@@ -42,14 +56,14 @@ static void xblake3_publish_error(const xrtblake3error* pError)
 {
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
 		pError->sMessage : "blake3 operation failed";
-	xrtSetError(xrtFormat("%s", sMessage), TRUE);
+	xl6ExtlibSetError(XERR_VALUE, "xlang.extlib.blake3", sMessage);
 }
 
 
 
 XBLAKE3_EXPORT bool xblake3_available(void)
 {
-	return TRUE;
+	return true;
 }
 
 XBLAKE3_EXPORT const char* xblake3_version(void)
@@ -62,9 +76,14 @@ XBLAKE3_EXPORT const char* xblake3_last_error(void)
 	return xrtGetError();
 }
 
+XBLAKE3_EXPORT int xblake3_file_status(void)
+{
+	return g_xblake3_file_status;
+}
 
 
-/* ---- 一次性哈希 ---- */
+
+/* ---- 涓€娆℃€у搱甯?---- */
 
 XBLAKE3_EXPORT const char* xblake3_hash_hex(const void* pData, size_t iSize, size_t iOutLen)
 {
@@ -97,7 +116,7 @@ XBLAKE3_EXPORT void* xblake3_hash_bytes(const void* pData, size_t iSize, size_t 
 		xblake3_publish_error(&tError);
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, iOutLen);
+	return xl6ExtlibBufferTake(pOut, iOutLen);
 }
 
 XBLAKE3_EXPORT void* xblake3_hash_str_bytes(const char* sText, size_t iSize, size_t iOutLen)
@@ -153,42 +172,54 @@ XBLAKE3_EXPORT const char* xblake3_hash_kdf_str_hex(const char* sKeyMat, size_t 
 
 
 
-/* ---- 文件哈希 ---- */
+/* ---- 鏂囦欢鍝堝笇 ---- */
 
 XBLAKE3_EXPORT const char* xblake3_file_hex(str sPath, unsigned long long iMaxInput,
-	size_t iOutLen)
+	size_t iOutLen, xvalue* pCallback)
 {
 	xrtblake3options tOptions;
 	xrtblake3error tError;
-	xreader pReader = NULL;
+	xrtprogresscall tProgress;
+	xreader* pReader = NULL;
 	uint8 pOut[XBLAKE3_MAX_OUT];
 	bool bResult;
 	xrtClearError();
+	g_xblake3_file_status = 0;
+	xrtProgressCallInit(&tProgress, pCallback);
 	if (iOutLen == 0 || iOutLen > XBLAKE3_MAX_OUT) iOutLen = 32;
 	xrtBlake3OptionsInit(&tOptions);
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	if (sPath == NULL || sPath[0] == 0) {
-		xrtSetError(xrtFormat("blake3 file path is required"), TRUE);
+		xl6ExtlibSetError(XERR_ARGUMENT, "xlang.extlib.blake3", "blake3 file path is required");
 		return "";
 	}
 	if (!xrtPathExists(sPath)) {
-		xrtSetError(xrtFormat("blake3 file does not exist: %s", sPath), TRUE);
+		xblake3_path_error("blake3 file does not exist: ", sPath);
 		return "";
 	}
 	pReader = xrtReaderOpen(sPath);
 	if (pReader == NULL) {
-		xrtSetError(xrtFormat("cannot open blake3 file: %s", sPath), TRUE);
+		xblake3_path_error("cannot open blake3 file: ", sPath);
 		return "";
 	}
-	bResult = xrtBlake3File(pReader, &tOptions.tLimits, pOut, iOutLen, &tError);
+	bResult = xrtBlake3File(pReader, &tOptions.tLimits, pOut, iOutLen,
+		tProgress.Callback != NULL ? xrtProgressCallInvoke : NULL, &tProgress, &tError);
 	xrtReaderDestroy(pReader);
-	if (!bResult) { xblake3_publish_error(&tError); return ""; }
+	if (!bResult) {
+		if (tProgress.InvokeFailed) { g_xblake3_file_status = -2; }
+		else {
+			g_xblake3_file_status = tError.iCode == XRT_BLAKE3_ERROR_CANCELLED ? -1 : 0;
+			xblake3_publish_error(&tError);
+		}
+		return "";
+	}
+	g_xblake3_file_status = 1;
 	return xblake3_format_hex(pOut, iOutLen);
 }
 
 
 
-/* ---- 流式哈希器 ---- */
+/* ---- 娴佸紡鍝堝笇鍣?---- */
 
 XBLAKE3_EXPORT void* xblake3_hasher_create(unsigned long long iMaxInput)
 {
@@ -199,7 +230,7 @@ XBLAKE3_EXPORT void* xblake3_hasher_create(unsigned long long iMaxInput)
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	pHasher = xrtBlake3HasherCreate(&tOptions);
 	if (pHasher == NULL) {
-		xrtSetError(xrtFormat("blake3 hasher create failed"), TRUE);
+		xl6ExtlibSetError(XERR_MEMORY, "xlang.extlib.blake3", "blake3 hasher create failed");
 		return NULL;
 	}
 	return pHasher;
@@ -221,7 +252,7 @@ XBLAKE3_EXPORT void* xblake3_hasher_create_keyed(const void* pKey, size_t iKeyLe
 	}
 	pHasher = xrtBlake3HasherCreateKeyed(&tOptions, pKeyBuf);
 	if (pHasher == NULL) {
-		xrtSetError(xrtFormat("blake3 keyed hasher create failed"), TRUE);
+		xl6ExtlibSetError(XERR_MEMORY, "xlang.extlib.blake3", "blake3 keyed hasher create failed");
 		return NULL;
 	}
 	return pHasher;
@@ -237,7 +268,7 @@ XBLAKE3_EXPORT void* xblake3_hasher_create_kdf(const char* sContext,
 	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
 	pHasher = xrtBlake3HasherCreateDeriveKey(&tOptions, sContext);
 	if (pHasher == NULL) {
-		xrtSetError(xrtFormat("blake3 kdf hasher create failed"), TRUE);
+		xl6ExtlibSetError(XERR_MEMORY, "xlang.extlib.blake3", "blake3 kdf hasher create failed");
 		return NULL;
 	}
 	return pHasher;
@@ -253,9 +284,9 @@ XBLAKE3_EXPORT bool xblake3_hasher_update(void* pHandle, const void* pData, size
 	xrtblake3hasher* pHasher = (xrtblake3hasher*)pHandle;
 	if (!xrtBlake3HasherUpdate(pHasher, pData, iSize)) {
 		xblake3_publish_error(xrtBlake3HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBLAKE3_EXPORT bool xblake3_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
@@ -275,7 +306,7 @@ XBLAKE3_EXPORT void* xblake3_hasher_digest_bytes(void* pHandle, size_t iOutLen)
 		xblake3_publish_error(xrtBlake3HasherError(pHasher));
 		return NULL;
 	}
-	return xrtBufferAdopt(pOut, iOutLen);
+	return xl6ExtlibBufferTake(pOut, iOutLen);
 }
 
 XBLAKE3_EXPORT const char* xblake3_hasher_digest_hex(void* pHandle, size_t iOutLen)
@@ -295,9 +326,9 @@ XBLAKE3_EXPORT bool xblake3_hasher_reset(void* pHandle)
 	xrtblake3hasher* pHasher = (xrtblake3hasher*)pHandle;
 	if (!xrtBlake3HasherReset(pHasher)) {
 		xblake3_publish_error(xrtBlake3HasherError(pHasher));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 XBLAKE3_EXPORT unsigned long long xblake3_hasher_input_bytes(void* pHandle)

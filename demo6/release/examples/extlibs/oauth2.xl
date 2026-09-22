@@ -3,12 +3,35 @@ import oauth2
 
 
 func main(...) as int
-    auto url = oauth2.authUrl("https://accounts.google.com/o/oauth2/v2/auth", "client123", "http://localhost/cb", "openid", "state123456")
-    println("Auth URL: ", url)
+    // 客户端：生成校验器与挑战，组装授权 URL
+    string verifier = oauth2.makeVerifier()
+    string challenge = oauth2.codeChallenge(verifier)
+    println("verifier:", verifier)
+    println("challenge:", challenge)
 
-    auto verifier = oauth2.pkceVerifier(99)
-    println("PKCE verifier: ", verifier)
-    println("PKCE challenge: ", oauth2.pkceChallenge(verifier))
+    string url = oauth2.buildAuthorizeUrl(
+        "https://auth.example.com/authorize",
+        "demo-client",
+        "http://127.0.0.1:8080/callback",
+        "profile email",
+        "st-4815162342",
+        challenge)
+    println(url)
+
+    // 用户授权后浏览器重定向回来：
+    string redirect = "http://127.0.0.1:8080/callback?code=SplxlOBeZQQYbYS6WxSbIA&state=st-4815162342"
+    int queryStart = string.indexOf(redirect, "?", false)
+    var cb = oauth2.parseCallback(string.slice(redirect, queryStart + 1, -1))
+    println("code:", cb["code"])
+    println("state:", cb["state"])
+
+    // 服务端视角：校验客户端提交的 verifier 与挑战
+    println("challenge verifies:", oauth2.verifyChallenge(verifier, challenge))
+
+    // 用 http 标准库换取令牌（示意）：
+    // var resp = http.postForm(tokenEndpoint, {
+    //     "grant_type": "authorization_code", "code": cb["code"],
+    //     "redirect_uri": "...", "client_id": "...", "code_verifier": verifier })
 
     println("oauth2 example: PASS")
     return 0

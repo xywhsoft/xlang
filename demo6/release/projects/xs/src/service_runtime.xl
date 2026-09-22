@@ -98,13 +98,14 @@ class Runtime
             if handlerQueueCapacity <= 0 then
                 handlerQueueCapacity = int(runtimeConfig["handlerQueueLimit"])
             end
-            auto socketService = socket_service.openManaged(
+            auto socketService = socket_service.openManagedWithConnectionWorkers(
                 serviceType,
                 serviceName,
                 string(serviceConfig["host"]),
                 int(serviceConfig["port"]),
                 int(serviceConfig["backlog"]),
                 int(serviceConfig["workerCount"]),
+                int(serviceConfig["connectionWorkerCount"]),
                 int(serviceConfig["queueLimit"]),
                 int(serviceConfig["recvLimit"]),
                 string(serviceConfig["framing"]),

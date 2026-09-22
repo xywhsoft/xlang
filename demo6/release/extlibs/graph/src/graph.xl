@@ -1,0 +1,94 @@
+extern "xg_is_dag" func __g_is_dag(var edges) as bool
+extern "xg_topo_sort" func __g_topo_sort(var edges) as var
+extern "xg_bfs" func __g_bfs(var edges, string start) as var
+extern "xg_shortest_path" func __g_shortest_path(var edges, string start, string target) as var
+extern "xg_dijkstra" func __g_dijkstra(var edges, string start) as var
+extern "xg_components" func __g_components(var edges) as var
+extern "xg_scc" func __g_scc(var edges) as var
+extern "xg_nodes" func __g_nodes(var edges) as var
+extern "xg_neighbors" func __g_neighbors(var edges, string node) as var
+
+
+
+// 边的写法：[u, v] 为无权边（权重 1），[u, v, 权重] 为带权边；节点是字符串
+
+// isDag 判断有向图是否无环；输入格式非法抛 ValueError
+export func isDag(var edges) as bool
+    int r = __g_is_dag(edges)
+    if r < 0 then
+        throw ValueError "graph: edges must be an array of [u, v, weight?]"
+    end
+    return r == 1
+end
+
+// topoSort 返回拓扑序（Kahn 算法）；存在环抛 ValueError
+export func topoSort(var edges) as var
+    var r = __g_topo_sort(edges)
+    if r == null then
+        throw ValueError "graph: cycle detected, topological sort is impossible"
+    end
+    return r
+end
+
+// bfs 返回从 start 出发的广度优先访问序
+export func bfs(var edges, string start) as var
+    var r = __g_bfs(edges, start)
+    if r == null then
+        throw ValueError "graph: start node is not in the graph or invalid edges"
+    end
+    return r
+end
+
+// shortestPath 返回无权图最短路径节点序列；不可达或节点不存在抛 ValueError
+export func shortestPath(var edges, string start, string target) as var
+    var r = __g_shortest_path(edges, start, target)
+    if r == null then
+        throw ValueError "graph: no path connects the two nodes"
+    end
+    return r
+end
+
+// dijkstra 返回 {节点: 最短距离}，不可达的节点不出现在结果中
+export func dijkstra(var edges, string start) as var
+    var r = __g_dijkstra(edges, start)
+    if r == null then
+        throw ValueError "graph: start node is not in the graph or invalid edges"
+    end
+    return r
+end
+
+// components 返回无向连通分量列表
+export func components(var edges) as var
+    var r = __g_components(edges)
+    if r == null then
+        throw ValueError "graph: invalid edges"
+    end
+    return r
+end
+
+// scc 返回强连通分量列表（Tarjan）
+export func scc(var edges) as var
+    var r = __g_scc(edges)
+    if r == null then
+        throw ValueError "graph: invalid edges"
+    end
+    return r
+end
+
+// nodes 返回全部节点（排序去重）
+export func nodes(var edges) as var
+    var r = __g_nodes(edges)
+    if r == null then
+        throw ValueError "graph: invalid edges"
+    end
+    return r
+end
+
+// neighbors 返回 node 的直接后继（去重，保持边序）
+export func neighbors(var edges, string node) as var
+    var r = __g_neighbors(edges, node)
+    if r == null then
+        throw ValueError "graph: node is not in the graph"
+    end
+    return r
+end

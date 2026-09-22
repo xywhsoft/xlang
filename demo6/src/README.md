@@ -9,8 +9,8 @@ This directory contains the DEMO6 compiler, CLI, DLL runtime API, and supporting
 - `ast`: AST nodes, construction helpers, and AST dump.
 - `sem`: semantic checks, protocol validation, type registry, and diagnostics.
 - `type`: shared type model helpers.
-- `ir`: canonical XLIR contract, typed-HIR migration adapter, and IR dumps. XLIR owns semantic data and must not retain AST pointers after construction.
-- `cgen`: C code generator shards. Rule docs must stay aligned with `../cgenrule/README.md`.
+- `ir`: canonical typed/lowered XLIR contract and IR dumps. XLIR owns semantic data and must not retain AST pointers after construction.
+- `cgen`: the XLIR-to-C emitter and reusable runtime component emitters. Rule docs must stay aligned with `../cgenrule/README.md`.
 - `abi`: ABI dump and callable metadata.
 - `package`: package manifest, resolver, and import dependency handling.
 - `resource`: Windows-only resource config compiler for version, icon, and manifest output.

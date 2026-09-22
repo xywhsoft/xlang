@@ -142,11 +142,6 @@ export func xuiTextLayoutReset(point pLayout, point pDesc) as c_int
     return __xl6_xuiTextLayoutReset(pLayout, pDesc)
 end
 
-extern "xuiTextLayoutGetSize" func __xl6_xuiTextLayoutGetSize(point pLayout) as point
-export func xuiTextLayoutGetSize(point pLayout) as point
-    return __xl6_xuiTextLayoutGetSize(pLayout)
-end
-
 extern "xuiTextLayoutGetLineCount" func __xl6_xuiTextLayoutGetLineCount(point pLayout) as c_int
 export func xuiTextLayoutGetLineCount(point pLayout) as c_int
     return __xl6_xuiTextLayoutGetLineCount(pLayout)

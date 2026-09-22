@@ -236,7 +236,7 @@ static char* __xuiChartCopyString(const char* sText)
 	if ( (sText == NULL) || (sText[0] == 0) ) {
 		return NULL;
 	}
-	sCopy = (char*)xrtCopyStr((str)(void*)sText, 0);
+	sCopy = (char*)xrtStrDup(sText);
 	if ( (sCopy == NULL) || (sCopy[0] == 0) ) {
 		return NULL;
 	}
@@ -727,8 +727,7 @@ static int __xuiChartDrawText(xui_proxy pProxy, xui_draw_context pDraw, xui_font
 		return XUI_OK;
 	}
 	tRect = xuiInternalSnapRect(tRect);
-	if ( (tRect.fX != tRect.fX) || (tRect.fY != tRect.fY) || (tRect.fW != tRect.fW) || (tRect.fH != tRect.fH) ||
-	     (tRect.fW <= 0.0f) || (tRect.fH <= 0.0f) ) {
+	if ( (tRect.fW <= 0) || (tRect.fH <= 0) ) {
 		return XUI_OK;
 	}
 	return pProxy->drawText(pProxy, pDraw, pFont, sText, tRect, iColor, iFlags);
@@ -1465,7 +1464,7 @@ static int __xuiChartDrawSelection(xui_widget pWidget, xui_proxy pProxy, xui_dra
 			snprintf(sText, sizeof(sText), "%s %.2f", (pPoint->label != NULL) ? pPoint->label : pData->arrSeries[pHit->iSeries].sName, pPoint->value != 0.0 ? pPoint->value : pPoint->y);
 		}
 		tTip = xuiInternalSnapRect(tTip);
-		if ( (tTip.fW <= 0.0f) || (tTip.fH <= 0.0f) || (tTip.fX != tTip.fX) || (tTip.fY != tTip.fY) ) {
+		if ( (tTip.fW <= 0) || (tTip.fH <= 0) ) {
 			return XUI_OK;
 		}
 		iRet = pProxy->drawRectFill(pProxy, pDraw, tTip, pData->iTooltipColor);

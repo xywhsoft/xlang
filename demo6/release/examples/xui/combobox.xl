@@ -1,0 +1,29 @@
+// combobox.xl — 下拉框：ComboBox 控件
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "ComboBox Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "ComboBox Demo", font)
+    root.addChild(title)
+
+    xui.ComboBox combo = xui.ComboBox(ctx, font)
+    combo.setPreferredSize(240.0, 34.0)
+    xui.xuiComboBoxSetText(combo.handle, "Select an item")
+    root.addChild(combo)
+
+    xui.Label hint = xui.Label(ctx, "Click the box to expand the drop-down list", font)
+    root.addChild(hint)
+
+    g_app.run(onFrame)
+    return 0
+end

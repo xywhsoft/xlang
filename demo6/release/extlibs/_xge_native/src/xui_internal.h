@@ -1,20 +1,15 @@
 #ifndef XUI_INTERNAL_H
 #define XUI_INTERNAL_H
 
-/* TCC PE 链接器要求外部变量必须声明 dllimport (xCore) */
-#if defined(_WIN32) && defined(__TINYC__)
-#ifndef XXAPI
-#define XXAPI __declspec(dllimport)
-#endif
-#endif
-
 #include "../xui.h"
+#include "../lib/xlayout/xlayout.h"
 
 #define XUI_CONTEXT_MAGIC 0x58554943u
 #define XUI_CONTEXT_DAMAGE_INLINE 8
 #define XUI_CONTEXT_EVENT_INLINE 32
 #define XUI_CONTEXT_HOTKEY_INLINE 16
 #define XUI_CONTEXT_FONT_INLINE 16
+#define XUI_DRAG_ADORNER_MAX_PRIMITIVES 16
 #define XUI_CONTEXT_MAX_VIEWPORT 1073741824.0f
 
 #define XUI_WIDGET_MAGIC 0x58554957u
@@ -34,6 +29,120 @@ typedef struct xui_resource_dependency_t xui_resource_dependency_t;
 typedef struct xui_hotkey_t xui_hotkey_t;
 typedef struct xui_font_entry_t xui_font_entry_t;
 typedef struct xui_pointer_state_t xui_pointer_state_t;
+typedef int (*xui_internal_text_read_proc)(void* pUser, int iOffset, unsigned char* pByte);
+
+enum {
+	XUI_DRAG_ADORNER_RECT_FILL = 1,
+	XUI_DRAG_ADORNER_RECT_STROKE = 2
+};
+
+typedef struct xui_drag_adorner_primitive_t {
+	int iType;
+	xui_rect_t tRect;
+	float fWidth;
+	uint32_t iColor;
+} xui_drag_adorner_primitive_t;
+
+
+
+/*
+ * XUI 的图模型使用 1 基槽位作为稳定 ID，0 表示无效槽位。
+ * 底层仍使用当前 XRT 的 0 基 xarray，此处集中完成索引换算。
+ */
+static inline size_t __xuiArraySlotAdd(xarray* pArray, size_t iCount)
+{
+	size_t iSlot;
+
+	if ( (pArray == NULL) || (iCount == 0u) || (pArray->Count == SIZE_MAX) ) return 0u;
+	iSlot = pArray->Count + 1u;
+	return (xrtArrayAdd(pArray, iCount) != NULL) ? iSlot : 0u;
+}
+
+
+
+/* 返回指定 1 基槽位的元素地址。 */
+static inline void* __xuiArraySlotGet(xarray* pArray, size_t iSlot)
+{
+	if ( (pArray == NULL) || (iSlot == 0u) ) return NULL;
+	return xrtArrayGet(pArray, iSlot - 1u);
+}
+
+
+
+/* 删除从指定 1 基槽位开始的连续元素。 */
+static inline bool __xuiArraySlotRemove(xarray* pArray, size_t iSlot, size_t iCount)
+{
+	if ( (pArray == NULL) || (iSlot == 0u) ) return false;
+	return xrtArrayRemove(pArray, iSlot - 1u, iCount);
+}
+
+
+
+/* 将 XUI 的字符串键参数转换为当前 XRT 字节键视图。 */
+static inline xbytesview __xuiMapKey(const void* pKey, size_t iKeySize)
+{
+	xbytesview Key;
+
+	Key.Data = (const unsigned char*)pKey;
+	Key.Size = iKeySize;
+	return Key;
+}
+
+
+
+/* 查询字符串键对应的可写值槽。 */
+static inline void* __xuiMapGet(xmap* pMap, const void* pKey, size_t iKeySize)
+{
+	if ( (pMap == NULL) || ((pKey == NULL) && (iKeySize != 0u)) ) return NULL;
+	return xrtMapGet(pMap, __xuiMapKey(pKey, iKeySize));
+}
+
+
+
+/* 查询或创建字符串键对应的值槽。 */
+static inline void* __xuiMapGetOrAdd(xmap* pMap, const void* pKey, size_t iKeySize, bool* pNew)
+{
+	if ( (pMap == NULL) || ((pKey == NULL) && (iKeySize != 0u)) ) return NULL;
+	return xrtMapGetOrAdd(pMap, __xuiMapKey(pKey, iKeySize), pNew);
+}
+
+
+
+/* 删除字符串键及其值槽。 */
+static inline bool __xuiMapRemove(xmap* pMap, const void* pKey, size_t iKeySize)
+{
+	if ( (pMap == NULL) || ((pKey == NULL) && (iKeySize != 0u)) ) return false;
+	return xrtMapRemove(pMap, __xuiMapKey(pKey, iKeySize));
+}
+
+
+
+/* 读取指针值映射。 */
+static inline void* __xuiMapGetPtr(xmap* pMap, const void* pKey, size_t iKeySize)
+{
+	if ( (pMap == NULL) || ((pKey == NULL) && (iKeySize != 0u)) ) return NULL;
+	return xrtMapGetPtr(pMap, __xuiMapKey(pKey, iKeySize));
+}
+
+
+
+/* 设置指针值，并按需返回被替换的旧指针。 */
+static inline bool __xuiMapSetPtr(
+	xmap* pMap,
+	const void* pKey,
+	size_t iKeySize,
+	void* pValue,
+	void** ppOldValue
+)
+{
+	xbytesview Key;
+
+	if ( ppOldValue != NULL ) *ppOldValue = NULL;
+	if ( (pMap == NULL) || ((pKey == NULL) && (iKeySize != 0u)) ) return false;
+	Key = __xuiMapKey(pKey, iKeySize);
+	if ( ppOldValue != NULL ) *ppOldValue = xrtMapGetPtr(pMap, Key);
+	return xrtMapSetPtr(pMap, Key, pValue);
+}
 
 struct xui_language_t {
 	uint32_t iMagic;
@@ -42,7 +151,7 @@ struct xui_language_t {
 	int iFallbackLanguageId;
 	char* sCode;
 	char* sName;
-	xarray_struct arrTexts;
+	xarray arrTexts;
 	uint32_t iRevision;
 	int bBuiltin;
 };
@@ -58,17 +167,17 @@ struct xui_pointer_state_t {
 	xui_widget pDragWidget;
 	xui_widget pLastClickWidget;
 	xui_widget pContextPressWidget;
-	float fPointerX;
-	float fPointerY;
+	int fPointerX;
+	int fPointerY;
 	float fContextPressTime;
-	float fContextPressStartX;
-	float fContextPressStartY;
-	float fContextPressLastX;
-	float fContextPressLastY;
-	float fDragStartX;
-	float fDragStartY;
-	float fLastClickX;
-	float fLastClickY;
+	int fContextPressStartX;
+	int fContextPressStartY;
+	int fContextPressLastX;
+	int fContextPressLastY;
+	int fDragStartX;
+	int fDragStartY;
+	int fLastClickX;
+	int fLastClickY;
 	uint32_t iPointerButtons;
 	int iActiveButton;
 	int iDragButton;
@@ -107,15 +216,23 @@ struct xui_font_entry_t {
 
 struct xui_context_t {
 	uint32_t iMagic;
+	xlayout_context_t* pLayoutContext;
+	xlayout_track_t* pLayoutTrackScratch;
+	uint32_t iLayoutTrackScratchCapacity;
 	xui_proxy_t tProxy;
 	xui_proxy_caps_t tProxyCaps;
 	int bHasProxy;
-	float fViewportWidth;
-	float fViewportHeight;
+	int fViewportWidth;
+	int fViewportHeight;
 	float fDpiScale;
 	uint32_t iGeneration;
 	xui_widget pRoot;
 	xui_widget pOverlayRoot;
+	xui_widget pDragAdornerWidget;
+	xui_widget pDragAdornerOwner;
+	xui_rect_t tDragAdornerBounds;
+	xui_drag_adorner_primitive_t arrDragAdornerPrimitives[XUI_DRAG_ADORNER_MAX_PRIMITIVES];
+	int iDragAdornerPrimitiveCount;
 	xui_widget pHoverWidget;
 	xui_widget pActiveWidget;
 	xui_widget pFocusWidget;
@@ -128,20 +245,20 @@ struct xui_context_t {
 	xui_rect_t tTooltipRect;
 	char* sActiveTooltipText;
 	float fTooltipHoverTime;
-	float fTooltipMouseX;
-	float fTooltipMouseY;
+	int fTooltipMouseX;
+	int fTooltipMouseY;
 	int bTooltipOpen;
-	float fPointerX;
-	float fPointerY;
+	int fPointerX;
+	int fPointerY;
 	float fContextPressTime;
-	float fContextPressStartX;
-	float fContextPressStartY;
-	float fContextPressLastX;
-	float fContextPressLastY;
-	float fDragStartX;
-	float fDragStartY;
-	float fLastClickX;
-	float fLastClickY;
+	int fContextPressStartX;
+	int fContextPressStartY;
+	int fContextPressLastX;
+	int fContextPressLastY;
+	int fDragStartX;
+	int fDragStartY;
+	int fLastClickX;
+	int fLastClickY;
 	uint32_t iPointerButtons;
 	uint32_t iInputModifiers;
 	int iActiveButton;
@@ -171,7 +288,13 @@ struct xui_context_t {
 	xui_hotkey_t* pHotkeys;
 	int iHotkeyCount;
 	int iHotkeyCapacity;
+	xui_layout_stats_t tLayoutStats;
 	xui_render_stats_t tRenderStats;
+	xui_error_proc onError;
+	void* pErrorUser;
+	int bReportingError;
+	xui_accessibility_event_proc onAccessibilityEvent;
+	void* pAccessibilityEventUser;
 	xui_render_node_t* pRenderNodes;
 	int iRenderNodeCount;
 	int iRenderNodeCapacity;
@@ -191,13 +314,13 @@ struct xui_context_t {
 	int bStyleDirty;
 	xui_resource_t* pResources;
 	uint32_t iNextResourceGeneration;
-	xdict_struct mapIconCategories;
-	xarray_struct arrIconCategories;
+	xmap mapIconCategories;
+	xarray arrIconCategories;
 	xui_icon_category pIconCategories;
 	xui_icon pIcons;
 	uint32_t iIconGeneration;
 	void (*onDestroyIcons)(xui_context pContext);
-	xarray_struct arrLanguages;
+	xarray arrLanguages;
 	int iCurrentLanguageId;
 	int iNextCustomLanguageId;
 	uint32_t iLanguageRevision;
@@ -211,10 +334,7 @@ struct xui_context_t {
 	int bImeEnabled;
 	int bHasImeCandidateRect;
 	xui_rect_t tImeCandidateRect;
-	float fXgeInputMouseX;
-	float fXgeInputMouseY;
-	uint32_t iXgeInputMouseButtons;
-	int bXgeInputPointerReady;
+	void (*onImeDetach)(xui_context pContext);
 };
 
 struct xui_widget_type_t {
@@ -229,8 +349,9 @@ struct xui_widget_type_t {
 	xui_widget_type_init_proc onInit;
 	xui_widget_type_destroy_proc onDestroy;
 	xui_widget_content_measure_proc onContentMeasure;
-	xui_widget_layout_measure_proc onLayoutMeasure;
-	xui_widget_layout_arrange_proc onLayoutArrange;
+	xui_widget_layout_prepare_proc onLayoutPrepare;
+	xui_widget_layout_children_proc onLayoutChildren;
+	xui_widget_layout_complete_proc onLayoutComplete;
 	xui_widget_cache_render_proc onCacheRender;
 	xui_widget_update_proc onUpdate;
 	xui_layout_t tLayout;
@@ -241,6 +362,7 @@ struct xui_widget_type_t {
 
 struct xui_widget_t {
 	uint32_t iMagic;
+	xlayout_node_t iLayoutNode;
 	xui_context pContext;
 	xui_widget_type pType;
 	xui_widget pParent;
@@ -273,6 +395,8 @@ struct xui_widget_t {
 	uint32_t iStateId;
 	uint32_t iGeneration;
 	uint32_t iLayoutVersion;
+	uint32_t iLayoutSyncedVersion;
+	uint32_t iLayoutSyncedParentVersion;
 	uint32_t iStyleVersion;
 	void* pUser;
 	xui_widget pOverlayOwner;
@@ -289,9 +413,12 @@ struct xui_widget_t {
 	uint32_t iResolvedStyleGeneration;
 	xui_widget_content_measure_proc onContentMeasure;
 	void* pContentMeasureUser;
-	xui_widget_layout_measure_proc onLayoutMeasure;
-	xui_widget_layout_arrange_proc onLayoutArrange;
-	void* pLayoutUser;
+	xui_widget_layout_prepare_proc onLayoutPrepare;
+	void* pLayoutPrepareUser;
+	xui_widget_layout_children_proc onLayoutChildren;
+	void* pLayoutChildrenUser;
+	xui_widget_layout_complete_proc onLayoutComplete;
+	void* pLayoutCompleteUser;
 	xui_widget_event_proc onEvent;
 	void* pEventUser;
 	xui_widget_event_proc arrEventHandlers[XUI_WIDGET_EVENT_SLOT_COUNT];
@@ -306,6 +433,13 @@ struct xui_widget_t {
 	void* pCancelActionUser;
 	xui_widget_ime_rect_proc onImeCandidateRect;
 	void* pImeCandidateRectUser;
+	xui_accessible_count_proc onAccessibleCount;
+	xui_accessible_get_proc onAccessibleGet;
+	xui_accessible_action_proc onAccessibleAction;
+	void* pAccessibleUser;
+	char* sAccessibleName;
+	char* sAccessibleDescription;
+	uint32_t iAccessibilityRevision;
 	xui_cache_policy_t tCachePolicy;
 	xui_widget_cache_render_proc onCacheRender;
 	void* pCacheRenderUser;
@@ -330,11 +464,20 @@ struct xui_painter_t {
 };
 
 int xuiInternalContextIsValid(xui_context pContext);
+int xuiInternalLayoutCreateWidget(xui_widget pWidget);
+void xuiInternalLayoutDestroyWidget(xui_widget pWidget);
+int xuiInternalLayoutAttach(xui_widget pParent, xui_widget pChild, xui_widget pBefore);
+void xuiInternalLayoutDetach(xui_widget pWidget);
+void xuiInternalLayoutInvalidate(xui_widget pWidget, int bMeasure);
+int xuiInternalLayoutMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pMeasured);
+int xuiInternalLayoutArrange(xui_widget pWidget, xui_rect_t tRect);
 int xuiInternalContextHasProxy(xui_context pContext);
 xui_proxy xuiInternalContextGetProxy(xui_context pContext);
 int xuiInternalContextInvalidateRect(xui_context pContext, xui_rect_i_t tRect);
 int xuiInternalContextInvalidateAll(xui_context pContext);
 void xuiInternalContextBumpGeneration(xui_context pContext);
+void xuiInternalReportError(xui_context pContext, xui_widget pWidget, int iCode, int iStage,
+	int bRecoverable, const char* sOperation, const char* sMessage);
 void xuiInternalContextDetachWidget(xui_context pContext, xui_widget pWidget);
 void xuiInternalContextDestroyWidgetTypes(xui_context pContext);
 void xuiInternalContextDestroyStyles(xui_context pContext);
@@ -345,7 +488,18 @@ int xuiInternalInputSyncIme(xui_context pContext);
 int xuiInternalInputRefreshIme(xui_context pContext);
 int xuiInternalInputRefreshImePosition(xui_context pContext);
 int xuiInternalClipboardReadProxy(xui_proxy pProxy, char** psText, int* pTextSize);
+XUI_API int xuiInternalContextSetImeDetach(xui_context pContext, void (*onDetach)(xui_context pContext));
 int xuiInternalClipboardReadText(xui_context pContext, char** psText, int* pTextSize);
+int xuiInternalTextGraphemeNextRead(xui_internal_text_read_proc onRead, void* pUser, int iLength, int iOffset);
+int xuiInternalTextGraphemePrevRead(xui_internal_text_read_proc onRead, void* pUser, int iLength, int iOffset);
+int xuiInternalTextGraphemeClampRead(xui_internal_text_read_proc onRead, void* pUser, int iLength, int iOffset);
+int xuiInternalTextGraphemeNext(const char* sText, int iLength, int iOffset);
+int xuiInternalTextGraphemePrev(const char* sText, int iLength, int iOffset);
+int xuiInternalTextGraphemeClamp(const char* sText, int iLength, int iOffset);
+typedef void (*xui_internal_rich_change_proc)(xui_rich_document pDocument, const xui_rich_change_t* pChange, void* pUser);
+int xuiInternalRichDocumentAddObserver(xui_rich_document pDocument, xui_internal_rich_change_proc onChange, void* pUser);
+int xuiInternalRichDocumentRemoveObserver(xui_rich_document pDocument, xui_internal_rich_change_proc onChange, void* pUser);
+int xuiInternalRichDocumentNodeOffset(xui_rich_document pDocument, xui_rich_node pNode, int* pOffset);
 void xuiInternalContextPressCancel(xui_context pContext);
 int xuiInternalContextPressUpdate(xui_context pContext, float fDelta);
 int xuiInternalDrawPath(xui_proxy pProxy, xui_draw_context pDraw, xui_path pPath, const xui_path_style_t* pStyle, float fTolerance);
@@ -353,6 +507,9 @@ int xuiInternalTooltipPointerMove(xui_context pContext, xui_widget pHitWidget);
 void xuiInternalTooltipCancel(xui_context pContext);
 void xuiInternalTooltipDetachWidget(xui_context pContext, xui_widget pWidget);
 int xuiInternalTooltipUpdate(xui_context pContext, float fDelta);
+int xuiInternalDragAdornerSet(xui_context pContext, xui_widget pOwner,
+	const xui_drag_adorner_primitive_t* pPrimitives, int iPrimitiveCount);
+void xuiInternalDragAdornerHide(xui_context pContext, xui_widget pOwner);
 
 int xuiInternalWidgetIsValid(xui_widget pWidget);
 
@@ -378,101 +535,64 @@ static int xuiInternalPixelCeil(float fValue)
 	return iValue;
 }
 
-static float xuiInternalSnapPixel(float fValue)
+static int xuiInternalSnapPixel(float fValue)
 {
-	return (float)xuiInternalPixelFloor(fValue + 0.5f);
+	return xuiInternalPixelFloor(fValue + 0.5f);
 }
 
-static float xuiInternalSnapSize(float fValue)
+static int xuiInternalSnapSize(float fValue)
 {
 	if ( fValue <= 0.0f ) {
-		return 0.0f;
+		return 0;
 	}
-	fValue = xuiInternalSnapPixel(fValue);
-	return (fValue < 1.0f) ? 1.0f : fValue;
+	return xuiInternalSnapPixel(fValue) < 1 ? 1 : xuiInternalSnapPixel(fValue);
 }
 
 static xui_rect_t xuiInternalRectFromInt(xui_rect_i_t tRect)
 {
 	xui_rect_t tRet;
 
-	tRet.fX = (float)tRect.iX;
-	tRet.fY = (float)tRect.iY;
-	tRet.fW = (float)tRect.iW;
-	tRet.fH = (float)tRect.iH;
+	tRet.fX = tRect.iX;
+	tRet.fY = tRect.iY;
+	tRet.fW = tRect.iW;
+	tRet.fH = tRect.iH;
 	return tRet;
+}
+
+static xui_rect_t xuiInternalRectFromFloatNearest(float fX, float fY, float fW, float fH)
+{
+	xui_rect_t tRect;
+	int iRight;
+	int iBottom;
+
+	tRect.fX = xuiInternalSnapPixel(fX);
+	tRect.fY = xuiInternalSnapPixel(fY);
+	iRight = xuiInternalSnapPixel(fX + fW);
+	iBottom = xuiInternalSnapPixel(fY + fH);
+	tRect.fW = iRight > tRect.fX ? iRight - tRect.fX : 0;
+	tRect.fH = iBottom > tRect.fY ? iBottom - tRect.fY : 0;
+	return tRect;
 }
 
 static xui_rect_t xuiInternalSnapRect(xui_rect_t tRect)
 {
-	float fLeft;
-	float fTop;
-	float fRight;
-	float fBottom;
-
-	fLeft = xuiInternalSnapPixel(tRect.fX);
-	fTop = xuiInternalSnapPixel(tRect.fY);
-	fRight = xuiInternalSnapPixel(tRect.fX + tRect.fW);
-	fBottom = xuiInternalSnapPixel(tRect.fY + tRect.fH);
-	tRect.fX = fLeft;
-	tRect.fY = fTop;
-	tRect.fW = fRight - fLeft;
-	tRect.fH = fBottom - fTop;
-	if ( tRect.fW < 0.0f ) {
-		tRect.fW = 0.0f;
+	if ( tRect.fW < 0 ) {
+		tRect.fW = 0;
 	}
-	if ( tRect.fH < 0.0f ) {
-		tRect.fH = 0.0f;
+	if ( tRect.fH < 0 ) {
+		tRect.fH = 0;
 	}
 	return tRect;
 }
 
 static xui_rect_t xuiInternalSnapRectOut(xui_rect_t tRect)
 {
-	float fLeft;
-	float fTop;
-	float fRight;
-	float fBottom;
-
-	fLeft = (float)xuiInternalPixelFloor(tRect.fX);
-	fTop = (float)xuiInternalPixelFloor(tRect.fY);
-	fRight = (float)xuiInternalPixelCeil(tRect.fX + tRect.fW);
-	fBottom = (float)xuiInternalPixelCeil(tRect.fY + tRect.fH);
-	tRect.fX = fLeft;
-	tRect.fY = fTop;
-	tRect.fW = fRight - fLeft;
-	tRect.fH = fBottom - fTop;
-	if ( tRect.fW < 0.0f ) {
-		tRect.fW = 0.0f;
-	}
-	if ( tRect.fH < 0.0f ) {
-		tRect.fH = 0.0f;
-	}
-	return tRect;
+	return xuiInternalSnapRect(tRect);
 }
 
 static xui_rect_t xuiInternalSnapRectIn(xui_rect_t tRect)
 {
-	float fLeft;
-	float fTop;
-	float fRight;
-	float fBottom;
-
-	fLeft = (float)xuiInternalPixelCeil(tRect.fX);
-	fTop = (float)xuiInternalPixelCeil(tRect.fY);
-	fRight = (float)xuiInternalPixelFloor(tRect.fX + tRect.fW);
-	fBottom = (float)xuiInternalPixelFloor(tRect.fY + tRect.fH);
-	tRect.fX = fLeft;
-	tRect.fY = fTop;
-	tRect.fW = fRight - fLeft;
-	tRect.fH = fBottom - fTop;
-	if ( tRect.fW < 0.0f ) {
-		tRect.fW = 0.0f;
-	}
-	if ( tRect.fH < 0.0f ) {
-		tRect.fH = 0.0f;
-	}
-	return tRect;
+	return xuiInternalSnapRect(tRect);
 }
 
 static xui_rect_i_t xuiInternalRectToDamage(xui_rect_t tRect)
@@ -483,10 +603,10 @@ static xui_rect_i_t xuiInternalRectToDamage(xui_rect_t tRect)
 	int iRight;
 	int iBottom;
 
-	iLeft = xuiInternalPixelFloor(tRect.fX);
-	iTop = xuiInternalPixelFloor(tRect.fY);
-	iRight = xuiInternalPixelCeil(tRect.fX + tRect.fW);
-	iBottom = xuiInternalPixelCeil(tRect.fY + tRect.fH);
+	iLeft = tRect.fX;
+	iTop = tRect.fY;
+	iRight = tRect.fX + tRect.fW;
+	iBottom = tRect.fY + tRect.fH;
 	tDamage.iX = iLeft;
 	tDamage.iY = iTop;
 	tDamage.iW = iRight - iLeft;
@@ -496,35 +616,32 @@ static xui_rect_i_t xuiInternalRectToDamage(xui_rect_t tRect)
 
 static xui_rect_t xuiInternalInsetRect(xui_rect_t tRect, float fInset)
 {
-	tRect.fX += fInset;
-	tRect.fY += fInset;
-	tRect.fW -= fInset * 2.0f;
-	tRect.fH -= fInset * 2.0f;
-	if ( tRect.fW < 0.0f ) {
-		tRect.fW = 0.0f;
+	int iInset = xuiInternalSnapPixel(fInset);
+	tRect.fX += iInset;
+	tRect.fY += iInset;
+	tRect.fW -= iInset * 2;
+	tRect.fH -= iInset * 2;
+	if ( tRect.fW < 0 ) {
+		tRect.fW = 0;
 	}
-	if ( tRect.fH < 0.0f ) {
-		tRect.fH = 0.0f;
+	if ( tRect.fH < 0 ) {
+		tRect.fH = 0;
 	}
 	return tRect;
 }
 
 static xui_rect_t xuiInternalStrokeCenterRectInside(xui_rect_t tRect, float fWidth, float* pRadius)
 {
-	float fSnapWidth;
-	float fInset;
+	int iWidth;
 
-	fSnapWidth = xuiInternalSnapSize(fWidth);
-	fInset = fSnapWidth * 0.5f;
-	tRect = xuiInternalSnapRect(tRect);
-	tRect = xuiInternalInsetRect(tRect, fInset);
+	iWidth = xuiInternalSnapSize(fWidth);
 	if ( pRadius != NULL ) {
-		*pRadius = xuiInternalSnapPixel(*pRadius - fInset);
+		*pRadius = (float)xuiInternalSnapPixel(*pRadius - (float)iWidth);
 		if ( *pRadius < 0.0f ) {
 			*pRadius = 0.0f;
 		}
 	}
-	return tRect;
+	return xuiInternalSnapRect(tRect);
 }
 
 #endif /* XUI_INTERNAL_H */

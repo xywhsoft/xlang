@@ -1,0 +1,112 @@
+extern "xmc_build_get" func __mc_get(var keys) as string
+extern "xmc_build_set" func __mc_set(string key, int flags, int exptime, int bytes) as string
+extern "xmc_build_add" func __mc_add(string key, int flags, int exptime, int bytes) as string
+extern "xmc_build_delete" func __mc_delete(string key) as string
+extern "xmc_build_touch" func __mc_touch(string key, int exptime) as string
+extern "xmc_build_stats" func __mc_stats() as string
+extern "xmc_build_flush_all" func __mc_flush() as string
+extern "xmc_build_version" func __mc_version() as string
+extern "xmc_parse_response" func __mc_parse(string text) as var
+
+
+
+// 命令构造（文本协议；连接走标准库 tcp 的字符串 send/recv）
+
+export func buildGet(var keys) as string
+    string line = __mc_get(keys)
+    if line == "" then
+        throw ValueError "memcached: get requires at least one short key"
+    end
+    return line
+end
+
+export func buildSet(string key, int flags, int exptime, int bytes) as string
+    string line = __mc_set(key, flags, exptime, bytes)
+    if line == "" then
+        throw ValueError "memcached: set parameters out of range"
+    end
+    return line
+end
+
+export func buildAdd(string key, int flags, int exptime, int bytes) as string
+    string line = __mc_add(key, flags, exptime, bytes)
+    if line == "" then
+        throw ValueError "memcached: add parameters out of range"
+    end
+    return line
+end
+
+export func buildDelete(string key) as string
+    string line = __mc_delete(key)
+    if line == "" then
+        throw ValueError "memcached: delete key out of range"
+    end
+    return line
+end
+
+export func buildTouch(string key, int exptime) as string
+    string line = __mc_touch(key, exptime)
+    if line == "" then
+        throw ValueError "memcached: touch key out of range"
+    end
+    return line
+end
+
+export func buildStats() as string
+    return __mc_stats()
+end
+
+export func buildFlushAll() as string
+    return __mc_flush()
+end
+
+export func buildVersion() as string
+    return __mc_version()
+end
+
+// parseResponse 解析应答，返回 {status, ...}
+// value 含 key/flags/bytes/data；stats 含 stats 字典；错误含 message
+export func parseResponse(string text) as var
+    var r = __mc_parse(text)
+    if r == null then
+        throw ValueError "memcached: unrecognized response"
+    end
+    return r
+end
+
+// 客户端：set 数据块 = 命令行 + 数据 + CRLF；返回 STORED 状态
+export func set(TcpStream stream, string key, string data, int exptime) as string
+    string cmd = buildSet(key, 0, exptime, data.length)
+    if not stream.send(cmd + data + "\r\n") then
+        throw ValueError "memcached: send failed"
+    end
+    string reply = stream.recv(5000)
+    var parsed = parseResponse(reply)
+    return string(parsed["status"])
+end
+
+// get 单键值；未命中返回空串
+export func get(TcpStream stream, string key) as string
+    if not stream.send(buildGet([key])) then
+        throw ValueError "memcached: send failed"
+    end
+    string reply = stream.recv(5000)
+    if reply == "END\r\n" then
+        return ""
+    end
+    var parsed = parseResponse(reply)
+    if parsed["status"] == "value" then
+        return string(parsed["data"])
+    end
+    throw ValueError "memcached: unexpected response"
+end
+
+// delete 返回是否删除
+export func del(TcpStream stream, string key) as bool
+    if not stream.send(buildDelete(key)) then
+        throw ValueError "memcached: send failed"
+    end
+    string reply = stream.recv(5000)
+    var parsed = parseResponse(reply)
+    return parsed["status"] == "deleted"
+end

@@ -1,5 +1,5 @@
 // miniz 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
-extern "xrtGetError" func __miniz_error() as string
+extern "xl6_xrt_last_error_text" func __miniz_error() as string
 extern "xminiz_version" func __miniz_version() as string
 extern "xminiz_compress" func __miniz_compress(point data, c_size size, c_int level,
     c_ulonglong maxInput, c_ulonglong maxOutput) as point
@@ -8,9 +8,11 @@ extern "xminiz_compress_str" func __miniz_compress_str(string data, c_size size,
 extern "xminiz_decompress" func __miniz_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
 extern "xminiz_compress_file" func __miniz_compress_file(string source, string destination,
-    c_int level, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput) as bool
+    c_int level, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput,
+    var onProgress) as c_int
 extern "xminiz_decompress_file" func __miniz_decompress_file(string source, string destination,
-    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as bool
+    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio,
+    var onProgress) as c_int
 
 
 
@@ -35,6 +37,14 @@ end
 func __miniz_check_limit(int value, string name)
     if value <= 0 then
         throw ValueError name + " must be greater than zero"
+    end
+end
+
+func __miniz_check_file_result(int status)
+    if status == -1 then
+        throw CancelledError "miniz operation cancelled"
+    elseif status != 1 then
+        throw CompressionError __miniz_error()
     end
 end
 
@@ -86,25 +96,33 @@ end
 
 export func compressFile(string source, string destination,
     int level = MINIZ_DEFAULT_LEVEL, bool overwrite = true,
-    int maxInput = 268435456, int maxOutput = 536870912)
+    int maxInput = 268435456, int maxOutput = 536870912,
+    (func(int, int, int) as bool)? onProgress = null)
     __miniz_check_level(level)
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
-    if not __miniz_compress_file(source, destination, c_int(level), c_bool(overwrite),
-        c_ulonglong(maxInput), c_ulonglong(maxOutput)) then
-        throw CompressionError __miniz_error()
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
     end
+    int status = __miniz_compress_file(source, destination, c_int(level), c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
+    __miniz_check_file_result(status)
 end
 
 export func decompressFile(string source, string destination, bool overwrite = true,
-    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000)
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
+    (func(int, int, int) as bool)? onProgress = null)
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
     __miniz_check_limit(maxRatio, "maxRatio")
-    if not __miniz_decompress_file(source, destination, c_bool(overwrite),
-        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio)) then
-        throw CompressionError __miniz_error()
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
     end
+    int status = __miniz_decompress_file(source, destination, c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio), progress)
+    __miniz_check_file_result(status)
 end
 
 

@@ -17,6 +17,11 @@ func main(...) as int
     // Validation
     println("valid 'test.org' = " + string(dns.validName("test.org")))
 
+    // XRT 负责实际地址解析，dns 只提供语言层的稳定结果。
+    for address in dns.resolve("localhost")
+        println("localhost = " + address)
+    end
+
     println("dns example: PASS")
     return 0
 end

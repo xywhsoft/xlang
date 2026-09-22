@@ -1,0 +1,106 @@
+import mqtt
+
+
+
+func invalidBuilder(int kind)
+    if kind == 0 then
+        mqtt.connectFrame("a", keepalive = -1)
+    elseif kind == 1 then
+        mqtt.connectFrame("a", keepalive = 65536)
+    elseif kind == 2 then
+        mqtt.connectFrame("", cleanSession = false)
+    elseif kind == 3 then
+        mqtt.publishFrame(0, "t", "x", 1)
+    elseif kind == 4 then
+        mqtt.publishFrame(1, "t", "x")
+    elseif kind == 5 then
+        mqtt.publishFrame(1, "t", "x", 65536)
+    elseif kind == 6 then
+        mqtt.publishFrame(0, "t", "x", duplicate = true)
+    elseif kind == 7 then
+        mqtt.publishFrame(0, "a/+", "x")
+    elseif kind == 8 then
+        mqtt.subscribeFrame(1, "a/#/b")
+    elseif kind == 9 then
+        mqtt.pubackFrame(0)
+    else
+        mqtt.connectFrame("a", password = "secret")
+    end
+end
+
+
+
+func main(...) as int
+    var connected = mqtt.parseFrame(mqtt.connectFrame("设备", keepalive = 0))
+    assert connected["keepalive"] == 0 and connected["clientId"] == "设备"
+    assert mqtt.connect("demo") == "101000044d5154540402003c000464656d6f"
+    assert mqtt.puback(65535) == "4002ffff"
+    assert mqtt.subscribe(1, "a/+") == "820800010003612f2b00"
+    assert mqtt.pingreq() == "c000" and mqtt.disconnect() == "e000"
+
+    // 密码与 payload 支持二进制；提取副本不依赖原帧的后续生命周期。
+    Buffer secret = mqtt.hexToFrame("00ff61")
+    Buffer auth = mqtt.connectFrame("demo", "u", secret, 0)
+    assert mqtt.frameToHex(auth) == "101800044d51545404c20000000464656d6f000175000300ff61"
+    Buffer input = Buffer()
+    for i in range(16384)
+        assert input.appendByte(i % 256)
+    end
+    Buffer frame = mqtt.publishFrame(1, "设备/数据", input, 65535, true, true)
+    assert mqtt.frameSize(frame) == frame.len()
+    var message = mqtt.parseFrame(frame)
+    assert message["packetId"] == 65535 and message["retain"] and message["dup"]
+    Buffer saved = mqtt.payloadBytes(frame)
+    assert frame.clear() and input.clear()
+    assert saved.len() == 16384 and saved.byteAt(0) == 0 and saved.byteAt(255) == 255
+
+    Buffer prefix = Buffer()
+    assert mqtt.frameSize(prefix) == 0
+    assert prefix.appendByte(48) and mqtt.frameSize(prefix) == 0
+    assert prefix.appendByte(128) and mqtt.frameSize(prefix) == 0
+    assert prefix.appendByte(1) and mqtt.frameSize(prefix) == 131
+    assert mqtt.frameToHex(Buffer()) == ""
+
+    array<string> invalid = ["", "20", "200100", "2003000000", "20020105", "20020200", "20020006",
+        "21020000", "c00100", "c100", "0000", "f000", "c080808080", "c000d000",
+        "300b0005746f70696368656c6c6f", "320d0005746f706963000b776f726c64",
+        "3003000000", "3003000123", "30030001ff", "3003000100", "30040002c080",
+        "3803000174", "34050001740001", "32050001740000", "40020000",
+        "9000", "900100", "90020001", "9003000000", "9003000103",
+        "8006000100016100", "8206000000016100", "8206000100016102"]
+    for encoded in invalid
+        bool raised = false
+        try
+            mqtt.parse(encoded)
+        catch e
+            raised = true
+            assert e.message.contains("mqtt:"), "protocol diagnostic was replaced"
+        end
+        assert raised, "malformed packet: " + encoded
+    end
+    for kind in range(11)
+        bool raised = false
+        try
+            invalidBuilder(kind)
+        catch e
+            raised = true
+        end
+        assert raised, "invalid builder argument"
+    end
+
+    bool badHex = false
+    try
+        mqtt.hexToFrame("0z")
+    catch e
+        badHex = true
+    end
+    assert badHex
+    // 返回值可跨调用保存；这里还会覆盖大量 native 对象创建和自动释放。
+    string retained = mqtt.publish(0, "t", "keep")
+    for i in range(200)
+        assert mqtt.parse(mqtt.publish(0, "t", "next"))["payload"] == "next"
+    end
+    assert retained == "30070001746b656570"
+    println("mqtt xlang codec boundaries: PASS")
+    return 0
+end

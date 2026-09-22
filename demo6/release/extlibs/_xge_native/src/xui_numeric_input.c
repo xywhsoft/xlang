@@ -791,11 +791,26 @@ static int __xuiNumericInputContentMeasure(xui_widget pWidget, xui_vec2_t tConst
 	return XUI_OK;
 }
 
-static int __xuiNumericInputLayoutArrange(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+static int __xuiNumericInputLayoutPrepare(xui_widget pWidget, void* pUser)
 {
 	xui_numeric_input_data_t* pData;
 	xui_numeric_input_data_t tResolved;
-	xui_rect_t tInput;
+	xui_thickness_t tMargin;
+
+	pData = (xui_numeric_input_data_t*)pUser;
+	if ( (pWidget == NULL) || (pData == NULL) || (pData->pInput == NULL) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	__xuiNumericInputResolve(pWidget, pData, &tResolved);
+	tMargin = (xui_thickness_t){0.0f, 0.0f,
+		(tResolved.bSpinnerVisible != 0) ? tResolved.fSpinnerWidth : 0.0f, 0.0f};
+	return xuiWidgetSetMargin(pData->pInput, tMargin);
+}
+
+static int __xuiNumericInputLayoutComplete(xui_widget pWidget, xui_rect_t tContentRect, void* pUser)
+{
+	xui_numeric_input_data_t* pData;
+	xui_numeric_input_data_t tResolved;
 
 	(void)tContentRect;
 	pData = (xui_numeric_input_data_t*)pUser;
@@ -803,8 +818,8 @@ static int __xuiNumericInputLayoutArrange(xui_widget pWidget, xui_rect_t tConten
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
 	__xuiNumericInputResolve(pWidget, pData, &tResolved);
-	__xuiNumericInputUpdateRects(pWidget, pData, &tResolved, &tInput);
-	return xuiWidgetArrange(pData->pInput, tInput);
+	__xuiNumericInputUpdateRects(pWidget, pData, &tResolved, NULL);
+	return XUI_OK;
 }
 
 static uint32_t __xuiNumericInputState(xui_widget pWidget, xui_numeric_input_data_t* pData)
@@ -924,7 +939,7 @@ static int __xuiNumericInputCacheRender(xui_widget pWidget, xui_draw_context pDr
 static void __xuiNumericInputDefaultLayout(xui_layout_t* pLayout)
 {
 	memset(pLayout, 0, sizeof(*pLayout));
-	pLayout->iLayoutType = XUI_LAYOUT_MANUAL;
+	pLayout->iLayoutType = XUI_LAYOUT_OVERLAY;
 	pLayout->iWidthMode = XUI_SIZE_CONTENT;
 	pLayout->iHeightMode = XUI_SIZE_CONTENT;
 	pLayout->iFlowMode = XUI_FLOW_BLOCK;
@@ -998,6 +1013,9 @@ static int __xuiNumericInputCreateInputChild(xui_widget pWidget, xui_numeric_inp
 		pData->pInput = NULL;
 		return iRet;
 	}
+	(void)xuiWidgetSetFlowMode(pData->pInput, XUI_FLOW_BLOCK);
+	(void)xuiWidgetSetSizeMode(pData->pInput, XUI_SIZE_FILL, XUI_SIZE_FILL);
+	(void)xuiWidgetSetAlign(pData->pInput, XUI_ALIGN_STRETCH, XUI_ALIGN_STRETCH);
 	iRet = __xuiNumericInputSyncInputStyle(pWidget, pData);
 	if ( iRet == XUI_OK ) {
 		iRet = __xuiNumericInputSetInputTextFromValue(pWidget, pData);
@@ -1156,7 +1174,8 @@ XUI_API xui_widget_type xuiNumericInputGetType(xui_context pContext)
 	tDesc.onInit = __xuiNumericInputInit;
 	tDesc.onDestroy = __xuiNumericInputDestroy;
 	tDesc.onContentMeasure = __xuiNumericInputContentMeasure;
-	tDesc.onLayoutArrange = __xuiNumericInputLayoutArrange;
+	tDesc.onLayoutPrepare = __xuiNumericInputLayoutPrepare;
+	tDesc.onLayoutComplete = __xuiNumericInputLayoutComplete;
 	tDesc.onCacheRender = __xuiNumericInputCacheRender;
 	__xuiNumericInputDefaultLayout(&tDesc.tLayout);
 	__xuiNumericInputDefaultCachePolicy(&tDesc.tCachePolicy);

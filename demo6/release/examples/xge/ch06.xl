@@ -9,35 +9,35 @@ func draw_scene()
     int i = 0
     while i < 8
         float x = 100.0 + float(i) * 80.0
-        c_uint alpha = c_uint(40 + i * 20)
-        xge.xgeShapeCircleFill(c_float(x), c_float(y), c_float(r * 0.6), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), alpha))
+        int alpha = 40 + i * 20
+        xge.Shape.circleFill(x, y, r * 0.6, xge.Color.rgba(255, 107, 94, alpha))
         i = i + 1
     end
 
     // 当前球体位置（模拟 t=1.5s 时 x=300）
-    xge.xgeShapeCircleFill(c_float(400), c_float(y), c_float(r), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(255)))
+    xge.Shape.circleFill(400, y, r, xge.Color.rgba(255, 107, 94, 255))
 
     // 运动方向箭头
-    xge.xgeShapeLine(c_float(440), c_float(y), c_float(520), c_float(y), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(200)))
-    xge.xgeShapeLine(c_float(520), c_float(y), c_float(505), c_float(y - 8.0), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(200)))
-    xge.xgeShapeLine(c_float(520), c_float(y), c_float(505), c_float(y + 8.0), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(200)))
+    xge.Shape.line(440, y, 520, y, 2.0, xge.Color.rgba(255, 180, 84, 200))
+    xge.Shape.line(520, y, 505, y - 8.0, 2.0, xge.Color.rgba(255, 180, 84, 200))
+    xge.Shape.line(520, y, 505, y + 8.0, 2.0, xge.Color.rgba(255, 180, 84, 200))
 
     // 基准线
-    xge.xgeShapeLine(c_float(60), c_float(y + 60.0), c_float(740), c_float(y + 60.0), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(100), c_uint(120), c_uint(140), c_uint(100)))
+    xge.Shape.line(60, y + 60.0, 740, y + 60.0, 1.0, xge.Color.rgba(100, 120, 140, 100))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch06")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch06")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end

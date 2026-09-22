@@ -1,0 +1,28 @@
+// toggle.xl — 开关：2 个 Toggle（关 / 开）
+import xui
+
+xui.XuiApp g_app
+
+func onFrame()
+    g_app.frame(0xE5232823)
+end
+
+func main(...) as int
+    g_app = xui.XuiApp(800, 500, "Toggle Demo")
+    point ctx = g_app.context()
+    point font = g_app.font()
+    xui.Widget root = xui.Widget(g_app.rootHandle())
+
+    xui.Label title = xui.Label(ctx, "Toggle Demo", font)
+    root.addChild(title)
+
+    xui.Toggle togOff = xui.Toggle(ctx, "WiFi", font)
+    root.addChild(togOff)
+
+    xui.Toggle togOn = xui.Toggle(ctx, "Bluetooth", font)
+    togOn.setChecked(1)
+    root.addChild(togOn)
+
+    g_app.run(onFrame)
+    return 0
+end

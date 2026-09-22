@@ -34,6 +34,7 @@
       "host": "127.0.0.1",
       "port": 0,
       "workerCount": 2,
+      "connectionWorkerCount": 6,
       "handler": {
         "language": "c",
         "path": "../handlers/abi_c.c",

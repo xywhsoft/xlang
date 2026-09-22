@@ -1,10 +1,21 @@
 #include "handler_runtime.h"
 
 #include "../include/xs_handler.h"
+#define XRT_MODULE_STRING
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_COND
+#define XRT_MODULE_THREAD
+#define XRT_MODULE_TIME
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_NET_TCP_SYNC
+#define XRT_MODULE_NET_UDP_SYNC
 #include "xrt.h"
 
 #include <stdint.h>
 #include <string.h>
+
+/* 服务端 endpoint 与连接收尾统一使用同一有界等待上限。 */
+#define XS2_SOCKET_ENDPOINT_CLOSE_TIMEOUT_MS 5000u
 
 /* ------------------------------------ 服务状态 ------------------------------------ */
 
@@ -31,6 +42,7 @@ typedef struct xs2_socket_service {
     int bind_port;
     int backlog;
     int worker_count;
+    int connection_worker_count;
     int recv_limit;
     int frame_limit;
     int idle_timeout_ms;
@@ -39,19 +51,20 @@ typedef struct xs2_socket_service {
     size_t delimiter_size;
 
     void* handler;
+    xnetengine* engine;
     xnetlistener* listener;
-    xdgramsock* udp;
+    xnetudp* udp;
 
-    xmutex mutex;
-    xcond changed;
+    xmutex* mutex;
+    xcond* changed;
     void** queue;
     int queue_capacity;
     int queue_head;
     int queue_tail;
     int queue_count;
 
-    xthread receiver_thread;
-    xthread* worker_threads;
+    xthread* receiver_thread;
+    xthread** worker_threads;
     int started_workers;
     int ready;
     int started;
@@ -72,7 +85,7 @@ static char* xs2SocketCopyText(const char* text)
     if ( text == NULL ) {
         text = "";
     }
-    return (char*)xrtCopyStr((str)(void*)text, 0u);
+    return xrtStrDup(text);
 }
 
 static void xs2SocketSetErrorUnlocked(xs2_socket_service* service, const char* text)
@@ -97,6 +110,24 @@ static uint64 xs2SocketNowMs(void)
 {
     double now = xrtTimer();
     return now > 0.0 ? (uint64)(now * 1000.0) : 0u;
+}
+
+static xdeadline xs2SocketDeadline(int timeout_ms)
+{
+    return timeout_ms < 0
+        ? XRT_DEADLINE_NEVER
+        : xrtDeadlineAfter((uint64)timeout_ms * 1000u);
+}
+
+static xbuffer* xs2SocketBufferCreate(size_t capacity)
+{
+    xbuffer* buffer = xrtBufferCreate();
+
+    if ( buffer != NULL && capacity != 0u && !xrtBufferReserve(buffer, capacity) ) {
+        xrtBufferDestroy(buffer);
+        buffer = NULL;
+    }
+    return buffer;
 }
 
 static int xs2SocketIsStopping(xs2_socket_service* service)
@@ -166,9 +197,10 @@ static void xs2SocketDestroyItem(xs2_socket_service* service, void* item)
         return;
     }
     if ( service->type == XS2_SOCKET_TCP ) {
-        xrtNetTcpStreamDestroy((xnetstream*)item);
+        (void)xrtNetStreamAbort((xnetstream*)item);
+        xrtNetStreamDestroy((xnetstream*)item);
     } else {
-        xrtNetDgramPacketDestroy((xnetdgrampkt*)item);
+        xrtNetUdpPacketDestroy((xnetudppacket*)item);
     }
 }
 
@@ -193,36 +225,193 @@ static void xs2SocketQueueDrain(xs2_socket_service* service)
 
 /* ------------------------------------ 网络端点 ------------------------------------ */
 
-static void xs2SocketCloseEndpoint(xs2_socket_service* service)
+/*
+    XRT 的 listener/udp 关闭是异步状态机。服务 stop 的承诺是“端口已经可重绑”，
+    所以不能只提交关闭请求后立即返回，也不能在终态前释放调用方持有的对象引用。
+*/
+static void xs2SocketRequestEndpointClose(xs2_socket_service* service);
+
+static int xs2SocketWaitEndpointClosed(xs2_socket_service* service)
 {
+    xdeadline deadline = xrtDeadlineAfter(
+        (uint64)XS2_SOCKET_ENDPOINT_CLOSE_TIMEOUT_MS * 1000u
+    );
+
+    for ( ;; ) {
+        int listener_closed = service->listener == NULL ||
+            xrtNetListenerState(service->listener) == XNET_LISTENER_CLOSED;
+        int udp_closed = service->udp == NULL ||
+            xrtNetUdpState(service->udp) == XNET_UDP_CLOSED;
+
+        if ( listener_closed && udp_closed ) {
+            return 1;
+        }
+        if ( xrtDeadlineExpired(deadline) ) {
+            xs2SocketSetError(service, "TCP/UDP endpoint shutdown timed out");
+            return 0;
+        }
+        xrtSleep(1u);
+    }
+}
+
+static int xs2SocketStopEngine(xs2_socket_service* service)
+{
+    xdeadline deadline = xrtDeadlineAfter(
+        (uint64)XS2_SOCKET_ENDPOINT_CLOSE_TIMEOUT_MS * 1000u
+    );
+    xnetenginestate state;
+
+    if ( service->engine == NULL ) {
+        return 1;
+    }
+
+    for ( ;; ) {
+        state = xrtNetEngineState(service->engine);
+        if ( state == XNET_ENGINE_STOPPED ) {
+            return 1;
+        }
+        if ( state != XNET_ENGINE_RUNNING ) {
+            xs2SocketSetError(service, "network engine is changing state");
+            return 0;
+        }
+        if ( xrtNetEngineStop(service->engine) ) {
+            return 1;
+        }
+        if ( xrtDeadlineExpired(deadline) ) {
+            xerror* error = xrtTakeError();
+
+            xs2SocketSetError(
+                service,
+                error != NULL ? xrtErrorMessage(error) : "network engine shutdown timed out"
+            );
+            xrtErrorFree(error);
+            return 0;
+        }
+
+        /* 已请求终态的 Stream 仍在 XRT worker 上回收，下一轮再尝试停止。 */
+        xrtClearError();
+        xrtSleep(1u);
+    }
+}
+
+static int xs2SocketCloseEndpoint(xs2_socket_service* service)
+{
+    xs2SocketRequestEndpointClose(service);
+    if ( !xs2SocketWaitEndpointClosed(service) ) {
+        return 0;
+    }
     if ( service->listener != NULL ) {
-        xrtNetTcpListenerDestroy(service->listener);
+        xrtNetListenerDestroy(service->listener);
         service->listener = NULL;
     }
     if ( service->udp != NULL ) {
         xrtNetUdpDestroy(service->udp);
         service->udp = NULL;
     }
+    if ( !xs2SocketStopEngine(service) ) {
+        return 0;
+    }
     service->port = service->bind_port;
+    return 1;
+}
+
+/*
+    停止阶段先只请求端点关闭。接收线程仍可能阻塞在 Accept/ReceiveWait，
+    此时销毁 listener/udp 会产生悬空访问；仅关闭会唤醒等待，而实际销毁
+    统一留到线程全部退出后的 xs2SocketCloseEndpoint。
+*/
+static void xs2SocketRequestEndpointClose(xs2_socket_service* service)
+{
+    if ( service->listener != NULL ) {
+        (void)xrtNetListenerClose(service->listener);
+    }
+    if ( service->udp != NULL ) {
+        (void)xrtNetUdpClose(service->udp);
+    }
 }
 
 static int xs2SocketOpenEndpoint(xs2_socket_service* service)
 {
+    xnetaddr address;
+
+    if ( service->engine == NULL || !xrtNetEngineStart(service->engine) ) {
+        xs2SocketSetError(service, "cannot start network engine");
+        return 0;
+    }
+    if ( strcmp(service->host, "*") == 0 || service->host[0] == '\0' ) {
+        if ( !xrtNetAddrAny(&address, XNET_FAMILY_IPV4, (uint16)service->bind_port) ) {
+            xs2SocketSetError(service, "cannot create wildcard bind address");
+            (void)xrtNetEngineStop(service->engine);
+            return 0;
+        }
+    } else if ( !xrtNetAddrParse(&address, service->host, (uint16)service->bind_port) ) {
+        xs2SocketSetError(service, "TCP/UDP bind host must be a numeric IP address");
+        (void)xrtNetEngineStop(service->engine);
+        return 0;
+    }
+
     if ( service->type == XS2_SOCKET_TCP ) {
-        service->listener = xrtNetTcpListen(
-            service->host, (uint16)service->bind_port, (uint32)service->backlog);
+        xnetlistenconfig config;
+        xnetaddr local;
+        size_t wire_limit = (size_t)service->frame_limit + service->delimiter_size + 4u;
+
+        xrtNetListenConfigInit(&config);
+        config.Address = address;
+        config.Backlog = service->backlog;
+        config.AcceptQueueLimit = (uint32)service->queue_capacity;
+
+        /*
+            Listener 默认把新连接留在创建它的网络 worker；服务端会有
+            大量长连接或等待中的连接，必须轮转分配，避免一个 worker
+            承担全部收发而其余 worker 空闲。
+        */
+        config.Distribution = XNET_ACCEPT_ROUND_ROBIN;
+        config.Stream.ReadLimit = (size_t)service->recv_limit;
+        if ( config.Stream.ReadSize > config.Stream.ReadLimit ) {
+            config.Stream.ReadSize = config.Stream.ReadLimit;
+        }
+        if ( config.Stream.WriteLimit < wire_limit ) {
+            config.Stream.WriteLimit = wire_limit;
+        }
+        service->listener = xrtNetListen(service->engine, &config, NULL, NULL, NULL);
         if ( service->listener == NULL ) {
             xs2SocketSetError(service, "cannot bind TCP listener");
+            (void)xrtNetEngineStop(service->engine);
             return 0;
         }
-        service->port = (int)xrtNetTcpListenerPort(service->listener);
+        if ( !xrtNetListenerLocal(service->listener, &local) ) {
+            xs2SocketSetError(service, "cannot query TCP listener address");
+            xs2SocketCloseEndpoint(service);
+            return 0;
+        }
+        service->port = (int)local.Port;
     } else {
-        service->udp = xrtNetUdpBind(service->host, (uint16)service->bind_port);
+        xnetudpconfig config;
+        xnetaddr local;
+        size_t receive_size = (size_t)service->recv_limit;
+
+        if ( receive_size > XNET_UDP_PAYLOAD_MAX ) {
+            receive_size = XNET_UDP_PAYLOAD_MAX;
+        }
+        xrtNetUdpConfigInit(&config);
+        config.ReceiveSize = receive_size;
+        config.ReceiveQueueLimit = (size_t)service->queue_capacity;
+        config.ReceiveQueueByteLimit = receive_size * (size_t)service->queue_capacity;
+        if ( config.SendLimit < (size_t)service->frame_limit ) {
+            config.SendLimit = (size_t)service->frame_limit;
+        }
+        service->udp = xrtNetUdpBind(service->engine, &address, 0u, &config, NULL, NULL);
         if ( service->udp == NULL ) {
             xs2SocketSetError(service, "cannot bind UDP socket");
+            (void)xrtNetEngineStop(service->engine);
             return 0;
         }
-        service->port = xrtNetUdpLocalPort(service->udp);
+        if ( !xrtNetUdpLocal(service->udp, &local) ) {
+            xs2SocketSetError(service, "cannot query UDP bind address");
+            xs2SocketCloseEndpoint(service);
+            return 0;
+        }
+        service->port = (int)local.Port;
     }
     return 1;
 }
@@ -238,11 +427,11 @@ static int xs2SocketInvoke(
     size_t data_size,
     const char* remote_address,
     unsigned int remote_port,
-    xbuffer output)
+    xbuffer* output)
 {
     int result;
 
-    output->Length = 0u;
+    xrtBufferClear(output);
     result = xs2_handler_slot_call_buffer(
         service->handler,
         kind,
@@ -266,26 +455,30 @@ static int xs2SocketInvoke(
     return result;
 }
 
-static int xs2SocketSendTcp(xs2_socket_service* service, xnetstream* stream, xbuffer output)
+static int xs2SocketSendTcp(xs2_socket_service* service, xnetstream* stream, xbuffer* output)
 {
     const void* suffix = NULL;
     size_t suffix_size = 0u;
     unsigned char prefix[4];
     size_t prefix_size = 0u;
+    xnetspan spans[3];
+    size_t span_count = 0u;
     size_t wire_size;
+    xdeadline deadline;
+    xnetresult send_result;
 
-    if ( output->Length == 0u ) {
+    if ( output->Size == 0u ) {
         return 1;
     }
-    if ( output->Length > (uint32)service->frame_limit ) {
+    if ( output->Size > (size_t)service->frame_limit ) {
         xs2SocketSetError(service, "TCP handler output exceeds frameLimit");
         xs2SocketAddMetric(service, &service->errors, 1);
         return 0;
     }
     if ( service->framing == XS2_TCP_FRAMING_TEXT ) {
-        if ( !xrtIsUTF8((str)output->Buffer, output->Length) ||
-             memchr(output->Buffer, '\r', output->Length) != NULL ||
-             memchr(output->Buffer, '\n', output->Length) != NULL ) {
+        if ( !xrtUtf8Valid((xstrview){ (cstr)output->Data, output->Size }, NULL) ||
+             memchr(output->Data, '\r', output->Size) != NULL ||
+             memchr(output->Data, '\n', output->Size) != NULL ) {
             xs2SocketSetError(service, "TCP text handler output is not one valid UTF-8 line");
             xs2SocketAddMetric(service, &service->errors, 1);
             return 0;
@@ -294,8 +487,8 @@ static int xs2SocketSendTcp(xs2_socket_service* service, xnetstream* stream, xbu
         suffix_size = 1u;
     } else if ( service->framing == XS2_TCP_FRAMING_DELIMITER ) {
         size_t index;
-        for ( index = 0u; index + service->delimiter_size <= output->Length; ++index ) {
-            if ( memcmp(output->Buffer + index, service->delimiter, service->delimiter_size) == 0 ) {
+        for ( index = 0u; index + service->delimiter_size <= output->Size; ++index ) {
+            if ( memcmp(output->Data + index, service->delimiter, service->delimiter_size) == 0 ) {
                 xs2SocketSetError(service, "TCP handler output contains the configured delimiter");
                 xs2SocketAddMetric(service, &service->errors, 1);
                 return 0;
@@ -304,7 +497,7 @@ static int xs2SocketSendTcp(xs2_socket_service* service, xnetstream* stream, xbu
         suffix = service->delimiter;
         suffix_size = service->delimiter_size;
     } else if ( service->framing == XS2_TCP_FRAMING_LENGTH_PREFIX ) {
-        uint32 length = output->Length;
+        uint32 length = (uint32)output->Size;
         prefix[0] = (unsigned char)(length >> 24);
         prefix[1] = (unsigned char)(length >> 16);
         prefix[2] = (unsigned char)(length >> 8);
@@ -312,14 +505,37 @@ static int xs2SocketSendTcp(xs2_socket_service* service, xnetstream* stream, xbu
         prefix_size = sizeof(prefix);
     }
 
-    if ( (prefix_size != 0u && !xrtNetStreamSendBytes(stream, prefix, prefix_size)) ||
-         !xrtNetStreamSendBytes(stream, output->Buffer, output->Length) ||
-         (suffix_size != 0u && !xrtNetStreamSendBytes(stream, suffix, suffix_size)) ||
-         !xrtNetStreamDrain(stream, service->write_timeout_ms) ) {
+    if ( prefix_size != 0u ) {
+        spans[span_count].Data = prefix;
+        spans[span_count].Size = prefix_size;
+        span_count += 1u;
+    }
+    spans[span_count].Data = output->Data;
+    spans[span_count].Size = output->Size;
+    span_count += 1u;
+    if ( suffix_size != 0u ) {
+        spans[span_count].Data = (cbytes)suffix;
+        spans[span_count].Size = suffix_size;
+        span_count += 1u;
+    }
+
+    deadline = xs2SocketDeadline(service->write_timeout_ms);
+    for ( ;; ) {
+        send_result = xrtNetStreamSendVec(stream, spans, span_count);
+        if ( send_result == XNET_RESULT_OK ) {
+            break;
+        }
+        if ( send_result != XNET_RESULT_AGAIN ||
+             !xrtNetStreamWait(stream, XNET_STREAM_WAIT_WRITE, deadline, NULL) ) {
+            xs2SocketAddMetric(service, &service->errors, 1);
+            return 0;
+        }
+    }
+    if ( !xrtNetStreamWait(stream, XNET_STREAM_WAIT_DRAIN, deadline, NULL) ) {
         xs2SocketAddMetric(service, &service->errors, 1);
         return 0;
     }
-    wire_size = prefix_size + output->Length + suffix_size;
+    wire_size = prefix_size + output->Size + suffix_size;
     xs2SocketAddMetric(service, &service->sent, (int64)wire_size);
     return 1;
 }
@@ -342,19 +558,16 @@ static const char* xs2SocketFindBytes(
     return NULL;
 }
 
-static void xs2SocketConsume(xbuffer pending, size_t size)
+static void xs2SocketConsume(xbuffer* pending, size_t size)
 {
-    size_t remaining;
     if ( pending == NULL || size == 0u ) {
         return;
     }
-    if ( size >= pending->Length ) {
-        pending->Length = 0u;
+    if ( size >= pending->Size ) {
+        xrtBufferClear(pending);
         return;
     }
-    remaining = pending->Length - size;
-    memmove(pending->Buffer, pending->Buffer + size, remaining);
-    pending->Length = (uint32)remaining;
+    (void)xrtBufferRemove(pending, 0u, size);
 }
 
 static int xs2SocketProtocolError(xs2_socket_service* service, const char* message)
@@ -372,7 +585,7 @@ static int xs2SocketDispatchTcpFrame(
     size_t data_size,
     const char* remote_address,
     unsigned int remote_port,
-    xbuffer output)
+    xbuffer* output)
 {
     int result = xs2SocketInvoke(
         service,
@@ -384,7 +597,7 @@ static int xs2SocketDispatchTcpFrame(
         remote_address,
         remote_port,
         output);
-    if ( output->Length != 0u && !xs2SocketSendTcp(service, stream, output) ) {
+    if ( output->Size != 0u && !xs2SocketSendTcp(service, stream, output) ) {
         return 0;
     }
     return result == XS_HANDLER_OK;
@@ -393,10 +606,10 @@ static int xs2SocketDispatchTcpFrame(
 static int xs2SocketDispatchPending(
     xs2_socket_service* service,
     xnetstream* stream,
-    xbuffer pending,
+    xbuffer* pending,
     const char* remote_address,
     unsigned int remote_port,
-    xbuffer output)
+    xbuffer* output)
 {
     for ( ;; ) {
         size_t payload_size;
@@ -405,21 +618,21 @@ static int xs2SocketDispatchPending(
         if ( service->framing == XS2_TCP_FRAMING_LENGTH_PREFIX ) {
             const unsigned char* bytes;
             uint32 declared;
-            if ( pending->Length < 4u ) {
+            if ( pending->Size < 4u ) {
                 return 1;
             }
-            bytes = (const unsigned char*)pending->Buffer;
+            bytes = (const unsigned char*)pending->Data;
             declared = ((uint32)bytes[0] << 24) | ((uint32)bytes[1] << 16) |
                        ((uint32)bytes[2] << 8) | (uint32)bytes[3];
             if ( declared > (uint32)service->frame_limit ) {
                 return xs2SocketProtocolError(service, "TCP length-prefix frame exceeds frameLimit");
             }
-            if ( pending->Length < declared + 4u ) {
+            if ( pending->Size < declared + 4u ) {
                 return 1;
             }
             payload_size = declared;
             consumed = payload_size + 4u;
-            if ( !xs2SocketDispatchTcpFrame(service, stream, pending->Buffer + 4u, payload_size,
+            if ( !xs2SocketDispatchTcpFrame(service, stream, pending->Data + 4u, payload_size,
                     remote_address, remote_port, output) ) {
                 return 0;
             }
@@ -433,28 +646,28 @@ static int xs2SocketDispatchPending(
             size_t delimiter_size = service->framing == XS2_TCP_FRAMING_TEXT
                 ? 1u : service->delimiter_size;
             const char* found = xs2SocketFindBytes(
-                pending->Buffer, pending->Length, delimiter, delimiter_size);
+                (const char*)pending->Data, pending->Size, delimiter, delimiter_size);
             if ( found == NULL ) {
                 size_t maximum_pending = (size_t)service->frame_limit + delimiter_size - 1u;
-                if ( pending->Length > maximum_pending ) {
+                if ( pending->Size > maximum_pending ) {
                     return xs2SocketProtocolError(service, "TCP delimited frame exceeds frameLimit");
                 }
                 return 1;
             }
-            payload_size = (size_t)(found - pending->Buffer);
+            payload_size = (size_t)(found - (const char*)pending->Data);
             consumed = payload_size + delimiter_size;
             if ( payload_size > (size_t)service->frame_limit ) {
                 return xs2SocketProtocolError(service, "TCP delimited frame exceeds frameLimit");
             }
             if ( service->framing == XS2_TCP_FRAMING_TEXT && payload_size > 0u &&
-                 pending->Buffer[payload_size - 1u] == '\r' ) {
+                  pending->Data[payload_size - 1u] == '\r' ) {
                 payload_size -= 1u;
             }
             if ( service->framing == XS2_TCP_FRAMING_TEXT &&
-                 !xrtIsUTF8((str)pending->Buffer, payload_size) ) {
+                  !xrtUtf8Valid((xstrview){ (cstr)pending->Data, payload_size }, NULL) ) {
                 return xs2SocketProtocolError(service, "TCP text frame is not valid UTF-8");
             }
-            if ( !xs2SocketDispatchTcpFrame(service, stream, pending->Buffer, payload_size,
+            if ( !xs2SocketDispatchTcpFrame(service, stream, pending->Data, payload_size,
                     remote_address, remote_port, output) ) {
                 return 0;
             }
@@ -467,19 +680,22 @@ static int xs2SocketDispatchPending(
 
 static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
 {
-    xbuffer output;
-    xbuffer pending = NULL;
+    xbuffer* output;
+    xbuffer* pending = NULL;
+    xnetaddr remote;
     char* remote_address;
     unsigned int remote_port;
     uint64 last_activity;
     int result;
 
-    output = xrtBufferCreate(4096u);
+    output = xs2SocketBufferCreate(4096u);
     if ( service->framing != XS2_TCP_FRAMING_RAW ) {
-        pending = xrtBufferCreate(service->frame_limit < 65536 ? (uint32)service->frame_limit : 65536u);
+        pending = xs2SocketBufferCreate(service->frame_limit < 65536 ? (size_t)service->frame_limit : 65536u);
     }
-    remote_address = (char*)xrtNetStreamRemoteAddrText(stream);
-    remote_port = (unsigned int)xrtNetStreamRemotePort(stream);
+    remote_address = xrtNetStreamRemote(stream, &remote)
+        ? xrtNetAddrString(&remote)
+        : NULL;
+    remote_port = remote_address != NULL ? (unsigned int)remote.Port : 0u;
     if ( output == NULL || (service->framing != XS2_TCP_FRAMING_RAW && pending == NULL) ) {
         xs2SocketAddMetric(service, &service->errors, 1);
         xrtFree(remote_address);
@@ -489,7 +705,8 @@ static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
         if ( output != NULL ) {
             xrtBufferDestroy(output);
         }
-        xrtNetTcpStreamDestroy(stream);
+        (void)xrtNetStreamAbort(stream);
+        xrtNetStreamDestroy(stream);
         return;
     }
 
@@ -504,17 +721,17 @@ static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
         remote_address,
         remote_port,
         output);
-    if ( output->Length != 0u ) {
+    if ( output->Size != 0u ) {
         (void)xs2SocketSendTcp(service, stream, output);
     }
 
     last_activity = xs2SocketNowMs();
     while ( result == XS_HANDLER_OK && !xs2SocketIsStopping(service) ) {
-        size_t data_size = 0u;
+        xnetbytes* received;
+        xbytesview data;
         size_t read_limit = service->framing == XS2_TCP_FRAMING_RAW
             ? (size_t)service->frame_limit
-            : (size_t)service->recv_limit - pending->Length;
-        void* data;
+            : (size_t)service->recv_limit - pending->Size;
 
         if ( read_limit == 0u ) {
             (void)xs2SocketProtocolError(service, "TCP receive buffer exceeds recvLimit");
@@ -523,16 +740,22 @@ static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
         if ( read_limit > 65536u ) {
             read_limit = 65536u;
         }
-        data = xrtNetStreamRecvBytes(stream, read_limit, 100, &data_size);
+        received = xrtNetStreamRecv(
+            stream,
+            read_limit,
+            xs2SocketDeadline(100u),
+            NULL
+        );
 
-        if ( data != NULL && data_size != 0u ) {
+        if ( received != NULL ) {
+            data = xrtNetBytesView(received);
             last_activity = xs2SocketNowMs();
-            xs2SocketAddMetric(service, &service->received, data_size);
+            xs2SocketAddMetric(service, &service->received, data.Size);
             if ( service->framing == XS2_TCP_FRAMING_RAW ) {
                 result = xs2SocketDispatchTcpFrame(
-                    service, stream, data, data_size, remote_address, remote_port, output)
+                    service, stream, data.Data, data.Size, remote_address, remote_port, output)
                     ? XS_HANDLER_OK : XS_HANDLER_ERROR;
-            } else if ( !xrtBufferAppend(pending, data, (uint32)data_size, 0u) ) {
+            } else if ( !xrtBufferAppend(pending, data) ) {
                 xs2SocketSetError(service, "cannot grow TCP framing buffer");
                 xs2SocketAddMetric(service, &service->errors, 1);
                 result = XS_HANDLER_ERROR;
@@ -541,16 +764,11 @@ static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
                     service, stream, pending, remote_address, remote_port, output)
                     ? XS_HANDLER_OK : XS_HANDLER_ERROR;
             }
-            xrtFree(data);
+            xrtNetBytesDestroy(received);
             continue;
         }
-        xrtFree(data);
-
-        {
-            xnet_result wait_result = xrtNetStreamWaitTimeoutEx(stream, XNET_STREAM_WAIT_READABLE, 0u);
-            if ( wait_result == XRT_NET_CLOSED || wait_result == XRT_NET_CANCELLED || wait_result == XRT_NET_ERROR ) {
-                break;
-            }
+        if ( xrtNetStreamState(stream) != XNET_STREAM_OPEN ) {
+            break;
         }
         if ( service->idle_timeout_ms > 0 &&
              xs2SocketNowMs() - last_activity >= (uint64)service->idle_timeout_ms ) {
@@ -558,7 +776,7 @@ static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
         }
     }
 
-    if ( result == XS_HANDLER_OK && pending != NULL && pending->Length != 0u &&
+    if ( result == XS_HANDLER_OK && pending != NULL && pending->Size != 0u &&
          !xs2SocketIsStopping(service) ) {
         (void)xs2SocketProtocolError(service, "TCP connection closed with an incomplete frame");
     }
@@ -577,43 +795,40 @@ static void xs2SocketHandleTcp(xs2_socket_service* service, xnetstream* stream)
     xrtFree(remote_address);
     xrtBufferDestroy(pending);
     xrtBufferDestroy(output);
-    xrtNetTcpStreamDestroy(stream);
+    (void)xrtNetStreamClose(stream);
+    xrtNetStreamDestroy(stream);
 }
 
 /* ------------------------------------ UDP 工作线程 ------------------------------------ */
 
-static void xs2SocketHandleUdp(xs2_socket_service* service, xnetdgrampkt* packet)
+static void xs2SocketHandleUdp(xs2_socket_service* service, xnetudppacket* packet)
 {
-    xbuffer output;
+    xbuffer* output;
+    const xnetaddr* remote;
     char* remote_address;
     int remote_port;
     size_t data_size;
-    void* data;
+    cbytes data;
     int result;
 
-    data_size = xrtNetDgramPacketBytes(packet);
+    data_size = xrtNetUdpPacketSize(packet);
     if ( data_size > (size_t)service->recv_limit ) {
         xs2SocketAddMetric(service, &service->rejected, 1);
-        xrtNetDgramPacketDestroy(packet);
+        xrtNetUdpPacketDestroy(packet);
         return;
     }
-    data = xrtNetDgramPacketBytesCopy(packet, &data_size);
-    if ( data_size != 0u && data == NULL ) {
+    data = xrtNetUdpPacketData(packet);
+    output = xs2SocketBufferCreate(4096u);
+    remote = xrtNetUdpPacketRemote(packet);
+    remote_address = remote != NULL ? xrtNetAddrString(remote) : NULL;
+    remote_port = remote != NULL ? (int)remote->Port : 0;
+    if ( output == NULL || remote == NULL || remote_address == NULL ) {
         xs2SocketAddMetric(service, &service->errors, 1);
-        xrtNetDgramPacketDestroy(packet);
-        return;
-    }
-    output = xrtBufferCreate(4096u);
-    remote_address = (char*)xrtNetDgramPacketFromText(packet);
-    remote_port = xrtNetDgramPacketFromPort(packet);
-    if ( output == NULL || remote_address == NULL ) {
-        xs2SocketAddMetric(service, &service->errors, 1);
-        xrtFree(data);
         xrtFree(remote_address);
         if ( output != NULL ) {
             xrtBufferDestroy(output);
         }
-        xrtNetDgramPacketDestroy(packet);
+        xrtNetUdpPacketDestroy(packet);
         return;
     }
 
@@ -629,19 +844,23 @@ static void xs2SocketHandleUdp(xs2_socket_service* service, xnetdgrampkt* packet
         remote_address,
         (unsigned int)remote_port,
         output);
-    if ( result == XS_HANDLER_OK && output->Length != 0u ) {
-        if ( xrtNetUdpSendBytes(service->udp, remote_address, (uint16)remote_port,
-                                output->Buffer, output->Length) ) {
-            xs2SocketAddMetric(service, &service->sent, output->Length);
+    if ( result == XS_HANDLER_OK && output->Size != 0u ) {
+        xnetresult send_result = xrtNetUdpSendTo(service->udp, remote, output->Data, output->Size);
+        if ( send_result == XNET_RESULT_AGAIN &&
+             xrtNetUdpWritable(service->udp, output->Size,
+                 xs2SocketDeadline(service->write_timeout_ms), NULL) ) {
+            send_result = xrtNetUdpSendTo(service->udp, remote, output->Data, output->Size);
+        }
+        if ( send_result == XNET_RESULT_OK ) {
+            xs2SocketAddMetric(service, &service->sent, output->Size);
         } else {
             xs2SocketAddMetric(service, &service->errors, 1);
         }
     }
     xs2SocketAddMetric(service, &service->active, -1);
-    xrtFree(data);
     xrtFree(remote_address);
     xrtBufferDestroy(output);
-    xrtNetDgramPacketDestroy(packet);
+    xrtNetUdpPacketDestroy(packet);
 }
 
 /* ------------------------------------ 线程入口 ------------------------------------ */
@@ -653,12 +872,14 @@ static uint32 xs2SocketReceiverThread(void* argument)
     while ( !xs2SocketIsStopping(service) ) {
         void* item;
         if ( service->type == XS2_SOCKET_TCP ) {
-            item = xrtNetTcpAccept(service->listener, 100);
+            item = xrtNetListenerAcceptWait(
+                service->listener, xs2SocketDeadline(100), NULL);
             if ( item != NULL ) {
                 xs2SocketAddMetric(service, &service->accepted, 1);
             }
         } else {
-            item = xrtNetUdpRecv(service->udp, 100);
+            item = xrtNetUdpReceiveWait(
+                service->udp, xs2SocketDeadline(100), NULL);
         }
         if ( item != NULL && !xs2SocketQueuePush(service, item) ) {
             xs2SocketDestroyItem(service, item);
@@ -679,7 +900,7 @@ static uint32 xs2SocketWorkerThread(void* argument)
         if ( service->type == XS2_SOCKET_TCP ) {
             xs2SocketHandleTcp(service, (xnetstream*)item);
         } else {
-            xs2SocketHandleUdp(service, (xnetdgrampkt*)item);
+            xs2SocketHandleUdp(service, (xnetudppacket*)item);
         }
     }
     return 0u;
@@ -696,6 +917,7 @@ void* xs2_socket_service_create(
     int port,
     int backlog,
     int worker_count,
+    int connection_worker_count,
     int queue_capacity,
     int recv_limit,
     const char* framing,
@@ -727,6 +949,7 @@ void* xs2_socket_service_create(
     service->bind_port = port;
     service->backlog = backlog;
     service->worker_count = worker_count;
+    service->connection_worker_count = connection_worker_count;
     service->queue_capacity = queue_capacity;
     service->recv_limit = recv_limit;
     service->frame_limit = frame_limit;
@@ -756,6 +979,7 @@ void* xs2_socket_service_create(
     }
     if ( service->type == 0 || service->name[0] == '\0' || port < 0 || port > 65535 ||
          backlog <= 0 || worker_count <= 0 || worker_count > 256 ||
+         connection_worker_count <= 0 || connection_worker_count > 256 ||
          queue_capacity <= 0 || recv_limit <= 0 || recv_limit > 67108864 ||
          frame_limit <= 0 || frame_limit > recv_limit || service->framing == 0 ||
          (service->type == XS2_SOCKET_UDP && service->framing != XS2_TCP_FRAMING_RAW) ||
@@ -766,10 +990,17 @@ void* xs2_socket_service_create(
         return service;
     }
 
+    {
+        xnetengineconfig config;
+
+        xrtNetEngineConfigInit(&config);
+        config.Workers = (uint32)worker_count;
+        service->engine = xrtNetEngineCreate(&config);
+    }
     service->queue = (void**)xrtCalloc((size_t)queue_capacity, sizeof(void*));
-    service->worker_threads = (xthread*)xrtCalloc((size_t)worker_count, sizeof(xthread));
-    if ( service->queue == NULL || service->worker_threads == NULL ) {
-        xs2SocketSetError(service, "cannot allocate TCP/UDP service queue or workers");
+    service->worker_threads = (xthread**)xrtCalloc((size_t)connection_worker_count, sizeof(xthread*));
+    if ( service->engine == NULL || service->queue == NULL || service->worker_threads == NULL ) {
+        xs2SocketSetError(service, "cannot allocate TCP/UDP network engine, queue or workers");
         return service;
     }
 
@@ -805,6 +1036,9 @@ void xs2_socket_service_destroy(void* handle)
     (void)xs2_socket_service_stop(service);
     xs2SocketQueueDrain(service);
     xs2SocketCloseEndpoint(service);
+    if ( service->engine != NULL ) {
+        (void)xrtNetEngineDestroy(service->engine);
+    }
     if ( service->handler != NULL ) {
         xs2_handler_slot_destroy(service->handler);
     }
@@ -865,17 +1099,17 @@ int xs2_socket_service_start(void* handle)
         return 0;
     }
 
-    for ( i = 0; i < service->worker_count; ++i ) {
+    for ( i = 0; i < service->connection_worker_count; ++i ) {
         service->worker_threads[i] = xrtThreadCreate((void*)xs2SocketWorkerThread, service, 0u);
         if ( service->worker_threads[i] == NULL ) {
             break;
         }
         service->started_workers += 1;
     }
-    if ( service->started_workers == service->worker_count ) {
+    if ( service->started_workers == service->connection_worker_count ) {
         service->receiver_thread = xrtThreadCreate((void*)xs2SocketReceiverThread, service, 0u);
     }
-    if ( service->started_workers != service->worker_count || service->receiver_thread == NULL ) {
+    if ( service->started_workers != service->connection_worker_count || service->receiver_thread == NULL ) {
         xs2SocketSetError(service, "cannot create TCP/UDP service threads");
         xrtMutexLock(service->mutex);
         service->stopping = 1;
@@ -917,6 +1151,9 @@ int xs2_socket_service_stop(void* handle)
     xrtCondBroadcast(service->changed);
     xrtMutexUnlock(service->mutex);
 
+    /* 先释放内核端口并唤醒接收线程，再等待其退出。 */
+    xs2SocketRequestEndpointClose(service);
+
     if ( service->receiver_thread != NULL ) {
         xrtThreadWait(service->receiver_thread);
         xrtThreadDestroy(service->receiver_thread);
@@ -931,8 +1168,7 @@ int xs2_socket_service_stop(void* handle)
     }
     service->started_workers = 0;
     xs2SocketQueueDrain(service);
-    xs2SocketCloseEndpoint(service);
-    return 1;
+    return xs2SocketCloseEndpoint(service);
 }
 
 int xs2_socket_service_reload(void* handle)

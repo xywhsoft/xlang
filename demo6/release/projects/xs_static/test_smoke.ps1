@@ -2,20 +2,17 @@ $ErrorActionPreference = "Stop"
 
 $projectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $releaseDir = Resolve-Path (Join-Path $projectDir "..\..")
-$xl = Join-Path $releaseDir "xl.exe"
+$exe = Join-Path $projectDir "release\xs_static.exe"
 $port = 18088
 $duration = 6000
 
 $args = @(
-    "run",
-    "projects\xs_static\xs_static.xl",
-    "--",
     "--port", "$port",
     "--duration", "$duration",
     "--quiet"
 )
 
-$proc = Start-Process -FilePath $xl -ArgumentList $args -WorkingDirectory $releaseDir -PassThru -WindowStyle Hidden
+$proc = Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $releaseDir -PassThru -WindowStyle Hidden
 
 try {
     $ready = $false

@@ -17,7 +17,7 @@ typedef struct {
 static void __xrtXmlDomBuilderError(xrtxmldombuilder* pBuilder,
 	const xrtxmlevent* pEvent, const char* sMessage)
 {
-	pBuilder->bFailed = TRUE;
+	pBuilder->bFailed = true;
 	pBuilder->tError.iCode = XRT_XML_ERROR_MEMORY;
 	pBuilder->tError.iLine = pEvent != NULL ? pEvent->iLine : 0u;
 	pBuilder->tError.iColumn = pEvent != NULL ? pEvent->iColumn : 0u;
@@ -35,12 +35,12 @@ static bool __xrtXmlDomPush(xrtxmldombuilder* pBuilder,
 		iCapacity = pBuilder->iCapacity != 0u ? pBuilder->iCapacity * 2u : 16u;
 		pItems = (xrtxmldomnode**)xrtRealloc(pBuilder->pStack,
 			sizeof(xrtxmldomnode*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pBuilder->pStack = pItems;
 		pBuilder->iCapacity = iCapacity;
 	}
 	pBuilder->pStack[pBuilder->iDepth++] = pNode;
-	return TRUE;
+	return true;
 }
 
 static void __xrtXmlDomClearNamespaces(xrtxmldombuilder* pBuilder)
@@ -68,7 +68,7 @@ static bool __xrtXmlDomRememberNamespace(xrtxmldombuilder* pBuilder,
 			pBuilder->iPendingNamespaceCapacity * 2u : 4u;
 		pItems = (xrtxmlattribute*)xrtRealloc(pBuilder->pPendingNamespaces,
 			sizeof(xrtxmlattribute) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		memset(pItems + pBuilder->iPendingNamespaceCapacity, 0,
 			sizeof(xrtxmlattribute) *
 			(iCapacity - pBuilder->iPendingNamespaceCapacity));
@@ -76,7 +76,7 @@ static bool __xrtXmlDomRememberNamespace(xrtxmldombuilder* pBuilder,
 		pBuilder->iPendingNamespaceCapacity = iCapacity;
 	}
 	sName = (char*)xrtMalloc(6u + (iPrefix != 0u ? 1u + iPrefix : 0u));
-	if ( sName == NULL ) { return FALSE; }
+	if ( sName == NULL ) { return false; }
 	memcpy(sName, "xmlns", 5u);
 	if ( iPrefix != 0u ) {
 		sName[5] = ':';
@@ -86,9 +86,9 @@ static bool __xrtXmlDomRememberNamespace(xrtxmldombuilder* pBuilder,
 	pItem = &pBuilder->pPendingNamespaces[pBuilder->iPendingNamespaceCount];
 	pItem->sName = (str)sName;
 	pItem->sValue = __xrtXmlDomCopy((const char*)pEvent->sNamespaceUri);
-	if ( pItem->sValue == NULL ) { xrtFree(sName); pItem->sName = NULL; return FALSE; }
+	if ( pItem->sValue == NULL ) { xrtFree(sName); pItem->sName = NULL; return false; }
 	pBuilder->iPendingNamespaceCount++;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlDomCopyName(xrtxmldomnode* pNode,
@@ -99,12 +99,12 @@ static bool __xrtXmlDomCopyName(xrtxmldomnode* pNode,
 	str sPrefix = __xrtXmlDomCopy((const char*)pEvent->sPrefix);
 	if ( sLocal == NULL || sUri == NULL || sPrefix == NULL ) {
 		xrtFree(sLocal); xrtFree(sUri); xrtFree(sPrefix);
-		return FALSE;
+		return false;
 	}
 	xrtFree(pNode->sLocalName); pNode->sLocalName = sLocal;
 	xrtFree(pNode->sNamespaceUri); pNode->sNamespaceUri = sUri;
 	xrtFree(pNode->sPrefix); pNode->sPrefix = sPrefix;
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlDomCopyAttributes(xrtxmldomnode* pNode,
@@ -118,7 +118,7 @@ static bool __xrtXmlDomCopyAttributes(xrtxmldomnode* pNode,
 		str sUri;
 		str sPrefix;
 		if ( !xrtXmlDomSetAttribute(pNode, pSource->sName, pSource->sValue) ) {
-			return FALSE;
+			return false;
 		}
 		pTarget = &pNode->pAttributes[pNode->iAttributeCount - 1u];
 		sLocal = __xrtXmlDomCopy((const char*)pSource->sLocalName);
@@ -126,13 +126,13 @@ static bool __xrtXmlDomCopyAttributes(xrtxmldomnode* pNode,
 		sPrefix = __xrtXmlDomCopy((const char*)pSource->sPrefix);
 		if ( sLocal == NULL || sUri == NULL || sPrefix == NULL ) {
 			xrtFree(sLocal); xrtFree(sUri); xrtFree(sPrefix);
-			return FALSE;
+			return false;
 		}
 		xrtFree(pTarget->sLocalName); pTarget->sLocalName = sLocal;
 		xrtFree(pTarget->sNamespaceUri); pTarget->sNamespaceUri = sUri;
 		xrtFree(pTarget->sPrefix); pTarget->sPrefix = sPrefix;
 	}
-	return TRUE;
+	return true;
 }
 
 static bool __xrtXmlDomStart(xrtxmldombuilder* pBuilder,
@@ -144,11 +144,11 @@ static bool __xrtXmlDomStart(xrtxmldombuilder* pBuilder,
 		pBuilder->pStack[pBuilder->iDepth - 1u] : pBuilder->pDocument;
 	uint32 i;
 	if ( pNode == NULL || !__xrtXmlDomCopyName(pNode, pEvent) ||
-		!__xrtXmlDomCopyAttributes(pNode, pEvent) ) { return FALSE; }
+		!__xrtXmlDomCopyAttributes(pNode, pEvent) ) { return false; }
 	for ( i = 0u; i < pBuilder->iPendingNamespaceCount; i++ ) {
 		xrtxmlattribute* pNamespace = &pBuilder->pPendingNamespaces[i];
 		if ( !xrtXmlDomSetAttribute(pNode, pNamespace->sName,
-			pNamespace->sValue) ) { return FALSE; }
+			pNamespace->sValue) ) { return false; }
 	}
 	__xrtXmlDomClearNamespaces(pBuilder);
 	return xrtXmlDomAppendChild(pParent, pNode) && __xrtXmlDomPush(pBuilder, pNode);
@@ -164,11 +164,11 @@ static bool __xrtXmlDomAppendCharacterData(xrtxmldombuilder* pBuilder,
 		const unsigned char* p = (const unsigned char*)sText;
 		while ( *p != 0u ) {
 			if ( *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n' ) {
-				return FALSE;
+				return false;
 			}
 			p++;
 		}
-		return TRUE;
+		return true;
 	}
 	pParent = pBuilder->pStack[pBuilder->iDepth - 1u];
 	pLast = pParent->iChildCount != 0u ?
@@ -186,16 +186,16 @@ static bool __xrtXmlDomOnEvent(ptr pContext, const xrtxmlevent* pEvent)
 	xrtxmldombuilder* pBuilder = (xrtxmldombuilder*)pContext;
 	xrtxmldomnode* pNode;
 	xrtxmldomnode* pParent;
-	if ( pBuilder->bFailed ) { return FALSE; }
+	if ( pBuilder->bFailed ) { return false; }
 	if ( pEvent->iType == XRT_XML_EVENT_START_NAMESPACE ) {
-		if ( __xrtXmlDomRememberNamespace(pBuilder, pEvent) ) { return TRUE; }
+		if ( __xrtXmlDomRememberNamespace(pBuilder, pEvent) ) { return true; }
 	} else if ( pEvent->iType == XRT_XML_EVENT_START ) {
-		if ( __xrtXmlDomStart(pBuilder, pEvent) ) { return TRUE; }
+		if ( __xrtXmlDomStart(pBuilder, pEvent) ) { return true; }
 	} else if ( pEvent->iType == XRT_XML_EVENT_END ) {
-		if ( pBuilder->iDepth != 0u ) { pBuilder->iDepth--; return TRUE; }
+		if ( pBuilder->iDepth != 0u ) { pBuilder->iDepth--; return true; }
 	} else if ( pEvent->iType == XRT_XML_EVENT_TEXT ) {
 		if ( __xrtXmlDomAppendCharacterData(pBuilder,
-			(const char*)pEvent->sText) ) { return TRUE; }
+			(const char*)pEvent->sText) ) { return true; }
 	} else if ( pEvent->iType == XRT_XML_EVENT_COMMENT ||
 		pEvent->iType == XRT_XML_EVENT_PROCESSING_INSTRUCTION ) {
 		pParent = pBuilder->iDepth != 0u ?
@@ -207,15 +207,15 @@ static bool __xrtXmlDomOnEvent(ptr pContext, const xrtxmlevent* pEvent)
 			pEvent->iType == XRT_XML_EVENT_COMMENT ? "#comment" :
 				(const char*)pEvent->sTarget,
 			(const char*)pEvent->sText);
-		if ( pNode != NULL && xrtXmlDomAppendChild(pParent, pNode) ) { return TRUE; }
+		if ( pNode != NULL && xrtXmlDomAppendChild(pParent, pNode) ) { return true; }
 	} else {
-		return TRUE;
+		return true;
 	}
 	__xrtXmlDomBuilderError(pBuilder, pEvent, "could not build XML DOM node");
-	return FALSE;
+	return false;
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomParse(xreader pReader, bool bTakeOwnership,
+XRT_API xrtxmldomnode* xrtXmlDomParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
 	xrtxmldombuilder tBuilder;
@@ -248,21 +248,22 @@ XXAPI xrtxmldomnode* xrtXmlDomParse(xreader pReader, bool bTakeOwnership,
 	return pDocument;
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomParseMemory(const void* pData, uint64 iSize,
+XRT_API xrtxmldomnode* xrtXmlDomParseMemory(const void* pData, uint64 iSize,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderFromMemory(pData, iSize);
-	return xrtXmlDomParse(pReader, TRUE, pOptions, pError);
+	xreader* pReader = xrtReaderFromMemory(
+		(xbytesview){ (cbytes)pData, (size_t)iSize });
+	return xrtXmlDomParse(pReader, true, pOptions, pError);
 }
 
-XXAPI xrtxmldomnode* xrtXmlDomLoad(str sPath,
+XRT_API xrtxmldomnode* xrtXmlDomLoad(str sPath,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError)
 {
-	xreader pReader = xrtReaderOpen(sPath);
+	xreader* pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
 		__xrtXmlDomSetError(pError, XRT_XML_ERROR_IO,
 			"could not open XML DOM file");
 		return NULL;
 	}
-	return xrtXmlDomParse(pReader, TRUE, pOptions, pError);
+	return xrtXmlDomParse(pReader, true, pOptions, pError);
 }

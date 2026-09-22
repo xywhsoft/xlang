@@ -13,6 +13,7 @@ $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_union_dynamic_box_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_union_dynamic_box_abi.lowered.xlir"
 $cPath = Join-Path $outputDir "xlir_union_dynamic_box_abi.generated.c"
+$headerPath = Join-Path $outputDir "xlir_union_dynamic_box_abi.generated.h"
 $exePath = Join-Path $outputDir "xlir_union_dynamic_box_abi.exe"
 $iteratorLoweredPath = Join-Path $outputDir "xlir_union_iterator_abi.lowered.xlir"
 $iteratorCPath = Join-Path $outputDir "xlir_union_iterator_abi.generated.c"
@@ -53,9 +54,13 @@ if ( ! $lowered.Contains("payload=t") ) {
     throw "XLIR union dynamic operations have no explicit payload TypeId"
 }
 
-& $xl cgen $source --backend xlir --emit $cPath
+& $xl cgen $source --backend xlir --emit $cPath --emit-header $headerPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR union dynamic Cgen failed" }
 $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
+$header = [System.IO.File]::ReadAllText($headerPath, [System.Text.Encoding]::UTF8)
+if ( $generated -notmatch 'typedef union ' -or $header -match 'typedef union ' ) {
+    throw "Public header leaked a union layout used only by internal XLIR"
+}
 foreach ( $required in @(
     "static xvalue* xlir_xvalue_union_box(const void* source, size_t size, uint64_t typeId)",
     "static void xlir_xvalue_union_unbox(const xvalue* source, uint64_t typeId, void* destination, size_t size)",
@@ -134,13 +139,20 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR union class-field write Cgen failed" }
 $classHeader = [System.IO.File]::ReadAllText(
     $classHeaderPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "typedef union XL_Union_",
     "xvalue* xl6_box_make(int64_t value);",
     "int64_t xl6_box_pick(xvalue* box);"
 ) ) {
     if ( ! $classHeader.Contains($required) ) {
         throw "XLIR union class export header is incomplete: $required"
     }
+}
+if ( $classHeader -match 'typedef union ' ) {
+    throw "Opaque class export header leaked its private union field layout"
+}
+$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -x c -fsyntax-only `"$classHeaderPath`""
+& $env:ComSpec /d /v:on /c $command
+if ( $LASTEXITCODE -ne 0 ) {
+    throw "XLIR union class public header is not standalone strict C"
 }
 $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$classCPath`" `"$classHostSource`" !XL6_CGEN_LINKS! -o `"$classExePath`" && `"$classExePath`""
 & $env:ComSpec /d /v:on /c $command

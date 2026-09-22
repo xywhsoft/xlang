@@ -2,6 +2,18 @@
 
 
 
+bool __xrtPlistAppleEpoch(xtime* pResult)
+{
+	xdatetime tDateTime;
+
+	if ( pResult == NULL ) { return false; }
+	memset(&tDateTime, 0, sizeof(tDateTime));
+	tDateTime.Year = 2001;
+	tDateTime.Month = 1;
+	tDateTime.Day = 1;
+	return xrtTimeMake(&tDateTime, pResult);
+}
+
 static bool __xrtPlistTrackNode(xrtplistdocument* pDocument,
 	xrtplistnode* pNode)
 {
@@ -12,12 +24,12 @@ static bool __xrtPlistTrackNode(xrtplistdocument* pDocument,
 			pDocument->iNodeCapacity * 2u : 32u;
 		pItems = (xrtplistnode**)xrtRealloc(pDocument->pNodes,
 			sizeof(xrtplistnode*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pDocument->pNodes = pItems;
 		pDocument->iNodeCapacity = iCapacity;
 	}
 	pDocument->pNodes[pDocument->iNodeCount++] = pNode;
-	return TRUE;
+	return true;
 }
 
 xrtplistnode* __xrtPlistCreateNode(xrtplistdocument* pDocument, int iType)
@@ -41,18 +53,18 @@ bool __xrtPlistSetBytes(xrtplistnode* pNode, const void* pData,
 {
 	uint8* pCopy;
 	if ( pNode == NULL || (pData == NULL && iSize != 0u) ||
-		iSize > SIZE_MAX - (bString ? 1u : 0u) ) { return FALSE; }
+		iSize > SIZE_MAX - (bString ? 1u : 0u) ) { return false; }
 	pCopy = (uint8*)xrtMalloc((size_t)iSize + (bString ? 1u : 0u));
-	if ( pCopy == NULL && (iSize != 0u || bString) ) { return FALSE; }
+	if ( pCopy == NULL && (iSize != 0u || bString) ) { return false; }
 	if ( iSize != 0u ) { memcpy(pCopy, pData, (size_t)iSize); }
 	if ( bString ) { pCopy[iSize] = 0u; }
 	xrtFree(pNode->Value.Bytes.pData);
 	pNode->Value.Bytes.pData = pCopy;
 	pNode->Value.Bytes.iSize = iSize;
-	return TRUE;
+	return true;
 }
 
-XXAPI xrtplistdocument* xrtPlistCreate(void)
+XRT_API xrtplistdocument* xrtPlistCreate(void)
 {
 	xrtplistdocument* pDocument =
 		(xrtplistdocument*)xrtMalloc(sizeof(*pDocument));
@@ -60,7 +72,7 @@ XXAPI xrtplistdocument* xrtPlistCreate(void)
 	return pDocument;
 }
 
-XXAPI void xrtPlistDestroy(xrtplistdocument* pDocument)
+XRT_API void xrtPlistDestroy(xrtplistdocument* pDocument)
 {
 	uint32 i;
 	if ( pDocument == NULL ) { return; }
@@ -83,89 +95,90 @@ XXAPI void xrtPlistDestroy(xrtplistdocument* pDocument)
 	xrtFree(pDocument);
 }
 
-XXAPI xrtplistnode* xrtPlistRoot(const xrtplistdocument* pDocument)
+XRT_API xrtplistnode* xrtPlistRoot(const xrtplistdocument* pDocument)
 {
 	return pDocument != NULL ? pDocument->pRoot : NULL;
 }
 
-XXAPI bool xrtPlistSetRoot(xrtplistdocument* pDocument, xrtplistnode* pRoot)
+XRT_API bool xrtPlistSetRoot(xrtplistdocument* pDocument, xrtplistnode* pRoot)
 {
 	if ( pDocument == NULL || pRoot == NULL ||
-		pRoot->pDocument != pDocument ) { return FALSE; }
+		pRoot->pDocument != pDocument ) { return false; }
 	pDocument->pRoot = pRoot;
-	return TRUE;
+	return true;
 }
 
-XXAPI xrtplistnode* xrtPlistCreateNull(xrtplistdocument* pDocument) { return __xrtPlistCreateNode(pDocument, XRT_PLIST_NULL); }
-XXAPI xrtplistnode* xrtPlistCreateBool(xrtplistdocument* pDocument, bool bValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_BOOL); if ( p != NULL ) { p->Value.bValue = bValue; } return p; }
-XXAPI xrtplistnode* xrtPlistCreateInt(xrtplistdocument* pDocument, int64 iValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_INT); if ( p != NULL ) { p->Value.iValue = iValue; } return p; }
-XXAPI xrtplistnode* xrtPlistCreateReal(xrtplistdocument* pDocument, double fValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_REAL); if ( p != NULL ) { p->Value.fValue = fValue; } return p; }
-XXAPI xrtplistnode* xrtPlistCreateDate(xrtplistdocument* pDocument, xtime tValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_DATE); if ( p != NULL ) { p->Value.tValue = tValue; } return p; }
-XXAPI xrtplistnode* xrtPlistCreateArray(xrtplistdocument* pDocument) { return __xrtPlistCreateNode(pDocument, XRT_PLIST_ARRAY); }
-XXAPI xrtplistnode* xrtPlistCreateDict(xrtplistdocument* pDocument) { return __xrtPlistCreateNode(pDocument, XRT_PLIST_DICT); }
-XXAPI xrtplistnode* xrtPlistCreateUid(xrtplistdocument* pDocument, uint64 iValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_UID); if ( p != NULL ) { p->Value.iUid = iValue; } return p; }
+XRT_API xrtplistnode* xrtPlistCreateNull(xrtplistdocument* pDocument) { return __xrtPlistCreateNode(pDocument, XRT_PLIST_NULL); }
+XRT_API xrtplistnode* xrtPlistCreateBool(xrtplistdocument* pDocument, bool bValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_BOOL); if ( p != NULL ) { p->Value.bValue = bValue; } return p; }
+XRT_API xrtplistnode* xrtPlistCreateInt(xrtplistdocument* pDocument, int64 iValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_INT); if ( p != NULL ) { p->Value.iValue = iValue; } return p; }
+XRT_API xrtplistnode* xrtPlistCreateReal(xrtplistdocument* pDocument, double fValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_REAL); if ( p != NULL ) { p->Value.fValue = fValue; } return p; }
+XRT_API xrtplistnode* xrtPlistCreateDate(xrtplistdocument* pDocument, xtime tValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_DATE); if ( p != NULL ) { p->Value.tValue = tValue; } return p; }
+XRT_API xrtplistnode* xrtPlistCreateArray(xrtplistdocument* pDocument) { return __xrtPlistCreateNode(pDocument, XRT_PLIST_ARRAY); }
+XRT_API xrtplistnode* xrtPlistCreateDict(xrtplistdocument* pDocument) { return __xrtPlistCreateNode(pDocument, XRT_PLIST_DICT); }
+XRT_API xrtplistnode* xrtPlistCreateUid(xrtplistdocument* pDocument, uint64 iValue) { xrtplistnode* p = __xrtPlistCreateNode(pDocument, XRT_PLIST_UID); if ( p != NULL ) { p->Value.iUid = iValue; } return p; }
 
-XXAPI xrtplistnode* xrtPlistCreateStringEx(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateStringEx(xrtplistdocument* pDocument,
 	const void* pValue, uint64 iSize)
 {
 	xrtplistnode* pNode;
 	if ( iSize > SIZE_MAX || (iSize != 0u &&
-		(pValue == NULL || !xrtIsUTF8((str)pValue, (size_t)iSize))) ) { return NULL; }
+		(pValue == NULL || !xrtUtf8Valid(
+			(xstrview){ (cstr)pValue, (size_t)iSize }, NULL))) ) { return NULL; }
 	pNode = __xrtPlistCreateNode(pDocument, XRT_PLIST_STRING);
-	return pNode != NULL && __xrtPlistSetBytes(pNode, pValue, iSize, TRUE) ?
+	return pNode != NULL && __xrtPlistSetBytes(pNode, pValue, iSize, true) ?
 		pNode : NULL;
 }
 
-XXAPI xrtplistnode* xrtPlistCreateString(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateString(xrtplistdocument* pDocument,
 	str sValue)
 {
 	return sValue != NULL ? xrtPlistCreateStringEx(pDocument, sValue,
 		strlen((const char*)sValue)) : NULL;
 }
 
-XXAPI xrtplistnode* xrtPlistCreateData(xrtplistdocument* pDocument,
+XRT_API xrtplistnode* xrtPlistCreateData(xrtplistdocument* pDocument,
 	const void* pValue, uint64 iSize)
 {
 	xrtplistnode* pNode = __xrtPlistCreateNode(pDocument, XRT_PLIST_DATA);
-	return pNode != NULL && __xrtPlistSetBytes(pNode, pValue, iSize, FALSE) ?
+	return pNode != NULL && __xrtPlistSetBytes(pNode, pValue, iSize, false) ?
 		pNode : NULL;
 }
 
-XXAPI int xrtPlistNodeType(const xrtplistnode* pNode) { return pNode != NULL ? pNode->iType : -1; }
-XXAPI bool xrtPlistBool(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_BOOL ? pNode->Value.bValue : FALSE; }
-XXAPI int64 xrtPlistInt(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_INT ? pNode->Value.iValue : 0; }
-XXAPI double xrtPlistReal(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_REAL ? pNode->Value.fValue : 0.0; }
-XXAPI xtime xrtPlistDate(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_DATE ? pNode->Value.tValue : 0; }
-XXAPI uint64 xrtPlistUid(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_UID ? pNode->Value.iUid : 0u; }
-XXAPI const void* xrtPlistBytes(const xrtplistnode* pNode) { return pNode != NULL && (pNode->iType == XRT_PLIST_STRING || pNode->iType == XRT_PLIST_DATA) ? pNode->Value.Bytes.pData : NULL; }
-XXAPI uint64 xrtPlistByteSize(const xrtplistnode* pNode) { return pNode != NULL && (pNode->iType == XRT_PLIST_STRING || pNode->iType == XRT_PLIST_DATA) ? pNode->Value.Bytes.iSize : 0u; }
+XRT_API int xrtPlistNodeType(const xrtplistnode* pNode) { return pNode != NULL ? pNode->iType : -1; }
+XRT_API bool xrtPlistBool(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_BOOL ? pNode->Value.bValue : false; }
+XRT_API int64 xrtPlistInt(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_INT ? pNode->Value.iValue : 0; }
+XRT_API double xrtPlistReal(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_REAL ? pNode->Value.fValue : 0.0; }
+XRT_API xtime xrtPlistDate(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_DATE ? pNode->Value.tValue : 0; }
+XRT_API uint64 xrtPlistUid(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_UID ? pNode->Value.iUid : 0u; }
+XRT_API const void* xrtPlistBytes(const xrtplistnode* pNode) { return pNode != NULL && (pNode->iType == XRT_PLIST_STRING || pNode->iType == XRT_PLIST_DATA) ? pNode->Value.Bytes.pData : NULL; }
+XRT_API uint64 xrtPlistByteSize(const xrtplistnode* pNode) { return pNode != NULL && (pNode->iType == XRT_PLIST_STRING || pNode->iType == XRT_PLIST_DATA) ? pNode->Value.Bytes.iSize : 0u; }
 
-XXAPI uint32 xrtPlistArrayCount(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_ARRAY ? pNode->Value.Array.iCount : 0u; }
-XXAPI xrtplistnode* xrtPlistArrayGet(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_ARRAY && iIndex < pNode->Value.Array.iCount ? pNode->Value.Array.pItems[iIndex] : NULL; }
+XRT_API uint32 xrtPlistArrayCount(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_ARRAY ? pNode->Value.Array.iCount : 0u; }
+XRT_API xrtplistnode* xrtPlistArrayGet(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_ARRAY && iIndex < pNode->Value.Array.iCount ? pNode->Value.Array.pItems[iIndex] : NULL; }
 
-XXAPI bool xrtPlistArrayAppend(xrtplistnode* pNode, xrtplistnode* pValue)
+XRT_API bool xrtPlistArrayAppend(xrtplistnode* pNode, xrtplistnode* pValue)
 {
 	xrtplistnode** pItems;
 	uint32 iCapacity;
 	if ( pNode == NULL || pValue == NULL || pNode->iType != XRT_PLIST_ARRAY ||
-		pNode->pDocument != pValue->pDocument ) { return FALSE; }
+		pNode->pDocument != pValue->pDocument ) { return false; }
 	if ( pNode->Value.Array.iCount == pNode->Value.Array.iCapacity ) {
 		iCapacity = pNode->Value.Array.iCapacity != 0u ?
 			pNode->Value.Array.iCapacity * 2u : 4u;
 		pItems = (xrtplistnode**)xrtRealloc(pNode->Value.Array.pItems,
 			sizeof(xrtplistnode*) * iCapacity);
-		if ( pItems == NULL ) { return FALSE; }
+		if ( pItems == NULL ) { return false; }
 		pNode->Value.Array.pItems = pItems;
 		pNode->Value.Array.iCapacity = iCapacity;
 	}
 	pNode->Value.Array.pItems[pNode->Value.Array.iCount++] = pValue;
-	return TRUE;
+	return true;
 }
 
-XXAPI uint32 xrtPlistDictCount(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT ? pNode->Value.Dict.iCount : 0u; }
-XXAPI const void* xrtPlistDictKey(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT && iIndex < pNode->Value.Dict.iCount ? pNode->Value.Dict.pItems[iIndex].pKey : NULL; }
-XXAPI uint64 xrtPlistDictKeySize(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT && iIndex < pNode->Value.Dict.iCount ? pNode->Value.Dict.pItems[iIndex].iKeySize : 0u; }
-XXAPI xrtplistnode* xrtPlistDictValue(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT && iIndex < pNode->Value.Dict.iCount ? pNode->Value.Dict.pItems[iIndex].pValue : NULL; }
+XRT_API uint32 xrtPlistDictCount(const xrtplistnode* pNode) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT ? pNode->Value.Dict.iCount : 0u; }
+XRT_API const void* xrtPlistDictKey(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT && iIndex < pNode->Value.Dict.iCount ? pNode->Value.Dict.pItems[iIndex].pKey : NULL; }
+XRT_API uint64 xrtPlistDictKeySize(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT && iIndex < pNode->Value.Dict.iCount ? pNode->Value.Dict.pItems[iIndex].iKeySize : 0u; }
+XRT_API xrtplistnode* xrtPlistDictValue(const xrtplistnode* pNode, uint32 iIndex) { return pNode != NULL && pNode->iType == XRT_PLIST_DICT && iIndex < pNode->Value.Dict.iCount ? pNode->Value.Dict.pItems[iIndex].pValue : NULL; }
 
 static int __xrtPlistDictIndex(const xrtplistnode* pNode,
 	const void* pKey, uint64 iKeySize)
@@ -183,14 +196,14 @@ static int __xrtPlistDictIndex(const xrtplistnode* pNode,
 	return -1;
 }
 
-XXAPI xrtplistnode* xrtPlistDictGet(const xrtplistnode* pNode,
+XRT_API xrtplistnode* xrtPlistDictGet(const xrtplistnode* pNode,
 	const void* pKey, uint64 iKeySize)
 {
 	int i = __xrtPlistDictIndex(pNode, pKey, iKeySize);
 	return i >= 0 ? pNode->Value.Dict.pItems[i].pValue : NULL;
 }
 
-XXAPI bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
+XRT_API bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 	uint64 iKeySize, xrtplistnode* pValue)
 {
 	int iIndex;
@@ -200,14 +213,15 @@ XXAPI bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 	if ( pNode == NULL || pValue == NULL || pNode->iType != XRT_PLIST_DICT ||
 		pNode->pDocument != pValue->pDocument || iKeySize > SIZE_MAX ||
 		(pKey == NULL && iKeySize != 0u) ||
-		(iKeySize != 0u && !xrtIsUTF8((str)pKey, (size_t)iKeySize)) ) { return FALSE; }
+		(iKeySize != 0u && !xrtUtf8Valid(
+			(xstrview){ (cstr)pKey, (size_t)iKeySize }, NULL)) ) { return false; }
 	iIndex = __xrtPlistDictIndex(pNode, pKey, iKeySize);
 	if ( iIndex >= 0 ) {
 		pNode->Value.Dict.pItems[iIndex].pValue = pValue;
-		return TRUE;
+		return true;
 	}
 	pCopy = (uint8*)xrtMalloc((size_t)iKeySize + 1u);
-	if ( pCopy == NULL ) { return FALSE; }
+	if ( pCopy == NULL ) { return false; }
 	if ( iKeySize != 0u ) { memcpy(pCopy, pKey, (size_t)iKeySize); }
 	pCopy[iKeySize] = 0u;
 	if ( pNode->Value.Dict.iCount == pNode->Value.Dict.iCapacity ) {
@@ -215,7 +229,7 @@ XXAPI bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 			pNode->Value.Dict.iCapacity * 2u : 4u;
 		pItems = (xrtplistdictitem*)xrtRealloc(pNode->Value.Dict.pItems,
 			sizeof(xrtplistdictitem) * iCapacity);
-		if ( pItems == NULL ) { xrtFree(pCopy); return FALSE; }
+		if ( pItems == NULL ) { xrtFree(pCopy); return false; }
 		pNode->Value.Dict.pItems = pItems;
 		pNode->Value.Dict.iCapacity = iCapacity;
 	}
@@ -223,5 +237,5 @@ XXAPI bool xrtPlistDictSet(xrtplistnode* pNode, const void* pKey,
 	pNode->Value.Dict.pItems[pNode->Value.Dict.iCount].iKeySize = iKeySize;
 	pNode->Value.Dict.pItems[pNode->Value.Dict.iCount].pValue = pValue;
 	pNode->Value.Dict.iCount++;
-	return TRUE;
+	return true;
 }

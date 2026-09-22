@@ -1,0 +1,300 @@
+// breakout.xl — 打砖块（鼠标经典游戏）
+// 挡板鼠标 X 控制，空格发球，R 重开，ESC 退出。
+// 每砖 2 次击破（第一次变色），3 条命，全清 WIN。
+// 无头冒烟：xl run breakout.xl -- 60
+import xge
+
+// --- 游戏参数 ---
+int W = 600
+int H = 640
+int HUD_H = 44
+int COLS = 12                       // 砖块列数
+int ROWS = 8                        // 砖块行数
+int CELL_W = 50                     // 每列 50 像素（含缝）
+int CELL_H = 22                     // 每行 22 像素（含缝）
+int GRID_Y = 76                     // 砖区顶部
+int PAD_W = 92
+int PAD_H = 14
+int PAD_Y = 0                       // 挡板顶部 y（reset 里算）
+float BALL_R = 7.0
+float BALL_SPEED = 400.0            // 像素/秒
+int NBRICK = 96                     // ROWS * COLS
+int LIVES = 3
+
+// --- 游戏状态 ---
+array<int> bricks = [0]             // 0=没了，1-8=行分档（颜色）
+array<int> hits = [0]               // 每砖剩余耐久：2=完好 1=已损
+int remaining = NBRICK
+float padX = 300.0                  // 挡板中心 X
+float ballX = 300.0
+float ballY = 500.0
+float vx = 0.0
+float vy = 0.0
+bool stuck = true                   // 球粘在挡板待发
+int score = 0
+int lives = LIVES
+int gameState = 0                   // 0=进行中 1=WIN 2=GAME OVER
+xge.Font hudFont
+Random rng = Random(uint64(21), uint64(7))
+
+// --- 工具 ---
+func clampF(float v, float lo, float hi) as float
+    if v < lo then
+        return lo
+    end
+    if v > hi then
+        return hi
+    end
+    return v
+end
+
+func absF(float v) as float
+    if v < 0.0 then
+        return -v
+    end
+    return v
+end
+
+// 行分档颜色（hp=2 完好鲜亮，hp=1 受损变暗）
+func brickColor(int tier, int hp) as uint32
+    if tier == 1 then
+        return hp == 2 ? xge.Color.rgba(232, 80, 70, 255) : xge.Color.rgba(150, 55, 50, 255)
+    end
+    if tier == 2 then
+        return hp == 2 ? xge.Color.rgba(245, 150, 60, 255) : xge.Color.rgba(160, 100, 45, 255)
+    end
+    if tier == 3 then
+        return hp == 2 ? xge.Color.rgba(245, 205, 80, 255) : xge.Color.rgba(160, 135, 55, 255)
+    end
+    if tier == 4 then
+        return hp == 2 ? xge.Color.rgba(110, 200, 95, 255) : xge.Color.rgba(70, 130, 65, 255)
+    end
+    if tier == 5 then
+        return hp == 2 ? xge.Color.rgba(70, 190, 170, 255) : xge.Color.rgba(48, 125, 112, 255)
+    end
+    if tier == 6 then
+        return hp == 2 ? xge.Color.rgba(85, 140, 240, 255) : xge.Color.rgba(56, 95, 160, 255)
+    end
+    if tier == 7 then
+        return hp == 2 ? xge.Color.rgba(170, 110, 230, 255) : xge.Color.rgba(112, 74, 152, 255)
+    end
+    return hp == 2 ? xge.Color.rgba(240, 120, 170, 255) : xge.Color.rgba(158, 82, 113, 255)
+end
+
+// --- 初始化 ---
+func reset()
+    while bricks.length < NBRICK
+        bricks.append(0)
+        hits.append(0)
+    end
+    int i = 0
+    while i < NBRICK
+        bricks[i] = i / COLS + 1    // 行号分档 1-8
+        hits[i] = 2                 // 每砖 2 次击破
+        i += 1
+    end
+    remaining = NBRICK
+    PAD_Y = H - 46
+    padX = float(W) / 2.0
+    score = 0
+    lives = LIVES
+    gameState = 0
+    stickBall()
+end
+
+func stickBall()
+    stuck = true
+    ballX = padX
+    ballY = float(PAD_Y) - BALL_R - 1.0
+    vx = 0.0
+    vy = 0.0
+end
+
+// --- 逻辑更新 ---
+func handleInput()
+    padX = clampF(xge.Input.mouseX(), float(PAD_W) / 2.0, float(W) - float(PAD_W) / 2.0)
+    if stuck then
+        ballX = padX
+        ballY = float(PAD_Y) - BALL_R - 1.0
+        if xge.Input.keyPressed(xge.XGE_KEY_SPACE) then
+            // 按挡板位置给出随机小角度发球
+            float rel = (float(int(rng.u32()) % 81) - 40.0) / 100.0
+            vx = BALL_SPEED * 0.8 * rel
+            vy = -BALL_SPEED * (1.0 - 0.4 * absF(rel))
+            stuck = false
+        end
+    end
+    if xge.Input.keyPressed(82) then
+        reset()
+    end
+end
+
+// 挡板反弹：按命中位置改变出射角（边缘更斜）
+func bouncePaddle()
+    float rel = clampF((ballX - padX) / (float(PAD_W) / 2.0), -1.0, 1.0)
+    vx = BALL_SPEED * rel
+    vy = -BALL_SPEED * (1.0 - 0.45 * absF(rel))
+    ballY = float(PAD_Y) - BALL_R
+end
+
+func hitBricks()
+    // 最多处理一块（AABB，判定进入侧决定反弹轴）
+    int i = 0
+    while i < NBRICK
+        if bricks[i] > 0 then
+            int cx = (i % COLS) * CELL_W
+            int cy = GRID_Y + (i / COLS) * CELL_H
+            float rx0 = float(cx + 1)
+            float rx1 = float(cx + CELL_W - 1)
+            float ry0 = float(cy + 1)
+            float ry1 = float(cy + CELL_H - 1)
+            if ballX + BALL_R > rx0 and ballX - BALL_R < rx1 and ballY + BALL_R > ry0 and ballY - BALL_R < ry1 then
+                // 归一化穿透深度：绝对值大的轴 = 进入侧
+                float dx = (ballX - (rx0 + rx1) / 2.0) / ((rx1 - rx0) / 2.0 + BALL_R)
+                float dy = (ballY - (ry0 + ry1) / 2.0) / ((ry1 - ry0) / 2.0 + BALL_R)
+                if absF(dx) > absF(dy) then
+                    vx = -vx
+                    ballX = dx > 0.0 ? rx1 + BALL_R : rx0 - BALL_R
+                else
+                    vy = -vy
+                    ballY = dy > 0.0 ? ry1 + BALL_R : ry0 - BALL_R
+                end
+                hits[i] -= 1
+                if hits[i] <= 0 then
+                    score += bricks[i] * 10
+                    bricks[i] = 0
+                    remaining -= 1
+                    if remaining == 0 then
+                        gameState = 1
+                    end
+                else
+                    score += 5
+                end
+                break
+            end
+        end
+        i += 1
+    end
+end
+
+func updateBall(float dt)
+    ballX += vx * dt
+    ballY += vy * dt
+
+    // 左右墙
+    if ballX < BALL_R then
+        ballX = BALL_R
+        vx = absF(vx)
+    end
+    if ballX > float(W) - BALL_R then
+        ballX = float(W) - BALL_R
+        vx = -absF(vx)
+    end
+    // 顶墙
+    if ballY < float(HUD_H) + BALL_R then
+        ballY = float(HUD_H) + BALL_R
+        vy = absF(vy)
+    end
+
+    // 挡板
+    if vy > 0.0 and ballY + BALL_R >= float(PAD_Y) and ballY - BALL_R <= float(PAD_Y + PAD_H) then
+        if ballX >= padX - float(PAD_W) / 2.0 - BALL_R and ballX <= padX + float(PAD_W) / 2.0 + BALL_R then
+            bouncePaddle()
+        end
+    end
+
+    hitBricks()
+
+    // 落底扣命
+    if ballY > float(H) + BALL_R then
+        lives -= 1
+        if lives <= 0 then
+            gameState = 2
+        else
+            stickBall()
+        end
+    end
+end
+
+// --- 绘制 ---
+func draw()
+    uint32 bg = xge.Color.rgba(13, 17, 22, 255)
+    uint32 padC = xge.Color.rgba(79, 216, 194, 255)
+    uint32 ballC = xge.Color.rgba(240, 244, 250, 255)
+    uint32 lifeC = xge.Color.rgba(255, 107, 94, 255)
+    uint32 textC = xge.Color.rgba(220, 228, 238, 255)
+    uint32 dimC = xge.Color.rgba(100, 112, 128, 255)
+
+    // HUD
+    xge.Shape.rectFillPixels(0, 0, W, HUD_H, xge.Color.rgba(18, 24, 32, 255))
+    if hudFont.valid then
+        hudFont.drawText("SCORE " + string(score), 12.0, 12.0, textC)
+        string msg = gameState == 1 ? "CLEARED! - press R" : (gameState == 2 ? "GAME OVER - press R" : (stuck ? "SPACE to launch" : "BRICKS " + string(remaining)))
+        hudFont.drawText(msg, float(W - 210), 12.0, gameState == 0 ? dimC : lifeC)
+    end
+    int l = 0
+    while l < lives
+        xge.Shape.circleFill(float(W - 40 - l * 22), float(HUD_H / 2), 7.0, lifeC)
+        l += 1
+    end
+
+    // 砖块
+    int i = 0
+    while i < NBRICK
+        if bricks[i] > 0 then
+            uint32 c = brickColor(bricks[i], hits[i])
+            xge.Shape.rectFillPixels((i % COLS) * CELL_W + 1, GRID_Y + (i / COLS) * CELL_H + 1, CELL_W - 2, CELL_H - 2, c)
+        end
+        i += 1
+    end
+
+    // 挡板与球
+    xge.Shape.roundRectFill(padX - float(PAD_W) / 2.0, float(PAD_Y), float(PAD_W), float(PAD_H), 5.0, padC)
+    xge.Shape.circleFill(ballX, ballY, BALL_R, ballC)
+
+    // 结算提示
+    if gameState != 0 and hudFont.valid then
+        string big = gameState == 1 ? "YOU WIN!" : "GAME OVER"
+        hudFont.drawText(big, float(W / 2 - 50), float(H / 2 - 10), textC)
+        xge.Shape.rectFill(0.0, float(H / 2 + 20), float(W), 1.0, dimC)
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    if gameState == 0 then
+        handleInput()
+        if not stuck then
+            updateBall(xge.XgeApp.delta())
+        end
+    else
+        if xge.Input.keyPressed(82) then
+            reset()
+        end
+    end
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
+    draw()
+    xge.XgeApp.endFrame()
+end
+
+func main(...) as int
+    // 可选无头冒烟：xl run breakout.xl -- 60
+    if arg.length > 1 then
+        xge.XgeApp.setMaxFrames(int(arg[1]))
+    end
+
+    int ret = xge.XgeApp.init(W, H, "xlang breakout")
+    if ret != 0 then
+        println("init failed: " + string(ret))
+        return 1
+    end
+
+    hudFont = xge.Font("C:\\Windows\\Fonts\\msyh.ttc", 18.0)
+    if not hudFont.valid then
+        hudFont = xge.Font("C:\\Windows\\Fonts\\arial.ttf", 18.0)
+    end
+
+    reset()
+    xge.XgeApp.run(on_frame)
+    return 0
+end

@@ -1,0 +1,17 @@
+import xssh
+from xssh import WireReader, WireWriter
+
+
+
+func main(...) as int
+    WireWriter packet = WireWriter()
+    packet.writeByte(5)
+    packet.writeString("ssh-userauth")
+
+    WireReader reader = xssh.reader(packet.bytes)
+    println("message byte: " + string(reader.readByte()))
+    println("service: " + reader.readText())
+    println("empty key fingerprint: " + xssh.fingerprint(Buffer()))
+    println("xssh example: PASS")
+    return 0
+end

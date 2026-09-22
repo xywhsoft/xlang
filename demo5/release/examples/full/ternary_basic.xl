@@ -1,4 +1,0 @@
-func main() as int
-	const bool ok = true
-	return ok ? 42 : 7
-end

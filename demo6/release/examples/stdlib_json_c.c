@@ -1,100 +1,133 @@
+#define XRT_MODULE_JSON
+#define XRT_MODULE_DIR
 #include "xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-static void require_json(int ok)
+
+
+static void require_json(bool bValue)
 {
-    if ( !ok ) {
+    if ( !bValue ) {
         fprintf(stderr, "json=fail\n");
         exit(1);
     }
 }
 
-typedef struct {
-    int count;
-    int sawName;
+
+
+typedef struct JsonVisitState {
+    int Count;
+    bool SawName;
 } JsonVisitState;
 
-static bool visit_json(const xrt_json_event* event, void* userdata)
+
+
+static xjsonvisitaction visit_json(const xjsonevent* pEvent, ptr pUserData)
 {
-    JsonVisitState* state = (JsonVisitState*)userdata;
-    ++state->count;
-    if ( event->type == XRT_JSON_EVENT_STRING && event->key_size == 4 &&
-         memcmp(event->key, "name", 4) == 0 && event->text_size == 5 &&
-         memcmp(event->text, "xlang", 5) == 0 ) {
-        state->sawName = 1;
+    JsonVisitState* pState = (JsonVisitState*)pUserData;
+
+    if ( pEvent == NULL || pState == NULL ) {
+        return XJSON_VISIT_FAIL;
     }
-    return true;
+    pState->Count += 1;
+    if (
+        (pEvent->Type == XJSON_EVENT_STRING) &&
+        pEvent->HasName &&
+        (pEvent->Name.Size == 4u) &&
+        (memcmp(pEvent->Name.Data, "name", 4u) == 0) &&
+        (pEvent->Value.String.Size == 5u) &&
+        (memcmp(pEvent->Value.String.Data, "xlang", 5u) == 0)
+    ) {
+        pState->SawName = true;
+    }
+    return XJSON_VISIT_NEXT;
 }
+
+
 
 int main(void)
 {
-    const char* filePath = "examples_out/example_stdlib_json.json";
-    xvalue values;
-    xvalue object;
-    xvalue loaded;
-    str compact;
-    str pretty;
-    str objectText;
-    str loadedText;
-    int written;
-    int deleted;
-    JsonVisitState visitState = { 0 };
-    xjsonwriter writer;
-    char* streamed;
+    cstr sFilePath = "examples_out/example_stdlib_json.json";
+    xvalue* pValues;
+    xvalue* pObject;
+    xvalue* pLoaded;
+    str sCompact;
+    str sPretty;
+    str sObjectText;
+    str sLoadedText;
+	str sStreamed;
+	xjsonreadconfig ReadConfig;
+	xjsonwriteconfig Config;
+    xjsonwriter* pWriter;
+    JsonVisitState VisitState = { 0 };
 
-    xrtInit();
-    xrtDirCreateAll((str)"examples_out");
-    xrtFileDelete((str)filePath);
+    require_json(xrtDirCreateAll("examples_out"));
+    (void)xrtFileDelete(sFilePath);
 
-    require_json(xrtJsonValid((str)"{\"name\":\"xlang\",\"stage\":6}", 0));
-    require_json(!xrtJsonValid((str)"{\"name\":", 0));
+    require_json(xrtJsonValid(XRT_STR_LITERAL("{\"name\":\"xlang\",\"stage\":6}")));
+    require_json(!xrtJsonValid(XRT_STR_LITERAL("{\"name\":")));
 
-    values = xrtParseJSON((str)"[1,2,3]", 0);
-    compact = xrtStringifyJSON(values, FALSE, NULL);
-    pretty = xrtStringifyJSON(values, TRUE, NULL);
-    object = xrtParseJSON((str)"{\"name\":\"xlang\",\"stage\":6}", 0);
-    objectText = xrtStringifyJSON(object, FALSE, NULL);
-    written = xrtStringifyJSON_File((str)filePath, object, TRUE);
-    loaded = xrtParseJSON_File((str)filePath);
-    loadedText = xrtStringifyJSON(loaded, FALSE, NULL);
-    deleted = xrtFileDelete((str)filePath);
+    pValues = xrtJsonParse(XRT_STR_LITERAL("[1,2,3]"));
+    pObject = xrtJsonParse(XRT_STR_LITERAL("{\"name\":\"xlang\",\"stage\":6}"));
+    require_json(pValues != NULL && pObject != NULL);
+    sCompact = xrtJsonStringify(pValues, false, NULL);
+    sPretty = xrtJsonStringify(pValues, true, NULL);
+    sObjectText = xrtJsonStringify(pObject, false, NULL);
+    require_json(sCompact != NULL && sPretty != NULL && sObjectText != NULL);
+    require_json(xrtJsonStringifyFile(sFilePath, pObject, true));
+    pLoaded = xrtJsonParseFile(sFilePath);
+    require_json(pLoaded != NULL);
+    sLoadedText = xrtJsonStringify(pLoaded, false, NULL);
+    require_json(sLoadedText != NULL);
 
-    require_json(xrtJsonVisit("{\"name\":\"xlang\",\"items\":[1,true,null]}", 0,
-        visit_json, &visitState) == 0);
-    writer = xrtJsonWriterCreate(FALSE);
-    require_json(writer != NULL);
-    require_json(xrtJsonWriterBeginObject(writer));
-    require_json(xrtJsonWriterStringKey(writer, "name", "xlang"));
-    require_json(xrtJsonWriterBeginArrayKey(writer, "items"));
-    require_json(xrtJsonWriterInt(writer, 1));
-    require_json(xrtJsonWriterBool(writer, TRUE));
-    require_json(xrtJsonWriterNull(writer));
-    require_json(xrtJsonWriterEndArray(writer));
-    require_json(xrtJsonWriterEndObject(writer));
-    streamed = xrtJsonWriterFinish(writer, NULL);
+	xrtJsonReadConfigInit(&ReadConfig);
+	require_json(
+		xrtJsonVisit(
+			XRT_STR_LITERAL("{\"name\":\"xlang\",\"items\":[1,true,null]}"),
+			&ReadConfig,
+            visit_json,
+            &VisitState
+        ) == XJSON_VISIT_DONE
+    );
 
-    require_json(xrtStrComp(compact, "[1,2,3]", 0, FALSE) == 0);
-    require_json(xrtStrIndexOf(pretty, 0, (str)"\n", 0, FALSE) >= 0);
-    require_json(xrtStrIndexOf(objectText, 0, (str)"\"xlang\"", 0, FALSE) >= 0);
-    require_json(written != 0);
-    require_json(xrtStrIndexOf(loadedText, 0, (str)"\"stage\"", 0, FALSE) >= 0);
-    require_json(deleted != 0);
-    require_json(visitState.count == 8 && visitState.sawName);
-    require_json(streamed != NULL && strcmp(streamed, "{\"name\":\"xlang\",\"items\":[1,true,null]}") == 0);
+    xrtJsonWriteConfigInit(&Config);
+    pWriter = xrtJsonWriterCreate(&Config);
+    require_json(pWriter != NULL);
+    require_json(xrtJsonWriterObject(pWriter));
+    require_json(xrtJsonWriterName(pWriter, XRT_STR_LITERAL("name")));
+    require_json(xrtJsonWriterString(pWriter, XRT_STR_LITERAL("xlang")));
+    require_json(xrtJsonWriterName(pWriter, XRT_STR_LITERAL("items")));
+    require_json(xrtJsonWriterArray(pWriter));
+    require_json(xrtJsonWriterInt(pWriter, 1));
+    require_json(xrtJsonWriterBool(pWriter, true));
+    require_json(xrtJsonWriterNull(pWriter));
+    require_json(xrtJsonWriterEnd(pWriter));
+    require_json(xrtJsonWriterEnd(pWriter));
+    require_json(xrtJsonWriterFinish(pWriter));
+    sStreamed = xrtJsonWriterTake(pWriter, NULL);
+    require_json(sStreamed != NULL);
 
-    xvoUnref(values);
-    xvoUnref(object);
-    xvoUnref(loaded);
-    xrtFree(compact);
-    xrtFree(pretty);
-    xrtFree(objectText);
-    xrtFree(loadedText);
-    xrtFree(streamed);
-    xrtJsonWriterDestroy(writer);
+    require_json(strcmp(sCompact, "[1,2,3]") == 0);
+    require_json(strchr(sPretty, '\n') != NULL);
+    require_json(strstr(sObjectText, "\"xlang\"") != NULL);
+    require_json(strstr(sLoadedText, "\"stage\"") != NULL);
+    require_json(VisitState.Count == 8 && VisitState.SawName);
+    require_json(strcmp(sStreamed, "{\"name\":\"xlang\",\"items\":[1,true,null]}") == 0);
+
+    require_json(xrtFileDelete(sFilePath));
+    xrtJsonWriterFree(pWriter);
+    xrtValueRelease(pValues);
+    xrtValueRelease(pObject);
+    xrtValueRelease(pLoaded);
+    xrtFree(sCompact);
+    xrtFree(sPretty);
+    xrtFree(sObjectText);
+    xrtFree(sLoadedText);
+    xrtFree(sStreamed);
 
     printf("json=ok\n");
-    xrtUnit();
     return 0;
 }

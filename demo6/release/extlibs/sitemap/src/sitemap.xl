@@ -1,0 +1,49 @@
+extern "xsm_build" func __sm_build(var urls) as string
+extern "xsm_build_index" func __sm_build_index(var sitemaps) as string
+extern "xsm_parse" func __sm_parse(string xml) as var
+extern "xsm_parse_index" func __sm_parse_index(string xml) as var
+extern "xsm_robots_parse" func __sm_robots_parse(string text) as var
+extern "xsm_robots_allows" func __sm_robots_allows(var robots, string userAgent, string path) as bool
+
+
+
+// build 由 URL 数组生成 sitemap.xml 0.9 文本
+// 每项支持 loc、lastmod、changefreq、priority 字段，仅 loc 必填
+export func build(var urls) as string
+    return __sm_build(urls)
+end
+
+// buildIndex 由子 sitemap 列表生成 sitemap 索引文件
+export func buildIndex(var sitemaps) as string
+    return __sm_build_index(sitemaps)
+end
+
+// parse 解析 sitemap.xml，返回 [{loc, lastmod?, changefreq?, priority?}]
+// 非 urlset 文档抛 ValueError
+export func parse(string xml) as var
+    var r = __sm_parse(xml)
+    if r == null then
+        throw ValueError "sitemap: not a urlset document"
+    end
+    return r
+end
+
+// parseIndex 解析 sitemap 索引文档
+export func parseIndex(string xml) as var
+    var r = __sm_parse_index(xml)
+    if r == null then
+        throw ValueError "sitemap: not a sitemap index document"
+    end
+    return r
+end
+
+// robotsParse 解析 robots.txt，返回 {agents: {name: {allow, disallow}}, sitemaps}
+export func robotsParse(string text) as var
+    return __sm_robots_parse(text)
+end
+
+// robotsAllows 按 Google 语义判断爬取许可：最长规则胜出，平局允许赢
+// 未匹配到规则视为允许；代理名大小写不敏感并回退到 *
+export func robotsAllows(var robots, string userAgent, string path) as bool
+    return __sm_robots_allows(robots, userAgent, path)
+end

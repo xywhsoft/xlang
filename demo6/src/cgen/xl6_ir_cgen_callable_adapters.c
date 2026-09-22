@@ -351,11 +351,11 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
             module->callableBridgeParameters[bridge->firstParameter + i].invokeAbi ==
                 XL6_IR_CALLBACK_INVOKE_TAKE ? "invoked_" : "", (unsigned long)i);
     xl6OutputPuts(");\n", out);
-    xl6OutputPuts("    if (!invoked) xl6ForeignCallbackFail();\n", out);
     if (!xl6IrCgenEmitCallableBridgeCleanup(out, module, bridge, 0, "!invoked", "invoked")) return 0;
-    xl6OutputPuts(hasResult
-        ? "    if (!invoked || xrtGetError() != NULL) goto result_fail;\n"
-        : "    if (!invoked || xrtGetError() != NULL) return false;\n", out);
+    /* Finish every language-owned cleanup transaction before publishing the
+     * native callback diagnostic. Publishing first would let an inherited
+     * cleanup outcome replace the callback view with the original throw. */
+    xl6OutputPuts("    if (!invoked || xrtGetError() != NULL) goto result_fail;\n", out);
     for ( i = 0; i < bridge->resultCount; ++i ) {
         const XL6_IrCallableBridgeResult* slot = &module->callableBridgeResults[bridge->firstResult + i];
         char place[64];
@@ -373,12 +373,12 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
     xl6OutputPuts(
         "    if (!invoked || !xrtCallResultMove(callResult, &bridge_results)) goto result_fail;\n"
         "    return true;\n"
-        "result_fail:\n    xl6ForeignCallbackFail();\n", out);
+        "result_fail:\n", out);
     if (!xl6IrCgenEmitCallableResultCleanup(out, module, bridge, "true", "invoked", "&bridge_results", 0, hasResult, hasResult)) return 0;
-    xl6OutputPuts("    return false;\n", out);
-    xl6OutputPuts("argument_fail: {\n    xl6ForeignCallbackFail();\n", out);
+    xl6OutputPuts("    xl6ForeignCallbackFail();\n    return false;\n", out);
+    xl6OutputPuts("argument_fail: {\n", out);
     if (!xl6IrCgenEmitCallableBridgeCleanup(out, module, bridge, 0, "true", "invoked")) return 0;
-    xl6OutputPuts("    return false;\n}\n}\n", out);
+    xl6OutputPuts("    xl6ForeignCallbackFail();\n    return false;\n}\n}\n", out);
     return !xl6OutputHasFailed(out);
 }
 

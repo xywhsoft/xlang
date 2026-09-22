@@ -1,5 +1,5 @@
 // xxhash 的输入统一使用 Buffer，避免二进制数据经过字符串转换。
-extern "xrtGetError" func __xxhash_error() as string
+extern "xl6_xrt_last_error_text" func __xxhash_error() as string
 extern "xxxhash_version" func __xxhash_version() as string
 extern "xxxhash_hash64" func __xxhash_hash64(point data, c_size size, c_ulonglong seed) as int
 extern "xxxhash_hash64_hex" func __xxhash_hash64_hex(point data, c_size size, c_ulonglong seed) as string
@@ -8,8 +8,9 @@ extern "xxxhash_hash32_hex" func __xxhash_hash32_hex(point data, c_size size, c_
 extern "xxxhash_hash64_str" func __xxhash_hash64_str(string data, c_size size, c_ulonglong seed) as int
 extern "xxxhash_hash64_str_hex" func __xxhash_hash64_str_hex(string data, c_size size, c_ulonglong seed) as string
 extern "xxxhash_hash32_str_hex" func __xxhash_hash32_str_hex(string data, c_size size, c_uint seed) as string
-extern "xxxhash_file64" func __xxhash_file64(string path, c_ulonglong seed, c_ulonglong maxInput) as int
-extern "xxxhash_file64_hex" func __xxhash_file64_hex(string path, c_ulonglong seed, c_ulonglong maxInput) as string
+extern "xxxhash_file64" func __xxhash_file64(string path, c_ulonglong seed, c_ulonglong maxInput, var onProgress) as int
+extern "xxxhash_file64_hex" func __xxhash_file64_hex(string path, c_ulonglong seed, c_ulonglong maxInput, var onProgress) as string
+extern "xxxhash_file_status" func __xxhash_file_status() as c_int
 
 
 
@@ -75,20 +76,36 @@ end
 
 // 文件 64 位哈希（XRT reader 分块读取，受 maxInput 限制）。
 export func hashFile64(string path, int seed = XXHASH_DEFAULT_SEED,
-    int maxInput = 268435456) as int
+    int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as int
     __xxhash_check_limit(maxInput, "maxInput")
-    int result = __xxhash_file64(path, c_ulonglong(seed), c_ulonglong(maxInput))
-    if __xxhash_error() != "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    int result = __xxhash_file64(path, c_ulonglong(seed), c_ulonglong(maxInput), progress)
+    int status = __xxhash_file_status()
+    if status == -1 then
+        throw CancelledError "xxhash operation cancelled"
+    elseif status != 1 then
         throw FileError __xxhash_error()
     end
     return result
 end
 
 export func hashFile64Hex(string path, int seed = XXHASH_DEFAULT_SEED,
-    int maxInput = 268435456) as string
+    int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
     __xxhash_check_limit(maxInput, "maxInput")
-    string result = __xxhash_file64_hex(path, c_ulonglong(seed), c_ulonglong(maxInput))
-    if result == "" then
+    var progress = null
+    if onProgress != null then
+        progress = xcall(onProgress)
+    end
+    string result = __xxhash_file64_hex(path, c_ulonglong(seed), c_ulonglong(maxInput), progress)
+    int status = __xxhash_file_status()
+    if status == -1 then
+        throw CancelledError "xxhash operation cancelled"
+    elseif status != 1 then
         throw FileError __xxhash_error()
     end
     return result

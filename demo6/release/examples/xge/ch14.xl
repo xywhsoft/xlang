@@ -3,39 +3,39 @@ import xge
 
 func draw_scene()
     // 设置相机：平移 + 缩放
-    xge.xgeCameraSetSimple(c_float(500), c_float(300), c_float(1.5), c_float(1.5), c_float(800), c_float(600))
+    xge.Camera.setSimple(500, 300, 1.5, 1.5, 800, 600)
 
     // 世界空间中的物体
     // 地面
-    xge.xgeShapeRectFill(c_float(0), c_float(350), c_float(2000), c_float(50), xge.XGE_COLOR_RGBA(c_uint(42), c_uint(74), c_uint(63), c_uint(255)))
+    xge.Shape.rectFill(0, 350, 2000, 50, xge.Color.rgba(42, 74, 63, 255))
 
     // 玩家（琥珀色圆形）
-    xge.xgeShapeCircleFill(c_float(500), c_float(300), c_float(20), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+    xge.Shape.circleFill(500, 300, 20, xge.Color.rgba(255, 180, 84, 255))
 
     // 周围建筑物
-    xge.xgeShapeRectFill(c_float(300), c_float(250), c_float(60), c_float(100), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(200)))
-    xge.xgeShapeRectFill(c_float(600), c_float(220), c_float(80), c_float(130), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(200)))
-    xge.xgeShapeRectFill(c_float(750), c_float(270), c_float(50), c_float(80), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(200)))
+    xge.Shape.rectFill(300, 250, 60, 100, xge.Color.rgba(79, 216, 194, 200))
+    xge.Shape.rectFill(600, 220, 80, 130, xge.Color.rgba(109, 179, 242, 200))
+    xge.Shape.rectFill(750, 270, 50, 80, xge.Color.rgba(255, 107, 94, 200))
 
     // 恢复默认相机
-    xge.xgeCameraSetSimple(c_float(0), c_float(0), c_float(1), c_float(1), c_float(800), c_float(600))
+    xge.Camera.setSimple(0, 0, 1, 1, 800, 600)
 
     // 视口边框
-    xge.xgeShapeRectStroke(c_float(5), c_float(5), c_float(790), c_float(590), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(80)))
+    xge.Shape.rectStroke(5, 5, 790, 590, 2.0, xge.Color.rgba(200, 210, 220, 80))
 end
 
 func on_frame()
-    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    xge.XgeApp.beginFrame(xge.Color.rgba(13, 17, 22, 255))
     draw_scene()
-    xge.xgeTutorialEndFrame()
+    xge.XgeApp.endFrame()
 end
 
 func main(...) as int
-    c_int ret = xge.xgeTutorialInit(840, 640, "ch14")
-    if ret != c_int(0) then
+    int ret = xge.XgeApp.init(840, 640, "ch14")
+    if ret != 0 then
         println("xgeInit failed: " + string(ret))
         return 1
     end
-    xge.xgeTutorialRun(on_frame)
+    xge.XgeApp.run(on_frame)
     return 0
 end
