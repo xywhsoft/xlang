@@ -3,11 +3,10 @@
 
 #include "src/common/xl6_output.h"
 
-/* Buffer is a generated-program runtime component shared by both C backends.
- * xlirAbi selects the narrow declaration/error surface used by XLIR output;
- * the implementation body and public XRT behavior remain single-sourced. */
+/* Buffer is a generated-program runtime component selected by verified XLIR
+ * bridge identities.  It uses either the shared declaration SDK or the exact
+ * narrow public-XRT declaration surface emitted by this component. */
 void xl6CgenEmitBufferRuntime(
-    XL6_Output* out, int hasFileRuntime, int xlirAbi,
-    int hasXrtDeclarations);
+    XL6_Output* out, int hasFileRuntime, int hasXrtDeclarations);
 
 #endif

@@ -1,0 +1,11 @@
+import dinov3
+
+func main(...) as int
+    assert dinov3.available() and string.contains(dinov3.version(), "dinov3"), "runtime"
+    auto model = dinov3.DinoV3("__missing_dinov3_model__.onnx")
+    assert model.set_input_shape(224, 224), "model options"
+    auto output = model.op_call("__missing_image__.png")
+    assert output.ok() == false and output.embedding_json() == "[]", "missing image"
+    assert output.release() == false
+    return 0
+end

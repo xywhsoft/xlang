@@ -1,0 +1,506 @@
+// xbot/vision.xl - 视觉引擎封装
+// 对应 xbot.py L6199-6868：OCR/DINOv3/XFeat/OpenCV 统一视觉接口
+// 封装已有扩展：rapidocr, dinov3, xfeat, opencv, imagehash
+
+from rapidocr import RapidOCREngine, RapidOCROutput, RapidOCR
+import dinov3
+import xfeat
+import opencv
+import imagehash
+
+// ─── OCR 引擎缓存 ───
+RapidOCREngine? _ocr_engine_stable = null
+RapidOCREngine? _ocr_engine_fast = null
+
+// ─── 设备级视觉函数（由 device.xl 调用）───
+
+// OCR 识别截图中的文字
+export func VisionOCR(AutomationDevice device, string screenshot, bool fastmode) as array<MatchResult>
+    RapidOCREngine engine = _get_ocr_engine(fastmode)
+    string result_json = _run_ocr(engine, screenshot)
+    return _parse_ocr_result(device, result_json)
+end
+
+// 在截图中查找模板图片
+export func VisionFindImage(AutomationDevice device, string source, string template, float threshold) as array<MatchResult>
+    // 优先使用 xfeat 特征匹配
+    array<MatchResult> results = _xfeat_find(device, source, template, threshold)
+    if results.length > 0 then
+        return results
+    end
+    // 回退到 opencv 模板匹配
+    return _opencv_find(device, source, template, threshold)
+end
+
+// pHash 图像对比（支持自定义 hash_size）
+export func VisionCompare(string image_a, string image_b) as float
+    return VisionCompareEx(image_a, image_b, 8)
+end
+
+export func VisionCompareEx(string image_a, string image_b, int hash_size) as float
+    if hash_size != 8 then
+        throw RuntimeError "imagehash 当前只支持 8x8 pHash"
+    end
+    string hash_a = imagehash.phash(image_a)
+    string hash_b = imagehash.phash(image_b)
+    return _hash_similarity(hash_a, hash_b)
+end
+
+// DINO 语义对比
+export func VisionDinoCompare(string image_a, string image_b) as float
+    return dinov3.similarity(image_a, image_b)
+end
+
+// XFeat 特征找图
+export func VisionXFeatFind(AutomationDevice device, string source, string template, float threshold) as array<MatchResult>
+    return _xfeat_find(device, source, template, threshold)
+end
+
+// ─── 独立图片函数（不绑定设备）───
+
+// 识别任意图片中的文字
+export func OCRImage(string image_path, bool fastmode) as array<MatchResult>
+    RapidOCREngine engine = _get_ocr_engine(fastmode)
+    string result_json = _run_ocr(engine, image_path)
+    return _parse_ocr_result(null, result_json)
+end
+
+// 在图片中查找文字
+export func FindStrInImage(string image_path, string text, bool strict, bool fastmode) as MatchResult?
+    array<MatchResult> items = OCRImage(image_path, fastmode)
+    int i = 0
+    while i < items.length
+        if strict then
+            if items[i].text == text then
+                return items[i]
+            end
+        else
+            if string.indexOf(items[i].text, text) >= 0 then
+                return items[i]
+            end
+        end
+        i += 1
+    end
+    return null
+end
+
+// 在图片中查找模板
+export func FindImageInImage(string source, string template, float threshold) as array<MatchResult>
+    // 优先 xfeat
+    array<MatchResult> results = _xfeat_find(null, source, template, threshold)
+    if results.length > 0 then
+        return results
+    end
+    return _opencv_find(null, source, template, threshold)
+end
+
+// pHash 对比两张图片
+export func CompareImages(string image_a, string image_b, float threshold) as OpResult
+    float sim = VisionCompare(image_a, image_b)
+    bool matched = sim >= threshold
+    OpResult r = OpResult(matched, "pHash similarity=" + string(sim), "")
+    return r
+end
+
+// DINO 对比两张图片
+export func DinoCompareImages(string image_a, string image_b, float threshold) as OpResult
+    float sim = VisionDinoCompare(image_a, image_b)
+    bool matched = sim >= threshold
+    OpResult r = OpResult(matched, "DINO similarity=" + string(sim), "")
+    return r
+end
+
+// XFeat 在两张图片间找模板
+export func XFeatFindImages(string source, string template, float threshold) as array<MatchResult>
+    return _xfeat_find(null, source, template, threshold)
+end
+
+// 计算感知哈希
+export func PHash(string image_path, int hash_size) as OpResult
+    if hash_size != 8 then
+        return _result_fail("imagehash 当前只支持 8x8 pHash")
+    end
+    string hash_val = imagehash.phash(image_path)
+    if hash_val == "" then
+        return _result_fail("pHash 计算失败")
+    end
+    OpResult r = _result_ok("pHash computed")
+    return r
+end
+
+// 比较两个 pHash 字符串
+export func ComparePHash(string hash_a, string hash_b, float threshold) as OpResult
+    float sim = _hash_similarity(hash_a, hash_b)
+    bool matched = sim >= threshold
+    OpResult r = OpResult(matched, "pHash similarity=" + string(sim), "")
+    return r
+end
+
+// DINO 提取特征向量
+export func DinoEmbedding(string image_path) as OpResult
+    string emb = dinov3.embedding_json(image_path)
+    if emb == "" then
+        return _result_fail("DINO embedding 提取失败")
+    end
+    OpResult r = _result_ok("DINO embedding extracted")
+    r.data = emb
+    return r
+end
+
+// 将图片与已保存的 DINO 特征向量比较
+export func DinoCompareEmbedding(string image_path, string reference_embedding, float threshold) as OpResult
+    string current = dinov3.embedding_json(image_path)
+    if current == "" then
+        return _result_fail("DINO embedding 提取失败")
+    end
+    float sim = _embedding_cosine(current, reference_embedding)
+    bool matched = sim >= threshold
+    OpResult r = OpResult(matched, "DINO similarity=" + string(sim), "")
+    r.data = string(sim)
+    return r
+end
+
+// 将一张图片与多个已保存 DINO 特征向量比较，按相似度从高到低返回
+export func DinoMatchEmbeddings(string image_path, array<string> references, array<string> labels, float threshold) as OpResult
+    string current = dinov3.embedding_json(image_path)
+    if current == "" then
+        return _result_fail("DINO embedding 提取失败")
+    end
+    // 找最佳匹配
+    float best_sim = -1.0
+    int best_idx = -1
+    int i = 0
+    while i < references.length
+        float sim = _embedding_cosine(current, references[i])
+        if sim > best_sim then
+            best_sim = sim
+            best_idx = i
+        end
+        i += 1
+    end
+    bool matched = best_sim >= threshold
+    string label = ""
+    if best_idx >= 0 and best_idx < labels.length then
+        label = labels[best_idx]
+    end
+    OpResult r = OpResult(matched, "DINO best match=" + label + " similarity=" + string(best_sim), "")
+    r.data = string(best_idx)
+    return r
+end
+
+// ─── 内部实现 ───
+
+// 获取 OCR 引擎实例（带缓存）
+func _get_ocr_engine(bool fastmode) as RapidOCREngine
+    if fastmode then
+        if _ocr_engine_fast == null then
+            RapidOCREngine created = RapidOCR()
+            created.set_filter_small_boxes(true)
+            _ocr_engine_fast = created
+        end
+        return _ocr_engine_fast as RapidOCREngine
+    end
+    if _ocr_engine_stable == null then
+        _ocr_engine_stable = RapidOCR()
+    end
+    return _ocr_engine_stable as RapidOCREngine
+end
+
+// 执行一次 OCR，并在复制 JSON 后立即释放结果对象。
+func _run_ocr(RapidOCREngine engine, string image_path) as string
+    RapidOCROutput output = engine.op_call(image_path)
+    string result_json = output.to_ocr_json()
+    output.release()
+    return result_json
+end
+
+// 解析 OCR JSON 结果为 MatchResult 数组
+func _parse_ocr_result(AutomationDevice? device, string json_str) as array<MatchResult>
+    array<MatchResult> items = []
+    // rapidocr 返回 JSON 数组: [{"text":"...","score":0.9,"box":[x1,y1,x2,y2,x3,y3,x4,y4]},...]
+    // 简化解析：逐项提取
+    int pos = 0
+    int len = string.len(json_str)
+    while pos < len
+        // 找 "text":"
+        int text_key = _xbot_index_of_from(json_str, "\"text\":\"", pos)
+        if text_key < 0 then break end
+        int text_start = text_key + 8
+        int text_end = _xbot_index_of_from(json_str, "\"", text_start)
+        if text_end < 0 then break end
+        string text = string.mid(json_str, text_start, text_end - text_start)
+
+        // 找 "score":
+        float score = 0.9
+        int score_key = _xbot_index_of_from(json_str, "\"score\":", text_end)
+        if score_key >= 0 and score_key < text_end + 50 then
+            int score_start = score_key + 8
+            int score_end = score_start
+            while score_end < len
+                string ch = string.mid(json_str, score_end, 1)
+                if (ch >= "0" and ch <= "9") or ch == "." then
+                    score_end += 1
+                else
+                    break
+                end
+            end
+            if score_end > score_start then
+                score = float(string.mid(json_str, score_start, score_end - score_start))
+            end
+        end
+        // 找 "box":[x1,y1,x2,y2,x3,y3,x4,y4]
+        int box_key = _xbot_index_of_from(json_str, "\"box\":[", text_end)
+        float min_x = 0.0
+        float min_y = 0.0
+        float max_x = 0.0
+        float max_y = 0.0
+        if box_key >= 0 and box_key < text_end + 100 then
+            int box_start = box_key + 7
+            int box_end = _xbot_index_of_from(json_str, "]", box_start)
+            if box_end > box_start then
+                string box_str = string.mid(json_str, box_start, box_end - box_start)
+                // 解析 8 个数字
+                array<float> coords = _parse_number_list(box_str)
+                if coords.length >= 8 then
+                    min_x = coords[0]
+                    max_x = coords[0]
+                    min_y = coords[1]
+                    max_y = coords[1]
+                    int ci = 2
+                    while ci < 8
+                        if coords[ci] < min_x then min_x = coords[ci] end
+                        if coords[ci] > max_x then max_x = coords[ci] end
+                        ci += 1
+                        if coords[ci] < min_y then min_y = coords[ci] end
+                        if coords[ci] > max_y then max_y = coords[ci] end
+                        ci += 1
+                    end
+                end
+            end
+        end
+        int x = int(min_x)
+        int y = int(min_y)
+        int w = int(max_x - min_x)
+        int h = int(max_y - min_y)
+        MatchResult mr = MatchResult(device, x, y, w, h)
+        mr.text = text
+        mr.score = score
+        items.push(mr)
+
+        pos = text_end + 1
+    end
+    return items
+end
+
+// XFeat 特征匹配
+func _xfeat_find(AutomationDevice? device, string source, string template, float threshold) as array<MatchResult>
+    array<MatchResult> results = []
+    string match_json = xfeat.locate_json(template, source)
+    if string.indexOf(match_json, "\"found\":true") < 0 then
+        return results
+    end
+    int box_key = string.indexOf(match_json, "\"bbox_xywh\":[")
+    if box_key < 0 then
+        return results
+    end
+    array<float> box = _parse_number_list(string.mid(match_json, box_key + 13, string.len(match_json) - box_key - 13))
+    float score = _extract_json_float(match_json, "score", 0.0)
+    if box.length >= 4 and score >= threshold then
+        MatchResult mr = MatchResult(device, int(box[0]), int(box[1]), int(box[2]), int(box[3]))
+        mr.text = "xfeat"
+        mr.score = score
+        results.push(mr)
+    end
+    return results
+end
+
+// OpenCV 模板匹配（回退方案）
+func _opencv_find(AutomationDevice? device, string source, string template, float threshold) as array<MatchResult>
+    // 当前 OpenCV 扩展只公开图像处理原语，定位由 XFeat 负责。
+    return []
+end
+
+func _extract_json_float(string text, string key, float fallback) as float
+    int key_pos = string.indexOf(text, "\"" + key + "\":")
+    if key_pos < 0 then
+        return fallback
+    end
+    return _extract_float(text, key_pos + string.len(key) + 3)
+end
+
+func _embedding_cosine(string left_json, string right_json) as float
+    array<float> left = _parse_number_list(left_json)
+    array<float> right = _parse_number_list(right_json)
+    if left.length == 0 or left.length != right.length then
+        return 0.0
+    end
+    float dot = 0.0
+    float left_norm = 0.0
+    float right_norm = 0.0
+    int i = 0
+    while i < left.length
+        dot += left[i] * right[i]
+        left_norm += left[i] * left[i]
+        right_norm += right[i] * right[i]
+        i += 1
+    end
+    if left_norm <= 0.0 or right_norm <= 0.0 then
+        return 0.0
+    end
+    return dot / (math.sqrt(left_norm) * math.sqrt(right_norm))
+end
+
+// 解析通用匹配 JSON
+func _parse_match_json(AutomationDevice? device, string json_str, string method) as array<MatchResult>
+    array<MatchResult> results = []
+    int pos = 0
+    int len = string.len(json_str)
+    while pos < len
+        // 找 "x":
+        int x_key = _xbot_index_of_from(json_str, "\"x\":", pos)
+        if x_key < 0 then break end
+        int x_val = _extract_int(json_str, x_key + 4)
+
+        int y_key = _xbot_index_of_from(json_str, "\"y\":", x_key)
+        int y_val = 0
+        if y_key >= 0 then y_val = _extract_int(json_str, y_key + 4) end
+
+        int w_key = _xbot_index_of_from(json_str, "\"w\":", x_key)
+        int w_val = 0
+        if w_key >= 0 then w_val = _extract_int(json_str, w_key + 4) end
+
+        int h_key = _xbot_index_of_from(json_str, "\"h\":", x_key)
+        int h_val = 0
+        if h_key >= 0 then h_val = _extract_int(json_str, h_key + 4) end
+
+        float score = 0.0
+        int s_key = _xbot_index_of_from(json_str, "\"score\":", x_key)
+        if s_key >= 0 and s_key < x_key + 80 then
+            score = _extract_float(json_str, s_key + 8)
+        end
+
+        MatchResult mr = MatchResult(device, x_val, y_val, w_val, h_val)
+        mr.score = score
+        mr.method = method
+        results.push(mr)
+
+        pos = x_key + 4
+    end
+    return results
+end
+
+// 计算两个十六进制哈希的相似度
+func _hash_similarity(string hash_a, string hash_b) as float
+    if hash_a == "" or hash_b == "" then
+        return 0.0
+    end
+    if string.len(hash_a) != string.len(hash_b) then
+        return 0.0
+    end
+    // 计算汉明距离
+    int distance = 0
+    int i = 0
+    int len = string.len(hash_a)
+    while i < len
+        string ca = string.mid(hash_a, i, 1)
+        string cb = string.mid(hash_b, i, 1)
+        if ca != cb then
+            distance += 1
+        end
+        i += 1
+    end
+    float max_distance = float(len) * 4.0
+    return 1.0 - float(distance) / max_distance
+end
+
+// 解析逗号分隔的数字列表
+func _parse_number_list(string s) as array<float>
+    array<float> nums = []
+    int start = 0
+    int len = string.len(s)
+    int i = 0
+    while i <= len
+        if i == len or string.mid(s, i, 1) == "," then
+            if i > start then
+                string token = string.trim(string.mid(s, start, i - start))
+                if token != "" then
+                    nums.push(float(token))
+                end
+            end
+            start = i + 1
+        end
+        i += 1
+    end
+    return nums
+end
+
+// 从 JSON 字符串中提取整数
+func _extract_int(string s, int start) as int
+    int i = start
+    int len = string.len(s)
+    // 跳过空格
+    while i < len and string.mid(s, i, 1) == " "
+        i += 1
+    end
+    int num_start = i
+    if i < len and string.mid(s, i, 1) == "-" then
+        i += 1
+    end
+    while i < len
+        string ch = string.mid(s, i, 1)
+        if ch >= "0" and ch <= "9" then
+            i += 1
+        else
+            break
+        end
+    end
+    if i > num_start then
+        return int(string.mid(s, num_start, i - num_start))
+    end
+    return 0
+end
+
+// 从 JSON 字符串中提取浮点数
+func _extract_float(string s, int start) as float
+    int i = start
+    int len = string.len(s)
+    while i < len and string.mid(s, i, 1) == " "
+        i += 1
+    end
+    int num_start = i
+    if i < len and string.mid(s, i, 1) == "-" then
+        i += 1
+    end
+    while i < len
+        string ch = string.mid(s, i, 1)
+        if (ch >= "0" and ch <= "9") or ch == "." then
+            i += 1
+        else
+            break
+        end
+    end
+    if i > num_start then
+        return float(string.mid(s, num_start, i - num_start))
+    end
+    return 0.0
+end
+
+// 释放全局模型缓存
+export func CloseModels()
+    if _ocr_engine_stable != null then
+        _ocr_engine_stable.release()
+    end
+    if _ocr_engine_fast != null then
+        _ocr_engine_fast.release()
+    end
+    _ocr_engine_stable = null
+    _ocr_engine_fast = null
+end
+
+// 预加载 XFeat ONNX 模型，避免首次找图影响任务耗时
+export func WarmupXFeat() as OpResult
+    if not xfeat.available() then
+        return _result_fail(xfeat.last_error())
+    end
+    return _result_ok("XFeat runtime ready")
+end

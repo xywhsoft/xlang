@@ -33,5 +33,13 @@ func main(...) as int
     auto stripped = css.stripComments(with_comment)
     assert css.get(stripped, "body", "color") == "blue", "stripped works"
 
+    // Strings, functions and nested at-rules must not confuse block scanning.
+    auto nested = "@font-face { font-family: \"demo\"; src: url(\"font;name.woff2\"); } @media screen { .card, .panel { content: \"{; }\"; color: rgb(1, 2, 3); } }"
+    assert css.validate(nested), "nested css"
+    assert css.countRules(nested) == 1, "nested style rule"
+    assert css.get(nested, ".panel", "content") == "\"{; }\"", "selector list and string"
+    assert css.get(nested, ".card", "color") == "rgb(1, 2, 3)", "function value"
+    assert not css.validate("a { color: red; /* missing"), "unterminated comment"
+
     return 0
 end

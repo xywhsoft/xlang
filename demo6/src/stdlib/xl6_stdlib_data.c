@@ -2191,11 +2191,11 @@ const char* xl6StdlibWebSocketClassSource =
     "    extern \"xl6_xrt_ws_stream_error_message\" func errorMessageNative() as point\n"
     "\n"
     "    static func attachTcp(TcpStream transport, WsUpgrade upgrade, func(int, int, int, uint64, point, c_size) handler, int prefix = 0) as WebSocket\n"
-    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tcp(transport, upgrade.nativeHandle(), null, handler, c_size(prefix))))\n"
+    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tcp(transport.nativeHandle(), upgrade.nativeHandle(), null, handler, c_size(prefix))))\n"
     "    end\n"
     "\n"
     "    static func attachTcpWithConfig(TcpStream transport, WsUpgrade upgrade, WebSocketConfig config, func(int, int, int, uint64, point, c_size) handler, int prefix = 0) as WebSocket\n"
-    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tcp(transport, upgrade.nativeHandle(), config.nativeHandle(), handler, c_size(prefix))))\n"
+    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tcp(transport.nativeHandle(), upgrade.nativeHandle(), config.nativeHandle(), handler, c_size(prefix))))\n"
     "    end\n"
     "\n"
     "    func protocol() as string\n"
@@ -2258,11 +2258,11 @@ const char* xl6StdlibWebSocketClassSource =
 
 const char* xl6StdlibWebSocketTlsMethodSource =
     "    static func attachTls(TlsStream transport, WsUpgrade upgrade, func(int, int, int, uint64, point, c_size) handler, int prefix = 0) as WebSocket\n"
-    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tls(transport, upgrade.nativeHandle(), null, handler, c_size(prefix))))\n"
+    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tls(transport.nativeHandle(), upgrade.nativeHandle(), null, handler, c_size(prefix))))\n"
     "    end\n"
     "\n"
     "    static func attachTlsWithConfig(TlsStream transport, WsUpgrade upgrade, WebSocketConfig config, func(int, int, int, uint64, point, c_size) handler, int prefix = 0) as WebSocket\n"
-    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tls(transport, upgrade.nativeHandle(), config.nativeHandle(), handler, c_size(prefix))))\n"
+    "        return WebSocket(point(__xl_std_runtime_ws_stream_attach_tls(transport.nativeHandle(), upgrade.nativeHandle(), config.nativeHandle(), handler, c_size(prefix))))\n"
     "    end\n";
 
 

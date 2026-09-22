@@ -54,7 +54,7 @@ try {
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction standalone AOT runtime failed' }
     $compilerSources = @('src/ast/xl6_ast.c', 'src/type/xl6_type_model.c',
-        'src/ir/xl6_hir_type.c', 'src/ir/xl6_hir.c', 'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
+        'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c', 'src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c', 'src/common/xl6_output.c', 'src/common/xl6_console.c',
         'src/lexer/xl6_token.c', 'src/lexer/xl6_lexer_api.c', 'src/lexer/xl6_lexer_gen.c',

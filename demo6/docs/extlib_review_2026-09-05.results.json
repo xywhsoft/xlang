@@ -1,0 +1,1938 @@
+{
+  "format": "xlang-extlib-review-1",
+  "reviewDate": "2026-09-05",
+  "platform": "Windows x64",
+  "workingDirectory": "D:/GIT/x-lang/demo6",
+  "binaries": {
+    "sha256": {
+      "xl.exe": "3AEFD2C274B8A1385254CCBD8A2BF5B0C30615787C5145B737F3877B95BCE114",
+      "xl.dll": "E0350FC5516155F87E1DC1EB0B33FE1E99CF6A972E826AEDC23E1FBD820F2572",
+      "xlc.dll": "106D5DAE5C9440EA5B23C9C25E8A117BFBA3551812052D1894C9561E7A72B187"
+    },
+    "unchangedAcrossReview": true
+  },
+  "defaultBackend": "xlir",
+  "perCaseTimeoutSeconds": 30,
+  "capturedOutputLimitPerCase": 1300,
+  "inventorySnapshot": {
+    "generatedAt": "2026-08-20T23:53:17.7821952Z",
+    "packages": [
+      {
+        "name": "_bzip2",
+        "status": "internal"
+      },
+      {
+        "name": "_expat",
+        "status": "internal"
+      },
+      {
+        "name": "_libzip",
+        "status": "internal"
+      },
+      {
+        "name": "_tomlc17",
+        "status": "internal"
+      },
+      {
+        "name": "_xge_native",
+        "status": "internal"
+      },
+      {
+        "name": "_zlib",
+        "status": "internal"
+      },
+      {
+        "name": "acme",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "aho_corasick",
+        "status": "featured-rc"
+      },
+      {
+        "name": "ansi",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "argon2",
+        "status": "featured-rc"
+      },
+      {
+        "name": "barcode",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "blake2",
+        "status": "featured-rc"
+      },
+      {
+        "name": "blake3",
+        "status": "featured-rc"
+      },
+      {
+        "name": "bloom",
+        "status": "featured-rc"
+      },
+      {
+        "name": "brotli",
+        "status": "featured-rc"
+      },
+      {
+        "name": "bson",
+        "status": "featured-rc"
+      },
+      {
+        "name": "bz2",
+        "status": "featured-rc"
+      },
+      {
+        "name": "canbus",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "cbor",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "chardet",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "cli",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "clickhouse",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "clip",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "clipboard",
+        "status": "platform-verified"
+      },
+      {
+        "name": "coap",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "color",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "com",
+        "status": "platform-verified"
+      },
+      {
+        "name": "consistent_hash",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "crc32",
+        "status": "featured-rc"
+      },
+      {
+        "name": "crontab",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "css",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "csv",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "cuckoo",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "daemon",
+        "status": "platform-verified"
+      },
+      {
+        "name": "dataframe",
+        "status": "deferred-large"
+      },
+      {
+        "name": "diff",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "dinov3",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "dns",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "docker",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "docx",
+        "status": "deferred-large"
+      },
+      {
+        "name": "dotenv",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "duckdb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "embeddings",
+        "status": "deferred-large"
+      },
+      {
+        "name": "enet",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "epub",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "etcd",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "faiss",
+        "status": "deferred-large"
+      },
+      {
+        "name": "ffmpeg",
+        "status": "deferred-large"
+      },
+      {
+        "name": "fix",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "flatbuffers",
+        "status": "deferred-large"
+      },
+      {
+        "name": "freetype",
+        "status": "deferred-large"
+      },
+      {
+        "name": "ftp",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "fuzzy",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "geohash",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "gettext",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "ggml",
+        "status": "deferred-large"
+      },
+      {
+        "name": "git",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "glad",
+        "status": "deferred-large"
+      },
+      {
+        "name": "gpio",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "graph",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "grpc",
+        "status": "deferred-large"
+      },
+      {
+        "name": "gzip",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "harfbuzz",
+        "status": "deferred-large"
+      },
+      {
+        "name": "hcl",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "hnswlib",
+        "status": "deferred-large"
+      },
+      {
+        "name": "html5",
+        "status": "deferred-large"
+      },
+      {
+        "name": "hyperloglog",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "ical",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "icu",
+        "status": "deferred-large"
+      },
+      {
+        "name": "imagehash",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "imgui",
+        "status": "deferred-large"
+      },
+      {
+        "name": "influxdb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "ini",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "jieba",
+        "status": "deferred-large"
+      },
+      {
+        "name": "json.patch",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "json5",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "jwt",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "kubernetes",
+        "status": "deferred-large"
+      },
+      {
+        "name": "langdetect",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "ldap",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "leveldb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "libsndfile",
+        "status": "deferred-large"
+      },
+      {
+        "name": "libsvm",
+        "status": "deferred-large"
+      },
+      {
+        "name": "libtorch",
+        "status": "deferred-large"
+      },
+      {
+        "name": "libusb",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "linalg",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "llama",
+        "status": "deferred-large"
+      },
+      {
+        "name": "lmdb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "lru",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "lz4",
+        "status": "featured-rc"
+      },
+      {
+        "name": "lzma",
+        "status": "featured-rc"
+      },
+      {
+        "name": "md4c",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "md5",
+        "status": "featured-rc"
+      },
+      {
+        "name": "mdns",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "memcached",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "minio",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "miniz",
+        "status": "featured-rc"
+      },
+      {
+        "name": "mnn",
+        "status": "deferred-large"
+      },
+      {
+        "name": "modbus",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "money",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "mongodb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "mqtt",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "msgpack",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "murmur3",
+        "status": "featured-rc"
+      },
+      {
+        "name": "mysql",
+        "status": "deferred-large"
+      },
+      {
+        "name": "nanomsg",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "nats",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "ncnn",
+        "status": "deferred-large"
+      },
+      {
+        "name": "neo4j",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "netrc",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "nsq",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "ntp",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "oauth2",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "onnxruntime",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "op",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "opencv",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "opentelemetry",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "openvino",
+        "status": "deferred-large"
+      },
+      {
+        "name": "opus",
+        "status": "deferred-large"
+      },
+      {
+        "name": "passkey",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "pcap",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "pdf",
+        "status": "deferred-large"
+      },
+      {
+        "name": "pdfium",
+        "status": "deferred-large"
+      },
+      {
+        "name": "pinyin",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "pkcs",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "pkg.math",
+        "status": "internal"
+      },
+      {
+        "name": "plist",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "portaudio",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "postgresql",
+        "status": "deferred-large"
+      },
+      {
+        "name": "pptx",
+        "status": "deferred-large"
+      },
+      {
+        "name": "procps",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "progress",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "prometheus",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "protobuf",
+        "status": "deferred-large"
+      },
+      {
+        "name": "qr",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "quic",
+        "status": "deferred-large"
+      },
+      {
+        "name": "rabbitmq",
+        "status": "deferred-large"
+      },
+      {
+        "name": "rapidocr",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "ratatui",
+        "status": "deferred-large"
+      },
+      {
+        "name": "redis",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "roaring",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "rocksdb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "rss",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "rtmp",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "rtree",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "sciter",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "semver",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "sentencepiece",
+        "status": "deferred-large"
+      },
+      {
+        "name": "serial",
+        "status": "platform-verified"
+      },
+      {
+        "name": "sha3",
+        "status": "featured-rc"
+      },
+      {
+        "name": "sharedmem",
+        "status": "platform-verified"
+      },
+      {
+        "name": "shellwords",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "singleinstance",
+        "status": "platform-verified"
+      },
+      {
+        "name": "siphash",
+        "status": "featured-rc"
+      },
+      {
+        "name": "sitemap",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "skiplist",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "slugify",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "snappy",
+        "status": "featured-rc"
+      },
+      {
+        "name": "snmp",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "socks",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "sox",
+        "status": "deferred-large"
+      },
+      {
+        "name": "sqlite",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "srt",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "stablediffusion",
+        "status": "deferred-large"
+      },
+      {
+        "name": "statistics",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "stb_image",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "stb_image_resize2",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "stb_image_write",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "stb_truetype",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "sysinfo",
+        "status": "platform-verified"
+      },
+      {
+        "name": "tabulate",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "taglib",
+        "status": "deferred-large"
+      },
+      {
+        "name": "tar",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "tdengine",
+        "status": "deferred-large"
+      },
+      {
+        "name": "tensorrt",
+        "status": "deferred-large"
+      },
+      {
+        "name": "terraform_state",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "tokenizers",
+        "status": "deferred-large"
+      },
+      {
+        "name": "toml",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "totp",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "treesitter",
+        "status": "deferred-large"
+      },
+      {
+        "name": "trie",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "ui.auto",
+        "status": "platform-verified"
+      },
+      {
+        "name": "uia",
+        "status": "platform-verified"
+      },
+      {
+        "name": "units",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "upnp",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "vault",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "vcard",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "vectordb",
+        "status": "deferred-large"
+      },
+      {
+        "name": "volc.core",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "volc.phone",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "volc.sts",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "watch",
+        "status": "platform-verified"
+      },
+      {
+        "name": "webrtc",
+        "status": "deferred-large"
+      },
+      {
+        "name": "webview",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "whisper",
+        "status": "deferred-large"
+      },
+      {
+        "name": "xbot",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xbot.agent",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xfeat",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xge",
+        "status": "existing-hardening"
+      },
+      {
+        "name": "xge_shape_ex",
+        "status": "existing-hardening"
+      },
+      {
+        "name": "xhttp",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.body",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.body_async",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.body_codec",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.body_decode",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.body_file",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.body_stream",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.client",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.form_data",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.multipart",
+        "status": "placeholder"
+      },
+      {
+        "name": "xhttp.protocol",
+        "status": "placeholder"
+      },
+      {
+        "name": "xlsx",
+        "status": "deferred-large"
+      },
+      {
+        "name": "xmail",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xml.dom",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xml.etree",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xml.sax",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xregex",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xssh",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "xui",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "xws",
+        "status": "placeholder"
+      },
+      {
+        "name": "xxhash",
+        "status": "featured-rc"
+      },
+      {
+        "name": "yaml",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "zeromq",
+        "status": "deferred-platform"
+      },
+      {
+        "name": "zip",
+        "status": "phase1-verified"
+      },
+      {
+        "name": "zstd",
+        "status": "featured-rc"
+      }
+    ]
+  },
+  "validationScope": "Current default xl run; focused cases and package-local HTTP/WS cases. Not a production certification; full examples, AOT, Linux and physical-device/model/service integration were not rerun.",
+  "manifestChecks": {
+    "packages": 225,
+    "missingDeclaredSources": 0,
+    "invalidManifests": 0,
+    "missingDependencies": 0,
+    "missingIncludeDirs": 0,
+    "missingDeclaredCoverageTests": 0,
+    "missingGateArtifacts": 0
+  },
+  "deltaFromPreviousAnswer": {
+    "featuredBefore": 19,
+    "featuredNow": 19,
+    "phase1Before": 59,
+    "phase1Now": 87,
+    "platformBefore": 4,
+    "platformNow": 10,
+    "addedPhase1": [
+      "semver",
+      "color",
+      "ansi",
+      "statistics",
+      "json.patch",
+      "rss",
+      "cli",
+      "shellwords",
+      "units",
+      "sitemap",
+      "srt",
+      "qr",
+      "graph",
+      "money",
+      "gettext",
+      "ical",
+      "barcode",
+      "redis",
+      "ntp",
+      "socks",
+      "xssh",
+      "xmail",
+      "xregex",
+      "modbus",
+      "oauth2",
+      "epub",
+      "mqtt",
+      "memcached",
+      "vcard",
+      "slugify"
+    ],
+    "removedPhase1": [
+      "mail.mime",
+      "xbot.core"
+    ],
+    "addedPlatform": [
+      "daemon",
+      "sysinfo",
+      "watch",
+      "singleinstance",
+      "sharedmem",
+      "serial"
+    ]
+  },
+  "focused": [
+    {
+      "case": "test/cases/extlib_semver.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.1,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_color.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.09,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_ansi.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_statistics.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.16,
+      "output": "uncaught xlang error: TypeError: value has an incompatible type\n"
+    },
+    {
+      "case": "test/cases/extlib_json_patch.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.14,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_rss.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.12,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_cli.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.15,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_os_args'\n"
+    },
+    {
+      "case": "test/cases/extlib_shellwords.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_units.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_sitemap.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.12,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_srt.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.15,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_qr.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.2,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_graph.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_money.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.13,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_gettext.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.14,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_ical.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.15,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_barcode.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.16,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_redis.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.23,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_ntp.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_socks.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_xssh.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.34,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_xmail.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.77,
+      "output": "tcc: __xlvfs__/module.c:1679: error: identifier expected\n"
+    },
+    {
+      "case": "test/cases/extlib_xregex.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.47,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_modbus.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.18,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_oauth2.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_epub.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.12,
+      "output": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n"
+    },
+    {
+      "case": "test/cases/extlib_mqtt.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.23,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_memcached.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.17,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_vcard.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.1,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_slugify.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_aho_corasick.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.64,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_argon2.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.24,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_at'\n"
+    },
+    {
+      "case": "test/cases/extlib_blake2.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.49,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/blake2/blake2_native.c:82: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_blake3.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.38,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/blake3/blake3_native.c:76: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_bloom.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.51,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_slice'\n"
+    },
+    {
+      "case": "test/cases/extlib_brotli.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.99,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_bson.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.14,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_time_from_unix'\n"
+    },
+    {
+      "case": "test/cases/extlib_bz2.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.57,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/_bzip2/third_party/bzip2/bzlib.c:1376:\nIn file included from include/fcntl.h:8:\ninclude/io.h:284: warning: static storage ignored for redefinition of '_findnext64i32'\n"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 2.77,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress_cancel.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 2.72,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/siphash/siphash_native.c:89: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_lz4.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.28,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_lzma.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.37,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_miniz.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.29,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_murmur3.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.25,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/murmur3/murmur3_native.c:90: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_sha3.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.31,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/sha3/sha3_native.c:76: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_siphash.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.27,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/siphash/siphash_native.c:89: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_snappy.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.32,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xxhash.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.19,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_zstd.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.55,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_plist.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 1.12,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_onnxruntime.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.37,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_rapidocr.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.75,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_replace'\n"
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 17.07,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6ExtlibErrorClear'\n"
+    },
+    {
+      "case": "test/cases/extlib_css.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.09,
+      "output": "uncaught xlang error: AssertionError: function value\n"
+    },
+    {
+      "case": "test/cases/extlib_consistent_hash.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_crontab.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_diff.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.09,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_fuzzy.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_fix.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_replace'\n"
+    },
+    {
+      "case": "test/cases/extlib_geohash.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_hyperloglog.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.08,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_hcl.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.09,
+      "output": "uncaught xlang error: AssertionError: raw object expression\n"
+    },
+    {
+      "case": "test/cases/extlib_lru.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_trie.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.08,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_cuckoo.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_dotenv.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "tcc: __xlvfs__/module.c:940: error: identifier expected\n"
+    },
+    {
+      "case": "test/cases/extlib_chardet.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_langdetect.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_terraform_state.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_imagehash.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "output": "imagehash case ok\r\nuncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_md4c.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.1,
+      "output": "md4c case ok\r\nuncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/md4c/third_party/md4c/md4c.c:2596: warning: function might return no value: 'md_opener_stack'\n"
+    },
+    {
+      "case": "test/cases/extlib_sqlite.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.26,
+      "output": "sqlite case ok\r\n"
+    },
+    {
+      "case": "test/cases/extlib_jwt.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_split'\n"
+    },
+    {
+      "case": "test/cases/extlib_dns.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.1,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_cbor.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.1,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "test/cases/extlib_pkcs.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: RuntimeError: operation is not valid in the current state\n"
+    },
+    {
+      "case": "test/cases/extlib_linalg.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.08,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_csv.xl",
+      "status": "fail",
+      "exitCode": 3,
+      "seconds": 0.66,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_ini.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.28,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_gzip.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.17,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_tar_p2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 1.15,
+      "output": "P2 PAX/GNU tests passed!"
+    },
+    {
+      "case": "test/cases/extlib_zip.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.47,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_netrc.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.24,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_toml.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.28,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/toml/toml_native.c:1:\nD:/GIT/x-lang/demo6/release/extlibs/toml/xrt_toml_internal.h:4: warning: XRT_MODULE_ALL redefined\n"
+    },
+    {
+      "case": "test/cases/extlib_xml_sax.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.32,
+      "output": "uncaught xlang error: AssertionError: malformed XML must throw XmlError\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/xml.sax/xml_sax_native.c:1:\nD:/GIT/x-lang/demo6/release/extlibs/xml.sax/xrt_xml_internal.h:4: warning: XRT_MODULE_ALL redefined\n"
+    },
+    {
+      "case": "test/cases/extlib_xml_dom.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.51,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xml_etree.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.53,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xbot.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.05,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "test/cases/extlib_xbot_agent.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.27,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_dir_list'\n"
+    },
+    {
+      "case": "test/cases/extlib_dinov3.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.49,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_xfeat.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.62,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_stb_image.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_stb_image_resize2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.12,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_stb_image_write.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "uncaught xlang error: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_stb_truetype.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "uncaught xlang error: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/stb_truetype/stb_truetype_native.c:409: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_opencv.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.12,
+      "output": "uncaught xlang error: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_skiplist.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_rtree.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: D:/GIT/x-lang/demo6/release/extlibs/rtree/rtree_native.c:234: warning: implicit declaration of function 'sprintf'\n"
+    },
+    {
+      "case": "test/cases/extlib_roaring.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_totp.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.06,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_pinyin.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.05,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_json5.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.05,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_msgpack.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.09,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "test/cases/extlib_yaml.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_tabulate.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_progress.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.07,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    }
+  ],
+  "http": [
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.1,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.99,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.3,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.05,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_async\\test\\xhttp_body_async_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_codec\\test\\xhttp_body_codec_test.xl:152:5: [checked] XLIR async task ABI requires a result ownership ABI and explicit task-frame captures\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.46,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_file\\test\\xhttp_body_file_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.08,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_stream\\test\\xhttp_body_stream_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 14.57,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 14.63,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 7.32,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.client\\test\\xhttp_client_transport_test.xl:266:1: [checked] XLIR async suspension result ABI is not admitted\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 4.7,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 3.58,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.07,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.96,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.95,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 2.18,
+      "output": "tcc: __xlvfs__/module.c:292: error: struct/union/enum already defined\n"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.13,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 1.77,
+      "output": "tcc: __xlvfs__/module.c:300: error: struct/union/enum already defined\n"
+    }
+  ],
+  "legacyDiagnosticOnly": [
+    {
+      "case": "test/cases/extlib_semver.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.14,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_aho_corasick.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.37,
+      "output": "aho_corasick: all tests passed\n"
+    },
+    {
+      "case": "test/cases/extlib_statistics.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_cli.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.14,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xmail.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "seconds": 0.5,
+      "output": "tcc: __xlvfs__/module.c:11697: error: incompatible types for redefinition of 'xl6_xrt_net_stats_destroy'\n"
+    },
+    {
+      "case": "test/cases/extlib_xregex.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "seconds": 0.39,
+      "output": ""
+    }
+  ],
+  "cChecks": [
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package xssh -Source release/extlibs/xssh/test/test_xssh.c",
+      "exitCode": 0,
+      "output": "xssh C package ok"
+    }
+  ],
+  "summary": {
+    "focusedCases": 106,
+    "focusedPass": 25,
+    "focusedFail": 81,
+    "httpCases": 19,
+    "httpPass": 0,
+    "httpFail": 19,
+    "defaultCases": 125,
+    "defaultPass": 25,
+    "defaultFail": 100,
+    "diagnosticLegacyCases": 6,
+    "diagnosticLegacyPass": 5,
+    "cCases": 1,
+    "cPass": 1
+  },
+  "website": {
+    "root": "D:/GIT/home/host/xlang/wwwroot",
+    "dedicatedPages": 19,
+    "generatedPackagePages": 214,
+    "currentPublicPackages": 218,
+    "missingGeneratedPages": 35,
+    "staleGeneratedPages": 31,
+    "generatedLastUpdate": "2026-08-13"
+  }
+}

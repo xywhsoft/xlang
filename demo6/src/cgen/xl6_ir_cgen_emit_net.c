@@ -583,8 +583,7 @@ static int xl6IrCgenEmitNetTlsRuntime(
         needs->needsNetTlsDialRuntime,
         needs->needsNetTlsServerRuntime,
         "xlir_net_tls_stream_borrow_handle",
-        "xlir_net_bytes_borrow_handle",
-        XL6_CGEN_TLS_FUTURE_RESIDENT_EXCLUSIVE_V1);
+        "xlir_net_bytes_borrow_handle");
     xl6OutputPuts(
         "#undef xl6_xrt_tls_server_destroy\n"
         "#undef xl6_xrt_tls_stream_destroy\n"

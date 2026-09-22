@@ -346,7 +346,6 @@ void xl6CompileUnitInit(XL6_CompileUnit* unit)
     memset(unit, 0, sizeof(*unit));
     xl6ParseResultInit(&unit->parse);
     xl6ImportDepsInit(&unit->importDeps);
-    xl6HirModuleInit(&unit->hir);
     xl6IrModuleInit(&unit->ir);
 }
 
@@ -357,7 +356,6 @@ void xl6CompileUnitFree(XL6_CompileUnit* unit)
     }
     xl6ParseResultFree(&unit->parse);
     xl6ImportDepsFree(&unit->importDeps);
-    xl6HirModuleFree(&unit->hir);
     xl6IrModuleFree(&unit->ir);
     memset(unit, 0, sizeof(*unit));
 }

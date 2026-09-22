@@ -13,7 +13,7 @@ $outputDir = Join-Path $Root "build\test"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
 $fixtures = @(
     @{ Name = "cgen_base_method_static_dispatch"; BaseCount = 2; RequireVirtual = $true },
-    @{ Name = "cgen_base_method_typed_hir"; BaseCount = 2 },
+    @{ Name = "cgen_base_method_xlir"; BaseCount = 2 },
     @{ Name = "cgen_stdlib_namespace_shadow"; FieldCount = 1 }
 )
 
@@ -33,9 +33,7 @@ try {
         $loweredPath = Join-Path $outputDir "$name.implicit_name.lowered.json"
         $cPath = Join-Path $outputDir "$name.implicit_name.xlir.c"
         $cRepeatPath = Join-Path $outputDir "$name.implicit_name.repeat.xlir.c"
-        $legacyPath = Join-Path $outputDir "$name.implicit_name.legacy.c"
         $xlirExe = Join-Path $outputDir "$name.implicit_name.xlir.exe"
-        $legacyExe = Join-Path $outputDir "$name.implicit_name.legacy.exe"
 
         if ( ! (Test-Path -LiteralPath $source -PathType Leaf) ) {
             throw "XLIR implicit-name source is missing: $source"
@@ -135,16 +133,10 @@ try {
         $xlirCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include $cPath $hostSource !XL6_CGEN_LINKS! -o $xlirExe && $xlirExe"
         & $env:ComSpec /d /v:on /c $xlirCommand
         if ( $LASTEXITCODE -ne 0 ) { throw "$name strict XLIR runtime failed" }
-
-        & $xl cgen $source --backend legacy --emit $legacyPath
-        if ( $LASTEXITCODE -ne 0 ) { throw "$name legacy Cgen failed" }
-        $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath !XL6_CGEN_XLANG_LINKS! -o $legacyExe && $legacyExe"
-        & $env:ComSpec /d /v:on /c $legacyCommand
-        if ( $LASTEXITCODE -ne 0 ) { throw "$name strict legacy differential runtime failed" }
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR implicit-name ABI gate ok: base direct dispatch, ordinary virtual dispatch, class-field identity, deterministic Cgen, strict runtime, and legacy differential."
+Write-Output "XLIR implicit-name ABI gate ok: base direct dispatch, ordinary virtual dispatch, class-field identity, deterministic Cgen, and strict runtime."
 exit 0

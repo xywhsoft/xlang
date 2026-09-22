@@ -1,4 +1,3 @@
-#include "src/ir/xl6_hir.h"
 #include "src/ir/xl6_ir.h"
 #include "src/cgen/xl6_ir_cgen.h"
 
@@ -14,7 +13,6 @@ static XL6_AstNode* testType(const char* name, XL6_TypeId id, const char* abi)
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root;
@@ -25,7 +23,6 @@ int main(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     func = xl6AstNew(XL6_AST_FUNC, NULL);
@@ -48,11 +45,10 @@ int main(void)
 
     /* A scalar payload has no error-state ABI.  The lowering boundary must
      * reject it before Cgen, rather than constructing an untyped raise. */
-    ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          !xl6IrLowerModule(&ir, &diags) && diags.count > 0 &&
          ir.stage == XL6_IR_STAGE_TYPED;
     if ( !ok ) fprintf(stderr, "XLIR throw lowering test failed: %s\n", diags.count > 0 ? diags.items[0].message : "<none>");
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);

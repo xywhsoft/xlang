@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Archive - xBlog</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+<h1>xBlog</h1>
+<nav><a href="/">Home</a> | <a href="/archive">Archive</a> | <a href="/api/posts">JSON API</a></nav>
+</header>
+<main>
+<h2>Archive ({$count})</h2>
+{#if:hasPosts}
+{#foreach:posts}
+<div><small>{$date}</small> &mdash; <a href="/post/{$slug}">{$title}</a></div>
+{#end}
+{#else}
+<p>No posts yet.</p>
+{#end}
+</main>
+<footer><small>Powered by xlang xblog</small></footer>
+</body>
+</html>

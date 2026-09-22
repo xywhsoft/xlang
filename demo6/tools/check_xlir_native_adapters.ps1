@@ -37,8 +37,11 @@ try {
     foreach($field in $fields){if($field.Groups[2].Value-notin$groups){$boundaryErrors+="Undeclared native group $($field.Groups[2].Value)"}}
     $api=Get-Content -LiteralPath 'src/api/xl_api.c' -Raw
     if($api.Contains('xl6XrtTrimBuildImplementationSourceWithRuntimeModules(')-or
-        $api-notmatch 'backend == XLC_BACKEND_LEGACY\s*\? xl6XrtTrimBuildImplementationSourceWithGeneratedSource\([^;]+:\s*xl6XrtTrimBuildImplementationSourceFromArtifact\(&unit->importDeps,'){
-        $boundaryErrors+='XLIR assembly is not isolated from legacy text analysis'
+        $api.Contains('xl6XrtTrimBuildImplementationSourceWithGeneratedSource(')-or
+        $api.Contains('xl6XrtTrimBuildImplementationSourceFromAst(')-or
+        $api.Contains('XLC_BACKEND_LEGACY')-or
+        !$api.Contains('xl6XrtTrimBuildImplementationSourceFromArtifact(&unit->importDeps,')){
+        $boundaryErrors+='Canonical XLIR assembly is not isolated from AST or generated-C dependency inference'
     }
     $includes=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
     $residentObjects=@{}

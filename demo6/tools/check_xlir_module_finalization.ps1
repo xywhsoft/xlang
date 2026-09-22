@@ -83,7 +83,7 @@ try {
         $command += ' && "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror ' +
             $hosts[$name] + ' !XL6_CGEN_LINKS! -o build\test\' + $name + '.strict.exe && build\test\' + $name + '.strict.exe'
     }
-    $command += ' && "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -o build\test\xlir_module_init_cgen.exe test\cases\xlir_module_init_cgen.c src\ast\xl6_ast.c src\type\xl6_type_model.c src\ir\xl6_hir_type.c src\ir\xl6_hir.c src\ir\xl6_ir.c src\ir\xl6_ir_lower.c src\cgen\xl6_ir_cgen.c src\cgen\xl6_cgen_shared_runtime.c src\diag\xl6_diag.c src\common\xl6_output.c src\common\xl6_console.c !XL6_CGEN_LINKS! && build\test\xlir_module_init_cgen.exe'
+    $command += ' && "!XL6_CGEN_CC!" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -o build\test\xlir_module_init_cgen.exe test\cases\xlir_module_init_cgen.c src\ast\xl6_ast.c src\type\xl6_type_model.c src\ir\xl6_ir.c src\ir\xl6_ir_lower.c src\cgen\xl6_ir_cgen.c src\cgen\xl6_cgen_shared_runtime.c src\diag\xl6_diag.c src\common\xl6_output.c src\common\xl6_console.c !XL6_CGEN_LINKS! && build\test\xlir_module_init_cgen.exe'
     & $env:ComSpec /d /v:on /c $command
     if ($LASTEXITCODE -ne 0) { throw "Module finalization strict-C lifecycle/allocation/verifier gate failed" }
     $cliSource = Join-Path $Root "test\cases\xlir_module_finalization_cli.xl"

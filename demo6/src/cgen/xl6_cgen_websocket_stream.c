@@ -911,10 +911,6 @@ void* xl6_xrt_ws_stream_error_message(void* pHandle) { const xerror* pError = xl
 
 /* TLS 接管作为独立片段，普通 WebSocket 不引用任何 TLS 符号。 */
 static const char xl6WebSocketStreamTlsSource[] = XL6_WEBSOCKET_SOURCE(
-void* xl6_xrt_tls_stream_native(void* pHandle);
-
-
-
 /* TLS Attach 适配到共用命令入口。 */
 static xwsstream* xl6_ws_attach_tls_proc(
 	void* pTransport,
@@ -946,8 +942,7 @@ void* xl6_xrt_ws_stream_attach_tls(
 	size_t iPrefix
 )
 {
-	void* pWrapper = xl6ValueHandleData(pOwner);
-	xtlsstream* pSource = (xtlsstream*)xl6_xrt_tls_stream_native(pWrapper);
+	xtlsstream* pSource = (xtlsstream*)xl6ValueHandleData(pOwner);
 	xtlsstream* pTransport = pSource != 0 ? xrtTlsStreamRef(pSource) : 0;
 	xnetstream* pTcp = pTransport != 0 ? xrtTlsStreamTransport(pTransport) : 0;
 	xnetworker* pWorker = pTcp != 0 ? xrtNetStreamWorker(pTcp) : 0;

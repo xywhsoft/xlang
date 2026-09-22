@@ -1,11 +1,10 @@
 void xl6CgenEmitBufferRuntime(
-    XL6_Output* out, int hasFileRuntime, int xlirAbi,
-    int hasXrtDeclarations)
+    XL6_Output* out, int hasFileRuntime, int hasXrtDeclarations)
 {
-    xl6OutputPuts(xlirAbi
-        ? "#ifndef XL6_CGEN_BOOL_TYPEDEF\n#define XL6_CGEN_BOOL_TYPEDEF\ntypedef bool XL6_CgenBool;\n#endif\n"
-        : "#ifndef XL6_CGEN_BOOL_TYPEDEF\n#define XL6_CGEN_BOOL_TYPEDEF\ntypedef int XL6_CgenBool;\n#endif\n", out);
-    if ( xlirAbi && !hasXrtDeclarations ) {
+    xl6OutputPuts(
+        "#ifndef XL6_CGEN_BOOL_TYPEDEF\n#define XL6_CGEN_BOOL_TYPEDEF\ntypedef bool XL6_CgenBool;\n#endif\n",
+        out);
+    if ( !hasXrtDeclarations ) {
         /* XLIR output deliberately does not import xrt.h/xruntime.h.  Keep the
          * public buffer layout and the exact functions used by this component
          * as a narrow, local ABI declaration surface. */
@@ -25,8 +24,7 @@ void xl6CgenEmitBufferRuntime(
             "extern bool xrtUtf8Valid(xstrview, size_t*);\n\n",
             out);
     } else {
-        /* Legacy output and declaration-SDK-backed XLIR output already import
-         * the public XRT ABI. */
+        /* The declaration-SDK-backed form already imports the public XRT ABI. */
         xl6OutputPuts("#ifndef XL6_CGEN_XRT_BYTES_VIEW_TYPEDEF\n#define XL6_CGEN_XRT_BYTES_VIEW_TYPEDEF\ntypedef xbytesview XL6_XrtBytesView;\n#endif\n", out);
         xl6OutputPuts("typedef xbuffer* XL6_XBuffer;\n\n", out);
     }
@@ -36,10 +34,7 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("} XL6_BufferIter;\n\n", out);
     xl6OutputPuts("static void xl6_buffer_raise(const char* kind, const char* message, const char* api)\n", out);
     xl6OutputPuts("{\n", out);
-    if ( xlirAbi )
-        xl6OutputPuts("    (void)api; xrtSetErrorTake(xlir_error_create_at(kind != 0 ? kind : \"BufferError\", message != 0 ? message : \"buffer error\", 0, 0));\n", out);
-    else
-        xl6OutputPuts("    xl6_error_raise(kind != 0 ? kind : \"BufferError\", message != 0 ? message : \"buffer error\", api != 0 ? api : \"Buffer\", 0, 0);\n", out);
+    xl6OutputPuts("    (void)api; xrtSetErrorTake(xlir_error_create_at(kind != 0 ? kind : \"BufferError\", message != 0 ? message : \"buffer error\", 0, 0));\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static int xl6_buffer_has_nul(const void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
@@ -98,12 +93,9 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return handle;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "void xl6_xrt_buffer_destroy(void* self)\n"
-        : "long long xl6_xrt_buffer_destroy(void* self)\n", out);
+    xl6OutputPuts("void xl6_xrt_buffer_destroy(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xrtBufferDestroy((XL6_XBuffer)self);\n", out);
-    if ( !xlirAbi ) xl6OutputPuts("    return 0LL;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("long long xl6_xrt_buffer_len(void* self)\n", out);
@@ -365,12 +357,9 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return handle;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "void xl6_xrt_buffer_iter_destroy(void* self)\n"
-        : "long long xl6_xrt_buffer_iter_destroy(void* self)\n", out);
+    xl6OutputPuts("void xl6_xrt_buffer_iter_destroy(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( self != 0 ) { xrtFree(self); }\n", out);
-    if ( !xlirAbi ) xl6OutputPuts("    return 0LL;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_iter_has_next(void* self)\n", out);

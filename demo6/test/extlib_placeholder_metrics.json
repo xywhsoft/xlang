@@ -1,0 +1,560 @@
+﻿[
+    {
+        "Name":  "cbor",
+        "Lines":  268,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "chardet",
+        "Lines":  193,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "clipboard",
+        "Lines":  1583,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "css",
+        "Lines":  189,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "dataframe",
+        "Lines":  148,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "dns",
+        "Lines":  187,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "docx",
+        "Lines":  152,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "eigen",
+        "Lines":  146,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "embeddings",
+        "Lines":  108,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "epub",
+        "Lines":  152,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "fftw",
+        "Lines":  178,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "fix",
+        "Lines":  128,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "flatbuffers",
+        "Lines":  94,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "freetype",
+        "Lines":  75,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "glad",
+        "Lines":  80,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "gmp",
+        "Lines":  217,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "gsl",
+        "Lines":  172,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "harfbuzz",
+        "Lines":  103,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "hcl",
+        "Lines":  208,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "html5",
+        "Lines":  156,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "icu",
+        "Lines":  133,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "imagehash",
+        "Lines":  16642,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "imgui",
+        "Lines":  84,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "influxdb",
+        "Lines":  178,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "jieba",
+        "Lines":  127,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "jwt",
+        "Lines":  167,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "langdetect",
+        "Lines":  250,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "libsndfile",
+        "Lines":  140,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "libsvm",
+        "Lines":  113,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "linalg",
+        "Lines":  220,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "lmdb",
+        "Lines":  167,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "md4c",
+        "Lines":  8903,
+        "C":  4,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "mpfr",
+        "Lines":  178,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "ncurses",
+        "Lines":  228,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "nlopt",
+        "Lines":  181,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "opus",
+        "Lines":  135,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "pdf",
+        "Lines":  126,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "pkcs",
+        "Lines":  388,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "pkg.math",
+        "Lines":  45,
+        "C":  0,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "plot",
+        "Lines":  135,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "pptx",
+        "Lines":  155,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "proj",
+        "Lines":  190,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "protobuf",
+        "Lines":  86,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "rapidocr",
+        "Lines":  146034,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "ratatui",
+        "Lines":  91,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "s2geometry",
+        "Lines":  237,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "sox",
+        "Lines":  149,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "sqlite",
+        "Lines":  267434,
+        "C":  2,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "stb_image",
+        "Lines":  7360,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "stb_image_resize2",
+        "Lines":  9459,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "stb_image_write",
+        "Lines":  1680,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "stb_truetype",
+        "Lines":  5046,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "ta_lib",
+        "Lines":  260,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "taglib",
+        "Lines":  142,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "terraform_state",
+        "Lines":  119,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "treesitter",
+        "Lines":  135,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "unqlite",
+        "Lines":  173,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "vectordb",
+        "Lines":  98,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "xfeat",
+        "Lines":  1437,
+        "C":  1,
+        "XL":  1,
+        "Case":  false,
+        "Example":  true,
+        "Tests":  0
+    },
+    {
+        "Name":  "xge",
+        "Lines":  1805,
+        "C":  0,
+        "XL":  12,
+        "Case":  false,
+        "Example":  false,
+        "Tests":  1
+    },
+    {
+        "Name":  "xge_shape_ex",
+        "Lines":  1119,
+        "C":  0,
+        "XL":  3,
+        "Case":  false,
+        "Example":  false,
+        "Tests":  1
+    },
+    {
+        "Name":  "xlsx",
+        "Lines":  149,
+        "C":  1,
+        "XL":  1,
+        "Case":  true,
+        "Example":  true,
+        "Tests":  0
+    }
+]

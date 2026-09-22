@@ -34,10 +34,8 @@ $operatorTypedPath = Join-Path $outputDir "xlir_direct_operator_compound.typed.j
 $operatorLoweredPath = Join-Path $outputDir "xlir_direct_operator_compound.lowered.json"
 $propertyC = Join-Path $outputDir "xlir_property_compound.c"
 $propertyRepeatC = Join-Path $outputDir "xlir_property_compound.repeat.c"
-$propertyLegacyC = Join-Path $outputDir "xlir_property_compound.legacy.c"
 $operatorC = Join-Path $outputDir "xlir_direct_operator_compound.c"
 $operatorRepeatC = Join-Path $outputDir "xlir_direct_operator_compound.repeat.c"
-$operatorLegacyC = Join-Path $outputDir "xlir_direct_operator_compound.legacy.c"
 
 Push-Location $Root
 try {
@@ -130,14 +128,10 @@ try {
         "XLIR property-compound Cgen failed"
     Invoke-Xl @("cgen", $propertySource, "--backend", "xlir", "--emit", $propertyRepeatC) `
         "XLIR repeated property-compound Cgen failed"
-    Invoke-Xl @("cgen", $propertySource, "--backend", "legacy", "--emit", $propertyLegacyC) `
-        "legacy property-compound differential Cgen failed"
     Invoke-Xl @("cgen", $operatorSource, "--backend", "xlir", "--emit", $operatorC) `
         "XLIR direct operator compound Cgen failed"
     Invoke-Xl @("cgen", $operatorSource, "--backend", "xlir", "--emit", $operatorRepeatC) `
         "XLIR repeated direct operator compound Cgen failed"
-    Invoke-Xl @("cgen", $operatorSource, "--backend", "legacy", "--emit", $operatorLegacyC) `
-        "legacy direct operator compound differential Cgen failed"
     foreach ( $pair in @(
         @($propertyC, $propertyRepeatC),
         @($operatorC, $operatorRepeatC)
@@ -150,19 +144,13 @@ try {
     }
 
     Invoke-CheckedCmd `
-        "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! -Werror -c test\cases\xlir_cgen_differential_expect_i64_legacy_support.c -o build\test\xlir_property_compound_support.o && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\test\xlir_property_compound.c test\cases\xlir_generated_module_host.c build\test\xlir_property_compound_support.o !XL6_CGEN_LINKS! -o build\test\xlir_property_compound.exe && build\test\xlir_property_compound.exe" `
+        "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! -Werror -c test\cases\xlir_expect_support.c -o build\test\xlir_property_compound_support.o && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\test\xlir_property_compound.c test\cases\xlir_generated_module_host.c build\test\xlir_property_compound_support.o !XL6_CGEN_LINKS! -o build\test\xlir_property_compound.exe && build\test\xlir_property_compound.exe" `
         "XLIR property-compound strict-C/runtime gate failed"
-    Invoke-CheckedCmd `
-        "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\test\xlir_property_compound.legacy.c build\test\xlir_property_compound_support.o !XL6_CGEN_LINKS! -o build\test\xlir_property_compound.legacy.exe && build\test\xlir_property_compound.legacy.exe" `
-        "legacy property-compound differential runtime failed"
     Invoke-CheckedCmd `
         "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\test\xlir_direct_operator_compound.c test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o build\test\xlir_direct_operator_compound.exe && build\test\xlir_direct_operator_compound.exe" `
         "XLIR direct operator compound strict-C/runtime gate failed"
-    Invoke-CheckedCmd `
-        "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\test\xlir_direct_operator_compound.legacy.c !XL6_CGEN_LINKS! -o build\test\xlir_direct_operator_compound.legacy.exe && build\test\xlir_direct_operator_compound.legacy.exe" `
-        "legacy direct operator compound differential runtime failed"
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR property/operator compound gate passed: semantic operator symbols are independent from setters, property receiver evaluation is shared across explicit getter/operator/setter transactions, scalar/string/collection operations are closed IR facts, C is deterministic and strict XLIR/legacy runtimes agree."
+Write-Output "XLIR property/operator compound gate passed: semantic operator symbols are independent from setters, property receiver evaluation is shared across explicit getter/operator/setter transactions, scalar/string/collection operations are closed IR facts, and C is deterministic and strict-runtime clean."

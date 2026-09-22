@@ -1,34 +1,47 @@
 import epub
 
+
+
 func main(...) as int
-    // EPUB versions
-    assert epub.version(2) == "EPUB 2.0.1", "ver 2"
-    assert epub.version(3) == "EPUB 3.3", "ver 3"
+    dir.createAll("examples_out/extlibs")
+    string path = "examples_out/extlibs/demo.epub"
+    var meta = {"title": "xlang 扩展库手册", "author": "xLeaves", "language": "zh"}
+    var chapters = [
+        {"title": "第一章 概述", "text": "# 概述\n\nxlang 是一门静态类型的系统语言。\n支持 C 混编与 <QR> 码生成。\n\n## 特性列表\n\n语义清晰，产物轻量。"},
+        {"title": "第二章 安装", "text": "# 安装\n\n从官网下载发布包。\n\n解压后即可运行 xl.exe。"}
+    ]
+    int size = epub.build(path, meta, chapters)
+    assert size > 1000, "epub is non-trivial"
 
-    // MIME types
-    assert epub.mimetype(0) == "application/epub+zip", "mime epub"
-    assert epub.mimetype(1) == "application/xhtml+xml", "mime xhtml"
-    assert epub.mimetype(3) == "image/jpeg", "mime jpeg"
+    // 首条目是未压缩 mimetype
+    string mime = epub.readEntry(path, "mimetype")
+    assert mime == "application/epub+zip", "mimetype first entry"
 
-    // Spine properties
-    assert epub.spineProp(0) == "linear", "spine linear"
-    assert epub.spineProp(5) == "rendition:layout-reflowable", "spine reflow"
+    // container.xml 指向 opf
+    string container = epub.readEntry(path, "META-INF/container.xml")
+    assert container.contains("OEBPS/content.opf"), "container points to opf"
 
-    // Nav types
-    assert epub.navType(0) == "toc", "nav toc"
-    assert epub.navType(1) == "landmarks", "nav landmarks"
+    // opf 元数据（含转义与中文）
+    string opf = epub.readEntry(path, "OEBPS/content.opf")
+    assert opf.contains("xlang 扩展库手册"), "opf title"
+    assert opf.contains("xLeaves"), "opf author"
+    assert opf.contains("<dc:language>zh</dc:language>"), "opf language"
+    assert opf.contains("idref=\"ch2\""), "opf spine has both chapters"
 
-    // Metadata fields
-    assert epub.metadataField(0) == "dc:title", "meta title"
-    assert epub.metadataField(1) == "dc:creator", "meta creator"
+    // 目录文档
+    string nav = epub.readEntry(path, "OEBPS/nav.xhtml")
+    assert nav.contains("第一章 概述"), "nav chapter 1"
+    assert nav.contains("ch2.xhtml"), "nav links chapter 2"
 
-    // ISBN validation (978-0-306-40615-7 is valid)
-    assert epub.validateIsbn("9780306406157") == 1, "isbn valid"
-    assert epub.validateIsbn("9780306406158") == 0, "isbn invalid"
+    // 章节内容：标题降级与转义
+    string ch1 = epub.readEntry(path, "OEBPS/ch1.xhtml")
+    assert ch1.contains("<h1>概述</h1>"), "h1 from hash"
+    assert ch1.contains("<h2>特性列表</h2>"), "h2 from double hash"
+    assert ch1.contains("&lt;QR&gt;"), "angle brackets escaped"
+    assert ch1.contains("<p>xlang 是一门静态类型的系统语言。 支持 C 混编"), "paragraph join"
 
-    // Encryption
-    assert epub.encryption(0) == "none", "enc none"
-    assert epub.encryption(1) == "Adobe DRM", "enc adobe"
+    // 缺失条目返回空串
+    assert epub.readEntry(path, "no/such.entry") == "", "missing entry empty"
 
     return 0
 end

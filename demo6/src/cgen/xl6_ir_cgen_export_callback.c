@@ -19,7 +19,8 @@ static void xl6IrCgenEmitForeignErrorDeclarations(XL6_Output* out)
         "extern void xl6ForeignCallbackFail(void);\n#endif\n", out);
 }
 
-static int xl6IrCgenExportCallbackNeeded(const XL6_IrModule* module, XL6_IrTypeId type)
+static int xl6IrCgenExportCallbackNeeded(
+    const XL6_IrModule* module, XL6_IrTypeId type)
 {
     size_t i, p;
     for ( i = 0; i < module->exportCount; ++i )
@@ -29,22 +30,36 @@ static int xl6IrCgenExportCallbackNeeded(const XL6_IrModule* module, XL6_IrTypeI
     return 0;
 }
 
-static int xl6IrCgenEmitCallbackTypes(
-    XL6_Output* out, const XL6_IrModule* module, int exportsOnly, XL6_DiagList* diags)
+static int xl6IrCgenCallbackTypeNeeded(
+    const XL6_IrModule* module, XL6_IrTypeId type, int publicHeader)
 {
-    size_t t, i, p;
+    size_t i, p;
+    if ( xl6IrCgenExportCallbackNeeded(module, type) ) return 1;
+    for ( i = 0; i < module->callTargetCount; ++i ) {
+        const XL6_IrCallTarget* target = &module->callTargets[i];
+        if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
+             (publicHeader &&
+              ((target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+                target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
+               target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE)) )
+            continue;
+        for ( p = 0; p < target->parameterCount; ++p )
+            if ( target->parameterPhysicalAbis[p] ==
+                     XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK &&
+                 target->parameterTypes[p] == type ) return 1;
+    }
+    return 0;
+}
+
+static int xl6IrCgenEmitCallbackTypes(
+    XL6_Output* out, const XL6_IrModule* module, int publicHeader,
+    XL6_DiagList* diags)
+{
+    size_t t;
     for ( t = 1; t <= module->types.count; ++t ) {
-        int needed = xl6IrCgenExportCallbackNeeded(module, (XL6_IrTypeId)t);
-        if ( !exportsOnly )
-            for ( i = 0; i < module->callTargetCount && !needed; ++i ) {
-                const XL6_IrCallTarget* target = &module->callTargets[i];
-                if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
-                for ( p = 0; p < target->parameterCount; ++p )
-                    if ( target->parameterPhysicalAbis[p] ==
-                             XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK &&
-                         target->parameterTypes[p] == t ) { needed = 1; break; }
-            }
-        if ( needed && !xl6IrCgenEmitRawCallbackTypedef(
+        if ( xl6IrCgenCallbackTypeNeeded(
+                 module, (XL6_IrTypeId)t, publicHeader) &&
+             !xl6IrCgenEmitRawCallbackTypedef(
                 out, module, (XL6_IrTypeId)t, diags) ) return 0;
     }
     return !xl6OutputHasFailed(out);

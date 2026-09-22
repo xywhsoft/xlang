@@ -28,8 +28,7 @@ XL_API const xl6_protocol_witness* xl6ProtocolLookup(
 struct XLC_Context;
 
 typedef enum XLC_Backend {
-    XLC_BACKEND_XLIR = 0,
-    XLC_BACKEND_LEGACY = 1
+    XLC_BACKEND_XLIR = 0
 } XLC_Backend;
 
 XL_ContextOptions xlcDefaultContextOptions(void);

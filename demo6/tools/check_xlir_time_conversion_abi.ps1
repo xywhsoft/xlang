@@ -17,8 +17,6 @@ $typedPath = Join-Path $outputDir "xlir_time_conversion_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_time_conversion_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_time_conversion_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_time_conversion_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_time_conversion_abi_legacy.c"
-
 foreach ( $path in @($xl, $source, $hostSource, $supportSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR time conversion gate input is missing: $path"
@@ -157,20 +155,14 @@ foreach ( $signature in @(
     }
 }
 
-Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-    "Legacy time conversion differential Cgen failed"
-
 Push-Location $Root
 try {
     $xlirCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $hostSource !XL6_CGEN_LINKS! -o build\test\xlir_time_conversion_abi_xlir.exe && build\test\xlir_time_conversion_abi_xlir.exe"
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR time conversion strict-C runtime failed" }
 
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_USE_LEGACY_GENERATED $hostSource !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_time_conversion_abi_legacy.exe && build\test\xlir_time_conversion_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy time conversion differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR time conversion ABI gate ok: distinct TIME_I64 identity, time-to-bool truth ABI, three scalar conversion families, separate typed bool truth semantics, extern parameter/return ABI, deterministic mechanical C, strict compile, and legacy differential runtime semantics."
+Write-Output "XLIR time conversion ABI gate ok: distinct TIME_I64 identity, time-to-bool truth ABI, three scalar conversion families, separate typed bool truth semantics, extern parameter/return ABI, deterministic mechanical C, and strict runtime semantics."

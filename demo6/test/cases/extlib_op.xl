@@ -1,4 +1,5 @@
 import op
+import procps
 
 func main(...) as int
     // module-level: screen size
@@ -40,9 +41,9 @@ func main(...) as int
     string procs = op.enumProcess("")
     assert procs != "", "enumProcess should return non-empty"
 
-    // module-level: get process modules (current process = pid 4 system may fail, use self)
-    // just ensure no crash
-    string mods = op.getProcessModules(4)
+    // 系统 PID 可能受保护；当前进程才是可重复验证的稳定对象。
+    string mods = op.getProcessModules(procps.pid())
+    assert mods != "", "getProcessModules should enumerate the current process"
 
     // create instance
     auto o = op.create()
@@ -79,7 +80,9 @@ func main(...) as int
     assert block != "", "findColorBlock 1x1 should find match"
 
     // capture to file
-    int cap = o.capture(0, 0, 32, 32, "op_test_capture.bmp")
+    string capturePath = "op_test_capture.bmp"
+    file.delete(capturePath)
+    int cap = o.capture(0, 0, 32, 32, capturePath)
     assert cap == 1, "capture should succeed"
 
     // captureToMem
@@ -92,12 +95,13 @@ func main(...) as int
     assert string.len(hash) == 16, "imageHash should return 16 hex chars"
 
     // imageCompare with the captured file
-    float cmp = o.imageCompare(0, 0, 32, 32, "op_test_capture.bmp", 1.0)
+    float cmp = o.imageCompare(0, 0, 32, 32, capturePath, 1.0)
     assert cmp > 0.5, "imageCompare with same region should be high similarity"
 
     // findPicN with the captured bmp
-    string picN = o.findPicN(0, 0, 100, 100, "op_test_capture.bmp", "", 0.9, 0)
+    string picN = o.findPicN(0, 0, 100, 100, capturePath, "", 0.9, 0)
     assert picN != "", "findPicN should find the captured image"
+    file.delete(capturePath)
 
     // keyCombo - just ensure no crash (press and release shift)
     ret = o.keyCombo("shift")

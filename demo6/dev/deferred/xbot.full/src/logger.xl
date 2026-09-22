@@ -1,0 +1,274 @@
+// xbot/logger.xl - 日志系统
+// 对应 xbot.py L330-700：远程日志队列 + 本地输出 + 任务绑定
+// 支持样式：title, section, succ, fail, error, war, info, sub
+
+// ─── 日志配置状态 ───
+string _log_level = "info"
+string _log_output = "console"
+string _log_server_url = ""
+string _log_task_id = ""
+string _log_token = ""
+int _log_timeout_ms = 3000
+int _log_enabled = 1
+
+// 日志队列（简化为数组批量推送）
+array<string> _log_queue = []
+const int LOG_FLUSH_THRESHOLD = 20
+
+// ─── 日志级别优先级 ───
+func _log_level_rank(string level) as int
+    if level == "title" then
+        return 10
+    elseif level == "section" then
+        return 9
+    elseif level == "succ" then
+        return 8
+    elseif level == "fail" then
+        return 7
+    elseif level == "error" then
+        return 6
+    elseif level == "war" then
+        return 5
+    elseif level == "info" then
+        return 4
+    elseif level == "sub" then
+        return 3
+    end
+    return 4
+end
+
+// ─── 配置函数 ───
+
+// 配置本地日志输出
+export func ConfigureLogger(string level, string output)
+    _log_level = level
+    _log_output = output
+end
+
+// 配置远程日志服务器
+export func ConfigureLogServer(string url, string task_id, string token)
+    _log_server_url = url
+    _log_task_id = task_id
+    _log_token = token
+end
+
+// 启用/禁用日志
+export func SetLogEnabled(bool enabled)
+    if enabled then
+        _log_enabled = 1
+    else
+        _log_enabled = 0
+    end
+end
+// ─── 核心日志函数 ───
+
+// 写一条日志
+export func Log(string cls, string message)
+    if _log_enabled == 0 then
+        return
+    end
+
+    // 兼容 warn -> war
+    string norm_cls = cls
+    if cls == "warn" then
+        norm_cls = "war"
+    end
+
+    // 级别过滤
+    if _log_level_rank(norm_cls) < _log_level_rank(_log_level) then
+        return
+    end
+
+    // 本地输出
+    if _log_output == "console" or _log_output == "both" then
+        _log_print(norm_cls, message)
+    end
+
+    // 远程队列
+    if _log_server_url != "" then
+        string entry = _log_format_entry(norm_cls, message)
+        _log_queue.push(entry)
+        if _log_queue.length >= LOG_FLUSH_THRESHOLD then
+            FlushLogs()
+        end
+    end
+end
+
+// 快捷日志方法
+export func LogTitle(string message)
+    Log("title", message)
+end
+
+export func LogSection(string message)
+    Log("section", message)
+end
+
+export func LogSucc(string message)
+    Log("succ", message)
+end
+
+export func LogFail(string message)
+    Log("fail", message)
+end
+
+export func LogError(string message)
+    Log("error", message)
+end
+
+export func LogWarn(string message)
+    Log("war", message)
+end
+
+export func LogInfo(string message)
+    Log("info", message)
+end
+
+export func LogSub(string message)
+    Log("sub", message)
+end
+
+// ─── 刷新日志队列 ───
+export func FlushLogs()
+    if _log_queue.length == 0 then
+        return
+    end
+    if _log_server_url == "" then
+        _log_queue = []
+        return
+    end
+
+    // 组装批量 JSON
+    string body = _log_build_batch_json()
+    _log_queue = []
+
+    // 异步推送（此处简化为同步，失败静默）
+    string url = _log_server_url + "/api/v1/logs/batch"
+    string headers = ""
+    if _log_token != "" then
+        headers = "Authorization: Bearer " + _log_token
+    end
+    _xbot_http_post_status(url, body, headers, _log_timeout_ms)
+end
+
+// ─── 任务管理 ───
+
+// 创建日志任务，返回 task_id
+export func CreateLogTask(string name) as string
+    if _log_server_url == "" then
+        return ""
+    end
+    string url = _log_server_url + "/api/v1/tasks"
+    string body = "{\"name\":\"" + name + "\"}"
+    string resp = _xbot_http_post_status(url, body, "", _log_timeout_ms)
+    // 解析响应中的 task_id（简化：从 JSON 提取）
+    string task_id = _json_extract_string(resp, "task_id")
+    if task_id != "" then
+        _log_task_id = task_id
+    end
+    return task_id
+end
+
+// 绑定已有任务
+export func UseLogTask(string task_id)
+    _log_task_id = task_id
+end
+
+// ─── 内部辅助 ───
+
+// 控制台打印（带样式前缀）
+func _log_print(string cls, string message)
+    string prefix = ""
+    if cls == "title" then
+        prefix = "═══ "
+    elseif cls == "section" then
+        prefix = "── "
+    elseif cls == "succ" then
+        prefix = "[OK] "
+    elseif cls == "fail" then
+        prefix = "[FAIL] "
+    elseif cls == "error" then
+        prefix = "[ERR] "
+    elseif cls == "war" then
+        prefix = "[WARN] "
+    elseif cls == "info" then
+        prefix = "[INFO] "
+    elseif cls == "sub" then
+        prefix = "  "
+    end
+    print(prefix + message)
+end
+
+// 格式化单条日志为 JSON 字符串
+func _log_format_entry(string cls, string message) as string
+    // 转义消息中的引号
+    string escaped = _json_escape(message)
+    string entry = "{\"cls\":\"" + cls + "\",\"msg\":\"" + escaped + "\""
+    if _log_task_id != "" then
+        entry = entry + ",\"task_id\":\"" + _log_task_id + "\""
+    end
+    entry = entry + ",\"ts\":" + string(time.now()) + "}"
+    return entry
+end
+
+// 组装批量推送 JSON
+func _log_build_batch_json() as string
+    string body = "{\"logs\":["
+    int i = 0
+    while i < _log_queue.length
+        if i > 0 then
+            body = body + ","
+        end
+        body = body + _log_queue[i]
+        i += 1
+    end
+    body = body + "]}"
+    return body
+end
+
+// JSON 字符串转义
+func _json_escape(string text) as string
+    Buffer buf = Buffer()
+    int i = 0
+    int n = string.len(text)
+    while i < n
+        string ch = string.mid(text, i, 1)
+        if ch == "\"" then
+            buf.append("\\\"")
+        elseif ch == "\\" then
+            buf.append("\\\\")
+        elseif ch == "\n" then
+            buf.append("\\n")
+        elseif ch == "\r" then
+            buf.append("\\r")
+        elseif ch == "\t" then
+            buf.append("\\t")
+        else
+            buf.append(ch)
+        end
+        i += 1
+    end
+    return buf.text()
+end
+
+// 从 JSON 响应中提取字符串字段（简化解析）
+func _json_extract_string(string json, string key) as string
+    string pattern = "\"" + key + "\":\""
+    int start = string.indexOf(json, pattern)
+    if start < 0 then
+        return ""
+    end
+    start = start + string.len(pattern)
+    int end_pos = start
+    int n = string.len(json)
+    while end_pos < n
+        string ch = string.mid(json, end_pos, 1)
+        if ch == "\"" then
+            break
+        end
+        end_pos += 1
+    end
+    if end_pos >= n then
+        return ""
+    end
+    return string.mid(json, start, end_pos - start)
+end

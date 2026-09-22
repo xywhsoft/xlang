@@ -1,0 +1,15 @@
+2026-07-10 08:00:00 INFO service started, listening on :8080
+2026-07-10 08:00:01 DEBUG config loaded from /etc/logagg.conf
+2026-07-10 08:00:02 TRACE gc pause 1.2ms
+2026-07-10 08:00:15 INFO request GET /api/users 200 12ms
+2026-07-10 08:00:16 INFO request GET /api/users/42 200 9ms
+2026-07-10 08:00:30 WARN slow query users.list 340ms
+2026-07-10 08:00:31 INFO request POST /api/orders 201 22ms
+2026-07-10 08:01:00 INFO request GET /api/orders 200 18ms
+2026-07-10 08:01:05 WARN retrying upstream call attempt=1
+2026-07-10 08:01:12 ERROR db connection failed: timeout after 5s
+2026-07-10 08:01:13 ERROR db connection failed: timeout after 5s
+2026-07-10 08:01:14 ERROR auth token expired: session-abc
+2026-07-10 08:02:00 INFO request GET /healthz 200 1ms
+2026-07-10 08:02:10 INFO request GET /healthz 200 1ms
+2026-07-10 08:02:20 INFO request GET /metrics 200 4ms

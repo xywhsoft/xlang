@@ -11,17 +11,14 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_function_bare_call.xl"
 $xlirRuntimeHost = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacyRuntimeHost = Join-Path $Root "test\cases\cgen_class_destroy_host.c"
 $outputDir = Join-Path $Root "build\test\xlir_open_function"
 $typed = Join-Path $outputDir "typed.json"
 $lowered = Join-Path $outputDir "lowered.json"
 $generatedA = Join-Path $outputDir "generated-a.c"
 $generatedB = Join-Path $outputDir "generated-b.c"
-$legacy = Join-Path $outputDir "legacy.c"
 $xlirExe = Join-Path $outputDir "xlir.exe"
-$legacyExe = Join-Path $outputDir "legacy.exe"
 
-foreach ( $path in @($xl, $source, $xlirRuntimeHost, $legacyRuntimeHost) ) {
+foreach ( $path in @($xl, $source, $xlirRuntimeHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR open-function ABI gate input is missing: $path"
     }
@@ -149,18 +146,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR open-function generated-C runtime failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy open-function Cgen failed during differential gate"
-    }
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$legacy`" `"$legacyRuntimeHost`" !XL6_CGEN_LINKS! -o `"$legacyExe`" && `"$legacyExe`""
-    & cmd.exe /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy open-function generated-C runtime failed during differential gate"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR open function erasure, fixed/array-variadic callable adapters, explicit failure CFG, deterministic Cgen and legacy runtime differential ABIs ok."
+Write-Output "XLIR open function erasure, fixed/array-variadic callable adapters, explicit failure CFG, deterministic Cgen, and strict runtime ABI ok."

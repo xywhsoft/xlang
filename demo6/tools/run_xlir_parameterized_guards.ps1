@@ -273,10 +273,10 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
     }
     if ($parameters.ContainsKey('Tcc')) { $arguments.Tcc = $Tcc }
     $resources = @("scenario-$slug")
-    # Legacy focused probes without a private evidence directory still emit
+    # Focused probes without a private evidence directory still emit
     # fixed build/test paths. Serialize those probes until each owns an
     # explicit output root; other comprehensive scenarios remain parallel.
-    if (!$arguments.Contains('Directory')) { $resources += 'legacy-build-test-output' }
+    if (!$arguments.Contains('Directory')) { $resources += 'shared-build-test-output' }
     return [ordered]@{
         Script = $Name
         Resources = $resources

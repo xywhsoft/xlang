@@ -11,7 +11,7 @@ if ($runtimeObject.Count -ne 1) { throw 'Ambiguous current XRT object' }
 $runtimeSources=@('src/runtime/xl6_code_lease.c','src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
     'src/runtime/xl6_continuation_future.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
 $files=@(Get-Item $PSCommandPath,$manifest.Driver,test/cases/xlir_future_ownership.xl,
-    test/cases/xlir_future_ownership_host.c,test/cases/xlir_future_payload_contract.c,test/cases/xlir_future_payload_trim.c)
+    test/cases/xlir_future_ownership_host.c,test/cases/xlir_future_payload_contract.c)
 $records=@($manifest.Inputs)+@($manifest.Headers)+@($runtimeObject)+
     @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash $_.FullName).Hash}})
 if ((Get-FileHash $manifest.Driver).Hash -ne $manifest.DriverSha256 -or
@@ -52,12 +52,9 @@ foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
         Write-Output "$name build=$buildExit run=$runExit complete=$complete"
     }
 }
-& gcc @strict -O2 -fwhole-program test/cases/xlir_future_payload_trim.c -o "$outputPath/trim.exe" *> "$outputPath/trim.build.log"
-$trimBuild=$LASTEXITCODE; $trimRun=$null
-if ($trimBuild -eq 0) { & "$outputPath/trim.exe" *> "$outputPath/trim.run.log"; $trimRun=$LASTEXITCODE }
 $unchanged=@($records|Where-Object {(Get-FileHash $_.Path).Hash -ne $_.Sha256}).Count -eq 0
 $report=[pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$records;InputsUnchanged=$unchanged;Deterministic=$true;
-    Lanes=$results;GraphsPerLane=700;ResidentCasesPerLane=1500;TrimBuild=$trimBuild;TrimRun=$trimRun;
+    Lanes=$results;GraphsPerLane=700;ResidentCasesPerLane=1500;
     Scope='Real generated ready/task/resumed/continuation results, task.spawn and captured Future graphs; strict C, resident payloads, native aliases and exact memory. The host-controlled pending scalar frame has precise queue-root accounting; a real opaque native Watch still rejects atomically. Other graphs are inspected after worker join, code remains mapped: no general worker safepoint, automatic module pin or unload permission claim.'}
 [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
-if (!$unchanged -or $trimBuild -ne 0 -or $trimRun -ne 0 -or @($results|Where-Object {$_.Build -ne 0 -or $_.Run -ne 0 -or !$_.Complete}).Count) { throw 'Future ownership batch failed; inspect all logs' }
+if (!$unchanged -or @($results|Where-Object {$_.Build -ne 0 -or $_.Run -ne 0 -or !$_.Complete}).Count) { throw 'Future ownership batch failed; inspect all logs' }

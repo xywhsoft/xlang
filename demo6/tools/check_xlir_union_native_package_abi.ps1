@@ -65,11 +65,6 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR native union package compile/runtime contract failed"
     }
-    & $xl run $source --backend legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "legacy native union package compatibility contract failed"
-    }
-
     $command = "call test\suites\common.bat && `"!XL6_CGEN_CC!`" !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -c `"$nativeSource`" -o `"$nativeObject`""
     & $env:ComSpec /d /v:on /c $command
     if ( $LASTEXITCODE -ne 0 ) {
@@ -80,5 +75,5 @@ finally {
     $env:XLANG_PACKAGE_PATH = $oldPackagePath
 }
 
-Write-Output "XLIR native union package ABI gate ok: stable nominal C name, shared definition guard, standalone native source, XLIR and legacy runtime."
+Write-Output "XLIR native union package ABI gate ok: stable nominal C name, shared definition guard, standalone native source, and canonical runtime."
 exit 0

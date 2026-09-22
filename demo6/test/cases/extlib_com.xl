@@ -1,0 +1,27 @@
+import com
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+func main(...) as int
+    require(com.available(), "COM should be available on Windows")
+    require(com.version() == "0.1.0", "COM version mismatch")
+
+    point obj = com.test_object()
+    require(com.is_null(obj) == 0, "test object creation")
+
+    var positional = com.invoke(obj, "Sub", array[9, 4])
+    var named = com.invoke_named(obj, "Sub", array[3, 8], array["left", "right"])
+    require(int(positional) == 5, "array argument conversion")
+    require(int(named) == -5, "named argument conversion")
+
+    var outValues = com.invoke_out(obj, "Bump", array[41], array[true])
+    require(int(outValues[0]) == 42 and int(outValues[1]) == 42, "byref conversion")
+
+    require(com.put_ref(obj, "Child", com.missing()) != 0, "putref missing sentinel")
+    require(int(com.invoke(obj, "HasChild", array[])) != 0, "dispatch return conversion")
+    require(com.release(obj) != 0, "release")
+    println("com extlib ok")
+    return 0
+end

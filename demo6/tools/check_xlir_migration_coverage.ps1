@@ -52,7 +52,7 @@ $xcallResultFailureGateText = [System.IO.File]::ReadAllText((Join-Path $Root "to
 $erasedCollectionMemberGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_erased_collection_members.ps1"))
 $nativeFactoryDeclarationGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_native_factory_declaration_abi.ps1"))
 $determinism = Join-Path $Root "tools\check_xlir_cgen_determinism.ps1"
-$differential = Join-Path $Root "tools\check_xlir_cgen_differential.ps1"
+$runtimeMatrix = Join-Path $Root "tools\check_xlir_cgen_runtime_matrix.ps1"
 $defaultClassGate = Join-Path $Root "tools\check_xlir_default_class_layout.ps1"
 $instanceClassMethodGate = Join-Path $Root "tools\check_xlir_class_instance_method.ps1"
 $implicitClassReceiverGate = Join-Path $Root "tools\check_xlir_class_implicit_receiver.ps1"
@@ -181,8 +181,8 @@ $resolvedPropertyCallGate = Join-Path $Root "tools\check_xlir_resolved_property_
 # This is an admission matrix, not a claim that every language feature has
 # migrated.  Each row names the smallest fixtures that prove the corresponding
 # XLIR semantic ABI is present.  The determinism gate then emits and strictly
-# compiles every xlir_ fixture, while the marked differential fixtures execute
-# both the legacy and XLIR products against the same observable contract.
+# compiles every xlir_ fixture, while the marked runtime fixtures execute the
+# canonical XLIR product against their observable contracts.
 $matrix = [ordered]@{
     "typed intrinsic identity and effect ABI" = @(
         "cgen_var_numeric_convert", "cgen_async_string_ownership", "c_abi_types",
@@ -600,7 +600,7 @@ $matrix["independent managed storage inputs and explicit match owner merges"] = 
 $matrix["path-sensitive SSA owner consumption and closed operand effects (not complete borrow liveness)"] = @("xlir_managed_storage_inputs", "xlir_parameter_cleanup_outcome", "xlir_loop_cleanup_outcome")
 $matrix["runtime callable partial result rollback and original failure ownership"] = @("xlir_xcall_result_failure")
 
-$runtimeDifferentials = @(
+$runtimeContracts = @(
     "xlir_return_commit",
     "xlir_closure_argument_conversion",
     "xlir_process_exec_bridge", "xlir_process_success_bridge", "xlir_process_exit_code_bridge",
@@ -798,7 +798,7 @@ $xlirOnlyRuntimeContracts = @(
     "xlir_persistence_recursive_collection_values"
 )
 
-foreach ( $path in @($caseDir, $determinism, $differential, $defaultClassGate, $instanceClassMethodGate, $implicitClassReceiverGate, $explicitConstructorFieldGate, $classReferenceFieldGate, $explicitClassConstructorGate, $staticClassGate, $virtualClassModelGate, $protocolDispatchGate, $protocolWitnessAdapterGate, $asyncClassMethodGate, $cScalarAbiGate, $exportPrimitiveWidthGate, $u64AbiGate, $integerConversionAbiGate, $checkedFloatConversionGate, $checkedTimeConversionGate, $boolConversionAbiGate, $checkedCastAbiGate, $nullableCastAbiGate, $nominalCastAbiGate, $dynamicConditionalTruthGate, $dynamicUnaryAbiGate, $dynamicBinaryExtendedAbiGate, $checkedIntegerArithmeticAbiGate, $i64PowAbiGate, $timeApproxAbiGate, $specialF64ConstantAbiGate, $scalarConversionAbiGate, $timeConversionAbiGate, $functionValueOwnershipGate, $openFunctionGate, $foreignFunctionValueGate, $copyCloneGate, $exportBoundaryGate, $globalExportBoundaryGate, $externGlobalBoundaryGate, $nullAbiBoundaryGate, $callSiteBindingGate, $callSiteVariadicGate, $callSiteCVarargGate, $callSiteGenericGate, $classProtocolSyntaxGate, $intrinsicCallGate, $nativeNominalReceiverGate, $nativeHandleBindGate, $resolvedPropertyCallGate, $valueInitializerGate, $reachabilityGate, $productResultGate, $namedFunctionAdapterGate, $collectionMemberGate, $erasedArrayAppendGate, $collectionAlgebraGate, $dynamicCollectionMethodGate, $xcallGate, $asyncGenericPlannerGate, $asyncCfgLivenessGate, $asyncMultiAwaitMachineGate, $asyncMachineAdmissionGate, $asyncErrorAbiGate, $futureCancelGate, $futureMemberStatusGate, $dynamicKeyIndexGate, $indexWriteAbiGate, $ownedExpressionDiscardGate, $xvalueMembershipGate, $stringMembershipGate, $rangeMembershipGate, $rangeForAbiGate, $generatorMachineGate, $interpolatedStringGate, $arrayI64ForAbiGate, $xvalueIteratorAbiGate, $setI64IteratorAbiGate, $iteratorScalarProjectionGate, $iteratorManagedProjectionGate, $arrayIteratorProjectionGate, $dictIteratorProjectionGate, $erasedCollectionIteratorGate, $dynamicVarIteratorGate, $stringIteratorGate, $collectionTypeRebindGate, $nullableContainerProjectionGate, $safeIndexNullableCollectionGate, $nullableSafeClassFieldGate, $memberAbiGate, $lengthProtocolMemberGate, $classFieldMemberAbiGate, $classFieldInheritedNarrowedGate, $nullableStringLifecycleGate) ) {
+foreach ( $path in @($caseDir, $determinism, $runtimeMatrix, $defaultClassGate, $instanceClassMethodGate, $implicitClassReceiverGate, $explicitConstructorFieldGate, $classReferenceFieldGate, $explicitClassConstructorGate, $staticClassGate, $virtualClassModelGate, $protocolDispatchGate, $protocolWitnessAdapterGate, $asyncClassMethodGate, $cScalarAbiGate, $exportPrimitiveWidthGate, $u64AbiGate, $integerConversionAbiGate, $checkedFloatConversionGate, $checkedTimeConversionGate, $boolConversionAbiGate, $checkedCastAbiGate, $nullableCastAbiGate, $nominalCastAbiGate, $dynamicConditionalTruthGate, $dynamicUnaryAbiGate, $dynamicBinaryExtendedAbiGate, $checkedIntegerArithmeticAbiGate, $i64PowAbiGate, $timeApproxAbiGate, $specialF64ConstantAbiGate, $scalarConversionAbiGate, $timeConversionAbiGate, $functionValueOwnershipGate, $openFunctionGate, $foreignFunctionValueGate, $copyCloneGate, $exportBoundaryGate, $globalExportBoundaryGate, $externGlobalBoundaryGate, $nullAbiBoundaryGate, $callSiteBindingGate, $callSiteVariadicGate, $callSiteCVarargGate, $callSiteGenericGate, $classProtocolSyntaxGate, $intrinsicCallGate, $nativeNominalReceiverGate, $nativeHandleBindGate, $resolvedPropertyCallGate, $valueInitializerGate, $reachabilityGate, $productResultGate, $namedFunctionAdapterGate, $collectionMemberGate, $erasedArrayAppendGate, $collectionAlgebraGate, $dynamicCollectionMethodGate, $xcallGate, $asyncGenericPlannerGate, $asyncCfgLivenessGate, $asyncMultiAwaitMachineGate, $asyncMachineAdmissionGate, $asyncErrorAbiGate, $futureCancelGate, $futureMemberStatusGate, $dynamicKeyIndexGate, $indexWriteAbiGate, $ownedExpressionDiscardGate, $xvalueMembershipGate, $stringMembershipGate, $rangeMembershipGate, $rangeForAbiGate, $generatorMachineGate, $interpolatedStringGate, $arrayI64ForAbiGate, $xvalueIteratorAbiGate, $setI64IteratorAbiGate, $iteratorScalarProjectionGate, $iteratorManagedProjectionGate, $arrayIteratorProjectionGate, $dictIteratorProjectionGate, $erasedCollectionIteratorGate, $dynamicVarIteratorGate, $stringIteratorGate, $collectionTypeRebindGate, $nullableContainerProjectionGate, $safeIndexNullableCollectionGate, $nullableSafeClassFieldGate, $memberAbiGate, $lengthProtocolMemberGate, $classFieldMemberAbiGate, $classFieldInheritedNarrowedGate, $nullableStringLifecycleGate) ) {
     if ( ! (Test-Path -LiteralPath $path) ) {
         throw "XLIR migration coverage input is missing: $path"
     }
@@ -864,7 +864,7 @@ if ( ! $determinismText.Contains('-Filter "xlir_*.xl"') -or
     throw "XLIR migration matrix requires the all-fixture deterministic strict-C gate"
 }
 
-$differentialText = [System.IO.File]::ReadAllText($differential, [System.Text.Encoding]::UTF8)
+$runtimeMatrixText = [System.IO.File]::ReadAllText($runtimeMatrix, [System.Text.Encoding]::UTF8)
 $defaultClassGateText = [System.IO.File]::ReadAllText($defaultClassGate, [System.Text.Encoding]::UTF8)
 $instanceClassMethodGateText = [System.IO.File]::ReadAllText($instanceClassMethodGate, [System.Text.Encoding]::UTF8)
 $implicitClassReceiverGateText = [System.IO.File]::ReadAllText($implicitClassReceiverGate, [System.Text.Encoding]::UTF8)
@@ -1019,7 +1019,7 @@ foreach ( $required in @(
     "xlir_persist_json_project_t", "xlir_persist_json_restore_t",
     "xrtValueArrayGet(source, index)", "xrtValueTypeIdBind(result",
     "xl6_xrt_json_stringify", "SequenceEqual", "-Werror",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $recursivePersistenceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the recursive class persistence ABI gate: $required"
@@ -1032,7 +1032,7 @@ foreach ( $required in @(
     "xrtValueIterAdvance(iterator, NULL, &borrowed)",
     "xrtValueObjectAt(source, index, &key)",
     "xl6_xrt_typed_list_to_sequence_value", "SequenceEqual", "-Werror",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $persistenceProjectionRootGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed persistence projection-root ABI gate: $required"
@@ -1058,8 +1058,8 @@ foreach ( $required in @(
     "protocol_inherited_dispatch.xl",
     "protocol_native_backed_dispatch.xl",
     "native-class-handle-borrow", "nominalIdentitySets",
-    "byte-for-byte deterministic", "strict runtime",
-    "legacy differential semantics"
+    "byte-for-byte deterministic", "strict runtime"
+
 ) ) {
     if ( ! $protocolWitnessAdapterGateText.Contains($required) ) {
         throw "XLIR migration matrix requires inherited/native protocol witness adapter coverage: $required"
@@ -1135,8 +1135,8 @@ foreach ( $required in @(
     '"future-set-debug-name"', '"future-debug-name"',
     '"future-create-time-ms"', '"future-complete-time-ms"',
     '"future-pending-continuations"', "owned string/error projection",
-    "SequenceEqual", "mechanical RuntimeOp emission", "-Werror",
-    "legacy differential runtime gate failed"
+    "SequenceEqual", "mechanical RuntimeOp emission", "-Werror"
+
 ) ) {
     if ( ! $futureMemberStatusGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the explicit Future wait/status member ABI gate: $required"
@@ -1146,8 +1146,8 @@ foreach ( $required in @(
     "xlir_task_when_any_literal_abi.xl", 'kindName -eq "task-when-any"',
     'runtimeOpName -eq "future-when-any-index"', "heterogeneous Future payload identities",
     "(xl6FutureAggregateRuntimeV1Get()->WhenAnyIndex)(fa", "xrtFutureThenOwnedCancelSource",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $taskWhenAnyLiteralGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the flattened task.whenAny literal ABI gate: $required"
@@ -1158,8 +1158,8 @@ foreach ( $required in @(
     'runtimeOpName -eq "xvalue-future-ref"',
     'runtimeOpName -eq "future-when-any-index-array"',
     "borrowed array<Future<T>>", "xrtValueFuture(v", "(xl6FutureAggregateRuntimeV1Get()->WhenAnyIndexArray)(v",
-    "xl6_future_aggregate.h", "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "xl6_future_aggregate.h", "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $taskWhenAnyArrayGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed-array task.whenAny ABI gate: $required"
@@ -1176,7 +1176,7 @@ foreach ( $required in @(
     "(xl6FutureAggregateRuntimeV1Get()->AllArray)(v",
     "(xl6FutureAggregateRuntimeV1Get()->RaceArray)(v",
     "SequenceEqual", "XL6_CGEN_XLANG_LINKS",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $taskAggregateArrayGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed-array task.all/task.race ABI gate: $required"
@@ -1202,8 +1202,8 @@ foreach ( $required in @(
     "xlir_task_spawn_closure_abi.xl", 'kindName -eq "task-spawn"',
     'runtimeOpName -eq "task-spawn-closure"',
     "canonical operand ABI", "managed captures/results",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $taskSpawnClosureGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed task.spawn closure/frame ABI gate: $required"
@@ -1215,8 +1215,8 @@ foreach ( $required in @(
     'runtimeOpName -like "thread-*"', 'abiName -ne "retain-xvalue"',
     "managed conditional closure ownership",
     "xrtValueHandleTake", "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $threadResourceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed thread resource/capture ABI gate: $required"
@@ -1231,8 +1231,8 @@ foreach ( $required in @(
     'runtimeOpName -like "channel-*"', 'kindName -eq "storage-address"',
     'abiName -ne "retain-xvalue"', "explicit error edges",
     "xrtValueHandleTake", "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $channelResourceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed channel resource/payload ABI gate: $required"
@@ -1243,8 +1243,8 @@ foreach ( $required in @(
     "runtimeResourceOpName -match", "runtimeOpName -match",
     "runtime-resource-default", "22 explicit error edges",
     "xrtValueHandleTake", "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $syncResourceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed synchronization resource ABI gate: $required"
@@ -1256,8 +1256,8 @@ foreach ( $required in @(
     'runtimeOpName -like "special-queue-*"',
     'kindName -ne "storage-address"', 'abiName -ne "retain-xvalue"',
     "explicit error edges", "xrtChannelDrain",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $specialQueueResourceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed concurrent queue resource ABI gate: $required"
@@ -1270,7 +1270,7 @@ foreach ( $required in @(
     'initializerAbiName -eq "runtime-resource-default"',
     'errorAbiName -ne "may-raise"', 'abiName -ne "retain-xvalue"',
     "partial-object cleanup", "byte-for-byte deterministic",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $stackResourceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed Stack resource/class-field ABI gate: $required"
@@ -1283,8 +1283,8 @@ foreach ( $required in @(
     'runtimeResourceKeyOrderAbiName -eq "invalid"',
     'operandCount -ne 3', 'abiName -ne "retain-xvalue"',
     "partial-object cleanup", "byte-for-byte deterministic",
-    "declaration-only C", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "declaration-only C", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $avlResourceGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed AvlTree resource/class-field ABI gate: $required"
@@ -1296,7 +1296,7 @@ foreach ( $required in @(
     "sourcePayloadAbiName", 'runtimeOpName -eq "future-continue-closure"',
     "futureContinuationKindName", "Future<T> to Future<U>",
     "byte-for-byte deterministic", "task-boundary AsyncError cause",
-    "strict-C/runtime gate failed", "differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $futureContinuationGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed Future continuation ABI gate: $required"
@@ -1311,7 +1311,7 @@ foreach ( $required in @(
     "xlir_xvalue_object_set_literal_closure",
     "xlir_xvalue_object_get_literal_closure",
     "SequenceEqual", "XL6_CGEN_XLANG_LINKS",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedCallableIndexGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed callable index ABI gate: $required"
@@ -1326,7 +1326,7 @@ foreach ( $required in @(
     'callKindName -eq "function-value"', 'targetSymbol -eq 0',
     "calleeType", "callableErasureAbiName", "CLOSURE_CALL",
     "SequenceEqual", "byte-for-byte deterministic",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedCallableContainerGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed callable-container ABI gate: $required"
@@ -1343,7 +1343,7 @@ foreach ( $required in @(
     'runtimeOpName -eq "xvalue-project-nullable-closure-copy"',
     "nullable native class did not preserve presence",
     "payloadType", "typeValueId", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedSafeIndexNominalGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed safe-index nominal ABI gate: $required"
@@ -1355,8 +1355,8 @@ foreach ( $required in @(
     'runtimeOpName -eq "xvalue-callable-from-closure"',
     'runtimeOpName -eq "xvalue-project-xvalue-retain"',
     "runtimeIdentityType", "xvalue-index-set-xvalue-key-new",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $typedIndexAssignNominalGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed nominal index-assignment ABI gate: $required"
@@ -1367,8 +1367,8 @@ foreach ( $required in @(
     'runtimeOpName -eq "xvalue-index-get-xvalue-key"',
     'runtimeOpName -eq "xvalue-project-scalar-copy"',
     "payloadType", "canonical borrowed carrier ABI",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $dynamicKeyScalarProjectionGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the dynamic-key scalar projection gate: $required"
@@ -1379,7 +1379,7 @@ foreach ( $required in @(
     'runtimeOpName -eq "xvalue-raw-pointer-borrow"',
     'runtimeOpName -eq "xvalue-project-raw-pointer-borrow"',
     "payloadType", "canonical borrowed carrier ABI", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedPointProjectionGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed point projection gate: $required"
@@ -1393,8 +1393,8 @@ foreach ( $required in @(
     'errorAbiName -ne "may-raise"',
     'kindName -eq "error-test"',
     'kindName -eq "move"',
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $xvalueScalarBridgeGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the xvalue scalar-bridge ABI gate: $required"
@@ -1406,7 +1406,7 @@ foreach ( $required in @(
     "runtime-derived", "internal-call", "type-id-name",
     "class-derived-to-string", "type-id-to-string",
     "stringDeriveIncluded", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $stringConversionAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the closed string conversion ABI gate: $required"
@@ -1420,8 +1420,8 @@ foreach ( $required in @(
     "xlir_class_derive_hash_t", "xlir_class_derive_equal_t",
     "xlir_class_reference_hash_t", "xlir_class_reference_equal_t",
     "xl6ClassRuntimeV2Get()->BindIdentity", "SequenceEqual",
-    "strict-C/runtime gate failed", "standalone artifact runtime gate failed",
-    "legacy differential gate failed"
+    "strict-C/runtime gate failed", "standalone artifact runtime gate failed"
+
 ) ) {
     if ( ! $classValueIdentityAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the closed class value identity ABI gate: $required"
@@ -1433,7 +1433,7 @@ foreach ( $required in @(
     "xvalue-class-identity-bind", "xvalue-raw-pointer-borrow",
     "class-field-init-new", "executionOrigin", "instantiations",
     "SequenceEqual", "strict-C/runtime gate failed",
-    "standalone artifact runtime gate failed", "legacy differential gate failed"
+    "standalone artifact runtime gate failed"
 ) ) {
     if ( ! $nativeClassObjectIdentityAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the managed native class object identity ABI gate: $required"
@@ -1444,8 +1444,8 @@ foreach ( $required in @(
     "parameterPhysicalAbis", "native-class-handle-borrow",
     "parameterPhysicalFieldDeclarations",
     "xvalue-object-get-literal-raw-pointer", "direct nominal-handle projector",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $managedNativeExternReceiverGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the managed native extern receiver physical ABI gate: $required"
@@ -1468,7 +1468,7 @@ foreach ( $required in @(
     "cgen_class_inherit_destroy.xl", "hasExplicitCreate",
     "class-destroy-borrow", "xvalue-class-construction-commit",
     "derived-to-base", "retained projection", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $classLifecycleGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the user-class lifecycle ABI gate: $required"
@@ -1485,7 +1485,7 @@ foreach ( $required in @(
     'runtimeOpName -eq "xvalue-object-get-literal"',
     'runtimeOpName -eq "xvalue-project-tagged-nullable-copy"',
     "five exact direct projection identities", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedDictLiteralIndexGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed-dict literal-index ABI gate: $required"
@@ -1501,7 +1501,7 @@ foreach ( $required in @(
     "xvalue-object-get-literal",
     "xrtValueRetain", "xlir_xvalue_object_get_literal_raw_pointer",
     "regressed to a bare native-handle projection", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedNativeHandleIndexGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the managed native-backed class index ABI gate: $required"
@@ -1521,7 +1521,7 @@ foreach ( $required in @(
     "xlir_xvalue_iterator_item_xvalue_retain(",
     "xlir_xvalue_object_get_literal_raw_pointer(",
     "xlir_xvalue_iterator_destroy(", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedNativeHandleIteratorGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the managed native-backed class iterator ABI gate: $required"
@@ -1736,7 +1736,7 @@ foreach ( $required in @(
     "xvalue-iterator-item-xvalue-retain",
     "xvalue-iterator-key-ordinal-i64", "xvalue-iterator-key-i64",
     "xvalue-iterator-key-string-copy", "source-bound cursor",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $erasedCollectionIteratorGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the statically shaped erased collection iterator gate: $required"
@@ -1751,7 +1751,7 @@ foreach ( $required in @(
     "canonical managed var TypeId", "source-bound cursor",
     "owned-rvalue checked-create release",
     "continue/break/return/finally", "TypeError",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $dynamicVarIteratorGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the runtime-checked dynamic var iterator gate: $required"
@@ -1763,8 +1763,8 @@ foreach ( $required in @(
     "string-snapshot-release", "string-utf8-count", "string-utf8-at",
     "copy-vs-transfer acquisition semantics",
     "empty/continue/break/return/finally/throw cleanup",
-    "emoji runtime semantics", "ReadAllBytes", "-Werror",
-    "legacy differential runtime"
+    "emoji runtime semantics", "ReadAllBytes", "-Werror"
+
 ) ) {
     if ( ! $stringIteratorGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the canonical UTF-8 string iterator gate: $required"
@@ -1790,7 +1790,7 @@ foreach ( $required in @(
     "xvalue-iterator-item-borrow",
     "ownership-only exact-TypeId retain",
     "explicit VALUE rebinds", "named print tag ABI",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $nullableContainerProjectionGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed nullable container projection gate: $required"
@@ -1805,8 +1805,8 @@ foreach ( $required in @(
     'kindName -ne "nullable-unwrap"',
     "nullable receiver coverage", "static collection payload",
     "xrtValueArrayAt(v", "xrtValueIntMapGet(v", "xrtValueNull()",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $safeIndexNullableCollectionGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the safe nullable-collection index ABI gate: $required"
@@ -1820,7 +1820,7 @@ foreach ( $required in @(
     '"xvalue-project-nullable-string-copy"',
     "runtimeIdentityType", "payloadType",
     "lookup/project/release", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $nullableSafeClassFieldGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the nullable safe declared-class field ABI gate: $required"
@@ -1833,7 +1833,7 @@ foreach ( $required in @(
     "protocol-product-take", "native-backed-class-managed-iterator-release",
     'PSObject.Properties.Name -contains "loopResourceDestroySymbol"',
     "continue/break/return/throw", "direct CALL targets",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $protocolIteratorGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the canonical class protocol iterator gate: $required"
@@ -1876,8 +1876,8 @@ foreach ( $required in @(
     'receiver.type -ne $receiver.storageType',
     '"load", "nullable-unwrap"',
     "explicit base-layout lookup", "semantic nullable flow type",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $classFieldInheritedNarrowedGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the inherited/narrowed class-field ABI gate: $required"
@@ -1891,8 +1891,8 @@ foreach ( $required in @(
     "string-nullable-copy",
     "constructor borrowed nullable-string lvalue",
     "closure capture return",
-    "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "SequenceEqual", "strict-C/runtime gate failed"
+
 ) ) {
     if ( ! $nullableStringLifecycleGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the nullable-string lifecycle ABI gate: $required"
@@ -1903,8 +1903,7 @@ foreach ( $required in @(
     'integerTargetName -ne "i64"', 'operatorErrorAbiName -ne "no-raise"',
     'kindName -eq "binary"', 'opcodeName -eq "pow"',
     '"load", "runtime-call", "store"', "SequenceEqual",
-    "xlir_i64_pow", "strict-C runtime failed",
-    "differential runtime failed"
+    "xlir_i64_pow", "strict-C runtime failed"
 ) ) {
     if ( ! $i64PowAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the exact i64 power ABI gate: $required"
@@ -1915,7 +1914,7 @@ foreach ( $required in @(
     'opcodeName -ne "approx"', 'operatorErrorAbiName -ne "no-raise"',
     'name -ne "time"', 'cAbi -ne 40',
     "xrtTimeNear", "UINT64_C(10000000)", "SequenceEqual",
-    "strict-C runtime failed", "differential runtime failed"
+    "strict-C runtime failed"
 ) ) {
     if ( ! $timeApproxAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the exact time approximate ABI gate: $required"
@@ -1928,7 +1927,7 @@ foreach ( $required in @(
     'kindName -eq "const"', "arbitrary CONST C payload",
     "DBL_MANT_DIG == 53", "memcpy(&value, &bits, sizeof(value))", "SequenceEqual",
     "Special f64 CLI run failed", "Special f64 CLI executable failed",
-    "strict-C/runtime gate failed", "differential runtime failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $specialF64ConstantAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the special f64 constant ABI gate: $required"
@@ -1972,8 +1971,8 @@ foreach ( $required in @(
     "integer-convert-checked", "integer-convert-wrapping",
     "ERROR_TEST", "ReadAllBytes", "-Werror",
     "Static U64 conversion incorrectly re-entered the checked ABI",
-    "narrow integer strict-C runtime failed",
-    "Legacy narrow integer differential runtime failed"
+    "narrow integer strict-C runtime failed"
+
 ) ) {
     if ( ! $integerConversionAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the explicit integer conversion ABI gate: $required"
@@ -1995,7 +1994,7 @@ foreach ( $required in @(
     "time-to-string", "xvalue-time", "borrow", "may-raise", "ERROR_TEST",
     "xrtTimeParseAny", "xrtValueGetTime", "xrtValueTime",
     "ValueError", "TypeError", "ReadAllBytes", "-Werror",
-    "strict XLIR failure recovery", "legacy differential semantics"
+    "strict XLIR failure recovery"
 ) ) {
     if ( ! $checkedTimeConversionGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the checked string/xvalue time conversion gate: $required"
@@ -2004,17 +2003,17 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_bool_conversion_abi.xl", "bool-convert", "xvalue-truthy",
     "opcodeName", "borrow", "value", "xrtValueTruthy(",
-    "ReadAllBytes", "-Werror", "Legacy bool conversion differential runtime failed"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $boolConversionAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the explicit bool truth conversion ABI gate: $required"
     }
 }
 foreach ( $required in @(
-    "xlir_checked_cast_abi.xl", "xlir_checked_cast_differential.xl",
+    "xlir_checked_cast_abi.xl",
     "xvalue-cast-checked", "castAbiName", "payloadType", "may-raise",
     "adjacent ERROR_TEST", "xrtValueGetUInt", "TypeError", "MemoryError",
-    "ReadAllBytes", "-Werror", "shared-partition legacy differential"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $checkedCastAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the closed checked cast ABI gate: $required"
@@ -2032,7 +2031,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_dynamic_unary_abi.xl", "xvalue-unary-pos", "xvalue-unary-neg",
     "xvalue-unary-bit-not", "no ambiguous UNARY fallback", "xlir_xvalue_unary(",
-    "ReadAllBytes", "-Werror", "Legacy dynamic unary differential runtime failed"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $dynamicUnaryAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the explicit dynamic unary ABI gate: $required"
@@ -2043,8 +2042,8 @@ foreach ( $required in @(
     "xvalue-binary-mod", "xvalue-binary-bit-and", "xvalue-binary-bit-or",
     "xvalue-binary-bit-xor", "xvalue-binary-shl", "xvalue-binary-shr",
     "operatorErrorAbiName", "error-test", "xlir_xvalue_binary_failure(",
-    "xrtValueArrayConcat(left, right)", "ReadAllBytes", "-Werror",
-    "Legacy extended dynamic binary differential runtime failed"
+    "xrtValueArrayConcat(left, right)", "ReadAllBytes", "-Werror"
+
 ) ) {
     if ( ! $dynamicBinaryExtendedAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the checked extended dynamic binary ABI gate: $required"
@@ -2059,8 +2058,8 @@ foreach ( $required in @(
     "integerTargetName", "operatorErrorAbiName", "error-test",
     "xlir_i64_binary_checked(", "xlir_u64_binary_checked(",
     "INT64_MIN && right == -1", "ReadAllBytes", "-Werror",
-    "nested async launch plus async/generator machine ownership",
-    "Legacy checked integer continuation differential runtime failed"
+    "nested async launch plus async/generator machine ownership"
+
 ) ) {
     if ( ! $checkedIntegerArithmeticAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the checked scalar integer arithmetic ABI gate: $required"
@@ -2070,7 +2069,7 @@ foreach ( $required in @(
     "xlir_scalar_conversion_abi.xl", "bool-to-bool", "bool-to-integer", "bool-to-float",
     "integer-to-bool", "integer-to-integer", "integer-to-float",
     "float-to-integer", "float-to-float", "scalarConversionAbiName",
-    "ReadAllBytes", "-Werror", "Legacy scalar conversion differential runtime failed"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $scalarConversionAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the canonical scalar conversion ABI gate: $required"
@@ -2080,8 +2079,8 @@ foreach ( $required in @(
     "xlir_time_conversion_abi.xl", "TIME_I64",
     "time-to-integer", "time-to-float", "integer-to-time",
     "separate typed bool truth semantics",
-    "extern parameter/return ABI", "ReadAllBytes", "-Werror",
-    "Legacy time conversion differential runtime failed"
+    "extern parameter/return ABI", "ReadAllBytes", "-Werror"
+
 ) ) {
     if ( ! $timeConversionAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the distinct time conversion ABI gate: $required"
@@ -2424,8 +2423,8 @@ foreach ( $required in @(
     "parameterTypes", "parameterAbis", "parameterPhysicalAbis",
     "native-class-handle-borrow", "native_property_get_cell",
     "native_property_set_cell", "direct member/single-index/multi-index CALLs",
-    "managed-field physical ABI", "deterministic strict C", "-Werror",
-    "legacy differential runtime semantics"
+    "managed-field physical ABI", "deterministic strict-C", "-Werror"
+
 ) ) {
     if ( ! $resolvedPropertyCallGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the resolved native property CallTarget ABI gate: $required"
@@ -2482,8 +2481,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "export_primitive_widths.xl", 'name -eq "float32"', "xlir_result_f32",
     "parameterValueAbis", "parameterNames", "int8_t i8", "float f32",
-    "(int64_t)xlir_input_0", "identical legacy header", "-Werror",
-    "differential runtime failed"
+    "(int64_t)xlir_input_0", "public header", "-Werror"
 ) ) {
     if ( ! $exportPrimitiveWidthGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the language F32/export fixed-width ABI gate: $required"
@@ -2520,8 +2518,8 @@ foreach ( $required in @(
     "persistence-xson-write", "persistence-xson-read",
     "explicit default-instance reconstruction",
     "inherited/nested projection", "byte-for-byte deterministic",
-    "strict-C/runtime gate failed", "strict file/runtime behavior",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed", "strict file/runtime behavior"
+
 ) ) {
     if ( ! $persistenceJsonGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the JSON persistence schema/reconstruction ABI gate: $required"
@@ -2531,7 +2529,7 @@ foreach ( $required in @(
     "cgen_function_direct_owned_args.xl",
     "hir_closure_for_capture.xl", "hir_closure_for_named_typed_array.xl",
     "hir_closure_for_string_capture.xl", 'sourceKindName -ne "for_targets"',
-    "lexical for-target frame transfers", "legacy differential runtime failed",
+    "lexical for-target frame transfers",
     "callable=fixed", "name=function",
     "JSON type/storage table",
     "kind=temporary",
@@ -2546,11 +2544,10 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "cgen_function_bare_call.xl", "callableErasureAbiName",
-    "array-variadic", "xrtValueArrayAppend(", "deterministic",
-    "--backend legacy", "-Werror"
+    "array-variadic", "xrtValueArrayAppend(", "deterministic", "-Werror"
 ) ) {
     if ( ! $openFunctionGateText.Contains($required) ) {
-        throw "XLIR migration matrix requires the open-function callable runtime differential gate: $required"
+        throw "XLIR migration matrix requires the open-function callable runtime gate: $required"
     }
 }
 foreach ( $required in @(
@@ -2612,9 +2609,9 @@ foreach ( $required in @(
         throw "XLIR migration matrix requires the async class-method receiver/frame gate: $required"
     }
 }
-foreach ( $name in $runtimeDifferentials ) {
+foreach ( $name in $runtimeContracts ) {
     if ( ! $names.Contains($name) ) {
-        throw "XLIR runtime differential fixture is missing: $name"
+        throw "XLIR runtime contract fixture is missing: $name"
     }
     $runtimeGateText = if ( $name -eq "xlir_return_commit" ) {
         $returnCommitGateText
@@ -2647,11 +2644,11 @@ foreach ( $name in $runtimeDifferentials ) {
                $name -eq "hir_closure_for_string_capture" ) {
         $functionValueOwnershipGateText
     } else {
-        $differentialText
+        $runtimeMatrixText
     }
     if ( ! $runtimeGateText.Contains("$name.xl") -and
          !(($name -like "xlir_json_*" -or $name -like "xlir_xson_*" -or $name -like "xlir_host_error_boundary_*" -or $name -like "xlir_serialization_callback_*" -or $name -like "xlir_text_output_*" -or $name -in $matrix["direct directory and process bridge ABI"] -or $name -in $matrix["statically shaped erased collection member ABI"]) -and $runtimeGateText.Contains('"' + $name + '"')) ) {
-        throw "XLIR runtime differential gate does not execute: $name"
+        throw "XLIR runtime contract gate does not execute: $name"
     }
 }
 foreach ( $name in $xlirOnlyRuntimeContracts ) {
@@ -2772,15 +2769,15 @@ foreach ( $name in $xlirOnlyRuntimeContracts ) {
 }
 
 foreach ( $gate in @(
-    @{ Text = $systemBridgeGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "no-raise", "xlir_process_cleanup_host.c", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $textOutputGateText; Required = @("parameterAbis", "parameterPhysicalAbis", "no-raise", "void", "Output", "wrong_input", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $erasedCollectionMemberGateText; Required = @("runtimeTypeMap.fallback", "typedCollectionOpName", "resultAbiName", "temporary", "continuation", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $serializationCallbackGateText; Required = @("errorAbiName", "errorPhysicalAbiName", "result-carrier", "machineOps", "Marker", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $hostErrorBoundaryGateText; Required = @("errorAbiName", "xlir_module_init", "result.ok", "Marker", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $xsonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_option", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $xsonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR-only temporary capture reclamation") },
-    @{ Text = $jsonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_pretty", "-Werror", '"xlir", "legacy"') },
-    @{ Text = $jsonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR-only temporary capture reclamation") },
+    @{ Text = $systemBridgeGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "no-raise", "xlir_process_cleanup_host.c", "-Werror", "--backend xlir") },
+    @{ Text = $textOutputGateText; Required = @("parameterAbis", "parameterPhysicalAbis", "no-raise", "void", "Output", "wrong_input", "-Werror", '@("xlir")') },
+    @{ Text = $erasedCollectionMemberGateText; Required = @("runtimeTypeMap.fallback", "typedCollectionOpName", "resultAbiName", "temporary", "continuation", "-Werror", '--backend xlir') },
+    @{ Text = $serializationCallbackGateText; Required = @("errorAbiName", "errorPhysicalAbiName", "result-carrier", "machineOps", "Marker", "-Werror", '@("xlir")') },
+    @{ Text = $hostErrorBoundaryGateText; Required = @("errorAbiName", "xlir_module_init", "result.ok", "Marker", "-Werror", '@("xlir")') },
+    @{ Text = $xsonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_option", "-Werror", '@("xlir")') },
+    @{ Text = $xsonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR ownership contract") },
+    @{ Text = $jsonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_pretty", "-Werror", '@("xlir")') },
+    @{ Text = $jsonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR ownership contract") },
     @{ Text = $nativeFactoryDeclarationGateText; Required = @("xlir_native_factory_declaration.xl", "unreachable", "native-class-field-take", "resultPhysicalDestroySymbol", "-Werror", "--backend xlir") }
 ) ) {
     foreach ( $required in $gate.Required ) {
@@ -2794,5 +2791,5 @@ foreach ($required in @('xlir_exit_route.xl', 'exitSteps', 'failureTarget', 'fir
 }
 $rows = $matrix.Count
 $matrixFixtures = @($matrix.Values | ForEach-Object { $_ } | Select-Object -Unique).Count
-Write-Output "XLIR migration coverage ok: $rows semantic rows, $matrixFixtures representative fixtures, $($allXlirFixtures.Count) all-fixture deterministic candidates, $($runtimeDifferentials.Count) legacy-vs-XLIR runtime differentials, $($xlirOnlyRuntimeContracts.Count) explicit XLIR-only runtime contracts."
+Write-Output "XLIR migration coverage ok: $rows semantic rows, $matrixFixtures representative fixtures, $($allXlirFixtures.Count) all-fixture deterministic candidates, $($runtimeContracts.Count) canonical runtime contracts, $($xlirOnlyRuntimeContracts.Count) explicit XLIR-only runtime contracts."
 exit 0

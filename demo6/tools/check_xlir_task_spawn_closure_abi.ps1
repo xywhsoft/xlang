@@ -17,9 +17,7 @@ $typedJson = Join-Path $outputDir "xlir_task_spawn_closure_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_task_spawn_closure_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_task_spawn_closure_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_task_spawn_closure_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_task_spawn_closure_abi.legacy.c"
 $xlirExe = Join-Path $testDir "xlir_task_spawn_closure_abi.exe"
-$legacyExe = Join-Path $testDir "xlir_task_spawn_closure_abi.legacy.exe"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -177,13 +175,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR task.spawn strict-C/runtime gate failed"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyC
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR task.spawn legacy C generation failed" }
-$legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_task_spawn_closure_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_task_spawn_closure_abi.legacy.exe && build\test\xlir_task_spawn_closure_abi.legacy.exe'
-& $env:ComSpec /d /v:on /c $legacyCommand
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR task.spawn legacy differential runtime gate failed"
-}
-
-Write-Output "XLIR task.spawn closure/frame ABI gate passed: verified canonical arguments, typed RuntimeOp metadata, managed captures/results, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR task.spawn closure/frame ABI gate passed: verified canonical arguments, typed RuntimeOp metadata, managed captures/results, deterministic mechanical C, and strict runtime."
 exit 0

@@ -60,7 +60,7 @@ try {
         }
         & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter -Wno-unused-const-variable -Wno-missing-field-initializers "-I$outputDir" -c $cPath -o (Join-Path $outputDir ($fixture.Name + ".o"))
         if ($LASTEXITCODE -ne 0) { throw "Host error boundary strict C compile failed" }
-        foreach ($backend in @("xlir", "legacy")) {
+        foreach ($backend in @("xlir")) {
             Invoke-Captured $xl ('run "{0}" --backend {1}' -f $source,$backend) $fixture.Exit $fixture.Marker
             $exe = Join-Path $outputDir ($fixture.Name + ".$backend.exe")
             Invoke-Captured $xl ('build "{0}" --backend {1} -o "{2}"' -f $source,$backend,$exe) 0
@@ -74,5 +74,5 @@ try {
         if (!$shell.Contains($required)) { throw "Host boundary lost explicit outcome handling: $required" }
     }
 } finally { Pop-Location }
-Write-Output "XLIR host error boundary ok: native diagnostics survive inside the body, successful script/main/module-init boundaries do not fabricate exceptions, nonzero user exit is preserved, real script/main/initializer errors remain uncaught, deterministic strict C and six XLIR/legacy run/build contracts."
+Write-Output "XLIR host error boundary ok: native diagnostics survive inside the body, successful script/main/module-init boundaries do not fabricate exceptions, nonzero user exit is preserved, real script/main/initializer errors remain uncaught, deterministic strict C and canonical run/build contracts."
 exit 0

@@ -1,0 +1,167 @@
+// xbot/resource.xl - 资源管理
+// 对应 xbot.py L700-1000：res:// URI 解析、远程下载、本地缓存、运行时路径
+
+// ─── 资源路径常量 ───
+string _res_base_dir = ""
+string _res_download_url = "https://test-job-qa.cyouops.com/rd/v2/test_manager/material_library/download_by_var/"
+int _res_timeout_ms = 30000
+
+// ─── 初始化资源根目录 ───
+export func InitResource(string base_dir)
+    _res_base_dir = base_dir
+end
+
+// 获取资源根目录
+export func GetResDir() as string
+    if _res_base_dir != "" then
+        return _res_base_dir
+    end
+    // 默认使用可执行文件同级的 res 目录
+    return path.join(path.appDir(), "res")
+end
+
+// ─── 运行时路径 ───
+export class RuntimePaths
+    string res_dir
+    string models_dir
+    string op_dir
+    string android_dir
+    string config_path
+
+    create(string base)
+        self.res_dir = base
+        self.models_dir = path.join(base, "models")
+        self.op_dir = path.join(base, "op")
+        self.android_dir = path.join(base, "android")
+        self.config_path = path.join(path.dir(base), "config.ini")
+    end
+end
+export func GetRuntimePaths() as RuntimePaths
+    return RuntimePaths(GetResDir())
+end
+
+// ─── res:// URI 解析 ───
+// 格式: res://game_name/file_name
+// 解析后缓存到 res/<game_name>/<file_name>
+export func ResolveResPath(string uri) as string
+    // 非 res:// 前缀，直接返回原路径
+    if string.len(uri) < 6 then
+        return uri
+    end
+    if string.mid(uri, 0, 6) != "res://" then
+        return uri
+    end
+
+    // 解析 game_name 和 file_name
+    string remainder = string.mid(uri, 6, string.len(uri) - 6)
+    int slash_pos = string.indexOf(remainder, "/")
+    if slash_pos <= 0 then
+        LogWarn("ResolveResPath: 无效的 res:// URI: " + uri)
+        return uri
+    end
+
+    string game_name = string.mid(remainder, 0, slash_pos)
+    string file_name = string.mid(remainder, slash_pos + 1, string.len(remainder) - slash_pos - 1)
+
+    // 本地缓存路径
+    string local_dir = path.join(GetResDir(), game_name)
+    string local_path = path.join(local_dir, file_name)
+
+    // 已存在则直接返回
+    if file.exists(local_path) then
+        return local_path
+    end
+
+    // 尝试从远程下载
+    LogInfo("资源本地缺失，正在下载: " + uri)
+    string download_url = _res_download_url + "?var_name=" + game_name + "/" + file_name
+    dir.createAll(local_dir)
+
+    int ok = _xbot_http_download(download_url, local_path, _res_timeout_ms)
+    if ok == 1 then
+        LogSucc("资源下载完成: " + local_path)
+        return local_path
+    end
+
+    LogWarn("资源下载失败: " + uri)
+    return ""
+end
+
+// ─── 图片路径解析 ───
+// 支持: 本地路径、res:// URI、base64 数据
+export func ResolveImagePath(string value) as string
+    if value == "" then
+        return ""
+    end
+    // res:// URI
+    if string.len(value) > 6 and string.mid(value, 0, 6) == "res://" then
+        return ResolveResPath(value)
+    end
+    // 绝对路径或相对路径
+    if file.exists(value) then
+        return value
+    end
+    // 尝试在 res 目录下查找
+    string in_res = path.join(GetResDir(), value)
+    if file.exists(in_res) then
+        return in_res
+    end
+    return value
+end
+
+// ─── 配置读取 ───
+// 从 config.ini 读取可选配置
+export func ReadConfig(string section, string key, string default_val) as string
+    RuntimePaths paths = GetRuntimePaths()
+    if file.exists(paths.config_path) == false then
+        return default_val
+    end
+    // 简化 INI 解析：逐行查找 [section] 下的 key=value
+    string content = file.readText(paths.config_path)
+    int in_section = 0
+    array<string> lines = string.split(content, "\n")
+    int i = 0
+    while i < lines.length
+        string line = string.trim(lines[i])
+        // 跳过注释和空行
+        if string.len(line) == 0 then
+            i += 1
+        elseif string.mid(line, 0, 1) == ";" or string.mid(line, 0, 1) == "#" then
+            i += 1
+        elseif string.mid(line, 0, 1) == "[" then
+            // 节头
+            int close = string.indexOf(line, "]")
+            if close > 0 then
+                string sec_name = string.mid(line, 1, close - 1)
+                if sec_name == section then
+                    in_section = 1
+                else
+                    in_section = 0
+                end
+            end
+            i += 1
+        elseif in_section == 1 then
+            // key = value
+            int eq = string.indexOf(line, "=")
+            if eq > 0 then
+                string k = string.trim(string.mid(line, 0, eq))
+                if k == key then
+                    return string.trim(string.mid(line, eq + 1, string.len(line) - eq - 1))
+                end
+            end
+            i += 1
+        else
+            i += 1
+        end
+    end
+    return default_val
+end
+
+// ─── 资源下载配置 ───
+export func SetResourceDownloadUrl(string url)
+    _res_download_url = url
+end
+
+export func SetResourceTimeout(int timeout_ms)
+    _res_timeout_ms = timeout_ms
+end

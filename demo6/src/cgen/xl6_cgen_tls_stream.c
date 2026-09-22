@@ -58,39 +58,7 @@ long long xl6_xrt_tls_stream_async_bytes(void* handle) { XL6_TlsStream* stream =
 long long xl6_xrt_tls_stream_async_count(void* handle) { XL6_TlsStream* stream = (XL6_TlsStream*)handle; return stream != 0 && stream->Native != 0 ? (long long)xrtTlsStreamAsyncCount(stream->Native) : 0; }
 ) "\n";
 
-/* Transport mechanics above are independent of the language Future carrier.
- * Each backend selects its declared adapter ABI; XLIR never reconstructs or
- * translates the legacy result layout. */
-static const char xl6TlsLegacyFutureSource[] = XL6_TLS_SOURCE(
-static const xl6_type_desc* xl6_type_desc_XL_Class_TlsStream(void);
-static xfuture* xl6_tls_stream_future_then_owned(xfuture* source,
-    int (*mapper)(const xl6_future_result*, void*, xl6_future_result*),
-    void* argument, void (*drop)(void*))
-{
-    xfuture* mapped = xl6FutureThenOwned(source, mapper, argument, drop);
-    if (mapped != 0) (void)xl6FutureLinkCancel(mapped, source);
-    return mapped;
-}
-static xfuture* xl6_tls_stream_future_map(xfuture* source,
-    int (*mapper)(const xl6_future_result*, void*, xl6_future_result*))
-{
-    xfuture* mapped;
-    if (source == 0) return 0;
-    mapped = xl6FutureThen(source, mapper, 0);
-    if (mapped != 0) (void)xl6FutureLinkCancel(mapped, source);
-    xl6FutureDestroy(source);
-    return mapped;
-}
-static int xl6_tls_stream_map_native(const xl6_future_result* input,
-    void* argument, xl6_future_result* output)
-{
-    void* stream = xl6_tls_stream_from_result(input != 0 ? input->pValue : 0, argument);
-    if (stream == 0) return -1;
-    return xl6_net_result_class(output, stream,
-        xl6_type_desc_XL_Class_TlsStream(), xl6_tls_stream_drop);
-}
-) "\n";
-
+/* XLIR's resident-exclusive Future carrier is the only component ABI. */
 static const char xl6TlsResidentFutureSource[] = XL6_TLS_SOURCE(
 static xfuture* xl6_tls_stream_future_then_owned(xfuture* source,
     xfuturecontinueproc mapper, void* argument, void (*drop)(void*))
@@ -566,8 +534,7 @@ void xl6CgenEmitTlsRuntime(
     int hasTlsDialRuntime,
     int hasTlsServerRuntime,
     const char* streamResultHandle,
-    const char* bytesResultHandle,
-    XL6_CgenTlsFutureAbi futureAbi
+    const char* bytesResultHandle
 )
 {
     xl6OutputPuts(xl6TlsTypesSource, out);
@@ -581,8 +548,7 @@ void xl6CgenEmitTlsRuntime(
             "static void* xl6_tls_stream_result_handle(const xvalue* value) "
             "{ return %s(value); }\n", streamResultHandle);
         xl6OutputPuts(xl6TlsStreamSource, out);
-        xl6OutputPuts(futureAbi == XL6_CGEN_TLS_FUTURE_RESIDENT_EXCLUSIVE_V1
-            ? xl6TlsResidentFutureSource : xl6TlsLegacyFutureSource, out);
+        xl6OutputPuts(xl6TlsResidentFutureSource, out);
     }
     if ( hasTlsDialRuntime ) {
         xl6OutputPuts(xl6TlsDialSource, out);

@@ -5,11 +5,15 @@ func myCallback(string name, int idx, int bytes) as bool
 end
 
 func main(...) as int
+    dir.delete("test_min_out")
+    dir.createAll("test_min_out")
     auto writer = tar.create()
     writer.add("a.txt", "hello")
     Buffer packed = writer.finish()
     auto reader = tar.open(packed)
     reader.extractWithProgress("test_min_out", myCallback)
+    assert file.readText("test_min_out/a.txt") == "hello"
+    dir.delete("test_min_out")
     println("ok")
     return 0
 end

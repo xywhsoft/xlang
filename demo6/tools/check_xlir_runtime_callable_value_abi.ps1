@@ -11,7 +11,7 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\cgen_var_runtime_objects.xl"
 $runtimeHost = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$differentialSupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
+$expectSupport = Join-Path $Root "test\cases\xlir_expect_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "runtime_callable_value.typed.json"
 $loweredPath = Join-Path $outputDir "runtime_callable_value.lowered.json"
@@ -20,7 +20,7 @@ $cRepeatPath = Join-Path $outputDir "runtime_callable_value.repeat.xlir.c"
 $exe = Join-Path $outputDir "runtime_callable_value.xlir.exe"
 
 foreach ( $path in @(
-    $xl, $source, $runtimeHost, $differentialSupport
+    $xl, $source, $runtimeHost, $expectSupport
 ) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR runtime-callable value gate input is missing: $path"
@@ -152,14 +152,9 @@ try {
     Pop-Location
 }
 
-& $xl run $source $differentialSupport --backend xlir
+& $xl run $source $expectSupport --backend xlir
 if ( $LASTEXITCODE -ne 0 ) {
     throw "runtime-callable XLIR package runtime failed"
 }
-& $xl run $source $differentialSupport --backend legacy
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "runtime-callable legacy differential runtime failed"
-}
-
-Write-Output "XLIR runtime-callable value ABI gate ok: concrete signature TypeValueId, dict/array variadic adapters, explicit owned-first multi-result projection, immediate error CFG, deterministic Cgen, strict C, package runtime, and legacy differential."
+Write-Output "XLIR runtime-callable value ABI gate ok: concrete signature TypeValueId, dict/array variadic adapters, explicit owned-first multi-result projection, immediate error CFG, deterministic Cgen, strict C, and package runtime."
 exit 0

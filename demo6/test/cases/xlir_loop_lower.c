@@ -1,4 +1,3 @@
-#include "src/ir/xl6_hir.h"
 #include "src/ir/xl6_ir.h"
 
 #include <stdio.h>
@@ -13,7 +12,6 @@ static XL6_AstNode* testType(const char* name, XL6_TypeId id, const char* abi)
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root = xl6AstNew(XL6_AST_MODULE, NULL);
@@ -23,7 +21,7 @@ int main(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir); xl6IrModuleInit(&ir);
+    xl6IrModuleInit(&ir);
     if ( root == NULL || func == NULL || loop == NULL ) return 1;
     func->semanticSymbolId = 13;
     xl6AstAddChild(func, xl6AstNewText(XL6_AST_NAME, "spin", 4, NULL));
@@ -54,7 +52,7 @@ int main(void)
         xl6AstAddChild(func, body);
     }
     xl6AstAddChild(root, func);
-    ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags) &&
          ir.functionCount == 3 && ir.abi.finalizerFunction == 3 &&
          ir.functions[2].kind == XL6_IR_FUNCTION_MODULE_FINI &&
@@ -75,7 +73,7 @@ int main(void)
                     (int)ir.instructions[3].kind, (unsigned)ir.instructions[3].trueTarget);
         }
     }
-    xl6HirModuleFree(&hir); xl6IrModuleFree(&ir); xl6AstFree(root); xrtFree(diags.items);
+    xl6IrModuleFree(&ir); xl6AstFree(root); xrtFree(diags.items);
     if ( !ok ) return 1;
     puts("XLIR loop lowering test ok");
     return 0;

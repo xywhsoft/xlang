@@ -1,25 +1,42 @@
+static int xl6IrCgenTypeSelected(
+    const XL6_IrModule* module, XL6_IrTypeId type,
+    const unsigned char* selectedTypes)
+{
+    if ( selectedTypes == NULL ) return 1;
+    return module != NULL && type != XL6_IR_TYPE_INVALID &&
+           (size_t)type <= module->types.count && selectedTypes[type - 1] != 0;
+}
+
 static int xl6IrCgenEmitUnionTypes(
-    XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
+    XL6_Output* out, const XL6_IrModule* module,
+    const unsigned char* selectedTypes, XL6_DiagList* diags)
 {
     unsigned char* emitted;
     size_t emittedCount = 0;
+    size_t requiredCount = 0;
     size_t pass;
-    if ( module->unionLayoutCount == 0 ) return 1;
+    size_t layoutIndex;
+    for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex )
+        if ( xl6IrCgenTypeSelected(
+                 module, module->unionLayouts[layoutIndex].type, selectedTypes) )
+            requiredCount += 1;
+    if ( requiredCount == 0 ) return 1;
     emitted = (unsigned char*)xrtCalloc(
         module->unionLayoutCount, sizeof(*emitted));
     if ( emitted == NULL )
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                              "XLIR union declaration ordering allocation failed");
     for ( pass = 0; pass < module->unionLayoutCount &&
-                    emittedCount < module->unionLayoutCount; ++pass ) {
-        size_t layoutIndex;
+                    emittedCount < requiredCount; ++pass ) {
         size_t before = emittedCount;
         for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex ) {
             const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
             const XL6_IrType* unionType = xl6IrTypeGet(&module->types, layout->type);
             size_t fieldOffset;
             int ready = 1;
-            if ( emitted[layoutIndex] ) continue;
+            if ( emitted[layoutIndex] ||
+                 !xl6IrCgenTypeSelected(module, layout->type, selectedTypes) )
+                continue;
             for ( fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset ) {
                 const XL6_IrUnionField* field =
                     &module->unionFields[layout->firstField + fieldOffset];
@@ -29,7 +46,11 @@ static int xl6IrCgenEmitUnionTypes(
                 if ( fieldType->cAbi != XL6_IR_C_ABI_UNION ) continue;
                 for ( dependency = 0; dependency < module->unionLayoutCount; ++dependency )
                     if ( module->unionLayouts[dependency].type == field->type ) break;
-                if ( dependency == module->unionLayoutCount || !emitted[dependency] ) {
+                if ( dependency == module->unionLayoutCount ||
+                     !xl6IrCgenTypeSelected(
+                         module, module->unionLayouts[dependency].type,
+                         selectedTypes) ||
+                     !emitted[dependency] ) {
                     ready = 0; break;
                 }
             }
@@ -64,7 +85,7 @@ static int xl6IrCgenEmitUnionTypes(
         if ( emittedCount == before ) break;
     }
     xrtFree(emitted);
-    if ( emittedCount != module->unionLayoutCount )
+    if ( emittedCount != requiredCount )
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR union layouts contain an incomplete or recursive by-value dependency");
     xl6OutputPuts("\n", out);
@@ -89,13 +110,17 @@ static const char* xl6IrCgenCellKind(const XL6_IrType* element)
 }
 
 static int xl6IrCgenEmitProductTypes(
-    XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
+    XL6_Output* out, const XL6_IrModule* module,
+    const unsigned char* selectedTypes, XL6_DiagList* diags)
 {
     size_t typeIndex;
     int emitted = 0;
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
         const XL6_IrType* product = &module->types.items[typeIndex];
         size_t elementIndex;
+        if ( !xl6IrCgenTypeSelected(
+                 module, (XL6_IrTypeId)(typeIndex + 1), selectedTypes) )
+            continue;
         if ( product->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ) {
             const XL6_IrType* element = product->kind == XL6_IR_TYPE_NULLABLE &&
                 product->paramCount == 1 && product->params != NULL

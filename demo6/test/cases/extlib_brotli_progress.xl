@@ -1,0 +1,62 @@
+import brotli
+
+class BrotliProgressState
+    int calls = 0
+    int lastInput = 0
+    int lastTotal = 0
+end
+
+func main(...) as int
+    string sourcePath = "tmp/extlib_brotli_progress_source.txt"
+    string packedPath = "tmp/extlib_brotli_progress.bin"
+    string plainPath = "tmp/extlib_brotli_progress_plain.txt"
+    string cancelledPath = "tmp/extlib_brotli_progress_cancelled.bin"
+    string text = ""
+    int i = 0
+    while i < 6000
+        text += "xlang-progress-" + string(i) + "\n"
+        i += 1
+    end
+    file.writeText(sourcePath, text)
+
+    BrotliProgressState packedState = BrotliProgressState()
+    brotli.compressFile(sourcePath, packedPath, onProgress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        packedState.calls += 1
+        packedState.lastInput = inputBytes
+        packedState.lastTotal = totalBytes
+        return outputBytes >= 0
+    end)
+    assert packedState.calls > 0
+    assert packedState.lastInput == string.byteLen(text)
+    assert packedState.lastTotal == packedState.lastInput
+
+    BrotliProgressState plainState = BrotliProgressState()
+    brotli.decompressFile(packedPath, plainPath, onProgress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        plainState.calls += 1
+        plainState.lastInput = inputBytes
+        plainState.lastTotal = totalBytes
+        return outputBytes >= 0
+    end)
+    assert plainState.calls > 0
+    assert plainState.lastInput == plainState.lastTotal
+    assert file.readText(plainPath) == text
+
+    bool cancelled = false
+    try
+        brotli.compressFile(sourcePath, cancelledPath, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled
+    assert not file.exists(cancelledPath)
+
+    file.delete(sourcePath)
+    file.delete(packedPath)
+    file.delete(plainPath)
+    return 0
+end

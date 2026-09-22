@@ -18,7 +18,6 @@ $typedJson = Join-Path $outputDir "xlir_open_dynamic_record.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_open_dynamic_record.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_open_dynamic_record.c"
 $generatedCSecond = Join-Path $outputDir "xlir_open_dynamic_record.second.c"
-$legacyC = Join-Path $outputDir "xlir_open_dynamic_record.legacy.c"
 $nonPersistentJson = Join-Path $outputDir "xlir_open_dynamic_nonpersistent.lowered.json"
 $closedFlowJson = Join-Path $outputDir "xlir_closed_class_flow.lowered.json"
 
@@ -189,22 +188,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR open dynamic record strict-C/runtime gate failed"
     }
-
-    # This migrated open-record assignment is intentionally outside the
-    # retained legacy-HIR support boundary.  Keep that boundary observable so
-    # an accidental approximate legacy lowering cannot masquerade as a
-    # differential oracle for XLIR-only semantics.
-    Remove-Item -LiteralPath $legacyC -Force -ErrorAction SilentlyContinue
-    $legacyCommand = '"{0}" cgen "{1}" --backend legacy --emit "{2}" 2>&1' -f
-        $xl, $source, $legacyC
-    $legacyFailure = (& $env:ComSpec /d /s /c $legacyCommand | Out-String)
-    $legacyExitCode = $LASTEXITCODE
-    if ( $legacyExitCode -eq 0 -or
-         ! $legacyFailure.Contains("typed HIR dynamic member assignment plan cannot be lowered") ) {
-        throw "Open dynamic record legacy-HIR boundary is no longer explicit"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR open dynamic record persistence gate passed: explicit root/schema storage indices, distinct object versus dynamic-field RuntimeOps, deterministic mechanical C, strict runtime behavior, JSON round-trip, and explicit legacy-HIR unsupported boundary."
+Write-Output "XLIR open dynamic record persistence gate passed: explicit root/schema storage indices, distinct object versus dynamic-field RuntimeOps, deterministic mechanical C, strict runtime behavior, and JSON round-trip."

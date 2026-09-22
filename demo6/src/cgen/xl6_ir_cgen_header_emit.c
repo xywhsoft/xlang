@@ -1,3 +1,186 @@
+typedef struct XL6_IrCgenHeaderOpaqueNeeds {
+    int xvalue;
+    int generator;
+    int closure;
+    int error;
+    int future;
+    int cell;
+    int valueIterator;
+} XL6_IrCgenHeaderOpaqueNeeds;
+
+/* Public headers name an opaque carrier only when one of their emitted C
+ * declarations actually uses it.  Merely having an internal type in XLIR is
+ * not a public ABI fact. */
+static void xl6IrCgenHeaderNeedType(
+    const XL6_IrModule* module, XL6_IrTypeId type,
+    XL6_IrCgenHeaderOpaqueNeeds* needs)
+{
+    const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
+    if ( item == NULL || needs == NULL ) return;
+    switch ( item->cAbi ) {
+    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: needs->xvalue = 1; break;
+    case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: needs->generator = 1; break;
+    case XL6_IR_C_ABI_CLOSURE_PTR: needs->closure = 1; break;
+    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: needs->error = 1; break;
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: needs->future = 1; break;
+    case XL6_IR_C_ABI_RUNTIME_CELL_PTR: needs->cell = 1; break;
+    case XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR:
+        needs->valueIterator = 1;
+        break;
+    default: break;
+    }
+}
+
+static void xl6IrCgenHeaderMarkType(
+    const XL6_IrModule* module, XL6_IrTypeId type,
+    XL6_IrCgenHeaderOpaqueNeeds* needs, unsigned char* structuralTypes)
+{
+    const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
+    size_t parameter;
+    if ( item == NULL || needs == NULL ) return;
+    if ( item->cAbi != XL6_IR_C_ABI_PRODUCT &&
+         item->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
+         item->cAbi != XL6_IR_C_ABI_UNION ) {
+        xl6IrCgenHeaderNeedType(module, type, needs);
+        return;
+    }
+    if ( structuralTypes == NULL || type == XL6_IR_TYPE_INVALID ||
+         (size_t)type > module->types.count || structuralTypes[type - 1] )
+        return;
+    structuralTypes[type - 1] = 1;
+    if ( item->cAbi == XL6_IR_C_ABI_UNION ) {
+        size_t layoutIndex;
+        for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount;
+              ++layoutIndex ) {
+            const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
+            size_t fieldOffset;
+            if ( layout->type != type ) continue;
+            for ( fieldOffset = 0; fieldOffset < layout->fieldCount;
+                  ++fieldOffset )
+                xl6IrCgenHeaderMarkType(
+                    module,
+                    module->unionFields[layout->firstField + fieldOffset].type,
+                    needs, structuralTypes);
+            return;
+        }
+        return;
+    }
+    for ( parameter = 0; parameter < item->paramCount; ++parameter )
+        xl6IrCgenHeaderMarkType(
+            module, item->params[parameter], needs, structuralTypes);
+}
+
+/* A raw callback is represented by its verified ISO C signature.  Its source
+ * function TypeId is a private closure carrier and must not leak into the
+ * generated header. */
+static void xl6IrCgenHeaderMarkRawCallbackTypes(
+    const XL6_IrModule* module, XL6_IrTypeId type,
+    XL6_IrCgenHeaderOpaqueNeeds* needs, unsigned char* structuralTypes)
+{
+    const XL6_IrType* signature = xl6IrTypeGet(
+        &module->types, xl6IrExportCallbackSignatureType(module, type));
+    size_t parameter;
+    if ( signature == NULL ) return;
+    xl6IrCgenHeaderMarkType(
+        module, signature->callableResultType, needs, structuralTypes);
+    for ( parameter = 0; parameter < signature->paramCount; ++parameter )
+        xl6IrCgenHeaderMarkType(
+            module, signature->params[parameter], needs, structuralTypes);
+}
+
+static void xl6IrCgenCollectHeaderTypeNeeds(
+    const XL6_IrModule* module, XL6_IrCgenHeaderOpaqueNeeds* needs,
+    unsigned char* structuralTypes)
+{
+    size_t i, parameter;
+    if ( module == NULL || needs == NULL ) return;
+
+    /* Callback typedefs are shared by public exports and reachable foreign
+     * dependencies, matching xl6IrCgenEmitCallbackTypes exactly. */
+    for ( i = 0; i < module->exportCount; ++i ) {
+        const XL6_IrExport* exported = &module->exports[i];
+        if ( exported->returnValueAbi ==
+                 XL6_IR_EXPORT_VALUE_TYPE_REPRESENTATION )
+            xl6IrCgenHeaderMarkType(
+                module, exported->returnType, needs, structuralTypes);
+        for ( parameter = 0; parameter < exported->parameterCount; ++parameter ) {
+            if ( xl6IrExportValueAbiIsCallback(
+                     exported->parameterValueAbis[parameter]) )
+                xl6IrCgenHeaderMarkRawCallbackTypes(
+                    module, exported->parameterTypes[parameter], needs,
+                    structuralTypes);
+            else if ( exported->parameterValueAbis[parameter] ==
+                          XL6_IR_EXPORT_VALUE_TYPE_REPRESENTATION )
+                xl6IrCgenHeaderMarkType(
+                    module, exported->parameterTypes[parameter], needs,
+                    structuralTypes);
+        }
+    }
+    for ( i = 0; i < module->globalExportCount; ++i )
+        xl6IrCgenHeaderMarkType(
+            module, module->globalExports[i].type, needs, structuralTypes);
+    for ( i = 0; i < module->externGlobalCount; ++i )
+        xl6IrCgenHeaderMarkType(
+            module, module->externGlobals[i].type, needs, structuralTypes);
+
+    for ( i = 0; i < module->callTargetCount; ++i ) {
+        const XL6_IrCallTarget* target = &module->callTargets[i];
+        if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
+             (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+              target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
+             target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) continue;
+        for ( parameter = 0; parameter < target->parameterCount; ++parameter )
+            if ( target->parameterPhysicalAbis[parameter] ==
+                     XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK )
+                xl6IrCgenHeaderMarkRawCallbackTypes(
+                    module, target->parameterTypes[parameter], needs,
+                    structuralTypes);
+        if ( target->returnType != XL6_IR_TYPE_INVALID &&
+             target->resultCAbi != XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER &&
+             target->resultConversionAbi !=
+                 XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
+            xl6IrCgenHeaderMarkType(
+                module, xl6IrCgenPhysicalResultType(module, target), needs,
+                structuralTypes);
+        for ( parameter = 0; parameter < target->parameterCount; ++parameter )
+            if ( target->parameterPhysicalAbis[parameter] ==
+                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT )
+                xl6IrCgenHeaderMarkType(
+                    module, target->parameterTypes[parameter], needs,
+                    structuralTypes);
+    }
+}
+
+static void xl6IrCgenEmitHeaderOpaqueDeclarations(
+    XL6_Output* out, const XL6_IrCgenHeaderOpaqueNeeds* needs)
+{
+    int emitted = 0;
+    if ( needs->xvalue ) {
+        xl6OutputPuts("typedef struct xvalue xvalue;\n", out); emitted = 1;
+    }
+    if ( needs->generator ) {
+        xl6OutputPuts("typedef struct xlir_generator xlir_generator;\n", out); emitted = 1;
+    }
+    if ( needs->closure ) {
+        xl6OutputPuts("typedef struct xlir_closure xlir_closure;\n", out); emitted = 1;
+    }
+    if ( needs->error ) {
+        xl6OutputPuts("typedef struct xerror xerror;\n", out); emitted = 1;
+    }
+    if ( needs->future ) {
+        xl6OutputPuts("typedef struct xfuture xfuture;\n", out); emitted = 1;
+    }
+    if ( needs->cell ) {
+        xl6OutputPuts("typedef struct xlir_cell xlir_cell;\n", out); emitted = 1;
+    }
+    if ( needs->valueIterator ) {
+        xl6OutputPuts(
+            "typedef struct xlir_xvalue_iterator xlir_xvalue_iterator;\n", out);
+        emitted = 1;
+    }
+    if ( emitted ) xl6OutputPuts("\n", out);
+}
+
 /* Foreign and export declarations are emitted from lowered records, exactly as
  * the implementation wrappers are.  The header cannot expose an unresolved
  * source declaration: a missing C ABI is rejected by the same preflight used
@@ -5,20 +188,25 @@
 int xl6IrCgenEmitHeader(
     XL6_Output* out, const XL6_IrModule* module, const char* guardName, XL6_DiagList* diags)
 {
+    XL6_IrCgenHeaderOpaqueNeeds opaqueNeeds = {0};
+    unsigned char* publicTypes = NULL;
     size_t i;
     if ( out == NULL || guardName == NULL || guardName[0] == '\0' ||
          !xl6IrCgenVerifyEmittable(module, diags) ) return 0;
+    if ( module->types.count != 0 ) {
+        publicTypes = (unsigned char*)xrtCalloc(
+            module->types.count, sizeof(*publicTypes));
+        if ( publicTypes == NULL )
+            return xl6IrCgenDiag(
+                diags, module, XL6_IR_NODE_INVALID,
+                "XLIR C header public type reachability allocation failed");
+    }
+    xl6IrCgenCollectHeaderTypeNeeds(module, &opaqueNeeds, publicTypes);
     xl6OutputPrintf(out, "#ifndef %s\n#define %s\n\n", guardName, guardName);
     xl6IrCgenEmitPublicLinkage(out);
-    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <wchar.h>\n\n"
-                   "typedef struct xvalue xvalue;\n"
-                   "typedef struct xlir_generator xlir_generator;\n"
-                   "typedef struct xlir_closure xlir_closure;\n"
-                   "typedef struct xerror xerror;\n"
-                   "typedef struct xfuture xfuture;\n"
-                   "typedef struct xlir_cell xlir_cell;\n"
-                   "typedef struct xlir_xvalue_iterator xlir_xvalue_iterator;\n\n"
-                   "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n", out);
+    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <wchar.h>\n\n", out);
+    xl6IrCgenEmitHeaderOpaqueDeclarations(out, &opaqueNeeds);
+    xl6OutputPuts("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n", out);
     xl6OutputPuts(
         "#if defined(_WIN32) && (defined(XL6_USE_SHARED) || defined(XL6_BUILD_SHARED))\n"
         "/* Terminal DLL retirement: quiesce callers and release external resources first.\n"
@@ -32,15 +220,24 @@ int xl6IrCgenEmitHeader(
         xl6OutputPuts("/* Read-only global owning slots; caller guarantees code residency and whole-graph quiescence. */\n"
             "XLIR_C_API bool xl_script_module_ownership_trace(XL6_ModuleOwnershipVisit, void*);\n\n", out);
     }
-    if ( !xl6IrCgenEmitUnionTypes(out, module, diags) ) return 0;
-    if ( !xl6IrCgenEmitProductTypes(out, module, diags) ) return 0;
-    if ( !xl6IrCgenEmitCallbackTypes(out, module, 0, diags) ) return 0;
+    if ( !xl6IrCgenEmitUnionTypes(out, module, publicTypes, diags) ) {
+        xrtFree(publicTypes);
+        return 0;
+    }
+    if ( !xl6IrCgenEmitProductTypes(out, module, publicTypes, diags) ) {
+        xrtFree(publicTypes);
+        return 0;
+    }
+    xrtFree(publicTypes);
+    if ( !xl6IrCgenEmitCallbackTypes(out, module, 1, diags) ) return 0;
     {
         size_t parameter;
         int needsLanguageFunction = 0;
         for ( i = 0; i < module->callTargetCount && !needsLanguageFunction; ++i ) {
             const XL6_IrCallTarget* target = &module->callTargets[i];
             if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
+                 (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+                  target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
                  target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) continue;
             for ( parameter = 0; parameter < target->parameterCount; ++parameter )
                 if ( target->parameterPhysicalAbis[parameter] ==

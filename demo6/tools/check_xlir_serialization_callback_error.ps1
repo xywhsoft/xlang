@@ -77,8 +77,12 @@ try {
                 throw "$name lost transitive worker error effects"
             }
             if ($targetKind -eq 5 -and @($workers | Where-Object {
-                $_.errorAbiName -ne "no-raise" -or $_.errorPhysicalAbiName -ne "none"
-            }).Count -ne 0) { throw "$name confuses lazy generator construction with body execution" }
+                # Generator construction is lazy with respect to the body, but
+                # activation/frame allocation is an independently fallible
+                # synchronous operation.  The launcher therefore owns a result
+                # carrier while body exceptions remain on workerErrorAbi/NEXT.
+                $_.errorAbiName -ne "may-raise" -or $_.errorPhysicalAbiName -ne "result-carrier"
+            }).Count -ne 0) { throw "$name conflates the fallible launcher with generator body execution" }
         }
         Invoke-Captured $xl ('cgen "{0}" --emit "{1}"' -f $source,$cPath) 0
         Invoke-Captured $xl ('cgen "{0}" --backend xlir --emit "{1}"' -f $source,$repeat) 0
@@ -101,10 +105,7 @@ try {
         & cmd.exe /d /v:on /c $command
         if ($LASTEXITCODE -ne 0) { throw "$name strict standalone C failed" }
         Invoke-Captured $strictExe "" $fixture.Exit
-        # Legacy retains temporary captures, loses the two escaping async
-        # callback errors, and exits 3 for generator temporary-scope ordering.
-        # Those behaviors are not the new ownership/effect oracle.
-        $backends = if ($name -in @("xlir_serialization_callback_lifetime", "xlir_serialization_callback_async_error", "xlir_serialization_callback_generator_error")) { @("xlir") } else { @("xlir", "legacy") }
+        $backends = @("xlir")
         foreach ($backend in $backends) {
             Invoke-Captured $xl ('run "{0}" --backend {1} --link test/cases/xlir_json_stream_lifetime_host.c' -f $source,$backend) $fixture.Exit $fixture.Marker
             $exe = Join-Path $outputDir "$name.$backend.exe"
@@ -114,5 +115,5 @@ try {
         Write-Output "${name}: callback error/result ABI, strict C and runtime verified"
     }
 } finally { Pop-Location }
-Write-Output "XLIR serialization callback errors ok: parser status and language exceptions remain independent; nested, checked conversion, sync/async/generator catch and uncaught outcomes, transitive worker effects, event/capture lifetime, one shared callback component, deterministic strict C and runtime; async/generator callback propagation and temporary capture reclamation are explicit XLIR-only contracts."
+Write-Output "XLIR serialization callback errors ok: parser status and language exceptions remain independent; nested, checked conversion, sync/async/generator catch and uncaught outcomes, transitive worker effects, event/capture lifetime, one shared callback component, deterministic strict C and runtime, async/generator callback propagation, and temporary capture reclamation."
 exit 0

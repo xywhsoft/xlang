@@ -1,0 +1,27 @@
+// 验证 __next__ 返回 (bool, var) 的基础迭代协议。
+class ProtocolCounter
+    int value = 0
+
+    func __iter__() as ProtocolCounter
+        return self
+    end
+
+    func __next__() as (bool, var)
+        if self.value >= 3 then
+            return false, null
+        end
+        self.value += 1
+        return true, self.value
+    end
+end
+
+func main(...) as int
+    ProtocolCounter counter = ProtocolCounter()
+    int count = 0
+    for value in counter
+        count += 1
+    end
+    assert count == 3
+    println("ok")
+    return 0
+end

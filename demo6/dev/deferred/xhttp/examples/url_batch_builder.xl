@@ -1,0 +1,20 @@
+// URL 批量构造范例：url.resolve + query encode/append。
+
+// xhttp 语言扩展接入后恢复为 URL + Query 组合示例。
+func apiUrl(string base, string endpoint, string keyword, int page) as string
+    string target = url.resolve(base, endpoint)
+    string q = query.pair("keyword", keyword)
+    q = query.append(q, "page", page.toString())
+    return f"{target}?{q}"
+end
+
+string base = "https://example.com/app/docs/index.html"
+string first = apiUrl(base, "../api/search", "xlang demo6", 1)
+string second = apiUrl(base, "../api/search", "中文", 2)
+
+assert first == "https://example.com/app/api/search?keyword=xlang+demo6&page=1", "first URL mismatch"
+assert second == "https://example.com/app/api/search?keyword=%E4%B8%AD%E6%96%87&page=2", "second URL mismatch"
+assert url.isSecure(first), "generated URL should be secure"
+assert url.host(first) == "example.com", "generated host mismatch"
+
+println(first)

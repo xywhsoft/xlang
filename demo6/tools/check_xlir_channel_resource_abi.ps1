@@ -18,7 +18,6 @@ $typedJson = Join-Path $outputDir "xlir_channel_resource_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_channel_resource_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_channel_resource_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_channel_resource_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_channel_resource_abi.legacy.c"
 $capturedTypedJson = Join-Path $outputDir "xlir_channel_captured_output_abi.typed.json"
 $capturedLoweredJson = Join-Path $outputDir "xlir_channel_captured_output_abi.lowered.json"
 $capturedGeneratedC = Join-Path $outputDir "xlir_channel_captured_output_abi.c"
@@ -490,16 +489,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR captured channel output strict-C/runtime gate failed"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyC
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR channel resource legacy C generation failed" }
-# Legacy Cgen still renders void channel.close() as a comma expression that is
-# noisy under -Wunused-value.  The XLIR output above remains the strict -Werror
-# contract; this compile is only the runtime semantic differential.
-$legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! build\tmp\xlir_channel_resource_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_channel_resource_abi.legacy.exe && build\test\xlir_channel_resource_abi.legacy.exe'
-& $env:ComSpec /d /v:on /c $legacyCommand
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR channel resource legacy differential runtime gate failed"
-}
-
-Write-Output "XLIR channel resource ABI gate passed: exact channel<T>/payload identities, explicit storage refs and error edges, captured scalar/string/xvalue outputs through local temporaries and success-only cell commits, deterministic mechanical C, strict runtime, and legacy differential semantics for the common subset."
+Write-Output "XLIR channel resource ABI gate passed: exact channel<T>/payload identities, explicit storage refs and error edges, captured scalar/string/xvalue outputs through local temporaries and success-only cell commits, deterministic mechanical C, and strict runtime."
 exit 0

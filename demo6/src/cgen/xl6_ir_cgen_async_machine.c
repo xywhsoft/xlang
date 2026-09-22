@@ -361,7 +361,7 @@ done:
 }
 
 /* The worker/launcher split below is driven entirely by a verified async
- * target ABI.  No source AST, type spelling, or legacy async emitter is
+ * target ABI. No source AST, type spelling, or secondary async emitter is
  * consulted here. The shared pool outlives individual calls and their Futures;
  * its module-resource unload action remains a separate lifecycle obligation. */
 static int xl6IrCgenEmitAsyncLauncher(

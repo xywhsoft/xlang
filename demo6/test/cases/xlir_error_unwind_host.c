@@ -3,8 +3,6 @@
 #include "../../build/test/xlir_error_unwind_bind.h"
 #include "../../build/test/xlir_error_unwind.c"
 void unwind_oom(void);
-extern int xrtFutureWait(xfuture*);
-extern void* xrtFutureValue(const xfuture*);
 static int mode, cleanup_mode, armed, opened, closed, sequence, current_lane;
 static int first_cleanup_pending;
 bool unwind_is_normal(void) { return current_lane >= 14 && current_lane != 22; }
@@ -78,9 +76,10 @@ void unwind_set_at(void* pointer, int64_t index, int64_t value)
 
 static int64_t run_async(void)
 {
-    xfuture* future = UNWIND_ASYNC_START();
+    xlir_result_future launch = UNWIND_ASYNC_START();
+    xfuture* future = launch.value;
     int64_t value;
-    assert(future != NULL && xrtFutureWait(future) == 0);
+    assert(launch.ok && future != NULL && xrtFutureWait(future) == XWAIT_OK);
     assert(xrtFutureValue(future) != NULL);
     value = *(const int64_t*)xrtFutureValue(future);
     xrtFutureDestroy(future);

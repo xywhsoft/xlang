@@ -1,0 +1,12 @@
+import xml.sax
+
+func main(...) as int
+    int count = 0
+    for event in xml.sax.reader("<root>ok</root>")
+        count += 1
+        assert count < 16, "SAX reader must reach EOF"
+    end
+    assert count == 3, "SAX start, text and end events"
+    println("xml.sax minimal passed")
+    return 0
+end

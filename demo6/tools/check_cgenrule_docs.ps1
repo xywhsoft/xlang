@@ -1,217 +1,193 @@
-param(
-    [string]$Root = "",
-    [int]$ExpectedRuleCount = 756,
-    [int]$MinMarkdownDocs = 43
+param([string]$Root = '')
+
+$ErrorActionPreference = 'Stop'
+if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
+$Root = (Resolve-Path -LiteralPath $Root).Path
+
+$ruleDirectory = Join-Path $Root 'cgenrule'
+$readmePath = Join-Path $ruleDirectory 'README.md'
+$cgenDirectory = Join-Path $Root 'src\cgen'
+$failures = [System.Collections.Generic.List[string]]::new()
+
+function Add-Failure([string]$Message) {
+    $script:failures.Add($Message)
+}
+
+function Read-Utf8([string]$Path) {
+    return [IO.File]::ReadAllText($Path, [Text.Encoding]::UTF8)
+}
+
+if (!(Test-Path -LiteralPath $readmePath -PathType Leaf)) {
+    Write-Host "canonical C emitter boundary document is missing: $readmePath"
+    exit 1
+}
+
+$documents = @(Get-ChildItem -LiteralPath $ruleDirectory -Filter '*.md' -File)
+if ($documents.Count -ne 1 -or $documents[0].Name -ne 'README.md') {
+    Add-Failure 'cgenrule must contain only the canonical README; retired AST Cgen rule tables may not return'
+}
+
+$readme = Read-Utf8 $readmePath
+foreach ($required in @(
+    'AST -> XLIR -> C',
+    'src/cgen/xl6_ir_cgen.c',
+    'src/cgen/xl6_cgen_shared_runtime.c',
+    'docs/XLIR',
+    'tools/check_xlir_contract.ps1',
+    'AST/HIR'
+)) {
+    if (!$readme.Contains($required)) {
+        Add-Failure "canonical C emitter boundary is missing: $required"
+    }
+}
+foreach ($retired in @(
+    'xl6_cgen_expr.c',
+    'xl6_cgen_type_infer.c',
+    'xl6_cgen_module.c',
+    'XLC_BACKEND_LEGACY'
+)) {
+    if ($readme.Contains($retired)) {
+        Add-Failure "canonical C emitter boundary names retired implementation: $retired"
+    }
+}
+
+$requiredSources = @(
+    'src/cgen/xl6_ir_cgen.c',
+    'src/cgen/xl6_ir_cgen.h',
+    'src/cgen/xl6_cgen_shared_runtime.c'
 )
-
-$ErrorActionPreference = "Stop"
-
-if ( $Root -eq "" ) {
-    $Root = Split-Path -Parent $PSScriptRoot
-}
-
-$cgenruleDir = Join-Path $Root "cgenrule"
-$readmePath = Join-Path $cgenruleDir "README.md"
-$srcDir = Join-Path $Root "src"
-$runtimeIncludeDir = Join-Path $Root "release\include"
-$failures = New-Object System.Collections.Generic.List[string]
-
-function Add-Failure($message)
-{
-    $script:failures.Add($message) | Out-Null
-}
-
-function Read-Utf8Text($path)
-{
-    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
-}
-
-function Get-RuleIdFromLine($line)
-{
-    $m = [regex]::Match($line, '^## (CGEN-[A-Z]+-[0-9]+)')
-    if ( $m.Success ) {
-        return $m.Groups[1].Value
-    }
-    return $null
-}
-
-if ( ! (Test-Path -LiteralPath $cgenruleDir -PathType Container) ) {
-    Write-Host "cgenrule docs directory missing: $cgenruleDir"
-    exit 1
-}
-
-if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
-    Write-Host "cgenrule README missing: $readmePath"
-    exit 1
-}
-
-$docs = @(Get-ChildItem -LiteralPath $cgenruleDir -Filter "*.md" -File | Sort-Object Name)
-if ( $docs.Count -eq 0 ) {
-    Write-Host "No cgenrule markdown files found."
-    exit 1
-}
-
-if ( $docs.Count -lt $MinMarkdownDocs ) {
-    Add-Failure "cgenrule markdown file baseline regressed: $($docs.Count) < $MinMarkdownDocs"
-}
-
-$readmeText = Read-Utf8Text $readmePath
-$ruleIds = New-Object System.Collections.Generic.HashSet[string]
-$ruleLines = New-Object System.Collections.Generic.List[object]
-$allTextParts = New-Object System.Collections.Generic.List[string]
-
-foreach ( $doc in $docs ) {
-    $text = Read-Utf8Text $doc.FullName
-    # Generated index numbers are source line numbers and may match an old rule count.
-    # Keep the index registered, but scan stale wording only in hand-maintained docs.
-    if ( $doc.Name -ne "_function_index.generated.md" ) {
-        $allTextParts.Add($text) | Out-Null
-    }
-
-    if ( $doc.Name -ne "README.md" -and ! $readmeText.Contains($doc.Name) ) {
-        Add-Failure "cgenrule README does not reference $($doc.Name)"
-    }
-
-    if ( $text.Contains([char]0) ) {
-        Add-Failure "NUL/control character found in $($doc.Name)"
-    }
-
-    $lines = $text -split "`r?`n"
-    for ( $i = 0; $i -lt $lines.Count; $i++ ) {
-        $id = Get-RuleIdFromLine $lines[$i]
-        if ( $null -eq $id ) {
-            continue
-        }
-
-        if ( ! $ruleIds.Add($id) ) {
-            Add-Failure "duplicate rule id: $id at $($doc.Name):$($i + 1)"
-        }
-        $ruleLines.Add([pscustomobject]@{
-            Id = $id
-            File = $doc.Name
-            Line = $i + 1
-        }) | Out-Null
+foreach ($relative in $requiredSources) {
+    if (!(Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf)) {
+        Add-Failure "canonical C emitter source is missing: $relative"
     }
 }
 
-if ( $ruleIds.Count -ne $ExpectedRuleCount ) {
-    Add-Failure "rule definition count mismatch: expected $ExpectedRuleCount, actual $($ruleIds.Count)"
-}
-
-$allText = [string]::Join("`n", $allTextParts)
-
-$stalePatterns = @(
-    '852',
-    'TODO',
-    'TBD',
-    'FIXME',
-    'placeholder',
-    '\u5F85\u586B',
-    '\u672A\u6574\u7406',
-    '\u5F85\u786E\u8BA4',
-    '\u4E0B\u4E00\u6279\u6838\u9A8C\u8303\u56F4',
-    '\u672C\u6279\u5F85\u8865\u5F3A\u70B9',
-    '\u5269\u4F59\u9AD8\u4F18\u5148\u7EA7',
-    'dependency dump',
-    'return void',
-    'xlUninit',
-    'xlUnInit',
-    '\.\.\\demo5\\release'
+$retiredSources = @(
+    'src/cgen/xl6_cgen.c',
+    'src/cgen/xl6_cgen.h',
+    'src/cgen/xl6_cgen_expr.c',
+    'src/cgen/xl6_cgen_type_infer.c',
+    'src/cgen/xl6_cgen_module.c',
+    'src/ir/xl6_hir.c',
+    'src/ir/xl6_hir.h',
+    'src/ir/xl6_hir_type.c',
+    'src/ir/xl6_hir_type.h'
 )
-
-foreach ( $pattern in $stalePatterns ) {
-    if ( $allText -match $pattern ) {
-        Add-Failure "stale marker remains: $pattern"
+foreach ($relative in $retiredSources) {
+    if (Test-Path -LiteralPath (Join-Path $Root $relative)) {
+        Add-Failure "retired backend source returned: $relative"
     }
 }
 
-if ( $allText -notmatch '756\s*\u6761' ) {
-    Add-Failure "README/summary rule count wording missing: 756 count text"
-}
-
-$definedRuleIds = New-Object System.Collections.Generic.HashSet[string]
-foreach ( $id in $ruleIds ) {
-    $definedRuleIds.Add($id) | Out-Null
-}
-
-foreach ( $doc in $docs ) {
-    $text = Read-Utf8Text $doc.FullName
-
-    foreach ( $match in [regex]::Matches($text, '(CGEN-[A-Z]+)-([0-9]+)\.\.([0-9]+)') ) {
-        $prefix = $match.Groups[1].Value
-        $start = [int]$match.Groups[2].Value
-        $end = [int]$match.Groups[3].Value
-        if ( $start -gt $end ) {
-            Add-Failure "invalid descending rule range $($match.Value) in $($doc.Name)"
-            continue
-        }
-
-        for ( $n = $start; $n -le $end; $n++ ) {
-            $id = "{0}-{1:D3}" -f $prefix, $n
-            if ( ! $definedRuleIds.Contains($id) ) {
-                Add-Failure "rule range references missing id $id via $($match.Value) in $($doc.Name)"
-            }
-        }
-    }
-
-    foreach ( $match in [regex]::Matches($text, 'CGEN-[A-Z]+-[0-9]+') ) {
-        $id = $match.Value
-        if ( ! $definedRuleIds.Contains($id) ) {
-            Add-Failure "rule reference missing definition: $id in $($doc.Name)"
-        }
+# Current normative documents must describe the unified pipeline, not the
+# retired implementation that remains available only through Git history.
+$documentDirectory = Join-Path $Root 'docs'
+$abiDocumentCandidates = @(Get-ChildItem -LiteralPath $documentDirectory -Filter 'ABI*.md' -File |
+    Where-Object { (Read-Utf8 $_.FullName).Contains('# xlang DEMO6 ABI') })
+$rc0SummaryCandidates = @(Get-ChildItem -LiteralPath $documentDirectory -Filter 'RC0*.md' -File |
+    Where-Object { (Read-Utf8 $_.FullName).Contains('### C emitter') })
+if ($abiDocumentCandidates.Count -ne 1) {
+    Add-Failure 'current ABI design document is missing'
+} else {
+    $abiDocument = Read-Utf8 $abiDocumentCandidates[0].FullName
+    if (!$abiDocument.Contains('XL6_IrTypeId') -or
+        $abiDocument.Contains('XL6_HirTypeId')) {
+        Add-Failure 'current ABI design does not use the unified XLIR TypeId contract'
     }
 }
-
-$sourceFiles = @{}
-Get-ChildItem -LiteralPath $srcDir -Recurse -Filter "*.c" -File | ForEach-Object {
-    if ( ! $sourceFiles.ContainsKey($_.Name) ) {
-        $sourceFiles[$_.Name] = $_.FullName
+if ($rc0SummaryCandidates.Count -ne 1) {
+    Add-Failure 'current RC0 summary is missing'
+} else {
+    $rc0Summary = Read-Utf8 $rc0SummaryCandidates[0].FullName
+    foreach ($required in @(
+        'AST -> XLIR -> C',
+        'src/cgen/xl6_ir_cgen.c',
+        'src/cgen/xl6_cgen_shared_runtime.c'
+    )) {
+        if (!$rc0Summary.Contains($required)) {
+            Add-Failure "current RC0 summary is missing the unified C emitter boundary: $required"
+        }
     }
-}
-Get-ChildItem -LiteralPath $runtimeIncludeDir -Filter "xl_runtime.h" -File | ForEach-Object {
-    if ( ! $sourceFiles.ContainsKey($_.Name) ) {
-        $sourceFiles[$_.Name] = $_.FullName
-    }
-}
-
-$lineCountCache = @{}
-foreach ( $doc in $docs ) {
-    $text = Read-Utf8Text $doc.FullName
-    foreach ( $match in [regex]::Matches($text, '(xl6_[A-Za-z0-9_]+\.c|xl_runtime\.h):([0-9]+)(?:-([0-9]+))?') ) {
-        $name = $match.Groups[1].Value
-        $start = [int]$match.Groups[2].Value
-        $end = $start
-        if ( $match.Groups[3].Success ) {
-            $end = [int]$match.Groups[3].Value
-        }
-
-        if ( ! $sourceFiles.ContainsKey($name) ) {
-            Add-Failure "source reference missing file: $name in $($doc.Name)"
-            continue
-        }
-
-        $sourcePath = $sourceFiles[$name]
-        if ( ! $lineCountCache.ContainsKey($sourcePath) ) {
-            $lineCountCache[$sourcePath] = ([System.IO.File]::ReadAllLines($sourcePath)).Count
-        }
-
-        $lineCount = $lineCountCache[$sourcePath]
-        if ( $start -lt 1 -or $end -lt $start -or $end -gt $lineCount ) {
-            Add-Failure "source reference out of range: $($match.Value) in $($doc.Name), file lines=$lineCount"
+    foreach ($retired in @(
+        'xl6_cgen_entry.*',
+        'xl6_cgen_header.c',
+        'xl6_cgen_runtime.*',
+        'xl6_cgen_lifecycle.*'
+    )) {
+        if ($rc0Summary.Contains($retired)) {
+            Add-Failure "current RC0 summary names a retired Cgen module: $retired"
         }
     }
 }
 
-if ( $failures.Count -ne 0 ) {
-    Write-Host "cgenrule docs check failed."
-    foreach ( $failure in ($failures | Select-Object -First 80) ) {
-        Write-Host "  $failure"
+$irRootPath = Join-Path $cgenDirectory 'xl6_ir_cgen.c'
+if (Test-Path -LiteralPath $irRootPath -PathType Leaf) {
+    $irRoot = Read-Utf8 $irRootPath
+    $irShards = @(Get-ChildItem -LiteralPath $cgenDirectory -Filter 'xl6_ir_cgen_*.c' -File)
+    foreach ($shard in $irShards) {
+        $include = '#include "src/cgen/' + $shard.Name + '"'
+        if (!$irRoot.Contains($include)) {
+            Add-Failure "XLIR C emitter shard is not wired through its unity root: $($shard.Name)"
+        }
     }
-    if ( $failures.Count -gt 80 ) {
+}
+
+# Runtime component emitters form a separate mechanical source graph. Every
+# component C file must be reachable from the one build root, including the
+# local TLS/WebSocket subfragments included by their parent components.
+$componentSources = @(Get-ChildItem -LiteralPath $cgenDirectory -Filter 'xl6_cgen_*.c' -File)
+$componentByName = @{}
+foreach ($source in $componentSources) { $componentByName[$source.Name] = $source.FullName }
+$reachable = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$pending = [System.Collections.Generic.Queue[string]]::new()
+$pending.Enqueue('xl6_cgen_shared_runtime.c')
+while ($pending.Count -ne 0) {
+    $name = $pending.Dequeue()
+    if (!$reachable.Add($name) -or !$componentByName.ContainsKey($name)) { continue }
+    $text = Read-Utf8 $componentByName[$name]
+    foreach ($match in [regex]::Matches($text, '#include\s+"(?:src/cgen/)?([^"/]+\.c)"')) {
+        $child = $match.Groups[1].Value
+        if ($componentByName.ContainsKey($child)) { $pending.Enqueue($child) }
+    }
+}
+foreach ($source in $componentSources) {
+    if (!$reachable.Contains($source.Name)) {
+        Add-Failure "runtime component emitter is outside the shared-runtime graph: $($source.Name)"
+    }
+    $text = Read-Utf8 $source.FullName
+    if ($text -match 'XL6_Ast|XL6_Hir|->inferredType|xl6Sem') {
+        Add-Failure "runtime component emitter reads a forbidden front-end model: $($source.Name)"
+    }
+}
+
+$boundaryFiles = @(Get-ChildItem -Path @(
+    (Join-Path $Root 'src\api'),
+    (Join-Path $Root 'src\compile'),
+    (Join-Path $Root 'src\driver'),
+    (Join-Path $Root 'src\cgen'),
+    (Join-Path $Root 'src\ir')
+) -Include '*.c','*.h' -File -Recurse)
+$boundaryText = [string]::Join("`n", @($boundaryFiles | ForEach-Object { Read-Utf8 $_.FullName }))
+foreach ($retiredToken in @(
+    'XLC_BACKEND_LEGACY',
+    'xl6HirBuildModule',
+    'xl6CgenEmitCEx',
+    'xl6CgenEmitHeader('
+)) {
+    if ($boundaryText.Contains($retiredToken)) {
+        Add-Failure "retired backend token remains in the live compiler boundary: $retiredToken"
+    }
+}
+
+if ($failures.Count -ne 0) {
+    Write-Host 'C emitter boundary documentation check failed.'
+    $failures | Select-Object -First 80 | ForEach-Object { Write-Host "  $_" }
+    if ($failures.Count -gt 80) {
         Write-Host "  ... $($failures.Count - 80) more failure(s)"
     }
     exit 1
 }
 
-Write-Host "cgenrule docs ok: $($ruleIds.Count) unique rules, $($docs.Count) markdown files."
+$irFileCount = @(Get-ChildItem -LiteralPath $cgenDirectory -Filter 'xl6_ir_cgen*' -File).Count
+Write-Host "C emitter boundary docs ok: one canonical document, $irFileCount XLIR emitter files, $($componentSources.Count) reachable runtime component sources."
 exit 0

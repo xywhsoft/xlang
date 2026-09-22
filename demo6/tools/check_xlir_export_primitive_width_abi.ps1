@@ -12,21 +12,17 @@ $compiler = Join-Path $Root "release\xl.exe"
 $fixture = Join-Path $Root "test\cases\export_primitive_widths.xl"
 $hostSource = Join-Path $Root "test\cases\export_primitive_widths_host.c"
 $outputDir = Join-Path $Root "build\tmp\xlir_export_primitive_widths"
-$legacyDir = Join-Path $Root "build\tmp\legacy_export_primitive_widths"
 $loweredJson = Join-Path $outputDir "export_primitive_widths.lowered.json"
 $xlirC = Join-Path $outputDir "export_primitive_widths.c"
 $xlirHeader = Join-Path $outputDir "export_primitive_widths.h"
-$legacyC = Join-Path $legacyDir "export_primitive_widths.c"
-$legacyHeader = Join-Path $legacyDir "export_primitive_widths.h"
 $xlirExe = Join-Path $outputDir "export_primitive_widths.exe"
-$legacyExe = Join-Path $legacyDir "export_primitive_widths.exe"
 
 foreach ( $path in @($compiler, $fixture, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR export primitive-width gate input is missing: $path"
     }
 }
-New-Item -ItemType Directory -Force $outputDir, $legacyDir | Out-Null
+New-Item -ItemType Directory -Force $outputDir | Out-Null
 
 & $compiler ir $fixture --lowered --format json --emit $loweredJson
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR export primitive-width JSON dump failed" }
@@ -64,20 +60,16 @@ if ( @($json.exports).Count -ne 1 -or
 
 & $compiler cgen $fixture --backend xlir --emit $xlirC --emit-header $xlirHeader
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR export primitive-width C generation failed" }
-& $compiler cgen $fixture --backend legacy --emit $legacyC --emit-header $legacyHeader
-if ( $LASTEXITCODE -ne 0 ) { throw "Legacy export primitive-width C generation failed" }
 $prototype = "uint64_t xl6_pick_u64(int8_t i8, uint8_t u8, int16_t i16, uint16_t u16, int32_t i32, uint32_t u32, int64_t i64, uint64_t u64, float f32, double f64, bool ok, void* handle)"
 $xlirText = [System.IO.File]::ReadAllText($xlirC, [System.Text.Encoding]::UTF8)
 $xlirHeaderText = [System.IO.File]::ReadAllText($xlirHeader, [System.Text.Encoding]::UTF8)
-$legacyHeaderText = [System.IO.File]::ReadAllText($legacyHeader, [System.Text.Encoding]::UTF8)
 $privateParameters = @('int8_t', 'uint8_t', 'int16_t', 'uint16_t', 'int32_t', 'uint32_t',
     'int64_t', 'uint64_t', 'float', 'double', 'bool', 'void*')
 for ($p = 0; $p -lt $privateParameters.Count; ++$p) { $privateParameters[$p] += " xlir_input_$p" }
 $privatePrototype = 'uint64_t xl6_pick_u64(' + ($privateParameters -join ', ') + ')'
 if ( ! $xlirText.Contains($privatePrototype) -or
-     ! $xlirHeaderText.Contains("$prototype;") -or
-     ! $legacyHeaderText.Contains("$prototype;") ) {
-    throw "XLIR/legacy export primitive-width public prototypes differ"
+     ! $xlirHeaderText.Contains("$prototype;") ) {
+    throw "XLIR export primitive-width public prototype is incomplete"
 }
 foreach ( $adapter in @(
     "(int64_t)xlir_input_0", "(int64_t)xlir_input_1", "(int64_t)xlir_input_2",
@@ -89,10 +81,10 @@ foreach ( $adapter in @(
 }
 
 $common = Join-Path $Root "test\suites\common.bat"
-$command = "call `"$common`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -I`"$outputDir`" `"$xlirC`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXL6_LEGACY_RUNTIME -I`"$legacyDir`" `"$legacyC`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$legacyExe`" && `"$legacyExe`""
+$command = "call `"$common`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -I`"$outputDir`" `"$xlirC`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`""
 & $env:ComSpec /d /v:on /c $command
 if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR export primitive-width strict C/legacy differential runtime failed"
+    throw "XLIR export primitive-width strict C runtime failed"
 }
 
-Write-Output "XLIR export primitive-width ABI gate ok: first-class F32, explicit public names and fixed integer widths, mechanical i64 adapters, identical legacy header, strict C, and differential runtime."
+Write-Output "XLIR export primitive-width ABI gate ok: first-class F32, explicit public names and fixed integer widths, mechanical i64 adapters, public header, and strict C runtime."

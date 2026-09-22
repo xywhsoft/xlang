@@ -293,7 +293,7 @@ foreach ( $file in $files ) {
                 Add-Failure "mutable function-static array in cgen source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
             }
 
-            # typed HIR 已经是代码生成阶段唯一的表达式类型来源，禁止恢复旧的 C 字符串推断旁路。
+            # Lowered XLIR 是代码生成阶段唯一的表达式类型来源，禁止恢复 C 字符串推断旁路。
             $removedInferenceMatches = @(Get-TextMatches $codeOnly $removedCgenInferencePattern)
             foreach ( $match in $removedInferenceMatches ) {
                 Add-Failure "removed C-string type inference reintroduced in cgen source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"

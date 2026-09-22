@@ -123,27 +123,14 @@ try {
         & cmd.exe /d /v:on /c $command
         if ($LASTEXITCODE -ne 0) { throw "$name strict standalone C failed" }
         Invoke-Captured $strictExe "" 0 $expected
-        # Legacy retains the temporary insert receiver; keep its failure
-        # explicit rather than weakening the owned-value lifetime contract.
-        $backends = if ($name -in @("xlir_typed_collection_methods", "xlir_erased_collection_member_lifetime")) { @("xlir") } else { @("xlir", "legacy") }
-        foreach ($backend in $backends) {
-            Invoke-Captured $xl ('run "{0}" --backend {1} --link test/cases/xlir_json_stream_lifetime_host.c' -f $source,$backend) 0 $expected
-            $exe = Join-Path $outputDir "$name.$backend.exe"
-            Invoke-Captured $xl ('build "{0}" --backend {1} --link test/cases/xlir_json_stream_lifetime_host.c -o "{2}"' -f $source,$backend,$exe) 0 $null
-            Invoke-Captured $exe "" 0 $expected
-        }
-        if ($name -eq "xlir_erased_collection_member_lifetime") {
-            $marker = "temporary insert receiver survived the operation"
-            Invoke-Captured $xl ('run "{0}" --backend legacy --link test/cases/xlir_json_stream_lifetime_host.c' -f $source) 1 $null $marker
-            $legacyExe = Join-Path $outputDir "$name.legacy.exe"
-            Invoke-Captured $xl ('build "{0}" --backend legacy --link test/cases/xlir_json_stream_lifetime_host.c -o "{1}"' -f $source,$legacyExe) 0 $null
-            Invoke-Captured $legacyExe "" 1 $null $marker
-            Write-Host "$($name): explicit XLIR-only lifetime contract; legacy run/build both retain the temporary insert receiver"
-        }
-        Write-Host "$($name): exact Typed/lowered contract, deterministic strict C and $($backends -join '/') run/build verified"
+        Invoke-Captured $xl ('run "{0}" --backend xlir --link test/cases/xlir_json_stream_lifetime_host.c' -f $source) 0 $expected
+        $exe = Join-Path $outputDir "$name.xlir.exe"
+        Invoke-Captured $xl ('build "{0}" --backend xlir --link test/cases/xlir_json_stream_lifetime_host.c -o "{1}"' -f $source,$exe) 0 $null
+        Invoke-Captured $exe "" 0 $expected
+        Write-Host "$($name): exact Typed/lowered contract, deterministic strict C and canonical run/build verified"
     }
     foreach ($operation in @("pop", "take", "clear", "capacity", "reserve", "resize", "trim", "trim-to", "swap", "insert", "index-of", "reverse", "is-disjoint")) {
         if (!$operations.ContainsKey($operation)) { throw "Collection gate misses canonical operation: $operation" }
     }
 } finally { Pop-Location }
-Write-Host "XLIR erased collection members ok: four preserved shapes, canonical boxed element ownership, one shared source/runtime signature table, deterministic IR/C and strict C; three XLIR/legacy run/build contracts, explicit XLIR-only temporary receiver reclamation and existing typed-method regression."
+Write-Host "XLIR erased collection members ok: four preserved shapes, canonical boxed element ownership, one shared source/runtime signature table, deterministic IR/C and strict C, temporary receiver reclamation, and existing typed-method regression."

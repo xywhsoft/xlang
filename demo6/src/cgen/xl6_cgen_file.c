@@ -1,6 +1,6 @@
 /* 生成基于当前 XRT 文件、整文件和文本编码契约的运行时桥接。 */
 void xl6CgenEmitFileRuntime(
-    XL6_Output* out, int xlirAbi, int hasXrtDeclarations)
+    XL6_Output* out, int hasXrtDeclarations)
 {
     if ( out == NULL ) {
         return;
@@ -9,10 +9,10 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("#ifndef XL6_FILE_RUNTIME\n", out);
     xl6OutputPuts("#define XL6_FILE_RUNTIME\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
-    xl6OutputPuts(xlirAbi
-        ? "#ifndef XL6_CGEN_BOOL_TYPEDEF\n#define XL6_CGEN_BOOL_TYPEDEF\ntypedef bool XL6_CgenBool;\n#endif\n"
-        : "#ifndef XL6_CGEN_BOOL_TYPEDEF\n#define XL6_CGEN_BOOL_TYPEDEF\ntypedef int XL6_CgenBool;\n#endif\n", out);
-    if ( xlirAbi && !hasXrtDeclarations ) {
+    xl6OutputPuts(
+        "#ifndef XL6_CGEN_BOOL_TYPEDEF\n#define XL6_CGEN_BOOL_TYPEDEF\ntypedef bool XL6_CgenBool;\n#endif\n",
+        out);
+    if ( !hasXrtDeclarations ) {
         /* XLIR output imports no monolithic runtime header.  These declarations
          * are the exact public XRT surface consumed by this component. */
         xl6OutputPuts(
@@ -56,8 +56,7 @@ void xl6CgenEmitFileRuntime(
         xl6OutputPuts("#define XL6_XENCODING_UTF32_BE 5\n", out);
         xl6OutputPuts("#define XL6_XUTF_STRICT 0\n", out);
     } else {
-        /* Legacy output and declaration-SDK-backed XLIR output already import
-         * the public XRT ABI. */
+        /* The declaration-SDK-backed form already imports the public XRT ABI. */
         xl6OutputPuts("#define XL6_XFILE_READ XFILE_READ\n", out);
         xl6OutputPuts("#define XL6_XFILE_WRITE XFILE_WRITE\n", out);
         xl6OutputPuts("#define XL6_XFILE_CREATE XFILE_CREATE\n", out);
@@ -81,10 +80,7 @@ void xl6CgenEmitFileRuntime(
 
     xl6OutputPuts("static void xl6_file_raise(const char* kind, const char* message, const char* api)\n", out);
     xl6OutputPuts("{\n", out);
-    if ( xlirAbi )
-        xl6OutputPuts("    (void)api; xrtSetErrorTake(xlir_error_create_at(kind != 0 ? kind : \"FileError\", message != 0 ? message : \"file error\", 0, 0));\n", out);
-    else
-        xl6OutputPuts("    xl6_error_raise(kind != 0 ? kind : \"FileError\", message != 0 ? message : \"file error\", api != 0 ? api : \"File\", 0, 0);\n", out);
+    xl6OutputPuts("    (void)api; xrtSetErrorTake(xlir_error_create_at(kind != 0 ? kind : \"FileError\", message != 0 ? message : \"file error\", 0, 0));\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static int xl6_file_utf8_valid(const char* text, size_t size)\n", out);
@@ -296,13 +292,10 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("    return handle;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts(xlirAbi
-        ? "void xl6_xrt_file_close(void* self)\n"
-        : "long long xl6_xrt_file_close(void* self)\n", out);
+    xl6OutputPuts("void xl6_xrt_file_close(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_FileHandle* handle = (XL6_FileHandle*)self;\n", out);
     xl6OutputPuts("    if ( handle != 0 ) { if ( handle->file != 0 ) { xrtClose(handle->file); } xrtFree(handle); }\n", out);
-    if ( !xlirAbi ) xl6OutputPuts("    return 0LL;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_file_native(void* self)\n", out);

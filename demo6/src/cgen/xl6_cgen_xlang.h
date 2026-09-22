@@ -3,9 +3,7 @@
 
 #include "src/common/xl6_output.h"
 
-/* Compiler-embedding component shared by both C backends.  Selection belongs
- * to each backend's verified feature model; the emitted implementation stays
- * single-sourced here. */
-void xl6EmitXlangRuntimeComponent(XL6_Output* out, int xlirAbi);
+/* Compiler-embedding component selected by verified XLIR runtime bridges. */
+void xl6EmitXlangRuntimeComponent(XL6_Output* out);
 
 #endif

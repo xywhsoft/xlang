@@ -16,10 +16,8 @@ $typedPath = Join-Path $Root "build\test\xlir_native_class_object_identity.typed
 $loweredPath = Join-Path $Root "build\test\xlir_native_class_object_identity.lowered.json"
 $generatedPath = Join-Path $Root "build\test\xlir_native_class_object_identity.gate.c"
 $repeatPath = Join-Path $Root "build\test\xlir_native_class_object_identity.gate.repeat.c"
-$legacyPath = Join-Path $Root "build\test\xlir_native_class_object_identity.gate.legacy.c"
 $xlirExe = Join-Path $Root "build\test\xlir_native_class_object_identity.gate.exe"
 $artifactExe = Join-Path $Root "build\test\xlir_native_class_object_identity.artifact.exe"
-$legacyExe = Join-Path $Root "build\test\xlir_native_class_object_identity.gate.legacy.exe"
 
 foreach ( $path in @($xl, $source, $runtimeHost, $runtimeSupport) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -167,16 +165,6 @@ try {
     & $artifactExe
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR managed native class identity standalone artifact runtime gate failed"
-    }
-
-    & $xl cgen $source --backend legacy --emit $legacyPath
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR managed native class identity legacy differential Cgen failed"
-    }
-    $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $runtimeSupport !XL6_CGEN_XLANG_LINKS! -o $legacyExe && $legacyExe"
-    & cmd.exe /d /v:on /c $command
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR managed native class identity legacy differential gate failed"
     }
 } finally {
     Pop-Location

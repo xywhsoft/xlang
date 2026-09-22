@@ -8,6 +8,10 @@ func main(...) as int
     assert langdetect.detect(en) == "english", "english: " + langdetect.detect(en)
     assert langdetect.isEnglish(en), "isEnglish"
 
+    assert langdetect.code(en) == "en", "english code"
+    assert langdetect.script(en) == "Latin", "english script"
+    assert langdetect.confidence(en) >= 60, "english confidence"
+
     // French detection
     auto fr = " le chat est dans la maison et les enfants sont avec une fille "
     assert langdetect.detect(fr) == "french", "french: " + langdetect.detect(fr)
@@ -24,6 +28,8 @@ func main(...) as int
     auto zh = "\xe4\xbb\x8a\xe5\xa4\xa9\xe5\xa4\xa9\xe6\xb0\x94\xe5\xbe\x88\xe5\xa5\xbd"
     assert langdetect.detect(zh) == "chinese", "chinese: " + langdetect.detect(zh)
     assert langdetect.isChinese(zh), "isChinese"
+    assert langdetect.code(zh) == "zh", "chinese code"
+    assert langdetect.script(zh) == "Han", "chinese script"
 
     // Japanese detection (hiragana)
     auto ja = "\xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
@@ -34,6 +40,10 @@ func main(...) as int
     auto ko = "\xec\x95\x88\xeb\x85\x95\xed\x95\x98\xec\x84\xb8\xec\x9a\x94"
     assert langdetect.detect(ko) == "korean", "korean: " + langdetect.detect(ko)
     assert langdetect.isKorean(ko), "isKorean"
+
+    assert langdetect.detect("12345 !!!") == "unknown", "no letters is unknown"
+    assert langdetect.code("12345 !!!") == "und", "unknown code"
+    assert langdetect.isValidUtf8(en), "valid UTF-8"
 
     return 0
 end

@@ -1,0 +1,15 @@
+import xml.sax
+
+func main(...) as int
+    auto source = xml.sax.reader("<root>ok</root>")
+    var first = source.next()
+    var second = source.next()
+    var third = source.next()
+    var eof = source.next()
+    assert first != null
+    assert second != null
+    assert third != null
+    assert eof == null
+    println("xml.sax EOF passed")
+    return 0
+end

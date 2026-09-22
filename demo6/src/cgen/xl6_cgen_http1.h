@@ -3,11 +3,9 @@
 
 #include "src/common/xl6_output.h"
 
-/* HTTP/1 protocol wrappers are generated-program runtime components shared
- * by both C backends.  XLIR uses the public declaration SDK and a local
- * managed-string compatibility adapter; component selection is resolved by
- * verified IR before this emitter is called. */
-void xl6CgenEmitHttp1Runtime(XL6_Output* out, int xlirAbi);
+/* HTTP/1 wrappers use the public declaration SDK and an explicit managed
+ * string adapter. Component selection is resolved by verified XLIR. */
+void xl6CgenEmitHttp1Runtime(XL6_Output* out);
 void xl6CgenEmitHttpDecodeRuntime(XL6_Output* out);
 
 #endif

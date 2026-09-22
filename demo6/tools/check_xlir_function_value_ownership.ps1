@@ -133,9 +133,7 @@ try {
         $loopSource = Join-Path $Root "test\cases\$name.xl"
         $loopJson = Join-Path $Root "build\test\$name.gate.json"
         $loopGenerated = Join-Path $Root "build\test\$name.gate.c"
-        $loopLegacy = Join-Path $Root "build\test\$name.gate.legacy.c"
         $loopExe = Join-Path $Root "build\test\$name.gate.exe"
-        $loopLegacyExe = Join-Path $Root "build\test\$name.gate.legacy.exe"
 
         & $xl ir $loopSource --lowered --format json --emit $loopJson
         if ( $LASTEXITCODE -ne 0 ) {
@@ -211,19 +209,9 @@ try {
         if ( $LASTEXITCODE -ne 0 ) {
             throw "XLIR lexical loop-capture strict-C runtime failed: $name"
         }
-
-        & $xl cgen $loopSource --backend legacy --emit $loopLegacy
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "XLIR lexical loop-capture legacy differential Cgen failed: $name"
-        }
-        $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $loopLegacy !XL6_CGEN_XLANG_LINKS! -o $loopLegacyExe && $loopLegacyExe"
-        & cmd.exe /d /v:on /c $command
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "XLIR lexical loop-capture legacy differential runtime failed: $name"
-        }
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR function signature borrow, universal closure-call effect, nested capture cleanup ownership, lexical for-target frame transfers, string copy/drop, strict runtimes, legacy differentials and scalar compound-assignment ABIs ok."
+Write-Output "XLIR function signature borrow, universal closure-call effect, nested capture cleanup ownership, lexical for-target frame transfers, string copy/drop, strict runtimes and scalar compound-assignment ABIs ok."

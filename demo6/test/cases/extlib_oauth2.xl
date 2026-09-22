@@ -3,40 +3,60 @@ import oauth2
 
 
 func main(...) as int
-    // Authorization URL
-    auto url = oauth2.authUrl("https://auth.example.com/authorize", "myapp", "http://localhost:8080/callback", "openid profile", "abc12345")
-    assert string.contains(url, "response_type=code"), "has response_type"
-    assert string.contains(url, "client_id=myapp"), "has client_id"
-    assert string.contains(url, "state=abc12345"), "has state"
+    // RFC 7636 附录 B 官方测试向量
+    string verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+    string challenge = oauth2.codeChallenge(verifier)
+    assert challenge == "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "rfc7636 vector"
+    assert oauth2.verifyChallenge(verifier, challenge), "verify accepts"
+    assert not oauth2.verifyChallenge(verifier, "wrong-challenge-value-0000000000"), "verify rejects"
+    assert oauth2.verifyChallenge(verifier, challenge), "verify stable"
 
-    // Token body
-    auto body = oauth2.tokenBody("auth_code_123", "myapp", "secret", "http://localhost:8080/callback")
-    assert string.contains(body, "grant_type=authorization_code"), "grant type"
-    assert string.contains(body, "code=auth_code_123"), "has code"
+    // 校验器长度约束
+    int raised = 0
+    try
+        oauth2.codeChallenge("short")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "short verifier raises"
 
-    // Refresh body
-    auto rb = oauth2.refreshBody("refresh_tok", "myapp", "secret")
-    assert string.contains(rb, "grant_type=refresh_token"), "refresh grant"
+    // 生成校验器：43 字符 base64url 字母表
+    string made = oauth2.makeVerifier()
+    assert made.length == 43, "verifier is 43 chars"
+    assert oauth2.verifyChallenge(made, oauth2.codeChallenge(made)), "generated verifier round trips"
 
-    // Client credentials
-    auto cc = oauth2.clientCredsBody("myapp", "secret", "read write")
-    assert string.contains(cc, "grant_type=client_credentials"), "cc grant"
+    // 授权 URL 组装
+    string url = oauth2.buildAuthorizeUrl(
+        "https://auth.example.com/authorize",
+        "my-client",
+        "https://app.example.com/cb?from=login",
+        "read write",
+        "xyz-state-123",
+        challenge)
+    assert url.contains("response_type=code"), "response type"
+    assert url.contains("client_id=my-client"), "client id"
+    assert url.contains("redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb%3Ffrom%3Dlogin"), "escaped redirect"
+    assert url.contains("scope=read write"), "scope literal"
+    assert url.contains("state=xyz-state-123"), "state"
+    assert url.contains("code_challenge=" + challenge), "challenge in url"
+    assert url.contains("code_challenge_method=S256"), "s256 method"
 
-    // PKCE
-    auto verifier = oauth2.pkceVerifier(42)
-    assert string.len(verifier) == 43, "verifier 43 chars"
-    auto challenge = oauth2.pkceChallenge(verifier)
-    assert string.len(challenge) > 0, "challenge not empty"
-    // Deterministic
-    assert oauth2.pkceVerifier(42) == verifier, "deterministic verifier"
+    // 已带查询串的基址用 & 连接
+    string url2 = oauth2.buildAuthorizeUrl(
+        "https://auth.example.com/authorize?tenant=acme",
+        "my-client", "https://app.example.com/cb", "", "", challenge)
+    assert url2.contains("tenant=acme&response_type=code"), "ampersand join"
 
-    // State validation
-    assert oauth2.validState("abcdefgh"), "valid state"
-    assert not oauth2.validState("short"), "invalid state too short"
+    // 回调查询解析
+    var cb = oauth2.parseCallback("?code=SplxlOBeZQQYbYS6WxSbIA&state=xyz-state-123")
+    assert cb["code"] == "SplxlOBeZQQYbYS6WxSbIA", "callback code"
+    assert cb["state"] == "xyz-state-123", "callback state"
 
-    // Grant names
-    assert oauth2.grantName("authorization_code") == "Authorization Code", "grant name"
-    assert oauth2.grantName("client_credentials") == "Client Credentials", "cc name"
+    var err = oauth2.parseCallback("error=access_denied&state=xyz-state-123")
+    assert err["error"] == "access_denied", "callback error"
+
+    var bare = oauth2.parseCallback("code=abc")
+    assert bare["code"] == "abc", "bare query"
 
     return 0
 end

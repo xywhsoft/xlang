@@ -1,0 +1,337 @@
+// crawl - async HTTP crawler
+//
+// 用法：
+//   crawl <url1> [url2] [url3] ...      并发请求所有 URL
+//   crawl -f <urls.txt>                  从文件读取 URL 列表（每行一个）
+//   crawl demo                           内置示例（启动本地 server 再爬取）
+//   crawl -t <ms> <url1> [url2] ...      设置单请求超时（默认 8000ms）
+//   crawl -c <n> <url1> [url2] ...       设置最大并发数（默认 16）
+//
+// 输出：每个 URL 一行（序号、状态码、响应字节、耗时ms、URL），末尾汇总。
+//
+// 设计要点：
+//   - `await` 不能出现在 `func main` 里，所以并发编排放进 `async func runUrls`，
+//     main 解析完 argv 后 `runUrls(...).wait()` 阻塞等待。
+//   - URL 和 future 都使用静态泛型数组；任务按批次聚合，URL 数量不受固定槽位限制。
+//   - HttpClientResponse 的所有权限制在 fetchOne 内，完成值只返回 HTTP 状态码。
+//   - http.get 当前是同步阻塞 client；放进 async 函数 + task.all 聚合后，async
+//     运行时把多个阻塞请求丢到不同 worker 线程，实现真并发（参考 portscan 的
+//     tcp.connect 并发验证）。
+//   - 网络层失败时 resp.status()==0（resp 仍是一个空 handle 对象）。
+
+const int DEFAULT_TIMEOUT = 8000
+const int DEFAULT_CONCURRENCY = 16
+const int MAX_CONCURRENCY = 256
+
+// main 目前只能等待 future，不能直接读取完成值，因此保留一个整型退出码桥接。
+int g_rc = 0
+
+// 抓取一个 URL。
+// 打印该 URL 的结果行，返回 HTTP status（0 表示网络层失败）。
+async func fetchOne(int slot, int total, string url, int timeout) as int
+    float t0 = time.timer()
+    HttpClientResponse resp = http.get(url, timeout)
+    float elapsed = time.timer() - t0
+    if elapsed < 0.0 then
+        elapsed = 0.0
+    end
+    int elapsedMs = int(elapsed * 1000.0)
+
+    int code = resp.status()
+    int bodyLen = 0
+    if code != 0 then
+        bodyLen = resp.bodySize()
+        if bodyLen < 0 then
+            bodyLen = 0
+        end
+    end
+
+    string tag = "[" + string(slot + 1) + "/" + string(total) + "]"
+    if code == 0 then
+        println(tag + " FAIL    " + string.padLeft(string(elapsedMs), 6) + "ms   (no response) " + url)
+    else
+        println(tag + " " + string.padLeft(string(code), 3) + "  " + string.padLeft(string(bodyLen), 8) + "B  " + string.padLeft(string(elapsedMs), 6) + "ms  " + url)
+    end
+    return code
+end
+
+// 按 concurrency 分批并发抓取。分批可限制线程和连接数量，同时支持任意长度 URL 列表。
+async func runUrls(array<string> urls, int timeout, int concurrency, float startSec) as int
+    int c = urls.length
+    int ok = 0
+    int errors = 0
+    int failed = 0
+    int offset = 0
+    while offset < c
+        int stop = offset + concurrency
+        if stop > c then
+            stop = c
+        end
+
+        array<future<int>> jobs = []
+        int i = offset
+        while i < stop
+            jobs.push(fetchOne(i, c, urls[i], timeout))
+            i += 1
+        end
+
+        array<int> codes = await task.all(jobs)
+        int j = 0
+        while j < codes.length
+            int code = codes[j]
+            if code == 0 then
+                failed += 1
+            elseif code >= 200 and code < 400 then
+                ok += 1
+            else
+                errors += 1
+            end
+            j += 1
+        end
+        offset = stop
+    end
+
+    float wall = time.timer() - startSec
+    if wall < 0.0 then
+        wall = 0.0
+    end
+    int wallMs = int(wall * 1000.0)
+    println("------------------------------------------------------------")
+    println("urls:      " + string(c))
+    println("ok(2xx/3xx): " + string(ok) + "   http-error(4xx/5xx): " + string(errors) + "   failed(net): " + string(failed))
+    println("wall time: " + string(wallMs) + " ms (task.all, concurrency " + string(concurrency) + ")")
+    if failed > 0 then
+        g_rc = 1
+        return 1
+    end
+    g_rc = 0
+    return 0
+end
+
+// demo 本地 server 路由：返回多种状态码 / body 大小 / 延迟，用于演示并发。
+func demoRoute(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    string p = req.path()
+    if p == "/hello" then
+        return resp.text("hello from xlang crawl demo", "text/plain; charset=utf-8")
+    end
+    if p == "/big" then
+        return resp.text(string.repeat("ABCDEFGH", 256), "text/plain; charset=utf-8")
+    end
+    if p == "/slow" then
+        time.sleep(300)
+        return resp.text("slow response after 300ms", "text/plain; charset=utf-8")
+    end
+    if p == "/json" then
+        resp.header("Content-Type", "application/json")
+        return resp.text("{\"tool\":\"crawl\",\"lang\":\"xlang\",\"async\":true}")
+    end
+    if p == "/error" then
+        resp.status(500)
+        return resp.text("internal demo error")
+    end
+    resp.status(404)
+    return resp.text("not found")
+end
+
+// 启动本地 server，抓取多种响应，再关闭 server。
+async func runDemo() as int
+    point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 4)
+    if server == null then
+        println("demo: server create failed")
+        return 1
+    end
+    func(point, point) as bool handler = demoRoute
+    http.server.anyRequest(server, "/*", handler)
+    if not http.server.start(server) then
+        println("demo: server start failed")
+        http.server.destroy(server)
+        return 1
+    end
+    int port = http.server.port(server)
+    string base = "http://127.0.0.1:" + string(port)
+    time.sleep(30)
+
+    println("demo: local server listening on 127.0.0.1:" + string(port))
+    println("demo: crawling 6 endpoints concurrently...")
+    println("------------------------------------------------------------")
+
+    array<string> urls = [
+        base + "/hello",
+        base + "/big",
+        base + "/slow",
+        base + "/json",
+        base + "/error",
+        base + "/missing"
+    ]
+
+    float startSec = time.timer()
+    int rc = await runUrls(urls, DEFAULT_TIMEOUT, urls.length, startSec)
+
+    http.server.stop(server)
+    http.server.destroy(server)
+    return rc
+end
+
+func printUsage()
+    println("crawl - async HTTP crawler (concurrent via task.all)")
+    println("Usage:")
+    println("  crawl <url1> [url2] [url3] ...        crawl URLs concurrently")
+    println("  crawl -f <urls.txt>                    read URL list from file (one per line)")
+    println("  crawl demo                             run built-in demo against a local server")
+    println("Options:")
+    println("  -t <ms>    per-request timeout (default " + string(DEFAULT_TIMEOUT) + "ms)")
+    println("  -c <n>     maximum concurrent requests (default " + string(DEFAULT_CONCURRENCY) + ")")
+    println("  -h, --help show this help")
+    println("Examples:")
+    println("  crawl http://127.0.0.1:8080/a http://127.0.0.1:8080/b")
+    println("  crawl -f urls.txt")
+    println("  crawl demo")
+end
+
+// 从文件读取 URL 列表。状态 0 表示成功，负值表示错误。
+func loadUrlsFromFile(string path) as (int, array<string>)
+    if not file.exists(path) then
+        return -1, []
+    end
+    string text
+    bool readOk = true
+    try
+        text = file.readText(path)
+    catch e
+        readOk = false
+    end
+    if not readOk then
+        return -2, []
+    end
+    if text == "" then
+        return -3, []
+    end
+    array lines = string.splitLines(text)
+    array<string> urls = array<string>[]
+    int i = 0
+    while i < lines.length
+        string line = string.trim(string(lines[i]))
+        // 跳过空行和注释行
+        if line == "" then
+            i += 1
+            continue
+        end
+        if string.startsWith(line, "#") then
+            i += 1
+            continue
+        end
+        urls.push(line)
+        i += 1
+    end
+    if urls.length == 0 then
+        return -3, []
+    end
+    return 0, urls
+end
+
+func main(...) as int
+    array<string> urls = array<string>[]
+    int timeout = DEFAULT_TIMEOUT
+    int concurrency = DEFAULT_CONCURRENCY
+
+    string filePath = ""
+    bool useFile = false
+    bool useDemo = false
+    int i = 1
+    while i < arg.length
+        string a = string(arg[i])
+        if a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        elseif a == "demo" and urls.length == 0 and not useFile then
+            useDemo = true
+            i += 1
+        elseif a == "-f" or a == "--file" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires <urls.txt>")
+                return 1
+            end
+            useFile = true
+            filePath = string(arg[i + 1])
+            i += 2
+        elseif a == "-t" or a == "--timeout" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires <ms>")
+                return 1
+            end
+            int parsed = int(arg[i + 1])
+            if parsed <= 0 then
+                println("Error: timeout must be positive (got '" + arg[i + 1] + "')")
+                return 1
+            end
+            timeout = parsed
+            i += 2
+        elseif a == "-c" or a == "--concurrency" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires <n>")
+                return 1
+            end
+            int parsed = int(arg[i + 1])
+            if parsed <= 0 or parsed > MAX_CONCURRENCY then
+                println("Error: concurrency must be 1.." + string(MAX_CONCURRENCY))
+                return 1
+            end
+            concurrency = parsed
+            i += 2
+        elseif string.startsWith(a, "http://") or string.startsWith(a, "https://") then
+            urls.push(a)
+            i += 1
+        else
+            println("Error: unexpected argument '" + a + "' (urls must start with http:// or https://)")
+            return 1
+        end
+    end
+
+    if useDemo then
+        future<int> f = runDemo()
+        bool ok = f.wait()
+        if not ok then
+            println("crawl: demo error:", f.error())
+            return 1
+        end
+        return 0
+    end
+
+    if useFile then
+        int status
+        array<string> loaded
+        status, loaded = loadUrlsFromFile(filePath)
+        if status == -1 then
+            println("Error: file not found '" + filePath + "'")
+            return 1
+        elseif status == -2 then
+            println("Error: cannot read file '" + filePath + "'")
+            return 1
+        elseif status == -3 then
+            println("Error: no URLs found in '" + filePath + "'")
+            return 1
+        end
+        urls = loaded
+    end
+
+    if urls.length == 0 then
+        printUsage()
+        return 1
+    end
+
+    if concurrency > urls.length then
+        concurrency = urls.length
+    end
+    println("crawling " + string(urls.length) + " URL(s) (timeout " + string(timeout) + "ms, concurrency " + string(concurrency) + ")...")
+    println("------------------------------------------------------------")
+    float startSec = time.timer()
+    future<int> f = runUrls(urls, timeout, concurrency, startSec)
+    bool ok = f.wait()
+    if not ok then
+        println("crawl: error:", f.error())
+        return 1
+    end
+    return g_rc
+end

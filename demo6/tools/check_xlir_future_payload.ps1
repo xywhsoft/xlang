@@ -4,10 +4,6 @@ if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
 try {
     $prefix = 'build/test/xlir_future_payload'
-    & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -O2 -fwhole-program -I. test/cases/xlir_future_payload_trim.c -o "$prefix.trim.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Payload private-source trim build failed' }
-    & "$prefix.trim.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Payload private-source trim dependencies failed' }
     $inputs = @('test/cases/xlir_future_payload_contract.c','src/runtime/xl6_future_payload.c')
     & gcc -std=c11 -Wall -Wextra -Werror -O2 -I. @inputs release/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Future payload resident runtime build failed' }

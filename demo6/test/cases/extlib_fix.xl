@@ -1,35 +1,32 @@
 import fix
 
 func main(...) as int
-    // Message types
-    assert fix.msgType(0) == "Heartbeat", "msg heartbeat"
-    assert fix.msgType(3) == "NewOrderSingle", "msg neworder"
-    assert fix.msgType(4) == "ExecutionReport", "msg execreport"
+    var fields = [
+        fix.field(35, "D"),
+        fix.field(49, "SENDER"),
+        fix.field(56, "TARGET"),
+        fix.field(11, "order-1"),
+        fix.field(54, "1"),
+        fix.field(38, "100")
+    ]
+    string message = fix.build("FIX.4.4", fields)
+    assert fix.validate(message), "built message validates"
+    assert string.contains(message, "8=FIX.4.4\x01"), "begin string"
+    assert string.contains(message, "9="), "body length"
+    assert string.contains(message, "10="), "checksum"
 
-    // Side
-    assert fix.side(0) == "Buy", "side buy"
-    assert fix.side(1) == "Sell", "side sell"
+    var parsed = fix.parse(message)
+    assert parsed["valid"] == true, "parsed validation"
+    assert parsed["fields"][2]["tag"] == 35, "field order"
+    assert parsed["fields"][2]["value"] == "D", "field value"
 
-    // Order types
-    assert fix.ordType(0) == "Market", "ord market"
-    assert fix.ordType(1) == "Limit", "ord limit"
-
-    // Order status
-    assert fix.ordStatus(0) == "New", "status new"
-    assert fix.ordStatus(2) == "Filled", "status filled"
-    assert fix.ordStatus(5) == "Rejected", "status rejected"
-
-    // Time in force
-    assert fix.timeInForce(0) == "Day", "tif day"
-    assert fix.timeInForce(1) == "GoodTillCancel", "tif gtc"
-
-    // Tag names
-    assert fix.tagName(8) == "BeginString", "tag 8"
-    assert fix.tagName(35) == "MsgType", "tag 35"
-    assert fix.tagName(55) == "Symbol", "tag 55"
-
-    // Checksum: "8=FIX.4.2" sum=542, 542%256=30 -> "030"
-    assert fix.checksum("8=FIX.4.2") == "030", "checksum"
-
+    bool caught = false
+    try
+        string corrupted = string.replace(message, "10=", "10=999")
+        fix.parse(corrupted)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "invalid checksum must throw"
     return 0
 end

@@ -16,12 +16,12 @@ $apiPath = Join-Path $Root "src\api\xl_api.c"
 $apiSymbolsPath = Join-Path $Root "src\api\xl_api_symbols.c"
 $futureBridgePath = Join-Path $Root "src\api\xl_future_bridge.c"
 $xrtSymbolsPath = Join-Path $Root "src\api\xl_xrt_symbols.inc"
-$cgenRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_runtime.c"
-$cgenModulePath = Join-Path $Root "src\cgen\xl6_cgen_module.c"
-$cgenCallableRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_callable_runtime.c"
-$cgenXValueRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_xvalue_runtime.c"
-$cgenRuntimeTypePath = Join-Path $Root "src\cgen\xl6_cgen_runtime_type.c"
-$cgenTccPath = Join-Path $Root "src\cgen\xl6_cgen_tcc.c"
+$tccEnvironmentPath = Join-Path $Root "src\api\xl_tcc_standalone_env.c"
+$irCgenRootPath = Join-Path $Root "src\cgen\xl6_ir_cgen.c"
+$irCgenHeaderPath = Join-Path $Root "src\cgen\xl6_ir_cgen.h"
+$irCgenVerifyPath = Join-Path $Root "src\cgen\xl6_ir_cgen_verify.c"
+$irCgenModuleEmitPath = Join-Path $Root "src\cgen\xl6_ir_cgen_module_emit.c"
+$irCgenNativeDependenciesPath = Join-Path $Root "src\cgen\xl6_ir_cgen_native_dependencies.c"
 $docName = "DLL" + ([char]0x5D4C) + ([char]0x5165) + ([char]0x5F0F) + ([char]0x8FD0) + ([char]0x884C) + ([char]0x5E93) + ([char]0x8BBE) + ([char]0x8BA1) + ".md"
 $docPath = Join-Path (Join-Path $Root "docs") $docName
 $buildDllPath = Join-Path $Root "build_dll.bat"
@@ -248,13 +248,14 @@ foreach ( $path in @(
     $extlibAbiHeaderPath,
     $apiPath,
     $apiSymbolsPath,
+    $futureBridgePath,
     $xrtSymbolsPath,
-    $cgenRuntimePath,
-    $cgenModulePath,
-    $cgenCallableRuntimePath,
-    $cgenXValueRuntimePath,
-    $cgenRuntimeTypePath,
-    $cgenTccPath,
+    $tccEnvironmentPath,
+    $irCgenRootPath,
+    $irCgenHeaderPath,
+    $irCgenVerifyPath,
+    $irCgenModuleEmitPath,
+    $irCgenNativeDependenciesPath,
     $docPath,
     $buildDllPath,
     $buildXrtPath,
@@ -278,12 +279,12 @@ if ( $failures.Count -eq 0 ) {
     $apiSymbols = Read-Utf8Text $apiSymbolsPath
     $futureBridge = Read-Utf8Text $futureBridgePath
     $xrtSymbols = Read-Utf8Text $xrtSymbolsPath
-    $cgenRuntime = Read-Utf8Text $cgenRuntimePath
-    $cgenModule = Read-Utf8Text $cgenModulePath
-    $cgenCallableRuntime = Read-Utf8Text $cgenCallableRuntimePath
-    $cgenXValueRuntime = Read-Utf8Text $cgenXValueRuntimePath
-    $cgenRuntimeType = Read-Utf8Text $cgenRuntimeTypePath
-    $cgenTcc = Read-Utf8Text $cgenTccPath
+    $tccEnvironment = Read-Utf8Text $tccEnvironmentPath
+    $irCgenRoot = Read-Utf8Text $irCgenRootPath
+    $irCgenHeader = Read-Utf8Text $irCgenHeaderPath
+    $irCgenVerify = Read-Utf8Text $irCgenVerifyPath
+    $irCgenModuleEmit = Read-Utf8Text $irCgenModuleEmitPath
+    $irCgenNativeDependencies = Read-Utf8Text $irCgenNativeDependenciesPath
     $doc = Read-Utf8Text $docPath
     $buildDll = Read-Utf8Text $buildDllPath
     $buildXrt = Read-Utf8Text $buildXrtPath
@@ -311,12 +312,13 @@ if ( $failures.Count -eq 0 ) {
     if ( $runtimeHeader -match '(?m)^\s*(?!return\b)(?!if\b)(?!while\b)(?!for\b)(?!switch\b)(?:[A-Za-z_][A-Za-z0-9_]*[\s*]+)+xrt[A-Z][A-Za-z0-9_]*\s*\(' ) {
         Add-Failure "release/include/xl_runtime.h must not mirror XRT function declarations"
     }
-    if ( ! $cgenTcc.Contains("int xlTccRegisterXrtEnvironment(void* state, int outputType);") -or
-         ! $cgenTcc.Contains("xlTccRegisterXrtEnvironment(state, outputType)") -or
+    if ( $tccEnvironment -notmatch '#include\s+"src/api/xl_xrt_symbols[.]inc"' -or
+         $tccEnvironment -notmatch 'int\s+xlTccRegisterXrtEnvironment\s*\(' -or
+         $tccEnvironment -notmatch 'tcc_add_symbol\s*\(\s*state\s*,\s*"xlTccRegisterXrtEnvironment"' -or
          $apiSymbols -notmatch '#include\s+"xl_xrt_symbols[.]inc"' -or
          $apiSymbols -notmatch 'xlApiAddDefaultRuntimeSymbols\s*\(' -or
          $xrtSymbols -notmatch 'XL_XRT_SYMBOL\s*\(\s*xrtTypeValue\s*\)' ) {
-        Add-Failure "generated runtime TCC environment must register xrtTypeValue through the centralized XRT symbol table"
+        Add-Failure "runtime and standalone TCC environments must share the centralized XRT symbol table"
     }
     if ( $runtimeHeader -notmatch '(?m)^\s*static\s+inline\s+xvalue\s*\*\s*xl6ValueHandleOwner\s*\(\s*const\s+ptr\s*\*\s*\w+\s*\)' ) {
         Add-Failure "release/include/xl_runtime.h must provide inline xl6ValueHandleOwner"
@@ -329,23 +331,38 @@ if ( $failures.Count -eq 0 ) {
             Add-Failure "release/include/xl_runtime.h must not define compiler-owned helper block $compilerOwnedHelper"
         }
     }
-    if ( $cgenRuntime -notmatch 'static inline void xl6_temp_managed_release' ) {
-        Add-Failure "generated runtime must provide the single temporary managed release entry"
+    $backendMembers = @([regex]::Matches(
+        $xlcHeader, '(?m)^\s*XLC_BACKEND_[A-Z0-9_]+\s*='))
+    if ( $backendMembers.Count -ne 1 -or
+         $xlcHeader -notmatch '(?m)^\s*XLC_BACKEND_XLIR\s*=\s*0\s*$' -or
+         $api -notmatch 'backend\s*!=\s*XLC_BACKEND_XLIR' ) {
+        Add-Failure "xlc.dll must expose and accept only the verified XLIR backend"
     }
-    foreach ( $consumer in @(
-        [pscustomobject]@{ Name = "callable runtime"; Text = $cgenCallableRuntime },
-        [pscustomobject]@{ Name = "xvalue runtime"; Text = $cgenXValueRuntime },
-        [pscustomobject]@{ Name = "runtime type"; Text = $cgenRuntimeType }
+    foreach ( $requiredShard in @(
+        'xl6_ir_cgen_verify.c',
+        'xl6_ir_cgen_needs_analysis.c',
+        'xl6_ir_cgen_needs_runtime_analysis.c',
+        'xl6_ir_cgen_native_dependencies.c',
+        'xl6_ir_cgen_module_emit.c',
+        'xl6_ir_cgen_header_emit.c'
     ) ) {
-        if ( $consumer.Text -notmatch 'xl6_temp_managed_release' ) {
-            Add-Failure "$($consumer.Name) must consume temporary xvalue ownership through xl6_temp_managed_release"
+        if ( !$irCgenRoot.Contains($requiredShard) ) {
+            Add-Failure "unified XLIR C emitter root is missing required shard: $requiredShard"
         }
     }
-    if ( $cgenRuntimeType -match 'if \(release && value != 0\) \{ xvoUnref\(value\); \}' ) {
-        Add-Failure "runtime type release path must disown temporary xvalue before xvoUnref"
+    if ( $irCgenHeader -notmatch 'xl6IrCgenEmitCEx\s*\(' -or
+         $irCgenHeader -notmatch 'xl6IrCgenEmitHeader\s*\(' -or
+         $irCgenVerify -notmatch 'module->stage\s*!=\s*XL6_IR_STAGE_LOWERED' -or
+         $irCgenVerify -notmatch 'xl6IrVerifyModule\s*\(' -or
+         $irCgenModuleEmit -notmatch 'xl6IrCgenBuildNeeds\s*\(' -or
+         $irCgenNativeDependencies -notmatch 'xl6IrCgenVerifyEmittable\s*\(' -or
+         $irCgenNativeDependencies -notmatch 'xl6IrCgenVisitNativeModules\s*\(' ) {
+        Add-Failure "xlc.dll C/header emission and native dependencies must share verified lowered XLIR"
     }
-    if ( $cgenModule -notmatch '(?s)if \( hasFunctionVarRuntime \) \{\s*hasTypeConvertRuntime = 1;\s*hasErrorRuntime = 1;\s*\}' ) {
-        Add-Failure "function-var runtime needs closure must include type-convert runtime"
+    if ( ($irCgenRoot + $irCgenHeader + $irCgenVerify +
+          $irCgenModuleEmit + $irCgenNativeDependencies) -match
+         'XL6_Ast|XL6_Hir|XLC_BACKEND_LEGACY|xl6CgenEmitCEx' ) {
+        Add-Failure "xlc.dll unified emitter boundary contains a retired frontend/backend dependency"
     }
     foreach ( $enumApi in @(
         "xl6EnumInfo",

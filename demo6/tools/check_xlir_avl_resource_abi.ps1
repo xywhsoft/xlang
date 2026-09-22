@@ -12,7 +12,6 @@ $classLoweredJson = Join-Path $root "build\tmp\xlir_avl_class_default_abi.lowere
 $generatedC = Join-Path $root "build\tmp\xlir_avl_resource_abi.c"
 $generatedCSecond = Join-Path $root "build\tmp\xlir_avl_resource_abi.second.c"
 $classDefaultC = Join-Path $root "build\tmp\xlir_avl_class_default_abi.c"
-$legacyC = Join-Path $root "build\tmp\xlir_avl_resource_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $classDefaultSource, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -390,13 +389,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR AvlTree class-default strict-C/runtime gate failed"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyC
-if ( $LASTEXITCODE -ne 0 ) { throw "AvlTree legacy C generation failed" }
-$legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! build\tmp\xlir_avl_resource_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_avl_resource_abi.legacy.exe && build\test\xlir_avl_resource_abi.legacy.exe'
-& $env:ComSpec /d /v:on /c $legacyCommand
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR AvlTree legacy differential runtime gate failed"
-}
-
-Write-Output "XLIR AvlTree resource ABI gate passed: exact key/value/order identities, normalized merge, class-field defaults and cleanup, storage refs, retained capture, deterministic declaration-only C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR AvlTree resource ABI gate passed: exact key/value/order identities, normalized merge, class-field defaults and cleanup, storage refs, retained capture, deterministic declaration-only C, and strict runtime."
 exit 0

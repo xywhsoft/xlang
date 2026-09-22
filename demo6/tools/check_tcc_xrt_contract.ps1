@@ -93,8 +93,8 @@ foreach ( $name in $declaredNames ) {
     $failed = $true
 }
 
-# Storage-class specifiers are not part of a C return type.  XLIR emits explicit
-# extern declarations while the legacy emitter may omit the redundant specifier.
+# Storage-class specifiers are not part of a C return type.  Canonical XLIR
+# output uses explicit extern declarations; normalize them before comparison.
 # Parameter names are not ABI. Check normalized return-type conflicts here;
 # generated TCC compilation gates validate the complete parameter contract.
 foreach ( $item in @($declarations | Group-Object Name) ) {

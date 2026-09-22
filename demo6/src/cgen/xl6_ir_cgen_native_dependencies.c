@@ -7,6 +7,7 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     if (!xl6IrCgenVerifyEmittable(module,diags)) return 0;
     if (!xl6IrCgenAnalyzePrimaryNeeds(module,needs,diags) ||
         !xl6IrCgenAnalyzeRuntimeNeeds(module,needs,diags)) return 0;
+    needs->needsDebugConsoleRuntime = options != NULL && options->debugMode;
     needs->needsNetLifecycleRuntime=needs->needsNetTcpRuntime || needs->needsNetTlsRuntime || needs->needsNetDatagramRuntime;
     if (!!(needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime ||
             needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime) !=

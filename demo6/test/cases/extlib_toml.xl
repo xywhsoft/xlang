@@ -13,6 +13,7 @@ func main(...) as int
     assert toml.isLocalDateTime(document["local"]), "TOML local datetime type"
     assert toml.dateTimePart(document["local"], 6) == 123456, "TOML microsecond precision"
     assert toml.isOffsetDateTime(document["precise"]), "TOML fractional offset type"
+    assert toml.dateTimeText(document["precise"]) == "2026-07-16T12:34:56.25+08:00", "TOML datetime text"
 
     string encoded = toml.stringify(document)
     var roundTrip = toml.parse(encoded)

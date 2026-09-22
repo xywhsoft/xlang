@@ -17,8 +17,6 @@ $typedPath = Join-Path $outputDir "xlir_composite_cast_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_composite_cast_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_composite_cast_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_composite_cast_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_composite_cast_abi_legacy.c"
-
 foreach ( $path in @($xl, $source, $hostSource, $supportSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR composite cast ABI gate input is missing: $path"
@@ -134,17 +132,17 @@ foreach ( $required in @(
 
 Push-Location $Root
 try {
-    $xlirCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include $generatedPath $hostSource $supportSource !XL6_CGEN_LINKS! -o build\test\xlir_composite_cast_abi_xlir.exe && build\test\xlir_composite_cast_abi_xlir.exe"
+    $supportObject = Join-Path $outputDir "xlir_composite_cast_abi_support.o"
+    $executable = Join-Path $outputDir "xlir_composite_cast_abi_xlir.exe"
+    # The generated module is preincluded only into its host translation unit.
+    # Compiling the independent support source separately proves that the gate
+    # does not accidentally define the generated module twice.
+    $xlirCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -c `"$supportSource`" -o `"$supportObject`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include `"$generatedPath`" `"$hostSource`" `"$supportObject`" !XL6_CGEN_LINKS! -o `"$executable`" && `"$executable`""
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR composite cast strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy composite cast differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $supportSource !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_composite_cast_abi_legacy.exe && build\test\xlir_composite_cast_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy composite cast differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR composite cast ABI gate ok: exact union/callable identities, recoverable TypeError mismatch, reverse callable adapters, adjacent ERROR_TEST, deterministic strict C, and XLIR/legacy runtime semantics pass."
+Write-Output "XLIR composite cast ABI gate ok: exact union/callable identities, recoverable TypeError mismatch, reverse callable adapters, adjacent ERROR_TEST, and deterministic strict-C runtime semantics pass."

@@ -104,46 +104,31 @@ for ($offset = 0; $offset -lt $sources.Count; $offset += $sourceBatchSize) {
     $sourceBatch = @($sources | Select-Object -Skip $offset -First $sourceBatchSize)
     $requests = [System.Collections.Generic.List[object]]::new()
     foreach ($source in $sourceBatch) {
-        $slot = [int]($requests.Count / 2)
-        $requests.Add([pscustomobject]@{ Source = $source.FullName; Backend = 'legacy'; Output = (Join-Path $evidencePath "slot$slot-legacy.c") })
+        $slot = $requests.Count
         $requests.Add([pscustomobject]@{ Source = $source.FullName; Backend = 'xlir'; Output = (Join-Path $evidencePath "slot$slot-xlir.c") })
     }
     $batch = @(Invoke-XlirPublicCgenBatch -Session $session -Requests $requests.ToArray() `
         -TimeoutSeconds $CompilerTimeoutSeconds)
-    if ($batch.Count -ne $sourceBatch.Count * 2) {
+    if ($batch.Count -ne $sourceBatch.Count) {
         throw 'XLIR migration-audit batch returned an incomplete result set'
     }
     for ($sourceIndex = 0; $sourceIndex -lt $sourceBatch.Count; ++$sourceIndex) {
         ++$index
         $source = $sourceBatch[$sourceIndex]
         $expectedXlirRejection = $source.BaseName -in $expectedXlirRejections
-        $legacy = $batch[$sourceIndex * 2]
-        $xlir = $batch[$sourceIndex * 2 + 1]
-    $sourceHashesMatch = $legacy.SourceSha256 -eq $xlir.SourceSha256
-    if (!$sourceHashesMatch) {
+        $xlir = $batch[$sourceIndex]
+    if ($xlir.ExecutionFailure) {
         $executionFailures.Add([pscustomobject]@{
             Name = $source.BaseName
-            Backend = 'batch'
-            Failure = 'legacy and XLIR did not consume the same source revision'
-            Diagnostic = ''
+            Backend = $xlir.Backend
+            Failure = $xlir.ExecutionFailure
+            Diagnostic = $xlir.Output
         })
-    }
-    foreach ($invocation in @($legacy, $xlir)) {
-        if ($invocation.ExecutionFailure) {
-            $executionFailures.Add([pscustomobject]@{
-                Name = $source.BaseName
-                Backend = $invocation.Backend
-                Failure = $invocation.ExecutionFailure
-                Diagnostic = $invocation.Output
-            })
-        }
     }
     $lineNumber = 0
     $provenance = ''
     $reason = ''
-    if ($legacy.ExitCode -ne 0) {
-        $reason = 'legacy backend rejected fixture'
-    } elseif ($xlir.ExitCode -ne 0) {
+    if ($xlir.ExitCode -ne 0) {
         $reason = $xlir.Output
         $match = [regex]::Match($xlir.Output,
             '(?m)^(?:.*?):(?<line>[0-9]+):(?<column>[0-9]+):\s*\[(?<provenance>[^\]]+)\]\s*(?<reason>[^\r\n]+)')
@@ -156,15 +141,13 @@ for ($offset = 0; $offset -lt $sources.Count; $offset += $sourceBatchSize) {
     $results.Add([pscustomobject]@{
         Name = $source.BaseName
         SourceSha256 = $xlir.SourceSha256
-        SourceHashesMatch = $sourceHashesMatch
-        Legacy = !$legacy.ExecutionFailure -and $legacy.ExitCode -eq 0
+        SourceUnchanged = $xlir.SourceUnchanged
         Xlir = !$xlir.ExecutionFailure -and $xlir.ExitCode -eq 0
         ExpectedXlirRejection = $expectedXlirRejection
         Line = $lineNumber
         Provenance = $provenance
         Reason = $reason
         Diagnostic = if ($xlir.ExitCode -ne 0) { $xlir.Output } else { '' }
-        LegacyMilliseconds = $legacy.DurationMilliseconds
         XlirMilliseconds = $xlir.DurationMilliseconds
     })
     if (($index % 100) -eq 0) {
@@ -190,20 +173,17 @@ if ($inputsUnchanged) {
         $inputFailure = $_.Exception.Message
     }
 }
-$legacyAccepted = @($results | Where-Object Legacy).Count
-$xlirAcceptedWithinLegacy = @($results | Where-Object { $_.Legacy -and $_.Xlir }).Count
+$xlirAccepted = @($results | Where-Object Xlir).Count
 $unexpectedRejections = @($results | Where-Object {
-    $_.Legacy -and !$_.Xlir -and !$_.ExpectedXlirRejection
+    !$_.Xlir -and !$_.ExpectedXlirRejection
 })
 $expectedRejected = @($results | Where-Object {
-    $_.Legacy -and !$_.Xlir -and $_.ExpectedXlirRejection
+    !$_.Xlir -and $_.ExpectedXlirRejection
 })
 $expectedAccepted = @($results | Where-Object {
-    $_.Legacy -and $_.Xlir -and $_.ExpectedXlirRejection
+    $_.Xlir -and $_.ExpectedXlirRejection
 })
-$expectedContractViolations = @($results | Where-Object {
-    $_.ExpectedXlirRejection -and (!$_.Legacy -or $_.Xlir)
-})
+$expectedContractViolations = @($expectedAccepted)
 $groups = @($unexpectedRejections | Group-Object Reason | Sort-Object Count -Descending | ForEach-Object {
     [pscustomobject]@{
         Count = $_.Count
@@ -212,11 +192,10 @@ $groups = @($unexpectedRejections | Group-Object Reason | Sort-Object Count -Des
     }
 })
 $report = [ordered]@{
-    SchemaVersion = 3
+    SchemaVersion = 4
     GeneratedAt = [DateTime]::UtcNow.ToString('o')
     SourceCount = $sources.Count
-    LegacyAccepted = $legacyAccepted
-    XlirAcceptedWithinLegacy = $xlirAcceptedWithinLegacy
+    XlirAccepted = $xlirAccepted
     UnexpectedXlirRejections = $unexpectedRejections.Count
     ExpectedXlirRejected = $expectedRejected.Count
     ExpectedXlirAccepted = $expectedAccepted.Count
@@ -236,14 +215,14 @@ $report = [ordered]@{
     Groups = $groups
     ExpectedAcceptedFixtures = @($expectedAccepted | ForEach-Object Name)
     ExpectedContractViolations = @($expectedContractViolations | ForEach-Object {
-        [ordered]@{ Name = $_.Name; Legacy = $_.Legacy; Xlir = $_.Xlir; Reason = $_.Reason }
+        [ordered]@{ Name = $_.Name; Xlir = $_.Xlir; Reason = $_.Reason }
     })
     ExecutionFailures = @($executionFailures.ToArray())
     Fixtures = @($results.ToArray())
 }
 [IO.Directory]::CreateDirectory((Split-Path -Parent $OutputPath)) | Out-Null
 [IO.File]::WriteAllText($OutputPath, ($report | ConvertTo-Json -Depth 7), [Text.UTF8Encoding]::new($false))
-Write-Output "XLIR current-source migration audit: sources=$($sources.Count) legacy=$legacyAccepted xlir=$xlirAcceptedWithinLegacy rejected=$($unexpectedRejections.Count) expected-rejected=$($expectedRejected.Count)"
+Write-Output "XLIR current-source admission audit: sources=$($sources.Count) accepted=$xlirAccepted unexpected-rejected=$($unexpectedRejections.Count) expected-rejected=$($expectedRejected.Count)"
 $groups | Select-Object -First 25 | ForEach-Object {
     Write-Output ('{0,4}  {1}' -f $_.Count, $_.Reason)
 }

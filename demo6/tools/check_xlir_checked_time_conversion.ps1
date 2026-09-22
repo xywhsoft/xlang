@@ -11,15 +11,13 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_checked_time_conversion.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_checked_time_conversion_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_checked_time_conversion.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_checked_time_conversion.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_checked_time_conversion_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_checked_time_conversion_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_checked_time_conversion_legacy.c"
 
-foreach ( $path in @($xl, $source, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR checked time conversion gate input is missing: $path"
     }
@@ -137,15 +135,8 @@ try {
         throw "XLIR checked time conversion strict-C runtime failed"
     }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy checked time conversion differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $legacySupport !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_checked_time_conversion_legacy.exe && build\test\xlir_checked_time_conversion_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy checked time conversion differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR checked time conversion gate ok: canonical string/xvalue sources, explicit time boxing/formatting, adjacent failure CFG, deterministic mechanical C, strict XLIR failure recovery and shared-path legacy differential semantics."
+Write-Output "XLIR checked time conversion gate ok: canonical string/xvalue sources, explicit time boxing/formatting, adjacent failure CFG, deterministic mechanical C, and strict XLIR failure recovery."

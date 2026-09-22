@@ -19,8 +19,6 @@ $loweredB = Join-Path $outputDir "cgen_generic_dynamic_method.lowered.b.json"
 $generated = Join-Path $outputDir "cgen_generic_dynamic_method_xlir_generated.c"
 $generatedAgain = Join-Path $outputDir "cgen_generic_dynamic_method_xlir_generated.again.c"
 $xlirExe = Join-Path $outputDir "cgen_generic_dynamic_method_xlir.exe"
-$legacyC = Join-Path $outputDir "cgen_generic_dynamic_method_legacy_generated.c"
-$legacyExe = Join-Path $outputDir "cgen_generic_dynamic_method_legacy.exe"
 
 foreach ( $path in @($xl, $source, $runtimeHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -120,17 +118,9 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR generic dynamic-method strict-C runtime failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy generic dynamic-method Cgen failed" }
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyC !XL6_CGEN_XLANG_LINKS! -o $legacyExe && $legacyExe"
-    & cmd.exe /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy generic dynamic-method differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR generic dynamic-method ABI gate ok: complete registry preserved, unsupported same-name rows excluded from dispatch, specialized verified adapters emitted mechanically, deterministic IR/C, strict C and legacy differential runtime."
+Write-Output "XLIR generic dynamic-method ABI gate ok: complete registry preserved, unsupported same-name rows excluded from dispatch, specialized verified adapters emitted mechanically, deterministic IR/C, and strict C runtime."
 exit 0

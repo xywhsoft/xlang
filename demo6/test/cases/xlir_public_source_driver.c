@@ -25,7 +25,6 @@ static int recovery(XLC_Context* compiler, const char* prefix)
             !xlcCompile(compiler) || !xlcRun(compiler, 0, NULL) || xlcGetLastExitCode(compiler) != 0 ||
             (xlcGetLastError(compiler) && *xlcGetLastError(compiler))) return 0;
     }
-    if (!xlcSetBackend(compiler, XLC_BACKEND_LEGACY)) return 0;
     file = fopen(path, "wb"); if (!file) return 0;
     if (fwrite("KEEP", 1, 4, file) != 4) { fclose(file); return 0; } fclose(file);
     if (!xlcAddSourceString(compiler, "__public_recovery.xl",
@@ -34,10 +33,13 @@ static int recovery(XLC_Context* compiler, const char* prefix)
         !xlcGetLastError(compiler) || !*xlcGetLastError(compiler)) return 0;
     file = fopen(path, "rb"); if (!file) return 0;
     if (fread(text, 1, sizeof(text), file) != 4 || memcmp(text, "KEEP", 4)) { fclose(file); return 0; } fclose(file);
+    if (xlcSetBackend(compiler, (XLC_Backend)1) ||
+        !xlcGetLastError(compiler) || !*xlcGetLastError(compiler)) return 0;
+    xlcClearLastError(compiler);
     if (!xlcSetBackend(compiler, XLC_BACKEND_XLIR) ||
         !xlcAddSourceString(compiler, "__public_recovery.xl", "assert 6 * 7 == 42\n") ||
         !xlcCompile(compiler) || !xlcRun(compiler, 0, NULL) || xlcGetLastExitCode(compiler) != 0) return 0;
-    printf("public recovery: 10 rounds, compile/Cgen failure preserves output, runtime failure, source/cache/backend replacement and successful reuse\n");
+    printf("public recovery: 10 rounds, compile/Cgen failure preserves output, runtime failure, source/cache replacement, retired-backend rejection and successful reuse\n");
     return 1;
 }
 int main(int argc, char** argv)
@@ -51,7 +53,7 @@ int main(int argc, char** argv)
     DWORD rootLength, moduleLength;
     int exactCgen = 0, ok = 0, code = 1, index, pathLength;
     if (argc < 4) {
-        fprintf(stderr, "usage: source-driver source.xl emit|ir-typed|ir-lowered|run|module|exe|dll|recovery|cgen-default|cgen-xlir|cgen-legacy output [sidecar.c ...]\n");
+        fprintf(stderr, "usage: source-driver source.xl emit|ir-typed|ir-lowered|run|module|exe|dll|recovery|cgen-default|cgen-xlir output [sidecar.c ...]\n");
         return 2;
     }
     requestedMode = argv[2];
@@ -59,8 +61,7 @@ int main(int argc, char** argv)
         strcmp(requestedMode, "ir-lowered") && strcmp(requestedMode, "run") &&
         strcmp(requestedMode, "module") && strcmp(requestedMode, "exe") &&
         strcmp(requestedMode, "dll") && strcmp(requestedMode, "recovery") &&
-        strcmp(requestedMode, "cgen-default") && strcmp(requestedMode, "cgen-xlir") &&
-        strcmp(requestedMode, "cgen-legacy")) {
+        strcmp(requestedMode, "cgen-default") && strcmp(requestedMode, "cgen-xlir")) {
         fprintf(stderr, "public source unknown mode: %s\n", requestedMode);
         return 2;
     }
@@ -78,17 +79,13 @@ int main(int argc, char** argv)
     options.tccDllPath = runtime; options.tccLibPath = libraries;
     compiler = xlcCreateContext(&options);
     if (!compiler) { fprintf(stderr, "public source context creation failed\n"); return 4; }
-    /* cgen-default deliberately leaves the context's source-defined default
-     * untouched; the explicit modes are the differential controls. */
+    /* cgen-default deliberately leaves the context's canonical backend
+     * untouched; cgen-xlir checks the compatibility selector. */
     if (!strcmp(requestedMode, "cgen-default")) {
         exactCgen = 1;
     } else if (!strcmp(requestedMode, "cgen-xlir")) {
         phase = "select XLIR backend";
         if (!xlcSetBackend(compiler, XLC_BACKEND_XLIR)) goto done;
-        exactCgen = 1;
-    } else if (!strcmp(requestedMode, "cgen-legacy")) {
-        phase = "select legacy backend";
-        if (!xlcSetBackend(compiler, XLC_BACKEND_LEGACY)) goto done;
         exactCgen = 1;
     }
     phase = "configure private runtime headers";

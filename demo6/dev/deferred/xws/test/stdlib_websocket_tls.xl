@@ -1,0 +1,74 @@
+string wssServerText = ""
+string wssClientText = ""
+int wssVerifySeen = 0
+
+func wssAcceptVerify(var event) as bool
+    wssVerifySeen += 1
+    assert(int(event["certSize"]) > 0)
+    assert(string.len(string(event["certHex"])) > 0)
+    return true
+end
+
+func wssServerMessage(point connHandle, string data)
+    WebSocketConnection conn = WebSocketConnection(connHandle)
+    wssServerText = data
+    assert(conn.send("secure:" + data) == 0)
+end
+
+func wssClientMessage(string data)
+    wssClientText = data
+end
+
+func makeWssServer(NetEngine engine) as WebSocketServer
+    TlsConfig tls = TlsConfig()
+    assert(tls.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem"))
+    assert(tls.alpn("http/1.1"))
+    WebSocketServerOptions options = WebSocketServerOptions(0, "127.0.0.1")
+    assert(options.path("/secure"))
+    assert(options.tls(tls))
+    return options.server(engine)
+end
+
+func makeWssClient(string url, NetEngine engine) as WebSocketClient
+    TlsConfig tls = TlsConfig()
+    assert(tls.host("localhost"))
+    assert(tls.alpn("http/1.1"))
+    assert(tls.verifyCallback(wssAcceptVerify))
+    WebSocketClientOptions options = WebSocketClientOptions(url)
+    assert(options.tls(tls))
+    return options.client(engine)
+end
+
+assert(file.exists("release/examples/fixtures/tls_cert.pem"))
+assert(file.exists("release/examples/fixtures/tls_key.pem"))
+
+NetEngine wssEngine = NetEngine(2)
+assert(wssEngine.start())
+WebSocketServer wssServer = makeWssServer(wssEngine)
+func(point, string) wssServerTextFn = wssServerMessage
+assert(wssServer.onText(wssServerTextFn))
+assert(wssServer.start() == 0)
+assert(wssServer.port > 0)
+
+string wssUrl = "wss://127.0.0.1:" + wssServer.port.toString() + "/secure"
+WebSocketClient wssClient = makeWssClient(wssUrl, wssEngine)
+func(string) wssClientTextFn = wssClientMessage
+assert(wssClient.onText(wssClientTextFn))
+assert(wssClient.start() == 0)
+assert(wssClient.waitOpen(5000) == 0)
+assert(wssClient.open)
+assert(wssVerifySeen > 0)
+assert(wssClient.send("hello") == 0)
+
+int wssWaitCount = 0
+while wssClientText == "" and wssWaitCount < 500
+    time.sleep(10)
+    wssWaitCount += 1
+end
+assert(wssServerText == "hello")
+assert(wssClientText == "secure:hello")
+assert(wssClient.close(1000, "done") == 0)
+assert(wssClient.waitClose(5000) == -4)
+wssClient.stop()
+wssServer.stop()
+println("stdlib websocket tls ok")

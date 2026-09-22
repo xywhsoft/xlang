@@ -1,5 +1,4 @@
 #include "src/ir/xl6_ir.h"
-#include "src/ir/xl6_hir.h"
 #include "src/type/xl6_type_model.h"
 
 #include <stdio.h>
@@ -1114,98 +1113,6 @@ static int xl6IrIsCanonicalFloatLiteral(const char* text)
     return digits != 0 && !exponentNeedsDigit && (seenDot || seenExponent);
 }
 
-static int xl6IrCopyTypePool(XL6_IrTypePool* dst, const XL6_HirModule* src)
-{
-    size_t i;
-    size_t slotCapacity;
-
-    if ( src->types.count == 0 ) {
-        return 1;
-    }
-    if ( src->types.count > SIZE_MAX / sizeof(*dst->items) ||
-         src->types.count > SIZE_MAX / 2 ) {
-        return 0;
-    }
-    dst->items = (XL6_IrType*)xrtCalloc(src->types.count, sizeof(*dst->items));
-    if ( dst->items == NULL ) {
-        return 0;
-    }
-    dst->count = src->types.count;
-    dst->capacity = src->types.count;
-    for ( i = 0; i < src->types.count; ++i ) {
-        const XL6_HirType* source = &src->types.items[i];
-        XL6_IrType* target = &dst->items[i];
-
-        target->kind = (XL6_IrTypeKind)source->kind;
-        target->sourceTypeId = source->sourceTypeId;
-        target->abiId = source->abiId;
-        target->paramCount = source->paramCount;
-        target->returnCount = source->returnCount;
-        target->hash = source->hash;
-        target->name = source->name != NULL ? xrtStrDupN(source->name, strlen(source->name)) : NULL;
-        target->collectionAbi = xl6IrCollectionAbiFromType(target->kind, source->name);
-        target->runtimeResourceAbi = xl6IrRuntimeResourceAbiFromName(source->name);
-        target->cAbi = xl6IrCAbiFromFrontend(target->abiId, source->name);
-        target->integerTarget = xl6IrIntegerTargetFromFrontend(
-            target->abiId, source->name);
-        target->ownershipAbi = xl6IrOwnershipAbiFromFrontend(target->abiId, source->name);
-        target->callableErasureAbi = target->kind == XL6_IR_TYPE_FUNCTION
-            ? XL6_IR_CALLABLE_ERASURE_FIXED
-            : XL6_IR_CALLABLE_ERASURE_INVALID;
-        target->params = NULL;
-        target->parameterModes = NULL;
-        target->parameterAbis = NULL;
-        target->returns = NULL;
-        if ( source->name == NULL || target->name == NULL ) {
-            return 0;
-        }
-        if ( source->paramCount > 0 ) {
-            target->params = (XL6_IrTypeId*)xrtMalloc(
-                source->paramCount * sizeof(*target->params));
-            if ( target->params == NULL ) {
-                return 0;
-            }
-            memcpy(target->params, source->params,
-                   source->paramCount * sizeof(*target->params));
-        }
-        if ( source->returnCount > 0 ) {
-            target->returns = (XL6_IrTypeId*)xrtMalloc(
-                source->returnCount * sizeof(*target->returns));
-            if ( target->returns == NULL ) {
-                return 0;
-            }
-            memcpy(target->returns, source->returns,
-                   source->returnCount * sizeof(*target->returns));
-        }
-    }
-    for ( i = 0; i < dst->count; ++i ) {
-        if ( !xl6IrTypeFinalizeRepresentation(dst, &dst->items[i]) ||
-             !xl6IrTypeInitParameterAbis(dst, &dst->items[i]) ||
-             !xl6IrTypeFinalizeTypeValueId(dst, &dst->items[i]) ) return 0;
-    }
-    if ( !xl6IrTypePoolFinalizeCallableResults(dst) ) return 0;
-    slotCapacity = 64;
-    while ( slotCapacity < src->types.count * 2 ) {
-        if ( slotCapacity > SIZE_MAX / 2 ) {
-            return 0;
-        }
-        slotCapacity *= 2;
-    }
-    dst->slots = (size_t*)xrtCalloc(slotCapacity, sizeof(*dst->slots));
-    if ( dst->slots == NULL ) {
-        return 0;
-    }
-    dst->slotCapacity = slotCapacity;
-    for ( i = 0; i < dst->count; ++i ) {
-        size_t slot = (size_t)(dst->items[i].hash & (uint64)(slotCapacity - 1));
-        while ( dst->slots[slot] != 0 ) {
-            slot = (slot + 1) & (slotCapacity - 1);
-        }
-        dst->slots[slot] = i + 1;
-    }
-    return 1;
-}
-
 void xl6IrModuleInit(XL6_IrModule* module)
 {
     if ( module != NULL ) {
@@ -1392,100 +1299,11 @@ void xl6IrModuleFree(XL6_IrModule* module)
 
 static XL6_IrOpcode xl6IrOpcodeFromAst(const XL6_AstNode* node);
 
-static int xl6IrCopyNodes(
-    XL6_IrModule* module,
-    const XL6_HirModule* hir
-)
-{
-    size_t i;
-
-    for ( i = 0; i < hir->nodeCount; ++i ) {
-        const XL6_HirNode* source = &hir->nodes[i];
-        XL6_IrNode* node;
-
-        if ( !xl6IrGrow((void**)&module->nodes, &module->nodeCapacity,
-                         module->nodeCount, sizeof(*module->nodes)) ) {
-            return 0;
-        }
-        node = &module->nodes[module->nodeCount++];
-        memset(node, 0, sizeof(*node));
-        node->unionField = SIZE_MAX;
-        node->kind = (XL6_IrNodeKind)source->kind;
-        node->sourceKind = source->sourceKind;
-        node->flags = source->flags;
-        node->opcode = xl6IrOpcodeFromAst(source->source);
-        node->type = source->type;
-        node->storageType = source->storageType;
-        node->symbol = source->symbol;
-        node->targetSymbol = source->targetSymbol;
-        node->callKind = source->callKind;
-        node->lvalueKind = source->lvalueKind;
-        node->exitKind = source->exitKind;
-        node->valueCategory = (XL6_IrValueCategory)source->valueCategory;
-        node->ownership = (XL6_IrOwnership)source->ownership;
-        node->ownershipPlanned = source->ownershipPlanned;
-        node->scopeDepth = source->scopeDepth;
-        node->targetScopeDepth = source->targetScopeDepth;
-        node->region = source->region;
-        node->targetRegion = source->targetRegion;
-        node->span.line = source->source != NULL ? source->source->line : 0;
-        node->span.column = source->source != NULL ? source->source->column : 0;
-        if ( source->source != NULL && source->source->text != NULL ) {
-            node->text = xrtStrDupN(source->source->text, strlen(source->source->text));
-            if ( node->text == NULL ) {
-                return 0;
-            }
-        }
-        node->firstChild = module->childCount;
-        node->childCount = source->childCount;
-        if ( source->childCount > 0 ) {
-            size_t required = module->childCount + source->childCount;
-            while ( required > module->childCapacity ) {
-                if ( !xl6IrGrow((void**)&module->children, &module->childCapacity,
-                                 module->childCount, sizeof(*module->children)) ) {
-                    return 0;
-                }
-            }
-            memcpy(module->children + module->childCount,
-                   hir->children + source->firstChild,
-                   source->childCount * sizeof(*module->children));
-            module->childCount += source->childCount;
-        }
-    }
-    for ( i = 0; i < module->nodeCount; ++i ) {
-        XL6_IrNode* node = &module->nodes[i];
-        size_t childIndex;
-        for ( childIndex = 0; childIndex < node->childCount; ++childIndex ) {
-            XL6_IrNodeId child = module->children[node->firstChild + childIndex];
-            if ( child == XL6_IR_NODE_INVALID || (size_t)child > module->nodeCount ) return 0;
-            module->nodes[(size_t)child - 1].parent = (XL6_IrNodeId)(i + 1);
-        }
-    }
-    return 1;
-}
-
-static int xl6IrCopySymbols(XL6_IrModule* module, const XL6_HirModule* hir)
-{
-    if ( hir->symbolNodeCapacity == 0 ) {
-        return 1;
-    }
-    module->symbolNodes = (XL6_IrNodeId*)xrtCalloc(
-        hir->symbolNodeCapacity, sizeof(*module->symbolNodes));
-    if ( module->symbolNodes == NULL ) {
-        return 0;
-    }
-    memcpy(module->symbolNodes, hir->symbolNodes,
-           hir->symbolNodeCapacity * sizeof(*module->symbolNodes));
-    module->symbolNodeCapacity = hir->symbolNodeCapacity;
-    return 1;
-}
-
 /* -------------------------------------------------------------------------
  * Direct semantic AST -> typed XLIR builder.
  *
- * This deliberately does not use an XL6_HirModule.  HIR remains available
- * for the legacy emitter, but the XLIR backend has one owned frontend model
- * and must not inherit a second IR's identity, source index or type arena.
+ * XLIR owns one frontend model and does not inherit another IR's identity,
+ * source index or type arena.
  * ------------------------------------------------------------------------- */
 
 static XL6_IrNodeKind xl6IrNodeKindFromAst(XL6_AstKind kind)
@@ -2268,7 +2086,7 @@ static int xl6IrAppendExitCleanupActions(XL6_IrModule* module, XL6_IrExitPlan* p
             /* Managed values own their payload through the runtime object graph.
              * Even when a class contains an owned native-handle field, scope exit
              * releases the object; the field value's destructor closes the handle.
-             * A direct native destroy is reserved for the legacy unmanaged physical
+             * A direct native destroy is reserved for an unmanaged raw-handle
              * ABI and must never bypass the managed class representation. */
             action->kind = type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
                 ? XL6_IR_CLEANUP_RELEASE
@@ -5515,6 +5333,36 @@ static const char* xl6IrBuildClassMethodName(
     return name != NULL && name->text != NULL && name->text[0] != '\0' ? name->text : NULL;
 }
 
+/* A declaration with multiple source results has one physical XLIR product
+ * result. Callable-type finalization interns that product before dispatch
+ * tables are built; consumers only select the canonical type here. */
+static XL6_IrTypeId xl6IrBuildResultListType(
+    const XL6_IrModule* module, const XL6_IrNode* returns)
+{
+    XL6_IrTypeId* resultTypes;
+    XL6_IrTypeId resultType;
+    size_t i;
+    if ( module == NULL || returns == NULL ||
+         returns->kind != XL6_IR_NODE_LIST || returns->childCount < 2 ||
+         returns->childCount > SIZE_MAX / sizeof(*resultTypes) )
+        return XL6_IR_TYPE_INVALID;
+    resultTypes = (XL6_IrTypeId*)xrtMalloc(
+        returns->childCount * sizeof(*resultTypes));
+    if ( resultTypes == NULL ) return XL6_IR_TYPE_INVALID;
+    for ( i = 0; i < returns->childCount; ++i ) {
+        const XL6_IrNode* result = xl6IrNodeGet(
+            module, module->children[returns->firstChild + i]);
+        if ( result == NULL || result->type == XL6_IR_TYPE_INVALID ) break;
+        resultTypes[i] = result->type;
+    }
+    resultType = i == returns->childCount
+        ? xl6IrTypeFindTupleForItems(
+              &module->types, resultTypes, returns->childCount)
+        : XL6_IR_TYPE_INVALID;
+    xrtFree(resultTypes);
+    return resultType;
+}
+
 static int xl6IrBuildClassMethodSignature(
     const XL6_IrModule* module, XL6_IrNodeId declaration, XL6_IrTypeId receiverType,
     XL6_IrTypeId* returnType, const XL6_IrNode** paramsOut)
@@ -5534,7 +5382,7 @@ static int xl6IrBuildClassMethodSignature(
     params = xl6IrNodeGet(module, module->children[node->firstChild + 1]);
     returns = xl6IrNodeGet(module, module->children[node->firstChild + 2]);
     if ( params == NULL || params->kind != XL6_IR_NODE_LIST || returns == NULL ||
-         returns->kind != XL6_IR_NODE_LIST || returns->childCount > 1 ) return 0;
+         returns->kind != XL6_IR_NODE_LIST ) return 0;
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_IrNode* parameter = xl6IrNodeGet(module, module->children[params->firstChild + i]);
         if ( parameter == NULL || parameter->kind != XL6_IR_NODE_PARAM_DECL ||
@@ -5545,7 +5393,9 @@ static int xl6IrBuildClassMethodSignature(
         const XL6_IrNode* result = xl6IrNodeGet(module, module->children[returns->firstChild]);
         if ( result == NULL || result->type == XL6_IR_TYPE_INVALID ) return 0;
         *returnType = result->type;
-    }
+    } else if ( returns->childCount > 1 &&
+                (*returnType = xl6IrBuildResultListType(
+                     module, returns)) == XL6_IR_TYPE_INVALID ) return 0;
     *paramsOut = params;
     return 1;
 }
@@ -5891,7 +5741,7 @@ static int xl6IrBuildProtocolRequirementSignature(
     params = xl6IrNodeGet(module, module->children[node->firstChild + 1]);
     returns = xl6IrNodeGet(module, module->children[node->firstChild + 2]);
     if ( params == NULL || params->kind != XL6_IR_NODE_LIST || returns == NULL ||
-         returns->kind != XL6_IR_NODE_LIST || returns->childCount > 1 ) return 0;
+         returns->kind != XL6_IR_NODE_LIST ) return 0;
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_IrNode* parameter = xl6IrNodeGet(module, module->children[params->firstChild + i]);
         if ( parameter == NULL || parameter->kind != XL6_IR_NODE_PARAM_DECL ||
@@ -5902,7 +5752,9 @@ static int xl6IrBuildProtocolRequirementSignature(
         const XL6_IrNode* result = xl6IrNodeGet(module, module->children[returns->firstChild]);
         if ( result == NULL || result->type == XL6_IR_TYPE_INVALID ) return 0;
         *returnType = result->type;
-    }
+    } else if ( returns->childCount > 1 &&
+                (*returnType = xl6IrBuildResultListType(
+                     module, returns)) == XL6_IR_TYPE_INVALID ) return 0;
     *paramsOut = params;
     return 1;
 }
@@ -15974,88 +15826,6 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
                 + xl6IrNodeHasDistinctEvaluationFailure(module, (XL6_IrNodeId)(i + 1));
     }
     if ( !xl6IrVerifyModule(module, diags) ) { xl6IrModuleFree(module); return 0; }
-    return 1;
-}
-
-int xl6IrBuildModuleFromHir(
-    XL6_IrModule* module,
-    const XL6_HirModule* hir,
-    XL6_DiagList* diags
-)
-{
-    int ok;
-    XL6_AstNode stringType;
-
-    if ( module == NULL || hir == NULL || !hir->ready ||
-         !xl6HirVerifyModule(hir, diags) ) {
-        return 0;
-    }
-    xl6IrModuleFree(module);
-    xl6IrModuleInit(module);
-    memset(&stringType, 0, sizeof(stringType));
-    stringType.kind = XL6_AST_TYPE;
-    stringType.text = "string";
-    stringType.semanticTypeAbiId = xl6TypeAbiIdText("xrt.string");
-    xl6IrBuildRuntimeTypeMap(module);
-    ok = xl6IrCopyTypePool(&module->types, hir) &&
-         xl6IrInternAstType(module, NULL, &stringType) != XL6_IR_TYPE_INVALID &&
-         xl6IrCopyNodes(module, hir) &&
-         xl6IrCopySymbols(module, hir);
-    if ( ok ) module->root = hir->root;
-    ok = ok &&
-           xl6IrBuildNamedCallableAbis(module) &&
-           xl6IrTypePoolFinalizeCallableResults(&module->types) &&
-           xl6IrBuildImplicitNameAbis(module) &&
-           xl6IrBuildOwnedReadResults(module) &&
-           xl6IrBuildUnionLayouts(module) &&
-           xl6IrBuildEnumLayouts(module) &&
-           xl6IrBuildPersistenceTypeAbis(module) &&
-           xl6IrNormalizeExpressionCallKinds(module) &&
-           xl6IrBuildIntrinsicCalls(module) &&
-           xl6IrBuildCallSites(module) &&
-          xl6IrBuildValueInitializers(module) &&
-          xl6IrBuildNativeHandleBinds(module) &&
-          xl6IrBuildNativeHandleProjects(module) &&
-          xl6IrBuildOperatorErrorAbis(module) &&
-          xl6IrBuildCastAbis(module) &&
-           xl6IrBuildMemberAbis(module) &&
-          xl6IrBuildIndexWriteAbis(module) &&
-          xl6IrRefreshLoopAbis(module) &&
-          xl6IrBuildImplicitConversionAbis(module) &&
-          xl6IrRefreshExitPlans(module);
-    if ( !ok ) {
-        xl6IrModuleFree(module);
-        return xl6IrDiag(diags, NULL, "cannot allocate XLIR module");
-    }
-    module->stage = XL6_IR_STAGE_TYPED;
-    module->stats.nodeCount = module->nodeCount;
-    module->stats.typeCount = module->types.count;
-    {
-        size_t i;
-        for ( i = 0; i < module->nodeCount; ++i ) {
-            const XL6_IrNode* node = &module->nodes[i];
-            if ( node->valueCategory != XL6_IR_VALUE_NONE ) {
-                module->stats.typedValueNodeCount += 1;
-            }
-            if ( node->callKind != XL6_SEM_CALL_NONE ) {
-                module->stats.resolvedCallCount += 1;
-            }
-            if ( node->ownershipPlanned ) {
-                module->stats.ownershipPlanCount += 1;
-            }
-            module->stats.exitPlanCount += xl6IrGeneratorNodeNeedsClosePlan(module, (XL6_IrNodeId)(i + 1));
-            if ( xl6IrNodeRequiresAnyExitPlan(
-                     module, (XL6_IrNodeId)(i + 1)) ) {
-                module->stats.exitPlanCount += 1 + (node->kind == XL6_IR_NODE_BLOCK ? 1 : node->kind == XL6_IR_NODE_LOOP ? 2 : 0)
-                    + xl6IrNodeHasDistinctEvaluationFailure(module, (XL6_IrNodeId)(i + 1));
-            }
-        }
-    }
-    module->ready = 1;
-    if ( !xl6IrVerifyModule(module, diags) ) {
-        xl6IrModuleFree(module);
-        return 0;
-    }
     return 1;
 }
 
@@ -29136,10 +28906,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   intrinsic->stringClassType != XL6_IR_TYPE_INVALID) )
                 return xl6IrDiag(diags, call,
                     "XLIR non-string intrinsic has a string conversion ABI");
-            /* Identity metadata is canonical even when the current lowering
-             * partition does not admit the concrete ABI.  This keeps an
-             * unsupported intrinsic visible to legacy/differential consumers
-             * without allowing XLIR lowering to execute an ambiguous call. */
+            /* Identity metadata is canonical even when lowering does not admit
+             * the concrete ABI. This preserves exact diagnostics and IR
+             * inspection without allowing an ambiguous call to execute. */
             switch ( intrinsic->kind ) {
             case XL6_IR_INTRINSIC_WEAK_LOCK:
                 {
@@ -31515,12 +31284,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              targetType->nominalSymbol == 0 ||
              targetType->nominalSymbol != call->targetSymbol ) continue;
         /* A native-backed class may also have a zero-argument empty spelling
-         * or another constructor shape which is not yet lowerable.  Typed
-         * XLIR must remain a lossless frontend fact set for the legacy
-         * compatibility path; only the exact raw-point rebind shape admitted
-         * by xl6IrBuildNativeHandleBinds is required to have this contract.
-         * Unsupported constructor shapes are rejected later by lowering,
-         * never guessed by Cgen. */
+         * or another constructor shape which is not yet lowerable. Typed XLIR
+         * remains a lossless frontend fact set; only the exact raw-point
+         * rebind shape admitted by xl6IrBuildNativeHandleBinds is required to
+         * have this contract. Unsupported constructor shapes are rejected by
+         * lowering, never guessed by Cgen. */
         args = call->childCount == 2
             ? xl6IrNodeGet(module, module->children[call->firstChild + 1]) : NULL;
         wrapper = args != NULL && args->kind == XL6_IR_NODE_LIST && args->childCount == 1

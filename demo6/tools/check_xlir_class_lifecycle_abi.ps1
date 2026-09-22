@@ -238,22 +238,6 @@ function Invoke-StandaloneXlirRuntime($Case, [string]$Source, [string]$Exe)
     }
 }
 
-function Invoke-LegacyDifferentialRuntime(
-    $Case, [string]$Generated, [string]$Exe)
-{
-    $support = if ( $null -ne $Case.Support ) {
-        '"' + $Case.Support + '"'
-    } else { "" }
-    $command = 'call test\suites\common.bat && ' +
-        '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror "' +
-        $Generated + '" ' + $support + ' !XL6_CGEN_XLANG_LINKS! -o "' +
-        $Exe + '" && "' + $Exe + '"'
-    & cmd.exe /d /v:on /c $command
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR class lifecycle legacy differential runtime gate failed: $($Case.Source)"
-    }
-}
-
 Push-Location $Root
 try {
     foreach ( $case in $cases ) {
@@ -262,10 +246,8 @@ try {
         $loweredPath = Join-Path $outputDir "$($case.Name).lowered.json"
         $generated = Join-Path $outputDir "$($case.Name).c"
         $generatedSecond = Join-Path $outputDir "$($case.Name).second.c"
-        $legacy = Join-Path $outputDir "$($case.Name).legacy.c"
         $xlirExe = Join-Path $outputDir "$($case.Name).xlir.exe"
         $artifactExe = Join-Path $outputDir "$($case.Name).artifact.exe"
-        $legacyExe = Join-Path $outputDir "$($case.Name).legacy.exe"
         if ( ! (Test-Path -LiteralPath $source -PathType Leaf) ) {
             throw "XLIR class lifecycle source is missing: $source"
         }
@@ -303,13 +285,10 @@ try {
         }
         Invoke-StrictXlirRuntime $case $generated $xlirExe
         Invoke-StandaloneXlirRuntime $case $source $artifactExe
-        Invoke-Compiler @("cgen", $source, "--backend", "legacy", "--emit",
-            $legacy) "legacy Cgen"
-        Invoke-LegacyDifferentialRuntime $case $legacy $legacyExe
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR class lifecycle ABI gate ok: exact destroy-only classification, flattened derived-to-base plans, immutable finalizer borrows, retained-projection cleanup, deterministic mechanical C, strict runtime, and legacy differential semantics are exact."
+Write-Output "XLIR class lifecycle ABI gate ok: exact destroy-only classification, flattened derived-to-base plans, immutable finalizer borrows, retained-projection cleanup, deterministic mechanical C, strict runtime, and standalone artifact semantics are exact."
 exit 0

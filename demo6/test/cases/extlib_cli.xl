@@ -1,0 +1,78 @@
+import cli
+
+
+
+func main(...) as int
+    var spec = {
+        "flags": ["verbose", "force"],
+        "shorts": {"verbose": "v", "force": "f"},
+        "options": {"output": "o", "level": ""},
+        "defaults": {"level": "3"},
+        "positional": ["src", "dst"]
+    }
+
+    // 基础解析：长旗标、长选项、位置参数
+    var r = cli.parse(["--verbose", "in.txt", "--output", "out.txt", "backup/"], spec)
+    assert r["ok"] == true, "basic ok"
+    assert r["error"] == "", "no error"
+    assert r["flags"]["verbose"] == true, "long flag"
+    assert r["flags"]["force"] == false, "undeclared flag false"
+    assert r["options"]["output"] == "out.txt", "long option next token"
+    assert r["options"]["level"] == "3", "default value"
+    assert r["positional"]["src"] == "in.txt", "positional src"
+    assert r["positional"]["dst"] == "backup/", "positional dst"
+
+    // 等号赋值与内联短选项
+    r = cli.parse(["--level=9", "-oO.txt"], spec)
+    assert r["options"]["level"] == "9", "equals value"
+    assert r["options"]["output"] == "O.txt", "attached short value"
+
+    // 短旗标组合与分离短选项
+    r = cli.parse(["-vf", "-o", "x.txt"], spec)
+    assert r["flags"]["verbose"] == true, "grouped v"
+    assert r["flags"]["force"] == true, "grouped f"
+    assert r["options"]["output"] == "x.txt", "separate short value"
+
+    // -- 之后全部按位置参数
+    r = cli.parse(["--", "-not-a-flag", "second"], spec)
+    assert r["ok"] == true, "dash dash ok"
+    assert r["positional"]["src"] == "-not-a-flag", "literal first"
+    assert r["positional"]["dst"] == "second", "literal second"
+
+    // 多余位置参数进入 rest
+    r = cli.parse(["a", "b", "c", "d"], spec)
+    assert r["positional"]["src"] == "a", "rest src"
+    assert r["positional"]["dst"] == "b", "rest dst"
+    assert r["rest"].length == 2, "rest count"
+    assert r["rest"][0] == "c", "rest first"
+
+    // 单独的 - 视为位置参数
+    r = cli.parse(["-"], spec)
+    assert r["positional"]["src"] == "-", "bare dash positional"
+
+    // 错误路径：未知长选项
+    r = cli.parse(["--nope"], spec)
+    assert r["ok"] == false, "unknown long fails"
+    assert r["error"] != "", "error message present"
+
+    // 错误路径：未知短选项
+    r = cli.parse(["-z"], spec)
+    assert r["ok"] == false, "unknown short fails"
+
+    // 错误路径：缺选项值
+    r = cli.parse(["--output"], spec)
+    assert r["ok"] == false, "missing value fails"
+
+    // 空参数
+    r = cli.parse([], spec)
+    assert r["ok"] == true, "empty ok"
+    assert r["options"]["level"] == "3", "empty keeps default"
+
+    // usage 文本
+    string u = cli.usage("tool.xl", spec)
+    assert u.contains("usage: tool.xl"), "usage header"
+    assert u.contains("--verbose"), "usage flag"
+    assert u.contains("<src>"), "usage positional"
+
+    return 0
+end

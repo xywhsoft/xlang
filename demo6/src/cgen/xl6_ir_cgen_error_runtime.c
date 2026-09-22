@@ -154,8 +154,12 @@ static int xl6IrCgenEmitErrorStateInstruction(
         xl6OutputPuts("    if (!xl6ErrorScopeBeginCleanup(&xlir_unwind, false)) abort();\n", out);
         break;
     case XL6_IR_INSTR_CLEANUP_END:
+        /* ErrorScopeEnd restores the diagnostic that existed before normal
+         * cleanup began. Publish the cleanup-owned error only on failure;
+         * writing NULL on success would erase that restored diagnostic. */
         xl6OutputPrintf(out, "    { xl6_error_result cleanup = xl6ErrorScopeEnd(&xlir_unwind);\n"
-            "      v%u = cleanup.ok; xrtSetErrorTake(cleanup.error); }\n", (unsigned int)instruction->result);
+            "      v%u = cleanup.ok; if (!cleanup.ok) xrtSetErrorTake(cleanup.error); }\n",
+            (unsigned int)instruction->result);
         break;
     case XL6_IR_INSTR_ERROR_UNWIND_BEGIN:
         /* Failure to establish OS error-context isolation is fatal, not a

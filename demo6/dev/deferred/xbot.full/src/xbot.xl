@@ -1,0 +1,365 @@
+// xbot/xbot.xl - 主入口：全局常量 + 便捷函数 + 活动设备管理
+// 对应 xbot.py L6003-7432：全局默认设备、便捷操作函数、LLM 全局函数
+
+// ─── 设备后端常量 ───
+const string ANDROID_ADB = "adb"
+const string ANDROID_CLOUD_HS = "cloud_hs"
+
+// ─── 全局活动设备 ───
+AutomationDevice? _active_device = null
+
+// ─── 活动设备管理 ───
+
+// 设置活动设备
+export func SetActiveDevice(AutomationDevice device)
+    _active_device = device
+end
+
+// 获取活动设备
+export func GetActiveDevice() as AutomationDevice
+    if _active_device == null then
+        throw RuntimeError "尚未创建活动设备，请先调用 UseDesktop、UseWindow 或 UseAndroid"
+    end
+    return _active_device as AutomationDevice
+end
+
+// 替换默认设备（释放旧设备）
+func _replace_default_device(AutomationDevice device) as AutomationDevice
+    AutomationDevice? previous = _active_device
+    _active_device = device
+    if previous != null and previous != device then
+        previous.Close()
+    end
+    return device
+end
+
+// ─── 设备工厂 ───
+
+// 创建桌面设备并设为活动设备
+export func UseDesktopDevice(string monitor) as DesktopDevice
+    DesktopDevice dev = UseDesktop(monitor)
+    _replace_default_device(dev)
+    return dev
+end
+
+// 创建窗口设备并设为活动设备
+export func UseWindowDevice(string title, string class_name, string process) as WindowDevice
+    WindowDevice dev = UseWindow(title, class_name, process)
+    _replace_default_device(dev)
+    return dev
+end
+
+// 创建 Android 设备并设为活动设备
+export func UseAndroidDevice(string serial, string adb_path) as AndroidAdbDevice
+    AndroidAdbDevice dev = UseAndroid(serial, adb_path)
+    _replace_default_device(dev)
+    return dev
+end
+
+// 创建火山云手机设备并设为活动设备
+export func UseCloudHSDevice(string pod_id, string config_path, float timeout_sec, float poll_sec, bool auto_power_on) as VolcCloudPhoneDevice
+    VolcCloudPhoneDevice dev = ConnectCloudHS(pod_id, config_path, timeout_sec, poll_sec, auto_power_on)
+    return dev
+end
+
+// 通用设备工厂
+export func UseDevice(string backend, string identifier) as AutomationDevice
+    string normalized = string.lower(string.trim(backend))
+    if normalized == ANDROID_ADB then
+        return UseAndroidDevice(identifier, "")
+    elseif normalized == ANDROID_CLOUD_HS then
+        return UseCloudHSDevice(identifier, "config.ini", 180.0, 3.0, true)
+    end
+    throw RuntimeError "未知设备后端: " + backend
+end
+
+// 配置云手机解析器（设置 config.ini 路径）
+var _cloud_hs_config_path = "config.ini"
+export func ConfigureCloudHSResolver(string config_path)
+    _cloud_hs_config_path = config_path
+end
+
+// ─── 全局便捷操作函数（委托到活动设备）───
+
+// 点击
+export func Click(var value, float y_val) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Click(value, y_val, ANCHOR_CENTER, null, 1, 0.1)
+end
+
+// 点击别名
+export func Tap(var value, float y_val) as OpResult
+    return Click(value, y_val)
+end
+
+// 双击
+export func DoubleClick(var value, float y_val) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Click(value, y_val, ANCHOR_CENTER, null, 2, 0.1)
+end
+
+// 滑动
+export func Swipe(var start, var end_pt, float duration) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Swipe(start, end_pt, duration)
+end
+
+// 按键
+export func Key(string key) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Key(key)
+end
+
+// 文本输入
+export func Text(string text, bool enter) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Text(text, enter)
+end
+
+// 截图
+export func Snapshot(string save_path) as string
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Snapshot(save_path)
+end
+
+// ─── OCR 与文字查找 ───
+
+// 全屏 OCR
+export func OCR(bool cache, bool fastmode) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.OCR(cache, fastmode)
+end
+
+// 清空 OCR 缓存
+export func ClearOCRCache()
+    AutomationDevice dev = GetActiveDevice()
+    dev.ClearOCRCache()
+end
+
+// 查找文字
+export func FindStr(string text, int index, bool cache, bool strict, bool fastmode) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindStr(text, index, cache, strict, fastmode)
+end
+
+// 查找文字（带 ref 距离排序）
+export func FindStrRef(string text, int index, bool cache, bool strict, bool fastmode, var ref) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindStrRef(text, index, cache, strict, fastmode, ref)
+end
+
+// 查找所有文字
+export func FindAllStr(string text, int sort, bool cache, bool strict, bool fastmode) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindAllStr(text, sort, cache, strict, fastmode)
+end
+
+// 查找所有文字（带 ref 距离排序）
+export func FindAllStrRef(string text, int sort, bool cache, bool strict, bool fastmode, var ref) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindAllStrRef(text, sort, cache, strict, fastmode, ref)
+end
+
+// 通配符/正则/乱序文字查找
+export func FindStrMatch(string pattern, string mode, int index, bool cache, bool fastmode) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindStrMatch(pattern, mode, index, cache, fastmode)
+end
+
+// 模糊相似度查找
+export func FindStrEx(string text, float min_ratio, int index, bool cache, bool fastmode) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindStrEx(text, min_ratio, index, cache, fastmode)
+end
+
+// 查找所有模糊匹配
+export func FindAllStrEx(string text, float min_ratio, int sort, bool cache, bool fastmode) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindAllStrEx(text, min_ratio, sort, cache, fastmode)
+end
+
+// 检查是否包含全部目标文字
+export func CheckStr(array<string> texts, bool cache, float min_ratio, bool fastmode) as bool
+    AutomationDevice dev = GetActiveDevice()
+    return dev.CheckStr(texts, cache, min_ratio, fastmode)
+end
+
+// 子串查找
+export func FindSubStr(string text, int index, bool cache, bool fastmode) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindSubStr(text, index, cache, fastmode)
+end
+
+// 查找所有子串
+export func FindAllSubStr(string text, int sort, bool cache, bool fastmode) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindAllSubStr(text, sort, cache, fastmode)
+end
+
+// 检查是否包含全部目标子串
+export func CheckSubStr(array<string> texts, bool cache, bool fastmode) as bool
+    AutomationDevice dev = GetActiveDevice()
+    return dev.CheckSubStr(texts, cache, fastmode)
+end
+
+// ─── 找图 ───
+
+// 查找图片
+export func FindImage(string template, float threshold, int index) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindImage(template, threshold, index)
+end
+
+// 查找所有图片
+export func FindAllImages(string template, float threshold, int max_results) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindAllImages(template, threshold, max_results)
+end
+
+// 测试友好找图（始终返回数组）
+export func FindImageTest(string template, float threshold, int max_results) as array<MatchResult>
+    AutomationDevice dev = GetActiveDevice()
+    return dev.FindImageTest(template, threshold, max_results)
+end
+
+// ─── 图像对比 ───
+
+// pHash 对比
+export func Compare(string template, float threshold) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.Compare(template, threshold)
+end
+
+// pHash 对比（自定义 hash_size）
+export func CompareEx(string template, float threshold, int hash_size) as OpResult
+    string screenshot = GetActiveDevice()._TrySnapshot("pHash 场景对比")
+    if screenshot == "" then
+        return _result_fail("截图失败")
+    end
+    string tpl = ResolveImagePath(template)
+    float sim = VisionCompareEx(screenshot, tpl, hash_size)
+    file.delete(screenshot)
+    bool matched = sim >= threshold
+    OpResult r = OpResult(matched, "similarity=" + string(sim), "")
+    return r
+end
+
+// DINO 语义对比
+export func DinoCompare(string template, float threshold) as OpResult
+    AutomationDevice dev = GetActiveDevice()
+    return dev.DinoCompare(template, threshold)
+end
+
+// XFeat 特征找图
+export func XFeatFind(string template, float threshold, int index) as MatchResult?
+    AutomationDevice dev = GetActiveDevice()
+    return dev.XFeatFind(template, threshold, index)
+end
+
+// DINO 特征向量对比
+export func DinoCompareEmbeddingGlobal(string image_path, string reference_embedding, float threshold) as OpResult
+    return DinoCompareEmbedding(image_path, reference_embedding, threshold)
+end
+
+// DINO 多特征向量匹配
+export func DinoMatchEmbeddingsGlobal(string image_path, array<string> references, array<string> labels, float threshold) as OpResult
+    return DinoMatchEmbeddings(image_path, references, labels, threshold)
+end
+
+// ─── 模型管理 ───
+
+// 预加载 XFeat 模型
+export func WarmupXFeatGlobal() as OpResult
+    return WarmupXFeat()
+end
+
+// 释放全局模型缓存
+export func CloseModelsGlobal()
+    CloseModels()
+end
+
+// ─── LLM 全局函数 ───
+
+// LLM 问答
+export func LLMAsk(string prompt, string image_path, string provider) as OpResult
+    LLMClient client = CreateLLM(provider, "")
+    array<string> images = []
+    if image_path != "" then
+        images.push(image_path)
+    end
+    return client.Ask(prompt, images, false)
+end
+
+// LLM JSON 问答
+export func LLMAskJson(string prompt, string image_path, string provider) as OpResult
+    LLMClient client = CreateLLM(provider, "")
+    array<string> images = []
+    if image_path != "" then
+        images.push(image_path)
+    end
+    return client.Ask(prompt, images, true)
+end
+
+// LLM 图像对比
+export func LLMCompare(string image_a, string image_b, string instruction, string provider) as OpResult
+    string extra = "无额外规则。"
+    if instruction != "" then
+        extra = "补充规则：" + instruction
+    end
+    string prompt = "你是自动化测试的 UI 画面对比器。按顺序收到两张图片：第一张为当前画面，第二张为预期画面。\n"
+    prompt = prompt + "请判断两者是否满足同一预期页面状态；忽略未被规则要求关注的动态时间、网络状态或光标。\n"
+    prompt = prompt + "只能返回 JSON 对象，格式为：\n"
+    prompt = prompt + "{\"matched\":true,\"confidence\":0.0,\"differences\":[\"差异说明\"],\"reason\":\"简短依据\"}\n"
+    prompt = prompt + "confidence 必须在 0 到 1 之间。\n" + extra
+
+    LLMClient client = CreateLLM(provider, "")
+    array<string> images = [image_a, image_b]
+    return client.Ask(prompt, images, true)
+end
+
+// LLM 视觉定位
+export func LLMFind(string image_path, string target, float min_confidence, string provider) as OpResult
+    string prompt = "你是 UI 自动化的视觉定位器。请在唯一一张屏幕截图中寻找：" + target + "\n"
+    prompt = prompt + "不能找到时返回 found=false。找到时只返回 JSON：\n"
+    prompt = prompt + "{\"found\":true,\"confidence\":0.0,\"bbox\":{\"x\":0.0,\"y\":0.0,\"w\":0.0,\"h\":0.0},\"reason\":\"简短依据\"}\n"
+    prompt = prompt + "bbox 的 x、y、w、h 必须为相对于整张截图的 0 到 1 归一化值；x,y 是左上角，w,h 是宽高。\n"
+    prompt = prompt + "不要执行任何点击，不要返回 Markdown 或额外文本。"
+
+    LLMClient client = CreateLLM(provider, "")
+    array<string> images = [image_path]
+    return client.Ask(prompt, images, true)
+end
+
+// LLM 图找图
+export func LLMFindImage(string image_path, string template_path, string description, string provider) as OpResult
+    string extra = "无补充描述。"
+    if description != "" then
+        extra = "补充描述：" + description
+    end
+    string prompt = "你是 UI 自动化的参考图定位器。按顺序收到两张图片：第一张是参考图，第二张是当前屏幕截图。\n"
+    prompt = prompt + "请在第二张截图寻找与第一张相同或视觉等价的目标。\n" + extra + "\n"
+    prompt = prompt + "找不到时返回 found=false；找到时只返回 JSON：\n"
+    prompt = prompt + "{\"found\":true,\"confidence\":0.0,\"bbox\":{\"x\":0.0,\"y\":0.0,\"w\":0.0,\"h\":0.0},\"reason\":\"简短依据\"}\n"
+    prompt = prompt + "bbox 必须是第二张截图的 0 到 1 归一化坐标，x,y 为左上角，w,h 为宽高。不要输出 Markdown 或额外文本。"
+
+    LLMClient client = CreateLLM(provider, "")
+    array<string> images = [template_path, image_path]
+    return client.Ask(prompt, images, true)
+end
+
+// ─── 模块初始化 ───
+// Windows 上自动创建桌面设备
+
+func _initialize_default_device()
+    // 仅在 Windows 上自动初始化
+    string os_name = os.platform()
+    if os_name != "windows" then
+        return
+    end
+    // 尝试创建桌面设备，失败时静默忽略
+    DesktopDevice dev = UseDesktop("primary")
+    _active_device = dev
+end
+
+// 模块加载时执行初始化
+_initialize_default_device()

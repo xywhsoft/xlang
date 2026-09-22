@@ -17,9 +17,7 @@ $typedJson = Join-Path $outputDir "xlir_future_continuation_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_future_continuation_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_future_continuation_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_future_continuation_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_future_continuation_abi.legacy.c"
 $xlirExe = Join-Path $testDir "xlir_future_continuation_abi.exe"
-$legacyExe = Join-Path $testDir "xlir_future_continuation_abi.legacy.exe"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -150,17 +148,5 @@ if ( (@($xlirOutput | Where-Object { $_ -eq 'future continuation ok' })).Count -
     throw "XLIR Future continuation runtime output changed"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyC
-if ( $LASTEXITCODE -ne 0 ) { throw "Legacy Future continuation C generation failed" }
-$legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_future_continuation_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_future_continuation_abi.legacy.exe && build\test\xlir_future_continuation_abi.legacy.exe'
-$legacyOutput = @(& $env:ComSpec /d /v:on /c $legacyCommand 2>&1)
-if ( $LASTEXITCODE -ne 0 ) {
-    $legacyOutput | ForEach-Object { Write-Output $_ }
-    throw "Legacy Future continuation differential runtime gate failed"
-}
-if ( (@($legacyOutput | Where-Object { $_ -eq 'future continuation ok' })).Count -ne 1 ) {
-    throw "Legacy Future continuation runtime output changed"
-}
-
-Write-Output "XLIR Future then/catch/finally ABI gate passed: explicit source/output payloads, typed continuation kind, deterministic mechanical C, cooperative task cancellation before result publication, task-boundary AsyncError cause, async captured closure, strict runtime, and legacy differential semantics."
+Write-Output "XLIR Future then/catch/finally ABI gate passed: explicit source/output payloads, typed continuation kind, deterministic mechanical C, cooperative task cancellation before result publication, task-boundary AsyncError cause, async captured closure, and strict runtime."
 exit 0

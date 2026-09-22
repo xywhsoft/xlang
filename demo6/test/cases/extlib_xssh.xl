@@ -1,0 +1,19 @@
+import xssh
+from xssh import WireReader, WireWriter
+
+
+
+func main(...) as int
+    WireWriter writer = WireWriter()
+    writer.writeByte(20)
+    writer.writeString("curve25519-sha256")
+
+    WireReader reader = xssh.reader(writer.bytes)
+    assert reader.readByte() == 20, "xssh message byte"
+    assert reader.readText() == "curve25519-sha256", "xssh wire string"
+    assert reader.remaining == 0, "xssh reader completion"
+    string preferred = "curve25519-sha256,aes128-gcm@openssh.com"
+    string available = "aes128-gcm@openssh.com,curve25519-sha256"
+    assert xssh.nameListFirstMatch(preferred, available) == "curve25519-sha256", "xssh preference order"
+    return 0
+end

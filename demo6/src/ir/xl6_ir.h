@@ -4,15 +4,12 @@
 /*
  * XLIR is the compiler's canonical backend contract.  It deliberately owns
  * its text, type arena and source spans: finalized XLIR never points at an
- * XL6_AstNode.  The temporary HIR importer exists only while the old Cgen is
- * being replaced.
+ * XL6_AstNode.
  */
 #include "src/common/xl6_output.h"
 #include "src/diag/xl6_diag.h"
 #include "src/ast/xl6_ast.h"
 #include "src/type/xl6_type_id.h"
-
-typedef struct XL6_HirModule XL6_HirModule;
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -2065,9 +2062,9 @@ typedef enum XL6_IrIntrinsicResultAbi {
     XL6_IR_INTRINSIC_RESULT_DESCRIPTOR
 } XL6_IrIntrinsicResultAbi;
 
-/* Identity and admission are deliberately separate.  UNSUPPORTED_ABI remains
- * a well-formed Typed XLIR fact so the legacy backend can stay available as a
- * differential baseline; XLIR lowering rejects it without re-reading names. */
+/* Identity and admission are deliberately separate. UNSUPPORTED_ABI remains
+ * a well-formed Typed XLIR fact so lowering can reject it without re-reading
+ * source names. */
 typedef enum XL6_IrIntrinsicAdmission {
     XL6_IR_INTRINSIC_ADMISSION_INVALID = 0,
     XL6_IR_INTRINSIC_ADMISSION_VERIFIED,
@@ -2737,6 +2734,11 @@ typedef struct XL6_IrFunction {
     XL6_IrReachability reachability;
     XL6_SymbolId symbol;
     XL6_IrNodeId declaration;
+    /* Stable debugger-facing name selected while the typed declaration is
+     * still available.  It borrows immutable text from the module node arena
+     * (or a static synthetic name); backends must not recover a source name
+     * by walking declaration nodes. */
+    const char* debugName;
     XL6_IrTypeId returnType;
     XL6_IrErrorAbi errorAbi;
     XL6_IrBlockId entryBlock;
@@ -3118,9 +3120,9 @@ typedef struct XL6_IrValueInitializer {
 } XL6_IrValueInitializer;
 
 /* Constructor spelling which binds a raw `point` into a native-backed class is
- * not a function call. Typed XLIR records both the legacy direct-handle ABI and
- * the managed class-field ABI explicitly, so lowering never guesses a storage
- * representation from a class name. */
+ * not a function call. Typed XLIR records both direct-handle and managed
+ * class-field ABIs explicitly, so lowering never guesses a representation
+ * from a class name. */
 typedef enum XL6_IrNativeHandleBindAbi {
     XL6_IR_NATIVE_HANDLE_BIND_INVALID = 0,
     /* The target class has no destructor and observes the same foreign handle.
@@ -3307,7 +3309,7 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS,
     /* Header-only stdlib facade for dict.remove.  Its exact xvalue/string/
      * length ABI is fixed here so Cgen can emit the small XRT adapter without
-     * importing the legacy monolithic runtime implementation header. */
+     * importing a monolithic runtime implementation header. */
     XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE,
     XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF,
     XL6_IR_RUNTIME_BRIDGE_JSON_PARSE,
@@ -3370,9 +3372,9 @@ typedef enum XL6_IrRuntimeBridgeKind {
      * upgrade depends on its owned parsed-head representation, so that
      * dependency is closed in the verified Cgen feature model. */
     XL6_IR_RUNTIME_BRIDGE_HTTP1,
-    /* The legacy header exposes the current XRT error message as borrowed
-     * text.  The unified bridge instead materializes one owned managed string,
-     * making the language result and its destruction contract exact. */
+    /* The raw runtime API exposes the current XRT error message as borrowed
+     * text. The bridge materializes one owned managed string, making the
+     * language result and destruction contract exact. */
     XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT,
     /* Borrowed managed text + exact size + optional alphabet pointer -> owned
      * raw C text consumed by TAKE_CSTR; independent of Buffer admission. */
@@ -5337,13 +5339,7 @@ typedef struct XL6_IrModule {
 
 void xl6IrModuleInit(XL6_IrModule* module);
 void xl6IrModuleFree(XL6_IrModule* module);
-int xl6IrBuildModuleFromHir(
-    XL6_IrModule* module,
-    const XL6_HirModule* hir,
-    XL6_DiagList* diags
-);
-/* Primary frontend entry: copy the semantic AST into owned typed XLIR.
- * The HIR importer remains only for legacy-backend compatibility tests. */
+/* Primary frontend entry: copy the semantic AST into owned typed XLIR. */
 int xl6IrBuildModuleFromAst(
     XL6_IrModule* module,
     const XL6_AstNode* root,
@@ -5477,8 +5473,8 @@ const XL6_IrCallableBridgeParameter* xl6IrCallableBridgeParameterGet(
     const XL6_IrModule* module, XL6_IrTypeId signatureType, size_t parameter);
 int xl6IrBuildCallbackBoundaries(XL6_IrModule* module, XL6_DiagList* diags);
 int xl6IrBuildAsyncMachines(XL6_IrModule* module, XL6_DiagList* diags);
-/* Derive synchronous generator yield/resume slices and frame liveness from
- * Lowered XLIR.  This pass is independent from the legacy coroutine emitter. */
+/* Derive synchronous generator yield/resume slices and frame liveness solely
+ * from Lowered XLIR. */
 int xl6IrBuildGeneratorMachines(XL6_IrModule* module, XL6_DiagList* diags);
 void xl6IrBindModuleStorageTrace(XL6_IrModule* module);
 /* Lowers the verified Typed XLIR tree into explicit blocks and instructions.

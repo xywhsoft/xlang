@@ -11,7 +11,6 @@ $classDefaultLoweredJson = Join-Path $root "build\tmp\xlir_stack_class_default_a
 $generatedC = Join-Path $root "build\tmp\xlir_stack_resource_abi.c"
 $generatedCSecond = Join-Path $root "build\tmp\xlir_stack_resource_abi.second.c"
 $classDefaultC = Join-Path $root "build\tmp\xlir_stack_class_default_abi.c"
-$legacyC = Join-Path $root "build\tmp\xlir_stack_resource_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $classDefaultSource,
         (Join-Path $root "test\cases\xlir_stack_resource_abi_host.c")) ) {
@@ -282,13 +281,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR Stack class-default strict-C/runtime gate failed"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyC
-if ( $LASTEXITCODE -ne 0 ) { throw "Stack legacy C generation failed" }
-$legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! build\tmp\xlir_stack_resource_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_stack_resource_abi.legacy.exe && build\test\xlir_stack_resource_abi.legacy.exe'
-& $env:ComSpec /d /v:on /c $legacyCommand
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR Stack legacy differential runtime gate failed"
-}
-
-Write-Output "XLIR Stack resource ABI gate passed: exact Stack<T>/payload identities, class-field resource defaults and partial-construction cleanup, storage refs, retained closure capture, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR Stack resource ABI gate passed: exact Stack<T>/payload identities, class-field resource defaults and partial-construction cleanup, storage refs, retained closure capture, deterministic mechanical C, and strict runtime."
 exit 0

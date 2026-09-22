@@ -1,0 +1,2 @@
+# 需要本机图形界面或人工观察结果的探针，不进入自动回归。
+test/cases/opencv_probe_window.xl

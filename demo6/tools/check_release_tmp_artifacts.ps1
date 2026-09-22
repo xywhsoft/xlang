@@ -23,6 +23,113 @@ function Add-Failure($message)
     $script:failures.Add($message) | Out-Null
 }
 
+function Test-WorkspaceBoundary
+{
+    $gitCommand = Get-Command "git" -ErrorAction SilentlyContinue
+    if ( $null -eq $gitCommand ) {
+        Add-Failure "git is required for the release workspace boundary check"
+        return
+    }
+
+    $repoRootOutput = @(& $gitCommand.Source -C $Root rev-parse --show-toplevel 2>$null)
+    $repoRootOk = $?
+    $repoRoot = if ( $repoRootOutput.Count -gt 0 ) { $repoRootOutput[0] } else { "" }
+    if ( ! $repoRootOk -or [string]::IsNullOrWhiteSpace($repoRoot) ) {
+        Add-Failure "cannot resolve the git repository containing $Root"
+        return
+    }
+    $repoRoot = $repoRoot.Trim()
+
+    $rootPrefixOutput = @(& $gitCommand.Source -C $Root rev-parse --show-prefix 2>$null)
+    $rootPrefixOk = $?
+    $rootPrefix = if ( $rootPrefixOutput.Count -gt 0 ) { $rootPrefixOutput[0] } else { "" }
+    if ( ! $rootPrefixOk -or [string]::IsNullOrWhiteSpace($rootPrefix) ) {
+        Add-Failure "cannot resolve the demo6 repository prefix"
+        return
+    }
+    $rootPrefix = $rootPrefix.Trim().TrimEnd('/') + "/"
+
+    $forbiddenTrackedPatterns = @(
+        '^(build|examples_out|logs|out|tmp|blog|test_min_out|test_progress_cancel|test_progress_out)/',
+        '^tools/(?:.*/)?__pycache__/',
+        '^release/projects/function_interop/build/',
+        '^release/projects/xs/projects/',
+        '^[^/]+\.(?:exe|dll|obj|o|lib|exp|pdb|ilk|def|bmp|db|db-shm|db-wal)$',
+        '^(?:build_log|docs_list|err\d*|xrt_mem_report_auto)\.(?:txt|json)$',
+        '^tmp_.*'
+    )
+
+    $trackedPaths = @(& $gitCommand.Source -C $repoRoot -c core.quotepath=false ls-files -- $rootPrefix)
+    $trackedPathsOk = $?
+    if ( ! $trackedPathsOk ) {
+        Add-Failure "cannot enumerate tracked demo6 files"
+        return
+    }
+
+    foreach ( $repoPath in $trackedPaths ) {
+        if ( ! $repoPath.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase) ) {
+            continue
+        }
+        $relative = $repoPath.Substring($rootPrefix.Length)
+        $fullPath = Join-Path $Root ($relative.Replace('/', '\'))
+        if ( ! (Test-Path -LiteralPath $fullPath -PathType Leaf) ) {
+            continue
+        }
+
+        $forbidden = $false
+        foreach ( $pattern in $forbiddenTrackedPatterns ) {
+            if ( $relative -match $pattern ) {
+                $forbidden = $true
+                break
+            }
+        }
+        if ( $forbidden ) {
+            Add-Failure "temporary artifact is tracked: $repoPath"
+        }
+
+        $leaf = [System.IO.Path]::GetFileName($relative)
+        if ( @($leaf.ToCharArray() | Where-Object { [char]::IsControl($_) }).Count -gt 0 ) {
+            Add-Failure "tracked filename contains a control character: $repoPath"
+        }
+    }
+
+    $allowedRootFiles = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ( $name in @(
+        ".gitattributes",
+        "build.bat",
+        "build.sh",
+        "build_dll.bat",
+        "build_linux.sh",
+        "EXTLIB_NATIVE_TODO.md",
+        "rc0_guard.bat",
+        "README.md",
+        "test.bat",
+        "test_all.bat",
+        "test_apps.bat",
+        "test_dll.bat",
+        "test_feature_suite.bat",
+        "test_linux.sh",
+        "test_smoke.bat",
+        "test_tutorial.bat",
+        "test_xlc_shell.bat"
+    )) {
+        $allowedRootFiles.Add($name) | Out-Null
+    }
+
+    foreach ( $rootFile in @(Get-ChildItem -LiteralPath $Root -Force -File) ) {
+        if ( $allowedRootFiles.Contains($rootFile.Name) ) {
+            continue
+        }
+        $repoPath = $rootPrefix + $rootFile.Name
+        & $gitCommand.Source -C $repoRoot check-ignore --quiet --no-index -- $repoPath
+        if ( $LASTEXITCODE -ne 0 ) {
+            Add-Failure "unclassified file in demo6 root: $repoPath"
+        }
+    }
+}
+
+Test-WorkspaceBoundary
+
 if ( Test-Path -LiteralPath $artifactDir -PathType Container ) {
     $files = @(
         Get-ChildItem -LiteralPath $artifactDir -Recurse -File |
@@ -75,5 +182,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Test artifacts ok: $($files.Count) text files."
+Write-Host "Release workspace and test artifacts ok: $($files.Count) text files."
 exit 0

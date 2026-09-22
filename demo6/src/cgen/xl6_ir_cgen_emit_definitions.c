@@ -1,7 +1,8 @@
 /* Assemble storage, closure, dispatcher, machine and export definitions. */
 static int xl6IrCgenEmitModuleDefinitions(
     XL6_Output* out, const XL6_IrModule* module,
-    const XL6_IrCgenNeeds* needs, XL6_DiagList* diags)
+    const XL6_IrCgenNeeds* needs, const XL6_IrCgenOptions* options,
+    XL6_DiagList* diags)
 {
     size_t i;
     size_t parameter;
@@ -251,7 +252,7 @@ static int xl6IrCgenEmitModuleDefinitions(
         if ( !xl6IrCgenEmitFunction(
                 out, module, &module->functions[i],
                 module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE,
-                diags) ) return 0;
+                options, diags) ) return 0;
     }
     if ( !xl6IrCgenEmitModuleEntry(out, module, diags) ) return 0;
     if ( !xl6IrCgenEmitExportCallbackAdapters(out, module, diags) ) return 0;

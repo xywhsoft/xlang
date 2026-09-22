@@ -1,0 +1,38 @@
+// tinyserver.xl - 临时本地 HTTP 测试服务器（仅供 httpreq 验证）
+// 监听 127.0.0.1:18099，提供 /get 和 /echo 路由，运行 60 秒后自退出。
+
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    if req.method() == "GET" and req.path() == "/get" then
+        resp.header("X-Custom", "hello")
+        return resp.text("{\"url\":\"http://127.0.0.1:18099/get\",\"headers\":{\"X-Test\":\"client\"}}", "application/json")
+    end
+    if req.method() == "POST" and req.path() == "/echo" then
+        resp.header("X-Echo", req.header("X-Test"))
+        return resp.text(req.body())
+    end
+    resp.status(404)
+    return resp.text("not found")
+end
+
+func main(...) as int
+    point server = http.server.create(18099, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+    if server == null then
+        println("server create failed")
+        return 1
+    end
+    func(point, point) as bool handler = route
+    http.server.getRequest(server, "/get", handler)
+    http.server.postRequest(server, "/echo", handler)
+    if not http.server.start(server) then
+        println("server start failed")
+        http.server.destroy(server)
+        return 1
+    end
+    println("listening on 127.0.0.1:18099")
+    time.sleep(60000)
+    http.server.stop(server)
+    http.server.destroy(server)
+    return 0
+end

@@ -1,0 +1,135 @@
+{
+  "date": "2026-09-05T18:04:32.960179+08:00",
+  "package": "serial",
+  "outcome": "passed",
+  "scope": "Windows x64 loopback, C ABI, ownership, threads, allocation, JIT/AOT; no physical device",
+  "artifacts": {
+    "lib/xrt/xrt.h": "B92768CBCD746E2A2524F53223A60C4D6E41C97F4C2E47537E120CC47B7BC84F",
+    "release/xl.dll": "BE65FAD90F729A49B885B026DA8F86D4A2015A179C3D0AC341F932DBE90F2559",
+    "release/xlc.dll": "C2D1AEB819FCAD3671C97BC442F317A918F09FEEB6AA27F3FA472BB73AE8ED80",
+    "release/xl.exe": "3AEFD2C274B8A1385254CCBD8A2BF5B0C30615787C5145B737F3877B95BCE114"
+  },
+  "sources": {
+    "tools/check_extlib_serial.ps1": "67C22A8A6EE02A3EF84D560F71DF87ABC0667DE15AE1B4AD510CBEA72124DC3D",
+    "release/extlibs/serial/test/test_serial_alloc.c": "09C3F53F52B95C438DC5E32DD9A38EBED51544AD87C4576B63A38FA3C5B99598",
+    "release/examples/extlibs/serial.xl": "345EA51563633DD65A2259F15758F8671ADDE6955371CA3801B236F441F99F40",
+    "release/extlibs/serial/include/serial.h": "08BB89ED777A26DD658D651A5CE36529827D0731D978595E7A7D98988442ABF6",
+    "test/cases/extlib_serial.xl": "D3987460BA14C86FB62D73E105CB604EE15CED4ABC5485B05B2CF4D0F5120F58",
+    "release/extlibs/serial/serial_native.c": "D28704AFDEE57F7BA4861F274411974FBC28E2D02D927A20456F30B39EC0F9DD",
+    "release/extlibs/serial/xlang.package.json": "9A4F407771E44D18D14F4CAA016E2429E78E61B70C0AF73729A911183A2AB5B2",
+    "release/extlibs/serial/test/test_serial.c": "AEEFDFB81480EE810EE9B69A331633BEBF1915FDF11ECC5A54FAC4BAA15A5BCB",
+    "release/examples/extlibs/serial_c.c": "584017D57E5F5DD67E122AA905837C23C61BCAB2909B832C1336881EE442619B",
+    "release/extlibs/serial/test/serial_runtime.c": "47721632E9216604E1D951BE98C850A6EC24954B13A64A06B0C5104C1A8AB837",
+    "release/extlibs/serial/src/serial.xl": "B8412DE84FC856ADFF5E97F72BC6253873C422D36C42234DDB7CAF8CB2BA01F5"
+  },
+  "checks": [
+    {
+      "name": "gcc-runtime",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "gcc-native",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "gcc-test_serial",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_serial",
+      "exitCode": 0,
+      "stdout": "serial C boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "gcc-test_serial_alloc",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_serial_alloc",
+      "exitCode": 0,
+      "stdout": "serial allocation checks: rejected=6 completed=90",
+      "stderr": ""
+    },
+    {
+      "name": "cgen",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "generated-c-prototypes",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-jit",
+      "exitCode": 0,
+      "stdout": "serial C boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "xlang-jit",
+      "exitCode": 0,
+      "stdout": "serial xlang boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "xlang-build",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "xlang-aot",
+      "exitCode": 0,
+      "stdout": "serial xlang boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "example-xlang",
+      "exitCode": 0,
+      "stdout": "port: LOOPBACK\nbaudrate: 115200\nopen: true\ntext bytes: 6\ntext: 你好\nbinary: 3,0,255,65\npending: 2\nshort write: 4096\nfull write: 0\ndrained: 4096\nafter flush: 0\nserial example: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "example-c",
+      "exitCode": 0,
+      "stdout": "port: LOOPBACK\nbaudrate: 115200\nopen: true\ntext bytes: 6\ntext: 你好\nbinary: 3,0,255,65\npending: 2\nshort write: 4096\nfull write: 0\ndrained: 4096\nafter flush: 0\nserial example: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "example-gcc-build",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "example-gcc",
+      "exitCode": 0,
+      "stdout": "port: LOOPBACK\nbaudrate: 115200\nopen: true\ntext bytes: 6\ntext: 你好\nbinary: 3,0,255,65\npending: 2\nshort write: 4096\nfull write: 0\ndrained: 4096\nafter flush: 0\nserial example: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "example-c-build",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "example-c-aot",
+      "exitCode": 0,
+      "stdout": "port: LOOPBACK\nbaudrate: 115200\nopen: true\ntext bytes: 6\ntext: 你好\nbinary: 3,0,255,65\npending: 2\nshort write: 4096\nfull write: 0\ndrained: 4096\nafter flush: 0\nserial example: PASS",
+      "stderr": ""
+    }
+  ]
+}

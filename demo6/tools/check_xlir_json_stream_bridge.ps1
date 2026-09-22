@@ -113,10 +113,9 @@ try {
         $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE=\"{0}\" test\cases\xlir_generated_module_host.c test\cases\xlir_json_stream_lifetime_host.c !XL6_CGEN_LINKS! -o "{1}" && "{1}"' -f $cPath.Replace('\', '/'), $strictExe
         & cmd.exe /d /v:on /c $command
         if ( $LASTEXITCODE -ne 0 ) { throw "$fixture strict standalone C/runtime failed" }
-        # Legacy retains the temporary callback capture past the call; the
-        # weak-reference reclamation assertion is deliberately XLIR-only.
-        # The complete Writer and event-delivery contracts still run both.
-        $backends = if ( $fixture -eq "xlir_json_visit_capture_lifetime" ) { @("xlir") } else { @("xlir", "legacy") }
+        # The weak-reference reclamation assertion belongs to the canonical
+        # XLIR ownership contract and runs through both CLI execution modes.
+        $backends = @("xlir")
         foreach ( $backend in $backends ) {
             Invoke-Xl @("run", $source, "--backend", $backend, "--link", "test/cases/xlir_json_stream_lifetime_host.c")
             $exe = Join-Path $outputDir "$fixture.$backend.exe"
@@ -150,5 +149,5 @@ try {
         } finally { $process.Dispose() }
     }
 } finally { Pop-Location }
-Write-Output "XLIR JSON stream bridge ok: exact Writer/callback contracts, isolated shared components, weak-reference event/native-wrapper lifetime probes, five ABI negatives, deterministic strict standalone C, XLIR/legacy event/Writer run/build parity, plus explicit XLIR-only temporary capture reclamation."
+Write-Output "XLIR JSON stream bridge ok: exact Writer/callback contracts, isolated shared components, weak-reference event/native-wrapper lifetime probes, five ABI negatives, deterministic strict standalone C, canonical event/Writer run/build parity, and temporary capture reclamation."
 exit 0

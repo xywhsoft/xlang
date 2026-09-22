@@ -17,7 +17,6 @@ $typedJson = Join-Path $outputDir "xlir_typed_callable_container_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_typed_callable_container_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_typed_callable_container_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_typed_callable_container_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_typed_callable_container_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $genericHost, $support) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -196,18 +195,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR typed callable-container strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed callable-container legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_typed_callable_container_abi.legacy.c test\cases\cgen_class_host.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_typed_callable_container_abi.legacy.exe && build\test\xlir_typed_callable_container_abi.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR typed callable-container legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR typed callable-container ABI gate passed: four effect-owned literals, checked exact boxing, closure-copy loops and reads, expression-callee normalization, deterministic strict C, runtime assertions, and legacy differential semantics."
+Write-Output "XLIR typed callable-container ABI gate passed: four effect-owned literals, checked exact boxing, closure-copy loops and reads, expression-callee normalization, deterministic strict C, and runtime assertions."

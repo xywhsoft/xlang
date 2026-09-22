@@ -483,10 +483,6 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR nominal-class xcall strict-C runtime failed"
     }
-    & $xl run $classSource --backend legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy nominal-class xcall differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
@@ -550,13 +546,9 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR raw-pointer xcall strict-C runtime failed"
     }
-    & $xl run $pointerSource --backend legacy
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy raw-pointer xcall differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR xcall gate ok: TypeId-deduplicated core bool/int/float, raw-pointer and nominal-class callable adapters, narrowed nullable closure storage, explicit closure boxing/dynamic-call IR, retained-and-consumed class arguments, scalar/pointer/nominal projections, projected callable error causes, immediate error CFG, public XRT APIs, strict C, XLIR runtimes and legacy differentials; uint64 callable ABI is covered by check_xlir_u64_abi.ps1."
+Write-Output "XLIR xcall gate ok: TypeId-deduplicated core bool/int/float, raw-pointer and nominal-class callable adapters, narrowed nullable closure storage, explicit closure boxing/dynamic-call IR, retained-and-consumed class arguments, scalar/pointer/nominal projections, projected callable error causes, immediate error CFG, public XRT APIs, strict C, and canonical runtimes; uint64 callable ABI is covered by check_xlir_u64_abi.ps1."
 exit 0

@@ -1,6 +1,7 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_ERROR
 #define XRT_MODULE_FUTURE
+#define XRT_MODULE_THREAD
 #include "lib/xrt/xrt.h"
 #include <assert.h>
 #include <stdio.h>
@@ -9,9 +10,17 @@ extern int match_async_host_init(void);
 extern void match_async_host_fini(void);
 extern xfuture* match_async_start(int64_t kind, xfuture* pending);
 extern void match_async_keep(void);
+extern bool match_async_execution_idle(void);
 static xerror *cleanupError, *inputError;
 static unsigned dropped, after;
 static int raising;
+static void wait_for_execution_idle(void)
+{
+    for (unsigned spin = 0; !match_async_execution_idle(); ++spin) {
+        assert(spin < 1000000u);
+        xrtThreadYield();
+    }
+}
 void match_async_drop(void) { ++dropped; if (raising) xrtSetError(cleanupError); }
 void match_async_after(int64_t count) { assert(count == 5 || count == 20); ++after; }
 xfuture* match_async_input(void)
@@ -66,9 +75,21 @@ int main(int argc, char** argv)
             assert(*output == (kind == 0 || kind == 4 || kind == 5 || kind == 7 ? 20 : 5));
         }
         xrtFutureDestroy(result); xrtFutureDestroy(input);
+        /* Future completion is the semantic barrier. The executor may still
+         * be returning its physical frame/producer credits after publication. */
+        wait_for_execution_idle();
         assert(dropped == 2 && after == (mode || destruct ? 0u : 1u) && !xrtGetError());
         if (!smoke) {
             xrtMemDebugSnapshot(&final);
+            if (before.LiveCount != final.LiveCount || before.LiveBytes != final.LiveBytes) {
+                fprintf(stderr,
+                    "async match leak: round=%u kind=%u mode=%u destruct=%u count=%lld->%lld bytes=%lld->%lld alloc=%lld free=%lld\n",
+                    round, kind, mode, destruct,
+                    (long long)before.LiveCount, (long long)final.LiveCount,
+                    (long long)before.LiveBytes, (long long)final.LiveBytes,
+                    (long long)(final.AllocCount - before.AllocCount),
+                    (long long)(final.FreeCount - before.FreeCount));
+            }
             assert(before.LiveCount == final.LiveCount && before.LiveBytes == final.LiveBytes);
             assert(final.AllocCount - before.AllocCount == final.FreeCount - before.FreeCount);
             assert(before.InvalidFreeCount == final.InvalidFreeCount && before.DoubleFreeCount == final.DoubleFreeCount);
@@ -77,6 +98,7 @@ int main(int argc, char** argv)
     }
     dropped = after = 0; raising = 0;
     match_async_keep();
+    wait_for_execution_idle();
     assert(dropped == 2 && after == 1 && !xrtGetError());
     match_async_host_fini(); assert(!xrtGetError());
     xrtErrorFree(cleanupError); xrtErrorFree(inputError);

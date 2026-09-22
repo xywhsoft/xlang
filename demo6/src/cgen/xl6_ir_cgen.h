@@ -3,8 +3,7 @@
 
 #include "src/ir/xl6_ir.h"
 
-/* Deterministic C emission for lowered XLIR.  This is deliberately separate
- * from the legacy AST/HIR Cgen while feature coverage is migrated. */
+/* Deterministic C emission for lowered XLIR. */
 int xl6IrCgenVerifyEmittable(const XL6_IrModule* module, XL6_DiagList* diags);
 typedef struct XL6_IrCgenOptions {
     /* Emit the stable xlang host/module entry even when the source consists
@@ -12,6 +11,9 @@ typedef struct XL6_IrCgenOptions {
     int emitScriptEntry;
     /* Emit the process entry adapter only for executable artifacts. */
     int emitMainWrapper;
+    /* Emit source-location probes from lowered XLIR spans. */
+    int debugMode;
+    const char* debugSourcePath;
 } XL6_IrCgenOptions;
 typedef int (*XL6_IrCgenNativeModuleVisitor)(void* context, const char* moduleName);
 /* Enumerates the native implementation requirements selected from verified

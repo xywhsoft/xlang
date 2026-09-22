@@ -6,9 +6,9 @@
 
 当前已落地 `src/ir/xl6_ir.h` 与 `src/ir/xl6_ir.c`。`XL6_CompileUnit` 在语义分析后直接从 AST 构建并验证 owned typed XLIR，`xl ir` 和 `xl cgen --dump-dir` 的 `.xlir` 输出已经使用 XLIR。
 
-这不是把 HIR 重命名：XLIR 复制并拥有节点文本、类型池、子节点索引、符号索引和源码位置；完成构建后没有 `XL6_AstNode*` 回指。`XL6_IrTypePool`、`XL6_IrNodeKind`、值类别和所有权枚举也已成为 XLIR 自有定义，公开头不再导入 HIR。`xl6IrBuildModuleFromHir` 只保留为旧回归的迁移适配器；生产 XLIR 路径不得调用它。编译单元也不再预先构建 HIR：只有调用 legacy Cgen 时才在该 API 边界惰性构建。现有 `XL6_HirModule` 因此仅作为旧 Cgen 的临时输入，不能成为新后端的长期接口。
+XLIR 复制并拥有节点文本、类型池、子节点索引、符号索引和源码位置；完成构建后没有 `XL6_AstNode*` 回指。`XL6_IrTypePool`、`XL6_IrNodeKind`、值类别和所有权枚举都是 XLIR 自有定义。旧 HIR 类型、构建器和迁移适配器已经从源码中删除，公开头与编译单元都不再包含 HIR 状态。
 
-默认 `cgen`、`run` 与 `build` 已统一进入 XLIR；旧 Cgen 只在显式 `--backend legacy` 时惰性构建并消费 AST/HIR，作为兼容和差分基线保留。因而“默认生产 C 发射已迁移”与“legacy 实现仍物理存在”必须严格区分；任何新语义不得继续通过旧 Cgen 或“Cgen 内再推导”的方式加入。
+`cgen`、`run`、`build`、编译器 DLL 和调试构建都只进入 XLIR。旧 AST/HIR Cgen 的入口、实现、构建接线和公开枚举已经物理删除；`--backend legacy` 会在参数解析阶段被拒绝。任何新语义都必须形成可验证的 XLIR 合同，不能在 C emitter 内重新推导。
 
 ## 2. 统一模型与阶段不变量
 
@@ -88,7 +88,7 @@ catch payload 成员已开始以独立 runtime intrinsic 迁移：`e.message`、
 - 受管局部在 normal、catch、finally 和未捕获边均恰好清理一次；
 - 连续两次 C 发射逐字节一致，且生成 C 不包含 AST/HIR 指针、类型名分类或错误标签的后端临时推导。
 
-对尚未具备指令、验证器和 runtime ABI 的异常语义，`--backend xlir` 必须明确拒绝，绝不能回退 legacy Cgen 或把语言异常降成无诊断的进程终止。
+对尚未具备指令、验证器和 runtime ABI 的异常语义，XLIR lowering 必须明确拒绝，绝不能回退其他表示或把语言异常降成无诊断的进程终止。
 
 二元/一元运算在 lowering 时从源拼写归一为 `XL6_IrOpcode`；C emitter 只依据 instruction opcode 映射 C token，不读取节点文本来决定运算语义。
 
@@ -178,7 +178,7 @@ Typed verifier 同时证明 callee 类型名、source/result TypeId 和 value AB
 `VALUE`。这不会放宽 foreign-scalar 的“至少一侧为 C scalar”约束，也不会让 Cgen 消除或猜测调用。
 identity 的建立不等于接纳该 ABI：例如不支持的 append receiver 或 xcall signature 仍先保留
 `ARRAY_APPEND/XCALL` 身份，并显式标记 `admission=unsupported-abi`。Typed verifier 只证明这条
-身份事实及其内部结构合法，使 legacy backend 仍可作为差分基线；XLIR lowering 只消费
+身份事实及其内部结构合法；XLIR lowering 只消费
 `admission=verified`，并按 kind 给出精确拒绝原因，不得因当前不可发射而退化成“无直接调用目标”。
 当同名 `int` 同时覆盖 foreign integer cast 与可能失败的 float/xvalue
 conversion 时，Typed XLIR 依据已解析 source/result C ABI 选择二者之一，而不是把歧义留给 lowering。
@@ -218,7 +218,7 @@ pure-native class 声明的 `native point` 字段也不是 xvalue object slot。
 identity。函数体中若有 typed `self`，它只提供 parameter storage symbol，并且必须与 canonical
 receiver TypeId 完全一致；函数体不引用 `self` 时，lowering 创建 synthetic parameter storage。
 CallTarget 和 Function 因而始终共享 slot 0 的 `BORROW` ABI，构造器、getter、setter 与实例方法
-不会再因源码使用差异改变物理签名。专用文本/JSON、严格 C、运行及 legacy 差分门同时固定该契约。
+不会再因源码使用差异改变物理签名。专用文本/JSON、严格 C 与实际运行门同时固定该契约。
 
 raw `point` 到 pure native-handle class 的构造不是普通 C cast，也不是 xvalue class construction。
 Typed XLIR 以独立 `NativeHandleBind` 固定 exact nominal target、source TypeId、可选 source storage、
@@ -324,11 +324,11 @@ Lowered XLIR 的每个 operand 都必须引用同一函数中先前定义的 `Va
 
 模块级运行语句在 XLIR 中属于合成初始化函数。普通 `GLOBAL`（包括无 C linkage 的 package export）存储先静态声明，再由幂等 `xlir_module_init()` 的初始化 CFG 写入。显式 C 数据导出是例外：它由独立 `GlobalExport` 记录 storage symbol、声明与 initializer 节点、精确 TypeId、mutable/const、公开 C name 和 canonical static scalar initializer；C 定义在加载时即完成初始化，module-init 不再为同一 storage 发射第二次 STORE，因此 C 宿主可在调用函数 adapter 前直接读取，const 也不会产生非法运行时赋值。当前只接纳可静态表达的 trivial bool/integer/type/float；TypeId initializer 还必须证明裸类型名的 `typeValueTarget` 与规范哈希载荷一致。string/xvalue/future/closure 等托管公开全局必须等待模块析构与跨边界所有权 ABI，不能伪装成标量。正常结束不依赖 C 文件中“最后一个 label”的自然落空；lowering 会在实际 continuation block 写入零 operand 的 `RETURN`，Cgen 机械地将其发射为设置初始化标记并返回成功。异常 `THROW` 仍显式返回失败。顶层值返回、运行时初始化/析构等尚无 ABI 的形态必须明确拒绝；绝不能静默跳过顶层语义。
 
-`xlcEmitXlirC` 是该后端的显式 API 入口：它先把已验证的 Typed XLIR 收紧为 Lowered XLIR，再直接发射 C；lowering 失败会回报前端诊断，绝不会退回 legacy Cgen。`XL6_IrExport` 是独立函数公共边界，而不是 CallTarget 的别名：它固化 C linkage name、每个参数的 type 与 `value/borrow` 模式，以及返回的 `void/value/owned` 转移；verifier 再证明该 adapter 与内部 target 精确相接。`XL6_IrGlobalExport` 则是独立数据公共边界，不复用函数参数/返回模型；verifier 证明它与唯一 GLOBAL storage、声明 binding、静态 initializer 和 const 写保护一致。反方向的 `XL6_IrExternGlobal` 只表示由其他翻译单元拥有的 C 数据存储：它固定 `EXTERN_GLOBAL` storage、TypeId、read/write access 与 C name，没有 initializer，也不会泄漏到本模块 export header。当前 extern 数据同样只接纳 trivial bool/integer/type/float，托管外部对象必须先定义读取、替换和生命周期所有权。函数、公开数据和外部数据 C name 在同一链接命名空间中统一查重。名义类型重载的自动 C 名称使用 canonical Type ABI ID，不以显示名称或相同的 `xvalue*/void*` C 表示碰运气消歧。`xlcEmitXlirHeader` 从函数与公开数据两张 export ABI 表发射声明，因此生成 header 不读取 AST、ExternGlobal 或 legacy header 模型；C 与 header 任一侧无法表达的 ABI 都在发射前拒绝。`xlcEmitC` 已默认选择 XLIR；只有显式选择 `XLC_BACKEND_LEGACY` 的上下文才进入惰性 HIR/legacy Cgen，作为兼容和差分基线保留。
+`xlcEmitC` 与 `xlcEmitXlirC` 进入同一显式 API 路径：先把已验证的 Typed XLIR 收紧为 Lowered XLIR，再直接发射 C；lowering 失败会回报前端诊断，不存在替代后端。`XL6_IrExport` 是独立函数公共边界，而不是 CallTarget 的别名：它固化 C linkage name、每个参数的 type 与 `value/borrow` 模式，以及返回的 `void/value/owned` 转移；verifier 再证明该 adapter 与内部 target 精确相接。`XL6_IrGlobalExport` 则是独立数据公共边界，不复用函数参数/返回模型；verifier 证明它与唯一 GLOBAL storage、声明 binding、静态 initializer 和 const 写保护一致。反方向的 `XL6_IrExternGlobal` 只表示由其他翻译单元拥有的 C 数据存储：它固定 `EXTERN_GLOBAL` storage、TypeId、read/write access 与 C name，没有 initializer，也不会泄漏到本模块 export header。当前 extern 数据同样只接纳 trivial bool/integer/type/float，托管外部对象必须先定义读取、替换和生命周期所有权。函数、公开数据和外部数据 C name 在同一链接命名空间中统一查重。名义类型重载的自动 C 名称使用 canonical Type ABI ID，不以显示名称或相同的 `xvalue*/void*` C 表示碰运气消歧。`xlcEmitXlirHeader` 从函数与公开数据两张 export ABI 表发射声明，因此生成 header 不读取 AST 或 ExternGlobal；C 与 header 任一侧无法表达的 ABI 都在发射前拒绝。
 
-命令行可用 `xl cgen file.xl --backend xlir [--emit out.c] [--emit-header out.h] [--dump-dir dir]` 调用此路径。`--emit-header` 走上述 IR-derived header emitter；XLIR `--dump-dir` 只写入 typed IR、lowered IR、XLIR C 和 IR-derived header，不混入 tokens、AST、legacy C 或 legacy header，因而也不会成为新后端的隐式依赖。
+命令行可用 `xl cgen file.xl [--backend xlir] [--emit out.c] [--emit-header out.h] [--dump-dir dir]` 调用此路径。`--emit-header` 走上述 IR-derived header emitter；`--dump-dir` 只写入 typed IR、lowered IR、XLIR C 和 IR-derived header，不混入 tokens 或 AST，因而不会形成隐式前端依赖。
 
-新后端质量门至少包括：XLIR verifier、C ABI 可发射性预检、同一 XLIR 连续两次发射的 C 文本逐字节一致、生成 C 的严格编译检查，以及用 C host 执行生成函数的语义检查。非平凡（非 `int/bool/float/void`）所有权若没有完整的 action/cleanup CFG 必须在 lowering 失败；若已 lower 为 `RETAIN / RELEASE / MOVE / DROP`，Cgen 在 runtime ABI 实现前必须明确拒绝，绝不能静默擦除标记。legacy 与 XLIR 的语义差分将随每个迁移语义簇加入，而不能仅比较文本大小或格式。async mixed-capture 差分以同一个 Future factory 和 XL 源程序分别执行两端生成 C；legacy 的 process-entry/xl.dll adapter 与 XLIR 的 module-init/XRT ABI 被显式区分，不能因 harness 不同而跳过行为比对。
+后端质量门至少包括：XLIR verifier、C ABI 可发射性预检、同一 XLIR 连续两次发射的 C 文本逐字节一致、生成 C 的严格编译检查，以及用 C host 执行生成函数的语义检查。非平凡（非 `int/bool/float/void`）所有权若没有完整的 action/cleanup CFG 必须在 lowering 失败；若已 lower 为 `RETAIN / RELEASE / MOVE / DROP`，Cgen 在 runtime ABI 实现前必须明确拒绝，绝不能静默擦除标记。行为基线由语言断言、IR 变异拒绝、严格 C、JIT/AOT 和宿主 API 共同固定，不依赖另一套代码生成器作为真值来源。
 
 发射器可省略无前驱的空 merge 块，避免 C 的未使用标签诊断；此规则只作用于无可达边的空块，不会重写或猜测 CFG。
 
@@ -342,7 +342,7 @@ Lowered XLIR 的每个 operand 都必须引用同一函数中先前定义的 `Va
 
 当某项语义未能落入 XLIR 时，应在 IR lowering 报错，而不是在 C emitter 重新解释源码。
 
-## 4. 迁移顺序
+## 4. 已完成的迁移收口
 
 ### 方法启动与 worker 的分离契约
 
@@ -391,14 +391,14 @@ RELEASE 清除相应初始化位；取消、关闭或 generator 尚未恢复时�
 这不等于所有受管/native 类型的捕获组合均已验收。任务池尚无规范的 module resource
 unload action；当前专项在宿主中显式 close/wait/destroy，不能作为自动卸载已完成的证据。
 
-### 阶段安排
+### 阶段结果
 
-1. 保持 typed XLIR 验证器和 dump 作为新事实基线，并对旧 Cgen 做差分对照。
-2. 先迁移函数调用、值/Place、局部声明、返回与分支，建立 `XLIR.Lowered -> C` 的最小闭环。
-3. 再迁移 cleanup/异常、class/protocol、泛型实例和 async 状态机。
-4. 每迁移一个分区，删除对应 Cgen 中的 resolve/infer 入口；生产管线已移除 HIR 到 XLIR 的适配器，最后删除该兼容 API 和旧 AST 驱动 Cgen。
+1. Typed XLIR 验证器和 dump 是前端语义事实基线。
+2. 函数调用、值/Place、局部声明、返回、分支、cleanup/异常、class/protocol、泛型实例和 async/generator 状态机均通过 Lowered XLIR 进入 C emitter。
+3. 旧 HIR 类型、构建器、AST 驱动 Cgen、兼容 API、构建清单和后端选择分支均已删除。
+4. 后续扩展只能增加 typed/lowered XLIR 合同、验证器与机械发射，不得恢复第二条语义路径。
 
-`tools/check_xlir_contract.ps1` 和 `test/cases/hir_module.c` 守护 XLIR 的无 AST/HIR 读取、类型/存储类型、树完整性、lowering 指令、CLI dump 和编译单元接线约束。
+`tools/check_xlir_contract.ps1` 和历史命名的 `test/cases/hir_module.c` fixture 守护 XLIR 的无 AST/HIR 读取、类型/存储类型、树完整性、lowering 指令、CLI dump 和编译单元接线约束。
 
 ### 模块任务池资源与宿主生命周期
 

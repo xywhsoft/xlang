@@ -2,7 +2,7 @@
 setlocal
 call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
-echo Running DEMO6 suite: typed HIR, nullable, weak, and definite assignment...
+echo Running DEMO6 suite: typed XLIR, nullable, weak, and definite assignment...
 
 for %%F in (
     hir_nullable_types_check
@@ -24,7 +24,7 @@ for %%F in (
     definite_assignment_branches
     definite_assignment_default_values
     definite_assignment_flow
-    cgen_base_method_typed_hir
+    cgen_base_method_xlir
     cgen_typed_array_class_return
     cgen_context_type_text_matrix
     cgen_repeated_probe
@@ -253,5 +253,5 @@ if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\tutorial\13_modern_type_semantics.xl
 if errorlevel 1 exit /b 1
 
-echo DEMO6 suite ok: typed HIR, nullable, weak, and definite assignment
+echo DEMO6 suite ok: typed XLIR, nullable, weak, and definite assignment
 exit /b 0

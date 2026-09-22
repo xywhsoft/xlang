@@ -13,9 +13,7 @@ $loweredPath = Join-Path $outputDir "nullable_safe_navigation.gate.lowered.json"
 $loweredRepeatPath = Join-Path $outputDir "nullable_safe_navigation.gate.repeat.lowered.json"
 $cPath = Join-Path $outputDir "nullable_safe_navigation.gate.c"
 $cRepeatPath = Join-Path $outputDir "nullable_safe_navigation.gate.repeat.c"
-$legacyPath = Join-Path $outputDir "nullable_safe_navigation.gate.legacy.c"
 $exePath = Join-Path $outputDir "nullable_safe_navigation.gate.exe"
-$legacyExePath = Join-Path $outputDir "nullable_safe_navigation.gate.legacy.exe"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -142,17 +140,9 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR nullable safe-class-field strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyPath
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy nullable safe-class-field Cgen failed" }
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror `"$legacyPath`" !XL6_CGEN_XLANG_LINKS! -o `"$legacyExePath`" && `"$legacyExePath`""
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR nullable safe-class-field legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR nullable safe declared-class field ABI gate ok: deterministic Typed/Lowered/C, exact class and payload TypeIds, lookup/project/release ownership, mechanical C, strict runtime, and legacy differential runtime."
+Write-Output "XLIR nullable safe declared-class field ABI gate ok: deterministic Typed/Lowered/C, exact class and payload TypeIds, lookup/project/release ownership, mechanical C, and strict runtime."
 exit 0

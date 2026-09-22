@@ -86,27 +86,27 @@ RC0 的目标不是继续扩张语言特性，而是把已经实现的基础能�
 - `D:\GIT\xrt\singlehead\xrt.h` 与 `demo6/lib/xrt/xrt.h` 的 SHA256 一致：
   - `F9DEF8CEBA4FB5DA7B9925F383BF541BF720840B9DE15AF71C5C4D8C045A543B`
 
-### cgen 结构
+### C emitter 结构
 
 完成：
 
-- 原大型 `xl6_cgen.c` 已拆分为多个 cgen 分片。
-- 拆分后保留统一入口。
-- `header`、`runtime`、`lifecycle`、`needs` 等低耦合分片已经独立。
-- 代码生成输出路径统一收口。
+- 旧 AST/HIR Cgen 已退役，编译管线只保留 `AST -> XLIR -> C`。
+- `src/cgen/xl6_ir_cgen.c` 是唯一 XLIR C emitter 装配入口，
+  `src/cgen/xl6_ir_cgen.h` 是其编译器内接口。
+- C emitter 只读取已验证的 XLIR 类型、ABI、CFG、effect、所有权和
+  artifact plan，不追溯 AST，也不重做语义决策。
+- `src/cgen/xl6_cgen_shared_runtime.c` 只装配由 artifact plan 选中的机械式
+  运行时组件 emitter；保留 `xl6_cgen_*` 名称的文件不属于旧语义后端。
+- 生成 C 和公开头共用同一份 Lowered XLIR ABI 事实；公开头只发射
+  可从 export/global/extern 表面递归可达的结构类型。
 
-代表性模块：
+当前边界与验收入口：
 
-- `xl6_cgen_entry.*`。
-- `xl6_cgen_header.c`。
-- `xl6_cgen_runtime.*`。
-- `xl6_cgen_lifecycle.*`。
-- `xl6_cgen_abi.c`。
-- `xl6_cgen_args.c`。
-- `xl6_cgen_callable_*.c`。
-- `xl6_cgen_stmt_*.c`。
-- `xl6_cgen_type_*.c`。
-- `xl6_cgen_value_*.c`。
+- `cgenrule/README.md`。
+- `docs/XLIR统一中间表示设计.md`。
+- `docs/XLIR迁移验收矩阵.md`。
+- `tools/check_xlir_contract.ps1`。
+- `tools/check_cgenrule_docs.ps1`。
 
 ### ABI、ABI 元数据 与 import/package
 

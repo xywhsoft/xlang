@@ -16,7 +16,6 @@ $typedJson = Join-Path $outputDir "xlir_future_member_status_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_future_member_status_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_future_member_status_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_future_member_status_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_future_member_status_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -265,18 +264,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR Future member strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR Future member legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_future_member_status_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_future_member_status_abi_legacy.exe && build\test\xlir_future_member_status_abi_legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR Future member legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR Future member ABI gate passed: fifteen distinct verified IntrinsicCalls and RuntimeOps, borrowed Future, I64 millisecond operands, borrowed managed-string name operand, owned string/error projection, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR Future member ABI gate passed: fifteen distinct verified IntrinsicCalls and RuntimeOps, borrowed Future, I64 millisecond operands, borrowed managed-string name operand, owned string/error projection, deterministic mechanical C, and strict runtime."

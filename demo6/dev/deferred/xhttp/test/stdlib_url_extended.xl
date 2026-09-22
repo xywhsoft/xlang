@@ -1,0 +1,17 @@
+// xhttp 语言扩展接入后恢复到扩展库测试套件。
+string normal = "https://example.com/a?q=1"
+string custom = "https://example.com:8443/a"
+
+assert url.defaultPort("http") == 80
+assert url.defaultPort("HTTPS") == 443
+assert url.defaultPort("unknown") == 0
+assert url.isDefaultPort(normal)
+assert not url.isDefaultPort(custom)
+assert url.hostHeader(normal) == "example.com"
+assert url.hostHeader(custom) == "example.com:8443"
+assert url.hostHeader("not a url") == ""
+assert url.build("https", "example.com", 443, "/a", "q=1", "part") == "https://example.com:443/a?q=1#part"
+assert url.build("https", "example.com", 8443, "/a", "", "", "user") == "https://user@example.com:8443/a"
+assert url.build("https", "example.com", 70000) == ""
+
+println("stdlib url extended ok")

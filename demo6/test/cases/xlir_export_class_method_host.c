@@ -3,7 +3,7 @@
 int main(void)
 {
     xvalue* point = xl6_point_make_for_method(2, 3);
-    xlir_product_t12 pair;
+    xlir_product_t13 pair;
     int result = 0;
     if ( point == NULL ) return 1;
     if ( xl6_point_move(point, 5, 7) != 17 ) {

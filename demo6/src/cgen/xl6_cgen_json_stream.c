@@ -1,6 +1,6 @@
 /* Public XRT stream adapters. Visitor delivery borrows the callable and
  * consumes one owned event; the callback result is owned and released once.
- * Writer representation differences are explicit backend ABI configuration. */
+ * Writer scalars and destruction use the canonical XLIR physical ABI. */
 static const char xl6JsonStreamView[] =
     "static xstrview xl6_json_stream_view(const char* text)\n"
     "{\n"
@@ -143,7 +143,7 @@ static const char xl6JsonStreamWriter[] =
     "}\n";
 
 void xl6CgenEmitJsonStreamRuntime(
-    XL6_Output* out, int hasVisitor, int hasWriter, int xlirAbi)
+    XL6_Output* out, int hasVisitor, int hasWriter)
 {
     if ( out == NULL || (!hasVisitor && !hasWriter) ) return;
     xl6OutputPuts("extern size_t strlen(const char*);\n", out);
@@ -152,9 +152,9 @@ void xl6CgenEmitJsonStreamRuntime(
         xl6OutputPuts(xl6JsonStreamVisitor, out);
     }
     if ( hasWriter ) {
-        xl6OutputPuts(xlirAbi
-            ? "#define XL6_JSON_STREAM_BOOL bool\n#define XL6_JSON_STREAM_INT int64_t\n#define XL6_JSON_STREAM_DESTROY void\n#define XL6_JSON_STREAM_DESTROY_RETURN return\n"
-            : "#define XL6_JSON_STREAM_BOOL int\n#define XL6_JSON_STREAM_INT long long\n#define XL6_JSON_STREAM_DESTROY long long\n#define XL6_JSON_STREAM_DESTROY_RETURN return 0\n", out);
+        xl6OutputPuts(
+            "#define XL6_JSON_STREAM_BOOL bool\n#define XL6_JSON_STREAM_INT int64_t\n#define XL6_JSON_STREAM_DESTROY void\n#define XL6_JSON_STREAM_DESTROY_RETURN return\n",
+            out);
         xl6OutputPuts(xl6JsonStreamWriter, out);
         xl6OutputPuts("#undef XL6_JSON_STREAM_BOOL\n#undef XL6_JSON_STREAM_INT\n#undef XL6_JSON_STREAM_DESTROY\n#undef XL6_JSON_STREAM_DESTROY_RETURN\n", out);
     }

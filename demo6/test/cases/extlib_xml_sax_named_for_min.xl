@@ -1,0 +1,13 @@
+import xml.sax
+
+func main(...) as int
+    auto source = xml.sax.reader("<root>ok</root>")
+    int count = 0
+    for event in source
+        count += 1
+        assert count < 16, "SAX reader must reach EOF"
+    end
+    assert count == 3
+    println("xml.sax named for passed")
+    return 0
+end

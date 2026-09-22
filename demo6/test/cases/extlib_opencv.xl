@@ -1,0 +1,23 @@
+import opencv
+
+func main(...) as int
+    string imagePath = "release/examples/extlibs/assets/tiny.png"
+    if not opencv.available() then return 1 end
+
+    auto source = opencv.imread(imagePath)
+    if not source.ok() or source.width() <= 0 or source.height() <= 0 then return 2 end
+    if source.channels() <= 0 then return 3 end
+
+    auto resized = source.resize(5, 3)
+    if not resized.ok() or resized.width() != 5 or resized.height() != 3 then return 4 end
+    auto gray = source.cvtColor(opencv.COLOR_BGR2GRAY)
+    if not gray.ok() then return 5 end
+    auto bordered = source.copyMakeBorder(1, 1, 2, 2, opencv.BORDER_CONSTANT, 0.0, 0.0, 0.0, 0.0)
+    if not bordered.ok() or bordered.width() != source.width() + 4 then return 6 end
+    if string.len(resized.toCHWTensorJson(1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)) == 0 then return 7 end
+    if not bordered.release() then return 8 end
+    if not gray.release() then return 9 end
+    if not resized.release() then return 10 end
+    if not source.release() then return 11 end
+    return 0
+end

@@ -1,0 +1,5 @@
+hello from xlang static
+
+line2
+line3
+line4

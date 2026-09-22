@@ -1,0 +1,61 @@
+import zstd
+
+class ProgressState
+    int calls = 0
+    int lastInput = 0
+    int lastTotal = 0
+end
+
+func main(...) as int
+    string sourcePath = "tmp/extlib_zstd_progress_source.txt"
+    string packedPath = "tmp/extlib_zstd_progress.zst"
+    string cancelledPath = "tmp/extlib_zstd_progress_cancelled.zst"
+    string failedPath = "tmp/extlib_zstd_progress_failed.zst"
+    string text = ""
+    int i = 0
+    while i < 20000
+        text += "xlang-progress-"
+        i += 1
+    end
+    file.writeText(sourcePath, text)
+
+    ProgressState state = ProgressState()
+    zstd.compressFile(sourcePath, packedPath, onProgress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        state.calls += 1
+        state.lastInput = inputBytes
+        state.lastTotal = totalBytes
+        return outputBytes >= 0
+    end)
+    assert state.calls > 0
+    assert state.lastInput == string.byteLen(text)
+    assert state.lastTotal == state.lastInput
+
+    bool cancelled = false
+    try
+        zstd.compressFile(sourcePath, cancelledPath, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled
+    assert not file.exists(cancelledPath)
+
+    bool callbackError = false
+    try
+        zstd.compressFile(sourcePath, failedPath, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            throw ValueError "progress callback failed"
+        end)
+    catch ValueError e
+        callbackError = e.message == "progress callback failed"
+    end
+    assert callbackError
+    assert not file.exists(failedPath)
+
+    file.delete(sourcePath)
+    file.delete(packedPath)
+    return 0
+end

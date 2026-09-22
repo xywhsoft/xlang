@@ -77,7 +77,10 @@ foreach ($packageName in $privatePackages) {
     }
 }
 
-$includePaths = @((Join-Path $root 'lib\xrt'))
+$includePaths = @(
+    (Join-Path $root 'lib\xrt'),
+    (Join-Path $root 'lib\xruntime')
+)
 foreach ($packageName in $publicPackages) {
     $packageRoot = Join-Path $root ('release\extlibs\' + $packageName)
     $includePaths += $packageRoot

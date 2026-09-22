@@ -35,5 +35,14 @@ func main(...) as int
     auto token3 = jwt.encode(payload, "mysecret")
     assert token3 == token, "deterministic"
 
+    // RFC 7515 Appendix A.1 HS256 example must interoperate.
+    string rfcToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    assert jwt.verify(rfcToken, "your-256-bit-secret"), "RFC HS256 vector"
+
+    // Decoding is inspection only. Verification rejects algorithm downgrade.
+    string noneToken = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ4bGFuZyJ9."
+    assert jwt.decode(noneToken) == "{\"sub\":\"xlang\"}", "decode should inspect compact JWT payload"
+    assert not jwt.verify(noneToken, "mysecret"), "alg none must be rejected"
+
     return 0
 end

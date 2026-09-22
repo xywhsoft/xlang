@@ -1,0 +1,120 @@
+import semver
+
+
+
+func main(...) as int
+    // valid: 规范形态
+    assert semver.valid("1.2.3"), "plain version valid"
+    assert semver.valid("0.0.0"), "zeros valid"
+    assert semver.valid("1.0.0-alpha"), "prerelease valid"
+    assert semver.valid("1.0.0-alpha.1"), "dotted prerelease valid"
+    assert semver.valid("1.0.0-x.7.z.92"), "alphanumeric prerelease valid"
+    assert semver.valid("1.0.0+build.123"), "build valid"
+    assert semver.valid("1.0.0-alpha+001"), "pre and build valid"
+    assert semver.valid("10.20.30"), "multi digit valid"
+
+    // valid: 非法形态
+    assert not semver.valid("1"), "major only invalid"
+    assert not semver.valid("1.2"), "two parts invalid"
+    assert not semver.valid("1.2.3.4"), "four parts invalid"
+    assert not semver.valid("1.02.3"), "leading zero invalid"
+    assert not semver.valid("01.2.3"), "major leading zero invalid"
+    assert not semver.valid("1.2.3-"), "empty prerelease invalid"
+    assert not semver.valid("1.2.3+"), "empty build invalid"
+    assert not semver.valid("1.2.3-01"), "numeric prerelease leading zero invalid"
+    assert not semver.valid("1.2.3-a..b"), "empty identifier invalid"
+    assert not semver.valid("v1.2.3"), "v prefix invalid in strict mode"
+    assert not semver.valid(""), "empty invalid"
+    assert not semver.valid("1.2.3-alpha.."), "trailing dot invalid"
+
+    // 分量读取
+    assert semver.major("10.20.30") == 10, "major"
+    assert semver.minor("10.20.30") == 20, "minor"
+    assert semver.patch("10.20.30") == 30, "patch"
+    assert semver.major("bad") == -1, "major invalid is -1"
+    assert semver.minor("bad") == -1, "minor invalid is -1"
+    assert semver.patch("bad") == -1, "patch invalid is -1"
+    assert semver.prerelease("1.0.0-alpha.1") == "alpha.1", "prerelease"
+    assert semver.prerelease("1.0.0") == "", "prerelease empty on release"
+    assert semver.build("1.0.0+001.abc") == "001.abc", "build allows leading zeros"
+    assert semver.build("1.0.0") == "", "build empty when absent"
+
+    // clean
+    assert semver.clean("v1.2.3") == "1.2.3", "clean v prefix"
+    assert semver.clean("= 1.2.3") == "1.2.3", "clean equals and space"
+    assert semver.clean(" 1.2.3-alpha+01 ") == "1.2.3-alpha+01", "clean keeps metadata"
+    assert semver.clean("v1.2") == "", "clean rejects invalid remainder"
+
+    // compare: 优先级规则
+    assert semver.compare("1.0.0", "1.0.0") == 0, "equal"
+    assert semver.compare("2.0.0", "1.9.9") == 1, "major wins"
+    assert semver.compare("1.10.0", "1.9.0") == 1, "minor numeric not lexicographic"
+    assert semver.compare("1.0.0", "1.0.1") == -1, "patch"
+    assert semver.compare("1.0.0-alpha", "1.0.0") == -1, "prerelease lower than release"
+    assert semver.compare("1.0.0-alpha", "1.0.0-alpha.1") == -1, "fewer identifiers lower"
+    assert semver.compare("1.0.0-alpha.1", "1.0.0-alpha.beta") == -1, "numeric lower than alphanumeric"
+    assert semver.compare("1.0.0-alpha.beta", "1.0.0-beta") == -1, "identifier compare"
+    assert semver.compare("1.0.0-beta.2", "1.0.0-beta.11") == -1, "numeric identifiers compare numerically"
+    assert semver.compare("1.0.0-rc.1", "1.0.0") == -1, "rc below release"
+    assert semver.compare("1.0.0+build.1", "1.0.0+build.2") == 0, "build metadata ignored"
+    assert semver.compare("bad", "1.0.0") == -2, "invalid input returns -2"
+
+    // satisfies: 精确与部分版本
+    assert semver.satisfies("1.2.3", "1.2.3"), "exact match"
+    assert not semver.satisfies("1.2.4", "1.2.3"), "exact mismatch"
+    assert semver.satisfies("1.2.9", "1.2"), "partial minor range"
+    assert not semver.satisfies("1.3.0", "1.2"), "partial excludes next minor"
+    assert semver.satisfies("1.9.0", "1.x"), "x wildcard minor"
+    assert semver.satisfies("2.5.0", "*"), "star matches all"
+    assert semver.satisfies("3.1.4", ""), "empty range matches all"
+
+    // satisfies: 比较运算符
+    assert semver.satisfies("1.2.5", ">1.2.3"), "gt"
+    assert not semver.satisfies("1.2.3", ">1.2.3"), "gt not equal"
+    assert semver.satisfies("1.2.3", ">=1.2.3"), "ge equal"
+    assert semver.satisfies("1.2.2", "<1.2.3"), "lt"
+    assert semver.satisfies("1.2.3", "<=1.2.3"), "le equal"
+    assert not semver.satisfies("1.2.9", ">1.2"), "gt partial desugars to >=1.3.0"
+    assert semver.satisfies("1.3.0", ">1.2"), "gt partial includes next minor"
+    assert not semver.satisfies("1.2.0", ">1.2"), "gt partial excludes own minor"
+    assert semver.satisfies("1.5.0", ">=1.2.0 <2.0.0"), "space is intersection"
+    assert not semver.satisfies("2.0.0", ">=1.2.0 <2.0.0"), "intersection upper bound"
+
+    // satisfies: 波浪号
+    assert semver.satisfies("1.2.5", "~1.2.3"), "tilde inside minor"
+    assert not semver.satisfies("1.3.0", "~1.2.3"), "tilde excludes next minor"
+    assert semver.satisfies("1.2.0", "~1.2"), "tilde partial includes base minor"
+    assert semver.satisfies("1.9.9", "~1"), "tilde major spans minors"
+    assert not semver.satisfies("2.0.0", "~1"), "tilde major excludes next major"
+
+    // satisfies: 插入号
+    assert semver.satisfies("1.9.9", "^1.2.3"), "caret major spans minors"
+    assert not semver.satisfies("2.0.0", "^1.2.3"), "caret excludes next major"
+    assert semver.satisfies("0.2.9", "^0.2.3"), "caret zero major spans patches"
+    assert not semver.satisfies("0.3.0", "^0.2.3"), "caret zero major excludes next minor"
+    assert semver.satisfies("0.0.3", "^0.0.3"), "caret zero minor exact patch"
+    assert not semver.satisfies("0.0.4", "^0.0.3"), "caret zero minor excludes next patch"
+    assert semver.satisfies("0.0.5", "^0.0"), "caret 0.0 spans patches"
+    assert not semver.satisfies("0.1.0", "^0.0"), "caret 0.0 excludes next minor"
+    assert semver.satisfies("0.9.0", "^0"), "caret 0 spans to next major"
+
+    // satisfies: 并集与区间
+    assert semver.satisfies("1.2.3", "^1.0.0 || ^2.0.0"), "or left"
+    assert semver.satisfies("2.1.0", "^1.0.0 || ^2.0.0"), "or right"
+    assert not semver.satisfies("3.0.0", "^1.0.0 || ^2.0.0"), "or neither"
+    assert semver.satisfies("1.2.5", "1.2.3 - 1.2.9"), "hyphen inside"
+    assert semver.satisfies("1.2.3", "1.2.3 - 1.2.9"), "hyphen lower inclusive"
+    assert semver.satisfies("1.2.9", "1.2.3 - 1.2.9"), "hyphen upper inclusive"
+    assert not semver.satisfies("1.3.0", "1.2.3 - 1.2.9"), "hyphen outside"
+
+    // satisfies: 先行版本门槛
+    assert semver.satisfies("1.2.3-alpha.2", ">=1.2.3-alpha.1"), "prerelease allowed on same tuple"
+    assert not semver.satisfies("1.2.4-alpha", ">=1.2.3-alpha.1"), "prerelease rejected on other tuple"
+    assert not semver.satisfies("1.2.3-alpha", "^1.2.0"), "release range rejects prerelease"
+
+    // satisfies: 非法输入
+    assert not semver.satisfies("bad", "^1.0.0"), "invalid version never satisfies"
+    assert not semver.satisfies("1.2.3", "not-a-range"), "garbage range rejects"
+
+    return 0
+end

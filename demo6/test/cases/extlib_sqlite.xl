@@ -1,0 +1,31 @@
+import sqlite
+
+assert sqlite.available(), "sqlite should be available"
+
+auto db = sqlite.memory()
+assert db.valid(), "memory database should open"
+assert db.execute("create table entry(id integer primary key, name text, score real)"), "create table should work"
+
+auto insert = db.prepare("insert into entry(name, score) values(?, ?)")
+assert insert.valid(), "prepare should work"
+assert insert.bind(1, "Ada") == sqlite.SQLITE_OK, "text bind should work"
+assert insert.bind(2, 98.5) == sqlite.SQLITE_OK, "float bind should work"
+assert insert.step() == sqlite.SQLITE_DONE, "insert should finish"
+assert insert.finalize() == sqlite.SQLITE_OK, "statement finalization should work"
+
+var rows = db.query("select id, name, score from entry")
+assert rows.length == 1, "query should return one row"
+assert int(rows[0]["id"]) == 1, "row id mismatch"
+assert string(rows[0]["name"]) == "Ada", "row name mismatch"
+assert float(rows[0]["score"]) == 98.5, "row score mismatch"
+
+assert db.begin(), "begin should work"
+assert db.execute("insert into entry(name, score) values('discarded', 0)"), "transaction insert should work"
+assert db.rollback(), "rollback should work"
+assert db.query("select id from entry").length == 1, "rollback should discard data"
+
+assert sqlite.sqlite3_exec(null, "select 1") == sqlite.SQLITE_MISUSE, "null raw handle should be rejected"
+assert string.contains(sqlite.last_error(), "null sqlite3 handle"), "raw error diagnostic mismatch"
+assert db.close() == sqlite.SQLITE_OK, "database close should work"
+
+println("sqlite case ok")

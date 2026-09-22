@@ -1,0 +1,120 @@
+import qr
+
+
+
+func main(...) as int
+    // 版本与尺寸
+    assert qr.version("HELLO WORLD", "M") == 1, "hello world fits v1"
+    var m = qr.matrix("HELLO WORLD", "M")
+    assert m.length == 21, "v1 is 21x21"
+    assert m[0].length == 21, "row width 21"
+
+    // 长内容升级版本
+    assert qr.version("https://xlang.dev/blog/semver-extension-released", "M") >= 2, "url grows version"
+    var m3 = qr.matrix("https://xlang.dev/blog/semver-extension-released", "M")
+    assert m3.length == qr.version("https://xlang.dev/blog/semver-extension-released", "M") * 4 + 17, "size formula"
+
+    // 数值模式比字节模式更紧凑
+    assert qr.version("1234567890123456789012345678", "L") <= qr.version("abcdefghijklmnopqrstuvwxyza", "L"), "numeric packs tighter"
+
+    // 定位图案：四角 7x7 查找图形（左上角）
+    int y
+    for y in range(0, 7)
+        assert m[y][0] == 1 and m[y][6] == 1, "finder border"
+    end
+    int x
+    for x in range(0, 7)
+        assert m[0][x] == 1 and m[6][x] == 1, "finder border row"
+    end
+    assert m[3][3] == 1, "finder center"
+    assert m[1][1] == 0, "finder ring gap"
+
+    // 右上与左下查找图形
+    assert m[0][14] == 1 and m[0][20] == 1, "top right finder"
+    assert m[14][0] == 1 and m[20][0] == 1, "bottom left finder"
+
+    // 时序线：第 6 行/列交替
+    assert m[6][8] == 1 and m[6][9] == 0 and m[6][10] == 1, "timing row"
+    assert m[8][6] == 1 and m[9][6] == 0 and m[10][6] == 1, "timing col"
+
+    // 固定暗模块
+    assert m[20][8] == 1, "dark module"
+
+    // 分隔带：查找图形外一圈为亮
+    assert m[7][0] == 0 and m[7][1] == 0, "separator row"
+    assert m[0][7] == 0 and m[1][7] == 0, "separator col"
+
+    // 确定性
+    var mAgain = qr.matrix("HELLO WORLD", "M")
+    int same = 1
+    for y in range(0, 21)
+        for x in range(0, 21)
+            if m[y][x] != mAgain[y][x] then
+                same = 0
+            end
+        end
+    end
+    assert same == 1, "deterministic output"
+
+    // 纠错级别影响矩阵
+    var mL = qr.matrix("HELLO WORLD", "L")
+    assert mL.length == 21, "same version at L"
+    int diff = 0
+    for y in range(0, 21)
+        for x in range(0, 21)
+            if mL[y][x] != m[y][x] then
+                diff = diff + 1
+            end
+        end
+    end
+    assert diff > 0, "levels produce different matrices"
+
+    // 渲染
+    string asci = qr.ascii("HELLO WORLD", "M", "##", "  ")
+    assert asci.length > 0, "ascii non-empty"
+    assert asci.contains("\n"), "ascii multiline"
+    assert asci.contains("##"), "ascii dark cell"
+
+    string block = qr.utf8("HELLO WORLD", "M")
+    assert block.contains("█"), "utf8 half blocks"
+
+    string svgText = qr.svg("HELLO WORLD", "M", 2, 4)
+    assert svgText.contains("<svg"), "svg root"
+    assert svgText.contains("<path"), "svg path"
+    assert svgText.contains("viewBox=\"0 0 100 100\""), "svg viewBox for 25 modules"
+
+    // 中文 UTF-8 编码
+    var mZh = qr.matrix("你好，世界", "M")
+    assert mZh.length >= 21, "utf8 text encodable"
+
+    // 错误路径
+    int raised = 0
+    try
+        qr.matrix("", "M")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "empty text raises"
+
+    raised = 0
+    try
+        qr.matrix("hi", "X")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "bad level raises"
+
+    raised = 0
+    try
+        string long = ""
+        for i in range(0, 600)
+            long = long + "abcdefgh"
+        end
+        qr.matrix(long, "H")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "too long raises"
+
+    return 0
+end

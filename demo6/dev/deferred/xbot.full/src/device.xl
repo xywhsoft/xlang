@@ -1,0 +1,787 @@
+// xbot/device.xl - AutomationDevice 统一设备基类
+// 对应 xbot.py L2725-3450：坐标解析、视觉入口、通用点击流程
+// 子类（Windows/Android）实现 _ClickPixels, _SwipePixels, _Key, _Text, Snapshot, UpdateSize
+
+import op
+
+// ─── 设备基类 ───
+export class AutomationDevice
+    string name
+    Size? size
+    array<MatchResult> ocr_cache
+    bool ocr_cache_valid
+    array<MatchResult> ocr_fast_cache
+    bool ocr_fast_cache_valid
+
+    create(string dev_name)
+        self.name = dev_name
+        self.size = null
+        self.ocr_cache = []
+        self.ocr_cache_valid = false
+        self.ocr_fast_cache = []
+        self.ocr_fast_cache_valid = false
+    end
+
+    // ─── 子类必须实现的方法 ───
+
+    virtual func UpdateSize() as Size
+        throw RuntimeError "UpdateSize not implemented"
+    end
+
+    virtual func Snapshot(string save_path) as string
+        throw RuntimeError "Snapshot not implemented"
+    end
+
+    virtual func _ClickPixels(int x, int y, int times, float interval)
+        throw RuntimeError "_ClickPixels not implemented"
+    end
+
+    virtual func _SwipePixels(int x1, int y1, int x2, int y2, float duration)
+        throw RuntimeError "_SwipePixels not implemented"
+    end
+
+    virtual func _Key(string key)
+        throw RuntimeError "_Key not implemented"
+    end
+
+    virtual func _Text(string text, bool enter)
+        throw RuntimeError "_Text not implemented"
+    end
+
+    // ─── 通用方法 ───
+
+    virtual func Close() as OpResult
+        return _result_ok("device released: " + self.name)
+    end
+
+    // 安全截图：失败时记录告警并返回空字符串，不中断业务流程
+    func _TrySnapshot(string operation) as string
+        string result = self.Snapshot("")
+        return result
+    end
+
+    func EnsureSize() as Size
+        if self.size == null then
+            self.size = self.UpdateSize()
+        end
+        return self.size as Size
+    end
+
+    // 解析 X 方向偏移
+    func ResolveDeltaX(float dx) as int
+        Size s = self.EnsureSize()
+        return _resolve_component(dx, s.width)
+    end
+
+    // 解析 Y 方向偏移
+    func ResolveDeltaY(float dy) as int
+        Size s = self.EnsureSize()
+        return _resolve_component(dy, s.height)
+    end
+
+    // 将各种输入统一解析为 TargetPoint
+    func ResolvePoint(var value, float y_val, string anchor) as TargetPoint
+        // TargetPoint 直接返回
+        if value is TargetPoint then
+            return value
+        end
+        // MatchResult 取锚点
+        if value is MatchResult then
+            MatchResult mr = value
+            return mr.At(anchor)
+        end
+        // Pixel
+        if value is Pixel then
+            Pixel px = value
+            return TargetPoint(self, int(px.x), int(px.y))
+        end
+        // Ratio
+        if value is Ratio then
+            Ratio r = value
+            Size s = self.EnsureSize()
+            return TargetPoint(self, int(r.x * float(s.width)), int(r.y * float(s.height)))
+        end
+        // 数值对 (x, y)
+        if value is int or value is float then
+            Size s = self.EnsureSize()
+            int px = _resolve_component(float(value), s.width)
+            int py = _resolve_component(y_val, s.height)
+            return TargetPoint(self, px, py)
+        end
+        throw RuntimeError "无法解析坐标"
+    end
+
+    // ─── 点击 ───
+    func Click(var value, float y_val, string anchor, var offset, int times, float interval) as OpResult
+        TargetPoint pt = self.ResolvePoint(value, y_val, anchor)
+        if offset != null then
+            // offset 是 "dx,dy" 或 Pixel
+            if offset is Pixel then
+                Pixel op = offset
+                pt = pt.Offset(op.x, op.y)
+            end
+        end
+        int count = times
+        if count < 1 then count = 1 end
+        self._ClickPixels(pt.x, pt.y, count, interval)
+        OpResult r = _result_ok("click " + string(pt.x) + "," + string(pt.y))
+        return r
+    end
+
+    func DoubleClick(var value, float y_val) as OpResult
+        return self.Click(value, y_val, ANCHOR_CENTER, null, 2, 0.1)
+    end
+
+    func Tap(var value, float y_val) as OpResult
+        return self.Click(value, y_val, ANCHOR_CENTER, null, 1, 0.1)
+    end
+
+    // ─── 滑动 ───
+    func Swipe(var start, var end_pt, float duration) as OpResult
+        TargetPoint first = self.ResolvePoint(start, 0, ANCHOR_CENTER)
+        TargetPoint second = self.ResolvePoint(end_pt, 0, ANCHOR_CENTER)
+        float dur = duration
+        if dur < 0.01 then dur = 0.01 end
+        self._SwipePixels(first.x, first.y, second.x, second.y, dur)
+        return _result_ok("swipe " + string(first.x) + "," + string(first.y) + "->" + string(second.x) + "," + string(second.y))
+    end
+
+    // ─── 按键 ───
+    func Key(string key) as OpResult
+        self._Key(key)
+        return _result_ok("key " + key)
+    end
+
+    // ─── 文本输入 ───
+    func Text(string text, bool enter) as OpResult
+        self._Text(text, enter)
+        return _result_ok("text length=" + string(string.len(text)))
+    end
+
+    // ─── OCR ───
+    func OCR(bool cache, bool fastmode) as array<MatchResult>
+        if cache then
+            if fastmode and self.ocr_fast_cache_valid then
+                return self.ocr_fast_cache
+            end
+            if fastmode == false and self.ocr_cache_valid then
+                return self.ocr_cache
+            end
+        end
+        string screenshot = self.Snapshot("")
+        if screenshot == "" then
+            return []
+        end
+
+        // 调用视觉引擎 OCR（在 vision.xl 中实现）
+        array<MatchResult> items = VisionOCR(self, screenshot, fastmode)
+        file.delete(screenshot)
+
+        if fastmode then
+            self.ocr_fast_cache = items
+            self.ocr_fast_cache_valid = true
+        else
+            self.ocr_cache = items
+            self.ocr_cache_valid = true
+        end
+        return items
+    end
+
+    func ClearOCRCache()
+        self.ocr_cache = []
+        self.ocr_cache_valid = false
+        self.ocr_fast_cache = []
+        self.ocr_fast_cache_valid = false
+    end
+
+    // ─── 文字查找 ───
+    func FindAllStr(string text, int sort, bool cache, bool strict, bool fastmode) as array<MatchResult>
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        array<MatchResult> matches = []
+        int i = 0
+        while i < items.length
+            if strict then
+                if items[i].text == text then
+                    matches.push(items[i])
+                end
+            else
+                if string.indexOf(items[i].text, text) >= 0 then
+                    matches.push(items[i])
+                end
+            end
+            i += 1
+        end
+        return self._SortMatches(matches, sort)
+    end
+
+    // 带 ref 距离排序的文字查找
+    func FindAllStrRef(string text, int sort, bool cache, bool strict, bool fastmode, var ref) as array<MatchResult>
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        array<MatchResult> matches = []
+        int i = 0
+        while i < items.length
+            if strict then
+                if items[i].text == text then
+                    matches.push(items[i])
+                end
+            else
+                if string.indexOf(items[i].text, text) >= 0 then
+                    matches.push(items[i])
+                end
+            end
+            i += 1
+        end
+        if ref != null then
+            return self._SortByDistance(matches, ref)
+        end
+        return self._SortMatches(matches, sort)
+    end
+
+    func FindStr(string text, int index, bool cache, bool strict, bool fastmode) as MatchResult?
+        array<MatchResult> matches = self.FindAllStr(text, 0, cache, strict, fastmode)
+        return self._SelectMatch(matches, index, "score")
+    end
+
+    // 带 ref 距离排序的单文字查找
+    func FindStrRef(string text, int index, bool cache, bool strict, bool fastmode, var ref) as MatchResult?
+        array<MatchResult> matches = self.FindAllStrRef(text, 0, cache, strict, fastmode, ref)
+        return self._SelectMatchRef(matches, index, "score", ref)
+    end
+
+    // ─── 通配符/正则/乱序文字匹配 ───
+    func FindStrMatch(string pattern, string mode, int index, bool cache, bool fastmode) as MatchResult?
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        array<MatchResult> matches = []
+        int i = 0
+        while i < items.length
+            if _text_match_predicate(items[i].text, pattern, mode) then
+                matches.push(items[i])
+            end
+            i += 1
+        end
+        return self._SelectMatch(matches, index, "score")
+    end
+
+    // ─── 模糊相似度匹配 ───
+    func FindAllStrEx(string text, float min_ratio, int sort, bool cache, bool fastmode) as array<MatchResult>
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        array<MatchResult> matches = []
+        int i = 0
+        while i < items.length
+            float ratio = _string_similarity(text, items[i].text)
+            if ratio >= min_ratio then
+                MatchResult mr = items[i]
+                mr.score = ratio
+                matches.push(mr)
+            end
+            i += 1
+        end
+        return self._SortMatches(matches, sort)
+    end
+
+    func FindStrEx(string text, float min_ratio, int index, bool cache, bool fastmode) as MatchResult?
+        array<MatchResult> matches = self.FindAllStrEx(text, min_ratio, 0, cache, fastmode)
+        return self._SelectMatch(matches, index, "score")
+    end
+
+    // ─── 文字存在性检查 ───
+    func CheckStr(array<string> texts, bool cache, float min_ratio, bool fastmode) as bool
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        int ti = 0
+        while ti < texts.length
+            bool found = false
+            int i = 0
+            while i < items.length
+                if string.len(texts[ti]) > 8 then
+                    if _string_similarity(texts[ti], items[i].text) >= min_ratio then
+                        found = true
+                        break
+                    end
+                else
+                    if items[i].text == texts[ti] then
+                        found = true
+                        break
+                    end
+                end
+                i += 1
+            end
+            if found == false then
+                return false
+            end
+            ti += 1
+        end
+        return true
+    end
+
+    // ─── 子串定位 ───
+    func FindAllSubStr(string text, int sort, bool cache, bool fastmode) as array<MatchResult>
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        array<MatchResult> matches = []
+        int i = 0
+        while i < items.length
+            string source_text = items[i].text
+            int pos = string.indexOf(source_text, text)
+            while pos >= 0
+                int src_len = string.len(source_text)
+                float char_width = float(items[i].w) / float(src_len)
+                int sub_x = items[i].x + int(char_width * float(pos))
+                int sub_w = int(char_width * float(string.len(text)))
+                if sub_w < 1 then sub_w = 1 end
+                MatchResult mr = MatchResult(self, sub_x, items[i].y, sub_w, items[i].h)
+                mr.text = text
+                mr.score = items[i].score
+                matches.push(mr)
+                pos = _xbot_index_of_from(source_text, text, pos + string.len(text))
+            end
+            i += 1
+        end
+        return self._SortMatches(matches, sort)
+    end
+
+    func FindSubStr(string text, int index, bool cache, bool fastmode) as MatchResult?
+        array<MatchResult> matches = self.FindAllSubStr(text, 0, cache, fastmode)
+        return self._SelectMatch(matches, index, "score")
+    end
+
+    func CheckSubStr(array<string> texts, bool cache, bool fastmode) as bool
+        array<MatchResult> items = self.OCR(cache, fastmode)
+        int ti = 0
+        while ti < texts.length
+            bool found = false
+            int i = 0
+            while i < items.length
+                if string.indexOf(items[i].text, texts[ti]) >= 0 then
+                    found = true
+                    break
+                end
+                i += 1
+            end
+            if found == false then
+                return false
+            end
+            ti += 1
+        end
+        return true
+    end
+
+    // ─── 找图 ───
+    func FindImage(string template, float threshold, int index) as MatchResult?
+        string screenshot = self._TrySnapshot("找图")
+        if screenshot == "" then
+            return null
+        end
+        string tpl = ResolveImagePath(template)
+        array<MatchResult> results = VisionFindImage(self, screenshot, tpl, threshold)
+        file.delete(screenshot)
+        return self._SelectMatch(results, index, "score")
+    end
+
+    // 多结果找图
+    func FindImageMultiple(string template, float threshold, int max_results) as array<MatchResult>
+        string screenshot = self._TrySnapshot("找图")
+        if screenshot == "" then
+            return []
+        end
+        string tpl = ResolveImagePath(template)
+        array<MatchResult> results = VisionFindImage(self, screenshot, tpl, threshold)
+        file.delete(screenshot)
+        // 按 score 降序排序
+        results = self._SortByScore(results)
+        if results.length > max_results then
+            array<MatchResult> trimmed = []
+            int i = 0
+            while i < max_results
+                trimmed.push(results[i])
+                i += 1
+            end
+            return trimmed
+        end
+        return results
+    end
+
+    // 测试友好找图：始终返回数组
+    func FindImageTest(string template, float threshold, int max_results) as array<MatchResult>
+        return self.FindImageMultiple(template, threshold, max_results)
+    end
+
+    func FindAllImages(string template, float threshold, int max_results) as array<MatchResult>
+        string screenshot = self._TrySnapshot("找图")
+        if screenshot == "" then
+            return []
+        end
+        string tpl = ResolveImagePath(template)
+        array<MatchResult> results = VisionFindImage(self, screenshot, tpl, threshold)
+        file.delete(screenshot)
+        if results.length > max_results then
+            array<MatchResult> trimmed = []
+            int i = 0
+            while i < max_results
+                trimmed.push(results[i])
+                i += 1
+            end
+            return trimmed
+        end
+        return results
+    end
+
+    // ─── 图像对比 ───
+    func Compare(string template, float threshold) as OpResult
+        string screenshot = self._TrySnapshot("pHash 场景对比")
+        if screenshot == "" then
+            return _result_fail("截图失败")
+        end
+        string tpl = ResolveImagePath(template)
+        float sim = VisionCompare(screenshot, tpl)
+        file.delete(screenshot)
+        bool matched = sim >= threshold
+        OpResult r = OpResult(matched, "similarity=" + string(sim), "")
+        return r
+    end
+
+    func DinoCompare(string template, float threshold) as OpResult
+        string screenshot = self._TrySnapshot("DINO 场景对比")
+        if screenshot == "" then
+            return _result_fail("截图失败")
+        end
+        string tpl = ResolveImagePath(template)
+        float sim = VisionDinoCompare(screenshot, tpl)
+        file.delete(screenshot)
+        bool matched = sim >= threshold
+        OpResult r = OpResult(matched, "dino_similarity=" + string(sim), "")
+        return r
+    end
+
+    func XFeatFind(string template, float threshold, int index) as MatchResult?
+        string screenshot = self._TrySnapshot("XFeat 找图")
+        if screenshot == "" then
+            return null
+        end
+        string tpl = ResolveImagePath(template)
+        array<MatchResult> results = VisionXFeatFind(self, screenshot, tpl, threshold)
+        file.delete(screenshot)
+        return self._SelectMatch(results, index, "score")
+    end
+
+    // ─── 设备级 LLM 方法 ───
+
+    // 将当前设备截图交给 LLM 问答
+    func LLMAsk(string prompt, string model, bool json_mode, string provider) as OpResult
+        string screenshot = self._TrySnapshot("LLM 问答")
+        if screenshot == "" then
+            return _result_fail("当前画面截图失败")
+        end
+        LLMClient client = CreateLLM(provider, model)
+        array<string> images = [screenshot]
+        OpResult r = client.Ask(prompt, images, json_mode)
+        file.delete(screenshot)
+        return r
+    end
+
+    // 比较当前设备画面与预期图片
+    func LLMCompare(string expected, string instruction, string model, float min_confidence, string provider) as OpResult
+        string screenshot = self._TrySnapshot("LLM 场景对比")
+        if screenshot == "" then
+            return _result_fail("当前画面截图失败")
+        end
+        OpResult r = LLMCompareImages(screenshot, expected, instruction, model, min_confidence, provider)
+        file.delete(screenshot)
+        return r
+    end
+
+    // 按自然语言在当前画面定位目标
+    func LLMFind(string target, string model, float min_confidence, string provider) as OpResult
+        string screenshot = self._TrySnapshot("LLM 文字定位")
+        if screenshot == "" then
+            return _result_fail("当前画面截图失败")
+        end
+        OpResult r = LLMFindInImage(screenshot, target, model, min_confidence, provider, self)
+        file.delete(screenshot)
+        return r
+    end
+
+    // 以参考图在当前画面中语义找图
+    func LLMFindImage(string template, string description, string model, float min_confidence, string provider) as OpResult
+        string screenshot = self._TrySnapshot("LLM 图找图")
+        if screenshot == "" then
+            return _result_fail("当前画面截图失败")
+        end
+        string tpl = ResolveImagePath(template)
+        OpResult r = LLMFindImageInImage(screenshot, tpl, description, model, min_confidence, provider, self)
+        file.delete(screenshot)
+        return r
+    end
+
+    // ─── 排序与选择 ───
+    func _SortMatches(array<MatchResult> matches, int sort) as array<MatchResult>
+        if sort == 0 then
+            return matches
+        end
+        // 简单插入排序按 y 坐标
+        int n = matches.length
+        int i = 1
+        while i < n
+            MatchResult key_item = matches[i]
+            int j = i - 1
+            if sort < 0 then
+                // 从上到下
+                while j >= 0 and matches[j].y > key_item.y
+                    matches[j + 1] = matches[j]
+                    j -= 1
+                end
+            else
+                // 从下到上
+                while j >= 0 and matches[j].y < key_item.y
+                    matches[j + 1] = matches[j]
+                    j -= 1
+                end
+            end
+            matches[j + 1] = key_item
+            i += 1
+        end
+        return matches
+    end
+
+    // 按 score 降序排序
+    func _SortByScore(array<MatchResult> matches) as array<MatchResult>
+        int n = matches.length
+        int i = 1
+        while i < n
+            MatchResult key_item = matches[i]
+            int j = i - 1
+            while j >= 0 and matches[j].score < key_item.score
+                matches[j + 1] = matches[j]
+                j -= 1
+            end
+            matches[j + 1] = key_item
+            i += 1
+        end
+        return matches
+    end
+
+    // 按识别框中心与参考点的欧氏距离升序排序
+    func _SortByDistance(array<MatchResult> matches, var ref) as array<MatchResult>
+        Size s = self.EnsureSize()
+        float ref_x = 0.0
+        float ref_y = 0.0
+        if ref is Pixel then
+            Pixel p = ref
+            ref_x = p.x
+            ref_y = p.y
+        elseif ref is Ratio then
+            Ratio r = ref
+            ref_x = r.x * float(s.width)
+            ref_y = r.y * float(s.height)
+        end
+        // 解析参考坐标
+        int rx = _resolve_component(ref_x, s.width)
+        int ry = _resolve_component(ref_y, s.height)
+        // 插入排序按距离
+        int n = matches.length
+        int i = 1
+        while i < n
+            MatchResult key_item = matches[i]
+            int key_dist = (key_item.cx - rx) * (key_item.cx - rx) + (key_item.cy - ry) * (key_item.cy - ry)
+            int j = i - 1
+            while j >= 0
+                MatchResult cur = matches[j]
+                int cur_dist = (cur.cx - rx) * (cur.cx - rx) + (cur.cy - ry) * (cur.cy - ry)
+                if cur_dist > key_dist then
+                    matches[j + 1] = matches[j]
+                    j -= 1
+                else
+                    break
+                end
+            end
+            matches[j + 1] = key_item
+            i += 1
+        end
+        return matches
+    end
+
+    func _SelectMatch(array<MatchResult> matches, int index, string score_key) as MatchResult?
+        if matches.length == 0 then
+            return null
+        end
+        int position = index
+        if position == 0 then
+            // 取最高置信度
+            MatchResult best = matches[0]
+            int i = 1
+            while i < matches.length
+                if matches[i].score > best.score then
+                    best = matches[i]
+                end
+                i += 1
+            end
+            return best
+        end
+        // 正数从上到下取第 N 个，负数从下到上
+        array<MatchResult> sorted = self._SortMatches(matches, position)
+        int offset = position
+        if offset > 0 then
+            offset = offset - 1
+        else
+            offset = -offset - 1
+        end
+        if offset < sorted.length then
+            return sorted[offset]
+        end
+        return null
+    end
+
+    // 带 ref 距离排序的选择
+    func _SelectMatchRef(array<MatchResult> matches, int index, string score_key, var ref) as MatchResult?
+        if matches.length == 0 then
+            return null
+        end
+        int position = index
+        if position == 0 then
+            MatchResult best = matches[0]
+            int i = 1
+            while i < matches.length
+                if matches[i].score > best.score then
+                    best = matches[i]
+                end
+                i += 1
+            end
+            return best
+        end
+        if ref != null then
+            array<MatchResult> ordered = self._SortByDistance(matches, ref)
+            int offset = 0
+            if position > 0 then
+                offset = position - 1
+            else
+                // 反转：从远到近
+                ordered = _reverse_matches(ordered)
+                offset = -position - 1
+            end
+            if offset < ordered.length then
+                return ordered[offset]
+            end
+            return null
+        end
+        return self._SelectMatch(matches, index, score_key)
+    end
+end
+// ─── 模块级辅助函数 ───
+
+// 反转 MatchResult 数组
+func _reverse_matches(array<MatchResult> arr) as array<MatchResult>
+    array<MatchResult> result = []
+    int i = arr.length - 1
+    while i >= 0
+        result.push(arr[i])
+        i -= 1
+    end
+    return result
+end
+
+// 文本匹配判定：支持 wildcard/regex/unordered 模式
+func _text_match_predicate(string source, string pattern, string mode) as bool
+    string match_mode = string.lower(string.trim(mode))
+    if match_mode == MATCH_WILDCARD then
+        return _wildcard_match(source, pattern)
+    end
+    if match_mode == MATCH_REGEX then
+        return _regex_match(source, pattern)
+    end
+    if match_mode == MATCH_UNORDERED then
+        return _unordered_match(source, pattern)
+    end
+    return false
+end
+
+// 通配符匹配：支持 * 和 ?
+func _wildcard_match(string text, string pattern) as bool
+    // 简化实现：将 pattern 按 * 分割，逐段查找
+    if pattern == "*" then return true end
+    if string.indexOf(pattern, "*") < 0 and string.indexOf(pattern, "?") < 0 then
+        return text == pattern
+    end
+    // 前缀匹配
+    if string.mid(pattern, 0, 1) != "*" then
+        // 必须以 pattern 开头部分开始
+        int first_star = string.indexOf(pattern, "*")
+        if first_star > 0 then
+            string prefix = string.mid(pattern, 0, first_star)
+            if string.mid(text, 0, string.len(prefix)) != prefix then
+                return false
+            end
+        end
+    end
+    // 逐段匹配
+    int text_pos = 0
+    int pat_pos = 0
+    int pat_len = string.len(pattern)
+    int text_len = string.len(text)
+    while pat_pos < pat_len
+        string ch = string.mid(pattern, pat_pos, 1)
+        if ch == "*" then
+            pat_pos += 1
+            if pat_pos >= pat_len then return true end
+            // 找下一个非通配符段
+            int seg_start = pat_pos
+            while pat_pos < pat_len
+                string c2 = string.mid(pattern, pat_pos, 1)
+                if c2 == "*" or c2 == "?" then break end
+                pat_pos += 1
+            end
+            string segment = string.mid(pattern, seg_start, pat_pos - seg_start)
+            int found = _xbot_index_of_from(text, segment, text_pos)
+            if found < 0 then return false end
+            text_pos = found + string.len(segment)
+        elseif ch == "?" then
+            if text_pos >= text_len then return false end
+            text_pos += 1
+            pat_pos += 1
+        else
+            if text_pos >= text_len then return false end
+            if string.mid(text, text_pos, 1) != ch then return false end
+            text_pos += 1
+            pat_pos += 1
+        end
+    end
+    return text_pos >= text_len
+end
+
+// 正则匹配（简化：使用 string.find 模式）
+func _regex_match(string text, string pattern) as bool
+    // xlang 暂无原生正则引擎，退化为子串包含
+    return string.indexOf(text, pattern) >= 0
+end
+
+// 乱序匹配：pattern 中每个字符都必须在 source 中出现
+func _unordered_match(string source, string pattern) as bool
+    int i = 0
+    int plen = string.len(pattern)
+    while i < plen
+        string ch = string.mid(pattern, i, 1)
+        if ch != " " and ch != "\t" and ch != "\n" then
+            if string.indexOf(source, ch) < 0 then
+                return false
+            end
+        end
+        i += 1
+    end
+    return true
+end
+
+// 字符串相似度（简化 SequenceMatcher：基于最长公共子序列）
+func _string_similarity(string a, string b) as float
+    int len_a = string.len(a)
+    int len_b = string.len(b)
+    if len_a == 0 and len_b == 0 then return 1.0 end
+    if len_a == 0 or len_b == 0 then return 0.0 end
+    // 计算公共字符数（简化版）
+    int common = 0
+    int i = 0
+    while i < len_a
+        string ch = string.mid(a, i, 1)
+        if string.indexOf(b, ch) >= 0 then
+            common += 1
+        end
+        i += 1
+    end
+    return 2.0 * float(common) / float(len_a + len_b)
+end

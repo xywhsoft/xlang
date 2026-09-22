@@ -16,22 +16,20 @@ void xl6CgenEmitWebSocketProtocolRuntime(
 	int hasUpgrade,
 	int hasStreamConfig,
 	int hasStream,
-	int hasStreamTls,
-	int xlirAbi
+	int hasStreamTls
 )
 {
 	if ( out == NULL ) {
 		return;
 	}
-	xl6CgenEmitNativeVoidAbiBegin(out,xlirAbi);
-	if ( xlirAbi ) {
+	xl6CgenEmitNativeVoidAbiBegin(out);
+	xl6OutputPuts(
+		"static char* xlir_ws_string_dup(const char* value, size_t size)\n"
+		"{ const char* source = value != NULL ? value : \"\"; return size == 0 ? xrtStrDup(source) : xrtStrDupN(source, size); }\n"
+		"#define xl6_xrt_string_dup xlir_ws_string_dup\n",
+		out);
+	if ( hasStream ) {
 		xl6OutputPuts(
-			"static char* xlir_ws_string_dup(const char* value, size_t size)\n"
-			"{ const char* source = value != NULL ? value : \"\"; return size == 0 ? xrtStrDup(source) : xrtStrDupN(source, size); }\n"
-			"#define xl6_xrt_string_dup xlir_ws_string_dup\n",
-			out);
-		if ( hasStream ) {
-			xl6OutputPuts(
 				"static XL6_Function xlir_ws_function_copy_value(XL6_Function value)\n"
 				"{ if (value.retain != NULL && value.env != NULL) value.retain(value.env); return value; }\n"
 				"static void xlir_ws_function_release_value(XL6_Function value)\n"
@@ -48,8 +46,7 @@ void xl6CgenEmitWebSocketProtocolRuntime(
 				"#define xl6ValueHandleData xlir_ws_owner_handle\n"
 				"#define xl6_error_has xlir_ws_error_has\n"
 				"#define xl6_error_publish_xrt xlir_ws_error_publish_xrt\n",
-				out);
-		}
+			out);
 	}
 	if ( hasFrame ) {
 		xl6OutputPuts(xl6WebSocketFrameSource, out);
@@ -76,19 +73,17 @@ void xl6CgenEmitWebSocketProtocolRuntime(
 		xl6OutputPuts("\n\n", out);
 	}
 	xl6CgenEmitNativeVoidAbiEnd(out);
-	if ( xlirAbi ) {
-		if ( hasStream ) {
-				xl6OutputPuts(
+	if ( hasStream ) {
+		xl6OutputPuts(
 				"#undef xl6_error_publish_xrt\n"
 				"#undef xl6_error_has\n"
 				"#undef xl6ValueHandleData\n"
 				"#undef xl6_function_call_var\n"
 				"#undef xl6_function_release_value\n"
 				"#undef xl6_function_copy_value\n",
-				out);
-		}
-		xl6OutputPuts("#undef xl6_xrt_string_dup\n\n", out);
+			out);
 	}
+	xl6OutputPuts("#undef xl6_xrt_string_dup\n\n", out);
 }
 
 

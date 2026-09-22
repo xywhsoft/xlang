@@ -751,6 +751,11 @@ if (!$header.Contains("XL6_IR_INSTR_CLEANUP_BEGIN") -or
     !(Read-Utf8 "tools\check_xlir_error_unwind.ps1").Contains("normal_owned_result")) {
     throw "Normal call cleanup requires explicit release effects, pending owners and diagnostic-independent outcomes"
 }
+$cleanupEmitter = Read-Utf8 "src\cgen\xl6_ir_cgen_error_runtime.c"
+if (!$cleanupEmitter.Contains("if (!cleanup.ok) xrtSetErrorTake(cleanup.error)") -or
+    $cleanupEmitter.Contains("v%u = cleanup.ok; xrtSetErrorTake(cleanup.error)")) {
+    throw "Successful normal cleanup must preserve the ambient diagnostic restored by ErrorScopeEnd"
+}
 foreach ($renderer in @('instruction_emit', 'async_instruction', 'async_contract',
                          'generator', 'verify_instructions', 'error_runtime')) {
     if (!(Read-Utf8 "src\cgen\xl6_ir_cgen_$renderer.c").Contains("XL6_IR_INSTR_CLEANUP_END")) {
@@ -763,7 +768,8 @@ if (!$source.Contains("XLIR managed return has no adjacent pending-owner LOAD/MO
     !$lower.Contains("xl6IrLowerEmitParameterCleanup") -or
     !$source.Contains("xl6IrVerifyValueLifetimes") -or
     !(Read-Utf8 "src\ir\xl6_ir_lifetime.c").Contains("xl6IrVerifyStorageActivationFlow") -or
-    !(Read-Utf8 "tools\check_xlir_return_commit.ps1").Contains("xlir_return_cleanup_paths_contract.c") -or
+    (Read-Utf8 "tools\check_xlir_return_commit.ps1").Contains("xlir_return_cleanup_paths_contract.c") -or
+    !(Read-Utf8 "tools\check_xlir_return_commit.ps1").Contains("xlir_return_commit_contract.c") -or
     !(Read-Utf8 "test\suites\03_core_function_abi.bat").Contains("tools\check_xlir_return_commit.ps1")) {
     throw "Managed returns must remain explicit pending owners until cleanup and terminal commit"
 }
@@ -1003,13 +1009,11 @@ $xlangRuntime = Read-Utf8 "src\cgen\xl6_cgen_xlang_runtime.c"
 $xlangStdlib = Read-Utf8 "src\stdlib\xl6_stdlib_data.c"
 $xlangNeeds = Read-Utf8 "src\cgen\xl6_ir_cgen_needs_call_targets.c"
 $xlangModuleEmit = Read-Utf8 "src\cgen\xl6_ir_cgen_module_emit.c"
-$xlangLegacyEmit = Read-Utf8 "src\cgen\xl6_cgen_module.c"
 if (!$header.Contains("XL6_IR_RUNTIME_BRIDGE_XLANG") -or
     !$source.Contains('#include "src/ir/xl6_ir_xlang_bridge.c"') -or
     !$lower.Contains("xl6IrRuntimeXlangBridgeTargetMatches") -or
     !$xlangNeeds.Contains("needsXlangRuntime = 1") -or
-    !$xlangModuleEmit.Contains("xl6EmitXlangRuntimeComponent(out, 1)") -or
-    !$xlangLegacyEmit.Contains("xl6EmitXlangRuntimeComponent(out, 0)") -or
+    !$xlangModuleEmit.Contains("xl6EmitXlangRuntimeComponent(out)") -or
     !$sharedRuntime.Contains('#include "src/cgen/xl6_cgen_xlang_runtime.c"')) {
     throw "Xlang compiler embedding must be selected from one verified XLIR bridge component"
 }
@@ -1042,9 +1046,10 @@ if (!$xlangRuntime.Contains("#include <__xl_compiler/include/xl.h>") -or
     !$xlangRuntime.Contains("#include <xl.h>") -or
     !$xlangRuntime.Contains("XL_Context*") -or
     !$xlangRuntime.Contains("XL_Module*") -or
-    !$xlangRuntime.Contains("int xlirAbi") -or
     !$xlangRuntime.Contains("bool xl6_xlang_handler_run_args") -or
-    !$xlangRuntime.Contains("long long xl6_xlang_handler_destroy") -or
+    !$xlangRuntime.Contains("void xl6_xlang_handler_destroy") -or
+    $xlangRuntime.Contains("xlirAbi") -or
+    $xlangRuntime.Contains("long long xl6_xlang_handler_destroy") -or
     $xlangRuntime.Contains("typedef struct xvalue xvalue;") -or
     $xlangRuntime.Contains("void* xlCreateContext")) {
     throw "Generated xlang embedding must consume the canonical public API types without handwritten prototypes"
@@ -1115,7 +1120,6 @@ if (!$source.Contains("xl6IrCollectionReadRuntimeInstructionCompatible") -or
     !$directBridgeUnit.Contains("testCollectionReadAbi()")) {
     throw "Collection reads and same-TypeId retain must use verified shared continuation emission"
 }
-$legacyNeeds = Read-Utf8 "src\cgen\xl6_cgen_needs_basic_classify.c"
 $cEmitter = Read-Utf8 "src\cgen\xl6_ir_cgen.c"
 foreach ( $include in [regex]::Matches(
     $cEmitter, '#include "(?<path>src/cgen/xl6_ir_cgen[^\"]+\.c)"') ) {
@@ -1127,7 +1131,7 @@ $shell = Read-Utf8 "src\driver\xl6_xlc_shell.c"
 $publicApi = Read-Utf8 "release\include\xlc.h"
 $sem = Read-Utf8 "src\sem\xl6_sem.c"
 $determinism = Read-Utf8 "tools\check_xlir_cgen_determinism.ps1"
-$differential = Read-Utf8 "tools\check_xlir_cgen_differential.ps1"
+$runtimeMatrix = Read-Utf8 "tools\check_xlir_cgen_runtime_matrix.ps1"
 $defaultClassGate = Read-Utf8 "tools\check_xlir_default_class_layout.ps1"
 $instanceClassMethodGate = Read-Utf8 "tools\check_xlir_class_instance_method.ps1"
 $implicitClassReceiverGate = Read-Utf8 "tools\check_xlir_class_implicit_receiver.ps1"
@@ -1281,7 +1285,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xlir_checked_cast_abi.xl", "xvalue-cast-checked", "adjacent ERROR_TEST",
-    "shared-partition legacy differential", "ReadAllBytes", "-Werror"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $checkedCastAbiGate.Contains($required) ) {
         throw "XLIR checked-cast quality gate is incomplete: $required"
@@ -1300,7 +1304,7 @@ foreach ( $required in @(
     "nullable_expression_semantics.xl", "nested nullable-coalesce pair",
     "explicit unwrap-then-wrap CFG", "fallback evaluation is lazy",
     "byte-for-byte deterministic", "strict-C/runtime gate failed",
-    "Legacy nullable coalesce differential runtime failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $nullableCoalesceAbiGate.Contains($required) ) {
         throw "XLIR nullable-coalesce quality gate is incomplete: $required"
@@ -1311,7 +1315,7 @@ foreach ( $required in @(
     "pointer-sentinel nullable closure ABI", "explicit NULLABLE_WRAP boundary",
     "no-raise null-sentinel ABI", "spurious error edge",
     "callable signature TypeId", "byte-for-byte deterministic",
-    "strict-C/runtime gate failed", "Legacy nullable function-value differential runtime failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $nullableFunctionValueAbiGate.Contains($required) ) {
         throw "XLIR nullable function-value quality gate is incomplete: $required"
@@ -1326,7 +1330,7 @@ foreach ( $required in @(
     "adjacent temporary STORE/RELEASE sink",
     "byte-for-byte deterministic",
     "strict-C/runtime gate failed",
-    "Legacy callable-field differential runtime failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $callableFieldFrameAbiGate.Contains($required) ) {
         throw "XLIR callable-field frame quality gate is incomplete: $required"
@@ -1337,11 +1341,11 @@ foreach ( $required in @(
     "xlir_internal_property_error_propagation",
     "Container-property/indexed-property origin partition",
     "frontend-owned throw cleanup plan",
-    "spurious error edge",
-    "explicit ERROR_TEST/cleanup CFG",
+    "exact may-raise result carriers",
+    "adjacent cleanup-complete ERROR_TESTs",
     "byte-for-byte deterministic",
     "strict-C/runtime gate failed",
-    "Legacy internal property differential runtime failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $internalPropertyCallAbiGate.Contains($required) ) {
         throw "XLIR internal property CallTarget quality gate is incomplete: $required"
@@ -1383,7 +1387,7 @@ foreach ( $required in @(
     "extlib_hash_progress",
     "byte-for-byte deterministic",
     "strict-C/runtime gate failed",
-    "Legacy borrowed-call provenance differential runtime failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $borrowedCallProvenanceGate.Contains($required) ) {
         throw "XLIR borrowed-call provenance quality gate is incomplete: $required"
@@ -1746,7 +1750,7 @@ foreach ( $required in @(
     "xvalue-class-identity-bind", "xvalue-raw-pointer-borrow",
     "class-field-init-new", "executionOrigin", "instantiations",
     "SequenceEqual", "strict-C/runtime gate failed",
-    "standalone artifact runtime gate failed", "legacy differential gate failed"
+    "standalone artifact runtime gate failed"
 ) ) {
     if ( ! $nativeClassObjectIdentityAbiGate.Contains($required) ) {
         throw "XLIR managed native class object identity quality gate is incomplete: $required"
@@ -1756,10 +1760,10 @@ if ( ! $languageFrontendSuite.Contains(
          "tools\check_xlir_native_class_object_identity_abi.ps1") ) {
     throw "XLIR managed native class object identity gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains(
+if ( ! $runtimeMatrix.Contains(
          "field-only native-backed managed object identity ABI") -or
-     ! $differential.Contains("cgen_typed_container_objects.xl") ) {
-    throw "XLIR managed native class object identity fixture is not wired into runtime differential coverage"
+     ! $runtimeMatrix.Contains("cgen_typed_container_objects.xl") ) {
+    throw "XLIR managed native class object identity fixture is not wired into runtime-matrix coverage"
 }
 
 # A managed native-backed class remains a semantic xvalue at an extern call.
@@ -1803,7 +1807,7 @@ foreach ( $required in @(
     "parameterPhysicalFieldDeclarations",
     "xvalue-object-get-literal-raw-pointer", "direct nominal-handle projector",
     "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $managedNativeExternReceiverGate.Contains($required) ) {
         throw "XLIR managed native extern receiver quality gate is incomplete: $required"
@@ -1813,10 +1817,10 @@ if ( ! $languageFrontendSuite.Contains(
          "tools\check_xlir_managed_native_extern_receiver_abi.ps1") ) {
     throw "XLIR managed native extern receiver gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains(
+if ( ! $runtimeMatrix.Contains(
          "managed native extern receiver physical field-borrow ABI") -or
-     ! $differential.Contains("xlir_managed_native_extern_receiver_abi.xl") ) {
-    throw "XLIR managed native extern receiver fixture is not wired into runtime differential coverage"
+     ! $runtimeMatrix.Contains("xlir_managed_native_extern_receiver_abi.xl") ) {
+    throw "XLIR managed native extern receiver fixture is not wired into runtime-matrix coverage"
 }
 
 # Value/default initialization is resolved in Typed XLIR.  Lowering consumes
@@ -2045,7 +2049,7 @@ foreach ( $required in @(
     "format-parametric schema model", "inherited/nested projection",
     "byte-for-byte deterministic",
     "strict file/runtime behavior",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $persistenceJsonGate.Contains($required) ) {
         throw "XLIR JSON persistence quality gate is incomplete: $required"
@@ -2055,8 +2059,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_persistence_json_abi.ps1") ) {
     throw "XLIR JSON persistence gate is not wired into the frontend suite"
 }
-if ( ! $differential.Contains("xlir_persistence_json_abi.xl") ) {
-    throw "XLIR JSON persistence fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("xlir_persistence_json_abi.xl") ) {
+    throw "XLIR JSON persistence fixture is missing from the runtime matrix"
 }
 
 # Multiple semantic returns cross every callable boundary as one canonical
@@ -2227,9 +2231,6 @@ foreach ( $required in @(
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical named-adapter consumption: $required"
     }
-}
-if ( ! $legacyNeeds.Contains("__xl_std_xrt_file_delete") ) {
-    throw "Legacy compatibility Cgen lost File.delete shared-runtime admission"
 }
 foreach ( $required in @(
     "cgen_function_adapter_dedupe", "cgen_named_function_argument",
@@ -2424,7 +2425,7 @@ foreach ( $required in @(
     "xlir_erased_collection_members", "xlir_erased_generic_collection_members",
     "xlir_erased_collection_member_lifetime", "xlir_erased_collection_member_continuation",
     "runtimeTypeMap.fallback", "boxed erased item", "resultAbiName",
-    "typedCollectionOpName", "Get-FileHash", "-Werror", '"xlir", "legacy"'
+    "typedCollectionOpName", "Get-FileHash", "-Werror"
 ) ) {
     if ( !$erasedMemberGate.Contains($required) ) {
         throw "XLIR erased collection member gate lacks evidence: $required"
@@ -2518,8 +2519,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "cgen_function_bare_call.xl", "callableErasureAbiName",
-    "array-variadic", "xrtValueArrayAppend(", "deterministic",
-    "--backend legacy", "-Werror"
+    "array-variadic", "xrtValueArrayAppend(", "deterministic", "-Werror"
 ) ) {
     if ( ! $openFunctionGate.Contains($required) ) {
         throw "XLIR open-function callable quality gate is incomplete: $required"
@@ -2561,7 +2561,7 @@ foreach ( $required in @(
     "xvalue-callable-from-closure", "xvalue-project-closure-copy",
     "closure-copy", "function-value", "targetSymbol",
     "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedCallableContainerGate.Contains($required) ) {
         throw "XLIR callable-container quality gate is incomplete: $required"
@@ -2618,7 +2618,7 @@ foreach ( $required in @(
     "xvalue-project-nullable-closure-copy",
     "nullable native class did not preserve presence",
     "payloadType", "typeValueId", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedSafeIndexNominalGate.Contains($required) ) {
         throw "XLIR typed safe-index nominal quality gate is incomplete: $required"
@@ -2666,7 +2666,7 @@ foreach ( $required in @(
     "implicitConversionErrorAbiName", "unique THROW ExitPlan",
     "xvalue-callable-from-closure", "xvalue-project-xvalue-retain",
     "runtimeIdentityType", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedIndexAssignNominalGate.Contains($required) ) {
         throw "XLIR typed nominal index-assignment quality gate is incomplete: $required"
@@ -2712,7 +2712,7 @@ foreach ( $required in @(
     "cgen_typed_container_index_assign.xl",
     "xvalue-index-get-xvalue-key", "xvalue-project-scalar-copy",
     "payloadType", "canonical borrowed carrier ABI", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $dynamicKeyScalarProjectionGate.Contains($required) ) {
         throw "XLIR dynamic-key scalar projection quality gate is incomplete: $required"
@@ -2757,7 +2757,7 @@ foreach ( $required in @(
     "cgen_typed_point.xl", "xvalue-array-i64-set-new",
     "xvalue-raw-pointer-borrow", "xvalue-project-raw-pointer-borrow",
     "payloadType", "canonical borrowed carrier ABI", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $typedPointProjectionGate.Contains($required) ) {
         throw "XLIR typed point projection quality gate is incomplete: $required"
@@ -2814,7 +2814,7 @@ foreach ( $required in @(
     'errorAbiName -ne "may-raise"',
     'kindName -eq "error-test"', 'kindName -eq "move"',
     "SequenceEqual", "strict-C/runtime gate failed",
-    "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $xvalueScalarBridgeGate.Contains($required) ) {
         throw "XLIR xvalue scalar-bridge quality gate is incomplete: $required"
@@ -2823,9 +2823,9 @@ foreach ( $required in @(
 if ( ! $languageFrontendSuite.Contains("tools\check_xlir_xvalue_scalar_bridge_abi.ps1") ) {
     throw "XLIR xvalue scalar-bridge quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("xvalue scalar bridge, flow projection, and may-raise constructor ABI") -or
-     ! $differential.Contains("hir_xvalue_scalar_bridge_matrix.xl") ) {
-    throw "XLIR xvalue scalar-bridge fixture is not wired into runtime differential coverage"
+if ( ! $runtimeMatrix.Contains("xvalue scalar bridge, flow projection, and may-raise constructor ABI") -or
+     ! $runtimeMatrix.Contains("hir_xvalue_scalar_bridge_matrix.xl") ) {
+    throw "XLIR xvalue scalar-bridge fixture is not wired into runtime-matrix coverage"
 }
 foreach ( $forbidden in @("xl6XrtCallableCreate", "xl6XrtValueInvoke", "xl6CallResult") ) {
     if ( $cEmitter.Contains($forbidden) ) {
@@ -3967,7 +3967,7 @@ foreach ( $required in @(
     "xvalue-iterator-item-xvalue-retain",
     "xvalue-iterator-key-ordinal-i64", "xvalue-iterator-key-i64",
     "xvalue-iterator-key-string-copy", "source-bound cursor",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $erasedCollectionIteratorGate.Contains($required) ) {
         throw "XLIR statically shaped erased collection iterator quality gate is incomplete: $required"
@@ -3986,7 +3986,7 @@ foreach ( $required in @(
     "canonical managed var TypeId", "source-bound cursor",
     "owned-rvalue checked-create release",
     "continue/break/return/finally", "TypeError",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $dynamicVarIteratorGate.Contains($required) ) {
         throw "XLIR dynamic var iterator quality gate is incomplete: $required"
@@ -4002,8 +4002,7 @@ foreach ( $required in @(
     "string-snapshot-release", "string-utf8-count", "string-utf8-at",
     "owned-iteration release", "copy-vs-transfer acquisition semantics",
     "empty/continue/break/return/finally/throw cleanup",
-    "emoji runtime semantics", "ReadAllBytes", "-Werror",
-    "legacy differential runtime"
+    "emoji runtime semantics", "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $stringIteratorGate.Contains($required) ) {
         throw "XLIR UTF-8 string iterator quality gate is incomplete: $required"
@@ -4020,7 +4019,7 @@ foreach ( $required in @(
     "protocol-product-take", "native-backed-class-managed-iterator-release",
     'PSObject.Properties.Name -contains "loopResourceDestroySymbol"',
     "continue/break/return/throw", "direct CALL targets",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $protocolIteratorGate.Contains($required) ) {
         throw "XLIR canonical class protocol iterator quality gate is incomplete: $required"
@@ -4035,7 +4034,7 @@ foreach ( $required in @(
     "implementationDeclaration", "implementationSymbol",
     "native-class-handle-borrow", "nominalIdentitySets",
     "byte-for-byte deterministic", "strict runtime",
-    "legacy differential semantics"
+    "strict runtime"
 ) ) {
     if ( ! $protocolWitnessAdapterGate.Contains($required) ) {
         throw "XLIR inherited/native protocol witness adapter gate is incomplete: $required"
@@ -4069,7 +4068,7 @@ foreach ( $required in @(
     "xvalue-iterator-item-borrow",
     "ownership-only exact-TypeId retain",
     "explicit VALUE rebinds", "named print tag ABI",
-    "ReadAllBytes", "-Werror", "legacy differential runtime"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $nullableContainerProjectionGate.Contains($required) ) {
         throw "XLIR nullable container projection quality gate is incomplete: $required"
@@ -4378,9 +4377,9 @@ foreach ( $required in @('Get-Command $Cc', "-Werror", "strict C compile failed"
         throw "XLIR quality gate is missing deterministic C compilation requirement: $required"
     }
 }
-foreach ( $required in @("--backend legacy", "--backend xlir", "XLIR_DIFFERENTIAL_LEGACY", "xlir_cgen_differential_scalar.xl", "xlir_time_conversion_abi.xl", "xlir_cgen_differential_managed_error.xl", "xlir_cgen_differential_xvalue_conditional.xl", "xlir_async_generic_expression_planner.xl", "xlir_async_future_scalar_mixed_capture_chain.xl", "xlir_xvalue_iterator_managed_projection.xl", "xlir_dict_iterator_projection_differential.xl", "xlir_dict_key_only_iterator.xl", "xlir_index_write_generic_abi.xl", "LegacySupport", "distinct time conversion ABI", "async generic expression planner ABI", "async scalar mixed-capture ABI", "managed list/set iterator target lifetime ABI", "dict key/item iterator projection ABI", "dict key-only iterator projection ABI", "canonical typed index write ABI", "xvalue conditional scalar ABI", "generated-C runtime failed") ) {
-    if ( ! $differential.Contains($required) ) {
-        throw "XLIR quality gate is missing runtime differential requirement: $required"
+foreach ( $required in @("--backend xlir", "xlir_cgen_differential_scalar.xl", "xlir_time_conversion_abi.xl", "xlir_cgen_differential_managed_error.xl", "xlir_cgen_differential_xvalue_conditional.xl", "xlir_async_generic_expression_planner.xl", "xlir_async_future_scalar_mixed_capture_chain.xl", "xlir_xvalue_iterator_managed_projection.xl", "xlir_dict_iterator_projection_differential.xl", "xlir_dict_key_only_iterator.xl", "xlir_index_write_generic_abi.xl", "distinct time conversion ABI", "async generic expression planner ABI", "async scalar mixed-capture ABI", "managed list/set iterator target lifetime ABI", "dict key/item iterator projection ABI", "dict key-only iterator projection ABI", "canonical typed index write ABI", "xvalue conditional scalar ABI", "generated-C runtime failed") ) {
+    if ( ! $runtimeMatrix.Contains($required) ) {
+        throw "XLIR quality gate is missing runtime-matrix requirement: $required"
     }
 }
 
@@ -4656,9 +4655,33 @@ foreach ($required in @('xl6CgenEmitNetDatagramComponent', 'xlir_datagram_buffer
     'bool xl6_xrt_udp_send_vec', 'void xl6_xrt_udp_destroy', 'int64_t xl6_xrt_udp_local_port')) {
     if (!$datagramComponent.Contains($required)) { throw "Datagram provider contract missing: $required" }
 }
-if ( $cEmitter -notmatch 'xl6CgenEmitFileRuntime\s*\(\s*out,\s*1,\s*xl6IrCgenNeedsXrtDeclarations\(&needs\)\s*\)' -or
-     $cEmitter -notmatch 'xl6CgenEmitBufferRuntime\s*\(\s*out,\s*needs\.needsFileBridgeRuntime,\s*1,\s*xl6IrCgenNeedsXrtDeclarations\(&needs\)\s*\)' ) {
-    throw "XLIR C emitter lost the explicitly XLIR-configured shared File/Buffer components"
+if ( $cEmitter -notmatch 'xl6CgenEmitFileRuntime\s*\(\s*out,\s*xl6IrCgenNeedsXrtDeclarations\(&needs\)\s*\)' -or
+     $cEmitter -notmatch 'xl6CgenEmitBufferRuntime\s*\(\s*out,\s*needs\.needsFileBridgeRuntime,\s*xl6IrCgenNeedsXrtDeclarations\(&needs\)\s*\)' ) {
+    throw "XLIR C emitter lost the canonical File/Buffer components"
+}
+$retiredComponentAbiFiles = @(
+    'src/cgen/xl6_cgen_buffer.c',
+    'src/cgen/xl6_cgen_file.c',
+    'src/cgen/xl6_cgen_http1.c',
+    'src/cgen/xl6_cgen_json_stream.c',
+    'src/cgen/xl6_cgen_serialization_callback.c',
+    'src/cgen/xl6_cgen_tls_stream.c',
+    'src/cgen/xl6_cgen_websocket.c',
+    'src/cgen/xl6_cgen_xlang_runtime.c',
+    'src/cgen/xl6_cgen_xson.c'
+)
+foreach ($path in $retiredComponentAbiFiles) {
+    $componentText = Read-Utf8 $path
+    if ($componentText -match '\bxlirAbi\b|xl6TlsLegacyFutureSource|XL6_CGEN_TLS_FUTURE_LEGACY') {
+        throw "Retired backend ABI selection returned to the canonical runtime component: $path"
+    }
+}
+$netTransportComponent = Read-Utf8 'src/cgen/xl6_cgen_net_transport.c'
+if ($netTransportComponent -match 'XL6_CGEN_NET_(?:TCP|BUFFER)_COMPONENT_IMPLEMENTATION|XL6_CgenContext|xl6CgenEmitNetBufferBridge' -or
+    !$netTransportComponent.Contains('void xl6CgenEmitNetTcpComponent(') -or
+    !$netTransportComponent.Contains('void xl6CgenEmitNetBufferComponent(') -or
+    !$netTransportComponent.Contains('void xl6CgenEmitNetTcpStatsComponent(')) {
+    throw 'Network runtime provider must contain only canonical XLIR component emitters'
 }
 $stringNameDataStart = $cEmitter.IndexOf("if ( needs->needsTypeIdToStringRuntime )")
 $stringNameDataEnd = $cEmitter.IndexOf(
@@ -4692,7 +4715,6 @@ if ( $header -match '#include\s+"src/ir/xl6_hir.h"' ) {
 
 foreach ( $required in @(
     "xl6IrBuildModuleFromAst",
-    "xl6IrBuildModuleFromHir",
     "xl6IrRefreshExitPlans",
     "xl6IrAppendExitCleanupActions",
     "xl6IrCleanupDeclarationIsLiveAtExit",
@@ -4797,7 +4819,7 @@ if ( ! $publicApi.Contains("xlcEmitLoweredIr") ) {
     throw "public compiler API does not expose verified lowered XLIR emission"
 }
 if ( ! $publicApi.Contains("xlcEmitXlirHeader") -or ! $api.Contains("xlcEmitXlirHeader") -or
-     ! $shell.Contains("xlcShellEmitXlirHeader") -or ! $shell.Contains("xlcShellXlirCgenDumpDir") -or
+     ! $shell.Contains("xlcShellEmitXlirHeader") -or ! $shell.Contains("xlcShellCgenDumpDir") -or
      ! $shell.Contains("xlcEmitLoweredIr(ctx, path, 0)") ) {
     throw "XLIR public C/header and dump products must stay on the verified IR emitter path"
 }
@@ -4805,15 +4827,11 @@ if ( ! $api.Contains("xlcEmitLoweredIr") -or ! $api.Contains("xlEnsureUnitXlirLo
      ! $shell.Contains('xl ir <file.xl> [--lowered]') -or ! $shell.Contains('xlcShellHasFlag(argc, argv, "--lowered")') ) {
     throw "xl ir must expose the verified lowered XLIR stage for deterministic backend diagnostics"
 }
-if ( ! $api.Contains("xlEnsureUnitLegacyHir") -or
-     ! $api.Contains('unit->phase = "legacy-hir"') ) {
-    throw "legacy Cgen must request HIR lazily at its explicit API boundary"
-}
 if ( ! $api.Contains("xlEnsureUnitXlirLowered") -or
      ! $api.Contains("xl6IrLowerModule(&unit->ir") ) {
     throw "XLIR C API is not lowering typed XLIR before deterministic C emission"
 }
-$xlirEmitStart = $api.IndexOf("static int xlEmitUnitXlirCToFile")
+$xlirEmitStart = $api.IndexOf("static int xlEmitUnitCToFile")
 if ( $xlirEmitStart -lt 0 ) {
     throw "XLIR C file-emission boundary is missing"
 }
@@ -4979,8 +4997,7 @@ foreach ( $required in @(
     "integerSourceAbiName", "integerTargetName",
     "integer-convert-checked", "integer-convert-wrapping",
     "ERROR_TEST", "ReadAllBytes", "-Werror",
-    "Static U64 conversion incorrectly re-entered the checked ABI",
-    "narrow integer differential runtime failed"
+    "Static U64 conversion incorrectly re-entered the checked ABI"
 ) ) {
     if ( ! $integerConversionAbiGate.Contains($required) ) {
         throw "XLIR integer conversion runtime quality gate is incomplete: $required"
@@ -5136,7 +5153,7 @@ foreach ( $required in @(
     "xlir_scalar_conversion_abi.xl", "bool-to-bool", "bool-to-integer", "bool-to-float",
     "integer-to-bool", "integer-to-integer", "integer-to-float",
     "float-to-integer", "float-to-float", "scalarConversionAbiName",
-    "ReadAllBytes", "-Werror", "Legacy scalar conversion differential runtime failed"
+    "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $scalarConversionAbiGate.Contains($required) ) {
         throw "XLIR scalar conversion runtime quality gate is incomplete: $required"
@@ -5148,8 +5165,7 @@ if ( ! $languageFrontendSuite.Contains("tools\check_xlir_scalar_conversion_abi.p
 foreach ( $required in @(
     "xlir_time_conversion_abi.xl", "TIME_I64", "time-to-bool",
     "time-to-integer", "time-to-float", "integer-to-time",
-    "extern parameter/return ABI", "ReadAllBytes", "-Werror",
-    "Legacy time conversion differential runtime failed"
+    "extern parameter/return ABI", "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $timeConversionAbiGate.Contains($required) ) {
         throw "XLIR time conversion runtime quality gate is incomplete: $required"
@@ -5342,7 +5358,7 @@ foreach ( $required in @(
     "runtime-derived", "internal-call", "type-id-name",
     "class-derived-to-string", "type-id-to-string",
     "stringDeriveIncluded", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $stringConversionAbiGate.Contains($required) ) {
         throw "XLIR closed string conversion quality gate is incomplete: $required"
@@ -5352,10 +5368,10 @@ if ( ! $languageFrontendSuite.Contains(
          "tools\check_xlir_string_conversion_abi.ps1") ) {
     throw "XLIR closed string conversion quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains(
+if ( ! $runtimeMatrix.Contains(
          "TypeId, derived class and explicit class-protocol string conversion ABI") -or
-     ! $differential.Contains("xlir_string_conversion_abi.xl") ) {
-    throw "XLIR closed string conversion fixture is not wired into runtime differential coverage"
+     ! $runtimeMatrix.Contains("xlir_string_conversion_abi.xl") ) {
+    throw "XLIR closed string conversion fixture is not wired into runtime-matrix coverage"
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL",
@@ -5412,7 +5428,7 @@ foreach ( $required in @(
     "xlir_class_reference_hash_t", "xlir_class_reference_equal_t",
     "xl6ClassRuntimeV2Get()->BindIdentity", "SequenceEqual",
     "strict-C/runtime gate failed", "standalone artifact runtime gate failed",
-    "legacy differential gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $classValueIdentityAbiGate.Contains($required) ) {
         throw "XLIR class value identity quality gate is incomplete: $required"
@@ -5422,10 +5438,10 @@ if ( ! $languageFrontendSuite.Contains(
          "tools\check_xlir_class_value_identity_abi.ps1") ) {
     throw "XLIR class value identity quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains(
+if ( ! $runtimeMatrix.Contains(
          "derived class structural hash/equality and typed-set identity ABI") -or
-     ! $differential.Contains("cgen_derive_string_hash_equals.xl") ) {
-    throw "XLIR class value identity fixture is not wired into runtime differential coverage"
+     ! $runtimeMatrix.Contains("cgen_derive_string_hash_equals.xl") ) {
+    throw "XLIR class value identity fixture is not wired into runtime-matrix coverage"
 }
 if ( ! $cEmitter.Contains("runtimeOp <= XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64") ) {
     throw "XLIR xvalue runtime dependency range must exclude later non-xvalue intrinsics"
@@ -5602,7 +5618,7 @@ foreach ( $required in @(
     "xlir_task_spawn_closure_abi.xl", 'kindName -eq "task-spawn"',
     'runtimeOpName -eq "task-spawn-closure"',
     "byte-for-byte deterministic", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $taskSpawnClosureGate.Contains($required) ) {
         throw "XLIR task.spawn quality gate is incomplete: $required"
@@ -5612,8 +5628,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_task_spawn_closure_abi.ps1") ) {
     throw "XLIR task.spawn quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("xlir_task_spawn_closure_abi.xl") ) {
-    throw "XLIR task.spawn fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("xlir_task_spawn_closure_abi.xl") ) {
+    throw "XLIR task.spawn fixture is missing from the runtime matrix"
 }
 
 # Language-visible runtime resources carry a closed semantic identity that is
@@ -5685,7 +5701,7 @@ foreach ( $required in @(
     'runtimeOpName -like "thread-*"', "retain-xvalue",
     "managed conditional closure ownership",
     "byte-for-byte deterministic", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $threadResourceGate.Contains($required) ) {
         throw "XLIR thread resource quality gate is incomplete: $required"
@@ -5695,8 +5711,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_thread_resource_abi.ps1") ) {
     throw "XLIR thread resource quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("xlir_thread_resource_abi.xl") ) {
-    throw "XLIR thread resource fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("xlir_thread_resource_abi.xl") ) {
+    throw "XLIR thread resource fixture is missing from the runtime matrix"
 }
 
 # channel<T> carries a closed generic payload ABI and storage-reference write
@@ -5761,7 +5777,7 @@ foreach ( $required in @(
     'runtimeOpName -like "channel-*"', 'kindName -eq "storage-address"',
     "retain-xvalue", "explicit error edges",
     "byte-for-byte deterministic", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $channelResourceGate.Contains($required) ) {
         throw "XLIR channel resource quality gate is incomplete: $required"
@@ -5771,8 +5787,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_channel_resource_abi.ps1") ) {
     throw "XLIR channel resource quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("xlir_channel_resource_abi.xl") ) {
-    throw "XLIR channel resource fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("xlir_channel_resource_abi.xl") ) {
+    throw "XLIR channel resource fixture is missing from the runtime matrix"
 }
 
 # Synchronization primitives are one exact runtime-resource family.  Typed
@@ -5831,7 +5847,7 @@ foreach ( $required in @(
     "cgen_sync.xl", '"mutex", "sem", "cond", "rwlock"',
     "runtime-resource-default", "22 explicit error edges",
     "byte-for-byte deterministic", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $syncResourceGate.Contains($required) ) {
         throw "XLIR synchronization resource quality gate is incomplete: $required"
@@ -5841,8 +5857,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_sync_resource_abi.ps1") ) {
     throw "XLIR synchronization resource quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("cgen_sync.xl") ) {
-    throw "XLIR synchronization resource fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("cgen_sync.xl") ) {
+    throw "XLIR synchronization resource fixture is missing from the runtime matrix"
 }
 
 # Concurrent queues are closed runtime-resource operations. Typed XLIR fixes
@@ -5905,7 +5921,7 @@ foreach ( $required in @(
     'runtimeOpName -like "special-queue-*"',
     "retain-xvalue", "explicit error edges",
     "byte-for-byte deterministic", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $specialQueueResourceGate.Contains($required) ) {
         throw "XLIR special queue quality gate is incomplete: $required"
@@ -5915,8 +5931,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_special_queue_resource_abi.ps1") ) {
     throw "XLIR special queue quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("stdlib_special_collections_concurrent.xl") ) {
-    throw "XLIR special queue fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("stdlib_special_collections_concurrent.xl") ) {
+    throw "XLIR special queue fixture is missing from the runtime matrix"
 }
 
 # Stack<T> is an owning generic runtime resource. Typed XLIR owns its payload,
@@ -5970,7 +5986,7 @@ foreach ( $required in @(
     'runtimeResourceOpName -like "stack-*"',
     'runtimeOpName -like "stack-*"', "storage-ref", "retain-xvalue",
     "partial-object cleanup", "byte-for-byte deterministic", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $stackResourceGate.Contains($required) ) {
         throw "XLIR Stack resource quality gate is incomplete: $required"
@@ -5980,8 +5996,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_stack_resource_abi.ps1") ) {
     throw "XLIR Stack resource quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("xlir_stack_resource_abi.xl") ) {
-    throw "XLIR Stack resource fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("xlir_stack_resource_abi.xl") ) {
+    throw "XLIR Stack resource fixture is missing from the runtime matrix"
 }
 
 # AvlTree<K,V> extends the resource contract with a second generic identity and
@@ -6039,7 +6055,7 @@ foreach ( $required in @(
     'runtimeOpName -like "avl-tree-*"', "storage-ref", "retain-xvalue",
     "operandCount -ne 3", "partial-object cleanup",
     "byte-for-byte deterministic", "declaration-only C", "-Werror",
-    "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $avlResourceGate.Contains($required) ) {
         throw "XLIR AvlTree resource quality gate is incomplete: $required"
@@ -6049,8 +6065,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_avl_resource_abi.ps1") ) {
     throw "XLIR AvlTree resource quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("xlir_avl_resource_abi.xl") ) {
-    throw "XLIR AvlTree resource fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("xlir_avl_resource_abi.xl") ) {
+    throw "XLIR AvlTree resource fixture is missing from the runtime matrix"
 }
 
 # Future continuations are one closed, verified operation family.  Typed XLIR
@@ -6104,7 +6120,7 @@ foreach ( $required in @(
     "sourcePayloadAbiName", 'runtimeOpName -eq "future-continue-closure"',
     "futureContinuationKindName", "Future<T> to Future<U>",
     "byte-for-byte deterministic", "task-boundary AsyncError cause",
-    "strict-C/runtime gate failed", "differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $futureContinuationGate.Contains($required) ) {
         throw "XLIR Future continuation quality gate is incomplete: $required"
@@ -6114,8 +6130,8 @@ if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_future_continuation_abi.ps1") ) {
     throw "XLIR Future continuation quality gate is not wired into the language frontend suite"
 }
-if ( ! $differential.Contains("stdlib_future_continuation.xl") ) {
-    throw "XLIR Future continuation fixture is missing from the differential matrix"
+if ( ! $runtimeMatrix.Contains("stdlib_future_continuation.xl") ) {
+    throw "XLIR Future continuation fixture is missing from the runtime matrix"
 }
 
 # User-class destruction is a verified lifecycle plan, not a Cgen spelling
@@ -6196,7 +6212,7 @@ foreach ( $required in @(
     "cgen_class_inherit_destroy.xl", "hasExplicitCreate",
     "class-destroy-borrow", "xvalue-class-construction-commit",
     "derived-to-base", "retained projection", "SequenceEqual",
-    "strict-C/runtime gate failed", "legacy differential runtime gate failed"
+    "strict-C/runtime gate failed"
 ) ) {
     if ( ! $classLifecycleGate.Contains($required) ) {
         throw "XLIR class lifecycle quality gate is incomplete: $required"

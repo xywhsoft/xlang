@@ -18,10 +18,8 @@
 - `对象与参数传递设计.md`：class/容器受管理引用语义、`union` 值语义、`point<T>`、`byval/byref/out`、多态和 C ABI。
 - `class_object协议设计.md`：class/object 统一对象模型、协议方法、derive 能力、copy/clone、动态字段和持久化设计。
 - `泛型设计.md`：泛型声明、类型参数、显式实例化、静态泛型容器、泛型约束和 C 混编限制。
-- `XLIR统一中间表示设计.md`：`AST -> XLIR -> C` 的统一 IR、阶段不变量、C emitter 边界和替换式迁移顺序。
-- `XLIR迁移验收矩阵.md`：当前已接纳的 XLIR 语义簇、可执行质量门和默认后端切换条件。
-- `Typed_HIR与后端边界.md`：独立 typed semantic HIR、语义/存储类型、后端唯一语义入口和静态容器存储决策。
-- `现代类型语义与HIR改造.md`：TypeId/SymbolId、真实 typed HIR、nullable/weak、用户 protocol、enum/tagged enum 与 match 的统一设计和验收口径。
+- `XLIR统一中间表示设计.md`：`AST -> XLIR -> C` 的统一 IR、阶段不变量、C emitter 边界和已完成的旧后端退役约束。
+- `XLIR迁移验收矩阵.md`：当前已接纳的 XLIR 语义簇、可执行质量门和单一后端准入条件。
 - `本批五项能力实现口径.md`：泛型约束、字段级持久化注解、泛型 class 迭代协议、native-backed class 和 class 成员 C ABI 导出的当前实现口径。
 - `ABI设计.md`：内部 ABI、C ABI、C 兼容类型、class 数据 ABI、成员导出 ABI、符号生成、类型映射和 ABI dump。
 - `C混编设计.md`：C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper。
@@ -88,18 +86,15 @@
 - `工程收口10项任务.md`：canonical type、ABI 元数据 权威化、package/import、callable descriptor、后端接口和生命周期强化任务。
 - `RC0稳定化与import闭环.md`：旧 import 闭环阶段记录；当前实现已切换为 source import/package。
 - `RC0工作区清单.md`：RC0 工作区规模、变更分组和提交前建议的历史快照。
+- `现代类型语义与HIR改造.md`：统一 XLIR 建立前的 TypeId/SymbolId、nullable/weak、protocol、enum 与 match 设计背景；现行 IR 边界以 `XLIR统一中间表示设计.md` 为准。
 - `并发异步长期实现任务.md`：async/await、thread、channel、同步原语和 generator 的长期实现任务边界。
 - `扩展库系统RC实现任务.md`：扩展库系统进入 RC 实现阶段的任务边界和验收口径。
 
-## 代码生成规则表
+## C 发射器合同
 
-代码生成规则不放在本目录，而是集中在 `demo6/cgenrule`：
-
-- `../cgenrule/README.md`：规则对照表索引。
-- `../cgenrule/00_文件覆盖索引.md`：cgen 分片职责与覆盖索引。
-- `../cgenrule/01_入口与声明规则.md` 到 `../cgenrule/33_P2_DLL_API动态执行细则.md`：共 835 条 `CGEN-*` 规则。
-- `../cgenrule/34_规则测试范例交叉索引.md` 到 `../cgenrule/42_P2_CLI_DLL验证矩阵.md`：规则到测试、范例和工具脚本的验证矩阵。
-- `../cgenrule/43_文档整理收口.md` 与 `../cgenrule/44_文档整理验收报告.md`：cgenrule 文档整理收口和验收报告。
+`../cgenrule/README.md` 是当前 C emitter 的边界入口。旧 AST Cgen 的编号规则表、
+验证矩阵和函数索引已随实现退役；现行语义合同统一由 XLIR 设计、verifier、专项质量门
+和可执行测试维护，不再保留一套按源码语法分支解释 C 输出的平行文档体系。
 
 ## 范例文档
 
@@ -132,7 +127,7 @@
 ## 维护规则
 
 - 新设计先落到本目录，再进入实现。
-- 修改 cgen 行为时，同步维护 `demo6/cgenrule` 对应规则表和验证矩阵。
+- 修改 C emitter 行为时，同步维护 `cgenrule/README.md`、XLIR 设计/验收文档和对应可执行质量门；不得恢复按源码语法维护的第二套规则表。
 - 修改标准库命名、参数默认值或 XRT/CRT 边界时，同步维护 `标准库设计.md`。
-- 修改 import/package 行为时，同步维护 `扩展库系统设计.md`、`C混编设计.md` 和相关 cgenrule 文档。
+- 修改 import/package 行为时，同步维护 `扩展库系统设计.md`、`C混编设计.md`、XLIR dependency plan 合同和对应质量门。
 - 历史任务单中的旧状态不能作为当前实现结论直接引用，必须回查当前权威设计或代码。

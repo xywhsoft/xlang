@@ -10,7 +10,6 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacyHostSource = Join-Path $Root "test\cases\cgen_class_host.c"
 $outputDir = Join-Path $Root "build\test"
 $cases = @(
     [pscustomobject]@{
@@ -23,7 +22,7 @@ $cases = @(
     }
 )
 
-foreach ( $path in @($xl, $hostSource, $legacyHostSource) + @($cases.Source) ) {
+foreach ( $path in @($xl, $hostSource) + @($cases.Source) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR generic class method/protocol gate input is missing: $path"
     }
@@ -35,7 +34,6 @@ foreach ( $case in $cases ) {
     $jsonPath = Join-Path $outputDir ($case.Name + ".lowered.json")
     $xlirCPath = Join-Path $outputDir ($case.Name + ".xlir.c")
     $repeatCPath = Join-Path $outputDir ($case.Name + ".xlir.repeat.c")
-    $legacyCPath = Join-Path $outputDir ($case.Name + ".legacy.c")
 
     & $xl ir $case.Source --lowered --format json --emit $jsonPath
     if ( $LASTEXITCODE -ne 0 ) {
@@ -57,23 +55,11 @@ foreach ( $case in $cases ) {
          [System.IO.File]::ReadAllText($repeatCPath, [System.Text.Encoding]::UTF8) ) {
         throw "XLIR generic class method/protocol Cgen is not deterministic: $($case.Name)"
     }
-    & $xl cgen $case.Source --backend legacy --emit $legacyCPath
+    $exe = Join-Path $outputDir ($case.Name + ".xlir.exe")
+    $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$xlirCPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$exe`" && `"$exe`""
+    & $env:ComSpec /d /v:on /c $command
     if ( $LASTEXITCODE -ne 0 ) {
-        throw "legacy generic class method/protocol Cgen failed: $($case.Name)"
-    }
-
-    foreach ( $backend in @("xlir", "legacy") ) {
-        $generated = Join-Path $outputDir ($case.Name + "." + $backend + ".c")
-        $exe = Join-Path $outputDir ($case.Name + "." + $backend + ".exe")
-        if ( $backend -eq "xlir" ) {
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$generated`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$exe`" && `"$exe`""
-        } else {
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror `"$generated`" `"$legacyHostSource`" !XL6_CGEN_LINKS! -o `"$exe`" && `"$exe`""
-        }
-        & $env:ComSpec /d /v:on /c $command
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "generic class method/protocol generated-C runtime failed: $($case.Name) $backend"
-        }
+        throw "generic class method/protocol generated-C runtime failed: $($case.Name)"
     }
 }
 
@@ -112,5 +98,5 @@ if ( $iteratorSpecializations.Count -ne 4 -or $loops.Count -ne 2 -or
     throw "generic iterator protocol did not freeze one concrete LoopAbi/class-layout contract"
 }
 
-Write-Output "XLIR generic class method/protocol gate ok: self-call closure, implicit iterator specialization, concrete LoopAbi/ClassLayout facts, deterministic strict C, and XLIR/legacy runtime agreement."
+Write-Output "XLIR generic class method/protocol gate ok: self-call closure, implicit iterator specialization, concrete LoopAbi/ClassLayout facts, deterministic strict C, and canonical runtime agreement."
 exit 0

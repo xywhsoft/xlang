@@ -1,0 +1,21 @@
+import tar
+
+func main(...) as int
+    string userName = "a_very_long_user_name_that_exceeds_32_characters"
+    string name = ""
+    for i in range(16)
+        name = name + "segment/"
+    end
+    name = name + "entry.txt"
+    auto writer = tar.create()
+    writer.add(name, "content", 420, 0, 0, 0, userName, "")
+    Buffer packed = writer.finish()
+
+    auto reader = tar.open(packed)
+    assert reader.next(), "archive must contain the entry"
+    auto info = reader.info()
+    assert info.name == name, "PAX path must round-trip through xlang"
+    assert info.userName == userName, "PAX uname must round-trip through xlang"
+    assert reader.readText() == "content", "entry data must round-trip"
+    return 0
+end

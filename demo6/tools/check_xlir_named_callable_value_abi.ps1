@@ -143,12 +143,10 @@ try {
 
         & $xl run $source --backend xlir
         if ( $LASTEXITCODE -ne 0 ) { throw "$name XLIR package runtime failed" }
-        & $xl run $source --backend legacy
-        if ( $LASTEXITCODE -ne 0 ) { throw "$name legacy differential runtime failed" }
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR named-callable value ABI gate ok: canonical declaration/signature identity, managed-string callback bridge, capture-free adapter, checked callable erasure, deterministic Cgen, strict C, package runtime, and legacy differential."
+Write-Output "XLIR named-callable value ABI gate ok: canonical declaration/signature identity, managed-string callback bridge, capture-free adapter, checked callable erasure, deterministic Cgen, strict C, and package runtime."
 exit 0

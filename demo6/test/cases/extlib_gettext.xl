@@ -1,0 +1,69 @@
+import gettext
+
+
+
+func main(...) as int
+    // 基本 PO 解析
+    string po = """# 注释行
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+msgid "hello"
+msgstr "你好"
+
+msgid "goodbye"
+msgstr "再见"
+
+msgid "multi line"
+msgstr "第一行"
+"第二行\\n"
+"第三行"
+"""
+    var catalog = gettext.parsePo(po)
+    assert gettext.t(catalog, "hello") == "你好", "basic lookup"
+    assert gettext.t(catalog, "goodbye") == "再见", "second entry"
+    assert gettext.t(catalog, "multi line") == "第一行第二行\n第三行", "multiline concat"
+    assert gettext.t(catalog, "missing") == "missing", "fallback to msgid"
+
+    // 转义
+    string po2 = """
+msgid "tab\\there"
+msgstr "制表\\t符"
+"""
+    var c2 = gettext.parsePo(po2)
+    assert gettext.t(c2, "tab\there") == "制表\t符", "escape decode"
+
+    // 复数形式
+    string poPlural = """
+msgid "one apple"
+msgid_plural "%d apples"
+msgstr[0] "一个苹果"
+msgstr[1] "%d 个苹果"
+"""
+    var c3 = gettext.parsePo(poPlural)
+    assert gettext.tn(c3, "one apple", "%d apples", 1) == "一个苹果", "singular form"
+    assert gettext.tn(c3, "one apple", "%d apples", 5) == "%d 个苹果", "plural form"
+    assert gettext.tn(c3, "no entry", "no entries", 2) == "no entries", "plural fallback"
+
+    // 空翻译条目
+    var c4 = gettext.parsePo("msgid \"only\"\nmsgstr \"\"\n")
+    assert gettext.t(c4, "only") == "", "empty translation kept"
+
+    // MO 二进制：手工构造最小 MO 文件并解析
+    var catalogMo = gettext.loadMo("test/fixtures/gettext_mini.mo")
+    assert gettext.t(catalogMo, "hello") == "world!", "mo lookup 1"
+    assert gettext.t(catalogMo, "goodbye") == "farewell!", "mo lookup 2"
+    assert gettext.t(catalogMo, "one file") == "eine Datei", "mo lookup 3"
+    assert gettext.t(catalogMo, "absent") == "absent", "mo fallback"
+
+    int raised = 0
+    try
+        gettext.loadMo("test/fixtures/definitely-missing.mo")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "missing mo raises"
+
+    return 0
+end
+

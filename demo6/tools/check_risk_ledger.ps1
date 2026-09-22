@@ -1,135 +1,87 @@
-param(
-    [string]$Root = "",
-    [int]$ExpectedRiskCount = 21,
-    [int]$ExpectedClosedCount = 21,
-    [string[]]$ExpectedOpenRiskIds = @()
-)
+param([string]$Root = '')
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
+if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
+$Root = (Resolve-Path -LiteralPath $Root).Path
 
-if ( $Root -eq "" ) {
-    $Root = Split-Path -Parent $PSScriptRoot
+$cgenruleDirectory = Join-Path $Root 'cgenrule'
+$matrixName = ([char]0x6587) + ([char]0x6863) + ([char]0x72B6) +
+    ([char]0x6001) + ([char]0x77E9) + ([char]0x9635) + '.md'
+$canonicalDocuments = [System.Collections.Generic.List[string]]::new()
+@(
+    'cgenrule/README.md',
+    'docs/README.md',
+    ('docs/' + $matrixName)
+) | ForEach-Object { $canonicalDocuments.Add($_) }
+$xlirDocuments = @(Get-ChildItem -LiteralPath (Join-Path $Root 'docs') -Filter 'XLIR*.md' -File)
+if ($xlirDocuments.Count -lt 2) {
+    Write-Host 'current XLIR design and acceptance documents are missing'
+    exit 1
+}
+foreach ($document in $xlirDocuments) {
+    $canonicalDocuments.Add('docs/' + $document.Name)
+}
+$failures = [System.Collections.Generic.List[string]]::new()
+
+function Add-Failure([string]$Message) {
+    $script:failures.Add($Message)
 }
 
-$cgenruleDir = Join-Path $Root "cgenrule"
-$failures = New-Object System.Collections.Generic.List[string]
-$riskEntries = @{}
-$closedMarker = ([char]0x5DF2) + ([char]0x6536) + ([char]0x53E3)
-
-function Add-Failure($message)
-{
-    $script:failures.Add($message) | Out-Null
+function Read-Utf8([string]$Path) {
+    return [IO.File]::ReadAllText($Path, [Text.Encoding]::UTF8)
 }
 
-function Read-Utf8Text($path)
-{
-    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
-}
-
-if ( ! (Test-Path -LiteralPath $cgenruleDir -PathType Container) ) {
-    Write-Host "cgenrule docs directory missing: $cgenruleDir"
+if (!(Test-Path -LiteralPath $cgenruleDirectory -PathType Container)) {
+    Write-Host "cgenrule directory is missing: $cgenruleDirectory"
     exit 1
 }
 
-$docs = @(Get-ChildItem -LiteralPath $cgenruleDir -Filter "*.md" -File | Sort-Object Name)
-foreach ( $doc in $docs ) {
-    $lines = (Read-Utf8Text $doc.FullName) -split "`r?`n"
-    for ( $i = 0; $i -lt $lines.Count; $i++ ) {
-        $line = $lines[$i]
-        $match = [regex]::Match($line, '^\|\s*(RISK-[A-Z]+-[0-9]+)\s*\|')
-        if ( ! $match.Success ) {
-            continue
-        }
-
-        $id = $match.Groups[1].Value
-        if ( ! $riskEntries.ContainsKey($id) ) {
-            $riskEntries[$id] = [pscustomobject]@{
-                Id = $id
-                Closed = $false
-                Locations = New-Object System.Collections.Generic.List[string]
-            }
-        }
-
-        $entry = $riskEntries[$id]
-        $entry.Locations.Add(("{0}:{1}" -f $doc.Name, ($i + 1))) | Out-Null
-        if ( $line.Contains($closedMarker) ) {
-            $entry.Closed = $true
-        }
-    }
+# The RISK-* ledger described implementation gaps in the retired AST Cgen.
+# Its contents are Git history now, not release truth for the XLIR emitter. Keep
+# this script name because it is a stable RC/static-smoke entry point, but make
+# it prevent the obsolete ledger and its numbered document set from returning.
+$ruleDocuments = @(Get-ChildItem -LiteralPath $cgenruleDirectory -Filter '*.md' -File)
+if ($ruleDocuments.Count -ne 1 -or $ruleDocuments[0].Name -ne 'README.md') {
+    Add-Failure 'retired Cgen risk-ledger documents returned under cgenrule'
 }
 
-$ids = @($riskEntries.Keys | Sort-Object)
-if ( $ids.Count -ne $ExpectedRiskCount ) {
-    Add-Failure "risk ledger count mismatch: expected $ExpectedRiskCount, actual $($ids.Count)"
-}
-
-$expectedOpen = New-Object System.Collections.Generic.HashSet[string]
-foreach ( $id in $ExpectedOpenRiskIds ) {
-    $expectedOpen.Add($id) | Out-Null
-}
-
-$actualOpen = New-Object System.Collections.Generic.List[string]
-$actualClosed = New-Object System.Collections.Generic.List[string]
-
-foreach ( $id in $ids ) {
-    $entry = $riskEntries[$id]
-    if ( $entry.Closed ) {
-        $actualClosed.Add($id) | Out-Null
-    } else {
-        $actualOpen.Add($id) | Out-Null
-    }
-}
-
-if ( $actualClosed.Count -ne $ExpectedClosedCount ) {
-    Add-Failure "closed risk count mismatch: expected $ExpectedClosedCount, actual $($actualClosed.Count)"
-}
-
-if ( $actualOpen.Count -ne $ExpectedOpenRiskIds.Count ) {
-    Add-Failure "open risk count mismatch: expected $($ExpectedOpenRiskIds.Count), actual $($actualOpen.Count)"
-}
-
-foreach ( $id in $ExpectedOpenRiskIds ) {
-    if ( ! $riskEntries.ContainsKey($id) ) {
-        Add-Failure "expected open risk is missing: $id"
+foreach ($relative in $canonicalDocuments) {
+    $path = Join-Path $Root $relative
+    if (!(Test-Path -LiteralPath $path -PathType Leaf)) {
+        Add-Failure "canonical document is missing: $relative"
         continue
     }
-    if ( $riskEntries[$id].Closed ) {
-        Add-Failure "expected open risk is marked closed: $id"
+
+    $text = Read-Utf8 $path
+    if ($text -match 'RISK-[A-Z]+-[0-9]+') {
+        Add-Failure "retired AST Cgen risk id appears in current authority: $relative"
+    }
+    if ($text -match 'cgenrule[/\\][0-9][0-9]_') {
+        Add-Failure "retired numbered Cgen rule is cited by current authority: $relative"
     }
 }
 
-foreach ( $id in $actualOpen ) {
-    if ( ! $expectedOpen.Contains($id) ) {
-        $locations = [string]::Join(", ", $riskEntries[$id].Locations.ToArray())
-        Add-Failure "unexpected open risk: $id at $locations"
+$readmePath = Join-Path $cgenruleDirectory 'README.md'
+if (Test-Path -LiteralPath $readmePath -PathType Leaf) {
+    $readme = Read-Utf8 $readmePath
+    foreach ($required in @(
+        'AST Cgen',
+        'Git '
+    )) {
+        if (!$readme.Contains($required)) {
+            Add-Failure "canonical C emitter boundary does not record risk-ledger retirement: $required"
+        }
     }
 }
 
-foreach ( $id in $ids ) {
-    if ( $expectedOpen.Contains($id) ) {
-        continue
-    }
-    if ( ! $riskEntries[$id].Closed ) {
-        $locations = [string]::Join(", ", $riskEntries[$id].Locations.ToArray())
-        Add-Failure "risk is neither expected-open nor marked closed: $id at $locations"
-    }
-}
-
-if ( $failures.Count -ne 0 ) {
-    Write-Host "Risk ledger check failed."
-    foreach ( $failure in ($failures | Select-Object -First 80) ) {
-        Write-Host "  $failure"
-    }
-    if ( $failures.Count -gt 80 ) {
+if ($failures.Count -ne 0) {
+    Write-Host 'Retired Cgen risk-ledger check failed.'
+    $failures | Select-Object -First 80 | ForEach-Object { Write-Host "  $_" }
+    if ($failures.Count -gt 80) {
         Write-Host "  ... $($failures.Count - 80) more failure(s)"
     }
     exit 1
 }
 
-$openText = "none"
-if ( $actualOpen.Count -gt 0 ) {
-    $openText = [string]::Join(", ", $actualOpen.ToArray())
-}
-Write-Host "Risk ledger ok: $($ids.Count) unique risks, $($actualClosed.Count) closed, $($actualOpen.Count) open."
-Write-Host "Open risks: $openText"
+Write-Host 'Retired Cgen risk ledger ok: no active AST Cgen risk records or numbered rule documents.'
 exit 0

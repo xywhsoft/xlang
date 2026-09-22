@@ -1,42 +1,6 @@
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include "../../build/test/__xl_runtime/xruntime_decl.h"
+#include <stdio.h>
 #include <string.h>
-
-
-
-typedef struct xvalue xvalue;
-typedef struct xerror xerror;
-typedef struct xrtcallframe {
-	xvalue* Self;
-	const void* Signature;
-	size_t ArgumentCount;
-	xvalue* const* Arguments;
-	size_t KeywordCount;
-	const void* KeywordNames;
-	xvalue* const* KeywordValues;
-	void* Context;
-} xrtcallframe;
-typedef struct xrtcallresult {
-	size_t Count;
-	size_t OverflowCapacity;
-	xvalue* Inline[4];
-	xvalue** Overflow;
-} xrtcallresult;
-
-const xerror* xrtGetError(void);
-const xerror* xrtErrorCause(const xerror* pError);
-const char* xrtErrorDomain(const xerror* pError);
-const char* xrtErrorFile(const xerror* pError);
-int32_t xrtErrorLine(const xerror* pError);
-int32_t xrtErrorColumn(const xerror* pError);
-const char* xrtErrorOperation(const xerror* pError);
-const char* xrtErrorMessage(const xerror* pError);
-void xrtClearError(void);
-void xrtCallResultInit(xrtcallresult* pResult);
-void xrtCallResultUnit(xrtcallresult* pResult);
-bool xrtValueInvoke(const xvalue* pCallable,
-	const xrtcallframe* pFrame, xrtcallresult* pResult);
 
 
 
@@ -55,6 +19,9 @@ void xcall_error_bridge_invoke(xvalue* pCallback)
 	xrtCallResultInit(&Result);
 	if ( !xrtValueInvoke(pCallback, &Frame, &Result) ) {
 		pError = xrtGetError();
+		if ( pError == NULL ) {
+			fprintf(stderr, "xcall bridge returned false without a diagnostic\n");
+		}
 		while ( (pError != NULL) && (xrtErrorCause(pError) != NULL) ) {
 			pError = xrtErrorCause(pError);
 		}
@@ -65,6 +32,13 @@ void xcall_error_bridge_invoke(xvalue* pCallback)
 			(strcmp(xrtErrorFile(pError), "") == 0) &&
 			(xrtErrorLine(pError) > 0) &&
 			(xrtErrorColumn(pError) > 0);
+		if ( !__Observed && pError != NULL ) {
+			fprintf(stderr,
+				"xcall bridge diagnostic mismatch: domain=%s operation=%s message=%s file=%s line=%d column=%d\n",
+				xrtErrorDomain(pError), xrtErrorOperation(pError),
+				xrtErrorMessage(pError), xrtErrorFile(pError),
+				(int)xrtErrorLine(pError), (int)xrtErrorColumn(pError));
+		}
 	}
 	xrtCallResultUnit(&Result);
 	xrtClearError();

@@ -542,7 +542,7 @@ if errorlevel 1 exit /b 1
 build\test\xlir_async_task_scalar_host.exe
 if errorlevel 1 exit /b 1
 rem Differential runtime gate: scalar and managed-error fixtures must produce
-rem the same observable result from legacy and XLIR generated C.
+rem canonical generated C across the broad migrated runtime fixture matrix.
 rem Sources: test\cases\xlir_cgen_differential_scalar.xl,
 rem test\cases\xlir_cgen_differential_managed_error.xl and
 rem test\cases\xlir_cgen_differential_xvalue_conditional.xl;
@@ -551,7 +551,7 @@ rem test\cases\xlir_await_future_xvalue.xl,
 rem test\cases\xlir_async_future_xvalue_differential.xl,
 rem test\cases\xlir_async_future_xvalue_local_parameter_differential.xl and
 rem test\cases\xlir_async_future_direct_xvalue_differential.xl.
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_cgen_differential.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_cgen_runtime_matrix.ps1
 if errorlevel 1 exit /b 1
 rem Keep an explicit semantic-cluster admission matrix in front of the broad
 rem deterministic-C gate below; this prevents XLIR coverage from silently
@@ -597,8 +597,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_avl_resourc
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_future_continuation_abi.ps1
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_default_backend_boundary.ps1
-if errorlevel 1 exit /b 1
+rem The default-backend differential is a parameterized public-source worker.
+rem run_xlir_guards.ps1 supplies its immutable compiler directory and private
+rem evidence directory; never invoke it here without those scenario inputs.
 :after_default_backend
 if /I "%~2"=="trace" echo on
 rem A non-suspending async worker may raise through a verified scalar result
@@ -3293,46 +3294,8 @@ release\xl.exe parse release\examples\literals.xl > build\test\literals.ast.txt
 if errorlevel 1 exit /b 1
 
 rem Regression: this AST has a multi-child call at the child-arena boundary;
-rem `check` must complete before either backend requests C emission.  The
-rem source-spelling checks below intentionally exercise the explicit legacy
-rem backend; the following block separately fixes the mechanical XLIR output.
+rem `check` must complete before XLIR requests C emission.
 release\xl.exe check test\cases\cgen_numeric_literals.xl
-if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_numeric_literals.xl --backend legacy --emit build\test\cgen_numeric_literals.c
-if errorlevel 1 exit /b 1
-findstr /C:"long long __xl6_user_global_dec;" build\test\cgen_numeric_literals.c >nul
-if errorlevel 1 (
-    echo cgen_numeric_literals.c missing decimal global declaration.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_dec = 1000000LL;" build\test\cgen_numeric_literals.c >nul
-if errorlevel 1 (
-    echo cgen_numeric_literals.c missing decimal literal normalization.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_hexA = 42LL;" build\test\cgen_numeric_literals.c >nul
-if errorlevel 1 (
-    echo cgen_numeric_literals.c missing hex literal normalization.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_octA = 42LL;" build\test\cgen_numeric_literals.c >nul
-if errorlevel 1 (
-    echo cgen_numeric_literals.c missing oct literal normalization.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_binA = 42LL;" build\test\cgen_numeric_literals.c >nul
-if errorlevel 1 (
-    echo cgen_numeric_literals.c missing bin literal normalization.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_sci = 12.5e1;" build\test\cgen_numeric_literals.c >nul
-if errorlevel 1 (
-    echo cgen_numeric_literals.c missing float underscore normalization.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_numeric_literals.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_numeric_literals.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_numeric_literals.exe
 if errorlevel 1 exit /b 1
 
 rem XLIR owns the portable C spelling of scalar constants.  The generated C
@@ -3409,121 +3372,18 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('build\test\sem_unclosed_comment.tokens.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x672A)+([char]0x95ED)+([char]0x5408)+([char]0x7684)+([char]0x591A)+([char]0x884C)+([char]0x6CE8)+([char]0x91CA); if($text.IndexOf($expected) -lt 0){ Write-Host 'sem_unclosed_comment.tokens.txt missing unclosed-comment diagnostic.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_case_sensitive.xl --backend legacy --emit build\test\cgen_case_sensitive.c
-if errorlevel 1 exit /b 1
-findstr /C:"long long __xl6_user_global_Name;" build\test\cgen_case_sensitive.c >nul
-if errorlevel 1 (
-    echo cgen_case_sensitive.c missing upper-case Name.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_Name = 1LL;" build\test\cgen_case_sensitive.c >nul
-if errorlevel 1 (
-    echo cgen_case_sensitive.c missing upper-case Name init.
-    exit /b 1
-)
-findstr /C:"long long __xl6_user_global_name;" build\test\cgen_case_sensitive.c >nul
-if errorlevel 1 (
-    echo cgen_case_sensitive.c missing lower-case name.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_name = 2LL;" build\test\cgen_case_sensitive.c >nul
-if errorlevel 1 (
-    echo cgen_case_sensitive.c missing lower-case name init.
-    exit /b 1
-)
-findstr /C:"long long __xl6_user_global_NAME;" build\test\cgen_case_sensitive.c >nul
-if errorlevel 1 (
-    echo cgen_case_sensitive.c missing all-caps NAME.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_NAME = 3LL;" build\test\cgen_case_sensitive.c >nul
-if errorlevel 1 (
-    echo cgen_case_sensitive.c missing all-caps NAME init.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_case_sensitive.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_case_sensitive.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_case_sensitive.exe
+release\xl.exe run test\cases\cgen_case_sensitive.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_context_keywords.xl --backend legacy --emit build\test\cgen_context_keywords.c
-if errorlevel 1 exit /b 1
-findstr /C:"long long __xl6_user_global_self;" build\test\cgen_context_keywords.c >nul
-if errorlevel 1 (
-    echo cgen_context_keywords.c missing ordinary self variable.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_self = 1LL;" build\test\cgen_context_keywords.c >nul
-if errorlevel 1 (
-    echo cgen_context_keywords.c missing ordinary self init.
-    exit /b 1
-)
-findstr /C:"long long __xl6_user_global_base;" build\test\cgen_context_keywords.c >nul
-if errorlevel 1 (
-    echo cgen_context_keywords.c missing ordinary base variable.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_base = 2LL;" build\test\cgen_context_keywords.c >nul
-if errorlevel 1 (
-    echo cgen_context_keywords.c missing ordinary base init.
-    exit /b 1
-)
-findstr /C:"long long __xl6_user_global_static;" build\test\cgen_context_keywords.c >nul
-if errorlevel 1 (
-    echo cgen_context_keywords.c missing escaped static context identifier.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_static = 8LL;" build\test\cgen_context_keywords.c >nul
-if errorlevel 1 (
-    echo cgen_context_keywords.c missing escaped static context identifier init.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_context_keywords.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_context_keywords.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_context_keywords.exe
+release\xl.exe run test\cases\cgen_context_keywords.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_context_keyword_function.xl --backend legacy --emit build\test\cgen_context_keyword_function.c
-if errorlevel 1 exit /b 1
-findstr /C:"xl_fn_static(void)" build\test\cgen_context_keyword_function.c >nul
-if errorlevel 1 (
-    echo cgen_context_keyword_function.c missing escaped static function symbol.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_context_keyword_function.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_context_keyword_function.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_context_keyword_function.exe
+release\xl.exe run test\cases\cgen_context_keyword_function.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --backend legacy --emit build\test\cgen_unicode_identifiers.c
-if errorlevel 1 exit /b 1
-findstr /C:"xl_fn__u52A0__u4E00_(long long" build\test\cgen_unicode_identifiers.c >nul
-if errorlevel 1 (
-    echo cgen_unicode_identifiers.c missing encoded unicode function name.
-    exit /b 1
-)
-findstr /C:"long long _u6570__u503C_" build\test\cgen_unicode_identifiers.c >nul
-if errorlevel 1 (
-    echo cgen_unicode_identifiers.c missing encoded unicode parameter name.
-    exit /b 1
-)
-findstr /C:"long long __xl6_user_global__u7ED3__u679C_" build\test\cgen_unicode_identifiers.c >nul
-if errorlevel 1 (
-    echo cgen_unicode_identifiers.c missing encoded unicode variable name.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_unicode_identifiers.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_unicode_identifiers.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_unicode_identifiers.exe
+release\xl.exe run test\cases\cgen_unicode_identifiers.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_console_utf8.xl --backend legacy --emit build\test\cgen_console_utf8.c
-if errorlevel 1 exit /b 1
-findstr /C:"#define XL_RUNTIME_NEED_LIFECYCLE 1" build\test\cgen_console_utf8.c >nul
-if errorlevel 1 (
-    echo cgen_console_utf8.c missing lifecycle runtime dependency.
-    exit /b 1
-)
 findstr /C:"xl6_runtime_console_begin" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h missing console lifecycle.
@@ -3549,16 +3409,14 @@ if errorlevel 1 (
 
 release\xl.exe check test\cases\cgen_long_identifiers.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_long_identifiers.xl --backend legacy --emit build\test\cgen_long_identifiers.c --emit-header build\test\cgen_long_identifiers.h
+release\xl.exe cgen test\cases\cgen_long_identifiers.xl --backend xlir --emit build\test\cgen_long_identifiers.c --emit-header build\test\cgen_long_identifiers.h
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$c=Get-Content -Raw -Encoding UTF8 'build\test\cgen_long_identifiers.c'; $h=Get-Content -Raw -Encoding UTF8 'build\test\cgen_long_identifiers.h'; $hashes=[regex]::Matches($c, '_h[0-9A-F]{16}'); if($hashes.Count -lt 8){exit 1}; $unique=@($hashes.Value | Sort-Object -Unique); if($unique.Count -lt 8){exit 2}; $type=[regex]::Match($h, 'typedef struct (XL_Class_[A-Za-z0-9_]+)\s*\{').Groups[1].Value; if([string]::IsNullOrEmpty($type) -or $c.IndexOf('struct '+$type) -lt 0){exit 3}"
 if errorlevel 1 (
     echo cgen_long_identifiers.c missing unique bounded identifier hashes.
     exit /b 1
 )
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_long_identifiers.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_long_identifiers.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_long_identifiers.exe
+release\xl.exe run test\cases\cgen_long_identifiers.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\call_args.xl
@@ -3644,13 +3502,7 @@ release\xl.exe parse test\cases\type_values.xl > build\test\type_values.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\type_values.xl
 if errorlevel 1 exit /b 1
-rem This historical fixture links the legacy backend's standalone-main shape;
-rem XLIR module initialization is covered by the dedicated generated hosts.
-release\xl.exe cgen test\cases\cgen_type_name_identifiers.xl --backend legacy --emit build\test\cgen_type_name_identifiers.c
-if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_type_name_identifiers.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_type_name_identifiers.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_type_name_identifiers.exe
+release\xl.exe run test\cases\cgen_type_name_identifiers.xl
 if errorlevel 1 exit /b 1
 release\xl.exe parse test\cases\type_aliases.xl > build\test\type_aliases.ast.txt
 if errorlevel 1 exit /b 1
@@ -3875,13 +3727,6 @@ release\xl.exe check test\cases\generic_managed_ownership.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\generic_managed_ownership.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\generic_managed_ownership.xl --backend legacy --emit build\test\generic_managed_ownership.c
-if errorlevel 1 exit /b 1
-findstr /C:"xl_gen_pass______class__handle_of_Token(xl6_xrt_retain(source))" build\test\generic_managed_ownership.c >nul
-if errorlevel 1 (
-    echo generic_managed_ownership.c missing managed generic argument retain.
-    exit /b 1
-)
 release\xl.exe run release\examples\generic_class_iter.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\runtime_type.xl
@@ -3967,42 +3812,9 @@ release\xl.exe check release\examples\oop_virtual_dispatch.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\oop_virtual_dispatch.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_class_static_access.xl --backend legacy --emit build\test\cgen_class_static_access.c
+release\xl.exe run test\cases\cgen_class_static_access.xl
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl_class_Counter____static__total = 2LL;" build\test\cgen_class_static_access.c >nul
-if errorlevel 1 (
-    echo cgen_class_static_access.c missing static class field storage.
-    exit /b 1
-)
-findstr /C:"long long xl_class_Counter__add(long long value);" build\test\cgen_class_static_access.c >nul
-if errorlevel 1 (
-    echo cgen_class_static_access.c missing static method prototype without self.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_static_access.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_static_access.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_class_static_access.exe
-if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_class_virtual.xl --backend legacy --emit build\test\cgen_class_virtual.c
-if errorlevel 1 exit /b 1
-findstr /C:"struct XL6_VTable_Entity" build\test\cgen_class_virtual.c >nul
-if errorlevel 1 (
-    echo cgen_class_virtual.c missing class vtable type.
-    exit /b 1
-)
-findstr /C:"xl6_vtable_Entity__Player" build\test\cgen_class_virtual.c >nul
-if errorlevel 1 (
-    echo cgen_class_virtual.c missing derived vtable object.
-    exit /b 1
-)
-findstr /C:").base.__xl6_vt_Entity = &xl6_vtable_Entity__Player;" build\test\cgen_class_virtual.c >nul
-if errorlevel 1 (
-    echo cgen_class_virtual.c missing heap object derived vtable initialization.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_virtual.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_virtual.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_class_virtual.exe
+release\xl.exe run test\cases\cgen_class_virtual.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check release\examples\copy_clone.xl
 if errorlevel 1 exit /b 1
@@ -4361,39 +4173,10 @@ if errorlevel 1 (
 
 :low_level_ir
 if /I "%~2"=="trace" echo on
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -o build\test\hir_type_pool.exe ^
-    test\cases\hir_type_pool.c ^
-    src\ast\xl6_ast.c ^
-    src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    %XL6_CGEN_LINKS%
-if errorlevel 1 exit /b 1
-build\test\hir_type_pool.exe
-if errorlevel 1 exit /b 1
-
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -o build\test\hir_module.exe ^
-    test\cases\hir_module.c ^
-    src\ast\xl6_ast.c ^
-    src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
-    src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
-    src\cgen\xl6_ir_cgen.c ^
-    src\cgen\xl6_cgen_shared_runtime.c ^
-    src\diag\xl6_diag.c ^
-    src\common\xl6_output.c ^
-    src\common\xl6_console.c ^
-    %XL6_CGEN_LINKS%
-if errorlevel 1 exit /b 1
-build\test\hir_module.exe
-if errorlevel 1 exit /b 1
-
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -o build\test\xlir_function_lower.exe ^
     test\cases\xlir_function_lower.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\diag\xl6_diag.c ^
     src\common\xl6_output.c ^
@@ -4407,8 +4190,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_cfg_lower.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
@@ -4424,8 +4205,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_loop_lower.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\diag\xl6_diag.c ^
     src\common\xl6_output.c ^
@@ -4439,8 +4218,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_do_while_lower.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
@@ -4456,8 +4233,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_throw_lower.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
@@ -4473,8 +4248,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_cgen.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
@@ -4490,8 +4263,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_short_circuit_cgen.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
@@ -4511,8 +4282,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_conditional_cgen.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
@@ -4532,8 +4301,6 @@ if errorlevel 1 exit /b 1
     test\cases\xlir_module_init_cgen.c ^
     src\ast\xl6_ast.c ^
     src\type\xl6_type_model.c ^
-    src\ir\xl6_hir_type.c ^
-    src\ir\xl6_hir.c ^
     src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^

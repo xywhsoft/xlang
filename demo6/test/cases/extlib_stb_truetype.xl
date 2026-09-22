@@ -1,0 +1,16 @@
+import stb_truetype
+
+func main(...) as int
+    string fontPath = stb_truetype.default_font_path()
+    if not stb_truetype.available() or string.len(fontPath) == 0 then return 1 end
+    point font = stb_truetype.load(fontPath, 0)
+    if stb_truetype.valid(font) == 0 then return 2 end
+    if stb_truetype.scale_for_pixel_height(font, 16.0) <= 0.0 then return 3 end
+    if stb_truetype.find_glyph_index(font, 65) <= 0 then return 4 end
+    point bitmap = stb_truetype.codepoint_bitmap(font, 65, 18.0)
+    if stb_truetype.bitmap_valid(bitmap) == 0 then return 5 end
+    if stb_truetype.bitmap_width(bitmap) <= 0 or stb_truetype.bitmap_height(bitmap) <= 0 then return 6 end
+    if stb_truetype.bitmap_release(bitmap) == 0 then return 7 end
+    if stb_truetype.release(font) == 0 then return 8 end
+    return 0
+end

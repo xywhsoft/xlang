@@ -1,0 +1,92 @@
+import shellwords
+
+
+
+func main(...) as int
+    // 基本拆分
+    var r = shellwords.split("ls -l /tmp")
+    assert r.length == 3, "plain words"
+    assert r[0] == "ls", "word 0"
+    assert r[1] == "-l", "word 1"
+    assert r[2] == "/tmp", "word 2"
+
+    // 引号
+    r = shellwords.split("echo 'hello world' end")
+    assert r.length == 3, "single quoted keeps spaces"
+    assert r[1] == "hello world", "inner spaces preserved"
+
+    r = shellwords.split("echo \"a b\" c")
+    assert r.length == 3, "double quoted"
+    assert r[1] == "a b", "double quoted value"
+
+    r = shellwords.split("echo '' x")
+    assert r.length == 3, "empty quotes become empty arg"
+    assert r[1] == "", "empty arg"
+
+    // 反斜杠转义（含空格转义）
+    r = shellwords.split("cp a\\ b c")
+    assert r.length == 3, "escaped space"
+    assert r[1] == "a b", "escaped space joined"
+
+    r = shellwords.split("echo it\\'s")
+    assert r.length == 2, "escaped quote"
+    assert r[1] == "it's", "escaped quote value"
+
+    // 双引号内的反斜杠只在 \" \\ 换行前生效
+    r = shellwords.split("echo \"a\\\\b\" c")
+    assert r[1] == "a\\b", "double quote backslash"
+
+    // 多空白分隔
+    r = shellwords.split("  a   b  ")
+    assert r.length == 2, "extra whitespace collapses"
+    assert r[0] == "a" and r[1] == "b", "whitespace values"
+
+    // 空输入
+    r = shellwords.split("")
+    assert r.length == 0, "empty line"
+    r = shellwords.split("   ")
+    assert r.length == 0, "spaces only"
+
+    // 不闭合引号抛错
+    int raised = 0
+    try
+        shellwords.split("echo 'oops")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "unbalanced single quote"
+    raised = 0
+    try
+        shellwords.split("echo \"oops")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "unbalanced double quote"
+
+    // quote：安全词不加引号
+    assert shellwords.quote("plain") == "plain", "safe word"
+    assert shellwords.quote("a-b_c.d/e=f:g,h+i") == "a-b_c.d/e=f:g,h+i", "safe chars"
+    assert shellwords.quote("hello world") == "'hello world'", "space quoted"
+    assert shellwords.quote("it's") == "'it'\\''s'", "embedded quote escaped"
+    assert shellwords.quote("") == "''", "empty quoted"
+    assert shellwords.quote("$HOME") == "'$HOME'", "dollar quoted"
+
+    // quoteWindows
+    assert shellwords.quoteWindows("plain") == "plain", "win plain"
+    assert shellwords.quoteWindows("a b") == "\"a b\"", "win space"
+    assert shellwords.quoteWindows("say \"hi\"") == "\"say \\\"hi\\\"\"", "win quote"
+    assert shellwords.quoteWindows("back\\slash") == "back\\slash", "win lone backslash stays"
+    assert shellwords.quoteWindows("trail\\") == "trail\\", "win trailing backslash unquoted"
+    assert shellwords.quoteWindows("a\\\"b") == "\"a\\\\\\\"b\"", "win backslash before quote doubles"
+    assert shellwords.quoteWindows("") == "\"\"", "win empty"
+
+    // join 与 split 语义往返
+    var words = ["tar", "czf", "my archive.tar.gz", "dir with spaces"]
+    string cmd = shellwords.join(words)
+    var back = shellwords.split(cmd)
+    assert back.length == words.length, "round trip count"
+    assert back[2] == "my archive.tar.gz", "round trip arg 2"
+    assert back[3] == "dir with spaces", "round trip arg 3"
+
+    return 0
+end

@@ -70,6 +70,13 @@ $testText = Get-TestRegressionText
 $rc0Text = Read-Utf8Text $rc0Guard
 $toolsReadmeText = Read-Utf8Text $toolsReadme
 $trackedCheckScripts = @()
+$retiredCheckScripts = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ( $relative in @(
+    'tools\check_typed_hir_contract.ps1',
+    'tools\check_xlir_cgen_differential.ps1'
+) ) {
+    $retiredCheckScripts.Add((Normalize-ToolPath $relative)) | Out-Null
+}
 $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
 if ( $null -ne $gitCommand ) {
     $trackedCheckScripts = @(& $gitCommand.Source -c "core.quotepath=false" -C $Root `
@@ -79,6 +86,10 @@ if ( $null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
      $trackedCheckScripts.Count -gt 0 ) {
     $checkScripts = New-Object System.Collections.Generic.List[object]
     foreach ( $relative in $trackedCheckScripts ) {
+        $normalized = Normalize-ToolPath $relative
+        if ( $retiredCheckScripts.Contains($normalized) ) {
+            continue
+        }
         $path = Join-Path $Root $relative
         if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
             Add-Failure "versioned check script is missing: $relative"
@@ -92,6 +103,17 @@ if ( $null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
     # part of the product inventory.
     $checkScripts = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File |
         Sort-Object Name)
+}
+
+foreach ( $relative in $retiredCheckScripts ) {
+    $path = Join-Path $Root $relative
+    $name = [System.IO.Path]::GetFileName($relative)
+    if ( Test-Path -LiteralPath $path ) {
+        Add-Failure "retired backend check script returned: $relative"
+    }
+    if ( $toolsReadmeText.Contains($name) -or $testText.Contains($name) -or $rc0Text.Contains($name) ) {
+        Add-Failure "retired backend check script is still wired or documented: $relative"
+    }
 }
 $xlirRunner = Join-Path $toolsDir "run_xlir_guards.ps1"
 $xlirParameterizedRunner = Join-Path $toolsDir "run_xlir_parameterized_guards.ps1"

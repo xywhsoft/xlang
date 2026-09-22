@@ -1,0 +1,71 @@
+import vcard
+
+
+
+func main(...) as int
+    string text = """BEGIN:VCARD
+VERSION:3.0
+FN:张三
+N:张;三;;;
+EMAIL:zhangsan@example.com
+EMAIL:work@example.com
+TEL;TYPE=CELL:13800138000
+TEL:010-12345678
+ORG:示例公司;工程部
+TITLE:工程师
+NOTE:备注第一行\\n第二行; 以及\\, 逗号
+BDAY:1990-01-01
+END:VCARD
+"""
+    var card = vcard.parse(text)
+    assert card["fn"] == "张三", "fn"
+    assert card["n"] == "张;三;;;", "n structured"
+    assert card["email"].length == 2, "email repeated"
+    assert card["email"][0] == "zhangsan@example.com", "email 0"
+    assert card["email"][1] == "work@example.com", "email 1"
+    assert card["tel"].length == 2, "tel repeated"
+    assert card["tel"][0] == "13800138000", "tel param dropped"
+    assert card["tel"][1] == "010-12345678", "tel plain"
+    assert card["org"] == "示例公司;工程部", "org"
+    assert card["title"] == "工程师", "title"
+    string note = string(card["note"])
+    assert note.contains("\n"), "note newline"
+    assert note.contains("第二行; 以及, 逗号"), "note escapes"
+    assert card["bday"] == "1990-01-01", "bday"
+
+    // 生成与往返
+    var made = {"version": "3.0", "fn": "李四", "n": "李;四;;;", "email": "lisi@example.com", "tel": "13900139000"}
+    string built = vcard.build(made)
+    assert built.contains("BEGIN:VCARD"), "build head"
+    assert built.contains("FN:李四"), "build fn"
+    assert built.contains("EMAIL:lisi@example.com"), "build email"
+    assert built.contains("END:VCARD"), "build tail"
+
+    var back = vcard.parse(built)
+    assert back["fn"] == "李四", "round trip fn"
+    assert back["email"] == "lisi@example.com", "round trip email"
+    assert back["tel"] == "13900139000", "round trip tel"
+
+    // 长行折叠往返
+    var withLong = {"version": "3.0", "fn": "王五", "note": longDash(120)}
+    string folded = vcard.build(withLong)
+    assert folded.contains("\r\n "), "folded continuation"
+    var back2 = vcard.parse(folded)
+    string note2 = string(back2["note"])
+    assert note2 == longDash(120), "fold round trip"
+
+    // 空卡片
+    var empty = vcard.parse("BEGIN:VCARD\r\nEND:VCARD\r\n")
+    assert empty != null, "empty card parses"
+
+    return 0
+end
+
+func longDash(int n) as string
+    string acc = ""
+    while n > 0
+        acc = acc + "长"
+        n = n - 1
+    end
+    return acc
+end

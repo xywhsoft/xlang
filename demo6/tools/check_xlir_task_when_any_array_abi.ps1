@@ -16,7 +16,6 @@ $typedJson = Join-Path $outputDir "xlir_task_when_any_array_abi.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_task_when_any_array_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_task_when_any_array_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_task_when_any_array_abi.second.c"
-$legacyC = Join-Path $outputDir "xlir_task_when_any_array_abi.legacy.c"
 
 foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -146,18 +145,8 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR task.whenAny array strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR task.whenAny array legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\tmp\xlir_task_when_any_array_abi.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_task_when_any_array_abi.legacy.exe && build\test\xlir_task_when_any_array_abi.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR task.whenAny array legacy differential runtime gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR task.whenAny typed-array ABI gate passed: verified retained Future xvalue boxes, exact borrowed array<Future<T>>, owned Future<I64>/COPY_I64 projection, deterministic direct-XRT C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR task.whenAny typed-array ABI gate passed: verified retained Future xvalue boxes, exact borrowed array<Future<T>>, owned Future<I64>/COPY_I64 projection, deterministic direct-XRT C, and strict runtime."

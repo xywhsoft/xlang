@@ -1,0 +1,81 @@
+import ical
+
+
+
+func main(...) as int
+    string ics = """BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//demo//test//EN
+BEGIN:VEVENT
+UID:evt-1@demo
+DTSTART:20260815T090000Z
+DTEND:20260815T100000Z
+SUMMARY:语言设计评审
+DESCRIPTION:讨论泛型与 ABI\\n第二行; 以及\\, 逗号
+LOCATION:会议室 A
+BEGIN:VALARM
+TRIGGER:-PT15M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-2@demo
+DTSTART;TZID=Asia/Shanghai:20260816T140000
+SUMMARY:折行测试 —— 这是一个非常长非常长非常长非常长非常长非常长非常长非常长的标题
+END:VEVENT
+BEGIN:VTODO
+UID:todo-1@demo
+DUE:20260820T170000Z
+SUMMARY:整理会议纪要
+END:VTODO
+END:VCALENDAR
+"""
+    var cal = ical.parse(ics)
+    assert cal["events"].length == 2, "two events"
+    assert cal["todos"].length == 1, "one todo"
+
+    var e1 = cal["events"][0]
+    assert e1["uid"] == "evt-1@demo", "uid"
+    assert e1["dtstart"] == "20260815T090000Z", "dtstart"
+    assert e1["dtend"] == "20260815T100000Z", "dtend"
+    assert e1["summary"] == "语言设计评审", "summary"
+    assert e1["location"] == "会议室 A", "location"
+    string desc1 = string(e1["description"])
+    assert desc1.contains("\n"), "newline unescaped"
+    assert desc1.contains("; 以及, 逗号"), "semicolon comma unescaped"
+
+    // 嵌套组件（VALARM）不影响事件属性
+    var e2 = cal["events"][1]
+    assert e2["uid"] == "evt-2@demo", "second event"
+    assert e2["dtstart"] == "20260816T140000", "TZID param dropped"
+
+    // 折行标题被拼回一行
+    string sum2 = string(e2["summary"])
+    assert sum2.contains("折行测试"), "unfolded prefix"
+    assert sum2.contains("长的标题"), "unfolded suffix"
+    assert sum2.contains("非常长非常长非常长非常长非常长非常长非常长非常长的标题"), "unfold complete"
+
+    // 待办
+    var t1 = cal["todos"][0]
+    assert t1["uid"] == "todo-1@demo", "todo uid"
+    assert t1["due"] == "20260820T170000Z", "todo due"
+
+    // 生成：结构完整且可重新解析（往返）
+    string rebuilt = ical.build(cal)
+    assert rebuilt.contains("BEGIN:VCALENDAR"), "build calendar head"
+    assert rebuilt.contains("SUMMARY:语言设计评审"), "build summary"
+    assert rebuilt.contains("BEGIN:VEVENT"), "build event"
+    assert rebuilt.contains("END:VTODO"), "build todo"
+    assert rebuilt.contains("\\n"), "newline escaped on build"
+
+    var back = ical.parse(rebuilt)
+    assert back["events"].length == 2, "round trip events"
+    assert back["todos"].length == 1, "round trip todos"
+    assert back["events"][0]["summary"] == "语言设计评审", "round trip summary"
+    assert back["events"][0]["description"] == e1["description"], "round trip description exact"
+    assert back["events"][1]["summary"] == e2["summary"], "round trip unfolded summary"
+
+    // 生成的折行符合 74 字节规则
+    assert rebuilt.contains("\r\n "), "folded continuation present"
+
+    return 0
+end

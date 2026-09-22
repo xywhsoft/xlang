@@ -20,7 +20,6 @@
 #include "src/abi/xl6_abi_dump.h"
 #include "src/ast/xl6_ast_dump.h"
 #include "src/backend/xl6_toolchain.h"
-#include "src/cgen/xl6_cgen.h"
 #include "src/cgen/xl6_ir_cgen.h"
 #include "src/common/xl6_common.h"
 #include "src/common/xl6_console.h"
@@ -38,7 +37,7 @@
 
 typedef int (*XL_XlangMainProc)(xvalue* pArg);
 /* Checked artifact ABI keeps language failure separate from process status
- * and from optional diagnostics. Legacy generated C keeps its old fallback. */
+ * and from optional diagnostics. */
 typedef int (*XL_ScriptMainCheckedProc)(xvalue* pArg, int* exitCode);
 typedef int (*XL_ScriptUnitCheckedProc)(void);
 typedef int (*XL_CMainProc)(int argc, char** argv);
@@ -173,7 +172,6 @@ typedef XL_ContextOptions XLC_ContextOptions;
 
 typedef struct XLC_Context {
     XL_Context* runtime;
-    XLC_Backend backend;
     XLC_SourceKind sourceKind;
     char* sourcePath;
     char* sourceText;
@@ -1234,26 +1232,6 @@ static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
     }
 }
 
-/* HIR is no longer a compile-unit prerequisite.  It is retained solely for
- * the unported legacy emitter and is materialized at that explicit boundary. */
-static int xlEnsureUnitLegacyHir(XL_Context* ctx, XL6_CompileUnit* unit)
-{
-    if ( unit == NULL || unit->parse.root == NULL ) {
-        xlSetError(ctx, "compile unit is empty");
-        return 0;
-    }
-    if ( unit->hirReady ) return 1;
-    unit->phase = "legacy-hir";
-    if ( !xl6HirBuildModule(&unit->hir, unit->parse.root, &unit->parse.diags) ) {
-        unit->hirReady = 0;
-        xlSetCompileDiagError(ctx, unit);
-        return 0;
-    }
-    unit->hirStats = unit->hir.stats;
-    unit->hirReady = 1;
-    return 1;
-}
-
 static int xlEnsureUnitXlirLowered(XL_Context* ctx, XL6_CompileUnit* unit)
 {
     if ( unit == NULL || !unit->irReady ) {
@@ -1276,49 +1254,11 @@ static int xlEnsureUnitXlirLowered(XL_Context* ctx, XL6_CompileUnit* unit)
     return 1;
 }
 
-static int xlLegacyCgenToMemoryEx(XL_Context* ctx, XL6_CompileUnit* unit,
-                                  char** outText, const XL6_CgenOptions* options)
+static int xlCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
+                          char** outText,
+                          const XL6_IrCgenOptions* requestedOptions)
 {
-    XL6_Output out;
-    int ok;
-
-    if ( outText == NULL ) {
-        return 0;
-    }
-    *outText = NULL;
-    if ( !xlEnsureUnitLegacyHir(ctx, unit) ) return 0;
-    if ( !xl6OutputOpenMemory(&out) ) {
-        xlSetError(ctx, "cannot create cgen memory output");
-        return 0;
-    }
-    ok = xl6CgenEmitCEx(
-        &out,
-        unit->parse.root,
-        &unit->hir,
-        &unit->parse.diags,
-        options
-    );
-    if ( ok && !xl6OutputHasFailed(&out) ) {
-        *outText = xl6OutputTakeMemoryText(&out, NULL);
-    }
-    if ( xl6OutputHasFailed(&out) ) {
-        xlSetError2(ctx, "cannot generate C code", xl6OutputError(&out));
-        ok = 0;
-    } else if ( !ok ) {
-        xlSetCompileDiagError(ctx, unit);
-    } else if ( *outText == NULL ) {
-        xlSetError(ctx, "cannot copy generated C code");
-        ok = 0;
-    }
-    xl6OutputClose(&out);
-    return ok && *outText != NULL;
-}
-
-static int xlXlirCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
-                              char** outText, int emitScriptEntry,
-                              int emitMainWrapper)
-{
-    XL6_IrCgenOptions options;
+    XL6_IrCgenOptions options = {0};
     XL6_Output out;
     int ok;
 
@@ -1334,9 +1274,7 @@ static int xlXlirCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
         xlSetError(ctx, "cannot create XLIR Cgen memory output");
         return 0;
     }
-    memset(&options, 0, sizeof(options));
-    options.emitScriptEntry = emitScriptEntry;
-    options.emitMainWrapper = emitMainWrapper;
+    if ( requestedOptions != NULL ) options = *requestedOptions;
     ok = xl6IrCgenEmitCEx(&out, &unit->ir, &unit->parse.diags, &options);
     if ( ok && !xl6OutputHasFailed(&out) )
         *outText = xl6OutputTakeMemoryText(&out, NULL);
@@ -1351,17 +1289,6 @@ static int xlXlirCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
     }
     xl6OutputClose(&out);
     return ok && *outText != NULL;
-}
-
-static int xlCgenToMemoryForBackend(
-    XL_Context* ctx, XL6_CompileUnit* unit, char** outText,
-    XLC_Backend backend, const XL6_CgenOptions* legacyOptions,
-    int emitScriptEntry, int emitMainWrapper)
-{
-    if ( backend == XLC_BACKEND_LEGACY )
-        return xlLegacyCgenToMemoryEx(ctx, unit, outText, legacyOptions);
-    return xlXlirCgenToMemory(
-        ctx, unit, outText, emitScriptEntry, emitMainWrapper);
 }
 
 static void xlTccDynamicVfsClear(void)
@@ -1477,8 +1404,7 @@ static int xlAddDependenciesToTcc(XL_Context* ctx, TCCState* s, const XL6_Compil
 
 #if XL_ENABLE_EXE_COMPILER
 static int xlEmitUnitHeaderToFile(XL_Context* ctx, XL6_CompileUnit* unit,
-                                  const char* outputPath, const char* guardName,
-                                  XLC_Backend backend);
+                                  const char* outputPath, const char* guardName);
 #endif
 
 static char* xlJoinTempFilePath(XL_Context* ctx, const char* fileName)
@@ -1541,8 +1467,7 @@ static int xlSaveTempTextByName(XL_Context* ctx, const char* fileName, const cha
 }
 
 static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
-                                    const char* guardName, char** outText,
-                                    XLC_Backend backend)
+                                    const char* guardName, char** outText)
 {
     XL6_Output out;
     int ok;
@@ -1555,21 +1480,15 @@ static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
         xlSetError(ctx, "compile unit is empty");
         return 0;
     }
-    if ( backend == XLC_BACKEND_XLIR && !xlEnsureUnitXlirLowered(ctx, unit) )
+    if ( !xlEnsureUnitXlirLowered(ctx, unit) )
         return 0;
     if ( !xl6OutputOpenMemory(&out) ) {
         xlSetError(ctx, "cannot create header memory output");
         return 0;
     }
-    if ( backend == XLC_BACKEND_LEGACY )
-        ok = xl6CgenEmitHeader(&out,
-                               unit->parse.root,
-                               guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
-                               &unit->parse.diags);
-    else
-        ok = xl6IrCgenEmitHeader(&out, &unit->ir,
-                                 guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
-                                 &unit->parse.diags);
+    ok = xl6IrCgenEmitHeader(&out, &unit->ir,
+                             guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
+                             &unit->parse.diags);
     if ( ok && !xl6OutputHasFailed(&out) ) {
         *outText = xl6OutputTakeMemoryText(&out, NULL);
     }
@@ -1669,7 +1588,7 @@ static int xlBuildCSourceWrapperText(XL_Context* ctx, const char* sourcePath,
  * TCC owns disk/VFS transport; no second wrapper or ABI inference path exists. */
 static int xlCompileUnitCSourceFiles(
     XL_Context* ctx, TCCState* s, XL6_CompileUnit* unit,
-    const XL_StringList* cSourceFiles, XLC_Backend backend)
+    const XL_StringList* cSourceFiles)
 {
     char* headerText = NULL;
     size_t group, i, ordinal = 0;
@@ -1686,7 +1605,7 @@ static int xlCompileUnitCSourceFiles(
         xlSetError(ctx, "too many C source files");
         return 0;
     }
-    if ( !xlEmitUnitHeaderToMemory(ctx, unit, "XL6_MODULE_H", &headerText, backend) )
+    if ( !xlEmitUnitHeaderToMemory(ctx, unit, "XL6_MODULE_H", &headerText) )
         return 0;
     if ( !xlSaveTempTextByName(ctx, "module.h", headerText) ) goto cleanup;
     for ( group = 0; group < 2; ++group ) {
@@ -1826,80 +1745,6 @@ static int xlAddTccSourceFile(XL_Context* ctx, TCCState* s, const char* path)
 
 
 
-/* 按生成代码的真实依赖，把语言私有运行时桥静态编进外部产物。 */
-static int xlAddLegacyPrivateLanguageRuntimeSources(
-    XL_Context* ctx,
-    TCCState* s,
-    const XL6_CompileUnit* unit,
-    const char* generatedSource)
-{
-    unsigned int features;
-    int needProtocol;
-    int needFuture;
-    int needTaskGroup;
-    int needChannel;
-    int needForeignError;
-    int needContinuation;
-    int needFuturePayload;
-
-    if ( ctx == NULL || s == NULL || unit == NULL || generatedSource == NULL ) {
-        return 1;
-    }
-    features = unit->importDeps.features;
-    if ( (features & (XL6_IMPORT_FEATURE_XLANG_RUNTIME |
-                      XL6_IMPORT_FEATURE_XLANG_COMPILER)) != 0 ) {
-        return 1;
-    }
-    needProtocol = strstr(generatedSource, "xl6Protocol") != NULL;
-    needFuture = strstr(generatedSource, "xl6Future") != NULL;
-    needFuturePayload = needFuture || strstr(generatedSource, "xl6PayloadDropGet") != NULL ||
-        strstr(generatedSource, "xl6PayloadTraceGet") != NULL ||
-        strstr(generatedSource, "xl6PayloadResolveOwned") != NULL ||
-        strstr(generatedSource, "xl6PayloadObserveOutcome") != NULL;
-    needTaskGroup = strstr(generatedSource, "xl6TaskGroup") != NULL;
-    needChannel = strstr(generatedSource, "xl6Channel") != NULL;
-    needForeignError = strstr(generatedSource, "xl6Foreign") != NULL ||
-        strstr(generatedSource, "xl6ErrorScope") != NULL;
-    needContinuation = unit->irReady && unit->ir.abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS;
-    if ( !needProtocol && !needFuture && !needTaskGroup && !needChannel && !needForeignError && !needContinuation && !needFuturePayload ) {
-        return 1;
-    }
-
-    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_EMBED");
-    (void)xl__tcc.tcc_add_include_path(s, ".");
-    (void)xl__tcc.tcc_add_include_path(s, "src");
-    (void)xl__tcc.tcc_add_include_path(s, "release");
-    (void)xl__tcc.tcc_add_include_path(s, "release/include");
-    xlAddEmbeddedSourceIncludePaths(s);
-    if (needFuturePayload &&
-        !xlAddTccSourceFile(ctx, s, "src/runtime/xl6_future_payload.c")) return 0;
-    if (needContinuation &&
-        (!xlAddTccSourceFile(ctx, s, "src/runtime/xl6_continuation_queue.c") ||
-         !xlAddTccSourceFile(ctx, s, "src/runtime/xl6_continuation_executor.c") ||
-         !xlAddTccSourceFile(ctx, s, "src/runtime/xl6_continuation_future.c"))) return 0;
-    if ( needForeignError &&
-         !xlAddTccSourceFile(ctx, s, "src/api/xl_foreign_error.c") ) {
-        return 0;
-    }
-    if ( needProtocol &&
-         !xlAddTccSourceFile(ctx, s, "src/api/xl_protocol_registry.c") ) {
-        return 0;
-    }
-    if ( needFuture &&
-         !xlAddTccSourceFile(ctx, s, "src/api/xl_future_bridge.c") ) {
-        return 0;
-    }
-    if ( needTaskGroup &&
-         !xlAddTccSourceFile(ctx, s, "src/api/xl_task_group_bridge.c") ) {
-        return 0;
-    }
-    if ( needChannel &&
-         !xlAddTccSourceFile(ctx, s, "src/api/xl_channel_bridge.c") ) {
-        return 0;
-    }
-    return 1;
-}
-
 /* XLIR output consumes the complete precomputed artifact contract. No source
  * text, AST spelling or missing-symbol fallback is consulted at this boundary. */
 static int xlAddPrivateLanguageRuntimeSources(XL_Context* ctx, TCCState* s,
@@ -2015,21 +1860,13 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/common/xl6_output.c",
         "src/diag/xl6_diag.c",
         "src/ast/xl6_ast.c",
-        "src/cgen/xl6_cgen_entry.c",
-        "src/cgen/xl6_cgen_lifecycle.c",
-        "src/cgen/xl6_cgen_runtime.c",
-        "src/cgen/xl6_cgen_header.c",
-        "src/cgen/xl6_cgen_needs_basic.c",
         "src/cgen/xl6_cgen_shared_runtime.c",
-        "src/cgen/xl6_cgen.c",
         "src/cgen/xl6_ir_cgen.c",
         "src/lexer/xl6_token.c",
         "src/lexer/xl6_lexer_api.c",
         "src/lexer/xl6_lexer_gen.c",
         "src/parser/xl6_parser.c",
         "src/parser/xl6_parser_api.c",
-        "src/ir/xl6_hir.c",
-        "src/ir/xl6_hir_type.c",
         "src/ir/xl6_ir.c",
         "src/ir/xl6_ir_lower.c",
         "src/package/xl6_package.c",
@@ -2268,14 +2105,14 @@ static int xlCompileUnitToExternalOutputWithC(
     const char* outputPath,
     int outputType,
     const char* outputKind,
-    const XL6_CgenOptions* options,
-    const XL_StringList* cSourceFiles,
-    XLC_Backend backend)
+    const XL6_IrCgenOptions* requestedOptions,
+    const XL_StringList* cSourceFiles)
 {
     TCCState* s;
     char* cText;
     char* runtimeSource;
     XL6_ArtifactRuntimePlan artifactRuntime;
+    XL6_IrCgenOptions options = {0};
     int ok;
 
     s = NULL;
@@ -2288,14 +2125,15 @@ static int xlCompileUnitToExternalOutputWithC(
     cText = NULL;
     runtimeSource = NULL;
     memset(&artifactRuntime, 0, sizeof(artifactRuntime));
+    if ( requestedOptions != NULL ) options = *requestedOptions;
+    options.emitScriptEntry = 1;
+    options.emitMainWrapper = outputType == TCC_OUTPUT_EXE;
     ok = 0;
     xlTccDynamicVfsClear();
-    if ( !xlCgenToMemoryForBackend(ctx, unit, &cText, backend, options,
-            1, outputType == TCC_OUTPUT_EXE) ) {
+    if ( !xlCgenToMemory(ctx, unit, &cText, &options) ) {
         goto cleanup;
     }
-    if (backend != XLC_BACKEND_LEGACY &&
-        !xl6ArtifactRuntimePlanBuild(&unit->ir, outputType == TCC_OUTPUT_EXE
+    if (!xl6ArtifactRuntimePlanBuild(&unit->ir, outputType == TCC_OUTPUT_EXE
             ? XL6_ARTIFACT_ENTRY_EXECUTABLE_V1 : XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,
             &artifactRuntime, &unit->parse.diags)) {
         xlSetCompileDiagError(ctx, unit);
@@ -2321,7 +2159,7 @@ static int xlCompileUnitToExternalOutputWithC(
         goto cleanup;
     }
     xlAddDefaultTccRuntime(s, ctx, outputType);
-    if ( !xlCompileUnitCSourceFiles(ctx, s, unit, cSourceFiles, backend) ) {
+    if ( !xlCompileUnitCSourceFiles(ctx, s, unit, cSourceFiles) ) {
         goto cleanup;
     }
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
@@ -2333,19 +2171,14 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddEmbeddedTccRuntimeSources(ctx, s, unit, outputType) ) {
         goto cleanup;
     }
-    if ( !(backend == XLC_BACKEND_LEGACY
-            ? xlAddLegacyPrivateLanguageRuntimeSources(ctx, s, unit, cText)
-            : xlAddPrivateLanguageRuntimeSources(ctx, s, unit, &artifactRuntime)) ) {
+    if ( !xlAddPrivateLanguageRuntimeSources(ctx, s, unit, &artifactRuntime) ) {
         goto cleanup;
     }
     if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit, outputType) ) {
         goto cleanup;
     }
-    if ( !(backend == XLC_BACKEND_LEGACY
-            ? xl6XrtTrimBuildImplementationSourceWithGeneratedSource(unit->parse.root,
-                &unit->importDeps, cText, &runtimeSource)
-            : xl6XrtTrimBuildImplementationSourceFromArtifact(&unit->importDeps,
-                artifactRuntime.nativeModules, artifactRuntime.nativeModuleCount, &runtimeSource)) ) {
+    if ( !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit->importDeps,
+            artifactRuntime.nativeModules, artifactRuntime.nativeModuleCount, &runtimeSource) ) {
         xlSetError(ctx, "cannot generate XRT implementation source");
         goto cleanup;
     }
@@ -2380,12 +2213,10 @@ static int xlCompileUnitToExternalOutputEx(
     const char* outputPath,
     int outputType,
     const char* outputKind,
-    const XL6_CgenOptions* options)
+    const XL6_IrCgenOptions* options)
 {
     return xlCompileUnitToExternalOutputWithC(ctx, unit, outputPath,
-        outputType, outputKind, options, NULL,
-        options != NULL && options->debugMode
-            ? XLC_BACKEND_LEGACY : XLC_BACKEND_XLIR);
+        outputType, outputKind, options, NULL);
 }
 
 static int xlCompileUnitToExternalOutput(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputPath, int outputType, const char* outputKind)
@@ -2400,7 +2231,7 @@ static int xlCompileUnitToExe(XL_Context* ctx, XL6_CompileUnit* unit, const char
 
 static int xlCompileUnitToDebugExe(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputExe, const char* debugSourcePath)
 {
-    XL6_CgenOptions options;
+    XL6_IrCgenOptions options;
 
     memset(&options, 0, sizeof(options));
     options.debugMode = 1;
@@ -2483,7 +2314,7 @@ static int xlCompileUnitHasExecutableEntry(XL_Context* ctx, XL6_CompileUnit* uni
 
 static int xlCompileUnitToSharedLibraryWithC(
     XL_Context* ctx, XL6_CompileUnit* unit, const char* outputDll,
-    const XL_StringList* cSourceFiles, XLC_Backend backend)
+    const XL_StringList* cSourceFiles)
 {
     int hasEntry;
 
@@ -2496,13 +2327,12 @@ static int xlCompileUnitToSharedLibraryWithC(
         return 0;
     }
     return xlCompileUnitToExternalOutputWithC(ctx, unit, outputDll,
-        TCC_OUTPUT_DLL, "shared library", NULL, cSourceFiles, backend);
+        TCC_OUTPUT_DLL, "shared library", NULL, cSourceFiles);
 }
 
 static int xlCompileUnitToSharedLibrary(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputDll)
 {
-    return xlCompileUnitToSharedLibraryWithC(ctx, unit, outputDll, NULL,
-        XLC_BACKEND_XLIR);
+    return xlCompileUnitToSharedLibraryWithC(ctx, unit, outputDll, NULL);
 }
 #endif
 
@@ -3165,19 +2995,22 @@ static void xlModuleRequestDestroyUnlocked(XL_Module* module)
 
 static XL_Module* xlCompileUnitToModuleWithC(
     XL_Context* ctx, XL6_CompileUnit* unit,
-    const XL6_CgenOptions* options, const XL_StringList* cSourceFiles,
-    XLC_Backend backend)
+    const XL6_IrCgenOptions* requestedOptions,
+    const XL_StringList* cSourceFiles)
 {
     TCCState* s;
     XL_Module* module;
     char* cText;
+    XL6_IrCgenOptions options = {0};
 
     s = NULL;
     module = NULL;
     cText = NULL;
+    if ( requestedOptions != NULL ) options = *requestedOptions;
+    options.emitScriptEntry = 1;
+    options.emitMainWrapper = 0;
     xlTccDynamicVfsClear();
-    if ( !xlCgenToMemoryForBackend(
-            ctx, unit, &cText, backend, options, 1, 0) ) {
+    if ( !xlCgenToMemory(ctx, unit, &cText, &options) ) {
         goto cleanup;
     }
 #if XL_ENABLE_EXE_COMPILER
@@ -3195,7 +3028,7 @@ static XL_Module* xlCompileUnitToModuleWithC(
     if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
         goto cleanup;
     }
-    if ( !xlCompileUnitCSourceFiles(ctx, s, unit, cSourceFiles, backend) ) {
+    if ( !xlCompileUnitCSourceFiles(ctx, s, unit, cSourceFiles) ) {
         goto cleanup;
     }
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
@@ -3221,10 +3054,9 @@ cleanup:
     return module;
 }
 
-static XL_Module* xlCompileUnitToModuleEx(XL_Context* ctx, XL6_CompileUnit* unit, const XL6_CgenOptions* options)
+static XL_Module* xlCompileUnitToModuleEx(XL_Context* ctx, XL6_CompileUnit* unit, const XL6_IrCgenOptions* options)
 {
-    return xlCompileUnitToModuleWithC(ctx, unit, options, NULL,
-        XLC_BACKEND_XLIR);
+    return xlCompileUnitToModuleWithC(ctx, unit, options, NULL);
 }
 
 static XL_Module* xlCompileUnitToModule(XL_Context* ctx, XL6_CompileUnit* unit)
@@ -3433,12 +3265,10 @@ static int xlRunAndRetireModuleUnlocked(XL_Context* ctx, XL_Module* module, xval
 
 static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue* arg)
 {
-    XL6_CgenOptions options = {0};
     XL_Module* module;
-    options.suppressMainWrapper = 1;
     /* One compiler/binder and one checked execution/retirement path. Neither
      * a busy finalizer nor an accepted continuation permits raw tcc_delete. */
-    module = xlCompileUnitToModuleWithC(ctx, unit, &options, NULL, XLC_BACKEND_XLIR);
+    module = xlCompileUnitToModuleWithC(ctx, unit, NULL, NULL);
     if (module == NULL) return 0;
     return xlRunAndRetireModuleUnlocked(ctx, module, arg);
 }
@@ -3516,7 +3346,12 @@ static int xlDeactivateModuleUnlocked(XL_Context* ctx, XL_Module* module)
     if ( module->activation == XL_MODULE_INACTIVE ) {
         return 1;
     }
-    if (module->activation == XL_MODULE_DEACTIVATING || module->activeCalls > 1 || module->codeLeases != 0) {
+    /* A residency lease is not an execution lease. Module-owned globals with
+     * generated finalizers necessarily hold code leases until this retirement
+     * step releases them, and external leases keep the image mapped after
+     * deactivation. Destruction, not semantic deactivation, resolves that
+     * ownership graph. Only concurrent API execution/deactivation is busy. */
+    if (module->activation == XL_MODULE_DEACTIVATING || module->activeCalls > 1) {
         xlSetError(ctx, "module is busy executing an entry or deactivation");
         return 0;
     }
@@ -3554,68 +3389,18 @@ static int xlRunCModuleMainUnlocked(XL_Context* ctx, XL_Module* module, int argc
 }
 
 #if XL_ENABLE_EXE_COMPILER
-static int xlEmitUnitCToFileEx(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputPath, const XL6_CgenOptions* options)
+static int xlEmitUnitCToFile(XL_Context* ctx, XL6_CompileUnit* unit,
+                             const char* outputPath,
+                             const XL6_IrCgenOptions* requestedOptions)
 {
-    XL6_Output out;
-    int ok;
-
-    if ( outputPath == NULL || outputPath[0] == '\0' ) {
-        xlSetError(ctx, "output C path is empty");
-        return 0;
-    }
-    if ( unit == NULL || unit->parse.root == NULL ) {
-        xlSetError(ctx, "compile unit is empty");
-        return 0;
-    }
-    if ( !xlEnsureUnitLegacyHir(ctx, unit) ) return 0;
-    if ( !xl6OutputOpenFile(&out, outputPath) ) {
-        xlSetError2(ctx, "cannot open C output", outputPath);
-        return 0;
-    }
-    ok = xl6CgenEmitCEx(
-        &out,
-        unit->parse.root,
-        &unit->hir,
-        &unit->parse.diags,
-        options
-    );
-    if ( xl6OutputHasFailed(&out) ) {
-        xlSetError2(ctx, "cannot write C output", xl6OutputError(&out));
-        ok = 0;
-    } else if ( !ok ) {
-        xlSetCompileDiagError(ctx, unit);
-    }
-    if ( !ok ) {
-        xl6OutputDiscard(&out);
-        return 0;
-    }
-    xl6OutputClose(&out);
-    if ( xl6OutputHasFailed(&out) ) {
-        xlSetError2(ctx, "cannot write C output", xl6OutputError(&out));
-        return 0;
-    }
-    return 1;
-}
-
-static int xlEmitUnitCToFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputPath)
-{
-    return xlEmitUnitCToFileEx(ctx, unit, outputPath, NULL);
-}
-
-static int xlEmitUnitXlirCToFile(XL_Context* ctx, XL6_CompileUnit* unit,
-                                 const char* outputPath, int emitScriptEntry,
-                                 int emitMainWrapper)
-{
-    XL6_IrCgenOptions options;
+    XL6_IrCgenOptions options = {0};
     XL6_Output out;
     int ok;
     if ( outputPath == NULL || outputPath[0] == '\0' ) { xlSetError(ctx, "output C path is empty"); return 0; }
     if ( !xlEnsureUnitXlirLowered(ctx, unit) ) return 0;
     if ( !xl6IrCgenVerifyEmittable(&unit->ir, &unit->parse.diags) ) { xlSetCompileDiagError(ctx, unit); return 0; }
     if ( !xl6OutputOpenFile(&out, outputPath) ) { xlSetError2(ctx, "cannot open XLIR C output", outputPath); return 0; }
-    memset(&options, 0, sizeof(options));
-    options.emitScriptEntry = emitScriptEntry;
-    options.emitMainWrapper = emitMainWrapper;
+    if ( requestedOptions != NULL ) options = *requestedOptions;
     ok = xl6IrCgenEmitCEx(&out, &unit->ir, &unit->parse.diags, &options);
     if ( xl6OutputHasFailed(&out) ) { xlSetError2(ctx, "cannot write XLIR C output", xl6OutputError(&out)); ok = 0; }
     else if ( !ok ) xlSetCompileDiagError(ctx, unit);
@@ -3633,17 +3418,16 @@ static int xlEmitUnitXlirCToFile(XL_Context* ctx, XL6_CompileUnit* unit,
 
 static int xlEmitUnitDebugCToFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputPath, const char* debugSourcePath)
 {
-    XL6_CgenOptions options;
+    XL6_IrCgenOptions options;
 
     memset(&options, 0, sizeof(options));
     options.debugMode = 1;
     options.debugSourcePath = debugSourcePath;
-    return xlEmitUnitCToFileEx(ctx, unit, outputPath, &options);
+    return xlEmitUnitCToFile(ctx, unit, outputPath, &options);
 }
 
 static int xlEmitUnitHeaderToFile(XL_Context* ctx, XL6_CompileUnit* unit,
-                                  const char* outputPath, const char* guardName,
-                                  XLC_Backend backend)
+                                  const char* outputPath, const char* guardName)
 {
     XL6_Output out;
     int ok;
@@ -3656,21 +3440,15 @@ static int xlEmitUnitHeaderToFile(XL_Context* ctx, XL6_CompileUnit* unit,
         xlSetError(ctx, "compile unit is empty");
         return 0;
     }
-    if ( backend == XLC_BACKEND_XLIR && !xlEnsureUnitXlirLowered(ctx, unit) )
+    if ( !xlEnsureUnitXlirLowered(ctx, unit) )
         return 0;
     if ( !xl6OutputOpenFile(&out, outputPath) ) {
         xlSetError2(ctx, "cannot open header output", outputPath);
         return 0;
     }
-    if ( backend == XLC_BACKEND_LEGACY )
-        ok = xl6CgenEmitHeader(&out,
-                               unit->parse.root,
-                               guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
-                               &unit->parse.diags);
-    else
-        ok = xl6IrCgenEmitHeader(&out, &unit->ir,
-                                 guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
-                                 &unit->parse.diags);
+    ok = xl6IrCgenEmitHeader(&out, &unit->ir,
+                             guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
+                             &unit->parse.diags);
     if ( xl6OutputHasFailed(&out) ) {
         xlSetError2(ctx, "cannot write header output", xl6OutputError(&out));
         ok = 0;
@@ -4787,7 +4565,6 @@ XL_API XLC_Context* xlcCreateContext(const XLC_ContextOptions* options)
         return NULL;
     }
     ctx->runtime = runtime;
-    ctx->backend = XLC_BACKEND_XLIR;
     return ctx;
 }
 
@@ -4859,13 +4636,10 @@ XL_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled)
 XL_API int xlcSetBackend(XLC_Context* ctx, XLC_Backend backend)
 {
     if ( ctx == NULL || ctx->runtime == NULL ) return 0;
-    if ( backend != XLC_BACKEND_XLIR && backend != XLC_BACKEND_LEGACY ) {
-        xlSetError(ctx->runtime, "compiler backend is invalid");
+    if ( backend != XLC_BACKEND_XLIR ) {
+        xlSetError(ctx->runtime, "only the XLIR compiler backend is available");
         return 0;
     }
-    xlApiLock();
-    ctx->backend = backend;
-    xlApiUnlock();
     return 1;
 }
 
@@ -5193,10 +4967,7 @@ XL_API int xlcEmitC(XLC_Context* ctx, const char* outputPath)
         return 0;
     }
     ok = xlcCompileUnlocked(ctx) &&
-        (ctx->backend == XLC_BACKEND_LEGACY
-            ? xlEmitUnitCToFile(ctx->runtime, &ctx->unit, outputPath)
-            : xlEmitUnitXlirCToFile(
-                ctx->runtime, &ctx->unit, outputPath, 0, 0));
+         xlEmitUnitCToFile(ctx->runtime, &ctx->unit, outputPath, NULL);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -5237,7 +5008,7 @@ XL_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* g
         return 0;
     }
     ok = xlcCompileUnlocked(ctx) && xlEmitUnitHeaderToFile(
-        ctx->runtime, &ctx->unit, outputPath, guardName, ctx->backend);
+        ctx->runtime, &ctx->unit, outputPath, guardName);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -5289,7 +5060,7 @@ XL_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe)
     ok = xlcCompileUnlocked(ctx) &&
          xlCompileUnitToExternalOutputWithC(ctx->runtime, &ctx->unit,
              outputExe, TCC_OUTPUT_EXE, "exe", NULL,
-             &ctx->cSourceFiles, ctx->backend);
+             &ctx->cSourceFiles);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -5310,13 +5081,13 @@ XL_API int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* 
         return 0;
     }
     if ( xlcCompileUnlocked(ctx) ) {
-        XL6_CgenOptions options;
+        XL6_IrCgenOptions options;
         memset(&options, 0, sizeof(options));
         options.debugMode = 1;
         options.debugSourcePath = debugSourcePath;
         ok = xlCompileUnitToExternalOutputWithC(ctx->runtime, &ctx->unit,
             outputExe, TCC_OUTPUT_EXE, "debug exe", &options,
-            &ctx->cSourceFiles, XLC_BACKEND_LEGACY);
+            &ctx->cSourceFiles);
     } else {
         ok = 0;
     }
@@ -5340,7 +5111,7 @@ XL_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll)
         return 0;
     }
     ok = xlcCompileUnlocked(ctx) && xlCompileUnitToSharedLibraryWithC(
-        ctx->runtime, &ctx->unit, outputDll, &ctx->cSourceFiles, ctx->backend);
+        ctx->runtime, &ctx->unit, outputDll, &ctx->cSourceFiles);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -5361,7 +5132,7 @@ XL_API XL_Module* xlcRelocateModule(XLC_Context* ctx)
         return NULL;
     }
     module = xlcCompileUnlocked(ctx) ? xlCompileUnitToModuleWithC(
-        ctx->runtime, &ctx->unit, NULL, &ctx->cSourceFiles, ctx->backend) : NULL;
+        ctx->runtime, &ctx->unit, NULL, &ctx->cSourceFiles) : NULL;
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return module;
@@ -5370,7 +5141,6 @@ XL_API XL_Module* xlcRelocateModule(XLC_Context* ctx)
 XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv)
 {
     XL_CwdScope cwd;
-    XL6_CgenOptions cgenOptions;
     XL_Module* module;
     xvalue* pArg;
     int ok;
@@ -5397,8 +5167,6 @@ XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv)
         xlApiUnlock();
         return 0;
     }
-    memset(&cgenOptions, 0, sizeof(cgenOptions));
-    cgenOptions.suppressMainWrapper = 1;
     pArg = xlcCreateArgArray(ctx->runtime, argc > 0 ? argc : 0, argv);
     if ( pArg == NULL ) {
         xlLeaveWorkDir(&cwd);
@@ -5408,8 +5176,7 @@ XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv)
         return 0;
     }
     module = xlcCompileUnlocked(ctx) ? xlCompileUnitToModuleWithC(
-        ctx->runtime, &ctx->unit, &cgenOptions,
-        &ctx->cSourceFiles, ctx->backend) : NULL;
+        ctx->runtime, &ctx->unit, NULL, &ctx->cSourceFiles) : NULL;
     ok = module != NULL && xlRunModuleMainUnlocked(ctx->runtime, module, pArg);
     xlDestroyModuleUnlocked(module);
     xrtValueRelease(pArg);
@@ -5428,8 +5195,8 @@ XL_API int xlcEmitXlirC(XLC_Context* ctx, const char* outputPath)
     xlApiLock();
     xlClearLastErrorUnlocked(ctx->runtime);
     if ( !xlEnterWorkDir(ctx->runtime, &cwd) ) { xlApiUnlock(); return 0; }
-    ok = xlcCompileUnlocked(ctx) && xlEmitUnitXlirCToFile(
-        ctx->runtime, &ctx->unit, outputPath, 0, 0);
+    ok = xlcCompileUnlocked(ctx) && xlEmitUnitCToFile(
+        ctx->runtime, &ctx->unit, outputPath, NULL);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;

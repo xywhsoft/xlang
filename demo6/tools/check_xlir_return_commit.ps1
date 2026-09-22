@@ -3,8 +3,10 @@ $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
 try {
-    $source = 'test/cases/xlir_return_commit.xl'
-    $prefix = 'build/test/xlir_return_commit'
+    $source = Join-Path $Root 'test/cases/xlir_return_commit.xl'
+    # System.IO resolves relative paths from the native process directory, not
+    # PowerShell's provider location.  Keep every direct file operation rooted.
+    $prefix = Join-Path $Root 'build/test/xlir_return_commit'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
     Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
     & release/xl.exe ir $source --lowered --format json --emit "$prefix.json"
@@ -63,27 +65,20 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Return commit strict C compilation failed' }
     & "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit runtime ownership balance failed' }
-    foreach ($backend in @('xlir', 'legacy')) {
-        & release/xl.exe run $source --backend $backend
-        if ($LASTEXITCODE -ne 0) { throw "Return commit language JIT failed: $backend" }
-    }
+    & release/xl.exe run $source --backend xlir
+    if ($LASTEXITCODE -ne 0) { throw 'Return commit language JIT failed' }
     & release/xl.exe build $source --backend xlir -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit language AOT build failed' }
     & "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit language AOT runtime failed' }
     $compilerSources = @('src/ast/xl6_ast.c', 'src/type/xl6_type_model.c',
-        'src/ir/xl6_hir_type.c', 'src/ir/xl6_hir.c', 'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
+        'src/ir/xl6_ir.c', 'src/ir/xl6_ir_lower.c',
         'src/cgen/xl6_ir_cgen.c', 'src/cgen/xl6_cgen_shared_runtime.c',
         'src/diag/xl6_diag.c', 'src/common/xl6_output.c', 'src/common/xl6_console.c')
     & gcc @strict test/cases/xlir_return_commit_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit verifier contract compilation failed' }
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Return commit verifier/Cgen mutation contract failed' }
-    $pathSources = @($compilerSources | Where-Object { $_ -ne 'src/ir/xl6_ir.c' })
-    & gcc @strict test/cases/xlir_return_cleanup_paths_contract.c @pathSources release/xl.dll -o "$prefix.paths.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Borrowed cleanup CFG proof contract compilation failed' }
-    & "$prefix.paths.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Borrowed cleanup CFG path proof contract failed' }
 } finally { Pop-Location }
-Write-Output "XLIR return commit passed: $commits exact pending-owner commits, $cleanupAfterPrepare cleanup-before-commit paths, strict C memory accounting, JIT/legacy/AOT runtime, deterministic C and 14 verifier/Cgen mutations."
+Write-Output "XLIR return commit passed: $commits exact pending-owner commits, $cleanupAfterPrepare cleanup-before-commit paths, strict C memory accounting, JIT/AOT runtime, deterministic C and 14 verifier/Cgen mutations."
 exit 0

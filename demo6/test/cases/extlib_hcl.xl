@@ -38,5 +38,18 @@ func main(...) as int
     // Count attrs
     assert hcl.countAttrs(conf) == 6, "6 attrs"
 
+    // Syntax-aware parsing: labels, comments and composite values are not
+    // confused with line-oriented text matches.
+    auto advanced = "# heading\nresource \"aws_instance\" \"web\" {\n  name = \"web = primary\" // inline\n  tags = {\n    role = \"api\"\n  }\n  nested {\n    enabled = false\n  }\n}\n/* trailing */\n"
+    assert hcl.validate(advanced), "advanced valid"
+    assert hcl.countBlocks(advanced, "resource") == 1, "advanced resource"
+    assert hcl.countBlocks(advanced, "nested") == 1, "nested block"
+    assert hcl.blockLabelCount(advanced, "resource", 0) == 2, "two labels"
+    assert hcl.blockLabelAt(advanced, "resource", 0, 1) == "web", "second label"
+    assert hcl.get(advanced, "name") == "web = primary", "string value"
+    assert hcl.getRaw(advanced, "tags") == "{\n    role = \"api\"\n  }", "raw object expression"
+    assert hcl.countAttrs(advanced) == 3, "nested attrs"
+    assert not hcl.validate("resource \"bad\" { name = \"unterminated }"), "unterminated string"
+
     return 0
 end

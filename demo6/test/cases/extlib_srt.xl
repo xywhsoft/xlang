@@ -1,0 +1,98 @@
+import srt
+
+
+
+func main(...) as int
+    // 时间戳工具
+    assert srt.formatTime(0) == "00:00:00,000", "zero"
+    assert srt.formatTime(3723500) == "01:02:03,500", "hms"
+    assert srt.parseTime("00:00:01,500") == 1500, "parse srt stamp"
+    assert srt.parseTime("00:01:02.250") == 62250, "parse vtt stamp"
+    assert srt.parseTime("01:02:03,004") == 3723004, "leading zero ms"
+    int raised = 0
+    try
+        srt.parseTime("bad")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "invalid stamp raises"
+
+    // SRT 解析
+    string doc = """1
+00:00:01,000 --> 00:00:03,500
+Hello, world!
+Second line
+
+2
+00:00:04,000 --> 00:00:06,000
+Bye
+"""
+    var cues = srt.parse(doc)
+    assert cues.length == 2, "cue count"
+    assert cues[0]["index"] == 1, "index 0"
+    assert cues[0]["startMs"] == 1000, "start 0"
+    assert cues[0]["endMs"] == 3500, "end 0"
+    assert cues[0]["lines"].length == 2, "two text lines"
+    assert cues[0]["lines"][0] == "Hello, world!", "line 0"
+    assert cues[0]["lines"][1] == "Second line", "line 1"
+    assert cues[1]["index"] == 2, "index 1"
+    assert cues[1]["lines"][0] == "Bye", "line bye"
+
+    // 生成与往返
+    var made = [
+        {"startMs": 1500, "endMs": 4000, "lines": ["a", "b"]},
+        {"startMs": 5000, "endMs": 6000, "lines": ["c"]}
+    ]
+    string built = srt.build(made)
+    assert built.contains("00:00:01,500 --> 00:00:04,000"), "built range"
+    var back = srt.parse(built)
+    assert back.length == 2, "round trip count"
+    assert back[0]["startMs"] == 1500, "round trip start"
+    assert back[0]["lines"].length == 2, "round trip lines"
+    assert back[1]["lines"][0] == "c", "round trip text"
+
+    // WebVTT 解析（点号毫秒、可选 ID、NOTE 注释）
+    string vtt = """WEBVTT
+
+intro-cue
+00:00:00.500 --> 00:00:02.000
+VTT first
+
+NOTE this is a comment
+
+00:00:03.000 --> 00:00:04.000
+VTT second
+"""
+    var vcues = srt.parseVtt(vtt)
+    assert vcues.length == 2, "vtt cue count"
+    assert vcues[0]["startMs"] == 500, "vtt start"
+    assert vcues[0]["endMs"] == 2000, "vtt end"
+    assert vcues[0]["lines"][0] == "VTT first", "vtt text"
+    assert vcues[1]["startMs"] == 3000, "vtt second start"
+
+    // VTT 生成
+    string vttOut = srt.buildVtt(made)
+    assert vttOut.contains("WEBVTT"), "vtt header"
+    assert vttOut.contains("00:00:01.500 --> 00:00:04.000"), "vtt dot stamp"
+    var vttBack = srt.parseVtt(vttOut)
+    assert vttBack[0]["startMs"] == 1500, "vtt round trip"
+
+    // 错误路径
+    raised = 0
+    try
+        srt.parse("1\nnot a timecode\n")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "missing timecode raises"
+
+    raised = 0
+    try
+        srt.parse("1\n00:00:05,000 --> 00:00:01,000\nreversed\n")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "reversed range raises"
+
+    return 0
+end

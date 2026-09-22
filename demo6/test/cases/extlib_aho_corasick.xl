@@ -1,5 +1,5 @@
 import aho_corasick
-from aho_corasick import Match, Automaton
+from aho_corasick import Match, Automaton, Scanner
 
 func main(...) as int
     // ─── Basic construction and search ───
@@ -7,6 +7,7 @@ func main(...) as int
     assert ac.valid, "automaton should be valid"
     assert ac.built, "auto-build on create with patterns"
     assert ac.patternCount == 4, "pattern count"
+    assert ac.pattern(0) == "he", "pattern lookup"
 
     array<Match> results = ac.search("ushers")
     assert results.length == 3, "ushers should have 3 matches"
@@ -64,6 +65,20 @@ func main(...) as int
     end)
     assert cb == "u[she]rs", "replaceWith keeps the first non-overlapping match: got " + cb
 
+    // 回调替换使用 UTF-8 字节区间，中文前缀和尾部不能发生错位。
+    Automaton unicodeAc = aho_corasick.create(["你好", "好世"])
+    string unicodeResult = unicodeAc.replaceWith("甲你好世界", func(Match m) as string
+        return "[" + m.pattern + "]"
+    end)
+    assert unicodeResult == "甲[你好]世界", "replaceWith keeps UTF-8 boundaries: got " + unicodeResult
+
+    // 同一起点有多个匹配时固定选择最长项，与注册顺序无关。
+    Automaton longestAc = aho_corasick.create(["a", "ab"])
+    string longestResult = longestAc.replaceWith("ab!", func(Match m) as string
+        return "[" + m.pattern + "]"
+    end)
+    assert longestResult == "[ab]!", "replaceWith uses leftmost-longest matching"
+
     // ─── Case insensitive ───
     Automaton ci = aho_corasick.create(["Hello", "WORLD"], ignoreCase = true)
     assert ci.contains("hello world"), "case insensitive contains"
@@ -104,6 +119,45 @@ func main(...) as int
     assert empty.count("anything") == 0, "empty automaton matches nothing"
     assert not empty.contains("anything"), "empty automaton contains nothing"
 
+    // 空模式和大小写等价的重复模式必须明确失败。
+    bool emptyPatternCaught = false
+    try
+        Automaton invalidPattern = aho_corasick.create()
+        invalidPattern.addPattern("")
+    catch RuntimeError e
+        emptyPatternCaught = true
+    end
+    assert emptyPatternCaught, "empty pattern must throw"
+
+    bool distinctCaseAccepted = true
+    try
+        Automaton duplicate = aho_corasick.create()
+        duplicate.addPattern("Hello")
+        duplicate.addPattern("hello")
+    catch RuntimeError e
+        distinctCaseAccepted = false
+    end
+    assert distinctCaseAccepted, "case-sensitive patterns are distinct"
+
+    bool duplicateCaught = false
+    try
+        Automaton duplicateCase = aho_corasick.create([], ignoreCase = true)
+        duplicateCase.addPattern("Hello")
+        duplicateCase.addPattern("hello")
+    catch RuntimeError e
+        duplicateCaught = true
+    end
+    assert duplicateCaught, "case-equivalent duplicate must throw"
+
+    bool unbuiltCaught = false
+    try
+        Automaton unbuilt = aho_corasick.create()
+        unbuilt.contains("x")
+    catch RuntimeError e
+        unbuiltCaught = true
+    end
+    assert unbuiltCaught, "search before build must throw"
+
     // ─── scan: streaming callback, full scan ───
     array<int> total = [0]
     bool completed = ac.scan("ushers", func(Match m) as bool
@@ -132,6 +186,71 @@ func main(...) as int
         return true
     end)
     assert foundPattern[0] == "hers", "scan conditional stop finds hers"
+
+    // ─── Unicode mask counts scalars instead of UTF-8 bytes ───
+    string unicodeMask = unicodeAc.mask("甲你好世界", "*")
+    assert unicodeMask == "甲***界", "Unicode mask must count scalars: got " + unicodeMask
+
+    // ─── Incremental Scanner: chunk boundary, pause and resume ───
+    Scanner stream = ac.scanner()
+    array<string> streamed = []
+    bool chunkDone = stream.feed("us", func(Match m) as bool
+        streamed.push(m.pattern)
+        return true
+    end)
+    assert chunkDone and streamed.length == 0, "first stream chunk"
+    chunkDone = stream.feed("hers", func(Match m) as bool
+        streamed.push(m.pattern)
+        return true
+    end)
+    assert chunkDone and streamed.length == 3, "second stream chunk"
+    assert streamed[0] == "she" and streamed[1] == "he" and streamed[2] == "hers", "stream match order"
+    assert stream.offset == 6 and stream.matchCount == 3, "stream counters"
+
+    stream.reset()
+    array<int> paused = [0]
+    bool streamDone = stream.feed("ushers", func(Match m) as bool
+        paused[0] += 1
+        return false
+    end)
+    assert not streamDone and stream.pending and paused[0] == 1, "stream pause"
+
+    bool pendingCaught = false
+    try
+        stream.feed("next", func(Match m) as bool
+            return true
+        end)
+    catch RuntimeError e
+        pendingCaught = true
+    end
+    assert pendingCaught, "feeding while pending must throw"
+
+    streamDone = stream.resume(func(Match m) as bool
+        paused[0] += 1
+        return true
+    end)
+    assert streamDone and not stream.pending and paused[0] == 3, "stream resume"
+
+    // ─── Explicit resource limits ───
+    bool patternLimitCaught = false
+    try
+        Automaton limitedPattern = aho_corasick.create([],
+            maxPatternBytes = 2)
+        limitedPattern.addPattern("abc")
+    catch RuntimeError e
+        patternLimitCaught = true
+    end
+    assert patternLimitCaught, "pattern limit must throw"
+
+    bool inputLimitCaught = false
+    try
+        Automaton limitedInput = aho_corasick.create(["a"],
+            maxInputBytes = 2)
+        limitedInput.count("abc")
+    catch RuntimeError e
+        inputLimitCaught = true
+    end
+    assert inputLimitCaught, "input limit must throw"
 
     println("aho_corasick: all tests passed")
     return 0

@@ -1,0 +1,5 @@
+{
+"posts":[
+{"slug":"hello-world","title":"Hello World","date":"2026-07-01","tags":["intro","welcome"],"content":"# Hello World\n\nWelcome to **xBlog**, a tiny blog engine written in *xlang*.\n\nThis post exercises the markdown renderer end-to-end.\n\n## Features\n\n- HTTP server with `template`-based HTML\n- Markdown rendering with code blocks\n- JSON persistence\n\nInline code: `print(\"hi\")`. Link: [xlang repo](https://github.com/anomalyco/opencode).\n\n## Code Block\n\n```\nfunc main(...) as int\n    println(\"hello from xlang\")\n    return 0\nend\n```\n\nThat's all for now.\n\n---\n\nEnd of post."},
+{"slug":"markdown-demo","title":"Markdown Features Demo","date":"2026-07-02","tags":["markdown","demo"],"content":"# Markdown Features Demo\n\nA tour of supported markdown features.\n\n## Inline Formatting\n\nYou can write **bold text**, *italic text*, and `inline code`.\n\n## Lists\n\nUnordered list:\n\n- alpha\n- beta\n- gamma\n\nOrdered list:\n\n1. first\n2. second\n3. third\n\n## Links and Images\n\nA link: [click here](https://example.com).\n\nAn image: ![xlang logo](https://example.com/logo.png).\n\n## Separator\n\n---\n\nContent after separator."}
+]}

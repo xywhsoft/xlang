@@ -1,0 +1,19 @@
+import volc.core
+
+func main(...) as int
+    string fixedDate = "20240102T030405Z"
+    string body = "{\"hello\":\"xlang\"}"
+    string query = volc.core.canonical_query("ListApps", "2020-01-01", "Limit=10\nName=x lang")
+
+    assert volc.core.available(), "available"
+    assert volc.core.version() == "0.1.0", "version"
+    assert volc.core.sha256_hex("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "sha256"
+    assert volc.core.hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog") == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8", "hmac"
+    assert string.contains(query, "Action=ListApps") and string.contains(query, "Name=x%20lang"), "canonical query"
+
+    string preview = volc.core.sign_preview_acep("ListApps", "2020-01-01", "AKID", "SECRET", "", body, fixedDate)
+    assert string.contains(preview, "\"authorization\"") and string.contains(preview, fixedDate), "signature preview"
+    assert volc.core.hmac_sha256_hex_key("bad", "abc") == "", "invalid hex key"
+    assert volc.core.last_error() == "hex key must be 64 hex characters", "diagnostic"
+    return 0
+end

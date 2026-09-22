@@ -1,0 +1,71 @@
+import redis
+
+
+
+func main(...) as int
+    // 嵌套数组解码
+    var r = redis.decode("*3\r\n:1\r\n*2\r\n$3\r\nabc\r\n$-1\r\n$3\r\nxyz\r\n")
+    var arr = r["value"]["value"]
+    assert arr.length == 3, "nested outer length"
+    assert arr[0]["value"] == 1, "nested int"
+    var elem = r["value"]["value"][1]
+    var innerVal = elem["value"]
+    assert innerVal.length == 2, "nested inner array"
+    assert innerVal[0]["value"] == "abc", "inner element"
+    assert innerVal[1]["type"] == "null", "inner null"
+
+    // 编码：RESP 数组请求
+    string cmd = redis.encode(["SET", "key", "value"])
+    assert cmd == "*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n", "set encoding"
+    assert redis.encode(["PING"]) == "*1\r\n$4\r\nPING\r\n", "ping encoding"
+    assert redis.encode([]) == "*0\r\n", "empty command"
+
+    // 解码：简单字符串
+    r = redis.decode("+OK\r\n")
+    assert r["value"]["type"] == "simple", "simple type"
+    assert r["value"]["value"] == "OK", "simple value"
+    assert r["rest"] == "", "simple rest empty"
+
+    // 解码：错误
+    r = redis.decode("-ERR unknown command 'X'\r\n")
+    assert r["value"]["type"] == "error", "error type"
+
+    // 解码：整数
+    r = redis.decode(":1000\r\n")
+    assert r["value"]["value"] == 1000, "integer value"
+
+    // 解码：批量字符串（含内嵌 CRLF，长度 12）
+    r = redis.decode("$12\r\nHELLO\r\nWORLD\r\n")
+    assert r["value"]["type"] == "bulk", "bulk type"
+    assert r["value"]["value"] == "HELLO\r\nWORLD", "bulk with crlf"
+
+    // 解码：null 批量与 null 数组
+    r = redis.decode("$-1\r\n")
+    assert r["value"]["type"] == "null", "null bulk"
+    r = redis.decode("*-1\r\n")
+    assert r["value"]["type"] == "null", "null array"
+
+    // 解码：平面数组
+    r = redis.decode("*2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n")
+    var flat = r["value"]["value"]
+    assert flat.length == 2, "array length"
+    assert flat[0]["value"] == "foo", "array element 0"
+    assert flat[1]["value"] == "bar", "array element 1"
+
+    // 完整性判定
+    assert redis.isComplete("+OK\r\n"), "complete simple"
+    assert not redis.isComplete("+OK"), "incomplete simple"
+    assert not redis.isComplete("$5\r\nhel"), "incomplete bulk"
+    assert redis.isComplete("$5\r\nhello\r\n"), "complete bulk"
+
+    // 错误路径
+    int raised = 0
+    try
+        redis.decode("$5\r\nhel")
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "incomplete decode raises"
+
+    return 0
+end

@@ -15,6 +15,6 @@ enum {
 };
 /* Requires the public declaration SDK and, for visitors, the shared
  * serialization callback runtime; never XRT implementation headers. */
-void xl6CgenEmitXsonRuntime(XL6_Output* out, unsigned operations, int xlirAbi);
+void xl6CgenEmitXsonRuntime(XL6_Output* out, unsigned operations);
 
 #endif

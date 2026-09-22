@@ -10,17 +10,14 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_checked_cast_abi.xl"
-$legacySource = Join-Path $Root "test\cases\xlir_checked_cast_differential.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_checked_cast_abi_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_checked_cast_abi.typed.json"
 $loweredPath = Join-Path $outputDir "xlir_checked_cast_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_checked_cast_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_checked_cast_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_checked_cast_abi_legacy.c"
 
-foreach ( $path in @($xl, $source, $legacySource, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR checked cast ABI gate input is missing: $path"
     }
@@ -176,13 +173,8 @@ try {
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) { throw "XLIR checked cast strict-C runtime failed" }
 
-    Invoke-Xl @("cgen", $legacySource, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy checked cast differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $legacySupport !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_checked_cast_abi_legacy.exe && build\test\xlir_checked_cast_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) { throw "Legacy checked cast differential runtime failed" }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR checked cast ABI gate ok: closed scalar/string cast identities including builtin float(var), exact TypeIds, adjacent recoverable failure CFG, rvalue ownership, deterministic strict C and shared-partition legacy differential runtime semantics."
+Write-Output "XLIR checked cast ABI gate ok: closed scalar/string cast identities including builtin float(var), exact TypeIds, adjacent recoverable failure CFG, rvalue ownership, and deterministic strict-C runtime semantics."

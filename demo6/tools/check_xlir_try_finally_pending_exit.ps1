@@ -30,6 +30,8 @@ foreach ( $path in @($xl, $xlirHost) + @($cases.Source) ) {
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
 $documents = @{}
+Push-Location $Root
+try {
 foreach ( $case in $cases ) {
     $jsonPath = Join-Path $outputDir ($case.Name + ".lowered.json")
     & $xl ir $case.Source --lowered --format json --emit $jsonPath
@@ -40,35 +42,27 @@ foreach ( $case in $cases ) {
         [System.IO.File]::ReadAllText($jsonPath, [System.Text.Encoding]::UTF8) |
         ConvertFrom-Json
 
-    foreach ( $backend in @("xlir", "legacy") ) {
-        $cPath = Join-Path $outputDir ($case.Name + "." + $backend + ".c")
-        & $xl cgen $case.Source --backend $backend --emit $cPath
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "try/finally pending-exit Cgen failed: $($case.Name) $backend"
-        }
-        if ( $backend -eq "xlir" ) {
-            $repeatPath = Join-Path $outputDir ($case.Name + ".xlir.repeat.c")
-            & $xl cgen $case.Source --backend xlir --emit $repeatPath
-            if ( $LASTEXITCODE -ne 0 -or
-                 [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8) -cne
-                 [System.IO.File]::ReadAllText($repeatPath, [System.Text.Encoding]::UTF8) ) {
-                throw "XLIR try/finally pending-exit Cgen is not deterministic: $($case.Name)"
-            }
-        }
-        $exe = Join-Path $outputDir ($case.Name + "." + $backend + ".exe")
-        if ( $backend -eq "xlir" ) {
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$xlirHost`" !XL6_CGEN_LINKS! -o `"$exe`" && `"$exe`""
-        } else {
-            # Legacy owns main and imports its historical async adapters from
-            # xl.dll. Keep that compatibility boundary out of the XLIR host,
-            # which links directly to the generated-C XRT object above.
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror `"$cPath`" !XL6_CGEN_XLANG_LINKS! -o `"$exe`" && `"$exe`""
-        }
-        & $env:ComSpec /d /v:on /c $command
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "try/finally pending-exit runtime failed: $($case.Name) $backend"
-        }
+    $cPath = Join-Path $outputDir ($case.Name + ".xlir.c")
+    & $xl cgen $case.Source --backend xlir --emit $cPath
+    if ( $LASTEXITCODE -ne 0 ) {
+        throw "XLIR try/finally pending-exit Cgen failed: $($case.Name)"
     }
+    $repeatPath = Join-Path $outputDir ($case.Name + ".xlir.repeat.c")
+    & $xl cgen $case.Source --backend xlir --emit $repeatPath
+    if ( $LASTEXITCODE -ne 0 -or
+         [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8) -cne
+         [System.IO.File]::ReadAllText($repeatPath, [System.Text.Encoding]::UTF8) ) {
+        throw "XLIR try/finally pending-exit Cgen is not deterministic: $($case.Name)"
+    }
+    $exe = Join-Path $outputDir ($case.Name + ".xlir.exe")
+    $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$xlirHost`" !XL6_CGEN_LINKS! -o `"$exe`" && `"$exe`""
+    & $env:ComSpec /d /v:on /c $command
+    if ( $LASTEXITCODE -ne 0 ) {
+        throw "XLIR try/finally pending-exit runtime failed: $($case.Name)"
+    }
+}
+} finally {
+    Pop-Location
 }
 
 function Get-OverrideOwnerRelease($document, [int]$line) {
@@ -79,16 +73,33 @@ function Get-OverrideOwnerRelease($document, [int]$line) {
     if ($plans.Count -ne 1) { throw 'Missing typed override exit route' }
     $scope = $document.exitSteps[$plans[0].firstStep]
     $begins = @($document.instructions | Where-Object { $_.kindName -eq 'error-unwind-begin' -and $_.origin -eq $throws[0].id })
-    if ($scope.kindName -ne 'scope' -or $begins.Count -ne 1) { throw 'Override lost its lexical unwind boundary' }
-    $releases = @($document.instructions | Where-Object {
-        $_.kindName -eq 'release' -and $_.origin -eq $scope.origin -and $_.errorScope -eq $begins[0].errorScope
-    })
+    if ($scope.kindName -ne 'scope' -or $begins.Count -lt 1) { throw 'Override lost its lexical unwind boundary' }
+    $releases = @()
+    foreach ($begin in $begins) {
+        $scoped = @($document.instructions | Where-Object {
+            $_.kindName -eq 'release' -and $_.origin -eq $scope.origin -and
+            $_.errorScope -eq $begin.errorScope
+        })
+        if ($scoped.Count -ne 1 -or $scoped[0].index -ne $begin.index + 1) {
+            throw 'Finally override unwind path has no adjacent unique pending-owner release'
+        }
+        $releases += $scoped[0]
+    }
+    if (@($releases | Select-Object -ExpandProperty targetSymbol -Unique).Count -ne $releases.Count -or
+        @($begins | Select-Object -ExpandProperty errorScope -Unique).Count -ne $begins.Count) {
+        throw 'Finally override merged distinct pending owners or unwind scopes'
+    }
     foreach ($release in $releases) {
         $storage = @($document.storages | Where-Object symbol -eq $release.targetSymbol)
-        if ($storage.Count -ne 1 -or $storage[0].kindName -ne 'temporary' -or
+        $type = if ($storage.Count -eq 1) {
+            @($document.types | Where-Object id -eq $storage[0].type)
+        } else { @() }
+        if ($storage.Count -ne 1 -or $storage[0].kindName -notin @('local','temporary') -or
+            $type.Count -ne 1 -or $type[0].ownershipAbi -ne 2 -or
+            $release.type -ne $storage[0].type -or
             @($document.instructions | Where-Object {
                 $_.targetSymbol -eq $release.targetSymbol -and $_.kindName -in @('store','product-store-move')
-            }).Count -ne 1) { throw 'Finally override has no unique initialized pending owner' }
+            }).Count -ne 1) { throw 'Finally override has no unique initialized managed owner' }
     }
     return $releases
 }
@@ -141,7 +152,7 @@ for ( $i = 0; $i -lt $productMoves.Count; $i++ ) {
         throw "try/finally product owner chain must end in finally storage then terminal return"
     }
 }
-if ( @(Get-OverrideOwnerRelease $control 83).Count -ne 1 -or
+if ( @(Get-OverrideOwnerRelease $control 83).Count -ne 2 -or
      @($control.instructions | Where-Object {
          $_.kindName -eq "discard" -and $_.type -eq 0
      }).Count -ne 0 ) {
@@ -153,12 +164,12 @@ $asyncStarts = @($async.instructions | Where-Object { $_.kindName -eq "async-sta
 $awaits = @($async.instructions | Where-Object { $_.kindName -eq "await" })
 if ( $asyncStarts.Count -ne 3 -or $awaits.Count -ne 3 -or
      $async.asyncMachineCount -ne 0 -or $async.asyncSuspensionCount -ne 0 -or
-     @(Get-OverrideOwnerRelease $async 23).Count -ne 1 -or
+     @(Get-OverrideOwnerRelease $async 23).Count -ne 2 -or
      @($async.instructions | Where-Object {
          $_.kindName -eq "discard" -and $_.type -eq 0
      }).Count -ne 0 ) {
     throw "async try/finally pending-result state machine or override cleanup ABI is incomplete"
 }
 
-Write-Output "XLIR try/finally pending-exit gate ok: scalar, string, class, array and product returns; nested/overriding return, throw, break and continue; async Future entry/await ABI; typed discards; deterministic strict C; and XLIR/legacy runtime agreement."
+Write-Output "XLIR try/finally pending-exit gate ok: scalar, string, class, array and product returns; nested/overriding return, throw, break and continue; async Future entry/await ABI; typed discards; deterministic strict C; and canonical runtime agreement."
 exit 0

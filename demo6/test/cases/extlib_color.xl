@@ -1,0 +1,83 @@
+import color
+
+
+
+func main(...) as int
+    // 解析
+    assert color.valid("#FF8000"), "6-digit hex valid"
+    assert color.valid("#f80"), "3-digit hex valid"
+    assert color.valid("#f80c"), "4-digit hex valid"
+    assert color.valid("#FF8000CC"), "8-digit hex valid"
+    assert not color.valid("#12345"), "5 digits invalid"
+    assert not color.valid("#GGGGGG"), "non hex invalid"
+    assert not color.valid("red"), "names are not hex"
+
+    // 分量
+    assert color.red("#FF8000") == 255, "red"
+    assert color.green("#FF8000") == 128, "green"
+    assert color.blue("#FF8000") == 0, "blue"
+    assert color.alpha("#FF8000CC") == 204, "alpha"
+    assert color.alpha("#FF8000") == 255, "default alpha"
+    assert color.red("#f80") == 255, "3-digit expands"
+    assert color.green("#f80") == 136, "3-digit green"
+    assert color.red("xyz") == -1, "invalid is -1"
+
+    // 构造
+    assert color.hex(255, 128, 0) == "#FF8000", "hex build"
+    assert color.hexA(255, 128, 0, 204) == "#FF8000CC", "hexA build"
+    assert color.hex(300, 0, 0) == "", "out of range empty"
+    assert color.normalize("#f80") == "#FF8800", "normalize"
+
+    // HSV
+    float h = color.hue("#FF0000")
+    float s = color.saturation("#FF0000")
+    float v = color.value("#FF0000")
+    assert h == 0, "red hue"
+    assert s == 1, "red saturation"
+    assert v == 1, "red value"
+    assert color.hue("#00FF00") == 120, "green hue"
+    assert color.hue("#0000FF") == 240, "blue hue"
+    assert color.hue("xyz") == -1, "invalid hue"
+
+    // HSV 往返
+    assert color.fromHsv(0, 1, 1) == "#FF0000", "hsv red"
+    assert color.fromHsv(120, 1, 1) == "#00FF00", "hsv green"
+    assert color.fromHsv(240, 1, 1) == "#0000FF", "hsv blue"
+    string round = color.fromHsv(color.hue("#3366CC"), color.saturation("#3366CC"), color.value("#3366CC"))
+    assert round == "#3366CC", "hsv round trip"
+
+    // HSL
+    assert color.lightness("#808080") > 0.49 and color.lightness("#808080") < 0.51, "gray lightness"
+    assert color.fromHsl(0, 1, 0.5) == "#FF0000", "hsl red"
+    assert color.fromHsl(0, 0, 1) == "#FFFFFF", "hsl white"
+    assert color.fromHsl(0, 0, 0) == "#000000", "hsl black"
+
+    // 亮度与对比度
+    assert color.luminance("#000000") == 0, "black luminance"
+    assert color.luminance("#FFFFFF") == 1, "white luminance"
+    float c1 = color.contrast("#000000", "#FFFFFF")
+    assert c1 > 20.9 and c1 < 21.1, "black white contrast 21"
+    float c2 = color.contrast("#777777", "#888888")
+    assert c2 >= 1, "similar colors low contrast"
+    assert color.contrast("xyz", "#FFFFFF") == -1, "invalid contrast"
+
+    // 明暗判断
+    assert color.isDark("#000000"), "black is dark"
+    assert color.isLight("#FFFFFF"), "white is light"
+    assert color.isDark("#334455"), "navy-ish dark"
+    assert color.isLight("#EEEEEE"), "near white light"
+
+    // 混合
+    assert color.mix("#000000", "#FFFFFF", 0) == "#000000", "mix t=0"
+    assert color.mix("#000000", "#FFFFFF", 1) == "#FFFFFF", "mix t=1"
+    assert color.mix("#000000", "#FFFFFF", 0.5) == "#808080", "mix t=0.5"
+
+    // 命名色
+    assert color.fromName("red") == "#FF0000", "name red"
+    assert color.fromName("RebeccaPurple") == "#663399", "name case-insensitive"
+    assert color.fromName("notacolor") == "", "unknown name"
+    assert color.toName("#FF0000") == "red", "to name red"
+    assert color.toName("#010203") == "", "unnamed hex empty"
+
+    return 0
+end

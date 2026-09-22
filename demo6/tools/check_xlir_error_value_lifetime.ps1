@@ -268,19 +268,13 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR error-value strict-C runtime failed`n$($xlirOutput -join [Environment]::NewLine)"
     }
-    $legacyOutput = @(& $xl run $source --backend legacy 2>&1 |
-        ForEach-Object { "$_" })
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy error-value differential runtime failed`n$($legacyOutput -join [Environment]::NewLine)"
-    }
 } finally {
     Pop-Location
 }
 $expectedOutput = "error value lifetime ok"
-if ( !($xlirOutput -contains $expectedOutput) -or
-     !($legacyOutput -contains $expectedOutput) ) {
-    throw "XLIR/legacy error-value runtime output diverged from the expected observable result"
+if ( !($xlirOutput -contains $expectedOutput) ) {
+    throw "XLIR error-value runtime output diverged from the expected observable result"
 }
 
-Write-Output "XLIR error-value lifetime gate ok: managed pointer-sentinel identity, owned returns and tuples, acquire-before-release assignment, class projection, checked dynamic casts/callable adapters, retained-error awaits, deterministic IR/C, strict C and legacy differential runtime."
+Write-Output "XLIR error-value lifetime gate ok: managed pointer-sentinel identity, owned returns and tuples, acquire-before-release assignment, class projection, checked dynamic casts/callable adapters, retained-error awaits, deterministic IR/C, and strict C runtime."
 exit 0

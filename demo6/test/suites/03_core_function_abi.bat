@@ -253,35 +253,6 @@ if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\xlir_export_callback_lifetime.xl --emit build\test\xlir_export_callback_lifetime.c
 if errorlevel 1 exit /b 1
 
-rem Legacy shape checks are explicit differential coverage. The XLIR import
-rem lane below and the public export gate above independently validate XLIR.
-release\xl.exe cgen test\cases\cgen_c_callback_interop.xl --backend legacy --emit build\test\cgen_c_callback_interop.c --emit-header build\test\cgen_c_callback_interop.h
-if errorlevel 1 exit /b 1
-findstr /C:"typedef int (*XL6_C_Callback_" build\test\cgen_c_callback_interop.h >nul
-if errorlevel 1 (
-    echo cgen_c_callback_interop.h missing raw C callback typedef.
-    exit /b 1
-)
-findstr /C:"XL6_Function op;" build\test\cgen_c_callback_interop.h >nul
-if not errorlevel 1 (
-    echo cgen_c_callback_interop.h unexpectedly changed class func fields.
-    exit /b 1
-)
-findstr /C:"xl6_function_take_c_entry(" build\test\cgen_c_callback_interop.c >nul
-if errorlevel 1 (
-    echo cgen_c_callback_interop.c missing typed func to C callback conversion.
-    exit /b 1
-)
-findstr /C:"xl6_c_callback_" build\test\cgen_c_callback_interop.c >nul
-if errorlevel 1 (
-    echo cgen_c_callback_interop.c missing C callback to typed func bridge.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_c_callback_interop.c test\cases\cgen_c_callback_interop_host.c %XL6_CGEN_LINKS% -o build\test\cgen_c_callback_interop.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_c_callback_interop.exe
-if errorlevel 1 exit /b 1
-
 release\xl.exe ir test\cases\cgen_c_callback_interop.xl --lowered --emit build\test\xlir_c_callback_interop.lowered.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"borrow/raw-c-callback" build\test\xlir_c_callback_interop.lowered.xlir >nul
@@ -316,40 +287,9 @@ if errorlevel 1 exit /b 1
 build\test\xlir_c_callback_interop.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_c_callback_export.xl --backend legacy --emit build\test\cgen_c_callback_export.c --emit-header build\test\cgen_c_callback_export.h
-if errorlevel 1 exit /b 1
-findstr /C:"XL6_C_API int xl_apply_callback(XL6_C_Callback_" build\test\cgen_c_callback_export.h >nul
-if errorlevel 1 (
-    echo cgen_c_callback_export.h missing exported raw callback ABI.
-    exit /b 1
-)
-findstr /C:"XL6_C_API void xl_set_callback(XL6_C_Callback_" build\test\cgen_c_callback_export.h >nul
-if errorlevel 1 (
-    echo cgen_c_callback_export.h missing persistent callback setter ABI.
-    exit /b 1
-)
-findstr /C:"XL6_C_API double xl_apply_mixed_callback(XL6_C_Callback_" build\test\cgen_c_callback_export.h >nul
-if errorlevel 1 (
-    echo cgen_c_callback_export.h missing mixed callback ABI.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Dmain=xl6_c_callback_export_generated_main -c build\test\cgen_c_callback_export.c -o build\test\cgen_c_callback_export.o
-if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_c_callback_export.o test\cases\cgen_c_callback_export_host.c %XL6_CGEN_LINKS% -o build\test\cgen_c_callback_export.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_c_callback_export.exe
-if errorlevel 1 exit /b 1
-
 release\xl.exe run test\cases\cgen_xcall_class.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_xcall_error_bridge.xl --backend legacy --emit build\test\cgen_xcall_error_bridge.c
-if errorlevel 1 exit /b 1
-findstr /C:"xl6_error_publish_xrt();" build\test\cgen_xcall_error_bridge.c >nul
-if errorlevel 1 (
-    echo cgen_xcall_error_bridge.c missing XRT error publication.
-    exit /b 1
-)
 release\xl.exe run test\cases\cgen_xcall_error_bridge.xl test\cases\cgen_xcall_error_bridge_host.c
 if errorlevel 1 exit /b 1
 
@@ -391,14 +331,6 @@ if not errorlevel 1 (
     exit /b 1
 )
 findstr /C:"raw C function pointer" build\test\sem_c_callback_vararg_invalid.err.txt >nul
-if errorlevel 1 exit /b 1
-
-release\xl.exe cgen test\cases\cgen_c_callback_capture_invalid.xl --backend legacy --emit build\test\cgen_c_callback_capture_invalid.c >nul 2> build\test\cgen_c_callback_capture_invalid.err.txt
-if not errorlevel 1 (
-    echo cgen_c_callback_capture_invalid.xl should fail.
-    exit /b 1
-)
-findstr /C:"userdata" build\test\cgen_c_callback_capture_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_c_callback_capture_invalid.xl --backend xlir --emit build\test\xlir_c_callback_capture_invalid.c > build\test\xlir_c_callback_capture_invalid.err.txt 2>&1

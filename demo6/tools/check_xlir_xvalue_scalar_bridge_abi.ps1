@@ -16,9 +16,7 @@ $typedJson = Join-Path $outputDir "xlir_xvalue_scalar_bridge.typed.json"
 $loweredJson = Join-Path $outputDir "xlir_xvalue_scalar_bridge.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_xvalue_scalar_bridge.c"
 $generatedCSecond = Join-Path $outputDir "xlir_xvalue_scalar_bridge.second.c"
-$legacyC = Join-Path $outputDir "xlir_xvalue_scalar_bridge.legacy.c"
 $xlirExe = Join-Path $outputDir "xlir_xvalue_scalar_bridge.exe"
-$legacyExe = Join-Path $outputDir "xlir_xvalue_scalar_bridge.legacy.exe"
 
 foreach ( $path in @($xl, $source, $runtimeHost) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -212,19 +210,9 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR xvalue scalar-bridge strict-C/runtime gate failed"
     }
-
-    & $xl cgen $source --backend legacy --emit $legacyC
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR xvalue scalar-bridge legacy C generation failed"
-    }
-    $legacyCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror build\test\xlir_xvalue_scalar_bridge.legacy.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_xvalue_scalar_bridge.legacy.exe && build\test\xlir_xvalue_scalar_bridge.legacy.exe'
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR xvalue scalar-bridge legacy differential gate failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR xvalue scalar-bridge gate passed: owned return conversion, exact TypeId type-is, refined string projection, checked integer bridges, may-raise constructor cleanup CFG, deterministic strict C, failure catch runtime, and legacy differential semantics."
+Write-Output "XLIR xvalue scalar-bridge gate passed: owned return conversion, exact TypeId type-is, refined string projection, checked integer bridges, may-raise constructor cleanup CFG, deterministic strict C, and failure catch runtime."
 exit 0

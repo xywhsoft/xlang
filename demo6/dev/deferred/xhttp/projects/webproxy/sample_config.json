@@ -1,0 +1,9 @@
+{
+    "listen": 8080,
+    "backends": [
+        {"name": "api", "pattern": "/api/*", "servers": ["127.0.0.1:3001", "127.0.0.1:3002"]},
+        {"name": "static", "pattern": "/static/*", "servers": ["127.0.0.1:4000"]},
+        {"name": "default", "pattern": "/*", "servers": ["127.0.0.1:5000"]}
+    ],
+    "healthCheck": {"interval": 10, "timeout": 3}
+}

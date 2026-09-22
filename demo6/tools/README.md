@@ -13,7 +13,8 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `gen_tcc_vfs_resources.py`: cross-platform LZMA VFS resource generator; its output is kept byte-identical with the PowerShell generator.
 - `tcc_vfs_manifest_linux_runtime.txt`: minimal Linux runtime VFS resource list for `libxl.so`.
 - `tcc_vfs_manifest_linux_xlc.txt`: Linux compiler VFS resource list for `libxlc.so`.
-- `clear_release_tmp_files.ps1`: removes top-level `build\test` regression artifacts with bounded retries so cleanup fails hard instead of continuing after file-lock errors.
+- `clear_release_tmp_files.ps1`: removes transient compiler-run output beneath the release product tree with bounded retries so cleanup fails hard instead of continuing after file-lock errors.
+- `clear_test_artifacts.ps1`: removes the `build\test` regression tree through an exact-path safety boundary.
 - `run_xlir_guards.ps1`: discovers specialized XLIR semantic guards and supplements the explicit full-regression or RC0 entries without running those entries twice. Standalone guards run directly; workers with mandatory inputs are delegated to the reviewed scenario runner.
 - `run_xlir_parameterized_guards.ps1`: builds one current-source public compiler, one runtime-only compiler and one shared contract-driver set, then executes every parameterized XLIR worker through dependency-ordered immutable batch reports.
 - `rc0_guard.ps1`: lightweight release-candidate guard for required files, static boundaries, build, command smoke, diagnostics, docs, risk ledger, cgen size, and wiring.
@@ -37,6 +38,7 @@ Representative and cross-cutting guards include:
 - `check_dll_api_boundary.ps1`
 - `check_docs_index.ps1`
 - `check_example_wiring.ps1`
+- `check_extlib_mqtt.ps1`
 - `check_format_extlibs.ps1`
 - `check_frontend_fuzz.ps1`
 - `check_generated_c_warnings.ps1`
@@ -49,10 +51,9 @@ Representative and cross-cutting guards include:
 - `check_risk_ledger.ps1`
 - `check_source_encoding.ps1`
 - `check_source_wiring.ps1`
-- `check_typed_hir_contract.ps1`
 - `check_xlir_contract.ps1`
 - `check_xlir_cgen_determinism.ps1`
-- `check_xlir_cgen_differential.ps1`
+- `check_xlir_cgen_runtime_matrix.ps1`
 - `check_xlir_intrinsic_calls.ps1`
 - `check_xlir_collection_member_intrinsics.ps1`
 - `check_xlir_dynamic_collection_methods.ps1`
@@ -84,6 +85,10 @@ Representative and cross-cutting guards include:
 `check_generated_c_warnings.ps1` compiles representative generated C translation units with GCC warning errors for missing returns and incompatible pointer types. It is part of both the full artifact-closure suite and the RC0 guard.
 
 `check_debugger_not_released.ps1` verifies that the incomplete probe/DAP prototype is not advertised or accepted by the first-release CLI. A real debugger must return through a new reviewed design and cannot reuse synthetic stack or variable responses.
+
+`check_release_tmp_artifacts.ps1` validates generated test text and also rejects tracked workspace-only output, control characters in tracked filenames, and unclassified files at the `demo6` root. Build products may remain ignored locally, but they cannot silently enter the source baseline.
+
+`check_extlib_mqtt.ps1` compiles the MQTT C implementation against the fixed XRT snapshot, exercises allocation-failure and loopback TCP boundaries, and repeats the codec and TCP cases through xlang JIT and AOT paths.
 
 `check_xrt_ownership_contract.ps1` prevents the removed XRT object-mode compatibility layer from returning. xlang uses retain, ownership transfer and explicit clone/copy; synchronization primitives provide cross-thread publication and visibility.
 

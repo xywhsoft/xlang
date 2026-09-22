@@ -33,12 +33,13 @@ func main(...) as int
     if not reader.find(longName) then
         return 2
     end
+    auto longInfo = reader.info()
+    if longInfo.userName != longUser then
+        return 4
+    end
     string text1 = reader.readText()
     if text1 != "deep content" then
         return 3
-    end
-    if reader.info().userName != longUser then
-        return 4
     end
 
     // Verify unicode name roundtrip

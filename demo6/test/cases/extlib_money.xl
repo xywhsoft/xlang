@@ -1,0 +1,68 @@
+import money
+
+
+
+func main(...) as int
+    // 货币表
+    assert money.symbol("USD") == "$", "usd symbol"
+    assert money.symbol("eur") == "€", "case-insensitive"
+    assert money.symbol("XXX") == "", "unknown symbol empty"
+    assert money.exponent("JPY") == 0, "jpy zero decimals"
+    assert money.exponent("USD") == 2, "usd two decimals"
+    assert money.exponent("ZZZ") == 2, "unknown defaults to 2"
+
+    // 格式化
+    assert money.format(123456, "USD") == "$1,234.56", "usd format"
+    assert money.format(0, "USD") == "$0.00", "zero"
+    assert money.format(5, "USD") == "$0.05", "cents only"
+    assert money.format(100000000, "USD") == "$1,000,000.00", "million"
+    assert money.format(-123456, "USD") == "$-1,234.56", "negative"
+    assert money.format(123456, "CNY").contains("1,234.56") and money.format(123456, "CNY") != "1,234.56", "cny format"
+    assert money.format(123456, "JPY") == "¥123,456", "jpy no decimals"
+    assert money.format(123456, "XYZ") == "XYZ 1,234.56", "unknown code spelled"
+
+    // 精确算术（浮点会出错的场景）
+    int cents = 10
+    int total = 0
+    for i in range(0, 1000000)
+        total = money.add(total, cents)
+    end
+    assert total == 10000000, "a million dimes are exact"
+    assert money.sub(100, 33) == 67, "sub"
+    assert money.mul(199, 3) == 597, "mul"
+
+    // 汇率换算（四舍五入）
+    assert money.rate(10099, 6.90) == 69683, "rate rounds half up"
+    assert money.rate(100, 0.0) == 0, "zero rate"
+
+    // 均分：余数给前几份，总和守恒
+    var parts = money.split(1000, 3)
+    assert parts.length == 3, "three parts"
+    assert parts[0] == 334, "first gets remainder"
+    assert parts[1] == 333, "second"
+    assert parts[2] == 333, "third"
+    assert money.add(money.add(int(parts[0]), int(parts[1])), int(parts[2])) == 1000, "sum preserved"
+
+    var halves = money.split(101, 2)
+    assert halves[0] == 51 and halves[1] == 50, "odd split"
+
+    var even = money.split(100, 4)
+    assert even[0] == 25 and even[3] == 25, "even split"
+
+    int raised = 0
+    try
+        money.split(100, 0)
+    catch e
+        raised = 1
+    end
+    assert raised == 1, "zero parts raises"
+
+    // 组合场景：账单分摊
+    int bill = 8937  // 89.37
+    var shares = money.split(bill, 4)
+    for i in range(0, shares.length)
+        println("share", i + 1, "=", money.format(int(shares[i]), "USD"))
+    end
+
+    return 0
+end

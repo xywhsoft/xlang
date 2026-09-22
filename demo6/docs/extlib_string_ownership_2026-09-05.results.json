@@ -1,0 +1,1032 @@
+{
+  "format": "xlang-extlib-review-1",
+  "generatedAt": "2026-09-05T07:04:46.6055444Z",
+  "baseline": "extlib_review_2026-09-05.results.json",
+  "platform": "Windows x64",
+  "backend": "xlir",
+  "binaries": [
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "Hash": "3AEFD2C274B8A1385254CCBD8A2BF5B0C30615787C5145B737F3877B95BCE114"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+      "Hash": "D7C192D710C2F1EAD7A990D36EB75E1606F71515561CD61072CB9181BAC560B6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll",
+      "Hash": "0C6A58C0BAEDCA7D0A6E9A7498923A8303A247B80CAAD66098BE6FF69E190953"
+    }
+  ],
+  "unchangedAcrossRun": true,
+  "summary": {
+    "total": 125,
+    "passed": 78,
+    "failed": 47,
+    "timeout": 0,
+    "recovered": 53,
+    "regressed": 0
+  },
+  "results": [
+    {
+      "case": "test/cases/extlib_semver.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.1,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_color.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.096,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_ansi.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.078,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_statistics.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.153,
+      "output": "uncaught xlang error: TypeError: value has an incompatible type\n"
+    },
+    {
+      "case": "test/cases/extlib_json_patch.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.135,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_rss.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.133,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_cli.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.118,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_os_args'\n"
+    },
+    {
+      "case": "test/cases/extlib_shellwords.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.096,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_units.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.071,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_sitemap.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.114,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_srt.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.096,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_qr.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.14,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_graph.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.11,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_money.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.108,
+      "output": "share 1 = $22.35\r\nshare 2 = $22.34\r\nshare 3 = $22.34\r\nshare 4 = $22.34\r\n"
+    },
+    {
+      "case": "test/cases/extlib_gettext.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.08,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_ical.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.117,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_barcode.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.12,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_redis.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.19,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_ntp.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.078,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_socks.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.087,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xssh.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.285,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_xmail.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.635,
+      "output": "tcc: __xlvfs__/module.c:1679: error: identifier expected\n"
+    },
+    {
+      "case": "test/cases/extlib_xregex.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.421,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_modbus.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.153,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_oauth2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.097,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_epub.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.099,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_mqtt.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.203,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_memcached.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.159,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_vcard.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.077,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_slugify.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.063,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_aho_corasick.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.545,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_argon2.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.278,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_at'\n"
+    },
+    {
+      "case": "test/cases/extlib_blake2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.387,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_blake3.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.277,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_bloom.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.328,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_slice'\n"
+    },
+    {
+      "case": "test/cases/extlib_brotli.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 1.606,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_bson.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.112,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_time_from_unix'\n"
+    },
+    {
+      "case": "test/cases/extlib_bz2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.613,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_hash_progress.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 2.73,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress_cancel.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 2.701,
+      "output": "uncaught xlang error: FileError: the callable entry failed\ntcc: D:/GIT/x-lang/demo6/release/extlibs/siphash/siphash_native.c:89: warning: assignment from incompatible pointer type\n"
+    },
+    {
+      "case": "test/cases/extlib_lz4.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.264,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_lzma.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.427,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_miniz.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.242,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_murmur3.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.212,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_sha3.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.237,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_siphash.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.215,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_snappy.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.246,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xxhash.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.178,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_zstd.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.461,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_plist.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 1.202,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_onnxruntime.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.263,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_rapidocr.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 1.788,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_replace'\n"
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 15.861,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6ExtlibErrorClear'\n"
+    },
+    {
+      "case": "test/cases/extlib_css.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.068,
+      "output": "uncaught xlang error: IOError: CSS comment is not terminated\n"
+    },
+    {
+      "case": "test/cases/extlib_consistent_hash.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.085,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_crontab.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.075,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_diff.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.069,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_fuzzy.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.062,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_fix.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.081,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_replace'\n"
+    },
+    {
+      "case": "test/cases/extlib_geohash.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.064,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_hyperloglog.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.089,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_hcl.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.072,
+      "output": "uncaught xlang error: IOError: HCL string is not terminated\n"
+    },
+    {
+      "case": "test/cases/extlib_lru.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.092,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_trie.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.077,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_cuckoo.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.078,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_dotenv.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.066,
+      "output": "tcc: __xlvfs__/module.c:940: error: identifier expected\n"
+    },
+    {
+      "case": "test/cases/extlib_chardet.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.084,
+      "output": "uncaught xlang error: ValueError: invalid argument\n"
+    },
+    {
+      "case": "test/cases/extlib_langdetect.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.085,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_terraform_state.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.068,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_imagehash.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.13,
+      "output": "imagehash case ok\r\n"
+    },
+    {
+      "case": "test/cases/extlib_md4c.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.156,
+      "output": "md4c case ok\r\nuncaught xlang error: FileError: failed to open the file\ntcc: D:/GIT/x-lang/demo6/release/extlibs/md4c/third_party/md4c/md4c.c:2596: warning: function might return no value: 'md_opener_stack'\n"
+    },
+    {
+      "case": "test/cases/extlib_sqlite.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.315,
+      "output": "sqlite case ok\r\n"
+    },
+    {
+      "case": "test/cases/extlib_jwt.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.072,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_split'\n"
+    },
+    {
+      "case": "test/cases/extlib_dns.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.075,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_cbor.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.106,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "test/cases/extlib_pkcs.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.088,
+      "output": "uncaught xlang error: IOError: DER set elements are not in canonical order\n"
+    },
+    {
+      "case": "test/cases/extlib_linalg.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.089,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_csv.xl",
+      "status": "fail",
+      "exitCode": 3,
+      "previousStatus": "fail",
+      "seconds": 0.668,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_ini.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.312,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_gzip.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.176,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_tar_p2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 1.212,
+      "output": "P2 PAX/GNU tests passed!"
+    },
+    {
+      "case": "test/cases/extlib_zip.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 2.545,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_netrc.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.283,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_toml.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.355,
+      "output": "uncaught xlang error: ValueError: invalid argument\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/toml/toml_native.c:1:\nD:/GIT/x-lang/demo6/release/extlibs/toml/xrt_toml_internal.h:4: warning: XRT_MODULE_ALL redefined\n"
+    },
+    {
+      "case": "test/cases/extlib_xml_sax.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.369,
+      "output": "uncaught xlang error: AssertionError: malformed XML must throw XmlError\ntcc: In file included from D:/GIT/x-lang/demo6/release/extlibs/xml.sax/xml_sax_native.c:1:\nD:/GIT/x-lang/demo6/release/extlibs/xml.sax/xrt_xml_internal.h:4: warning: XRT_MODULE_ALL redefined\n"
+    },
+    {
+      "case": "test/cases/extlib_xml_dom.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.558,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xml_etree.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.561,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xbot.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.055,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "test/cases/extlib_xbot_agent.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.254,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_dir_list'\n"
+    },
+    {
+      "case": "test/cases/extlib_dinov3.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.518,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_xfeat.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.729,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_stb_image.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.079,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_stb_image_resize2.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.134,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_stb_image_write.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.079,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_stb_truetype.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.094,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_opencv.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.123,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_skiplist.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.074,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_rtree.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.069,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_roaring.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "pass",
+      "seconds": 0.075,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_totp.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.073,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_pinyin.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.063,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_json5.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.057,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_msgpack.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.09,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "test/cases/extlib_yaml.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.069,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_tabulate.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.075,
+      "output": ""
+    },
+    {
+      "case": "test/cases/extlib_progress.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "previousStatus": "fail",
+      "seconds": 0.079,
+      "output": ""
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 1.095,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 1.135,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.371,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.05,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_async\\test\\xhttp_body_async_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.081,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_codec\\test\\xhttp_body_codec_test.xl:152:5: [checked] XLIR async task ABI requires a result ownership ABI and explicit task-frame captures\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 1.651,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.089,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_file\\test\\xhttp_body_file_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.088,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_stream\\test\\xhttp_body_stream_test.xl:46:17: [checked] XLIR transferred return has no exact source LOAD ABI\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 16.766,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 15.17,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 7.934,
+      "output": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.client\\test\\xhttp_client_transport_test.xl:266:1: [checked] XLIR async suspension result ABI is not admitted\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 4.507,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_starts_with'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 2.476,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.898,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.969,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 0.922,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 2.21,
+      "output": "tcc: __xlvfs__/module.c:292: error: struct/union/enum already defined\n"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 1.069,
+      "output": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_byte_len'\n"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "previousStatus": "fail",
+      "seconds": 1.901,
+      "output": "tcc: __xlvfs__/module.c:300: error: struct/union/enum already defined\n"
+    }
+  ]
+}

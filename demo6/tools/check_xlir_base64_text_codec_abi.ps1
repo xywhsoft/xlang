@@ -85,7 +85,7 @@ try {
     $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include "{0}" test\cases\xlir_default_class_layout_host.c !XL6_CGEN_LINKS! -o "{1}" && "{1}"' -f $cPath, $strictExe
     & cmd.exe /d /v:on /c $command
     if ( $LASTEXITCODE -ne 0 ) { throw "Base64 text-only strict C/runtime failed" }
-    foreach ( $backend in @("xlir", "legacy") ) {
+    foreach ( $backend in @("xlir") ) {
         Invoke-Xl @("run", $source, "--backend", $backend)
         $exe = Join-Path $outputDir "xlir_base64_text_codec.$backend.exe"
         Invoke-Xl @("build", $source, "--backend", $backend, "-o", $exe)
@@ -94,5 +94,5 @@ try {
     }
 } finally { Pop-Location }
 
-Write-Output "XLIR Base64 text codec ABI ok: exact reserved bridge, shared adapter, no Buffer/hex/percent dependency, three malformed-ABI rejections, deterministic strict C, and XLIR/legacy run/build parity."
+Write-Output "XLIR Base64 text codec ABI ok: exact reserved bridge, shared adapter, no Buffer/hex/percent dependency, three malformed-ABI rejections, deterministic strict C, and canonical run/build parity."
 exit 0

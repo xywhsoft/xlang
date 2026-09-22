@@ -27,6 +27,8 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
           * handwritten ownership ABI or an implementation amalgamation. */
          needs->needsAsyncMachineRuntime || needs->needsAsyncTaskRuntime || needs->needsFutureContinuationRuntime || needs->needsGeneratorRuntime || needs->needsXValueIteratorRuntime ||
          needs->needsDynamicFieldsBridgeRuntime || needs->needsPersistenceDynamicFields ||
+         needs->needsPrintRuntime || needs->needsDebugConsoleRuntime ||
+         needs->textOutputBridgeOperations != 0 ||
          needs->needsXlangRuntime ||
          needs->needsXValueDynamicFieldRuntime ||
          needs->needsXValueUnionRuntime || needs->needsTemplateBridgeRuntime ||

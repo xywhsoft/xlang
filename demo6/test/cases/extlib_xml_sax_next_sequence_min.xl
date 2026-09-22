@@ -1,0 +1,13 @@
+import xml.sax
+
+func main(...) as int
+    auto source = xml.sax.reader("<root>ok</root>")
+    var first = source.next()
+    var second = source.next()
+    var third = source.next()
+    assert first != null
+    assert second != null
+    assert third != null
+    println("xml.sax event sequence passed")
+    return 0
+end

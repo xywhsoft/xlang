@@ -8,14 +8,12 @@ if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\stdlib_math.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $loweredPath = Join-Path $outputDir "xlir_special_f64_constant_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_special_f64_constant_abi_generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_special_f64_constant_abi_generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_special_f64_constant_abi_legacy.c"
 
-foreach ( $path in @($xl, $source, $hostSource, $legacySupport) ) {
+foreach ( $path in @($xl, $source, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR special f64 constant ABI gate input is missing: $path"
     }
@@ -96,15 +94,8 @@ try {
         throw "XLIR special f64 constant strict-C/runtime gate failed"
     }
 
-    Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-        "Legacy special f64 constant differential Cgen failed"
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $legacySupport !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_special_f64_constant_abi_legacy.exe && build\test\xlir_special_f64_constant_abi_legacy.exe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy special f64 constant differential runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR special f64 constant ABI gate passed: exact zero-operand f64-nan/f64-positive-infinity identities, no arbitrary CONST payload, binary64 bit construction, CLI run/build, deterministic strict C and legacy differential stdlib math semantics."
+Write-Output "XLIR special f64 constant ABI gate passed: exact zero-operand f64-nan/f64-positive-infinity identities, no arbitrary CONST payload, binary64 bit construction, CLI run/build, and deterministic strict-C stdlib math semantics."

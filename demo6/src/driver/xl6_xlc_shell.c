@@ -29,10 +29,10 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl parse <file.xl> [--format tree|json] [--emit output.ast]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl check <file.xl> [--json]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl ir <file.xl> [--lowered] [--format text|json] [--emit output.xlir]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--backend legacy|xlir] [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--backend xlir] [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--backend legacy|xlir] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend legacy|xlir] [--res file.json|file.xson] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--backend xlir] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library] [-- <args>...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend xlir] [--res file.json|file.xson] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
 #ifdef _WIN32
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 #endif
@@ -1066,10 +1066,8 @@ static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
     if ( backend != NULL ) {
         if ( xlcShellTextEquals(backend, "xlir") ) {
             if ( !xlcSetBackend(ctx, XLC_BACKEND_XLIR) ) return 0;
-        } else if ( xlcShellTextEquals(backend, "legacy") ) {
-            if ( !xlcSetBackend(ctx, XLC_BACKEND_LEGACY) ) return 0;
         } else {
-            xl6ConsolePuts(XL6_CONSOLE_STDERR, "backend must be legacy or xlir\n");
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "only the xlir backend is available\n");
             return 0;
         }
     }
@@ -1434,41 +1432,8 @@ static int xlcShellRunC(int argc, char** argv)
     return rc;
 }
 
+/* The inspection surface is derived from the single canonical XLIR pipeline. */
 static int xlcShellCgenDumpDir(XLC_Context* ctx, const char* inputPath, const char* dumpDir)
-{
-    char base[256];
-    char path[512];
-
-    if ( dumpDir == NULL ) {
-        return 1;
-    }
-    if ( !xlcShellMakeDir(dumpDir) ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create dump dir: %s\n", dumpDir);
-        return 0;
-    }
-    xlcShellBaseNoExt(base, sizeof(base), inputPath);
-    if ( !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".tokens.json") ||
-         !xlcEmitTokens(ctx, path, 1) ||
-         !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".ast.json") ||
-         !xlcEmitAst(ctx, path, 1) ||
-         !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".xlir") ||
-         !xlcEmitIr(ctx, path, 0) ||
-         !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".abi.json") ||
-         !xlcEmitAbi(ctx, path, 1) ||
-         !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".c") ||
-         !xlcEmitC(ctx, path) ||
-         !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".h") ||
-         !xlcShellEmitHeader(ctx, path) ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
-        return 0;
-    }
-    return 1;
-}
-
-/* Keep the XLIR inspection surface self-contained: a caller asking for this
- * backend receives the typed/lowered IR and the two products derived from the
- * lowered ABI, never a legacy C or AST-header fallback hidden in dump-dir. */
-static int xlcShellXlirCgenDumpDir(XLC_Context* ctx, const char* inputPath, const char* dumpDir)
 {
     char base[256];
     char path[512];
@@ -1545,16 +1510,15 @@ static int xlcShellDoCgen(XLC_Context* ctx, int argc, char** argv)
     int ok;
 
     backend = xlcShellFindValue(argc, argv, "--backend", 3);
-    if ( backend != NULL && !xlcShellTextEquals(backend, "legacy") && !xlcShellTextEquals(backend, "xlir") ) {
-        xl6ConsolePuts(XL6_CONSOLE_STDERR, "cgen backend must be legacy or xlir\n");
+    if ( backend != NULL && !xlcShellTextEquals(backend, "xlir") ) {
+        xl6ConsolePuts(XL6_CONSOLE_STDERR, "only the xlir backend is available\n");
         return 0;
     }
     dumpDir = xlcShellFindValue(argc, argv, "--dump-dir", 3);
     emit = xlcShellFindValue(argc, argv, "--emit", 3);
     emitHeader = xlcShellFindValue(argc, argv, "--emit-header", 3);
-    if ( dumpDir != NULL && !(backend != NULL && xlcShellTextEquals(backend, "legacy")
-            ? xlcShellCgenDumpDir(ctx, xlcShellFileArg(argc, argv), dumpDir)
-            : xlcShellXlirCgenDumpDir(ctx, xlcShellFileArg(argc, argv), dumpDir)) ) {
+    if ( dumpDir != NULL && !xlcShellCgenDumpDir(
+            ctx, xlcShellFileArg(argc, argv), dumpDir) ) {
         return 0;
     }
     if ( emit == NULL && emitHeader == NULL && dumpDir != NULL ) {

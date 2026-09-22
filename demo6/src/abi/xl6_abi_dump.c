@@ -1,6 +1,5 @@
 #include "src/abi/xl6_abi_dump.h"
 #include "src/abi/xl6_abi_json.h"
-#include "src/cgen/xl6_cgen.h"
 #include "src/common/xl6_output.h"
 
 static void xl6AbiText(XL6_Output* out, const char* text)
@@ -151,6 +150,88 @@ static const XL6_AstNode* xl6AbiResolveAliasType(const XL6_AstNode* root, const 
         typeNode = aliasNode->children[0];
     }
     return typeNode;
+}
+
+static void xl6AbiEncodedSymbolComponent(XL6_Output* out, const char* text)
+{
+    char encoded[XL6_C_SYMBOL_COMPONENT_MAX + 1];
+    if ( out == NULL ) return;
+    if ( !xl6OutputEncodeSymbolComponent(encoded, sizeof(encoded), text) )
+        encoded[0] = '\0';
+    xl6OutputPuts(encoded, out);
+}
+
+static int xl6AbiAutoExportOverloadCount(
+    const XL6_AstNode* root,
+    const char* name)
+{
+    size_t i;
+    int count = 0;
+    if ( root == NULL || name == NULL ) return 0;
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* item = root->children[i];
+        const XL6_AstNode* itemName;
+        if ( item == NULL || item->kind != XL6_AST_EXPORT_FUNC ||
+             item->childCount == 0 ) continue;
+        itemName = item->children[0];
+        if ( itemName != NULL && itemName->text != NULL &&
+             strcmp(itemName->text, name) == 0 ) count += 1;
+    }
+    return count;
+}
+
+static void xl6AbiEmitAutoExportType(
+    XL6_Output* out,
+    const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* args;
+    size_t i;
+    if ( typeNode == NULL || typeNode->text == NULL ) {
+        xl6OutputPutc('_', out);
+        return;
+    }
+    xl6AbiEncodedSymbolComponent(out, typeNode->text);
+    args = typeNode->childCount > 0 && typeNode->children[0] != NULL &&
+           typeNode->children[0]->kind == XL6_AST_LIST
+        ? typeNode->children[0] : NULL;
+    if ( args == NULL || args->childCount == 0 ) return;
+    xl6OutputPuts("_of", out);
+    for ( i = 0; i < args->childCount; ++i ) {
+        xl6OutputPutc('_', out);
+        xl6AbiEmitAutoExportType(out, args->children[i]);
+    }
+}
+
+static void xl6AbiEmitAutoExportSymbol(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+    const XL6_AstNode* params;
+    size_t i;
+    if ( out == NULL ) return;
+    nameNode = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    xl6OutputPuts("xl6_export_", out);
+    xl6AbiEncodedSymbolComponent(out,
+        nameNode != NULL && nameNode->text != NULL ? nameNode->text : "_");
+    if ( nameNode == NULL ||
+         xl6AbiAutoExportOverloadCount(root, nameNode->text) <= 1 ) return;
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    if ( params == NULL || params->childCount == 0 ) {
+        xl6OutputPuts("__void", out);
+        return;
+    }
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        xl6OutputPuts("__", out);
+        if ( param != NULL && (param->flags & XL6_AST_FLAG_BYREF) != 0 )
+            xl6OutputPuts("byref_", out);
+        else if ( param != NULL && (param->flags & XL6_AST_FLAG_OUT) != 0 )
+            xl6OutputPuts("out_", out);
+        xl6AbiEmitAutoExportType(out,
+            param != NULL && param->childCount > 0 ? param->children[0] : NULL);
+    }
 }
 
 static const XL6_AstNode* xl6AbiPublicType(const XL6_AstNode* root, const XL6_AstNode* typeNode)
@@ -446,7 +527,7 @@ static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, c
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6CgenEmitAutoExportSymbol(out, root, node);
+        xl6AbiEmitAutoExportSymbol(out, root, node);
         return;
     }
 
@@ -488,7 +569,7 @@ static void xl6AbiDumpInternalSymbolJsonString(XL6_Output* out, const XL6_AstNod
     xl6OutputPutc('"', out);
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6CgenEmitAutoExportSymbol(out, root, node);
+        xl6AbiEmitAutoExportSymbol(out, root, node);
         xl6OutputPutc('"', out);
         return;
     }

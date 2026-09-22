@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_callsite_binding.xl"
-$legacyFixture = Join-Path $Root "test\cases\call_defaults.xl"
+$defaultArgumentsFixture = Join-Path $Root "test\cases\call_defaults.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_callsite_binding_host.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_callsite_binding.typed.xlir"
@@ -18,10 +18,10 @@ $loweredPath = Join-Path $outputDir "xlir_callsite_binding.lowered.xlir"
 $jsonPath = Join-Path $outputDir "xlir_callsite_binding.lowered.json"
 $cPath = Join-Path $outputDir "xlir_callsite_binding_generated.c"
 $headerPath = Join-Path $outputDir "xlir_callsite_binding_generated.h"
-$legacyCPath = Join-Path $outputDir "call_defaults.callsite_generated.c"
+$defaultArgumentsCPath = Join-Path $outputDir "call_defaults.callsite_generated.c"
 $exePath = Join-Path $outputDir "xlir_callsite_binding_host.exe"
 
-foreach ( $path in @($xl, $source, $legacyFixture, $hostSource) ) {
+foreach ( $path in @($xl, $source, $defaultArgumentsFixture, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR CallSite gate input is missing: $path"
     }
@@ -76,7 +76,7 @@ for ( $i = 0; $i -lt 5; ++$i ) {
 
 & $xl cgen $source --backend xlir --emit $cPath --emit-header $headerPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR CallSite Cgen failed" }
-& $xl cgen $legacyFixture --backend xlir --emit $legacyCPath
+& $xl cgen $defaultArgumentsFixture --backend xlir --emit $defaultArgumentsCPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR existing default-argument fixture no longer uses canonical CallSite binding" }
 $header = [System.IO.File]::ReadAllText($headerPath, [System.Text.Encoding]::UTF8)
 if ( ! $header.Contains("int64_t xlir_callsite_binding_probe(void);") ) {

@@ -41,8 +41,12 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     xl6OutputPuts("typedef xstrview xlir_string_view;\n"
                    "typedef struct xlir_closure xlir_closure;\n"
                    "typedef struct xlir_generator xlir_generator;\n", out);
-    if ( !xl6IrCgenEmitUnionTypes(out, module, diags) ) return 0;
-    if ( !xl6IrCgenEmitProductTypes(out, module, diags) ) return 0;
+    if ( options != NULL && options->debugMode ) {
+        xl6OutputPuts("#include <string.h>\n", out);
+        if ( !xl6IrCgenEmitDebugRuntime(out) ) return 0;
+    }
+    if ( !xl6IrCgenEmitUnionTypes(out, module, NULL, diags) ) return 0;
+    if ( !xl6IrCgenEmitProductTypes(out, module, NULL, diags) ) return 0;
     /* Adapters as well as function bodies consume the same product drop ABI. */
     for ( i = 0; i < module->types.count; ++i ) {
         XL6_IrTypeId type = (XL6_IrTypeId)(i + 1);
@@ -53,7 +57,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitStructuralErrorResultTypes(out, module, diags) ) return 0;
     if ( !xl6IrCgenEmitRuntimePrelude(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitRuntimeSupport(out, module, &needs, diags) ) return 0;
-    if ( needs.needsXlangRuntime ) xl6EmitXlangRuntimeComponent(out, 1);
+    if ( needs.needsXlangRuntime ) xl6EmitXlangRuntimeComponent(out);
     if ( !xl6IrCgenEmitXValueCoreRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueContainerRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueOperationRuntime(out, module, &needs, diags) ) return 0;
@@ -62,13 +66,13 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitStringBridgeRuntime(out, &needs) ) return 0;
     if ( needs.needsFileBridgeRuntime )
         xl6CgenEmitFileRuntime(
-            out, 1, xl6IrCgenNeedsXrtDeclarations(&needs));
+            out, xl6IrCgenNeedsXrtDeclarations(&needs));
     if ( needs.needsBufferBridgeRuntime )
         xl6CgenEmitBufferRuntime(
-            out, needs.needsFileBridgeRuntime, 1,
+            out, needs.needsFileBridgeRuntime,
             xl6IrCgenNeedsXrtDeclarations(&needs));
     if ( needs.needsHttp1Runtime )
-        xl6CgenEmitHttp1Runtime(out, 1);
+        xl6CgenEmitHttp1Runtime(out);
     if ( needs.needsWebSocketFrameRuntime ||
          needs.needsWebSocketHandshakeRuntime ||
          needs.needsWebSocketUpgradeRuntime ||
@@ -82,14 +86,14 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
             needs.needsWebSocketUpgradeRuntime,
             needs.needsWebSocketStreamConfigRuntime,
             needs.needsWebSocketStreamRuntime,
-            needs.needsWebSocketStreamTlsRuntime,
-            1);
+            needs.needsWebSocketStreamTlsRuntime);
     if ( !xl6IrCgenEmitNetTcpRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitNetTlsRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitNetDatagramRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitAsyncAndCallableRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitResourceRuntime(out, module, &needs, diags) ) return 0;
-    if ( !xl6IrCgenEmitModuleDefinitions(out, module, &needs, diags) ) return 0;
+    if ( !xl6IrCgenEmitModuleDefinitions(
+            out, module, &needs, options, diags) ) return 0;
     if ( !xl6IrCgenEmitModuleOwnershipTrace(out, module, &needs) ) return 0;
     if ( !xl6IrCgenEmitSyntheticScriptEntry(out, module,
             options != NULL && options->emitScriptEntry) ) return 0;

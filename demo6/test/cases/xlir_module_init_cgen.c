@@ -1,5 +1,4 @@
 #include "src/cgen/xl6_ir_cgen.h"
-#include "src/ir/xl6_hir.h"
 
 #include <stdio.h>
 
@@ -119,7 +118,6 @@ done:
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_Output out;
@@ -133,7 +131,6 @@ int main(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     decl = xl6AstNewText(XL6_AST_VAR_DECL, "answer", 6, NULL);
@@ -148,7 +145,7 @@ int main(void)
     xl6AstAddChild(decl, value);
     xl6AstAddChild(root, decl);
 
-    ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrCgenEmitC(&out, &ir, &diags);
     text = xl6OutputTakeMemoryText(&out, NULL);
     if ( text != NULL ) {
@@ -177,7 +174,6 @@ int main(void)
     if ( !ok ) fprintf(stderr, "XLIR module init C emitter test failed: %s\n", diags.count > 0 ? diags.items[0].message : "<none>");
     xrtFree(repeat);
     xrtFree(text);
-    xl6HirModuleFree(&hir);
     xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);

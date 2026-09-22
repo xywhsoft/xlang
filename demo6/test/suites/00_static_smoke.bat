@@ -51,9 +51,6 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_wiring.ps1
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_typed_hir_contract.ps1
-if errorlevel 1 exit /b 1
-
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_contract.ps1
 if errorlevel 1 exit /b 1
 
@@ -72,7 +69,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -Command "$path = Join-Path (Join-Path 'src' 'cgen') 'xl6_cgen_async_api.c'; $m = Select-String -LiteralPath $path -SimpleMatch 'xl6FutureCancel('; if ($m) { Write-Host 'task API lowering bypasses xl6_task_cancel_value ownership helper.'; exit 1 }"
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $emit = [IO.File]::ReadAllText((Join-Path $dir 'xl6_ir_cgen_runtime_async_instruction.c')); $prelude = [IO.File]::ReadAllText((Join-Path $dir 'xl6_ir_cgen_emit_prelude.c')); if (!$emit.Contains('xlir_future_cancel(') -or $emit.Contains('xl6FutureCancel(') -or !$prelude.Contains('static bool xlir_future_cancel(')) { Write-Host 'XLIR Future.cancel must use the verified runtime helper.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1

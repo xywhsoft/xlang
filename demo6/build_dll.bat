@@ -176,16 +176,8 @@ echo Building DEMO6 xl.dll runtime...
     src\common\xl6_output.c ^
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
-    src\ir\xl6_hir.c ^
-    src\ir\xl6_hir_type.c ^
  src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
-    src\cgen\xl6_cgen_entry.c ^
-    src\cgen\xl6_cgen_lifecycle.c ^
-    src\cgen\xl6_cgen_runtime.c ^
-    src\cgen\xl6_cgen_header.c ^
-    src\cgen\xl6_cgen_needs_basic.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
-    src\cgen\xl6_cgen.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\lexer\xl6_token.c ^
     src\lexer\xl6_lexer_api.c ^
@@ -263,16 +255,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
     src\ast\xl6_ast_dump.c ^
-    src\ir\xl6_hir.c ^
-    src\ir\xl6_hir_type.c ^
  src\ir\xl6_ir.c src\ir\xl6_ir_lower.c ^
-    src\cgen\xl6_cgen_entry.c ^
-    src\cgen\xl6_cgen_lifecycle.c ^
-    src\cgen\xl6_cgen_runtime.c ^
-    src\cgen\xl6_cgen_header.c ^
-    src\cgen\xl6_cgen_needs_basic.c ^
     src\cgen\xl6_cgen_shared_runtime.c ^
-    src\cgen\xl6_cgen.c ^
     src\cgen\xl6_ir_cgen.c ^
     src\ir\xl6_ir_dump.c ^
     src\lexer\xl6_token.c ^

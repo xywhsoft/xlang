@@ -33,11 +33,18 @@ func main(...) as int
     assert dns.validName("") == 0, "invalid empty"
     assert dns.validName(".bad") == 0, "invalid leading dot"
     assert dns.validName("bad..name") == 0, "invalid double dot"
+    assert dns.validName("-bad.example") == 0, "invalid leading hyphen"
+    assert dns.validName("example.com.") == 1, "root dot is valid"
 
     // IPv4 validation
     assert dns.isIpv4("192.168.1.1") == 1, "ipv4 valid"
     assert dns.isIpv4("256.1.1.1") == 0, "ipv4 invalid"
     assert dns.isIpv4("not.an.ip") == 0, "ipv4 not"
+
+    array<string> addresses = dns.resolve("localhost")
+    assert addresses.length > 0, "resolve localhost"
+    array<string> ipv4 = dns.resolve("localhost", 4)
+    assert ipv4.length > 0, "resolve localhost ipv4"
 
     return 0
 end

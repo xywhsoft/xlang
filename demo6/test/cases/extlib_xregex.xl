@@ -1,0 +1,18 @@
+import xregex
+from xregex import Regex, RegexMatch
+
+
+
+func main(...) as int
+    Regex route = xregex.compile("^/users/(?<id>[0-9]+)$")
+    RegexMatch? matched = route.find("/users/42")
+
+    if matched == null then
+        throw RuntimeError "xregex named-capture match failed"
+    end
+
+    assert matched.text == "/users/42", "xregex matched text"
+    assert route.captureIndex("id") == 1, "xregex named capture index"
+    assert xregex.compile("[0-9]+").replace("a1 b22", "x") == "ax bx", "xregex replace"
+    return 0
+end

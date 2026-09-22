@@ -1,4 +1,3 @@
-#include "src/ir/xl6_hir.h"
 #include "src/ir/xl6_ir.h"
 #include "src/cgen/xl6_ir_cgen.h"
 
@@ -27,7 +26,6 @@ static XL6_AstNode* testReturn(const char* text)
 
 int main(void)
 {
-    XL6_HirModule hir;
     XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_Output out;
@@ -43,7 +41,6 @@ int main(void)
     int ok;
 
     memset(&diags, 0, sizeof(diags)); memset(&out, 0, sizeof(out));
-    xl6HirModuleInit(&hir);
     xl6IrModuleInit(&ir);
     if ( root == NULL || func == NULL || body == NULL || branch == NULL || condition == NULL ) return 1;
     func->semanticSymbolId = 12;
@@ -71,7 +68,7 @@ int main(void)
     xl6AstAddChild(body, branch);
     xl6AstAddChild(func, body);
     xl6AstAddChild(root, func);
-    ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
+    ok = xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrVerifyModule(&ir, &diags) &&
          ir.functionCount == 3 && ir.abi.finalizerFunction == 3 &&
          ir.functions[2].kind == XL6_IR_FUNCTION_MODULE_FINI &&
@@ -124,7 +121,7 @@ int main(void)
             (unsigned int)ir.instructions[i].falseTarget);
         if ( cText != NULL ) fprintf(stderr, "generated C:\n%s\n", cText);
     }
-    xrtFree(cText); xl6HirModuleFree(&hir); xl6IrModuleFree(&ir); xl6AstFree(root); xrtFree(diags.items);
+    xrtFree(cText); xl6IrModuleFree(&ir); xl6AstFree(root); xrtFree(diags.items);
     if ( !ok ) return 1;
     puts("XLIR CFG lowering test ok");
     return 0;

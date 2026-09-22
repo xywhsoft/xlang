@@ -1,0 +1,30 @@
+2026-07-08 10:30:45 INFO  Starting server on port 8080
+2026-07-08 10:30:46 DEBUG Loading config from /etc/app.conf
+2026-07-08 10:30:46 DEBUG Worker pool size set to 8
+2026-07-08 10:30:47 INFO  Database connection established
+2026-07-08 10:30:50 WARN  Cache miss rate high: 45%
+2026-07-08 10:31:00 ERROR Connection refused: 127.0.0.1:3306
+2026-07-08 10:31:01 WARN  Retrying connection (attempt 1/3)
+2026-07-08 10:31:03 ERROR Connection refused: 127.0.0.1:3306
+2026-07-08 10:31:05 ERROR Connection refused: 192.168.1.10:3306
+2026-07-08 10:31:10 INFO  Reconnected to database
+2026-07-08 10:32:00 DEBUG Query executed in 12ms
+2026-07-08 10:32:01 DEBUG Query executed in 8ms
+2026-07-08 10:33:20 WARN  Slow query detected: 1500ms
+2026-07-08 10:34:00 INFO  Handled request GET /api/users
+2026-07-08 10:34:01 INFO  Handled request GET /api/orders
+2026-07-08 10:35:00 ERROR Timeout: waiting for upstream response
+2026-07-08 10:35:02 ERROR Timeout: database query exceeded 5s
+2026-07-08 10:35:10 ERROR Permission denied: cannot write /var/log/app.log
+2026-07-08 10:35:11 ERROR Permission denied: cannot read /etc/secret.key
+2026-07-08 10:36:00 INFO  Backup completed successfully
+2026-07-08 10:37:00 DEBUG GC pause: 4ms
+2026-07-08 10:38:00 WARN  Memory usage above threshold: 82%
+2026-07-08 10:39:00 INFO  Health check passed
+2026-07-08 10:40:00 ERROR Disk full: cannot write cache
+2026-07-08 10:41:00 DEBUG Compact log segment
+2026-07-08 10:42:00 INFO  Scheduled job newsletter sent
+2026-07-08 11:00:00 WARN  Retrying connection (attempt 2/3)
+2026-07-08 12:00:00 ERROR Connection refused: 10.0.0.5:3306
+2026-07-08 13:00:00 INFO  Server status OK
+2026-07-08 18:00:00 INFO  Shutdown signal received

@@ -3,9 +3,8 @@
 
 #include "src/common/xl6_output.h"
 
-/* Backend-independent feature selection for the generated-program network
- * component.  Legacy Cgen derives this record from typed declarations; XLIR
- * derives it only from verified runtime-bridge identities. */
+/* Verified feature selection for generated-program network components. XLIR
+ * derives this record only from explicit runtime-bridge identities. */
 typedef struct XL6_CgenNetNeeds {
     int address;
     int interfaces;
@@ -37,8 +36,8 @@ typedef struct XL6_CgenNetNeeds {
     int deadlineHelper;
 } XL6_CgenNetNeeds;
 
-/* Emits the common TCP operation bodies after the selected backend has
- * supplied lifecycle, address and Future-payload adapters. */
+/* Emits TCP operation bodies after XLIR has supplied lifecycle, address and
+ * Future-payload adapters. */
 void xl6CgenEmitNetTcpComponent(
     XL6_Output* out,
     const XL6_CgenNetNeeds* needs
@@ -50,15 +49,14 @@ void xl6CgenEmitNetBufferComponent(
     const XL6_CgenNetNeeds* needs
 );
 
-/* Emits the common statistics value ABI and the selected TCP stream/listener
- * snapshots.  Both backends select it from their own verified needs model. */
+/* Emits the statistics value ABI and selected TCP stream/listener snapshots. */
 void xl6CgenEmitNetTcpStatsComponent(
     XL6_Output* out,
     const XL6_CgenNetNeeds* needs
 );
 
-/* Exact int64/bool/void ABI component. The backend supplies owned Future
- * mappers and a checked Buffer object projection before these bodies. */
+/* Exact int64/bool/void ABI component. XLIR supplies owned Future mappers and
+ * a checked Buffer object projection before these bodies. */
 typedef struct XL6_CgenNetDatagramNeeds {
     int addressList, resolveAsync, socket, packet, batch, recvAsync, buffers;
     int engineStats, resolverStats, udpStats;

@@ -29,7 +29,6 @@ $historicalSource = Join-Path $Root "test\cases\cgen_for_in_containers.xl"
 $invalidSource = Join-Path $Root "test\cases\cgen_for_in_var_non_container.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_dynamic_var_iterator_abi_host.c"
 $genericHostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$legacySupport = Join-Path $Root "test\cases\xlir_cgen_differential_expect_i64_legacy_support.c"
 $outputDir = Join-Path $Root "build\test"
 $typedPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.typed.json"
 $typedRepeatPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.typed.repeat.json"
@@ -37,19 +36,17 @@ $loweredPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.lowered.json"
 $loweredRepeatPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.lowered.repeat.json"
 $cPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.c"
 $cRepeatPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.repeat.c"
-$legacyCPath = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.legacy.c"
 $historicalCPath = Join-Path $outputDir "cgen_for_in_containers.dynamic.xlir.c"
 $historicalCRepeatPath = Join-Path $outputDir "cgen_for_in_containers.dynamic.xlir.repeat.c"
 $invalidCPath = Join-Path $outputDir "cgen_for_in_var_non_container.dynamic.xlir.c"
 $invalidCRepeatPath = Join-Path $outputDir "cgen_for_in_var_non_container.dynamic.xlir.repeat.c"
 $xlirExe = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.xlir.exe"
-$legacyExe = Join-Path $outputDir "xlir_dynamic_var_iterator_abi.legacy.exe"
 $historicalExe = Join-Path $outputDir "cgen_for_in_containers.dynamic.xlir.exe"
 $invalidExe = Join-Path $outputDir "cgen_for_in_var_non_container.dynamic.xlir.exe"
 
 foreach ( $path in @(
     $xl, $source, $historicalSource, $invalidSource,
-    $hostSource, $genericHostSource, $legacySupport
+    $hostSource, $genericHostSource
 ) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR dynamic var iterator gate input is missing: $path"
@@ -349,18 +346,16 @@ if ( ! $invalidGenerated.Contains("xlir_xvalue_iterator_create_checked") -or
     throw "Established dynamic non-container path does not use the checked iterator TypeError ABI"
 }
 
-& $xl cgen $source --backend legacy --emit $legacyCPath
-if ( $LASTEXITCODE -ne 0 ) { throw "Legacy dynamic var iterator Cgen failed" }
-$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$historicalCPath`" `"$genericHostSource`" !XL6_CGEN_LINKS! -o `"$historicalExe`" && `"$historicalExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$invalidCPath`" `"$genericHostSource`" !XL6_CGEN_LINKS! -o `"$invalidExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror `"$legacyCPath`" `"$legacySupport`" !XL6_CGEN_LINKS! -o `"$legacyExe`" && `"$legacyExe`""
+$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$xlirExe`" && `"$xlirExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$historicalCPath`" `"$genericHostSource`" !XL6_CGEN_LINKS! -o `"$historicalExe`" && `"$historicalExe`" && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$invalidCPath`" `"$genericHostSource`" !XL6_CGEN_LINKS! -o `"$invalidExe`""
 Push-Location $Root
 try {
     & $env:ComSpec /d /v:on /c $command
     if ( $LASTEXITCODE -ne 0 ) {
-        throw "Dynamic var iterator strict compile or legacy differential runtime failed"
+        throw "Dynamic var iterator strict compile/runtime failed"
     }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR dynamic var iterator ABI gate ok: focused and established cgen_for_in_containers/cgen_for_in_var_non_container coverage, independent physical var/logical refined collection TypeIds, exact refined-family rejection, runtime-checked array/list/set/dict dispatch, explicit key/item discard without projection or storage, immediate ERROR_TEST, canonical managed key/item projections, source-bound cursors, owned-rvalue checked-create release, cleanup across continue/break/return/finally, exact TypeError, deterministic mechanical C, strict compile, and legacy differential runtime."
+Write-Output "XLIR dynamic var iterator ABI gate ok: focused and established cgen_for_in_containers/cgen_for_in_var_non_container coverage, independent physical var/logical refined collection TypeIds, exact refined-family rejection, runtime-checked array/list/set/dict dispatch, explicit key/item discard without projection or storage, immediate ERROR_TEST, canonical managed key/item projections, source-bound cursors, owned-rvalue checked-create release, cleanup across continue/break/return/finally, exact TypeError, deterministic mechanical C, and strict compile/runtime."
 exit 0

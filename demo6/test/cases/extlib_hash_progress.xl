@@ -1,0 +1,61 @@
+import blake2
+import blake3
+import crc32
+import md5
+import murmur3
+import sha3
+import siphash
+import xxhash
+
+class HashProgressState
+    int calls = 0
+    int lastInput = 0
+    int lastTotal = 0
+    int lastOutput = -1
+end
+
+func main(...) as int
+    string sourcePath = "tmp/extlib_hash_progress_source.txt"
+    string text = ""
+    int i = 0
+    while i < 10000
+        text += "xlang-hash-progress-" + string(i) + "\n"
+        i += 1
+    end
+    file.writeText(sourcePath, text)
+
+    HashProgressState state = HashProgressState()
+    func(int, int, int) as bool progress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        state.calls += 1
+        state.lastInput = inputBytes
+        state.lastTotal = totalBytes
+        state.lastOutput = outputBytes
+        return true
+    end
+
+    assert blake2.blake2bFileHex(sourcePath, onProgress = progress) == blake2.blake2bFileHex(sourcePath)
+    assert blake2.blake2sFileHex(sourcePath, onProgress = progress) == blake2.blake2sFileHex(sourcePath)
+    assert blake3.hashFileHex(sourcePath, onProgress = progress) == blake3.hashFileHex(sourcePath)
+    assert crc32.checksumFile(sourcePath, onProgress = progress) == crc32.checksumFile(sourcePath)
+    assert crc32.checksumFileHex(sourcePath, onProgress = progress) == crc32.checksumFileHex(sourcePath)
+    assert md5.hashFileHex(sourcePath, onProgress = progress) == md5.hashFileHex(sourcePath)
+    assert md5.hashFile(sourcePath, onProgress = progress).len() == 16
+    assert murmur3.hashFile32(sourcePath, onProgress = progress) == murmur3.hashFile32(sourcePath)
+    assert murmur3.hashFile128Hex(sourcePath, onProgress = progress) == murmur3.hashFile128Hex(sourcePath)
+    assert sha3.hashFileHex(sourcePath, onProgress = progress) == sha3.hashFileHex(sourcePath)
+
+    Buffer key = Buffer()
+    key.append("0123456789abcdef")
+    assert siphash.hashFile64(sourcePath, key, onProgress = progress) == siphash.hashFile64(sourcePath, key)
+    assert xxhash.hashFile64(sourcePath, onProgress = progress) == xxhash.hashFile64(sourcePath)
+    assert xxhash.hashFile64Hex(sourcePath, onProgress = progress) == xxhash.hashFile64Hex(sourcePath)
+
+    assert state.calls >= 13
+    assert state.lastInput == string.byteLen(text)
+    assert state.lastTotal == state.lastInput
+    assert state.lastOutput == 0
+
+    file.delete(sourcePath)
+    return 0
+end

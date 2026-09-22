@@ -13,9 +13,7 @@ $outputDir = Join-Path $Root "build\test"
 $loweredPath = Join-Path $outputDir "xlir_resolved_property_call_abi.lowered.json"
 $generatedPath = Join-Path $outputDir "xlir_resolved_property_call_abi.generated.c"
 $generatedAgainPath = Join-Path $outputDir "xlir_resolved_property_call_abi.generated_again.c"
-$legacyPath = Join-Path $outputDir "xlir_resolved_property_call_abi.legacy.c"
 $xlirExe = Join-Path $outputDir "xlir_resolved_property_call_abi.xlir.exe"
-$legacyExe = Join-Path $outputDir "xlir_resolved_property_call_abi.legacy.exe"
 
 foreach ( $path in @($xl, $source, $moduleHost, $support) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -116,18 +114,10 @@ foreach ( $spec in $specs ) {
         if ( $origins.Count -ne 1 ) {
             throw "Property CALL is not owned by its semantic property-get/property-set origin: $($spec.Name)"
         }
+        # Indexed properties are semantically owned by the INDEX node itself;
+        # its MEMBER child only preserves source shape and must not be chased.
         $semanticOrigins = $origins
-        if ( $spec.CallKind -eq "property-get" -and
-             $origins[0].kindName -eq "index" ) {
-            $children = @($lowered.nodeChildren)[
-                [int]$origins[0].firstChild..
-                ([int]$origins[0].firstChild + [int]$origins[0].childCount - 1)]
-            $semanticOrigins = @($lowered.nodes | Where-Object {
-                $_.id -in $children -and $_.kindName -eq "member"
-            })
-        }
-        if ( $semanticOrigins.Count -ne 1 -or
-             $semanticOrigins[0].callKindName -ne $spec.CallKind -or
+        if ( $semanticOrigins[0].callKindName -ne $spec.CallKind -or
              $semanticOrigins[0].targetSymbol -ne $target.symbol ) {
             throw "Property CALL lost its resolved semantic target: $($spec.Name)"
         }
@@ -253,8 +243,6 @@ foreach ( $forbidden in @(
     }
 }
 
-Invoke-Xl @("cgen", $source, "--backend", "legacy", "--emit", $legacyPath) `
-    "Legacy resolved property differential Cgen failed"
 Push-Location $Root
 try {
     $xlirCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include $generatedPath -include $support $moduleHost !XL6_CGEN_LINKS! -o $xlirExe && $xlirExe"
@@ -262,14 +250,9 @@ try {
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR resolved property strict generated-C runtime failed"
     }
-    $legacyCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $legacyPath $support !XL6_CGEN_XLANG_LINKS! -o $legacyExe && $legacyExe"
-    & $env:ComSpec /d /v:on /c $legacyCommand
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "Legacy resolved property strict generated-C runtime failed"
-    }
 } finally {
     Pop-Location
 }
 
-Write-Output "XLIR resolved property CallTarget ABI gate ok: exact extern C getter/setter targets, explicit managed-field native receiver projection plus ordered scalar index/value TypeIds, direct member/single-index/multi-index CALLs, deterministic strict C, and legacy differential runtime semantics."
+Write-Output "XLIR resolved property CallTarget ABI gate ok: exact extern C getter/setter targets, explicit managed-field native receiver projection plus ordered scalar index/value TypeIds, direct member/single-index/multi-index CALLs, and deterministic strict-C runtime semantics."
 exit 0

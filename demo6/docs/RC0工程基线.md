@@ -33,7 +33,7 @@ rc0_guard.bat -SkipFullTests
 - 工具 wiring 检查同时要求每个 `tools/check_*.ps1` 接入 `test.bat` 或 `test/suites/*.bat` 分类套件，并且接入轻量 RC0 守门；如果某个检查脚本必须保留在完整主回归中，必须在 `check_tool_wiring.ps1` 中显式登记为完整回归例外。
 - 上述 wiring 类静态检查已经直接接入轻量 RC0 守门，包括 docs、cgenrule、Markdown 本地链接、tool、batch、source、toolchain、DLL API boundary、test case、test data、example、C fixture、package fixture 和标准库覆盖/符号检查。
 - 工程入口和接口类检查同时守住本轮校准数量基线：130 个源码文件、34 个直接构建源码、95 个分片包含源码、2 个生成物直接构建入口、11 个根目录批处理入口、11 个测试分类套件批处理入口、1 个工具链批处理入口、30 个守门脚本、62 个 DLL 公开 API、6 个以上 xl.dll C 宿主范例、318 个标准库 DLL C 符号、710 个 XRT/runtime 注入导出符号和 1640 个严格 UTF-8 扫描文本文件。
-- 文档和静态扫描类检查同时守住本轮校准数量基线：37 个 docs Markdown、14 个额外 Markdown 入口、100 个 Markdown 扫描目标、47 个 cgenrule Markdown、843 条唯一 `CGEN-*` 规则、167 个工具链路径源码/头文件扫描目标、176 个工具链路径 fixture C/H 扫描目标、17 个工具链路径批处理扫描目标、291 个手写/fixture C/H 安全扫描目标和 2 个 lexer/parser 规格扫描目标。
+- 文档和静态扫描类检查同时守住当前权威文档、额外入口和唯一 `cgenrule/README.md`；旧 AST Cgen 的编号规则与验证矩阵不得恢复。工具链路径、fixture、手写 C/H 和 lexer/parser 规格仍由各自动态清单守门，不以陈旧的固定数量代替实际枚举。
 - 批处理字节级检查，允许文件开头 UTF-8 BOM，但正文必须保持 ASCII，避免 Windows `cmd` 在不同代码页下误解析注释或命令。
 - 批处理中的单行 TCC C 编译/链接命令必须使用集中工具链变量：C 编译命令必须带 `%XL6_TCC_INCLUDES%`、`%XL6_TCC_INCLUDES_WINAPI%` 或 `%XL6_TCC_SOURCE_INCLUDE%`；显式链接到 `.exe` / `.dll` 或使用 `-shared` 时，必须带 `%XL6_TCC_LIB_FLAGS%` 或 `%XL6_DEFAULT_LINKS%`。
 - 源码编码检查覆盖源码、文档、脚本、测试、示例和 metadata 文本，要求严格 UTF-8，并阻止替换字符和典型历史乱码回流。
@@ -78,6 +78,9 @@ rc0_guard.bat -SkipFullTests
 生成物与临时文件：
 
 - `release`：构建输出、运行临时目录、临时可执行文件，以及 `release/include`、`release/examples`、`release/extlibs` 三个随 `xl.exe` 分发的正式资产目录。
+- `build`、`out`、`tmp`、`examples_out`、`logs`：本地构建、诊断和手工探针输出，不属于源码基线。
+- 根目录临时可执行文件、对象文件、链接定义、截图和 `tmp_*.xl` 探针，以及 Python `__pycache__`，均由 `.gitignore` 隔离；`check_release_tmp_artifacts.ps1` 同时禁止它们进入跟踪基线。
+- `release/projects/*/build`、XS 运行时数据库/WAL 和延期项目生成的可执行文件属于可再生产物，不作为项目源码发布。
 - `src/lexer/xl6_lexer_gen.c`、`src/lexer/xl6_lexer_gen.h`：flex 生成的发布构建输入，默认不在 `build.bat` 中重新生成。
 - `src/parser/xl6_parser.c`、`src/parser/xl6_parser.h`：lemon 生成的发布构建输入，默认不在 `build.bat` 中重新生成。
 - `src/parser/xl6_parser.out`：lemon trace 输出，属于可忽略临时生成物。
