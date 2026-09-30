@@ -76,7 +76,9 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         'test/cases/stdlib_vfs_disk.xl', 'test/cases/stdlib_vfs_limits.xl',
         'test/cases/stdlib_vfs_minimal.xl', 'test/cases/stdlib_vfs_pack.xl',
         'test/cases/stdlib_vfs_pack_limits.xl', 'test/cases/stdlib_vfs_lifetime.xl',
-        'test/cases/stdlib_fs_handles.xl', 'test/cases/stdlib_fs_native.xl')
+        'test/cases/stdlib_fs_handles.xl', 'test/cases/stdlib_fs_native.xl',
+        'test/cases/stdlib_fs_resources.xl', 'test/cases/stdlib_fs_root.xl',
+        'test/cases/stdlib_fs_allocation.xl')
     foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
@@ -89,6 +91,7 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         if ($c -cne [System.IO.File]::ReadAllText($repeat)) { throw "$name is not deterministic" }
         if ($c -match '#include\s*[<\"][^>\"]*(?<!_decl)\b(?:xrt|xruntime)\.h[>\"]') { throw "$name imports an implementation header" }
         if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'xl6_xrt_vfs_(?:pack|disk)_|XRT_MODULE_VFS_(?:PACK|DISK)') { throw "Memory-only program retains disk/pack adapters" }
+        if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'XRT_MODULE_FILE_(?:ROOT|MAP|LOCK)|xl6_xrt_fs_') { throw 'Memory-only program retains unused File resources' }
         $strict = Join-Path $outputDir "$name.strict.exe"
         Compile-Strict $cPath $strict
         Invoke-Test $strict ""
@@ -121,4 +124,4 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     }
     Pop-Location
 }
-Write-Output 'VFS/File foundation gate passed: ten positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close boundaries and five ABI negatives.'
+Write-Output 'VFS/File foundation gate passed: thirteen positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'

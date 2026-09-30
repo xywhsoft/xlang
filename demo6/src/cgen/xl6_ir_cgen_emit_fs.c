@@ -9,14 +9,17 @@ static int xl6IrCgenFsSelected(const XL6_IrCgenNeeds* needs, XL6_IrRuntimeBridge
 }
 static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
 {
-    int file = 0, info = 0, dir = 0;
+    int file = 0, info = 0, dir = 0, root = 0, map = 0, lock = 0;
     for (XL6_IrRuntimeBridgeKind k = XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN; k < XL6_IR_RUNTIME_BRIDGE_FS_END; ++k) {
         if (!xl6IrCgenFsSelected(needs, k)) continue;
-        if (k <= XL6_IR_RUNTIME_BRIDGE_FS_FILE_NATIVE || k == XL6_IR_RUNTIME_BRIDGE_FS_INFO_FILE ||
-            k == XL6_IR_RUNTIME_BRIDGE_FS_FILE_HANDLE || k == XL6_IR_RUNTIME_BRIDGE_FS_FILE_READ_TEXT) file = 1;
-        if (k >= XL6_IR_RUNTIME_BRIDGE_FS_INFO_PATH && k <= XL6_IR_RUNTIME_BRIDGE_FS_INFO_UTF8) info = 1;
-        if ((k >= XL6_IR_RUNTIME_BRIDGE_FS_DIR_OPEN && k <= XL6_IR_RUNTIME_BRIDGE_FS_DIR_PATH) || k == XL6_IR_RUNTIME_BRIDGE_FS_INFO_DIRECTORY) dir = 1;
+        if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_map_destroy")) map = 1;
+        if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_lock_destroy")) lock = 1;
+        if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_file_destroy")) file = 1;
+        if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_info_destroy")) info = 1;
+        if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_dir_destroy")) dir = 1;
+        if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_root_destroy")) root = 1;
     }
+    file |= map | lock;
     xl6OutputPuts(
             "static inline bool xlir_fs_size(int64_t request, size_t* size)\n"
             "{ if (request < 0 || (uint64_t)request > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
@@ -26,10 +29,10 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  *size = limit >= 0 && (uint64_t)limit < actual ? (size_t)limit : actual; return true; }\n"
             "\n", out);
     if (file) xl6OutputPuts(
-            "typedef struct xlir_fs_file { xfile file; xatomic32 refs; } xlir_fs_file;\n"
+            "typedef struct xlir_fs_file { xfile file; xatomic32 refs; xatomic32 lock; } xlir_fs_file;\n"
             "static inline xlir_fs_file* xlir_fs_file_alloc(void)\n"
             "{ xlir_fs_file* owner = (xlir_fs_file*)xrtCalloc(1, sizeof(*owner));\n"
-            "  if (owner != NULL) { xrtAtomic32Init(&owner->refs, 1); } return owner; }\n"
+            "  if (owner != NULL) { xrtAtomic32Init(&owner->refs, 1); xrtAtomic32Init(&owner->lock, 0); } return owner; }\n"
             "static inline xfile xlir_fs_file_get(void* handle)\n"
             "{ xlir_fs_file* owner = (xlir_fs_file*)handle;\n"
             "  if (owner == NULL || owner->file == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->file; }\n"
@@ -61,6 +64,48 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
     if (dir) xl6OutputPuts(
             "typedef struct xlir_fs_dir { xdir dir; xdirentry entry; bool current; } xlir_fs_dir;\n"
             "\n", out);
+    if (file) xl6OutputPuts(
+            "static inline bool xlir_fs_file_ref(xlir_fs_file* owner)\n"
+            "{ uint32_t refs = xrtAtomic32Load(&owner->refs, XMEMORY_RELAXED);\n"
+            "  for (;;) {\n"
+            "    if (refs == 0 || refs == UINT32_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
+            "    if (xrtAtomic32CompareExchange(&owner->refs, &refs, refs + 1, XMEMORY_ACQ_REL, XMEMORY_RELAXED)) { return true; }\n"
+            "  } }\n", out);
+    if (root) xl6OutputPuts(
+            "typedef struct xlir_fs_root { xroot root; } xlir_fs_root;\n"
+            "static inline xroot xlir_fs_root_get(void* handle)\n"
+            "{ xlir_fs_root* owner = (xlir_fs_root*)handle;\n"
+            "  if (owner == NULL || owner->root == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->root; }\n", out);
+    if (map) xl6OutputPuts(
+            "typedef struct xlir_fs_map { xfilemap map; xlir_fs_file* file; uint32_t flags; } xlir_fs_map;\n"
+            "static inline xfilemap xlir_fs_map_get(void* handle)\n"
+            "{ xlir_fs_map* owner = (xlir_fs_map*)handle;\n"
+            "  if (owner == NULL || owner->map == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->map; }\n"
+            "static inline bool xlir_fs_map_close(xlir_fs_map* owner)\n"
+            "{ xfilemap map; xlir_fs_file* file; bool ok; xerror* error;\n"
+            "  if (owner == NULL || owner->map == NULL) { return true; }\n"
+            "  map = owner->map; file = owner->file; owner->map = NULL; owner->file = NULL;\n"
+            "  ok = xrtFileUnmap(map); error = !ok ? xrtTakeError() : NULL;\n"
+            "  xlir_fs_file_drop(file);\n"
+            "  if (error != NULL) { xrtClearError(); xrtSetErrorTake(error); }\n"
+            "  return ok && xrtGetError() == NULL; }\n", out);
+    if (lock) xl6OutputPuts(
+            "typedef struct xlir_fs_lock { xlir_fs_file* file; uint64_t offset; uint64_t size; } xlir_fs_lock;\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_READER) || xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_WRITER)) xl6OutputPuts(
+            "static bool xlir_fs_stream_read(void* owner, void* data, size_t count, size_t* done)\n"
+            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtRead(file, data, count, done); }\n"
+            "static bool xlir_fs_stream_write(void* owner, const void* data, size_t count, size_t* done)\n"
+            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtWrite(file, data, count, done); }\n"
+            "static bool xlir_fs_stream_seek(void* owner, int64_t offset, xseek origin, uint64_t* position)\n"
+            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtSeek(file, offset, origin, position); }\n"
+            "static bool xlir_fs_stream_tell(void* owner, uint64_t* position)\n"
+            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtTell(file, position); }\n"
+            "static bool xlir_fs_stream_size(void* owner, uint64_t* size)\n"
+            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtFileSize(file, size); }\n"
+            "static bool xlir_fs_stream_flush(void* owner)\n"
+            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtFlush(file); }\n"
+            "static bool xlir_fs_stream_drop(void* owner)\n"
+            "{ xlir_fs_file_drop((xlir_fs_file*)owner); return xrtGetError() == NULL; }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN)) xl6OutputPuts(
             "void* xl6_xrt_fs_file_open(xlir_string path, int64_t flags, int64_t mode, int64_t share)\n"
             "{ const char* name; xlir_fs_file* owner; xfileoptions options;\n"
@@ -315,4 +360,203 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  data.Data += bom; data.Size -= bom;\n"
             "  text = xrtTranscode(data, (xencoding)encoding, XENCODING_UTF8, (xutfpolicy)policy, false, &outputSize);\n"
             "  xrtFree(raw); return xlir_string_take_known((char*)text, outputSize); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_CAPABILITIES)) xl6OutputPuts(
+            "uint64_t xl6_xrt_fs_file_capabilities(void* handle)\n"
+            "{ xfile file = xlir_fs_file_get(handle); return file != NULL ? xrtFileCapabilities(file) : 0; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_READER)) xl6OutputPuts(
+            "void* xl6_xrt_fs_file_reader(void* handle)\n"
+            "{ xlir_fs_file* owner = (xlir_fs_file*)handle; xfile file = xlir_fs_file_get(handle); xreaderops ops = {0};\n"
+            "  uint64_t caps; xreader* reader; xerror* error;\n"
+            "  if (file == NULL) { return NULL; } caps = xrtFileCapabilities(file);\n"
+            "  if (!(caps & XFILE_CAP_READ)) { xrtSetErrorKind(XERR_UNSUPPORTED); return NULL; }\n"
+            "  ops.Read = xlir_fs_stream_read; ops.Close = xlir_fs_stream_drop;\n"
+            "  if (caps & XFILE_CAP_SEEK) { ops.Seek = xlir_fs_stream_seek; ops.Tell = xlir_fs_stream_tell; }\n"
+            "  if (caps & XFILE_CAP_STAT) ops.Size = xlir_fs_stream_size;\n"
+            "  if (!xlir_fs_file_ref(owner)) { return NULL; }\n"
+            "  reader = xrtReaderCreate(&ops, owner);\n"
+            "  if (reader == NULL) { error = xrtTakeError(); xlir_fs_file_drop(owner); xrtClearError();\n"
+            "    if (error != NULL) { xrtSetErrorTake(error); } return NULL; }\n"
+            "  return xlir_io_reader_take(reader); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_WRITER)) xl6OutputPuts(
+            "void* xl6_xrt_fs_file_writer(void* handle)\n"
+            "{ xlir_fs_file* owner = (xlir_fs_file*)handle; xfile file = xlir_fs_file_get(handle); xwriterops ops = {0};\n"
+            "  uint64_t caps; xwriter* writer; xerror* error;\n"
+            "  if (file == NULL) { return NULL; } caps = xrtFileCapabilities(file);\n"
+            "  if (!(caps & XFILE_CAP_WRITE)) { xrtSetErrorKind(XERR_UNSUPPORTED); return NULL; }\n"
+            "  ops.Write = xlir_fs_stream_write; ops.Close = xlir_fs_stream_drop;\n"
+            "  if (caps & XFILE_CAP_SEEK) { ops.Seek = xlir_fs_stream_seek; ops.Tell = xlir_fs_stream_tell; }\n"
+            "  if (caps & XFILE_CAP_STAT) ops.Size = xlir_fs_stream_size;\n"
+            "  if (caps & XFILE_CAP_FLUSH) ops.Flush = xlir_fs_stream_flush;\n"
+            "  if (!xlir_fs_file_ref(owner)) { return NULL; }\n"
+            "  writer = xrtWriterCreate(&ops, owner);\n"
+            "  if (writer == NULL) { error = xrtTakeError(); xlir_fs_file_drop(owner); xrtClearError();\n"
+            "    if (error != NULL) { xrtSetErrorTake(error); } return NULL; }\n"
+            "  return xlir_io_writer_take(writer, NULL, NULL); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_CREATE)) xl6OutputPuts(
+            "void* xl6_xrt_fs_root_create(xlir_string path)\n"
+            "{ const char* name = xlir_string_cstr(path); xlir_fs_root* owner;\n"
+            "  if (name == NULL) { return NULL; }\n"
+            "  owner = (xlir_fs_root*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
+            "  owner->root = xrtRootOpen(name); if (owner->root == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_DESTROY)) xl6OutputPuts(
+            "void xl6_xrt_fs_root_destroy(void* handle)\n"
+            "{ xerror* error = xrtTakeError(); xlir_fs_root* owner = (xlir_fs_root*)handle;\n"
+            "  if (owner != NULL) { if (owner->root != NULL) { (void)xrtRootClose(owner->root); } xrtFree(owner); }\n"
+            "  xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_CLOSE)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_close(void* handle)\n"
+            "{ xlir_fs_root* owner = (xlir_fs_root*)handle; xroot root;\n"
+            "  if (owner == NULL || owner->root == NULL) { return true; }\n"
+            "  root = owner->root; owner->root = NULL; return xrtRootClose(root); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_PATH)) xl6OutputPuts(
+            "xlir_string xl6_xrt_fs_root_path(void* handle)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* path;\n"
+            "  if (root == NULL) { return (xlir_string){0}; } path = xrtRootPath(root);\n"
+            "  return path != NULL ? xlir_string_from_utf8(path, strlen(path)) : (xlir_string){0}; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_OPEN_FILE)) xl6OutputPuts(
+            "void* xl6_xrt_fs_root_open_file(void* handle, xlir_string path, int64_t flags, int64_t mode, int64_t share)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name; xfileoptions options; xlir_fs_file* owner;\n"
+            "  if (root == NULL || !xlir_fs_options(flags, mode, share, &options)) { return NULL; }\n"
+            "  name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
+            "  owner = xlir_fs_file_alloc(); if (owner == NULL) { return NULL; }\n"
+            "  owner->file = xrtRootFileOpen(root, name, &options);\n"
+            "  if (owner->file == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_STAT)) xl6OutputPuts(
+            "void* xl6_xrt_fs_root_stat(void* handle, xlir_string path, bool follow)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name; xlir_fs_info* info;\n"
+            "  if (root == NULL) { return NULL; } name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
+            "  info = xlir_fs_info_alloc(name); if (info == NULL) { return NULL; }\n"
+            "  if (!xrtRootStat(root, name, follow, &info->info)) { xlir_fs_info_drop(info); return NULL; } return info; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_OPEN_DIR)) xl6OutputPuts(
+            "void* xl6_xrt_fs_root_open_dir(void* handle, xlir_string path, int64_t flags)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name; xlir_fs_dir* owner;\n"
+            "  if (flags < 0 || flags > 7) { xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
+            "  if (root == NULL) { return NULL; } name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
+            "  owner = (xlir_fs_dir*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
+            "  owner->dir = xrtRootDirOpen(root, name, (uint32_t)flags);\n"
+            "  if (owner->dir == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_OPEN_ROOT)) xl6OutputPuts(
+            "void* xl6_xrt_fs_root_open_root(void* handle, xlir_string path)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name; xlir_fs_root* owner;\n"
+            "  if (root == NULL) { return NULL; } name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
+            "  owner = (xlir_fs_root*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
+            "  owner->root = xrtRootOpenIn(root, name); if (owner->root == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_MKDIR)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_mkdir(void* handle, xlir_string path, int64_t mode)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name;\n"
+            "  if (mode < 0 || mode > 4095) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
+            "  if (root == NULL) { return false; } name = xlir_string_cstr(path); if (name == NULL) { return false; }\n"
+            "  return xrtRootDirCreate(root, name, (uint32_t)mode); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_FIFO)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_fifo(void* handle, xlir_string path, int64_t mode)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name;\n"
+            "  if (mode < 0 || mode > 4095) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
+            "  if (root == NULL) { return false; } name = xlir_string_cstr(path); if (name == NULL) { return false; }\n"
+            "  return xrtRootFifoCreate(root, name, (uint32_t)mode); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_REMOVE)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_remove(void* handle, xlir_string path)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name;\n"
+            "  \n"
+            "  if (root == NULL) { return false; } name = xlir_string_cstr(path); if (name == NULL) { return false; }\n"
+            "  return xrtRootRemove(root, name); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_READ_LINK)) xl6OutputPuts(
+            "xlir_string xl6_xrt_fs_root_read_link(void* handle, xlir_string path)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name;\n"
+            "  \n"
+            "  if (root == NULL) { return (xlir_string){0}; } name = xlir_string_cstr(path); if (name == NULL) { return (xlir_string){0}; }\n"
+            "  return xlir_string_take_cstr(xrtRootLinkRead(root, name)); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_SYMLINK)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_symlink(void* handle, xlir_string target, xlir_string link, bool directory)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* to; const char* name;\n"
+            "  if (root == NULL) { return false; } to = xlir_string_cstr(target); if (to == NULL) { return false; }\n"
+            "  name = xlir_string_cstr(link); return name != NULL && xrtRootLinkCreate(root, to, name, directory); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_HARDLINK)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_hardlink(void* handle, xlir_string target, xlir_string link)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* to; const char* name;\n"
+            "  if (root == NULL) { return false; } to = xlir_string_cstr(target); if (to == NULL) { return false; }\n"
+            "  name = xlir_string_cstr(link); return name != NULL && xrtRootLinkHard(root, to, name); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_MODE)) xl6OutputPuts(
+            "bool xl6_xrt_fs_root_mode(void* handle, xlir_string path, bool follow, int64_t mode)\n"
+            "{ xroot root = xlir_fs_root_get(handle); const char* name;\n"
+            "  if (mode < 0 || mode > 4095) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
+            "  if (root == NULL) { return false; } name = xlir_string_cstr(path);\n"
+            "  return name != NULL && xrtRootSetMode(root, name, follow, (uint32_t)mode); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_CREATE)) xl6OutputPuts(
+            "void* xl6_xrt_fs_map_create(void* handle, uint64_t offset, int64_t size, int64_t flags)\n"
+            "{ xlir_fs_file* file = (xlir_fs_file*)handle; xlir_fs_map* owner; size_t count;\n"
+            "  if (!xlir_fs_size(size, &count)) { return NULL; }\n"
+            "  if (flags < 1 || flags > 7 || !(flags & XFILE_MAP_READ) || (flags & 6) == 6)\n"
+            "    { xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
+            "  if (xlir_fs_file_get(file) == NULL) { return NULL; }\n"
+            "  owner = (xlir_fs_map*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
+            "  if (!xlir_fs_file_ref(file)) { xrtFree(owner); return NULL; }\n"
+            "  owner->file = file; owner->flags = (uint32_t)flags;\n"
+            "  owner->map = xrtFileMap(file->file, offset, count, (uint32_t)flags);\n"
+            "  if (owner->map == NULL) { xerror* error = xrtTakeError(); xlir_fs_file_drop(file); xrtFree(owner);\n"
+            "    xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } return NULL; } return owner; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_DESTROY)) xl6OutputPuts(
+            "void xl6_xrt_fs_map_destroy(void* handle)\n"
+            "{ xerror* error = xrtTakeError(); (void)xlir_fs_map_close((xlir_fs_map*)handle);\n"
+            "  xrtFree(handle); xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_CLOSE)) xl6OutputPuts(
+            "bool xl6_xrt_fs_map_close(void* handle) { return xlir_fs_map_close((xlir_fs_map*)handle); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_SIZE)) xl6OutputPuts(
+            "uint64_t xl6_xrt_fs_map_size(void* handle)\n"
+            "{ xfilemap map = xlir_fs_map_get(handle); return map != NULL ? (uint64_t)xrtFileMapSize(map) : 0; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_BYTES)) xl6OutputPuts(
+            "xvalue* xl6_xrt_fs_map_bytes(void* handle, int64_t offset, int64_t limit)\n"
+            "{ xfilemap map = xlir_fs_map_get(handle); size_t start, size, total; unsigned char* data;\n"
+            "  if (map == NULL || !xlir_fs_size(offset, &start)) { return NULL; } total = xrtFileMapSize(map);\n"
+            "  if (start > total) { xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
+            "  if (!xlir_fs_count(limit, total - start, &size)) { return NULL; }\n"
+            "  data = (unsigned char*)xrtFileMapData(map);\n"
+            "  return xrtValueBytes((xbytesview){data != NULL ? data + start : NULL, size}); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_WRITE)) xl6OutputPuts(
+            "int64_t xl6_xrt_fs_map_write(void* handle, int64_t offset, const xvalue* source, int64_t limit)\n"
+            "{ xlir_fs_map* owner = (xlir_fs_map*)handle; xfilemap map = xlir_fs_map_get(handle);\n"
+            "  xbytesview view; size_t start, size, total; unsigned char* data;\n"
+            "  if (map == NULL || !xlir_fs_size(offset, &start)) { return 0; }\n"
+            "  if (!(owner->flags & (XFILE_MAP_WRITE | XFILE_MAP_COPY))) { xrtSetErrorKind(XERR_PERMISSION); return 0; }\n"
+            "  if (!xrtValueGetBytes(source, &view)) { xrtSetErrorKind(XERR_TYPE); return 0; }\n"
+            "  if (!xlir_fs_count(limit, view.Size, &size)) { return 0; } total = xrtFileMapSize(map);\n"
+            "  if (start > total || size > total - start || size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); return 0; }\n"
+            "  data = (unsigned char*)xrtFileMapData(map); if (size != 0) { memcpy(data + start, view.Data, size); }\n"
+            "  return (int64_t)size; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_FLUSH)) xl6OutputPuts(
+            "bool xl6_xrt_fs_map_flush(void* handle, int64_t offset, int64_t limit)\n"
+            "{ xfilemap map = xlir_fs_map_get(handle); size_t start, size, total;\n"
+            "  if (map == NULL || !xlir_fs_size(offset, &start)) { return false; } total = xrtFileMapSize(map);\n"
+            "  if (start > total) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
+            "  if (!xlir_fs_count(limit, total - start, &size)) { return false; }\n"
+            "  return xrtFileMapFlush(map, start, size); }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_LOCK_CREATE)) xl6OutputPuts(
+            "void* xl6_xrt_fs_lock_create(void* handle, int64_t mode, uint64_t offset, uint64_t size, bool wait)\n"
+            "{ xlir_fs_file* file = (xlir_fs_file*)handle; xlir_fs_lock* owner;\n"
+            "  if (mode < 1 || mode > 2) { xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
+            "  if (xlir_fs_file_get(file) == NULL) { return NULL; }\n"
+            "  owner = (xlir_fs_lock*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
+            "  if (!xlir_fs_file_ref(file)) { xrtFree(owner); return NULL; }\n"
+            "  { uint32_t expected = 0;\n"
+            "    if (!xrtAtomic32CompareExchange(&file->lock, &expected, 1, XMEMORY_ACQ_REL, XMEMORY_RELAXED))\n"
+            "      { xlir_fs_file_drop(file); xrtFree(owner); xrtSetErrorKind(XERR_STATE); return NULL; } }\n"
+            "  if (!xrtFileLockRange(file->file, (xfilelock)mode, offset, size, wait)) {\n"
+            "    xrtAtomic32Store(&file->lock, 0, XMEMORY_RELEASE);\n"
+            "    xerror* error = xrtTakeError(); xlir_fs_file_drop(file); xrtFree(owner); xrtClearError();\n"
+            "    if (error != NULL) { xrtSetErrorTake(error); } return NULL;\n"
+            "  }\n"
+            "  owner->file = file; owner->offset = offset; owner->size = size; return owner; }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_LOCK_DESTROY)) xl6OutputPuts(
+            "void xl6_xrt_fs_lock_destroy(void* handle)\n"
+            "{ xerror* error = xrtTakeError(); xlir_fs_lock* owner = (xlir_fs_lock*)handle;\n"
+            "  if (owner != NULL) { if (owner->file != NULL) { (void)xrtFileUnlockRange(owner->file->file, owner->offset, owner->size);\n"
+            "      xrtAtomic32Store(&owner->file->lock, 0, XMEMORY_RELEASE);\n"
+            "      xlir_fs_file_drop(owner->file); } xrtFree(owner); }\n"
+            "  xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } }\n", out);
+    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_LOCK_CLOSE)) xl6OutputPuts(
+            "bool xl6_xrt_fs_lock_close(void* handle)\n"
+            "{ xlir_fs_lock* owner = (xlir_fs_lock*)handle; xlir_fs_file* file;\n"
+            "  if (owner == NULL || owner->file == NULL) { return true; }\n"
+            "  if (!xrtFileUnlockRange(owner->file->file, owner->offset, owner->size)) { return false; }\n"
+            "  file = owner->file; owner->file = NULL; xrtAtomic32Store(&file->lock, 0, XMEMORY_RELEASE);\n"
+            "  xlir_fs_file_drop(file); return xrtGetError() == NULL; }\n", out);
 }

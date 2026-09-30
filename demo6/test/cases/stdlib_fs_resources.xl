@@ -1,0 +1,95 @@
+func retainedReader(string path) as IoReader
+    auto source = file.open(path)
+    return source.reader()
+end
+func retainedMap(string path) as MappedFile
+    auto source = file.open(path, 3)
+    return source.map(uint64(0), 0, 3)
+end
+string path = "build/test/fs-resources.bin"
+io.writeFile(path, b"a\0b")
+auto source = file.open(path, 3)
+assert source.capabilities > uint64(0)
+auto mapped = source.map(uint64(0), 0, 3)
+bytes before = mapped.bytes()
+assert before == b"a\0b" and mapped.size == uint64(3)
+assert mapped.write(1, b"Z", 20) == 1
+assert before == b"a\0b", "mapped bytes must be an independent value"
+assert mapped.bytes(0, 20) == b"aZb"
+assert mapped.flush()
+bool busy = false
+try
+    source.close()
+catch e
+    busy = true
+end
+assert busy and not source.closed
+bool rangeError = false
+try
+    mapped.write(2, b"XY")
+catch e
+    rangeError = true
+end
+assert rangeError
+assert mapped.close() and mapped.close()
+auto readonly = source.map()
+bool readonlyError = false
+try
+    readonly.write(0, b"X")
+catch e
+    readonlyError = true
+end
+assert readonlyError
+assert readonly.close()
+auto lease = source.lock()
+bool duplicateLock = false
+try
+    source.lock()
+catch e
+    duplicateLock = true
+end
+assert duplicateLock
+assert lease.close() and lease.close()
+auto writer = source.writer()
+assert writer.seek(0) == 0
+writer.writeAll(b"w\0r")
+writer.flush()
+writer.close()
+assert source.close()
+auto held = retainedReader(path)
+assert held.canSeek() and held.canSize()
+assert held.readExact(3) == b"w\0r"
+held.close()
+auto retained = retainedMap(path)
+assert retained.write(1, b"M") == 1
+assert retained.flush()
+assert retained.close()
+auto final = file.open(path)
+assert final.readExact(3) == b"wMr"
+assert final.close()
+auto fs = vfs.create()
+auto memory = vfs.memory()
+memory.put("value", b"virtual")
+memory.seal()
+auto mount = fs.mount("/", memory)
+auto virtual = fs.open("/value")
+auto reader = virtual.reader()
+assert reader.readAll() == b"virtual"
+reader.close()
+bool unsupportedMap = false
+try
+    virtual.map()
+catch e
+    unsupportedMap = true
+end
+assert unsupportedMap
+bool unsupportedLock = false
+try
+    virtual.lock(1)
+catch e
+    unsupportedLock = true
+end
+assert unsupportedLock
+assert virtual.close()
+assert file.delete(path)
+print("fs resources ok")

@@ -7639,6 +7639,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileInfo", xl6StdFileInfoBody},
     {"file", "open", "__xl_std_file_open", NULL, NULL, 0, "File", xl6StdFileOpenBody},
     {"file", "stat", "__xl_std_file_stat", NULL, NULL, 0, "FileStat", xl6StdFsStatBody},
+    {"file", "root", "__xl_std_file_root", NULL, NULL, 0, "FileRoot", xl6StdFsRootBody},
     {"dir", "open", "__xl_std_dir_open", NULL, NULL, 0, "DirectoryIterator", xl6StdFsDirectoryBody},
     {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
     {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<Buffer>", xl6StdFileReadBytesAsyncBody},

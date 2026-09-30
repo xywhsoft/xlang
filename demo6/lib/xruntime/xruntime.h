@@ -17426,6 +17426,23 @@ typedef struct xfileinfo {
 	xtime Changed;
 } xfileinfo;
 
+/* Structural backend capabilities filtered by the handle's access/mode.
+ * A bit does not guarantee a particular range, filesystem object or option.
+ * Native-control permits requesting native locks/maps; it is not a handle. */
+typedef enum xfilecapability {
+    XFILE_CAP_READ = 0x001,
+    XFILE_CAP_WRITE = 0x002,
+    XFILE_CAP_READ_AT = 0x004,
+    XFILE_CAP_WRITE_AT = 0x008,
+    XFILE_CAP_SEEK = 0x010,
+    XFILE_CAP_STAT = 0x020,
+    XFILE_CAP_RESIZE = 0x040,
+    XFILE_CAP_FLUSH = 0x080,
+    XFILE_CAP_NATIVE = 0x100,
+    XFILE_CAP_NATIVE_CONTROL = 0x200,
+    XFILE_CAP_ASYNC_BIND = 0x400
+} xfilecapability;
+
 
 
 /* 文件模块稳定错误代码。 */
@@ -17816,6 +17833,10 @@ XRT_API bool xrtFlush(xfile File);
 
 /* 返回打开文件经过验证的标志；失败返回 0。 */
 XRT_API uint32 xrtFileFlags(xfile File);
+
+/* Zero-allocation capability query; NULL is an error, not an empty mask.
+ * Async-only handles suppress synchronous operations but retain metadata. */
+XRT_API uint64 xrtFileCapabilities(xfile File);
 
 
 
@@ -52345,19 +52366,20 @@ xfile __xrtFileAlloc(void);
 void __xrtFileInitNativePair(xfile File, intptr_t iHandle,
 	intptr_t iControl, uint32 iFlags);
 
-/* xfile 后端能力只在运行时内部使用；公共 provider ABI 在 vfs.h 中独立冻结。 */
+/* Backend operations share the frozen public capability bits. The public
+ * query additionally filters them by the handle's access and async mode. */
 typedef enum xrt_file_backend_capability {
-	XRT_FILE_BACKEND_READ = UINT64_C(0x00000001),
-	XRT_FILE_BACKEND_WRITE = UINT64_C(0x00000002),
-	XRT_FILE_BACKEND_READ_AT = UINT64_C(0x00000004),
-	XRT_FILE_BACKEND_WRITE_AT = UINT64_C(0x00000008),
-	XRT_FILE_BACKEND_SEEK = UINT64_C(0x00000010),
-	XRT_FILE_BACKEND_STAT = UINT64_C(0x00000020),
-	XRT_FILE_BACKEND_RESIZE = UINT64_C(0x00000040),
-	XRT_FILE_BACKEND_FLUSH = UINT64_C(0x00000080),
-	XRT_FILE_BACKEND_NATIVE = UINT64_C(0x00000100),
-	XRT_FILE_BACKEND_CONTROL_NATIVE = UINT64_C(0x00000200),
-	XRT_FILE_BACKEND_ASYNC_BIND = UINT64_C(0x00000400)
+	XRT_FILE_BACKEND_READ = XFILE_CAP_READ,
+	XRT_FILE_BACKEND_WRITE = XFILE_CAP_WRITE,
+	XRT_FILE_BACKEND_READ_AT = XFILE_CAP_READ_AT,
+	XRT_FILE_BACKEND_WRITE_AT = XFILE_CAP_WRITE_AT,
+	XRT_FILE_BACKEND_SEEK = XFILE_CAP_SEEK,
+	XRT_FILE_BACKEND_STAT = XFILE_CAP_STAT,
+	XRT_FILE_BACKEND_RESIZE = XFILE_CAP_RESIZE,
+	XRT_FILE_BACKEND_FLUSH = XFILE_CAP_FLUSH,
+	XRT_FILE_BACKEND_NATIVE = XFILE_CAP_NATIVE,
+	XRT_FILE_BACKEND_CONTROL_NATIVE = XFILE_CAP_NATIVE_CONTROL,
+	XRT_FILE_BACKEND_ASYNC_BIND = XFILE_CAP_ASYNC_BIND
 } xrt_file_backend_capability;
 
 #define XRT_FILE_BACKEND_CAPABILITIES UINT64_C(0x000007ff)
@@ -128092,6 +128114,32 @@ XRT_API uint32 xrtFileFlags(xfile File)
 		return 0;
 	}
 	return File->Flags;
+}
+
+XRT_API uint64 xrtFileCapabilities(xfile File)
+{
+    uint64 Capabilities;
+    if ( File == NULL ) {
+        __xrtErrorSetInvalidArgument();
+        return 0;
+    }
+    Capabilities = File->Capabilities;
+    if ( (File->Flags & XFILE_READ) == 0u ) {
+        Capabilities &= ~((uint64)XFILE_CAP_READ | XFILE_CAP_READ_AT);
+    }
+    if ( (File->Flags & XFILE_WRITE) == 0u ) {
+        Capabilities &= ~((uint64)XFILE_CAP_WRITE | XFILE_CAP_WRITE_AT |
+            XFILE_CAP_RESIZE | XFILE_CAP_FLUSH);
+    }
+    if ( (File->Flags & XFILE_APPEND) != 0u ) {
+        Capabilities &= ~((uint64)XFILE_CAP_WRITE_AT | XFILE_CAP_RESIZE);
+    }
+    if ( (File->Flags & XFILE_ASYNC) != 0u ) {
+        Capabilities &= ~((uint64)XFILE_CAP_READ | XFILE_CAP_WRITE |
+            XFILE_CAP_READ_AT | XFILE_CAP_WRITE_AT | XFILE_CAP_SEEK |
+            XFILE_CAP_RESIZE | XFILE_CAP_FLUSH);
+    }
+    return Capabilities;
 }
 
 
