@@ -1,0 +1,2 @@
+extern "xl6_xrt_fs_dir_roots" func malformed() as array<int>
+print(malformed())

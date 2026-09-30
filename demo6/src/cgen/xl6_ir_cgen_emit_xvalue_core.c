@@ -205,6 +205,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "    case %d: *(char**)outValue = NULL; break;\n"
                 "    case %d: *(void**)outValue = NULL; break;\n"
                 "    case %d: *(xerror**)outValue = NULL; break;\n"
+                "    case %d: *(xvalue**)outValue = NULL; break;\n"
                 "    default: goto runtime_failure;\n"
                 "    }\n"
                 "    if (source == NULL || xlir_xvalue_type_id(source) != expectedTypeId) goto incompatible;\n"
@@ -225,6 +226,10 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "        error = xrtErrorRef((const xerror*)handle);\n"
                 "        if (error == NULL) goto runtime_failure;\n"
                 "        *(xerror**)outValue = error; return true;\n"
+                "    case %d:\n"
+                "        *(xvalue**)outValue = xrtValueRetain(source);\n"
+                "        if (*(xvalue**)outValue != NULL) return true;\n"
+                "        goto runtime_failure;\n"
                 "    default: goto runtime_failure;\n"
                 "    }\n"
                 "incompatible:\n"
@@ -242,6 +247,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 (int)XL6_IR_CAST_XVALUE_TO_STRING_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED,
+                (int)XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_I64_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_U64_CHECKED,
@@ -249,7 +255,8 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 (int)XL6_IR_CAST_XVALUE_TO_TIME_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_STRING_CHECKED,
                 (int)XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED,
-                (int)XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED);
+                (int)XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED,
+                (int)XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED);
         if ( needs->needsXValueNullableStringCastRuntime )
             xl6OutputPuts(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"

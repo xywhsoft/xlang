@@ -140,6 +140,10 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsXValueRuntime = 1;
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
+            if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_FS_WALK_VISIT) {
+                needs->needsForeignErrorRuntime = 1;
+                needs->needsErrorRuntime = 1;
+            }
         }
         if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE) {

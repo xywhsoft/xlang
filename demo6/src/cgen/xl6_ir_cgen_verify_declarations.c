@@ -56,7 +56,8 @@ static int xl6IrCgenVerifyDeclarations(
                         parameter, "uses a direct closure at an extern boundary");
             } else if ( target->parameterPhysicalAbis[parameter] ==
                             XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) {
-                if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+                if ( (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+                      target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
                      target->parameterAbis[parameter] !=
                          XL6_IR_PARAMETER_ABI_BORROW ||
                        !xl6IrCgenLanguageFunctionValueSignatureAbi(

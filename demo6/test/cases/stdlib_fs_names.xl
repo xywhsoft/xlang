@@ -1,0 +1,56 @@
+if path.sep() == "/" then
+    string directory = dir.temp("","fs-names-","")
+    try
+        string link = path.join(directory,"link")
+        file.createLink(directory,link)
+        bool rejected = false
+        try
+            dir.list(link)
+        catch TypeError
+            rejected = true
+        end
+        assert rejected, "No-follow directory list must reject a symlink root"
+    finally
+        dir.delete(directory)
+    end
+end
+string? invalid = env.get("XL_FS_INVALID_DIR")
+if invalid != null then
+    bool rejected = false
+    try
+        dir.list(invalid)
+    catch ValueError
+        rejected = true
+    end
+    assert rejected, "string paths must not contain invalid UTF-8"
+    auto entries = dir.open(invalid,1)
+    assert entries.advance()
+    auto info = entries.current()
+    assert not info.validUtf8 and info.nameBytes.length == 1
+    rejected = false
+    try
+        print(info.name)
+    catch ValueError
+        rejected = true
+    end
+    assert rejected
+    assert entries.close()
+    auto records = dir.entries(invalid)
+    assert records.length == 1 and not records[0].validUtf8
+    assert records[0].nameBytes.length == 1
+    rejected = false
+    try
+        print(records[0].name)
+    catch ValueError
+        rejected = true
+    end
+    assert rejected
+    auto visited = file.walk(invalid,func(WalkEntry entry) as int
+        if entry.depth > uint64(0) then
+            assert not entry.validUtf8 and entry.nameBytes.length == 1
+        end
+        return file.walkContinue
+    end)
+    assert visited.files == uint64(1)
+end
+print("fs names ok")

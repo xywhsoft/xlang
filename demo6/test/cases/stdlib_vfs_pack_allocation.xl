@@ -1,0 +1,41 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+func probe(int operation, File source, PackOptions options, PackFS archive)
+    if operation == 0 then
+        vfs.packOptions()
+    elseif operation == 1 then
+        vfs.pack("build/test/vfs-pack.bin",options)
+    elseif operation == 2 then
+        vfs.takePack(source,options)
+    else
+        archive.stats()
+    end
+end
+auto options = vfs.packOptions()
+auto archive = vfs.pack("build/test/vfs-pack.bin",options)
+int successes = 0
+int failures = 0
+try
+    for operation in range(4)
+        for point in range(64)
+            auto source = file.open("build/test/vfs-pack.bin")
+            assert failAfter(uint64(point))
+            bool caught = false
+            try
+                probe(operation,source,options,archive)
+            catch MemoryError
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered, "Pack allocation failure must propagate"
+            if not source.closed then assert source.close() end
+            if caught then failures += 1 else successes += 1 end
+        end
+    end
+    assert successes > 0 and failures > 0
+finally
+    failClear()
+end
+print("vfs pack allocation ok")

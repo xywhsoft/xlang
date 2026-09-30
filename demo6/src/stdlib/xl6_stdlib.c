@@ -1128,16 +1128,6 @@ static int xl6StdlibNeedsWebSocketTls(const XL6_AstNode* root)
            xl6StdlibNodeUsesMemberName(root, "attachTlsWithConfig");
 }
 
-static int xl6StdlibNeedsFileInfoClass(const XL6_AstNode* root, const int* used)
-{
-    size_t index;
-
-    if ( xl6StdlibNodeUsesTypeName(root, "FileInfo") ) {
-        return 1;
-    }
-    return xl6StdlibFindFunc("file", "info", &index) != NULL && used[index];
-}
-
 static int xl6StdlibNeedsFileClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
@@ -1583,7 +1573,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsWebSocketConfigClass;
     int needsWebSocketClass;
     int needsWebSocketTls;
-    int needsFileInfoClass;
     int needsFileClass;
     int needsAsyncFileClass;
     int needsJsonClass;
@@ -1637,6 +1626,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
     needsVfs = xl6StdlibFuncUsed(used, "vfs", "create") || xl6StdlibFuncUsed(used, "vfs", "memory") ||
         xl6StdlibFuncUsed(used, "vfs", "disk") || xl6StdlibFuncUsed(used, "vfs", "pack") ||
+        xl6StdlibFuncUsed(used, "vfs", "packOptions") || xl6StdlibFuncUsed(used, "vfs", "takePack") ||
+        xl6StdlibNodeUsesTypeName(root, "PackOptions") || xl6StdlibNodeUsesTypeName(root, "PackStats") ||
         xl6StdlibNodeUsesTypeName(root, "Vfs") || xl6StdlibNodeUsesTypeName(root, "MemoryFS") ||
         xl6StdlibNodeUsesTypeName(root, "DiskFS") || xl6StdlibNodeUsesTypeName(root, "PackFS") ||
         xl6StdlibNodeUsesTypeName(root, "VfsMount");
@@ -1717,9 +1708,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsTcpServerClass ||
         needsTcpConnectConfigClass || needsTcpListenConfigClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass;
-    needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
-    needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "temp") || xl6StdlibFuncUsed(used, "file", "stat") ||
+    needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "info") || xl6StdlibFuncUsed(used, "file", "temp") || xl6StdlibFuncUsed(used, "file", "stat") ||
         xl6StdlibFuncUsed(used, "file", "root") || xl6StdlibNodeUsesTypeName(root, "FileRoot") ||
         xl6StdlibNodeUsesTypeName(root, "MappedFile") || xl6StdlibNodeUsesTypeName(root, "FileLock") ||
         xl6StdlibFuncUsed(used, "dir", "open") || xl6StdlibNodeUsesTypeName(root, "FileStat") ||
@@ -1770,7 +1760,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsHttp1Class || needsHttpDecoderClass || needsWsFrameClass ||
         needsWsHandshakeClass || needsWsUpgradeClass ||
         needsWebSocketConfigClass || needsWebSocketClass ||
-        needsFileInfoClass || needsFileClass || needsAsyncFileClass ||
+        needsFileClass || needsAsyncFileClass ||
         needsJsonClass || needsProcessClass || needsTaskGroupClass ||
         needsLoggerClass || needsSignalClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
@@ -1948,14 +1938,15 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }
-    if ( needsFileInfoClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibFileInfoClassSource);
-    }
     if (xl6StdlibFuncUsed(used, "path", "parse") || xl6StdlibFuncUsed(used, "path", "components") ||
         xl6StdlibNodeUsesTypeName(root, "PathParts") || xl6StdlibNodeUsesTypeName(root, "PathIterator") ||
         xl6StdlibNodeUsesTypeName(root, "PathComponent"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibFsPathSource);
-    if (xl6StdlibNodeUsesTypeName(root, "WalkStats") || xl6StdlibNodeUsesTypeName(root, "TreeStats") || xl6StdlibFuncUsed(used, "file", "walkStats") ||
+    if (xl6StdlibFuncUsed(used, "file", "walk") || xl6StdlibFuncUsed(used, "dir", "entries") ||
+        xl6StdlibFuncUsed(used, "dir", "matchEntries") || xl6StdlibFuncUsed(used, "dir", "walk") ||
+        xl6StdlibNodeUsesTypeName(root, "WalkEntry") || xl6StdlibNodeUsesTypeName(root, "WalkError"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsWalkSource);
+    if (xl6StdlibFuncUsed(used, "file", "walk") || xl6StdlibNodeUsesTypeName(root, "WalkStats") || xl6StdlibNodeUsesTypeName(root, "TreeStats") || xl6StdlibFuncUsed(used, "file", "walkStats") ||
         xl6StdlibFuncUsed(used, "file", "copyTree") || xl6StdlibFuncUsed(used, "file", "removeTree") ||
         xl6StdlibFuncUsed(used, "dir", "stats") || xl6StdlibFuncUsed(used, "dir", "count") ||
         xl6StdlibFuncUsed(used, "dir", "clean") || xl6StdlibFuncUsed(used, "dir", "delete"))

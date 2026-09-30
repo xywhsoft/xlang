@@ -1,0 +1,12 @@
+class WrongOptions
+    native point handle
+    extern "xl6_xrt_vfs_create" create()
+    extern "xl6_xrt_vfs_destroy" destroy()
+end
+class WrongPack
+    native point handle
+    extern "xl6_xrt_fs_pack_path_create" create(string path, WrongOptions options, uint64 offset, int length)
+    extern "xl6_xrt_vfs_pack_destroy" destroy()
+end
+auto options = WrongOptions()
+auto archive = WrongPack("build/test/vfs-pack.bin",options,0,-1)

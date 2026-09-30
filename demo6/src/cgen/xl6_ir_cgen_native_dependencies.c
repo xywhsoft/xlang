@@ -60,10 +60,18 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
                 xl6IrRuntimeFsBridgeUsesOwner(kind, "xl6_xrt_fs_lock_destroy")) {
                 REQUIRE("XRT_MODULE_FILE"); REQUIRE("XRT_MODULE_ATOMIC");
             }
-            if (kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_NAME) REQUIRE("XRT_MODULE_UNICODE");
+            if (kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_NAME || kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_LIST)
+                REQUIRE("XRT_MODULE_UNICODE");
             if (kind == XL6_IR_RUNTIME_BRIDGE_FS_PATH_BUILD) REQUIRE("XRT_MODULE_VALUE_COLLECTION");
             if (kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_ROOTS || kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_LIST)
                 REQUIRE("XRT_MODULE_VALUE_COLLECTION");
+            if (kind == XL6_IR_RUNTIME_BRIDGE_FS_WALK_VISIT || kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_ENTRIES) {
+                REQUIRE("XRT_MODULE_VALUE_CONTAINER"); REQUIRE("XRT_MODULE_UNICODE");
+            }
+            if (kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_GLOB || kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_ENTRIES) {
+                REQUIRE("XRT_MODULE_VALUE_COLLECTION"); REQUIRE("XRT_MODULE_STRING_GLOB");
+                REQUIRE("XRT_MODULE_UNICODE");
+            }
         }
         break;
     }

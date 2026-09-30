@@ -11441,15 +11441,18 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         } else if ( operandCount == 1 && result != NULL && sourceType != NULL &&
                     callee->typeValueTarget != XL6_IR_TYPE_INVALID &&
                     callee->typeValueTarget == call->storageType &&
-                    result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-                    result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                    result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+                    ((result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
+                      result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+                      result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL) ||
+                     (result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+                      result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED)) &&
                     xl6IrTypeIsOpenDynamicBuiltin(module, sourceType) ) {
             intrinsic.kind = XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT;
-            intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_VALUE;
+            intrinsic.resultAbi = result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES
+                ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE;
             intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-            intrinsic.castAbi =
-                XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED;
+            intrinsic.castAbi = result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES
+                ? XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED : XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED;
         } else if ( operandCount == 1 && result != NULL && sourceType != NULL &&
                     result->kind == XL6_IR_TYPE_BUILTIN &&
                     result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
@@ -11796,12 +11799,14 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         break;
     case XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT:
         if ( operandCount == 1 && result != NULL && sourceType != NULL &&
-             intrinsic.castAbi ==
-                 XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED &&
              xl6IrTypeIsOpenDynamicBuiltin(module, sourceType) &&
-             result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-             result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-             result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
+             ((intrinsic.castAbi == XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED &&
+               result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
+               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+               result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL) ||
+              (intrinsic.castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED &&
+               result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED)) )
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
     case XL6_IR_INTRINSIC_CHECKED_TIME_CONVERT:
@@ -14258,6 +14263,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         return target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
             ? XL6_IR_CAST_XVALUE_TO_STRING_CHECKED
             : XL6_IR_CAST_INVALID;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        return target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+            ? XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED : XL6_IR_CAST_INVALID;
     case XL6_IR_C_ABI_RAW_POINTER:
         return target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL
@@ -14310,6 +14318,7 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_TIME_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_STRING_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_UNION_CHECKED:
@@ -30282,14 +30291,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          callee == NULL ||
                          callee->typeValueTarget == XL6_IR_TYPE_INVALID ||
                          callee->typeValueTarget != intrinsic->resultType ||
-                         intrinsic->resultAbi !=
-                             XL6_IR_INTRINSIC_RESULT_VALUE ||
+                         intrinsic->resultAbi != (intrinsic->castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED
+                             ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE) ||
                          intrinsic->errorAbi !=
                              XL6_IR_ERROR_ABI_MAY_RAISE ||
                          intrinsic->integerTarget !=
                              XL6_IR_INTEGER_TARGET_INVALID ||
-                         intrinsic->castAbi !=
-                             XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED ||
+                         (intrinsic->castAbi != XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED &&
+                          intrinsic->castAbi != XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED) ||
                          source == NULL ||
                          !xl6IrTypeIsOpenDynamicBuiltin(module, source) )
                         return xl6IrDiag(diags, call,
@@ -30750,19 +30759,21 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if ( call->callKind != XL6_SEM_CALL_BUILTIN ||
                      intrinsic->operandCount != 1 || source == NULL ||
                      !xl6IrTypeIsOpenDynamicBuiltin(module, source) ||
-                     result->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-                     result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                     result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-                     intrinsic->castAbi !=
-                         XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED ||
+                     !((result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
+                        result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+                        result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+                        intrinsic->castAbi == XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED) ||
+                       (result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+                        result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                        intrinsic->castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED)) ||
                      module->intrinsicOperands[
                          intrinsic->firstOperand].abi !=
                              XL6_IR_INTRINSIC_OPERAND_BORROW ||
-                     intrinsic->resultAbi !=
-                         XL6_IR_INTRINSIC_RESULT_VALUE ||
+                     intrinsic->resultAbi != (result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES
+                         ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE) ||
                      intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE )
                     return xl6IrDiag(diags, call,
-                        "XLIR checked xvalue intrinsic has no exact borrowed source, raw-pointer result and failure ABI");
+                        "XLIR checked xvalue intrinsic has no exact borrowed source, result and failure ABI");
                 break;
             case XL6_IR_INTRINSIC_CHECKED_TIME_CONVERT:
                 if ( call->callKind != XL6_SEM_CALL_BUILTIN ||
@@ -32841,7 +32852,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
             } else if ( target->parameterPhysicalAbis[parameter] ==
                              XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) {
-                if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+                if ( (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+                      target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
                      target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
                        !xl6IrLanguageFunctionValueSignatureSupported(
                           module, target->parameterTypes[parameter]) ||
@@ -33517,7 +33529,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   XL6_IR_OPERATOR_OPERAND_NULLABLE_UNWRAP_SCALAR_CONVERT ||
              node->castAbi < XL6_IR_CAST_INVALID ||
              node->castAbi >
-                 XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED ||
+                 XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED ||
              node->castErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
              node->castErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
              node->implicitConversionRuntimeOp < XL6_IR_RUNTIME_NONE ||
@@ -36195,6 +36207,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                   XL6_IR_C_ABI_MANAGED_STRING &&
                               resultType->ownershipAbi ==
                                   XL6_IR_OWNERSHIP_ABI_MANAGED) ||
+                             (scalar && instruction->castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED &&
+                              resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+                              resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
                              (scalar && instruction->castAbi ==
                                   XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED &&
                               resultType->cAbi ==
@@ -39830,7 +39845,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->castAbi != XL6_IR_CAST_INVALID) ||
                      instruction->castAbi < XL6_IR_CAST_INVALID ||
                      instruction->castAbi >
-                         XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED )
+                         XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous closed cast ABI");
                 if ( instruction->kind == XL6_IR_INSTR_BRANCH &&
@@ -41407,6 +41422,8 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
         return "xvalue-to-time-checked";
     case XL6_IR_CAST_XVALUE_TO_STRING_CHECKED:
         return "xvalue-to-string-checked";
+    case XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED:
+        return "xvalue-to-bytes-checked";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY:
         return "xvalue-to-nullable-bool-try";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY:
