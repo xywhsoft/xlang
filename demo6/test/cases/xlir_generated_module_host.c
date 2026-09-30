@@ -30,6 +30,13 @@ int main(void)
     xrtValueRelease(arguments);
     return result;
 #else
-    return xlir_module_init() == 1 ? 0 : 1;
+    int initialized = xlir_module_init();
+    if (initialized != 1) {
+        const xerror* error = xrtGetError();
+        fprintf(stderr, "generated module initialization failed at line %ld: %s\n",
+            error != NULL ? (long)xrtErrorLine(error) : 0L,
+            error != NULL ? xrtErrorMessage(error) : "no diagnostic");
+    }
+    return initialized == 1 ? 0 : 1;
 #endif
 }

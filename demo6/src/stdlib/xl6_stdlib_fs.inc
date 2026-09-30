@@ -1,4 +1,47 @@
 /* Owned File, snapshot metadata and directory resources. */
+static const char xl6StdFs_file_tempBody[] =
+    "func __xl_std_file_temp(string directory = \"\", string prefix = \"xl-\", string suffix = \".tmp\") as File\n"
+    "    return File(directory,prefix,suffix)\n"
+    "end\n";
+
+static const char xl6StdFs_dir_rootsBody[] =
+    "extern \"xl6_xrt_fs_dir_roots\" func __xl_fs_dir_roots() as array<string>\n"
+    "func __xl_std_dir_roots() as array<string>\n"
+    "    return __xl_fs_dir_roots()\n"
+    "end\n";
+
+static const char xl6StdFs_file_set_timesBody[] =
+    "extern \"xl6_xrt_fs_path_set_times\" func __xl_fs_file_set_times(string path, int accessed, int modified, bool setAccessed, bool setModified, bool follow) as bool\n"
+    "func __xl_std_file_set_times(string path, int? accessed = null, int? modified = null, bool follow = true) as bool\n"
+    "    bool hasAccess = accessed != null\n"
+    "    bool hasModify = modified != null\n"
+    "    int a = 0\n"
+    "    int m = 0\n"
+    "    if accessed != null then a = accessed end\n"
+    "    if modified != null then m = modified end\n"
+    "    return __xl_fs_file_set_times(path,a,m,hasAccess,hasModify,follow)\n"
+    "end\n";
+
+static const char xl6StdFs_file_walk_statsBody[] =
+    "func __xl_std_file_walk_stats(string path, int flags = 0, int maxDepth = -1) as WalkStats\n"
+    "    return WalkStats(path,flags,maxDepth)\n"
+    "end\n";
+
+static const char xl6StdFs_dir_statsBody[] =
+    "func __xl_std_dir_stats(string path, bool recursive = true) as WalkStats\n"
+    "    return WalkStats(path,recursive)\n"
+    "end\n";
+
+static const char xl6StdFs_file_copy_treeBody[] =
+    "func __xl_std_file_copy_tree(string source, string target, int flags = 0) as TreeStats\n"
+    "    return TreeStats(source,target,flags)\n"
+    "end\n";
+
+static const char xl6StdFs_file_remove_treeBody[] =
+    "func __xl_std_file_remove_tree(string path, bool keepRoot = false) as TreeStats\n"
+    "    return TreeStats(path,keepRoot)\n"
+    "end\n";
+
 static const char xl6StdFsfilewrite_bytes_atomicBody[] =
     "extern \"xl6_xrt_fs_whole_write\" func __xl_fs_file_write_bytes_atomic(string p0, bytes p1, int p2, int p3) as bool\n"
     "func __xl_std_file_write_bytes_atomic(string path, bytes data, int size = -1) as bool\n"
@@ -189,6 +232,9 @@ const char* xl6StdlibFsPathSource =
 const char* xl6StdlibFsFileSource =
     "class File\n"
     "    native point handle\n"
+    "    extern \"xl6_xrt_fs_file_temp\" create(string directory, string prefix, string suffix)\n"
+    "    extern \"xl6_xrt_fs_file_temp_path\" get tempPath() as string\n"
+    "    extern \"xl6_xrt_fs_file_temp_keep\" func keep() as bool\n"
     "    extern \"xl6_xrt_fs_file_open\" create(string path, int flags, int mode, int share)\n"
     "    extern \"xl6_xrt_fs_file_destroy\" destroy()\n"
     "    extern \"xl6_xrt_fs_file_close\" func close() as bool\n"
@@ -396,4 +442,57 @@ const char* xl6StdlibFsResourceSource =
 static const char xl6StdFsRootBody[] =
     "func __xl_std_file_root(string path) as FileRoot\n"
     "    return FileRoot(path)\n"
+    "end\n";
+const char* xl6StdlibFsTreeSource =
+    "class TreeStats\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_fs_tree_copy\" create(string source, string target, int flags)\n"
+    "    extern \"xl6_xrt_fs_tree_remove\" create(string path, bool keepRoot)\n"
+    "    extern \"xl6_xrt_fs_stats_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_fs_stats_value\" func valueNative(int field) as uint64\n"
+    "    extern \"xl6_xrt_fs_stats_stopped\" get stopped() as bool\n"
+    "    get items() as uint64\n"
+    "        return self.valueNative(0)\n"
+    "    end\n"
+    "    get files() as uint64\n"
+    "        return self.valueNative(1)\n"
+    "    end\n"
+    "    get directories() as uint64\n"
+    "        return self.valueNative(2)\n"
+    "    end\n"
+    "    get links() as uint64\n"
+    "        return self.valueNative(3)\n"
+    "    end\n"
+    "    get others() as uint64\n"
+    "        return self.valueNative(4)\n"
+    "    end\n"
+    "    get bytes() as uint64\n"
+    "        return self.valueNative(5)\n"
+    "    end\n"
+    "end\n"
+    "class WalkStats\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_fs_walk_stats\" create(string path, int flags, int maxDepth)\n"
+    "    extern \"xl6_xrt_fs_dir_stats\" create(string path, bool recursive)\n"
+    "    extern \"xl6_xrt_fs_stats_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_fs_stats_value\" func valueNative(int field) as uint64\n"
+    "    extern \"xl6_xrt_fs_stats_stopped\" get stopped() as bool\n"
+    "    get items() as uint64\n"
+    "        return self.valueNative(0)\n"
+    "    end\n"
+    "    get files() as uint64\n"
+    "        return self.valueNative(1)\n"
+    "    end\n"
+    "    get directories() as uint64\n"
+    "        return self.valueNative(2)\n"
+    "    end\n"
+    "    get links() as uint64\n"
+    "        return self.valueNative(3)\n"
+    "    end\n"
+    "    get others() as uint64\n"
+    "        return self.valueNative(4)\n"
+    "    end\n"
+    "    get bytes() as uint64\n"
+    "        return self.valueNative(5)\n"
+    "    end\n"
     "end\n";

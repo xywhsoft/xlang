@@ -1719,7 +1719,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass;
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
-    needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "stat") ||
+    needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "temp") || xl6StdlibFuncUsed(used, "file", "stat") ||
         xl6StdlibFuncUsed(used, "file", "root") || xl6StdlibNodeUsesTypeName(root, "FileRoot") ||
         xl6StdlibNodeUsesTypeName(root, "MappedFile") || xl6StdlibNodeUsesTypeName(root, "FileLock") ||
         xl6StdlibFuncUsed(used, "dir", "open") || xl6StdlibNodeUsesTypeName(root, "FileStat") ||
@@ -1955,6 +1955,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PathParts") || xl6StdlibNodeUsesTypeName(root, "PathIterator") ||
         xl6StdlibNodeUsesTypeName(root, "PathComponent"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibFsPathSource);
+    if (xl6StdlibNodeUsesTypeName(root, "WalkStats") || xl6StdlibNodeUsesTypeName(root, "TreeStats") || xl6StdlibFuncUsed(used, "file", "walkStats") ||
+        xl6StdlibFuncUsed(used, "file", "copyTree") || xl6StdlibFuncUsed(used, "file", "removeTree") ||
+        xl6StdlibFuncUsed(used, "dir", "stats") || xl6StdlibFuncUsed(used, "dir", "count") ||
+        xl6StdlibFuncUsed(used, "dir", "clean") || xl6StdlibFuncUsed(used, "dir", "delete"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsTreeSource);
     if ( needsFileClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFsFileSource);
         if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibFsFileVfsSource);

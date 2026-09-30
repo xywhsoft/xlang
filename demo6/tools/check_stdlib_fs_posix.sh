@@ -31,7 +31,7 @@ task_fixtures=(stdlib_vfs_memory stdlib_vfs_overlay stdlib_vfs_disk
     stdlib_vfs_lifetime stdlib_fs_handles stdlib_fs_native stdlib_fs_resources
     stdlib_fs_root stdlib_fs_allocation stdlib_fs_path stdlib_fs_whole
     stdlib_file_bytes_only stdlib_file_read_text_binary_reject
-    stdlib_fs_path_whole_allocation stdlib_fs_platform)
+    stdlib_fs_path_whole_allocation stdlib_fs_platform stdlib_fs_tree stdlib_fs_temp stdlib_fs_tree_temp_allocation)
 for task_case in "${task_fixtures[@]}"; do
     task_generated="$task_root/build/test/$task_case.c"
     test -f "$task_generated" || { echo "Run check_stdlib_vfs.ps1 first: missing $task_generated"; exit 1; }

@@ -1,0 +1,50 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+func temporaryProbe(string directory)
+    auto temp = file.temp(directory)
+end
+string parentDirectory = "build/test"
+if path.sep() == "/" then parentDirectory = "" end
+string directory = dir.temp(parentDirectory,"fs-tree-temp-oom-","")
+string source = path.join(directory,"source")
+string temps = path.join(directory,"temps")
+dir.create(source)
+dir.create(temps)
+file.writeBytes(path.join(source,"value.bin"),b"a\0b")
+try
+    int failures = 0
+    int successes = 0
+    for operation in range(5)
+        for point in range(48)
+            bool caught = false
+            assert failAfter(uint64(point))
+            try
+                if operation == 0 then
+                    temporaryProbe(temps)
+                elseif operation == 1 then
+                    dir.roots()
+                elseif operation == 2 then
+                    dir.list(source,true)
+                elseif operation == 3 then
+                    dir.stats(source)
+                else
+                    file.walkStats(source)
+                end
+            catch MemoryError
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            if caught != triggered then print(operation,point,caught,triggered) end
+            assert caught == triggered, "allocation fault must propagate MemoryError"
+            assert dir.empty(temps), "failed managed factory must not orphan a temporary file"
+            if caught then failures += 1 else successes += 1 end
+        end
+    end
+    assert failures > 0 and successes > 0
+finally
+    failClear()
+    dir.delete(directory)
+end
+print("fs tree temp allocation ok")

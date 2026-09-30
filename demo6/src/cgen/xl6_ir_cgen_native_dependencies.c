@@ -62,6 +62,8 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
             }
             if (kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_NAME) REQUIRE("XRT_MODULE_UNICODE");
             if (kind == XL6_IR_RUNTIME_BRIDGE_FS_PATH_BUILD) REQUIRE("XRT_MODULE_VALUE_COLLECTION");
+            if (kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_ROOTS || kind == XL6_IR_RUNTIME_BRIDGE_FS_DIR_LIST)
+                REQUIRE("XRT_MODULE_VALUE_COLLECTION");
         }
         break;
     }

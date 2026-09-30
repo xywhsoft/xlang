@@ -81,7 +81,8 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         'test/cases/stdlib_fs_allocation.xl', 'test/cases/stdlib_fs_path.xl',
         'test/cases/stdlib_fs_whole.xl', 'test/cases/stdlib_file_bytes_only.xl',
         'test/cases/stdlib_file_read_text_binary_reject.xl',
-        'test/cases/stdlib_fs_path_whole_allocation.xl', 'test/cases/stdlib_fs_platform.xl')
+        'test/cases/stdlib_fs_path_whole_allocation.xl', 'test/cases/stdlib_fs_platform.xl',
+        'test/cases/stdlib_fs_tree.xl', 'test/cases/stdlib_fs_temp.xl', 'test/cases/stdlib_fs_tree_temp_allocation.xl')
     foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
@@ -117,7 +118,7 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
     }
     foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl',
-        'release/examples/stdlib_fs_paths_text.xl')) {
+        'release/examples/stdlib_fs_paths_text.xl','release/examples/stdlib_fs_tree_temp.xl')) {
         $example = Join-Path $Root $relative
         $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')
         Invoke-Test $xl ('run "{0}"' -f $example)
@@ -130,4 +131,4 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     }
     Pop-Location
 }
-Write-Output 'VFS/File gate passed: nineteen positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'
+Write-Output 'VFS/File gate passed: twenty-two positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'

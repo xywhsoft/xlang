@@ -5626,27 +5626,27 @@ static const char xl6StdDirMoveBody[] =
     "end\n";
 
 static const char xl6StdDirDeleteBody[] =
+    "extern \"xl6_xrt_fs_dir_remove_all\" func __xl_fs_dir_delete(string path, bool keepRoot) as bool\n"
     "func __xl_std_dir_delete(string path) as bool\n"
-    "    if not __xl_std_xrt_dir_exists(path) then\n"
-    "        return false\n"
-    "    end\n"
-    "    __xl_std_xrt_dir_delete(path)\n"
-    "    return not __xl_std_xrt_dir_exists(path)\n"
+    "    return __xl_fs_dir_delete(path,false)\n"
     "end\n";
 
 static const char xl6StdDirListBody[] =
-    "func __xl_std_dir_list(string path, bool recursive = false) as array\n"
-    "    return array(__xl_std_runtime_dir_list(path, recursive, 0))\n"
+    "extern \"xl6_xrt_fs_dir_list\" func __xl_fs_dir_list(string path, bool recursive, int kind, int maxEntries) as array<string>\n"
+    "func __xl_std_dir_list(string path, bool recursive = false, int maxEntries = 1048576) as array<string>\n"
+    "    return __xl_fs_dir_list(path,recursive,0,maxEntries)\n"
     "end\n";
 
 static const char xl6StdDirFilesBody[] =
-    "func __xl_std_dir_files(string path, bool recursive = false) as array\n"
-    "    return array(__xl_std_runtime_dir_list(path, recursive, 1))\n"
+    "extern \"xl6_xrt_fs_dir_list\" func __xl_fs_dir_files(string path, bool recursive, int kind, int maxEntries) as array<string>\n"
+    "func __xl_std_dir_files(string path, bool recursive = false, int maxEntries = 1048576) as array<string>\n"
+    "    return __xl_fs_dir_files(path,recursive,1,maxEntries)\n"
     "end\n";
 
 static const char xl6StdDirDirsBody[] =
-    "func __xl_std_dir_dirs(string path, bool recursive = false) as array\n"
-    "    return array(__xl_std_runtime_dir_list(path, recursive, 2))\n"
+    "extern \"xl6_xrt_fs_dir_list\" func __xl_fs_dir_dirs(string path, bool recursive, int kind, int maxEntries) as array<string>\n"
+    "func __xl_std_dir_dirs(string path, bool recursive = false, int maxEntries = 1048576) as array<string>\n"
+    "    return __xl_fs_dir_dirs(path,recursive,2,maxEntries)\n"
     "end\n";
 
 static const char xl6StdDirEmptyBody[] =
@@ -5656,23 +5656,27 @@ static const char xl6StdDirEmptyBody[] =
     "end\n";
 
 static const char xl6StdDirCountBody[] =
-    "func __xl_std_dir_count(string path, bool recursive = false) as int\n"
-    "    return int(__xl_std_xrt_dir_count(path, recursive, 0))\n"
+    "func __xl_std_dir_count(string path, bool recursive = false) as uint64\n"
+    "    auto stats = WalkStats(path,recursive)\n"
+    "    return stats.items - uint64(1)\n"
     "end\n";
 
 static const char xl6StdDirSizeBody[] =
-    "func __xl_std_dir_size(string path, bool recursive = true) as int\n"
-    "    return int(__xl_std_xrt_dir_size(path, recursive))\n"
+    "extern \"xl6_xrt_fs_dir_size\" func __xl_fs_dir_size(string path, bool recursive) as uint64\n"
+    "func __xl_std_dir_size(string path, bool recursive = true) as uint64\n"
+    "    return __xl_fs_dir_size(path,recursive)\n"
     "end\n";
 
 static const char xl6StdDirCleanBody[] =
+    "extern \"xl6_xrt_fs_dir_remove_all\" func __xl_fs_dir_clean(string path, bool keepRoot) as bool\n"
     "func __xl_std_dir_clean(string path) as bool\n"
-    "    return __xl_std_xrt_dir_clean(path)\n"
+    "    return __xl_fs_dir_clean(path,true)\n"
     "end\n";
 
 static const char xl6StdDirEnsureEmptyBody[] =
+    "extern \"xl6_xrt_fs_dir_ensure_empty\" func __xl_fs_dir_ensure_empty(string path) as bool\n"
     "func __xl_std_dir_ensure_empty(string path) as bool\n"
-    "    return __xl_std_xrt_dir_ensure_empty(path)\n"
+    "    return __xl_fs_dir_ensure_empty(path)\n"
     "end\n";
 
 static const char xl6StdDirGlobBody[] =
@@ -7697,6 +7701,13 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "createHardLink", "__xl_std_file_create_hard_link", NULL, NULL, 0, "bool", xl6StdFsfilecreate_hard_linkBody},
     {"file", "createFifo", "__xl_std_file_create_fifo", NULL, NULL, 0, "bool", xl6StdFsfilecreate_fifoBody},
     {"dir", "temp", "__xl_std_dir_temp", NULL, NULL, 0, "string", xl6StdFsdirtempBody},
+    {"file", "temp", "__xl_std_file_temp", NULL, NULL, 0, "File", xl6StdFs_file_tempBody},
+    {"dir", "roots", "__xl_std_dir_roots", NULL, NULL, 0, "array<string>", xl6StdFs_dir_rootsBody},
+    {"file", "setTimes", "__xl_std_file_set_times", NULL, NULL, 0, "bool", xl6StdFs_file_set_timesBody},
+    {"file", "walkStats", "__xl_std_file_walk_stats", NULL, NULL, 0, "WalkStats", xl6StdFs_file_walk_statsBody},
+    {"dir", "stats", "__xl_std_dir_stats", NULL, NULL, 0, "WalkStats", xl6StdFs_dir_statsBody},
+    {"file", "copyTree", "__xl_std_file_copy_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_copy_treeBody},
+    {"file", "removeTree", "__xl_std_file_remove_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_remove_treeBody},
     {"dir", "open", "__xl_std_dir_open", NULL, NULL, 0, "DirectoryIterator", xl6StdFsDirectoryBody},
     {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
     {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<Buffer>", xl6StdFileReadBytesAsyncBody},
@@ -7718,8 +7729,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "files", "__xl_std_dir_files", NULL, NULL, 0, "array", xl6StdDirFilesBody},
     {"dir", "dirs", "__xl_std_dir_dirs", NULL, NULL, 0, "array", xl6StdDirDirsBody},
     {"dir", "empty", "__xl_std_dir_empty", NULL, NULL, 0, "bool", xl6StdDirEmptyBody},
-    {"dir", "count", "__xl_std_dir_count", NULL, NULL, 0, "int", xl6StdDirCountBody},
-    {"dir", "size", "__xl_std_dir_size", NULL, NULL, 0, "int", xl6StdDirSizeBody},
+    {"dir", "count", "__xl_std_dir_count", NULL, NULL, 0, "uint64", xl6StdDirCountBody},
+    {"dir", "size", "__xl_std_dir_size", NULL, NULL, 0, "uint64", xl6StdDirSizeBody},
     {"dir", "clean", "__xl_std_dir_clean", NULL, NULL, 0, "bool", xl6StdDirCleanBody},
     {"dir", "ensureEmpty", "__xl_std_dir_ensure_empty", NULL, NULL, 0, "bool", xl6StdDirEnsureEmptyBody},
     {"dir", "glob", "__xl_std_dir_glob", NULL, NULL, 0, "array", xl6StdDirGlobBody},

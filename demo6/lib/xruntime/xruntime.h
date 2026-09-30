@@ -17894,6 +17894,14 @@ XRT_API bool xrtPathRename(cstr sSource, cstr sTarget, bool bReplace);
 /* 删除一个非目录文件或链接。 */
 XRT_API bool xrtFileDelete(cstr sPath);
 
+/* Remove an open native non-directory file without allocating on success.
+ * The caller retains File and must close it. Windows marks the opened object
+ * for deletion on last close; sPath is the POSIX name to unlink. POSIX checks
+ * device/inode before unlink, but the caller must serialize namespace changes.
+ * A missing POSIX name is success; a replaced name is never knowingly removed.
+ * Virtual files are unsupported. */
+XRT_API bool xrtFileDeleteOpen(xfile File, cstr sPath);
+
 
 
 /* 创建不存在的空文件，或把已有对象的访问和修改时间更新为当前时刻。 */
@@ -126236,6 +126244,11 @@ XRT_API str xrtPathAppDir(void)
 
 #if defined(XRT_FEATURE_FILE)
 
+#if (defined(_WIN32) || defined(_WIN64)) && defined(__TINYC__)
+/* Same Vista handle API compatibility declaration used by file_root_windows. */
+BOOL WINAPI SetFileInformationByHandle(HANDLE File, int Class, LPVOID Info, DWORD Size);
+#endif
+
 /* 公共文件对象只保存后端分派、后端状态、打开标志与能力快照。 */
 struct xfile_impl {
 	const xrt_file_backend_ops* Ops;
@@ -128680,6 +128693,85 @@ XRT_API bool xrtFileDelete(cstr sPath)
 		}
 	#endif
 	return true;
+}
+
+
+
+/* 删除仍打开的原生文件；成功路径无堆分配，适用于临时文件回滚。 */
+XRT_API bool xrtFileDeleteOpen(xfile File, cstr sPath)
+{
+    if (File == NULL || sPath == NULL || sPath[0] == '\0') {
+        __xrtErrorSetInvalidArgument();
+        return false;
+    }
+    if (File->Ops != &__xrtNativeFileOps) {
+        __xrtFileError(XERR_UNSUPPORTED, XFILE_ERROR_DELETE, "delete-open",
+            "open-file deletion requires a native backend");
+        return false;
+    }
+    #if defined(_WIN32) || defined(_WIN64)
+        {
+            xrt_native_file_state* State = (xrt_native_file_state*)File->State;
+            typedef HANDLE (WINAPI *ReopenProc)(HANDLE, DWORD, DWORD, DWORD);
+            FARPROC Address = GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "ReOpenFile");
+            ReopenProc Reopen = NULL;
+            HANDLE DeleteHandle;
+            struct { BOOL DeleteFile; } Disposition;
+            _Static_assert(sizeof(Reopen) == sizeof(Address), "Windows procedure pointer ABI mismatch");
+            memcpy(&Reopen, &Address, sizeof(Reopen));
+            if (Reopen == NULL) {
+                __xrtFileError(XERR_UNSUPPORTED, XFILE_ERROR_DELETE, "delete-open",
+                    "native handle reopening is unavailable");
+                return false;
+            }
+            DeleteHandle = Reopen(State->Handle, DELETE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0);
+            int Code = 0;
+            if (DeleteHandle == INVALID_HANDLE_VALUE) {
+                Code = (int)GetLastError();
+            } else {
+                Disposition.DeleteFile = TRUE;
+                if (!SetFileInformationByHandle(DeleteHandle,
+                        #if defined(__TINYC__)
+                            4,
+                        #else
+                            FileDispositionInfo,
+                        #endif
+                        &Disposition, sizeof(Disposition))) Code = (int)GetLastError();
+                if (!CloseHandle(DeleteHandle) && Code == 0) Code = (int)GetLastError();
+            }
+            if (Code != 0) {
+                __xrtFileSetError(XFILE_ERROR_DELETE, "delete-open",
+                    "failed to mark the open file for deletion", Code);
+                return false;
+            }
+        }
+    #else
+        {
+            xrt_native_file_state* State = (xrt_native_file_state*)File->State;
+            struct stat Opened, Named;
+            int Code = 0;
+            if (fstat(State->Handle, &Opened) != 0) Code = errno;
+            else if (S_ISDIR(Opened.st_mode)) {
+                __xrtFileError(XERR_TYPE, XFILE_ERROR_DELETE, "delete-open",
+                    "open-file deletion does not accept directories");
+                return false;
+            } else if (lstat(sPath, &Named) != 0) {
+                if (errno == ENOENT) return true;
+                Code = errno;
+            } else if (Opened.st_dev != Named.st_dev || Opened.st_ino != Named.st_ino) {
+                __xrtFileError(XERR_STATE, XFILE_ERROR_DELETE, "delete-open",
+                    "the file name no longer identifies the opened object");
+                return false;
+            } else if (unlink(sPath) != 0 && errno != ENOENT) Code = errno;
+            if (Code != 0) {
+                __xrtFileSetError(XFILE_ERROR_DELETE, "delete-open",
+                    "failed to unlink the open file", Code);
+                return false;
+            }
+        }
+    #endif
+    return true;
 }
 
 

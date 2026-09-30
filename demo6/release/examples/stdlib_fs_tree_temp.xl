@@ -1,0 +1,18 @@
+// Temporary file lifetime follows retained File IO leases.
+func scratchReader(string directory) as IoReader
+    auto scratch = file.temp(directory,"example-",".bin")
+    scratch.writeAll(b"a\0b")
+    scratch.seek(0)
+    return scratch.reader()
+end
+string directory = dir.temp()
+try
+    auto reader = scratchReader(directory)
+    print(reader.readExact(3).length)
+    reader.close()
+    auto stats = dir.stats(directory)
+    print(stats.files,stats.bytes)
+    assert dir.empty(directory)
+finally
+    dir.remove(directory)
+end
