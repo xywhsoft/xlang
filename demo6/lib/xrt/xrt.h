@@ -17559,7 +17559,8 @@ XRT_API bool xrtRootFifoCreate(xroot Root, cstr sPath, uint32 iMode);
 
 
 
-/* 在根内设置对象权限；跟随链接时仍由根解析器阻止越界。 */
+/* 在根内设置 POSIX 对象权限；Windows 返回 XERR_UNSUPPORTED。
+ * 跟随链接时仍由根解析器阻止越界。 */
 XRT_API bool xrtRootSetMode(xroot Root, cstr sPath,
 	bool bFollowLink, uint32 iMode);
 
@@ -275204,15 +275205,18 @@ bool __xrtRootNativeFifoCreate(xrootnative Parent,
 
 
 
-/* Windows 忽略 POSIX 模式，但仍验证目标存在且安全解析。 */
+/* Windows 无 POSIX 权限模式；不能把存在性查询伪装为设置成功。 */
 xrootstep __xrtRootNativeSetMode(xrootnative Parent,
 	cstr sName, bool bFollowLink, uint32 iMode, str* pLink)
 {
-	xfileinfo Info;
-
+	(void)Parent;
+	(void)sName;
+	(void)bFollowLink;
 	(void)iMode;
-	return __xrtRootNativeStat(Parent, sName,
-		false, bFollowLink, &Info, pLink);
+	(void)pLink;
+	__xrtRootError(XERR_UNSUPPORTED, XROOT_ERROR_STAT,
+		"set-mode", "POSIX permission modes are not available on Windows");
+	return XROOT_STEP_ERROR;
 }
 
 #endif

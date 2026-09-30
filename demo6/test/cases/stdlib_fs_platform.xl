@@ -1,0 +1,53 @@
+bool posix = path.sep() == "/"
+string directory = "build/test"
+// POSIX permission tests need a native filesystem, not WSL's Windows drive mount.
+if posix then directory = "" end
+string nativeDir = dir.temp(directory, "fs-platform-", "")
+auto root = file.root(nativeDir)
+assert file.writeBytes(path.join(nativeDir, "value.bin"), b"abc")
+if posix then
+    assert file.setMode(path.join(nativeDir, "value.bin"), 384)
+    assert file.stat(path.join(nativeDir, "value.bin")).mode == 384
+    assert root.setMode("value.bin", 416)
+    assert root.stat("value.bin").mode == 416
+    assert file.createFifo(path.join(nativeDir, "fifo"))
+    assert root.stat("fifo", false).type == 4
+    assert root.remove("fifo")
+    assert root.createFifo("root-fifo")
+    assert root.stat("root-fifo", false).type == 4
+    assert root.remove("root-fifo")
+    assert file.createLink("value.bin", path.join(nativeDir, "link"))
+    assert file.readLink(path.join(nativeDir, "link")) == "value.bin"
+    assert root.stat("link", false).type == 3
+    assert root.stat("link").size == uint64(3)
+    assert file.deleteLink(path.join(nativeDir, "link"))
+    assert root.createLink("value.bin", "root-link")
+    assert root.readLink("root-link") == "value.bin"
+    assert root.remove("root-link")
+else
+    int attributes = file.attr(path.join(nativeDir, "value.bin"))
+    assert file.setAttr(path.join(nativeDir, "value.bin"), attributes | 2)
+    assert (file.attr(path.join(nativeDir, "value.bin")) & 2) == 2
+    assert file.setAttr(path.join(nativeDir, "value.bin"), attributes)
+    for operation in range(4)
+        bool rejected = false
+        try
+            if operation == 0 then
+                file.setMode(path.join(nativeDir, "value.bin"), 384)
+            elseif operation == 1 then
+                root.setMode("value.bin", 384)
+            elseif operation == 2 then
+                file.createFifo(path.join(nativeDir, "fifo"))
+            else
+                root.createFifo("fifo")
+            end
+        catch e
+            rejected = true
+        end
+        assert rejected, "POSIX-only operations must not report success on Windows"
+    end
+end
+assert root.remove("value.bin")
+assert root.close()
+assert dir.remove(nativeDir)
+print("fs platform ok")

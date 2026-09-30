@@ -81,7 +81,7 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         'test/cases/stdlib_fs_allocation.xl', 'test/cases/stdlib_fs_path.xl',
         'test/cases/stdlib_fs_whole.xl', 'test/cases/stdlib_file_bytes_only.xl',
         'test/cases/stdlib_file_read_text_binary_reject.xl',
-        'test/cases/stdlib_fs_path_whole_allocation.xl')
+        'test/cases/stdlib_fs_path_whole_allocation.xl', 'test/cases/stdlib_fs_platform.xl')
     foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
@@ -130,4 +130,4 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     }
     Pop-Location
 }
-Write-Output 'VFS/File gate passed: eighteen positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'
+Write-Output 'VFS/File gate passed: nineteen positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'
