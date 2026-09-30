@@ -4,6 +4,7 @@
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
 #include "src/stdlib/xl6_stdlib_fs_walk.inc"
+#include "src/stdlib/xl6_stdlib_fs_async.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -2461,40 +2462,6 @@ const char* xl6StdlibUdpConfigClassSource =
     "end\n";
 
 
-const char* xl6StdlibAsyncFileClassSource =
-    "class AsyncFile\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_async_file_open\" create(string path, int flags, int shareFlags)\n"
-    "    extern \"xl6_xrt_async_file_destroy\" destroy()\n"
-	"    extern \"xl6_xrt_async_file_native\" func nativeHandle() as point\n"
-	"    extern \"xl6_xrt_async_file_take\" func detach() as point\n"
-    "    extern \"xl6_xrt_async_file_close\" func close() as bool\n"
-    "    extern \"xl6_xrt_async_file_read\" func readNative(int offset, int size) as future<point>\n"
-    "    extern \"xl6_xrt_async_file_write\" func writeNative(int offset, point data, c_size size) as future<int>\n"
-    "    extern \"xl6_xrt_async_file_flush\" func flush() as future<bool>\n"
-    "    extern \"xl6_xrt_async_file_size\" func size() as future<int>\n"
-    "    extern \"xl6_xrt_async_file_resize\" func resize(int size) as future<bool>\n"
-    "\n"
-    "    func read(int offset, int size) as future<point>\n"
-    "        return self.readNative(offset, size)\n"
-    "    end\n"
-    "\n"
-    "    func readAt(int offset, int size) as future<point>\n"
-    "        return self.readNative(offset, size)\n"
-    "    end\n"
-    "\n"
-    "    func write(int offset, Buffer data) as future<int>\n"
-    "        return self.writeNative(offset, data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func writeAt(int offset, Buffer data) as future<int>\n"
-    "        return self.writeNative(offset, data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func setSize(int size) as future<bool>\n"
-    "        return self.resize(size)\n"
-    "    end\n"
-    "end\n";
 
 const char* xl6StdlibJsonClassSource =
     "class JsonWriter\n"
@@ -3552,14 +3519,6 @@ static const XL6_StdlibParam xl6StdIoWriteFileParams[] = {
 };
 static const XL6_StdlibParam xl6StdIoWriteTextFileParams[] = {
     {"string", "path"}, {"string", "data"}, {"int", "mode"}, {"int", "size"}
-};
-
-static const XL6_StdlibParam xl6StdXrtPathRandomParams[] = {
-    {"string", "head"},
-    {"c_size", "headSize"},
-    {"string", "foot"},
-    {"c_size", "footSize"},
-    {"c_size", "len"}
 };
 
 static const XL6_StdlibParam xl6StdPathRelParams[] = {
@@ -5272,10 +5231,7 @@ static const char xl6StdPathJoinBody[] =
 
 static const char xl6StdPathRandomBody[] =
     "func __xl_std_path_random(string head = \"\", string foot = \"\", int len = 12) as string\n"
-    "    if len < 0 then\n"
-    "        return \"\"\n"
-    "    end\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_random(head, 0, foot, 0, c_size(len)))\n"
+    "    return head + __xl_std_random_string(len) + foot\n"
     "end\n";
 
 static const char xl6StdPathSepBody[] =
@@ -5449,12 +5405,16 @@ static const char xl6StdFileSetAttrBody[] =
 
 static const char xl6StdFileAccessTimeBody[] =
     "func __xl_std_file_access_time(string path) as time\n"
-    "    return time(__xl_std_xrt_file_get_access_time(path))\n"
+    "    auto metadata = __xl_std_file_stat(path)\n"
+    "    if (metadata.available & 4) == 0 then throw FileError(\"file access time metadata is unavailable\") end\n"
+    "    return time(metadata.accessed)\n"
     "end\n";
 
 static const char xl6StdFileChangeTimeBody[] =
     "func __xl_std_file_change_time(string path) as time\n"
-    "    return time(__xl_std_xrt_file_get_change_time(path))\n"
+    "    auto metadata = __xl_std_file_stat(path)\n"
+    "    if (metadata.available & 8) == 0 then throw FileError(\"file modification time metadata is unavailable\") end\n"
+    "    return time(metadata.modified)\n"
     "end\n";
 
 static const char xl6StdFileWriteTextBody[] =
@@ -5555,23 +5515,6 @@ static const char xl6StdFileOpenBody[] =
     "    return File(filePath, flags, mode, share)\n"
     "end\n";
 
-static const char xl6StdFileReadBytesAsyncBody[] =
-    "extern \"xl6_xrt_file_read_bytes_async\" func __xl_std_file_read_bytes_async_native(string path) as future<point>\n"
-    "async func __xl_std_file_read_bytes_async(string path) as Buffer\n"
-    "    point data = await __xl_std_file_read_bytes_async_native(path)\n"
-    "    return Buffer(data)\n"
-    "end\n";
-
-static const char xl6StdFileWriteBytesAsyncBody[] =
-    "extern \"xl6_xrt_file_write_bytes_async\" func __xl_std_file_write_bytes_async_native(string path, point data, c_size size) as future<bool>\n"
-    "func __xl_std_file_write_bytes_async(string path, Buffer data) as future<bool>\n"
-    "    return __xl_std_file_write_bytes_async_native(path, data.data(), c_size(data.len()))\n"
-    "end\n";
-
-static const char xl6StdFileOpenAsyncBody[] =
-    "func __xl_std_file_open_async(string path, int flags = 1, int shareFlags = 7) as AsyncFile\n"
-    "    return AsyncFile(path, flags, shareFlags)\n"
-    "end\n";
 
 static const char xl6StdDirExistsBody[] =
     "extern \"xl6_xrt_fs_dir_exists\" func __xl_fs_dir_exists(string p0) as bool\n"
@@ -6942,6 +6885,18 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
+    {"file", "takeAsync", "__xl_std_file_take_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_takeAsyncBody},
+    {"file", "appendBytesAsync", "__xl_std_file_append_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_appendBytesAsyncBody},
+    {"file", "writeBytesAtomicAsync", "__xl_std_file_write_bytes_atomic_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeBytesAtomicAsyncBody},
+    {"file", "writeTextAtomicAsync", "__xl_std_file_write_text_atomic_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeTextAtomicAsyncBody},
+    {"dir", "removeAsync", "__xl_std_dir_remove_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_removeAsyncBody},
+    {"dir", "emptyAsync", "__xl_std_dir_empty_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_emptyAsyncBody},
+    {"dir", "ensureEmptyAsync", "__xl_std_dir_ensure_empty_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_ensureEmptyAsyncBody},
+    {"dir", "sizeAsync", "__xl_std_dir_size_async", NULL, NULL, 0, "future<uint64>", xl6StdFsAsync_dir_sizeAsyncBody},
+    {"file", "copyTreeAsync", "__xl_std_file_copy_tree_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_file_copyTreeAsyncBody},
+    {"file", "removeTreeAsync", "__xl_std_file_remove_tree_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_file_removeTreeAsyncBody},
+    {"dir", "cleanAsync", "__xl_std_dir_clean_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_dir_cleanAsyncBody},
+    {"dir", "statsAsync", "__xl_std_dir_stats_async", NULL, NULL, 0, "future<WalkStats>", xl6StdFsAsync_dir_statsAsyncBody},
     {"__xl_runtime", "takeCstr", "__xl_std_runtime_take_cstr", "xl6_xrt_take_cstr", xl6StdRuntimeTakeCstrParams, 1, "string", NULL},
     {"__xl_runtime", "print", "__xl_std_runtime_print", "xl6_xrt_print", xl6StdRuntimePrintParams, 2, "bool", NULL},
     {"__xl_runtime", "write", "__xl_std_runtime_write", "xl6_xrt_write", xl6StdRuntimeStringTextParams, 1, "c_bool", NULL},
@@ -7173,7 +7128,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_path", "getName", "__xl_std_xrt_path_get_name", "xrtPathStem", xl6StdPathUnaryParams, 1, "point", NULL},
     {"__xrt_path", "getExt", "__xl_std_xrt_path_get_ext", "xrtPathExt", xl6StdPathUnaryParams, 1, "point", NULL},
     {"__xrt_path", "getDir", "__xl_std_xrt_path_get_dir", "xrtPathParent", xl6StdPathUnaryParams, 1, "point", NULL},
-    {"__xrt_path", "random", "__xl_std_xrt_path_random", "xl6_xrt_path_random", xl6StdXrtPathRandomParams, 5, "point", NULL},
     {"__xrt_path", "sep", "__xl_std_xrt_path_sep", "xl6_xrt_path_sep_text", NULL, 0, "point", NULL},
     {"__xrt_path", "normalize", "__xl_std_xrt_path_normalize", "xl6_xrt_path_clean", xl6StdPathUnaryParams, 1, "point", NULL},
     {"__xrt_path", "abs", "__xl_std_xrt_path_abs", "xrtPathAbs", xl6StdPathUnaryParams, 1, "point", NULL},
@@ -7193,8 +7147,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_file", "setSize", "__xl_std_xrt_file_set_size", "xrtFileSetSize", xl6StdXrtFileSetSizeParams, 2, "c_bool", NULL},
     {"__xrt_file", "getAttr", "__xl_std_xrt_file_get_attr", "xl6_xrt_file_get_attributes", xl6StdPathUnaryParams, 1, "c_int", NULL},
     {"__xrt_file", "setAttr", "__xl_std_xrt_file_set_attr", "xl6_xrt_file_set_attributes", xl6StdXrtFileSetAttrParams, 2, "c_bool", NULL},
-    {"__xrt_file", "getAccessTime", "__xl_std_xrt_file_get_access_time", "xl6_xrt_file_get_access_time", xl6StdPathUnaryParams, 1, "int", NULL},
-    {"__xrt_file", "getChangeTime", "__xl_std_xrt_file_get_change_time", "xl6_xrt_file_get_change_time", xl6StdPathUnaryParams, 1, "int", NULL},
     {"__xrt_file", "writeAll", "__xl_std_xrt_file_write_all", "xl6_xrt_file_write_text_all", xl6StdXrtFileWriteTextParams, 4, "c_int", NULL},
     {"__xrt_file", "append", "__xl_std_xrt_file_append", "xl6_xrt_file_append_text", xl6StdXrtFileWriteTextParams, 4, "c_int", NULL},
     {"__xrt_file", "readAll", "__xl_std_xrt_file_read_all", "xl6_xrt_file_read_text_strict", xl6StdXrtFileReadTextParams, 3, "point", NULL},
@@ -7677,15 +7629,15 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "copyTree", "__xl_std_file_copy_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_copy_treeBody},
     {"file", "removeTree", "__xl_std_file_remove_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_remove_treeBody},
     {"dir", "open", "__xl_std_dir_open", NULL, NULL, 0, "DirectoryIterator", xl6StdFsDirectoryBody},
-    {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
-    {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<Buffer>", xl6StdFileReadBytesAsyncBody},
-    {"file", "writeTextAsync", "__xl_std_file_write_text_async", "xl6_xrt_file_write_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},
-    {"file", "writeBytesAsync", "__xl_std_file_write_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFileWriteBytesAsyncBody},
-    {"file", "appendTextAsync", "__xl_std_file_append_text_async", "xl6_xrt_file_append_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},
-    {"file", "copyAsync", "__xl_std_file_copy_async", "xl6_xrt_file_copy_async_overwrite", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
-    {"file", "moveAsync", "__xl_std_file_move_async", "xl6_xrt_file_move_async_overwrite", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
-    {"file", "deleteAsync", "__xl_std_file_delete_async", "xl6_xrt_file_delete_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
-    {"file", "openAsync", "__xl_std_file_open_async", NULL, NULL, 0, "AsyncFile", xl6StdFileOpenAsyncBody},
+    {"file", "readTextAsync", "__xl_std_file_read_text_async", NULL, NULL, 0, "future<string>", xl6StdFsAsync_file_readTextAsyncBody},
+    {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<bytes>", xl6StdFsAsync_file_readBytesAsyncBody},
+    {"file", "writeTextAsync", "__xl_std_file_write_text_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeTextAsyncBody},
+    {"file", "writeBytesAsync", "__xl_std_file_write_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeBytesAsyncBody},
+    {"file", "appendTextAsync", "__xl_std_file_append_text_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_appendTextAsyncBody},
+    {"file", "copyAsync", "__xl_std_file_copy_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_copyAsyncBody},
+    {"file", "moveAsync", "__xl_std_file_move_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_moveAsyncBody},
+    {"file", "deleteAsync", "__xl_std_file_delete_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_deleteAsyncBody},
+    {"file", "openAsync", "__xl_std_file_open_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_openAsyncBody},
 
     {"dir", "exists", "__xl_std_dir_exists", NULL, NULL, 0, "bool", xl6StdDirExistsBody},
     {"dir", "create", "__xl_std_dir_create", NULL, NULL, 0, "bool", xl6StdDirCreateBody},
@@ -7705,11 +7657,11 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirentriesBody},
     {"dir", "matchEntries", "__xl_std_dir_match", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirmatchBody},
     {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirwalkBody},
-    {"dir", "createAsync", "__xl_std_dir_create_async", "xl6_xrt_dir_create_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
-    {"dir", "createAllAsync", "__xl_std_dir_create_all_async", "xl6_xrt_dir_create_all_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
-    {"dir", "copyAsync", "__xl_std_dir_copy_async", "xl6_xrt_dir_copy_async", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
-    {"dir", "moveAsync", "__xl_std_dir_move_async", "xl6_xrt_dir_move_async", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
-    {"dir", "deleteAsync", "__xl_std_dir_delete_async", "xl6_xrt_dir_delete_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
+    {"dir", "createAsync", "__xl_std_dir_create_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_createAsyncBody},
+    {"dir", "createAllAsync", "__xl_std_dir_create_all_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_createAllAsyncBody},
+    {"dir", "copyAsync", "__xl_std_dir_copy_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_dir_copyAsyncBody},
+    {"dir", "moveAsync", "__xl_std_dir_move_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_moveAsyncBody},
+    {"dir", "deleteAsync", "__xl_std_dir_delete_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_dir_deleteAsyncBody},
 
     {"json", "parse", "__xl_std_json_parse", NULL, NULL, 0, "var", xl6StdJsonParseBody},
     {"json", "valid", "__xl_std_json_valid", NULL, NULL, 0, "bool", xl6StdJsonValidBody},

@@ -1,0 +1,5 @@
+async func compute(int value) as int
+    return value + 1
+end
+assert await compute(41) == 42
+println("task without filesystem ok")

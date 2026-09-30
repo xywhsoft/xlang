@@ -1,0 +1,13 @@
+assert path.random().length == 12
+string candidate = path.random("pre-", ".tmp", 8)
+assert candidate.length == 16
+assert candidate.startsWith("pre-") and candidate.endsWith(".tmp")
+assert path.random("a\0", "b", 0) == "a\0b"
+bool rejected = false
+try
+    path.random("", "", -1)
+catch RangeError
+    rejected = true
+end
+assert rejected
+println("path random ok")

@@ -1,0 +1,14 @@
+string path = "build/test/fs-async-cancel.bin"
+assert await file.writeBytesAsync(path, b"cancel")
+auto pending = file.readBytesAsync(path)
+pending.cancel()
+bool cancelled = false
+try
+    auto result = await pending
+    assert result == b"cancel", "resolution may win the cancellation race"
+catch CancelledError
+    cancelled = true
+end
+assert pending.isDone()
+assert await file.deleteAsync(path)
+println("async cancellation race ok")

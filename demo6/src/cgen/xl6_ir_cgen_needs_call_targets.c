@@ -144,6 +144,9 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsForeignErrorRuntime = 1;
                 needs->needsErrorRuntime = 1;
             }
+            if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_OPEN &&
+                target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_TREE_ENSURE)
+                needs->needsFutureRuntime = 1;
         }
         if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE) {

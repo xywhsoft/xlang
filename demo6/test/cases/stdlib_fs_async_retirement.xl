@@ -1,0 +1,7 @@
+// A global file must be closed before pool join; its wrapper is finalized later.
+auto alive = file.openAsync("build/test/fs-async-retirement.bin", 15)
+auto writing = alive.writeAt(uint64(0), b"a\0b")
+assert await writing == uint64(3)
+auto reading = alive.readAt(uint64(0), 3)
+assert await reading == b"a\0b"
+println("async retirement ready")

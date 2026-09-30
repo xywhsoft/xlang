@@ -1,0 +1,2 @@
+extern "xl6_xrt_fs_async_whole_read" func wrong(string path, int limit) as future<string>
+auto value = wrong("x", 1)

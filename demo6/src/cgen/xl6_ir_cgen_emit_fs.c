@@ -12,6 +12,7 @@ static int xl6IrCgenFsSelected(const XL6_IrCgenNeeds* needs, XL6_IrRuntimeBridge
 #include "src/cgen/xl6_ir_cgen_emit_fs_tree.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_pack.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_walk.c"
+#include "src/cgen/xl6_ir_cgen_emit_fs_async.c"
 static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
 {
     int file = 0, info = 0, dir = 0, root = 0, map = 0, lock = 0;
@@ -25,6 +26,7 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
         if (xl6IrRuntimeFsBridgeUsesOwner(k, "xl6_xrt_fs_root_destroy")) root = 1;
     }
     file |= map | lock;
+    file |= xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_OPEN);
     xl6OutputPuts(
             "static inline bool xlir_fs_size(int64_t request, size_t* size)\n"
             "{ if (request < 0 || (uint64_t)request > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
@@ -571,4 +573,5 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
     xl6IrCgenEmitFsTreeRuntime(out, needs);
     xl6IrCgenEmitFsPackRuntime(out, needs);
     xl6IrCgenEmitFsWalkRuntime(out, needs);
+    xl6IrCgenEmitFsAsyncRuntime(out, needs);
 }

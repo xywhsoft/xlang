@@ -167,6 +167,22 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ContinuationExecutorIsIdle", (const void*)xl6ContinuationExecutorIsIdle)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FrameStorageRuntimeV1Get", (const void*)xl6FrameStorageRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV1Get", (const void*)xl6TaskRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskResourceInitV1", (const void*)xl6TaskResourceInitV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskResourceRemoveV1", (const void*)xl6TaskResourceRemoveV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskResourceReleaseV1", (const void*)xl6TaskResourceReleaseV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskNativeBeginV1", (const void*)xl6TaskNativeBeginV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskNativeEndV1", (const void*)xl6TaskNativeEndV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileOpenV1", (const void*)xl6AsyncFileOpenV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileAdoptV1", (const void*)xl6AsyncFileAdoptV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileDestroyV1", (const void*)xl6AsyncFileDestroyV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileCloseV1", (const void*)xl6AsyncFileCloseV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileReadV1", (const void*)xl6AsyncFileReadV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileWriteV1", (const void*)xl6AsyncFileWriteV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileFlushV1", (const void*)xl6AsyncFileFlushV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileSizeV1", (const void*)xl6AsyncFileSizeV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileResizeV1", (const void*)xl6AsyncFileResizeV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileFlagsV1", (const void*)xl6AsyncFileFlagsV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6AsyncFileClosedV1", (const void*)xl6AsyncFileClosedV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6NetworkServiceRuntimeV1Get", (const void*)xl6NetworkServiceRuntimeV1Get) ||
         !xlApiAddTccSymbol(s, "xl6NetworkServiceRuntimeV2Get", (const void*)xl6NetworkServiceRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV2Get", (const void*)xl6TaskRuntimeV2Get)) return 0;

@@ -1354,7 +1354,8 @@ static int xl6StdlibNeedsAsyncFileClass(const XL6_AstNode* root, const int* used
     if ( xl6StdlibNodeUsesTypeName(root, "AsyncFile") ) {
         return 1;
     }
-    return xl6StdlibFindFunc("file", "openAsync", &index) != NULL && used[index];
+    return (xl6StdlibFindFunc("file", "openAsync", &index) != NULL && used[index]) ||
+        (xl6StdlibFindFunc("file", "takeAsync", &index) != NULL && used[index]);
 }
 
 static unsigned int xl6StdlibForeignEffects(const XL6_StdlibFunc* func)
@@ -1709,7 +1710,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpConnectConfigClass || needsTcpListenConfigClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass;
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
-    needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "info") || xl6StdlibFuncUsed(used, "file", "temp") || xl6StdlibFuncUsed(used, "file", "stat") ||
+    needsFileClass = needsFileClass || xl6StdlibNeedsAsyncFileClass(root,used) || needsVfs || xl6StdlibFuncUsed(used, "file", "info") || xl6StdlibFuncUsed(used, "file", "temp") || xl6StdlibFuncUsed(used, "file", "stat") ||
         xl6StdlibFuncUsed(used, "file", "root") || xl6StdlibNodeUsesTypeName(root, "FileRoot") ||
         xl6StdlibNodeUsesTypeName(root, "MappedFile") || xl6StdlibNodeUsesTypeName(root, "FileLock") ||
         xl6StdlibFuncUsed(used, "dir", "open") || xl6StdlibNodeUsesTypeName(root, "FileStat") ||
@@ -1946,7 +1947,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibFuncUsed(used, "dir", "matchEntries") || xl6StdlibFuncUsed(used, "dir", "walk") ||
         xl6StdlibNodeUsesTypeName(root, "WalkEntry") || xl6StdlibNodeUsesTypeName(root, "WalkError"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibFsWalkSource);
-    if (xl6StdlibFuncUsed(used, "file", "walk") || xl6StdlibNodeUsesTypeName(root, "WalkStats") || xl6StdlibNodeUsesTypeName(root, "TreeStats") || xl6StdlibFuncUsed(used, "file", "walkStats") ||
+    if (xl6StdlibFuncUsed(used,"file","copyTreeAsync") || xl6StdlibFuncUsed(used,"file","removeTreeAsync") ||
+        xl6StdlibFuncUsed(used,"dir","copyAsync") || xl6StdlibFuncUsed(used,"dir","deleteAsync") ||
+        xl6StdlibFuncUsed(used,"dir","cleanAsync") || xl6StdlibFuncUsed(used,"dir","statsAsync"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibFsAsyncStatsSource);
+    if (xl6StdlibFuncUsed(used,"file","copyTreeAsync") || xl6StdlibFuncUsed(used,"file","removeTreeAsync") ||
+        xl6StdlibFuncUsed(used,"dir","copyAsync") || xl6StdlibFuncUsed(used,"dir","deleteAsync") ||
+        xl6StdlibFuncUsed(used,"dir","cleanAsync") || xl6StdlibFuncUsed(used,"dir","statsAsync") ||
+        xl6StdlibFuncUsed(used, "file", "walk") || xl6StdlibNodeUsesTypeName(root, "WalkStats") || xl6StdlibNodeUsesTypeName(root, "TreeStats") || xl6StdlibFuncUsed(used, "file", "walkStats") ||
         xl6StdlibFuncUsed(used, "file", "copyTree") || xl6StdlibFuncUsed(used, "file", "removeTree") ||
         xl6StdlibFuncUsed(used, "dir", "stats") || xl6StdlibFuncUsed(used, "dir", "count") ||
         xl6StdlibFuncUsed(used, "dir", "clean") || xl6StdlibFuncUsed(used, "dir", "delete"))

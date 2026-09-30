@@ -11,15 +11,13 @@ struct XL6_TaskPool {
     xcond* changed;
     xtaskpool* native;
     xtaskpoolconfig config;
+    XL6_TaskResourceV1* resources;
     size_t references, entries, activities, submitting;
     const void* claim;
     bool ownerHeld, closing, quiescing, creating, retiring, cleared;
 };
-typedef struct TaskActivity {
-    struct TaskActivity *previous, *next;
-    XL6_TaskPool* pool;
-    uint64 thread;
-} TaskActivity;
+typedef XL6_TaskNativeScopeV1 TaskActivity;
+static void pool_close_resources(XL6_TaskPool*);
 typedef struct TaskFrame {
     xatomic64 gate;
     XL6_CodeLease* lease;
@@ -59,7 +57,7 @@ static void pool_drop(const void* data)
     if(!pool->references)abort();
     bool last=--pool->references==0;
     if(last && (pool->ownerHeld||pool->native||pool->entries||pool->activities||
-        pool->submitting||pool->creating||pool->quiescing||pool->retiring))abort();
+        pool->submitting||pool->creating||pool->quiescing||pool->retiring||pool->resources))abort();
     unlock_pool(pool);
     if(last){
         if(!xrtCondDestroy(pool->changed)||!xrtMutexDestroy(pool->gate))abort();
@@ -155,7 +153,12 @@ static bool pool_quiesce(XL6_TaskPool* pool)
     lock_pool(pool);
     while(pool->submitting)if(xrtCondWait(pool->changed,pool->gate)!=XWAIT_OK)abort();
     native=pool->native; unlock_pool(pool);
-    ok=xrtTaskPoolDestroy(native);
+    pool_close_resources(pool);
+    /* Native finalizers may still be inside a pool resource-release entry.
+     * Destroy requires exclusive external entry, so settle native jobs and
+     * finalizer tails before requesting destruction, never by retrying it. */
+    ok=!native || (xrtTaskPoolClose(native) && xrtTaskPoolWait(native)==XWAIT_OK &&
+        xrtTaskPoolDestroy(native));
     mutation_begin(&mutation); lock_pool(pool);
     if(ok)pool->native=NULL;
     pool->quiescing=false; unlock_pool(pool); mutation_end(&mutation);pool_leave(pool);return ok;
@@ -175,6 +178,7 @@ XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
         unlock_pool(pool); mutation_end(&mutation);pool_leave(pool);return XL6_MODULE_PREPARE_BUSY;
     }
     pool->quiescing=true; native=pool->native; unlock_pool(pool); mutation_end(&mutation);
+    pool_close_resources(pool);
     if(native) {
         if(!xrtTaskPoolClose(native))result=XL6_MODULE_PREPARE_FAILED;
         else {
@@ -215,7 +219,7 @@ static bool pool_count(const void* data,size_t* count)
 {
     const XL6_TaskPool* pool=data;
     if(!pool||!count||!pool->references||pool->entries||pool->activities||pool->submitting||
-        pool->creating||pool->quiescing||pool->retiring||pool->cleared)return false;
+        pool->creating||pool->quiescing||pool->retiring||pool->cleared||pool->resources)return false;
     *count=pool->references;return true;
 }
 static bool pool_trace(const void* data,xrtownershipvisitor visit,void* context)
@@ -245,7 +249,7 @@ static bool pool_prepared(const void* data)
      * traced native pool MUST be resolved and prepared (including join) by
      * the same whole graph before ANY node may Clear/Finish. */
     return pool->closing&&!pool->entries&&!pool->activities&&!pool->submitting&&
-        !pool->creating&&!pool->quiescing&&!pool->retiring;
+        !pool->creating&&!pool->quiescing&&!pool->retiring&&!pool->resources;
 }
 static xrtownershipprepareresult pool_prepare(const void* data,const void* token)
 {
@@ -566,6 +570,56 @@ static void submit_end(XL6_TaskPool* pool)
     --pool->submitting;
     if(!pool->submitting && !xrtCondBroadcast(pool->changed))abort();
     unlock_pool(pool);mutation_end(&mutation);
+}
+bool xl6TaskNativeBeginV1(XL6_TaskPool* pool, XL6_TaskNativeScopeV1* scope)
+{
+    if(!pool || !scope){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    *scope=(XL6_TaskNativeScopeV1){0};pool_enter(pool);
+    xtaskpool* native=submit_begin(pool);
+    if(!native){pool_leave(pool);return false;}
+    activity_enter(scope,pool);scope->native=native;return true;
+}
+void xl6TaskNativeEndV1(XL6_TaskNativeScopeV1* scope)
+{
+    if(!scope || !scope->pool || scope->thread!=xrtThreadCurrentId())abort();
+    XL6_TaskPool* pool=scope->pool;activity_leave(scope);submit_end(pool);pool_leave(pool);
+}
+void xl6TaskResourceInitV1(XL6_TaskResourceV1* resource,const XL6_TaskNativeScopeV1* scope,
+    void* context,void (*close)(void*),void (*drop)(void*))
+{
+    if(!resource || !scope || !scope->pool || !scope->native ||
+        scope->thread!=xrtThreadCurrentId() || !close || !drop)abort();
+    XL6_TaskPool* pool=scope->pool;
+    *resource=(XL6_TaskResourceV1){0};resource->pool=pool;resource->context=context;
+    resource->Close=close;resource->Drop=drop;if(!pool_hold(pool))abort();
+    xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
+    resource->next=pool->resources;if(resource->next)resource->next->previous=resource;
+    pool->resources=resource;resource->registered=true;unlock_pool(pool);mutation_end(&mutation);
+}
+bool xl6TaskResourceRemoveV1(XL6_TaskResourceV1* resource)
+{
+    XL6_TaskPool* pool=resource->pool;xrtownershipscope mutation={0};
+    mutation_begin(&mutation);lock_pool(pool);bool removed=resource->registered;
+    if(removed){
+        if(resource->previous)resource->previous->next=resource->next;else pool->resources=resource->next;
+        if(resource->next)resource->next->previous=resource->previous;
+        resource->previous=resource->next=NULL;resource->registered=false;
+    }
+    unlock_pool(pool);mutation_end(&mutation);return removed;
+}
+void xl6TaskResourceReleaseV1(XL6_TaskResourceV1* resource)
+{ if(!resource || !resource->pool || resource->registered)abort();pool_drop(resource->pool);*resource=(XL6_TaskResourceV1){0}; }
+static void pool_close_resources(XL6_TaskPool* pool)
+{
+    for(;;){
+        xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
+        XL6_TaskResourceV1* resource=pool->resources;
+        if(resource){pool->resources=resource->next;if(resource->next)resource->next->previous=NULL;
+            resource->previous=resource->next=NULL;resource->registered=false;}
+        unlock_pool(pool);mutation_end(&mutation);
+        if(!resource)return;
+        resource->Close(resource->context);resource->Drop(resource->context);
+    }
 }
 static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
     XL6_FuturePayloadTrace trace,const xfuturepayloadownershipv1* policy,bool language)

@@ -67,11 +67,11 @@ if file.exists(renamePath) then file.delete(renamePath) end
 if file.exists(renameCasePath) then file.delete(renameCasePath) end
 if file.exists(replacePath) then file.delete(replacePath) end
 if file.exists(binaryPath) then file.delete(binaryPath) end
-dir.delete(copyDir)
-dir.delete(movedDir)
-dir.delete(cleanDir)
-dir.delete(nestedDir)
-dir.delete(dirPath)
+if dir.exists(copyDir) then dir.delete(copyDir) end
+if dir.exists(movedDir) then dir.delete(movedDir) end
+if dir.exists(cleanDir) then dir.delete(cleanDir) end
+if dir.exists(nestedDir) then dir.delete(nestedDir) end
+if dir.exists(dirPath) then dir.delete(dirPath) end
 
 expect(path.exists("release"), 1)
 expect(path.isAbs("build/test"), 0)
@@ -145,13 +145,12 @@ expect(streamBytes[1], 65)
 expect(probeFileStream(filePath), 1)
 expectStr(file.readText(filePath), "stream")
 expect(int(file.size(filePath)), 6)
-FileInfo info = file.info(filePath)
-expect(info.exists, 1)
-expect(info.isFile, 1)
-expect(info.isDir, 0)
-expect(info.size, 6)
-expect(info.attr >= 0, 1)
-expect(time.year(info.changeTime) >= 2020, 1)
+FileStat info = file.info(filePath)
+expect(info.type == 1, 1)
+expect(info.type == 2, 0)
+expect(int(info.size), 6)
+expect(info.attributes >= 0, 1)
+expect(time.year(time(info.modified)) >= 2020, 1)
 expect(file.writeTextAtomic(filePath, "atomic"), 1)
 expectStr(file.readText(filePath), "atomic")
 expect(file.rename(filePath, renamePath), 1)
@@ -183,51 +182,51 @@ expect(dir.createAll(nestedDir), 1)
 expect(dir.exists(nestedDir), 1)
 expect(file.writeText(nestedFile, "nested"), 1)
 expect(dir.empty(dirPath), 0)
-expect(dir.count(dirPath), 1)
-expect(dir.count(dirPath, true), 2)
-expect(dir.size(dirPath), 6)
-expect(dir.size(dirPath, false), 0)
-array topEntries = dir.list(dirPath)
+expect(int(dir.count(dirPath)), 1)
+expect(int(dir.count(dirPath, true)), 2)
+expect(int(dir.size(dirPath)), 6)
+expect(int(dir.size(dirPath, false)), 0)
+array<string> topEntries = dir.list(dirPath)
 string topJson = json.stringify(topEntries)
 expect(topEntries.length >= 1, 1)
 expect(string.contains(topJson, "nested"), 1)
 expect(string.contains(topJson, "value.txt"), 0)
-array allEntries = dir.list(dirPath, true)
+array<string> allEntries = dir.list(dirPath, true)
 string allJson = json.stringify(allEntries)
 expect(allEntries.length >= 2, 1)
 expect(string.contains(allJson, "nested"), 1)
 expect(string.contains(allJson, "value.txt"), 1)
-array topFiles = dir.files(dirPath)
+array<string> topFiles = dir.files(dirPath)
 string topFilesJson = json.stringify(topFiles)
 expect(topFiles.length, 0)
 expect(string.contains(topFilesJson, "nested"), 0)
-array allFiles = dir.files(dirPath, true)
+array<string> allFiles = dir.files(dirPath, true)
 string allFilesJson = json.stringify(allFiles)
 expect(allFiles.length >= 1, 1)
 expect(string.contains(allFilesJson, "value.txt"), 1)
 expect(string.contains(allFilesJson, "nested"), 1)
-array topDirs = dir.dirs(dirPath)
+array<string> topDirs = dir.dirs(dirPath)
 string topDirsJson = json.stringify(topDirs)
 expect(topDirs.length, 1)
 expect(string.contains(topDirsJson, "nested"), 1)
 expect(string.contains(topDirsJson, "value.txt"), 0)
-array globTxt = dir.glob(dirPath, "*.txt", true)
+array<string> globTxt = dir.glob(dirPath, "*.txt", true)
 expect(globTxt.length, 1)
 expect(string.contains(json.stringify(globTxt), "value.txt"), 1)
-array matchedTxt = dir.matchEntries(dirPath, "*.txt", true)
+array<WalkEntry> matchedTxt = dir.matchEntries(dirPath, "*.txt", true)
 expect(matchedTxt.length, 1)
-var matchedEntry = matchedTxt[0]
-expectStr(string(matchedEntry["name"]), "value.txt")
-expectStr(path.nameExt(string(matchedEntry["path"])), "value.txt")
-expect(int(matchedEntry["size"]), 6)
-expect(bool(matchedEntry["isFile"]), 1)
-expect(bool(matchedEntry["isDir"]), 0)
-array entryItems = dir.entries(dirPath, true)
+auto matchedEntry = matchedTxt[0]
+expectStr(matchedEntry.name, "value.txt")
+expectStr(path.nameExt(matchedEntry.path), "value.txt")
+expect(int(matchedEntry.size), 6)
+expect(matchedEntry.isFile, 1)
+expect(matchedEntry.isDir, 0)
+array<WalkEntry> entryItems = dir.entries(dirPath, true)
 expect(entryItems.length, 2)
-array walkItems = dir.walk(dirPath)
+array<WalkEntry> walkItems = dir.walk(dirPath)
 int leaveCount = 0
 for walkEntry in walkItems
-    if bool(walkEntry["leave"]) then
+    if walkEntry.leave then
         leaveCount += 1
     end
 end
@@ -240,7 +239,13 @@ expect(dir.empty(cleanDir), 0)
 expect(dir.clean(cleanDir), 1)
 expect(dir.exists(cleanDir), 1)
 expect(dir.empty(cleanDir), 1)
-expect(dir.clean(""), 0)
+bool emptyPathRejected = false
+try
+    dir.clean("")
+catch e
+    emptyPathRejected = true
+end
+expect(emptyPathRejected, 1)
 expect(dir.copy(dirPath, copyDir), 1)
 expect(dir.exists(copyDir), 1)
 expectStr(file.readText(copyFile), "nested")
