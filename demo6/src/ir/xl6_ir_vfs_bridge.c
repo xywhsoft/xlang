@@ -1,7 +1,7 @@
 /* Closed resource identities and physical ABI are verified before C emission. */
 typedef enum XL6_IrVfsShape {
     XL6_VFS_STRING, XL6_VFS_BYTES, XL6_VFS_INT, XL6_VFS_U64,
-    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY
+    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY, XL6_VFS_POINT
 } XL6_IrVfsShape;
 typedef struct XL6_IrVfsContract {
     const char* name;
@@ -13,6 +13,13 @@ typedef struct XL6_IrVfsContract {
     const char* resultOwner;
 } XL6_IrVfsContract;
 static const XL6_IrVfsContract xl6IrVfsContracts[] = {
+#define XL6_FS_LIST(...) __VA_ARGS__
+#define XL6_FS_OPERATION(Name, Symbol, Result, Count, Params, Owners, Owner, Module) \
+    {Symbol, XL6_IR_RUNTIME_BRIDGE_FS_##Name, Result, Count, \
+        {XL6_FS_LIST Params}, {XL6_FS_LIST Owners}, Owner},
+#include "src/ir/xl6_ir_fs_operations.inc"
+#undef XL6_FS_OPERATION
+#undef XL6_FS_LIST
     {"xl6_xrt_vfs_create", XL6_IR_RUNTIME_BRIDGE_VFS_CREATE, XL6_VFS_FACTORY,
         0, {0},
         {NULL}, "xl6_xrt_vfs_destroy"},
@@ -84,6 +91,27 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name)
     const XL6_IrVfsContract* c = xl6IrVfsContract(name);
     return c != NULL ? c->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
 }
+int xl6IrRuntimeVfsBridgeIsFactory(const char* name)
+{
+    const XL6_IrVfsContract* c = xl6IrVfsContract(name);
+    return c != NULL && c->result == XL6_VFS_FACTORY;
+}
+XL6_IrErrorAbi xl6IrRuntimeVfsBridgeErrorAbi(const char* name)
+{
+    const XL6_IrVfsContract* c = xl6IrVfsContract(name);
+    return c != NULL && c->result == XL6_VFS_VOID
+        ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
+}
+const char* xl6IrRuntimeFsBridgeModule(XL6_IrRuntimeBridgeKind kind)
+{
+    switch (kind) {
+#define XL6_FS_OPERATION(Name, Symbol, Result, Count, Params, Owners, Owner, Module) \
+    case XL6_IR_RUNTIME_BRIDGE_FS_##Name: return Module;
+#include "src/ir/xl6_ir_fs_operations.inc"
+#undef XL6_FS_OPERATION
+    default: return NULL;
+    }
+}
 const char* xl6IrRuntimeVfsBridgeParameterOwner(const char* name, size_t parameter)
 {
     const XL6_IrVfsContract* c = xl6IrVfsContract(name);
@@ -104,6 +132,7 @@ static int xl6IrVfsTypeMatches(const XL6_IrModule* module, XL6_IrTypeId id, XL6_
     case XL6_VFS_INT: return t->cAbi == XL6_IR_C_ABI_I64;
     case XL6_VFS_U64: return t->cAbi == XL6_IR_C_ABI_U64;
     case XL6_VFS_BOOL: return t->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_VFS_POINT: return t->cAbi == XL6_IR_C_ABI_RAW_POINTER;
     default: return 0;
     }
 }

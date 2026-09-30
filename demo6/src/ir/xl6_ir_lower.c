@@ -11940,23 +11940,12 @@ static int xl6IrLowerResolveRuntimeBridge(
     }
     target->runtimeBridge = xl6IrRuntimeVfsBridgeKind(target->cName);
     if (target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE) {
-        if ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_CREATE ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_CREATE ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_DISK_CREATE ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_PACK_CREATE ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_MEMORY ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DISK ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_PACK) &&
+        if (xl6IrRuntimeVfsBridgeIsFactory(target->cName) &&
             target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
             target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
             return 1;
         }
-        target->errorAbi = (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_DESTROY ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_DESTROY ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_DISK_DESTROY ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_PACK_DESTROY ||
-             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY)
-            ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
+        target->errorAbi = xl6IrRuntimeVfsBridgeErrorAbi(target->cName);
         if (!xl6IrRuntimeVfsBridgeTargetMatches(ctx->module, target))
             return xl6IrLowerDiag(ctx, target->declaration,
                 "XLIR VFS runtime bridge has no exact resource-owner ABI");

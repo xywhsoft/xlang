@@ -1,0 +1,55 @@
+auto fs = vfs.create()
+auto memory = vfs.memory()
+assert memory.put("data.bin", b"a\0b")
+assert memory.put("nested/中文.txt", "中文")
+assert memory.seal()
+auto mount = fs.mount("/app", memory)
+auto stream = fs.open("/app/data.bin")
+assert stream.size == uint64(3)
+assert stream.pos == uint64(0)
+assert not (stream.readExact(3) != b"a\0b")
+assert stream.pos == uint64(3)
+assert not (stream.readAt(0, 3) != b"a\0b")
+assert stream.pos == uint64(3), "readAt must not change the shared cursor"
+assert stream.seek(0) == uint64(0)
+auto info = stream.stat()
+assert info.type == 1 and info.size == uint64(3)
+auto pathInfo = fs.stat("/app/data.bin")
+assert pathInfo.path == "/app/data.bin" and pathInfo.size == uint64(3)
+assert pathInfo.name == "data.bin" and pathInfo.nameBytes == b"data.bin"
+bool unsupported = false
+try
+    stream.native()
+catch e
+    unsupported = true
+end
+assert unsupported, "a virtual file cannot fake a native handle"
+assert stream.close() and stream.close()
+assert stream.closed
+bool closed = false
+try
+    stream.read(1)
+catch e
+    closed = true
+end
+assert closed
+auto directory = fs.openDir("/app", 1)
+int entries = 0
+while directory.advance()
+    auto entry = directory.current()
+    assert entry.name.length > 0 and entry.nameBytes.length > 0
+    assert entry.validUtf8
+    entries += 1
+end
+assert entries == 2
+assert directory.close() and directory.close()
+auto again = fs.openDir("/app", 1)
+int iterated = 0
+for entry in again
+    assert entry != null
+    iterated += 1
+end
+assert iterated == 2
+assert again.close()
+assert mount.unmount()
+print("fs handles ok")

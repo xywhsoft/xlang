@@ -75,7 +75,8 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     $fixtures = @('test/cases/stdlib_vfs_memory.xl', 'test/cases/stdlib_vfs_overlay.xl',
         'test/cases/stdlib_vfs_disk.xl', 'test/cases/stdlib_vfs_limits.xl',
         'test/cases/stdlib_vfs_minimal.xl', 'test/cases/stdlib_vfs_pack.xl',
-        'test/cases/stdlib_vfs_pack_limits.xl', 'test/cases/stdlib_vfs_lifetime.xl')
+        'test/cases/stdlib_vfs_pack_limits.xl', 'test/cases/stdlib_vfs_lifetime.xl',
+        'test/cases/stdlib_fs_handles.xl', 'test/cases/stdlib_fs_native.xl')
     foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
@@ -98,23 +99,26 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         Write-Output "${name}: strict C, JIT/AOT, deterministic output and dependency isolation passed"
     }
     foreach ($relative in @('test/cases/bad_xlir_vfs_wrong_input.xl',
-        'test/cases/bad_xlir_vfs_wrong_result.xl', 'test/cases/bad_xlir_vfs_wrong_owner.xl')) {
+        'test/cases/bad_xlir_vfs_wrong_result.xl', 'test/cases/bad_xlir_vfs_wrong_owner.xl',
+        'test/cases/bad_xlir_fs_wrong_owner.xl', 'test/cases/bad_xlir_fs_wrong_result.xl')) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $cPath = Join-Path $outputDir "$name.c"
         if (Test-Path -LiteralPath $cPath) { Remove-Item -LiteralPath $cPath }
-        $marker = if ($name -eq 'bad_xlir_vfs_wrong_owner') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
+        $marker = if ($name -eq 'bad_xlir_vfs_wrong_owner' -or $name -like 'bad_xlir_fs_*') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
         Invoke-Test $xl ('cgen "{0}" --emit "{1}"' -f (Join-Path $Root $relative),$cPath) 1 $marker
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
     }
-    $example = Join-Path $Root 'release/examples/stdlib_vfs.xl'
-    $exampleExe = Join-Path $outputDir 'stdlib_vfs.example.exe'
-    Invoke-Test $xl ('run "{0}"' -f $example)
-    Invoke-Test $xl ('build "{0}" -o "{1}"' -f $example,$exampleExe)
-    Invoke-Test $exampleExe ""
+    foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl')) {
+        $example = Join-Path $Root $relative
+        $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')
+        Invoke-Test $xl ('run "{0}"' -f $example)
+        Invoke-Test $xl ('build "{0}" -o "{1}"' -f $example,$exampleExe)
+        Invoke-Test $exampleExe ""
+    }
 } finally {
     foreach ($key in $compilerEnvironmentBefore.Keys) {
         [Environment]::SetEnvironmentVariable($key, $compilerEnvironmentBefore[$key], 'Process')
     }
     Pop-Location
 }
-Write-Output 'VFS foundation gate passed: binary/NUL/UTF-8, clamping, overlay/MISS/ERROR, pack CRC/slices/limits, lifetime, strict C, JIT/AOT and three ABI negatives.'
+Write-Output 'VFS/File foundation gate passed: ten positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close boundaries and five ABI negatives.'

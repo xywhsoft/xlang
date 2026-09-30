@@ -1719,6 +1719,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass;
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
+    needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "stat") ||
+        xl6StdlibFuncUsed(used, "dir", "open") || xl6StdlibNodeUsesTypeName(root, "FileStat") ||
+        xl6StdlibNodeUsesTypeName(root, "DirectoryIterator");
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
@@ -1941,7 +1944,15 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibFileInfoClassSource);
     }
     if ( needsFileClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibFileClassSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsFileSource);
+        if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibFsFileVfsSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsStatSource);
+        if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibFsStatVfsSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsDirectorySource);
+        if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibFsDirectoryVfsSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
     }
     if ( needsAsyncFileClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibAsyncFileClassSource);

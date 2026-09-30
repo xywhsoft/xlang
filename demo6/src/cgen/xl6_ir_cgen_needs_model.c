@@ -48,6 +48,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->xidBridgeOperations != 0 ||
          needs->ioBridgeOperations != 0 || needs->consoleBridgeOperations != 0 ||
          needs->vfsBridgeOperations != 0 ||
+         needs->fsBridgeOperations0 != 0 || needs->fsBridgeOperations1 != 0 || needs->fsBridgeOperations2 != 0 ||
          needs->needsStringBytesBridgeRuntime || needs->needsStringCharsBridgeRuntime ||
          needs->needsStringCompareBridgeRuntime ||
          needs->needsStringLastIndexOfBridgeRuntime ||

@@ -130,6 +130,17 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
         }
+        if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN &&
+            target->runtimeBridge < XL6_IR_RUNTIME_BRIDGE_FS_END) {
+            unsigned operation = target->runtimeBridge - XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN;
+            uint64_t bit = UINT64_C(1) << (operation % 64);
+            if (operation < 64) needs->fsBridgeOperations0 |= bit;
+            else if (operation < 128) needs->fsBridgeOperations1 |= bit;
+            else needs->fsBridgeOperations2 |= bit;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
         if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE) {
             needs->ioBridgeOperations |= UINT64_C(1) <<

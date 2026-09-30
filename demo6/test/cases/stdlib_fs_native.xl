@@ -1,0 +1,72 @@
+string path = "build/test/fs-native.bin"
+auto stream = file.open(path, 15)
+assert stream.writeAll(b"a\0b", 20) == 3
+assert stream.writeAtAll(1, b"xy", 1) == 1
+assert stream.writeText("\0z", 1) == 1
+assert stream.size == uint64(4)
+assert not (stream.readAtExact(0, 4) != b"axb\0")
+assert stream.flags == 15
+assert stream.seek(0) == uint64(0)
+assert stream.readText(4, 1) == "axb\0", "text results must preserve embedded NUL"
+assert stream.eof
+assert stream.resize(uint64(2))
+assert stream.flush()
+auto snapshot = stream.stat()
+assert snapshot.size == uint64(2)
+assert snapshot.available > 0
+assert snapshot.mode >= 0 and snapshot.attributes >= 0
+assert snapshot.device >= uint64(0) and snapshot.identity >= uint64(0)
+assert snapshot.linkCount >= uint64(0)
+assert snapshot.accessed >= 0 and snapshot.modified >= 0
+assert snapshot.created >= 0 and snapshot.changed >= 0
+assert stream.close()
+auto pathInfo = file.stat(path)
+assert pathInfo.size == uint64(2)
+assert snapshot.size == uint64(2), "metadata must own its snapshot"
+bool rangeError = false
+auto reader = file.open(path)
+try
+    reader.read(-1)
+catch e
+    rangeError = true
+end
+assert rangeError
+assert reader.close()
+auto fs = vfs.create()
+auto disk = vfs.disk("build/test", 3)
+auto mount = fs.mount("/disk", disk)
+auto virtualWriter = fs.open("/disk/fs-native.bin", 15)
+assert virtualWriter.writeAll(b"v\0f") == 3
+assert virtualWriter.close()
+assert not (fs.readBytes("/disk/fs-native.bin") != b"v\0f")
+auto virtualReader = fs.open("/disk/fs-native.bin")
+bool denied = false
+try
+    virtualReader.writeAll(b"bad")
+catch e
+    denied = true
+end
+assert denied, "read-only virtual handles must reject writes"
+assert virtualReader.close()
+assert mount.unmount()
+bool nulError = false
+try
+    file.open(path + "\0suffix")
+catch e
+    nulError = true
+end
+assert nulError
+auto directory = dir.open("build/test", 1)
+bool found = false
+while directory.advance()
+    auto entry = directory.current()
+    if entry.name == "fs-native.bin" then
+        found = true
+        assert entry.type == 1 and entry.size == uint64(3)
+        assert entry.nameBytes.length == 13
+    end
+end
+assert found
+assert directory.close()
+assert file.delete(path)
+print("fs native ok")

@@ -3683,6 +3683,10 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY,
     XL6_IR_RUNTIME_BRIDGE_VFS_UNMOUNT,
     XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID,
+#define XL6_FS_OPERATION(Name, ...) XL6_IR_RUNTIME_BRIDGE_FS_##Name,
+#include "src/ir/xl6_ir_fs_operations.inc"
+#undef XL6_FS_OPERATION
+    XL6_IR_RUNTIME_BRIDGE_FS_END,
     XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT,
     XL6_IR_RUNTIME_BRIDGE_NET_ADDRESS_LIST,
     XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC,
@@ -5693,6 +5697,9 @@ int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeIoBridgeKind(const char* name);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name);
+int xl6IrRuntimeVfsBridgeIsFactory(const char* name);
+XL6_IrErrorAbi xl6IrRuntimeVfsBridgeErrorAbi(const char* name);
+const char* xl6IrRuntimeFsBridgeModule(XL6_IrRuntimeBridgeKind kind);
 const char* xl6IrRuntimeVfsBridgeParameterOwner(const char* name, size_t parameter);
 int xl6IrRuntimeVfsBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);

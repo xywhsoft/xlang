@@ -14,6 +14,8 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
         xl6IrCgenEmitIoRuntime(out, needs->ioBridgeOperations);
     if (needs->vfsBridgeOperations != 0)
         xl6IrCgenEmitVfsRuntime(out, needs->vfsBridgeOperations);
+    if (needs->fsBridgeOperations0 != 0 || needs->fsBridgeOperations1 != 0 || needs->fsBridgeOperations2 != 0)
+        xl6IrCgenEmitFsRuntime(out, needs);
     if ( needs->consoleBridgeOperations != 0 )
         xl6IrCgenEmitConsoleRuntime(out, needs->consoleBridgeOperations);
     if ( needs->textOutputBridgeOperations != 0 )
