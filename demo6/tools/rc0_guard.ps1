@@ -378,6 +378,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
         "check_stdlib_dll_symbols.ps1",
+        "check_stdlib_vfs.ps1",
         "check_tcc_export_environment.ps1",
         "check_tcc_vfs_resources.ps1",
         "check_tcc_xrt_contract.ps1",

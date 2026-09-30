@@ -1,6 +1,7 @@
 #include "src/stdlib/xl6_stdlib_data.h"
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
+#include "src/stdlib/xl6_stdlib_vfs.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -7346,6 +7347,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"io", "readFile", "__xl_std_io_read_file", NULL, NULL, 0, "bytes", xl6StdIoReadFileBody},
     {"__xl_runtime", "ioCopy", "__xl_std_runtime_io_copy", "xl6_xrt_io_copy", xl6StdIoCopyParams, 4, "int", NULL},
     {"__xl_runtime", "ioWriteBufferFile", "__xl_std_runtime_io_write_buffer_file", "xl6_xrt_io_write_buffer_file", xl6StdIoWriteBufferFileParams, 4, "bool", NULL},
+    {"vfs", "create", "__xl_std_vfs_create", NULL, NULL, 0, "Vfs", xl6StdVfscreateBody},
+    {"vfs", "memory", "__xl_std_vfs_memory", NULL, NULL, 0, "MemoryFS", xl6StdVfsmemoryBody},
+    {"vfs", "disk", "__xl_std_vfs_disk", NULL, NULL, 0, "DiskFS", xl6StdVfsdiskBody},
+    {"vfs", "pack", "__xl_std_vfs_pack", NULL, NULL, 0, "PackFS", xl6StdVfspackBody},
     {"io", "openReader", "__xl_std_io_openReader", NULL, NULL, 0, "IoReader", openReaderBody},
     {"io", "openWriter", "__xl_std_io_openWriter", NULL, NULL, 0, "IoWriter", openWriterBody},
     {"io", "fromBytes", "__xl_std_io_fromBytes", NULL, NULL, 0, "IoReader", fromBytesBody},

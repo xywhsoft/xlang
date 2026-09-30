@@ -47,6 +47,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->randomBridgeOperations != 0 ||
          needs->xidBridgeOperations != 0 ||
          needs->ioBridgeOperations != 0 || needs->consoleBridgeOperations != 0 ||
+         needs->vfsBridgeOperations != 0 ||
          needs->needsStringBytesBridgeRuntime || needs->needsStringCharsBridgeRuntime ||
          needs->needsStringCompareBridgeRuntime ||
          needs->needsStringLastIndexOfBridgeRuntime ||
@@ -90,4 +91,5 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          xl6IrCgenNeedsWebSocketRuntime(needs));
 }
 #define XL6_IO_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_IO_##Name - XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE))
+#define XL6_VFS_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_VFS_##Name - XL6_IR_RUNTIME_BRIDGE_VFS_CREATE))
 #define XL6_CONSOLE_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_CONSOLE_##Name - XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE))

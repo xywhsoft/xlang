@@ -1,0 +1,7 @@
+auto fs = vfs.create()
+auto archive = vfs.pack("build/test/vfs-pack.bin")
+assert archive.format == 1
+auto mount = fs.mount("/app", archive)
+assert fs.readBytes("/app/entry.bin") == b"a\0b"
+mount.unmount()
+print("vfs pack ok")

@@ -1,0 +1,38 @@
+auto fs = vfs.create()
+auto memory = vfs.memory()
+memory.put("entry", b"abcdef")
+memory.seal()
+auto mount = fs.mount("/app", memory)
+bool rejected = false
+try
+    bytes data = fs.readBytes("/app/entry", 5)
+catch e
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    bytes data = fs.readBytes("/app/../entry")
+catch e
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    bytes data = fs.readBytes("/app/entry\0suffix")
+catch e
+    rejected = true
+end
+assert rejected
+auto writableOnly = vfs.disk("build/test", 2)
+auto deniedMount = fs.mount("/app", writableOnly, 10)
+rejected = false
+try
+    bytes data = fs.readBytes("/app/entry")
+catch e
+    rejected = true
+end
+assert rejected
+deniedMount.unmount()
+assert fs.readBytes("/app/entry", 6) == b"abcdef"
+print("vfs limits ok")

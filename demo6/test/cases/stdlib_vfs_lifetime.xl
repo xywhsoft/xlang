@@ -1,0 +1,11 @@
+func install(Vfs fs)
+    auto memory = vfs.memory()
+    memory.put("entry", b"owned by mount")
+    memory.seal()
+    auto control = fs.mount("/app", memory)
+end
+
+auto fs = vfs.create()
+install(fs)
+assert fs.readBytes("/app/entry") == b"owned by mount"
+print("vfs lifetime ok")

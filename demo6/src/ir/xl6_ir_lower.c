@@ -11938,6 +11938,30 @@ static int xl6IrLowerResolveRuntimeBridge(
                 "XLIR XID runtime bridge has no exact inline-value ABI");
         return 1;
     }
+    target->runtimeBridge = xl6IrRuntimeVfsBridgeKind(target->cName);
+    if (target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE) {
+        if ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_CREATE ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_CREATE ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_DISK_CREATE ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_PACK_CREATE ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_MEMORY ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DISK ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_PACK) &&
+            target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
+            target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
+            return 1;
+        }
+        target->errorAbi = (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_DESTROY ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_DESTROY ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_DISK_DESTROY ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_PACK_DESTROY ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY)
+            ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
+        if (!xl6IrRuntimeVfsBridgeTargetMatches(ctx->module, target))
+            return xl6IrLowerDiag(ctx, target->declaration,
+                "XLIR VFS runtime bridge has no exact resource-owner ABI");
+        return 1;
+    }
     target->runtimeBridge = xl6IrRuntimeIoBridgeKind(target->cName);
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
         if ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_IO_READER_OPEN ||
@@ -13055,6 +13079,21 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
         target->kind, node->sourceKind, node->flags);
     target->effectAbi = xl6IrCallEffectForDeclaration(
         target->kind, node->sourceKind, node->flags);
+    /* Native field borrowing is an explicit descriptor contract, including
+     * resource parameters of factories; Cgen receives the completed projection. */
+    if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
+        for (i = 0; i < target->parameterCount; ++i) {
+            if (xl6IrRuntimeVfsBridgeParameterOwner(target->cName, i) != NULL) {
+                const XL6_IrClassField* field = xl6IrLowerManagedNativeConstructorField(
+                    module, target->parameterTypes[i], XL6_IR_NODE_INVALID);
+                if (field == NULL || target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW)
+                    return xl6IrLowerDiag(ctx, declaration,
+                        "XLIR VFS resource parameter has no exact native field borrow");
+                target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW;
+                target->parameterPhysicalFieldDeclarations[i] = field->declaration;
+            }
+        }
+    }
     if ( !xl6IrLowerResolveRuntimeBridge(ctx, target) ) return 0;
     target->resultConversionAbi = xl6IrCallResultConversionForTarget(module, target);
     target->resultCAbi=xl6IrCallResultCAbiForTarget(target);
@@ -23536,7 +23575,8 @@ static const XL6_IrClassField* xl6IrLowerCallTargetNativeClassPhysicalField(
          target->parameterTypes == NULL || target->parameterAbis == NULL ||
          target->parameterPhysicalAbis == NULL ||
          target->parameterPhysicalFieldDeclarations == NULL ||
-         target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+         (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+          target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
          target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
          target->parameterPhysicalAbis[parameter] !=
              XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )

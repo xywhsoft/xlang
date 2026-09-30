@@ -57,6 +57,17 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
             XL6_CONSOLE_BIT(SIZE) | XL6_CONSOLE_BIT(COLOR) | XL6_CONSOLE_BIT(STYLED)))
             REQUIRE("XRT_MODULE_CONSOLE_TERMINAL");
         break;
+    case XL6_IR_CGEN_NATIVE_VFS:
+        if (operations & (XL6_VFS_BIT(MEMORY_CREATE) | XL6_VFS_BIT(MEMORY_DESTROY) |
+            XL6_VFS_BIT(MEMORY_PUT_BYTES) | XL6_VFS_BIT(MEMORY_PUT_STRING) |
+            XL6_VFS_BIT(MEMORY_SEAL) | XL6_VFS_BIT(MOUNT_MEMORY)))
+            REQUIRE("XRT_MODULE_VFS_MEMORY");
+        if (operations & (XL6_VFS_BIT(DISK_CREATE) | XL6_VFS_BIT(DISK_DESTROY) | XL6_VFS_BIT(MOUNT_DISK)))
+            REQUIRE("XRT_MODULE_VFS_DISK");
+        if (operations & (XL6_VFS_BIT(PACK_CREATE) | XL6_VFS_BIT(PACK_DESTROY) |
+            XL6_VFS_BIT(PACK_FORMAT) | XL6_VFS_BIT(MOUNT_PACK)))
+            REQUIRE("XRT_MODULE_VFS_PACK");
+        break;
     case XL6_IR_CGEN_NATIVE_IO_FILES:
         REQUIRE("XRT_MODULE_IO");
         if (operations & (XL6_IO_BIT(READ_FILE) | XL6_IO_BIT(WRITE_FILE) |

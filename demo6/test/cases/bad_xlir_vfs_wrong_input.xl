@@ -1,0 +1,2 @@
+extern "xl6_xrt_vfs_read" func invalid(string fs, string path, int limit) as bytes
+auto data = invalid("wrong", "/entry", 1024)
