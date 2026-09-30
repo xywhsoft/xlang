@@ -1,0 +1,44 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+string path = "build/test/fs-async-allocation.bin"
+assert file.writeBytes(path, b"a\0b")
+assert await file.readBytesAsync(path) == b"a\0b"
+for operation in range(3)
+    int failures = 0
+    int successes = 0
+    for point in range(80)
+        // A mapping allocation can fail after native admission. Cancellation
+        // does not roll back an accepted write, so independent trials must not
+        // race atomic replacements of the same target.
+        string target = path + ".atomic." + string(point)
+        bool caught = false
+        bool triggered = false
+        assert failAfter(uint64(point))
+        try
+            if operation == 0 then
+                auto data = await file.readBytesAsync(path)
+            elseif operation == 1 then
+                assert await file.writeBytesAtomicAsync(target, b"a\0b")
+            else
+                auto stream = file.openAsync(path)
+                assert await stream.close()
+            end
+        catch e
+            caught = true
+            triggered = failTriggered()
+            failClear()
+            if not triggered then println(e.message, e.systemCode) end
+        end
+        if not caught then triggered = failTriggered() end
+        failClear()
+        if caught != triggered then
+            println(operation, point, caught, triggered)
+        end
+        assert caught == triggered, "allocation failures must not be hidden"
+        if caught then failures += 1 else successes += 1 end
+    end
+    assert failures > 0 and successes > 0
+end
+assert file.delete(path)
+println("async allocation boundaries ok")

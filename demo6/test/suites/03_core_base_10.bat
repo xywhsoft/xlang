@@ -318,122 +318,11 @@ release\xl.exe check test\cases\stdlib_path_file.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_path_file.xl --emit build\test\stdlib_path_file.c --emit-header build\test\stdlib_path_file.h
 if errorlevel 1 exit /b 1
-findstr /C:"int64_t accessTime;" build\test\stdlib_path_file.h >nul
-if errorlevel 1 (
-    echo stdlib_path_file.h does not expose time fields as int64_t.
-    exit /b 1
-)
-findstr /C:"int64_t changeTime;" build\test\stdlib_path_file.h >nul
-if errorlevel 1 (
-    echo stdlib_path_file.h does not expose changeTime as int64_t.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_path_random" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing path.random runtime helper.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_path_join" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing path.join runtime helper.
-    exit /b 1
-)
-findstr /C:"const char* __xl_std_path_join" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing path.join helper.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_path_clean" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing path.normalize runtime helper.
-    exit /b 1
-)
-findstr /C:"bool xl6_xrt_file_rename" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing file.rename runtime helper.
-    exit /b 1
-)
-findstr /C:"bool xl6_xrt_file_replace" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing file.replace runtime helper.
-    exit /b 1
-)
-findstr /C:"bool xl6_xrt_file_write_text_atomic" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing atomic text write runtime helper.
-    exit /b 1
-)
-findstr /C:"typedef struct XL_Class_FileInfo" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing FileInfo class bridge.
-    exit /b 1
-)
-findstr /C:"typedef struct XL_Class_File" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing File class bridge.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_file_open" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing file.open runtime helper.
-    exit /b 1
-)
-findstr /C:"int __xl_std_dir_delete" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing dir.delete helper.
-    exit /b 1
-)
-findstr /C:"int __xl_std_dir_copy" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing dir.copy helper.
-    exit /b 1
-)
-findstr /C:"int __xl_std_dir_move" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing dir.move helper.
-    exit /b 1
-)
-findstr /C:"xvalue* xl6_xrt_dir_list" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing dir.list runtime helper.
-    exit /b 1
-)
-findstr /C:"xvalue* __xl_std_dir_files" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing dir.files helper.
-    exit /b 1
-)
-findstr /C:"xvalue* __xl_std_dir_dirs" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing dir.dirs helper.
-    exit /b 1
-)
-findstr /C:"xrtPathRandom" build\test\stdlib_path_file.c >nul
-if not errorlevel 1 (
-    echo stdlib_path_file.c still contains removed xrtPathRandom API.
-    exit /b 1
-)
-findstr /C:"xrtPathNormalize" build\test\stdlib_path_file.c >nul
-if not errorlevel 1 (
-    echo stdlib_path_file.c still contains removed xrtPathNormalize API.
-    exit /b 1
-)
-findstr /C:"xrtFileRename" build\test\stdlib_path_file.c >nul
-if not errorlevel 1 (
-    echo stdlib_path_file.c still contains removed xrtFileRename API.
-    exit /b 1
-)
-findstr /C:"xrtFileReplace" build\test\stdlib_path_file.c >nul
-if not errorlevel 1 (
-    echo stdlib_path_file.c still contains removed xrtFileReplace API.
-    exit /b 1
-)
-findstr /C:"xrtDirScanEx" build\test\stdlib_path_file.c >nul
-if not errorlevel 1 (
-    echo stdlib_path_file.c still contains removed xrtDirScanEx API.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_path_file.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_path_file.exe
+rem The semantic fixture validates current FileStat/typed-directory contracts.
+rem Do not demand removed FileInfo layouts or legacy monolithic bridge names.
+powershell -NoProfile -Command "$c=[IO.File]::ReadAllText('build/test/stdlib_path_file.c'); if ($c -match 'xl6_xrt_path_random|XL_Class_FileInfo|xrtPath(Random|Normalize)|xrtFile(Rename|Replace)|xrtDirScanEx') { Write-Host 'Legacy filesystem ABI retained.'; exit 1 }"
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_path_file.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_path_file.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_path_file.exe
 if errorlevel 1 exit /b 1
@@ -442,27 +331,9 @@ release\xl.exe check test\cases\stdlib_file_meta.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_file_meta.xl --emit build\test\stdlib_file_meta.c
 if errorlevel 1 exit /b 1
-findstr /C:"int xl6_xrt_file_get_attributes" build\test\stdlib_file_meta.c >nul
-if errorlevel 1 (
-    echo stdlib_file_meta.c missing file attribute runtime helper.
-    exit /b 1
-)
-findstr /C:"int64_t xl6_xrt_file_get_access_time" build\test\stdlib_file_meta.c >nul
-if errorlevel 1 (
-    echo stdlib_file_meta.c missing file access-time runtime helper.
-    exit /b 1
-)
-findstr /C:"int64_t xl6_xrt_file_get_change_time" build\test\stdlib_file_meta.c >nul
-if errorlevel 1 (
-    echo stdlib_file_meta.c missing file modification-time runtime helper.
-    exit /b 1
-)
-findstr /C:"xrtFileGetAttr" build\test\stdlib_file_meta.c >nul
-if not errorlevel 1 (
-    echo stdlib_file_meta.c still contains removed xrtFileGetAttr API.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_file_meta.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_file_meta.exe
+powershell -NoProfile -Command "$c=[IO.File]::ReadAllText('build/test/stdlib_file_meta.c'); if ($c -match 'XL6_FILE_RUNTIME|xl6_xrt_file_get_(attributes|access_time|change_time)') { Write-Host 'Legacy file metadata emitter retained.'; exit 1 }"
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_file_meta.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1

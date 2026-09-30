@@ -35,6 +35,7 @@ for operation in range(8)
         end
         bool triggered = failTriggered()
         failClear()
+        if caught != triggered then println("allocation mismatch", operation, point, caught, triggered) end
         assert caught == triggered
         if caught then failures += 1 else successes += 1 end
     end

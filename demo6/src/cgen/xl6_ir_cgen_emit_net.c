@@ -268,55 +268,6 @@ static int xl6IrCgenEmitNetOwnedClassWrapper(
     return !xl6OutputHasFailed(out);
 }
 
-static void xl6IrCgenEmitNativeFutureMap(XL6_Output* out)
-{
-    xl6OutputPuts(
-        "#include <__xl_runtime/xl6_future_callback.h>\n"
-        "#include <__xl_runtime/xl6_future_payload.h>\n"
-        "static void xlir_native_future_dispatch(const xfutureresult* input, xpromise* output, xcancel* cancel, xfuturecontinueproc mapper, void* argument)\n"
-        "{\n"
-        "    if (xrtCancelRequested(cancel)) { (void)xrtPromiseCancel(output); return; }\n"
-        "    if (input == NULL) { (void)xrtPromiseClose(output); return; }\n"
-        "    switch (input->State) {\n"
-        "    case XFUTURE_RESOLVED: mapper(input, output, argument); return;\n"
-        "    case XFUTURE_FAILED: if (input->Error != NULL && xrtPromiseReject(output, input->Error)) return; break;\n"
-        "    case XFUTURE_CANCELLED: (void)xrtPromiseCancel(output); return;\n"
-        "    default: break;\n"
-        "    }\n    (void)xrtPromiseClose(output);\n}\n"
-        "typedef struct xlir_native_future_map_frame { xfuturecontinueproc mapper; uintptr_t argument; } xlir_native_future_map_frame;\n"
-        "static const XL6_CaptureSlot xlir_native_future_map_slots[] = {\n"
-        "    {XL6_CAPTURE_TRIVIAL, offsetof(xlir_native_future_map_frame, mapper), sizeof(xfuturecontinueproc)},\n"
-        "    {XL6_CAPTURE_TRIVIAL, offsetof(xlir_native_future_map_frame, argument), sizeof(uintptr_t)}\n};\n"
-        "static const XL6_CaptureLayoutV1 xlir_native_future_map_layout = {sizeof(XL6_CaptureLayoutV1), sizeof(xlir_native_future_map_frame), 2, xlir_native_future_map_slots};\n"
-        "static void xlir_native_future_map_proc(const xfutureresult* input, xpromise* output, xcancel* cancel, void* data)\n"
-        "{ xlir_native_future_map_frame* frame = (xlir_native_future_map_frame*)data; xlir_native_future_dispatch(input, output, cancel, frame->mapper, (void*)frame->argument); }\n"
-        "static xfuture* xlir_native_future_then(xfuture* source, xfuturecontinueproc mapper, uintptr_t argument)\n"
-        "{\n"
-        "    xlir_native_future_map_frame* frame; xfuture* result; if (source == NULL || mapper == NULL) return NULL;\n"
-        "    frame = (xlir_native_future_map_frame*)xl6FutureCallbackRuntimeV2Get()->Allocate(xlir_net_owner, sizeof(*frame), xlir_native_future_map_proc, &xlir_native_future_map_layout);\n"
-        "    if (frame == NULL) return NULL;\n    frame->mapper = mapper; frame->argument = argument;\n"
-        "    result = xl6FutureCallbackRuntimeV3Get()->StartExclusive(frame, source);\n"
-        "    if (result == NULL) xl6FutureCallbackRuntimeV1Get()->Discard(frame);\n    return result;\n}\n"
-        "/* Native owning context is a real owner, never a TRIVIAL capture.\n"
-        " * Until its physical native graph is described, Trace refuses it. */\n"
-        "typedef struct xlir_native_future_owned_frame { xfuturecontinueproc mapper; void* argument; void (*drop)(void*); } xlir_native_future_owned_frame;\n"
-        "static bool xlir_native_future_owned_trace(const void* data, XL6_ModuleOwnershipVisit visit, void* context)\n"
-        "{ const xlir_native_future_owned_frame* frame = (const xlir_native_future_owned_frame*)data; (void)visit; (void)context; return frame->argument == NULL; }\n"
-        "static void xlir_native_future_owned_drop(void* data, void* unused)\n"
-        "{ xlir_native_future_owned_frame* frame = (xlir_native_future_owned_frame*)data; void* argument = frame->argument; (void)unused; frame->argument = NULL; if (argument != NULL) frame->drop(argument); }\n"
-        "static void xlir_native_future_owned_proc(const xfutureresult* input, xpromise* output, xcancel* cancel, void* data)\n"
-        "{ xlir_native_future_owned_frame* frame = (xlir_native_future_owned_frame*)data; xlir_native_future_dispatch(input, output, cancel, frame->mapper, frame->argument); }\n"
-        "static xfuture* xlir_native_future_then_owned(xfuture* source, xfuturecontinueproc mapper, void* argument, void (*drop)(void*))\n"
-        "{\n"
-        "    xlir_native_future_owned_frame* frame; xfuture* result;\n"
-        "    if (source == NULL || mapper == NULL || (argument != NULL && drop == NULL)) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }\n"
-        "    frame = (xlir_native_future_owned_frame*)xl6FutureCallbackRuntimeV1Get()->Allocate(xlir_net_owner, sizeof(*frame), xlir_native_future_owned_proc, xlir_native_future_owned_drop, xlir_native_future_owned_trace);\n"
-        "    if (frame == NULL) return NULL;\n    frame->mapper = mapper; frame->argument = argument; frame->drop = drop;\n"
-        "    result = xl6FutureCallbackRuntimeV3Get()->StartExclusive(frame, source);\n"
-        "    if (result == NULL) { frame->argument = NULL; xl6FutureCallbackRuntimeV1Get()->Discard(frame); } return result;\n}\n"
-        "static void xlir_native_future_publish_xvalue(xpromise* output, xvalue* owned)\n"
-        "{ xvalue** box = owned != NULL ? (xvalue**)xrtMalloc(sizeof(*box)) : NULL; if (box == NULL) { const xerror* error; xrtValueRelease(owned); error = xrtGetError(); if (error == NULL || !xrtPromiseReject(output, error)) (void)xrtPromiseClose(output); return; } *box = owned; if (!xl6PayloadResolveOwned(output, box, XL6_FUTURE_PAYLOAD_XVALUE)) { xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_XVALUE)(box, NULL); (void)xrtPromiseClose(output); } }\n\n", out);
-}
 
 static void xl6IrCgenEmitNetLifecycle(XL6_Output* out, const XL6_IrModule* module)
 {
@@ -324,8 +275,6 @@ static void xl6IrCgenEmitNetLifecycle(XL6_Output* out, const XL6_IrModule* modul
     xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
         ? "#define xlir_net_owner (xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)\n"
         : "#define xlir_net_owner NULL\n", out);
-    if (module->abi.nativeFutureMapAbi == XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1)
-        xl6IrCgenEmitNativeFutureMap(out);
     xl6OutputPuts(
         "#ifndef XL6_NET_RUNTIME\n"
         "#define XL6_NET_RUNTIME\n"

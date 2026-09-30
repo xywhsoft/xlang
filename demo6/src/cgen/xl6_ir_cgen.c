@@ -68,6 +68,7 @@
 #include "src/cgen/xl6_ir_cgen_needs_model.c"
 #include "src/cgen/xl6_ir_cgen_needs_call_targets.c"
 #include "src/cgen/xl6_ir_cgen_needs_analysis.c"
+#include "src/cgen/xl6_ir_cgen_emit_native_future.c"
 #include "src/cgen/xl6_ir_cgen_emit_prelude.c"
 #include "src/cgen/xl6_ir_cgen_needs_runtime_analysis.c"
 #include "src/cgen/xl6_ir_cgen_native_dependencies.c"

@@ -1,0 +1,6 @@
+class Wrong
+    native point handle
+    extern "xl6_xrt_fs_async_open" create(string path,int flags,int mode,int share)
+    extern "xl6_xrt_fs_file_destroy" destroy()
+end
+auto value = Wrong("x",1,438,7)

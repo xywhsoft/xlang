@@ -6,7 +6,7 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 134
-#define XL6_STDLIB_FUNC_COUNT 999
+#define XL6_STDLIB_FUNC_COUNT 1008
 
 typedef struct XL6_StdlibParam {
     const char* type;
@@ -120,6 +120,7 @@ extern const char* xl6StdlibTcpConnectConfigClassSource;
 extern const char* xl6StdlibTcpListenConfigClassSource;
 extern const char* xl6StdlibUdpConfigClassSource;
 extern const char* xl6StdlibAsyncFileClassSource;
+extern const char* xl6StdlibFsAsyncStatsSource;
 extern const char* xl6StdlibJsonClassSource;
 extern const char* xl6StdlibProcessClassSource;
 extern const char* xl6StdlibProcessWaitAsyncMethodSource;

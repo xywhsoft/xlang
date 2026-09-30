@@ -9,6 +9,11 @@
 struct xcancel;
 struct xfuture;
 struct xrtownershipref;
+struct xtaskpool;
+struct xasyncfile;
+struct xfileoptions;
+struct xfile_impl;
+struct xbytesview;
 
 /* Private resident task carriers. Generated callbacks do not depend on the
  * executor's xtaskargs layout or manufacture a lifetime trampoline. */
@@ -23,6 +28,49 @@ typedef struct XL6_TaskResult {
 typedef XL6_TaskOutcome (*XL6_TaskRun)(struct xcancel*, void*, XL6_TaskResult*);
 typedef void (*XL6_TaskDrop)(void*, void*);
 typedef struct XL6_TaskPool XL6_TaskPool;
+/* A stack submission credit, not a language-visible executor handle. Begin
+ * protects lazy native-pool creation and every native admission/rollback tail.
+ * Never copy a live scope; End must run on the entering thread. */
+typedef struct XL6_TaskNativeScopeV1 {
+    struct XL6_TaskNativeScopeV1 *previous, *next;
+    XL6_TaskPool* pool;
+    uint64_t thread;
+    struct xtaskpool* native;
+} XL6_TaskNativeScopeV1;
+XL6_CODE_LEASE_API bool xl6TaskNativeBeginV1(XL6_TaskPool*, XL6_TaskNativeScopeV1*);
+XL6_CODE_LEASE_API void xl6TaskNativeEndV1(XL6_TaskNativeScopeV1*);
+/* Intrusive resident-resource registration. Context carries one registry owner;
+ * Close is nonblocking and Drop consumes that owner. Both procedures must be
+ * resident, not generated callbacks. A live registry rejects graph inspection.
+ * Init is allocation-free under an existing native submission scope; Release
+ * drops the shell reference only after Remove or retirement detached the node. */
+typedef struct XL6_TaskResourceV1 {
+    struct XL6_TaskResourceV1 *previous, *next;
+    XL6_TaskPool* pool;
+    void* context;
+    void (*Close)(void*);
+    void (*Drop)(void*);
+    bool registered;
+} XL6_TaskResourceV1;
+XL6_CODE_LEASE_API void xl6TaskResourceInitV1(XL6_TaskResourceV1*,const XL6_TaskNativeScopeV1*,void*,void (*)(void*),void (*)(void*));
+XL6_CODE_LEASE_API bool xl6TaskResourceRemoveV1(XL6_TaskResourceV1*);
+XL6_CODE_LEASE_API void xl6TaskResourceReleaseV1(XL6_TaskResourceV1*);
+/* Resident asynchronous file shells are registered with their module pool.
+ * Quiescence closes each native file before joining the pool's resource tails;
+ * language globals may release their closed shells afterward. No generated
+ * code pointer or borrowed data is retained by this service. */
+typedef struct XL6_AsyncFile XL6_AsyncFile;
+XL6_CODE_LEASE_API XL6_AsyncFile* xl6AsyncFileOpenV1(XL6_TaskPool*, const char*, const struct xfileoptions*);
+XL6_CODE_LEASE_API XL6_AsyncFile* xl6AsyncFileAdoptV1(XL6_TaskPool*, struct xfile_impl*);
+XL6_CODE_LEASE_API void xl6AsyncFileDestroyV1(XL6_AsyncFile*);
+XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileCloseV1(XL6_AsyncFile*);
+XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileReadV1(XL6_AsyncFile*, uint64_t, size_t);
+XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileWriteV1(XL6_AsyncFile*, uint64_t, const unsigned char*, size_t);
+XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileFlushV1(XL6_AsyncFile*);
+XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileSizeV1(XL6_AsyncFile*);
+XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileResizeV1(XL6_AsyncFile*, uint64_t);
+XL6_CODE_LEASE_API uint32_t xl6AsyncFileFlagsV1(const XL6_AsyncFile*);
+XL6_CODE_LEASE_API bool xl6AsyncFileClosedV1(const XL6_AsyncFile*);
 typedef struct XL6_TaskPoolConfig {
     uint32_t threads;
     size_t queueLimit, stackSize;

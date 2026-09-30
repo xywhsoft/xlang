@@ -1,0 +1,24 @@
+string path = "build/test/fs-metadata-times.bin"
+assert file.writeBytes(path, b"a\0b")
+assert file.setTimes(path, 1700000000000000, 1700000001000000)
+assert time.year(file.accessTime(path)) == 2023
+assert time.year(file.changeTime(path)) == 2023
+auto snapshot = file.stat(path)
+assert snapshot.accessed == 1700000000000000 and snapshot.modified == 1700000001000000
+assert file.delete(path)
+for operation in range(3)
+    bool refused = false
+    try
+        if operation == 0 then
+            auto result = file.accessTime(path)
+        elseif operation == 1 then
+            auto result = file.changeTime(path)
+        else
+            auto result = file.accessTime("a\0b")
+        end
+    catch e
+        refused = true
+    end
+    assert refused, "failed metadata queries must not return the Unix epoch"
+end
+println("filesystem time metadata ok")

@@ -41,7 +41,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/api/xl_channel_bridge.c", 0, {"XRT_MODULE_CHANNEL_SELECT_CANCEL", "XRT_MODULE_CHANNEL_COROUTINE"}},
     {"src/api/xl_task_group_bridge.c", 0, {"XRT_MODULE_TASK_GROUP_POOL", "XRT_MODULE_TASK_GROUP_COROUTINE"}},
     {"src/api/xl_foreign_error.c", 0, {"XRT_MODULE_ONCE", "XRT_MODULE_ERROR"}},
-    {"src/runtime/xl6_network_service.c", 0, {"XRT_MODULE_NET_ENGINE", "XRT_MODULE_NET_RESOLVER"}}
+    {"src/runtime/xl6_network_service.c", 0, {"XRT_MODULE_NET_ENGINE", "XRT_MODULE_NET_RESOLVER"}},
+    {"src/runtime/xl6_task_file.c", R(TASK), {"XRT_MODULE_FILE_ASYNC"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -200,6 +201,10 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
         roots |= R(EXECUTOR)|R(CONTINUATION_FUTURE)|R(CONTINUATION_FRAME);
     if (module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE) roots |= R(TASK);
+    for (size_t i=0;i<module->callTargetCount;++i)
+        if (module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
+            xl6IrRuntimeFsBridgeUsesOwner(module->callTargets[i].runtimeBridge,"xl6_xrt_fs_async_destroy"))
+            roots |= R(FILE_ASYNC);
     if (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_NONE) roots |= R(FUTURE_BRIDGE);
     if (module->abi.nativeFutureMapAbi != XL6_IR_NATIVE_FUTURE_MAP_NONE) roots |= R(FUTURE_CALLBACK)|R(FUTURE_PAYLOAD);
     if (module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE) roots |= R(NETWORK_SERVICE);

@@ -446,6 +446,7 @@ static const char xl6StdFsRootBody[] =
 const char* xl6StdlibFsTreeSource =
     "class TreeStats\n"
     "    native point handle\n"
+    "    extern \"xl6_xrt_fs_stats_from_value\" create(var record)\n"
     "    extern \"xl6_xrt_fs_tree_copy\" create(string source, string target, int flags)\n"
     "    extern \"xl6_xrt_fs_tree_remove\" create(string path, bool keepRoot)\n"
     "    extern \"xl6_xrt_fs_stats_destroy\" destroy()\n"
@@ -472,6 +473,7 @@ const char* xl6StdlibFsTreeSource =
     "end\n"
     "class WalkStats\n"
     "    native point handle\n"
+    "    extern \"xl6_xrt_fs_stats_from_value\" create(var record)\n"
     "    extern \"xl6_xrt_fs_walk_stats\" create(string path, int flags, int maxDepth)\n"
     "    extern \"xl6_xrt_fs_walk_visit\" create(string path, func(var) as int visit, func(var) as int onError, int flags, int maxDepth)\n"
     "    extern \"xl6_xrt_fs_dir_stats\" create(string path, bool recursive)\n"

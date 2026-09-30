@@ -1840,6 +1840,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/runtime/xl6_slot.c",
         "src/runtime/xl6_frame_storage.c",
         "src/runtime/xl6_task.c",
+        "src/runtime/xl6_task_file.c",
         "src/runtime/xl6_network_service.c",
         "src/runtime/xl6_continuation_frame.c", "src/runtime/xl6_future_wait.c",
         "src/runtime/xl6_capture.c",

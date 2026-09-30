@@ -1,0 +1,4 @@
+assert await file.writeBytesAtomicAsync("build/test/fs-async-minimal.bin", b"a\0b")
+assert await file.readBytesAsync("build/test/fs-async-minimal.bin") == b"a\0b"
+assert await file.deleteAsync("build/test/fs-async-minimal.bin")
+println("async minimal ok")

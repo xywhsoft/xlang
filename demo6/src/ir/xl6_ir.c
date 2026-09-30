@@ -16582,6 +16582,13 @@ int xl6IrGlobalStorageCleanup(
 
 XL6_IrModuleTaskPoolAbi xl6IrModuleTaskPoolRequirement(const XL6_IrModule* module)
 {
+    if (module != NULL) for (size_t n=0;n<module->callTargetCount;++n) {
+        const XL6_IrCallTarget* target=&module->callTargets[n];
+        if (target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
+            target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_OPEN &&
+            target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_TREE_ENSURE)
+            return XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE;
+    }
     size_t i, j;
     if (module == NULL) return (XL6_IrModuleTaskPoolAbi)-1;
     for (i = 0; i < module->instructionCount; ++i)
@@ -16688,6 +16695,9 @@ XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModul
     for (size_t i=0;i<module->callTargetCount;++i) {
         const XL6_IrCallTarget* target=&module->callTargets[i];
         if (target->reachability==XL6_IR_REACHABILITY_UNREACHABLE) continue;
+        if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_OPEN &&
+            target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_TREE_ENSURE)
+            return XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1;
         switch (target->runtimeBridge) {
         case XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL:
         case XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM:
@@ -21451,6 +21461,11 @@ int xl6IrRefreshReachability(XL6_IrModule* module)
         module->closureTargets[i].reachability = facts.closureTargets[i];
     xl6IrReachabilityFactsFree(&facts);
     if (module->stage == XL6_IR_STAGE_LOWERED) {
+        module->abi.taskPoolAbi=xl6IrModuleTaskPoolRequirement(module);
+        module->abi.taskPoolOwnershipAbi=xl6IrModuleTaskPoolOwnershipRequirement(module);
+        if (module->abi.finalizerFunction != 0 && module->abi.finalizerFunction <= module->functionCount)
+            module->functions[module->abi.finalizerFunction-1].errorAbi =
+                xl6IrModuleHasFinalizerWork(module) ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
         module->abi.nativeFutureMapAbi=xl6IrModuleNativeFutureMapRequirement(module);
         module->abi.networkServiceAbi=xl6IrModuleNetworkServiceRequirement(module);
         if (module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)

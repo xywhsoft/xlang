@@ -651,5 +651,11 @@ needs->needsResultTypeId || needs->needsResultF64 || needs->needsResultF32 || ne
          needs->needsResultXValue || needs->needsResultCBool || needs->needsResultFuture || needs->needsResultGenerator ||
          needs->needsExtendedResults )
         xl6OutputPuts("\n", out);
+    if (module->abi.nativeFutureMapAbi == XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1) {
+        xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
+            ? "#define xlir_native_future_owner (xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)\n"
+            : "#define xlir_native_future_owner NULL\n",out);
+        xl6IrCgenEmitNativeFutureMap(out);
+    }
     return !xl6OutputHasFailed(out);
 }

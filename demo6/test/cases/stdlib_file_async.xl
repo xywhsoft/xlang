@@ -1,95 +1,127 @@
-string filePath = "build/test/stdlib_file_async_case.txt"
-string copyPath = "build/test/stdlib_file_async_case.copy.txt"
-string movePath = "build/test/stdlib_file_async_case.move.txt"
-string missingPath = "build/test/stdlib_file_async_case.missing.txt"
-string binaryPath = "build/test/stdlib_file_async_case.bin"
-string handlePath = "build/test/stdlib_file_async_handle.bin"
-string dirRoot = "build/test/stdlib_dir_async_case"
-string dirSource = dirRoot + "/source"
-string dirCopy = dirRoot + "/copy"
-string dirMoved = dirRoot + "/moved"
-
-file.delete(filePath)
-file.delete(copyPath)
-file.delete(movePath)
-file.delete(missingPath)
-file.delete(binaryPath)
-file.delete(handlePath)
-dir.delete(dirRoot)
-
-future<bool> writeFuture = file.writeTextAsync(filePath, "hello")
-assert writeFuture.wait(), "writeTextAsync future should complete"
-assert await writeFuture, "writeTextAsync should resolve true"
-assert file.exists(filePath), "writeTextAsync should create file"
-
-future<string> readFuture = file.readTextAsync(filePath)
-assert readFuture.wait(), "readTextAsync future should complete"
-assert await readFuture == "hello", "readTextAsync should read text"
-
-assert await file.appendTextAsync(filePath, " async"), "appendTextAsync should resolve true"
-assert await file.readTextAsync(filePath) == "hello async", "appendTextAsync should append text"
-
-future<bool> copyFuture = file.copyAsync(filePath, copyPath)
-assert copyFuture.wait(), "copyAsync future should complete"
-assert await copyFuture, "copyAsync should resolve true"
-assert await file.readTextAsync(copyPath) == "hello async", "copyAsync should copy file data"
-
-assert await file.moveAsync(copyPath, movePath), "moveAsync should resolve true"
-assert not file.exists(copyPath), "moveAsync should remove source"
-assert await file.readTextAsync(movePath) == "hello async", "moveAsync should keep file data"
-
-future<bool> anyDelete = file.deleteAsync(filePath)
-future<bool> anyDeleteMoved = file.deleteAsync(movePath)
-int firstDone = await task.whenAny([anyDelete, anyDeleteMoved])
-assert firstDone >= 0, "deleteAsync futures should work with task.whenAny"
-assert await anyDelete, "deleteAsync should delete source file"
-assert await anyDeleteMoved, "deleteAsync should delete moved file"
-
-bool missingReadCaught = false
-try
-    string missingText = await file.readTextAsync(missingPath)
-catch e
-    if string.contains(e.message, missingPath) then
-        missingReadCaught = true
-    end
+func makeVirtualAsyncFile() as AsyncFile
+    auto fs = vfs.create()
+    auto memory = vfs.memory()
+    memory.put("data.bin", b"v\0f")
+    memory.seal()
+    auto mount = fs.mount("/app", memory)
+    auto source = fs.open("/app/data.bin")
+    auto alias = source
+    auto result = file.takeAsync(source)
+    assert source.closed and alias.closed
+    return result
 end
-assert missingReadCaught, "readTextAsync missing file should reject with a future error"
 
-// 二进制便捷接口必须保持 Buffer 的长度和内容。
-Buffer binary = Buffer()
-assert binary.appendByte(0)
-assert binary.appendByte(127)
-assert binary.appendByte(255)
-assert await file.writeBytesAsync(binaryPath, binary)
-Buffer binaryRead = await file.readBytesAsync(binaryPath)
-assert binaryRead == binary, "binary async roundtrip mismatch"
-
-// AsyncFile 覆盖随机 readAt/writeAt、刷新、截断、共享标志和显式关闭。
-int openFlags = file.asyncRead + file.asyncWrite + file.asyncCreate + file.asyncTruncate
-int shareFlags = file.shareRead + file.shareWrite + file.shareDelete
-AsyncFile asyncFile = file.openAsync(handlePath, openFlags, shareFlags)
-assert await asyncFile.writeAt(0, binary) == binary.len()
-assert await asyncFile.flush()
-assert await asyncFile.size() == binary.len()
-Buffer handleRead = Buffer(await asyncFile.readAt(0, binary.len()))
-assert handleRead == binary
-assert await asyncFile.setSize(2)
-assert await asyncFile.size() == 2
-assert asyncFile.close()
-
-// 目录异步接口覆盖单层创建、递归创建、复制、移动与递归删除。
-assert await dir.createAsync(dirRoot)
-assert await dir.createAllAsync(dirSource + "/nested")
-assert file.writeText(dirSource + "/nested/value.txt", "dir async")
-assert await dir.copyAsync(dirSource, dirCopy)
-assert file.readText(dirCopy + "/nested/value.txt") == "dir async"
-assert await dir.moveAsync(dirCopy, dirMoved)
-assert not dir.exists(dirCopy)
-assert await dir.deleteAsync(dirMoved)
-assert await dir.deleteAsync(dirSource)
-assert await dir.deleteAsync(dirRoot)
-
-file.delete(binaryPath)
-file.delete(handlePath)
-
-println("stdlib file async ok")
+// Exercise native filesystem contracts, not DrvFS's missing no-replace rename.
+string parent = "build/test"
+if path.sep() == "/" then parent = "" end
+string root = dir.temp(parent, "fs-async-", "")
+assert await dir.createAllAsync(root + "/tree/nested")
+assert await dir.emptyAsync(root + "/tree/nested")
+string p = root + "/data.bin"
+bytes original = b"a\0b\xff"
+auto written = file.writeBytesAsync(p, original, 99)
+original[0] = uint8(122)
+assert await written
+assert not (await file.readBytesAsync(p) != b"a\0b\xff")
+assert await file.appendBytesAsync(p, b"tail", 2)
+assert not (await file.readBytesAsync(p) != b"a\0b\xffta")
+assert await file.writeBytesAtomicAsync(p, b"atomic\0")
+assert not (await file.readBytesAsync(p) != b"atomic\0")
+bool limited = false
+try
+    auto value = await file.readBytesAsync(p, 2)
+catch e
+    limited = true
+end
+assert limited
+auto f = file.openAsync(p, 3)
+assert f.flags == 3 and not f.closed
+assert await f.writeAt(uint64(1), b"XYZ", 2) == uint64(2)
+assert not (await f.readAt(uint64(0), 99) != b"aXYmic\0")
+assert await f.flush()
+assert await f.size() == uint64(7)
+assert await f.resize(uint64(3)) == uint64(3)
+auto accepted = f.readAt(uint64(0), 10)
+auto closing = f.close()
+assert f.closed
+assert not (await accepted != b"aXY")
+assert await closing
+assert await f.close()
+bool closed = false
+try
+    f.readAt(uint64(0), 1)
+catch e
+    closed = true
+end
+assert closed
+auto native = file.open(p, 3)
+auto asyncNative = file.takeAsync(native)
+assert native.closed
+assert not (await asyncNative.readAt(uint64(0), 10) != b"aXY")
+assert await asyncNative.close()
+auto temporary = file.temp(root)
+bool refused = false
+try
+    auto adopted = file.takeAsync(temporary)
+catch e
+    refused = true
+end
+assert refused and not temporary.closed
+assert temporary.close()
+string t = root + "/tree/nested/text.txt"
+assert await file.writeTextAsync(t, "你\0好", 2, 0, true)
+assert await file.readTextAsync(t) == "你\0好"
+assert await file.writeTextAtomicAsync(t, "hi\0", 1)
+assert await file.appendTextAsync(t, "世界", 1)
+assert await file.readTextAsync(t, 1) == "hi\0世界"
+bool mismatch = false
+try
+    assert await file.writeTextAsync(t, "bom", 2, 0, true)
+    auto text = await file.readTextAsync(t, 1)
+catch e
+    mismatch = true
+end
+assert mismatch
+assert await file.copyAsync(p, root + "/copy.bin")
+assert await file.moveAsync(root + "/copy.bin", root + "/move.bin")
+assert await file.deleteAsync(root + "/move.bin")
+bool missing = false
+try
+    auto value = await file.readBytesAsync(root + "/absent.bin")
+catch e
+    missing = e.message.length > 0
+end
+assert missing
+assert await dir.createAsync(root + "/empty")
+assert await dir.removeAsync(root + "/empty")
+auto copy = await file.copyTreeAsync(root + "/tree", root + "/copytree")
+assert copy.files == uint64(1) and copy.directories == uint64(2)
+auto snapshot = await dir.statsAsync(root + "/copytree")
+assert snapshot.bytes == uint64(8)
+assert await dir.sizeAsync(root + "/copytree") == snapshot.bytes
+assert await dir.moveAsync(root + "/copytree", root + "/movedtree")
+auto removed = await file.removeTreeAsync(root + "/movedtree")
+assert removed.files == uint64(1) and not dir.exists(root + "/movedtree")
+assert snapshot.files == uint64(1), "statistics must own their snapshot"
+auto dirCopy = await dir.copyAsync(root + "/tree", root + "/dircopy")
+assert dirCopy.files == uint64(1)
+auto cleaned = await dir.cleanAsync(root + "/dircopy")
+assert cleaned.files == uint64(1) and dir.exists(root + "/dircopy")
+assert await dir.ensureEmptyAsync(root + "/dircopy")
+auto deleted = await dir.deleteAsync(root)
+assert deleted.files >= uint64(2)
+assert not dir.exists(root)
+// Worker-based offset IO is backend-neutral, not native OS async binding.
+// Destroy the Vfs/provider variables before awaiting the adopted File's work.
+auto virtualFile = makeVirtualAsyncFile()
+assert await virtualFile.readAt(uint64(0), 99) == b"v\0f"
+assert await virtualFile.size() == uint64(3)
+bool readOnly = false
+try
+    auto mutation = await virtualFile.writeAt(uint64(0), b"x")
+catch e
+    readOnly = true
+end
+assert readOnly
+assert await virtualFile.close()
+println("filesystem async ok")

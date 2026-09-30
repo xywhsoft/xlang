@@ -1,0 +1,7 @@
+string path = "build/test/async-example.bin"
+assert await file.writeBytesAtomicAsync(path, b"a\0b")
+auto stream = file.openAsync(path, 3)
+assert await stream.readAt(uint64(0), 3) == b"a\0b"
+assert await stream.close()
+assert await file.deleteAsync(path)
+println("async filesystem example ok")

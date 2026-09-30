@@ -1,4 +1,4 @@
-param([string]$Root = "")
+param([string]$Root = "", [switch]$ContractsOnly)
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
@@ -31,8 +31,8 @@ function Invoke-Test([string]$File, [string]$Arguments, [int]$Expected = 0, [str
         }
     } finally { $process.Dispose() }
 }
-function Compile-Strict([string]$Source, [string]$Executable) {
-    $command = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE=\"{0}\" test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o "{1}"' -f $Source.Replace('\','/'),$Executable
+function Compile-Strict([string]$Source, [string]$Executable, [string]$HostSource = 'test/cases/xlir_generated_module_host.c') {
+    $command = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE=\"{0}\" {2} !XL6_CGEN_LINKS! -o "{1}"' -f $Source.Replace('\','/'),$Executable,$HostSource
     & cmd.exe /d /v:on /c $command
     if ($LASTEXITCODE -ne 0) { throw "Strict generated C failed: $Source" }
 }
@@ -116,8 +116,17 @@ for legacy in (False,True):
         'test/cases/stdlib_fs_tree.xl', 'test/cases/stdlib_fs_temp.xl', 'test/cases/stdlib_fs_tree_temp_allocation.xl',
         'test/cases/stdlib_vfs_pack_full.xl', 'test/cases/stdlib_vfs_pack_allocation.xl', 'test/cases/stdlib_fs_names.xl',
         'test/cases/stdlib_fs_walk.xl', 'test/cases/stdlib_fs_glob_only.xl', 'test/cases/stdlib_fs_walk_allocation.xl',
-        'test/cases/xlir_bytes_dynamic_cast.xl','test/cases/xlir_directory_bridge.xl')
-    foreach ($relative in $fixtures) {
+        'test/cases/xlir_bytes_dynamic_cast.xl','test/cases/xlir_directory_bridge.xl',
+        'test/cases/stdlib_file_async.xl','test/cases/stdlib_fs_async_minimal.xl',
+        'test/cases/stdlib_fs_async_retirement.xl','test/cases/stdlib_fs_async_cancel.xl',
+        'test/cases/stdlib_fs_async_allocation.xl','test/cases/stdlib_fs_task_isolation.xl',
+        'test/cases/stdlib_path_random.xl','test/cases/stdlib_fs_metadata_times.xl')
+    $nativeProbe = Join-Path $outputDir 'fs-async-resident.exe'
+    $nativeCommand = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror test/cases/xlir_fs_async_resident.c !XL6_CGEN_LINKS! -o "{0}"' -f $nativeProbe
+    & cmd.exe /d /v:on /c $nativeCommand
+    if ($LASTEXITCODE -ne 0) { throw 'Resident asynchronous filesystem strict C failed' }
+    Invoke-Test $nativeProbe '' 0 'retirement races ok'
+    if (!$ContractsOnly) { foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
         $cPath = Join-Path $outputDir "$name.c"
@@ -130,34 +139,48 @@ for legacy in (False,True):
         if ($c -match '#include\s*[<\"][^>\"]*(?<!_decl)\b(?:xrt|xruntime)\.h[>\"]') { throw "$name imports an implementation header" }
         if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'xl6_xrt_vfs_(?:pack|disk)_|XRT_MODULE_VFS_(?:PACK|DISK)') { throw "Memory-only program retains disk/pack adapters" }
         if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'XRT_MODULE_FILE_(?:ROOT|MAP|LOCK)|xl6_xrt_fs_') { throw 'Memory-only program retains unused File resources' }
-        if ($name -in @('stdlib_fs_whole','stdlib_fs_path','stdlib_file_bytes_only') -and $c -match 'XL6_FILE_RUNTIME') { throw 'New filesystem public API retains the legacy monolithic file emitter' }
+        if ($name -in @('stdlib_fs_whole','stdlib_fs_path','stdlib_file_bytes_only','stdlib_fs_metadata_times') -and $c -match 'XL6_FILE_RUNTIME') { throw 'New filesystem public API retains the legacy monolithic file emitter' }
         if ($name -eq 'stdlib_file_bytes_only' -and $c -match 'XL6_BUFFER_RUNTIME') { throw 'Bytes-only program retains Buffer adapters' }
         if ($name -in @('stdlib_fs_walk','stdlib_fs_glob_only') -and $c -match 'XL6_DIR_RUNTIME') { throw 'New directory API retains the legacy directory emitter' }
         if ($name -eq 'stdlib_fs_glob_only' -and $c -match 'xlir_fs_walk_entry|xlir_fs_walk_callbacks') { throw 'Glob-only program retains unused event/callback adapters' }
+        if ($name -eq 'stdlib_fs_task_isolation' -and $c -match 'XRT_MODULE_FILE_ASYNC|xl6_xrt_fs_async_|xl6AsyncFile') { throw 'Ordinary language tasks retain the stateful filesystem driver' }
+        if ($name -eq 'stdlib_fs_async_minimal' -and $c -match 'xl6_xrt_fs_async_open|xl6AsyncFile') { throw 'Whole-file async operations retain the stateful filesystem driver' }
         $strict = Join-Path $outputDir "$name.strict.exe"
-        Compile-Strict $cPath $strict
+        if ($name -in @('stdlib_file_async','stdlib_fs_async_minimal','stdlib_fs_async_retirement','stdlib_fs_async_cancel','stdlib_fs_async_allocation','stdlib_fs_task_isolation')) {
+            Compile-Strict $cPath $strict 'test/cases/xlir_fs_async_module_host.c'
+        } else {
+            Compile-Strict $cPath $strict
+        }
         Invoke-Test $strict ""
         Invoke-Test $xl ('run "{0}"' -f $source)
         $exe = Join-Path $outputDir "$name.aot.exe"
         Invoke-Test $xl ('build "{0}" -o "{1}"' -f $source,$exe)
         Invoke-Test $exe ""
+        if ($name -eq 'stdlib_fs_async_allocation') {
+            # Retirement has joined accepted writes, including cancelled trials.
+            for ($point = 0; $point -lt 80; ++$point) {
+                $trial = Join-Path $outputDir "fs-async-allocation.bin.atomic.$point"
+                if (Test-Path -LiteralPath $trial) { Remove-Item -LiteralPath $trial }
+            }
+        }
         Write-Output "${name}: strict C, JIT/AOT, deterministic output and dependency isolation passed"
-    }
+    } }
     foreach ($relative in @('test/cases/bad_xlir_vfs_wrong_input.xl',
         'test/cases/bad_xlir_vfs_wrong_result.xl', 'test/cases/bad_xlir_vfs_wrong_owner.xl',
         'test/cases/bad_xlir_fs_wrong_owner.xl', 'test/cases/bad_xlir_fs_wrong_result.xl',
         'test/cases/bad_xlir_fs_pack_wrong_options.xl', 'test/cases/bad_xlir_fs_wrong_array_element.xl',
-        'test/cases/bad_xlir_fs_wrong_visitor.xl')) {
+        'test/cases/bad_xlir_fs_wrong_visitor.xl',
+        'test/cases/bad_xlir_fs_async_wrong_result.xl','test/cases/bad_xlir_fs_async_wrong_owner.xl')) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $cPath = Join-Path $outputDir "$name.c"
         if (Test-Path -LiteralPath $cPath) { Remove-Item -LiteralPath $cPath }
-        $marker = if ($name -in @('bad_xlir_fs_wrong_array_element','bad_xlir_fs_wrong_visitor')) { 'XLIR VFS runtime bridge' } elseif ($name -eq 'bad_xlir_vfs_wrong_owner' -or $name -like 'bad_xlir_fs_*') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
+        $marker = if ($name -in @('bad_xlir_fs_wrong_array_element','bad_xlir_fs_wrong_visitor','bad_xlir_fs_async_wrong_result')) { 'XLIR VFS runtime bridge' } elseif ($name -eq 'bad_xlir_vfs_wrong_owner' -or $name -like 'bad_xlir_fs_*') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
         Invoke-Test $xl ('cgen "{0}" --emit "{1}"' -f (Join-Path $Root $relative),$cPath) 1 $marker
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
     }
     foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl',
         'release/examples/stdlib_fs_paths_text.xl','release/examples/stdlib_fs_tree_temp.xl',
-        'release/examples/stdlib_fs_walk.xl')) {
+        'release/examples/stdlib_fs_walk.xl','release/examples/stdlib_fs_async.xl')) {
         $example = Join-Path $Root $relative
         $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')
         Invoke-Test $xl ('run "{0}"' -f $example)
@@ -170,4 +193,8 @@ for legacy in (False,True):
     }
     Pop-Location
 }
-Write-Output 'VFS/File gate passed: thirty positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and eight ABI negatives.'
+if ($ContractsOnly) {
+    Write-Output 'VFS/File contracts batch passed: resident lifecycle probe, ten ABI negatives and six public JIT/AOT examples. Positive fixtures were not rerun.'
+} else {
+    Write-Output 'VFS/File gate passed: thirty-eight positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and ten ABI negatives.'
+}
