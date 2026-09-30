@@ -9,6 +9,7 @@ static int xl6IrCgenFsSelected(const XL6_IrCgenNeeds* needs, XL6_IrRuntimeBridge
 }
 #include "src/cgen/xl6_ir_cgen_emit_fs_path.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_whole.c"
+#include "src/cgen/xl6_ir_cgen_emit_fs_tree.c"
 static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
 {
     int file = 0, info = 0, dir = 0, root = 0, map = 0, lock = 0;
@@ -31,16 +32,22 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  *size = limit >= 0 && (uint64_t)limit < actual ? (size_t)limit : actual; return true; }\n"
             "\n", out);
     if (file) xl6OutputPuts(
-            "typedef struct xlir_fs_file { xfile file; xatomic32 refs; xatomic32 lock; } xlir_fs_file;\n"
+            "typedef struct xlir_fs_file { xfile file; xatomic32 refs; xatomic32 lock; char* tempPath; bool deleteOnClose; } xlir_fs_file;\n"
             "static inline xlir_fs_file* xlir_fs_file_alloc(void)\n"
             "{ xlir_fs_file* owner = (xlir_fs_file*)xrtCalloc(1, sizeof(*owner));\n"
             "  if (owner != NULL) { xrtAtomic32Init(&owner->refs, 1); xrtAtomic32Init(&owner->lock, 0); } return owner; }\n"
             "static inline xfile xlir_fs_file_get(void* handle)\n"
             "{ xlir_fs_file* owner = (xlir_fs_file*)handle;\n"
             "  if (owner == NULL || owner->file == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->file; }\n"
+            "static inline bool xlir_fs_temp_remove(xlir_fs_file* owner)\n"
+            "{ if (!owner->deleteOnClose || owner->tempPath == NULL) { return true; }\n"
+            "  if (owner->file == NULL) { xrtSetErrorKind(XERR_STATE); return false; }\n"
+            "  if (!xrtFileDeleteOpen(owner->file,owner->tempPath)) { return false; }\n"
+            "  owner->deleteOnClose = false; return true; }\n"
             "static inline void xlir_fs_file_drop(xlir_fs_file* owner)\n"
             "{ if (owner != NULL && xrtAtomic32FetchSub(&owner->refs, 1, XMEMORY_ACQ_REL) == 1)\n"
-            "    { if (owner->file != NULL) (void)xrtClose(owner->file); xrtFree(owner); } }\n"
+            "    { (void)xlir_fs_temp_remove(owner); if (owner->file != NULL) (void)xrtClose(owner->file);\n"
+            "      xrtFree(owner->tempPath); xrtFree(owner); } }\n"
             "static inline bool xlir_fs_options(int64_t flags, int64_t mode, int64_t share, xfileoptions* options)\n"
             "{ if (flags <= 0 || flags > 255 || (flags & 3) == 0 || mode < 0 || mode > 4095 || share < 0 || share > 7)\n"
             "    { xrtSetErrorKind(XERR_RANGE); return false; }\n"
@@ -131,10 +138,12 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_file_close(void* handle)\n"
             "{ xlir_fs_file* owner = (xlir_fs_file*)handle; xfile file;\n"
-            "  if (owner == NULL || owner->file == NULL) { return true; }\n"
+            "  if (owner == NULL) { return true; }\n"
             "  if (xrtAtomic32Load(&owner->refs, XMEMORY_ACQUIRE) != 1)\n"
             "    { xrtSetErrorKind(XERR_STATE); return false; }\n"
-            "  file = owner->file; owner->file = NULL; return xrtClose(file); }\n", out);
+            "  if (!xlir_fs_temp_remove(owner)) { return false; }\n"
+            "  file = owner->file; owner->file = NULL;\n"
+            "  return file == NULL || xrtClose(file); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_CLOSED)) xl6OutputPuts(
             "bool xl6_xrt_fs_file_closed(void* handle)\n"
             "{ return handle == NULL || ((xlir_fs_file*)handle)->file == NULL; }\n", out);
@@ -563,4 +572,5 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  xlir_fs_file_drop(file); return xrtGetError() == NULL; }\n", out);
     xl6IrCgenEmitFsPathRuntime(out, needs);
     xl6IrCgenEmitFsWholeRuntime(out, needs);
+    xl6IrCgenEmitFsTreeRuntime(out, needs);
 }

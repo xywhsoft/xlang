@@ -72,6 +72,14 @@ if ( $Check ) {
     exit 0
 }
 
+# Do not rewrite an identical table: sync already generated it, and editors or
+# compiler scans may have a read mapping open. Changed contents still fail
+# normally if they cannot be written; this is not a stale-table fallback.
+if ((Test-Path -LiteralPath $outputPath -PathType Leaf) -and
+    [System.IO.File]::ReadAllText($outputPath, [System.Text.Encoding]::UTF8) -ceq $expected) {
+    Write-Host "XRT/xruntime symbol table is current: $($unique.Count) functions"
+    exit 0
+}
 [System.IO.File]::WriteAllText(
     $outputPath,
     $expected,

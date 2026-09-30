@@ -1,5 +1,5 @@
 string path = "build/test/fs-root"
-dir.delete(path)
+if dir.exists(path) then dir.delete(path) end
 assert dir.createAll(path)
 auto root = file.root(path)
 assert root.path.length > 0

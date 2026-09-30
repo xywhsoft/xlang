@@ -1,0 +1,34 @@
+func makeTemporary(string directory) as (IoReader,string)
+    auto temp = file.temp(directory,"fs-temp-",".bin")
+    assert temp.writeAll(b"a\0b") == 3
+    temp.seek(0)
+    return temp.reader(),temp.tempPath
+end
+string parentDirectory = "build/test"
+if path.sep() == "/" then parentDirectory = "" end
+string directory = dir.temp(parentDirectory,"fs-temp-owner-","")
+try
+    auto reader, name = makeTemporary(directory)
+    assert file.exists(name)
+    assert reader.readExact(3) == b"a\0b"
+    reader.close()
+    assert not file.exists(name), "last retained IO lease must delete the temporary file"
+    auto source = file.temp(directory)
+    string name2 = source.tempPath
+    assert source.close() and source.close()
+    assert not file.exists(name2)
+    auto kept = file.temp(directory)
+    string permanent = kept.tempPath
+    assert kept.keep() and kept.close()
+    assert file.exists(permanent) and file.delete(permanent)
+    bool rejected = false
+    try
+        file.temp(directory,"../escape","")
+    catch e
+        rejected = true
+    end
+    assert rejected and dir.empty(directory)
+finally
+    dir.delete(directory)
+end
+print("fs temp ok")

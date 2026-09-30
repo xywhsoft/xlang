@@ -1,0 +1,58 @@
+string parentDirectory = "build/test"
+if path.sep() == "/" then parentDirectory = "" end
+string base = dir.temp(parentDirectory, "fs-tree-", "")
+string source = path.join(base,"source")
+string target = path.join(base,"target")
+try
+    assert dir.createAll(path.join(source,"nested"))
+    assert file.writeBytes(path.join(source,"one.bin"),b"a\0b")
+    assert file.writeBytes(path.join(source,"nested","two.bin"),b"xy")
+    auto stats = dir.stats(source)
+    assert stats.files == uint64(2) and stats.directories == uint64(2)
+    assert stats.items == uint64(4) and stats.bytes == uint64(5) and not stats.stopped
+    assert dir.count(source) == uint64(2)
+    assert dir.count(source,true) == uint64(3)
+    assert dir.size(source) == uint64(5) and dir.size(source,false) == uint64(3)
+    assert dir.list(source).length == 2 and dir.files(source,true).length == 2
+    assert dir.dirs(source,true).length == 1 and dir.roots().length > 0
+    auto shallow = file.walkStats(source,0,0)
+    assert shallow.items == uint64(1) and shallow.bytes == uint64(0)
+    auto copied = file.copyTree(source,target)
+    assert copied.files == uint64(2) and copied.bytes == uint64(5)
+    assert file.readBytes(path.join(target,"one.bin")) == b"a\0b"
+    auto cleared = file.removeTree(target,true)
+    assert cleared.files == uint64(2) and dir.empty(target)
+    assert dir.ensureEmpty(target)
+    assert dir.delete(target) and not dir.exists(target)
+    auto stamp = file.stat(path.join(source,"one.bin"))
+    int desired = stamp.modified - 1000000
+    assert file.setTimes(path.join(source,"one.bin"),null,desired)
+    auto after = file.stat(path.join(source,"one.bin"))
+    assert after.modified == desired
+    for operation in range(7)
+        bool rejected = false
+        try
+            if operation == 0 then
+                dir.list(source,true,0)
+            elseif operation == 1 then
+                file.copyTree(source,path.join(source,"child"))
+            elseif operation == 2 then
+                file.copyTree(source,target,12)
+            elseif operation == 3 then
+                file.walkStats(source,4)
+            elseif operation == 4 then
+                file.walkStats(source,0,-2)
+            elseif operation == 5 then
+                file.setTimes(path.join(source,"one.bin"))
+            else
+                dir.files(path.join(source,"one.bin"))
+            end
+        catch e
+            rejected = true
+        end
+        assert rejected
+    end
+finally
+    if dir.exists(base) then dir.delete(base) end
+end
+print("fs tree ok")
