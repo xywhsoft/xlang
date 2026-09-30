@@ -2,6 +2,7 @@
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
+#include "src/stdlib/xl6_stdlib_fs.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -2470,47 +2471,6 @@ const char* xl6StdlibFileInfoClassSource =
     "    time changeTime\n"
     "end\n";
 
-const char* xl6StdlibFileClassSource =
-    "class File\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_file_open\" create(string path, bool readOnly, int charset)\n"
-    "    extern \"xl6_xrt_file_close\" destroy()\n"
-    "    extern \"xl6_xrt_file_native\" func nativeHandle() as point\n"
-    "    extern \"xl6_xrt_file_tell\" get pos() as int\n"
-    "    extern \"xl6_xrt_file_size\" get size() as int\n"
-    "    extern \"xl6_xrt_file_eof\" get eof() as bool\n"
-    "    extern \"xl6_xrt_file_seek\" func seekNative(int offset, int whence) as int\n"
-    "    extern \"xl6_xrt_file_set_eof\" func setEOF() as bool\n"
-    "    extern \"xl6_xrt_file_read_text\" func readNative(int size) as point\n"
-    "    extern \"xl6_xrt_file_write_text\" func writeTextNative(string text, c_size size) as int\n"
-    "    extern \"xl6_xrt_file_read_bytes\" func readBytesNative(int size) as point\n"
-    "    extern \"xl6_xrt_file_write_bytes\" func writeBytesNative(point data, c_size size) as int\n"
-    "\n"
-    "    func seek(int offset, int whence = 0) as int\n"
-    "        return self.seekNative(offset, whence)\n"
-    "    end\n"
-    "\n"
-    "    func readText(int size = -1) as string\n"
-    "        return __xl_std_runtime_take_cstr(self.readNative(size))\n"
-    "    end\n"
-    "\n"
-    "    func writeText(string text) as int\n"
-    "        c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "        return self.writeTextNative(text, __xl_size_text)\n"
-    "    end\n"
-    "\n"
-    "    func readBytes(int size = -1) as Buffer\n"
-    "        return Buffer(point(self.readBytesNative(size)))\n"
-    "    end\n"
-    "\n"
-    "    func writeBytes(Buffer data) as int\n"
-    "        return self.writeBytesNative(data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func write(string text) as int\n"
-    "        return self.writeText(text)\n"
-    "    end\n"
-    "end\n";
 
 const char* xl6StdlibAsyncFileClassSource =
     "class AsyncFile\n"
@@ -5577,8 +5537,8 @@ static const char xl6StdFileInfoBody[] =
     "end\n";
 
 static const char xl6StdFileOpenBody[] =
-    "func __xl_std_file_open(string filePath, bool readOnly = false, int charset = -2) as File\n"
-    "    return File(filePath, readOnly, charset)\n"
+    "func __xl_std_file_open(string filePath, int flags = 1, int mode = 438, int share = 7) as File\n"
+    "    return File(filePath, flags, mode, share)\n"
     "end\n";
 
 static const char xl6StdFileReadBytesAsyncBody[] =
@@ -7678,6 +7638,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "writeTextAtomic", "__xl_std_file_write_text_atomic", NULL, NULL, 0, "bool", xl6StdFileWriteTextAtomicBody},
     {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileInfo", xl6StdFileInfoBody},
     {"file", "open", "__xl_std_file_open", NULL, NULL, 0, "File", xl6StdFileOpenBody},
+    {"file", "stat", "__xl_std_file_stat", NULL, NULL, 0, "FileStat", xl6StdFsStatBody},
+    {"dir", "open", "__xl_std_dir_open", NULL, NULL, 0, "DirectoryIterator", xl6StdFsDirectoryBody},
     {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
     {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<Buffer>", xl6StdFileReadBytesAsyncBody},
     {"file", "writeTextAsync", "__xl_std_file_write_text_async", "xl6_xrt_file_write_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},

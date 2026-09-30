@@ -26629,7 +26629,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN )
         return xl6IrRuntimeIoBridgeTargetMatches(module, target);
     if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_VFS_CREATE &&
-        target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID)
+        target->runtimeBridge < XL6_IR_RUNTIME_BRIDGE_FS_END)
         return xl6IrRuntimeVfsBridgeTargetMatches(module, target);
     if (module->stage == XL6_IR_STAGE_LOWERED && target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM && target->parameterTypes != NULL) {
@@ -42134,6 +42134,10 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY: return "vfs-mount-destroy";
     case XL6_IR_RUNTIME_BRIDGE_VFS_UNMOUNT: return "vfs-unmount";
     case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID: return "vfs-mount-id";
+#define XL6_FS_OPERATION(Name, ...) case XL6_IR_RUNTIME_BRIDGE_FS_##Name: return "fs-" #Name;
+#include "src/ir/xl6_ir_fs_operations.inc"
+#undef XL6_FS_OPERATION
+    case XL6_IR_RUNTIME_BRIDGE_FS_END: return "fs-end";
     case XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE: return "io-read-file";
     case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_FILE: return "io-write-file";
     case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_TEXT_FILE: return "io-write-text-file";

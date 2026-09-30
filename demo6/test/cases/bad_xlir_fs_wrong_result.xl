@@ -1,0 +1,3 @@
+extern "xl6_xrt_fs_file_open" func open(string path, int flags, int mode, int share) as point
+auto wrong = open("missing", 1, 438, 7)
+print(wrong)

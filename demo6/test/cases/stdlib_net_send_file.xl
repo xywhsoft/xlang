@@ -43,7 +43,7 @@ end
 
 
 func sendOpenedRange(TcpStream stream, string path, int offset, int size) as bool
-    File opened = file.open(path, true, encoding.binary)
+    File opened = file.open(path)
 
     require("file_handle", opened.nativeHandle() != null)
     return stream.sendFileHandle(opened.nativeHandle(), offset, size)

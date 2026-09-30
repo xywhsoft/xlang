@@ -47,6 +47,20 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
         if (!visitor(context,modules[group][i])) return 0;
 #define REQUIRE(Name) do { if (!visitor(context,Name)) return 0; } while (0)
     switch (group) {
+    case XL6_IR_CGEN_NATIVE_FILESYSTEM0:
+    case XL6_IR_CGEN_NATIVE_FILESYSTEM1:
+    case XL6_IR_CGEN_NATIVE_FILESYSTEM2: {
+        unsigned base = (unsigned)(group - XL6_IR_CGEN_NATIVE_FILESYSTEM0) * 64;
+        for (unsigned bit = 0; bit < 64; ++bit) if (operations & (UINT64_C(1) << bit)) {
+            XL6_IrRuntimeBridgeKind kind = (XL6_IrRuntimeBridgeKind)(XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN + base + bit);
+            const char* name = xl6IrRuntimeFsBridgeModule(kind);
+            if (name == NULL || !visitor(context, name)) return 0;
+            if (kind <= XL6_IR_RUNTIME_BRIDGE_FS_FILE_NATIVE || kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_FILE ||
+                kind == XL6_IR_RUNTIME_BRIDGE_FS_FILE_HANDLE || kind == XL6_IR_RUNTIME_BRIDGE_FS_FILE_READ_TEXT) REQUIRE("XRT_MODULE_ATOMIC");
+            if (kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_NAME) REQUIRE("XRT_MODULE_UNICODE");
+        }
+        break;
+    }
     case XL6_IR_CGEN_NATIVE_CONSOLE_INPUT_SCREEN:
         REQUIRE("XRT_MODULE_CONSOLE");
         if (operations & (XL6_CONSOLE_BIT(READ_LINE) | XL6_CONSOLE_BIT(READ_CHAR)))

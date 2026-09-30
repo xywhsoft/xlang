@@ -1,0 +1,19 @@
+// Explicit virtual paths, owned handles, exact bytes and directory snapshots.
+auto fs = vfs.create()
+auto memory = vfs.memory()
+assert memory.put("settings.txt", "a\0b")
+assert memory.seal()
+auto mount = fs.mount("/app", memory)
+auto stream = fs.open("/app/settings.txt")
+assert stream.readExact(3) == b"a\0b"
+assert stream.seek(0) == uint64(0)
+assert stream.readText(-1, 1) == "a\0b"
+assert stream.stat().size == uint64(3)
+assert stream.close()
+auto entries = fs.openDir("/app", 1)
+while entries.advance()
+    auto entry = entries.current()
+    print(entry.name)
+end
+assert entries.close()
+assert mount.unmount()

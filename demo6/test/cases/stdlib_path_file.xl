@@ -2,7 +2,7 @@ extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
 func probeFileStream(string path) as bool
-    File stream = file.open(path, false)
+    File stream = file.open(path, 7)
     if stream.seek(0, file.seekSet) != 0 then
         return false
     end
@@ -137,8 +137,8 @@ Buffer appendedBytes = file.readBytes(binaryPath)
 expect(appendedBytes.len(), 4)
 expect(appendedBytes[3], 66)
 File binaryStream = file.open(binaryPath)
-Buffer streamBytes = binaryStream.readBytes(2)
-expect(streamBytes.len(), 2)
+bytes streamBytes = binaryStream.readBytes(2)
+expect(streamBytes.length, 2)
 expect(streamBytes[0], 0)
 expect(streamBytes[1], 65)
 

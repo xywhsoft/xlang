@@ -80,6 +80,7 @@
 #include "src/cgen/xl6_ir_cgen_emit_xid.c"
 #include "src/cgen/xl6_ir_cgen_emit_io.c"
 #include "src/cgen/xl6_ir_cgen_emit_vfs.c"
+#include "src/cgen/xl6_ir_cgen_emit_fs.c"
 #include "src/cgen/xl6_ir_cgen_emit_console.c"
 #include "src/cgen/xl6_ir_cgen_emit_stdlib_bridges.c"
 #include "src/cgen/xl6_ir_cgen_emit_string_bridges.c"
