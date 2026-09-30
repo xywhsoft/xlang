@@ -1,0 +1,131 @@
+string parentDirectory = "build/test"
+if path.sep() == "/" then parentDirectory = "" end
+string directory = dir.temp(parentDirectory,"fs-walk-","")
+string child = path.join(directory,"child")
+array<WalkEntry> saved = []
+array<WalkError> errors = []
+try
+    dir.create(child)
+    file.writeBytes(path.join(directory,"a.txt"),b"abc")
+    file.writeBytes(path.join(directory,"c.bin"),b"!")
+    file.writeBytes(path.join(child,"b.txt"),b"xyz")
+    auto metadata = file.info(path.join(child,"b.txt"))
+    assert metadata.size == uint64(3) and metadata.type == 1
+    auto visitor = func(WalkEntry entry) as int
+        saved.append(entry)
+        return file.walkContinue
+    end
+    auto stats = file.walk(directory,visitor)
+    assert stats.items == uint64(5) and stats.files == uint64(3)
+    assert stats.directories == uint64(2) and stats.bytes == uint64(7)
+    assert not stats.stopped and saved.length == 7
+    assert saved[0].depth == uint64(0) and saved[0].enter and saved[0].isDir
+    assert saved[0].validUtf8 and saved[0].nameBytes.length > 0
+    auto skipped = file.walk(directory,func(WalkEntry entry) as int
+        if entry.name == "child" and entry.enter then return file.walkSkip end
+        return file.walkContinue
+    end)
+    assert skipped.files == uint64(2) and not skipped.stopped
+    auto stopped = file.walk(directory,func(WalkEntry entry) as int
+        return file.walkStop
+    end)
+    assert stopped.stopped and stopped.items == uint64(1)
+    // Nested walks and caught inner failures must not poison the outer boundary.
+    auto nested = file.walk(directory,func(WalkEntry entry) as int
+        if entry.depth == uint64(0) and entry.enter then
+            bool caught = false
+            try
+                file.walk(directory,func(WalkEntry inner) as int
+                    throw ValueError "inner walk failure"
+                end)
+            catch e
+                caught = e.message == "inner walk failure"
+            end
+            assert caught
+            assert file.walkStats(child).files == uint64(1)
+        end
+        return file.walkContinue
+    end)
+    assert nested.files == uint64(3)
+    bool caught = false
+    try
+        file.walk(directory,func(WalkEntry entry) as int
+            throw ValueError "walk callback failure"
+        end)
+    catch e
+        caught = e.message == "walk callback failure"
+    end
+    assert caught
+    for action in [file.walkError,999]
+        caught = false
+        try
+            file.walk(directory,func(WalkEntry entry) as int
+                return action
+            end)
+        catch e
+            caught = true
+        end
+        assert caught
+    end
+    string missing = path.join(directory,"missing")
+    auto stoppedError = file.walk(missing,visitor,func(WalkError error) as int
+        errors.append(error)
+        return file.walkStopError
+    end)
+    assert stoppedError.stopped and errors.length == 1
+    assert errors[0].path == missing and errors[0].kind > 0
+    assert errors[0].domain.length > 0 and errors[0].message.length > 0
+    auto skippedError = file.walk(missing,visitor,func(WalkError error) as int
+        return file.walkSkipError
+    end)
+    assert skippedError.items == uint64(0) and not skippedError.stopped
+    caught = false
+    try
+        file.walk(missing,visitor,func(WalkError error) as int
+            throw ValueError "walk error callback failure"
+        end)
+    catch e
+        caught = e.message == "walk error callback failure"
+    end
+    assert caught
+    assert dir.glob(directory,"*.txt",true).length == 2
+    assert dir.glob(directory,"a\0*",true).length == 0
+    auto entries = dir.entries(directory,true)
+    assert entries.length == 4 and dir.walk(directory).length == 5
+    auto matches = dir.matchEntries(directory,"*.txt",true)
+    assert matches.length == 2 and matches[0].isFile and matches[0].size == uint64(3)
+    for operation in range(4)
+        caught = false
+        try
+            if operation == 0 then
+                dir.entries(directory,true,1)
+            elseif operation == 1 then
+                dir.glob(directory,"*",true,1)
+            elseif operation == 2 then
+                dir.entries(missing)
+            else
+                file.walk(directory,visitor,8)
+            end
+        catch e
+            caught = true
+        end
+        assert caught
+    end
+    if path.sep() == "/" then
+        file.createLink(directory,path.join(child,"loop"))
+        int cycles = 0
+        auto cycleStats = file.walk(directory,func(WalkEntry entry) as int
+            if entry.cycle then
+                assert entry.isLink == true
+                cycles += 1
+            end
+            return file.walkContinue
+        end,1)
+        assert cycles > 0 and cycleStats.links == uint64(1)
+    end
+finally
+    dir.delete(directory)
+end
+assert saved[0].isDir and saved[0].path == directory
+assert errors[0].pathBytes.length > 0
+print("fs walk ok")

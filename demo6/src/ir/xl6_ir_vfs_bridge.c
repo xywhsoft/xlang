@@ -1,7 +1,8 @@
 /* Closed resource identities and physical ABI are verified before C emission. */
 typedef enum XL6_IrVfsShape {
     XL6_VFS_STRING, XL6_VFS_BYTES, XL6_VFS_INT, XL6_VFS_U64,
-    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY, XL6_VFS_POINT, XL6_VFS_ARRAY
+    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY, XL6_VFS_POINT,
+    XL6_VFS_ARRAY_STRING, XL6_VFS_ARRAY_VAR, XL6_VFS_VISITOR
 } XL6_IrVfsShape;
 typedef struct XL6_IrVfsContract {
     const char* name;
@@ -139,9 +140,30 @@ static int xl6IrVfsTypeMatches(const XL6_IrModule* module, XL6_IrTypeId id, XL6_
     if (shape == XL6_VFS_HANDLE || shape == XL6_VFS_FACTORY)
         return t->kind == XL6_IR_TYPE_CLASS && t->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
-    if (shape == XL6_VFS_ARRAY)
-        return t->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
-               t->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    if (shape == XL6_VFS_VISITOR) {
+        const XL6_IrType* argument;
+        const XL6_IrType* result;
+        if (!xl6IrLanguageFunctionValueSignatureSupported(module,id) || t->paramCount != 1 ||
+            t->returnCount != 1 || t->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW) return 0;
+        argument = xl6IrTypeGet(&module->types,t->params[0]);
+        result = xl6IrTypeGet(&module->types,t->callableResultType);
+        return argument != NULL && argument->kind == XL6_IR_TYPE_BUILTIN &&
+            argument->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && argument->collectionAbi == XL6_IR_COLLECTION_NONE &&
+            result != NULL && result->cAbi == XL6_IR_C_ABI_I64 && result->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
+    }
+    if (shape == XL6_VFS_ARRAY_STRING || shape == XL6_VFS_ARRAY_VAR) {
+        const XL6_IrType* element;
+        if (t->collectionAbi != XL6_IR_COLLECTION_ARRAY || t->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            t->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED) return 0;
+        /* Both erased array and explicit array<var> have the same runtime ABI.
+         * Explicit arrays still require an exact var element, never array<T>. */
+        if (shape == XL6_VFS_ARRAY_VAR && t->paramCount == 0) return 1;
+        if (t->paramCount != 1 || t->params == NULL) return 0;
+        element = xl6IrTypeGet(&module->types,t->params[0]);
+        return element != NULL && element->kind == XL6_IR_TYPE_BUILTIN &&
+            element->collectionAbi == XL6_IR_COLLECTION_NONE && element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            element->cAbi == (shape == XL6_VFS_ARRAY_STRING ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_RUNTIME_XVALUE_PTR);
+    }
     if (t->kind != XL6_IR_TYPE_BUILTIN || t->collectionAbi != XL6_IR_COLLECTION_NONE || t->paramCount != 0) return 0;
     switch (shape) {
     case XL6_VFS_STRING: return t->cAbi == XL6_IR_C_ABI_MANAGED_STRING && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
@@ -181,9 +203,11 @@ int xl6IrRuntimeVfsBridgeTargetMatches(const XL6_IrModule* module, const XL6_IrC
     for (i = 0; i < c->count; ++i) {
         XL6_IrVfsShape s = c->parameters[i];
         int handle = s == XL6_VFS_HANDLE;
+        int visitor = s == XL6_VFS_VISITOR;
         if (!xl6IrVfsTypeMatches(module, target->parameterTypes[i], s) ||
-            target->parameterAbis[i] != ((handle || s == XL6_VFS_STRING || s == XL6_VFS_BYTES || s == XL6_VFS_ARRAY) ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE) ||
-            target->parameterPhysicalAbis[i] != (handle ? XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
+            target->parameterAbis[i] != ((handle || visitor || s == XL6_VFS_STRING || s == XL6_VFS_BYTES || s == XL6_VFS_ARRAY_STRING || s == XL6_VFS_ARRAY_VAR) ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE) ||
+            target->parameterPhysicalAbis[i] != (handle ? XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW :
+                visitor ? XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE : XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
             target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
             (handle ? target->parameterPhysicalFieldDeclarations[i] == XL6_IR_NODE_INVALID : target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID))
             return 0;

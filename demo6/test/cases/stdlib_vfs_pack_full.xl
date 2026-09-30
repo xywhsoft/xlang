@@ -1,0 +1,100 @@
+auto options = vfs.packOptions(0,100000,67108864,1073741824,8589934592,16)
+assert options.format == uint64(0) and options.maxEntries == uint64(100000)
+assert options.maxIndexBytes == uint64(67108864)
+assert options.maxEntryBytes == uint64(1073741824)
+assert options.maxDecodedBytes == uint64(8589934592) and options.cacheBytes == uint64(16)
+for format in range(1,3)
+    string name = "build/test/vfs-pack-full-1.bin"
+    if format == 2 then name = "build/test/vfs-pack-full-2.bin" end
+    auto archive = vfs.pack(name,options)
+    assert archive.format == format
+    auto before = archive.stats()
+    assert before.loads == uint64(0) and before.residentBytes == uint64(0)
+    auto fs = vfs.create()
+    auto mount = fs.mount("/pack",archive)
+    assert fs.readBytes("/pack/entry.bin") == b"a\0b"
+    assert fs.readBytes("/pack/entry.bin") == b"a\0b"
+    assert fs.readBytes("/pack/dir/text.txt") == b"compressed hello"
+    assert fs.readBytes("/pack/entry.bin") == b"a\0b"
+    auto after = archive.stats()
+    assert after.loads >= uint64(3) and after.evictions >= uint64(1)
+    assert after.misses >= uint64(3) and after.residentBytes <= uint64(16)
+    assert after.failures == uint64(0) and after.hits > uint64(0)
+    assert before.loads == uint64(0), "PackStats must be a stable snapshot"
+    assert mount.unmount()
+end
+for operation in range(7)
+    bool rejected = false
+    try
+        if operation == 0 then
+            vfs.packOptions(3)
+        elseif operation == 1 then
+            vfs.packOptions(0,0)
+        elseif operation == 2 then
+            vfs.packOptions(0,4294967296)
+        elseif operation == 3 then
+            vfs.pack("build/test/vfs-pack-full-1.bin",vfs.packOptions(0,1))
+        elseif operation == 4 then
+            vfs.pack("build/test/vfs-pack-full-1.bin",vfs.packOptions(0,100000,1))
+        elseif operation == 5 then
+            vfs.pack("build/test/vfs-pack-full-1.bin",vfs.packOptions(2))
+        else
+            vfs.pack("build/test/vfs-pack.bin",options,18446744073709551615)
+        end
+    catch e
+        rejected = true
+    end
+    assert rejected
+end
+auto source = file.open("build/test/vfs-pack.bin")
+auto alias = source
+auto reader = source.reader()
+bool rejected = false
+try
+    vfs.takePack(source,options)
+catch e
+    rejected = true
+end
+assert rejected and not source.closed
+reader.close()
+rejected = false
+try
+    vfs.takePack(source,options,0,-2)
+catch e
+    rejected = true
+end
+assert rejected and not source.closed
+auto taken = vfs.takePack(source,options)
+assert source.closed and alias.closed
+auto fs = vfs.create()
+auto mount = fs.mount("/taken",taken)
+assert fs.readBytes("/taken/entry.bin") == b"a\0b"
+assert mount.unmount()
+auto memory = vfs.memory()
+memory.put("archive",file.readBytes("build/test/vfs-pack.bin"))
+memory.seal()
+auto memoryMount = fs.mount("/memory",memory)
+auto virtualSource = fs.open("/memory/archive")
+auto virtualPack = vfs.takePack(virtualSource,options)
+assert virtualSource.closed
+auto virtualMount = fs.mount("/virtual",virtualPack)
+assert fs.readBytes("/virtual/entry.bin") == b"a\0b"
+func temporaryPack(PackOptions options) as string
+    auto temporary = file.temp()
+    string name = temporary.tempPath
+    temporary.writeAll(file.readBytes("build/test/vfs-pack.bin"))
+    bool rejected = false
+    try
+        vfs.takePack(temporary,options)
+    catch e
+        rejected = true
+    end
+    assert rejected and not temporary.closed
+    assert temporary.keep()
+    auto archive = vfs.takePack(temporary,options)
+    assert temporary.closed and file.exists(name)
+    return name
+end
+string tempName = temporaryPack(options)
+assert file.delete(tempName)
+print("vfs pack full ok")

@@ -10,6 +10,8 @@ static int xl6IrCgenFsSelected(const XL6_IrCgenNeeds* needs, XL6_IrRuntimeBridge
 #include "src/cgen/xl6_ir_cgen_emit_fs_path.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_whole.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_tree.c"
+#include "src/cgen/xl6_ir_cgen_emit_fs_pack.c"
+#include "src/cgen/xl6_ir_cgen_emit_fs_walk.c"
 static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
 {
     int file = 0, info = 0, dir = 0, root = 0, map = 0, lock = 0;
@@ -340,12 +342,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "{ xlir_fs_dir* owner = (xlir_fs_dir*)handle; const char* path;\n"
             "  if (owner == NULL || owner->dir == NULL) { xrtSetErrorKind(XERR_STATE); return (xlir_string){0}; }\n"
             "  path = xrtDirPath(owner->dir); return path != NULL ? xlir_string_from_utf8(path, strlen(path)) : (xlir_string){0}; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PACK_STATS)) xl6OutputPuts(
-            "uint64_t xl6_xrt_fs_pack_stats(void* pack, int64_t field)\n"
-            "{ xvfspackstats stats; if (field < 0 || field > 5) { xrtSetErrorKind(XERR_RANGE); return 0; }\n"
-            "  if (!xrtVfsPackStats((xvfspack)pack, &stats)) { return 0; }\n"
-            "  switch (field) { case 0: return stats.Hits; case 1: return stats.Misses; case 2: return stats.Loads;\n"
-            "    case 3: return stats.Failures; case 4: return stats.ResidentBytes; default: return stats.Evictions; } }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_HANDLE)) xl6OutputPuts(
             "void* xl6_xrt_fs_file_handle(void* handle) { return xlir_fs_file_get(handle); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_READ_TEXT)) xl6OutputPuts(
@@ -573,4 +569,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
     xl6IrCgenEmitFsPathRuntime(out, needs);
     xl6IrCgenEmitFsWholeRuntime(out, needs);
     xl6IrCgenEmitFsTreeRuntime(out, needs);
+    xl6IrCgenEmitFsPackRuntime(out, needs);
+    xl6IrCgenEmitFsWalkRuntime(out, needs);
 }

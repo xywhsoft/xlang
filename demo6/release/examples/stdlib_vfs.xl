@@ -1,8 +1,18 @@
 // VFS is explicit. Native file/dir/io paths keep their own meaning.
 // Call this helper with a real XRTPACK resource file when needed.
 func mountArchive(Vfs fs, string source) as VfsMount
-    auto archive = vfs.pack(source)
+    auto options = vfs.packOptions(0,100000,67108864,1073741824,8589934592,16777216)
+    auto archive = vfs.pack(source,options)
+    auto initial = archive.stats()
+    assert initial.loads == uint64(0)
     return fs.mount("/pack", archive)
+end
+
+// Ownership transfer is explicit: source and every alias become closed.
+func mountOwnedArchive(Vfs fs, File source) as VfsMount
+    auto archive = vfs.takePack(source,vfs.packOptions())
+    assert source.closed
+    return fs.mount("/owned",archive)
 end
 
 auto fs = vfs.create()

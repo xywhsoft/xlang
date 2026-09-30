@@ -7246,6 +7246,9 @@ static int xl6IrLowerCastAbiMatchesType(
     case XL6_IR_CAST_XVALUE_TO_STRING_CHECKED:
         return type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED:
+        return type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+               type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
     case XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED:
         return type->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
@@ -7902,6 +7905,7 @@ static XL6_IrValueId xl6IrLowerCast(
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_TIME_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_STRING_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_UNION_CHECKED:
@@ -8040,7 +8044,8 @@ static int xl6IrLowerIntrinsicCheckedXValueConvert(
          intrinsic->operandCount != 1 ||
          intrinsic->firstOperand >= ctx->module->intrinsicOperandCount ||
          intrinsic->resultType != call->storageType ||
-         intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
+         intrinsic->resultAbi != (intrinsic->castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED
+             ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE) ||
          intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) return 0;
     binding = &ctx->module->intrinsicOperands[intrinsic->firstOperand];
     source = xl6IrNodeGet(ctx->module, binding->expression);
@@ -8049,14 +8054,10 @@ static int xl6IrLowerIntrinsicCheckedXValueConvert(
          binding->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
          !xl6IrLowerTypeIsDynamicXValueBuiltin(
              ctx->module, source->storageType) ||
-         intrinsic->castAbi !=
-             XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED ||
          resultType == NULL ||
-         resultType->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-         resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-         resultType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ) {
+         !xl6IrLowerCastAbiMatchesType(ctx->module,call->storageType,intrinsic->castAbi,resultType) ) {
         xl6IrLowerDiag(ctx, id,
-            "XLIR checked xvalue conversion has no exact borrowed source, raw-pointer result and failure ABI");
+            "XLIR checked xvalue conversion has no exact borrowed source, result and failure ABI");
         return 1;
     }
     *result = xl6IrLowerCheckedXValueCastValue(
@@ -16610,11 +16611,13 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
                    callee->typeValueTarget == intrinsic->resultType &&
                    xl6IrLowerTypeIsDynamicXValueBuiltin(
                        module, operands[0].type) &&
-                   result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-                   result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                   result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-                   intrinsic->castAbi ==
-                       XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED &&
+                   ((result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
+                     result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+                     result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+                     intrinsic->castAbi == XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED) ||
+                    (result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+                     result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                     intrinsic->castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED)) &&
                    operands[0].abi == XL6_IR_INTRINSIC_OPERAND_BORROW;
         }
     case XL6_IR_INTRINSIC_CHECKED_TIME_CONVERT:

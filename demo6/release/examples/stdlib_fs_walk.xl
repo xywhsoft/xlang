@@ -1,0 +1,18 @@
+// Owned snapshots survive the traversal and the source directory.
+string root = dir.temp("", "xl-walk-", "")
+array<WalkEntry> entries = []
+try
+    file.writeText(path.join(root, "hello.txt"), "Hello, xlang!")
+    auto stats = file.walk(root, func(WalkEntry entry) as int
+        entries.append(entry)
+        print(entry.path)
+        return file.walkContinue
+    end)
+    assert stats.files == uint64(1)
+    assert dir.glob(root, "*.txt").length == 1
+finally
+    dir.delete(root)
+end
+assert entries[0].isDir == true
+assert entries[0].path == root
+print("owned walk snapshots ok")

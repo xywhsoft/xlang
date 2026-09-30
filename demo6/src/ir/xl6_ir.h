@@ -1909,7 +1909,8 @@ typedef enum XL6_IrCastAbi {
      * remain distinct from invariant-only storage/container projections so a
      * source `as` always owns an explicit recoverable TypeError edge. */
     XL6_IR_CAST_XVALUE_TO_UNION_CHECKED,
-    XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED
+    XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED
 } XL6_IrCastAbi;
 
 /* Calls selected by language semantics but not represented by a source-level

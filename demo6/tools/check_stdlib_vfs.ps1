@@ -43,7 +43,7 @@ try {
     # Binary fixtures are generated independently of the language's IO library.
     [System.IO.File]::WriteAllBytes((Join-Path $outputDir 'vfs-disk.bin'), [byte[]]@(97,0,98))
     $fixture = @'
-import pathlib, struct, zlib
+import pathlib, struct, zlib, lzma
 data = b'a\0b'
 name = b'entry.bin'
 index = struct.pack('<HBBIQQQII', len(name), 0, 0, 0, 80, len(data), len(data), zlib.crc32(data), 0) + name
@@ -56,6 +56,37 @@ damaged = bytearray(archive)
 damaged[80] ^= 1
 pathlib.Path('build/test/vfs-pack-corrupt.bin').write_bytes(damaged)
 pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive + b'tail')
+
+# Independent stored/LZMA1 vectors for both public archive formats.
+decoded = b'compressed hello'
+encoded = b'\x5d\x00\x00\x01\x00' + lzma.compress(decoded, format=lzma.FORMAT_RAW,
+    filters=[{'id': lzma.FILTER_LZMA1, 'dict_size': 65536, 'lc': 3, 'lp': 0, 'pb': 2}])
+items = sorted([(b'entry.bin', data, data, 0), (b'dir/text.txt', encoded, decoded, 1)])
+def pack_vector(legacy):
+    header_size = 64 if legacy else 80
+    payload = b''
+    index = b''
+    for name, stored, plain, codec in items:
+        offset = header_size + len(payload)
+        if legacy:
+            index += struct.pack('<H',len(name)) + name + struct.pack('<BBQIQI',
+                codec,0,offset,len(stored),len(plain),zlib.crc32(plain))
+        else:
+            index += struct.pack('<HBBIQQQII',len(name),codec,0,0,offset,
+                len(stored),len(plain),zlib.crc32(plain),0) + name
+        payload += stored
+    total = header_size + len(payload) + len(index) + (24 if legacy else 32)
+    if legacy:
+        header = struct.pack('<8sHHIQQQI20s',b'XSVFHDR\0',1,64,len(items),64,
+            64+len(payload),total,zlib.crc32(index),b'\0'*20)
+        trailer = struct.pack('<8sQ',b'XSVPACK\0',0)
+    else:
+        header = struct.pack('<8sHHIII6QII',b'XRTPACK\0',1,0,80,0,len(items),80,
+            len(payload),80+len(payload),len(index),total,19,zlib.crc32(index),0)
+        trailer = struct.pack('<8sQQ',b'XRTPEND\0',total,0)
+    return header+payload+index+trailer+struct.pack('<II',zlib.crc32(trailer+header),0)
+for legacy in (False,True):
+    pathlib.Path('build/test/vfs-pack-full-%d.bin' % (2 if legacy else 1)).write_bytes(pack_vector(legacy))
 '@
     $fixture | & python -
     if ($LASTEXITCODE -ne 0) { throw "VFS pack fixture generation failed" }
@@ -82,7 +113,10 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         'test/cases/stdlib_fs_whole.xl', 'test/cases/stdlib_file_bytes_only.xl',
         'test/cases/stdlib_file_read_text_binary_reject.xl',
         'test/cases/stdlib_fs_path_whole_allocation.xl', 'test/cases/stdlib_fs_platform.xl',
-        'test/cases/stdlib_fs_tree.xl', 'test/cases/stdlib_fs_temp.xl', 'test/cases/stdlib_fs_tree_temp_allocation.xl')
+        'test/cases/stdlib_fs_tree.xl', 'test/cases/stdlib_fs_temp.xl', 'test/cases/stdlib_fs_tree_temp_allocation.xl',
+        'test/cases/stdlib_vfs_pack_full.xl', 'test/cases/stdlib_vfs_pack_allocation.xl', 'test/cases/stdlib_fs_names.xl',
+        'test/cases/stdlib_fs_walk.xl', 'test/cases/stdlib_fs_glob_only.xl', 'test/cases/stdlib_fs_walk_allocation.xl',
+        'test/cases/xlir_bytes_dynamic_cast.xl','test/cases/xlir_directory_bridge.xl')
     foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
@@ -98,6 +132,8 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'XRT_MODULE_FILE_(?:ROOT|MAP|LOCK)|xl6_xrt_fs_') { throw 'Memory-only program retains unused File resources' }
         if ($name -in @('stdlib_fs_whole','stdlib_fs_path','stdlib_file_bytes_only') -and $c -match 'XL6_FILE_RUNTIME') { throw 'New filesystem public API retains the legacy monolithic file emitter' }
         if ($name -eq 'stdlib_file_bytes_only' -and $c -match 'XL6_BUFFER_RUNTIME') { throw 'Bytes-only program retains Buffer adapters' }
+        if ($name -in @('stdlib_fs_walk','stdlib_fs_glob_only') -and $c -match 'XL6_DIR_RUNTIME') { throw 'New directory API retains the legacy directory emitter' }
+        if ($name -eq 'stdlib_fs_glob_only' -and $c -match 'xlir_fs_walk_entry|xlir_fs_walk_callbacks') { throw 'Glob-only program retains unused event/callback adapters' }
         $strict = Join-Path $outputDir "$name.strict.exe"
         Compile-Strict $cPath $strict
         Invoke-Test $strict ""
@@ -109,16 +145,19 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     }
     foreach ($relative in @('test/cases/bad_xlir_vfs_wrong_input.xl',
         'test/cases/bad_xlir_vfs_wrong_result.xl', 'test/cases/bad_xlir_vfs_wrong_owner.xl',
-        'test/cases/bad_xlir_fs_wrong_owner.xl', 'test/cases/bad_xlir_fs_wrong_result.xl')) {
+        'test/cases/bad_xlir_fs_wrong_owner.xl', 'test/cases/bad_xlir_fs_wrong_result.xl',
+        'test/cases/bad_xlir_fs_pack_wrong_options.xl', 'test/cases/bad_xlir_fs_wrong_array_element.xl',
+        'test/cases/bad_xlir_fs_wrong_visitor.xl')) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $cPath = Join-Path $outputDir "$name.c"
         if (Test-Path -LiteralPath $cPath) { Remove-Item -LiteralPath $cPath }
-        $marker = if ($name -eq 'bad_xlir_vfs_wrong_owner' -or $name -like 'bad_xlir_fs_*') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
+        $marker = if ($name -in @('bad_xlir_fs_wrong_array_element','bad_xlir_fs_wrong_visitor')) { 'XLIR VFS runtime bridge' } elseif ($name -eq 'bad_xlir_vfs_wrong_owner' -or $name -like 'bad_xlir_fs_*') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
         Invoke-Test $xl ('cgen "{0}" --emit "{1}"' -f (Join-Path $Root $relative),$cPath) 1 $marker
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
     }
     foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl',
-        'release/examples/stdlib_fs_paths_text.xl','release/examples/stdlib_fs_tree_temp.xl')) {
+        'release/examples/stdlib_fs_paths_text.xl','release/examples/stdlib_fs_tree_temp.xl',
+        'release/examples/stdlib_fs_walk.xl')) {
         $example = Join-Path $Root $relative
         $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')
         Invoke-Test $xl ('run "{0}"' -f $example)
@@ -131,4 +170,4 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     }
     Pop-Location
 }
-Write-Output 'VFS/File gate passed: twenty-two positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'
+Write-Output 'VFS/File gate passed: thirty positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and eight ABI negatives.'

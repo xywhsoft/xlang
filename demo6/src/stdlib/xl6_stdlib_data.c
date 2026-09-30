@@ -3,6 +3,7 @@
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
+#include "src/stdlib/xl6_stdlib_fs_walk.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -2457,18 +2458,6 @@ const char* xl6StdlibUdpConfigClassSource =
     "    func bind() as UdpSocket\n"
     "        return UdpSocket(point(self.bindNative()))\n"
     "    end\n"
-    "end\n";
-
-const char* xl6StdlibFileInfoClassSource =
-    "class FileInfo\n"
-    "    string path\n"
-    "    bool exists\n"
-    "    bool isFile\n"
-    "    bool isDir\n"
-    "    int size\n"
-    "    int attr\n"
-    "    time accessTime\n"
-    "    time changeTime\n"
     "end\n";
 
 
@@ -5557,19 +5546,8 @@ static const char xl6StdFileWriteTextAtomicBody[] =
     "end\n";
 
 static const char xl6StdFileInfoBody[] =
-    "func __xl_std_file_info(string filePath) as FileInfo\n"
-    "    FileInfo info = FileInfo()\n"
-    "    info.path = filePath\n"
-    "    info.exists = __xl_std_xrt_path_exists(filePath)\n"
-    "    info.isFile = __xl_std_xrt_file_exists(filePath)\n"
-    "    info.isDir = __xl_std_xrt_dir_exists(filePath)\n"
-    "    if info.isFile then\n"
-    "        info.size = int(__xl_std_xrt_file_get_size(filePath))\n"
-    "        info.attr = __xl_std_xrt_file_get_attr(filePath)\n"
-    "        info.accessTime = time(__xl_std_xrt_file_get_access_time(filePath))\n"
-    "        info.changeTime = time(__xl_std_xrt_file_get_change_time(filePath))\n"
-    "    end\n"
-    "    return info\n"
+    "func __xl_std_file_info(string path, bool follow = true) as FileStat\n"
+    "    return FileStat(path,follow)\n"
     "end\n";
 
 static const char xl6StdFileOpenBody[] =
@@ -5677,26 +5655,6 @@ static const char xl6StdDirEnsureEmptyBody[] =
     "extern \"xl6_xrt_fs_dir_ensure_empty\" func __xl_fs_dir_ensure_empty(string path) as bool\n"
     "func __xl_std_dir_ensure_empty(string path) as bool\n"
     "    return __xl_fs_dir_ensure_empty(path)\n"
-    "end\n";
-
-static const char xl6StdDirGlobBody[] =
-    "func __xl_std_dir_glob(string path, string pattern = \"*\", bool recursive = false) as array\n"
-    "    return array(__xl_std_runtime_dir_glob(path, pattern, recursive, 0))\n"
-    "end\n";
-
-static const char xl6StdDirEntriesBody[] =
-    "func __xl_std_dir_entries(string path, bool recursive = false) as array\n"
-    "    return array(__xl_std_runtime_dir_entries(path, recursive, false, \"\", 0))\n"
-    "end\n";
-
-static const char xl6StdDirMatchBody[] =
-    "func __xl_std_dir_match(string path, string pattern = \"*\", bool recursive = false) as array\n"
-    "    return array(__xl_std_runtime_dir_entries(path, recursive, false, pattern, 0))\n"
-    "end\n";
-
-static const char xl6StdDirWalkBody[] =
-    "func __xl_std_dir_walk(string path, string pattern = \"*\") as array\n"
-    "    return array(__xl_std_runtime_dir_entries(path, true, true, pattern, 0))\n"
     "end\n";
 
 static const char xl6StdJsonParseBody[] =
@@ -6847,6 +6805,13 @@ static const char xl6StdXlangRunFileBody[] =
     "end\n";
 
 const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"file", "walkContinue", XL6_AST_INT, "0"},
+    {"file", "walkSkip", XL6_AST_INT, "1"},
+    {"file", "walkStop", XL6_AST_INT, "2"},
+    {"file", "walkError", XL6_AST_INT, "3"},
+    {"file", "walkAbort", XL6_AST_INT, "0"},
+    {"file", "walkSkipError", XL6_AST_INT, "1"},
+    {"file", "walkStopError", XL6_AST_INT, "2"},
     {"console", "stdoutStream", XL6_AST_INT, "1"},
     {"console", "stderrStream", XL6_AST_INT, "2"},
     {"console", "colorNone", XL6_AST_INT, "0"},
@@ -7349,6 +7314,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"vfs", "memory", "__xl_std_vfs_memory", NULL, NULL, 0, "MemoryFS", xl6StdVfsmemoryBody},
     {"vfs", "disk", "__xl_std_vfs_disk", NULL, NULL, 0, "DiskFS", xl6StdVfsdiskBody},
     {"vfs", "pack", "__xl_std_vfs_pack", NULL, NULL, 0, "PackFS", xl6StdVfspackBody},
+    {"vfs", "packOptions", "__xl_std_vfs_pack_options", NULL, NULL, 0, "PackOptions", xl6StdVfsPackOptionsBody},
+    {"vfs", "takePack", "__xl_std_vfs_take_pack", NULL, NULL, 0, "PackFS", xl6StdVfsTakePackBody},
     {"io", "openReader", "__xl_std_io_openReader", NULL, NULL, 0, "IoReader", openReaderBody},
     {"io", "openWriter", "__xl_std_io_openWriter", NULL, NULL, 0, "IoWriter", openWriterBody},
     {"io", "fromBytes", "__xl_std_io_fromBytes", NULL, NULL, 0, "IoReader", fromBytesBody},
@@ -7688,7 +7655,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "rename", "__xl_std_file_rename", NULL, NULL, 0, "bool", xl6StdFileRenameBody},
     {"file", "replace", "__xl_std_file_replace", NULL, NULL, 0, "bool", xl6StdFileReplaceBody},
     {"file", "writeTextAtomic", "__xl_std_file_write_text_atomic", NULL, NULL, 0, "bool", xl6StdFileWriteTextAtomicBody},
-    {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileInfo", xl6StdFileInfoBody},
+    {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileStat", xl6StdFileInfoBody},
     {"file", "open", "__xl_std_file_open", NULL, NULL, 0, "File", xl6StdFileOpenBody},
     {"file", "stat", "__xl_std_file_stat", NULL, NULL, 0, "FileStat", xl6StdFsStatBody},
     {"file", "root", "__xl_std_file_root", NULL, NULL, 0, "FileRoot", xl6StdFsRootBody},
@@ -7705,6 +7672,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "roots", "__xl_std_dir_roots", NULL, NULL, 0, "array<string>", xl6StdFs_dir_rootsBody},
     {"file", "setTimes", "__xl_std_file_set_times", NULL, NULL, 0, "bool", xl6StdFs_file_set_timesBody},
     {"file", "walkStats", "__xl_std_file_walk_stats", NULL, NULL, 0, "WalkStats", xl6StdFs_file_walk_statsBody},
+    {"file", "walk", "__xl_std_file_walk", NULL, NULL, 0, "WalkStats", xl6StdFsWalkBody},
     {"dir", "stats", "__xl_std_dir_stats", NULL, NULL, 0, "WalkStats", xl6StdFs_dir_statsBody},
     {"file", "copyTree", "__xl_std_file_copy_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_copy_treeBody},
     {"file", "removeTree", "__xl_std_file_remove_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_remove_treeBody},
@@ -7733,10 +7701,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "size", "__xl_std_dir_size", NULL, NULL, 0, "uint64", xl6StdDirSizeBody},
     {"dir", "clean", "__xl_std_dir_clean", NULL, NULL, 0, "bool", xl6StdDirCleanBody},
     {"dir", "ensureEmpty", "__xl_std_dir_ensure_empty", NULL, NULL, 0, "bool", xl6StdDirEnsureEmptyBody},
-    {"dir", "glob", "__xl_std_dir_glob", NULL, NULL, 0, "array", xl6StdDirGlobBody},
-    {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array", xl6StdDirEntriesBody},
-    {"dir", "matchEntries", "__xl_std_dir_match", NULL, NULL, 0, "array", xl6StdDirMatchBody},
-    {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array", xl6StdDirWalkBody},
+    {"dir", "glob", "__xl_std_dir_glob", NULL, NULL, 0, "array<string>", xl6StdFsDirGlobBody},
+    {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirentriesBody},
+    {"dir", "matchEntries", "__xl_std_dir_match", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirmatchBody},
+    {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirwalkBody},
     {"dir", "createAsync", "__xl_std_dir_create_async", "xl6_xrt_dir_create_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
     {"dir", "createAllAsync", "__xl_std_dir_create_all_async", "xl6_xrt_dir_create_all_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
     {"dir", "copyAsync", "__xl_std_dir_copy_async", "xl6_xrt_dir_copy_async", xl6StdFileReplaceParams, 2, "future<bool>", NULL},

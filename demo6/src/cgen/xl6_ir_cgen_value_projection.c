@@ -494,6 +494,9 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (instruction->castAbi ==
                  XL6_IR_CAST_XVALUE_TO_STRING_CHECKED &&
              result->cAbi == XL6_IR_C_ABI_MANAGED_STRING) ||
+            (instruction->castAbi == XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED &&
+             result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+             result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
             (instruction->castAbi ==
                  XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED &&
              result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&

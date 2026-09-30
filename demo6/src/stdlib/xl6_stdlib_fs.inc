@@ -473,6 +473,7 @@ const char* xl6StdlibFsTreeSource =
     "class WalkStats\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_fs_walk_stats\" create(string path, int flags, int maxDepth)\n"
+    "    extern \"xl6_xrt_fs_walk_visit\" create(string path, func(var) as int visit, func(var) as int onError, int flags, int maxDepth)\n"
     "    extern \"xl6_xrt_fs_dir_stats\" create(string path, bool recursive)\n"
     "    extern \"xl6_xrt_fs_stats_destroy\" destroy()\n"
     "    extern \"xl6_xrt_fs_stats_value\" func valueNative(int field) as uint64\n"

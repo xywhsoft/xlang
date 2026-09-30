@@ -1,0 +1,17 @@
+var value = b"a\0b"
+bytes result = value as bytes
+assert bytes(value) == result
+assert result == b"a\0b"
+value = b"new"
+assert result == b"a\0b"
+result[0] = uint8(90)
+assert result == b"Z\0b"
+bool rejected = false
+try
+    var wrong = "not bytes"
+    bytes data = wrong as bytes
+catch TypeError
+    rejected = true
+end
+assert rejected
+print("dynamic bytes cast ok")

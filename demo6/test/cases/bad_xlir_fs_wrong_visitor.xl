@@ -1,0 +1,10 @@
+class WrongStats
+    native point handle
+    extern "xl6_xrt_fs_walk_visit" create(string path, func(var) as bool visit, func(var) as int onError, int flags, int depth)
+    extern "xl6_xrt_fs_stats_destroy" destroy()
+end
+auto stats = WrongStats(".",func(var entry) as bool
+    return true
+end,func(var error) as int
+    return 0
+end,0,-1)

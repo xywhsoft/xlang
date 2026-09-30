@@ -1,0 +1,8 @@
+string directory = dir.temp("","fs-glob-","")
+try
+    file.writeBytes(path.join(directory,"中文.txt"),b"x")
+    assert dir.glob(directory,"*.txt").length == 1
+finally
+    dir.delete(directory)
+end
+print("fs glob only ok")

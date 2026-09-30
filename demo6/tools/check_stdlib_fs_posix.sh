@@ -31,7 +31,9 @@ task_fixtures=(stdlib_vfs_memory stdlib_vfs_overlay stdlib_vfs_disk
     stdlib_vfs_lifetime stdlib_fs_handles stdlib_fs_native stdlib_fs_resources
     stdlib_fs_root stdlib_fs_allocation stdlib_fs_path stdlib_fs_whole
     stdlib_file_bytes_only stdlib_file_read_text_binary_reject
-    stdlib_fs_path_whole_allocation stdlib_fs_platform stdlib_fs_tree stdlib_fs_temp stdlib_fs_tree_temp_allocation)
+    stdlib_fs_path_whole_allocation stdlib_fs_platform stdlib_fs_tree stdlib_fs_temp stdlib_fs_tree_temp_allocation
+    stdlib_vfs_pack_full stdlib_vfs_pack_allocation stdlib_fs_names
+    stdlib_fs_walk stdlib_fs_glob_only stdlib_fs_walk_allocation xlir_bytes_dynamic_cast xlir_directory_bridge)
 for task_case in "${task_fixtures[@]}"; do
     task_generated="$task_root/build/test/$task_case.c"
     test -f "$task_generated" || { echo "Run check_stdlib_vfs.ps1 first: missing $task_generated"; exit 1; }
@@ -40,6 +42,16 @@ for task_case in "${task_fixtures[@]}"; do
         test/cases/xlir_generated_module_host.c "${task_objects[@]}" \
         -Wl,--gc-sections -pthread -ldl -lm -o "$task_out/$task_case"
     timeout 60 "$task_out/$task_case"
+    if [[ "$task_case" == stdlib_fs_names ]]; then
+        python3 - "$task_out/$task_case" <<'PY'
+import os, subprocess, sys, tempfile
+with tempfile.TemporaryDirectory(prefix='xl-fs-names-') as directory:
+    with open(os.fsencode(directory) + b'/\xff', 'wb') as out:
+        out.write(b'bad utf8 filename')
+    subprocess.run([sys.argv[1]], env=dict(os.environ, XL_FS_INVALID_DIR=directory),
+        check=True, timeout=60)
+PY
+    fi
     printf '%s: native POSIX strict generated C passed\n' "$task_case"
 done
 echo 'Native POSIX filesystem gate passed; this does not claim Linux TinyCC JIT coverage.'

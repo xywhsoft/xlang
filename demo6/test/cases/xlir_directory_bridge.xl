@@ -16,20 +16,20 @@ assert dir.count(root) == 3
 assert dir.count(root, true) == 4
 assert dir.size(root, false) == 4
 assert dir.size(root, true) == 7
-array entries = dir.entries(root, true)
+array<WalkEntry> entries = dir.entries(root, true)
 assert entries.length == 4
 int files = 0
 int bytes = 0
 for entry in entries
-    if entry["isFile"]
+    if entry.isFile
         files = files + 1
-        bytes = bytes + int(entry["size"])
-        assert entry["enter"] == false
-        assert entry["leave"] == false
+        bytes = bytes + int(entry.size)
+        assert entry.enter == false
+        assert entry.leave == false
     else
-        assert entry["isDir"]
-        assert entry["enter"]
-        assert entry["name"] == "child"
+        assert entry.isDir == true
+        assert entry.enter == true
+        assert entry.name == "child"
     end
 end
 assert files == 3 and bytes == 7
