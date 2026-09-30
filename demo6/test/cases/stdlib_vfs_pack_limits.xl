@@ -1,0 +1,27 @@
+auto fs = vfs.create()
+auto base = vfs.memory()
+base.put("entry.bin", b"fallback")
+base.seal()
+auto baseMount = fs.mount("/app", base)
+auto damaged = vfs.pack("build/test/vfs-pack-corrupt.bin")
+auto damagedMount = fs.mount("/app", damaged, 10)
+bool rejected = false
+try
+    bytes data = fs.readBytes("/app/entry.bin")
+catch e
+    rejected = true
+end
+assert rejected
+damagedMount.unmount()
+assert fs.readBytes("/app/entry.bin") == b"fallback"
+rejected = false
+try
+    auto limited = vfs.pack("build/test/vfs-pack.bin", 0, -1, 0, 0, 2, 2)
+catch e
+    rejected = true
+end
+assert rejected
+auto slice = vfs.pack("build/test/vfs-pack-slice.bin", 7, 164)
+auto sliceMount = fs.mount("/slice", slice)
+assert fs.readBytes("/slice/entry.bin") == b"a\0b"
+print("vfs pack limits ok")

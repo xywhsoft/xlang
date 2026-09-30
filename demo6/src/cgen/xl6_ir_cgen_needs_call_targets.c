@@ -122,6 +122,14 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsStringViews = 1;
             }
         }
+        if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_VFS_CREATE &&
+            target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID) {
+            needs->vfsBridgeOperations |= UINT64_C(1) <<
+                (target->runtimeBridge - XL6_IR_RUNTIME_BRIDGE_VFS_CREATE);
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
         if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE) {
             needs->ioBridgeOperations |= UINT64_C(1) <<

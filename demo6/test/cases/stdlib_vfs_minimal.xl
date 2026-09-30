@@ -1,0 +1,6 @@
+auto fs = vfs.create()
+auto memory = vfs.memory()
+memory.put("entry", b"abc")
+memory.seal()
+auto mount = fs.mount("/", memory)
+assert fs.readBytes("/entry") == b"abc"

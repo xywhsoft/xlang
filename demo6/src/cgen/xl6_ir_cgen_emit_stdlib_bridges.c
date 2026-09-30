@@ -12,6 +12,8 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
         xl6IrCgenEmitRandomRuntime(out, needs->randomBridgeOperations);
     if ( needs->ioBridgeOperations != 0 )
         xl6IrCgenEmitIoRuntime(out, needs->ioBridgeOperations);
+    if (needs->vfsBridgeOperations != 0)
+        xl6IrCgenEmitVfsRuntime(out, needs->vfsBridgeOperations);
     if ( needs->consoleBridgeOperations != 0 )
         xl6IrCgenEmitConsoleRuntime(out, needs->consoleBridgeOperations);
     if ( needs->textOutputBridgeOperations != 0 )

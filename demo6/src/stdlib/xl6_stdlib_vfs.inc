@@ -1,0 +1,74 @@
+/* Explicit VFS namespaces do not intercept ordinary file/dir/io paths. */
+const char* xl6StdlibVfsSource =
+    "class Vfs\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_vfs_create\" create()\n"
+    "    extern \"xl6_xrt_vfs_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_vfs_read\" func readBytesNative(string path, int maxBytes) as bytes\n"
+    "    func readBytes(string path, int maxBytes = 67108864) as bytes\n"
+    "        return self.readBytesNative(path, maxBytes)\n"
+    "    end\n"
+    "    func mount(string prefix, MemoryFS provider, int priority = 0, int caseMode = 0) as VfsMount\n"
+    "        return VfsMount(self, provider, prefix, priority, caseMode)\n"
+    "    end\n"
+    "    func mount(string prefix, DiskFS provider, int priority = 0, int caseMode = 0) as VfsMount\n"
+    "        return VfsMount(self, provider, prefix, priority, caseMode)\n"
+    "    end\n"
+    "    func mount(string prefix, PackFS provider, int priority = 0, int caseMode = 0) as VfsMount\n"
+    "        return VfsMount(self, provider, prefix, priority, caseMode)\n"
+    "    end\n"
+    "end\n"
+    "class MemoryFS\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_vfs_memory_create\" create()\n"
+    "    extern \"xl6_xrt_vfs_memory_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_vfs_memory_put_bytes\" func putBytesNative(string path, bytes data, int size) as bool\n"
+    "    extern \"xl6_xrt_vfs_memory_put_string\" func putStringNative(string path, string data, int size) as bool\n"
+    "    extern \"xl6_xrt_vfs_memory_seal\" func seal() as bool\n"
+    "    func put(string path, bytes data, int size = -1) as bool\n"
+    "        return self.putBytesNative(path, data, size)\n"
+    "    end\n"
+    "    func put(string path, string data, int size = -1) as bool\n"
+    "        return self.putStringNative(path, data, size)\n"
+    "    end\n"
+    "end\n"
+    "class DiskFS\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_vfs_disk_create\" create(string root, int access)\n"
+    "    extern \"xl6_xrt_vfs_disk_destroy\" destroy()\n"
+    "end\n"
+    "class PackFS\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_vfs_pack_create\" create(string source, int offset, int length, int format, int cacheBytes, int maxEntryBytes, int maxDecodedBytes)\n"
+    "    extern \"xl6_xrt_vfs_pack_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_vfs_pack_format\" get format() as int\n"
+    "end\n"
+    "class VfsMount\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_vfs_mount_memory\" create(Vfs fs, MemoryFS provider, string prefix, int priority, int caseMode)\n"
+    "    extern \"xl6_xrt_vfs_mount_disk\" create(Vfs fs, DiskFS provider, string prefix, int priority, int caseMode)\n"
+    "    extern \"xl6_xrt_vfs_mount_pack\" create(Vfs fs, PackFS provider, string prefix, int priority, int caseMode)\n"
+    "    extern \"xl6_xrt_vfs_mount_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_vfs_unmount\" func unmount() as bool\n"
+    "    extern \"xl6_xrt_vfs_mount_id\" get id() as uint64\n"
+    "end\n";
+
+static const char xl6StdVfscreateBody[] =
+    "func __xl_std_vfs_create() as Vfs\n"
+    "    return Vfs()\n"
+    "end\n";
+
+static const char xl6StdVfsmemoryBody[] =
+    "func __xl_std_vfs_memory() as MemoryFS\n"
+    "    return MemoryFS()\n"
+    "end\n";
+
+static const char xl6StdVfsdiskBody[] =
+    "func __xl_std_vfs_disk(string root, int access = 1) as DiskFS\n"
+    "    return DiskFS(root, access)\n"
+    "end\n";
+
+static const char xl6StdVfspackBody[] =
+    "func __xl_std_vfs_pack(string source, int offset = 0, int length = -1, int format = 0, int cacheBytes = 67108864, int maxEntryBytes = 1073741824, int maxDecodedBytes = 8589934592) as PackFS\n"
+    "    return PackFS(source, offset, length, format, cacheBytes, maxEntryBytes, maxDecodedBytes)\n"
+    "end\n";

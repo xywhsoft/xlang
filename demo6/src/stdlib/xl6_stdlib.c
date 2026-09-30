@@ -1599,6 +1599,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsXlangClass;
     int needsCoreClass;
     int needsIoReader, needsIoWriter, needsIoLines, needsIoProtocols, needsIoBuffer;
+    int needsVfs;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
 
@@ -1634,6 +1635,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsIoBuffer = xl6StdlibNodeUsesTypeName(root, "Buffer") || xl6StdlibFuncUsed(used, "io", "fromBuffer") ||
         xl6StdlibNodeUsesMemberName(root, "readInto");
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
+    needsVfs = xl6StdlibFuncUsed(used, "vfs", "create") || xl6StdlibFuncUsed(used, "vfs", "memory") ||
+        xl6StdlibFuncUsed(used, "vfs", "disk") || xl6StdlibFuncUsed(used, "vfs", "pack") ||
+        xl6StdlibNodeUsesTypeName(root, "Vfs") || xl6StdlibNodeUsesTypeName(root, "MemoryFS") ||
+        xl6StdlibNodeUsesTypeName(root, "DiskFS") || xl6StdlibNodeUsesTypeName(root, "PackFS") ||
+        xl6StdlibNodeUsesTypeName(root, "VfsMount");
     needsRandomBufferMethods = needsRandomClass &&
         (xl6StdlibNodeUsesMemberName(root, "fillBytes") ||
          xl6StdlibNodeUsesMemberName(root, "shuffleBuffer"));
@@ -1783,6 +1789,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 
     /* 只为实际使用的标准库函数注入 extern 声明。 */
     xl6StdlibBuilderInit(&builder);
+    if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibVfsSource);
     if ( needsCoreClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
     }

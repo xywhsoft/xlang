@@ -12998,7 +12998,8 @@ static const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
          target->parameterPhysicalFieldDeclarations == NULL ||
          target->parameterPhysicalAbis[parameter] !=
              XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
-         target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+         (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+          target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
          target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW )
         return NULL;
     field = xl6IrManagedNativeConstructorField(
@@ -26480,6 +26481,7 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 #include "src/ir/xl6_ir_direct_bridge.c"
 #include "src/ir/xl6_ir_xid_bridge.c"
 #include "src/ir/xl6_ir_io_bridge.c"
+#include "src/ir/xl6_ir_vfs_bridge.c"
 #include "src/ir/xl6_ir_net_datagram_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
 
@@ -26614,6 +26616,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if ( xl6IrRuntimeIoBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
+    if (xl6IrRuntimeVfsBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
     if (xl6IrRuntimeNetDatagramBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
     if (xl6IrRuntimeXlangBridgeName(target->cName)) reserved = 1;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
@@ -26625,6 +26628,9 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN )
         return xl6IrRuntimeIoBridgeTargetMatches(module, target);
+    if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_VFS_CREATE &&
+        target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID)
+        return xl6IrRuntimeVfsBridgeTargetMatches(module, target);
     if (module->stage == XL6_IR_STAGE_LOWERED && target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM && target->parameterTypes != NULL) {
         size_t p;
@@ -42109,6 +42115,25 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_TEXT_ERROR: return "text-error";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_ERRORLN: return "text-error-line";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_FLUSH: return "text-flush";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_CREATE: return "vfs-create";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_DESTROY: return "vfs-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_READ: return "vfs-read";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_CREATE: return "vfs-memory-create";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_DESTROY: return "vfs-memory-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_PUT_BYTES: return "vfs-memory-put-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_PUT_STRING: return "vfs-memory-put-string";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_SEAL: return "vfs-memory-seal";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_DISK_CREATE: return "vfs-disk-create";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_DISK_DESTROY: return "vfs-disk-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_PACK_CREATE: return "vfs-pack-create";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_PACK_DESTROY: return "vfs-pack-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_PACK_FORMAT: return "vfs-pack-format";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_MEMORY: return "vfs-mount-memory";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DISK: return "vfs-mount-disk";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_PACK: return "vfs-mount-pack";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY: return "vfs-mount-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_UNMOUNT: return "vfs-unmount";
+    case XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID: return "vfs-mount-id";
     case XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE: return "io-read-file";
     case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_FILE: return "io-write-file";
     case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_TEXT_FILE: return "io-write-text-file";

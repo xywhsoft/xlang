@@ -1,0 +1,18 @@
+// VFS is explicit. Native file/dir/io paths keep their own meaning.
+// Call this helper with a real XRTPACK resource file when needed.
+func mountArchive(Vfs fs, string source) as VfsMount
+    auto archive = vfs.pack(source)
+    return fs.mount("/pack", archive)
+end
+
+auto fs = vfs.create()
+auto resources = vfs.memory()
+resources.put("data.bin", b"a\0b")
+resources.seal()
+auto mount = fs.mount("/app", resources)
+auto disk = vfs.disk(".")
+auto nativeMount = fs.mount("/disk", disk, -10)
+assert fs.readBytes("/app/data.bin") == b"a\0b"
+print(fs.readBytes("/app/data.bin").length)
+mount.unmount()
+nativeMount.unmount()

@@ -1,0 +1,7 @@
+class InvalidResult
+    native point handle
+    extern "xl6_xrt_vfs_create" create()
+    extern "xl6_xrt_vfs_destroy" destroy()
+    extern "xl6_xrt_vfs_read" func read(string path, int limit) as string
+end
+auto data = InvalidResult().read("/entry", 1024)

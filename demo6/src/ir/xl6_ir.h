@@ -3664,6 +3664,25 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_COLUMNS,
     XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_ROWS,
     XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN,
+    XL6_IR_RUNTIME_BRIDGE_VFS_CREATE,
+    XL6_IR_RUNTIME_BRIDGE_VFS_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_VFS_READ,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_CREATE,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_PUT_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_PUT_STRING,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MEMORY_SEAL,
+    XL6_IR_RUNTIME_BRIDGE_VFS_DISK_CREATE,
+    XL6_IR_RUNTIME_BRIDGE_VFS_DISK_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_VFS_PACK_CREATE,
+    XL6_IR_RUNTIME_BRIDGE_VFS_PACK_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_VFS_PACK_FORMAT,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_MEMORY,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DISK,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_PACK,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_VFS_UNMOUNT,
+    XL6_IR_RUNTIME_BRIDGE_VFS_MOUNT_ID,
     XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT,
     XL6_IR_RUNTIME_BRIDGE_NET_ADDRESS_LIST,
     XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC,
@@ -5673,6 +5692,10 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
 int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeIoBridgeKind(const char* name);
+XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name);
+const char* xl6IrRuntimeVfsBridgeParameterOwner(const char* name, size_t parameter);
+int xl6IrRuntimeVfsBridgeTargetMatches(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrRuntimeIoBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrRuntimeDirectBridgeTargetMatches(

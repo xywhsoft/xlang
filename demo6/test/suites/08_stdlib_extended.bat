@@ -6,6 +6,9 @@ if "%XL6_TRACE_TESTS%"=="1" echo on
 echo Running DEMO6 suite: extended standard library...
 set "PATH=%CD%\release;%PATH%"
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_vfs.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path 'build\test').Path; for($i=0; $i -lt 20; $i++){ $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -eq 0){ break }; foreach($f in $left){ Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }; if($i -lt 19){ Start-Sleep -Milliseconds 250 } }; $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -gt 0){ Write-Host 'stdlib test executables are still present before build.'; $left.FullName; exit 1 }"
 if errorlevel 1 exit /b 1
 

@@ -479,7 +479,8 @@ static const XL6_IrClassField* xl6IrCgenNativeClassPhysicalField(
          target->parameterTypes == NULL || target->parameterAbis == NULL ||
          target->parameterPhysicalAbis == NULL ||
          target->parameterPhysicalFieldDeclarations == NULL ||
-         target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+         (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+          target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
          target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
          target->parameterPhysicalAbis[parameter] !=
              XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
