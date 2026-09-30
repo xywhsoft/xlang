@@ -1,4 +1,191 @@
 /* Owned File, snapshot metadata and directory resources. */
+static const char xl6StdFsfilewrite_bytes_atomicBody[] =
+    "extern \"xl6_xrt_fs_whole_write\" func __xl_fs_file_write_bytes_atomic(string p0, bytes p1, int p2, int p3) as bool\n"
+    "func __xl_std_file_write_bytes_atomic(string path, bytes data, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_bytes_atomic(path, data, size, 2)\n"
+    "end\n";
+
+static const char xl6StdFsfileread_linkBody[] =
+    "extern \"xl6_xrt_fs_link_read\" func __xl_fs_file_read_link(string p0) as string\n"
+    "func __xl_std_file_read_link(string path) as string\n"
+    "    return __xl_fs_file_read_link(path)\n"
+    "end\n";
+
+static const char xl6StdFsfiledelete_linkBody[] =
+    "extern \"xl6_xrt_fs_link_delete\" func __xl_fs_file_delete_link(string p0) as bool\n"
+    "func __xl_std_file_delete_link(string path) as bool\n"
+    "    return __xl_fs_file_delete_link(path)\n"
+    "end\n";
+
+static const char xl6StdFsdirremoveBody[] =
+    "extern \"xl6_xrt_fs_dir_remove\" func __xl_fs_dir_remove(string p0) as bool\n"
+    "func __xl_std_dir_remove(string path) as bool\n"
+    "    return __xl_fs_dir_remove(path)\n"
+    "end\n";
+
+static const char xl6StdFsfileset_modeBody[] =
+    "extern \"xl6_xrt_fs_path_set_mode\" func __xl_fs_file_set_mode(string p0, int p1, bool p2) as bool\n"
+    "func __xl_std_file_set_mode(string path, int mode, bool follow = true) as bool\n"
+    "    return __xl_fs_file_set_mode(path, mode, follow)\n"
+    "end\n";
+
+static const char xl6StdFsfilecreate_linkBody[] =
+    "extern \"xl6_xrt_fs_link_create\" func __xl_fs_file_create_link(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_create_link(string source, string target, bool directory = false) as bool\n"
+    "    return __xl_fs_file_create_link(source, target, directory)\n"
+    "end\n";
+
+static const char xl6StdFsfilecreate_hard_linkBody[] =
+    "extern \"xl6_xrt_fs_link_hard\" func __xl_fs_file_create_hard_link(string p0, string p1) as bool\n"
+    "func __xl_std_file_create_hard_link(string source, string target) as bool\n"
+    "    return __xl_fs_file_create_hard_link(source, target)\n"
+    "end\n";
+
+static const char xl6StdFsfilecreate_fifoBody[] =
+    "extern \"xl6_xrt_fs_fifo_create\" func __xl_fs_file_create_fifo(string p0, int p1) as bool\n"
+    "func __xl_std_file_create_fifo(string path, int mode = 438) as bool\n"
+    "    return __xl_fs_file_create_fifo(path, mode)\n"
+    "end\n";
+
+static const char xl6StdFsdirtempBody[] =
+    "extern \"xl6_xrt_fs_dir_temp\" func __xl_fs_dir_temp(string p0, string p1, string p2) as string\n"
+    "func __xl_std_dir_temp(string directory = \"\", string prefix = \"xl-\", string suffix = \"\") as string\n"
+    "    return __xl_fs_dir_temp(directory, prefix, suffix)\n"
+    "end\n";
+static const char xl6StdFsPathIsRootBody[] =
+    "extern \"xl6_xrt_fs_path_is_root\" func __xl_fs_path_is_root(string path) as bool\n"
+    "func __xl_std_path_is_root(string path) as bool\n"
+    "    return __xl_fs_path_is_root(path)\n"
+    "end\n";
+
+static const char xl6StdFsPathIsRootedBody[] =
+    "extern \"xl6_xrt_fs_path_is_rooted\" func __xl_fs_path_is_rooted(string path) as bool\n"
+    "func __xl_std_path_is_rooted(string path) as bool\n"
+    "    return __xl_fs_path_is_rooted(path)\n"
+    "end\n";
+
+static const char xl6StdFsPathStemBody[] =
+    "extern \"xl6_xrt_fs_path_stem\" func __xl_fs_path_stem(string path) as string\n"
+    "func __xl_std_path_stem(string path) as string\n"
+    "    return __xl_fs_path_stem(path)\n"
+    "end\n";
+
+static const char xl6StdFsPathParentBody[] =
+    "extern \"xl6_xrt_fs_path_parent\" func __xl_fs_path_parent(string path) as string\n"
+    "func __xl_std_path_parent(string path) as string\n"
+    "    return __xl_fs_path_parent(path)\n"
+    "end\n";
+
+static const char xl6StdFsPathRealBody[] =
+    "extern \"xl6_xrt_fs_path_real\" func __xl_fs_path_real(string path) as string\n"
+    "func __xl_std_path_real(string path) as string\n"
+    "    return __xl_fs_path_real(path)\n"
+    "end\n";
+
+static const char xl6StdFsPathIsLocalBody[] =
+    "extern \"xl6_xrt_fs_path_is_local\" func __xl_fs_path_is_local(string path, int style) as bool\n"
+    "func __xl_std_path_is_local(string path, int style = 0) as bool\n"
+    "    return __xl_fs_path_is_local(path, style)\n"
+    "end\n";
+
+static const char xl6StdFsPathIsSafeBody[] =
+    "extern \"xl6_xrt_fs_path_is_safe\" func __xl_fs_path_is_safe(string path, bool directory) as bool\n"
+    "func __xl_std_path_is_safe(string path, bool directory = false) as bool\n"
+    "    return __xl_fs_path_is_safe(path, directory)\n"
+    "end\n";
+
+static const char xl6StdFsPathCleanBody[] =
+    "extern \"xl6_xrt_fs_path_clean\" func __xl_fs_path_clean(string path, int style) as string\n"
+    "func __xl_std_path_clean(string path, int style = 0) as string\n"
+    "    return __xl_fs_path_clean(path, style)\n"
+    "end\n";
+
+static const char xl6StdFsPathRelativeBody[] =
+    "extern \"xl6_xrt_fs_path_relative\" func __xl_fs_path_relative(string base, string target, int style) as string\n"
+    "func __xl_std_path_relative(string base, string target, int style = 0) as string\n"
+    "    return __xl_fs_path_relative(base, target, style)\n"
+    "end\n";
+
+static const char xl6StdFsPathBuildBody[] =
+    "extern \"xl6_xrt_fs_path_build\" func __xl_fs_path_build(array parts, int style) as string\n"
+    "func __xl_std_path_build(array parts, int style = 0) as string\n"
+    "    return __xl_fs_path_build(parts, style)\n"
+    "end\n";
+
+static const char xl6StdFsPathListSepBody[] =
+    "extern \"xl6_xrt_fs_path_list_sep\" func __xl_fs_path_list_sep() as string\n"
+    "func __xl_std_path_list_sep() as string\n"
+    "    return __xl_fs_path_list_sep()\n"
+    "end\n";
+
+static const char xl6StdFsPathExecutableBody[] =
+    "extern \"xl6_xrt_fs_path_executable\" func __xl_fs_path_executable() as string\n"
+    "func __xl_std_path_executable() as string\n"
+    "    return __xl_fs_path_executable()\n"
+    "end\n";
+
+static const char xl6StdFsPathparseBody[] =
+    "func __xl_std_path_parse(string path, int style = 0) as PathParts\n"
+    "    return PathParts(path,style)\n"
+    "end\n";
+
+static const char xl6StdFsPathcomponentsBody[] =
+    "func __xl_std_path_components(string path, int style = 0) as PathIterator\n"
+    "    return PathIterator(path,style)\n"
+    "end\n";
+
+const char* xl6StdlibFsPathSource =
+    "class PathParts\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_fs_path_parts_create\" create(string path, int style)\n"
+    "    extern \"xl6_xrt_fs_path_parts_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_fs_path_parts_text\" func textNative(int field) as string\n"
+    "    extern \"xl6_xrt_fs_path_parts_number\" func numberNative(int field) as int\n"
+    "    get root() as string\n"
+    "        return self.textNative(0)\n"
+    "    end\n"
+    "    get parent() as string\n"
+    "        return self.textNative(1)\n"
+    "    end\n"
+    "    get name() as string\n"
+    "        return self.textNative(2)\n"
+    "    end\n"
+    "    get stem() as string\n"
+    "        return self.textNative(3)\n"
+    "    end\n"
+    "    get ext() as string\n"
+    "        return self.textNative(4)\n"
+    "    end\n"
+    "    get flags() as int\n"
+    "        return self.numberNative(0)\n"
+    "    end\n"
+    "    get rootKind() as int\n"
+    "        return self.numberNative(1)\n"
+    "    end\n"
+    "end\n"
+    "class PathComponent\n"
+    "    string text\n"
+    "    int kind\n"
+    "    create(string text, int kind)\n"
+    "        self.text = text\n"
+    "        self.kind = kind\n"
+    "    end\n"
+    "end\n"
+    "class PathIterator\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_fs_path_iter_create\" create(string path, int style)\n"
+    "    extern \"xl6_xrt_fs_path_iter_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_fs_path_iter_advance\" func advance() as bool\n"
+    "    extern \"xl6_xrt_fs_path_iter_text\" get text() as string\n"
+    "    extern \"xl6_xrt_fs_path_iter_kind\" get kind() as int\n"
+    "    func __iter__() as PathIterator\n"
+    "        return self\n"
+    "    end\n"
+    "    func __next__() as (bool,PathComponent?)\n"
+    "        if not self.advance() then return false,null end\n"
+    "        return true,PathComponent(self.text,self.kind)\n"
+    "    end\n"
+    "end\n";
 const char* xl6StdlibFsFileSource =
     "class File\n"
     "    native point handle\n"

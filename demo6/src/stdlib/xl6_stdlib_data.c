@@ -5236,38 +5236,49 @@ static const char xl6StdRandomStringBody[] =
     "end\n";
 
 static const char xl6StdPathExistsBody[] =
+    "extern \"xl6_xrt_fs_path_exists\" func __xl_fs_path_exists(string p0) as bool\n"
     "func __xl_std_path_exists(string path) as bool\n"
-    "    return __xl_std_xrt_path_exists(path)\n"
+    "    return __xl_fs_path_exists(path)\n"
     "end\n";
 
 static const char xl6StdPathIsAbsBody[] =
+    "extern \"xl6_xrt_fs_path_is_abs\" func __xl_fs_path_is_abs(string path) as bool\n"
     "func __xl_std_path_is_abs(string path) as bool\n"
-    "    return __xl_std_xrt_path_is_abs(path)\n"
+    "    return __xl_fs_path_is_abs(path)\n"
     "end\n";
 
 static const char xl6StdPathNameExtBody[] =
+    "extern \"xl6_xrt_fs_path_name\" func __xl_fs_path_name_ext(string path) as string\n"
     "func __xl_std_path_name_ext(string path) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_name_ext(path))\n"
+    "    return __xl_fs_path_name_ext(path)\n"
     "end\n";
 
 static const char xl6StdPathNameBody[] =
+    "extern \"xl6_xrt_fs_path_name\" func __xl_fs_path_name(string path) as string\n"
     "func __xl_std_path_name(string path) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_name(path))\n"
+    "    return __xl_fs_path_name(path)\n"
     "end\n";
 
 static const char xl6StdPathExtBody[] =
+    "extern \"xl6_xrt_fs_path_ext\" func __xl_fs_path_ext(string path) as string\n"
     "func __xl_std_path_ext(string path) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_ext(path))\n"
+    "    return __xl_fs_path_ext(path)\n"
     "end\n";
 
 static const char xl6StdPathDirBody[] =
+    "extern \"xl6_xrt_fs_path_parent\" func __xl_fs_path_dir(string path) as string\n"
     "func __xl_std_path_dir(string path) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_dir(path))\n"
+    "    return __xl_fs_path_dir(path)\n"
     "end\n";
 
 static const char xl6StdPathJoinBody[] =
+    "extern \"xl6_xrt_fs_path_build\" func __xl_fs_path_join_parts(array parts, int style) as string\n"
     "func __xl_std_path_join(string first, string second, ...) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_path_join(first, second, arg))\n"
+    "    array parts = [first, second]\n"
+    "    for item in arg\n"
+    "        parts.append(item)\n"
+    "    end\n"
+    "    return __xl_fs_path_join_parts(parts, 0)\n"
     "end\n";
 
 static const char xl6StdPathRandomBody[] =
@@ -5279,33 +5290,39 @@ static const char xl6StdPathRandomBody[] =
     "end\n";
 
 static const char xl6StdPathSepBody[] =
+    "extern \"xl6_xrt_fs_path_sep\" func __xl_fs_path_sep() as string\n"
     "func __xl_std_path_sep() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_sep())\n"
+    "    return __xl_fs_path_sep()\n"
     "end\n";
 
 static const char xl6StdPathNormalizeBody[] =
-    "func __xl_std_path_normalize(string path) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_normalize(path))\n"
+    "extern \"xl6_xrt_fs_path_clean\" func __xl_fs_path_normalize(string path, int style) as string\n"
+    "func __xl_std_path_normalize(string path, int style = 0) as string\n"
+    "    return __xl_fs_path_normalize(path, style)\n"
     "end\n";
 
 static const char xl6StdPathAbsBody[] =
+    "extern \"xl6_xrt_fs_path_abs\" func __xl_fs_path_abs(string path) as string\n"
     "func __xl_std_path_abs(string path) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_abs(path))\n"
+    "    return __xl_fs_path_abs(path)\n"
     "end\n";
 
 static const char xl6StdPathRelBody[] =
+    "extern \"xl6_xrt_fs_path_rel\" func __xl_fs_path_rel(string base, string target) as string\n"
     "func __xl_std_path_rel(string base, string target) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_rel(base, target))\n"
+    "    return __xl_fs_path_rel(base, target)\n"
     "end\n";
 
 static const char xl6StdPathCwdBody[] =
+    "extern \"xl6_xrt_fs_path_cwd\" func __xl_fs_path_cwd() as string\n"
     "func __xl_std_path_cwd() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_cwd())\n"
+    "    return __xl_fs_path_cwd()\n"
     "end\n";
 
 static const char xl6StdPathSetCwdBody[] =
+    "extern \"xl6_xrt_fs_path_set_cwd\" func __xl_fs_path_set_cwd(string path) as bool\n"
     "func __xl_std_path_set_cwd(string path) as bool\n"
-    "    return __xl_std_xrt_path_set_cwd(path)\n"
+    "    return __xl_fs_path_set_cwd(path)\n"
     "end\n";
 
 static const char xl6StdOsEnvBody[] =
@@ -5382,53 +5399,63 @@ static const char xl6StdOsChainBody[] =
     "end\n";
 
 static const char xl6StdPathHomeBody[] =
+    "extern \"xl6_xrt_fs_path_home\" func __xl_fs_path_home() as string\n"
     "func __xl_std_path_home() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_home())\n"
+    "    return __xl_fs_path_home()\n"
     "end\n";
 
 static const char xl6StdPathTempBody[] =
+    "extern \"xl6_xrt_fs_path_temp\" func __xl_fs_path_temp() as string\n"
     "func __xl_std_path_temp() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_temp())\n"
+    "    return __xl_fs_path_temp()\n"
     "end\n";
 
 static const char xl6StdPathAppDirBody[] =
+    "extern \"xl6_xrt_fs_path_app_dir\" func __xl_fs_path_app_dir() as string\n"
     "func __xl_std_path_app_dir() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_app_dir())\n"
+    "    return __xl_fs_path_app_dir()\n"
     "end\n";
 
 static const char xl6StdPathWithExtBody[] =
-    "func __xl_std_path_with_ext(string path, string ext) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_with_ext(path, ext))\n"
+    "extern \"xl6_xrt_fs_path_with_ext\" func __xl_fs_path_with_ext(string path, string extension) as string\n"
+    "func __xl_std_path_with_ext(string path, string extension) as string\n"
+    "    return __xl_fs_path_with_ext(path, extension)\n"
     "end\n";
 
 static const char xl6StdPathWithNameBody[] =
-    "func __xl_std_path_with_name(string path, string nameExt) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_with_name(path, nameExt))\n"
+    "extern \"xl6_xrt_fs_path_with_name\" func __xl_fs_path_with_name(string path, string name) as string\n"
+    "func __xl_std_path_with_name(string path, string name) as string\n"
+    "    return __xl_fs_path_with_name(path, name)\n"
     "end\n";
 
 static const char xl6StdFileExistsBody[] =
+    "extern \"xl6_xrt_fs_file_exists\" func __xl_fs_file_exists(string p0) as bool\n"
     "func __xl_std_file_exists(string path) as bool\n"
-    "    return __xl_std_xrt_file_exists(path)\n"
+    "    return __xl_fs_file_exists(path)\n"
     "end\n";
 
 static const char xl6StdFileSizeBody[] =
-    "func __xl_std_file_size(string path) as int\n"
-    "    return int(__xl_std_xrt_file_get_size(path))\n"
+    "extern \"xl6_xrt_fs_path_size\" func __xl_fs_file_size(string p0) as uint64\n"
+    "func __xl_std_file_size(string path) as uint64\n"
+    "    return __xl_fs_file_size(path)\n"
     "end\n";
 
 static const char xl6StdFileSetSizeBody[] =
-    "func __xl_std_file_set_size(string path, int size) as bool\n"
-    "    return __xl_std_xrt_file_set_size(path, c_size(size))\n"
+    "extern \"xl6_xrt_fs_path_set_size\" func __xl_fs_file_set_size(string p0, uint64 p1) as bool\n"
+    "func __xl_std_file_set_size(string path, uint64 size) as bool\n"
+    "    return __xl_fs_file_set_size(path, size)\n"
     "end\n";
 
 static const char xl6StdFileAttrBody[] =
+    "extern \"xl6_xrt_fs_path_attributes\" func __xl_fs_file_attr(string p0) as int\n"
     "func __xl_std_file_attr(string path) as int\n"
-    "    return __xl_std_xrt_file_get_attr(path)\n"
+    "    return __xl_fs_file_attr(path)\n"
     "end\n";
 
 static const char xl6StdFileSetAttrBody[] =
-    "func __xl_std_file_set_attr(string path, int attr) as bool\n"
-    "    return __xl_std_xrt_file_set_attr(path, c_int(attr))\n"
+    "extern \"xl6_xrt_fs_path_set_attributes\" func __xl_fs_file_set_attr(string p0, int p1) as bool\n"
+    "func __xl_std_file_set_attr(string path, int attributes) as bool\n"
+    "    return __xl_fs_file_set_attr(path, attributes)\n"
     "end\n";
 
 static const char xl6StdFileAccessTimeBody[] =
@@ -5442,21 +5469,21 @@ static const char xl6StdFileChangeTimeBody[] =
     "end\n";
 
 static const char xl6StdFileWriteTextBody[] =
-    "func __xl_std_file_write_text(string path, string text, int charset = 65001) as bool\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_file_write_all(path, text, __xl_size_text, c_int(charset)) != 0\n"
+    "extern \"xl6_xrt_fs_text_write\" func __xl_fs_file_write_text(string p0, string p1, int p2, int p3, bool p4, int p5, bool p6) as bool\n"
+    "func __xl_std_file_write_text(string path, string text, int encoding = 1, int policy = 0, bool bom = false, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_text(path, text, encoding, policy, bom, size, false)\n"
     "end\n";
 
 static const char xl6StdFileAppendTextBody[] =
-    "func __xl_std_file_append_text(string path, string text, int charset = 65001) as bool\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_file_append(path, text, __xl_size_text, c_int(charset)) != 0\n"
+    "extern \"xl6_xrt_fs_text_append\" func __xl_fs_file_append_text(string p0, string p1, int p2, int p3, int p4) as bool\n"
+    "func __xl_std_file_append_text(string path, string text, int encoding = 1, int policy = 0, int size = -1) as bool\n"
+    "    return __xl_fs_file_append_text(path, text, encoding, policy, size)\n"
     "end\n";
 
 static const char xl6StdFileReadTextBody[] =
-    "func __xl_std_file_read_text(string path, int charset = -2) as string\n"
-    "    point retSize = null\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_text_strict(path, c_int(charset), retSize))\n"
+    "extern \"xl6_xrt_fs_text_read\" func __xl_fs_file_read_text(string p0, int p1, int p2, int p3) as string\n"
+    "func __xl_std_file_read_text(string path, int encoding = 0, int policy = 0, int maxBytes = 67108864) as string\n"
+    "    return __xl_fs_file_read_text(path, encoding, policy, maxBytes)\n"
     "end\n";
 
 static const char xl6StdTaskGroupBody[] =
@@ -5470,54 +5497,63 @@ static const char xl6StdTemplateEngineBody[] =
     "end\n";
 
 static const char xl6StdFileReadBytesBody[] =
-    "func __xl_std_file_read_bytes(string path) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_file_read_bytes(path)))\n"
+    "extern \"xl6_xrt_fs_whole_read\" func __xl_fs_file_read_bytes(string p0, int p1) as bytes\n"
+    "func __xl_std_file_read_bytes(string path, int maxBytes = 67108864) as bytes\n"
+    "    return __xl_fs_file_read_bytes(path, maxBytes)\n"
     "end\n";
 
 static const char xl6StdFileWriteBytesBody[] =
-    "func __xl_std_file_write_bytes(string path, Buffer data) as bool\n"
-    "    return __xl_std_runtime_file_write_bytes(path, data.data(), c_size(data.len()))\n"
+    "extern \"xl6_xrt_fs_whole_write\" func __xl_fs_file_write_bytes(string p0, bytes p1, int p2, int p3) as bool\n"
+    "func __xl_std_file_write_bytes(string path, bytes data, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_bytes(path, data, size, 0)\n"
     "end\n";
 
 static const char xl6StdFileAppendBytesBody[] =
-    "func __xl_std_file_append_bytes(string path, Buffer data) as bool\n"
-    "    return __xl_std_runtime_file_append_bytes(path, data.data(), c_size(data.len()))\n"
+    "extern \"xl6_xrt_fs_whole_write\" func __xl_fs_file_append_bytes(string p0, bytes p1, int p2, int p3) as bool\n"
+    "func __xl_std_file_append_bytes(string path, bytes data, int size = -1) as bool\n"
+    "    return __xl_fs_file_append_bytes(path, data, size, 1)\n"
     "end\n";
 
 static const char xl6StdFileCopyBody[] =
-    "func __xl_std_file_copy(string source, string target, bool overwrite = true) as bool\n"
-    "    return __xl_std_xrt_file_copy(source, target, overwrite)\n"
+    "extern \"xl6_xrt_fs_file_copy\" func __xl_fs_file_copy(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_copy(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_file_copy(source, target, replace)\n"
     "end\n";
 
 static const char xl6StdFileMoveBody[] =
-    "func __xl_std_file_move(string source, string target, bool overwrite = true) as bool\n"
-    "    return __xl_std_xrt_file_move(source, target, overwrite)\n"
+    "extern \"xl6_xrt_fs_file_move\" func __xl_fs_file_move(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_move(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_file_move(source, target, replace)\n"
     "end\n";
 
 static const char xl6StdFileDeleteBody[] =
+    "extern \"xl6_xrt_fs_file_delete\" func __xl_fs_file_delete(string p0) as bool\n"
     "func __xl_std_file_delete(string path) as bool\n"
-    "    return __xl_std_xrt_file_delete(path)\n"
+    "    return __xl_fs_file_delete(path)\n"
     "end\n";
 
 static const char xl6StdFileTouchBody[] =
+    "extern \"xl6_xrt_fs_file_touch\" func __xl_fs_file_touch(string p0) as bool\n"
     "func __xl_std_file_touch(string path) as bool\n"
-    "    return __xl_std_xrt_file_touch(path)\n"
+    "    return __xl_fs_file_touch(path)\n"
     "end\n";
 
 static const char xl6StdFileRenameBody[] =
-    "func __xl_std_file_rename(string source, string target, bool overwrite = false) as bool\n"
-    "    return __xl_std_xrt_file_rename(source, target, overwrite)\n"
+    "extern \"xl6_xrt_fs_file_rename\" func __xl_fs_file_rename(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_rename(string source, string target, bool replace = false) as bool\n"
+    "    return __xl_fs_file_rename(source, target, replace)\n"
     "end\n";
 
 static const char xl6StdFileReplaceBody[] =
+    "extern \"xl6_xrt_fs_file_rename\" func __xl_fs_file_replace(string p0, string p1, bool p2) as bool\n"
     "func __xl_std_file_replace(string source, string target) as bool\n"
-    "    return __xl_std_xrt_file_replace(source, target)\n"
+    "    return __xl_fs_file_replace(source, target, true)\n"
     "end\n";
 
 static const char xl6StdFileWriteTextAtomicBody[] =
-    "func __xl_std_file_write_text_atomic(string path, string text, int charset = 65001) as bool\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_file_write_all_atomic(path, text, __xl_size_text, c_int(charset))\n"
+    "extern \"xl6_xrt_fs_text_write\" func __xl_fs_file_write_text_atomic(string p0, string p1, int p2, int p3, bool p4, int p5, bool p6) as bool\n"
+    "func __xl_std_file_write_text_atomic(string path, string text, int encoding = 1, int policy = 0, bool bom = false, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_text_atomic(path, text, encoding, policy, bom, size, true)\n"
     "end\n";
 
 static const char xl6StdFileInfoBody[] =
@@ -5560,36 +5596,33 @@ static const char xl6StdFileOpenAsyncBody[] =
     "end\n";
 
 static const char xl6StdDirExistsBody[] =
+    "extern \"xl6_xrt_fs_dir_exists\" func __xl_fs_dir_exists(string p0) as bool\n"
     "func __xl_std_dir_exists(string path) as bool\n"
-    "    return __xl_std_xrt_dir_exists(path)\n"
+    "    return __xl_fs_dir_exists(path)\n"
     "end\n";
 
 static const char xl6StdDirCreateBody[] =
-    "func __xl_std_dir_create(string path) as bool\n"
-    "    return __xl_std_xrt_dir_create(path)\n"
+    "extern \"xl6_xrt_fs_dir_create\" func __xl_fs_dir_create(string p0, int p1, bool p2) as bool\n"
+    "func __xl_std_dir_create(string path, int mode = 511) as bool\n"
+    "    return __xl_fs_dir_create(path, mode, false)\n"
     "end\n";
 
 static const char xl6StdDirCreateAllBody[] =
-    "func __xl_std_dir_create_all(string path) as bool\n"
-    "    return __xl_std_xrt_dir_create_all(path)\n"
+    "extern \"xl6_xrt_fs_dir_create\" func __xl_fs_dir_create_all(string p0, int p1, bool p2) as bool\n"
+    "func __xl_std_dir_create_all(string path, int mode = 511) as bool\n"
+    "    return __xl_fs_dir_create_all(path, mode, true)\n"
     "end\n";
 
 static const char xl6StdDirCopyBody[] =
-    "func __xl_std_dir_copy(string source, string target, bool overwrite = true) as bool\n"
-    "    if not __xl_std_xrt_dir_exists(source) then\n"
-    "        return false\n"
-    "    end\n"
-    "    __xl_std_xrt_dir_copy(source, target, overwrite)\n"
-    "    return __xl_std_xrt_dir_exists(target)\n"
+    "extern \"xl6_xrt_fs_dir_copy\" func __xl_fs_dir_copy(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_dir_copy(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_dir_copy(source, target, replace)\n"
     "end\n";
 
 static const char xl6StdDirMoveBody[] =
-    "func __xl_std_dir_move(string source, string target, bool overwrite = true) as bool\n"
-    "    if not __xl_std_xrt_dir_exists(source) then\n"
-    "        return false\n"
-    "    end\n"
-    "    __xl_std_xrt_dir_move(source, target, overwrite)\n"
-    "    return (not __xl_std_xrt_dir_exists(source)) and __xl_std_xrt_dir_exists(target)\n"
+    "extern \"xl6_xrt_fs_dir_move\" func __xl_fs_dir_move(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_dir_move(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_dir_move(source, target, replace)\n"
     "end\n";
 
 static const char xl6StdDirDeleteBody[] =
@@ -5617,8 +5650,9 @@ static const char xl6StdDirDirsBody[] =
     "end\n";
 
 static const char xl6StdDirEmptyBody[] =
+    "extern \"xl6_xrt_fs_dir_empty\" func __xl_fs_dir_empty(string p0) as bool\n"
     "func __xl_std_dir_empty(string path) as bool\n"
-    "    return __xl_std_xrt_dir_is_empty(path)\n"
+    "    return __xl_fs_dir_empty(path)\n"
     "end\n";
 
 static const char xl6StdDirCountBody[] =
@@ -7578,6 +7612,20 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"random", "string", "__xl_std_random_string", NULL, NULL, 0, "string", xl6StdRandomStringBody},
 
     {"path", "exists", "__xl_std_path_exists", NULL, NULL, 0, "bool", xl6StdPathExistsBody},
+    {"path", "isRoot", "__xl_std_path_is_root", NULL, NULL, 0, "bool", xl6StdFsPathIsRootBody},
+    {"path", "isRooted", "__xl_std_path_is_rooted", NULL, NULL, 0, "bool", xl6StdFsPathIsRootedBody},
+    {"path", "stem", "__xl_std_path_stem", NULL, NULL, 0, "string", xl6StdFsPathStemBody},
+    {"path", "parent", "__xl_std_path_parent", NULL, NULL, 0, "string", xl6StdFsPathParentBody},
+    {"path", "real", "__xl_std_path_real", NULL, NULL, 0, "string", xl6StdFsPathRealBody},
+    {"path", "isLocal", "__xl_std_path_is_local", NULL, NULL, 0, "bool", xl6StdFsPathIsLocalBody},
+    {"path", "isSafeEntry", "__xl_std_path_is_safe", NULL, NULL, 0, "bool", xl6StdFsPathIsSafeBody},
+    {"path", "clean", "__xl_std_path_clean", NULL, NULL, 0, "string", xl6StdFsPathCleanBody},
+    {"path", "relative", "__xl_std_path_relative", NULL, NULL, 0, "string", xl6StdFsPathRelativeBody},
+    {"path", "build", "__xl_std_path_build", NULL, NULL, 0, "string", xl6StdFsPathBuildBody},
+    {"path", "listSep", "__xl_std_path_list_sep", NULL, NULL, 0, "string", xl6StdFsPathListSepBody},
+    {"path", "executable", "__xl_std_path_executable", NULL, NULL, 0, "string", xl6StdFsPathExecutableBody},
+    {"path", "parse", "__xl_std_path_parse", NULL, NULL, 0, "PathParts", xl6StdFsPathparseBody},
+    {"path", "components", "__xl_std_path_components", NULL, NULL, 0, "PathIterator", xl6StdFsPathcomponentsBody},
     {"path", "isAbs", "__xl_std_path_is_abs", NULL, NULL, 0, "bool", xl6StdPathIsAbsBody},
     {"path", "nameExt", "__xl_std_path_name_ext", NULL, NULL, 0, "string", xl6StdPathNameExtBody},
     {"path", "name", "__xl_std_path_name", NULL, NULL, 0, "string", xl6StdPathNameBody},
@@ -7617,14 +7665,14 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"os", "chain", "__xl_std_os_chain", NULL, NULL, 0, "int", xl6StdOsChainBody},
 
     {"file", "exists", "__xl_std_file_exists", NULL, NULL, 0, "bool", xl6StdFileExistsBody},
-    {"file", "size", "__xl_std_file_size", NULL, NULL, 0, "int", xl6StdFileSizeBody},
+    {"file", "size", "__xl_std_file_size", NULL, NULL, 0, "uint64", xl6StdFileSizeBody},
     {"file", "setSize", "__xl_std_file_set_size", NULL, NULL, 0, "bool", xl6StdFileSetSizeBody},
     {"file", "attr", "__xl_std_file_attr", NULL, NULL, 0, "int", xl6StdFileAttrBody},
     {"file", "setAttr", "__xl_std_file_set_attr", NULL, NULL, 0, "bool", xl6StdFileSetAttrBody},
     {"file", "accessTime", "__xl_std_file_access_time", NULL, NULL, 0, "time", xl6StdFileAccessTimeBody},
     {"file", "changeTime", "__xl_std_file_change_time", NULL, NULL, 0, "time", xl6StdFileChangeTimeBody},
-    {"file", "readText", "__xl_std_file_read_text", NULL, xl6StdFileReadTextParams, 2, "string", xl6StdFileReadTextBody},
-    {"file", "readBytes", "__xl_std_file_read_bytes", NULL, NULL, 0, "Buffer", xl6StdFileReadBytesBody},
+    {"file", "readText", "__xl_std_file_read_text", NULL, NULL, 0, "string", xl6StdFileReadTextBody},
+    {"file", "readBytes", "__xl_std_file_read_bytes", NULL, NULL, 0, "bytes", xl6StdFileReadBytesBody},
     {"file", "writeText", "__xl_std_file_write_text", NULL, NULL, 0, "bool", xl6StdFileWriteTextBody},
     {"file", "appendText", "__xl_std_file_append_text", NULL, NULL, 0, "bool", xl6StdFileAppendTextBody},
     {"file", "writeBytes", "__xl_std_file_write_bytes", NULL, NULL, 0, "bool", xl6StdFileWriteBytesBody},
@@ -7640,6 +7688,15 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "open", "__xl_std_file_open", NULL, NULL, 0, "File", xl6StdFileOpenBody},
     {"file", "stat", "__xl_std_file_stat", NULL, NULL, 0, "FileStat", xl6StdFsStatBody},
     {"file", "root", "__xl_std_file_root", NULL, NULL, 0, "FileRoot", xl6StdFsRootBody},
+    {"file", "writeBytesAtomic", "__xl_std_file_write_bytes_atomic", NULL, NULL, 0, "bool", xl6StdFsfilewrite_bytes_atomicBody},
+    {"file", "readLink", "__xl_std_file_read_link", NULL, NULL, 0, "string", xl6StdFsfileread_linkBody},
+    {"file", "deleteLink", "__xl_std_file_delete_link", NULL, NULL, 0, "bool", xl6StdFsfiledelete_linkBody},
+    {"dir", "remove", "__xl_std_dir_remove", NULL, NULL, 0, "bool", xl6StdFsdirremoveBody},
+    {"file", "setMode", "__xl_std_file_set_mode", NULL, NULL, 0, "bool", xl6StdFsfileset_modeBody},
+    {"file", "createLink", "__xl_std_file_create_link", NULL, NULL, 0, "bool", xl6StdFsfilecreate_linkBody},
+    {"file", "createHardLink", "__xl_std_file_create_hard_link", NULL, NULL, 0, "bool", xl6StdFsfilecreate_hard_linkBody},
+    {"file", "createFifo", "__xl_std_file_create_fifo", NULL, NULL, 0, "bool", xl6StdFsfilecreate_fifoBody},
+    {"dir", "temp", "__xl_std_dir_temp", NULL, NULL, 0, "string", xl6StdFsdirtempBody},
     {"dir", "open", "__xl_std_dir_open", NULL, NULL, 0, "DirectoryIterator", xl6StdFsDirectoryBody},
     {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
     {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<Buffer>", xl6StdFileReadBytesAsyncBody},

@@ -1,7 +1,7 @@
 /* Closed resource identities and physical ABI are verified before C emission. */
 typedef enum XL6_IrVfsShape {
     XL6_VFS_STRING, XL6_VFS_BYTES, XL6_VFS_INT, XL6_VFS_U64,
-    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY, XL6_VFS_POINT
+    XL6_VFS_BOOL, XL6_VFS_HANDLE, XL6_VFS_VOID, XL6_VFS_FACTORY, XL6_VFS_POINT, XL6_VFS_ARRAY
 } XL6_IrVfsShape;
 typedef struct XL6_IrVfsContract {
     const char* name;
@@ -139,6 +139,9 @@ static int xl6IrVfsTypeMatches(const XL6_IrModule* module, XL6_IrTypeId id, XL6_
     if (shape == XL6_VFS_HANDLE || shape == XL6_VFS_FACTORY)
         return t->kind == XL6_IR_TYPE_CLASS && t->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    if (shape == XL6_VFS_ARRAY)
+        return t->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+               t->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
     if (t->kind != XL6_IR_TYPE_BUILTIN || t->collectionAbi != XL6_IR_COLLECTION_NONE || t->paramCount != 0) return 0;
     switch (shape) {
     case XL6_VFS_STRING: return t->cAbi == XL6_IR_C_ABI_MANAGED_STRING && t->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
@@ -179,7 +182,7 @@ int xl6IrRuntimeVfsBridgeTargetMatches(const XL6_IrModule* module, const XL6_IrC
         XL6_IrVfsShape s = c->parameters[i];
         int handle = s == XL6_VFS_HANDLE;
         if (!xl6IrVfsTypeMatches(module, target->parameterTypes[i], s) ||
-            target->parameterAbis[i] != ((handle || s == XL6_VFS_STRING || s == XL6_VFS_BYTES) ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE) ||
+            target->parameterAbis[i] != ((handle || s == XL6_VFS_STRING || s == XL6_VFS_BYTES || s == XL6_VFS_ARRAY) ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE) ||
             target->parameterPhysicalAbis[i] != (handle ? XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
             target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
             (handle ? target->parameterPhysicalFieldDeclarations[i] == XL6_IR_NODE_INVALID : target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID))

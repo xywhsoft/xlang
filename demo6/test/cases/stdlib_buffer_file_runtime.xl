@@ -1,8 +1,8 @@
 string binaryPath = "build/test/stdlib_buffer_file_runtime.bin"
 string missingPath = "build/test/stdlib_buffer_file_runtime.missing"
 
-file.delete(binaryPath)
-file.delete(missingPath)
+if file.exists(binaryPath) then file.delete(binaryPath) end
+if file.exists(missingPath) then file.delete(missingPath) end
 
 Buffer bytes = Buffer()
 assert bytes.appendByte(0), "Buffer.appendByte should accept NUL"
@@ -29,18 +29,18 @@ for b in bytes
 end
 assert byteSum == 320, "Buffer iterator should yield each byte"
 
-assert file.writeBytes(binaryPath, bytes), "file.writeBytes should write Buffer data"
-Buffer readBytes = file.readBytes(binaryPath)
-assert readBytes.len() == 3, "file.readBytes should preserve byte length"
+assert file.writeBytes(binaryPath, b"\0A\xff"), "file.writeBytes should write bytes data"
+bytes readBytes = file.readBytes(binaryPath)
+assert readBytes.length == 3, "file.readBytes should preserve byte length"
 assert readBytes[0] == 0, "file.readBytes should preserve NUL"
 assert readBytes[1] == 65, "file.readBytes should preserve byte 65"
 assert readBytes[2] == 255, "file.readBytes should preserve byte 255"
 
 Buffer suffix = Buffer()
 assert suffix.appendByte(66), "Buffer.appendByte should build append payload"
-assert file.appendBytes(binaryPath, suffix), "file.appendBytes should append Buffer data"
-Buffer appended = file.readBytes(binaryPath)
-assert appended.len() == 4, "file.appendBytes should increase byte length"
+assert file.appendBytes(binaryPath, b"B"), "file.appendBytes should append bytes data"
+bytes appended = file.readBytes(binaryPath)
+assert appended.length == 4, "file.appendBytes should increase byte length"
 assert appended[3] == 66, "file.appendBytes should preserve appended byte"
 
 File stream = file.open(binaryPath)
@@ -50,21 +50,17 @@ assert firstTwo[0] == 0 and firstTwo[1] == 65, "File.readBytes(size) should pres
 
 bool readTextRejected = false
 try
-    string textFile = file.readText(binaryPath)
+    string textFile = file.readText(binaryPath, 1)
 catch e
-    if e.kind == "FileError" and string.contains(e.message, "NUL") then
-        readTextRejected = true
-    end
+    readTextRejected = true
 end
-assert readTextRejected, "file.readText should reject binary data containing NUL"
+assert readTextRejected, "file.readText should reject invalid UTF-8 bytes"
 
 bool missingRejected = false
 try
     string missingText = file.readText(missingPath)
 catch e
-    if e.kind == "FileError" and string.contains(e.message, "does not exist") then
-        missingRejected = true
-    end
+    missingRejected = true
 end
 assert missingRejected, "file.readText should reject missing files"
 

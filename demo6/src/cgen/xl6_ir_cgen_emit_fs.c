@@ -7,6 +7,8 @@ static int xl6IrCgenFsSelected(const XL6_IrCgenNeeds* needs, XL6_IrRuntimeBridge
     uint64_t mask = index < 64 ? needs->fsBridgeOperations0 : index < 128 ? needs->fsBridgeOperations1 : needs->fsBridgeOperations2;
     return (mask & (UINT64_C(1) << (index % 64))) != 0;
 }
+#include "src/cgen/xl6_ir_cgen_emit_fs_path.c"
+#include "src/cgen/xl6_ir_cgen_emit_fs_whole.c"
 static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
 {
     int file = 0, info = 0, dir = 0, root = 0, map = 0, lock = 0;
@@ -559,4 +561,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  if (!xrtFileUnlockRange(owner->file->file, owner->offset, owner->size)) { return false; }\n"
             "  file = owner->file; owner->file = NULL; xrtAtomic32Store(&file->lock, 0, XMEMORY_RELEASE);\n"
             "  xlir_fs_file_drop(file); return xrtGetError() == NULL; }\n", out);
+    xl6IrCgenEmitFsPathRuntime(out, needs);
+    xl6IrCgenEmitFsWholeRuntime(out, needs);
 }

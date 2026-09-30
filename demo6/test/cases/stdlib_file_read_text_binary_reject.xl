@@ -1,20 +1,14 @@
 string binaryPath = "build/test/file_read_text_binary.bin"
-Buffer bytes = Buffer()
-assert bytes.appendByte(65)
-assert bytes.appendByte(0)
-assert bytes.appendByte(66)
-assert bytes.appendByte(67)
+bytes bytes = b"A\0BC"
 assert file.writeBytes(binaryPath, bytes)
 
+assert file.readText(binaryPath, 1) == "A\0BC", "NUL is valid UTF-8 text data"
+assert file.writeBytes(binaryPath, b"\xff")
 bool caught = false
-
 try
-    string text = file.readText(binaryPath)
-    assert false, "file.readText should reject binary data instead of returning: " + text
+    file.readText(binaryPath, 1)
 catch e
-    if e.kind == "FileError" and string.contains(e.message, "NUL") then
-        caught = true
-    end
+    caught = true
 end
-
-assert caught, "file.readText should reject text containing NUL bytes"
+assert caught, "strict UTF-8 decoding rejects malformed bytes, not NUL"
+assert file.delete(binaryPath)

@@ -78,7 +78,10 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         'test/cases/stdlib_vfs_pack_limits.xl', 'test/cases/stdlib_vfs_lifetime.xl',
         'test/cases/stdlib_fs_handles.xl', 'test/cases/stdlib_fs_native.xl',
         'test/cases/stdlib_fs_resources.xl', 'test/cases/stdlib_fs_root.xl',
-        'test/cases/stdlib_fs_allocation.xl')
+        'test/cases/stdlib_fs_allocation.xl', 'test/cases/stdlib_fs_path.xl',
+        'test/cases/stdlib_fs_whole.xl', 'test/cases/stdlib_file_bytes_only.xl',
+        'test/cases/stdlib_file_read_text_binary_reject.xl',
+        'test/cases/stdlib_fs_path_whole_allocation.xl')
     foreach ($relative in $fixtures) {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
@@ -92,6 +95,8 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         if ($c -match '#include\s*[<\"][^>\"]*(?<!_decl)\b(?:xrt|xruntime)\.h[>\"]') { throw "$name imports an implementation header" }
         if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'xl6_xrt_vfs_(?:pack|disk)_|XRT_MODULE_VFS_(?:PACK|DISK)') { throw "Memory-only program retains disk/pack adapters" }
         if ($name -eq 'stdlib_vfs_minimal' -and $c -match 'XRT_MODULE_FILE_(?:ROOT|MAP|LOCK)|xl6_xrt_fs_') { throw 'Memory-only program retains unused File resources' }
+        if ($name -in @('stdlib_fs_whole','stdlib_fs_path','stdlib_file_bytes_only') -and $c -match 'XL6_FILE_RUNTIME') { throw 'New filesystem public API retains the legacy monolithic file emitter' }
+        if ($name -eq 'stdlib_file_bytes_only' -and $c -match 'XL6_BUFFER_RUNTIME') { throw 'Bytes-only program retains Buffer adapters' }
         $strict = Join-Path $outputDir "$name.strict.exe"
         Compile-Strict $cPath $strict
         Invoke-Test $strict ""
@@ -111,7 +116,8 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
         Invoke-Test $xl ('cgen "{0}" --emit "{1}"' -f (Join-Path $Root $relative),$cPath) 1 $marker
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
     }
-    foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl')) {
+    foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl',
+        'release/examples/stdlib_fs_paths_text.xl')) {
         $example = Join-Path $Root $relative
         $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')
         Invoke-Test $xl ('run "{0}"' -f $example)
@@ -124,4 +130,4 @@ pathlib.Path('build/test/vfs-pack-slice.bin').write_bytes(b'prefix!' + archive +
     }
     Pop-Location
 }
-Write-Output 'VFS/File foundation gate passed: thirteen positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'
+Write-Output 'VFS/File gate passed: eighteen positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and five ABI negatives.'
