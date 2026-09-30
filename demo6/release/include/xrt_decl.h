@@ -19867,7 +19867,8 @@ XRT_API bool xrtRootFifoCreate(xroot Root, cstr sPath, uint32 iMode);
 
 
 
-/* 在根内设置对象权限；跟随链接时仍由根解析器阻止越界。 */
+/* 在根内设置 POSIX 对象权限；Windows 返回 XERR_UNSUPPORTED。
+ * 跟随链接时仍由根解析器阻止越界。 */
 XRT_API bool xrtRootSetMode(xroot Root, cstr sPath,
 	bool bFollowLink, uint32 iMode);
 
