@@ -72,7 +72,7 @@ typedef struct XL6_SemFieldPersistConfig {
 static int xl6SemFieldAttrNameIsValid(const char* name)
 {
     return xl6TextEquals(name, "json") ||
-           xl6TextEquals(name, "xson") ||
+           xl6TextEquals(name, "xlon") ||
            xl6TextEquals(name, "persist") ||
            xl6TextEquals(name, "string") ||
            xl6TextEquals(name, "compare");
@@ -275,7 +275,7 @@ static int xl6SemCheckFieldAttrArgs(XL6_DiagList* diags, const XL6_AstNode* attr
 int xl6SemCheckFieldAttrs(XL6_DiagList* diags, const XL6_AstNode* field)
 {
     int seenJson;
-    int seenXson;
+    int seenXlon;
     int seenPersist;
     int seenString;
     int seenCompare;
@@ -292,7 +292,7 @@ int xl6SemCheckFieldAttrs(XL6_DiagList* diags, const XL6_AstNode* field)
     }
 
     seenJson = 0;
-    seenXson = 0;
+    seenXlon = 0;
     seenPersist = 0;
     seenString = 0;
     seenCompare = 0;
@@ -309,8 +309,8 @@ int xl6SemCheckFieldAttrs(XL6_DiagList* diags, const XL6_AstNode* field)
         }
         if ( xl6TextEquals(attr->text, "json") ) {
             seenJson += 1;
-        } else if ( xl6TextEquals(attr->text, "xson") ) {
-            seenXson += 1;
+        } else if ( xl6TextEquals(attr->text, "xlon") ) {
+            seenXlon += 1;
         } else if ( xl6TextEquals(attr->text, "persist") ) {
             seenPersist += 1;
         } else if ( xl6TextEquals(attr->text, "string") ) {
@@ -323,7 +323,7 @@ int xl6SemCheckFieldAttrs(XL6_DiagList* diags, const XL6_AstNode* field)
         }
     }
 
-    if ( seenJson > 1 || seenXson > 1 || seenPersist > 1 || seenString > 1 || seenCompare > 1 ) {
+    if ( seenJson > 1 || seenXlon > 1 || seenPersist > 1 || seenString > 1 || seenCompare > 1 ) {
         xl6SemFieldAttrError(diags, field, "duplicate field persistence annotation");
         ok = 0;
     }
@@ -338,13 +338,13 @@ int xl6SemCheckFieldAttrs(XL6_DiagList* diags, const XL6_AstNode* field)
             xl6SemFieldAttrError(diags, field, "json persistence annotation skip conflicts with required");
             ok = 0;
         }
-        xl6SemCollectFieldAttrConfig(field, "xson", &cfg);
+        xl6SemCollectFieldAttrConfig(field, "xlon", &cfg);
         if ( cfg.skip && cfg.include ) {
-            xl6SemFieldAttrError(diags, field, "xson persistence annotation skip conflicts with include");
+            xl6SemFieldAttrError(diags, field, "xlon persistence annotation skip conflicts with include");
             ok = 0;
         }
         if ( cfg.skip && cfg.required ) {
-            xl6SemFieldAttrError(diags, field, "xson persistence annotation skip conflicts with required");
+            xl6SemFieldAttrError(diags, field, "xlon persistence annotation skip conflicts with required");
             ok = 0;
         }
     }

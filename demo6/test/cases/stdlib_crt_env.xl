@@ -1,0 +1,62 @@
+string name = "XLANG_CRT_ENV_CONTRACT_TEST_20260929"
+env.remove(name)
+assert not env.has(name)
+assert env.get(name) == null
+
+env.set(name, "")
+assert env.has(name)
+string? empty = env.get(name)
+string emptyText = empty ?? "missing"
+assert empty != null and emptyText == ""
+
+env.set(name, "alpha")
+string? copied = env.get(name)
+assert (copied ?? "missing") == "alpha"
+env.set(name, "你-beta")
+assert (env.get(name) ?? "missing") == "你-beta"
+assert (copied ?? "missing") == "alpha"
+
+bool badName = false
+try
+    env.get("bad\0name")
+catch ValueError e
+    badName = true
+end
+assert badName
+
+bool emptyName = false
+try
+    env.has("")
+catch ValueError e
+    emptyName = true
+end
+assert emptyName
+
+bool badSetName = false
+try
+    env.set("bad=name", "value")
+catch ValueError e
+    badSetName = true
+end
+assert badSetName
+
+bool badSetValue = false
+try
+    env.set(name, "bad\0value")
+catch ValueError e
+    badSetValue = true
+end
+assert badSetValue
+assert (env.get(name) ?? "missing") == "你-beta"
+
+bool badRemove = false
+try
+    env.remove("bad\0name")
+catch ValueError e
+    badRemove = true
+end
+assert badRemove
+
+env.remove(name)
+env.remove(name)
+assert not env.has(name) and env.get(name) == null

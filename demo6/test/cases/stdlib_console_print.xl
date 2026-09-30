@@ -1,0 +1,4 @@
+print("a\x00b")
+println("")
+print(123, true)
+console.flush()

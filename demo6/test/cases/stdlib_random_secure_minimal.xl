@@ -1,0 +1,2 @@
+bytes value = crypto.randomBytes(8)
+assert value.length == 8

@@ -1,2 +1,0 @@
-extern "xl6_xrt_xson_parse_options" func malformed(string text, bool a, bool b, c_bool c) as var
-var v = malformed("null", false, false, c_bool(false))

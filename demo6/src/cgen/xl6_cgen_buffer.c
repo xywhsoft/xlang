@@ -21,6 +21,7 @@ void xl6CgenEmitBufferRuntime(
             "extern bool xrtBufferReserve(XL6_XBuffer, size_t);\n"
             "extern bool xrtBufferAppend(XL6_XBuffer, XL6_XrtBytesView);\n"
             "extern bool xrtBufferInsert(XL6_XBuffer, size_t, XL6_XrtBytesView);\n"
+            "extern bool xrtBufferWrite(XL6_XBuffer, size_t, XL6_XrtBytesView);\n"
             "extern bool xrtUtf8Valid(xstrview, size_t*);\n\n",
             out);
     } else {
@@ -144,9 +145,9 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return xl6_xrt_buffer_append_bytes(self, (const char*)data, size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_string(void* self, const char* text)\n", out);
+    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_string(void* self, xlir_string text)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return text == 0 ? xl6_xrt_buffer_append_bytes(self, \"\", 0u) : xl6_xrt_buffer_append_bytes(self, text, strlen(text));\n", out);
+    xl6OutputPuts("    return text.Data == 0 ? xl6_xrt_buffer_append_bytes(self, \"\", 0u) : xl6_xrt_buffer_append_bytes(self, text.Data, text.Size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_insert_raw(void* self, long long index, void* data, size_t size)\n", out);
@@ -164,10 +165,9 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return xrtBufferInsert(buf, (size_t)index, (XL6_XrtBytesView){ (const unsigned char*)data, size });\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_insert_string(void* self, long long index, const char* text)\n", out);
+    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_insert_string(void* self, long long index, xlir_string text)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const char* safe = text != 0 ? text : \"\";\n", out);
-    xl6OutputPuts("    return xl6_xrt_buffer_insert_raw(self, index, (void*)safe, strlen(safe));\n", out);
+    xl6OutputPuts("    return xl6_xrt_buffer_insert_raw(self, index, (void*)(text.Data != 0 ? text.Data : \"\"), text.Size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_byte(void* self, long long value)\n", out);
@@ -216,6 +216,53 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return 1;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    /* The five bulk byte operations are one narrow Buffer/XRT ABI bridge.
+     * XRT owns allocation and alias-safe growth; these operations only adapt
+     * the language's scalar method ABI to contiguous buffer ranges. */
+    xl6OutputPuts(
+        "XL6_CgenBool xl6_xrt_buffer_copy_from(void* targetRaw, size_t targetOffset, void* sourceRaw, size_t sourceOffset, size_t count)\n"
+        "{\n"
+        "    XL6_XBuffer target = (XL6_XBuffer)targetRaw; XL6_XBuffer source = (XL6_XBuffer)sourceRaw;\n"
+        "    if (target == NULL || source == NULL || sourceOffset > source->Size || count > source->Size - sourceOffset || (count != 0 && source->Data == NULL)) { xl6_buffer_raise(\"RangeError\", \"buffer copy source range is invalid\", \"Buffer.copyFrom\"); return false; }\n"
+        "    return xrtBufferWrite(target, targetOffset, (XL6_XrtBytesView){ count != 0 ? source->Data + sourceOffset : NULL, count });\n"
+        "}\n\n"
+        "XL6_CgenBool xl6_xrt_buffer_copy_within(void* raw, size_t targetOffset, size_t sourceOffset, size_t count)\n"
+        "{\n"
+        "    XL6_XBuffer buffer = (XL6_XBuffer)raw;\n"
+        "    if (buffer == NULL || targetOffset > buffer->Size || sourceOffset > buffer->Size || count > buffer->Size - targetOffset || count > buffer->Size - sourceOffset || (count != 0 && buffer->Data == NULL)) { xl6_buffer_raise(\"RangeError\", \"buffer copy range is invalid\", \"Buffer.copyWithin\"); return false; }\n"
+        "    if (count != 0) memmove(buffer->Data + targetOffset, buffer->Data + sourceOffset, count);\n"
+        "    return true;\n"
+        "}\n\n"
+        "XL6_CgenBool xl6_xrt_buffer_fill(void* raw, size_t offset, size_t count, long long value)\n"
+        "{\n"
+        "    XL6_XBuffer buffer = (XL6_XBuffer)raw;\n"
+        "    if (buffer == NULL || offset > buffer->Size || count > buffer->Size - offset || value < 0 || value > 255 || (count != 0 && buffer->Data == NULL)) { xl6_buffer_raise(\"RangeError\", \"buffer fill range or byte is invalid\", \"Buffer.fill\"); return false; }\n"
+        "    if (count != 0) memset(buffer->Data + offset, (unsigned char)value, count);\n"
+        "    return true;\n"
+        "}\n\n"
+        "int xl6_xrt_buffer_compare(void* leftRaw, void* rightRaw)\n"
+        "{\n"
+        "    XL6_XBuffer left = (XL6_XBuffer)leftRaw; XL6_XBuffer right = (XL6_XBuffer)rightRaw; size_t common; int order;\n"
+        "    if (left == NULL || right == NULL || (left->Size != 0 && left->Data == NULL) || (right->Size != 0 && right->Data == NULL)) { xl6_buffer_raise(\"ValueError\", \"buffer comparison operand is invalid\", \"Buffer.compare\"); return 0; }\n"
+        "    common = left->Size < right->Size ? left->Size : right->Size;\n"
+        "    order = common != 0 ? memcmp(left->Data, right->Data, common) : 0;\n"
+        "    if (order != 0) return order < 0 ? -1 : 1;\n"
+        "    return left->Size == right->Size ? 0 : left->Size < right->Size ? -1 : 1;\n"
+        "}\n\n"
+        "long long xl6_xrt_buffer_index_of(void* haystackRaw, void* needleRaw, size_t start)\n"
+        "{\n"
+        "    XL6_XBuffer haystack = (XL6_XBuffer)haystackRaw; XL6_XBuffer needle = (XL6_XBuffer)needleRaw; size_t last, i;\n"
+        "    if (haystack == NULL || needle == NULL || start > haystack->Size || (haystack->Size != 0 && haystack->Data == NULL) || (needle->Size != 0 && needle->Data == NULL)) { xl6_buffer_raise(\"RangeError\", \"buffer search range is invalid\", \"Buffer.indexOf\"); return -1; }\n"
+        "    if (needle->Size == 0) return (long long)start;\n"
+        "    if (needle->Size > haystack->Size - start) return -1;\n"
+        "    last = haystack->Size - needle->Size;\n"
+        "    for (i = start; i <= last; ++i) {\n"
+        "        if (haystack->Data[i] == needle->Data[0] && (needle->Size == 1 || memcmp(haystack->Data + i, needle->Data, needle->Size) == 0)) return (long long)i;\n"
+        "    }\n"
+        "    return -1;\n"
+        "}\n\n",
+        out);
+
     xl6OutputPuts("void* xl6_xrt_buffer_text(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XBuffer buf;\n", out);
@@ -259,12 +306,12 @@ void xl6CgenEmitBufferRuntime(
 
     /* 文件桥只在 File 能力实际展开时生成，Buffer 本身不依赖文件系统。 */
     if ( hasFileRuntime ) {
-        xl6OutputPuts("void* xl6_xrt_buffer_file_read_bytes(const char* path)\n", out);
+        xl6OutputPuts("void* xl6_xrt_buffer_file_read_bytes(xlir_string path)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const char* safePath = path != 0 ? path : \"\";\n", out);
+    xl6OutputPuts("    const char* safePath = xlir_string_cstr(path);\n", out);
     xl6OutputPuts("    size_t size = 0u;\n", out);
     xl6OutputPuts("    void* data;\n", out);
-    xl6OutputPuts("    if ( safePath[0] == '\\0' || !xrtFileExists(safePath) ) {\n", out);
+    xl6OutputPuts("    if ( safePath == NULL || safePath[0] == '\\0' || !xrtFileExists(safePath) ) {\n", out);
     xl6OutputPuts("        xl6_buffer_raise(\"FileError\", \"file does not exist\", \"file.readBytes\");\n", out);
     xl6OutputPuts("        return xrtBufferCreate();\n", out);
     xl6OutputPuts("    }\n", out);
@@ -276,9 +323,10 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return xl6_xrt_buffer_from_owned_bytes(data, size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("bool xl6_xrt_buffer_file_write_bytes(const char* path, void* data, size_t size)\n", out);
+    xl6OutputPuts("bool xl6_xrt_buffer_file_write_bytes(xlir_string path, void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' ) {\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    if ( cpath == 0 || cpath[0] == '\\0' ) {\n", out);
     xl6OutputPuts("        xl6_buffer_raise(\"FileError\", \"invalid file path\", \"file.writeBytes\");\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
@@ -286,12 +334,13 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("        xl6_buffer_raise(\"FileError\", \"invalid binary buffer\", \"file.writeBytes\");\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return xrtFileWriteAll(path, (XL6_XrtBytesView){ (const unsigned char*)data, size });\n", out);
+    xl6OutputPuts("    return xrtFileWriteAll(cpath, (XL6_XrtBytesView){ (const unsigned char*)data, size });\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("bool xl6_xrt_buffer_file_append_bytes(const char* path, void* data, size_t size)\n", out);
+    xl6OutputPuts("bool xl6_xrt_buffer_file_append_bytes(xlir_string path, void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' ) {\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    if ( cpath == 0 || cpath[0] == '\\0' ) {\n", out);
     xl6OutputPuts("        xl6_buffer_raise(\"FileError\", \"invalid file path\", \"file.appendBytes\");\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
@@ -299,7 +348,7 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("        xl6_buffer_raise(\"FileError\", \"invalid binary buffer\", \"file.appendBytes\");\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return xrtFileAppend(path, (XL6_XrtBytesView){ (const unsigned char*)data, size });\n", out);
+    xl6OutputPuts("    return xrtFileAppend(cpath, (XL6_XrtBytesView){ (const unsigned char*)data, size });\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_file_read_bytes(void* self, long long size)\n", out);

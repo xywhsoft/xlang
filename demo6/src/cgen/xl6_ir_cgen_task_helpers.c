@@ -20,6 +20,10 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         xl6OutputPuts(
             "    return xrtValueRetain(xrtValueBool(*(const bool*)payload));\n", out);
         break;
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+        xl6OutputPuts(
+            "    return xrtValueChar(*(const uint32_t*)payload);\n", out);
+        break;
     case XL6_IR_ASYNC_RESULT_COPY_I64:
         xl6OutputPuts(
             "    return xrtValueInt(*(const int64_t*)payload);\n", out);
@@ -38,7 +42,7 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         break;
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
         xl6OutputPuts(
-            "    return *(char* const*)payload != NULL ? xrtValueString(xrtStrView(*(char* const*)payload)) : NULL;\n",
+            "    return ((const xlir_string*)payload)->Data != NULL ? xrtValueString(*(const xlir_string*)payload) : NULL;\n",
             out);
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
@@ -103,6 +107,7 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
         return &generator;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
     case XL6_IR_ASYNC_RESULT_COPY_U64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
@@ -151,7 +156,7 @@ static const XL6_IrCallbackBoundary* xl6IrCgenCallbackBoundary(
 static const char* xl6IrCgenCallbackTransfer(XL6_IrAsyncFrameTransferAbi abi)
 {
     switch (abi) {
-    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING: return "xrtStrDup";
+    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING: return "xlir_string_copy";
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_XVALUE: return "xrtValueRetain";
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_FUTURE: return "xrtFutureRef";
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE: return "xlir_closure_retain";
@@ -163,7 +168,7 @@ static const char* xl6IrCgenCallbackTransfer(XL6_IrAsyncFrameTransferAbi abi)
 static const char* xl6IrCgenCallbackDestroy(XL6_IrAsyncFrameDestroyAbi abi)
 {
     switch (abi) {
-    case XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING: return "xrtFree";
+    case XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING: return "xlir_string_drop";
     case XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE: return "xrtValueRelease";
     case XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE: return "xrtFutureDestroy";
     case XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE: return "xlir_closure_release";
@@ -247,6 +252,16 @@ static int xl6IrCgenEmitCallbackCapture(XL6_Output* out, const XL6_IrModule* mod
         }
         transfer = xl6IrCgenCallbackTransfer(c->transferAbi);
         if (!transfer) return 0;
+        if (c->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING) {
+            xl6OutputPrintf(out,
+                "    frame->%s = xlir_string_copy(%s);\n"
+                "    if (%s.Data != NULL && frame->%s.Data == NULL) {\n"
+                "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"MemoryError\", \"callback capture failed\"));\n"
+                "        %s_frame_free_%lu(frame, NULL); return NULL;\n"
+                "    }\n",
+                field, input, input, field, prefix, (unsigned long)index);
+            continue;
+        }
         xl6OutputPrintf(out,
             "    frame->%s = %s != NULL ? %s(%s) : NULL;\n"
             "    if (%s != NULL && frame->%s == NULL) {\n"
@@ -272,8 +287,10 @@ static int xl6IrCgenEmitCallbackInvocationCommit(
         type = xl6IrCgenType(module, capture->type);
         if (!type || capture->role != XL6_IR_CALLBACK_CAPTURE_ARGUMENT) return 0;
         xl6IrCgenCallbackField(field, sizeof(field), capture, 0);
-        xl6OutputPrintf(out, "    %s invoked_%s = frame->%s; frame->%s = NULL;\n",
-            type, field, field, field);
+        xl6OutputPrintf(out, "    %s invoked_%s = frame->%s; frame->%s = %s;\n",
+            type, field, field, field,
+            xl6IrTypeGet(&module->types, capture->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                ? "(xlir_string){0}" : "NULL");
     }
     return !xl6OutputHasFailed(out);
 }

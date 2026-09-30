@@ -17,9 +17,9 @@ protocol Outcome
     func scalarOne() as int
     func scalarTwo() as int
     func text(string key) as string
-    func accept(byval ProtocolPayload value) as int
+    func accept(ProtocolPayload value) as int
     func observe(var value) as int
-    func change(byref int value, out int copy)
+    func change(int value) as (int, int)
     get amount() as int
     let amount(int value)
 end
@@ -34,15 +34,15 @@ class QuietOutcome
     func text(string key) as string
         return key
     end
-    func accept(byval ProtocolPayload value) as int
+    func accept(ProtocolPayload value) as int
         return value.number
     end
     func observe(var value) as int
         return 10
     end
-    func change(byref int value, out int copy)
+    func change(int value) as (int, int)
         value += 1
-        copy = value
+        return value, value
     end
     get amount() as int
         return self.stored
@@ -65,7 +65,7 @@ class RaisingOutcome
         if key == "fail" or protocolFail then protocolRaise(71) end
         return "raising:" + key
     end
-    func accept(byval ProtocolPayload value) as int
+    func accept(ProtocolPayload value) as int
         if value.number < 0 then protocolRaise(73) end
         return value.number + 10
     end
@@ -73,10 +73,10 @@ class RaisingOutcome
         protocolRaise(73)
         return 20
     end
-    func change(byref int value, out int copy)
+    func change(int value) as (int, int)
         if value < 0 then protocolRaise(72) end
         value += 2
-        copy = value
+        return value, value
     end
     get amount() as int
         if protocolFail then protocolRaise(75) end
@@ -135,14 +135,14 @@ export "protocol_outcome_check" func protocolCheck() as int
     assert quiet.observe("boxed text") == 10
     int value = 1
     int copy = 0
-    quiet.change(byref value, out copy)
+    value, copy = quiet.change(value)
     assert value == 2 and copy == 2
-    raising.change(byref value, out copy)
+    value, copy = raising.change(value)
     assert value == 4 and copy == 4
     value = -1
     caught = false
     try
-        raising.change(byref value, out copy)
+        value, copy = raising.change(value)
     catch failure
         caught = true
     end
@@ -230,14 +230,14 @@ export "protocol_outcome_fail" func protocolSetFail()
     protocolFail = true
 end
 protocol NativeOutcome
-    func take(byval var value) as int
+    func take(var value) as int
     func nativeText() as string
 end
 class NativeOutcomeCounter
     native point handle
     extern "protocol_outcome_native_open" create()
     extern "protocol_outcome_native_close" destroy()
-    extern "protocol_outcome_native_take" func take(byval var value) as int
+    extern "protocol_outcome_native_take" func take(var value) as int
     extern "protocol_outcome_native_text" func nativeText() as string
 end
 extern "protocol_outcome_native_mode" func protocolNativeMode(int mode)

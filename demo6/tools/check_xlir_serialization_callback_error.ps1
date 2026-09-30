@@ -35,7 +35,7 @@ $fixtures = @(
     @{ Name = "xlir_serialization_callback_generator_error"; Exit = 0; Marker = "" },
     @{ Name = "xlir_serialization_callback_lifetime"; Exit = 0; Marker = "" },
     @{ Name = "xlir_serialization_callback_json_uncaught"; Exit = 1; Marker = "json-callback-uncaught-sentinel" },
-    @{ Name = "xlir_serialization_callback_xson_uncaught"; Exit = 1; Marker = "xson-callback-uncaught-sentinel" }
+    @{ Name = "xlir_serialization_callback_xlon_uncaught"; Exit = 1; Marker = "xlon-callback-uncaught-sentinel" }
 )
 Push-Location $Root
 try {
@@ -48,7 +48,7 @@ try {
         Invoke-Captured $xl ('ir "{0}" --lowered --format json --emit "{1}"' -f $source,$ir) 0
         $module = [System.IO.File]::ReadAllText($ir) | ConvertFrom-Json
         $targets = @($module.callTargets | Where-Object {
-            $_.reachability -ne "unreachable" -and $_.runtimeBridgeName -in @("json-visit", "xson-visit")
+            $_.reachability -ne "unreachable" -and $_.runtimeBridgeName -in @("json-visit", "xlon-visit")
         })
         $expectedTargets = if ($fixture.Exit -eq 1) { 1 } else { 2 }
         if ($targets.Count -ne $expectedTargets) { throw "$name lost its visitor bridge coverage" }

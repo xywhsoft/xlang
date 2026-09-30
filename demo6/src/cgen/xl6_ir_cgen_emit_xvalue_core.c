@@ -67,12 +67,12 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "extern bool xrtJsonStringifyFile(const char*, const xvalue*, bool);\n"
                 "extern xvalue* xrtJsonParseFile(const char*);\n",
                 out);
-        if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XSON) != 0 )
+        if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 )
             xl6OutputPuts(
-                "extern char* xrtXsonStringify(const xvalue*, bool, size_t*);\n"
-                "extern xvalue* xrtXsonParse(xlir_string_view);\n"
-                "extern bool xrtXsonStringifyFile(const char*, const xvalue*, bool);\n"
-                "extern xvalue* xrtXsonParseFile(const char*);\n",
+                "extern char* xrtXlonStringify(const xvalue*, bool, size_t*);\n"
+                "extern xvalue* xrtXlonParse(xlir_string_view);\n"
+                "extern bool xrtXlonStringifyFile(const char*, const xvalue*, bool);\n"
+                "extern xvalue* xrtXlonParseFile(const char*);\n",
                 out);
         if ( needs->needsCollectionAlgebraRuntime ) {
             xl6OutputPuts(
@@ -462,35 +462,32 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             xl6OutputPuts(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
-                "static char* xlir_xvalue_iterator_item_string_copy(const xlir_xvalue_iterator* iterator)\n"
+                "static xlir_string xlir_xvalue_iterator_item_string_copy(const xlir_xvalue_iterator* iterator)\n"
                 "{\n"
                 "    const XL6_ValueIteratorView* state = (xl6ValueIteratorRuntimeV1Get()->View)(iterator);\n"
-                "    xlir_string_view value = { 0 }; char* copied;\n"
+                "    xlir_string_view value = { 0 };\n"
                 "    if (state == NULL || state->item == NULL || !xrtValueGetString(state->item, &value)) abort();\n"
-                "    copied = xrtStrDupN(value.Data, value.Size);\n"
-                "    return copied;\n"
+                "    return xlir_string_from_utf8(value.Data, value.Size);\n"
                 "}\n"
-                "static char* xlir_xvalue_iterator_key_string_copy(const xlir_xvalue_iterator* iterator)\n"
+                "static xlir_string xlir_xvalue_iterator_key_string_copy(const xlir_xvalue_iterator* iterator)\n"
                 "{\n"
                 "    const XL6_ValueIteratorView* state = (xl6ValueIteratorRuntimeV1Get()->View)(iterator);\n"
-                "    char* copied;\n"
                 "    if (state == NULL || state->key.Type != 3) abort();\n"
-                "    copied = xrtStrDupN(state->key.String.Data, state->key.String.Size);\n"
-                "    return copied;\n"
+                "    return xlir_string_from_utf8(state->key.String.Data, state->key.String.Size);\n"
                 "}\n",
                 out);
         if ( needs->needsXValueIteratorNullableStringRuntime )
             xl6OutputPuts(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
-                    "static bool xlir_xvalue_project_nullable_string_copy(const xvalue* source, char** output)\n"
+                    "static bool xlir_xvalue_project_nullable_string_copy(const xvalue* source, xlir_string* output)\n"
                     "{\n"
-                    "    xlir_string_view value = { 0 }; *output = NULL;\n"
+                    "    xlir_string_view value = { 0 }; *output = (xlir_string){0};\n"
                     "    if (source == NULL) return false;\n"
                     "    if (xrtValueType(source) == 0) return true;\n"
                     "    if (!xrtValueGetString(source, &value)) return false;\n"
-                    "    *output = xrtStrDupN(value.Data, value.Size);\n"
-                    "    return *output != NULL;\n"
+                    "    *output = xlir_string_from_utf8(value.Data, value.Size);\n"
+                    "    return output->Data != NULL;\n"
                     "}\n",
                 out);
         if ( needs->needsXValueStringProjectionRuntime )
@@ -681,10 +678,10 @@ static int xl6IrCgenEmitXValueCoreRuntime(
         if ( needs->needsXValueArrayStringReadRuntime )
             xl6OutputPuts("extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                           "extern char* xrtStrDupN(const char*, size_t);\n"
-                          "static char* xlir_xvalue_array_at_i64_string_copy(const xvalue* array, int64_t index)\n"
-                          "{ xvalue* item = xrtValueArrayAt(array, index); xlir_string_view value = {0}; char* copied;\n"
+                          "static xlir_string xlir_xvalue_array_at_i64_string_copy(const xvalue* array, int64_t index)\n"
+                          "{ xvalue* item = xrtValueArrayAt(array, index); xlir_string_view value = {0}; xlir_string copied;\n"
                           "  if (item == NULL || !xrtValueGetString(item, &value)) abort();\n"
-                          "  copied = xrtStrDupN(value.Data, value.Size); if (copied == NULL) abort();\n"
+                          "  copied = xlir_string_from_utf8(value.Data, value.Size); if (copied.Data == NULL) abort();\n"
                           "  return copied; }\n", out);
         if ( needs->needsXValueArraySetRuntime ) {
             xl6OutputPuts(

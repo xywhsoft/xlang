@@ -1,0 +1,50 @@
+extern "xrtClearError" func clearNativeError()
+extern "xrtValuePointer" func boxedPointer(point target) as var
+
+string path = "build/test/xlir_xlon_value_bridge.xlon"
+file.delete(path)
+string custom = `{"keep":1,"skip":ptr("123"),"after":2}`
+XlonOptions decode = xlon.options(ignoreUnsupportedDecode = true)
+XlonOptions encode = xlon.options(pretty = true, ignoreUnsupportedEncode = true)
+assert !xlon.valid(custom)
+assert xlon.parse(custom) == null
+clearNativeError()
+assert xlon.valid(custom, decode)
+var decoded = xlon.parse(custom, decode)
+assert decoded["keep"] == 1
+assert decoded["skip"] == null
+assert decoded["after"] == 2
+assert file.writeText(path, custom)
+assert xlon.read(path) == null
+clearNativeError()
+assert xlon.read(path, decode)["after"] == 2
+
+var value = xlon.parse(`{"name":"中文","items":[null,true,42],"mapping":intmap{2:"two"},"tags":set[1,2],"when":time("2026-06-18T00:00:00Z")}`)
+string compact = xlon.stringify(value)
+string pretty = xlon.stringify(value, encode)
+assert xlon.valid(compact)
+assert xlon.valid(pretty)
+assert string.len(pretty) > string.len(compact)
+assert xlon.stringify(xlon.parse(pretty)) == compact
+assert xlon.write(path, value)
+assert xlon.stringify(xlon.read(path)) == compact
+assert xlon.write(path, value, encode)
+assert xlon.stringify(xlon.read(path, decode)) == compact
+assert value["name"] == "中文"
+assert file.delete(path)
+assert xlon.read(path) == null
+assert !xlon.valid("")
+assert xlon.parse("{") == null
+clearNativeError()
+assert xlon.stringify(xlon.parse("null")) == "null"
+
+// Unsupported native values must be skipped only by the explicit policy.
+var unsupported = {"keep": 1, "skip": boxedPointer(null), "after": 2}
+assert xlon.stringify(unsupported) == ""
+clearNativeError()
+string skipped = xlon.stringify(unsupported, encode)
+assert !string.contains(skipped, "skip")
+assert xlon.parse(skipped)["after"] == 2
+assert xlon.write(path, unsupported, encode)
+assert xlon.read(path)["keep"] == 1
+assert file.delete(path)

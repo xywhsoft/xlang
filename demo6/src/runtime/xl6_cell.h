@@ -9,7 +9,8 @@
 typedef struct xlir_cell XL6_Cell;
 typedef enum XL6_CellKind {
     XL6_CELL_BOOL, XL6_CELL_I64, XL6_CELL_F64, XL6_CELL_STRING,
-    XL6_CELL_XVALUE, XL6_CELL_U64, XL6_CELL_TRIVIAL_BYTES, XL6_CELL_TYPE_ID
+    XL6_CELL_XVALUE, XL6_CELL_U64, XL6_CELL_TRIVIAL_BYTES, XL6_CELL_TYPE_ID,
+    XL6_CELL_CHAR
 } XL6_CellKind;
 typedef struct XL6_CellRuntimeV1 {
     /* Create is fallible and owns no input. Trivial bytes are a closed,

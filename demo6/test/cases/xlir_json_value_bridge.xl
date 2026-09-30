@@ -4,15 +4,15 @@ extern "xrtClearError" func clearNativeError()
 
 string path = "build/test/xlir_json_value_bridge.json"
 file.delete(path)
-assert json.valid('{"name":"中文","items":[null,true,42]}')
-assert !json.valid('{"name":')
+assert json.valid(`{"name":"中文","items":[null,true,42]}`)
+assert !json.valid(`{"name":`)
 assert !json.valid("")
 assert json.parse("") == null
 assert json.parse("{") == null
 // These no-raise facades report failure by value and leave XRT diagnostics.
 clearNativeError()
 
-var value = json.parse('{"name":"中文","items":[null,true,42]}')
+var value = json.parse(`{"name":"中文","items":[null,true,42]}`)
 string compact = json.stringify(value)
 string pretty = json.stringify(value, pretty = true)
 assert json.valid(compact)

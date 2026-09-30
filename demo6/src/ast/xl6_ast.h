@@ -47,6 +47,8 @@ typedef enum XL6_AstKind {
     XL6_AST_INT,
     XL6_AST_FLOAT,
     XL6_AST_STRING,
+    XL6_AST_CHAR,
+    XL6_AST_BYTES,
     XL6_AST_INTERP_STRING,
     XL6_AST_INTERP_TEXT,
     XL6_AST_TIME,
@@ -118,6 +120,12 @@ typedef enum XL6_AstKind {
  * XL6_AST_PARAM only and is deliberately excluded from function TypeId
  * identity. */
 #define XL6_AST_FLAG_C_CALLBACK 0x00100000u
+/* Source-level foreign-call effects.  They are legal only on
+ * XL6_AST_EXTERN_FUNC and must survive unchanged into XLIR.  Absence means
+ * conservative: the call may mutate observable state, raise, and block. */
+#define XL6_AST_FLAG_FOREIGN_NO_RAISE 0x00200000u
+#define XL6_AST_FLAG_FOREIGN_NONBLOCKING 0x00400000u
+#define XL6_AST_FLAG_FOREIGN_PURE 0x00800000u
 #define XL6_AST_FLAG_INTERNAL_NULLABLE 0x40000000u
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
@@ -126,6 +134,13 @@ typedef struct XL6_AstNode {
     XL6_AstKind kind;
     unsigned int flags;
     char* text;
+    /* Decoded literal payload. `text` retains source spelling for diagnostics;
+     * lowering consumes only this explicit-length buffer for string/bytes and
+     * `literalScalar` for char, so embedded NUL never falls back to strlen. */
+    unsigned char* literalData;
+    size_t literalSize;
+    uint32 literalScalar;
+    int literalDecoded;
     char* doc;
     /* 语义阶段写入的规范化静态类型；由当前节点独占。 */
     struct XL6_AstNode* inferredType;
@@ -160,6 +175,7 @@ typedef struct XL6_AstNode {
 const char* xl6AstKindName(XL6_AstKind kind);
 XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token);
 XL6_AstNode* xl6AstNewText(XL6_AstKind kind, const char* text, size_t len, const XL6_Token* token);
+int xl6AstSetLiteralData(XL6_AstNode* node, const void* data, size_t size);
 XL6_AstNode* xl6AstNewBinary(const XL6_Token* op, XL6_AstNode* left, XL6_AstNode* right);
 XL6_AstNode* xl6AstNewUnary(const XL6_Token* op, XL6_AstNode* expr);
 XL6_AstNode* xl6AstNewCall(XL6_AstNode* callee, XL6_AstNode* args, const XL6_Token* token);

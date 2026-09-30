@@ -589,9 +589,10 @@ static int xl6IrCgenEmitGeneratorMachine(
     function = &module->functions[machine->function];
     /* Serialize the closed, verified transfer ABI. No producer cleanup or
      * ownership callback is synthesized from a C type or source name. */
-    switch (machine->yieldAbi) {
-    case XL6_IR_GENERATOR_YIELD_COPY_BOOL:
-    case XL6_IR_GENERATOR_YIELD_COPY_I64:
+        switch (machine->yieldAbi) {
+        case XL6_IR_GENERATOR_YIELD_COPY_BOOL:
+        case XL6_IR_GENERATOR_YIELD_COPY_CHAR:
+        case XL6_IR_GENERATOR_YIELD_COPY_I64:
     case XL6_IR_GENERATOR_YIELD_COPY_U64:
     case XL6_IR_GENERATOR_YIELD_COPY_TYPE_ID:
     case XL6_IR_GENERATOR_YIELD_COPY_F64:
@@ -656,10 +657,14 @@ static int xl6IrCgenEmitGeneratorMachine(
             storage->cellType != XL6_IR_TYPE_INVALID ? storage->cellType : storage->type);
         if ( type == NULL || cType == NULL ) return xl6IrCgenDiag(diags, module,
             storage->declaration, "XLIR generator local storage has no C ABI");
-        xl6OutputPrintf(out, type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                              storage->cellType != XL6_IR_TYPE_INVALID
-            ? "    %s s%u = NULL;\n" : "    %s s%u;\n",
-            cType, (unsigned int)storage->symbol);
+        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+            xl6OutputPrintf(out, "    %s s%u = {0};\n",
+                cType, (unsigned int)storage->symbol);
+        else
+            xl6OutputPrintf(out, type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                                  storage->cellType != XL6_IR_TYPE_INVALID
+                ? "    %s s%u = NULL;\n" : "    %s s%u;\n",
+                cType, (unsigned int)storage->symbol);
     }
     xl6OutputPuts("    switch (generator->state) {\n", out);
     for ( local = 0; local < machine->entryCount; ++local ) {
@@ -722,8 +727,11 @@ static int xl6IrCgenEmitGeneratorMachine(
         const XL6_IrContinuationFrameSlot* frame =
             &module->generatorFrameSlots[machine->firstFrameSlot + local];
         if ( frame->initBit != SIZE_MAX )
-            xl6OutputPrintf(out, "    frame->f%lu = NULL; frame->i%lu = 0;\n",
-                (unsigned long)local, (unsigned long)frame->initBit);
+            xl6OutputPrintf(out, "    frame->f%lu = %s; frame->i%lu = 0;\n",
+                (unsigned long)local,
+                xl6IrTypeGet(&module->types, frame->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                    ? "(xlir_string){0}" : "NULL",
+                (unsigned long)frame->initBit);
     }
     for ( local = 0; local < machine->prologueActionCount; ++local ) {
         const XL6_IrContinuationFrameAction* action =

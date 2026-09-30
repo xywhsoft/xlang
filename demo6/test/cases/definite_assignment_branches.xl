@@ -1,5 +1,5 @@
-func write(out int result)
-    result = 41
+func write() as int
+    return 41
 end
 
 func main(...) as int
@@ -11,8 +11,7 @@ func main(...) as int
     end
     assert(value == 31)
 
-    int outValue
-    write(out outValue)
+    int outValue = write()
     assert(outValue == 41)
     return 0
 end

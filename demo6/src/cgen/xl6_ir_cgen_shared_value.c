@@ -1,4 +1,4 @@
-static int xl6IrCgenRuntimeXValueRetainAbi(
+static int xl6IrCgenRuntimeManagedXValueRetainAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
     const XL6_IrInstruction* source;
@@ -14,7 +14,11 @@ static int xl6IrCgenRuntimeXValueRetainAbi(
         module, module->operands[instruction->firstOperand], NULL);
     type = xl6IrTypeGet(&module->types, instruction->type);
     return source != NULL && source->type == instruction->type &&
-           type != NULL && type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+           type != NULL &&
+           ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_RETAIN &&
+             type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) ||
+            (instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_RETAIN &&
+             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) &&
            type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
 }
 
@@ -55,6 +59,7 @@ static int xl6IrCgenSharedXValueRuntimeOpIs(XL6_IrRuntimeOp operation)
     return xl6IrCgenLiteralScalarProjection(operation, NULL) != NULL ||
            operation == XL6_IR_RUNTIME_XVALUE_I64 ||
            operation == XL6_IR_RUNTIME_XVALUE_RETAIN ||
+           operation == XL6_IR_RUNTIME_BYTES_RETAIN ||
            operation == XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
            operation == XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED ||
            operation == XL6_IR_RUNTIME_XVALUE_STRING_COPY ||
@@ -166,7 +171,8 @@ static int xl6IrCgenSharedXValueRuntimeAbi(
     }
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_XVALUE_RETAIN:
-        return xl6IrCgenRuntimeXValueRetainAbi(module, instruction);
+    case XL6_IR_RUNTIME_BYTES_RETAIN:
+        return xl6IrCgenRuntimeManagedXValueRetainAbi(module, instruction);
     case XL6_IR_RUNTIME_XVALUE_TYPE_BIND:
     case XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED:
         {
@@ -393,7 +399,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
     {
         const char* helper = xl6IrCgenLiteralScalarProjection(instruction->runtimeOp, NULL);
         if ( helper != NULL ) {
-            xl6OutputPrintf(out, "    v%u = %s(v%u, xrtStrView(%s));\n",
+            xl6OutputPrintf(out, "    v%u = %s(v%u, xlir_literal_view(%s));\n",
                 (unsigned int)instruction->result, helper,
                 (unsigned int)module->operands[instruction->firstOperand],
                 instruction->immediateText);
@@ -402,6 +408,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
     }
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_XVALUE_RETAIN:
+    case XL6_IR_RUNTIME_BYTES_RETAIN:
         xl6OutputPrintf(out, "    v%u = xrtValueRetain(v%u);\n",
             (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
         break;
@@ -482,7 +489,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
         break;
     case XL6_IR_RUNTIME_XVALUE_STRING_COPY:
         xl6OutputPrintf(out,
-            "    v%u = xrtValueString(xrtStrView(v%u));\n",
+            "    v%u = xrtValueString(v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand]);
         break;
@@ -561,7 +568,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
     case XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW:
         xl6OutputPrintf(out,
-            "    v%u = xrtValueObjectSetNew(v%u, xrtStrView(%s), v%u);\n",
+            "    v%u = xrtValueObjectSetNew(v%u, xlir_literal_view(%s), v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText,
@@ -569,7 +576,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
         break;
     case XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_SET_LITERAL_NEW:
         xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_dynamic_field_set_new(v%u, xrtStrView(%s), v%u);\n",
+            "    v%u = xlir_xvalue_dynamic_field_set_new(v%u, xlir_literal_view(%s), v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText,
@@ -577,28 +584,28 @@ static int xl6IrCgenEmitSharedXValueRuntime(
         break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL:
         xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_object_get_literal_or_null(v%u, xrtStrView(%s));\n",
+            "    v%u = xlir_xvalue_object_get_literal_or_null(v%u, xlir_literal_view(%s));\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText);
         break;
     case XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL:
         xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_safe_class_field_get_or_null(v%u, xrtStrView(%s));\n",
+            "    v%u = xlir_xvalue_safe_class_field_get_or_null(v%u, xlir_literal_view(%s));\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText);
         break;
     case XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL:
         xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_dynamic_field_get_or_null(v%u, xrtStrView(%s));\n",
+            "    v%u = xlir_xvalue_dynamic_field_get_or_null(v%u, xlir_literal_view(%s));\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText);
         break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW:
         xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_object_get_literal_native_handle(v%u, xrtStrView(%s));\n",
+            "    v%u = xlir_xvalue_object_get_literal_native_handle(v%u, xlir_literal_view(%s));\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText);
@@ -650,12 +657,12 @@ static int xl6IrCgenEmitSharedStringCompare(
         (relation = xl6IrCgenSharedStringCompareRelation(instruction->runtimeOp)) == NULL) return 0;
     if (!xl6IrCgenSharedStringCompareAbi(module, instruction)) return -1;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL)
-        xl6OutputPrintf(out, "    v%u = xrtStrEqual(xrtStrView(v%u), xrtStrView(v%u));\n",
+        xl6OutputPrintf(out, "    v%u = xrtStrEqual(v%u, v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             (unsigned int)module->operands[instruction->firstOperand + 1]);
     else
-        xl6OutputPrintf(out, "    v%u = xrtStrCompare(xrtStrView(v%u), xrtStrView(v%u)) %s 0;\n",
+        xl6OutputPrintf(out, "    v%u = xrtStrCompare(v%u, v%u) %s 0;\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             (unsigned int)module->operands[instruction->firstOperand + 1], relation);
@@ -725,9 +732,14 @@ static int xl6IrCgenEmitSharedScalarStringRuntime(
                 ? "xlir_u64_to_string"
                 : instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_STRING
                     ? "xlir_f64_to_string" : "xlir_xvalue_to_string";
-    xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
-        (unsigned int)instruction->result, helper,
-        (unsigned int)module->operands[instruction->firstOperand]);
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_STRING)
+        xl6OutputPrintf(out, "    v%u = xlir_xvalue_to_string_value(v%u);\n",
+            (unsigned int)instruction->result,
+            (unsigned int)module->operands[instruction->firstOperand]);
+    else
+        xl6OutputPrintf(out, "    v%u = xlir_string_take_cstr(%s(v%u));\n",
+            (unsigned int)instruction->result, helper,
+            (unsigned int)module->operands[instruction->firstOperand]);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 

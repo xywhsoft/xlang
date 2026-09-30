@@ -64,24 +64,24 @@ try {
                 $types[$target.parameterTypes[0]].name -ne "string" -or
                 $target.parameterAbis[0] -ne 2 -or $target.parameterPhysicalAbis[0] -ne "direct" -or
                 $target.parameterConstraintAbis[0] -ne "none" -or $target.parameterPhysicalFieldDeclarations[0] -ne 0 -or
-                $target.returnType -ne 0 -or $target.resultPhysicalAbiName -ne "direct" -or
+                $types[$target.returnType].name -ne "c_bool" -or $target.resultPhysicalAbiName -ne "direct" -or
                 $target.resultPhysicalDestroySymbol -ne 0 -or $target.resultPhysicalFieldDeclaration -ne 0 -or
                 $target.errorAbiName -ne "no-raise" -or $target.errorPhysicalAbiName -ne "none" -or
-                $target.variadicAbiName -ne "none") { throw "$name lost exact borrowed string/void/no-raise ABI" }
+                $target.variadicAbiName -ne "none") { throw "$name lost exact borrowed string/status/no-raise ABI" }
         }
         Invoke-Captured $xl ('cgen "{0}" --emit "{1}"' -f $source,$cPath) 0 $null
         Invoke-Captured $xl ('cgen "{0}" --backend xlir --emit "{1}"' -f $source,$repeat) 0 $null
         $c = [System.IO.File]::ReadAllText($cPath)
         if ($c -cne [System.IO.File]::ReadAllText($repeat)) { throw "$name is not deterministic" }
-        if ([regex]::Matches($c, 'static void xl6_output_write_text\(').Count -ne 1 -or
-            !$c.Contains("xrtConsoleFlush(XCONSOLE_STDOUT)") -or
+        if ($c.Contains('xl6_output_write_text') -or
+            $c.Contains("xrtConsoleFlush(XCONSOLE_STDOUT)") -or
             !$c.Contains('#include <__xl_runtime/xruntime_decl.h>') -or
             $c -match '#include\s*[<\"][^>\"]*(?<!_decl)\b(?:xrt|xruntime)\.h[>\"]') {
             throw "$name loses the declarations-only XRT console boundary"
         }
         foreach ($operation in @("write", "writeln")) {
             $expected = $fixture.Bridges -contains "text-$operation"
-            if (([regex]::Matches($c, ('void xl6_xrt_' + $operation + '\(')).Count -eq 1) -ne $expected) {
+            if (([regex]::Matches($c, ('bool xl6_xrt_' + $operation + '\(')).Count -eq 1) -ne $expected) {
                 throw "$name includes an unused/missing public text output operation: $operation"
             }
         }
@@ -109,5 +109,5 @@ try {
         if (Test-Path -LiteralPath $badC) { throw "Malformed text output ABI emitted C: $suffix" }
     }
 } finally { Pop-Location }
-Write-Output "XLIR text output bridge ok: exact borrowed string/void/no-raise ABI, declarations-only XRT console boundary, operation isolation, no value-boxing dependency for text-only output, UTF-8/empty/newline/temporary/capture/continuation output parity, four ABI negatives, deterministic strict C and canonical run/build."
+Write-Output "XLIR text output bridge ok: exact borrowed string/status/no-raise ABI, language IOError on failure, explicit flushing, declarations-only XRT console boundary, operation isolation, no value-boxing dependency for text-only output, UTF-8/empty/newline/temporary/capture/continuation output parity, four ABI negatives, deterministic strict C and canonical run/build."
 exit 0

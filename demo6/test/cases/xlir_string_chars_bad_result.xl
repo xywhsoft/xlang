@@ -1,0 +1,2 @@
+extern "xl6_xrt_string_chars" func invalid(string text) as point
+invalid("text")

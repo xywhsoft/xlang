@@ -1,0 +1,3 @@
+func identity(out int value) as int
+    return value
+end

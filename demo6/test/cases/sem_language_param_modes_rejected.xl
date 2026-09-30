@@ -1,0 +1,23 @@
+func ordinary(byref int value)
+    value = 1
+end
+
+export "language_param_modes_export" func exported(out int value)
+    value = 2
+end
+
+class LanguageParamModes
+    func method(byref int value)
+        value = 3
+    end
+end
+
+protocol LanguageParamProtocol
+    func method(out int value)
+end
+
+auto closure = func(byref int value)
+    value = 4
+end
+
+func(out int) callable

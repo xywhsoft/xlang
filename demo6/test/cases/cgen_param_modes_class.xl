@@ -11,21 +11,21 @@ func mutate(ParamModeBox box)
     box.value = 20
 end
 
-func mutateCopy(byval ParamModeBox box)
+func mutateCopy(ParamModeBox box)
     box.value = 30
 end
 
-func rebindLocal(byval ParamModeBox box)
+func rebindLocal(ParamModeBox box)
     box = ParamModeBox(35)
 end
 
-func replace(byref ParamModeBox box)
+func replace(ParamModeBox box) as ParamModeBox
     ParamModeBox next = ParamModeBox(40)
-    box = next
+    return next
 end
 
-func writeValue(out int value)
-    value = 50
+func writeValue() as int
+    return 50
 end
 
 ParamModeBox box = ParamModeBox(10)
@@ -38,9 +38,8 @@ assert box.value == 30
 rebindLocal(box)
 assert box.value == 30
 
-replace(byref box)
+box = replace(box)
 assert box.value == 40
 
-int value = 0
-writeValue(out value)
+int value = writeValue()
 assert value == 50

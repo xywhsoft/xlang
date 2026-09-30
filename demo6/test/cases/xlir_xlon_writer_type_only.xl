@@ -1,0 +1,2 @@
+// No namespace use or explicit XlonOptions declaration may be required.
+assert XlonWriter().writeInt(7)

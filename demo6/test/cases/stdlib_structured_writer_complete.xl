@@ -1,0 +1,42 @@
+JsonWriter jw = json.writer()
+assert jw.beginObject()
+assert jw.writeUInt("u", uint64(42))
+assert jw.endObject()
+assert jw.finish() == "{\"u\":42}"
+
+XlonWriter xw = xlon.writer()
+assert xw.beginDict()
+assert xw.writeUInt("u", uint64(42))
+assert xw.writeChar("c", '你')
+assert xw.writeBytes("bytes", b"A\x00B")
+assert xw.writeTag("tag", "example", "payload")
+assert xw.endDict()
+string encoded = xw.finish()
+assert string.contains(encoded, "42")
+assert string.contains(encoded, "char(")
+assert string.contains(encoded, "bytes(")
+assert string.contains(encoded, "example(")
+
+int unsignedEvents = 0
+func onUnsignedEvent(var event) as bool
+    if string(event["type"]) == "uint" then
+        unsignedEvents += 1
+        assert event["value"] == uint64(9223372036854775808)
+        assert event["line"] == 1
+    end
+    return true
+end
+assert json.visit("9223372036854775808", onUnsignedEvent) == json.visitComplete
+assert unsignedEvents == 1
+
+int charEvents = 0
+func onCharEvent(var event) as bool
+    if string(event["type"]) == "char" then
+        charEvents += 1
+        assert event["value"] == '你'
+        assert event["line"] == 1
+    end
+    return true
+end
+assert xlon.visit("char(\"你\")", onCharEvent) == xlon.visitComplete
+assert charEvents == 1

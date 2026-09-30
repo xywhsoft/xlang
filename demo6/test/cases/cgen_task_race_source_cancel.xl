@@ -1,0 +1,47 @@
+// race 的首个 source 取消后，其余未完成的 source 也必须收到取消请求。
+// 从 cgen_task_api.xl 的全量边界用例提取，避免每次排查都编译数千行程序。
+async func delayed(int value) as int
+    time.sleep(250)
+    return value
+end
+
+future<int> first = delayed(187)
+future<int> second = delayed(188)
+future<int> group = task.race([first, second])
+assert task.cancel(first), "first cancellation must be accepted"
+
+int groupState = 0
+try
+    int value = await group
+    groupState = value
+catch e
+    println("race group error: ", e.message)
+    if e.message == "future cancel requested." then
+        groupState = 42
+    end
+end
+println("race group state: ", groupState)
+assert groupState == 42, "race must propagate source cancellation"
+
+int secondState = 0
+try
+    secondState = await second
+catch e
+    if e.message == "future cancel requested." then
+        secondState = 42
+    end
+end
+assert secondState == 42, "race must cancel its pending loser"
+
+time.sleep(300)
+int lateState = 0
+try
+    lateState = await second
+catch e
+    if e.message == "future cancel requested." then
+        lateState = 42
+    end
+end
+assert lateState == 42, "late completion must not replace loser cancellation"
+assert not task.cancel(first), "source cancellation must remain terminal"
+println("task race source cancellation: passed")

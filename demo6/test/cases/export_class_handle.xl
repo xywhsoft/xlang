@@ -28,10 +28,10 @@ export "xl6_class_read" func readHandle(ExportHandleBase value) as int
     return value.read()
 end
 
-export "xl6_mode_increment" func increment(byref int value)
-    value += 1
+export "xl6_mode_increment" func increment(int value) as int
+    return value + 1
 end
 
-export "xl6_mode_make" func makeOut(out ExportHandleBase value)
-    value = ExportHandleDerived(9)
+export "xl6_mode_make" func makeOut() as ExportHandleBase
+    return ExportHandleDerived(9)
 end

@@ -21,6 +21,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
 {
     return needs != NULL &&
         (needs->needsModuleOwnershipViews || needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ||
+         needs->needsStringScalarRuntime || needs->needsBytesRuntime ||
          needs->needsXCallRuntime || needs->needsClosureRuntime || needs->needsCellRuntime ||
          /* Even scalar-only machines emit physical Future/Promise frame
           * traces. Consume the canonical DECLARATION header, not a second
@@ -36,7 +37,57 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->needsNetTcpRuntime || needs->needsNetTlsRuntime || needs->needsNetDatagramRuntime ||
          needs->dirBridgeOperations != 0 || needs->processRunBridgeOperations != 0 ||
          needs->needsStringRepeatBridgeRuntime || needs->needsStringSplitBridgeRuntime || needs->needsStringSplitLinesRuntime ||
+         needs->needsStringJoinBridgeRuntime ||
+         needs->needsHashBytesBridgeRuntime ||
+         needs->needsSipHashStringBridgeRuntime ||
+         needs->needsSipHashBytesBridgeRuntime ||
+         needs->needsSipHashRawBridgeRuntime ||
+         needs->needsSipHasher64BridgeRuntime ||
+         needs->needsSipHasher64RawBridgeRuntime ||
+         needs->randomBridgeOperations != 0 ||
+         needs->xidBridgeOperations != 0 ||
+         needs->ioBridgeOperations != 0 || needs->consoleBridgeOperations != 0 ||
+         needs->needsStringBytesBridgeRuntime || needs->needsStringCharsBridgeRuntime ||
+         needs->needsStringCompareBridgeRuntime ||
+         needs->needsStringLastIndexOfBridgeRuntime ||
+         needs->needsStringCountBridgeRuntime ||
+         needs->needsStringHasAnyBridgeRuntime ||
+         needs->needsStringLikeBridgeRuntime ||
+         needs->needsStringApproxBridgeRuntime ||
+         needs->needsStringSimilarityBridgeRuntime ||
+         needs->needsStringIsUtf8BridgeRuntime ||
+         needs->needsStringLowerBridgeRuntime ||
+         needs->needsStringUpperBridgeRuntime ||
+         needs->needsStringTrimBridgeRuntime ||
+         needs->needsStringLTrimBridgeRuntime ||
+         needs->needsStringRTrimBridgeRuntime ||
+         needs->needsStringFilterBridgeRuntime ||
+         needs->needsStringLeftBridgeRuntime ||
+         needs->needsStringRightBridgeRuntime ||
+         needs->needsStringCharAtBridgeRuntime ||
+         needs->needsStringIsEmptyBridgeRuntime ||
+         needs->needsStringIsBlankBridgeRuntime ||
+         needs->needsStringRemoveBridgeRuntime ||
+         needs->needsStringRemoveAtBridgeRuntime ||
+         needs->needsStringInsertBridgeRuntime ||
+         needs->needsStringPadLeftBridgeRuntime ||
+         needs->needsStringPadRightBridgeRuntime ||
+         needs->needsStringPadCenterBridgeRuntime ||
+         needs->needsStringReverseBridgeRuntime ||
          needs->needsHttp1Runtime || needs->needsJsonVisitBridgeRuntime ||
-         needs->needsJsonWriterBridgeRuntime || needs->xsonBridgeOperations != 0 ||
+         needs->needsJsonWriterBridgeRuntime || needs->xlonBridgeOperations != 0 ||
+         needs->structuredOptionsBridgeOperations != 0 ||
+         needs->needsJsonlStringifyBridgeRuntime ||
+         needs->needsXlonlStringifyBridgeRuntime ||
+         needs->needsJsonlReadFileBridgeRuntime ||
+         needs->needsJsonlWriteFileBridgeRuntime ||
+         needs->needsXlonlReadFileBridgeRuntime ||
+         needs->needsXlonlWriteFileBridgeRuntime ||
+         needs->needsJsonlParseBridgeRuntime ||
+         needs->needsJsonlValidBridgeRuntime ||
+         needs->needsXlonlParseBridgeRuntime ||
+         needs->needsXlonlValidBridgeRuntime ||
          xl6IrCgenNeedsWebSocketRuntime(needs));
 }
+#define XL6_IO_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_IO_##Name - XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE))
+#define XL6_CONSOLE_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_CONSOLE_##Name - XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE))

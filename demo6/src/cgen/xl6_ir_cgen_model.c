@@ -47,6 +47,7 @@ static const char* xl6IrCgenType(const XL6_IrModule* module, XL6_IrTypeId type)
     case XL6_IR_C_ABI_TYPE_ID: return "uint64_t";
     case XL6_IR_C_ABI_F64: return "double";
     case XL6_IR_C_ABI_F32: return "float";
+    case XL6_IR_C_ABI_CHAR_U32: return "uint32_t";
     case XL6_IR_C_ABI_C_CHAR: return "char";
     case XL6_IR_C_ABI_C_SCHAR: return "signed char";
     case XL6_IR_C_ABI_C_UCHAR: return "unsigned char";
@@ -67,7 +68,8 @@ static const char* xl6IrCgenType(const XL6_IrModule* module, XL6_IrTypeId type)
     case XL6_IR_C_ABI_C_FLOAT: return "float";
     case XL6_IR_C_ABI_C_DOUBLE: return "double";
     case XL6_IR_C_ABI_C_WCHAR: return "wchar_t";
-    case XL6_IR_C_ABI_MANAGED_STRING: return "char*";
+    case XL6_IR_C_ABI_MANAGED_STRING: return "xlir_string";
+    case XL6_IR_C_ABI_MANAGED_BYTES: return "xvalue*";
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xvalue*";
     case XL6_IR_C_ABI_NATIVE_HANDLE: return "void*";
     case XL6_IR_C_ABI_RAW_POINTER: return "void*";
@@ -133,8 +135,8 @@ static uint32 xl6IrCgenPersistenceFieldFlags(
     if ( field == NULL ) return 0;
     if ( format == XL6_IR_PERSIST_FORMAT_JSON )
         return field->jsonPersistenceFlags;
-    if ( format == XL6_IR_PERSIST_FORMAT_XSON )
-        return field->xsonPersistenceFlags;
+    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
+        return field->xlonPersistenceFlags;
     return 0;
 }
 
@@ -144,8 +146,8 @@ static const char* xl6IrCgenPersistenceFieldKeyLiteral(
     if ( field == NULL ) return NULL;
     if ( format == XL6_IR_PERSIST_FORMAT_JSON )
         return field->jsonPersistenceKeyLiteral;
-    if ( format == XL6_IR_PERSIST_FORMAT_XSON )
-        return field->xsonPersistenceKeyLiteral;
+    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
+        return field->xlonPersistenceKeyLiteral;
     return NULL;
 }
 
@@ -162,7 +164,7 @@ static int xl6IrCgenPersistenceLayoutSupportedDepth(
     size_t fieldStart;
     if ( module == NULL || layout == NULL ||
          (format != XL6_IR_PERSIST_FORMAT_JSON &&
-          format != XL6_IR_PERSIST_FORMAT_XSON) ||
+          format != XL6_IR_PERSIST_FORMAT_XLON) ||
          (layout->persistenceFormatMask & format) == 0 ||
          (layout->persistenceObjectAbi !=
               XL6_IR_PERSISTENCE_OBJECT_CLOSED_SCHEMA &&
@@ -247,7 +249,7 @@ static int xl6IrCgenPersistenceValueProjectionSupported(
         ? xl6IrTypeGet(&module->types, typeId) : NULL;
     return type != NULL &&
         (format == XL6_IR_PERSIST_FORMAT_JSON ||
-         format == XL6_IR_PERSIST_FORMAT_XSON) &&
+         format == XL6_IR_PERSIST_FORMAT_XLON) &&
         xl6IrCgenPersistenceTypeSupportedDepth(
             module, typeId, format, 0, 0);
 }
@@ -260,11 +262,11 @@ static uint32 xl6IrCgenPersistenceRuntimeFormat(XL6_IrRuntimeOp operation)
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_READ:
         return XL6_IR_PERSIST_FORMAT_JSON;
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY:
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE:
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE:
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_READ:
-        return XL6_IR_PERSIST_FORMAT_XSON;
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_READ:
+        return XL6_IR_PERSIST_FORMAT_XLON;
     default:
         return XL6_IR_PERSIST_FORMAT_NONE;
     }
@@ -284,7 +286,7 @@ static int xl6IrCgenPersistenceStringifyAbi(
          (instruction->runtimeOp !=
               XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY &&
           instruction->runtimeOp !=
-              XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY) ||
+              XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY) ||
          instruction->operandCount != 2 ||
          instruction->firstOperand > module->operandCount ||
          instruction->operandCount >
@@ -331,7 +333,7 @@ static int xl6IrCgenPersistenceWriteAbi(
     if ( module == NULL || instruction == NULL ||
          instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
          (instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE &&
-          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE) ||
+          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE) ||
          instruction->operandCount != 3 ||
          instruction->firstOperand > module->operandCount ||
          instruction->operandCount >
@@ -383,9 +385,9 @@ static int xl6IrCgenPersistenceParseAbi(
     if ( module == NULL || instruction == NULL ||
          instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
          (instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE &&
-          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE &&
+          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE &&
           instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_READ &&
-          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XSON_READ) ||
+          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XLON_READ) ||
          instruction->operandCount != 2 ||
          instruction->firstOperand > module->operandCount ||
          instruction->operandCount >
@@ -622,11 +624,11 @@ static const char* xl6IrCgenExternParameterType(
     if ( target->parameterPhysicalAbis[parameter] !=
              XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ) return NULL;
     type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
-    /* A borrowed managed string is immutable at a foreign boundary.  Keep
-     * local storage as owned char*, but make the call target's C prototype
-     * carry the const contract already present in parameterAbis. */
+    /* Legacy C entry points are pointer ABI boundaries. Language and runtime
+     * bridge calls keep the full length-bearing value. */
     if ( type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-         target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_BORROW )
-        return "const char*";
+         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE )
+        return target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_BORROW
+            ? "const char*" : "char*";
     return xl6IrCgenType(module, target->parameterTypes[parameter]);
 }

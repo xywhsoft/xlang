@@ -1,0 +1,61 @@
+func makeSet() as set<string>
+    return set<string>{}
+end
+
+func fill(set<string> values)
+    values.add("name")
+end
+
+class Collections
+    set<string> names = set<string>{}
+    list<int> sparse = list<int>[]
+end
+
+func main(...) as int
+    // 前缀决定空字面量种类，不能沿用 {} 的字典或 [] 的数组物理布局。
+    set<string> names = set<string>{}
+    fill(names)
+    names.add("name")
+    names.add("score")
+    assert names.length == 2 and "name" in names
+    auto inferred = set{"alpha", "beta"}
+    inferred.add("gamma")
+    assert inferred.length == 3
+    auto empty = set{}
+    empty.add(7)
+    assert 7 in empty
+
+    list<int> sparse = list<int>[]
+    sparse[1000] = 42
+    assert sparse[1000] == 42 and sparse.length == 1
+    auto inferredList = list[]
+    inferredList[90] = "nine"
+    assert inferredList[90] == "nine"
+    auto populatedList = list<int>[4: 1, 8: 2]
+    assert populatedList[8] == 2
+
+    auto plainArray = []
+    plainArray.append(3)
+    assert plainArray[0] == 3
+    auto plainDict = {}
+    plainDict["key"] = 4
+    assert plainDict["key"] == 4
+    array<int> explicitArray = array<int>[]
+    explicitArray.append(5)
+    dict<int> explicitDict = dict<int>{}
+    explicitDict["value"] = 6
+    assert explicitArray[0] == 5 and explicitDict["value"] == 6
+
+    auto returned = makeSet()
+    returned.add("result")
+    assert "result" in returned
+    fill(set<string>{})
+    Collections one = Collections()
+    Collections two = Collections()
+    one.names.add("one")
+    one.sparse[900] = 9
+    assert one.names.length == 1 and two.names.length == 0
+    assert one.sparse[900] == 9 and two.sparse.length == 0
+    println("explicit empty collection kind ok")
+    return 0
+end

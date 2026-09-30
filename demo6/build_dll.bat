@@ -6,7 +6,6 @@ set XL6_ROOT=%CD%
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
-set "XL6_BUILD_TMP=build\tmp"
 set "XL6_RELEASE_CC=gcc"
 set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -Os -ffunction-sections -fdata-sections"
 set "XL6_RELEASE_LDFLAGS=-shared -Wl,--gc-sections -s"
@@ -22,7 +21,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist release mkdir release
+if not exist "%XL6_RELEASE_DIR%" mkdir "%XL6_RELEASE_DIR%"
 if not exist build mkdir build
 if not exist "%XL6_BUILD_TMP%" mkdir "%XL6_BUILD_TMP%"
 
@@ -66,6 +65,11 @@ if "%XL6_REGEN_GRAMMAR%"=="1" (
         exit /b 1
     )
     popd
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools\normalize_lemon_parser.ps1 -Path src\parser\xl6_parser.c
+    if errorlevel 1 (
+        echo DEMO6 generated parser normalization failed.
+        exit /b 1
+    )
 ) else (
     if not exist src\lexer\xl6_lexer_gen.c (
         echo DEMO6 lexer source missing: src\lexer\xl6_lexer_gen.c.
@@ -133,7 +137,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_vfs_resource
 if errorlevel 1 exit /b 1
 
 echo Building DEMO6 xl.dll runtime...
-"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% %XL6_RELEASE_LDFLAGS% -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% %XL6_RELEASE_LDFLAGS% -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl.dll" ^
     src\api\xl_api.c ^
     src\api\xl_api_symbols.c ^
     src\api\xl_api_path.c ^
@@ -200,17 +204,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if exist release\libtcc.dll del /f /q release\libtcc.dll >nul 2>nul
+if exist "%XL6_RELEASE_DIR%\libtcc.dll" del /f /q "%XL6_RELEASE_DIR%\libtcc.dll" >nul 2>nul
 
 echo Generating xl.dll import definition...
-"%XL6_TCC%" -impdef release\xl.dll -o release\xl.def
+"%XL6_TCC%" -impdef "%XL6_RELEASE_DIR%\xl.dll" -o "%XL6_RELEASE_DIR%\xl.def"
 if errorlevel 1 (
     echo DEMO6 xl.dll import definition failed.
     exit /b 1
 )
 
 echo Building DEMO6 xlc.dll compiler runtime...
-"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% %XL6_RELEASE_LDFLAGS% -DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% %XL6_RELEASE_LDFLAGS% -DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xlc.dll" ^
     src\api\xl_api.c ^
     src\api\xl_api_symbols.c ^
     src\api\xl_api_path.c ^
@@ -282,7 +286,7 @@ if errorlevel 1 (
 )
 
 echo Generating xlc.dll import definition...
-"%XL6_TCC%" -impdef release\xlc.dll -o release\xlc.def
+"%XL6_TCC%" -impdef "%XL6_RELEASE_DIR%\xlc.dll" -o "%XL6_RELEASE_DIR%\xlc.def"
 if errorlevel 1 (
     echo DEMO6 xlc.dll import definition failed.
     exit /b 1
@@ -311,9 +315,9 @@ if errorlevel 1 (
 )
 
 echo Building xlc.dll compile verification program...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_dll_embed_string.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xlc_dll_embed_string.exe" ^
     release\examples\xl_dll_embed_string.c ^
-    release\xlc.def
+    "%XL6_RELEASE_DIR%\xlc.def"
 
 if errorlevel 1 (
     echo DEMO6 xlc.dll verification program build failed.
@@ -321,9 +325,9 @@ if errorlevel 1 (
 )
 
 echo Building xlc.dll compiler API verification program...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_api_embed.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xlc_api_embed.exe" ^
     release\examples\xlc_api_embed.c ^
-    release\xlc.def
+    "%XL6_RELEASE_DIR%\xlc.def"
 
 if errorlevel 1 (
     echo DEMO6 xlc.dll compiler API verification program build failed.
@@ -331,9 +335,9 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll XRT export verification program...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_xrt_exports.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_xrt_exports.exe" ^
     release\examples\xl_dll_xrt_exports.c ^
-    release\xl.def
+    "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (
     echo DEMO6 xl.dll XRT export verification program build failed.
@@ -341,9 +345,9 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll dynamic run GUI demo...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -mwindows -o release\xl_run_demo.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -mwindows -o "%XL6_RELEASE_DIR%\xl_run_demo.exe" ^
     release\examples\xl_run_demo_win32.c ^
-    release\xl.def ^
+    "%XL6_RELEASE_DIR%\xl.def" ^
     -luser32 -lgdi32
 
 if errorlevel 1 (
@@ -352,9 +356,9 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll API boundary verification program...
-"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_null_context.exe ^
+"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_null_context.exe" ^
     release\examples\xl_dll_null_context.c ^
-    release\xl.def
+    "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (
     echo DEMO6 xl.dll API boundary verification program build failed.
@@ -362,9 +366,9 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll threaded host verification program...
-"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_threaded_host.exe ^
+"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_threaded_host.exe" ^
     release\examples\xl_dll_threaded_host.c ^
-    release\xl.def
+    "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (
     echo DEMO6 xl.dll threaded host verification program build failed.
@@ -372,14 +376,14 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll module dependency lifetime verification program...
-"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_module_dependency_lifetime.exe ^
+"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_RELEASE_DIR%\xl_dll_module_dependency_lifetime.exe" ^
     test\cases\xl_dll_module_dependency_lifetime.c ^
-    release\xl.def
+    "%XL6_RELEASE_DIR%\xl.def"
 
 if errorlevel 1 (
     echo DEMO6 xl.dll module dependency lifetime verification program build failed.
     exit /b 1
 )
 
-echo DEMO6 xl.dll/xlc.dll build ok: release\xl.dll release\xlc.dll
+echo DEMO6 xl.dll/xlc.dll build ok: "%XL6_RELEASE_DIR%\xl.dll" "%XL6_RELEASE_DIR%\xlc.dll"
 exit /b 0

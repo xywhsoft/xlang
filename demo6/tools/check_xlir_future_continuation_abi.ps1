@@ -102,7 +102,7 @@ foreach ( $required in @(
     "typedef struct xlir_future_continue_frame_",
     "static void xlir_future_continue_proc_",
     "static xfuture* xlir_future_continue_start_",
-    "xrtFutureWatchAdd(source, &frame->watch)",
+    "future = xl6FutureCallbackRuntimeV1Get()->Start(frame, source);",
     "xlir_future_continue_frame_cleanup_",
     "xrtPromiseForward(output, source)",
     "frame->callable = callable != NULL ? xlir_closure_retain(callable) : NULL;",
@@ -121,7 +121,7 @@ if ( ([regex]::Matches($c,
      ([regex]::Matches($c,
         'static void xlir_future_continue_proc_[0-9]+\(')).Count -ne 10 -or
      ([regex]::Matches($c,
-        'static xtaskoutcome xlir_task_spawn_task_[0-9]+\(')).Count -ne 9 -or
+        'static XL6_TaskOutcome xlir_task_spawn_task_[0-9]+\(')).Count -ne 9 -or
      ([regex]::Matches($c,
         'cancelled = ok && !xrtGetError\(\) && xrtCancelRequested\(cancel\);')).Count -ne 9 ) {
     throw "XLIR Future continuation did not emit one helper pair per RuntimeOp"

@@ -16,7 +16,7 @@ func stopJsonEvent(var event) as bool
     return int(event["depth"]) < 1
 end
 
-string source = '{"name":"xlang","items":[1,true,null]}'
+string source = `{"name":"xlang","items":[1,true,null]}`
 expect(json.visit(source, onJsonEvent), json.visitComplete)
 expect(eventCount, 8)
 expect(savedEvents.length, 1)
@@ -33,9 +33,9 @@ expect(writer.writeInt(1), 1)
 expect(writer.writeBool(true), 1)
 expect(writer.writeNull(), 1)
 expect(writer.endArray(), 1)
-expect(writer.writeValue("nested", json.parse('{"value":2.5}')), 1)
+expect(writer.writeValue("nested", json.parse(`{"value":2.5}`)), 1)
 expect(writer.endObject(), 1)
-expectStr(writer.finish(), '{"name":"xlang","items":[1,true,null],"nested":{"value":2.5}}')
+expectStr(writer.finish(), `{"name":"xlang","items":[1,true,null],"nested":{"value":2.5}}`)
 
 JsonWriter prettyWriter = json.writer(true)
 expect(prettyWriter.beginObject(), 1)
@@ -47,7 +47,7 @@ expect(prettyWriter.endArray(), 1)
 expect(prettyWriter.endObject(), 1)
 string prettyWriterText = prettyWriter.finish()
 expect(string.contains(prettyWriterText, "\n"), 1)
-expect(string.contains(prettyWriterText, '"items"'), 1)
+expect(string.contains(prettyWriterText, `"items"`), 1)
 expect(string.contains(prettyWriterText, "2"), 1)
 
 JsonWriter badWriter = JsonWriter()

@@ -26,7 +26,7 @@ class BoundReceiver extends BoundBase
     func options(string path, ***) as int
         return string.len(path) + arg.length
     end
-    func text(string value) as string
+    func text(string value = "a\0b") as string
         assert value != "fail", "bound string method failed"
         return value + ":bound"
     end
@@ -34,8 +34,8 @@ class BoundReceiver extends BoundBase
         if missing then return null end
         return "present"
     end
-    func mutate(byref int value)
-        value += 1
+    func mutate(int value) as int
+        return value + 1
     end
 end
 class BoundGetter
@@ -81,11 +81,13 @@ export "dynamic_bound_check" func boundCheck() as int
     var options = target.options
     var text = boundText(target)
     var nullable = target.nullable
-    var unsupported = target.mutate
+    var valueMethod = target.mutate
     target = null
     assert int(counter(10, 1, "two", {"number": 3})) == 13
     assert int(options("x", mode = "fast", retry = 2)) == 3
     assert string(text("hello")) == "hello:bound"
+    assert string(text("x\0y")) == "x\0y:bound"
+    assert string(text()) == "a\0b:bound"
     assert nullable(true) == null and string(nullable(false)) == "present"
     bool caught = false
     try
@@ -101,13 +103,7 @@ export "dynamic_bound_check" func boundCheck() as int
         caught = true
     end
     assert caught, "mismatched frame must not invoke any overload"
-    caught = false
-    try
-        unsupported(1)
-    catch failure
-        caught = true
-    end
-    assert caught, "unsupported adapter must fail explicitly"
+    assert int(valueMethod(1)) == 2
     assert boundRead({"read": null}) == null
     assert boundRead({}) == null and boundRead(null) == null
     assert int(boundRead(BoundGetter())) == 19

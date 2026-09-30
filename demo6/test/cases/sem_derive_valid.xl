@@ -1,9 +1,9 @@
-﻿class DerivePoint
+class DerivePoint
     derive copy
     derive clone
     derive value
     derive json
-    derive xson
+    derive xlon
 
     int x
     int y

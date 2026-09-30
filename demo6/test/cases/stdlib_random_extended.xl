@@ -1,0 +1,140 @@
+Random first = Random(uint64(2026))
+Random replay = Random(uint64(2026), uint64(1))
+assert first.u32() == replay.u32()
+assert first.u64() == replay.u64()
+assert first.below(uint64(1)) == uint64(0)
+assert first.range(7, 8) == 7
+assert first.rangeClosed(7, 7) == 7
+int firstWide = first.rangeClosed(-9223372036854775807 - 1, 9223372036854775807)
+assert firstWide >= -9223372036854775807 - 1
+float realValue = first.real()
+assert realValue >= 0.0 and realValue < 1.0
+
+first.seed(uint64(11))
+bytes firstBytes = first.bytes(17)
+first.seed(uint64(11))
+assert firstBytes == first.bytes(17)
+assert firstBytes.length == 17
+assert first.bytes(0) == b""
+
+first.seed(uint64(17))
+string firstText = first.string(12, "abc", 20)
+first.seed(uint64(17))
+assert firstText == first.string(12, "abc")
+assert string.len(firstText) == 12
+assert string.len(first.string(6, "ab\0c", 2)) == 6
+
+array valuesA = [1, 2, 3, 4, 5]
+array valuesB = [1, 2, 3, 4, 5]
+first.seed(uint64(100))
+first.shuffle(valuesA)
+first.seed(uint64(100))
+first.shuffle(valuesB)
+assert valuesA == valuesB
+assert valuesA != [1, 2, 3, 4, 5]
+
+Buffer buffer = Buffer()
+assert buffer.append("abcdefgh")
+int bufferLength = buffer.len()
+first.seed(uint64(23))
+bytes expectedFill = first.bytes(bufferLength)
+first.seed(uint64(23))
+first.fillBytes(buffer)
+assert buffer.len() == bufferLength
+for i in range(0, bufferLength)
+    assert buffer.byteAt(i) == int(expectedFill[i])
+end
+first.shuffleBuffer(buffer)
+assert buffer.len() == bufferLength
+
+random.seed(uint64(2026))
+bytes globalA = random.bytes(16)
+random.seed(uint64(2026))
+assert globalA == random.bytes(16)
+assert globalA.length == 16
+assert random.below(uint64(1)) == uint64(0)
+assert random.range(3, 4) == 3
+assert random.rangeClosed(3, 3) == 3
+int globalWide = random.rangeClosed(-9223372036854775807 - 1, 9223372036854775807)
+assert globalWide <= 9223372036854775807
+float globalReal = random.real()
+assert globalReal >= 0.0 and globalReal < 1.0
+assert string.len(random.string(8, "xy", 20)) == 8
+random.seed(uint64(24))
+bytes expectedGlobalFill = random.bytes(bufferLength)
+random.seed(uint64(24))
+random.fillBytes(buffer)
+for i in range(0, bufferLength)
+    assert buffer.byteAt(i) == int(expectedGlobalFill[i])
+end
+random.shuffleBuffer(buffer)
+random.shuffle(valuesA)
+
+bytes secret = crypto.randomBytes(32)
+assert secret.length == 32
+assert crypto.randomBytes(0) == b""
+assert string.len(crypto.randomHex(16)) == 32
+assert crypto.randomHex(0) == ""
+assert string.len(crypto.randomString()) == 22
+assert string.len(crypto.randomString(5, "abc", 100)) == 5
+assert string.len(crypto.randomString(5, "ab\0c", 2)) == 5
+crypto.fillRandomBytes(buffer)
+assert buffer.len() == bufferLength
+
+bool badRange = false
+try
+    random.range(7, 7)
+catch e
+    badRange = e.kind == "ValueError" or e.kind == "RangeError"
+end
+assert badRange
+
+bool badBound = false
+try
+    first.below(uint64(0))
+catch e
+    badBound = true
+end
+assert badBound
+
+bool badAlphabet = false
+try
+    crypto.randomString(8, "aa")
+catch e
+    badAlphabet = true
+end
+assert badAlphabet
+
+bool badUnicode = false
+try
+    random.string(8, "你")
+catch e
+    badUnicode = true
+end
+assert badUnicode
+
+bool badNul = false
+try
+    random.string(8, "ab\0c")
+catch e
+    badNul = true
+end
+assert badNul
+
+bool badSize = false
+try
+    random.string(8, "abc", -2)
+catch e
+    badSize = e.kind == "RangeError"
+end
+assert badSize
+
+bool badCount = false
+try
+    crypto.randomBytes(-1)
+catch e
+    badCount = e.kind == "RangeError"
+end
+assert badCount
+
+println("stdlib random extended ok")

@@ -1,0 +1,31 @@
+ConsoleOptions options = ConsoleOptions()
+options.mouse = true
+options.alternateScreen = true
+auto session = console.openSession(options)
+assert not session.closed()
+assert not session.pasteSupported()
+bool conflict = false
+try
+    io.stdin()
+catch e
+    conflict = true
+end
+assert conflict
+auto text = session.readEvent(1000)
+if text == null then throw IOError "missing text event" end
+assert text.kind == console.eventText
+assert text.text == "你" and text.key == 20320 and text.repeat == 1
+auto key = session.readEvent(1000)
+if key == null then throw IOError "missing key event" end
+assert key.kind == console.eventKey and key.key == console.keyUp
+assert text.text == "你"
+assert session.readEvent(10) == null
+session.write("batch:你")
+session.moveTo(0, 0)
+session.showCursor(false)
+session.setStyle(ConsoleStyle())
+session.clear(console.clearLine)
+session.flush()
+session.close()
+session.close()
+assert session.closed()

@@ -10,10 +10,9 @@ static void semantic(const char* body, int expected)
 {
     static const char prefix[] =
         "class Item\n int id = 3\nend\n"
-        "func fill(out int value) as int\n value = 1\n return 1\nend\n"
-        "func fillBool(out int value) as bool\n value = 1\n return true\nend\n"
-        "func pair(out int value, int other) as int\n value = other\n return other\nend\n"
-        "func clear(out Item? value) as int\n value = null\n return 0\nend\n";
+        "func fill() as int\n return 1\nend\n"
+        "func fillBool() as bool\n return true\nend\n"
+        "func pair(int other) as (int, int)\n return other, other\nend\n";
     char source[4096]; XL6_ParseResult parse; int result; size_t i;
     size_t prefixSize = strlen(prefix), bodySize = strlen(body);
     assert(prefixSize + bodySize < sizeof(source));
@@ -95,22 +94,15 @@ int main(void)
     semantic("func good(Item? item) as int\n return item != null ? item.id : 0\nend\n", 1);
     semantic("func good(Item? item) as int\n return item == null ? 0 : item.id\nend\n", 1);
     semantic("func bad(Item? item) as int\n auto seen = item != null ? item.id : 0\n return item.id\nend\n", 0);
-    semantic("func bad(Item? item, bool c) as int\n if item != null\n auto ignored = c ? clear(out item) : 0\n return item.id\n end\n return 0\nend\n", 0);
+    semantic("func bad(Item? item, bool c) as int\n if item != null\n item = c ? null : item\n return item.id\n end\n return 0\nend\n", 0);
     semantic("func bad(bool c)\n if c ? true : null\n end\nend\n", 0);
     semantic("func bad(bool c) as bool\n return (c ? true : null) and true\nend\n", 0);
-    semantic("func bad(out int value, bool c) as int\n return c ? fill(out value) : 0\nend\n", 0);
-    semantic("func bad(out int value, bool c) as int\n return c ? fill(out value) : value\nend\n", 0);
-    semantic("func good(out int value, bool c) as int\n return c ? fill(out value) : fill(out value)\nend\n", 1);
-    semantic("func bad(out int value, bool c) as bool\n return c and fillBool(out value)\nend\n", 0);
-    semantic("func bad(out int value, bool c) as bool\n return c or fillBool(out value)\nend\n", 0);
-    semantic("func bad(out int value, int? first) as int\n return first ?? fill(out value)\nend\n", 0);
-    semantic("func bad(out int value) as bool\n return true or fillBool(out value)\nend\n", 0);
-    semantic("func bad(out int value) as bool\n return false and fillBool(out value)\nend\n", 0);
-    semantic("func good(out int value) as bool\n return true and fillBool(out value)\nend\n", 1);
-    semantic("func good(out int value) as bool\n return false or fillBool(out value)\nend\n", 1);
-    semantic("func good(out int value) as int\n return null ?? fill(out value)\nend\n", 1);
-    semantic("func bad(out int value) as int\n return pair(out value, value)\nend\n", 0);
-    semantic("func good(out int value) as int\n return pair(out value, fill(out value))\nend\n", 1);
+    semantic("func bad(bool c) as int\n int value\n if c then value = fill() end\n return value\nend\n", 0);
+    semantic("func good(bool c) as int\n int value\n if c then value = fill() else value = 0 end\n return value\nend\n", 1);
+    semantic("func good(bool c) as int\n return c ? fill() : 0\nend\n", 1);
+    semantic("func good(bool c) as bool\n return c and fillBool()\nend\n", 1);
+    semantic("func good(int? first) as int\n return first ?? fill()\nend\n", 1);
+    semantic("func good(int other) as int\n auto left, right = pair(other)\n return left + right\nend\n", 1);
     semantic("func good(bool c) as int?\n int? prior = 2\n return c ? prior : null\nend\n", 1);
     semantic("func good(bool c) as var\n return c ? 1 : \"different domain\"\nend\n", 1);
     lowered();

@@ -11,8 +11,16 @@ static int xl6IrCgenEmitCallableBridgeEncode(
         xl6OutputPrintf(out, "    %s = %s; %s = NULL;\n", boxed, input, input); break;
     case XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN:
         xl6OutputPrintf(out, "    %s = %s != NULL ? xrtValueRetain(%s) : NULL;\n", boxed, input, input); break;
+    case XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE:
+        xl6OutputPrintf(out,
+            "    %s = %s != NULL && xrtValueType(%s) == XVALUE_BYTES ? %s : NULL; if (%s != NULL) %s = NULL;\n",
+            boxed, input, input, input, boxed, input); break;
+    case XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN:
+        xl6OutputPrintf(out,
+            "    %s = %s != NULL && xrtValueType(%s) == XVALUE_BYTES ? xrtValueRetain(%s) : NULL;\n",
+            boxed, input, input, input); break;
     case XL6_IR_CALLABLE_BRIDGE_STRING_COPY:
-        xl6OutputPrintf(out, "    %s = %s != NULL ? xrtValueString(xrtStrView(%s)) : NULL;\n", boxed, input, input); break;
+        xl6OutputPrintf(out, "    %s = %s.Data != NULL ? xrtValueString(%s) : NULL;\n", boxed, input, input); break;
     case XL6_IR_CALLABLE_BRIDGE_ERROR_REF:
         xl6OutputPrintf(out, "    %s = xlir_xvalue_error_ref(%s, 0x%016llXULL);\n",
             boxed, input, (unsigned long long)item->typeValueId); break;
@@ -21,6 +29,8 @@ static int xl6IrCgenEmitCallableBridgeEncode(
             boxed, input, input, (unsigned)type, (unsigned long long)item->typeValueId); break;
     case XL6_IR_CALLABLE_BRIDGE_BOOL:
         xl6OutputPrintf(out, "    %s = xrtValueRetain(xrtValueBool(%s));\n", boxed, input); break;
+    case XL6_IR_CALLABLE_BRIDGE_CHAR:
+        xl6OutputPrintf(out, "    %s = xrtValueChar(%s);\n", boxed, input); break;
     case XL6_IR_CALLABLE_BRIDGE_I64:
         xl6OutputPrintf(out, "    %s = xrtValueInt(%s);\n", boxed, input); break;
     case XL6_IR_CALLABLE_BRIDGE_U64:
@@ -44,8 +54,12 @@ static int xl6IrCgenEmitCallableBridgeDecode(
     switch (slot->decodeAbi) {
     case XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN:
         xl6OutputPrintf(out, "    %s = xrtValueRetain(%s); if (%s == NULL) goto conversion_fail;\n", output, boxed, output); break;
+    case XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN:
+        xl6OutputPrintf(out,
+            "    if (%s == NULL || xrtValueType(%s) != XVALUE_BYTES || (%s = xrtValueRetain(%s)) == NULL) goto conversion_fail;\n",
+            boxed, boxed, output, boxed); break;
     case XL6_IR_CALLABLE_BRIDGE_STRING_COPY:
-        xl6OutputPrintf(out, "    { xlir_string_view text = {0}; if (!xrtValueGetString(%s, &text) || (%s = xrtStrDupN(text.Data, text.Size)) == NULL) goto conversion_fail; }\n", boxed, output); break;
+        xl6OutputPrintf(out, "    { xlir_string_view text = {0}; if (!xrtValueGetString(%s, &text) || (%s = xlir_string_from_utf8(text.Data, text.Size)).Data == NULL) goto conversion_fail; }\n", boxed, output); break;
     case XL6_IR_CALLABLE_BRIDGE_ERROR_REF:
         xl6OutputPrintf(out, "    if (!xlir_xvalue_cast_checked(%s, 0x%016llXULL, %d, &%s)) goto conversion_fail;\n",
             boxed, (unsigned long long)item->typeValueId, (int)XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED, output); break;
@@ -53,6 +67,7 @@ static int xl6IrCgenEmitCallableBridgeDecode(
         xl6OutputPrintf(out, "    %s = xlir_xvalue_project_closure_try_copy(%s, (void (*)(void))xlir_xvalue_closure_entry_t%u);\n"
             "    if (%s == NULL) goto conversion_fail;\n", output, boxed, (unsigned)slot->type, output); break;
     case XL6_IR_CALLABLE_BRIDGE_BOOL: getter = "xrtValueGetBool"; break;
+    case XL6_IR_CALLABLE_BRIDGE_CHAR: getter = "xrtValueGetChar"; break;
     case XL6_IR_CALLABLE_BRIDGE_I64: getter = "xrtValueGetInt"; break;
     case XL6_IR_CALLABLE_BRIDGE_U64: getter = "xrtValueGetUInt"; break;
     case XL6_IR_CALLABLE_BRIDGE_F64: getter = "xrtValueGetFloat"; break;

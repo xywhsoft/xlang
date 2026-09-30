@@ -181,30 +181,28 @@ bool xl6_xrt_ws_mask(void* pBuffer, uint32_t iMask, uint64_t iOffset)
 
 
 /* 创建并立即验证一个待写出的 Close 载荷。 */
-void* xl6_xrt_ws_close_create(int64_t iCode, const char* sReason)
+void* xl6_xrt_ws_close_create(int64_t iCode, xlir_string reason)
 {
 	xl6_ws_close* pValue;
-	xstrview Reason;
 	size_t iSize = 0u;
 
 	if ( (iCode < 0) || (iCode > UINT16_MAX) ) {
 		return 0;
 	}
-	Reason = (xstrview){ sReason != 0 ? sReason : "", sReason != 0 ? strlen(sReason) : 0u };
-	if ( !xrtWsCloseWrite((uint16)iCode, Reason, 0, 0u, &iSize) ) {
+	if ( reason.Data == 0 || !xrtWsCloseWrite((uint16)iCode, reason, 0, 0u, &iSize) ) {
 		return 0;
 	}
 	pValue = (xl6_ws_close*)xrtCalloc(1u, sizeof(*pValue));
 	if ( pValue == 0 ) {
 		return 0;
 	}
-	pValue->Reason = xl6_xrt_string_dup(Reason.Data, Reason.Size);
+	pValue->Reason = xl6_xrt_string_dup(reason.Data, reason.Size);
 	if ( pValue->Reason == 0 ) {
 		xrtFree(pValue);
 		return 0;
 	}
 	pValue->Code = (uint16)iCode;
-	pValue->ReasonSize = Reason.Size;
+	pValue->ReasonSize = reason.Size;
 	return pValue;
 }
 
@@ -299,31 +297,28 @@ void* xl6_xrt_ws_key_generate(void)
 
 
 /* 计算 Sec-WebSocket-Accept。 */
-void* xl6_xrt_ws_accept(const char* sKey)
+void* xl6_xrt_ws_accept(xlir_string key)
 {
 	char sAccept[XWS_ACCEPT_CAPACITY];
-	xstrview Key = { sKey != 0 ? sKey : "", sKey != 0 ? strlen(sKey) : 0u };
 
-	return xrtWsAccept(Key, sAccept, sizeof(sAccept)) ? xl6_xrt_string_dup(sAccept, XWS_ACCEPT_SIZE) : 0;
+	return key.Data != 0 && xrtWsAccept(key, sAccept, sizeof(sAccept)) ? xl6_xrt_string_dup(sAccept, XWS_ACCEPT_SIZE) : 0;
 }
 
 
 
-bool xl6_xrt_ws_key_valid(const char* sKey) { xstrview Key = { sKey != 0 ? sKey : "", sKey != 0 ? strlen(sKey) : 0u }; return xrtWsKeyValid(Key); }
-bool xl6_xrt_ws_accept_valid(const char* sKey, const char* sAccept) { xstrview Key = { sKey != 0 ? sKey : "", sKey != 0 ? strlen(sKey) : 0u }; xstrview Accept = { sAccept != 0 ? sAccept : "", sAccept != 0 ? strlen(sAccept) : 0u }; return xrtWsAcceptValid(Key, Accept); }
-bool xl6_xrt_ws_protocols_valid(const char* sProtocols) { xstrview Value = { sProtocols != 0 ? sProtocols : "", sProtocols != 0 ? strlen(sProtocols) : 0u }; return xrtWsProtocolsValid(Value); }
-bool xl6_xrt_ws_protocols_has(const char* sProtocols, const char* sProtocol) { xstrview Values = { sProtocols != 0 ? sProtocols : "", sProtocols != 0 ? strlen(sProtocols) : 0u }; xstrview Value = { sProtocol != 0 ? sProtocol : "", sProtocol != 0 ? strlen(sProtocol) : 0u }; return xrtWsProtocolsHas(Values, Value); }
+bool xl6_xrt_ws_key_valid(xlir_string key) { return key.Data != 0 && xrtWsKeyValid(key); }
+bool xl6_xrt_ws_accept_valid(xlir_string key, xlir_string accept) { return key.Data != 0 && accept.Data != 0 && xrtWsAcceptValid(key, accept); }
+bool xl6_xrt_ws_protocols_valid(xlir_string protocols) { return protocols.Data != 0 && xrtWsProtocolsValid(protocols); }
+bool xl6_xrt_ws_protocols_has(xlir_string protocols, xlir_string protocol) { return protocols.Data != 0 && protocol.Data != 0 && xrtWsProtocolsHas(protocols, protocol); }
 
 
 
 /* 按客户端偏好返回首个双方支持的子协议。 */
-void* xl6_xrt_ws_protocol_select(const char* sClient, const char* sServer)
+void* xl6_xrt_ws_protocol_select(xlir_string client, xlir_string server)
 {
-	xstrview Client = { sClient != 0 ? sClient : "", sClient != 0 ? strlen(sClient) : 0u };
-	xstrview Server = { sServer != 0 ? sServer : "", sServer != 0 ? strlen(sServer) : 0u };
 	xstrview Selected;
 
-	return xrtWsProtocolSelect(Client, Server, &Selected) ?
+	return client.Data != 0 && server.Data != 0 && xrtWsProtocolSelect(client, server, &Selected) ?
 		xl6_xrt_string_dup(Selected.Data != 0 ? Selected.Data : "", Selected.Size) : 0;
 }
 );
@@ -423,8 +418,8 @@ static bool xl6_ws_upgrade_own_protocol(xl6_ws_upgrade* pValue)
 
 /* 创建客户端握手快照并生成原始请求字段。 */
 void* xl6_xrt_ws_upgrade_client(
-	const char* sHost,
-	const char* sProtocols,
+	xlir_string host,
+	xlir_string protocols,
 	bool bEnableDeflate,
 	bool bRequireDeflate
 )
@@ -436,8 +431,10 @@ void* xl6_xrt_ws_upgrade_client(
 	size_t iCount = 0u;
 	xstrview Host;
 	xstrview Extensions = { 0 };
+	const char* sHost = xlir_string_cstr(host);
+	const char* sProtocols = xlir_string_cstr(protocols);
 
-	if ( (sHost == 0) || (sHost[0] == 0) ) {
+	if ( (sHost == 0) || (sHost[0] == 0) || sProtocols == 0 ) {
 		return 0;
 	}
 	pValue = (xl6_ws_upgrade*)xrtCalloc(1u, sizeof(*pValue));
@@ -450,7 +447,7 @@ void* xl6_xrt_ws_upgrade_client(
 		return 0;
 	}
 	xrtWsUpgradeClientConfigInit(&pValue->Client);
-	pValue->Client.Protocols = (xstrview){ pValue->Protocols, strlen(pValue->Protocols) };
+	pValue->Client.Protocols = (xstrview){ pValue->Protocols, protocols.Size };
 	if ( bEnableDeflate ) {
 		xrtWsDeflateInit(&pValue->Client.Deflate);
 		pValue->Client.EnableDeflate = true;
@@ -467,7 +464,7 @@ void* xl6_xrt_ws_upgrade_client(
 		xrtFree(pValue);
 		return 0;
 	}
-	Host = (xstrview){ sHost, strlen(sHost) };
+	Host = (xstrview){ sHost, host.Size };
 	if ( !xrtWsUpgradeRequestFields(
 		Host,
 		(xstrview){ pValue->Key, XWS_KEY_SIZE },
@@ -496,7 +493,7 @@ void* xl6_xrt_ws_upgrade_client(
 /* 校验服务端请求并生成 101 响应字段。 */
 void* xl6_xrt_ws_upgrade_server(
 	void* pHeadHandle,
-	const char* sProtocols,
+	xlir_string protocols,
 	bool bEnableDeflate,
 	bool bRequireDeflate
 )
@@ -506,8 +503,9 @@ void* xl6_xrt_ws_upgrade_server(
 	xwsupgradeserverconfig Config;
 	xhttpfield Fields[XWS_UPGRADE_RESPONSE_FIELDS_MAX];
 	size_t iCount = 0u;
+	const char* sProtocols = xlir_string_cstr(protocols);
 
-	if ( (pHead == 0) || (pHead->Status != XHTTP1_READY) ) {
+	if ( (pHead == 0) || (pHead->Status != XHTTP1_READY) || sProtocols == 0 ) {
 		return 0;
 	}
 	pValue = (xl6_ws_upgrade*)xrtCalloc(1u, sizeof(*pValue));
@@ -520,7 +518,7 @@ void* xl6_xrt_ws_upgrade_server(
 		return 0;
 	}
 	xrtWsUpgradeServerConfigInit(&Config);
-	Config.Protocols = (xstrview){ pValue->Protocols, strlen(pValue->Protocols) };
+	Config.Protocols = (xstrview){ pValue->Protocols, protocols.Size };
 	Config.EnableDeflate = bEnableDeflate != 0;
 	Config.RequireDeflate = bRequireDeflate != 0;
 	Config.AcceptDeflate = bEnableDeflate ? xl6_ws_deflate_accept : 0;

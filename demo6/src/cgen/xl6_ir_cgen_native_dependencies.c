@@ -33,7 +33,7 @@ typedef enum XL6_IrCgenNativeGroup {
     XL6_IR_CGEN_NATIVE_COUNT
 } XL6_IrCgenNativeGroup;
 
-static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uintptr_t operations,
+static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t operations,
     XL6_IrCgenNativeModuleVisitor visitor, void* context)
 {
     static const char* const modules[][32] = {
@@ -47,6 +47,52 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uintptr_t oper
         if (!visitor(context,modules[group][i])) return 0;
 #define REQUIRE(Name) do { if (!visitor(context,Name)) return 0; } while (0)
     switch (group) {
+    case XL6_IR_CGEN_NATIVE_CONSOLE_INPUT_SCREEN:
+        REQUIRE("XRT_MODULE_CONSOLE");
+        if (operations & (XL6_CONSOLE_BIT(READ_LINE) | XL6_CONSOLE_BIT(READ_CHAR)))
+            REQUIRE("XRT_MODULE_CONSOLE_INPUT");
+        if (operations & (XL6_CONSOLE_BIT(SIZE) | XL6_CONSOLE_BIT(COLOR) | XL6_CONSOLE_BIT(STYLED)))
+            REQUIRE("XRT_MODULE_CONSOLE_SCREEN");
+        if (operations & ~(XL6_CONSOLE_BIT(READ_LINE) | XL6_CONSOLE_BIT(READ_CHAR) | XL6_CONSOLE_BIT(IS_TERMINAL) |
+            XL6_CONSOLE_BIT(SIZE) | XL6_CONSOLE_BIT(COLOR) | XL6_CONSOLE_BIT(STYLED)))
+            REQUIRE("XRT_MODULE_CONSOLE_TERMINAL");
+        break;
+    case XL6_IR_CGEN_NATIVE_IO_FILES:
+        REQUIRE("XRT_MODULE_IO");
+        if (operations & (XL6_IO_BIT(READ_FILE) | XL6_IO_BIT(WRITE_FILE) |
+            XL6_IO_BIT(WRITE_TEXT_FILE) | XL6_IO_BIT(WRITE_BUFFER_FILE) |
+            XL6_IO_BIT(READER_OPEN) | XL6_IO_BIT(WRITER_OPEN))) REQUIRE("XRT_MODULE_IO_FILE");
+        if (operations & (XL6_IO_BIT(READ_FILE) | XL6_IO_BIT(READER_BYTES) |
+            XL6_IO_BIT(READER_BUFFER) | XL6_IO_BIT(READER_ALL) |
+            XL6_IO_BIT(WRITER_BUFFER))) REQUIRE("XRT_MODULE_IO_BUFFER");
+        if (operations & (XL6_IO_BIT(READER_INTO) | XL6_IO_BIT(WRITER_WRITE_BUFFER) |
+            XL6_IO_BIT(WRITER_ALL_BUFFER) | XL6_IO_BIT(WRITER_TO_BYTES) |
+            XL6_IO_BIT(WRITE_BUFFER_FILE))) REQUIRE("XRT_MODULE_BUFFER");
+        if (operations & (XL6_IO_BIT(READER_STDIN) | XL6_IO_BIT(WRITER_STANDARD)))
+            REQUIRE("XRT_MODULE_IO_STANDARD");
+        if (operations & (XL6_IO_BIT(LINES_CREATE) | XL6_IO_BIT(LINES_DESTROY) |
+            XL6_IO_BIT(LINES_CLOSE) | XL6_IO_BIT(LINES_ADVANCE) |
+            XL6_IO_BIT(LINES_BYTES) | XL6_IO_BIT(LINES_ENDING))) REQUIRE("XRT_MODULE_IO_LINE");
+        break;
+    case XL6_IR_CGEN_NATIVE_RANDOM:
+        if (operations & XL6_CGEN_RNG_EXPLICIT_MASK) {
+            REQUIRE("XRT_MODULE_RANDOM");
+            REQUIRE("XRT_MODULE_THREAD");
+        }
+        if (operations & XL6_CGEN_RNG_DEFAULT_MASK) REQUIRE("XRT_MODULE_RANDOM_DEFAULT");
+        if (operations & XL6_CGEN_RNG_STRING) REQUIRE("XRT_MODULE_RANDOM_TEXT");
+        if (operations & XL6_CGEN_RAND_STRING) REQUIRE("XRT_MODULE_RANDOM_TEXT_DEFAULT");
+        if (operations & XL6_CGEN_RNG_SECURE_MASK) REQUIRE("XRT_MODULE_RANDOM_SECURE");
+        if (operations & XL6_CGEN_SECURE_STRING) REQUIRE("XRT_MODULE_RANDOM_SECURE_TEXT");
+        if (operations & XL6_CGEN_SECURE_HEX) REQUIRE("XRT_MODULE_CODEC_HEX");
+        if (operations & (XL6_CGEN_RNG_BYTES_MASK | XL6_CGEN_RNG_ARRAY_MASK)) REQUIRE("XRT_MODULE_VALUE_COLLECTION");
+        if (operations & XL6_CGEN_RNG_BUFFER_MASK) REQUIRE("XRT_MODULE_BUFFER");
+        break;
+    case XL6_IR_CGEN_NATIVE_XID:
+        if (operations & (1u << (XL6_IR_RUNTIME_BRIDGE_XID_MAKE_MANY -
+                XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING)))
+            REQUIRE("XRT_MODULE_VALUE_COLLECTION");
+        break;
     case XL6_IR_CGEN_NATIVE_TLS:
         /* The selected TLS adapter exposes certificate-to-hex conversion. */
         REQUIRE("XRT_MODULE_CODEC_HEX");
@@ -56,14 +102,45 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uintptr_t oper
         if (operations & XL6_CGEN_JSON_STRINGIFY) REQUIRE("XRT_MODULE_JSON_WRITE");
         if (operations & (XL6_CGEN_JSON_PARSE_FILE|XL6_CGEN_JSON_WRITE_FILE)) REQUIRE("XRT_MODULE_JSON_FILE");
         break;
-    case XL6_IR_CGEN_NATIVE_XSON:
-        if (operations & (XL6_CGEN_XSON_PARSE|XL6_CGEN_XSON_VALID|XL6_CGEN_XSON_VISIT)) REQUIRE("XRT_MODULE_XSON_READ");
-        if (operations & (XL6_CGEN_XSON_STRINGIFY|XL6_CGEN_XSON_WRITER)) REQUIRE("XRT_MODULE_XSON_WRITE");
-        if (operations & (XL6_CGEN_XSON_READ|XL6_CGEN_XSON_WRITE)) REQUIRE("XRT_MODULE_XSON_FILE");
+    case XL6_IR_CGEN_NATIVE_STRUCTURED_OPTIONS:
+        if (operations & XL6_CGEN_CONFIG_XLON_DECODE) REQUIRE("XRT_MODULE_XLON_READ");
+        if (operations & XL6_CGEN_CONFIG_JSON_VALID) REQUIRE("XRT_MODULE_JSON_READ");
+        if (operations & XL6_CGEN_CONFIG_XLON_VALID) REQUIRE("XRT_MODULE_XLON_READ");
+        if (operations & XL6_CGEN_CONFIG_JSONL_VALID) REQUIRE("XRT_MODULE_JSONL_READ");
+        if (operations & XL6_CGEN_CONFIG_XLONL_VALID) REQUIRE("XRT_MODULE_XLONL_READ");
+        if (operations & XL6_CGEN_CONFIG_JSON_VISIT) REQUIRE("XRT_MODULE_JSON_READ");
+        if (operations & XL6_CGEN_CONFIG_XLON_VISIT) REQUIRE("XRT_MODULE_XLON_READ");
+        if (operations & XL6_CGEN_CONFIG_JSON_QUOTE) { REQUIRE("XRT_MODULE_JSON_ESCAPE"); REQUIRE("XRT_MODULE_BUFFER"); }
+        if (operations & XL6_CGEN_CONFIG_JSON_QUOTE_TO) REQUIRE("XRT_MODULE_JSON_ESCAPE");
+        if (operations & XL6_CGEN_CONFIG_JSON_WRITE_TO) REQUIRE("XRT_MODULE_JSON_WRITE");
+        if (operations & XL6_CGEN_CONFIG_XLON_WRITE_TO) REQUIRE("XRT_MODULE_XLON_WRITE");
+        if (operations & XL6_CGEN_CONFIG_JSONL_WRITE_TO) REQUIRE("XRT_MODULE_JSONL_WRITE");
+        if (operations & XL6_CGEN_CONFIG_XLONL_WRITE_TO) REQUIRE("XRT_MODULE_XLONL_WRITE");
+        if (operations & XL6_CGEN_CONFIG_JSON_PARSE) REQUIRE("XRT_MODULE_JSON_READ");
+        if (operations & XL6_CGEN_CONFIG_JSON_READ_FILE) REQUIRE("XRT_MODULE_JSON_FILE");
+        if (operations & XL6_CGEN_CONFIG_JSON_STRINGIFY) { REQUIRE("XRT_MODULE_JSON_WRITE"); REQUIRE("XRT_MODULE_BUFFER"); }
+        if (operations & XL6_CGEN_CONFIG_JSON_WRITE_FILE) REQUIRE("XRT_MODULE_JSON_FILE");
+        if (operations & XL6_CGEN_CONFIG_XLON_PARSE) REQUIRE("XRT_MODULE_XLON_READ");
+        if (operations & XL6_CGEN_CONFIG_XLON_READ_FILE) REQUIRE("XRT_MODULE_XLON_FILE");
+        if (operations & XL6_CGEN_CONFIG_XLON_STRINGIFY) { REQUIRE("XRT_MODULE_XLON_WRITE"); REQUIRE("XRT_MODULE_BUFFER"); }
+        if (operations & XL6_CGEN_CONFIG_XLON_WRITE_FILE) REQUIRE("XRT_MODULE_XLON_FILE");
+        if (operations & XL6_CGEN_CONFIG_JSONL_PARSE) REQUIRE("XRT_MODULE_JSONL_READ");
+        if (operations & XL6_CGEN_CONFIG_JSONL_READ_FILE) REQUIRE("XRT_MODULE_JSONL_FILE");
+        if (operations & XL6_CGEN_CONFIG_JSONL_STRINGIFY) { REQUIRE("XRT_MODULE_JSONL_WRITE"); REQUIRE("XRT_MODULE_BUFFER"); }
+        if (operations & XL6_CGEN_CONFIG_JSONL_WRITE_FILE) REQUIRE("XRT_MODULE_JSONL_FILE");
+        if (operations & XL6_CGEN_CONFIG_XLONL_PARSE) REQUIRE("XRT_MODULE_XLONL_READ");
+        if (operations & XL6_CGEN_CONFIG_XLONL_READ_FILE) REQUIRE("XRT_MODULE_XLONL_FILE");
+        if (operations & XL6_CGEN_CONFIG_XLONL_STRINGIFY) { REQUIRE("XRT_MODULE_XLONL_WRITE"); REQUIRE("XRT_MODULE_BUFFER"); }
+        if (operations & XL6_CGEN_CONFIG_XLONL_WRITE_FILE) REQUIRE("XRT_MODULE_XLONL_FILE");
+        break;
+    case XL6_IR_CGEN_NATIVE_XLON:
+        if (operations & (XL6_CGEN_XLON_PARSE|XL6_CGEN_XLON_VALID|XL6_CGEN_XLON_VISIT)) REQUIRE("XRT_MODULE_XLON_READ");
+        if (operations & (XL6_CGEN_XLON_STRINGIFY|XL6_CGEN_XLON_WRITER)) REQUIRE("XRT_MODULE_XLON_WRITE");
+        if (operations & (XL6_CGEN_XLON_READ|XL6_CGEN_XLON_WRITE)) REQUIRE("XRT_MODULE_XLON_FILE");
         break;
     case XL6_IR_CGEN_NATIVE_PERSISTENCE:
         if (operations & XL6_IR_PERSIST_FORMAT_JSON) REQUIRE("XRT_MODULE_JSON_FILE");
-        if (operations & XL6_IR_PERSIST_FORMAT_XSON) REQUIRE("XRT_MODULE_XSON_FILE");
+        if (operations & XL6_IR_PERSIST_FORMAT_XLON) REQUIRE("XRT_MODULE_XLON_FILE");
         break;
     default: break;
     }
@@ -81,7 +158,7 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
         !visitor(context,"XRT_MODULE_CONSOLE")) return 0;
 #define XL6_IR_CGEN_NEED(Type, Field, Group) \
     if (needs.Field && !xl6IrCgenVisitNativeGroup(XL6_IR_CGEN_NATIVE_##Group, \
-            (uintptr_t)needs.Field,visitor,context)) return 0;
+            (uint64_t)needs.Field,visitor,context)) return 0;
 #include "src/cgen/xl6_ir_cgen_needs.inc"
 #undef XL6_IR_CGEN_NEED
     return 1;

@@ -76,7 +76,7 @@ int main(int argc, char** argv)
     /* Managed parameter binding/cleanup can raise independently of an empty
      * method body. Explicit scalar-only witnesses keep no-raise lifting
      * coverage stable without misclassifying those ownership effects. */
-    assert(calls >= 36 && mixed >= 4 && owned >= 5 && mutable >= 6 && async == 1 && pending != 0);
+    assert(calls >= 36 && mixed >= 4 && owned >= 5 && mutable == 0 && async == 1 && pending != 0);
     assert(xl6IrVerifyModule(&ir, &parse.diags));
     assert(argc == 4 && xl6OutputOpenFile(&out, argv[1]));
     if (!xl6IrCgenEmitC(&out, &ir, &parse.diags)) goto failed;
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     assert(xl6OutputOpenFile(&out, argv[3]));
     xl6OutputPrintf(&out, "#define PROTOCOL_PENDING s%u\n", (unsigned int)pending);
     xl6OutputClose(&out);
-    printf("protocol outcome: %llu calls, %llu no-raise witnesses in joined slots, %llu consuming arguments, %llu mutable arguments, %llu async witnesses, %llu rejected mutations\n",
+    printf("protocol outcome: %llu calls, %llu no-raise witnesses in joined slots, %llu consuming arguments, %llu legacy mutable arguments, %llu async witnesses, %llu rejected mutations\n",
         (unsigned long long)calls, (unsigned long long)mixed, (unsigned long long)owned,
         (unsigned long long)mutable, (unsigned long long)async, (unsigned long long)mutations);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;

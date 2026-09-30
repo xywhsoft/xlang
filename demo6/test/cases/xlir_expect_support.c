@@ -15,7 +15,7 @@ void expect_i64(int64_t actual, int64_t expected)
     }
 }
 
-void expect_str(char* actual, char* expected)
+void expect_str(const char* actual, const char* expected)
 {
     if ( actual == NULL || expected == NULL || strcmp(actual, expected) != 0 ) {
         fprintf(stderr, "XLIR runtime string assertion mismatch: %s != %s\n",

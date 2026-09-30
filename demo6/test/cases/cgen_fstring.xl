@@ -8,15 +8,24 @@ var dynamic = 7
 string basic = f"hello {name} {version} {ok}"
 string escaped = f"{{name}} = {name}"
 string rawPath = rf"c:\tmp\{name}.txt"
+string decodedEscape = f"line\n{version}"
+string exactBacktick = f`line\n{version}`
 string exprText = f"1 + 2 = {1 + 2}"
 string varText = f"dynamic={dynamic}"
 string multi = f"""line {version}
 {name}"""
+string dedented = f"""
+    line {version}
+    {name}
+    """
 
 expectStr(basic, "hello xlang 6 true")
 expectStr(escaped, "{name} = xlang")
 expectStr(rawPath, "c:\\tmp\\xlang.txt")
+expectStr(decodedEscape, "line\n6")
+expectStr(exactBacktick, r"line\n6")
 expectStr(exprText, "1 + 2 = 3")
 expectStr(varText, "dynamic=7")
 expectStr(multi, "line 6\nxlang")
+expectStr(dedented, "line 6\nxlang\n")
 expect(version, 6)

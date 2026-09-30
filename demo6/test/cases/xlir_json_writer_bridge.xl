@@ -24,7 +24,7 @@ func writerScope() as var
     assert alias.writeValue(payload)
     assert alias.endArray()
     assert alias.endObject()
-    assert alias.finish() == '{"nested":{"null":null,"bool":true,"int":-9223372036854775807,"float":2.5,"string":"中文","value":{"a":9}},"items":[null,false,9223372036854775807,3.5,"tail",{"a":9}]}'
+    assert alias.finish() == `{"nested":{"null":null,"bool":true,"int":-9223372036854775807,"float":2.5,"string":"中文","value":{"a":9}},"items":[null,false,9223372036854775807,3.5,"tail",{"a":9}]}`
     assert payload["a"] == 9
     return observeLifetime(writer)
 end

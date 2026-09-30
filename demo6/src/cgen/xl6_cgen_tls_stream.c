@@ -154,13 +154,14 @@ static xfuture* xl6_tls_stream_dial(
 }
 
 void* xl6_xrt_tls_connect(
-    const char* host,
+    xlir_string host,
     uint16_t port,
     void* configHandle,
     int64_t timeoutMs
 )
 {
-    xfuture* future = xl6_tls_stream_dial(host, port, configHandle, timeoutMs);
+    const char* chost = xlir_string_cstr(host);
+    xfuture* future = chost != 0 ? xl6_tls_stream_dial(chost, port, configHandle, timeoutMs) : 0;
     XL6_TlsStream* stream = 0;
     xvalue** box;
     xvalue* value;
@@ -177,9 +178,10 @@ void* xl6_xrt_tls_connect(
     return stream;
 }
 
-xfuture* xl6_xrt_tls_connect_async(const char* host, uint16_t port, void* configHandle, int64_t timeoutMs)
+xfuture* xl6_xrt_tls_connect_async(xlir_string host, uint16_t port, void* configHandle, int64_t timeoutMs)
 {
-    return xl6_tls_stream_dial(host, port, configHandle, timeoutMs);
+    const char* chost = xlir_string_cstr(host);
+    return chost != 0 ? xl6_tls_stream_dial(chost, port, configHandle, timeoutMs) : 0;
 }
 ) "\n";
 
@@ -248,9 +250,9 @@ xfuture* xl6_xrt_tls_stream_send_bytes_async(void* handle, void* data, size_t si
         xl6_tls_stream_future_map(xrtTlsStreamSendAsync(stream->Native, data, size), xl6_net_map_bool) : 0;
 }
 
-xfuture* xl6_xrt_tls_stream_send_text_async(void* handle, const char* text)
+xfuture* xl6_xrt_tls_stream_send_text_async(void* handle, xlir_string text)
 {
-    return text != 0 ? xl6_xrt_tls_stream_send_bytes_async(handle, (void*)text, strlen(text)) : 0;
+    return text.Data != 0 ? xl6_xrt_tls_stream_send_bytes_async(handle, (void*)text.Data, text.Size) : 0;
 }
 
 xfuture* xl6_xrt_tls_stream_send_vec_async(void* handle, xvalue* buffers)
@@ -290,9 +292,9 @@ int xl6_xrt_tls_stream_send_bytes(void* handle, void* data, size_t size, long lo
     return xl6_tls_stream_wait_future(xl6_xrt_tls_stream_send_bytes_async(handle, data, size), timeoutMs);
 }
 
-int xl6_xrt_tls_stream_send_text(void* handle, const char* text, long long timeoutMs)
+int xl6_xrt_tls_stream_send_text(void* handle, xlir_string text, long long timeoutMs)
 {
-    return text != 0 && xl6_xrt_tls_stream_send_bytes(handle, (void*)text, strlen(text), timeoutMs);
+    return text.Data != 0 && xl6_xrt_tls_stream_send_bytes(handle, (void*)text.Data, text.Size, timeoutMs);
 }
 
 xfuture* xl6_xrt_tls_stream_recv_owned_async(void* handle, size_t maxBytes)
@@ -384,7 +386,7 @@ static void xl6_tls_server_drop(void* value)
 }
 
 void* xl6_xrt_tls_listen(
-    const char* host,
+    xlir_string host,
     uint16_t port,
     void* configHandle,
     uint32_t backlog
@@ -394,6 +396,7 @@ void* xl6_xrt_tls_listen(
     XL6_TlsServer* server;
     xtlslistenerconfig config;
     xtlslistener* native;
+    const char* chost = xlir_string_cstr(host);
     if ( xl6_net_engine == 0 ) { return 0; }
     lease = xl6_tls_lease_create_mode(configHandle, false);
     if ( lease == 0 || lease->Invalid || lease->Identity == 0 ) {
@@ -401,7 +404,7 @@ void* xl6_xrt_tls_listen(
         return 0;
     }
     xrtTlsListenerConfigInit(&config);
-    if ( !xl6_net_address_parse(&config.Listen.Address, host, port, true) ) {
+    if ( chost == 0 || !xl6_net_address_parse(&config.Listen.Address, chost, port, true) ) {
         xl6_xrt_tls_lease_release(lease);
         return 0;
     }

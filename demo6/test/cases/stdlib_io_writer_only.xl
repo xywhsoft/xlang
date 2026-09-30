@@ -1,0 +1,4 @@
+auto writer = io.bufferWriter()
+writer.writeAll(b"a\x00b")
+assert writer.toBytes() == b"a\x00b"
+writer.close()

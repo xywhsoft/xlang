@@ -109,9 +109,18 @@ static int xl6IrCgenEmitNominalIdentityRuntime(
             "static bool xlir_nominal_set_%u_matches(const xvalue* source)\n"
             "{\n"
             "    uint64_t identity;\n"
-            "    if (source == NULL || xrtValueType(source) == 0) return false;\n"
-            "    identity = ",
+            "    if (source == NULL || xrtValueType(source) == 0) return false;\n",
             (unsigned int)(setIndex + 1));
+        /* Object-backed classes use runtime tags so derived classes match.
+         * Inline/handle-backed class values have no object tag; their bound
+         * exact TypeId is the nominal identity (Xid is one such value). */
+        if ( set->kind == XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG &&
+             set->nonObjectTypeId != 0 )
+            xl6OutputPrintf(out,
+                "    if (xrtValueType(source) != XVALUE_OBJECT &&\n"
+                "        xlir_xvalue_type_id(source) == 0x%016llXULL) return true;\n",
+                (unsigned long long)set->nonObjectTypeId);
+        xl6OutputPuts("    identity = ", out);
         if ( set->kind == XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID )
             xl6OutputPuts("xlir_xvalue_type_id(source);\n", out);
         else
@@ -566,12 +575,12 @@ static int xl6IrCgenEmitClosureMakeInstruction(
         XL6_IrValueId value = module->operands[instruction->firstOperand + capture];
         if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING ) {
             needsCopies = 1;
-            xl6OutputPrintf(out, "        e%lu->c%lu = v%u != NULL ? xrtStrDup(v%u) : NULL;\n",
+            xl6OutputPrintf(out, "        e%lu->c%lu = xlir_string_copy(v%u);\n",
                 (unsigned long)instructionIndex, (unsigned long)capture,
-                (unsigned int)value, (unsigned int)value);
+                (unsigned int)value);
         } else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_STRING ) {
             needsCopies = 1;
-            xl6OutputPrintf(out, "        e%lu->c%lu = xrtStrDup(v%u);\n",
+            xl6OutputPrintf(out, "        e%lu->c%lu = xlir_string_copy(v%u);\n",
                 (unsigned long)instructionIndex, (unsigned long)capture,
                 (unsigned int)value);
         } else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE ) {
@@ -608,11 +617,14 @@ static int xl6IrCgenEmitClosureMakeInstruction(
                 &module->closureCaptures[target->firstCapture + capture];
             XL6_IrValueId value = module->operands[instruction->firstOperand + capture];
             if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_STRING )
-                xl6OutputPrintf(out, "%se%lu->c%lu == NULL",
+                xl6OutputPrintf(out, "%se%lu->c%lu.Data == NULL",
                     conditionCount++ ? " || " : "", (unsigned long)instructionIndex,
                     (unsigned long)capture);
-            else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING ||
-                      item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE ||
+            else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING )
+                xl6OutputPrintf(out, "%s(v%u.Data != NULL && e%lu->c%lu.Data == NULL)",
+                    conditionCount++ ? " || " : "", (unsigned int)value,
+                    (unsigned long)instructionIndex, (unsigned long)capture);
+            else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE ||
                       item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE ||
                       item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE )
                 xl6OutputPrintf(out, "%s(v%u != NULL && e%lu->c%lu == NULL)",

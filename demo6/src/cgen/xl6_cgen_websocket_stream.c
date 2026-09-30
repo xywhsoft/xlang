@@ -735,18 +735,18 @@ long long xl6_xrt_ws_stream_send(
 
 
 
-/* string ABI 使用零结尾 UTF-8 文本，在适配层计算网络字节长度。 */
+/* 文本负载传递精确字节长度，内嵌零字节不在传输层截断。 */
 long long xl6_xrt_ws_stream_send_text(
 	void* pHandle,
-	const char* sText,
+	xlir_string text,
 	int bCompressed
 )
 {
 	return xl6_xrt_ws_stream_send(
 		pHandle,
 		XWS_OPCODE_TEXT,
-		(void*)sText,
-		sText != 0 ? strlen(sText) : 0u,
+		(void*)text.Data,
+		text.Size,
 		bCompressed
 	);
 }
@@ -812,7 +812,7 @@ long long xl6_xrt_ws_stream_pong(void* pHandle, void* pData, size_t iSize)
 
 
 /* 发起标准关闭握手。 */
-long long xl6_xrt_ws_stream_close(void* pHandle, long long iCode, const char* sReason)
+long long xl6_xrt_ws_stream_close(void* pHandle, long long iCode, xlir_string reason)
 {
 	xl6_ws_command Command;
 
@@ -822,7 +822,7 @@ long long xl6_xrt_ws_stream_close(void* pHandle, long long iCode, const char* sR
 	memset(&Command, 0, sizeof(Command));
 	Command.Kind = XL6_WS_COMMAND_CLOSE;
 	Command.Code = (uint16)iCode;
-	Command.Reason = (xstrview){ sReason != 0 ? sReason : "", sReason != 0 ? strlen(sReason) : 0u };
+	Command.Reason = reason;
 	Command.Result = XNET_RESULT_ERROR;
 	return xl6_ws_command_execute((xl6_ws_connection*)pHandle, &Command) ? Command.Result : XNET_RESULT_ERROR;
 }

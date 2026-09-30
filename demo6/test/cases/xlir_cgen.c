@@ -148,7 +148,7 @@ static int testSerializationCallbackResultAbi(void)
     };
     XL6_IrCallParameterConstraintAbi constraints[5] = {0};
     XL6_IrNodeId fields[5] = {0};
-    char* names[2] = {"xl6_xrt_json_visit", "xl6_xrt_xson_visit_options"};
+    char* names[2] = {"xl6_xrt_json_visit", "xl6_xrt_xlon_visit_options"};
     size_t i;
     memset(&module, 0, sizeof(module));
     memset(&target, 0, sizeof(target));

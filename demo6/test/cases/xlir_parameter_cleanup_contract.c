@@ -45,6 +45,8 @@ int main(void)
         if (target->kind != XL6_IR_CALL_TARGET_INTERNAL || target->parameterLifetimes == NULL) continue;
         for (j = 0; j < target->parameterCount; ++j) {
             XL6_IrParameterLifetime* lifetime = &target->parameterLifetimes[j];
+            MUTATE(XL6_IrParameterLifetime, lifetime, borrowReadOnly,
+                !lifetime->borrowReadOnly);
             if (!xl6IrCallTargetParameterBindingOwnsStorage(&ir, target, j)) continue;
             rebound += lifetime->rebindable != 0; stable += lifetime->rebindable == 0;
             MUTATE(XL6_IrParameterLifetime, lifetime, rebindable, !lifetime->rebindable);

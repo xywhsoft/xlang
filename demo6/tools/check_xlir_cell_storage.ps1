@@ -68,7 +68,7 @@ try {
         '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
-    $runtimeMarker='Resident cells: 400 typed lifetime/exchange/graph families, 450 actual allocation refusals, 250 frozen init/store/exchange/ref transitions, 50 in-flight payload finalizers; actual counts and exact allocator balance, no generated descriptors or native root registration'
+    $runtimeMarker='Resident cells: 450 typed lifetime/exchange/graph families, 500 actual allocation refusals, 250 frozen init/store/exchange/ref transitions, 50 in-flight payload finalizers; actual counts and exact allocator balance, no generated descriptors or native root registration'
     $cases=@(
         @{Name='resident';Sources=@('test/cases/xlir_cell_storage_runtime.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c');Pattern=[regex]::Escape($runtimeMarker)},
         @{Name='allocation';Sources=@('test/cases/xlir_cell_allocation_outcome_runtime.c','test/cases/xlir_cell_allocation_outcome_host.c')+$residentSources;

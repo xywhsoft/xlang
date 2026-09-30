@@ -3,28 +3,30 @@
 void xl6CgenEmitJsonValueRuntime(
     XL6_Output* out, unsigned operations, int hasXrtDeclarations)
 {
-    if ( (operations & (XL6_CGEN_JSON_PARSE | XL6_CGEN_JSON_VALID)) != 0 )
-        xl6OutputPuts("extern size_t strlen(const char*);\n", out);
     if ( (operations & XL6_CGEN_JSON_PARSE) != 0 ) {
         if ( !hasXrtDeclarations )
-            xl6OutputPuts("extern xvalue* xrtJsonParse(xstrview);\n", out);
+            xl6OutputPuts("extern xvalue* xrtJsonParse(xstrview);\nextern void xrtClearError(void);\n", out);
         xl6OutputPuts(
-            "xvalue* xl6_xrt_json_parse(const char* text)\n"
-            "{ return text != NULL ? xrtJsonParse((xstrview){ text, strlen(text) }) : NULL; }\n\n", out);
+            "xvalue* xl6_xrt_json_parse(xlir_string text)\n"
+            "{ xvalue* value = text.Data != NULL ? xrtJsonParse(text) : NULL;\n"
+            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
     }
     if ( (operations & XL6_CGEN_JSON_VALID) != 0 ) {
         if ( !hasXrtDeclarations )
-            xl6OutputPuts("extern bool xrtJsonValid(xstrview);\n", out);
+            xl6OutputPuts("extern bool xrtJsonValid(xstrview);\nextern void xrtClearError(void);\n", out);
         xl6OutputPuts(
-            "bool xl6_xrt_json_valid(const char* text)\n"
-            "{ return text != NULL && xrtJsonValid((xstrview){ text, strlen(text) }); }\n\n", out);
+            "bool xl6_xrt_json_valid(xlir_string text)\n"
+            "{ bool valid = text.Data != NULL && xrtJsonValid(text);\n"
+            "  if (!valid) xrtClearError();\n  return valid; }\n\n", out);
     }
     if ( (operations & XL6_CGEN_JSON_PARSE_FILE) != 0 ) {
         if ( !hasXrtDeclarations )
-            xl6OutputPuts("extern xvalue* xrtJsonParseFile(const char*);\n", out);
+            xl6OutputPuts("extern xvalue* xrtJsonParseFile(const char*);\nextern void xrtClearError(void);\n", out);
         xl6OutputPuts(
-            "xvalue* xl6_xrt_json_parse_file(const char* path)\n"
-            "{ return path != NULL ? xrtJsonParseFile(path) : NULL; }\n\n", out);
+            "xvalue* xl6_xrt_json_parse_file(xlir_string path)\n"
+            "{ const char* cpath = xlir_string_cstr(path);\n"
+            "  xvalue* value = cpath != NULL ? xrtJsonParseFile(cpath) : NULL;\n"
+            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
     }
     if ( (operations & XL6_CGEN_JSON_STRINGIFY) != 0 ) {
         if ( !hasXrtDeclarations )
@@ -35,9 +37,11 @@ void xl6CgenEmitJsonValueRuntime(
     }
     if ( (operations & XL6_CGEN_JSON_WRITE_FILE) != 0 ) {
         if ( !hasXrtDeclarations )
-            xl6OutputPuts("extern bool xrtJsonStringifyFile(const char*, const xvalue*, bool);\n", out);
+            xl6OutputPuts("extern bool xrtJsonStringifyFile(const char*, const xvalue*, bool);\nextern void xrtClearError(void);\n", out);
         xl6OutputPuts(
-            "bool xl6_xrt_json_write_file(const char* path, xvalue* value, int pretty)\n"
-            "{ return path != NULL && value != NULL && xrtJsonStringifyFile(path, value, pretty != 0); }\n\n", out);
+            "bool xl6_xrt_json_write_file(xlir_string path, xvalue* value, int pretty)\n"
+            "{ const char* cpath = xlir_string_cstr(path);\n"
+            "  bool ok = cpath != NULL && value != NULL && xrtJsonStringifyFile(cpath, value, pretty != 0);\n"
+            "  if (!ok) xrtClearError();\n  return ok; }\n\n", out);
     }
 }

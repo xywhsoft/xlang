@@ -53,39 +53,39 @@ end
 expect(int(fromJson.rank), 9)
 expectText(string(fromJson.tags[0]), "tank")
 
-auto xsonText = xson.stringify(p)
-auto fromXson = xson.parse::<Player>(xsonText)
-expect(fromXson.id, 7)
-expectText(fromXson.name, "hero")
-expect(fromXson.stats.hp, 120)
-assert fromXson.score != null, "nullable scalar should survive XSON"
-expect(fromXson.score as int, 42)
-assert fromXson.alias == null, "nullable string null should survive XSON"
-Stats xsonBackup = fromXson.backup as Stats
-expect(xsonBackup.hp, 80)
-array<int>? xsonLevelsMaybe = fromXson.levels
-if xsonLevelsMaybe != null then
-    expect(xsonLevelsMaybe[1], 5)
+auto xlonText = xlon.stringify(p)
+auto fromXlon = xlon.parse::<Player>(xlonText)
+expect(fromXlon.id, 7)
+expectText(fromXlon.name, "hero")
+expect(fromXlon.stats.hp, 120)
+assert fromXlon.score != null, "nullable scalar should survive XLON"
+expect(fromXlon.score as int, 42)
+assert fromXlon.alias == null, "nullable string null should survive XLON"
+Stats xlonBackup = fromXlon.backup as Stats
+expect(xlonBackup.hp, 80)
+array<int>? xlonLevelsMaybe = fromXlon.levels
+if xlonLevelsMaybe != null then
+    expect(xlonLevelsMaybe[1], 5)
 else
-    throw "nullable array should survive XSON"
+    throw "nullable array should survive XLON"
 end
-expect(int(fromXson.rank), 9)
-expectText(string(fromXson.tags[1]), "lead")
+expect(int(fromXlon.rank), 9)
+expectText(string(fromXlon.tags[1]), "lead")
 
 string jsonPath = "build/test/cgen_derive_persistence.json"
-string xsonPath = "build/test/cgen_derive_persistence.xson"
+string xlonPath = "build/test/cgen_derive_persistence.xlon"
 file.delete(jsonPath)
-file.delete(xsonPath)
+file.delete(xlonPath)
 
 assert json.write(jsonPath, p, true), "json class persistence write should succeed"
 auto fromJsonFile = json.read::<Player>(jsonPath)
 expect(fromJsonFile.id, 7)
 expectText(fromJsonFile.name, "hero")
 
-assert xson.write(xsonPath, p), "xson class persistence write should succeed"
-auto fromXsonFile = xson.read::<Player>(xsonPath)
-expect(fromXsonFile.stats.hp, 120)
-expectText(string(fromXsonFile.tags[1]), "lead")
+assert xlon.write(xlonPath, p), "xlon class persistence write should succeed"
+auto fromXlonFile = xlon.read::<Player>(xlonPath)
+expect(fromXlonFile.stats.hp, 120)
+expectText(string(fromXlonFile.tags[1]), "lead")
 
 file.delete(jsonPath)
-file.delete(xsonPath)
+file.delete(xlonPath)

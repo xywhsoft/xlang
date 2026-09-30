@@ -39,6 +39,8 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_TK_INT: return XL6PG_INT;
     case XL6_TK_FLOAT: return XL6PG_FLOAT;
     case XL6_TK_STRING: return XL6PG_STRING;
+    case XL6_TK_CHAR: return XL6PG_CHAR;
+    case XL6_TK_BYTES: return XL6PG_BYTES;
     case XL6_TK_FSTRING: return XL6PG_FSTRING;
     case XL6_TK_TIME: return XL6PG_TIME;
     case XL6_TK_DOC: return XL6PG_DOC;
@@ -80,9 +82,6 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_NATIVE: return XL6PG_KW_NATIVE;
     case XL6_KW_C_VARARG: return XL6PG_KW_C_VARARG;
     case XL6_KW_C_CALLBACK: return XL6PG_KW_C_CALLBACK;
-    case XL6_KW_BYVAL: return XL6PG_KW_BYVAL;
-    case XL6_KW_BYREF: return XL6PG_KW_BYREF;
-    case XL6_KW_OUT: return XL6PG_KW_OUT;
     case XL6_KW_MATCH: return XL6PG_KW_MATCH;
     case XL6_KW_CASE: return XL6PG_KW_CASE;
     case XL6_KW_RETURN: return XL6PG_KW_RETURN;
@@ -330,21 +329,10 @@ static int xl6ParserMatchTypeList(const XL6_ParseTokenStream* stream, size_t ind
     return 1;
 }
 
-static int xl6ParserIsParameterModeKind(int kind)
-{
-    return kind == XL6_KW_BYVAL || kind == XL6_KW_BYREF || kind == XL6_KW_OUT;
-}
-
 static int xl6ParserMatchFuncTypeParam(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext)
 {
     if ( stream == NULL || index >= stream->count ) {
         return 0;
-    }
-    if ( xl6ParserIsParameterModeKind(stream->tokens[index].kind) ) {
-        index += 1;
-        if ( index >= stream->count ) {
-            return 0;
-        }
     }
     if ( stream->tokens[index].kind == XL6_TK_ELLIPSIS ||
          stream->tokens[index].kind == XL6_TK_TRIPLE_STAR ) {
@@ -540,10 +528,6 @@ static int xl6ParserVMatchFuncTypeParam(const XL6_ParseTokenStream* stream, XL6_
     int kind;
 
     kind = xl6ParserVKindAt(stream, pos);
-    if (xl6ParserIsParameterModeKind(kind)) {
-        pos = xl6ParserVNext(stream, pos);
-        kind = xl6ParserVKindAt(stream, pos);
-    }
     if ( kind == XL6_TK_ELLIPSIS || kind == XL6_TK_TRIPLE_STAR ) {
         *outNext = xl6ParserVNext(stream, pos);
         return 1;
@@ -917,9 +901,8 @@ static int xl6ParserCanUseFunctionType(const XL6_ParseTokenStream* stream, size_
         return xl6ParserFunctionTypeFollowerKind(nextKind);
     }
 
-    /* A parameter mode prefixes a type even when the nested function type is
-     * followed by ')' or ',' rather than a declaration name. */
-    if (index > 0 && xl6ParserIsParameterModeKind(stream->tokens[index - 1].kind)) {
+    /* The raw C callback qualifier prefixes a function type. */
+    if (index > 0 && stream->tokens[index - 1].kind == XL6_KW_C_CALLBACK) {
         return xl6ParserFunctionTypeFollowerKind(nextKind);
     }
 
@@ -1000,13 +983,6 @@ static int xl6ParserNullableNamedDeclContext(
     if ( xl6ParserIsStmtStart(stream, typeStart) ) {
         return 1;
     }
-    if ( typeStart > 0 &&
-         (stream->tokens[typeStart - 1].kind == XL6_KW_BYVAL ||
-          stream->tokens[typeStart - 1].kind == XL6_KW_BYREF ||
-          stream->tokens[typeStart - 1].kind == XL6_KW_OUT) ) {
-        return 1;
-    }
-
     /*
      * 参数类型只会出现在函数、属性或 class 特殊方法的声明头中。
      * 这里检查当前语句头，避免把普通调用里的三元表达式改写成类型后缀。

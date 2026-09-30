@@ -1,0 +1,68 @@
+extern "native_fields_live" func liveOwners() as c_int
+extern "native_fields_dropped" func droppedOwners() as c_int
+
+int initializerCount = 0
+bool failInitializer = false
+
+func initialItems() as array<int>
+    initializerCount += 1
+    return [11, 22]
+end
+
+func checkedLabel() as string
+    if failInitializer then
+        throw ValueError "native field initializer failed"
+    end
+    return "ready"
+end
+
+class Prefix
+    int inherited = 7
+end
+
+// 原生字段前后、继承字段和受管理字段都走同一初始化合同。
+class NativeFields extends Prefix
+    int prefix = 17
+    native point handle
+    array<int> items = initialItems()
+    string label = checkedLabel()
+    dict<int> values = {"answer": 42}
+
+    extern "native_fields_create" create()
+    extern "native_fields_destroy" destroy()
+    extern "native_fields_id" func nativeId() as c_int
+end
+
+func exercise()
+    NativeFields first = NativeFields()
+    NativeFields second = NativeFields()
+    assert liveOwners() == 2
+    assert first.nativeId() != second.nativeId()
+    assert first.inherited == 7 and first.prefix == 17
+    assert first.items.length == 2 and first.items[1] == 22
+    assert first.label == "ready" and first.values["answer"] == 42
+    first.items.append(33)
+    first.values["answer"] = 99
+    assert second.items.length == 2 and second.values["answer"] == 42
+end
+
+func main(...) as int
+    exercise()
+    assert initializerCount == 2
+    assert liveOwners() == 0 and droppedOwners() == 2
+
+    // C 构造成功后，后续 XL 初始化抛错也必须完整回滚。
+    failInitializer = true
+    int caught = 0
+    for i in range(8)
+        try
+            NativeFields failed = NativeFields()
+        catch ValueError error
+            caught += 1
+        end
+    end
+    assert caught == 8 and initializerCount == 10
+    assert liveOwners() == 0 and droppedOwners() == 10
+    println("native field initializers ok")
+    return 0
+end

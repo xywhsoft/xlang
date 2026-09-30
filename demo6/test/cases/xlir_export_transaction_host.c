@@ -80,12 +80,12 @@ static int64_t reentrant_callback(void)
     xrtErrorFree(xrtTakeError());
     return 29;
 }
-static char* owned_string_callback(void)
+static xlir_string owned_string_callback(void)
 {
     char* value = xrtStrDup("callback-owned");
     assert(value != NULL); secondary_string = value;
     publish(mode, 101);
-    return value;
+    return (xlir_string){ value, strlen(value) };
 }
 static xvalue* owned_value_callback(void)
 {
@@ -107,7 +107,7 @@ static void check_outcome(xl6_error_result outcome, int failed, int code)
 void tx_direct_case(int failureMode, int kind)
 {
     xl6_error_scope scope = {0};
-    char* string;
+    xlir_string string;
     xvalue* value;
     TX_PRODUCT product;
     mode = failureMode;
@@ -116,12 +116,15 @@ void tx_direct_case(int failureMode, int kind)
     case 0: assert(tx_scalar() == (mode == 0 ? 42 : 0)); break;
     case 1: tx_void(); break;
     case 2:
-        string = tx_string(); assert((string != NULL) == (mode == 0)); xrtFree(string); break;
+        string = tx_string(); assert((string.Data != NULL) == (mode == 0));
+        if (mode == 0) assert(string.Size == 6 && memcmp(string.Data, "ow\0ned", 6) == 0);
+        xrtFree((void*)string.Data); break;
     case 3:
         value = tx_value(); assert((value != NULL) == (mode == 0)); xrtValueRelease(value); break;
     default:
-        product = tx_product(); assert((product.e0 != NULL) == (mode == 0));
-        assert(product.e1 == (mode == 0 ? 42 : 0)); xrtFree(product.e0); break;
+        product = tx_product(); assert((product.e0.Data != NULL) == (mode == 0));
+        if (mode == 0) assert(product.e0.Size == 6 && memcmp(product.e0.Data, "ow\0ned", 6) == 0);
+        assert(product.e1 == (mode == 0 ? 42 : 0)); xrtFree((void*)product.e0.Data); break;
     }
     check_outcome(xl6ForeignCallEnd(&scope), mode != 0, mode == 1 ? 101 : 0);
 }
@@ -133,7 +136,7 @@ void tx_callback_case(int failureMode, int kind)
     assert(xl6ForeignCallBegin(&scope));
     if (kind == 0) assert(tx_catch_callback(reentrant_callback) == 17);
     else if (kind == 1) assert(tx_apply_callback(reentrant_callback) == 0);
-    else if (kind == 2) assert(tx_string_callback(owned_string_callback) == NULL);
+    else if (kind == 2) assert(tx_string_callback(owned_string_callback).Data == NULL);
     else assert(tx_value_callback(owned_value_callback) == NULL);
     check_outcome(xl6ForeignCallEnd(&scope), kind != 0,
         kind != 0 && mode == 1 ? 101 : 0);
@@ -148,11 +151,11 @@ void tx_pending_case(int no_diagnostic, int kind)
     bridge_count = 0; track_bridges = 1; cleanup_failure = 1;
     secondary_frees = 0; primary_null = no_diagnostic;
     assert(xl6ForeignCallBegin(&scope));
-    if (kind == 0) assert(tx_accept_string(constant_callback, constant_callback) == NULL);
+    if (kind == 0) assert(tx_accept_string(constant_callback, constant_callback).Data == NULL);
     else if (kind == 1) assert(tx_accept_value(constant_callback, constant_callback) == NULL);
     else {
         product = tx_accept_product(constant_callback, constant_callback);
-        assert(product.e0 == NULL && product.e1 == 0);
+        assert(product.e0.Data == NULL && product.e1 == 0);
     }
     assert(bridge_count == 2 && secondary_frees == 2 && bridges[0] == NULL && bridges[1] == NULL);
     track_bridges = 0; cleanup_failure = 0;
@@ -166,7 +169,7 @@ void tx_bridge_case(int fail_after, int injected)
     if (injected) inject_malloc = fail_after;
     bridge_count = 0; track_bridges = 1;
     assert(xl6ForeignCallBegin(&scope));
-    assert(tx_accept_string(constant_callback, constant_callback) == NULL);
+    assert(tx_accept_string(constant_callback, constant_callback).Data == NULL);
     outcome = xl6ForeignCallEnd(&scope);
     assert(!outcome.ok && bridge_count == fail_after);
     if (fail_after == 1) assert(bridges[0] == NULL);

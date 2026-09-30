@@ -1,0 +1,48 @@
+extern "xlir_void_gate_open" func gateOpen() as future<null>
+extern "xlir_void_gate_finish" func gateFinish(int outcome) as bool
+
+int resumed = 0
+int finalized = 0
+
+class GateGuard
+    destroy()
+        finalized += 1
+    end
+end
+
+// 真实挂起后，无结果的等待只传递完成状态；恢复时仍须执行 finally 和析构。
+async func waitGate()
+    GateGuard guard = GateGuard()
+    try
+        await gateOpen()
+        resumed += 1
+    finally
+        finalized += 1
+    end
+end
+
+async func relay() as int
+    await waitGate()
+    return 42
+end
+
+future<int> pending = relay()
+assert resumed == 0 and finalized == 0
+assert gateFinish(0)
+assert await pending == 42
+assert resumed == 1 and finalized == 2
+
+// 原生 Future 的失败、取消和关闭都必须沿无结果等待传播。
+for outcome in [1, 2, 3]
+    future<null> waiting = waitGate()
+    assert gateFinish(outcome)
+    bool caught = false
+    try
+        await waiting
+    catch error
+        caught = true
+    end
+    assert caught
+end
+assert resumed == 1 and finalized == 8
+println("async void suspension: PASS")

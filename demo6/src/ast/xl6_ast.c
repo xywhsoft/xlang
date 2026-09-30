@@ -45,6 +45,8 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_INT: return "int";
     case XL6_AST_FLOAT: return "float";
     case XL6_AST_STRING: return "string";
+    case XL6_AST_CHAR: return "char";
+    case XL6_AST_BYTES: return "bytes";
     case XL6_AST_INTERP_STRING: return "interp_string";
     case XL6_AST_INTERP_TEXT: return "interp_text";
     case XL6_AST_TIME: return "time";
@@ -123,6 +125,28 @@ XL6_AstNode* xl6AstNewText(XL6_AstKind kind, const char* text, size_t len, const
     xrtFree(node->text);
     node->text = xrtStrDupN(text != NULL ? text : "", len);
     return node;
+}
+
+int xl6AstSetLiteralData(XL6_AstNode* node, const void* data, size_t size)
+{
+    unsigned char* copy;
+
+    if ( node == NULL || (data == NULL && size != 0) || size == SIZE_MAX ) {
+        return 0;
+    }
+    copy = (unsigned char*)xrtMalloc(size + 1);
+    if ( copy == NULL ) {
+        return 0;
+    }
+    if ( size != 0 ) {
+        memcpy(copy, data, size);
+    }
+    copy[size] = 0;
+    xrtFree(node->literalData);
+    node->literalData = copy;
+    node->literalSize = size;
+    node->literalDecoded = 1;
+    return 1;
 }
 
 XL6_AstNode* xl6AstNewBinary(const XL6_Token* op, XL6_AstNode* left, XL6_AstNode* right)
@@ -219,6 +243,7 @@ void xl6AstFree(XL6_AstNode* node)
     xrtFree(node->children);
     xl6AstFree(node->inferredType);
     xrtFree(node->text);
+    xrtFree(node->literalData);
     xrtFree(node->doc);
     xrtFree(node);
 }

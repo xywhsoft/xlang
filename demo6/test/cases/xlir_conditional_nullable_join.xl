@@ -13,13 +13,12 @@ class JoinItem
     end
 end
 
-func fill(out int value, int number) as int
-    value = number
+func fill(int number) as int
     return number
 end
 
-func fillEither(out int value, bool choose) as int
-    return choose ? fill(out value, 11) : fill(out value, 22)
+func fillEither(bool choose) as int
+    return choose ? fill(11) : fill(22)
 end
 
 export "nullable_join_probe" func probe(bool choose) as int
@@ -86,8 +85,7 @@ export "nullable_join_probe" func probe(bool choose) as int
     auto joinVar = choose ? dynamic : null
     assert joinPoint == null and joinError == null and joinVar == null
 
-    int written
-    assert fillEither(out written, choose) == (choose ? 11 : 22)
+    int written = fillEither(choose)
     assert written == (choose ? 11 : 22)
     var erasedScalar = choose ? 37 : 38
     auto checkedScalar = erasedScalar is int ? int(erasedScalar) : 0

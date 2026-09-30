@@ -1,0 +1,69 @@
+// 分配失败覆盖默认值自身、嵌套调用及后续参数；外层循环的拥有者必须始终存活。
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+extern "strlen" func rawLength(string text) as c_size
+
+func nativeLength(string text = "native") as c_size
+    return rawLength(text)
+end
+
+func defaultText(string value = "default") as string
+    return value
+end
+
+func nestedDefault(string first = defaultText(), string second = "!") as string
+    return first + second
+end
+
+class DefaultValue
+    string text = defaultText()
+    create(string value = nestedDefault())
+        self.text = value
+    end
+    func read(string suffix = "!") as string
+        return self.text + suffix
+    end
+end
+
+func main(...) as int
+    array<string> outer = ["first", "second"]
+    int rejected = 0
+    int completed = 0
+    for kept in outer
+        for operation in range(4)
+            for point in range(48)
+                bool caught = false
+                string result = ""
+                assert failAfter(uint64(point))
+                try
+                    if operation == 0 then
+                        result = defaultText()
+                    elseif operation == 1 then
+                        result = nestedDefault()
+                    elseif operation == 2 then
+                        result = DefaultValue().read()
+                    else
+                        assert nativeLength() == 6
+                    end
+                catch MemoryError
+                    caught = true
+                end
+                bool triggered = failTriggered()
+                failClear()
+                assert caught == triggered and kept != ""
+                if caught then
+                    rejected += 1
+                else
+                    completed += 1
+                    if operation == 0 then assert result == "default" end
+                    if operation == 1 then assert result == "default!" end
+                    if operation == 2 then assert result == "default!!" end
+                end
+            end
+        end
+    end
+    assert rejected > 0 and completed > 0 and outer[1] == "second"
+    println("default argument allocation: PASS")
+    return 0
+end

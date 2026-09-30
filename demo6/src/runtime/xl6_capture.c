@@ -20,7 +20,9 @@ static bool layout_valid(const XL6_CaptureLayoutV1* layout, size_t bytes)
         const XL6_CaptureSlot* slot = &layout->slots[i];
         if (slot->kind < XL6_CAPTURE_TRIVIAL || slot->kind > XL6_CAPTURE_GENERATOR || !slot->bytes ||
             slot->offset > bytes || slot->bytes > bytes - slot->offset ||
-            (slot->kind != XL6_CAPTURE_TRIVIAL && slot->bytes != sizeof(void*))) return false;
+            (slot->kind == XL6_CAPTURE_STRING && slot->bytes != sizeof(xstrview)) ||
+            (slot->kind != XL6_CAPTURE_TRIVIAL && slot->kind != XL6_CAPTURE_STRING &&
+             slot->bytes != sizeof(void*))) return false;
         for (size_t j = 0; j < i; ++j) {
             const XL6_CaptureSlot* prior = &layout->slots[j];
             if (slot->offset < prior->offset + prior->bytes && prior->offset < slot->offset + slot->bytes)
@@ -70,9 +72,14 @@ static void capture_cleanup(const XL6_CaptureSlot* slot, void* data, unsigned ch
         if (initialized && !*initialized) return;
         void* target = (char*)data + slot->offset;
         switch (slot->kind) {
+        case XL6_CAPTURE_STRING: {
+            xstrview item, empty = {0};
+            slot_take(target, &item, &empty, sizeof(item), initialized);
+            xrtFree((void*)item.Data);
+            break;
+        }
 #define CAPTURE_DROP(KIND, TYPE, DROP) \
         case KIND: { TYPE item; TYPE empty = NULL; slot_take(target, &item, &empty, sizeof(item), initialized); DROP(item); break; }
-        CAPTURE_DROP(XL6_CAPTURE_STRING, char*, xrtFree)
         CAPTURE_DROP(XL6_CAPTURE_XVALUE, xvalue*, xrtValueRelease)
         CAPTURE_DROP(XL6_CAPTURE_FUTURE, xfuture*, xrtFutureDestroy)
         CAPTURE_DROP(XL6_CAPTURE_CLOSURE, XL6_Closure*, xl6ClosureRuntimeV1Get()->Release)

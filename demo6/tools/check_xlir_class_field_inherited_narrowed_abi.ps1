@@ -143,7 +143,10 @@ foreach ( $forbidden in @(
 
 Push-Location $Root
 try {
-    $xlirCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_class_field_inherited_narrowed_abi.c test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c !XL6_CGEN_LINKS! -o build\test\xlir_class_field_inherited_narrowed_abi.exe && build\test\xlir_class_field_inherited_narrowed_abi.exe'
+    # Include the generated module only in the generic host translation unit.
+    # Compiler-wide -include would duplicate every exported definition in the
+    # separately compiled support source.
+    $xlirCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE=\"build/tmp/xlir_class_field_inherited_narrowed_abi.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c !XL6_CGEN_LINKS! -o build\test\xlir_class_field_inherited_narrowed_abi.exe && build\test\xlir_class_field_inherited_narrowed_abi.exe'
     & $env:ComSpec /d /v:on /c $xlirCommand
     if ( $LASTEXITCODE -ne 0 ) {
         throw "XLIR inherited/narrowed class-field strict-C/runtime gate failed"

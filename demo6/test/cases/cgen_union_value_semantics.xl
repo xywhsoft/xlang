@@ -8,19 +8,20 @@ func mutateDefault(PairValue value)
     assert value.integer == 20
 end
 
-func mutateByVal(byval PairValue value)
+func mutateByVal(PairValue value)
     value.integer = 30
     assert value.integer == 30
 end
 
-func mutateByRef(byref PairValue value)
+func replacedValue(PairValue value) as PairValue
     value.integer = 40
+    return value
 end
 
-func writeValue(out PairValue value)
+func writeValue() as PairValue
     PairValue next
     next.integer = 50
-    value = next
+    return next
 end
 
 func passThrough(PairValue value) as PairValue
@@ -37,11 +38,10 @@ func main(...) as int
     mutateByVal(value)
     assert value.integer == 10
 
-    mutateByRef(byref value)
+    value = replacedValue(value)
     assert value.integer == 40
 
-    PairValue output
-    writeValue(out output)
+    PairValue output = writeValue()
     assert output.integer == 50
 
     PairValue copied = passThrough(output)

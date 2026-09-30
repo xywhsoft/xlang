@@ -161,19 +161,19 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_NEW ) {
                     xl6OutputPrintf(out, "    v%u = xrtValueObject();\n", (unsigned int)instruction->result);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_object_get_literal_or_null(v%u, xrtStrView(%s));\n",
+                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_object_get_literal_or_null(v%u, xlir_literal_view(%s));\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     instruction->immediateText);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_STRING ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_object_get_string_or_null(v%u, xrtStrView(v%u));\n",
+                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_object_get_string_or_null(v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_STRING ) {
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_dynamic_field_get_or_null(v%u, xrtStrView(v%u));\n",
+                        "    v%u = xlir_xvalue_dynamic_field_get_or_null(v%u, v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
@@ -193,7 +193,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         (unsigned int)module->operands[instruction->firstOperand + 1],
                         (unsigned int)module->operands[instruction->firstOperand + 2]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_SET_STRING_NEW ) {
-                    xl6OutputPrintf(out, "    v%u = xrtValueObjectSetNew(v%u, xrtStrView(v%u), v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xrtValueObjectSetNew(v%u, v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1],
@@ -201,7 +201,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_SET_STRING_NEW ) {
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_dynamic_field_set_new(v%u, xrtStrView(v%u), v%u);\n",
+                        "    v%u = xlir_xvalue_dynamic_field_set_new(v%u, v%u, v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1],
@@ -209,21 +209,21 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_RAW_POINTER ) {
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_object_get_literal_raw_pointer(v%u, xrtStrView(%s));\n",
+                            "    v%u = xlir_xvalue_object_get_literal_raw_pointer(v%u, xlir_literal_view(%s));\n",
                             (unsigned int)instruction->result,
                             (unsigned int)module->operands[instruction->firstOperand],
                             instruction->immediateText);
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_POINTER_BORROW ) {
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_object_get_literal_native_pointer(v%u, xrtStrView(%s));\n",
+                            "    v%u = xlir_xvalue_object_get_literal_native_pointer(v%u, xlir_literal_view(%s));\n",
                             (unsigned int)instruction->result,
                             (unsigned int)module->operands[instruction->firstOperand],
                             instruction->immediateText);
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_OBJECT_TAKE_LITERAL_NATIVE_HANDLE ) {
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_object_take_literal_native_handle(v%u, xrtStrView(%s));\n",
+                            "    v%u = xlir_xvalue_object_take_literal_native_handle(v%u, xlir_literal_view(%s));\n",
                             (unsigned int)instruction->result,
                             (unsigned int)module->operands[instruction->firstOperand],
                             instruction->immediateText);
@@ -236,7 +236,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                             return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                                 "XLIR C emitter tagged nullable class field projection ABI is unresolved");
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_object_get_literal_%s(v%u, xrtStrView(%s));\n",
+                            "    v%u = xlir_xvalue_object_get_literal_%s(v%u, xlir_literal_view(%s));\n",
                             (unsigned int)instruction->result, tagged->cName,
                             (unsigned int)module->operands[instruction->firstOperand],
                             instruction->immediateText);
@@ -246,7 +246,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter typed closure field store ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_object_set_literal_closure(v%u, xrtStrView(%s), v%u, xlir_xcall_entry_t%u, 0x%016llXULL);\n",
+                        "    v%u = xlir_xvalue_object_set_literal_closure(v%u, xlir_literal_view(%s), v%u, xlir_xcall_entry_t%u, 0x%016llXULL);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         instruction->immediateText,
@@ -261,7 +261,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter typed closure field load ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    bool projection_ok_%u = xlir_xvalue_object_get_literal_closure(v%u, xrtStrView(%s), (void (*)(void))xlir_xvalue_closure_entry_t%u, &v%u);\n",
+                        "    bool projection_ok_%u = xlir_xvalue_object_get_literal_closure(v%u, xlir_literal_view(%s), (void (*)(void))xlir_xvalue_closure_entry_t%u, &v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         instruction->immediateText,

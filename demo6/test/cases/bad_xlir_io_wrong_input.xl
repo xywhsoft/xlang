@@ -1,0 +1,2 @@
+extern "xl6_xrt_io_write_file" func invalid(string path, string data, int mode, int size) as bool
+bool result = invalid("unused", "wrong", 1, -1)

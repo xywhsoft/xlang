@@ -14,7 +14,7 @@ struct xlir_cell {
     const void* claim;
     void* retired;
     size_t size;
-    union { bool b; int64_t i64; uint64_t u64; double f64; char* string; xvalue* value; void* bytes; } payload;
+    union { bool b; uint32_t character; int64_t i64; uint64_t u64; double f64; xstrview string; xvalue* value; void* bytes; } payload;
 };
 static bool cell_owning(const XL6_Cell* cell)
 { return cell->kind==XL6_CELL_STRING || cell->kind==XL6_CELL_XVALUE; }
@@ -24,10 +24,11 @@ static bool cell_size_valid(XL6_CellKind kind, size_t size)
 {
     switch(kind) {
     case XL6_CELL_BOOL: return size==sizeof(bool);
+    case XL6_CELL_CHAR: return size==sizeof(uint32_t);
     case XL6_CELL_I64: return size==sizeof(int64_t);
     case XL6_CELL_U64: case XL6_CELL_TYPE_ID: return size==sizeof(uint64_t);
     case XL6_CELL_F64: return size==sizeof(double);
-    case XL6_CELL_STRING: return size==sizeof(char*);
+    case XL6_CELL_STRING: return size==sizeof(xstrview);
     case XL6_CELL_XVALUE: return size==sizeof(xvalue*);
     case XL6_CELL_TRIVIAL_BYTES: return size!=0;
     default: return false;
@@ -91,7 +92,7 @@ static void cell_release(XL6_Cell* cell)
     /* Count refuses this zero-count private cell; release children outside
      * our mutation so their semantic finalizers can wait/inspect safely. */
     if(!xrtOwnershipScopeEnd(&mutation)) abort();
-    if(cell->kind==XL6_CELL_STRING) xrtFree(cell->payload.string);
+    if(cell->kind==XL6_CELL_STRING) xrtFree((void*)cell->payload.string.Data);
     else if(cell->kind==XL6_CELL_XVALUE) xrtValueRelease(cell->payload.value);
     else if(cell->kind==XL6_CELL_TRIVIAL_BYTES) xrtFree(cell->payload.bytes);
     xrtFree(cell);
@@ -140,7 +141,7 @@ static void cell_clear(const void* data,const void* token)
     XL6_Cell* cell=(XL6_Cell*)data;
     if(cell->claim!=token || cell->cleared) abort();
     if(cell->kind==XL6_CELL_XVALUE) { cell->retired=cell->payload.value; cell->payload.value=NULL; }
-    else if(cell->kind==XL6_CELL_STRING) { cell->retired=cell->payload.string; cell->payload.string=NULL; }
+    else if(cell->kind==XL6_CELL_STRING) { cell->retired=(void*)cell->payload.string.Data; cell->payload.string=(xstrview){0}; }
     else if(cell->kind==XL6_CELL_TRIVIAL_BYTES) { cell->retired=cell->payload.bytes; cell->payload.bytes=NULL; }
     cell->cleared=true;
 }

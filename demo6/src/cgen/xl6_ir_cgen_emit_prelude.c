@@ -75,7 +75,7 @@ static int xl6IrCgenEmitRuntimePrelude(
         xl6OutputPuts("#include <__xl_runtime/xl6_future_payload.h>\n", out);
     if ( needs->needsForeignErrorRuntime || needs->needsXCallRuntime ||
          needs->needsGeneratorRuntime )
-        xl6IrCgenEmitForeignErrorDeclarations(out);
+        xl6IrCgenEmitForeignErrorDeclarations(out, module->exportCount != 0);
     if ( needs->needsClosureRuntime ) {
         if (module->abi.closureStorageAbi != XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2)
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR closure storage ABI is unresolved");
@@ -318,6 +318,24 @@ static int xl6IrCgenEmitRuntimePrelude(
                       "        return -(int64_t)magnitude;\n"
                       "    }\n"
                       "}\n\n", out);
+    if ( needs->needsCheckedCharRuntime )
+        xl6OutputPuts(
+            "/* char is a Unicode scalar, not an arbitrary uint32_t.  This\n"
+            " * checked XLIR operation rejects surrogate code points and values\n"
+            " * above U+10FFFF before they enter char-typed storage. */\n"
+            "static uint32_t xlir_u64_to_char_checked(uint64_t value)\n"
+            "{\n"
+            "  if (value <= UINT64_C(0x10ffff) &&\n"
+            "      !(value >= UINT64_C(0xd800) && value <= UINT64_C(0xdfff)))\n"
+            "    return (uint32_t)value;\n"
+            "  xrtSetErrorTake(xlir_error_create(\"RangeError\", \"integer value is not a Unicode scalar\")); return 0;\n"
+            "}\n"
+            "static uint32_t xlir_i64_to_char_checked(int64_t value)\n"
+            "{\n"
+            "  if (value >= 0) return xlir_u64_to_char_checked((uint64_t)value);\n"
+            "  xrtSetErrorTake(xlir_error_create(\"RangeError\", \"integer value is not a Unicode scalar\")); return 0;\n"
+            "}\n\n",
+            out);
     if ( needs->needsCheckedU64Runtime )
         xl6OutputPuts("/* U64 checked conversion has a distinct result ABI and never passes\n"
                       " * through signed storage. */\n"
@@ -594,9 +612,12 @@ static int xl6IrCgenEmitRuntimePrelude(
     if ( needs->needsResultU64 ) xl6OutputPuts("typedef struct xlir_result_u64 { bool ok; uint64_t value; } xlir_result_u64;\n", out);
     if ( needs->needsResultTypeId ) xl6OutputPuts("typedef struct xlir_result_type_id { bool ok; uint64_t value; } xlir_result_type_id;\n", out);
     if ( needs->needsResultF64 ) xl6OutputPuts("typedef struct xlir_result_f64 { bool ok; double value; } xlir_result_f64;\n", out);
-    if ( needs->needsResultF32 ) xl6OutputPuts("typedef struct xlir_result_f32 { bool ok; float value; } xlir_result_f32;\n", out);
-    if ( needs->needsResultString ) xl6OutputPuts("typedef struct xlir_result_string { bool ok; char* value; } xlir_result_string;\n", out);
+if ( needs->needsResultF32 ) xl6OutputPuts("typedef struct xlir_result_f32 { bool ok; float value; } xlir_result_f32;\n", out);
+if ( needs->needsResultChar ) xl6OutputPuts("typedef struct xlir_result_char { bool ok; uint32_t value; } xlir_result_char;\n", out);
+if ( needs->needsResultString ) xl6OutputPuts("typedef struct xlir_result_string { bool ok; xlir_string value; } xlir_result_string;\n", out);
     if ( needs->needsResultXValue ) xl6OutputPuts("struct xvalue;\ntypedef struct xlir_result_xvalue { bool ok; struct xvalue* value; } xlir_result_xvalue;\n", out);
+    if ( needs->needsResultCBool && !needs->needsExtendedResults )
+        xl6OutputPuts("typedef struct xlir_result_c_bool { bool ok; bool value; } xlir_result_c_bool;\n", out);
     if ( needs->needsResultFuture ) xl6OutputPuts("struct xfuture;\ntypedef struct xlir_result_future { bool ok; struct xfuture* value; } xlir_result_future;\n", out);
     if ( needs->needsResultGenerator ) xl6OutputPuts("typedef struct xlir_result_generator { bool ok; xlir_generator* value; } xlir_result_generator;\n", out);
     if ( needs->needsExtendedResults )
@@ -626,8 +647,8 @@ static int xl6IrCgenEmitRuntimePrelude(
             "struct xlir_closure; typedef struct xlir_result_closure { bool ok; struct xlir_closure* value; } xlir_result_closure;\n",
             out);
     if ( needs->needsResultVoid || needs->needsResultBool || needs->needsResultI64 || needs->needsResultU64 ||
-         needs->needsResultTypeId || needs->needsResultF64 || needs->needsResultF32 || needs->needsResultString ||
-         needs->needsResultXValue || needs->needsResultFuture || needs->needsResultGenerator ||
+needs->needsResultTypeId || needs->needsResultF64 || needs->needsResultF32 || needs->needsResultChar || needs->needsResultString ||
+         needs->needsResultXValue || needs->needsResultCBool || needs->needsResultFuture || needs->needsResultGenerator ||
          needs->needsExtendedResults )
         xl6OutputPuts("\n", out);
     return !xl6OutputHasFailed(out);

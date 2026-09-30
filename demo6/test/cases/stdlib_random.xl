@@ -1,7 +1,7 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
-int value = random.range(0, 100)
+int value = random.range(0, 101)
 string token = random.string(12)
 string fixedText = random.string(4, "x")
 
@@ -18,8 +18,8 @@ uint32 obj32A = rngA.u32()
 uint32 obj32B = rngB.u32()
 uint64 obj64A = rngA.u64()
 uint64 obj64B = rngB.u64()
-int diceA = rngA.range(1, 6)
-int diceB = rngB.range(1, 6)
+int diceA = rngA.rangeClosed(1, 6)
+int diceB = rngB.rangeClosed(1, 6)
 
 rngA.seed(uint64(2026), uint64(1))
 rngB.seed(uint64(2026), uint64(1))
@@ -28,11 +28,11 @@ string objTokenB = rngB.string(10, "ab")
 string objFixed = rngA.string(5, "z")
 
 Random rngDefault = Random(uint64(0), uint64(1))
-int defaultRange = rngDefault.range(3, 3)
+int defaultRange = rngDefault.rangeClosed(3, 3)
 
 expect(value >= 0, 1)
 expect(value <= 100, 1)
-expect(random.range(7, 7), 7)
+expect(random.range(7, 8), 7)
 expect(string.len(token), 12)
 expectStr(fixedText, "xxxx")
 expectStr(random.string(0), "")

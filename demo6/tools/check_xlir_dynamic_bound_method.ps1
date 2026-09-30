@@ -50,7 +50,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic bound method accessor transaction/runtime semantics failed' }
     & release/xl.exe run test/cases/xlir_dynamic_bound_method_runtime.c test/cases/xlir_dynamic_bound_method_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic bound method generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_dynamic_bound_method_runtime.c test/cases/xlir_dynamic_bound_method_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    . (Join-Path $PSScriptRoot 'xlir_artifact_runtime_sources.ps1')
+    $artifactRuntimeSources = Get-XlirArtifactRuntimeSources
+    & release/xl.exe build test/cases/xlir_dynamic_bound_method_runtime.c test/cases/xlir_dynamic_bound_method_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic bound method generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic bound method generated C-host AOT runtime failed' }

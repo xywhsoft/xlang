@@ -21,7 +21,7 @@ func mutateShared(ValueBox box, string value) as string
     return box.text
 end
 
-func mutateCopy(byval ValueBox box, string value) as string
+func mutateLocal(ValueBox box, string value) as string
     box.text = value
     return box.text
 end
@@ -32,13 +32,13 @@ func mutateGenericShared(GenericValueBox<int> box, string value) as string
     return box.text
 end
 
-func mutateGenericCopy(byval GenericValueBox<int> box, string value) as string
+func mutateGenericLocal(GenericValueBox<int> box, string value) as string
     box.value = box.value + 1
     box.text = value
     return box.text
 end
 
-func rebindLocal(byval ValueBox box)
+func rebindLocal(ValueBox box)
     box = ValueBox("rebound")
 end
 
@@ -50,10 +50,10 @@ for i in range(0, 64)
     assert source.text == "shared", "default class parameter should preserve object identity"
     source.text = "source"
 
-    assert mutateCopy(source, "local") == "local", "byval class parameter mutation failed"
-    assert source.text == "local", "byval class parameter must preserve object identity"
+    assert mutateLocal(source, "local") == "local", "class parameter mutation failed"
+    assert source.text == "local", "class parameter must preserve object identity"
     rebindLocal(source)
-    assert source.text == "local", "byval class parameter must not replace the caller slot"
+    assert source.text == "local", "class parameter must not replace the caller slot"
     source.text = "source"
 
     assert mutateGenericShared(genericSource, "generic-shared") == "generic-shared", "default generic class mutation failed"
@@ -62,9 +62,9 @@ for i in range(0, 64)
     genericSource.value = 7
     genericSource.text = "generic-source"
 
-    assert mutateGenericCopy(genericSource, "generic-local") == "generic-local", "byval generic class mutation failed"
-    assert genericSource.value == 8, "byval generic class must preserve object identity"
-    assert genericSource.text == "generic-local", "byval generic class string mutation must be visible"
+    assert mutateGenericLocal(genericSource, "generic-local") == "generic-local", "generic class parameter mutation failed"
+    assert genericSource.value == 8, "generic class must preserve object identity"
+    assert genericSource.text == "generic-local", "generic class string mutation must be visible"
     genericSource.value = 7
     genericSource.text = "generic-source"
 end

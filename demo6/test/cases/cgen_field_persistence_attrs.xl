@@ -2,10 +2,10 @@ class Profile
     derive value
 
     int id = 0
-    string displayName @json("display_name") @xson("displayNameX") = ""
+    string displayName @json("display_name") @xlon("displayNameX") = ""
     private string secret @persist(name="secret_name", include) = ""
     string password @persist(skip) = ""
-    string note @json(omit=empty) @xson(omit=null) = ""
+    string note @json(omit=empty) @xlon(omit=null) = ""
 
     func setSecret(string value)
         self.secret = value
@@ -38,14 +38,14 @@ expect(fromJson.id, 42)
 expectText(fromJson.displayName, "Alice")
 expectText(fromJson.secretValue(), "open")
 
-string xsonText = xson.stringify(p)
-expect(string.contains(xsonText, "displayNameX"), 1)
-expect(string.contains(xsonText, "display_name"), 0)
-expect(string.contains(xsonText, "secret_name"), 1)
-expect(string.contains(xsonText, "password"), 0)
-expect(string.contains(xsonText, "note"), 1)
+string xlonText = xlon.stringify(p)
+expect(string.contains(xlonText, "displayNameX"), 1)
+expect(string.contains(xlonText, "display_name"), 0)
+expect(string.contains(xlonText, "secret_name"), 1)
+expect(string.contains(xlonText, "password"), 0)
+expect(string.contains(xlonText, "note"), 1)
 
-Profile fromXson = xson.parse::<Profile>(xsonText)
-expect(fromXson.id, 42)
-expectText(fromXson.displayName, "Alice")
-expectText(fromXson.secretValue(), "open")
+Profile fromXlon = xlon.parse::<Profile>(xlonText)
+expect(fromXlon.id, 42)
+expectText(fromXlon.displayName, "Alice")
+expectText(fromXlon.secretValue(), "open")

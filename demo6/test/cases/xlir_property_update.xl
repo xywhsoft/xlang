@@ -152,17 +152,17 @@ class PropertyUpdateKey
     end
 end
 protocol PropertyKeyContract
-    get item(byval PropertyUpdateKey first, byval PropertyUpdateKey second) as int
-    let item(byval PropertyUpdateKey first, byval PropertyUpdateKey second, int next)
+    get item(PropertyUpdateKey first, PropertyUpdateKey second) as int
+    let item(PropertyUpdateKey first, PropertyUpdateKey second, int next)
 end
 class PropertyKeyState
     int number = 3
-    get item(byval PropertyUpdateKey first, byval PropertyUpdateKey second) as int
+    get item(PropertyUpdateKey first, PropertyUpdateKey second) as int
         propertyMultiStep(4)
         assert first.number == 2 and second.number == 3
         return self.number
     end
-    let item(byval PropertyUpdateKey first, byval PropertyUpdateKey second, int next)
+    let item(PropertyUpdateKey first, PropertyUpdateKey second, int next)
         propertyMultiStep(6)
         assert first.number == 2 and second.number == 3
         self.number = next

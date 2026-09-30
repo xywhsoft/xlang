@@ -6,6 +6,8 @@
 
 static int xl6IrRuntimeCallableSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type);
+static const XL6_IrInstruction* xl6IrValueDefinition(
+    const XL6_IrModule* module, XL6_IrValueId value, size_t* indexOut);
 static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind);
 static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, XL6_IrNodeId id)
 {
@@ -155,6 +157,9 @@ static XL6_IrIntegerTarget xl6IrIntegerTargetFromFrontend(
     if ( abiId == xl6TypeAbiIdText("xrt.uint64") ||
          (canonicalName != NULL && strcmp(canonicalName, "uint64") == 0) )
         return XL6_IR_INTEGER_TARGET_UNSIGNED_64;
+    if ( abiId == xl6TypeAbiIdText("xrt.char") ||
+         (canonicalName != NULL && strcmp(canonicalName, "char") == 0) )
+        return XL6_IR_INTEGER_TARGET_UNICODE_SCALAR;
     return XL6_IR_INTEGER_TARGET_INVALID;
 }
 
@@ -196,6 +201,9 @@ static XL6_IrCAbi xl6IrCAbiFromFrontend(XL6_TypeAbiId abiId, const char* canonic
 {
     if ( canonicalName != NULL && strcmp(canonicalName, "void") == 0 ) return XL6_IR_C_ABI_VOID;
     if ( abiId == xl6TypeAbiIdText("xrt.bool") ) return XL6_IR_C_ABI_BOOL;
+    if ( abiId == xl6TypeAbiIdText("xrt.char") ||
+         (canonicalName != NULL && strcmp(canonicalName, "char") == 0) )
+        return XL6_IR_C_ABI_CHAR_U32;
     if ( abiId == xl6TypeAbiIdText("xrt.int64") ) return XL6_IR_C_ABI_I64;
     if ( abiId == xl6TypeAbiIdText("xrt.uint64") ) return XL6_IR_C_ABI_U64;
     if ( abiId == xl6TypeAbiIdText("xrt.type") ||
@@ -239,6 +247,9 @@ static XL6_IrCAbi xl6IrCAbiFromFrontend(XL6_TypeAbiId abiId, const char* canonic
         if ( strcmp(canonicalName, "c_wchar") == 0 ) return XL6_IR_C_ABI_C_WCHAR;
     }
     if ( canonicalName != NULL && strcmp(canonicalName, "string") == 0 ) return XL6_IR_C_ABI_MANAGED_STRING;
+    if ( abiId == xl6TypeAbiIdText("xrt.bytes") ||
+         (canonicalName != NULL && strcmp(canonicalName, "bytes") == 0) )
+        return XL6_IR_C_ABI_MANAGED_BYTES;
     if ( canonicalName != NULL && strcmp(canonicalName, "point") == 0 ) return XL6_IR_C_ABI_RAW_POINTER;
     if ( xl6IrRuntimeResourceAbiFromName(canonicalName) !=
              XL6_IR_RUNTIME_RESOURCE_NONE )
@@ -264,7 +275,8 @@ static XL6_IrOwnershipAbi xl6IrOwnershipAbiFromFrontend(
     XL6_TypeAbiId abiId, const char* canonicalName)
 {
     XL6_IrCAbi cAbi = xl6IrCAbiFromFrontend(abiId, canonicalName);
-    return (cAbi == XL6_IR_C_ABI_MANAGED_STRING || cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+    return (cAbi == XL6_IR_C_ABI_MANAGED_STRING || cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
+            cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
             cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR || cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
             cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ||
             cAbi == XL6_IR_C_ABI_CLOSURE_PTR || cAbi == XL6_IR_C_ABI_RUNTIME_CELL_PTR)
@@ -307,6 +319,7 @@ static XL6_IrNullAbi xl6IrNullAbiFromCAbi(XL6_IrCAbi cAbi)
 {
     switch ( cAbi ) {
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
+    case XL6_IR_C_ABI_MANAGED_BYTES:
         return XL6_IR_NULL_ABI_XVALUE_SENTINEL;
     case XL6_IR_C_ABI_MANAGED_STRING:
     case XL6_IR_C_ABI_NATIVE_HANDLE:
@@ -368,7 +381,9 @@ static const char* xl6IrTypeExpectedErrorResultCName(
     case XL6_IR_C_ABI_TYPE_ID: return "xlir_result_type_id";
     case XL6_IR_C_ABI_F64: return "xlir_result_f64";
     case XL6_IR_C_ABI_F32: return "xlir_result_f32";
+    case XL6_IR_C_ABI_CHAR_U32: return "xlir_result_char";
     case XL6_IR_C_ABI_MANAGED_STRING: return "xlir_result_string";
+    case XL6_IR_C_ABI_MANAGED_BYTES: return "xlir_result_xvalue";
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xlir_result_xvalue";
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return "xlir_result_future";
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return "xlir_result_generator";
@@ -1073,6 +1088,14 @@ static int xl6IrParseCanonicalU32(const char* text, uint32* result)
     return 1;
 }
 
+static int xl6IrIsCanonicalUnicodeScalarLiteral(const char* text)
+{
+    uint32 scalar;
+    return xl6IrParseCanonicalU32(text, &scalar) &&
+        scalar <= 0x10ffffu &&
+        !(scalar >= 0xd800u && scalar <= 0xdfffu);
+}
+
 static int xl6IrIsCanonicalTypeIdLiteral(const char* text)
 {
     size_t i;
@@ -1129,6 +1152,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     }
     for ( i = 0; i < module->nodeCount; ++i ) {
         xrtFree(module->nodes[i].text);
+        xrtFree(module->nodes[i].literalData);
     }
     for ( i = 0; i < module->types.count; ++i ) {
         xrtFree(module->types.items[i].name);
@@ -1261,7 +1285,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
         xrtFree(module->classFields[i].name);
         xrtFree(module->classFields[i].persistenceDefaultLiteral);
         xrtFree(module->classFields[i].jsonPersistenceKeyLiteral);
-        xrtFree(module->classFields[i].xsonPersistenceKeyLiteral);
+        xrtFree(module->classFields[i].xlonPersistenceKeyLiteral);
     }
     for ( i = 0; i < module->classStaticFieldCount; ++i ) {
         xrtFree(module->classStaticFields[i].name);
@@ -1291,6 +1315,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->exitSteps);
     for ( i = 0; i < module->instructionCount; ++i ) {
         xrtFree(module->instructions[i].immediateText);
+        xrtFree(module->instructions[i].immediateData);
     }
     xrtFree(module->instructions);
     xrtFree(module->operands);
@@ -1341,7 +1366,8 @@ static XL6_IrNodeKind xl6IrNodeKindFromAst(XL6_AstKind kind)
     case XL6_AST_PATTERN_VARIANT: case XL6_AST_PATTERN_LITERAL: case XL6_AST_PATTERN_ELSE:
         return XL6_IR_NODE_PATTERN;
     case XL6_AST_NAME: return XL6_IR_NODE_NAME;
-    case XL6_AST_INT: case XL6_AST_FLOAT: case XL6_AST_STRING:
+    case XL6_AST_INT: case XL6_AST_FLOAT: case XL6_AST_STRING: case XL6_AST_CHAR:
+    case XL6_AST_BYTES:
     case XL6_AST_INTERP_TEXT: case XL6_AST_TIME: case XL6_AST_BOOL: case XL6_AST_NULL:
         return XL6_IR_NODE_LITERAL;
     case XL6_AST_INTERP_STRING: return XL6_IR_NODE_INTERPOLATED_STRING;
@@ -1655,6 +1681,8 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
     expectedCAbi = kind == XL6_IR_TYPE_NUMERIC_ENUM
         ? (expectedIntegerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64
             ? XL6_IR_C_ABI_U64 :
+           expectedIntegerTarget == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
+            ? XL6_IR_C_ABI_CHAR_U32 :
            expectedIntegerTarget != XL6_IR_INTEGER_TARGET_INVALID
             ? XL6_IR_C_ABI_I64 : XL6_IR_C_ABI_UNSUPPORTED)
         : kind == XL6_IR_TYPE_TAGGED_ENUM
@@ -2896,7 +2924,8 @@ static int xl6IrAstNodeRequiresType(const XL6_AstNode* node, const XL6_AstNode* 
          parent->semanticLvalueKind == XL6_SEM_LVALUE_PROPERTY) ) return 0;
     if ( node->kind == XL6_AST_CALL && parent != NULL && parent->kind == XL6_AST_EXPR_STMT ) return 0;
     switch ( node->kind ) {
-    case XL6_AST_INT: case XL6_AST_FLOAT: case XL6_AST_STRING: case XL6_AST_INTERP_STRING:
+    case XL6_AST_INT: case XL6_AST_FLOAT: case XL6_AST_STRING: case XL6_AST_CHAR:
+    case XL6_AST_BYTES: case XL6_AST_INTERP_STRING:
     case XL6_AST_TIME: case XL6_AST_BOOL: case XL6_AST_NULL: case XL6_AST_CALL:
     case XL6_AST_MEMBER: case XL6_AST_SAFE_MEMBER: case XL6_AST_GENERIC_INSTANT:
     case XL6_AST_ANON_FUNC: case XL6_AST_INDEX: case XL6_AST_SAFE_INDEX:
@@ -2961,6 +2990,21 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     if ( source->text != NULL && (node->text = xrtStrDupN(source->text, strlen(source->text))) == NULL ) {
         xl6DiagAdd(diags, source->line, source->column, "typed XLIR text arena is out of memory"); *ok = 0; return XL6_IR_NODE_INVALID;
     }
+    node->literalSize = source->literalSize;
+    node->literalScalar = source->literalScalar;
+    node->literalDecoded = source->literalDecoded;
+    if ( source->literalDecoded && source->literalData != NULL ) {
+        if ( source->literalSize == SIZE_MAX ||
+             (node->literalData = (unsigned char*)xrtMalloc(source->literalSize + 1u)) == NULL ) {
+            xl6DiagAdd(diags, source->line, source->column,
+                "typed XLIR literal byte arena is out of memory");
+            *ok = 0;
+            return XL6_IR_NODE_INVALID;
+        }
+        if ( source->literalSize != 0 )
+            memcpy(node->literalData, source->literalData, source->literalSize);
+        node->literalData[source->literalSize] = 0;
+    }
     if ( !xl6IrEnsureSymbolSlot(module, node->symbol) ) {
         xl6DiagAdd(diags, source->line, source->column, "typed XLIR symbol arena is out of memory"); *ok = 0; return XL6_IR_NODE_INVALID;
     }
@@ -2976,7 +3020,19 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         if ( declaration != NULL && declaration != node ) type = declaration->type != XL6_IR_TYPE_INVALID ? declaration->type : declaration->storageType;
     }
     if ( xl6IrAstNodeRequiresType(source, parent, childIndex) && type == XL6_IR_TYPE_INVALID ) {
-        xl6DiagAdd(diags, source->line, source->column, "typed XLIR value expression has no canonical type"); *ok = 0;
+        const XL6_AstNode* callee = source->childCount != 0
+            ? source->children[0] : NULL;
+        char message[384];
+        snprintf(message, sizeof(message),
+            "typed XLIR value expression has no canonical type: %s%s%s (callee %s%s%s; target %u)",
+            xl6AstKindName(source->kind),
+            source->text != NULL ? " " : "",
+            source->text != NULL ? source->text : "",
+            callee != NULL ? xl6AstKindName(callee->kind) : "none",
+            callee != NULL && callee->text != NULL ? " " : "",
+            callee != NULL && callee->text != NULL ? callee->text : "",
+            (unsigned int)source->semanticTargetSymbolId);
+        xl6DiagAdd(diags, source->line, source->column, message); *ok = 0;
     }
     node = &module->nodes[(size_t)id - 1];
     node->type = type; node->storageType = type;
@@ -3414,6 +3470,196 @@ static XL6_IrTypeId xl6IrBuildClassSubstituteType(
     XL6_IrTypeId classType, XL6_IrTypeId sourceType)
 {
     return xl6IrBuildClassSubstituteTypeDepth(
+        module, classDeclaration, classType, sourceType, 0);
+}
+
+/* Close a generic class member type over one concrete owner instance.  The
+ * frontend owns the template identity and every substituted leaf; Typed XLIR
+ * owns the canonical composite closure.  This is deliberately an interning
+ * operation, not a Cgen reconstruction: layouts, dispatch and verification
+ * all consume the same TypeId afterwards. */
+static XL6_IrTypeId xl6IrBuildInternClassSubstitutedTypeDepth(
+    XL6_IrModule* module, XL6_IrNodeId classDeclaration,
+    XL6_IrTypeId classType, XL6_IrTypeId sourceType, size_t depth)
+{
+    const XL6_IrNode* declarationParams;
+    const XL6_IrType* applied;
+    const XL6_IrType* source;
+    XL6_IrTypeId* params = NULL;
+    XL6_IrTypeId* returns = NULL;
+    XL6_IrTypeId callableResult = XL6_IR_TYPE_INVALID;
+    XL6_IrParameterMode* parameterModes = NULL;
+    XL6_IrParameterAbi* parameterAbis = NULL;
+    XL6_IrTypeId result;
+    XL6_IrTypeKind kind;
+    XL6_IrCAbi cAbi;
+    XL6_IrCollectionAbi collectionAbi;
+    XL6_IrRuntimeResourceAbi runtimeResourceAbi;
+    XL6_IrOwnershipAbi ownershipAbi;
+    XL6_IrIntegerTarget integerTarget;
+    XL6_IrCallableErasureAbi callableErasureAbi;
+    XL6_TypeAbiId abiId;
+    XL6_SymbolId nominalSymbol;
+    char* name = NULL;
+    size_t paramCount;
+    size_t returnCount;
+    size_t i;
+    int changed = 0;
+
+    result = xl6IrBuildClassSubstituteTypeDepth(
+        module, classDeclaration, classType, sourceType, depth);
+    if ( result != XL6_IR_TYPE_INVALID ) return result;
+    declarationParams = xl6IrBuildDeclarationTypeParams(
+        module, classDeclaration);
+    applied = xl6IrTypeGet(&module->types, classType);
+    source = xl6IrTypeGet(&module->types, sourceType);
+    if ( declarationParams == NULL || applied == NULL || source == NULL ||
+         depth > module->types.count ||
+         declarationParams->childCount != applied->paramCount ||
+         source->kind == XL6_IR_TYPE_TYPE_PARAM )
+        return XL6_IR_TYPE_INVALID;
+    paramCount = source->paramCount;
+    returnCount = source->returnCount;
+    if ( paramCount == 0 && returnCount == 0 ) return sourceType;
+    if ( paramCount > SIZE_MAX / sizeof(*params) ||
+         returnCount > SIZE_MAX / sizeof(*returns) )
+        return XL6_IR_TYPE_INVALID;
+    if ( paramCount != 0 ) {
+        params = (XL6_IrTypeId*)xrtMalloc(paramCount * sizeof(*params));
+        if ( params == NULL ) goto failed;
+        for ( i = 0; i < paramCount; ++i ) {
+            source = xl6IrTypeGet(&module->types, sourceType);
+            if ( source == NULL || source->params == NULL ) goto failed;
+            params[i] = xl6IrBuildInternClassSubstitutedTypeDepth(
+                module, classDeclaration, classType,
+                source->params[i], depth + 1);
+            if ( params[i] == XL6_IR_TYPE_INVALID ) goto failed;
+            source = xl6IrTypeGet(&module->types, sourceType);
+            if ( source == NULL || params[i] != source->params[i] ) changed = 1;
+        }
+    }
+    if ( returnCount != 0 ) {
+        returns = (XL6_IrTypeId*)xrtMalloc(returnCount * sizeof(*returns));
+        if ( returns == NULL ) goto failed;
+        for ( i = 0; i < returnCount; ++i ) {
+            source = xl6IrTypeGet(&module->types, sourceType);
+            if ( source == NULL || source->returns == NULL ) goto failed;
+            returns[i] = xl6IrBuildInternClassSubstitutedTypeDepth(
+                module, classDeclaration, classType,
+                source->returns[i], depth + 1);
+            if ( returns[i] == XL6_IR_TYPE_INVALID ) goto failed;
+            source = xl6IrTypeGet(&module->types, sourceType);
+            if ( source == NULL || returns[i] != source->returns[i] ) changed = 1;
+        }
+    }
+    if ( !changed ) {
+        result = sourceType;
+        goto done;
+    }
+    /* Recursive closure may have interned the exact parent shape already. */
+    result = xl6IrBuildClassSubstituteTypeDepth(
+        module, classDeclaration, classType, sourceType, depth);
+    if ( result != XL6_IR_TYPE_INVALID ) goto done;
+
+    source = xl6IrTypeGet(&module->types, sourceType);
+    if ( source == NULL || source->name == NULL || source->name[0] == '\0' )
+        goto failed;
+    kind = source->kind;
+    cAbi = source->cAbi;
+    collectionAbi = source->collectionAbi;
+    runtimeResourceAbi = source->runtimeResourceAbi;
+    ownershipAbi = source->ownershipAbi;
+    integerTarget = source->integerTarget;
+    callableErasureAbi = source->callableErasureAbi;
+    abiId = source->abiId;
+    nominalSymbol = source->nominalSymbol;
+    name = xrtStrDupN(source->name, strlen(source->name));
+    if ( name == NULL ) goto failed;
+    if ( kind == XL6_IR_TYPE_FUNCTION && paramCount != 0 ) {
+        if ( source->parameterModes == NULL ) goto failed;
+        parameterModes = (XL6_IrParameterMode*)xrtMalloc(
+            paramCount * sizeof(*parameterModes));
+        parameterAbis = (XL6_IrParameterAbi*)xrtMalloc(
+            paramCount * sizeof(*parameterAbis));
+        if ( parameterModes == NULL || parameterAbis == NULL ) goto failed;
+        memcpy(parameterModes, source->parameterModes,
+               paramCount * sizeof(*parameterModes));
+        for ( i = 0; i < paramCount; ++i ) {
+            parameterAbis[i] = xl6IrParameterAbiForMode(
+                xl6IrTypeGet(&module->types, params[i]), parameterModes[i]);
+            if ( parameterAbis[i] == XL6_IR_PARAMETER_ABI_INVALID ) goto failed;
+        }
+    }
+    if ( kind == XL6_IR_TYPE_FUNCTION ) {
+        callableResult = returnCount == 0
+            ? XL6_IR_TYPE_INVALID
+            : returnCount == 1 ? returns[0]
+            : xl6IrTypePoolInternTuple(
+                &module->types, returns, returnCount);
+        if ( returnCount != 0 && callableResult == XL6_IR_TYPE_INVALID )
+            goto failed;
+    }
+    if ( !xl6IrGrow((void**)&module->types.items, &module->types.capacity,
+                     module->types.count, sizeof(*module->types.items)) )
+        goto failed;
+    {
+        XL6_IrType* item = &module->types.items[module->types.count];
+        memset(item, 0, sizeof(*item));
+        item->kind = kind;
+        item->cAbi = cAbi;
+        item->collectionAbi = collectionAbi;
+        item->runtimeResourceAbi = runtimeResourceAbi;
+        item->ownershipAbi = ownershipAbi;
+        item->integerTarget = integerTarget;
+        item->sourceTypeId = XL6_TYPE_ID_INVALID;
+        item->abiId = abiId;
+        item->nominalSymbol = nominalSymbol;
+        item->name = name;
+        item->params = params;
+        item->parameterModes = parameterModes;
+        item->parameterAbis = parameterAbis;
+        item->paramCount = paramCount;
+        item->returns = returns;
+        item->returnCount = returnCount;
+        item->callableResultType = callableResult;
+        item->callableErasureAbi = callableErasureAbi;
+        if ( !xl6IrTypeFinalizeRepresentation(&module->types, item) ||
+             !xl6IrTypeFinalizeTypeValueId(&module->types, item) ) {
+            xrtFree(item->name);
+            xrtFree(item->displayName);
+            xrtFree(item->params);
+            xrtFree(item->parameterModes);
+            xrtFree(item->parameterAbis);
+            xrtFree(item->returns);
+            memset(item, 0, sizeof(*item));
+            return XL6_IR_TYPE_INVALID;
+        }
+        name = NULL;
+        params = NULL;
+        parameterModes = NULL;
+        parameterAbis = NULL;
+        returns = NULL;
+        module->types.count += 1;
+        result = (XL6_IrTypeId)module->types.count;
+    }
+    return result;
+
+failed:
+    result = XL6_IR_TYPE_INVALID;
+done:
+    xrtFree(name);
+    xrtFree(params);
+    xrtFree(parameterModes);
+    xrtFree(parameterAbis);
+    xrtFree(returns);
+    return result;
+}
+
+static XL6_IrTypeId xl6IrBuildInternClassSubstitutedType(
+    XL6_IrModule* module, XL6_IrNodeId classDeclaration,
+    XL6_IrTypeId classType, XL6_IrTypeId sourceType)
+{
+    return xl6IrBuildInternClassSubstitutedTypeDepth(
         module, classDeclaration, classType, sourceType, 0);
 }
 
@@ -4295,7 +4541,7 @@ static int xl6IrBuildClassLayoutAppendField(
     item = &module->classFields[module->classFieldCount];
     memset(item, 0, sizeof(*item));
     item->ownerType = module->classLayouts[layoutIndex].type;
-    item->type = xl6IrBuildClassSubstituteType(
+    item->type = xl6IrBuildInternClassSubstitutedType(
         module, module->classLayouts[layoutIndex].declaration,
         module->classLayouts[layoutIndex].type, field->storageType);
     if ( item->type == XL6_IR_TYPE_INVALID ) return 0;
@@ -4421,12 +4667,12 @@ static int xl6IrBuildClassLayoutAppendField(
              module, field, "json", &item->jsonPersistenceFlags,
              &item->jsonPersistenceKeyLiteral) ||
          !xl6IrBuildFieldPersistence(
-             module, field, "xson", &item->xsonPersistenceFlags,
-             &item->xsonPersistenceKeyLiteral) ) {
+             module, field, "xlon", &item->xlonPersistenceFlags,
+             &item->xlonPersistenceKeyLiteral) ) {
         xrtFree(item->name);
         xrtFree(item->persistenceDefaultLiteral);
         xrtFree(item->jsonPersistenceKeyLiteral);
-        xrtFree(item->xsonPersistenceKeyLiteral);
+        xrtFree(item->xlonPersistenceKeyLiteral);
         memset(item, 0, sizeof(*item));
         return 0;
     }
@@ -4537,11 +4783,11 @@ static uint32 xl6IrBuildClassPersistenceFormatsFrom(
         if ( node->text != NULL && strcmp(node->text, "value") == 0 )
             return XL6_IR_PERSIST_FORMAT_VALUE |
                    XL6_IR_PERSIST_FORMAT_JSON |
-                   XL6_IR_PERSIST_FORMAT_XSON;
+                   XL6_IR_PERSIST_FORMAT_XLON;
         if ( node->text != NULL && strcmp(node->text, "json") == 0 )
             return XL6_IR_PERSIST_FORMAT_JSON;
-        if ( node->text != NULL && strcmp(node->text, "xson") == 0 )
-            return XL6_IR_PERSIST_FORMAT_XSON;
+        if ( node->text != NULL && strcmp(node->text, "xlon") == 0 )
+            return XL6_IR_PERSIST_FORMAT_XLON;
         return 0;
     }
     if ( node->kind == XL6_IR_NODE_FUNC_DECL ) return 0;
@@ -4628,7 +4874,7 @@ static XL6_IrPersistenceObjectAbi xl6IrBuildClassPersistenceObjectAbi(
     }
     /* Open dynamic storage is a runtime object-shape fact, not a persistence
      * opt-in.  A descendant of `object` must retain that shape even when it
-     * derives neither JSON nor XSON; persistenceFormatMask independently
+     * derives neither JSON nor XLON; persistenceFormatMask independently
      * controls whether serializers may consume the schema. */
     if ( layout->persistenceFormatMask == XL6_IR_PERSIST_FORMAT_NONE )
         return XL6_IR_PERSISTENCE_OBJECT_NONE;
@@ -4903,11 +5149,32 @@ static int xl6IrBuildPersistenceConstructionAbis(XL6_IrModule* module)
     return xl6IrBuildPersistenceTypeAbis(module);
 }
 
-int xl6IrRefreshClassLayouts(XL6_IrModule* module)
+static int xl6IrClassLayoutFailure(
+    const XL6_IrModule* module, char* failure, size_t failureSize,
+    const XL6_IrNode* declaration, XL6_IrTypeId type, const char* phase)
+{
+    const XL6_IrType* concreteType = module != NULL
+        ? xl6IrTypeGet(&module->types, type) : NULL;
+    const char* className = declaration != NULL && declaration->text != NULL
+        ? declaration->text : "<unknown>";
+    const char* typeName = concreteType != NULL && concreteType->displayName != NULL
+        ? concreteType->displayName : "<unknown>";
+    if ( failure != NULL && failureSize != 0 )
+        snprintf(failure, failureSize,
+            "cannot build XLIR class layout for %s (%s): %s",
+            className, typeName, phase != NULL ? phase : "unknown phase");
+    return 0;
+}
+
+static int xl6IrRefreshClassLayoutsDetailed(
+    XL6_IrModule* module, char* failure, size_t failureSize)
 {
     const XL6_IrNode* root;
     size_t i;
-    if ( module == NULL || (root = xl6IrNodeGet(module, module->root)) == NULL ) return 0;
+    if ( module == NULL || (root = xl6IrNodeGet(module, module->root)) == NULL )
+        return xl6IrClassLayoutFailure(
+            module, failure, failureSize, NULL, XL6_IR_TYPE_INVALID,
+            "module root is unavailable");
     for ( i = 0; i < root->childCount; ++i ) {
         XL6_IrNodeId declaration = module->children[root->firstChild + i];
         const XL6_IrNode* node = xl6IrNodeGet(module, declaration);
@@ -4932,7 +5199,10 @@ int xl6IrRefreshClassLayouts(XL6_IrModule* module)
                 if ( module->classLayouts[existingLayout].type == type ) break;
             if ( existingLayout != module->classLayoutCount ) continue;
             if ( !xl6IrGrow((void**)&module->classLayouts, &module->classLayoutCapacity,
-                             module->classLayoutCount, sizeof(*module->classLayouts)) ) return 0;
+                             module->classLayoutCount, sizeof(*module->classLayouts)) )
+                return xl6IrClassLayoutFailure(
+                    module, failure, failureSize, node, type,
+                    "cannot allocate the layout record");
             layout = &module->classLayouts[module->classLayoutCount];
             memset(layout, 0, sizeof(*layout));
             layout->type = type;
@@ -4943,19 +5213,28 @@ int xl6IrRefreshClassLayouts(XL6_IrModule* module)
                 XL6_IR_CLASS_FIELD_INDEX_INVALID;
             layout->declaration = declaration;
             layout->baseDeclaration = XL6_IR_NODE_INVALID;
-            if ( module->classLayoutCount >= UINT32_MAX ) return 0;
+            if ( module->classLayoutCount >= UINT32_MAX )
+                return xl6IrClassLayoutFailure(
+                    module, failure, failureSize, node, type,
+                    "runtime type-tag space is exhausted");
             layout->runtimeTypeTag = (uint32)(module->classLayoutCount + 1);
             layout->firstField = module->classFieldCount;
             if ( !xl6IrBuildClassLifecycle(
                      module, declaration, "create", &firstCreate,
-                     &createCount) ) return 0;
+                     &createCount) )
+                return xl6IrClassLayoutFailure(
+                    module, failure, failureSize, node, type,
+                    "cannot resolve constructor lifecycle");
             layout->hasExplicitCreate = createCount != 0;
             layout->persistenceFormatMask =
                 xl6IrBuildClassPersistenceFormatsFrom(
                     module, declaration, declaration);
             if ( !xl6IrBuildClassCopyContract(module, layout) ||
                  !xl6IrBuildClassStringContract(module, layout) ||
-                 !xl6IrBuildClassIdentityContract(module, layout) ) return 0;
+                 !xl6IrBuildClassIdentityContract(module, layout) )
+                return xl6IrClassLayoutFailure(
+                    module, failure, failureSize, node, type,
+                    "cannot resolve copy, string, or identity contracts");
             for ( child = 0; child < node->childCount; ++child ) {
                 const XL6_IrNode* item = xl6IrNodeGet(module, module->children[node->firstChild + child]);
                 XL6_IrNodeId candidateDeclaration = item != NULL
@@ -4977,11 +5256,17 @@ int xl6IrRefreshClassLayouts(XL6_IrModule* module)
             if ( layout->baseDeclaration != XL6_IR_NODE_INVALID &&
                  layout->baseType == XL6_IR_TYPE_INVALID ) {
                 if ( !xl6IrBuildClassLayoutFields(module, module->classLayoutCount - 1,
-                                                   layout->baseDeclaration, layout->baseDeclaration) ) return 0;
+                                                   layout->baseDeclaration, layout->baseDeclaration) )
+                    return xl6IrClassLayoutFailure(
+                        module, failure, failureSize, node, type,
+                        "cannot lower inherited fields");
                 layout->inheritedFieldCount = module->classLayouts[module->classLayoutCount - 1].fieldCount;
             }
             if ( !xl6IrBuildClassLayoutFields(module, module->classLayoutCount - 1,
-                                               declaration, declaration) ) return 0;
+                                               declaration, declaration) )
+                return xl6IrClassLayoutFailure(
+                    module, failure, failureSize, node, type,
+                    "cannot lower declared fields");
         }
     }
     /* Resolve the open-object runtime shape after every base edge exists.
@@ -5002,7 +5287,11 @@ int xl6IrRefreshClassLayouts(XL6_IrModule* module)
                      XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_ROOT ||
                  layout->persistenceObjectAbi ==
                      XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ) {
-                if ( !hasOpenObjectStorage ) return 0;
+                if ( !hasOpenObjectStorage )
+                    return xl6IrClassLayoutFailure(
+                        module, failure, failureSize,
+                        xl6IrNodeGet(module, layout->declaration), layout->type,
+                        "open-object storage fields are unavailable");
                 layout->persistenceDynamicField = dynamicField;
                 layout->persistenceDynamicHandleField = dynamicHandleField;
             }
@@ -5016,8 +5305,20 @@ int xl6IrRefreshClassLayouts(XL6_IrModule* module)
     module->classDestroySteps = NULL;
     module->classDestroyStepCount = 0;
     module->classDestroyStepCapacity = 0;
-    if ( !xl6IrBuildClassDestroyPlans(module) ) return 0;
-    return xl6IrBuildPersistenceConstructionAbis(module);
+    if ( !xl6IrBuildClassDestroyPlans(module) )
+        return xl6IrClassLayoutFailure(
+            module, failure, failureSize, NULL, XL6_IR_TYPE_INVALID,
+            "cannot build destruction plans");
+    if ( !xl6IrBuildPersistenceConstructionAbis(module) )
+        return xl6IrClassLayoutFailure(
+            module, failure, failureSize, NULL, XL6_IR_TYPE_INVALID,
+            "cannot build persistence construction ABIs");
+    return 1;
+}
+
+int xl6IrRefreshClassLayouts(XL6_IrModule* module)
+{
+    return xl6IrRefreshClassLayoutsDetailed(module, NULL, 0);
 }
 
 static const XL6_IrClassLayout* xl6IrBuildClassLayoutByType(
@@ -5036,8 +5337,8 @@ static uint32 xl6IrBuildPersistenceFieldFlags(
     if ( field == NULL ) return 0;
     if ( format == XL6_IR_PERSIST_FORMAT_JSON )
         return field->jsonPersistenceFlags;
-    if ( format == XL6_IR_PERSIST_FORMAT_XSON )
-        return field->xsonPersistenceFlags;
+    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
+        return field->xlonPersistenceFlags;
     return 0;
 }
 
@@ -5055,7 +5356,7 @@ static int xl6IrBuildPersistenceLayoutSupportedDepth(
     size_t fieldStart;
     if ( module == NULL || layout == NULL ||
          (format != XL6_IR_PERSIST_FORMAT_JSON &&
-          format != XL6_IR_PERSIST_FORMAT_XSON) ||
+          format != XL6_IR_PERSIST_FORMAT_XLON) ||
          (layout->persistenceFormatMask & format) == 0 )
         return 0;
     if ( layout->persistenceObjectAbi !=
@@ -5136,11 +5437,11 @@ static int xl6IrBuildPersistenceJsonLayoutSupported(
         module, typeId, XL6_IR_PERSIST_FORMAT_JSON, 0);
 }
 
-static int xl6IrBuildPersistenceXsonLayoutSupported(
+static int xl6IrBuildPersistenceXlonLayoutSupported(
     const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     return xl6IrBuildPersistenceLayoutSupportedDepth(
-        module, typeId, XL6_IR_PERSIST_FORMAT_XSON, 0);
+        module, typeId, XL6_IR_PERSIST_FORMAT_XLON, 0);
 }
 
 static uint32 xl6IrPersistenceIntrinsicFormat(XL6_IrIntrinsicKind kind)
@@ -5151,11 +5452,11 @@ static uint32 xl6IrPersistenceIntrinsicFormat(XL6_IrIntrinsicKind kind)
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ:
         return XL6_IR_PERSIST_FORMAT_JSON;
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ:
-        return XL6_IR_PERSIST_FORMAT_XSON;
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ:
+        return XL6_IR_PERSIST_FORMAT_XLON;
     default:
         return XL6_IR_PERSIST_FORMAT_NONE;
     }
@@ -5168,8 +5469,8 @@ static int xl6IrBuildPersistenceLayoutSupported(
     uint32 format = xl6IrPersistenceIntrinsicFormat(kind);
     if ( format == XL6_IR_PERSIST_FORMAT_JSON )
         return xl6IrBuildPersistenceJsonLayoutSupported(module, typeId);
-    if ( format == XL6_IR_PERSIST_FORMAT_XSON )
-        return xl6IrBuildPersistenceXsonLayoutSupported(module, typeId);
+    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
+        return xl6IrBuildPersistenceXlonLayoutSupported(module, typeId);
     return 0;
 }
 
@@ -5186,7 +5487,7 @@ static int xl6IrBuildPersistenceValueProjectionSupported(
     uint32 format = xl6IrPersistenceIntrinsicFormat(kind);
     return type != NULL && xl6IrTypeCanBoxRuntimeXValue(module, typeId) &&
         (format == XL6_IR_PERSIST_FORMAT_JSON ||
-         format == XL6_IR_PERSIST_FORMAT_XSON) &&
+         format == XL6_IR_PERSIST_FORMAT_XLON) &&
         xl6IrBuildPersistenceTypeSupportedDepth(
             module, typeId, format, 0, 0);
 }
@@ -5208,11 +5509,11 @@ static uint32 xl6IrPersistenceRuntimeFormat(XL6_IrRuntimeOp operation)
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_READ:
         return XL6_IR_PERSIST_FORMAT_JSON;
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY:
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE:
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE:
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_READ:
-        return XL6_IR_PERSIST_FORMAT_XSON;
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_READ:
+        return XL6_IR_PERSIST_FORMAT_XLON;
     default:
         return XL6_IR_PERSIST_FORMAT_NONE;
     }
@@ -5225,8 +5526,8 @@ static int xl6IrBuildPersistenceRuntimeLayoutSupported(
     uint32 format = xl6IrPersistenceRuntimeFormat(operation);
     if ( format == XL6_IR_PERSIST_FORMAT_JSON )
         return xl6IrBuildPersistenceJsonLayoutSupported(module, typeId);
-    if ( format == XL6_IR_PERSIST_FORMAT_XSON )
-        return xl6IrBuildPersistenceXsonLayoutSupported(module, typeId);
+    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
+        return xl6IrBuildPersistenceXlonLayoutSupported(module, typeId);
     return 0;
 }
 
@@ -5239,7 +5540,7 @@ static int xl6IrBuildPersistenceRuntimeValueProjectionSupported(
     uint32 format = xl6IrPersistenceRuntimeFormat(operation);
     return type != NULL && xl6IrTypeCanBoxRuntimeXValue(module, typeId) &&
         (format == XL6_IR_PERSIST_FORMAT_JSON ||
-         format == XL6_IR_PERSIST_FORMAT_XSON) &&
+         format == XL6_IR_PERSIST_FORMAT_XLON) &&
         xl6IrBuildPersistenceTypeSupportedDepth(
             module, typeId, format, 0, 0);
 }
@@ -6094,6 +6395,10 @@ static XL6_IrNominalIdentitySet* xl6IrBuildAppendNominalIdentitySet(
     memset(set, 0, sizeof(*set));
     set->targetType = targetType;
     set->kind = kind;
+    if ( kind == XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG ) {
+        const XL6_IrType* target = xl6IrTypeGet(&module->types, targetType);
+        if ( target != NULL ) set->nonObjectTypeId = target->typeValueId;
+    }
     set->firstIdentity = module->nominalIdentityCount;
     return set;
 }
@@ -6233,7 +6538,7 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
     return NULL;
 }
 
-static XL6_IrNodeId xl6IrBuildCallParameterList(
+XL6_IrNodeId xl6IrCallParameterListGet(
     const XL6_IrModule* module, XL6_IrNodeId declaration)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, declaration);
@@ -6899,7 +7204,7 @@ static int xl6IrBuildSyntaxCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
          target->kind != XL6_IR_NODE_FUNC_DECL ||
          (operation->callKind != XL6_SEM_CALL_WITNESS &&
           !xl6IrBuildCallTargetNeedsReceiver(module, declaration, target)) ||
-         (parameterListId = xl6IrBuildCallParameterList(module, declaration)) ==
+         (parameterListId = xl6IrCallParameterListGet(module, declaration)) ==
              XL6_IR_NODE_INVALID ||
          (parameters = xl6IrNodeGet(module, parameterListId)) == NULL ||
          parameters->kind != XL6_IR_NODE_LIST ) return 1;
@@ -6910,7 +7215,7 @@ static int xl6IrBuildSyntaxCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
     expectedArguments = operation->kind == XL6_IR_NODE_UNARY ? 0u
         : operation->kind == XL6_IR_NODE_BINARY ? 1u
         : operation->kind == XL6_IR_NODE_MEMBER
-            ? (operation->callKind == XL6_SEM_CALL_PROPERTY_GET || operation->callKind == XL6_SEM_CALL_WITNESS) ? 0u : 1u
+            ? parameters->childCount
         : operation->kind == XL6_IR_NODE_ASSIGN
             ? (operation->callKind == XL6_SEM_CALL_PROPERTY_SET || operation->callKind == XL6_SEM_CALL_WITNESS)
                 ? (assignmentLeft->kind == XL6_IR_NODE_INDEX
@@ -7263,7 +7568,7 @@ static int xl6IrBuildCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
              ? module->symbolNodes[call->targetSymbol] : XL6_IR_NODE_INVALID) == XL6_IR_NODE_INVALID ||
          (target = xl6IrNodeGet(module, declaration)) == NULL ||
          target->kind != XL6_IR_NODE_FUNC_DECL ||
-         (parameterListId = xl6IrBuildCallParameterList(module, declaration)) == XL6_IR_NODE_INVALID ||
+         (parameterListId = xl6IrCallParameterListGet(module, declaration)) == XL6_IR_NODE_INVALID ||
          (parameters = xl6IrNodeGet(module, parameterListId)) == NULL ||
          parameters->kind != XL6_IR_NODE_LIST ) return 1;
     fixedParameterCount = parameters->childCount;
@@ -7458,7 +7763,7 @@ static int xl6IrCallArgumentBindingIsExact(
     target = declaration == NULL ? xl6IrCallTargetGet(module, site->targetSymbol) : NULL;
     if (declaration != NULL || target != NULL) {
         XL6_IrNodeId id = declaration != NULL ? (XL6_IrNodeId)(declaration - module->nodes + 1) : target->declaration;
-        parameters = xl6IrNodeGet(module, xl6IrBuildCallParameterList(module, id));
+        parameters = xl6IrNodeGet(module, xl6IrCallParameterListGet(module, id));
         if (parameters != NULL && binding->parameter < parameters->childCount)
             parameter = xl6IrNodeGet(module, module->children[parameters->firstChild + binding->parameter]);
     }
@@ -7611,6 +7916,7 @@ static XL6_IrIntegerTarget xl6IrBuildIntegerTarget(const char* name)
 static int xl6IrBuildCAbiIsIntegerScalar(XL6_IrCAbi abi)
 {
     return abi == XL6_IR_C_ABI_I64 || abi == XL6_IR_C_ABI_U64 ||
+           abi == XL6_IR_C_ABI_CHAR_U32 ||
            abi == XL6_IR_C_ABI_C_CHAR || abi == XL6_IR_C_ABI_C_SCHAR ||
            abi == XL6_IR_C_ABI_C_UCHAR || abi == XL6_IR_C_ABI_C_SHORT ||
            abi == XL6_IR_C_ABI_C_USHORT || abi == XL6_IR_C_ABI_C_INT ||
@@ -7650,6 +7956,7 @@ static unsigned int xl6IrBuildIntegerTargetWidth(XL6_IrIntegerTarget target)
     case XL6_IR_INTEGER_TARGET_UNSIGNED_32: return 32;
     case XL6_IR_INTEGER_TARGET_SIGNED_64:
     case XL6_IR_INTEGER_TARGET_UNSIGNED_64: return 64;
+    case XL6_IR_INTEGER_TARGET_UNICODE_SCALAR: return 21;
     default: return 0;
     }
 }
@@ -7685,6 +7992,23 @@ static int xl6IrBuildCanWidenLanguageInteger(
     resultSigned = xl6IrBuildIntegerTargetSigned(result->integerTarget);
     if ( sourceSigned == resultSigned ) return 1;
     return !sourceSigned && resultSigned && resultWidth > sourceWidth;
+}
+
+/* A Unicode scalar occupies the closed range U+0000..U+10FFFF. Treating
+ * char as an arbitrary uint32_t would incorrectly admit narrowing to uint16,
+ * while refusing every integer conversion would lose the language contract
+ * that a char is safely usable as its numeric code point. */
+static int xl6IrBuildCanWidenChar(
+    const XL6_IrType* source, const XL6_IrType* result)
+{
+    unsigned int width;
+    if ( source == NULL || result == NULL ||
+         source->cAbi != XL6_IR_C_ABI_CHAR_U32 ) return 0;
+    if ( result->cAbi == XL6_IR_C_ABI_CHAR_U32 ) return 1;
+    if ( result->cAbi == XL6_IR_C_ABI_U64 ) return 1;
+    if ( result->cAbi != XL6_IR_C_ABI_I64 ) return 0;
+    width = xl6IrBuildIntegerTargetWidth(result->integerTarget);
+    return width >= 32;
 }
 
 XL6_IrScalarConversionAbi xl6IrClassifyScalarConversionAbi(
@@ -7729,7 +8053,7 @@ XL6_IrScalarConversionAbi xl6IrClassifyScalarConversionAbi(
         return foreign ? XL6_IR_SCALAR_CONVERSION_INTEGER_TO_BOOL
                        : XL6_IR_SCALAR_CONVERSION_INVALID;
     if ( sourceInteger && resultInteger ) {
-        if ( foreign ||
+        if ( foreign || xl6IrBuildCanWidenChar(source, result) ||
              xl6IrBuildCanWidenLanguageInteger(source, result) )
             return XL6_IR_SCALAR_CONVERSION_INTEGER_TO_INTEGER;
         return XL6_IR_SCALAR_CONVERSION_INVALID;
@@ -7765,6 +8089,7 @@ static XL6_IrIntegerSourceAbi xl6IrBuildIntegerSourceAbi(
     switch ( source->cAbi ) {
     case XL6_IR_C_ABI_I64: return XL6_IR_INTEGER_SOURCE_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_INTEGER_SOURCE_U64;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_INTEGER_SOURCE_U64;
     case XL6_IR_C_ABI_F64:
     case XL6_IR_C_ABI_F32:
     case XL6_IR_C_ABI_C_FLOAT:
@@ -7794,8 +8119,12 @@ static int xl6IrCheckedIntegerConversionSignature(
     XL6_IrIntegerSourceAbi sourceAbi)
 {
     if ( result == NULL || target < XL6_IR_INTEGER_TARGET_SIGNED_8 ||
-         target > XL6_IR_INTEGER_TARGET_UNSIGNED_64 ||
+         target > XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ||
          result->integerTarget != target ) return 0;
+    if ( target == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
+        return result->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+               (sourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
+                sourceAbi == XL6_IR_INTEGER_SOURCE_U64);
     if ( target == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
         return result->cAbi == XL6_IR_C_ABI_U64 &&
                (sourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
@@ -7830,6 +8159,29 @@ static int xl6IrBuildCanScalarConvert(
            XL6_IR_SCALAR_CONVERSION_INVALID;
 }
 
+/* An expected char type is the only contextual integer conversion that can
+ * raise.  Unlike the ordinary fixed-width integer constructors, it preserves
+ * the Unicode-scalar invariant and therefore cannot be represented by either
+ * a widening cast or modulo normalization. */
+static int xl6IrContextualCheckedIntegerConversionRequired(
+    const XL6_IrModule* module, XL6_IrTypeId sourceTypeId,
+    XL6_IrTypeId targetTypeId)
+{
+    const XL6_IrType* source;
+    const XL6_IrType* target;
+    XL6_IrIntegerSourceAbi sourceAbi;
+    if ( module == NULL || sourceTypeId == XL6_IR_TYPE_INVALID ||
+         targetTypeId == XL6_IR_TYPE_INVALID ||
+         sourceTypeId == targetTypeId ) return 0;
+    source = xl6IrTypeGet(&module->types, sourceTypeId);
+    target = xl6IrTypeGet(&module->types, targetTypeId);
+    sourceAbi = xl6IrBuildIntegerSourceAbi(source);
+    return target != NULL &&
+           target->integerTarget == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
+           xl6IrCheckedIntegerConversionSignature(
+               target, target->integerTarget, sourceAbi);
+}
+
 static int xl6IrCallableTypesCompatible(
     const XL6_IrModule* module, XL6_IrTypeId left, XL6_IrTypeId right);
 
@@ -7842,6 +8194,7 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
         return XL6_IR_ASYNC_RESULT_VOID;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL: return XL6_IR_ASYNC_RESULT_COPY_BOOL;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_ASYNC_RESULT_COPY_CHAR;
     case XL6_IR_C_ABI_I64: return XL6_IR_ASYNC_RESULT_COPY_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_ASYNC_RESULT_COPY_U64;
     case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_ASYNC_RESULT_COPY_TYPE_ID;
@@ -7849,6 +8202,7 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
     case XL6_IR_C_ABI_RAW_POINTER:
         return XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER;
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_RESULT_OWNED_STRING;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE;
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_ASYNC_RESULT_COPY_TAGGED;
@@ -7874,6 +8228,7 @@ static int xl6IrTaskAllPayloadBoxerSupported(
         return 0;
     switch ( abi ) {
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
     case XL6_IR_ASYNC_RESULT_COPY_U64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
@@ -7902,6 +8257,7 @@ int xl6IrTaskSpawnParameterAbiSupported(
     if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          abi == XL6_IR_PARAMETER_ABI_VALUE ) {
         return type->cAbi == XL6_IR_C_ABI_BOOL ||
+               type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
                type->cAbi == XL6_IR_C_ABI_I64 ||
                type->cAbi == XL6_IR_C_ABI_U64 ||
                type->cAbi == XL6_IR_C_ABI_TYPE_ID ||
@@ -7913,6 +8269,7 @@ int xl6IrTaskSpawnParameterAbiSupported(
     return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
            (abi == XL6_IR_PARAMETER_ABI_BORROW || abi == XL6_IR_PARAMETER_ABI_OWNED) &&
            (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+            type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
             type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
             type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
             type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
@@ -8045,6 +8402,8 @@ static XL6_IrStringConversionAbi xl6IrBuildStringConversionAbi(
     if ( source == NULL || source->kind == XL6_IR_TYPE_NULLABLE )
         return XL6_IR_STRING_CONVERSION_INVALID;
     switch ( source->cAbi ) {
+    case XL6_IR_C_ABI_CHAR_U32:
+        return XL6_IR_STRING_CONVERSION_CHAR_VALUE;
     case XL6_IR_C_ABI_BOOL:
         return XL6_IR_STRING_CONVERSION_BOOL_VALUE;
     case XL6_IR_C_ABI_I64:
@@ -10095,8 +10454,8 @@ static XL6_IrDynamicCallKind xl6IrDynamicMethodDeclarationKind(const XL6_IrNode*
 static int xl6IrDynamicMethodSameOverload(
     const XL6_IrModule* module, XL6_IrNodeId left, XL6_IrNodeId right)
 {
-    const XL6_IrNode* a = xl6IrNodeGet(module, xl6IrBuildCallParameterList(module, left));
-    const XL6_IrNode* b = xl6IrNodeGet(module, xl6IrBuildCallParameterList(module, right));
+    const XL6_IrNode* a = xl6IrNodeGet(module, xl6IrCallParameterListGet(module, left));
+    const XL6_IrNode* b = xl6IrNodeGet(module, xl6IrCallParameterListGet(module, right));
     size_t i;
     if (a == NULL || b == NULL || a->kind != XL6_IR_NODE_LIST || b->kind != XL6_IR_NODE_LIST ||
         a->childCount != b->childCount) return 0;
@@ -10165,7 +10524,7 @@ static int xl6IrBuildDynamicMethodSignature(
          method->kind != XL6_IR_NODE_FUNC_DECL ) return 0;
     signatureOffset = method->sourceKind == XL6_AST_ANON_FUNC ? 0u : 1u;
     if ( method->childCount < signatureOffset + 2u ||
-         (parameterListId = xl6IrBuildCallParameterList(module, declaration)) ==
+         (parameterListId = xl6IrCallParameterListGet(module, declaration)) ==
              XL6_IR_NODE_INVALID ||
          (parameters = xl6IrNodeGet(module, parameterListId)) == NULL ||
          parameters->kind != XL6_IR_NODE_LIST ||
@@ -10203,6 +10562,7 @@ static int xl6IrDynamicMethodAdapterTypeSupported(
     case XL6_IR_C_ABI_U64:
     case XL6_IR_C_ABI_F64:
     case XL6_IR_C_ABI_TIME_I64:
+    case XL6_IR_C_ABI_CHAR_U32:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
@@ -10223,7 +10583,8 @@ static int xl6IrDynamicMethodParameterAbiSupported(
          type->cAbi == XL6_IR_C_ABI_I64 ||
          type->cAbi == XL6_IR_C_ABI_U64 ||
          type->cAbi == XL6_IR_C_ABI_F64 ||
-         type->cAbi == XL6_IR_C_ABI_TIME_I64 )
+         type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
+         type->cAbi == XL6_IR_C_ABI_CHAR_U32 )
         return abi == XL6_IR_PARAMETER_ABI_VALUE &&
                variadicAbi == XL6_IR_CALL_VARIADIC_NONE;
     if ( type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
@@ -10246,6 +10607,7 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
     if ( type == NULL ) return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL: return XL6_IR_DYNAMIC_METHOD_MATCH_BOOL;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_DYNAMIC_METHOD_MATCH_CHAR;
     case XL6_IR_C_ABI_I64: return XL6_IR_DYNAMIC_METHOD_MATCH_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_DYNAMIC_METHOD_MATCH_U64;
     case XL6_IR_C_ABI_F64: return XL6_IR_DYNAMIC_METHOD_MATCH_F64;
@@ -10276,6 +10638,14 @@ static XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
     case XL6_IR_C_ABI_BOOL:
         return expression->sourceKind == XL6_AST_BOOL
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL
+            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
+    case XL6_IR_C_ABI_CHAR_U32:
+        return expression->sourceKind == XL6_AST_CHAR &&
+               expression->literalDecoded &&
+               expression->literalScalar <= 0x10ffffu &&
+               !(expression->literalScalar >= 0xd800u &&
+                 expression->literalScalar <= 0xdfffu)
+            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
             : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
     case XL6_IR_C_ABI_I64:
         return expression->sourceKind == XL6_AST_INT
@@ -10919,9 +11289,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
          !(call->callKind == XL6_SEM_CALL_DIRECT && callee != NULL &&
            callee->kind == XL6_IR_NODE_NAME && callee->text != NULL &&
            (strcmp(callee->text, "__xl_std_json_stringify") == 0 ||
-            strcmp(callee->text, "__xl_std_xson_stringify") == 0 ||
+            strcmp(callee->text, "__xl_std_xlon_stringify") == 0 ||
             strcmp(callee->text, "__xl_std_json_write") == 0 ||
-            strcmp(callee->text, "__xl_std_xson_write") == 0)) ) return 1;
+            strcmp(callee->text, "__xl_std_xlon_write") == 0)) ) return 1;
     if ( !xl6IrBuildIntrinsicPositionalOperands(
              module, call, &operands, &operandCount) ) return 1;
     operandExpressions = operands;
@@ -11137,7 +11507,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 callee != NULL && callee->kind == XL6_IR_NODE_NAME &&
                 callee->text != NULL &&
                 (strcmp(callee->text, "__xl_std_json_stringify") == 0 ||
-                 strcmp(callee->text, "__xl_std_xson_stringify") == 0) &&
+                 strcmp(callee->text, "__xl_std_xlon_stringify") == 0) &&
                 (operandCount == 1 ||
                  (operandCount == 2 &&
                   xl6IrTypeGet(&module->types,
@@ -11147,7 +11517,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                       XL6_IR_C_ABI_BOOL)) ) {
         intrinsic.kind = strcmp(callee->text, "__xl_std_json_stringify") == 0
             ? XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
-            : XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY;
+            : XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_OWNED;
         if ( operandCount != 0 )
             intrinsic.payloadType =
@@ -11156,7 +11526,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 callee != NULL && callee->kind == XL6_IR_NODE_NAME &&
                 callee->text != NULL &&
                 (strcmp(callee->text, "__xl_std_json_write") == 0 ||
-                 strcmp(callee->text, "__xl_std_xson_write") == 0) &&
+                 strcmp(callee->text, "__xl_std_xlon_write") == 0) &&
                 (operandCount == 2 ||
                  (operandCount == 3 &&
                   xl6IrTypeGet(&module->types,
@@ -11166,7 +11536,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                       XL6_IR_C_ABI_BOOL)) ) {
         intrinsic.kind = strcmp(callee->text, "__xl_std_json_write") == 0
             ? XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
-            : XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE;
+            : XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_VALUE;
         if ( operandCount > 1 )
             intrinsic.payloadType =
@@ -11176,22 +11546,22 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 (strcmp(persistenceGenericName->text,
                         "__xl_std_json_parse") == 0 ||
                  strcmp(persistenceGenericName->text,
-                        "__xl_std_xson_parse") == 0 ||
+                        "__xl_std_xlon_parse") == 0 ||
                  strcmp(persistenceGenericName->text,
                         "__xl_std_json_read") == 0 ||
                  strcmp(persistenceGenericName->text,
-                        "__xl_std_xson_read") == 0) ) {
+                        "__xl_std_xlon_read") == 0) ) {
         if ( strcmp(persistenceGenericName->text,
                     "__xl_std_json_parse") == 0 )
             intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE;
         else if ( strcmp(persistenceGenericName->text,
-                         "__xl_std_xson_parse") == 0 )
-            intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE;
+                         "__xl_std_xlon_parse") == 0 )
+            intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE;
         else if ( strcmp(persistenceGenericName->text,
                          "__xl_std_json_read") == 0 )
             intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ;
         else
-            intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ;
+            intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_OWNED;
         intrinsic.payloadType = persistenceGenericType;
     } else if ( call->callKind == XL6_SEM_CALL_RUNTIME_INTRINSIC &&
@@ -11460,7 +11830,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
         if ( (operandCount == 1 || operandCount == 2) && result != NULL &&
              sourceType != NULL &&
              intrinsic.payloadType ==
@@ -11478,7 +11848,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
         {
             const XL6_IrType* valueType = operandCount > 1
                 ? xl6IrTypeGet(&module->types,
@@ -11502,9 +11872,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         }
         break;
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ:
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ:
         if ( operandCount == 1 && result != NULL && sourceType != NULL &&
              intrinsic.payloadType == call->storageType &&
              result->kind == XL6_IR_TYPE_CLASS &&
@@ -12506,6 +12876,12 @@ static int xl6IrBuildValueInitializers(XL6_IrModule* module)
             initializer->runtimeOp = XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED;
             initializer->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         } else if ( expression != XL6_IR_NODE_INVALID &&
+             xl6IrContextualCheckedIntegerConversionRequired(
+                 module, module->nodes[expression - 1].storageType,
+                 declaration->storageType) ) {
+            initializer->runtimeOp = XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED;
+            initializer->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        } else if ( expression != XL6_IR_NODE_INVALID &&
              xl6IrWeakCreateSignature(
                  module, module->nodes[expression - 1].storageType,
                  declaration->storageType) ) {
@@ -13396,6 +13772,12 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
          receiverType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
          resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_I64 )
         return XL6_IR_MEMBER_ABI_STRING_UTF8_COUNT;
+    if ( strcmp(member->text, "length") == 0 &&
+         receiverType != NULL &&
+         receiverType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+         receiverType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_I64 )
+        return XL6_IR_MEMBER_ABI_BYTES_LENGTH;
     if ( xl6IrUnionFieldForMemberAbi(module, member, NULL) != NULL ) {
         if ( xl6IrMemberIsPlainAssignmentTarget(module, member) ) {
             if ( receiver != NULL && receiver->kind == XL6_IR_NODE_NAME &&
@@ -13455,6 +13837,12 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
         if ( target != NULL ) operatorType = target->storageType;
     }
     resultType = xl6IrTypeGet(&module->types, operatorType);
+    if ( node->sourceKind == XL6_AST_BINARY &&
+         node->opcode == XL6_IR_OPCODE_ADD && resultType != NULL &&
+         resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         (resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+          resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) )
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
     if ( resultType != NULL &&
          ((resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
            resultType->collectionAbi == XL6_IR_COLLECTION_NONE) ||
@@ -14061,6 +14449,10 @@ static XL6_IrRuntimeOp xl6IrClassifyImplicitConversionRuntimeOp(
              xl6IrContextualCallableCastRequired(module, source->storageType, target->storageType) )
             return XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED;
         if ( target != NULL && source != NULL &&
+             xl6IrContextualCheckedIntegerConversionRequired(
+                 module, source->storageType, target->storageType) )
+            return XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED;
+        if ( target != NULL && source != NULL &&
              xl6IrWeakCreateSignature(
                  module, source->storageType, target->storageType) )
             return XL6_IR_RUNTIME_XVALUE_WEAK_CREATE;
@@ -14083,7 +14475,8 @@ static int xl6IrContextualConversionMayRaise(
     const XL6_IrType* type = xl6IrTypeGet(&module->types, target);
     return (type != NULL && type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
         xl6IrTypeNeedsCheckedXValueErasure(module, source)) ||
-        xl6IrContextualCallableCastRequired(module, source, target);
+        xl6IrContextualCallableCastRequired(module, source, target) ||
+        xl6IrContextualCheckedIntegerConversionRequired(module, source, target);
 }
 
 static int xl6IrReturnHasCheckedConversion(const XL6_IrModule* module, const XL6_IrNode* node)
@@ -14188,6 +14581,7 @@ static XL6_IrErrorAbi xl6IrClassifyImplicitConversionErrorAbi(
     runtimeOp = xl6IrClassifyImplicitConversionRuntimeOp(module, node);
     if ( runtimeOp == XL6_IR_RUNTIME_XVALUE_WEAK_CREATE ||
          runtimeOp == XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ||
+         runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
          runtimeOp == XL6_IR_RUNTIME_XVALUE_CALLABLE_FROM_CLOSURE ||
          xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID )
         return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -14263,6 +14657,132 @@ int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
                 if (parameter != NULL) target = parameter->storageType;
             }
             if (target == targetType) return 1;
+        }
+    }
+    return 0;
+}
+
+/* Revalidate a lowering request against the exact expected-type boundary that
+ * introduced it.  A matching pair of physical integer ABIs is insufficient:
+ * without this link an injected checked call could acquire an unrelated
+ * lexical ExitPlan and silently change a no-raise Typed graph. */
+int xl6IrContextualCheckedIntegerConversionAllowed(
+    const XL6_IrModule* module, XL6_IrNodeId origin,
+    XL6_IrNodeId sourceId, XL6_IrTypeId targetType)
+{
+    const XL6_IrNode* node = xl6IrNodeGet(module, origin);
+    const XL6_IrNode* source = xl6IrNodeGet(module, sourceId);
+    const XL6_IrValueInitializer* initializer;
+    size_t i, a;
+    if ( node == NULL || source == NULL ||
+         !xl6IrContextualCheckedIntegerConversionRequired(
+             module, source->storageType, targetType) ||
+         node->firstChild > module->childCount ||
+         node->childCount > module->childCount - node->firstChild ) return 0;
+    initializer = xl6IrValueInitializerGet(module, origin);
+    if ( initializer != NULL &&
+         initializer->abi == XL6_IR_INITIALIZER_EXPLICIT &&
+         initializer->expression == sourceId && initializer->type == targetType &&
+         initializer->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED &&
+         initializer->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ) return 1;
+    if ( node->implicitConversionErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE )
+        return 0;
+    if ( node->kind == XL6_IR_NODE_ASSIGN && node->childCount == 2 &&
+         module->children[node->firstChild + 1] == sourceId ) {
+        const XL6_IrNode* target = xl6IrNodeGet(
+            module, module->children[node->firstChild]);
+        return target != NULL && target->storageType == targetType &&
+            node->implicitConversionRuntimeOp ==
+                XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED;
+    }
+    if ( node->kind == XL6_IR_NODE_YIELD ) {
+        const XL6_IrNode* declaration = xl6IrNodeGet(
+            module, xl6IrCleanupEnclosingCallable(module, origin));
+        const XL6_IrNode* returns;
+        const XL6_IrNode* result;
+        const XL6_IrType* generator;
+        size_t offset;
+        if ( declaration == NULL || declaration->kind != XL6_IR_NODE_FUNC_DECL ||
+             node->childCount != 1 ||
+             module->children[node->firstChild] != sourceId ) return 0;
+        offset = declaration->sourceKind == XL6_AST_ANON_FUNC ? 1 : 2;
+        returns = declaration->childCount > offset
+            ? xl6IrNodeGet(module,
+                module->children[declaration->firstChild + offset])
+            : NULL;
+        result = returns != NULL && returns->kind == XL6_IR_NODE_LIST &&
+                 returns->childCount == 1
+            ? xl6IrNodeGet(module, module->children[returns->firstChild])
+            : NULL;
+        generator = result != NULL
+            ? xl6IrTypeGet(&module->types, result->type) : NULL;
+        return generator != NULL &&
+            generator->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
+            generator->paramCount == 1 && generator->params != NULL &&
+            generator->params[0] == targetType;
+    }
+    if ( node->kind == XL6_IR_NODE_RETURN ) {
+        const XL6_IrNode* declaration = xl6IrNodeGet(
+            module, xl6IrCleanupEnclosingCallable(module, origin));
+        const XL6_IrNode* returns;
+        size_t offset;
+        if ( declaration == NULL || declaration->kind != XL6_IR_NODE_FUNC_DECL )
+            return 0;
+        offset = declaration->sourceKind == XL6_AST_ANON_FUNC ? 1 : 2;
+        returns = declaration->childCount > offset
+            ? xl6IrNodeGet(module,
+                module->children[declaration->firstChild + offset])
+            : NULL;
+        if ( returns == NULL || returns->kind != XL6_IR_NODE_LIST ||
+             returns->childCount != node->childCount ) return 0;
+        for ( i = 0; i < node->childCount; ++i ) {
+            const XL6_IrNode* target = xl6IrNodeGet(
+                module, module->children[returns->firstChild + i]);
+            if ( module->children[node->firstChild + i] == sourceId &&
+                 target != NULL && target->type == targetType ) return 1;
+        }
+    }
+    for ( i = 0; i < module->callSiteCount; ++i ) {
+        const XL6_IrCallSite* site = &module->callSites[i];
+        const XL6_IrNode *declaration, *parameters = NULL, *receiver;
+        const XL6_IrType* signature = NULL;
+        size_t offset;
+        if ( site->origin != origin ||
+             site->firstArgument > module->callArgumentCount ||
+             site->argumentCount >
+                 module->callArgumentCount - site->firstArgument ) continue;
+        declaration = xl6IrSymbolNodeGet(module, site->targetSymbol);
+        if ( declaration != NULL &&
+             declaration->kind == XL6_IR_NODE_FUNC_DECL ) {
+            offset = declaration->sourceKind == XL6_AST_ANON_FUNC ? 0 : 1;
+            if ( declaration->childCount > offset )
+                parameters = xl6IrNodeGet(module,
+                    module->children[declaration->firstChild + offset]);
+        }
+        if ( site->dispatchKind == XL6_IR_CALL_DISPATCH_CALLABLE_VALUE ) {
+            receiver = xl6IrNodeGet(module, site->receiver);
+            signature = receiver != NULL
+                ? xl6IrTypeGet(&module->types, receiver->storageType) : NULL;
+        }
+        for ( a = 0; a < site->argumentCount; ++a ) {
+            const XL6_IrCallArgument* argument =
+                &module->callArguments[site->firstArgument + a];
+            XL6_IrTypeId target = XL6_IR_TYPE_INVALID;
+            if ( argument->expression != sourceId ) continue;
+            if ( signature != NULL &&
+                 signature->kind == XL6_IR_TYPE_FUNCTION &&
+                 signature->params != NULL &&
+                 argument->parameter < signature->paramCount )
+                target = signature->params[argument->parameter];
+            else if ( parameters != NULL &&
+                      parameters->kind == XL6_IR_NODE_LIST &&
+                      argument->parameter < parameters->childCount ) {
+                const XL6_IrNode* parameter = xl6IrNodeGet(module,
+                    module->children[parameters->firstChild +
+                                     argument->parameter]);
+                if ( parameter != NULL ) target = parameter->storageType;
+            }
+            if ( target == targetType ) return 1;
         }
     }
     return 0;
@@ -14368,8 +14888,22 @@ static XL6_IrIndexWriteAbi xl6IrClassifyIndexWriteAbi(
     keyType = key != NULL
         ? xl6IrTypeGet(&module->types, key->storageType) : NULL;
     itemType = xl6IrTypeGet(&module->types, indexNode->storageType);
-    if ( receiverType == NULL || keyType == NULL || itemType == NULL ||
-         receiverType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+    if ( receiverType == NULL || keyType == NULL || itemType == NULL )
+        return XL6_IR_INDEX_WRITE_NONE;
+    if ( receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol != 0 &&
+         keyType->cAbi == XL6_IR_C_ABI_I64 &&
+         receiverType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+         receiverType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         itemType->cAbi == XL6_IR_C_ABI_CHAR_U32 )
+        return XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY;
+    if ( receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol != 0 &&
+         keyType->cAbi == XL6_IR_C_ABI_I64 &&
+         receiverType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+         receiverType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         itemType->cAbi == XL6_IR_C_ABI_I64 &&
+         itemType->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_8 )
+        return XL6_IR_INDEX_WRITE_BYTES_SET_COPY;
+    if ( receiverType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          !xl6IrIndexWriteItemAbiAdmitted(
              module, receiverType, indexNode->storageType) )
         return XL6_IR_INDEX_WRITE_NONE;
@@ -14728,6 +15262,7 @@ static int xl6IrResolveLoopProtocol(
          iteratorType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
     if ( itemType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ) {
         if ( itemType->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
+             itemType->cAbi != XL6_IR_C_ABI_MANAGED_BYTES &&
              itemType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
              itemType->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
              itemType->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
@@ -14746,6 +15281,7 @@ XL6_IrGeneratorYieldAbi xl6IrGeneratorYieldAbiForType(
     if ( type == NULL ) return XL6_IR_GENERATOR_YIELD_INVALID;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL: return XL6_IR_GENERATOR_YIELD_COPY_BOOL;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_GENERATOR_YIELD_COPY_CHAR;
     case XL6_IR_C_ABI_I64: return XL6_IR_GENERATOR_YIELD_COPY_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_GENERATOR_YIELD_COPY_U64;
     case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_GENERATOR_YIELD_COPY_TYPE_ID;
@@ -14755,6 +15291,7 @@ XL6_IrGeneratorYieldAbi xl6IrGeneratorYieldAbiForType(
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_GENERATOR_YIELD_COPY_TAGGED;
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_GENERATOR_YIELD_MOVE_STRING;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_GENERATOR_YIELD_MOVE_XVALUE;
+    case XL6_IR_C_ABI_MANAGED_BYTES: return XL6_IR_GENERATOR_YIELD_MOVE_XVALUE;
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_GENERATOR_YIELD_MOVE_CLOSURE;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_GENERATOR_YIELD_MOVE_FUTURE;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_GENERATOR_YIELD_MOVE_ERROR;
@@ -14926,13 +15463,21 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     if ( (stableNamedIterator || ownedTemporaryIterator) &&
          iteratorType != NULL &&
          iteratorType->kind == XL6_IR_TYPE_BUILTIN &&
-         iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+         (iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+          iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
          iteratorType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-         iteratorType->typeValueId == module->runtimeTypeMap.stringTypeValueId ) {
+         ((iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+           iteratorType->typeValueId ==
+               module->runtimeTypeMap.stringTypeValueId) ||
+          (iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+           iteratorType->typeValueId ==
+               module->runtimeTypeMap.bytesTypeValueId)) ) {
         const XL6_IrNode* valueTarget;
         const XL6_IrNode* indexTarget = NULL;
         const XL6_IrType* valueTargetType;
         const XL6_IrType* indexTargetType = NULL;
+        int stringSequence =
+            iteratorType->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
         if ( targets->childCount == 2 ) {
             indexTarget = xl6IrNodeGet(
                 module, module->children[targets->firstChild]);
@@ -14946,10 +15491,12 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             ? xl6IrTypeGet(&module->types, indexTarget->storageType) : NULL;
         if ( valueTarget == NULL || valueTarget->kind != XL6_IR_NODE_NAME ||
              valueTarget->symbol == 0 ||
-             valueTarget->storageType != iterator->storageType ||
              valueTargetType == NULL ||
-             valueTargetType->typeValueId !=
-                 module->runtimeTypeMap.stringTypeValueId ||
+             (stringSequence
+                 ? valueTargetType->cAbi != XL6_IR_C_ABI_CHAR_U32
+                 : (valueTargetType->cAbi != XL6_IR_C_ABI_I64 ||
+                    valueTargetType->integerTarget !=
+                        XL6_IR_INTEGER_TARGET_UNSIGNED_8)) ||
              (indexTarget != NULL &&
               (indexTarget->kind != XL6_IR_NODE_NAME ||
                indexTarget->symbol == 0 || indexTargetType == NULL ||
@@ -14958,16 +15505,21 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
                indexTargetType->typeValueId !=
                    module->runtimeTypeMap.i64TypeValueId)) )
             return XL6_IR_LOOP_ABI_NONE;
-        if ( errorAbi != NULL ) *errorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
+        if ( errorAbi != NULL ) *errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( keyAbi != NULL ) *keyAbi = indexTarget != NULL
             ? XL6_IR_LOOP_KEY_ORDINAL_I64 : XL6_IR_LOOP_KEY_NONE;
-        if ( itemAbi != NULL ) *itemAbi = XL6_IR_LOOP_ITEM_STRING_COPY;
-        if ( resourceAbi != NULL )
-            *resourceAbi = XL6_IR_LOOP_RESOURCE_STRING_SNAPSHOT_RELEASE;
+        if ( itemAbi != NULL ) *itemAbi = stringSequence
+            ? XL6_IR_LOOP_ITEM_CHAR : XL6_IR_LOOP_ITEM_U8;
+        if ( resourceAbi != NULL ) *resourceAbi = stringSequence
+            ? XL6_IR_LOOP_RESOURCE_STRING_SNAPSHOT_RELEASE
+            : XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE;
         if ( resourceType != NULL ) *resourceType = iterator->storageType;
+        if ( stringSequence ) return indexTarget == NULL
+            ? XL6_IR_LOOP_ABI_STRING_UTF8_VALUE
+            : XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE;
         return indexTarget == NULL
-             ? XL6_IR_LOOP_ABI_STRING_UTF8_VALUE
-             : XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE;
+            ? XL6_IR_LOOP_ABI_BYTES_VALUE
+            : XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE;
     }
     {
         XL6_IrResolvedLoopProtocol protocol;
@@ -15331,6 +15883,8 @@ static XL6_IrLoopTargetLifetimeAbi xl6IrLoopItemLifetimeAbi(
     case XL6_IR_LOOP_ITEM_UNION_COPY:
     case XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_VALUE:
     case XL6_IR_LOOP_ITEM_GENERATOR_VALUE:
+    case XL6_IR_LOOP_ITEM_CHAR:
+    case XL6_IR_LOOP_ITEM_U8:
         return XL6_IR_LOOP_TARGET_LIFETIME_TRIVIAL_REPLACE;
     case XL6_IR_LOOP_ITEM_STRING_COPY:
     case XL6_IR_LOOP_ITEM_XVALUE_RETAIN:
@@ -15509,6 +16063,10 @@ static XL6_IrErrorAbi xl6IrNodeProjectionErrorAbi(
             result != NULL && (result->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
                                result->cAbi == XL6_IR_C_ABI_MANAGED_STRING))
             return XL6_IR_ERROR_ABI_MAY_RAISE;
+        if (node->kind == XL6_IR_NODE_INDEX && source != NULL &&
+            (source->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+             source->cAbi == XL6_IR_C_ABI_MANAGED_BYTES))
+            return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
     if (node->kind == XL6_IR_NODE_MATCH && node->childCount == 2) {
         const XL6_IrEnumLayout* layout;
@@ -15584,7 +16142,9 @@ static XL6_IrErrorAbi xl6IrNodeEvaluationErrorAbi(
     if (node->valueCategory != XL6_IR_VALUE_NONE || node->kind == XL6_IR_NODE_PARAM_DECL ||
         node->kind == XL6_IR_NODE_VALUE_DECL) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, node->storageType);
-        if (type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+        if (type != NULL &&
+            (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES))
             return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
     if (node->implicitNameAbi == XL6_IR_IMPLICIT_NAME_CLASS_FIELD &&
@@ -15701,6 +16261,7 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
 {
     int ok = module != NULL && root != NULL;
     const char* buildFailure = NULL;
+    char classLayoutFailure[256];
     char classDispatchFailure[256];
     size_t i;
     XL6_AstNode boolType;
@@ -15708,6 +16269,7 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
     XL6_AstNode stringType;
     XL6_AstNode dynamicType;
     if ( module == NULL ) return 0;
+    classLayoutFailure[0] = '\0';
     classDispatchFailure[0] = '\0';
     xl6IrModuleFree(module); xl6IrModuleInit(module);
     /* CFG predicates are an XLIR primitive.  Intern their frontend ABI even
@@ -15764,8 +16326,10 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot build XLIR union layouts";
     else if ( !xl6IrBuildEnumLayouts(module) )
         buildFailure = "cannot build XLIR enum layouts";
-    else if ( !xl6IrRefreshClassLayouts(module) )
-        buildFailure = "cannot build XLIR class layouts";
+    else if ( !xl6IrRefreshClassLayoutsDetailed(
+                  module, classLayoutFailure, sizeof(classLayoutFailure)) )
+        buildFailure = classLayoutFailure[0] != '\0'
+            ? classLayoutFailure : "cannot build XLIR class layouts";
     else if ( !xl6IrBuildClassStaticFields(module) )
         buildFailure = "cannot build XLIR class static fields";
     else if ( !xl6IrBuildImplicitNameAbis(module) )
@@ -16663,7 +17227,9 @@ int xl6IrInstructionIsFallibleProjection(
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_CLOSURE_COPY ||
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE ||
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_STRING_COPY ||
-        instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_STRING_COPY) return 1;
+        instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_STRING_COPY ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_STRING_SCALAR_AT ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_AT) return 1;
     type = xl6IrTypeGet(&module->types, instruction->type);
     return instruction->runtimeOp == XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_PROJECT &&
         type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
@@ -16678,6 +17244,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
     case XL6_IR_RUNTIME_STRING_NULLABLE_COPY:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STRING_DUP:
+    case XL6_IR_RUNTIME_STRING_FROM_UTF8:
     case XL6_IR_RUNTIME_STRING_COPY:
     case XL6_IR_RUNTIME_STRING_CONCAT:
     case XL6_IR_RUNTIME_STRING_UTF8_AT:
@@ -16691,6 +17258,10 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
     case XL6_IR_RUNTIME_TYPE_ID_TO_STRING:
     case XL6_IR_RUNTIME_CLASS_DERIVED_TO_STRING:
     case XL6_IR_RUNTIME_XVALUE_TO_STRING:
+    case XL6_IR_RUNTIME_CHAR_TO_STRING:
+    case XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY:
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT:
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT:
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     default:
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
@@ -16702,6 +17273,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp op
     switch (operation) {
     case XL6_IR_RUNTIME_XVALUE_I64:
     case XL6_IR_RUNTIME_XVALUE_U64:
+    case XL6_IR_RUNTIME_XVALUE_CHAR:
     case XL6_IR_RUNTIME_XVALUE_F64:
     case XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT:
     case XL6_IR_RUNTIME_XVALUE_TIME:
@@ -16729,6 +17301,7 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
     switch (type->cAbi) {
     case XL6_IR_C_ABI_I64: return XL6_IR_RUNTIME_XVALUE_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_RUNTIME_XVALUE_U64;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_RUNTIME_XVALUE_CHAR;
     case XL6_IR_C_ABI_F64: return XL6_IR_RUNTIME_XVALUE_F64;
     case XL6_IR_C_ABI_C_FLOAT: case XL6_IR_C_ABI_C_DOUBLE: return XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT;
     case XL6_IR_C_ABI_TIME_I64: return XL6_IR_RUNTIME_XVALUE_TIME;
@@ -16750,6 +17323,9 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_XVALUE_CLONE:
     case XL6_IR_RUNTIME_XVALUE_DEEP_CLONE:
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE:
+    case XL6_IR_RUNTIME_BYTES_FROM_DATA:
+    case XL6_IR_RUNTIME_BYTES_CONCAT:
+    case XL6_IR_RUNTIME_BYTES_SET_COPY:
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     case XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW:
     case XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW:
@@ -16786,11 +17362,41 @@ XL6_IrCallExecutionBoundaryAbi xl6IrCallExecutionBoundaryForKind(XL6_IrCallTarge
     }
 }
 
+XL6_IrCallExecutionBoundaryAbi xl6IrCallExecutionBoundaryForDeclaration(
+    XL6_IrCallTargetKind kind, XL6_AstKind sourceKind, unsigned int flags)
+{
+    if ( kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+         sourceKind == XL6_AST_EXTERN_FUNC &&
+         (flags & XL6_AST_FLAG_FOREIGN_NONBLOCKING) != 0 ) {
+        return XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING;
+    }
+    return xl6IrCallExecutionBoundaryForKind(kind);
+}
+
 const char* xl6IrCallExecutionBoundaryAbiName(XL6_IrCallExecutionBoundaryAbi abi)
 {
     switch (abi) {
     case XL6_IR_CALL_EXECUTION_LANGUAGE_CFG: return "language-cfg";
     case XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK: return "foreign-may-block";
+    case XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING: return "foreign-nonblocking";
+    default: return "invalid";
+    }
+}
+
+XL6_IrCallEffectAbi xl6IrCallEffectForDeclaration(
+    XL6_IrCallTargetKind kind, XL6_AstKind sourceKind, unsigned int flags)
+{
+    return kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+           sourceKind == XL6_AST_EXTERN_FUNC &&
+           (flags & XL6_AST_FLAG_FOREIGN_PURE) != 0
+        ? XL6_IR_CALL_EFFECT_PURE : XL6_IR_CALL_EFFECT_CONSERVATIVE;
+}
+
+const char* xl6IrCallEffectAbiName(XL6_IrCallEffectAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_CALL_EFFECT_CONSERVATIVE: return "conservative";
+    case XL6_IR_CALL_EFFECT_PURE: return "pure";
     default: return "invalid";
     }
 }
@@ -16824,6 +17430,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
             ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
     switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_STRING_SCALAR_AT:
+    case XL6_IR_RUNTIME_BYTES_AT:
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_CLOSURE_COPY:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE:
     case XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_STRING_COPY:
@@ -16871,6 +17480,122 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
     default:
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    }
+}
+
+static int xl6IrPrimitiveSequenceRuntimeOpIs(XL6_IrRuntimeOp operation)
+{
+    return operation == XL6_IR_RUNTIME_CHAR_TO_STRING ||
+           operation == XL6_IR_RUNTIME_BYTES_CONCAT ||
+           operation == XL6_IR_RUNTIME_BYTES_EQUAL ||
+           operation == XL6_IR_RUNTIME_BYTES_ORDER_LT ||
+           operation == XL6_IR_RUNTIME_BYTES_ORDER_LE ||
+           operation == XL6_IR_RUNTIME_BYTES_ORDER_GT ||
+           operation == XL6_IR_RUNTIME_BYTES_ORDER_GE ||
+           operation == XL6_IR_RUNTIME_BYTES_LENGTH ||
+           operation == XL6_IR_RUNTIME_BYTES_AT ||
+           operation == XL6_IR_RUNTIME_BYTES_SET_COPY ||
+           operation == XL6_IR_RUNTIME_STRING_SCALAR_AT ||
+           operation == XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY ||
+           operation == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT ||
+           operation == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT;
+}
+
+static int xl6IrPrimitiveSequenceRuntimeSignatureValid(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    const XL6_IrInstruction* operands[3] = { NULL, NULL, NULL };
+    const XL6_IrType* types[3] = { NULL, NULL, NULL };
+    const XL6_IrType* result;
+    size_t i;
+    if ( module == NULL || instruction == NULL ||
+         instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+         !xl6IrPrimitiveSequenceRuntimeOpIs(instruction->runtimeOp) ||
+         instruction->result == XL6_IR_VALUE_INVALID ||
+         instruction->immediateText != NULL ||
+         instruction->targetSymbol != 0 ||
+         instruction->targetValue != XL6_IR_VALUE_INVALID ||
+         instruction->calleeType != XL6_IR_TYPE_INVALID ||
+         instruction->payloadType != XL6_IR_TYPE_INVALID ||
+         instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
+         instruction->opcode != XL6_IR_OPCODE_INVALID ||
+         instruction->firstOperand > module->operandCount ||
+         instruction->operandCount > 3 ||
+         instruction->operandCount > module->operandCount - instruction->firstOperand ||
+         (result = xl6IrTypeGet(&module->types, instruction->type)) == NULL )
+        return 0;
+    for ( i = 0; i < instruction->operandCount; ++i ) {
+        operands[i] = xl6IrValueDefinition(
+            module, module->operands[instruction->firstOperand + i], NULL);
+        types[i] = operands[i] != NULL
+            ? xl6IrTypeGet(&module->types, operands[i]->type) : NULL;
+        if ( types[i] == NULL ) return 0;
+    }
+    switch ( instruction->runtimeOp ) {
+    case XL6_IR_RUNTIME_CHAR_TO_STRING:
+        return instruction->operandCount == 1 &&
+            types[0]->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+            result->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_IR_RUNTIME_BYTES_CONCAT:
+        return instruction->operandCount == 2 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+            operands[0]->type == operands[1]->type &&
+            instruction->type == operands[0]->type;
+    case XL6_IR_RUNTIME_BYTES_EQUAL:
+    case XL6_IR_RUNTIME_BYTES_ORDER_LT:
+    case XL6_IR_RUNTIME_BYTES_ORDER_LE:
+    case XL6_IR_RUNTIME_BYTES_ORDER_GT:
+    case XL6_IR_RUNTIME_BYTES_ORDER_GE:
+        return instruction->operandCount == 2 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+            operands[0]->type == operands[1]->type &&
+            result->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_IR_RUNTIME_BYTES_LENGTH:
+        return instruction->operandCount == 1 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+            result->cAbi == XL6_IR_C_ABI_I64 &&
+            result->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
+    case XL6_IR_RUNTIME_BYTES_AT:
+        return instruction->operandCount == 2 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+            types[1]->cAbi == XL6_IR_C_ABI_I64 &&
+            types[1]->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+            result->cAbi == XL6_IR_C_ABI_I64 &&
+            result->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_8;
+    case XL6_IR_RUNTIME_BYTES_SET_COPY:
+        return instruction->operandCount == 3 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+            types[1]->cAbi == XL6_IR_C_ABI_I64 &&
+            types[1]->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+            types[2]->cAbi == XL6_IR_C_ABI_I64 &&
+            types[2]->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_8 &&
+            instruction->type == operands[0]->type;
+    case XL6_IR_RUNTIME_STRING_SCALAR_AT:
+        return instruction->operandCount == 2 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            types[1]->cAbi == XL6_IR_C_ABI_I64 &&
+            types[1]->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+            result->cAbi == XL6_IR_C_ABI_CHAR_U32;
+    case XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY:
+        return instruction->operandCount == 3 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            types[1]->cAbi == XL6_IR_C_ABI_I64 &&
+            types[1]->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+            types[2]->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+            instruction->type == operands[0]->type;
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT:
+        return instruction->operandCount == 2 &&
+            types[0]->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            types[1]->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+            instruction->type == operands[0]->type;
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT:
+        return instruction->operandCount == 2 &&
+            types[0]->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+            types[1]->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            instruction->type == operands[1]->type;
+    default:
+        return 0;
     }
 }
 
@@ -17158,7 +17883,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
               type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
-             type->cAbi > XL6_IR_C_ABI_F32 ||
+             type->cAbi > XL6_IR_C_ABI_MANAGED_BYTES ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->ownershipAbi > XL6_IR_OWNERSHIP_ABI_MANAGED ||
              type->callableErasureAbi < XL6_IR_CALLABLE_ERASURE_INVALID ||
@@ -17166,7 +17891,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
               type->nullAbi < XL6_IR_NULL_ABI_NONE ||
               type->nullAbi > XL6_IR_NULL_ABI_TAGGED_VALUE ||
               type->integerTarget < XL6_IR_INTEGER_TARGET_INVALID ||
-              type->integerTarget > XL6_IR_INTEGER_TARGET_UNSIGNED_64 ||
+              type->integerTarget > XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ||
              type->name == NULL || type->displayName == NULL ||
              (type->paramCount != 0 && type->params == NULL) ||
              (type->kind == XL6_IR_TYPE_FUNCTION && type->paramCount != 0 &&
@@ -17226,10 +17951,14 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
                type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
                type->returnCount != 0)) ||
-             (expectedIntegerTarget != XL6_IR_INTEGER_TARGET_INVALID &&
-              type->cAbi !=
-                  (expectedIntegerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64
-                      ? XL6_IR_C_ABI_U64 : XL6_IR_C_ABI_I64)) ) return 0;
+              (expectedIntegerTarget != XL6_IR_INTEGER_TARGET_INVALID &&
+               type->cAbi !=
+                   (expectedIntegerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64
+                       ? XL6_IR_C_ABI_U64
+                    : expectedIntegerTarget ==
+                          XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
+                       ? XL6_IR_C_ABI_CHAR_U32
+                       : XL6_IR_C_ABI_I64)) ) return 0;
         expectedTypeValue = *type;
         if ( !xl6IrTypeFinalizeTypeValueId(
                  (XL6_IrTypePool*)pool, &expectedTypeValue) ||
@@ -17494,10 +18223,35 @@ static int xl6IrTypeIsManagedString(const XL6_IrModule* module, XL6_IrTypeId typ
     return item != NULL && item->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
 }
 
+static int xl6IrTypeIsManagedBytes(const XL6_IrModule* module, XL6_IrTypeId type)
+{
+    const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
+    return item != NULL && item->cAbi == XL6_IR_C_ABI_MANAGED_BYTES;
+}
+
+static int xl6IrTypeIsChar(const XL6_IrModule* module, XL6_IrTypeId type)
+{
+    const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
+    return item != NULL && item->cAbi == XL6_IR_C_ABI_CHAR_U32;
+}
+
 static int xl6IrTypeIsRuntimeXValue(const XL6_IrModule* module, XL6_IrTypeId type)
 {
     const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
     return item != NULL && item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+}
+
+/* Both open dynamic values and statically typed bytes are carried by a
+ * reference-counted xvalue*.  The latter deliberately keeps a distinct C ABI
+ * so operations cannot silently lose the XVALUE_BYTES tag contract. */
+static int xl6IrTypeHasManagedXValueCarrier(
+    const XL6_IrModule* module, XL6_IrTypeId type)
+{
+    const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
+    return item != NULL &&
+           item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+           (item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            item->cAbi == XL6_IR_C_ABI_MANAGED_BYTES);
 }
 
 static int xl6IrTypeIsDynamicXValueBuiltin(
@@ -17639,7 +18393,7 @@ static int xl6IrRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 {
     return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
            abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_TYPE_ID ||
-           abi == XL6_IR_C_ABI_F64;
+           abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_CHAR_U32;
 }
 
 static int xl6IrTypeHasStorageReleaseAbiDepth(
@@ -17652,6 +18406,7 @@ static int xl6IrTypeHasStorageReleaseAbiDepth(
     if ( item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return 1;
     if ( item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ) return 0;
     if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+         item->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
@@ -17676,7 +18431,9 @@ static XL6_IrReleaseEffect xl6IrTypeReleaseEffectDepth(
     if (item == NULL || depth > module->types.count) return XL6_IR_RELEASE_EFFECT_INVALID;
     if (item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL) return effect;
     if (item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED) return XL6_IR_RELEASE_EFFECT_INVALID;
-    if (item->cAbi == XL6_IR_C_ABI_MANAGED_STRING || item->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR)
+    if (item->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+        item->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
+        item->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR)
         return effect;
     if (item->kind == XL6_IR_TYPE_CELL && item->cAbi == XL6_IR_C_ABI_RUNTIME_CELL_PTR) {
         if (item->paramCount != 1 || item->params == NULL) return XL6_IR_RELEASE_EFFECT_INVALID;
@@ -17734,6 +18491,8 @@ static int xl6IrRuntimeCallableAdapterParameterSlotSupported(
     return (abi == XL6_IR_PARAMETER_ABI_BORROW || abi == XL6_IR_PARAMETER_ABI_OWNED) &&
         ((parameter->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
           parameter->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
+         (parameter->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+          parameter->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
          (parameter->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
           parameter->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
          (parameter->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
@@ -17761,6 +18520,8 @@ static int xl6IrRuntimeCallableAdapterResultSlotSupported(
           result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
           result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL) ||
          (result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+          result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
+         (result->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
           result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
          (result->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
           result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
@@ -19727,14 +20488,14 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                   source->text == NULL || strcmp(source->text, item->name) != 0 ||
                   (item->jsonPersistenceFlags &
                        ~XL6_IR_FIELD_PERSIST_ALL) != 0 ||
-                  (item->xsonPersistenceFlags &
+                  (item->xlonPersistenceFlags &
                        ~XL6_IR_FIELD_PERSIST_ALL) != 0 ||
                   (item->jsonPersistenceKeyLiteral != NULL &&
                    !xl6IrIsCanonicalCStringLiteral(
                        item->jsonPersistenceKeyLiteral)) ||
-                   (item->xsonPersistenceKeyLiteral != NULL &&
+                   (item->xlonPersistenceKeyLiteral != NULL &&
                     !xl6IrIsCanonicalCStringLiteral(
-                        item->xsonPersistenceKeyLiteral)) ||
+                        item->xlonPersistenceKeyLiteral)) ||
                    item->stringDeriveIncluded !=
                        xl6IrBuildFieldDeriveIncluded(
                            module, source, "string") ||
@@ -20132,6 +20893,9 @@ static int xl6IrVerifyNominalIdentitySets(const XL6_IrModule* module)
         if ( target == NULL ||
              target->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
              set->firstIdentity != expectedFirst ||
+             set->nonObjectTypeId !=
+                 (set->kind == XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG
+                     ? target->typeValueId : 0) ||
              set->identityCount >
                  module->nominalIdentityCount - set->firstIdentity ) return 0;
         for ( prior = 0; prior < setIndex; ++prior )
@@ -20424,6 +21188,10 @@ static int xl6IrVerifyDynamicMethodRegistry(
                 break;
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_U64:
                 if ( !xl6IrIsCanonicalUnsignedIntegerLiteral(
+                         item->defaultLiteral) ) return 0;
+                break;
+            case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR:
+                if ( !xl6IrIsCanonicalUnicodeScalarLiteral(
                          item->defaultLiteral) ) return 0;
                 break;
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_F64:
@@ -20731,6 +21499,7 @@ static XL6_IrAsyncFrameTransferAbi xl6IrAsyncBorrowTransferForType(
         return XL6_IR_ASYNC_FRAME_TRANSFER_COPY_VALUE;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_XVALUE;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_FUTURE;
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE;
@@ -20750,6 +21519,7 @@ XL6_IrAsyncFrameDestroyAbi xl6IrOwnedValueDestroyAbi(
         return XL6_IR_ASYNC_FRAME_DESTROY_NONE;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE;
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE;
@@ -21335,6 +22105,7 @@ static XL6_IrContinuationFrameTraceAbi xl6IrGeneratorItemTraceForYield(XL6_IrGen
 {
     switch (yield) {
     case XL6_IR_GENERATOR_YIELD_COPY_BOOL:
+    case XL6_IR_GENERATOR_YIELD_COPY_CHAR:
     case XL6_IR_GENERATOR_YIELD_COPY_I64:
     case XL6_IR_GENERATOR_YIELD_COPY_U64:
     case XL6_IR_GENERATOR_YIELD_COPY_TYPE_ID:
@@ -24248,11 +25019,15 @@ static int xl6IrBufferRuntimeBridgeParameterMatches(
             (cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
              type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
              type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL) ||
+            (cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+             type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+             type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL) ||
             (cAbi == XL6_IR_C_ABI_RAW_POINTER &&
              type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
              type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL) ||
             (cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
              cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
+             cAbi != XL6_IR_C_ABI_MANAGED_BYTES &&
              cAbi != XL6_IR_C_ABI_RAW_POINTER &&
              type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
              type->nullAbi == XL6_IR_NULL_ABI_NONE)) &&
@@ -25079,30 +25854,100 @@ typedef struct XL6_IrStringBridgeContract {
     XL6_IrCAbi result;
     size_t parameterCount;
     XL6_IrCAbi parameters[3];
+    XL6_IrErrorAbi errorAbi;
 } XL6_IrStringBridgeContract;
 
 static const XL6_IrStringBridgeContract xl6IrStringBridgeContracts[] = {
     { "xl6_xrt_string_repeat", XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT,
-      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 } },
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 },
+      XL6_IR_ERROR_ABI_MAY_RAISE },
     { "xl6_xrt_string_byte_len", XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN,
-      XL6_IR_C_ABI_C_SIZE, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+      XL6_IR_C_ABI_C_SIZE, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_NO_RAISE },
     { "xl6_xrt_string_byte_at", XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT,
-      XL6_IR_C_ABI_C_INT, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 } },
+      XL6_IR_C_ABI_C_INT, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 },
+      XL6_IR_ERROR_ABI_NO_RAISE },
     { "xl6_xrt_string_slice", XL6_IR_RUNTIME_BRIDGE_STRING_SLICE,
       XL6_IR_C_ABI_RAW_POINTER, 3,
-      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 } },
+      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 },
+      XL6_IR_ERROR_ABI_MAY_RAISE },
     { "xl6_xrt_string_replace", XL6_IR_RUNTIME_BRIDGE_STRING_REPLACE,
       XL6_IR_C_ABI_RAW_POINTER, 3,
-      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING } },
+      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING },
+      XL6_IR_ERROR_ABI_MAY_RAISE },
     { "xl6_xrt_string_starts_with", XL6_IR_RUNTIME_BRIDGE_STRING_STARTS_WITH,
       XL6_IR_C_ABI_C_BOOL, 3,
-      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL } },
+      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL },
+      XL6_IR_ERROR_ABI_NO_RAISE },
     { "xl6_xrt_string_ends_with", XL6_IR_RUNTIME_BRIDGE_STRING_ENDS_WITH,
       XL6_IR_C_ABI_C_BOOL, 3,
-      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL } },
+      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL },
+      XL6_IR_ERROR_ABI_NO_RAISE },
     { "xl6_xrt_string_split", XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 2,
-      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING } }
+      { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_join", XL6_IR_RUNTIME_BRIDGE_STRING_JOIN,
+      XL6_IR_C_ABI_RAW_POINTER, 2,
+      { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_split_lines", XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_bytes", XL6_IR_RUNTIME_BRIDGE_STRING_BYTES,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_chars", XL6_IR_RUNTIME_BRIDGE_STRING_CHARS,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_compare", XL6_IR_RUNTIME_BRIDGE_STRING_COMPARE,
+      XL6_IR_C_ABI_C_INT, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, XL6_IR_ERROR_ABI_NO_RAISE },
+    { "xl6_xrt_string_last_index_of", XL6_IR_RUNTIME_BRIDGE_STRING_LAST_INDEX_OF,
+      XL6_IR_C_ABI_I64, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_count", XL6_IR_RUNTIME_BRIDGE_STRING_COUNT,
+      XL6_IR_C_ABI_I64, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, XL6_IR_ERROR_ABI_NO_RAISE },
+    { "xl6_xrt_string_has_any", XL6_IR_RUNTIME_BRIDGE_STRING_HAS_ANY,
+      XL6_IR_C_ABI_C_BOOL, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_like", XL6_IR_RUNTIME_BRIDGE_STRING_LIKE,
+      XL6_IR_C_ABI_C_BOOL, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_approx", XL6_IR_RUNTIME_BRIDGE_STRING_APPROX,
+      XL6_IR_C_ABI_C_BOOL, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_similarity", XL6_IR_RUNTIME_BRIDGE_STRING_SIMILARITY,
+      XL6_IR_C_ABI_C_DOUBLE, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_is_utf8", XL6_IR_RUNTIME_BRIDGE_STRING_IS_UTF8,
+      XL6_IR_C_ABI_C_BOOL, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_NO_RAISE },
+    { "xl6_xrt_string_lower", XL6_IR_RUNTIME_BRIDGE_STRING_LOWER,
+      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_upper", XL6_IR_RUNTIME_BRIDGE_STRING_UPPER,
+      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_trim", XL6_IR_RUNTIME_BRIDGE_STRING_TRIM,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_ltrim", XL6_IR_RUNTIME_BRIDGE_STRING_LTRIM,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_rtrim", XL6_IR_RUNTIME_BRIDGE_STRING_RTRIM,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_filter", XL6_IR_RUNTIME_BRIDGE_STRING_FILTER,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_left", XL6_IR_RUNTIME_BRIDGE_STRING_LEFT,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_right", XL6_IR_RUNTIME_BRIDGE_STRING_RIGHT,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_char_at", XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_AT,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_is_empty", XL6_IR_RUNTIME_BRIDGE_STRING_IS_EMPTY,
+      XL6_IR_C_ABI_C_BOOL, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_NO_RAISE },
+    { "xl6_xrt_string_is_blank", XL6_IR_RUNTIME_BRIDGE_STRING_IS_BLANK,
+      XL6_IR_C_ABI_C_BOOL, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_NO_RAISE },
+    { "xl6_xrt_string_remove", XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE,
+      XL6_IR_C_ABI_RAW_POINTER, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_remove_at", XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE_AT,
+      XL6_IR_C_ABI_RAW_POINTER, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_insert", XL6_IR_RUNTIME_BRIDGE_STRING_INSERT,
+      XL6_IR_C_ABI_RAW_POINTER, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_pad_left", XL6_IR_RUNTIME_BRIDGE_STRING_PAD_LEFT,
+      XL6_IR_C_ABI_RAW_POINTER, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_pad_right", XL6_IR_RUNTIME_BRIDGE_STRING_PAD_RIGHT,
+      XL6_IR_C_ABI_RAW_POINTER, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_pad_center", XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER,
+      XL6_IR_C_ABI_RAW_POINTER, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_string_reverse", XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE,
+      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_ERROR_ABI_MAY_RAISE },
+    { "xl6_xrt_take_cstr", XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR,
+      XL6_IR_C_ABI_MANAGED_STRING, 1, { XL6_IR_C_ABI_RAW_POINTER }, XL6_IR_ERROR_ABI_MAY_RAISE }
 };
 
 static const XL6_IrStringBridgeContract* xl6IrStringBridgeContract(const char* name)
@@ -25130,6 +25975,12 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeStringBridgeKind(const char* name)
     return contract != NULL ? contract->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
 }
 
+XL6_IrErrorAbi xl6IrRuntimeStringBridgeErrorAbi(const char* name)
+{
+    const XL6_IrStringBridgeContract* contract = xl6IrStringBridgeContract(name);
+    return contract != NULL ? contract->errorAbi : XL6_IR_ERROR_ABI_NO_RAISE;
+}
+
 int xl6IrRuntimeStringBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
@@ -25142,25 +25993,27 @@ int xl6IrRuntimeStringBridgeTargetMatches(
          target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
          target->parameterCount != contract->parameterCount ||
          target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+         target->errorAbi != contract->errorAbi ||
          target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
          target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID ||
          target->resultPhysicalDestroySymbol != 0 ) return 0;
     result = xl6IrTypeGet(&module->types, target->returnType);
-    if ( contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
+    if ( contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+         contract->result == XL6_IR_C_ABI_MANAGED_STRING ) {
         if ( result == NULL || result->kind != XL6_IR_TYPE_BUILTIN ||
              result->collectionAbi != XL6_IR_COLLECTION_NONE || result->paramCount != 0 ||
-             result->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+             result->cAbi != contract->result ||
              result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-             result->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ) return 0;
+             result->nullAbi != (contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+                 ? XL6_IR_NULL_ABI_XVALUE_SENTINEL : XL6_IR_NULL_ABI_POINTER_SENTINEL) ) return 0;
     } else if ( !xl6IrBufferRuntimeBridgeResultMatches(result, contract->result) ) {
         return 0;
     }
     for ( i = 0; i < contract->parameterCount; ++i ) {
         XL6_IrCAbi abi = contract->parameters[i];
         if ( !xl6IrBufferRuntimeBridgeParameterMatches(module, target, i, abi,
-                abi == XL6_IR_C_ABI_MANAGED_STRING ? XL6_IR_PARAMETER_ABI_BORROW
-                                                 : XL6_IR_PARAMETER_ABI_VALUE,
+                abi == XL6_IR_C_ABI_MANAGED_STRING || abi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+                    ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE,
                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ) return 0;
     }
     return 1;
@@ -25171,6 +26024,10 @@ int xl6IrRuntimeStringBridgeTargetMatches(
 typedef enum XL6_IrSerializationBridgeShape {
     XL6_IR_SERIALIZATION_BRIDGE_VALUE = 0,
     XL6_IR_SERIALIZATION_BRIDGE_VISITOR,
+    XL6_IR_SERIALIZATION_BRIDGE_VALIDATOR,
+    XL6_IR_SERIALIZATION_BRIDGE_DECODER,
+    XL6_IR_SERIALIZATION_BRIDGE_CONFIG_READ,
+    XL6_IR_SERIALIZATION_BRIDGE_CONFIG_STATUS,
     XL6_IR_SERIALIZATION_BRIDGE_FACTORY,
     XL6_IR_SERIALIZATION_BRIDGE_METHOD
 } XL6_IrSerializationBridgeShape;
@@ -25229,6 +26086,10 @@ static const XL6_IrSerializationBridgeContract xl6IrSerializationBridgeContracts
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
     { "xl6_xrt_json_writer_int_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_json_writer_uint", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_json_writer_uint_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
     { "xl6_xrt_json_writer_float", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
     { "xl6_xrt_json_writer_float_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
@@ -25243,102 +26104,201 @@ static const XL6_IrSerializationBridgeContract xl6IrSerializationBridgeContracts
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
     { "xl6_xrt_json_writer_finish", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
       XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_parse_options", XL6_IR_RUNTIME_BRIDGE_XSON_PARSE,
+    { "xl6_xrt_xlon_parse_options", XL6_IR_RUNTIME_BRIDGE_XLON_PARSE,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_VALUE },
-    { "xl6_xrt_xson_valid_options", XL6_IR_RUNTIME_BRIDGE_XSON_VALID,
+    { "xl6_xrt_xlon_valid_options", XL6_IR_RUNTIME_BRIDGE_XLON_VALID,
       XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_VALUE },
-    { "xl6_xrt_xson_read_options", XL6_IR_RUNTIME_BRIDGE_XSON_READ,
+    { "xl6_xrt_xlon_read_options", XL6_IR_RUNTIME_BRIDGE_XLON_READ,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_VALUE },
-    { "xl6_xrt_xson_stringify_options", XL6_IR_RUNTIME_BRIDGE_XSON_STRINGIFY,
+    { "xl6_xrt_xlon_stringify_options", XL6_IR_RUNTIME_BRIDGE_XLON_STRINGIFY,
       XL6_IR_C_ABI_RAW_POINTER, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_VALUE },
-    { "xl6_xrt_xson_write_options", XL6_IR_RUNTIME_BRIDGE_XSON_WRITE,
+    { "xl6_xrt_xlon_write_options", XL6_IR_RUNTIME_BRIDGE_XLON_WRITE,
       XL6_IR_C_ABI_BOOL, 5, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_VALUE },
-    { "xl6_xrt_xson_visit_options", XL6_IR_RUNTIME_BRIDGE_XSON_VISIT,
+    { "xl6_xrt_xlon_visit_options", XL6_IR_RUNTIME_BRIDGE_XLON_VISIT,
       XL6_IR_C_ABI_C_INT, 5, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CLOSURE_PTR, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_VISITOR },
-    { "xl6_xrt_xson_writer_create_default", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_create_default", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 0, { XL6_IR_C_ABI_UNSUPPORTED }, XL6_IR_SERIALIZATION_BRIDGE_FACTORY },
-    { "xl6_xrt_xson_writer_create_pretty", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_create_pretty", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_FACTORY },
-    { "xl6_xrt_xson_writer_create_options", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_create_options", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 3, { XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_FACTORY },
-    { "xl6_xrt_xson_writer_destroy", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_destroy", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_VOID, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_array", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_array", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_array_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_array_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_array_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_array_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_end_array", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_end_array", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_list", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_list", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_list_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_list_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_list_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_list_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_end_list", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_end_list", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_dict", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_dict", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_dict_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_dict_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_dict_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_dict_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_end_dict", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_end_dict", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_set", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_set", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_set_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_set_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_begin_set_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_begin_set_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_end_set", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_end_set", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_null", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_null", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_null_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_null_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_null_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_null_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_bool", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_bool", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_bool_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_bool_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_bool_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_bool_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_int", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_int", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_int_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_int_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_int_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_int_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_float", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_uint", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_uint_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_uint_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_char", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_char_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_char_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_float", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_float_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_float_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_float_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_float_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_string", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_string", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_string_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_string_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_string_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_string_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_time", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_bytes", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_bytes_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_bytes_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_tag", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_tag_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_tag_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_time", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_time_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_time_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_time_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_time_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_value", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_value", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_value_key", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_value_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_value_index", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
+    { "xl6_xrt_xlon_writer_value_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xson_writer_finish", XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
-      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD }
+    { "xl6_xrt_xlon_writer_finish", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_jsonl_stringify", XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY,
+      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } },
+    { "xl6_xrt_xlonl_stringify", XL6_IR_RUNTIME_BRIDGE_XLONL_STRINGIFY,
+      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } },
+    { "xl6_xrt_jsonl_read_file", XL6_IR_RUNTIME_BRIDGE_JSONL_READ_FILE,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+    { "xl6_xrt_jsonl_write_file", XL6_IR_RUNTIME_BRIDGE_JSONL_WRITE_FILE,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } },
+    { "xl6_xrt_xlonl_read_file", XL6_IR_RUNTIME_BRIDGE_XLONL_READ_FILE,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+    { "xl6_xrt_xlonl_write_file", XL6_IR_RUNTIME_BRIDGE_XLONL_WRITE_FILE,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } },
+    { "xl6_xrt_jsonl_parse", XL6_IR_RUNTIME_BRIDGE_JSONL_PARSE,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+    { "xl6_xrt_jsonl_valid", XL6_IR_RUNTIME_BRIDGE_JSONL_VALID,
+      XL6_IR_C_ABI_C_BOOL, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+    { "xl6_xrt_xlonl_parse", XL6_IR_RUNTIME_BRIDGE_XLONL_PARSE,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+    { "xl6_xrt_xlonl_valid", XL6_IR_RUNTIME_BRIDGE_XLONL_VALID,
+      XL6_IR_C_ABI_C_BOOL, 1, { XL6_IR_C_ABI_MANAGED_STRING } },
+#define XL6_CONFIG_PARSE(Name, Kind) \
+    { "xl6_xrt_" Name "_read_configured", XL6_IR_RUNTIME_BRIDGE_##Kind##_CONFIG_PARSE, \
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, \
+      XL6_IR_SERIALIZATION_BRIDGE_CONFIG_READ }
+#define XL6_CONFIG_READ_FILE(Name, Kind) \
+    { "xl6_xrt_" Name "_read_file_configured", XL6_IR_RUNTIME_BRIDGE_##Kind##_CONFIG_READ_FILE, \
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, \
+      XL6_IR_SERIALIZATION_BRIDGE_CONFIG_READ }
+#define XL6_CONFIG_STRINGIFY(Name, Kind) \
+    { "xl6_xrt_" Name "_stringify_configured", XL6_IR_RUNTIME_BRIDGE_##Kind##_CONFIG_STRINGIFY, \
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } }
+#define XL6_CONFIG_WRITE_FILE(Name, Kind) \
+    { "xl6_xrt_" Name "_write_file_configured", XL6_IR_RUNTIME_BRIDGE_##Kind##_CONFIG_WRITE_FILE, \
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, \
+      XL6_IR_SERIALIZATION_BRIDGE_CONFIG_STATUS }
+    XL6_CONFIG_PARSE("json", JSON), XL6_CONFIG_READ_FILE("json", JSON),
+    XL6_CONFIG_STRINGIFY("json", JSON), XL6_CONFIG_WRITE_FILE("json", JSON),
+    XL6_CONFIG_PARSE("xlon", XLON), XL6_CONFIG_READ_FILE("xlon", XLON),
+    XL6_CONFIG_STRINGIFY("xlon", XLON), XL6_CONFIG_WRITE_FILE("xlon", XLON),
+    XL6_CONFIG_PARSE("jsonl", JSONL), XL6_CONFIG_READ_FILE("jsonl", JSONL),
+    XL6_CONFIG_STRINGIFY("jsonl", JSONL), XL6_CONFIG_WRITE_FILE("jsonl", JSONL),
+    XL6_CONFIG_PARSE("xlonl", XLONL), XL6_CONFIG_READ_FILE("xlonl", XLONL),
+    XL6_CONFIG_STRINGIFY("xlonl", XLONL), XL6_CONFIG_WRITE_FILE("xlonl", XLONL),
+#define XL6_CONFIG_WRITE_TO(Name, Kind) \
+    { "xl6_xrt_" Name "_write_to_configured", XL6_IR_RUNTIME_BRIDGE_##Kind##_CONFIG_WRITE_TO, \
+      XL6_IR_C_ABI_C_INT, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_CLOSURE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, \
+      XL6_IR_SERIALIZATION_BRIDGE_VISITOR }
+    XL6_CONFIG_WRITE_TO("json", JSON), XL6_CONFIG_WRITE_TO("xlon", XLON),
+    XL6_CONFIG_WRITE_TO("jsonl", JSONL), XL6_CONFIG_WRITE_TO("xlonl", XLONL),
+    { "xl6_xrt_json_quote_configured", XL6_IR_RUNTIME_BRIDGE_JSON_QUOTE,
+      XL6_IR_C_ABI_RAW_POINTER, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } },
+    { "xl6_xrt_json_quote_to_configured", XL6_IR_RUNTIME_BRIDGE_JSON_QUOTE_TO,
+      XL6_IR_C_ABI_C_INT, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CLOSURE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR },
+      XL6_IR_SERIALIZATION_BRIDGE_VISITOR },
+    { "xl6_xrt_json_visit_configured", XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_VISIT,
+      XL6_IR_C_ABI_C_INT, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CLOSURE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR },
+      XL6_IR_SERIALIZATION_BRIDGE_VISITOR },
+    { "xl6_xrt_xlon_visit_configured", XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_VISIT,
+      XL6_IR_C_ABI_C_INT, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CLOSURE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR },
+      XL6_IR_SERIALIZATION_BRIDGE_VISITOR },
+#define XL6_CONFIG_VALID(Name, Kind) \
+    { "xl6_xrt_" Name "_valid_configured", XL6_IR_RUNTIME_BRIDGE_##Kind##_CONFIG_VALID, \
+      XL6_IR_C_ABI_C_BOOL, 2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, \
+      XL6_IR_SERIALIZATION_BRIDGE_VALIDATOR }
+    XL6_CONFIG_VALID("json", JSON), XL6_CONFIG_VALID("xlon", XLON),
+    XL6_CONFIG_VALID("jsonl", JSONL), XL6_CONFIG_VALID("xlonl", XLONL),
+    { "xl6_xrt_xlon_decode_configured", XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE,
+      XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CLOSURE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR },
+      XL6_IR_SERIALIZATION_BRIDGE_DECODER }
+#undef XL6_CONFIG_VALID
+#undef XL6_CONFIG_WRITE_TO
+#undef XL6_CONFIG_PARSE
+#undef XL6_CONFIG_READ_FILE
+#undef XL6_CONFIG_STRINGIFY
+#undef XL6_CONFIG_WRITE_FILE
 };
 
 static const XL6_IrSerializationBridgeContract* xl6IrSerializationBridgeContract(const char* name)
@@ -25358,10 +26318,30 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeSerializationBridgeKind(const char* name)
     return contract != NULL ? contract->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
 }
 
-int xl6IrRuntimeSerializationBridgeHasCallbackResult(XL6_IrRuntimeBridgeKind kind)
+int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind kind)
 {
     return kind == XL6_IR_RUNTIME_BRIDGE_JSON_VISIT ||
-           kind == XL6_IR_RUNTIME_BRIDGE_XSON_VISIT;
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_VISIT ||
+           (kind >= XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_WRITE_TO &&
+            kind <= XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_WRITE_TO) ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSON_QUOTE_TO ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_VISIT ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_VISIT ||
+           (kind >= XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_VALID &&
+            kind <= XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_VALID) ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_PARSE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_READ_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_WRITE_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_PARSE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_READ_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_WRITE_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_PARSE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_READ_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_WRITE_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_PARSE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_READ_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_WRITE_FILE ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE;
 }
 
 static int xl6IrSerializationBridgeDynamicValueType(const XL6_IrType* type)
@@ -25393,6 +26373,24 @@ static int xl6IrSerializationBridgeVisitorType(const XL6_IrModule* module, const
            xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_BOOL);
 }
 
+static int xl6IrSerializationBridgeDecoderType(const XL6_IrModule* module, const XL6_IrType* type)
+{
+    if (type == NULL || type->kind != XL6_IR_TYPE_FUNCTION ||
+        type->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        type->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+        type->paramCount != 1 || type->params == NULL ||
+        type->parameterAbis == NULL || type->parameterModes == NULL ||
+        type->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ||
+        type->parameterModes[0] != XL6_IR_PARAMETER_MODE_DEFAULT ||
+        type->returnCount != 1 || type->returns == NULL ||
+        type->callableResultType != type->returns[0] ||
+        !xl6IrSerializationBridgeDynamicValueType(xl6IrTypeGet(&module->types, type->params[0])))
+        return 0;
+    return xl6IrSerializationBridgeDynamicValueType(
+        xl6IrTypeGet(&module->types, type->callableResultType));
+}
+
 int xl6IrRuntimeSerializationBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
@@ -25408,7 +26406,11 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
     if ( contract == NULL || target->runtimeBridge != contract->kind ||
          target->parameterCount != contract->parameterCount ||
          target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ) return 0;
-    if ( contract->shape == XL6_IR_SERIALIZATION_BRIDGE_VISITOR ) {
+    if ( contract->shape == XL6_IR_SERIALIZATION_BRIDGE_VISITOR ||
+         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_VALIDATOR ||
+         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_DECODER ||
+         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CONFIG_READ ||
+         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CONFIG_STATUS ) {
         if ( target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
              (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
               target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) ) return 0;
@@ -25446,6 +26448,7 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
         XL6_IrCAbi abi = contract->parameters[i];
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrParameterAbi ownership = abi == XL6_IR_C_ABI_MANAGED_STRING ||
+                abi == XL6_IR_C_ABI_MANAGED_BYTES ||
                 abi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || abi == XL6_IR_C_ABI_CLOSURE_PTR
             ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE;
         if ( type == NULL ||
@@ -25459,7 +26462,9 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
         } else {
             if ( target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ) return 0;
             if ( abi == XL6_IR_C_ABI_CLOSURE_PTR ) {
-                if ( !xl6IrSerializationBridgeVisitorType(module, type) ||
+                if ( !(contract->shape == XL6_IR_SERIALIZATION_BRIDGE_DECODER
+                         ? xl6IrSerializationBridgeDecoderType(module, type)
+                         : xl6IrSerializationBridgeVisitorType(module, type)) ||
                      target->parameterAbis[i] != ownership ||
                      target->parameterPhysicalAbis[i] !=
                          XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) return 0;
@@ -25473,6 +26478,8 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 }
 
 #include "src/ir/xl6_ir_direct_bridge.c"
+#include "src/ir/xl6_ir_xid_bridge.c"
+#include "src/ir/xl6_ir_io_bridge.c"
 #include "src/ir/xl6_ir_net_datagram_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
 
@@ -25603,11 +26610,21 @@ static int xl6IrRuntimeBridgeTargetMatches(
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if ( xl6IrRuntimeDirectBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
+    if ( xl6IrRuntimeXidBridgeKind(target->cName) !=
+             XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
+    if ( xl6IrRuntimeIoBridgeKind(target->cName) !=
+             XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if (xl6IrRuntimeNetDatagramBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
     if (xl6IrRuntimeXlangBridgeName(target->cName)) reserved = 1;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG )
         return xl6IrRuntimeXlangBridgeTargetMatches(module, target);
+    if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING &&
+         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XID_IS_ZERO )
+        return xl6IrRuntimeXidBridgeTargetMatches(module, target);
+    if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
+         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN )
+        return xl6IrRuntimeIoBridgeTargetMatches(module, target);
     if (module->stage == XL6_IR_STAGE_LOWERED && target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM && target->parameterTypes != NULL) {
         size_t p;
@@ -25625,7 +26642,9 @@ static int xl6IrRuntimeBridgeTargetMatches(
          (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
           target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_BUFFER &&
           target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_FILE &&
-          !xl6IrRuntimeSerializationBridgeHasCallbackResult(target->runtimeBridge)) ||
+          target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_CRT_ENV &&
+          !xl6IrRuntimeStringBridgeKindIs(target->runtimeBridge) &&
+          !xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)) ||
          target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
          (target->parameterCount != 0 && target->parameterAbis == NULL) ) return 0;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEMPLATE ) {
@@ -25712,10 +26731,10 @@ static int xl6IrRuntimeBridgeTargetMatches(
         return xl6IrRuntimeStringBridgeTargetMatches(module, target);
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE ||
          (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_JSON_VALID &&
-          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XSON_WRITER) )
+          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE) )
         return xl6IrRuntimeSerializationBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE &&
-         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE )
+         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW )
         return xl6IrRuntimeDirectBridgeTargetMatches(module, target);
     if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ) return 0;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT ) {
@@ -25739,6 +26758,83 @@ static int xl6IrRuntimeBridgeTargetMatches(
                    XL6_IR_PARAMETER_ABI_BORROW,
                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
     }
+    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE ) {
+        XL6_IrCAbi outputAbi;
+        int integerParser;
+        const XL6_IrType* base;
+        const XL6_IrType* output;
+        if ( target->cName == NULL ) return 0;
+        integerParser = strcmp(target->cName, "xl6_crt_parse_f64") != 0;
+        outputAbi = strcmp(target->cName, "xl6_crt_parse_i64") == 0
+            ? XL6_IR_C_ABI_I64
+            : strcmp(target->cName, "xl6_crt_parse_u64") == 0
+                ? XL6_IR_C_ABI_U64
+                : strcmp(target->cName, "xl6_crt_parse_f64") == 0
+                    ? XL6_IR_C_ABI_F64 : XL6_IR_C_ABI_UNSUPPORTED;
+        result = xl6IrTypeGet(&module->types, target->returnType);
+        base = integerParser && target->parameterCount == 3 &&
+            target->parameterTypes != NULL
+                ? xl6IrTypeGet(&module->types, target->parameterTypes[1]) : NULL;
+        output = target->parameterCount == (integerParser ? 3u : 2u) &&
+            target->parameterTypes != NULL
+                ? xl6IrTypeGet(&module->types,
+                    target->parameterTypes[integerParser ? 2u : 1u]) : NULL;
+        return outputAbi != XL6_IR_C_ABI_UNSUPPORTED &&
+               target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+               target->parameterCount == (integerParser ? 3u : 2u) &&
+               target->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE &&
+               target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+               xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_C_INT) &&
+               xl6IrBufferRuntimeBridgeParameterMatches(
+                   module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
+                   XL6_IR_PARAMETER_ABI_BORROW,
+                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
+               (!integerParser ||
+                (base != NULL && base->cAbi == XL6_IR_C_ABI_C_UINT &&
+                 base->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+                 base->nullAbi == XL6_IR_NULL_ABI_NONE &&
+                 target->parameterAbis != NULL &&
+                 target->parameterPhysicalAbis != NULL &&
+                 target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_VALUE &&
+                 target->parameterPhysicalAbis[1] ==
+                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) &&
+               output != NULL && output->cAbi == outputAbi &&
+               output->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+               output->nullAbi == XL6_IR_NULL_ABI_NONE &&
+               target->parameterAbis != NULL &&
+               target->parameterPhysicalAbis != NULL &&
+               target->parameterAbis[integerParser ? 2u : 1u] ==
+                   XL6_IR_PARAMETER_ABI_OUT &&
+               target->parameterPhysicalAbis[integerParser ? 2u : 1u] ==
+                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
+    }
+    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CRT_ENV ) {
+        int get;
+        int set;
+        if ( target->cName == NULL ||
+             (strcmp(target->cName, "xl6_crt_env_get") != 0 &&
+              strcmp(target->cName, "xl6_crt_env_has") != 0 &&
+              strcmp(target->cName, "xl6_crt_env_set") != 0 &&
+              strcmp(target->cName, "xl6_crt_env_remove") != 0) ) return 0;
+        get = strcmp(target->cName, "xl6_crt_env_get") == 0;
+        set = strcmp(target->cName, "xl6_crt_env_set") == 0;
+        result = xl6IrTypeGet(&module->types, target->returnType);
+        return target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+               target->parameterCount == (set ? 2u : 1u) &&
+               target->variadicAbi == XL6_IR_CALL_VARIADIC_NONE &&
+               target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
+               target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+               xl6IrBufferRuntimeBridgeResultMatches(
+                   result, get ? XL6_IR_C_ABI_RAW_POINTER : XL6_IR_C_ABI_BOOL) &&
+               xl6IrBufferRuntimeBridgeParameterMatches(
+                   module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
+                   XL6_IR_PARAMETER_ABI_BORROW,
+                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
+               (!set || xl6IrBufferRuntimeBridgeParameterMatches(
+                   module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
+                   XL6_IR_PARAMETER_ABI_BORROW,
+                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT));
+    }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC ||
          target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC ) {
         int base64 = target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC;
@@ -25753,8 +26849,9 @@ static int xl6IrRuntimeBridgeTargetMatches(
         result = xl6IrTypeGet(&module->types, target->returnType);
         return nameMatches && target->parameterCount == (configurable ? 3u : 2u) &&
                target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               xl6IrBufferRuntimeBridgeResultMatches(
-                   result, XL6_IR_C_ABI_RAW_POINTER) &&
+               result != NULL && result->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+               result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                xl6IrBufferRuntimeBridgeParameterMatches(
                    module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
                    XL6_IR_PARAMETER_ABI_BORROW,
@@ -25831,12 +26928,13 @@ static int xl6IrRuntimeBridgeTargetMatches(
                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
     }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_PRINT ) {
+        result = xl6IrTypeGet(&module->types, target->returnType);
         first = target->parameterCount == 2
             ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
         second = target->parameterCount == 2
             ? xl6IrTypeGet(&module->types, target->parameterTypes[1]) : NULL;
         return strcmp(target->cName, "xl6_xrt_print") == 0 &&
-               target->returnType == XL6_IR_TYPE_INVALID && first != NULL && second != NULL &&
+               result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL && first != NULL && second != NULL &&
                first->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                second->cAbi == XL6_IR_C_ABI_BOOL &&
                target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_BORROW &&
@@ -25859,24 +26957,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_BORROW &&
                target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_BORROW &&
                target->parameterAbis[2] == XL6_IR_PARAMETER_ABI_VALUE;
-    }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES ) {
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        first = target->parameterCount == 1 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
-        return strcmp(target->cName, "xl6_xrt_string_split_lines") == 0 &&
-               result != NULL && first != NULL &&
-               result->kind == XL6_IR_TYPE_BUILTIN &&
-               result->collectionAbi == XL6_IR_COLLECTION_NONE && result->paramCount == 0 &&
-               result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               result->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-               first->kind == XL6_IR_TYPE_BUILTIN &&
-               first->collectionAbi == XL6_IR_COLLECTION_NONE && first->paramCount == 0 &&
-               first->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-               first->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               first->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-               target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_BORROW;
     }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE ) {
         result = xl6IrTypeGet(&module->types, target->returnType);
@@ -25957,27 +27037,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_BORROW &&
                target->parameterPhysicalAbis[0] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
                target->parameterPhysicalAbis[1] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
-    }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR ) {
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        first = target->parameterCount == 1 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
-        return strcmp(target->cName, "xl6_xrt_take_cstr") == 0 &&
-               result != NULL && first != NULL &&
-               result->kind == XL6_IR_TYPE_BUILTIN &&
-               result->collectionAbi == XL6_IR_COLLECTION_NONE && result->paramCount == 0 &&
-               result->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-               first->kind == XL6_IR_TYPE_BUILTIN &&
-               first->collectionAbi == XL6_IR_COLLECTION_NONE && first->paramCount == 0 &&
-               first->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-               first->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               first->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-               target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               target->parameterPhysicalAbis != NULL &&
-               target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_VALUE &&
-               target->parameterPhysicalAbis[0] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
     }
     return 0;
 }
@@ -26778,6 +27837,89 @@ static int xl6IrVerifyLoopOwnerFlow(const XL6_IrModule* module,
     return xl6IrDiag(diags, xl6IrNodeGet(module, module->instructions[failure].origin), message);
 }
 
+static int xl6IrVerifyOrderedUnwindRoute(const XL6_IrModule* module,
+    size_t beginIndex, const XL6_IrExitPlan* plan);
+
+/* A primitive string/bytes loop projects its next trivial item before it
+ * activates either source binding.  The STATUS_OUTPUT result therefore has a
+ * semantic edge orientation: true enters binding installation, while false
+ * starts the exact zero-prefix iteration failure plan.  This is Lowered XLIR
+ * data, not a convention that Cgen may infer from block contents. */
+static int xl6IrVerifyPrimitiveSequenceLoopOutcomes(
+    const XL6_IrModule* module, XL6_DiagList* diags)
+{
+    size_t i;
+    for (i = 0; i < module->instructionCount; ++i) {
+        const XL6_IrInstruction* projection = &module->instructions[i];
+        const XL6_IrNode *target, *targets, *loop;
+        const XL6_IrInstruction *test, *unwind;
+        const XL6_IrExitPlan* plan;
+        const XL6_IrBlock *sourceBlock = NULL, *failureBlock;
+        XL6_IrRuntimeOp expected;
+        XL6_IrNodeId loopId;
+        size_t b, unwindIndex;
+        if ( projection->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+             (projection->runtimeOp != XL6_IR_RUNTIME_STRING_SCALAR_AT &&
+              projection->runtimeOp != XL6_IR_RUNTIME_BYTES_AT) ) continue;
+        target = xl6IrNodeGet(module, projection->origin);
+        targets = target != NULL ? xl6IrNodeGet(module, target->parent) : NULL;
+        loopId = targets != NULL ? targets->parent : XL6_IR_NODE_INVALID;
+        loop = xl6IrNodeGet(module, loopId);
+        if ( target == NULL || target->kind != XL6_IR_NODE_NAME ||
+             targets == NULL || targets->kind != XL6_IR_NODE_LIST ||
+             loop == NULL || loop->kind != XL6_IR_NODE_LOOP ||
+             loop->sourceKind != XL6_AST_FOR || loop->childCount != 3 ||
+             loop->firstChild >= module->childCount ||
+             module->children[loop->firstChild] != target->parent ||
+             (loop->loopAbi != XL6_IR_LOOP_ABI_STRING_UTF8_VALUE &&
+              loop->loopAbi != XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE &&
+              loop->loopAbi != XL6_IR_LOOP_ABI_BYTES_VALUE &&
+              loop->loopAbi != XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE) ) continue;
+        expected = loop->loopAbi == XL6_IR_LOOP_ABI_STRING_UTF8_VALUE ||
+                   loop->loopAbi == XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE
+            ? XL6_IR_RUNTIME_STRING_SCALAR_AT : XL6_IR_RUNTIME_BYTES_AT;
+        for (b = 0; b < module->blockCount; ++b) {
+            const XL6_IrBlock* candidate = &module->blocks[b];
+            if ( i >= candidate->firstInstruction &&
+                 i < candidate->firstInstruction + candidate->instructionCount ) {
+                sourceBlock = candidate;
+                break;
+            }
+        }
+        if ( projection->runtimeOp != expected || sourceBlock == NULL ||
+             i + 1 >= sourceBlock->firstInstruction + sourceBlock->instructionCount )
+            goto invalid;
+        test = &module->instructions[i + 1];
+        plan = xl6IrLoopFailurePlanGet(module, loopId, 0);
+        if ( test->kind != XL6_IR_INSTR_ERROR_TEST ||
+             test->origin != loopId || test->targetSymbol != 0 ||
+             test->operandCount != 1 ||
+             test->firstOperand >= module->operandCount ||
+             module->operands[test->firstOperand] != projection->result ||
+             test->trueTarget == XL6_IR_BLOCK_INVALID ||
+             test->falseTarget == XL6_IR_BLOCK_INVALID ||
+             test->trueTarget == test->falseTarget ||
+             test->trueTarget > module->blockCount ||
+             test->falseTarget > module->blockCount || plan == NULL )
+            goto invalid;
+        failureBlock = &module->blocks[test->falseTarget - 1];
+        if ( failureBlock->instructionCount == 0 ||
+             failureBlock->firstInstruction >= module->instructionCount )
+            goto invalid;
+        unwindIndex = failureBlock->firstInstruction;
+        unwind = &module->instructions[unwindIndex];
+        if ( unwind->kind != XL6_IR_INSTR_ERROR_UNWIND_BEGIN ||
+             unwind->origin != loopId ||
+             unwind->cleanupPlan != (size_t)(plan - module->exitPlans) + 1 ||
+             !xl6IrVerifyOrderedUnwindRoute(module, unwindIndex, plan) )
+            goto invalid;
+    }
+    return 1;
+invalid:
+    return xl6IrDiag(diags, xl6IrNodeGet(module, module->instructions[i].origin),
+        "XLIR primitive string/bytes loop projection must install bindings only on success and follow its exact zero-prefix failure route");
+}
+
 static int xl6IrVerifyPendingExceptionOwners(const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t i, j;
@@ -27416,12 +28558,40 @@ int xl6IrCallTargetParameterBindingOwnsStorage(
          target->parameterTypes == NULL || target->parameterAbis == NULL )
         return 0;
     if ( target->lifecycleAbi ==
-             XL6_IR_CALL_TARGET_LIFECYCLE_CLASS_DESTROY_BORROW &&
-         parameter == 0 )
+              XL6_IR_CALL_TARGET_LIFECYCLE_CLASS_DESTROY_BORROW &&
+          parameter == 0 )
+        return 0;
+    if ( target->parameterLifetimes != NULL &&
+         target->parameterLifetimes[parameter].borrowReadOnly )
         return 0;
     return target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_OWNED ||
-           (target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_BORROW &&
-            xl6IrTypeHasStorageReleaseAbi(module, target->parameterTypes[parameter]));
+            (target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_BORROW &&
+             xl6IrTypeHasStorageReleaseAbi(module, target->parameterTypes[parameter]));
+}
+
+int xl6IrCallTargetParameterCanBorrowReadOnly(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target,
+    size_t parameter)
+{
+    const XL6_IrParameterLifetime* lifetime;
+    const XL6_IrType* type;
+    size_t capture;
+    if ( module == NULL || target == NULL ||
+         target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+         parameter >= target->parameterCount ||
+         target->parameterTypes == NULL || target->parameterAbis == NULL ||
+         target->parameterLifetimes == NULL ||
+         target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW )
+        return 0;
+    lifetime = &target->parameterLifetimes[parameter];
+    type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
+    if ( type == NULL || type->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+         lifetime->sourceSymbol == 0 || lifetime->rebindable )
+        return 0;
+    for ( capture = 0; capture < module->closureCaptureCount; ++capture )
+        if ( module->closureCaptures[capture].sourceSymbol == lifetime->sourceSymbol )
+            return 0;
+    return 1;
 }
 
 /* Worker ownership is separate from retained frame captures. Consuming
@@ -27612,6 +28782,7 @@ static int xl6IrVerifyParameterLifetime(const XL6_IrModule* module,
             if (lifetime->sourceSymbol != symbol &&
                 !(lifetime->sourceSymbol == 0 && parameter->declaration == function->declaration)) goto invalid;
             if (lifetime->rebindable != xl6IrParameterBindingMayRebind(module, lifetime->sourceSymbol) ||
+                lifetime->borrowReadOnly != xl6IrCallTargetParameterCanBorrowReadOnly(module, target, p) ||
                 lifetime->cleanupEffect != xl6IrParameterCleanupEffect(module, target, p, lifetime->rebindable)) goto invalid;
             if (target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_BORROW && !lifetime->rebindable &&
                 xl6IrFunctionParameterBindingOwnsStorage(module, function, target, p)) {
@@ -27770,11 +28941,9 @@ invalid:
 }
 
 /* BORROW describes the physical call edge, not the mutability of the source
- * parameter binding.  A lowered user/worker function therefore owns a copy in
- * its parameter storage.  Verify that adaptation and every user-function
- * terminal release
- * here so no backend can receive a borrowed caller reference masquerading as
- * mutable callee-owned storage. */
+ * binding.  A user function acquires an owner only where its verified lifetime
+ * contract requires one; read-only string borrows retain the caller's lifetime.
+ * Verify each required adaptation and terminal release here. */
 static int xl6IrVerifyBorrowedParameterOwnerAbi(
     const XL6_IrModule* module, const XL6_IrFunction* function,
     const XL6_IrCallTarget* target, XL6_DiagList* diags)
@@ -27817,6 +28986,8 @@ static int xl6IrVerifyBorrowedParameterOwnerAbi(
                 : XL6_IR_RUNTIME_STRING_COPY;
         else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
             expectedRuntime = XL6_IR_RUNTIME_XVALUE_RETAIN;
+        else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
+            expectedRuntime = XL6_IR_RUNTIME_BYTES_RETAIN;
         if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING) {
             const XL6_IrInstruction* test = &module->instructions[cursor++];
             const XL6_IrBlock* failure;
@@ -28384,8 +29555,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 expectedArgumentCount = call->kind == XL6_IR_NODE_UNARY
                     ? 0u : call->kind == XL6_IR_NODE_BINARY
                         ? 1u : call->kind == XL6_IR_NODE_MEMBER
-                            ? (call->callKind == XL6_SEM_CALL_PROPERTY_GET || call->callKind == XL6_SEM_CALL_WITNESS)
-                                ? 0u : 1u
+                            ? 0u
                             : call->kind == XL6_IR_NODE_ASSIGN
                                 ? (call->callKind == XL6_SEM_CALL_PROPERTY_SET || call->callKind == XL6_SEM_CALL_WITNESS)
                                     ? (syntaxLeft->kind == XL6_IR_NODE_INDEX
@@ -28397,13 +29567,19 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                         : xl6IrSyntaxIndexArgumentCount(
                                               module, syntaxLeft) + 1u
                                 : xl6IrSyntaxIndexArgumentCount(module, call);
-                const XL6_IrNode* declaration = xl6IrSymbolNodeGet(
-                    module, site->targetSymbol);
+                XL6_IrNodeId declarationId =
+                    (size_t)site->targetSymbol < module->symbolNodeCapacity
+                        ? module->symbolNodes[site->targetSymbol]
+                        : XL6_IR_NODE_INVALID;
+                const XL6_IrNode* declaration =
+                    xl6IrNodeGet(module, declarationId);
                 const XL6_IrCallTarget* resolvedTarget = declaration == NULL ?
                     xl6IrCallTargetGet(module, site->targetSymbol) : NULL;
-                if ( declaration == NULL && resolvedTarget != NULL )
+                if ( declaration == NULL && resolvedTarget != NULL ) {
+                    declarationId = resolvedTarget->declaration;
                     declaration = xl6IrNodeGet(
-                        module, resolvedTarget->declaration);
+                        module, declarationId);
+                }
                 if ( site->callKind != XL6_SEM_CALL_PROTOCOL &&
                      site->callKind != XL6_SEM_CALL_PROPERTY_GET &&
                      site->callKind != XL6_SEM_CALL_PROPERTY_SET &&
@@ -28413,21 +29589,34 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if ( site->receiver != expectedReceiver )
                     return xl6IrDiag(diags, call,
                         "XLIR syntax CallSite receiver order is not canonical");
-                if ( site->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-                     site->fixedParameterCount != expectedArgumentCount )
-                    return xl6IrDiag(diags, call,
-                        "XLIR syntax CallSite fixed parameter shape is not canonical");
                 if ( declaration == NULL ||
                      declaration->kind != XL6_IR_NODE_FUNC_DECL )
                     return xl6IrDiag(diags, call,
                         "XLIR syntax CallSite target is not a resolved callable declaration");
+                if ( call->kind == XL6_IR_NODE_MEMBER ) {
+                    XL6_IrNodeId parametersId =
+                        xl6IrCallParameterListGet(module, declarationId);
+                    const XL6_IrNode* parameters =
+                        xl6IrNodeGet(module, parametersId);
+                    if ( parameters == NULL ||
+                         parameters->kind != XL6_IR_NODE_LIST ||
+                         parameters->childCount > 1 )
+                        return xl6IrDiag(diags, call,
+                            "XLIR member CallSite target has no canonical zero-or-field-name parameter shape");
+                    expectedArgumentCount = parameters->childCount;
+                }
+                if ( site->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
+                     site->fixedParameterCount != expectedArgumentCount )
+                    return xl6IrDiag(diags, call,
+                        "XLIR syntax CallSite fixed parameter shape is not canonical");
                 if (indexedGetter && declaration->sourceKind != XL6_AST_GET)
                     return xl6IrDiag(diags, call, "XLIR indexed accessor target is not a getter declaration");
                 for ( argument = 0; argument < expectedArgumentCount; ++argument ) {
                     const XL6_IrCallArgument* binding =
                         &module->callArguments[site->firstArgument + argument];
                     if ( (call->kind == XL6_IR_NODE_MEMBER &&
-                          call->callKind == XL6_SEM_CALL_PROTOCOL) ||
+                          call->callKind == XL6_SEM_CALL_PROTOCOL &&
+                          expectedArgumentCount == 1) ||
                          (call->kind == XL6_IR_NODE_ASSIGN &&
                           call->callKind == XL6_SEM_CALL_PROTOCOL &&
                           syntaxLeft->kind == XL6_IR_NODE_MEMBER &&
@@ -28800,11 +29989,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      (intrinsic->kind ==
                           XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY ||
                       intrinsic->kind ==
-                          XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY ||
+                          XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY ||
                       intrinsic->kind ==
                           XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE ||
                       intrinsic->kind ==
-                          XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE))) ||
+                          XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE))) ||
                   intrinsic->kind <= XL6_IR_INTRINSIC_INVALID ||
                    intrinsic->kind > XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT ||
                   (intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED &&
@@ -29049,7 +30238,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
                       intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                       intrinsic->integerTarget < XL6_IR_INTEGER_TARGET_SIGNED_8 ||
-                      intrinsic->integerTarget > XL6_IR_INTEGER_TARGET_UNSIGNED_64 ||
+                      intrinsic->integerTarget > XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ||
                       intrinsic->integerSourceAbi !=
                           xl6IrBuildIntegerSourceAbi(source) )
                     return xl6IrDiag(diags, call,
@@ -29143,7 +30332,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
                 {
                     const XL6_IrNode* callee = call->childCount == 2
                         ? xl6IrNodeGet(
@@ -29151,7 +30340,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     const char* expected = intrinsic->kind ==
                             XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
                         ? "__xl_std_json_stringify"
-                        : "__xl_std_xson_stringify";
+                        : "__xl_std_xlon_stringify";
                     if ( !xl6IrPersistenceProjectionCallKind(
                              call->callKind) ||
                          callee == NULL || callee->kind != XL6_IR_NODE_NAME ||
@@ -29170,14 +30359,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
                 {
                     const XL6_IrNode* callee = call->childCount == 2
                         ? xl6IrNodeGet(
                             module, module->children[call->firstChild]) : NULL;
                     const char* expected = intrinsic->kind ==
                             XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
-                        ? "__xl_std_json_write" : "__xl_std_xson_write";
+                        ? "__xl_std_json_write" : "__xl_std_xlon_write";
                     if ( !xl6IrPersistenceProjectionCallKind(
                              call->callKind) ||
                          callee == NULL || callee->kind != XL6_IR_NODE_NAME ||
@@ -29196,9 +30385,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ:
                 {
                     const XL6_IrNode* callee = call->childCount == 2
                         ? xl6IrNodeGet(
@@ -29211,12 +30400,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE
                         ? "__xl_std_json_parse"
                         : intrinsic->kind ==
-                              XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE
-                            ? "__xl_std_xson_parse"
+                              XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE
+                            ? "__xl_std_xlon_parse"
                             : intrinsic->kind ==
                                   XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ
                                 ? "__xl_std_json_read"
-                                : "__xl_std_xson_read";
+                                : "__xl_std_xlon_read";
                     if ( call->callKind !=
                              XL6_SEM_CALL_RUNTIME_INTRINSIC ||
                          name == NULL ||
@@ -29627,7 +30816,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
                 {
                     const XL6_IrIntrinsicOperand* pretty =
                         intrinsic->operandCount == 2
@@ -29669,7 +30858,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
                 {
                     const XL6_IrIntrinsicOperand* value =
                         intrinsic->operandCount >= 2
@@ -29716,9 +30905,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ:
-            case XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ:
                 if ( call->callKind != XL6_SEM_CALL_RUNTIME_INTRINSIC ||
                      intrinsic->operandCount != 1 || source == NULL ||
                      source->kind == XL6_IR_TYPE_NULLABLE ||
@@ -30860,17 +32049,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    intrinsic->kind !=
                        XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE &&
                    intrinsic->kind !=
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY &&
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY &&
                    intrinsic->kind !=
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE &&
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE &&
                    intrinsic->kind !=
                        XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE &&
                    intrinsic->kind !=
                        XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ &&
                    intrinsic->kind !=
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE &&
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE &&
                    intrinsic->kind !=
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ &&
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ &&
                  (intrinsic->payloadType != XL6_IR_TYPE_INVALID ||
                   intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID) )
                 return xl6IrDiag(diags, call,
@@ -30887,17 +32076,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    intrinsic->kind ==
                        XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE ||
                    intrinsic->kind ==
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY ||
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY ||
                    intrinsic->kind ==
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE ||
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE ||
                    intrinsic->kind ==
                        XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE ||
                    intrinsic->kind ==
                        XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ ||
                    intrinsic->kind ==
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE ||
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE ||
                    intrinsic->kind ==
-                       XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ) &&
+                       XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ) &&
                  intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID )
                 return xl6IrDiag(diags, call,
                     "XLIR persistence intrinsic unexpectedly carries an async payload ABI");
@@ -31004,6 +32193,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              xl6IrContextualCallableCastRequired(module,
                  module->nodes[explicitExpression - 1].storageType, declaration->storageType) ) {
             expectedRuntimeOp = XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED;
+            expectedErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        } else if ( explicitExpression != XL6_IR_NODE_INVALID &&
+             declaration != NULL &&
+             xl6IrContextualCheckedIntegerConversionRequired(
+                 module,
+                 module->nodes[explicitExpression - 1].storageType,
+                 declaration->storageType) ) {
+            expectedRuntimeOp = XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED;
             expectedErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         } else if ( explicitExpression != XL6_IR_NODE_INVALID && declaration != NULL &&
              xl6IrWeakCreateSignature(
@@ -31310,10 +32507,31 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
+        XL6_IrCallExecutionBoundaryAbi expectedExecution =
+            xl6IrCallExecutionBoundaryForDeclaration(
+                target->kind,
+                declaration != NULL ? declaration->sourceKind : (XL6_AstKind)0,
+                declaration != NULL ? declaration->flags : 0);
+        XL6_IrCallEffectAbi expectedEffect = xl6IrCallEffectForDeclaration(
+            target->kind,
+            declaration != NULL ? declaration->sourceKind : (XL6_AstKind)0,
+            declaration != NULL ? declaration->flags : 0);
         size_t parameter;
         if (target->executionBoundaryAbi == XL6_IR_CALL_EXECUTION_INVALID ||
-            target->executionBoundaryAbi != xl6IrCallExecutionBoundaryForKind(target->kind))
+            target->executionBoundaryAbi != expectedExecution)
             return xl6IrDiag(diags, NULL, "XLIR call target execution boundary is unresolved or mismatched");
+        if ( target->effectAbi == XL6_IR_CALL_EFFECT_INVALID ||
+             target->effectAbi != expectedEffect )
+            return xl6IrDiag(diags, NULL,
+                "XLIR call target side-effect contract is unresolved or mismatched");
+        if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE &&
+             target->errorAbi != (declaration != NULL &&
+                 declaration->sourceKind == XL6_AST_EXTERN_FUNC &&
+                 (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0
+                    ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE) )
+            return xl6IrDiag(diags, NULL,
+                "XLIR extern call target failure contract disagrees with its declaration");
         if ( !xl6IrRuntimeBridgeTargetMatches(module, target) ) {
             const XL6_IrType* bridgeResult = target->returnType != XL6_IR_TYPE_INVALID
                 ? xl6IrTypeGet(&module->types, target->returnType) : NULL;
@@ -31380,10 +32598,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
               target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR) ||
              (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
               target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
-             ((target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
-               target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
-              target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE &&
-              target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE) ||
+             (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
+               target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE &&
+               target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE) ||
               target->symbol == 0 || declaration == NULL || declaration->kind != XL6_IR_NODE_FUNC_DECL ||
               declaration->symbol != target->symbol ||
               target->variadicAbi < XL6_IR_CALL_VARIADIC_NONE ||
@@ -31417,7 +32634,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             for (parameter = 0; parameter < target->parameterCount; ++parameter) {
                 const XL6_IrParameterLifetime* lifetime = &target->parameterLifetimes[parameter];
                 if ((lifetime->rebindable != 0 && lifetime->rebindable != 1) ||
+                    (lifetime->borrowReadOnly != 0 && lifetime->borrowReadOnly != 1) ||
                     lifetime->rebindable != xl6IrParameterBindingMayRebind(module, lifetime->sourceSymbol) ||
+                    lifetime->borrowReadOnly != xl6IrCallTargetParameterCanBorrowReadOnly(module, target, parameter) ||
                     lifetime->cleanupEffect != xl6IrParameterCleanupEffect(module, target, parameter, lifetime->rebindable))
                     return xl6IrDiag(diags, xl6IrNodeGet(module, target->declaration),
                         "XLIR parameter lifetime effect does not match its binding mutation and ownership ABI");
@@ -31439,7 +32658,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ||
                    xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge))
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
-                    : xl6IrRuntimeSerializationBridgeHasCallbackResult(target->runtimeBridge)
+                    : xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER
                     : target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR)))) )
             return xl6IrDiag(diags, NULL,
@@ -31477,6 +32696,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_ASYNC_RESULT_COPY_BOOL:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_BOOL;
                 break;
+            case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+                resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_CHAR_U32;
+                break;
             case XL6_IR_ASYNC_RESULT_COPY_I64:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_I64;
                 break;
@@ -31498,7 +32720,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
                 break;
             case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
-                resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+                resultMatches = worker != NULL &&
+                    (worker->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                     worker->cAbi == XL6_IR_C_ABI_MANAGED_BYTES);
                 break;
             case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_CLOSURE_PTR;
@@ -32292,7 +33516,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              node->castErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
              node->implicitConversionRuntimeOp < XL6_IR_RUNTIME_NONE ||
              node->implicitConversionRuntimeOp >
-                 XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW ||
+                 XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT ||
               node->implicitConversionErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
               node->implicitConversionErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
               node->indexWriteErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
@@ -32352,7 +33576,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 "typed XLIR named callable has no exact declaration and signature ABI");
         }
         if ( node->memberAbi < XL6_IR_MEMBER_ABI_NONE ||
-             node->memberAbi > XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE ||
+             node->memberAbi > XL6_IR_MEMBER_ABI_BYTES_LENGTH ||
              node->memberAbi != expectedMemberAbi ||
              node->unionField != expectedUnionField ) {
             xrtFree(incoming);
@@ -32361,7 +33585,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
          if ( node->indexWriteAbi < XL6_IR_INDEX_WRITE_NONE ||
               node->indexWriteAbi >
-                  XL6_IR_INDEX_WRITE_XVALUE_KEY_DISPATCH_SET_NEW ||
+                  XL6_IR_INDEX_WRITE_BYTES_SET_COPY ||
               node->indexWriteAbi != expectedIndexWriteAbi ||
               node->indexWriteErrorAbi != expectedIndexWriteErrorAbi ) {
              xrtFree(incoming);
@@ -32369,15 +33593,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  "typed XLIR index mutation has no exact canonical write and failure ABI");
          }
         if ( node->loopAbi < XL6_IR_LOOP_ABI_NONE ||
-             node->loopAbi >
-                  XL6_IR_LOOP_ABI_GENERATOR_INDEX_VALUE ||
+             node->loopAbi > XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE ||
              node->loopAbi != expectedLoopAbi ||
              node->loopErrorAbi != expectedLoopErrorAbi ||
              node->loopKeyAbi < XL6_IR_LOOP_KEY_NONE ||
              node->loopKeyAbi > XL6_IR_LOOP_KEY_DISCARD ||
              node->loopKeyAbi != expectedLoopKeyAbi ||
              node->loopItemAbi < XL6_IR_LOOP_ITEM_NONE ||
-             node->loopItemAbi > XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
+             node->loopItemAbi > XL6_IR_LOOP_ITEM_U8 ||
              node->loopItemAbi != expectedLoopItemAbi ||
              node->loopKeyLifetimeAbi < XL6_IR_LOOP_TARGET_LIFETIME_NONE ||
              node->loopKeyLifetimeAbi >
@@ -32389,7 +33612,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              node->loopItemLifetimeAbi != expectedLoopItemLifetimeAbi ||
               node->loopResourceAbi < XL6_IR_LOOP_RESOURCE_NONE ||
               node->loopResourceAbi >
-                  XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE ||
+                  XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE ||
              node->loopResourceAbi != expectedLoopResourceAbi ||
              node->loopResourceType != expectedLoopResourceType ||
              node->loopProtocolIterTarget !=
@@ -32809,6 +34032,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_U64:
                 if ( !xl6IrIsCanonicalUnsignedIntegerLiteral(defaultLiteral) ) return 0;
                 break;
+            case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR:
+                if ( !xl6IrIsCanonicalUnicodeScalarLiteral(defaultLiteral) ) return 0;
+                break;
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_F64:
                 if ( !xl6IrIsCanonicalFloatLiteral(defaultLiteral) ) return 0;
                 break;
@@ -32843,7 +34069,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind == XL6_IR_TYPE_NULLABLE) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
-                    type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) ||
+                    (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                     type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE &&
                     type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE &&
@@ -33158,17 +34385,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                           instruction->runtimeOp ==
-                              XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY ||
+                              XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY ||
                           instruction->runtimeOp ==
-                              XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE ||
+                              XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                           instruction->runtimeOp ==
-                              XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE ||
+                              XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE ||
                           instruction->runtimeOp ==
-                              XL6_IR_RUNTIME_PERSISTENCE_XSON_READ ||
+                              XL6_IR_RUNTIME_PERSISTENCE_XLON_READ ||
                           (instruction->runtimeOp >=
                                XL6_IR_RUNTIME_CHANNEL_CREATE &&
                            instruction->runtimeOp <=
@@ -33806,6 +35033,24 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              sourceType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR runtime type query has no exact borrowed xvalue and TypeId result ABI");
+                    } else if ( instruction->runtimeOp ==
+                                    XL6_IR_RUNTIME_STRING_FROM_UTF8 ) {
+                        if ( instruction->operandCount != 0 ||
+                             instruction->immediateText != NULL ||
+                             (instruction->immediateData == NULL &&
+                              instruction->immediateSize != 0) ||
+                             !xl6IrTypeIsManagedString(module, instruction->type) )
+                            return xl6IrDiag(diags, NULL,
+                                "XLIR runtime UTF-8 literal has no explicit-length payload ABI");
+                    } else if ( instruction->runtimeOp ==
+                                    XL6_IR_RUNTIME_BYTES_FROM_DATA ) {
+                        if ( instruction->operandCount != 0 ||
+                             instruction->immediateText != NULL ||
+                             (instruction->immediateData == NULL &&
+                              instruction->immediateSize != 0) ||
+                             !xl6IrTypeIsManagedBytes(module, instruction->type) )
+                            return xl6IrDiag(diags, NULL,
+                                "XLIR runtime bytes literal has no explicit-length payload ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_DUP ) {
                         if ( instruction->operandCount != 0 || !xl6IrTypeIsManagedString(module, instruction->type) ||
                              !xl6IrIsCanonicalCStringLiteral(instruction->immediateText) )
@@ -33886,7 +35131,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                                 instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY ) {
+                                    XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY ) {
                         const XL6_IrType* sourceType = left != NULL
                             ? xl6IrTypeGet(&module->types, left->type) : NULL;
                         const XL6_IrType* prettyType = right != NULL
@@ -33927,7 +35172,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
                                 instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE ) {
+                                    XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE ) {
                         const XL6_IrInstruction* pretty =
                             instruction->operandCount == 3
                                 ? xl6IrValueDefinition(
@@ -33970,11 +35215,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                                 instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE ||
+                                    XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
                                 instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                                 instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_PERSISTENCE_XSON_READ ) {
+                                    XL6_IR_RUNTIME_PERSISTENCE_XLON_READ ) {
                         const XL6_IrType* textType = left != NULL
                             ? xl6IrTypeGet(&module->types, left->type) : NULL;
                         const XL6_IrType* targetType = right != NULL
@@ -34106,17 +35351,51 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 "XLIR checked time conversion has no exact borrowed source and time result ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
                         const XL6_IrType* resultType = xl6IrTypeGet(&module->types, instruction->type);
-                         const XL6_IrType* sourceType = left != NULL
-                             ? xl6IrTypeGet(&module->types, left->type) : NULL;
-                         if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
-                              resultType == NULL || sourceType == NULL ||
-                              !xl6IrIntegerSourceAbiMatchesType(
-                                  sourceType, instruction->integerSourceAbi) ||
-                              !xl6IrCheckedIntegerConversionSignature(
-                                  resultType, instruction->integerTarget,
-                                  instruction->integerSourceAbi) )
+                        const XL6_IrType* sourceType = left != NULL
+                            ? xl6IrTypeGet(&module->types, left->type) : NULL;
+                        const XL6_IrIntrinsicCall* intrinsic =
+                            xl6IrIntrinsicCallGet(module, instruction->origin);
+                        const XL6_IrNode* contextualSource = xl6IrNodeGet(
+                            module,
+                            instruction->contextualIntegerConversionSource);
+                        int contextualContract = contextualSource != NULL &&
+                            left != NULL &&
+                            contextualSource->storageType == left->type &&
+                            xl6IrContextualCheckedIntegerConversionAllowed(
+                                module, instruction->origin,
+                                instruction->contextualIntegerConversionSource,
+                                instruction->type);
+                        int intrinsicContract =
+                            instruction->contextualIntegerConversionSource ==
+                                XL6_IR_NODE_INVALID &&
+                            intrinsic != NULL &&
+                            intrinsic->kind ==
+                                XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT &&
+                            intrinsic->admission ==
+                                XL6_IR_INTRINSIC_ADMISSION_VERIFIED &&
+                            intrinsic->operandCount == 1 &&
+                            intrinsic->firstOperand <
+                                module->intrinsicOperandCount &&
+                            intrinsic->resultType == instruction->type &&
+                            intrinsic->integerTarget ==
+                                instruction->integerTarget &&
+                            intrinsic->integerSourceAbi ==
+                                instruction->integerSourceAbi &&
+                            intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
+                            left != NULL &&
+                            module->intrinsicOperands[
+                                intrinsic->firstOperand].type == left->type;
+                        if ( instruction->operandCount != 1 ||
+                             instruction->immediateText != NULL ||
+                             resultType == NULL || sourceType == NULL ||
+                             !xl6IrIntegerSourceAbiMatchesType(
+                                 sourceType, instruction->integerSourceAbi) ||
+                             !xl6IrCheckedIntegerConversionSignature(
+                                 resultType, instruction->integerTarget,
+                                 instruction->integerSourceAbi) ||
+                             (!contextualContract && !intrinsicContract) )
                             return xl6IrDiag(diags, NULL,
-                                             "XLIR checked integer conversion has no exact source and target ABI");
+                                "XLIR checked integer conversion has no exact Typed source, target and failure ABI");
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_INTEGER_CONVERT_WRAPPING ) {
                         const XL6_IrType* resultType =
@@ -34208,6 +35487,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  module->classLayouts[layoutIndex].type == instruction->type ) break;
                         if ( layoutIndex == module->classLayoutCount ) return xl6IrDiag(diags, NULL,
                             "XLIR runtime checked class cast target type does not match its runtime tag");
+                    } else if ( xl6IrPrimitiveSequenceRuntimeOpIs(
+                                    instruction->runtimeOp) ) {
+                        if ( !xl6IrPrimitiveSequenceRuntimeSignatureValid(
+                                 module, instruction) )
+                            return xl6IrDiag(diags, NULL,
+                                "XLIR primitive string/bytes operation has no exact operand, result or failure ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT ) {
                         if ( instruction->operandCount != 2 || instruction->immediateText != NULL ||
                              !xl6IrTypeIsManagedString(module, instruction->type) || left == NULL || right == NULL ||
@@ -35350,6 +36635,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              xl6IrTypeGet(&module->types, left->type)->cAbi != XL6_IR_C_ABI_BOOL )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime dynamic boolean has no canonical ABI");
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CHAR ) {
+                        if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
+                             !xl6IrTypeIsRuntimeXValue(module, instruction->type) || left == NULL ||
+                             xl6IrTypeGet(&module->types, left->type) == NULL ||
+                             xl6IrTypeGet(&module->types, left->type)->cAbi != XL6_IR_C_ABI_CHAR_U32 )
+                            return xl6IrDiag(diags, NULL,
+                                             "XLIR runtime dynamic character has no canonical Unicode-scalar ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_I64 ) {
                         if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
                              !xl6IrTypeIsRuntimeXValue(module, instruction->type) || left == NULL ||
@@ -35688,10 +36980,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              resultType == NULL ||
                              resultType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                              resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             futureType == NULL ||
-                             futureType->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                             futureType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             futureType->paramCount != 1 ||
+                              futureType == NULL ||
+                              futureType->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                              futureType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                              futureType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+                              futureType->paramCount != 1 ||
                              futureType->params == NULL ||
                              xl6IrTypeGet(&module->types,
                                  futureType->params[0]) == NULL )
@@ -35877,6 +37170,18 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             !xl6IrTypeIsRuntimeXValue(module, left->type) )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime dynamic retain must preserve its exact TypeId");
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_RETAIN ) {
+                        if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
+                             instruction->targetSymbol != 0 ||
+                             instruction->targetValue != XL6_IR_VALUE_INVALID ||
+                             instruction->calleeType != XL6_IR_TYPE_INVALID ||
+                             instruction->payloadType != XL6_IR_TYPE_INVALID ||
+                             instruction->opcode != XL6_IR_OPCODE_INVALID ||
+                             !xl6IrTypeIsManagedBytes(module, instruction->type) || left == NULL ||
+                             left->type != instruction->type ||
+                             !xl6IrTypeIsManagedBytes(module, left->type) )
+                            return xl6IrDiag(diags, NULL,
+                                             "XLIR bytes retain must preserve its exact statically typed bytes ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLONE ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DEEP_CLONE ) {
                         if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
@@ -38446,6 +39751,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      !xl6IrContextualCallableCastAllowed(module, instruction->origin,
                          instruction->contextualCastSource, instruction->type)))
                     return xl6IrDiag(diags, NULL, "XLIR contextual cast source has no exact verified boundary");
+                if ( instruction->contextualIntegerConversionSource !=
+                         XL6_IR_NODE_INVALID &&
+                     (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+                      instruction->runtimeOp !=
+                          XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
+                      !xl6IrContextualCheckedIntegerConversionAllowed(
+                          module, instruction->origin,
+                          instruction->contextualIntegerConversionSource,
+                          instruction->type)) )
+                    return xl6IrDiag(diags, NULL,
+                        "XLIR contextual integer source has no exact verified boundary");
                 if ( ((instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
                        instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_WRAPPING) &&
                       (instruction->integerTarget == XL6_IR_INTEGER_TARGET_INVALID ||
@@ -38558,6 +39874,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_BOOL;
                         break;
+                    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+                        resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_CHAR_U32;
+                        break;
                     case XL6_IR_ASYNC_RESULT_COPY_I64:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_I64;
                         break;
@@ -38579,7 +39898,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
                         break;
                     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
-                        resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+                        resultMatches = resultType != NULL &&
+                            (resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                             resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES);
                         break;
                     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR;
@@ -39534,7 +40855,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           !xl6IrBuildClassDerivesFrom(module, source->type, instruction->type) &&
                           !xl6IrProtocolClassImplements(module, instruction->type, source->type) &&
                           !(xl6IrTypeIsDynamicXValueBuiltin(module, instruction->type) &&
-                            xl6IrTypeIsRuntimeXValue(module, source->type)) &&
+                            xl6IrTypeHasManagedXValueCarrier(module, source->type)) &&
                           !xl6IrNullableAcceptsValue(module, instruction->type, source->type)) ) {
                         char message[160];
                         snprintf(message, sizeof(message),
@@ -40013,6 +41334,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              !xl6IrVerifyExpressionPatternBindings(module, diags) ||
              !xl6IrVerifyEvaluationCleanupRegions(module, diags) ||
              !xl6IrVerifyScopeCleanupRegions(module, diags) ||
+             !xl6IrVerifyPrimitiveSequenceLoopOutcomes(module, diags) ||
              !xl6IrVerifyLoopLifetimes(module, diags) ||
              !xl6IrVerifyPendingExceptionRoutes(module, diags) ) return 0;
     }
@@ -40268,6 +41590,7 @@ static const char* xl6IrDynamicMethodDefaultAbiName(
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME: return "time";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING: return "string";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL: return "xvalue-null";
+    case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR: return "char";
     default: return "invalid";
     }
 }
@@ -40283,6 +41606,7 @@ static const char* xl6IrDynamicMethodMatchAbiName(
     case XL6_IR_DYNAMIC_METHOD_MATCH_F64: return "f64";
     case XL6_IR_DYNAMIC_METHOD_MATCH_TIME: return "time";
     case XL6_IR_DYNAMIC_METHOD_MATCH_STRING: return "string";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_CHAR: return "char";
     default: return "invalid";
     }
 }
@@ -40376,18 +41700,18 @@ static const char* xl6IrIntrinsicKindName(XL6_IrIntrinsicKind kind)
         return "persistence-json-stringify";
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:
         return "persistence-json-parse";
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY:
-        return "persistence-xson-stringify";
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE:
-        return "persistence-xson-parse";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
+        return "persistence-xlon-stringify";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
+        return "persistence-xlon-parse";
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
         return "persistence-json-write";
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ:
         return "persistence-json-read";
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE:
-        return "persistence-xson-write";
-    case XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ:
-        return "persistence-xson-read";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
+        return "persistence-xlon-write";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ:
+        return "persistence-xlon-read";
     case XL6_IR_INTRINSIC_RUNTIME_RESOURCE: return "runtime-resource";
     case XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT:
         return "checked-xvalue-convert";
@@ -40606,6 +41930,7 @@ static const char* xl6IrStringConversionAbiName(
     case XL6_IR_STRING_CONVERSION_CLASS_DERIVED: return "class-derived";
     case XL6_IR_STRING_CONVERSION_CLASS_PROTOCOL_CALL:
         return "class-protocol-call";
+    case XL6_IR_STRING_CONVERSION_CHAR_VALUE: return "char-value";
     default: return "invalid";
     }
 }
@@ -40678,6 +42003,7 @@ static const char* xl6IrAsyncResultAbiName(XL6_IrAsyncResultAbi abi)
     switch ( abi ) {
     case XL6_IR_ASYNC_RESULT_VOID: return "void";
     case XL6_IR_ASYNC_RESULT_COPY_BOOL: return "copy-bool";
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR: return "copy-char";
     case XL6_IR_ASYNC_RESULT_COPY_I64: return "copy-i64";
     case XL6_IR_ASYNC_RESULT_COPY_U64: return "copy-u64";
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID: return "copy-type-id";
@@ -40716,6 +42042,7 @@ static const char* xl6IrIntegerTargetName(XL6_IrIntegerTarget target)
     case XL6_IR_INTEGER_TARGET_UNSIGNED_32: return "u32";
     case XL6_IR_INTEGER_TARGET_SIGNED_64: return "i64";
     case XL6_IR_INTEGER_TARGET_UNSIGNED_64: return "u64";
+    case XL6_IR_INTEGER_TARGET_UNICODE_SCALAR: return "unicode-scalar";
     default: return "none";
     }
 }
@@ -40779,6 +42106,89 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_PRINT: return "print";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE: return "text-write";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN: return "text-writeln";
+    case XL6_IR_RUNTIME_BRIDGE_TEXT_ERROR: return "text-error";
+    case XL6_IR_RUNTIME_BRIDGE_TEXT_ERRORLN: return "text-error-line";
+    case XL6_IR_RUNTIME_BRIDGE_TEXT_FLUSH: return "text-flush";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE: return "io-read-file";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_FILE: return "io-write-file";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_TEXT_FILE: return "io-write-text-file";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_OPEN: return "io-reader-open";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_BYTES: return "io-reader-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_BUFFER: return "io-reader-buffer";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_STDIN: return "io-reader-stdin";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_DESTROY: return "io-reader-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_CLOSE: return "io-reader-close";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_HANDLE: return "io-reader-handle";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_READ: return "io-reader-read";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_EXACT: return "io-reader-exact";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_ALL: return "io-reader-all";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_INTO: return "io-reader-into";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_SEEK: return "io-reader-seek";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_TELL: return "io-reader-tell";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_SIZE: return "io-reader-size";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_EOF: return "io-reader-eof";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_CAN_SEEK: return "io-reader-can-seek";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_CAN_SIZE: return "io-reader-can-size";
+    case XL6_IR_RUNTIME_BRIDGE_IO_READER_CLOSED: return "io-reader-closed";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_OPEN: return "io-writer-open";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_BUFFER: return "io-writer-buffer";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_STANDARD: return "io-writer-standard";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_DESTROY: return "io-writer-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CLOSE: return "io-writer-close";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_HANDLE: return "io-writer-handle";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_BYTES: return "io-writer-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_TEXT: return "io-writer-text";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_WRITE_BUFFER: return "io-writer-write-buffer";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_ALL_BYTES: return "io-writer-all-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_ALL_TEXT: return "io-writer-all-text";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_ALL_BUFFER: return "io-writer-all-buffer";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_FLUSH: return "io-writer-flush";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_SEEK: return "io-writer-seek";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_TELL: return "io-writer-tell";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_SIZE: return "io-writer-size";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CAN_SEEK: return "io-writer-can-seek";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CAN_SIZE: return "io-writer-can-size";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CLOSED: return "io-writer-closed";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITER_TO_BYTES: return "io-writer-to-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_IO_LINES_CREATE: return "io-lines-create";
+    case XL6_IR_RUNTIME_BRIDGE_IO_LINES_DESTROY: return "io-lines-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_IO_LINES_CLOSE: return "io-lines-close";
+    case XL6_IR_RUNTIME_BRIDGE_IO_LINES_ADVANCE: return "io-lines-advance";
+    case XL6_IR_RUNTIME_BRIDGE_IO_LINES_BYTES: return "io-lines-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_IO_LINES_ENDING: return "io-lines-ending";
+    case XL6_IR_RUNTIME_BRIDGE_IO_COPY: return "io-copy";
+    case XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE: return "io-write-buffer-file";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE: return "console-read-line";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_CHAR: return "console-read-char";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_IS_TERMINAL: return "console-is-terminal";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SIZE: return "console-size";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_COLOR: return "console-color";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_STYLED: return "console-styled";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_OPEN: return "console-session-open";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_DESTROY: return "console-session-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CLOSE: return "console-session-close";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CLOSED: return "console-session-closed";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_PASTE: return "console-session-paste";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_WRITE: return "console-session-write";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_FLUSH: return "console-session-flush";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_MOVE: return "console-session-move";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CLEAR: return "console-session-clear";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CURSOR: return "console-session-cursor";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_STYLE: return "console-session-style";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_READ: return "console-session-read";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_WRAP: return "console-event-wrap";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DESTROY: return "console-event-destroy";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_KIND: return "console-event-kind";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_TEXT: return "console-event-text";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_KEY: return "console-event-key";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_MODIFIERS: return "console-event-modifiers";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_REPEAT: return "console-event-repeat";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_X: return "console-event-x";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_Y: return "console-event-y";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_WHEEL: return "console-event-wheel";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_COLUMNS: return "console-event-columns";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_ROWS: return "console-event-rows";
+    case XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN: return "console-event-down";
     case XL6_IR_RUNTIME_BRIDGE_DIR_LIST: return "dir-list";
     case XL6_IR_RUNTIME_BRIDGE_DIR_GLOB: return "dir-glob";
     case XL6_IR_RUNTIME_BRIDGE_DIR_ENTRIES: return "dir-entries";
@@ -40788,6 +42198,23 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC: return "process-exec";
     case XL6_IR_RUNTIME_BRIDGE_PROCESS_SUCCESS: return "process-success";
     case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE: return "process-exit-code";
+    case XL6_IR_RUNTIME_BRIDGE_HASH_STRING: return "hash-string";
+    case XL6_IR_RUNTIME_BRIDGE_HASH_BYTES: return "hash-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_HASH_RAW: return "hash-raw";
+    case XL6_IR_RUNTIME_BRIDGE_SIPHASH_STRING: return "siphash-string";
+    case XL6_IR_RUNTIME_BRIDGE_SIPHASH_BYTES: return "siphash-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW: return "siphash-raw";
+    case XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING: return "xid-make-string";
+    case XL6_IR_RUNTIME_BRIDGE_XID_MAKE: return "xid-make";
+    case XL6_IR_RUNTIME_BRIDGE_XID_MAKE_MANY: return "xid-make-many";
+    case XL6_IR_RUNTIME_BRIDGE_XID_PARSE: return "xid-parse";
+    case XL6_IR_RUNTIME_BRIDGE_XID_FROM_BYTES: return "xid-from-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_XID_TO_STRING: return "xid-to-string";
+    case XL6_IR_RUNTIME_BRIDGE_XID_TO_BYTES: return "xid-to-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_XID_TIMESTAMP: return "xid-timestamp";
+    case XL6_IR_RUNTIME_BRIDGE_XID_COMPARE: return "xid-compare";
+    case XL6_IR_RUNTIME_BRIDGE_XID_EQUAL: return "xid-equal";
+    case XL6_IR_RUNTIME_BRIDGE_XID_IS_ZERO: return "xid-is-zero";
     case XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS: return "string-contains";
     case XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES: return "string-split-lines";
     case XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS: return "dynamic-fields";
@@ -40800,13 +42227,23 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_JSON_WRITE_FILE: return "json-write-file";
     case XL6_IR_RUNTIME_BRIDGE_JSON_VISIT: return "json-visit";
     case XL6_IR_RUNTIME_BRIDGE_JSON_WRITER: return "json-writer";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_PARSE: return "xson-parse";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_VALID: return "xson-valid";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_READ: return "xson-read";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_STRINGIFY: return "xson-stringify";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_WRITE: return "xson-write";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_VISIT: return "xson-visit";
-    case XL6_IR_RUNTIME_BRIDGE_XSON_WRITER: return "xson-writer";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_PARSE: return "xlon-parse";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_VALID: return "xlon-valid";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_READ: return "xlon-read";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_STRINGIFY: return "xlon-stringify";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_WRITE: return "xlon-write";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_VISIT: return "xlon-visit";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_WRITER: return "xlon-writer";
+    case XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY: return "jsonl-stringify";
+    case XL6_IR_RUNTIME_BRIDGE_XLONL_STRINGIFY: return "xlonl-stringify";
+    case XL6_IR_RUNTIME_BRIDGE_JSONL_READ_FILE: return "jsonl-read-file";
+    case XL6_IR_RUNTIME_BRIDGE_JSONL_WRITE_FILE: return "jsonl-write-file";
+    case XL6_IR_RUNTIME_BRIDGE_XLONL_READ_FILE: return "xlonl-read-file";
+    case XL6_IR_RUNTIME_BRIDGE_XLONL_WRITE_FILE: return "xlonl-write-file";
+    case XL6_IR_RUNTIME_BRIDGE_JSONL_PARSE: return "jsonl-parse";
+    case XL6_IR_RUNTIME_BRIDGE_JSONL_VALID: return "jsonl-valid";
+    case XL6_IR_RUNTIME_BRIDGE_XLONL_PARSE: return "xlonl-parse";
+    case XL6_IR_RUNTIME_BRIDGE_XLONL_VALID: return "xlonl-valid";
     case XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT: return "string-int-format";
     case XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT: return "string-uint-format";
     case XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT: return "string-num-format";
@@ -40814,6 +42251,8 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_TEMPLATE: return "template";
     case XL6_IR_RUNTIME_BRIDGE_BUFFER: return "buffer";
     case XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN: return "string-char-len";
+    case XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE: return "crt-number-parse";
+    case XL6_IR_RUNTIME_BRIDGE_CRT_ENV: return "crt-env";
     case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN: return "string-byte-len";
     case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT: return "string-byte-at";
     case XL6_IR_RUNTIME_BRIDGE_STRING_SLICE: return "string-slice";
@@ -40832,6 +42271,35 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_STRING_STARTS_WITH: return "string-starts-with";
     case XL6_IR_RUNTIME_BRIDGE_STRING_ENDS_WITH: return "string-ends-with";
     case XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT: return "string-split";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_JOIN: return "string-join";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_BYTES: return "string-bytes";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_CHARS: return "string-chars";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_COMPARE: return "string-compare";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_LAST_INDEX_OF: return "string-last-index-of";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_COUNT: return "string-count";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_HAS_ANY: return "string-has-any";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_LIKE: return "string-like";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_APPROX: return "string-approx";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_SIMILARITY: return "string-similarity";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_IS_UTF8: return "string-is-utf8";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_LOWER: return "string-lower";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_UPPER: return "string-upper";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_TRIM: return "string-trim";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_LTRIM: return "string-ltrim";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_RTRIM: return "string-rtrim";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_FILTER: return "string-filter";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_LEFT: return "string-left";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_RIGHT: return "string-right";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_AT: return "string-char-at";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_IS_EMPTY: return "string-is-empty";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_IS_BLANK: return "string-is-blank";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE: return "string-remove";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE_AT: return "string-remove-at";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_INSERT: return "string-insert";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_PAD_LEFT: return "string-pad-left";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_PAD_RIGHT: return "string-pad-right";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER: return "string-pad-center";
+    case XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE: return "string-reverse";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC: return "text-codec";
     case XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC: return "base64-text-codec";
     case XL6_IR_RUNTIME_BRIDGE_HEX_BYTES_CODEC: return "hex-bytes-codec";
@@ -41191,6 +42659,7 @@ static const char* xl6IrMemberAbiName(XL6_IrMemberAbi abi)
         return "class-field-error-ref";
     case XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE:
         return "safe-class-field-nullable";
+    case XL6_IR_MEMBER_ABI_BYTES_LENGTH: return "bytes-length";
     default: return "invalid";
     }
 }
@@ -41229,6 +42698,10 @@ static const char* xl6IrIndexWriteAbiName(XL6_IrIndexWriteAbi abi)
         return "xvalue-object-string-set-new";
     case XL6_IR_INDEX_WRITE_XVALUE_KEY_DISPATCH_SET_NEW:
         return "xvalue-key-dispatch-set-new";
+    case XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY:
+        return "string-scalar-set-copy";
+    case XL6_IR_INDEX_WRITE_BYTES_SET_COPY:
+        return "bytes-set-copy";
     default: return "invalid";
     }
 }
@@ -41257,6 +42730,14 @@ static const char* xl6IrLoopAbiName(XL6_IrLoopAbi abi)
         return "protocol-iterator-value";
     case XL6_IR_LOOP_ABI_PROTOCOL_ITERATOR_INDEX_VALUE:
         return "protocol-iterator-index-value";
+    case XL6_IR_LOOP_ABI_GENERATOR_VALUE:
+        return "generator-value";
+    case XL6_IR_LOOP_ABI_GENERATOR_INDEX_VALUE:
+        return "generator-index-value";
+    case XL6_IR_LOOP_ABI_BYTES_VALUE:
+        return "bytes-value";
+    case XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE:
+        return "bytes-index-value";
     default: return "invalid";
     }
 }
@@ -41301,6 +42782,10 @@ static const char* xl6IrLoopItemAbiName(XL6_IrLoopItemAbi abi)
     case XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_TAKE:
         return "protocol-product-take";
     case XL6_IR_LOOP_ITEM_DISCARD: return "discard";
+    case XL6_IR_LOOP_ITEM_GENERATOR_VALUE: return "generator-value";
+    case XL6_IR_LOOP_ITEM_GENERATOR_TAKE: return "generator-take";
+    case XL6_IR_LOOP_ITEM_CHAR: return "char";
+    case XL6_IR_LOOP_ITEM_U8: return "u8";
     default: return "invalid";
     }
 }
@@ -41332,6 +42817,10 @@ static const char* xl6IrLoopResourceAbiName(XL6_IrLoopResourceAbi abi)
         return "string-snapshot-release";
     case XL6_IR_LOOP_RESOURCE_PROTOCOL_ITERATOR_RELEASE:
         return "protocol-iterator-release";
+    case XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE:
+        return "generator-close";
+    case XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE:
+        return "bytes-snapshot-release";
     default: return "invalid";
     }
 }
@@ -41466,6 +42955,7 @@ static const char* xl6IrGeneratorYieldAbiName(XL6_IrGeneratorYieldAbi abi)
 {
     switch ( abi ) {
     case XL6_IR_GENERATOR_YIELD_COPY_BOOL: return "copy-bool";
+    case XL6_IR_GENERATOR_YIELD_COPY_CHAR: return "copy-char";
     case XL6_IR_GENERATOR_YIELD_COPY_I64: return "copy-i64";
     case XL6_IR_GENERATOR_YIELD_COPY_U64: return "copy-u64";
     case XL6_IR_GENERATOR_YIELD_COPY_TYPE_ID: return "copy-type-id";
@@ -41561,18 +43051,18 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
         return "persistence-json-stringify";
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:
         return "persistence-json-parse";
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY:
-        return "persistence-xson-stringify";
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE:
-        return "persistence-xson-parse";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY:
+        return "persistence-xlon-stringify";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
+        return "persistence-xlon-parse";
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE:
         return "persistence-json-write";
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_READ:
         return "persistence-json-read";
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE:
-        return "persistence-xson-write";
-    case XL6_IR_RUNTIME_PERSISTENCE_XSON_READ:
-        return "persistence-xson-read";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE:
+        return "persistence-xlon-write";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_READ:
+        return "persistence-xlon-read";
     case XL6_IR_RUNTIME_XVALUE_UNION_BOX:
         return "xvalue-union-box";
     case XL6_IR_RUNTIME_XVALUE_UNION_UNBOX:
@@ -41995,6 +43485,26 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
         return "tagged-enum-tag-equal";
     case XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_PROJECT:
         return "tagged-enum-payload-project";
+    case XL6_IR_RUNTIME_STRING_FROM_UTF8: return "string-from-utf8";
+    case XL6_IR_RUNTIME_BYTES_FROM_DATA: return "bytes-from-data";
+    case XL6_IR_RUNTIME_CHAR_TO_STRING: return "char-to-string";
+    case XL6_IR_RUNTIME_XVALUE_CHAR: return "xvalue-char";
+    case XL6_IR_RUNTIME_BYTES_RETAIN: return "bytes-retain";
+    case XL6_IR_RUNTIME_BYTES_CONCAT: return "bytes-concat";
+    case XL6_IR_RUNTIME_BYTES_EQUAL: return "bytes-equal";
+    case XL6_IR_RUNTIME_BYTES_ORDER_LT: return "bytes-order-lt";
+    case XL6_IR_RUNTIME_BYTES_ORDER_LE: return "bytes-order-le";
+    case XL6_IR_RUNTIME_BYTES_ORDER_GT: return "bytes-order-gt";
+    case XL6_IR_RUNTIME_BYTES_ORDER_GE: return "bytes-order-ge";
+    case XL6_IR_RUNTIME_BYTES_LENGTH: return "bytes-length";
+    case XL6_IR_RUNTIME_BYTES_AT: return "bytes-at";
+    case XL6_IR_RUNTIME_BYTES_SET_COPY: return "bytes-set-copy";
+    case XL6_IR_RUNTIME_STRING_SCALAR_AT: return "string-scalar-at";
+    case XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY: return "string-scalar-set-copy";
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT:
+        return "string-concat-char-right";
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT:
+        return "string-concat-char-left";
     default: return "none";
     }
 }
@@ -42380,7 +43890,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->classFieldCount; ++i ) {
         const XL6_IrClassField* field = &module->classFields[i];
         xl6OutputPrintf(out,
-                        "  class-field f%lu owner=t%u type=t%u declaration=n%u initializer=n%u destroy=s%u name=%s init=%s persist-default=%s/%s resource=%s payload=t%u/%s key=t%u/%s/%s error=%s json=0x%X/%s xson=0x%X/%s string=%d compare=%d\n",
+                        "  class-field f%lu owner=t%u type=t%u declaration=n%u initializer=n%u destroy=s%u name=%s init=%s persist-default=%s/%s resource=%s payload=t%u/%s key=t%u/%s/%s error=%s json=0x%X/%s xlon=0x%X/%s string=%d compare=%d\n",
                         (unsigned long)i, (unsigned int)field->ownerType,
                         (unsigned int)field->type, (unsigned int)field->declaration,
                         (unsigned int)field->initializer,
@@ -42406,9 +43916,9 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                          (unsigned int)field->jsonPersistenceFlags,
                         field->jsonPersistenceKeyLiteral != NULL
                             ? field->jsonPersistenceKeyLiteral : "field-name",
-                        (unsigned int)field->xsonPersistenceFlags,
-                        field->xsonPersistenceKeyLiteral != NULL
-                            ? field->xsonPersistenceKeyLiteral : "field-name",
+                        (unsigned int)field->xlonPersistenceFlags,
+                        field->xlonPersistenceKeyLiteral != NULL
+                            ? field->xlonPersistenceKeyLiteral : "field-name",
                         field->stringDeriveIncluded,
                         field->compareDeriveIncluded);
     }
@@ -42472,9 +43982,9 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
             &module->nominalIdentitySets[i];
         size_t identity;
         xl6OutputPrintf(out,
-            "  nominal-identity-set s%lu target=t%u kind=%d identities=[",
+            "  nominal-identity-set s%lu target=t%u kind=%d nonObjectTypeId=0x%016llX identities=[",
             (unsigned long)(i + 1), (unsigned int)set->targetType,
-            (int)set->kind);
+            (int)set->kind, (unsigned long long)set->nonObjectTypeId);
         for ( identity = 0; identity < set->identityCount; ++identity ) {
             if ( identity != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "0x%016llX",
@@ -42666,11 +44176,12 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         const XL6_IrCallTarget* target = &module->callTargets[i];
         size_t parameter;
         xl6OutputPrintf(out,
-            "  call-target c%lu kind=%d bridge=%s operation=%s lifecycle=%s execution=%s preparation=%s symbol=%u declaration=n%u cname=%s result=t%u physical-result=%s/n%u/s%u result-conversion=%s errors=%s/%s parameters=%lu variadic=%s reach=%s types=[",
+            "  call-target c%lu kind=%d bridge=%s operation=%s lifecycle=%s execution=%s effect=%s preparation=%s symbol=%u declaration=n%u cname=%s result=t%u physical-result=%s/n%u/s%u result-conversion=%s errors=%s/%s parameters=%lu variadic=%s reach=%s types=[",
             (unsigned long)i, (int)target->kind, xl6IrRuntimeBridgeName(target->runtimeBridge),
             xl6IrRuntimeBridgeOperationName(target->runtimeBridgeOperation),
             xl6IrCallTargetLifecycleAbiName(target->lifecycleAbi),
             xl6IrCallExecutionBoundaryAbiName(target->executionBoundaryAbi),
+            xl6IrCallEffectAbiName(target->effectAbi),
             xl6IrCallPreparationFailureAbiName(target->preparationFailureAbi),
             (unsigned int)target->symbol,
             (unsigned int)target->declaration, target->cName != NULL ? target->cName : "",
@@ -42698,9 +44209,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         xl6OutputPuts("] parameter-lifetimes=[", out);
         for (parameter = 0; target->parameterLifetimes != NULL && parameter < target->parameterCount; ++parameter) {
             const XL6_IrParameterLifetime* lifetime = &target->parameterLifetimes[parameter];
-            xl6OutputPrintf(out, "%ss%u/%s/%s", parameter != 0 ? "," : "",
+            xl6OutputPrintf(out, "%ss%u/%s/%s/%s", parameter != 0 ? "," : "",
                 (unsigned int)lifetime->sourceSymbol,
                 lifetime->rebindable ? "rebound" : "stable",
+                lifetime->borrowReadOnly ? "read-only-borrow" : "owned-binding",
                 lifetime->cleanupEffect == XL6_IR_RELEASE_EFFECT_MAY_RAISE ? "may-raise" : "no-raise");
         }
         xl6OutputPuts("] captures=[", out);
@@ -43329,6 +44841,12 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                             xl6IrCastAbiName(instruction->castAbi));
                     if (instruction->contextualCastSource != XL6_IR_NODE_INVALID)
                         xl6OutputPrintf(out, " contextual-source=n%u", (unsigned int)instruction->contextualCastSource);
+                    if ( instruction->contextualIntegerConversionSource !=
+                             XL6_IR_NODE_INVALID )
+                        xl6OutputPrintf(out,
+                            " contextual-integer-source=n%u",
+                            (unsigned int)
+                                instruction->contextualIntegerConversionSource);
                     if ( instruction->kind == XL6_IR_INSTR_BRANCH ) {
                         xl6OutputPrintf(out, " true=b%u false=b%u", (unsigned int)instruction->trueTarget,
                                         (unsigned int)instruction->falseTarget);
@@ -43661,7 +45179,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->classFieldCount; ++i ) {
         const XL6_IrClassField* field = &module->classFields[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"initializer\":%u,\"nativeDestroySymbol\":%u,\"initializerAbi\":%d,\"initializerAbiName\":\"%s\",\"persistenceDefaultAbi\":%d,\"persistenceDefaultAbiName\":\"%s\",\"persistenceDefaultHasLiteral\":%d,\"initializerRuntimeResourceOp\":%d,\"initializerRuntimeResourceOpName\":\"%s\",\"initializerPayloadType\":%u,\"initializerRuntimeResourcePayloadAbi\":%d,\"initializerRuntimeResourcePayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyType\":%u,\"initializerRuntimeResourceKeyPayloadAbi\":%d,\"initializerRuntimeResourceKeyPayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyOrderAbi\":%d,\"initializerRuntimeResourceKeyOrderAbiName\":\"%s\",\"initializerErrorAbi\":%d,\"initializerErrorAbiName\":\"%s\",\"jsonPersistenceFlags\":%u,\"jsonRenamed\":%d,\"xsonPersistenceFlags\":%u,\"xsonRenamed\":%d,\"stringDeriveIncluded\":%d,\"compareDeriveIncluded\":%d}%s\n",
+            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"initializer\":%u,\"nativeDestroySymbol\":%u,\"initializerAbi\":%d,\"initializerAbiName\":\"%s\",\"persistenceDefaultAbi\":%d,\"persistenceDefaultAbiName\":\"%s\",\"persistenceDefaultHasLiteral\":%d,\"initializerRuntimeResourceOp\":%d,\"initializerRuntimeResourceOpName\":\"%s\",\"initializerPayloadType\":%u,\"initializerRuntimeResourcePayloadAbi\":%d,\"initializerRuntimeResourcePayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyType\":%u,\"initializerRuntimeResourceKeyPayloadAbi\":%d,\"initializerRuntimeResourceKeyPayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyOrderAbi\":%d,\"initializerRuntimeResourceKeyOrderAbiName\":\"%s\",\"initializerErrorAbi\":%d,\"initializerErrorAbiName\":\"%s\",\"jsonPersistenceFlags\":%u,\"jsonRenamed\":%d,\"xlonPersistenceFlags\":%u,\"xlonRenamed\":%d,\"stringDeriveIncluded\":%d,\"compareDeriveIncluded\":%d}%s\n",
             (unsigned long)i, (unsigned int)field->ownerType, (unsigned int)field->type,
             (unsigned int)field->declaration, (unsigned int)field->initializer,
              (unsigned int)field->nativeDestroySymbol,
@@ -43687,8 +45205,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
              xl6IrErrorAbiName(field->initializerErrorAbi),
              (unsigned int)field->jsonPersistenceFlags,
             field->jsonPersistenceKeyLiteral != NULL,
-            (unsigned int)field->xsonPersistenceFlags,
-            field->xsonPersistenceKeyLiteral != NULL,
+            (unsigned int)field->xlonPersistenceFlags,
+            field->xlonPersistenceKeyLiteral != NULL,
             field->stringDeriveIncluded,
             field->compareDeriveIncluded,
             i + 1 == module->classFieldCount ? "" : ",");
@@ -43771,9 +45289,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             &module->nominalIdentitySets[i];
         size_t identity;
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"targetType\":%u,\"kind\":%d,\"identities\":[",
+            "    {\"id\":%lu,\"targetType\":%u,\"kind\":%d,\"nonObjectTypeId\":%llu,\"identities\":[",
             (unsigned long)(i + 1), (unsigned int)set->targetType,
-            (int)set->kind);
+            (int)set->kind, (unsigned long long)set->nonObjectTypeId);
         for ( identity = 0; identity < set->identityCount; ++identity ) {
             if ( identity != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%llu",
@@ -44071,9 +45589,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6OutputPuts("],\"parameterLifetimes\":[", out);
         for (parameter = 0; target->parameterLifetimes != NULL && parameter < target->parameterCount; ++parameter) {
             const XL6_IrParameterLifetime* lifetime = &target->parameterLifetimes[parameter];
-            xl6OutputPrintf(out, "%s{\"sourceSymbol\":%u,\"rebindable\":%d,\"cleanupEffect\":%d}",
+            xl6OutputPrintf(out, "%s{\"sourceSymbol\":%u,\"rebindable\":%d,\"borrowReadOnly\":%d,\"cleanupEffect\":%d}",
                 parameter != 0 ? "," : "", (unsigned int)lifetime->sourceSymbol,
-                lifetime->rebindable, (int)lifetime->cleanupEffect);
+                lifetime->rebindable, lifetime->borrowReadOnly, (int)lifetime->cleanupEffect);
         }
         xl6OutputPuts("],\"asyncCaptureAbis\":[", out);
         if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC )
@@ -44099,12 +45617,14 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                         target->generatorCaptureAbis[parameter]));
             }
         xl6OutputPrintf(out,
-            "],\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            "],\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
             (int)target->resultCAbi,
             (int)target->resultConversionAbi,
             xl6IrCallResultConversionAbiName(target->resultConversionAbi),
             (int)target->executionBoundaryAbi,
             xl6IrCallExecutionBoundaryAbiName(target->executionBoundaryAbi),
+            (int)target->effectAbi,
+            xl6IrCallEffectAbiName(target->effectAbi),
             (int)target->preparationFailureAbi,
             xl6IrCallPreparationFailureAbiName(target->preparationFailureAbi),
             i + 1 == module->callTargetCount ? "" : ",");
@@ -44709,6 +46229,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         size_t operandIndex;
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",\"generatorClosePlan\":%lu,\"generatorYieldAbi\":%d,", (int)instruction->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(instruction->generatorClosePointAbi), (unsigned long)instruction->generatorClosePlan, (int)instruction->generatorYieldAbi);
         xl6OutputPrintf(out, "\"contextualCastSource\":%u,", (unsigned int)instruction->contextualCastSource);
+        xl6OutputPrintf(out, "\"contextualIntegerConversionSource\":%u,",
+            (unsigned int)instruction->contextualIntegerConversionSource);
         xl6OutputPrintf(out, "\"id\":%lu,\"index\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"opcode\":%d,\"opcodeName\":\"%s\",\"runtimeOp\":%d,\"runtimeOpName\":\"%s\",\"asyncResultAbi\":%d,\"asyncResultAbiName\":\"%s\",\"futureOutcomeAbi\":%d,\"callbackBoundary\":%lu,\"sourceAsyncResultAbi\":%d,\"sourceAsyncResultAbiName\":\"%s\",\"futureContinuationKind\":%d,\"futureContinuationKindName\":\"%s\",\"callableErasureAbi\":%d,\"callableErasureAbiName\":\"%s\",\"scalarConversionAbi\":%d,\"scalarConversionAbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"integerTarget\":%d,\"integerTargetName\":\"%s\",\"integerSourceAbi\":%d,\"integerSourceAbiName\":\"%s\",\"collectionAbi\":%d,\"collectionAbiName\":\"%s\",\"runtimeResourcePayloadAbi\":%d,\"runtimeResourcePayloadAbiName\":\"%s\",\"runtimeResourceKeyType\":%u,\"runtimeResourceKeyPayloadAbi\":%d,\"runtimeResourceKeyPayloadAbiName\":\"%s\",\"runtimeResourceKeyOrderAbi\":%d,\"runtimeResourceKeyOrderAbiName\":\"%s\",\"typedCollectionOp\":%d,\"typedCollectionOpName\":\"%s\",\"dynamicCollectionOp\":%d,\"dynamicCollectionOpName\":\"%s\",\"dynamicCallResultAbi\":%d,\"dynamicCallResultAbiName\":\"%s\",\"payloadType\":%u,\"sourcePayloadType\":%u,\"runtimeIdentityType\":%u,\"hasImmediate\":%d,\"result\":%u,\"targetValue\":%u,\"type\":%u,\"targetSymbol\":%u,\"calleeType\":%u,\"dispatchSlot\":%u,\"elementIndex\":%ld,\"dynamicCallSite\":%ld,\"enumVariant\":%ld,\"enumPayload\":%ld,\"origin\":%u,\"sourceLine\":%d,\"sourceColumn\":%d,\"trueTarget\":%u,\"falseTarget\":%u,\"firstOperand\":%lu,\"operandCount\":%lu,\"operands\":[",
                         (unsigned long)(i + 1), (unsigned long)i,
                         (int)instruction->kind, xl6IrInstructionKindName(instruction->kind),

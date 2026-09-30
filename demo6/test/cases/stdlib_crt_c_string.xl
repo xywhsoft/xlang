@@ -1,0 +1,6 @@
+import cString
+
+assert cString.length("") == c_size(0)
+assert cString.length("abc") == c_size(3)
+assert cString.length("你好") == c_size(6)
+assert string.len("你好") == 2

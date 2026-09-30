@@ -1,0 +1,5 @@
+extern "cos" func __xl_contract_default_cos(float x) as float
+
+auto clean = math.sin(1)
+auto pure = math.abs(1.0)
+auto conservative = __xl_contract_default_cos(1)

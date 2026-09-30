@@ -13,70 +13,70 @@ end
 OutcomeRecord outcomeRecord = OutcomeRecord()
 OutcomeCustom outcomeCustom = OutcomeCustom()
 
-func concatPair(byval string left, byval string right) as string
+func concatPair(string left, string right) as string
     return left + right
 end
 
-func concatNested(byval string left, byval string right) as string
+func concatNested(string left, string right) as string
     return (left + right) + (right + left)
 end
 
-func concatInterpolation(byval string left, byval string right) as string
+func concatInterpolation(string left, string right) as string
     return f"{left}{right}"
 end
 
-func concatCompound(byval string left, byval string right) as string
+func concatCompound(string left, string right) as string
     left += right + right
     return left
 end
 
-func concatDefault(byval string left, string right = stringOutcomeDefault()) as string
+func concatDefault(string left, string right = stringOutcomeDefault()) as string
     return left + right
 end
 
-func concatInout(byref string left, byval string right)
-    left += right + right
+func concatInout(string left, string right) as string
+    return left + right + right
 end
 
-func allocationLiteral(byval string left, byval string right) as string
+func allocationLiteral(string left, string right) as string
     return "literal"
 end
-func allocationInteger(byval string left, byval string right) as string
+func allocationInteger(string left, string right) as string
     return string(41)
 end
-func allocationPrefix(byval string left, byval string right) as string
+func allocationPrefix(string left, string right) as string
     return f"prefix{left}"
 end
-func allocationEmpty(byval string left, byval string right) as string
+func allocationEmpty(string left, string right) as string
     string empty
     return empty
 end
-func allocationBool(byval string left, byval string right) as string
+func allocationBool(string left, string right) as string
     return string(true)
 end
-func allocationUnsigned(byval string left, byval string right) as string
+func allocationUnsigned(string left, string right) as string
     return string(uint64(41))
 end
-func allocationFloat(byval string left, byval string right) as string
+func allocationFloat(string left, string right) as string
     return string(41.5)
 end
-func allocationTime(byval string left, byval string right) as string
+func allocationTime(string left, string right) as string
     return string(time(0))
 end
-func allocationType(byval string left, byval string right) as string
+func allocationType(string left, string right) as string
     return string(type(41))
 end
-func allocationDynamic(byval string left, byval string right, var value) as string
+func allocationDynamic(string left, string right, var value) as string
     return string(value)
 end
-func allocationDerived(byval string left, byval string right) as string
+func allocationDerived(string left, string right) as string
     return string(outcomeRecord)
 end
-func allocationNullable(byval string left, byval string? right) as string
+func allocationNullable(string left, string? right) as string
     string? copy = right
     return copy ?? left
 end
-func allocationProtocol(byval string left, byval string right) as string
+func allocationProtocol(string left, string right) as string
     return string(outcomeCustom)
 end
 
@@ -85,9 +85,9 @@ export "string_outcome_keep" func stringOutcomeKeep() as int
     string b = concatNested("first", "suffix")
     string c = concatInterpolation("first", "suffix")
     string d = concatCompound("first", "suffix")
-    func(byval string) as string callback = concatDefault
+    func(string) as string callback = concatDefault
     string e = callback("first")
-    concatInout(byref a, "suffix")
+    a = concatInout(a, "suffix")
     string f = allocationLiteral("first", "suffix")
     string g = allocationInteger("first", "suffix")
     string h = allocationPrefix("first", "suffix")

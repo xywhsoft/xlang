@@ -1,0 +1,30 @@
+class CustomReader
+    int remaining = 5
+    func read(int count) as bytes
+        if count < 1 or self.remaining == 0 then return b"" end
+        self.remaining -= 1
+        return b"x"
+    end
+end
+class CustomWriter
+    int length = 0
+    func writeAll(bytes data, int size)
+        assert size == -1
+        self.length += data.length
+    end
+end
+CustomReader source = CustomReader()
+CustomWriter target = CustomWriter()
+assert io.copyUpTo(source, target, 2) == 2
+assert source.remaining == 3 and target.length == 2
+assert io.copyExact(source, target, 2) == 2
+assert source.remaining == 1 and target.length == 4
+assert io.copy(source, target) == 1
+assert source.remaining == 0 and target.length == 5
+bool rejected = false
+try
+    io.copyExact(source, target, 1)
+catch IOError e
+    rejected = true
+end
+assert rejected

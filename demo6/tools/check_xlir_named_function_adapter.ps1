@@ -173,22 +173,21 @@ if ( $LASTEXITCODE -ne 0 ) {
 }
 $modeModule = [System.IO.File]::ReadAllText(
     $modeJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$byrefTypes = @($modeModule.types | Where-Object {
-    @($_.parameterModes).Count -eq 1 -and $_.parameterModes[0] -eq "byref" -and
-    @($_.parameterAbis).Count -eq 1 -and $_.parameterAbis[0] -eq "inout"
+$byValueTypes = @($modeModule.types | Where-Object {
+    @($_.parameterModes).Count -eq 1 -and $_.parameterModes[0] -eq "default" -and
+    @($_.parameterAbis).Count -eq 1 -and $_.parameterAbis[0] -eq "value"
 })
-$outTypes = @($modeModule.types | Where-Object {
-    @($_.parameterModes).Count -eq 1 -and $_.parameterModes[0] -eq "out" -and
-    @($_.parameterAbis).Count -eq 1 -and $_.parameterAbis[0] -eq "out"
+$zeroArgumentTypes = @($modeModule.types | Where-Object {
+    $_.name -eq 'function' -and @($_.parameterModes).Count -eq 0
 })
-if ( $byrefTypes.Count -ne 1 -or $outTypes.Count -ne 1 ) {
-    throw "XLIR function parameter modes are not canonical type identities with exact physical ABIs"
+if ( $byValueTypes.Count -ne 1 -or $zeroArgumentTypes.Count -ne 1 ) {
+    throw "XLIR by-value and zero-argument function types lost their canonical identities"
 }
 if ( @($modeModule.closureTargets | Where-Object { $_.kind -eq 2 }).Count -ne 2 -or
      @($modeModule.functions | Where-Object { $_.kind -eq 4 }).Count -ne 2 -or
      @($modeModule.instructions | Where-Object { $_.kindName -eq "closure-call" }).Count -ne 2 -or
-     @($modeModule.instructions | Where-Object { $_.kindName -eq "storage-address" }).Count -lt 4 ) {
-    throw "XLIR function byref/out adapters do not carry explicit storage-reference CFG"
+     @($modeModule.instructions | Where-Object { $_.kindName -eq "storage-address" }).Count -ne 0 ) {
+    throw "XLIR by-value adapters unexpectedly require caller storage addresses"
 }
 
 Push-Location $Root
@@ -219,12 +218,14 @@ try {
         }
         if ( $fixture -eq "cgen_function_param_modes" -and
              (! [regex]::IsMatch($generatedText,
-                 'static bool xlir_closure_invoke_[^(]+\(void\* environment, int64_t\* a0\)') -or
-              @([regex]::Matches($generatedText,
-                 'static void xlir_fn_[^(]+\(void\* environment, int64_t\* s')).Count -lt 2 -or
-              @([regex]::Matches($generatedText,
-                 '\(int64_t\*\)v\d+')).Count -lt 4) ) {
-            throw "XLIR generated C lost the typed byref/out closure boundary"
+                 'static bool xlir_closure_invoke_[^(]+\(void\* environment, int64_t\* result, int64_t a0\)') -or
+              ! [regex]::IsMatch($generatedText,
+                 'static bool xlir_closure_invoke_[^(]+\(void\* environment, int64_t\* result\)') -or
+              ! [regex]::IsMatch($generatedText,
+                 'static int64_t xlir_fn_[^(]+\(int64_t s') -or
+              ! [regex]::IsMatch($generatedText,
+                 'static int64_t xlir_fn_[^(]+\(void\)')) ) {
+            throw "XLIR generated C lost the by-value callable boundary"
         }
         if ( $fixture -eq "cgen_function_named_value" -and
              (! $generatedText.Contains("xlir_closure_call_defaults_") -or

@@ -1,0 +1,1 @@
+assert !json.write("", 1, {"pretty": true})

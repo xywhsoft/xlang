@@ -136,43 +136,45 @@ void xl6CgenEmitDirRuntime(XL6_Output* out, unsigned operations)
             "}\n", out);
 
         if (operations & XL6_CGEN_DIR_LIST) {
-            xl6OutputPuts("xvalue* xl6_xrt_dir_list(const char* path, bool recursive, int mode)\n", out);
+            xl6OutputPuts("xvalue* xl6_xrt_dir_list(xlir_string path, bool recursive, int mode)\n", out);
             xl6OutputPuts("{\n", out);
             xl6OutputPuts("    XL6_Dir_List_Ctx ctx = { xrtValueArray(), mode, 0, 0u };\n", out);
-            xl6OutputPuts("    return xl6_dir_walk_result(path, recursive, xl6_dir_list_each, &ctx, ctx.result);\n", out);
+            xl6OutputPuts("    return xl6_dir_walk_result(xlir_string_cstr(path), recursive, xl6_dir_list_each, &ctx, ctx.result);\n", out);
             xl6OutputPuts("}\n\n", out);
 
         }
         if (operations & XL6_CGEN_DIR_GLOB) {
-            xl6OutputPuts("xvalue* xl6_xrt_dir_glob(const char* path, const char* pattern, bool recursive, int mode)\n", out);
+            xl6OutputPuts("xvalue* xl6_xrt_dir_glob(xlir_string path, xlir_string pattern, bool recursive, int mode)\n", out);
             xl6OutputPuts("{\n", out);
-            xl6OutputPuts("    XL6_Dir_List_Ctx ctx = { xrtValueArray(), mode, pattern, pattern != 0 ? strlen(pattern) : 0u };\n", out);
-            xl6OutputPuts("    return xl6_dir_walk_result(path, recursive, xl6_dir_list_each, &ctx, ctx.result);\n", out);
+            xl6OutputPuts("    XL6_Dir_List_Ctx ctx = { xrtValueArray(), mode, pattern.Data, pattern.Size };\n", out);
+            xl6OutputPuts("    return xl6_dir_walk_result(xlir_string_cstr(path), recursive, xl6_dir_list_each, &ctx, ctx.result);\n", out);
             xl6OutputPuts("}\n\n", out);
 
         }
         if (operations & XL6_CGEN_DIR_ENTRIES) {
-            xl6OutputPuts("xvalue* xl6_xrt_dir_entries(const char* path, bool recursive, bool includeLeave, const char* pattern, int mode)\n", out);
+            xl6OutputPuts("xvalue* xl6_xrt_dir_entries(xlir_string path, bool recursive, bool includeLeave, xlir_string pattern, int mode)\n", out);
             xl6OutputPuts("{\n", out);
-            xl6OutputPuts("    XL6_Dir_Entry_Ctx ctx = { xrtValueArray(), mode, includeLeave, pattern, pattern != 0 ? strlen(pattern) : 0u };\n", out);
-            xl6OutputPuts("    return xl6_dir_walk_result(path, recursive, xl6_dir_entry_each, &ctx, ctx.result);\n", out);
+            xl6OutputPuts("    XL6_Dir_Entry_Ctx ctx = { xrtValueArray(), mode, includeLeave, pattern.Data, pattern.Size };\n", out);
+            xl6OutputPuts("    return xl6_dir_walk_result(xlir_string_cstr(path), recursive, xl6_dir_entry_each, &ctx, ctx.result);\n", out);
             xl6OutputPuts("}\n\n", out);
 
         }
     }
     if (operations & XL6_CGEN_DIR_IS_EMPTY) {
-        xl6OutputPuts("bool xl6_xrt_dir_is_empty(const char* path)\n", out);
+        xl6OutputPuts("bool xl6_xrt_dir_is_empty(xlir_string path)\n", out);
         xl6OutputPuts("{\n", out);
         xl6OutputPuts("    bool empty = false;\n", out);
-        xl6OutputPuts("    return path != 0 && xrtDirEmpty(path, &empty) && empty;\n", out);
+        xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+        xl6OutputPuts("    return cpath != 0 && xrtDirEmpty(cpath, &empty) && empty;\n", out);
         xl6OutputPuts("}\n\n", out);
 
     }
     if (operations & XL6_CGEN_DIR_COUNT) {
-        xl6OutputPuts("long long xl6_xrt_dir_count(const char* path, bool recursive, int mode)\n", out);
+        xl6OutputPuts("long long xl6_xrt_dir_count(xlir_string path, bool recursive, int mode)\n", out);
         xl6OutputPuts("{\n", out);
         xl6OutputPuts("    xwalkstats stats;\n", out);
-        xl6OutputPuts("    if ( path == 0 || !xrtDirStats(path, recursive, &stats) ) { return 0LL; }\n", out);
+        xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+        xl6OutputPuts("    if ( cpath == 0 || !xrtDirStats(cpath, recursive, &stats) ) { return 0LL; }\n", out);
         xl6OutputPuts("    if ( mode == 1 ) { return (long long)stats.Files; }\n", out);
         xl6OutputPuts("    if ( mode == 2 ) { return stats.Directories > 0u ? (long long)(stats.Directories - 1u) : 0LL; }\n", out);
         xl6OutputPuts("    return stats.Items > 0u ? (long long)(stats.Items - 1u) : 0LL;\n", out);
@@ -180,10 +182,11 @@ void xl6CgenEmitDirRuntime(XL6_Output* out, unsigned operations)
 
     }
     if (operations & XL6_CGEN_DIR_SIZE) {
-        xl6OutputPuts("long long xl6_xrt_dir_size(const char* path, bool recursive)\n", out);
+        xl6OutputPuts("long long xl6_xrt_dir_size(xlir_string path, bool recursive)\n", out);
         xl6OutputPuts("{\n", out);
         xl6OutputPuts("    unsigned long long size = 0u;\n", out);
-        xl6OutputPuts("    return path != 0 && xrtDirSize(path, recursive, &size) ? (long long)size : 0LL;\n", out);
+        xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+        xl6OutputPuts("    return cpath != 0 && xrtDirSize(cpath, recursive, &size) ? (long long)size : 0LL;\n", out);
         xl6OutputPuts("}\n", out);
     }
     xl6OutputPuts("#endif\n\n", out);

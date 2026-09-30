@@ -1,4 +1,5 @@
 extern "cell_continuation_mark" func cellContinuationMark(int phase)
+extern "cell_continuation_fault_finish" func cellContinuationFaultFinish(int phase)
 extern "cell_continuation_input" func cellContinuationInput() as future<int>
 extern "cell_continuation_drop" func cellContinuationDrop(int id)
 
@@ -6,6 +7,13 @@ class CellContinuationValue
     int id = 0
     destroy()
         cellContinuationDrop(self.id)
+    end
+end
+
+class CellContinuationFaultScope
+    int phase = -1
+    destroy()
+        cellContinuationFaultFinish(self.phase)
     end
 end
 
@@ -43,11 +51,12 @@ end
 
 func cellContinuationWords() as generator<string>
     for index, item in "ab"
+        string text = string(item)
         auto read = func() as string
             index += 10
-            item = item + "x"
+            text = text + "x"
             assert(index >= 10)
-            return item
+            return text
         end
         yield read()
         yield read()
@@ -60,10 +69,11 @@ async func cellContinuationAwait(future<int> firstInput, future<int> secondInput
     int visits = 0
     int total = 0
     for index, item in "ab"
+        string text = string(item)
         auto read = func() as int
             index += 10
-            item = item + "x"
-            return index * 100 + item.length
+            text = text + "x"
+            return index * 100 + text.length
         end
         if visits == 0 then
             int value = await firstInput
@@ -72,6 +82,8 @@ async func cellContinuationAwait(future<int> firstInput, future<int> secondInput
             int value = await secondInput
             assert(value == 20)
         end
+        auto faultScope = CellContinuationFaultScope()
+        faultScope.phase = visits
         cellContinuationMark(visits)
         total += read()
         if visits == 0 then

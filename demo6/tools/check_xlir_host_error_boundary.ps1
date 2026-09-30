@@ -67,9 +67,9 @@ try {
             Invoke-Captured $exe "" $fixture.Exit $fixture.Marker
         }
     }
-    # These are verified artifact outcomes, not XSON- or symbol-name patches.
+    # These are verified artifact outcomes, not XLON- or symbol-name patches.
     $shell = [System.IO.File]::ReadAllText((Join-Path $Root "src\cgen\xl6_ir_cgen_function_shell.c"))
-    foreach ($required in @("if (!xlir_module_init()) return 1;", "if (!result.ok) return 1;",
+    foreach ($required in @("if (!xlir_module_init()) return 0;", "if (!result.ok) return 0;",
         "if (ok) xrtClearError();", "XL6_IR_ERROR_ABI_MAY_RAISE")) {
         if (!$shell.Contains($required)) { throw "Host boundary lost explicit outcome handling: $required" }
     }

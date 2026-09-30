@@ -13,6 +13,8 @@
 %type class_member_mods { unsigned int }
 %type class_member_modifier { unsigned int }
 %type param_mode { unsigned int }
+%type extern_func_contract { unsigned int }
+%type extern_func_contract_item { unsigned int }
 %type field_attr_arg { XL6_AstNode* }
 %type field_attr_word { XL6_Token }
 
@@ -113,6 +115,279 @@ static int xl6PTextBuilderAppendChar(XL6_PTextBuilder* builder, char ch)
     return xl6PTextBuilderAppendRange(builder, &ch, 1);
 }
 
+static int xl6PLiteralHexDigit(char ch)
+{
+    if ( ch >= '0' && ch <= '9' ) return ch - '0';
+    if ( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
+    if ( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
+    return -1;
+}
+
+static int xl6PTextBuilderAppendScalar(XL6_PTextBuilder* builder, uint32 scalar)
+{
+    char encoded[4];
+    size_t size = xrtUtf8Encode(scalar, encoded);
+
+    return size != 0 && xl6PTextBuilderAppendRange(builder, encoded, size);
+}
+
+/* Triple strings strip one framing newline and the common indentation of
+ * non-blank lines. The operation is byte-stable for UTF-8 because only ASCII
+ * horizontal whitespace at line starts is removed. */
+static void xl6PDedentTripleLiteral(XL6_PTextBuilder* builder)
+{
+    size_t start = 0;
+    size_t minIndent = SIZE_MAX;
+    size_t line;
+    size_t read;
+    size_t write;
+
+    if ( builder == NULL || builder->len == 0 ) return;
+    if ( builder->data[0] == '\n' ) start = 1;
+    line = start;
+    while ( line < builder->len ) {
+        size_t at = line;
+        size_t indent = 0;
+        while ( at < builder->len &&
+                (builder->data[at] == ' ' || builder->data[at] == '\t') ) {
+            ++at;
+            ++indent;
+        }
+        if ( at < builder->len && builder->data[at] != '\n' &&
+             indent < minIndent ) {
+            minIndent = indent;
+        }
+        while ( at < builder->len && builder->data[at] != '\n' ) ++at;
+        line = at < builder->len ? at + 1 : builder->len;
+    }
+    if ( minIndent == SIZE_MAX ) minIndent = 0;
+    read = start;
+    write = 0;
+    while ( read < builder->len ) {
+        size_t removed = 0;
+        while ( read < builder->len && removed < minIndent &&
+                (builder->data[read] == ' ' || builder->data[read] == '\t') ) {
+            ++read;
+            ++removed;
+        }
+        while ( read < builder->len ) {
+            char ch = builder->data[read++];
+            builder->data[write++] = ch;
+            if ( ch == '\n' ) break;
+        }
+    }
+    /* A closing delimiter placed on its own indented line is framing, not
+     * content. The preceding content newline remains stable. */
+    if ( write != 0 ) {
+        size_t tail = write;
+        while ( tail != 0 && builder->data[tail - 1] != '\n' &&
+                (builder->data[tail - 1] == ' ' ||
+                 builder->data[tail - 1] == '\t') ) --tail;
+        if ( tail == 0 || (tail != write && builder->data[tail - 1] == '\n') )
+            write = tail;
+    }
+    builder->len = write;
+    builder->data[write] = '\0';
+}
+
+static int xl6PDecodeLiteralBody(
+    XL6_ParseContext* ctx,
+    const XL6_Token* token,
+    const char* text,
+    size_t start,
+    size_t end,
+    int raw,
+    XL6_PTextBuilder* builder)
+{
+    size_t i;
+
+    for ( i = start; i < end; ++i ) {
+        unsigned char ch = (unsigned char)text[i];
+        if ( ch == '\r' ) {
+            if ( i + 1 < end && text[i + 1] == '\n' ) ++i;
+            if ( !xl6PTextBuilderAppendChar(builder, '\n') ) goto oom;
+            continue;
+        }
+        if ( raw || ch != '\\' ) {
+            if ( !xl6PTextBuilderAppendChar(builder, (char)ch) ) goto oom;
+            continue;
+        }
+        if ( ++i >= end ) {
+            xl6PDiag(ctx, token, "字面量末尾不能是单独的反斜杠");
+            return 0;
+        }
+        ch = (unsigned char)text[i];
+        switch ( ch ) {
+        case '\\': case '\'': case '"': case '?':
+            if ( !xl6PTextBuilderAppendChar(builder, (char)ch) ) goto oom;
+            break;
+        case '0':
+            if ( !xl6PTextBuilderAppendChar(builder, '\0') ) goto oom;
+            break;
+        case 'a':
+            if ( !xl6PTextBuilderAppendChar(builder, '\a') ) goto oom;
+            break;
+        case 'b':
+            if ( !xl6PTextBuilderAppendChar(builder, '\b') ) goto oom;
+            break;
+        case 'f':
+            if ( !xl6PTextBuilderAppendChar(builder, '\f') ) goto oom;
+            break;
+        case 'n':
+            if ( !xl6PTextBuilderAppendChar(builder, '\n') ) goto oom;
+            break;
+        case 'r':
+            if ( !xl6PTextBuilderAppendChar(builder, '\r') ) goto oom;
+            break;
+        case 't':
+            if ( !xl6PTextBuilderAppendChar(builder, '\t') ) goto oom;
+            break;
+        case 'v':
+            if ( !xl6PTextBuilderAppendChar(builder, '\v') ) goto oom;
+            break;
+        case 'x':
+        {
+            int high;
+            int low;
+            if ( i + 2 >= end ||
+                 (high = xl6PLiteralHexDigit(text[i + 1])) < 0 ||
+                 (low = xl6PLiteralHexDigit(text[i + 2])) < 0 ) {
+                xl6PDiag(ctx, token, "\\x 转义必须恰好包含两个十六进制数字");
+                return 0;
+            }
+            ch = (unsigned char)((high << 4) | low);
+            i += 2;
+            if ( !xl6PTextBuilderAppendChar(builder, (char)ch) ) goto oom;
+            break;
+        }
+        case 'u':
+        case 'U':
+        {
+            size_t digits = ch == 'u' ? 4 : 8;
+            size_t digitIndex;
+            uint32 scalar = 0;
+            if ( i + digits >= end ) {
+                xl6PDiag(ctx, token, "Unicode 转义长度不完整");
+                return 0;
+            }
+            for ( digitIndex = 0; digitIndex < digits; ++digitIndex ) {
+                int digit = xl6PLiteralHexDigit(text[i + 1 + digitIndex]);
+                if ( digit < 0 || scalar > UINT32_MAX / 16u ) {
+                    xl6PDiag(ctx, token, "Unicode 转义包含无效数字");
+                    return 0;
+                }
+                scalar = scalar * 16u + (uint32)digit;
+            }
+            i += digits;
+            if ( !xl6PTextBuilderAppendScalar(builder, scalar) ) {
+                xl6PDiag(ctx, token, "Unicode 转义不是有效标量");
+                return 0;
+            }
+            break;
+        }
+        default:
+            xl6PDiag(ctx, token, "未知的字面量转义");
+            return 0;
+        }
+    }
+    return 1;
+
+oom:
+    xl6PDiag(ctx, token, "out of memory while decoding literal");
+    return 0;
+}
+
+static XL6_AstNode* xl6PParseLiteral(
+    XL6_ParseContext* ctx,
+    const XL6_Token* token,
+    XL6_AstKind kind)
+{
+    XL6_AstNode* node = xl6AstNew(kind, token);
+    XL6_PTextBuilder builder;
+    const char* text;
+    size_t len;
+    size_t pos = 0;
+    size_t delimiter = 1;
+    size_t start;
+    size_t end;
+    int raw = 0;
+    int triple = 0;
+    char quote;
+
+    xl6PTextBuilderInit(&builder);
+    if ( node == NULL || token == NULL || token->text == NULL ) {
+        xl6PDiag(ctx, token, "invalid literal");
+        return node;
+    }
+    text = token->text;
+    len = token->len;
+    if ( kind == XL6_AST_BYTES ) {
+        if ( len < 3 || text[pos++] != 'b' ) goto invalid;
+        if ( pos < len && text[pos] == 'r' ) {
+            raw = 1;
+            ++pos;
+        }
+    } else if ( kind == XL6_AST_STRING && pos < len && text[pos] == 'r' ) {
+        raw = 1;
+        ++pos;
+    }
+    if ( pos >= len ) goto invalid;
+    quote = text[pos];
+    if ( kind == XL6_AST_CHAR ) {
+        if ( quote != '\'' ) goto invalid;
+    } else if ( quote == (char)0x60 ) {
+        raw = 1;
+    } else if ( quote != '"' ) {
+        goto invalid;
+    }
+    if ( quote == '"' && pos + 2 < len &&
+         text[pos + 1] == quote && text[pos + 2] == quote ) {
+        delimiter = 3;
+        triple = 1;
+    }
+    if ( len < pos + delimiter * 2 ) goto invalid;
+    start = pos + delimiter;
+    end = len - delimiter;
+    if ( end < start ) goto invalid;
+    if ( delimiter == 3 ) {
+        if ( text[len - 1] != quote || text[len - 2] != quote ||
+             text[len - 3] != quote ) goto invalid;
+    } else if ( text[len - 1] != quote ) {
+        goto invalid;
+    }
+    if ( !xl6PDecodeLiteralBody(
+            ctx, token, text, start, end, raw, &builder) ) goto done;
+    if ( triple ) xl6PDedentTripleLiteral(&builder);
+    if ( kind != XL6_AST_BYTES &&
+         !xrtUtf8Valid((xstrview){ builder.data, builder.len }, NULL) ) {
+        xl6PDiag(ctx, token, "字符串和字符字面量必须是有效 UTF-8");
+        goto done;
+    }
+    if ( kind == XL6_AST_CHAR ) {
+        size_t read = 0;
+        uint32 scalar = 0;
+        if ( xrtUtf8Decode(
+                (xstrview){ builder.data, builder.len },
+                &scalar,
+                &read
+            ) != XUTF_OK || read != builder.len ) {
+            xl6PDiag(ctx, token, "字符字面量必须恰好包含一个 Unicode 标量");
+            goto done;
+        }
+        node->literalScalar = scalar;
+    }
+    if ( !xl6AstSetLiteralData(node, builder.data, builder.len) ) {
+        xl6PDiag(ctx, token, "out of memory while storing literal payload");
+    }
+    goto done;
+
+invalid:
+    xl6PDiag(ctx, token, "invalid literal spelling");
+done:
+    xl6PTextBuilderUnit(&builder);
+    return node;
+}
+
 static XL6_AstNode* xl6PImportNameFromToken(const XL6_Token* token)
 {
     return xl6AstNew(XL6_AST_NAME, token);
@@ -198,17 +473,150 @@ static XL6_AstNode* xl6PNullableType(
     return node;
 }
 
-static int xl6PFlushFStringText(XL6_AstNode* node, XL6_PTextBuilder* builder, const XL6_Token* token)
+static int xl6PFlushFStringText(
+    XL6_ParseContext* ctx,
+    XL6_AstNode* node,
+    XL6_PTextBuilder* builder,
+    const XL6_Token* token,
+    int raw)
 {
+    XL6_PTextBuilder decoded;
+    XL6_AstNode* part;
+    size_t childCount;
+
     if ( builder == NULL || builder->len == 0 ) {
         return 1;
     }
-    xl6AstAddChild(node, xl6AstNewText(XL6_AST_INTERP_TEXT, builder->data, builder->len, token));
+    xl6PTextBuilderInit(&decoded);
+    if ( !xl6PDecodeLiteralBody(
+            ctx, token, builder->data, 0, builder->len, raw, &decoded) ) {
+        xl6PTextBuilderUnit(&decoded);
+        return 0;
+    }
+    if ( !xrtUtf8Valid((xstrview){ decoded.data, decoded.len }, NULL) ) {
+        xl6PDiag(ctx, token, "f-string 文本必须是有效 UTF-8");
+        xl6PTextBuilderUnit(&decoded);
+        return 0;
+    }
+    part = xl6AstNewText(
+        XL6_AST_INTERP_TEXT, builder->data, builder->len, token);
+    if ( part == NULL ||
+         !xl6AstSetLiteralData(part, decoded.data, decoded.len) ) {
+        xl6AstFree(part);
+        xl6PDiag(ctx, token, "out of memory while storing f-string text");
+        xl6PTextBuilderUnit(&decoded);
+        return 0;
+    }
+    childCount = node->childCount;
+    xl6AstAddChild(node, part);
+    if ( node->childCount == childCount ) {
+        xl6AstFree(part);
+        xl6PDiag(ctx, token, "out of memory while appending f-string text");
+        xl6PTextBuilderUnit(&decoded);
+        return 0;
+    }
+    xl6PTextBuilderUnit(&decoded);
     builder->len = 0;
     if ( builder->data != NULL ) {
         builder->data[0] = '\0';
     }
     return 1;
+}
+
+/* Triple interpolated strings use the same framing rule as ordinary triple
+ * strings.  Literal children already contain decoded UTF-8; expression
+ * children count as non-whitespace content but retain their original source
+ * positions and runtime value unchanged. */
+static void xl6PDedentInterpolatedString(XL6_AstNode* node)
+{
+    size_t childIndex;
+    size_t minIndent = SIZE_MAX;
+    size_t indent = 0;
+    size_t removed = 0;
+    int lineStart = 1;
+    XL6_AstNode* child;
+
+    if ( node == NULL || node->childCount == 0 ) return;
+    child = node->children[0];
+    if ( child != NULL && child->kind == XL6_AST_INTERP_TEXT &&
+         child->literalDecoded && child->literalSize != 0 &&
+         child->literalData[0] == '\n' ) {
+        memmove(child->literalData, child->literalData + 1,
+                child->literalSize);
+        --child->literalSize;
+    }
+    for ( childIndex = 0; childIndex < node->childCount; ++childIndex ) {
+        size_t offset;
+        child = node->children[childIndex];
+        if ( child == NULL || child->kind != XL6_AST_INTERP_TEXT ) {
+            if ( lineStart ) {
+                if ( indent < minIndent ) minIndent = indent;
+                lineStart = 0;
+            }
+            continue;
+        }
+        for ( offset = 0; offset < child->literalSize; ++offset ) {
+            unsigned char ch = child->literalData[offset];
+            if ( lineStart ) {
+                if ( ch == ' ' || ch == '\t' ) {
+                    ++indent;
+                    continue;
+                }
+                if ( ch == '\n' ) {
+                    indent = 0;
+                    continue;
+                }
+                if ( indent < minIndent ) minIndent = indent;
+                lineStart = 0;
+            } else if ( ch == '\n' ) {
+                lineStart = 1;
+                indent = 0;
+            }
+        }
+    }
+    if ( minIndent == SIZE_MAX ) minIndent = 0;
+    lineStart = 1;
+    removed = 0;
+    for ( childIndex = 0; childIndex < node->childCount; ++childIndex ) {
+        size_t read;
+        size_t write = 0;
+        child = node->children[childIndex];
+        if ( child == NULL || child->kind != XL6_AST_INTERP_TEXT ) {
+            lineStart = 0;
+            continue;
+        }
+        for ( read = 0; read < child->literalSize; ++read ) {
+            unsigned char ch = child->literalData[read];
+            if ( lineStart && removed < minIndent &&
+                 (ch == ' ' || ch == '\t') ) {
+                ++removed;
+                continue;
+            }
+            child->literalData[write++] = ch;
+            if ( ch == '\n' ) {
+                lineStart = 1;
+                removed = 0;
+            } else if ( lineStart ) {
+                lineStart = 0;
+            }
+        }
+        child->literalSize = write;
+        child->literalData[write] = 0;
+    }
+    child = node->children[node->childCount - 1];
+    if ( child != NULL && child->kind == XL6_AST_INTERP_TEXT &&
+         child->literalDecoded ) {
+        size_t tail = child->literalSize;
+        while ( tail != 0 && child->literalData[tail - 1] != '\n' &&
+                (child->literalData[tail - 1] == ' ' ||
+                 child->literalData[tail - 1] == '\t') ) --tail;
+        if ( tail == 0 ||
+             (tail != child->literalSize &&
+              child->literalData[tail - 1] == '\n') ) {
+            child->literalSize = tail;
+            child->literalData[tail] = 0;
+        }
+    }
 }
 
 static int xl6PIsFStringSpace(char ch)
@@ -511,6 +919,8 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
     size_t i;
     size_t exprEnd;
     char quote;
+    int raw;
+    int failed = 0;
 
     node = xl6AstNew(XL6_AST_INTERP_STRING, token);
     if ( token == NULL || token->text == NULL || token->len < 3 ) {
@@ -521,12 +931,16 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
     text = token->text;
     len = token->len;
     prefixLen = (len >= 2 && text[0] == 'r' && text[1] == 'f') ? 2 : 1;
-    if ( prefixLen >= len || (text[prefixLen] != '\'' && text[prefixLen] != '"') ) {
+    if ( prefixLen >= len ||
+         (text[prefixLen] != '"' && text[prefixLen] != (char)0x60) ) {
         xl6PDiag(ctx, token, "invalid f-string literal");
         return node;
     }
     quote = text[prefixLen];
-    quoteLen = (prefixLen + 2 < len && text[prefixLen + 1] == quote && text[prefixLen + 2] == quote) ? 3 : 1;
+    raw = prefixLen == 2 || quote == (char)0x60;
+    quoteLen = (quote == '"' && prefixLen + 2 < len &&
+                text[prefixLen + 1] == quote &&
+                text[prefixLen + 2] == quote) ? 3 : 1;
     if ( len < prefixLen + quoteLen * 2 ) {
         xl6PDiag(ctx, token, "invalid f-string literal");
         return node;
@@ -545,8 +959,8 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
                 ++i;
                 continue;
             }
-            if ( !xl6PFlushFStringText(node, &builder, token) ) {
-                xl6PDiag(ctx, token, "out of memory while parsing f-string text");
+            if ( !xl6PFlushFStringText(ctx, node, &builder, token, raw) ) {
+                failed = 1;
                 break;
             }
             exprEnd = xl6PFStringFindExprEnd(text, end, i + 1);
@@ -575,7 +989,10 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
             break;
         }
     }
-    xl6PFlushFStringText(node, &builder, token);
+    if ( !failed &&
+         !xl6PFlushFStringText(ctx, node, &builder, token, raw) )
+        failed = 1;
+    if ( !failed && quoteLen == 3 ) xl6PDedentInterpolatedString(node);
     xl6PTextBuilderUnit(&builder);
     return node;
 }
@@ -606,6 +1023,23 @@ static XL6_AstNode* xl6PTypedLiteral(const XL6_Token* token, XL6_AstNode* litera
     XL6_AstNode* node = xl6AstNew(XL6_AST_TYPED_LITERAL, token);
     xl6AstAddChild(node, literal);
     return node;
+}
+
+static unsigned int xl6PExternContractFlag(
+    XL6_ParseContext* ctx, const XL6_Token* token)
+{
+    if ( xl6PTokenTextEquals(token, "pure") ) {
+        return XL6_AST_FLAG_FOREIGN_PURE;
+    }
+    if ( xl6PTokenTextEquals(token, "no_raise") ) {
+        return XL6_AST_FLAG_FOREIGN_NO_RAISE;
+    }
+    if ( xl6PTokenTextEquals(token, "nonblocking") ) {
+        return XL6_AST_FLAG_FOREIGN_NONBLOCKING;
+    }
+    xl6PDiag(ctx, token,
+        "unknown extern effect contract; expected @pure, @no_raise, or @nonblocking");
+    return 0;
 }
 
 static XL6_AstNode* xl6PTypedLiteralWithType(const XL6_Token* token, XL6_AstNode* typeNode, XL6_AstNode* literal)
@@ -900,8 +1334,9 @@ func_decl(A) ::= KW_ASYNC(AW) KW_FUNC name_tok(F) LT generic_param_list(L) GT na
     xl6AstAddChild(A, G);
 }
 
-extern_func_decl(A) ::= KW_EXTERN(E) STRING(S) KW_FUNC name_tok(F) name_params(P) return_sig(R) need_sep. {
+extern_func_decl(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_FUNC name_tok(F) name_params(P) return_sig(R) need_sep. {
     A = xl6AstNew(XL6_AST_EXTERN_FUNC, &S);
+    A->flags |= C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
@@ -1273,6 +1708,14 @@ field_attr_arg(A) ::= field_attr_word(N) ASSIGN STRING(V). {
     xl6AstAddChild(A, xl6AstNew(XL6_AST_STRING, &V));
 }
 
+/* Keep these productions after field_attr so AT retains its established
+ * terminal number in the generated parser/lexer interface. */
+extern_func_contract(A) ::= . { A = 0; }
+extern_func_contract(A) ::= extern_func_contract(B) extern_func_contract_item(C). { A = B | C; }
+extern_func_contract_item(A) ::= AT name_tok(N). {
+    A = xl6PExternContractFlag(ctx, &N);
+}
+
 native_type_ref(A) ::= var_type_ref(T). { A = T; }
 native_type_ref(A) ::= name_tok(N) STAR. {
     if ( !xl6PTokenTextEquals(&N, "void") ) {
@@ -1452,43 +1895,33 @@ type_expr(A) ::= KW_ASYNC type_ref(T). {
 param_type_ref(A) ::= type_expr(T). { A = T; }
 
 param_mode(A) ::= . { A = 0; }
-param_mode(A) ::= KW_BYVAL. { A = XL6_AST_FLAG_BYVAL; }
-param_mode(A) ::= KW_BYREF. { A = XL6_AST_FLAG_BYREF; }
-param_mode(A) ::= KW_OUT. { A = XL6_AST_FLAG_OUT; }
 param_mode(A) ::= KW_C_CALLBACK. { A = XL6_AST_FLAG_C_CALLBACK; }
 
 param(A) ::= param_mode(M) param_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
 }
 param(A) ::= param_mode(M) param_type_ref(T) name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
 param(A) ::= param_mode(M) qualified_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
 }
 param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
     T = xl6PNullableType(ctx, T, &Q);
-    if ( T != NULL ) {
-        T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
-    }
     xl6AstAddChild(A, T);
 }
 param(A) ::= param_mode(M) qualified_type_ref(T) name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
@@ -1496,9 +1929,6 @@ param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N) AS
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
     T = xl6PNullableType(ctx, T, &Q);
-    if ( T != NULL ) {
-        T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
-    }
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
@@ -1938,7 +2368,7 @@ match_pattern(A) ::= FLOAT(N). {
 }
 match_pattern(A) ::= STRING(N). {
     A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
-    xl6AstAddChild(A, xl6AstNew(XL6_AST_STRING, &N));
+    xl6AstAddChild(A, xl6PParseLiteral(ctx, &N, XL6_AST_STRING));
 }
 match_pattern(A) ::= KW_TRUE(N). {
     A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
@@ -2126,7 +2556,9 @@ atom(A) ::= name_tok(N). [KW_NOT] { A = xl6AstNew(XL6_AST_NAME, &N); }
 atom(A) ::= TYPE_FUNCTION(N). [KW_NOT] { A = xl6AstNewText(XL6_AST_NAME, "function", 8, &N); }
 atom(A) ::= INT(N). { A = xl6AstNew(XL6_AST_INT, &N); }
 atom(A) ::= FLOAT(N). { A = xl6AstNew(XL6_AST_FLOAT, &N); }
-atom(A) ::= STRING(N). { A = xl6AstNew(XL6_AST_STRING, &N); }
+atom(A) ::= STRING(N). { A = xl6PParseLiteral(ctx, &N, XL6_AST_STRING); }
+atom(A) ::= CHAR(N). { A = xl6PParseLiteral(ctx, &N, XL6_AST_CHAR); }
+atom(A) ::= BYTES(N). { A = xl6PParseLiteral(ctx, &N, XL6_AST_BYTES); }
 atom(A) ::= FSTRING(N). { A = xl6PParseFString(ctx, &N); }
 atom(A) ::= TIME(N). { A = xl6AstNew(XL6_AST_TIME, &N); }
 atom(A) ::= KW_TRUE(N). { A = xl6AstNewText(XL6_AST_BOOL, "true", 4, &N); }
@@ -2270,27 +2702,7 @@ call_arg(A) ::= expr(E). {
     A = xl6AstNew(XL6_AST_ARG, NULL);
     xl6AstAddChild(A, E);
 }
-call_arg(A) ::= KW_BYREF(B) expr(E). {
-    A = xl6AstNew(XL6_AST_ARG, &B);
-    A->flags |= XL6_AST_FLAG_BYREF;
-    xl6AstAddChild(A, E);
-}
-call_arg(A) ::= KW_OUT(O) expr(E). {
-    A = xl6AstNew(XL6_AST_ARG, &O);
-    A->flags |= XL6_AST_FLAG_OUT;
-    xl6AstAddChild(A, E);
-}
 call_arg(A) ::= name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
-    xl6AstAddChild(A, E);
-}
-call_arg(A) ::= name_tok(N) ASSIGN KW_BYREF expr(E). {
-    A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
-    A->flags |= XL6_AST_FLAG_BYREF;
-    xl6AstAddChild(A, E);
-}
-call_arg(A) ::= name_tok(N) ASSIGN KW_OUT expr(E). {
-    A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
-    A->flags |= XL6_AST_FLAG_OUT;
     xl6AstAddChild(A, E);
 }

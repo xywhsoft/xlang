@@ -11,12 +11,12 @@ static const XL6_IrCgenErrorProjection* xl6IrCgenErrorProjection(
     XL6_IrRuntimeOp operation)
 {
     static const XL6_IrCgenErrorProjection projections[] = {
-        {XL6_IR_RUNTIME_ERROR_MESSAGE_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xrtStrDup(xrtErrorMessage(", "))"},
-        {XL6_IR_RUNTIME_ERROR_FILE_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xrtStrDup(xrtErrorFile(", "))"},
-        {XL6_IR_RUNTIME_ERROR_DOMAIN_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xrtStrDup(xrtErrorDomain(", "))"},
-        {XL6_IR_RUNTIME_ERROR_OPERATION_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xrtStrDup(xrtErrorOperation(", "))"},
-        {XL6_IR_RUNTIME_ERROR_DATA_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xrtStrDup(xrtErrorData(", "))"},
-        {XL6_IR_RUNTIME_ERROR_KIND_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xrtStrDup(xlir_error_kind_name(", "))"},
+        {XL6_IR_RUNTIME_ERROR_MESSAGE_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xlir_string_from_cstr(xrtErrorMessage(", "))"},
+        {XL6_IR_RUNTIME_ERROR_FILE_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xlir_string_from_cstr(xrtErrorFile(", "))"},
+        {XL6_IR_RUNTIME_ERROR_DOMAIN_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xlir_string_from_cstr(xrtErrorDomain(", "))"},
+        {XL6_IR_RUNTIME_ERROR_OPERATION_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xlir_string_from_cstr(xrtErrorOperation(", "))"},
+        {XL6_IR_RUNTIME_ERROR_DATA_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xlir_string_from_cstr(xrtErrorData(", "))"},
+        {XL6_IR_RUNTIME_ERROR_KIND_COPY, XL6_IR_C_ABI_MANAGED_STRING, "xlir_string_from_cstr(xlir_error_kind_name(", "))"},
         {XL6_IR_RUNTIME_ERROR_CODE, XL6_IR_C_ABI_I64, "(int64_t)xrtErrorCode(", ")"},
         {XL6_IR_RUNTIME_ERROR_LINE, XL6_IR_C_ABI_I64, "(int64_t)xrtErrorLine(", ")"},
         {XL6_IR_RUNTIME_ERROR_COLUMN, XL6_IR_C_ABI_I64, "(int64_t)xrtErrorColumn(", ")"},
@@ -188,7 +188,7 @@ static int xl6IrCgenEmitErrorStateInstruction(
                 instruction->immediateText, instruction->immediateText,
                 instruction->sourceSpan.line, instruction->sourceSpan.column);
         else
-            xl6OutputPrintf(out, "    xrtSetErrorTake(xlir_error_create_at(%s, v%u, %d, %d));\n    xrtFree(v%u);\n",
+            xl6OutputPrintf(out, "    xrtSetErrorTake(xlir_error_create_at(%s, v%u.Data, %d, %d));\n    xlir_string_drop(v%u);\n",
                 instruction->immediateText, (unsigned int)module->operands[instruction->firstOperand],
                 instruction->sourceSpan.line, instruction->sourceSpan.column,
                 (unsigned int)module->operands[instruction->firstOperand]);

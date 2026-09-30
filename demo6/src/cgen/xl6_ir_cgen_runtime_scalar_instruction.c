@@ -7,6 +7,19 @@ static int xl6IrCgenRuntimeEmitDiag(
     return -1;
 }
 
+static void xl6IrCgenEmitImmediateBytes(
+    XL6_Output* out, const unsigned char* data, size_t size)
+{
+    size_t i;
+    xl6OutputPuts("(const unsigned char[]){", out);
+    for ( i = 0; i < size; ++i ) {
+        if ( i != 0 ) xl6OutputPuts(",", out);
+        xl6OutputPrintf(out, "0x%02X", (unsigned int)data[i]);
+    }
+    if ( size != 0 ) xl6OutputPuts(",", out);
+    xl6OutputPuts("0x00}", out);
+}
+
 static int xl6IrCgenEmitScalarRuntimeInstruction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction, XL6_DiagList* diags)
@@ -25,17 +38,110 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     xl6OutputPrintf(out, "    v%u = xlir_xvalue_type_id(v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_FROM_UTF8 ) {
+                    if ( instruction->immediateText != NULL ||
+                         (instruction->immediateData == NULL && instruction->immediateSize != 0) ||
+                         instruction->operandCount != 0 )
+                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
+                            "XLIR C emitter explicit UTF-8 literal ABI is unresolved");
+                    xl6OutputPrintf(out, "    v%u = xlir_string_from_utf8((const char*)",
+                        (unsigned int)instruction->result);
+                    xl6IrCgenEmitImmediateBytes(out, instruction->immediateData,
+                                                instruction->immediateSize);
+                    xl6OutputPrintf(out, ", %lluU);\n",
+                        (unsigned long long)instruction->immediateSize);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_FROM_DATA ) {
+                    if ( instruction->immediateText != NULL ||
+                         (instruction->immediateData == NULL && instruction->immediateSize != 0) ||
+                         instruction->operandCount != 0 )
+                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
+                            "XLIR C emitter explicit bytes literal ABI is unresolved");
+                    xl6OutputPrintf(out, "    v%u = xrtValueBytes((xbytesview){ ",
+                        (unsigned int)instruction->result);
+                    xl6IrCgenEmitImmediateBytes(out, instruction->immediateData,
+                                                instruction->immediateSize);
+                    xl6OutputPrintf(out, ", %lluU });\n",
+                        (unsigned long long)instruction->immediateSize);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_CHAR_TO_STRING ) {
+                    if ( instruction->immediateText != NULL || instruction->operandCount != 1 )
+                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
+                            "XLIR C emitter char-to-string ABI is unresolved");
+                    xl6OutputPrintf(out, "    v%u = xlir_char_to_string(v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_CONCAT ) {
+                    xl6OutputPrintf(out, "    v%u = xlir_bytes_concat(v%u, v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_EQUAL ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LT ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LE ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GT ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GE ) {
+                    const char* relation = instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_EQUAL ? "==" :
+                        instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LT ? "<" :
+                        instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LE ? "<=" :
+                        instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GT ? ">" : ">=";
+                    xl6OutputPrintf(out, "    v%u = xlir_bytes_compare(v%u, v%u) %s 0;\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1], relation);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_LENGTH ) {
+                    xl6OutputPrintf(out, "    v%u = xlir_bytes_length(v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_AT ) {
+                    xl6OutputPrintf(out,
+                        "    bool projection_ok_%u = xlir_bytes_at(v%u, v%u, &v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1],
+                        (unsigned int)instruction->result);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_SET_COPY ) {
+                    xl6OutputPrintf(out, "    v%u = xlir_bytes_set_copy(v%u, v%u, v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1],
+                        (unsigned int)module->operands[instruction->firstOperand + 2]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_SCALAR_AT ) {
+                    xl6OutputPrintf(out,
+                        "    bool projection_ok_%u = xlir_string_scalar_at(v%u, v%u, &v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1],
+                        (unsigned int)instruction->result);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY ) {
+                    xl6OutputPrintf(out,
+                        "    v%u = xlir_string_scalar_set_copy(v%u, v%u, v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1],
+                        (unsigned int)module->operands[instruction->firstOperand + 2]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT ) {
+                    xl6OutputPrintf(out,
+                        "    v%u = xlir_string_concat_char_right(v%u, v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT ) {
+                    xl6OutputPrintf(out,
+                        "    v%u = xlir_string_concat_char_left(v%u, v%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_DUP ) {
                     if ( instruction->immediateText == NULL || instruction->operandCount != 0 )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                                              "XLIR C emitter runtime operation ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xrtStrDup(%s);\n",
-                                    (unsigned int)instruction->result, instruction->immediateText);
+                    xl6OutputPrintf(out, "    v%u = xlir_string_from_utf8(%s, sizeof(%s) - 1u);\n",
+                                    (unsigned int)instruction->result, instruction->immediateText,
+                                    instruction->immediateText);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_COPY ) {
                     if ( instruction->immediateText != NULL || instruction->operandCount != 1 )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                                              "XLIR C emitter runtime operation ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xrtStrDup(v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xlir_string_copy(v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp ==
@@ -44,12 +150,11 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter nullable string copy ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = v%u != NULL ? xrtStrDup(v%u) : NULL;\n",
+                        "    v%u = xlir_string_copy(v%u);\n",
                         (unsigned int)instruction->result,
-                        (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand]);
                     xl6OutputPrintf(out,
-                        "    bool projection_ok_%u = v%u == NULL || v%u != NULL;\n"
+                        "    bool projection_ok_%u = v%u.Data == NULL || v%u.Data != NULL;\n"
                         "    if (!projection_ok_%u && xrtGetError() == NULL) xrtSetErrorKind(XERR_MEMORY);\n",
                         (unsigned int)instruction->result, (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)instruction->result, (unsigned int)instruction->result);
@@ -89,10 +194,10 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                 } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                             instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY ) {
+                                XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY ) {
                     const char* format = instruction->runtimeOp ==
                             XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY
-                        ? "json" : "xson";
+                        ? "json" : "xlon";
                     if ( !xl6IrCgenPersistenceStringifyAbi(
                              module, instruction) )
                         return xl6IrCgenRuntimeEmitDiag(diags, module,
@@ -110,10 +215,10 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                 } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
                             instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE ) {
+                                XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE ) {
                     const char* format = instruction->runtimeOp ==
                             XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE
-                        ? "json" : "xson";
+                        ? "json" : "xlon";
                     if ( !xl6IrCgenPersistenceWriteAbi(module, instruction) )
                         return xl6IrCgenRuntimeEmitDiag(diags, module,
                             instruction->origin,
@@ -131,21 +236,21 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                 } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                             instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE ||
+                                XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
                             instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                             instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_PERSISTENCE_XSON_READ ) {
+                                XL6_IR_RUNTIME_PERSISTENCE_XLON_READ ) {
                     const int isRead = instruction->runtimeOp ==
                             XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                         instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_PERSISTENCE_XSON_READ;
+                            XL6_IR_RUNTIME_PERSISTENCE_XLON_READ;
                     const char* format =
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_PERSISTENCE_JSON_READ
-                        ? "json" : "xson";
+                        ? "json" : "xlon";
                     if ( !xl6IrCgenPersistenceParseAbi(
                              module, instruction) )
                         return xl6IrCgenRuntimeEmitDiag(diags, module,
@@ -226,7 +331,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter string approximate ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xrtUtf8Similarity(xrtStrView(v%u), xrtStrView(v%u)) >= 0.95;\n",
+                        "    v%u = xrtUtf8Similarity(v%u, v%u) >= 0.95;\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
@@ -253,31 +358,32 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     xl6OutputPrintf(out,
                                     "    if (xlir_xvalue_object_get_literal_i64(v%u, xrtStrView(\"$xlir.class.runtime-type\")) != (int64_t)%s) abort();\n"
                                     "    v%u = xrtValueRetain(v%u);\n",
-                                    (unsigned int)module->operands[instruction->firstOperand], instruction->immediateText,
+                                    (unsigned int)module->operands[instruction->firstOperand],
+                                    instruction->immediateText,
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT ) {
                     if ( instruction->operandCount != 2 )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                                              "XLIR C emitter runtime operation ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xrtStrConcat(xrtStrView(v%u), xrtStrView(v%u));\n",
+                    xl6OutputPrintf(out, "    v%u = xlir_string_concat(v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_UTF8_COUNT ) {
                     xl6OutputPrintf(out,
-                                    "    v%u = (int64_t)xrtUtf8Count(xrtStrView(v%u));\n",
+                                    "    v%u = (int64_t)xrtUtf8Count(v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_UTF8_AT ) {
                     xl6OutputPrintf(out,
-                                    "    v%u = xrtUtf8Substr(xrtStrView(v%u), v%u, INT64_C(1));\n",
+                                    "    v%u = xlir_string_utf8_at(v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_CONTAINS ) {
                     xl6OutputPrintf(out,
-                                    "    v%u = xrtStrContains(xrtStrView(v%u), xrtStrView(v%u));\n",
+                                    "    v%u = xrtStrContains(v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1]);
@@ -316,7 +422,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter derived class string ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_class_derive_to_string_t%u(v%u);\n",
+                        "    v%u = xlir_string_take_cstr(xlir_class_derive_to_string_t%u(v%u));\n",
                         (unsigned int)instruction->result,
                         (unsigned int)instruction->payloadType,
                         (unsigned int)module->operands[
@@ -340,6 +446,10 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     xl6OutputPrintf(out, "    v%u = xrtValueRetain(xrtValueNull());\n", (unsigned int)instruction->result);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BOOL ) {
                     xl6OutputPrintf(out, "    v%u = xrtValueRetain(xrtValueBool(v%u));\n",
+                                    (unsigned int)instruction->result,
+                                     (unsigned int)module->operands[instruction->firstOperand]);
+                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CHAR ) {
+                    xl6OutputPrintf(out, "    v%u = xrtValueChar(v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_U64 ) {
@@ -438,8 +548,10 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     if ( !xl6IrCgenRuntimeFutureXValueRefAbi(module, instruction) )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter Future dynamic reference box ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xrtValueFuture(v%u);\n",
+                    xl6OutputPrintf(out,
+                                    "    v%u = v%u != NULL ? xrtValueFuture(v%u) : xrtValueRetain(xrtValueNull());\n",
                                     (unsigned int)instruction->result,
+                                    (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX ) {
@@ -447,7 +559,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter nullable string dynamic box ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = v%u != NULL ? xrtValueString(xrtStrView(v%u)) : xrtValueRetain(xrtValueNull());\n",
+                        "    v%u = v%u.Data != NULL ? xrtValueString(v%u) : xrtValueRetain(xrtValueNull());\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand]);

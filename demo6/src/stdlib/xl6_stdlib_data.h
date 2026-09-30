@@ -5,8 +5,8 @@
 
 #include "src/ast/xl6_ast.h"
 
-#define XL6_STDLIB_CONST_COUNT 79
-#define XL6_STDLIB_FUNC_COUNT 737
+#define XL6_STDLIB_CONST_COUNT 127
+#define XL6_STDLIB_FUNC_COUNT 959
 
 typedef struct XL6_StdlibParam {
     const char* type;
@@ -24,6 +24,22 @@ typedef struct XL6_StdlibFunc {
     const char* sourceBody;
 } XL6_StdlibFunc;
 
+typedef enum XL6_StdlibForeignEffect {
+    XL6_STDLIB_FOREIGN_EFFECT_NONE = 0,
+    XL6_STDLIB_FOREIGN_EFFECT_PURE = 1u << 0,
+    XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE = 1u << 1,
+    XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING = 1u << 2
+} XL6_StdlibForeignEffect;
+
+/* Transitional declarative catalog for generated extern declarations.  It is
+ * deliberately separate from XL6_StdlibFunc so unreviewed entries retain the
+ * conservative default instead of inheriting optimistic effects. */
+typedef struct XL6_StdlibForeignContract {
+    const char* internalName;
+    const char* cSymbol;
+    unsigned int effects;
+} XL6_StdlibForeignContract;
+
 typedef struct XL6_StdlibConst {
     const char* ns;
     const char* name;
@@ -32,7 +48,21 @@ typedef struct XL6_StdlibConst {
 } XL6_StdlibConst;
 
 extern const char* xl6StdlibCoreClassSource;
+extern const char* xl6StdlibConsoleOptionsSource;
+extern const char* xl6StdlibConsoleSessionSource;
+extern const char* xl6StdlibIoReaderSource;
+extern const char* xl6StdlibIoReaderBufferSource;
+extern const char* xl6StdlibIoWriterSource;
+extern const char* xl6StdlibIoWriterBufferSource;
+extern const char* xl6StdlibIoLinesSource;
+extern const char* xl6StdlibIoProtocolsSource;
+extern const char* xl6StdlibFloatClassSource;
 extern const char* xl6StdlibRandomClassSource;
+extern const char* xl6StdlibRandomBufferMethodsSource;
+extern const char* xl6StdlibRandomClassEndSource;
+extern const char* xl6StdlibSipHasher64ClassSource;
+extern const char* xl6StdlibSipHasher64BufferMethodSource;
+extern const char* xl6StdlibSipHasher64ClassEndSource;
 extern const char* xl6StdlibXidClassSource;
 extern const char* xl6StdlibBufferClassSource;
 extern const char* xl6StdlibLoggerClassSource;
@@ -90,7 +120,9 @@ extern const char* xl6StdlibXlangClassSource;
 
 extern const XL6_StdlibConst xl6StdlibConsts[];
 extern const XL6_StdlibFunc xl6StdlibFuncs[];
+extern const XL6_StdlibForeignContract xl6StdlibForeignContracts[];
 extern const size_t xl6StdlibConstCount;
 extern const size_t xl6StdlibFuncCount;
+extern const size_t xl6StdlibForeignContractCount;
 
 #endif

@@ -3,11 +3,11 @@ func throwVisit(var event) as bool
     return true
 end
 
-func escapingVisit(bool useXson) as generator<int>
+func escapingVisit(bool useXlon) as generator<int>
     yield 1
     try
-        if useXson then
-            yield xson.visit("null", throwVisit)
+        if useXlon then
+            yield xlon.visit("null", throwVisit)
         else
             yield json.visit("null", throwVisit)
         end
@@ -20,7 +20,7 @@ func recoveringVisit() as generator<int>
     yield 1
     int value = 0
     try
-        value = xson.visit("null", throwVisit)
+        value = xlon.visit("null", throwVisit)
     catch ValueError e
         assert e.message == "generator-serialization-callback"
         assert e.kind == "ValueError"

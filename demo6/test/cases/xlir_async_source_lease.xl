@@ -14,7 +14,7 @@ end
 export "source_lease_new" func sourceLeaseNew() as SourceLeaseBox
     return SourceLeaseBox()
 end
-async func sourceLeaseInt(byval future<int> input) as int
+async func sourceLeaseInt(future<int> input) as int
     try
         int value = await input
         sourceLeaseBody()
@@ -32,7 +32,7 @@ async func sourceLeaseTemporary() as int
         sourceLeaseFinally()
     end
 end
-async func sourceLeaseText(byval future<string> input) as string
+async func sourceLeaseText(future<string> input) as string
     try
         string value = await input
         sourceLeaseBody()
@@ -41,7 +41,7 @@ async func sourceLeaseText(byval future<string> input) as string
         sourceLeaseFinally()
     end
 end
-async func sourceLeaseValue(byval future<SourceLeaseBox> input) as SourceLeaseBox
+async func sourceLeaseValue(future<SourceLeaseBox> input) as SourceLeaseBox
     try
         SourceLeaseBox value = await input
         sourceLeaseBody()
@@ -50,7 +50,7 @@ async func sourceLeaseValue(byval future<SourceLeaseBox> input) as SourceLeaseBo
         sourceLeaseFinally()
     end
 end
-async func sourceLeaseFuture(byval future<future<int>> input) as int
+async func sourceLeaseFuture(future<future<int>> input) as int
     try
         future<int> nested = await input
         int value = await nested
@@ -100,7 +100,7 @@ export "source_lease_keep" func sourceLeaseKeep()
     auto entry = sourceLeaseEntry("first", null, SourceLeaseBox(), "last")
 end
 
-func sourceLeaseEntry(string first, string? second, byval SourceLeaseBox owned, string last) as int
+func sourceLeaseEntry(string first, string? second, SourceLeaseBox owned, string last) as int
     sourceLeaseBody()
     return 42
 end

@@ -3,18 +3,18 @@ extern "task_byval_release" func releaseJob()
 class TaskByvalBox
     int value = 41
 end
-func byvalString(byval string value) as int
+func byvalString(string value) as int
     enterJob()
     value = "changed"
     return value.length
 end
-func byvalBox(byval TaskByvalBox value) as int
+func byvalBox(TaskByvalBox value) as int
     enterJob()
     value = TaskByvalBox()
     value.value = 7
     return value.value
 end
-func byvalArray(byval array<int> value) as int
+func byvalArray(array<int> value) as int
     enterJob()
     value.append(7)
     value = array[9]
@@ -23,7 +23,7 @@ end
 func plusOne(int value) as int
     return value + 1
 end
-func byvalFunction(byval func(int) as int value) as int
+func byvalFunction(func(int) as int value) as int
     enterJob()
     value = func(int n) as int => n + 2
     return value(40)
@@ -31,36 +31,36 @@ end
 async func readyValue() as int
     return 42
 end
-func byvalFuture(byval future<int> value) as int
+func byvalFuture(future<int> value) as int
     enterJob()
     value = readyValue()
     assert value.wait()
     return 42
 end
-func byvalError(byval error value) as int
+func byvalError(error value) as int
     enterJob()
     return value.message.length
 end
-func byvalScalar(byval bool flag, byval uint64 value) as bool
+func byvalScalar(bool flag, uint64 value) as bool
     enterJob()
     return flag and value == 18446744073709551615
 end
-func byvalFailure(byval string text, byval TaskByvalBox value) as int
+func byvalFailure(string text, TaskByvalBox value) as int
     enterJob()
     text = "rebound"
     value = TaskByvalBox()
     throw "owned task failure"
 end
 
-func(byval string) as int stringJob = byvalString
-func(byval TaskByvalBox) as int boxJob = byvalBox
-func(byval array<int>) as int arrayJob = byvalArray
-func(byval func(int) as int) as int callableJob = byvalFunction
-func(byval future<int>) as int futureJob = byvalFuture
-func(byval error) as int errorJob = byvalError
-func(byval bool, byval uint64) as bool scalarJob = byvalScalar
-func(byval string, byval TaskByvalBox) as int failureJob = byvalFailure
-array<func(byval string) as int> jobs = array[stringJob]
+func(string) as int stringJob = byvalString
+func(TaskByvalBox) as int boxJob = byvalBox
+func(array<int>) as int arrayJob = byvalArray
+func(func(int) as int) as int callableJob = byvalFunction
+func(future<int>) as int futureJob = byvalFuture
+func(error) as int errorJob = byvalError
+func(bool, uint64) as bool scalarJob = byvalScalar
+func(string, TaskByvalBox) as int failureJob = byvalFailure
+array<func(string) as int> jobs = array[stringJob]
 string text = "original"
 TaskByvalBox box = TaskByvalBox()
 array<int> values = array[1]
@@ -103,7 +103,7 @@ assert text == "original" and box.value == 41
 
 // A named adapter with an omitted consuming default transfers its temporary
 // exactly like an incoming BYVAL slot, without a second cleanup after invoke.
-func byvalDefault(byval string value = "default") as int
+func byvalDefault(string value = "default") as int
     value = value + "!"
     return value.length
 end

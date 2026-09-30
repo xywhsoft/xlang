@@ -49,6 +49,7 @@ function Resolve-ManifestPath([string]$Text) {
     $value = $value.Replace("%XL6_ROOT%", $Root)
     $value = $value.Replace("%XL6_EMBED_TCC_DIST_X64%", $TccDist)
     $value = $value.Replace("%XL6_XRT_OBJ%", $XrtObj)
+    $value = $value.Replace("%XL6_VFS_OUTPUT_DIR%", [IO.Path]::GetDirectoryName($Output))
     if ([System.IO.Path]::IsPathRooted($value)) {
         return [System.IO.Path]::GetFullPath($value)
     }

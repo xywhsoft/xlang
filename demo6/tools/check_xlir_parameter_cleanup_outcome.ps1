@@ -68,5 +68,5 @@ try {
     & "$prefix.contract.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Parameter cleanup verifier mutation failed' }
 } finally { Pop-Location }
-Write-Output 'XLIR parameter cleanup passed: exact parameter/cell owner map and stable/rebound effects including out/byref, isolated terminal outcomes, first-error preservation with NULL/OOM, scalar/void/product/owning result commit or rollback, no reentry into a completed catch/finally, strict allocation balance, verifier rejection and C-host JIT/AOT. Loop-resource cleanup remains separate work.'
+Write-Output 'XLIR parameter cleanup passed: exact parameter/cell owner map and stable/rebound effects through multi-result assignments, isolated terminal outcomes, first-error preservation with NULL/OOM, scalar/void/product/owning result commit or rollback, no reentry into a completed catch/finally, strict allocation balance, verifier rejection and C-host JIT/AOT. Loop-resource cleanup remains separate work.'
 exit 0

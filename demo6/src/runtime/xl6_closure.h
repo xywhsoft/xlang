@@ -1,5 +1,6 @@
 #ifndef XL6_CLOSURE_H
 #define XL6_CLOSURE_H
+#include <stddef.h>
 #include <stdint.h>
 #include "xl6_code_lease.h"
 
@@ -12,7 +13,8 @@
  * are not made quiescent by that fact; their storage needs its own protocol. */
 typedef struct xlir_call_default {
     int abi; bool boolean_value; int64_t i64_value; uint64_t u64_value;
-    double f64_value; const char* string_value;
+    double f64_value; const char* string_value; size_t string_size;
+    uint32_t char_value;
 } xlir_call_default;
 typedef struct xlir_closure XL6_Closure;
 struct xlir_closure {

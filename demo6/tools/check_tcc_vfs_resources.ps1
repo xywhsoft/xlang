@@ -83,5 +83,13 @@ foreach ($resourceItem in $resources) {
         throw "compiler TCC VFS is missing standalone XRT environment registration source"
     }
 
+    if ([IO.Path]::GetFileName($resourcePath) -eq 'tcc_builtin_resources.c') {
+        $nested = @($stamp.resources | Where-Object { $_.virtual -match '^__xl_compiler/build/(tmp|linux)/tcc_builtin_resources_runtime[.]c$' })
+        $expected = Join-Path ([IO.Path]::GetDirectoryName($resourcePath)) 'tcc_builtin_resources_runtime.c'
+        if ($nested.Count -ne 1 -or ![string]::Equals([IO.Path]::GetFullPath($nested[0].source), $expected, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'compiler TCC VFS must embed the runtime resource from the same output directory'
+        }
+    }
+
     Write-Host "TCC VFS resource snapshot is current: $resourcePath"
 }

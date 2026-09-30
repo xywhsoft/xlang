@@ -22,6 +22,6 @@ int main(int argc, char** argv)
         assert(initial.UseAfterFreeCount == after.UseAfterFreeCount);
         printf("virtual outcome: %llu balanced allocations\n", (unsigned long long)(after.AllocCount - before.AllocCount));
     }
-    puts("virtual outcome: 100 complete module lifecycles, base/override errors, byval/byref/out, generator resume/failure/early close");
+    puts("virtual outcome: 100 complete module lifecycles, base/override errors, by-value multi-results, generator resume/failure/early close");
     return 0;
 }

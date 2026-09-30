@@ -2,5 +2,8 @@
 
 int main(void)
 {
-    return xlir_module_init() == 1 && xlir_fn_2() == 37 ? 0 : 1;
+    xlir_result_i64 result;
+    if (xlir_module_init() != 1) return 1;
+    result = xlir_fn_2();
+    return result.ok && result.value == 37 ? 0 : 1;
 }

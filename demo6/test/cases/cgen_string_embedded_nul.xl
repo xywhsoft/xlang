@@ -1,0 +1,51 @@
+// A language string carries its byte length even when UTF-8 contains U+0000.
+string text = "a\0b"
+func echo(string value) as string
+    return value
+end
+func readOnly(string value) as int
+    return string.byteLen(value)
+end
+assert string.byteLen(text) == 3
+assert string.len(text) == 3
+assert string.byteAt(text, 1) == 0
+assert string.byteAt(text, 2) == 98
+assert text != "a"
+assert text != "a\0c"
+c_size count = c_size(string.byteLen(text))
+assert count == 3
+string copied = text
+assert string.byteLen(copied) == 3
+assert copied == text
+assert echo(text) == text
+assert readOnly(text) == 3
+string joined = text + "c"
+assert string.byteLen(joined) == 4
+assert string.byteAt(joined, 2) == 98
+assert string.byteAt(joined, 3) == 99
+assert string.byteLen(codec.base64Decode("YQBi")) == 3
+assert codec.base64Decode("YQBi") == text
+assert codec.base64Encode(text) == "YQBi"
+assert codec.hexEncode(text) == "610062"
+assert codec.hexDecode("610062") == text
+assert codec.percentEncode(text) == "a%00b"
+assert codec.percentDecode("a%00b") == text
+assert codec.hexEncode("") == ""
+assert codec.hexDecode("") == ""
+assert codec.base64Encode("") == ""
+assert codec.base64Decode("") == ""
+assert codec.percentEncode("") == ""
+assert codec.percentDecode("") == ""
+
+var object = {"a": 5, "a\0b": 7}
+assert object["a"] == 5
+assert object["a\0b"] == 7
+
+string captured = text
+func() as string readCaptured = func() as string
+    return captured
+end
+assert readCaptured() == text
+captured = "changed"
+assert readCaptured() == "changed"
+assert string.byteLen(text) == 3

@@ -37,11 +37,11 @@ try {
     $strict = @('-std=c11', '-Wall', '-Wextra', '-Werror', '-O0',
         '-Wno-unused-function', '-Wno-unused-label', '-Wno-unused-variable',
         '-Wno-unused-parameter', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
-        '-Wno-missing-field-initializers', '-I.', '-Ibuild/test')
+        '-Wno-missing-field-initializers', '-Wno-missing-braces', '-I.', '-Ibuild/test')
     $runtime = 'test/cases/xlir_export_transaction_runtime.c'
     $hostSource = 'test/cases/xlir_export_transaction_host.c'
     $publicHost = 'test/cases/xlir_export_transaction_header_host.c'
-    & gcc -x c++ -std=c++11 -Wall -Wextra -Werror -fsyntax-only $publicHost
+    & gcc -x c++ -std=c++11 -Wall -Wextra -Werror -Ibuild/test -fsyntax-only $publicHost
     if ($LASTEXITCODE -ne 0) { throw 'Public export transaction header is not C++ compatible' }
     & gcc @strict $runtime $hostSource $publicHost release/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Export transaction strict separate C compilation failed' }

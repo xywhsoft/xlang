@@ -1,0 +1,4 @@
+int byval = 1
+int byref = 2
+int out = 3
+assert byval + byref == out

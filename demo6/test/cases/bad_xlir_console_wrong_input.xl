@@ -1,0 +1,2 @@
+extern "xl6_xrt_console_read_line" func __xl_std_runtime_invalid(string count) as string?
+auto result = __xl_std_runtime_invalid("wrong")

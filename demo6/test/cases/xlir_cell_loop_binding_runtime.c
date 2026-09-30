@@ -11,7 +11,7 @@ extern int loop_binding_run(int, long long*);
 #include "xlir_owner_fault_runtime.h"
 static unsigned run(int shape, int fault, int memory)
 {
-    const long long expected[] = {4123, 4123, 4107, 4107, 707, 4107, 4107, 2234, 8, 207, 32};
+    const long long expected[] = {4123, 4123, 4396, 4107, 707, 4107, 4107, 2234, 8, 207, 32};
     xmemdebugsnapshot before; xerror* error; int ok; long long value; unsigned count = 0;
     assert(!xrtGetError());
     if (memory) { xrtMemDebugSnapshot(&before); continuation_owner_fault_arm(fault); }

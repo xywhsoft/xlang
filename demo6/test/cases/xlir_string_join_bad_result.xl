@@ -1,0 +1,3 @@
+// join 返回拥有型缓冲区，由 takeCstr 接管，不可直接声明为借用 string。
+extern "xl6_xrt_string_join" func malformed(var values, string sep) as string
+println(malformed(["a", "b"], ","))

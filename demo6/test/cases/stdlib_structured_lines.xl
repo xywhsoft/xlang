@@ -1,0 +1,21 @@
+var jsonRows = jsonl.parse("{\"a\":1}\n{\"a\":2}\n")
+assert jsonRows[0]["a"] == 1
+assert jsonRows[1]["a"] == 2
+assert jsonl.valid("{\"a\":1}\n")
+assert !jsonl.valid("{\"a\":}\n")
+assert jsonl.stringify(jsonRows) == "{\"a\":1}\n{\"a\":2}\n"
+string jsonPath = "build/test/stdlib_structured_lines.jsonl"
+assert jsonl.write(jsonPath, jsonRows)
+assert jsonl.read(jsonPath)[1]["a"] == 2
+assert file.delete(jsonPath)
+
+var xlonRows = xlonl.parse("{\"a\":1}\n{\"a\":2}\n")
+assert xlonRows[0]["a"] == 1
+assert xlonRows[1]["a"] == 2
+assert xlonl.valid("{\"a\":1}\n")
+assert !xlonl.valid("{\"a\":}\n")
+assert xlonl.stringify(xlonRows) == "{\"a\":1}\n{\"a\":2}\n"
+string xlonPath = "build/test/stdlib_structured_lines.xlonl"
+assert xlonl.write(xlonPath, xlonRows)
+assert xlonl.read(xlonPath)[1]["a"] == 2
+assert file.delete(xlonPath)

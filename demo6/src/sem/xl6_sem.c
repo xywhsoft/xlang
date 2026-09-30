@@ -80,6 +80,7 @@ typedef struct XL6_SemContext {
     size_t ownedTypeNodeCapacity;
     XL6_Scope* captureBoundary;
     int captureBoundaryAllowsCapture;
+    const XL6_AstNode* directCallCallee;
     XL6_AstNode* currentClass;
     XL6_AstNode* currentFunction;
     const char* implicitSelfName;
@@ -1330,6 +1331,12 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
         if ( params != NULL ) {
             for ( i = 0; i < params->childCount; ++i ) {
                 XL6_AstNode* paramType = params->children[i];
+                if ( paramType != NULL &&
+                     (paramType->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+                    xl6SemErrorNode(ctx, paramType,
+                        "func 类型不支持 byref/out；请使用多返回值");
+                    ok = 0;
+                }
                 if ( xl6SemTypeIsCVararg(paramType) ) {
                     xl6SemErrorNode(ctx, paramType, "c_vararg 只能用于 extern C 函数声明");
                     ok = 0;
@@ -1497,6 +1504,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 }
 
 static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node);
+static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckStmt(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckChildrenExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckChildrenExprFrom(XL6_SemContext* ctx, XL6_AstNode* node, size_t firstChild);
@@ -2158,7 +2166,8 @@ static int xl6SemExprCanBoxToVar(XL6_SemContext* ctx, const XL6_AstNode* expr)
 
 static int xl6SemIsIntegerTypeName(const char* name)
 {
-    return xl6TextEquals(name, "int") || xl6TextEquals(name, "int8") ||
+    return xl6TextEquals(name, "char") ||
+           xl6TextEquals(name, "int") || xl6TextEquals(name, "int8") ||
            xl6TextEquals(name, "uint8") || xl6TextEquals(name, "int16") ||
            xl6TextEquals(name, "uint16") || xl6TextEquals(name, "int32") ||
            xl6TextEquals(name, "uint32") || xl6TextEquals(name, "int64") ||
@@ -2200,7 +2209,10 @@ static int xl6SemIntTypeInfo(const char* name, XL6_SemIntTypeInfo* outInfo)
     }
     info.bits = 0;
     info.isSigned = 1;
-    if ( xl6TextEquals(name, "int") || xl6TextEquals(name, "int64") ) {
+    if ( xl6TextEquals(name, "char") ) {
+        info.bits = 32;
+        info.isSigned = 0;
+    } else if ( xl6TextEquals(name, "int") || xl6TextEquals(name, "int64") ) {
         info.bits = 64;
         info.isSigned = 1;
     } else if ( xl6TextEquals(name, "uint64") ) {
@@ -2388,6 +2400,10 @@ static int xl6SemExprIntegerLiteralFitsType(const XL6_AstNode* expr, const char*
     if ( !xl6SemExprIntegerLiteralValue(expr, &magnitude, &negative) ) {
         return 0;
     }
+    if ( xl6TextEquals(targetType, "char") ) {
+        return !negative && magnitude <= 0x10ffffULL &&
+               !(magnitude >= 0xd800ULL && magnitude <= 0xdfffULL);
+    }
     floatBits = xl6SemFloatTypeBits(targetType);
     if ( floatBits > 0 ) {
         /* 整数字面量只在能够被目标浮点格式精确表示时参与安全拓宽。 */
@@ -2545,6 +2561,7 @@ static int xl6SemIsBuiltinConvertTypeName(const char* name)
 {
     return xl6SemIsIntegerTypeName(name) || xl6SemIsFloatTypeName(name) ||
            xl6SemIsBoolTypeName(name) || xl6TextEquals(name, "string") ||
+           xl6TextEquals(name, "bytes") ||
            xl6TextEquals(name, "time") || xl6TextEquals(name, "point") ||
            xl6TextEquals(name, "type") || xl6TextEquals(name, "var") ||
            xl6TextEquals(name, "array") || xl6TextEquals(name, "list") ||
@@ -2555,7 +2572,7 @@ static int xl6SemClassDeclHasValueDerive(const XL6_AstNode* classNode)
 {
     return xl6SemClassDeclHasDerive(classNode, "value") ||
            xl6SemClassDeclHasDerive(classNode, "json") ||
-           xl6SemClassDeclHasDerive(classNode, "xson");
+           xl6SemClassDeclHasDerive(classNode, "xlon");
 }
 
 static int xl6SemClassDeclHasFormatDerive(const XL6_AstNode* classNode, const char* format)
@@ -2567,9 +2584,9 @@ static int xl6SemClassDeclHasFormatDerive(const XL6_AstNode* classNode, const ch
         return xl6SemClassDeclHasDerive(classNode, "value") ||
                xl6SemClassDeclHasDerive(classNode, "json");
     }
-    if ( xl6TextEquals(format, "xson") ) {
+    if ( xl6TextEquals(format, "xlon") ) {
         return xl6SemClassDeclHasDerive(classNode, "value") ||
-               xl6SemClassDeclHasDerive(classNode, "xson");
+               xl6SemClassDeclHasDerive(classNode, "xlon");
     }
     return 1;
 }
@@ -2623,6 +2640,7 @@ static int xl6SemTypeCanDeriveValueDepth(XL6_SemContext* ctx, const XL6_AstNode*
          xl6SemIsIntegerTypeName(name) ||
          xl6SemIsFloatTypeName(name) ||
          xl6TextEquals(name, "string") ||
+         xl6TextEquals(name, "bytes") ||
          xl6TextEquals(name, "time") ||
          xl6TextEquals(name, "point") ||
          xl6TextEquals(name, "null") ||
@@ -2682,7 +2700,7 @@ static int xl6SemIsGenericAbilityConstraint(const char* name)
 {
     return xl6TextEquals(name, "comparable") ||
            xl6TextEquals(name, "json") ||
-           xl6TextEquals(name, "xson") ||
+           xl6TextEquals(name, "xlon") ||
            xl6TextEquals(name, "cloneable");
 }
 
@@ -2727,6 +2745,7 @@ static int xl6SemTypeHasComparableProtocol(XL6_SemContext* ctx, const XL6_AstNod
          xl6SemIsIntegerTypeName(name) ||
          xl6SemIsFloatTypeName(name) ||
          xl6TextEquals(name, "string") ||
+         xl6TextEquals(name, "bytes") ||
          xl6TextEquals(name, "time") ||
          xl6TextEquals(name, "type") ) {
         return typeNode->childCount == 0;
@@ -2837,7 +2856,8 @@ static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* 
     }
     if ( xl6TextEquals(typeName, "var") || xl6TextEquals(typeName, "error") ||
          xl6TextEquals(typeName, "bool") || xl6TextEquals(typeName, "c_bool") ||
-         xl6TextEquals(typeName, "string") || xl6TextEquals(typeName, "time") ||
+         xl6TextEquals(typeName, "string") || xl6TextEquals(typeName, "bytes") ||
+         xl6TextEquals(typeName, "time") ||
          xl6TextEquals(typeName, "point") || xl6SemIsFloatTypeName(typeName) ) {
         return 1;
     }
@@ -2916,7 +2936,7 @@ static int xl6SemTypeSatisfiesGenericConstraint(
     if ( xl6TextEquals(name, "comparable") ) {
         return xl6SemTypeHasComparableProtocol(ctx, actualType);
     }
-    if ( xl6TextEquals(name, "json") || xl6TextEquals(name, "xson") ) {
+    if ( xl6TextEquals(name, "json") || xl6TextEquals(name, "xlon") ) {
         return xl6SemTypeHasPersistenceFormat(ctx, actualType, name);
     }
     if ( xl6TextEquals(name, "cloneable") ) {
@@ -3122,6 +3142,11 @@ static int xl6SemCanConvertType(const char* source, const char* target)
                xl6TextEquals(source, "null") || xl6TextEquals(source, "array") ||
                xl6TextEquals(source, "list") || xl6TextEquals(source, "set") ||
                xl6TextEquals(source, "dict") || xl6TextEquals(source, "function");
+    }
+    if ( xl6TextEquals(target, "char") ) {
+        /* char(...) is a checked Unicode-scalar conversion. Text parsing and
+         * floating-point truncation are deliberately outside that contract. */
+        return xl6SemIsIntegerTypeName(source);
     }
     if ( xl6TextEquals(source, "null") ) {
         return xl6SemIsBoolTypeName(target) || xl6SemIsIntegerTypeName(target) ||
@@ -3505,7 +3530,9 @@ static const char* xl6SemLiteralExprTypeName(const XL6_AstNode* expr)
     switch ( expr->kind ) {
     case XL6_AST_INT: return "int";
     case XL6_AST_FLOAT: return "float";
+    case XL6_AST_CHAR: return "char";
     case XL6_AST_STRING: return "string";
+    case XL6_AST_BYTES: return "bytes";
     case XL6_AST_INTERP_STRING: return "string";
     case XL6_AST_TIME: return "time";
     case XL6_AST_BOOL: return "bool";
@@ -7029,6 +7056,48 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
         return NULL;
     }
     if ( callee->kind == XL6_AST_MEMBER ) {
+        if ( expr->semanticCallKind == XL6_SEM_CALL_WITNESS &&
+             expr->semanticTargetSymbolId != 0 && ownedType != NULL &&
+             callee->childCount > 0 ) {
+            XL6_AstNode* receiverType =
+                xl6SemInferAutoTypeNode(ctx, callee->children[0]);
+            const XL6_AstNode* concreteReceiver =
+                xl6SemResolveAliasType(ctx, receiverType);
+            const XL6_TypeInfo* protocol = concreteReceiver != NULL &&
+                concreteReceiver->text != NULL ?
+                xl6TypeRegistryFind(&ctx->types, concreteReceiver->text) : NULL;
+
+            if ( protocol != NULL && protocol->kind == XL6_TYPE_PROTOCOL &&
+                 protocol->decl != NULL ) {
+                const XL6_AstNode* body = protocol->decl->childCount > 0 ?
+                    protocol->decl->children[0] : NULL;
+                const XL6_AstNode* typeParams = protocol->decl->childCount > 1 ?
+                    protocol->decl->children[1] : NULL;
+                const XL6_AstNode* typeArgs =
+                    xl6SemTypeNodeGenericArgs(concreteReceiver);
+                size_t index;
+
+                for ( index = 0; body != NULL && index < body->childCount; ++index ) {
+                    const XL6_AstNode* requirement = body->children[index];
+                    XL6_AstNode* concreteRequirement;
+
+                    if ( requirement == NULL ||
+                         requirement->semanticSymbolId != expr->semanticTargetSymbolId ) {
+                        continue;
+                    }
+                    concreteRequirement = xl6SemSubstituteGenericTypeArgs(
+                        typeParams, typeArgs, requirement);
+                    if ( concreteRequirement != NULL ) {
+                        *ownedType = xl6SemCloneInvocationReturnTypes(
+                            ctx, NULL, NULL, concreteRequirement, NULL, expr);
+                    }
+                    xl6AstFree(concreteRequirement);
+                    xl6AstFree(receiverType);
+                    return *ownedType;
+                }
+            }
+            xl6AstFree(receiverType);
+        }
         XL6_AstNode* staticMethod = xl6SemResolveStaticClassFuncCall(ctx, expr, 0);
         if ( staticMethod != NULL && staticMethod->childCount > 2 ) {
             if (ownedType != NULL && staticMethod->kind == XL6_AST_ASYNC_FUNC) {
@@ -7325,6 +7394,7 @@ static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNo
          xl6SemIsIntegerTypeName(name) ||
          xl6SemIsFloatTypeName(name) ||
          xl6TextEquals(name, "string") ||
+         xl6TextEquals(name, "bytes") ||
          xl6TextEquals(name, "time") ||
          xl6TextEquals(name, "point") ||
          xl6TextEquals(name, "error") ||
@@ -7634,16 +7704,67 @@ static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char*
     return NULL;
 }
 
+static int xl6SemExternHasWritablePointerParams(const XL6_AstNode* selected)
+{
+    const XL6_AstNode* params;
+    size_t i;
+
+    if ( selected == NULL ||
+         (selected->kind != XL6_AST_EXTERN_FUNC &&
+          selected->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
+          selected->kind != XL6_AST_NATIVE_EXTERN_SPECIAL) ) {
+        return 0;
+    }
+    params = selected->childCount > 1 ? selected->children[1] : NULL;
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        if ( (xl6SemParamMode(params->children[i]) &
+              (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void xl6SemReportForeignPointerValueError(
+    XL6_SemContext* ctx, const XL6_AstNode* expr)
+{
+    static const char* message =
+        "带 byref/out 的 extern 只能直接调用，不能转换为 func 值";
+    size_t i;
+
+    if ( ctx == NULL || expr == NULL ) {
+        return;
+    }
+    for ( i = 0; ctx->diags != NULL && i < ctx->diags->count; ++i ) {
+        const XL6_Diag* diag = &ctx->diags->items[i];
+        if ( diag->line == expr->line && diag->column == expr->column &&
+             xl6TextEquals(diag->message, message) ) {
+            return;
+        }
+    }
+    xl6SemErrorNode(ctx, expr, message);
+}
+
 static int xl6SemBindResolvedFunctionValue(
     XL6_SemContext* ctx,
     const XL6_AstNode* expr,
     const XL6_AstNode* functionType,
-    const XL6_AstNode* selected)
+    const XL6_AstNode* selected,
+    int reportError)
 {
     XL6_AstNode* mutableExpr;
     XL6_AstNode* typeCopy;
 
     if ( expr == NULL || functionType == NULL || selected == NULL ) {
+        return 0;
+    }
+    /* A direct extern call may use C output pointers, but converting that
+     * declaration to a first-class callable would reintroduce byref/out into
+     * ordinary function values (including auto-inferred values). */
+    if ( xl6SemExternHasWritablePointerParams(selected) ) {
+        if ( reportError ) {
+            xl6SemReportForeignPointerValueError(ctx, expr);
+        }
         return 0;
     }
     mutableExpr = (XL6_AstNode*)expr;
@@ -7706,7 +7827,8 @@ static int xl6SemBindUniqueNamedFunctionValue(
         xl6SemErrorNode(ctx, expr, "out of memory while recording named function signature");
         return 0;
     }
-    ok = xl6SemBindResolvedFunctionValue(ctx, expr, functionType, selected);
+    ok = xl6SemBindResolvedFunctionValue(
+        ctx, expr, functionType, selected, reportError);
     xl6AstFree(functionType);
     return ok;
 }
@@ -7861,12 +7983,12 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
                     return 0;
                 }
                 bound = xl6SemBindResolvedFunctionValue(
-                    ctx, expr, concreteFunctionType, selected);
+                    ctx, expr, concreteFunctionType, selected, reportError);
                 xl6AstFree(concreteFunctionType);
                 return bound;
             }
             return xl6SemBindResolvedFunctionValue(
-                ctx, expr, typeNode, selected);
+                ctx, expr, typeNode, selected, reportError);
         }
     }
     if ( expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
@@ -9009,18 +9131,18 @@ static int xl6SemPersistenceGenericName(const char* name, const char** outFormat
         }
         return 1;
     }
-    if ( xl6TextEquals(name, "__xl_std_xson_parse") ) {
+    if ( xl6TextEquals(name, "__xl_std_xlon_parse") ) {
         if ( outFormat != NULL ) {
-            *outFormat = "xson";
+            *outFormat = "xlon";
         }
         if ( outParam != NULL ) {
             *outParam = "text";
         }
         return 1;
     }
-    if ( xl6TextEquals(name, "__xl_std_xson_read") ) {
+    if ( xl6TextEquals(name, "__xl_std_xlon_read") ) {
         if ( outFormat != NULL ) {
-            *outFormat = "xson";
+            *outFormat = "xlon";
         }
         if ( outParam != NULL ) {
             *outParam = "path";
@@ -9041,9 +9163,9 @@ static int xl6SemPersistenceStringifyName(const char* name, const char** outForm
         }
         return 1;
     }
-    if ( xl6TextEquals(name, "__xl_std_xson_stringify") ) {
+    if ( xl6TextEquals(name, "__xl_std_xlon_stringify") ) {
         if ( outFormat != NULL ) {
-            *outFormat = "xson";
+            *outFormat = "xlon";
         }
         return 1;
     }
@@ -9061,9 +9183,9 @@ static int xl6SemPersistenceWriteName(const char* name, const char** outFormat)
         }
         return 1;
     }
-    if ( xl6TextEquals(name, "__xl_std_xson_write") ) {
+    if ( xl6TextEquals(name, "__xl_std_xlon_write") ) {
         if ( outFormat != NULL ) {
-            *outFormat = "xson";
+            *outFormat = "xlon";
         }
         return 1;
     }
@@ -9141,15 +9263,15 @@ static int xl6SemCheckPersistenceTarget(
 
     classNode = xl6SemPersistenceTargetClass(ctx, typeNode);
     if ( classNode == NULL ) {
-        xl6SemErrorNode(ctx, atNode, "json/xson 泛型持久化目标必须是非泛型 class");
+        xl6SemErrorNode(ctx, atNode, "json/xlon 泛型持久化目标必须是非泛型 class");
         return 0;
     }
     if ( xl6SemClassHasTypeParams(classNode) ) {
-        xl6SemErrorNode(ctx, atNode, "json/xson 泛型持久化当前不支持泛型 class");
+        xl6SemErrorNode(ctx, atNode, "json/xlon 泛型持久化当前不支持泛型 class");
         return 0;
     }
     if ( !xl6SemClassDeclHasFormatDerive(classNode, format) ) {
-        xl6SemErrorNode(ctx, atNode, "json/xson 持久化目标 class 必须声明对应的 derive value/json/xson");
+        xl6SemErrorNode(ctx, atNode, "json/xlon 持久化目标 class 必须声明对应的 derive value/json/xlon");
         return 0;
     }
     return 1;
@@ -9196,7 +9318,7 @@ static int xl6SemCheckPersistenceGenericInstant(XL6_SemContext* ctx, XL6_AstNode
         return -1;
     }
     if ( typeArgs == NULL || typeArgs->kind != XL6_AST_LIST || typeArgs->childCount != 1 ) {
-        xl6SemCountMismatchError(ctx, instant, "json/xson 泛型持久化目标类型数量不匹配", 1, typeArgs != NULL ? typeArgs->childCount : 0);
+        xl6SemCountMismatchError(ctx, instant, "json/xlon 泛型持久化目标类型数量不匹配", 1, typeArgs != NULL ? typeArgs->childCount : 0);
         return 0;
     }
     typeArg = typeArgs->children[0];
@@ -9226,7 +9348,7 @@ static int xl6SemCheckPersistenceGenericCall(XL6_SemContext* ctx, XL6_AstNode* n
 
     ok = xl6SemCheckPersistenceGenericInstant(ctx, instant);
     if ( xl6SemCallArgCount(node) != 1 ) {
-        xl6SemCountMismatchError(ctx, node, "json/xson 泛型持久化调用需要一个文本或路径参数", 1, (size_t)xl6SemCallArgCount(node));
+        xl6SemCountMismatchError(ctx, node, "json/xlon 泛型持久化调用需要一个文本或路径参数", 1, (size_t)xl6SemCallArgCount(node));
         ok = 0;
     }
     typeArg = xl6SemPersistenceGenericTypeArg(instant);
@@ -9235,9 +9357,9 @@ static int xl6SemCheckPersistenceGenericCall(XL6_SemContext* ctx, XL6_AstNode* n
     }
     argExpr = xl6SemPersistenceCallArg(node, paramName, 0);
     if ( argExpr == NULL ) {
-        xl6SemErrorNode(ctx, node, "json/xson 泛型持久化参数名称不匹配");
+        xl6SemErrorNode(ctx, node, "json/xlon 泛型持久化参数名称不匹配");
         ok = 0;
-    } else if ( !xl6SemCheckStringLikeArg(ctx, argExpr, "json/xson 泛型持久化参数必须是 string 或 var") ) {
+    } else if ( !xl6SemCheckStringLikeArg(ctx, argExpr, "json/xlon 泛型持久化参数必须是 string 或 var") ) {
         ok = 0;
     }
     return ok;
@@ -9376,27 +9498,27 @@ static int xl6SemCheckPersistenceStdlibCall(
     argCount = xl6SemCallArgCount(node);
     if ( isWrite ) {
         if ( argCount < 2 || argCount > 3 ) {
-            xl6SemErrorNode(ctx, node, "json/xson.write(value) 需要 path、value 和可选 pretty 参数");
+            xl6SemErrorNode(ctx, node, "json/xlon.write(value) 需要 path、value 和可选 pretty 参数");
             ok = 0;
         }
         pathExpr = xl6SemPersistenceCallArg(node, "path", 0);
         if ( pathExpr == NULL ) {
-            xl6SemErrorNode(ctx, node, "json/xson.write(class) 缺少 path 参数");
+            xl6SemErrorNode(ctx, node, "json/xlon.write(class) 缺少 path 参数");
             ok = 0;
-        } else if ( !xl6SemCheckStringLikeArg(ctx, pathExpr, "json/xson.write path 必须是 string 或 var") ) {
+        } else if ( !xl6SemCheckStringLikeArg(ctx, pathExpr, "json/xlon.write path 必须是 string 或 var") ) {
             ok = 0;
         }
     } else if ( argCount < 1 || argCount > 2 ) {
-        xl6SemErrorNode(ctx, node, "json/xson.stringify(value) 需要 value 和可选 pretty 参数");
+        xl6SemErrorNode(ctx, node, "json/xlon.stringify(value) 需要 value 和可选 pretty 参数");
         ok = 0;
     }
     prettyExpr = xl6SemPersistenceCallArg(node, "pretty", isWrite ? 2 : 1);
     if ( prettyExpr != NULL &&
-         !xl6SemCheckBoolLikeArg(ctx, prettyExpr, "json/xson pretty 参数必须是 bool 或 var") ) {
+         !xl6SemCheckBoolLikeArg(ctx, prettyExpr, "json/xlon pretty 参数必须是 bool 或 var") ) {
         ok = 0;
     }
     if ( !xl6SemTypeHasPersistenceFormat(ctx, valueType, format) ) {
-        xl6SemErrorNode(ctx, valueExpr, "json/xson 持久化值必须递归满足对应的 derive value/json/xson");
+        xl6SemErrorNode(ctx, valueExpr, "json/xlon 持久化值必须递归满足对应的 derive value/json/xlon");
         ok = 0;
     }
     xl6AstFree(valueType);
@@ -10668,9 +10790,28 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         }
     }
 
-    ok = xl6SemIsPersistenceGenericCallNode(node) ?
-         xl6SemCheckChildrenExprFrom(ctx, node, 1) :
-         xl6SemCheckChildrenExpr(ctx, node);
+    if ( xl6SemIsPersistenceGenericCallNode(node) ) {
+        ok = xl6SemCheckChildrenExprFrom(ctx, node, 1);
+    } else if ( node != NULL && node->childCount > 0 &&
+                node->children[0] != NULL &&
+                node->children[0]->kind == XL6_AST_NAME &&
+                (sym = xl6ScopeFind(ctx->scope, node->children[0]->text)) != NULL &&
+                sym->kind == XL6_SYM_FUNC ) {
+        /* A named call resolves the declaration directly.  Checking its
+         * callee as a value would first bind an inferred func type and
+         * incorrectly reject direct extern calls with C output pointers. */
+        ok = xl6SemCheckNameExpr(ctx, node->children[0]);
+        if ( !xl6SemCheckChildrenExprFrom(ctx, node, 1) ) {
+            ok = 0;
+        }
+    } else {
+        const XL6_AstNode* priorDirectCallCallee = ctx->directCallCallee;
+
+        ctx->directCallCallee = node != NULL && node->childCount > 0 ?
+            node->children[0] : NULL;
+        ok = xl6SemCheckChildrenExpr(ctx, node);
+        ctx->directCallCallee = priorDirectCallCallee;
+    }
     multiReturnArg = xl6SemFindMultiReturnCallArg(ctx, node);
     if ( multiReturnArg != NULL ) {
         xl6SemErrorNode(ctx, multiReturnArg, "多返回值函数调用不能作为单个实参");
@@ -11240,6 +11381,12 @@ static int xl6SemCheckTypedLiteral(XL6_SemContext* ctx, XL6_AstNode* node)
             return 0;
         }
     } else if ( xl6TextEquals(node->text, "list") ) {
+        /* 空 [] 的种类由显式前缀确定，后续阶段只接收规范化的容器节点。 */
+        if ( literal->kind == XL6_AST_ARRAY_LITERAL && literal->childCount == 0 ) {
+            literal->kind = XL6_AST_LIST_LITERAL;
+            xl6AstFree(literal->inferredType);
+            literal->inferredType = NULL;
+        }
         if ( literal->kind != XL6_AST_LIST_LITERAL ) {
             xl6SemErrorNode(ctx, node, "list 字面量必须使用 [key: value]");
             return 0;
@@ -11249,8 +11396,12 @@ static int xl6SemCheckTypedLiteral(XL6_SemContext* ctx, XL6_AstNode* node)
             普通 {} 默认解析为 dict；只有带 set 前缀的空 {} 才改为空集合。
             非空 set 仍必须使用 {value, value}，不能混用 {key: value}。
         */
-        if ( literal->kind != XL6_AST_SET_LITERAL &&
-             !(literal->kind == XL6_AST_DICT_LITERAL && literal->childCount == 0) ) {
+        if ( literal->kind == XL6_AST_DICT_LITERAL && literal->childCount == 0 ) {
+            literal->kind = XL6_AST_SET_LITERAL;
+            xl6AstFree(literal->inferredType);
+            literal->inferredType = NULL;
+        }
+        if ( literal->kind != XL6_AST_SET_LITERAL ) {
             xl6SemErrorNode(ctx, node, "set 字面量必须使用普通 {} 值列表");
             return 0;
         }
@@ -11292,6 +11443,14 @@ static const char* xl6SemBinaryNumericResultType(
 
     left = expr->children[0];
     right = expr->children[1];
+    /* `char` participates in numeric operations through its Unicode scalar
+     * value, but an arithmetic result is never another character.  Promoting
+     * to the language integer domain also prevents invalid scalar values from
+     * being manufactured without an explicit checked char(...) conversion. */
+    if ( xl6TextEquals(leftType, "char") || xl6TextEquals(rightType, "char") ) {
+        return (xl6SemIsFloatTypeName(leftType) ||
+                xl6SemIsFloatTypeName(rightType)) ? "float" : "int";
+    }
     if ( xl6TextEquals(expr->text, "<<") || xl6TextEquals(expr->text, ">>") ||
          xl6TextEquals(expr->text, "%") ||
          xl6TextEquals(expr->text, "&") ||
@@ -11361,9 +11520,13 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
         return "int";
     case XL6_AST_FLOAT:
         return "float";
+    case XL6_AST_CHAR:
+        return "char";
     case XL6_AST_STRING:
     case XL6_AST_INTERP_STRING:
         return "string";
+    case XL6_AST_BYTES:
+        return "bytes";
     case XL6_AST_TIME:
         return "time";
     case XL6_AST_BOOL:
@@ -11451,15 +11614,32 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
             }
             return NULL;
         }
-        /* 加法任一侧静态为 string 时，动态另一侧也只能走字符串拼接路径。 */
+        /* String concatenation accepts a Unicode scalar directly; no implicit
+         * bytes/text conversion is admitted. */
         if ( xl6TextEquals(expr->text, "+") &&
              ((leftType != NULL && xl6TextEquals(leftType, "string")) ||
-              (rightType != NULL && xl6TextEquals(rightType, "string"))) ) {
+               (rightType != NULL && xl6TextEquals(rightType, "string"))) ) {
             return "string";
+        }
+        if ( xl6TextEquals(expr->text, "+") &&
+             leftType != NULL && rightType != NULL &&
+             xl6TextEquals(leftType, "bytes") &&
+             xl6TextEquals(rightType, "bytes") ) {
+            return "bytes";
         }
         if ( (leftType != NULL && xl6TextEquals(leftType, "var")) ||
              (rightType != NULL && xl6TextEquals(rightType, "var")) ) {
             return "var";
+        }
+        if ( leftType != NULL && rightType != NULL &&
+             (xl6TextEquals(leftType, "char") ||
+              xl6TextEquals(rightType, "char")) &&
+             (xl6TextEquals(expr->text, "+") || xl6TextEquals(expr->text, "-") ||
+              xl6TextEquals(expr->text, "*") || xl6TextEquals(expr->text, "/") ||
+              xl6TextEquals(expr->text, "%") || xl6TextEquals(expr->text, "&") ||
+              xl6TextEquals(expr->text, "|") || xl6TextEquals(expr->text, "^") ||
+              xl6TextEquals(expr->text, "<<") || xl6TextEquals(expr->text, ">>")) ) {
+            return xl6SemBinaryNumericResultType(ctx, expr, leftType, rightType);
         }
         if ( leftType != NULL && rightType != NULL && xl6TextEquals(leftType, rightType) ) {
             return leftType;
@@ -11488,7 +11668,8 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
         }
         receiverType = expr->childCount > 0 ? xl6SemExprStaticTypeName(ctx, expr->children[0]) : NULL;
         if ( xl6TextEquals(expr->text, "length") &&
-             (xl6TextEquals(receiverType, "string") ||
+              (xl6TextEquals(receiverType, "string") ||
+               xl6TextEquals(receiverType, "bytes") ||
               xl6TextEquals(receiverType, "var") ||
               xl6SemIsArrayTypeName(receiverType) ||
               xl6SemIsListTypeName(receiverType) ||
@@ -11818,6 +11999,7 @@ static int xl6SemTypeHasImplicitDefaultInitialization(
          xl6TextEquals(concreteType->text, "var") ||
          xl6TextEquals(concreteType->text, "error") ||
          xl6TextEquals(concreteType->text, "string") ||
+         xl6TextEquals(concreteType->text, "bytes") ||
          xl6SemIsContainerBaseTypeName(concreteType->text) ||
          xl6SemIsSpecialCollectionTypeName(concreteType->text) ||
          xl6SemIsSyncHandleTypeName(concreteType->text) ) {
@@ -11953,6 +12135,7 @@ static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const X
            xl6SemIsIntegerTypeName(name) ||
            xl6SemIsFloatTypeName(name) ||
            xl6TextEquals(name, "string") ||
+           xl6TextEquals(name, "bytes") ||
            xl6TextEquals(name, "time") ||
            xl6TextEquals(name, "point");
 }
@@ -13282,6 +13465,16 @@ static XL6_AstNode* xl6SemCloneIndexedItemType(XL6_SemContext* ctx, XL6_AstNode*
         concreteType = xl6SemResolveAliasType(ctx, nullableInner);
     }
     concreteType = xl6SemClassValueType(ctx, concreteType);
+    if ( concreteType != NULL && xl6TextEquals(concreteType->text, "string") ) {
+        itemType = xl6AstNewText(XL6_AST_TYPE, "char", 4, NULL);
+        xl6AstFree(receiverType);
+        return itemType;
+    }
+    if ( concreteType != NULL && xl6TextEquals(concreteType->text, "bytes") ) {
+        itemType = xl6AstNewText(XL6_AST_TYPE, "uint8", 5, NULL);
+        xl6AstFree(receiverType);
+        return itemType;
+    }
     if ( concreteType != NULL &&
          xl6SemIsContainerBaseTypeName(concreteType->text) &&
          xl6SemIndexArgCount(expr) != 1 ) {
@@ -14748,8 +14941,18 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
              (rightType != NULL && xl6TextEquals(rightType, "string")) ) {
             if ( !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
                  (leftType == NULL || rightType == NULL ||
-                  !xl6TextEquals(leftType, "string") || !xl6TextEquals(rightType, "string")) ) {
-                xl6SemErrorNode(ctx, node, "字符串拼接两侧都必须是 string");
+                  (!xl6TextEquals(leftType, "string") && !xl6TextEquals(leftType, "char")) ||
+                  (!xl6TextEquals(rightType, "string") && !xl6TextEquals(rightType, "char"))) ) {
+                xl6SemErrorNode(ctx, node, "string concatenation operands must be string or char");
+                ok = 0;
+            }
+        }
+        if ( (leftType != NULL && xl6TextEquals(leftType, "bytes")) ||
+             (rightType != NULL && xl6TextEquals(rightType, "bytes")) ) {
+            if ( !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
+                 (!xl6TextEquals(leftType, "bytes") ||
+                  !xl6TextEquals(rightType, "bytes")) ) {
+                xl6SemErrorNode(ctx, node, "bytes concatenation operands must both be bytes");
                 ok = 0;
             }
         }
@@ -14763,9 +14966,13 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             int stringConcatCandidate = xl6TextEquals(node->text, "+") &&
                                         (xl6TextEquals(leftType, "string") ||
                                          xl6TextEquals(rightType, "string"));
+            int bytesConcatCandidate = xl6TextEquals(node->text, "+") &&
+                                        xl6TextEquals(leftType, "bytes") &&
+                                        xl6TextEquals(rightType, "bytes");
             int sameGenericType = xl6TextEquals(leftType, rightType) &&
                                   xl6SemFindTypeParam(ctx, leftType);
-            if ( !stringConcatCandidate && !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
+            if ( !stringConcatCandidate && !bytesConcatCandidate &&
+                 !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
                  !sameGenericType &&
                  (!xl6SemIsNumericTypeName(leftType) || !xl6SemIsNumericTypeName(rightType)) ) {
                 xl6SemErrorNode(ctx, node, "numeric operator operands must be numeric");
@@ -14908,6 +15115,18 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             if ( !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
                  (!xl6TextEquals(leftType, "string") || !xl6TextEquals(rightType, "string")) ) {
                 xl6SemErrorNode(ctx, node, "string comparison operands must both be string");
+                ok = 0;
+            }
+        }
+        if ( leftType != NULL && rightType != NULL &&
+             (xl6TextEquals(leftType, "bytes") || xl6TextEquals(rightType, "bytes")) ) {
+            if ( !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
+                 (!xl6TextEquals(leftType, "bytes") || !xl6TextEquals(rightType, "bytes")) ) {
+                xl6SemErrorNode(ctx, node, "bytes comparison operands must both be bytes");
+                ok = 0;
+            } else if ( xl6TextEquals(node->text, "~=") ) {
+                xl6SemErrorNode(ctx, node,
+                    "bytes does not define approximate comparison");
                 ok = 0;
             }
         }
@@ -15183,12 +15402,15 @@ static int xl6SemCheckIndexExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemErrorNode(ctx, index, "var container index key must be int, string or var");
             ok = 0;
         }
-    } else if ( xl6TextEquals(receiverType, "string") ) {
-        xl6SemErrorNode(
-            ctx,
-            node,
-            "string does not support [] index access; use string.charAt or string.byteAt");
-        ok = 0;
+    } else if ( xl6TextEquals(receiverType, "string") ||
+                xl6TextEquals(receiverType, "bytes") ) {
+        if ( argCount != 1 ) {
+            xl6SemErrorNode(ctx, node, "string/bytes index supports exactly one key");
+            ok = 0;
+        } else if ( indexType != NULL && !xl6SemIsIntegerTypeName(indexType) ) {
+            xl6SemErrorNode(ctx, index, "string/bytes index must be an integer");
+            ok = 0;
+        }
     } else {
         xl6SemErrorNode(ctx, node, "type does not support index access");
         ok = 0;
@@ -15229,6 +15451,7 @@ static int xl6SemSafeMemberLengthReceiverIsContainer(XL6_SemContext* ctx, const 
         return 1;
     }
     if ( !xl6TextEquals(name, "string") &&
+         !xl6TextEquals(name, "bytes") &&
          !xl6SemIsArrayTypeName(name) &&
          !xl6SemIsListTypeName(name) &&
          !xl6TextEquals(name, "set") &&
@@ -15513,6 +15736,7 @@ static int xl6SemBindFieldProtocol(
     XL6_AstNode* staticClass;
     const XL6_AstNode* ownerClass = NULL;
     const XL6_AstNode* method;
+    const XL6_AstNode* params;
     const XL6_AstNode* returns;
     XL6_AstNode* resultType;
     XL6_AstNode* nameLiteral;
@@ -15538,6 +15762,36 @@ static int xl6SemBindFieldProtocol(
               ctx, staticClass, member->text, &ownerClass) != NULL) ) {
         xl6AstFree(receiverType);
         return -1;
+    }
+
+    /* `length` has a closed protocol meaning.  Resolve it before the open
+     * `__field__(string)` fallback so a class that implements both protocols
+     * cannot erase the precise `int` result into `var`.  Persisting the exact
+     * target here also keeps later IR construction free from overload
+     * rediscovery. */
+    if ( xl6TextEquals(member->text, "length") ) {
+        method = xl6SemFindClassCallableMemberNode(ctx, classDecl, "__len__");
+        params = method != NULL && method->childCount > 1 ?
+            method->children[1] : NULL;
+        returns = method != NULL && method->childCount > 2 ?
+            method->children[2] : NULL;
+        if ( method != NULL && params != NULL && params->childCount == 0 &&
+             returns != NULL && returns->childCount == 1 &&
+             xl6SemTypeNameMatches(ctx, returns->children[0], "int") ) {
+            resultType = xl6SemCloneTypeNode(returns->children[0]);
+            if ( resultType == NULL ) {
+                xl6AstFree(receiverType);
+                xl6SemErrorNode(ctx, member,
+                    "out of memory while resolving __len__ member protocol");
+                return 0;
+            }
+            xl6SemSetCallPlan(member, XL6_SEM_CALL_PROTOCOL, method);
+            xl6SemBindInferredTypeIdentity(ctx, resultType);
+            xl6AstFree(member->inferredType);
+            member->inferredType = resultType;
+            xl6AstFree(receiverType);
+            return 1;
+        }
     }
 
     nameLiteral = xl6AstNewText(
@@ -15765,6 +16019,7 @@ static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* 
                 xl6SemIsFloatTypeName(cellValue->text) ||
                 xl6TextEquals(cellValue->text, "type") ||
                 xl6TextEquals(cellValue->text, "string") ||
+                xl6TextEquals(cellValue->text, "bytes") ||
                 xl6TextEquals(cellValue->text, "var")) ) {
             xl6SemErrorNode(ctx, node, "可变捕获当前仅支持标量、type、trivial nullable、string 或 var cell ABI");
             return 0;
@@ -15864,7 +16119,9 @@ static int xl6SemAstKindCarriesValueType(XL6_AstKind kind)
     return kind == XL6_AST_NAME ||
            kind == XL6_AST_INT ||
            kind == XL6_AST_FLOAT ||
+           kind == XL6_AST_CHAR ||
            kind == XL6_AST_STRING ||
+           kind == XL6_AST_BYTES ||
            kind == XL6_AST_INTERP_STRING ||
            kind == XL6_AST_TIME ||
            kind == XL6_AST_BOOL ||
@@ -16193,6 +16450,46 @@ static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int ok = xl6SemCheckExprRaw(ctx, node);
 
+    if ( ok && node != NULL && node->kind == XL6_AST_NAME ) {
+        XL6_Symbol* sym = xl6ScopeFind(ctx->scope, node->text);
+        if ( sym != NULL && sym->kind == XL6_SYM_FUNC ) {
+            XL6_AstNode openType;
+            XL6_AstNode* selected;
+
+            memset(&openType, 0, sizeof(openType));
+            openType.kind = XL6_AST_TYPE;
+            openType.text = "function";
+            selected = xl6SemFindFunctionValueFunc(
+                ctx, node->text, &openType, node, 0);
+            if ( xl6SemExternHasWritablePointerParams(selected) ) {
+                xl6SemReportForeignPointerValueError(ctx, node);
+                return 0;
+            }
+        }
+    }
+    if ( ok && node != NULL && node->kind == XL6_AST_MEMBER &&
+         node != ctx->directCallCallee && node->childCount > 0 ) {
+        XL6_AstNode* fieldType = xl6SemCloneMemberFieldType(ctx, node);
+
+        if ( fieldType == NULL ) {
+            XL6_AstNode* receiverType =
+                xl6SemInferAutoTypeNode(ctx, node->children[0]);
+            const XL6_AstNode* concreteType =
+                xl6SemClassValueType(ctx, receiverType);
+            XL6_AstNode* classDecl = concreteType != NULL ?
+                xl6SemFindTypeDecl(ctx, concreteType->text) : NULL;
+            const XL6_AstNode* method =
+                xl6SemFindClassCallableMemberNode(ctx, classDecl, node->text);
+
+            if ( xl6SemExternHasWritablePointerParams(method) ) {
+                xl6SemReportForeignPointerValueError(ctx, node);
+                xl6AstFree(receiverType);
+                return 0;
+            }
+            xl6AstFree(receiverType);
+        }
+        xl6AstFree(fieldType);
+    }
     if ( ok && node != NULL &&
          node->inferredType == NULL &&
          xl6SemAstKindCarriesValueType(node->kind) ) {
@@ -18524,7 +18821,16 @@ static XL6_AstNode* xl6SemCloneForTargetType(XL6_SemContext* ctx, XL6_AstNode* i
             return xl6SemNewForTargetSimpleType("int", iterable);
         }
         xl6AstFree(iterableType);
-        return xl6SemNewForTargetSimpleType("string", iterable);
+        return xl6SemNewForTargetSimpleType("char", iterable);
+    }
+
+    if ( xl6TextEquals(typeName, "bytes") ) {
+        if ( targetCount == 2 && targetIndex == 0 ) {
+            xl6AstFree(iterableType);
+            return xl6SemNewForTargetSimpleType("int", iterable);
+        }
+        xl6AstFree(iterableType);
+        return xl6SemNewForTargetSimpleType("uint8", iterable);
     }
 
     if ( xl6SemIsDictTypeName(typeName) ) {
@@ -19001,6 +19307,11 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
             XL6_AstNode* param = params->children[i];
             int isVararg = xl6SemParamIsVararg(param);
             unsigned int paramMode = xl6SemParamMode(param);
+            if ( paramMode == XL6_AST_FLAG_BYREF || paramMode == XL6_AST_FLAG_OUT ) {
+                xl6SemErrorNode(ctx, param,
+                    "普通函数不支持 byref/out；请使用多返回值");
+                ok = 0;
+            }
             if ( xl6SemParamIsCVararg(param) ) {
                 xl6SemErrorNode(ctx, param, "c_vararg 只能用于 extern C 函数声明");
                 ok = 0;
@@ -19212,6 +19523,7 @@ static int xl6SemIsCAbiParamType(const char* name)
     return xl6SemIsBoolTypeName(name) || xl6SemIsIntegerTypeName(name) ||
            xl6SemIsFloatTypeName(name) ||
            xl6TextEquals(name, "point") || xl6TextEquals(name, "string") ||
+           xl6TextEquals(name, "bytes") ||
            xl6TextEquals(name, "time") ||
            xl6TextEquals(name, "type") ||
            xl6TextEquals(name, "var") ||
@@ -19228,6 +19540,7 @@ static int xl6SemExternParamNeedsXValueWrapper(XL6_SemContext* ctx, XL6_AstNode*
         return 0;
     }
     return xl6TextEquals(typeNode->text, "var") ||
+           xl6TextEquals(typeNode->text, "bytes") ||
            xl6TextEquals(typeNode->text, "array") || xl6TextEquals(typeNode->text, "array<var>") ||
            xl6TextEquals(typeNode->text, "list") || xl6TextEquals(typeNode->text, "list<var>") ||
            xl6TextEquals(typeNode->text, "set") || xl6TextEquals(typeNode->text, "set<var>") ||
@@ -19379,7 +19692,9 @@ static int xl6SemIsCAbiOpaqueHandleParamType(XL6_SemContext* ctx, XL6_AstNode* t
     typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
     return typeNode != NULL &&
            typeNode->text != NULL &&
-           xl6SemIsChannelTypeName(typeNode->text);
+           (xl6SemIsChannelTypeName(typeNode->text) ||
+            /* error 已具有 xerror* 物理 ABI；普通参数仅借用，C 不接管引用。 */
+            (typeNode->childCount == 0 && xl6TextEquals(typeNode->text, "error")));
 }
 
 static int xl6SemIsCAbiClassType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
@@ -19604,6 +19919,15 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
         typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
             return ok;
+        }
+        /* Generated stdlib declarations use the verified language string ABI,
+         * including its null Data sentinel. This is not a general C char* ABI
+         * admission; exact bridge/result ownership is checked by Typed XLIR. */
+        if (xl6SemIsInternalStdRuntimeExtern(node)) {
+            const XL6_AstNode* inner = xl6SemResolveAliasType(
+                ctx, xl6SemNullableInnerType(typeNode));
+            if (inner != NULL && inner->childCount == 0 && xl6TextEquals(inner->text, "string"))
+                return ok;
         }
         if ( typeNode == NULL ||
              (!xl6SemIsCAbiClassHandleType(ctx, typeNode) &&
@@ -19853,7 +20177,8 @@ static int xl6SemCheckTypeDeclName(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
-static int xl6SemCheckParamListOnly(XL6_SemContext* ctx, XL6_AstNode* params, int addSymbols)
+static int xl6SemCheckParamListOnly(
+    XL6_SemContext* ctx, XL6_AstNode* params, int addSymbols, int foreignAbi)
 {
     size_t i;
     int ok;
@@ -19879,6 +20204,13 @@ static int xl6SemCheckParamListOnly(XL6_SemContext* ctx, XL6_AstNode* params, in
         }
         isVararg = xl6SemParamIsVararg(param);
         paramMode = xl6SemParamMode(param);
+
+        if ( !foreignAbi &&
+             (paramMode == XL6_AST_FLAG_BYREF || paramMode == XL6_AST_FLAG_OUT) ) {
+            xl6SemErrorNode(ctx, param,
+                "普通函数不支持 byref/out；请使用多返回值");
+            ok = 0;
+        }
 
         if ( param->childCount > 0 ) {
             if ( xl6SemTypeIsAuto(param->children[0]) ) {
@@ -19999,7 +20331,7 @@ static int xl6SemCheckAnonFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     oldCaptureBoundaryAllowsCapture = ctx->captureBoundaryAllowsCapture;
     ctx->captureBoundary = &scope;
     ctx->captureBoundaryAllowsCapture = 1;
-    if ( !xl6SemCheckParamListOnly(ctx, params, 1) ) {
+    if ( !xl6SemCheckParamListOnly(ctx, params, 1, 0) ) {
         ok = 0;
     }
     if ( xl6SemParamListHasCVararg(params) ) {
@@ -20381,7 +20713,7 @@ static int xl6SemCheckProtocolRequirement(
         xl6SemPushTypeParams(ctx, &typeParamScope, typeParams);
         pushedTypeParams = 1;
     }
-    if ( !xl6SemCheckParamListOnly(ctx, params, 0) ) {
+    if ( !xl6SemCheckParamListOnly(ctx, params, 0, 0) ) {
         ok = 0;
     }
     if ( xl6SemParamListHasCVararg(params) ) {
@@ -21187,7 +21519,7 @@ static int xl6SemCheckTaggedEnum(
         }
 
         params = variant->childCount > 0 ? variant->children[0] : NULL;
-        if ( !xl6SemCheckParamListOnly(ctx, params, 0) ) {
+        if ( !xl6SemCheckParamListOnly(ctx, params, 0, 0) ) {
             ok = 0;
         }
         for ( p = 0; params != NULL && p < params->childCount; ++p ) {
@@ -21335,7 +21667,7 @@ static int xl6SemCheckClassSpecial(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
     }
-    if ( params != NULL && !xl6SemCheckParamListOnly(ctx, params, 1) ) {
+    if ( params != NULL && !xl6SemCheckParamListOnly(ctx, params, 1, 0) ) {
         ok = 0;
     }
     memset(&emptyReturns, 0, sizeof(emptyReturns));
@@ -21448,7 +21780,7 @@ static int xl6SemCheckClassExternSpecial(XL6_SemContext* ctx, XL6_AstNode* class
         xl6SemErrorNode(ctx, nameNode, "native-backed class destroy cannot declare parameters");
         ok = 0;
     }
-    if ( !xl6SemCheckParamListOnly(ctx, params, 0) ) {
+    if ( !xl6SemCheckParamListOnly(ctx, params, 0, 1) ) {
         ok = 0;
     }
     if ( !xl6SemCheckClassExternParamsNoVararg(ctx, params) ) {
@@ -21474,7 +21806,7 @@ static int xl6SemCheckClassExternFunc(XL6_SemContext* ctx, XL6_AstNode* classNod
         xl6SemErrorNode(ctx, nameNode, "class native create/destroy must use the special extern declaration form");
         ok = 0;
     }
-    if ( node->childCount > 1 && !xl6SemCheckParamListOnly(ctx, node->children[1], 0) ) {
+    if ( node->childCount > 1 && !xl6SemCheckParamListOnly(ctx, node->children[1], 0, 1) ) {
         ok = 0;
     }
     if ( node->childCount > 1 && !xl6SemCheckClassExternParamsNoVararg(ctx, node->children[1]) ) {
@@ -21511,7 +21843,7 @@ static int xl6SemCheckClassExternProperty(XL6_SemContext* ctx, XL6_AstNode* clas
         xl6SemErrorNode(ctx, nameNode, "class native create/destroy must use the special extern declaration form");
         ok = 0;
     }
-    if ( !xl6SemCheckParamListOnly(ctx, params, 0) ) {
+    if ( !xl6SemCheckParamListOnly(ctx, params, 0, 1) ) {
         ok = 0;
     }
     for ( i = 0; params != NULL && i < params->childCount; ++i ) {
@@ -22295,7 +22627,7 @@ static int xl6SemDeriveAbilityIndex(const char* name)
         "moveOnly",
         "value",
         "json",
-        "xson",
+        "xlon",
         "string",
         "hash",
         "equals"
@@ -22416,13 +22748,13 @@ static int xl6SemCheckDeriveValueFields(XL6_SemContext* ctx, XL6_AstNode* classN
 
     ok = 1;
     if ( xl6SemClassHasTypeParams(classNode) ) {
-        xl6SemErrorNode(ctx, classNode, "derive value/json/xson 当前不支持泛型 class");
+        xl6SemErrorNode(ctx, classNode, "derive value/json/xlon 当前不支持泛型 class");
         ok = 0;
     }
 
     base = classNode->childCount > 0 ? classNode->children[0] : NULL;
     if ( base != NULL && base->kind == XL6_AST_NAME && !xl6SemTypeCanDeriveValue(ctx, base) ) {
-        xl6SemErrorNode(ctx, base, "derive value/json/xson 的父类必须同样具备可持久化能力，object 除外");
+        xl6SemErrorNode(ctx, base, "derive value/json/xlon 的父类必须同样具备可持久化能力，object 除外");
         ok = 0;
     }
 
@@ -22435,7 +22767,7 @@ static int xl6SemCheckDeriveValueFields(XL6_SemContext* ctx, XL6_AstNode* classN
         }
         fieldType = member->children[0];
         if ( !xl6SemTypeCanDeriveValue(ctx, fieldType) ) {
-            xl6SemErrorNode(ctx, member, "derive value/json/xson 字段必须是基础类型、动态 var/容器，或同样可持久化的 class");
+            xl6SemErrorNode(ctx, member, "derive value/json/xlon 字段必须是基础类型、动态 var/容器，或同样可持久化的 class");
             ok = 0;
         }
     }
@@ -23838,6 +24170,7 @@ static int xl6SemPlanTypeIsManaged(const XL6_AstNode* type)
            (type->flags & XL6_AST_FLAG_PROTOCOL_HANDLE) != 0 ||
            (type->flags & XL6_AST_FLAG_TAGGED_ENUM) != 0 ||
            xl6TextEquals(name, "string") ||
+           xl6TextEquals(name, "bytes") ||
            xl6TextEquals(name, "error") ||
            xl6TextEquals(name, "var") ||
            xl6TextEquals(name, "function") ||

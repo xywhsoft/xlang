@@ -5,6 +5,8 @@ Push-Location $Root
 try {
     $prefix = 'build/test/xlir_cell_continuation_outcome'
     New-Item -ItemType Directory -Force -Path build/test | Out-Null
+    New-Item -ItemType Directory -Force -Path build/test/__xl_runtime | Out-Null
+    Copy-Item -LiteralPath src/runtime/xl6_cell.h -Destination build/test/__xl_runtime/xl6_cell.h -Force
     if (!(Test-Path -LiteralPath build/test/xl.dll) -or
         (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
         Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
@@ -35,13 +37,35 @@ try {
     }
     $hostSource = 'test/cases/xlir_cell_continuation_outcome_host.c'
     $runtimeSource = 'test/cases/xlir_cell_continuation_outcome_runtime.c'
+    # The host textually includes generated C. A standalone AOT binary cannot
+    # rely on xl.dll to provide the resident runtime surface used by that C.
+    $artifactRuntimeSources = @(
+        'src/runtime/xl6_ownership_plan.c',
+        'src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_closure.c',
+        'src/runtime/xl6_cell.c',
+        'src/runtime/xl6_slot.c',
+        'src/runtime/xl6_frame_storage.c',
+        'src/runtime/xl6_continuation_frame.c',
+        'src/runtime/xl6_future_wait.c',
+        'src/runtime/xl6_task.c',
+        'src/runtime/xl6_capture.c',
+        'src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_future_callback.c',
+        'src/runtime/xl6_generator.c',
+        'src/runtime/xl6_code_finalizer.c',
+        'src/runtime/xl6_continuation_queue.c',
+        'src/runtime/xl6_continuation_executor.c',
+        'src/runtime/xl6_continuation_future.c',
+        'src/runtime/xl6_future_payload.c'
+    )
     & gcc @strict $runtimeSource $hostSource release/xl.dll -o "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cell continuation strict C build failed' }
     & "$prefix.strict.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cell continuation runtime/allocation fault failed' }
     & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Cell continuation C-host JIT failed' }
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/xl.exe build $runtimeSource $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cell continuation C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Cell continuation C-host AOT runtime failed' }

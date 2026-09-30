@@ -10,13 +10,13 @@ func capturedVisitor(var state, array<var> witnesses) as func(var) as bool
     end
 end
 
-func visitScope(bool useXson) as array<var>
+func visitScope(bool useXlon) as array<var>
     var state = {"ready": true}
     array<var> witnesses = [observeLifetime(state)]
     bool caught = false
     try
-        if useXson then
-            int status = xson.visit("null", capturedVisitor(state, witnesses))
+        if useXlon then
+            int status = xlon.visit("null", capturedVisitor(state, witnesses))
         else
             int status = json.visit("null", capturedVisitor(state, witnesses))
         end

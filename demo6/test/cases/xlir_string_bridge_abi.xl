@@ -48,14 +48,51 @@ func main(...) as int
     assert lines.length == 3
     assert string(lines[1]) == "你好"
 
+    // join 借用输入，结果独立拥有；空元素和非字符串按统一转换处理。
+    assert string.join(parts, "|") == "|b||你好|"
+    assert string.join([], ",") == ""
+    assert string.join(["", ""], "::") == "::"
+    assert string.join(["你", "好"]) == "你好"
+    assert string.repeat("ab", 3) == "ababab"
+    assert string.join(["text", true, null, -7, uint64(42), 1.5], "|") == "text|true|null|-7|42|1.5"
+    array nested = [[1, 2], {"answer": 42}]
+    assert string.join(nested, ";") == string(nested[0]) + ";" + string(nested[1])
+    string joined = string.join(string.split("a,你好,b", ","), " / ")
+    assert joined == "a / 你好 / b"
+    func(array, string) as string joinValue = string.join
+
     // 具名函数值与重复分配经过同一条适配和清理路径。
     func(string, string) as array splitValue = string.split
     for i in range(200)
         array values = splitValue("你好::x", "::")
         assert values.length == 2 and string(values[0]) == "你好"
         inspectText("A你好B")
+        assert joinValue(values, "|") == "你好|x"
     end
     assert string(parts[3]) == "你好"
+    assert joined == "a / 你好 / b"
+    // chars 按标量拆成独立字符串；bytes 的元素是 0..255 的整数。
+    assert string.chars("").length == 0
+    assert string.bytes("").length == 0
+    array scalars = string.chars("A你𐐀é")
+    assert scalars.length == 5
+    assert string(scalars[0]) == "A" and string(scalars[1]) == "你"
+    assert string(scalars[2]) == "𐐀" and string(scalars[3]) == "e"
+    assert string.byteLen(string(scalars[4])) == 2
+    array octets = string.bytes("A你")
+    assert octets.length == 4
+    assert int(octets[0]) == 65 and int(octets[1]) == 228
+    assert int(octets[2]) == 189 and int(octets[3]) == 160
+    func(string) as array charsValue = string.chars
+    func(string) as array bytesValue = string.bytes
+    string changed = "你好"
+    array independent = charsValue(changed)
+    changed = "replaced"
+    assert string.join(independent) == "你好"
+    for round in range(200)
+        assert string.join(charsValue(string.repeat("你", 4))) == "你你你你"
+        assert bytesValue("\t\n").length == 2
+    end
     println("string bridges ok")
     return 0
 end

@@ -32,6 +32,8 @@ $process = Start-Process @options
 }
 $cases = @(
     @{Source='cgen_optional_nullable_function_default';Mode='exe';Hosts=@()},
+    @{Source='xlir_default_argument_unwind';Mode='exe';Hosts=@()},
+    @{Source='xlir_default_argument_allocation';Mode='exe';Hosts=@()},
     @{Source='cgen_try_finally_pending_async';Mode='exe';Hosts=@()},
     @{Source='xlir_pkg_valid';Mode='exe';Hosts=@()},
     @{Source='xlir_pkg_mixed';Mode='exe';Hosts=@('cgen_extern_function_value_host')},

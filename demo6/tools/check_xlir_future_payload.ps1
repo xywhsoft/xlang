@@ -11,7 +11,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Future payload ownership failed' }
     & release/xl.exe run @inputs --inc-path . -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Future payload C-host JIT failed' }
-    & release/xl.exe build @inputs --inc-path . -o "$prefix.aot.exe"
+    # The resident payload policy now includes generator ownership and calls
+    # the compiler runtime vtable exported by xl.dll. JIT already resolves that
+    # loaded module; a persisted AOT host must declare the same link explicitly.
+    & release/xl.exe build @inputs --inc-path . --lib-path release --link xl -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Future payload C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Future payload C-host AOT failed' }

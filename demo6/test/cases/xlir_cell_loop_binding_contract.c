@@ -93,20 +93,28 @@ int main(int argc, char** argv)
         XL6_IrInstruction* instruction = &ir.instructions[i]; XL6_IrInstruction *test, saved; unsigned kind;
         if (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL) continue;
         switch (instruction->runtimeOp) {
-        case XL6_IR_RUNTIME_STRING_UTF8_AT: kind = 1; break;
+        case XL6_IR_RUNTIME_STRING_SCALAR_AT: kind = 1; break;
         case XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_STRING_COPY: kind = 2; break;
         case XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY: kind = 4; break;
         case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE: kind = 8; break;
         default: continue;
         }
         ++acquisitions; acquisitionKinds |= kind;
-        assert(xl6IrCallInstructionErrorPhysicalAbi(&ir, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
+        assert(xl6IrCallInstructionErrorPhysicalAbi(&ir, instruction) ==
+            (kind == 1 ? XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT
+                       : XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT));
         assert(i + 1 < ir.instructionCount); test = &ir.instructions[i + 1]; saved = *test;
         assert(test->kind == XL6_IR_INSTR_ERROR_TEST && ir.operands[test->firstOperand] == instruction->result);
         test->trueTarget = saved.falseTarget; test->falseTarget = saved.trueTarget; reject(&ir, NULL); *test = saved;
     }
     assert(cells == 17 && prefixes > cells && acquisitionKinds == 15); verify(&ir);
-    assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
+    assert(xl6OutputOpenFile(&out, argv[1]));
+    if (!xl6IrCgenEmitC(&out, &ir, &parse.diags)) {
+        xl6OutputClose(&out);
+        xl6DiagPrintText(&parse.diags, "loop binding Cgen");
+        assert(0);
+    }
+    xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "CELL_LOOP_BINDING", &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[3])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);
     assert(snprintf(binding, sizeof(binding), "%s.bind.h", argv[2]) > 0 && xl6OutputOpenFile(&out, binding));

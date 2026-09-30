@@ -304,8 +304,11 @@ static int xl6IrCgenEmitAsyncMachine(
         const XL6_IrAsyncMachineFrameSlot* frame =
             &module->asyncMachineFrameSlots[machine->firstFrameSlot + local];
         if ( frame->initBit == SIZE_MAX ) continue;
-        xl6OutputPrintf(out, "    frame->f%lu = NULL; frame->i%lu = 0;\n",
-            (unsigned long)local, (unsigned long)frame->initBit);
+        xl6OutputPrintf(out, "    frame->f%lu = %s; frame->i%lu = 0;\n",
+            (unsigned long)local,
+            xl6IrTypeGet(&module->types, frame->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                ? "(xlir_string){0}" : "NULL",
+            (unsigned long)frame->initBit);
     }
     for ( local = 0; local < machine->prologueActionCount; ++local ) {
         const XL6_IrAsyncFrameAction* prologue =

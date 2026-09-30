@@ -1,6 +1,7 @@
 param([string]$Root = '')
 $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
+. (Join-Path $PSScriptRoot 'xlir_artifact_runtime_sources.ps1')
 Push-Location $Root
 try {
     # Compile this verifier/lowering contract from current sources. The DLL is
@@ -43,7 +44,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Storage exchange accessor transaction/runtime semantics failed' }
     & release/xl.exe run test/cases/xlir_storage_exchange_runtime.c test/cases/xlir_storage_exchange_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Storage exchange generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_storage_exchange_runtime.c test/cases/xlir_storage_exchange_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    & release/xl.exe build test/cases/xlir_storage_exchange_runtime.c test/cases/xlir_storage_exchange_host.c src/api/xl_foreign_error.c @(Get-XlirArtifactRuntimeSources) --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Storage exchange generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Storage exchange generated C-host AOT runtime failed' }

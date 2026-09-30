@@ -364,7 +364,7 @@ static int xl6IrCgenEmitLanguageFunctionValueAdapter(
                 "XLIR C emitter XL6_Function parameter projection is unresolved");
         if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out,
-                "    xlir_string_view text%lu = {0}; char* a%lu = NULL;\n",
+                "    xlir_string_view text%lu = {0}; xlir_string a%lu = {0};\n",
                 (unsigned long)parameter, (unsigned long)parameter);
         else
             xl6OutputPrintf(out, "    %s a%lu = (%s)0;\n",
@@ -381,7 +381,10 @@ static int xl6IrCgenEmitLanguageFunctionValueAdapter(
         if ( cType == NULL )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C emitter XL6_Function result projection is unresolved");
-        xl6OutputPrintf(out, "    %s returned = (%s)0;\n", cType, cType);
+        if ( result->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+            xl6OutputPuts("    xlir_string returned = {0};\n", out);
+        else
+            xl6OutputPrintf(out, "    %s returned = (%s)0;\n", cType, cType);
     }
     xl6OutputPrintf(out,
         "    if (closure == NULL || argc != %lu || (argc != 0 && argv == NULL)) return NULL;\n",
@@ -396,7 +399,7 @@ static int xl6IrCgenEmitLanguageFunctionValueAdapter(
                 (unsigned long)parameter);
         else if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out,
-                "    if (argv[%lu] == NULL || !xrtValueGetString(argv[%lu], &text%lu) || (a%lu = xrtStrDupN(text%lu.Data, text%lu.Size)) == NULL) goto fail;\n",
+                "    if (argv[%lu] == NULL || !xrtValueGetString(argv[%lu], &text%lu) || (a%lu = xlir_string_from_utf8(text%lu.Data, text%lu.Size)).Data == NULL) goto fail;\n",
                 (unsigned long)parameter, (unsigned long)parameter,
                 (unsigned long)parameter, (unsigned long)parameter,
                 (unsigned long)parameter, (unsigned long)parameter);
@@ -443,7 +446,7 @@ static int xl6IrCgenEmitLanguageFunctionValueAdapter(
             &module->types, signature->params[parameter]);
         if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out,
-                "    xrtFree(a%lu); a%lu = NULL;\n",
+                "    xlir_string_drop(a%lu); a%lu = (xlir_string){0};\n",
                 (unsigned long)parameter, (unsigned long)parameter);
     }
     if ( result == NULL )
@@ -459,8 +462,8 @@ static int xl6IrCgenEmitLanguageFunctionValueAdapter(
         xl6OutputPuts("    boxed = xrtValueFloat(returned);\n", out);
     else if ( result->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         xl6OutputPuts(
-            "    if (returned != NULL) boxed = xrtValueString(xrtStrView(returned));\n"
-            "    xrtFree(returned); returned = NULL;\n",
+            "    if (returned.Data != NULL) boxed = xrtValueString(returned);\n"
+            "    xlir_string_drop(returned); returned = (xlir_string){0};\n",
             out);
     else
         xl6OutputPuts("    boxed = returned; returned = NULL;\n", out);
@@ -469,11 +472,11 @@ static int xl6IrCgenEmitLanguageFunctionValueAdapter(
         const XL6_IrType* item = xl6IrTypeGet(
             &module->types, signature->params[parameter]);
         if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
-            xl6OutputPrintf(out, "    xrtFree(a%lu);\n",
+            xl6OutputPrintf(out, "    xlir_string_drop(a%lu);\n",
                 (unsigned long)parameter);
     }
     if ( result != NULL && result->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
-        xl6OutputPuts("    xrtFree(returned);\n", out);
+        xl6OutputPuts("    xlir_string_drop(returned);\n", out);
     else if ( result != NULL &&
               result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
         xl6OutputPuts("    xrtValueRelease(returned);\n", out);

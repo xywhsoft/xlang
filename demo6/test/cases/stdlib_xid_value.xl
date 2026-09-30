@@ -1,0 +1,81 @@
+string compact = id.xid()
+assert string.byteLen(compact) == 32
+
+Xid first = id.make()
+string encoded = first.toString()
+assert string.byteLen(encoded) == 32
+assert first.toBytes().length == 24
+assert first.timestampMicros() > 0
+assert not first.isZero()
+
+Xid parsed = id.parse(encoded)
+Xid binary = id.fromBytes(first.toBytes())
+assert first == parsed
+assert first == binary
+assert first.compare(parsed) == 0
+assert first.compare(binary) == 0
+var erased = first
+assert erased is Xid
+assert not (erased is bytes)
+Xid projected = erased as Xid
+assert projected == first
+assert id.tryParse(encoded) != null
+assert id.tryParse("not-an-xid") == null
+
+array<Xid> batch = id.makeMany(4)
+assert batch.length == 4
+assert batch[0].toString().length == 32
+assert id.makeMany(0).length == 0
+
+Xid zero = id.parse("--------------------------------")
+assert zero.isZero()
+assert zero.toBytes() == b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+assert zero.toString() == "--------------------------------"
+Xid next = id.fromBytes(b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01")
+assert zero.compare(next) == -1
+assert next.compare(zero) == 1
+assert next.compare(next) == 0
+assert next != zero
+
+bool badLength = false
+try
+    id.parse("short")
+catch e
+    badLength = e.kind == "ValueError" and e.data == "offset=5"
+end
+assert badLength
+
+bool badNul = false
+try
+    id.parse("AAAAAAAAAAAAAAAA\0AAAAAAAAAAAAAAA")
+catch e
+    badNul = e.kind == "ValueError" and e.data == "offset=16"
+end
+assert badNul
+assert id.tryParse("AAAAAAAAAAAAAAAA!AAAAAAAAAAAAAAA") == null
+
+bool badBytes = false
+try
+    id.fromBytes(b"short")
+catch e
+    badBytes = e.kind == "ValueError"
+end
+assert badBytes
+
+bool badCount = false
+try
+    id.makeMany(-1)
+catch e
+    badCount = e.kind == "RangeError"
+end
+assert badCount
+
+bool directCtor = false
+try
+    Xid()
+catch e
+    directCtor = e.kind == "ValueError"
+end
+assert directCtor
+
+println("stdlib xid value ok")

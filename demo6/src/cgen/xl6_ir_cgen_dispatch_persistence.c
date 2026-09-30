@@ -111,13 +111,13 @@ static void xl6IrCgenEmitDispatchTargetCall(
 {
     size_t p;
     if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6OutputPuts("xrtStrDup(", out);
+        xl6OutputPuts("xlir_string_from_cstr(", out);
     if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC)
         xl6OutputPrintf(out, "xlir_async_start_%u(receiver", (unsigned int)target->symbol);
     else if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR)
         xl6OutputPrintf(out, "xlir_generator_start_%u(receiver", (unsigned int)target->symbol);
     else if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C) {
-        xl6OutputPrintf(out, "%s(%s(receiver, xrtStrView(", target->cName,
+        xl6OutputPrintf(out, "%s(%s(receiver, xlir_literal_view(", target->cName,
             externReceiverField->nativeDestroySymbol != 0
                 ? "xlir_xvalue_object_get_literal_native_handle"
                 : "xlir_xvalue_object_get_literal_raw_pointer");
@@ -322,11 +322,11 @@ static int xl6IrCgenPersistenceProjectionRootUsed(
             &module->instructions[instructionIndex];
         int matches = write
             ? (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
-               instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE)
+               instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE)
             : (instruction->runtimeOp ==
                    XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                instruction->runtimeOp ==
-                   XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY);
+                   XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY);
         if ( matches && instruction->payloadType == typeId &&
              xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp) == format )
             return 1;
@@ -348,11 +348,11 @@ static int xl6IrCgenPersistenceTypeUsed(
             if ( (instruction->runtimeOp !=
                       XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY &&
                   instruction->runtimeOp !=
-                      XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY &&
+                      XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY &&
                   instruction->runtimeOp !=
                       XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE &&
                   instruction->runtimeOp !=
-                      XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE) ||
+                      XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE) ||
                  xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp) !=
                      format ) continue;
             if ( xl6IrCgenPersistenceTypeReferencesDepth(
@@ -448,7 +448,9 @@ static int xl6IrCgenEmitPersistenceClassDefault(
                 field->persistenceDefaultLiteral);
             break;
         case XL6_IR_PERSISTENCE_DEFAULT_STRING:
-            xl6OutputPrintf(out, "    item = xrtValueString(xrtStrView(%s));\n",
+            xl6OutputPrintf(out,
+                "    item = xrtValueString((xstrview){%s, sizeof(%s) - 1u});\n",
+                field->persistenceDefaultLiteral,
                 field->persistenceDefaultLiteral);
             break;
         case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY:
@@ -710,12 +712,12 @@ static int xl6IrCgenEmitPersistenceHelpers(
         parseName = "xrtJsonParse";
         writeName = "xrtJsonStringifyFile";
         readName = "xrtJsonParseFile";
-    } else if ( format == XL6_IR_PERSIST_FORMAT_XSON ) {
-        formatName = "xson";
-        stringifyName = "xrtXsonStringify";
-        parseName = "xrtXsonParse";
-        writeName = "xrtXsonStringifyFile";
-        readName = "xrtXsonParseFile";
+    } else if ( format == XL6_IR_PERSIST_FORMAT_XLON ) {
+        formatName = "xlon";
+        stringifyName = "xrtXlonStringify";
+        parseName = "xrtXlonParse";
+        writeName = "xrtXlonStringifyFile";
+        readName = "xrtXlonParseFile";
     } else {
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR C emitter persistence helper has no exact format ABI");
@@ -808,11 +810,11 @@ static int xl6IrCgenEmitPersistenceHelpers(
                  module, layout->type, format) ) continue;
         xl6OutputPrintf(out,
             "static xvalue* xlir_persist_%s_value_t%u(const xvalue*);\n"
-            "static char* xlir_persist_%s_stringify_t%u(const xvalue*, bool);\n"
-            "static bool xlir_persist_%s_write_t%u(const char*, const xvalue*, bool);\n"
+            "static xlir_string xlir_persist_%s_stringify_t%u(const xvalue*, bool);\n"
+            "static bool xlir_persist_%s_write_t%u(xlir_string, const xvalue*, bool);\n"
             "static bool xlir_persist_%s_assign_t%u(xvalue*, const xvalue*);\n"
-            "static xvalue* xlir_persist_%s_parse_t%u(const char*, xvalue*);\n"
-            "static xvalue* xlir_persist_%s_read_t%u(const char*, xvalue*);\n",
+            "static xvalue* xlir_persist_%s_parse_t%u(xlir_string, xvalue*);\n"
+            "static xvalue* xlir_persist_%s_read_t%u(xlir_string, xvalue*);\n",
             formatName, (unsigned int)layout->type,
             formatName, (unsigned int)layout->type,
             formatName, (unsigned int)layout->type,
@@ -921,21 +923,21 @@ static int xl6IrCgenEmitPersistenceHelpers(
         xl6OutputPrintf(out,
             "    return result;\n"
             "}\n"
-            "static char* xlir_persist_%s_stringify_t%u(const xvalue* source, bool pretty)\n"
+            "static xlir_string xlir_persist_%s_stringify_t%u(const xvalue* source, bool pretty)\n"
             "{\n"
             "    xvalue* value = xlir_persist_%s_value_t%u(source);\n"
-            "    char* result;\n"
-            "    if (value == NULL) return NULL;\n"
-            "    result = %s(value, pretty, NULL);\n"
+            "    char* result; size_t size = 0;\n"
+            "    if (value == NULL) return (xlir_string){0};\n"
+            "    result = %s(value, pretty, &size);\n"
             "    xrtValueRelease(value);\n"
-            "    return result;\n"
+            "    return (xlir_string){result, result != NULL ? size : 0};\n"
             "}\n"
-            "static bool xlir_persist_%s_write_t%u(const char* path, const xvalue* source, bool pretty)\n"
+            "static bool xlir_persist_%s_write_t%u(xlir_string path, const xvalue* source, bool pretty)\n"
             "{\n"
             "    xvalue* value = xlir_persist_%s_value_t%u(source);\n"
-            "    bool result;\n"
-            "    if (path == NULL || value == NULL) { xrtValueRelease(value); return false; }\n"
-            "    result = %s(path, value, pretty);\n"
+            "    bool result; const char* cpath = xlir_string_cstr(path);\n"
+            "    if (cpath == NULL || value == NULL) { xrtValueRelease(value); return false; }\n"
+            "    result = %s(cpath, value, pretty);\n"
             "    xrtValueRelease(value);\n"
             "    return result;\n"
             "}\n\n",
@@ -1017,24 +1019,25 @@ static int xl6IrCgenEmitPersistenceHelpers(
         xl6OutputPrintf(out,
             "    return true;\n"
             "}\n"
-            "static xvalue* xlir_persist_%s_parse_t%u(const char* text, xvalue* target)\n"
+            "static xvalue* xlir_persist_%s_parse_t%u(xlir_string text, xvalue* target)\n"
             "{\n"
             "    xvalue* source;\n"
             "    xvalue* result;\n"
-            "    if (text == NULL || target == NULL) return xrtValueRetain(xrtValueNull());\n"
-            "    source = %s(xrtStrView(text));\n"
+            "    if (text.Data == NULL || target == NULL) return xrtValueRetain(xrtValueNull());\n"
+            "    source = %s(text);\n"
             "    if (source == NULL) return xrtValueRetain(xrtValueNull());\n"
             "    result = xlir_persist_%s_assign_t%u(target, source)\n"
             "        ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());\n"
             "    xrtValueRelease(source);\n"
             "    return result;\n"
             "}\n"
-            "static xvalue* xlir_persist_%s_read_t%u(const char* path, xvalue* target)\n"
+            "static xvalue* xlir_persist_%s_read_t%u(xlir_string path, xvalue* target)\n"
             "{\n"
             "    xvalue* source;\n"
             "    xvalue* result;\n"
-            "    if (path == NULL || target == NULL) return xrtValueRetain(xrtValueNull());\n"
-            "    source = %s(path);\n"
+            "    const char* cpath = xlir_string_cstr(path);\n"
+            "    if (cpath == NULL || target == NULL) return xrtValueRetain(xrtValueNull());\n"
+            "    source = %s(cpath);\n"
             "    if (source == NULL) return xrtValueRetain(xrtValueNull());\n"
             "    result = xlir_persist_%s_assign_t%u(target, source)\n"
             "        ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());\n"
@@ -1067,25 +1070,25 @@ static int xl6IrCgenEmitPersistenceHelpers(
                 "XLIR C emitter persistence root has no exact projection ABI");
         if ( stringify )
             xl6OutputPrintf(out,
-                "static char* xlir_persist_%s_stringify_t%u(const xvalue* source, bool pretty)\n"
+                "static xlir_string xlir_persist_%s_stringify_t%u(const xvalue* source, bool pretty)\n"
                 "{\n"
                 "    xvalue* value = xlir_persist_%s_project_t%u(source);\n"
-                "    char* result;\n"
-                "    if (value == NULL) return NULL;\n"
-                "    result = %s(value, pretty, NULL);\n"
+                "    char* result; size_t size = 0;\n"
+                "    if (value == NULL) return (xlir_string){0};\n"
+                "    result = %s(value, pretty, &size);\n"
                 "    xrtValueRelease(value);\n"
-                "    return result;\n"
+                "    return (xlir_string){result, result != NULL ? size : 0};\n"
                 "}\n\n",
                 formatName, (unsigned int)typeId,
                 formatName, (unsigned int)typeId, stringifyName);
         if ( write )
             xl6OutputPrintf(out,
-                "static bool xlir_persist_%s_write_t%u(const char* path, const xvalue* source, bool pretty)\n"
+                "static bool xlir_persist_%s_write_t%u(xlir_string path, const xvalue* source, bool pretty)\n"
                 "{\n"
                 "    xvalue* value = xlir_persist_%s_project_t%u(source);\n"
-                "    bool result;\n"
-                "    if (path == NULL || value == NULL) { xrtValueRelease(value); return false; }\n"
-                "    result = %s(path, value, pretty);\n"
+                "    bool result; const char* cpath = xlir_string_cstr(path);\n"
+                "    if (cpath == NULL || value == NULL) { xrtValueRelease(value); return false; }\n"
+                "    result = %s(cpath, value, pretty);\n"
                 "    xrtValueRelease(value);\n"
                 "    return result;\n"
                 "}\n\n",

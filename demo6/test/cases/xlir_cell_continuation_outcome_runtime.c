@@ -7,6 +7,7 @@
 #include <string.h>
 #include "xlir_owner_fault_runtime.h"
 extern void cell_continuation_prepare(void), cell_continuation_finish(void);
+extern void cell_continuation_wait_idle(void);
 extern void cell_continuation_close(int, bool);
 extern unsigned cell_continuation_yield_fault(int, int);
 extern xfuture* cell_continuation_launch(xfuture*, xfuture*, bool);
@@ -38,27 +39,40 @@ void cell_continuation_mark(int64_t phase)
     }
 }
 xfuture* cell_continuation_input(void) { assert(0 && "reachability helper must not execute"); return NULL; }
-static void finish_hook(void)
+void cell_continuation_fault_finish(int64_t phase)
 {
-    if (!armed) return;
+    if (phase != selectedPhase) return;
+    assert(armed);
+    if (selectedFault >= 0 && !xrtMemDebugFailTriggered())
+        fprintf(stderr, "cell continuation fault did not trigger: phase=%d fault=%d reached=%u\n",
+            selectedPhase, selectedFault, reached);
     allocationsInHook = continuation_owner_fault_end(selectedFault); armed = 0;
 }
 static unsigned async_case(unsigned ready, int phase, int fault, int terminalPhase, int mode)
 {
     xmemdebugsnapshot before; xfuture *inputs[2] = {NULL, NULL}, *result;
-    xpromise* promises[2]; xfutureresult outcome; unsigned i;
+    xpromise* promises[2]; xfutureresult outcome; unsigned i; bool observed;
     if (!smoke) xrtMemDebugSnapshot(&before);
     selectedPhase = phase; selectedFault = fault; reached = armed = everArmed = allocationsInHook = 0;
     for (i = 0; i < 2; ++i) {
         promises[i] = xrtPromiseCreate(&inputs[i], NULL); assert(promises[i] && inputs[i]);
         if (ready & (1u << i)) cell_continuation_produce(promises[i], (int)i == terminalPhase ? mode : 0, &payloads[i]);
     }
-    result = cell_continuation_launch(inputs[0], inputs[1], false); finish_hook();
+    result = cell_continuation_launch(inputs[0], inputs[1], false);
     for (i = 0; i < 2 && !xrtFutureDone(result); ++i) {
         if (ready & (1u << i)) continue;
-        cell_continuation_produce(promises[i], (int)i == terminalPhase ? mode : 0, &payloads[i]); finish_hook();
+        cell_continuation_produce(promises[i], (int)i == terminalPhase ? mode : 0, &payloads[i]);
     }
-    assert(xrtFutureResult(result, &outcome) && !xrtGetError());
+    assert(xrtFutureWaitFor(result, 15000000) == XWAIT_OK);
+    observed = xrtFutureResult(result, &outcome);
+    if (!observed || xrtGetError()) {
+        const xerror* error = xrtGetError();
+        fprintf(stderr, "cell continuation observation failed: ready=%u phase=%d fault=%d terminal=%d mode=%d reached=%u done=%d observed=%d error=%s\n",
+            ready, phase, fault, terminalPhase, mode, reached,
+            xrtFutureDone(result) ? 1 : 0, observed ? 1 : 0,
+            error != NULL ? xrtErrorMessage(error) : "none");
+    }
+    assert(observed && !xrtGetError());
     if (phase >= 0) assert(everArmed);
     if (fault >= 0) {
         assert(outcome.State == XFUTURE_FAILED && outcome.Error && !outcome.Value && xrtErrorKind(outcome.Error) == XERR_MEMORY);
@@ -70,6 +84,7 @@ static unsigned async_case(unsigned ready, int phase, int fault, int terminalPha
     } else assert(outcome.State == XFUTURE_RESOLVED && outcome.Value && !outcome.Error && *(int64_t*)outcome.Value == 9214 && reached == 3);
     xrtFutureDestroy(result);
     for (i = 0; i < 2; ++i) { xrtPromiseDestroy(promises[i]); xrtFutureDestroy(inputs[i]); }
+    cell_continuation_wait_idle();
     assert(!xrtGetError()); if (!smoke) continuation_owner_fault_balanced(&before);
     ++executions; return allocationsInHook;
 }
@@ -91,6 +106,7 @@ static void managed_case(unsigned ready, int terminalPhase, int mode, int raisin
         if (ready & (1u << i)) continue;
         cell_continuation_produce(promises[i], (int)i == terminalPhase ? mode : 0, &payloads[i]);
     }
+    assert(xrtFutureWaitFor(result, 15000000) == XWAIT_OK);
     activeOutput = NULL;
     assert(xrtFutureResult(result, &outcome) && !xrtGetError());
     assert(drops[1] == 1 && dropSequence[0] == 1);
@@ -106,6 +122,7 @@ static void managed_case(unsigned ready, int terminalPhase, int mode, int raisin
     } else assert(outcome.State == XFUTURE_RESOLVED && outcome.Value && *(int64_t*)outcome.Value == 3 && !outcome.Error);
     xrtFutureDestroy(result);
     for (i = 0; i < 2; ++i) { xrtPromiseDestroy(promises[i]); xrtFutureDestroy(inputs[i]); }
+    cell_continuation_wait_idle();
     assert(!xrtGetError()); if (!smoke) continuation_owner_fault_balanced(&before);
     ++managedCases;
 }

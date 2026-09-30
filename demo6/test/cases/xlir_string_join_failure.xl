@@ -1,0 +1,58 @@
+// 内存故障必须穿过语言调用链进入 catch，不能把 NULL 变成成功的空串。
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    array values = ["text", true, null, -7, uint64(42), 1.5, [1, 2]]
+    int rejected = 0
+    int completed = 0
+    for operation in range(8)
+        for point in range(80)
+            bool caught = false
+            string result = ""
+            assert failAfter(uint64(point))
+            try
+                if operation == 0 then
+                    result = string.join(values, "|")
+                elseif operation == 1 then
+                    result = string.replace("a-b", "-", ":")
+                elseif operation == 2 then
+                    result = string.slice("A你好B", 1, 2)
+                elseif operation == 3 then
+                    result = string.repeat("ab", 3)
+                elseif operation == 4 then
+                    array parts = string.split("a,b,c", ",")
+                    result = string(parts.length)
+                elseif operation == 5 then
+                    array lines = string.splitLines("a\r\nb\nc")
+                    result = string(lines.length)
+                elseif operation == 6 then
+                    array characters = string.chars("A你好")
+                    result = string(characters.length)
+                else
+                    array octets = string.bytes("ABC")
+                    result = string(octets.length)
+                end
+            catch MemoryError
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if caught then
+                rejected += 1
+            else
+                completed += 1
+                if operation == 0 then assert result == "text|true|null|-7|42|1.5|[1,2]" end
+                if operation == 1 then assert result == "a:b" end
+                if operation == 2 then assert result == "你好" end
+                if operation == 3 then assert result == "ababab" end
+                if operation >= 4 then assert result == "3" end
+            end
+        end
+    end
+    assert rejected > 0 and completed > 0
+    println("string allocation language failures ok")
+    return 0
+end

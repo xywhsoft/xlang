@@ -57,7 +57,8 @@ int main(void)
          xl6IrCgenEmitC(&out, &ir, &diags);
     text = xl6OutputTakeMemoryText(&out, NULL);
     ok = ok && ir.functions[1].blockCount == 4 && text != NULL &&
-         strstr(text, "goto b3;") != NULL && strstr(text, "if (v1) goto b3; else goto b5;") != NULL;
+         strstr(text, "goto b3;") != NULL && strstr(text, "goto b5;") != NULL &&
+         strstr(text, "if (v1) goto b3; else goto b5;") == NULL;
     if ( ok ) {
         FILE* generated = fopen("build/test/xlir_do_while_generated.c", "wb");
         if ( generated == NULL || fputs(text, generated) < 0 || fclose(generated) != 0 ) ok = 0;

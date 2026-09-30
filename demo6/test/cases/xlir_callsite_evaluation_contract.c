@@ -77,7 +77,7 @@ int main(int argc, char** argv)
         }
     }
     assert(reordered >= 40 && protocol >= 6 && rhsFirst >= 10 && keywordInterleaving >= 3);
-    assert(membership >= 2 && indexedWrites >= 9 && mutableArguments >= 8);
+    assert(membership >= 2 && indexedWrites >= 9 && mutableArguments == 0);
     assert(xl6IrVerifyModule(&ir, &parse.diags));
     assert(argc == 4 && xl6OutputOpenFile(&out, argv[1]));
     if (!xl6IrCgenEmitC(&out, &ir, &parse.diags)) goto failed;
@@ -90,7 +90,7 @@ int main(int argc, char** argv)
     printf("callsite evaluation: %llu reordered bindings, %llu protocol sites, %llu RHS-first sites, %llu interleaved keyword calls, %llu rejected mutations\n",
         (unsigned long long)reordered, (unsigned long long)protocol, (unsigned long long)rhsFirst,
         (unsigned long long)keywordInterleaving, (unsigned long long)mutations);
-    printf("callsite evaluation: %llu membership sites, %llu indexed writes, %llu mutable arguments\n",
+    printf("callsite evaluation: %llu membership sites, %llu indexed writes, %llu legacy mutable arguments\n",
         (unsigned long long)membership, (unsigned long long)indexedWrites, (unsigned long long)mutableArguments);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
 failed:

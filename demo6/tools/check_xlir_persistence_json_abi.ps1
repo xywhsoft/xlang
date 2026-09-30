@@ -54,10 +54,10 @@ if ( $profileFields.Count -ne 5 -or
      @($profileFields | Where-Object { $_.jsonPersistenceFlags -eq 0 }).Count -ne 1 -or
      @($profileFields | Where-Object { $_.jsonPersistenceFlags -eq 5 }).Count -ne 1 -or
      @($profileFields | Where-Object { $_.jsonRenamed -eq 1 }).Count -ne 2 -or
-     @($profileFields | Where-Object { $_.xsonPersistenceFlags -eq 0 }).Count -ne 1 -or
-     @($profileFields | Where-Object { $_.xsonPersistenceFlags -eq 1 }).Count -ne 4 -or
-     @($profileFields | Where-Object { $_.xsonRenamed -eq 1 }).Count -ne 1 ) {
-    throw "Typed XLIR JSON/XSON persistence field schema is incomplete"
+     @($profileFields | Where-Object { $_.xlonPersistenceFlags -eq 0 }).Count -ne 1 -or
+     @($profileFields | Where-Object { $_.xlonPersistenceFlags -eq 1 }).Count -ne 4 -or
+     @($profileFields | Where-Object { $_.xlonRenamed -eq 1 }).Count -ne 1 ) {
+    throw "Typed XLIR JSON/XLON persistence field schema is incomplete"
 }
 $intrinsics = @($typed.intrinsicCalls | Where-Object {
     $_.kindName -eq "persistence-json-stringify"
@@ -92,32 +92,32 @@ if ( $parseIntrinsics.Count -ne 1 -or
      $parseIntrinsics[0].operandCount -ne 1 ) {
     throw "Typed XLIR JSON parse persistence intrinsic ABI is incomplete"
 }
-$xsonIntrinsics = @($typed.intrinsicCalls | Where-Object {
-    $_.kindName -eq "persistence-xson-stringify"
+$xlonIntrinsics = @($typed.intrinsicCalls | Where-Object {
+    $_.kindName -eq "persistence-xlon-stringify"
 })
-if ( $xsonIntrinsics.Count -ne 2 -or
-     @($xsonIntrinsics | Where-Object {
+if ( $xlonIntrinsics.Count -ne 2 -or
+     @($xlonIntrinsics | Where-Object {
         $_.admissionName -eq "verified" -and
         $_.payloadType -eq $profileLayout.type -and
         $_.resultAbiName -eq "owned" -and $_.operandCount -eq 1
      }).Count -ne 1 -or
-     @($xsonIntrinsics | Where-Object {
+     @($xlonIntrinsics | Where-Object {
         $_.admissionName -eq "verified" -and
         $_.payloadType -eq $stringType.id -and
         $_.resultAbiName -eq "owned" -and $_.operandCount -eq 1
      }).Count -ne 1 ) {
-    throw "Typed XLIR XSON persistence stringify intrinsic ABI is incomplete"
+    throw "Typed XLIR XLON persistence stringify intrinsic ABI is incomplete"
 }
-$xsonParseIntrinsics = @($typed.intrinsicCalls | Where-Object {
-    $_.kindName -eq "persistence-xson-parse"
+$xlonParseIntrinsics = @($typed.intrinsicCalls | Where-Object {
+    $_.kindName -eq "persistence-xlon-parse"
 })
-if ( $xsonParseIntrinsics.Count -ne 1 -or
-     $xsonParseIntrinsics[0].admissionName -ne "verified" -or
-     $xsonParseIntrinsics[0].payloadType -ne $profileLayout.type -or
-     $xsonParseIntrinsics[0].resultType -ne $profileLayout.type -or
-     $xsonParseIntrinsics[0].resultAbiName -ne "owned" -or
-     $xsonParseIntrinsics[0].operandCount -ne 1 ) {
-    throw "Typed XLIR XSON persistence parse intrinsic ABI is incomplete"
+if ( $xlonParseIntrinsics.Count -ne 1 -or
+     $xlonParseIntrinsics[0].admissionName -ne "verified" -or
+     $xlonParseIntrinsics[0].payloadType -ne $profileLayout.type -or
+     $xlonParseIntrinsics[0].resultType -ne $profileLayout.type -or
+     $xlonParseIntrinsics[0].resultAbiName -ne "owned" -or
+     $xlonParseIntrinsics[0].operandCount -ne 1 ) {
+    throw "Typed XLIR XLON persistence parse intrinsic ABI is incomplete"
 }
 $jsonWriteIntrinsics = @($typed.intrinsicCalls | Where-Object {
     $_.kindName -eq "persistence-json-write"
@@ -125,11 +125,11 @@ $jsonWriteIntrinsics = @($typed.intrinsicCalls | Where-Object {
 $jsonReadIntrinsics = @($typed.intrinsicCalls | Where-Object {
     $_.kindName -eq "persistence-json-read"
 })
-$xsonWriteIntrinsics = @($typed.intrinsicCalls | Where-Object {
-    $_.kindName -eq "persistence-xson-write"
+$xlonWriteIntrinsics = @($typed.intrinsicCalls | Where-Object {
+    $_.kindName -eq "persistence-xlon-write"
 })
-$xsonReadIntrinsics = @($typed.intrinsicCalls | Where-Object {
-    $_.kindName -eq "persistence-xson-read"
+$xlonReadIntrinsics = @($typed.intrinsicCalls | Where-Object {
+    $_.kindName -eq "persistence-xlon-read"
 })
 if ( $jsonWriteIntrinsics.Count -ne 2 -or
      @($jsonWriteIntrinsics | Where-Object {
@@ -152,19 +152,19 @@ if ( $jsonWriteIntrinsics.Count -ne 2 -or
      $jsonReadIntrinsics[0].operandCount -ne 1 ) {
     throw "Typed XLIR JSON persistence file ABI is incomplete"
 }
-if ( $xsonWriteIntrinsics.Count -ne 1 -or
-     $xsonWriteIntrinsics[0].admissionName -ne "verified" -or
-     $xsonWriteIntrinsics[0].payloadType -ne $profileLayout.type -or
-     $xsonWriteIntrinsics[0].resultType -ne 1 -or
-     $xsonWriteIntrinsics[0].resultAbiName -ne "value" -or
-     $xsonWriteIntrinsics[0].operandCount -ne 2 -or
-     $xsonReadIntrinsics.Count -ne 1 -or
-     $xsonReadIntrinsics[0].admissionName -ne "verified" -or
-     $xsonReadIntrinsics[0].payloadType -ne $profileLayout.type -or
-     $xsonReadIntrinsics[0].resultType -ne $profileLayout.type -or
-     $xsonReadIntrinsics[0].resultAbiName -ne "owned" -or
-     $xsonReadIntrinsics[0].operandCount -ne 1 ) {
-    throw "Typed XLIR XSON persistence file ABI is incomplete"
+if ( $xlonWriteIntrinsics.Count -ne 1 -or
+     $xlonWriteIntrinsics[0].admissionName -ne "verified" -or
+     $xlonWriteIntrinsics[0].payloadType -ne $profileLayout.type -or
+     $xlonWriteIntrinsics[0].resultType -ne 1 -or
+     $xlonWriteIntrinsics[0].resultAbiName -ne "value" -or
+     $xlonWriteIntrinsics[0].operandCount -ne 2 -or
+     $xlonReadIntrinsics.Count -ne 1 -or
+     $xlonReadIntrinsics[0].admissionName -ne "verified" -or
+     $xlonReadIntrinsics[0].payloadType -ne $profileLayout.type -or
+     $xlonReadIntrinsics[0].resultType -ne $profileLayout.type -or
+     $xlonReadIntrinsics[0].resultAbiName -ne "owned" -or
+     $xlonReadIntrinsics[0].operandCount -ne 1 ) {
+    throw "Typed XLIR XLON persistence file ABI is incomplete"
 }
 
 & $xl ir $source --lowered --format json --emit $loweredJson
@@ -201,28 +201,28 @@ if ( $parseOperations.Count -ne 1 -or
      $parseOperations[0].type -ne $profileLayout.type ) {
     throw "Lowered XLIR JSON parse persistence RuntimeOp ABI is incomplete"
 }
-$xsonOperations = @($lowered.instructions | Where-Object {
-    $_.runtimeOpName -eq "persistence-xson-stringify"
+$xlonOperations = @($lowered.instructions | Where-Object {
+    $_.runtimeOpName -eq "persistence-xlon-stringify"
 })
-$xsonParseOperations = @($lowered.instructions | Where-Object {
-    $_.runtimeOpName -eq "persistence-xson-parse"
+$xlonParseOperations = @($lowered.instructions | Where-Object {
+    $_.runtimeOpName -eq "persistence-xlon-parse"
 })
-if ( $xsonOperations.Count -ne 2 -or
-     @($xsonOperations | Where-Object {
+if ( $xlonOperations.Count -ne 2 -or
+     @($xlonOperations | Where-Object {
         $_.operandCount -eq 2 -and
         $_.payloadType -eq $profileLayout.type -and
         $_.kindName -eq "runtime-call"
      }).Count -ne 1 -or
-     @($xsonOperations | Where-Object {
+     @($xlonOperations | Where-Object {
         $_.operandCount -eq 2 -and
         $_.payloadType -eq $stringType.id -and
         $_.kindName -eq "runtime-call"
      }).Count -ne 1 -or
-     $xsonParseOperations.Count -ne 1 -or
-     $xsonParseOperations[0].operandCount -ne 2 -or
-     $xsonParseOperations[0].payloadType -ne $profileLayout.type -or
-     $xsonParseOperations[0].type -ne $profileLayout.type ) {
-    throw "Lowered XLIR XSON persistence RuntimeOp ABIs are incomplete"
+     $xlonParseOperations.Count -ne 1 -or
+     $xlonParseOperations[0].operandCount -ne 2 -or
+     $xlonParseOperations[0].payloadType -ne $profileLayout.type -or
+     $xlonParseOperations[0].type -ne $profileLayout.type ) {
+    throw "Lowered XLIR XLON persistence RuntimeOp ABIs are incomplete"
 }
 $jsonWriteOperations = @($lowered.instructions | Where-Object {
     $_.runtimeOpName -eq "persistence-json-write"
@@ -230,11 +230,11 @@ $jsonWriteOperations = @($lowered.instructions | Where-Object {
 $jsonReadOperations = @($lowered.instructions | Where-Object {
     $_.runtimeOpName -eq "persistence-json-read"
 })
-$xsonWriteOperations = @($lowered.instructions | Where-Object {
-    $_.runtimeOpName -eq "persistence-xson-write"
+$xlonWriteOperations = @($lowered.instructions | Where-Object {
+    $_.runtimeOpName -eq "persistence-xlon-write"
 })
-$xsonReadOperations = @($lowered.instructions | Where-Object {
-    $_.runtimeOpName -eq "persistence-xson-read"
+$xlonReadOperations = @($lowered.instructions | Where-Object {
+    $_.runtimeOpName -eq "persistence-xlon-read"
 })
 if ( $jsonWriteOperations.Count -ne 2 -or
      @($jsonWriteOperations | Where-Object {
@@ -249,21 +249,21 @@ if ( $jsonWriteOperations.Count -ne 2 -or
      $jsonReadOperations[0].operandCount -ne 2 -or
      $jsonReadOperations[0].payloadType -ne $profileLayout.type -or
      $jsonReadOperations[0].type -ne $profileLayout.type -or
-     $xsonWriteOperations.Count -ne 1 -or
-     $xsonWriteOperations[0].operandCount -ne 3 -or
-     $xsonWriteOperations[0].payloadType -ne $profileLayout.type -or
-     $xsonWriteOperations[0].type -ne 1 -or
-     $xsonReadOperations.Count -ne 1 -or
-     $xsonReadOperations[0].operandCount -ne 2 -or
-     $xsonReadOperations[0].payloadType -ne $profileLayout.type -or
-     $xsonReadOperations[0].type -ne $profileLayout.type ) {
-    throw "Lowered XLIR JSON/XSON persistence file RuntimeOp ABIs are incomplete"
+     $xlonWriteOperations.Count -ne 1 -or
+     $xlonWriteOperations[0].operandCount -ne 3 -or
+     $xlonWriteOperations[0].payloadType -ne $profileLayout.type -or
+     $xlonWriteOperations[0].type -ne 1 -or
+     $xlonReadOperations.Count -ne 1 -or
+     $xlonReadOperations[0].operandCount -ne 2 -or
+     $xlonReadOperations[0].payloadType -ne $profileLayout.type -or
+     $xlonReadOperations[0].type -ne $profileLayout.type ) {
+    throw "Lowered XLIR JSON/XLON persistence file RuntimeOp ABIs are incomplete"
 }
 
 # A non-xvalue semantic payload must cross one explicit box/store/load/use/release
 # transaction.  The RuntimeOp retains the original payload TypeId while its
 # physical operand is the canonical dynamic xvalue type.
-$boxedOperations = @($operations + $xsonOperations + $jsonWriteOperations |
+$boxedOperations = @($operations + $xlonOperations + $jsonWriteOperations |
     Where-Object { $_.payloadType -eq $stringType.id -or
                    $_.payloadType -eq $intType.id })
 if ( $boxedOperations.Count -ne 4 ) {
@@ -322,29 +322,29 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xrtJsonStringify(value, pretty, NULL)",
-    "xrtJsonParse(xrtStrView(text))",
-    "xrtJsonStringifyFile(path, value, pretty)",
-    "xrtJsonParseFile(path)",
-    "xrtXsonStringify(value, pretty, NULL)",
-    "xrtXsonParse(xrtStrView(text))",
-    "xrtXsonStringifyFile(path, value, pretty)",
-    "xrtXsonParseFile(path)",
+    "xrtJsonStringify(value, pretty, &size)",
+    "xrtJsonParse(text)",
+    "xrtJsonStringifyFile(cpath, value, pretty)",
+    "xrtJsonParseFile(cpath)",
+    "xrtXlonStringify(value, pretty, &size)",
+    "xrtXlonParse(text)",
+    "xrtXlonStringifyFile(cpath, value, pretty)",
+    "xrtXlonParseFile(cpath)",
     "xlir_persist_json_value_t",
     "xlir_persist_json_assign_t",
     "xlir_persist_json_parse_t",
     "xlir_persist_json_write_t",
     "xlir_persist_json_read_t",
-    "xlir_persist_xson_value_t",
-    "xlir_persist_xson_assign_t",
-    "xlir_persist_xson_parse_t",
-    "xlir_persist_xson_write_t",
-    "xlir_persist_xson_read_t",
+    "xlir_persist_xlon_value_t",
+    "xlir_persist_xlon_assign_t",
+    "xlir_persist_xlon_parse_t",
+    "xlir_persist_xlon_write_t",
+    "xlir_persist_xlon_read_t",
     "xrtStrView(`"display_name`")",
     "xrtStrView(`"secret_name`")",
     ("xlir_persist_json_stringify_t{0}" -f $stringType.id),
     ("xlir_persist_json_stringify_t{0}" -f $intType.id),
-    ("xlir_persist_xson_stringify_t{0}" -f $stringType.id),
+    ("xlir_persist_xlon_stringify_t{0}" -f $stringType.id),
     ("xlir_persist_json_write_t{0}" -f $stringType.id)
 ) ) {
     if ( ! $c.Contains($required) ) {
@@ -360,10 +360,10 @@ foreach ( $include in [regex]::Matches(
 foreach ( $forbidden in @(
     "__xl_std_json_stringify", "__xl_std_json_parse",
     "__xl_std_json_write", "__xl_std_json_read",
-    "__xl_std_xson_stringify", "__xl_std_xson_parse",
-    "__xl_std_xson_write", "__xl_std_xson_read",
+    "__xl_std_xlon_stringify", "__xl_std_xlon_parse",
+    "__xl_std_xlon_write", "__xl_std_xlon_read",
     "json.stringify", "json.parse", "json.write", "json.read",
-    "xson.stringify", "xson.parse", "xson.write", "xson.read",
+    "xlon.stringify", "xlon.parse", "xlon.write", "xlon.read",
     "XL6_Hir", "XL6_Ast",
     "callee->text"
 ) ) {
@@ -383,4 +383,4 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR JSON/XSON persistence ABI gate passed: one format-parametric schema model, exact stringify/parse/write/read intrinsic and RuntimeOp contracts, explicit scalar/string boxing lifetimes, explicit default-instance reconstruction, format-specific inherited/nested projection, deterministic mechanical C, and strict file/runtime behavior."
+Write-Output "XLIR JSON/XLON persistence ABI gate passed: one format-parametric schema model, exact stringify/parse/write/read intrinsic and RuntimeOp contracts, explicit scalar/string boxing lifetimes, explicit default-instance reconstruction, format-specific inherited/nested projection, deterministic mechanical C, and strict file/runtime behavior."

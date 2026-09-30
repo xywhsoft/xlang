@@ -13,7 +13,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
               module->instructions[i].runtimeOp >= XL6_IR_RUNTIME_STRING_DUP &&
               module->instructions[i].runtimeOp <= XL6_IR_RUNTIME_STRING_ORDER_GE) ||
              (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
-              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_UTF8_COUNT ||
+              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_FROM_UTF8 ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_UTF8_COUNT ||
                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_UTF8_AT ||
                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_CONTAINS)) ||
              (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
@@ -28,11 +29,47 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
               xl6IrTypeGet(&module->types, module->instructions[i].type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING) ) {
             needs->needsStringRuntime = 1;
         }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_CHAR_TO_STRING ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_SCALAR_AT ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT) ) {
+            needs->needsStringScalarRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsStringViewOperations = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_FROM_DATA ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_RETAIN ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_CONCAT ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_EQUAL ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LT ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LE ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GT ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GE ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_LENGTH ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_AT ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_SET_COPY) )
+            needs->needsBytesRuntime = 1;
         if ( (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
               module->instructions[i].runtimeOp >= XL6_IR_RUNTIME_XVALUE_NULL &&
               module->instructions[i].runtimeOp <= XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64) ||
              (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
-              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_BORROW ||
+              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_FROM_DATA ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CHAR ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_RETAIN ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_CONCAT ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_EQUAL ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LT ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_LE ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GT ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_ORDER_GE ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_LENGTH ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_AT ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_BYTES_SET_COPY ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_BORROW ||
                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_RAW_POINTER_BORROW ||
                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_U64 ||
                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64 ||
@@ -76,7 +113,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                     XL6_IR_RUNTIME_XVALUE_CONTAINS)) ||
              (module->instructions[i].kind == XL6_IR_INSTR_RELEASE &&
               xl6IrTypeGet(&module->types, module->instructions[i].type) != NULL &&
-              xl6IrTypeGet(&module->types, module->instructions[i].type)->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) )
+              (xl6IrTypeGet(&module->types, module->instructions[i].type)->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+               xl6IrTypeGet(&module->types, module->instructions[i].type)->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) )
             needs->needsXValueRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_ADD ||
@@ -675,10 +713,27 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 module, signatureType, 0);
             int reverse = xl6IrCgenRuntimeCallableAdapterNeeded(
                 module, signatureType, 1);
+            const XL6_IrType* signature = xl6IrTypeGet(&module->types, signatureType);
+            size_t parameter;
             int errorParameter = xl6IrCgenRuntimeCallableHasErrorParameter(
                 module, signatureType);
             int errorResult = xl6IrCgenRuntimeCallableHasErrorResult(
                 module, signatureType);
+            if ((forward || reverse) && signature != NULL &&
+                signature->kind == XL6_IR_TYPE_FUNCTION) {
+                for (parameter = 0; parameter < signature->paramCount; ++parameter) {
+                    const XL6_IrType* value = xl6IrTypeGet(
+                        &module->types, signature->params[parameter]);
+                    if (value != NULL && value->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+                        needs->needsStringRuntime = 1;
+                }
+                for (parameter = 0; parameter < signature->returnCount; ++parameter) {
+                    const XL6_IrType* value = xl6IrTypeGet(
+                        &module->types, signature->returns[parameter]);
+                    if (value != NULL && value->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+                        needs->needsStringRuntime = 1;
+                }
+            }
             if ( (forward && errorResult) || (reverse && errorParameter) )
                 needs->needsXValueErrorBoxRuntime = 1;
             if ( (forward && errorParameter) || (reverse && errorResult) )
@@ -708,9 +763,9 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             if ( ((needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0 &&
                   xl6IrCgenPersistenceLayoutSupported(
                       module, layout->type, XL6_IR_PERSIST_FORMAT_JSON)) ||
-                 ((needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XSON) != 0 &&
+                 ((needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 &&
                   xl6IrCgenPersistenceLayoutSupported(
-                      module, layout->type, XL6_IR_PERSIST_FORMAT_XSON)) ) {
+                      module, layout->type, XL6_IR_PERSIST_FORMAT_XLON)) ) {
                 needs->needsPersistenceDynamicFields = 1;
                 break;
             }

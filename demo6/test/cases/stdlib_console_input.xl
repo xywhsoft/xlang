@@ -1,0 +1,10 @@
+auto first = console.readLine(16)
+assert first != null and first == ""
+auto second = console.readLine(3)
+assert second != null and second == "a\x00b"
+auto chinese = console.readChar()
+auto emoji = console.readChar()
+assert chinese != null and chinese == '你'
+assert emoji != null and emoji == '😀'
+assert console.readChar() == null
+assert console.readLine() == null

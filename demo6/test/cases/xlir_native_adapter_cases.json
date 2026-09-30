@@ -16,7 +16,7 @@
   "stdlib_json",
   "stdlib_json_stream",
   "stdlib_http1_core",
-  "stdlib_xson",
+  "stdlib_xlon",
   "stdlib_template",
   "stdlib_template_engine",
   "stdlib_special_collections",

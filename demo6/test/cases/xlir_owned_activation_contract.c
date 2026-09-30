@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include "xlir_internal_owned_params.h"
 static size_t mutations;
 static void reject(const XL6_IrModule* ir)
 {
@@ -51,6 +52,10 @@ int main(int argc, char** argv)
     size_t i, p, captures = 0, releases = 0, ready = 0, pool = 0;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(argc == 4 && xl6ParseFile("test/cases/xlir_owned_activation.xl", &parse));
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "ownedGenerator", 6) == 2);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "ownedReady", 3) == 2);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "ownedPool", 6) == 2);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "ownedMachine", 6) == 2);
     assert(xl6StdlibExpandModule(parse.root, &parse.diags));
     if (!xl6SemCheckModule(parse.root, &parse.diags, "owned_activation") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||

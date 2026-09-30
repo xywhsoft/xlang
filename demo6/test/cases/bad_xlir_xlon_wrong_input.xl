@@ -1,0 +1,2 @@
+extern "xl6_xrt_xlon_parse_options" func malformed(point text, bool a, bool b, bool c) as var
+var v = malformed(null, false, false, false)

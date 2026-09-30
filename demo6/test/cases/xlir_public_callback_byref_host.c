@@ -3,8 +3,8 @@ int xlir_public_apply(int (*callback)(int), int value)
 {
     return callback(value);
 }
-void xlir_public_change(int64_t* value, int64_t* doubled)
+int64_t xlir_public_increment(int64_t value)
 {
-    ++*value;
-    *doubled = *value * 2;
+    return value + 1;
 }
+int64_t xlir_public_double(int64_t value) { return value * 2; }

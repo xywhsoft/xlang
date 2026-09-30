@@ -41,10 +41,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'String allocation outcome runtime/memory failed' }
     & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'String allocation outcome C-host JIT failed' }
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    . (Join-Path $PSScriptRoot 'xlir_artifact_runtime_sources.ps1')
+    $artifactRuntimeSources = Get-XlirArtifactRuntimeSources
+    & release/xl.exe build $runtimeSource $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'String allocation outcome C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'String allocation outcome C-host AOT runtime failed' }
 } finally { Pop-Location }
-Write-Output 'XLIR string allocation outcome passed: 12 checked allocation families, verifier rejection, exact rollback, inout commit, nullable success, literals/conversions/default failures, strict C memory, C-host JIT/AOT and deterministic C/header/IR/binding.'
+Write-Output 'XLIR string allocation outcome passed: 13 checked allocation families, verifier rejection, borrowed-input result commit, nullable success, literals/conversions/default failures, strict C memory, C-host JIT/AOT and deterministic C/header/IR/binding.'
 exit 0

@@ -112,5 +112,8 @@ for ($i = 0; $i -lt $capacity; $i += 16) {
 [void]$builder.AppendLine('};')
 
 $content = $builder.ToString().Replace("`r`n", "`n")
-[System.IO.File]::WriteAllText($outputPath, $content, [System.Text.UTF8Encoding]::new($false))
+if (-not (Test-Path -LiteralPath $outputPath) -or
+    [System.IO.File]::ReadAllText($outputPath) -cne $content) {
+    [System.IO.File]::WriteAllText($outputPath, $content, [System.Text.UTF8Encoding]::new($false))
+}
 Write-Host "generated $capacity stdlib index slots for $($entries.Count) functions and $constCount constants -> $outputPath"

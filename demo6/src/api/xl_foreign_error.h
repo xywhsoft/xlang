@@ -30,13 +30,17 @@ typedef xl6_foreign_error_scope xl6_error_scope;
 typedef xl6_foreign_error_result xl6_error_result;
 
 #ifndef XL6_FOREIGN_API
-#if defined(_WIN32) && defined(XL_BUILD_DLL)
+#if defined(_WIN32) && (defined(XL_BUILD_DLL) || defined(XL6_BUILD_SHARED))
 #define XL6_FOREIGN_API __declspec(dllexport)
 #elif defined(__GNUC__) && !defined(_WIN32)
 #define XL6_FOREIGN_API __attribute__((visibility("default")))
 #else
 #define XL6_FOREIGN_API
 #endif
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 XL6_FOREIGN_API bool xl6ErrorScopeBegin(xl6_error_scope* scope);
@@ -72,5 +76,9 @@ XL6_FOREIGN_API xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_sco
  * cause; native code may consume that diagnostic without handling the language
  * exception. With no scope, only the native diagnostic is published. */
 XL6_FOREIGN_API void xl6ForeignCallbackFail(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

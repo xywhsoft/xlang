@@ -1,0 +1,14 @@
+TcpServer server = tcp.listen(0)
+int port = int(server.port())
+future<TcpStream> accepted = server.acceptAsync()
+TcpStream client = tcp.connect("127.0.0.1", port, 8000)
+TcpStream peer = await accepted
+
+assert client.send("a\0b")
+assert client.drain(8000)
+Buffer payload = peer.recvBytes(8000)
+assert payload.len() == 3
+assert payload[0] == 97 and payload[1] == 0 and payload[2] == 98
+
+client.close()
+peer.close()

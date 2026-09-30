@@ -19,28 +19,31 @@ class TransactionStatic
     static array<int> items = array[1]
     static TransactionScore score = TransactionScore(3)
 end
-int transactionNumber = 3
-string transactionText = "a"
-array<int> transactionItems = array[1]
-TransactionScore transactionScore = TransactionScore(3)
+class TransactionCells
+    int number = 3
+    string text = "a"
+    array<int> items = array[1]
+    TransactionScore score = TransactionScore(3)
+end
+TransactionCells transactionGlobalCell = TransactionCells()
 
-func replaceNumber(byref int value, int stage) as int
-    value = 29
+func replaceNumber(TransactionCells cells, int stage) as int
+    cells.number = 29
     if stage == 1 then transactionFail() end
     return 4
 end
-func replaceText(byref string value, int stage) as string
-    value = string(29)
+func replaceText(TransactionCells cells, int stage) as string
+    cells.text = string(29)
     if stage == 1 then transactionFail() end
     return "b"
 end
-func replaceItems(byref array<int> value, int stage) as array<int>
-    value = array[29]
+func replaceItems(TransactionCells cells, int stage) as array<int>
+    cells.items = array[29]
     if stage == 1 then transactionFail() end
     return array[4]
 end
-func replaceScore(byref TransactionScore value, int stage) as int
-    value = TransactionScore(29)
+func replaceScore(TransactionCells cells, int stage) as int
+    cells.score = TransactionScore(29)
     if stage == 1 then transactionFail() end
     return stage == 2 ? -4 : 4
 end
@@ -53,43 +56,40 @@ func checkValues(int number, string text, array<int> items, TransactionScore sco
     assert score.value == (stage == 0 ? 7 : 29)
 end
 
-// Uncaptured local storage, including out/ref aliases used by the RHS.
+// The RHS mutates the same object's fields before the compound write commits.
 export "transaction_local" func transactionLocal(int stage) as int
-    int number = 3
-    string text = "a"
-    array<int> items = array[1]
-    TransactionScore score = TransactionScore(3)
+    TransactionCells cells = TransactionCells()
     int caught = 0
     try
-        number += replaceNumber(byref number, stage)
+        cells.number += replaceNumber(cells, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
     try
-        text += replaceText(byref text, stage)
+        cells.text += replaceText(cells, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
     try
-        items += replaceItems(byref items, stage)
+        cells.items += replaceItems(cells, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
     try
-        score += replaceScore(byref score, stage)
+        cells.score += replaceScore(cells, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
-    checkValues(number, text, items, score, stage)
+    checkValues(cells.number, cells.text, cells.items, cells.score, stage)
     assert caught == (stage == 0 ? 0 : stage == 1 ? 4 : 1)
-    text = text
-    items = items
-    score = score
-    checkValues(number, text, items, score, stage)
+    cells.text = cells.text
+    cells.items = cells.items
+    cells.score = cells.score
+    checkValues(cells.number, cells.text, cells.items, cells.score, stage)
     return 0
 end
 
@@ -195,36 +195,34 @@ export "transaction_static" func transactionStatic(int stage) as int
 end
 
 export "transaction_global" func transactionGlobal(int stage) as int
-    transactionNumber = 3
-    transactionText = "a"
-    transactionItems = array[1]
-    transactionScore = TransactionScore(3)
+    transactionGlobalCell = TransactionCells()
     int caught = 0
     try
-        transactionNumber += replaceNumber(byref transactionNumber, stage)
+        transactionGlobalCell.number += replaceNumber(transactionGlobalCell, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
     try
-        transactionText += replaceText(byref transactionText, stage)
+        transactionGlobalCell.text += replaceText(transactionGlobalCell, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
     try
-        transactionItems += replaceItems(byref transactionItems, stage)
+        transactionGlobalCell.items += replaceItems(transactionGlobalCell, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
     try
-        transactionScore += replaceScore(byref transactionScore, stage)
+        transactionGlobalCell.score += replaceScore(transactionGlobalCell, stage)
     catch failure
         assert failure.code == 73
         caught += 1
     end
-    checkValues(transactionNumber, transactionText, transactionItems, transactionScore, stage)
+    checkValues(transactionGlobalCell.number, transactionGlobalCell.text,
+                transactionGlobalCell.items, transactionGlobalCell.score, stage)
     assert caught == (stage == 0 ? 0 : stage == 1 ? 4 : 1)
     return 0
 end

@@ -8,7 +8,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts(
             "#define XLIR_XRT_DECLARATIONS 1\n"
             "#include <__xl_runtime/xruntime_decl.h>\n", out);
-    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <wchar.h>\n", out);
+    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <wchar.h>\n", out);
     xl6IrCgenEmitPublicLinkage(out);
     xl6IrCgenEmitCodeOwnerBinding(out, module);
     if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS)
@@ -39,6 +39,10 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenNeedsXrtDeclarations(&needs) )
         xl6OutputPuts("typedef struct xstrview { const char* Data; size_t Size; } xstrview;\n", out);
     xl6OutputPuts("typedef xstrview xlir_string_view;\n"
+                   "/* Language string storage has exact UTF-8 bytes and Data[Size] as a NUL sentinel. */\n"
+                   "typedef xstrview xlir_string;\n"
+                   "/* Canonical C string literals have a compile-time byte extent, including embedded NUL. */\n"
+                   "#define xlir_literal_view(literal) ((xlir_string_view){ (literal), sizeof(literal) - 1u })\n"
                    "typedef struct xlir_closure xlir_closure;\n"
                    "typedef struct xlir_generator xlir_generator;\n", out);
     if ( options != NULL && options->debugMode ) {
@@ -62,8 +66,9 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitXValueContainerRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueOperationRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitTemplateRuntime(out, &needs) ) return 0;
-    if ( !xl6IrCgenEmitStdlibBridgeRuntime(out, &needs) ) return 0;
+    if ( !xl6IrCgenEmitStdlibBridgeRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitStringBridgeRuntime(out, &needs) ) return 0;
+    if ( !xl6IrCgenEmitStringTextRuntime(out, &needs) ) return 0;
     if ( needs.needsFileBridgeRuntime )
         xl6CgenEmitFileRuntime(
             out, xl6IrCgenNeedsXrtDeclarations(&needs));

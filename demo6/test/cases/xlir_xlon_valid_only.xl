@@ -1,0 +1,5 @@
+extern "xrtClearError" func clearNativeError()
+assert xlon.valid(`{"ok":true}`)
+assert !xlon.valid("{bad}")
+clearNativeError()
+assert xlon.valid(`ptr("123")`, xlon.options(ignoreUnsupportedDecode = true))

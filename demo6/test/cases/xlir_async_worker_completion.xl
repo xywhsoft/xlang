@@ -38,7 +38,7 @@ async func workerClosure(WorkerCompletionOwner first, WorkerCompletionOwner unus
         return result.id
     end
 end
-async func workerTake(WorkerCompletionOwner first, byval WorkerCompletionOwner unused, bool fail) as int
+async func workerTake(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as int
     workerBody(fail)
     assert first.id == 7
     return first.id

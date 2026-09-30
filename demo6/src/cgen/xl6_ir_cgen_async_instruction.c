@@ -56,11 +56,12 @@ static int xl6IrCgenAsyncResultDrop(XL6_IrAsyncResultAbi abi, const char** relea
 {
     *release = NULL; *destroy = xl6IrCgenAsyncPayloadDestroy(abi);
     switch (abi) {
-    case XL6_IR_ASYNC_RESULT_COPY_BOOL: case XL6_IR_ASYNC_RESULT_COPY_I64:
+    case XL6_IR_ASYNC_RESULT_COPY_BOOL: case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+    case XL6_IR_ASYNC_RESULT_COPY_I64:
     case XL6_IR_ASYNC_RESULT_COPY_U64: case XL6_IR_ASYNC_RESULT_COPY_F64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID: case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER: return 1;
-    case XL6_IR_ASYNC_RESULT_OWNED_STRING: *release = "xrtFree"; return 1;
+    case XL6_IR_ASYNC_RESULT_OWNED_STRING: *release = "xlir_string_drop"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE: *release = "xrtValueRelease"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE: *release = "xlir_closure_release"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: *release = "xrtErrorFree"; return 1;
@@ -105,18 +106,23 @@ static int xl6IrCgenEmitAsyncResultCommit(
     const XL6_IrAsyncMachine* machine, const XL6_IrInstruction* instruction,
     int launch, XL6_DiagList* diags)
 {
-    const char *type = xl6IrCgenType(module, target->workerReturnType), *release, *destroy;
+    const char *type = xl6IrCgenType(module, target->workerReturnType);
+    const char *release = NULL, *destroy = NULL;
+    int hasPayload = target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID;
     const char* promise = launch ? "promise" : "destination";
-    char unboxedDrop[96] = "", boxedDrop[96];
+    char unboxedDrop[96] = "", boxedDrop[96] = "";
     if (machine->resultCommitAbi != XL6_IR_ASYNC_RESULT_COMMIT_OWNED_TRANSACTION ||
         machine->completionAbi != XL6_IR_ASYNC_COMPLETION_RETIRE_BEFORE_PUBLISH ||
-        instruction->operandCount != 1 || type == NULL ||
-        !xl6IrCgenAsyncResultDrop(target->asyncResultAbi, &release, &destroy))
+        instruction->operandCount != (hasPayload ? 1u : 0u) ||
+        (hasPayload && (type == NULL ||
+            !xl6IrCgenAsyncResultDrop(target->asyncResultAbi, &release, &destroy))) ||
+        (!hasPayload && target->workerReturnType != XL6_IR_TYPE_INVALID))
         return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR async result commit transaction is unresolved");
     if (release != NULL) snprintf(unboxedDrop, sizeof(unboxedDrop), "%s(v%u);", release,
         (unsigned int)module->operands[instruction->firstOperand]);
-    snprintf(boxedDrop, sizeof(boxedDrop), "%s(value, NULL);", destroy);
-    xl6OutputPrintf(out, "    { %s* value; xl6_error_result retired = {true, NULL};\n", type);
+    if (hasPayload) snprintf(boxedDrop, sizeof(boxedDrop), "%s(value, NULL);", destroy);
+    xl6OutputPuts("    { xl6_error_result retired = {true, NULL};\n", out);
+    if (hasPayload) xl6OutputPrintf(out, "      %s* value;\n", type);
     if (launch) {
         xl6OutputPuts("      xfuture* ready = NULL; xpromise* promise = xrtPromiseCreate(&ready, NULL);\n"
             "      if (promise == NULL) {\n"
@@ -124,18 +130,22 @@ static int xl6IrCgenEmitAsyncResultCommit(
         xl6IrCgenEmitAsyncResultRollback(out, target, 1, unboxedDrop);
         xl6OutputPuts("        if (ready != NULL) { xrtFutureDestroy(ready); }\n        return NULL;\n      }\n", out);
     }
-    xl6OutputPrintf(out, "      value = (%s*)xrtMalloc(sizeof(*value));\n"
+    // 完成信号没有数据分配，仍须先清理帧，再发布成功或失败。
+    if (hasPayload) {
+      xl6OutputPrintf(out, "      value = (%s*)xrtMalloc(sizeof(*value));\n"
         "      if (value == NULL) {\n"
         "        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_MEMORY);\n", type);
-    xl6IrCgenEmitAsyncResultRollback(out, target, launch, unboxedDrop);
-    xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
-    xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
-    if (launch) xl6OutputPuts("        xrtPromiseDestroy(promise); return ready;\n", out);
-    else xl6OutputPuts("        return;\n", out);
-    xl6OutputPrintf(out, "      }\n      *value = v%u;\n"
-        "      retired = xlir_async_machine_frame_retire_%u(frame, retired);\n"
+      xl6IrCgenEmitAsyncResultRollback(out, target, launch, unboxedDrop);
+      xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
+      xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
+      if (launch) xl6OutputPuts("        xrtPromiseDestroy(promise); return ready;\n", out);
+      else xl6OutputPuts("        return;\n", out);
+      xl6OutputPrintf(out, "      }\n      *value = v%u;\n",
+          (unsigned int)module->operands[instruction->firstOperand]);
+    }
+    xl6OutputPrintf(out, "      retired = xlir_async_machine_frame_retire_%u(frame, retired);\n"
         "      if (!retired.ok) {\n        xrtSetErrorTake(retired.error);\n",
-        (unsigned int)module->operands[instruction->firstOperand], (unsigned int)target->symbol);
+        (unsigned int)target->symbol);
     xl6IrCgenEmitAsyncResultRollback(out, target, launch, boxedDrop);
     xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
     xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
@@ -144,7 +154,9 @@ static int xl6IrCgenEmitAsyncResultCommit(
     xl6OutputPuts("      }\n", out);
     xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
     xl6OutputPuts("      if (!", out);
-    if (!xl6IrCgenEmitAsyncPayloadPublish(out, target->asyncResultAbi, promise, "value")) return 0;
+    if (hasPayload) {
+        if (!xl6IrCgenEmitAsyncPayloadPublish(out, target->asyncResultAbi, promise, "value")) return 0;
+    } else xl6OutputPrintf(out, "xrtPromiseResolve(%s, NULL)", promise);
     xl6OutputPuts(") {\n        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_STATE);\n", out);
     xl6IrCgenEmitAsyncResultRollback(out, target, launch, boxedDrop);
     xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
@@ -611,8 +623,11 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
                     const XL6_IrAsyncMachineFrameSlot* nextFrame =
                         &module->asyncMachineFrameSlots[machine->firstFrameSlot + frameLocal];
                     if ( nextFrame->initBit != SIZE_MAX )
-                        xl6OutputPrintf(out, "      next->f%lu = NULL; next->i%lu = 0;\n",
-                            (unsigned long)frameLocal, (unsigned long)nextFrame->initBit);
+                        xl6OutputPrintf(out, "      next->f%lu = %s; next->i%lu = 0;\n",
+                            (unsigned long)frameLocal,
+                            xl6IrTypeGet(&module->types, nextFrame->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                                ? "(xlir_string){0}" : "NULL",
+                            (unsigned long)nextFrame->initBit);
                 }
                 if (!xl6IrCgenEmitAsyncFrameHandoff(out, module, machine,
                         suspension->firstHandoffAction, suspension->handoffActionCount, 0)) return 0;

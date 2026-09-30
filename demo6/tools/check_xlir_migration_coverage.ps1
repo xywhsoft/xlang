@@ -11,8 +11,8 @@ if ( $Root -eq "" ) {
 $caseDir = Join-Path $Root "test\cases"
 $jsonValueGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_json_value_bridge.ps1"))
 $jsonStreamGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_json_stream_bridge.ps1"))
-$xsonValueGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_xson_value_bridge.ps1"))
-$xsonStreamGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_xson_stream_bridge.ps1"))
+$xlonValueGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_xlon_value_bridge.ps1"))
+$xlonStreamGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_xlon_stream_bridge.ps1"))
 $hostErrorBoundaryGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_host_error_boundary.ps1"))
 $serializationCallbackGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_serialization_callback_error.ps1"))
 $textOutputGateText = [System.IO.File]::ReadAllText((Join-Path $Root "tools\check_xlir_text_output_bridge.ps1"))
@@ -166,6 +166,7 @@ $dictIteratorProjectionGate = Join-Path $Root "tools\check_xlir_dict_iterator_pr
 $erasedCollectionIteratorGate = Join-Path $Root "tools\check_xlir_erased_collection_iterator_abi.ps1"
 $dynamicVarIteratorGate = Join-Path $Root "tools\check_xlir_dynamic_var_iterator_abi.ps1"
 $stringIteratorGate = Join-Path $Root "tools\check_xlir_string_iterator_abi.ps1"
+$charBytesAbiGate = Join-Path $Root "tools\check_xlir_char_bytes_abi.ps1"
 $protocolIteratorGate = Join-Path $Root "tools\check_xlir_protocol_iterator_abi.ps1"
 $collectionTypeRebindGate = Join-Path $Root "tools\check_xlir_collection_type_rebind.ps1"
 $nullableContainerProjectionGate = Join-Path $Root "tools\check_xlir_nullable_container_projection.ps1"
@@ -184,6 +185,11 @@ $resolvedPropertyCallGate = Join-Path $Root "tools\check_xlir_resolved_property_
 # compiles every xlir_ fixture, while the marked runtime fixtures execute the
 # canonical XLIR product against their observable contracts.
 $matrix = [ordered]@{
+    "Unicode-scalar char and managed bytes ABI" = @(
+        "char_bytes_literals", "char_bytes_advanced",
+        "char_bytes_invalid_char_width", "char_bytes_invalid_char_surrogate",
+        "char_bytes_invalid_bf_prefix", "char_bytes_invalid_brf_prefix"
+    )
     "typed intrinsic identity and effect ABI" = @(
         "cgen_var_numeric_convert", "cgen_async_string_ownership", "c_abi_types",
         "cgen_copy_clone", "xlir_class_virtual_dispatch", "xlir_intrinsic_range",
@@ -563,12 +569,12 @@ $matrix = [ordered]@{
 }
 
 $matrix["JSON private value bridge ABI"] = @("xlir_json_value_bridge", "xlir_json_valid_only")
-$matrix["XSON private value bridge ABI"] = @("xlir_xson_value_bridge", "xlir_xson_valid_only")
-$matrix["XSON native writer and visitor ABI"] = @("xlir_xson_writer_bridge", "xlir_xson_writer_type_only", "xlir_xson_writer_factory_only", "xlir_xson_visit_bridge", "xlir_xson_visit_capture_lifetime")
+$matrix["XLON private value bridge ABI"] = @("xlir_xlon_value_bridge", "xlir_xlon_valid_only")
+$matrix["XLON native writer and visitor ABI"] = @("xlir_xlon_writer_bridge", "xlir_xlon_writer_type_only", "xlir_xlon_writer_factory_only", "xlir_xlon_visit_bridge", "xlir_xlon_visit_capture_lifetime")
 $matrix["JSON native writer and visitor ABI"] = @("xlir_json_writer_bridge", "xlir_json_visit_bridge", "xlir_json_visit_capture_lifetime")
 $matrix["native factory declaration ABI"] = @("xlir_native_factory_declaration")
 $matrix["host entry error outcome ABI"] = @("xlir_host_error_boundary_script", "xlir_host_error_boundary_main_no_raise", "xlir_host_error_boundary_main_may_raise", "xlir_host_error_boundary_script_throw", "xlir_host_error_boundary_main_throw", "xlir_host_error_boundary_init_throw")
-$matrix["serialization callback error result ABI"] = @("xlir_serialization_callback_error", "xlir_serialization_callback_async_error", "xlir_serialization_callback_generator_error", "xlir_serialization_callback_lifetime", "xlir_serialization_callback_json_uncaught", "xlir_serialization_callback_xson_uncaught")
+$matrix["serialization callback error result ABI"] = @("xlir_serialization_callback_error", "xlir_serialization_callback_async_error", "xlir_serialization_callback_generator_error", "xlir_serialization_callback_lifetime", "xlir_serialization_callback_json_uncaught", "xlir_serialization_callback_xlon_uncaught")
 $matrix["text stdout output ABI"] = @("xlir_text_output_write_only", "xlir_text_output_writeln_only", "xlir_text_output_bridge", "xlir_text_output_continuation")
 $matrix["direct directory and process bridge ABI"] = @("xlir_process_exec_bridge", "xlir_process_success_bridge", "xlir_process_exit_code_bridge", "xlir_dir_list_bridge", "xlir_dir_glob_bridge", "xlir_dir_entries_bridge", "xlir_dir_empty_bridge", "xlir_dir_count_bridge", "xlir_dir_size_bridge", "xlir_directory_bridge", "xlir_system_bridge_continuation")
 $matrix["statically shaped erased collection member ABI"] = @("xlir_erased_collection_members", "xlir_erased_generic_collection_members", "xlir_erased_collection_member_continuation", "xlir_erased_collection_member_lifetime")
@@ -609,10 +615,10 @@ $runtimeContracts = @(
     "xlir_erased_collection_members", "xlir_erased_generic_collection_members", "xlir_erased_collection_member_continuation",
     "xlir_text_output_write_only", "xlir_text_output_writeln_only", "xlir_text_output_bridge", "xlir_text_output_continuation",
     "xlir_serialization_callback_error",
-    "xlir_serialization_callback_json_uncaught", "xlir_serialization_callback_xson_uncaught",
+    "xlir_serialization_callback_json_uncaught", "xlir_serialization_callback_xlon_uncaught",
     "xlir_json_value_bridge", "xlir_json_valid_only", "xlir_json_writer_bridge", "xlir_json_visit_bridge",
-    "xlir_xson_value_bridge", "xlir_xson_valid_only", "xlir_xson_writer_bridge", "xlir_xson_visit_bridge",
-    "xlir_xson_writer_type_only", "xlir_xson_writer_factory_only",
+    "xlir_xlon_value_bridge", "xlir_xlon_valid_only", "xlir_xlon_writer_bridge", "xlir_xlon_visit_bridge",
+    "xlir_xlon_writer_type_only", "xlir_xlon_writer_factory_only",
     "xlir_host_error_boundary_script", "xlir_host_error_boundary_main_no_raise", "xlir_host_error_boundary_main_may_raise",
     "xlir_host_error_boundary_script_throw", "xlir_host_error_boundary_main_throw", "xlir_host_error_boundary_init_throw",
     "xlir_cgen_differential_scalar",
@@ -767,7 +773,7 @@ $xlirOnlyRuntimeContracts = @(
     "xlir_serialization_callback_async_error",
     "xlir_serialization_callback_generator_error",
     "xlir_json_visit_capture_lifetime",
-    "xlir_xson_visit_capture_lifetime",
+    "xlir_xlon_visit_capture_lifetime",
     "xlir_typed_collection_methods",
     "xlir_nullable_closure_capture",
     "xlir_nullable_cell_capture",
@@ -798,7 +804,7 @@ $xlirOnlyRuntimeContracts = @(
     "xlir_persistence_recursive_collection_values"
 )
 
-foreach ( $path in @($caseDir, $determinism, $runtimeMatrix, $defaultClassGate, $instanceClassMethodGate, $implicitClassReceiverGate, $explicitConstructorFieldGate, $classReferenceFieldGate, $explicitClassConstructorGate, $staticClassGate, $virtualClassModelGate, $protocolDispatchGate, $protocolWitnessAdapterGate, $asyncClassMethodGate, $cScalarAbiGate, $exportPrimitiveWidthGate, $u64AbiGate, $integerConversionAbiGate, $checkedFloatConversionGate, $checkedTimeConversionGate, $boolConversionAbiGate, $checkedCastAbiGate, $nullableCastAbiGate, $nominalCastAbiGate, $dynamicConditionalTruthGate, $dynamicUnaryAbiGate, $dynamicBinaryExtendedAbiGate, $checkedIntegerArithmeticAbiGate, $i64PowAbiGate, $timeApproxAbiGate, $specialF64ConstantAbiGate, $scalarConversionAbiGate, $timeConversionAbiGate, $functionValueOwnershipGate, $openFunctionGate, $foreignFunctionValueGate, $copyCloneGate, $exportBoundaryGate, $globalExportBoundaryGate, $externGlobalBoundaryGate, $nullAbiBoundaryGate, $callSiteBindingGate, $callSiteVariadicGate, $callSiteCVarargGate, $callSiteGenericGate, $classProtocolSyntaxGate, $intrinsicCallGate, $nativeNominalReceiverGate, $nativeHandleBindGate, $resolvedPropertyCallGate, $valueInitializerGate, $reachabilityGate, $productResultGate, $namedFunctionAdapterGate, $collectionMemberGate, $erasedArrayAppendGate, $collectionAlgebraGate, $dynamicCollectionMethodGate, $xcallGate, $asyncGenericPlannerGate, $asyncCfgLivenessGate, $asyncMultiAwaitMachineGate, $asyncMachineAdmissionGate, $asyncErrorAbiGate, $futureCancelGate, $futureMemberStatusGate, $dynamicKeyIndexGate, $indexWriteAbiGate, $ownedExpressionDiscardGate, $xvalueMembershipGate, $stringMembershipGate, $rangeMembershipGate, $rangeForAbiGate, $generatorMachineGate, $interpolatedStringGate, $arrayI64ForAbiGate, $xvalueIteratorAbiGate, $setI64IteratorAbiGate, $iteratorScalarProjectionGate, $iteratorManagedProjectionGate, $arrayIteratorProjectionGate, $dictIteratorProjectionGate, $erasedCollectionIteratorGate, $dynamicVarIteratorGate, $stringIteratorGate, $collectionTypeRebindGate, $nullableContainerProjectionGate, $safeIndexNullableCollectionGate, $nullableSafeClassFieldGate, $memberAbiGate, $lengthProtocolMemberGate, $classFieldMemberAbiGate, $classFieldInheritedNarrowedGate, $nullableStringLifecycleGate) ) {
+foreach ( $path in @($caseDir, $determinism, $runtimeMatrix, $defaultClassGate, $instanceClassMethodGate, $implicitClassReceiverGate, $explicitConstructorFieldGate, $classReferenceFieldGate, $explicitClassConstructorGate, $staticClassGate, $virtualClassModelGate, $protocolDispatchGate, $protocolWitnessAdapterGate, $asyncClassMethodGate, $cScalarAbiGate, $exportPrimitiveWidthGate, $u64AbiGate, $integerConversionAbiGate, $checkedFloatConversionGate, $checkedTimeConversionGate, $boolConversionAbiGate, $checkedCastAbiGate, $nullableCastAbiGate, $nominalCastAbiGate, $dynamicConditionalTruthGate, $dynamicUnaryAbiGate, $dynamicBinaryExtendedAbiGate, $checkedIntegerArithmeticAbiGate, $i64PowAbiGate, $timeApproxAbiGate, $specialF64ConstantAbiGate, $scalarConversionAbiGate, $timeConversionAbiGate, $functionValueOwnershipGate, $openFunctionGate, $foreignFunctionValueGate, $copyCloneGate, $exportBoundaryGate, $globalExportBoundaryGate, $externGlobalBoundaryGate, $nullAbiBoundaryGate, $callSiteBindingGate, $callSiteVariadicGate, $callSiteCVarargGate, $callSiteGenericGate, $classProtocolSyntaxGate, $intrinsicCallGate, $nativeNominalReceiverGate, $nativeHandleBindGate, $resolvedPropertyCallGate, $valueInitializerGate, $reachabilityGate, $productResultGate, $namedFunctionAdapterGate, $collectionMemberGate, $erasedArrayAppendGate, $collectionAlgebraGate, $dynamicCollectionMethodGate, $xcallGate, $asyncGenericPlannerGate, $asyncCfgLivenessGate, $asyncMultiAwaitMachineGate, $asyncMachineAdmissionGate, $asyncErrorAbiGate, $futureCancelGate, $futureMemberStatusGate, $dynamicKeyIndexGate, $indexWriteAbiGate, $ownedExpressionDiscardGate, $xvalueMembershipGate, $stringMembershipGate, $rangeMembershipGate, $rangeForAbiGate, $generatorMachineGate, $interpolatedStringGate, $arrayI64ForAbiGate, $xvalueIteratorAbiGate, $setI64IteratorAbiGate, $iteratorScalarProjectionGate, $iteratorManagedProjectionGate, $arrayIteratorProjectionGate, $dictIteratorProjectionGate, $erasedCollectionIteratorGate, $dynamicVarIteratorGate, $stringIteratorGate, $charBytesAbiGate, $collectionTypeRebindGate, $nullableContainerProjectionGate, $safeIndexNullableCollectionGate, $nullableSafeClassFieldGate, $memberAbiGate, $lengthProtocolMemberGate, $classFieldMemberAbiGate, $classFieldInheritedNarrowedGate, $nullableStringLifecycleGate) ) {
     if ( ! (Test-Path -LiteralPath $path) ) {
         throw "XLIR migration coverage input is missing: $path"
     }
@@ -979,6 +985,7 @@ $dictIteratorProjectionGateText = [System.IO.File]::ReadAllText($dictIteratorPro
 $erasedCollectionIteratorGateText = [System.IO.File]::ReadAllText($erasedCollectionIteratorGate, [System.Text.Encoding]::UTF8)
 $dynamicVarIteratorGateText = [System.IO.File]::ReadAllText($dynamicVarIteratorGate, [System.Text.Encoding]::UTF8)
 $stringIteratorGateText = [System.IO.File]::ReadAllText($stringIteratorGate, [System.Text.Encoding]::UTF8)
+$charBytesAbiGateText = [System.IO.File]::ReadAllText($charBytesAbiGate, [System.Text.Encoding]::UTF8)
 $protocolIteratorGateText = [System.IO.File]::ReadAllText($protocolIteratorGate, [System.Text.Encoding]::UTF8)
 $collectionTypeRebindGateText = [System.IO.File]::ReadAllText($collectionTypeRebindGate, [System.Text.Encoding]::UTF8)
 $nullableContainerProjectionGateText = [System.IO.File]::ReadAllText($nullableContainerProjectionGate, [System.Text.Encoding]::UTF8)
@@ -1028,7 +1035,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_persistence_projection_roots.xl",
     '"list-sequence"', '"set-sequence"', '"dict-object"',
-    "persistence-json-stringify", "persistence-xson-stringify",
+    "persistence-json-stringify", "persistence-xlon-stringify",
     "xrtValueIterAdvance(iterator, NULL, &borrowed)",
     "xrtValueObjectAt(source, index, &key)",
     "xl6_xrt_typed_list_to_sequence_value", "SequenceEqual", "-Werror",
@@ -1631,8 +1638,10 @@ foreach ( $required in @(
     "cgen_fstring.xl", "cgen_loop_fstring_needs.xl",
     "cgen_generator_fstring_needs.xl", "interpolated-string",
     "interp_string", "interp_text", "nodeChildCount", "nodeChildren",
+    "string-from-utf8", "explicit-length decoded UTF-8 payload",
     "string-copy", "bool-to-string", "i64-to-string",
     "u64-to-string", "f64-to-string", "xvalue-to-string",
+    "explicit protected load", "adjacent allocation failure edge",
     "left-to-right", "byte-for-byte deterministic",
     "xl6_xrt_fstr_join", "-Werror", "strict generated-C runtime failed"
 ) ) {
@@ -1760,7 +1769,8 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_string_iterator_abi.xl", "stdlib_string.xl",
     "string-utf8-value", "string-utf8-index-value",
-    "string-snapshot-release", "string-utf8-count", "string-utf8-at",
+    "string-snapshot-release", "string-utf8-count", "string-scalar-at",
+    "trivial char projection", "checked status edges",
     "copy-vs-transfer acquisition semantics",
     "empty/continue/break/return/finally/throw cleanup",
     "emoji runtime semantics", "ReadAllBytes", "-Werror"
@@ -1768,6 +1778,24 @@ foreach ( $required in @(
 ) ) {
     if ( ! $stringIteratorGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the canonical UTF-8 string iterator gate: $required"
+    }
+}
+foreach ( $required in @(
+    "char_bytes_literals.xl", "char_bytes_advanced.xl",
+    "cAbi -ne 43", "cAbi -ne 44", "unicode-scalar",
+    "string-scalar-set-copy", "bytes-set-copy", "bytes-index-value",
+    "xvalue-char", "persistence-xlon-stringify",
+    "future<char>", "generator<bytes>",
+    "char_bytes_invalid_char_width.xl",
+    "char_bytes_invalid_char_surrogate.xl",
+    "char_bytes_invalid_bf_prefix.xl",
+    "char_bytes_invalid_brf_prefix.xl",
+    "formatted backticks must preserve ordinary escapes",
+    "formatted triple strings must use common-indent framing",
+    "SequenceEqual", "-Werror", "XL6_CGEN_LINKS"
+) ) {
+    if ( ! $charBytesAbiGateText.Contains($required) ) {
+        throw "XLIR migration matrix requires the complete char/bytes ABI gate: $required"
     }
 }
 foreach ( $required in @(
@@ -2515,7 +2543,7 @@ foreach ( $required in @(
     "xlir_persistence_json_abi.xl",
     "persistence-json-stringify", "persistence-json-parse",
     "persistence-json-write", "persistence-json-read",
-    "persistence-xson-write", "persistence-xson-read",
+    "persistence-xlon-write", "persistence-xlon-read",
     "explicit default-instance reconstruction",
     "inherited/nested projection", "byte-for-byte deterministic",
     "strict-C/runtime gate failed", "strict file/runtime behavior"
@@ -2621,10 +2649,10 @@ foreach ( $name in $runtimeContracts ) {
         $jsonValueGateText
     } elseif ( $name -in @("xlir_json_writer_bridge", "xlir_json_visit_bridge") ) {
         $jsonStreamGateText
-    } elseif ( $name -in @("xlir_xson_value_bridge", "xlir_xson_valid_only") ) {
-        $xsonValueGateText
-    } elseif ( $name -in @("xlir_xson_writer_bridge", "xlir_xson_writer_type_only", "xlir_xson_writer_factory_only", "xlir_xson_visit_bridge") ) {
-        $xsonStreamGateText
+    } elseif ( $name -in @("xlir_xlon_value_bridge", "xlir_xlon_valid_only") ) {
+        $xlonValueGateText
+    } elseif ( $name -in @("xlir_xlon_writer_bridge", "xlir_xlon_writer_type_only", "xlir_xlon_writer_factory_only", "xlir_xlon_visit_bridge") ) {
+        $xlonStreamGateText
     } elseif ( $name -like "xlir_host_error_boundary_*" ) {
         $hostErrorBoundaryGateText
     } elseif ( $name -like "xlir_serialization_callback_*" ) {
@@ -2647,7 +2675,7 @@ foreach ( $name in $runtimeContracts ) {
         $runtimeMatrixText
     }
     if ( ! $runtimeGateText.Contains("$name.xl") -and
-         !(($name -like "xlir_json_*" -or $name -like "xlir_xson_*" -or $name -like "xlir_host_error_boundary_*" -or $name -like "xlir_serialization_callback_*" -or $name -like "xlir_text_output_*" -or $name -in $matrix["direct directory and process bridge ABI"] -or $name -in $matrix["statically shaped erased collection member ABI"]) -and $runtimeGateText.Contains('"' + $name + '"')) ) {
+         !(($name -like "xlir_json_*" -or $name -like "xlir_xlon_*" -or $name -like "xlir_host_error_boundary_*" -or $name -like "xlir_serialization_callback_*" -or $name -like "xlir_text_output_*" -or $name -in $matrix["direct directory and process bridge ABI"] -or $name -in $matrix["statically shaped erased collection member ABI"]) -and $runtimeGateText.Contains('"' + $name + '"')) ) {
         throw "XLIR runtime contract gate does not execute: $name"
     }
 }
@@ -2714,8 +2742,8 @@ foreach ( $name in $xlirOnlyRuntimeContracts ) {
         $erasedCollectionMemberGateText
     } elseif ( $name -in @("xlir_serialization_callback_lifetime", "xlir_serialization_callback_async_error", "xlir_serialization_callback_generator_error") ) {
         $serializationCallbackGateText
-    } elseif ( $name -eq "xlir_xson_visit_capture_lifetime" ) {
-        $xsonStreamGateText
+    } elseif ( $name -eq "xlir_xlon_visit_capture_lifetime" ) {
+        $xlonStreamGateText
     } elseif ( $name -eq
             "xlir_persistence_recursive_collection_values" ) {
         $recursiveCollectionPersistenceGateText
@@ -2763,7 +2791,7 @@ foreach ( $name in $xlirOnlyRuntimeContracts ) {
         $nullAbiBoundaryGateText
     }
     if ( ! $runtimeGateText.Contains("$name.xl") -and
-         !($name -in @("xlir_dir_empty_bridge", "xlir_dir_count_bridge", "xlir_dir_size_bridge", "xlir_json_visit_capture_lifetime", "xlir_xson_visit_capture_lifetime", "xlir_serialization_callback_lifetime", "xlir_serialization_callback_async_error", "xlir_serialization_callback_generator_error", "xlir_erased_collection_member_lifetime") -and $runtimeGateText.Contains('"' + $name + '"')) ) {
+         !($name -in @("xlir_dir_empty_bridge", "xlir_dir_count_bridge", "xlir_dir_size_bridge", "xlir_json_visit_capture_lifetime", "xlir_xlon_visit_capture_lifetime", "xlir_serialization_callback_lifetime", "xlir_serialization_callback_async_error", "xlir_serialization_callback_generator_error", "xlir_erased_collection_member_lifetime") -and $runtimeGateText.Contains('"' + $name + '"')) ) {
         throw "XLIR dedicated gate does not execute XLIR-only contract: $name"
     }
 }
@@ -2774,8 +2802,8 @@ foreach ( $gate in @(
     @{ Text = $erasedCollectionMemberGateText; Required = @("runtimeTypeMap.fallback", "typedCollectionOpName", "resultAbiName", "temporary", "continuation", "-Werror", '--backend xlir') },
     @{ Text = $serializationCallbackGateText; Required = @("errorAbiName", "errorPhysicalAbiName", "result-carrier", "machineOps", "Marker", "-Werror", '@("xlir")') },
     @{ Text = $hostErrorBoundaryGateText; Required = @("errorAbiName", "xlir_module_init", "result.ok", "Marker", "-Werror", '@("xlir")') },
-    @{ Text = $xsonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_option", "-Werror", '@("xlir")') },
-    @{ Text = $xsonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR ownership contract") },
+    @{ Text = $xlonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_option", "-Werror", '@("xlir")') },
+    @{ Text = $xlonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR ownership contract") },
     @{ Text = $jsonValueGateText; Required = @("runtimeBridgeName", "parameterAbis", "parameterPhysicalAbis", "wrong_dom", "missing_pretty", "-Werror", '@("xlir")') },
     @{ Text = $jsonStreamGateText; Required = @("native-class-field-take", "resultPhysicalDestroySymbol", "language-function-value", "wrong_callback_result", "-Werror", "XLIR ownership contract") },
     @{ Text = $nativeFactoryDeclarationGateText; Required = @("xlir_native_factory_declaration.xl", "unreachable", "native-class-field-take", "resultPhysicalDestroySymbol", "-Werror", "--backend xlir") }

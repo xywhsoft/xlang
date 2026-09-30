@@ -1,5 +1,5 @@
 func main(...) as int
-    bool invalid = xson.valid("{bad}")
+    bool invalid = xlon.valid("{bad}")
     throw "main-boundary-sentinel"
     return 0
 end

@@ -2,22 +2,22 @@ func appendShared(array<int> values)
     values.append(2)
 end
 
-func appendCopy(byval array<int> values)
+func appendCopy(array<int> values)
     values.append(3)
 end
 
-func rebindLocal(byval array<int> values)
+func rebindLocal(array<int> values)
     values = array[90]
 end
 
-func replaceArray(byref array<int> values)
+func replaceArray(array<int> values) as array<int>
     array<int> next = array[7, 8]
-    values = next
+    return next
 end
 
-func writeArray(out array<int> values)
+func writeArray() as array<int>
     array<int> next = array[9]
-    values = next
+    return next
 end
 
 func main(...) as int
@@ -39,12 +39,11 @@ func main(...) as int
     assert source.length == 4
     assert source[0] == 1
 
-    replaceArray(byref source)
+    source = replaceArray(source)
     assert source.length == 2
     assert source[0] == 7
 
-    array<int> output = array[]
-    writeArray(out output)
+    array<int> output = writeArray()
     assert output.length == 1
     assert output[0] == 9
     return 0

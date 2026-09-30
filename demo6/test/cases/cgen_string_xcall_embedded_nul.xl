@@ -1,0 +1,7 @@
+func identity(string value = "a\0b") as string
+    return value
+end
+
+var callable = xcall(identity)
+assert callable() == "a\0b"
+assert callable("x\0y") == "x\0y"

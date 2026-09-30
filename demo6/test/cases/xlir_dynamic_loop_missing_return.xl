@@ -1,0 +1,7 @@
+func missing(bool condition) as int
+    while condition
+        return 7
+    end
+end
+
+println(missing(false))

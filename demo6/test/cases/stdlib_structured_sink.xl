@@ -1,0 +1,48 @@
+int chunks = 0
+func consume(var part) as bool
+    assert part != null
+    chunks += 1
+    return true
+end
+
+assert json.writeTo({"a": 1}, consume)
+assert chunks > 0
+chunks = 0
+assert xlon.writeTo({"a": 1}, consume, {"pretty": true})
+assert chunks > 0
+chunks = 0
+assert jsonl.writeTo([{"a": 1}], consume)
+assert chunks > 0
+chunks = 0
+assert xlonl.writeTo([{"a": 1}], consume)
+assert chunks > 0
+
+func reject(var part) as bool
+    return false
+end
+bool rejected = false
+try
+    json.writeTo({"a": 1}, reject)
+catch e
+    rejected = true
+end
+assert rejected
+
+func throwFromSink(var part) as bool
+    throw ValueError "sink-failure"
+    return true
+end
+bool propagated = false
+try
+    xlon.writeTo({"a": 1}, throwFromSink)
+catch e
+    assert e.message == "sink-failure"
+    propagated = true
+end
+assert propagated
+
+assert json.quote("A\nB") == "\"A\\nB\""
+assert json.quote("<", {"escapeHtml": true}) == "\"\\u003C\""
+chunks = 0
+assert json.quoteTo("A\nB", consume)
+assert chunks > 0

@@ -12,6 +12,11 @@ assert textCh.trySend("你好"), "UTF-8 string channel send failed"
 assert textCh.tryRecvInto(received), "UTF-8 string channel recv failed"
 assert received == "你好", "UTF-8 string channel value mismatch"
 
+assert textCh.send("a\0b"), "embedded-NUL string channel send failed"
+assert textCh.recvInto(received), "embedded-NUL string channel recv failed"
+assert string.byteLen(received) == 3, "channel must preserve full byte length"
+assert string.byteAt(received, 2) == 98, "channel must preserve bytes after NUL"
+
 assert textCh.send("before close"), "buffered string send failed"
 textCh.close()
 assert textCh.recvInto(received), "closed string channel must drain buffered value"

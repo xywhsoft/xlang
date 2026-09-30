@@ -538,7 +538,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                     if ( type == NULL ) continue;
                     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
                         needs->needsStringRuntime = 1;
-                    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+                    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                              type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
                         needs->needsXValueRuntime = 1;
                     else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR )
                         needs->needsFutureRuntime = 1;
@@ -761,7 +762,10 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsXValueRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
-            if ( module->instructions[i].integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
+            if ( module->instructions[i].integerTarget ==
+                     XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
+                needs->needsCheckedCharRuntime = 1;
+            else if ( module->instructions[i].integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
                 needs->needsCheckedU64Runtime = 1;
             else
                 needs->needsCheckedI64Runtime = 1;
@@ -796,6 +800,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsFutureAwaitRuntime = 1;
             if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID ) needs->needsFutureAwaitVoid = 1;
             else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_BOOL ) needs->needsFutureAwaitBool = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_CHAR ) needs->needsFutureAwaitChar = 1;
             else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_I64 ) needs->needsFutureAwaitI64 = 1;
             else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_U64 ) needs->needsFutureAwaitU64 = 1;
             else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TYPE_ID ) needs->needsFutureAwaitTypeId = 1;

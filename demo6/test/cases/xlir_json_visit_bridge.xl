@@ -18,7 +18,7 @@ func visitScope()
         end
         return true
     end
-    assert json.visit('{"name":"中文","items":[1,true,null]}', visitor) == json.visitComplete
+    assert json.visit(`{"name":"中文","items":[1,true,null]}`, visitor) == json.visitComplete
     assert witnesses.length == 8
     assert saved.length == 1
     assert saved[0]["key"] == "name"

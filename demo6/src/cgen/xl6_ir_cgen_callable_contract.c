@@ -11,7 +11,7 @@ static int xl6IrCgenRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 {
     return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
            abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_TYPE_ID ||
-           abi == XL6_IR_C_ABI_F64;
+           abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_CHAR_U32;
 }
 
 static int xl6IrCgenRuntimeCallableSlotIsErrorRef(
@@ -232,7 +232,8 @@ static const char* xl6IrCgenStorageReleaseFunction(
     if ( type == NULL || type->ownershipAbi !=
              XL6_IR_OWNERSHIP_ABI_MANAGED ) return NULL;
     switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_MANAGED_STRING: return "xrtFree";
+    case XL6_IR_C_ABI_MANAGED_STRING: return "xlir_string_drop";
+    case XL6_IR_C_ABI_MANAGED_BYTES: return "xrtValueRelease";
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xrtValueRelease";
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return "xrtErrorFree";
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return "xrtFutureDestroy";
@@ -299,9 +300,14 @@ static int xl6IrCgenEmitProductDrop(
         if ( release == NULL )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C emitter product element destructor ABI is unresolved");
-        xl6OutputPrintf(out,
-            "    %s(value->e%lu); value->e%lu = NULL;\n",
-            release, (unsigned long)element, (unsigned long)element);
+        if ( elementType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+            xl6OutputPrintf(out,
+                "    %s(value->e%lu); value->e%lu = (xlir_string){0};\n",
+                release, (unsigned long)element, (unsigned long)element);
+        else
+            xl6OutputPrintf(out,
+                "    %s(value->e%lu); value->e%lu = NULL;\n",
+                release, (unsigned long)element, (unsigned long)element);
     }
     xl6OutputPuts("}\n", out);
     return !xl6OutputHasFailed(out);

@@ -1,0 +1,122 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+string filePath = "build/test/stdlib_xlon_case.xlon"
+
+file.delete(filePath)
+
+expect(xlon.valid(`{"name":"xlang","ok":true}`), 1)
+expect(xlon.valid(`{"keep":1,"skip":ptr("123"),"after":2}`), 0)
+XlonOptions decodeOptions = xlon.options(ignoreUnsupportedDecode = true)
+expect(xlon.valid(`{"keep":1,"skip":ptr("123"),"after":2}`, decodeOptions), 1)
+
+var values = xlon.parse("[1,2,3]")
+string compactValues = xlon.stringify(values)
+XlonOptions prettyOptions = xlon.options(pretty = true)
+string prettyValues = xlon.stringify(values, prettyOptions)
+
+expect(string.contains(compactValues, "1"), 1)
+expect(string.contains(compactValues, "2"), 1)
+expect(string.contains(compactValues, "3"), 1)
+expect(string.len(prettyValues) >= string.len(compactValues), 1)
+
+var roundTripValues = xlon.parse(compactValues)
+expectStr(json.stringify(roundTripValues), "[1,2,3]")
+
+XlonWriter writer = xlon.writer()
+expect(writer.beginDict(), 1)
+expect(writer.writeString("name", "xlang"), 1)
+expect(writer.beginList("items"), 1)
+expect(writer.writeString(2, "two"), 1)
+expect(writer.endList(), 1)
+expect(writer.beginSet("tags"), 1)
+expect(writer.writeInt(1), 1)
+expect(writer.writeInt(2), 1)
+expect(writer.endSet(), 1)
+expect(writer.writeTime("created", #2026-06-18 00:00:00#), 1)
+expect(writer.endDict(), 1)
+string writerText = writer.finish()
+expect(string.contains(writerText, "intmap{"), 1)
+expect(string.contains(writerText, "set["), 1)
+expect(string.contains(writerText, "time("), 1)
+expect(string.contains(xlon.stringify(xlon.parse(writerText)), `"name"`), 1)
+
+XlonWriter prettyWriter = xlon.writer(true)
+expect(prettyWriter.beginArray(), 1)
+expect(prettyWriter.writeInt(1), 1)
+expect(prettyWriter.writeString("two"), 1)
+expect(prettyWriter.endArray(), 1)
+expect(string.contains(prettyWriter.finish(), "\n"), 1)
+
+XlonWriter optionWriter = xlon.writer(prettyOptions)
+expect(optionWriter.beginDict(), 1)
+expect(optionWriter.writeInt("level", 6), 1)
+expect(optionWriter.writeTime("created", #2026-06-18 00:00:00#), 1)
+expect(optionWriter.endDict(), 1)
+string optionWriterText = optionWriter.finish()
+expect(string.contains(optionWriterText, "\n"), 1)
+expect(string.contains(optionWriterText, "time("), 1)
+
+var object = xlon.parse(`{"name":"xlang","ok":true}`)
+string objectText = xlon.stringify(object)
+
+expect(string.contains(objectText, "name"), 1)
+expect(string.contains(objectText, "xlang"), 1)
+
+expect(xlon.write(filePath, object, prettyOptions), 1)
+expect(file.exists(filePath), 1)
+
+var fileObject = xlon.read(filePath, prettyOptions)
+string fileObjectText = json.stringify(fileObject)
+
+expect(string.contains(fileObjectText, `"name"`), 1)
+expect(string.contains(fileObjectText, `"xlang"`), 1)
+expect(file.delete(filePath), 1)
+
+int xlonEventCount = 0
+int xlonStringIndex = -1
+int xlonTimeCount = 0
+int xlonSetBeginCount = 0
+
+func onXlonEvent(var event) as bool
+    xlonEventCount += 1
+    string kind = string(event["type"])
+    if kind == "listBegin" then
+        expectStr(string(event["key"]), "items")
+    end
+    if kind == "string" and string(event["value"]) == "two" then
+        xlonStringIndex = int(event["index"])
+    end
+    if kind == "time" then
+        xlonTimeCount += 1
+        expectStr(string(event["key"]), "when")
+        expect(string.contains(string(event["value"]), "2026-06-18"), 1)
+    end
+    if kind == "setBegin" then
+        xlonSetBeginCount += 1
+        expectStr(string(event["key"]), "tags")
+    end
+    return true
+end
+
+func stopXlonEvent(var event) as bool
+    return int(event["depth"]) < 1
+end
+
+string xlonVisitSource = `{"items":intmap{2:"two"},"tags":set[1,2],"when":time("2026-06-18T00:00:00Z")}`
+expect(xlon.visit(xlonVisitSource, onXlonEvent), xlon.visitComplete)
+expect(xlonEventCount >= 9, 1)
+expect(xlonStringIndex, 2)
+expect(xlonTimeCount, 1)
+expect(xlonSetBeginCount, 1)
+expect(xlon.visit(xlonVisitSource, stopXlonEvent), xlon.visitStopped)
+expect(xlon.visit("{bad}", onXlonEvent), xlon.visitInvalid)
+
+int xlonOptionVisitCount = 0
+func onXlonOptionEvent(var event) as bool
+    xlonOptionVisitCount += 1
+    return true
+end
+
+expect(xlon.visit(xlonVisitSource, onXlonOptionEvent, prettyOptions), xlon.visitComplete)
+expect(xlonOptionVisitCount >= 9, 1)

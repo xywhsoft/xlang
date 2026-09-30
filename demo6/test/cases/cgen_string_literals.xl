@@ -1,11 +1,11 @@
 extern "expect_str" func expectStr(string actual, string expected)
 
-string single = 'hello "x"'
+string single = `hello "x"`
 string rawPath = r"c:\tmp\file.txt"
 string multi = """line1
 line2"""
-string rawMulti = r'''a\b
-"q"'''
+string rawMulti = `a\b
+"q"`
 
 expectStr(single, "hello \"x\"")
 expectStr(rawPath, "c:\\tmp\\file.txt")

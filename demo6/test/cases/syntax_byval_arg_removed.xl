@@ -1,0 +1,4 @@
+func identity(int value) as int
+    return value
+end
+assert identity(byval 1) == 1

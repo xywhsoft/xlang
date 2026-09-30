@@ -1,0 +1,93 @@
+var jsonRead = {"comments": true, "trailingComma": true, "maxDepth": 8}
+assert json.parse("/*test*/{\"a\":1,}", jsonRead)["a"] == 1
+assert json.parse("{", jsonRead) == null
+assert json.parse("1", jsonRead) == 1
+assert json.valid("/*test*/null", jsonRead)
+assert !json.valid("{", jsonRead)
+var jsonWrite = {"pretty": true, "indent": 2}
+string jsonText = json.stringify({"a": 1}, jsonWrite)
+assert string.contains(jsonText, "\n")
+string jsonPath = "build/test/stdlib_structured_options.json"
+assert json.write(jsonPath, {"a": 2}, jsonWrite)
+assert json.read(jsonPath, jsonRead)["a"] == 2
+assert file.delete(jsonPath)
+
+var xlonRead = {"comments": true, "maxDecodedBytes": 1024}
+assert xlon.parse("/*test*/{\"a\":1}", xlonRead)["a"] == 1
+assert xlon.parse("{", xlonRead) == null
+assert xlon.parse("1", xlonRead) == 1
+assert xlon.valid("/*test*/null", xlonRead)
+assert !xlon.valid("{", xlonRead)
+var xlonWrite = {"pretty": true, "indent": 2}
+assert string.contains(xlon.stringify({"a": 1}, xlonWrite), "\n")
+string xlonPath = "build/test/stdlib_structured_options.xlon"
+assert xlon.write(xlonPath, {"a": 2}, xlonWrite)
+assert xlon.read(xlonPath, xlonRead)["a"] == 2
+assert file.delete(xlonPath)
+
+var jsonlRead = {"record": {"comments": true}, "maxRecords": 2}
+var jsonlRecords = jsonl.parse("/*test*/{\"a\":1}\n", jsonlRead)
+assert jsonl.parse("{\n", jsonlRead) == null
+assert jsonl.parse("1\n", jsonlRead)[0] == 1
+assert jsonlRecords[0]["a"] == 1
+assert jsonl.valid("/*test*/null\n", jsonlRead)
+assert !jsonl.valid("{\n", jsonlRead)
+var lineWrite = {"maxRecords": 2}
+assert jsonl.stringify(jsonlRecords, lineWrite) == "{\"a\":1}\n"
+string jsonlPath = "build/test/stdlib_structured_options.jsonl"
+assert jsonl.write(jsonlPath, jsonlRecords, lineWrite)
+assert jsonl.read(jsonlPath, jsonlRead)[0]["a"] == 1
+assert file.delete(jsonlPath)
+
+var xlonlRead = {"record": {"comments": true}, "maxRecords": 2}
+var xlonlRecords = xlonl.parse("/*test*/{\"a\":1}\n", xlonlRead)
+assert xlonl.parse("{\n", xlonlRead) == null
+assert xlonl.parse("1\n", xlonlRead)[0] == 1
+assert xlonlRecords[0]["a"] == 1
+assert xlonl.valid("/*test*/null\n", xlonlRead)
+assert !xlonl.valid("{\n", xlonlRead)
+assert xlonl.stringify(xlonlRecords, lineWrite) == "{\"a\":1}\n"
+string xlonlPath = "build/test/stdlib_structured_options.xlonl"
+assert xlonl.write(xlonlPath, xlonlRecords, lineWrite)
+assert xlonl.read(xlonlPath, xlonlRead)[0]["a"] == 1
+assert file.delete(xlonlPath)
+
+bool invalidOptionsRaised = false
+try
+    json.valid("1", {"notAnOption": true})
+catch e
+    invalidOptionsRaised = true
+end
+assert invalidOptionsRaised
+
+invalidOptionsRaised = false
+try
+    json.parse("1", {"notAnOption": true})
+catch e
+    invalidOptionsRaised = true
+end
+assert invalidOptionsRaised
+
+invalidOptionsRaised = false
+try
+    xlon.read("build/test/stdlib_structured_options_missing.xlon", {"notAnOption": true})
+catch e
+    invalidOptionsRaised = true
+end
+assert invalidOptionsRaised
+
+invalidOptionsRaised = false
+try
+    jsonl.parse("1\n", {"record": {"notAnOption": true}})
+catch e
+    invalidOptionsRaised = true
+end
+assert invalidOptionsRaised
+
+invalidOptionsRaised = false
+try
+    xlonl.write("build/test/stdlib_structured_options_invalid.xlonl", xlonlRecords, {"notAnOption": true})
+catch e
+    invalidOptionsRaised = true
+end
+assert invalidOptionsRaised

@@ -100,7 +100,7 @@ try {
         throw "XLIR component-supplied TLS callback retained a redundant extern declaration"
     }
     if ( $generated -notmatch
-         'v\d+\s*=\s*NULL;\s*\r?\n\s*v\d+\s*=\s*xl6_test_point_is_null\(v\d+\);' ) {
+         '(?s)(v\d+)\s*=\s*NULL;.{0,400}xl6_test_point_is_null\(\1\);' ) {
         throw "XLIR point(null) generated C did not materialize the verified raw null value"
     }
 

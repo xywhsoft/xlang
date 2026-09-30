@@ -1995,19 +1995,21 @@ static void xlAddDefaultTccLinkLibraries(TCCState* s)
 #ifdef _WIN32
     /*
      * XRT 是 xlang 的基础运行库。Windows 版本的 XRT 会使用 socket、
-     * IP Helper 和 shell 等系统能力，因此生成外部 exe/dll 时需要默认
-     * 链接这些库；内存运行路径调用它也无害，并能让用户直接使用同一组
-     * TCC 能力。这里不强制检查返回值，让最终链接阶段给出精确诊断。
+     * IP Helper 和 shell 等系统能力；C99 数学函数需要 UCRT 中超出
+     * 旧 msvcrt 的导出。生成外部 exe/dll 和内存运行使用同一默认链接集。
+     * 这里不强制检查返回值，让最终链接阶段给出精确诊断。
      */
 # ifdef XL_STATIC_TCC
     (void)tcc_add_library(s, "Ws2_32");
     (void)tcc_add_library(s, "IPHLPAPI");
     (void)tcc_add_library(s, "Shell32");
+    (void)tcc_add_library(s, "ucrtbase");
 # else
     if ( xl__tcc.tcc_add_library != NULL ) {
         (void)xl__tcc.tcc_add_library(s, "Ws2_32");
         (void)xl__tcc.tcc_add_library(s, "IPHLPAPI");
         (void)xl__tcc.tcc_add_library(s, "Shell32");
+        (void)xl__tcc.tcc_add_library(s, "ucrtbase");
     }
 # endif
 #else
@@ -2062,11 +2064,19 @@ static int xlCheckScriptActiveError(XL_Context* ctx, TCCState* state)
 }
 
 
-/* 配置 native C 包的裁剪宏和包内公共头目录。 */
-static int xlTccPrepareImportSources(
+/* 纯 C 不经过语言调用图裁剪；声明的能力必须与宿主/独立产物的完整运行库一致。 */
+static void xlTccSelectFullRuntime(TCCState* state)
+{
+    xl__tcc.tcc_define_symbol(state, "XRT_MODULE_ALL", "1");
+    xl__tcc.tcc_define_symbol(state, "XRUNTIME_MODULE_ALL", "1");
+}
+
+/* 包与显式混编 C 共用能力判定，JIT 声明可见性和 AOT 实现选择保持一致。 */
+static int xlTccPrepareNativeSources(
     XL_Context* ctx,
     TCCState* state,
-    const XL6_CompileUnit* unit
+    const XL6_CompileUnit* unit,
+    const XL_StringList* cSourceFiles
 )
 {
     size_t i;
@@ -2074,14 +2084,11 @@ static int xlTccPrepareImportSources(
     if ( state == NULL || unit == NULL ) {
         return 0;
     }
-    if ( unit->importDeps.cSources.count != 0 ) {
-        if ( unit->importDeps.hasUndeclaredCSourceModules ) {
-            xl__tcc.tcc_define_symbol(state, "XRT_MODULE_ALL", "1");
-            xl__tcc.tcc_define_symbol(state, "XRUNTIME_MODULE_ALL", "1");
-        } else {
-            for ( i = 0; i < unit->importDeps.xrtModules.count; i += 1 ) {
-                xl__tcc.tcc_define_symbol(state, unit->importDeps.xrtModules.items[i], "1");
-            }
+    if ( xl6XrtTrimRequiresFull(&unit->importDeps, cSourceFiles != NULL ? cSourceFiles->count : 0) ) {
+        xlTccSelectFullRuntime(state);
+    } else {
+        for ( i = 0; i < unit->importDeps.xrtModules.count; i += 1 ) {
+            xl__tcc.tcc_define_symbol(state, unit->importDeps.xrtModules.items[i], "1");
         }
     }
     for ( i = 0; i < unit->importDeps.includeDirs.count; i += 1 ) {
@@ -2099,6 +2106,8 @@ static int xlTccPrepareImportSources(
 
 
 #if XL_ENABLE_EXE_COMPILER
+static int xlCompileUnitHasExecutableEntry(XL_Context* ctx, XL6_CompileUnit* unit);
+
 static int xlCompileUnitToExternalOutputWithC(
     XL_Context* ctx,
     XL6_CompileUnit* unit,
@@ -2127,13 +2136,16 @@ static int xlCompileUnitToExternalOutputWithC(
     memset(&artifactRuntime, 0, sizeof(artifactRuntime));
     if ( requestedOptions != NULL ) options = *requestedOptions;
     options.emitScriptEntry = 1;
-    options.emitMainWrapper = outputType == TCC_OUTPUT_EXE;
+    /* 显式混编 C 且没有语言入口时，由 C 提供 main；纯脚本仍可只执行全局初始化。 */
+    options.emitMainWrapper = outputType == TCC_OUTPUT_EXE &&
+        (cSourceFiles == NULL || cSourceFiles->count == 0 ||
+         xlCompileUnitHasExecutableEntry(ctx, unit) > 0);
     ok = 0;
     xlTccDynamicVfsClear();
     if ( !xlCgenToMemory(ctx, unit, &cText, &options) ) {
         goto cleanup;
     }
-    if (!xl6ArtifactRuntimePlanBuild(&unit->ir, outputType == TCC_OUTPUT_EXE
+    if (!xl6ArtifactRuntimePlanBuild(&unit->ir, options.emitMainWrapper
             ? XL6_ARTIFACT_ENTRY_EXECUTABLE_V1 : XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,
             &artifactRuntime, &unit->parse.diags)) {
         xlSetCompileDiagError(ctx, unit);
@@ -2146,7 +2158,7 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( s == NULL ) {
         goto cleanup;
     }
-    if ( !xlTccPrepareImportSources(ctx, s, unit) ) {
+    if ( !xlTccPrepareNativeSources(ctx, s, unit, cSourceFiles) ) {
         goto cleanup;
     }
     if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_RUNTIME_C,
@@ -2178,6 +2190,7 @@ static int xlCompileUnitToExternalOutputWithC(
         goto cleanup;
     }
     if ( !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit->importDeps,
+            cSourceFiles != NULL ? cSourceFiles->count : 0,
             artifactRuntime.nativeModules, artifactRuntime.nativeModuleCount, &runtimeSource) ) {
         xlSetError(ctx, "cannot generate XRT implementation source");
         goto cleanup;
@@ -3022,7 +3035,7 @@ static XL_Module* xlCompileUnitToModuleWithC(
     if ( s == NULL ) {
         goto cleanup;
     }
-    if ( !xlTccPrepareImportSources(ctx, s, unit) ) {
+    if ( !xlTccPrepareNativeSources(ctx, s, unit, cSourceFiles) ) {
         goto cleanup;
     }
     if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
@@ -3082,6 +3095,7 @@ static XL_Module* xlCompileCSourceTextToModule(XL_Context* ctx, const char* sour
     if ( s == NULL ) {
         goto cleanup;
     }
+    xlTccSelectFullRuntime(s);
     if ( !xlTccCompileSourceText(ctx, s, path, source, "TCC C compile failed") ) {
         goto cleanup;
     }
@@ -3123,6 +3137,7 @@ static int xlAddCSourceFilesToTcc(XL_Context* ctx, TCCState* s, const char** pat
         xlSetError(ctx, "too many C source files");
         return 0;
     }
+    xlTccSelectFullRuntime(s);
     for ( i = 0; i < pathCount; ++i ) {
         if ( paths[i] == NULL || paths[i][0] == '\0' ) {
             xlSetError(ctx, "C source file path is empty");
@@ -4443,8 +4458,6 @@ static int xlCompileCSourceFilesToExternalOutput(
          xlAddDependenciesToTcc(ctx, s, NULL) &&
          xlAddResourceFilesToTcc(ctx, s) &&
          xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
-             "#define XRT_MODULE_ALL\n"
-             "#define XRUNTIME_MODULE_ALL\n"
              "#define XRUNTIME_IMPLEMENTATION\n"
              "#include \"xruntime.h\"\n",
              "cannot compile XRT/xruntime single header");

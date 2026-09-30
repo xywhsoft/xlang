@@ -62,7 +62,7 @@ foreach ( $expected in $expectedCollections ) {
 
 $persistenceIntrinsics = @($typed.intrinsicCalls | Where-Object {
     $_.kindName -eq "persistence-json-stringify" -or
-    $_.kindName -eq "persistence-xson-stringify"
+    $_.kindName -eq "persistence-xlon-stringify"
 })
 if ( $persistenceIntrinsics.Count -ne 16 ) {
     throw "Typed XLIR persistence projection roots did not normalize every canonical stdlib call"
@@ -83,15 +83,15 @@ $lowered = [System.IO.File]::ReadAllText(
 $jsonOps = @($lowered.instructions | Where-Object {
     $_.runtimeOpName -eq "persistence-json-stringify"
 })
-$xsonOps = @($lowered.instructions | Where-Object {
-    $_.runtimeOpName -eq "persistence-xson-stringify"
+$xlonOps = @($lowered.instructions | Where-Object {
+    $_.runtimeOpName -eq "persistence-xlon-stringify"
 })
-if ( $jsonOps.Count -ne 8 -or $xsonOps.Count -ne 8 ) {
+if ( $jsonOps.Count -ne 8 -or $xlonOps.Count -ne 8 ) {
     throw "Lowered XLIR persistence projection RuntimeOps are incomplete"
 }
 foreach ( $type in $collectionTypes ) {
     if ( @($jsonOps | Where-Object { $_.payloadType -eq $type.id }).Count -ne 1 -or
-         @($xsonOps | Where-Object { $_.payloadType -eq $type.id }).Count -ne 1 ) {
+         @($xlonOps | Where-Object { $_.payloadType -eq $type.id }).Count -ne 1 ) {
         throw "Lowered XLIR persistence projection lost an exact collection payload TypeId"
     }
 }
@@ -112,7 +112,7 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $type in $collectionTypes ) {
     if ( ! $c.Contains("xlir_persist_json_project_t$($type.id)") -or
-         ! $c.Contains("xlir_persist_xson_project_t$($type.id)") ) {
+         ! $c.Contains("xlir_persist_xlon_project_t$($type.id)") ) {
         throw "XLIR persistence projection Cgen is missing a TypeId-selected helper"
     }
 }
@@ -128,7 +128,7 @@ foreach ( $required in @(
     }
 }
 foreach ( $forbidden in @(
-    "xl6_xrt_json_stringify", "xl6_xrt_xson_stringify",
+    "xl6_xrt_json_stringify", "xl6_xrt_xlon_stringify",
     "xl6_xrt_typed_list_to_sequence_value",
     "xl6_xrt_typed_set_to_sequence_value",
     "xl6_xrt_typed_dict_to_xvalue"

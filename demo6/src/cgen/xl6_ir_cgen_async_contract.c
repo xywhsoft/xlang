@@ -60,9 +60,15 @@ static int xl6IrCgenAsyncResultAbiMatches(
     worker = xl6IrTypeGet(&module->types, target->workerReturnType);
     switch ( target->asyncResultAbi ) {
     case XL6_IR_ASYNC_RESULT_VOID:
-        return target->workerReturnType == XL6_IR_TYPE_INVALID;
+        return target->workerReturnType == XL6_IR_TYPE_INVALID &&
+               xl6IrCgenAsyncPayloadAbiMatches(
+                   xl6IrTypeGet(&module->types, future->params[0]),
+                   XL6_IR_ASYNC_RESULT_VOID);
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_BOOL &&
+               future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+        return worker != NULL && worker->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
                future->params[0] == target->workerReturnType;
     case XL6_IR_ASYNC_RESULT_COPY_I64:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_I64 &&
@@ -84,7 +90,9 @@ static int xl6IrCgenAsyncResultAbiMatches(
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
                future->params[0] == target->workerReturnType;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
-        return worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        return worker != NULL &&
+               (worker->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                worker->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
                future->params[0] == target->workerReturnType;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
@@ -253,7 +261,7 @@ static int xl6IrCgenEmitFrameAcquisitionBegin(XL6_Output* out,const char* type,
     case XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER:
     case XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE:
     case XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED: break;
-    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING: acquire = "xrtStrDup"; break;
+    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING: acquire = "xlir_string_copy"; break;
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_XVALUE: acquire = "xrtValueRetain"; break;
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_FUTURE: acquire = "xrtFutureRef"; break;
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE: acquire = "xlir_closure_retain"; break;
@@ -262,7 +270,9 @@ static int xl6IrCgenEmitFrameAcquisitionBegin(XL6_Output* out,const char* type,
     default: return 0;
     }
     *acquired=acquire!=NULL;
-    if (acquire) xl6OutputPrintf(out,"    { %s xlir_acquired = %s != NULL ? %s(%s) : NULL;\n",type,input,acquire,input);
+    if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING)
+        xl6OutputPrintf(out,"    { %s xlir_acquired = xlir_string_copy(%s);\n",type,input);
+    else if (acquire) xl6OutputPrintf(out,"    { %s xlir_acquired = %s != NULL ? %s(%s) : NULL;\n",type,input,acquire,input);
     else xl6OutputPrintf(out,"    { %s xlir_acquired = %s;\n",type,input);
     return !xl6OutputHasFailed(out);
 }
@@ -280,7 +290,10 @@ static int xl6IrCgenEmitActivationCapture(
     if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE || transfer==XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED ||
         !xl6IrCgenEmitFrameAcquisitionBegin(out,type,transfer,input,&acquired)) return 0;
     if (acquired) {
-        xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
+        if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING)
+            xl6OutputPrintf(out,"    if (%s.Data != NULL && xlir_acquired.Data == NULL) {\n",input);
+        else
+            xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
         xl6IrCgenEmitActivationFailure(out); xl6OutputPrintf(out,"    %s return NULL; }\n",rollback);
     }
     if (!xl6IrCgenEmitFrameAcquisitionCommit(out,type,place,initialized)) return 0;
@@ -519,8 +532,10 @@ static int xl6IrCgenAsyncDeclareMachineProgramStorages(
                                  "XLIR async machine local storage has no C ABI");
         if ( storage->cellType != XL6_IR_TYPE_INVALID ||
              typeInfo->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
-            xl6OutputPrintf(out, "    %s s%u = NULL;\n", type,
-                            (unsigned int)storage->symbol);
+            xl6OutputPrintf(out, "    %s s%u = %s;\n", type,
+                            (unsigned int)storage->symbol,
+                            typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                                ? "(xlir_string){0}" : "NULL");
         else
             xl6OutputPrintf(out, "    %s s%u;\n", type,
                             (unsigned int)storage->symbol);
@@ -567,62 +582,27 @@ static int xl6IrCgenAsyncMachineProgramSupported(
     const char** unsupportedReason, char* unsupportedDetail,
     size_t unsupportedDetailCapacity)
 {
-    const XL6_IrType* result = xl6IrTypeGet(&module->types, target->workerReturnType);
     const XL6_IrAsyncSuspension* suspension;
     size_t local;
     size_t action;
     if ( unsupportedReason != NULL ) *unsupportedReason = NULL;
-    if ( result == NULL || function == NULL || machine->suspensionCount == 0 ||
+    if ( !xl6IrCgenAsyncResultAbiMatches(module, target) ||
+         function == NULL || machine->suspensionCount == 0 ||
          (target->workerErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->workerErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
-         (result->cAbi != XL6_IR_C_ABI_BOOL && result->cAbi != XL6_IR_C_ABI_I64 &&
-           result->cAbi != XL6_IR_C_ABI_U64 && result->cAbi != XL6_IR_C_ABI_TYPE_ID &&
-           result->cAbi != XL6_IR_C_ABI_F64 &&
-           result->cAbi != XL6_IR_C_ABI_RAW_POINTER &&
-           result->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
-           result->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-           result->cAbi != XL6_IR_C_ABI_CLOSURE_PTR &&
-           result->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
-           result->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-           result->cAbi != XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
-           result->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE) ||
          machine->prologueActionCount > machine->frameSlotCount ||
          machine->destroyActionCount > machine->frameSlotCount )
         return xl6IrCgenAsyncProgramUnsupported(unsupportedReason,
             "XLIR async machine result, error, suspension or action-count ABI is not admitted");
     for ( local = 0; local < machine->suspensionCount; ++local ) {
-        const XL6_IrType* suspensionType;
+        const XL6_IrInstruction* await;
         suspension = &module->asyncSuspensions[machine->firstSuspension + local];
-        suspensionType = xl6IrTypeGet(&module->types, suspension->resultType);
-        if ( suspensionType == NULL ||
-             !((suspensionType->cAbi == XL6_IR_C_ABI_BOOL &&
-                suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_BOOL) ||
-               (suspensionType->cAbi == XL6_IR_C_ABI_I64 &&
-                suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_I64) ||
-               (suspensionType->cAbi == XL6_IR_C_ABI_U64 &&
-                suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_U64) ||
-               (suspensionType->cAbi == XL6_IR_C_ABI_TYPE_ID &&
-                suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_TYPE_ID) ||
-               (suspensionType->cAbi == XL6_IR_C_ABI_F64 &&
-                 suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_F64) ||
-               (suspensionType->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-                suspensionType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                suspension->resultAbi ==
-                    XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER) ||
-               (suspensionType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-                suspension->resultAbi == XL6_IR_ASYNC_RESULT_OWNED_STRING) ||
-                (suspensionType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                 suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_XVALUE) ||
-                 (suspensionType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
-                  suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE) ||
-                 (suspensionType->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
-                  suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_ERROR) ||
-                 (suspensionType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-                  suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_FUTURE) ||
-                 (suspensionType->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
-                  suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR) ||
-                 (suspensionType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                 suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_TAGGED)) )
+        await = suspension->awaitInstruction < module->instructionCount
+            ? &module->instructions[suspension->awaitInstruction] : NULL;
+        // 阻塞等待和挂起恢复共用结果合同；无返回值只保留状态，不伪造值槽。
+        if ( await == NULL || suspension->resultType != await->type ||
+             suspension->resultAbi != await->asyncResultAbi ||
+             !xl6IrCgenBlockingAwaitAbi(module, await) )
             return xl6IrCgenAsyncProgramUnsupported(unsupportedReason,
                 "XLIR async suspension result ABI is not admitted");
     }
@@ -640,7 +620,8 @@ static int xl6IrCgenAsyncMachineProgramSupported(
             frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING &&
             frame->initBit < machine->initBitCount;
         int managedXValue = frameType != NULL &&
-            frameType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+            (frameType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+             frameType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
             frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE &&
             frame->initBit < machine->initBitCount;
         int managedClosure = frameType != NULL &&
@@ -995,12 +976,13 @@ static int xl6IrCgenAsyncDeclareMachineProgramValues(
         const char* type = xl6IrCgenType(module, suspension->resultType);
         size_t action;
         size_t valueLocal = suspension->resultValue - function->firstValue;
-        if ( type == NULL || valueLocal >= function->valueCount ) {
+        if ( (suspension->resultAbi != XL6_IR_ASYNC_RESULT_VOID && type == NULL) ||
+             valueLocal >= function->valueCount ) {
             xrtFree(declared);
             return xl6IrCgenDiag(diags, module, function->declaration,
                                  "XLIR async machine resume result has no C ABI");
         }
-        if ( !declared[valueLocal] ) {
+        if ( suspension->resultAbi != XL6_IR_ASYNC_RESULT_VOID && !declared[valueLocal] ) {
             declared[valueLocal] = 1;
             xl6OutputPrintf(out, "    %s v%u = {0};\n", type,
                             (unsigned int)suspension->resultValue);
