@@ -1,0 +1,68 @@
+string raw = "build/test/fs-whole.bin"
+string text = "build/test/fs-whole.txt"
+string copied = "build/test/fs-whole-copy.bin"
+string moved = "build/test/fs-whole-move.bin"
+assert file.writeBytes(raw, b"a\0b", 20)
+assert file.readBytes(raw) == b"a\0b"
+assert file.size(raw) == uint64(3)
+assert file.appendBytes(raw, b"cd", 1)
+assert file.readBytes(raw, 4) == b"a\0bc"
+assert file.writeBytesAtomic(raw, b"z\0x", 2)
+assert file.readBytes(raw) == b"z\0"
+assert file.setSize(raw, uint64(3))
+assert file.readBytes(raw) == b"z\0\0"
+assert file.writeText(text, "a\0你")
+assert file.readText(text, 1) == "a\0你"
+assert file.appendText(text, "好", 1)
+assert file.readText(text, 1) == "a\0你好"
+assert file.writeTextAtomic(text, "a\0你", 2, 0, true)
+assert file.readBytes(text).length == 8
+assert file.readText(text) == "a\0你", "BOM detection must preserve NUL"
+assert file.readText(text, 2) == "a\0你"
+assert path.exists(raw) and file.exists(raw) and not dir.exists(raw)
+assert file.attr(raw) >= 0
+assert file.copy(raw, copied)
+assert file.move(copied, moved)
+assert not file.exists(copied) and file.exists(moved)
+assert file.rename(moved, copied)
+assert file.replace(copied, moved)
+assert file.readBytes(moved) == file.readBytes(raw)
+assert file.createHardLink(raw, copied)
+assert file.readBytes(copied) == file.readBytes(raw)
+assert file.delete(copied)
+string temporary = dir.temp("build/test", "fs-temp-", "")
+assert dir.exists(temporary) and dir.empty(temporary)
+assert dir.create(path.join(temporary, "one"), 448)
+assert dir.createAll(path.join(temporary, "two", "deep"), 448)
+assert not dir.empty(temporary)
+assert dir.remove(path.join(temporary, "one"))
+assert dir.remove(path.join(temporary, "two", "deep"))
+assert dir.remove(path.join(temporary, "two"))
+assert dir.remove(temporary)
+for operation in range(7)
+    bool rejected = false
+    try
+        if operation == 0 then
+            file.readBytes(raw, 1)
+        elseif operation == 1 then
+            file.writeBytes(raw, b"a", -2)
+        elseif operation == 2 then
+            file.readText(text, 6)
+        elseif operation == 3 then
+            file.writeTextAtomic(text, "你", 1, 0, false, 1)
+        elseif operation == 4 then
+            file.touch(raw + "\0hidden")
+        elseif operation == 5 then
+            file.createFifo(raw + ".fifo", -1)
+        else
+            file.setMode(raw, -1)
+        end
+    catch e
+        rejected = true
+    end
+    assert rejected
+end
+assert file.readText(text) == "a\0你", "failed atomic conversion leaves target unchanged"
+assert file.touch(raw)
+assert file.delete(raw) and file.delete(text) and file.delete(moved)
+print("fs whole ok")

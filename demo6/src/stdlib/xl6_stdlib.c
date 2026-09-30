@@ -1951,6 +1951,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsFileInfoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFileInfoClassSource);
     }
+    if (xl6StdlibFuncUsed(used, "path", "parse") || xl6StdlibFuncUsed(used, "path", "components") ||
+        xl6StdlibNodeUsesTypeName(root, "PathParts") || xl6StdlibNodeUsesTypeName(root, "PathIterator") ||
+        xl6StdlibNodeUsesTypeName(root, "PathComponent"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsPathSource);
     if ( needsFileClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFsFileSource);
         if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibFsFileVfsSource);

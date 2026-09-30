@@ -1,0 +1,21 @@
+// Paths are lexical values; filesystem operations are explicit and may raise.
+auto parts = path.parse("/assets/settings.json", 1)
+print(parts.parent, parts.name, parts.stem, parts.ext)
+for component in path.components("/assets/settings.json", 1)
+    if component != null then print(component.text, component.kind) end
+end
+
+assert dir.createAll("build/test")
+string target = ""
+string temporary = dir.temp("build/test", "fs-example-", "")
+try
+    target = path.join(temporary, "text.dat")
+    // UTF-16 LE with BOM; the result is UTF-8 and preserves embedded NUL.
+    assert file.writeTextAtomic(target, "hello\0你好", 2, 0, true)
+    assert file.readText(target) == "hello\0你好"
+    bytes encoded = file.readBytes(target)
+    print(encoded.length)
+finally
+    if target.length > 0 and file.exists(target) then file.delete(target) end
+    dir.remove(temporary)
+end

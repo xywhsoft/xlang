@@ -2,12 +2,12 @@ extern "expect_i64" func expect(int actual, int expected)
 
 string filePath = "build/test/stdlib_file_meta.txt"
 
-file.delete(filePath)
+if file.exists(filePath) then file.delete(filePath) end
 
 expect(file.writeText(filePath, "abcdef"), 1)
-expect(file.size(filePath), 6)
+expect(int(file.size(filePath)), 6)
 expect(file.setSize(filePath, 3), 1)
-expect(file.size(filePath), 3)
+expect(int(file.size(filePath)), 3)
 
 int attr = file.attr(filePath)
 expect(attr != 0, 1)
