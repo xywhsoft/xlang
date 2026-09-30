@@ -6,11 +6,12 @@ void xl6CgenEmitProcessRunRuntime(XL6_Output* out, unsigned operations)
     if (out == NULL || operations == 0) return;
     xl6OutputPuts(
         "#include <string.h>\n"
-        "static bool xl6_process_run_text(const char* command, int timeoutMs, xprocessresult* result)\n"
+        "static bool xl6_process_run_text(xlir_string command, int timeoutMs, xprocessresult* result)\n"
         "{\n"
         "    xprocessconfig config; xprocessrunoptions options;\n"
+        "    const char* ccommand = xlir_string_cstr(command);\n"
         "    memset(result, 0, sizeof(*result));\n"
-        "    if (!xrtProcessShellConfigInit(&config, command != NULL ? command : \"\") ||\n"
+        "    if (ccommand == NULL || !xrtProcessShellConfigInit(&config, ccommand) ||\n"
         "        !xrtProcessRunOptionsInit(&options)) return false;\n"
         "    config.HideWindow = true; config.Stdin.Mode = XPROCESS_IO_PIPE;\n"
         "    config.Stdout.Mode = XPROCESS_IO_PIPE; config.Stderr.Mode = XPROCESS_IO_PIPE;\n"
@@ -19,7 +20,7 @@ void xl6CgenEmitProcessRunRuntime(XL6_Output* out, unsigned operations)
         "}\n", out);
     if (operations & XL6_CGEN_PROCESS_EXEC)
         xl6OutputPuts(
-            "void* xl6_xrt_process_exec(const char* command, int timeoutMs)\n"
+            "void* xl6_xrt_process_exec(xlir_string command, int timeoutMs)\n"
             "{\n"
             "    xprocessresult result; char* text = NULL; size_t size;\n"
             "    (void)xl6_process_run_text(command, timeoutMs, &result);\n"
@@ -33,7 +34,7 @@ void xl6CgenEmitProcessRunRuntime(XL6_Output* out, unsigned operations)
             "}\n", out);
     if (operations & XL6_CGEN_PROCESS_SUCCESS)
         xl6OutputPuts(
-            "bool xl6_xrt_process_success(const char* command, int timeoutMs)\n"
+            "bool xl6_xrt_process_success(xlir_string command, int timeoutMs)\n"
             "{\n"
             "    xprocessresult result;\n"
             "    bool ok = xl6_process_run_text(command, timeoutMs, &result);\n"
@@ -43,7 +44,7 @@ void xl6CgenEmitProcessRunRuntime(XL6_Output* out, unsigned operations)
             "}\n", out);
     if (operations & XL6_CGEN_PROCESS_EXIT_CODE)
         xl6OutputPuts(
-            "int xl6_xrt_process_exit_code(const char* command, int timeoutMs)\n"
+            "int xl6_xrt_process_exit_code(xlir_string command, int timeoutMs)\n"
             "{\n"
             "    xprocessresult result; int code;\n"
             "    (void)xl6_process_run_text(command, timeoutMs, &result);\n"

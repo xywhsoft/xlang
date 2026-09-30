@@ -1,11 +1,11 @@
 extern "xl6_xrt_last_error_text" func lastNativeError() as string
 
-assert !xson.valid("{bad}")
+assert !xlon.valid("{bad}")
 assert json.parse("{") == null
 func visit(var event) as bool
     return true
 end
-assert xson.visit("{bad}", visit) == xson.visitInvalid
+assert xlon.visit("{bad}", visit) == xlon.visitInvalid
 // Diagnostics remain observable inside the language body. A successful
 // artifact boundary must not reinterpret this native status as an exception.
 assert string.len(lastNativeError()) > 0

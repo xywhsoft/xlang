@@ -1,6 +1,0 @@
-func throwVisit(var event) as bool
-    throw ValueError "xson-callback-uncaught-sentinel"
-    return true
-end
-
-int status = xson.visit("null", throwVisit)

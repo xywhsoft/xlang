@@ -1,0 +1,11 @@
+class NativeBox
+    native point handle
+    extern "native_change" func change(byref int value)
+end
+
+extern "make_native_box" func makeBox() as point
+
+auto box = NativeBox(makeBox())
+int value = 1
+box.change(byref value)
+auto callback = box.change

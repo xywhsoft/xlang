@@ -355,7 +355,15 @@ typedef enum XL6_IrCAbi {
      * is distinct from both the language F64 execution ABI and foreign
      * `c_float`; append it so every established CAbi numeric identity remains
      * stable while calls, storage and exports can carry the exact width. */
-    XL6_IR_C_ABI_F32
+    XL6_IR_C_ABI_F32,
+    /* Language `char` is one validated Unicode scalar.  Keep it distinct from
+     * both integer arithmetic ABIs and every foreign C character type even
+     * though its final carrier is an exact uint32_t. */
+    XL6_IR_C_ABI_CHAR_U32,
+    /* Language `bytes` is an owned XRT byte value.  The pointer-shaped carrier
+     * deliberately remains distinct from an erased `var` xvalue: its runtime
+     * tag, indexing element ABI and mutation rules are statically closed. */
+    XL6_IR_C_ABI_MANAGED_BYTES
 } XL6_IrCAbi;
 
 /* Frontend-fixed ownership category.  Lowering must not rediscover whether a
@@ -453,7 +461,12 @@ typedef enum XL6_IrIntegerTarget {
     XL6_IR_INTEGER_TARGET_SIGNED_32,
     XL6_IR_INTEGER_TARGET_UNSIGNED_32,
     XL6_IR_INTEGER_TARGET_SIGNED_64,
-    XL6_IR_INTEGER_TARGET_UNSIGNED_64
+    XL6_IR_INTEGER_TARGET_UNSIGNED_64,
+    /* Unicode scalar values are not an arbitrary uint32 domain: surrogate
+     * code points and values above U+10FFFF are excluded.  Keep this as an
+     * explicit checked-conversion target instead of approximating char as
+     * uint32 and asking a backend to recover the language invariant. */
+    XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
 } XL6_IrIntegerTarget;
 
 /* Conservative effect of releasing one storage owner. Trivial storage,
@@ -918,9 +931,12 @@ typedef enum XL6_IrRuntimeOp {
     /* Copies a managed string into a newly owned dynamic string value. */
     XL6_IR_RUNTIME_XVALUE_STRING_COPY,
     /* Borrows one exact managed Future<T> and returns an owned xvalue that
-     * retains its own Future reference.  Transfer/take remains a distinct
-     * future operation; collection construction may therefore release an
-     * anchored Future rvalue after this box has been appended. */
+     * retains its own Future reference.  A null Future sentinel becomes the
+     * canonical xvalue null sentinel; consumers such as task aggregates can
+     * then diagnose the invalid source at their own semantic boundary.
+     * Transfer/take remains a distinct future operation; collection
+     * construction may therefore release an anchored Future rvalue after this
+     * box has been appended. */
     XL6_IR_RUNTIME_XVALUE_FUTURE_REF,
     /* Transfers one unique pure-native handle into an owning xvalue handle.
      * targetSymbol names the verified extern destructor used by the static
@@ -1420,18 +1436,18 @@ typedef enum XL6_IrRuntimeOp {
         * payloadType.  The verified schema overlays present serialized fields
         * onto that default instance and returns an owned retained class value. */
        XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE,
-       /* XSON uses the same verified class-schema/default-instance contract as
+       /* XLON uses the same verified class-schema/default-instance contract as
         * JSON, but remains a distinct RuntimeOp so Cgen selects the wire format
         * mechanically instead of recovering it from a callee name. */
-       XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY,
-       XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE,
        /* File persistence remains distinct from text conversion.  WRITE
         * borrows path/class/pretty and returns bool; READ borrows path plus an
         * explicitly lowered default instance and returns an owned class. */
        XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE,
        XL6_IR_RUNTIME_PERSISTENCE_JSON_READ,
-       XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE,
-       XL6_IR_RUNTIME_PERSISTENCE_XSON_READ,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_READ,
        /* Copies one verified trivial union value into an owned runtime bytes
         * value and binds the union's stable TypeId. payloadType is the exact
         * XL6_IR_C_ABI_UNION source type, so neither layout nor identity is
@@ -1669,7 +1685,34 @@ typedef enum XL6_IrRuntimeOp {
        /* Initialize one erased slot of an unpublished class. Borrows the
         * pending class, consumes the boxed field on success AND failure.
         * False is an explicit exceptional outcome, never an invariant trap. */
-       XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW
+       XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW,
+       /* Explicit-length literal constructors.  The payload lives in the
+        * instruction byte arena; neither operation receives quoted source text
+        * and Cgen must emit exactly immediateSize bytes. */
+       XL6_IR_RUNTIME_STRING_FROM_UTF8,
+       XL6_IR_RUNTIME_BYTES_FROM_DATA,
+       /* Closed scalar/dynamic bridges for language char. */
+       XL6_IR_RUNTIME_CHAR_TO_STRING,
+       XL6_IR_RUNTIME_XVALUE_CHAR,
+       /* Statically typed byte values retain their own semantic ABI even though
+        * the XRT carrier is reference-counted xvalue storage. */
+       XL6_IR_RUNTIME_BYTES_RETAIN,
+       XL6_IR_RUNTIME_BYTES_CONCAT,
+       XL6_IR_RUNTIME_BYTES_EQUAL,
+       XL6_IR_RUNTIME_BYTES_ORDER_LT,
+       XL6_IR_RUNTIME_BYTES_ORDER_LE,
+       XL6_IR_RUNTIME_BYTES_ORDER_GT,
+       XL6_IR_RUNTIME_BYTES_ORDER_GE,
+       XL6_IR_RUNTIME_BYTES_LENGTH,
+       XL6_IR_RUNTIME_BYTES_AT,
+       XL6_IR_RUNTIME_BYTES_SET_COPY,
+       /* Unicode-scalar string operations.  Indexing returns char rather than
+        * allocating a one-character string; replacement produces a fresh
+        * owned value so ordinary assignment keeps language value semantics. */
+       XL6_IR_RUNTIME_STRING_SCALAR_AT,
+       XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY,
+       XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT,
+       XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -1976,14 +2019,14 @@ typedef enum XL6_IrIntrinsicKind {
      * source operand is borrowed text; lowering materializes the default T
      * instance explicitly before selecting the parse RuntimeOp. */
     XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE,
-    /* The XSON identities share the persistence schema model while preserving
+    /* The XLON identities share the persistence schema model while preserving
      * an exact source-level format choice through lowering. */
-    XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY,
-    XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE,
     XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE,
     XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ,
-    XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE,
-    XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ,
     /* Exact Future metadata members.  The receiver is operand zero;
      * SET_DEBUG_NAME additionally borrows one managed string. */
     XL6_IR_INTRINSIC_FUTURE_SET_DEBUG_NAME,
@@ -2036,7 +2079,10 @@ typedef enum XL6_IrStringConversionAbi {
     XL6_IR_STRING_CONVERSION_BORROW_STRING_COPY,
     XL6_IR_STRING_CONVERSION_TYPE_ID_NAME,
     XL6_IR_STRING_CONVERSION_CLASS_DERIVED,
-    XL6_IR_STRING_CONVERSION_CLASS_PROTOCOL_CALL
+    XL6_IR_STRING_CONVERSION_CLASS_PROTOCOL_CALL,
+    /* Append-only: a language char is one already validated Unicode scalar,
+     * not an integer that Cgen may format numerically. */
+    XL6_IR_STRING_CONVERSION_CHAR_VALUE
 } XL6_IrStringConversionAbi;
 
 /* Operand ABI describes what the intrinsic is allowed to do with the source
@@ -2137,7 +2183,10 @@ typedef enum XL6_IrAsyncResultAbi {
     XL6_IR_ASYNC_RESULT_RETAINED_FUTURE,
     /* Future owns one real generator reference.  AWAIT acquires another V2
      * reference; closing one alias does not invalidate the other owner. */
-    XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR
+    XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR,
+    /* A Unicode scalar uses uint32_t storage and therefore cannot share the
+     * uint64_t payload contract even though both are unsigned values. */
+    XL6_IR_ASYNC_RESULT_COPY_CHAR
 } XL6_IrAsyncResultAbi;
 
 /* Open dynamic invocation uses the runtime's multi-value call protocol, but a
@@ -2173,7 +2222,8 @@ typedef enum XL6_IrGeneratorYieldAbi {
     XL6_IR_GENERATOR_YIELD_MOVE_CLOSURE,
     XL6_IR_GENERATOR_YIELD_MOVE_FUTURE,
     XL6_IR_GENERATOR_YIELD_MOVE_ERROR,
-    XL6_IR_GENERATOR_YIELD_MOVE_GENERATOR
+    XL6_IR_GENERATOR_YIELD_MOVE_GENERATOR,
+    XL6_IR_GENERATOR_YIELD_COPY_CHAR
 } XL6_IrGeneratorYieldAbi;
 
 typedef struct XL6_IrSpan {
@@ -2211,6 +2261,7 @@ typedef enum XL6_IrNamedCallableAbi {
  * dispatches on the enum and Cgen never sees it. */
 typedef enum XL6_IrMemberAbi {
     XL6_IR_MEMBER_ABI_NONE = 0,
+    /* Source `string.length`: Unicode scalar count, never UTF-8 byte size. */
     XL6_IR_MEMBER_ABI_STRING_UTF8_COUNT,
     /* A source `value.length` that semantic analysis selected through the
      * zero-argument `__len__` class protocol.  targetSymbol is the exact
@@ -2279,7 +2330,11 @@ typedef enum XL6_IrMemberAbi {
     /* A source `nullableClass?.field` resolved to one declared class field.
      * Lowering keeps null propagation (borrowed xvalue lookup) separate from
      * physical nullable-result reconstruction. */
-    XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE
+    XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE,
+    /* Source `bytes.length`: byte cardinality, kept distinct from Unicode
+     * scalar count.  Both return canonical int, but their physical
+     * observation is unrelated. */
+    XL6_IR_MEMBER_ABI_BYTES_LENGTH
 } XL6_IrMemberAbi;
 
 /* Canonical mutation identity for an INDEX node used as an lvalue.  Key
@@ -2291,7 +2346,11 @@ typedef enum XL6_IrIndexWriteAbi {
     XL6_IR_INDEX_WRITE_XVALUE_LIST_I64_SET_NEW,
     XL6_IR_INDEX_WRITE_XVALUE_OBJECT_LITERAL_SET_NEW,
     XL6_IR_INDEX_WRITE_XVALUE_OBJECT_STRING_SET_NEW,
-    XL6_IR_INDEX_WRITE_XVALUE_KEY_DISPATCH_SET_NEW
+    XL6_IR_INDEX_WRITE_XVALUE_KEY_DISPATCH_SET_NEW,
+    /* Value-sequence mutation computes a fresh owner and commits it back to
+     * addressable receiver storage; it never mutates an aliased carrier. */
+    XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY,
+    XL6_IR_INDEX_WRITE_BYTES_SET_COPY
 } XL6_IrIndexWriteAbi;
 
 /* Canonical target layout for a source loop.  A range descriptor does not
@@ -2318,8 +2377,8 @@ typedef enum XL6_IrLoopAbi {
      * that layout distinct so lowering never guesses from target arity. */
     XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY,
     /* A managed string is traversed by Unicode scalar ordinal over one owned
-     * snapshot.  The value target receives one newly owned code-point string
-     * per successful iteration. */
+     * snapshot.  The value target receives one trivial language char; scalar
+     * decoding and its failure edge are explicit runtime operations. */
     XL6_IR_LOOP_ABI_STRING_UTF8_VALUE,
     XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE,
     /* User-defined/native class iteration is normalized to two exact calls:
@@ -2334,7 +2393,11 @@ typedef enum XL6_IrLoopAbi {
      * GET/TAKE are ordinary verified XLIR instructions; Cgen never discovers
      * generator semantics from a source generic name. */
     XL6_IR_LOOP_ABI_GENERATOR_VALUE,
-    XL6_IR_LOOP_ABI_GENERATOR_INDEX_VALUE
+    XL6_IR_LOOP_ABI_GENERATOR_INDEX_VALUE,
+    /* Bytes traversal mirrors string traversal structurally but projects one
+     * bounded uint8 value from an owned immutable snapshot. */
+    XL6_IR_LOOP_ABI_BYTES_VALUE,
+    XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE
 } XL6_IrLoopAbi;
 
 typedef enum XL6_IrLoopKeyAbi {
@@ -2391,7 +2454,12 @@ typedef enum XL6_IrLoopItemAbi {
     /* A cursor lends the callable xvalue stored for one exact func(...)
      * element.  Lowering reconstructs an owned signature-carrying closure;
      * the backend never infers an adapter from the collection parameter. */
-    XL6_IR_LOOP_ITEM_CLOSURE_COPY
+    XL6_IR_LOOP_ITEM_CLOSURE_COPY,
+    /* Primitive-sequence projections are trivial values.  Keeping their
+     * semantic identities distinct prevents lowering or Cgen from treating a
+     * Unicode scalar as an integer byte, or vice versa. */
+    XL6_IR_LOOP_ITEM_CHAR,
+    XL6_IR_LOOP_ITEM_U8
 } XL6_IrLoopItemAbi;
 
 /* Projection representation and target lifetime are distinct contracts.  A
@@ -2445,7 +2513,8 @@ typedef enum XL6_IrLoopResourceAbi {
      * protocol cursors have one canonical RELEASE contract.  Opaque native
      * handles exist only at verified extern-C projection/call boundaries. */
     XL6_IR_LOOP_RESOURCE_PROTOCOL_ITERATOR_RELEASE,
-    XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE
+    XL6_IR_LOOP_RESOURCE_GENERATOR_CLOSE,
+    XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE
 } XL6_IrLoopResourceAbi;
 
 typedef struct XL6_IrNode {
@@ -2458,6 +2527,13 @@ typedef struct XL6_IrNode {
     XL6_IrTypeId declarationOwnerType;
     unsigned int flags;
     char* text;
+    /* Decoded literal payload.  STRING/BYTES retain their exact byte length;
+     * CHAR stores one already validated Unicode scalar.  Source quoting and
+     * escape syntax never cross this frontend-to-XLIR boundary. */
+    unsigned char* literalData;
+    size_t literalSize;
+    uint32 literalScalar;
+    int literalDecoded;
     /* Canonical semantic identity for unary/binary operators and compound
      * assignments.  Plain `=` remains INVALID; `?=` uses NULL_COALESCE.  The
      * separately modeled type-is/type-as forms also remain INVALID. */
@@ -2654,6 +2730,11 @@ typedef struct XL6_IrInstruction {
     /* Valid only for INTEGER_CONVERT_CHECKED/WRAPPING. */
     XL6_IrIntegerTarget integerTarget;
     XL6_IrIntegerSourceAbi integerSourceAbi;
+    /* A checked integer conversion introduced by an expected-type boundary
+     * records the exact source Typed-XLIR expression. Explicit constructor
+     * intrinsics leave this INVALID. The verifier replays the boundary proof
+     * instead of accepting an otherwise well-shaped injected runtime call. */
+    XL6_IrNodeId contextualIntegerConversionSource;
     /* Valid only for checked erased-container cast/rebind runtime operations.
      * This is the canonical tag requested by language semantics; Cgen must not
      * recover it from a type or callee name. */
@@ -2667,6 +2748,10 @@ typedef struct XL6_IrInstruction {
      * Lowering fixes this spelling before Cgen runs, so emission never looks
      * up source/origin text. */
     char* immediateText;
+    /* Owned binary immediate for explicit-length runtime operations.  This is
+     * not a C string and may contain zero bytes. */
+    unsigned char* immediateData;
+    size_t immediateSize;
     XL6_IrValueId result;
     /* Reserved legacy encoding; verified Lowered XLIR requires INVALID.
      * SSA values are immutable. Branch joins use typed STORE/LOAD instead. */
@@ -2934,7 +3019,8 @@ typedef enum XL6_IrDynamicMethodDefaultAbi {
     XL6_IR_DYNAMIC_METHOD_DEFAULT_F64,
     XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME,
     XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
-    XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL
+    XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL,
+    XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
 } XL6_IrDynamicMethodDefaultAbi;
 
 /* Non-mutating overload selection contract for an already-boxed argument. */
@@ -2946,7 +3032,8 @@ typedef enum XL6_IrDynamicMethodMatchAbi {
     XL6_IR_DYNAMIC_METHOD_MATCH_U64,
     XL6_IR_DYNAMIC_METHOD_MATCH_F64,
     XL6_IR_DYNAMIC_METHOD_MATCH_TIME,
-    XL6_IR_DYNAMIC_METHOD_MATCH_STRING
+    XL6_IR_DYNAMIC_METHOD_MATCH_STRING,
+    XL6_IR_DYNAMIC_METHOD_MATCH_CHAR
 } XL6_IrDynamicMethodMatchAbi;
 
 typedef struct XL6_IrDynamicMethodParameter {
@@ -3186,15 +3273,30 @@ typedef enum XL6_IrCallTargetKind {
 /* Execution boundary is independent of the callee's failure ABI. A foreign
  * call may block even when it reports failure as a bool or declares no raise.
  * LANGUAGE_CFG means its body is verified IR, NOT that its transitive callees
- * cannot block. Until a closed nonblocking proof exists, every foreign target
- * (including native factories/destructors) is conservatively MAY_BLOCK. */
+ * cannot block. Foreign targets are conservatively MAY_BLOCK unless an exact
+ * extern declaration supplies the nonblocking contract. */
 typedef enum XL6_IrCallExecutionBoundaryAbi {
     XL6_IR_CALL_EXECUTION_INVALID = 0,
     XL6_IR_CALL_EXECUTION_LANGUAGE_CFG,
-    XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK
+    XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK,
+    XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING
 } XL6_IrCallExecutionBoundaryAbi;
 XL6_IrCallExecutionBoundaryAbi xl6IrCallExecutionBoundaryForKind(XL6_IrCallTargetKind);
+XL6_IrCallExecutionBoundaryAbi xl6IrCallExecutionBoundaryForDeclaration(
+    XL6_IrCallTargetKind, XL6_AstKind, unsigned int);
 const char* xl6IrCallExecutionBoundaryAbiName(XL6_IrCallExecutionBoundaryAbi);
+
+/* Purity is a declared semantic fact, independent of failure and scheduling.
+ * It is retained in XLIR for analysis and diagnostics; it is not, by itself,
+ * permission to reorder a C call across ambient CRT state such as errno/fenv. */
+typedef enum XL6_IrCallEffectAbi {
+    XL6_IR_CALL_EFFECT_INVALID = 0,
+    XL6_IR_CALL_EFFECT_CONSERVATIVE,
+    XL6_IR_CALL_EFFECT_PURE
+} XL6_IrCallEffectAbi;
+XL6_IrCallEffectAbi xl6IrCallEffectForDeclaration(
+    XL6_IrCallTargetKind, XL6_AstKind, unsigned int);
+const char* xl6IrCallEffectAbiName(XL6_IrCallEffectAbi);
 
 /* CALL transfers OWNED inputs to its invocation boundary. If preparation
  * prevents native entry, that boundary retires them in reverse parameter
@@ -3326,6 +3428,10 @@ typedef enum XL6_IrRuntimeBridgeKind {
     /* Public-XRT-backed Buffer/BufferIter native-class component. */
     XL6_IR_RUNTIME_BRIDGE_BUFFER,
     XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN,
+    /* Strict, exact-byte numeric parsing with a private scalar C out pointer. */
+    XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE,
+    /* Owned/nullable environment values; CString validation is inside the adapter. */
+    XL6_IR_RUNTIME_BRIDGE_CRT_ENV,
     /* 字符串辅助函数逐项记录物理 ABI，后端只生成实际用到的适配器。 */
     XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN,
     XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT,
@@ -3392,17 +3498,61 @@ typedef enum XL6_IrRuntimeBridgeKind {
      * managed native Writer factories/methods/destroy use a separate role. */
     XL6_IR_RUNTIME_BRIDGE_JSON_VISIT,
     XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-    /* XSON options preserve language bool and exact visitor/native-handle ABI. */
-    XL6_IR_RUNTIME_BRIDGE_XSON_PARSE,
-    XL6_IR_RUNTIME_BRIDGE_XSON_VALID,
-    XL6_IR_RUNTIME_BRIDGE_XSON_READ,
-    XL6_IR_RUNTIME_BRIDGE_XSON_STRINGIFY,
-    XL6_IR_RUNTIME_BRIDGE_XSON_WRITE,
-    XL6_IR_RUNTIME_BRIDGE_XSON_VISIT,
-    XL6_IR_RUNTIME_BRIDGE_XSON_WRITER,
-    /* Borrowed text, void result and explicit no-raise stdout operations. */
+    /* XLON options preserve language bool and exact visitor/native-handle ABI. */
+    XL6_IR_RUNTIME_BRIDGE_XLON_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_XLON_VALID,
+    XL6_IR_RUNTIME_BRIDGE_XLON_READ,
+    XL6_IR_RUNTIME_BRIDGE_XLON_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_XLON_WRITE,
+    XL6_IR_RUNTIME_BRIDGE_XLON_VISIT,
+    XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+    /* Line-oriented formats share the XRT value model, but each adapter has
+     * its own verified dependency so JSONL never drags in XLONL or vice versa. */
+    XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_VALID,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_VALID,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_STRINGIFY,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_WRITE_TO,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_WRITE_TO,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_WRITE_TO,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_WRITE_TO,
+    XL6_IR_RUNTIME_BRIDGE_JSON_QUOTE,
+    XL6_IR_RUNTIME_BRIDGE_JSON_QUOTE_TO,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_VISIT,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_VISIT,
+    XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_VALID,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_VALID,
+    XL6_IR_RUNTIME_BRIDGE_JSONL_CONFIG_VALID,
+    XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_VALID,
+    XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE,
+    /* Borrowed text and explicit success status for standard streams. */
     XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE,
     XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN,
+    XL6_IR_RUNTIME_BRIDGE_TEXT_ERROR,
+    XL6_IR_RUNTIME_BRIDGE_TEXT_ERRORLN,
+    XL6_IR_RUNTIME_BRIDGE_TEXT_FLUSH,
     XL6_IR_RUNTIME_BRIDGE_DIR_LIST,
     XL6_IR_RUNTIME_BRIDGE_DIR_GLOB,
     XL6_IR_RUNTIME_BRIDGE_DIR_ENTRIES,
@@ -3412,6 +3562,108 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC,
     XL6_IR_RUNTIME_BRIDGE_PROCESS_SUCCESS,
     XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE,
+    /* Exact, non-allocating XRT hash adapters for language value views. */
+    XL6_IR_RUNTIME_BRIDGE_HASH_STRING,
+    XL6_IR_RUNTIME_BRIDGE_HASH_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_HASH_RAW,
+    XL6_IR_RUNTIME_BRIDGE_SIPHASH_STRING,
+    XL6_IR_RUNTIME_BRIDGE_SIPHASH_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW,
+    /* Nominal 24-byte XID values use a single inline xvalue allocation.
+     * Every operation has a distinct identity and an exact result/argument
+     * contract; no C backend recognizes source spellings or guesses handles. */
+    XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING,
+    XL6_IR_RUNTIME_BRIDGE_XID_MAKE,
+    XL6_IR_RUNTIME_BRIDGE_XID_MAKE_MANY,
+    XL6_IR_RUNTIME_BRIDGE_XID_PARSE,
+    XL6_IR_RUNTIME_BRIDGE_XID_FROM_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_XID_TO_STRING,
+    XL6_IR_RUNTIME_BRIDGE_XID_TO_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_XID_TIMESTAMP,
+    XL6_IR_RUNTIME_BRIDGE_XID_COMPARE,
+    XL6_IR_RUNTIME_BRIDGE_XID_EQUAL,
+    XL6_IR_RUNTIME_BRIDGE_XID_IS_ZERO,
+    /* Exact binary file I/O; byte values stay length-aware end to end. */
+    XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITE_FILE,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITE_TEXT_FILE,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_OPEN,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_BUFFER,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_STDIN,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_CLOSE,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_HANDLE,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_READ,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_EXACT,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_ALL,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_INTO,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_SEEK,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_TELL,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_SIZE,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_EOF,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_CAN_SEEK,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_CAN_SIZE,
+    XL6_IR_RUNTIME_BRIDGE_IO_READER_CLOSED,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_OPEN,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_BUFFER,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_STANDARD,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CLOSE,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_HANDLE,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_TEXT,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_WRITE_BUFFER,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_ALL_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_ALL_TEXT,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_ALL_BUFFER,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_FLUSH,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_SEEK,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_TELL,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_SIZE,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CAN_SEEK,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CAN_SIZE,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_CLOSED,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITER_TO_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_IO_LINES_CREATE,
+    XL6_IR_RUNTIME_BRIDGE_IO_LINES_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_IO_LINES_CLOSE,
+    XL6_IR_RUNTIME_BRIDGE_IO_LINES_ADVANCE,
+    XL6_IR_RUNTIME_BRIDGE_IO_LINES_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_IO_LINES_ENDING,
+    XL6_IR_RUNTIME_BRIDGE_IO_COPY,
+    XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_CHAR,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_IS_TERMINAL,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SIZE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_COLOR,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_STYLED,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_OPEN,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CLOSE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CLOSED,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_PASTE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_WRITE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_FLUSH,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_MOVE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CLEAR,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_CURSOR,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_STYLE,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_READ,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_WRAP,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DESTROY,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_KIND,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_TEXT,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_KEY,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_MODIFIERS,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_REPEAT,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_X,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_Y,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_WHEEL,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_COLUMNS,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_ROWS,
+    XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN,
     XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT,
     XL6_IR_RUNTIME_BRIDGE_NET_ADDRESS_LIST,
     XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC,
@@ -3424,7 +3676,36 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS,
     /* Compiler-embedding helpers emitted by the selected backend component.
      * Their exact class-handle/string/xvalue ABI is fixed during lowering. */
-    XL6_IR_RUNTIME_BRIDGE_XLANG
+    XL6_IR_RUNTIME_BRIDGE_XLANG,
+    XL6_IR_RUNTIME_BRIDGE_STRING_JOIN,
+    XL6_IR_RUNTIME_BRIDGE_STRING_BYTES,
+    XL6_IR_RUNTIME_BRIDGE_STRING_CHARS,
+    XL6_IR_RUNTIME_BRIDGE_STRING_COMPARE,
+    XL6_IR_RUNTIME_BRIDGE_STRING_LAST_INDEX_OF,
+    XL6_IR_RUNTIME_BRIDGE_STRING_COUNT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_HAS_ANY,
+    XL6_IR_RUNTIME_BRIDGE_STRING_LIKE,
+    XL6_IR_RUNTIME_BRIDGE_STRING_APPROX,
+    XL6_IR_RUNTIME_BRIDGE_STRING_SIMILARITY,
+    XL6_IR_RUNTIME_BRIDGE_STRING_IS_UTF8,
+    XL6_IR_RUNTIME_BRIDGE_STRING_LOWER,
+    XL6_IR_RUNTIME_BRIDGE_STRING_UPPER,
+    XL6_IR_RUNTIME_BRIDGE_STRING_TRIM,
+    XL6_IR_RUNTIME_BRIDGE_STRING_LTRIM,
+    XL6_IR_RUNTIME_BRIDGE_STRING_RTRIM,
+    XL6_IR_RUNTIME_BRIDGE_STRING_FILTER,
+    XL6_IR_RUNTIME_BRIDGE_STRING_LEFT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_RIGHT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_AT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_IS_EMPTY,
+    XL6_IR_RUNTIME_BRIDGE_STRING_IS_BLANK,
+    XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE,
+    XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE_AT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_INSERT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_PAD_LEFT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_PAD_RIGHT,
+    XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER,
+    XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE
 } XL6_IrRuntimeBridgeKind;
 
 /* Some runtime components contain several operations with different emitted
@@ -3734,7 +4015,15 @@ typedef enum XL6_IrCallableBridgeValueAbi {
     XL6_IR_CALLABLE_BRIDGE_ARRAY_PACK,
     XL6_IR_CALLABLE_BRIDGE_DICT_PACK,
     XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY,
-    XL6_IR_CALLABLE_BRIDGE_CLOSURE_REF
+    XL6_IR_CALLABLE_BRIDGE_CLOSURE_REF,
+    /* Preserve the language/XValue char identity across erased calls.  This
+     * is deliberately not U64 even though both use an unsigned C carrier. */
+    XL6_IR_CALLABLE_BRIDGE_CHAR,
+    /* `bytes` is physically an xvalue*, but these opcodes preserve and check
+     * its XVALUE_BYTES identity instead of treating it as open `var`. */
+    XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW,
+    XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN,
+    XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE
 } XL6_IrCallableBridgeValueAbi;
 
 typedef struct XL6_IrCallableBridgeParameter {
@@ -4199,12 +4488,16 @@ typedef struct XL6_IrParameterLifetime {
      * parameter with no local binding. Never a spelling-based alias. */
     XL6_SymbolId sourceSymbol;
     int rebindable;
+    /* A synchronous, non-escaping managed string input may remain a borrowed
+     * read-only binding instead of being duplicated at function entry. */
+    int borrowReadOnly;
     XL6_IrReleaseEffect cleanupEffect;
 } XL6_IrParameterLifetime;
 
 typedef struct XL6_IrCallTarget {
     XL6_IrCallTargetKind kind;
     XL6_IrCallExecutionBoundaryAbi executionBoundaryAbi;
+    XL6_IrCallEffectAbi effectAbi;
     XL6_IrRuntimeBridgeKind runtimeBridge;
     XL6_IrRuntimeBridgeOperation runtimeBridgeOperation;
     XL6_IrCallTargetLifecycleAbi lifecycleAbi;
@@ -4738,8 +5031,8 @@ typedef struct XL6_IrClassField {
      * XLIR-owned canonical C string literal for a renamed key. */
     uint32 jsonPersistenceFlags;
     char* jsonPersistenceKeyLiteral;
-    uint32 xsonPersistenceFlags;
-    char* xsonPersistenceKeyLiteral;
+    uint32 xlonPersistenceFlags;
+    char* xlonPersistenceKeyLiteral;
     /* Exact structural `derive string` field partition.  This flag is copied
      * from the declaration's @string(skip) contract while Typed XLIR still
      * owns attributes; Cgen never scans declaration children. */
@@ -4775,7 +5068,7 @@ typedef struct XL6_IrInstantiation {
 #define XL6_IR_PERSIST_FORMAT_NONE  0x00000000u
 #define XL6_IR_PERSIST_FORMAT_VALUE 0x00000001u
 #define XL6_IR_PERSIST_FORMAT_JSON  0x00000002u
-#define XL6_IR_PERSIST_FORMAT_XSON  0x00000004u
+#define XL6_IR_PERSIST_FORMAT_XLON  0x00000004u
 #define XL6_IR_PERSIST_FORMAT_ALL   0x00000007u
 
 /* Persistence must distinguish a closed class schema from the language's
@@ -4896,7 +5189,7 @@ typedef struct XL6_IrClassLayout {
      * The native callback invokes this body; it never expands the step list. */
     uint32 destroyFunction;
     /* Exact source derive capabilities. VALUE includes structural value
-     * conversion and enables both JSON and XSON projections. */
+     * conversion and enables both JSON and XLON projections. */
     uint32 persistenceFormatMask;
     XL6_IrPersistenceObjectAbi persistenceObjectAbi;
     XL6_IrPersistenceConstructionAbi persistenceConstructionAbi;
@@ -5002,6 +5295,9 @@ typedef enum XL6_IrNominalIdentityKind {
 typedef struct XL6_IrNominalIdentitySet {
     XL6_IrTypeId targetType;
     XL6_IrNominalIdentityKind kind;
+    /* Class values not backed by an object use this exact bound identity;
+     * object-backed values continue to use the derived-class runtime tags. */
+    uint64 nonObjectTypeId;
     size_t firstIdentity;
     size_t identityCount;
 } XL6_IrNominalIdentitySet;
@@ -5365,13 +5661,20 @@ int xl6IrRuntimeFileBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* lowering 与验证器共用字符串合同，不分别猜测参数或返回值类型。 */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeStringBridgeKind(const char* name);
+XL6_IrErrorAbi xl6IrRuntimeStringBridgeErrorAbi(const char* name);
 int xl6IrRuntimeStringBridgeKindIs(XL6_IrRuntimeBridgeKind kind);
 int xl6IrRuntimeStringBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
-/* One declarative JSON/XSON ABI registry is shared by lowering and verification. */
+/* One declarative JSON/XLON ABI registry is shared by lowering and verification. */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeSerializationBridgeKind(const char* name);
 /* Direct no-raise bridges share one signature/ownership registry. */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name);
+XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
+int xl6IrRuntimeXidBridgeTargetMatches(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target);
+XL6_IrRuntimeBridgeKind xl6IrRuntimeIoBridgeKind(const char* name);
+int xl6IrRuntimeIoBridgeTargetMatches(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrRuntimeDirectBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrRuntimeXlangBridgeName(const char* name);
@@ -5379,7 +5682,7 @@ XL6_IrErrorAbi xl6IrRuntimeXlangBridgeErrorAbi(const char* name);
 int xl6IrRuntimeXlangBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Visitor status codes and callback exceptions are independent outcomes. */
-int xl6IrRuntimeSerializationBridgeHasCallbackResult(XL6_IrRuntimeBridgeKind kind);
+int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind kind);
 int xl6IrRuntimeSerializationBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Resolve generated-program TCP declarations into exact component roles. */
@@ -5701,6 +6004,8 @@ int xl6IrFunctionParameterBindingOwnsStorage(const XL6_IrModule* module,
     const XL6_IrFunction* function, const XL6_IrCallTarget* target, size_t parameter);
 int xl6IrCallTargetParameterBindingOwnsStorage(const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter);
+int xl6IrCallTargetParameterCanBorrowReadOnly(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target, size_t parameter);
 int xl6IrParameterBindingMayRebind(const XL6_IrModule* module, XL6_SymbolId symbol);
 XL6_IrReleaseEffect xl6IrParameterCleanupEffect(const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter, int rebindable);
@@ -5754,6 +6059,7 @@ XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrCallTarget* target);
 int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target);
 const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module, XL6_IrNodeId origin);
+XL6_IrNodeId xl6IrCallParameterListGet(const XL6_IrModule* module, XL6_IrNodeId declaration);
 const XL6_IrCallArgument* xl6IrCallSiteEvaluationArgument(
     const XL6_IrModule* module, const XL6_IrCallSite* site, size_t evaluationIndex);
 const XL6_IrIntrinsicCall* xl6IrIntrinsicCallGet(
@@ -5764,6 +6070,9 @@ int xl6IrContextualCallableCastRequired(const XL6_IrModule* module,
     XL6_IrTypeId source, XL6_IrTypeId target);
 int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
     XL6_IrNodeId origin, XL6_IrNodeId source, XL6_IrTypeId target);
+int xl6IrContextualCheckedIntegerConversionAllowed(
+    const XL6_IrModule* module, XL6_IrNodeId origin,
+    XL6_IrNodeId source, XL6_IrTypeId target);
 const XL6_IrNativeHandleBind* xl6IrNativeHandleBindGet(
     const XL6_IrModule* module, XL6_IrNodeId origin);
 const XL6_IrNativeHandleProject* xl6IrNativeHandleProjectGet(

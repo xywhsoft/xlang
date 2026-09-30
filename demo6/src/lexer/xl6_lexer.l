@@ -139,7 +139,6 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
         {"public", XL6_KW_PUBLIC}, {"private", XL6_KW_PRIVATE}, {"protected", XL6_KW_PROTECTED}, {"static", XL6_KW_STATIC},
         {"override", XL6_KW_OVERRIDE}, {"final", XL6_KW_FINAL}, {"virtual", XL6_KW_VIRTUAL}, {"native", XL6_KW_NATIVE},
         {"c_vararg", XL6_KW_C_VARARG}, {"c_callback", XL6_KW_C_CALLBACK},
-        {"byval", XL6_KW_BYVAL}, {"byref", XL6_KW_BYREF}, {"out", XL6_KW_OUT},
         {"match", XL6_KW_MATCH}, {"case", XL6_KW_CASE},
         {"and", XL6_KW_AND}, {"or", XL6_KW_OR}, {"not", XL6_KW_NOT}
     };
@@ -213,24 +212,26 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 ";"                                { xl6SetToken(yyscanner, XL6_TK_SEP); return XL6_TK_SEP; }
 
 "rf\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"rf'''"([^']|'[^']|''[^'])*"'''"   { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
 "f\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"f'''"([^']|'[^']|''[^'])*"'''"    { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
 "rf\""[^"\r\n]*"\""               { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"rf'"[^'\r\n]*"'"                 { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
 "f\""([^"\\\r\n]|\\.)*"\""        { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"f'"([^'\\\r\n]|\\.)*"'"          { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
+"rf`"[^`]*"`"                      { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
+"f`"[^`]*"`"                       { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
+
+"br\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
+"b\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
+"br\""[^"\r\n]*"\""               { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
+"b\""([^"\\\r\n]|\\.)*"\""        { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
 
 "r\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"r'''"([^']|'[^']|''[^'])*"'''"    { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
 "\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"'''"([^']|'[^']|''[^'])*"'''"     { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
 "r\""[^"\r\n]*"\""                { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"r'"[^'\r\n]*"'"                  { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
 "\""([^"\\\r\n]|\\.)*"\""         { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"'"([^'\\\r\n]|\\.)*"'"           { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
+"r`"[^`]*"`"                       { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
+"`"[^`]*"`"                        { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
+"'"([^'\\\r\n]|\\.)*"'"           { xl6SetToken(yyscanner, XL6_TK_CHAR); return XL6_TK_CHAR; }
 "\""([^"\\\r\n]|\\.)*             { return xl6SetErrorToken(yyscanner, "未闭合的字符串"); }
-"'"([^'\\\r\n]|\\.)*               { return xl6SetErrorToken(yyscanner, "未闭合的字符串"); }
+"'"([^'\\\r\n]|\\.)*               { return xl6SetErrorToken(yyscanner, "未闭合的字符字面量"); }
 
 "#"[^#\r\n]*"#"                   { xl6SetToken(yyscanner, XL6_TK_TIME); return XL6_TK_TIME; }
 "#"[^#\r\n]*                       { return xl6SetErrorToken(yyscanner, "未闭合的时间字面量"); }

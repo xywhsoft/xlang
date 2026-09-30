@@ -1,0 +1,5 @@
+console.write("A")
+console.writeLine("B")
+console.error("E")
+console.errorLine("F")
+console.flush()

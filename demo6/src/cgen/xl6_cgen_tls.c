@@ -516,25 +516,27 @@ long long xl6_xrt_tls_config_destroy(void* handle)
 }
 
 void* xl6_xrt_tls_config_native(void* handle) { return handle; }
-int xl6_xrt_tls_config_host(void* handle, const char* host) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; return config != 0 && xl6_tls_replace_string(&config->Host, host); }
-int xl6_xrt_tls_config_alpn(void* handle, const char* protocols) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; return config != 0 && xl6_tls_replace_string(&config->Alpn, protocols); }
+int xl6_xrt_tls_config_host(void* handle, xlir_string host) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; const char* text = xlir_string_cstr(host); return config != 0 && text != 0 && xl6_tls_replace_string(&config->Host, text); }
+int xl6_xrt_tls_config_alpn(void* handle, xlir_string protocols) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; const char* text = xlir_string_cstr(protocols); return config != 0 && text != 0 && xl6_tls_replace_string(&config->Alpn, text); }
 
-int xl6_xrt_tls_config_cert(void* handle, const char* certificate, const char* key)
+int xl6_xrt_tls_config_cert(void* handle, xlir_string certificate, xlir_string key)
 {
     XL6_TlsConfig* config = (XL6_TlsConfig*)handle;
     char* certificateCopy;
     char* keyCopy;
-    if ( config == 0 ) { return false; }
-    certificateCopy = xl6_xrt_string_dup(certificate != 0 ? certificate : "", 0u);
-    keyCopy = xl6_xrt_string_dup(key != 0 ? key : "", 0u);
+    const char* certificatePath = xlir_string_cstr(certificate);
+    const char* keyPath = xlir_string_cstr(key);
+    if ( config == 0 || certificatePath == 0 || keyPath == 0 ) { return false; }
+    certificateCopy = xl6_xrt_string_dup(certificatePath, certificate.Size);
+    keyCopy = xl6_xrt_string_dup(keyPath, key.Size);
     if ( certificateCopy == 0 || keyCopy == 0 ) { xrtFree(certificateCopy); xrtFree(keyCopy); return false; }
     xrtFree(config->CertificateFile); xrtFree(config->KeyFile);
     config->CertificateFile = certificateCopy; config->KeyFile = keyCopy;
     return true;
 }
 
-int xl6_xrt_tls_config_ca(void* handle, const char* path) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; return config != 0 && xl6_tls_replace_string(&config->CaFile, path); }
-int xl6_xrt_tls_config_crl(void* handle, const char* path) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; return config != 0 && xl6_tls_replace_string(&config->CrlFile, path); }
+int xl6_xrt_tls_config_ca(void* handle, xlir_string path) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; const char* text = xlir_string_cstr(path); return config != 0 && text != 0 && xl6_tls_replace_string(&config->CaFile, text); }
+int xl6_xrt_tls_config_crl(void* handle, xlir_string path) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; const char* text = xlir_string_cstr(path); return config != 0 && text != 0 && xl6_tls_replace_string(&config->CrlFile, text); }
 void xl6_xrt_tls_config_verify(void* handle, int enabled) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; if ( config != 0 ) { config->VerifyPeer = enabled != 0; } }
 void xl6_xrt_tls_config_allow_ed25519(void* handle, int enabled) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; if ( config != 0 ) { config->AllowTls12Ed25519 = enabled != 0; } }
 void xl6_xrt_tls_config_max_version(void* handle, long long version) { XL6_TlsConfig* config = (XL6_TlsConfig*)handle; if ( config != 0 ) { config->MaxVersion = version >= 0 && version <= 65535 ? (uint16_t)version : 0u; } }
@@ -816,12 +818,15 @@ void* xl6_xrt_tls_session_export_resume(void* handle)
     return xrtTlsClientTakeResume(session->Native);
 }
 
-int xl6_xrt_tls_session_set_cert(void* handle, const char* certificate, const char* key)
+int xl6_xrt_tls_session_set_cert(void* handle, xlir_string certificate, xlir_string key)
 {
     XL6_TlsSession* session = (XL6_TlsSession*)handle;
     xtlsidentity* identity;
+    const char* certificatePath = xlir_string_cstr(certificate);
+    const char* keyPath = xlir_string_cstr(key);
     if ( session == 0 || !session->Server || session->Native != 0 ) { return false; }
-    identity = xl6_tls_identity_file(certificate, key);
+    if (certificatePath == 0 || keyPath == 0) return false;
+    identity = xl6_tls_identity_file(certificatePath, keyPath);
     if ( identity == 0 ) { return false; }
     xrtTlsIdentityRelease(session->Identity); session->Identity = identity; session->Failed = false; return true;
 }

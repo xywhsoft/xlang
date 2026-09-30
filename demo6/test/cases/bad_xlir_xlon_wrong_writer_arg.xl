@@ -1,0 +1,7 @@
+class MalformedWriter
+    native point handle
+    extern "xl6_xrt_xlon_writer_create_default" create()
+    extern "xl6_xrt_xlon_writer_destroy" destroy()
+    extern "xl6_xrt_xlon_writer_time" func write(time value) as bool
+end
+assert MalformedWriter().write(#2026-06-18 00:00:00#)

@@ -1,0 +1,66 @@
+func makeCharReader(char value) as func() as char
+    return func() as char
+        return value
+    end
+end
+
+func makeBytesReader(bytes value) as func() as bytes
+    return func() as bytes
+        return value
+    end
+end
+
+async func echoCharAsync(char value) as char
+    return value
+end
+
+async func echoBytesAsync(bytes value) as bytes
+    return value
+end
+
+func scalarStream() as generator<char>
+    yield 'A'
+    yield '你'
+end
+
+func bytesStream() as generator<bytes>
+    yield b"A"
+    yield b"\x00你"
+end
+
+char han = '你'
+bytes payload = b"A\x00你"
+
+func() as char readChar = makeCharReader(han)
+func() as bytes readBytes = makeBytesReader(payload)
+assert readChar() == han
+assert readBytes() == payload
+
+char awaitedChar = await echoCharAsync(han)
+bytes awaitedBytes = await echoBytesAsync(payload)
+assert awaitedChar == han
+assert awaitedBytes == payload
+
+string streamedText = ""
+for scalar in scalarStream()
+    streamedText = streamedText + scalar
+end
+assert streamedText == "A你"
+
+bytes streamedBytes = b""
+for chunk in bytesStream()
+    streamedBytes = streamedBytes + chunk
+end
+assert streamedBytes == b"A\x00你"
+
+var boxedChar = han
+var boxedBytes = payload
+assert boxedChar == han
+assert boxedBytes == payload
+
+var restoredChar = xlon.parse(xlon.stringify(boxedChar))
+var restoredBytes = xlon.parse(xlon.stringify(boxedBytes))
+assert restoredChar == boxedChar
+assert restoredBytes == boxedBytes
+
+println("char/bytes advanced ok")

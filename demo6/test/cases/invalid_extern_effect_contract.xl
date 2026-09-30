@@ -1,0 +1,1 @@
+extern "sin" @unknown_effect func invalidEffect(float x) as float

@@ -1758,7 +1758,7 @@ static inline str xl6_xrt_value_string_owned(const xvalue* value, uint32* output
             }
             break;
         default:
-            result = xrtXsonStringify(value, false, &size);
+            result = xrtXlonStringify(value, false, &size);
             break;
         }
     }
@@ -5143,7 +5143,7 @@ static inline void xl6_xrt_print_one(const xvalue* value)
         if ( size < sizeof(buffer) ) { xl6_xrt_print_write(buffer, size); }
         break;
     default:
-        serialized = xrtXsonStringify(value, false, &size);
+        serialized = xrtXlonStringify(value, false, &size);
         if ( serialized != 0 ) {
             xl6_xrt_print_write((const char*)serialized, size);
             xrtFree(serialized);

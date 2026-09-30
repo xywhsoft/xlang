@@ -221,10 +221,10 @@ static int xl6IrCgenEmitXValueContainerRuntime(
             if ( needs->needsXValueObjectLiteralStringRuntime )
                 xl6OutputPuts("extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                               "extern char* xrtStrDupN(const char*, size_t);\n"
-                              "static char* xlir_xvalue_object_get_literal_string_copy(const xvalue* object, xlir_string_view key)\n"
-                              "{ xvalue* item = xrtValueObjectGet(object, key); xlir_string_view value = {0}; char* copied;\n"
+                              "static xlir_string xlir_xvalue_object_get_literal_string_copy(const xvalue* object, xlir_string_view key)\n"
+                              "{ xvalue* item = xrtValueObjectGet(object, key); xlir_string_view value = {0};\n"
                               "  if (item == NULL || !xrtValueGetString(item, &value)) abort();\n"
-                              "  copied = xrtStrDupN(value.Data, value.Size); return copied; }\n", out);
+                              "  return xlir_string_from_utf8(value.Data, value.Size); }\n", out);
         }
         if ( needs->needsNominalIdentityRuntime &&
              !xl6IrCgenEmitNominalIdentityRuntime(out, module, diags) )

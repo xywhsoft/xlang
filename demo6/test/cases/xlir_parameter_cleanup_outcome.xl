@@ -75,32 +75,31 @@ func thrownResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
     return ParameterGuard(4)
 end
 
-func replaceOut(out ParameterGuard first, out ParameterGuard last)
-    first = ParameterGuard(2)
-    last = ParameterGuard(3)
+func replaceOut() as (ParameterGuard, ParameterGuard)
+    return ParameterGuard(2), ParameterGuard(3)
 end
 
-func replaceByref(byref ParameterGuard first, byref ParameterGuard last)
+func replaceByref(ParameterGuard first, ParameterGuard last) as (ParameterGuard, ParameterGuard)
     first = ParameterGuard(2)
     last = ParameterGuard(3)
+    return first, last
 end
 
 func outResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
-    replaceOut(out first, out last)
+    first, last = replaceOut()
     return ParameterGuard(4)
 end
 
 func byrefResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
-    replaceByref(byref first, byref last)
+    first, last = replaceByref(first, last)
     return ParameterGuard(4)
 end
 
-// The borrowed argument's call-duration owner must outlive a writeback that
-// replaces the caller's original binding; stable callee cleanup stays no-raise.
-func aliasResult(ParameterGuard first, byref ParameterGuard last) as ParameterGuard
+// The first value must remain alive until the multi-result assignment commits.
+func aliasResult(ParameterGuard first, ParameterGuard last) as (ParameterGuard, ParameterGuard)
     last = ParameterGuard(2)
     assert first.id == 3
-    return ParameterGuard(4)
+    return last, ParameterGuard(4)
 end
 
 export "parameter_cleanup_owned" func probe_owned() as int
@@ -225,7 +224,8 @@ export "parameter_cleanup_alias" func probe_alias() as int
     ParameterGuard outer = ParameterGuard(1)
     try
         ParameterGuard original = ParameterGuard(3)
-        ParameterGuard result = aliasResult(original, byref original)
+        ParameterGuard result
+        original, result = aliasResult(original, original)
         assert result.id == 4
     catch error
         assert outer.id == 1

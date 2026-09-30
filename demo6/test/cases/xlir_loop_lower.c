@@ -60,7 +60,9 @@ int main(void)
     lowered = ok ? &ir.functions[1] : NULL;
     ok = ok && lowered->symbol == 13 && lowered->blockCount == 4 && lowered->instructionCount == 5 &&
           ir.instructions[lowered->firstInstruction].kind == XL6_IR_INSTR_JUMP &&
-          ir.instructions[lowered->firstInstruction + 2].kind == XL6_IR_INSTR_BRANCH &&
+          ir.instructions[lowered->firstInstruction + 2].kind == XL6_IR_INSTR_JUMP &&
+          ir.instructions[lowered->firstInstruction + 2].trueTarget == lowered->entryBlock + 3 &&
+          ir.instructions[lowered->firstInstruction + 2].falseTarget == XL6_IR_BLOCK_INVALID &&
           ir.instructions[lowered->firstInstruction + 3].kind == XL6_IR_INSTR_JUMP &&
           ir.instructions[lowered->firstInstruction + 3].trueTarget == lowered->entryBlock + 3 &&
           ir.instructions[lowered->firstInstruction + 4].kind == XL6_IR_INSTR_RETURN;

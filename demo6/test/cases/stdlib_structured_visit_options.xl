@@ -1,0 +1,19 @@
+int jsonEvents = 0
+func jsonEvent(var event) as bool
+    jsonEvents += 1
+    assert event["line"] == 1
+    return true
+end
+assert json.visit("/*x*/1", jsonEvent) == json.visitInvalid
+assert json.visit("/*x*/1", jsonEvent, {"comments": true}) == json.visitComplete
+assert jsonEvents == 1
+
+int xlonEvents = 0
+func xlonEvent(var event) as bool
+    xlonEvents += 1
+    assert event["column"] >= 1
+    return true
+end
+assert xlon.visit("/*x*/'你'", xlonEvent) == xlon.visitInvalid
+assert xlon.visit("/*x*/char(\"你\")", xlonEvent, {"comments": true}) == xlon.visitComplete
+assert xlonEvents == 1

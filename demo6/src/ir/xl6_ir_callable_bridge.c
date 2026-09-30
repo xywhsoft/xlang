@@ -30,6 +30,7 @@ static int xl6IrCallableBridgeParameterPlan(
     }
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BOOL; break;
+    case XL6_IR_C_ABI_CHAR_U32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_CHAR; break;
     case XL6_IR_C_ABI_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_I64; break;
     case XL6_IR_C_ABI_U64:
     case XL6_IR_C_ABI_TYPE_ID: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
@@ -38,6 +39,16 @@ static int xl6IrCallableBridgeParameterPlan(
     case XL6_IR_C_ABI_MANAGED_STRING:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_STRING_COPY;
         plan->decodedDestroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING;
+        break;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        plan->decodeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED
+            ? XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN
+            : XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW;
+        plan->encodeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED
+            ? XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE
+            : XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN;
+        if (abi == XL6_IR_PARAMETER_ABI_OWNED)
+            plan->decodedDestroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE;
         break;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_ERROR_REF;
@@ -70,6 +81,7 @@ static int xl6IrCallableBridgeResultPlan(
     plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_NONE;
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BOOL; break;
+    case XL6_IR_C_ABI_CHAR_U32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_CHAR; break;
     case XL6_IR_C_ABI_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_I64; break;
     case XL6_IR_C_ABI_U64:
     case XL6_IR_C_ABI_TYPE_ID: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
@@ -78,6 +90,10 @@ static int xl6IrCallableBridgeResultPlan(
     case XL6_IR_C_ABI_MANAGED_STRING:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_STRING_COPY;
         plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING; break;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN;
+        plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE;
+        plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE; break;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_ERROR_REF;
         plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_FREE_ERROR; break;

@@ -15,12 +15,12 @@ func convertVisit(var event) as bool
 end
 
 func nestedVisit(var event) as bool
-    int status = xson.visit("null", throwVisit)
-    return status == xson.visitComplete
+    int status = xlon.visit("null", throwVisit)
+    return status == xlon.visitComplete
 end
 
 func nativeDiagnosticVisit(var event) as bool
-    assert !xson.valid("{bad}")
+    assert !xlon.valid("{bad}")
     assert json.visit("{", continueVisit) == json.visitInvalid
     assert string.len(lastNativeError()) > 0
     return true
@@ -41,13 +41,13 @@ end
 for i in range(20)
     // Invalid parse status remains distinct from a language exception,
     // including after a previous native diagnostic and inside a callback.
-    assert !xson.valid("{bad}")
+    assert !xlon.valid("{bad}")
     assert json.visit("{", continueVisit) == json.visitInvalid
-    assert xson.visit("{bad}", continueVisit) == xson.visitInvalid
+    assert xlon.visit("{bad}", continueVisit) == xlon.visitInvalid
     assert string.len(lastNativeError()) > 0
     assert json.visit("null", nativeDiagnosticVisit) == json.visitComplete
-    assert xson.visit("null", nativeDiagnosticVisit) == xson.visitComplete
-    assert xson.visit("null", recoveredVisit) == xson.visitComplete
+    assert xlon.visit("null", nativeDiagnosticVisit) == xlon.visitComplete
+    assert xlon.visit("null", recoveredVisit) == xlon.visitComplete
 
     int caught = 0
     try
@@ -58,7 +58,7 @@ for i in range(20)
         caught = caught + 1
     end
     try
-        int status = xson.visit("null", throwVisit)
+        int status = xlon.visit("null", throwVisit)
     catch e
         assert e.kind == "ValueError"
         assert e.message == "serialization-callback-sentinel"
@@ -76,11 +76,11 @@ for i in range(20)
         caught = caught + 1
     end
     try
-        int status = xson.visit("null", convertVisit)
+        int status = xlon.visit("null", convertVisit)
     catch RangeError e
         caught = caught + 1
     end
     assert caught == 5, "visitor exceptions were reduced to parser status codes"
     assert json.visit("null", continueVisit) == json.visitComplete
-    assert xson.visit("null", continueVisit) == xson.visitComplete
+    assert xlon.visit("null", continueVisit) == xlon.visitComplete
 end

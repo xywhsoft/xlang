@@ -1,0 +1,23 @@
+// Raw byte IO: no encoding conversion and no NUL truncation.
+auto source = io.fromBytes(b"one\r\n\x00two\n")
+auto lines = io.lines(source)
+for line in lines
+    println(line.length)
+end
+lines.close()
+
+auto writer = io.bufferWriter()
+assert io.copyUpTo(io.fromBytes(b"abcdef"), writer, 3) == 3
+assert io.copyExact(io.fromBytes(b"XYZ"), writer, 3) == 3
+assert io.copy(io.fromBytes(b"!"), writer) == 1
+writer.writeAll("\x00你")
+bytes snapshot = writer.toBytes()
+writer.close()
+assert snapshot == b"abcXYZ!\x00\xe4\xbd\xa0"
+auto discard = io.discardWriter()
+discard.writeAll(snapshot)
+discard.close()
+
+Buffer buffer = Buffer()
+assert buffer.append("buffer")
+assert io.fromBuffer(buffer).readAll() == b"buffer"

@@ -1,0 +1,84 @@
+assert int.parse("0") == 0
+assert int.parse("-9223372036854775808") == -9223372036854775808
+assert int.parse("9223372036854775807") == 9223372036854775807
+assert uint64.parse("18446744073709551615") == uint64(18446744073709551615)
+assert float.parse("1.25") == 1.25
+assert float.parse("-0.0") == 0.0
+assert math.isNaN(float.parse("NaN"))
+assert math.isInf(float.parse("-infinity"))
+assert int8.parse("-128") == int8(-128)
+assert int16.parse("32767") == int16(32767)
+assert int32.parse("2147483647") == int32(2147483647)
+assert int64.parse("-9223372036854775808") == int64(-9223372036854775808)
+assert uint8.parse("255") == uint8(255)
+assert uint16.parse("65535") == uint16(65535)
+assert uint32.parse("4294967295") == uint32(4294967295)
+assert int.parse("7f", 16) == 127
+assert int8.parse("-80", 16) == int8(-128)
+assert uint64.parse("11111111", 2) == uint64(255)
+assert uint8.parse("ff", 16) == uint8(255)
+
+auto signedOk, signedValue = int.tryParse("+42")
+assert signedOk and signedValue == 42
+auto signedBad, signedBadValue = int.tryParse("12\0junk")
+assert not signedBad and signedBadValue == 0
+auto signedOverflow, signedOverflowValue = int.tryParse("9223372036854775808")
+assert not signedOverflow and signedOverflowValue == 0
+
+auto unsignedOk, unsignedValue = uint64.tryParse("18446744073709551615")
+assert unsignedOk and unsignedValue == uint64(18446744073709551615)
+auto unsignedBad, unsignedBadValue = uint64.tryParse("-1")
+assert not unsignedBad and unsignedBadValue == uint64(0)
+auto unsignedOverflow, unsignedOverflowValue = uint64.tryParse("18446744073709551616")
+assert not unsignedOverflow and unsignedOverflowValue == uint64(0)
+
+auto floatOk, floatValue = float.tryParse(".5")
+assert floatOk and floatValue == 0.5
+auto floatBad, floatBadValue = float.tryParse("1.0\0junk")
+assert not floatBad and floatBadValue == 0.0
+auto floatOverflow, floatOverflowValue = float.tryParse("1e10000")
+assert not floatOverflow and floatOverflowValue == 0.0
+auto narrowBad, narrowValue = int8.tryParse("128")
+assert not narrowBad and narrowValue == int8(0)
+auto int16Ok, int16Value = int16.tryParse("7fff", 16)
+assert int16Ok and int16Value == int16(32767)
+auto int32Bad, int32Value = int32.tryParse("2147483648")
+assert not int32Bad and int32Value == int32(0)
+auto int64Ok, int64Value = int64.tryParse("-9223372036854775808")
+assert int64Ok and int64Value == int64(-9223372036854775808)
+auto unsignedNarrowBad, unsignedNarrowValue = uint8.tryParse("256")
+assert not unsignedNarrowBad and unsignedNarrowValue == uint8(0)
+auto uint16Ok, uint16Value = uint16.tryParse("ffff", 16)
+assert uint16Ok and uint16Value == uint16(65535)
+auto uint32Bad, uint32Value = uint32.tryParse("4294967296")
+assert not uint32Bad and uint32Value == uint32(0)
+auto badBase, badBaseValue = int.tryParse("10", 1)
+assert not badBase and badBaseValue == 0
+auto badDigit, badDigitValue = uint16.tryParse("8", 8)
+assert not badDigit and badDigitValue == uint16(0)
+auto unexpectedPrefix, unexpectedPrefixValue = int.tryParse("0xff", 16)
+assert not unexpectedPrefix and unexpectedPrefixValue == 0
+auto unexpectedSpace, unexpectedSpaceValue = int.tryParse(" 42")
+assert not unexpectedSpace and unexpectedSpaceValue == 0
+auto unexpectedSeparator, unexpectedSeparatorValue = int.tryParse("1_000")
+assert not unexpectedSeparator and unexpectedSeparatorValue == 0
+auto unexpectedUnsignedSign, unexpectedUnsignedSignValue = uint64.tryParse("+1")
+assert not unexpectedUnsignedSign and unexpectedUnsignedSignValue == uint64(0)
+
+bool syntaxCaught = false
+try
+    int.parse("1\0tail")
+catch ValueError e
+    syntaxCaught = true
+end
+assert syntaxCaught
+
+bool rangeCaught = false
+try
+    uint64.parse("18446744073709551616")
+catch RangeError e
+    rangeCaught = true
+end
+assert rangeCaught
+
+assert int.parse("42") == 42

@@ -203,8 +203,8 @@ $requiredArtifactSubstrings = @{
     "sem_task_spawn_return_channel.err.txt" = $diagNonCopyableReturn
     "sem_task_spawn_return_sync.err.txt" = $diagNonCopyableReturn
     "sem_task_spawn_return_thread.err.txt" = $diagNonCopyableReturn
-    "sem_task_spawn_arg_byref.err.txt" = "task.spawn cannot capture byref or out caller storage"
-    "sem_task_spawn_arg_out.err.txt" = "task.spawn cannot capture byref or out caller storage"
+    "sem_task_spawn_arg_byref.err.txt" = $diagSyntaxError
+    "sem_task_spawn_arg_out.err.txt" = $diagSyntaxError
     "sem_task_all_return_channel.err.txt" = "move-only resource handles cannot be aggregated"
     "sem_task_all_return_generator.err.txt" = "move-only resource handles cannot be aggregated"
     "sem_task_all_typed_array_return_channel.err.txt" = "move-only resource handles cannot be aggregated"
@@ -317,10 +317,21 @@ $requiredArtifactSubstrings = @{
     "sem_duplicate.err.txt" = $diagDuplicateDecl
     "sem_global_func_value_conflict.err.txt" = $diagDuplicateDecl
     "sem_param_default_type.err.txt" = $diagParamDefaultTypeMismatch
-    "sem_param_modes_invalid.err.txt" = $diagParamModeDefault
-    "sem_out_read_before_write.err.txt" = $diagOutReadBeforeWrite
-    "sem_out_missing_branch.err.txt" = $diagOutMissingWrite
-    "sem_out_capture.err.txt" = $diagOutCapture
+    "sem_param_modes_invalid.err.txt" = $diagSyntaxError
+    "sem_language_param_modes_rejected.err.txt" = $diagSyntaxError
+    "syntax_byval_param_removed.err.txt" = $diagSyntaxError
+    "syntax_byref_param_removed.err.txt" = $diagSyntaxError
+    "syntax_out_param_removed.err.txt" = $diagSyntaxError
+    "syntax_byval_arg_removed.err.txt" = $diagSyntaxError
+    "syntax_byref_arg_removed.err.txt" = $diagSyntaxError
+    "syntax_out_arg_removed.err.txt" = $diagSyntaxError
+    "sem_foreign_pointer_callable_escape.err.txt" = $diagSyntaxError
+    "sem_foreign_pointer_var_escape.err.txt" = $diagSyntaxError
+    "sem_foreign_pointer_func_escape.err.txt" = $diagSyntaxError
+    "sem_foreign_member_pointer_callable_escape.err.txt" = $diagSyntaxError
+    "sem_out_read_before_write.err.txt" = $diagSyntaxError
+    "sem_out_missing_branch.err.txt" = $diagSyntaxError
+    "sem_out_capture.err.txt" = $diagSyntaxError
     "sem_return_type_mismatch.err.txt" = $diagReturnTypeMismatch
     "sem_type_convert_invalid.err.txt" = "target point, source int"
     "sem_self_assign.err.txt" = $diagSelfAssign
@@ -376,7 +387,16 @@ $maxArtifactLineCounts = @{
     "sem_class_property_vararg.err.txt" = 2
     "sem_container_literal_target_item_mismatch.err.txt" = 4
     "sem_special_collection_contract.err.txt" = 3
-    "sem_param_modes_invalid.err.txt" = 2
+    "sem_param_modes_invalid.err.txt" = 1
+    "sem_language_param_modes_rejected.err.txt" = 1
+    "sem_foreign_pointer_callable_escape.err.txt" = 1
+    "sem_foreign_pointer_var_escape.err.txt" = 1
+    "sem_foreign_pointer_func_escape.err.txt" = 1
+    "sem_foreign_member_pointer_callable_escape.err.txt" = 1
+    "sem_out_read_before_write.err.txt" = 1
+    "sem_out_missing_branch.err.txt" = 1
+    "sem_out_capture.err.txt" = 1
+    "sem_xcall_byref_invalid.err.txt" = 1
     "sem_c_vararg_export.err.txt" = 2
     "sem_async_return_channel.err.txt" = 1
     "sem_async_return_future.err.txt" = 1
@@ -424,7 +444,6 @@ $allowedMultiLineArtifacts.Add("sem_var_to_concrete_implicit.err.txt") | Out-Nul
 $allowedMultiLineArtifacts.Add("sem_class_property_vararg.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_container_literal_target_item_mismatch.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_special_collection_contract.err.txt") | Out-Null
-$allowedMultiLineArtifacts.Add("sem_param_modes_invalid.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_c_vararg_export.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_enum_recursive_mutual_error.err.txt") | Out-Null
 

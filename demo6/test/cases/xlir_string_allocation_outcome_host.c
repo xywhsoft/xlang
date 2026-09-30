@@ -18,7 +18,16 @@ int string_outcome_invoke(int shape, int mode, char** left, char* right, char** 
 {
     xlir_result_string result;
     defaultMode = mode;
-    if (shape == 5) { xlir_result_void done = STRING_OUTCOME_5(left, right); return done.ok; }
+    if (shape == 5) {
+        /* The unqualified string parameter is borrowed at the C boundary;
+         * assignment commits the returned owner only after success. */
+        result = STRING_OUTCOME_5(*left, right);
+        if (result.ok) {
+            xrtFree(*left);
+            *left = result.value;
+        }
+        return result.ok;
+    }
     switch (shape) {
     case 0: result = STRING_OUTCOME_0(*left, right); break;
     case 1: result = STRING_OUTCOME_1(*left, right); break;

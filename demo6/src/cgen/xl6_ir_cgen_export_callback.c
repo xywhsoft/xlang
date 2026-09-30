@@ -1,22 +1,27 @@
 /* Physical adapters selected only by verified export value ABIs. */
 /* One public shared-runtime declaration contract for generated C and headers. */
-static void xl6IrCgenEmitForeignErrorDeclarations(XL6_Output* out)
+static void xl6IrCgenEmitForeignErrorDeclarations(XL6_Output* out, int publicLinkage)
 {
+    const char* linkage = publicLinkage ? "XLIR_C_API " : "";
     xl6OutputPuts(
         "#ifndef XL6_FOREIGN_ERROR_ABI\n#define XL6_FOREIGN_ERROR_ABI\n"
         "typedef struct xerror xerror;\n"
         "typedef struct xl6_foreign_error_scope { struct xl6_foreign_error_scope* previous; xerror* pending; xerror* previous_diagnostic; bool failed; } xl6_foreign_error_scope;\n"
         "typedef struct xl6_foreign_error_result { bool ok; xerror* error; } xl6_foreign_error_result;\n"
         "typedef xl6_foreign_error_scope xl6_error_scope;\n"
-        "typedef xl6_foreign_error_result xl6_error_result;\n"
-        "extern bool xl6ErrorScopeBegin(xl6_error_scope*);\n"
-        "extern bool xl6ErrorScopeBeginCleanup(xl6_error_scope*, bool);\n"
-        "extern xl6_error_result xl6ErrorScopeEnd(xl6_error_scope*);\n"
-        "extern bool xl6ForeignCallBegin(xl6_foreign_error_scope*);\n"
-        "extern xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_scope*);\n"
-        "extern void xl6ErrorScopeCaptureFailure(xl6_error_scope*);\n"
-        "extern void xl6ErrorScopePropagateFailure(xl6_error_result);\n"
-        "extern void xl6ForeignCallbackFail(void);\n#endif\n", out);
+        "typedef xl6_foreign_error_result xl6_error_result;\n#endif\n", out);
+    /* 类型可由运行时头先声明，但共享库仍须导出公共头承诺的同一套错误接口。 */
+    xl6OutputPrintf(out,
+        "%sextern bool xl6ErrorScopeBegin(xl6_error_scope*);\n"
+        "%sextern bool xl6ErrorScopeBeginCleanup(xl6_error_scope*, bool);\n"
+        "%sextern xl6_error_result xl6ErrorScopeEnd(xl6_error_scope*);\n"
+        "%sextern bool xl6ForeignCallBegin(xl6_foreign_error_scope*);\n"
+        "%sextern xl6_foreign_error_result xl6ForeignCallEnd(xl6_foreign_error_scope*);\n"
+        "%sextern void xl6ErrorScopeCaptureFailure(xl6_error_scope*);\n"
+        "%sextern void xl6ErrorScopePropagateFailure(xl6_error_result);\n"
+        "%sextern void xl6ForeignCallbackFail(void);\n",
+        linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage);
+    if (publicLinkage) xl6OutputPuts("XLIR_C_API extern void xrtErrorFree(xerror*);\n", out);
 }
 
 static int xl6IrCgenExportCallbackNeeded(
@@ -104,13 +109,13 @@ static int xl6IrCgenEmitExportCallbackAdapters(
             xl6IrCgenType(module, signature->callableResultType);
         resultType = xl6IrTypeGet(&module->types, signature->callableResultType);
         if ( resultType != NULL && resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
-            release = resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ? "xrtFree" : "xrtValueRelease";
+            release = resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ? "xlir_string_drop" : "xrtValueRelease";
         if (release != NULL)
             xl6OutputPrintf(out,
                 "static xl6_foreign_error_result xlir_export_callback_drop_t%lu(%s* owner)\n"
                 "{\n"
                 "    %s owned = *owner; xl6_foreign_error_scope cleanup = {0};\n"
-                "    *owner = NULL;\n"
+                "    memset(owner, 0, sizeof(*owner));\n"
                 "    if (!xl6ForeignCallBegin(&cleanup)) abort();\n"
                 "    %s(owned);\n"
                 "    return xl6ForeignCallEnd(&cleanup);\n"

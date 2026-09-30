@@ -9,6 +9,8 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_TK_INT: return "INT";
     case XL6_TK_FLOAT: return "FLOAT";
     case XL6_TK_STRING: return "STRING";
+    case XL6_TK_CHAR: return "CHAR";
+    case XL6_TK_BYTES: return "BYTES";
     case XL6_TK_FSTRING: return "FSTRING";
     case XL6_TK_TIME: return "TIME";
     case XL6_TK_DOC: return "DOC";
@@ -67,9 +69,6 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_NATIVE: return "KW_NATIVE";
     case XL6_KW_C_VARARG: return "KW_C_VARARG";
     case XL6_KW_C_CALLBACK: return "KW_C_CALLBACK";
-    case XL6_KW_BYVAL: return "KW_BYVAL";
-    case XL6_KW_BYREF: return "KW_BYREF";
-    case XL6_KW_OUT: return "KW_OUT";
     case XL6_KW_MATCH: return "KW_MATCH";
     case XL6_KW_CASE: return "KW_CASE";
     case XL6_KW_AND: return "KW_AND";

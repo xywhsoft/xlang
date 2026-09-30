@@ -1,0 +1,7 @@
+bool rejected = false
+try
+    console.readChar()
+catch IOError e
+    rejected = true
+end
+assert rejected

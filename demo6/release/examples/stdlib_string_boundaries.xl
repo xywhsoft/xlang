@@ -20,3 +20,15 @@ array lines = string.splitLines("first\r\nsecond\nthird")
 for line in lines
     println(string(line))
 end
+
+// join 不修改输入；字符串直接连接，其他值按统一文本转换处理。
+println(string.join(parts, " / "))
+println(string.join(["answer", 42, true, null], ":"))
+
+// 显式取字符数组或字节整数数组，返回的内容不借用源文本。
+for character in string.chars("A你")
+    println(string(character))
+end
+for octet in string.bytes("A你")
+    println(int(octet))
+end

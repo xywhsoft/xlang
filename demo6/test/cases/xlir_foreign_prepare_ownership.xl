@@ -1,4 +1,4 @@
-extern "prepare_consume" func consumeText(byval string left, string borrowed, byval string right) as int
+extern "prepare_consume" func consumeText(string left, string borrowed, string right) as int
 
 func prepareCase(string text) as int
     return consumeText(text, text, text)

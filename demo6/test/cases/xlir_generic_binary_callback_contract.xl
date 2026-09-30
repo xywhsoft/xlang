@@ -1,0 +1,11 @@
+func compareInt(int left, int right) as int
+    if left < right then return -1 end
+    if left > right then return 1 end
+    return 0
+end
+
+func compareVia<T>(T left, T right, func(T, T) as int compare) as int
+    return compare(left, right)
+end
+
+assert compareVia::<int>(1, 2, compareInt) == -1

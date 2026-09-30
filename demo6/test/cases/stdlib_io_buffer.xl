@@ -1,0 +1,26 @@
+Buffer data = Buffer()
+assert data.append("a\x00你Z")
+auto reader = io.fromBuffer(data, 5)
+assert data.append("later")
+assert reader.readAll() == b"a\x00\xe4\xbd\xa0"
+auto clamped = io.fromBytes(b"abcdef", 100)
+assert clamped.readAll() == b"abcdef"
+auto short = io.fromBytes(b"abcdef", 2)
+Buffer target = Buffer()
+assert target.append("prefix:")
+assert short.readInto(target, 0) == 0
+assert short.readInto(target, 100) == 2
+assert target.text() == "prefix:ab"
+auto writer = io.bufferWriter()
+assert writer.write(target, 7) == 7
+writer.writeAll(target, 100)
+assert writer.toBytes() == b"prefix:prefix:ab"
+io.writeFile("build/test/stdlib_io_buffer.bin", target, io.truncate, 7)
+assert io.readFile("build/test/stdlib_io_buffer.bin") == b"prefix:"
+bool rejected = false
+try
+    io.fromBytes(b"x", -2)
+catch RangeError e
+    rejected = true
+end
+assert rejected

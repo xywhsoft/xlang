@@ -1,0 +1,57 @@
+import floatEnv
+
+floatEnv.Snapshot original = floatEnv.capture()
+floatEnv.RoundingMode originalMode = floatEnv.getRounding()
+int originalFlags = floatEnv.getFlags()
+
+floatEnv.clearFlags()
+assert floatEnv.getFlags() == 0
+floatEnv.raiseFlags(int(floatEnv.ExceptionFlag.divideByZero))
+assert (floatEnv.getFlags() & int(floatEnv.ExceptionFlag.divideByZero)) != 0
+floatEnv.raiseFlags(int(floatEnv.ExceptionFlag.invalid))
+floatEnv.clearFlags(int(floatEnv.ExceptionFlag.divideByZero))
+assert floatEnv.getFlags() == int(floatEnv.ExceptionFlag.invalid)
+floatEnv.raiseFlags(int(floatEnv.ExceptionFlag.divideByZero))
+
+bool badMaskCaught = false
+try
+    floatEnv.clearFlags(32)
+catch e
+    badMaskCaught = e.kind == "RangeError"
+end
+assert badMaskCaught
+
+floatEnv.setRounding(floatEnv.RoundingMode.downward)
+assert floatEnv.getRounding() == floatEnv.RoundingMode.downward
+assert math.roundCurrent(2.75) == 2.0
+
+floatEnv.Snapshot nested = floatEnv.capture()
+floatEnv.setRounding(floatEnv.RoundingMode.upward)
+assert math.roundCurrent(2.25) == 3.0
+nested.restore()
+assert floatEnv.getRounding() == floatEnv.RoundingMode.downward
+
+floatEnv.Snapshot held = floatEnv.hold()
+assert floatEnv.getFlags() == 0
+held.restore()
+assert (floatEnv.getFlags() & int(floatEnv.ExceptionFlag.divideByZero)) != 0
+
+floatEnv.Snapshot foreignSnapshot = floatEnv.capture()
+auto restoreFromOtherThread = func() as int
+    try
+        foreignSnapshot.restore()
+    catch RuntimeError e
+        if e.message == "floating-point environment snapshot belongs to another thread" then
+            return 1
+        end
+    end
+    return 0
+end
+thread foreignRestore = thread(restoreFromOtherThread)
+assert foreignRestore.wait()
+assert foreignRestore.exitCode() == 1
+foreignSnapshot.restore()
+
+original.restore()
+assert floatEnv.getRounding() == originalMode
+assert floatEnv.getFlags() == originalFlags

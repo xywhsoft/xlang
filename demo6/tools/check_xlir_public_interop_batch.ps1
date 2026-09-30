@@ -38,14 +38,14 @@ $cases = @(
     @{Name='reject_int_width';Source='c_abi_mismatch_extern_header';Hosts=@('c_abi_mismatch_extern_header_host');Reject=$true;Symbol='xl6_bad_native_add'},
     @{Name='reject_destructor_return';Source='cgen_extern_string_return';Hosts=@('cgen_extern_string_return_host');Reject=$true;Symbol='native_text_close'},
     @{Name='added_c_scalar_types';Source='c_abi_types';Hosts=@('c_abi_types_host','xlir_public_native_host');Added=$true},
-    @{Name='added_callback_byref';Source='xlir_public_callback_byref';Hosts=@('xlir_public_callback_byref_host');Added=$true},
+    @{Name='added_callback_value_result';Source='xlir_public_callback_byref';Hosts=@('xlir_public_callback_byref_host');Added=$true},
     @{Name='added_reject_global_width';Source='extern_var';Hosts=@('xlir_public_bad_global_host');Reject=$true;Symbol='host_counter';Added=$true}
 )
 if ($PackageBatch) {
     $cases = @(
         @{Name='package_c';Source='import_package_use';Hosts=@()},
         @{Name='package_include';Source='import_package_include_dir';Hosts=@()},
-        @{Name='package_multi_c_byref';Source='xlir_pkg_valid';Hosts=@()},
+        @{Name='package_multi_c_value_result';Source='xlir_pkg_valid';Hosts=@()},
         @{Name='package_reject_width';Source='xlir_pkg_bad_width';Hosts=@();Reject=$true;Symbol='xlir_pkg_bad_add'},
         @{Name='package_reject_global';Source='xlir_pkg_bad_global';Hosts=@();Reject=$true;Symbol='xlir_pkg_bad_count'},
         @{Name='package_reject_destroy';Source='xlir_pkg_bad_destroy';Hosts=@();Reject=$true;Symbol='xlir_pkg_box_close'},

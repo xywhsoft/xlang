@@ -102,7 +102,7 @@ try {
         $c = [System.IO.File]::ReadAllText($cPath)
         if ( $c -cne [System.IO.File]::ReadAllText($repeatPath) ) { throw "$fixture is not deterministic" }
         if ( !$c.Contains("<__xl_runtime/xruntime_decl.h>") -or
-             $c -match 'xrtXson|xl6_xrt_xson|xl6_function_call_var|<__xl_runtime/xl_runtime.h>|<[^>]*(?:xrt|xruntime)\.h>' ) {
+             $c -match 'xrtXlon|xl6_xrt_xlon|xl6_function_call_var|<__xl_runtime/xl_runtime.h>|<[^>]*(?:xrt|xruntime)\.h>' ) {
             throw "$fixture lost its declaration-only, backend-neutral runtime boundary"
         }
         if ( ($fixture -eq "xlir_json_writer_bridge" -and $c.Contains("xl6_xrt_json_visit")) -or

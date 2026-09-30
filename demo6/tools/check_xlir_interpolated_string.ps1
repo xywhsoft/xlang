@@ -95,9 +95,9 @@ foreach ( $fixture in $fixtures ) {
             })
             if ( $part.sourceKindName -eq "interp_text" ) {
                 if ( $runtime.Count -ne 1 -or
-                     $runtime[0].runtimeOpName -ne "string-dup" -or
-                     $runtime[0].hasImmediate -ne 1 ) {
-                    throw "XLIR interpolation text is not one canonical STRING_DUP payload: $fixture n$partId"
+                     $runtime[0].runtimeOpName -ne "string-from-utf8" -or
+                     $runtime[0].hasImmediate -ne 0 ) {
+                    throw "XLIR interpolation text is not one explicit-length decoded UTF-8 payload: $fixture n$partId"
                 }
             } else {
                 $conversions = @($runtime | Where-Object {
@@ -112,21 +112,62 @@ foreach ( $fixture in $fixtures ) {
         $parentInstructions = @($lowered.instructions | Where-Object {
             $_.origin -eq $interpolation.id
         })
-        if ( @($parentInstructions | Where-Object {
-                $_.kindName -eq "runtime-call" -and
-                $_.runtimeOpName -eq "string-concat" -and
-                $_.operandCount -eq 2
-             }).Count -ne $expectedConcat -or
-             @($parentInstructions | Where-Object {
-                $_.kindName -eq "store"
-             }).Count -ne 2 * $expectedConcat -or
-             @($parentInstructions | Where-Object {
-                $_.kindName -eq "load"
-             }).Count -ne 2 * $expectedConcat -or
-             @($parentInstructions | Where-Object {
-                $_.kindName -eq "release"
-             }).Count -ne 2 * $expectedConcat ) {
+        $concats = @($parentInstructions | Where-Object {
+            $_.kindName -eq "runtime-call" -and
+            $_.runtimeOpName -eq "string-concat" -and
+            $_.operandCount -eq 2
+        })
+        if ( $concats.Count -ne $expectedConcat ) {
             throw "XLIR interpolation concat ownership transaction is not exact: $fixture n$($interpolation.id)"
+        }
+        for ( $concatIndex = 0; $concatIndex -lt $concats.Count; ++$concatIndex ) {
+            $concat = $concats[$concatIndex]
+            $nextConcatIndex = if ( $concatIndex + 1 -lt $concats.Count ) {
+                [int]$concats[$concatIndex + 1].index
+            } else {
+                [int]::MaxValue
+            }
+            $operandLoads = @()
+            foreach ( $operand in @($concat.operands) ) {
+                $definitions = @($lowered.instructions | Where-Object {
+                    [int]$_.result -eq [int]$operand
+                })
+                if ( $definitions.Count -ne 1 -or
+                     $definitions[0].kindName -ne "load" -or
+                     [uint64]$definitions[0].targetSymbol -eq 0 ) {
+                    throw "XLIR interpolation concat operand is not an explicit protected load: $fixture n$($interpolation.id) i$($concat.index)"
+                }
+                $operandLoads += $definitions[0]
+            }
+            $symbols = @($operandLoads | ForEach-Object { [uint64]$_.targetSymbol })
+            if ( @($symbols | Sort-Object -Unique).Count -ne 2 ) {
+                throw "XLIR interpolation concat operands alias one protected owner: $fixture n$($interpolation.id) i$($concat.index)"
+            }
+            foreach ( $load in $operandLoads ) {
+                $stores = @($lowered.instructions | Where-Object {
+                    $_.kindName -eq "store" -and
+                    [uint64]$_.targetSymbol -eq [uint64]$load.targetSymbol -and
+                    [int]$_.index -lt [int]$load.index
+                })
+                $releases = @($parentInstructions | Where-Object {
+                    $_.kindName -eq "release" -and $_.errorScope -eq 0 -and
+                    [uint64]$_.targetSymbol -eq [uint64]$load.targetSymbol -and
+                    [int]$_.index -gt [int]$concat.index -and
+                    [int]$_.index -lt $nextConcatIndex
+                })
+                if ( $stores.Count -eq 0 -or $releases.Count -ne 1 ) {
+                    throw "XLIR interpolation concat operand has no single commit/release transaction: $fixture n$($interpolation.id) i$($concat.index)"
+                }
+            }
+            $tests = @($lowered.instructions | Where-Object {
+                [int]$_.index -eq ([int]$concat.index + 1) -and
+                $_.kindName -eq "error-test" -and
+                @($_.operands).Count -eq 1 -and
+                [int]$_.operands[0] -eq [int]$concat.result
+            })
+            if ( $tests.Count -ne 1 ) {
+                throw "XLIR interpolation concat lost its adjacent allocation failure edge: $fixture n$($interpolation.id) i$($concat.index)"
+            }
         }
     }
 

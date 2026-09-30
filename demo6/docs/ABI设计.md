@@ -363,23 +363,33 @@ xlang float    -> C double
 xlang float32  -> C float
 xlang float64  -> C double
 xlang point    -> C xptr
+xlang bytes    -> C xvalue*（仅借用受管字节值，C 侧用 xrtValueGetBytes 读取字节视图）
 xlang class    -> C xvalue
-byref/out class -> C xvalue*
+内部 C 输出指针合同 -> C 指针（不属于 xlang 参数语法）
 ```
 
-`string` 需要单独处理所有权：
+所有公开 xlang 函数与 `extern` 声明均不接受 `byval/byref/out` 参数修饰；生成的 C 内部为错误结果或多返回值使用输出槽，是实现 ABI，不是语言层按址传参。
 
-- C -> xlang 参数：`string` 对应 C 的 UTF-8 只读字符串指针，xlang 如需保存必须复制。
-- C -> xlang 返回：`string` 表示 C 返回 UTF-8 只读字符串指针，xlang 立即复制为 xlang string。
+`string` 的语言/XLIR 内部值是 `{Data, Size}`，`Size` 是实际 UTF-8 字节长度，
+不以 NUL 结尾推断长度；赋值、返回和需独立所有权的参数由 XLIR 显式获取
+副本，可证明只读借用的调用不复制。`bytes` 同样携带实际长度。
+`extern C` 的 `bytes` 参数不是裸 `char*`：物理 ABI 为调用期借用的
+`xvalue*`，被调函数必须通过 `xrtValueGetBytes` 取只读数据及精确长度，
+不得保存该借用视图或释放传入值。需要裸指针 ABI 时必须另行声明
+`point` 与有界长度，不能把 `bytes` 形参伪装成指针。
 
-XLIR 的 `CallTarget.resultConversionAbi` 显式记录这个拥有权边界：真正的外部
-字符串返回使用 `borrowed-string-copy`，由 XRT `xrtStrDup` 建立拥有副本；内部函数
-和已提供拥有返回的运行库桥接使用 `direct`，不再重复复制。`CALL` 的 SSA 结果
-已经完成转换，复制必须早于参数临时值和 native 接收者的清理。具名函数值适配器、
-native 属性、成员函数、协议派发以及 async/generator 内的调用遵守同一规则。
-C 返回 `NULL` 时，非可空的 `string` 得到空字符串；不向用户暴露可释放的静态缓冲地址。
-- xlang -> C 参数：`string` 对应 UTF-8 只读字符串指针，调用期间有效。
-- xlang -> C 返回：第一阶段不直接支持，必须显式改成 `point`、out 参数、XRT string 句柄或用户自定义 wrapper。
+传统 C 的 `const char*` 是另一种 ABI，不能表达内嵌 NUL。外部 C 返回的
+借用字符串由 `CallTarget.resultConversionAbi=borrowed-string-copy` 标记，
+在借用有效期内按 C 字符串长度复制为双字段值；内部函数和已经交付拥有值的
+运行库桥接使用 `direct`，不能重复复制。C 返回 `NULL` 时，非可空
+`string` 获得空字符串。xlang 导出函数若返回 `string`，公开 C 头使用
+`xlir_string` 双字段返回值及其拥有权合同，而不是退化为 `const char*`。
+
+从 xlang 向传统 C `const char*` 传参必须经过显式 CString 边界检查：
+含内嵌 NUL 的值不得静默截断；需要原始字节的接口应改为指针加长度或
+`xstrview`。当前编译器生成的通用 `extern C` 直接调用仍只投影 `.Data`，
+尚未完成上述检查，不能把该路径视作已验收。专用 XRT 桥接已逐项迁移，
+但仍须按入口验证。源码不再提供 `out` 参数。
 
 第一阶段不直接进入 C ABI：
 

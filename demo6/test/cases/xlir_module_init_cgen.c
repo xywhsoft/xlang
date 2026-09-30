@@ -52,6 +52,12 @@ static int testModuleFinalizerContract(void)
         XL6_AstNode* decl = xl6AstNewText(XL6_AST_VAR_DECL, i ? "second" : "first", i ? 6 : 5, NULL);
         XL6_AstNode* value = xl6AstNewText(XL6_AST_STRING, "\"owned\"", 7, NULL);
         if (decl == NULL || value == NULL) return 0;
+        /* Hand-built AST literals must carry the parser's decoded payload.
+         * Lowering deliberately rejects an unchecked source spelling. */
+        value->literalData = (unsigned char*)xrtStrDupN("owned", 5u);
+        if (value->literalData == NULL) return 0;
+        value->literalSize = 5u;
+        value->literalDecoded = 1;
         decl->semanticSymbolId = 7 + i;
         decl->inferredType = testStringType();
         value->inferredType = testStringType();

@@ -8,7 +8,6 @@
 extern bool xrtMemDebugFailAfter(uint64_t);
 extern bool xrtMemDebugFailTriggered(void);
 extern void xrtMemDebugFailClear(void);
-extern int xrtTaskPoolWait(xtaskpool*);
 extern bool xrtTaskPoolClose(xtaskpool*);
 extern bool xrtTaskPoolDestroy(xtaskpool*);
 extern bool xrtPromiseResolve(xpromise*, void*);

@@ -1,0 +1,71 @@
+string path = "build/test/stdlib_io_files.bin"
+io.writeFile(path, b"A\x00B\xff", io.truncate)
+assert io.readFile(path, 4) == b"A\x00B\xff"
+io.writeFile(path, b"XY", io.append, 20)
+assert io.readFile(path, 6) == b"A\x00B\xffXY"
+io.writeFile(path, "a\x00你", io.truncate, 2)
+assert io.readFile(path, 2) == b"a\x00"
+io.writeFile(path, b"", io.truncate)
+assert io.readFile(path, 0) == b""
+
+bool rejected = false
+try
+    io.writeFile(path, b"must not overwrite", io.createNew)
+catch e
+    rejected = true
+end
+assert rejected
+assert io.readFile(path, 0) == b""
+
+io.writeFile(path, b"abcdef", io.truncate)
+rejected = false
+try
+    bytes tooLarge = io.readFile(path, 5)
+catch e
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    io.writeFile(path, b"must not truncate", io.truncate, -2)
+catch RangeError e
+    rejected = true
+end
+assert rejected
+assert io.readFile(path, 6) == b"abcdef"
+
+Buffer blocked = Buffer()
+assert blocked.append("must not truncate")
+for inputKind in range(3)
+    rejected = false
+    try
+        if inputKind == 0 then
+            io.writeFile(path, b"must not truncate", io.truncate, -2)
+        elseif inputKind == 1 then
+            io.writeFile(path, "must not truncate", io.truncate, -2)
+        else
+            io.writeFile(path, blocked, io.truncate, -2)
+        end
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    assert io.readFile(path, 6) == b"abcdef"
+end
+rejected = false
+try
+    io.writeFile(path, blocked, 20)
+catch RangeError e
+    rejected = true
+end
+assert rejected
+assert io.readFile(path, 6) == b"abcdef"
+
+auto writer = io.openWriter(path, io.append)
+writer.writeAll(b"G")
+writer.close()
+assert io.readFile(path, 7) == b"abcdefG"
+auto reader = io.openReader(path)
+auto discard = io.discardWriter()
+assert io.copy(reader, discard) == 7
+assert discard.size() == 7

@@ -1,18 +1,17 @@
-func increment(byref int value)
-    value += 1
+func increment(int value) as int
+    return value + 1
 end
 
-func produce(out int value)
-    value = 42
+func produce() as int
+    return 42
 end
 
-func(byref int) incrementer = increment
-func(out int) producer = produce
+func(int) as int incrementer = increment
+func() as int producer = produce
 
 int number = 1
-incrementer(byref number)
+number = incrementer(number)
 assert number == 2
 
-int result
-producer(out result)
+int result = producer()
 assert result == 42

@@ -86,7 +86,7 @@ if ( $staticProtocolSets.Count -ne 2 ) {
 }
 
 # Runtime openness is independent of persistence opt-in.  An `object` subclass
-# with no json/xson modifier still owns the inherited DynamicFields path, while
+# with no json/xlon modifier still owns the inherited DynamicFields path, while
 # a flow-refined closed class must continue to use its fixed object-field ABI.
 & $xl ir $nonPersistentSource --lowered --format json --emit $nonPersistentJson
 if ( $LASTEXITCODE -ne 0 ) {

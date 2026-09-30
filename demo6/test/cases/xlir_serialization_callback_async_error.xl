@@ -7,11 +7,11 @@ async func readyValue() as int
     return 7
 end
 
-async func escapingVisit(bool useXson) as int
+async func escapingVisit(bool useXlon) as int
     int resumed = await readyValue()
     try
-        if useXson then
-            return resumed + xson.visit("null", throwVisit)
+        if useXlon then
+            return resumed + xlon.visit("null", throwVisit)
         end
         return resumed + json.visit("null", throwVisit)
     catch TypeError ignored
@@ -41,7 +41,7 @@ end
 async func recoveringEarly() as int
     int value = 0
     try
-        value = xson.visit("null", throwVisit)
+        value = xlon.visit("null", throwVisit)
     catch ValueError e
         assert e.message == "async-serialization-callback"
         value = 7

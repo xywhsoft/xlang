@@ -15,7 +15,9 @@ static int xl6IrCgenRequireErrorResult(
     else if ( type->cAbi == XL6_IR_C_ABI_TYPE_ID ) needs->needsResultTypeId = 1;
     else if ( type->cAbi == XL6_IR_C_ABI_F64 ) needs->needsResultF64 = 1;
     else if ( type->cAbi == XL6_IR_C_ABI_F32 ) needs->needsResultF32 = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_CHAR_U32 ) needs->needsResultChar = 1;
     else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) needs->needsResultString = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ) needs->needsResultXValue = 1;
     else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) needs->needsResultXValue = 1;
     else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ) needs->needsResultFuture = 1;
     else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ) needs->needsResultGenerator = 1;
@@ -23,6 +25,64 @@ static int xl6IrCgenRequireErrorResult(
     else return xl6IrCgenDiag(diags, module, declaration,
         "XLIR C emitter does not support this error-result ABI");
     return 1;
+}
+
+static int xl6IrCgenIsSipHasher64BridgeName(const char* name)
+{
+    static const char* const names[] = {
+        "xl6_xrt_siphasher64_create", "xl6_xrt_siphasher64_adopt",
+        "xl6_xrt_siphasher64_destroy", "xl6_xrt_siphasher64_update_string",
+        "xl6_xrt_siphasher64_update_bytes", "xl6_xrt_siphasher64_update_raw",
+        "xl6_xrt_siphasher64_digest", "xl6_xrt_siphasher64_reset",
+        "xl6_xrt_siphasher64_clone", "xl6_xrt_siphasher64_input_bytes"
+    };
+    size_t index;
+    if ( name == NULL ) return 0;
+    for ( index = 0; index < sizeof(names) / sizeof(names[0]); ++index )
+        if ( strcmp(name, names[index]) == 0 ) return 1;
+    return 0;
+}
+
+static unsigned int xl6IrCgenRandomBridgeOperation(const char* name)
+{
+    static const struct { const char* name; unsigned int operation; } entries[] = {
+        {"xl6_xrt_rng_create", XL6_CGEN_RNG_CREATE},
+        {"xl6_xrt_rng_create_default", XL6_CGEN_RNG_CREATE_DEFAULT},
+        {"xl6_xrt_rng_destroy", XL6_CGEN_RNG_DESTROY},
+        {"xl6_xrt_rng_seed", XL6_CGEN_RNG_SEED},
+        {"xl6_xrt_rng_u32", XL6_CGEN_RNG_U32},
+        {"xl6_xrt_rng_u64", XL6_CGEN_RNG_U64},
+        {"xl6_xrt_rng_below", XL6_CGEN_RNG_BELOW},
+        {"xl6_xrt_rng_range", XL6_CGEN_RNG_RANGE},
+        {"xl6_xrt_rng_range_closed", XL6_CGEN_RNG_RANGE_CLOSED},
+        {"xl6_xrt_rng_real", XL6_CGEN_RNG_REAL},
+        {"xl6_xrt_rng_bytes", XL6_CGEN_RNG_BYTES},
+        {"xl6_xrt_rng_string", XL6_CGEN_RNG_STRING},
+        {"xl6_xrt_rng_fill_buffer", XL6_CGEN_RNG_FILL_BUFFER},
+        {"xl6_xrt_rng_shuffle_array", XL6_CGEN_RNG_SHUFFLE_ARRAY},
+        {"xl6_xrt_rng_shuffle_buffer", XL6_CGEN_RNG_SHUFFLE_BUFFER},
+        {"xl6_xrt_random_seed", XL6_CGEN_RAND_SEED},
+        {"xl6_xrt_random_u32", XL6_CGEN_RAND_U32},
+        {"xl6_xrt_random_u64", XL6_CGEN_RAND_U64},
+        {"xl6_xrt_random_below", XL6_CGEN_RAND_BELOW},
+        {"xl6_xrt_random_range", XL6_CGEN_RAND_RANGE},
+        {"xl6_xrt_random_range_closed", XL6_CGEN_RAND_RANGE_CLOSED},
+        {"xl6_xrt_random_real", XL6_CGEN_RAND_REAL},
+        {"xl6_xrt_random_bytes", XL6_CGEN_RAND_BYTES},
+        {"xl6_xrt_random_string", XL6_CGEN_RAND_STRING},
+        {"xl6_xrt_random_fill_buffer", XL6_CGEN_RAND_FILL_BUFFER},
+        {"xl6_xrt_random_shuffle_array", XL6_CGEN_RAND_SHUFFLE_ARRAY},
+        {"xl6_xrt_random_shuffle_buffer", XL6_CGEN_RAND_SHUFFLE_BUFFER},
+        {"xl6_xrt_secure_bytes", XL6_CGEN_SECURE_BYTES},
+        {"xl6_xrt_secure_fill_buffer", XL6_CGEN_SECURE_FILL_BUFFER},
+        {"xl6_xrt_secure_hex", XL6_CGEN_SECURE_HEX},
+        {"xl6_xrt_secure_string", XL6_CGEN_SECURE_STRING}
+    };
+    size_t i;
+    if (name == NULL) return 0;
+    for (i = 0; i < sizeof(entries) / sizeof(entries[0]); ++i)
+        if (strcmp(name, entries[i].name) == 0) return entries[i].operation;
+    return 0;
 }
 
 static int xl6IrCgenAnalyzeCallTargetNeeds(
@@ -34,6 +94,57 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        if ( xl6IrCgenIsSipHasher64BridgeName(target->cName) ) {
+            if ( strcmp(target->cName, "xl6_xrt_siphasher64_update_raw") == 0 )
+                needs->needsSipHasher64RawBridgeRuntime = 1;
+            else needs->needsSipHasher64BridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
+        {
+            unsigned int randomOperation = xl6IrCgenRandomBridgeOperation(target->cName);
+            needs->randomBridgeOperations |= randomOperation;
+            if (randomOperation & (XL6_CGEN_RNG_TEXT_MASK |
+                    XL6_CGEN_SECURE_STRING | XL6_CGEN_SECURE_HEX)) {
+                needs->needsStringRuntime = 1;
+                needs->needsStringViews = 1;
+            }
+        }
+        if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING &&
+            target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XID_IS_ZERO) {
+            needs->xidBridgeOperations |= 1u <<
+                (target->runtimeBridge - XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING);
+            if (target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING)
+                needs->needsXValueRuntime = 1;
+            if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING ||
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XID_PARSE ||
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XID_TO_STRING) {
+                needs->needsStringRuntime = 1;
+                needs->needsStringViews = 1;
+            }
+        }
+        if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE &&
+            target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_IO_WRITE_BUFFER_FILE) {
+            needs->ioBridgeOperations |= UINT64_C(1) <<
+                (target->runtimeBridge - XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE);
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
+        if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE &&
+            target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_DOWN) {
+            needs->consoleBridgeOperations |= UINT64_C(1) <<
+                (target->runtimeBridge - XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE);
+            if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CONSOLE_READ_LINE ||
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CONSOLE_STYLED ||
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CONSOLE_SESSION_WRITE ||
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CONSOLE_EVENT_TEXT) {
+                needs->needsStringRuntime = 1;
+                needs->needsStringViews = 1;
+            }
+        }
+        if (needs->randomBridgeOperations &
+            (XL6_CGEN_RNG_BYTES_MASK | XL6_CGEN_RNG_ARRAY_MASK))
+            needs->needsXValueRuntime = 1;
         if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
             needs->needsForeignErrorRuntime = 1;
             needs->needsErrorRuntime = 1;
@@ -92,6 +203,12 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_WRITE;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN ) {
             needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_WRITELN;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_ERROR ) {
+            needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_ERROR;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_ERRORLN ) {
+            needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_ERRORLN;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_FLUSH ) {
+            needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_FLUSH;
         } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_DIR_LIST &&
                     target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_DIR_SIZE ) {
             switch (target->runtimeBridge) {
@@ -111,6 +228,22 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_EXIT_CODE; break;
             default: break;
             }
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HASH_STRING ) {
+            needs->needsHashStringBridgeRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HASH_BYTES ) {
+            needs->needsHashBytesBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HASH_RAW ) {
+            needs->needsHashRawBridgeRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_SIPHASH_STRING ) {
+            needs->needsSipHashStringBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_SIPHASH_BYTES ) {
+            needs->needsSipHashBytesBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW ) {
+            needs->needsSipHashRawBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS ) {
             needs->needsStringContainsRuntime = 1;
             needs->needsStringViews = 1;
@@ -160,26 +293,93 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsJsonWriterBridgeRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XSON_PARSE &&
-                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XSON_WRITER ) {
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY ) {
+            needs->needsJsonlStringifyBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLONL_STRINGIFY ) {
+            needs->needsXlonlStringifyBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSONL_READ_FILE ) {
+            needs->needsJsonlReadFileBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSONL_WRITE_FILE ) {
+            needs->needsJsonlWriteFileBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLONL_READ_FILE ) {
+            needs->needsXlonlReadFileBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLONL_WRITE_FILE ) {
+            needs->needsXlonlWriteFileBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSONL_PARSE ) {
+            needs->needsJsonlParseBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSONL_VALID ) {
+            needs->needsJsonlValidBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLONL_PARSE ) {
+            needs->needsXlonlParseBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLONL_VALID ) {
+            needs->needsXlonlValidBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_PARSE &&
+                   target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE) {
+            unsigned bit = (unsigned)(target->runtimeBridge - XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_PARSE);
+            needs->structuredOptionsBridgeOperations |= 1u << bit;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+            if (needs->structuredOptionsBridgeOperations & XL6_CGEN_CONFIG_READ_MASK)
+                needs->needsResultXValue = 1;
+            if (needs->structuredOptionsBridgeOperations & XL6_CGEN_CONFIG_WRITE_FILE_MASK)
+                needs->needsResultBool = 1;
+            if (needs->structuredOptionsBridgeOperations &
+                (XL6_CGEN_CONFIG_JSON_VALID | XL6_CGEN_CONFIG_XLON_VALID |
+                 XL6_CGEN_CONFIG_JSONL_VALID | XL6_CGEN_CONFIG_XLONL_VALID))
+                needs->needsResultCBool = 1;
+            if (needs->structuredOptionsBridgeOperations & XL6_CGEN_CONFIG_WRITE_TO_MASK) {
+                needs->needsLanguageFunctionRuntime = 1;
+                needs->needsClosureRuntime = 1;
+            }
+            if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_CONFIG_VISIT) {
+                needs->needsJsonVisitBridgeRuntime = 1;
+                needs->needsLanguageFunctionRuntime = 1;
+                needs->needsClosureRuntime = 1;
+            } else if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_VISIT) {
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_VISIT;
+                needs->needsLanguageFunctionRuntime = 1;
+                needs->needsClosureRuntime = 1;
+            }
+            if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE) {
+                needs->needsLanguageFunctionRuntime = 1;
+                needs->needsClosureRuntime = 1;
+            }
+        } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XLON_PARSE &&
+                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_WRITER ) {
             switch ( target->runtimeBridge ) {
-            case XL6_IR_RUNTIME_BRIDGE_XSON_PARSE:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_PARSE; break;
-            case XL6_IR_RUNTIME_BRIDGE_XSON_VALID:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_VALID; break;
-            case XL6_IR_RUNTIME_BRIDGE_XSON_READ:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_READ; break;
-            case XL6_IR_RUNTIME_BRIDGE_XSON_STRINGIFY:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_STRINGIFY; break;
-            case XL6_IR_RUNTIME_BRIDGE_XSON_WRITE:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_WRITE; break;
-            case XL6_IR_RUNTIME_BRIDGE_XSON_VISIT:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_VISIT;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_PARSE:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_PARSE; break;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_VALID:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_VALID; break;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_READ:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_READ; break;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_STRINGIFY:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_STRINGIFY; break;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_WRITE:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_WRITE; break;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_VISIT:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_VISIT;
                 needs->needsLanguageFunctionRuntime = 1;
                 needs->needsClosureRuntime = 1;
                 break;
-            case XL6_IR_RUNTIME_BRIDGE_XSON_WRITER:
-                needs->xsonBridgeOperations |= XL6_CGEN_XSON_WRITER; break;
+            case XL6_IR_RUNTIME_BRIDGE_XLON_WRITER:
+                needs->xlonBridgeOperations |= XL6_CGEN_XLON_WRITER; break;
             default: break;
             }
             needs->needsXValueRuntime = 1;
@@ -215,11 +415,46 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                         XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN ) {
             needs->needsStringCharLenBridgeRuntime = 1;
             needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE ) {
+            needs->needsCrtNumberParseBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CRT_ENV ) {
+            needs->needsCrtEnvBridgeRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsErrorRuntime = 1;
         } else if ( xl6IrRuntimeStringBridgeKindIs(target->runtimeBridge) ) {
             needs->needsStringViews = 1;
             switch ( target->runtimeBridge ) {
             case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN: needs->needsStringByteLenBridgeRuntime = 1; break;
             case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT: needs->needsStringByteAtBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_COMPARE: needs->needsStringCompareBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_LAST_INDEX_OF: needs->needsStringLastIndexOfBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_COUNT: needs->needsStringCountBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_HAS_ANY: needs->needsStringHasAnyBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_LIKE: needs->needsStringLikeBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_APPROX: needs->needsStringApproxBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_SIMILARITY: needs->needsStringSimilarityBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_IS_UTF8: needs->needsStringIsUtf8BridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_LOWER: needs->needsStringLowerBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_UPPER: needs->needsStringUpperBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_TRIM: needs->needsStringTrimBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_LTRIM: needs->needsStringLTrimBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_RTRIM: needs->needsStringRTrimBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_FILTER: needs->needsStringFilterBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_LEFT: needs->needsStringLeftBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_RIGHT: needs->needsStringRightBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_AT: needs->needsStringCharAtBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_IS_EMPTY: needs->needsStringIsEmptyBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_IS_BLANK: needs->needsStringIsBlankBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE: needs->needsStringRemoveBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE_AT: needs->needsStringRemoveAtBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_INSERT: needs->needsStringInsertBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_PAD_LEFT: needs->needsStringPadLeftBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_PAD_RIGHT: needs->needsStringPadRightBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER: needs->needsStringPadCenterBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE: needs->needsStringReverseBridgeRuntime = 1; break;
             case XL6_IR_RUNTIME_BRIDGE_STRING_SLICE: needs->needsStringSliceBridgeRuntime = 1; break;
             case XL6_IR_RUNTIME_BRIDGE_STRING_REPLACE: needs->needsStringReplaceBridgeRuntime = 1; break;
             case XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT: needs->needsStringRepeatBridgeRuntime = 1; break;
@@ -229,6 +464,22 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsStringSplitBridgeRuntime = 1;
                 needs->needsXValueRuntime = 1;
                 needs->needsXValueArrayRuntime = 1;
+                break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_BYTES:
+            case XL6_IR_RUNTIME_BRIDGE_STRING_CHARS:
+                if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_BYTES )
+                    needs->needsStringBytesBridgeRuntime = 1;
+                else
+                    needs->needsStringCharsBridgeRuntime = 1;
+                needs->needsXValueRuntime = 1;
+                needs->needsXValueArrayRuntime = 1;
+                break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_JOIN:
+                needs->needsStringJoinBridgeRuntime = 1;
+                needs->needsXValueRuntime = 1;
+                needs->needsXValueArrayRuntime = 1;
+                needs->needsXValueToStringRuntime = 1;
+                needs->needsU64ToStringRuntime = 1;
                 break;
             default: return 0;
             }

@@ -1,0 +1,7 @@
+func main(...) as int
+    auto session = console.openSession()
+    session.showCursor(false)
+    session.write("cleanup")
+    session.flush()
+    return 17
+end

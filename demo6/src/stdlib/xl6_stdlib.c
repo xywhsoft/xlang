@@ -831,6 +831,15 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
+    if ( xl6StdlibFuncUsed(used, "hash", "u32Buffer") ||
+         xl6StdlibFuncUsed(used, "hash", "u32BufferWithSeed") ||
+         xl6StdlibFuncUsed(used, "hash", "u64Buffer") ||
+         xl6StdlibFuncUsed(used, "hash", "u64BufferWithSeed") ) return 1;
+    if ( xl6StdlibFuncUsed(used, "siphash", "hash64Buffer") ) return 1;
+    if ( xl6StdlibFuncUsed(used, "random", "fillBytes") ||
+         xl6StdlibFuncUsed(used, "random", "shuffleBuffer") ||
+         xl6StdlibFuncUsed(used, "crypto", "fillRandomBytes") ) return 1;
+
     /* Buffer 返回值是标准库公开面的类型依赖，统一从注册表推导。 */
     if ( used != NULL ) {
         for ( index = 0; index < xl6StdlibFuncCount; ++index ) {
@@ -861,7 +870,7 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
 
 static int xl6StdlibNeedsXidClass(const XL6_AstNode* root, const int* used)
 {
-    static const char* names[] = {"make", "decode", "encode", "compare"};
+    static const char* names[] = {"make", "makeMany", "parse", "tryParse", "fromBytes"};
     size_t i;
     size_t index;
 
@@ -1321,28 +1330,28 @@ static int xl6StdlibNeedsJsonClass(const XL6_AstNode* root, const int* used)
     size_t index;
 
     if ( xl6StdlibNodeUsesTypeName(root, "JsonWriter") ||
-         xl6StdlibNodeUsesTypeName(root, "XsonWriter") ||
-         xl6StdlibNodeUsesTypeName(root, "XsonOptions") ) {
+         xl6StdlibNodeUsesTypeName(root, "XlonWriter") ||
+         xl6StdlibNodeUsesTypeName(root, "XlonOptions") ) {
         return 1;
     }
     if ( used == NULL ) {
         return 0;
     }
-    if ( xl6StdlibFuncUsed(used, "xson", "parse") ||
-         xl6StdlibFuncUsed(used, "xson", "valid") ||
-         xl6StdlibFuncUsed(used, "xson", "read") ||
-         xl6StdlibFuncUsed(used, "xson", "stringify") ||
-         xl6StdlibFuncUsed(used, "xson", "write") ||
-         xl6StdlibFuncUsed(used, "xson", "writer") ||
-         xl6StdlibFuncUsed(used, "xson", "visit") ) {
-        /* All overloads are declared together, including XsonOptions forms.
+    if ( xl6StdlibFuncUsed(used, "xlon", "parse") ||
+         xl6StdlibFuncUsed(used, "xlon", "valid") ||
+         xl6StdlibFuncUsed(used, "xlon", "read") ||
+         xl6StdlibFuncUsed(used, "xlon", "stringify") ||
+         xl6StdlibFuncUsed(used, "xlon", "write") ||
+         xl6StdlibFuncUsed(used, "xlon", "writer") ||
+         xl6StdlibFuncUsed(used, "xlon", "visit") ) {
+        /* All overloads are declared together, including XlonOptions forms.
          * Their type dependencies do not depend on the selected overload. */
         return 1;
     }
     if ( xl6StdlibFindFunc("json", "writer", &index) != NULL && used[index] ) {
         return 1;
     }
-    if ( xl6StdlibFindFunc("xson", "options", &index) != NULL && used[index] ) {
+    if ( xl6StdlibFindFunc("xlon", "options", &index) != NULL && used[index] ) {
         return 1;
     }
     return 0;
@@ -1358,9 +1367,27 @@ static int xl6StdlibNeedsAsyncFileClass(const XL6_AstNode* root, const int* used
     return xl6StdlibFindFunc("file", "openAsync", &index) != NULL && used[index];
 }
 
+static unsigned int xl6StdlibForeignEffects(const XL6_StdlibFunc* func)
+{
+    size_t i;
+
+    if ( func == NULL || func->internalName == NULL || func->cSymbol == NULL ) {
+        return XL6_STDLIB_FOREIGN_EFFECT_NONE;
+    }
+    for ( i = 0; i < xl6StdlibForeignContractCount; ++i ) {
+        const XL6_StdlibForeignContract* contract = &xl6StdlibForeignContracts[i];
+        if ( strcmp(contract->internalName, func->internalName) == 0 &&
+             strcmp(contract->cSymbol, func->cSymbol) == 0 ) {
+            return contract->effects;
+        }
+    }
+    return XL6_STDLIB_FOREIGN_EFFECT_NONE;
+}
+
 static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_StdlibFunc* func)
 {
     size_t i;
+    unsigned int effects;
 
     if ( builder == NULL || func == NULL ) {
         return;
@@ -1373,6 +1400,16 @@ static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_St
 
     xl6StdlibBuilderAppend(builder, "extern ");
     xl6StdlibBuilderAppendQuoted(builder, func->cSymbol);
+    effects = xl6StdlibForeignEffects(func);
+    if ( (effects & XL6_STDLIB_FOREIGN_EFFECT_PURE) != 0 ) {
+        xl6StdlibBuilderAppend(builder, " @pure");
+    }
+    if ( (effects & XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE) != 0 ) {
+        xl6StdlibBuilderAppend(builder, " @no_raise");
+    }
+    if ( (effects & XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING) != 0 ) {
+        xl6StdlibBuilderAppend(builder, " @nonblocking");
+    }
     xl6StdlibBuilderAppend(builder, " func ");
     xl6StdlibBuilderAppend(builder, func->internalName);
     xl6StdlibBuilderAppend(builder, "(");
@@ -1390,6 +1427,86 @@ static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_St
         xl6StdlibBuilderAppend(builder, func->returnType);
     }
     xl6StdlibBuilderAppend(builder, "\n");
+}
+
+/* These private CRT functions have a scalar C output pointer.  Keep their
+ * physical ABI in the standard-library catalog; source-level parameter
+ * modifiers are not part of xlang's public grammar. */
+typedef struct XL6_StdlibCOutputPointer {
+    const char* nativeName;
+    const char* wrapperName;
+    size_t parameterIndex;
+} XL6_StdlibCOutputPointer;
+
+static const XL6_StdlibCOutputPointer xl6StdlibCOutputPointers[] = {
+    {"__xl_std_math_frexp_native", "__xl_std_math_frexp", 1},
+    {"__xl_std_math_modf_native", "__xl_std_math_modf", 1},
+    {"__xl_std_math_rem_quo_native", "__xl_std_math_rem_quo", 2},
+    {"__xl_std_int_parse_native", "__xl_std_int_parse", 2},
+    {"__xl_std_uint64_parse_native", "__xl_std_uint64_parse", 2},
+    {"__xl_std_float_parse_native", "__xl_std_float_parse", 1}
+};
+
+static size_t xl6StdlibMarkCOutputCalls(XL6_AstNode* node,
+                                         const XL6_StdlibCOutputPointer* contract)
+{
+    size_t i;
+    size_t marked = 0;
+    if ( node == NULL ) return 0;
+    if ( node->kind == XL6_AST_CALL && node->childCount >= 2 &&
+         node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME &&
+         xl6StdlibTextEquals(node->children[0]->text, contract->nativeName) &&
+         node->children[1] != NULL &&
+         node->children[1]->childCount > contract->parameterIndex &&
+         node->children[1]->children[contract->parameterIndex] != NULL &&
+         node->children[1]->children[contract->parameterIndex]->kind == XL6_AST_ARG ) {
+        node->children[1]->children[contract->parameterIndex]->flags |= XL6_AST_FLAG_OUT;
+        ++marked;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        marked += xl6StdlibMarkCOutputCalls(node->children[i], contract);
+    }
+    return marked;
+}
+
+static int xl6StdlibApplyCOutputPointers(XL6_AstNode* generated,
+                                          XL6_DiagList* diags)
+{
+    size_t c;
+    for ( c = 0; c < sizeof(xl6StdlibCOutputPointers) /
+                     sizeof(xl6StdlibCOutputPointers[0]); ++c ) {
+        const XL6_StdlibCOutputPointer* contract = &xl6StdlibCOutputPointers[c];
+        XL6_AstNode* native = NULL;
+        XL6_AstNode* wrapper = NULL;
+        XL6_AstNode* params;
+        XL6_AstNode* param;
+        size_t i;
+        for ( i = 0; i < generated->childCount; ++i ) {
+            XL6_AstNode* item = generated->children[i];
+            if ( item == NULL || item->childCount == 0 || item->children[0] == NULL )
+                continue;
+            if ( item->kind == XL6_AST_EXTERN_FUNC &&
+                 xl6StdlibTextEquals(item->children[0]->text, contract->nativeName) )
+                native = item;
+            if ( item->kind == XL6_AST_FUNC &&
+                 xl6StdlibTextEquals(item->children[0]->text, contract->wrapperName) )
+                wrapper = item;
+        }
+        if ( native == NULL && wrapper == NULL ) continue;
+        params = native != NULL && native->childCount > 1 ? native->children[1] : NULL;
+        param = params != NULL && params->childCount > contract->parameterIndex
+            ? params->children[contract->parameterIndex] : NULL;
+        if ( wrapper == NULL || param == NULL || param->kind != XL6_AST_PARAM ||
+             param->childCount == 0 || param->children[0] == NULL ||
+             xl6StdlibMarkCOutputCalls(wrapper, contract) != 1 ) {
+            if ( diags != NULL )
+                xl6DiagAdd(diags, 1, 1, "invalid private CRT output-pointer contract");
+            return 0;
+        }
+        param->flags |= XL6_AST_FLAG_OUT;
+        param->children[0]->flags |= XL6_AST_FLAG_OUT;
+    }
+    return 1;
 }
 
 static int xl6StdlibMergeGeneratedDecls(XL6_AstNode* root, const char* generated, XL6_DiagList* diags)
@@ -1415,6 +1532,10 @@ static int xl6StdlibMergeGeneratedDecls(XL6_AstNode* root, const char* generated
         xl6ParseResultFree(&result);
         return 0;
     }
+    if ( result.root != NULL && !xl6StdlibApplyCOutputPointers(result.root, diags) ) {
+        xl6ParseResultFree(&result);
+        return 0;
+    }
     if ( result.root != NULL ) {
         xl6AstMoveChildren(root, result.root);
     }
@@ -1428,6 +1549,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     XL6_StdlibTextBuilder builder;
     size_t i;
     int needsRandomClass;
+    int needsRandomBufferMethods;
+    int needsSipHasher64Class;
+    int needsSipHasher64BufferMethod;
     int needsXidClass;
     int needsBufferClass;
     int needsNetAddressClass;
@@ -1474,6 +1598,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTccClass;
     int needsXlangClass;
     int needsCoreClass;
+    int needsIoReader, needsIoWriter, needsIoLines, needsIoProtocols, needsIoBuffer;
+    int needsConsoleSession, needsConsoleOptions;
     int ok;
 
     if ( root == NULL ) {
@@ -1489,7 +1615,33 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsCoreClass = xl6StdlibNodeDefinesClass(root) ||
         xl6StdlibNodeUsesTypeName(root, "object") ||
         xl6StdlibNodeUsesTypeName(root, "DynamicFields");
+    needsIoLines = xl6StdlibFuncUsed(used, "io", "lines") || xl6StdlibNodeUsesTypeName(root, "IoLineReader");
+    needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||
+        xl6StdlibNodeUsesTypeName(root, "ConsoleSession") || xl6StdlibNodeUsesTypeName(root, "ConsoleEvent");
+    needsConsoleOptions = needsConsoleSession || xl6StdlibNodeUsesTypeName(root, "ConsoleOptions") ||
+        xl6StdlibNodeUsesTypeName(root, "ConsoleStyle") || xl6StdlibFuncUsed(used, "console", "writeStyled") ||
+        xl6StdlibFuncUsed(used, "console", "errorStyled");
+    needsIoProtocols = xl6StdlibFuncUsed(used, "io", "copy") || xl6StdlibFuncUsed(used, "io", "copyExact") ||
+        xl6StdlibFuncUsed(used, "io", "copyUpTo") || xl6StdlibNodeUsesTypeName(root, "IoReadable") ||
+        xl6StdlibNodeUsesTypeName(root, "IoWritable");
+    needsIoReader = needsIoLines || needsIoProtocols || xl6StdlibNodeUsesTypeName(root, "IoReader") ||
+        xl6StdlibFuncUsed(used, "io", "openReader") || xl6StdlibFuncUsed(used, "io", "fromBytes") ||
+        xl6StdlibFuncUsed(used, "io", "fromBuffer") || xl6StdlibFuncUsed(used, "io", "stdin");
+    needsIoWriter = needsIoProtocols || xl6StdlibNodeUsesTypeName(root, "IoWriter") ||
+        xl6StdlibFuncUsed(used, "io", "openWriter") || xl6StdlibFuncUsed(used, "io", "bufferWriter") ||
+        xl6StdlibFuncUsed(used, "io", "discardWriter") || xl6StdlibFuncUsed(used, "io", "stdout") ||
+        xl6StdlibFuncUsed(used, "io", "stderr");
+    needsIoBuffer = xl6StdlibNodeUsesTypeName(root, "Buffer") || xl6StdlibFuncUsed(used, "io", "fromBuffer") ||
+        xl6StdlibNodeUsesMemberName(root, "readInto");
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
+    needsRandomBufferMethods = needsRandomClass &&
+        (xl6StdlibNodeUsesMemberName(root, "fillBytes") ||
+         xl6StdlibNodeUsesMemberName(root, "shuffleBuffer"));
+    needsSipHasher64Class =
+        xl6StdlibFuncUsed(used, "siphash", "hasher") ||
+        xl6StdlibNodeUsesTypeName(root, "SipHasher64");
+    needsSipHasher64BufferMethod = needsSipHasher64Class &&
+        xl6StdlibNodeUsesMemberName(root, "updateBuffer");
     needsXidClass = xl6StdlibNeedsXidClass(root, used);
     needsTlsStreamClass = xl6StdlibNeedsTlsStreamClass(root, used);
     needsTlsServerClass = xl6StdlibNeedsTlsServerClass(root, used);
@@ -1575,7 +1727,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) ||
+    needsBufferClass = xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetInterfaceClass || needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
@@ -1583,11 +1735,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsAsyncFileClass || needsCryptoClass || needsProcessClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
-    if ( needsCryptoClass ) {
-        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
-    }
-    if ( needsFileClass || needsProcessClass ) {
-        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+    if ( needsCryptoClass || needsProcessClass || needsFileClass ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "byteLen");
     }
     if ( needsNetEngineClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePost");
@@ -1596,7 +1745,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsRandomClass || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -1620,6 +1769,16 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
          needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
+    if ( needsRandomClass || needsSipHasher64Class )
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "byteLen");
+    if ( needsXidClass ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_id", "toString");
+        xl6StdlibMarkFuncUsed(used, "__xrt_id", "toBytes");
+        xl6StdlibMarkFuncUsed(used, "__xrt_id", "timestamp");
+        xl6StdlibMarkFuncUsed(used, "__xrt_id", "compare");
+        xl6StdlibMarkFuncUsed(used, "__xrt_id", "equal");
+        xl6StdlibMarkFuncUsed(used, "__xrt_id", "isZero");
+    }
     xl6StdlibApplyDeps(used);
 
     /* 只为实际使用的标准库函数注入 extern 声明。 */
@@ -1627,14 +1786,41 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCoreClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
     }
+    if (needsIoProtocols) xl6StdlibBuilderAppend(&builder, xl6StdlibIoProtocolsSource);
+    if (needsConsoleOptions) xl6StdlibBuilderAppend(&builder, xl6StdlibConsoleOptionsSource);
+    if (needsConsoleSession) xl6StdlibBuilderAppend(&builder, xl6StdlibConsoleSessionSource);
+    if (needsIoReader) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibIoReaderSource);
+        if (needsIoBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibIoReaderBufferSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
+    }
+    if (needsIoWriter) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibIoWriterSource);
+        if (needsIoBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibIoWriterBufferSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
+    }
+    if (needsIoLines) xl6StdlibBuilderAppend(&builder, xl6StdlibIoLinesSource);
+    if ( xl6StdlibFuncUsed(used, "math", "classify") ||
+         xl6StdlibNodeUsesTypeName(root, "FloatClass") ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFloatClassSource);
+    }
     if ( needsRandomClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibRandomClassSource);
+        if ( needsRandomBufferMethods )
+            xl6StdlibBuilderAppend(&builder, xl6StdlibRandomBufferMethodsSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibRandomClassEndSource);
     }
     if ( needsXidClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibXidClassSource);
     }
     if ( needsBufferClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibBufferClassSource);
+    }
+    if ( needsSipHasher64Class ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibSipHasher64ClassSource);
+        if ( needsSipHasher64BufferMethod )
+            xl6StdlibBuilderAppend(&builder, xl6StdlibSipHasher64BufferMethodSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibSipHasher64ClassEndSource);
     }
     if ( needsNetAddressClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetAddressClassSource);

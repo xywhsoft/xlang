@@ -18,8 +18,15 @@ func evaluationDict() as dict<int>
     return dict<int>{"key": 17}
 end
 
-func evaluationReplaceDict(byref dict<int> target) as string
-    target = dict<int>{"other": 9}
+class EvaluationDictCell
+    dict<int> value
+    create(dict<int> value)
+        self.value = value
+    end
+end
+
+func evaluationReplaceDict(EvaluationDictCell cell) as string
+    cell.value = dict<int>{"other": 9}
     return evaluationOperand()
 end
 
@@ -41,10 +48,10 @@ export func evaluation_operand_case(int kind) as int
         assert rest.length == 0
     elseif kind == 4
         dict<int> original = evaluationDict()
-        dict<int> receiver = original
-        assert receiver.remove(evaluationReplaceDict(byref receiver))
+        EvaluationDictCell cell = EvaluationDictCell(original)
+        assert cell.value.remove(evaluationReplaceDict(cell))
         assert original.length == 0
-        assert receiver["other"] == 9
+        assert cell.value["other"] == 9
     elseif kind == 5
         assert evaluationDict().contains(evaluationOperand())
     elseif kind == 6

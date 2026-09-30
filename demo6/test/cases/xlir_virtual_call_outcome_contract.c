@@ -64,7 +64,9 @@ int main(int argc, char** argv)
             slot->parameterAbis[p] = XL6_IR_PARAMETER_ABI_INVALID; reject(&ir); slot->parameterAbis[p] = abi;
         }
     }
-    assert(mixed >= 2);
+    /* The multi-result change slot now owns a result carrier and can raise;
+     * the scalar text/accept slot still proves no-raise base lifting. */
+    assert(mixed >= 1);
     for (i = 0; i < ir.instructionCount; ++i) {
         XL6_IrInstruction* call = &ir.instructions[i];
         const XL6_IrClassDispatchSlot* slot;

@@ -1,18 +1,18 @@
 extern "bridge_count" func bridgeCount()
 extern "bridge_raise" func raiseBridge()
-func bridgeConsume(byval string text, byval var value, byval error issue) as int
+func bridgeConsume(string text, var value, error issue) as int
     bridgeCount()
     return 42
 end
-func bridgeRaise(byval string text, byval var value, byval error issue) as int
+func bridgeRaise(string text, var value, error issue) as int
     bridgeCount()
     raiseBridge()
     return 0
 end
-func(byval string, byval var, byval error) as int nativeGood = bridgeConsume
-func(byval string, byval var, byval error) as int nativeBad = bridgeRaise
-array<func(byval string, byval var, byval error) as int> stored = array[nativeGood, nativeBad]
-func(byval string, byval var, byval error) as int restoredGood = stored[0]
-func(byval string, byval var, byval error) as int restoredBad = stored[1]
+func(string, var, error) as int nativeGood = bridgeConsume
+func(string, var, error) as int nativeBad = bridgeRaise
+array<func(string, var, error) as int> stored = array[nativeGood, nativeBad]
+func(string, var, error) as int restoredGood = stored[0]
+func(string, var, error) as int restoredBad = stored[1]
 var erasedGood = xcall(nativeGood)
 var erasedBad = xcall(nativeBad)

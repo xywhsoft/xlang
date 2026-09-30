@@ -27,6 +27,9 @@ tcpBytes.appendByte(255)
 bool tcpBytesSent = client.sendBytes(tcpBytes.data(), c_size(tcpBytes.len()))
 bool tcpBytesDrained = client.drain(8000)
 Buffer tcpBytesRecv = peer.recvBytes(8000)
+bool tcpNulSent = client.send("a\0b")
+bool tcpNulDrained = client.drain(8000)
+Buffer tcpNulRecv = peer.recvBytes(8000)
 
 client.close()
 peer.close()
@@ -41,7 +44,10 @@ requireLine(
         tcpBytesRecv[0] == 0 and
         tcpBytesRecv[1] == 1 and
         tcpBytesRecv[2] == 128 and
-        tcpBytesRecv[3] == 255
+        tcpBytesRecv[3] == 255 and
+        tcpNulSent and tcpNulDrained and
+        tcpNulRecv.len() == 3 and
+        tcpNulRecv[0] == 97 and tcpNulRecv[1] == 0 and tcpNulRecv[2] == 98
 )
 
 TcpServer asyncServer = tcp.listen(0)
@@ -55,7 +61,7 @@ TcpStream asyncPeer = await asyncAccepted
 
 future<string> asyncReceived = asyncPeer.recvAsync()
 assert asyncReceived != null, "tcp_async_recv_future"
-bool asyncSent = asyncClient.send("async")
+bool asyncSent = asyncClient.send("as\0ync")
 future<bool> asyncDrainFuture = asyncClient.drainAsync()
 assert asyncDrainFuture != null, "tcp_async_drain_future"
 bool asyncDrained = await asyncDrainFuture
@@ -63,7 +69,7 @@ string asyncRequest = await asyncReceived
 asyncClient.close()
 asyncPeer.close()
 
-requireLine("tcp_async", asyncPort > 0 and asyncSent and asyncDrained and asyncRequest == "async")
+requireLine("tcp_async", asyncPort > 0 and asyncSent and asyncDrained and asyncRequest == "as\0ync")
 
 UdpSocket left = udp.bind(0)
 UdpSocket right = udp.bind(0)
@@ -83,6 +89,9 @@ udpBytes.appendByte(255)
 bool udpBytesSent = left.sendBytes("127.0.0.1", uint16(rightPort), udpBytes.data(), c_size(udpBytes.len()))
 UdpPacket bytesPacket = right.recv(8000)
 Buffer udpBytesRecv = bytesPacket.bytes()
+bool udpNulSent = left.send("127.0.0.1", uint16(rightPort), "a\0b")
+UdpPacket nulPacket = right.recv(8000)
+Buffer udpNulBytes = nulPacket.bytes()
 
 requireLine(
     "udp",
@@ -94,7 +103,9 @@ requireLine(
         udpBytesRecv[0] == 0 and
         udpBytesRecv[1] == 2 and
         udpBytesRecv[2] == 127 and
-        udpBytesRecv[3] == 255
+        udpBytesRecv[3] == 255 and
+        udpNulSent and udpNulBytes.len() == 3 and
+        udpNulBytes[0] == 97 and udpNulBytes[1] == 0 and udpNulBytes[2] == 98
 )
 
 UdpSocket asyncLeft = udp.bind(0)

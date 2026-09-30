@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "xlir_callable_bridge_mutations.h"
+#include "xlir_internal_owned_params.h"
 static unsigned mutations;
 static void reject(const XL6_IrModule* ir)
 {
@@ -23,8 +24,18 @@ int main(int argc, char** argv)
     unsigned take = 0, scalar = 0, context = 0, moves = 0, causes = 0;
     int direct = argc == 5 && !strcmp(argv[4], "--direct");
     assert(argc == 4 || direct); xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
-    if (!xl6ParseFile(direct ? "test/cases/xlir_task_byval_direct.xl" : "test/cases/xlir_task_byval.xl", &parse) ||
-        !xl6StdlibExpandModule(parse.root, &parse.diags) ||
+    if (!xl6ParseFile(direct ? "test/cases/xlir_task_byval_direct.xl" : "test/cases/xlir_task_byval.xl", &parse)) goto failed;
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalString", 1) == 1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalBox", 1) == 1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalArray", 1) == 1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalFunction", 1) == 1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalFuture", 1) == 1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalError", 1) == 1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalScalar", 3) == 2);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalFailure", 3) == 2);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "byvalDefault", 1) == 1);
+    assert(xlirTestMarkOwnedGlobalFunctionTypes(parse.root, "callback") > 0);
+    if (!xl6StdlibExpandModule(parse.root, &parse.diags) ||
         !xl6SemCheckModule(parse.root, &parse.diags, "task_byval") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||
         !xl6IrVerifyModule(&ir, &parse.diags) ||

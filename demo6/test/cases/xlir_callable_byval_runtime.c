@@ -10,7 +10,7 @@ extern int bridge_init(void);
 extern void bridge_fini(void);
 extern xvalue* bridge_error_value(xerror*);
 extern bool bridge_forward(int, xvalue**, size_t, int64_t*);
-extern bool bridge_reverse(int, char*, xvalue*, xerror*, int64_t*);
+extern bool bridge_reverse(int, xstrview, xvalue*, xerror*, int64_t*);
 static unsigned calls;
 static xerror* bodyError;
 static xerror* cleanupError;
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
             if (!smoke) assert(xrtMemDebugFailAfter(budget));
             ok = forward
                 ? bridge_forward((int)kind, arguments, kind == 7 ? 2 : 3, &result)
-                : bridge_reverse((int)kind, text, value, issue, &result);
+                : bridge_reverse((int)kind, (xstrview){text, strlen(text)}, value, issue, &result);
             triggered = !smoke && xrtMemDebugFailTriggered();
             if (!smoke) xrtMemDebugFailClear();
             ++executions;

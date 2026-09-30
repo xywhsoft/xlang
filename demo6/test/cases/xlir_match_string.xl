@@ -4,6 +4,8 @@ export "xlir_test_match_string" func classifyText(string value) as int64
         return 10
     case "no"
         return 20
+    case "a\0b"
+        return 40
     else
         return 30
     end

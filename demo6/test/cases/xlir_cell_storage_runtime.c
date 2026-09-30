@@ -8,10 +8,10 @@
 #include <stdio.h>
 #include <string.h>
 static const XL6_CellRuntimeV1* api;
-typedef union Payload { bool b; int64_t i; uint64_t u; double f; char* s; xvalue* v;
+typedef union Payload { bool b; uint32_t c; int64_t i; uint64_t u; double f; char* s; xvalue* v;
     struct { bool has; uint64_t value; } tagged; } Payload;
 static size_t sizes[]={sizeof(bool),sizeof(int64_t),sizeof(double),sizeof(char*),sizeof(xvalue*),
-    sizeof(uint64_t),sizeof(((Payload*)0)->tagged),sizeof(uint64_t)};
+    sizeof(uint64_t),sizeof(((Payload*)0)->tagged),sizeof(uint64_t),sizeof(uint32_t)};
 static LONG flag(volatile LONG* p) { return InterlockedCompareExchange(p,0,0); }
 static void wait_flag(volatile LONG* p) {
     DWORD start=GetTickCount(); while(!flag(p)) { assert((DWORD)(GetTickCount()-start)<10000); SwitchToThread(); }
@@ -34,6 +34,7 @@ static Payload payload(unsigned kind,unsigned next) {
     case XL6_CELL_XVALUE: p.v=xrtValueArray(); assert(p.v && xrtValueReserve(p.v,4)); break;
     case XL6_CELL_U64: case XL6_CELL_TYPE_ID: p.u=UINT64_MAX-next; break;
     case XL6_CELL_TRIVIAL_BYTES: p.tagged.has=next!=0; p.tagged.value=169+next; break;
+    case XL6_CELL_CHAR: p.c=next?'Z':'A'; break;
     default: assert(0);
     }
     return p;
@@ -123,10 +124,10 @@ static void finalizer_tail(void) {
 int main(void) {
     assert(xrtMemDebugEnable(true)); api=xl6CellRuntimeV1Get(); assert(api && !api->Retain(NULL)); api->Release(NULL);
     for(unsigned round=0;round<50;++round) {
-        for(unsigned kind=0;kind<8;++kind) family(kind);
+        for(unsigned kind=0;kind<9;++kind) family(kind);
         for(unsigned kind=0;kind<5;++kind) frozen(kind);
         finalizer_tail();
     }
-    puts("Resident cells: 400 typed lifetime/exchange/graph families, 450 actual allocation refusals, 250 frozen init/store/exchange/ref transitions, 50 in-flight payload finalizers; actual counts and exact allocator balance, no generated descriptors or native root registration");
+    puts("Resident cells: 450 typed lifetime/exchange/graph families, 500 actual allocation refusals, 250 frozen init/store/exchange/ref transitions, 50 in-flight payload finalizers; actual counts and exact allocator balance, no generated descriptors or native root registration");
     return 0;
 }

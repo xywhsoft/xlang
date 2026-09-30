@@ -1,0 +1,4 @@
+func main(...) as int
+    auto invalid = set<string>{"key": "value"}
+    return 0
+end

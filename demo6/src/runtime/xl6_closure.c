@@ -30,7 +30,9 @@ static bool environment_valid(const XL6_ClosureEnvironmentV1* layout, const void
         const XL6_ClosureCaptureSlot* slot = &layout->slots[i];
         if (slot->kind < XL6_CLOSURE_CAPTURE_TRIVIAL || slot->kind > XL6_CLOSURE_CAPTURE_CELL ||
             !slot->bytes || slot->offset > layout->bytes || slot->bytes > layout->bytes - slot->offset ||
-            (slot->kind != XL6_CLOSURE_CAPTURE_TRIVIAL && slot->bytes != sizeof(void*))) return false;
+            (slot->kind == XL6_CLOSURE_CAPTURE_STRING && slot->bytes != sizeof(xstrview)) ||
+            (slot->kind != XL6_CLOSURE_CAPTURE_TRIVIAL &&
+             slot->kind != XL6_CLOSURE_CAPTURE_STRING && slot->bytes != sizeof(void*))) return false;
         for (size_t j = 0; j < i; ++j) {
             const XL6_ClosureCaptureSlot* prior = &layout->slots[j];
             if (slot->offset < prior->offset + prior->bytes && prior->offset < slot->offset + slot->bytes)
@@ -66,9 +68,14 @@ static void environment_drop_body(const XL6_ClosureEnvironmentV1* layout, void* 
         const XL6_ClosureCaptureSlot* slot = &layout->slots[i];
         void* item;
         if (slot->kind == XL6_CLOSURE_CAPTURE_TRIVIAL) continue;
+        if (slot->kind == XL6_CLOSURE_CAPTURE_STRING) {
+            xstrview text;
+            memcpy(&text, (char*)environment + slot->offset, sizeof(text));
+            xrtFree((void*)text.Data);
+            continue;
+        }
         memcpy(&item, (char*)environment + slot->offset, sizeof(item));
         switch (slot->kind) {
-        case XL6_CLOSURE_CAPTURE_STRING: xrtFree(item); break;
         case XL6_CLOSURE_CAPTURE_XVALUE: xrtValueRelease(item); break;
         case XL6_CLOSURE_CAPTURE_FUTURE: xrtFutureDestroy(item); break;
         case XL6_CLOSURE_CAPTURE_CLOSURE: closure_release(item); break;

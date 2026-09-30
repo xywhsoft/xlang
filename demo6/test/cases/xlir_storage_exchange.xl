@@ -20,8 +20,8 @@ end
 
 var exchangeShared = null
 
-func exchangeIndirect(byref var target)
-    target = ExchangeOwner(1)
+func exchangeIndirect()
+    exchangeShared = ExchangeOwner(1)
 end
 
 func exchangeSequence() as generator<int>
@@ -62,7 +62,7 @@ export "exchange_case" func exchangeCase(int kind) as int
             if kind == 1
                 exchangeShared = ExchangeOwner(1)
             elseif kind == 2
-                exchangeIndirect(byref exchangeShared)
+                exchangeIndirect()
             else
                 int count = 0
                 for item in exchangeSequence()

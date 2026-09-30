@@ -1,0 +1,2 @@
+Random rng = Random(uint64(42))
+assert rng.u32() >= uint32(0)

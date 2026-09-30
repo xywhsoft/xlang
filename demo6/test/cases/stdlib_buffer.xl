@@ -142,3 +142,31 @@ catch e
     end
 end
 expect(insertOverflowCaught, 1)
+
+Buffer sizedSource = Buffer()
+sizedSource.appendByte(65)
+sizedSource.appendByte(0)
+sizedSource.appendByte(66)
+Buffer sizedAppend = Buffer()
+expect(sizedAppend.append(sizedSource, 0), 1)
+expect(sizedAppend.len(), 0)
+expect(sizedAppend.append(sizedSource, 2), 1)
+expect(sizedAppend.len(), 2)
+expect(sizedAppend.byteAt(1), 0)
+expect(sizedAppend.append(sizedSource, 100), 1)
+expect(sizedAppend.len(), 5)
+Buffer sizedInsert = Buffer()
+expect(sizedInsert.insert(0, sizedSource, 2), 1)
+expect(sizedInsert.len(), 2)
+expect(sizedInsert.byteAt(1), 0)
+expect(sizedInsert.insert(2, sizedSource, 100), 1)
+expect(sizedInsert.len(), 5)
+bool sizedNegativeCaught = false
+try
+    sizedAppend.append(sizedSource, -2)
+catch e
+    if e.kind == "RangeError" then
+        sizedNegativeCaught = true
+    end
+end
+expect(sizedNegativeCaught, 1)

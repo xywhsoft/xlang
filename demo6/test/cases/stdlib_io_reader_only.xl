@@ -1,0 +1,3 @@
+auto reader = io.fromBytes(b"abc")
+assert reader.readExact(3) == b"abc"
+reader.close()

@@ -102,26 +102,26 @@ $expectedLoweringFailures = [ordered]@{
         "XLIR direct runtime bridge has no exact declared ABI"
     "bad_xlir_text_output_wrong_result.xl" =
         "XLIR direct runtime bridge has no exact declared ABI"
-    "bad_xlir_xson_missing_option.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_callback.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_callback_result.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_dom.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_factory.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_input.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_option.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_receiver.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_result.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
-    "bad_xlir_xson_wrong_writer_arg.xl" =
-        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_missing_option.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_callback.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_callback_result.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_dom.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_factory.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_input.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_option.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_receiver.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_result.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xlon_wrong_writer_arg.xl" =
+        "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI"
 }
 $explicitProbeFixtures = @(
     "test/cases/cgen_closure_auto_copy_probe.xl",

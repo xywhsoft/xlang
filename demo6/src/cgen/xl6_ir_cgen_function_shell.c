@@ -480,7 +480,10 @@ static int xl6IrCgenEmitRawCallbackEntry(
         const XL6_IrType* item = xl6IrTypeGet(
             &module->types, signature->params[parameter]);
         if ( item != NULL && item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
-            xl6OutputPrintf(out, ", (char*)a%lu", (unsigned long)parameter);
+            xl6OutputPrintf(out,
+                ", (xlir_string){ a%lu, a%lu != NULL ? strlen(a%lu) : 0u }",
+                (unsigned long)parameter, (unsigned long)parameter,
+                (unsigned long)parameter);
         else
             xl6OutputPrintf(out, ", a%lu", (unsigned long)parameter);
     }

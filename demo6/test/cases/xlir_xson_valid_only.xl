@@ -1,5 +1,0 @@
-extern "xrtClearError" func clearNativeError()
-assert xson.valid('{"ok":true}')
-assert !xson.valid("{bad}")
-clearNativeError()
-assert xson.valid('ptr("123")', xson.options(ignoreUnsupportedDecode = true))

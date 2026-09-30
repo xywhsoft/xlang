@@ -1,0 +1,80 @@
+auto input = io.fromBytes(b"a\x00bc")
+assert input.canSeek()
+assert input.size() == 4
+assert input.read(2) == b"a\x00"
+assert input.tell() == 2
+assert input.seek(-1, 1) == 1
+assert input.readExact(3) == b"\x00bc"
+assert input.read(1) == b""
+assert input.eof()
+input.close()
+input.close()
+assert input.closed()
+bool rejected = false
+try
+    input.read(1)
+catch e
+    rejected = true
+end
+assert rejected
+
+int iterated = 0
+for line in io.lines(io.fromBytes(b"one\ntwo\n"))
+    iterated += 1
+    assert line == b"one" or line == b"two"
+end
+assert iterated == 2
+
+auto source = io.fromBytes(b"abcdef")
+auto output = io.bufferWriter()
+assert io.copyUpTo(source, output, 3) == 3
+assert source.tell() == 3
+assert output.toBytes() == b"abc"
+assert io.copyExact(source, output, 3) == 3
+output.writeAll("\x00你")
+assert output.toBytes() == b"abcdef\x00\xe4\xbd\xa0"
+assert output.seek(0) == 0
+assert output.write(b"Z", 20) == 1
+output.flush()
+output.close()
+assert output.toBytes() == b"Zbcdef\x00\xe4\xbd\xa0"
+
+auto limited = io.fromBytes(b"1234")
+rejected = false
+try
+    limited.readAll(3)
+catch e
+    rejected = true
+end
+assert rejected
+assert limited.tell() == 3
+assert limited.read(1) == b"4"
+
+auto raw = io.fromBytes(b"one\r\n\x00two\nlast")
+auto lines = io.lines(raw, 16)
+assert raw.closed()
+auto found1, line1, ending1 = lines.next()
+assert found1 and line1 == b"one" and ending1 == 2
+auto found2, line2, ending2 = lines.next()
+assert found2 and line2 == b"\x00two" and ending2 == 1
+assert line1 == b"one"
+auto found3, line3, ending3 = lines.next()
+assert found3 and line3 == b"last" and ending3 == 0
+auto found4, line4, ending4 = lines.next()
+assert not found4
+lines.close()
+
+auto exactLines = io.lines(io.fromBytes(b"abc\r\n\n"), 3)
+auto found5, line5, ending5 = exactLines.next()
+assert found5 and line5 == b"abc" and ending5 == io.lineCrLf
+auto found6, line6, ending6 = exactLines.next()
+assert found6 and line6 == b"" and ending6 == io.lineLf
+
+rejected = false
+try
+    io.bufferWriter().toBytes()
+    io.openReader("invalid\x00path")
+catch e
+    rejected = true
+end
+assert rejected

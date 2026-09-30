@@ -1,0 +1,14 @@
+class Record
+    derive json
+    derive xlon
+
+    string label = "a\0b"
+end
+
+Record fromJson = json.parse::<Record>("{}")
+assert fromJson.label == "a\0b"
+assert string.byteLen(fromJson.label) == 3
+
+Record fromXlon = xlon.parse::<Record>("{}")
+assert fromXlon.label == "a\0b"
+assert string.byteLen(fromXlon.label) == 3

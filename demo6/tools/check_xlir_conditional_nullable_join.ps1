@@ -35,7 +35,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Conditional nullable join lifetime, value or lazy evaluation failed' }
     & release/xl.exe run $runtime $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Conditional nullable join C-host JIT failed' }
-    & release/xl.exe build $runtime $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    . (Join-Path $PSScriptRoot 'xlir_artifact_runtime_sources.ps1')
+    $artifactRuntimeSources = Get-XlirArtifactRuntimeSources
+    & release/xl.exe build $runtime $hostSource @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Conditional nullable join AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Conditional nullable join AOT runtime failed' }

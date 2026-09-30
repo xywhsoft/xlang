@@ -156,6 +156,24 @@ static int xl6IrRuntimePreservesLoans(XL6_IrRuntimeOp operation)
     case XL6_IR_RUNTIME_TAGGED_ENUM_NEW:
     case XL6_IR_RUNTIME_TAGGED_ENUM_TAG_EQUAL:
     case XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_PROJECT:
+    case XL6_IR_RUNTIME_STRING_FROM_UTF8:
+    case XL6_IR_RUNTIME_BYTES_FROM_DATA:
+    case XL6_IR_RUNTIME_CHAR_TO_STRING:
+    case XL6_IR_RUNTIME_XVALUE_CHAR:
+    case XL6_IR_RUNTIME_BYTES_RETAIN:
+    case XL6_IR_RUNTIME_BYTES_CONCAT:
+    case XL6_IR_RUNTIME_BYTES_EQUAL:
+    case XL6_IR_RUNTIME_BYTES_ORDER_LT:
+    case XL6_IR_RUNTIME_BYTES_ORDER_LE:
+    case XL6_IR_RUNTIME_BYTES_ORDER_GT:
+    case XL6_IR_RUNTIME_BYTES_ORDER_GE:
+    case XL6_IR_RUNTIME_BYTES_LENGTH:
+    case XL6_IR_RUNTIME_BYTES_AT:
+    case XL6_IR_RUNTIME_BYTES_SET_COPY:
+    case XL6_IR_RUNTIME_STRING_SCALAR_AT:
+    case XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY:
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT:
+    case XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT:
         return 1;
     default:
         return 0;
@@ -181,10 +199,12 @@ static int xl6IrInstructionMayInvalidateLoans(const XL6_IrModule* module, const 
     case XL6_IR_INSTR_VALUE_RELEASE:
     case XL6_IR_INSTR_RELEASE: {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->type);
-        /* Freeing text/error data cannot run a language destructor. The exact
+        /* Freeing text/bytes/error data cannot run a language destructor. The exact
          * destination invalidation of CELL_STORE is still checked separately. */
         return type == NULL || (type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-            type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && type->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR);
+            type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
+            type->cAbi != XL6_IR_C_ABI_MANAGED_BYTES &&
+            type->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR);
     }
     case XL6_IR_INSTR_RUNTIME_CALL:
         return !xl6IrRuntimePreservesLoans(instruction->runtimeOp);

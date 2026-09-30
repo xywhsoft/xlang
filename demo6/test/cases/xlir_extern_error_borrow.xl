@@ -1,0 +1,39 @@
+extern "error_probe_remember" func remember(error value)
+extern "error_probe_matches" func matches(error value) as bool
+extern "error_probe_null" func isNull(error value) as bool
+extern "error_probe_forget" func forget()
+extern "error_probe_fail" func reject(error value)
+
+func caught() as error
+    try
+        throw ValueError "original diagnostic"
+    catch value
+        return value
+    end
+    return null
+end
+
+func main(...) as int
+    error value = caught()
+    remember(value)
+    for i in range(50)
+        assert matches(value)
+        assert isNull(null)
+    end
+    bool failed = false
+    try
+        reject(value)
+    catch RangeError problem
+        failed = true
+        assert problem.message == "native probe rejected"
+    end
+    assert failed
+    assert value.message == "original diagnostic"
+    assert matches(value)
+    value = null
+    // C 显式 retain 后持有自己的引用；语言变量释放不会清空它。
+    assert isNull(null)
+    forget()
+    println("extern error borrow ok")
+    return 0
+end

@@ -1,0 +1,33 @@
+Buffer source = Buffer()
+assert source.append("abcdef")
+
+Buffer target = Buffer()
+assert target.copyFrom(2, source, 1, 3)
+assert target.len() == 5
+assert target.byteAt(0) == 0 and target.byteAt(1) == 0
+assert target.byteAt(2) == 98 and target.byteAt(4) == 100
+
+assert source.copyWithin(1, 0, 4)
+assert source.text() == "aabcdf"
+assert source.fill(90, 2, 2)
+assert source.text() == "aaZZdf"
+assert source.compare(target) > 0
+
+Buffer needle = Buffer()
+assert needle.append("ZZ")
+assert source.indexOf(needle) == 2
+assert source.indexOf(needle, 3) == -1
+
+Buffer empty = Buffer()
+assert source.indexOf(empty, source.len()) == source.len()
+
+assert source.copyFrom(source.len(), source, 0, 2)
+assert source.text() == "aaZZdfaa"
+
+bool rangeCaught = false
+try
+    source.copyWithin(7, 0, 2)
+catch e
+    rangeCaught = e.kind == "RangeError"
+end
+assert rangeCaught

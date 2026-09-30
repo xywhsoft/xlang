@@ -9,21 +9,22 @@ void xl6CgenEmitBase64TextCodecRuntime(XL6_Output* out, int hasXrtDeclarations)
             out);
     xl6OutputPuts(
         "extern size_t strlen(const char*);\n"
-        "void* xl6_xrt_base64_encode_text(const char* text, size_t size, void* table)\n"
+        "xlir_string xl6_xrt_base64_encode_text(xlir_string text, size_t size, void* table)\n"
         "{\n"
         "    xbase64config config; const xbase64config* selected = NULL;\n"
-        "    if (text == NULL) text = \"\";\n"
-        "    if (size == 0u) size = strlen(text);\n"
+        "    char* output;\n"
+        "    if (size > text.Size) size = text.Size;\n"
         "    if (table != NULL) { config.Alphabet = (const char*)table; config.Flags = 0u; selected = &config; }\n"
-        "    return xrtBase64EncodeNew(text, size, selected);\n"
+        "    output = xrtBase64EncodeNew(text.Data, size, selected);\n"
+        "    return xlir_string_take_known(output, output != NULL ? strlen(output) : 0u);\n"
         "}\n"
-        "void* xl6_xrt_base64_decode_text(const char* text, size_t size, void* table)\n"
+        "xlir_string xl6_xrt_base64_decode_text(xlir_string text, size_t size, void* table)\n"
         "{\n"
-        "    xbase64config config; const xbase64config* selected = NULL; size_t outputSize = 0u;\n"
-        "    if (text == NULL) text = \"\";\n"
-        "    if (size == 0u) size = strlen(text);\n"
+        "    xbase64config config; const xbase64config* selected = NULL; size_t outputSize = 0u; unsigned char* output;\n"
+        "    if (size > text.Size) size = text.Size;\n"
         "    if (table != NULL) { config.Alphabet = (const char*)table; config.Flags = 0u; selected = &config; }\n"
-        "    return xrtBase64DecodeNew(text, size, &outputSize, selected);\n"
+        "    output = xrtBase64DecodeNew(text.Data, size, &outputSize, selected);\n"
+        "    return xlir_string_take_known((char*)output, outputSize);\n"
         "}\n\n",
         out);
 }
@@ -39,8 +40,8 @@ void xl6CgenEmitHexBytesCodecRuntime(XL6_Output* out, int hasXrtDeclarations)
         "extern size_t strlen(const char*);\n"
         "void* xl6_xrt_hex_encode_bytes(void* data, size_t size)\n"
         "{ if (data == NULL && size != 0u) return NULL; return xrtHexEncodeNew(data, size, 1u); }\n"
-        "void* xl6_xrt_buffer_from_hex(const char* text, size_t size)\n"
-        "{ if (text == NULL) text = \"\"; if (size == 0u) size = strlen(text); return xrtBufferFromHex((xstrview){ text, size }, 0u); }\n\n", out);
+        "void* xl6_xrt_buffer_from_hex(xlir_string text, size_t size)\n"
+        "{ if (size > text.Size) size = text.Size; return xrtBufferFromHex((xstrview){ text.Data, size }, 0u); }\n\n", out);
 }
 
 void xl6CgenEmitBase64BytesCodecRuntime(XL6_Output* out, int hasXrtDeclarations)
@@ -61,12 +62,11 @@ void xl6CgenEmitBase64BytesCodecRuntime(XL6_Output* out, int hasXrtDeclarations)
         "    if (table != NULL) { config.Alphabet = (const char*)table; config.Flags = 0u; selected = &config; }\n"
         "    return xrtBase64EncodeNew(data, size, selected);\n"
         "}\n"
-        "void* xl6_xrt_buffer_from_base64(const char* text, size_t size, void* table)\n"
+        "void* xl6_xrt_buffer_from_base64(xlir_string text, size_t size, void* table)\n"
         "{\n"
         "    xbase64config config; const xbase64config* selected = NULL;\n"
-        "    if (text == NULL) text = \"\";\n"
-        "    if (size == 0u) size = strlen(text);\n"
+        "    if (size > text.Size) size = text.Size;\n"
         "    if (table != NULL) { config.Alphabet = (const char*)table; config.Flags = 0u; selected = &config; }\n"
-        "    return xrtBufferFromBase64((xstrview){ text, size }, selected);\n"
+        "    return xrtBufferFromBase64((xstrview){ text.Data, size }, selected);\n"
         "}\n\n", out);
 }

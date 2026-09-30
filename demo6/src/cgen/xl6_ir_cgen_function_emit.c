@@ -121,7 +121,8 @@ static int xl6IrCgenEmitFunction(
                  xl6IrTypeGet(&module->types, storage->type)->ownershipAbi ==
                      XL6_IR_OWNERSHIP_ABI_MANAGED ) {
                 if ( physical != NULL &&
-                     physical->cAbi == XL6_IR_C_ABI_PRODUCT )
+                     (physical->cAbi == XL6_IR_C_ABI_PRODUCT ||
+                      physical->cAbi == XL6_IR_C_ABI_MANAGED_STRING) )
                     xl6OutputPrintf(out, "    %s s%u = {0};\n", type,
                         (unsigned int)storage->symbol);
                 else

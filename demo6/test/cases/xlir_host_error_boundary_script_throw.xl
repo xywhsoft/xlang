@@ -1,2 +1,2 @@
-bool invalid = xson.valid("{bad}")
+bool invalid = xlon.valid("{bad}")
 throw "script-boundary-sentinel"

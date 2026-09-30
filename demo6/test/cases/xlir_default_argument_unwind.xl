@@ -1,0 +1,170 @@
+// 默认值在调用方求值：失败只能退出当前 try，不能释放仍在遍历的字符串。
+func requireText(bool reject, string text = "default") as string
+    if reject then throw ValueError "rejected" end
+    return text
+end
+
+extern "strlen" func rawLength(string text) as c_size
+
+func nativeLength(string text = "native") as c_size
+    return rawLength(text)
+end
+
+bool rejectDefault = false
+int defaultOrder = 0
+int defaultDrops = 0
+
+func marked(int digit) as string
+    defaultOrder = defaultOrder * 10 + digit
+    if rejectDefault then throw ValueError "default expression failed" end
+    return string(digit)
+end
+
+func pair(string first = marked(1), string second = marked(2)) as string
+    return first + second
+end
+
+func nested(string text = requireText(false)) as string
+    return text
+end
+
+func generic<T>(T value, string suffix = "default") as T
+    assert suffix == "default"
+    return value
+end
+
+func genericDefault<T>(T value, string suffix = nested()) as T
+    assert suffix == "default"
+    return value
+end
+
+func genericRelay<T>(T value) as T
+    assert nested() == "default"
+    return genericDefault(value)
+end
+
+func genericPair<T, U>(T first, U second, string suffix = "default") as T
+    assert suffix == "default"
+    return first
+end
+
+func genericRecursive<T>(T value, int remaining = 2, string suffix = "default") as T
+    assert suffix == "default"
+    if remaining == 0 then return value end
+    return genericRecursive(value, remaining - 1)
+end
+
+func genericThrow<T>(T value, string text = marked(8)) as T
+    return value
+end
+
+class DefaultHolder
+    string value
+
+    create(string text = marked(3))
+        self.value = text
+    end
+
+    func read(string suffix = "!") as string
+        return self.value + suffix
+    end
+end
+
+class DefaultChild extends DefaultHolder
+    create()
+        base()
+    end
+end
+
+class DefaultField
+    string value = nested()
+end
+
+class DefaultOwned
+    destroy()
+        defaultDrops += 1
+    end
+end
+
+func consume(DefaultOwned earlier, string text = marked(4)) as string
+    return text
+end
+
+func positional(string text = marked(5), ...) as int
+    return arg.length
+end
+
+func keyword(string text = marked(6), ***) as int
+    return arg.length
+end
+
+func main(...) as int
+    array<string> values = ["first", "second"]
+    int caughtCount = 0
+    for value in values
+        bool caught = false
+        try
+            requireText(true)
+        catch ValueError
+            caught = true
+        end
+        assert caught and value != ""
+        assert requireText(false) == "default"
+        assert nativeLength() == 6
+        assert nested() == "default" and generic::<string>(value) == value
+        assert generic(value) == value and generic(value = value) == value
+        assert genericDefault(value) == value and genericRelay(value) == value
+        assert genericPair(second = 7, first = value) == value
+        assert genericPair(first = 7, second = value) == 7
+        assert genericRecursive(value) == value
+        assert DefaultField().value == "default"
+        assert DefaultHolder().read() == "3!" and DefaultChild().read() == "3!"
+
+        // 命名实参仍按源码顺序求值，省略的参数随后按参数顺序补齐。
+        defaultOrder = 0
+        assert pair(second = marked(7)) == "17" and defaultOrder == 71
+        defaultOrder = 0
+        assert pair() == "12" and defaultOrder == 12
+
+        // 同一个默认表达式可由普通调用或函数值适配器执行。
+        func(bool) as string adapted = requireText
+        assert adapted(false) == "default"
+        try
+            adapted(true)
+        catch ValueError
+            caughtCount += 1
+        end
+
+        rejectDefault = true
+        for mode in range(7)
+            caught = false
+            try
+                if mode == 0 then
+                    pair()
+                elseif mode == 1 then
+                    DefaultHolder()
+                elseif mode == 2 then
+                    DefaultChild()
+                elseif mode == 3 then
+                    consume(DefaultOwned())
+                elseif mode == 4 then
+                    positional()
+                elseif mode == 5 then
+                    keyword(extra = value)
+                else
+                    genericThrow(value)
+                end
+            catch ValueError
+                caught = true
+            finally
+                assert value != ""
+            end
+            assert caught
+        end
+        rejectDefault = false
+        caughtCount += 1
+    end
+    assert caughtCount == 4 and defaultDrops == 2 and values[0] == "first"
+    println("default argument unwind: PASS")
+    return 0
+end

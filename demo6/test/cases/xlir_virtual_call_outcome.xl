@@ -8,12 +8,12 @@ class VirtualBase
     virtual func text(string key) as string
         return "base:" + key
     end
-    virtual func accept(byval VirtualPayload value) as int
+    virtual func accept(VirtualPayload value) as int
         return value.number
     end
-    virtual func change(byref int value, out int copy)
+    virtual func change(int value) as (int, int)
         value += 1
-        copy = value
+        return value, value
     end
 end
 class VirtualDerived extends VirtualBase
@@ -21,14 +21,14 @@ class VirtualDerived extends VirtualBase
         assert key != "fail", "virtual failure"
         return "derived:" + key
     end
-    override func accept(byval VirtualPayload value) as int
+    override func accept(VirtualPayload value) as int
         assert value.number >= 0, "owned virtual failure"
         return value.number + 10
     end
-    override func change(byref int value, out int copy)
+    override func change(int value) as (int, int)
         assert value >= 0, "mutable virtual failure"
         value += 2
-        copy = value
+        return value, value
     end
     func baseText(string key) as string
         return base.text(key)
@@ -71,14 +71,14 @@ end
 assert caught
 int value = 1
 int copy = 0
-plain.change(byref value, out copy)
+value, copy = plain.change(value)
 assert value == 2 and copy == 2
-erased.change(byref value, out copy)
+value, copy = erased.change(value)
 assert value == 4 and copy == 4
 value = -1
 caught = false
 try
-    erased.change(byref value, out copy)
+    value, copy = erased.change(value)
 catch failure
     caught = true
 end

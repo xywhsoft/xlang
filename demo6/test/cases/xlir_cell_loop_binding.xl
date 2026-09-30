@@ -69,8 +69,8 @@ export "loop_cell_string" func loopCell_string() as int
     for index, item in "ab"
         auto current = func() as int
             index += 10
-            item = item + "x"
-            return index * 100 + item.length
+            item = char(item + 1)
+            return index * 100 + item
         end
         if visits == 0 then
             first = current
@@ -245,7 +245,7 @@ end
 func main(...) as int
     assert(loopCell_range() == 4123)
     assert(loopCell_array() == 4123)
-    assert(loopCell_string() == 4107)
+    assert(loopCell_string() == 4396)
     assert(loopCell_list() == 4107)
     assert(loopCell_dict() == 707)
     assert(loopCell_protocol() == 4107)

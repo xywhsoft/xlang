@@ -1,5 +1,6 @@
 extern "xlir_public_apply" func apply(c_callback func(c_int) as c_int callback, c_int value) as c_int
-extern "xlir_public_change" func change(byref int value, out int doubled)
+extern "xlir_public_increment" func increment(int value) as int
+extern "xlir_public_double" func doubleValue(int value) as int
 
 func twice(c_int value) as c_int
     return value * 2
@@ -8,6 +9,7 @@ end
 assert apply(twice, 21) == 42
 int value = 40
 int doubled = 0
-change(byref value, out doubled)
+value = increment(value)
+doubled = doubleValue(value)
 assert value == 41
 assert doubled == 82

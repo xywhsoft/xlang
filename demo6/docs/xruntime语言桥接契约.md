@@ -24,7 +24,7 @@
 - 根 `object` 的 `__fields` 保存 `DynamicFields` 语言对象，不再保存私有 `dict`；
 - `DynamicFields.get/set` 使用 `xrtDynamicFieldsGetRef/SetRef`，保留同一 `xvalue` 身份，别名修改立即可见；
 - `copy/clone/toValue/fromValue` 提供明确的深复制隔离路径；
-- class 的 JSON/XSON/value 持久化只通过动态字段转换桥访问字段存储；
+- class 的 JSON/XLON/value 持久化只通过动态字段转换桥访问字段存储；
 - 普通无 class 程序不注入 `DynamicFields/object`，需要该能力时自动闭合 `XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD`；
 - 解释执行、生成 C 和 standalone 裁剪产物使用相同的 ABI 与模块边界。
 
@@ -45,7 +45,7 @@ class 实例与弱引用已经完成底层统一：
 - `Buffer`、typed array/list/set/dict、`Stack<T>`、`AvlTree<K,V>` 和并发队列；
 - `DynamicFields`，提供共享引用访问、显式深复制、合并、容量管理和 Value Object 往返；
 - `future<T>`、`weak<T>`、线程、协程、任务、同步原语和网络对象；
-- 字符串、时间、路径、文件、编码、JSON、XSON、模板等标准类型或命名空间。
+- 字符串、时间、路径、文件、编码、JSON、XLON、模板等标准类型或命名空间。
 
 语言级抽象应直接使用 XRT/xruntime 的所有权、批处理和零拷贝入口。不得在生成代码中重新实现容器遍历、集合运算、事务合并或生命周期算法。
 

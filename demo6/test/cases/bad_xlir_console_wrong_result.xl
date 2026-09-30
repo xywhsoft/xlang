@@ -1,0 +1,2 @@
+extern "xl6_xrt_console_read_char" func invalid() as string
+auto result = invalid()

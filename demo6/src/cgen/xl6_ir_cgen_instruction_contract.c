@@ -94,8 +94,10 @@ static int xl6IrCgenEmitNullInstruction(
         xl6OutputPrintf(out, "    v%u = xrtValueRetain(xrtValueNull());\n",
             (unsigned int)instruction->result);
     else if ( type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
-        xl6OutputPrintf(out, "    v%u = NULL;\n",
-            (unsigned int)instruction->result);
+        xl6OutputPrintf(out, "    v%u = %s;\n",
+            (unsigned int)instruction->result,
+            type->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                ? "(xlir_string){0}" : "NULL");
     else
         xl6OutputPrintf(out, "    v%u = (%s){ false };\n",
             (unsigned int)instruction->result,
@@ -178,8 +180,10 @@ static int xl6IrCgenEmitNullableInstruction(
                 (unsigned int)instruction->result, (unsigned int)value,
                 (unsigned int)value);
         else if ( operandType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
-            xl6OutputPrintf(out, "    v%u = (v%u == NULL);\n",
-                (unsigned int)instruction->result, (unsigned int)value);
+            xl6OutputPrintf(out, "    v%u = (v%u%s == NULL);\n",
+                (unsigned int)instruction->result, (unsigned int)value,
+                operandType->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                    ? ".Data" : "");
         else
             xl6OutputPrintf(out, "    v%u = !v%u.hasValue;\n",
                 (unsigned int)instruction->result, (unsigned int)value);
@@ -211,6 +215,13 @@ static int xl6IrCgenRuntimeIntegerConvertAbi(
          resultType->integerTarget != instruction->integerTarget ||
          instruction->integerSourceAbi <= XL6_IR_INTEGER_SOURCE_INVALID ||
          instruction->integerSourceAbi > XL6_IR_INTEGER_SOURCE_XVALUE ) return 0;
+    if ( instruction->integerTarget ==
+             XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
+        return resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+               (instruction->integerSourceAbi ==
+                    XL6_IR_INTEGER_SOURCE_I64 ||
+                instruction->integerSourceAbi ==
+                    XL6_IR_INTEGER_SOURCE_U64);
     if ( instruction->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
         return resultType->cAbi == XL6_IR_C_ABI_U64 &&
                (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
@@ -637,6 +648,7 @@ static int xl6IrCgenRuntimeFutureXValueRefAbi(
     return sourceType != NULL && resultType != NULL &&
         sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
         sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        sourceType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
         sourceType->paramCount == 1 && sourceType->params != NULL &&
         xl6IrTypeGet(&module->types, sourceType->params[0]) != NULL &&
         resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&

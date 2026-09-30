@@ -1,0 +1,2 @@
+extern "xl6_xrt_io_read_file" func invalid(string path, int count) as int
+int result = invalid("unused", 1)

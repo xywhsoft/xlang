@@ -431,7 +431,9 @@ if (!$header.Contains('XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE') -or
     !(Read-Utf8 'tools\check_xlir_product_await_owner.ps1').Contains('xlir_product_await_owner_contract.c')) {
     throw 'Continuation frame loans require verified resident owners and a wired genuine-suspension failure gate'
 }
+$cellHeader = Read-Utf8 'src/runtime/xl6_cell.h'
 $cellRuntime = Read-Utf8 'src/runtime/xl6_cell.c'
+$cellTypeCallEmitter = Read-Utf8 'src/cgen/xl6_ir_cgen_type_call.c'
 $cellInstruction = Read-Utf8 'src/cgen/xl6_ir_cgen_identity_closure.c'
 foreach ($operation in @('initialize','exchange')) {
     $transferBody=[regex]::Match($cellRuntime,"(?ms)^static void cell_${operation}_body\(.*?^\}").Value
@@ -1213,6 +1215,7 @@ $dictIteratorProjectionGate = Read-Utf8 "tools\check_xlir_dict_iterator_projecti
 $erasedCollectionIteratorGate = Read-Utf8 "tools\check_xlir_erased_collection_iterator_abi.ps1"
 $dynamicVarIteratorGate = Read-Utf8 "tools\check_xlir_dynamic_var_iterator_abi.ps1"
 $stringIteratorGate = Read-Utf8 "tools\check_xlir_string_iterator_abi.ps1"
+$charBytesAbiGate = Read-Utf8 "tools\check_xlir_char_bytes_abi.ps1"
 $protocolIteratorGate = Read-Utf8 "tools\check_xlir_protocol_iterator_abi.ps1"
 $protocolDispatchModelGate = Read-Utf8 "tools\check_xlir_protocol_dispatch_model.ps1"
 $protocolWitnessAdapterGate = Read-Utf8 "tools\check_xlir_protocol_witness_adapter_abi.ps1"
@@ -1932,23 +1935,23 @@ foreach ( $required in @(
     "XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE",
     "XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE",
     "XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ",
-    "XL6_IR_INTRINSIC_PERSISTENCE_XSON_STRINGIFY",
-    "XL6_IR_INTRINSIC_PERSISTENCE_XSON_PARSE",
-    "XL6_IR_INTRINSIC_PERSISTENCE_XSON_WRITE",
-    "XL6_IR_INTRINSIC_PERSISTENCE_XSON_READ",
+    "XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY",
+    "XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE",
+    "XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE",
+    "XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_READ",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_READ",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_READ",
     "XL6_IR_FIELD_PERSIST_INCLUDED", "XL6_IR_FIELD_PERSIST_OMIT_EMPTY",
     "XL6_IR_PERSIST_FORMAT_NONE", "XL6_IR_PERSIST_FORMAT_JSON",
-    "XL6_IR_PERSIST_FORMAT_XSON", "jsonPersistenceFlags",
-    "xsonPersistenceFlags", "jsonPersistenceKeyLiteral",
-    "xsonPersistenceKeyLiteral", "persistenceFormatMask"
+    "XL6_IR_PERSIST_FORMAT_XLON", "jsonPersistenceFlags",
+    "xlonPersistenceFlags", "jsonPersistenceKeyLiteral",
+    "xlonPersistenceKeyLiteral", "persistenceFormatMask"
 ) ) {
     if ( ! $header.Contains($required) ) {
         throw "XLIR header is missing canonical JSON persistence ABI: $required"
@@ -1957,13 +1960,13 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrBuildFieldPersistence", "xl6IrBuildClassPersistenceFormatsFrom",
     "xl6IrBuildPersistenceJsonLayoutSupported",
-    "xl6IrBuildPersistenceXsonLayoutSupported",
+    "xl6IrBuildPersistenceXlonLayoutSupported",
     "xl6IrBuildPersistenceLayoutSupported",
     "xl6IrBuildPersistenceGenericTarget",
     "persistence-json-stringify", "persistence-json-parse",
     "persistence-json-write", "persistence-json-read",
-    "persistence-xson-stringify", "persistence-xson-parse",
-    "persistence-xson-write", "persistence-xson-read",
+    "persistence-xlon-stringify", "persistence-xlon-parse",
+    "persistence-xlon-write", "persistence-xlon-read",
     "XLIR persistence stringify intrinsic has no canonical format identity and class schema ABI",
     "XLIR persistence write intrinsic has no canonical format identity and class schema ABI",
     "XLIR persistence parse intrinsic has no canonical format, generic target and class schema ABI"
@@ -1981,10 +1984,10 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_READ",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_READ",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_READ",
     "XLIR persistence stringify intrinsic has no exact format, borrowed class, schema, pretty flag and owned string ABI",
     "XLIR persistence write intrinsic has no exact format, borrowed path/class, schema, pretty flag and boolean ABI",
     "XLIR persistence parse intrinsic has no exact format, borrowed text, default class and schema ABI"
@@ -2001,20 +2004,20 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_READ",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE",
-    "XL6_IR_RUNTIME_PERSISTENCE_XSON_READ",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE",
+    "XL6_IR_RUNTIME_PERSISTENCE_XLON_READ",
     "xlir_persist_%s_assign_t", "xlir_persist_%s_parse_t",
     "xlir_persist_%s_write_t", "xlir_persist_%s_read_t",
     'stringifyName = "xrtJsonStringify"',
     'parseName = "xrtJsonParse"',
     'writeName = "xrtJsonStringifyFile"',
     'readName = "xrtJsonParseFile"',
-    'stringifyName = "xrtXsonStringify"',
-    'parseName = "xrtXsonParse"',
-    'writeName = "xrtXsonStringifyFile"',
-    'readName = "xrtXsonParseFile"',
+    'stringifyName = "xrtXlonStringify"',
+    'parseName = "xrtXlonParse"',
+    'writeName = "xrtXlonStringifyFile"',
+    'readName = "xrtXlonParseFile"',
     '"    result = %s(value, pretty, NULL);\n"',
     '"    source = %s(xrtStrView(text));\n"',
     '"    result = %s(path, value, pretty);\n"',
@@ -2027,10 +2030,10 @@ foreach ( $required in @(
 foreach ( $forbidden in @(
     "__xl_std_json_stringify", "__xl_std_json_parse",
     "__xl_std_json_write", "__xl_std_json_read",
-    "__xl_std_xson_stringify", "__xl_std_xson_parse",
-    "__xl_std_xson_write", "__xl_std_xson_read",
+    "__xl_std_xlon_stringify", "__xl_std_xlon_parse",
+    "__xl_std_xlon_write", "__xl_std_xlon_read",
     "json.stringify", "json.parse", "json.write", "json.read",
-    "xson.stringify", "xson.parse", "xson.write", "xson.read",
+    "xlon.stringify", "xlon.parse", "xlon.write", "xlon.read",
     "XL6_Hir", "XL6_Ast",
     "callee->text"
 ) ) {
@@ -2042,8 +2045,8 @@ foreach ( $required in @(
     "xlir_persistence_json_abi.xl", "Typed XLIR JSON persistence",
     "persistence-json-stringify", "persistence-json-parse",
     "persistence-json-write", "persistence-json-read",
-    "persistence-xson-stringify", "persistence-xson-parse",
-    "persistence-xson-write", "persistence-xson-read",
+    "persistence-xlon-stringify", "persistence-xlon-parse",
+    "persistence-xlon-write", "persistence-xlon-read",
     "derived layout schema", "explicit default-instance reconstruction",
     "exact stringify/parse/write/read intrinsic and RuntimeOp contracts",
     "format-parametric schema model", "inherited/nested projection",
@@ -2133,6 +2136,7 @@ foreach ( $required in @(
     "XL6_IrRuntimeBridgeKind", "XL6_IR_RUNTIME_BRIDGE_PRINT",
     "XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS",
     "XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES",
+    "XL6_IR_RUNTIME_BRIDGE_STRING_JOIN", "xl6IrRuntimeStringBridgeErrorAbi",
     "XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS",
     "XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE",
     "XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF",
@@ -2180,12 +2184,13 @@ foreach ( $required in @(
     "xl6IrLowerResolveRuntimeBridge",
     "xl6IrRuntimeBridgeOperationForName",
     "XLIR string-contains runtime bridge has no exact private helper ABI",
-    "XLIR string-split-lines runtime bridge has no exact private helper ABI",
+    "target->errorAbi = xl6IrRuntimeStringBridgeErrorAbi(target->cName)",
+    "xl6IrRuntimeStringBridgeTargetMatches(ctx->module, target)",
+    "XLIR string runtime bridge has no exact parameter/result ABI",
     "XLIR xvalue table-remove runtime bridge has no exact private helper ABI",
     "XLIR string-index-of runtime bridge has no exact private helper ABI",
     "XLIR JSON value runtime bridge has no exact parameter/result ABI",
     "XLIR string-format runtime bridge has no exact private helper ABI",
-    "XLIR take-cstr runtime bridge has no exact private helper ABI",
     "XLIR DynamicFields runtime bridge has no exact private helper ABI",
     "XLIR template runtime bridge has no exact borrowed native handle ABI",
     "XLIR Buffer runtime bridge has no exact component ABI",
@@ -2339,7 +2344,7 @@ foreach ($required in @('xl6IrLowerAcquireValueOwner', 'xl6IrLowerProtectEvaluat
     if (!$algebraBody.Contains($required)) { throw "Collection algebra must use shared evaluation ownership: $required" }
 }
 if ($algebraBody.Contains('XL6_IR_INSTR_RELEASE') -or
-    !(Read-Utf8 'test/cases/xlir_evaluation_cleanup.xl').Contains('evaluationReplaceDict(byref receiver)') -or
+    !(Read-Utf8 'test/cases/xlir_evaluation_cleanup.xl').Contains('cell.value.remove(evaluationReplaceDict(cell))') -or
     !(Read-Utf8 'test/cases/xlir_evaluation_cleanup_runtime.c').Contains('xrtMemDebugFailTriggered')) {
     throw 'Collection operands require shared failure rollback plus receiver-replacement and allocation-fault coverage'
 }
@@ -3499,7 +3504,11 @@ foreach ( $required in @(
     "XL6_IR_INSTR_RUNTIME_CALL",
     "XL6_IR_RUNTIME_STRING_DUP",
     "xl6IrLowerCanonicalCStringLiteral",
-    "XLIR managed string literal has no canonical C runtime payload",
+    "xl6IrLowerEmitRuntimeDataCall",
+    "XL6_IR_RUNTIME_STRING_FROM_UTF8", "XL6_IR_RUNTIME_BYTES_FROM_DATA",
+    "XLIR managed string literal has no decoded UTF-8 payload",
+    "XLIR bytes literal has no explicit-length bytes ABI",
+    "XLIR char literal has no validated Unicode-scalar payload",
     "xl6IrLowerBeginFunction",
     "xl6IrLowerIf",
     "xl6IrLowerWhile",
@@ -3769,6 +3778,8 @@ foreach ( $required in @(
     "XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE",
     "XL6_IR_LOOP_ABI_STRING_UTF8_VALUE",
     "XL6_IR_LOOP_ABI_STRING_UTF8_INDEX_VALUE",
+    "XL6_IR_LOOP_ABI_BYTES_VALUE",
+    "XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE",
     "XL6_IR_LOOP_ABI_PROTOCOL_ITERATOR_VALUE",
     "XL6_IR_LOOP_ABI_PROTOCOL_ITERATOR_INDEX_VALUE",
     "XL6_IrLoopKeyAbi", "XL6_IrLoopItemAbi", "loopKeyAbi", "loopItemAbi",
@@ -3776,6 +3787,7 @@ foreach ( $required in @(
     "XL6_IR_LOOP_ITEM_DYNAMIC_LOGICAL_XVALUE",
     "XL6_IR_LOOP_ITEM_CLOSURE_COPY",
     "XL6_IR_LOOP_ITEM_DISCARD",
+    "XL6_IR_LOOP_ITEM_CHAR", "XL6_IR_LOOP_ITEM_U8",
     "XL6_IrLoopTargetLifetimeAbi", "loopKeyLifetimeAbi", "loopItemLifetimeAbi",
     "XL6_IR_LOOP_TARGET_LIFETIME_OWNED_ITERATION_RELEASE",
     "XL6_IrLoopResourceAbi",
@@ -3783,13 +3795,15 @@ foreach ( $required in @(
     "XL6_IR_LOOP_RESOURCE_XVALUE_OWNED_ITERATOR_RELEASE",
     "XL6_IR_LOOP_RESOURCE_XVALUE_ITERATOR_DESTROY",
     "XL6_IR_LOOP_RESOURCE_STRING_SNAPSHOT_RELEASE",
+    "XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE",
     "XL6_IR_LOOP_RESOURCE_PROTOCOL_ITERATOR_RELEASE",
     "XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_VALUE",
     "XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_TAKE",
     "loopProtocolIterTarget", "loopProtocolNextTarget",
     "loopProtocolIteratorType", "loopProtocolNextResultType",
     "loopProtocolItemType",
-    "XL6_IR_RUNTIME_STRING_UTF8_AT",
+    "XL6_IR_RUNTIME_STRING_UTF8_AT", "XL6_IR_RUNTIME_STRING_SCALAR_AT",
+    "XL6_IR_RUNTIME_BYTES_LENGTH", "XL6_IR_RUNTIME_BYTES_AT",
     "XL6_IR_TYPE_VALUE_ITERATOR",
     "XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR",
     "loopResourceAbi", "loopResourceType"
@@ -3804,6 +3818,7 @@ foreach ( $required in @(
     "xvalue-array-i64-value", "xvalue-array-i64-index-value",
     "xvalue-iterator-value", "xvalue-iterator-key", "xvalue-iterator-key-value",
     "string-utf8-value", "string-utf8-index-value",
+    "bytes-value", "bytes-index-value",
     "protocol-iterator-value", "protocol-iterator-index-value",
     "protocol-product-value", "protocol-product-take",
     "protocol-iterator-release",
@@ -3811,7 +3826,8 @@ foreach ( $required in @(
     "integer-i64", "string-copy", "dynamic-xvalue", "dynamic-logical-xvalue",
     "closure-copy",
     "owned-iteration-release", "xvalue-iterator-destroy",
-    "string-snapshot-release", "string-utf8-at",
+    "string-snapshot-release", "bytes-snapshot-release",
+    "string-scalar-at", "bytes-length", "bytes-at", "char", "u8",
     "xl6IrLoopTargetLifetimeAbiName",
     "XL6_IR_LOOP_RESOURCE_XVALUE_SHALLOW_SNAPSHOT_RELEASE",
     "xl6IrLoopResourceAbiName", "loopResourceType",
@@ -3846,9 +3862,12 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xl6IrLowerStringUtf8For", "XL6_IR_RUNTIME_STRING_COPY",
-    "XL6_IR_RUNTIME_STRING_UTF8_COUNT", "XL6_IR_RUNTIME_STRING_UTF8_AT",
+    "xl6IrLowerPrimitiveSequenceFor", "XL6_IR_RUNTIME_STRING_COPY",
+    "XL6_IR_RUNTIME_STRING_UTF8_COUNT", "XL6_IR_RUNTIME_STRING_SCALAR_AT",
+    "XL6_IR_RUNTIME_BYTES_RETAIN", "XL6_IR_RUNTIME_BYTES_LENGTH",
+    "XL6_IR_RUNTIME_BYTES_AT",
     "XL6_IR_LOOP_RESOURCE_STRING_SNAPSHOT_RELEASE",
+    "XL6_IR_LOOP_RESOURCE_BYTES_SNAPSHOT_RELEASE",
     "xl6IrLowerPushLoopResource", "xl6IrLowerPushIterationTargetResource",
     "conditionBlock", "snapshotSymbol", "positionSymbol"
 ) ) {
@@ -3868,11 +3887,12 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "XL6_IR_RUNTIME_STRING_UTF8_AT", "xrtUtf8Substr",
-    "needsStringUtf8AtOperation"
+    "XL6_IR_RUNTIME_STRING_SCALAR_AT", "xlir_string_scalar_at",
+    "XL6_IR_RUNTIME_BYTES_AT", "xlir_bytes_at",
+    "XL6_IR_RUNTIME_BYTES_LENGTH", "xlir_bytes_length"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
-        throw "XLIR C emitter is missing mechanical UTF-8 string projection: $required"
+        throw "XLIR C emitter is missing mechanical string/bytes scalar projection: $required"
     }
 }
 foreach ( $required in @(
@@ -3999,8 +4019,9 @@ if ( ! $languageFrontendSuite.Contains(
 foreach ( $required in @(
     "xlir_string_iterator_abi.xl", "stdlib_string.xl",
     "string-utf8-value", "string-utf8-index-value",
-    "string-snapshot-release", "string-utf8-count", "string-utf8-at",
-    "owned-iteration release", "copy-vs-transfer acquisition semantics",
+    "string-snapshot-release", "string-utf8-count", "string-scalar-at",
+    "trivial char projection", "checked status edges",
+    "copy-vs-transfer acquisition semantics",
     "empty/continue/break/return/finally/throw cleanup",
     "emoji runtime semantics", "ReadAllBytes", "-Werror"
 ) ) {
@@ -4011,6 +4032,28 @@ foreach ( $required in @(
 if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_string_iterator_abi.ps1") ) {
     throw "Language frontend suite does not execute the UTF-8 string iterator ABI gate"
+}
+foreach ( $required in @(
+    "char_bytes_literals.xl", "char_bytes_advanced.xl",
+    "cAbi -ne 43", "cAbi -ne 44", "unicode-scalar",
+    "string-scalar-set-copy", "bytes-set-copy", "bytes-index-value",
+    "xvalue-char", "persistence-xlon-stringify",
+    "future<char>", "generator<bytes>",
+    "char_bytes_invalid_char_width.xl",
+    "char_bytes_invalid_char_surrogate.xl",
+    "char_bytes_invalid_bf_prefix.xl",
+    "char_bytes_invalid_brf_prefix.xl",
+    "formatted backticks must preserve ordinary escapes",
+    "formatted triple strings must use common-indent framing",
+    "SequenceEqual", "-Werror", "XL6_CGEN_LINKS"
+) ) {
+    if ( ! $charBytesAbiGate.Contains($required) ) {
+        throw "XLIR char/bytes ABI quality gate is incomplete: $required"
+    }
+}
+if ( ! $languageFrontendSuite.Contains(
+        "tools\check_xlir_char_bytes_abi.ps1") ) {
+    throw "Language frontend suite does not execute the char/bytes ABI gate"
 }
 foreach ( $required in @(
     "xlir_protocol_iterator_managed_item.xl",
@@ -4173,8 +4216,9 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IrMemberAbi", "XL6_IR_MEMBER_ABI_STRING_UTF8_COUNT",
-    "memberAbi", "XL6_IR_RUNTIME_STRING_UTF8_COUNT",
-    "string.length", "semantic ABI"
+    "XL6_IR_MEMBER_ABI_BYTES_LENGTH", "memberAbi",
+    "XL6_IR_RUNTIME_STRING_UTF8_COUNT", "XL6_IR_RUNTIME_BYTES_LENGTH",
+    "string.length", "bytes.length", "semantic ABI"
 ) ) {
     if ( ! $header.Contains($required) ) {
         throw "XLIR public model is missing canonical non-call member ABI: $required"
@@ -4183,7 +4227,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrClassifyMemberAbi", "xl6IrBuildMemberAbis",
     "typed XLIR member has no exact canonical member ABI",
-    'memberAbiName\":\"%s', "string-utf8-count",
+    'memberAbiName\":\"%s', "string-utf8-count", "bytes-length",
     "XLIR runtime UTF-8 string count has no exact borrowed string or i64 result ABI"
 ) ) {
     if ( ! $source.Contains($required) ) {
@@ -4191,8 +4235,8 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xl6IrLowerStringUtf8Count", "node->memberAbi",
-    "XL6_IR_RUNTIME_STRING_UTF8_COUNT"
+    "xl6IrLowerBuiltinSequenceLength", "node->memberAbi",
+    "XL6_IR_RUNTIME_STRING_UTF8_COUNT", "XL6_IR_RUNTIME_BYTES_LENGTH"
 ) ) {
     if ( ! $lower.Contains($required) ) {
         throw "XLIR lowering is missing canonical string length member ABI: $required"
@@ -4200,7 +4244,8 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_STRING_UTF8_COUNT",
-    "xrtUtf8Count(xrtStrView(v%u))", "needsStringUtf8CountOperation"
+    "xrtUtf8Count(xrtStrView(v%u))", "needsStringUtf8CountOperation",
+    "XL6_IR_RUNTIME_BYTES_LENGTH", "xlir_bytes_length"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical UTF-8 string count emission: $required"
@@ -4643,7 +4688,7 @@ foreach ( $required in @(
     }
 }
 if ( $cEmitter -match 'XL6_AstNode\s*\*' -or $cEmitter -match 'XL6_Hir' -or
-$cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|NetTcpComponent|NetBufferComponent|NetTcpStatsComponent|NetDatagramComponent|TlsRuntime|Http1Runtime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|XsonRuntime)\b)' -or
+$cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|NetTcpComponent|NetBufferComponent|NetTcpStatsComponent|NetDatagramComponent|TlsRuntime|Http1Runtime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|XlonRuntime)\b)' -or
      $cEmitter -match 'xl6Sem' ) {
     throw "XLIR C emitter must not consume AST/HIR/semantic analysis or call legacy Cgen"
 }
@@ -4668,7 +4713,7 @@ $retiredComponentAbiFiles = @(
     'src/cgen/xl6_cgen_tls_stream.c',
     'src/cgen/xl6_cgen_websocket.c',
     'src/cgen/xl6_cgen_xlang_runtime.c',
-    'src/cgen/xl6_cgen_xson.c'
+    'src/cgen/xl6_cgen_xlon.c'
 )
 foreach ($path in $retiredComponentAbiFiles) {
     $componentText = Read-Utf8 $path
@@ -4962,7 +5007,7 @@ foreach ( $required in @(
     "XL6_IrIntegerSourceAbi",
     "XL6_IR_INTEGER_SOURCE_MANAGED_STRING",
     "SIGNED_64", "UNSIGNED_64",
-    "checked integer conversion has no exact source and target ABI",
+    "XLIR checked integer conversion has no exact Typed source, target and failure ABI",
     "integerTarget"
 ) ) {
     if ( ! $header.Contains($required) -and ! $source.Contains($required) ) {
@@ -5190,6 +5235,24 @@ if ($cEmitter.Contains("typedef struct xlir_string_list")) {
 if (!$languageFrontendSuite.Contains("tools\check_xlir_string_bridges.ps1")) {
     throw "XLIR string bridge boundary gate is not wired into the language frontend suite"
 }
+foreach ($required in @('XL6_IrStringBridgeContract', 'target->errorAbi != contract->errorAbi',
+    'xl6IrRuntimeStringBridgeErrorAbi', 'XL6_IR_RUNTIME_BRIDGE_STRING_JOIN',
+    'XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR', 'XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES')) {
+    if (!$source.Contains($required)) { throw "XLIR string ABI registry is incomplete: $required" }
+}
+foreach ($required in @('needsStringJoinBridgeRuntime', 'XL6_IR_RUNTIME_BRIDGE_STRING_JOIN',
+    'void* xl6_xrt_string_join(xvalue* values, const char* separator)', 'xrtStrJoin')) {
+    if (!$cEmitter.Contains($required)) { throw "XLIR string-join runtime bridge is incomplete: $required" }
+}
+$stringJoinGate = Read-Utf8 'tools\check_xlir_string_join.ps1'
+foreach ($required in @('xlir_string_join_failure.xl', 'errorPhysicalAbiName', 'xrt-thread-error',
+    'string join threads ok: 2000 rounds', 'xlir_string_join_bad_parameter',
+    'xlir_string_join_bad_result', 'changedInputs', 'passed-scoped')) {
+    if (!$stringJoinGate.Contains($required)) { throw "XLIR string effect and failure gate is incomplete: $required" }
+}
+if (!(Read-Utf8 'tools\run_xlir_parameterized_guards.ps1').Contains("'check_xlir_string_join.ps1'")) {
+    throw 'XLIR source string-join gate is not registered with scenario workers'
+}
 foreach ( $required in @(
     "cgen_dynamic_to_typed_containers.xl", "--backend xlir",
     "xvalue* xl6_xrt_string_split_lines(const char* text)",
@@ -5294,6 +5357,15 @@ foreach ( $required in @(
 }
 if ( ! $cellRuntime.Contains('case XL6_CELL_U64: case XL6_CELL_TYPE_ID: return size==sizeof(uint64_t);') ) {
     throw 'Resident TypeId cells must validate the exact uint64_t payload size'
+}
+if ( ! $cellHeader.Contains('XL6_CELL_CHAR') -or
+     ! $cellRuntime.Contains('case XL6_CELL_CHAR: return size==sizeof(uint32_t);') -or
+     ! $cellTypeCallEmitter.Contains('case XL6_IR_C_ABI_CHAR_U32: return "XL6_CELL_CHAR";') ) {
+    throw 'Resident char cells must preserve the exact uint32_t Unicode-scalar payload ABI'
+}
+if ( ! $cellTypeCallEmitter.Contains('case XL6_IR_C_ABI_MANAGED_BYTES:') -or
+     ! $cellTypeCallEmitter.Contains('case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "XL6_CELL_XVALUE";') ) {
+    throw 'Resident bytes cells must reuse the managed XValue payload ABI'
 }
 foreach ( $required in @(
     "--format json", "--lowered", "typeQueryAbiName", "copy-type-id",

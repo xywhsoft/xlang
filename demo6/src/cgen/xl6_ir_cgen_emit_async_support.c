@@ -140,7 +140,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
                 "extern bool xrtValueGetFloat(const xvalue*, double*);\n"
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
-                "extern char* xrtXsonStringify(const xvalue*, bool, size_t*);\n"
+                "extern char* xrtXlonStringify(const xvalue*, bool, size_t*);\n"
                 "static char* xlir_xvalue_to_string(const xvalue* value)\n"
                 "{\n"
                 "    bool boolean = false; int64_t integer = 0; uint64_t unsignedInteger = 0; double number = 0.0;\n"
@@ -152,8 +152,17 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "    case 13: return xrtValueGetUInt(value, &unsignedInteger) ? xlir_u64_to_string(unsignedInteger) : xrtStrDup(\"\");\n"
                 "    case 3: return xrtValueGetFloat(value, &number) ? xlir_f64_to_string(number) : xrtStrDup(\"\");\n"
                 "    case 4: return xrtValueGetString(value, &text) ? xrtStrDupN(text.Data, text.Size) : xrtStrDup(\"\");\n"
-                "    default: return xrtXsonStringify(value, false, &size);\n"
+                "    default: return xrtXlonStringify(value, false, &size);\n"
                 "    }\n"
+                "}\n"
+                "static xlir_string xlir_xvalue_to_string_value(const xvalue* value)\n"
+                "{\n"
+                "    xlir_string_view text = {0};\n"
+                "    if (value != NULL && xrtValueType(value) == 4) {\n"
+                "        if (!xrtValueGetString(value, &text)) return (xlir_string){0};\n"
+                "        return xlir_string_from_utf8(text.Data, text.Size);\n"
+                "    }\n"
+                "    return xlir_string_take_cstr(xlir_xvalue_to_string(value));\n"
                 "}\n", out);
         xl6OutputPuts("\n", out);
     }
@@ -471,10 +480,10 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         xl6OutputPuts(
             "extern bool xrtStrContains(xlir_string_view, xlir_string_view);\n"
             "extern bool xrtStrCaseContains(xlir_string_view, xlir_string_view);\n"
-            "bool xl6_xrt_string_contains(const char* text, const char* part, bool ignoreCase)\n"
+            "bool xl6_xrt_string_contains(xlir_string text, xlir_string part, bool ignoreCase)\n"
             "{\n"
-            "    xlir_string_view textView = xrtStrView(text);\n"
-            "    xlir_string_view partView = xrtStrView(part);\n"
+            "    xlir_string_view textView = text;\n"
+            "    xlir_string_view partView = part;\n"
             "    return ignoreCase ? xrtStrCaseContains(textView, partView) : xrtStrContains(textView, partView);\n"
             "}\n\n", out);
     }
@@ -492,41 +501,42 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         xl6OutputPuts(
             "extern size_t xrtUtf8Find(xlir_string_view, xlir_string_view, size_t);\n"
             "extern size_t xrtUtf8CaseFind(xlir_string_view, xlir_string_view, size_t);\n"
-            "int64_t xl6_xrt_string_index_of(const char* text, const char* part, bool ignoreCase)\n"
+            "int64_t xl6_xrt_string_index_of(xlir_string text, xlir_string part, bool ignoreCase)\n"
             "{\n"
             "    size_t index = ignoreCase\n"
-            "        ? xrtUtf8CaseFind(xrtStrView(text), xrtStrView(part), 0u)\n"
-            "        : xrtUtf8Find(xrtStrView(text), xrtStrView(part), 0u);\n"
+            "        ? xrtUtf8CaseFind(text, part, 0u)\n"
+            "        : xrtUtf8Find(text, part, 0u);\n"
             "    return index == SIZE_MAX ? -1 : (int64_t)index;\n"
             "}\n\n", out);
     }
     if ( needs->needsStringIntFormatBridgeRuntime ) {
         xl6OutputPuts(
             "extern char* xrtIntFormat(int64_t, xlir_string_view);\n"
-            "void* xl6_xrt_string_int_format(int64_t value, const char* format)\n"
-            "{ return xrtIntFormat(value, xrtStrView(format)); }\n\n",
+            "void* xl6_xrt_string_int_format(int64_t value, xlir_string format)\n"
+            "{ return xrtIntFormat(value, format); }\n\n",
             out);
     }
     if ( needs->needsStringUIntFormatBridgeRuntime ) {
         xl6OutputPuts(
             "extern char* xrtUIntFormat(uint64_t, xlir_string_view);\n"
-            "void* xl6_xrt_string_uint_format(uint64_t value, const char* format)\n"
-            "{ return xrtUIntFormat(value, xrtStrView(format)); }\n\n",
+            "void* xl6_xrt_string_uint_format(uint64_t value, xlir_string format)\n"
+            "{ return xrtUIntFormat(value, format); }\n\n",
             out);
     }
     if ( needs->needsStringNumFormatBridgeRuntime ) {
         xl6OutputPuts(
             "extern char* xrtNumFormat(double, xlir_string_view);\n"
-            "void* xl6_xrt_string_num_format(double value, const char* format)\n"
-            "{ return xrtNumFormat(value, xrtStrView(format)); }\n\n",
+            "void* xl6_xrt_string_num_format(double value, xlir_string format)\n"
+            "{ return xrtNumFormat(value, format); }\n\n",
             out);
     }
     if ( needs->needsTakeCstrBridgeRuntime ) {
         xl6OutputPuts(
-            "char* xl6_xrt_take_cstr(void* value)\n"
+            "xlir_string xl6_xrt_take_cstr(void* value)\n"
             "{\n"
-            "    char* text = xrtStrDup(value != NULL ? (const char*)value : \"\");\n"
-            "    if (value != NULL) xrtFree(value);\n"
+            "    xlir_string text = value != NULL\n"
+            "        ? (xlir_string){ (const char*)value, strlen((const char*)value) }\n"
+            "        : xlir_string_from_utf8(\"\", 0);\n"
             "    return text;\n"
             "}\n\n",
             out);
@@ -570,7 +580,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "extern bool xrtIntFormatTo(int64_t, xlir_string_view, char*, size_t, size_t*);\n"
             "extern bool xrtUIntFormatTo(uint64_t, xlir_string_view, char*, size_t, size_t*);\n"
             "extern bool xrtNumFormatTo(double, xlir_string_view, char*, size_t, size_t*);\n"
-            "extern char* xrtXsonStringify(const xvalue*, bool, size_t*);\n"
+            "extern char* xrtXlonStringify(const xvalue*, bool, size_t*);\n"
             "static bool xlir_print_append(xstrbuf* output, const char* text, size_t size)\n"
             "{ return size == 0 || (text != NULL && xrtStrBufAppend(output, xrtStrViewN(text, size))); }\n"
             "static bool xlir_print_one(xstrbuf* output, const xvalue* value)\n"
@@ -603,18 +613,17 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "        return written >= 0 && (size_t)written < sizeof(buffer) &&\n"
             "            xlir_print_append(output, buffer, (size_t)written);\n"
             "    default:\n"
-            "        serialized = xrtXsonStringify(value, false, &size);\n"
+            "        serialized = xrtXlonStringify(value, false, &size);\n"
             "        if (serialized == NULL) return false;\n"
             "        appended = xlir_print_append(output, serialized, size);\n"
             "        xrtFree(serialized);\n"
             "        return appended;\n"
             "    }\n"
             "}\n"
-            "void xl6_xrt_print(xvalue* values, bool newline)\n"
+            "bool xl6_xrt_print(xvalue* values, bool newline)\n"
             "{\n"
             "    xstrbuf output; size_t count = 0; size_t i = 0; bool ready = true;\n"
             "    xrtStrBufInit(&output);\n"
-            "    (void)xrtConsoleFlush(XCONSOLE_STDOUT);\n"
             "    if (values != NULL && (int)xrtValueType(values) == (int)XLIR_XVALUE_ARRAY) {\n"
             "        count = xrtValueCount(values);\n"
             "        for (i = 0; ready && i < count; ++i) {\n"
@@ -623,11 +632,11 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "        }\n"
             "    } else ready = xlir_print_one(&output, values);\n"
             "    if (ready) {\n"
-            "        if (newline) (void)xrtConsoleWriteLine(XCONSOLE_STDOUT, xrtStrBufView(&output));\n"
-            "        else (void)xrtConsoleWrite(XCONSOLE_STDOUT, xrtStrBufView(&output));\n"
+            "        if (newline) ready = xrtConsoleWriteLine(XCONSOLE_STDOUT, xrtStrBufView(&output));\n"
+            "        else ready = xrtConsoleWrite(XCONSOLE_STDOUT, xrtStrBufView(&output));\n"
             "    }\n"
             "    xrtStrBufFree(&output);\n"
-            "    (void)xrtConsoleFlush(XCONSOLE_STDOUT);\n"
+            "    return ready;\n"
             "}\n\n", out);
     }
     if ( needs->needsLanguageFunctionRuntime ) {

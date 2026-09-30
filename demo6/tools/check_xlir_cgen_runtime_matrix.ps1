@@ -100,7 +100,7 @@ $fixtures = @(
     @{ Name = "async extern Future forward ABI"; Source = "test\cases\xlir_async_future_direct_call.xl"; Host = "test\cases\xlir_async_future_direct_call_host.c"; GeneratedInclude = "build\test\xlir_async_future_direct_call_generated.c" },
     @{ Name = "async managed/dynamic string ownership ABI"; Source = "test\cases\cgen_async_string_ownership.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "function-value dynamic borrow and compound assignment ABI"; Source = "test\cases\cgen_function_direct_owned_args.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
-    @{ Name = "function-value byref/out storage-reference ABI"; Source = "test\cases\cgen_function_param_modes.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "function-value by-value return ABI"; Source = "test\cases\cgen_function_param_modes.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "runtime callable xcall ABI"; Source = "test\cases\cgen_extern_function_value.xl"; Host = "test\cases\xlir_xcall_i64_host.c"; IncludeGenerated = $true },
     @{ Name = "runtime callable scalar ABI"; Source = "test\cases\xlir_xcall_scalar_values.xl"; Host = "test\cases\xlir_xcall_scalar_host.c"; IncludeGenerated = $true },
     @{ Name = "managed product field ownership ABI"; Source = "test\cases\xlir_managed_product_result.xl"; Host = "test\cases\xlir_managed_product_differential_host.c"; IncludeGenerated = $true },
@@ -108,7 +108,7 @@ $fixtures = @(
     @{ Name = "scalar/time/union class-field constructor initializer ABI"; Source = "test\cases\xlir_value_initializer_class_default_differential.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "declaration-driven implicit class receiver ABI"; Source = "test\cases\xlir_class_implicit_receiver.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "base receiver direct dispatch ABI"; Source = "test\cases\cgen_base_method_static_dispatch.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
-    @{ Name = "base receiver typed call ABI"; Source = "test\cases\cgen_base_method_typed_hir.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
+    @{ Name = "base receiver typed call ABI"; Source = "test\cases\cgen_base_method_xlir.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "implicit class-field namespace shadow ABI"; Source = "test\cases\cgen_stdlib_namespace_shadow.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "class operator/contains/call syntax CallSite ABI"; Source = "test\cases\cgen_protocol_ops.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "class rvalue item/field/call syntax CallSite ABI"; Source = "test\cases\cgen_protocol_complex_receiver.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
@@ -130,14 +130,14 @@ $fixtures = @(
     @{ Name = "field-only native-backed managed object identity ABI"; Source = "test\cases\cgen_typed_container_objects.xl"; Host = "test\cases\xlir_generated_module_host.c"; Support = "test\cases\cgen_class_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "managed native extern receiver physical field-borrow ABI"; Source = "test\cases\xlir_managed_native_extern_receiver_abi.xl"; Host = "test\cases\xlir_generated_module_host.c"; Support = "test\cases\xlir_managed_native_extern_receiver_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "class JSON persistence stringify/parse schema-projection ABI"; Source = "test\cases\xlir_persistence_json_abi.xl"; Host = "test\cases\xlir_generated_module_host.c"; Support = "test\cases\cgen_class_host.c"; IncludeGenerated = $true; GenericHost = $true },
-    @{ Name = "managed class byval/byref/out parameter ABI"; Source = "test\cases\cgen_param_modes_class.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
-    @{ Name = "managed container byval/byref/out parameter ABI"; Source = "test\cases\cgen_param_modes_container.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "managed class by-value and replacement-return ABI"; Source = "test\cases\cgen_param_modes_class.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "managed container by-value and replacement-return ABI"; Source = "test\cases\cgen_param_modes_container.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "managed container parameter mutation and collection-member intrinsic ABI"; Source = "test\cases\cgen_param_modes_container_matrix.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "typed container borrowed-parameter lexical ownership ABI"; Source = "test\cases\cgen_typed_container_param_mutation.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "explicit dynamic collection-method operation ABI"; Source = "test\cases\cgen_dynamic_container_methods.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "closed typed collection algebra ABI"; Source = "test\cases\cgen_container_ops.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "managed class byval ownership ABI"; Source = "test\cases\cgen_class_param_value_ownership.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
-    @{ Name = "plain union value and byval/byref/out storage-reference ABI"; Source = "test\cases\cgen_union_value_semantics.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "plain union value and replacement-return ABI"; Source = "test\cases\cgen_union_value_semantics.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "trivial union dynamic box and checked projection ABI"; Source = "test\cases\xlir_union_dynamic_box_abi.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "trivial union set iterator checked projection ABI"; Source = "test\cases\cgen_union_var_box.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "trivial union class-field read/write-back ABI"; Source = "test\cases\xlir_union_class_field_write_abi.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
@@ -176,6 +176,12 @@ try {
         }
         if ( $null -ne $fixture.GeneratedInclude ) {
             $includedGenerated = Join-Path $Root $fixture.GeneratedInclude
+            [System.IO.File]::Copy($generated, $includedGenerated, $true)
+        } elseif ( !$fixture.SeparateGenerated -and !$fixture.IncludeGenerated ) {
+            # Self-including differential hosts share this canonical path.
+            # Refresh it for every fixture so the matrix never consumes a
+            # stale artifact produced by another gate or an earlier row.
+            $includedGenerated = Join-Path $Root "build\test\xlir_cgen_differential_generated.c"
             [System.IO.File]::Copy($generated, $includedGenerated, $true)
         }
         if ( $fixture.SeparateGenerated ) {

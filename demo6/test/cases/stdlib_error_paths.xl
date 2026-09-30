@@ -8,7 +8,7 @@ string missingDir = "build/test/stdlib_missing_dir"
 string missingDirCopy = "build/test/stdlib_missing_dir_copy"
 string missingDirMove = "build/test/stdlib_missing_dir_move"
 string badJson = "build/test/stdlib_bad.json"
-string badXson = "build/test/stdlib_bad.xson"
+string badXlon = "build/test/stdlib_bad.xlon"
 
 file.delete(missingFile)
 file.delete(missingCopy)
@@ -17,7 +17,7 @@ dir.delete(missingDir)
 dir.delete(missingDirCopy)
 dir.delete(missingDirMove)
 file.delete(badJson)
-file.delete(badXson)
+file.delete(badXlon)
 
 expect(file.exists(missingFile), 0)
 bool missingReadCaught = false
@@ -53,13 +53,13 @@ var invalidJsonFile = json.read(badJson)
 expect(type(invalidJsonFile) == null, 1)
 expect(file.delete(badJson), 1)
 
-var invalidXson = xson.parse("{")
-expect(type(invalidXson) == null, 1)
-expect(xson.write("build/test/stdlib_missing_dir/out.xson", {"a": 1}), 0)
-expect(file.writeText(badXson, "{"), 1)
-var invalidXsonFile = xson.read(badXson)
-expect(type(invalidXsonFile) == null, 1)
-expect(file.delete(badXson), 1)
+var invalidXlon = xlon.parse("{")
+expect(type(invalidXlon) == null, 1)
+expect(xlon.write("build/test/stdlib_missing_dir/out.xlon", {"a": 1}), 0)
+expect(file.writeText(badXlon, "{"), 1)
+var invalidXlonFile = xlon.read(badXlon)
+expect(type(invalidXlonFile) == null, 1)
+expect(file.delete(badXlon), 1)
 
 
 expect(process.success("cmd /c exit /b 5"), 0)

@@ -27,8 +27,11 @@ foreach ($name in $cases) {
         throw "Core type/closure regressed to legacy or nondeterministic emission: $name"
     }
     $module = [IO.File]::ReadAllText("$prefix.json") | ConvertFrom-Json
-    $types = @{}; $definitions = @{}
+    $types = @{}; $definitions = @{}; $storages = @{}
     foreach ($type in $module.types) { $types[$type.id] = $type }
+    foreach ($storage in $module.storages) {
+        $storages[[string]$storage.symbol] = $storage
+    }
     foreach ($instruction in $module.instructions) {
         if ($instruction.result -ne 0) { $definitions[$instruction.result] = $instruction }
     }
@@ -53,14 +56,31 @@ foreach ($name in $cases) {
         "xlir_refcounted_storage_assignment_lifetime" {
             $writes = @($module.instructions | Where-Object {
                 $_.kindName -eq "store" -and $types[$_.type].cAbi -eq 31 -and
-                $module.nodes[$_.origin - 1].kindName -eq "assign"
+                $module.nodes[$_.origin - 1].kindName -eq "assign" -and
+                $storages.ContainsKey([string]$_.targetSymbol) -and
+                $storages[[string]$_.targetSymbol].kindName -ne "temporary"
             })
             if ($writes.Count -ne 12) { throw "Closure local/global/static replacement coverage changed" }
             foreach ($write in $writes) {
-                $drop = $module.instructions[$write.index - 1]
-                if ($drop.kindName -ne "release" -or $drop.targetSymbol -ne $write.targetSymbol -or
-                    $drop.type -ne $write.type -or $definitions[$write.operands[0]].index -ge $drop.index) {
-                    throw "Storage replacement did not acquire input before dropping its old owner"
+                $load = $module.instructions[$write.index - 2]
+                $move = $module.instructions[$write.index - 1]
+                $retired = $module.instructions[$write.index + 1]
+                $release = @($module.instructions | Where-Object {
+                    $_.index -gt $retired.index -and $_.origin -eq $write.origin -and
+                    $_.kindName -eq "release" -and
+                    $_.targetSymbol -eq $retired.targetSymbol
+                })[0]
+                if ($load.kindName -ne "load" -or
+                    $load.targetSymbol -ne $write.targetSymbol -or
+                    $move.kindName -ne "move" -or
+                    $move.targetSymbol -ne $write.targetSymbol -or
+                    $move.operands[0] -ne $load.result -or
+                    $definitions[$write.operands[0]].index -ge $load.index -or
+                    $retired.kindName -ne "store" -or
+                    !$storages.ContainsKey([string]$retired.targetSymbol) -or
+                    $storages[[string]$retired.targetSymbol].kindName -ne "temporary" -or
+                    $retired.operands[0] -ne $load.result -or $null -eq $release) {
+                    throw "Storage replacement lost acquire-snapshot-commit-retire ownership order"
                 }
             }
             if (@($module.instructions | Where-Object {
@@ -111,7 +131,9 @@ foreach ($name in $cases) {
             }
         }
         "cgen_implicit_methods" {
-            Require-Ops @{"i64-to-string"=2;"bool-to-string"=1;"string-copy"=1;"xvalue-to-string"=1}
+            # One copy materializes text.toString(); the other six are the
+            # explicit owned string values passed/stored by this fixed fixture.
+            Require-Ops @{"i64-to-string"=2;"bool-to-string"=1;"string-copy"=7;"xvalue-to-string"=1}
         }
         "cgen_closure" {
             if (@($module.closureCaptures).Count -ne 1 -or $module.closureCaptures[0].abiName -ne "copy-value" -or
@@ -126,7 +148,7 @@ foreach ($name in $cases) {
             }
             if (@($module.instructions | Where-Object { $_.kindName -eq "release" -and $types[$_.type].cAbi -eq 31 }).Count -lt 2 -or
                 @($module.instructions | Where-Object { $_.kindName -eq "retain" -and $types[$_.type].cAbi -eq 31 }).Count -eq 0) {
-                throw "Closure reassignment lost release-before-overwrite / borrowed-source retain"
+                throw "Closure reassignment lost transactional retirement / borrowed-source retain"
             }
         }
     }

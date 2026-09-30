@@ -90,9 +90,10 @@ void xl6CgenEmitFileRuntime(
      * XRT deliberately records the native failure details in its thread-local
      * error slot, so this adapter consumes that diagnostic before returning
      * false.  The behavior is now a verified File bridge, not a Cgen guess. */
-    xl6OutputPuts("bool xl6_xrt_file_delete_status(const char* path)\n", out);
+    xl6OutputPuts("bool xl6_xrt_file_delete_status(xlir_string path)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    bool result = xrtFileDelete(path);\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    bool result = cpath != NULL && xrtFileDelete(cpath);\n", out);
     xl6OutputPuts("    if ( !result ) { xrtClearError(); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -161,29 +162,30 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static bool xl6_file_write_text(const char* path, const char* text, size_t size, int charset, bool atomic)\n", out);
+    xl6OutputPuts("static bool xl6_file_write_text(xlir_string path, xlir_string text, size_t size, int charset, bool atomic)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    bool writeBom = false;\n", out);
     xl6OutputPuts("    int encoding = xl6_file_encoding(charset, true, &writeBom);\n", out);
     xl6OutputPuts("    XL6_XrtStrView view;\n", out);
-    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' || encoding < 0 ) { return false; }\n", out);
-    xl6OutputPuts("    if ( text == 0 ) { text = \"\"; size = 0u; } else if ( size == 0u ) { size = strlen(text); }\n", out);
-    xl6OutputPuts("    view.Data = text;\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    if ( cpath == 0 || cpath[0] == '\\0' || encoding < 0 ) { return false; }\n", out);
+    xl6OutputPuts("    if ( size > text.Size ) size = text.Size;\n", out);
+    xl6OutputPuts("    view.Data = text.Data;\n", out);
     xl6OutputPuts("    view.Size = size;\n", out);
-    xl6OutputPuts("    return atomic ? xrtFileWriteTextAtomic(path, view, encoding, XL6_XUTF_STRICT, writeBom) : xrtFileWriteText(path, view, encoding, XL6_XUTF_STRICT, writeBom);\n", out);
+    xl6OutputPuts("    return atomic ? xrtFileWriteTextAtomic(cpath, view, encoding, XL6_XUTF_STRICT, writeBom) : xrtFileWriteText(cpath, view, encoding, XL6_XUTF_STRICT, writeBom);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("int xl6_xrt_file_write_text_all(const char* path, const char* text, size_t size, int charset)\n", out);
+    xl6OutputPuts("int xl6_xrt_file_write_text_all(xlir_string path, xlir_string text, size_t size, int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_file_write_text(path, text, size, charset, false) ? 1 : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("bool xl6_xrt_file_write_text_atomic(const char* path, const char* text, size_t size, int charset)\n", out);
+    xl6OutputPuts("bool xl6_xrt_file_write_text_atomic(xlir_string path, xlir_string text, size_t size, int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_file_write_text(path, text, size, charset, true);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("int xl6_xrt_file_append_text(const char* path, const char* text, size_t size, int charset)\n", out);
+    xl6OutputPuts("int xl6_xrt_file_append_text(xlir_string path, xlir_string text, size_t size, int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    bool writeBom = false;\n", out);
     xl6OutputPuts("    int encoding = xl6_file_encoding(charset, true, &writeBom);\n", out);
@@ -191,29 +193,30 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("    unsigned char* converted = 0;\n", out);
     xl6OutputPuts("    size_t convertedSize = 0u;\n", out);
     xl6OutputPuts("    bool result;\n", out);
-    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' || encoding < 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    if ( text == 0 ) { text = \"\"; size = 0u; } else if ( size == 0u ) { size = strlen(text); }\n", out);
-    xl6OutputPuts("    view.Data = (const unsigned char*)text;\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    if ( cpath == 0 || cpath[0] == '\\0' || encoding < 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( size > text.Size ) size = text.Size;\n", out);
+    xl6OutputPuts("    view.Data = (const unsigned char*)text.Data;\n", out);
     xl6OutputPuts("    view.Size = size;\n", out);
     xl6OutputPuts("    if ( encoding != XL6_XENCODING_UTF8 || writeBom ) {\n", out);
-    xl6OutputPuts("        converted = xrtTranscode(view, XL6_XENCODING_UTF8, encoding, XL6_XUTF_STRICT, writeBom && !xrtFileExists(path), &convertedSize);\n", out);
+    xl6OutputPuts("        converted = xrtTranscode(view, XL6_XENCODING_UTF8, encoding, XL6_XUTF_STRICT, writeBom && !xrtFileExists(cpath), &convertedSize);\n", out);
     xl6OutputPuts("        if ( converted == 0 ) { return 0; }\n", out);
     xl6OutputPuts("        view.Data = converted;\n", out);
     xl6OutputPuts("        view.Size = convertedSize;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    result = xrtFileAppend(path, view);\n", out);
+    xl6OutputPuts("    result = xrtFileAppend(cpath, view);\n", out);
     xl6OutputPuts("    xrtFree(converted);\n", out);
     xl6OutputPuts("    return result ? 1 : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("void* xl6_xrt_file_read_text_strict(const char* path, int charset, void* retSize)\n", out);
+    xl6OutputPuts("void* xl6_xrt_file_read_text_strict(xlir_string path, int charset, void* retSize)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const char* safePath = path != 0 ? path : \"\";\n", out);
+    xl6OutputPuts("    const char* safePath = xlir_string_cstr(path);\n", out);
     xl6OutputPuts("    int encoding = xl6_file_encoding(charset, false, 0);\n", out);
     xl6OutputPuts("    size_t size = 0u;\n", out);
     xl6OutputPuts("    char* text;\n", out);
     xl6OutputPuts("    if ( retSize != 0 ) { *((size_t*)retSize) = 0u; }\n", out);
-    xl6OutputPuts("    if ( safePath[0] == '\\0' || !xrtFileExists(safePath) ) {\n", out);
+    xl6OutputPuts("    if ( safePath == NULL || safePath[0] == '\\0' || !xrtFileExists(safePath) ) {\n", out);
     xl6OutputPuts("        xl6_file_raise(\"FileError\", \"file does not exist\", \"file.readText\");\n", out);
     xl6OutputPuts("        return xl6_file_empty_result();\n", out);
     xl6OutputPuts("    }\n", out);
@@ -237,53 +240,61 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("    return xl6_file_require_text(text, size, \"file.readText\");\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("size_t xl6_xrt_file_get_size_path(const char* path)\n", out);
+    xl6OutputPuts("size_t xl6_xrt_file_get_size_path(xlir_string path)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XFileInfo info;\n", out);
-    xl6OutputPuts("    return path != 0 && xrtPathStat(path, true, &info) ? info.Size : 0u;\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    return cpath != 0 && xrtPathStat(cpath, true, &info) ? info.Size : 0u;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("int xl6_xrt_file_get_attributes(const char* path)\n", out);
+    xl6OutputPuts("int xl6_xrt_file_get_attributes(xlir_string path)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XFileInfo info;\n", out);
-    xl6OutputPuts("    return path != 0 && xrtPathStat(path, true, &info) ? (int)info.Attributes : -1;\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    return cpath != 0 && xrtPathStat(cpath, true, &info) ? (int)info.Attributes : -1;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("bool xl6_xrt_file_set_attributes(const char* path, int attributes)\n", out);
+    xl6OutputPuts("bool xl6_xrt_file_set_attributes(xlir_string path, int attributes)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return path != 0 && xrtPathSetAttributes(path, (unsigned int)attributes);\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    return cpath != 0 && xrtPathSetAttributes(cpath, (unsigned int)attributes);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("long long xl6_xrt_file_get_access_time(const char* path)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_XFileInfo info;\n", out);
-    xl6OutputPuts("    return path != 0 && xrtPathStat(path, true, &info) ? info.Accessed : 0LL;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("long long xl6_xrt_file_get_change_time(const char* path)\n", out);
+    xl6OutputPuts("long long xl6_xrt_file_get_access_time(xlir_string path)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XFileInfo info;\n", out);
-    xl6OutputPuts("    return path != 0 && xrtPathStat(path, true, &info) ? info.Modified : 0LL;\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    return cpath != 0 && xrtPathStat(cpath, true, &info) ? info.Accessed : 0LL;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("bool xl6_xrt_file_rename(const char* source, const char* target, bool replace)\n", out);
+    xl6OutputPuts("long long xl6_xrt_file_get_change_time(xlir_string path)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xrtPathRename(source, target, replace);\n", out);
+    xl6OutputPuts("    XL6_XFileInfo info;\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    return cpath != 0 && xrtPathStat(cpath, true, &info) ? info.Modified : 0LL;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("bool xl6_xrt_file_replace(const char* source, const char* target)\n", out);
+    xl6OutputPuts("bool xl6_xrt_file_rename(xlir_string source, xlir_string target, bool replace)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xrtPathRename(source, target, true);\n", out);
+    xl6OutputPuts("    const char* a = xlir_string_cstr(source); const char* b = xlir_string_cstr(target);\n", out);
+    xl6OutputPuts("    return a != NULL && b != NULL && xrtPathRename(a, b, replace);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("void* xl6_xrt_file_open(const char* path, XL6_CgenBool readOnly, long long charset)\n", out);
+    xl6OutputPuts("bool xl6_xrt_file_replace(xlir_string source, xlir_string target)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const char* a = xlir_string_cstr(source); const char* b = xlir_string_cstr(target);\n", out);
+    xl6OutputPuts("    return a != NULL && b != NULL && xrtPathRename(a, b, true);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_file_open(xlir_string path, XL6_CgenBool readOnly, long long charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    unsigned int flags = XL6_XFILE_READ;\n", out);
     xl6OutputPuts("    XL6_FileHandle* handle;\n", out);
     xl6OutputPuts("    XL6_XFile file;\n", out);
-    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' ) { return 0; }\n", out);
+    xl6OutputPuts("    const char* cpath = xlir_string_cstr(path);\n", out);
+    xl6OutputPuts("    if ( cpath == 0 || cpath[0] == '\\0' ) { return 0; }\n", out);
     xl6OutputPuts("    if ( !readOnly ) { flags |= XL6_XFILE_WRITE | XL6_XFILE_CREATE; }\n", out);
-    xl6OutputPuts("    file = xrtOpen(path, flags);\n", out);
+    xl6OutputPuts("    file = xrtOpen(cpath, flags);\n", out);
     xl6OutputPuts("    if ( file == 0 ) { return 0; }\n", out);
     xl6OutputPuts("    handle = (XL6_FileHandle*)xrtMalloc(sizeof(XL6_FileHandle));\n", out);
     xl6OutputPuts("    if ( handle == 0 ) { xrtClose(file); return 0; }\n", out);
@@ -365,7 +376,7 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("    return xl6_file_require_text(text, readSize, \"File.readText\");\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("long long xl6_xrt_file_write_text(void* self, const char* text, size_t size)\n", out);
+    xl6OutputPuts("long long xl6_xrt_file_write_text(void* self, xlir_string text, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_FileHandle* handle = (XL6_FileHandle*)self;\n", out);
     xl6OutputPuts("    int encoding;\n", out);
@@ -373,11 +384,11 @@ void xl6CgenEmitFileRuntime(
     xl6OutputPuts("    unsigned char* converted = 0;\n", out);
     xl6OutputPuts("    size_t convertedSize = 0u;\n", out);
     xl6OutputPuts("    if ( handle == 0 || handle->file == 0 ) { return 0LL; }\n", out);
-    xl6OutputPuts("    if ( text == 0 ) { text = \"\"; size = 0u; }\n", out);
+    xl6OutputPuts("    if ( size > text.Size ) size = text.Size;\n", out);
     xl6OutputPuts("    encoding = xl6_file_encoding(handle->charset, true, 0);\n", out);
     xl6OutputPuts("    if ( encoding < 0 ) { return 0LL; }\n", out);
-    xl6OutputPuts("    if ( encoding == XL6_XENCODING_UTF8 ) { return xrtWriteFull(handle->file, text, size, &written) ? (long long)written : 0LL; }\n", out);
-    xl6OutputPuts("    converted = xrtTranscode((XL6_XrtBytesView){ (const unsigned char*)text, size }, XL6_XENCODING_UTF8, encoding, XL6_XUTF_STRICT, false, &convertedSize);\n", out);
+    xl6OutputPuts("    if ( encoding == XL6_XENCODING_UTF8 ) { return xrtWriteFull(handle->file, text.Data, size, &written) ? (long long)written : 0LL; }\n", out);
+    xl6OutputPuts("    converted = xrtTranscode((XL6_XrtBytesView){ (const unsigned char*)text.Data, size }, XL6_XENCODING_UTF8, encoding, XL6_XUTF_STRICT, false, &convertedSize);\n", out);
     xl6OutputPuts("    if ( converted == 0 ) { return 0LL; }\n", out);
     xl6OutputPuts("    if ( !xrtWriteFull(handle->file, converted, convertedSize, &written) ) { xrtFree(converted); return 0LL; }\n", out);
     xl6OutputPuts("    xrtFree(converted);\n", out);

@@ -1,0 +1,21 @@
+func decodeTag(var tag) as var
+    assert tag["tag"] == "ptr"
+    assert tag["payload"] == "123"
+    return 42
+end
+
+assert xlon.parseWith("ptr(\"123\")", decodeTag) == 42
+assert xlon.parseWith("/*x*/ptr(\"123\")", decodeTag, {"comments": true}) == 42
+
+func failDecode(var tag) as var
+    throw ValueError "decode-failed"
+    return null
+end
+bool caught = false
+try
+    xlon.parseWith("ptr(\"123\")", failDecode)
+catch e
+    assert e.message == "decode-failed"
+    caught = true
+end
+assert caught

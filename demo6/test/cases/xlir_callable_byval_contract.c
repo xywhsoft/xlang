@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "xlir_callable_bridge_mutations.h"
+#include "xlir_internal_owned_params.h"
 static unsigned mutations;
 static void reject(const XL6_IrModule* ir)
 {
@@ -22,8 +23,11 @@ int main(int argc, char** argv)
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out; size_t i;
     XL6_IrTypeId signature = 0; unsigned bindings = 0; char path[4096];
     assert(argc == 4); xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
-    if (!xl6ParseFile("test/cases/xlir_callable_byval.xl", &parse) ||
-        !xl6StdlibExpandModule(parse.root, &parse.diags) ||
+    if (!xl6ParseFile("test/cases/xlir_callable_byval.xl", &parse)) goto failed;
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "bridgeConsume", 7) == 3);
+    assert(xlirTestMarkOwnedNamedParams(parse.root, "bridgeRaise", 7) == 3);
+    assert(xlirTestMarkOwnedGlobalFunctionTypes(parse.root, NULL) == 15);
+    if (!xl6StdlibExpandModule(parse.root, &parse.diags) ||
         !xl6SemCheckModule(parse.root, &parse.diags, "callable_byval") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||
         !xl6IrVerifyModule(&ir, &parse.diags) ||

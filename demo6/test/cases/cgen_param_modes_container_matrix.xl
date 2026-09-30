@@ -2,7 +2,7 @@ func mutateList(list<int> values)
     values[1] = 2
 end
 
-func mutateListCopy(byval list<int> values)
+func mutateListCopy(list<int> values)
     values[2] = 3
 end
 
@@ -10,7 +10,7 @@ func mutateSet(set<int> values)
     values.add(2)
 end
 
-func mutateSetCopy(byval set<int> values)
+func mutateSetCopy(set<int> values)
     values.add(3)
 end
 
@@ -18,7 +18,7 @@ func mutateDict(dict<int> values)
     values["b"] = 2
 end
 
-func mutateDictCopy(byval dict<int> values)
+func mutateDictCopy(dict<int> values)
     values["c"] = 3
 end
 

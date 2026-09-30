@@ -174,17 +174,16 @@ void* xl6_xrt_http1_head_field_value(void* pHandle, long long iIndex)
 
 
 /* 查找第一个同名字段并复制其值。 */
-void* xl6_xrt_http1_head_field(void* pHandle, const char* sName)
+void* xl6_xrt_http1_head_field(void* pHandle, xlir_string name)
 {
 	xl6_http1_head* pValue = (xl6_http1_head*)pHandle;
 	const xhttpfield* pField;
-	xstrview Name;
 
-	if ( (pValue == 0) || (sName == 0) ) {
+	if ( pValue == 0 ) {
 		return xl6_xrt_string_dup("", 0u);
 	}
-	Name = (xstrview){ sName, strlen(sName) };
-	pField = xrtHttp1Field(&pValue->Head, Name);
+	if ( name.Data == 0 ) return 0;
+	pField = xrtHttp1Field(&pValue->Head, name);
 	return pField != 0 ? xl6_http1_text(pField->Value) : xl6_xrt_string_dup("", 0u);
 }
 
@@ -252,11 +251,15 @@ static bool xl6_http1_buffer_text(xbuffer* pBuffer, const char* sText)
 
 
 /* 一次分配生成可直接与正文组成 sendVec 的请求 Header。 */
-void* xl6_xrt_http1_request_head(const char* sMethod, const char* sTarget, const char* sFields)
+void* xl6_xrt_http1_request_head(xlir_string method, xlir_string target, xlir_string fields)
 {
 	xbuffer* pOutput;
+	const char* sMethod = xlir_string_cstr(method);
+	const char* sTarget = xlir_string_cstr(target);
+	const char* sFields = xlir_string_cstr(fields);
 
-	if ( !xl6_http1_request_line_valid(sMethod, sTarget) || !xl6_http1_raw_fields_valid(sFields) ) {
+	if ( sMethod == 0 || sTarget == 0 || sFields == 0 ||
+	     !xl6_http1_request_line_valid(sMethod, sTarget) || !xl6_http1_raw_fields_valid(sFields) ) {
 		return 0;
 	}
 	pOutput = xrtBufferCreate();
@@ -278,13 +281,15 @@ void* xl6_xrt_http1_request_head(const char* sMethod, const char* sTarget, const
 
 
 /* 一次分配生成可直接与正文组成 sendVec 的响应 Header。 */
-void* xl6_xrt_http1_response_head(int64_t iStatus, const char* sReason, const char* sFields)
+void* xl6_xrt_http1_response_head(int64_t iStatus, xlir_string reason, xlir_string fields)
 {
 	xbuffer* pOutput;
 	char sCode[16];
 	const unsigned char* p;
+	const char* sReason = xlir_string_cstr(reason);
+	const char* sFields = xlir_string_cstr(fields);
 
-	if ( (iStatus < 100) || (iStatus > 999) || !xl6_http1_raw_fields_valid(sFields) ) {
+	if ( sReason == 0 || sFields == 0 || (iStatus < 100) || (iStatus > 999) || !xl6_http1_raw_fields_valid(sFields) ) {
 		return 0;
 	}
 	for ( p = (const unsigned char*)(sReason != 0 ? sReason : ""); *p != 0u; ++p ) {
@@ -313,19 +318,17 @@ void* xl6_xrt_http1_response_head(int64_t iStatus, const char* sReason, const ch
 
 
 /* 生成 chunk-size 行，正文可继续以 sendVec 零拷贝发送。 */
-void* xl6_xrt_http1_chunk_head(uint64_t iSize, const char* sExtensions)
+void* xl6_xrt_http1_chunk_head(uint64_t iSize, xlir_string extensions)
 {
-	xstrview Extensions;
 	xbuffer* pOutput;
 	size_t iBytes = 0u;
 
-	Extensions = (xstrview){ sExtensions != 0 ? sExtensions : "", sExtensions != 0 ? strlen(sExtensions) : 0u };
-	if ( !xrtHttp1ChunkLineWrite(iSize, Extensions, 0, 0u, &iBytes) ) {
+	if ( extensions.Data == 0 || !xrtHttp1ChunkLineWrite(iSize, extensions, 0, 0u, &iBytes) ) {
 		return 0;
 	}
 	pOutput = xrtBufferCreate();
 	if ( (pOutput == 0) || !xrtBufferResize(pOutput, iBytes) ||
-		 !xrtHttp1ChunkLineWrite(iSize, Extensions, pOutput->Data, pOutput->Capacity, &pOutput->Size) ) {
+	     !xrtHttp1ChunkLineWrite(iSize, extensions, pOutput->Data, pOutput->Capacity, &pOutput->Size) ) {
 		xrtBufferDestroy(pOutput);
 		return 0;
 	}
@@ -356,11 +359,12 @@ void* xl6_xrt_http1_chunk(void* pData, size_t iSize)
 
 
 /* 生成 last-chunk 与可选原始 trailer 字段块。 */
-void* xl6_xrt_http1_chunk_end(const char* sTrailers)
+void* xl6_xrt_http1_chunk_end(xlir_string trailers)
 {
 	xbuffer* pOutput;
+	const char* sTrailers = xlir_string_cstr(trailers);
 
-	if ( !xl6_http1_raw_fields_valid(sTrailers) ) {
+	if ( sTrailers == 0 || !xl6_http1_raw_fields_valid(sTrailers) ) {
 		return 0;
 	}
 	pOutput = xrtBufferCreate();
@@ -375,15 +379,16 @@ void* xl6_xrt_http1_chunk_end(const char* sTrailers)
 
 
 /* 从已解析 Header 建立无固定接收缓冲的正文状态机。 */
-void* xl6_xrt_http1_body_create(void* pHeadHandle, const char* sRequestMethod, long long iMaxTrailers, long long iMaxBody)
+void* xl6_xrt_http1_body_create(void* pHeadHandle, xlir_string requestMethod, long long iMaxTrailers, long long iMaxBody)
 {
 	xl6_http1_head* pHead = (xl6_http1_head*)pHeadHandle;
 	xl6_http1_body* pValue;
 	xhttp1bodylimits Limits;
 	size_t iTrailers;
 	bool bPlan;
+	const char* sRequestMethod = xlir_string_cstr(requestMethod);
 
-	if ( (pHead == 0) || (pHead->Status != XHTTP1_READY) ) {
+	if ( (pHead == 0) || (pHead->Status != XHTTP1_READY) || sRequestMethod == 0 ) {
 		return 0;
 	}
 	iTrailers = iMaxTrailers < 0 ? 32u : (size_t)iMaxTrailers;

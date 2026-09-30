@@ -118,8 +118,8 @@ expect(hkdf256Bytes.len(), 32)
 expect(hkdf384Bytes.len(), 48)
 assert hkdf256Bytes == crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 32), "binary hkdf should be stable"
 expect(crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 0).len(), 0)
-expect(crypto.randomBytes(17).len(), 17)
-expect(crypto.randomBytes(0).len(), 0)
+expect(crypto.randomBytes(17).length, 17)
+expect(crypto.randomBytes(0).length, 0)
 
 Sha1 sha1Stream = crypto.sha1Stream()
 assert sha1Stream.update("a"), "sha1 stream update failed"

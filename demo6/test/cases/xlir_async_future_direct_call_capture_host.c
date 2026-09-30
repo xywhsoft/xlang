@@ -5,7 +5,7 @@
 
 typedef struct xpromise xpromise;
 
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
+extern xpromise* xrtPromiseCreate(xfuture**, xcancel*);
 extern bool xrtPromiseResolve(xpromise*, void*);
 extern bool xrtPromiseReject(xpromise*, const struct xerror*);
 extern void xrtPromiseDestroy(xpromise*);

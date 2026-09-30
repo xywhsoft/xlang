@@ -1006,6 +1006,15 @@ enum { XL6_AGGREGATE_ALL, XL6_AGGREGATE_RACE, XL6_AGGREGATE_ANY };
 static xfuture* __xl6FutureAggregateStart(unsigned, xfuture* const*, size_t,
     xl6_future_payload_box_proc, const XL6_CodeOwner*, bool);
 
+static const char* __xl6FutureAggregateNullSourceError(unsigned mode)
+{
+    return mode == XL6_AGGREGATE_ALL
+        ? "task.all source future is null"
+        : mode == XL6_AGGREGATE_RACE
+            ? "task.race source future is null"
+            : "task.whenAny source future is null";
+}
+
 static void __xl6FutureSetAggregateError(const char* message)
 {
     xerrordesc desc = {XERR_INTERNAL, 1, 0, "xlang.async.aggregate",
@@ -1200,6 +1209,13 @@ static xfuture* __xl6FutureAggregateStart(unsigned mode, xfuture* const* futures
         (mode != XL6_AGGREGATE_ALL && box) || (!box && owner) || (!certified && owner)) {
         __xl6FutureSetAggregateError("task aggregate requires a valid non-empty Future list and mapper ABI"); return NULL;
     }
+    for (size_t i = 0; i < count; ++i) {
+        if (futures[i] == NULL) {
+            __xl6FutureSetAggregateError(
+                __xl6FutureAggregateNullSourceError(mode));
+            return NULL;
+        }
+    }
     if (box && certified && xl6CodeLeaseAcquireScoped(owner, &lease) != XL6_CODE_LEASE_ACQUIRED) {
         __xl6FutureSetAggregateError("task.all mapper code admission failed"); return NULL;
     }
@@ -1296,14 +1312,12 @@ static xfuture* __xl6FutureAggregateArray(unsigned mode, const xvalue* array, XL
     if (!futures) { __xl6FutureSetAggregateError("task aggregate Future array allocation failed"); return NULL; }
     for (size_t i = 0; i < count; ++i) {
         const xvalue* item = xrtValueArrayGet(array, i);
-        futures[i] = item ? xrtValueGetFuture(item) : NULL;
+        futures[i] = item != NULL && xrtValueType(item) != XVALUE_NULL
+            ? xrtValueGetFuture(item) : NULL;
         if (!futures[i]) {
             xrtFree(futures);
-            __xl6FutureSetAggregateError(mode == XL6_AGGREGATE_ALL
-                ? "task.all source future is null"
-                : mode == XL6_AGGREGATE_RACE
-                    ? "task.race source future is null"
-                    : "task.whenAny source future is null");
+            __xl6FutureSetAggregateError(
+                __xl6FutureAggregateNullSourceError(mode));
             return NULL;
         }
     }

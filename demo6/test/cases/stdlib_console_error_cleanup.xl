@@ -1,0 +1,7 @@
+func main(...) as int
+    auto session = console.openSession()
+    session.showCursor(false)
+    session.flush()
+    throw ValueError "planned terminal unwind"
+    return 0
+end

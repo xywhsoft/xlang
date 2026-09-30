@@ -8,6 +8,7 @@ if errorlevel 1 exit /b 1
 
 if not exist build mkdir build
 if not exist build\tmp mkdir build\tmp
+for %%I in ("%XL6_XRT_OBJ%") do if not exist "%%~dpI" mkdir "%%~dpI"
 
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1

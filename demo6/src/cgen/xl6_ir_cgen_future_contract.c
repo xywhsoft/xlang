@@ -116,6 +116,8 @@ static int xl6IrCgenAsyncPayloadAbiMatches(
                payload->name != NULL && strcmp(payload->name, "null") == 0;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
         return payload->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+        return payload->cAbi == XL6_IR_C_ABI_CHAR_U32;
     case XL6_IR_ASYNC_RESULT_COPY_I64:
         return payload->cAbi == XL6_IR_C_ABI_I64;
     case XL6_IR_ASYNC_RESULT_COPY_U64:
@@ -130,7 +132,8 @@ static int xl6IrCgenAsyncPayloadAbiMatches(
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
         return payload->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
-        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+               payload->cAbi == XL6_IR_C_ABI_MANAGED_BYTES;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
         return payload->cAbi == XL6_IR_C_ABI_CLOSURE_PTR;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
@@ -170,7 +173,10 @@ static int xl6IrCgenBlockingAwaitAbi(
          futureType->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
          futureType->paramCount != 1 ) return 0;
     if ( instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID )
-        return instruction->type == XL6_IR_TYPE_INVALID;
+        return instruction->type == XL6_IR_TYPE_INVALID &&
+               xl6IrCgenAsyncPayloadAbiMatches(
+                   xl6IrTypeGet(&module->types, futureType->params[0]),
+                   XL6_IR_ASYNC_RESULT_VOID);
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     resultMatches = instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TAGGED
         ? resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE
@@ -192,7 +198,7 @@ static int xl6IrCgenEmitAwaitPayload(
         abi == XL6_IR_ASYNC_RESULT_RETAINED_ERROR ? "xrtErrorRef" :
         abi == XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ? "xrtFutureRef" :
         abi == XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ? "xlir_generator_retain" :
-        abi == XL6_IR_ASYNC_RESULT_OWNED_STRING ? "xrtStrDup" : NULL;
+        abi == XL6_IR_ASYNC_RESULT_OWNED_STRING ? "xlir_string_copy" : NULL;
     unsigned int result = (unsigned int)instruction->result;
     if (instruction->awaitOutcomeAbi !=
         XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR) return 0;
@@ -202,7 +208,11 @@ static int xl6IrCgenEmitAwaitPayload(
         "      %s const* payload = (%s const*)(%s);\n"
         "      if (payload == NULL) { await_ok_%u = false; xrtSetErrorKind(XERR_STATE); }\n"
         "      else {\n", result, type, type, payload, result);
-    if (retain != NULL)
+    if (abi == XL6_IR_ASYNC_RESULT_OWNED_STRING)
+        xl6OutputPrintf(out, "        v%u = xlir_string_copy(*payload);\n"
+            "        if (payload->Data != NULL && v%u.Data == NULL) await_ok_%u = false;\n",
+            result, result, result);
+    else if (retain != NULL)
         xl6OutputPrintf(out, "        v%u = *payload != NULL ? %s(*payload) : NULL;\n"
             "        if (*payload != NULL && v%u == NULL) await_ok_%u = false;\n",
             result, retain, result, result);
@@ -236,6 +246,7 @@ static int xl6IrCgenFuturePayloadBoxerAbiSupported(
 {
     switch ( abi ) {
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
+    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
     case XL6_IR_ASYNC_RESULT_COPY_U64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:

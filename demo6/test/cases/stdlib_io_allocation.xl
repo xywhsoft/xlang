@@ -1,0 +1,31 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+int failed = 0
+int succeeded = 0
+for operation in range(3)
+    for point in range(64)
+        bool caught = false
+        assert failAfter(uint64(point))
+        try
+            if operation == 0 then
+                auto reader = io.fromBytes(b"abc\x00d")
+                reader.readAll()
+            elseif operation == 1 then
+                auto writer = io.bufferWriter()
+                writer.writeAll("abc\x00你")
+                writer.toBytes()
+            else
+                auto lines = io.lines(io.fromBytes(b"a\r\n\x00b\n"))
+                auto found, value, ending = lines.next()
+            end
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered
+        if caught then failed += 1 else succeeded += 1 end
+    end
+end
+assert failed > 0 and succeeded > 0

@@ -1,0 +1,4 @@
+func main(...) as int
+    auto invalid = list<int>[1, 2]
+    return 0
+end

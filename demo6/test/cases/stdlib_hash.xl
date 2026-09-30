@@ -22,3 +22,83 @@ assert h64s1 == h64s2, "hash.u64WithSeed should be stable"
 assert h64s1 != h64s3, "hash.u64WithSeed should depend on seed"
 assert hash.u32("") == hash.u32(""), "empty u32 hash should be stable"
 assert hash.u64("") == hash.u64(""), "empty u64 hash should be stable"
+assert hash.u32("a\0b") != hash.u32("a"), "u32 hash must include bytes after NUL"
+assert hash.u64("a\0b") != hash.u64("a"), "u64 hash must include bytes after NUL"
+
+// Fixed vectors come from the XRT C ABI, not from another xlang hash call.
+assert hash.u32("") == uint32(162393156)
+assert hash.u32(b"") == uint32(162393156)
+assert hash.u32("abc") == uint32(764391741)
+assert hash.u32WithSeed("abc", uint32(123)) == uint32(4168298347)
+assert hash.u64("") == uint64(0x0338DC4BE2CECDAE)
+assert hash.u64(b"") == uint64(0x0338DC4BE2CECDAE)
+assert hash.u64("abc") == uint64(0xCB475BEAFA9C0DA2)
+assert hash.u64WithSeed("abc", uint64(123)) == uint64(0xED9F544E85852075)
+
+string text = "A\0你"
+bytes binary = b"A\x00你"
+Buffer buffer = Buffer()
+assert buffer.appendByte(65)
+assert buffer.appendByte(0)
+assert buffer.appendByte(228)
+assert buffer.appendByte(189)
+assert buffer.appendByte(160)
+assert binary.length == 5 and buffer.len() == 5
+assert hash.u32(text) == uint32(3373797930)
+assert hash.u32(binary) == hash.u32(text)
+assert hash.u32Buffer(buffer) == hash.u32(text)
+assert hash.u64(text) == uint64(0x84513D2340FBEFFB)
+assert hash.u64(binary) == hash.u64(text)
+assert hash.u64Buffer(buffer) == hash.u64(text)
+assert hash.u32WithSeed(binary, uint32(123)) == uint32(3823779539)
+assert hash.u32BufferWithSeed(buffer, uint32(123)) == hash.u32WithSeed(text, uint32(123))
+assert hash.u64WithSeed(binary, uint64(123)) == uint64(0x83E65F8AD40A7FDA)
+assert hash.u64BufferWithSeed(buffer, uint64(123)) == hash.u64WithSeed(text, uint64(123))
+
+// Omitted size means the entire value; oversized limits clamp without reading past it.
+assert hash.u32(text, 0) == hash.u32("")
+assert hash.u32(binary, 0) == hash.u32("")
+assert hash.u32Buffer(buffer, 0) == hash.u32("")
+assert hash.u32(text, 2) == hash.u32("A\0")
+assert hash.u32(binary, 2) == hash.u32("A\0")
+assert hash.u32Buffer(buffer, 2) == hash.u32("A\0")
+assert hash.u64(text, 100) == hash.u64(text)
+assert hash.u64(binary, 100) == hash.u64(text)
+assert hash.u64Buffer(buffer, 100) == hash.u64(text)
+assert hash.u32(binary, 9223372036854775807) == hash.u32(text)
+assert hash.u32WithSeed(binary, uint32(123), 2) == hash.u32WithSeed("A\0", uint32(123))
+assert hash.u64BufferWithSeed(buffer, uint64(123), 100) == hash.u64WithSeed(text, uint64(123))
+
+bool badStringSize = false
+try
+    hash.u32(text, -2)
+catch e
+    badStringSize = e.kind == "RangeError"
+end
+assert badStringSize
+bool badBytesSize = false
+try
+    hash.u32(binary, -2)
+catch e
+    badBytesSize = e.kind == "RangeError"
+end
+assert badBytesSize
+bool badBufferSize = false
+try
+    hash.u32Buffer(buffer, -2)
+catch e
+    badBufferSize = e.kind == "RangeError"
+end
+assert badBufferSize
+
+Buffer large = Buffer()
+int index = 0
+while index < 4096
+    assert large.appendByte(0)
+    index = index + 1
+end
+assert large.len() == 4096
+assert hash.u32Buffer(large, 4096) == hash.u32Buffer(large)
+assert hash.u64Buffer(large, 8192) == hash.u64Buffer(large)
+assert hash.u64Buffer(large, 9223372036854775807) == hash.u64Buffer(large)
+assert hash.u32Buffer(large, 1024) != hash.u32Buffer(large)

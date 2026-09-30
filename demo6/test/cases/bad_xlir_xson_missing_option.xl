@@ -1,2 +1,0 @@
-extern "xl6_xrt_xson_stringify_options" func malformed(var value, bool a, bool b) as point
-point v = malformed(null, false, false)

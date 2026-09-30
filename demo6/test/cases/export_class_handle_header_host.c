@@ -1,51 +1,44 @@
+#include "../../release/include/xruntime_decl.h"
+#include "../../build/test/export_class_handle.h"
+
 int main(void)
 {
-    XL_InitOptions options = xlInitOptions(0, 0);
     xvalue* value;
     xvalue* copied;
     xvalue* output;
     int64_t number;
     int result;
 
-    if ( !xlInit(&options) ) {
-        return 1;
-    }
     value = xl6_class_make(41);
-    if ( xlValueIsNull(value) ) {
-        xlUnit();
+    if ( value == NULL ) {
         return 2;
     }
-    copied = xlValueClone(value, false);
+    copied = xrtValueClone(value);
     if ( copied == NULL || copied == value || xl6_class_read(copied) != 42 ) {
-        xlValueRelease(copied);
-        xlValueRelease(value);
-        xlUnit();
+        xrtValueRelease(copied);
+        xrtValueRelease(value);
         return 5;
     }
-    xlValueRelease(copied);
-    copied = xlValueRetain(value);
+    xrtValueRelease(copied);
+    copied = xrtValueRetain(value);
     if ( xl6_class_read(copied) != 42 ) {
-        xlValueRelease(copied);
-        xlValueRelease(value);
-        xlUnit();
+        xrtValueRelease(copied);
+        xrtValueRelease(value);
         return 6;
     }
-    xlValueRelease(copied);
+    xrtValueRelease(copied);
     result = (int)xl6_class_read(value);
     number = 1;
-    xl6_mode_increment(&number);
-    output = NULL;
-    xl6_mode_make(&output);
+    number = xl6_mode_increment(number);
+    output = xl6_mode_make();
     if ( number != 2 || output == NULL || xl6_class_read(output) != 10 ) {
-        xlValueRelease(value);
+        xrtValueRelease(value);
         if ( output != NULL ) {
-            xlValueRelease(output);
+            xrtValueRelease(output);
         }
-        xlUnit();
         return 3;
     }
-    xlValueRelease(value);
-    xlValueRelease(output);
-    xlUnit();
+    xrtValueRelease(value);
+    xrtValueRelease(output);
     return result == 42 ? 0 : 4;
 }

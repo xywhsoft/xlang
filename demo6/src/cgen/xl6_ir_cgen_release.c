@@ -176,6 +176,7 @@ static int xl6IrCgenEmitProductInstruction(
     const XL6_IrInstruction* instruction, XL6_DiagList* diags)
 {
     size_t i;
+    const XL6_IrType* element = xl6IrTypeGet(&module->types, instruction->type);
     if (!xl6IrCgenProductInstructionAbi(module, instruction))
         return xl6IrCgenDiag(diags, module, instruction->origin,
             "XLIR product instruction has no exact structural/ownership ABI");
@@ -193,7 +194,10 @@ static int xl6IrCgenEmitProductInstruction(
             return xl6IrCgenEmitDetachedRelease(out, xl6IrCgenType(module, instruction->type),
                 xl6IrCgenStorageReleaseFunction(xl6IrTypeGet(&module->types, instruction->type)), place, NULL);
         xl6OutputPrintf(out, "    v%u = %s;\n", (unsigned)instruction->result, place);
-        if (instruction->kind == XL6_IR_INSTR_PRODUCT_TAKE) xl6OutputPrintf(out, "    %s = NULL;\n", place);
+        if (instruction->kind == XL6_IR_INSTR_PRODUCT_TAKE)
+            xl6OutputPrintf(out, "    %s = %s;\n", place,
+                element->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                    ? "(xlir_string){0}" : "NULL");
     }
     return !xl6OutputHasFailed(out);
 }
@@ -219,7 +223,7 @@ static int xl6IrCgenEmitSymbolRelease(
 static const char* xl6IrCgenFrameDestroyFunction(XL6_IrContinuationFrameDestroyAbi abi)
 {
     switch (abi) {
-    case XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING: return "xrtFree";
+    case XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING: return "xlir_string_drop";
     case XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE: return "xrtValueRelease";
     case XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE: return "xrtFutureDestroy";
     case XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE: return "xlir_closure_release";

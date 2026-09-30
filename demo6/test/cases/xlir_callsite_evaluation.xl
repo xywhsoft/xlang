@@ -30,9 +30,9 @@ end
 func evaluationCombine(EvaluationItem first, EvaluationItem second) as int
     return first.number * 10 + second.number
 end
-func evaluationModes(byref int first, out int second)
+func evaluationModes(int first) as (int, int)
     first += 1
-    second = first + 1
+    return first, first + 1
 end
 func evaluationDefaults(int first = evaluationDigit(1), int second = evaluationDigit(2)) as int
     return first * 10 + second
@@ -48,13 +48,13 @@ class EvaluationBox
 end
 protocol EvaluationProtocol
     func combine(EvaluationItem first, EvaluationItem second) as int
-    func modes(byref int first, out int second)
+    func modes(int first) as (int, int)
     get amount() as int
     let amount(int value)
 end
 class EvaluationReceiver
-    func modes(byref int first, out int second)
-        evaluationModes(byref first, out second)
+    func modes(int first) as (int, int)
+        return evaluationModes(first)
     end
     func combine(EvaluationItem first, EvaluationItem second) as int
         return first.number * 10 + second.number
@@ -67,8 +67,8 @@ class EvaluationReceiver
     end
 end
 class EvaluationRaisingReceiver
-    func modes(byref int first, out int second)
-        evaluationModes(byref first, out second)
+    func modes(int first) as (int, int)
+        return evaluationModes(first)
     end
     func combine(EvaluationItem first, EvaluationItem second) as int
         evaluationRaise(90)
@@ -121,10 +121,10 @@ end
 export "callsite_evaluation_check" func evaluationCheck() as int
     int modeFirst = 0
     int modeSecond = 0
-    evaluationModes(byref modeFirst, out modeSecond)
+    modeFirst, modeSecond = evaluationModes(modeFirst)
     assert modeFirst == 1 and modeSecond == 2
     EvaluationProtocol modeReceiver = EvaluationReceiver()
-    modeReceiver.modes(byref modeFirst, out modeSecond)
+    modeFirst, modeSecond = modeReceiver.modes(modeFirst)
     assert modeFirst == 2 and modeSecond == 3
     evaluationTrace = 0
     evaluationDrops = 0

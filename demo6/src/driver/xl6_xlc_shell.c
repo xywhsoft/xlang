@@ -32,7 +32,7 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--backend xlir] [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--backend xlir] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend xlir] [--res file.json|file.xson] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend xlir] [--res file.json|file.xlon] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
 #ifdef _WIN32
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 #endif
@@ -227,7 +227,8 @@ static int xlcShellBuildTmpDir(char* out, size_t outSize)
          !xlcShellJoinDirPath(out, outSize, exeDir, "tmp") ) {
         return 0;
     }
-    return xlcShellMakeDir(out);
+    /* 计算默认路径不创建目录；只有显式保存或导出文件时才落盘。 */
+    return 1;
 }
 
 static int xlcShellDefaultTempDir(char* out, size_t outSize)
@@ -421,7 +422,7 @@ static int xlcShellIsProjectPath(const char* path)
 static int xlcShellIsResourceConfigPath(const char* path)
 {
     return xlcShellHasExtensionNoCase(path, ".json") ||
-           xlcShellHasExtensionNoCase(path, ".xson");
+           xlcShellHasExtensionNoCase(path, ".xlon");
 }
 
 typedef struct XLC_ShellJson {
@@ -826,7 +827,7 @@ static int xlcShellProjectValidate(const char* path, const XLC_ShellProject* pro
     }
     for ( i = 0; i < project->resources.count; ++i ) {
         if ( !xlcShellIsResourceConfigPath(project->resources.items[i]) ) {
-            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp resources only accepts json/xson resource configs: %s\n", project->resources.items[i]);
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp resources only accepts json/xlon resource configs: %s\n", project->resources.items[i]);
             return 0;
         }
     }
@@ -1301,7 +1302,7 @@ static int xlcShellDoCheck(XLC_Context* ctx, int argc, char** argv)
     if ( xlcShellHasJson(argc, argv) ) {
         return xlcCheck(ctx, NULL, 1);
     }
-    if ( !xlcShellBuildTmpDir(tmpDir, sizeof(tmpDir)) ) {
+    if ( !xlcShellBuildTmpDir(tmpDir, sizeof(tmpDir)) || !xlcShellMakeDir(tmpDir) ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create temporary directory\n");
         return 0;
     }

@@ -1,0 +1,5 @@
+extern "foreign_change" func foreignChange(byref int value)
+
+auto callback = foreignChange
+int value = 1
+callback(byref value)

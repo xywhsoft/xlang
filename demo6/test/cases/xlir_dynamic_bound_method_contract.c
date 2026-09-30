@@ -19,7 +19,7 @@ static void reject(const XL6_IrModule* ir)
 int main(int argc, char** argv)
 {
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
-    size_t i, reads = 0, bindings = 0, inherited = 0, unsupported = 0;
+    size_t i, reads = 0, bindings = 0, inherited = 0, unsupported = 0, valueMethod = 0;
     XL6_SymbolId pending = 0, faultCallable = 0, faultReceiver = 0;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile(argc == 3 ? argv[1] : "test/cases/xlir_dynamic_bound_method.xl", &parse));
@@ -64,6 +64,7 @@ int main(int argc, char** argv)
             continue;
         }
         assert(target && row->adapterAbi == XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED);
+        if (!strcmp(row->name, "mutate")) ++valueMethod;
         if (target->parameterTypes[0] != row->ownerType) ++inherited;
         /* Method bodies are roots through member binding, not direct CALLs. */
         assert(target->reachability != XL6_IR_REACHABILITY_UNREACHABLE);
@@ -104,7 +105,7 @@ int main(int argc, char** argv)
         }
         assert(mutableLaunchOnly == 1);
     }
-    assert(reads >= 7 && bindings >= 7 && inherited >= 1 && unsupported == 1 && mutations >= 80);
+    assert(reads >= 7 && bindings >= 7 && inherited >= 1 && unsupported == 0 && valueMethod == 1 && mutations >= 80);
     assert(xl6IrVerifyModule(&ir, &parse.diags));
     assert(argc == 4 && xl6OutputOpenFile(&out, argv[1]));
     if (!xl6IrCgenEmitC(&out, &ir, &parse.diags)) goto failed;

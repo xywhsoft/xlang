@@ -11,7 +11,7 @@ end
 
 export func tx_string() as string
     failNative()
-    return "owned"
+    return "ow\0ned"
 end
 
 export func tx_value() as var
@@ -21,7 +21,7 @@ end
 
 export func tx_product() as (string, int)
     failNative()
-    return "owned", 42
+    return "ow\0ned", 42
 end
 
 export "tx_pure" func pure(c_int value) as c_int

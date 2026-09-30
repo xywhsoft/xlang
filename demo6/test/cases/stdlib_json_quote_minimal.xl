@@ -1,0 +1,1 @@
+assert json.quote("A\nB") == "\"A\\nB\""

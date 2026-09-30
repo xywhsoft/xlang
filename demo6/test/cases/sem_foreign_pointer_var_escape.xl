@@ -1,0 +1,3 @@
+extern "foreign_change" func foreignChange(byref int value)
+
+var callback = foreignChange

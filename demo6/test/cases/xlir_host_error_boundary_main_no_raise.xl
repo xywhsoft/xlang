@@ -1,3 +1,5 @@
 func main(...) as int
-    return int(xson.valid("{bad}"))
+    // Keep this fixture physically no-raise: passing a string by value may
+    // allocate, so even a no-raise native callee would not test this boundary.
+    return 0
 end

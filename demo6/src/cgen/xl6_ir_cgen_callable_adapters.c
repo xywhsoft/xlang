@@ -25,9 +25,10 @@ static int xl6IrCgenEmitCallableBridgeCleanup(
         destroy = xl6IrCgenCallbackDestroy(abi);
         if (!destroy || !xl6IrCgenType(module, slot->type)) return 0;
         xl6OutputPrintf(out,
-            "      { %s value = a%lu; a%lu = NULL; %s(value); }\n"
+            "      { %s value = a%lu; a%lu = (%s){0}; %s(value); }\n"
             "      if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&parameter_cleanup);\n",
-            xl6IrCgenType(module, slot->type), (unsigned long)(i - 1), (unsigned long)(i - 1), destroy);
+            xl6IrCgenType(module, slot->type), (unsigned long)(i - 1), (unsigned long)(i - 1),
+            xl6IrCgenType(module, slot->type), destroy);
     }
     xl6OutputPrintf(out,
         "      parameter_outcome = xl6ErrorScopeEnd(&parameter_cleanup);\n"
@@ -118,7 +119,8 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
         "    xlir_closure* closure = (xlir_closure*)environment; bool invoked = false; xrtcallresult bridge_results = {0};",
         (unsigned int)type);
     if ( hasResult ) {
-        if ( result->cAbi == XL6_IR_C_ABI_PRODUCT )
+        if ( result->cAbi == XL6_IR_C_ABI_PRODUCT ||
+             result->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out, " %s value = {0}; xvalue* boxed = NULL;",
                 resultType);
         else
@@ -133,11 +135,11 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                                  "XLIR C emitter runtime callable parameter is unresolved");
         if ( i < fixedCount )
             xl6OutputPrintf(out,
-                "    xvalue* f%lu = NULL; bool bound%lu = false; %s a%lu = (%s)0;\n",
+                "    xvalue* f%lu = NULL; bool bound%lu = false; %s a%lu = (%s){0};\n",
                 (unsigned long)i, (unsigned long)i, parameterType,
                 (unsigned long)i, parameterType);
         else
-            xl6OutputPrintf(out, "    %s a%lu = (%s)0;\n",
+            xl6OutputPrintf(out, "    %s a%lu = (%s){0};\n",
                 parameterType, (unsigned long)i, parameterType);
     }
     if ( dictVariadic )
@@ -253,6 +255,17 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 xl6OutputPrintf(out,
                     "    a%lu = xrtValueRetain(a%lu); if (a%lu == NULL) goto argument_fail;\n",
                     (unsigned long)i, (unsigned long)i, (unsigned long)i);
+        } else if ( slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW ||
+                    slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN ) {
+            xl6OutputPrintf(out,
+                "    if (bound%lu && xrtValueType(f%lu) == XVALUE_BYTES) a%lu = f%lu;\n"
+                "    else { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable bytes argument does not match its verified slot ABI\")); goto argument_fail; }\n",
+                (unsigned long)i, (unsigned long)i,
+                (unsigned long)i, (unsigned long)i);
+            if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN)
+                xl6OutputPrintf(out,
+                    "    a%lu = xrtValueRetain(a%lu); if (a%lu == NULL) goto argument_fail;\n",
+                    (unsigned long)i, (unsigned long)i, (unsigned long)i);
         } else if ( slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_ERROR_REF ) {
             xl6OutputPrintf(out,
                 "    if (bound%lu) { if (!xlir_xvalue_cast_checked(f%lu, 0x%016llXULL, %d, &a%lu)) goto argument_fail; }\n"
@@ -272,17 +285,19 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 (unsigned long)i);
         } else if ( slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_STRING_COPY ) {
             xl6OutputPrintf(out,
-                "    if (bound%lu) { xlir_string_view text = {0}; if (!xrtValueGetString(f%lu, &text) || (a%lu = xrtStrDupN(text.Data, text.Size)) == NULL) goto argument_fail; }\n"
-                "    else if (closure->call_parameter_count == %lu && closure->call_parameter_defaults != NULL && closure->call_parameter_defaults[%lu].abi == %d && (a%lu = xrtStrDup(closure->call_parameter_defaults[%lu].string_value)) != NULL) { }\n"
+                "    if (bound%lu) { xlir_string_view text = {0}; if (!xrtValueGetString(f%lu, &text) || (a%lu = xlir_string_from_utf8(text.Data, text.Size)).Data == NULL) goto argument_fail; }\n"
+                "    else if (closure->call_parameter_count == %lu && closure->call_parameter_defaults != NULL && closure->call_parameter_defaults[%lu].abi == %d && (a%lu = xlir_string_from_utf8(closure->call_parameter_defaults[%lu].string_value, closure->call_parameter_defaults[%lu].string_size)).Data != NULL) { }\n"
                 "    else { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable argument binding is incomplete\")); goto argument_fail; }\n",
                 (unsigned long)i, (unsigned long)i, (unsigned long)i,
                 (unsigned long)signature->paramCount, (unsigned long)i,
                 (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
-                (unsigned long)i, (unsigned long)i);
+                (unsigned long)i, (unsigned long)i, (unsigned long)i);
         } else {
             const char* getter = parameter != NULL &&
                     slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BOOL
                 ? "xrtValueGetBool" : parameter != NULL &&
+                    slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CHAR
+                    ? "xrtValueGetChar" : parameter != NULL &&
                     slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_I64
                     ? "xrtValueGetInt" : parameter != NULL &&
                         slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_U64
@@ -290,6 +305,8 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
             XL6_IrDynamicMethodDefaultAbi defaultAbi = parameter != NULL &&
                     slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BOOL
                 ? XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL
+                : parameter != NULL && slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CHAR
+                    ? XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
                 : parameter != NULL && slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_I64
                     ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64
                     : parameter != NULL &&
@@ -299,12 +316,14 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
             const char* field = defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL
                 ? "boolean_value" : defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64
                     ? "i64_value" : defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64
-                        ? "u64_value" : "f64_value";
+                        ? "u64_value" : defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
+                            ? "char_value" : "f64_value";
             if ( parameter == NULL ||
                  (slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_BOOL &&
                   slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_I64 &&
                   slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_U64 &&
-                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_F64) )
+                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_F64 &&
+                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_CHAR) )
                 return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                     "XLIR C emitter runtime callable parameter has no closed scalar ABI");
             xl6OutputPrintf(out,
@@ -332,9 +351,9 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
         const XL6_IrCallableBridgeParameter* slot =
             &module->callableBridgeParameters[bridge->firstParameter + i];
         if (slot->invokeAbi == XL6_IR_CALLBACK_INVOKE_TAKE)
-            xl6OutputPrintf(out, "    %s invoked_a%lu = a%lu; a%lu = NULL;\n",
+            xl6OutputPrintf(out, "    %s invoked_a%lu = a%lu; a%lu = (%s){0};\n",
                 xl6IrCgenType(module, slot->type), (unsigned long)i,
-                (unsigned long)i, (unsigned long)i);
+                (unsigned long)i, (unsigned long)i, xl6IrCgenType(module, slot->type));
     }
     if ( hasResult )
         xl6OutputPrintf(out, "    invoked = ((bool (*)(void*, %s*", resultType);
@@ -426,7 +445,8 @@ static int xl6IrCgenEmitRuntimeCallableClosureEntry(
         "    xrtcallframe callFrame = {0}; xrtcallresult callResults = {0}; bool success = false;",
         out);
     if ( hasResult ) {
-        if ( result->cAbi == XL6_IR_C_ABI_PRODUCT )
+        if ( result->cAbi == XL6_IR_C_ABI_PRODUCT ||
+             result->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out, " xvalue* resultValue; %s value = {0};",
                 resultType);
         else

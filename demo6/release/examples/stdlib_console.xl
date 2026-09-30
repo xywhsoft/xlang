@@ -1,0 +1,33 @@
+// CLI output adapts to redirection. Terminal sessions are optional primitives,
+// not a TUI framework; always explicitly close them in finally.
+console.write("CLI: ")
+console.writeLine("你好")
+console.error("diagnostic: ")
+console.errorLine("UTF-8")
+ConsoleStyle style = ConsoleStyle()
+style.foreground = console.rgb(80, 160, 240)
+style.attributes = console.styleBold
+console.writeStyled("styled\n", style)
+console.errorStyled("styled diagnostic\n", style)
+auto columns, rows = console.size()
+assert columns >= 0 and rows >= 0
+assert console.colorMode() >= console.colorNone
+console.flush()
+
+if console.isTerminal() then
+    auto session = console.openSession()
+    try
+        session.moveTo(0, 0)
+        session.clear(console.clearLine)
+        session.write("TUI primitives: text/key/resize/mouse/paste\n")
+        session.flush()
+        auto event = session.readEvent(0)
+        if event != null then console.writeLine(event.text) end
+    finally
+        session.close()
+    end
+end
+
+// Blocking input examples (opt in, to keep this executable sample unattended):
+// auto line = console.readLine()
+// auto scalar = console.readChar()

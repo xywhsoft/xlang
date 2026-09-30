@@ -1,0 +1,19 @@
+assert console.rgb(12, 34, 56) == 17572408
+auto columns, rows = console.size()
+assert columns >= 0 and rows >= 0
+assert console.colorMode() >= 0
+ConsoleStyle style
+style.foreground = 1
+style.attributes = console.styleBold
+console.writeStyled("style", style)
+console.errorStyled("error", style)
+console.flush()
+if not console.isTerminal() then
+    bool rejected = false
+    try
+        auto session = console.openSession()
+    catch e
+        rejected = true
+    end
+    assert rejected
+end

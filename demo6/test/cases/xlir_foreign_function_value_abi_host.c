@@ -63,7 +63,7 @@ bool xl6_test_invoke_string(XL6_Function callback)
     xlir_string_view text = {0};
     bool ok;
     arguments[0] = xrtValueRetain(xrtValueNull());
-    arguments[1] = xrtValueString(xrtStrView("matrix"));
+    arguments[1] = xrtValueString((xstrview){"ma\0trix", 7});
     if ( arguments[0] == NULL || arguments[1] == NULL ) {
         xrtValueRelease(arguments[0]); xrtValueRelease(arguments[1]);
         return false;
@@ -71,7 +71,7 @@ bool xl6_test_invoke_string(XL6_Function callback)
     result = xl6_test_invoke(callback, 2, arguments);
     xrtValueRelease(arguments[0]); xrtValueRelease(arguments[1]);
     ok = result != NULL && xrtValueGetString(result, &text) &&
-         text.Size == 6 && memcmp(text.Data, "matrix", 6) == 0;
+         text.Size == 7 && memcmp(text.Data, "ma\0trix", 7) == 0;
     xrtValueRelease(result);
     return ok;
 }

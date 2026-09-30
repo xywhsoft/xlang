@@ -5,8 +5,8 @@ string filePath = "build/test/stdlib_json_case.json"
 
 file.delete(filePath)
 
-expect(json.valid('{"name":"xlang","ok":true}'), 1)
-expect(json.valid('{"name":'), 0)
+expect(json.valid(`{"name":"xlang","ok":true}`), 1)
+expect(json.valid(`{"name":`), 0)
 
 var values = json.parse("[1,2,3]")
 string compactValues = json.stringify(values)
@@ -15,11 +15,11 @@ string prettyValues = json.stringify(values, pretty = true)
 expectStr(compactValues, "[1,2,3]")
 expect(string.len(prettyValues) >= string.len(compactValues), 1)
 
-var object = json.parse('{"name":"xlang","ok":true}')
+var object = json.parse(`{"name":"xlang","ok":true}`)
 string objectText = json.stringify(object)
 
-expect(string.contains(objectText, '"name"'), 1)
-expect(string.contains(objectText, '"xlang"'), 1)
+expect(string.contains(objectText, `"name"`), 1)
+expect(string.contains(objectText, `"xlang"`), 1)
 
 expect(json.write(filePath, object), 1)
 expect(file.exists(filePath), 1)
@@ -27,6 +27,6 @@ expect(file.exists(filePath), 1)
 var fileObject = json.read(filePath)
 string fileObjectText = json.stringify(fileObject)
 
-expect(string.contains(fileObjectText, '"name"'), 1)
-expect(string.contains(fileObjectText, '"xlang"'), 1)
+expect(string.contains(fileObjectText, `"name"`), 1)
+expect(string.contains(fileObjectText, `"xlang"`), 1)
 expect(file.delete(filePath), 1)

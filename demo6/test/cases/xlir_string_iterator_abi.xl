@@ -39,9 +39,9 @@ expect(emptyVisits, 0)
 
 string controlJoined = ""
 for character in "abcd"
-    if character == "b"
+    if character == 'b'
         continue
-    elseif character == "d"
+    elseif character == 'd'
         break
     end
     controlJoined = controlJoined + character
@@ -49,7 +49,7 @@ end
 expectStr(controlJoined, "ac")
 
 int stringReturnFinallyTrace = 0
-func firstCharacter(string text) as string
+func firstCharacter(string text) as char
     for character in text
         try
             return character
@@ -57,13 +57,13 @@ func firstCharacter(string text) as string
             stringReturnFinallyTrace += 1
         end
     end
-    return ""
+    return '?'
 end
-expectStr(firstCharacter(makeText()), "甲")
+expect(firstCharacter(makeText()), '甲')
 expect(stringReturnFinallyTrace, 1)
 
-func checkedCharacter(string character) as int
-    if character == "你"
+func checkedCharacter(char character) as int
+    if character == '你'
         throw ValueError "string loop sentinel"
     end
     return 1

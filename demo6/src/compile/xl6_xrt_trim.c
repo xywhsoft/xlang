@@ -4,15 +4,15 @@
 
 #include <string.h>
 
-static int xl6XrtTrimPackageRequiresFull(const XL6_ImportDeps* deps)
+int xl6XrtTrimRequiresFull(const XL6_ImportDeps* deps, size_t additionalCSourceCount)
 {
-    /* A native package without a declared module contract is explicitly
-     * unbounded. Runtime/compiler embedding also requests the full product. */
-    return deps != NULL &&
+    /* 显式混编 C、无模块清单的包、脚本嵌入都允许调用完整原生能力。
+     * 这是编译前确定的合同，不是链接失败后再补符号的回退。 */
+    return additionalCSourceCount != 0 || (deps != NULL &&
         (deps->hasUndeclaredCSourceModules ||
          (deps->features & (XL6_IMPORT_FEATURE_TCC_RUNTIME |
                             XL6_IMPORT_FEATURE_XLANG_RUNTIME |
-                            XL6_IMPORT_FEATURE_XLANG_COMPILER)) != 0);
+                            XL6_IMPORT_FEATURE_XLANG_COMPILER)) != 0));
 }
 
 static int xl6XrtTrimIsModuleName(const char* moduleName)
@@ -56,6 +56,7 @@ static int xl6XrtTrimEmitModules(
 
 int xl6XrtTrimBuildImplementationSourceFromArtifact(
     const XL6_ImportDeps* deps,
+    size_t additionalCSourceCount,
     const char* const* modules,
     size_t moduleCount,
     char** outText)
@@ -66,7 +67,7 @@ int xl6XrtTrimBuildImplementationSourceFromArtifact(
 
     if ( outText == NULL || (moduleCount != 0 && modules == NULL) ) return 0;
     *outText = NULL;
-    full = xl6XrtTrimPackageRequiresFull(deps);
+    full = xl6XrtTrimRequiresFull(deps, additionalCSourceCount);
     if ( !xl6OutputOpenMemory(&out) ) return 0;
     ok = xl6OutputPuts(
              "/* Generated XRT implementation for a verified xlang artifact. */\n",
@@ -82,7 +83,12 @@ int xl6XrtTrimBuildImplementationSourceFromArtifact(
     }
     if ( ok && !full ) ok = xl6XrtTrimEmitModules(&out, modules, moduleCount);
     if ( ok ) {
+        /* 生成头公开的错误所有权接口必须由产物自身实现，不能依赖宿主的另一份 XRT。 */
         ok = xl6OutputPuts(
+                 "#if defined(_WIN32) && defined(XL6_BUILD_SHARED)\n"
+                 "struct xerror;\n"
+                 "__declspec(dllexport) void xrtErrorFree(struct xerror*);\n"
+                 "#endif\n"
                  "#define XRUNTIME_IMPLEMENTATION\n"
                  "#include \"xruntime.h\"\n",
                  &out) != EOF && !xl6OutputHasFailed(&out);

@@ -1,0 +1,59 @@
+extern "xlir_json_observe_lifetime" func observeLifetime(var target) as var
+extern "xlir_json_lifetime_expired" func expired(var witness) as c_bool
+extern "xrtClearError" func clearNativeError()
+
+func capturedVisitor(var state) as func(var) as bool
+    return func(var event) as bool
+        return bool(state["continue"])
+    end
+end
+
+func visitScope()
+    array<var> saved = []
+    array<var> witnesses = []
+    func(var) as bool visitor = func(var event) as bool
+        witnesses.append(observeLifetime(event))
+        if event["type"] == "string" then
+            saved.append(event)
+        end
+        if event["type"] == "listBegin" then
+            assert event["key"] == "items"
+        end
+        if event["type"] == "time" then
+            assert event["value"] == "2026-06-18T00:00:00Z"
+            assert event["key"] == "when"
+        end
+        if event["type"] == "custom" then
+            assert event["value"] == "123"
+        end
+        return true
+    end
+    assert xlon.visit(`{"items":intmap{2:"中文"},"tags":set[1,true,null],"when":time("2026-06-18T00:00:00Z")}`, visitor) == xlon.visitComplete
+    assert witnesses.length == 11
+    assert saved.length == 1
+    assert saved[0]["index"] == 2
+    assert saved[0]["key"] == null
+    assert saved[0]["value"] == "中文"
+    for i in range(witnesses.length)
+        assert bool(expired(witnesses[i])) == (i != 2)
+    end
+    saved.clear()
+    assert expired(witnesses[2])
+    assert xlon.visit("[]", visitor, xlon.options(pretty = true, ignoreUnsupportedEncode = true, ignoreUnsupportedDecode = true)) == xlon.visitComplete
+    assert witnesses.length == 13
+    assert expired(witnesses[11])
+    assert expired(witnesses[12])
+    assert xlon.visit(`bytes("AP9B")`, visitor) == xlon.visitComplete
+    // Payload field-read reclamation is separately asserted in the XLIR-only
+    // lifetime fixture; legacy over-retains owned dynamic field results.
+    assert expired(witnesses[13])
+    assert xlon.visit(`ptr("123")`, visitor, xlon.options(ignoreUnsupportedDecode = true)) == xlon.visitComplete
+    assert expired(witnesses[14])
+    assert xlon.visit("null", capturedVisitor({"continue": false})) == xlon.visitStopped
+    assert xlon.visit("{bad}", visitor) == xlon.visitInvalid
+    clearNativeError()
+end
+
+for i in range(30)
+    visitScope()
+end

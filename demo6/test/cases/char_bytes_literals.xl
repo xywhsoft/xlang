@@ -1,0 +1,122 @@
+func acceptChar(char value) as int
+    return value
+end
+
+func returnChar() as char
+    return 67
+end
+
+func echoBytes(bytes value) as bytes
+    return value
+end
+
+char ascii = 'A'
+char han = '你'
+char escapedHan = '\u4f60'
+char escapedLineFeed = '\n'
+char numeric = 65
+char constructed = char(68)
+uint32 scalarCode = 0x4f60
+char convertedScalar = scalarCode
+char assigned = 'x'
+assigned = 69
+bytes payload = b"A\x00你"
+string triple = """line one
+    line two"""
+string exact = `line one
+    line two`
+int formatValue = 7
+string escapedFormatted = f"line\n{formatValue}"
+string rawFormatted = rf"line\n{formatValue}"
+string exactFormatted = f`line\n{formatValue}`
+string formattedTriple = f"""
+    line {formatValue}
+    done
+    """
+
+assert ascii == 65
+assert numeric == ascii
+assert han != ascii
+assert escapedHan == han
+assert escapedLineFeed == 10
+assert constructed == 68
+assert convertedScalar == han
+assert assigned == 69
+assert acceptChar(70) == 70
+assert returnChar() == 67
+assert escapedFormatted == "line\n7", "formatted strings must decode ordinary escapes"
+assert rawFormatted == r"line\n7", "rf strings must preserve ordinary escapes"
+assert exactFormatted == r"line\n7", "formatted backticks must preserve ordinary escapes"
+assert formattedTriple == "line 7\ndone\n", "formatted triple strings must use common-indent framing"
+assert "x" + han == "x你"
+assert han + "x" == "你x"
+assert "A你"[1] == han
+assert payload.length == 5
+assert payload[0] == 65
+assert payload[1] == 0
+assert payload + b"B" == b"A\x00你B"
+assert echoBytes(payload) == payload
+
+string mutableText = "abc"
+mutableText[1] = han
+assert mutableText == "a你c"
+
+bytes mutableBytes = b"abc"
+mutableBytes[1] = 0
+assert mutableBytes == b"a\x00c"
+
+string originalText = "abc"
+string copiedText = originalText
+copiedText[0] = han
+assert originalText == "abc"
+assert copiedText == "你bc"
+
+bytes originalBytes = b"abc"
+bytes copiedBytes = originalBytes
+copiedBytes[0] = 90
+assert originalBytes == b"abc"
+assert copiedBytes == b"Zbc"
+
+bytes rawBytes = br"\x41"
+assert rawBytes.length == 4
+assert rawBytes[0] == 92
+assert rawBytes[1] == 120
+
+bytes tripleBytes = b"""
+    A
+    你
+    """
+assert tripleBytes == b"A\n你\n"
+
+string joinedScalars = ""
+for scalar in "A你"
+    joinedScalars = joinedScalars + scalar
+end
+assert joinedScalars == "A你"
+
+int byteSum = 0
+int byteIndexSum = 0
+for index, octet in payload
+    byteIndexSum += index
+    byteSum += octet
+end
+assert byteIndexSum == 10
+assert byteSum == 642
+
+bool invalidCharCaught = false
+try
+    char invalid = char(0xd800)
+catch e
+    invalidCharCaught = e.kind == "RangeError"
+end
+assert invalidCharCaught
+
+bool invalidImplicitCharCaught = false
+try
+    uint32 invalidScalar = 0xd800
+    char invalidImplicit = invalidScalar
+catch e
+    invalidImplicitCharCaught = e.kind == "RangeError"
+end
+assert invalidImplicitCharCaught
+println("char/bytes literals ok")

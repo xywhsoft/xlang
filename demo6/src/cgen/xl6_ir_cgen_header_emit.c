@@ -1,4 +1,5 @@
 typedef struct XL6_IrCgenHeaderOpaqueNeeds {
+    int string;
     int xvalue;
     int generator;
     int closure;
@@ -18,6 +19,7 @@ static void xl6IrCgenHeaderNeedType(
     const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
     if ( item == NULL || needs == NULL ) return;
     switch ( item->cAbi ) {
+    case XL6_IR_C_ABI_MANAGED_STRING: needs->string = 1; break;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: needs->xvalue = 1; break;
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: needs->generator = 1; break;
     case XL6_IR_C_ABI_CLOSURE_PTR: needs->closure = 1; break;
@@ -204,7 +206,12 @@ int xl6IrCgenEmitHeader(
     xl6IrCgenCollectHeaderTypeNeeds(module, &opaqueNeeds, publicTypes);
     xl6OutputPrintf(out, "#ifndef %s\n#define %s\n\n", guardName, guardName);
     xl6IrCgenEmitPublicLinkage(out);
-    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <wchar.h>\n\n", out);
+    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <wchar.h>\n", out);
+    if ( opaqueNeeds.string )
+        xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
+                      "/* Data/Size are exact UTF-8 bytes; Data[Size] is a trailing NUL sentinel. */\n"
+                      "typedef xstrview xlir_string;\n", out);
+    xl6OutputPuts("\n", out);
     xl6IrCgenEmitHeaderOpaqueDeclarations(out, &opaqueNeeds);
     xl6OutputPuts("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n", out);
     xl6OutputPuts(
@@ -262,9 +269,9 @@ int xl6IrCgenEmitHeader(
     for ( i = 0; i < module->externGlobalCount; ++i )
         if ( !xl6IrCgenEmitExternGlobal(out, module, &module->externGlobals[i], diags) ) return 0;
     if (module->exportCount != 0) {
-        xl6IrCgenEmitForeignErrorDeclarations(out);
+        xl6IrCgenEmitForeignErrorDeclarations(out, 1);
         xl6OutputPuts(
-            "extern void xrtErrorFree(xerror*);\n\n"
+            "\n"
             "/* Export failures return zero/void and publish to the nearest shared\n"
             " * foreign error scope. A NULL diagnostic does not imply success.\n"
             " * For a total status, bracket calls with xl6ForeignCallBegin/End\n"

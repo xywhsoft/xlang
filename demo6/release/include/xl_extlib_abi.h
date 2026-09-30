@@ -138,21 +138,6 @@ void xl6FutureDestroy(struct xfuture* pFuture);
 
 
 
-/* 查询扩展回调是否留下了尚未处理的 xlang 异常。 */
-int xl6ExtlibErrorPending(void);
-
-
-
-/* 把当前 xlang 异常映射到 XRT 结构化错误槽，异常本身仍由语言运行时持有。 */
-void xl6ExtlibErrorPublishXrt(void);
-
-
-
-/* 外部异步回调已经保存 XRT 错误后，释放当前线程残留的 xlang 异常。 */
-void xl6ExtlibErrorClear(void);
-
-
-
 /*
 	把可变 TlsConfig 快照为扩展库可持有的不可变租约。
 	租约拥有 TLS Context，并可为异步客户端创建独立共享 Verifier。

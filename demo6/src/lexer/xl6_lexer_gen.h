@@ -582,14 +582,10 @@ void yyfree ( void * , yyscan_t yyscanner );
 
 
     
-/* Windows 与 POSIX 的终端检测接口名称不同。 */
-#if defined(_WIN32)
+/*windows compatibility case*/
 #include <io.h>
 #define isatty _isatty
 #define fileno _fileno
-#else
-#include <unistd.h>
-#endif
     
 
 

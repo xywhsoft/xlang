@@ -31,6 +31,7 @@ XL6_CODE_OWNER_DECLARATION
  * child, not just executable addresses. The descriptor is borrowed and copied
  * before publication. Its code must remain resident through the last release.
  * These read-only views require caller-provided whole-graph quiescence. */
+/* 声明会字符串化到 C/C++ 公共头；用 0 避免固化宿主 C 的 NULL 宏展开。 */
 #define XL6_CODE_OWNER_GRAPH_DECLARATION \
 struct xrtownershipops; \
 typedef struct XL6_CodeOwnerGraph { \
@@ -41,9 +42,9 @@ typedef struct XL6_CodeOwnerGraph { \
 static inline const struct xrtownershipops* xl6CodeOwnerGraphOps(const XL6_CodeOwner* owner) \
 { \
     const XL6_CodeOwnerGraph* graph; \
-    if (owner == NULL || owner->size < sizeof(XL6_CodeOwnerGraph)) return NULL; \
+    if (owner == 0 || owner->size < sizeof(XL6_CodeOwnerGraph)) return 0; \
     graph = (const XL6_CodeOwnerGraph*)owner; \
-    return graph->abiTag == 0x584C36434F574E31ULL ? graph->ops : NULL; \
+    return graph->abiTag == 0x584C36434F574E31ULL ? graph->ops : 0; \
 }
 #ifndef XL6_CODE_OWNER_GRAPH_TYPE_DEFINED
 #define XL6_CODE_OWNER_GRAPH_TYPE_DEFINED

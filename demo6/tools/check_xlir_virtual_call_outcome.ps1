@@ -40,10 +40,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Virtual outcome accessor transaction/runtime semantics failed' }
     & release/xl.exe run test/cases/xlir_virtual_call_outcome_runtime.c test/cases/xlir_virtual_call_outcome_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Virtual outcome generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_virtual_call_outcome_runtime.c test/cases/xlir_virtual_call_outcome_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    . (Join-Path $PSScriptRoot 'xlir_artifact_runtime_sources.ps1')
+    $artifactRuntimeSources = Get-XlirArtifactRuntimeSources
+    & release/xl.exe build test/cases/xlir_virtual_call_outcome_runtime.c test/cases/xlir_virtual_call_outcome_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Virtual outcome generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Virtual outcome generated C-host AOT runtime failed' }
 } finally { Pop-Location }
-Write-Output 'XLIR virtual outcome passed: joined slot effects, owned/borrowed/mutable arguments, retained generator class parameters, strict C, JIT/AOT, mutation rejection and allocation baseline restoration.'
+Write-Output 'XLIR virtual outcome passed: joined slot effects, owned/borrowed value arguments and multi-results, retained generator class parameters, strict C, JIT/AOT, mutation rejection and allocation baseline restoration.'
 exit 0

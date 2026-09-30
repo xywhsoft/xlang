@@ -68,7 +68,7 @@ try {
             $wanted = [int]($contract.Name -in $expected.Name)
             if ( $implementations -ne $wanted ) { throw "$fixture has wrong emitted operation closure: $($contract.Name)" }
         }
-        foreach ( $forbidden in @("xrtJsonWriter", "xrtXson", "xl6_xrt_json_visit", "XL6_Function",
+        foreach ( $forbidden in @("xrtJsonWriter", "xrtXlon", "xl6_xrt_json_visit", "XL6_Function",
             "<__xl_runtime/xl_runtime.h>", "xrt.h", "xruntime.h") ) {
             if ( $c.Contains($forbidden) ) { throw "$fixture acquired an unrelated or legacy dependency: $forbidden" }
         }

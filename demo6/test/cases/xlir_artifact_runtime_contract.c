@@ -119,26 +119,40 @@ static int artifact_source_contract(void)
     char* packages[]={"XRT_MODULE_MATH"};
     XL6_ImportDeps deps;
     memset(&deps,0,sizeof(deps));
-    CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,NULL,0,&text));
+    CHECK(!xl6XrtTrimRequiresFull(NULL,0) && xl6XrtTrimRequiresFull(NULL,1));
+    CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,0,NULL,0,&text));
     CHECK(!strstr(text,"#define XRT_MODULE_") && !strstr(text,"#define XRUNTIME_MODULE_"));
     CHECK(strstr(text,"#define XRUNTIME_IMPLEMENTATION\n"));
     xrtFree(text); text=NULL;
     deps.xrtModules.items=packages; deps.xrtModules.count=1;
-    CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(&deps,roots,1,&text));
+    CHECK(!xl6XrtTrimRequiresFull(&deps,0));
+    CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(&deps,0,roots,1,&text));
     CHECK(strstr(text,"#define XRT_MODULE_CHARSET\n") && strstr(text,"#define XRT_MODULE_MATH\n"));
     CHECK(!strstr(text,"XRT_MODULE_ALL") && !strstr(text,"XRT_MODULE_TEMP_MEMORY"));
+    xrtFree(text); text=NULL;
+    /* 不修改导入依赖；同一产物增加 C 源后完整编译，再无 C 源时仍精确裁剪。 */
+    for (size_t sources=1;sources<3;++sources) {
+        CHECK(xl6XrtTrimRequiresFull(&deps,sources));
+        CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(&deps,sources,roots,1,&text));
+        CHECK(strstr(text,"#define XRT_MODULE_ALL\n") && strstr(text,"#define XRUNTIME_MODULE_ALL\n"));
+        xrtFree(text); text=NULL;
+        CHECK(!deps.hasUndeclaredCSourceModules && deps.features==0);
+    }
+    CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(&deps,0,roots,1,&text));
+    CHECK(!strstr(text,"XRT_MODULE_ALL") && strstr(text,"XRT_MODULE_CHARSET"));
     xrtFree(text); text=NULL;
     for (unsigned policy=0;policy<4;++policy) {
         deps.features=policy==0?XL6_IMPORT_FEATURE_TCC_RUNTIME:
             policy==1?XL6_IMPORT_FEATURE_XLANG_RUNTIME:policy==2?XL6_IMPORT_FEATURE_XLANG_COMPILER:0;
         deps.hasUndeclaredCSourceModules=policy==3;
-        CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(&deps,roots,1,&text));
+        CHECK(xl6XrtTrimRequiresFull(&deps,0));
+        CHECK(xl6XrtTrimBuildImplementationSourceFromArtifact(&deps,0,roots,1,&text));
         CHECK(strstr(text,"#define XRT_MODULE_ALL\n") && strstr(text,"#define XRUNTIME_MODULE_ALL\n"));
         xrtFree(text); text=NULL;
     }
-    CHECK(!xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,NULL,1,&text) && !text);
-    CHECK(!xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,invalid,1,&text) && !text);
-    CHECK(!xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,NULL,0,NULL));
+    CHECK(!xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,0,NULL,1,&text) && !text);
+    CHECK(!xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,0,invalid,1,&text) && !text);
+    CHECK(!xl6XrtTrimBuildImplementationSourceFromArtifact(NULL,0,NULL,0,NULL));
     return 1;
 }
 
@@ -154,7 +168,7 @@ static int emit_native_source(const char* path, const char* output)
     xl6CompileUnitInit(&unit);
     if (!xl6CompileUnitLoadFile(&unit,path,1) || !xl6IrLowerModule(&unit.ir,&unit.parse.diags) ||
         !xl6ArtifactRuntimePlanBuild(&unit.ir,XL6_ARTIFACT_ENTRY_EXECUTABLE_V1,&plan,&unit.parse.diags) ||
-        !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit.importDeps,plan.nativeModules,plan.nativeModuleCount,&text)) goto done;
+        !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit.importDeps,0,plan.nativeModules,plan.nativeModuleCount,&text)) goto done;
     if (!xl6OutputOpenFile(&out,output)) goto done;
     ok=xl6OutputPuts(text,&out)!=EOF && !xl6OutputHasFailed(&out);
     xl6OutputClose(&out);
@@ -207,7 +221,7 @@ static int fixture_contract(const char* path)
     XL6_DiagList probe;
     XL6_ArtifactRuntimePlan plan,repeat;
     XL6_IrSlotTransferAbi original;
-    XL6_IrCgenOptions options={1,1};
+    XL6_IrCgenOptions options={.emitScriptEntry=1,.emitMainWrapper=1};
     unsigned visits=0;
     int ok=0;
     xl6CompileUnitInit(&unit); xl6DiagInit(&probe);

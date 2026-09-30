@@ -1,0 +1,138 @@
+int drops = 0
+int finalies = 0
+
+class LoopGuard
+    destroy()
+        drops += 1
+    end
+end
+
+
+// 常真循环只通过显式退出离开；每次 continue 和 return 都清理当前局部对象。
+func retry(int limit) as string
+    LoopGuard outer = LoopGuard()
+    int attempt = 0
+    while true
+        LoopGuard inner = LoopGuard()
+        attempt += 1
+        if attempt < limit then continue end
+        return "ready"
+    end
+end
+
+func doReturn() as string
+    do
+        LoopGuard guard = LoopGuard()
+        return "once"
+    while true end
+end
+
+
+// 内层 break 不能被误判成外层出口；finally 在 continue/break 时各执行一次。
+func breakFinally() as int
+    int count = 0
+    while true
+        LoopGuard guard = LoopGuard()
+        try
+            while true
+                count += 1
+                break
+            end
+            if count < 3 then continue end
+            break
+        finally
+            finalies += 1
+        end
+    end
+    return count
+end
+
+class LoopCounter
+    int value = 0
+end
+
+func evaluate(LoopCounter counter) as bool
+    counter.value += 1
+    return counter.value < 3
+end
+
+func checkConditions()
+    int count = 0
+    while false
+        LoopGuard unreachable = LoopGuard()
+        throw "constant false body ran"
+    end
+    do
+        count += 1
+        continue
+    while false end
+    assert count == 1
+    LoopCounter counter = LoopCounter()
+    while evaluate(counter)
+        continue
+    end
+    assert counter.value == 3
+    counter = LoopCounter()
+    do
+        continue
+    while evaluate(counter) end
+    assert counter.value == 3
+end
+
+
+async func delayed() as int
+    time.sleep(2)
+    return 1
+end
+
+async func collect(bool fail) as string
+    LoopGuard outer = LoopGuard()
+    int count = 0
+    string result = ""
+    while true
+        LoopGuard inner = LoopGuard()
+        try
+            count += await delayed()
+            if fail then throw ValueError "loop failure" end
+            result += "x"
+            if count < 3 then continue end
+            return result
+        finally
+            finalies += 1
+        end
+    end
+end
+
+func numbers() as generator<int>
+    int next = 0
+    while true
+        if next == 3 then return end
+        yield next
+        next += 1
+    end
+end
+
+
+assert retry(3) == "ready" and drops == 4
+assert doReturn() == "once" and drops == 5
+assert breakFinally() == 3 and drops == 8 and finalies == 3
+checkConditions()
+assert drops == 8
+assert await collect(false) == "xxx"
+assert drops == 12 and finalies == 6
+bool caught = false
+try
+    await collect(true)
+catch error
+    assert error.message == "loop failure"
+    caught = true
+end
+assert caught and drops == 14 and finalies == 7
+int count = 0
+int total = 0
+for value in numbers()
+    count += 1
+    total += value
+end
+assert count == 3 and total == 3
+println("constant loop completion: PASS")

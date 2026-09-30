@@ -1,10 +1,10 @@
 // The contract turns initial consuming placeholder calls into transparent
 // views of their owned argument copies. Final sinks consume those owners.
-func ownerCallPlaceholder(byval string text) as int
+func ownerCallPlaceholder(string text) as int
     return text.length
 end
 extern "owner_calls_observe" func ownerCallsObserve(string first, string second, bool fail) as int
-func ownerCallPair(byval string first, byval string second, bool fail) as int
+func ownerCallPair(string first, string second, bool fail) as int
     return ownerCallsObserve(first, second, fail)
 end
 func ownerCallGenerator(string first, string second, bool fail) as generator<string>

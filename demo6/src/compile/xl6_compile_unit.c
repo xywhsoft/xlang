@@ -268,7 +268,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             "XRT_MODULE_TEMP_MEMORY", "XRT_MODULE_THREAD_KEY", "XRT_MODULE_ONCE",
             "XRT_MODULE_VALUE_GRAPH", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
             "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE", "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE",
-            "XRUNTIME_MODULE_RUNTIME_CONVERT_STRING", "XRT_MODULE_XSON_WRITE", "XRT_MODULE_TIME_TEXT"
+            "XRUNTIME_MODULE_RUNTIME_CONVERT_STRING", "XRT_MODULE_XLON_WRITE", "XRT_MODULE_TIME_TEXT"
         };
         for (size_t i=0;i<sizeof(baseModules)/sizeof(baseModules[0]);++i)
             if (!xl6ArtifactNativeModuleRequire(plan,baseModules[i])) goto native_capacity_failure;

@@ -48,6 +48,7 @@ def resolve_manifest_path(
     root: Path,
     tcc_dist: Path,
     xrt_obj: Path,
+    output_dir: Path,
 ) -> Path:
     value = text
     replacements = {
@@ -55,6 +56,7 @@ def resolve_manifest_path(
         "%XL6_EMBED_TCC_DIST%": str(tcc_dist),
         "%XL6_EMBED_TCC_DIST_X64%": str(tcc_dist),
         "%XL6_XRT_OBJ%": str(xrt_obj),
+        "%XL6_VFS_OUTPUT_DIR%": str(output_dir),
     }
     for token, replacement in replacements.items():
         value = value.replace(token, replacement)
@@ -70,6 +72,7 @@ def load_resources(
     root: Path,
     tcc_dist: Path,
     xrt_obj: Path,
+    output_dir: Path,
 ) -> list[Resource]:
     resources: list[Resource] = []
     seen: set[str] = set()
@@ -94,14 +97,14 @@ def load_resources(
         if kind == "file":
             add(
                 parts[1],
-                resolve_manifest_path(parts[2], root, tcc_dist, xrt_obj),
+                resolve_manifest_path(parts[2], root, tcc_dist, xrt_obj, output_dir),
             )
             continue
         if kind != "dir":
             raise RuntimeError(f"unknown manifest kind: {kind}")
 
         virtual_prefix = normalize_virtual_name(parts[1])
-        source_dir = resolve_manifest_path(parts[2], root, tcc_dist, xrt_obj)
+        source_dir = resolve_manifest_path(parts[2], root, tcc_dist, xrt_obj, output_dir)
         if not source_dir.is_dir():
             raise RuntimeError(f"missing VFS resource directory: {source_dir}")
         patterns = [
@@ -226,6 +229,7 @@ def main() -> int:
         root,
         tcc_dist.resolve(),
         xrt_obj.resolve(),
+        output.resolve().parent,
     )
     packed = pack_resources(
         resources,

@@ -1,0 +1,18 @@
+func failWithSession()
+    auto session = console.openSession()
+    try
+        session.showCursor(false)
+        session.write("finally")
+        session.flush()
+        throw ValueError "planned"
+    finally
+        session.close()
+    end
+end
+bool caught = false
+try
+    failWithSession()
+catch ValueError e
+    caught = e.message == "planned"
+end
+assert caught

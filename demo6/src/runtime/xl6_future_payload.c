@@ -11,7 +11,7 @@ static void xl6FuturePayloadDropValue(void* value, void* context)
 static void xl6FuturePayloadDropString(void* value, void* context)
 {
     (void)context;
-    if (value != NULL) { xrtFree(*(char**)value); xrtFree(value); }
+    if (value != NULL) { xrtFree((void*)((xstrview*)value)->Data); xrtFree(value); }
 }
 static void xl6FuturePayloadDropXValue(void* value, void* context)
 {

@@ -1,0 +1,7 @@
+func missing() as int
+    while true
+        break
+    end
+end
+
+println(missing())

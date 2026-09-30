@@ -85,21 +85,59 @@ foreach ($operation in $operations) {
         $owners += $load
     }
     if ($left.index -ge $right.index) { throw "Binary source evaluation order changed" }
-    $next = $module.instructions[$operation.index + 1]
+    $cursor = $operation.index + 1
+    $next = $module.instructions[$cursor]
     if ($next.kindName -eq "error-test") {
         if ($next.operands[0] -ne $operation.result -or
             $nodes[$operation.origin].operatorErrorAbiName -ne "may-raise") {
             throw "Checked binary operation lost its typed error outcome"
         }
         Assert-FailureCleanup $next $owners
-        $cleanupStart = $blocks[$next.trueTarget].firstInstruction
+        $cursor = $blocks[$next.trueTarget].firstInstruction
         $checkedOperations += 1
-    } else { $cleanupStart = $operation.index + 1 }
+    }
+    $resultAnchor = $null
+    $candidate = $module.instructions[$cursor]
+    if ($candidate.kindName -eq "store" -and $candidate.operands[0] -eq $operation.result -and
+        $candidate.type -eq $operation.type -and
+        $storages[$candidate.targetSymbol].kindName -eq "temporary") {
+        $resultAnchor = $candidate
+        $cursor += 1
+    }
+    $next = $module.instructions[$cursor]
+    if ($next.kindName -eq "cleanup-begin") {
+        # A fallible owner release is represented as an explicit cleanup
+        # outcome.  The operation's value is kept while releases run, then
+        # the cleanup-end result is checked before the value is consumed.
+        $cleanupStart = $next.index + 1
+        $cleanupEnd = $module.instructions[$cleanupStart + $owners.Count]
+        $cleanupTest = $module.instructions[$cleanupStart + $owners.Count + 1]
+        if ($cleanupEnd.kindName -ne "cleanup-end" -or
+            $cleanupTest.kindName -ne "error-test" -or
+            $cleanupTest.operands[0] -ne $cleanupEnd.result) {
+            throw "Binary cleanup lost its verified error outcome"
+        }
+        if ($null -ne $resultAnchor) {
+            $failure = $blocks[$cleanupTest.falseTarget]
+            $resultReleases = @($module.instructions | Where-Object {
+                $_.index -ge $failure.firstInstruction -and
+                $_.index -lt $failure.firstInstruction + $failure.instructionCount -and
+                $_.kindName -eq "release" -and
+                $_.targetSymbol -eq $resultAnchor.targetSymbol
+            })
+            if ($resultReleases.Count -ne 1 -or
+                $resultReleases[0].type -ne $resultAnchor.type) {
+                throw "Binary cleanup failure lost the owned result anchor"
+            }
+        }
+    } else { $cleanupStart = $cursor }
     for ($i = 0; $i -lt $owners.Count; ++$i) {
         $release = $module.instructions[$cleanupStart + $i]
         $owner = $owners[$owners.Count - 1 - $i]
         if ($release.kindName -ne "release" -or $release.targetSymbol -ne $owner.targetSymbol -or
-            $release.type -ne $owner.type) { throw "Binary success lost reverse exact-owner cleanup" }
+            $release.type -ne $owner.type) {
+            throw "Binary success lost reverse exact-owner cleanup at $($operation.runtimeOpName) instruction $($operation.index): expected release $($owner.targetSymbol)/$($owner.type), got $($release.kindName) $($release.targetSymbol)/$($release.type)"
+        }
     }
     foreach ($test in @($module.instructions | Where-Object {
         $_.index -gt $left.index -and $_.index -lt $right.index -and $_.kindName -eq "error-test"
@@ -116,7 +154,16 @@ $boxedOwners = 0
 foreach ($box in @($module.instructions | Where-Object { $_.runtimeOpName -eq "xvalue-string-copy" })) {
     $inputOwner = $definitions[$box.operands[0]]
     Assert-Anchor $inputOwner
-    $release = $module.instructions[$box.index + 1]
+    $next = $module.instructions[$box.index + 1]
+    if ($next.kindName -eq "error-test") {
+        if ($next.operands[0] -ne $box.result) {
+            throw "String boxing lost its checked allocation result"
+        }
+        Assert-FailureCleanup $next @($inputOwner)
+        $release = $module.instructions[$blocks[$next.trueTarget].firstInstruction]
+    } else {
+        $release = $next
+    }
     if ($release.kindName -ne "release" -or $release.type -ne $inputOwner.type -or
         $release.targetSymbol -ne $inputOwner.targetSymbol) {
         throw "String boxing copied the bytes but leaked its source owner"

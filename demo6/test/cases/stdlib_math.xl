@@ -53,3 +53,32 @@ expect(math.expm1(1.0) ~= (math.e - 1.0), 1)
 expect(math.cbrt(27.0) ~= 3.0, 1)
 expect(math.cbrt(-8.0) ~= -2.0, 1)
 expect(math.hypot(3.0, 4.0) ~= 5.0, 1)
+
+expect(math.isClose(100.0, 100.05, 0.0, 0.001), 1)
+expect(not math.isClose(100.0, 100.2, 0.0, 0.001), 1)
+expect(math.isClose(0.0, 0.00001, 0.00002, 0.0), 1)
+expect(math.isClose(math.inf, math.inf, 0.0, 0.0), 1)
+expect(not math.isClose(math.nan, math.nan, 0.0, 0.0), 1)
+expect(not math.isClose(1.7976931348623157e308, -1.7976931348623157e308, 0.0, 1.5), 1)
+expect(math.isClose(1.7976931348623157e308, -1.7976931348623157e308, 0.0, 2.0), 1)
+
+bool invalidToleranceCaught = false
+try
+    math.isClose(1.0, 1.0, -1.0, 0.0)
+catch e
+    invalidToleranceCaught = e.kind == "ValueError"
+end
+expect(invalidToleranceCaught, 1)
+
+bool nanToleranceCaught = false
+try
+    math.isClose(1.0, 1.0, math.nan, 0.0)
+catch e
+    nanToleranceCaught = e.kind == "ValueError"
+end
+expect(nanToleranceCaught, 1)
+
+expect(math.intNear(-9223372036854775808, 9223372036854775807, uint64(18446744073709551615)), 1)
+expect(not math.intNear(-9223372036854775808, 9223372036854775807, uint64(18446744073709551614)), 1)
+expect(math.intNear(100, 104, uint64(4)), 1)
+expect(not math.intNear(100, 104, uint64(3)), 1)

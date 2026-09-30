@@ -1,0 +1,6 @@
+func throwVisit(var event) as bool
+    throw ValueError "xlon-callback-uncaught-sentinel"
+    return true
+end
+
+int status = xlon.visit("null", throwVisit)

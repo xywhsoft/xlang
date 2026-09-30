@@ -1,0 +1,28 @@
+auto input = io.stdin()
+bool conflict = false
+try
+    console.readChar()
+catch e
+    conflict = true
+end
+assert conflict
+bool limited = false
+try
+    input.readAll(1)
+catch RangeError e
+    limited = true
+end
+assert limited
+assert input.read(1) == b"b"
+input.close()
+auto next = console.readChar()
+if next == null then throw IOError "missing character after raw reader" end
+assert next == 'c'
+assert console.readChar() == null
+auto output = io.stdout()
+output.writeAll(b"raw\x00Z")
+output.close()
+console.write("after-close")
+auto diagnostic = io.stderr()
+diagnostic.writeAll(b"raw-error")
+diagnostic.close()

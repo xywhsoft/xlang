@@ -12,7 +12,7 @@ func captureAnonymous() as func() as int
     end
 end
 
-func captureString(byval string input) as func() as int
+func captureString(string input) as func() as int
     return func() as int
         return input.length
     end

@@ -85,7 +85,16 @@ static int xl6IrCgenEmitScalarConversionRuntime(
         if ( !xl6IrCgenRuntimeIntegerConvertAbi(module, instruction) )
             return -1;
         sourceValue = module->operands[instruction->firstOperand];
-        if ( instruction->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 ) {
+        if ( instruction->integerTarget ==
+                 XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ) {
+            const char* helper = instruction->integerSourceAbi ==
+                    XL6_IR_INTEGER_SOURCE_I64
+                ? "xlir_i64_to_char_checked"
+                : "xlir_u64_to_char_checked";
+            xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
+                (unsigned int)instruction->result, helper,
+                (unsigned int)sourceValue);
+        } else if ( instruction->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 ) {
             const char* format =
                 instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_I64
                     ? "    v%u = xlir_i64_to_u64_checked(v%u);\n"

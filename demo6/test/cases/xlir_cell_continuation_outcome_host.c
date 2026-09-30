@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <windows.h>
 #include "../../build/test/xlir_cell_continuation_outcome.c"
 #include "../../build/test/xlir_cell_continuation_outcome.h.bind.h"
 #define XLIR_TEST_LAUNCH_FUTURE
@@ -9,6 +10,7 @@ extern unsigned continuation_owner_fault_end(int);
 extern bool xrtPromiseResolve(xpromise*, void*), xrtPromiseReject(xpromise*, const xerror*);
 extern bool xrtPromiseCancel(xpromise*), xrtPromiseClose(xpromise*);
 extern int cell_continuation_dropped(int);
+extern void cell_continuation_fault_finish(int64_t);
 
 void cell_continuation_drop(int64_t id)
 {
@@ -30,6 +32,14 @@ static void take_word(xlir_generator* generator, int index)
 }
 void cell_continuation_prepare(void) { assert(xlir_module_init() && !xrtGetError()); }
 void cell_continuation_finish(void) { xlir_module_fini(); assert(!xrtGetError()); }
+void cell_continuation_wait_idle(void)
+{
+    ULONGLONG deadline = GetTickCount64() + 10000;
+    while (!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)) {
+        assert(GetTickCount64() < deadline);
+        SwitchToThread();
+    }
+}
 void cell_continuation_close(int stop, bool take)
 {
     xlir_generator* generator = xlir_test_observe_generator_launch(CELL_CONTINUATION_WORDS()); int i;

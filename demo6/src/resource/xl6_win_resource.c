@@ -1208,12 +1208,12 @@ static xvalue* xl6ParseResourceConfig(const char* configPath, char** outText, ch
     root = xrtJsonParse(xrtStrViewN(text, size));
     if ( root == NULL ) {
         xrtClearError();
-        root = xrtXsonParse(xrtStrViewN(text, size));
+        root = xrtXlonParse(xrtStrViewN(text, size));
     }
     if ( root == NULL || xrtValueType(root) != XVALUE_OBJECT ) {
         xrtValueRelease(root);
         xrtFree(text);
-        xl6ResSetError(error, errorSize, "resource config must be a JSON/XSON object");
+        xl6ResSetError(error, errorSize, "resource config must be a JSON/XLON object");
         return NULL;
     }
     if ( outText != NULL ) {

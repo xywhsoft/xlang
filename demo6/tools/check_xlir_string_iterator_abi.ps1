@@ -88,11 +88,17 @@ $integerTypes = @($typed.types | Where-Object {
     $_.kind -eq 1 -and $_.name -eq "int" -and
     $_.cAbi -eq 3 -and $_.typeValueId -eq $typed.runtimeTypeMap.i64
 })
-if ( $stringTypes.Count -ne 1 -or $integerTypes.Count -ne 1 ) {
-    throw "Typed XLIR string iterator has no unique canonical string/int TypeId"
+$charTypes = @($typed.types | Where-Object {
+    $_.kind -eq 1 -and $_.name -eq "char" -and
+    $_.cAbi -eq 43 -and $_.ownershipAbi -eq 1
+})
+if ( $stringTypes.Count -ne 1 -or $integerTypes.Count -ne 1 -or
+     $charTypes.Count -ne 1 ) {
+    throw "Typed XLIR string iterator has no unique canonical string/int/char TypeId"
 }
 $stringType = $stringTypes[0]
 $integerType = $integerTypes[0]
+$charType = $charTypes[0]
 
 $loops = @($typed.nodes | Where-Object {
     $_.loopAbiName -like "string-utf8-*"
@@ -110,9 +116,9 @@ $indexedLoops = @($loops | Where-Object {
 if ( $loops.Count -ne 7 -or $valueLoops.Count -ne 6 -or
      $indexedLoops.Count -ne 1 -or
      @($loops | Where-Object {
-        $_.loopItemAbiName -ne "string-copy" -or
-        $_.loopItemLifetimeAbiName -ne "owned-iteration-release" -or
-        $_.loopErrorAbiName -ne "no-raise" -or
+        $_.loopItemAbiName -ne "char" -or
+        $_.loopItemLifetimeAbiName -ne "trivial-replace" -or
+        $_.loopErrorAbiName -ne "may-raise" -or
         $_.loopResourceAbiName -ne "string-snapshot-release" -or
         $_.loopResourceType -ne $stringType.id
      }).Count -ne 0 ) {
@@ -123,7 +129,6 @@ $loopIds = @($loops | ForEach-Object { $_.id })
 $loopInstructions = @($instructions | Where-Object { $_.origin -in $loopIds })
 foreach ( $entry in @{
     "string-utf8-count" = 7
-    "string-utf8-at" = 7
     "string-copy" = 3
 }.GetEnumerator() ) {
     if ( @($loopInstructions | Where-Object {
@@ -132,25 +137,39 @@ foreach ( $entry in @{
         throw "Lowered XLIR string iterator operation count is not exact: $($entry.Key)"
     }
 }
+$scalarItems = @($instructions | Where-Object {
+    $_.runtimeOpName -eq "string-scalar-at"
+})
+if ( $scalarItems.Count -ne 7 ) {
+    throw "Lowered XLIR string iterator has no exact char scalar projection count"
+}
 
 $snapshotSymbols = @()
 $itemSymbols = @()
 $copiedSources = 0
 $transferredSources = 0
+$discardedItems = 0
 foreach ( $loop in $loops ) {
     $perLoop = @($loopInstructions | Where-Object { $_.origin -eq $loop.id })
     $counts = @($perLoop | Where-Object {
         $_.runtimeOpName -eq "string-utf8-count"
     })
-    $items = @($perLoop | Where-Object {
-        $_.runtimeOpName -eq "string-utf8-at"
+    $items = @($scalarItems | Where-Object {
+        $item = $_
+        @($instructions | Where-Object {
+            $_.index -eq ([int]$item.index + 1) -and
+            $_.kindName -eq "error-test" -and
+            $_.origin -eq $loop.id -and
+            @($_.operands).Count -eq 1 -and
+            $_.operands[0] -eq $item.result
+        }).Count -eq 1
     })
     if ( $counts.Count -ne 1 -or $items.Count -ne 1 -or
          $counts[0].type -ne $integerType.id -or
-         $items[0].type -ne $stringType.id -or
+         $items[0].type -ne $charType.id -or
          @($counts[0].operands).Count -ne 1 -or
          @($items[0].operands).Count -ne 2 ) {
-        throw "Lowered XLIR string loop has no unique count/code-point projection: n$($loop.id)"
+        throw "Lowered XLIR string loop has no unique count/checked-char projection: n$($loop.id)"
     }
     $snapshotLoads = @($instructions | Where-Object {
         $_.result -eq $counts[0].operands[0] -and
@@ -197,24 +216,33 @@ foreach ( $loop in $loops ) {
     }
 
     $itemStores = @($perLoop | Where-Object {
-        $_.kindName -eq "store" -and $_.type -eq $stringType.id -and
+        $_.kindName -eq "store" -and $_.type -eq $charType.id -and
         @($_.operands).Count -eq 1 -and $_.operands[0] -eq $items[0].result -and
         [long]$_.targetSymbol -lt $compilerSymbolFloor
     })
-    if ( $itemStores.Count -ne 1 ) {
-        throw "String loop code-point result has no unique managed target storage: n$($loop.id)"
+    $itemDiscards = @($perLoop | Where-Object {
+        $_.kindName -eq "discard" -and $_.type -eq $charType.id -and
+        @($_.operands).Count -eq 1 -and $_.operands[0] -eq $items[0].result
+    })
+    if ( $itemStores.Count + $itemDiscards.Count -ne 1 ) {
+        throw "String loop scalar result has no unique char target/discard contract: n$($loop.id)"
     }
-    $itemSymbol = [long]$itemStores[0].targetSymbol
-    $itemSymbols += $itemSymbol
-    if ( @($perLoop | Where-Object {
-            $_.kindName -eq "release" -and $_.type -eq $stringType.id -and
-            [long]$_.targetSymbol -eq $itemSymbol
-         }).Count -lt 1 ) {
-        throw "String loop code-point target has an exit without owned-iteration release: n$($loop.id)"
+    if ( $itemStores.Count -eq 1 ) {
+        $itemSymbol = [long]$itemStores[0].targetSymbol
+        $itemSymbols += $itemSymbol
+        if ( @($perLoop | Where-Object {
+                $_.kindName -eq "release" -and
+                [long]$_.targetSymbol -eq $itemSymbol
+             }).Count -ne 0 ) {
+            throw "String loop char target incorrectly acquired an owned release edge: n$($loop.id)"
+        }
+    } else {
+        ++$discardedItems
     }
 }
 if ( @($snapshotSymbols | Select-Object -Unique).Count -ne $loops.Count -or
-     @($itemSymbols | Select-Object -Unique).Count -ne $loops.Count -or
+     @($itemSymbols | Select-Object -Unique).Count -ne ($loops.Count - 1) -or
+     $discardedItems -ne 1 -or
      $copiedSources -ne 3 -or $transferredSources -ne 4 ) {
     throw "String loops lost unique snapshot/item storage or copy-vs-transfer acquisition semantics"
 }
@@ -224,20 +252,25 @@ $historicalLoops = @($historicalTyped.nodes | Where-Object {
 })
 if ( $historicalLoops.Count -ne 2 -or
      @($historicalLoops | Where-Object {
-        $_.loopResourceAbiName -ne "string-snapshot-release" -or
-        $_.loopItemAbiName -ne "string-copy"
+         $_.loopResourceAbiName -ne "string-snapshot-release" -or
+         $_.loopItemAbiName -ne "char" -or
+         $_.loopItemLifetimeAbiName -ne "trivial-replace" -or
+         $_.loopErrorAbiName -ne "may-raise"
      }).Count -ne 0 ) {
     throw "Established stdlib string loops did not migrate to canonical UTF-8 iterator ABI"
 }
 
 $generated = Read-Utf8 $cPath
 if ( ([regex]::Matches($generated,
-        "=\s*\(int64_t\)xrtUtf8Count\(xrtStrView\(v\d+\)\);")).Count -ne 7 -or
+        "=\s*\(int64_t\)xrtUtf8Count\(v\d+\);")).Count -ne 7 -or
      ([regex]::Matches($generated,
-        "=\s*xrtUtf8Substr\(xrtStrView\(v\d+\), v\d+, INT64_C\(1\)\);")).Count -ne 7 -or
+        "bool\s+projection_ok_\d+\s*=\s*xlir_string_scalar_at\(v\d+,\s*v\d+,\s*&v\d+\);")).Count -ne 7 -or
+     ([regex]::Matches($generated,
+        "if \(projection_ok_\d+\) goto b\d+; else goto b\d+;")).Count -ne 7 -or
      ! $generated.Contains(
-        "extern char* xrtUtf8Substr(xlir_string_view, int64_t, int64_t);") ) {
-    throw "Generated C does not mechanically render every verified UTF-8 iterator operation"
+        "static bool xlir_string_scalar_at(xlir_string text, int64_t index, uint32_t* scalar)") -or
+     $generated.Contains("xrtUtf8Substr") ) {
+    throw "Generated C does not mechanically render every checked UTF-8 char projection"
 }
 foreach ( $forbidden in @(
     "loopAbi", "loopKeyAbi", "loopItemAbi", "sourceKind",
@@ -247,13 +280,13 @@ foreach ( $forbidden in @(
         throw "Generated string iterator C leaked semantic metadata or byte-scanning fallback: $forbidden"
     }
 }
-foreach ( $symbol in @($snapshotSymbols + $itemSymbols) ) {
+foreach ( $symbol in $snapshotSymbols ) {
     $loweredReleaseCount = @($loopInstructions | Where-Object {
         $_.kindName -eq "release" -and [long]$_.targetSymbol -eq $symbol
     }).Count
     $renderedReleaseCount = ([regex]::Matches(
         $generated,
-        "xrtFree\(s$symbol\);\s*s$symbol = NULL;"
+        "\{\s*&\(xlir_released\),\s*&\(s$symbol\),\s*sizeof\(xlir_released\)\s*\}"
     )).Count
     if ( $renderedReleaseCount -ne $loweredReleaseCount ) {
         throw "Generated C does not preserve every string loop cleanup edge: s$symbol"
@@ -271,5 +304,5 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR string iterator ABI gate ok: canonical UTF-8 scalar ordinals, owned code-point projection, named-source snapshot copy, owned-rvalue transfer, empty/continue/break/return/finally/throw cleanup, emoji runtime semantics, deterministic mechanical C, strict runtime, and established stdlib string migration."
+Write-Output "XLIR string iterator ABI gate ok: canonical UTF-8 scalar ordinals, trivial char projection with checked status edges, named-source snapshot copy, owned-rvalue transfer, empty/continue/break/return/finally/throw cleanup, emoji runtime semantics, deterministic mechanical C, strict runtime, and established stdlib string migration."
 exit 0

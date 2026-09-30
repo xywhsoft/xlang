@@ -13,7 +13,7 @@ xerror* string_outcome_diagnostic(void) { return xrtErrorRef(diagnostic); }
 
 static unsigned run_case(int shape, int mode, int fault, int memory)
 {
-    const char* expected[] = {"firstsuffix", "firstsuffixsuffixfirst", "firstsuffix", "firstsuffixsuffix", "firstsuffix", NULL,
+    const char* expected[] = {"firstsuffix", "firstsuffixsuffixfirst", "firstsuffix", "firstsuffixsuffix", "firstsuffix", "firstsuffixsuffix",
         "literal", "41", "prefixfirst", "", "true", "41", "41.5", NULL, "int", "41", NULL, "suffix", "first", "custom41"};
     xmemdebugsnapshot before = {0}, armed = {0}, after = {0};
     char *left, *right, *output = NULL; xerror* error; int ok; unsigned count = 0;
@@ -73,6 +73,6 @@ int main(int argc, char** argv)
         }
     }
     string_outcome_finish(); xrtErrorFree(diagnostic);
-    printf("string allocation outcome: 20 shapes, %u real allocation failures; BYVAL rollback, inout atomic commit, nullable success, literals, conversions and default failures\n", faults);
+    printf("string allocation outcome: 20 shapes, %u real allocation failures; borrowed input with result commit, nullable success, literals, conversions and default failures\n", faults);
     return 0;
 }

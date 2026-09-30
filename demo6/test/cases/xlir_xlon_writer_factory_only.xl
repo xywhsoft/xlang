@@ -1,0 +1,2 @@
+// The factory overload family must bring its own type dependencies.
+assert xlon.writer().writeInt(7)

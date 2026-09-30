@@ -1,2 +1,0 @@
-extern "xl6_xrt_xson_writer_begin_array" func malformed(point writer) as bool
-assert malformed(null)

@@ -1,0 +1,155 @@
+assert math.sin(0.0) == 0.0
+assert math.cos(0.0) == 1.0
+assert math.tan(0.0) == 0.0
+assert math.asin(0.0) == 0.0
+assert math.acos(1.0) == 0.0
+assert math.atan(0.0) == 0.0
+assert math.atan2(0.0, 1.0) == 0.0
+assert math.sqrt(4.0) == 2.0
+assert math.pow(2.0, 3.0) == 8.0
+assert math.exp(0.0) == 1.0
+assert math.log(1.0) == 0.0
+assert math.log10(100.0) == 2.0
+assert math.floor(1.75) == 1.0
+assert math.ceil(1.25) == 2.0
+assert math.abs(-2.0) == 2.0
+assert math.round(0.5) == 1.0
+assert math.round(-0.5) == -1.0
+assert math.copySign(1.0, math.round(-0.25)) == -1.0
+assert math.round(4503599627370496.0) == 4503599627370496.0
+assert math.roundCurrent(2.25) == 2.0
+assert math.roundCurrent(-2.25) == -2.0
+assert math.copySign(1.0, math.roundCurrent(-0.25)) == -1.0
+assert math.abs(-7) == 7
+int8 small = int8(-7)
+int16 medium = int16(-300)
+int32 wide = int32(-70000)
+assert math.abs(small) == int8(7)
+assert math.abs(medium) == int16(300)
+assert math.abs(wide) == int32(70000)
+bool absI8MinCaught = false
+try
+    math.abs(int8(-128))
+catch e
+    absI8MinCaught = e.kind == "RangeError"
+end
+assert absI8MinCaught
+bool absI16MinCaught = false
+try
+    math.abs(int16(-32768))
+catch e
+    absI16MinCaught = e.kind == "RangeError"
+end
+assert absI16MinCaught
+bool absI32MinCaught = false
+try
+    math.abs(int32(-2147483648))
+catch e
+    absI32MinCaught = e.kind == "RangeError"
+end
+assert absI32MinCaught
+bool absMinCaught = false
+try
+    math.abs(-9223372036854775808)
+catch e
+    absMinCaught = e.kind == "RangeError"
+end
+assert absMinCaught
+
+assert math.sinh(0.0) == 0.0
+assert math.cosh(0.0) == 1.0
+assert math.tanh(0.0) == 0.0
+assert math.asinh(0.0) == 0.0
+assert math.acosh(1.0) == 0.0
+assert math.atanh(0.0) == 0.0
+assert math.erf(0.0) == 0.0
+assert math.erfc(0.0) == 1.0
+assert math.gamma(1.0) == 1.0
+assert math.logGamma(1.0) == 0.0
+assert math.fma(2.0, 3.0, 4.0) == 10.0
+assert math.copySign(2.0, -1.0) == -2.0
+assert math.signBit(-1.0)
+assert math.signBit(math.copySign(0.0, -1.0))
+assert not math.signBit(0.0)
+assert math.isNormal(1.0)
+assert math.isNormal(1.7976931348623157e308)
+assert math.isNormal(-2.2250738585072014e-308)
+assert not math.isNormal(math.nextAfter(2.2250738585072014e-308, 0.0))
+assert not math.isNormal(math.ldexp(1.0, -1074))
+assert math.isSubnormal(math.ldexp(1.0, -1074))
+assert not math.isSubnormal(0.0)
+assert not math.isSubnormal(math.inf)
+assert not math.isSubnormal(math.nan)
+assert math.classify(math.nan) == FloatClass.nan
+assert math.classify(math.inf) == FloatClass.infinite
+assert math.classify(-0.0) == FloatClass.zero
+assert math.classify(1.0) == FloatClass.normal
+assert math.classify(math.ldexp(1.0, -1074)) == FloatClass.subnormal
+assert not math.isNormal(0.0)
+assert not math.isNormal(math.inf)
+assert not math.isNormal(math.nan)
+assert not math.isUnordered(1.0, 2.0)
+assert math.isUnordered(math.nan, 2.0)
+assert math.isUnordered(1.0, math.nan)
+assert math.nextAfter(1.0, 2.0) > 1.0
+assert math.remainder(5.0, 2.0) == 1.0
+assert math.positiveDiff(2.0, 3.0) == 0.0
+assert math.minNumber(math.nan, 3.0) == 3.0
+assert math.maxNumber(math.nan, 3.0) == 3.0
+assert math.classify(math.minNumber(math.nan, math.nan)) == FloatClass.nan
+assert math.classify(math.maxNumber(math.nan, math.nan)) == FloatClass.nan
+assert math.classify(math.sqrt(-1.0)) == FloatClass.nan
+assert math.classify(math.log(0.0)) == FloatClass.infinite
+assert math.signBit(math.log(0.0))
+assert math.classify(math.exp(-math.inf)) == FloatClass.zero
+assert math.classify(math.nextAfter(0.0, 1.0)) == FloatClass.subnormal
+assert math.ldexp(0.5, 3) == 4.0
+assert math.scaleByPowerOfTwo(0.5, 3) == 4.0
+assert math.logb(8.0) == 3.0
+assert math.ilogb(8.0) == 3
+auto fraction, exponent = math.frexp(8.0)
+assert fraction == 0.5 and exponent == 4
+auto zeroFraction, zeroExponent = math.frexp(0.0)
+assert zeroFraction == 0.0 and zeroExponent == 0
+assert math.copySign(1.0, math.copySign(0.0, -1.0)) == -1.0, "negative zero construction"
+auto negativeZeroFraction, negativeZeroExponent = math.frexp(math.copySign(0.0, -1.0))
+assert math.copySign(1.0, negativeZeroFraction) == -1.0 and negativeZeroExponent == 0, "frexp negative zero"
+auto fractionalPart, integerPart = math.modf(-3.75)
+assert fractionalPart == -0.75 and integerPart == -3.0
+auto negativeZeroPart, negativeZeroInteger = math.modf(math.copySign(0.0, -1.0))
+assert math.copySign(1.0, negativeZeroPart) == -1.0, "modf negative zero fraction"
+assert math.copySign(1.0, negativeZeroInteger) == -1.0, "modf negative zero integer"
+auto remQuoRemainder, remQuoBits = math.remQuo(5.0, 2.0)
+assert remQuoRemainder == 1.0 and remQuoBits % 8 == 2
+auto negativeRemQuoRemainder, negativeRemQuoBits = math.remQuo(-5.0, 2.0)
+assert negativeRemQuoRemainder == -1.0 and negativeRemQuoBits % 8 == -2, "remquo negative quotient"
+bool exponentRangeCaught = false
+try
+    math.ldexp(1.0, 2147483648)
+catch e
+    exponentRangeCaught = e.kind == "RangeError"
+end
+assert exponentRangeCaught
+bool scaleRangeCaught = false
+try
+    math.scaleByPowerOfTwo(1.0, -2147483649)
+catch e
+    scaleRangeCaught = e.kind == "RangeError"
+end
+assert scaleRangeCaught
+auto quotient, remainder = math.divRem(-7, 3)
+assert quotient == -2 and remainder == -1
+bool divZeroCaught = false
+try
+    math.divRem(1, 0)
+catch e
+    divZeroCaught = e.kind == "ZeroDivisionError"
+end
+assert divZeroCaught
+bool divOverflowCaught = false
+try
+    math.divRem(-9223372036854775808, -1)
+catch e
+    divOverflowCaught = e.kind == "OverflowError"
+end
+assert divOverflowCaught

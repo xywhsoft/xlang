@@ -46,7 +46,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 (unsigned int)collection, (unsigned int)operand);
         else
             xl6OutputPrintf(out,
-                "    v%u = xrtValueObjectRemove(v%u, xrtStrView(v%u));\n",
+                "    v%u = xrtValueObjectRemove(v%u, v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)collection, (unsigned int)operand);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CONTAINS ) {

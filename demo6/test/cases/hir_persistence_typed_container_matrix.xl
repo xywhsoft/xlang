@@ -1,7 +1,7 @@
 class PersistItem
     derive value
     derive json
-    derive xson
+    derive xlon
 
     int id = 0
     string name = ""
@@ -23,16 +23,16 @@ var scoresJson = json.parse(json.stringify(scores))
 assert scoresJson.length == 2, "json materializes every typed dict item"
 assert scoresJson["alice"] == 10 and scoresJson["bob"] == 20, "json preserves typed dict values"
 
-assert json.stringify(xson.parse(xson.stringify(numbers))) == "[1,2,3]", "xson materializes typed array"
-assert json.stringify(xson.parse(xson.stringify(names))) == "[\"alpha\",\"beta\"]", "xson materializes typed list"
+assert json.stringify(xlon.parse(xlon.stringify(numbers))) == "[1,2,3]", "xlon materializes typed array"
+assert json.stringify(xlon.parse(xlon.stringify(names))) == "[\"alpha\",\"beta\"]", "xlon materializes typed list"
 
-var uniqueXson = xson.parse(xson.stringify(unique))
-assert uniqueXson.length == 3, "xson materializes every typed set item"
-assert 1 in uniqueXson and 2 in uniqueXson and 3 in uniqueXson, "xson preserves typed set values"
+var uniqueXlon = xlon.parse(xlon.stringify(unique))
+assert uniqueXlon.length == 3, "xlon materializes every typed set item"
+assert 1 in uniqueXlon and 2 in uniqueXlon and 3 in uniqueXlon, "xlon preserves typed set values"
 
-var scoresXson = xson.parse(xson.stringify(scores))
-assert scoresXson.length == 2, "xson materializes every typed dict item"
-assert scoresXson["alice"] == 10 and scoresXson["bob"] == 20, "xson preserves typed dict values"
+var scoresXlon = xlon.parse(xlon.stringify(scores))
+assert scoresXlon.length == 2, "xlon materializes every typed dict item"
+assert scoresXlon["alice"] == 10 and scoresXlon["bob"] == 20, "xlon preserves typed dict values"
 
 PersistItem first = PersistItem()
 first.id = 1
@@ -46,7 +46,7 @@ array<PersistItem> items = [first, second]
 string itemsJson = "[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}]"
 
 assert json.stringify(items) == itemsJson, "json materializes typed class array"
-assert json.stringify(xson.parse(xson.stringify(items))) == itemsJson, "xson materializes typed class array"
+assert json.stringify(xlon.parse(xlon.stringify(items))) == itemsJson, "xlon materializes typed class array"
 
 assert numbers.length == 3
 assert numbers[2] == 3

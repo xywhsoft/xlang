@@ -1,0 +1,68 @@
+func compareInt(int left, int right) as int
+    if left < right then return -1 end
+    if left > right then return 1 end
+    return 0
+end
+
+func compareText(string left, string right) as int
+    if left == right then return 0 end
+    if left == "a" then return -1 end
+    if right == "a" then return 1 end
+    if left == "b" then return -1 end
+    return 1
+end
+
+int keyCalls = 0
+func reverseKey(int value) as int
+    keyCalls += 1
+    return 10 - value
+end
+
+func failCompare(int left, int right) as int
+    throw ValueError "comparison failed"
+end
+
+func failKey(int value) as int
+    throw ValueError "key extraction failed"
+end
+
+array<int> values = array<int>[5, 1, 3, 2, 4]
+array.sort::<int>(values, compareInt)
+assert values == array<int>[1, 2, 3, 4, 5]
+assert array.binarySearch::<int>(values, 3, compareInt) == 2
+assert array.binarySearch::<int>(values, 6, compareInt) == -1
+
+array<int> duplicates = array<int>[2, 1, 2, 1]
+array.sort::<int>(duplicates, compareInt)
+assert duplicates == array<int>[1, 1, 2, 2]
+assert array.binarySearch::<int>(duplicates, 1, compareInt) == 0
+
+array<int> empty = []
+array.sort::<int>(empty, compareInt)
+assert array.binarySearch::<int>(empty, 1, compareInt) == -1
+
+array.sortBy::<int, int>(values, reverseKey, compareInt)
+assert values == array<int>[5, 4, 3, 2, 1]
+assert keyCalls == 5
+
+array<string> text = array<string>["c", "a", "b"]
+array.sort::<string>(text, compareText)
+assert text == array<string>["a", "b", "c"]
+assert array.binarySearch::<string>(text, "b", compareText) == 1
+
+bool comparisonCaught = false
+try
+    array.sort::<int>(array<int>[2, 1], failCompare)
+catch e
+    comparisonCaught = e.kind == "ValueError"
+end
+assert comparisonCaught
+
+array<int> intact = array<int>[3, 1, 2]
+bool keyCaught = false
+try
+    array.sortBy::<int, int>(intact, failKey, compareInt)
+catch e
+    keyCaught = e.kind == "ValueError"
+end
+assert keyCaught and intact == array<int>[3, 1, 2]

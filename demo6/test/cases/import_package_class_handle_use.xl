@@ -9,12 +9,11 @@ func main(...) as int
         return 2
     end
     int number = 1
-    class_handle_api.increment(byref number)
+    number = class_handle_api.increment(number)
     if number != 2 then
         return 3
     end
-    int output
-    class_handle_api.makeOut(7, out output)
+    int output = class_handle_api.makeOut(7)
     if output != 7 then
         return 4
     end

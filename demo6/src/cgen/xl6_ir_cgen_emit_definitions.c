@@ -9,9 +9,9 @@ static int xl6IrCgenEmitModuleDefinitions(
     if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0 &&
          !xl6IrCgenEmitPersistenceHelpers(
              out, module, XL6_IR_PERSIST_FORMAT_JSON, diags) ) return 0;
-    if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XSON) != 0 &&
+    if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 &&
          !xl6IrCgenEmitPersistenceHelpers(
-             out, module, XL6_IR_PERSIST_FORMAT_XSON, diags) ) return 0;
+             out, module, XL6_IR_PERSIST_FORMAT_XLON, diags) ) return 0;
     for ( i = 0; i < module->types.count; ++i ) {
         XL6_IrTypeId type = (XL6_IrTypeId)(i + 1);
         if ( xl6IrCgenProductDropNeeded(module, type) &&
@@ -103,6 +103,16 @@ static int xl6IrCgenEmitModuleDefinitions(
                 xl6OutputPuts(literal, out);
             else
                 xl6OutputPuts("NULL", out);
+            xl6OutputPuts(", ", out);
+            if ( abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING )
+                xl6OutputPrintf(out, "sizeof(%s) - 1u", literal);
+            else
+                xl6OutputPuts("0u", out);
+            xl6OutputPuts(", ", out);
+            if ( abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR )
+                xl6OutputPuts(literal, out);
+            else
+                xl6OutputPuts("UINT32_C(0)", out);
             xl6OutputPuts("}", out);
         }
         xl6OutputPuts("};\n", out);
@@ -129,7 +139,8 @@ static int xl6IrCgenEmitModuleDefinitions(
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind == XL6_IR_TYPE_NULLABLE) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
-                    type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) ||
+                    (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                     type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE &&
                     type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR) ||
                     (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE &&

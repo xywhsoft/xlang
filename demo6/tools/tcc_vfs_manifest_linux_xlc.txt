@@ -10,6 +10,7 @@ file|include/xlc.h|%XL6_ROOT%/release/include/xlc.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%/release/include/xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%/release/include/xl_extlib_abi.h
 file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h
+file|include/__xl_runtime/xl6_serialization_options.h|%XL6_ROOT%/src/runtime/xl6_serialization_options.h
 file|include/__xl_runtime/xl6_code_owner.h|%XL6_ROOT%/src/runtime/xl6_code_owner.h
 file|include/__xl_runtime/xl6_code_lease.h|%XL6_ROOT%/src/runtime/xl6_code_lease.h
 file|include/__xl_runtime/xl6_ownership_scope.h|%XL6_ROOT%/src/runtime/xl6_ownership_scope.h
@@ -58,4 +59,5 @@ file|__xl_compiler/lib/tcc/tcctools.c|%XL6_ROOT%/lib/tcc/tcctools.c
 file|__xl_compiler/lib/tcc/tcc_builtin_vfs.c|%XL6_ROOT%/lib/tcc/tcc_builtin_vfs.c
 dir|__xl_compiler/lib/lzma|%XL6_ROOT%/lib/lzma|*.h
 file|__xl_compiler/lib/lzma/LzmaDec.c|%XL6_ROOT%/lib/lzma/LzmaDec.c
-file|__xl_compiler/build/linux/tcc_builtin_resources_runtime.c|%XL6_ROOT%/build/linux/tcc_builtin_resources_runtime.c
+# 嵌套运行库必须来自同一次资源构建，不能借用默认 build/linux 中的旧包。
+file|__xl_compiler/build/linux/tcc_builtin_resources_runtime.c|%XL6_VFS_OUTPUT_DIR%/tcc_builtin_resources_runtime.c

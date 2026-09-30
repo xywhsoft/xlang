@@ -1,0 +1,4 @@
+auto columns, rows = console.size()
+assert columns >= 0 and rows >= 0
+assert console.colorMode() >= 0
+assert not console.isTerminal()

@@ -122,7 +122,17 @@ static int xl6IrCgenVerifyInstructions(
                         "XLIR C emitter shared runtime ABI is unresolved");
                 break;
             }
-            if ( ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_DUP &&
+            if ( ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_FROM_UTF8 &&
+                   (instruction->immediateText != NULL ||
+                    (instruction->immediateData == NULL && instruction->immediateSize != 0) ||
+                    instruction->operandCount != 0 ||
+                    xl6IrCgenType(module, instruction->type) == NULL)) ||
+                  (instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_FROM_DATA &&
+                   (instruction->immediateText != NULL ||
+                    (instruction->immediateData == NULL && instruction->immediateSize != 0) ||
+                    instruction->operandCount != 0 ||
+                    xl6IrCgenType(module, instruction->type) == NULL)) ||
+                  (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_DUP &&
                   (instruction->immediateText == NULL || instruction->operandCount != 0 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_COPY &&
@@ -130,6 +140,10 @@ static int xl6IrCgenVerifyInstructions(
                     xl6IrCgenType(module, instruction->type) == NULL)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_NULLABLE_COPY &&
                    !xl6IrCgenRuntimeNullableStringCopyAbi(module, instruction)) ||
+                  (xl6IrCgenPrimitiveSequenceRuntimeOpIs(
+                       instruction->runtimeOp) &&
+                   !xl6IrCgenPrimitiveSequenceRuntimeAbi(
+                       module, instruction)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F64_CHECKED &&
                    !xl6IrCgenRuntimeCheckedFloatConvertAbi(module, instruction)) ||
                   ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ||
@@ -212,6 +226,9 @@ static int xl6IrCgenVerifyInstructions(
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BOOL &&
                   (instruction->immediateText != NULL || instruction->operandCount != 1 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||
+                 (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CHAR &&
+                  (instruction->immediateText != NULL || instruction->operandCount != 1 ||
+                   xl6IrCgenType(module, instruction->type) == NULL)) ||
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_I64 &&
                   (instruction->immediateText != NULL || instruction->operandCount != 1 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||
@@ -249,8 +266,9 @@ static int xl6IrCgenVerifyInstructions(
                   (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_RAW_POINTER_BORROW &&
                    (instruction->immediateText != NULL || instruction->operandCount != 1 ||
                     xl6IrCgenType(module, instruction->type) == NULL)) ||
-                   (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_RETAIN &&
-                    !xl6IrCgenRuntimeXValueRetainAbi(module, instruction)) ||
+                   ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_RETAIN ||
+                     instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_RETAIN) &&
+                    !xl6IrCgenRuntimeManagedXValueRetainAbi(module, instruction)) ||
                    ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLONE ||
                      instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DEEP_CLONE) &&
                     (instruction->immediateText != NULL || instruction->operandCount != 1 ||
@@ -429,21 +447,21 @@ static int xl6IrCgenVerifyInstructions(
                   ((instruction->runtimeOp ==
                         XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                     instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY) &&
+                        XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY) &&
                    !xl6IrCgenPersistenceStringifyAbi(module, instruction)) ||
                   ((instruction->runtimeOp ==
                         XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                     instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE ||
+                        XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
                     instruction->runtimeOp ==
                         XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                     instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_PERSISTENCE_XSON_READ) &&
+                        XL6_IR_RUNTIME_PERSISTENCE_XLON_READ) &&
                    !xl6IrCgenPersistenceParseAbi(module, instruction)) ||
                   ((instruction->runtimeOp ==
                         XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
                     instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE) &&
+                        XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE) &&
                    !xl6IrCgenPersistenceWriteAbi(module, instruction)) ||
                  ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_ADD ||
                    instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_SUB ||
@@ -530,7 +548,11 @@ static int xl6IrCgenVerifyInstructions(
                     (instruction->immediateText != NULL ||
                      instruction->operandCount != 1 ||
                      xl6IrCgenType(module, instruction->type) == NULL)) ||
-                  (instruction->runtimeOp != XL6_IR_RUNTIME_STRING_DUP &&
+                   (instruction->runtimeOp != XL6_IR_RUNTIME_STRING_FROM_UTF8 &&
+                      instruction->runtimeOp != XL6_IR_RUNTIME_BYTES_FROM_DATA &&
+                     !xl6IrCgenPrimitiveSequenceRuntimeOpIs(
+                         instruction->runtimeOp) &&
+                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_DUP &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_COPY &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_NULLABLE_COPY &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_TO_F64_CHECKED &&
@@ -569,6 +591,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_TYPE_ID &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_NULL &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_BOOL &&
+                  instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CHAR &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_I64 &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_U64 &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_UNION_BOX &&
@@ -584,6 +607,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_BORROW &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_RAW_POINTER_BORROW &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_RETAIN &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_BYTES_RETAIN &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLONE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_DEEP_CLONE &&
                    instruction->runtimeOp !=
@@ -665,17 +689,17 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp !=
                        XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE &&
                    instruction->runtimeOp !=
-                       XL6_IR_RUNTIME_PERSISTENCE_XSON_STRINGIFY &&
+                       XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY &&
                    instruction->runtimeOp !=
-                       XL6_IR_RUNTIME_PERSISTENCE_XSON_PARSE &&
+                       XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE &&
                    instruction->runtimeOp !=
                        XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE &&
                    instruction->runtimeOp !=
                        XL6_IR_RUNTIME_PERSISTENCE_JSON_READ &&
                    instruction->runtimeOp !=
-                       XL6_IR_RUNTIME_PERSISTENCE_XSON_WRITE &&
+                       XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE &&
                    instruction->runtimeOp !=
-                       XL6_IR_RUNTIME_PERSISTENCE_XSON_READ &&
+                       XL6_IR_RUNTIME_PERSISTENCE_XLON_READ &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_BINARY_ADD &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_BINARY_SUB &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_BINARY_MUL &&
@@ -1036,6 +1060,8 @@ static int xl6IrCgenVerifyInstructions(
                 ? instruction->type == XL6_IR_TYPE_INVALID
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_BOOL
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_BOOL
+                : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_CHAR
+                ? type != NULL && type->cAbi == XL6_IR_C_ABI_CHAR_U32
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_I64
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_I64
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_U64
@@ -1051,7 +1077,9 @@ static int xl6IrCgenVerifyInstructions(
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_OWNED_STRING
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_XVALUE
-                ? type != NULL && type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+                ? type != NULL &&
+                  (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                   type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_ERROR

@@ -8,8 +8,8 @@ func choose(bool first) as int
     return value
 end
 
-func produce(out int value)
-    value = 31
+func produce() as int
+    return 31
 end
 
 func main(...) as int
@@ -22,8 +22,7 @@ func main(...) as int
     while false end
     assert(once == 7)
 
-    int output
-    produce(out output)
+    int output = produce()
     assert(output == 31)
     return 0
 end

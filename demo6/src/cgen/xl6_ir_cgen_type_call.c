@@ -97,11 +97,13 @@ static const char* xl6IrCgenCellKind(const XL6_IrType* element)
     if (element == NULL) return NULL;
     switch (element->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "XL6_CELL_BOOL";
+    case XL6_IR_C_ABI_CHAR_U32: return "XL6_CELL_CHAR";
     case XL6_IR_C_ABI_I64: return "XL6_CELL_I64";
     case XL6_IR_C_ABI_U64: return "XL6_CELL_U64";
     case XL6_IR_C_ABI_TYPE_ID: return "XL6_CELL_TYPE_ID";
     case XL6_IR_C_ABI_F64: return "XL6_CELL_F64";
     case XL6_IR_C_ABI_MANAGED_STRING: return "XL6_CELL_STRING";
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "XL6_CELL_XVALUE";
     case XL6_IR_C_ABI_TAGGED_NULLABLE:
         return element->cName[0] != '\0' ? "XL6_CELL_TRIVIAL_BYTES" : NULL;
@@ -435,7 +437,13 @@ static int xl6IrCgenEmitCallOperand(
         if ( type == NULL ) return 0;
         xl6OutputPrintf(out, "(%s*)v%u", type, (unsigned int)value);
     } else {
-        xl6OutputPrintf(out, "v%u", (unsigned int)value);
+        const XL6_IrType* type = xl6IrTypeGet(&module->types,
+            target->parameterTypes[parameter]);
+        xl6OutputPrintf(out, "v%u%s", (unsigned int)value,
+            type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+            (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
+             target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
+            target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ? ".Data" : "");
     }
     return !xl6OutputHasFailed(out);
 }
@@ -673,7 +681,7 @@ static int xl6IrCgenEmitDirectCall(
     else
         xl6OutputPuts("    ", out);
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
-        xl6OutputPuts("xrtStrDup(", out);
+        xl6OutputPuts("xlir_string_from_cstr(", out);
     if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL )
         xl6OutputPrintf(out, "xlir_fn_%u(",
                         (unsigned int)instruction->targetSymbol);
@@ -777,9 +785,13 @@ static int xl6IrCgenEmitCallErrorTest(
             (unsigned long)sourceIndex, (unsigned long)sourceIndex, (unsigned long)sourceIndex,
             prefix, (unsigned long)failure, (unsigned int)source->result,
             prefix, (unsigned long)success, prefix, (unsigned long)failure);
-    else if (physical == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT)
-        xl6OutputPrintf(out, "    if (v%u != NULL) goto %s%lu; else goto %s%lu;\n",
-            (unsigned int)source->result, prefix, (unsigned long)success, prefix, (unsigned long)failure);
+    else if (physical == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT) {
+        const XL6_IrType* valueType = xl6IrTypeGet(&module->types, source->type);
+        xl6OutputPrintf(out, "    if (v%u%s != NULL) goto %s%lu; else goto %s%lu;\n",
+            (unsigned int)source->result,
+            valueType != NULL && valueType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ? ".Data" : "",
+            prefix, (unsigned long)success, prefix, (unsigned long)failure);
+    }
     else if (physical == XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT)
         xl6OutputPrintf(out, "    if (v%u) goto %s%lu; else goto %s%lu;\n",
             (unsigned int)source->result, prefix, (unsigned long)success, prefix, (unsigned long)failure);
@@ -814,6 +826,7 @@ static int xl6IrCgenRetainInstructionAbi(
            instruction->result != XL6_IR_VALUE_INVALID && type != NULL &&
            (type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
             type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+            type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
             type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
             type->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR);
 }
@@ -837,7 +850,8 @@ static int xl6IrCgenEmitRetainInstruction(
             "    v%u = v%u != NULL ? xrtFutureRef(v%u) : NULL;\n",
             (unsigned int)instruction->result,
             (unsigned int)source, (unsigned int)source);
-    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+              type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
         xl6OutputPrintf(out,
             "    v%u = xrtValueRetain(v%u);\n",
             (unsigned int)instruction->result, (unsigned int)source);
