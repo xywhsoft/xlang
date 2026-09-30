@@ -4,11 +4,11 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3139。
-- xruntime 产品公共函数：3590，其中扩展自有 451。
-- 低层能力：3590 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3140。
+- xruntime 产品公共函数：3591，其中扩展自有 451。
+- 低层能力：3591 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1387 个函数。其余 2203 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1456 个函数。其余 2135 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -19,12 +19,12 @@
 | --- | --- | ---: | ---: | ---: |
 | xrt | `include/xrt/array.h` | 50 | 0 | 50 |
 | xrt | `include/xrt/asn1.h` | 27 | 0 | 27 |
-| xrt | `include/xrt/atomic.h` | 29 | 14 | 15 |
+| xrt | `include/xrt/atomic.h` | 29 | 17 | 12 |
 | xrt | `include/xrt/avl.h` | 43 | 0 | 43 |
 | xrt | `include/xrt/buffer.h` | 23 | 17 | 6 |
 | xrt | `include/xrt/cancel.h` | 15 | 11 | 4 |
 | xrt | `include/xrt/channel.h` | 42 | 14 | 28 |
-| xrt | `include/xrt/charset.h` | 69 | 28 | 41 |
+| xrt | `include/xrt/charset.h` | 69 | 30 | 39 |
 | xrt | `include/xrt/codec.h` | 20 | 6 | 14 |
 | xrt | `include/xrt/compress.h` | 18 | 0 | 18 |
 | xrt | `include/xrt/console.h` | 22 | 22 | 0 |
@@ -35,7 +35,7 @@
 | xrt | `include/xrt/error.h` | 29 | 24 | 5 |
 | xrt | `include/xrt/error_format.h` | 1 | 0 | 1 |
 | xrt | `include/xrt/executor.h` | 10 | 0 | 10 |
-| xrt | `include/xrt/file.h` | 98 | 27 | 71 |
+| xrt | `include/xrt/file.h` | 99 | 66 | 33 |
 | xrt | `include/xrt/file_async.h` | 34 | 0 | 34 |
 | xrt | `include/xrt/future.h` | 70 | 54 | 16 |
 | xrt | `include/xrt/future_bridge.h` | 10 | 0 | 10 |
@@ -52,7 +52,7 @@
 | xrt | `include/xrt/http_te.h` | 10 | 0 | 10 |
 | xrt | `include/xrt/http_trailer.h` | 6 | 0 | 6 |
 | xrt | `include/xrt/http_upgrade.h` | 10 | 0 | 10 |
-| xrt | `include/xrt/io.h` | 46 | 33 | 13 |
+| xrt | `include/xrt/io.h` | 46 | 35 | 11 |
 | xrt | `include/xrt/json.h` | 30 | 28 | 2 |
 | xrt | `include/xrt/jsonl.h` | 12 | 11 | 1 |
 | xrt | `include/xrt/list.h` | 28 | 0 | 28 |
@@ -101,7 +101,7 @@
 | xrt | `include/xrt/tls_verify.h` | 8 | 4 | 4 |
 | xrt | `include/xrt/udp.h` | 73 | 25 | 48 |
 | xrt | `include/xrt/value.h` | 142 | 114 | 28 |
-| xrt | `include/xrt/vfs.h` | 31 | 0 | 31 |
+| xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
 | xrt | `include/xrt/wait.h` | 3 | 2 | 1 |
 | xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |
 | xrt | `include/xrt/websocket_stream.h` | 38 | 25 | 13 |

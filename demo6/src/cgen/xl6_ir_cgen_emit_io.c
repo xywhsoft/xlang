@@ -1,6 +1,6 @@
 /* Selected IO adapters own only language results and close their XRT streams.
  * XRT supplies file modes, streaming, limits, short-operation handling and errors. */
-static void xl6IrCgenEmitIoRuntime(XL6_Output* out, uint64_t operations)
+static void xl6IrCgenEmitIoRuntime(XL6_Output* out, uint64_t operations, int fileReader, int fileWriter)
 {
     if (operations & 1u)
         xl6OutputPuts(
@@ -69,7 +69,7 @@ static void xl6IrCgenEmitIoRuntime(XL6_Output* out, uint64_t operations)
         "  if (w == NULL || w->stream == NULL) { xrtSetErrorKind(XERR_STATE); return NULL; } return w->stream; }\n"
         "\n"
         , out);
-    if (operations & (XL6_IO_BIT(READER_OPEN) | XL6_IO_BIT(READER_BYTES) | XL6_IO_BIT(READER_BUFFER) | XL6_IO_BIT(READER_STDIN))) xl6OutputPuts(
+    if (fileReader || (operations & (XL6_IO_BIT(READER_OPEN) | XL6_IO_BIT(READER_BYTES) | XL6_IO_BIT(READER_BUFFER) | XL6_IO_BIT(READER_STDIN)))) xl6OutputPuts(
         "static void* xlir_io_reader_take(xreader* stream)\n"
         "{ xlir_io_reader* r; xerror* error;\n"
         "  if (stream == NULL) return NULL;\n"
@@ -210,7 +210,7 @@ static void xl6IrCgenEmitIoRuntime(XL6_Output* out, uint64_t operations)
         "bool xl6_xrt_io_reader_closed(void* handle) { return handle == NULL || ((xlir_io_reader*)handle)->stream == NULL; }\n"
         "\n"
         , out);
-    if (operations & (XL6_IO_BIT(WRITER_OPEN) | XL6_IO_BIT(WRITER_BUFFER) | XL6_IO_BIT(WRITER_STANDARD))) xl6OutputPuts(
+    if (fileWriter || (operations & (XL6_IO_BIT(WRITER_OPEN) | XL6_IO_BIT(WRITER_BUFFER) | XL6_IO_BIT(WRITER_STANDARD)))) xl6OutputPuts(
         "static void* xlir_io_writer_take(xwriter* stream, void* owner, void (*drop)(void*))\n"
         "{ xlir_io_writer* w; xerror* error;\n"
         "  if (stream == NULL) { error = xrtTakeError(); if (drop != NULL) { drop(owner); }\n"

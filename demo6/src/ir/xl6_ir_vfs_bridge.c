@@ -112,6 +112,20 @@ const char* xl6IrRuntimeFsBridgeModule(XL6_IrRuntimeBridgeKind kind)
     default: return NULL;
     }
 }
+int xl6IrRuntimeFsBridgeUsesOwner(XL6_IrRuntimeBridgeKind kind, const char* owner)
+{
+    size_t index, parameter;
+    if (owner == NULL) return 0;
+    for (index = 0; index < sizeof(xl6IrVfsContracts)/sizeof(xl6IrVfsContracts[0]); ++index) {
+        const XL6_IrVfsContract* c = &xl6IrVfsContracts[index];
+        if (c->kind != kind) continue;
+        if (c->resultOwner != NULL && strcmp(c->resultOwner, owner) == 0) return 1;
+        for (parameter = 0; parameter < c->count; ++parameter)
+            if (c->parameterOwners[parameter] != NULL && strcmp(c->parameterOwners[parameter], owner) == 0) return 1;
+        return 0;
+    }
+    return 0;
+}
 const char* xl6IrRuntimeVfsBridgeParameterOwner(const char* name, size_t parameter)
 {
     const XL6_IrVfsContract* c = xl6IrVfsContract(name);

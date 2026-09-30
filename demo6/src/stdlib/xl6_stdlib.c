@@ -1720,8 +1720,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
     needsFileClass = needsFileClass || needsVfs || xl6StdlibFuncUsed(used, "file", "stat") ||
+        xl6StdlibFuncUsed(used, "file", "root") || xl6StdlibNodeUsesTypeName(root, "FileRoot") ||
+        xl6StdlibNodeUsesTypeName(root, "MappedFile") || xl6StdlibNodeUsesTypeName(root, "FileLock") ||
         xl6StdlibFuncUsed(used, "dir", "open") || xl6StdlibNodeUsesTypeName(root, "FileStat") ||
         xl6StdlibNodeUsesTypeName(root, "DirectoryIterator");
+    needsIoReader = needsIoReader || needsFileClass;
+    needsIoWriter = needsIoWriter || needsFileClass;
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
@@ -1801,11 +1805,15 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (needsConsoleSession) xl6StdlibBuilderAppend(&builder, xl6StdlibConsoleSessionSource);
     if (needsIoReader) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibIoReaderSource);
+        if (needsFileClass) xl6StdlibBuilderAppend(&builder,
+            "    extern \"xl6_xrt_fs_file_reader\" create(File file)\n");
         if (needsIoBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibIoReaderBufferSource);
         xl6StdlibBuilderAppend(&builder, "end\n");
     }
     if (needsIoWriter) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibIoWriterSource);
+        if (needsFileClass) xl6StdlibBuilderAppend(&builder,
+            "    extern \"xl6_xrt_fs_file_writer\" create(File file)\n");
         if (needsIoBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibIoWriterBufferSource);
         xl6StdlibBuilderAppend(&builder, "end\n");
     }
@@ -1953,6 +1961,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibFsDirectorySource);
         if (needsVfs) xl6StdlibBuilderAppend(&builder, xl6StdlibFsDirectoryVfsSource);
         xl6StdlibBuilderAppend(&builder, "end\n");
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFsResourceSource);
     }
     if ( needsAsyncFileClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibAsyncFileClassSource);

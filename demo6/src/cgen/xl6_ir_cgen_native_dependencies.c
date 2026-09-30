@@ -55,8 +55,11 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
             XL6_IrRuntimeBridgeKind kind = (XL6_IrRuntimeBridgeKind)(XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN + base + bit);
             const char* name = xl6IrRuntimeFsBridgeModule(kind);
             if (name == NULL || !visitor(context, name)) return 0;
-            if (kind <= XL6_IR_RUNTIME_BRIDGE_FS_FILE_NATIVE || kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_FILE ||
-                kind == XL6_IR_RUNTIME_BRIDGE_FS_FILE_HANDLE || kind == XL6_IR_RUNTIME_BRIDGE_FS_FILE_READ_TEXT) REQUIRE("XRT_MODULE_ATOMIC");
+            if (xl6IrRuntimeFsBridgeUsesOwner(kind, "xl6_xrt_fs_file_destroy") ||
+                xl6IrRuntimeFsBridgeUsesOwner(kind, "xl6_xrt_fs_map_destroy") ||
+                xl6IrRuntimeFsBridgeUsesOwner(kind, "xl6_xrt_fs_lock_destroy")) {
+                REQUIRE("XRT_MODULE_FILE"); REQUIRE("XRT_MODULE_ATOMIC");
+            }
             if (kind == XL6_IR_RUNTIME_BRIDGE_FS_INFO_NAME) REQUIRE("XRT_MODULE_UNICODE");
         }
         break;

@@ -1,0 +1,44 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+auto source = file.open("build/test/fs-allocation.bin", 15)
+assert source.writeAll(b"a\0bc") == 4
+int failures = 0
+int successes = 0
+for operation in range(8)
+    for point in range(48)
+        bool caught = false
+        assert failAfter(uint64(point))
+        try
+            if operation == 0 then
+                auto opened = file.open("build/test/fs-allocation.bin")
+            elseif operation == 1 then
+                auto reader = source.reader()
+            elseif operation == 2 then
+                auto writer = source.writer()
+            elseif operation == 3 then
+                auto map = source.map(uint64(0), 4)
+            elseif operation == 4 then
+                auto lock = source.lock()
+            elseif operation == 5 then
+                auto metadata = source.stat()
+            elseif operation == 6 then
+                auto iterator = dir.open("build/test", 1)
+                if iterator.advance() then
+                    auto entry = iterator.current()
+                end
+            else
+                auto root = file.root("build/test")
+            end
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == triggered
+        if caught then failures += 1 else successes += 1 end
+    end
+end
+assert failures > 0 and successes > 0
+assert source.close()
+assert file.delete("build/test/fs-allocation.bin")

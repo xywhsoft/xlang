@@ -5700,6 +5700,7 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name);
 int xl6IrRuntimeVfsBridgeIsFactory(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeVfsBridgeErrorAbi(const char* name);
 const char* xl6IrRuntimeFsBridgeModule(XL6_IrRuntimeBridgeKind kind);
+int xl6IrRuntimeFsBridgeUsesOwner(XL6_IrRuntimeBridgeKind kind, const char* owner);
 const char* xl6IrRuntimeVfsBridgeParameterOwner(const char* name, size_t parameter);
 int xl6IrRuntimeVfsBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);

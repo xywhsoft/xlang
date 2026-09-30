@@ -1,0 +1,36 @@
+string path = "build/test/fs-root"
+dir.delete(path)
+assert dir.createAll(path)
+auto root = file.root(path)
+assert root.path.length > 0
+assert root.createDir("child")
+auto stream = root.open("child/value.bin", 15)
+assert stream.writeAll(b"a\0b") == 3
+assert stream.close()
+auto info = root.stat("child/value.bin")
+assert info.type == 1 and info.size == uint64(3)
+auto iterator = root.openDir("child", 1)
+assert iterator.advance()
+auto entry = iterator.current()
+assert entry.name == "value.bin" and entry.size == uint64(3)
+assert not iterator.advance()
+assert iterator.close()
+auto child = root.openRoot("child")
+bool escaped = false
+try
+    root.open("../vfs-disk.bin")
+catch e
+    escaped = true
+end
+assert escaped, "anchored root cannot escape through .."
+assert root.createHardLink("child/value.bin", "child/hard.bin")
+assert root.stat("child/hard.bin").size == uint64(3)
+assert root.remove("child/hard.bin")
+assert root.close() and root.close()
+auto independent = child.open("value.bin")
+assert independent.readExact(3) == b"a\0b"
+assert independent.close()
+assert child.remove("value.bin")
+assert child.close() and child.close()
+assert dir.delete(path)
+print("fs root ok")

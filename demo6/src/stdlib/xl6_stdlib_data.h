@@ -6,7 +6,7 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 127
-#define XL6_STDLIB_FUNC_COUNT 965
+#define XL6_STDLIB_FUNC_COUNT 966
 
 typedef struct XL6_StdlibParam {
     const char* type;
@@ -63,6 +63,7 @@ extern const char* xl6StdlibFsStatSource;
 extern const char* xl6StdlibFsStatVfsSource;
 extern const char* xl6StdlibFsDirectorySource;
 extern const char* xl6StdlibFsDirectoryVfsSource;
+extern const char* xl6StdlibFsResourceSource;
 extern const char* xl6StdlibFloatClassSource;
 extern const char* xl6StdlibRandomClassSource;
 extern const char* xl6StdlibRandomBufferMethodsSource;
