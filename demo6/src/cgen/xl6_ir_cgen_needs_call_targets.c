@@ -27,63 +27,6 @@ static int xl6IrCgenRequireErrorResult(
     return 1;
 }
 
-static int xl6IrCgenIsSipHasher64BridgeName(const char* name)
-{
-    static const char* const names[] = {
-        "xl6_xrt_siphasher64_create", "xl6_xrt_siphasher64_adopt",
-        "xl6_xrt_siphasher64_destroy", "xl6_xrt_siphasher64_update_string",
-        "xl6_xrt_siphasher64_update_bytes", "xl6_xrt_siphasher64_update_raw",
-        "xl6_xrt_siphasher64_digest", "xl6_xrt_siphasher64_reset",
-        "xl6_xrt_siphasher64_clone", "xl6_xrt_siphasher64_input_bytes"
-    };
-    size_t index;
-    if ( name == NULL ) return 0;
-    for ( index = 0; index < sizeof(names) / sizeof(names[0]); ++index )
-        if ( strcmp(name, names[index]) == 0 ) return 1;
-    return 0;
-}
-
-static unsigned int xl6IrCgenRandomBridgeOperation(const char* name)
-{
-    static const struct { const char* name; unsigned int operation; } entries[] = {
-        {"xl6_xrt_rng_create", XL6_CGEN_RNG_CREATE},
-        {"xl6_xrt_rng_create_default", XL6_CGEN_RNG_CREATE_DEFAULT},
-        {"xl6_xrt_rng_destroy", XL6_CGEN_RNG_DESTROY},
-        {"xl6_xrt_rng_seed", XL6_CGEN_RNG_SEED},
-        {"xl6_xrt_rng_u32", XL6_CGEN_RNG_U32},
-        {"xl6_xrt_rng_u64", XL6_CGEN_RNG_U64},
-        {"xl6_xrt_rng_below", XL6_CGEN_RNG_BELOW},
-        {"xl6_xrt_rng_range", XL6_CGEN_RNG_RANGE},
-        {"xl6_xrt_rng_range_closed", XL6_CGEN_RNG_RANGE_CLOSED},
-        {"xl6_xrt_rng_real", XL6_CGEN_RNG_REAL},
-        {"xl6_xrt_rng_bytes", XL6_CGEN_RNG_BYTES},
-        {"xl6_xrt_rng_string", XL6_CGEN_RNG_STRING},
-        {"xl6_xrt_rng_fill_buffer", XL6_CGEN_RNG_FILL_BUFFER},
-        {"xl6_xrt_rng_shuffle_array", XL6_CGEN_RNG_SHUFFLE_ARRAY},
-        {"xl6_xrt_rng_shuffle_buffer", XL6_CGEN_RNG_SHUFFLE_BUFFER},
-        {"xl6_xrt_random_seed", XL6_CGEN_RAND_SEED},
-        {"xl6_xrt_random_u32", XL6_CGEN_RAND_U32},
-        {"xl6_xrt_random_u64", XL6_CGEN_RAND_U64},
-        {"xl6_xrt_random_below", XL6_CGEN_RAND_BELOW},
-        {"xl6_xrt_random_range", XL6_CGEN_RAND_RANGE},
-        {"xl6_xrt_random_range_closed", XL6_CGEN_RAND_RANGE_CLOSED},
-        {"xl6_xrt_random_real", XL6_CGEN_RAND_REAL},
-        {"xl6_xrt_random_bytes", XL6_CGEN_RAND_BYTES},
-        {"xl6_xrt_random_string", XL6_CGEN_RAND_STRING},
-        {"xl6_xrt_random_fill_buffer", XL6_CGEN_RAND_FILL_BUFFER},
-        {"xl6_xrt_random_shuffle_array", XL6_CGEN_RAND_SHUFFLE_ARRAY},
-        {"xl6_xrt_random_shuffle_buffer", XL6_CGEN_RAND_SHUFFLE_BUFFER},
-        {"xl6_xrt_secure_bytes", XL6_CGEN_SECURE_BYTES},
-        {"xl6_xrt_secure_fill_buffer", XL6_CGEN_SECURE_FILL_BUFFER},
-        {"xl6_xrt_secure_hex", XL6_CGEN_SECURE_HEX},
-        {"xl6_xrt_secure_string", XL6_CGEN_SECURE_STRING}
-    };
-    size_t i;
-    if (name == NULL) return 0;
-    for (i = 0; i < sizeof(entries) / sizeof(entries[0]); ++i)
-        if (strcmp(name, entries[i].name) == 0) return entries[i].operation;
-    return 0;
-}
 
 static int xl6IrCgenAnalyzeCallTargetNeeds(
     const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
@@ -94,14 +37,18 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
-        if ( xl6IrCgenIsSipHasher64BridgeName(target->cName) ) {
-            if ( strcmp(target->cName, "xl6_xrt_siphasher64_update_raw") == 0 )
+        if (target->runtimeBridgeOperation >= XL6_IR_RUNTIME_BRIDGE_OPERATION_SIPHASHER_CREATE &&
+            target->runtimeBridgeOperation <= XL6_IR_RUNTIME_BRIDGE_OPERATION_SIPHASHER_INPUT_BYTES) {
+            if (target->runtimeBridgeOperation == XL6_IR_RUNTIME_BRIDGE_OPERATION_SIPHASHER_UPDATE_RAW)
                 needs->needsSipHasher64RawBridgeRuntime = 1;
             else needs->needsSipHasher64BridgeRuntime = 1;
             needs->needsXValueRuntime = 1;
         }
         {
-            unsigned int randomOperation = xl6IrCgenRandomBridgeOperation(target->cName);
+            unsigned int randomOperation = 0;
+            if (target->runtimeBridgeOperation >= XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE &&
+                target->runtimeBridgeOperation <= XL6_IR_RUNTIME_BRIDGE_OPERATION_SECURE_STRING)
+                randomOperation = 1u << (target->runtimeBridgeOperation - XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE);
             needs->randomBridgeOperations |= randomOperation;
             if (randomOperation & (XL6_CGEN_RNG_TEXT_MASK |
                     XL6_CGEN_SECURE_STRING | XL6_CGEN_SECURE_HEX)) {

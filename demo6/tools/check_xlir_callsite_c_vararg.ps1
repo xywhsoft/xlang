@@ -105,5 +105,19 @@ $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_C
 & $env:ComSpec /d /v:on /c $command
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR C variadic CallSite generated-C runtime failed" }
 
+$boundarySource = Join-Path $Root 'test/cases/xlir_c_vararg_text_boundary.xl'
+$boundaryC = Join-Path $outputDir 'xlir_c_vararg_text_boundary_generated.c'
+$boundaryExe = Join-Path $outputDir 'xlir_c_vararg_text_boundary.exe'
+& $xl cgen $boundarySource --backend xlir --emit $boundaryC
+if ($LASTEXITCODE -ne 0) { throw 'C variadic text boundary Cgen failed' }
+$boundary = [IO.File]::ReadAllText($boundaryC)
+if ([regex]::Matches($boundary, 'const char\* ct\d+_\d+ = xlir_string_cstr\(v\d+\);').Count -ne 4 -or
+    [regex]::Matches($boundary, 'if \(ct\d+_\d+ != NULL && ct\d+_\d+ != NULL\)').Count -ne 2) {
+    throw 'Every variadic text operand must be adapted and gate the native invocation'
+}
+$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_C_VARARG_TEXT_BOUNDARY $hostSource !XL6_CGEN_LINKS! -o $boundaryExe && $boundaryExe"
+& $env:ComSpec /d /v:on /c $command
+if ($LASTEXITCODE -ne 0) { throw 'C variadic text NUL/default-promotions/skip-callee runtime failed' }
+
 Write-Output "XLIR C variadic CallSite gate ok: fixed/tail ABI, native operands, ownership, prototype, strict C, and va_list runtime."
 exit 0

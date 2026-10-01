@@ -81,7 +81,17 @@ int main(int argc, char** argv)
             }
         }
     }
-    assert(transactions == 4 && takes >= 3 && copies >= 5 && entryCopies >= 3); verify(&ir);
+    /* Only the rebound first parameter needs an entry copy. Read-only
+     * arguments remain transport borrows; await-result acquisition is owned. */
+    assert(transactions == 4 && takes >= 3 && copies == 3 && entryCopies == 1);
+    for (i = 0; i < ir.callTargetCount; ++i) if (ir.callTargets[i].symbol == entryTarget) {
+        const XL6_IrCallTarget* target = &ir.callTargets[i];
+        assert(target->parameterCount == 4);
+        for (n = 0; n < 4; ++n) {
+            if (n != 2) assert(xl6IrCallTargetParameterCanBorrowReadOnly(&ir, target, n) == (n != 0));
+        }
+    }
+    verify(&ir);
     assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "SOURCE_LEASE", &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[3])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);

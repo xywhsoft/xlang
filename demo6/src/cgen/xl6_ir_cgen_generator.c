@@ -245,6 +245,7 @@ static int xl6IrCgenEmitGeneratorInstruction(
         if (!xl6IrCgenEmitProductInstruction(out, module, instruction, diags)) return 0;
         break;
     case XL6_IR_INSTR_CONST:
+        if (xl6IrCgenResultStorageOmitted(module, instruction)) break;
         if ( instruction->immediateText == NULL )
             return xl6IrCgenDiag(diags, module, instruction->origin,
                                  "XLIR generator constant has no canonical payload");
@@ -641,7 +642,9 @@ static int xl6IrCgenEmitGeneratorMachine(
     for ( local = 0; local < function->valueCount; ++local ) {
         XL6_IrValueId value = (XL6_IrValueId)(function->firstValue + local);
         const XL6_IrInstruction* definition = xl6IrCgenValueDefinition(module, value, NULL);
-        if ( definition != NULL && xl6IrCgenType(module, definition->type) != NULL )
+        if ( definition != NULL &&
+             !xl6IrCgenResultStorageOmitted(module, definition) &&
+             xl6IrCgenType(module, definition->type) != NULL )
             xl6OutputPrintf(out, "    %s v%u;\n",
                 xl6IrCgenType(module, definition->type), (unsigned int)value);
     }

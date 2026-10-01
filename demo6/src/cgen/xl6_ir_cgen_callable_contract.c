@@ -537,11 +537,7 @@ static const XL6_IrType* xl6IrCgenTaggedNullableElement(
     if ( tagged == NULL || tagged->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
          tagged->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
          tagged->cName[0] == '\0' || element == NULL ||
-         (element->cAbi != XL6_IR_C_ABI_BOOL &&
-          element->cAbi != XL6_IR_C_ABI_I64 &&
-          element->cAbi != XL6_IR_C_ABI_U64 &&
-          element->cAbi != XL6_IR_C_ABI_F64 &&
-          element->cAbi != XL6_IR_C_ABI_TIME_I64) ) return NULL;
+         !xl6IrTaggedNullableScalarSupported(element->cAbi) ) return NULL;
     return element;
 }
 

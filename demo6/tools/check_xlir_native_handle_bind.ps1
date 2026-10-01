@@ -78,7 +78,10 @@ $nativeTemps = @($lowered.storages | Where-Object {
     $_.kindName -eq 'temporary' -and $_.type -eq $targetType
 })
 if ( $borrowedInternal.Count -ne 1 -or
-     $nativeTemps.Count -ne $lowered.nativeHandleBindCount -or
+     @($lowered.nativeHandleBinds | Where-Object {
+         $bind = $_
+         @($nativeTemps | Where-Object { $_.declaration -eq $bind.origin }).Count -ne 1
+     }).Count -ne 0 -or
      @($bindInstructions | Where-Object {
          $_.targetSymbol -ne $destroySymbol
      }).Count -ne 0 ) {

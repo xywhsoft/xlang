@@ -96,9 +96,10 @@ foreach ( $fixture in $fixtures ) {
     foreach ( $intrinsic in $intrinsics ) {
         $receiverType = Get-Type $typed ([int]$intrinsic.receiverType)
         $operands = @($typed.intrinsicOperands | Select-Object -Skip ([int]$intrinsic.firstOperand) -First ([int]$intrinsic.operandCount))
+        $expectedErrorAbi = if ($intrinsic.kindName -in @('array-append', 'set-add')) { 'may-raise' } else { 'no-raise' }
         if ( $intrinsic.admissionName -ne "verified" -or
              $intrinsic.resultAbiName -ne "value" -or
-             $intrinsic.errorAbiName -ne "no-raise" -or
+             $intrinsic.errorAbiName -ne $expectedErrorAbi -or
              $null -eq $receiverType -or
              $receiverType.collectionAbiName -ne $intrinsic.collectionAbiName -or
              $operands.Count -ne 1 ) {
@@ -138,6 +139,13 @@ foreach ( $fixture in $fixtures ) {
         if ( $runtime.Count -ne 1 ) {
             throw "XLIR collection-member intrinsic has no unique lowered runtime operation"
         }
+        if ($expectedErrorAbi -eq 'may-raise') {
+            $test = $lowered.instructions[$runtime[0].index + 1]
+            if ($test.kindName -ne 'error-test' -or $test.operands[0] -ne $runtime[0].result -or
+                $test.trueTarget -eq $test.falseTarget) {
+                throw 'Allocating collection mutation has no distinct checked success/failure edges'
+            }
+        }
         $expectedInstructionCollection = if ( $intrinsic.kindName -eq "collection-remove" ) {
             $intrinsic.collectionAbiName
         } else {
@@ -176,6 +184,12 @@ foreach ( $fixture in $fixtures ) {
                 $releases = @($body | Where-Object {
                     $_.kindName -eq "release" -and [uint64]$_.targetSymbol -eq $symbol
                 })
+                if ([int]$type.cAbi -eq 25 -and $stores.Count -eq 0) {
+                    if ($loads.Count -lt 1 -or $releases.Count -ne 0) {
+                        throw 'Read-only string transport borrow acquired cleanup or lost its incoming load'
+                    }
+                    continue
+                }
                 if ( $loads.Count -lt 1 -or $stores.Count -lt 1 -or $releases.Count -lt 1 ) {
                     throw "XLIR managed BORROW parameter lost its lexical-owner prologue or terminal cleanup"
                 }

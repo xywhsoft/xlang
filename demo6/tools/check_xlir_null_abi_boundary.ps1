@@ -260,11 +260,11 @@ if ( $cellCapture.Count -ne 1 -or
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR tagged nullable mutable-capture Cgen failed" }
 $cellGenerated = [System.IO.File]::ReadAllText($cellCPath, [System.Text.Encoding]::UTF8)
 foreach ( $pattern in @(
-    'union \{[^}]*void\* tagged;',
-    'static xlir_cell\* xlir_cell_new_xlir_nullable_t[0-9]+\(void\)',
-    'static xlir_nullable_t[0-9]+ xlir_cell_load_xlir_nullable_t[0-9]+\(const xlir_cell\* cell\)',
-    'static void xlir_cell_store_xlir_nullable_t[0-9]+\(xlir_cell\* cell, xlir_nullable_t[0-9]+ value\)',
-    'cell->kind == 6\) xrtFree\(cell->value\.tagged\)'
+    'xl6CellRuntimeV1Get\(\)->Create\)\(XL6_CELL_TRIVIAL_BYTES, sizeof\(xlir_nullable_t[0-9]+\)\)',
+    'xl6CellRuntimeV1Get\(\)->Initialize\)\([^;]*sizeof\(xlir_nullable_t[0-9]+\)\)',
+    'xl6CellRuntimeV1Get\(\)->Load\)\([^;]*sizeof\(xlir_nullable_t[0-9]+\)\)',
+    'xl6CellRuntimeV1Get\(\)->Store\)\([^;]*sizeof\(xlir_nullable_t[0-9]+\)\)',
+    '#define xlir_cell_release \(xl6CellRuntimeV1Get\(\)->Release\)'
 ) ) {
     if ( $cellGenerated -notmatch $pattern ) {
         throw "XLIR tagged nullable mutable-capture C ABI is incomplete: $pattern"
@@ -341,9 +341,9 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR tagged nullable async Cgen failed" }
 $asyncGenerated = [System.IO.File]::ReadAllText($asyncCPath, [System.Text.Encoding]::UTF8)
 foreach ( $pattern in @(
     'typedef struct xlir_async_frame_[0-9]+ \{[^}]*xlir_nullable_t[0-9]+ p1;',
-    'static xlir_nullable_t[0-9]+ xlir_future_await_xlir_nullable_t[0-9]+\(xfuture\* future\)',
-    'xlir_nullable_t[0-9]+\* value;',
-    'result->Value = value; result->Destroy = xlir_async_value_free; result->DestroyData = NULL;'
+    'static bool xlir_future_wait_checked\(xfuture\* future, int32_t line, int32_t column\)',
+    'xlir_nullable_t[0-9]+\* value = NULL;',
+    'result->Value = value; result->Destroy = xl6PayloadDropGet\(XL6_FUTURE_PAYLOAD_VALUE\); result->DestroyData = NULL;'
 ) ) {
     if ( $asyncGenerated -notmatch $pattern ) {
         throw "XLIR tagged nullable async C ABI is incomplete: $pattern"
@@ -356,9 +356,14 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR tagged nullable async generated-C runti
 & $xl ir $continuationSource --lowered --format text --emit $continuationIrPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR tagged nullable continuation text IR failed" }
 $continuationText = [System.IO.File]::ReadAllText($continuationIrPath, [System.Text.Encoding]::UTF8)
-foreach ( $required in @("async-machine m0 status=analyzed target=2", "machine-frame f0 source=storage residence=launch-parameter", "transfer=copy-value destroy=none", "suspension q0", "result=v22/t4/copy-tagged", "null-test", "nullable-unwrap") ) {
+foreach ( $required in @("machine-frame f0 source=storage residence=launch-parameter", "suspension q0", "null-test", "nullable-unwrap") ) {
     if ( ! $continuationText.Contains($required) ) {
         throw "XLIR tagged nullable machine continuation ABI is incomplete: $required"
+    }
+}
+foreach ($pattern in @('async-machine m0 status=analyzed [^\r\n]*target=2\b', 'result=v\d+/t4/copy-tagged', 'machine-frame f0 [^\r\n]*transfer=copy-value [^\r\n]*destroy=none')) {
+    if ($continuationText -notmatch $pattern) {
+        throw "XLIR tagged nullable machine continuation ABI is incomplete: $pattern"
     }
 }
 
@@ -394,12 +399,13 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR tagged nullable continuation Cgen faile
 $continuationGenerated = [System.IO.File]::ReadAllText($continuationCPath, [System.Text.Encoding]::UTF8)
 foreach ( $pattern in @(
     'typedef struct xlir_async_machine_frame_[0-9]+ \{[^}]*int64_t f0;[^}]*xpromise\* outer;',
-    'v[0-9]+ = \*\(const xlir_nullable_t[0-9]+\*\)input->Value;',
+    'xlir_nullable_t[0-9]+ const\* payload = \(xlir_nullable_t[0-9]+ const\*\)\(input->Value\);',
+    'v[0-9]+ = \*payload;',
     'v[0-9]+ = !v[0-9]+\.hasValue;',
     'v[0-9]+ = v[0-9]+\.value;',
     'v[0-9]+ = frame->f0;',
-    'xrtPromiseResolveOwned\(destination, value, xlir_async_value_free, NULL\)',
-    'xlir_async_machine_watch_[0-9]+_0\(frame, v[0-9]+\)'
+    'xl6PayloadResolveOwned\(destination, value, XL6_FUTURE_PAYLOAD_VALUE\)',
+    'xlir_async_machine_watch_[0-9]+_0\(frame, v[0-9]+, NULL\)'
 ) ) {
     if ( $continuationGenerated -notmatch $pattern ) {
         throw "XLIR tagged nullable continuation C ABI is incomplete: $pattern"
@@ -535,7 +541,7 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR xvalue-sentinel coalesce Cgen failed" }
 $sentinelCoalesceGenerated = [System.IO.File]::ReadAllText($sentinelCoalesceCPath, [System.Text.Encoding]::UTF8)
 foreach ( $pattern in @(
     'v(?<unwrap>[0-9]+) = v[0-9]+;\r?\n\s+v[0-9]+ = xrtValueRetain\(v\k<unwrap>\);',
-    '\{ xvalue\* xlir_released = (?<slot>s[0-9]+); \k<slot> = NULL; xrtValueRelease\(xlir_released\); \}',
+    '(?s)\{ xvalue\* xlir_released;\s*xvalue\* const xlir_empty = \{0\};\s*\{ const XL6_SlotWrite xlir_writes\[\] = \{\s*\{ &\(xlir_released\), &\((?<slot>s[0-9]+)\), sizeof\(xlir_released\) \},\s*\{ &\(\k<slot>\), &\(xlir_empty\), sizeof\(\k<slot>\) \},\s*\}; \(xl6SlotRuntimeV1Get\(\)->Apply\)\([^;]+; \}\s*xrtValueRelease\(xlir_released\); \}',
     'int64_t xlir_nullable_sentinel_var\(bool xlir_input_0\)',
     'int64_t xlir_nullable_sentinel_class\(bool xlir_input_0\)',
     'int64_t xlir_nullable_literal_coalesce\(void\)'
@@ -551,15 +557,11 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR xvalue-sentinel coalesce generated-C ru
 & $xl ir $sentinelAssignSource --lowered --format text --emit $sentinelAssignIrPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR null-aware assignment text IR failed" }
 $sentinelAssignText = [System.IO.File]::ReadAllText($sentinelAssignIrPath, [System.Text.Encoding]::UTF8)
-if ( ([regex]::Matches($sentinelAssignText,
-          '\bload opcode=none runtime=none v[0-9]+ type=(?<type>[0-9]+) target=(?<storage>[0-9]+).* origin=n(?<origin>[0-9]+)[^\r\n]*\r?\n' +
-          '\s+i[0-9]+ null-test [^\r\n]* origin=n\k<origin>[^\r\n]*\r?\n' +
-          '\s+i[0-9]+ branch [^\r\n]* origin=n\k<origin>[^\r\n]*(?:\r?\n[\s\S]*?)?' +
-          '\b(RUNTIME-CALL|call|value)\b[^\r\n]*\r?\n' +
-          '\s+i[0-9]+ release [^\r\n]* type=\k<type> target=\k<storage>[^\r\n]* origin=n\k<origin>[^\r\n]*\r?\n' +
-          '\s+i[0-9]+ store [^\r\n]* type=\k<type> target=\k<storage>[^\r\n]* origin=n\k<origin>',
-          [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)).Count -lt 2 -or
-     $sentinelAssignText -notmatch 'symbol=3 errors=no-raise .* reach=unreachable' ) {
+# Ownership transactions may place explicit cleanup steps between these
+# instructions. The function-scoped JSON checks below bind exact replacement
+# storage/type/origin and lazy RHS reachability; adjacency is not an ABI.
+if ( ([regex]::Matches($sentinelAssignText, '\bi[0-9]+ null-test\b')).Count -lt 2 -or
+     $sentinelAssignText -notmatch 'symbol=3 [^\r\n]*errors=no-raise/none [^\r\n]*reach=unreachable' ) {
     throw "XLIR null-aware assignment text omits lazy sentinel CFG or static non-null RHS elimination"
 }
 
@@ -629,7 +631,7 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR null-aware assignment Cgen failed" }
 $sentinelAssignGenerated = [System.IO.File]::ReadAllText($sentinelAssignCPath, [System.Text.Encoding]::UTF8)
 foreach ( $pattern in @(
     'if \(v[0-9]+\) goto b[0-9]+; else goto b[0-9]+;',
-    '\{ xvalue\* xlir_released = (?<slot>s[0-9]+); \k<slot> = NULL; xrtValueRelease\(xlir_released\); \}\r?\n\s+\k<slot> = v[0-9]+;',
+    '(?s)(?<old>v[0-9]+) = (?<slot>s[0-9]+);\s*\{\s*xvalue\* const xlir_empty = \{0\};\s*\{ const XL6_SlotWrite xlir_writes\[\] = \{\s*\{ &\(\k<slot>\), &\(xlir_empty\), sizeof\(\k<slot>\) \},\s*\}; \(xl6SlotRuntimeV1Get\(\)->Apply\)\([^;]+; \}\s*\}\s*\k<slot> = v[0-9]+;\s*(?<displaced>s[0-9]+) = \k<old>;\s*if \(!xl6ErrorScopeBegin\(&xlir_unwind\)\) abort\(\);\s*\{ xvalue\* xlir_released;\s*xvalue\* const xlir_empty = \{0\};\s*\{ const XL6_SlotWrite xlir_writes\[\] = \{\s*\{ &\(xlir_released\), &\(\k<displaced>\), sizeof\(xlir_released\) \},\s*\{ &\(\k<displaced>\), &\(xlir_empty\), sizeof\(\k<displaced>\) \},\s*\}; \(xl6SlotRuntimeV1Get\(\)->Apply\)\([^;]+; \}\s*xrtValueRelease\(xlir_released\); \}',
     'int64_t xlir_nullable_sentinel_var_assign\(bool xlir_input_0\)',
     'int64_t xlir_nullable_sentinel_class_assign\(bool xlir_input_0\)',
     'int64_t xlir_nonnull_assign_if_null\(void\)'

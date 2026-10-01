@@ -3,7 +3,8 @@
 #include <windows.h>
 #include "../../build/test/xlir_async_future_direct_string_capture_generated.c"
 
-static const char* xlir_async_direct_string_value = "hello";
+/* future<string> carries the complete language view, not a char* payload. */
+static xstrview xlir_async_direct_string_value = { "hello", 5 };
 
 static DWORD WINAPI xlir_resolve_string_future(void* data)
 {

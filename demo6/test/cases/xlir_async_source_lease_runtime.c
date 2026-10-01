@@ -4,12 +4,14 @@
 #define XRT_MODULE_VALUE
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_FUTURE_CONTINUE
+#define XRT_MODULE_FUTURE_WAIT
 #include "lib/xrt/xrt.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 extern void source_lease_prepare(void), source_lease_finish(void), source_lease_produce(xpromise*, unsigned, void*, xerror*);
 extern void source_lease_release_external(xfuture*, xpromise*, int);
+extern void source_lease_drain(void);
 extern xfuture* source_lease_launch(int, xfuture*);
 extern xfuture* source_lease_fault_launch(int, xfuture*);
 extern xvalue* source_lease_new(void);
@@ -19,20 +21,48 @@ static unsigned drops, boxes, bodyCount, finallyCount, observations, executions;
 static int faultIndex = -1;
 static unsigned faults, postArmAllocations;
 static xmemdebugsnapshot armedAt;
+static xmemdebugsnapshot workerAt;
+static int faultActive, faultPhase, workerStarted;
+static unsigned callerAllocations, workerAllocations;
 static xfuture* temporary;
 static xerror* inputError;
+void source_lease_report_context(void);
 static int payload_kind(void) { return kind >= 5 ? kind - 3 : kind; }
 static int temporary_kind(void) { return kind == 1 || kind >= 5; }
 void source_lease_fault_arm(void)
 {
+    faultActive = 1; workerStarted = 0; callerAllocations = workerAllocations = 0;
     xrtMemDebugSnapshot(&armedAt);
-    if (faultIndex >= 0) assert(xrtMemDebugFailAfter((uint64)faultIndex));
+    if (faultPhase == 0 && faultIndex >= 0) assert(xrtMemDebugFailAfter((uint64)faultIndex));
+}
+int source_lease_fault_active(void) { return faultActive; }
+void source_lease_worker_begin(void)
+{
+    xrtMemDebugSnapshot(&workerAt); workerStarted = 1;
+    callerAllocations = (unsigned)(workerAt.AllocCount - armedAt.AllocCount);
+    if (faultPhase == 1 && faultIndex >= 0) assert(xrtMemDebugFailAfter((uint64)faultIndex));
+}
+void source_lease_worker_end(void)
+{
+    xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
+    workerAllocations = (unsigned)(after.AllocCount - workerAt.AllocCount);
+    if (faultPhase == 1 && faultIndex >= 0) {
+        assert(xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); ++faults;
+    }
 }
 void source_lease_fault_disarm(void)
 {
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
-    postArmAllocations = (unsigned)(after.AllocCount - armedAt.AllocCount);
-    if (faultIndex >= 0) { assert(xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); ++faults; }
+    postArmAllocations = faultPhase == 1 ? workerAllocations :
+        workerStarted ? callerAllocations : (unsigned)(after.AllocCount - armedAt.AllocCount);
+    if (faultPhase == 0 && faultIndex >= 0) {
+        if (!xrtMemDebugFailTriggered()) {
+            source_lease_report_context();
+            fprintf(stderr, "untriggered allocation fault: index=%d allocations=%u\n", faultIndex, postArmAllocations);
+        }
+        assert(xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); ++faults;
+    }
+    faultActive = 0;
 }
 void source_lease_report_context(void)
 {
@@ -53,7 +83,8 @@ static void* payload_new(void)
 {
     void* result;
     if (payload_kind() == 2) {
-        char** p = (char**)xrtMalloc(sizeof(*p)); assert(p); *p = xrtStrDup("source lease text"); assert(*p); result = p;
+        xstrview* p = (xstrview*)xrtMalloc(sizeof(*p)); assert(p);
+        p->Data = xrtStrDup("source lease text"); p->Size = 17; assert(p->Data); result = p;
     } else if (payload_kind() == 3) {
         xvalue** p = (xvalue**)xrtMalloc(sizeof(*p)); assert(p); *p = source_lease_new(); assert(*p); result = p;
     } else if (payload_kind() == 4) {
@@ -68,7 +99,7 @@ static void* payload_new(void)
 void source_lease_payload_destroy(void* value)
 {
     ++drops;
-    if (payload_kind() == 2) xrtFree(*(char**)value);
+    if (payload_kind() == 2) xrtFree((void*)((xstrview*)value)->Data);
     else if (payload_kind() == 3) xrtValueRelease(*(xvalue**)value);
     else if (payload_kind() == 4) xrtFutureDestroy(*(xfuture**)value);
     xrtFree(value);
@@ -89,21 +120,27 @@ static void balanced(const xmemdebugsnapshot* before)
 static void run_case(unsigned state)
 {
     xfuture *input = NULL, *external = NULL, *output, *observed; xpromise* promise; xfutureresult outcome;
-    void* value = state == 0 ? payload_new() : NULL; unsigned expectedDrops = hold == 0 && state == 0 ? 1u : 0u;
+    void* value = state == 0 ? payload_new() : NULL;
+    /* A native caller owns a directly passed Future. Only an owned temporary
+     * expression transfers the final source owner into the language machine. */
+    unsigned expectedDrops = temporary_kind() && hold == 0 && state == 0 ? 1u : 0u;
     int effective = (int)state, code = state == 1 ? 88 : 0, internal = 0;
     int bodyReached = state == 0 && !(temporary_kind() && hold == 0 && dropMode);
     drops = boxes = bodyCount = finallyCount = 0;
     promise = xrtPromiseCreate(&input, NULL); assert(promise && input);
     if (hold != 2) { source_lease_produce(promise, state, value, inputError); xrtPromiseDestroy(promise); promise = NULL; }
-    if (hold == 1) external = xrtFutureRef(input);
+    if (hold == 1 || !temporary_kind()) external = xrtFutureRef(input);
     if (temporary_kind()) temporary = input;
     output = source_lease_launch(kind, input); assert(output && !temporary && !xrtGetError());
+    if (!temporary_kind()) source_lease_release_external(input, NULL, 0);
     observed = xrtFutureContinue(output, observe, &expectedDrops); assert(observed);
     if (hold == 2) { assert(!xrtFutureDone(output)); source_lease_produce(promise, state, value, inputError); }
     if (temporary_kind() && hold == 0 && state == 0 && dropMode) { effective = 1; code = 93; internal = dropMode == 2; }
     if (bodyReached && bodyMode) { effective = 1; code = 73; internal = bodyMode == 2; }
     if (finalMode) { effective = 1; code = 77; internal = finalMode == 2; }
-    if (!effective && hold == 0 && dropMode) { effective = 1; code = 93; internal = dropMode == 2; }
+    if (!effective && temporary_kind() && hold == 0 && dropMode) { effective = 1; code = 93; internal = dropMode == 2; }
+    (void)xrtFutureWait(output);
+    if (!xrtFutureDone(output) || xrtGetError()) source_lease_report_context();
     assert(xrtFutureResult(output, &outcome) && !xrtGetError());
     if (outcome.State != (effective == 0 ? XFUTURE_RESOLVED : effective == 1 ? XFUTURE_FAILED : effective == 2 ? XFUTURE_CANCELLED : XFUTURE_CLOSED) ||
         bodyCount != (unsigned)bodyReached || finallyCount != 1)
@@ -114,13 +151,21 @@ static void run_case(unsigned state)
     if (effective == 1) { assert(outcome.Error && !outcome.Value); if (internal) assert(xrtErrorKind(outcome.Error) == XERR_INTERNAL); else assert(xrtErrorCode(outcome.Error) == code); }
     if (!effective) {
         assert(outcome.Value && !outcome.Error);
-        if (payload_kind() == 2) assert(!strcmp(*(char**)outcome.Value, "source lease text"));
+        if (payload_kind() == 2) assert(((xstrview*)outcome.Value)->Size == 17 &&
+            !memcmp(((xstrview*)outcome.Value)->Data, "source lease text", 17));
         else if (payload_kind() == 3) assert(*(xvalue**)outcome.Value && boxes == 0);
         else assert(*(int64_t*)outcome.Value == 17);
     }
+    (void)xrtFutureWait(observed);
     assert(xrtFutureState(observed) == XFUTURE_RESOLVED);
+    source_lease_drain();
     xrtFutureDestroy(observed); xrtFutureDestroy(output);
-    source_lease_release_external(external, promise, hold != 0 && state == 0 ? dropMode : 0);
+    source_lease_release_external(external, promise,
+        (hold != 0 || !temporary_kind()) && state == 0 ? dropMode : 0);
+    if (drops != (state == 0 ? 1u : 0u) || boxes != (payload_kind() == 3 && state == 0 ? 1u : 0u) || xrtGetError()) {
+        source_lease_report_context();
+        fprintf(stderr, "source lease final owners: state=%u boxes=%u temporary=%d\n", state, boxes, temporary_kind());
+    }
     assert(drops == (state == 0 ? 1u : 0u) && boxes == (payload_kind() == 3 && state == 0 ? 1u : 0u) && !xrtGetError());
     ++executions;
 }
@@ -143,13 +188,15 @@ static unsigned fault_case(int fault)
             }
             assert(outcome.State == XFUTURE_FAILED && outcome.Error && xrtErrorKind(outcome.Error) == XERR_MEMORY && !outcome.Value);
         }
-        else if (dropMode) {
+        else if (dropMode && temporary_kind()) {
             assert(outcome.State == XFUTURE_FAILED && outcome.Error && !outcome.Value);
             if (dropMode == 1) assert(xrtErrorCode(outcome.Error) == 93);
             else assert(xrtErrorKind(outcome.Error) == XERR_INTERNAL);
-        } else assert(outcome.State == XFUTURE_RESOLVED && outcome.Value && !strcmp(*(char**)outcome.Value, "source lease text"));
+        } else assert(outcome.State == XFUTURE_RESOLVED && outcome.Value &&
+            ((xstrview*)outcome.Value)->Size == 17 && !memcmp(((xstrview*)outcome.Value)->Data, "source lease text", 17));
         xrtFutureDestroy(output);
     } else assert(fault >= 0);
+    if (!temporary_kind()) source_lease_release_external(input, NULL, dropMode);
     /* A temporary source is not evaluated if launch allocation fails. Its
      * still-external owner must be released by this caller, not by the callee. */
     if (temporary) { source_lease_release_external(temporary, NULL, dropMode); temporary = NULL; }
@@ -164,9 +211,10 @@ static unsigned entry_fault_case(int present, int fault)
     owned = source_lease_new(); assert(first && (!present || second) && last && owned);
     faultIndex = fault; source_lease_entry_probe(first, second, owned, last, fault >= 0);
     allocations = postArmAllocations; faultIndex = -1;
-    assert(boxes == 1 && bodyCount == (fault < 0 ? 1u : 0u));
+    assert(boxes == 0 && bodyCount == (fault < 0 ? 1u : 0u));
     /* Failed adaptation must never destroy or mutate the caller's borrows. */
     assert(!strcmp(first, "first") && (!present || !strcmp(second, "second")) && !strcmp(last, "last"));
+    xrtValueRelease(owned); assert(boxes == 1);
     xrtFree(first); xrtFree(second); xrtFree(last); balanced(&before); return allocations;
 }
 int main(int argc, char** argv)
@@ -181,25 +229,27 @@ int main(int argc, char** argv)
         run_case(state);
     assert(executions == observations);
     if (!smoke) {
-        unsigned baseline[2][3], shape, fault;
-        for (shape = 0; shape < 2; ++shape) for (dropMode = 0; dropMode < 3; ++dropMode) {
-            kind = shape ? 5 : 2; ambientMode = 0; baseline[shape][dropMode] = fault_case(-1);
-            assert(baseline[shape][dropMode] >= 4 && baseline[shape][dropMode] < 12);
-            printf("async source lease allocation baseline: kind=%d drop=%d allocations=%u\n", kind, dropMode, baseline[shape][dropMode]);
+        unsigned baseline[2][3][2], shape, fault;
+        for (shape = 0; shape < 2; ++shape) for (dropMode = 0; dropMode < 3; ++dropMode)
+        for (faultPhase = 0; faultPhase < 2; ++faultPhase) {
+            kind = shape ? 5 : 2; ambientMode = 0; baseline[shape][dropMode][faultPhase] = fault_case(-1);
+            assert(baseline[shape][dropMode][faultPhase] >= 1 && baseline[shape][dropMode][faultPhase] < 12);
+            printf("async source lease allocation baseline: kind=%d drop=%d phase=%d allocations=%u\n", kind, dropMode, faultPhase, baseline[shape][dropMode][faultPhase]);
         }
         /* Sweep every actual allocation, including final boxing. A raising
          * source destructor can terminate before return-copy/boxing; measure
          * that path independently and require every armed fault to trigger. */
         for (round = 0; round < 10; ++round) for (shape = 0; shape < 2; ++shape)
-        for (dropMode = 0; dropMode < 3; ++dropMode) for (fault = 0; fault < baseline[shape][dropMode]; ++fault)
+        for (dropMode = 0; dropMode < 3; ++dropMode) for (faultPhase = 0; faultPhase < 2; ++faultPhase)
+        for (fault = 0; fault < baseline[shape][dropMode][faultPhase]; ++fault)
         for (ambientMode = 0; ambientMode < 3; ++ambientMode) { kind = shape ? 5 : 2; fault_case((int)fault); }
         printf("async source lease: %u real launch/capture allocation failures, original MemoryError protected from raising source cleanup\n", faults);
         {
             unsigned present, entryBaseline[2], start = faults;
-            ambientMode = 0;
+            ambientMode = 0; faultPhase = 0;
             for (present = 0; present < 2; ++present) {
                 entryBaseline[present] = entry_fault_case((int)present, -1);
-                assert(entryBaseline[present] == 2 + present);
+                assert(entryBaseline[present] == 2);
             }
             for (round = 0; round < 20; ++round) for (present = 0; present < 2; ++present)
             for (fault = 0; fault < entryBaseline[present]; ++fault) for (ambientMode = 0; ambientMode < 3; ++ambientMode)

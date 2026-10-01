@@ -1,14 +1,20 @@
-// race 的首个 source 取消后，其余未完成的 source 也必须收到取消请求。
-// 从 cgen_task_api.xl 的全量边界用例提取，避免每次排查都编译数千行程序。
-async func delayed(int value) as int
-    time.sleep(250)
-    return value
+// A real pending await is a cooperative cancellation point. A blocking sleep
+// is not: a producer already running synchronous work may finish normally.
+extern "race_pending" func pending() as future<int>
+extern "race_complete_source" func completeSource(int index) as bool
+async func delayed(future<int> source, int value) as int
+    return (await source) + value
 end
 
-future<int> first = delayed(187)
-future<int> second = delayed(188)
+future<int> nativeFirst = pending()
+future<int> nativeSecond = pending()
+future<int> first = delayed(nativeFirst, 187)
+future<int> second = delayed(nativeSecond, 188)
 future<int> group = task.race([first, second])
 assert task.cancel(first), "first cancellation must be accepted"
+// Cancellation is cooperative: readiness lets the suspended producer observe
+// its token. Do not require cancel() to manufacture a producer terminal state.
+assert completeSource(0), "first native source publication must succeed"
 
 int groupState = 0
 try
@@ -22,6 +28,9 @@ catch e
 end
 println("race group state: ", groupState)
 assert groupState == 42, "race must propagate source cancellation"
+// Race must have requested the loser's cancellation before publishing group.
+// Only now make the loser ready; its producer must observe that prior request.
+assert completeSource(1), "late loser source publication must succeed"
 
 int secondState = 0
 try
@@ -33,7 +42,6 @@ catch e
 end
 assert secondState == 42, "race must cancel its pending loser"
 
-time.sleep(300)
 int lateState = 0
 try
     lateState = await second

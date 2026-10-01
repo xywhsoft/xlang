@@ -1,0 +1,14 @@
+extern "xlir_c_vararg_mixed" func nativeMixed(string tag, c_vararg) as c_int
+
+export "xlir_c_vararg_text_good" func good() as c_int
+    return nativeMixed("mixed", true, c_uchar(7), float32(1.5), "a", "b", uint64(18446744073709551615), '你')
+end
+
+export "xlir_c_vararg_text_nul" func rejected() as bool
+    try
+        nativeMixed("mixed", true, c_uchar(7), float32(1.5), "a\0b", "b", uint64(18446744073709551615), '你')
+        return false
+    catch ignored
+        return true
+    end
+end

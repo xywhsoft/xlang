@@ -226,8 +226,9 @@ foreach ( $entry in @(
 }
 $managedGenerated = [System.IO.File]::ReadAllText($managedCPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($managedGenerated, 'typedef struct xlir_product_t[0-9]+')).Count -ne 1 -or
-     ([regex]::Matches($managedGenerated, '\.e[01] = NULL;')).Count -lt 3 -or
-     ! $managedGenerated.Contains('xrtFree(xlir_released);') ) {
+     ([regex]::Matches($managedGenerated, '\.e[01] = \(xlir_string\)\{0\};')).Count -lt 3 -or
+     ! $managedGenerated.Contains('xlir_string_drop(xlir_released);') -or
+     ! $managedGenerated.Contains('xl6SlotRuntimeV1Get()->Apply') ) {
     throw "XLIR generated C does not mechanically move and drop managed product fields"
 }
 
