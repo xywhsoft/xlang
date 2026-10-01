@@ -52,7 +52,7 @@ static void xl6IrCgenEmitIoRuntime(XL6_Output* out, uint64_t operations, int fil
             "{ return xlir_io_write_file(path, data.Data, data.Size, mode, limit); }\n\n", out);
     if (operations & (~UINT64_C(7))) xl6OutputPuts(
         "typedef struct xlir_io_reader { xreader* stream; } xlir_io_reader;\n"
-        "typedef struct xlir_io_writer { xwriter* stream; void* owner; void (*drop)(void*); } xlir_io_writer;\n"
+        "#include <__xl_runtime/xl6_io_handle.h>\n"
         "static bool xlir_io_size(int64_t count, size_t* size)\n"
         "{ if (count < 0 || (uint64_t)count > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
         "  *size = (size_t)count; return true; }\n"

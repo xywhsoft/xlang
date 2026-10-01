@@ -18,14 +18,26 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_FILE_ASYNC,
     XL6_ARTIFACT_LOG_CORE,
     XL6_ARTIFACT_LOG_CONSOLE,
+    XL6_ARTIFACT_LOG_RECORD,
+    XL6_ARTIFACT_LOG_TEXT,
+    XL6_ARTIFACT_LOG_JSON,
+    XL6_ARTIFACT_LOG_CUSTOM,
+    XL6_ARTIFACT_LOG_FILE,
+    XL6_ARTIFACT_LOG_FILE_TEXT,
+    XL6_ARTIFACT_LOG_FILE_JSON,
+    XL6_ARTIFACT_LOG_ASYNC,
+    XL6_ARTIFACT_LOG_RING,
+    XL6_ARTIFACT_LOG_PRINTF,
+    XL6_ARTIFACT_LOG_TEXT_WRITER,
+    XL6_ARTIFACT_LOG_JSON_WRITER,
     XL6_ARTIFACT_RUNTIME_COUNT
 } XL6_ArtifactRuntimeId;
-#define XL6_ARTIFACT_BIT(Name) ((uint32)1u << XL6_ARTIFACT_##Name)
+#define XL6_ARTIFACT_BIT(Name) ((uint64)1u << XL6_ARTIFACT_##Name)
 #define XL6_ARTIFACT_NATIVE_MODULE_LIMIT 512
 
 typedef struct XL6_ArtifactRuntimeComponent {
     const char* source;
-    uint32 dependencies;
+    uint64 dependencies;
     const char* nativeModules[8];
 } XL6_ArtifactRuntimeComponent;
 
@@ -42,8 +54,8 @@ typedef enum XL6_ArtifactEntryAbi {
 
 typedef struct XL6_ArtifactRuntimePlan {
     XL6_ArtifactEntryAbi entry;
-    uint32 roots;
-    uint32 components;
+    uint64 roots;
+    uint64 components;
     size_t sourceCount;
     const char* sources[XL6_ARTIFACT_RUNTIME_COUNT];
     size_t nativeModuleCount;
@@ -51,10 +63,10 @@ typedef struct XL6_ArtifactRuntimePlan {
 } XL6_ArtifactRuntimePlan;
 
 const XL6_ArtifactRuntimeComponent* xl6ArtifactRuntimeComponentGet(unsigned id);
-uint32 xl6ArtifactRuntimeSymbolOwner(const char* symbol);
+uint64 xl6ArtifactRuntimeSymbolOwner(const char* symbol);
 /* Exact C linkage lookup. A shared implementation may have several providers. */
 const XL6_ArtifactNativeSymbol* xl6ArtifactNativeSymbolLookup(const char* symbol, size_t* count);
-int xl6ArtifactRuntimeClosePlan(uint32 roots, XL6_ArtifactRuntimePlan* plan);
+int xl6ArtifactRuntimeClosePlan(uint64 roots, XL6_ArtifactRuntimePlan* plan);
 /* Refuses Typed/corrupt IR. Failure leaves a zero plan, never a partial set. */
 int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
     XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags);

@@ -1,40 +1,40 @@
 int eventCount = 0
 bool nested = false
+bool closeRejected = false
 string lastMessage = ""
-
-func onLog(var event)
+auto logger = log.create("object-test", LogLevel.trace)
+LogSink? installed = null
+auto sink = log.customSink(func(LogRecord record) as LogResult
     eventCount += 1
-    lastMessage = string(event["message"])
-    assert int(event["level"]) == log.infoLevel
-    assert string(event["logger"]) == "object-test"
-    assert int(event["threadId"]) == 0
+    lastMessage = record.message
+    assert record.level == LogLevel.info
+    assert record.logger == "object-test"
+    if installed != null then
+        try
+            installed.closeCustom()
+        catch RuntimeError e
+            closeRejected = true
+        end
+    end
     if not nested then
         nested = true
-        log.info("nested")
+        assert logger.info("nested") == LogResult.written
     end
-end
-
-func installLogger(func(var) handler) as LogSink
-    Logger logger = log.create("object-test")
-    logger.setLevel(log.traceLevel)
-    assert logger.makeDefault()
-    return logger.customSink("capture", handler, log.infoLevel)
-end
-
-LogSink sink = installLogger(onLog)
+    return LogResult.written
+end, "capture", LogLevel.info)
+installed = sink
+logger.addSink(sink)
 assert sink.name == "capture"
-assert sink.getLevel() == log.infoLevel
-sink.setLevel(log.debugLevel)
-assert sink.getLevel() == log.debugLevel
-
-log.info("outer")
+sink.setLevel(LogLevel.debug)
+assert sink.getLevel() == LogLevel.debug
+assert logger.info("outer") == LogResult.written
 assert eventCount == 2
 assert lastMessage == "nested"
-
-Logger wrapped = log.default()
-assert wrapped.getLevel() == log.traceLevel
-assert wrapped.removeSink(sink)
-assert not wrapped.removeSink(sink)
-log.info("after-remove")
+assert closeRejected
+assert logger.removeSink(sink)
+assert not logger.removeSink(sink)
+assert logger.info("after-remove") == LogResult.skipped
 assert eventCount == 2
-wrapped.flush()
+// Explicit close breaks the callback -> sink/Logger capture cycle.
+assert sink.closeCustom()
+installed = null

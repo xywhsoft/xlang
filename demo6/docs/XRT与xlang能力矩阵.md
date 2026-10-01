@@ -4,11 +4,11 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3141。
-- xruntime 产品公共函数：3592，其中扩展自有 451。
-- 低层能力：3592 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3145。
+- xruntime 产品公共函数：3597，其中扩展自有 452。
+- 低层能力：3597 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1534 个函数。其余 2058 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1591 个函数。其余 2006 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -56,7 +56,7 @@
 | xrt | `include/xrt/json.h` | 30 | 28 | 2 |
 | xrt | `include/xrt/jsonl.h` | 12 | 11 | 1 |
 | xrt | `include/xrt/list.h` | 28 | 0 | 28 |
-| xrt | `include/xrt/logger.h` | 76 | 0 | 76 |
+| xrt | `include/xrt/logger.h` | 80 | 55 | 25 |
 | xrt | `include/xrt/map.h` | 62 | 0 | 62 |
 | xrt | `include/xrt/math.h` | 20 | 19 | 1 |
 | xrt | `include/xrt/memory.h` | 13 | 5 | 8 |
@@ -100,7 +100,7 @@
 | xrt | `include/xrt/tls_stream.h` | 53 | 27 | 26 |
 | xrt | `include/xrt/tls_verify.h` | 8 | 4 | 4 |
 | xrt | `include/xrt/udp.h` | 73 | 25 | 48 |
-| xrt | `include/xrt/value.h` | 142 | 114 | 28 |
+| xrt | `include/xrt/value.h` | 142 | 115 | 27 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
 | xrt | `include/xrt/wait.h` | 3 | 2 | 1 |
 | xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |
@@ -117,7 +117,7 @@
 | xruntime | `extlibs/xruntime/include/xrt/runtime_object_graph.h` | 9 | 0 | 9 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_type.h` | 60 | 60 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_type_future.h` | 1 | 1 | 0 |
-| xruntime | `extlibs/xruntime/include/xrt/runtime_type_string.h` | 1 | 1 | 0 |
+| xruntime | `extlibs/xruntime/include/xrt/runtime_type_string.h` | 2 | 2 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_value.h` | 28 | 28 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/typed_array.h` | 31 | 31 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/typed_dict.h` | 30 | 30 | 0 |
@@ -141,7 +141,7 @@
 | `extlibs/xruntime/include/xrt/runtime_object_graph.h` | custom runtime object graph traversal | explicit-low-level | public-extern | 9 | 0 | `docs/xruntime语言桥接契约.md` |
 | `extlibs/xruntime/include/xrt/runtime_type.h` | type identity, descriptors, registry, and protocols | kernel | direct | 60 | 27 | `test/cases/cgen_runtime_type_baseline.xl` |
 | `extlibs/xruntime/include/xrt/runtime_type_future.h` | future<T> runtime type identity | kernel | direct | 1 | 1 | `test/cases/cgen_future_task_wait.xl` |
-| `extlibs/xruntime/include/xrt/runtime_type_string.h` | stable language type names | kernel | direct | 1 | 1 | `test/cases/cgen_runtime_type_baseline.xl` |
+| `extlibs/xruntime/include/xrt/runtime_type_string.h` | stable language type names | kernel | direct | 2 | 2 | `test/cases/cgen_runtime_type_baseline.xl` |
 | `extlibs/xruntime/include/xrt/runtime_value.h` | var lifecycle, boxing, comparison, and cloning | kernel | direct | 28 | 13 | `test/cases/runtime_var_type_storage_matrix.xl` |
 | `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 31 | 19 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_dict.h` | dict<T> | language-type | direct | 30 | 14 | `test/cases/cgen_typed_container_functions.xl` |

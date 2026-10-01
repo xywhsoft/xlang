@@ -43,21 +43,33 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/api/xl_foreign_error.c", 0, {"XRT_MODULE_ONCE", "XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_network_service.c", 0, {"XRT_MODULE_NET_ENGINE", "XRT_MODULE_NET_RESOLVER"}},
     {"src/runtime/xl6_task_file.c", R(TASK), {"XRT_MODULE_FILE_ASYNC"}},
-    {"src/runtime/xl6_log.c", 0, {"XRT_MODULE_LOGGER_CORE", "XRT_MODULE_STRING"}},
-    {"src/runtime/xl6_log_console.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_CONSOLE"}}
+    {"src/runtime/xl6_log.c", 0, {"XRT_MODULE_LOGGER_CORE", "XRT_MODULE_STRING", "XRT_MODULE_ONCE"}},
+    {"src/runtime/xl6_log_console.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_CONSOLE"}},
+    {"src/runtime/xl6_log_record.c", R(LOG_CORE), {"XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_log_text.c", R(LOG_RECORD), {"XRT_MODULE_LOGGER_FORMAT_TEXT_BUFFER"}},
+    {"src/runtime/xl6_log_json.c", R(LOG_RECORD), {"XRT_MODULE_LOGGER_FORMAT_JSON_BUFFER"}},
+    {"src/runtime/xl6_log_custom.c", R(LOG_RECORD)|R(FOREIGN_ERROR), {"XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE", "XRT_MODULE_ONCE"}},
+    {"src/runtime/xl6_log_file.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_FILE"}},
+    {"src/runtime/xl6_log_file_text.c", R(LOG_FILE)|R(LOG_TEXT), {"XRT_MODULE_LOGGER_FILE_TEXT"}},
+    {"src/runtime/xl6_log_file_json.c", R(LOG_FILE)|R(LOG_JSON), {"XRT_MODULE_LOGGER_FILE_JSON"}},
+    {"src/runtime/xl6_log_async.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_ASYNC"}},
+    {"src/runtime/xl6_log_ring.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_RING"}},
+    {"src/runtime/xl6_log_printf.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_PRINTF"}},
+    {"src/runtime/xl6_log_text_writer.c", R(LOG_TEXT), {"XRT_MODULE_IO"}},
+    {"src/runtime/xl6_log_json_writer.c", R(LOG_JSON), {"XRT_MODULE_IO"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
-_Static_assert(XL6_ARTIFACT_RUNTIME_COUNT < 32, "Artifact mask capacity");
+_Static_assert(XL6_ARTIFACT_RUNTIME_COUNT < 64, "Artifact mask capacity");
 
 const XL6_ArtifactRuntimeComponent* xl6ArtifactRuntimeComponentGet(unsigned id)
 {
     return id < XL6_ARTIFACT_RUNTIME_COUNT ? &xl6ArtifactComponents[id] : NULL;
 }
 
-uint32 xl6ArtifactRuntimeSymbolOwner(const char* symbol)
+uint64 xl6ArtifactRuntimeSymbolOwner(const char* symbol)
 {
-    static const struct { const char* name; uint32 owner; } exports[] = {
+    static const struct { const char* name; uint64 owner; } exports[] = {
 #define XL6_ARTIFACT_SYMBOL(Name, Component) {Name, R(Component)},
 #include "src/compile/xl6_artifact_runtime_symbols.inc"
 #undef XL6_ARTIFACT_SYMBOL
@@ -108,24 +120,24 @@ static int xl6ArtifactVisitNativeModule(void* context, const char* module)
     return xl6ArtifactNativeModuleRequire(context,module);
 }
 
-int xl6ArtifactRuntimeClosePlan(uint32 roots, XL6_ArtifactRuntimePlan* plan)
+int xl6ArtifactRuntimeClosePlan(uint64 roots, XL6_ArtifactRuntimePlan* plan)
 {
     XL6_ArtifactRuntimePlan result;
-    uint32 previous;
+    uint64 previous;
     if (!plan) return 0;
     memset(plan,0,sizeof(*plan));
-    if (roots & ~(((uint32)1u << XL6_ARTIFACT_RUNTIME_COUNT)-1u)) return 0;
+    if (roots & ~(((uint64)1u << XL6_ARTIFACT_RUNTIME_COUNT)-1u)) return 0;
     memset(&result,0,sizeof(result));
     result.roots=roots; result.components=roots;
     do {
         previous=result.components;
         for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i)
-            if (result.components & ((uint32)1u << i))
+            if (result.components & ((uint64)1u << i))
                 result.components |= xl6ArtifactComponents[i].dependencies;
     } while (previous != result.components);
     for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i) {
         const XL6_ArtifactRuntimeComponent* item=&xl6ArtifactComponents[i];
-        if (!(result.components & ((uint32)1u << i))) continue;
+        if (!(result.components & ((uint64)1u << i))) continue;
         result.sources[result.sourceCount++]=item->source;
         for (size_t j=0;j<sizeof(item->nativeModules)/sizeof(item->nativeModules[0]) && item->nativeModules[j];++j) {
             size_t k=0;
@@ -173,7 +185,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
 {
     XL6_ArtifactTypeWork work;
     XL6_IrCgenOptions cOptions={0};
-    uint32 roots=R(SLOT);
+    uint64 roots=R(SLOT);
     if (!plan) return 0;
     memset(plan,0,sizeof(*plan));
     if (entry < XL6_ARTIFACT_ENTRY_FRAGMENT || entry > XL6_ARTIFACT_ENTRY_EXECUTABLE_V1) {

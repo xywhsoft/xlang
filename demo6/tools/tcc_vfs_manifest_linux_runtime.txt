@@ -19,6 +19,8 @@ file|include/__xl_runtime/xl6_slot.h|%XL6_ROOT%/src/runtime/xl6_slot.h
 file|include/__xl_runtime/xl6_frame_storage.h|%XL6_ROOT%/src/runtime/xl6_frame_storage.h
 file|include/__xl_runtime/xl6_task.h|%XL6_ROOT%/src/runtime/xl6_task.h
 file|include/__xl_runtime/xl6_network_service.h|%XL6_ROOT%/src/runtime/xl6_network_service.h
+file|include/__xl_runtime/xl6_log.h|%XL6_ROOT%/src/runtime/xl6_log.h
+file|include/__xl_runtime/xl6_io_handle.h|%XL6_ROOT%/src/runtime/xl6_io_handle.h
 file|include/__xl_runtime/xl6_capture.h|%XL6_ROOT%/src/runtime/xl6_capture.h
 file|include/__xl_runtime/xl6_value_iterator.h|%XL6_ROOT%/src/runtime/xl6_value_iterator.h
 file|include/__xl_runtime/xl6_future_callback.h|%XL6_ROOT%/src/runtime/xl6_future_callback.h

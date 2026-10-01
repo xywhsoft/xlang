@@ -1,80 +1,58 @@
 string baseDir = path.join(path.temp(), "xl6_stdlib_log_example")
 dir.createAll(baseDir)
-
-string logPath = path.join(baseDir, "stdlib_log.log")
-string defaultPath = path.join(baseDir, "default.log")
-string defaultRollingPath = path.join(baseDir, "default_rolling.log")
-string rollingPath = path.join(baseDir, "rolling.log")
-
-file.delete(logPath)
-file.delete(defaultPath)
-file.delete(defaultRollingPath)
-file.delete(defaultRollingPath + ".1")
-file.delete(rollingPath)
-file.delete(rollingPath + ".1")
-
-assert(log.levelName(log.warnLevel) == "WARN")
-assert(log.levelName(log.debugLevel) == "DEBUG")
-assert(log.levelName(log.errorLevel) == "ERROR")
-assert(log.levelName(log.fatalLevel) == "FATAL")
-log.setLevel(log.offLevel)
-assert(log.getLevel() == log.offLevel)
-assert(log.addConsole(log.offLevel, false, log.textFormat))
-assert(log.addFile(defaultPath, log.offLevel, log.jsonFormat))
-assert(log.addRollingFile(defaultRollingPath, 96, 1, log.offLevel, log.textFormat))
-log.write(log.infoLevel, "silent-write")
-log.trace("silent-trace")
-log.debug("silent-debug")
-log.info("silent-info")
-log.warn("silent-warn")
-log.error("silent-error")
-log.fatal("silent-fatal")
-log.flush()
-Logger defaultLogger = log.default()
-defaultLogger.flush()
+auto logger = log.create("example", LogLevel.trace)
+assert log.levelName(LogLevel.warn) == "WARN"
+logger.setLevel(LogLevel.off)
+assert logger.getLevel() == LogLevel.off
+assert logger.fatal("filtered; fatal does not terminate") == LogResult.skipped
+logger.setLevel(LogLevel.trace)
 println("level=ok")
 
-Logger logger = log.create("example")
-logger.setLevel(log.traceLevel)
-assert(logger.getLevel() == log.traceLevel)
-assert(logger.addFile(logPath, log.traceLevel, log.simpleFormat))
+auto options = LogFileOptions()
+options.mode = LogFileMode.truncate
+auto textOptions = LogTextOptions()
+textOptions.style = LogTextStyle.message
+textOptions.flags = log.textNewline
+string logPath = path.join(baseDir, "stdlib_log.log")
+auto fileSink = log.textFileSink(logPath, options, textOptions)
+logger.addSink(fileSink)
 logger.info("hello-log")
 logger.warn("warn-log")
 logger.flush()
-
-string text = file.readText(logPath)
-assert(string.contains(text, "hello-log"))
-assert(string.contains(text, "warn-log"))
+assert file.readBytes(logPath) == b"hello-log\nwarn-log\n"
+assert fileSink.closeFile()
+logger.clearSinks()
 println("file=ok")
 
-Logger rolling = Logger("rolling")
-assert(rolling.addRollingFile(rollingPath, 96, 2, log.traceLevel, log.simpleFormat))
+string rollingPath = path.join(baseDir, "rolling.log")
+options.maxBytes = uint64(96)
+options.backupCount = 2
+auto rollingSink = log.textFileSink(rollingPath, options, textOptions)
+logger.addSink(rollingSink)
 for i in range(0, 8)
-    rolling.info("rolling-line-" + int.format(i, "00"))
+    logger.info("rolling-line-content")
 end
-rolling.flush()
-
-assert(file.exists(rollingPath))
-assert(file.exists(rollingPath + ".1"))
+logger.flush()
+assert file.exists(rollingPath)
+assert file.exists(rollingPath + ".1")
+assert rollingSink.closeFile()
+logger.clearSinks()
 println("rolling=ok")
 
 int customCount = 0
 string customLast = ""
-
-func captureLog(var event)
+auto capture = log.customSink(func(LogRecord record) as LogResult
     customCount += 1
-    customLast = string(event["message"])
-end
-
-Logger customLogger = log.create("custom-example")
-customLogger.setLevel(log.traceLevel)
-assert(customLogger.makeDefault())
-LogSink capture = customLogger.customSink("capture", captureLog, log.infoLevel)
-assert(capture.name == "capture")
-customLogger.info("captured")
-assert(customCount == 1)
-assert(customLast == "captured")
-assert(customLogger.removeSink(capture))
-customLogger.info("ignored")
-assert(customCount == 1)
+    customLast = record.message
+    return LogResult.written
+end, "capture", LogLevel.info)
+logger.addSink(capture)
+assert capture.name == "capture"
+logger.info("captured")
+assert customCount == 1
+assert customLast == "captured"
+assert logger.removeSink(capture)
+assert capture.closeCustom()
+logger.info("ignored")
+assert customCount == 1
 println("custom=ok")

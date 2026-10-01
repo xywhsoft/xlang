@@ -8,6 +8,8 @@ assert log.textFields == 32
 assert log.textNewline == 64
 assert log.textRawMessage == 128
 assert log.info("no implicit sink") == LogResult.skipped
+assert log.trace("no implicit trace sink") == LogResult.skipped
+assert log.error("no implicit error sink") == LogResult.skipped
 auto logger = log.create("a\0你", LogLevel.debug)
 assert logger.name == "a\0你"
 assert logger.getLevel() == LogLevel.debug

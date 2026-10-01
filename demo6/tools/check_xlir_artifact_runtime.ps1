@@ -83,7 +83,7 @@ try {
     foreach($componentObject in $componentObjects){
         $missing=@()
         foreach($symbol in $componentObject.Undefined){
-            if(!$symbolOwners.ContainsKey($symbol)-or!($componentObject.Component.Closure-band(1-shl$symbolOwners[$symbol]))){$missing+=$symbol}
+            if(!$symbolOwners.ContainsKey($symbol)-or!($componentObject.Component.Closure-band([int64]1-shl$symbolOwners[$symbol]))){$missing+=$symbol}
         }
         $linkage+=[pscustomobject]@{Id=$componentObject.Component.Id;Source=$componentObject.Component.Source;Build=$componentObject.Build;
             Missing=$missing;Complete=($componentObject.Build-eq0-and!$missing.Count)}

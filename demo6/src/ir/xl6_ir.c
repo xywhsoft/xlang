@@ -29542,6 +29542,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 return xl6IrDiag(diags, NULL, "XLIR call site has no canonical target, receiver, result or argument slice ABI");
             if (!xl6IrVerifyPropertyUpdateSite(module, site))
                 return xl6IrDiag(diags, call, "XLIR property update has no exact shared getter/setter binding");
+            if (!xl6IrRuntimeLogPrintfSiteMatches(module, site))
+                return xl6IrDiag(diags, call, "log printf requires a literal format and exactly matching C-promoted argument types (no %n, stars, positional or wide text)");
             if (call->kind == XL6_IR_NODE_CALL && site->callKind == XL6_SEM_CALL_WITNESS) {
                 const XL6_IrNode* member = call->childCount == 2
                     ? xl6IrNodeGet(module, module->children[call->firstChild]) : NULL;
@@ -32733,6 +32735,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 ((target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
                   target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                  ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ||
+                   xl6IrRuntimeLogBridgeForeignScope(target->cName) ||
                    xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge))
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
                     : xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)

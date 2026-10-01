@@ -13,7 +13,7 @@ typedef struct XL6_StdlibTextBuilder {
     int ok;
 } XL6_StdlibTextBuilder;
 
-#define XL6_STDLIB_FUNC_INDEX_CAPACITY 2048u
+#define XL6_STDLIB_FUNC_INDEX_CAPACITY 4096u
 
 #include "src/stdlib/xl6_stdlib_deps.inc"
 #include "src/stdlib/xl6_stdlib_func_index.inc"
@@ -1223,6 +1223,19 @@ static int xl6StdlibNeedsLoggerClass(const XL6_AstNode* root, const int* used)
     size_t index;
 
     if ( xl6StdlibNodeUsesTypeName(root, "Logger") ||
+         xl6StdlibNodeUsesTypeName(root, "LogRecord") ||
+         xl6StdlibNodeUsesTypeName(root, "LogFileMode") ||
+         xl6StdlibNodeUsesTypeName(root, "LogFileSync") ||
+         xl6StdlibNodeUsesTypeName(root, "LogQueueFull") ||
+         xl6StdlibNodeUsesTypeName(root, "LogShutdown") ||
+         xl6StdlibNodeUsesTypeName(root, "LogFileOptions") ||
+         xl6StdlibNodeUsesTypeName(root, "LogFileStats") ||
+         xl6StdlibNodeUsesTypeName(root, "LogAsyncOptions") ||
+         xl6StdlibNodeUsesTypeName(root, "LogRingOptions") ||
+         xl6StdlibNodeUsesTypeName(root, "LogQueueStats") ||
+         xl6StdlibNodeUsesTypeName(root, "LogJsonOptions") ||
+         xl6StdlibNodeUsesTypeName(root, "LogJsonFieldStyle") ||
+         xl6StdlibNodeUsesTypeName(root, "LogNonFinite") ||
          xl6StdlibNodeUsesTypeName(root, "LogSink") ||
          xl6StdlibNodeUsesTypeName(root, "LogStats") ||
          xl6StdlibNodeUsesTypeName(root, "LogLevel") ||
@@ -1532,7 +1545,19 @@ static int xl6StdlibMergeGeneratedDecls(XL6_AstNode* root, const char* generated
         return 0;
     }
     if ( result.root != NULL ) {
+        size_t originalCount=root->childCount, preludeCount=0;
         xl6AstMoveChildren(root, result.root);
+        /* Library-owned state is a normal module global, initialized before
+         * user statements and destroyed after them. Keep function/type
+         * declarations in their established order; no backend special case. */
+        for (size_t i=originalCount;i<root->childCount;++i) {
+            if (root->children[i]->kind==XL6_AST_VAR_DECL) {
+                XL6_AstNode* state=root->children[i];
+                memmove(root->children+preludeCount+1,root->children+preludeCount,
+                    (i-preludeCount)*sizeof(*root->children));
+                root->children[preludeCount++]=state;
+            }
+        }
     }
     xl6ParseResultFree(&result);
     return 1;
@@ -1725,6 +1750,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
     needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used);
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
+    needsIoWriter = needsIoWriter || needsLoggerClass;
     if (needsLoggerClass) xl6StdlibMarkFuncUsed(used,"__xl_runtime","logStats");
     needsProcessWaitAsync = xl6StdlibNodeUsesMemberName(root, "waitAsync");
     needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
@@ -1739,7 +1765,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsProcessClass;
+        needsAsyncFileClass || needsCryptoClass || needsProcessClass || needsLoggerClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsCryptoClass || needsProcessClass || needsFileClass ) {
@@ -1925,6 +1951,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsLoggerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerClassSource);
+        if (xl6StdlibFuncUsed(used,"log","setDefault"))
+            xl6StdlibBuilderAppend(&builder, xl6StdlibLogDefaultScopeSource);
     }
     if ( needsSignalClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibSignalClassSource);

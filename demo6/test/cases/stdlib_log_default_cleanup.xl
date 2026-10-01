@@ -1,0 +1,10 @@
+auto options = LogTextOptions()
+options.style = LogTextStyle.message
+options.flags = log.textNewline
+auto logger = log.create("module-default", LogLevel.trace)
+auto writer = io.openWriter("build/test/log-default-cleanup.txt")
+auto sink = log.textWriterSink(writer, options)
+logger.addSink(sink)
+log.setDefault(logger)
+assert log.info("module cleanup") == LogResult.written
+// Deliberately no clear, close or flush: ordinary module cleanup owns this.

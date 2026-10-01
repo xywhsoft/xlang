@@ -1,67 +1,20 @@
-extern "expect_i64" func expect(int actual, int expected)
-extern "expect_str" func expectStr(string actual, string expected)
-extern "remove_file" func removeFile(string path)
-extern "expect_file_contains" func expectFileContains(string path, string first, string second)
-extern "file_exists" func fileExists(string path) as bool
-
-string defaultPath = "build/test/stdlib_log_default.log"
-string defaultRollingPath = "build/test/stdlib_log_default_rolling.log"
-string objectPath = "build/test/stdlib_log_object.log"
-string rollingPath = "build/test/stdlib_log_rolling.log"
-
-removeFile(defaultPath)
-removeFile(defaultRollingPath)
-removeFile(defaultRollingPath + ".1")
-removeFile(objectPath)
-removeFile(rollingPath)
-removeFile(rollingPath + ".1")
-
-expectStr(log.levelName(log.warnLevel), "WARN")
-expectStr(log.levelName(log.debugLevel), "DEBUG")
-expectStr(log.levelName(log.errorLevel), "ERROR")
-expectStr(log.levelName(log.fatalLevel), "FATAL")
-log.setLevel(log.traceLevel)
-expect(log.getLevel(), log.traceLevel)
-expect(log.addFile(defaultPath, log.traceLevel, log.simpleFormat), 1)
-log.debug("default-debug")
-log.info("default-info")
+auto logger = log.create("legacy-fixture-migrated", LogLevel.trace)
+auto options = LogFileOptions()
+options.level = LogLevel.trace
+options.mode = LogFileMode.truncate
+auto text = LogTextOptions()
+text.style = LogTextStyle.message
+text.flags = log.textNewline
+auto sink = log.textFileSink("build/test/stdlib-log-migrated.txt", options, text)
+logger.addSink(sink)
+log.setDefault(logger)
+assert log.debug("default-debug") == LogResult.written
+assert logger.warn("object-warn") == LogResult.written
 log.flush()
-
-expectFileContains(defaultPath, "default-debug", "default-info")
-
-Logger logger = log.create("case")
-logger.setLevel(log.traceLevel)
-expect(logger.getLevel(), log.traceLevel)
-expect(logger.addFile(objectPath, log.traceLevel, log.simpleFormat), 1)
-logger.warn("object-warn")
-logger.error("object-error")
-logger.flush()
-
-expectFileContains(objectPath, "object-warn", "object-error")
-
-Logger rolling = Logger("rolling")
-expect(rolling.addRollingFile(rollingPath, 96, 2, log.traceLevel, log.simpleFormat), 1)
-for i in range(0, 8)
-    rolling.info("rolling-line-content")
-end
-rolling.flush()
-
-expect(fileExists(rollingPath), 1)
-expect(fileExists(rollingPath + ".1"), 1)
-
-Logger defaultLogger = log.default()
-defaultLogger.info("wrapped-default")
-defaultLogger.flush()
-
-log.setLevel(log.offLevel)
-expect(log.getLevel(), log.offLevel)
-expect(log.addConsole(log.offLevel, false, log.textFormat), 1)
-expect(log.addRollingFile(defaultRollingPath, 96, 1, log.offLevel, log.jsonFormat), 1)
-log.write(log.infoLevel, "silent-write")
-log.trace("silent-trace")
-log.debug("silent-debug")
-log.info("silent-info")
-log.warn("silent-warn")
-log.error("silent-error")
-log.fatal("silent-fatal")
-log.flush()
+assert file.readBytes("build/test/stdlib-log-migrated.txt") == b"default-debug\nobject-warn\n"
+logger.setLevel(LogLevel.off)
+assert log.fatal("silent") == LogResult.skipped
+log.shutdown()
+assert log.default() == null
+assert sink.closeFile()
+logger.clearSinks()

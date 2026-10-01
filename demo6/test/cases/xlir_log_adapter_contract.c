@@ -52,6 +52,22 @@ int main(int argc, char** argv)
             assert(xl6IrRuntimeLogBridgeTargetMatches(&ir,target));
         }
         assert(checked > 0);
+        for (size_t i=0;i<ir.callSiteCount;++i) {
+            XL6_IrCallSite* site=&ir.callSites[i];
+            const XL6_IrCallTarget* target=xl6IrCallTargetGet(&ir,site->targetSymbol);
+            if (!target || !xl6IrRuntimeLogBridgeForeignScope(target->cName)) continue;
+            assert(xl6IrRuntimeLogPrintfSiteMatches(&ir,site));
+            size_t count=site->argumentCount;
+            site->argumentCount=1;
+            assert(!xl6IrRuntimeLogPrintfSiteMatches(&ir,site));
+            site->argumentCount=count;
+            XL6_IrCallArgument* argument=&ir.callArguments[site->firstArgument+1];
+            XL6_IrCallArgumentSource source=argument->source;
+            argument->source=XL6_IR_CALL_ARGUMENT_C_VARARG_ITEM;
+            assert(!xl6IrRuntimeLogPrintfSiteMatches(&ir,site));
+            argument->source=source;
+            assert(xl6IrRuntimeLogPrintfSiteMatches(&ir,site));
+        }
     }
 done:
     for (size_t i=0;i<parse.diags.count;++i)

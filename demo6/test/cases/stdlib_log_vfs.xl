@@ -1,0 +1,29 @@
+auto fs = vfs.create()
+auto disk = vfs.disk("build/test", 3)
+auto mount = fs.mount("/log", disk)
+auto handle = fs.open("/log/log-vfs.txt", 2 + 4 + 8)
+auto writer = handle.writer()
+auto options = LogTextOptions()
+options.style = LogTextStyle.message
+options.flags = log.textNewline
+auto sink = log.textWriterSink(writer, options)
+auto logger = log.create("vfs", LogLevel.trace)
+logger.addSink(sink)
+assert logger.info("vfs") == LogResult.written
+assert sink.closeCustom()
+logger.clearSinks()
+assert fs.readBytes("/log/log-vfs.txt") == b"vfs\n"
+writer.close()
+assert handle.close()
+assert mount.unmount()
+auto root = file.root("build/test")
+auto rooted = root.open("log-root.txt", 2 + 4 + 8)
+auto rootWriter = rooted.writer()
+auto rootSink = log.jsonWriterSink(rootWriter)
+logger.addSink(rootSink)
+assert logger.info("root") == LogResult.written
+assert rootSink.closeCustom()
+logger.clearSinks()
+rootWriter.close()
+assert rooted.close()
+assert root.close()
