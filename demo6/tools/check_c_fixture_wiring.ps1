@@ -90,7 +90,29 @@ function Get-ManualCjsWiringFiles()
     return @($files)
 }
 
-function Test-DirectReference($text, $relative)
+function Get-LiteralCReferencePaths($text)
+{
+    $paths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    # Expand the fixed literal matrices once, not once per C/H asset. This is
+    # the same finite matching contract; arbitrary interpolations do not count.
+    foreach ($loop in [regex]::Matches($text,
+        '(?s)foreach\s*\(\s*\$(?<variable>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+@\((?<items>[^)]*)\)')) {
+        $variable = $loop.Groups['variable'].Value
+        $items = @([regex]::Matches($loop.Groups['items'].Value, '["''](?<item>[A-Za-z0-9_-]+)["'']'))
+        if (!$items.Count) { continue }
+        $templates = [regex]::Matches($text,
+            '"(?<path>[^"\r\n]*\$' + [regex]::Escape($variable) + '(?![A-Za-z0-9_])[^"\r\n]*[.]c)"')
+        foreach ($template in $templates) {
+            foreach ($item in $items) {
+                $expanded = $template.Groups['path'].Value.Replace('$' + $variable, $item.Groups['item'].Value)
+                [void]$paths.Add($expanded.Replace('\', '/'))
+            }
+        }
+    }
+    return ,$paths
+}
+
+function Test-DirectReference($text, $relative, $literalPaths)
 {
     $slashPath = $relative.Replace("\", "/")
     $backslashPath = $relative.Replace("/", "\")
@@ -115,23 +137,7 @@ function Test-DirectReference($text, $relative)
     if ( $text -match ('(?<![A-Za-z0-9_])' + [regex]::Escape($leafStem) + '(?![A-Za-z0-9_])') ) {
         return $true
     }
-    # Expand only finite literal PowerShell matrices; never treat an arbitrary
-    # interpolated path or wildcard as evidence that a fixture is executed.
-    foreach ($loop in [regex]::Matches($text,
-        '(?s)foreach\s*\(\s*\$(?<variable>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+@\((?<items>[^)]*)\)')) {
-        $variable = $loop.Groups['variable'].Value
-        $items = @([regex]::Matches($loop.Groups['items'].Value, '["''](?<item>[A-Za-z0-9_-]+)["'']'))
-        if (!$items.Count) { continue }
-        $templates = [regex]::Matches($text,
-            '"(?<path>[^"\r\n]*\$' + [regex]::Escape($variable) + '(?![A-Za-z0-9_])[^"\r\n]*[.]c)"')
-        foreach ($template in $templates) {
-            foreach ($item in $items) {
-                $expanded = $template.Groups['path'].Value.Replace('$' + $variable, $item.Groups['item'].Value)
-                if ($expanded.Replace('\', '/') -ceq $slashPath) { return $true }
-            }
-        }
-    }
-    return $false
+    return $literalPaths.Contains($slashPath)
 }
 
 function Test-SameNameXlangCompanion($asset)
@@ -158,6 +164,7 @@ foreach ( $relative in $entryWiringFiles ) {
 }
 
 $entryText = [string]::Join("`n", $entryTextParts)
+$literalCPaths = Get-LiteralCReferencePaths $entryText
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 $entryAssetRoots = @("test\cases", "release\examples")
 $entryAssets = New-Object System.Collections.Generic.List[object]
@@ -184,7 +191,7 @@ $wiredAssets = New-Object System.Collections.Generic.HashSet[string] ([System.St
 foreach ( $asset in $entryAssets ) {
     $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
     $assetByRelative[$relative] = $asset
-    if ( (Test-SameNameXlangCompanion $asset) -or (Test-DirectReference $entryText $relative) ) {
+    if ( (Test-SameNameXlangCompanion $asset) -or (Test-DirectReference $entryText $relative $literalCPaths) ) {
         $wiredAssets.Add($relative) | Out-Null
     }
 }
@@ -338,7 +345,7 @@ foreach ( $packageDir in $packageDirs ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
         $assetFullPath = [System.IO.Path]::GetFullPath($asset.FullName)
         if ( ! $packageDeclaredSources.ContainsKey($assetFullPath.ToLowerInvariant()) -and
-            ! (Test-DirectReference $entryText $relative) ) {
+            ! (Test-DirectReference $entryText $relative $literalCPaths) ) {
             Add-Failure "package C source is neither declared by metadata nor wired as a test: $relative"
         }
     }
