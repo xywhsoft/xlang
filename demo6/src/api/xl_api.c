@@ -1786,7 +1786,19 @@ static int xlAddEmbeddedTccRuntimeSources(
      * 这些宏描述“被编进用户产物里的 libtcc”。它们只在产物需要脚本能力时启用，
      * 普通 xlang 程序不会携带 TCC 源码和内置 VFS 资源。
      */
+#ifdef _WIN32
     (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC -DCONFIG_TCC_STATIC");
+#else
+    /* Static inclusion of libtcc is not CONFIG_TCC_STATIC: that vendor option
+     * replaces POSIX dlopen/dlsym with profiling stubs, disabling nested JIT. */
+    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC");
+#endif
+#if !defined(_WIN32) && defined(XL6_TCC_CONFIGURED_TRIPLET)
+    /* Preserve both libtcc's configured include/CRT layout and this host's
+     * ability to propagate that same contract to a nested embedded host. */
+    xl__tcc.tcc_define_symbol(s, "CONFIG_TRIPLET", "\"" XL6_TCC_CONFIGURED_TRIPLET "\"");
+    xl__tcc.tcc_define_symbol(s, "XL6_TCC_CONFIGURED_TRIPLET", "\"" XL6_TCC_CONFIGURED_TRIPLET "\"");
+#endif
     if ( outputType == TCC_OUTPUT_DLL ) {
         (void)xl__tcc.tcc_set_options(s, "-DLIBTCC_AS_DLL");
     }

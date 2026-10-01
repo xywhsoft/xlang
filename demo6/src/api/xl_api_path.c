@@ -1,3 +1,7 @@
+#if !defined(_WIN32) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE 1
+#endif
+
 #include "src/api/xl_api_path.h"
 
 #include "src/common/xl6_xrt.h"
