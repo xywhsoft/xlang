@@ -1,0 +1,1 @@
+assert string.lower("A\0B") == "a\0b"

@@ -14,6 +14,7 @@
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
+#include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -127,6 +128,10 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, #Name, (const void*)Name)) return 0;
 #include "src/runtime/xl6_log_symbols.inc"
 #undef XL6_LOG_EXPORT
+#define XL6_TEXT_EXPORT(Name, Component) \
+    if (!xlApiAddTccSymbol(s, #Name, (const void*)Name)) return 0;
+#include "src/runtime/xl6_text_symbols.inc"
+#undef XL6_TEXT_EXPORT
     if ( !xlApiAddTccSymbol(s, "xl6ProtocolWitnessValidate", (const void*)xl6ProtocolWitnessValidate) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolWitnessFind", (const void*)xl6ProtocolWitnessFind) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolRegister", (const void*)xl6ProtocolRegister) ||

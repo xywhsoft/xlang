@@ -39,6 +39,7 @@ file|include/__xl_runtime/xl6_future_aggregate.h|%XL6_ROOT%\src\runtime\xl6_futu
 file|include/__xl_runtime/xl6_ownership_plan.h|%XL6_ROOT%\src\runtime\xl6_ownership_plan.h
 file|include/__xl_runtime/xl6_generator.h|%XL6_ROOT%\src\runtime\xl6_generator.h
 file|include/__xl_runtime/xl6_future_payload.h|%XL6_ROOT%\src\runtime\xl6_future_payload.h
+file|include/__xl_runtime/xl6_text_value.h|%XL6_ROOT%\src\runtime\xl6_text_value.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
 # Keep native C source compatibility without embedding either implementation
 # product. Generated xlang C already reaches xruntime_decl.h through xl_runtime.h.

@@ -5,6 +5,9 @@ if errorlevel 1 exit /b 1
 set "XL6_SUITE_PREPARED=1"
 echo Running DEMO6 suite: core C generation and runtime baseline 9/10...
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_text_values.ps1
+if errorlevel 1 exit /b 1
+
 rem Language semantics belong to verified IR and observable runtimes.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_range_membership.ps1
 if errorlevel 1 exit /b 1

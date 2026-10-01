@@ -19854,7 +19854,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
             XL6_AstNode* param = params->children[i];
             XL6_AstNode* typeNode = (param != NULL && param->childCount > 0) ? param->children[0] : NULL;
 
-            if ( param != NULL && param->childCount > 1 ) {
+            /* Defaults are resolved at the language call site. They do not
+             * change the native arity or create an optional C ABI parameter. */
+            if (param != NULL && param->childCount > 1 && node->kind != XL6_AST_EXTERN_FUNC) {
                 xl6SemErrorNode(ctx, param, "C ABI extern does not support optional parameters");
                 ok = 0;
             }
@@ -20052,6 +20054,7 @@ static int xl6SemCheckExternFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     XL6_AstNode* returns;
     size_t i;
     int ok;
+    int seenOptional = 0;
 
     ok = 1;
     params = node->childCount > 1 ? node->children[1] : NULL;
@@ -20065,6 +20068,19 @@ static int xl6SemCheckExternFunc(XL6_SemContext* ctx, XL6_AstNode* node)
                 } else if ( !xl6SemCheckType(ctx, param->children[0]) ) {
                     ok = 0;
                 }
+            }
+            if (param->childCount > 1) {
+                seenOptional = 1;
+                if (!xl6SemCheckExpr(ctx, param->children[1])) ok = 0;
+                if (!xl6SemExprCanMatchParamType(ctx, param->children[1], param->children[0])) {
+                    xl6SemTypeMismatchError(ctx, param->children[1],
+                        "extern default expression does not match parameter type", param->children[0],
+                        xl6SemExprStaticTypeName(ctx, param->children[1]));
+                    ok = 0;
+                }
+            } else if (seenOptional && !xl6SemParamIsVararg(param)) {
+                xl6SemErrorNode(ctx, param, "required extern parameter follows an optional parameter");
+                ok = 0;
             }
         }
     }

@@ -42,6 +42,11 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
         }
+        if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
+            needs->needsTextAdapterDeclarations = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
         if (target->runtimeBridgeOperation >= XL6_IR_RUNTIME_BRIDGE_OPERATION_SIPHASHER_CREATE &&
             target->runtimeBridgeOperation <= XL6_IR_RUNTIME_BRIDGE_OPERATION_SIPHASHER_INPUT_BYTES) {
             if (target->runtimeBridgeOperation == XL6_IR_RUNTIME_BRIDGE_OPERATION_SIPHASHER_UPDATE_RAW)

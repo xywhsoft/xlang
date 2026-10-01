@@ -16,7 +16,7 @@ try {
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
         'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',
-        'src/runtime/xl6_log_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures)
+        'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures)
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale artifact input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
@@ -78,6 +78,11 @@ try {
         $declared[$symbol]=$nameIds[$owner]
     }
     $registryErrors=@()
+    foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/runtime/xl6_text_symbols.inc -Raw),'XL6_TEXT_EXPORT\((\w+), (\w+)\)')){
+        $symbol=$entry.Groups[1].Value;$owner=$entry.Groups[2].Value
+        if($declared.ContainsKey($symbol)-or!$nameIds.ContainsKey($owner)){throw "Invalid text resident export $symbol"}
+        $declared[$symbol]=$nameIds[$owner]
+    }
     foreach($symbol in $symbolOwners.Keys){if(!$declared.ContainsKey($symbol)-or$declared[$symbol]-ne$symbolOwners[$symbol]){$registryErrors+="Unregistered or misowned actual export: $symbol"}}
     foreach($symbol in $declared.Keys){if(!$symbolOwners.ContainsKey($symbol)){$registryErrors+="Declared export missing: $symbol"}}
     foreach($componentObject in $componentObjects){

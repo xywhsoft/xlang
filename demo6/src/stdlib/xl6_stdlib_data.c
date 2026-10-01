@@ -4272,39 +4272,25 @@ static const char xl6StdStringFormatBodyFloat[] =
     "end\n";
 
 static const char xl6StdStringLowerBody[] =
-    "func __xl_std_string_lower(string text) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_lower(text))\n"
-    "end\n";
+    "extern \"xl6TextLowerV1\" func __xl_std_string_lower(string text, int size = -1) as string\n";
 
 static const char xl6StdStringUpperBody[] =
-    "func __xl_std_string_upper(string text) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_upper(text))\n"
-    "end\n";
+    "extern \"xl6TextUpperV1\" func __xl_std_string_upper(string text, int size = -1) as string\n";
 
 static const char xl6StdStringTrimBody[] =
-    "func __xl_std_string_trim(string text, string chars = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_trim(text, chars))\n"
-    "end\n";
+    "extern \"xl6TextTrimV1\" func __xl_std_string_trim(string text, string chars = \"\", int size = -1, int charsSize = -1) as string\n";
 
 static const char xl6StdStringLTrimBody[] =
-    "func __xl_std_string_ltrim(string text, string chars = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_ltrim(text, chars))\n"
-    "end\n";
+    "extern \"xl6TextLTrimV1\" func __xl_std_string_ltrim(string text, string chars = \"\", int size = -1, int charsSize = -1) as string\n";
 
 static const char xl6StdStringRTrimBody[] =
-    "func __xl_std_string_rtrim(string text, string chars = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_rtrim(text, chars))\n"
-    "end\n";
+    "extern \"xl6TextRTrimV1\" func __xl_std_string_rtrim(string text, string chars = \"\", int size = -1, int charsSize = -1) as string\n";
 
 static const char xl6StdStringFilterBody[] =
-    "func __xl_std_string_filter(string text, string chars) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_filter(text, chars))\n"
-    "end\n";
+    "extern \"xl6TextFilterV1\" func __xl_std_string_filter(string text, string chars, int size = -1, int charsSize = -1) as string\n";
 
 static const char xl6StdStringReplaceBody[] =
-    "func __xl_std_string_replace(string text, string oldText, string newText) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_replace(text, oldText, newText))\n"
-    "end\n";
+    "extern \"xl6TextReplaceV1\" func __xl_std_string_replace(string text, string oldText, string newText, int size = -1, int oldSize = -1, int newSize = -1) as string\n";
 
 static const char xl6StdStringSplitBody[] =
     "func __xl_std_string_split(string text, string sep) as array\n"
@@ -4312,24 +4298,16 @@ static const char xl6StdStringSplitBody[] =
     "end\n";
 
 static const char xl6StdStringSliceBody[] =
-    "func __xl_std_string_slice(string text, int start, int count = -1) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_slice(text, start, count))\n"
-    "end\n";
+    "extern \"xl6TextSliceV1\" func __xl_std_string_slice(string text, int start, int count = -1, int size = -1) as string\n";
 
 static const char xl6StdStringLeftBody[] =
-    "func __xl_std_string_left(string text, int count) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_left(text, count))\n"
-    "end\n";
+    "extern \"xl6TextLeftV1\" func __xl_std_string_left(string text, int count, int size = -1) as string\n";
 
 static const char xl6StdStringRightBody[] =
-    "func __xl_std_string_right(string text, int count) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_right(text, count))\n"
-    "end\n";
+    "extern \"xl6TextRightV1\" func __xl_std_string_right(string text, int count, int size = -1) as string\n";
 
 static const char xl6StdStringMidBody[] =
-    "func __xl_std_string_mid(string text, int start, int count = -1) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_slice(text, start, count))\n"
-    "end\n";
+    "extern \"xl6TextSliceV1\" func __xl_std_string_mid(string text, int start, int count = -1, int size = -1) as string\n";
 
 static const char xl6StdStringCharAtBody[] =
     "func __xl_std_string_char_at(string text, int index) as string\n"
@@ -4347,9 +4325,7 @@ static const char xl6StdStringJoinBody[] =
     "end\n";
 
 static const char xl6StdStringRepeatBody[] =
-    "func __xl_std_string_repeat(string text, int count) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_repeat(text, count))\n"
-    "end\n";
+    "extern \"xl6TextRepeatV1\" func __xl_std_string_repeat(string text, int count, int size = -1) as string\n";
 
 static const char xl6StdStringIsEmptyBody[] =
     "func __xl_std_string_is_empty(string text) as bool\n"
@@ -4367,14 +4343,10 @@ static const char xl6StdStringRemoveBody[] =
     "end\n";
 
 static const char xl6StdStringRemoveAtBody[] =
-    "func __xl_std_string_remove_at(string text, int start, int count) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_remove_at(text, start, count))\n"
-    "end\n";
+    "extern \"xl6TextRemoveAtV1\" func __xl_std_string_remove_at(string text, int start, int count, int size = -1) as string\n";
 
 static const char xl6StdStringInsertBody[] =
-    "func __xl_std_string_insert(string text, int start, string part) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_insert(text, start, part))\n"
-    "end\n";
+    "extern \"xl6TextInsertV1\" func __xl_std_string_insert(string text, int start, string part, int size = -1, int partSize = -1) as string\n";
 
 static const char xl6StdStringPadLeftBody[] =
     "func __xl_std_string_pad_left(string text, int width, string pad = \" \") as string\n"
@@ -4392,9 +4364,7 @@ static const char xl6StdStringPadCenterBody[] =
     "end\n";
 
 static const char xl6StdStringReverseBody[] =
-    "func __xl_std_string_reverse(string text) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_reverse(text))\n"
-    "end\n";
+    "extern \"xl6TextReverseV1\" func __xl_std_string_reverse(string text, int size = -1) as string\n";
 
 static const char xl6StdStringSplitLinesBody[] =
     "func __xl_std_string_split_lines(string text) as array\n"

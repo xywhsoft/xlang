@@ -1,0 +1,1 @@
+extern "native_optional" func optional(int value = "wrong") as int

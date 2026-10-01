@@ -56,7 +56,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_log_ring.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_RING"}},
     {"src/runtime/xl6_log_printf.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_PRINTF"}},
     {"src/runtime/xl6_log_text_writer.c", R(LOG_TEXT), {"XRT_MODULE_IO"}},
-    {"src/runtime/xl6_log_json_writer.c", R(LOG_JSON), {"XRT_MODULE_IO"}}
+    {"src/runtime/xl6_log_json_writer.c", R(LOG_JSON), {"XRT_MODULE_IO"}},
+    {"src/runtime/xl6_text_value.c", 0, {"XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

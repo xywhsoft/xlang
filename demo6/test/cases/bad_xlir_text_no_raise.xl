@@ -1,0 +1,2 @@
+extern "xl6TextLowerV1" @no_raise func bad(string text, int size) as string
+bad("A", -1)

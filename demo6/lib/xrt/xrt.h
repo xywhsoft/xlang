@@ -16124,6 +16124,14 @@ XRT_API str xrtStrReplace(xstrview Text, xstrview Part, xstrview Replacement);
 
 
 
+/* 替换所有不重叠子串并返回精确字节长度（不含终止 NUL）。
+ * pOutputSize 可为 NULL；失败时非空输出长度清零，结果由 xrtFree 释放。
+ * 输出长度指针必须与所有输入字节区域不重叠；拒绝重叠时不写输出指针。 */
+XRT_API str xrtStrReplaceSized(xstrview Text, xstrview Part,
+	xstrview Replacement, size_t* pOutputSize);
+
+
+
 /* 按字节位置插入子串。 */
 XRT_API str xrtStrInsert(xstrview Text, size_t iPosition, xstrview Part);
 
@@ -118277,7 +118285,7 @@ XRT_API str xrtStrRepeat(xstrview Text, size_t iCount)
 	if ( sResult == NULL ) {
 		return NULL;
 	}
-	iWritten = Text.Size;
+	iWritten = iSize == 0 ? 0 : Text.Size;
 	if ( iWritten != 0 ) {
 		memcpy(sResult, Text.Data, iWritten);
 	}
@@ -118297,18 +118305,38 @@ XRT_API str xrtStrRepeat(xstrview Text, size_t iCount)
 /* 替换所有不重叠子串。 */
 XRT_API str xrtStrReplace(xstrview Text, xstrview Part, xstrview Replacement)
 {
+	return xrtStrReplaceSized(Text, Part, Replacement, NULL);
+}
+
+
+
+/* 替换并保留已计算的精确结果长度，不重新扫描含 NUL 的结果。 */
+XRT_API str xrtStrReplaceSized(xstrview Text, xstrview Part,
+	xstrview Replacement, size_t* pOutputSize)
+{
 	size_t iMatchCount;
 	size_t iResultSize;
 	size_t iRead = 0;
 	size_t iWrite = 0;
 	str sResult;
 
+	if ( (pOutputSize != NULL) &&
+		 (__xrtRangesOverlap(pOutputSize, sizeof(*pOutputSize), Text.Data, Text.Size) ||
+		  __xrtRangesOverlap(pOutputSize, sizeof(*pOutputSize), Part.Data, Part.Size) ||
+		  __xrtRangesOverlap(pOutputSize, sizeof(*pOutputSize), Replacement.Data, Replacement.Size)) ) {
+		__xrtErrorSetInvalidArgument();
+		return NULL;
+	}
+	if ( pOutputSize != NULL ) *pOutputSize = 0;
 	if ( !__xrtStrViewValid(Text) || !__xrtStrViewValid(Part) ||
 		 !__xrtStrViewValid(Replacement) ) {
 		return NULL;
 	}
 	if ( Part.Size == 0 ) {
-		return __xrtStrCopyView(Text);
+		sResult = __xrtStrCopyView(Text);
+		if ( (sResult == NULL) && (Text.Size != SIZE_MAX) ) __xrtErrorSetOutOfMemory();
+		if ( (sResult != NULL) && (pOutputSize != NULL) ) *pOutputSize = Text.Size;
+		return sResult;
 	}
 	iMatchCount = xrtStrCount(Text, Part);
 	iResultSize = Text.Size;
@@ -118329,6 +118357,7 @@ XRT_API str xrtStrReplace(xstrview Text, xstrview Part, xstrview Replacement)
 	}
 	sResult = (str)xrtMalloc(iResultSize + 1u);
 	if ( sResult == NULL ) {
+		__xrtErrorSetOutOfMemory();
 		return NULL;
 	}
 	while ( iRead < Text.Size ) {
@@ -118356,6 +118385,7 @@ XRT_API str xrtStrReplace(xstrview Text, xstrview Part, xstrview Replacement)
 		iRead = iFound + Part.Size;
 	}
 	sResult[iWrite] = 0;
+	if ( pOutputSize != NULL ) *pOutputSize = iWrite;
 	return sResult;
 }
 

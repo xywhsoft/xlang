@@ -1,0 +1,7 @@
+extern "abs" @pure @no_raise @nonblocking func native_abs(c_int value = -7) as c_int
+extern "strncmp" @pure @no_raise @nonblocking func native_compare(string left = "a", string right = "b", c_size size = 1) as c_int
+assert int(native_abs()) == 7
+assert int(native_abs(c_int(-4))) == 4
+assert int(native_compare()) < 0
+assert int(native_compare("b", "a")) > 0
+assert int(native_compare("same", "same", c_size(4))) == 0

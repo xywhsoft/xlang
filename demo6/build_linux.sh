@@ -149,6 +149,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_frame_storage.c"
 	"$ROOT/src/runtime/xl6_task.c"
 	"$ROOT/src/runtime/xl6_task_file.c"
+	"$ROOT/src/runtime/xl6_text_value.c"
 	"$ROOT/src/runtime/xl6_network_service.c"
 	"$ROOT/src/runtime/xl6_log.c"
 	"$ROOT/src/runtime/xl6_log_console.c"
