@@ -1,0 +1,35 @@
+assert string.lower("A\0你B") == "a\0你b"
+assert string.upper("a\0你b") == "A\0你B"
+assert string.trim(" \tA\0你B \n") == "A\0你B"
+assert string.ltrim("你A\0你", "你") == "A\0你"
+assert string.rtrim("你A\0你", "你") == "你A\0"
+assert string.trim("\0A\0", "\0") == "A"
+assert string.filter("你A\0你B", "你") == "A\0B"
+assert string.replace("a\0b\0a", "a", "你\0") == "你\0\0b\0你\0"
+assert string.replace("a\0b", "\0", "你") == "a你b"
+assert string.replace("a\0b", "", "Z") == "a\0b"
+assert string.slice("a\0你b", 1, 2) == "\0你"
+assert string.slice("a\0你b", -2) == "你b"
+assert string.mid("a\0你b", 1, 2) == "\0你"
+assert string.left("a\0你b", 3) == "a\0你"
+assert string.right("a\0你b", 3) == "\0你b"
+assert string.right("a\0你b", 0) == ""
+assert string.right("a\0你b", 999) == "a\0你b"
+assert string.repeat("a\0你", 2) == "a\0你a\0你"
+assert string.repeat("a\0你", 0) == ""
+assert string.reverse("a\0你b") == "b你\0a"
+assert string.removeAt("a\0你b", 1, 1) == "a你b"
+assert string.insert("a\0b", 1, "你\0") == "a你\0\0b"
+string original = "A\0B"
+string result = string.lower(original)
+original[0] = 'Z'
+assert result == "a\0b"
+assert original == "Z\0B"
+func owned() as string
+    return string.reverse(string.upper("你\0a"))
+end
+string first = owned()
+string second = owned()
+assert first == "A\0你" and second == first
+first[0] = 'B'
+assert second == "A\0你"

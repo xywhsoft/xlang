@@ -165,7 +165,6 @@ $requiredArtifactSubstrings = @{
     "sem_extern_c_symbol_kind_mismatch.err.txt" = "extern C symbol declared with incompatible ABI"
     "sem_extern_bad_type.err.txt" = "parameter type cannot enter first-stage C ABI extern directly"
     "sem_extern_multi_return.err.txt" = "C ABI extern does not support multiple return values"
-    "sem_extern_optional.err.txt" = "C ABI extern does not support optional parameters"
     "sem_extern_vararg.err.txt" = "C ABI extern does not support varargs"
     "sem_extern_generic.err.txt" = $diagSyntaxError
     "sem_throw_int.err.txt" = (Join-CodePoints @(0x0074, 0x0068, 0x0072, 0x006F, 0x0077, 0x0020, 0x8868, 0x8FBE, 0x5F0F, 0x5FC5, 0x987B, 0x662F, 0x0020, 0x0073, 0x0074, 0x0072, 0x0069, 0x006E, 0x0067))

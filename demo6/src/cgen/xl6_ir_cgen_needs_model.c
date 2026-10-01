@@ -20,7 +20,7 @@ static int xl6IrCgenNeedsWebSocketRuntime(
 static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
 {
     return needs != NULL &&
-        (needs->needsLogAdapterDeclarations || needs->needsModuleOwnershipViews || needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ||
+        (needs->needsTextAdapterDeclarations || needs->needsLogAdapterDeclarations || needs->needsModuleOwnershipViews || needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ||
          needs->needsStringScalarRuntime || needs->needsBytesRuntime ||
          needs->needsXCallRuntime || needs->needsClosureRuntime || needs->needsCellRuntime ||
          /* Even scalar-only machines emit physical Future/Promise frame

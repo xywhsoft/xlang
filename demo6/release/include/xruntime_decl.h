@@ -19125,6 +19125,14 @@ XRT_API str xrtStrReplace(xstrview Text, xstrview Part, xstrview Replacement);
 
 
 
+/* 替换所有不重叠子串并返回精确字节长度（不含终止 NUL）。
+ * pOutputSize 可为 NULL；失败时非空输出长度清零，结果由 xrtFree 释放。
+ * 输出长度指针必须与所有输入字节区域不重叠；拒绝重叠时不写输出指针。 */
+XRT_API str xrtStrReplaceSized(xstrview Text, xstrview Part,
+	xstrview Replacement, size_t* pOutputSize);
+
+
+
 /* 按字节位置插入子串。 */
 XRT_API str xrtStrInsert(xstrview Text, size_t iPosition, xstrview Part);
 

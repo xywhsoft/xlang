@@ -3741,7 +3741,9 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER,
     XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE,
     /* Resident, independently compiled logging adapters. */
-    XL6_IR_RUNTIME_BRIDGE_LOG
+    XL6_IR_RUNTIME_BRIDGE_LOG,
+    /* Exact-length owned text from an independently compiled provider. */
+    XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
 } XL6_IrRuntimeBridgeKind;
 
 /* Some runtime components contain several operations with different emitted

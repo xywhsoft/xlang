@@ -26689,6 +26689,8 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
     if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LOG)
         return xl6IrRuntimeLogBridgeTargetMatches(module, target);
+    if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE)
+        return xl6IrRuntimeDirectBridgeTargetMatches(module, target);
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG )
         return xl6IrRuntimeXlangBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING &&

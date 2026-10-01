@@ -352,10 +352,9 @@ if not errorlevel 1 (
 )
 
 release\xl.exe check test\cases\sem_extern_optional.xl >nul 2> build\test\sem_extern_optional.err.txt
-if not errorlevel 1 (
-    echo sem_extern_optional.xl should fail.
-    exit /b 1
-)
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_extern_defaults.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_extern_vararg.xl
 if errorlevel 1 exit /b 1

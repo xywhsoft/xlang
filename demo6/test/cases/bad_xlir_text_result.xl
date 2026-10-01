@@ -1,0 +1,2 @@
+extern "xl6TextLowerV1" func bad(string text, int size) as point
+bad("A", -1)

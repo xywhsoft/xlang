@@ -6,10 +6,30 @@ typedef struct XL6_IrDirectBridgeContract {
     XL6_IrRuntimeBridgeKind kind;
     XL6_IrCAbi result;
     size_t parameterCount;
-    XL6_IrCAbi parameters[5];
+    XL6_IrCAbi parameters[6];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
+#define S XL6_IR_C_ABI_MANAGED_STRING
+#define I XL6_IR_C_ABI_I64
+#define T XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
+    {"xl6TextLowerV1",T,S,2,{S,I}},
+    {"xl6TextUpperV1",T,S,2,{S,I}},
+    {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
+    {"xl6TextLTrimV1",T,S,4,{S,S,I,I}},
+    {"xl6TextRTrimV1",T,S,4,{S,S,I,I}},
+    {"xl6TextFilterV1",T,S,4,{S,S,I,I}},
+    {"xl6TextReplaceV1",T,S,6,{S,S,S,I,I,I}},
+    {"xl6TextSliceV1",T,S,4,{S,I,I,I}},
+    {"xl6TextLeftV1",T,S,3,{S,I,I}},
+    {"xl6TextRightV1",T,S,3,{S,I,I}},
+    {"xl6TextRepeatV1",T,S,3,{S,I,I}},
+    {"xl6TextReverseV1",T,S,2,{S,I}},
+    {"xl6TextRemoveAtV1",T,S,4,{S,I,I,I}},
+    {"xl6TextInsertV1",T,S,5,{S,I,S,I,I}},
+#undef S
+#undef I
+#undef T
     { "xl6_xrt_write", XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE, XL6_IR_C_ABI_C_BOOL,
       1, { XL6_IR_C_ABI_MANAGED_STRING } },
     { "xl6_xrt_writeln", XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN, XL6_IR_C_ABI_C_BOOL,
@@ -96,9 +116,11 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     size_t i;
     if (module == NULL || target == NULL || target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
         (contract = xl6IrDirectBridgeContract(target->cName)) == NULL ||
-        target->runtimeBridge != contract->kind || target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+        target->runtimeBridge != contract->kind || target->errorAbi !=
+            (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE) ||
         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-         target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE) ||
+         target->errorPhysicalAbi != (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
+            ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_NONE)) ||
         target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
         target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID ||
         target->resultPhysicalDestroySymbol != 0 ||
@@ -113,7 +135,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     } else {
         if (result == NULL || result->kind != XL6_IR_TYPE_BUILTIN ||
             result->collectionAbi != XL6_IR_COLLECTION_NONE || result->paramCount != 0) return 0;
-        if (contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
+        if (contract->result == XL6_IR_C_ABI_MANAGED_STRING) {
+            const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
+            if (result->cAbi != contract->result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+                target->effectAbi != XL6_IR_CALL_EFFECT_CONSERVATIVE ||
+                target->executionBoundaryAbi != XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK ||
+                !declaration || (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) return 0;
+        } else if (contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
             if (!xl6IrSerializationBridgeDynamicValueType(result)) return 0;
         } else if (!xl6IrBufferRuntimeBridgeResultMatches(result, contract->result)) return 0;
     }

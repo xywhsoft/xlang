@@ -11,6 +11,8 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <wchar.h>\n", out);
     if (needs.needsLogAdapterDeclarations)
         xl6OutputPuts("#include <__xl_runtime/xl6_log.h>\n", out);
+    if (needs.needsTextAdapterDeclarations)
+        xl6OutputPuts("#include <__xl_runtime/xl6_text_value.h>\n", out);
     xl6IrCgenEmitPublicLinkage(out);
     xl6IrCgenEmitCodeOwnerBinding(out, module);
     if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS)

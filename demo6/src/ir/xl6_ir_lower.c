@@ -11924,6 +11924,8 @@ static int xl6IrLowerResolveRuntimeBridge(
         xl6IrRuntimeBridgeOperationForName(target->cName);
     target->runtimeBridge = xl6IrRuntimeDirectBridgeKind(target->cName);
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
+        if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE)
+            target->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( !xl6IrRuntimeDirectBridgeTargetMatches(ctx->module, target) )
             return xl6IrLowerDiag(ctx, target->declaration,
                 "XLIR direct runtime bridge has no exact declared ABI");
