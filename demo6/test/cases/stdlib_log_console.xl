@@ -1,0 +1,31 @@
+auto options = LogConsoleOptions()
+options.color = LogColor.never
+options.target = LogConsoleTarget.stdout
+options.text.style = LogTextStyle.message
+auto sink = log.consoleSink(options)
+options.level = LogLevel.off
+assert sink.getLevel() == LogLevel.info
+auto logger = log.create("console", LogLevel.trace)
+assert logger.addSink(sink)
+assert logger.sinkCount() == 1
+assert logger.debug("not printed") == LogResult.skipped
+assert logger.info("a\0b", 20) == LogResult.written
+assert logger.info("你\nnext") == LogResult.written
+logger.flush()
+auto snapshot = sink.stats()
+assert snapshot.written == uint64(2)
+assert snapshot.skipped == uint64(1)
+sink.setLevel(LogLevel.off)
+assert logger.info("not printed") == LogResult.skipped
+assert logger.removeSink(sink)
+assert not logger.removeSink(sink)
+assert logger.info("detached") == LogResult.skipped
+sink.flush()
+bool rejected = false
+options.text.utcOffsetSeconds = 86400
+try
+    auto invalid = log.consoleSink(options)
+catch RangeError e
+    rejected = true
+end
+assert rejected

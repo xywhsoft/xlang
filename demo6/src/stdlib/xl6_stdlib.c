@@ -1223,18 +1223,22 @@ static int xl6StdlibNeedsLoggerClass(const XL6_AstNode* root, const int* used)
     size_t index;
 
     if ( xl6StdlibNodeUsesTypeName(root, "Logger") ||
-         xl6StdlibNodeUsesTypeName(root, "LogSink") ) {
+         xl6StdlibNodeUsesTypeName(root, "LogSink") ||
+         xl6StdlibNodeUsesTypeName(root, "LogStats") ||
+         xl6StdlibNodeUsesTypeName(root, "LogLevel") ||
+         xl6StdlibNodeUsesTypeName(root, "LogResult") ||
+         xl6StdlibNodeUsesTypeName(root, "LogConsoleOptions") ||
+         xl6StdlibNodeUsesTypeName(root, "LogTextOptions") ||
+         xl6StdlibNodeUsesTypeName(root, "LogTextStyle") ||
+         xl6StdlibNodeUsesTypeName(root, "LogConsoleTarget") ||
+         xl6StdlibNodeUsesTypeName(root, "LogColor") ) {
         return 1;
     }
     if ( used == NULL ) {
         return 0;
     }
-    if ( xl6StdlibFindFunc("log", "create", &index) != NULL && used[index] ) {
-        return 1;
-    }
-    if ( xl6StdlibFindFunc("log", "default", &index) != NULL && used[index] ) {
-        return 1;
-    }
+    for (index=0;index<XL6_STDLIB_FUNC_COUNT;++index)
+        if (used[index] && strcmp(xl6StdlibFuncs[index].ns,"log") == 0) return 1;
     return 0;
 }
 
@@ -1580,7 +1584,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsProcessClass;
     int needsTaskGroupClass;
     int needsLoggerClass;
-    int needsLoggerCustom;
     int needsProcessWaitAsync;
     int needsSignalClass;
     int needsTemplateClass;
@@ -1722,7 +1725,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
     needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used);
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
-    needsLoggerCustom = xl6StdlibNodeUsesMemberName(root, "customSink");
+    if (needsLoggerClass) xl6StdlibMarkFuncUsed(used,"__xl_runtime","logStats");
     needsProcessWaitAsync = xl6StdlibNodeUsesMemberName(root, "waitAsync");
     needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
@@ -1769,7 +1772,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
          needsTlsSessionClass || needsHttp1Class || needsWsFrameClass ||
          needsWsHandshakeClass || needsWsUpgradeClass || needsWebSocketClass ||
          needsWebSocketConfigClass || needsFileClass ||
-         needsJsonClass || needsProcessClass || needsLoggerClass ||
+         needsJsonClass || needsProcessClass ||
          needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
@@ -1922,10 +1925,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsLoggerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerClassSource);
-        if ( needsLoggerCustom ) {
-            xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerCustomMethodSource);
-        }
-        xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerClassEndSource);
     }
     if ( needsSignalClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibSignalClassSource);

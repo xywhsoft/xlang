@@ -164,6 +164,9 @@ function Add-Failure($items, $message)
 }
 
 $stdlib = Read-Utf8Text $stdlibPath
+foreach ($include in [regex]::Matches($stdlib, '(?m)^#include\s+"(?:src/stdlib/)?(xl6_stdlib_[A-Za-z0-9_]+\.inc)"')) {
+    $stdlib += "`n" + (Read-Utf8Text (Join-Path (Split-Path -Parent $stdlibPath) $include.Groups[1].Value))
+}
 $docs = Read-ManyUtf8Text $docDir "*.md"
 $tests = Read-ManyXlangCoverageText $testDir "stdlib_*.xl"
 $examples = Read-ManyXlangCoverageText $exampleDir "stdlib_*.xl"

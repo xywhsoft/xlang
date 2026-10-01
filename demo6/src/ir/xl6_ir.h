@@ -3739,7 +3739,9 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_STRING_PAD_LEFT,
     XL6_IR_RUNTIME_BRIDGE_STRING_PAD_RIGHT,
     XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER,
-    XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE
+    XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE,
+    /* Resident, independently compiled logging adapters. */
+    XL6_IR_RUNTIME_BRIDGE_LOG
 } XL6_IrRuntimeBridgeKind;
 
 /* Some runtime components contain several operations with different emitted
@@ -5748,6 +5750,11 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
 int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeIoBridgeKind(const char* name);
+int xl6IrRuntimeLogBridgeName(const char* name);
+int xl6IrRuntimeLogBridgeFactory(const char* name);
+XL6_IrErrorAbi xl6IrRuntimeLogBridgeErrorAbi(const char* name);
+const char* xl6IrRuntimeLogBridgeParameterOwner(const char* name, size_t parameter);
+int xl6IrRuntimeLogBridgeTargetMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name);
 int xl6IrRuntimeVfsBridgeIsFactory(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeVfsBridgeErrorAbi(const char* name);

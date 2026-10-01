@@ -1,5 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
-    [Parameter(Mandatory=$true)][string]$Directory)
+    [Parameter(Mandatory=$true)][string]$Directory,
+    [string[]]$Cases = @())
 $ErrorActionPreference='Stop'
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
@@ -7,14 +8,15 @@ try {
     $outputPath=[IO.Path]::GetFullPath($Directory)
     if(Test-Path -LiteralPath $outputPath){throw 'Preserve prior artifact-runtime evidence'}
     $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
-    $cases=@('cgen_basic','cgen_optional_nullable_function_default','cgen_try_finally_pending_async',
+    $cases=if ($Cases.Count) { $Cases } else { @('cgen_basic','cgen_optional_nullable_function_default','cgen_try_finally_pending_async',
         'xlir_task_aggregate_array_abi','xlir_task_when_any_array_abi','xlir_artifact_linkage_literal',
         'cgen_closure_ownership','cgen_generator','cgen_generator_two_targets','cgen_channel_string',
         'xlir_cell_loop_binding','xlir_nullable_cell_capture','cgen_function_value_error_propagation','xlir_generator_string_machine',
-        'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring')
+        'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
-        'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures)
+        'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',
+        'src/runtime/xl6_log_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures)
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale artifact input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
@@ -22,7 +24,7 @@ try {
     $objects=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
     $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
-        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Ilib/tcc')
+        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
     $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
     & gcc @flags src/driver/xl6_xlc_shell.c @objects @libs -o "$outputPath/xl.exe" *> "$outputPath/cli-build.log"
     $cliBuild=$LASTEXITCODE
@@ -67,6 +69,13 @@ try {
     if($expectedComponents-lt24-or!$nameIds.ContainsKey('NETWORK_SERVICE')){throw 'Resident component population regressed'}
     foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/compile/xl6_artifact_runtime_symbols.inc -Raw),'XL6_ARTIFACT_SYMBOL\("(\w+)", (\w+)\)')){
         $declared[$entry.Groups[1].Value]=$nameIds[$entry.Groups[2].Value]
+    }
+    # This catalog is also consumed by the resident API registration and the
+    # artifact planner. Expand the same explicit rows, not a second symbol list.
+    foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/runtime/xl6_log_symbols.inc -Raw),'XL6_LOG_EXPORT\((\w+), (\w+)\)')){
+        $symbol=$entry.Groups[1].Value;$owner=$entry.Groups[2].Value
+        if($declared.ContainsKey($symbol)-or!$nameIds.ContainsKey($owner)){throw "Invalid logging resident export $symbol"}
+        $declared[$symbol]=$nameIds[$owner]
     }
     $registryErrors=@()
     foreach($symbol in $symbolOwners.Keys){if(!$declared.ContainsKey($symbol)-or$declared[$symbol]-ne$symbolOwners[$symbol]){$registryErrors+="Unregistered or misowned actual export: $symbol"}}
@@ -148,8 +157,8 @@ $process=Start-Process @start
         $nativeLinkage.Count-eq$cases.Count-and!@($nativeLinkage|Where-Object {!$_.Complete}).Count
     $report=[pscustomobject]@{Complete=$complete;Inputs=$inputs;InputsUnchanged=$unchanged;CliBuild=$cliBuild;ContractBuild=$contractBuild;
         ContractRun=$contractRun;CatalogRun=$catalogRun;ComponentCount=$expectedComponents;DependencyPairs=($expectedComponents*$expectedComponents);DeclaredExports=$declared.Count;ActualExports=$symbolOwners.Count;
-        RegistryErrors=$registryErrors;Linkage=$linkage;NativeLinkage=$nativeLinkage;Results=$rows;
-        Scope='Current-source standalone CLI with explicit private declaration/source staging and TCC provider. Preserves all fifteen v204 programs, adds string bridge coverage, actual native object closure and actual assembly/plan equality. Not shared release xlc.dll, isolated deployment or whole-platform acceptance.'}
+        RegistryErrors=$registryErrors;Linkage=$linkage;NativeLinkage=$nativeLinkage;Results=$rows;Fixtures=$cases;
+        Scope='Current-source standalone CLI with explicit private declaration/source staging and TCC provider. Covers exactly the listed fixtures, all resident export ownership and dependency pairs, native object closure and actual assembly/plan equality. Not shared release xlc.dll, isolated deployment or whole-platform acceptance.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if(!$complete){throw 'Artifact runtime failures retained'}
 } finally {Pop-Location}

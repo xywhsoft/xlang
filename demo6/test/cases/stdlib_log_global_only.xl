@@ -1,0 +1,10 @@
+assert log.info("not configured") == LogResult.skipped
+assert log.write(LogLevel.info, "a\0b", 20) == LogResult.skipped
+log.flush()
+bool rejected = false
+try
+    log.warn("bad size", -2)
+catch RangeError e
+    rejected = true
+end
+assert rejected

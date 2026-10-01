@@ -1,0 +1,32 @@
+// Explicit logger, copied console configuration, and value-based results.
+assert log.default() == null
+assert log.textTime == 1
+assert log.textLevel == 2
+assert log.textLogger == 4
+assert log.textSource == 8
+assert log.textThread == 16
+assert log.textFields == 32
+assert log.textNewline == 64
+assert log.textRawMessage == 128
+auto logger = log.create("app", LogLevel.debug)
+auto options = LogConsoleOptions()
+options.color = LogColor.never
+options.target = LogConsoleTarget.stdout
+options.text.style = LogTextStyle.message
+options.text.flags = log.textNewline
+auto sink = log.consoleSink(options)
+assert logger.addSink(sink)
+log.setDefault(logger)
+assert log.levelName(LogLevel.warn) == "WARN"
+assert log.trace("filtered") == LogResult.skipped
+assert log.debug("filtered by sink") == LogResult.skipped
+assert log.info("ready") == LogResult.written
+assert log.warn("a\0b", 20) == LogResult.written
+assert log.error("error severity") == LogResult.written
+assert log.fatal("fatal does not terminate") == LogResult.written
+assert log.write(LogLevel.info, "done") == LogResult.written
+log.flush()
+auto snapshot = logger.stats()
+assert snapshot.written == uint64(5)
+log.setDefault(null)
+assert log.default() == null

@@ -26546,6 +26546,7 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 #include "src/ir/xl6_ir_direct_bridge.c"
 #include "src/ir/xl6_ir_xid_bridge.c"
 #include "src/ir/xl6_ir_io_bridge.c"
+#include "src/ir/xl6_ir_log_bridge.c"
 #include "src/ir/xl6_ir_vfs_bridge.c"
 #include "src/ir/xl6_ir_net_datagram_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
@@ -26682,9 +26683,12 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( xl6IrRuntimeIoBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if (xl6IrRuntimeVfsBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
+    if (xl6IrRuntimeLogBridgeName(target->cName)) reserved = 1;
     if (xl6IrRuntimeNetDatagramBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
     if (xl6IrRuntimeXlangBridgeName(target->cName)) reserved = 1;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
+    if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LOG)
+        return xl6IrRuntimeLogBridgeTargetMatches(module, target);
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG )
         return xl6IrRuntimeXlangBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XID_MAKE_STRING &&

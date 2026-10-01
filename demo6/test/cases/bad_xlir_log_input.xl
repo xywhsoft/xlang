@@ -1,0 +1,2 @@
+extern "xl6LogWriteV1" func wrong(string logger, int level, string message, int size) as LogResult
+wrong("not a native Logger", 2, "message", -1)

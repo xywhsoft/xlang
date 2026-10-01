@@ -313,106 +313,7 @@ const char* xl6StdlibXidClassSource =
     "    end\n"
     "end\n";
 
-const char* xl6StdlibLoggerClassSource =
-    "class LogSink\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_log_sink_wrap_handle\" create(point handle)\n"
-    "    extern \"xl6_xrt_log_sink_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_log_sink_native\" func nativeHandle() as point\n"
-    "    extern \"xl6_xrt_log_sink_name\" func nameNative() as point\n"
-    "    extern \"xl6_xrt_log_sink_set_level\" func setLevel(int level)\n"
-    "    extern \"xl6_xrt_log_sink_get_level\" func getLevel() as int\n"
-    "\n"
-    "    get name() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.nameNative())\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class Logger\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_log_create\" create(string name)\n"
-    "    extern \"xl6_xrt_log_wrap_handle\" create(point handle)\n"
-    "    extern \"xl6_xrt_log_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_log_set_default\" func makeDefault() as bool\n"
-    "    extern \"xl6_xrt_log_set_level\" func setLevel(int level)\n"
-    "    extern \"xl6_xrt_log_get_level\" func getLevel() as int\n"
-    "    extern \"xl6_xrt_log_add_console\" func addConsoleNative(int level, bool color, int format) as bool\n"
-    "    extern \"xl6_xrt_log_add_file\" func addFileNative(string path, int level, int format) as bool\n"
-    "    extern \"xl6_xrt_log_add_rolling_file\" func addRollingFileNative(string path, int maxSize, int maxBackup, int level, int format) as bool\n"
-    "    extern \"xl6_xrt_log_console_sink\" func consoleSinkNative(int level, bool color, int format) as point\n"
-    "    extern \"xl6_xrt_log_file_sink\" func fileSinkNative(string path, int level, int format) as point\n"
-    "    extern \"xl6_xrt_log_rolling_file_sink\" func rollingFileSinkNative(string path, int maxSize, int maxBackup, int level, int format) as point\n"
-    "    extern \"xl6_xrt_log_attach_sink\" func attachSinkNative(point sink) as bool\n"
-    "    extern \"xl6_xrt_log_remove_sink\" func removeSinkNative(point sink) as bool\n"
-    "    extern \"xl6_xrt_log_write\" func write(int level, string message)\n"
-    "    extern \"xl6_xrt_log_flush\" func flush()\n"
-    "\n"
-    "    func addConsole(int level = 0, bool color = true, int format = 0) as bool\n"
-    "        return self.addConsoleNative(level, color, format)\n"
-    "    end\n"
-    "\n"
-    "    func addFile(string path, int level = 2, int format = 0) as bool\n"
-    "        return self.addFileNative(path, level, format)\n"
-    "    end\n"
-    "\n"
-    "    func addRollingFile(string path, int maxSize = 10485760, int maxBackup = 5, int level = 2, int format = 0) as bool\n"
-    "        return self.addRollingFileNative(path, maxSize, maxBackup, level, format)\n"
-    "    end\n"
-    "\n"
-    "    func consoleSink(int level = 0, bool color = true, int format = 0) as LogSink\n"
-    "        return LogSink(self.consoleSinkNative(level, color, format))\n"
-    "    end\n"
-    "\n"
-    "    func fileSink(string path, int level = 2, int format = 0) as LogSink\n"
-    "        return LogSink(self.fileSinkNative(path, level, format))\n"
-    "    end\n"
-    "\n"
-    "    func rollingFileSink(string path, int maxSize = 10485760, int maxBackup = 5, int level = 2, int format = 0) as LogSink\n"
-    "        return LogSink(self.rollingFileSinkNative(path, maxSize, maxBackup, level, format))\n"
-    "    end\n"
-    "\n"
-    "    func attachSink(LogSink sink) as bool\n"
-    "        return self.attachSinkNative(sink.nativeHandle())\n"
-    "    end\n"
-    "\n"
-    "    func removeSink(LogSink sink) as bool\n"
-    "        return self.removeSinkNative(sink.nativeHandle())\n"
-    "    end\n"
-    "\n"
-    "    func trace(string message)\n"
-    "        self.write(0, message)\n"
-    "    end\n"
-    "\n"
-    "    func debug(string message)\n"
-    "        self.write(1, message)\n"
-    "    end\n"
-    "\n"
-    "    func info(string message)\n"
-    "        self.write(2, message)\n"
-    "    end\n"
-    "\n"
-    "    func warn(string message)\n"
-    "        self.write(3, message)\n"
-    "    end\n"
-    "\n"
-    "    func error(string message)\n"
-    "        self.write(4, message)\n"
-    "    end\n"
-    "\n"
-    "    func fatal(string message)\n"
-    "        self.write(5, message)\n"
-    "    end\n";
-
-const char* xl6StdlibLoggerCustomMethodSource =
-    "\n"
-    "    extern \"xl6_xrt_log_custom_sink\" func __xl_std_runtime_log_custom_sink(string name, func(var) handler, int level) as point\n"
-    "\n"
-    "    func customSink(string name, func(var) handler, int level = 0) as LogSink\n"
-    "        return LogSink(self.__xl_std_runtime_log_custom_sink(name, handler, level))\n"
-    "    end\n";
-
-const char* xl6StdlibLoggerClassEndSource =
-    "end\n";
+#include "src/stdlib/xl6_stdlib_log.inc"
 
 const char* xl6StdlibSignalClassSource =
     "class SignalHandle\n"
@@ -3119,37 +3020,8 @@ static const XL6_StdlibParam xl6StdRuntimeProcessPipelineParams[] = {
     {"c_int", "timeoutMs"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeLogCreateParams[] = {
-    {"string", "name"}
-};
-
 static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
     {"int", "level"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeLogDefaultAddConsoleParams[] = {
-    {"int", "level"},
-    {"bool", "color"},
-    {"int", "format"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeLogDefaultAddFileParams[] = {
-    {"string", "path"},
-    {"int", "level"},
-    {"int", "format"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeLogDefaultAddRollingFileParams[] = {
-    {"string", "path"},
-    {"int", "maxSize"},
-    {"int", "maxBackup"},
-    {"int", "level"},
-    {"int", "format"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeLogWriteParams[] = {
-    {"int", "level"},
-    {"string", "message"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeSignalCodeParams[] = {
@@ -4604,85 +4476,6 @@ static const char xl6StdProcessTerminalSupportedBody[] =
     "    return __xl_std_runtime_process_terminal_supported()\n"
     "end\n";
 
-static const char xl6StdLogCreateBody[] =
-    "func __xl_std_log_create(string name = \"xlang\") as Logger\n"
-    "    return Logger(name)\n"
-    "end\n";
-
-static const char xl6StdLogDefaultBody[] =
-    "func __xl_std_log_default() as Logger\n"
-    "    return Logger(__xl_std_runtime_log_default())\n"
-    "end\n";
-
-static const char xl6StdLogSetLevelBody[] =
-    "func __xl_std_log_set_level(int level)\n"
-    "    __xl_std_runtime_log_default_set_level(level)\n"
-    "end\n";
-
-static const char xl6StdLogGetLevelBody[] =
-    "func __xl_std_log_get_level() as int\n"
-    "    return __xl_std_runtime_log_default_get_level()\n"
-    "end\n";
-
-static const char xl6StdLogLevelNameBody[] =
-    "func __xl_std_log_level_name(int level) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_log_level_name(level))\n"
-    "end\n";
-
-static const char xl6StdLogAddConsoleBody[] =
-    "func __xl_std_log_add_console(int level = 0, bool color = true, int format = 0) as bool\n"
-    "    return __xl_std_runtime_log_default_add_console(level, color, format)\n"
-    "end\n";
-
-static const char xl6StdLogAddFileBody[] =
-    "func __xl_std_log_add_file(string path, int level = 2, int format = 0) as bool\n"
-    "    return __xl_std_runtime_log_default_add_file(path, level, format)\n"
-    "end\n";
-
-static const char xl6StdLogAddRollingFileBody[] =
-    "func __xl_std_log_add_rolling_file(string path, int maxSize = 10485760, int maxBackup = 5, int level = 2, int format = 0) as bool\n"
-    "    return __xl_std_runtime_log_default_add_rolling_file(path, maxSize, maxBackup, level, format)\n"
-    "end\n";
-
-static const char xl6StdLogWriteBody[] =
-    "func __xl_std_log_write(int level, string message)\n"
-    "    __xl_std_runtime_log_default_write(level, message)\n"
-    "end\n";
-
-static const char xl6StdLogTraceBody[] =
-    "func __xl_std_log_trace(string message)\n"
-    "    __xl_std_runtime_log_default_write(0, message)\n"
-    "end\n";
-
-static const char xl6StdLogDebugBody[] =
-    "func __xl_std_log_debug(string message)\n"
-    "    __xl_std_runtime_log_default_write(1, message)\n"
-    "end\n";
-
-static const char xl6StdLogInfoBody[] =
-    "func __xl_std_log_info(string message)\n"
-    "    __xl_std_runtime_log_default_write(2, message)\n"
-    "end\n";
-
-static const char xl6StdLogWarnBody[] =
-    "func __xl_std_log_warn(string message)\n"
-    "    __xl_std_runtime_log_default_write(3, message)\n"
-    "end\n";
-
-static const char xl6StdLogErrorBody[] =
-    "func __xl_std_log_error(string message)\n"
-    "    __xl_std_runtime_log_default_write(4, message)\n"
-    "end\n";
-
-static const char xl6StdLogFatalBody[] =
-    "func __xl_std_log_fatal(string message)\n"
-    "    __xl_std_runtime_log_default_write(5, message)\n"
-    "end\n";
-
-static const char xl6StdLogFlushBody[] =
-    "func __xl_std_log_flush()\n"
-    "    __xl_std_runtime_log_default_flush()\n"
-    "end\n";
 
 static const char xl6StdSignalOn0Body[] =
     "func __xl_std_signal_on(int code, func() handler) as SignalHandle\n"
@@ -6808,16 +6601,14 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"math", "e", XL6_AST_FLOAT, "2.71828182845904523536028747135266250"},
     {"math", "nan", XL6_AST_FLOAT, "(0.0/0.0)"},
     {"math", "inf", XL6_AST_FLOAT, "(1.0/0.0)"},
-    {"log", "traceLevel", XL6_AST_INT, "0"},
-    {"log", "debugLevel", XL6_AST_INT, "1"},
-    {"log", "infoLevel", XL6_AST_INT, "2"},
-    {"log", "warnLevel", XL6_AST_INT, "3"},
-    {"log", "errorLevel", XL6_AST_INT, "4"},
-    {"log", "fatalLevel", XL6_AST_INT, "5"},
-    {"log", "offLevel", XL6_AST_INT, "6"},
-    {"log", "textFormat", XL6_AST_INT, "0"},
-    {"log", "simpleFormat", XL6_AST_INT, "1"},
-    {"log", "jsonFormat", XL6_AST_INT, "2"},
+    {"log", "textTime", XL6_AST_INT, "1"},
+    {"log", "textLevel", XL6_AST_INT, "2"},
+    {"log", "textLogger", XL6_AST_INT, "4"},
+    {"log", "textSource", XL6_AST_INT, "8"},
+    {"log", "textThread", XL6_AST_INT, "16"},
+    {"log", "textFields", XL6_AST_INT, "32"},
+    {"log", "textNewline", XL6_AST_INT, "64"},
+    {"log", "textRawMessage", XL6_AST_INT, "128"},
     {"json", "visitComplete", XL6_AST_INT, "0"},
     {"json", "visitStopped", XL6_AST_INT, "1"},
     {"json", "visitInvalid", XL6_AST_INT, "-1"},
@@ -6968,16 +6759,12 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "processRunFile", "__xl_std_runtime_process_run_file", "xl6_xrt_process_run_file_result", xl6StdRuntimeProcessRunFileParams, 3, "point", NULL},
     {"__xl_runtime", "processPipeline", "__xl_std_runtime_process_pipeline", "xl6_xrt_process_pipeline_run", xl6StdRuntimeProcessPipelineParams, 2, "point", NULL},
     {"__xl_runtime", "processTerminalSupported", "__xl_std_runtime_process_terminal_supported", "xl6_xrt_process_terminal_supported", NULL, 0, "c_bool", NULL},
-    {"__xl_runtime", "logCreate", "__xl_std_runtime_log_create", "xl6_xrt_log_create", xl6StdRuntimeLogCreateParams, 1, "point", NULL},
-    {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6_xrt_log_default", NULL, 0, "point", NULL},
-    {"__xl_runtime", "logDefaultSetLevel", "__xl_std_runtime_log_default_set_level", "xl6_xrt_log_default_set_level", xl6StdRuntimeLogLevelParams, 1, "", NULL},
-    {"__xl_runtime", "logDefaultGetLevel", "__xl_std_runtime_log_default_get_level", "xl6_xrt_log_default_get_level", NULL, 0, "int", NULL},
-    {"__xl_runtime", "logDefaultAddConsole", "__xl_std_runtime_log_default_add_console", "xl6_xrt_log_default_add_console", xl6StdRuntimeLogDefaultAddConsoleParams, 3, "bool", NULL},
-    {"__xl_runtime", "logDefaultAddFile", "__xl_std_runtime_log_default_add_file", "xl6_xrt_log_default_add_file", xl6StdRuntimeLogDefaultAddFileParams, 3, "bool", NULL},
-    {"__xl_runtime", "logDefaultAddRollingFile", "__xl_std_runtime_log_default_add_rolling_file", "xl6_xrt_log_default_add_rolling_file", xl6StdRuntimeLogDefaultAddRollingFileParams, 5, "bool", NULL},
-    {"__xl_runtime", "logDefaultWrite", "__xl_std_runtime_log_default_write", "xl6_xrt_log_default_write", xl6StdRuntimeLogWriteParams, 2, "", NULL},
-    {"__xl_runtime", "logDefaultFlush", "__xl_std_runtime_log_default_flush", "xl6_xrt_log_default_flush", NULL, 0, "", NULL},
-    {"__xl_runtime", "logLevelName", "__xl_std_runtime_log_level_name", "xl6_xrt_log_level_name", xl6StdRuntimeLogLevelParams, 1, "point", NULL},
+    {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
+    {"__xl_runtime", "logDefaultWrite", "__xl_std_runtime_log_default_write", "xl6LogDefaultWriteV1", xl6StdLogDefaultWriteParams, 3, "LogResult", NULL},
+    {"__xl_runtime", "logDefaultFlush", "__xl_std_runtime_log_default_flush", "xl6LogDefaultFlushV1", NULL, 0, "bool", NULL},
+    {"__xl_runtime", "logSetDefault", "__xl_std_runtime_log_set_default", "xl6LogSetDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
+    {"__xl_runtime", "logStats", "__xl_std_runtime_log_stats", "xl6LogStatsV1", xl6StdLogStatsParams, 2, "point", NULL},
+    {"__xl_runtime", "logLevelName", "__xl_std_runtime_log_level_name", "xl6LogLevelNameV1", xl6StdRuntimeLogLevelParams, 1, "string", NULL},
     {"__xl_runtime", "signalOn0", "__xl_std_runtime_signal_on0", "xl6_xrt_signal_on0", xl6StdRuntimeSignalOn0Params, 3, "point", NULL},
     {"__xl_runtime", "signalOn1", "__xl_std_runtime_signal_on1", "xl6_xrt_signal_on1", xl6StdRuntimeSignalOn1Params, 3, "point", NULL},
     {"__xl_runtime", "signalSendTo", "__xl_std_runtime_signal_send_to", "xl6_xrt_signal_send_to", xl6StdRuntimeSignalSendToParams, 2, "point", NULL},
@@ -7887,20 +7674,17 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"task", "group", "__xl_std_task_group", NULL, NULL, 0, "TaskGroup", xl6StdTaskGroupBody},
 
     {"log", "create", "__xl_std_log_create", NULL, NULL, 0, "Logger", xl6StdLogCreateBody},
-    {"log", "default", "__xl_std_log_default", NULL, NULL, 0, "Logger", xl6StdLogDefaultBody},
-    {"log", "setLevel", "__xl_std_log_set_level", NULL, NULL, 0, "", xl6StdLogSetLevelBody},
-    {"log", "getLevel", "__xl_std_log_get_level", NULL, NULL, 0, "int", xl6StdLogGetLevelBody},
+    {"log", "consoleSink", "__xl_std_log_consoleSink", NULL, NULL, 0, "LogSink", xl6StdLogConsoleSinkBody},
+    {"log", "default", "__xl_std_log_default", NULL, NULL, 0, "Logger?", xl6StdLogDefaultBody},
+    {"log", "setDefault", "__xl_std_log_setDefault", NULL, NULL, 0, "", xl6StdLogSetDefaultBody},
     {"log", "levelName", "__xl_std_log_level_name", NULL, NULL, 0, "string", xl6StdLogLevelNameBody},
-    {"log", "addConsole", "__xl_std_log_add_console", NULL, NULL, 0, "bool", xl6StdLogAddConsoleBody},
-    {"log", "addFile", "__xl_std_log_add_file", NULL, NULL, 0, "bool", xl6StdLogAddFileBody},
-    {"log", "addRollingFile", "__xl_std_log_add_rolling_file", NULL, NULL, 0, "bool", xl6StdLogAddRollingFileBody},
-    {"log", "write", "__xl_std_log_write", NULL, NULL, 0, "", xl6StdLogWriteBody},
-    {"log", "trace", "__xl_std_log_trace", NULL, NULL, 0, "", xl6StdLogTraceBody},
-    {"log", "debug", "__xl_std_log_debug", NULL, NULL, 0, "", xl6StdLogDebugBody},
-    {"log", "info", "__xl_std_log_info", NULL, NULL, 0, "", xl6StdLogInfoBody},
-    {"log", "warn", "__xl_std_log_warn", NULL, NULL, 0, "", xl6StdLogWarnBody},
-    {"log", "error", "__xl_std_log_error", NULL, NULL, 0, "", xl6StdLogErrorBody},
-    {"log", "fatal", "__xl_std_log_fatal", NULL, NULL, 0, "", xl6StdLogFatalBody},
+    {"log", "write", "__xl_std_log_write", NULL, NULL, 0, "LogResult", xl6StdLogWriteBody},
+    {"log", "trace", "__xl_std_log_trace", NULL, NULL, 0, "LogResult", xl6StdLogtraceBody},
+    {"log", "debug", "__xl_std_log_debug", NULL, NULL, 0, "LogResult", xl6StdLogdebugBody},
+    {"log", "info", "__xl_std_log_info", NULL, NULL, 0, "LogResult", xl6StdLoginfoBody},
+    {"log", "warn", "__xl_std_log_warn", NULL, NULL, 0, "LogResult", xl6StdLogwarnBody},
+    {"log", "error", "__xl_std_log_error", NULL, NULL, 0, "LogResult", xl6StdLogerrorBody},
+    {"log", "fatal", "__xl_std_log_fatal", NULL, NULL, 0, "LogResult", xl6StdLogfatalBody},
     {"log", "flush", "__xl_std_log_flush", NULL, NULL, 0, "", xl6StdLogFlushBody},
 
     {"signal", "on", "__xl_std_signal_on", NULL, xl6StdSignalOn0Params, 2, "SignalHandle", xl6StdSignalOn0Body},

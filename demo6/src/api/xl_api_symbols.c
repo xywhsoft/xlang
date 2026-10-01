@@ -13,6 +13,7 @@
 #include "src/runtime/xl6_frame_storage.h"
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_network_service.h"
+#include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -122,6 +123,10 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if ( !xlApiAddTccSymbol(s, "xlTccRegisterXrtEnvironment", (const void*)xlTccRegisterXrtEnvironment) ) {
         return 0;
     }
+#define XL6_LOG_EXPORT(Name, Component) \
+    if (!xlApiAddTccSymbol(s, #Name, (const void*)Name)) return 0;
+#include "src/runtime/xl6_log_symbols.inc"
+#undef XL6_LOG_EXPORT
     if ( !xlApiAddTccSymbol(s, "xl6ProtocolWitnessValidate", (const void*)xl6ProtocolWitnessValidate) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolWitnessFind", (const void*)xl6ProtocolWitnessFind) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolRegister", (const void*)xl6ProtocolRegister) ||

@@ -18,7 +18,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/api/xl_future_bridge.c','src/api/xl_task_group_bridge.c',
     'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
     'src/runtime/xl6_continuation_future.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_future_payload.c',
-    'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_network_service.c',
+    'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_network_service.c','src/runtime/xl6_log.c','src/runtime/xl6_log_console.c',
     'src/runtime/xl6_code_finalizer.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_file.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
     'src/abi/xl6_abi_dump.c','src/abi/xl6_abi_json.c','src/abi/xl6_callable.c',
     'src/backend/xl6_build_backend.c','src/compile/xl6_compile_unit.c','src/compile/xl6_imports.c',
@@ -54,7 +54,7 @@ if ($headers.Count -lt 6) { throw 'Private runtime package manifest is incomplet
 $flags = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-DXL_STATIC_EMBED',"-DXL_ENABLE_EXE_COMPILER=$enableExe",'-DTCC_DISABLE_BUILTIN_VFS',
     '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',
-    "-I$rootPath","-I$rootPath/release","-I$rootPath/lib/tcc","-I$rootPath/build/test")
+    "-I$rootPath","-I$rootPath/release","-I$rootPath/release/include","-I$rootPath/lib/tcc","-I$rootPath/build/test")
 $objects = @($sources | ForEach-Object { Join-Path $batchPath ([IO.Path]::GetFileNameWithoutExtension($_) + '.o') })
 if (@($objects | Select-Object -Unique).Count -ne $objects.Count) { throw 'Object basename collision' }
 $objectRecords = @()

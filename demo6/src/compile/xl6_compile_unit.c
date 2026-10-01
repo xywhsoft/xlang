@@ -42,7 +42,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/api/xl_task_group_bridge.c", 0, {"XRT_MODULE_TASK_GROUP_POOL", "XRT_MODULE_TASK_GROUP_COROUTINE"}},
     {"src/api/xl_foreign_error.c", 0, {"XRT_MODULE_ONCE", "XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_network_service.c", 0, {"XRT_MODULE_NET_ENGINE", "XRT_MODULE_NET_RESOLVER"}},
-    {"src/runtime/xl6_task_file.c", R(TASK), {"XRT_MODULE_FILE_ASYNC"}}
+    {"src/runtime/xl6_task_file.c", R(TASK), {"XRT_MODULE_FILE_ASYNC"}},
+    {"src/runtime/xl6_log.c", 0, {"XRT_MODULE_LOGGER_CORE", "XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_log_console.c", R(LOG_CORE), {"XRT_MODULE_LOGGER_CONSOLE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
