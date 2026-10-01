@@ -1,0 +1,70 @@
+string text = "A\0你😀bA\0"
+assert string.len(text) == 7
+assert string.byteLen(text) == 12
+assert string.len(text, 5) == 3
+assert string.byteLen(text, 3) == 3
+char scalar = string.charAt(text, 2)
+assert scalar == '你'
+assert string.charAt(text, -3) == 'b'
+assert string.charAt(text, 1) == char(0)
+uint8 byte = string.byteAt(text, 0)
+assert byte == 65
+assert string.byteAt("你", 0) == uint8(228)
+assert string.byteAt(text, -1) == uint8(0)
+assert string.indexOf(text, "你") == 2
+assert string.indexOf(text, "bA") == 4
+assert string.lastIndexOf(text, "A\0") == 5
+assert string.count(text, "a\0", true) == 2
+assert string.count(text, "") == 0
+assert string.contains(text, "\0你")
+assert not string.contains(text, "\0x")
+assert string.equals(text, "a\0你😀Ba\0", true)
+assert not string.equals(text, "A")
+assert string.equals(text, "Axxx", false, 1, 1)
+assert string.compare("a\0b", "a\0c") < 0
+assert string.startsWith(text, "a\0", true)
+assert string.endsWith(text, "a\0", true)
+assert string.hasAny(text, "\0")
+assert not string.hasAny("你", "日")
+assert string.isEmpty(text, 0)
+assert string.isBlank(" \t\r\n\v\f")
+assert not string.isBlank("\0")
+assert string.isUtf8(text)
+assert not string.isUtf8("你", 1)
+assert string.remove("A\0bA\0", "a", true) == "\0b\0"
+assert string.remove("a\0a", "a") == "\0"
+assert string.padLeft("x\0", 4, "你\0") == "你\0x\0"
+assert string.padRight("x\0", 4, "你\0") == "x\0你\0"
+assert string.padCenter("x\0", 4, "你\0") == "你x\0你"
+assert string.padLeft("你", 0) == "你"
+assert string.padLeft("x", 4, "ab") == "abax"
+assert string.padRight("x", 4, "你a") == "x你a你"
+bool rangeCaught = false
+try
+    string.charAt(text, 7)
+catch RangeError
+    rangeCaught = true
+end
+assert rangeCaught
+rangeCaught = false
+try
+    string.byteAt(text, -13)
+catch RangeError
+    rangeCaught = true
+end
+assert rangeCaught
+rangeCaught = false
+try
+    string.len(text, -2)
+catch RangeError
+    rangeCaught = true
+end
+assert rangeCaught
+bool utfCaught = false
+try
+    string.compare("你", "你", false, 1)
+catch ValueError
+    utfCaught = true
+end
+assert utfCaught
+assert string.charAt(text, 2) == '你'

@@ -53,7 +53,12 @@ static xstrview operation(unsigned id)
     case 10: return xl6TextRepeatV1(text, 3, -1);
     case 11: return xl6TextReverseV1(text, -1);
     case 12: return xl6TextRemoveAtV1(text, 1, 2, -1);
-    default: return xl6TextInsertV1(text, 1, part, -1, -1);
+    case 13: return xl6TextInsertV1(text, 1, part, -1, -1);
+    case 14: return xl6TextRemoveV1(text, part, false, -1, -1);
+    case 15: return xl6TextRemoveV1(text, part, true, -1, -1);
+    case 16: return xl6TextPadLeftV1(text, 6000, XRT_STR_LITERAL("你\0"), -1, -1);
+    case 17: return xl6TextPadRightV1(text, 6000, XRT_STR_LITERAL("你\0"), -1, -1);
+    default: return xl6TextPadCenterV1(text, 6000, XRT_STR_LITERAL("你\0"), -1, -1);
     }
 }
 int main(void)
@@ -77,6 +82,10 @@ int main(void)
     equal(xl6TextRightV1(XRT_STR_LITERAL("a\0b"), INT64_MAX, -1), XRT_STR_LITERAL("a\0b"));
     equal(xl6TextLowerV1(XRT_STR_LITERAL("A\0B"), 20), XRT_STR_LITERAL("a\0b"));
     equal(xl6TextLowerV1(XRT_STR_LITERAL("你A"), 0), XRT_STR_LITERAL(""));
+    equal(xl6TextRemoveV1(XRT_STR_LITERAL("A\0bA\0"), XRT_STR_LITERAL("a"), true, -1, -1), XRT_STR_LITERAL("\0b\0"));
+    equal(xl6TextPadLeftV1(XRT_STR_LITERAL("x\0"), 4, XRT_STR_LITERAL("你\0"), -1, -1), XRT_STR_LITERAL("你\0x\0"));
+    equal(xl6TextPadRightV1(XRT_STR_LITERAL("x\0"), 4, XRT_STR_LITERAL("你\0"), -1, -1), XRT_STR_LITERAL("x\0你\0"));
+    equal(xl6TextPadCenterV1(XRT_STR_LITERAL("x\0"), 4, XRT_STR_LITERAL("你\0"), -1, -1), XRT_STR_LITERAL("你x\0你"));
     xrtClearError(); assert(!xl6TextLowerV1(XRT_STR_LITERAL("你A"), 1).Data && xrtErrorKind(xrtGetError()) != XERR_NONE);
     xrtClearError(); assert(!xl6TextLowerV1((xstrview){NULL,1}, -1).Data && xrtErrorKind(xrtGetError()) != XERR_NONE);
     xrtClearError(); assert(!xl6TextLowerV1(XRT_STR_LITERAL("A"), -2).Data && xrtErrorKind(xrtGetError()) != XERR_NONE);
@@ -87,7 +96,7 @@ int main(void)
     assert(xrtMemDebugReset());
     unsigned hits = 0;
     size_t retained = fault.live; /* Physical cached spans, no logical values. */
-    for (unsigned id = 0; id < 14; ++id) {
+    for (unsigned id = 0; id < 19; ++id) {
         fault.fail = SIZE_MAX;
         xstrview success = operation(id);
         assert(success.Data); xrtFree((void*)success.Data);
@@ -102,7 +111,7 @@ int main(void)
         ++hits; xrtClearError(); assert(xrtMemDebugReset());
         assert(fault.live == baseline);
     }
-    assert(hits == 14 && fault.live == retained);
+    assert(hits == 19 && fault.live == retained);
     printf("text values: exact bytes, UTF-8, boundaries; %u actual OOM paths balanced\n", hits);
     return 0;
 }

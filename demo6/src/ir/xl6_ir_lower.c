@@ -2244,6 +2244,7 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsScalar(
     if ( ctx == NULL || borrowed == XL6_IR_VALUE_INVALID ||
          resultType == NULL ||
          (resultType->cAbi != XL6_IR_C_ABI_BOOL &&
+          resultType->cAbi != XL6_IR_C_ABI_CHAR_U32 &&
           resultType->cAbi != XL6_IR_C_ABI_I64 &&
           resultType->cAbi != XL6_IR_C_ABI_U64 &&
           resultType->cAbi != XL6_IR_C_ABI_F64 &&
@@ -2482,6 +2483,7 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
         return xl6IrLowerProjectBorrowedXValueAsXValue(
             ctx, origin, borrowed, resultTypeId);
     if ( resultType->cAbi == XL6_IR_C_ABI_BOOL ||
+         resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
          resultType->cAbi == XL6_IR_C_ABI_I64 ||
          resultType->cAbi == XL6_IR_C_ABI_U64 ||
          resultType->cAbi == XL6_IR_C_ABI_F64 ||
@@ -5530,6 +5532,13 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
         return xl6IrLowerProjectBorrowedXValueAsRawPointer(
             ctx, origin, borrowed, node->storageType);
     }
+    if ( resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 && receiverType->paramCount == 1 &&
+         receiverType->params != NULL && receiverType->params[0] == node->storageType ) {
+        dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+        XL6_IrValueId borrowed = dynamicType == XL6_IR_TYPE_INVALID ? XL6_IR_VALUE_INVALID
+            : xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, dynamicOp, operands, 2);
+        return xl6IrLowerProjectBorrowedXValueAsScalar(ctx, origin, borrowed, node->storageType);
+    }
       if ( resultType->cAbi == XL6_IR_C_ABI_I64 && receiverType->paramCount == 1 &&
            receiverType->params != NULL && receiverType->params[0] == node->storageType )
           return xl6IrLowerEmitRuntimeCall(ctx, origin, node->storageType,
@@ -5609,6 +5618,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
     int dictionaryReceiver = 0;
     int exactTypedDict = 0;
     int nullableProjection = 0;
+    int scalarProjection = 0;
     int closureProjection = 0;
     int nativeHandleProjection = 0;
     char* keyLiteral;
@@ -5671,7 +5681,12 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
             ? XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL
             : XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
     } else {
-        if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_I64 )
+        if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 ) {
+            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
+            scalarProjection = 1;
+        }
+        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_I64 )
             runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_I64;
         else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_U64 )
             runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_U64;
@@ -5735,7 +5750,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
         }
     }
     receiverValue = xl6IrLowerEmitRuntimeLiteralCall(ctx, origin,
-                                                     nullableProjection ||
+                                                     nullableProjection || scalarProjection ||
                                                          closureProjection ||
                                                          nativeHandleProjection
                                                          ? dynamicType
@@ -5743,6 +5758,9 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
                                                      runtimeOp,
                                                      keyLiteral, &receiverValue, 1);
     xrtFree(keyLiteral);
+    if ( scalarProjection )
+        return xl6IrLowerProjectBorrowedXValueAsScalar(
+            ctx, origin, receiverValue, node->storageType);
     if ( nullableProjection ) {
         XL6_IrTypeId receiverTemporaryType = receiver->storageType;
         return xl6IrLowerProjectBorrowedIndexResult(
@@ -21077,6 +21095,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int ownedSource;
     int dynamicSource;
     int nullableItemProjection = 0;
+    int scalarItemProjection = 0;
     int closureItemProjection = 0;
     int nativeHandleItemProjection = 0;
     int unionItemProjection = 0;
@@ -21218,6 +21237,10 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
               ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_ORDINAL_I64
               : XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_I64;
     if ( materializesItem ) switch ( node->loopItemAbi ) {
+    case XL6_IR_LOOP_ITEM_CHAR:
+        scalarItemProjection = 1;
+        if ( projectedItemType->cAbi == XL6_IR_C_ABI_CHAR_U32 ) break;
+        goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_I64:
         itemOp = XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_I64;
         if ( projectedItemType->cAbi == XL6_IR_C_ABI_I64 ) break;
@@ -21499,7 +21522,7 @@ invalidItemProjection:
                 ctx, id, node, keyTargetId, key, node->loopKeyLifetimeAbi)) return 0;
     }
     if ( materializesItem ) {
-        if ( nullableItemProjection || closureItemProjection ||
+        if ( nullableItemProjection || scalarItemProjection || closureItemProjection ||
              nativeHandleItemProjection ||
              unionItemProjection ) {
             XL6_IrTypeId dynamicType =
@@ -21510,7 +21533,10 @@ invalidItemProjection:
                     ctx, itemTargetId, dynamicType,
                     XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_BORROW,
                     &loadedState, 1);
-            item = nativeHandleItemProjection
+            item = scalarItemProjection
+                ? xl6IrLowerProjectBorrowedXValueAsScalar(
+                    ctx, itemTargetId, borrowedItem, itemType)
+                : nativeHandleItemProjection
                 ? xl6IrLowerProjectBorrowedXValueAsNativeHandle(
                     ctx, itemTargetId, borrowedItem, itemType)
                 : unionItemProjection

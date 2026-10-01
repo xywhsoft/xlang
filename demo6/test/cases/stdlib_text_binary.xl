@@ -1,0 +1,69 @@
+string text = "A\0你😀"
+bytes binary = string.bytes(text)
+assert binary.length == 9
+assert binary[0] == uint8(65)
+assert binary[1] == uint8(0)
+assert binary[2] == uint8(228)
+binary[0] = uint8(97)
+assert text[0] == 'A'
+assert string.bytes(text)[0] == uint8(65)
+bytes copy = binary
+copy[0] = uint8(66)
+assert binary[0] == uint8(97)
+assert string.bytes("你", 1).length == 1
+assert string.bytes("你", 1)[0] == uint8(228)
+assert string.bytes("", 100).length == 0
+array<char> chars = string.chars(text)
+assert chars.length == 4
+assert chars[0] == 'A'
+assert chars[1] == char(0)
+assert chars[2] == '你'
+assert chars[3] == '😀'
+chars[0] = 'b'
+assert text[0] == 'A'
+assert string.chars(text)[0] == 'A'
+assert string.chars("").length == 0
+char? missing = chars?[99]
+assert missing == null
+char? present = chars?[2]
+if present != null
+    assert present == '你'
+else
+    assert false
+end
+list<char> sparse = list[2: '你', 9: '😀']
+sparse[2] = 'A'
+assert sparse[2] == 'A'
+string listText = ""
+for item in sparse
+    listText = listText + item
+end
+assert listText == "A😀"
+dict<char> mapping = dict{"first": '你'}
+mapping["first"] = '😀'
+assert mapping["first"] == '😀'
+var key = "first"
+assert mapping[key] == '😀'
+string dictText = ""
+for k, item in mapping
+    dictText = dictText + item
+end
+assert dictText == "😀"
+int visited = 0
+for item in set<char>{'A', '你'}
+    assert item == 'A' or item == '你'
+    visited = visited + 1
+end
+assert visited == 2
+string joined = ""
+for c in string.chars(text)
+    joined = joined + c
+end
+assert joined == text
+bool caught = false
+try
+    string.chars("你", 1)
+catch ValueError
+    caught = true
+end
+assert caught

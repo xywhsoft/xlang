@@ -4167,79 +4167,49 @@ static const char xl6StdAsciiToUpperBody[] =
     "end\n";
 
 static const char xl6StdStringCompareBody[] =
-    "func __xl_std_string_compare(string left, string right, bool ignoreCase = false) as int\n"
-    "    return __xl_std_xrt_string_compare(left, right, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextCompareV1\" func __xl_std_string_compare(string left, string right, bool ignoreCase = false, int leftSize = -1, int rightSize = -1) as int\n";
 
 static const char xl6StdStringLenBody[] =
-    "func __xl_std_string_len(string text) as int\n"
-    "    return int(__xl_std_xrt_string_char_len(text))\n"
-    "end\n";
+    "extern \"xl6TextLengthV1\" func __xl_std_string_len(string text, int size = -1) as int\n";
 
 static const char xl6StdStringByteLenBody[] =
-    "func __xl_std_string_byte_len(string text) as int\n"
-    "    return int(__xl_std_xrt_string_byte_len(text))\n"
-    "end\n";
+    "extern \"xl6TextByteLengthV1\" func __xl_std_string_byte_len(string text, int size = -1) as int\n";
 
 static const char xl6StdStringEqualsBody[] =
-    "func __xl_std_string_equals(string left, string right, bool ignoreCase = false) as bool\n"
-    "    return __xl_std_xrt_string_compare(left, right, ignoreCase) == 0\n"
-    "end\n";
+    "extern \"xl6TextEqualsV1\" func __xl_std_string_equals(string left, string right, bool ignoreCase = false, int leftSize = -1, int rightSize = -1) as bool\n";
 
 static const char xl6StdStringContainsBody[] =
-    "func __xl_std_string_contains(string text, string part, bool ignoreCase = false) as bool\n"
-    "    return __xl_std_xrt_string_contains(text, part, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextContainsV1\" func __xl_std_string_contains(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as bool\n";
 
 static const char xl6StdStringIndexOfBody[] =
-    "func __xl_std_string_index_of(string text, string part, bool ignoreCase = false) as int\n"
-    "    return __xl_std_xrt_string_index_of(text, part, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextIndexOfV1\" func __xl_std_string_index_of(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as int\n";
 
 static const char xl6StdStringLastIndexOfBody[] =
-    "func __xl_std_string_last_index_of(string text, string part, bool ignoreCase = false) as int\n"
-    "    return __xl_std_xrt_string_last_index_of(text, part, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextLastIndexOfV1\" func __xl_std_string_last_index_of(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as int\n";
 
 static const char xl6StdStringCountBody[] =
-    "func __xl_std_string_count(string text, string part, bool ignoreCase = false) as int\n"
-    "    return __xl_std_xrt_string_count(text, part, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextCountV1\" func __xl_std_string_count(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as int\n";
 
 static const char xl6StdStringStartsWithBody[] =
-    "func __xl_std_string_starts_with(string text, string prefix, bool ignoreCase = false) as bool\n"
-    "    return __xl_std_runtime_string_starts_with(text, prefix, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextStartsWithV1\" func __xl_std_string_starts_with(string text, string prefix, bool ignoreCase = false, int size = -1, int prefixSize = -1) as bool\n";
 
 static const char xl6StdStringEndsWithBody[] =
-    "func __xl_std_string_ends_with(string text, string suffix, bool ignoreCase = false) as bool\n"
-    "    return __xl_std_runtime_string_ends_with(text, suffix, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextEndsWithV1\" func __xl_std_string_ends_with(string text, string suffix, bool ignoreCase = false, int size = -1, int suffixSize = -1) as bool\n";
 
 static const char xl6StdStringHasAnyBody[] =
-    "func __xl_std_string_has_any(string text, string chars) as bool\n"
-    "    return __xl_std_xrt_string_has_any(text, chars)\n"
-    "end\n";
+    "extern \"xl6TextHasAnyV1\" func __xl_std_string_has_any(string text, string chars, int size = -1, int charsSize = -1) as bool\n";
 
 static const char xl6StdStringLikeBody[] =
-    "func __xl_std_string_like(string text, string pattern, bool ignoreCase = false) as bool\n"
-    "    return __xl_std_xrt_string_like(text, pattern, ignoreCase)\n"
-    "end\n";
+    "extern \"xl6TextLikeV1\" func __xl_std_string_like(string text, string pattern, bool ignoreCase = false, int size = -1, int patternSize = -1) as bool\n";
 
 static const char xl6StdStringApproxBody[] =
-    "func __xl_std_string_approx(string left, string right) as bool\n"
-    "    return __xl_std_xrt_string_approx(left, right)\n"
-    "end\n";
+    "extern \"xl6TextApproxV1\" func __xl_std_string_approx(string left, string right, float tolerance = 0.95, int leftSize = -1, int rightSize = -1) as bool\n";
 
 static const char xl6StdStringSimBody[] =
-    "func __xl_std_string_sim(string left, string right) as float\n"
-    "    return float(__xl_std_xrt_string_similarity(left, right))\n"
-    "end\n";
+    "extern \"xl6TextSimilarityV1\" func __xl_std_string_sim(string left, string right, int leftSize = -1, int rightSize = -1) as float\n";
 
 static const char xl6StdStringIsUtf8Body[] =
-    "func __xl_std_string_is_utf8(string text) as bool\n"
-    "    return __xl_std_xrt_string_is_utf8(text)\n"
-    "end\n";
+    "extern \"xl6TextIsUtf8V1\" func __xl_std_string_is_utf8(string text, int size = -1) as bool\n";
 
 static const char xl6StdIntFormatBody[] =
     "func __xl_std_int_format(int value, string format = \"\") as string\n"
@@ -4310,14 +4280,10 @@ static const char xl6StdStringMidBody[] =
     "extern \"xl6TextSliceV1\" func __xl_std_string_mid(string text, int start, int count = -1, int size = -1) as string\n";
 
 static const char xl6StdStringCharAtBody[] =
-    "func __xl_std_string_char_at(string text, int index) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_char_at(text, index))\n"
-    "end\n";
+    "extern \"xl6TextCharAtV1\" func __xl_std_string_char_at(string text, int index, int size = -1) as char\n";
 
 static const char xl6StdStringByteAtBody[] =
-    "func __xl_std_string_byte_at(string text, int index) as int\n"
-    "    return int(__xl_std_xrt_string_byte_at(text, index))\n"
-    "end\n";
+    "extern \"xl6TextByteAtV1\" func __xl_std_string_byte_at(string text, int index, int size = -1) as uint8\n";
 
 static const char xl6StdStringJoinBody[] =
     "func __xl_std_string_join(array values, string sep = \"\") as string\n"
@@ -4328,19 +4294,13 @@ static const char xl6StdStringRepeatBody[] =
     "extern \"xl6TextRepeatV1\" func __xl_std_string_repeat(string text, int count, int size = -1) as string\n";
 
 static const char xl6StdStringIsEmptyBody[] =
-    "func __xl_std_string_is_empty(string text) as bool\n"
-    "    return __xl_std_xrt_string_is_empty(text)\n"
-    "end\n";
+    "extern \"xl6TextIsEmptyV1\" func __xl_std_string_is_empty(string text, int size = -1) as bool\n";
 
 static const char xl6StdStringIsBlankBody[] =
-    "func __xl_std_string_is_blank(string text) as bool\n"
-    "    return __xl_std_xrt_string_is_blank(text)\n"
-    "end\n";
+    "extern \"xl6TextIsBlankV1\" func __xl_std_string_is_blank(string text, int size = -1) as bool\n";
 
 static const char xl6StdStringRemoveBody[] =
-    "func __xl_std_string_remove(string text, string part, bool ignoreCase = false) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_remove(text, part, ignoreCase))\n"
-    "end\n";
+    "extern \"xl6TextRemoveV1\" func __xl_std_string_remove(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as string\n";
 
 static const char xl6StdStringRemoveAtBody[] =
     "extern \"xl6TextRemoveAtV1\" func __xl_std_string_remove_at(string text, int start, int count, int size = -1) as string\n";
@@ -4349,19 +4309,13 @@ static const char xl6StdStringInsertBody[] =
     "extern \"xl6TextInsertV1\" func __xl_std_string_insert(string text, int start, string part, int size = -1, int partSize = -1) as string\n";
 
 static const char xl6StdStringPadLeftBody[] =
-    "func __xl_std_string_pad_left(string text, int width, string pad = \" \") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_pad_left(text, width, pad))\n"
-    "end\n";
+    "extern \"xl6TextPadLeftV1\" func __xl_std_string_pad_left(string text, int width, string pad = \" \", int size = -1, int padSize = -1) as string\n";
 
 static const char xl6StdStringPadRightBody[] =
-    "func __xl_std_string_pad_right(string text, int width, string pad = \" \") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_pad_right(text, width, pad))\n"
-    "end\n";
+    "extern \"xl6TextPadRightV1\" func __xl_std_string_pad_right(string text, int width, string pad = \" \", int size = -1, int padSize = -1) as string\n";
 
 static const char xl6StdStringPadCenterBody[] =
-    "func __xl_std_string_pad_center(string text, int width, string pad = \" \") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_pad_center(text, width, pad))\n"
-    "end\n";
+    "extern \"xl6TextPadCenterV1\" func __xl_std_string_pad_center(string text, int width, string pad = \" \", int size = -1, int padSize = -1) as string\n";
 
 static const char xl6StdStringReverseBody[] =
     "extern \"xl6TextReverseV1\" func __xl_std_string_reverse(string text, int size = -1) as string\n";
@@ -4372,14 +4326,15 @@ static const char xl6StdStringSplitLinesBody[] =
     "end\n";
 
 static const char xl6StdStringCharsBody[] =
-    "func __xl_std_string_chars(string text) as array\n"
-    "    return array(__xl_std_runtime_string_chars(text))\n"
-    "end\n";
+    "extern \"xl6TextCharsV1\" func __xl_std_string_chars(string text, int size = -1) as array<char>\n";
 
 static const char xl6StdStringBytesBody[] =
-    "func __xl_std_string_bytes(string text) as array\n"
-    "    return array(__xl_std_runtime_string_bytes(text))\n"
-    "end\n";
+    "extern \"xl6TextBytesV1\" func __xl_std_string_bytes(string text, int size = -1) as bytes\n";
+
+static const char xl6StdStringGlobBody[] =
+    "extern \"xl6TextGlobV1\" func __xl_std_string_glob(string text, string pattern, int flags = 0, int size = -1, int patternSize = -1) as bool\n";
+static const char xl6StdStringDistanceBody[] =
+    "extern \"xl6TextDistanceV1\" func __xl_std_string_distance(string left, string right, int limit = -1, int leftSize = -1, int rightSize = -1) as int\n";
 
 static const char xl6StdProcessExecBody[] =
     "func __xl_std_process_exec(string command, int timeoutMs = 0) as string\n"
@@ -7164,6 +7119,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "approx", "__xl_std_string_approx", NULL, NULL, 0, "bool", xl6StdStringApproxBody},
     {"string", "sim", "__xl_std_string_sim", NULL, NULL, 0, "float", xl6StdStringSimBody},
     {"string", "isUtf8", "__xl_std_string_is_utf8", NULL, NULL, 0, "bool", xl6StdStringIsUtf8Body},
+    {"string", "glob", "__xl_std_string_glob", NULL, NULL, 0, "bool", xl6StdStringGlobBody},
+    {"string", "distance", "__xl_std_string_distance", NULL, NULL, 0, "int", xl6StdStringDistanceBody},
     {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatBody},
     {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatUIntBody},
     {"float", "format", "__xl_std_float_format", NULL, NULL, 0, "string", xl6StdFloatFormatBody},
@@ -7205,8 +7162,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "left", "__xl_std_string_left", NULL, NULL, 0, "string", xl6StdStringLeftBody},
     {"string", "right", "__xl_std_string_right", NULL, NULL, 0, "string", xl6StdStringRightBody},
     {"string", "mid", "__xl_std_string_mid", NULL, NULL, 0, "string", xl6StdStringMidBody},
-    {"string", "charAt", "__xl_std_string_char_at", NULL, NULL, 0, "string", xl6StdStringCharAtBody},
-    {"string", "byteAt", "__xl_std_string_byte_at", NULL, NULL, 0, "int", xl6StdStringByteAtBody},
+    {"string", "charAt", "__xl_std_string_char_at", NULL, NULL, 0, "char", xl6StdStringCharAtBody},
+    {"string", "byteAt", "__xl_std_string_byte_at", NULL, NULL, 0, "uint8", xl6StdStringByteAtBody},
     {"string", "join", "__xl_std_string_join", NULL, NULL, 0, "string", xl6StdStringJoinBody},
     {"string", "repeat", "__xl_std_string_repeat", NULL, NULL, 0, "string", xl6StdStringRepeatBody},
     {"string", "isEmpty", "__xl_std_string_is_empty", NULL, NULL, 0, "bool", xl6StdStringIsEmptyBody},
@@ -7219,8 +7176,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "padCenter", "__xl_std_string_pad_center", NULL, NULL, 0, "string", xl6StdStringPadCenterBody},
     {"string", "reverse", "__xl_std_string_reverse", NULL, NULL, 0, "string", xl6StdStringReverseBody},
     {"string", "splitLines", "__xl_std_string_split_lines", NULL, NULL, 0, "array", xl6StdStringSplitLinesBody},
-    {"string", "chars", "__xl_std_string_chars", NULL, NULL, 0, "array", xl6StdStringCharsBody},
-    {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "array", xl6StdStringBytesBody},
+    {"string", "chars", "__xl_std_string_chars", NULL, NULL, 0, "array<char>", xl6StdStringCharsBody},
+    {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "bytes", xl6StdStringBytesBody},
 
     {"time", "now", "__xl_std_time_now", NULL, NULL, 0, "time", xl6StdTimeNowBody},
     {"time", "today", "__xl_std_time_today", NULL, NULL, 0, "time", xl6StdTimeTodayBody},
