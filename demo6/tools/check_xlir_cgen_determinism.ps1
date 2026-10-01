@@ -34,6 +34,24 @@ function Assert-GeneratedCellExchangeRelease(
     if ( ! $release.Success ) { throw $failureMessage }
 }
 $expectedLoweringFailures = [ordered]@{
+    "xlir_constant_loop_break_missing_return.xl" =
+        "XLIR non-void function has reachable unterminated block"
+    "xlir_constant_loop_false_missing_return.xl" =
+        "XLIR non-void function has reachable unterminated block"
+    "xlir_dynamic_loop_missing_return.xl" =
+        "XLIR non-void function has reachable unterminated block"
+    "xlir_string_bytes_bad_parameter.xl" =
+        "XLIR string runtime bridge has no exact parameter/result ABI"
+    "xlir_string_bytes_bad_result.xl" =
+        "XLIR string runtime bridge has no exact parameter/result ABI"
+    "xlir_string_chars_bad_parameter.xl" =
+        "XLIR string runtime bridge has no exact parameter/result ABI"
+    "xlir_string_chars_bad_result.xl" =
+        "XLIR string runtime bridge has no exact parameter/result ABI"
+    "xlir_string_join_bad_parameter.xl" =
+        "XLIR string runtime bridge has no exact parameter/result ABI"
+    "xlir_string_join_bad_result.xl" =
+        "XLIR string runtime bridge has no exact parameter/result ABI"
     "xlir_string_bridge_bad_parameter.xl" =
         "XLIR string runtime bridge has no exact parameter/result ABI"
     "xlir_string_bridge_bad_result.xl" =

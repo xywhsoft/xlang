@@ -119,10 +119,10 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             if ( needs->needsCollectionDictWithoutRuntime )
                 xl6OutputPuts(
                     "extern bool xrtValueObjectRemove(xvalue*, xlir_string_view);\n"
-                    "static xvalue* xlir_xvalue_dict_without_string_key(const xvalue* left, const char* key)\n"
+                    "static xvalue* xlir_xvalue_dict_without_string_key(const xvalue* left, xlir_string key)\n"
                     "{\n"
                     "    xvalue* result = xrtValueClone(left);\n"
-                    "    if (result != NULL) (void)xrtValueObjectRemove(result, xrtStrView(key));\n"
+                    "    if (result != NULL) (void)xrtValueObjectRemove(result, key);\n"
                     "    return result;\n"
                     "}\n",
                     out);
@@ -261,16 +261,16 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             xl6OutputPuts(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
-                "static char* xlir_xvalue_try_cast_nullable_string(const xvalue* source, uint64_t expectedTypeId)\n"
+                "static xlir_string xlir_xvalue_try_cast_nullable_string(const xvalue* source, uint64_t expectedTypeId)\n"
                 "{\n"
-                "    xlir_string_view text = { 0 }; char* copy = NULL;\n"
-                "    if (source == NULL || xrtValueType(source) == 0 || xlir_xvalue_type_id(source) != expectedTypeId) return NULL;\n"
+                "    xlir_string_view text = { 0 }; xlir_string copy = {0};\n"
+                "    if (source == NULL || xrtValueType(source) == 0 || xlir_xvalue_type_id(source) != expectedTypeId) return copy;\n"
                 "    if (!xrtValueGetString(source, &text)) goto runtime_failure;\n"
-                "    copy = xrtStrDupN(text.Data, text.Size);\n"
-                "    if (copy != NULL) return copy;\n"
+                "    copy = xlir_string_from_utf8(text.Data, text.Size);\n"
+                "    if (copy.Data != NULL) return copy;\n"
                 "runtime_failure:\n"
                 "    if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"MemoryError\", \"nullable string cast result allocation failed\"));\n"
-                "    return NULL;\n"
+                "    return (xlir_string){0};\n"
                 "}\n",
                 out);
         if ( needs->needsXValueNullableRetainProjectionRuntime )
@@ -501,13 +501,12 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             xl6OutputPuts(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
-                "static char* xlir_xvalue_project_string_copy(const xvalue* source)\n"
+                "static xlir_string xlir_xvalue_project_string_copy(const xvalue* source)\n"
                 "{\n"
-                "    xlir_string_view value = { 0 }; char* copied;\n"
+                "    xlir_string_view value = { 0 };\n"
                 "    if (source == NULL || xrtValueType(source) == 0 ||\n"
-                "        !xrtValueGetString(source, &value)) return NULL;\n"
-                "    copied = xrtStrDupN(value.Data, value.Size);\n"
-                "    return copied;\n"
+                "        !xrtValueGetString(source, &value)) return (xlir_string){0};\n"
+                "    return xlir_string_from_utf8(value.Data, value.Size);\n"
                 "}\n",
                 out);
         if ( needs->needsXValueNativeHandleProjectionRuntime )
@@ -733,10 +732,10 @@ static int xl6IrCgenEmitXValueCoreRuntime(
         if ( needs->needsXValueIntMapStringReadRuntime )
             xl6OutputPuts("extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                           "extern char* xrtStrDupN(const char*, size_t);\n"
-                          "static char* xlir_xvalue_int_map_at_i64_string_copy(const xvalue* map, int64_t index)\n"
-                          "{ xvalue* item = xrtValueIntMapGet(map, index); xlir_string_view value = {0}; char* copied;\n"
+                          "static xlir_string xlir_xvalue_int_map_at_i64_string_copy(const xvalue* map, int64_t index)\n"
+                          "{ xvalue* item = xrtValueIntMapGet(map, index); xlir_string_view value = {0}; xlir_string copied;\n"
                           "  if (item == NULL || !xrtValueGetString(item, &value)) abort();\n"
-                          "  copied = xrtStrDupN(value.Data, value.Size); if (copied == NULL) abort();\n"
+                          "  copied = xlir_string_from_utf8(value.Data, value.Size); if (copied.Data == NULL) abort();\n"
                           "  return copied; }\n", out);
     }
     return !xl6OutputHasFailed(out);

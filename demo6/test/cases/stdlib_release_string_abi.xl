@@ -1,0 +1,87 @@
+// The release lanes must consume the same two-field string ABI everywhere.
+assert int(" 42 ") == 42
+assert uint64("18446744073709551615") == uint64(18446744073709551615)
+assert float("1.25") == 1.25
+assert string(time("2026-06-18")) == "2026-06-18 00:00:00"
+
+int rejected = 0
+try
+    int ignored = int("42\0tail")
+catch ValueError ignored
+    rejected += 1
+end
+try
+    uint64 ignored = uint64("42\0tail")
+catch ValueError ignored
+    rejected += 1
+end
+try
+    float ignored = float("1.25\0tail")
+catch ValueError ignored
+    rejected += 1
+end
+try
+    time ignored = time("2026-06-18\0tail")
+catch ValueError ignored
+    rejected += 1
+end
+assert rejected == 4
+
+array<string> texts = array["a\0b", "c\0d"]
+assert texts.pop() == "c\0d"
+assert texts.take(0) == "a\0b"
+list<string> sparse = list[7: "s\0v"]
+assert sparse.take(7) == "s\0v"
+dict<string> entries = dict{"k\0a": "v\0a", "k\0b": "v\0b"}
+assert entries.take("k\0b") == "v\0b"
+assert entries.take("k\0a") == "v\0a"
+var dynamicValue = "v\0a"
+dict<var> dynamicEntries = dict{"k\0a": dynamicValue}
+assert string(dynamicEntries.take("k\0a")) == "v\0a"
+list<string> readable = list[7: "r\0v"]
+assert readable[7] == "r\0v"
+string? maybeText = dynamicValue as string?
+assert (maybeText ?? "") == "v\0a"
+var dynamicNumber = 42
+string? missingText = dynamicNumber as string?
+assert missingText == null
+if dynamicValue is string
+    string projectedText = dynamicValue
+    assert projectedText == "v\0a"
+end
+DynamicFields fields = DynamicFields()
+assert fields.set("n\0a", dynamicValue)
+assert fields.set("n\0b", dynamicNumber)
+assert string(fields.get("n\0a")) == "v\0a"
+assert int(fields.get("n\0b")) == 42
+dict<int> numbers = dict{"k\0a": 7, "k\0b": 9}
+dict<int> rest = numbers - "k\0a"
+assert rest.length == 1 and rest["k\0b"] == 9
+
+func pair() as (string, int)
+    return "p\0q", 7
+end
+string text = ""
+int number = 0
+text, number = pair()
+assert text == "p\0q" and number == 7
+
+class Label
+    int value = 0
+end
+assert string(type(Label())) == "Label"
+
+async func sourceText() as string
+    return "a\0b"
+end
+async func appendText() as string
+    return await sourceText() + "!"
+end
+assert await appendText() == "a\0b!"
+future<string> named = sourceText()
+assert named.setDebugName("named")
+assert named.debugName() == "named"
+assert not named.setDebugName("bad\0name")
+assert named.debugName() == "named"
+assert await named == "a\0b"
+println("release string ABI: PASS")

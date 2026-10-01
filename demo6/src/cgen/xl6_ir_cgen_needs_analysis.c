@@ -25,9 +25,17 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 needs->needsErrorRuntime = 1;
                 if ( result != NULL && result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
                     needs->needsXValueRuntime = 1;
+                if ( result != NULL && result->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) {
+                    needs->needsStringRuntime = 1;
+                    needs->needsStringViews = 1;
+                }
                 for ( p = 0; p < signature->paramCount; ++p ) {
                     const XL6_IrType* item = xl6IrTypeGet(&module->types, signature->params[p]);
                     if ( item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) needs->needsXValueRuntime = 1;
+                    if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) {
+                        needs->needsStringRuntime = 1;
+                        needs->needsStringViews = 1;
+                    }
                 }
             }
     for ( i = 0; i < module->instructionCount; ++i ) {
@@ -480,6 +488,9 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
             needs->needsStackResourceRuntime = 1;
+            /* The shared payload helper includes its string-copy arm even
+             * when this module instantiates only scalar Stack elements. */
+            needs->needsStringRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;

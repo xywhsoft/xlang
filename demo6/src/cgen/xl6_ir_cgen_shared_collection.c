@@ -155,7 +155,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                     (unsigned int)argument0);
             else
                 xl6OutputPrintf(out,
-                    "    v%u = %s(v%u, %d, v%u, NULL);\n",
+                    "    v%u = %s(v%u, %d, v%u, (xlir_string){0});\n",
                     (unsigned int)instruction->result, helper,
                     (unsigned int)receiver,
                     (int)instruction->collectionAbi,

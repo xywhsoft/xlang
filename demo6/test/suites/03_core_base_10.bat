@@ -628,5 +628,17 @@ release\xl.exe run test\cases\runtime_int_division_zero.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\anonymous_functions.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_release_string_abi.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_release_string_abi.xl --emit build\test\stdlib_release_string_abi.c
+if errorlevel 1 exit /b 1
+%XL6_CGEN_CC% %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_release_string_abi.c\" test\cases\xlir_generated_module_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_release_string_abi.strict.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_release_string_abi.strict.exe
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_release_string_abi.xl -o build\test\stdlib_release_string_abi.aot.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_release_string_abi.aot.exe
+if errorlevel 1 exit /b 1
 echo DEMO6 suite ok: core C generation and runtime baseline 10/10
 exit /b 0

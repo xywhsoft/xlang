@@ -410,7 +410,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter type-id-to-string ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_type_id_to_string(v%u);\n",
+                        "    v%u = xlir_string_take_cstr(xlir_type_id_to_string(v%u));\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[
                             instruction->firstOperand]);

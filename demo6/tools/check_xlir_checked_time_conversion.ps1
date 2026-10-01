@@ -114,10 +114,10 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $generated = [System.IO.File]::ReadAllText($generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static int64_t xlir_string_to_time_checked(const char* text)",
+    "static int64_t xlir_string_to_time_checked(xlir_string text)",
     "static int64_t xlir_xvalue_to_time_checked(const xvalue* value)",
-    "static char* xlir_time_to_string(int64_t value)",
-    "xrtTimeParseAny(xrtStrView(text), &result)",
+    "static xlir_string xlir_time_to_string(int64_t value)",
+    "xrtTimeParseAny(text, &result)",
     "xrtValueGetTime(value, &result)",
     "xrtValueTime(", "ValueError", "TypeError",
     "if (xrtGetError() == NULL)"

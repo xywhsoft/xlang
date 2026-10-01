@@ -2601,9 +2601,9 @@ rem string-split-lines compiler-runtime bridge.  Generated C must be standalone
 rem apart from XRT; linking xl.dll would hide a missing bridge implementation.
 release\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --backend xlir --emit build\test\cgen_dynamic_to_typed_containers_xlir_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue* xl6_xrt_string_split_lines(const char* text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
+findstr /C:"xvalue* xl6_xrt_string_split_lines(xlir_string text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xrtStrSplitLines(xrtStrView(text))" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
+findstr /C:"xrtStrSplitLines(text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1
 findstr /C:", 9, 0);" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1

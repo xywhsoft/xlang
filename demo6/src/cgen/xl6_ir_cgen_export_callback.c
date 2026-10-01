@@ -133,11 +133,24 @@ static int xl6IrCgenEmitExportCallbackAdapters(
         xl6OutputPuts(
             "    xl6_foreign_error_scope invocation = {0}; xl6_foreign_error_result outcome;\n"
             "    if (!xl6ForeignCallBegin(&invocation)) return false;\n    ", out);
+        for ( p = 0; p < signature->paramCount; ++p ) {
+            const XL6_IrType* parameterType = xl6IrTypeGet(&module->types, signature->params[p]);
+            if ( parameterType != NULL && parameterType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+                 parameterType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
+                xl6OutputPrintf(out,
+                    "const char* raw_a%lu = xlir_string_cstr(a%lu);\n"
+                    "    if (raw_a%lu == NULL) { outcome = xl6ForeignCallEnd(&invocation); xrtSetErrorTake(outcome.error); return false; }\n    ",
+                    (unsigned long)p, (unsigned long)p, (unsigned long)p);
+        }
         if ( result != NULL ) xl6OutputPrintf(out, "%s value = ", result);
         xl6OutputPuts("callback(", out);
         for ( p = 0; p < signature->paramCount; ++p ) {
+            const XL6_IrType* parameterType = xl6IrTypeGet(&module->types, signature->params[p]);
             if ( p != 0 ) xl6OutputPuts(", ", out);
-            xl6OutputPrintf(out, "a%lu", (unsigned long)p);
+            xl6OutputPrintf(out, "%sa%lu",
+                parameterType != NULL && parameterType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+                parameterType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ? "raw_" : "",
+                (unsigned long)p);
         }
         xl6OutputPuts(");\n", out);
         xl6OutputPuts("    outcome = xl6ForeignCallEnd(&invocation);\n", out);
