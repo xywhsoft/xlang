@@ -82,6 +82,22 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6NumberBufferIntFormatV1",T,B,4,{V,I,S,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
     {"xl6NumberBufferUIntFormatV1",T,B,4,{V,U,S,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
     {"xl6NumberBufferFloatFormatV1",T,B,4,{V,F,S,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+    {"xl6NumberIntParseV1",T,I,4,{S,I,I,I}},
+    {"xl6NumberInt64ParseV1",T,I,4,{S,I,I,I}},
+    {"xl6NumberUIntParseV1",T,U,4,{S,I,I,I}},
+    {"xl6NumberInt8ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_SIGNED_8},
+    {"xl6NumberInt16ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_SIGNED_16},
+    {"xl6NumberInt32ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_SIGNED_32},
+    {"xl6NumberUInt8ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_8},
+    {"xl6NumberUInt16ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_16},
+    {"xl6NumberUInt32ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32},
+    {"xl6NumberFloatParseV1",T,F,3,{S,I,I}},
+    {"xl6NumberIntStringV1",T,S,3,{I,I,I}},
+    {"xl6NumberUIntStringV1",T,S,3,{U,I,I}},
+    {"xl6NumberFloatStringV1",T,S,2,{F,I}},
+    {"xl6NumberBufferIntStringV1",T,B,4,{V,I,I,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+    {"xl6NumberBufferUIntStringV1",T,B,4,{V,U,I,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+    {"xl6NumberBufferFloatStringV1",T,B,3,{V,F,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
 #undef U
 #undef F
 #undef Y
@@ -254,6 +270,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         if (contract->result == XL6_IR_C_ABI_I64 && (!result ||
             result->integerTarget != (contract->resultIntegerTarget ? contract->resultIntegerTarget
                 : XL6_IR_INTEGER_TARGET_SIGNED_64))) return 0;
+        if (contract->result == XL6_IR_C_ABI_U64 && (!result ||
+            result->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64)) return 0;
     }
     if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
@@ -300,6 +318,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         }
         if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && abi == XL6_IR_C_ABI_I64 &&
             (!type || type->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64)) return 0;
+        if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && abi == XL6_IR_C_ABI_U64 &&
+            (!type || type->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64)) return 0;
         if (type == NULL || type->kind != XL6_IR_TYPE_BUILTIN ||
             type->collectionAbi != XL6_IR_COLLECTION_NONE || type->paramCount != 0 ||
             target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||

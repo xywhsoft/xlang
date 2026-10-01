@@ -166,6 +166,10 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_text_iterator.c ^
     src\runtime\xl6_number_format.c ^
     src\runtime\xl6_number_format_buffer.c ^
+    src\runtime\xl6_number_integer.c ^
+    src\runtime\xl6_number_float.c ^
+    src\runtime\xl6_number_integer_buffer.c ^
+    src\runtime\xl6_number_float_buffer.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^
@@ -269,6 +273,10 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_text_iterator.c ^
     src\runtime\xl6_number_format.c ^
     src\runtime\xl6_number_format_buffer.c ^
+    src\runtime\xl6_number_integer.c ^
+    src\runtime\xl6_number_float.c ^
+    src\runtime\xl6_number_integer_buffer.c ^
+    src\runtime\xl6_number_float_buffer.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^

@@ -1,0 +1,2 @@
+extern "xl6NumberFloatParseV1" @no_raise func invalid(string text, int flags, int size) as float
+invalid("1", 8, -1)

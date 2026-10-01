@@ -16,6 +16,16 @@ const char* xl6StdlibFloatClassSource =
     "    zero = 4\n"
     "end\n";
 
+const char* xl6StdlibNumberParseFlagsSource =
+    "enum NumberParseFlags as int\n"
+    "    none = 0\n    allowWhitespace = 1\n    allowPrefix = 2\n"
+    "    allowSeparator = 4\n    allowSpecial = 8\nend\n";
+const char* xl6StdlibIntegerTextFlagsSource =
+    "enum IntegerTextFlags as int\n"
+    "    none = 0\n    upper = 1\n    prefix = 2\n    plus = 4\nend\n";
+const char* xl6StdlibFloatTextFlagsSource =
+    "enum FloatTextFlags as int\n    none = 0\n    compact = 1\nend\n";
+
 const char* xl6StdlibCoreClassSource =
     "class DynamicFields\n"
     "    native point handle\n"
@@ -175,6 +185,9 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6NumberBufferIntFormatV1\" func appendFormat(int value, string format = \"\", int size = -1) as bool\n"
     "    extern \"xl6NumberBufferUIntFormatV1\" func appendFormat(uint64 value, string format = \"\", int size = -1) as bool\n"
     "    extern \"xl6NumberBufferFloatFormatV1\" func appendFormat(float value, string format = \"\", int size = -1) as bool\n"
+    "    extern \"xl6NumberBufferIntStringV1\" func appendNumber(int value, int base = 10, int flags = 0) as bool\n"
+    "    extern \"xl6NumberBufferUIntStringV1\" func appendNumber(uint64 value, int base = 10, int flags = 0) as bool\n"
+    "    extern \"xl6NumberBufferFloatStringV1\" func appendNumber(float value, int flags = 0) as bool\n"
     "    extern \"xl6_xrt_buffer_append_bytes\" func appendBytes(string data, c_size size) as bool\n"
     "    extern \"xl6_xrt_buffer_append_raw\" func appendRaw(point data, c_size size) as bool\n"
     "    extern \"xl6_xrt_buffer_insert_string\" func insert(int index, string text) as bool\n"
@@ -3676,18 +3689,6 @@ static const XL6_StdlibParam xl6StdRuntimeEncodingCharsetParams[] = {
     {"int", "charset"}
 };
 
-/* The last parameter is a private C output pointer, injected by the
- * standard-library ABI catalog.  It is not source-level parameter syntax. */
-static const XL6_StdlibParam xl6StdParseIntParams[] = {
-    {"string", "text"}, {"c_uint", "base"}, {"int", "value"}
-};
-static const XL6_StdlibParam xl6StdParseUIntParams[] = {
-    {"string", "text"}, {"c_uint", "base"}, {"uint64", "value"}
-};
-static const XL6_StdlibParam xl6StdParseFloatParams[] = {
-    {"string", "text"}, {"float", "value"}
-};
-
 static const XL6_StdlibParam xl6StdXidCountParams[] = {
     {"int", "count"}
 };
@@ -3808,23 +3809,14 @@ static const char xl6StdMathDivRemBody[] =
     "    return numerator / denominator, numerator % denominator\n"
     "end\n";
 
-/* The native adapters return 0=success, 1=syntax, 2=range, 3=runtime
- * failure.  Unlike legacy scalar constructors, they consume all exact bytes
- * and do not depend on the process C locale. */
+/* Parse is a closed scalar ABI. tryParse is only language exception/tuple
+ * glue; it catches input/range errors, not runtime resource failures. */
 static const char xl6StdIntParseBody[] =
-    "func __xl_std_int_parse(string text, int base = 10) as int\n"
-    "    if base < 2 or base > 36 then throw ValueError \"integer base must be 2..36\" end\n"
-    "    int value = 0\n"
-    "    c_int status = __xl_std_int_parse_native(text, c_uint(base), value)\n"
-    "    if status == 1 then throw ValueError \"invalid integer text\" end\n"
-    "    if status == 2 then throw RangeError \"integer text is out of range\" end\n"
-    "    if status != 0 then throw RuntimeError \"integer parser failed\" end\n"
-    "    return value\n"
-    "end\n";
+    "extern \"xl6NumberIntParseV1\" func __xl_std_int_parse(string text, int base = 10, int flags = 0, int size = -1) as int\n";
 static const char xl6StdIntTryParseBody[] =
-    "func __xl_std_int_try_parse(string text, int base = 10) as (bool, int)\n"
+    "func __xl_std_int_try_parse(string text, int base = 10, int flags = 0, int size = -1) as (bool, int)\n"
     "    try\n"
-    "        return true, __xl_std_int_parse(text, base)\n"
+    "        return true, __xl_std_int_parse(text, base, flags, size)\n"
     "    catch ValueError e\n"
     "        return false, 0\n"
     "    catch RangeError e\n"
@@ -3832,19 +3824,11 @@ static const char xl6StdIntTryParseBody[] =
     "    end\n"
     "end\n";
 static const char xl6StdUInt64ParseBody[] =
-    "func __xl_std_uint64_parse(string text, int base = 10) as uint64\n"
-    "    if base < 2 or base > 36 then throw ValueError \"integer base must be 2..36\" end\n"
-    "    uint64 value = uint64(0)\n"
-    "    c_int status = __xl_std_uint64_parse_native(text, c_uint(base), value)\n"
-    "    if status == 1 then throw ValueError \"invalid unsigned integer text\" end\n"
-    "    if status == 2 then throw RangeError \"unsigned integer text is out of range\" end\n"
-    "    if status != 0 then throw RuntimeError \"unsigned integer parser failed\" end\n"
-    "    return value\n"
-    "end\n";
+    "extern \"xl6NumberUIntParseV1\" func __xl_std_uint64_parse(string text, int base = 10, int flags = 0, int size = -1) as uint64\n";
 static const char xl6StdUInt64TryParseBody[] =
-    "func __xl_std_uint64_try_parse(string text, int base = 10) as (bool, uint64)\n"
+    "func __xl_std_uint64_try_parse(string text, int base = 10, int flags = 0, int size = -1) as (bool, uint64)\n"
     "    try\n"
-    "        return true, __xl_std_uint64_parse(text, base)\n"
+    "        return true, __xl_std_uint64_parse(text, base, flags, size)\n"
     "    catch ValueError e\n"
     "        return false, uint64(0)\n"
     "    catch RangeError e\n"
@@ -3852,18 +3836,11 @@ static const char xl6StdUInt64TryParseBody[] =
     "    end\n"
     "end\n";
 static const char xl6StdFloatParseBody[] =
-    "func __xl_std_float_parse(string text) as float\n"
-    "    float value = 0.0\n"
-    "    c_int status = __xl_std_float_parse_native(text, value)\n"
-    "    if status == 1 then throw ValueError \"invalid float text\" end\n"
-    "    if status == 2 then throw RangeError \"float text is out of range\" end\n"
-    "    if status != 0 then throw RuntimeError \"float parser failed\" end\n"
-    "    return value\n"
-    "end\n";
+    "extern \"xl6NumberFloatParseV1\" func __xl_std_float_parse(string text, int flags = 8, int size = -1) as float\n";
 static const char xl6StdFloatTryParseBody[] =
-    "func __xl_std_float_try_parse(string text) as (bool, float)\n"
+    "func __xl_std_float_try_parse(string text, int flags = 8, int size = -1) as (bool, float)\n"
     "    try\n"
-    "        return true, __xl_std_float_parse(text)\n"
+    "        return true, __xl_std_float_parse(text, flags, size)\n"
     "    catch ValueError e\n"
     "        return false, 0.0\n"
     "    catch RangeError e\n"
@@ -3871,24 +3848,13 @@ static const char xl6StdFloatTryParseBody[] =
     "    end\n"
     "end\n";
 
-#define XL6_STD_SIGNED_WIDTH_PARSE(TYPE, MINIMUM, MAXIMUM) \
-    "func __xl_std_" #TYPE "_parse(string text, int base = 10) as " #TYPE "\n" \
-    "    int value = __xl_std_int_parse(text, base)\n" \
-    "    if value < " #MINIMUM " or value > " #MAXIMUM \
-        " then throw RangeError \"integer text is out of range\" end\n" \
-    "    return " #TYPE "(value)\n" \
-    "end\n"
-#define XL6_STD_UNSIGNED_WIDTH_PARSE(TYPE, MAXIMUM) \
-    "func __xl_std_" #TYPE "_parse(string text, int base = 10) as " #TYPE "\n" \
-    "    uint64 value = __xl_std_uint64_parse(text, base)\n" \
-    "    if value > uint64(" #MAXIMUM \
-        ") then throw RangeError \"unsigned integer text is out of range\" end\n" \
-    "    return " #TYPE "(value)\n" \
-    "end\n"
+#define XL6_STD_WIDTH_PARSE(TYPE, SYMBOL) \
+    "extern \"" #SYMBOL "\" func __xl_std_" #TYPE \
+    "_parse(string text, int base = 10, int flags = 0, int size = -1) as " #TYPE "\n"
 #define XL6_STD_WIDTH_TRY_PARSE(TYPE) \
-    "func __xl_std_" #TYPE "_try_parse(string text, int base = 10) as (bool, " #TYPE ")\n" \
+    "func __xl_std_" #TYPE "_try_parse(string text, int base = 10, int flags = 0, int size = -1) as (bool, " #TYPE ")\n" \
     "    try\n" \
-    "        return true, __xl_std_" #TYPE "_parse(text, base)\n" \
+    "        return true, __xl_std_" #TYPE "_parse(text, base, flags, size)\n" \
     "    catch ValueError e\n" \
     "        return false, " #TYPE "(0)\n" \
     "    catch RangeError e\n" \
@@ -3896,21 +3862,19 @@ static const char xl6StdFloatTryParseBody[] =
     "    end\n" \
     "end\n"
 static const char xl6StdInt8ParseBody[] =
-    XL6_STD_SIGNED_WIDTH_PARSE(int8, -128, 127);
+    XL6_STD_WIDTH_PARSE(int8, xl6NumberInt8ParseV1);
 static const char xl6StdInt16ParseBody[] =
-    XL6_STD_SIGNED_WIDTH_PARSE(int16, -32768, 32767);
+    XL6_STD_WIDTH_PARSE(int16, xl6NumberInt16ParseV1);
 static const char xl6StdInt32ParseBody[] =
-    XL6_STD_SIGNED_WIDTH_PARSE(int32, -2147483648, 2147483647);
+    XL6_STD_WIDTH_PARSE(int32, xl6NumberInt32ParseV1);
 static const char xl6StdInt64ParseBody[] =
-    "func __xl_std_int64_parse(string text, int base = 10) as int64\n"
-    "    return int64(__xl_std_int_parse(text, base))\n"
-    "end\n";
+    XL6_STD_WIDTH_PARSE(int64, xl6NumberInt64ParseV1);
 static const char xl6StdUInt8ParseBody[] =
-    XL6_STD_UNSIGNED_WIDTH_PARSE(uint8, 255);
+    XL6_STD_WIDTH_PARSE(uint8, xl6NumberUInt8ParseV1);
 static const char xl6StdUInt16ParseBody[] =
-    XL6_STD_UNSIGNED_WIDTH_PARSE(uint16, 65535);
+    XL6_STD_WIDTH_PARSE(uint16, xl6NumberUInt16ParseV1);
 static const char xl6StdUInt32ParseBody[] =
-    XL6_STD_UNSIGNED_WIDTH_PARSE(uint32, 4294967295);
+    XL6_STD_WIDTH_PARSE(uint32, xl6NumberUInt32ParseV1);
 static const char xl6StdInt8TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int8);
 static const char xl6StdInt16TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int16);
 static const char xl6StdInt32TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int32);
@@ -3918,9 +3882,14 @@ static const char xl6StdInt64TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int64);
 static const char xl6StdUInt8TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(uint8);
 static const char xl6StdUInt16TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(uint16);
 static const char xl6StdUInt32TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(uint32);
-#undef XL6_STD_SIGNED_WIDTH_PARSE
-#undef XL6_STD_UNSIGNED_WIDTH_PARSE
+#undef XL6_STD_WIDTH_PARSE
 #undef XL6_STD_WIDTH_TRY_PARSE
+static const char xl6StdIntStringBody[] =
+    "extern \"xl6NumberIntStringV1\" func __xl_std_int_to_string(int value, int base = 10, int flags = 0) as string\n";
+static const char xl6StdUIntStringBody[] =
+    "extern \"xl6NumberUIntStringV1\" func __xl_std_int_to_string(uint64 value, int base = 10, int flags = 0) as string\n";
+static const char xl6StdFloatStringBody[] =
+    "extern \"xl6NumberFloatStringV1\" func __xl_std_float_to_string(float value, int flags = 0) as string\n";
 /* The C output-pointer ABI for these private declarations is supplied by the
  * standard-library catalog after parsing, not by public parameter syntax. */
 static const char xl6StdMathFrexpBody[] =
@@ -7095,9 +7064,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatBody},
     {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatUIntBody},
     {"float", "format", "__xl_std_float_format", NULL, NULL, 0, "string", xl6StdFloatFormatBody},
-    {"__crt_number", "parseIntNative", "__xl_std_int_parse_native", "xl6_crt_parse_i64", xl6StdParseIntParams, 3, "c_int", NULL},
-    {"__crt_number", "parseUIntNative", "__xl_std_uint64_parse_native", "xl6_crt_parse_u64", xl6StdParseUIntParams, 3, "c_int", NULL},
-    {"__crt_number", "parseFloatNative", "__xl_std_float_parse_native", "xl6_crt_parse_f64", xl6StdParseFloatParams, 2, "c_int", NULL},
+    {"int", "toString", "__xl_std_int_to_string", NULL, NULL, 0, "string", xl6StdIntStringBody},
+    {"int", "toString", "__xl_std_int_to_string", NULL, NULL, 0, "string", xl6StdUIntStringBody},
+    {"float", "toString", "__xl_std_float_to_string", NULL, NULL, 0, "string", xl6StdFloatStringBody},
     {"int", "parse", "__xl_std_int_parse", NULL, NULL, 0, "int", xl6StdIntParseBody},
     {"int", "tryParse", "__xl_std_int_try_parse", NULL, NULL, 0, "(bool, int)", xl6StdIntTryParseBody},
     {"uint64", "parse", "__xl_std_uint64_parse", NULL, NULL, 0, "uint64", xl6StdUInt64ParseBody},
@@ -7662,15 +7631,6 @@ const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {
     {"__xl_std_xrt_siphash64_raw", "xl6_xrt_siphash64_raw", XL6_HASH_BUFFER_EFFECTS},
 #undef XL6_HASH_VALUE_EFFECTS
 #undef XL6_HASH_BUFFER_EFFECTS
-    {"__xl_std_int_parse_native", "xl6_crt_parse_i64",
-     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
-    {"__xl_std_uint64_parse_native", "xl6_crt_parse_u64",
-     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
-    {"__xl_std_float_parse_native", "xl6_crt_parse_f64",
-     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
     {"__xl_std_math_is_close", "xrtMathNear",
      XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
     {"__xl_std_math_int_near", "xrtMathIntNear",

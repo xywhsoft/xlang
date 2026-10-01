@@ -1449,10 +1449,7 @@ typedef struct XL6_StdlibCOutputPointer {
 static const XL6_StdlibCOutputPointer xl6StdlibCOutputPointers[] = {
     {"__xl_std_math_frexp_native", "__xl_std_math_frexp", 1},
     {"__xl_std_math_modf_native", "__xl_std_math_modf", 1},
-    {"__xl_std_math_rem_quo_native", "__xl_std_math_rem_quo", 2},
-    {"__xl_std_int_parse_native", "__xl_std_int_parse", 2},
-    {"__xl_std_uint64_parse_native", "__xl_std_uint64_parse", 2},
-    {"__xl_std_float_parse_native", "__xl_std_float_parse", 1}
+    {"__xl_std_math_rem_quo_native", "__xl_std_math_rem_quo", 2}
 };
 
 static size_t xl6StdlibMarkCOutputCalls(XL6_AstNode* node,
@@ -1843,6 +1840,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if (needsIoLines) xl6StdlibBuilderAppend(&builder, xl6StdlibIoLinesSource);
     if (needsStringIterator) xl6StdlibBuilderAppend(&builder, xl6StdlibStringIteratorSource);
+    if (xl6StdlibNodeUsesTypeName(root, "NumberParseFlags"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibNumberParseFlagsSource);
+    if (xl6StdlibNodeUsesTypeName(root, "IntegerTextFlags"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibIntegerTextFlagsSource);
+    if (xl6StdlibNodeUsesTypeName(root, "FloatTextFlags"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFloatTextFlagsSource);
     if ( xl6StdlibFuncUsed(used, "math", "classify") ||
          xl6StdlibNodeUsesTypeName(root, "FloatClass") ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFloatClassSource);

@@ -1,0 +1,2 @@
+extern "xl6NumberIntParseV1" func invalid(string text, int32 base, int flags, int size) as int
+invalid("1", 10, 0, -1)

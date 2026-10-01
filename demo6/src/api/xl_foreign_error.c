@@ -1,6 +1,7 @@
 #define XRT_MODULE_ONCE
 #include "lib/xrt/xrt.h"
 #include "xl_foreign_error.h"
+#include <stdlib.h>
 
 #if defined(_WIN32)
 #include <windows.h>

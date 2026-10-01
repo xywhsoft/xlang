@@ -7,6 +7,9 @@
 
 #define XL6_STDLIB_CONST_COUNT 140
 #define XL6_STDLIB_FUNC_COUNT 1025
+extern const char* xl6StdlibNumberParseFlagsSource;
+extern const char* xl6StdlibIntegerTextFlagsSource;
+extern const char* xl6StdlibFloatTextFlagsSource;
 
 typedef struct XL6_StdlibParam {
     const char* type;

@@ -4089,7 +4089,20 @@ static int xl6SemExprExplicitGenericParamMatchCost(
     return cost;
 }
 
-static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func, int* outCost)
+/* Lexicographic overload rank: conversion cost first, default count second.
+ * Two checked uint32 fields avoid a magic default penalty that can outweigh
+ * exact type matches. All callable/member/protocol resolvers share this rank. */
+static int xl6SemCallRankAdd(uint64* rank, uint32 conversion, uint32 defaults)
+{
+    uint32 oldConversion = (uint32)(*rank >> 32);
+    uint32 oldDefaults = (uint32)*rank;
+    if (conversion > UINT32_MAX - oldConversion || defaults > UINT32_MAX - oldDefaults)
+        return 0;
+    *rank = ((uint64)(oldConversion + conversion) << 32) | (oldDefaults + defaults);
+    return 1;
+}
+
+static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func, uint64* outCost)
 {
     XL6_AstNode* params;
     XL6_AstNode* args;
@@ -4104,7 +4117,7 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
     XL6_AstNode** inferredTypes;
     size_t i;
     int ok;
-    int cost;
+    uint64 cost;
 
     params = (XL6_AstNode*)xl6SemCallableParams(func);
     typeParams = xl6SemFuncTypeParams(func);
@@ -4151,13 +4164,13 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        cost += argCost;
+                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[index] = 1;
                 } else if ( !hasDictVararg ) {
                     ok = 0;
                 } else {
-                    cost += 200;
+                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             } else {
                 if ( seenNamed ) {
@@ -4176,14 +4189,14 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        cost += argCost;
+                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[positionalIndex] = 1;
                     positionalIndex += 1;
                 } else if ( !hasArrayVararg && !hasCVararg ) {
                     ok = 0;
                 } else {
-                    cost += 200;
+                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             }
         }
@@ -4194,7 +4207,7 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
         if ( !provided[i] && param->childCount < 2 ) {
             ok = 0;
         } else if ( !provided[i] ) {
-            cost += 100;
+            if (!xl6SemCallRankAdd(&cost, 0, 1)) ok = 0;
         }
     }
 
@@ -4221,7 +4234,7 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
     XL6_AstNode* call,
     XL6_AstNode* func,
     const XL6_AstNode* typeArgs,
-    int* outCost)
+    uint64* outCost)
 {
     XL6_AstNode* params;
     XL6_AstNode* args;
@@ -4235,7 +4248,7 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
     int* provided;
     size_t i;
     int ok;
-    int cost;
+    uint64 cost;
 
     typeParams = xl6SemFuncTypeParams(func);
     if ( typeParams == NULL || typeParams->childCount == 0 ||
@@ -4256,7 +4269,7 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
     positionalIndex = 0;
     seenNamed = 0;
     ok = 1;
-    cost = 40;
+    cost = (uint64)40 << 32;
 
     if ( fixedCount > 0 && provided == NULL ) {
         return 0;
@@ -4286,13 +4299,13 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        cost += argCost;
+                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[index] = 1;
                 } else if ( !hasDictVararg ) {
                     ok = 0;
                 } else {
-                    cost += 200;
+                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             } else {
                 if ( seenNamed ) {
@@ -4311,14 +4324,14 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        cost += argCost;
+                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[positionalIndex] = 1;
                     positionalIndex += 1;
                 } else if ( !hasArrayVararg && !hasCVararg ) {
                     ok = 0;
                 } else {
-                    cost += 200;
+                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             }
         }
@@ -4329,7 +4342,7 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
         if ( !provided[i] && param->childCount < 2 ) {
             ok = 0;
         } else if ( !provided[i] ) {
-            cost += 100;
+            if (!xl6SemCallRankAdd(&cost, 0, 1)) ok = 0;
         }
     }
 
@@ -4578,8 +4591,8 @@ static XL6_AstNode* xl6SemResolveCallFuncEx(XL6_SemContext* ctx, XL6_AstNode* ca
     int candidateCount;
     int fixedBestCount;
     int varargBestCount;
-    int fixedBestCost;
-    int varargBestCost;
+    uint64 fixedBestCost;
+    uint64 varargBestCost;
     int actualArgCount;
     int countRejectCount;
     int countRejectExpected;
@@ -4606,7 +4619,7 @@ static XL6_AstNode* xl6SemResolveCallFuncEx(XL6_SemContext* ctx, XL6_AstNode* ca
         XL6_AstNode* node = ctx->root->children[i];
         if ( xl6SemIsFuncDecl(node) && xl6TextEquals(xl6SemFuncName(node), name) ) {
             XL6_AstNode* params;
-            int cost;
+            uint64 cost;
             int expected;
 
             params = (XL6_AstNode*)xl6SemCallableParams(node);
@@ -4701,8 +4714,8 @@ static XL6_AstNode* xl6SemResolveExplicitGenericCallFunc(
     int candidateCount;
     int fixedBestCount;
     int varargBestCount;
-    int fixedBestCost;
-    int varargBestCost;
+    uint64 fixedBestCost;
+    uint64 varargBestCost;
 
     fixedSelected = NULL;
     varargSelected = NULL;
@@ -4719,7 +4732,7 @@ static XL6_AstNode* xl6SemResolveExplicitGenericCallFunc(
         XL6_AstNode* node = ctx->root->children[i];
         if ( xl6SemIsFuncDecl(node) && xl6SemFuncIsGeneric(node) &&
              xl6TextEquals(xl6SemFuncName(node), name) ) {
-            int cost;
+            uint64 cost;
             candidateCount += 1;
             if ( xl6SemCallCandidateMatchesExplicitGeneric(ctx, call, node, typeArgs, &cost) ) {
                 XL6_AstNode* params = (XL6_AstNode*)xl6SemCallableParams(node);
@@ -4786,8 +4799,8 @@ static XL6_AstNode* xl6SemResolveCreateMember(
     int candidateCount;
     int fixedBestCount;
     int varargBestCount;
-    int fixedBestCost;
-    int varargBestCost;
+    uint64 fixedBestCost;
+    uint64 varargBestCost;
     int actualArgCount;
     int countRejectCount;
     int countRejectExpected;
@@ -4835,7 +4848,7 @@ static XL6_AstNode* xl6SemResolveCreateMember(
             continue;
         }
         {
-            int cost;
+            uint64 cost;
             int expected;
 
             params = xl6SemCallableParams(member);
@@ -5349,7 +5362,7 @@ static int xl6SemGenericClassCallableCandidateMatches(
     XL6_AstNode* member,
     const XL6_AstNode* classNode,
     const XL6_AstNode* concreteType,
-    int* outCost)
+    uint64* outCost)
 {
     const XL6_AstNode* typeArgs;
     XL6_AstNode* concreteMember;
@@ -5727,8 +5740,8 @@ static XL6_AstNode* xl6SemResolveClassFuncExMode(
     XL6_AstNode* baseDecl;
     int fixedBestCount;
     int varargBestCount;
-    int fixedBestCost;
-    int varargBestCost;
+    uint64 fixedBestCost;
+    uint64 varargBestCost;
     size_t i;
 
     if ( ctx == NULL || classNode == NULL || classNode->kind != XL6_AST_CLASS || name == NULL ) {
@@ -5746,7 +5759,7 @@ static XL6_AstNode* xl6SemResolveClassFuncExMode(
         for ( i = 0; i < body->childCount; ++i ) {
             XL6_AstNode* member = body->children[i];
             XL6_AstNode* params;
-            int cost;
+            uint64 cost;
 
             if ( member == NULL ||
                  (member->kind != XL6_AST_FUNC &&
@@ -5857,7 +5870,7 @@ static int xl6SemGenericClassPropertyCandidateMatches(
     XL6_AstNode* member,
     const XL6_AstNode* classNode,
     const XL6_AstNode* concreteType,
-    int* outCost)
+    uint64* outCost)
 {
     const XL6_AstNode* typeArgs;
     const XL6_AstNode* params;
@@ -5865,7 +5878,7 @@ static int xl6SemGenericClassPropertyCandidateMatches(
     int fixedCount;
     int actualCount;
     int requiredCount;
-    int cost;
+    uint64 cost;
     int i;
 
     typeArgs = concreteType != NULL ? xl6SemTypeNodeGenericArgs(concreteType) : NULL;
@@ -5913,9 +5926,9 @@ static int xl6SemGenericClassPropertyCandidateMatches(
         if ( argCost < 0 ) {
             return 0;
         }
-        cost += argCost;
+        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) return 0;
     }
-    cost += (fixedCount - actualCount) * 100;
+    if (!xl6SemCallRankAdd(&cost, 0, (uint32)(fixedCount - actualCount))) return 0;
     if ( outCost != NULL ) {
         *outCost = cost;
     }
@@ -5935,7 +5948,7 @@ static XL6_AstNode* xl6SemResolveClassPropertyEx(
     XL6_AstNode* fixedSelected;
     XL6_AstNode* baseDecl;
     int fixedBestCount;
-    int fixedBestCost;
+    uint64 fixedBestCost;
     size_t i;
 
     if ( ctx == NULL || classNode == NULL || classNode->kind != XL6_AST_CLASS ||
@@ -5952,7 +5965,7 @@ static XL6_AstNode* xl6SemResolveClassPropertyEx(
         for ( i = 0; i < body->childCount; ++i ) {
             XL6_AstNode* member = body->children[i];
             XL6_AstNode* params;
-            int cost;
+            uint64 cost;
 
             if ( member == NULL || member->kind != kind ||
                  !xl6TextEquals(xl6SemMemberName(member), name) ) {
@@ -6019,7 +6032,7 @@ static XL6_AstNode* xl6SemResolveUserProtocolPropertyEx(
     XL6_AstNode* body;
     XL6_AstNode* selected;
     XL6_AstNode* selectedConcrete;
-    int bestCost;
+    uint64 bestCost;
     int bestCount;
     int candidateCount;
     size_t i;
@@ -6052,7 +6065,7 @@ static XL6_AstNode* xl6SemResolveUserProtocolPropertyEx(
     for ( i = 0; body != NULL && i < body->childCount; ++i ) {
         XL6_AstNode* requirement = body->children[i];
         XL6_AstNode* concreteRequirement;
-        int cost;
+        uint64 cost;
 
         if ( requirement == NULL || requirement->kind != kind ||
              !xl6TextEquals(xl6SemMemberName(requirement), name) ) {
@@ -10568,7 +10581,7 @@ static int xl6SemCheckUserProtocolCall(XL6_SemContext* ctx, XL6_AstNode* call)
     XL6_AstNode* body;
     XL6_AstNode* selected = NULL;
     XL6_AstNode* selectedConcrete = NULL;
-    int bestCost = 0;
+    uint64 bestCost = 0;
     int bestCount = 0;
     int candidateCount = 0;
     size_t i;
@@ -10599,7 +10612,7 @@ static int xl6SemCheckUserProtocolCall(XL6_SemContext* ctx, XL6_AstNode* call)
     for ( i = 0; body != NULL && i < body->childCount; ++i ) {
         XL6_AstNode* requirement = body->children[i];
         XL6_AstNode* concreteRequirement;
-        int cost;
+        uint64 cost;
 
         if ( requirement == NULL ||
              (requirement->kind != XL6_AST_FUNC &&

@@ -1,0 +1,6 @@
+#define XRT_MODULE_NUMBER_INTEGER
+#define XRT_MODULE_NUMBER_FLOAT
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRT_IMPLEMENTATION
+#include "lib/xrt/xrt.h"

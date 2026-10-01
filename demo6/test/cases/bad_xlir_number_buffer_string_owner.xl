@@ -1,0 +1,7 @@
+class WrongBuffer
+    private native point handle
+    extern "xl6TextIteratorCreateV1" create(string text, string separator, int mode, int size, int separatorSize)
+    extern "xl6TextIteratorDestroyV1" destroy()
+    extern "xl6NumberBufferIntStringV1" func appendNumber(int value, int base, int flags) as bool
+end
+WrongBuffer("a", "", 1, -1, -1).appendNumber(1, 10, 0)

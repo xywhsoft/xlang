@@ -1,0 +1,4 @@
+assert float.parse("0.1") == 0.1
+assert float.parse(float.toString(1.7976931348623157e308)) == 1.7976931348623157e308
+assert float.toString(-0.0) == "-0.0"
+assert float.parse(float.toString(4.9406564584124654e-324)) == 4.9406564584124654e-324
