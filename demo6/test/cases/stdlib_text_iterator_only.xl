@@ -1,0 +1,5 @@
+auto it = string.splitIter("a\0|b|", "|")
+assert((it.next() ?? "#EOF#") == "a\0")
+assert((it.next() ?? "#EOF#") == "b")
+assert((it.next() ?? "#EOF#") == "")
+assert(it.next() == null and it.closed())

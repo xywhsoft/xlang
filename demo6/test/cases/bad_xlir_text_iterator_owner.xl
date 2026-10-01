@@ -1,0 +1,6 @@
+class BadIterator
+    native point handle
+    extern "xl6TextIteratorCreateV1" create(string text, string separator, int mode, int size, int separatorSize)
+    extern "unrelated_resource_destroy" destroy()
+end
+auto it = BadIterator("a|b", "|", 0, -1, -1)

@@ -157,6 +157,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_text_distance.c"
 	"$ROOT/src/runtime/xl6_text_split.c"
 	"$ROOT/src/runtime/xl6_text_join.c"
+	"$ROOT/src/runtime/xl6_text_iterator.c"
 	"$ROOT/src/runtime/xl6_network_service.c"
 	"$ROOT/src/runtime/xl6_log.c"
 	"$ROOT/src/runtime/xl6_log_console.c"

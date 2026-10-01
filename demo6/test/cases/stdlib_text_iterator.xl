@@ -1,0 +1,115 @@
+func expect(string? actual, string expected)
+    if actual == null then assert(false) else assert(actual == expected) end
+end
+string source = "你\0|😀||tail|"
+auto it = string.splitIter(source, "|")
+source = "changed"
+string? first = it.next()
+expect(first, "你\0")
+expect(it.next(), "😀")
+expect(it.next(), "")
+expect(it.next(), "tail")
+expect(it.next(), "")
+assert(it.next() == null and it.closed())
+it.close()
+it.close()
+expect(first, "你\0")
+assert(it.next() == null)
+auto empty = string.splitIter("", "|")
+expect(empty.next(), "")
+assert(empty.next() == null)
+auto noSeparator = string.splitIter("a\0b", "")
+expect(noSeparator.next(), "a\0b")
+assert(noSeparator.next() == null)
+auto sized = string.splitIter("你|tail", "|ignored", 3, 1)
+expect(sized.next(), "你")
+assert(sized.next() == null)
+auto clamped = string.splitIter("a\0b", "\0", 100, 100)
+expect(clamped.next(), "a")
+expect(clamped.next(), "b")
+assert(clamped.next() == null)
+auto lines = string.linesIter("a\0\r\n\n你\r😀\n")
+expect(lines.next(), "a\0")
+expect(lines.next(), "")
+expect(lines.next(), "你")
+expect(lines.next(), "😀")
+assert(lines.next() == null)
+assert(string.linesIter("").next() == null)
+auto fields = string.fieldsIter(" \t你\0😀  x\r\n\v\fy ")
+expect(fields.next(), "你\0😀")
+expect(fields.next(), "x")
+expect(fields.next(), "y")
+assert(fields.next() == null)
+assert(string.fieldsIter(" \t\r\n").next() == null)
+int count = 0
+for item in string.splitIter("a||b|", "|")
+    count += 1
+end
+assert(count == 4)
+count = 0
+for item in string.linesIter("a\n\nb\n")
+    count += 1
+end
+assert(count == 3)
+count = 0
+for item in string.fieldsIter("a b c")
+    count += 1
+    break
+end
+assert(count == 1)
+auto early = string.splitIter("a|b", "|")
+string? saved = early.next()
+early.close()
+expect(saved, "a")
+assert(early.closed() and early.next() == null)
+auto shared = string.splitIter("a|b|c", "|")
+StringIterator alias = shared
+expect(shared.next(), "a")
+expect(alias.next(), "b")
+shared.close()
+assert(alias.closed() and alias.next() == null)
+func scopedFailure()
+    auto local = string.fieldsIter("a b c")
+    expect(local.next(), "a")
+    throw ValueError "leave iterator scope"
+end
+bool unwound = false
+try
+    scopedFailure()
+catch ValueError
+    unwound = true
+end
+assert(unwound)
+auto finalized = string.linesIter("a\nb")
+unwound = false
+try
+    expect(finalized.next(), "a")
+    throw ValueError "run finally"
+catch ValueError
+    unwound = true
+finally
+    finalized.close()
+end
+assert(unwound and finalized.closed())
+bool rejected = false
+try
+    string.splitIter("你", "|", 1)
+catch ValueError
+    rejected = true
+end
+assert(rejected)
+rejected = false
+try
+    string.fieldsIter("ok", -2)
+catch RangeError
+    rejected = true
+end
+assert(rejected)
+rejected = false
+try
+    StringIterator("ok", "|", 3, -1, -1)
+catch RangeError
+    rejected = true
+end
+assert(rejected)
+expect(string.fieldsIter("recover").next(), "recover")
