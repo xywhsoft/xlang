@@ -421,7 +421,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern xvalue* xrtValueObjectTake(xvalue*, xlir_string_view);\n"
                 "static xvalue* xlir_xvalue_typed_collection_take_raw(\n"
                 "    xvalue* collection, unsigned int collectionAbi,\n"
-                "    int64_t key, const char* text)\n"
+                "    int64_t key, xlir_string text)\n"
                 "{\n"
                 "    switch (collectionAbi) {\n"
                 "    case XLIR_TYPED_COLLECTION_ARRAY:\n"
@@ -429,7 +429,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "    case XLIR_TYPED_COLLECTION_LIST:\n"
                 "        return xrtValueIntMapTake(collection, key);\n"
                 "    case XLIR_TYPED_COLLECTION_DICT:\n"
-                "        return text != NULL ? xrtValueObjectTake(collection, xrtStrView(text)) : NULL;\n"
+                "        return text.Data != NULL ? xrtValueObjectTake(collection, text) : NULL;\n"
                 "    default:\n"
                 "        return NULL;\n"
                 "    }\n"
@@ -482,10 +482,10 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
                 "extern void xrtValueRelease(xvalue*);\n"
-                "static char* xlir_xvalue_typed_array_pop_string(xvalue* array)\n"
-                "{ xvalue* item = xrtValueArrayPop(array); xlir_string_view text = {0}; char* value;\n"
-                "  if (item != NULL && xrtValueGetString(item, &text)) value = xrtStrDupN(text.Data, text.Size);\n"
-                "  else value = xrtStrDupN(\"\", 0u);\n"
+                "static xlir_string xlir_xvalue_typed_array_pop_string(xvalue* array)\n"
+                "{ xvalue* item = xrtValueArrayPop(array); xlir_string_view text = {0}; xlir_string value;\n"
+                "  if (item != NULL && xrtValueGetString(item, &text)) value = xlir_string_from_utf8(text.Data, text.Size);\n"
+                "  else value = xlir_string_from_utf8(\"\", 0u);\n"
                 "  if (item != NULL) xrtValueRelease(item);\n"
                 "  return value; }\n",
                 out);
@@ -501,7 +501,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueGetBool(const xvalue*, bool*);\n"
                 "extern void xrtValueRelease(xvalue*);\n"
                 "static bool xlir_xvalue_typed_collection_take_bool(\n"
-                "    xvalue* collection, unsigned int abi, int64_t key, const char* text)\n"
+                "    xvalue* collection, unsigned int abi, int64_t key, xlir_string text)\n"
                 "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text); bool value = false;\n"
                 "  if (item != NULL) { (void)xrtValueGetBool(item, &value); xrtValueRelease(item); }\n"
                 "  return value; }\n",
@@ -511,7 +511,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
                 "extern void xrtValueRelease(xvalue*);\n"
                 "static int64_t xlir_xvalue_typed_collection_take_i64(\n"
-                "    xvalue* collection, unsigned int abi, int64_t key, const char* text)\n"
+                "    xvalue* collection, unsigned int abi, int64_t key, xlir_string text)\n"
                 "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text); int64_t value = 0;\n"
                 "  if (item != NULL) { (void)xrtValueGetInt(item, &value); xrtValueRelease(item); }\n"
                 "  return value; }\n",
@@ -521,7 +521,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
                 "extern void xrtValueRelease(xvalue*);\n"
                 "static uint64_t xlir_xvalue_typed_collection_take_u64(\n"
-                "    xvalue* collection, unsigned int abi, int64_t key, const char* text)\n"
+                "    xvalue* collection, unsigned int abi, int64_t key, xlir_string text)\n"
                 "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text); uint64_t value = 0;\n"
                 "  if (item != NULL) { (void)xrtValueGetUInt(item, &value); xrtValueRelease(item); }\n"
                 "  return value; }\n",
@@ -531,7 +531,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueGetFloat(const xvalue*, double*);\n"
                 "extern void xrtValueRelease(xvalue*);\n"
                 "static double xlir_xvalue_typed_collection_take_f64(\n"
-                "    xvalue* collection, unsigned int abi, int64_t key, const char* text)\n"
+                "    xvalue* collection, unsigned int abi, int64_t key, xlir_string text)\n"
                 "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text); double value = 0.0;\n"
                 "  if (item != NULL) { (void)xrtValueGetFloat(item, &value); xrtValueRelease(item); }\n"
                 "  return value; }\n",
@@ -541,11 +541,11 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
                 "extern void xrtValueRelease(xvalue*);\n"
-                "static char* xlir_xvalue_typed_collection_take_string(\n"
-                "    xvalue* collection, unsigned int abi, int64_t key, const char* text)\n"
-                "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text); xlir_string_view valueView = {0}; char* value;\n"
-                "  if (item != NULL && xrtValueGetString(item, &valueView)) value = xrtStrDupN(valueView.Data, valueView.Size);\n"
-                "  else value = xrtStrDupN(\"\", 0u);\n"
+                "static xlir_string xlir_xvalue_typed_collection_take_string(\n"
+                "    xvalue* collection, unsigned int abi, int64_t key, xlir_string text)\n"
+                "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text); xlir_string_view valueView = {0}; xlir_string value;\n"
+                "  if (item != NULL && xrtValueGetString(item, &valueView)) value = xlir_string_from_utf8(valueView.Data, valueView.Size);\n"
+                "  else value = xlir_string_from_utf8(\"\", 0u);\n"
                 "  if (item != NULL) xrtValueRelease(item);\n"
                 "  return value; }\n",
                 out);
@@ -553,7 +553,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
             xl6OutputPuts(
                 "extern xvalue* xrtValueNull(void);\n"
                 "static xvalue* xlir_xvalue_typed_collection_take_xvalue(\n"
-                "    xvalue* collection, unsigned int abi, int64_t key, const char* text)\n"
+                "    xvalue* collection, unsigned int abi, int64_t key, xlir_string text)\n"
                 "{ xvalue* item = xlir_xvalue_typed_collection_take_raw(collection, abi, key, text);\n"
                 "  return item != NULL ? item : xrtValueNull(); }\n",
                 out);

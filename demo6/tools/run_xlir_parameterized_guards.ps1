@@ -51,6 +51,7 @@ $reviewedGuards = @(
     'check_xlir_generator_ownership.ps1',
     'check_xlir_generator_public_source.ps1',
     'check_xlir_generator_storage.ps1',
+    'check_xlir_http_async_source.ps1',
     'check_xlir_member_call_diagnostics.ps1',
     'check_xlir_mixed_dependencies.ps1',
     'check_xlir_module_binding_regression.ps1',
@@ -80,6 +81,7 @@ $reviewedGuards = @(
     'check_xlir_resident_closure.ps1',
     'check_xlir_resident_ownership_scopes.ps1',
     'check_xlir_slot_transfers.ps1',
+    'check_xlir_string_join.ps1',
     'check_xlir_task_pool_graph.ps1',
     'check_xlir_task_storage.ps1',
     'check_xlir_terminal_source_runtime.ps1',
@@ -237,6 +239,7 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
     foreach ($required in @(Get-RequiredParameters $path)) {
         switch ($required) {
             'PublicDirectory' { $arguments[$required] = $publicDirectory }
+            'PublicSourceDirectory' { $arguments[$required] = $publicDirectory }
             'ContractDirectory' { $arguments[$required] = $contractDirectory }
             'Directory' { $arguments[$required] = Join-Path $PhaseDirectory $slug }
             'SourceDriver' { $arguments[$required] = $sourceDriver }
@@ -249,11 +252,15 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
             'NativeRoot' { $arguments[$required] = $NativeRoot }
             'NetworkReport' { $arguments[$required] = $networkReport }
             'AggregateDirectory' { $arguments[$required] = $aggregateDirectory }
+            'OutputDirectory' { $arguments[$required] = Join-Path $PhaseDirectory $slug }
             default { throw "No reviewed argument source for $Name -$required" }
         }
     }
     if ($parameters.ContainsKey('Directory') -and !$arguments.Contains('Directory')) {
         $arguments.Directory = Join-Path $PhaseDirectory $slug
+    }
+    if ($parameters.ContainsKey('WorkDirectory')) {
+        $arguments.WorkDirectory = Join-Path $PhaseDirectory $slug
     }
     switch ($Name) {
         'check_xlir_object_escape.ps1' {
@@ -270,13 +277,21 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
             $arguments.Directory = $publicDirectory
             $arguments.OutputDirectory = Join-Path $PhaseDirectory $slug
         }
+        'check_xlir_http_async_source.ps1' {
+            # This worker consumes the staged public source/artifact manifest,
+            # not a newly-created empty scenario directory.
+            $arguments.Directory = $publicDirectory
+            $arguments.OutputDirectory = Join-Path $PhaseDirectory $slug
+        }
     }
     if ($parameters.ContainsKey('Tcc')) { $arguments.Tcc = $Tcc }
     $resources = @("scenario-$slug")
     # Focused probes without a private evidence directory still emit
     # fixed build/test paths. Serialize those probes until each owns an
     # explicit output root; other comprehensive scenarios remain parallel.
-    if (!$arguments.Contains('Directory')) { $resources += 'shared-build-test-output' }
+    if (!$arguments.Contains('Directory') -and !$arguments.Contains('WorkDirectory')) {
+        $resources += 'shared-build-test-output'
+    }
     return [ordered]@{
         Script = $Name
         Resources = $resources

@@ -10,6 +10,7 @@
 - `test_tutorial.bat`：教学范例回归。
 - `test_feature_suite.bat`：功能范例套件回归。
 - `test_dll.bat`：`xl.dll` 嵌入式运行库回归。
+- `cases/stdlib_release_string_abi.xl`：双字段 string 跨转换、动态值/nullable 投影、稀疏列表读取与容器 take/pop、内嵌 NUL 字典键/动态字段、product move、Future 名称及异步结果的综合回归；Windows 核心套件和 Linux JIT/AOT 都运行。
 
 ## 分类套件
 

@@ -61,7 +61,8 @@ static int xl6IrCgenEmitAsyncMachineWatch(
  * This cleanup transaction also covers native payload destructors: it cannot
  * contaminate the producer's outer scope or discard a diagnostic-free failure. */
 static int xl6IrCgenEmitAsyncSourceLeaseRelease(
-    XL6_Output* out, const XL6_IrAsyncSuspension* suspension)
+    XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrAsyncSuspension* suspension)
 {
     const char *release = NULL, *destroy = NULL;
     if (suspension->resultAbi != XL6_IR_ASYNC_RESULT_VOID &&
@@ -70,8 +71,9 @@ static int xl6IrCgenEmitAsyncSourceLeaseRelease(
         "    { xl6_error_scope source_cleanup = {0}; xl6_error_result observed;\n"
         "      xerror* original = xrtTakeError(); bool acquired = await_ok_%u;\n"
         "      xfuture* source;\n",(unsigned int)suspension->resultValue);
+    xl6IrCgenSlotEmpty(out,"xfuture*","xlir_empty_source");
     xl6IrCgenSlotPlanBegin(out); xl6IrCgenSlotWrite(out,"source","frame->source");
-    xl6IrCgenSlotReset(out,"xfuture*","frame->source",NULL); xl6IrCgenSlotPlanEnd(out);
+    xl6IrCgenSlotReset(out,"xlir_empty_source","frame->source",NULL); xl6IrCgenSlotPlanEnd(out);
     xl6OutputPuts(
         "      if (!xl6ErrorScopeBegin(&source_cleanup)) abort();\n"
         "      xrtSetErrorTake(original);\n"
@@ -84,8 +86,11 @@ static int xl6IrCgenEmitAsyncSourceLeaseRelease(
             "      if (acquired && !observed.ok) {\n"
             "        if (!xl6ErrorScopeBegin(&source_cleanup)) abort();\n"
             "        xrtSetErrorTake(observed.error); xl6ErrorScopeCaptureFailure(&source_cleanup);\n", out);
-        xl6OutputPrintf(out, "        %s(v%u); v%u = NULL;\n", release,
-            (unsigned int)suspension->resultValue, (unsigned int)suspension->resultValue);
+        char place[32];
+        const char* type = xl6IrCgenType(module, suspension->resultType);
+        if (type == NULL) return 0;
+        snprintf(place, sizeof(place), "v%u", (unsigned int)suspension->resultValue);
+        if (!xl6IrCgenEmitDetachedRelease(out, type, release, place, NULL)) return 0;
         xl6OutputPuts(
             "        if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&source_cleanup);\n"
             "        observed = xl6ErrorScopeEnd(&source_cleanup);\n"
@@ -254,7 +259,7 @@ static int xl6IrCgenEmitAsyncMachine(
             (unsigned int)suspension->resultValue);
         if (!xl6IrCgenEmitAwaitPayload(out, module,
                 &module->instructions[suspension->awaitInstruction], "input->Value")) goto done;
-        if (!xl6IrCgenEmitAsyncSourceLeaseRelease(out, suspension)) goto done;
+        if (!xl6IrCgenEmitAsyncSourceLeaseRelease(out, module, suspension)) goto done;
         for ( local = 0; local < suspension->resumeActionCount; ++local ) {
             const XL6_IrAsyncFrameAction* project =
                 &module->asyncFrameActions[suspension->firstResumeAction + local];

@@ -53,10 +53,12 @@ static int xl6IrCgenEmitMoveInstruction(
         char output[32],initialized[64]; if (!place) return 0;
         snprintf(output,sizeof(output),"v%u",(unsigned int)instruction->result);
         snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)initBit);
+        xl6OutputPuts("    {\n", out);
+        xl6IrCgenSlotEmpty(out,spelling,"xlir_empty");
         xl6IrCgenSlotPlanBegin(out);
         if (take) xl6IrCgenSlotWrite(out,output,place);
-        xl6IrCgenSlotReset(out,spelling,place,initBit==SIZE_MAX?NULL:initialized);
-        xl6IrCgenSlotPlanEnd(out); xrtFree(place);
+        xl6IrCgenSlotReset(out,"xlir_empty",place,initBit==SIZE_MAX?NULL:initialized);
+        xl6IrCgenSlotPlanEnd(out); xl6OutputPuts("    }\n",out); xrtFree(place);
     }
     return !xl6OutputHasFailed(out);
 }
@@ -71,8 +73,9 @@ static int xl6IrCgenEmitDetachedRelease(
     if (initialized != NULL) xl6OutputPrintf(out, "    if (%s) ", initialized);
     else xl6OutputPuts("    ", out);
     xl6OutputPrintf(out, "{ %s xlir_released;\n", type);
+    xl6IrCgenSlotEmpty(out,type,"xlir_empty");
     xl6IrCgenSlotPlanBegin(out); xl6IrCgenSlotWrite(out,"xlir_released",place);
-    xl6IrCgenSlotReset(out,type,place,initialized); xl6IrCgenSlotPlanEnd(out);
+    xl6IrCgenSlotReset(out,"xlir_empty",place,initialized); xl6IrCgenSlotPlanEnd(out);
     xl6OutputPrintf(out, "    %s(xlir_released); }\n", destroy);
     return !xl6OutputHasFailed(out);
 }

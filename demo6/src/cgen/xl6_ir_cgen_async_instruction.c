@@ -24,8 +24,21 @@ static int xl6IrCgenEmitAsyncFrameHandoff(
     char targetOuter[32],sourceOuter[32];
     snprintf(targetOuter,sizeof(targetOuter),"%s->outer",to);
     snprintf(sourceOuter,sizeof(sourceOuter),"%s->outer",from);
+    xl6OutputPuts("    {\n",out);
+    xl6IrCgenSlotEmpty(out,"xpromise*","xlir_empty_outer");
+    for (i = 0; i < count; ++i) {
+        const XL6_IrAsyncFrameAction* action = &module->asyncFrameActions[first + i];
+        const XL6_IrAsyncMachineFrameSlot* frame = &module->asyncMachineFrameSlots[action->frameSlot];
+        const char* type = xl6IrCgenType(module,frame->type);
+        char empty[64];
+        if (!type || action->kind != (rollback?XL6_IR_ASYNC_FRAME_ACTION_ROLLBACK_HANDOFF_RESIDENT:
+            XL6_IR_ASYNC_FRAME_ACTION_HANDOFF_RESIDENT)) return 0;
+        if (frame->initBit == SIZE_MAX) continue;
+        snprintf(empty,sizeof(empty),"xlir_empty_%lu",(unsigned long)i);
+        xl6IrCgenSlotEmpty(out,type,empty);
+    }
     xl6IrCgenSlotPlanBegin(out);
-    xl6IrCgenSlotWrite(out,targetOuter,sourceOuter); xl6IrCgenSlotReset(out,"xpromise*",sourceOuter,NULL);
+    xl6IrCgenSlotWrite(out,targetOuter,sourceOuter); xl6IrCgenSlotReset(out,"xlir_empty_outer",sourceOuter,NULL);
     for (i = 0; i < count; ++i) {
         const XL6_IrAsyncFrameAction* action = &module->asyncFrameActions[first + i];
         const XL6_IrAsyncMachineFrameSlot* frame = &module->asyncMachineFrameSlots[action->frameSlot];
@@ -33,7 +46,7 @@ static int xl6IrCgenEmitAsyncFrameHandoff(
         if (action->kind != (rollback?XL6_IR_ASYNC_FRAME_ACTION_ROLLBACK_HANDOFF_RESIDENT:
             XL6_IR_ASYNC_FRAME_ACTION_HANDOFF_RESIDENT)) return 0;
         {
-            char target[64],source[64],targetBit[64],sourceBit[64];
+            char target[64],source[64],targetBit[64],sourceBit[64],empty[64];
             const char* type=xl6IrCgenType(module,frame->type); if (!type) return 0;
             snprintf(target,sizeof(target),"%s->f%lu",to,(unsigned long)field);
             snprintf(source,sizeof(source),"%s->f%lu",from,(unsigned long)field);
@@ -41,11 +54,13 @@ static int xl6IrCgenEmitAsyncFrameHandoff(
             if (frame->initBit!=SIZE_MAX) {
                 snprintf(targetBit,sizeof(targetBit),"%s->i%lu",to,(unsigned long)frame->initBit);
                 snprintf(sourceBit,sizeof(sourceBit),"%s->i%lu",from,(unsigned long)frame->initBit);
-                xl6IrCgenSlotWrite(out,targetBit,sourceBit); xl6IrCgenSlotReset(out,type,source,sourceBit);
+                snprintf(empty,sizeof(empty),"xlir_empty_%lu",(unsigned long)i);
+                xl6IrCgenSlotWrite(out,targetBit,sourceBit); xl6IrCgenSlotReset(out,empty,source,sourceBit);
             }
         }
     }
     xl6IrCgenSlotPlanEnd(out);
+    xl6OutputPuts("    }\n",out);
     return !xl6OutputHasFailed(out);
 }
 

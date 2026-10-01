@@ -58,7 +58,8 @@ $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
 $header = [System.IO.File]::ReadAllText($headerPath, [System.Text.Encoding]::UTF8)
 if ( ! $generated.Contains("extern int64_t host_counter;") -or
      $generated -notmatch 'v[0-9]+ = host_counter;' -or
-     $generated -notmatch 'host_counter = v[0-9]+;' ) {
+     $generated -notmatch '\{ &\(host_counter\), &\(xlir_committed\), sizeof\(host_counter\) \}' -or
+     !$generated.Contains('(xl6SlotRuntimeV1Get()->Apply)(xlir_writes') ) {
     throw "XLIR C emitter ignored verified ExternGlobal storage mapping"
 }
 if ( $generated.Contains("static int64_t s2") -or $header.Contains("host_counter") ) {

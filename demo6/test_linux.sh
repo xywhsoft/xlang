@@ -44,6 +44,10 @@ printf 'Running Linux C and XRT integration tests...\n'
 "$TEST_DIR/stdlib_math_c"
 
 printf 'Running Linux UTF-8 path tests...\n'
+"$XL" run "$ROOT/test/cases/stdlib_release_string_abi.xl"
+"$XL" build "$ROOT/test/cases/stdlib_release_string_abi.xl" \
+    -o "$TEST_DIR/stdlib_release_string_abi"
+"$TEST_DIR/stdlib_release_string_abi"
 mkdir -p "$TEST_DIR/中文路径"
 cp "$ROOT/release/examples/hello.xl" "$TEST_DIR/中文路径/你好.xl"
 "$XL" check "$TEST_DIR/中文路径/你好.xl"

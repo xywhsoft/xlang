@@ -71,11 +71,10 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         if ( needs->needsStringTimeConvertRuntime )
             xl6OutputPuts(
                 "extern bool xrtTimeParseAny(xlir_string_view, int64_t*);\n"
-                "static int64_t xlir_string_to_time_checked(const char* text)\n"
+                "static int64_t xlir_string_to_time_checked(xlir_string text)\n"
                 "{\n"
                 "    int64_t result = 0;\n"
-                "    if (text == NULL) text = \"\";\n"
-                "    if (xrtTimeParseAny(xrtStrView(text), &result)) return result;\n"
+                "    if (xrtTimeParseAny(text, &result)) return result;\n"
                 "    if (xrtGetError() == NULL)\n"
                 "        xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid time string\"));\n"
                 "    return 0;\n"
@@ -96,8 +95,8 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         if ( needs->needsTimeToStringRuntime )
             xl6OutputPuts(
                 "extern char* xrtTimeFormat(int64_t, int, xlir_string_view);\n"
-                "static char* xlir_time_to_string(int64_t value)\n"
-                "{ return xrtTimeFormat(value, 0, xrtStrView(\"%F %T\")); }\n",
+                "static xlir_string xlir_time_to_string(int64_t value)\n"
+                "{ return xlir_string_take_cstr(xrtTimeFormat(value, 0, xrtStrView(\"%F %T\"))); }\n",
                 out);
         xl6OutputPuts("\n", out);
     }
@@ -547,13 +546,13 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "{ return xrtDynamicFieldsCreate(); }\n"
             "static void xl6_xrt_dynamic_fields_destroy(void* handle)\n"
             "{ xrtDynamicFieldsUnref((xrtdynamicfields*)handle); }\n"
-            "static xvalue* xl6_xrt_dynamic_fields_get(void* handle, const char* name)\n"
+            "static xvalue* xl6_xrt_dynamic_fields_get(void* handle, xlir_string name)\n"
             "{\n"
-            "    xvalue* value = xrtDynamicFieldsGetRef((const xrtdynamicfields*)handle, xrtStrView(name));\n"
+            "    xvalue* value = xrtDynamicFieldsGetRef((const xrtdynamicfields*)handle, name);\n"
             "    return value != NULL ? value : xrtValueNull();\n"
             "}\n"
-            "static bool xl6_xrt_dynamic_fields_set(void* handle, const char* name, xvalue* value)\n"
-            "{ return xrtDynamicFieldsSetRef((xrtdynamicfields*)handle, xrtStrView(name), value); }\n\n",
+            "static bool xl6_xrt_dynamic_fields_set(void* handle, xlir_string name, xvalue* value)\n"
+            "{ return xrtDynamicFieldsSetRef((xrtdynamicfields*)handle, name, value); }\n\n",
             out);
     }
     if ( needs->needsPrintRuntime ) {

@@ -494,15 +494,29 @@ static int xl6IrCgenEmitContinuationTransfers(XL6_Output* out, const XL6_IrModul
         frame = &frames[action->frameSlot];
         if (frame->transferAbi != XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED || frame->initBit == SIZE_MAX) return 0;
         {
-            char place[64],initialized[64]; const char* type=xl6IrCgenType(module,frame->type);
+            char empty[64]; const char* type=xl6IrCgenType(module,frame->type);
             if (!type) return 0;
-            snprintf(place,sizeof(place),"frame->f%lu",(unsigned long)(action->frameSlot-firstFrame));
-            snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)frame->initBit);
-            if (!started) { xl6IrCgenSlotPlanBegin(out); started=1; }
-            xl6IrCgenSlotReset(out,type,place,initialized);
+            if (!started) { xl6OutputPuts("    {\n",out); started=1; }
+            snprintf(empty,sizeof(empty),"xlir_empty_%lu",(unsigned long)(i-first));
+            xl6IrCgenSlotEmpty(out,type,empty);
         }
     }
-    if (started) xl6IrCgenSlotPlanEnd(out);
+    if (started) {
+        xl6IrCgenSlotPlanBegin(out);
+        for (i = first; i < first + count; ++i) {
+            const XL6_IrContinuationFrameAction* action = &actions[i];
+            const XL6_IrContinuationFrameSlot* frame;
+            char place[64],initialized[64],empty[64];
+            if (action->instruction != index || action->kind != phase) continue;
+            frame = &frames[action->frameSlot];
+            snprintf(place,sizeof(place),"frame->f%lu",(unsigned long)(action->frameSlot-firstFrame));
+            snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)frame->initBit);
+            snprintf(empty,sizeof(empty),"xlir_empty_%lu",(unsigned long)(i-first));
+            xl6IrCgenSlotReset(out,empty,place,initialized);
+        }
+        xl6IrCgenSlotPlanEnd(out);
+        xl6OutputPuts("    }\n",out);
+    }
     return !xl6OutputHasFailed(out);
 }
 

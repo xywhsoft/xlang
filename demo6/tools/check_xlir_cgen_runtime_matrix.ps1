@@ -167,11 +167,35 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
 }
 
 Push-Location $Root
+$compilerEnvironmentBefore = @{}
+$fixtureFailures = [System.Collections.Generic.List[string]]::new()
+function Invoke-MatrixNative([string]$File, [string[]]$Arguments) {
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $File @Arguments | Out-Host
+        return $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previousPreference }
+}
 try {
+    # All rows use one frozen source/runtime revision. Prepare the same compiler,
+    # objects and declarations once, rather than rebuilding XRT for every row.
+    $toolchainOutput = & cmd.exe /d /v:on /c 'call test\suites\common.bat && set XL6_CGEN'
+    if ($LASTEXITCODE -ne 0) { throw 'XLIR runtime matrix toolchain preparation failed' }
+    foreach ($line in $toolchainOutput) {
+        if ($line -match '^(XL6_CGEN_[A-Z_]+)=(.*)$') {
+            $key = $Matches[1]
+            $compilerEnvironmentBefore[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
+            [Environment]::SetEnvironmentVariable($key, $Matches[2], 'Process')
+        } else { Write-Output $line }
+    }
+    foreach ($key in @('XL6_CGEN_CC','XL6_CGEN_FLAGS','XL6_CGEN_INCLUDES','XL6_CGEN_LINKS','XL6_CGEN_XLANG_LINKS')) {
+        if (![Environment]::GetEnvironmentVariable($key, 'Process')) { throw "Missing runtime matrix compiler variable: $key" }
+    }
     foreach ( $fixture in $fixtures ) {
+      try {
         $source = Join-Path $Root $fixture.Source
-        & $xl cgen $source --backend xlir --emit $generated
-        if ( $LASTEXITCODE -ne 0 ) {
+        if ((Invoke-MatrixNative $xl @('cgen', $source, '--backend', 'xlir', '--emit', $generated)) -ne 0) {
             throw "XLIR Cgen failed for $($fixture.Name)"
         }
         if ( $null -ne $fixture.GeneratedInclude ) {
@@ -185,18 +209,17 @@ try {
             [System.IO.File]::Copy($generated, $includedGenerated, $true)
         }
         if ( $fixture.SeparateGenerated ) {
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXL6_DIFFERENTIAL_INLINE_DECL $generated $($fixture.Host) !XL6_CGEN_LINKS! -o build\test\xlir_cgen_runtime.exe && build\test\xlir_cgen_runtime.exe"
+            $command = "!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXL6_DIFFERENTIAL_INLINE_DECL $generated $($fixture.Host) !XL6_CGEN_LINKS! -o build\test\xlir_cgen_runtime.exe && build\test\xlir_cgen_runtime.exe"
         } elseif ( $fixture.IncludeGenerated ) {
             # XLIR emits an internal module initializer, so the complete
             # generated module and its host intentionally share one TU.
             $support = if ( $null -ne $fixture.Support ) {
                 if ( $fixture.SeparateSupport ) {
                     $supportObject = "build\test\xlir_cgen_runtime_support.o"
-                    $supportCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -c $($fixture.Support) -o $supportObject"
+                    $supportCommand = "!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -c $($fixture.Support) -o $supportObject"
                     # Forward the native compiler log without allowing stdout
                     # to become an accidental linker argument.
-                    & cmd.exe /v:on /c $supportCommand | Out-Host
-                    if ( $LASTEXITCODE -ne 0 ) {
+                    if ((Invoke-MatrixNative 'cmd.exe' @('/d', '/v:on', '/c', $supportCommand)) -ne 0) {
                         throw "XLIR runtime support compilation failed for $($fixture.Name)"
                     }
                     $supportObject
@@ -216,17 +239,27 @@ try {
             } else {
                 "!XL6_CGEN_LINKS!"
             }
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $preincludedDefine -include $generated $support $($fixture.Host) $links -o build\test\xlir_cgen_runtime.exe && build\test\xlir_cgen_runtime.exe"
+            $command = "!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $preincludedDefine -include $generated $support $($fixture.Host) $links -o build\test\xlir_cgen_runtime.exe && build\test\xlir_cgen_runtime.exe"
         } else {
-            $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $($fixture.Host) !XL6_CGEN_LINKS! -o build\test\xlir_cgen_runtime.exe && build\test\xlir_cgen_runtime.exe"
+            $command = "!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $($fixture.Host) !XL6_CGEN_LINKS! -o build\test\xlir_cgen_runtime.exe && build\test\xlir_cgen_runtime.exe"
         }
-        & cmd.exe /v:on /c $command
-        if ( $LASTEXITCODE -ne 0 ) {
+        if ((Invoke-MatrixNative 'cmd.exe' @('/d', '/v:on', '/c', $command)) -ne 0) {
             throw "XLIR generated-C runtime failed for $($fixture.Name)"
         }
+        Write-Output "PASS: $($fixture.Name)"
+      } catch {
+        $fixtureFailures.Add($_.Exception.Message)
+        Write-Output "FAIL: $($fixture.Name): $($_.Exception.Message)"
+      }
     }
 } finally {
+    foreach ($key in $compilerEnvironmentBefore.Keys) {
+        [Environment]::SetEnvironmentVariable($key, $compilerEnvironmentBefore[$key], 'Process')
+    }
     Pop-Location
 }
 
+if ($fixtureFailures.Count -ne 0) {
+    throw "XLIR runtime matrix recorded $($fixtureFailures.Count) failed rows after collecting all $($fixtures.Count):`n$($fixtureFailures -join "`n")"
+}
 Write-Output "XLIR canonical Cgen runtime matrix ok: generated C compiled and executed across scalar, ownership, collection, callable, class, async, generator, task, synchronization and persistence ABI fixtures."

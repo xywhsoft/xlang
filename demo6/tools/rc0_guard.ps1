@@ -23,9 +23,14 @@ function Invoke-GuardStep {
 
     Write-Host ""
     Write-Host "== $Name"
+    $failureCount = $script:Failures.Count
     try {
         & $Body
-        Write-Host "OK: $Name"
+        if ( $script:Failures.Count -eq $failureCount ) {
+            Write-Host "OK: $Name"
+        } else {
+            Write-Host "FAIL: $Name ($($script:Failures.Count - $failureCount) child failures)"
+        }
     } catch {
         $message = "$Name failed: $($_.Exception.Message)"
         Add-Failure $message
@@ -378,6 +383,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
         "check_stdlib_dll_symbols.ps1",
+        "check_stdlib_crt_math_direct.ps1",
         "check_stdlib_vfs.ps1",
         "check_tcc_export_environment.ps1",
         "check_tcc_vfs_resources.ps1",
@@ -387,13 +393,18 @@ Invoke-GuardStep "static wiring guards" {
     )
 
     foreach ( $script in $scripts ) {
-        Invoke-CheckScript $script
+        # Collect every independent gate before repairing. A failed child must
+        # not hide later ABI/ownership failures or turn the enclosing step green.
+        $checkName = $script
+        Invoke-GuardStep $checkName { Invoke-CheckScript $checkName }
     }
 
     # Discover every specialized XLIR gate not already named above.  The
     # repository inventory is authoritative, so adding a new XLIR ABI gate
     # automatically extends the RC0 static/semantic boundary.
-    Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\run_xlir_guards.ps1", "-Mode", "Rc0Supplement")
+    Invoke-GuardStep "XLIR supplemental guards" {
+        Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\run_xlir_guards.ps1", "-Mode", "Rc0Supplement")
+    }
 }
 
 Invoke-GuardStep "handwritten C safety" {

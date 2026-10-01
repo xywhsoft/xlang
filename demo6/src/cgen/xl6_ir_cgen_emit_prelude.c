@@ -45,6 +45,17 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_async_frame_allocate (xl6ContinuationFrameRuntimeV2Get()->Allocate)\n"
             "#define xlir_async_frame_dispose (xl6ContinuationFrameRuntimeV2Get()->Discard)\n",out);
     }
+    /* One closed declaration surface for shared string support. Prelude
+     * adapters may use it before the definitions emitted in runtime support. */
+    if (needs->needsStringRuntime)
+        xl6OutputPuts(
+            "static xlir_string xlir_string_from_utf8(const char*, size_t);\n"
+            "static xlir_string xlir_string_copy(xlir_string);\n"
+            "static xlir_string xlir_string_from_cstr(const char*);\n"
+            "static xlir_string xlir_string_take_cstr(char*);\n"
+            "static xlir_string xlir_string_take_known(char*, size_t);\n"
+            "static const char* xlir_string_cstr(xlir_string);\n"
+            "static void xlir_string_drop(xlir_string);\n", out);
     if ( needs->needsRuntimeTrap ) xl6OutputPuts("#include <stdlib.h>\n", out);
     if ( needs->needsCheckedI64Runtime || needs->needsWrappingIntegerRuntime ||
          needs->needsCheckedIntegerArithmeticRuntime ||
@@ -352,10 +363,11 @@ static int xl6IrCgenEmitRuntimePrelude(
                       "{ return ch == ' ' || ch == '\\t' || ch == '\\r' || ch == '\\n' || ch == '\\v' || ch == '\\f'; }\n",
                       out);
     if ( needs->needsStringI64ConvertRuntime )
-        xl6OutputPuts("static int64_t xlir_string_to_i64_checked(const char* text, int target)\n"
+        xl6OutputPuts("static int64_t xlir_string_to_i64_checked(xlir_string input, int target)\n"
                       "{\n"
+                      "    const char* text = xlir_string_cstr(input);\n"
                       "    char* end = NULL; long long value;\n"
-                      "    if (text == NULL) text = \"\";\n"
+                      "    if (text == NULL) return 0;\n"
                       "    while (xlir_numeric_string_is_space(*text)) ++text;\n"
                       "    errno = 0; value = strtoll(text, &end, 10);\n"
                       "    if (end == text || errno == ERANGE) goto invalid;\n"
@@ -366,10 +378,11 @@ static int xl6IrCgenEmitRuntimePrelude(
                       "    xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid integer string\")); return 0;\n"
                       "}\n\n", out);
     if ( needs->needsStringU64ConvertRuntime )
-        xl6OutputPuts("static uint64_t xlir_string_to_u64_checked(const char* text)\n"
+        xl6OutputPuts("static uint64_t xlir_string_to_u64_checked(xlir_string input)\n"
                       "{\n"
+                      "    const char* text = xlir_string_cstr(input);\n"
                       "    char* end = NULL; unsigned long long value;\n"
-                      "    if (text == NULL) text = \"\";\n"
+                      "    if (text == NULL) return 0;\n"
                       "    while (xlir_numeric_string_is_space(*text)) ++text;\n"
                       "    if (*text == '-') { xrtSetErrorTake(xlir_error_create(\"RangeError\", \"negative string cannot convert to unsigned integer\")); return 0; }\n"
                       "    errno = 0; value = strtoull(text, &end, 10);\n"
@@ -381,10 +394,11 @@ static int xl6IrCgenEmitRuntimePrelude(
                       "    xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid unsigned integer string\")); return 0;\n"
                       "}\n\n", out);
     if ( needs->needsStringF64ConvertRuntime )
-        xl6OutputPuts("static double xlir_string_to_f64_checked(const char* text)\n"
+        xl6OutputPuts("static double xlir_string_to_f64_checked(xlir_string input)\n"
                       "{\n"
+                      "    const char* text = xlir_string_cstr(input);\n"
                       "    char* end = NULL; double value;\n"
-                      "    if (text == NULL) text = \"\";\n"
+                      "    if (text == NULL) return 0.0;\n"
                       "    while (xlir_numeric_string_is_space(*text)) ++text;\n"
                       "    errno = 0; value = strtod(text, &end);\n"
                       "    if (end == text || errno == ERANGE) goto invalid;\n"
@@ -458,13 +472,13 @@ static int xl6IrCgenEmitRuntimePrelude(
                               "{ const xerror* error = future != NULL ? xrtFutureError(future) : NULL; return error != NULL ? xrtErrorRef(error) : NULL; }\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 10)) != 0 )
                 xl6OutputPuts("extern bool xl6FutureSetName(xfuture*, const char*);\n"
-                              "static bool xlir_future_set_debug_name(xfuture* future, const char* name)\n"
-                              "{ return future != NULL && name != NULL && xl6FutureSetName(future, name); }\n", out);
+                              "static bool xlir_future_set_debug_name(xfuture* future, xlir_string name)\n"
+                              "{ const char* text = xlir_string_cstr(name); return future != NULL && text != NULL && xl6FutureSetName(future, text); }\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 11)) != 0 )
                 xl6OutputPuts("extern const char* xl6FutureName(xfuture*);\n"
                               "extern char* xrtStrDup(const char*);\n"
-                              "static char* xlir_future_debug_name_copy(xfuture* future)\n"
-                              "{ const char* name = future != NULL ? xl6FutureName(future) : NULL; return xrtStrDup(name != NULL ? name : \"\"); }\n", out);
+                              "static xlir_string xlir_future_debug_name_copy(xfuture* future)\n"
+                              "{ const char* name = future != NULL ? xl6FutureName(future) : NULL; return xlir_string_from_utf8(name != NULL ? name : \"\", name != NULL ? strlen(name) : 0); }\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 12)) != 0 )
                 xl6OutputPuts("extern unsigned long long xl6FutureCreatedMs(xfuture*);\n"
                               "static int64_t xlir_future_create_time_ms(xfuture* future)\n"

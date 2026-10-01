@@ -608,7 +608,7 @@ if ($asyncMachineEmitter.Contains('xrtFutureWatchAdd') -or $asyncMachineEmitter.
 if (!$header.Contains('XL6_IR_ASYNC_SOURCE_LEASE_CAPTURE_THEN_RELEASE') -or
     !$source.Contains('XLIR async source lease lifetime is unresolved') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c').Contains('machine->sourceLeaseAbi') -or
-    !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c').Contains('xl6IrCgenEmitAsyncSourceLeaseRelease(out, suspension)') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c').Contains('xl6IrCgenEmitAsyncSourceLeaseRelease(out, module, suspension)') -or
     !(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('check_xlir_async_source_lease.ps1')) {
     throw 'Async source transport leases must end after result acquisition and before the verified resume CFG'
 }
@@ -2018,10 +2018,12 @@ foreach ( $required in @(
     'parseName = "xrtXlonParse"',
     'writeName = "xrtXlonStringifyFile"',
     'readName = "xrtXlonParseFile"',
-    '"    result = %s(value, pretty, NULL);\n"',
-    '"    source = %s(xrtStrView(text));\n"',
-    '"    result = %s(path, value, pretty);\n"',
-    '"    source = %s(path);\n"'
+    '"    result = %s(value, pretty, &size);\n"',
+    '"    source = %s(text);\n"',
+    '"    result = %s(cpath, value, pretty);\n"',
+    '"    source = %s(cpath);\n"',
+    'return (xlir_string){result, result != NULL ? size : 0}',
+    'xlir_string_cstr(path)'
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical JSON persistence emission: $required"
@@ -2229,8 +2231,8 @@ foreach ( $required in @(
     "XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER",
     "XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR",
     "needsPathJoinBridgeRuntime", "void* xl6_xrt_path_join",
-    "needsLastErrorTextBridgeRuntime", "char* xl6_xrt_last_error_text",
-    'xrtStrDup(message != NULL ? message : \"\")',
+    "needsLastErrorTextBridgeRuntime", "xlir_string xl6_xrt_last_error_text",
+    'xlir_string_from_utf8(message, strlen(message))',
     "bool xl6_xrt_string_contains", "xvalue* xl6_xrt_string_split_lines"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -4207,7 +4209,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_STRING_CONTAINS",
-    "xrtStrContains(xrtStrView(v%u), xrtStrView(v%u))",
+    "xrtStrContains(v%u, v%u)",
     "needsStringContainsOperation"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -4244,7 +4246,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "XL6_IR_RUNTIME_STRING_UTF8_COUNT",
-    "xrtUtf8Count(xrtStrView(v%u))", "needsStringUtf8CountOperation",
+    "xrtUtf8Count(v%u)", "needsStringUtf8CountOperation",
     "XL6_IR_RUNTIME_BYTES_LENGTH", "xlir_bytes_length"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -4667,7 +4669,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "instruction->kind != XL6_IR_INSTR_ERROR_RAISE",
     "xl6IrValueOwnershipGet",
-    "xrtFree(v%u);"
+    "xlir_string_drop(v%u);"
 ) ) {
     if ( ! $source.Contains($required) -and ! $cEmitter.Contains($required) ) {
         throw "XLIR verifier/C emitter is missing error-raise ownership consumption: $required"
@@ -4688,7 +4690,7 @@ foreach ( $required in @(
     }
 }
 if ( $cEmitter -match 'XL6_AstNode\s*\*' -or $cEmitter -match 'XL6_Hir' -or
-$cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|NetTcpComponent|NetBufferComponent|NetTcpStatsComponent|NetDatagramComponent|TlsRuntime|Http1Runtime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|XlonRuntime)\b)' -or
+$cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|NetTcpComponent|NetBufferComponent|NetTcpStatsComponent|NetDatagramComponent|TlsRuntime|Http1Runtime|HttpDecodeRuntime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|StructuredOptionsRuntime|NativeVoidAbiBegin|NativeVoidAbiEnd|XlonRuntime)\b)' -or
      $cEmitter -match 'xl6Sem' ) {
     throw "XLIR C emitter must not consume AST/HIR/semantic analysis or call legacy Cgen"
 }
@@ -5219,7 +5221,7 @@ foreach ( $required in @(
 if ( ! $languageFrontendSuite.Contains("tools\check_xlir_time_conversion_abi.ps1") ) {
     throw "XLIR time conversion quality gate is not wired into the language frontend suite"
 }
-foreach ( $required in @("XL6_IR_RUNTIME_BRIDGE_PRINT", "needsPrintRuntime", "void xl6_xrt_print", "xlir_print_one", "xrtValueArrayAt") ) {
+foreach ( $required in @("XL6_IR_RUNTIME_BRIDGE_PRINT", "needsPrintRuntime", "bool xl6_xrt_print", "xlir_print_one", "xrtValueArrayAt") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR print runtime bridge contract is incomplete: $required" }
 }
 foreach ( $required in @(
@@ -5241,7 +5243,7 @@ foreach ($required in @('XL6_IrStringBridgeContract', 'target->errorAbi != contr
     if (!$source.Contains($required)) { throw "XLIR string ABI registry is incomplete: $required" }
 }
 foreach ($required in @('needsStringJoinBridgeRuntime', 'XL6_IR_RUNTIME_BRIDGE_STRING_JOIN',
-    'void* xl6_xrt_string_join(xvalue* values, const char* separator)', 'xrtStrJoin')) {
+    'void* xl6_xrt_string_join(xvalue* values, xlir_string separator)', 'xrtStrJoin')) {
     if (!$cEmitter.Contains($required)) { throw "XLIR string-join runtime bridge is incomplete: $required" }
 }
 $stringJoinGate = Read-Utf8 'tools\check_xlir_string_join.ps1'
@@ -5255,8 +5257,8 @@ if (!(Read-Utf8 'tools\run_xlir_parameterized_guards.ps1').Contains("'check_xlir
 }
 foreach ( $required in @(
     "cgen_dynamic_to_typed_containers.xl", "--backend xlir",
-    "xvalue* xl6_xrt_string_split_lines(const char* text)",
-    "xrtStrSplitLines(xrtStrView(text))", "-Werror",
+    "xvalue* xl6_xrt_string_split_lines(xlir_string text)",
+    "xrtStrSplitLines(text)", "-Werror",
     "xlir_dynamic_to_typed_containers_host.c"
 ) ) {
     if ( ! $languageFrontendSuite.Contains($required) ) { throw "XLIR dynamic collection bridge runtime gate is incomplete: $required" }

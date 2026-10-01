@@ -154,13 +154,18 @@ try {
         }
         $runReport.Results += $result
         Save-RunReport
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $guard.FullName
-        $result.ExitCode = $LASTEXITCODE
+        $previousPreference = $ErrorActionPreference
+        try {
+            # Native stderr is diagnostic data, not an early-exit signal.
+            $ErrorActionPreference = 'Continue'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $guard.FullName
+            $result.ExitCode = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $previousPreference }
         $result.CompletedUtc = [DateTime]::UtcNow.ToString("o")
         $result.Status = if ( $result.ExitCode -eq 0 ) { "passed" } else { "failed" }
         Save-RunReport
         if ( $result.ExitCode -ne 0 ) {
-            throw "XLIR guard failed with code $($result.ExitCode): $($guard.Name)"
+            Write-Host "FAIL: XLIR guard exited $($result.ExitCode): $($guard.Name)"
         }
     }
     if ( $parameterized.Count ) {
@@ -174,12 +179,21 @@ try {
         )
         if ( $NativeRoot ) { $scenarioArguments += @('-NativeRoot', $NativeRoot) }
         if ( $Tcc ) { $scenarioArguments += @('-Tcc', $Tcc) }
-        & powershell.exe @scenarioArguments
-        if ( $LASTEXITCODE -ne 0 ) {
-            throw "XLIR parameterized scenario runner failed with code $LASTEXITCODE"
-        }
+        $previousPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            & powershell.exe @scenarioArguments
+            $scenarioExitCode = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $previousPreference }
         $runReport.ParameterizedReport = Join-Path $scenarioRoot 'results.json'
         Save-RunReport
+        if ( $scenarioExitCode -ne 0 ) {
+            throw "XLIR parameterized scenario runner failed with code $scenarioExitCode; standalone failures are retained in the report"
+        }
+    }
+    $failedGuards = @($runReport.Results | Where-Object { $_.Status -eq 'failed' })
+    if ( $failedGuards.Count ) {
+        throw "XLIR supplemental batch has $($failedGuards.Count) failed guards; all selected standalone results were recorded"
     }
     $runReport.Status = "passed"
 }

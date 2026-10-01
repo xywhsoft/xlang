@@ -191,7 +191,20 @@ if ( @($modeModule.closureTargets | Where-Object { $_.kind -eq 2 }).Count -ne 2 
 }
 
 Push-Location $Root
+$compilerEnvironmentBefore = @{}
 try {
+    $toolchainOutput = & cmd.exe /d /v:on /c 'call test\suites\common.bat && set XL6_CGEN'
+    if ($LASTEXITCODE -ne 0) { throw 'XLIR named-adapter toolchain preparation failed' }
+    foreach ($line in $toolchainOutput) {
+        if ($line -match '^(XL6_CGEN_[A-Z_]+)=(.*)$') {
+            $key = $Matches[1]
+            $compilerEnvironmentBefore[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
+            [Environment]::SetEnvironmentVariable($key, $Matches[2], 'Process')
+        } else { Write-Output $line }
+    }
+    foreach ($key in @('XL6_CGEN_CC','XL6_CGEN_FLAGS','XL6_CGEN_INCLUDES','XL6_CGEN_LINKS')) {
+        if (![Environment]::GetEnvironmentVariable($key, 'Process')) { throw "Missing named-adapter compiler variable: $key" }
+    }
     foreach ( $fixture in $fixtures ) {
         $source = Join-Path $Root "test\cases\$fixture.xl"
         $generated = Join-Path $outputDir "$fixture.named-adapter.c"
@@ -240,13 +253,16 @@ try {
         } else {
             $runtimeHost
         }
-        $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include $generated $selectedRuntimeHost !XL6_CGEN_LINKS! -o $exe && $exe"
+        $command = "!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include $generated $selectedRuntimeHost !XL6_CGEN_LINKS! -o $exe && $exe"
         & $env:ComSpec /d /v:on /c $command
         if ( $LASTEXITCODE -ne 0 ) {
             throw "XLIR named-function adapter strict-C runtime failed: $fixture"
         }
     }
 } finally {
+    foreach ($key in $compilerEnvironmentBefore.Keys) {
+        [Environment]::SetEnvironmentVariable($key, $compilerEnvironmentBefore[$key], 'Process')
+    }
     Pop-Location
 }
 

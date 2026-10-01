@@ -122,11 +122,22 @@ if ($rc0SummaryCandidates.Count -ne 1) {
 
 $irRootPath = Join-Path $cgenDirectory 'xl6_ir_cgen.c'
 if (Test-Path -LiteralPath $irRootPath -PathType Leaf) {
-    $irRoot = Read-Utf8 $irRootPath
     $irShards = @(Get-ChildItem -LiteralPath $cgenDirectory -Filter 'xl6_ir_cgen_*.c' -File)
+    $irByName = @{ 'xl6_ir_cgen.c' = $irRootPath }
+    foreach ($shard in $irShards) { $irByName[$shard.Name] = $shard.FullName }
+    $irReachable = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $irPending = [System.Collections.Generic.Queue[string]]::new()
+    $irPending.Enqueue('xl6_ir_cgen.c')
+    while ($irPending.Count -ne 0) {
+        $name = $irPending.Dequeue()
+        if (!$irReachable.Add($name) -or !$irByName.ContainsKey($name)) { continue }
+        foreach ($match in [regex]::Matches((Read-Utf8 $irByName[$name]), '#include\s+"(?:src/cgen/)?([^"/]+\.c)"')) {
+            $child = $match.Groups[1].Value
+            if ($irByName.ContainsKey($child)) { $irPending.Enqueue($child) }
+        }
+    }
     foreach ($shard in $irShards) {
-        $include = '#include "src/cgen/' + $shard.Name + '"'
-        if (!$irRoot.Contains($include)) {
+        if (!$irReachable.Contains($shard.Name)) {
             Add-Failure "XLIR C emitter shard is not wired through its unity root: $($shard.Name)"
         }
     }

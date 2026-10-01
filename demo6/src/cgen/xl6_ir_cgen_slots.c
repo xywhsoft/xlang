@@ -6,9 +6,15 @@ static void xl6IrCgenSlotWrite(XL6_Output* out, const char* target, const char* 
 { xl6OutputPrintf(out, "      { &(%s), &(%s), sizeof(%s) },\n", target, input, target); }
 static void xl6IrCgenSlotPlanEnd(XL6_Output* out)
 { xl6OutputPuts("    }; (xl6SlotRuntimeV1Get()->Apply)(xlir_writes, sizeof(xlir_writes)/sizeof(*xlir_writes)); }\n", out); }
-static void xl6IrCgenSlotReset(XL6_Output* out, const char* type, const char* place, const char* initialized)
+/* Declare a typed empty object before the descriptor array. Nested aggregate
+ * compound literals inside an array initializer trigger GCC missing-braces
+ * diagnostics; a standalone {0} is standard C and preserves real null/value
+ * representations without byte-zero guesses or type-spelling inspection. */
+static void xl6IrCgenSlotEmpty(XL6_Output* out, const char* type, const char* name)
+{ xl6OutputPrintf(out, "    %s const %s = {0};\n", type, name); }
+static void xl6IrCgenSlotReset(XL6_Output* out, const char* empty, const char* place, const char* initialized)
 {
-    xl6OutputPrintf(out, "      { &(%s), &(%s){0}, sizeof(%s) },\n", place, type, place);
+    xl6OutputPrintf(out, "      { &(%s), &(%s), sizeof(%s) },\n", place, empty, place);
     if (initialized != NULL) xl6IrCgenSlotWrite(out, initialized, "(bool){false}");
 }
 static int xl6IrCgenEmitSlotCommit(XL6_Output* out, const char* type,
