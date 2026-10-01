@@ -1,0 +1,27 @@
+array<string> pieces = ["你\0", "😀", "", "a\0"]
+string joined = string.join(pieces, "\0|")
+assert(joined == "你\0\0|😀\0|\0|a\0")
+assert(string.byteLen(joined) == 16)
+pieces[0] = "changed"
+assert(joined == "你\0\0|😀\0|\0|a\0")
+array<string> words = ["你tail", "好tail"]
+assert(string.join(words, "|tail", 1, 3) == "你|好")
+assert(string.join(words, "|", 100, 100) == "你tail|好tail")
+array<string> empty = []
+assert(string.join(empty, "ignored") == "")
+assert(string.join(string.split("a\0b|c|", "|"), "|") == "a\0b|c|")
+bool rejected = false
+try
+    string.join(words, "|", -1, 1)
+catch ValueError
+    rejected = true
+end
+assert(rejected)
+rejected = false
+try
+    string.join(empty, "|", -1, -2)
+catch RangeError
+    rejected = true
+end
+assert(rejected)
+assert(string.join(words, "") == "你tail好tail")

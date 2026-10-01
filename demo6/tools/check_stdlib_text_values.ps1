@@ -20,13 +20,15 @@ try {
     $gcc = (Get-Command gcc -CommandType Application).Source
     $rows = [Collections.Generic.List[object]]::new()
     $cases = @('stdlib_text_values','stdlib_text_sizes','stdlib_text_lower_only','cgen_extern_defaults',
-        'stdlib_text_queries','stdlib_text_binary','stdlib_text_glob','stdlib_text_distance')
+        'stdlib_text_queries','stdlib_text_binary','stdlib_text_glob','stdlib_text_distance','stdlib_text_split','stdlib_text_join',
+        'stdlib_text_split_only','stdlib_text_join_only')
     $negative = @('bad_xlir_text_input','bad_xlir_text_result','bad_xlir_text_effect','bad_xlir_text_no_raise',
-        'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width')
+        'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width','bad_xlir_text_split_type','bad_xlir_text_join_type')
     $defaultsNegative = @('bad_extern_default_type','bad_extern_default_order')
     $files = @($cases + $negative + $defaultsNegative | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
         @(Get-Item test/cases/stdlib_text_values_host.c,test/cases/xlir_text_value_contract.c,
             test/cases/stdlib_text_queries_host.c,test/support/text_queries_native.c,
+            test/cases/stdlib_text_split_host.c,test/support/text_split_native.c,
             test/support/text_selected_native.c,test/cases/stdlib_string_support.c,
             tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,$PSCommandPath,$gcc)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
@@ -82,8 +84,20 @@ try {
         }
         if ($point -gt 256) {throw "Incomplete native allocation sweep: $kind"}
     }
+    Run 'split-native-build' $gcc ($strict + @('test/cases/stdlib_text_split_host.c','test/support/text_split_native.c',
+        'src/runtime/xl6_text_split.c','src/runtime/xl6_text_join.c','-o',"$outPath/split-native.exe"))
+    Run 'split-native-run' "$outPath/split-native.exe" @()
+    foreach ($kind in @('split','lines','fields','join','split-large','lines-large','fields-large','join-large')) {
+        for ($point = 1; $point -le 512; ++$point) {
+            $name = "split-native.$kind.oom-$point"
+            Run $name "$outPath/split-native.exe" @($kind,"$point")
+            if ((Get-Content "$outPath/$name.log" -Raw) -match 'hit=0 balanced') {break}
+        }
+        if ($point -gt 512) {throw "Incomplete split allocation sweep: $kind"}
+    }
     $runtime = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -in @('xrt_single_header_impl.o','xl6_text_value.o',
-        'xl6_text_query.o','xl6_text_binary.o','xl6_text_chars.o','xl6_text_glob.o','xl6_text_distance.o','xl6_slot.o','xl6_value_iterator.o') } | ForEach-Object Path)
+        'xl6_text_query.o','xl6_text_binary.o','xl6_text_chars.o','xl6_text_glob.o','xl6_text_distance.o','xl6_text_split.o','xl6_text_join.o',
+        'xl6_slot.o','xl6_value_iterator.o') } | ForEach-Object Path)
     foreach ($name in $cases) {
         $source = "test/cases/$name.xl"
         Run "$name.emit" $driver @($source,'cgen-default',"$outPath/$name.c")
@@ -94,9 +108,11 @@ try {
             if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.contract.c").Hash) { throw "ABI/Cgen mismatch $name" }
             $c = Get-Content -LiteralPath "$outPath/$name.c" -Raw
             if ($c -notmatch '#include <__xl_runtime/xl6_text_value.h>' -or
-                $c -match 'xl6_xrt_(?:take_cstr|string_(?:lower|upper|trim|filter|replace|slice|repeat|reverse|compare|char_at|byte_at|chars|bytes|pad_\w+|like|approx|sim))\(' -or
+                $c -match 'xl6_xrt_(?:take_cstr|string_(?:lower|upper|trim|filter|replace|slice|repeat|reverse|compare|char_at|byte_at|chars|bytes|pad_\w+|like|approx|sim|split|split_lines|join))\(' -or
                 $c -match '(?m)^\s*(?:static\s+)?(?:xstrview|xlir_string)\s+xl6Text\w+\([^;]*\)\s*\{') { throw "Legacy/generated text implementation $name" }
             if ($name -eq 'stdlib_text_lower_only' -and $c -match 'xl6Text(?:Upper|Trim|Replace|Slice|Repeat|Reverse)V1\(') { throw 'Unused text calls retained' }
+            if ($name -eq 'stdlib_text_join_only' -and $c -match 'xl6Text(?:Split|Lines|Fields)V1\(') {throw 'Join-only retained split calls'}
+            if ($name -eq 'stdlib_text_split_only' -and $c -match 'xl6TextJoinV1\(') {throw 'Split-only retained join calls'}
         }
         Run "$name.strict-build" $gcc ($strict + @('-include',"$outPath/$name.c",'-DXLIR_GENERATED_MODULE_PREINCLUDED',
             'test/cases/xlir_generated_module_host.c') + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
@@ -125,7 +141,7 @@ try {
     foreach ($record in $inputs) {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -ne $record.Sha256) { throw "Text input changed $($record.Path)" }
     }
-    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='Text owned/query/char/bytes/glob/distance batches only; not 53-module completion or full RC0'}
+    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='Text owned/query/char/bytes/glob/distance/split/join batches only; not 53-module completion or full RC0'}
     [IO.File]::WriteAllText("$outPath/summary.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     Write-Output "Text values: $($rows.Count) checks passed. Evidence: $outPath"
 } finally { Pop-Location }

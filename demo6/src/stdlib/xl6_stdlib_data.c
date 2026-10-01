@@ -4263,9 +4263,7 @@ static const char xl6StdStringReplaceBody[] =
     "extern \"xl6TextReplaceV1\" func __xl_std_string_replace(string text, string oldText, string newText, int size = -1, int oldSize = -1, int newSize = -1) as string\n";
 
 static const char xl6StdStringSplitBody[] =
-    "func __xl_std_string_split(string text, string sep) as array\n"
-    "    return array(__xl_std_runtime_string_split(text, sep))\n"
-    "end\n";
+    "extern \"xl6TextSplitV1\" func __xl_std_string_split(string text, string sep, int size = -1, int sepSize = -1) as array<string>\n";
 
 static const char xl6StdStringSliceBody[] =
     "extern \"xl6TextSliceV1\" func __xl_std_string_slice(string text, int start, int count = -1, int size = -1) as string\n";
@@ -4286,9 +4284,7 @@ static const char xl6StdStringByteAtBody[] =
     "extern \"xl6TextByteAtV1\" func __xl_std_string_byte_at(string text, int index, int size = -1) as uint8\n";
 
 static const char xl6StdStringJoinBody[] =
-    "func __xl_std_string_join(array values, string sep = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_string_join(values, sep))\n"
-    "end\n";
+    "extern \"xl6TextJoinV1\" func __xl_std_string_join(array<string> values, string sep = \"\", int sepSize = -1, int itemSize = -1) as string\n";
 
 static const char xl6StdStringRepeatBody[] =
     "extern \"xl6TextRepeatV1\" func __xl_std_string_repeat(string text, int count, int size = -1) as string\n";
@@ -4321,9 +4317,10 @@ static const char xl6StdStringReverseBody[] =
     "extern \"xl6TextReverseV1\" func __xl_std_string_reverse(string text, int size = -1) as string\n";
 
 static const char xl6StdStringSplitLinesBody[] =
-    "func __xl_std_string_split_lines(string text) as array\n"
-    "    return array(__xl_std_runtime_string_split_lines(text))\n"
-    "end\n";
+    "extern \"xl6TextLinesV1\" func __xl_std_string_split_lines(string text, int size = -1) as array<string>\n";
+
+static const char xl6StdStringFieldsBody[] =
+    "extern \"xl6TextFieldsV1\" func __xl_std_string_fields(string text, int size = -1) as array<string>\n";
 
 static const char xl6StdStringCharsBody[] =
     "extern \"xl6TextCharsV1\" func __xl_std_string_chars(string text, int size = -1) as array<char>\n";
@@ -7157,7 +7154,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "rtrim", "__xl_std_string_rtrim", NULL, NULL, 0, "string", xl6StdStringRTrimBody},
     {"string", "filter", "__xl_std_string_filter", NULL, NULL, 0, "string", xl6StdStringFilterBody},
     {"string", "replace", "__xl_std_string_replace", NULL, NULL, 0, "string", xl6StdStringReplaceBody},
-    {"string", "split", "__xl_std_string_split", NULL, NULL, 0, "array", xl6StdStringSplitBody},
+    {"string", "split", "__xl_std_string_split", NULL, NULL, 0, "array<string>", xl6StdStringSplitBody},
     {"string", "slice", "__xl_std_string_slice", NULL, NULL, 0, "string", xl6StdStringSliceBody},
     {"string", "left", "__xl_std_string_left", NULL, NULL, 0, "string", xl6StdStringLeftBody},
     {"string", "right", "__xl_std_string_right", NULL, NULL, 0, "string", xl6StdStringRightBody},
@@ -7175,7 +7172,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "padRight", "__xl_std_string_pad_right", NULL, NULL, 0, "string", xl6StdStringPadRightBody},
     {"string", "padCenter", "__xl_std_string_pad_center", NULL, NULL, 0, "string", xl6StdStringPadCenterBody},
     {"string", "reverse", "__xl_std_string_reverse", NULL, NULL, 0, "string", xl6StdStringReverseBody},
-    {"string", "splitLines", "__xl_std_string_split_lines", NULL, NULL, 0, "array", xl6StdStringSplitLinesBody},
+    {"string", "splitLines", "__xl_std_string_split_lines", NULL, NULL, 0, "array<string>", xl6StdStringSplitLinesBody},
+    {"string", "fields", "__xl_std_string_fields", NULL, NULL, 0, "array<string>", xl6StdStringFieldsBody},
     {"string", "chars", "__xl_std_string_chars", NULL, NULL, 0, "array<char>", xl6StdStringCharsBody},
     {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "bytes", xl6StdStringBytesBody},
 

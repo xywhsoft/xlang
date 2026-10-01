@@ -125,10 +125,19 @@ $process=Start-Process @start
             # Inspecting symbols is test evidence, never production selection.
             $prefix="$outputPath/$case"
             & "$outputPath/contract.exe" --emit-native "test/cases/$case.xl" "$prefix.native.c" 1> "$prefix.native-plan.log" 2> "$prefix.native-plan.err.log"
-            $nativePlanExit=$LASTEXITCODE;$nativeBuild=$null;$generatedBuild=$null;$missing=@();$defined=@();$required=@();$selectedSources=@();$assemblyMatches=$false
+            $nativePlanExit=$LASTEXITCODE;$nativeBuild=$null;$generatedBuild=$null;$missing=@();$defined=@();$required=@();$selectedSources=@();$assemblyMatches=$false;$selectionMatches=$false
             if($nativePlanExit-eq0){
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
+                $selectionMatches=$true
+                if($case-eq'stdlib_text_join_only'){
+                    $selectionMatches='src/runtime/xl6_text_join.c'-in$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!join\.)'}).Count-and
+                        'XRT_MODULE_STRING_SPLIT'-notin$plan.NativeModules
+                }elseif($case-eq'stdlib_text_split_only'){
+                    $selectionMatches='src/runtime/xl6_text_split.c'-in$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!split\.)'}).Count
+                }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE
                 & gcc @flags "-I$includes" -c "$prefix.c" -o "$prefix.generated.o" *> "$prefix.generated-build.log"
@@ -151,8 +160,9 @@ $process=Start-Process @start
             }
             $nativeLinkage+=[pscustomobject]@{Fixture=$case;Plan=$nativePlanExit;NativeBuild=$nativeBuild;GeneratedBuild=$generatedBuild;
                 Sources=$selectedSources;Required=$required;Defined=$defined;Missing=$missing;ActualAssemblyMatchesPlan=$assemblyMatches;
-                Complete=($nativePlanExit-eq0-and$nativeBuild-eq0-and$generatedBuild-eq0-and!$missing.Count-and$assemblyMatches)}
-            Write-Output "Native closure $case plan=$nativePlanExit build=$nativeBuild C=$generatedBuild missing=$($missing.Count) actual=$assemblyMatches"
+                SelectionMatchesExpected=$selectionMatches;
+                Complete=($nativePlanExit-eq0-and$nativeBuild-eq0-and$generatedBuild-eq0-and!$missing.Count-and$assemblyMatches-and$selectionMatches)}
+            Write-Output "Native closure $case plan=$nativePlanExit build=$nativeBuild C=$generatedBuild missing=$($missing.Count) actual=$assemblyMatches selection=$selectionMatches"
         }
     }
     $unchanged=@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count-eq0
