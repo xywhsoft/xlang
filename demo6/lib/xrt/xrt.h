@@ -60995,6 +60995,20 @@ bool __xrtTemplateRender(xrt_template_render* pRender);
 
 #include <stdio.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+/* Fixed Win32 SDK flag; old SDK headers omit it. Define before every Console
+ * implementation, not incidentally via the later optional logger module. */
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+#ifndef ENABLE_QUICK_EDIT_MODE
+#define ENABLE_QUICK_EDIT_MODE 0x0040
+#endif
+#ifndef ENABLE_EXTENDED_FLAGS
+#define ENABLE_EXTENDED_FLAGS 0x0080
+#endif
+#endif
+
 
 
 #if defined(XRT_FEATURE_CONSOLE)
@@ -301339,13 +301353,6 @@ XRT_API bool xrtLogJsonWrite(
 
 
 #if defined(XRT_FEATURE_LOGGER_CONSOLE)
-
-#if (defined(_WIN32) || defined(_WIN64)) && \
-	!defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-	#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-#endif
-
-
 
 /* Console Sink 保存不可变配置、终端能力和逐条记录串行锁。 */
 typedef struct xlogconsolestate {

@@ -1,0 +1,12 @@
+{
+  "scope": "Restored missing bootstrap input; no TinyCC core upgrade",
+  "upstream": "https://repo.or.cz/tinycc.git",
+  "mirror": "https://github.com/mirror/tinycc",
+  "commit": "42395a19128b7db756721a55e4630ece82cb315b",
+  "files": {
+    "conftest.c": {
+      "gitBlobSha1": "a4450d5143ddc884ddb7a9b367e149e0b2e60345",
+      "purpose": "Host compiler/ABI configure probe and C2STR tccdefs converter"
+    }
+  }
+}

@@ -2,7 +2,7 @@
 #define xl6HEADER_H 1
 #define xl6IN_HEADER 1
 
-#line 2 "src\\lexer\\xl6_lexer.l"
+#line 2 "src/lexer/xl6_lexer.l"
 #include "src/lexer/xl6_token.h"
 
 
@@ -582,10 +582,13 @@ void yyfree ( void * , yyscan_t yyscanner );
 
 
     
-/*windows compatibility case*/
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
+#ifndef YY_NO_UNISTD_H
+/* Special case for "unistd.h", since it is non-ANSI. We include it way
+ * down here because we want the user's section 1 to have been scanned first.
+ * The user has a chance to override it with an option.
+ */
+#include <unistd.h>
+#endif
     
 
 
