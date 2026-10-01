@@ -117,6 +117,24 @@ foreach ( $relative in $wiringFiles ) {
 }
 
 $wiringText = [string]::Join("`n", $wiringTextParts)
+$linuxBuildPath = Join-Path $Root "build_linux.sh"
+if ( ! (Test-Path -LiteralPath $linuxBuildPath -PathType Leaf) ) {
+    Add-Failure "Linux build source manifest is missing: build_linux.sh"
+} else {
+    $linuxBuildText = Read-Utf8Text $linuxBuildPath
+    # Resident ownership drivers must be available from both platform hosts.
+    # A generated standalone artifact passing does not prove libxl.so exports it.
+    $residentUnits = @([regex]::Matches($wiringText, 'src[\\/]runtime[\\/][A-Za-z0-9_]+\.c') |
+        ForEach-Object { Normalize-RelativePath $_.Value } | Sort-Object -Unique)
+    foreach ( $unit in $residentUnits ) {
+        if ( ! $linuxBuildText.Contains($unit) ) {
+            Add-Failure "Linux build omits resident runtime source: $unit"
+        }
+    }
+    if ( ! (Test-Path -LiteralPath (Join-Path $Root "lib/tcc/conftest.c") -PathType Leaf) ) {
+        Add-Failure "vendored TinyCC bootstrap source is missing: lib/tcc/conftest.c"
+    }
+}
 $directSources = New-Object System.Collections.Generic.HashSet[string]
 $directMatches = [regex]::Matches($wiringText, 'src[\\/][^"''\s\^<>|]+\.c')
 

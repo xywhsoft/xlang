@@ -47,7 +47,9 @@ chmod +x "$TCC_SOURCE_DIR/configure"
 (
     cd "$TCC_SOURCE_DIR"
     ./configure --cc="$CC" --prefix="$TCC_DIST_DIR" --tccdir="$TCC_DIST_DIR"
-    "$MAKE" -j"$JOBS" tcc libtcc1.a
+    # Vendored TCC is not its own Git checkout. Do not stamp the parent xlang
+    # branch/date or scan its unrelated dirty tree into the compiler binary.
+    "$MAKE" -j"$JOBS" GITHASH=no tcc libtcc1.a
 )
 cp -a "$TCC_SOURCE_DIR/include/." "$TCC_DIST_DIR/include/"
 cp "$TCC_SOURCE_DIR/libtcc1.a" "$TCC_DIST_DIR/libtcc1.a"
@@ -132,6 +134,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_slot.c"
 	"$ROOT/src/runtime/xl6_frame_storage.c"
 	"$ROOT/src/runtime/xl6_task.c"
+	"$ROOT/src/runtime/xl6_task_file.c"
 	"$ROOT/src/runtime/xl6_network_service.c"
 	"$ROOT/src/runtime/xl6_continuation_frame.c" "$ROOT/src/runtime/xl6_future_wait.c"
 	"$ROOT/src/runtime/xl6_capture.c"

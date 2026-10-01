@@ -50,7 +50,7 @@ if not exist "lib\lzma\LzmaDec.c" (
 
 if "%XL6_REGEN_GRAMMAR%"=="1" (
     echo Generating DEMO6 lexer...
-    "%XL6_FLEX%" --wincompat --noline -o src\lexer\xl6_lexer_gen.c --header-file=src\lexer\xl6_lexer_gen.h src\lexer\xl6_lexer.l
+    "%XL6_FLEX%" --noline -o src\lexer\xl6_lexer_gen.c --header-file=src\lexer\xl6_lexer_gen.h src\lexer\xl6_lexer.l
     if errorlevel 1 (
         echo DEMO6 lexer generation failed.
         exit /b 1

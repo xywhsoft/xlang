@@ -1,4 +1,4 @@
-#line 2 "src\\lexer\\xl6_lexer.l"
+#line 2 "src/lexer/xl6_lexer.l"
 #include "src/lexer/xl6_token.h"
 
 
@@ -1115,6 +1115,7 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
     yyextra->tokenStartColumn = yyextra->column; \
     xl6AdvancePosition(yyextra, yytext, yyleng);
 #define YY_NO_INPUT 1
+#define YY_NO_UNISTD_H 1
 
 
 
@@ -1127,10 +1128,13 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
 
 
     
-/*windows compatibility case*/
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
+#ifndef YY_NO_UNISTD_H
+/* Special case for "unistd.h", since it is non-ANSI. We include it way
+ * down here because we want the user's section 1 to have been scanned first.
+ * The user has a chance to override it with an option.
+ */
+#include <unistd.h>
+#endif
     
 
 
@@ -1517,16 +1521,12 @@ yy_match:
 			yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
 			++yy_cp;
 			}
-		while ( yy_base[yy_current_state] != 460 );
+		while ( yy_current_state != 221 );
+		yy_cp = yyg->yy_last_accepting_cpos;
+		yy_current_state = yyg->yy_last_accepting_state;
 
 yy_find_action:
 		yy_act = yy_accept[yy_current_state];
-		if ( yy_act == 0 )
-			{ /* have to back up */
-			yy_cp = yyg->yy_last_accepting_cpos;
-			yy_current_state = yyg->yy_last_accepting_state;
-			yy_act = yy_accept[yy_current_state];
-			}
 
 		YY_DO_BEFORE_ACTION;
 
@@ -1989,7 +1989,8 @@ ECHO;
 
 			else
 				{
-				yy_cp = yyg->yy_c_buf_p;
+				yy_cp = yyg->yy_last_accepting_cpos;
+				yy_current_state = yyg->yy_last_accepting_state;
 				goto yy_find_action;
 				}
 			}
@@ -2493,7 +2494,7 @@ static void yy_load_buffer_state  (yyscan_t yyscanner)
 
 
     
-        b->yy_is_interactive = file ? (isatty( fileno(file) ) > 0) : 0;
+        b->yy_is_interactive = 0;
     
 
 	errno = oerrno;

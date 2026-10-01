@@ -166,6 +166,8 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
 %option warn
 %option noinput
 %option nounput
+%option never-interactive
+%option nounistd
 
 %x COMMENT DOC
 

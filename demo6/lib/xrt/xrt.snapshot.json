@@ -3,8 +3,8 @@
   "product": "xrt",
   "implementation": {
     "source": "xrt/single/xrt.h",
-    "sha256": "2DA7F0AC17CEAD8EA47798937529D9D216ECCF2BD0F87201506E87FB1908C189",
-    "bytes": 8261402
+    "sha256": "25CD42C747E655716FEA4CAFAD63130CD1D2E933B24D98A71D2FE470F717C0C3",
+    "bytes": 8261701
   },
   "declarations": {
     "source": "xrt/single/xrt_decl.h",
