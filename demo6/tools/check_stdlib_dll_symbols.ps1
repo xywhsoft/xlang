@@ -90,7 +90,7 @@ foreach ( $match in $matches ) {
 }
 # Native class methods/factories also declare generated bridges. The function
 # table alone misses these and could mark an unusable class as fully linked.
-foreach ($match in [regex]::Matches($stdlib, '\bxl6_(?:xrt|crt)_[A-Za-z0-9_]+\b')) {
+foreach ($match in [regex]::Matches($stdlib, '\bxl6_(?:xrt|crt|tcc|xlang)_[A-Za-z0-9_]+\b')) {
     $symbols.Add($match.Value)
 }
 
@@ -104,7 +104,7 @@ foreach ( $symbol in $uniqueSymbols ) {
         if ( ! $xrtExports.Contains($symbol) ) {
             $missingXrt.Add($symbol)
         }
-    } elseif ( $symbol.StartsWith("xl6_xrt_") -or $symbol.StartsWith("xl6_crt_") ) {
+    } elseif ( $symbol -match '^xl6_(?:xrt|crt|tcc|xlang)_' ) {
         if ( $cgen -notmatch [regex]::Escape($symbol) -and
              $runtimeHeader -notmatch [regex]::Escape($symbol) ) {
             $missingRuntime.Add($symbol)

@@ -1,5 +1,7 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$RuntimeDirectory = "",
+    [string]$WorkDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,9 +10,11 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
-$tmpDir = Join-Path $Root "release\tmp"
-$artifactDir = Join-Path $Root "build\test\cli_temp_cleanup"
+if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $Root 'release' }
+$RuntimeDirectory = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
+$xl = Join-Path $RuntimeDirectory 'xl.exe'
+$tmpDir = Join-Path $RuntimeDirectory 'tmp'
+$artifactDir = if ($WorkDirectory) { [IO.Path]::GetFullPath($WorkDirectory) } else { Join-Path $Root 'build\test\cli_temp_cleanup' }
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 
