@@ -45,6 +45,22 @@ int main(int argc, char** argv)
             t->parameterAbis[p] = XL6_IR_PARAMETER_ABI_VALUE;
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
             t->parameterAbis[p] = XL6_IR_PARAMETER_ABI_BORROW;
+            XL6_IrType* parameter = &ir.types.items[t->parameterTypes[p] - 1];
+            if (parameter->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
+                XL6_IrType* item = &ir.types.items[parameter->params[0] - 1];
+                XL6_IrCAbi itemAbi = item->cAbi;
+                item->cAbi = XL6_IR_C_ABI_CHAR_U32;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                item->cAbi = itemAbi;
+                XL6_IrOwnershipAbi own = item->ownershipAbi;
+                item->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                item->ownershipAbi = own;
+                XL6_IrCollectionAbi collection = parameter->collectionAbi;
+                parameter->collectionAbi = XL6_IR_COLLECTION_LIST;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                parameter->collectionAbi = collection;
+            }
         }
         XL6_IrType* result = &ir.types.items[t->returnType - 1];
         XL6_IrCAbi abi = result->cAbi;
@@ -61,6 +77,11 @@ int main(int argc, char** argv)
             item->cAbi = XL6_IR_C_ABI_U64;
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
             item->cAbi = itemAbi;
+            XL6_IrOwnershipAbi own = item->ownershipAbi;
+            item->ownershipAbi = own == XL6_IR_OWNERSHIP_ABI_MANAGED
+                ? XL6_IR_OWNERSHIP_ABI_TRIVIAL : XL6_IR_OWNERSHIP_ABI_MANAGED;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+            item->ownershipAbi = own;
         }
         assert(xl6IrRuntimeDirectBridgeTargetMatches(&ir, t)); ++checked;
     }

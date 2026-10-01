@@ -10,10 +10,12 @@
 #define XL6_TEXT_API
 #endif
 
-/* Inputs borrow exact UTF-8 views for the call. Every successful result owns
- * an independent XRT allocation, including empty strings; free only Data.
- * Failure returns {NULL,0} and sets the XRT thread error. No strlen/heap-size
- * inference or library implementation belongs in generated C. */
+/* Inputs borrow exact views for the call; textual operations validate UTF-8.
+ * Every successful string result owns an independent XRT allocation, even
+ * when empty; free only Data. Value/array/bytes results own one xvalue reference.
+ * On failure string returns {NULL,0}, managed values return NULL, and scalar
+ * operations return their documented sentinel, with an XRT thread error.
+ * No strlen/heap-size inference or library implementation belongs in Cgen. */
 XL6_TEXT_API xstrview xl6TextLowerV1(xstrview text, int64_t size);
 XL6_TEXT_API xstrview xl6TextUpperV1(xstrview text, int64_t size);
 XL6_TEXT_API xstrview xl6TextTrimV1(xstrview text, xstrview chars, int64_t size, int64_t charsSize);
@@ -58,4 +60,10 @@ XL6_TEXT_API bool xl6TextGlobV1(xstrview text, xstrview pattern, int64_t flags, 
 XL6_TEXT_API int64_t xl6TextDistanceV1(xstrview left, xstrview right, int64_t limit, int64_t leftSize, int64_t rightSize);
 XL6_TEXT_API double xl6TextSimilarityV1(xstrview left, xstrview right, int64_t leftSize, int64_t rightSize);
 XL6_TEXT_API bool xl6TextApproxV1(xstrview left, xstrview right, double tolerance, int64_t leftSize, int64_t rightSize);
+/* Arrays use the current xvalue carrier; every element is exactly STRING.
+ * Split outputs own each item; join borrows input elements only for the call. */
+XL6_TEXT_API xvalue* xl6TextSplitV1(xstrview text, xstrview separator, int64_t size, int64_t separatorSize);
+XL6_TEXT_API xvalue* xl6TextLinesV1(xstrview text, int64_t size);
+XL6_TEXT_API xvalue* xl6TextFieldsV1(xstrview text, int64_t size);
+XL6_TEXT_API xstrview xl6TextJoinV1(const xvalue* values, xstrview separator, int64_t separatorSize, int64_t itemSize);
 #endif

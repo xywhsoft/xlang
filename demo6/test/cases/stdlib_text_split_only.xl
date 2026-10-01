@@ -1,0 +1,2 @@
+array<string> values = string.split("a\0b|你", "|")
+assert(values.length == 2 and values[0] == "a\0b" and values[1] == "你")

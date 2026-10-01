@@ -9,6 +9,7 @@ typedef struct XL6_IrDirectBridgeContract {
     XL6_IrCAbi parameters[6];
     XL6_IrCAbi resultArrayItemAbi;
     XL6_IrIntegerTarget resultIntegerTarget;
+    XL6_IrCAbi parameterArrayItemAbis[6];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -61,6 +62,10 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6TextDistanceV1",T,I,5,{S,S,I,I,I}},
     {"xl6TextSimilarityV1",T,F,4,{S,S,I,I}},
     {"xl6TextApproxV1",T,B,5,{S,S,F,I,I}},
+    {"xl6TextSplitV1",T,V,4,{S,S,I,I},S},
+    {"xl6TextLinesV1",T,V,2,{S,I},S},
+    {"xl6TextFieldsV1",T,V,2,{S,I},S},
+    {"xl6TextJoinV1",T,S,4,{V,S,I,I},.parameterArrayItemAbis={S}},
 #undef F
 #undef Y
 #undef V
@@ -147,6 +152,24 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name)
     return contract != NULL ? contract->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
 }
 
+static int xl6IrDirectBridgeArrayMatches(const XL6_IrModule* module,
+    const XL6_IrType* type, XL6_IrCAbi itemAbi)
+{
+    const XL6_IrType* item = type && type->paramCount == 1 && type->params
+        ? xl6IrTypeGet(&module->types, type->params[0]) : NULL;
+    if (!type || type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->collectionAbi != XL6_IR_COLLECTION_ARRAY || type->returnCount != 0 ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || !item ||
+        item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount != 0 ||
+        item->collectionAbi != XL6_IR_COLLECTION_NONE || item->returnCount != 0 ||
+        item->cAbi != itemAbi) return 0;
+    if (itemAbi == XL6_IR_C_ABI_MANAGED_STRING)
+        return item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            item->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL;
+    return xl6IrBufferRuntimeBridgeResultMatches(item, itemAbi);
+}
+
 int xl6IrRuntimeDirectBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
@@ -182,14 +205,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
     } else {
         if (contract->resultArrayItemAbi) {
-            const XL6_IrType* item = result && result->paramCount == 1 && result->params
-                ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
-            if (!result || result->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                result->collectionAbi != XL6_IR_COLLECTION_ARRAY || result->returnCount != 0 ||
-                result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                result->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || !item ||
-                item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount != 0 ||
-                item->cAbi != contract->resultArrayItemAbi) return 0;
+            if (!xl6IrDirectBridgeArrayMatches(module, result, contract->resultArrayItemAbi)) return 0;
         } else {
             if (result == NULL || result->kind != XL6_IR_TYPE_BUILTIN ||
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->paramCount != 0) return 0;
@@ -205,6 +221,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
+        if (contract->parameterArrayItemAbis[i]) {
+            if (!xl6IrDirectBridgeArrayMatches(module, type, contract->parameterArrayItemAbis[i]) ||
+                target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
+                !xl6IrBufferRuntimeBridgeParameterMatches(module, target, i, abi,
+                    XL6_IR_PARAMETER_ABI_BORROW, XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) return 0;
+            continue;
+        }
         if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && abi == XL6_IR_C_ABI_I64 &&
             (!type || type->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64)) return 0;
         if (type == NULL || type->kind != XL6_IR_TYPE_BUILTIN ||

@@ -1,0 +1,52 @@
+string text = "你\0|😀||a\0|"
+array<string> pieces = string.split(text, "|")
+assert(pieces.length == 5)
+assert(pieces[0] == "你\0")
+assert(pieces[1] == "😀")
+assert(pieces[2] == "")
+assert(pieces[3] == "a\0")
+assert(pieces[4] == "")
+text = "changed"
+assert(pieces[0] == "你\0")
+string saved = pieces[0]
+pieces[0] = "new"
+assert(saved == "你\0")
+array<string> bounded = string.split("a\0b|c", "|tail", 100, 1)
+assert(bounded.length == 2 and bounded[0] == "a\0b" and bounded[1] == "c")
+array<string> prefix = string.split("你|tail", "|", 3)
+assert(prefix.length == 1 and prefix[0] == "你")
+array<string> emptySeparator = string.split("a\0b", "")
+assert(emptySeparator.length == 1 and emptySeparator[0] == "a\0b")
+array<string> empty = string.split("", "|")
+assert(empty.length == 1 and empty[0] == "")
+array<string> nul = string.split("a\0b\0", "\0")
+assert(nul.length == 3 and nul[0] == "a" and nul[1] == "b" and nul[2] == "")
+array<string> lines = string.splitLines("a\0b\r\n\n你\r😀\n")
+assert(lines.length == 4 and lines[0] == "a\0b" and lines[1] == "")
+assert(lines[2] == "你" and lines[3] == "😀")
+array<string> noLines = string.splitLines("")
+assert(noLines.length == 0)
+array<string> fields = string.fields(" \t你\0😀  x\r\n\v\fy ")
+assert(fields.length == 3 and fields[0] == "你\0😀" and fields[1] == "x" and fields[2] == "y")
+array<string> noFields = string.fields(" \t\r\n\v\f")
+assert(noFields.length == 0)
+int total = 0
+for field in fields
+    total = total + field.length
+end
+assert(total == 5)
+bool rejected = false
+try
+    string.split("你", "|", 1)
+catch ValueError
+    rejected = true
+end
+assert(rejected)
+rejected = false
+try
+    string.fields("ok", -2)
+catch RangeError
+    rejected = true
+end
+assert(rejected)
+assert(string.fields("recover")[0] == "recover")

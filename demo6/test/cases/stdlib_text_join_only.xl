@@ -1,0 +1,2 @@
+array<string> values = ["a\0b", "你"]
+assert(string.join(values, "|") == "a\0b|你")
