@@ -1,0 +1,5 @@
+assert int.parse("42\0x", 10, 0, 2) == 42
+assert int8.parse("-128") == int8(-128)
+assert uint32.parse("4294967295") == uint32(4294967295)
+assert int.toString(uint64.parse("18446744073709551615"), 16) == "ffffffffffffffff"
+assert int.toString(-9223372036854775807 - 1, 2).length == 65

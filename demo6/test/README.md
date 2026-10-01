@@ -43,7 +43,7 @@ test\suites\02_language_frontend.bat
 
 ## Manual probes
 
-`tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）对 B1—B5 文本与数字格式入口执行冻结输入的 707 项严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数负例与回归检查；覆盖精确 NUL/UTF-8、char/bytes、拆分/连接/惰性片段、数字精确拥有结果与 Buffer 失败原子追加，以及原生和受管包装的实际 OOM 清理/重试。`tools/check_xlir_artifact_runtime.ps1` 验证 50 组件、2500 对依赖、342 导出与 16 个实际原生闭包，拒绝仅数字格式引入 Buffer 适配器/文本组件；专项不代表 53 模块全部接入、Linux 最终宿主或全仓 RC0 通过。
+`tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）对 B1—B6 文本与数字入口执行冻结输入的 811 项严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数负例、重载与存量回归检查；覆盖精确 NUL/UTF-8、char/bytes、拆分/连接/惰性片段、数字解析/写出/格式、Buffer 失败原子追加与真实 OOM 清理。`tools/check_xlir_artifact_runtime.ps1` 验证 54 组件、2916 对依赖、358 导出与 21 个实际闭包。Linux 的 `tools/check_stdlib_number_values.sh`（接入 `test_linux.sh`）完成 253 项数字专项，包含原生 ASan/UBSan、受管清理与 7 个实际闭包。仅整数/浮点不引入展示格式或 Buffer；这些专项不代表 53 模块全部接入或全仓 RC0 通过。
 
 `tools/check_xlir_conditional_nullable_join.ps1` 验证三元表达式的可空类型汇合、分支局部收窄、惰性表达式的确定赋值，以及字符串/类/闭包汇合的所有权。门禁包含语义正负例、IR 变异拒绝、确定性 C/header、严格 C 内存平衡和 C-host JIT/AOT；它不代表全部 `out` 参数异常路径已完成证明。
 

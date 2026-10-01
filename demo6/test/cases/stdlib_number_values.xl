@@ -1,0 +1,70 @@
+assert int.parse("123\0tail", 10, 0, 3) == 123
+assert int.parse("123", 10, 0, 200) == 123
+assert int.parse("0xff", 0, int(NumberParseFlags.allowPrefix)) == 255
+assert int.parse(" 1_234 ", 10, 5) == 1234
+assert int.parse("z", 36) == 35
+assert uint64.parse("ffffffffffffffff", 16) == uint64(18446744073709551615)
+assert int.toString(-9223372036854775807 - 1) == "-9223372036854775808"
+assert int.toString(uint64(18446744073709551615)) == "18446744073709551615"
+assert int.toString(255, 16, int(IntegerTextFlags.upper) + int(IntegerTextFlags.prefix)) == "0XFF"
+assert int.toString(12, 10, int(IntegerTextFlags.plus)) == "+12"
+assert int.toString(35, 36) == "z"
+assert float.toString(-0.0) == "-0.0"
+assert float.toString(1.0, int(FloatTextFlags.compact)) == "1"
+assert float.parse("1.25\0tail", 8, 4) == 1.25
+assert float.parse(" 1_2.5 ", 13) == 12.5
+assert float.parse(float.toString(0.1)) == 0.1
+assert math.isInf(float.parse("inf"))
+assert math.isNaN(float.parse("nan"))
+auto ok, value = float.tryParse("nan", 0)
+assert not ok and value == 0.0
+auto intOk, intValue = int.tryParse("42\0", 10, 0, 2)
+assert intOk and intValue == 42
+auto widthOk, widthValue = uint8.tryParse("ff", 16, 0, 2)
+assert widthOk and widthValue == uint8(255)
+auto narrowBad, narrowValue = int8.tryParse("-129")
+assert not narrowBad and narrowValue == int8(0)
+auto badFlags, badFlagsValue = int.tryParse("1", 10, 4294967296)
+assert not badFlags and badFlagsValue == 0
+auto negativeFlags, negativeFlagsValue = float.tryParse("1", -1)
+assert not negativeFlags and negativeFlagsValue == 0.0
+int caught = 0
+try
+    int.parse("1", 10, 0, -2)
+catch RangeError e
+    caught += 1
+end
+try
+    int.parse("1\0")
+catch ValueError e
+    caught += 1
+end
+try
+    float.parse("1e10000")
+catch RangeError e
+    caught += 1
+end
+try
+    int.toString(1, 1)
+catch ValueError e
+    caught += 1
+end
+assert caught == 4
+Buffer output = Buffer()
+assert output.append("prefix:")
+assert output.appendNumber(255, 16, 3)
+assert output.appendNumber(uint64(18446744073709551615))
+assert output.appendNumber(-0.0)
+assert output.len() == 35 and output.byteAt(7) == 48 and output.byteAt(11) == 49
+int before = output.len()
+try
+    output.appendNumber(1, 1)
+catch ValueError e
+    caught += 1
+end
+try
+    output.appendNumber(1.0, 2)
+catch ValueError e
+    caught += 1
+end
+assert caught == 6 and output.len() == before

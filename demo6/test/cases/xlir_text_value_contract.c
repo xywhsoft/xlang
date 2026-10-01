@@ -50,6 +50,12 @@ int main(int argc, char** argv)
                 scalar->integerTarget = width;
             }
             if (scalar->cAbi == XL6_IR_C_ABI_U64 || scalar->cAbi == XL6_IR_C_ABI_F64) {
+                if (scalar->cAbi == XL6_IR_C_ABI_U64) {
+                    XL6_IrIntegerTarget width = scalar->integerTarget;
+                    scalar->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_64;
+                    assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                    scalar->integerTarget = width;
+                }
                 XL6_IrCAbi abi = scalar->cAbi;
                 scalar->cAbi = XL6_IR_C_ABI_I64;
                 assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
@@ -114,7 +120,7 @@ int main(int argc, char** argv)
         }
         XL6_IrCAbi abi = result->cAbi;
         XL6_IrIntegerTarget width = result->integerTarget;
-        if (abi == XL6_IR_C_ABI_I64) {
+        if (abi == XL6_IR_C_ABI_I64 || abi == XL6_IR_C_ABI_U64) {
             result->integerTarget = width == XL6_IR_INTEGER_TARGET_SIGNED_64
                 ? XL6_IR_INTEGER_TARGET_UNSIGNED_8 : XL6_IR_INTEGER_TARGET_SIGNED_64;
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));

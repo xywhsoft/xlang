@@ -12145,57 +12145,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN;
         return 1;
     }
-    if ( strcmp(target->cName, "xl6_crt_parse_i64") == 0 ||
-         strcmp(target->cName, "xl6_crt_parse_u64") == 0 ||
-         strcmp(target->cName, "xl6_crt_parse_f64") == 0 ) {
-        int integerParser = strcmp(target->cName, "xl6_crt_parse_f64") != 0;
-        XL6_IrCAbi outputAbi = strcmp(target->cName, "xl6_crt_parse_i64") == 0
-            ? XL6_IR_C_ABI_I64
-            : strcmp(target->cName, "xl6_crt_parse_u64") == 0
-                ? XL6_IR_C_ABI_U64 : XL6_IR_C_ABI_F64;
-        const XL6_IrType* base = integerParser && target->parameterCount == 3 &&
-            target->parameterTypes != NULL
-                ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[1])
-                : NULL;
-        const XL6_IrType* output = target->parameterCount ==
-            (integerParser ? 3u : 2u) &&
-            target->parameterTypes != NULL
-                ? xl6IrTypeGet(&ctx->module->types,
-                    target->parameterTypes[integerParser ? 2u : 1u])
-                : NULL;
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-             target->parameterCount != (integerParser ? 3u : 2u) ||
-             result == NULL || output == NULL ||
-             result->cAbi != XL6_IR_C_ABI_C_INT ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             result->nullAbi != XL6_IR_NULL_ABI_NONE ||
-             target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-             target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-             !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
-                 XL6_IR_PARAMETER_ABI_BORROW,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
-             (integerParser && (base == NULL ||
-                 base->cAbi != XL6_IR_C_ABI_C_UINT ||
-                 base->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                 base->nullAbi != XL6_IR_NULL_ABI_NONE ||
-                 target->parameterAbis[1] != XL6_IR_PARAMETER_ABI_VALUE ||
-                 target->parameterPhysicalAbis[1] !=
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) ||
-             output->cAbi != outputAbi ||
-             output->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             output->nullAbi != XL6_IR_NULL_ABI_NONE ||
-             target->parameterAbis == NULL || target->parameterPhysicalAbis == NULL ||
-             target->parameterAbis[integerParser ? 2u : 1u] !=
-                 XL6_IR_PARAMETER_ABI_OUT ||
-             target->parameterPhysicalAbis[integerParser ? 2u : 1u] !=
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR CRT number parser has no exact private output-pointer ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE;
-        return 1;
-    }
     if ( strcmp(target->cName, "xl6_crt_env_get") == 0 ||
          strcmp(target->cName, "xl6_crt_env_has") == 0 ||
          strcmp(target->cName, "xl6_crt_env_set") == 0 ||

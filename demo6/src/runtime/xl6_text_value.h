@@ -83,4 +83,23 @@ XL6_TEXT_API xstrview xl6NumberFloatFormatV1(double value, xstrview format, int6
 XL6_TEXT_API bool xl6NumberBufferIntFormatV1(void* buffer, int64_t value, xstrview format, int64_t size);
 XL6_TEXT_API bool xl6NumberBufferUIntFormatV1(void* buffer, uint64_t value, xstrview format, int64_t size);
 XL6_TEXT_API bool xl6NumberBufferFloatFormatV1(void* buffer, double value, xstrview format, int64_t size);
+/* Scalar parse failures return zero plus an XRT thread error, never a partial
+ * value. Small integer types use i64 execution ABI with closed logical widths.
+ * Default integer flags=0; float flags=8 preserves explicit NaN/Inf support. */
+XL6_TEXT_API int64_t xl6NumberIntParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberInt64ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API uint64_t xl6NumberUIntParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberInt8ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberInt16ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberInt32ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberUInt8ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberUInt16ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API int64_t xl6NumberUInt32ParseV1(xstrview text, int64_t base, int64_t flags, int64_t size);
+XL6_TEXT_API double xl6NumberFloatParseV1(xstrview text, int64_t flags, int64_t size);
+XL6_TEXT_API xstrview xl6NumberIntStringV1(int64_t value, int64_t base, int64_t flags);
+XL6_TEXT_API xstrview xl6NumberUIntStringV1(uint64_t value, int64_t base, int64_t flags);
+XL6_TEXT_API xstrview xl6NumberFloatStringV1(double value, int64_t flags);
+XL6_TEXT_API bool xl6NumberBufferIntStringV1(void* buffer, int64_t value, int64_t base, int64_t flags);
+XL6_TEXT_API bool xl6NumberBufferUIntStringV1(void* buffer, uint64_t value, int64_t base, int64_t flags);
+XL6_TEXT_API bool xl6NumberBufferFloatStringV1(void* buffer, double value, int64_t flags);
 #endif

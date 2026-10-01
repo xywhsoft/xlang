@@ -26836,56 +26836,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                    XL6_IR_PARAMETER_ABI_BORROW,
                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
     }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE ) {
-        XL6_IrCAbi outputAbi;
-        int integerParser;
-        const XL6_IrType* base;
-        const XL6_IrType* output;
-        if ( target->cName == NULL ) return 0;
-        integerParser = strcmp(target->cName, "xl6_crt_parse_f64") != 0;
-        outputAbi = strcmp(target->cName, "xl6_crt_parse_i64") == 0
-            ? XL6_IR_C_ABI_I64
-            : strcmp(target->cName, "xl6_crt_parse_u64") == 0
-                ? XL6_IR_C_ABI_U64
-                : strcmp(target->cName, "xl6_crt_parse_f64") == 0
-                    ? XL6_IR_C_ABI_F64 : XL6_IR_C_ABI_UNSUPPORTED;
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        base = integerParser && target->parameterCount == 3 &&
-            target->parameterTypes != NULL
-                ? xl6IrTypeGet(&module->types, target->parameterTypes[1]) : NULL;
-        output = target->parameterCount == (integerParser ? 3u : 2u) &&
-            target->parameterTypes != NULL
-                ? xl6IrTypeGet(&module->types,
-                    target->parameterTypes[integerParser ? 2u : 1u]) : NULL;
-        return outputAbi != XL6_IR_C_ABI_UNSUPPORTED &&
-               target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-               target->parameterCount == (integerParser ? 3u : 2u) &&
-               target->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE &&
-               target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_C_INT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               (!integerParser ||
-                (base != NULL && base->cAbi == XL6_IR_C_ABI_C_UINT &&
-                 base->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                 base->nullAbi == XL6_IR_NULL_ABI_NONE &&
-                 target->parameterAbis != NULL &&
-                 target->parameterPhysicalAbis != NULL &&
-                 target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_VALUE &&
-                 target->parameterPhysicalAbis[1] ==
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) &&
-               output != NULL && output->cAbi == outputAbi &&
-               output->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               output->nullAbi == XL6_IR_NULL_ABI_NONE &&
-               target->parameterAbis != NULL &&
-               target->parameterPhysicalAbis != NULL &&
-               target->parameterAbis[integerParser ? 2u : 1u] ==
-                   XL6_IR_PARAMETER_ABI_OUT &&
-               target->parameterPhysicalAbis[integerParser ? 2u : 1u] ==
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
-    }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CRT_ENV ) {
         int get;
         int set;
@@ -42322,7 +42272,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_TEMPLATE: return "template";
     case XL6_IR_RUNTIME_BRIDGE_BUFFER: return "buffer";
     case XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN: return "string-char-len";
-    case XL6_IR_RUNTIME_BRIDGE_CRT_NUMBER_PARSE: return "crt-number-parse";
     case XL6_IR_RUNTIME_BRIDGE_CRT_ENV: return "crt-env";
     case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN: return "string-byte-len";
     case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT: return "string-byte-at";

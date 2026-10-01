@@ -145,6 +145,16 @@ $process=Start-Process @start
                 }elseif($case-eq'stdlib_text_iterator_only'){
                     $selectionMatches='src/runtime/xl6_text_iterator.c'-in$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!iterator\.)'}).Count
+                }elseif($case-eq'stdlib_number_integer_only'){
+                    $selectionMatches='src/runtime/xl6_number_integer.c'-in$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_number_(?!integer\.)|xl6_text_'}).Count-and
+                        'XRT_MODULE_NUMBER_FORMAT'-notin$plan.NativeModules-and
+                        'XRT_MODULE_BUFFER'-notin$plan.NativeModules
+                }elseif($case-eq'stdlib_number_float_only'){
+                    $selectionMatches='src/runtime/xl6_number_float.c'-in$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_number_(?!float\.)|xl6_text_'}).Count-and
+                        'XRT_MODULE_NUMBER_FORMAT'-notin$plan.NativeModules-and
+                        'XRT_MODULE_BUFFER'-notin$plan.NativeModules
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE
