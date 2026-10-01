@@ -1,0 +1,55 @@
+auto record = log.record(LogLevel.warn, "a\0你", 99)
+assert log.jsonTime == 1
+assert log.jsonLevel == 2
+assert log.jsonLogger == 4
+assert log.jsonMessage == 8
+assert log.jsonSource == 16
+assert log.jsonThread == 32
+assert log.jsonFields == 64
+assert log.jsonNewline == 128
+assert record.message == "a\0你"
+assert record.level == LogLevel.warn
+record.source("a.xl", 42, "worker")
+record.metadata("app", 0, uint64(7))
+record.field("null", null)
+record.field("ok", true)
+record.field("count", -9)
+record.field("unsigned", uint64(18446744073709551615))
+record.field("ratio", 1.25)
+record.field("label", "a\0b", 99)
+try
+    throw ValueError "test error"
+catch e
+    record.error("error", e)
+end
+assert record.fieldCount == uint64(7)
+assert record.file == "a.xl"
+assert record.functionName == "worker"
+assert record.line == uint64(42)
+assert record.threadId == uint64(7)
+auto copied = record.clone()
+assert copied.fieldName(2) == "count"
+assert int(copied.fieldValue(2)) == -9
+record.field("later", "not copied")
+assert copied.fieldCount == uint64(7)
+auto text = LogTextOptions()
+text.style = LogTextStyle.message
+text.flags = log.textNewline
+assert log.text(copied, text) == "a\\x00你\n"
+auto textBuffer = Buffer()
+assert log.textToBuffer(copied, textBuffer, text) == string.byteLen(log.text(copied, text))
+assert textBuffer.text() == "a\\x00你\n"
+auto jsonOptions = LogJsonOptions()
+jsonOptions.flags = 8 + 64
+auto encoded = log.json(copied, jsonOptions)
+assert string.contains(encoded, "a\\u0000你")
+assert string.contains(encoded, "\"count\":-9")
+auto buffer = Buffer()
+auto written = log.jsonToBuffer(copied, buffer, jsonOptions)
+assert written == string.byteLen(encoded)
+assert buffer.text() == encoded
+auto logger = log.create("record-test", LogLevel.trace)
+assert logger.writeRecord(copied) == LogResult.skipped
+assert logger.tryWriteRecord(copied)
+assert log.writeRecord(copied) == LogResult.skipped
+assert not logger.tryWrite(LogLevel.info, "negative", -2)

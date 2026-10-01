@@ -14485,6 +14485,7 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
         } else if ( (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
                      target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                     target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE &&
+                    !xl6IrRuntimeLogBridgeForeignScope(target->cName) &&
                     !xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge) ) {
             target->errorPhysicalAbi =
                 XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR;
@@ -28647,6 +28648,12 @@ static XL6_IrValueId xl6IrLowerNumericEnumVariantMember(
     if ( node == NULL || node->kind != XL6_IR_NODE_MEMBER ||
          type == NULL || type->kind != XL6_IR_TYPE_NUMERIC_ENUM ||
          node->targetSymbol == 0 ) return XL6_IR_VALUE_INVALID;
+    /* A property's result can be an enum too. The resolved declaration, not
+     * the expression's result type, establishes variant construction. Leave
+     * getters/static fields to their already resolved access recipes. */
+    if (node->targetSymbol >= ctx->module->symbolNodeCapacity) return XL6_IR_VALUE_INVALID;
+    const XL6_IrNode* declaration=xl6IrNodeGet(ctx->module,ctx->module->symbolNodes[node->targetSymbol]);
+    if (!declaration || declaration->kind != XL6_IR_NODE_ENUM_VARIANT) return XL6_IR_VALUE_INVALID;
     variant = xl6IrEnumVariantGet(
         ctx->module, node->storageType, node->targetSymbol, NULL);
     initializer = variant != NULL

@@ -506,64 +506,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_id_net_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_id_net_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib id_net xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\stdlib_log.xl
-if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_log.xl --emit build\test\stdlib_log.c
-if errorlevel 1 exit /b 1
-findstr /C:"if (handle != NULL) xl6_xrt_log_destroy(handle);" build\test\stdlib_log.c >nul
-if errorlevel 1 (
-    echo stdlib_log.c missing managed Logger handle cleanup.
-    exit /b 1
-)
-findstr /C:"extern void* xl6_xrt_log_create(const char*);" build\test\stdlib_log.c >nul
-if errorlevel 1 (
-    echo stdlib_log.c missing resolved Logger factory ABI.
-    exit /b 1
-)
-findstr /C:"xlogCreate" /C:"xlogAddFile" /C:"xlogappender" build\test\stdlib_log.c >nul
-if not errorlevel 1 (
-    echo stdlib_log.c still contains removed logger compatibility symbols.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_log_create" build\test\stdlib_log.c >nul
-if errorlevel 1 (
-    echo stdlib_log.c missing log create runtime helper.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_log_wrap_handle" build\test\stdlib_log.c >nul
-if errorlevel 1 (
-    echo stdlib_log.c missing log handle wrap helper.
-    exit /b 1
-)
-findstr /C:"bool xl6_xrt_log_default_add_file" build\test\stdlib_log.c >nul
-if errorlevel 1 (
-    echo stdlib_log.c missing default addFile helper.
-    exit /b 1
-)
-findstr /C:"bool xl6_xrt_log_add_rolling_file" build\test\stdlib_log.c >nul
-if errorlevel 1 (
-    echo stdlib_log.c missing exact bool rolling-file ABI.
-    exit /b 1
-)
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_log.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_log.exe
-if errorlevel 1 exit /b 1
-build\test\stdlib_log.exe
-if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_log_object.xl
-if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\stdlib_log_object.xl
-if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\stdlib_log_object.xl -o build\test\stdlib_log_object.exe
-if errorlevel 1 exit /b 1
-build\test\stdlib_log_object.exe
-if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_log.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_log_xlang.out.txt
-if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_log_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_log_c.exe
-if errorlevel 1 exit /b 1
-build\test\stdlib_log_c.exe > build\test\stdlib_log_c.out.txt
-if errorlevel 1 exit /b 1
-powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_log_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_log_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib log xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_logging.ps1
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_template.xl

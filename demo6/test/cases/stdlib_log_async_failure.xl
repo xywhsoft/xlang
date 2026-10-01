@@ -1,0 +1,45 @@
+auto options = LogFileOptions()
+options.mode = LogFileMode.truncate
+auto target = log.textFileSink("build/test/log-complete-failed-target.txt", options)
+assert target.closeFile()
+auto sink = log.asyncSink(target)
+auto logger = log.create("failure", LogLevel.trace)
+logger.addSink(sink)
+assert logger.info("queued, not yet written") == LogResult.written
+bool caught = false
+try
+    logger.flush()
+catch e
+    caught = true
+end
+assert caught
+assert sink.asyncError() != null
+assert sink.asyncStats().failed > uint64(0)
+caught = false
+try
+    sink.stopAsync()
+catch e
+    caught = true
+end
+assert caught
+logger.clearSinks()
+auto ring = log.ringSink(target)
+logger.addSink(ring)
+assert logger.info("ring queued") == LogResult.written
+caught = false
+try
+    logger.flush()
+catch e
+    caught = true
+end
+assert caught
+assert ring.ringError() != null
+assert ring.ringStats().failed > uint64(0)
+caught = false
+try
+    ring.stopRing()
+catch e
+    caught = true
+end
+assert caught
+logger.clearSinks()

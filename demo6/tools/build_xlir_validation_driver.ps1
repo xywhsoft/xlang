@@ -3,7 +3,7 @@ param([string]$Driver = 'test/cases/xlir_owner_consumption_contract.c', [string]
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 New-Item -ItemType Directory -Force -Path build/test/__xl_runtime | Out-Null
-foreach ($header in @('xl6_ownership_scope.h','xl6_ownership_plan.h','xl6_code_owner.h','xl6_code_lease.h','xl6_closure.h','xl6_cell.h','xl6_slot.h','xl6_frame_storage.h','xl6_task.h','xl6_capture.h','xl6_value_iterator.h','xl6_future_callback.h','xl6_future_aggregate.h','xl6_generator.h','xl6_continuation_queue.h','xl6_continuation_executor.h','xl6_continuation_future.h','xl6_future_payload.h','xl6_network_service.h','xl6_log.h')) {
+foreach ($header in @('xl6_ownership_scope.h','xl6_ownership_plan.h','xl6_code_owner.h','xl6_code_lease.h','xl6_closure.h','xl6_cell.h','xl6_slot.h','xl6_frame_storage.h','xl6_task.h','xl6_capture.h','xl6_value_iterator.h','xl6_future_callback.h','xl6_future_aggregate.h','xl6_generator.h','xl6_continuation_queue.h','xl6_continuation_executor.h','xl6_continuation_future.h','xl6_future_payload.h','xl6_network_service.h','xl6_log.h','xl6_io_handle.h')) {
     Copy-Item -LiteralPath "src/runtime/$header" -Destination "build/test/__xl_runtime/$header" -Force
 }
 $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',

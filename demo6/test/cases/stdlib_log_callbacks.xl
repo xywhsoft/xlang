@@ -1,0 +1,47 @@
+int count = 0
+int flushed = 0
+LogRecord? saved = null
+auto sink = log.customSink(func(LogRecord record) as LogResult
+    count += 1
+    saved = record
+    return LogResult.written
+end, "custom", LogLevel.trace, func() as bool
+    flushed += 1
+    return true
+end)
+auto logger = log.create("callback", LogLevel.trace)
+logger.addSink(sink)
+auto record = log.record(LogLevel.info, "a\0b")
+record.field("x", 42)
+assert logger.writeRecord(record) == LogResult.written
+assert count == 1
+if saved != null then
+    assert saved.message == "a\0b"
+    assert saved.logger == "callback"
+    assert saved.fieldCount == uint64(1)
+end
+logger.flush()
+assert flushed == 1
+bool rejected = false
+try
+    auto queued = log.asyncSink(sink)
+catch e
+    rejected = true
+end
+assert rejected
+logger.clearSinks()
+assert sink.closeCustom()
+assert sink.closeCustom()
+auto bad = log.customSink(func(LogRecord record) as LogResult
+    throw ValueError "original callback failure"
+end)
+logger.addSink(bad)
+bool caught = false
+try
+    logger.info("fails")
+catch e
+    caught = e.kind == "ValueError" and e.message == "original callback failure"
+end
+assert caught
+logger.clearSinks()
+assert bad.closeCustom()

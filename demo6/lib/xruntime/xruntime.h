@@ -39963,6 +39963,12 @@ XRT_API xlogger* xrtLogDefault(void);
 /* 原子替换进程默认 Logger；空指针用于清除。 */
 XRT_API bool xrtLogSetDefault(xlogger* pLogger);
 
+/* Atomically remove and transfer the default's owning reference if it equals
+ * pExpected. NULL expected unconditionally takes the current default. A NULL
+ * result means no match, not failure. The caller owns the returned reference;
+ * no user callback is invoked while the default lock is held. */
+XRT_API xlogger* xrtLogTakeDefaultIf(xlogger* pExpected);
+
 
 
 XRT_EXTERN_C_END
@@ -40312,6 +40318,9 @@ XRT_API bool xrtLogFileRotate(xlogsink* pSink);
 /* 重新打开当前路径，供外部 logrotate 或路径替换后切换句柄。 */
 XRT_API bool xrtLogFileReopen(xlogsink* pSink);
 
+/* Checked, idempotent close. Reopen is the only operation that re-enables writes. */
+XRT_API bool xrtLogFileClose(xlogsink* pSink);
+
 
 
 XRT_EXTERN_C_END
@@ -40477,6 +40486,10 @@ XRT_API bool xrtLogAsyncStats(
 /* 返回后台最近一次错误的新引用；尚无错误时返回空且不设置错误。 */
 XRT_API xerror* xrtLogAsyncLastError(const xlogsink* pSink);
 
+/* Close admission, apply Shutdown policy, wait for final target flush. Does not
+ * release the caller's sink reference. Rejects calls from its own worker. */
+XRT_API bool xrtLogAsyncStop(xlogsink* pSink);
+
 
 
 XRT_EXTERN_C_END
@@ -40568,6 +40581,9 @@ XRT_API bool xrtLogRingStats(
 
 /* 返回后台最近一次错误的新引用；尚无错误时返回空且不设置错误。 */
 XRT_API xerror* xrtLogRingLastError(const xlogsink* pSink);
+
+/* Close admission and drain accepted records through the final target flush. */
+XRT_API bool xrtLogRingStop(xlogsink* pSink);
 
 
 
@@ -304802,6 +304818,18 @@ XRT_API bool xrtLogSetDefault(xlogger* pLogger)
 	return true;
 }
 
+XRT_API xlogger* xrtLogTakeDefaultIf(xlogger* pExpected)
+{
+	xlogger* pLogger = NULL;
+	__xrtSpinLock(&__xrtLogDefaultLock);
+	if (pExpected == NULL || __xrtLogDefaultLogger == pExpected) {
+		pLogger = __xrtLogDefaultLogger;
+		__xrtLogDefaultLogger = NULL;
+	}
+	__xrtSpinUnlock(&__xrtLogDefaultLock);
+	return pLogger;
+}
+
 #endif
 #endif
 
@@ -306994,6 +307022,7 @@ typedef struct xlogfilestate {
 	xatomic64 Owner;
 	xlogfileoptions Options;
 	xfile File;
+	bool Closed;
 	xbuffer Record;
 	xlogformatproc Format;
 	xlogformatdropproc Drop;
@@ -307423,6 +307452,11 @@ static xlogresult __xrtLogFileWrite(
 	}
 	xrtAtomic64Store(&pState->Owner, iThread, XMEMORY_RELEASE);
 	memset(&Writer, 0, sizeof(Writer));
+	if (pState->Closed) {
+		__xrtLogErrorSet(XERR_CLOSED, XLOG_ERROR_FILE_CLOSE,
+			"file-write", "log file sink is closed");
+		goto Finish;
+	}
 	Writer.State = pState;
 	xrtBufferClear(&pState->Record);
 	bFormatted = pState->Format(
@@ -307502,7 +307536,11 @@ static bool __xrtLogFileFlush(ptr pUserData)
 		return false;
 	}
 	xrtAtomic64Store(&pState->Owner, iThread, XMEMORY_RELEASE);
-	bResult = __xrtLogFileSyncLocked(pState);
+	if (pState->Closed) {
+		__xrtLogErrorSet(XERR_CLOSED, XLOG_ERROR_FILE_CLOSE,
+			"file-flush", "log file sink is closed");
+		bResult = false;
+	} else bResult = __xrtLogFileSyncLocked(pState);
 	xrtAtomic64Store(&pState->Owner, 0, XMEMORY_RELEASE);
 	if ( !xrtMutexUnlock(&pState->Lock) ) {
 		return false;
@@ -307733,7 +307771,11 @@ XRT_API bool xrtLogFileRotate(xlogsink* pSink)
 		return false;
 	}
 	xrtAtomic64Store(&pState->Owner, iThread, XMEMORY_RELEASE);
-	bResult = __xrtLogFileRotateLocked(pState);
+	if (pState->Closed) {
+		__xrtLogErrorSet(XERR_CLOSED, XLOG_ERROR_FILE_CLOSE,
+			"file-rotate", "log file sink is closed");
+		bResult = false;
+	} else bResult = __xrtLogFileRotateLocked(pState);
 	xrtAtomic64Store(&pState->Owner, 0, XMEMORY_RELEASE);
 	if ( !xrtMutexUnlock(&pState->Lock) ) {
 		return false;
@@ -307762,10 +307804,44 @@ XRT_API bool xrtLogFileReopen(xlogsink* pSink)
 	}
 	xrtAtomic64Store(&pState->Owner, iThread, XMEMORY_RELEASE);
 	bResult = __xrtLogFileReopenLocked(pState);
+	if (bResult) pState->Closed = false;
 	xrtAtomic64Store(&pState->Owner, 0, XMEMORY_RELEASE);
 	if ( !xrtMutexUnlock(&pState->Lock) ) {
 		return false;
 	}
+	return bResult;
+}
+
+XRT_API bool xrtLogFileClose(xlogsink* pSink)
+{
+	xlogfilestate* pState = __xrtLogFileState(pSink);
+	xerror* pFirst = NULL;
+	bool bResult = true;
+	if (pState == NULL) return false;
+	uint64 iThread = __xrtCurrentThreadId();
+	if (xrtAtomic64Load(&pState->Owner, XMEMORY_ACQUIRE) == iThread) {
+		__xrtErrorSetInvalidState(); return false;
+	}
+	if (!xrtMutexLock(&pState->Lock)) return false;
+	xrtAtomic64Store(&pState->Owner, iThread, XMEMORY_RELEASE);
+	if (!pState->Closed) {
+		pState->Closed = true;
+		if (pState->File != NULL) {
+			if (!__xrtLogFileSyncLocked(pState)) { bResult = false; pFirst = xrtTakeError(); }
+			if (!xrtClose(pState->File)) {
+				bResult = false;
+				if (pFirst == NULL) {
+					__xrtLogFileWrap(XERR_IO, XLOG_ERROR_FILE_CLOSE,
+						"file-close", "failed to close log file");
+					pFirst = xrtTakeError();
+				}
+			}
+			pState->File = NULL;
+		}
+	}
+	xrtAtomic64Store(&pState->Owner, 0u, XMEMORY_RELEASE);
+	if (!xrtMutexUnlock(&pState->Lock)) bResult = false;
+	if (pFirst != NULL) xrtSetErrorTake(pFirst);
 	return bResult;
 }
 
@@ -308059,6 +308135,7 @@ typedef struct xlogasyncstate {
 	xcond NotEmpty;
 	xcond NotFull;
 	xatomic64 WorkerId;
+	xatomic32 WorkerDone;
 	xlogasyncconfig Config;
 	xlogsink* Target;
 	xthread* Thread;
@@ -308709,6 +308786,7 @@ static int32 __xrtLogAsyncWorker(ptr pData)
 		xrtErrorFree(pWaitError);
 	}
 	__xrtLogAsyncFinalFlush(pState);
+	xrtAtomic32Store(&pState->WorkerDone, 1u, XMEMORY_RELEASE);
 	__xrtLogAsyncStateRelease(pState);
 	return 0;
 }
@@ -308973,6 +309051,7 @@ XRT_API xlogsink* xrtLogAsync(
 	pState->RefCount = 1;
 	pState->Config = *pConfig;
 	xrtAtomic64Init(&pState->WorkerId, 0u);
+	xrtAtomic32Init(&pState->WorkerDone, 0u);
 	pState->Target = xrtLogSinkRef(pTarget);
 	if ( pState->Target == NULL ) {
 		pCause = xrtTakeError();
@@ -309129,6 +309208,29 @@ XRT_API xlogsink* xrtLogAsyncTarget(const xlogsink* pSink)
 	return pState == NULL ? NULL : pState->Target;
 }
 
+XRT_API bool xrtLogAsyncStop(xlogsink* pSink)
+{
+	xlogasyncstate* pState = __xrtLogAsyncState(pSink);
+	xerror* pError;
+	if (pState == NULL) return false;
+	uint64 iWorker = xrtAtomic64Load(&pState->WorkerId, XMEMORY_ACQUIRE);
+	if (iWorker != 0u && iWorker == xrtThreadCurrentId()) {
+		__xrtLogErrorSet(XERR_STATE, XLOG_ERROR_ASYNC_CLOSED,
+			"async-stop", "async worker cannot stop its own queue");
+		return false;
+	}
+	__xrtLogAsyncClose(pState);
+	/* The sink reference keeps state alive. Completion is published after the
+	 * worker's final flush; joining/destroying the thread remains single-owner
+	 * destructor work, so concurrent stop callers never race a native join. */
+	while (!xrtAtomic32Load(&pState->WorkerDone, XMEMORY_ACQUIRE)) xrtSleepUs(100u);
+	if (!xrtMutexLock(&pState->Lock)) return false;
+	pError = xrtErrorRef(pState->LastError);
+	if (!xrtMutexUnlock(&pState->Lock)) { xrtErrorFree(pError); return false; }
+	if (pError != NULL) { xrtSetErrorTake(pError); return false; }
+	return true;
+}
+
 
 
 /* 读取队列和后台处理的同锁统计快照。 */
@@ -309253,6 +309355,7 @@ typedef struct xlogringstate {
 	size_t Stride;
 	xatomic32 Gate;
 	xatomic64 WorkerId;
+	xatomic32 WorkerDone;
 	xatomic64 Enqueued;
 	xatomic64 Processed;
 	xatomic64 Written;
@@ -309340,9 +309443,13 @@ static bool __xrtLogRingWriterEnter(xlogringstate* pState)
 
 	for ( ;; ) {
 		if ( (iGate & XLOG_RING_GATE_CLOSED) != 0u ) {
+			__xrtLogErrorSet(XERR_CLOSED, XLOG_ERROR_RING_CLOSED,
+				"ring-write", "ring log sink is closed");
 			return false;
 		}
 		if ( (iGate & XLOG_RING_GATE_WRITERS) == XLOG_RING_GATE_WRITERS ) {
+			__xrtLogErrorSet(XERR_RANGE, XLOG_ERROR_RING_QUEUE,
+				"ring-write", "ring producer count overflow");
 			return false;
 		}
 		if (
@@ -309593,6 +309700,7 @@ static int32 __xrtLogRingWorker(ptr pData)
 		(void)xrtAtomic64FetchAdd(&pState->Flushes, 1u, XMEMORY_RELAXED);
 		(void)xrtAtomic64FetchAdd(&pState->Failed, 1u, XMEMORY_RELAXED);
 	}
+	xrtAtomic32Store(&pState->WorkerDone, 1u, XMEMORY_RELEASE);
 	__xrtLogRingStateRelease(pState);
 	return 0;
 }
@@ -309648,7 +309756,7 @@ static xlogresult __xrtLogRingWrite(
 		return XLOG_RESULT_DROPPED;
 	}
 	if ( !__xrtLogRingWriterEnter(pState) ) {
-		return XLOG_RESULT_DROPPED;
+		return XLOG_RESULT_ERROR;
 	}
 	if ( !__xrtLogOwnedSize(pRecord, &iSize) ) {
 		xrtClearError();
@@ -309873,6 +309981,7 @@ static void __xrtLogRingAtomicsInit(xlogringstate* pState)
 {
 	xrtAtomic32Init(&pState->Gate, 0u);
 	xrtAtomic64Init(&pState->WorkerId, 0u);
+	xrtAtomic32Init(&pState->WorkerDone, 0u);
 	xrtAtomic64Init(&pState->Enqueued, 0u);
 	xrtAtomic64Init(&pState->Processed, 0u);
 	xrtAtomic64Init(&pState->Written, 0u);
@@ -310091,6 +310200,26 @@ XRT_API xlogsink* xrtLogRingTarget(const xlogsink* pSink)
 	xlogringstate* pState = __xrtLogRingState(pSink);
 
 	return pState == NULL ? NULL : pState->Target;
+}
+
+XRT_API bool xrtLogRingStop(xlogsink* pSink)
+{
+	xlogringstate* pState = __xrtLogRingState(pSink);
+	xerror* pError;
+	if (pState == NULL) return false;
+	uint64 iWorker = xrtAtomic64Load(&pState->WorkerId, XMEMORY_ACQUIRE);
+	if (iWorker != 0u && iWorker == xrtThreadCurrentId()) {
+		__xrtLogErrorSet(XERR_STATE, XLOG_ERROR_RING_CLOSED,
+			"ring-stop", "ring worker cannot stop its own queue");
+		return false;
+	}
+	__xrtLogRingClose(pState);
+	while (!xrtAtomic32Load(&pState->WorkerDone, XMEMORY_ACQUIRE)) xrtSleepUs(100u);
+	if (!xrtMutexLock(&pState->ErrorLock)) return false;
+	pError = xrtErrorRef(pState->LastError);
+	if (!xrtMutexUnlock(&pState->ErrorLock)) { xrtErrorFree(pError); return false; }
+	if (pError != NULL) { xrtSetErrorTake(pError); return false; }
+	return true;
 }
 
 

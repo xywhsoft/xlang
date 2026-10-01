@@ -1,0 +1,20 @@
+auto logger = log.create("exit", LogLevel.trace)
+auto text = LogTextOptions()
+text.style = LogTextStyle.message
+text.flags = log.textNewline
+auto fileOptions = LogFileOptions()
+fileOptions.mode = LogFileMode.truncate
+auto target = log.textFileSink("build/test/log-complete-exit.txt", fileOptions, text)
+auto options = LogAsyncOptions()
+options.full = LogQueueFull.block
+auto sink = log.asyncSink(target, options)
+logger.addSink(sink)
+log.setDefault(logger)
+func main(...) as int
+    log.info("before exit")
+    try
+        return 0
+    finally
+        log.info("finally")
+    end
+end

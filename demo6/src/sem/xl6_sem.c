@@ -19920,6 +19920,12 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
             return ok;
         }
+        /* error has an owned xerror* result ABI (NULL means no error value),
+         * distinct from the thread diagnostic that reports call failure.
+         * Lowered XLIR supplies its managed-result cleanup as for other
+         * pointer-sentinel runtime values; do not box it as a language class. */
+        if (typeNode != NULL && typeNode->childCount == 0 && xl6TextEquals(typeNode->text,"error"))
+            return ok;
         /* Generated stdlib declarations use the verified language string ABI,
          * including its null Data sentinel. This is not a general C char* ABI
          * admission; exact bridge/result ownership is checked by Typed XLIR. */
@@ -21705,14 +21711,15 @@ static int xl6SemCheckClassNativeExternBase(XL6_SemContext* ctx, XL6_AstNode* cl
     return ok;
 }
 
-static int xl6SemCheckClassExternParamsNoVararg(XL6_SemContext* ctx, XL6_AstNode* params)
+static int xl6SemCheckClassExternParamsNoVararg(XL6_SemContext* ctx, XL6_AstNode* params, int allowC)
 {
     size_t i;
     int ok;
 
     ok = 1;
     for ( i = 0; params != NULL && i < params->childCount; ++i ) {
-        if ( xl6SemParamIsVararg(params->children[i]) ) {
+        if ( xl6SemParamIsVararg(params->children[i]) &&
+             !(allowC && xl6SemParamIsCVararg(params->children[i])) ) {
             xl6SemErrorNode(ctx, params->children[i], "native-backed class extern member does not support vararg parameters");
             ok = 0;
         }
@@ -21783,7 +21790,7 @@ static int xl6SemCheckClassExternSpecial(XL6_SemContext* ctx, XL6_AstNode* class
     if ( !xl6SemCheckParamListOnly(ctx, params, 0, 1) ) {
         ok = 0;
     }
-    if ( !xl6SemCheckClassExternParamsNoVararg(ctx, params) ) {
+    if ( !xl6SemCheckClassExternParamsNoVararg(ctx, params, 0) ) {
         ok = 0;
     }
     if ( !xl6SemCheckExternCAbi(ctx, node) ) {
@@ -21809,7 +21816,7 @@ static int xl6SemCheckClassExternFunc(XL6_SemContext* ctx, XL6_AstNode* classNod
     if ( node->childCount > 1 && !xl6SemCheckParamListOnly(ctx, node->children[1], 0, 1) ) {
         ok = 0;
     }
-    if ( node->childCount > 1 && !xl6SemCheckClassExternParamsNoVararg(ctx, node->children[1]) ) {
+    if ( node->childCount > 1 && !xl6SemCheckClassExternParamsNoVararg(ctx, node->children[1], 1) ) {
         ok = 0;
     }
     if ( node->childCount > 2 && !xl6SemCheckReturnTypes(ctx, node->children[2]) ) {

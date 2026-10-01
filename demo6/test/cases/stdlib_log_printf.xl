@@ -1,0 +1,21 @@
+string captured = ""
+auto sink = log.customSink(func(LogRecord record) as LogResult
+    captured = record.message
+    return LogResult.written
+end)
+auto logger = log.create("printf", LogLevel.trace)
+logger.addSink(sink)
+assert logger.printf(LogLevel.info, "%d %s %.2f %% %jd", c_int(7), "你", 1.25, 9223372036854775807) == LogResult.written
+assert captured == "7 你 1.25 % 9223372036854775807"
+auto record = log.record(LogLevel.warn, "unused")
+record.field("x", 7)
+assert logger.printfRecord(record, "%ju", uint64(18446744073709551615)) == LogResult.written
+assert captured == "18446744073709551615"
+log.setDefault(logger)
+assert log.printf(LogLevel.info, "%lld", c_longlong(-9)) == LogResult.written
+assert captured == "-9"
+log.shutdown()
+assert log.default() == null
+assert log.printf(LogLevel.info, "%d", c_int(1)) == LogResult.skipped
+assert sink.closeCustom()
+logger.clearSinks()

@@ -1,0 +1,8 @@
+auto sink = log.customSink(func(LogRecord record) as LogResult
+    return LogResult.written
+end, "failing-finalizer", LogLevel.trace, func() as bool
+    throw ValueError "final flush failure"
+end)
+auto logger = log.create("cleanup-failure", LogLevel.trace)
+logger.addSink(sink)
+log.setDefault(logger)

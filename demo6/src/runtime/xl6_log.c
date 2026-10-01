@@ -1,5 +1,56 @@
 #include "src/runtime/xl6_log.h"
 #include <limits.h>
+#include "src/runtime/xl6_log_queue.h"
+
+void* xl6LogQueueStatsTakeV1(void* snapshot) { if (!snapshot) xrtSetErrorKind(XERR_ARGUMENT); return snapshot; }
+void xl6LogQueueStatsDestroyV1(void* snapshot) { xrtFree(snapshot); }
+uint64_t xl6LogQueueCounterV1(void* snapshot,int64_t index)
+{
+    if (!snapshot) { xrtSetErrorKind(XERR_ARGUMENT); return 0; }
+    if (index<0 || index>=18) { xrtSetErrorKind(XERR_RANGE); return 0; }
+    return ((xl6_log_queue_stats*)snapshot)->values[index];
+}
+
+typedef struct log_affine_sink { void* sink; void* context; struct log_affine_sink* next; } log_affine_sink;
+static xonce affine_once;
+static xmutex affine_lock;
+static log_affine_sink* affine_sinks;
+static bool affine_init(void* unused) { (void)unused; return xrtMutexInit(&affine_lock); }
+bool xl6LogSinkAffinityV1(void* sink,bool add,void* context)
+{
+    log_affine_sink* item=NULL;
+    if (!xrtOnce(&affine_once,affine_init,NULL)) return false;
+    if (add) { item=xrtMalloc(sizeof(*item)); if (!item) return false; item->sink=sink; item->context=context; }
+    if (!xrtMutexLock(&affine_lock)) { xrtFree(item); return false; }
+    if (add) { item->next=affine_sinks; affine_sinks=item; }
+    else {
+        log_affine_sink** link=&affine_sinks;
+        while (*link && (*link)->sink!=sink) link=&(*link)->next;
+        if (*link) { item=*link; *link=item->next; xrtFree(item); }
+    }
+    return xrtMutexUnlock(&affine_lock);
+}
+void* xl6LogSinkAffinityContextV1(void* sink)
+{
+    void* context=NULL;
+    if (!sink) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    if (!xrtOnce(&affine_once,affine_init,NULL) || !xrtMutexLock(&affine_lock)) return NULL;
+    for (log_affine_sink* item=affine_sinks;item;item=item->next)
+        if (item->sink==sink) { context=item->context; break; }
+    if (!xrtMutexUnlock(&affine_lock)) return NULL;
+    if (!context) xrtSetErrorKind(XERR_TYPE);
+    return context;
+}
+bool xl6LogSinkWorkerSafeV1(void* sink)
+{
+    bool safe=true;
+    if (!sink) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (!xrtOnce(&affine_once,affine_init,NULL) || !xrtMutexLock(&affine_lock)) return false;
+    for (log_affine_sink* item=affine_sinks;item;item=item->next) if (item->sink==sink) { safe=false; break; }
+    if (!xrtMutexUnlock(&affine_lock)) return false;
+    if (!safe) xrtSetErrorKind(XERR_STATE);
+    return safe;
+}
 
 static bool log_level(int64_t value, bool threshold)
 {
@@ -61,6 +112,14 @@ bool xl6LogFlushV1(void* logger)
 { return log_handle(logger) && xrtLogFlush(logger); }
 void* xl6LogDefaultV1(void) { return xrtLogDefault(); }
 bool xl6LogSetDefaultV1(void* logger) { return xrtLogSetDefault(logger); }
+bool xl6LogReleaseDefaultV1(void* expected)
+{
+    xlogger* logger=xrtLogTakeDefaultIf(expected);
+    if (!logger) return true;
+    bool ok=xrtLogFlush(logger);
+    xrtLogFree(logger);
+    return ok;
+}
 int64_t xl6LogDefaultWriteV1(int64_t level, xstrview message, int64_t size)
 {
     xlogger* logger;

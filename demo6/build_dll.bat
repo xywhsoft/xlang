@@ -157,6 +157,18 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_task_file.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
+    src\runtime\xl6_log_record.c ^
+    src\runtime\xl6_log_text.c ^
+    src\runtime\xl6_log_json.c ^
+    src\runtime\xl6_log_custom.c ^
+    src\runtime\xl6_log_file.c ^
+    src\runtime\xl6_log_file_text.c ^
+    src\runtime\xl6_log_file_json.c ^
+    src\runtime\xl6_log_async.c ^
+    src\runtime\xl6_log_ring.c ^
+    src\runtime\xl6_log_printf.c ^
+    src\runtime\xl6_log_text_writer.c ^
+    src\runtime\xl6_log_json_writer.c ^
     src\runtime\xl6_network_service.c ^
     src\runtime\xl6_continuation_frame.c src\runtime\xl6_future_wait.c ^
     src\runtime\xl6_capture.c ^
@@ -237,6 +249,18 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_task_file.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
+    src\runtime\xl6_log_record.c ^
+    src\runtime\xl6_log_text.c ^
+    src\runtime\xl6_log_json.c ^
+    src\runtime\xl6_log_custom.c ^
+    src\runtime\xl6_log_file.c ^
+    src\runtime\xl6_log_file_text.c ^
+    src\runtime\xl6_log_file_json.c ^
+    src\runtime\xl6_log_async.c ^
+    src\runtime\xl6_log_ring.c ^
+    src\runtime\xl6_log_printf.c ^
+    src\runtime\xl6_log_text_writer.c ^
+    src\runtime\xl6_log_json_writer.c ^
     src\runtime\xl6_network_service.c ^
     src\runtime\xl6_continuation_frame.c src\runtime\xl6_future_wait.c ^
     src\runtime\xl6_capture.c ^

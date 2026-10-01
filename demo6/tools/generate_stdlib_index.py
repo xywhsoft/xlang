@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 
-CAPACITY = 2048
+CAPACITY = 4096
 FNV_OFFSET = 1469598103934665603
 FNV_PRIME = 1099511628211
 MASK64 = (1 << 64) - 1
@@ -82,7 +82,9 @@ def main() -> int:
         values = ", ".join(str(value) for value in slots[offset : offset + 16])
         lines.append(f"    {values},")
     lines.append("};")
-    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    content = "\n".join(lines) + "\n"
+    if not output_path.exists() or output_path.read_text(encoding="utf-8") != content:
+        output_path.write_text(content, encoding="utf-8", newline="\n")
     print(
         f"generated {CAPACITY} stdlib index slots for "
         f"{len(entries)} functions -> {output_path}"

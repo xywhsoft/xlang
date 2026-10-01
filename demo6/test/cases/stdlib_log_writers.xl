@@ -1,0 +1,55 @@
+auto record = log.record(LogLevel.info, "a\0你")
+auto text = LogTextOptions()
+text.style = LogTextStyle.message
+text.flags = log.textNewline
+auto writer = io.bufferWriter()
+assert log.textToWriter(record, writer, text) == string.byteLen(log.text(record, text))
+assert writer.toBytes() == b"a\\x00\xe4\xbd\xa0\n"
+auto sink = log.textWriterSink(writer, text)
+auto logger = log.create("writer", LogLevel.trace)
+logger.addSink(sink)
+text.flags = 0
+assert logger.writeRecord(record) == LogResult.written
+logger.flush()
+assert writer.toBytes() == b"a\\x00\xe4\xbd\xa0\na\\x00\xe4\xbd\xa0\n"
+assert sink.closeCustom()
+assert sink.closeCustom()
+assert not logger.tryWrite(LogLevel.info, "closed")
+logger.clearSinks()
+auto json = LogJsonOptions()
+json.flags = log.jsonMessage + log.jsonFields
+record.field("value", "x\0y")
+auto jsonWriter = io.bufferWriter()
+assert log.jsonToWriter(record, jsonWriter, json) == string.byteLen(log.json(record, json))
+assert jsonWriter.toBytes().length > 0
+auto jsonSink = log.jsonWriterSink(jsonWriter, json)
+logger.addSink(jsonSink)
+assert logger.writeRecord(record) == LogResult.written
+assert jsonSink.closeCustom()
+logger.clearSinks()
+writer.close()
+bool failed = false
+try
+    log.textToWriter(record, writer)
+catch e
+    failed = true
+end
+assert failed
+auto invalidText = LogTextOptions()
+invalidText.flags = 1048576
+failed = false
+try
+    auto invalid = log.textWriterSink(io.bufferWriter(), invalidText)
+catch e
+    failed = true
+end
+assert failed
+auto invalidJson = LogJsonOptions()
+invalidJson.maxErrorDepth = -1
+failed = false
+try
+    auto invalid = log.jsonWriterSink(io.bufferWriter(), invalidJson)
+catch e
+    failed = true
+end
+assert failed

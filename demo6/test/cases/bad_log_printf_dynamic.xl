@@ -1,0 +1,2 @@
+string format = "%d"
+log.printf(LogLevel.info, format, c_int(1))

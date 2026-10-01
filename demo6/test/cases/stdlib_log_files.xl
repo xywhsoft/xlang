@@ -1,0 +1,41 @@
+string path = "build/test/log-complete-file.txt"
+auto options = LogFileOptions()
+options.mode = LogFileMode.truncate
+options.backupCount = 1
+options.maxBytes = uint64(10)
+auto text = LogTextOptions()
+text.style = LogTextStyle.message
+text.flags = log.textNewline
+auto sink = log.textFileSink(path, options, text)
+auto logger = log.create("file", LogLevel.trace)
+logger.addSink(sink)
+assert logger.info("hello") == LogResult.written
+logger.flush()
+auto snapshot = sink.fileStats()
+assert snapshot.records == uint64(1)
+assert snapshot.currentBytes == uint64(6)
+assert logger.info("world") == LogResult.written
+assert sink.fileStats().rotations == uint64(1)
+assert snapshot.records == uint64(1)
+assert sink.rotate()
+assert sink.reopen()
+assert sink.filePath == path
+assert sink.closeFile()
+assert sink.closeFile()
+assert not logger.tryWrite(LogLevel.info, "closed")
+assert sink.reopen()
+assert logger.info("new") == LogResult.written
+logger.flush()
+assert sink.closeFile()
+logger.clearSinks()
+auto json = LogJsonOptions()
+json.flags = log.jsonMessage + log.jsonFields + log.jsonNewline
+auto jsonSink = log.jsonFileSink("build/test/log-complete-file.jsonl", options, json)
+logger.addSink(jsonSink)
+auto record = log.record(LogLevel.info, "a\0b")
+record.field("n", 7)
+assert logger.writeRecord(record) == LogResult.written
+logger.flush()
+assert jsonSink.fileStats().records == uint64(1)
+assert jsonSink.closeFile()
+logger.clearSinks()

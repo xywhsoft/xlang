@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $dataPath = Join-Path $Root 'src\stdlib\xl6_stdlib_data.c'
 $headerPath = Join-Path $Root 'src\stdlib\xl6_stdlib_data.h'
 $outputPath = Join-Path $Root 'src\stdlib\xl6_stdlib_func_index.inc'
-$capacity = 2048
+$capacity = 4096
 
 $data = [System.IO.File]::ReadAllText($dataPath, [System.Text.Encoding]::UTF8)
 $header = [System.IO.File]::ReadAllText($headerPath, [System.Text.Encoding]::UTF8)

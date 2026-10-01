@@ -5752,9 +5752,11 @@ int xl6IrRuntimeXidBridgeTargetMatches(
 XL6_IrRuntimeBridgeKind xl6IrRuntimeIoBridgeKind(const char* name);
 int xl6IrRuntimeLogBridgeName(const char* name);
 int xl6IrRuntimeLogBridgeFactory(const char* name);
+int xl6IrRuntimeLogBridgeForeignScope(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeLogBridgeErrorAbi(const char* name);
 const char* xl6IrRuntimeLogBridgeParameterOwner(const char* name, size_t parameter);
 int xl6IrRuntimeLogBridgeTargetMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target);
+int xl6IrRuntimeLogPrintfSiteMatches(const XL6_IrModule* module, const XL6_IrCallSite* site);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeVfsBridgeKind(const char* name);
 int xl6IrRuntimeVfsBridgeIsFactory(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeVfsBridgeErrorAbi(const char* name);

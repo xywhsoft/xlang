@@ -1,0 +1,43 @@
+auto consoleOptions = LogConsoleOptions()
+consoleOptions.color = LogColor.never
+consoleOptions.target = LogConsoleTarget.stdout
+consoleOptions.text.style = LogTextStyle.message
+auto target = log.consoleSink(consoleOptions)
+auto logger = log.create("queues", LogLevel.trace)
+auto options = LogAsyncOptions()
+options.full = LogQueueFull.block
+options.capacity = 2
+auto queued = log.asyncSink(target, options)
+logger.addSink(queued)
+assert logger.info("async") == LogResult.written
+logger.flush()
+assert queued.stopAsync()
+assert queued.stopAsync()
+auto stats = queued.asyncStats()
+assert stats.enqueued == uint64(1)
+assert stats.processed == uint64(1)
+assert stats.written == uint64(1)
+assert stats.queued == uint64(0)
+assert queued.asyncError() == null
+logger.clearSinks()
+auto ringOptions = LogRingOptions()
+ringOptions.capacity = 2
+auto ring = log.ringSink(target, ringOptions)
+logger.addSink(ring)
+assert logger.info("ring") == LogResult.written
+logger.flush()
+assert ring.stopRing()
+assert ring.stopRing()
+auto ringStats = ring.ringStats()
+assert ringStats.enqueued == uint64(1)
+assert ringStats.processed == uint64(1)
+assert ringStats.written == uint64(1)
+assert ring.ringError() == null
+bool closed = false
+try
+    logger.info("closed")
+catch e
+    closed = true
+end
+assert closed
+logger.clearSinks()
