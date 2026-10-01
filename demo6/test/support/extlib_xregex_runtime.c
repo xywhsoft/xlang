@@ -1,0 +1,9 @@
+/* 正则扩展的独立 C 门禁只使用冻结的基础 XRT，不重复编入正则模块。 */
+#define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_STRING_SPLIT
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_ERROR_FORMAT
+#define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

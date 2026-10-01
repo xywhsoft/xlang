@@ -376,6 +376,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_c_fixture_wiring.ps1",
         "check_package_fixtures.ps1",
         "check_release_extlibs.ps1",
+        "check_extlib_xregex.ps1",
         "check_extlib_mqtt.ps1",
         "check_format_extlibs.ps1",
         "check_generated_c_warnings.ps1",

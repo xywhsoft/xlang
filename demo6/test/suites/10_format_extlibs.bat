@@ -25,7 +25,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_tests.ps1
 if errorlevel 1 exit /b 1
 
 rem Core extension packages with native ownership contracts run their package-local suite.
-release\xl.exe run release\extlibs\xregex\test\xregex_test.xl
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_extlib_xregex.ps1
 if errorlevel 1 exit /b 1
 release\xl.exe run release\extlibs\xssh\test\xssh_test.xl
 if errorlevel 1 exit /b 1
