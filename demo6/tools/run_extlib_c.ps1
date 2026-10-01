@@ -3,13 +3,16 @@ param(
     [string]$Package,
 
     [Parameter(Mandatory = $true)]
-    [string]$Source
+    [string]$Source,
+
+    [string]$RuntimeDirectory = ''
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$xl = Join-Path $root "release\xl.exe"
+if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $root 'release' }
+$xl = Join-Path (Resolve-Path -LiteralPath $RuntimeDirectory).Path 'xl.exe'
 $packagesRoot = Join-Path $root "release\extlibs"
 $visited = @{}
 $sources = [System.Collections.Generic.List[string]]::new()

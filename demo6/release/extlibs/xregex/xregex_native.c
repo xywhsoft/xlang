@@ -1,8 +1,14 @@
+#ifndef XRT_MODULE_ERROR_FORMAT
 #define XRT_MODULE_ERROR_FORMAT
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
 
 #include "include/xregex.h"
-#include "xruntime.h"
-#include "../../include/xl_extlib_abi.h"
 
 #include <limits.h>
 #include <string.h>
@@ -14,6 +20,14 @@
 #else
 	#define XREGEX_EXPORT
 #endif
+
+
+
+typedef struct xregex_native_matcher {
+	xregexmatcher* Matcher;
+	str Text;
+	size_t CaptureCount;
+} xregex_native_matcher;
 
 
 
@@ -37,26 +51,30 @@ XREGEX_EXPORT const char* xregex_last_error(void)
 
 
 
-/* 返回当前错误中的正则字节位置，不包含位置时返回 -1。 */
-XREGEX_EXPORT int64 xregex_last_error_offset(void)
+/* 查询显式错误对象，不能依赖下一次外部调用已经清空的线程诊断槽。 */
+XREGEX_EXPORT int64 xregex_error_offset_native(xerror* pError)
 {
 	size_t iOffset;
 
-	if ( !xrtRegexErrorOffset(xrtGetError(), &iOffset) ||
-		 (iOffset > (size_t)INT64_MAX) ) {
-		return -1;
+	/* 集合错误的模式索引在外层，精确语法位置保留在原因链。 */
+	for ( const xerror* pCurrent = pError; pCurrent != NULL;
+		pCurrent = xrtErrorCause(pCurrent) ) {
+		if ( xrtRegexErrorOffset(pCurrent, &iOffset) &&
+			 iOffset <= (size_t)INT64_MAX ) {
+			return (int64)iOffset;
+		}
 	}
-	return (int64)iOffset;
+	return -1;
 }
 
 
 
-/* 返回批量编译失败的模式索引，不包含索引时返回 -1。 */
-XREGEX_EXPORT int64 xregex_last_error_pattern_index(void)
+/* 批量编译错误也从同一个拥有型错误对象读取，允许跨调用保存。 */
+XREGEX_EXPORT int64 xregex_error_pattern_index_native(xerror* pError)
 {
 	size_t iIndex;
 
-	if ( !xrtRegexSetErrorIndex(xrtGetError(), &iIndex) ||
+	if ( !xrtRegexSetErrorIndex(pError, &iIndex) ||
 		 (iIndex > (size_t)INT64_MAX) ) {
 		return -1;
 	}
@@ -139,7 +157,7 @@ static bool xregex_config(
 XREGEX_EXPORT void* xregex_escape_native(const char* sText, size_t iTextSize)
 {
 	xstrview Text = { sText, iTextSize };
-	size_t iOutputSize;
+	size_t iOutputSize = 0;
 	str sOutput;
 
 	xrtClearError();
@@ -216,7 +234,7 @@ XREGEX_EXPORT void xregex_release_native(void* pHandle)
 
 
 
-/* 验证表达式；验证失败不污染之后的独立操作。 */
+/* 语法拒绝返回 false；分配、限额和调用错误仍交给统一外部调用错误桥。 */
 XREGEX_EXPORT bool xregex_valid_native(const char* sPattern, size_t iPatternSize)
 {
 	xstrview Pattern = { sPattern, iPatternSize };
@@ -224,7 +242,15 @@ XREGEX_EXPORT bool xregex_valid_native(const char* sPattern, size_t iPatternSize
 
 	xrtClearError();
 	bValid = xrtRegexValid(Pattern);
-	if ( !bValid ) { xrtClearError(); }
+	if ( !bValid ) {
+		const xerror* pError = xrtGetError();
+		cstr sDomain = xrtErrorDomain(pError);
+		if ( xrtErrorKind(pError) == XERR_VALUE &&
+			 xrtErrorCode(pError) == XREGEX_ERROR_PATTERN &&
+			 sDomain != NULL && strcmp(sDomain, "xrt.regex") == 0 ) {
+			xrtClearError();
+		}
+	}
 	return bValid;
 }
 
@@ -307,8 +333,19 @@ XREGEX_EXPORT void* xregex_native_handle(void* pHandle)
 /* 创建独占执行缓存的 matcher。 */
 XREGEX_EXPORT void* xregex_matcher_create_native(void* pRegex)
 {
+	xregex_native_matcher* pNative;
+
 	xrtClearError();
-	return xrtRegexMatcherCreate((xregex*)pRegex);
+	pNative = (xregex_native_matcher*)xrtCalloc(1u, sizeof(*pNative));
+	if ( pNative == NULL ) { return NULL; }
+	pNative->Matcher = xrtRegexMatcherCreate((xregex*)pRegex);
+	if ( pNative->Matcher == NULL ) {
+		xrtFree(pNative);
+		return NULL;
+	}
+	/* 编译结果不可变，数量在持有正则引用时读取一次即可。 */
+	pNative->CaptureCount = xrtRegexCaptureCount((const xregex*)pRegex);
+	return pNative;
 }
 
 
@@ -316,7 +353,61 @@ XREGEX_EXPORT void* xregex_matcher_create_native(void* pRegex)
 /* 释放 matcher。 */
 XREGEX_EXPORT void xregex_matcher_destroy_native(void* pHandle)
 {
-	xrtRegexMatcherFree((xregexmatcher*)pHandle);
+	xregex_native_matcher* pNative = (xregex_native_matcher*)pHandle;
+
+	if ( pNative == NULL ) { return; }
+	xrtRegexMatcherFree(pNative->Matcher);
+	xrtFree(pNative->Text);
+	xrtFree(pNative);
+}
+
+
+
+/* C 调用者拿到真实 matcher 的借用句柄，不暴露语言包装对象布局。 */
+XREGEX_EXPORT void* xregex_matcher_native_handle(void* pHandle)
+{
+	xregex_native_matcher* pNative = (xregex_native_matcher*)pHandle;
+
+	return pNative != NULL ? pNative->Matcher : NULL;
+}
+
+
+
+/* 参数只借用到本次调用结束；底层 matcher 跨调用使用的输入由包装对象持有。 */
+static int xregex_matcher_execute(
+	void* pHandle,
+	xstrview Text,
+	size_t iStart,
+	int iMode
+)
+{
+	xregex_native_matcher* pNative = (xregex_native_matcher*)pHandle;
+	xregexresult Result;
+	str sCopy;
+
+	if ( pNative == NULL ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.xregex", 0,
+			"matcher handle is null");
+		return XREGEX_ERROR;
+	}
+	sCopy = xrtStrDupView(Text);
+	if ( sCopy == NULL ) { return XREGEX_ERROR; }
+	Text.Data = sCopy;
+	if ( iMode == 0 ) {
+		Result = xrtRegexMatcherFind(pNative->Matcher, Text, iStart);
+	} else if ( iMode == 1 ) {
+		Result = xrtRegexMatcherAt(pNative->Matcher, Text, iStart);
+	} else {
+		Result = xrtRegexMatcherFull(pNative->Matcher, Text);
+	}
+	/* 参数拒绝可能保留旧输入，执行失败也可能已接管新输入；按真实借用视图提交。 */
+	if ( xrtRegexMatcherText(pNative->Matcher).Data == sCopy ) {
+		xrtFree(pNative->Text);
+		pNative->Text = sCopy;
+	} else {
+		xrtFree(sCopy);
+	}
+	return (int)Result;
 }
 
 
@@ -334,7 +425,7 @@ XREGEX_EXPORT int xregex_matcher_find_native(
 
 	xrtClearError();
 	if ( !xregex_size(iStart, &iOffset, "start") ) { return XREGEX_ERROR; }
-	return (int)xrtRegexMatcherFind((xregexmatcher*)pHandle, Text, iOffset);
+	return xregex_matcher_execute(pHandle, Text, iOffset, 0);
 }
 
 
@@ -352,7 +443,7 @@ XREGEX_EXPORT int xregex_matcher_at_native(
 
 	xrtClearError();
 	if ( !xregex_size(iStart, &iOffset, "start") ) { return XREGEX_ERROR; }
-	return (int)xrtRegexMatcherAt((xregexmatcher*)pHandle, Text, iOffset);
+	return xregex_matcher_execute(pHandle, Text, iOffset, 1);
 }
 
 
@@ -367,7 +458,7 @@ XREGEX_EXPORT int xregex_matcher_full_native(
 	xstrview Text = { sText, iTextSize };
 
 	xrtClearError();
-	return (int)xrtRegexMatcherFull((xregexmatcher*)pHandle, Text);
+	return xregex_matcher_execute(pHandle, Text, 0u, 2);
 }
 
 
@@ -376,7 +467,8 @@ XREGEX_EXPORT int xregex_matcher_full_native(
 XREGEX_EXPORT int xregex_matcher_next_native(void* pHandle)
 {
 	xrtClearError();
-	return (int)xrtRegexMatcherNext((xregexmatcher*)pHandle);
+	return (int)xrtRegexMatcherNext(
+		(xregexmatcher*)xregex_matcher_native_handle(pHandle));
 }
 
 
@@ -384,7 +476,17 @@ XREGEX_EXPORT int xregex_matcher_next_native(void* pHandle)
 /* 返回 matcher 当前是否持有成功匹配。 */
 XREGEX_EXPORT bool xregex_matcher_matched_native(void* pHandle)
 {
-	return xrtRegexMatcherMatched((const xregexmatcher*)pHandle);
+	return xrtRegexMatcherMatched(
+		(const xregexmatcher*)xregex_matcher_native_handle(pHandle));
+}
+
+
+
+/* 将不可变捕获布局提供给语言侧索引检查，避免依赖私有结构体。 */
+XREGEX_EXPORT uint64 xregex_matcher_capture_count_native(void* pHandle)
+{
+	xregex_native_matcher* pNative = (xregex_native_matcher*)pHandle;
+	return pNative != NULL ? (uint64)pNative->CaptureCount : 0;
 }
 
 
@@ -402,7 +504,7 @@ static bool xregex_matcher_capture(
 		return false;
 	}
 	return xrtRegexMatcherCapture(
-		(const xregexmatcher*)pHandle,
+		(const xregexmatcher*)xregex_matcher_native_handle(pHandle),
 		(size_t)iIndex,
 		pCapture
 	);
@@ -518,20 +620,13 @@ XREGEX_EXPORT void* xregex_splitter_create_native(
 	xstrview Text;
 
 	xrtClearError();
-	if ( ((sText == NULL) && (iTextSize != 0u)) || (iTextSize == SIZE_MAX) ) {
-		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.xregex", 0,
-			"splitter text is invalid or too large");
-		return NULL;
-	}
 	pNative = (xregex_native_splitter*)xrtCalloc(1u, sizeof(*pNative));
 	if ( pNative == NULL ) { return NULL; }
-	pNative->Text = (str)xrtMalloc(iTextSize + 1u);
+	pNative->Text = xrtStrDupN(sText, iTextSize);
 	if ( pNative->Text == NULL ) {
 		xrtFree(pNative);
 		return NULL;
 	}
-	if ( iTextSize != 0u ) { memcpy(pNative->Text, sText, iTextSize); }
-	pNative->Text[iTextSize] = 0;
 	Text.Data = pNative->Text;
 	Text.Size = iTextSize;
 	xrtRegexSplitConfigInit(&Config);
@@ -563,6 +658,16 @@ XREGEX_EXPORT void xregex_splitter_destroy_native(void* pHandle)
 	xrtRegexSplitterFree(pNative->Splitter);
 	xrtFree(pNative->Text);
 	xrtFree(pNative);
+}
+
+
+
+/* 与 matcher 一致，公开真实拆分器而非语言包装对象的借用句柄。 */
+XREGEX_EXPORT void* xregex_splitter_native_handle(void* pHandle)
+{
+	xregex_native_splitter* pNative = (xregex_native_splitter*)pHandle;
+
+	return pNative != NULL ? pNative->Splitter : NULL;
 }
 
 
@@ -620,29 +725,24 @@ XREGEX_EXPORT bool xregex_splitter_matched_native(void* pHandle)
 
 /* 把 XLang 字符串数组转换为临时明确长度视图。 */
 static bool xregex_pattern_views(
-	xtarray pPatterns,
+	const xvalue* pPatterns,
 	xstrview** pViews,
 	size_t* pCount
 )
 {
-	const char* const* arrText;
-	const xtypedarray* pNativeArray;
 	xstrview* arrView = NULL;
 	size_t iCount;
 	size_t i;
 
 	if ( (pViews == NULL) || (pCount == NULL) ||
-		 (pPatterns == NULL) ||
-		 (pPatterns->Kind != XL6_TYPED_CONTAINER_ARRAY) ||
-		 (pPatterns->Value == NULL) ) {
+		 !xrtValueIs(pPatterns, XVALUE_ARRAY) ) {
 		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.xregex", 0,
 			"RegexSet patterns must be an array of strings");
 		return false;
 	}
 	*pViews = NULL;
 	*pCount = 0u;
-	pNativeArray = (const xtypedarray*)pPatterns->Value;
-	iCount = xrtTypedArrayCount(pNativeArray);
+	iCount = xrtValueCount(pPatterns);
 	if ( iCount > (SIZE_MAX / sizeof(*arrView)) ) {
 		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.xregex", 0,
 			"RegexSet pattern count exceeds the native size range");
@@ -652,22 +752,14 @@ static bool xregex_pattern_views(
 		arrView = (xstrview*)xrtMalloc(iCount * sizeof(*arrView));
 		if ( arrView == NULL ) { return false; }
 	}
-	arrText = (const char* const*)xrtTypedArrayConstData(pNativeArray);
-	if ( (iCount != 0u) && (arrText == NULL) ) {
-		xrtSetErrorInfo(XERR_STATE, "xlang.extlib.xregex", 0,
-			"RegexSet pattern storage is unavailable");
-		xrtFree(arrView);
-		return false;
-	}
+	/* 借用字符串视图；编译完成前数组保持存活，并保留嵌入零字节的长度。 */
 	for ( i = 0; i < iCount; i += 1 ) {
-		if ( arrText[i] == NULL ) {
+		if ( !xrtValueGetString(xrtValueArrayGet(pPatterns, i), &arrView[i]) ) {
 			xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.xregex", 0,
-				"RegexSet patterns must not contain null strings");
+				"RegexSet patterns must contain only strings");
 			xrtFree(arrView);
 			return false;
 		}
-		arrView[i].Data = arrText[i];
-		arrView[i].Size = strlen(arrText[i]);
 	}
 	*pViews = arrView;
 	*pCount = iCount;
@@ -678,7 +770,7 @@ static bool xregex_pattern_views(
 
 /* 批量编译字符串模式并创建不可变集合。 */
 XREGEX_EXPORT void* xregex_set_compile_native(
-	xtarray pPatterns,
+	xvalue* pPatterns,
 	uint32 iFlags,
 	uint64 iMaxPatternBytes,
 	uint64 iMaxCaptures

@@ -2,7 +2,7 @@
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_REPLACE)
+#if defined(XREGEX_FEATURE_REGEX_REPLACE) && !defined(XRT_FEATURE_REGEX_REPLACE) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 替换模板令牌要么借用一段字面量，要么引用一个捕获索引。 */
 typedef struct xrt_regex_replace_token {

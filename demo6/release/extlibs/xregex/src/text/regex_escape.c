@@ -2,7 +2,7 @@
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_CORE)
+#if defined(XREGEX_FEATURE_REGEX_CORE) && !defined(XRT_FEATURE_REGEX_CORE) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 判断一个字节是否具有正则表达式语法含义。 */
 static bool __xrtRegexEscapeByte(unsigned char iByte)

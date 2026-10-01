@@ -1,13 +1,13 @@
 extern "xregex_last_error" func __xregex_error() as string
-extern "xregex_last_error_offset" func __xregex_error_offset() as c_longlong
-extern "xregex_last_error_pattern_index" func __xregex_error_pattern_index() as c_longlong
+extern "xregex_error_offset_native" func __xregex_error_offset(error value) as int64
+extern "xregex_error_pattern_index_native" func __xregex_error_pattern_index(error value) as int64
 extern "xregex_escape_native" func __xregex_escape_native(string text, c_size size) as point
 extern "xregex_text_range_native" func __xregex_text_range_native(
-    string text, c_size textSize, c_ulonglong start, c_ulonglong count) as point
+    string text, c_size textSize, uint64 start, uint64 count) as point
 extern "xregex_valid_native" func __xregex_valid_native(string pattern, c_size size) as bool
 extern "xregex_set_compile_native" func __xregex_set_compile_native(
-    array<string> patterns, c_uint flags, c_ulonglong maxPatternBytes,
-    c_ulonglong maxCaptures) as point
+    array<string> patterns, c_uint flags, uint64 maxPatternBytes,
+    uint64 maxCaptures) as point
 
 
 
@@ -116,25 +116,26 @@ end
 // Matcher 独占执行缓存并持有输入字符串，适合在热路径中重复使用。
 export class RegexMatcher
     native point handle
-    string source = ""
     extern "xregex_matcher_create_native" create(point regex)
     extern "xregex_matcher_destroy_native" destroy()
+    extern "xregex_matcher_native_handle" func nativeHandle() as point
     extern "xregex_matcher_find_native" func findNative(
-        string text, c_size size, c_ulonglong start) as c_int
+        string text, c_size size, uint64 start) as c_int
     extern "xregex_matcher_at_native" func atNative(
-        string text, c_size size, c_ulonglong start) as c_int
+        string text, c_size size, uint64 start) as c_int
     extern "xregex_matcher_full_native" func fullNative(
         string text, c_size size) as c_int
     extern "xregex_matcher_next_native" func nextNative() as c_int
     extern "xregex_matcher_matched_native" func matchedNative() as bool
+    extern "xregex_matcher_capture_count_native" func captureCountNative() as uint64
     extern "xregex_matcher_capture_matched_native" func captureMatchedNative(
-        c_longlong index) as c_int
+        int64 index) as c_int
     extern "xregex_matcher_capture_begin_native" func captureBeginNative(
-        c_longlong index) as c_longlong
+        int64 index) as int64
     extern "xregex_matcher_capture_end_native" func captureEndNative(
-        c_longlong index) as c_longlong
+        int64 index) as int64
     extern "xregex_matcher_capture_text_native" func captureTextNative(
-        c_longlong index) as point
+        int64 index) as point
 
     get valid() as bool
         return self.handle != null
@@ -144,19 +145,14 @@ export class RegexMatcher
         return self.valid and self.matchedNative()
     end
 
-    func nativeHandle() as point
-        return self.handle
-    end
-
     // 从 UTF-8 原始字节位置开始搜索。
     func find(string text, int start = 0) as bool
         if not self.valid then
             throw RuntimeError "xregex matcher is destroyed"
         end
         __xregex_check_start(text, start)
-        self.source = text
         return __xregex_match_status(int(self.findNative(
-            self.source, c_size(string.byteLen(self.source)), c_ulonglong(start))))
+            text, c_size(string.byteLen(text)), uint64(start))))
     end
 
     // 要求匹配从指定字节位置开始。
@@ -165,9 +161,8 @@ export class RegexMatcher
             throw RuntimeError "xregex matcher is destroyed"
         end
         __xregex_check_start(text, start)
-        self.source = text
         return __xregex_match_status(int(self.atNative(
-            self.source, c_size(string.byteLen(self.source)), c_ulonglong(start))))
+            text, c_size(string.byteLen(text)), uint64(start))))
     end
 
     // 要求表达式覆盖完整输入。
@@ -175,9 +170,8 @@ export class RegexMatcher
         if not self.valid then
             throw RuntimeError "xregex matcher is destroyed"
         end
-        self.source = text
         return __xregex_match_status(int(self.fullNative(
-            self.source, c_size(string.byteLen(self.source)))))
+            text, c_size(string.byteLen(text)))))
     end
 
     // 继续查找下一项；空匹配由 XRT 按 UTF-8 标量推进。
@@ -193,16 +187,16 @@ export class RegexMatcher
         if not self.valid then
             throw RuntimeError "xregex matcher is destroyed"
         end
-        if index < 0 then
+        if index < 0 or uint64(index) >= self.captureCountNative() then
             throw IndexError "xregex capture index is out of range"
         end
-        c_longlong nativeIndex = c_longlong(index)
+        int64 nativeIndex = int64(index)
         c_int state = self.captureMatchedNative(nativeIndex)
         if state < 0 then
             throw IndexError __xregex_error()
         end
-        c_longlong nativeBegin = self.captureBeginNative(nativeIndex)
-        c_longlong nativeEnd = self.captureEndNative(nativeIndex)
+        int64 nativeBegin = self.captureBeginNative(nativeIndex)
+        int64 nativeEnd = self.captureEndNative(nativeIndex)
         if nativeBegin < 0 or nativeEnd < 0 then
             throw RuntimeError __xregex_error()
         end
@@ -213,23 +207,20 @@ end
 
 
 
-// Splitter 借用 source 字符串并逐项返回，避免一次性结果分配。
+// Splitter 在原生对象中持有输入副本并逐项返回，避免一次性结果分配。
 export class RegexSplitter
     native point handle
     extern "xregex_splitter_create_native" create(point regex, string text,
-        c_size textSize, c_longlong limit, c_uint flags)
+        c_size textSize, int64 limit, c_uint flags)
     extern "xregex_splitter_destroy_native" destroy()
+    extern "xregex_splitter_native_handle" func nativeHandle() as point
     extern "xregex_splitter_next_native" func nextNative() as c_int
     extern "xregex_splitter_text_native" func textNative() as point
-    extern "xregex_splitter_capture_native" func captureNative() as c_longlong
+    extern "xregex_splitter_capture_native" func captureNative() as int64
     extern "xregex_splitter_matched_native" func matchedNative() as bool
 
     get valid() as bool
         return self.handle != null
-    end
-
-    func nativeHandle() as point
-        return self.handle
     end
 
     // 返回下一项；遍历结束返回 null。
@@ -243,7 +234,7 @@ export class RegexSplitter
         elseif status == 0 then
             return null
         end
-        c_longlong nativeCapture = self.captureNative()
+        int64 nativeCapture = self.captureNative()
         if nativeCapture < -1 then
             throw RuntimeError __xregex_error()
         end
@@ -260,18 +251,18 @@ end
 export class Regex
     native point handle
     extern "xregex_compile_native" create(string pattern, c_size patternSize,
-        c_uint flags, c_ulonglong maxPatternBytes, c_ulonglong maxCaptures)
+        c_uint flags, uint64 maxPatternBytes, uint64 maxCaptures)
     extern "xregex_adopt" create(point handle)
     extern "xregex_release_native" destroy()
     extern "xregex_pattern_native" func patternNative() as point
     extern "xregex_flags_native" func flagsNative() as c_uint
-    extern "xregex_capture_count_native" func captureCountNative() as c_longlong
-    extern "xregex_capture_name_native" func captureNameNative(c_longlong index) as point
+    extern "xregex_capture_count_native" func captureCountNative() as int64
+    extern "xregex_capture_name_native" func captureNameNative(int64 index) as point
     extern "xregex_capture_index_native" func captureIndexNative(
-        string name, c_size size) as c_longlong
+        string name, c_size size) as int64
     extern "xregex_native_handle" func nativeHandle() as point
     extern "xregex_replace_native" func replaceNative(string text, c_size textSize,
-        string replacement, c_size replacementSize, c_longlong limit) as point
+        string replacement, c_size replacementSize, int64 limit) as point
 
     get valid() as bool
         return self.handle != null
@@ -295,7 +286,7 @@ export class Regex
         if not self.valid then
             throw RuntimeError "xregex object is destroyed"
         end
-        c_longlong result = self.captureCountNative()
+        int64 result = self.captureCountNative()
         if result < 0 then
             throw RuntimeError __xregex_error()
         end
@@ -307,12 +298,12 @@ export class Regex
         if index < 0 or index >= self.captureCount then
             throw IndexError "xregex capture index is out of range"
         end
-        return __xregex_text_result(self.captureNameNative(c_longlong(index)))
+        return __xregex_text_result(self.captureNameNative(int64(index)))
     end
 
     // 未找到名称时返回 -1。
     func captureIndex(string name) as int
-        c_longlong result = self.captureIndexNative(
+        int64 result = self.captureIndexNative(
             name, c_size(string.byteLen(name)))
         if result < -1 then
             throw RuntimeError __xregex_error()
@@ -376,7 +367,7 @@ export class Regex
         return __xregex_text_result(self.replaceNative(
             text, c_size(string.byteLen(text)),
             replacement, c_size(string.byteLen(replacement)),
-            c_longlong(limit)))
+            int64(limit)))
     end
 
     func replaceFirst(string text, string replacement) as string
@@ -397,8 +388,8 @@ export class Regex
         while found and (limit < 0 or count < limit)
             RegexMatch item = value.capture()
             point prefix = __xregex_text_range_native(text,
-                c_size(string.byteLen(text)), c_ulonglong(position),
-                c_ulonglong(item.begin - position))
+                c_size(string.byteLen(text)), uint64(position),
+                uint64(item.begin - position))
             if prefix == null or not output.append(Buffer(prefix)) then
                 throw RuntimeError __xregex_error()
             end
@@ -410,8 +401,8 @@ export class Regex
             found = (limit < 0 or count < limit) and value.next()
         end
         point suffix = __xregex_text_range_native(text,
-            c_size(string.byteLen(text)), c_ulonglong(position),
-            c_ulonglong(string.byteLen(text) - position))
+            c_size(string.byteLen(text)), uint64(position),
+            uint64(string.byteLen(text) - position))
         if suffix == null or not output.append(Buffer(suffix)) then
             throw RuntimeError __xregex_error()
         end
@@ -432,7 +423,7 @@ export class Regex
             splitFlags |= SPLIT_SKIP_EMPTY
         end
         RegexSplitter result = RegexSplitter(self.handle, text,
-            c_size(string.byteLen(text)), c_longlong(limit), c_uint(splitFlags))
+            c_size(string.byteLen(text)), int64(limit), c_uint(splitFlags))
         if not result.valid then
             throw RuntimeError __xregex_error()
         end
@@ -468,22 +459,21 @@ end
 // RegexSetMatcher 一次执行多个模式，只维护命中索引而不复制捕获。
 export class RegexSetMatcher
     native point handle
-    string source = ""
     extern "xregex_set_matcher_create_native" create(point setHandle)
     extern "xregex_set_matcher_destroy_native" destroy()
     extern "xregex_set_matcher_match_native" func matchNative(
-        string text, c_size size, c_ulonglong start) as c_int
-    extern "xregex_set_matcher_count_native" func countNative() as c_longlong
-    extern "xregex_set_matcher_index_native" func indexNative(c_longlong index) as c_longlong
-    extern "xregex_set_matcher_matched_native" func matchedNative(c_longlong pattern) as bool
-    extern "xregex_set_matcher_first_native" func firstNative() as c_longlong
+        string text, c_size size, uint64 start) as c_int
+    extern "xregex_set_matcher_count_native" func countNative() as int64
+    extern "xregex_set_matcher_index_native" func indexNative(int64 index) as int64
+    extern "xregex_set_matcher_matched_native" func matchedNative(int64 pattern) as bool
+    extern "xregex_set_matcher_first_native" func firstNative() as int64
 
     get valid() as bool
         return self.handle != null
     end
 
     get count() as int
-        c_longlong result = self.countNative()
+        int64 result = self.countNative()
         if result < 0 then
             throw RuntimeError __xregex_error()
         end
@@ -503,16 +493,15 @@ export class RegexSetMatcher
             throw RuntimeError "xregex set matcher is destroyed"
         end
         __xregex_check_start(text, start)
-        self.source = text
         return __xregex_match_status(int(self.matchNative(
-            self.source, c_size(string.byteLen(self.source)), c_ulonglong(start))))
+            text, c_size(string.byteLen(text)), uint64(start))))
     end
 
     func index(int index) as int
         if index < 0 or index >= self.count then
             throw IndexError "xregex set match index is out of range"
         end
-        c_longlong result = self.indexNative(c_longlong(index))
+        int64 result = self.indexNative(int64(index))
         if result < 0 then
             throw RuntimeError __xregex_error()
         end
@@ -523,7 +512,7 @@ export class RegexSetMatcher
         if pattern < 0 then
             return false
         end
-        return self.matchedNative(c_longlong(pattern))
+        return self.matchedNative(int64(pattern))
     end
 
     func indices() as array<int>
@@ -544,8 +533,8 @@ export class RegexSet
     native point handle
     extern "xregex_set_adopt" create(point handle)
     extern "xregex_set_release_native" destroy()
-    extern "xregex_set_count_native" func countNative() as c_longlong
-    extern "xregex_set_regex_native" func regexNative(c_longlong index) as point
+    extern "xregex_set_count_native" func countNative() as int64
+    extern "xregex_set_regex_native" func regexNative(int64 index) as point
     extern "xregex_set_native_handle" func nativeHandle() as point
 
     get valid() as bool
@@ -553,7 +542,7 @@ export class RegexSet
     end
 
     get count() as int
-        c_longlong result = self.countNative()
+        int64 result = self.countNative()
         if result < 0 then
             throw RuntimeError __xregex_error()
         end
@@ -564,7 +553,7 @@ export class RegexSet
         if index < 0 or index >= self.count then
             throw IndexError "xregex set pattern index is out of range"
         end
-        point result = self.regexNative(c_longlong(index))
+        point result = self.regexNative(int64(index))
         if result == null then
             throw RuntimeError __xregex_error()
         end
@@ -623,7 +612,7 @@ export func compile(string pattern, int flags = 0,
     int maxCaptures = DEFAULT_MAX_CAPTURES) as Regex
     __xregex_check_config(flags, maxPatternBytes, maxCaptures)
     Regex result = Regex(pattern, c_size(string.byteLen(pattern)), c_uint(flags),
-        c_ulonglong(maxPatternBytes), c_ulonglong(maxCaptures))
+        uint64(maxPatternBytes), uint64(maxCaptures))
     if not result.valid then
         throw ValueError __xregex_error()
     end
@@ -652,7 +641,7 @@ export func compileSet(array<string> patterns, int flags = 0,
     int maxCaptures = DEFAULT_MAX_CAPTURES) as RegexSet
     __xregex_check_config(flags, maxPatternBytes, maxCaptures)
     point nativeResult = __xregex_set_compile_native(patterns, c_uint(flags),
-        c_ulonglong(maxPatternBytes), c_ulonglong(maxCaptures))
+        uint64(maxPatternBytes), uint64(maxCaptures))
     RegexSet result = RegexSet(nativeResult)
     if not result.valid then
         throw ValueError __xregex_error()
@@ -662,14 +651,14 @@ end
 
 
 
-// 返回最近一次错误中的字节位置；没有位置时返回 -1。
-export func errorOffset() as int
-    return int(__xregex_error_offset())
+// 查询捕获或保存的错误；没有字节位置时返回 -1。
+export func errorOffset(error value) as int
+    return int(__xregex_error_offset(value))
 end
 
 
 
-// 返回最近一次批量编译失败的模式索引；没有索引时返回 -1。
-export func errorPatternIndex() as int
-    return int(__xregex_error_pattern_index())
+// 查询批量编译失败的模式索引；没有索引时返回 -1。
+export func errorPatternIndex(error value) as int
+    return int(__xregex_error_pattern_index(value))
 end

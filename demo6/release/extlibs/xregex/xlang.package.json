@@ -7,7 +7,7 @@
     "artifact": {
         "kind": "source",
         "cSources": [
-            "src/third_party/bbre/bbre.c",
+            "xregex_engine.c",
             "src/text/regex_core.c",
             "src/text/regex_escape.c",
             "src/text/regex_match.c",
@@ -18,11 +18,14 @@
         ],
         "xlSources": ["src/xlang/xregex.xl"],
         "xrtModules": [
+            "XRT_MODULE_REGEX_REPLACE",
+            "XRT_MODULE_REGEX_SPLIT",
+            "XRT_MODULE_REGEX_SET",
             "XRT_MODULE_ERROR_FORMAT",
             "XRT_MODULE_IO_BUFFER",
             "XRT_MODULE_STRING_SPLIT",
             "XRT_MODULE_UNICODE",
-            "XRUNTIME_MODULE_TYPED_ARRAY"
+            "XRT_MODULE_VALUE_CONTAINER"
         ],
         "includeDirs": ["include"]
     },
@@ -31,7 +34,7 @@
     "dependencies": [],
     "coverage": {
         "mode": "suite",
-        "tests": ["test/xregex_test.xl"]
+        "tests": ["test/xregex_test.xl", "test/xregex_lifetime_test.xl"]
     },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

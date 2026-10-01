@@ -1,0 +1,7 @@
+word=ab, id=1
+word=cd, id=22
+a<1> b<22>
+field=left
+field=right
+pattern=1
+pattern=2

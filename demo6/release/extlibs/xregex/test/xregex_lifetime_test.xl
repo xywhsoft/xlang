@@ -1,0 +1,140 @@
+import xregex
+from xregex import RegexMatcher, RegexSplitter, RegexMatch
+
+func escapedMatcher() as RegexMatcher
+    auto compiled = xregex.compile("([a-z]+)-([0-9]+)")
+    auto matcher = compiled.matcher()
+    string input = "ab-1 cd-22"
+    assert matcher.find(input)
+    input = "changed"
+    return matcher
+end
+
+func escapedSplitter() as RegexSplitter
+    auto compiled = xregex.compile(",")
+    string input = "甲,乙,丙"
+    return compiled.splitter(input)
+end
+
+func main(...) as int
+    // 编译对象与输入离开作用域后，matcher 和 splitter 仍持有各自依赖。
+    RegexMatcher matcher = escapedMatcher()
+    assert matcher.nativeHandle() != null and matcher.matched
+    for i in range(100)
+        string temporary = "overwrite-" + string(i)
+        assert temporary.length > 0
+    end
+    RegexMatch first = matcher.capture()
+    assert first.text == "ab-1"
+    assert matcher.next()
+    assert matcher.capture(2).text == "22"
+    assert first.text == "ab-1"
+    assert matcher.full("new-3")
+    assert first.text == "ab-1" and matcher.capture(1).text == "new"
+
+    RegexSplitter splitter = escapedSplitter()
+    assert splitter.nativeHandle() != null
+    auto one = splitter.next()
+    auto two = splitter.next()
+    auto three = splitter.next()
+    if one == null or two == null or three == null then
+        throw RuntimeError "expected three split parts"
+    end
+    assert one.text == "甲" and two.text == "乙" and three.text == "丙"
+    assert splitter.next() == null and splitter.next() == null
+
+    // 空匹配必须前进；合法空捕获和未参与捕获不能混为一谈。
+    auto optional = xregex.compile("(a)?()").matcher()
+    assert optional.full("")
+    assert not optional.capture(1).matched
+    assert optional.capture(1).text == ""
+    assert optional.capture(2).matched and optional.capture(2).text == ""
+    assert xregex.compile("").findAll("甲乙").length == 3
+
+    int rejected = 0
+    try
+        matcher.find("x", -1)
+    catch IndexError error
+        rejected += 1
+    end
+    try
+        matcher.find("x", 2)
+    catch IndexError error
+        rejected += 1
+    end
+    try
+        matcher.capture(-1)
+    catch IndexError error
+        rejected += 1
+    end
+    try
+        matcher.capture(100)
+    catch IndexError error
+        rejected += 1
+    end
+    try
+        xregex.compile("a", maxPatternBytes = 0)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        xregex.compile("ab", maxPatternBytes = 1)
+    catch error
+        rejected += 1
+    end
+    try
+        xregex.valid(string.repeat("a", xregex.DEFAULT_MAX_PATTERN_BYTES + 1))
+    catch RangeError error
+        rejected += 1
+    end
+    assert rejected == 7
+    assert not xregex.valid("(") and xregex.valid("ok")
+
+    // 错误由 catch 变量拥有；后续成功调用、错误查询顺序均不影响原始诊断。
+    error syntaxError = null
+    try
+        xregex.compile("(")
+    catch ValueError problem
+        syntaxError = problem
+    end
+    assert syntaxError != null
+    assert xregex.valid("ok")
+    assert xregex.errorOffset(syntaxError) >= 0
+    assert xregex.errorPatternIndex(syntaxError) == -1
+    error setError = null
+    try
+        xregex.compileSet(["ok", "("])
+    catch ValueError problem
+        setError = problem
+    end
+    assert setError != null
+    assert xregex.valid("ok")
+    assert xregex.errorPatternIndex(setError) == 1
+    assert xregex.errorOffset(setError) >= 0
+    assert xregex.errorOffset(null) == -1 and xregex.errorPatternIndex(null) == -1
+
+    auto digits = xregex.compile("[0-9]+")
+    assert digits.nativeHandle() != null
+    auto patterns = xregex.compileSet(["error", "[0-9]+"])
+    assert patterns.nativeHandle() != null
+    assert patterns.matcher().nativeHandle() != null
+    bool callbackFailed = false
+    try
+        digits.replaceWith("a1 b2", func(RegexMatcher current) as string
+            throw ValueError "replacement failed"
+        end)
+    catch ValueError error
+        callbackFailed = true
+    end
+    assert callbackFailed
+    assert digits.replaceWith("a1 b2", func(RegexMatcher current) as string
+        // 回调中的独立匹配不应覆盖外层匹配器的捕获。
+        assert xregex.fullMatch("[0-9]+", current.capture().text)
+        return "[" + current.capture().text + "]"
+    end) == "a[1] b[2]"
+    assert digits.replaceWith("a1", func(RegexMatcher current) as string
+        throw ValueError "zero limit must not call callback"
+    end, 0) == "a1"
+    println("xregex lifetime ok")
+    return 0
+end

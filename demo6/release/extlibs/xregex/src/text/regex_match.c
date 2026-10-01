@@ -2,7 +2,7 @@
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_MATCH)
+#if defined(XREGEX_FEATURE_REGEX_MATCH) && !defined(XRT_FEATURE_REGEX_MATCH) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 清除上一轮匹配状态但保留可复用执行缓存。 */
 static void __xrtRegexMatcherClear(xregexmatcher* pMatcher, xstrview Text)

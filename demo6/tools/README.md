@@ -38,6 +38,8 @@ Representative and cross-cutting guards include:
 - `check_dll_api_boundary.ps1`
 - `check_docs_index.ps1`
 - `check_example_wiring.ps1`
+- `check_extlib_xregex.ps1`
+- `check_extlib_xregex.sh`
 - `check_extlib_mqtt.ps1`
 - `check_format_extlibs.ps1`
 - `check_frontend_fuzz.ps1`
@@ -99,6 +101,14 @@ Representative and cross-cutting guards include:
 `check_xruntime_language_bridge.ps1` fixes the native-container bridge contract: collection algebra and dictionary merge call xruntime directly, storage controls stay available to xlang, and signed bounds are validated before conversion.
 
 ## Maintenance
+
+`check_extlib_xregex.ps1` verifies all 49 generated native prototypes, the single
+resident regex engine contract, owning matcher/splitter inputs, allocation-failure
+cleanup and C/xlang JIT/AOT example parity. `check_extlib_xregex.sh` repeats the
+standalone C ownership and OOM tests under Linux ASan/UBSan and leak detection,
+and can validate the actual generated prototypes on LP64. The main Linux suite
+also runs the package through JIT and independent ELF AOT. These checks do not
+certify concurrent mutation of one matcher, untested platforms or performance.
 
 `check_xlir_pending_exception_route.ps1` now runs the full pending-error matrix by default (`-FullOutcome` remains a compatible alias). It covers post-try routing, managed/nested finally, nullable diagnostics and real OOM, return/break/continue overrides, internal catches, and actual await/yield suspension. Explicit pending-error owners, cleanup-preservation causes, cancellation and async/generator error-frame lifetimes are mutation-tested before C/header output; both fixtures have strict-C allocation-balance tests, deterministic C/header and C-host JIT/AOT runs. Cancellation/closed-Future terminal cleanup and other untested continuation combinations are not implied by this matrix.
 

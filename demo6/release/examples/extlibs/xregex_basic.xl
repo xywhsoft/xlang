@@ -1,0 +1,25 @@
+import xregex
+
+func main(...) as int
+    // 编译一次，多次匹配；捕获结果是独立的字符串。
+    auto words = xregex.compile("(?<word>[a-z]+)-([0-9]+)")
+    auto matcher = words.matcher()
+    bool found = matcher.find("ab-1 cd-22")
+    while found
+        println("word=" + matcher.capture(1).text + ", id=" + matcher.capture(2).text)
+        found = matcher.next()
+    end
+
+    // 替换、拆分和多模式分类复用同一套 UTF-8 字节区间合同。
+    auto digits = xregex.compile("[0-9]+")
+    println(digits.replace("a1 b22", "<$0>"))
+    auto fields = xregex.compile(",").split("left,right")
+    for field in fields
+        println("field=" + field)
+    end
+    auto categories = xregex.compileSet(["error", "warn(ing)?", "[0-9]+"])
+    for index in categories.matches("warning 42")
+        println("pattern=" + string(index))
+    end
+    return 0
+end

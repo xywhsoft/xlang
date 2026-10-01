@@ -4,7 +4,7 @@
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_SET)
+#if defined(XREGEX_FEATURE_REGEX_SET) && !defined(XRT_FEATURE_REGEX_SET) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 释放尚未公开或最后一个引用持有的集合。 */
 static void __xrtRegexSetDestroy(xregexset* pSet)

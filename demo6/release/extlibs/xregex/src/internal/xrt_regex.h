@@ -1,5 +1,5 @@
-#ifndef XRT_INTERNAL_REGEX_H
-#define XRT_INTERNAL_REGEX_H
+#ifndef XLANG_EXTLIB_XREGEX_INTERNAL_H
+#define XLANG_EXTLIB_XREGEX_INTERNAL_H
 
 #include "../../include/xregex.h"
 

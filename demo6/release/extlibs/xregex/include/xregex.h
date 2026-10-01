@@ -1,5 +1,5 @@
-#ifndef XRT_REGEX_H
-#define XRT_REGEX_H
+#ifndef XLANG_EXTLIB_XREGEX_H
+#define XLANG_EXTLIB_XREGEX_H
 
 #define XREGEX_FEATURE_REGEX_CORE
 #define XREGEX_FEATURE_REGEX_MATCH
@@ -7,6 +7,17 @@
 #define XREGEX_FEATURE_REGEX_SPLIT
 #define XREGEX_FEATURE_REGEX_SET
 #define XREGEX_FEATURE_REGEX
+
+/* 公共 C 接口也选择自身依赖，不能只依赖 xlang 包清单传入的编译宏。 */
+#ifndef XRT_MODULE_ERROR_FORMAT
+#define XRT_MODULE_ERROR_FORMAT
+#endif
+#ifndef XRT_MODULE_STRING_SPLIT
+#define XRT_MODULE_STRING_SPLIT
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
 
 #include "xrt.h"
 
@@ -49,7 +60,13 @@
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_CORE)
+/* xlang 包清单明确选择完整正则闭包，因此声明 SDK 模式复用宿主/产物的
+ * 唯一执行内核。独立 C 模式仍由所选 XRT feature 或包自身提供实现。 */
+#if defined(XRT_DECLARATIONS) && defined(XRT_REGEX_H)
+#define XLANG_XREGEX_DECLARED_BY_SDK
+#endif
+
+#if defined(XREGEX_FEATURE_REGEX_CORE) && !defined(XRT_FEATURE_REGEX_CORE) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 默认限制面向不可信表达式，防止编译阶段无界消耗资源。 */
 #define XREGEX_PATTERN_DEFAULT (1024u * 1024u)
@@ -214,7 +231,7 @@ XRT_EXTERN_C_END
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_MATCH)
+#if defined(XREGEX_FEATURE_REGEX_MATCH) && !defined(XRT_FEATURE_REGEX_MATCH) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* matcher 独占可变执行缓存，捕获视图在下一次匹配前有效。 */
 typedef struct xregexmatcher xregexmatcher;
@@ -341,7 +358,7 @@ XRT_EXTERN_C_END
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_REPLACE)
+#if defined(XREGEX_FEATURE_REGEX_REPLACE) && !defined(XRT_FEATURE_REGEX_REPLACE) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 自定义替换器只能向输出尾部追加内容，返回 false 表示终止并报告错误。 */
 typedef bool (*xregexreplacefn)(
@@ -405,7 +422,7 @@ XRT_EXTERN_C_END
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_SPLIT)
+#if defined(XREGEX_FEATURE_REGEX_SPLIT) && !defined(XRT_FEATURE_REGEX_SPLIT) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 拆分标志控制捕获输出和空项过滤。 */
 typedef enum xregexsplitflag {
@@ -483,7 +500,7 @@ XRT_EXTERN_C_END
 
 
 
-#if defined(XREGEX_FEATURE_REGEX_SET)
+#if defined(XREGEX_FEATURE_REGEX_SET) && !defined(XRT_FEATURE_REGEX_SET) && !defined(XLANG_XREGEX_DECLARED_BY_SDK)
 
 /* 编译集合不可变并持有各模式引用。 */
 typedef struct xregexset xregexset;
