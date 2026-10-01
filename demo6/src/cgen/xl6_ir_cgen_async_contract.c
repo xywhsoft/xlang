@@ -967,7 +967,8 @@ static int xl6IrCgenAsyncDeclareMachineProgramValues(
             const XL6_IrInstruction* instruction = &module->instructions[instructionIndex];
             size_t valueLocal;
             const char* type;
-            if ( instruction->result == XL6_IR_VALUE_INVALID ||
+            if ( xl6IrCgenResultStorageOmitted(module, instruction) ||
+                 instruction->result == XL6_IR_VALUE_INVALID ||
                  xl6IrCgenIsControlCarrier(module, instruction) ||
                  instruction->result < function->firstValue ||
                  instruction->result - function->firstValue >= function->valueCount ) continue;

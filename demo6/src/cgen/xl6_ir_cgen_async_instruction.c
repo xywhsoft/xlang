@@ -202,6 +202,7 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
         if (!xl6IrCgenEmitProductInstruction(out, module, instruction, diags)) return 0;
         break;
     case XL6_IR_INSTR_CONST:
+        if (xl6IrCgenResultStorageOmitted(module, instruction)) break;
         if ( instruction->immediateText == NULL )
             return xl6IrCgenDiag(diags, module, instruction->origin,
                                  "XLIR async machine constant has no payload");

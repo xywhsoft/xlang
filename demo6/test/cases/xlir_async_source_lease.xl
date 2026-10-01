@@ -101,6 +101,7 @@ export "source_lease_keep" func sourceLeaseKeep()
 end
 
 func sourceLeaseEntry(string first, string? second, SourceLeaseBox owned, string last) as int
+    first = "changed"
     sourceLeaseBody()
     return 42
 end

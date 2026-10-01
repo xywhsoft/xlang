@@ -1990,6 +1990,7 @@ static int xl6IrLowerXValueRebindAllowed(
 {
     const XL6_IrType* target = xl6IrTypeGet(&ctx->module->types, targetType);
     if ( targetType == sourceType ) return 1;
+    if (xl6IrCollectionErasureAllowed(ctx->module, targetType, sourceType)) return 1;
     if ( xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module, targetType) &&
          xl6IrLowerTypeHasManagedXValueCarrier(ctx->module, sourceType) ) return 1;
     return xl6IrLowerClassValueAssignableTo(ctx, targetType, sourceType) ||
@@ -2139,10 +2140,7 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-         (element->cAbi == XL6_IR_C_ABI_BOOL ||
-          element->cAbi == XL6_IR_C_ABI_I64 ||
-          element->cAbi == XL6_IR_C_ABI_U64 ||
-          element->cAbi == XL6_IR_C_ABI_F64) )
+         xl6IrTaggedNullableScalarSupported(element->cAbi) )
         operation = XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY;
     else if ( nullable->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
               nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&

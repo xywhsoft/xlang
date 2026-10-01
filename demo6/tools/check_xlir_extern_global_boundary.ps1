@@ -75,7 +75,8 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR cross-function extern global Cgen faile
 $functionGenerated = [System.IO.File]::ReadAllText($functionCPath, [System.Text.Encoding]::UTF8)
 if ( $functionGenerated -notmatch 'static int64_t xlir_fn_[0-9]+\(void\)' -or
      $functionGenerated -notmatch 'v[0-9]+ = host_counter;' -or
-     $functionGenerated -notmatch 'host_counter = v[0-9]+;' ) {
+     $functionGenerated -notmatch '\{ &\(host_counter\), &\(xlir_committed\), sizeof\(host_counter\) \}' -or
+     $functionGenerated -notmatch '\(xl6SlotRuntimeV1Get\(\)->Apply\)' ) {
     throw "XLIR ExternGlobal is not available through verified user-function CFG"
 }
 $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror $functionHostSource !XL6_CGEN_LINKS! -o $functionExePath && $functionExePath"

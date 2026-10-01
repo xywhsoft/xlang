@@ -16511,17 +16511,41 @@ XL6_IrParameterAbi xl6IrParameterAbiForNode(
         ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE;
 }
 
-int xl6IrTypeSupportsCVararg(const XL6_IrModule* module, XL6_IrTypeId typeId)
+XL6_IrCVarargPhysicalAbi xl6IrCVarargPhysicalAbi(
+    const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     const XL6_IrType* type = module != NULL
         ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    if ( type == NULL ) return 0;
-    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-         type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE ||
-         type->cAbi == XL6_IR_C_ABI_RAW_POINTER ) return 1;
-    return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+    if ( type == NULL ) return XL6_IR_C_VARARG_PHYSICAL_INVALID;
+    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+        return XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW;
+    if ( type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE ||
+         type->cAbi == XL6_IR_C_ABI_RAW_POINTER )
+        return XL6_IR_C_VARARG_PHYSICAL_POINTER;
+    if (type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
            ((type->cAbi >= XL6_IR_C_ABI_BOOL && type->cAbi <= XL6_IR_C_ABI_F64) ||
-            (type->cAbi >= XL6_IR_C_ABI_C_CHAR && type->cAbi <= XL6_IR_C_ABI_C_WCHAR));
+            type->cAbi == XL6_IR_C_ABI_U64 || type->cAbi == XL6_IR_C_ABI_F32 ||
+            type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
+            (type->cAbi >= XL6_IR_C_ABI_C_CHAR && type->cAbi <= XL6_IR_C_ABI_C_WCHAR)))
+        return XL6_IR_C_VARARG_PHYSICAL_PROMOTED_SCALAR;
+    return XL6_IR_C_VARARG_PHYSICAL_INVALID;
+}
+
+int xl6IrTypeSupportsCVararg(const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    return xl6IrCVarargPhysicalAbi(module, typeId) != XL6_IR_C_VARARG_PHYSICAL_INVALID;
+}
+
+int xl6IrCollectionErasureAllowed(const XL6_IrModule* module,
+    XL6_IrTypeId targetId, XL6_IrTypeId sourceId)
+{
+    const XL6_IrType* target = xl6IrTypeGet(&module->types, targetId);
+    const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceId);
+    return target && source && target->kind == XL6_IR_TYPE_BUILTIN &&
+        target->collectionAbi != XL6_IR_COLLECTION_NONE &&
+        target->collectionAbi == source->collectionAbi && target->paramCount == 0 &&
+        target->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && source->cAbi == target->cAbi &&
+        target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED && source->ownershipAbi == target->ownershipAbi;
 }
 
 int xl6IrProtocolClassImplements(
@@ -17311,6 +17335,13 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp op
     default:
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
+}
+
+int xl6IrTaggedNullableScalarSupported(XL6_IrCAbi abi)
+{
+    return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
+           abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_F64 ||
+           abi == XL6_IR_C_ABI_CHAR_U32 || abi == XL6_IR_C_ABI_TIME_I64;
 }
 
 XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTypeId typeId)
@@ -25509,10 +25540,16 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeNetTcpBridgeKind(const char* name)
     return XL6_IR_RUNTIME_BRIDGE_NONE;
 }
 
+#include "src/ir/xl6_ir_random_bridge.c"
+
 XL6_IrRuntimeBridgeOperation xl6IrRuntimeBridgeOperationForName(
     const char* name)
 {
     if ( name == NULL ) return XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
+    {
+        const XL6_IrRandomBridgeContract* contract = xl6IrRandomBridgeContract(name);
+        if (contract != NULL) return contract->operation;
+    }
     if ( strcmp(name, "xl6_xrt_tcp_stream_send_file_result") == 0 ||
          strcmp(name, "xl6_xrt_tcp_stream_send_file_handle_result") == 0 ||
          strcmp(name, "xl6_xrt_tcp_stream_send_file") == 0 ||
@@ -25536,6 +25573,10 @@ int xl6IrRuntimeBridgeOperationTargetMatches(
     expected = xl6IrRuntimeBridgeOperationForName(target->cName);
     if ( target->runtimeBridgeOperation != expected ) return 0;
     if ( expected == XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE ) return 1;
+    if (expected >= XL6_IR_RUNTIME_BRIDGE_OPERATION_RNG_CREATE) {
+        const XL6_IrRandomBridgeContract* contract = xl6IrRandomBridgeContract(target->cName);
+        return contract != NULL && xl6IrRandomBridgeTargetMatches(module, target, contract);
+    }
     if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
          target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
          target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
@@ -35858,10 +35899,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                       resultType->params[0] ||
                                   instruction->calleeType !=
                                       XL6_IR_TYPE_INVALID ||
-                                  (elementType->cAbi != XL6_IR_C_ABI_BOOL &&
-                                   elementType->cAbi != XL6_IR_C_ABI_I64 &&
-                                   elementType->cAbi != XL6_IR_C_ABI_U64 &&
-                                   elementType->cAbi != XL6_IR_C_ABI_F64))
+                                  !xl6IrTaggedNullableScalarSupported(elementType->cAbi))
                                : string
                                ? (resultType->cAbi !=
                                       XL6_IR_C_ABI_MANAGED_STRING ||
@@ -36768,10 +36806,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              sourceType->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
                              sourceType->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
                              sourceType->cName[0] == '\0' || elementType == NULL ||
-                             (elementType->cAbi != XL6_IR_C_ABI_BOOL &&
-                              elementType->cAbi != XL6_IR_C_ABI_I64 &&
-                              elementType->cAbi != XL6_IR_C_ABI_U64 &&
-                              elementType->cAbi != XL6_IR_C_ABI_F64) )
+                             !xl6IrTaggedNullableScalarSupported(elementType->cAbi) )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR tagged nullable dynamic box has no exact scalar carrier ABI");
                     } else if ( xl6IrCollectionAlgebraRuntimeOpIs(
@@ -37975,10 +38010,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              resultType->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
                              resultType->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
                              resultType->cName[0] == '\0' || elementType == NULL ||
-                             (elementType->cAbi != XL6_IR_C_ABI_BOOL &&
-                              elementType->cAbi != XL6_IR_C_ABI_I64 &&
-                              elementType->cAbi != XL6_IR_C_ABI_U64 &&
-                              elementType->cAbi != XL6_IR_C_ABI_F64) )
+                             !xl6IrTaggedNullableScalarSupported(elementType->cAbi) )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR runtime tagged nullable class field access has no exact ABI");
                     } else if ( instruction->runtimeOp ==
@@ -40890,6 +40922,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           !xl6IrCallableTypesCompatible(module, source->type, instruction->type) &&
                           !xl6IrBuildClassDerivesFrom(module, source->type, instruction->type) &&
                           !xl6IrProtocolClassImplements(module, instruction->type, source->type) &&
+                          !xl6IrCollectionErasureAllowed(module, instruction->type, source->type) &&
                           !(xl6IrTypeIsDynamicXValueBuiltin(module, instruction->type) &&
                             xl6IrTypeHasManagedXValueCarrier(module, source->type)) &&
                           !xl6IrNullableAcceptsValue(module, instruction->type, source->type)) ) {
@@ -41087,6 +41120,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              !xl6IrTypeSupportsCVararg(module, argument->type) )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR C variadic call tail has no verified native value ABI");
+                        if ( xl6IrCVarargPhysicalAbi(module, argument->type) ==
+                                 XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW &&
+                             callee->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE )
+                            return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
+                                "XLIR C variadic string requires a checked C-text foreign scope");
                     }
                 }
                 if ( instruction->kind == XL6_IR_INSTR_CLOSURE_CALL ) {
@@ -42395,6 +42433,10 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
 static const char* xl6IrRuntimeBridgeOperationName(
     XL6_IrRuntimeBridgeOperation operation)
 {
+    size_t i;
+    for (i = 0; i < sizeof(xl6IrRandomBridgeContracts)/sizeof(*xl6IrRandomBridgeContracts); ++i)
+        if (xl6IrRandomBridgeContracts[i].operation == operation)
+            return xl6IrRandomBridgeContracts[i].name;
     switch ( operation ) {
     case XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE: return "none";
     case XL6_IR_RUNTIME_BRIDGE_OPERATION_NET_TCP_FILE_TRANSFER:

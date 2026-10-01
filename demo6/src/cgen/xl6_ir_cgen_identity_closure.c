@@ -197,11 +197,13 @@ static int xl6IrCgenEmitTaggedNullableXValueRuntime(
             : element->cAbi == XL6_IR_C_ABI_I64 ? "xrtValueInt"
             : element->cAbi == XL6_IR_C_ABI_U64 ? "xrtValueUInt"
             : element->cAbi == XL6_IR_C_ABI_TIME_I64 ? "xrtValueTime"
+            : element->cAbi == XL6_IR_C_ABI_CHAR_U32 ? "xrtValueChar"
             : "xrtValueFloat";
         getter = element->cAbi == XL6_IR_C_ABI_BOOL ? "xrtValueGetBool"
             : element->cAbi == XL6_IR_C_ABI_I64 ? "xrtValueGetInt"
             : element->cAbi == XL6_IR_C_ABI_U64 ? "xrtValueGetUInt"
             : element->cAbi == XL6_IR_C_ABI_TIME_I64 ? "xrtValueGetTime"
+            : element->cAbi == XL6_IR_C_ABI_CHAR_U32 ? "xrtValueGetChar"
             : "xrtValueGetFloat";
         zero = element->cAbi == XL6_IR_C_ABI_BOOL ? "false"
             : element->cAbi == XL6_IR_C_ABI_F64 ? "0.0" : "0";

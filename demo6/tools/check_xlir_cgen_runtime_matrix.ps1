@@ -12,6 +12,7 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $generated = Join-Path $Root "build\test\xlir_cgen_runtime_matrix_generated.c"
 $fixtures = @(
+    @{ Name = "task race source and loser cancellation"; Source = "test\cases\cgen_task_race_source_cancel.xl"; Host = "test\cases\xlir_generated_module_host.c"; Support = "test\cases\cgen_task_race_source_cancel_support.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "scalar ABI"; Source = "test\cases\xlir_cgen_differential_scalar.xl"; Host = "test\cases\xlir_cgen_differential_scalar_host.c" },
     @{ Name = "exported primitive-width and F32 value ABI"; Source = "test\cases\export_primitive_widths.xl"; Host = "test\cases\export_primitive_widths_host.c"; SeparateGenerated = $true },
     @{ Name = "float-to-integer scalar conversion ABI"; Source = "test\cases\xlir_cgen_differential_scalar_conversion.xl"; Host = "test\cases\xlir_cgen_differential_scalar_conversion_host.c" },

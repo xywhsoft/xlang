@@ -7259,7 +7259,8 @@ XRT_API xfuture* xrtFutureAll(xfuture* const* pFutures, size_t iCount);
 
 
 
-/* 在任一源进入终态后完成，并向其余未完成源发出协作取消请求。 */
+/* 在任一源进入终态后完成，并向其余未完成源发出协作取消请求。
+ * 取消请求在结果映射/发布之前完成；这不强制改变败者的终态。 */
 XRT_API xfuture* xrtFutureRace(xfuture* const* pFutures, size_t iCount);
 
 /* Synchronous result mapping is part of the aggregate's activation, not a
@@ -94676,8 +94677,13 @@ static void __xrtFutureCombineSourceDone(ptr data)
     }
     __xrtFutureCombineEnd(group, &scope);
     if (promise) {
-        __xrtFutureCombineDetach(group, item); __xrtFutureCombineComplete(group, promise);
+        __xrtFutureCombineDetach(group, item);
+        /* The winning callback still owns the group and its source slots.
+         * Request cancellation before the mapper can publish to another
+         * thread; callbacks run without the group mutex, and Completed makes
+         * reentrant loser notifications inert. Producers keep terminal rights. */
         if (race) __xrtFutureCombineCancelSources(group, item->Index);
+        __xrtFutureCombineComplete(group, promise);
     }
     __xrtFutureCombineBegin(group, &scope); --group->Active; __xrtFutureCombineEnd(group, &scope);
 }

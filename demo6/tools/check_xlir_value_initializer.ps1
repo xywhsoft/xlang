@@ -269,8 +269,11 @@ if ( $destroyTarget.Count -ne 1 -or $nativeNullDefault.Count -ne 1 -or
          $_.kindName -eq 'runtime-call' -and $_.runtimeOpName -eq 'xvalue-null'
      }).Count -ne 1 -or
      @($nativeNullLowered.instructions | Where-Object {
-         $_.kindName -eq 'release' -and $_.type -eq $nativeNullDefault[0].type
-     }).Count -ne 1 ) {
+         $_.kindName -eq 'release' -and $_.type -eq $nativeNullDefault[0].type -and
+         $_.targetSymbol -in @($nativeNullLowered.storages | Where-Object {
+             $_.kindName -eq 'local' -and $_.declaration -eq $nativeNullDefault[0].declaration
+         } | ForEach-Object { $_.symbol })
+     }).Count -lt 1 ) {
     throw "Lowered XLIR owning native class default has no null field and destroy-aware release ABI"
 }
 
@@ -292,6 +295,7 @@ $packageExportLowered = Read-Json $packageExportLoweredPath
 if ( @($packageExportLowered.storages | Where-Object { $_.kindName -eq 'global' }).Count -ne 3 -or
      @($packageExportLowered.instructions | Where-Object {
          $_.kindName -eq 'store' -and
+         $_.targetSymbol -in @($packageExportLowered.storages | Where-Object kindName -eq 'global' | ForEach-Object { $_.symbol }) -and
          $packageExportInitializers.declaration -contains $_.origin
      }).Count -ne 3 -or
      @($packageExportLowered.instructions | Where-Object {

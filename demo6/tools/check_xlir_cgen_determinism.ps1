@@ -473,7 +473,7 @@ foreach ( $required in @(
     "typedef XL6_Cell xlir_cell", "XL6_CLOSURE_CAPTURE_CELL",
     "(xl6CellRuntimeV1Get()->Create)(XL6_CELL_STRING",
     "(xl6CellRuntimeV1Get()->Initialize)",
-    "(xl6CellRuntimeV1Get()->Exchange)", "xrtFree(xlir_released)"
+    "(xl6CellRuntimeV1Get()->Exchange)", "xlir_string_drop(xlir_released)"
 ) ) {
     if ( ! $text.Contains($required) ) {
         throw "generated C mutable string capture is missing its element ownership ABI: $required"
@@ -711,12 +711,12 @@ if ( $await.kindName -ne "await" -or $suspension.resultValue -eq 0 -or
     throw "Async suspension must bind the exact owned string result of its await instruction"
 }
 $text = [System.IO.File]::ReadAllText($asyncExternStringCaptureGenerated, [System.Text.Encoding]::UTF8)
-foreach ( $required in @("xlir_async_machine_frame_2", "xrtStrDup(v", "xlir_make_string_future()", "xlir_async_machine_resume_2_0") ) {
+foreach ( $required in @("xlir_async_machine_frame_2", "xlir_string_copy(v", "xlir_make_string_future()", "xlir_async_machine_resume_2_0") ) {
     if ( ! $text.Contains($required) ) {
         throw "generated C async extern-string-capture is missing its direct continuation ABI: $required"
     }
 }
-if ( $text -notmatch '(?s)v(\d+)\s*=\s*xrtStrDup\(v\d+\);.{0,800}?char\* xlir_committed\s*=\s*v\1;.{0,500}?\{\s*&\(frame->f0\),\s*&\(xlir_committed\)' ) {
+if ( $text -notmatch '(?s)v(\d+)\s*=\s*xlir_string_copy\(v\d+\);.{0,800}?xlir_string xlir_committed\s*=\s*v\1;.{0,500}?\{\s*&\(frame->f0\),\s*&\(xlir_committed\)' ) {
     throw "generated C async extern-string-capture did not materialize the borrowed string before frame ownership"
 }
 if ( $text.Contains("xrtTaskSubmit") ) {
@@ -972,7 +972,7 @@ if ( [regex]::Matches($text, $borrowedArgumentReleasePattern).Count -lt 2 ) {
 }
 $text = [System.IO.File]::ReadAllText($stringClosureGenerated, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xrtStrDup(v", "environment)->c0",
+    "xlir_string_copy(v", "environment)->c0",
     "XL6_CLOSURE_CAPTURE_STRING", "XL6_ClosureEnvironmentV1",
     "xlir_closure_env_drop(&xlir_closure_layout_"
 ) ) {

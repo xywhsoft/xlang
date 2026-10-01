@@ -10260,7 +10260,8 @@ XRT_API xfuture* xrtFutureAll(xfuture* const* pFutures, size_t iCount);
 
 
 
-/* 在任一源进入终态后完成，并向其余未完成源发出协作取消请求。 */
+/* 在任一源进入终态后完成，并向其余未完成源发出协作取消请求。
+ * 取消请求在结果映射/发布之前完成；这不强制改变败者的终态。 */
 XRT_API xfuture* xrtFutureRace(xfuture* const* pFutures, size_t iCount);
 
 /* Synchronous result mapping is part of the aggregate's activation, not a
@@ -47239,6 +47240,11 @@ XRT_EXTERN_C_BEGIN
 
 /* 返回拥有一个零结尾 XRT 字符串的 C ABI 槽类型描述。 */
 XRT_API const xrttype* xrtTypeString(void);
+
+/* Owned xstrview slot: exact byte length, including embedded NUL. Copy is
+ * transactional; move detaches the source; drop frees Data and clears both
+ * fields. This descriptor is resident and distinct from the char* ABI above. */
+XRT_API const xrttype* xrtTypeStringView(void);
 
 
 

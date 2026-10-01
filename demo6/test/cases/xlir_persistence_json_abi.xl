@@ -84,9 +84,15 @@ expectText(restoredXlon.address.city, "Shanghai")
 string jsonPath = "build/test/xlir_persistence_json_abi.json"
 string xlonPath = "build/test/xlir_persistence_json_abi.xlon"
 string scalarPath = "build/test/xlir_persistence_json_scalar.json"
-file.delete(jsonPath)
-file.delete(xlonPath)
-file.delete(scalarPath)
+if file.exists(jsonPath) then
+    file.delete(jsonPath)
+end
+if file.exists(xlonPath) then
+    file.delete(xlonPath)
+end
+if file.exists(scalarPath) then
+    file.delete(scalarPath)
+end
 
 expect(json.write(jsonPath, profile, true), 1)
 PersistenceProfile restoredJsonFile = json.read::<PersistenceProfile>(jsonPath)

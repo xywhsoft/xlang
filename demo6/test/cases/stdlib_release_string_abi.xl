@@ -84,4 +84,22 @@ assert named.debugName() == "named"
 assert not named.setDebugName("bad\0name")
 assert named.debugName() == "named"
 assert await named == "a\0b"
+char? releaseEmptyChar = null
+char? releasePresentChar = '你'
+var releaseEmptyCharBox = releaseEmptyChar
+var releasePresentCharBox = releasePresentChar
+assert releaseEmptyCharBox == null and releasePresentCharBox == '你'
+class ReleaseNullableCharBox
+    char? value = null
+end
+ReleaseNullableCharBox releaseCharRecord = ReleaseNullableCharBox()
+assert releaseCharRecord.value == null
+releaseCharRecord.value = '你'
+char? releaseCharRead = releaseCharRecord.value
+var releaseCharReadBox = releaseCharRead
+assert releaseCharReadBox == '你'
+array<char?> releaseCharItems = array<char?>[null, 'A', '你']
+assert releaseCharItems[0] == null
+var releaseCharItem = releaseCharItems[2]
+assert releaseCharItem == '你'
 println("release string ABI: PASS")

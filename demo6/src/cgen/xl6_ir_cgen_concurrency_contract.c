@@ -378,7 +378,7 @@ static const char* xl6IrCgenAvlRuntimeTypeExpr(const XL6_IrType* type)
     case XL6_IR_C_ABI_TYPE_ID: return "xrtTypeType()";
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-            ? "xrtTypeString()" : NULL;
+            ? "xrtTypeStringView()" : NULL;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
             ? "xrtTypeValue()" : NULL;

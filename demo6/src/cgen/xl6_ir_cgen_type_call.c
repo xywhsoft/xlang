@@ -322,6 +322,9 @@ static int xl6IrCgenResultStorageOmitted(
         return xl6IrValueOwnershipGet(module, instruction->result) ==
             XL6_IR_OWNERSHIP_BORROW;
     type = xl6IrTypeGet(&module->types, instruction->type);
+    if (instruction->kind == XL6_IR_INSTR_CONST && type != NULL &&
+        type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL)
+        return 1;
     return type != NULL &&
         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
         xl6IrValueOwnershipGet(module, instruction->result) ==
@@ -649,6 +652,7 @@ static int xl6IrCgenEmitDirectCall(
     const XL6_IrCallTarget* target = instruction != NULL
         ? xl6IrCallTargetGet(module, instruction->targetSymbol) : NULL;
     size_t argument;
+    size_t textCount = 0;
     if ( !xl6IrCgenDirectCallAbiSupported(module, target, instruction) )
         return xl6IrCgenDiag(diags, module,
             instruction != NULL ? instruction->origin : XL6_IR_NODE_INVALID,
@@ -670,6 +674,30 @@ static int xl6IrCgenEmitDirectCall(
             "    if (xl6ForeignCallBegin(&fs%lu)) {\n",
             (unsigned long)instructionIndex, (unsigned long)instructionIndex,
             (unsigned long)instructionIndex);
+    for (argument = target->parameterCount; argument < instruction->operandCount; ++argument) {
+        const XL6_IrInstruction* value = xl6IrCgenValueDefinition(module,
+            module->operands[instruction->firstOperand + argument], NULL);
+        if (value == NULL) return 0;
+        if (xl6IrCVarargPhysicalAbi(module, value->type) != XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW) continue;
+        if (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
+            return xl6IrCgenDiag(diags, module, instruction->origin,
+                "XLIR C text variadic preparation requires a checked foreign outcome");
+        xl6OutputPrintf(out, "    const char* ct%lu_%lu = xlir_string_cstr(v%u);\n",
+            (unsigned long)instructionIndex, (unsigned long)argument, (unsigned int)value->result);
+        ++textCount;
+    }
+    if (textCount != 0) {
+        xl6OutputPuts("    if (", out);
+        textCount = 0;
+        for (argument = target->parameterCount; argument < instruction->operandCount; ++argument) {
+            const XL6_IrInstruction* value = xl6IrCgenValueDefinition(module,
+                module->operands[instruction->firstOperand + argument], NULL);
+            if (xl6IrCVarargPhysicalAbi(module, value->type) != XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW) continue;
+            if (textCount++) xl6OutputPuts(" && ", out);
+            xl6OutputPrintf(out, "ct%lu_%lu != NULL", (unsigned long)instructionIndex, (unsigned long)argument);
+        }
+        xl6OutputPuts(") {\n", out);
+    }
     if ( target->errorPhysicalAbi ==
              XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPrintf(out, "    %s r%lu = ",
@@ -696,14 +724,17 @@ static int xl6IrCgenEmitDirectCall(
                 return xl6IrCgenDiag(diags, module, instruction->origin,
                     "XLIR C emitter call operand ABI is unresolved");
         } else {
-            xl6OutputPrintf(out, "v%u",
-                (unsigned int)module->operands[
-                    instruction->firstOperand + argument]);
+            const XL6_IrInstruction* value = xl6IrCgenValueDefinition(module,
+                module->operands[instruction->firstOperand + argument], NULL);
+            if (xl6IrCVarargPhysicalAbi(module, value->type) == XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW)
+                xl6OutputPrintf(out, "ct%lu_%lu", (unsigned long)instructionIndex, (unsigned long)argument);
+            else xl6OutputPrintf(out, "v%u", (unsigned int)value->result);
         }
     }
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
         xl6OutputPuts(")", out);
     xl6OutputPuts(");\n", out);
+    if (textCount != 0) xl6OutputPuts("    }\n", out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
         int owned = 0;
         for (argument = 0; argument < target->parameterCount; ++argument)

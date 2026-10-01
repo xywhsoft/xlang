@@ -7735,7 +7735,8 @@ XRT_API xfuture* xrtFutureAll(xfuture* const* pFutures, size_t iCount);
 
 
 
-/* 在任一源进入终态后完成，并向其余未完成源发出协作取消请求。 */
+/* 在任一源进入终态后完成，并向其余未完成源发出协作取消请求。
+ * 取消请求在结果映射/发布之前完成；这不强制改变败者的终态。 */
 XRT_API xfuture* xrtFutureRace(xfuture* const* pFutures, size_t iCount);
 
 /* Synchronous result mapping is part of the aggregate's activation, not a
@@ -44714,6 +44715,11 @@ XRT_EXTERN_C_BEGIN
 
 /* 返回拥有一个零结尾 XRT 字符串的 C ABI 槽类型描述。 */
 XRT_API const xrttype* xrtTypeString(void);
+
+/* Owned xstrview slot: exact byte length, including embedded NUL. Copy is
+ * transactional; move detaches the source; drop frees Data and clears both
+ * fields. This descriptor is resident and distinct from the char* ABI above. */
+XRT_API const xrttype* xrtTypeStringView(void);
 
 
 
@@ -99744,8 +99750,13 @@ static void __xrtFutureCombineSourceDone(ptr data)
     }
     __xrtFutureCombineEnd(group, &scope);
     if (promise) {
-        __xrtFutureCombineDetach(group, item); __xrtFutureCombineComplete(group, promise);
+        __xrtFutureCombineDetach(group, item);
+        /* The winning callback still owns the group and its source slots.
+         * Request cancellation before the mapper can publish to another
+         * thread; callbacks run without the group mutex, and Completed makes
+         * reentrant loser notifications inert. Producers keep terminal rights. */
         if (race) __xrtFutureCombineCancelSources(group, item->Index);
+        __xrtFutureCombineComplete(group, promise);
     }
     __xrtFutureCombineBegin(group, &scope); --group->Active; __xrtFutureCombineEnd(group, &scope);
 }
@@ -341485,6 +341496,110 @@ XRT_API const xrttype* xrtTypeString(void)
 	return &__xrtRuntimeTypeString;
 }
 
+static bool __xrtRuntimeTypeStringViewInit(ptr pValue, const xrttype* pType)
+{
+	xstrview Empty = {0};
+	(void)pType;
+	memcpy(pValue, &Empty, sizeof(Empty));
+	return true;
+}
+
+static bool __xrtRuntimeTypeStringViewCopy(ptr pTarget, const void* pSource, const xrttype* pType)
+{
+	xstrview Source, Target, Copy = {0};
+	(void)pType;
+	memcpy(&Source, pSource, sizeof(Source));
+	if ( Source.Data == NULL && Source.Size != 0u ) {
+		xrtSetErrorKind(XERR_ARGUMENT);
+		return false;
+	}
+	if ( Source.Data != NULL ) {
+		Copy.Data = xrtStrDupView(Source);
+		if ( Copy.Data == NULL ) return false;
+		Copy.Size = Source.Size;
+	}
+	memcpy(&Target, pTarget, sizeof(Target));
+	memcpy(pTarget, &Copy, sizeof(Copy));
+	xrtFree((ptr)Target.Data);
+	return true;
+}
+
+static bool __xrtRuntimeTypeStringViewMove(ptr pTarget, ptr pSource, const xrttype* pType)
+{
+	xstrview Source, Target, Empty = {0};
+	(void)pType;
+	if ( pTarget == pSource ) return true;
+	memcpy(&Source, pSource, sizeof(Source));
+	memcpy(&Target, pTarget, sizeof(Target));
+	memcpy(pSource, &Empty, sizeof(Empty));
+	memcpy(pTarget, &Source, sizeof(Source));
+	xrtFree((ptr)Target.Data);
+	return true;
+}
+
+static void __xrtRuntimeTypeStringViewDrop(ptr pValue, const xrttype* pType)
+{
+	xstrview Value, Empty = {0};
+	(void)pType;
+	memcpy(&Value, pValue, sizeof(Value));
+	memcpy(pValue, &Empty, sizeof(Empty));
+	xrtFree((ptr)Value.Data);
+}
+
+static int __xrtRuntimeTypeStringViewCompare(const void* pLeft, const void* pRight, const xrttype* pType)
+{
+	xstrview Left, Right;
+	(void)pType;
+	memcpy(&Left, pLeft, sizeof(Left));
+	memcpy(&Right, pRight, sizeof(Right));
+	return xrtStrCompare(Left, Right);
+}
+
+static uint64 __xrtRuntimeTypeStringViewHash(const void* pValue, const xrttype* pType)
+{
+	xstrview Value;
+	(void)pType;
+	memcpy(&Value, pValue, sizeof(Value));
+	return xrtHash64(Value.Data, Value.Size);
+}
+
+static bool __xrtRuntimeTypeStringViewFormat(const void* pValue, const xrttype* pType,
+	xrttypewriter pWrite, ptr pContext)
+{
+	xstrview Value;
+	(void)pType;
+	memcpy(&Value, pValue, sizeof(Value));
+	return pWrite(Value, pContext);
+}
+
+static const xrttypeops __xrtRuntimeTypeStringViewOps = {
+	.Init = __xrtRuntimeTypeStringViewInit,
+	.Copy = __xrtRuntimeTypeStringViewCopy,
+	.Move = __xrtRuntimeTypeStringViewMove,
+	.Drop = __xrtRuntimeTypeStringViewDrop,
+	.Clone = __xrtRuntimeTypeStringViewCopy,
+	.Compare = __xrtRuntimeTypeStringViewCompare,
+	.Hash = __xrtRuntimeTypeStringViewHash,
+	.Format = __xrtRuntimeTypeStringViewFormat
+};
+
+static const xrttype __xrtRuntimeTypeStringView = {
+	.Id = UINT64_C(0x71847431A2BA8956),
+	.Kind = XRT_TYPE_STRING,
+	.Flags = XRT_TYPE_FLAG_COPYABLE | XRT_TYPE_FLAG_FINAL | XRT_TYPE_FLAG_RELOCATABLE,
+	.Name = XRT_STR_INIT("string-view"),
+	.AbiName = XRT_STR_INIT("xrt.owned-string-view"),
+	.Size = sizeof(xstrview),
+	.Align = XRT_INTERNAL_ALIGNOF(xstrview),
+	.InstanceAlign = 1u,
+	.Ops = &__xrtRuntimeTypeStringViewOps
+};
+
+XRT_API const xrttype* xrtTypeStringView(void)
+{
+	return &__xrtRuntimeTypeStringView;
+}
+
 #endif
 #endif
 
@@ -341952,6 +342067,9 @@ static bool __xrtValueConvertString(
 
 	if ( !xrtValueGetString(pSource, &Text) ) {
 		return __xrtValueConvertReadFailed();
+	}
+	if ( pTargetType == xrtTypeStringView() ) {
+		return xrtTypeCopyValue(pTargetType, pTarget, &Text);
 	}
 	if ( (Text.Size != 0u) &&
 		 (memchr(Text.Data, 0, Text.Size) != NULL) ) {
@@ -342590,7 +342708,8 @@ static bool __xrtTypedValueDecodeString(
 	xstrview Text;
 	str sResult;
 
-	*pHandled = xrtTypeSame(pTargetType, xrtTypeString());
+	*pHandled = xrtTypeSame(pTargetType, xrtTypeString()) ||
+		xrtTypeSame(pTargetType, xrtTypeStringView());
 	if ( !*pHandled ) {
 		return false;
 	}
@@ -342598,6 +342717,12 @@ static bool __xrtTypedValueDecodeString(
 		__xrtTypedValueWrap(XERR_TYPE, XTYPED_VALUE_ERROR_TYPE,
 			"to-typed", "the dynamic value is not a string");
 		return false;
+	}
+	if ( xrtTypeSame(pTargetType, xrtTypeStringView()) ) {
+		xstrview Result = {0};
+		if ( !xrtTypeCopyValue(pTargetType, &Result, &Text) ) return false;
+		memcpy(pTarget, &Result, sizeof(Result));
+		return true;
 	}
 	if ( (Text.Size != 0u) &&
 		 (memchr(Text.Data, 0, Text.Size) != NULL) ) {
@@ -342626,9 +342751,15 @@ static xvalue* __xrtTypedValueEncodeString(
 {
 	str sSource;
 
-	*pHandled = xrtTypeSame(pSourceType, xrtTypeString());
+	*pHandled = xrtTypeSame(pSourceType, xrtTypeString()) ||
+		xrtTypeSame(pSourceType, xrtTypeStringView());
 	if ( !*pHandled ) {
 		return NULL;
+	}
+	if ( xrtTypeSame(pSourceType, xrtTypeStringView()) ) {
+		xstrview Text;
+		memcpy(&Text, pSource, sizeof(Text));
+		return xrtValueString(Text);
 	}
 	memcpy(&sSource, pSource, sizeof(sSource));
 	return xrtValueString(xrtStrView(sSource));

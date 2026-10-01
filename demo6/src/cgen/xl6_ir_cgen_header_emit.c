@@ -266,8 +266,8 @@ int xl6IrCgenEmitHeader(
               target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
              !xl6IrCgenEmitExternPrototype(out, module, target, diags) ) return 0;
     }
-    for ( i = 0; i < module->externGlobalCount; ++i )
-        if ( !xl6IrCgenEmitExternGlobal(out, module, &module->externGlobals[i], diags) ) return 0;
+    /* Imported storage is a private implementation dependency. Its extern
+     * declaration belongs in the generated C unit, not the public export ABI. */
     if (module->exportCount != 0) {
         xl6IrCgenEmitForeignErrorDeclarations(out, 1);
         xl6OutputPuts(

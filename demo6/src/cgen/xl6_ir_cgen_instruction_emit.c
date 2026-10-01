@@ -8,6 +8,7 @@ static int xl6IrCgenEmitInstruction(
 {
     switch ( instruction->kind ) {
             case XL6_IR_INSTR_CONST:
+                if (xl6IrCgenResultStorageOmitted(module, instruction)) break;
                 if ( instruction->immediateText == NULL ) return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR constant has no canonical immediate payload");
                 xl6OutputPrintf(out, "    v%u = %s;\n", (unsigned int)instruction->result, instruction->immediateText);
                 break;

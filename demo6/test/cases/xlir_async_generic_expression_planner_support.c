@@ -11,7 +11,7 @@ extern bool xrtPromiseResolve(xpromise*, void*);
 #endif
 
 static int64_t xlir_async_generic_differential_scalar = 41;
-static const char* xlir_async_generic_differential_string = "hello";
+static xstrview xlir_async_generic_differential_string = { "hello", 5 };
 
 xfuture* xlir_make_i64_future(void)
 {

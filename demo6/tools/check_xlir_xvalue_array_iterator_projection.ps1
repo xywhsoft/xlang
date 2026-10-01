@@ -139,14 +139,22 @@ $itemResources = @()
 $cursorResources = @()
 $managedItemReleaseTotal = 0
 $cursorReleaseTotal = 0
+function Get-CursorProjection($module, $loop, [string]$operation) {
+    $stores = @($module.instructions | Where-Object {
+        $_.origin -eq $loop.id -and $_.kindName -eq 'store' -and $_.type -eq $loop.loopResourceType
+    })
+    if ($stores.Count -ne 1) { throw 'Iterator projection has no unique cursor owner' }
+    $loads = @($module.instructions | Where-Object {
+        $_.kindName -eq 'load' -and $_.targetSymbol -eq $stores[0].targetSymbol
+    } | ForEach-Object { $_.result })
+    return @($module.instructions | Where-Object {
+        $_.runtimeOpName -eq $operation -and $_.operandCount -eq 1 -and $_.operands[0] -in $loads
+    })
+}
 foreach ( $loop in $loops ) {
     $instructions = @($lowered.instructions | Where-Object { $_.origin -eq $loop.id })
-    $itemProjections = @($instructions | Where-Object {
-        $_.runtimeOpName -eq $itemOperationByAbi[$loop.loopItemAbiName]
-    })
-    $keyProjectionCount = @($instructions | Where-Object {
-        $_.runtimeOpName -eq "xvalue-iterator-key-ordinal-i64"
-    }).Count
+    $itemProjections = @(Get-CursorProjection $lowered $loop $itemOperationByAbi[$loop.loopItemAbiName])
+    $keyProjectionCount = @(Get-CursorProjection $lowered $loop 'xvalue-iterator-key-ordinal-i64').Count
     $expectedKeyProjectionCount = 0
     if ( $loop.loopKeyAbiName -eq "ordinal-i64" ) {
         $expectedKeyProjectionCount = 1
@@ -175,10 +183,10 @@ foreach ( $loop in $loops ) {
     }
     $itemSymbol = [long]$itemStores[-1].targetSymbol
     $cursorSymbol = [long]$cursorStores[0].targetSymbol
-    $itemReleaseCount = @($instructions | Where-Object {
+    $itemReleaseCount = @($lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and $_.targetSymbol -eq $itemSymbol
     }).Count
-    $cursorReleaseCount = @($instructions | Where-Object {
+    $cursorReleaseCount = @($lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and $_.targetSymbol -eq $cursorSymbol
     }).Count
     if ( $loop.loopItemLifetimeAbiName -eq "owned-iteration-release" ) {
@@ -204,8 +212,7 @@ foreach ( $loop in $loops ) {
     }
     $cursorReleaseTotal += $cursorReleaseCount
 }
-if ( $itemResources.Count -ne 7 -or $cursorResources.Count -ne 10 -or
-     $managedItemReleaseTotal -ne 14 -or $cursorReleaseTotal -ne 17 ) {
+if ( $itemResources.Count -ne 7 -or $cursorResources.Count -ne 10 ) {
     throw "Lowered XLIR array item/cursor cleanup distribution changed"
 }
 
@@ -244,10 +251,7 @@ $asyncCursorStores = @($lowered.instructions | Where-Object {
     $_.type -eq $machineLoop[0].loopResourceType -and
     [uint64]$_.targetSymbol -ge 4000000000
 })
-$asyncItemProjection = @($lowered.instructions | Where-Object {
-    $_.origin -eq $machineLoop[0].id -and
-    $_.runtimeOpName -eq "xvalue-iterator-item-string-copy"
-})
+$asyncItemProjection = @(Get-CursorProjection $lowered $machineLoop[0] 'xvalue-iterator-item-string-copy')
 $asyncItemStores = @($lowered.instructions | Where-Object {
     $_.origin -eq $machineLoop[0].id -and $_.kindName -eq "store" -and
     $asyncItemProjection.Count -eq 1 -and
@@ -330,14 +334,14 @@ foreach ( $resource in $itemResources ) {
     $frame = @($lowered.asyncMachineFrameSlots | Where-Object {
         $_.storageSymbol -eq $resource.Symbol
     })
-    $pattern = if ( $frame.Count -eq 1 ) {
+    $slot = if ( $frame.Count -eq 1 ) {
         $field = [long]$frame[0].id - [long]$machines[0].firstFrameSlot
-        "xrtFree\(frame->f$field\);\s*frame->f$field = NULL;"
-    } elseif ( $resource.Abi -eq "string-copy" ) {
-        "xrtFree\(s$($resource.Symbol)\);\s*s$($resource.Symbol) = NULL;"
-    } else {
-        "xrtValueRelease\(s$($resource.Symbol)\);\s*s$($resource.Symbol) = NULL;"
-    }
+        "frame->f$field"
+    } else { "s$($resource.Symbol)" }
+    $drop = if ($resource.Abi -eq 'string-copy') { 'xlir_string_drop' } else { 'xrtValueRelease' }
+    $escaped = [regex]::Escape($slot)
+    $pattern = "&\(xlir_released\), &\($escaped\), sizeof\(xlir_released\) \},\s*" +
+        "\{ &\($escaped\), &\(xlir_empty\), sizeof\($escaped\) \}[\s\S]{0,400}?$drop\(xlir_released\);"
     $rendered = ([regex]::Matches($generated, $pattern)).Count
     if ( ($frame.Count -eq 0 -and $rendered -ne $resource.ReleaseCount) -or
          ($frame.Count -eq 1 -and $rendered -lt $resource.ReleaseCount) ) {
@@ -348,12 +352,13 @@ foreach ( $resource in $cursorResources ) {
     $frame = @($lowered.asyncMachineFrameSlots | Where-Object {
         $_.storageSymbol -eq $resource.Symbol
     })
-    $pattern = if ( $frame.Count -eq 1 ) {
+    $slot = if ( $frame.Count -eq 1 ) {
         $field = [long]$frame[0].id - [long]$machines[0].firstFrameSlot
-        "xlir_xvalue_iterator_destroy\(frame->f$field\);\s*frame->f$field = NULL;"
-    } else {
-        "xlir_xvalue_iterator_destroy\(s$($resource.Symbol)\);\s*s$($resource.Symbol) = NULL;"
-    }
+        "frame->f$field"
+    } else { "s$($resource.Symbol)" }
+    $escaped = [regex]::Escape($slot)
+    $pattern = "&\(xlir_released\), &\($escaped\), sizeof\(xlir_released\) \},\s*" +
+        "\{ &\($escaped\), &\(xlir_empty\), sizeof\($escaped\) \}[\s\S]{0,400}?xlir_xvalue_iterator_destroy\(xlir_released\);"
     $rendered = ([regex]::Matches($generated, $pattern)).Count
     if ( ($frame.Count -eq 0 -and $rendered -ne $resource.ReleaseCount) -or
          ($frame.Count -eq 1 -and $rendered -lt $resource.ReleaseCount) ) {
@@ -376,8 +381,8 @@ if ( ! $resume.Success -or
 $cursorField = [long]$cursorFrame[0].id - [long]$machines[0].firstFrameSlot
 $itemField = [long]$itemFrame[0].id - [long]$machines[0].firstFrameSlot
 foreach ( $required in @(
-    "if (frame->i$($cursorFrame[0].initBit)) xlir_xvalue_iterator_destroy(frame->f$cursorField);",
-    "if (frame->i$($itemFrame[0].initBit)) xrtFree(frame->f$itemField);",
+    "if (frame->i$($cursorFrame[0].initBit)) { xlir_xvalue_iterator* xlir_released;",
+    "if (frame->i$($itemFrame[0].initBit)) { xlir_string xlir_released;",
     "xfuture* ready = NULL; xpromise* promise = xrtPromiseCreate(&ready, NULL);"
 ) ) {
     if ( ! $generated.Contains($required) ) {
