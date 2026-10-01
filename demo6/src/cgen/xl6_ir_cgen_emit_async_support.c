@@ -508,27 +508,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "    return index == SIZE_MAX ? -1 : (int64_t)index;\n"
             "}\n\n", out);
     }
-    if ( needs->needsStringIntFormatBridgeRuntime ) {
-        xl6OutputPuts(
-            "extern char* xrtIntFormat(int64_t, xlir_string_view);\n"
-            "void* xl6_xrt_string_int_format(int64_t value, xlir_string format)\n"
-            "{ return xrtIntFormat(value, format); }\n\n",
-            out);
-    }
-    if ( needs->needsStringUIntFormatBridgeRuntime ) {
-        xl6OutputPuts(
-            "extern char* xrtUIntFormat(uint64_t, xlir_string_view);\n"
-            "void* xl6_xrt_string_uint_format(uint64_t value, xlir_string format)\n"
-            "{ return xrtUIntFormat(value, format); }\n\n",
-            out);
-    }
-    if ( needs->needsStringNumFormatBridgeRuntime ) {
-        xl6OutputPuts(
-            "extern char* xrtNumFormat(double, xlir_string_view);\n"
-            "void* xl6_xrt_string_num_format(double value, xlir_string format)\n"
-            "{ return xrtNumFormat(value, format); }\n\n",
-            out);
-    }
     if ( needs->needsTakeCstrBridgeRuntime ) {
         xl6OutputPuts(
             "xlir_string xl6_xrt_take_cstr(void* value)\n"

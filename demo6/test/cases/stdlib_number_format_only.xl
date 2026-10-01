@@ -1,0 +1,3 @@
+assert int.format(0, "c") == "\0"
+assert string.format(255, "x") == "ff"
+assert float.format(-0.0, ".2f") == "-0.00"

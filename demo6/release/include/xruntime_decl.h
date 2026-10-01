@@ -18318,6 +18318,14 @@ XRT_API str xrtUIntFormat(uint64 iValue, xstrview Format);
 /* 格式化 double 并返回由 xrtFree 释放的零结尾字符串。 */
 XRT_API str xrtNumFormat(double fValue, xstrview Format);
 
+/* Exact-size owned results, including U+0000 for integer character format.
+ * pOutputSize is required and must not overlap Format. Ordinary failure sets
+ * it to zero; invalid output-slot aliasing leaves the input unchanged.
+ * Successful Data is zero-terminated but Size excludes that terminator. */
+XRT_API str xrtIntFormatSized(int64 iValue, xstrview Format, size_t* pOutputSize);
+XRT_API str xrtUIntFormatSized(uint64 iValue, xstrview Format, size_t* pOutputSize);
+XRT_API str xrtNumFormatSized(double fValue, xstrview Format, size_t* pOutputSize);
+
 #endif
 
 

@@ -1,0 +1,2 @@
+extern "xl6NumberIntFormatV1" func invalid(int value, string format, int size) as point
+invalid(1, "d", -1)

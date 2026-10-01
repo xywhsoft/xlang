@@ -42,6 +42,19 @@ int main(int argc, char** argv)
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
         t->parameterCount = count;
         for (size_t p=0; p<count; ++p) {
+            XL6_IrType* scalar = &ir.types.items[t->parameterTypes[p] - 1];
+            if (scalar->cAbi == XL6_IR_C_ABI_I64) {
+                XL6_IrIntegerTarget width = scalar->integerTarget;
+                scalar->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_32;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                scalar->integerTarget = width;
+            }
+            if (scalar->cAbi == XL6_IR_C_ABI_U64 || scalar->cAbi == XL6_IR_C_ABI_F64) {
+                XL6_IrCAbi abi = scalar->cAbi;
+                scalar->cAbi = XL6_IR_C_ABI_I64;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                scalar->cAbi = abi;
+            }
             if (t->parameterAbis[p] != XL6_IR_PARAMETER_ABI_BORROW) continue;
             t->parameterAbis[p] = XL6_IR_PARAMETER_ABI_VALUE;
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));

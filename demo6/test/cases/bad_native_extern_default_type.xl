@@ -1,0 +1,7 @@
+class Invalid
+    private native point handle
+    extern "xl6_xrt_buffer_create" create()
+    extern "xl6_xrt_buffer_destroy" destroy()
+    extern "xl6NumberBufferIntFormatV1" func format(int value = "wrong", string format = "d", int size = -1) as bool
+end
+Invalid().format()

@@ -3426,9 +3426,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE,
     XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF,
     XL6_IR_RUNTIME_BRIDGE_JSON_PARSE,
-    XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT,
-    XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT,
-    XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT,
     /* Converts a raw, owned C string buffer to a managed language string and
      * consumes the input allocation. */
     XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR,

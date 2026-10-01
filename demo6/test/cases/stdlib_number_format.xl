@@ -1,0 +1,67 @@
+assert int.format(-9223372036854775807 - 1) == "-9223372036854775808"
+assert int.format(255, "#08X") == "0X0000FF"
+assert int.format(1234567, ",d") == "1,234,567"
+assert int.format(10, "b") == "1010"
+assert int.format(255, "o") == "377"
+uint64 maximum = uint64.parse("18446744073709551615")
+assert int.format(maximum) == "18446744073709551615"
+assert int.format(maximum, "X") == "FFFFFFFFFFFFFFFF"
+assert string.format(maximum, "#x") == "0xffffffffffffffff"
+assert string.format(20320, "c") == "你"
+assert string.format(0, "c") == "\0"
+assert string.format(0, "4c") == "   \0"
+assert string.len(string.format(0, "4c")) == 4
+assert string.bytes(string.format(0, "4c"))[3] == 0
+assert float.format(-0.0, ".2f") == "-0.00"
+assert float.format(3.5, "+08.2f") == "+0003.50"
+assert float.format(0.125, ".2%") == "12.50%"
+assert float.format(2.5, ".0f") == "2"
+assert float.format(3.5, ".0f") == "4"
+assert string.format(1234.6, ".3e") == "1.235e+03"
+assert float.format(float.parse("inf"), "F") == "INF"
+assert float.format(float.parse("nan"), "F") == "NAN"
+assert int.format(65, "c\0garbage", 1) == "A"
+assert float.format(1.25, ".2f\0garbage", 3) == "1.25"
+assert int.format(65, "c", 20) == "A"
+assert int.format(65, "invalid", 0) == "65"
+string result = int.format(123, "2048d")
+assert string.len(result) == 2048
+assert string.right(result, 3) == "123"
+assert string.len(float.format(1.0, ".1000f")) == 1002
+int caught = 0
+try
+    int.format(65, "c\0ignored")
+catch ValueError e
+    caught += 1
+end
+try
+    float.format(1.0, ".1001f")
+catch ValueError e
+    caught += 1
+end
+try
+    int.format(1, "d", -2)
+catch RangeError e
+    caught += 1
+end
+try
+    string.format(1, "18446744073709551615d")
+catch RangeError e
+    caught += 1
+end
+assert caught == 4
+Buffer output = Buffer()
+assert output.append("prefix:")
+assert output.appendFormat(0, "c")
+assert output.len() == 8 and output.byteAt(7) == 0
+assert output.appendFormat(maximum, "x")
+assert output.len() == 24 and output.byteAt(8) == 102
+assert output.appendFormat(1.25, ".2fTAIL", 3)
+assert output.len() == 28 and output.byteAt(24) == 49
+int original = output.len()
+try
+    output.appendFormat(1, "?")
+catch ValueError e
+    caught += 1
+end
+assert caught == 5 and output.len() == original
