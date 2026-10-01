@@ -66,4 +66,13 @@ XL6_TEXT_API xvalue* xl6TextSplitV1(xstrview text, xstrview separator, int64_t s
 XL6_TEXT_API xvalue* xl6TextLinesV1(xstrview text, int64_t size);
 XL6_TEXT_API xvalue* xl6TextFieldsV1(xstrview text, int64_t size);
 XL6_TEXT_API xstrview xl6TextJoinV1(const xvalue* values, xstrview separator, int64_t separatorSize, int64_t itemSize);
+/* Thread-affine owned input snapshot; mode 0 split / 1 lines / 2 fields.
+ * Next owns its output, NULL means EOF unless the thread error is set.
+ * Close is idempotent; EOF releases inputs. Destroy is no-raise and preserves
+ * an existing error. No raw handle is exposed by the language facade. */
+XL6_TEXT_API void* xl6TextIteratorCreateV1(xstrview text, xstrview separator, int64_t mode, int64_t size, int64_t separatorSize);
+XL6_TEXT_API void xl6TextIteratorDestroyV1(void* handle);
+XL6_TEXT_API xstrview xl6TextIteratorNextV1(void* handle);
+XL6_TEXT_API void xl6TextIteratorCloseV1(void* handle);
+XL6_TEXT_API bool xl6TextIteratorClosedV1(void* handle);
 #endif

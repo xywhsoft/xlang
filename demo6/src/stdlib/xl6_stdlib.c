@@ -1617,6 +1617,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsXlangClass;
     int needsCoreClass;
     int needsIoReader, needsIoWriter, needsIoLines, needsIoProtocols, needsIoBuffer;
+    int needsStringIterator;
     int needsVfs;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
@@ -1635,6 +1636,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "object") ||
         xl6StdlibNodeUsesTypeName(root, "DynamicFields");
     needsIoLines = xl6StdlibFuncUsed(used, "io", "lines") || xl6StdlibNodeUsesTypeName(root, "IoLineReader");
+    needsStringIterator = xl6StdlibFuncUsed(used, "string", "splitIter") ||
+        xl6StdlibFuncUsed(used, "string", "linesIter") || xl6StdlibFuncUsed(used, "string", "fieldsIter") ||
+        xl6StdlibNodeUsesTypeName(root, "StringIterator");
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||
         xl6StdlibNodeUsesTypeName(root, "ConsoleSession") || xl6StdlibNodeUsesTypeName(root, "ConsoleEvent");
     needsConsoleOptions = needsConsoleSession || xl6StdlibNodeUsesTypeName(root, "ConsoleOptions") ||
@@ -1778,7 +1782,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -1838,6 +1842,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, "end\n");
     }
     if (needsIoLines) xl6StdlibBuilderAppend(&builder, xl6StdlibIoLinesSource);
+    if (needsStringIterator) xl6StdlibBuilderAppend(&builder, xl6StdlibStringIteratorSource);
     if ( xl6StdlibFuncUsed(used, "math", "classify") ||
          xl6StdlibNodeUsesTypeName(root, "FloatClass") ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFloatClassSource);

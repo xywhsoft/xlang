@@ -21,14 +21,18 @@ try {
     $rows = [Collections.Generic.List[object]]::new()
     $cases = @('stdlib_text_values','stdlib_text_sizes','stdlib_text_lower_only','cgen_extern_defaults',
         'stdlib_text_queries','stdlib_text_binary','stdlib_text_glob','stdlib_text_distance','stdlib_text_split','stdlib_text_join',
-        'stdlib_text_split_only','stdlib_text_join_only')
+        'stdlib_text_split_only','stdlib_text_join_only','stdlib_text_iterator','stdlib_text_iterator_only')
     $negative = @('bad_xlir_text_input','bad_xlir_text_result','bad_xlir_text_effect','bad_xlir_text_no_raise',
-        'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width','bad_xlir_text_split_type','bad_xlir_text_join_type')
+        'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width','bad_xlir_text_split_type','bad_xlir_text_join_type',
+        'bad_xlir_text_iterator_result','bad_xlir_text_iterator_owner',
+        'bad_xlir_text_iterator_handle_read','bad_xlir_text_iterator_handle_write')
     $defaultsNegative = @('bad_extern_default_type','bad_extern_default_order')
     $files = @($cases + $negative + $defaultsNegative | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
         @(Get-Item test/cases/stdlib_text_values_host.c,test/cases/xlir_text_value_contract.c,
             test/cases/stdlib_text_queries_host.c,test/support/text_queries_native.c,
             test/cases/stdlib_text_split_host.c,test/support/text_split_native.c,
+            test/cases/stdlib_text_iterator_host.c,test/support/text_iterator_native.c,
+            test/cases/stdlib_text_iterator_generated_host.c,
             test/support/text_selected_native.c,test/cases/stdlib_string_support.c,
             tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,$PSCommandPath,$gcc)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
@@ -95,9 +99,21 @@ try {
         }
         if ($point -gt 512) {throw "Incomplete split allocation sweep: $kind"}
     }
+    Run 'iterator-native-build' $gcc ($strict + @('test/cases/stdlib_text_iterator_host.c','test/support/text_iterator_native.c',
+        'src/runtime/xl6_text_iterator.c','-o',"$outPath/iterator-native.exe"))
+    Run 'iterator-native-run' "$outPath/iterator-native.exe" @()
+    Run 'iterator-native-reentry' "$outPath/iterator-native.exe" @('reentry')
+    foreach ($kind in @('0','1','2')) {
+        for ($point = 1; $point -le 32; ++$point) {
+            $name = "iterator-native.$kind.oom-$point"
+            Run $name "$outPath/iterator-native.exe" @($kind,"$point")
+            if ((Get-Content "$outPath/$name.log" -Raw) -match 'hit=0 balanced') {break}
+        }
+        if ($point -gt 32) {throw "Incomplete iterator allocation sweep: $kind"}
+    }
     $runtime = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -in @('xrt_single_header_impl.o','xl6_text_value.o',
         'xl6_text_query.o','xl6_text_binary.o','xl6_text_chars.o','xl6_text_glob.o','xl6_text_distance.o','xl6_text_split.o','xl6_text_join.o',
-        'xl6_slot.o','xl6_value_iterator.o') } | ForEach-Object Path)
+        'xl6_text_iterator.o','xl6_slot.o','xl6_value_iterator.o','xl6_code_lease.o','xl6_code_finalizer.o','xl6_ownership_plan.o') } | ForEach-Object Path)
     foreach ($name in $cases) {
         $source = "test/cases/$name.xl"
         Run "$name.emit" $driver @($source,'cgen-default',"$outPath/$name.c")
@@ -114,9 +130,18 @@ try {
             if ($name -eq 'stdlib_text_join_only' -and $c -match 'xl6Text(?:Split|Lines|Fields)V1\(') {throw 'Join-only retained split calls'}
             if ($name -eq 'stdlib_text_split_only' -and $c -match 'xl6TextJoinV1\(') {throw 'Split-only retained join calls'}
         }
+        $hostSource = if ($name -match '^stdlib_text_iterator') {'test/cases/stdlib_text_iterator_generated_host.c'} else {'test/cases/xlir_generated_module_host.c'}
         Run "$name.strict-build" $gcc ($strict + @('-include',"$outPath/$name.c",'-DXLIR_GENERATED_MODULE_PREINCLUDED',
-            'test/cases/xlir_generated_module_host.c') + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
+            $hostSource) + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
         Run "$name.strict-run" "$outPath/$name.strict.exe" @()
+        if ($name -match '^stdlib_text_iterator') {
+            for ($point=1; $point -le 256; ++$point) {
+                $failure = "$name.managed-oom-$point"
+                Run $failure "$outPath/$name.strict.exe" @("$point")
+                if ((Get-Content "$outPath/$failure.log" -Raw) -match 'hit=0 balanced') {break}
+            }
+            if ($point -gt 256) {throw 'Incomplete managed iterator allocation sweep'}
+        }
         Run "$name.jit" $driver @($source,'run',"$outPath/$name.jit")
         Run "$name.aot-build" $driver @($source,'exe',"$outPath/$name.aot")
         Run "$name.aot-run" "$outPath/$name.aot.exe" @()
@@ -124,7 +149,8 @@ try {
     foreach ($name in $negative) {
         $path = "$outPath/$name.c"
         Run $name $driver @("test/cases/$name.xl",'cgen-default',$path) 1
-        if ((Get-Content "$outPath/$name.log" -Raw) -notmatch 'XLIR direct runtime bridge has no exact declared ABI' -or (Test-Path -LiteralPath $path)) { throw "Unsafe text ABI emitted $name" }
+        $marker = if ($name -match 'iterator_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'}
+        if ((Get-Content "$outPath/$name.log" -Raw) -notmatch $marker -or (Test-Path -LiteralPath $path)) { throw "Unsafe text ABI emitted $name" }
     }
     foreach ($name in $defaultsNegative) {
         $path = "$outPath/$name.c"
@@ -141,7 +167,7 @@ try {
     foreach ($record in $inputs) {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -ne $record.Sha256) { throw "Text input changed $($record.Path)" }
     }
-    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='Text owned/query/char/bytes/glob/distance/split/join batches only; not 53-module completion or full RC0'}
+    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='Text owned/query/char/bytes/glob/distance/split/join/iterator batches only; not 53-module completion or full RC0'}
     [IO.File]::WriteAllText("$outPath/summary.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     Write-Output "Text values: $($rows.Count) checks passed. Evidence: $outPath"
 } finally { Pop-Location }

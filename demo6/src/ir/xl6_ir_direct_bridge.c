@@ -1,6 +1,6 @@
-/* Included by xl6_ir.c after the canonical ABI predicates.  A direct bridge
- * has no hidden receiver, callback result, native field, or variadic contract.
- * Both lowering and verification consume this table; Cgen consumes only IDs. */
+/* Included by xl6_ir.c after the canonical ABI predicates. Both lowering and
+ * verification consume these closed value/resource descriptors. Cgen receives
+ * explicit native-field projections, never symbol-dependent algorithms. */
 typedef struct XL6_IrDirectBridgeContract {
     const char* name;
     XL6_IrRuntimeBridgeKind kind;
@@ -10,6 +10,10 @@ typedef struct XL6_IrDirectBridgeContract {
     XL6_IrCAbi resultArrayItemAbi;
     XL6_IrIntegerTarget resultIntegerTarget;
     XL6_IrCAbi parameterArrayItemAbis[6];
+    const char* resultOwner;
+    const char* parameterOwners[6];
+    int nullableResult;
+    int noRaise;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -66,6 +70,11 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6TextLinesV1",T,V,2,{S,I},S},
     {"xl6TextFieldsV1",T,V,2,{S,I},S},
     {"xl6TextJoinV1",T,S,4,{V,S,I,I},.parameterArrayItemAbis={S}},
+    {"xl6TextIteratorCreateV1",T,V,5,{S,S,I,I,I},.resultOwner="xl6TextIteratorDestroyV1"},
+    {"xl6TextIteratorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.noRaise=1},
+    {"xl6TextIteratorNextV1",T,S,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.nullableResult=1},
+    {"xl6TextIteratorCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"}},
+    {"xl6TextIteratorClosedV1",T,B,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"}},
 #undef F
 #undef Y
 #undef V
@@ -152,6 +161,38 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name)
     return contract != NULL ? contract->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
 }
 
+int xl6IrRuntimeDirectBridgeFactory(const char* name)
+{ const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name); return c && c->resultOwner; }
+XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name)
+{
+    const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
+    return c && c->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && !c->noRaise
+        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
+}
+const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t index)
+{
+    const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
+    return c && index < c->parameterCount ? c->parameterOwners[index] : NULL;
+}
+static int xl6IrDirectBridgeResourceMatches(const XL6_IrModule* module,
+    XL6_IrTypeId id, XL6_IrNodeId fieldId, XL6_SymbolId destroyId, const char* owner)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, id);
+    if (!type || type->kind != XL6_IR_TYPE_CLASS ||
+        type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || fieldId == XL6_IR_NODE_INVALID) return 0;
+    if (module->stage == XL6_IR_STAGE_LOWERED) {
+        const XL6_IrClassLayout* layout = xl6IrBuildClassLayoutByType(module, id);
+        if (!layout || layout->fieldCount != 1) return 0;
+        const XL6_IrClassField* field = &module->classFields[layout->firstField];
+        const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, field->nativeDestroySymbol);
+        if (field->declaration != fieldId || !destroy || !destroy->cName ||
+            strcmp(destroy->cName, owner) || (destroyId && destroyId != field->nativeDestroySymbol)) return 0;
+    }
+    return 1;
+}
+
 static int xl6IrDirectBridgeArrayMatches(const XL6_IrModule* module,
     const XL6_IrType* type, XL6_IrCAbi itemAbi)
 {
@@ -176,16 +217,21 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     const XL6_IrDirectBridgeContract* contract;
     const XL6_IrType* result;
     size_t i;
-    if (module == NULL || target == NULL || target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
+    if (module == NULL || target == NULL ||
         (contract = xl6IrDirectBridgeContract(target->cName)) == NULL ||
+        target->kind != (contract->resultOwner ? XL6_IR_CALL_TARGET_NATIVE_FACTORY : XL6_IR_CALL_TARGET_EXTERN_C) ||
         target->runtimeBridge != contract->kind || target->errorAbi !=
-            (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE) ||
+            xl6IrRuntimeDirectBridgeErrorAbi(contract->name) ||
         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-         target->errorPhysicalAbi != (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
+         target->errorPhysicalAbi != (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
             ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_NONE)) ||
-        target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-        target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID ||
-        target->resultPhysicalDestroySymbol != 0 ||
+        (contract->resultOwner
+            ? (target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ||
+               !target->resultPhysicalDestroySymbol ||
+               !xl6IrDirectBridgeResourceMatches(module, target->returnType,
+                    target->resultPhysicalFieldDeclaration, target->resultPhysicalDestroySymbol, contract->resultOwner))
+            : (target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
+               target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID || target->resultPhysicalDestroySymbol != 0)) ||
         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
         target->parameterCount != contract->parameterCount ||
         target->parameterTypes == NULL || target->parameterAbis == NULL ||
@@ -196,19 +242,26 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
         if (target->effectAbi != XL6_IR_CALL_EFFECT_CONSERVATIVE ||
             target->executionBoundaryAbi != XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK ||
-            !declaration || (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) return 0;
+            !declaration || (!contract->noRaise && (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE))) return 0;
         if (contract->result == XL6_IR_C_ABI_I64 && (!result ||
             result->integerTarget != (contract->resultIntegerTarget ? contract->resultIntegerTarget
                 : XL6_IR_INTEGER_TARGET_SIGNED_64))) return 0;
     }
     if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
-    } else {
+    } else if (!contract->resultOwner) {
         if (contract->resultArrayItemAbi) {
             if (!xl6IrDirectBridgeArrayMatches(module, result, contract->resultArrayItemAbi)) return 0;
         } else {
-            if (result == NULL || result->kind != XL6_IR_TYPE_BUILTIN ||
-                result->collectionAbi != XL6_IR_COLLECTION_NONE || result->paramCount != 0) return 0;
+            if (result == NULL || result->kind != (contract->nullableResult ? XL6_IR_TYPE_NULLABLE : XL6_IR_TYPE_BUILTIN) ||
+                result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount != 0 ||
+                result->paramCount != (contract->nullableResult ? 1 : 0)) return 0;
+            if (contract->nullableResult) {
+                const XL6_IrType* base = result->params ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
+                if (!base || base->kind != XL6_IR_TYPE_BUILTIN || base->cAbi != contract->result ||
+                    base->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || base->paramCount ||
+                    base->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL) return 0;
+            }
             if (contract->result == XL6_IR_C_ABI_MANAGED_STRING || contract->result == XL6_IR_C_ABI_MANAGED_BYTES) {
                 if (result->cAbi != contract->result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
                     result->nullAbi != (contract->result == XL6_IR_C_ABI_MANAGED_STRING
@@ -221,6 +274,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
+        if (contract->parameterOwners[i]) {
+            if (target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
+                target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
+                target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                !xl6IrDirectBridgeResourceMatches(module, target->parameterTypes[i],
+                    target->parameterPhysicalFieldDeclarations[i], 0, contract->parameterOwners[i])) return 0;
+            continue;
+        }
         if (contract->parameterArrayItemAbis[i]) {
             if (!xl6IrDirectBridgeArrayMatches(module, type, contract->parameterArrayItemAbis[i]) ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||

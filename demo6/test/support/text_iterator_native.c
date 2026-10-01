@@ -1,0 +1,6 @@
+#define XRT_MODULE_STRING_SPLIT
+#define XRT_MODULE_UNICODE_TEXT
+#define XRT_MODULE_THREAD
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRT_IMPLEMENTATION
+#include "lib/xrt/xrt.h"

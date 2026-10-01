@@ -1,5 +1,6 @@
 #include "src/stdlib/xl6_stdlib_data.h"
 #include "src/stdlib/xl6_stdlib_io.inc"
+#include "src/stdlib/xl6_stdlib_text.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
@@ -7174,6 +7175,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "reverse", "__xl_std_string_reverse", NULL, NULL, 0, "string", xl6StdStringReverseBody},
     {"string", "splitLines", "__xl_std_string_split_lines", NULL, NULL, 0, "array<string>", xl6StdStringSplitLinesBody},
     {"string", "fields", "__xl_std_string_fields", NULL, NULL, 0, "array<string>", xl6StdStringFieldsBody},
+    {"string", "splitIter", "__xl_std_string_splitIter", NULL, NULL, 0, "StringIterator", xl6StdStringSplitIterBody},
+    {"string", "linesIter", "__xl_std_string_linesIter", NULL, NULL, 0, "StringIterator", xl6StdStringLinesIterBody},
+    {"string", "fieldsIter", "__xl_std_string_fieldsIter", NULL, NULL, 0, "StringIterator", xl6StdStringFieldsIterBody},
     {"string", "chars", "__xl_std_string_chars", NULL, NULL, 0, "array<char>", xl6StdStringCharsBody},
     {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "bytes", xl6StdStringBytesBody},
 

@@ -1,0 +1,8 @@
+class BadIterator
+    native point handle
+    extern "xl6TextIteratorCreateV1" create(string text, string separator, int mode, int size, int separatorSize)
+    extern "xl6TextIteratorDestroyV1" destroy()
+    extern "xl6TextIteratorNextV1" func next() as string
+end
+auto it = BadIterator("a|b", "|", 0, -1, -1)
+string result = it.next()

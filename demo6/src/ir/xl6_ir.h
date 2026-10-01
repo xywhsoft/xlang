@@ -5746,8 +5746,11 @@ int xl6IrRuntimeStringBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* One declarative JSON/XLON ABI registry is shared by lowering and verification. */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeSerializationBridgeKind(const char* name);
-/* Direct no-raise bridges share one signature/ownership registry. */
+/* Value/resource bridges share one signature/ownership/effect registry. */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name);
+int xl6IrRuntimeDirectBridgeFactory(const char* name);
+XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name);
+const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t parameter);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
 int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);

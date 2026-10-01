@@ -19928,10 +19928,10 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
          * pointer-sentinel runtime values; do not box it as a language class. */
         if (typeNode != NULL && typeNode->childCount == 0 && xl6TextEquals(typeNode->text,"error"))
             return ok;
-        /* Generated stdlib declarations use the verified language string ABI,
+        /* Generated stdlib and native resource methods use the language string ABI,
          * including its null Data sentinel. This is not a general C char* ABI
          * admission; exact bridge/result ownership is checked by Typed XLIR. */
-        if (xl6SemIsInternalStdRuntimeExtern(node)) {
+        if (xl6SemIsInternalStdRuntimeExtern(node) || node->kind == XL6_AST_NATIVE_EXTERN_FUNC) {
             const XL6_AstNode* inner = xl6SemResolveAliasType(
                 ctx, xl6SemNullableInnerType(typeNode));
             if (inner != NULL && inner->childCount == 0 && xl6TextEquals(inner->text, "string"))

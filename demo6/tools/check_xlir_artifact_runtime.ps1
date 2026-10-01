@@ -137,6 +137,9 @@ $process=Start-Process @start
                 }elseif($case-eq'stdlib_text_split_only'){
                     $selectionMatches='src/runtime/xl6_text_split.c'-in$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!split\.)'}).Count
+                }elseif($case-eq'stdlib_text_iterator_only'){
+                    $selectionMatches='src/runtime/xl6_text_iterator.c'-in$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!iterator\.)'}).Count
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE

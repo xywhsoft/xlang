@@ -1,23 +1,15 @@
-#include "src/runtime/xl6_text_internal.h"
+#include "src/runtime/xl6_text_pieces.h"
 
 /* XRT owns all delimiter/line/field semantics. The language adapter only
  * turns borrowed pieces into independently owned string values. */
-typedef union XL6_TextPieces {
-    xstrsplit split;
-    xstrlines lines;
-    xstrfields fields;
-} XL6_TextPieces;
 static xvalue* xl6TextPieces(xstrview text, xstrview separator, unsigned mode)
 {
     XL6_TextPieces pieces;
-    bool valid = mode == 0 ? xrtStrSplitInit(&pieces.split, text, separator) :
-        mode == 1 ? xrtStrLinesInit(&pieces.lines, text) : xrtStrFieldsInit(&pieces.fields, text);
-    if (!valid) return NULL;
+    if (!xl6TextPiecesInit(&pieces, text, separator, mode)) return NULL;
     xvalue* result = xrtValueArray();
     if (!result) return NULL;
     xstrview item;
-    while (mode == 0 ? xrtStrSplitNext(&pieces.split, &item) :
-        mode == 1 ? xrtStrLinesNext(&pieces.lines, &item) : xrtStrFieldsNext(&pieces.fields, &item)) {
+    while (xl6TextPiecesNext(&pieces, &item, mode)) {
         xvalue* value = xrtValueString(item);
         if (!value) goto fail;
         /* AppendNew consumes the item on both success and failure. */

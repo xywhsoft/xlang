@@ -11942,8 +11942,11 @@ static int xl6IrLowerResolveRuntimeBridge(
         xl6IrRuntimeBridgeOperationForName(target->cName);
     target->runtimeBridge = xl6IrRuntimeDirectBridgeKind(target->cName);
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
-        if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE)
-            target->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        if (xl6IrRuntimeDirectBridgeFactory(target->cName) && target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
+            target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
+            return 1;
+        }
+        target->errorAbi = xl6IrRuntimeDirectBridgeErrorAbi(target->cName);
         if ( !xl6IrRuntimeDirectBridgeTargetMatches(ctx->module, target) )
             return xl6IrLowerDiag(ctx, target->declaration,
                 "XLIR direct runtime bridge has no exact declared ABI");
@@ -13102,7 +13105,8 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
         for (i = 0; i < target->parameterCount; ++i) {
             if (xl6IrRuntimeVfsBridgeParameterOwner(target->cName, i) != NULL ||
-                xl6IrRuntimeLogBridgeParameterOwner(target->cName, i) != NULL) {
+                xl6IrRuntimeLogBridgeParameterOwner(target->cName, i) != NULL ||
+                xl6IrRuntimeDirectBridgeParameterOwner(target->cName, i) != NULL) {
                 const XL6_IrClassField* field = xl6IrLowerManagedNativeConstructorField(
                     module, target->parameterTypes[i], XL6_IR_NODE_INVALID);
                 if (field == NULL || target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW)
