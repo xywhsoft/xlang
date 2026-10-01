@@ -689,9 +689,9 @@ if not errorlevel 1 (
     echo sem_out_read_before_write.xl should fail.
     exit /b 1
 )
-findstr /C:"[sem]" build\test\sem_out_read_before_write.err.txt >nul
+findstr /C:"[parse]" build\test\sem_out_read_before_write.err.txt >nul
 if errorlevel 1 (
-    echo sem_out_read_before_write.err.txt missing semantic diagnostic.
+    echo sem_out_read_before_write.err.txt missing removed-syntax diagnostic.
     exit /b 1
 )
 
@@ -700,9 +700,9 @@ if not errorlevel 1 (
     echo sem_out_missing_branch.xl should fail.
     exit /b 1
 )
-findstr /C:"[sem]" build\test\sem_out_missing_branch.err.txt >nul
+findstr /C:"[parse]" build\test\sem_out_missing_branch.err.txt >nul
 if errorlevel 1 (
-    echo sem_out_missing_branch.err.txt missing semantic diagnostic.
+    echo sem_out_missing_branch.err.txt missing removed-syntax diagnostic.
     exit /b 1
 )
 
@@ -711,9 +711,9 @@ if not errorlevel 1 (
     echo sem_out_capture.xl should fail.
     exit /b 1
 )
-findstr /C:"[sem]" build\test\sem_out_capture.err.txt >nul
+findstr /C:"[parse]" build\test\sem_out_capture.err.txt >nul
 if errorlevel 1 (
-    echo sem_out_capture.err.txt missing semantic diagnostic.
+    echo sem_out_capture.err.txt missing removed-syntax diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_int_out_of_range_literal.xl >nul 2> build\test\sem_int_out_of_range_literal.err.txt
@@ -742,6 +742,16 @@ for %%F in (
         echo %%F.err.txt missing semantic range diagnostic.
         exit /b 1
     )
+)
+
+for %%F in (sem_explicit_list_values_invalid sem_explicit_set_pairs_invalid) do (
+    release\xl.exe check test\cases\%%F.xl >nul 2> build\test\%%F.err.txt
+    if not errorlevel 1 (
+        echo %%F.xl should reject the invalid collection initializer.
+        exit /b 1
+    )
+    findstr /C:"[sem]" build\test\%%F.err.txt >nul
+    if errorlevel 1 exit /b 1
 )
 
 echo DEMO6 suite ok: semantic negatives

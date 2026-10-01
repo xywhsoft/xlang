@@ -1,3 +1,5 @@
+import xlang
+
 Buffer buffer = Buffer()
 assert buffer.appendBytes("a\0b", c_size(20))
 assert buffer.len() == 3 and buffer.byteAt(0) == 97

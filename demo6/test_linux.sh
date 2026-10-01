@@ -39,6 +39,13 @@ printf 'Running Linux ELF build tests...\n'
 "$TEST_DIR/hello"
 
 printf 'Running Linux C and XRT integration tests...\n'
+# Two-thread component check: restoring a snapshot on the wrong native thread
+# must fail without changing that thread's floating-point environment.
+gcc -std=c11 -Wall -Wextra -Werror -frounding-math -fno-builtin \
+    "$ROOT/test/fixtures/crt_float_env_posix/float_env_native_test.c" \
+    "$ROOT/release/extlibs/floatEnv/float_env_native.c" \
+    -pthread -lm -o "$TEST_DIR/float_env_native_test"
+"$TEST_DIR/float_env_native_test"
 "$XL" run "$ROOT/release/examples/stdlib_math_c.c"
 "$XL" build "$ROOT/release/examples/stdlib_math_c.c" -o "$TEST_DIR/stdlib_math_c"
 "$TEST_DIR/stdlib_math_c"
@@ -74,12 +81,18 @@ printf 'Running Linux import and package tests...\n'
     "$ROOT/release/extlibs/xssh/xssh_native.c" \
     --inc-path "$ROOT/release/extlibs/xssh/include"
 
+printf 'Running Linux embedded host string boundary tests...\n'
+# Include a self-contained embedded host, not only the outer JIT's symbols.
+"$XL" run "$ROOT/test/cases/stdlib_string_bridge_boundaries.xl"
+"$XL" build "$ROOT/test/cases/stdlib_string_bridge_boundaries.xl" \
+    -o "$TEST_DIR/stdlib_string_bridge_boundaries"
+"$TEST_DIR/stdlib_string_bridge_boundaries"
 printf 'Running Linux network engine trim tests...\n'
 "$XL" cgen "$ROOT/test/cases/stdlib_net_engine_trim.xl" \
     --emit "$TEST_DIR/stdlib_net_engine_trim.c"
-grep -q '#define XRT_MODULE_NET_ENGINE 1' \
+grep -q 'xl6_xrt_net_engine_stats(' \
     "$TEST_DIR/stdlib_net_engine_trim.c"
-if grep -Eq 'xl6_net_resolver|XRT_MODULE_NET_RESOLVER|XRT_MODULE_NET_TCP_|XRT_MODULE_NET_UDP' \
+if grep -Eq 'xl6_net_resolver|xl6_xrt_(tcp_|udp_|net_resolv)|XRT_MODULE_NET_RESOLVER|XRT_MODULE_NET_TCP_|XRT_MODULE_NET_UDP' \
     "$TEST_DIR/stdlib_net_engine_trim.c"; then
     printf 'network engine stats unexpectedly keep resolver or transport modules.\n' >&2
     exit 1
@@ -108,12 +121,10 @@ printf 'Running Linux async task runtime tests...\n'
 printf 'Running Linux TCP file fast-path tests...\n'
 "$XL" cgen "$ROOT/test/cases/stdlib_net_send_file.xl" \
     --emit "$TEST_DIR/stdlib_net_send_file.c"
-grep -q '#define XRT_MODULE_NET_TCP_FILE 1' \
-    "$TEST_DIR/stdlib_net_send_file.c"
 grep -q 'xrtNetStreamSendFile' "$TEST_DIR/stdlib_net_send_file.c"
 "$XL" cgen "$ROOT/test/cases/stdlib_net_extended_io.xl" \
     --emit "$TEST_DIR/stdlib_net_extended_io_trim.c"
-if grep -q 'XRT_MODULE_NET_TCP_FILE' "$TEST_DIR/stdlib_net_extended_io_trim.c"; then
+if grep -Eq 'XRT_MODULE_NET_TCP_FILE|xrtNetStreamSendFile' "$TEST_DIR/stdlib_net_extended_io_trim.c"; then
     printf 'ordinary TCP source unexpectedly keeps TCP file module.\n' >&2
     exit 1
 fi
@@ -125,7 +136,7 @@ fi
 printf 'Running Linux network interface snapshot tests...\n'
 "$XL" cgen "$ROOT/test/cases/stdlib_net_interfaces.xl" \
     --emit "$TEST_DIR/stdlib_net_interfaces.c"
-grep -q '#define XRT_MODULE_NET_INTERFACE 1' \
+grep -q 'xrtNetInterfaceList(' \
     "$TEST_DIR/stdlib_net_interfaces.c"
 if grep -q 'XRT_MODULE_NET_INTERFACE_TEXT' "$TEST_DIR/stdlib_net_interfaces.c"; then
     printf 'raw interface enumeration unexpectedly keeps interface text helpers.\n' >&2

@@ -56,6 +56,16 @@ cp "$TCC_SOURCE_DIR/libtcc1.a" "$TCC_DIST_DIR/libtcc1.a"
 cp "$TCC_SOURCE_DIR/libtcc1.a" "$TCC_DIST_DIR/lib/libtcc1.a"
 cp "$TCC_SOURCE_DIR/tcc" "$BUILD_DIR/tcc"
 
+# Propagate the configured target layout to libtcc embedded in user artifacts.
+# The source snapshot has only generic defaults; losing CONFIG_TRIPLET breaks
+# nested compilation on multiarch glibc systems. An empty triplet is valid on
+# systems whose headers and startup objects use the non-multiarch layout.
+TCC_CONFIGURED_TRIPLET="$(sed -n 's/^#define CONFIG_TRIPLET "\([^"]*\)"$/\1/p' "$TCC_SOURCE_DIR/config.h")"
+if [[ -n "$TCC_CONFIGURED_TRIPLET" && ! "$TCC_CONFIGURED_TRIPLET" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+    echo 'error: unexpected configured TCC target triplet' >&2
+    exit 1
+fi
+
 printf 'Building Linux XRT object and VFS packer...\n'
 "$CC" -std=c11 -O2 -fPIC -I"$ROOT" \
     -c "$ROOT/tools/xrt_single_header_impl.c" \
@@ -108,6 +118,9 @@ COMMON_FLAGS=(
     -I"$ROOT/lib/lzma"
     -I"$TCC_SOURCE_DIR"
 )
+if [[ -n "$TCC_CONFIGURED_TRIPLET" ]]; then
+    COMMON_FLAGS+=("-DXL6_TCC_CONFIGURED_TRIPLET=\"$TCC_CONFIGURED_TRIPLET\"")
+fi
 SHARED_FLAGS=(-shared -s -Wl,--gc-sections -Wl,-z,defs)
 SYSTEM_LIBS=(-pthread -ldl -lm)
 
