@@ -198,3 +198,6 @@ XL6_ARTIFACT_SYMBOL("xl6AsyncFileSizeV1", FILE_ASYNC)
 XL6_ARTIFACT_SYMBOL("xl6AsyncFileResizeV1", FILE_ASYNC)
 XL6_ARTIFACT_SYMBOL("xl6AsyncFileFlagsV1", FILE_ASYNC)
 XL6_ARTIFACT_SYMBOL("xl6AsyncFileClosedV1", FILE_ASYNC)
+#define XL6_LOG_EXPORT(Name, Component) XL6_ARTIFACT_SYMBOL(#Name, Component)
+#include "src/runtime/xl6_log_symbols.inc"
+#undef XL6_LOG_EXPORT

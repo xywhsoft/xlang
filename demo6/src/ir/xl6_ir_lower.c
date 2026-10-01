@@ -11950,6 +11950,16 @@ static int xl6IrLowerResolveRuntimeBridge(
                 "XLIR VFS runtime bridge has no exact resource-owner ABI");
         return 1;
     }
+    if (xl6IrRuntimeLogBridgeName(target->cName)) {
+        if (xl6IrRuntimeLogBridgeFactory(target->cName) && target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY)
+            return 1;
+        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_LOG;
+        target->errorAbi = xl6IrRuntimeLogBridgeErrorAbi(target->cName);
+        if (!xl6IrRuntimeLogBridgeTargetMatches(ctx->module, target))
+            return xl6IrLowerDiag(ctx, target->declaration,
+                "XLIR logging adapter has no exact physical/ownership ABI");
+        return 1;
+    }
     target->runtimeBridge = xl6IrRuntimeIoBridgeKind(target->cName);
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
         if ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_IO_READER_OPEN ||
@@ -13071,12 +13081,15 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
      * resource parameters of factories; Cgen receives the completed projection. */
     if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
         for (i = 0; i < target->parameterCount; ++i) {
-            if (xl6IrRuntimeVfsBridgeParameterOwner(target->cName, i) != NULL) {
+            if (xl6IrRuntimeVfsBridgeParameterOwner(target->cName, i) != NULL ||
+                xl6IrRuntimeLogBridgeParameterOwner(target->cName, i) != NULL) {
                 const XL6_IrClassField* field = xl6IrLowerManagedNativeConstructorField(
                     module, target->parameterTypes[i], XL6_IR_NODE_INVALID);
                 if (field == NULL || target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW)
                     return xl6IrLowerDiag(ctx, declaration,
-                        "XLIR VFS resource parameter has no exact native field borrow");
+                        xl6IrRuntimeLogBridgeName(target->cName)
+                            ? "XLIR logging resource parameter has no exact native field borrow"
+                            : "XLIR VFS resource parameter has no exact native field borrow");
                 target->parameterPhysicalAbis[i] = XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW;
                 target->parameterPhysicalFieldDeclarations[i] = field->declaration;
             }

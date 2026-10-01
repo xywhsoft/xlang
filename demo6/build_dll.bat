@@ -7,11 +7,11 @@ call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
 set "XL6_RELEASE_CC=gcc"
-set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -Os -ffunction-sections -fdata-sections"
+set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Irelease/include -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -Os -ffunction-sections -fdata-sections"
 set "XL6_RELEASE_LDFLAGS=-shared -Wl,--gc-sections -s"
 if "%XL6_DEBUG_BUILD%"=="1" (
     rem Preserve source locations and disable optimization for debugger-only builds.
-    set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -O0 -g3"
+    set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Irelease/include -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -O0 -g3"
     set "XL6_RELEASE_LDFLAGS=-shared"
 )
 
@@ -155,6 +155,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_frame_storage.c ^
     src\runtime\xl6_task.c ^
     src\runtime\xl6_task_file.c ^
+    src\runtime\xl6_log.c ^
+    src\runtime\xl6_log_console.c ^
     src\runtime\xl6_network_service.c ^
     src\runtime\xl6_continuation_frame.c src\runtime\xl6_future_wait.c ^
     src\runtime\xl6_capture.c ^
@@ -233,6 +235,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_frame_storage.c ^
     src\runtime\xl6_task.c ^
     src\runtime\xl6_task_file.c ^
+    src\runtime\xl6_log.c ^
+    src\runtime\xl6_log_console.c ^
     src\runtime\xl6_network_service.c ^
     src\runtime\xl6_continuation_frame.c src\runtime\xl6_future_wait.c ^
     src\runtime\xl6_capture.c ^

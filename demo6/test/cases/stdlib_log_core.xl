@@ -1,0 +1,60 @@
+assert log.default() == null
+assert log.textTime == 1
+assert log.textLevel == 2
+assert log.textLogger == 4
+assert log.textSource == 8
+assert log.textThread == 16
+assert log.textFields == 32
+assert log.textNewline == 64
+assert log.textRawMessage == 128
+assert log.info("no implicit sink") == LogResult.skipped
+auto logger = log.create("a\0你", LogLevel.debug)
+assert logger.name == "a\0你"
+assert logger.getLevel() == LogLevel.debug
+assert logger.enabled(LogLevel.info)
+assert not logger.enabled(LogLevel.trace)
+assert logger.sinkCount() == 0
+assert logger.debug("a\0b", 20) == LogResult.skipped
+assert logger.trace("filtered") == LogResult.skipped
+auto snapshot = logger.stats()
+assert snapshot.submitted == uint64(2)
+assert snapshot.skipped == uint64(2)
+assert snapshot.written == uint64(0)
+logger.setLevel(LogLevel.off)
+assert not logger.enabled(LogLevel.fatal)
+logger.setLevel(LogLevel.trace)
+assert logger.getLevel() == LogLevel.trace
+assert logger.clearSinks() == 0
+assert log.levelName(LogLevel.warn) == "WARN"
+assert log.levelName(LogLevel.off) == "OFF"
+log.setDefault(logger)
+auto current = log.default()
+assert current != null
+if current != null then assert current.name == "a\0你" end
+assert log.fatal("fatal is not exit") == LogResult.skipped
+log.flush()
+log.setDefault(null)
+assert log.default() == null
+assert logger.name == "a\0你"
+bool rejected = false
+try
+    logger.info("bad size", -2)
+catch RangeError e
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    log.info("bad global size without default logger", -2)
+catch RangeError e
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    logger.setLevelNative(7)
+catch RangeError e
+    rejected = true
+end
+assert rejected
+logger.flush()

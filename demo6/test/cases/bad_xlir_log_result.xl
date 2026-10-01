@@ -1,0 +1,3 @@
+extern "xl6LogWriteV1" func wrong(Logger logger, int level, string message, int size) as bool
+auto logger = log.create("bad")
+wrong(logger, 2, "message", -1)
