@@ -23,7 +23,6 @@ $minScannedTextFiles = 1547
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 $looseUtf8 = [System.Text.Encoding]::UTF8
-$reservedOutIdentifierPattern = '(?<![A-Za-z0-9_])(?:const\s+)?(?:auto|var|[A-Za-z_\p{L}][A-Za-z0-9_\p{L}]*(?:\s*<[^>\r\n]+>)?)\s+out(?=\s*(?:=|,|$))'
 
 function Join-CodePoints($codes)
 {
@@ -55,51 +54,8 @@ function Add-Failure($message)
 }
 
 
-# Mask literals and line comments before checking source identifiers.
-function Get-XlangCodeLine($line)
-{
-    $code = New-Object System.Text.StringBuilder
-    $quote = [char]0
-    $escaped = $false
-
-    for ( $i = 0; $i -lt $line.Length; ++$i ) {
-        $current = $line[$i]
-
-        if ( $quote -ne [char]0 ) {
-            [void]$code.Append(' ')
-            if ( $escaped ) {
-                $escaped = $false
-            } elseif ( $current -eq '\' ) {
-                $escaped = $true
-            } elseif ( $current -eq $quote ) {
-                $quote = [char]0
-            }
-            continue
-        }
-
-        if ( ($current -eq '"') -or ($current -eq "'") ) {
-            $quote = $current
-            [void]$code.Append(' ')
-            continue
-        }
-
-        if ( ($current -eq '/') -and (($i + 1) -lt $line.Length) -and ($line[$i + 1] -eq '/') ) {
-            break
-        }
-
-        [void]$code.Append($current)
-    }
-
-    return $code.ToString()
-}
-
-
-$quotedOutProbe = Get-XlangCodeLine -line 'println("WARN: drain timed out, forcing stop")'
-$codeOutProbe = Get-XlangCodeLine -line 'int out = 0'
-if ( ($quotedOutProbe -match $reservedOutIdentifierPattern) -or
-     ! ($codeOutProbe -match $reservedOutIdentifierPattern) ) {
-    Add-Failure "reserved out identifier lexical guard self-test failed"
-}
+# Parameter modifiers were removed. Their former spellings are ordinary
+# identifiers, covered by syntax_mode_names_ordinary.xl, not encoding failures.
 
 
 function Should-SkipFile($file)
@@ -144,7 +100,6 @@ foreach ( $file in $files ) {
     $text = $null
     $relative = $file.FullName.Substring($Root.Length).TrimStart("\", "/").Replace("\", "/")
     $isHandwrittenSource = $relative.StartsWith("src/", [System.StringComparison]::OrdinalIgnoreCase)
-    $isXlangSource = $file.Extension -eq ".xl"
 
     try {
         $text = $strictUtf8.GetString($bytes)
@@ -155,12 +110,6 @@ foreach ( $file in $files ) {
 
     $lines = $text -split "`r?`n"
     for ( $i = 0; $i -lt $lines.Count; ++$i ) {
-        if ( $isXlangSource -and ($lines[$i] -match $reservedOutIdentifierPattern) ) {
-            $codeLine = Get-XlangCodeLine -line ($lines[$i])
-            if ( $codeLine -match $reservedOutIdentifierPattern ) {
-                Add-Failure ("reserved parameter-mode keyword used as identifier in {0}:{1}: {2}" -f $file.FullName, ($i + 1), $lines[$i].Trim())
-            }
-        }
         foreach ( $token in $badTokens ) {
             if ( $lines[$i].Contains($token) ) {
                 Add-Failure ("mojibake token in {0}:{1}: {2}" -f $file.FullName, ($i + 1), $lines[$i].Trim())

@@ -1,0 +1,10 @@
+// Locale-independent ASCII rules. Unicode letters are deliberately not ASCII.
+assert ascii.isAlpha('A') and not ascii.isAlpha('你')
+assert ascii.isDigit('7') and ascii.isAlphaNumeric('z')
+assert ascii.isHexDigit('F') and not ascii.isHexDigit('G')
+assert ascii.isWhitespace('\n') and ascii.isBlank('\t')
+assert ascii.isControl(0) and ascii.isPrintable(' ')
+assert ascii.isGraphical('!') and ascii.isPunctuation('!')
+assert ascii.isLower('a') and ascii.isUpper('A')
+assert ascii.toLower('A') == 'a' and ascii.toUpper('a') == 'A'
+println("ASCII classification ok")

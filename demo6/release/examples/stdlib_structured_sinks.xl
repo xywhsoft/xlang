@@ -1,0 +1,20 @@
+// A sink consumes chunks without accumulating a second complete document.
+int chunks = 0
+func consume(var part) as bool
+    assert part != null
+    chunks += 1
+    return true
+end
+assert json.writeTo({"a": 1}, consume)
+assert xlon.writeTo({"a": 1}, consume, {"pretty": true})
+assert jsonl.writeTo([{"a": 1}], consume)
+assert xlonl.writeTo([{"a": 1}], consume)
+assert json.quote("A\nB") == "\"A\\nB\""
+assert json.quoteTo("A\nB", consume)
+assert chunks > 0
+func decodeTag(var tag) as var
+    assert tag["tag"] == "ptr" and tag["payload"] == "123"
+    return 42
+end
+assert xlon.parseWith("ptr(\"123\")", decodeTag) == 42
+println("structured sinks and custom decoder example ok")

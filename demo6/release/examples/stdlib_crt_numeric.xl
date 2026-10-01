@@ -1,0 +1,32 @@
+// Checked parsing: target width is part of the contract, not a cast afterwards.
+assert int.parse("42") == 42
+assert int8.parse("-128") == int8(-128)
+assert int16.parse("32767") == int16(32767)
+assert int32.parse("2147483647") == int32(2147483647)
+assert int64.parse("42") == int64(42)
+assert uint8.parse("255") == uint8(255)
+assert uint16.parse("ffff", 16) == uint16(65535)
+assert uint32.parse("4294967295") == uint32(4294967295)
+assert uint64.parse("18446744073709551615") == uint64(18446744073709551615)
+assert float.parse("1.25") == 1.25
+auto ok0, value0 = int.tryParse("42")
+auto ok1, value1 = int8.tryParse("128")
+auto ok2, value2 = int16.tryParse("7fff", 16)
+auto ok3, value3 = int32.tryParse("2147483648")
+auto ok4, value4 = int64.tryParse("-9223372036854775808")
+auto ok5, value5 = uint8.tryParse("256")
+auto ok6, value6 = uint16.tryParse("ffff", 16)
+auto ok7, value7 = uint32.tryParse("4294967296")
+auto ok8, value8 = uint64.tryParse("-1")
+auto ok9, value9 = float.tryParse("1.0\0junk")
+assert ok0 and value0 == 42
+assert not ok1 and value1 == 0
+assert ok2 and value2 == int16(32767)
+assert not ok3 and value3 == 0
+assert ok4 and value4 == -9223372036854775808
+assert not ok5 and value5 == 0
+assert ok6 and value6 == uint16(65535)
+assert not ok7 and value7 == 0
+assert not ok8 and value8 == 0
+assert not ok9 and value9 == 0.0
+println("strict numeric parsing ok")

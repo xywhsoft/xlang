@@ -13,6 +13,7 @@ $testSuiteDir = Join-Path $Root "test\suites"
 $entryWiringFiles = @(
     "test.bat",
     "test_all.bat",
+    "test_linux.sh",
     "test_tutorial.bat",
     "test_dll.bat",
     "build_dll.bat",
@@ -113,6 +114,22 @@ function Test-DirectReference($text, $relative)
     $leafStem = [System.IO.Path]::GetFileNameWithoutExtension($relative)
     if ( $text -match ('(?<![A-Za-z0-9_])' + [regex]::Escape($leafStem) + '(?![A-Za-z0-9_])') ) {
         return $true
+    }
+    # Expand only finite literal PowerShell matrices; never treat an arbitrary
+    # interpolated path or wildcard as evidence that a fixture is executed.
+    foreach ($loop in [regex]::Matches($text,
+        '(?s)foreach\s*\(\s*\$(?<variable>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+@\((?<items>[^)]*)\)')) {
+        $variable = $loop.Groups['variable'].Value
+        $items = @([regex]::Matches($loop.Groups['items'].Value, '["''](?<item>[A-Za-z0-9_-]+)["'']'))
+        if (!$items.Count) { continue }
+        $templates = [regex]::Matches($text,
+            '"(?<path>[^"\r\n]*\$' + [regex]::Escape($variable) + '(?![A-Za-z0-9_])[^"\r\n]*[.]c)"')
+        foreach ($template in $templates) {
+            foreach ($item in $items) {
+                $expanded = $template.Groups['path'].Value.Replace('$' + $variable, $item.Groups['item'].Value)
+                if ($expanded.Replace('\', '/') -ceq $slashPath) { return $true }
+            }
+        }
     }
     return $false
 }

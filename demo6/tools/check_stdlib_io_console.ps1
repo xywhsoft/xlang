@@ -55,6 +55,12 @@ try {
     foreach ($key in @('XL6_CGEN_CC', 'XL6_CGEN_FLAGS', 'XL6_CGEN_INCLUDES', 'XL6_CGEN_LINKS')) {
         if (![Environment]::GetEnvironmentVariable($key, 'Process')) { throw "Missing test compiler variable: $key" }
     }
+    # Compile against the actual declaration and execute the enum/int bridge.
+    # The redeclaration catches incompatible CRT registration in native C.
+    $flushExe = Join-Path $outputDir 'crt_console_flush_abi.exe'
+    & cmd.exe /d /v:on /c ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror test\fixtures\crt_console_pending\flush_abi.c !XL6_CGEN_LINKS! -o "{0}"' -f $flushExe)
+    if ($LASTEXITCODE -ne 0) { throw 'CRT console flush enum/int ABI compilation failed' }
+    Invoke-Test $flushExe ''
     $fixtures = @(
         "stdlib_io_files", "stdlib_io_reader_only", "stdlib_io_writer_only", "stdlib_io_streams", "stdlib_io_console_constants",
         "stdlib_io_buffer", "stdlib_io_protocol", "stdlib_io_allocation", "stdlib_console_basic", "stdlib_console_print", "stdlib_console_capabilities",

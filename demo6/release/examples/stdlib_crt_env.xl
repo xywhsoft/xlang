@@ -1,0 +1,18 @@
+// Keep the host's previous environment value, including missing vs empty.
+string name = "XLANG_STDLIB_ENV_EXAMPLE"
+string? previous = env.get(name)
+try
+    env.set(name, "")
+    assert env.has(name) and (env.get(name) ?? "missing") == ""
+    env.set(name, "你好")
+    assert (env.get(name) ?? "missing") == "你好"
+    env.remove(name)
+    assert not env.has(name) and env.get(name) == null
+finally
+    if previous == null then
+        env.remove(name)
+    else
+        env.set(name, previous)
+    end
+end
+println("nullable environment values ok")

@@ -29,5 +29,9 @@ if console.isTerminal() then
 end
 
 // Blocking input examples (opt in, to keep this executable sample unattended):
-// auto line = console.readLine()
-// auto scalar = console.readChar()
+func readInteractiveInput()
+    auto line = console.readLine()
+    auto scalar = console.readChar()
+    console.writeLine(line ?? "EOF")
+    if scalar != null then println(scalar) end
+end

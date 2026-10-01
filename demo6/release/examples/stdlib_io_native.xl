@@ -1,0 +1,33 @@
+// io is byte-oriented; file adds encoding and higher-level filesystem work.
+string directory = dir.temp()
+string target = path.join(directory, "raw.bin")
+try
+    io.writeFile(target, b"a\0b", io.truncate)
+    assert io.readFile(target, 3) == b"a\0b"
+    auto writer = io.openWriter(target, io.append)
+    try
+        writer.writeAll(b"!")
+        writer.flush()
+    finally
+        writer.close()
+    end
+    auto reader = io.openReader(target)
+    try
+        assert reader.readExact(4) == b"a\0b!"
+    finally
+        reader.close()
+    end
+    // Standard stream wrappers borrow the process handles, not their lifetime.
+    auto input = io.stdin()
+    auto output = io.stdout()
+    auto diagnostic = io.stderr()
+    output.writeAll("IO example ok\n")
+    output.flush()
+    diagnostic.flush()
+    input.close()
+    output.close()
+    diagnostic.close()
+finally
+    if file.exists(target) then file.delete(target) end
+    dir.remove(directory)
+end

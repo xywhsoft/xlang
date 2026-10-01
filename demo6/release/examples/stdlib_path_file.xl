@@ -14,7 +14,7 @@ string replacePath = "examples_out/example_stdlib_file.replace.txt"
 string binaryPath = "examples_out/example_stdlib_file.bin"
 
 func probeFileStream(string path) as bool
-    File stream = file.open(path, false)
+    File stream = file.open(path, file.asyncRead + file.asyncWrite)
     if stream.seek(0, file.seekSet) != 0 then
         return false
     end
@@ -55,49 +55,40 @@ func probeFileStream(string path) as bool
 end
 
 func probeFileBytes(string path) as bool
-    Buffer bytes = Buffer()
-    bytes.appendByte(0)
-    bytes.appendByte(65)
-    bytes.appendByte(255)
-    if not file.writeBytes(path, bytes) then
+    bytes data = b"\x00A\xff"
+    if not file.writeBytes(path, data) then
         return false
     end
 
-    Buffer read = file.readBytes(path)
-    if read.len() != 3 or read[0] != 0 or read[1] != 65 or read[2] != 255 then
+    bytes read = file.readBytes(path)
+    if read != data then
         return false
     end
 
-    Buffer suffix = Buffer()
-    suffix.appendByte(66)
+    bytes suffix = b"B"
     if not file.appendBytes(path, suffix) then
         return false
     end
 
-    Buffer appended = file.readBytes(path)
-    if appended.len() != 4 or appended[3] != 66 then
+    bytes appended = file.readBytes(path)
+    if appended != b"\x00A\xffB" then
         return false
     end
 
-    File stream = file.open(path, true, encoding.binary)
-    Buffer firstTwo = stream.readBytes(2)
-    if firstTwo.len() != 2 or firstTwo[0] != 0 or firstTwo[1] != 65 then
+    File stream = file.open(path, file.asyncRead)
+    bytes firstTwo = stream.readBytes(2)
+    if firstTwo != b"\x00A" then
         return false
     end
     return true
 end
 
-file.delete(filePath)
-file.delete(copyPath)
-file.delete(movePath)
-file.delete(renamePath)
-file.delete(replacePath)
-file.delete(binaryPath)
-dir.delete(copyDir)
-dir.delete(movedDir)
-dir.delete(cleanDir)
-dir.delete(nestedDir)
-dir.delete(dirPath)
+for oldPath in [filePath, copyPath, movePath, renamePath, replacePath, binaryPath]
+    if file.exists(oldPath) then file.delete(oldPath) end
+end
+for oldDir in [copyDir, movedDir, cleanDir, dirPath]
+    if dir.exists(oldDir) then dir.delete(oldDir) end
+end
 dir.createAll("examples_out")
 
 bool releaseExists = path.exists("release")
@@ -112,7 +103,7 @@ string homeDir = path.home()
 string tempDir = path.temp()
 string appDir = path.appDir()
 string fileNameExt = path.nameExt(filePath)
-string fileName = path.name(filePath)
+string fileName = path.stem(filePath)
 string fileExt = path.ext(filePath)
 string fileDir = path.dir(filePath)
 string normalizedPath = path.normalize("examples_out/./example_stdlib_dir/../example_stdlib_file.txt")
@@ -131,17 +122,17 @@ bool written = file.writeText(filePath, "hello")
 string firstText = file.readText(filePath)
 bool appended = file.appendText(filePath, " xlang")
 string fullText = file.readText(filePath)
-int size = file.size(filePath)
+uint64 size = file.size(filePath)
 bool resized = file.setSize(filePath, 5)
-int resizedSize = file.size(filePath)
+uint64 resizedSize = file.size(filePath)
 int attr = file.attr(filePath)
 bool attrSaved = file.setAttr(filePath, attr)
 time accessTime = file.accessTime(filePath)
 time changeTime = file.changeTime(filePath)
-FileInfo info = file.info(filePath)
+FileStat info = file.info(filePath)
 bool streamOk = probeFileStream(filePath)
 string streamText = file.readText(filePath)
-int streamSize = file.size(filePath)
+uint64 streamSize = file.size(filePath)
 bool atomicWritten = file.writeTextAtomic(filePath, "atomic")
 bool renamed = file.rename(filePath, renamePath)
 bool replaceSeed = file.writeText(replacePath, "old")
@@ -152,9 +143,9 @@ bool binaryDeleted = file.delete(binaryPath)
 
 bool nestedWritten = file.writeText(nestedFile, "nested")
 bool dirEmpty = dir.empty(dirPath)
-int dirTopCount = dir.count(dirPath)
-int dirRecursiveCount = dir.count(dirPath, true)
-int dirRecursiveSize = dir.size(dirPath)
+uint64 dirTopCount = dir.count(dirPath)
+uint64 dirRecursiveCount = dir.count(dirPath, true)
+uint64 dirRecursiveSize = dir.size(dirPath)
 array listed = dir.list(dirPath, true)
 string listedJson = json.stringify(listed)
 bool listedNestedFile = string.contains(listedJson, "value.txt")
@@ -164,12 +155,13 @@ bool filesOnlyHasValue = string.contains(json.stringify(filesOnly), "value.txt")
 bool dirsOnlyHasNested = string.contains(json.stringify(dirsOnly), "nested")
 array globTxt = dir.glob(dirPath, "*.txt", true)
 array matchedTxt = dir.matchEntries(dirPath, "*.txt", true)
-var matchedEntry = matchedTxt[0]
-array structuredEntries = dir.entries(dirPath, true)
-array walkedEntries = dir.walk(dirPath)
+array<WalkEntry> matchedRecords = dir.matchEntries(dirPath, "*.txt", true)
+WalkEntry matchedEntry = matchedRecords[0]
+array<WalkEntry> structuredEntries = dir.entries(dirPath, true)
+array<WalkEntry> walkedEntries = dir.walk(dirPath)
 int walkedLeaveCount = 0
 for walkedEntry in walkedEntries
-    if bool(walkedEntry["leave"]) then
+    if walkedEntry.leave then
         walkedLeaveCount += 1
     end
 end
@@ -232,7 +224,7 @@ auto attrSavedText = attrSaved.toString()
 auto accessYearText = time.year(accessTime).toString()
 auto changeYearText = time.year(changeTime).toString()
 auto infoSizeText = info.size.toString()
-auto infoIsFileText = info.isFile.toString()
+auto infoIsFileText = (info.type == 1).toString()
 auto streamOkText = streamOk.toString()
 auto streamTextText = streamText.toString()
 auto streamSizeText = streamSize.toString()
@@ -255,7 +247,7 @@ auto dirsOnlyCountText = dirsOnly.length.toString()
 auto filesOnlyHasValueText = filesOnlyHasValue.toString()
 auto dirsOnlyHasNestedText = dirsOnlyHasNested.toString()
 auto globTxtCountText = globTxt.length.toString()
-auto matchedNameText = string(matchedEntry["name"]).toString()
+auto matchedNameText = matchedEntry.name.toString()
 auto structuredCountText = structuredEntries.length.toString()
 auto walkedCountText = walkedEntries.length.toString()
 auto walkedLeaveCountText = walkedLeaveCount.toString()
@@ -306,9 +298,8 @@ assert(attr >= 0)
 assert(attrSaved)
 assert(time.year(accessTime) >= 2020)
 assert(time.year(changeTime) >= 2020)
-assert(info.exists)
-assert(info.isFile)
-assert(not info.isDir)
+assert(info.available != 0)
+assert(info.type == 1)
 assert(info.size == 5)
 assert(streamOk)
 assert(streamText == "stream")
@@ -341,8 +332,8 @@ assert(filesOnlyHasValue)
 assert(dirsOnlyHasNested)
 assert(globTxt.length == 1)
 assert(matchedTxt.length == 1)
-assert(string(matchedEntry["name"]) == "value.txt")
-assert(int(matchedEntry["size"]) == 6)
+assert(matchedEntry.name == "value.txt")
+assert(matchedEntry.size == uint64(6))
 assert(structuredEntries.length == 2)
 assert(walkedEntries.length == 3)
 assert(walkedLeaveCount == 1)

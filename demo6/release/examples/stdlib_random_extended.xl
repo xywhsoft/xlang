@@ -1,0 +1,23 @@
+// random is reproducible, not cryptographic. Secure calls never fall back.
+random.seed(uint64(2026))
+bytes replay = random.bytes(16)
+random.seed(uint64(2026))
+assert random.bytes(16) == replay
+assert random.below(uint64(1)) == uint64(0)
+assert random.range(3, 4) == 3
+float fraction = random.real()
+assert fraction >= 0 and fraction < 1
+array values = [1, 2, 3, 4]
+random.shuffle(values)
+assert values.length == 4
+Buffer mutable = Buffer()
+assert mutable.append("abcdefgh")
+random.fillBytes(mutable)
+random.shuffleBuffer(mutable)
+assert mutable.len() == 8
+crypto.fillRandomBytes(mutable)
+assert mutable.len() == 8
+// ASCII alphabet only; size limits bytes, clamps to the actual input extent.
+string token = crypto.randomString(12, "abcdef0123456789", 100)
+assert token.length == 12
+println("random and secure random examples ok")

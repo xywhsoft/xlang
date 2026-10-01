@@ -1,0 +1,54 @@
+// Lexical paths are separate from native filesystem metadata and traversal.
+assert path.clean("/a/../b", 1) == "/b"
+assert path.relative("/a/b", "/a/c", 1) == "../c"
+assert path.build(["/a", "b", "..", "c"], 1) == "/a/c"
+assert path.stem("a.txt") == "a"
+assert path.parent("a/b.txt") == path.dir("a/b.txt")
+assert path.isLocal("a/b", 1) and not path.isLocal("../b", 1)
+assert path.isSafeEntry("a/b") and not path.isSafeEntry("a/../b")
+assert path.isRooted(path.cwd())
+assert path.isRoot(path.parse(path.cwd()).root)
+assert path.executable().length > 0 and path.listSep().length == 1
+assert path.real(".").length > 0 and dir.roots().length > 0
+string base = dir.temp()
+string source = path.join(base, "source")
+string target = path.join(base, "copy")
+string item = path.join(source, "data.bin")
+try
+    assert dir.create(source)
+    assert file.writeBytesAtomic(item, b"a\0b")
+    assert file.stat(item).size == uint64(3)
+    assert file.setTimes(item, null, 1700000001000000)
+    auto root = file.root(source)
+    auto anchored = root.open("data.bin")
+    assert anchored.readExact(3) == b"a\0b"
+    assert anchored.close()
+    root.close()
+    auto entries = dir.open(source, 1)
+    try
+        assert entries.advance()
+        assert entries.current().name == "data.bin"
+    finally
+        entries.close()
+    end
+    auto walked = file.walkStats(source)
+    assert walked.files == uint64(1)
+    auto copied = file.copyTree(source, target)
+    assert copied.files == uint64(1)
+    string hardLink = path.join(source, "linked.bin")
+    assert file.createHardLink(item, hardLink)
+    assert file.readBytes(hardLink) == b"a\0b"
+finally
+    if dir.exists(target) then file.removeTree(target) end
+    if dir.exists(source) then file.removeTree(source) end
+    dir.remove(base)
+end
+// Explicit opt-in on platforms/permissions which support these operations.
+func platformObjects(string target, string linkPath, string fifoPath)
+    assert file.setMode(target, 384)
+    assert file.createLink(target, linkPath)
+    assert file.readLink(linkPath) == target
+    assert file.deleteLink(linkPath)
+    assert file.createFifo(fifoPath)
+end
+println("advanced filesystem example ok")

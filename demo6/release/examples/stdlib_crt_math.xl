@@ -1,0 +1,27 @@
+assert math.sinh(0.0) == 0.0 and math.cosh(0.0) == 1.0
+assert math.tanh(0.0) == 0.0 and math.asinh(0.0) == 0.0
+assert math.acosh(1.0) == 0.0 and math.atanh(0.0) == 0.0
+assert math.erf(0.0) == 0.0 and math.erfc(0.0) == 1.0
+assert math.gamma(1.0) == 1.0 and math.logGamma(1.0) == 0.0
+assert math.fma(2.0, 3.0, 4.0) == 10.0
+assert math.copySign(1.0, -0.0) == -1.0
+assert math.nextAfter(1.0, 2.0) > 1.0
+auto mantissa, exponent = math.frexp(8.0)
+assert mantissa == 0.5 and exponent == 4
+assert math.ldexp(mantissa, exponent) == 8.0
+assert math.scaleByPowerOfTwo(0.5, 4) == 8.0
+auto fraction, whole = math.modf(2.25)
+assert fraction == 0.25 and whole == 2.0
+assert math.logb(8.0) == 3.0 and math.ilogb(8.0) == 3
+assert math.remainder(7.0, 2.0) == -1.0
+auto remainder, quotientBits = math.remQuo(7.0, 2.0)
+assert remainder == -1.0 and quotientBits != 0
+auto quotient, integerRemainder = math.divRem(7, 2)
+assert quotient == 3 and integerRemainder == 1
+assert math.positiveDiff(2.0, 3.0) == 0.0
+assert math.minNumber(2.0, 3.0) == 2.0 and math.maxNumber(2.0, 3.0) == 3.0
+assert math.signBit(-0.0) and math.isNormal(1.0)
+assert not math.isSubnormal(1.0) and not math.isUnordered(1.0, 2.0)
+auto category = math.classify(1.0)
+assert math.roundCurrent(2.25) == 2.0
+println("CRT math decomposition and IEEE boundaries ok")

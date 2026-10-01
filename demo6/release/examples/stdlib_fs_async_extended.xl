@@ -1,0 +1,35 @@
+// Async whole-file operations copy value inputs and own their returned results.
+string base = dir.temp()
+string source = path.join(base, "source")
+string target = path.join(base, "copy")
+try
+    assert await dir.createAllAsync(source)
+    assert await dir.emptyAsync(source)
+    string item = path.join(source, "data.bin")
+    assert await file.writeBytesAsync(item, b"a\0b")
+    assert await file.appendBytesAsync(item, b"tail", 2)
+    assert await file.readBytesAsync(item) == b"a\0bta"
+    assert await file.writeTextAtomicAsync(path.join(source, "text.txt"), "你")
+    auto native = file.open(item)
+    auto adopted = file.takeAsync(native)
+    assert native.closed
+    assert await adopted.readAt(uint64(0), 5) == b"a\0bta"
+    assert await adopted.close()
+    auto snapshot = await dir.statsAsync(source)
+    assert snapshot.files == uint64(2)
+    assert await dir.sizeAsync(source) == snapshot.bytes
+    auto copied = await file.copyTreeAsync(source, target)
+    assert copied.files == uint64(2)
+    auto cleaned = await dir.cleanAsync(target)
+    assert cleaned.files == uint64(2)
+    assert await dir.ensureEmptyAsync(target)
+    auto removed = await file.removeTreeAsync(target)
+    assert removed.files == uint64(0)
+    assert await dir.createAsync(target)
+    assert await dir.removeAsync(target)
+finally
+    if dir.exists(target) then file.removeTree(target) end
+    if dir.exists(source) then file.removeTree(source) end
+    dir.remove(base)
+end
+println("extended async filesystem example ok")

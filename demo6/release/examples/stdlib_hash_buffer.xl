@@ -1,0 +1,12 @@
+// Non-cryptographic hashes: a seed is not a secret key or authentication tag.
+string text = "A\0你好"
+bytes binary = b"A\0\xe4\xbd\xa0\xe5\xa5\xbd"
+Buffer buffer = Buffer()
+assert buffer.append(text)
+assert hash.u32Buffer(buffer) == hash.u32(text)
+assert hash.u64Buffer(buffer) == hash.u64(binary)
+assert hash.u32BufferWithSeed(buffer, uint32(123)) == hash.u32WithSeed(text, uint32(123))
+assert hash.u64BufferWithSeed(buffer, uint64(123)) == hash.u64WithSeed(binary, uint64(123))
+assert hash.u32Buffer(buffer, 2) == hash.u32("A\0")
+assert hash.u64Buffer(buffer, 100) == hash.u64(text)
+println("exact-length hash Buffer example ok")

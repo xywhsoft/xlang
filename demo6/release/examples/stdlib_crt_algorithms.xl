@@ -1,0 +1,15 @@
+func compareInt(int left, int right) as int
+    if left < right then return -1 end
+    if left > right then return 1 end
+    return 0
+end
+func descendingKey(int value) as int
+    return -value
+end
+array<int> values = array<int>[3, 1, 2]
+array.sort::<int>(values, compareInt)
+assert values[0] == 1 and values[2] == 3
+assert array.binarySearch::<int>(values, 2, compareInt) == 1
+array.sortBy::<int, int>(values, descendingKey, compareInt)
+assert values[0] == 3 and values[2] == 1
+println("typed sorting and binary search ok")
