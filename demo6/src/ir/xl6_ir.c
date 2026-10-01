@@ -26629,9 +26629,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          strcmp(target->cName, "xl6_xrt_string_split_lines") == 0 ||
          strcmp(target->cName, "xl6_xrt_std_table_remove") == 0 ||
          strcmp(target->cName, "xl6_xrt_string_index_of") == 0 ||
-         strcmp(target->cName, "xl6_xrt_string_int_format") == 0 ||
-         strcmp(target->cName, "xl6_xrt_string_uint_format") == 0 ||
-          strcmp(target->cName, "xl6_xrt_string_num_format") == 0 ||
           strcmp(target->cName, "xl6_xrt_take_cstr") == 0 ||
           strcmp(target->cName, "xl6_xrt_last_error_text") == 0 ||
           strcmp(target->cName, "xl6_xrt_string_char_len") == 0 ||
@@ -27082,42 +27079,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                target->parameterPhysicalAbis[0] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
                target->parameterPhysicalAbis[1] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
                target->parameterPhysicalAbis[2] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
-    }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT ||
-         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT ||
-         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT ) {
-        XL6_IrCAbi valueAbi = target->runtimeBridge ==
-                XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT
-            ? XL6_IR_C_ABI_I64
-            : target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT
-                ? XL6_IR_C_ABI_U64 : XL6_IR_C_ABI_F64;
-        const char* cName = target->runtimeBridge ==
-                XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT
-            ? "xl6_xrt_string_int_format"
-            : target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT
-                ? "xl6_xrt_string_uint_format" : "xl6_xrt_string_num_format";
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        first = target->parameterCount == 2 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 2 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[1]) : NULL;
-        return strcmp(target->cName, cName) == 0 &&
-               result != NULL && first != NULL && second != NULL &&
-               result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               result->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-               first->cAbi == valueAbi &&
-               first->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               first->nullAbi == XL6_IR_NULL_ABI_NONE &&
-               second->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-               second->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               second->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-               target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               target->parameterPhysicalAbis != NULL &&
-               target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_VALUE &&
-               target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_BORROW &&
-               target->parameterPhysicalAbis[0] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
-               target->parameterPhysicalAbis[1] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
     }
     return 0;
 }
@@ -42357,9 +42318,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_JSONL_VALID: return "jsonl-valid";
     case XL6_IR_RUNTIME_BRIDGE_XLONL_PARSE: return "xlonl-parse";
     case XL6_IR_RUNTIME_BRIDGE_XLONL_VALID: return "xlonl-valid";
-    case XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT: return "string-int-format";
-    case XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT: return "string-uint-format";
-    case XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT: return "string-num-format";
     case XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR: return "take-cstr";
     case XL6_IR_RUNTIME_BRIDGE_TEMPLATE: return "template";
     case XL6_IR_RUNTIME_BRIDGE_BUFFER: return "buffer";

@@ -158,6 +158,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_text_split.c"
 	"$ROOT/src/runtime/xl6_text_join.c"
 	"$ROOT/src/runtime/xl6_text_iterator.c"
+	"$ROOT/src/runtime/xl6_number_format.c"
+	"$ROOT/src/runtime/xl6_number_format_buffer.c"
 	"$ROOT/src/runtime/xl6_network_service.c"
 	"$ROOT/src/runtime/xl6_log.c"
 	"$ROOT/src/runtime/xl6_log_console.c"

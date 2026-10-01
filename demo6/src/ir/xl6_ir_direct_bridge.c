@@ -25,6 +25,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define V XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
 #define Y XL6_IR_C_ABI_MANAGED_BYTES
 #define F XL6_IR_C_ABI_F64
+#define U XL6_IR_C_ABI_U64
     {"xl6TextLowerV1",T,S,2,{S,I}},
     {"xl6TextUpperV1",T,S,2,{S,I}},
     {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
@@ -75,6 +76,13 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6TextIteratorNextV1",T,S,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.nullableResult=1},
     {"xl6TextIteratorCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"}},
     {"xl6TextIteratorClosedV1",T,B,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"}},
+    {"xl6NumberIntFormatV1",T,S,3,{I,S,I}},
+    {"xl6NumberUIntFormatV1",T,S,3,{U,S,I}},
+    {"xl6NumberFloatFormatV1",T,S,3,{F,S,I}},
+    {"xl6NumberBufferIntFormatV1",T,B,4,{V,I,S,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+    {"xl6NumberBufferUIntFormatV1",T,B,4,{V,U,S,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+    {"xl6NumberBufferFloatFormatV1",T,B,4,{V,F,S,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+#undef U
 #undef F
 #undef Y
 #undef V

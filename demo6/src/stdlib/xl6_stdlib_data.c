@@ -172,6 +172,9 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6_xrt_buffer_reserve\" func reserve(int size) as bool\n"
     "    extern \"xl6_xrt_buffer_clear\" func clear() as bool\n"
     "    extern \"xl6_xrt_buffer_append_string\" func append(string text) as bool\n"
+    "    extern \"xl6NumberBufferIntFormatV1\" func appendFormat(int value, string format = \"\", int size = -1) as bool\n"
+    "    extern \"xl6NumberBufferUIntFormatV1\" func appendFormat(uint64 value, string format = \"\", int size = -1) as bool\n"
+    "    extern \"xl6NumberBufferFloatFormatV1\" func appendFormat(float value, string format = \"\", int size = -1) as bool\n"
     "    extern \"xl6_xrt_buffer_append_bytes\" func appendBytes(string data, c_size size) as bool\n"
     "    extern \"xl6_xrt_buffer_append_raw\" func appendRaw(point data, c_size size) as bool\n"
     "    extern \"xl6_xrt_buffer_insert_string\" func insert(int index, string text) as bool\n"
@@ -2836,21 +2839,6 @@ static const XL6_StdlibParam xl6StdXrtIsUtf8Params[] = {
     {"string", "text"}
 };
 
-static const XL6_StdlibParam xl6StdXrtIntFormatParams[] = {
-    {"int", "value"},
-    {"string", "format"}
-};
-
-static const XL6_StdlibParam xl6StdXrtUIntFormatParams[] = {
-    {"uint64", "value"},
-    {"string", "format"}
-};
-
-static const XL6_StdlibParam xl6StdXrtNumFormatParams[] = {
-    {"float", "value"},
-    {"string", "format"}
-};
-
 static const XL6_StdlibParam xl6StdRuntimeTakeCstrParams[] = {
     {"point", "value"}
 };
@@ -4213,34 +4201,22 @@ static const char xl6StdStringIsUtf8Body[] =
     "extern \"xl6TextIsUtf8V1\" func __xl_std_string_is_utf8(string text, int size = -1) as bool\n";
 
 static const char xl6StdIntFormatBody[] =
-    "func __xl_std_int_format(int value, string format = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_int_format(value, format))\n"
-    "end\n";
+    "extern \"xl6NumberIntFormatV1\" func __xl_std_int_format(int value, string format = \"\", int size = -1) as string\n";
 
 static const char xl6StdIntFormatUIntBody[] =
-    "func __xl_std_int_format(uint64 value, string format = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_uint_format(value, format))\n"
-    "end\n";
+    "extern \"xl6NumberUIntFormatV1\" func __xl_std_int_format(uint64 value, string format = \"\", int size = -1) as string\n";
 
 static const char xl6StdFloatFormatBody[] =
-    "func __xl_std_float_format(float value, string format = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_num_format(value, format))\n"
-    "end\n";
+    "extern \"xl6NumberFloatFormatV1\" func __xl_std_float_format(float value, string format = \"\", int size = -1) as string\n";
 
 static const char xl6StdStringFormatBodyInt[] =
-    "func __xl_std_string_format(int value, string format = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_int_format(value, format))\n"
-    "end\n";
+    "extern \"xl6NumberIntFormatV1\" func __xl_std_string_format(int value, string format = \"\", int size = -1) as string\n";
 
 static const char xl6StdStringFormatBodyUInt[] =
-    "func __xl_std_string_format(uint64 value, string format = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_uint_format(value, format))\n"
-    "end\n";
+    "extern \"xl6NumberUIntFormatV1\" func __xl_std_string_format(uint64 value, string format = \"\", int size = -1) as string\n";
 
 static const char xl6StdStringFormatBodyFloat[] =
-    "func __xl_std_string_format(float value, string format = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_string_num_format(value, format))\n"
-    "end\n";
+    "extern \"xl6NumberFloatFormatV1\" func __xl_std_string_format(float value, string format = \"\", int size = -1) as string\n";
 
 static const char xl6StdStringLowerBody[] =
     "extern \"xl6TextLowerV1\" func __xl_std_string_lower(string text, int size = -1) as string\n";
@@ -6751,9 +6727,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_string", "approx", "__xl_std_xrt_string_approx", "xl6_xrt_string_approx", xl6StdXrtStrApproxParams, 2, "c_bool", NULL},
     {"__xrt_string", "similarity", "__xl_std_xrt_string_similarity", "xl6_xrt_string_similarity", xl6StdXrtStrApproxParams, 2, "c_double", NULL},
     {"__xrt_string", "isUtf8", "__xl_std_xrt_string_is_utf8", "xl6_xrt_string_is_utf8", xl6StdXrtIsUtf8Params, 1, "c_bool", NULL},
-    {"__xrt_string", "intFormat", "__xl_std_xrt_string_int_format", "xl6_xrt_string_int_format", xl6StdXrtIntFormatParams, 2, "point", NULL},
-    {"__xrt_string", "uintFormat", "__xl_std_xrt_string_uint_format", "xl6_xrt_string_uint_format", xl6StdXrtUIntFormatParams, 2, "point", NULL},
-    {"__xrt_string", "numFormat", "__xl_std_xrt_string_num_format", "xl6_xrt_string_num_format", xl6StdXrtNumFormatParams, 2, "point", NULL},
     {"__xrt_string", "lower", "__xl_std_xrt_string_lower", "xl6_xrt_string_lower", xl6StdXrtStringCaseParams, 1, "point", NULL},
     {"__xrt_string", "upper", "__xl_std_xrt_string_upper", "xl6_xrt_string_upper", xl6StdXrtStringCaseParams, 1, "point", NULL},
     {"__xrt_string", "trim", "__xl_std_xrt_string_trim", "xl6_xrt_string_trim", xl6StdXrtStringTrimParams, 2, "point", NULL},

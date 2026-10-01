@@ -368,18 +368,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsXValueRuntime = 1;
             needs->needsStringViews = 1;
         } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT ) {
-            needs->needsStringIntFormatBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT ) {
-            needs->needsStringUIntFormatBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT ) {
-            needs->needsStringNumFormatBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR ) {
             needs->needsTakeCstrBridgeRuntime = 1;
             needs->needsStringRuntime = 1;

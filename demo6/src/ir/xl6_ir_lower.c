@@ -12502,45 +12502,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF;
         return 1;
     }
-    if ( strcmp(target->cName, "xl6_xrt_string_int_format") == 0 ||
-         strcmp(target->cName, "xl6_xrt_string_uint_format") == 0 ||
-         strcmp(target->cName, "xl6_xrt_string_num_format") == 0 ) {
-        XL6_IrCAbi valueAbi = strcmp(target->cName, "xl6_xrt_string_int_format") == 0
-            ? XL6_IR_C_ABI_I64
-            : strcmp(target->cName, "xl6_xrt_string_uint_format") == 0
-                ? XL6_IR_C_ABI_U64 : XL6_IR_C_ABI_F64;
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        first = target->parameterCount == 2 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 2 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[1]) : NULL;
-        if ( target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-             target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE || result == NULL ||
-             first == NULL || second == NULL ||
-             result->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-             first->cAbi != valueAbi ||
-             first->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             first->nullAbi != XL6_IR_NULL_ABI_NONE ||
-             second->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-             second->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-             second->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-             target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-             target->parameterAbis == NULL || target->parameterPhysicalAbis == NULL ||
-             target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_VALUE ||
-             target->parameterAbis[1] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterPhysicalAbis[0] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
-             target->parameterPhysicalAbis[1] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR string-format runtime bridge has no exact private helper ABI");
-        target->runtimeBridge = strcmp(target->cName, "xl6_xrt_string_int_format") == 0
-            ? XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT
-            : strcmp(target->cName, "xl6_xrt_string_uint_format") == 0
-                ? XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT
-                : XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT;
-        return 1;
-    }
     return 1;
 }
 

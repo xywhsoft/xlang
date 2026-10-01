@@ -75,4 +75,12 @@ XL6_TEXT_API void xl6TextIteratorDestroyV1(void* handle);
 XL6_TEXT_API xstrview xl6TextIteratorNextV1(void* handle);
 XL6_TEXT_API void xl6TextIteratorCloseV1(void* handle);
 XL6_TEXT_API bool xl6TextIteratorClosedV1(void* handle);
+/* Numeric format is ASCII grammar over an exact byte view, not arbitrary
+ * Unicode text. size selects a clamped prefix. Results may contain U+0000. */
+XL6_TEXT_API xstrview xl6NumberIntFormatV1(int64_t value, xstrview format, int64_t size);
+XL6_TEXT_API xstrview xl6NumberUIntFormatV1(uint64_t value, xstrview format, int64_t size);
+XL6_TEXT_API xstrview xl6NumberFloatFormatV1(double value, xstrview format, int64_t size);
+XL6_TEXT_API bool xl6NumberBufferIntFormatV1(void* buffer, int64_t value, xstrview format, int64_t size);
+XL6_TEXT_API bool xl6NumberBufferUIntFormatV1(void* buffer, uint64_t value, xstrview format, int64_t size);
+XL6_TEXT_API bool xl6NumberBufferFloatFormatV1(void* buffer, double value, xstrview format, int64_t size);
 #endif
