@@ -489,10 +489,10 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     if ( needs->needsXValueTableRemoveBridgeRuntime ) {
         xl6OutputPuts(
             "extern bool xrtValueObjectRemove(xvalue*, xlir_string_view);\n"
-            "bool xl6_xrt_std_table_remove(xvalue* table, const char* key, unsigned int keyLen)\n"
+            "bool xl6_xrt_std_table_remove(xvalue* table, xlir_string key, unsigned int keyLen)\n"
             "{\n"
-            "    xlir_string_view view = xrtStrView(key != NULL ? key : \"\");\n"
-            "    if (keyLen != 0u) view.Size = (size_t)keyLen;\n"
+            "    xlir_string_view view = key;\n"
+            "    if (keyLen != 0u && (size_t)keyLen < view.Size) view.Size = (size_t)keyLen;\n"
             "    return xrtValueObjectRemove(table, view);\n"
             "}\n\n", out);
     }

@@ -1,0 +1,36 @@
+Buffer buffer = Buffer()
+assert buffer.appendBytes("a\0b", c_size(20))
+assert buffer.len() == 3 and buffer.byteAt(0) == 97
+assert buffer.byteAt(1) == 0 and buffer.byteAt(2) == 98
+assert buffer.appendBytes("ignored", c_size(0)) and buffer.len() == 3
+assert buffer.appendBytes("你好", c_size(3))
+assert buffer.len() == 6 and buffer.byteAt(3) == 228 and buffer.byteAt(5) == 160
+var object = {"a": 1, "a\0b": 2}
+assert dict.remove(object, "a\0b")
+assert object["a"] == 1 and not ("a\0b" in object)
+
+auto context = xlang.Context()
+assert context.run("assert 40 + 2 == 42")
+assert xlang.run("assert 40 + 2 == 42")
+for operation in range(6)
+    bool caught = false
+    try
+        if operation == 0 then
+            context.run("assert true\0assert false")
+        elseif operation == 1 then
+            context.runFile("missing\0file.xl")
+        elseif operation == 2 then
+            context.setWorkDir(".\0ignored")
+        elseif operation == 3 then
+            context.setTempDir(".\0ignored")
+        elseif operation == 4 then
+            xlang.run("assert true\0assert false")
+        else
+            xlang.runFile("missing\0file.xl")
+        end
+    catch e
+        caught = e.kind == "ValueError"
+    end
+    assert caught, "C text boundary silently truncated an embedded NUL"
+end
+println("string bridge boundaries: PASS")

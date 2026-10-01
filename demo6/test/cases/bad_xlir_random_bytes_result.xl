@@ -1,0 +1,3 @@
+// A bytes result cannot be replaced by an erased array carrier.
+extern "xl6_xrt_random_bytes" func wrong(int count) as array
+wrong(1)
