@@ -103,6 +103,7 @@ string homeDir = path.home()
 string tempDir = path.temp()
 string appDir = path.appDir()
 string fileNameExt = path.nameExt(filePath)
+assert path.name(filePath) == fileNameExt
 string fileName = path.stem(filePath)
 string fileExt = path.ext(filePath)
 string fileDir = path.dir(filePath)
