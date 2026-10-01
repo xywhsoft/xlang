@@ -126,7 +126,7 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return 1;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_bytes(void* self, const char* data, size_t size)\n", out);
+    xl6OutputPuts("static XL6_CgenBool xlir_buffer_append_data(void* self, const void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( self == 0 || size > 4294967295u ) {\n", out);
     xl6OutputPuts("        return 0;\n", out);
@@ -140,14 +140,17 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("    return xrtBufferAppend((XL6_XBuffer)self, (XL6_XrtBytesView){ (const unsigned char*)data, size });\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_bytes(void* self, xlir_string data, size_t size)\n", out);
+    xl6OutputPuts("{ return xlir_buffer_append_data(self, data.Data, size < data.Size ? size : data.Size); }\n\n", out);
+
     xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_raw(void* self, void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xl6_xrt_buffer_append_bytes(self, (const char*)data, size);\n", out);
+    xl6OutputPuts("    return xlir_buffer_append_data(self, data, size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_append_string(void* self, xlir_string text)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return text.Data == 0 ? xl6_xrt_buffer_append_bytes(self, \"\", 0u) : xl6_xrt_buffer_append_bytes(self, text.Data, text.Size);\n", out);
+    xl6OutputPuts("    return xlir_buffer_append_data(self, text.Data, text.Size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_insert_raw(void* self, long long index, void* data, size_t size)\n", out);
@@ -178,7 +181,7 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    byte = (unsigned char)value;\n", out);
-    xl6OutputPuts("    return xl6_xrt_buffer_append_bytes(self, (const char*)&byte, 1u);\n", out);
+    xl6OutputPuts("    return xlir_buffer_append_data(self, &byte, 1u);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("long long xl6_xrt_buffer_byte_at(void* self, long long index)\n", out);

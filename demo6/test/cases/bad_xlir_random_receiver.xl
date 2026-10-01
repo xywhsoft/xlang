@@ -1,0 +1,3 @@
+// Random receiver must be an exact native class field borrow, not a raw point.
+extern "xl6_xrt_rng_u32" func wrong(point receiver) as c_uint
+wrong(null)

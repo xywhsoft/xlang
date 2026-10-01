@@ -1,0 +1,3 @@
+// The bridge accepts a raw Buffer handle, not a managed Buffer object ABI.
+extern "xl6_xrt_random_fill_buffer" func wrong(Buffer target) as bool
+wrong(Buffer())

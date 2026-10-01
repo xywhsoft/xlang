@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -130,4 +131,17 @@ $rvalueCommand = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! 
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR native rvalue bind generated-C runtime failed" }
 
 Write-Output "XLIR native handle bind gate ok: Typed direct/managed-field TAKE ABI, source clearing, managed-resource parameter borrow, destroy-directed ownership, strict C, and runtimes."
+foreach ($name in @('bad_xlir_random_buffer_handle', 'bad_xlir_random_receiver',
+                    'bad_xlir_random_bytes_result', 'bad_xlir_siphasher_key')) {
+    $rejected = Join-Path $outputDir "$name.c"
+    if (Test-Path -LiteralPath $rejected) { Remove-Item -LiteralPath $rejected }
+    $log = Join-Path $outputDir "$name.log"
+    $code = Invoke-XlirNativeToLog $xl @('cgen', (Join-Path $Root "test/cases/$name.xl"), '--emit', $rejected) $log
+    $diagnostic = [IO.File]::ReadAllText($log)
+    if ($code -ne 1 -or $diagnostic -notmatch 'has no exact compiler-runtime bridge ABI' -or
+        (Test-Path -LiteralPath $rejected)) {
+        throw "Malformed Random/SipHasher bridge was not precisely refused before C emission: $name"
+    }
+}
+Write-Output 'Four malformed Random/SipHasher physical ABI declarations rejected without C output.'
 exit 0

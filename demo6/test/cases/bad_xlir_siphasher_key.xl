@@ -1,0 +1,3 @@
+// A native factory requires bytes key input and a managed factory result.
+extern "xl6_xrt_siphasher64_create" func wrong(string key) as point
+wrong("0123456789abcdef")
