@@ -1,0 +1,25 @@
+assert string.distance("你😀", "你x") == 1
+assert string.distance("a\0b", "a\0c") == 1
+assert string.distance("", "") == 0
+assert string.distance("abc", "xyz", 2) == -1
+assert string.distance("abc", "xyz", 3) == 3
+assert string.distance("abc", "axc", 0) == -1
+assert string.sim("a\0b", "a\0b") == 1.0
+assert string.sim("abc", "xyz") == 0.0
+assert string.approx("abc", "abc")
+assert not string.approx("abc", "axc")
+assert string.approx("abc", "axc", 0.5)
+bool caught = false
+try
+    string.approx("a", "a", 1.1)
+catch RangeError
+    caught = true
+end
+assert caught
+caught = false
+try
+    string.distance("a", "a", -2)
+catch RangeError
+    caught = true
+end
+assert caught

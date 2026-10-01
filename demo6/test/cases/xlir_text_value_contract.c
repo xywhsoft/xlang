@@ -46,6 +46,22 @@ int main(int argc, char** argv)
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
             t->parameterAbis[p] = XL6_IR_PARAMETER_ABI_BORROW;
         }
+        XL6_IrType* result = &ir.types.items[t->returnType - 1];
+        XL6_IrCAbi abi = result->cAbi;
+        XL6_IrIntegerTarget width = result->integerTarget;
+        if (abi == XL6_IR_C_ABI_I64) {
+            result->integerTarget = width == XL6_IR_INTEGER_TARGET_SIGNED_64
+                ? XL6_IR_INTEGER_TARGET_UNSIGNED_8 : XL6_IR_INTEGER_TARGET_SIGNED_64;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+            result->integerTarget = width;
+        }
+        if (result->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
+            XL6_IrType* item = &ir.types.items[result->params[0] - 1];
+            XL6_IrCAbi itemAbi = item->cAbi;
+            item->cAbi = XL6_IR_C_ABI_U64;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+            item->cAbi = itemAbi;
+        }
         assert(xl6IrRuntimeDirectBridgeTargetMatches(&ir, t)); ++checked;
     }
     assert(checked);

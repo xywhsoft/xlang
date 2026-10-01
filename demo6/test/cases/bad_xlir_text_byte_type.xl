@@ -1,0 +1,2 @@
+extern "xl6TextByteAtV1" func bad(string text, int index, int size) as int
+auto result = bad("A", 0, -1)

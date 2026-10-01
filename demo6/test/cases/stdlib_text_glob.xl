@@ -1,0 +1,22 @@
+assert string.glob("a\0b", "a?b")
+assert string.glob("你好.md", "??.md")
+assert not string.glob("你好.md", "?.md")
+assert string.glob("README.MD", "*.md", 1)
+assert not string.glob("README.MD", "*.md")
+assert string.like("a\0b", "a*b")
+assert string.like("README.MD", "*.md", true)
+assert string.glob("a\0bad", "a", 0, 1)
+bool caught = false
+try
+    string.glob("a", "a", 2)
+catch RangeError
+    caught = true
+end
+assert caught
+caught = false
+try
+    string.like("a", "[a")
+catch ValueError
+    caught = true
+end
+assert caught

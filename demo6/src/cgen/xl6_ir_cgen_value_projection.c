@@ -426,6 +426,8 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
                 XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY ) {
         const char* getter = result->cAbi == XL6_IR_C_ABI_BOOL
             ? "xrtValueGetBool"
+            : result->cAbi == XL6_IR_C_ABI_CHAR_U32
+                ? "xrtValueGetChar"
             : result->cAbi == XL6_IR_C_ABI_I64
                 ? "xrtValueGetInt"
                 : result->cAbi == XL6_IR_C_ABI_U64

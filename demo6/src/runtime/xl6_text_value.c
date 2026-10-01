@@ -1,36 +1,4 @@
-#include "src/runtime/xl6_text_value.h"
-#include <limits.h>
-
-static const xstrview xl6TextFailure = {NULL, 0};
-
-static bool xl6TextSelect(xstrview* text, int64_t size)
-{
-    if (size < -1) { xrtSetErrorKind(XERR_RANGE); return false; }
-    if (!text->Data && text->Size) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (size >= 0 && (uint64_t)size < text->Size) text->Size = (size_t)size;
-    if (text->Size > INT64_MAX || text->Size == SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }
-    if (!text->Data) text->Data = "";
-    /* A byte cap may cut a scalar: reject it, never return invalid string. */
-    if (xrtUtf8Count(*text) != XRT_NPOS) return true;
-    /* The fast Unicode counter reports a sentinel, not an error object.
-     * Reuse XRT's checked range path only on failure for its offset diagnostic. */
-    xstrview ignored;
-    return xrtUtf8Range(*text, 0, 0, &ignored);
-}
-
-static xstrview xl6TextOwn(char* data, size_t size)
-{
-    if (!data) {
-        if (xrtErrorKind(xrtGetError()) == XERR_NONE) xrtSetErrorKind(XERR_MEMORY);
-        return xl6TextFailure;
-    }
-    if (size > INT64_MAX) {
-        xrtFree(data); xrtSetErrorKind(XERR_RANGE); return xl6TextFailure;
-    }
-    return (xstrview){data, size};
-}
-static xstrview xl6TextCopy(xstrview text)
-{ return xl6TextOwn(xrtStrDupView(text), text.Size); }
+#include "src/runtime/xl6_text_internal.h"
 
 xstrview xl6TextLowerV1(xstrview text, int64_t size)
 {
@@ -129,3 +97,39 @@ xstrview xl6TextInsertV1(xstrview text, int64_t index, xstrview part, int64_t si
     if (part.Size > INT64_MAX - text.Size) { xrtSetErrorKind(XERR_RANGE); return xl6TextFailure; }
     return xl6TextOwn(xrtStrInsert(text, (size_t)(position.Data - text.Data), part), text.Size + part.Size);
 }
+
+xstrview xl6TextRemoveV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize)
+{
+    if (!xl6TextSelect(&text, size) || !xl6TextSelect(&part, partSize)) return xl6TextFailure;
+    if (!ignoreCase) return xl6TextReplaceV1(text, part, XRT_STR_LITERAL(""), -1, -1, -1);
+    if (!part.Size || !text.Size) return xl6TextCopy(text);
+    xstrbuf output;
+    xrtStrBufInit(&output);
+    if (!xrtStrBufReserve(&output, text.Size)) return xl6TextOwn(NULL, 0);
+    size_t start = 0, found;
+    while ((found = xrtStrCaseFind(text, part, start)) != XRT_NPOS) {
+        if (!xrtStrBufAppend(&output, xrtStrSlice(text, start, found - start))) goto fail;
+        start = found + part.Size;
+    }
+    if (!xrtStrBufAppend(&output, xrtStrSlice(text, start, text.Size - start))) goto fail;
+    size_t written = output.Size;
+    return xl6TextOwn(xrtStrBufTake(&output), written);
+fail:
+    xrtStrBufFree(&output);
+    return xl6TextOwn(NULL, 0);
+}
+static xstrview xl6TextPad(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize,
+    char* (*operation)(xstrview, size_t, xstrview, size_t*))
+{
+    if (width < 0 || (uint64_t)width > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return xl6TextFailure; }
+    if (!xl6TextSelect(&text, size) || !xl6TextSelect(&pad, padSize)) return xl6TextFailure;
+    size_t written = 0;
+    char* result = operation(text, (size_t)width, pad, &written);
+    return xl6TextOwn(result, written);
+}
+xstrview xl6TextPadLeftV1(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize)
+{ return xl6TextPad(text, width, pad, size, padSize, xrtUtf8PadLeftSized); }
+xstrview xl6TextPadRightV1(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize)
+{ return xl6TextPad(text, width, pad, size, padSize, xrtUtf8PadRightSized); }
+xstrview xl6TextPadCenterV1(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize)
+{ return xl6TextPad(text, width, pad, size, padSize, xrtUtf8PadCenterSized); }

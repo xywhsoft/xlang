@@ -10104,6 +10104,7 @@ int xl6IrTypeCanBoxRuntimeXValue(
             type->typeValueId != 0 &&
             xl6IrUnionLayoutGet(module, typeId) != NULL;
     return type->cAbi == XL6_IR_C_ABI_BOOL ||
+           type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
            type->cAbi == XL6_IR_C_ABI_I64 ||
            type->cAbi == XL6_IR_C_ABI_U64 ||
            type->cAbi == XL6_IR_C_ABI_F64 ||
@@ -15667,6 +15668,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     itemType = xl6IrTypeGet(&module->types, itemTypeId);
     if ( itemType == NULL ) return XL6_IR_LOOP_ABI_NONE;
     switch ( itemType->cAbi ) {
+    case XL6_IR_C_ABI_CHAR_U32:
+        resolvedItemAbi = XL6_IR_LOOP_ITEM_CHAR;
+        break;
     case XL6_IR_C_ABI_I64:
         resolvedItemAbi = XL6_IR_LOOP_ITEM_I64;
         break;
@@ -36097,6 +36101,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  XL6_IR_TYPE_INVALID ||
                              resultType == NULL ||
                              (resultType->cAbi != XL6_IR_C_ABI_BOOL &&
+                              resultType->cAbi != XL6_IR_C_ABI_CHAR_U32 &&
                               resultType->cAbi != XL6_IR_C_ABI_I64 &&
                               resultType->cAbi != XL6_IR_C_ABI_U64 &&
                               resultType->cAbi != XL6_IR_C_ABI_F64 &&

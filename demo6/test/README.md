@@ -43,6 +43,8 @@ test\suites\02_language_frontend.bat
 
 ## Manual probes
 
+`tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）对 B1/B2 文本入口执行冻结输入的 298 项严格 C/JIT/AOT、确定性、ABI 负例与回归检查；覆盖精确 NUL/UTF-8、char/bytes 与字符集合投影，以及拥有结果和字符数组构造等实际 OOM 路径。`tools/check_xlir_artifact_runtime.ps1` 可独立验证这些入口的组件导出与实际原生闭包；专项不代表 53 模块全部接入或全仓 RC0 通过。
+
 `tools/check_xlir_conditional_nullable_join.ps1` 验证三元表达式的可空类型汇合、分支局部收窄、惰性表达式的确定赋值，以及字符串/类/闭包汇合的所有权。门禁包含语义正负例、IR 变异拒绝、确定性 C/header、严格 C 内存平衡和 C-host JIT/AOT；它不代表全部 `out` 参数异常路径已完成证明。
 
 `tools/check_xlir_managed_storage_inputs.ps1` 验证普通存储、闭包 cell 写入前的独立所有权取得，以及托管 `match` 的显式存储汇合、支配使用的 MOVE、临时字段投影与 checked 转换的生命周期。包含 IR 变异拒绝、严格 C 内存平衡和 C-host JIT/AOT；它尚不等于所有 RuntimeOp 输入的全局单次消费证明。

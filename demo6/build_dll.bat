@@ -156,6 +156,11 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_task.c ^
     src\runtime\xl6_task_file.c ^
     src\runtime\xl6_text_value.c ^
+    src\runtime\xl6_text_query.c ^
+    src\runtime\xl6_text_binary.c ^
+    src\runtime\xl6_text_chars.c ^
+    src\runtime\xl6_text_glob.c ^
+    src\runtime\xl6_text_distance.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^
@@ -249,6 +254,11 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_task.c ^
     src\runtime\xl6_task_file.c ^
     src\runtime\xl6_text_value.c ^
+    src\runtime\xl6_text_query.c ^
+    src\runtime\xl6_text_binary.c ^
+    src\runtime\xl6_text_chars.c ^
+    src\runtime\xl6_text_glob.c ^
+    src\runtime\xl6_text_distance.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^

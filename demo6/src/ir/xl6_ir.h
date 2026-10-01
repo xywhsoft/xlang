@@ -1491,7 +1491,7 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN,
        /* Borrows one canonical non-null xvalue and copies one verified
         * trivial scalar payload. payloadType equals the result TypeId and
-        * fixes the exact bool/i64/u64/f64/time physical getter; a missing or
+        * fixes the exact bool/char/i64/u64/f64/time physical getter; a missing or
         * mismatched runtime value is an invariant violation, not a dynamic
         * language conversion or a recoverable error edge. */
        XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY,

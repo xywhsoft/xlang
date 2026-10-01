@@ -1,0 +1,2 @@
+extern "xl6TextLengthV1" func bad(string text, int8 size) as int
+auto result = bad("A", int8(-1))

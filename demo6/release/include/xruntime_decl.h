@@ -18747,6 +18747,16 @@ XRT_API str xrtUtf8PadRight(xstrview Text, size_t iWidth, xstrview Fill);
 /* 按 Unicode 标量宽度在两侧重复填充严格 UTF-8 文本。 */
 XRT_API str xrtUtf8PadCenter(xstrview Text, size_t iWidth, xstrview Fill);
 
+/* 与上述填充函数共用实现，交付包含内嵌 NUL 的精确结果字节数。
+ * pOutputSize 可为 NULL；普通失败清零。输出指针不得重叠输入字节区域，
+ * 拒绝重叠时保持输入和输出原值。结果由 xrtFree 释放。 */
+XRT_API str xrtUtf8PadLeftSized(xstrview Text, size_t iWidth,
+	xstrview Fill, size_t* pOutputSize);
+XRT_API str xrtUtf8PadRightSized(xstrview Text, size_t iWidth,
+	xstrview Fill, size_t* pOutputSize);
+XRT_API str xrtUtf8PadCenterSized(xstrview Text, size_t iWidth,
+	xstrview Fill, size_t* pOutputSize);
+
 
 
 /* 按 Unicode 标量反转严格 UTF-8 文本到调用方缓冲区；允许原地反转。 */

@@ -7,12 +7,19 @@ typedef struct XL6_IrDirectBridgeContract {
     XL6_IrCAbi result;
     size_t parameterCount;
     XL6_IrCAbi parameters[6];
+    XL6_IrCAbi resultArrayItemAbi;
+    XL6_IrIntegerTarget resultIntegerTarget;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define S XL6_IR_C_ABI_MANAGED_STRING
 #define I XL6_IR_C_ABI_I64
 #define T XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
+#define B XL6_IR_C_ABI_BOOL
+#define C XL6_IR_C_ABI_CHAR_U32
+#define V XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+#define Y XL6_IR_C_ABI_MANAGED_BYTES
+#define F XL6_IR_C_ABI_F64
     {"xl6TextLowerV1",T,S,2,{S,I}},
     {"xl6TextUpperV1",T,S,2,{S,I}},
     {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
@@ -27,6 +34,38 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6TextReverseV1",T,S,2,{S,I}},
     {"xl6TextRemoveAtV1",T,S,4,{S,I,I,I}},
     {"xl6TextInsertV1",T,S,5,{S,I,S,I,I}},
+    {"xl6TextRemoveV1",T,S,5,{S,S,B,I,I}},
+    {"xl6TextPadLeftV1",T,S,5,{S,I,S,I,I}},
+    {"xl6TextPadRightV1",T,S,5,{S,I,S,I,I}},
+    {"xl6TextPadCenterV1",T,S,5,{S,I,S,I,I}},
+    {"xl6TextLengthV1",T,I,2,{S,I}},
+    {"xl6TextByteLengthV1",T,I,2,{S,I}},
+    {"xl6TextByteAtV1",T,I,3,{S,I,I},0,XL6_IR_INTEGER_TARGET_UNSIGNED_8},
+    {"xl6TextCharAtV1",T,C,3,{S,I,I}},
+    {"xl6TextBytesV1",T,Y,2,{S,I}},
+    {"xl6TextCharsV1",T,V,2,{S,I},C},
+    {"xl6TextCompareV1",T,I,5,{S,S,B,I,I}},
+    {"xl6TextEqualsV1",T,B,5,{S,S,B,I,I}},
+    {"xl6TextContainsV1",T,B,5,{S,S,B,I,I}},
+    {"xl6TextIndexOfV1",T,I,5,{S,S,B,I,I}},
+    {"xl6TextLastIndexOfV1",T,I,5,{S,S,B,I,I}},
+    {"xl6TextCountV1",T,I,5,{S,S,B,I,I}},
+    {"xl6TextStartsWithV1",T,B,5,{S,S,B,I,I}},
+    {"xl6TextEndsWithV1",T,B,5,{S,S,B,I,I}},
+    {"xl6TextHasAnyV1",T,B,4,{S,S,I,I}},
+    {"xl6TextIsEmptyV1",T,B,2,{S,I}},
+    {"xl6TextIsBlankV1",T,B,2,{S,I}},
+    {"xl6TextIsUtf8V1",T,B,2,{S,I}},
+    {"xl6TextLikeV1",T,B,5,{S,S,B,I,I}},
+    {"xl6TextGlobV1",T,B,5,{S,S,I,I,I}},
+    {"xl6TextDistanceV1",T,I,5,{S,S,I,I,I}},
+    {"xl6TextSimilarityV1",T,F,4,{S,S,I,I}},
+    {"xl6TextApproxV1",T,B,5,{S,S,F,I,I}},
+#undef F
+#undef Y
+#undef V
+#undef C
+#undef B
 #undef S
 #undef I
 #undef T
@@ -130,25 +169,44 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         target->parameterPhysicalAbis == NULL || target->parameterConstraintAbis == NULL ||
         target->parameterPhysicalFieldDeclarations == NULL) return 0;
     result = xl6IrTypeGet(&module->types, target->returnType);
+    if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
+        const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
+        if (target->effectAbi != XL6_IR_CALL_EFFECT_CONSERVATIVE ||
+            target->executionBoundaryAbi != XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK ||
+            !declaration || (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) return 0;
+        if (contract->result == XL6_IR_C_ABI_I64 && (!result ||
+            result->integerTarget != (contract->resultIntegerTarget ? contract->resultIntegerTarget
+                : XL6_IR_INTEGER_TARGET_SIGNED_64))) return 0;
+    }
     if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
     } else {
-        if (result == NULL || result->kind != XL6_IR_TYPE_BUILTIN ||
-            result->collectionAbi != XL6_IR_COLLECTION_NONE || result->paramCount != 0) return 0;
-        if (contract->result == XL6_IR_C_ABI_MANAGED_STRING) {
-            const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
-            if (result->cAbi != contract->result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-                target->effectAbi != XL6_IR_CALL_EFFECT_CONSERVATIVE ||
-                target->executionBoundaryAbi != XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK ||
-                !declaration || (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) return 0;
-        } else if (contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
-            if (!xl6IrSerializationBridgeDynamicValueType(result)) return 0;
-        } else if (!xl6IrBufferRuntimeBridgeResultMatches(result, contract->result)) return 0;
+        if (contract->resultArrayItemAbi) {
+            const XL6_IrType* item = result && result->paramCount == 1 && result->params
+                ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
+            if (!result || result->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                result->collectionAbi != XL6_IR_COLLECTION_ARRAY || result->returnCount != 0 ||
+                result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                result->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || !item ||
+                item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount != 0 ||
+                item->cAbi != contract->resultArrayItemAbi) return 0;
+        } else {
+            if (result == NULL || result->kind != XL6_IR_TYPE_BUILTIN ||
+                result->collectionAbi != XL6_IR_COLLECTION_NONE || result->paramCount != 0) return 0;
+            if (contract->result == XL6_IR_C_ABI_MANAGED_STRING || contract->result == XL6_IR_C_ABI_MANAGED_BYTES) {
+                if (result->cAbi != contract->result || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                    result->nullAbi != (contract->result == XL6_IR_C_ABI_MANAGED_STRING
+                        ? XL6_IR_NULL_ABI_POINTER_SENTINEL : XL6_IR_NULL_ABI_XVALUE_SENTINEL)) return 0;
+            } else if (contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
+                if (!xl6IrSerializationBridgeDynamicValueType(result)) return 0;
+            } else if (!xl6IrBufferRuntimeBridgeResultMatches(result, contract->result)) return 0;
+        }
     }
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
+        if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && abi == XL6_IR_C_ABI_I64 &&
+            (!type || type->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64)) return 0;
         if (type == NULL || type->kind != XL6_IR_TYPE_BUILTIN ||
             type->collectionAbi != XL6_IR_COLLECTION_NONE || type->paramCount != 0 ||
             target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||

@@ -30,4 +30,32 @@ XL6_TEXT_API xstrview xl6TextReverseV1(xstrview text, int64_t size);
 XL6_TEXT_API xstrview xl6TextRemoveAtV1(xstrview text, int64_t start, int64_t count, int64_t size);
 XL6_TEXT_API xstrview xl6TextInsertV1(xstrview text, int64_t index, xstrview part,
     int64_t size, int64_t partSize);
+XL6_TEXT_API xstrview xl6TextRemoveV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API xstrview xl6TextPadLeftV1(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize);
+XL6_TEXT_API xstrview xl6TextPadRightV1(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize);
+XL6_TEXT_API xstrview xl6TextPadCenterV1(xstrview text, int64_t width, xstrview pad, int64_t size, int64_t padSize);
+XL6_TEXT_API int64_t xl6TextLengthV1(xstrview text, int64_t size);
+XL6_TEXT_API int64_t xl6TextByteLengthV1(xstrview text, int64_t size);
+/* Bounded uint8 uses the language's i64 execution ABI, not foreign uint8_t. */
+XL6_TEXT_API int64_t xl6TextByteAtV1(xstrview text, int64_t index, int64_t size);
+XL6_TEXT_API uint32_t xl6TextCharAtV1(xstrview text, int64_t index, int64_t size);
+XL6_TEXT_API xvalue* xl6TextBytesV1(xstrview text, int64_t size);
+XL6_TEXT_API xvalue* xl6TextCharsV1(xstrview text, int64_t size);
+XL6_TEXT_API int64_t xl6TextCompareV1(xstrview left, xstrview right, bool ignoreCase, int64_t leftSize, int64_t rightSize);
+XL6_TEXT_API bool xl6TextEqualsV1(xstrview left, xstrview right, bool ignoreCase, int64_t leftSize, int64_t rightSize);
+XL6_TEXT_API bool xl6TextContainsV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API int64_t xl6TextIndexOfV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API int64_t xl6TextLastIndexOfV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API int64_t xl6TextCountV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API bool xl6TextStartsWithV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API bool xl6TextEndsWithV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
+XL6_TEXT_API bool xl6TextHasAnyV1(xstrview text, xstrview chars, int64_t size, int64_t charsSize);
+XL6_TEXT_API bool xl6TextIsEmptyV1(xstrview text, int64_t size);
+XL6_TEXT_API bool xl6TextIsBlankV1(xstrview text, int64_t size);
+XL6_TEXT_API bool xl6TextIsUtf8V1(xstrview text, int64_t size);
+XL6_TEXT_API bool xl6TextLikeV1(xstrview text, xstrview pattern, bool ignoreCase, int64_t size, int64_t patternSize);
+XL6_TEXT_API bool xl6TextGlobV1(xstrview text, xstrview pattern, int64_t flags, int64_t size, int64_t patternSize);
+XL6_TEXT_API int64_t xl6TextDistanceV1(xstrview left, xstrview right, int64_t limit, int64_t leftSize, int64_t rightSize);
+XL6_TEXT_API double xl6TextSimilarityV1(xstrview left, xstrview right, int64_t leftSize, int64_t rightSize);
+XL6_TEXT_API bool xl6TextApproxV1(xstrview left, xstrview right, double tolerance, int64_t leftSize, int64_t rightSize);
 #endif
