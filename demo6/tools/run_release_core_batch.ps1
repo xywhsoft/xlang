@@ -40,6 +40,20 @@ function Save-Report {
 Save-Report
 Push-Location $Root
 try {
+    # One frozen runtime/toolchain preparation for the entire child batch.
+    # Child guards inherit these values and do not rebuild identical objects.
+    $previousEnvironment = @{}
+    $preparation = & $env:ComSpec /d /v:on /c 'call test\suites\common.bat && set XL6_'
+    if ($LASTEXITCODE -ne 0) { throw 'Grouped core toolchain preparation failed' }
+    foreach ($line in $preparation) {
+        if ($line -match '^(XL6_[A-Za-z0-9_]+)=(.*)$') {
+            $key = $Matches[1]; $value = $Matches[2]
+            $previousEnvironment[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
+            [Environment]::SetEnvironmentVariable($key, $value, 'Process')
+        }
+    }
+    $previousEnvironment['XL6_SUITE_PREPARED'] = [Environment]::GetEnvironmentVariable('XL6_SUITE_PREPARED', 'Process')
+    $env:XL6_SUITE_PREPARED = '1'
     foreach ($guard in $guards) {
         $log = Join-Path $Directory ($guard + '.log')
         # Windows PowerShell wraps native stderr as ErrorRecords. Preserve it as
@@ -61,6 +75,9 @@ try {
     $report.InputsUnchanged = @($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count -eq 0
     $report.Status = if ($report.InputsUnchanged -and !@($report.Results | Where-Object { !$_.Passed }).Count) { 'passed' } else { 'failed' }
 } finally {
+    foreach ($key in $previousEnvironment.Keys) {
+        [Environment]::SetEnvironmentVariable($key, $previousEnvironment[$key], 'Process')
+    }
     if ($report.Status -eq 'running') { $report.Status = 'interrupted' }
     $report.CompletedUtc = [DateTime]::UtcNow.ToString('o')
     Save-Report
