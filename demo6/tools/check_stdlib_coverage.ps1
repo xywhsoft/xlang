@@ -321,7 +321,7 @@ foreach ( $func in $publicFuncs ) {
         continue
     }
 
-    $pattern = '(?<![A-Za-z0-9_])' + [regex]::Escape($func) + '\s*\('
+    $pattern = '(?<![A-Za-z0-9_])' + [regex]::Escape($func) + '(?:\s*::\s*<[^\r\n]+?>)?\s*\('
 
     if ( $docs -notmatch $pattern ) {
         $missingDocs.Add($func)

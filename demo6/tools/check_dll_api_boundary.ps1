@@ -525,7 +525,9 @@ if ( $failures.Count -eq 0 ) {
     }
 
     if ( $api -notmatch 'XL_TCC_VFS_XRT_C' -or
-         $api -notmatch '(?s)#define XRT_MODULE_ALL.*#define XRUNTIME_MODULE_ALL.*#define XRUNTIME_IMPLEMENTATION.*#include \\"xruntime[.]h\\"' ) {
+         $api -notmatch 'tcc_define_symbol\(state, "XRT_MODULE_ALL", "1"\)' -or
+         $api -notmatch 'tcc_define_symbol\(state, "XRUNTIME_MODULE_ALL", "1"\)' -or
+         $api -notmatch '(?s)#define XRUNTIME_IMPLEMENTATION.*#include \\"xruntime[.]h\\"' ) {
         Add-Failure "xlc.dll exe compiler path must compile the vendored XRT/xruntime product"
     }
 

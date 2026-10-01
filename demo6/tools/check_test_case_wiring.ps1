@@ -29,6 +29,8 @@ foreach ( $relative in @(
     'tools/check_typed_hir_contract.ps1',
     'tools/check_xlir_cgen_differential.ps1',
     'test/cases/cgen_base_method_typed_hir.xl',
+    # SipHash64 moved to the stdlib; the extension regression is SipHash128.
+    'test/cases/extlib_siphash.xl',
     # These extension fixtures were removed together with their unsupported
     # package surfaces. Keep their retirement explicit so an unrelated missing
     # tracked test still fails this inventory check.
@@ -246,7 +248,7 @@ function Expand-BatchCaseMatrices($text)
     $expanded = New-Object System.Collections.Generic.List[string]
     $matches = [regex]::Matches(
         $text,
-        '(?ims)^\s*for\s+%%(?<var>[A-Za-z])\s+in\s*\(\s*\r?\n(?<items>.*?)^\s*\)\s+do\s*\(\s*\r?\n(?<body>.*?)^\s*\)')
+        '(?ims)^\s*for\s+%%(?<var>[A-Za-z])\s+in\s*\((?<items>[^)]*)\)\s+do\s*\(\s*\r?\n(?<body>.*?)^\s*\)')
 
     foreach ( $match in $matches ) {
         $varName = $match.Groups['var'].Value
@@ -259,7 +261,7 @@ function Expand-BatchCaseMatrices($text)
         if ( $caseTemplates.Count -eq 0 ) {
             continue
         }
-        foreach ( $itemMatch in [regex]::Matches($match.Groups['items'].Value, '(?m)^\s*([A-Za-z0-9_.-]+)\s*$') ) {
+        foreach ( $itemMatch in [regex]::Matches($match.Groups['items'].Value, '(?<![A-Za-z0-9_.-])([A-Za-z0-9_.-]+)(?![A-Za-z0-9_.-])') ) {
             foreach ( $caseTemplate in $caseTemplates ) {
                 $casePath = Normalize-PathText $caseTemplate.Groups['path'].Value
                 $casePath = $casePath.Replace("%%${varName}", $itemMatch.Groups[1].Value)
@@ -294,8 +296,9 @@ function Expand-PowerShellCaseNames($text)
 {
     $expanded = New-Object System.Collections.Generic.List[string]
     foreach ( $match in [regex]::Matches(
-        $text, '["''](?<name>[A-Za-z0-9_.-]+\.xl)["'']') ) {
+        $text, '["''](?<name>[A-Za-z0-9_.-]+(?:\.xl)?)["'']') ) {
         $name = $match.Groups['name'].Value
+        if (!$name.EndsWith('.xl', [StringComparison]::OrdinalIgnoreCase)) { $name += '.xl' }
         if ( Test-Path -LiteralPath (Join-Path $script:caseDir $name) -PathType Leaf ) {
             $expanded.Add("test/cases/$name") | Out-Null
         }

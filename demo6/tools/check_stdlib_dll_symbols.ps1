@@ -71,7 +71,11 @@ $crtSymbols = @(
     "sin", "cos", "tan",
     "asin", "acos", "atan", "atan2",
     "sqrt", "pow", "exp", "log", "log10",
-    "floor", "ceil", "fabs", "llabs"
+    "floor", "ceil", "fabs", "llabs",
+    "sinh", "cosh", "tanh", "asinh", "acosh", "atanh", "erf", "erfc",
+    "tgamma", "lgamma", "fma", "copysign", "nextafter", "remainder",
+    "fdim", "fmin", "fmax", "ldexp", "scalbn", "logb", "ilogb",
+    "round", "nearbyint"
 )
 
 $symbols = New-Object System.Collections.Generic.List[string]
@@ -84,6 +88,11 @@ foreach ( $match in $matches ) {
     }
     $symbols.Add($raw.Trim('"'))
 }
+# Native class methods/factories also declare generated bridges. The function
+# table alone misses these and could mark an unusable class as fully linked.
+foreach ($match in [regex]::Matches($stdlib, '\bxl6_(?:xrt|crt)_[A-Za-z0-9_]+\b')) {
+    $symbols.Add($match.Value)
+}
 
 $uniqueSymbols = $symbols | Sort-Object -Unique
 $failures = New-Object System.Collections.Generic.List[string]
@@ -95,7 +104,7 @@ foreach ( $symbol in $uniqueSymbols ) {
         if ( ! $xrtExports.Contains($symbol) ) {
             $missingXrt.Add($symbol)
         }
-    } elseif ( $symbol.StartsWith("xl6_xrt_") ) {
+    } elseif ( $symbol.StartsWith("xl6_xrt_") -or $symbol.StartsWith("xl6_crt_") ) {
         if ( $cgen -notmatch [regex]::Escape($symbol) -and
              $runtimeHeader -notmatch [regex]::Escape($symbol) ) {
             $missingRuntime.Add($symbol)

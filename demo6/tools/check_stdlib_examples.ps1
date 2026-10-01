@@ -4,6 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -45,19 +46,23 @@ if ( $examples.Count -lt $minStdlibExampleFiles ) {
     exit 1
 }
 
+$failures = [Collections.Generic.List[string]]::new()
 Push-Location $Root
 try {
     foreach ( $example in $examples ) {
         Write-Host "CHECK example $($example.Name)"
-        & $xl check $example.FullName
-        if ( $LASTEXITCODE -ne 0 ) {
-            exit $LASTEXITCODE
+        $result = Invoke-ExtlibSmokeProcess $xl @('check', $example.FullName) $Root 60
+        Write-Output ($result.stdout + $result.stderr)
+        if ($result.status -ne 'pass') {
+            $failures.Add("$($example.Name): check $($result.status), exit=$($result.exitCode)")
+            continue
         }
 
         Write-Host "RUN example $($example.Name)"
-        & $xl run $example.FullName
-        if ( $LASTEXITCODE -ne 0 ) {
-            exit $LASTEXITCODE
+        $result = Invoke-ExtlibSmokeProcess $xl @('run', $example.FullName) $Root 60
+        Write-Output ($result.stdout + $result.stderr)
+        if ($result.status -ne 'pass') {
+            $failures.Add("$($example.Name): run $($result.status), exit=$($result.exitCode)")
         }
     }
 }
@@ -65,5 +70,10 @@ finally {
     Pop-Location
 }
 
+if ($failures.Count) {
+    Write-Host "Standard library examples: $($failures.Count) failures after collecting all $($examples.Count) files."
+    $failures | ForEach-Object { Write-Host "  $_" }
+    exit 1
+}
 Write-Host "Standard library examples check/run ok: $($examples.Count) files."
 exit 0
