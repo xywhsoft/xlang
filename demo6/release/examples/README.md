@@ -180,6 +180,17 @@ XGE/XUI 范例基于 `_xge_native` 扩展库的 OOP 封装（native-backed class
 
 ## 回归入口
 
+- `stdlib_ascii.xl`、`stdlib_crt_numeric.xl`：ASCII 与带宽度的严格解析；回归：`check/run`。
+- `stdlib_crt_math.xl`、`stdlib_crt_algorithms.xl`：实数数学与泛型排序；回归：`check/run`。
+- `stdlib_crt_env.xl`：区分缺失/空值并恢复环境；回归：`check/run`。
+- `stdlib_hash_buffer.xl`：NUL/UTF-8、bytes/Buffer 等价和显式字节上限；回归：`check/run`。
+- `stdlib_random_extended.xl`：可复现伪随机、Buffer 填充/洗牌和安全随机；回归：`check/run`。
+- `stdlib_structured_sinks.xl`：JSON/XLON/Lines 分块 sink 与类型标签；回归：`check/run`。
+- `stdlib_io_native.xl`：基础文件流和标准流借用；回归：`check/run`。
+- `stdlib_fs_advanced.xl`：高级文件、路径、根与目录操作；回归：`check/run`，链接/FIFO 辅助函数显式选择运行。
+- `stdlib_fs_async_extended.xl`：异步原子写入、目录与句柄接管；回归：`check/run`。
+- `stdlib_console_codes.xl`：IO/console/file 公开常量；回归：`check/run`。
+
 在 `demo6` 目录下运行：
 
 ```bat
