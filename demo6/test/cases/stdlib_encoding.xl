@@ -45,13 +45,13 @@ assert encoding.bomSize(b"\xEF\xBB\xBFA", 2) == 0
 assert encoding.decode(b"\xFF\xFE\0\0", encoding.utf16LE) == "\0"
 assert encoding.decode(b"\xFF\xFE\0\0", encoding.utf32LE) == ""
 assert encoding.decode(b"\xFF\xFE\0\0", encoding.utf16LE, 0, encoding.keepBom) == "\uFEFF\0"
-assert encoding.decode(b"\xE4\xBD", 1, encoding.replaceInvalid) == "�"
-assert encoding.decode(b"\xC0\xAF", 1, encoding.replaceInvalid) == "��"
-assert encoding.decode(b"\0\xD8A\0", 2, encoding.replaceInvalid) == "�A"
-assert encoding.decode(b"A\0\0\0\xFF", 4, encoding.replaceInvalid) == "A�"
+assert encoding.decode(b"\xE4\xBD", 1, encoding.replaceInvalid) == "\uFFFD"
+assert encoding.decode(b"\xC0\xAF", 1, encoding.replaceInvalid) == "\uFFFD\uFFFD"
+assert encoding.decode(b"\0\xD8A\0", 2, encoding.replaceInvalid) == "\uFFFDA"
+assert encoding.decode(b"A\0\0\0\xFF", 4, encoding.replaceInvalid) == "A\uFFFD"
 assert encoding.encode(text, 1, false, 0, 1000) == utf8
 assert encoding.decode(utf8, 1, 0, 0, 2) == "A\0"
-assert encoding.decode(encoding.encode("你", 2, false, 1, 1), 2) == "�"
+assert encoding.decode(encoding.encode("你", 2, false, 1, 1), 2) == "\uFFFD"
 bytes copy = encoding.transcode(utf8, 1, 1)
 copy[0] = uint8(66)
 assert utf8[0] == uint8(65)
