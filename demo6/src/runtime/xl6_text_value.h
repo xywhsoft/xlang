@@ -102,4 +102,22 @@ XL6_TEXT_API xstrview xl6NumberFloatStringV1(double value, int64_t flags);
 XL6_TEXT_API bool xl6NumberBufferIntStringV1(void* buffer, int64_t value, int64_t base, int64_t flags);
 XL6_TEXT_API bool xl6NumberBufferUIntStringV1(void* buffer, uint64_t value, int64_t base, int64_t flags);
 XL6_TEXT_API bool xl6NumberBufferFloatStringV1(void* buffer, double value, int64_t flags);
+XL6_TEXT_API bool xl6UnicodeScalarV1(int64_t code);
+XL6_TEXT_API xstrview xl6UnicodeCharStringV1(uint32_t scalar);
+XL6_TEXT_API int64_t xl6UnicodeInvalidTextV1(xstrview text, int64_t size);
+XL6_TEXT_API int64_t xl6UnicodeInvalidBytesV1(const xvalue* data, int64_t size);
+XL6_TEXT_API int64_t xl6UnicodeByteOffsetV1(xstrview text, int64_t index, int64_t size);
+XL6_TEXT_API int64_t xl6UnicodeScalarIndexV1(xstrview text, int64_t offset, int64_t size);
+/* Validator chunks are synchronous borrows. Data-invalid is an ordinary
+ * XUTF_INVALID result, not a raised error; argument/lifetime/overflow faults
+ * raise. final seals the stream; reset starts a new stream on its owner thread. */
+XL6_TEXT_API void* xl6UnicodeValidatorCreateV1(void);
+XL6_TEXT_API void xl6UnicodeValidatorDestroyV1(void* handle);
+XL6_TEXT_API int64_t xl6UnicodeValidatorFeedV1(void* handle, const xvalue* data, bool final, int64_t size);
+XL6_TEXT_API void xl6UnicodeValidatorResetV1(void* handle);
+XL6_TEXT_API int64_t xl6UnicodeValidatorErrorV1(void* handle);
+XL6_TEXT_API int64_t xl6UnicodeValidatorTotalV1(void* handle);
+XL6_TEXT_API bool xl6UnicodeValidatorFinishedV1(void* handle);
+XL6_TEXT_API xstrview xl6HtmlEscapeTextV1(xstrview text, int64_t size);
+XL6_TEXT_API xstrview xl6HtmlEscapeAttributeV1(xstrview text, int64_t size);
 #endif

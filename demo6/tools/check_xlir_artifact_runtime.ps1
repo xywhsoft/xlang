@@ -155,6 +155,14 @@ $process=Start-Process @start
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_(?!float\.)|xl6_text_'}).Count-and
                         'XRT_MODULE_NUMBER_FORMAT'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
+                }elseif($case-in@('stdlib_unicode_only','stdlib_html_only','stdlib_unicode_validator')){
+                    $component=@{stdlib_unicode_only='unicode';stdlib_html_only='html';stdlib_unicode_validator='unicode_validator'}[$case]
+                    $unwanted=@('unicode','unicode_validator','html')|Where-Object {$_-ne$component}
+                    $selectionMatches="src/runtime/xl6_$component.c"-in$selectedSources-and
+                        !@($unwanted|Where-Object {"src/runtime/xl6_$_.c"-in$selectedSources}).Count-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_'}).Count-and
+                        'XRT_MODULE_CHARSET'-notin$plan.NativeModules-and
+                        'XRT_MODULE_BUFFER'-notin$plan.NativeModules
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE

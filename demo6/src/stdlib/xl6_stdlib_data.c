@@ -1,6 +1,7 @@
 #include "src/stdlib/xl6_stdlib_data.h"
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_text.inc"
+#include "src/stdlib/xl6_stdlib_unicode.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
@@ -6409,6 +6410,9 @@ static const char xl6StdXlangRunFileBody[] =
     "end\n";
 
 const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"unicode", "complete", XL6_AST_INT, "0"},
+    {"unicode", "more", XL6_AST_INT, "1"},
+    {"unicode", "invalid", XL6_AST_INT, "2"},
     {"file", "walkContinue", XL6_AST_INT, "0"},
     {"file", "walkSkip", XL6_AST_INT, "1"},
     {"file", "walkStop", XL6_AST_INT, "2"},
@@ -6552,6 +6556,15 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
+    {"unicode", "isScalar", "__xl_std_unicode_scalar", NULL, NULL, 0, "bool", xl6StdUnicodeScalarBody},
+    {"unicode", "toString", "__xl_std_unicode_char_string", NULL, NULL, 0, "string", xl6StdUnicodeCharStringBody},
+    {"unicode", "byteOffset", "__xl_std_unicode_byte_offset", NULL, NULL, 0, "int", xl6StdUnicodeByteOffsetBody},
+    {"unicode", "scalarIndex", "__xl_std_unicode_scalar_index", NULL, NULL, 0, "int", xl6StdUnicodeScalarIndexBody},
+    {"unicode", "validate", "__xl_std_unicode_validate", NULL, NULL, 0, NULL, xl6StdUnicodeValidateTextBody},
+    {"unicode", "validate", "__xl_std_unicode_validate", NULL, NULL, 0, NULL, xl6StdUnicodeValidateBytesBody},
+    {"unicode", "validator", "__xl_std_unicode_validator", NULL, NULL, 0, "Utf8Validator", xl6StdUnicodeValidatorBody},
+    {"html", "escapeText", "__xl_std_html_escape_text", NULL, NULL, 0, "string", xl6StdHtmlEscapeTextBody},
+    {"html", "escapeAttribute", "__xl_std_html_escape_attribute", NULL, NULL, 0, "string", xl6StdHtmlEscapeAttributeBody},
     {"file", "takeAsync", "__xl_std_file_take_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_takeAsyncBody},
     {"file", "appendBytesAsync", "__xl_std_file_append_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_appendBytesAsyncBody},
     {"file", "writeBytesAtomicAsync", "__xl_std_file_write_bytes_atomic_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeBytesAtomicAsyncBody},

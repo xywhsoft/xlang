@@ -23,14 +23,17 @@ try {
         'stdlib_text_queries','stdlib_text_binary','stdlib_text_glob','stdlib_text_distance','stdlib_text_split','stdlib_text_join',
         'stdlib_text_split_only','stdlib_text_join_only','stdlib_text_iterator','stdlib_text_iterator_only',
         'stdlib_number_format','stdlib_number_format_only','stdlib_number_values','stdlib_number_integer_only',
-        'stdlib_number_float_only','stdlib_crt_parse','cgen_overload_default_rank')
+        'stdlib_number_float_only','stdlib_crt_parse','cgen_overload_default_rank',
+        'stdlib_unicode','stdlib_unicode_only','stdlib_unicode_validator','stdlib_html','stdlib_html_only')
     $negative = @('bad_xlir_text_input','bad_xlir_text_result','bad_xlir_text_effect','bad_xlir_text_no_raise',
         'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width','bad_xlir_text_split_type','bad_xlir_text_join_type',
         'bad_xlir_text_iterator_result','bad_xlir_text_iterator_owner',
         'bad_xlir_text_iterator_handle_read','bad_xlir_text_iterator_handle_write',
         'bad_xlir_number_format_result','bad_xlir_number_format_width','bad_xlir_number_format_unsigned','bad_xlir_number_buffer_format_owner',
         'bad_xlir_number_parse_width','bad_xlir_number_parse_result','bad_xlir_number_parse_no_raise',
-        'bad_xlir_number_string_unsigned','bad_xlir_number_buffer_string_owner')
+        'bad_xlir_number_string_unsigned','bad_xlir_number_buffer_string_owner',
+        'bad_xlir_unicode_bytes','bad_xlir_unicode_char','bad_xlir_unicode_width',
+        'bad_xlir_unicode_validator_owner','bad_xlir_unicode_validator_handle_read','bad_xlir_html_result')
     $defaultsNegative = @('bad_extern_default_type','bad_extern_default_order',
         'bad_native_extern_default_type','bad_native_extern_default_order')
     $overloadRegressions = @('cgen_overload_costs','cgen_overloads','cgen_overload_varargs',
@@ -44,6 +47,7 @@ try {
             test/cases/stdlib_text_iterator_generated_host.c,
             test/cases/stdlib_number_format_host.c,test/support/number_format_native.c,
             test/cases/stdlib_number_values_host.c,test/support/number_values_native.c,
+            test/cases/stdlib_unicode_host.c,test/support/unicode_native.c,
             test/support/text_selected_native.c,test/cases/stdlib_string_support.c,
             tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,$PSCommandPath,$gcc)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
@@ -145,10 +149,23 @@ try {
         }
         if ($point -gt 32) {throw "Incomplete number value allocation sweep: $mode"}
     }
+    Run 'unicode-native-build' $gcc ($strict + @('test/cases/stdlib_unicode_host.c','test/support/unicode_native.c',
+        'src/runtime/xl6_unicode.c','src/runtime/xl6_unicode_validator.c','src/runtime/xl6_html.c',
+        '-o',"$outPath/unicode-native.exe"))
+    Run 'unicode-native-run' "$outPath/unicode-native.exe" @()
+    foreach ($mode in 0..4) {
+        for ($point = 1; $point -le 32; ++$point) {
+            $name = "unicode-native.$mode.oom-$point"
+            Run $name "$outPath/unicode-native.exe" @("$mode","$point")
+            if ((Get-Content "$outPath/$name.log" -Raw) -match 'hit=0 balanced') {break}
+        }
+        if ($point -gt 32) {throw "Incomplete unicode allocation sweep: $mode"}
+    }
     $runtime = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -in @('xrt_single_header_impl.o','xl6_text_value.o',
         'xl6_text_query.o','xl6_text_binary.o','xl6_text_chars.o','xl6_text_glob.o','xl6_text_distance.o','xl6_text_split.o','xl6_text_join.o',
         'xl6_text_iterator.o','xl6_number_format.o','xl6_number_format_buffer.o',
         'xl6_number_integer.o','xl6_number_float.o','xl6_number_integer_buffer.o','xl6_number_float_buffer.o',
+        'xl6_unicode.o','xl6_unicode_validator.o','xl6_html.o',
         'xl6_slot.o','xl6_value_iterator.o','xl6_code_lease.o','xl6_code_finalizer.o','xl6_ownership_plan.o') } | ForEach-Object Path)
     foreach ($name in $cases) {
         $source = "test/cases/$name.xl"
@@ -168,11 +185,11 @@ try {
             if ($name -eq 'stdlib_text_join_only' -and $c -match 'xl6Text(?:Split|Lines|Fields)V1\(') {throw 'Join-only retained split calls'}
             if ($name -eq 'stdlib_text_split_only' -and $c -match 'xl6TextJoinV1\(') {throw 'Split-only retained join calls'}
         }
-        $hostSource = if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse') {'test/cases/stdlib_text_iterator_generated_host.c'} else {'test/cases/xlir_generated_module_host.c'}
+        $hostSource = if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse|^stdlib_unicode|^stdlib_html') {'test/cases/stdlib_text_iterator_generated_host.c'} else {'test/cases/xlir_generated_module_host.c'}
         Run "$name.strict-build" $gcc ($strict + @('-include',"$outPath/$name.c",'-DXLIR_GENERATED_MODULE_PREINCLUDED',
             $hostSource) + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
         Run "$name.strict-run" "$outPath/$name.strict.exe" @()
-        if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse') {
+        if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse|^stdlib_unicode|^stdlib_html') {
             for ($point=1; $point -le 256; ++$point) {
                 $failure = "$name.managed-oom-$point"
                 Run $failure "$outPath/$name.strict.exe" @("$point")
@@ -187,7 +204,7 @@ try {
     foreach ($name in $negative) {
         $path = "$outPath/$name.c"
         Run $name $driver @("test/cases/$name.xl",'cgen-default',$path) 1
-        $marker = if ($name -match 'iterator_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'}
+        $marker = if ($name -match '(?:iterator|validator)_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'}
         if ((Get-Content "$outPath/$name.log" -Raw) -notmatch $marker -or (Test-Path -LiteralPath $path)) { throw "Unsafe text ABI emitted $name" }
     }
     foreach ($name in $defaultsNegative) {
@@ -213,7 +230,7 @@ try {
     foreach ($record in $inputs) {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -ne $record.Sha256) { throw "Text input changed $($record.Path)" }
     }
-    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='Text owned/query/char/bytes/glob/distance/split/join/iterator/numeric-format/numeric-value batches and default overload rank only; not 53-module completion or full RC0'}
+    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='B1-B7 text/numeric/Unicode-validator/HTML batches and default overload rank only; not 53-module completion or full RC0'}
     [IO.File]::WriteAllText("$outPath/summary.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     Write-Output "Text values: $($rows.Count) checks passed. Evidence: $outPath"
 } finally { Pop-Location }

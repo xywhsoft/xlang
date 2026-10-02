@@ -1,0 +1,2 @@
+extern "xl6UnicodeInvalidBytesV1" func unsafe(string data, int size) as int
+unsafe("x", -1)

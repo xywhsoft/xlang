@@ -1,0 +1,2 @@
+extern "xl6HtmlEscapeTextV1" func unsafe(string text, int size) as bytes
+unsafe("x", -1)

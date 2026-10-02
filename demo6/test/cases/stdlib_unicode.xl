@@ -1,0 +1,54 @@
+assert unicode.isScalar(0) and unicode.isScalar(1114111)
+assert not unicode.isScalar(-1) and not unicode.isScalar(1114112)
+assert not unicode.isScalar(55296) and not unicode.isScalar(57343)
+assert not unicode.isScalar(4294967296)
+assert unicode.toString('你') == "你"
+assert unicode.toString(char(0)) == "\0"
+assert unicode.toString('😀') == "😀"
+string text = "A你\0😀"
+assert unicode.byteOffset(text, 0) == 0
+assert unicode.byteOffset(text, 1) == 1
+assert unicode.byteOffset(text, 2) == 4
+assert unicode.byteOffset(text, 3) == 5
+assert unicode.byteOffset(text, 4) == 9
+assert unicode.scalarIndex(text, 9) == 4
+assert unicode.scalarIndex(text, 5) == 3
+assert unicode.byteOffset(text, 2, 4) == 4
+assert unicode.scalarIndex(text, 9, 1000) == 4
+auto valid, offset = unicode.validate(text)
+assert valid and offset == -1
+auto capped, cut = unicode.validate(text, 2)
+assert not capped and cut == 1
+auto bytesValid, bytesOffset = unicode.validate(b"A\xE4\xBD\xA0\0\xF0\x9F\x98\x80")
+assert bytesValid and bytesOffset == -1
+auto invalid, error = unicode.validate(b"A\xC0\xAF")
+assert not invalid and error == 1
+auto prefix, prefixError = unicode.validate(b"A\xFF", 1)
+assert prefix and prefixError == -1
+int caught = 0
+try
+    unicode.byteOffset(text, -1)
+catch RangeError e
+    caught += 1
+end
+try
+    unicode.byteOffset(text, 5)
+catch RangeError e
+    caught += 1
+end
+try
+    unicode.scalarIndex(text, 2)
+catch RangeError e
+    caught += 1
+end
+try
+    unicode.scalarIndex(text, 0, 2)
+catch ValueError e
+    caught += 1
+end
+try
+    unicode.validate(b"x", -2)
+catch RangeError e
+    caught += 1
+end
+assert caught == 5

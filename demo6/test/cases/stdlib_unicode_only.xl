@@ -1,0 +1,4 @@
+assert unicode.toString('你') == "你"
+assert unicode.byteOffset("你\0", 2) == 4
+auto valid, error = unicode.validate(b"a\0b")
+assert valid and error == -1
