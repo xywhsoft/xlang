@@ -14,6 +14,7 @@ typedef struct XL6_IrDirectBridgeContract {
     const char* parameterOwners[6];
     int nullableResult;
     int noRaise;
+    XL6_IrNativeProductAbi resultProductAbi;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -122,6 +123,8 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6EncodingUnitSizeV1",T,I,1,{I}},
     {"xl6EncodingNameV1",T,S,1,{I}},
     {"xl6EncodingRepairTextV1",T,S,2,{S,I}},
+    {"xl6EncodingGuessTextV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
+    {"xl6EncodingGuessBytesV1",T,XL6_IR_C_ABI_PRODUCT,2,{Y,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
 #undef U
 #undef F
 #undef Y
@@ -300,7 +303,13 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
     } else if (!contract->resultOwner) {
-        if (contract->resultArrayItemAbi) {
+        if (contract->resultProductAbi) {
+            if (!result || result->cAbi != XL6_IR_C_ABI_PRODUCT ||
+                result->nativeProductAbi != contract->resultProductAbi ||
+                xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
+                result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi != XL6_IR_NULL_ABI_NONE ||
+                strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
+        } else if (contract->resultArrayItemAbi) {
             if (!xl6IrDirectBridgeArrayMatches(module, result, contract->resultArrayItemAbi)) return 0;
         } else {
             if (result == NULL || result->kind != (contract->nullableResult ? XL6_IR_TYPE_NULLABLE : XL6_IR_TYPE_BUILTIN) ||

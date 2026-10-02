@@ -45,8 +45,10 @@ bool signatureOk = crypto.ecdsaVerify(publicKey, message, signature)
 
 编码接口只支持 UTF-8/16LE/16BE/32LE/32BE，输入/输出都是精确长度的
 string 或 bytes，保留 NUL。严格/替换策略与 BOM 独立；不猜测源编码。
-签名、BOM 模式和错误合同见 [文本标准库接入的 B8](文本标准库接入.md)。
-编码猜测三字段结果尚待完成，旧 point/Buffer/code-page 外观不保留。
+签名、BOM 模式和错误合同见 [文本标准库接入的 B8/B9](文本标准库接入.md)。
+`encoding.detect(string|bytes,size=-1)` 返回 `(encoding,bomSize,confidence)`；
+这是独立的启发式猜测入口，BOM 100 分不保证正文有效。旧 detectBytes 与
+point/Buffer/code-page 外观不保留。
 
 ```xlang
 bytes utf8 = encoding.encodeUtf8(text)

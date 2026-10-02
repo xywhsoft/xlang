@@ -163,14 +163,14 @@ $process=Start-Process @start
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_'}).Count-and
                         'XRT_MODULE_CHARSET'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
-                }elseif($case-in@('stdlib_encoding_only','stdlib_encoding_meta_only','stdlib_encoding_transcode_only','stdlib_unicode_repair')){
-                    $component=if($case-eq'stdlib_encoding_meta_only'){'encoding_meta'}else{'encoding'}
-                    $other=if($component-eq'encoding_meta'){'encoding'}else{'encoding_meta'}
+                }elseif($case-in@('stdlib_encoding_only','stdlib_encoding_meta_only','stdlib_encoding_transcode_only','stdlib_unicode_repair','stdlib_encoding_detect_only')){
+                    $component=if($case-eq'stdlib_encoding_meta_only'){'encoding_meta'}elseif($case-eq'stdlib_encoding_detect_only'){'encoding_detect'}else{'encoding'}
+                    $other=@('encoding','encoding_meta','encoding_detect')|Where-Object {$_-ne$component}
                     $selectionMatches="src/runtime/xl6_$component.c"-in$selectedSources-and
-                        "src/runtime/xl6_$other.c"-notin$selectedSources-and
+                        !@($other|Where-Object {"src/runtime/xl6_$_.c"-in$selectedSources}).Count-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.'}).Count-and
-                        'XRT_MODULE_CHARSET'-in$plan.NativeModules-and
-                        'XRT_MODULE_CHARSET_DETECT'-notin$plan.NativeModules-and
+                        (('XRT_MODULE_CHARSET'-in$plan.NativeModules)-eq($component-ne'encoding_detect'))-and
+                        (('XRT_MODULE_CHARSET_DETECT'-in$plan.NativeModules)-eq($component-eq'encoding_detect'))-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"

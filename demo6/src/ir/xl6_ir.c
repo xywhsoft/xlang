@@ -563,11 +563,32 @@ static int xl6IrTypeUnionCName(
     return written >= 0 && (size_t)written < capacity;
 }
 
+XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type)
+{
+    size_t i;
+    if (!pool || !type || type->kind != XL6_IR_TYPE_TUPLE || type->paramCount != 3 ||
+        !type->params || type->returnCount) return XL6_IR_NATIVE_PRODUCT_NONE;
+    for (i=0;i<3;++i) {
+        const XL6_IrType* item = xl6IrTypeGet(pool,type->params[i]);
+        if (!item || item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount || item->returnCount ||
+            item->collectionAbi != XL6_IR_COLLECTION_NONE || item->cAbi != XL6_IR_C_ABI_I64 ||
+            item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64 ||
+            item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || item->nullAbi != XL6_IR_NULL_ABI_NONE)
+            return XL6_IR_NATIVE_PRODUCT_NONE;
+    }
+    return XL6_IR_NATIVE_PRODUCT_I64X3_V1;
+}
+const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi)
+{ return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_ProductI64x3V1" : NULL; }
+const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
+{ return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_PRODUCT_ABI_I64X3_V1" : NULL; }
+
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
 {
     const XL6_IrType* element;
     size_t i;
     if ( pool == NULL || type == NULL ) return 0;
+    type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
     if ( type->kind == XL6_IR_TYPE_TAGGED_ENUM ) {
         if ( type->returnCount != 0 ) return 0;
         type->cAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
@@ -619,8 +640,11 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
         type->ownershipAbi = hasManagedElement
             ? XL6_IR_OWNERSHIP_ABI_MANAGED : XL6_IR_OWNERSHIP_ABI_TRIVIAL;
         type->nullAbi = XL6_IR_NULL_ABI_NONE;
-        if ( snprintf(type->cName, sizeof(type->cName), "xlir_product_t%lu",
-                      (unsigned long)typeIndex) < 0 ) return 0;
+        type->nativeProductAbi = xl6IrNativeProductAbiForShape(pool,type);
+        if (type->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE) {
+            if (snprintf(type->cName,sizeof(type->cName),"%s",xl6IrNativeProductAbiCName(type->nativeProductAbi)) < 0) return 0;
+        } else if ( snprintf(type->cName, sizeof(type->cName), "xlir_product_t%lu",
+                             (unsigned long)typeIndex) < 0 ) return 0;
         return xl6IrTypeFinalizeErrorResultCName(pool, type);
     }
     if ( type->kind != XL6_IR_TYPE_NULLABLE ) {
@@ -18014,6 +18038,9 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                           XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
                        ? XL6_IR_C_ABI_CHAR_U32
                        : XL6_IR_C_ABI_I64)) ) return 0;
+        if (type->nativeProductAbi != xl6IrNativeProductAbiForShape(pool,type) ||
+            (type->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
+             strcmp(type->cName,xl6IrNativeProductAbiCName(type->nativeProductAbi)) != 0)) return 0;
         expectedTypeValue = *type;
         if ( !xl6IrTypeFinalizeTypeValueId(
                  (XL6_IrTypePool*)pool, &expectedTypeValue) ||

@@ -1,0 +1,4 @@
+auto kind, bom, confidence = encoding.detect(b"\xFF\xFEA\0")
+assert kind == 2 and bom == 2 and confidence == 100
+auto textKind, _, textConfidence = encoding.detect("A你")
+assert textKind == 1 and textConfidence == 90

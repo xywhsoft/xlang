@@ -1,0 +1,15 @@
+func triple(int seed) as (int, int, int)
+    return seed, seed + 1, seed + 2
+end
+auto a, b, c = triple(-9)
+assert a == -9 and b == -8 and c == -7
+int first = 0
+int second = 0
+int third = 0
+first, second, third = triple(40)
+assert first == 40 and second == 41 and third == 42
+auto kept, _, last = triple(100)
+assert kept == 100 and last == 102
+func(int) as (int, int, int) invoke = triple
+auto fa, fb, fc = invoke(1)
+assert fa == 1 and fb == 2 and fc == 3

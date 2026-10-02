@@ -12907,9 +12907,12 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
                  product->cAbi != XL6_IR_C_ABI_PRODUCT )
                 return xl6IrLowerDiag(ctx, declaration,
                     "XLIR multi-result callable has no verified product ABI");
-            if ( target->kind != XL6_IR_CALL_TARGET_INTERNAL )
+            if ( target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+                 !(target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+                   product->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
+                   product->nativeProductAbi == xl6IrNativeProductAbiForShape(&module->types, product)) )
                 return xl6IrLowerDiag(ctx, declaration,
-                    "XLIR multi-result callable is not an internal product boundary");
+                    "XLIR multi-result callable has no closed native product boundary");
         }
     }
     {
