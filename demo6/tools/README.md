@@ -146,3 +146,13 @@ compiler and a fresh evidence directory; it regenerates native outputs on Linux
 rather than compiling historical Windows C. ASan/UBSan instrument the selected
 native providers; generated libxl hosts use logical accounting. Both require a
 separate actual-artifact closure check and do not claim full RC0/53 completion.
+
+B12 extends the same gates with the bounded shared literal scanner, real lexer
+positions, nested same-quote interpolation, ten literal/semantic negatives and
+10000 real frontend fuzz iterations. `xlir_literal_span_contract.c` additionally
+checks 101301 exact-buffer/truncation/lexer cases. The nested fixture covers owned
+array/list string reads and compound updates with a complete logical OOM sweep;
+IR uses the existing checked owning projection instead of an aborting read.
+Linux ASan/UBSan now instrument the scanner and actual lexer/parser/fuzz as well
+as selected native providers. Ten actual artifact closures remain independently
+verified; this is still a scoped batch, not all 53 modules or whole RC0.

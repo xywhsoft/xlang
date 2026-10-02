@@ -8,6 +8,7 @@ typedef struct XL6_LexerExtra {
     XL6_Token current;
     size_t offset;
     const char* sourceText;
+    size_t sourceSize;
     size_t tokenStartOffset;
     size_t docStartOffset;
     int line;

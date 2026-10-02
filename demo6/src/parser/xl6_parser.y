@@ -20,6 +20,7 @@
 
 %include {
 #include "src/parser/xl6_parser_api.h"
+#include "src/lexer/xl6_literal_span.h"
 
 static XL6_AstNode* xl6PList(void)
 {
@@ -639,146 +640,10 @@ static int xl6PFStringExprIsEmpty(const char* text, size_t len)
     return 1;
 }
 
-static size_t xl6PFStringSkipQuoted(const char* text, size_t len, size_t pos)
-{
-    char quote;
-    int triple;
-    size_t i;
-
-    if ( text == NULL || pos >= len ) {
-        return pos;
-    }
-    if ( text[pos] == 'r' && pos + 1 < len && (text[pos + 1] == '\'' || text[pos + 1] == '"') ) {
-        ++pos;
-    } else if ( text[pos] == 'f' && pos + 1 < len && (text[pos + 1] == '\'' || text[pos + 1] == '"') ) {
-        ++pos;
-    } else if ( text[pos] == 'r' && pos + 2 < len && text[pos + 1] == 'f' && (text[pos + 2] == '\'' || text[pos + 2] == '"') ) {
-        pos += 2;
-    }
-    if ( text[pos] != '\'' && text[pos] != '"' ) {
-        return pos;
-    }
-
-    quote = text[pos];
-    triple = pos + 2 < len && text[pos + 1] == quote && text[pos + 2] == quote;
-    i = pos + (triple ? 3 : 1);
-    while ( i < len ) {
-        if ( !triple && text[i] == '\\' && i + 1 < len ) {
-            i += 2;
-            continue;
-        }
-        if ( triple ) {
-            if ( i + 2 < len && text[i] == quote && text[i + 1] == quote && text[i + 2] == quote ) {
-                return i + 3;
-            }
-        } else if ( text[i] == quote ) {
-            return i + 1;
-        }
-        ++i;
-    }
-    return len;
-}
-
-static size_t xl6PFStringSkipComment(const char* text, size_t len, size_t pos)
-{
-    size_t i;
-
-    if ( pos + 1 >= len || text[pos] != '/' ) {
-        return pos;
-    }
-    if ( text[pos + 1] == '/' ) {
-        i = pos + 2;
-        while ( i < len && text[i] != '\r' && text[i] != '\n' ) {
-            ++i;
-        }
-        return i;
-    }
-    if ( text[pos + 1] == '*' ) {
-        i = pos + 2;
-        while ( i + 1 < len ) {
-            if ( text[i] == '*' && text[i + 1] == '/' ) {
-                return i + 2;
-            }
-            ++i;
-        }
-        return len;
-    }
-    return pos;
-}
-
 static size_t xl6PFStringFindExprEnd(const char* text, size_t len, size_t pos)
 {
-    size_t i;
-    int parenDepth;
-    int bracketDepth;
-    int braceDepth;
-    size_t skipped;
-
-    parenDepth = 0;
-    bracketDepth = 0;
-    braceDepth = 0;
-    i = pos;
-    while ( i < len ) {
-        if ( text[i] == '\'' || text[i] == '"' ||
-             (text[i] == 'r' && i + 1 < len && (text[i + 1] == '\'' || text[i + 1] == '"' || (text[i + 1] == 'f' && i + 2 < len && (text[i + 2] == '\'' || text[i + 2] == '"')))) ||
-             (text[i] == 'f' && i + 1 < len && (text[i + 1] == '\'' || text[i + 1] == '"')) ) {
-            skipped = xl6PFStringSkipQuoted(text, len, i);
-            if ( skipped > i ) {
-                i = skipped;
-                continue;
-            }
-        }
-        if ( text[i] == '/' ) {
-            skipped = xl6PFStringSkipComment(text, len, i);
-            if ( skipped > i ) {
-                i = skipped;
-                continue;
-            }
-        }
-        if ( text[i] == '#' ) {
-            skipped = i + 1;
-            while ( skipped < len && text[skipped] != '#' && text[skipped] != '\r' && text[skipped] != '\n' ) {
-                ++skipped;
-            }
-            if ( skipped < len && text[skipped] == '#' ) {
-                i = skipped + 1;
-                continue;
-            }
-        }
-        switch ( text[i] ) {
-        case '(':
-            ++parenDepth;
-            break;
-        case ')':
-            if ( parenDepth > 0 ) {
-                --parenDepth;
-            }
-            break;
-        case '[':
-            ++bracketDepth;
-            break;
-        case ']':
-            if ( bracketDepth > 0 ) {
-                --bracketDepth;
-            }
-            break;
-        case '{':
-            ++braceDepth;
-            break;
-        case '}':
-            if ( parenDepth == 0 && bracketDepth == 0 && braceDepth == 0 ) {
-                return i;
-            }
-            if ( braceDepth > 0 ) {
-                --braceDepth;
-            }
-            break;
-        default:
-            break;
-        }
-        ++i;
-    }
-    return len;
+    XL6_LiteralSpan span = xl6ScanLiteralSpan(text, len, pos, 1);
+    return span.error == NULL ? span.end - 1 : len;
 }
 
 static XL6_AstNode* xl6PDetachParsedFStringExpr(XL6_ParseResult* result)

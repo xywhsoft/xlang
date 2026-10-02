@@ -5063,8 +5063,8 @@ static XL6_IrRuntimeOp xl6IrLowerElementTargetReadOp(
             return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_F64
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64;
         case XL6_IR_C_ABI_MANAGED_STRING:
-            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_STRING_COPY
-                        : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
+            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64
+                        : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;
         default:
             return XL6_IR_RUNTIME_NONE;
         }
@@ -5159,6 +5159,12 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
     }
     operands[0] = plan->receiverValue;
     operands[1] = plan->keyValue;
+    if ( itemType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) {
+        XL6_IrTypeId dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+        XL6_IrValueId borrowed = dynamicType == XL6_IR_TYPE_INVALID ? XL6_IR_VALUE_INVALID
+            : xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, operation, operands, 2);
+        return xl6IrLowerProjectBorrowedXValueAsString(ctx, origin, borrowed, plan->lhs->storageType);
+    }
     return xl6IrLowerEmitRuntimeCall(
         ctx, origin, plan->lhs->storageType, operation, operands, 2);
 }
@@ -5329,7 +5335,6 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
     XL6_IrRuntimeOp unsignedOp;
     XL6_IrRuntimeOp boolOp;
     XL6_IrRuntimeOp floatOp;
-    XL6_IrRuntimeOp stringOp;
     XL6_IrRuntimeOp safeDynamicOp;
     XL6_IrTypeId dynamicType;
     XL6_IrTypeId keyTemporaryType = XL6_IR_TYPE_INVALID;
@@ -5410,7 +5415,6 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
         unsignedOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_U64;
         boolOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_BOOL;
         floatOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_F64;
-        stringOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_STRING_COPY;
     } else if ( receiverType->collectionAbi == XL6_IR_COLLECTION_ARRAY ||
                 receiverType->collectionAbi == XL6_IR_COLLECTION_NONE ) {
         dynamicOp = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;
@@ -5419,7 +5423,6 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
         unsignedOp = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64;
         boolOp = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL;
         floatOp = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64;
-        stringOp = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
     } else {
         xl6IrLowerDiag(ctx, origin,
             "XLIR integer index receiver has no array or list collection ABI");
@@ -5564,9 +5567,15 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
           return xl6IrLowerEmitRuntimeCall(ctx, origin, node->storageType,
                                            floatOp, operands, 2);
       if ( resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING && receiverType->paramCount == 1 &&
-         receiverType->params != NULL && receiverType->params[0] == node->storageType )
-        return xl6IrLowerEmitRuntimeCall(ctx, origin, node->storageType,
-                                          stringOp, operands, 2);
+         receiverType->params != NULL && receiverType->params[0] == node->storageType ) {
+        /* An owned element copy can fail even when the index and item type are
+         * valid. Reuse the checked physical projection and its explicit error
+         * edge; never hide allocation failure inside an aborting access helper. */
+        dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+        XL6_IrValueId borrowed = dynamicType == XL6_IR_TYPE_INVALID ? XL6_IR_VALUE_INVALID
+            : xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, dynamicOp, operands, 2);
+        return xl6IrLowerProjectBorrowedXValueAsString(ctx, origin, borrowed, node->storageType);
+    }
     if ( resultType->kind == XL6_IR_TYPE_UNION &&
          resultType->cAbi == XL6_IR_C_ABI_UNION &&
          resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&

@@ -61,6 +61,14 @@ $paths += @($source,$failure,$example,$cExample,'test/cases/xlir_string_bridge_m
     'test/cases/xlir_string_repeat_abi.xl','test/cases/xlir_string_repeat_host.c',
     'test/cases/stdlib_text_interpolation.xl','test/cases/xlir_string_interpolation_host.c',
     'test/cases/stdlib_text_interpolation_error.xl',
+    'test/cases/stdlib_text_literals_nested.xl','test/cases/xlir_literal_span_contract.c',
+    'test/fuzz/xl6_frontend_fuzz.c',
+    'test/cases/cgen_fstring.xl',
+    'test/cases/parse_fstring_unclosed_comment.xl','test/cases/parse_fstring_mismatched_group.xl',
+    'test/cases/parse_fstring_unclosed_inner_quote.xl','test/cases/parse_fstring_bad_time.xl',
+    'test/cases/parse_fstring_unclosed.xl','test/cases/parse_fstring_empty_expr.xl','test/cases/parse_fstring_bad_brace.xl',
+    'test/cases/sem_fstring_nested_undeclared_identifier.xl','test/cases/sem_fstring_undeclared_identifier.xl',
+    'test/cases/sem_fstring_multiline_undeclared_identifier.xl',
     'test/cases/xlir_text_value_contract.c','test/support/string_bridge_native.c',
     'tools/check_xlir_string_bridges.ps1','tools/check_xlir_string_repeat.ps1',
     'tools/stage_xlir_artifact_runtime_sources.ps1','test/fixtures/extlib_boundary_pending/string_join_symbol.xl') |
@@ -142,8 +150,32 @@ try {
     $null = Check 'contract-build' $gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
         $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$contract))
     Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $work 'xl.dll')
+    $literal = Join-Path $work 'literal-span.exe'
+    $null = Check 'literal-build' $gcc ($flags+@('test/cases/xlir_literal_span_contract.c')+
+        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$literal))
+    if ((Check 'literal-native' $literal @()) -notmatch 'literal-span contract: 101\d+ checks passed') {throw 'Literal oracle incomplete'}
+    $fuzz = Join-Path $work 'frontend-fuzz.exe'
+    $null = Check 'frontend-fuzz-build' $gcc ($flags+@('test/fuzz/xl6_frontend_fuzz.c')+
+        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$fuzz))
+    if ((Check 'frontend-fuzz' $fuzz @('10000','1481397778')) -notmatch 'frontend fuzz ok: 10000 iterations') {throw 'Frontend fuzz incomplete'}
+    foreach ($negative in @(
+            @('parse_fstring_unclosed_comment','未闭合的块注释'),
+            @('parse_fstring_mismatched_group','括号不匹配'),
+            @('parse_fstring_unclosed_inner_quote','未闭合'),@('parse_fstring_bad_time','未闭合的时间字面量'),
+            @('parse_fstring_unclosed','未闭合'),@('parse_fstring_empty_expr','不能为空'),
+            @('parse_fstring_bad_brace','单独的'),
+            @('sem_fstring_nested_undeclared_identifier',':1:16: \[sem\].*missingNested'),
+            @('sem_fstring_undeclared_identifier',':2:28: \[sem\].*missingValue'),
+            @('sem_fstring_multiline_undeclared_identifier',':3:8: \[sem\].*missingValue'))) {
+        $prefix = Join-Path $work $negative[0]
+        $null = Check $negative[0] $driver @("test/cases/$($negative[0]).xl",'emit',$prefix) $negative[1]
+        foreach ($extension in @('c','h','json')) {
+            if (Test-Path -LiteralPath "$prefix.$extension") {throw 'Malformed interpolation emitted an artifact'}
+        }
+    }
     foreach ($entry in @(@('boundary',$source),@('repeat','test/cases/xlir_string_repeat_abi.xl'),@('allocation',$failure),
             @('interpolation','test/cases/stdlib_text_interpolation.xl'),
+            @('nested-literals','test/cases/stdlib_text_literals_nested.xl'),
             @('interpolation-error','test/cases/stdlib_text_interpolation_error.xl'),
             @('regression','test/fixtures/extlib_boundary_pending/string_join_symbol.xl'))) {
         $closed = Join-Path $work "$($entry[0])-contract.c"
@@ -166,10 +198,24 @@ try {
         if ($output -match 'hit=0 balanced') {break}
     }
     if ($point -gt 256) {throw 'Incomplete interpolation allocation sweep'}
+    $nested = Join-Path $work 'nested-literals-native.exe'
+    $null = Check 'nested-literals-strict-build' $gcc ($flags+@('-include',(Join-Path $work 'nested-literals-default.c'),
+        'test/cases/xlir_string_interpolation_host.c')+$objects+
+        @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nested))
+    $null = Check 'nested-literals-native' $nested @()
+    for ($point=0; $point -le 512; ++$point) {
+        $output = Check "nested-literals-oom-$point" $nested @("$point")
+        if ($output -match 'hit=0 balanced') {break}
+    }
+    if ($point -gt 512) {throw 'Incomplete nested interpolation allocation sweep'}
     $null = Check 'stdlib-jit' $driver @('test/cases/stdlib_string.xl','run',(Join-Path $work 'stdlib-jit'),'test/cases/stdlib_string_support.c')
     $stdlib = Join-Path $work 'stdlib-aot'
     $null = Check 'stdlib-build' $driver @('test/cases/stdlib_string.xl','exe',$stdlib,'test/cases/stdlib_string_support.c')
     $null = Check 'stdlib-aot' "$stdlib.exe" @()
+    $null = Check 'legacy-fstring-jit' $driver @('test/cases/cgen_fstring.xl','run',(Join-Path $work 'legacy-fstring-jit'),'test/cases/stdlib_string_support.c')
+    $legacy = Join-Path $work 'legacy-fstring-aot'
+    $null = Check 'legacy-fstring-build' $driver @('test/cases/cgen_fstring.xl','exe',$legacy,'test/cases/stdlib_string_support.c')
+    $null = Check 'legacy-fstring-aot' "$legacy.exe" @()
     $xlOutput = Check 'example-xl' $driver @($example,'run',(Join-Path $work 'example-xl'))
     $xlOutput = ($xlOutput -split "`n" | Where-Object {$_ -cne 'public source run complete'}) -join "`n"
     $cExe = Join-Path $work 'example-c.exe'
@@ -183,7 +229,7 @@ try {
     $changed = @($inputs.Keys | Where-Object {!(Test-Path -LiteralPath $_) -or (Get-FileHash -LiteralPath $_).Hash -ne $inputs[$_]})
     if ($changed.Count) { $outcome = 'invalid-input-change' }
     $record = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;compiler=$driver;buildManifest=(Join-Path $compilerDir 'build.json');
-        scope='Current-source compiler/public API; two-field strings, typed arrays/chars/bytes, 10 negative declarations and in-memory ABI/effect/ownership mutations, deterministic C/H/IR, native OOM and 4-thread 2000 joins, 600 repeat probes, language OOM JIT/AOT, relocation and C/xlang examples. Host links resident object set; actual standalone pruning is a separate artifact gate. Not full RC0 or 53-module completion.';
+        scope='Current-source compiler/public API; two-field strings, typed arrays/chars/bytes, 10 negative ABI declarations and 10 interpolation negatives, shared literal delimiter/position/bounded fuzz contract and 10000 actual frontend fuzz iterations, in-memory ABI/effect/ownership mutations, deterministic C/H/IR, native OOM and 4-thread 2000 joins, 600 repeat probes, nested interpolation OOM JIT/AOT, relocation and C/xlang examples. Host links resident object set; actual standalone pruning is a separate artifact gate. Not full RC0 or 53-module completion.';
         inputs=$inputs;changedInputs=$changed;checks=$checks.ToArray()}
     [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record | ConvertTo-Json -Depth 8),$utf8)
 }
