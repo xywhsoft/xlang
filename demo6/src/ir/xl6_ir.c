@@ -42276,9 +42276,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_DIR_IS_EMPTY: return "dir-is-empty";
     case XL6_IR_RUNTIME_BRIDGE_DIR_COUNT: return "dir-count";
     case XL6_IR_RUNTIME_BRIDGE_DIR_SIZE: return "dir-size";
-    case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC: return "process-exec";
-    case XL6_IR_RUNTIME_BRIDGE_PROCESS_SUCCESS: return "process-success";
-    case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE: return "process-exit-code";
     case XL6_IR_RUNTIME_BRIDGE_HASH_STRING: return "hash-string";
     case XL6_IR_RUNTIME_BRIDGE_HASH_BYTES: return "hash-bytes";
     case XL6_IR_RUNTIME_BRIDGE_HASH_RAW: return "hash-raw";

@@ -100,7 +100,11 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_environment.c", D(), {"XRT_MODULE_ENVIRONMENT", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_core.c", D(), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_queue.c", D(), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING", "XRT_MODULE_TIME", "XRT_MODULE_WAIT"}},
-    {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP)), {"XRT_MODULE_ERROR"}}
+    {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP)), {"XRT_MODULE_ERROR"}},
+    {"src/runtime/xl6_process_command.c", D(), {"XRT_MODULE_PROCESS", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_process_options.c", D(), {"XRT_MODULE_PROCESS_RUN"}},
+    {"src/runtime/xl6_process_run.c", D(R(PROCESS_COMMAND)), {"XRT_MODULE_PROCESS_RUN", "XRT_MODULE_VALUE", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_process_status.c", D(), {"XRT_MODULE_PROCESS"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

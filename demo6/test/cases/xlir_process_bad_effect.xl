@@ -1,0 +1,7 @@
+class WrongOptions
+    private native point handle
+    extern "xl6ProcessRunOptionsCreateV1" create(int timeoutMs, int stdoutLimit, int stderrLimit, int overflow, int stopGraceMs, uint64 deadline)
+    extern "xl6ProcessRunOptionsDestroyV1" destroy()
+    extern "xl6ProcessRunOptionsCancelV1" @pure @no_raise @nonblocking func cancel() as bool
+end
+assert WrongOptions(-1, 1, 1, 0, 10, 0).cancel()

@@ -203,14 +203,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             case XL6_IR_RUNTIME_BRIDGE_DIR_SIZE: needs->dirBridgeOperations |= XL6_CGEN_DIR_SIZE; break;
             default: break;
             }
-        } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC &&
-                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE ) {
-            switch (target->runtimeBridge) {
-            case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_EXEC; break;
-            case XL6_IR_RUNTIME_BRIDGE_PROCESS_SUCCESS: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_SUCCESS; break;
-            case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_EXIT_CODE; break;
-            default: break;
-            }
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HASH_STRING ) {
             needs->needsHashStringBridgeRuntime = 1;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HASH_BYTES ) {

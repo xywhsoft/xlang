@@ -1,2 +1,2 @@
-extern "xl6_xrt_dir_entries" func bad(string path) as var
+extern "xl6_xrt_fs_dir_entries" func bad(string path) as array
 bad(".")

@@ -1,0 +1,38 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["both", "2097152"])
+auto complete = command.run(ProcessRunOptions(10000, 2097152, 2097152))
+assert complete.success
+assert complete.stdout.length == 2097152 and complete.stderr.length == 2097152
+assert not complete.stdoutTruncated and not complete.stderrTruncated
+auto first = command.run(ProcessRunOptions(10000, 11, 13, 1))
+assert first.success and first.stdoutTruncated and first.stderrTruncated
+assert first.stdout.length == 11 and first.stderr.length == 13
+auto last = command.run(ProcessRunOptions(10000, 17, 19, 2))
+assert last.success and last.stdoutTruncated and last.stderrTruncated
+assert last.stdout.length == 17 and last.stderr.length == 19
+int rejected = 0
+try
+    auto overflow = command.run(ProcessRunOptions(10000, 1, 1, 0))
+catch e
+    rejected += 1
+end
+try
+    auto spawnFailure = process.cmd("XL6_NONEXISTENT_PRIVATE_PROGRAM_73F1").run()
+catch e
+    rejected += 1
+end
+assert rejected == 2
+auto timeout = process.cmd(child, ["sleep", "2000"]).run(ProcessRunOptions(10, 1024, 1024, 0, 10))
+assert timeout.timedOut and not timeout.success
+auto options = ProcessRunOptions()
+assert options.cancel()
+auto cancelled = process.cmd(child, ["exit", "99"]).run(options)
+assert cancelled.cancelled and not cancelled.success
+assert cancelled.status.kind == 0 and cancelled.inputWritten == 0
+try
+    int invalidCode = cancelled.exitCode
+catch e
+    rejected += 1
+end
+assert rejected == 3

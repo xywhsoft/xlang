@@ -210,3 +210,15 @@ immutable independent find/at/full snapshots, exact NUL spans, ABI mutations and
 negatives, native/threaded/OOM oracles and managed logical OOM. The artifact gate
 independently checks actual AOT native assembly and CORE/MATCH pruning for three
 fixtures. Replacement, all/split/set and Pattern are deliberately not claimed.
+
+## Process configuration/run batch
+
+`check_stdlib_process_run.ps1` requires a frozen full PublicSourceDirectory and
+fresh Directory. Its Linux companion is wired into test_linux.sh. Both exercise
+owned OS-text configuration, exact bytes input/output, independent result/status,
+concurrent dual drains, cancellation/deadlines and logical OOM, with closed ABI,
+owner and effect mutations/negatives and deterministic strict C/JIT/AOT. Linux
+instruments actual XRT/resident/program closures; shared CLI/JIT is uninstrumented.
+The POSIX launch-plan prefix sweep verifies every argument-copy failure and
+cleanup. Live Process/pipeline/Future/file redirection/PTY remain later batches;
+passing this gate does not complete the seven process modules or all 53 modules.

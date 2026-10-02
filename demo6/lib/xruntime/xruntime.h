@@ -313224,18 +313224,17 @@ XRT_API xprocess* xrtProcessSpawn(const xprocessconfig* pConfig)
 	pProcess->Waiter = xrtThreadCreate(__xrtProcessWaiter, pProcess, 0u);
 	if ( pProcess->Waiter == NULL ) {
 		(void)xrtRefRelease(&pProcess->RefCount);
-		__xrtProcessErrorSet(
-			XERR_INTERNAL,
-			XPROCESS_ERROR_THREAD,
-			"spawn.waiter",
-			"process wait thread could not start",
-			0
-		);
+		if ( xrtGetError() == NULL ) {
+			__xrtProcessErrorSet(XERR_INTERNAL, XPROCESS_ERROR_THREAD,
+				"spawn.waiter", "process wait thread could not start", 0);
+		}
 		goto fail_running;
 	}
 	return pProcess;
 
 fail_running:
+	{
+	xerror* pFailure = xrtTakeError();
 	(void)__xrtProcessPlatformKillTree(pProcess);
 	(void)__xrtProcessPlatformKill(pProcess);
 	memset(&Status, 0, sizeof(Status));
@@ -313244,7 +313243,10 @@ fail_running:
 	(void)xrtCondUnit(&pProcess->Changed);
 	(void)xrtMutexUnit(&pProcess->Lock);
 	xrtFree(pProcess);
+	xrtClearError();
+	xrtSetErrorTake(pFailure);
 	return NULL;
+	}
 }
 
 
@@ -314069,6 +314071,56 @@ cleanup:
 
 
 
+/* Isolate text preparation so allocation/Unicode errors are not replaced by
+ * a guessed OS error, and stop before subsequent conversions after failure.
+ * The caller owns every non-NULL output even when preparation fails. */
+static bool __xrtProcessTextPrepare(
+	const xprocessconfig* pConfig,
+	cstr sProgram8,
+	wchar_t** ppProgram,
+	wchar_t** ppCommand,
+	wchar_t** ppWorkDir
+)
+{
+	xerror* pPrevious = xrtTakeError();
+
+	*ppProgram = __xrtProcessProgramResolve(sProgram8);
+	if ( *ppProgram == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			__xrtProcessErrorSet(XERR_NOT_FOUND, XPROCESS_ERROR_COMMAND,
+				"spawn.command", "process program could not be resolved",
+				(int)GetLastError());
+		}
+		goto fail;
+	}
+	*ppCommand = __xrtProcessCommandBuild(pConfig, sProgram8);
+	if ( *ppCommand == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			__xrtProcessErrorSet(XERR_VALUE, XPROCESS_ERROR_COMMAND,
+				"spawn.command", "process command is not valid UTF-8", 0);
+		}
+		goto fail;
+	}
+	if ( pConfig->WorkDir != NULL ) {
+		*ppWorkDir = (wchar_t*)xrtUtf8To16(pConfig->WorkDir, NULL);
+		if ( *ppWorkDir == NULL ) {
+			if ( xrtGetError() == NULL ) {
+				__xrtProcessErrorSet(XERR_VALUE, XPROCESS_ERROR_CONFIG,
+					"spawn.workdir", "process working directory is not valid UTF-8", 0);
+			}
+			goto fail;
+		}
+	}
+	xrtClearError();
+	xrtSetErrorTake(pPrevious);
+	return true;
+fail:
+	xrtErrorFree(pPrevious);
+	return false;
+}
+
+
+
 /* 返回 Windows 环境项名称长度，驱动变量包含开头等号。 */
 static size_t __xrtProcessEnvNameSize(const wchar_t* sEntry)
 {
@@ -314727,33 +314779,9 @@ bool __xrtProcessTerminalSpawnWindows(
 		goto cleanup;
 	}
 	Startup.AttributeList = pAttributes;
-	sProgram = __xrtProcessProgramResolve(sProgram8);
-	sCommand = __xrtProcessCommandBuild(pConfig, sProgram8);
-	if ( (sProgram == NULL) || (sCommand == NULL) ) {
-		iError = (int)GetLastError();
-		__xrtProcessErrorSet(
-			sProgram == NULL ? XERR_NOT_FOUND : XERR_VALUE,
-			XPROCESS_ERROR_COMMAND,
-			"spawn.command",
-			sProgram == NULL ?
-				"process program could not be resolved" :
-				"process command is not valid UTF-8",
-			iError
-		);
+	if ( !__xrtProcessTextPrepare(pConfig, sProgram8,
+		&sProgram, &sCommand, &sWorkDir) ) {
 		goto cleanup;
-	}
-	if ( pConfig->WorkDir != NULL ) {
-		sWorkDir = (wchar_t*)xrtUtf8To16(pConfig->WorkDir, NULL);
-		if ( sWorkDir == NULL ) {
-			__xrtProcessErrorSet(
-				XERR_VALUE,
-				XPROCESS_ERROR_CONFIG,
-				"spawn.workdir",
-				"process working directory is not valid UTF-8",
-				0
-			);
-			goto cleanup;
-		}
 	}
 	if ( !__xrtProcessEnvironmentBuild(pConfig, &sEnvironment) ) {
 		goto cleanup;
@@ -315019,33 +315047,9 @@ bool __xrtProcessPlatformSpawn(
 		goto cleanup;
 	}
 	Startup.AttributeList = pAttributes;
-	sProgram = __xrtProcessProgramResolve(sProgram8);
-	sCommand = __xrtProcessCommandBuild(pConfig, sProgram8);
-	if ( (sProgram == NULL) || (sCommand == NULL) ) {
-		iError = (int)GetLastError();
-		__xrtProcessErrorSet(
-			sProgram == NULL ? XERR_NOT_FOUND : XERR_VALUE,
-			XPROCESS_ERROR_COMMAND,
-			"spawn.command",
-			sProgram == NULL ?
-				"process program could not be resolved" :
-				"process command is not valid UTF-8",
-			iError
-		);
+	if ( !__xrtProcessTextPrepare(pConfig, sProgram8,
+		&sProgram, &sCommand, &sWorkDir) ) {
 		goto cleanup;
-	}
-	if ( pConfig->WorkDir != NULL ) {
-		sWorkDir = (wchar_t*)xrtUtf8To16(pConfig->WorkDir, NULL);
-		if ( sWorkDir == NULL ) {
-			__xrtProcessErrorSet(
-				XERR_VALUE,
-				XPROCESS_ERROR_CONFIG,
-				"spawn.workdir",
-				"process working directory is not valid UTF-8",
-				0
-			);
-			goto cleanup;
-		}
 	}
 	if ( !__xrtProcessEnvironmentBuild(pConfig, &sEnvironment) ) {
 		goto cleanup;
@@ -315940,19 +315944,21 @@ static bool __xrtProcessPlanBuild(
 	if ( pPlan->Argv == NULL ) {
 		return false;
 	}
-	if ( pConfig->Target == XPROCESS_SHELL ) {
-		pPlan->Argv[0] = __xrtProcessTextCopy("/bin/sh");
-		pPlan->Argv[1] = __xrtProcessTextCopy("-c");
-		pPlan->Argv[2] = __xrtProcessTextCopy(pConfig->Command);
-	} else {
-		pPlan->Argv[0] = __xrtProcessTextCopy(
-			pConfig->Arg0 != NULL ? pConfig->Arg0 : pConfig->Program
-		);
-		for ( size_t i = 0u; i < pConfig->ArgCount; i++ ) {
-			pPlan->Argv[i + 1u] = __xrtProcessTextCopy(pConfig->Args[i]);
-		}
-	}
+	/* Keep the zero-terminated cleanup prefix contiguous on every failure.
+	 * Do not allocate later arguments after a failed copy: cleanup stops at
+	 * the first NULL and would otherwise leak those later allocations. */
 	for ( size_t i = 0u; i < iArgCount; i++ ) {
+		cstr sArgument;
+
+		if ( pConfig->Target == XPROCESS_SHELL ) {
+			sArgument = i == 0u ? "/bin/sh" :
+				(i == 1u ? "-c" : pConfig->Command);
+		} else {
+			sArgument = i == 0u ?
+				(pConfig->Arg0 != NULL ? pConfig->Arg0 : pConfig->Program) :
+				pConfig->Args[i - 1u];
+		}
+		pPlan->Argv[i] = __xrtProcessTextCopy(sArgument);
 		if ( pPlan->Argv[i] == NULL ) {
 			return false;
 		}
@@ -317819,9 +317825,6 @@ XRT_API bool xrtProcessRun(
 	pResult->StderrTruncated = State.Stderr.Truncated;
 	pResult->Duration = xrtClock() - iStart;
 	bOk = !__xrtProcessRunFailed(&State);
-	if ( !bOk && (State.Error != NULL) ) {
-		xrtSetError(State.Error);
-	}
 	goto cleanup;
 
 stop_failed:
@@ -317831,7 +317834,25 @@ stop_failed:
 	goto cleanup;
 
 cleanup:
+	{
+	/* Keep the first infrastructure error alive across stop/join/destruction.
+	 * In particular stop_failed owns it in State, not in the thread slot. */
+	xerror* pFailure = NULL;
+	if ( !bOk ) {
+		pFailure = State.Error;
+		State.Error = NULL;
+		if ( pFailure == NULL ) pFailure = xrtTakeError();
+		else xrtClearError();
+	}
 	if ( pProcess != NULL ) {
+		/* ProcessWait publishes the exit status before the private waiter
+		 * retires its process reference and thread context. A synchronous Run
+		 * must join that owner too, not leave a detached cleanup tail. */
+		if ( xrtThreadWait(pProcess->Waiter) != XWAIT_OK ) {
+			if ( pFailure == NULL ) pFailure = xrtTakeError();
+			else xrtClearError();
+			bOk = false;
+		}
 		xrtProcessDestroy(pProcess);
 	}
 	if ( !bThreadsReady ) {
@@ -317844,7 +317865,12 @@ cleanup:
 	if ( bLockReady ) {
 		(void)xrtMutexUnit(&State.Lock);
 	}
+	if ( pFailure != NULL ) {
+		xrtClearError();
+		xrtSetErrorTake(pFailure);
+	}
 	return bOk;
+	}
 }
 
 

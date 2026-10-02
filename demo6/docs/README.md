@@ -133,6 +133,8 @@
 
 ## 维护规则
 
+- `Process配置与运行设计.md`：B21 的精确 OS 输入、owned Command、取消/期限选项、bytes 结果和声明式执行边界；后续 live/pipeline/Future/PTY 不计本批完成。
+
 - 新设计先落到本目录，再进入实现。
 - 修改 C emitter 行为时，同步维护 `cgenrule/README.md`、XLIR 设计/验收文档和对应可执行质量门；不得恢复按源码语法维护的第二套规则表。
 - 修改标准库命名、参数默认值或 XRT/CRT 边界时，同步维护 `标准库设计.md`。

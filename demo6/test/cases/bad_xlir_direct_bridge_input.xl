@@ -1,2 +1,6 @@
-extern "xl6_xrt_process_exec" func bad(int command, c_int timeout) as point
-bad(1, c_int(0))
+class WrongCommand
+    private native point handle
+    extern "xl6ProcessCommandShellV1" create(int command, int size)
+    extern "xl6ProcessCommandDestroyV1" destroy()
+end
+auto invalid = WrongCommand(1, -1)

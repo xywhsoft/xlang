@@ -1,0 +1,10 @@
+// Explicit shell convenience; use process.cmd(program, args) for direct argv.
+auto command = process.shell("echo xlang-process")
+auto options = ProcessRunOptions(5000, 1024, 1024)
+auto result = command.run(options)
+assert result.success and result.exitCode == 0
+assert string.trim(result.stdoutText()) == "xlang-process"
+bytes raw = result.stdout
+auto status = result.status
+assert raw.length > 0 and status.code == 0
+println("process configuration/run=ok")

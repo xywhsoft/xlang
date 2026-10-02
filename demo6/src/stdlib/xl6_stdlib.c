@@ -1136,7 +1136,15 @@ static int xl6StdlibNeedsProcessClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
-    (void)root;
+    if (xl6StdlibNodeUsesTypeName(root,"ProcessCommand") ||
+        xl6StdlibNodeUsesTypeName(root,"ProcessRunOptions") ||
+        xl6StdlibNodeUsesTypeName(root,"ProcessResult") ||
+        xl6StdlibNodeUsesTypeName(root,"ProcessExitStatus") ||
+        xl6StdlibNodeUsesTypeName(root,"Process") ||
+        xl6StdlibNodeUsesTypeName(root,"PipelineResult")) return 1;
+    if (xl6StdlibFuncUsed(used,"process","exec") ||
+        xl6StdlibFuncUsed(used,"process","success") ||
+        xl6StdlibFuncUsed(used,"process","exitCode")) return 1;
     if ( used == NULL ) {
         return 0;
     }
@@ -1604,6 +1612,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsAsyncFileClass;
     int needsJsonClass;
     int needsProcessClass;
+    int needsLegacyProcessClass;
     int needsTaskGroupClass;
     int needsLoggerClass;
     int needsProcessWaitAsync;
@@ -1769,6 +1778,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
+    needsLegacyProcessClass = xl6StdlibFuncUsed(used,"process","start") ||
+        xl6StdlibFuncUsed(used,"process","startFile") || xl6StdlibFuncUsed(used,"process","pipeline") ||
+        xl6StdlibNodeUsesTypeName(root,"Process") || xl6StdlibNodeUsesTypeName(root,"PipelineResult");
     needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used) || xl6StdlibFuncUsed(used, "signal", "cancelOn");
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
     needsIoWriter = needsIoWriter || needsLoggerClass;
@@ -1787,10 +1799,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsProcessClass || needsLoggerClass;
+        needsAsyncFileClass || needsCryptoClass || needsLegacyProcessClass || needsLoggerClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
-    if ( needsCryptoClass || needsProcessClass || needsFileClass ) {
+    if ( needsCryptoClass || needsLegacyProcessClass || needsFileClass ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "byteLen");
     }
     if ( needsNetEngineClass ) {
@@ -1813,7 +1825,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsWsHandshakeClass || needsWsUpgradeClass ||
         needsWebSocketConfigClass || needsWebSocketClass ||
         needsFileClass || needsAsyncFileClass ||
-        needsJsonClass || needsProcessClass || needsTaskGroupClass ||
+        needsJsonClass || needsLegacyProcessClass || needsTaskGroupClass ||
         needsLoggerClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetRuntime ||
@@ -2056,10 +2068,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsProcessClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassSource);
-        if ( needsProcessWaitAsync ) {
-            xl6StdlibBuilderAppend(&builder, xl6StdlibProcessWaitAsyncMethodSource);
+        if (needsLegacyProcessClass) {
+            xl6StdlibBuilderAppend(&builder, xl6StdlibLegacyProcessClassSource);
+            if ( needsProcessWaitAsync )
+                xl6StdlibBuilderAppend(&builder, xl6StdlibProcessWaitAsyncMethodSource);
+            xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassEndSource);
         }
-        xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassEndSource);
     }
     if ( needsTccClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTccClassSource);

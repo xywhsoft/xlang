@@ -1,6 +1,7 @@
 /* One closed collection registry shared by source admission and typed XLIR.
  * Macro consumers may select just names; physical types, item widths and
  * ownership remain verified from these same descriptors before emission. */
+XL6_NATIVE_COLLECTION_BRIDGE("xl6ProcessCommandDirectV1",T,V,4,{S,V,I,I},.resultOwner="xl6ProcessCommandDestroyV1",.parameterArrayItemAbis={0,S})
 XL6_NATIVE_COLLECTION_BRIDGE("xl6TextCharsV1",T,V,2,{S,I},C)
 XL6_NATIVE_COLLECTION_BRIDGE("xl6TextSplitV1",T,V,4,{S,S,I,I},S)
 XL6_NATIVE_COLLECTION_BRIDGE("xl6TextLinesV1",T,V,2,{S,I},S)

@@ -1,0 +1,54 @@
+// Configuration owns strings/args independently and rejects OS NUL boundaries.
+string program = "does-not-run"
+array<string> args = ["first", "", "你"]
+auto command = process.cmd(program, args)
+program = "changed"
+args[0] = "changed"
+command.workDir(".")
+command.arg0("configured-name")
+command.env("XL6_PROCESS_CONFIG", "first")
+command.env("XL6_PROCESS_CONFIG", "")
+command.removeEnv("XL6_PROCESS_CONFIG")
+command.clearEnv()
+command.inheritEnv()
+command.newConsole(false)
+command.processGroup()
+command.hideWindow()
+command.terminal(false)
+command.terminalSize(80, 24)
+command.stdio(process.stdin, process.stdioPipe)
+command.stdio(process.stderr, 4)
+int rejected = 0
+try
+    command.env("bad=name", "value")
+catch e
+    rejected += 1
+end
+try
+    command.workDir("a\0b")
+catch e
+    rejected += 1
+end
+try
+    command.terminalSize(0, 24)
+catch e
+    rejected += 1
+end
+try
+    command.stdio(5, process.stdioPipe)
+catch e
+    rejected += 1
+end
+try
+    auto invalid = process.cmd("a\0b")
+catch e
+    rejected += 1
+end
+assert rejected == 5
+auto selected = process.shell("exit 0\0unused", 6)
+auto options = ProcessRunOptions()
+assert not options.requested
+assert options.cancel()
+assert options.requested
+// The request is one-way; repeat callers observe an already-cancelled token.
+options.cancel()

@@ -2,6 +2,20 @@
 
 本文记录已经由 XRT 提供、并由 xlang 标准库公开的扩展能力。这里是当前口径，不承担旧版本兼容说明。
 
+## 进程配置与同步捕获
+
+`process.cmd` 使用 typed `array<string>` 直接 argv；`process.shell` 明确
+调用 shell。ProcessCommand 的配置文本自有复制，修改/执行要求创建
+线程。ProcessRunOptions 提供捕获限制、overflow、取消、相对超时或
+绝对期限；run 返回自有 ProcessResult，stdout/stderr 为精确 bytes，
+Text 方法严格解码，status 为独立快照。基础设施错误抛异常，非零
+退出/超时/取消为真实结果；exitCode 仅普通退出可读。
+
+41 个声明式 resident 桥接分四组件，Cgen 不再实现 exec/success/
+exitCode 算法。完整默认值、尺寸/错误/线程/生命周期合同见
+`Process配置与运行设计.md`；live Process、pipeline、Future、重定向和
+PTY 尚未验收，本批不声称七个 process 模块完成。
+
 ## 二进制加密与摘要
 
 文本接口返回十六进制字符串；带 `Bytes` 后缀的接口接收并返回 `Buffer`，不会经过字符集转换。AEAD 解密校验失败时返回空 `Buffer`。

@@ -263,7 +263,7 @@ if errorlevel 1 (
     echo stdlib_error_paths.c missing xl6_xrt_xson_parse_options runtime prototype.
     exit /b 1
 )
-findstr /C:"xl6_xrt_process_exec" build\test\stdlib_error_paths.c >nul
+findstr /C:"xl6ProcessRunV1" build\test\stdlib_error_paths.c >nul
 if errorlevel 1 (
     echo stdlib_error_paths.c missing process runtime adapter.
     exit /b 1
@@ -578,7 +578,7 @@ if not errorlevel 1 (
     echo stdlib_os.c pulled async runtime into a synchronous Process program.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_process_exec" build\test\stdlib_os.c >nul
+findstr /C:"xl6ProcessRunV1" build\test\stdlib_os.c >nul
 if errorlevel 1 (
     echo stdlib_os.c missing process exec helper dependency.
     exit /b 1
@@ -623,12 +623,12 @@ if not errorlevel 1 (
     echo stdlib_process.c still contains removed xrtProcessPipelineRun API.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_process_exec" build\test\stdlib_process.c >nul
+findstr /C:"xl6ProcessRunV1" build\test\stdlib_process.c >nul
 if errorlevel 1 (
     echo stdlib_process.c missing process exec runtime helper.
     exit /b 1
 )
-findstr /C:"int xl6_xrt_process_exit_code" build\test\stdlib_process.c >nul
+findstr /C:"xl6ProcessResultExitCodeV1" build\test\stdlib_process.c >nul
 if errorlevel 1 (
     echo stdlib_process.c missing process exitCode runtime helper.
     exit /b 1
@@ -1290,6 +1290,8 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_signal_core.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\signal_core"
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_signal_queue.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\signal_queue"
+if errorlevel 1 exit /b 1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_process_run.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\process_run"
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: extended standard library

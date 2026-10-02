@@ -1,0 +1,13 @@
+assert process.success("exit 0")
+assert not process.success("exit 7")
+assert process.exitCode("exit 7") == 7
+assert process.exec("echo exact\0ignored", -1, 10) == "exact\r\n" or process.exec("echo exact\0ignored", -1, 10) == "exact\n"
+assert process.run("exit 3").exitCode == 3
+assert process.shell("exit 2").run().status.code == 2
+bool rejected = false
+try
+    process.exec("exit 0\0bad")
+catch e
+    rejected = true
+end
+assert rejected

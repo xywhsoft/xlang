@@ -1,0 +1,4 @@
+auto options = ProcessRunOptions()
+assert not options.requested
+assert options.cancel()
+assert options.requested

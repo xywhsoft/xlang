@@ -24,8 +24,6 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
         xl6CgenEmitTextOutputRuntime(out, needs->textOutputBridgeOperations);
     if ( needs->dirBridgeOperations != 0 )
         xl6CgenEmitDirRuntime(out, needs->dirBridgeOperations);
-    if ( needs->processRunBridgeOperations != 0 )
-        xl6CgenEmitProcessRunRuntime(out, needs->processRunBridgeOperations);
     if ( needs->needsJsonVisitBridgeRuntime ||
          (needs->structuredOptionsBridgeOperations & XL6_CGEN_CONFIG_WRITE_TO_MASK) ||
          (needs->structuredOptionsBridgeOperations & XL6_CGEN_CONFIG_XLON_DECODE) ||

@@ -1,0 +1,6 @@
+class WrongCommand
+    private native point handle
+    extern "xl6ProcessCommandShellV1" create(string command, int size)
+    extern "xl6ProcessStatusDestroyV1" destroy()
+end
+auto invalid = WrongCommand("exit 0", -1)

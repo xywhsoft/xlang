@@ -19,6 +19,17 @@
 5. 同一 XLIR 的重复发射必须逐字节确定；生成结果必须通过严格 C、JIT/AOT 和相应宿主运行门。
 6. 标准库和原生组件的需求来自已验证的 runtime/native dependency plan，不扫描源码或生成后的 C 文本猜测功能。
 
+## Process 配置与同步捕获
+
+Command、Options、Result、Status 的真实参数/结果、所有权、错误和效果
+由声明式 native/text-value 合同固定。typed argv 复用语义与 IR 共用的
+`xl6_native_collection_contracts.inc`，不在 emitter 中恢复数组项类型。
+`exec/success/exitCode` 是普通标准库源码组合；不再保留专用
+`PROCESS_EXEC/SUCCESS/EXIT_CODE` operation 或 `xl6_cgen_process_run.*`。
+运行、双流排空、取消和回收使用 XRT；四个 resident 适配组件按声明选择。
+`check_stdlib_process_run.ps1/.sh` 验证冻结输入、严格 C、JIT/AOT、实际
+原生装配、OOM 账本与错误类型；live/pipeline/Future/PTY 是后续范围。
+
 ## 权威设计与验收
 
 - `../docs/XLIR统一中间表示设计.md`：统一 IR、lowering、verifier 和 C emitter 的完整设计合同。
