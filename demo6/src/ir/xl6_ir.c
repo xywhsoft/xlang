@@ -26479,7 +26479,7 @@ int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind
 static int xl6IrSerializationBridgeDynamicValueType(const XL6_IrType* type)
 {
     return type != NULL && type->kind == XL6_IR_TYPE_BUILTIN &&
-           type->collectionAbi == XL6_IR_COLLECTION_NONE && type->paramCount == 0 &&
+           type->collectionAbi == XL6_IR_COLLECTION_NONE && type->paramCount == 0 && type->returnCount == 0 &&
            type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
            type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
            type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL;

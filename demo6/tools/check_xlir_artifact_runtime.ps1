@@ -172,7 +172,8 @@ $process=Start-Process @start
                         (('XRT_MODULE_CHARSET'-in$plan.NativeModules)-eq($component-ne'encoding_detect'))-and
                         (('XRT_MODULE_CHARSET_DETECT'-in$plan.NativeModules)-eq($component-eq'encoding_detect'))-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
-                }elseif($case-in@('stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_errors','stdlib_pattern_tags','stdlib_pattern_error_modes')){
+                }elseif($case-in@('stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_errors','stdlib_pattern_tags','stdlib_pattern_error_modes',
+                    'stdlib_pattern_builder','stdlib_pattern_builder_lifetime','stdlib_pattern_builder_cleanup')){
                     $expectedPattern=switch($case){
                         'stdlib_pattern_core_only' {@('core')}
                         'stdlib_pattern_options' {@('core','options')}
@@ -181,6 +182,9 @@ $process=Start-Process @start
                         'stdlib_pattern_errors' {@('core','options','match')}
                         'stdlib_pattern_tags' {@('core','match')}
                         'stdlib_pattern_error_modes' {@('core')}
+                        'stdlib_pattern_builder' {@('builder','core','match')}
+                        'stdlib_pattern_builder_lifetime' {@('builder','core','options','match')}
+                        'stdlib_pattern_builder_cleanup' {@('builder','core')}
                     }
                     $patternSources=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_pattern_'}|Sort-Object)
                     $expectedSources=@($expectedPattern|ForEach-Object {"src/runtime/xl6_pattern_$_.c"}|Sort-Object)

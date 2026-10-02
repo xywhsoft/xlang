@@ -25,12 +25,14 @@ try {
         'stdlib_regex_replace_only','stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors',
         'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_extended_errors','stdlib_regex_byte_boundaries',
         'stdlib_regex_replace_func','stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors','stdlib_regex_error_metadata',
-        'stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_errors','stdlib_pattern_tags','stdlib_pattern_error_modes')
+        'stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_errors','stdlib_pattern_tags','stdlib_pattern_error_modes',
+        'stdlib_pattern_builder','stdlib_pattern_builder_lifetime','stdlib_pattern_builder_cleanup')
     $negatives=@('xlir_regex_bad_result','xlir_regex_bad_owner','xlir_regex_bad_constructor','xlir_regex_bad_nullable',
         'xlir_regex_bad_set_items','xlir_regex_bad_set_hits','xlir_regex_bad_iterator_owner',
         'xlir_regex_bad_callback_arity','xlir_regex_bad_callback_result','xlir_regex_bad_callback_raw','xlir_regex_bad_error_input',
-        'xlir_pattern_bad_result','xlir_pattern_bad_tag','xlir_pattern_bad_options')
-    $privacy=@('xlir_regex_private_consume','xlir_regex_private_split_consume','xlir_pattern_private_code')
+        'xlir_pattern_bad_result','xlir_pattern_bad_tag','xlir_pattern_bad_options','xlir_pattern_bad_builder_tags',
+        'xlir_pattern_bad_edit_items','xlir_pattern_bad_edit_payload','xlir_pattern_bad_key_owner')
+    $privacy=@('xlir_regex_private_consume','xlir_regex_private_split_consume','xlir_pattern_private_code','xlir_pattern_private_builder')
     $undeclared=@('sem_native_class_extern_bad_type','sem_native_class_extern_return_bad')
     if($PatternOnly){
         $cases=@($cases|Where-Object {$_-like'stdlib_pattern_*'})
@@ -39,7 +41,7 @@ try {
         $undeclared=@()
     }
     $extra=@($PSCommandPath,'tools/check_stdlib_regex.sh','test/cases/xlir_regex_host.c','test/support/regex_native.c',
-        'test/cases/xlir_pattern_host.c','test/support/pattern_native.c','test/cases/xlir_error_projection_contract.c','test/cases/xlir_continuation_owner_test.h','test/cases/xlir_synthetic_owner_edit.h',
+        'test/cases/xlir_pattern_host.c','test/support/pattern_native.c','test/cases/xlir_pattern_builder_host.c','test/support/pattern_builder_native.c','test/cases/xlir_error_projection_contract.c','test/cases/xlir_continuation_owner_test.h','test/cases/xlir_synthetic_owner_edit.h',
         'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c','test/cases/xlir_regex_callback_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll',
@@ -75,6 +77,9 @@ try {
         $null=Check 'pattern-native-build' gcc ($flags+@('test/cases/xlir_pattern_host.c','test/support/pattern_native.c',
             'src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c','src/runtime/xl6_pattern_match.c')+$libs+@('-o',"$work/pattern-native.exe"))
         if((Check 'pattern-native' "$work/pattern-native.exe" @())-notmatch '60 actual failures, 5 first no-hit completions'){throw 'Pattern native OOM oracle incomplete'}
+        $null=Check 'pattern-builder-native-build' gcc ($flags+@('test/cases/xlir_pattern_builder_host.c','test/support/pattern_builder_native.c',
+            'src/runtime/xl6_pattern_builder.c','src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c')+$libs+@('-o',"$work/pattern-builder-native.exe"))
+        if((Check 'pattern-builder-native' "$work/pattern-builder-native.exe" @())-notmatch '45 actual failures, 10 first no-hit completions'){throw 'Builder adapter OOM oracle incomplete'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
@@ -117,7 +122,7 @@ try {
             $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
             if($case-in@('stdlib_regex_match','stdlib_regex_iterators','stdlib_regex_replace_only',
                 'stdlib_regex_replace_buffer','stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_replace_func','stdlib_regex_replace_func_buffer',
-                'stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_tags')) {
+                'stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_tags','stdlib_pattern_builder_lifetime')) {
                 $terminal=$false
                 for($point=0;$point-lt2048;++$point) {
                     $output=Check "$case-oom-$point" "$prefix.strict.exe" @("$point")
@@ -146,9 +151,9 @@ try {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         $report=[ordered]@{Complete=($complete-and!$changed.Count);Checks=$checks.Count;PatternOnly=[bool]$PatternOnly;Cases=$cases;Negatives=$negatives;Privacy=$privacy;UndeclaredArrays=$undeclared;
             ChangedInputs=$changed;Inputs=$inputs;Results=$checks;
-            Scope='B13-B16 Regex and Pattern compiled resources, independent captures, managed tag fields, options and errors; source strict C/JIT/AOT and rebuilt Windows CLI default embedded run/build/execute. Native and language OOM use logical allocation injection, not ASan. Excludes PatternBuilder, isolated deployment and whole-task release acceptance'}
+            Scope='B13-B17b Regex and Pattern resources, independent captures, managed tags, options, Builder/key/edit transactions and cleanup. Source strict C/JIT/AOT and rebuilt Windows CLI run/build/execute. Native and language OOM use logical allocation injection, not ASan. Excludes isolated deployment and whole-task release acceptance'}
         [IO.File]::WriteAllText("$work/results.json",($report|ConvertTo-Json -Depth 8),$utf8)
         if($changed.Count){throw 'Regex gate inputs changed'}
     }
-    Write-Output "Regex/Pattern B13-B16: $($checks.Count) checks passed"
+    Write-Output "Regex/Pattern B13-B17b: $($checks.Count) checks passed"
 }finally{Pop-Location}

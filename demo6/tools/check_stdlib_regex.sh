@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# B13-B16 Regex/Pattern snapshots and checked callbacks; formal binaries first.
+# B13-B17b Regex/Pattern snapshots, Builder transactions and checked callbacks.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -22,17 +22,21 @@ run() {
 cases=(stdlib_regex_core_only stdlib_regex_match stdlib_regex_errors stdlib_regex_iterators
     stdlib_regex_replace_only stdlib_regex_replace_buffer stdlib_regex_replace_buffer_errors stdlib_regex_split_only stdlib_regex_set_only stdlib_regex_extended_errors stdlib_regex_byte_boundaries
     stdlib_regex_replace_func stdlib_regex_replace_func_buffer stdlib_regex_replace_func_errors stdlib_regex_error_metadata
-    stdlib_pattern_core_only stdlib_pattern_options stdlib_pattern_options_only stdlib_pattern_match stdlib_pattern_errors stdlib_pattern_tags stdlib_pattern_error_modes)
+    stdlib_pattern_core_only stdlib_pattern_options stdlib_pattern_options_only stdlib_pattern_match stdlib_pattern_errors stdlib_pattern_tags stdlib_pattern_error_modes
+    stdlib_pattern_builder stdlib_pattern_builder_lifetime stdlib_pattern_builder_cleanup)
 negative=(xlir_regex_bad_result xlir_regex_bad_owner xlir_regex_bad_constructor xlir_regex_bad_nullable
     xlir_regex_bad_set_items xlir_regex_bad_set_hits xlir_regex_bad_iterator_owner
     xlir_regex_bad_callback_arity xlir_regex_bad_callback_result xlir_regex_bad_callback_raw xlir_regex_bad_error_input
-    xlir_pattern_bad_result xlir_pattern_bad_tag xlir_pattern_bad_options)
-privacy=(xlir_regex_private_consume xlir_regex_private_split_consume xlir_pattern_private_code)
+    xlir_pattern_bad_result xlir_pattern_bad_tag xlir_pattern_bad_options xlir_pattern_bad_builder_tags
+    xlir_pattern_bad_edit_items xlir_pattern_bad_edit_payload xlir_pattern_bad_key_owner)
+privacy=(xlir_regex_private_consume xlir_regex_private_split_consume xlir_pattern_private_code xlir_pattern_private_builder)
 undeclared=(sem_native_class_extern_bad_type sem_native_class_extern_return_bad)
 if [[ "$GROUP" = pattern ]]; then
-    cases=(stdlib_pattern_core_only stdlib_pattern_options stdlib_pattern_options_only stdlib_pattern_match stdlib_pattern_errors stdlib_pattern_tags stdlib_pattern_error_modes)
-    negative=(xlir_pattern_bad_result xlir_pattern_bad_tag xlir_pattern_bad_options)
-    privacy=(xlir_pattern_private_code)
+    cases=(stdlib_pattern_core_only stdlib_pattern_options stdlib_pattern_options_only stdlib_pattern_match stdlib_pattern_errors stdlib_pattern_tags stdlib_pattern_error_modes
+        stdlib_pattern_builder stdlib_pattern_builder_lifetime stdlib_pattern_builder_cleanup)
+    negative=(xlir_pattern_bad_result xlir_pattern_bad_tag xlir_pattern_bad_options xlir_pattern_bad_builder_tags
+        xlir_pattern_bad_edit_items xlir_pattern_bad_edit_payload xlir_pattern_bad_key_owner)
+    privacy=(xlir_pattern_private_code xlir_pattern_private_builder)
     undeclared=()
 fi
 {
@@ -40,6 +44,7 @@ fi
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
     printf '%s\0' tools/check_stdlib_regex.sh tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_regex_host.c test/support/regex_native.c test/cases/xlir_pattern_host.c test/support/pattern_native.c
+    printf '%s\0' test/cases/xlir_pattern_builder_host.c test/support/pattern_builder_native.c
     printf '%s\0' test/cases/xlir_regex_extended_host.c test/cases/xlir_regex_callback_host.c
     printf '%s\0' test/cases/xlir_text_value_contract.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_error_projection_contract.c test/cases/xlir_continuation_owner_test.h test/cases/xlir_synthetic_owner_edit.h
@@ -78,6 +83,11 @@ run pattern-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_p
     -pthread -ldl -lm -o "$OUT/pattern-native"
 run pattern-native "$OUT/pattern-native"
 grep -q '60 actual failures, 5 first no-hit completions' "$OUT/pattern-native.log"
+run pattern-builder-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_pattern_builder_host.c \
+    test/support/pattern_builder_native.c src/runtime/xl6_pattern_builder.c src/runtime/xl6_pattern_core.c src/runtime/xl6_pattern_options.c \
+    -pthread -ldl -lm -o "$OUT/pattern-builder-native"
+run pattern-builder-native "$OUT/pattern-builder-native"
+grep -q '45 actual failures, 10 first no-hit completions' "$OUT/pattern-builder-native.log"
 if [[ "$GROUP" = all ]]; then
 run callback-native-build "$CC" "${strict[@]}" test/cases/xlir_regex_callback_host.c -lxl "${libs[@]}" -o "$OUT/callback-native"
 run callback-native "$OUT/callback-native"
@@ -110,7 +120,7 @@ for fixture in "${cases[@]}"; do
           "$fixture" = stdlib_regex_replace_buffer || "$fixture" = stdlib_regex_split_only || "$fixture" = stdlib_regex_set_only ||
           "$fixture" = stdlib_regex_replace_func || "$fixture" = stdlib_regex_replace_func_buffer ||
           "$fixture" = stdlib_pattern_core_only || "$fixture" = stdlib_pattern_options || "$fixture" = stdlib_pattern_options_only ||
-          "$fixture" = stdlib_pattern_match || "$fixture" = stdlib_pattern_tags ]]; then
+          "$fixture" = stdlib_pattern_match || "$fixture" = stdlib_pattern_tags || "$fixture" = stdlib_pattern_builder_lifetime ]]; then
         for ((point=0;point<2048;++point)); do
             name="$fixture.oom-$point"; run "$name" "$OUT/$fixture.strict" "$point"
             grep -q 'hit=0 balanced' "$OUT/$name.log" && break
@@ -128,7 +138,8 @@ for fixture in "${cases[@]}"; do
     run "$fixture.generated-build" "$CC" "${strict[@]}" -c "$OUT/$fixture.c" -o "$OUT/$fixture.generated.o"
     run "$fixture.selection" python3 -c 'import json,sys; p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\"")); name=sys.argv[2]
 if name.startswith("stdlib_pattern_"):
-    expected={"stdlib_pattern_core_only":["core"],"stdlib_pattern_options":["core","options"],"stdlib_pattern_options_only":["options"],"stdlib_pattern_match":["core","match"],"stdlib_pattern_errors":["core","options","match"],"stdlib_pattern_tags":["core","match"],"stdlib_pattern_error_modes":["core"]}[name]
+    expected={"stdlib_pattern_core_only":["core"],"stdlib_pattern_options":["core","options"],"stdlib_pattern_options_only":["options"],"stdlib_pattern_match":["core","match"],"stdlib_pattern_errors":["core","options","match"],"stdlib_pattern_tags":["core","match"],"stdlib_pattern_error_modes":["core"],
+        "stdlib_pattern_builder":["builder","core","match"],"stdlib_pattern_builder_lifetime":["builder","core","options","match"],"stdlib_pattern_builder_cleanup":["builder","core"]}[name]
     assert sorted(s for s in p["Sources"] if "src/runtime/xl6_pattern_" in s)==sorted("src/runtime/xl6_pattern_"+s+".c" for s in expected)
     assert not any("src/runtime/xl6_regex_" in s for s in p["Sources"])
     assert "XRT_MODULE_PATTERN" in p["NativeModules"] and "XRT_MODULE_REGEX_CORE" not in p["NativeModules"] and "XRT_MODULE_BUFFER" not in p["NativeModules"]
@@ -155,5 +166,5 @@ for fixture in "${undeclared[@]}"; do
     checks=$((checks+1))
 done
 run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"PositiveFixtures":%d,"AbiNegativeFixtures":%d,"PrivacyFixtures":%d,"UndeclaredArrayFixtures":%d,"ActualNativeClosures":%d,"InputsUnchanged":true,"Group":"%s","SanitizedScope":"Selected native XRT/adapter hosts; generated libxl hosts use logical OOM","Excludes":"PatternBuilder, isolated deployment, whole-task acceptance"}\n' "$checks" "${#cases[@]}" "${#negative[@]}" "${#privacy[@]}" "${#undeclared[@]}" "${#cases[@]}" "$GROUP" >"$OUT/results.json"
-printf 'Regex/Pattern B13-B16 Linux: %d checks passed\n' "$checks" | tee "$OUT/summary.txt"
+printf '{"Complete":true,"Checks":%d,"PositiveFixtures":%d,"AbiNegativeFixtures":%d,"PrivacyFixtures":%d,"UndeclaredArrayFixtures":%d,"ActualNativeClosures":%d,"InputsUnchanged":true,"Group":"%s","SanitizedScope":"Selected native XRT/adapter hosts; generated libxl hosts use logical OOM","Excludes":"Isolated deployment, whole-task acceptance"}\n' "$checks" "${#cases[@]}" "${#negative[@]}" "${#privacy[@]}" "${#undeclared[@]}" "${#cases[@]}" "$GROUP" >"$OUT/results.json"
+printf 'Regex/Pattern B13-B17b Linux: %d checks passed\n' "$checks" | tee "$OUT/summary.txt"

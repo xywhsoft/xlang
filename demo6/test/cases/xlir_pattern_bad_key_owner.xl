@@ -1,0 +1,10 @@
+class WrongPatternEditOwner
+    private native point handle
+    extern "xl6PatternBuilderDestroyV1" destroy()
+end
+class BadPatternKeyOwner
+    private native point handle
+    extern "xl6PatternKeyCreateV1" create(WrongPatternEditOwner edit, int index)
+    extern "xl6PatternKeyDestroyV1" destroy()
+end
+auto key = BadPatternKeyOwner(WrongPatternEditOwner(), 0)

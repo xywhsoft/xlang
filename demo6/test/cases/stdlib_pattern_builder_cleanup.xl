@@ -1,0 +1,35 @@
+auto b = PatternBuilder()
+uint64 expected = 0
+int cleaned = 0
+class RetiringBuilderTag
+    destroy()
+        // Cleanup runs after both tables commit, and may read the new state.
+        assert b.count == 1 and b.version == expected
+        auto p = b.compile()
+        assert p.source() == "/new" and p.tag() == "new"
+        cleaned += 1
+        throw ValueError "retired builder tag"
+    end
+end
+auto key = b.add("/old", RetiringBuilderTag())
+expected = b.version + uint64(1)
+int observed = 0
+try
+    b.set(key, "/new", "new")
+catch ValueError error
+    assert error.message == "retired builder tag"
+    observed = 1
+end
+assert observed == 1 and cleaned == 1 and b.version == expected and b.contains(key)
+assert b.compile().source() == "/new" and b.compile().tag() == "new"
+// A graph back-edge remains subject to the ordinary language ownership policy.
+auto before = b.version
+int rejected = 0
+try
+    b.add("/cycle", b)
+catch ValueError error
+    rejected = 1
+end
+assert rejected == 1 and b.count == 1 and b.version == before
+auto next = b.add("/next", "next")
+assert b.count == 2 and b.contains(next)

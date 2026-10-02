@@ -12,6 +12,7 @@ assert encoding.isUtf8(text) and encoding.isUtf8(b"A\0")
 assert not encoding.isUtf8(b"A\xFF")
 assert encoding.isUtf8(b"A\xFF", 1)
 bytes utf8 = encoding.encodeUtf8(text)
+assert encoding.decode(utf8, encoding.utf8, encoding.strict, encoding.stripBom) == text
 bytes le16 = encoding.encodeUtf16LE(text)
 bytes be16 = encoding.encodeUtf16BE(text)
 bytes le32 = encoding.encodeUtf32LE(text)

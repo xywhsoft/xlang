@@ -1,0 +1,7 @@
+class BadBuilderTags
+    private native point handle
+    extern "xl6PatternBuilderCreateV1" create()
+    extern "xl6PatternBuilderDestroyV1" destroy()
+    extern "xl6PatternBuilderTagsV1" func tags(var state) as array<var>
+end
+auto tags = BadBuilderTags().tags(null)

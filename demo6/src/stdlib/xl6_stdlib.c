@@ -1640,7 +1640,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsRegexSet = xl6StdlibFuncUsed(used, "regex", "set") || xl6StdlibNodeUsesTypeName(root, "RegexSet");
     needsPattern = xl6StdlibFuncUsed(used, "pattern", "compile") ||
         xl6StdlibNodeUsesTypeName(root, "Pattern") || xl6StdlibNodeUsesTypeName(root, "PatternOptions") ||
-        xl6StdlibNodeUsesTypeName(root, "PatternMatch");
+        xl6StdlibNodeUsesTypeName(root, "PatternMatch") || xl6StdlibNodeUsesTypeName(root, "PatternBuilder") ||
+        xl6StdlibNodeUsesTypeName(root, "PatternKey") || xl6StdlibNodeUsesTypeName(root, "PatternSpec");
     needsRegexBuffer = needsRegex && (xl6StdlibNodeUsesMemberName(root, "replaceTo") ||
         xl6StdlibNodeUsesMemberName(root, "replaceWithTo"));
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||

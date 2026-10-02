@@ -1,0 +1,11 @@
+class BuilderForBadEdit
+    private native point handle
+    extern "xl6PatternBuilderCreateV1" create()
+    extern "xl6PatternBuilderDestroyV1" destroy()
+end
+class BadPatternEditItems
+    private native point handle
+    extern "xl6PatternEditAddManyV1" create(BuilderForBadEdit source, array<string> expressions, array<int32> priorities, array<int> sizes)
+    extern "xl6PatternEditDestroyV1" destroy()
+end
+auto edit = BadPatternEditItems(BuilderForBadEdit(), array["a"], array[int32(0)], array[-1])

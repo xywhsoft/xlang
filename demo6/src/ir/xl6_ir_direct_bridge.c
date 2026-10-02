@@ -18,6 +18,10 @@ typedef struct XL6_IrDirectBridgeContract {
     /* Exact synchronous checked closure profiles. A closure pointer alone is
      * not a callable signature; zero means this parameter is not a closure. */
     XL6_IrCAbi parameterNullaryCallableResultAbis[8];
+    /* Collections and dynamic borrows are sealed per entry, not inferred from
+     * the common xvalue* C representation. Zero preserves the array profile. */
+    XL6_IrCollectionAbi resultCollectionAbi;
+    unsigned char parameterDynamicBorrows[8];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -30,9 +34,9 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define Y XL6_IR_C_ABI_MANAGED_BYTES
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
-#define XL6_NATIVE_ARRAY_BRIDGE(Name,...) {Name,__VA_ARGS__},
-#include "src/abi/xl6_native_array_contracts.inc"
-#undef XL6_NATIVE_ARRAY_BRIDGE
+#define XL6_NATIVE_COLLECTION_BRIDGE(Name,...) {Name,__VA_ARGS__},
+#include "src/abi/xl6_native_collection_contracts.inc"
+#undef XL6_NATIVE_COLLECTION_BRIDGE
     {"xl6TextLowerV1",T,S,2,{S,I}},
     {"xl6TextUpperV1",T,S,2,{S,I}},
     {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
@@ -196,6 +200,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6PatternSeparatorsV1",T,S,1,{V},.parameterOwners={"xl6PatternDestroyV1"}},
     {"xl6PatternSourceV1",T,S,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
     {"xl6PatternIdV1",T,U,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
+    {"xl6PatternTagKeyV1",T,I,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
     {"xl6PatternCaptureCountV1",T,I,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
     {"xl6PatternCaptureNameV1",T,S,3,{V,I,I},.parameterOwners={"xl6PatternDestroyV1"}},
     {"xl6PatternCaptureIndexV1",T,I,4,{V,S,I,I},.parameterOwners={"xl6PatternDestroyV1"}},
@@ -216,6 +221,26 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6PatternMatchEndV1",T,I,2,{V,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
     {"xl6PatternMatchNameV1",T,S,2,{V,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
     {"xl6PatternMatchIndexV1",T,I,3,{V,S,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
+    {"xl6PatternBuilderCreateV1",T,V,0,{0},.resultOwner="xl6PatternBuilderDestroyV1"},
+    {"xl6PatternBuilderOptionsV1",T,V,1,{V},.resultOwner="xl6PatternBuilderDestroyV1",.parameterOwners={"xl6PatternOptionsDestroyV1"}},
+    {"xl6PatternBuilderDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"},.noRaise=1},
+    {"xl6PatternBuilderCountV1",T,I,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternBuilderVersionV1",T,U,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternBuilderIdentityV1",T,V,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternBuilderReserveV1",T,XL6_IR_C_ABI_VOID,2,{V,I},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternBuilderContainsV1",T,B,2,{V,V},.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
+    {"xl6PatternBuilderCompileV1",T,V,1,{V},.resultOwner="xl6PatternDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternEditAddV1",T,V,4,{V,S,I,I},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternEditSetV1",T,V,5,{V,V,S,I,I},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
+    {"xl6PatternEditRemoveV1",T,V,2,{V,V},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
+    {"xl6PatternEditClearV1",T,V,1,{V},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternEditDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternEditDestroyV1"},.noRaise=1},
+    {"xl6PatternEditCountV1",T,I,1,{V},.parameterOwners={"xl6PatternEditDestroyV1"}},
+    {"xl6PatternEditCancelV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternEditDestroyV1"}},
+    {"xl6PatternEditApplyV1",T,XL6_IR_C_ABI_VOID,3,{V,V,V},.parameterOwners={"xl6PatternEditDestroyV1"},.parameterDynamicBorrows={0,1,1}},
+    {"xl6PatternKeyCreateV1",T,V,2,{V,I},.resultOwner="xl6PatternKeyDestroyV1",.parameterOwners={"xl6PatternEditDestroyV1"}},
+    {"xl6PatternKeyDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternKeyDestroyV1"},.noRaise=1},
+    {"xl6PatternKeyIdV1",T,U,1,{V},.parameterOwners={"xl6PatternKeyDestroyV1"}},
 #undef U
 #undef F
 #undef Y
@@ -340,18 +365,21 @@ static int xl6IrDirectBridgeResourceMatches(const XL6_IrModule* module,
     return 1;
 }
 
-static int xl6IrDirectBridgeArrayMatches(const XL6_IrModule* module,
-    const XL6_IrType* type, XL6_IrCAbi itemAbi)
+static int xl6IrDirectBridgeCollectionMatches(const XL6_IrModule* module,
+    const XL6_IrType* type, XL6_IrCAbi itemAbi, XL6_IrCollectionAbi collection)
 {
     const XL6_IrType* item = type && type->paramCount == 1 && type->params
         ? xl6IrTypeGet(&module->types, type->params[0]) : NULL;
-    if (!type || type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-        type->collectionAbi != XL6_IR_COLLECTION_ARRAY || type->returnCount != 0 ||
+    if (!type || type->kind != XL6_IR_TYPE_GENERIC_INSTANCE || type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        type->collectionAbi != collection || type->returnCount != 0 ||
         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || !item ||
         item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount != 0 ||
         item->collectionAbi != XL6_IR_COLLECTION_NONE || item->returnCount != 0 ||
         item->cAbi != itemAbi) return 0;
+    if (itemAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR)
+        return xl6IrSerializationBridgeDynamicValueType(item);
     if (itemAbi == XL6_IR_C_ABI_MANAGED_STRING)
         return item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
             item->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL;
@@ -408,7 +436,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi != XL6_IR_NULL_ABI_NONE ||
                 strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
         } else if (contract->resultArrayItemAbi) {
-            if (!xl6IrDirectBridgeArrayMatches(module, result, contract->resultArrayItemAbi)) return 0;
+            if (!xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi,
+                contract->resultCollectionAbi ? contract->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY)) return 0;
         } else {
             if (result == NULL || result->kind != (contract->nullableResult ? XL6_IR_TYPE_NULLABLE : XL6_IR_TYPE_BUILTIN) ||
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount != 0 ||
@@ -465,8 +494,16 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                     target->parameterPhysicalFieldDeclarations[i], 0, contract->parameterOwners[i])) return 0;
             continue;
         }
+        if (contract->parameterDynamicBorrows[i]) {
+            if (abi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || !xl6IrSerializationBridgeDynamicValueType(type) ||
+                target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
+                target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+                target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID) return 0;
+            continue;
+        }
         if (contract->parameterArrayItemAbis[i]) {
-            if (!xl6IrDirectBridgeArrayMatches(module, type, contract->parameterArrayItemAbis[i]) ||
+            if (!xl6IrDirectBridgeCollectionMatches(module, type, contract->parameterArrayItemAbis[i], XL6_IR_COLLECTION_ARRAY) ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                 target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
                 !xl6IrBufferRuntimeBridgeParameterMatches(module, target, i, abi,

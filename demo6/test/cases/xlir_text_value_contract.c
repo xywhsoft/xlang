@@ -168,6 +168,15 @@ int main(int argc, char** argv)
                 destroy->cName = name;
             }
             XL6_IrType* parameter = &ir.types.items[t->parameterTypes[p] - 1];
+            if (parameter->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && parameter->kind==XL6_IR_TYPE_BUILTIN &&
+                parameter->collectionAbi==XL6_IR_COLLECTION_NONE) {
+                size_t returns=parameter->returnCount;parameter->returnCount=1;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));parameter->returnCount=returns;
+                XL6_IrOwnershipAbi own=parameter->ownershipAbi;parameter->ownershipAbi=XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));parameter->ownershipAbi=own;
+                XL6_IrNullAbi null=parameter->nullAbi;parameter->nullAbi=XL6_IR_NULL_ABI_POINTER_SENTINEL;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));parameter->nullAbi=null;
+            }
             if (parameter->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR) {
                 XL6_IrCAbi abi=parameter->cAbi;parameter->cAbi=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
                 assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));parameter->cAbi=abi;
@@ -179,7 +188,8 @@ int main(int argc, char** argv)
                 assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
                 item->cAbi = itemAbi;
                 XL6_IrOwnershipAbi own = item->ownershipAbi;
-                item->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+                item->ownershipAbi = own == XL6_IR_OWNERSHIP_ABI_MANAGED
+                    ? XL6_IR_OWNERSHIP_ABI_TRIVIAL : XL6_IR_OWNERSHIP_ABI_MANAGED;
                 assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
                 item->ownershipAbi = own;
                 XL6_IrCollectionAbi collection = parameter->collectionAbi;
@@ -233,7 +243,14 @@ int main(int argc, char** argv)
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
             result->integerTarget = width;
         }
-        if (result->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
+        if (result->collectionAbi == XL6_IR_COLLECTION_ARRAY || result->collectionAbi == XL6_IR_COLLECTION_LIST) {
+            XL6_IrTypeKind kind=result->kind;result->kind=XL6_IR_TYPE_BUILTIN;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));result->kind=kind;
+            XL6_IrOwnershipAbi outer=result->ownershipAbi;result->ownershipAbi=XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));result->ownershipAbi=outer;
+            XL6_IrCollectionAbi collection=result->collectionAbi;
+            result->collectionAbi=collection==XL6_IR_COLLECTION_ARRAY?XL6_IR_COLLECTION_LIST:XL6_IR_COLLECTION_ARRAY;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));result->collectionAbi=collection;
             XL6_IrType* item = &ir.types.items[result->params[0] - 1];
             XL6_IrCAbi itemAbi = item->cAbi;
             item->cAbi = XL6_IR_C_ABI_U64;

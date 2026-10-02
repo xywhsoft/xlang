@@ -1,0 +1,6 @@
+class BadPatternEditPayload
+    private native point handle
+    extern "xl6PatternEditDestroyV1" destroy()
+    extern "xl6PatternEditApplyManyV1" func apply(var state, array<string> tags)
+end
+BadPatternEditPayload().apply(null, array["tag"])

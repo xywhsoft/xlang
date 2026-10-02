@@ -21785,20 +21785,20 @@ static int xl6SemCheckClassExternParamsNoVararg(XL6_SemContext* ctx, XL6_AstNode
 
 static int xl6SemCheckNativeMemberDirectCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 {
-    static const char* const declaredArrays[] = {
-#define XL6_NATIVE_ARRAY_BRIDGE(Name,...) Name,
-#include "src/abi/xl6_native_array_contracts.inc"
-#undef XL6_NATIVE_ARRAY_BRIDGE
+    static const char* const declaredCollections[] = {
+#define XL6_NATIVE_COLLECTION_BRIDGE(Name,...) Name,
+#include "src/abi/xl6_native_collection_contracts.inc"
+#undef XL6_NATIVE_COLLECTION_BRIDGE
     };
-    /* Only declared direct arrays bypass the old blanket container ban.
+    /* Only declared direct collections bypass the old blanket container ban.
      * This is the same registry typed XLIR verifies, not a library-name
      * heuristic or a second signature table. Undeclared native APIs retain
      * their existing source rejection; wrong declared signatures fail XLIR. */
     const char* symbol=node->text?node->text:"";
     size_t length=strlen(symbol);
     if (length>=2 && symbol[0]=='"' && symbol[length-1]=='"') {++symbol;length-=2;}
-    for (size_t i=0;i<sizeof(declaredArrays)/sizeof(declaredArrays[0]);++i)
-        if (length==strlen(declaredArrays[i]) && !memcmp(symbol,declaredArrays[i],length)) return 1;
+    for (size_t i=0;i<sizeof(declaredCollections)/sizeof(declaredCollections[0]);++i)
+        if (length==strlen(declaredCollections[i]) && !memcmp(symbol,declaredCollections[i],length)) return 1;
     int ok=1;
     XL6_AstNode* params=node->childCount>1?node->children[1]:NULL;
     for (size_t i=0;params&&i<params->childCount;++i) {

@@ -1,0 +1,48 @@
+int finalized = 0
+class BuilderTag
+    string label
+    create(string label)
+        self.label = label
+    end
+    destroy()
+        finalized += 1
+    end
+end
+func exercise() as PatternMatch?
+    auto b = PatternBuilder(PatternOptions("/"))
+    auto first = b.add("/u/{id}", BuilderTag("old\0你好"))
+    auto old = b.compile()
+    auto unchanged = b.compile()
+    assert not b.dirty and old.id() == unchanged.id()
+    b.set(first, "/v/{id}", BuilderTag("new\0你好"))
+    assert old.test("/u/你好") and not old.test("/v/你好")
+    assert (old.tag() as BuilderTag).label == "old\0你好"
+    auto current = b.compile()
+    assert (current.tag() as BuilderTag).label == "new\0你好"
+    assert b.remove(first)
+    array<PatternSpec> specs = array[PatternSpec("/fixed\0你好", BuilderTag("fixed"), 2), PatternSpec("/{*tail}", BuilderTag("tail"), 1)]
+    auto keys = b.addMany(specs)
+    assert b.contains(keys[0]) and b.contains(keys[1])
+    auto many = b.compile()
+    assert many.first("/fixed\0你好", 999) == 0
+    auto item = many.find("/fixed\0你好")
+    b.clear()
+    assert b.count == 0 and not b.contains(keys[0]) and not b.contains(keys[1])
+    assert many.test("/fixed\0你好") and many.count == 2
+    return item
+end
+func verify()
+    auto item = exercise()
+    assert item != null and finalized == 3
+    if item != null then
+        assert (item.tag as BuilderTag).label == "fixed"
+        assert item.input == "/fixed\0你好"
+    end
+end
+verify()
+assert finalized == 4
+array<PatternSpec> specs = array[PatternSpec("/a", 1), PatternSpec("/b", 2)]
+auto p = pattern.compile(specs)
+assert p.count == 2 and p.tag(0) == 1 and p.tag(1) == 2
+auto configured = pattern.compile(PatternOptions("/"), specs)
+assert configured.count == 2 and configured.test("/b")

@@ -36,6 +36,8 @@ xstrview xl6PatternSourceV1(void* handle,int64_t index)
 }
 uint64_t xl6PatternIdV1(void* handle,int64_t index)
 {return xl6PatternIndex(handle,index)?xrtPatternId((xpattern*)handle,(size_t)index):0;}
+int64_t xl6PatternTagKeyV1(void* handle,int64_t index)
+{return xl6PatternIndex(handle,index)?xl6PatternTagKeyFromId(xrtPatternId((xpattern*)handle,(size_t)index)):0;}
 int64_t xl6PatternCaptureCountV1(void* handle,int64_t index)
 {return xl6PatternIndex(handle,index)?(int64_t)xrtPatternCaptureCount((xpattern*)handle,(size_t)index):0;}
 xstrview xl6PatternCaptureNameV1(void* handle,int64_t capture,int64_t index)

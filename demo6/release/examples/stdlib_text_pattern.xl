@@ -1,0 +1,70 @@
+// Sized text, Unicode, route patterns and regular expressions. No file I/O.
+string text = "A\0你"
+assert unicode.isScalar(20320) and unicode.toString('你') == "你"
+assert unicode.byteOffset(text, 2) == 2 and unicode.scalarIndex(text, 5) == 3
+assert unicode.decode(b"A\0", encoding.strict) == "A\0"
+assert unicode.repair("你", 1) == "\uFFFD"
+auto validator = unicode.validator()
+assert validator.feed(b"\xE4") == unicode.more
+assert validator.feed(b"\xBD\xA0", true) == unicode.complete
+validator.reset()
+assert validator.feed(b"\xFF", true) == unicode.invalid
+
+bytes utf16 = encoding.encodeUtf16LE(text, true)
+assert encoding.bom(utf16) == encoding.utf16LE and encoding.bomSize(utf16) == 2
+assert encoding.bomBytes(encoding.utf16LE) == b"\xFF\xFE"
+assert encoding.unitSize(encoding.utf16LE) == 2 and encoding.name(encoding.utf16LE) == "utf-16le"
+assert encoding.isUtf8(text) and encoding.bom(b"x") == encoding.unknown
+assert encoding.decode(utf16, encoding.utf16LE, encoding.strict, encoding.stripBom) == text
+assert encoding.decode(utf16, encoding.utf16LE, encoding.strict, encoding.keepBom) == "\uFEFFA\0你"
+assert encoding.decode(utf16, encoding.utf16LE, encoding.strict, encoding.requireBom) == text
+assert encoding.decode(b"\xFF", encoding.utf8, encoding.replaceInvalid) == "\uFFFD"
+assert encoding.transcode(b"A", encoding.utf8, encoding.utf8, encoding.strict, encoding.writeBom) == b"\xEF\xBB\xBFA"
+int rejected = 0
+try
+    encoding.decode(utf16, encoding.utf16LE, encoding.strict, encoding.rejectBom)
+catch ValueError error
+    rejected = 1
+end
+assert rejected == 1
+assert int.toString(31, 16) == "1f" and float.toString(1.25) == "1.25"
+assert html.escapeText("<&") == "&lt;&amp;" and html.escapeAttribute("\"") == "&quot;"
+assert string.distance("kitten", "sitting") == 3 and string.glob("file.txt", "*.txt")
+assert string.fields("a b").length == 2
+int count = 0
+for item in string.fieldsIter("a b")
+    count += 1
+end
+assert count == 2
+count = 0
+for item in string.splitIter("a,b", ",")
+    count += 1
+end
+assert count == 2
+count = 0
+for item in string.linesIter("a\nb")
+    count += 1
+end
+assert count == 2
+
+auto builder = PatternBuilder()
+auto key = builder.add("/users/{id}", "user route")
+auto old = builder.compile()
+builder.set(key, "/members/{id}", "member route")
+assert old.test("/users/你好") and builder.compile().test("/members/你好")
+auto route = pattern.compile("/users/{id}", "user route")
+assert route.test("/users/你好") and route.tag() == "user route"
+auto expression = regex.compile("[0-9]+")
+assert expression.test("a123") and regex.escape("a.b") == "a\\.b"
+auto choices = regex.set(array["cat", "dog"])
+assert choices.test("dog")
+try
+    pattern.compile("/{broken")
+catch ValueError error
+    assert pattern.errorOffset(error) >= 0 and pattern.errorPatternIndex(error) == 0
+end
+try
+    regex.compile("(")
+catch ValueError error
+    assert regex.errorOffset(error) >= 0 and regex.errorPatternIndex(error) == -1
+end
