@@ -1,0 +1,4 @@
+class Cycle
+    channel<int> back
+end
+channel<Cycle> ch = channel::<Cycle>(2)

@@ -1,0 +1,4 @@
+class Box<T>
+    T value
+end
+channel<Box<int>> ch = channel::<Box<int>>(2)

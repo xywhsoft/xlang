@@ -1249,7 +1249,7 @@ static int xl6StdlibNeedsLoggerClass(const XL6_AstNode* root, const int* used)
     return 0;
 }
 
-static int xl6StdlibNeedsSignalClass(const XL6_AstNode* root, const int* used)
+static int xl6StdlibNeedsSignalHandleClass(const XL6_AstNode* root, const int* used)
 {
     if ( xl6StdlibNodeUsesTypeName(root, "SignalHandle") ) {
         return 1;
@@ -1258,6 +1258,12 @@ static int xl6StdlibNeedsSignalClass(const XL6_AstNode* root, const int* used)
            xl6StdlibFuncUsed(used, "signal", "once") ||
            xl6StdlibFuncUsed(used, "signal", "sendTo") ||
            xl6StdlibFuncUsed(used, "signal", "cancelOn");
+}
+
+static int xl6StdlibNeedsSignalClass(const XL6_AstNode* root, const int* used)
+{
+    return xl6StdlibNodeUsesTypeName(root,"SignalSubscription") ||
+        xl6StdlibNodeUsesTypeName(root,"SignalEvent") || xl6StdlibNeedsSignalHandleClass(root,used);
 }
 
 static int xl6StdlibNeedsTemplateClass(const XL6_AstNode* root, const int* used)
@@ -1602,6 +1608,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsLoggerClass;
     int needsProcessWaitAsync;
     int needsSignalClass;
+    int needsSignalHandleClass;
     int needsTemplateClass;
     int needsCryptoClass;
     int needsTccClass;
@@ -1762,12 +1769,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
-    needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used);
+    needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used) || xl6StdlibFuncUsed(used, "signal", "cancelOn");
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
     needsIoWriter = needsIoWriter || needsLoggerClass;
     if (needsLoggerClass) xl6StdlibMarkFuncUsed(used,"__xl_runtime","logStats");
     needsProcessWaitAsync = xl6StdlibNodeUsesMemberName(root, "waitAsync");
     needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
+    needsSignalHandleClass = xl6StdlibNeedsSignalHandleClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     /*
@@ -1806,7 +1814,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsWebSocketConfigClass || needsWebSocketClass ||
         needsFileClass || needsAsyncFileClass ||
         needsJsonClass || needsProcessClass || needsTaskGroupClass ||
-        needsLoggerClass || needsSignalClass || needsTemplateClass ||
+        needsLoggerClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetRuntime ||
          needsTlsSessionClass || needsHttp1Class || needsWsFrameClass ||
@@ -1995,6 +2003,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsSignalClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibSignalClassSource);
+    }
+    if ( needsSignalHandleClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibSignalHandleClassSource);
     }
     if ( needsTaskGroupClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTaskGroupClassSource);

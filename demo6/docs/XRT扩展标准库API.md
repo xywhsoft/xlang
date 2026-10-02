@@ -174,58 +174,79 @@ group.close()
 
 ## 信号处理
 
-`signal` 标准库由 XRT signal 运行时提供。Windows 接入 console control handler；POSIX 使用系统 signal handler 与后台分发线程。信号回调应保持轻量，服务端和任务系统建议优先使用 `signal.sendTo(...)` 或 `signal.cancelOn(...)` 做 graceful shutdown。
+`signal` 使用 XRT 原生信号机制，但原生分发线程只记录有界元数据，绝不执行
+xlang 回调。用户已选择**显式注册线程事件泵**：没有后台自动脚本派发。
+回调、channel 和 TaskGroup 路由都必须由注册线程调用泵交付。
+常量为 `signal.HUP`、`signal.INT`、`signal.TERM`、`signal.BREAK`、
+`signal.CLOSE`、`signal.LOGOFF`、`signal.SHUTDOWN`；先用 supported 查询平台支持。
 
 ```xlang
-println(signal.name(signal.HUP))
-println(signal.name(signal.INT))
-println(signal.name(signal.TERM))
-println(signal.name(signal.BREAK))
-println(signal.name(signal.CLOSE))
-println(signal.name(signal.LOGOFF))
-println(signal.name(signal.SHUTDOWN))
-
-bool ok = signal.supported(signal.INT)
-
-func(var) onSignal = func(var event)
-    println(event["name"], event["count"])
+auto listener = signal.on(signal.INT, func(SignalEvent event)
+    println("received " + event.name + " count=" + string(event.count))
+end)
+auto once = signal.once(signal.INT, func()
+    println("one-shot callback")
+end)
+try
+    assert signal.raise(signal.INT)
+    assert listener.dispatchFor(1000) == 1
+    assert once.dispatchFor(1000) == 1
+finally
+    listener.close()
+    once.close()
+    signal.reset()
 end
-
-func() onOnce = func()
-    println("only once")
-end
-
-SignalHandle direct = signal.on(signal.INT, onSignal)
-SignalHandle once = signal.once(signal.INT, onOnce)
-
-channel<var> events = channel::<var>(2)
-SignalHandle route = signal.sendTo(events, signal.INT)
-
-signal.raise(signal.INT)
-
-var event = null
-events.recvInto(event)
-
-bool received = signal.received(signal.INT)
-int count = signal.count(signal.INT)
-signal.clear(signal.INT)
-
-TaskGroup group = task.group()
-SignalHandle cancel = signal.cancelOn(group, signal.TERM)
-
-direct.close()
-once.close()
-route.close()
-cancel.close()
-group.close()
-events.close()
-
-signal.restore(signal.INT)
-signal.restore(signal.TERM)
-signal.reset()
 ```
 
-`signal.on(code, handler)` 和 `signal.once(code, handler)` 支持 `func()` 与 `func(var)` 两种 handler。`func(var)` 收到的事件字典包含 `code`、`platformCode`、`count`、`time`、`name`。`signal.sendTo(channel<var>, code)` 会把事件字典送入 `channel<var>`，发送前会提升为 XRT shared 模式，适合和主循环、任务组、服务端 drain/stop 逻辑协同。`SignalHandle.close()` 取消注册，`active` 和 `code` 可用于检查句柄状态。`signal.restore(code)` 恢复指定信号默认行为；`signal.reset()` 恢复全部 signal 默认行为。
+- `signal.on(code, handler, capacity = 64)`、`signal.once(...)` 支持
+  `func()` 和 `func(SignalEvent)`，返回受管理的 `SignalHandle`。
+  回调由普通受管理字段保存和追踪，XRT watch 不持有脚本指针或闭包。
+- `handle.dispatch(maxEvents = 64)` 不等待；
+  `handle.dispatchFor(timeoutMs, maxEvents = 64)` 只等待第一个事件，
+  后续立即排空至上限。返回成功交付的**事件批次数**，不是信号次数。
+  timeoutMs 为毫秒，0 不等待、-1 无限等待；上限不得负数。
+  嵌套派发拒绝为 RuntimeError，finally 总会释放派发标志。
+- `signal.sendTo(channel<SignalEvent>, code, capacity = 64)` 同样返回 handle。
+  泵以 trySend 交付，不阻塞：满队列返回本轮已交付数量，保留原事件待重试；
+  关闭的 channel 抛 RuntimeError，事件仍保留。
+  class 消息按已有 retain/move/drop 合同共享对象，不深复制，不创建变量别名。
+  当前只允许无继承、非泛型、且仅含基础值字段的 class（包括 native point
+  快照）；拒绝含 class/容器/闭包/资源字段的消息，避免未经 trace 合同证明
+  的队列对象图回环。复杂消息图仍需后续 channel 专项，不能仅凭 retain 放行。
+  可变 class 的线程安全仍由调用方负责；SignalEvent 本身只读。
+- `signal.cancelOn(TaskGroup, code, capacity = 64)` 在泵内请求取消；
+  不调用泵就不会自动取消。桥接复用已有任务组；这不代表 TaskGroup 全部
+  存量方法已完成迁移或验收。
+- `SignalSubscription(code, once = false, capacity = 64)` 可直接读取：
+  `next(timeoutMs = 0) as SignalEvent?`，超时/关闭/原生订阅退役后无事件
+  返回 null。next 先准备不可变快照，再分配受管理事件，最后消费；
+  分配失败不丢失事件，可重试。`prepare/consume` 和
+  `SignalEvent(source)` 是同一事务的低层入口；snapshot 要求已 prepare。
+- subscription 与 handle 均有只读 `code/active/pending/closed` 和幂等
+  `close() as bool`。这些操作及派发必须在创建线程执行，跨线程抛
+  RuntimeError。外部宿主创建线程必须在使用期间保持存活；托管创建线程
+  身份由原生引用保持。隐式析构不派发脚本，会同步等待记录器退役。
+- `SignalEvent` 是独立只读快照，可在订阅关闭后持有；字段为
+  `code/systemCode`（int）、`count/total`（uint64）、`time`（time）、
+  `name`（owned string）、`coalesced/saturated`（bool）。
+  total 是 XRT 的进程级累计，time/systemCode 是本批最新元数据。
+- capacity 范围 1..65536。固定环满时合并最新批次，coalesced=true；
+  count 溢出饱和至 uint64 最大值，saturated=true。prepare 后的事件不会
+  被生产者修改，另占一个槽，所以 pending 至多 capacity+1。
+  此标志仅描述适配队列合并；OS/XRT 仍可能合并原生信号，不承诺逐次通知。
+- 普通回调在调用前消费，失败传播给泵调用者，**不重放已尝试的回调**。
+  once 在调用前释放回调并关闭订阅；回调异常也只尝试一次。
+  回调可自行 close，局部受管理引用保证本次调用寿命。close 丢弃未派发事件。
+- `signal.ignore/restore/restoreAll/reset` 是进程全局操作，可能使其他
+  订阅失活；无限等待每至多 10ms 复查处置和健康状态。
+  restore 恢复**注册前处置**，不强行改为默认；reset 停机并恢复处置。
+  `signal.count(code = 0) as uint64` 保留无符号总计，0 表示合计；
+  `received/clear/healthy/supported/name/raise` 沿用基础合同。
+  不要在 once 原生退役、且没有其他 watch 时再次 raise 会终止进程的信号。
+
+旧 `func(var)` / 事件字典 / `channel<var>` 信号路由已移除，不做发布前兼容。
+Windows console control 与 POSIX 的平台支持不同；生产退出流程应在泵中
+请求正常终止，不在原生 handler 中释放对象、执行脚本或进行复杂 I/O。
 
 ## 进程状态与终端
 

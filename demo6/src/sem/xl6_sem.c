@@ -12163,18 +12163,42 @@ static int xl6SemGeneratorParamTypeIsFrameSafe(
     return xl6SemTypeCanBeFunctionResult(ctx, typeNode);
 }
 
+/* The existing opaque transport retains payloads but does not expose queued
+ * object-graph edges to the collector. Do not admit a class that can point
+ * back to its channel through containers, other objects or a captured closure.
+ * Flat data/snapshot classes need only the existing retain/move/drop codec. */
+static int xl6SemChannelClassFieldsAreMessageSafe(XL6_SemContext* ctx, const XL6_AstNode* declaration)
+{
+    const XL6_AstNode* body=declaration && declaration->childCount>1 ? declaration->children[1] : NULL;
+    if(!body || xl6SemClassHasTypeParams(declaration) || xl6SemBaseClassDecl(ctx,declaration))return 0;
+    for(size_t i=0;i<body->childCount;++i) {
+        const XL6_AstNode* field=body->children[i];
+        if(field && field->kind==XL6_AST_FIELD &&
+           (!field->childCount || !xl6SemChannelElementTypeIsFirstStageSafe(ctx,field->children[0])))return 0;
+    }
+    return 1;
+}
+
 static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;
+    const XL6_AstNode* classType;
+    const XL6_AstNode* declaration;
+    const XL6_AstNode* typeArgs;
     const char* name;
 
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
     name = concreteType != NULL ? concreteType->text : NULL;
-    if ( name == NULL || (concreteType != NULL && concreteType->childCount > 0) ) {
-        return 0;
-    }
-    return xl6TextEquals(name, "var") ||
-           xl6SemChannelElementTypeIsFirstStageSafe(ctx, typeNode);
+    if ( name == NULL ) return 0;
+    if (xl6TextEquals(name, "var") || xl6SemChannelElementTypeIsFirstStageSafe(ctx, typeNode)) return 1;
+    /* Nominal classes already have the managed xvalue retain/move/drop ABI
+     * proved by XLIR. Sending shares that object, not its caller's variable
+     * slot. Thread-confined methods still enforce their owner contract. */
+    classType=xl6SemClassValueType(ctx,concreteType);
+    declaration=classType ? xl6SemFindTypeDecl(ctx,classType->text) : NULL;
+    typeArgs=xl6SemTypeNodeGenericArgs(classType);
+    return declaration != NULL && declaration->kind == XL6_AST_CLASS &&
+        (!typeArgs || !typeArgs->childCount) && xl6SemChannelClassFieldsAreMessageSafe(ctx,declaration);
 }
 
 static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* callee)
@@ -12188,7 +12212,7 @@ static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* cal
     typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;
     itemType = typeArgs != NULL && typeArgs->childCount == 1 ? typeArgs->children[0] : NULL;
     if ( itemType == NULL || !xl6SemChannelElementTypeIsMessageSafe(ctx, itemType) ) {
-        xl6SemErrorNode(ctx, itemType != NULL ? itemType : callee, "channel<T> 当前只支持 bool、整数、浮点、string、time、point 等具备稳定消息复制语义的元素类型");
+        xl6SemErrorNode(ctx, itemType != NULL ? itemType : callee, "channel<T> 要求基础值、var 或无继承且仅含基础字段的非泛型 class；对象图消息尚无队列 trace 合同");
         return 0;
     }
     return 1;

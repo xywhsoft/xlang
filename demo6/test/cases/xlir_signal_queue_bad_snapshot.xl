@@ -1,0 +1,11 @@
+class QueueSource
+    private native point handle
+    extern "xl6SignalQueueCreateV1" create(int code, bool once, int capacity)
+    extern "xl6SignalQueueDestroyV1" destroy()
+end
+class BadEvent
+    private native point handle
+    extern "xl6SignalQueueDestroyV1" destroy()
+    extern "xl6SignalQueueSnapshotV1" create(QueueSource source)
+end
+auto value = BadEvent(QueueSource(2, false, 2))

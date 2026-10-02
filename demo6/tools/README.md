@@ -52,6 +52,17 @@ raised in private processes. Linux sanitizes the native adapter and two actual
 generated-program/native/resident closures. This does not accept xlang signal
 callbacks, channel/cancellation routes or the full signal/53-module surface.
 
+B20b explicit signal pump gates: `check_stdlib_signal_queue.ps1` uses the same
+frozen PublicSourceDirectory and a fresh Directory; Linux uses
+`check_stdlib_signal_queue.sh <fresh-directory>`. Native tests exercise bounded
+coalescing/saturation, allocation-free recording, transactional snapshots,
+owner guards, constructor OOM, once/close retirement races, count conservation,
+absolute deadlines and global disposition waits. Language cases verify
+owner-thread-only dispatch, both on/once overloads, closure lifetime and errors,
+retained class messages, channel backpressure and the TaskGroup cancel entry.
+Linux sanitizes actual generated/native/resident closures, not shared CLI/JIT.
+This does not accept the full TaskGroup/channel surface or the 53-module goal.
+
 Parser source-differential mode additionally requires
 BaselineGeneratedParser, so the old API adapter is never linked to current
 generated parser tables and mistaken for an independent baseline.

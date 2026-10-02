@@ -193,6 +193,12 @@ $process=Start-Process @start
                         'XRT_MODULE_REGEX_CORE'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_regex_|xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
+                }elseif($case-eq'stdlib_signal_subscription_only'){
+                    $baseline=Get-Content -LiteralPath "$outputPath/cgen_basic.native-plan.log" -TotalCount 1|ConvertFrom-Json
+                    $expectedSources=@(@($baseline.Sources)+@('src/runtime/xl6_signal_core.c','src/runtime/xl6_signal_queue.c','src/runtime/xl6_code_finalizer.c')|Sort-Object -Unique)
+                    $expectedModules=@(@($baseline.NativeModules)+@('XRT_MODULE_SIGNAL','XRT_MODULE_STRING','XRT_MODULE_TIME','XRT_MODULE_WAIT','XRT_MODULE_VALUE_CONTAINER')|Sort-Object -Unique)
+                    $selectionMatches=!(Compare-Object @($selectedSources|Sort-Object -Unique) $expectedSources)-and
+                        !(Compare-Object @($plan.NativeModules|Sort-Object -Unique) $expectedModules)
                 }elseif($case-eq'stdlib_signal_core_only'){
                     $baseline=Get-Content -LiteralPath "$outputPath/cgen_basic.native-plan.log" -TotalCount 1|ConvertFrom-Json
                     $expectedSources=@(@($baseline.Sources)+@('src/runtime/xl6_signal_core.c')|Sort-Object -Unique)

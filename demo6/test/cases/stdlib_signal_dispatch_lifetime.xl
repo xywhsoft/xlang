@@ -1,0 +1,59 @@
+class SignalState
+    int hits = 0
+    SignalHandle? handle = null
+    SignalEvent? saved = null
+end
+auto state = SignalState()
+state.handle = signal.on(signal.INT, func(SignalEvent event)
+    state.hits += 1
+    state.saved = event
+    auto current = state.handle
+    if current != null then
+        try
+            current.dispatch()
+            assert false, "nested dispatch must fail"
+        catch RuntimeError e
+            assert e.message == "signal dispatch is not reentrant"
+        end
+        assert current.close()
+    end
+end)
+auto handle = state.handle
+assert handle != null
+if handle != null then
+    assert signal.raise(signal.INT)
+    assert handle.dispatchFor(1000) == 1
+    assert handle.closed and state.hits == 1
+    assert handle.dispatch() == 0
+end
+auto saved = state.saved
+assert saved != null
+if saved != null then
+    assert saved.code == signal.INT and saved.name == "INT" and saved.count > 0
+end
+state.handle = null
+
+auto throwing = signal.on(signal.INT, func(SignalEvent event)
+    throw RangeError "original signal handler failure"
+end)
+assert signal.raise(signal.INT)
+try
+    throwing.dispatchFor(1000)
+    assert false, "callback error must propagate"
+catch RangeError e
+    assert e.message == "original signal handler failure"
+end
+assert throwing.pending == 0, "failed callback is not redelivered"
+assert throwing.dispatch() == 0, "finally must release the dispatch guard"
+assert throwing.close()
+
+auto once = signal.once(signal.INT, func()
+    state.hits += 10
+end)
+assert signal.raise(signal.INT)
+assert once.dispatchFor(1000) == 1
+assert once.closed and not once.active
+assert once.dispatch() == 0 and state.hits == 11
+once.close()
+signal.reset()
+println("signal lifetime and callback errors ok")
