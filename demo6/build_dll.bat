@@ -178,6 +178,11 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_encoding_detect.c ^
     src\runtime\xl6_regex_core.c ^
     src\runtime\xl6_regex_match.c ^
+    src\runtime\xl6_regex_iterator.c ^
+    src\runtime\xl6_regex_replace.c ^
+    src\runtime\xl6_regex_replace_buffer.c ^
+    src\runtime\xl6_regex_split.c ^
+    src\runtime\xl6_regex_set.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^
@@ -293,6 +298,11 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_encoding_detect.c ^
     src\runtime\xl6_regex_core.c ^
     src\runtime\xl6_regex_match.c ^
+    src\runtime\xl6_regex_iterator.c ^
+    src\runtime\xl6_regex_replace.c ^
+    src\runtime\xl6_regex_replace_buffer.c ^
+    src\runtime\xl6_regex_split.c ^
+    src\runtime\xl6_regex_set.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^

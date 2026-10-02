@@ -6406,6 +6406,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"unicode", "validator", "__xl_std_unicode_validator", NULL, NULL, 0, "Utf8Validator", xl6StdUnicodeValidatorBody},
     {"regex", "compile", "__xl_std_regex_compile", NULL, NULL, 0, "Regex", xl6StdRegexCompileBody},
     {"regex", "escape", "__xl_std_regex_escape", NULL, NULL, 0, "string", xl6StdRegexEscapeBody},
+    {"regex", "set", "__xl_std_regex_set", NULL, NULL, 0, "RegexSet", xl6StdRegexSetBody},
     {"html", "escapeText", "__xl_std_html_escape_text", NULL, NULL, 0, "string", xl6StdHtmlEscapeTextBody},
     {"html", "escapeAttribute", "__xl_std_html_escape_attribute", NULL, NULL, 0, "string", xl6StdHtmlEscapeAttributeBody},
     {"file", "takeAsync", "__xl_std_file_take_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_takeAsyncBody},

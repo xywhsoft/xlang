@@ -218,6 +218,12 @@ int main(int argc, char** argv)
             item->cAbi = XL6_IR_C_ABI_U64;
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
             item->cAbi = itemAbi;
+            if (itemAbi == XL6_IR_C_ABI_I64) {
+                XL6_IrIntegerTarget itemWidth = item->integerTarget;
+                item->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_32;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));
+                item->integerTarget = itemWidth;
+            }
             XL6_IrOwnershipAbi own = item->ownershipAbi;
             item->ownershipAbi = own == XL6_IR_OWNERSHIP_ABI_MANAGED
                 ? XL6_IR_OWNERSHIP_ABI_TRIVIAL : XL6_IR_OWNERSHIP_ABI_MANAGED;

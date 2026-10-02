@@ -1,0 +1,45 @@
+func requirePart(RegexSplitIterator it) as RegexSplitPart
+    auto value = it.next()
+    if value != null then return value end
+    throw RuntimeError "missing part"
+end
+func requireText(RegexSplitPart part) as string
+    auto value = part.text
+    if value != null then return value end
+    throw RuntimeError "unmatched part"
+end
+auto it = Regex("(,)?;").split("a;你,;\0;", -1, int(RegexSplitFlags.captures))
+assert it.hasNext() and it.hasNext()
+auto first = requirePart(it)
+assert first.matched and first.captureIndex == -1 and first.startByte == 0 and first.endByte == 1
+assert requireText(first) == "a"
+auto unmatched = requirePart(it)
+assert not unmatched.matched and unmatched.text == null and unmatched.captureIndex == 1
+assert unmatched.startByte == -1 and unmatched.endByte == -1
+assert requireText(requirePart(it)) == "你"
+auto capture = requirePart(it)
+assert requireText(capture) == "," and capture.captureIndex == 1 and capture.startByte == 5
+assert requireText(requirePart(it)) == "\0"
+assert not requirePart(it).matched
+assert requireText(requirePart(it)) == ""
+assert it.next() == null and it.closed
+assert requireText(first) == "a" and requireText(capture) == ","
+it.close()
+auto limited = Regex(",").split("a,b,c", 1)
+assert requireText(requirePart(limited)) == "a"
+assert requireText(requirePart(limited)) == "b,c" and limited.next() == null
+auto zero = Regex(",").split("a,b", 0)
+assert requireText(requirePart(zero)) == "a,b" and zero.next() == null
+int count = 0
+for part in Regex(",").split(",a,,b,", -1, int(RegexSplitFlags.skipEmpty))
+    if part != null then
+        assert part.matched
+        count += 1
+    end
+end
+assert count == 2
+auto empty = Regex("").split("你A")
+assert requireText(requirePart(empty)) == ""
+assert requireText(requirePart(empty)) == "你"
+assert requireText(requirePart(empty)) == "A"
+assert requireText(requirePart(empty)) == "" and empty.next() == null

@@ -1,0 +1,17 @@
+array<string> patterns = ["z", "你", "a\0b", "你"]
+auto set = regex.set(patterns)
+assert set.count == 4 and set.pattern(2) == "a\0b"
+patterns[2] = "changed"
+assert set.pattern(2) == "a\0b"
+auto hits = set.hits("你a\0b")
+assert hits.length == 3 and hits[0] == 1 and hits[1] == 2 and hits[2] == 3
+assert set.first("你a\0b") == 1 and set.test("你a\0b")
+assert set.first("none") == -1 and not set.test("none") and set.hits("none").length == 0
+assert set.hits("你a\0b", 3).length == 1
+assert set.hits("你a\0b", 0, 3).length == 2
+array<string> empty = []
+auto zero = RegexSet(empty)
+assert zero.count == 0 and zero.first("abc") == -1 and zero.hits("abc").length == 0
+array<string> prefixes = ["Aignored", "bignored"]
+auto capped = RegexSet(prefixes, int(RegexFlags.ignoreCase), 1048576, 4096, 2, 1)
+assert capped.pattern(0) == "A" and capped.hits("aB", 0, 100).length == 2

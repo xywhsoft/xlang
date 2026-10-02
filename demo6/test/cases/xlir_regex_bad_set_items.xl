@@ -1,0 +1,7 @@
+class BadSet
+    private native point handle
+    extern "xl6RegexSetCreateV1" create(array<int> items, int flags, int bytes, int captures, int count, int itemSize)
+    extern "xl6RegexSetDestroyV1" destroy()
+end
+array<int> items = [1]
+BadSet(items, 0, 1024, 8, 4, -1)

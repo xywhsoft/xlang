@@ -1,16 +1,4 @@
-#include "src/runtime/xl6_text_internal.h"
-
-typedef struct XL6_RegexSnapshotCapture {
-    xregexspan span;
-    bool matched;
-} XL6_RegexSnapshotCapture;
-typedef struct XL6_RegexSnapshot {
-    xregex* regex;
-    char* text;
-    size_t size, count;
-    bool matched;
-    XL6_RegexSnapshotCapture captures[];
-} XL6_RegexSnapshot;
+#include "src/runtime/xl6_regex_internal.h"
 
 static XL6_RegexSnapshot* xl6RegexSnapshotCheck(void* handle)
 {
@@ -22,17 +10,7 @@ void xl6RegexMatchDestroyV1(void* handle)
     XL6_RegexSnapshot* snapshot = handle;
     if (!snapshot) return;
     xrtRegexRelease(snapshot->regex);
-    xrtFree(snapshot->text); xrtFree(snapshot);
-}
-static bool xl6RegexInput(void* regex, xstrview* text, int64_t start, int64_t size)
-{
-    if (!regex) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (!xl6TextSelect(text, size)) return false;
-    if (start < 0 || (uint64_t)start > text->Size ||
-        ((uint64_t)start < text->Size && ((unsigned char)text->Data[start] & 0xC0) == 0x80)) {
-        xrtSetErrorKind(XERR_RANGE); return false;
-    }
-    return true;
+    xrtValueRelease(snapshot->input); xrtFree(snapshot);
 }
 void* xl6RegexMatchCreateV1(void* regex, xstrview text, int64_t mode, int64_t start, int64_t size)
 {
@@ -40,33 +18,16 @@ void* xl6RegexMatchCreateV1(void* regex, xstrview text, int64_t mode, int64_t st
         xrtSetErrorKind(XERR_RANGE); return NULL;
     }
     if (!xl6RegexInput(regex, &text, start, size)) return NULL;
-    size_t count = xrtRegexCaptureCount(regex);
-    if (count > (SIZE_MAX - sizeof(XL6_RegexSnapshot)) / sizeof(XL6_RegexSnapshotCapture)) {
-        xrtSetErrorKind(XERR_RANGE); return NULL;
+    xvalue* input=xrtValueString(text);
+    if (!input) return NULL;
+    xregexmatcher* matcher=xrtRegexMatcherCreate(regex);
+    void* snapshot=NULL;
+    if (matcher) {
+        xregexresult result = mode == 0 ? xrtRegexMatcherFind(matcher, text, (size_t)start) :
+            mode == 1 ? xrtRegexMatcherAt(matcher, text, (size_t)start) : xrtRegexMatcherFull(matcher, text);
+        if (result != XREGEX_ERROR) snapshot=xl6RegexSnapshotCopy(regex,input,matcher);
     }
-    XL6_RegexSnapshot* snapshot = xrtCalloc(1, sizeof(*snapshot) + count * sizeof(snapshot->captures[0]));
-    if (!snapshot) return NULL;
-    xregexmatcher* matcher = NULL;
-    snapshot->count = count; snapshot->size = text.Size;
-    snapshot->regex = xrtRegexRef(regex);
-    if (!snapshot->regex) goto fail;
-    snapshot->text = xrtStrDupView(text);
-    if (!snapshot->text) goto fail;
-    matcher = xrtRegexMatcherCreate(regex);
-    if (!matcher) goto fail;
-    xstrview input = {snapshot->text, snapshot->size};
-    xregexresult result = mode == 0 ? xrtRegexMatcherFind(matcher, input, (size_t)start) :
-        mode == 1 ? xrtRegexMatcherAt(matcher, input, (size_t)start) : xrtRegexMatcherFull(matcher, input);
-    if (result == XREGEX_ERROR) goto fail;
-    snapshot->matched = result == XREGEX_MATCH;
-    if (snapshot->matched) for (size_t i = 0; i < count; ++i) {
-        xregexcapture capture;
-        if (!xrtRegexMatcherCapture(matcher, i, &capture)) goto fail;
-        snapshot->captures[i] = (XL6_RegexSnapshotCapture){capture.Span, capture.Matched};
-    }
-    xrtRegexMatcherFree(matcher); return snapshot;
-fail:
-    xrtRegexMatcherFree(matcher); xl6RegexMatchDestroyV1(snapshot); return NULL;
+    xrtRegexMatcherFree(matcher); xrtValueRelease(input); return snapshot;
 }
 bool xl6RegexTestV1(void* regex, xstrview text, bool full, int64_t size)
 {
@@ -95,7 +56,8 @@ xstrview xl6RegexMatchTextV1(void* handle, int64_t index)
     XL6_RegexSnapshot* s = xl6RegexSnapshotCheck(handle);
     const XL6_RegexSnapshotCapture* c = xl6RegexCaptureCheck(s, index);
     if (!c || !c->matched) return xl6TextFailure;
-    return xl6TextCopy((xstrview){s->text + c->span.Begin, c->span.End - c->span.Begin});
+    xstrview text={s->text.Data+c->span.Begin,c->span.End-c->span.Begin};
+    return xl6TextSelect(&text,-1)?xl6TextCopy(text):xl6TextFailure;
 }
 bool xl6RegexMatchGroupMatchedV1(void* handle, int64_t index)
 {
@@ -129,5 +91,5 @@ int64_t xl6RegexMatchIndexV1(void* handle, xstrview name, int64_t size)
 xstrview xl6RegexMatchInputV1(void* handle)
 {
     XL6_RegexSnapshot* s = xl6RegexSnapshotCheck(handle);
-    return s ? xl6TextCopy((xstrview){s->text, s->size}) : xl6TextFailure;
+    return s ? xl6TextCopy(s->text) : xl6TextFailure;
 }

@@ -164,4 +164,37 @@ XL6_TEXT_API int64_t xl6RegexMatchEndV1(void* handle, int64_t index);
 XL6_TEXT_API xstrview xl6RegexMatchNameV1(void* handle, int64_t index);
 XL6_TEXT_API int64_t xl6RegexMatchIndexV1(void* handle, xstrview name, int64_t size);
 XL6_TEXT_API xstrview xl6RegexMatchInputV1(void* handle);
+/* Mutable iterators are owner-thread only. Preparation does not consume a
+ * pending match/part: the language facade commits only after construction of
+ * the managed snapshot succeeds. Matcher execution failure closes the input;
+ * snapshot allocation failure leaves the pending item available for retry. */
+XL6_TEXT_API void* xl6RegexIteratorCreateV1(void* regex, xstrview text, int64_t start, int64_t limit, int64_t size);
+XL6_TEXT_API void xl6RegexIteratorDestroyV1(void* handle);
+XL6_TEXT_API bool xl6RegexIteratorHasNextV1(void* handle);
+XL6_TEXT_API void* xl6RegexIteratorSnapshotV1(void* handle);
+XL6_TEXT_API void xl6RegexIteratorConsumeV1(void* handle);
+XL6_TEXT_API void xl6RegexIteratorCloseV1(void* handle);
+XL6_TEXT_API bool xl6RegexIteratorClosedV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexReplaceV1(void* regex, xstrview text, xstrview replacement, int64_t limit, int64_t size, int64_t replacementSize);
+XL6_TEXT_API int64_t xl6RegexReplaceBufferV1(void* regex, void* target, xstrview text, xstrview replacement, int64_t limit, int64_t size, int64_t replacementSize);
+XL6_TEXT_API void* xl6RegexSplitCreateV1(void* regex, xstrview text, int64_t limit, int64_t flags, int64_t size);
+XL6_TEXT_API void xl6RegexSplitDestroyV1(void* handle);
+XL6_TEXT_API bool xl6RegexSplitHasNextV1(void* handle);
+XL6_TEXT_API void* xl6RegexSplitSnapshotV1(void* handle);
+XL6_TEXT_API void xl6RegexSplitConsumeV1(void* handle);
+XL6_TEXT_API void xl6RegexSplitCloseV1(void* handle);
+XL6_TEXT_API bool xl6RegexSplitClosedV1(void* handle);
+XL6_TEXT_API void xl6RegexSplitPartDestroyV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexSplitPartTextV1(void* handle);
+XL6_TEXT_API bool xl6RegexSplitPartMatchedV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexSplitPartCaptureV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexSplitPartStartV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexSplitPartEndV1(void* handle);
+XL6_TEXT_API void* xl6RegexSetCreateV1(const xvalue* patterns, int64_t flags, int64_t maxPatternBytes, int64_t maxCaptures, int64_t maxPatterns, int64_t itemSize);
+XL6_TEXT_API void xl6RegexSetDestroyV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexSetCountV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexSetPatternV1(void* handle, int64_t index);
+XL6_TEXT_API xvalue* xl6RegexSetHitsV1(void* handle, xstrview text, int64_t start, int64_t size);
+XL6_TEXT_API int64_t xl6RegexSetFirstV1(void* handle, xstrview text, int64_t start, int64_t size);
+XL6_TEXT_API bool xl6RegexSetTestV1(void* handle, xstrview text, int64_t start, int64_t size);
 #endif

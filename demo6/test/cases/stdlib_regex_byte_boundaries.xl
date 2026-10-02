@@ -1,0 +1,29 @@
+auto r = Regex("\\C")
+int rejected = 0
+auto found = r.find("你")
+if found != null then
+    assert found.startByte() == 0 and found.endByte() == 1
+    try
+        found.text()
+    catch ValueError
+        rejected += 1
+    end
+end
+try
+    r.replace("你", "<$0>")
+catch ValueError
+    rejected += 1
+end
+auto split = Regex("(\\C)").split("你", -1, int(RegexSplitFlags.captures))
+split.next()
+auto part = split.next()
+if part != null then
+    assert part.captureIndex == 1 and part.startByte == 0 and part.endByte == 1
+    try
+        auto invalid = part.text
+    catch ValueError
+        rejected += 1
+    end
+end
+assert rejected == 3
+assert Regex("\\C\\C\\C").replace("你", "<$0>") == "<你>"

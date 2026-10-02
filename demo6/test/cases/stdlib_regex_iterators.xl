@@ -1,0 +1,45 @@
+func required(RegexIterator it) as RegexMatch
+    auto item = it.next()
+    if item != null then return item end
+    throw RuntimeError "missing item"
+end
+func text(RegexMatch item) as string
+    auto value = item.text()
+    if value != null then return value end
+    throw RuntimeError "missing text"
+end
+auto source = regex.compile(".")
+string input = "你\0A"
+auto it = source.all(input)
+assert it.hasNext() and it.hasNext() and not it.closed
+auto first = required(it)
+input = "changed"
+source = regex.compile("other")
+assert text(first) == "你" and first.input == "你\0A"
+assert text(required(it)) == "\0" and text(required(it)) == "A"
+assert it.next() == null and it.closed and it.next() == null
+it.close()
+it.close()
+assert text(first) == "你"
+auto empty = Regex("").all("你A")
+assert required(empty).startByte() == 0
+assert required(empty).startByte() == 3
+assert required(empty).startByte() == 4
+assert empty.next() == null
+auto capped = Regex(".").all("abcdef", 2, 1, 100)
+assert text(required(capped)) == "c"
+assert capped.next() == null and capped.closed
+auto zero = Regex(".").all("abc", 0, 0)
+assert zero.next() == null and zero.closed
+int count = 0
+for item in Regex(".").all("你\0A")
+    if item != null then
+        assert item.matched
+        count += 1
+    end
+end
+assert count == 3
+auto stopped = Regex(".").all("ab")
+assert stopped.hasNext()
+stopped.close()
+assert stopped.next() == null

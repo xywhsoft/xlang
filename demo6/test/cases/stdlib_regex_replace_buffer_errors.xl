@@ -1,0 +1,11 @@
+auto r = regex.compile(".")
+auto target = Buffer()
+target.append("prefix")
+target.appendByte(0)
+bool rejected = false
+try
+    r.replaceTo(target, "abc", "$9")
+catch ValueError
+    rejected = true
+end
+assert rejected and target.len() == 7 and target.byteAt(6) == 0
