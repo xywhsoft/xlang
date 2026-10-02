@@ -25,7 +25,8 @@ try {
         'stdlib_number_format','stdlib_number_format_only','stdlib_number_values','stdlib_number_integer_only',
         'stdlib_number_float_only','stdlib_crt_parse','cgen_overload_default_rank',
         'stdlib_unicode','stdlib_unicode_only','stdlib_unicode_validator','stdlib_html','stdlib_html_only',
-        'stdlib_encoding','stdlib_encoding_only','stdlib_encoding_meta_only','stdlib_encoding_transcode_only','stdlib_unicode_repair')
+        'stdlib_encoding','stdlib_encoding_only','stdlib_encoding_meta_only','stdlib_encoding_transcode_only','stdlib_unicode_repair',
+        'stdlib_encoding_detect','stdlib_encoding_detect_only','cgen_native_product_i64x3','cgen_extern_native_product_i64x3')
     $negative = @('bad_xlir_text_input','bad_xlir_text_result','bad_xlir_text_effect','bad_xlir_text_no_raise',
         'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width','bad_xlir_text_split_type','bad_xlir_text_join_type',
         'bad_xlir_text_iterator_result','bad_xlir_text_iterator_owner',
@@ -36,14 +37,15 @@ try {
         'bad_xlir_unicode_bytes','bad_xlir_unicode_char','bad_xlir_unicode_width',
         'bad_xlir_unicode_validator_owner','bad_xlir_unicode_validator_handle_read','bad_xlir_html_result',
         'bad_xlir_encoding_input','bad_xlir_encoding_result','bad_xlir_encoding_width',
-        'bad_xlir_encoding_policy','bad_xlir_encoding_no_raise','bad_xlir_encoding_effect')
+        'bad_xlir_encoding_policy','bad_xlir_encoding_no_raise','bad_xlir_encoding_effect',
+        'bad_xlir_encoding_detect_shape','bad_xlir_encoding_detect_width','bad_xlir_encoding_detect_unsigned','bad_xlir_encoding_detect_owner')
     $defaultsNegative = @('bad_extern_default_type','bad_extern_default_order',
         'bad_native_extern_default_type','bad_native_extern_default_order')
     $overloadRegressions = @('cgen_overload_costs','cgen_overloads','cgen_overload_varargs',
         'cgen_class_overloads','cgen_generic_class_overloads','cgen_generic_explicit_overload',
         'cgen_generic_overload_priority','cgen_generic_overload_var_priority','cgen_protocol_overload_index')
     $files = @($cases + $negative + $defaultsNegative + $overloadRegressions | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
-        @(Get-Item test/cases/stdlib_text_values_host.c,test/cases/xlir_text_value_contract.c,
+        @(Get-Item test/cases/stdlib_text_values_host.c,test/cases/xlir_text_value_contract.c,test/cases/cgen_extern_native_product_i64x3_provider.c,
             test/cases/stdlib_text_queries_host.c,test/support/text_queries_native.c,
             test/cases/stdlib_text_split_host.c,test/support/text_split_native.c,
             test/cases/stdlib_text_iterator_host.c,test/support/text_iterator_native.c,
@@ -52,6 +54,7 @@ try {
             test/cases/stdlib_number_values_host.c,test/support/number_values_native.c,
             test/cases/stdlib_unicode_host.c,test/support/unicode_native.c,
             test/cases/stdlib_encoding_host.c,test/support/encoding_native.c,
+            test/cases/stdlib_encoding_detect_host.c,test/support/encoding_detect_native.c,
             test/support/text_selected_native.c,test/cases/stdlib_string_support.c,
             tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,$PSCommandPath,$gcc)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
@@ -176,18 +179,25 @@ try {
         }
         if ($point -gt 32) {throw "Incomplete encoding allocation sweep: $mode"}
     }
+    Run 'encoding-detect-native-build' $gcc ($strict + @('test/cases/stdlib_encoding_detect_host.c','test/support/encoding_detect_native.c',
+        'src/runtime/xl6_encoding_detect.c','-o',"$outPath/encoding-detect-native.exe"))
+    Run 'encoding-detect-native-run' "$outPath/encoding-detect-native.exe" @()
     $runtime = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -in @('xrt_single_header_impl.o','xl6_text_value.o',
         'xl6_text_query.o','xl6_text_binary.o','xl6_text_chars.o','xl6_text_glob.o','xl6_text_distance.o','xl6_text_split.o','xl6_text_join.o',
         'xl6_text_iterator.o','xl6_number_format.o','xl6_number_format_buffer.o',
         'xl6_number_integer.o','xl6_number_float.o','xl6_number_integer_buffer.o','xl6_number_float_buffer.o',
-        'xl6_unicode.o','xl6_unicode_validator.o','xl6_html.o','xl6_encoding.o','xl6_encoding_meta.o',
-        'xl6_slot.o','xl6_value_iterator.o','xl6_code_lease.o','xl6_code_finalizer.o','xl6_ownership_plan.o') } | ForEach-Object Path)
+        'xl6_unicode.o','xl6_unicode_validator.o','xl6_html.o','xl6_encoding.o','xl6_encoding_meta.o','xl6_encoding_detect.o',
+        'xl6_slot.o','xl6_value_iterator.o','xl6_closure.o','xl6_cell.o','xl6_code_lease.o','xl6_code_finalizer.o','xl6_ownership_plan.o') } | ForEach-Object Path)
     foreach ($name in $cases) {
         $source = "test/cases/$name.xl"
         Run "$name.emit" $driver @($source,'cgen-default',"$outPath/$name.c")
         Run "$name.repeat" $driver @($source,'cgen-default',"$outPath/$name.repeat.c")
         if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.repeat.c").Hash) { throw "Nondeterministic text output $name" }
-        if ($name -notin @('cgen_extern_defaults','cgen_overload_default_rank')) {
+        if ($name -in @('cgen_native_product_i64x3','cgen_extern_native_product_i64x3')) {
+            Run "$name.contract" "$outPath/contract.exe" @($source,"$outPath/$name.contract.c")
+            if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.contract.c").Hash) { throw "Generic product ABI/Cgen mismatch $name" }
+        }
+        if ($name -notin @('cgen_extern_defaults','cgen_overload_default_rank','cgen_native_product_i64x3','cgen_extern_native_product_i64x3')) {
             Run "$name.contract" "$outPath/contract.exe" @($source,"$outPath/$name.contract.c")
             if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.contract.c").Hash) { throw "ABI/Cgen mismatch $name" }
             $c = Get-Content -LiteralPath "$outPath/$name.c" -Raw
@@ -203,8 +213,14 @@ try {
             if ($name -eq 'stdlib_text_split_only' -and $c -match 'xl6TextJoinV1\(') {throw 'Split-only retained join calls'}
         }
         $hostSource = if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse|^stdlib_unicode|^stdlib_html|^stdlib_encoding') {'test/cases/stdlib_text_iterator_generated_host.c'} else {'test/cases/xlir_generated_module_host.c'}
+        [string[]]$sidecar = if ($name -eq 'cgen_extern_native_product_i64x3') { @('test/cases/cgen_extern_native_product_i64x3_provider.c') } else { @() }
+        $sidecarObjects = @()
+        if ($sidecar.Count) {
+            Run "$name.provider-build" $gcc ($strict + @('-c',$sidecar[0],'-o',"$outPath/$name.provider.o"))
+            $sidecarObjects = @("$outPath/$name.provider.o")
+        }
         Run "$name.strict-build" $gcc ($strict + @('-include',"$outPath/$name.c",'-DXLIR_GENERATED_MODULE_PREINCLUDED',
-            $hostSource) + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
+            $hostSource) + $sidecarObjects + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
         Run "$name.strict-run" "$outPath/$name.strict.exe" @()
         if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse|^stdlib_unicode|^stdlib_html|^stdlib_encoding') {
             for ($point=1; $point -le 256; ++$point) {
@@ -214,14 +230,14 @@ try {
             }
             if ($point -gt 256) {throw 'Incomplete managed text/number allocation sweep'}
         }
-        Run "$name.jit" $driver @($source,'run',"$outPath/$name.jit")
-        Run "$name.aot-build" $driver @($source,'exe',"$outPath/$name.aot")
+        Run "$name.jit" $driver (@($source,'run',"$outPath/$name.jit") + $sidecar)
+        Run "$name.aot-build" $driver (@($source,'exe',"$outPath/$name.aot") + $sidecar)
         Run "$name.aot-run" "$outPath/$name.aot.exe" @()
     }
     foreach ($name in $negative) {
         $path = "$outPath/$name.c"
         Run $name $driver @("test/cases/$name.xl",'cgen-default',$path) 1
-        $marker = if ($name -match '(?:iterator|validator)_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'}
+        $marker = if ($name -match '(?:iterator|validator)_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI|C ABI extern product requires exactly three language signed 64-bit results'}
         if ((Get-Content "$outPath/$name.log" -Raw) -notmatch $marker -or (Test-Path -LiteralPath $path)) { throw "Unsafe text ABI emitted $name" }
     }
     foreach ($name in $defaultsNegative) {
@@ -247,7 +263,7 @@ try {
     foreach ($record in $inputs) {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -ne $record.Sha256) { throw "Text input changed $($record.Path)" }
     }
-    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='B1-B8 text/numeric/Unicode-validator/HTML/charset batches and default overload rank only; not charset-detect, 53-module completion or full RC0'}
+    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='B1-B9 text/numeric/Unicode-validator/HTML/charset/guess/native-product batches and default overload rank only; not 53-module completion or full RC0'}
     [IO.File]::WriteAllText("$outPath/summary.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     Write-Output "Text values: $($rows.Count) checks passed. Evidence: $outPath"
 } finally { Pop-Location }

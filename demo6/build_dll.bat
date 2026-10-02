@@ -175,6 +175,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_html.c ^
     src\runtime\xl6_encoding.c ^
     src\runtime\xl6_encoding_meta.c ^
+    src\runtime\xl6_encoding_detect.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^
@@ -287,6 +288,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_html.c ^
     src\runtime\xl6_encoding.c ^
     src\runtime\xl6_encoding_meta.c ^
+    src\runtime\xl6_encoding_detect.c ^
     src\runtime\xl6_log.c ^
     src\runtime\xl6_log_console.c ^
     src\runtime\xl6_log_record.c ^

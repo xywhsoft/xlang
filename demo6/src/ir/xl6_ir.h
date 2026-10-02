@@ -479,6 +479,14 @@ typedef enum XL6_IrReleaseEffect {
     XL6_IR_RELEASE_EFFECT_MAY_RAISE
 } XL6_IrReleaseEffect;
 
+/* Closed native product profiles. Semantic types remain ordered tuple TypeIds;
+ * this derived, verified representation fact only fixes the C value carrier.
+ * NONE preserves compiler-private products, including managed elements. */
+typedef enum XL6_IrNativeProductAbi {
+    XL6_IR_NATIVE_PRODUCT_NONE = 0,
+    XL6_IR_NATIVE_PRODUCT_I64X3_V1
+} XL6_IrNativeProductAbi;
+
 typedef struct XL6_IrType {
     XL6_IrTypeKind kind;
     XL6_IrCAbi cAbi;
@@ -493,6 +501,7 @@ typedef struct XL6_IrType {
     /* Exact integer storage-normalization domain; C ABI I64 alone is not
      * enough to distinguish int8/uint8/.../int64 semantics. */
     XL6_IrIntegerTarget integerTarget;
+    XL6_IrNativeProductAbi nativeProductAbi;
     /* Diagnostics/provenance only, except for TYPE_PARAM identity.  Concrete
      * aliases with the same ABI and shape share one canonical XLIR type. */
     XL6_TypeId sourceTypeId;
@@ -542,6 +551,10 @@ typedef struct XL6_IrTypePool {
     size_t* slots;
     size_t slotCapacity;
 } XL6_IrTypePool;
+
+XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type);
+const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi);
+const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi);
 
 typedef enum XL6_IrNodeKind {
     XL6_IR_NODE_MODULE = 1,

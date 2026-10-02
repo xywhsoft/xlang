@@ -1,6 +1,7 @@
 #ifndef XL6_TEXT_VALUE_H
 #define XL6_TEXT_VALUE_H
 #include <stdint.h>
+#include "xl6_product_abi.h"
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
 #include "include/xruntime_decl.h"
 #endif
@@ -122,6 +123,11 @@ XL6_TEXT_API xvalue* xl6EncodingBomBytesV1(int64_t encoding);
 XL6_TEXT_API int64_t xl6EncodingUnitSizeV1(int64_t encoding);
 XL6_TEXT_API xstrview xl6EncodingNameV1(int64_t encoding);
 XL6_TEXT_API xstrview xl6EncodingRepairTextV1(xstrview text, int64_t size);
+/* Guess is not validation: e0 encoding / e1 BOM bytes / e2 confidence 0..100.
+ * One XRT guess, a trivial stack result, no retained input or allocation on
+ * valid arguments. A BOM gets confidence 100 even with an invalid body. */
+XL6_TEXT_API XL6_ProductI64x3V1 xl6EncodingGuessTextV1(xstrview text, int64_t size);
+XL6_TEXT_API XL6_ProductI64x3V1 xl6EncodingGuessBytesV1(const xvalue* data, int64_t size);
 /* Validator chunks are synchronous borrows. Data-invalid is an ordinary
  * XUTF_INVALID result, not a raised error; argument/lifetime/overflow faults
  * raise. final seals the stream; reset starts a new stream on its owner thread. */

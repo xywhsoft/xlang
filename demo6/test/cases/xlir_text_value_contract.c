@@ -4,6 +4,7 @@
 #include "src/stdlib/xl6_stdlib.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(int argc, char** argv)
 {
@@ -12,12 +13,41 @@ int main(int argc, char** argv)
     XL6_Output output;
     int ok = 0;
     unsigned checked = 0;
+    unsigned products = 0;
     assert(argc == 3);
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argv[1], &parse) || !xl6StdlibExpandModule(parse.root, &parse.diags) ||
         !xl6SemCheckModule(parse.root, &parse.diags, "text_contract") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||
         !xl6IrLowerModule(&ir, &parse.diags)) goto done;
+    assert(xl6IrVerifyModule(&ir, NULL));
+    /* Generic product verification, including plain language functions with
+     * no standard-library bridge. A corrupted closed ABI must never reach C. */
+    for (size_t i=0; i<ir.types.count; ++i) {
+        XL6_IrType* type = &ir.types.items[i];
+        if (type->nativeProductAbi == XL6_IR_NATIVE_PRODUCT_NONE) continue;
+        XL6_IrNativeProductAbi profile = type->nativeProductAbi;
+        assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1);
+        type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
+        assert(!xl6IrVerifyModule(&ir, NULL)); type->nativeProductAbi = profile;
+        type->nativeProductAbi = (XL6_IrNativeProductAbi)999;
+        assert(!xl6IrVerifyModule(&ir, NULL)); type->nativeProductAbi = profile;
+        char spelling[sizeof(type->cName)]; memcpy(spelling,type->cName,sizeof(spelling));
+        type->cName[0] = 'z'; assert(!xl6IrVerifyModule(&ir, NULL));
+        memcpy(type->cName,spelling,sizeof(spelling));
+        size_t fields = type->paramCount; --type->paramCount;
+        assert(!xl6IrVerifyModule(&ir, NULL)); type->paramCount = fields;
+        XL6_IrOwnershipAbi own = type->ownershipAbi;
+        type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
+        assert(!xl6IrVerifyModule(&ir, NULL)); type->ownershipAbi = own;
+        for (size_t field=0; field<fields; ++field) {
+            XL6_IrType* item = &ir.types.items[type->params[field]-1];
+            XL6_IrIntegerTarget width = item->integerTarget;
+            item->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_32;
+            assert(!xl6IrVerifyModule(&ir, NULL)); item->integerTarget = width;
+        }
+        assert(xl6IrVerifyModule(&ir, NULL)); ++products;
+    }
     for (size_t i=0; i<ir.callTargetCount; ++i) {
         XL6_IrCallTarget* t = &ir.callTargets[i];
         if (t->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) continue;
@@ -125,6 +155,26 @@ int main(int argc, char** argv)
             result->kind = XL6_IR_TYPE_NULLABLE;
         }
         XL6_IrCAbi abi = result->cAbi;
+        if (abi == XL6_IR_C_ABI_PRODUCT) {
+            XL6_IrNativeProductAbi profile = result->nativeProductAbi;
+            assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1);
+            result->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));
+            result->nativeProductAbi = profile;
+            size_t fields = result->paramCount; --result->paramCount;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t)); result->paramCount = fields;
+            char name[sizeof(result->cName)]; memcpy(name,result->cName,sizeof(name));
+            result->cName[0] = 'z'; assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));
+            memcpy(result->cName,name,sizeof(name));
+            for (size_t field=0;field<fields;++field) {
+                XL6_IrType* item = &ir.types.items[result->params[field]-1];
+                XL6_IrIntegerTarget width = item->integerTarget;
+                item->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_32;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t)); item->integerTarget = width;
+                XL6_IrCAbi itemAbi = item->cAbi; item->cAbi = XL6_IR_C_ABI_U64;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t)); item->cAbi = itemAbi;
+            }
+        }
         XL6_IrIntegerTarget width = result->integerTarget;
         if (abi == XL6_IR_C_ABI_I64 || abi == XL6_IR_C_ABI_U64) {
             result->integerTarget = width == XL6_IR_INTEGER_TARGET_SIGNED_64
@@ -146,11 +196,11 @@ int main(int argc, char** argv)
         }
         assert(xl6IrRuntimeDirectBridgeTargetMatches(&ir, t)); ++checked;
     }
-    assert(checked);
+    assert(checked || products);
     if (!xl6OutputOpenFile(&output, argv[2])) goto done;
     ok = xl6IrCgenEmitC(&output, &ir, &parse.diags);
     xl6OutputClose(&output);
-    printf("text contract: %u fixed ABI/effect/error/borrow signatures\n", checked);
+    printf("text contract: %u fixed ABI/effect/error/borrow signatures, %u generic native products\n", checked, products);
 done:
     for (size_t i=0; i<parse.diags.count; ++i)
         fprintf(stderr,"%d:%d: %s\n",parse.diags.items[i].line,parse.diags.items[i].column,parse.diags.items[i].message);

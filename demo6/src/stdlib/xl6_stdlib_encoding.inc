@@ -1,5 +1,9 @@
 static const char xl6StdEncodingEncodeBody[] =
     "extern \"xl6EncodingEncodeV1\" func __xl_std_encoding_encode(string text, int encoding = 1, bool bom = false, int policy = 0, int size = -1) as bytes\n";
+static const char xl6StdEncodingDetectTextBody[] =
+    "extern \"xl6EncodingGuessTextV1\" func __xl_std_encoding_detect(string text, int size = -1) as (int, int, int)\n";
+static const char xl6StdEncodingDetectBytesBody[] =
+    "extern \"xl6EncodingGuessBytesV1\" func __xl_std_encoding_detect(bytes data, int size = -1) as (int, int, int)\n";
 static const char xl6StdEncodingDecodeBody[] =
     "extern \"xl6EncodingDecodeV1\" func __xl_std_encoding_decode(bytes data, int encoding = 1, int policy = 0, int bom = 1, int size = -1) as string\n";
 static const char xl6StdEncodingTranscodeBody[] =

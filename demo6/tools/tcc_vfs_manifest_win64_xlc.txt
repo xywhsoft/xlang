@@ -62,6 +62,7 @@ file|lib/xruntime/xruntime.h|%XL6_ROOT%\lib\xruntime\xruntime.h
 dir|__xl_compiler/src|%XL6_ROOT%\src|*.c;*.h;*.inc
 file|include/__xl_runtime/xl6_log.h|%XL6_ROOT%\src\runtime\xl6_log.h
 file|include/__xl_runtime/xl6_text_value.h|%XL6_ROOT%\src\runtime\xl6_text_value.h
+file|include/__xl_runtime/xl6_product_abi.h|%XL6_ROOT%\src\runtime\xl6_product_abi.h
 file|include/__xl_runtime/xl6_io_handle.h|%XL6_ROOT%\src\runtime\xl6_io_handle.h
 dir|__xl_compiler/lib/tcc|%XL6_ROOT%\lib\tcc|*.h
 file|__xl_compiler/lib/tcc/stab.def|%XL6_ROOT%\lib\tcc\stab.def

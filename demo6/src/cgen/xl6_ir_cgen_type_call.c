@@ -145,6 +145,11 @@ static int xl6IrCgenEmitProductTypes(
              product->paramCount < 2 || product->params == NULL )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                                  "XLIR product type has no deterministic structural C ABI");
+        if (product->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE) {
+            const char* guard = xl6IrNativeProductAbiGuard(product->nativeProductAbi);
+            if (!guard) return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR native product has no closed C ABI profile");
+            xl6OutputPrintf(out,"#ifndef %s\n#define %s\n",guard,guard);
+        }
         xl6OutputPrintf(out, "typedef struct %s {\n", product->cName);
         for ( elementIndex = 0; elementIndex < product->paramCount; ++elementIndex ) {
             const XL6_IrType* element = xl6IrTypeGet(&module->types, product->params[elementIndex]);
@@ -163,6 +168,7 @@ static int xl6IrCgenEmitProductTypes(
             xl6OutputPrintf(out, "    %s e%lu;\n", cType, (unsigned long)elementIndex);
         }
         xl6OutputPrintf(out, "} %s;\n", product->cName);
+        if (product->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE) xl6OutputPuts("#endif\n",out);
         emitted = 1;
     }
     if ( emitted ) xl6OutputPuts("\n", out);

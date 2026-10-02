@@ -169,6 +169,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_html.c"
 	"$ROOT/src/runtime/xl6_encoding.c"
 	"$ROOT/src/runtime/xl6_encoding_meta.c"
+	"$ROOT/src/runtime/xl6_encoding_detect.c"
 	"$ROOT/src/runtime/xl6_network_service.c"
 	"$ROOT/src/runtime/xl6_log.c"
 	"$ROOT/src/runtime/xl6_log_console.c"

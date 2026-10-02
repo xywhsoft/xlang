@@ -1,0 +1,2 @@
+extern "xl6EncodingGuessBytesV1" func invalid(bytes data, int size) as (int, int)
+auto a, b = invalid(b"x", -1)

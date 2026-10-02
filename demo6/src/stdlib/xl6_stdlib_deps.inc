@@ -295,8 +295,6 @@ static const XL6_StdlibDependency xl6StdlibDependencies[] = {
     {"codec", "percentEncode", "__xrt_codec", "percentEncode"},
     {"codec", "percentDecode", "__xrt_string", "byteLen"},
     {"codec", "percentDecode", "__xrt_codec", "percentDecode"},
-    {"encoding", "detect", "__xl_runtime", "encodingDetectText"},
-    {"encoding", "detectBytes", "__xl_runtime", "encodingDetectBytes"},
     {"encoding", "encodeUtf8", "encoding", "encode"},
     {"encoding", "decodeUtf8", "encoding", "decode"},
     {"encoding", "encodeUtf16LE", "encoding", "encode"},

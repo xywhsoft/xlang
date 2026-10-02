@@ -1,0 +1,34 @@
+auto kind, bom, confidence = encoding.detect("ASCII")
+assert kind == encoding.utf8 and bom == 0 and confidence == 40
+auto nulKind, nulBom, nulConfidence = encoding.detect(b"A\0B")
+assert nulKind == 1 and nulBom == 0 and nulConfidence == 50
+auto wideKind, _, wideConfidence = encoding.detect(b"A\0B\0")
+assert wideKind == 2 and wideConfidence == 70
+auto utf8, noBom, strong = encoding.detect("A你😀")
+assert utf8 == encoding.utf8 and noBom == 0 and strong == 90
+auto empty, zero, uncertain = encoding.detect(b"")
+assert empty == encoding.unknown and zero == 0 and uncertain == 0
+auto unknown, absent, weak = encoding.detect(b"\xFF")
+assert unknown == encoding.unknown and absent == 0 and weak == 0
+auto prefix, prefixBom, prefixConfidence = encoding.detect("A你", 1)
+assert prefix == encoding.utf8 and prefixBom == 0 and prefixConfidence == 40
+auto binaryPrefix, _, binaryConfidence = encoding.detect(b"A\xFF", 1)
+assert binaryPrefix == encoding.utf8 and binaryConfidence == 40
+for id in [1,2,3,4,5]
+    bytes marked = encoding.encode("A\0😀", id, true)
+    auto guess, width, certain = encoding.detect(marked, 1000)
+    assert guess == id and certain == 100
+    assert width == (id == 1 ? 3 : id < 4 ? 2 : 4)
+end
+// A BOM identifies the declared encoding, not the validity of the body.
+auto declared, width, certain = encoding.detect(b"\xEF\xBB\xBF\xFF")
+assert declared == encoding.utf8 and width == 3 and certain == 100
+auto valid, offset = unicode.validate(b"\xEF\xBB\xBF\xFF")
+assert not valid and offset == 3
+int caught = 0
+try
+    encoding.detect(b"x", -2)
+catch RangeError e
+    caught += 1
+end
+assert caught == 1

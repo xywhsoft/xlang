@@ -3649,16 +3649,6 @@ static const XL6_StdlibParam xl6StdXrtCodecBase64DecodeBufferParams[] = {
     {"point", "table"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeEncodingTextDetectParams[] = {
-    {"string", "text"},
-    {"bool", "withBom"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeEncodingBytesDetectParams[] = {
-    {"point", "data"},
-    {"c_size", "size"},
-    {"bool", "withBom"}
-};
 
 static const XL6_StdlibParam xl6StdXidCountParams[] = {
     {"int", "count"}
@@ -5475,15 +5465,6 @@ static const char xl6StdCodecPercentDecodeBody[] =
     "    return __xl_std_xrt_percent_decode(text, __xl_size_text, null)\n"
     "end\n";
 
-static const char xl6StdEncodingDetectBody[] =
-    "func __xl_std_encoding_detect(string text, bool withBom = true) as int\n"
-    "    return int(__xl_std_runtime_encoding_detect_text(text, withBom))\n"
-    "end\n";
-
-static const char xl6StdEncodingDetectBytesBody[] =
-    "func __xl_std_encoding_detect_bytes(point data, c_size size, bool withBom = true) as int\n"
-    "    return int(__xl_std_runtime_encoding_detect_bytes(data, size, withBom))\n"
-    "end\n";
 
 static const char xl6StdHashU32Body[] =
     "func __xl_std_hash_u32(string data, int size = -1) as uint32\n"
@@ -6531,8 +6512,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 
 
 
-    {"__xl_runtime", "encodingDetectText", "__xl_std_runtime_encoding_detect_text", "xl6_xrt_encoding_detect_text", xl6StdRuntimeEncodingTextDetectParams, 2, "int", NULL},
-    {"__xl_runtime", "encodingDetectBytes", "__xl_std_runtime_encoding_detect_bytes", "xl6_xrt_encoding_detect_bytes", xl6StdRuntimeEncodingBytesDetectParams, 3, "int", NULL},
 
 
 
@@ -7305,8 +7284,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"encoding", "isUtf8", "__xl_std_encoding_is_utf8", NULL, NULL, 0, "bool", xl6StdEncodingIsUtf8BytesBody},
     {"unicode", "decode", "__xl_std_unicode_decode", NULL, NULL, 0, "string", xl6StdUnicodeDecodeBody},
     {"unicode", "repair", "__xl_std_unicode_repair", NULL, NULL, 0, "string", xl6StdUnicodeRepairBody},
-    {"encoding", "detect", "__xl_std_encoding_detect", NULL, NULL, 0, "int", xl6StdEncodingDetectBody},
-    {"encoding", "detectBytes", "__xl_std_encoding_detect_bytes", NULL, NULL, 0, "int", xl6StdEncodingDetectBytesBody},
+    {"encoding", "detect", "__xl_std_encoding_detect", NULL, NULL, 0, NULL, xl6StdEncodingDetectTextBody},
+    {"encoding", "detect", "__xl_std_encoding_detect", NULL, NULL, 0, NULL, xl6StdEncodingDetectBytesBody},
 
     {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32Body},
     {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32BytesBody},
