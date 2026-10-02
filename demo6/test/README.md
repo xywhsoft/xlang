@@ -43,7 +43,7 @@ test\suites\02_language_frontend.bat
 
 ## Manual probes
 
-`tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）对 B1—B7 文本、数字、Unicode/HTML 入口执行冻结输入的 897 项严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数负例、重载与存量回归检查；覆盖精确 NUL/UTF-8、char/bytes、拆分/连接/惰性片段、数字解析/写出/格式、Buffer 失败原子追加、流式 UTF-8 校验/线程限制和真实 OOM 清理。`tools/check_xlir_artifact_runtime.ps1` 验证 57 组件、3249 对依赖、373 导出与 26 个实际闭包。Linux 的 `tools/check_stdlib_number_values.sh` / `check_stdlib_unicode.sh`（均接入 `test_linux.sh`）分别完成 253 项数字、148 项 Unicode/HTML 专项，包含原生 ASan/UBSan、受管清理及实际闭包。仅整数/浮点不引入展示格式或 Buffer，仅 Unicode/HTML/校验器不引入其他文本 resident 或 charset 根；这些专项不代表 53 模块全部接入或全仓 RC0 通过。
+`tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）覆盖 B1—B8 文本、数字、Unicode/HTML 与编码入口：当前 Windows 990 项冻结输入检查，31 正向/38 负例，严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数、真实 OOM 与回归。`tools/check_xlir_artifact_runtime.ps1` 当前核对 59 组件、3481 对依赖、382 导出，并完成 B8 五个实际闭包；B7 的 26 个闭包保留历史证据，不混为本轮重新验收。Linux 的 `check_stdlib_number_values.sh` / `check_stdlib_unicode.sh` / `check_stdlib_encoding.sh` 均接入 `test_linux.sh`，分别保留数字 253、Unicode/HTML 148、编码 158 项专项，包含原生 ASan/UBSan、受管逻辑账本、实际闭包与输入冻结。最小 encoding meta/转码/repair 不引入其他文本 resident、Buffer 或猜测根；charset_detect 和整个 53 模块目标仍未完成，专项不能代替全仓 RC0。
 
 `tools/check_xlir_conditional_nullable_join.ps1` 验证三元表达式的可空类型汇合、分支局部收窄、惰性表达式的确定赋值，以及字符串/类/闭包汇合的所有权。门禁包含语义正负例、IR 变异拒绝、确定性 C/header、严格 C 内存平衡和 C-host JIT/AOT；它不代表全部 `out` 参数异常路径已完成证明。
 

@@ -113,6 +113,15 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6UnicodeValidatorFinishedV1",T,B,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
     {"xl6HtmlEscapeTextV1",T,S,2,{S,I}},
     {"xl6HtmlEscapeAttributeV1",T,S,2,{S,I}},
+    {"xl6EncodingEncodeV1",T,Y,5,{S,I,B,I,I}},
+    {"xl6EncodingDecodeV1",T,S,5,{Y,I,I,I,I}},
+    {"xl6EncodingTranscodeV1",T,Y,6,{Y,I,I,I,I,I}},
+    {"xl6EncodingBomV1",T,I,2,{Y,I}},
+    {"xl6EncodingBomSizeV1",T,I,2,{Y,I}},
+    {"xl6EncodingBomBytesV1",T,Y,1,{I}},
+    {"xl6EncodingUnitSizeV1",T,I,1,{I}},
+    {"xl6EncodingNameV1",T,S,1,{I}},
+    {"xl6EncodingRepairTextV1",T,S,2,{S,I}},
 #undef U
 #undef F
 #undef Y

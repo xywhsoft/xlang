@@ -1,0 +1,2 @@
+extern "xl6EncodingDecodeV1" @no_raise func invalid(bytes data, int encoding, int policy, int bom, int size) as string
+invalid(b"a", 1, 0, 1, -1)

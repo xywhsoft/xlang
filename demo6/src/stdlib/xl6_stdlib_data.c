@@ -2,6 +2,7 @@
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_text.inc"
 #include "src/stdlib/xl6_stdlib_unicode.inc"
+#include "src/stdlib/xl6_stdlib_encoding.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
@@ -3648,46 +3649,15 @@ static const XL6_StdlibParam xl6StdXrtCodecBase64DecodeBufferParams[] = {
     {"point", "table"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeEncodingTextParams[] = {
-    {"string", "text"}
-};
-
 static const XL6_StdlibParam xl6StdRuntimeEncodingTextDetectParams[] = {
     {"string", "text"},
     {"bool", "withBom"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeEncodingBytesParams[] = {
-    {"point", "data"},
-    {"c_size", "size"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeEncodingBytesDetectParams[] = {
     {"point", "data"},
     {"c_size", "size"},
     {"bool", "withBom"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeEncodingToBytesParams[] = {
-    {"string", "text"},
-    {"int", "toCharset"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeEncodingFromBytesParams[] = {
-    {"point", "data"},
-    {"c_size", "size"},
-    {"int", "fromCharset"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeEncodingConvertBytesParams[] = {
-    {"point", "data"},
-    {"c_size", "size"},
-    {"int", "fromCharset"},
-    {"int", "toCharset"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeEncodingCharsetParams[] = {
-    {"int", "charset"}
 };
 
 static const XL6_StdlibParam xl6StdXidCountParams[] = {
@@ -5505,21 +5475,6 @@ static const char xl6StdCodecPercentDecodeBody[] =
     "    return __xl_std_xrt_percent_decode(text, __xl_size_text, null)\n"
     "end\n";
 
-static const char xl6StdEncodingCharSizeBody[] =
-    "func __xl_std_encoding_char_size(int charset) as int\n"
-    "    return int(__xl_std_runtime_encoding_char_size(charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingIsUtf8Body[] =
-    "func __xl_std_encoding_is_utf8(string text) as bool\n"
-    "    return __xl_std_runtime_encoding_is_utf8_text(text)\n"
-    "end\n";
-
-static const char xl6StdEncodingIsUtf8BytesBody[] =
-    "func __xl_std_encoding_is_utf8_bytes(point data, c_size size) as bool\n"
-    "    return __xl_std_runtime_encoding_is_utf8_bytes(data, size)\n"
-    "end\n";
-
 static const char xl6StdEncodingDetectBody[] =
     "func __xl_std_encoding_detect(string text, bool withBom = true) as int\n"
     "    return int(__xl_std_runtime_encoding_detect_text(text, withBom))\n"
@@ -5528,106 +5483,6 @@ static const char xl6StdEncodingDetectBody[] =
 static const char xl6StdEncodingDetectBytesBody[] =
     "func __xl_std_encoding_detect_bytes(point data, c_size size, bool withBom = true) as int\n"
     "    return int(__xl_std_runtime_encoding_detect_bytes(data, size, withBom))\n"
-    "end\n";
-
-static const char xl6StdEncodingToBytesBody[] =
-    "func __xl_std_encoding_to_bytes(string text, int toCharset = 65001) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, toCharset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingFromBytesBody[] =
-    "func __xl_std_encoding_from_bytes(point data, c_size size, int fromCharset = 65001) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data, size, fromCharset))\n"
-    "end\n";
-
-static const char xl6StdEncodingConvertBytesBody[] =
-    "func __xl_std_encoding_convert_bytes(point data, c_size size, int fromCharset, int toCharset) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_convert_bytes(data, size, fromCharset, toCharset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingNameBody[] =
-    "func __xl_std_encoding_name(int charset) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_name(charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingEncodeUtf8Body[] =
-    "func __xl_std_encoding_encode_utf8(string text, bool bom = false) as Buffer\n"
-    "    int charset = 65001\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingEncodeUtf16LeBody[] =
-    "func __xl_std_encoding_encode_utf16_le(string text, bool bom = false) as Buffer\n"
-    "    int charset = 1200\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingEncodeUtf16BeBody[] =
-    "func __xl_std_encoding_encode_utf16_be(string text, bool bom = false) as Buffer\n"
-    "    int charset = 1201\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingEncodeUtf32LeBody[] =
-    "func __xl_std_encoding_encode_utf32_le(string text, bool bom = false) as Buffer\n"
-    "    int charset = 65005\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingEncodeUtf32BeBody[] =
-    "func __xl_std_encoding_encode_utf32_be(string text, bool bom = false) as Buffer\n"
-    "    int charset = 65006\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
-    "end\n";
-
-static const char xl6StdEncodingDecodeUtf8Body[] =
-    "func __xl_std_encoding_decode_utf8(Buffer data, bool bom = false) as string\n"
-    "    int charset = 65001\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingDecodeUtf16LeBody[] =
-    "func __xl_std_encoding_decode_utf16_le(Buffer data, bool bom = false) as string\n"
-    "    int charset = 1200\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingDecodeUtf16BeBody[] =
-    "func __xl_std_encoding_decode_utf16_be(Buffer data, bool bom = false) as string\n"
-    "    int charset = 1201\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingDecodeUtf32LeBody[] =
-    "func __xl_std_encoding_decode_utf32_le(Buffer data, bool bom = false) as string\n"
-    "    int charset = 65005\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingDecodeUtf32BeBody[] =
-    "func __xl_std_encoding_decode_utf32_be(Buffer data, bool bom = false) as string\n"
-    "    int charset = 65006\n"
-    "    if bom then charset += 1073741824 end\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
-    "end\n";
-
-static const char xl6StdEncodingSwapUtf16EndianBody[] =
-    "func __xl_std_encoding_swap_utf16_endian(Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_swap_utf16(data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdEncodingSwapUtf32EndianBody[] =
-    "func __xl_std_encoding_swap_utf32_endian(Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_encoding_swap_utf32(data.data(), c_size(data.len()))))\n"
     "end\n";
 
 static const char xl6StdHashU32Body[] =
@@ -6513,15 +6368,19 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"process", "stdioNull", XL6_AST_INT, "2"},
     {"process", "stateRunning", XL6_AST_INT, "0"},
     {"process", "stateExited", XL6_AST_INT, "1"},
-    {"encoding", "autoDetect", XL6_AST_INT, "-2"},
-    {"encoding", "binary", XL6_AST_INT, "-1"},
-    {"encoding", "oem", XL6_AST_INT, "0"},
-    {"encoding", "utf8", XL6_AST_INT, "65001"},
-    {"encoding", "utf16", XL6_AST_INT, "1200"},
-    {"encoding", "utf16BE", XL6_AST_INT, "1201"},
-    {"encoding", "utf32", XL6_AST_INT, "65005"},
-    {"encoding", "utf32BE", XL6_AST_INT, "65006"},
-    {"encoding", "bom", XL6_AST_INT, "1073741824"},
+    {"encoding", "unknown", XL6_AST_INT, "0"},
+    {"encoding", "utf8", XL6_AST_INT, "1"},
+    {"encoding", "utf16LE", XL6_AST_INT, "2"},
+    {"encoding", "utf16BE", XL6_AST_INT, "3"},
+    {"encoding", "utf32LE", XL6_AST_INT, "4"},
+    {"encoding", "utf32BE", XL6_AST_INT, "5"},
+    {"encoding", "strict", XL6_AST_INT, "0"},
+    {"encoding", "replaceInvalid", XL6_AST_INT, "1"},
+    {"encoding", "keepBom", XL6_AST_INT, "0"},
+    {"encoding", "stripBom", XL6_AST_INT, "1"},
+    {"encoding", "requireBom", XL6_AST_INT, "2"},
+    {"encoding", "rejectBom", XL6_AST_INT, "3"},
+    {"encoding", "writeBom", XL6_AST_INT, "4"},
     {"tcc", "MEMORY", XL6_AST_INT, "1"},
     {"tcc", "EXE", XL6_AST_INT, "2"},
     {"tcc", "OBJ", XL6_AST_INT, "3"},
@@ -6669,17 +6528,17 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "signalCount", "__xl_std_runtime_signal_count", "xl6_xrt_signal_count", xl6StdRuntimeSignalCodeParams, 1, "int", NULL},
     {"__xl_runtime", "signalReceived", "__xl_std_runtime_signal_received", "xl6_xrt_signal_received", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
     {"__xl_runtime", "signalClear", "__xl_std_runtime_signal_clear", "xl6_xrt_signal_clear", xl6StdRuntimeSignalCodeParams, 1, "", NULL},
-    {"__xl_runtime", "encodingCharSize", "__xl_std_runtime_encoding_char_size", "xl6_xrt_encoding_char_size", xl6StdRuntimeEncodingCharsetParams, 1, "int", NULL},
-    {"__xl_runtime", "encodingIsUtf8Text", "__xl_std_runtime_encoding_is_utf8_text", "xl6_xrt_encoding_is_utf8_text", xl6StdRuntimeEncodingTextParams, 1, "bool", NULL},
-    {"__xl_runtime", "encodingIsUtf8Bytes", "__xl_std_runtime_encoding_is_utf8_bytes", "xl6_xrt_encoding_is_utf8_bytes", xl6StdRuntimeEncodingBytesParams, 2, "bool", NULL},
+
+
+
     {"__xl_runtime", "encodingDetectText", "__xl_std_runtime_encoding_detect_text", "xl6_xrt_encoding_detect_text", xl6StdRuntimeEncodingTextDetectParams, 2, "int", NULL},
     {"__xl_runtime", "encodingDetectBytes", "__xl_std_runtime_encoding_detect_bytes", "xl6_xrt_encoding_detect_bytes", xl6StdRuntimeEncodingBytesDetectParams, 3, "int", NULL},
-    {"__xl_runtime", "encodingToBytes", "__xl_std_runtime_encoding_to_bytes", "xl6_xrt_encoding_to_bytes", xl6StdRuntimeEncodingToBytesParams, 2, "point", NULL},
-    {"__xl_runtime", "encodingFromBytes", "__xl_std_runtime_encoding_from_bytes", "xl6_xrt_encoding_from_bytes", xl6StdRuntimeEncodingFromBytesParams, 3, "point", NULL},
-    {"__xl_runtime", "encodingConvertBytes", "__xl_std_runtime_encoding_convert_bytes", "xl6_xrt_encoding_convert_bytes", xl6StdRuntimeEncodingConvertBytesParams, 4, "point", NULL},
-    {"__xl_runtime", "encodingName", "__xl_std_runtime_encoding_name", "xl6_xrt_encoding_name", xl6StdRuntimeEncodingCharsetParams, 1, "point", NULL},
-    {"__xl_runtime", "encodingSwapUtf16", "__xl_std_runtime_encoding_swap_utf16", "xl6_xrt_encoding_swap_utf16", xl6StdRuntimeEncodingBytesParams, 2, "point", NULL},
-    {"__xl_runtime", "encodingSwapUtf32", "__xl_std_runtime_encoding_swap_utf32", "xl6_xrt_encoding_swap_utf32", xl6StdRuntimeEncodingBytesParams, 2, "point", NULL},
+
+
+
+
+
+
     {"__xl_runtime", "dirList", "__xl_std_runtime_dir_list", "xl6_xrt_dir_list", xl6StdRuntimeDirListParams, 3, "var", NULL},
     {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
     {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
@@ -7424,27 +7283,30 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"codec", "percentEncode", "__xl_std_codec_percent_encode", NULL, NULL, 0, "string", xl6StdCodecPercentEncodeBody},
     {"codec", "percentDecode", "__xl_std_codec_percent_decode", NULL, NULL, 0, "string", xl6StdCodecPercentDecodeBody},
 
-    {"encoding", "charSize", "__xl_std_encoding_char_size", NULL, NULL, 0, "int", xl6StdEncodingCharSizeBody},
+    {"encoding", "encode", "__xl_std_encoding_encode", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeBody},
+    {"encoding", "decode", "__xl_std_encoding_decode", NULL, NULL, 0, "string", xl6StdEncodingDecodeBody},
+    {"encoding", "transcode", "__xl_std_encoding_transcode", NULL, NULL, 0, "bytes", xl6StdEncodingTranscodeBody},
+    {"encoding", "bom", "__xl_std_encoding_bom", NULL, NULL, 0, "int", xl6StdEncodingBomBody},
+    {"encoding", "bomSize", "__xl_std_encoding_bomSize", NULL, NULL, 0, "int", xl6StdEncodingBomSizeBody},
+    {"encoding", "bomBytes", "__xl_std_encoding_bomBytes", NULL, NULL, 0, "bytes", xl6StdEncodingBomBytesBody},
+    {"encoding", "unitSize", "__xl_std_encoding_unitSize", NULL, NULL, 0, "int", xl6StdEncodingUnitSizeBody},
+    {"encoding", "name", "__xl_std_encoding_name", NULL, NULL, 0, "string", xl6StdEncodingNameBody},
+    {"encoding", "encodeUtf8", "__xl_std_encoding_encode_Utf8", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf8Body},
+    {"encoding", "decodeUtf8", "__xl_std_encoding_decode_Utf8", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf8Body},
+    {"encoding", "encodeUtf16LE", "__xl_std_encoding_encode_Utf16LE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf16LEBody},
+    {"encoding", "decodeUtf16LE", "__xl_std_encoding_decode_Utf16LE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16LEBody},
+    {"encoding", "encodeUtf16BE", "__xl_std_encoding_encode_Utf16BE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf16BEBody},
+    {"encoding", "decodeUtf16BE", "__xl_std_encoding_decode_Utf16BE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16BEBody},
+    {"encoding", "encodeUtf32LE", "__xl_std_encoding_encode_Utf32LE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf32LEBody},
+    {"encoding", "decodeUtf32LE", "__xl_std_encoding_decode_Utf32LE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32LEBody},
+    {"encoding", "encodeUtf32BE", "__xl_std_encoding_encode_Utf32BE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf32BEBody},
+    {"encoding", "decodeUtf32BE", "__xl_std_encoding_decode_Utf32BE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32BEBody},
     {"encoding", "isUtf8", "__xl_std_encoding_is_utf8", NULL, NULL, 0, "bool", xl6StdEncodingIsUtf8Body},
-    {"encoding", "isUtf8Bytes", "__xl_std_encoding_is_utf8_bytes", NULL, NULL, 0, "bool", xl6StdEncodingIsUtf8BytesBody},
+    {"encoding", "isUtf8", "__xl_std_encoding_is_utf8", NULL, NULL, 0, "bool", xl6StdEncodingIsUtf8BytesBody},
+    {"unicode", "decode", "__xl_std_unicode_decode", NULL, NULL, 0, "string", xl6StdUnicodeDecodeBody},
+    {"unicode", "repair", "__xl_std_unicode_repair", NULL, NULL, 0, "string", xl6StdUnicodeRepairBody},
     {"encoding", "detect", "__xl_std_encoding_detect", NULL, NULL, 0, "int", xl6StdEncodingDetectBody},
     {"encoding", "detectBytes", "__xl_std_encoding_detect_bytes", NULL, NULL, 0, "int", xl6StdEncodingDetectBytesBody},
-    {"encoding", "toBytes", "__xl_std_encoding_to_bytes", NULL, NULL, 0, "Buffer", xl6StdEncodingToBytesBody},
-    {"encoding", "fromBytes", "__xl_std_encoding_from_bytes", NULL, NULL, 0, "string", xl6StdEncodingFromBytesBody},
-    {"encoding", "convertBytes", "__xl_std_encoding_convert_bytes", NULL, NULL, 0, "Buffer", xl6StdEncodingConvertBytesBody},
-    {"encoding", "name", "__xl_std_encoding_name", NULL, NULL, 0, "string", xl6StdEncodingNameBody},
-    {"encoding", "encodeUtf8", "__xl_std_encoding_encode_utf8", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf8Body},
-    {"encoding", "encodeUtf16LE", "__xl_std_encoding_encode_utf16_le", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf16LeBody},
-    {"encoding", "encodeUtf16BE", "__xl_std_encoding_encode_utf16_be", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf16BeBody},
-    {"encoding", "encodeUtf32LE", "__xl_std_encoding_encode_utf32_le", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf32LeBody},
-    {"encoding", "encodeUtf32BE", "__xl_std_encoding_encode_utf32_be", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf32BeBody},
-    {"encoding", "decodeUtf8", "__xl_std_encoding_decode_utf8", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf8Body},
-    {"encoding", "decodeUtf16LE", "__xl_std_encoding_decode_utf16_le", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16LeBody},
-    {"encoding", "decodeUtf16BE", "__xl_std_encoding_decode_utf16_be", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16BeBody},
-    {"encoding", "decodeUtf32LE", "__xl_std_encoding_decode_utf32_le", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32LeBody},
-    {"encoding", "decodeUtf32BE", "__xl_std_encoding_decode_utf32_be", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32BeBody},
-    {"encoding", "swapUtf16Endian", "__xl_std_encoding_swap_utf16_endian", NULL, NULL, 0, "Buffer", xl6StdEncodingSwapUtf16EndianBody},
-    {"encoding", "swapUtf32Endian", "__xl_std_encoding_swap_utf32_endian", NULL, NULL, 0, "Buffer", xl6StdEncodingSwapUtf32EndianBody},
 
     {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32Body},
     {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32BytesBody},

@@ -1,4 +1,4 @@
-#define XRT_MODULE_CHARSET_DETECT
+#define XRT_MODULE_CHARSET
 #include "xrt.h"
 
 #include <stdio.h>
@@ -22,13 +22,10 @@ static void require_line(const char* name, int ok)
 /* 使用当前 XRT Unicode 编码接口验证检测、转码和显式端序。 */
 int main(void)
 {
-    const char* text = "A\xE4\xBD\xA0\xE5\xA5\xBD";
+    const char text[] = "A\0\xE4\xBD\xA0\xE5\xA5\xBD";
     unsigned char invalid = 255u;
-    xbytesview source = {(const uint8*)text, strlen(text)};
-    xbytesview invalidSource = {&invalid, 1u};
+    xbytesview source = {(const uint8*)text, sizeof(text)-1};
     xstrview invalidText = {(const char*)&invalid, 1u};
-    xencodingguess textGuess = xrtEncodingGuess(source);
-    xencodingguess invalidGuess = xrtEncodingGuess(invalidSource);
     size_t utf16Size = 0u;
     size_t restoredSize = 0u;
     size_t convertedSize = 0u;
@@ -47,10 +44,10 @@ int main(void)
     bytes restored32;
 
     require_line(
-        "detect",
-        (textGuess.Encoding == XENCODING_UTF8) &&
-        !xrtUtf8Valid(invalidText, NULL) &&
-        (invalidGuess.Encoding == XENCODING_UNKNOWN));
+        "validate",
+        (xrtEncodingUnitSize(XENCODING_UTF32_LE) == 4u) &&
+        xrtUtf8Valid((xstrview){text, sizeof(text)-1}, NULL) &&
+        !xrtUtf8Valid(invalidText, NULL));
 
     utf16 = xrtTranscode(source, XENCODING_UTF8, XENCODING_UTF16_LE,
         XUTF_STRICT, false, &utf16Size);
@@ -65,10 +62,10 @@ int main(void)
     require_line(
         "utf16",
         (utf16 != NULL) &&
-        (utf16Size == 6u) &&
+        (utf16Size == 8u) &&
         (restored != NULL) &&
-        (restoredSize == strlen(text)) &&
-        (strcmp((const char*)restored, text) == 0));
+        (restoredSize == sizeof(text)-1) &&
+        (memcmp(restored, text, sizeof(text)-1) == 0));
 
     converted = xrtTranscode(
         (xbytesview){utf16, utf16Size},
@@ -81,8 +78,8 @@ int main(void)
     require_line(
         "convert",
         (converted != NULL) &&
-        (convertedSize == strlen(text)) &&
-        (strcmp((const char*)converted, text) == 0));
+        (convertedSize == sizeof(text)-1) &&
+        (memcmp(converted, text, sizeof(text)-1) == 0));
 
     utf16be = xrtTranscode(source, XENCODING_UTF8, XENCODING_UTF16_BE,
         XUTF_STRICT, false, &utf16beSize);
@@ -115,8 +112,8 @@ int main(void)
         (utf32 != NULL) &&
         (utf32be != NULL) &&
         (restored32 != NULL) &&
-        (restored32Size == strlen(text)) &&
-        (strcmp((const char*)restored32, text) == 0));
+        (restored32Size == sizeof(text)-1) &&
+        (memcmp(restored32, text, sizeof(text)-1) == 0));
 
     xrtFree(restored32);
     xrtFree(utf32be);

@@ -1,0 +1,3 @@
+bytes data = encoding.encode("A\0你😀", encoding.utf16LE)
+assert data == b"A\0\0\0\x60\x4F\x3D\xD8\0\xDE"
+assert encoding.decode(data, encoding.utf16LE) == "A\0你😀"

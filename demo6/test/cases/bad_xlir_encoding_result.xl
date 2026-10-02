@@ -1,0 +1,2 @@
+extern "xl6EncodingEncodeV1" func invalid(string text, int encoding, bool bom, int policy, int size) as Buffer
+invalid("a", 1, false, 0, -1)

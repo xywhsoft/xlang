@@ -1,40 +1,27 @@
-string text = "A你好"
+string text = "A\0你好"
+assert encoding.unitSize(encoding.utf32LE) == 4
+assert encoding.name(encoding.utf16BE) == "utf-16be"
+assert encoding.isUtf8(text)
+assert not encoding.isUtf8(b"\xFF")
+println("validate=ok")
 
-assert(encoding.charSize(encoding.utf32) == 4)
-assert(encoding.name(encoding.autoDetect) == "auto")
-assert(encoding.name(encoding.binary) == "binary")
-assert(encoding.name(encoding.utf16BE) == "utf-16be")
-assert(encoding.name(encoding.utf32) == "utf-32")
-assert(encoding.name(encoding.utf32BE) == "utf-32be")
-assert(encoding.name(encoding.utf8 + encoding.bom) == "utf-8")
-assert(encoding.isUtf8(text))
-assert(encoding.detect(text) == encoding.utf8)
-
-Buffer invalid = Buffer()
-assert(invalid.appendByte(255))
-assert(!encoding.isUtf8Bytes(invalid.data(), c_size(invalid.len())))
-assert(encoding.detectBytes(invalid.data(), c_size(invalid.len())) == encoding.oem)
-println("detect=ok")
-
-Buffer utf16 = encoding.toBytes(text, encoding.utf16)
-assert(utf16.len() == 6)
-assert(encoding.fromBytes(utf16.data(), c_size(utf16.len()), encoding.utf16) == text)
+bytes utf16 = encoding.encode(text, encoding.utf16LE)
+assert utf16 == b"A\0\0\0\x60\x4F\x7D\x59"
+assert encoding.decode(utf16, encoding.utf16LE) == text
 println("utf16=ok")
 
-Buffer utf8 = encoding.convertBytes(utf16.data(), c_size(utf16.len()), encoding.utf16, encoding.utf8)
-assert(utf8.text() == text)
+bytes utf8 = encoding.transcode(utf16, encoding.utf16LE, encoding.utf8)
+assert encoding.decode(utf8) == text
 println("convert=ok")
 
-Buffer utf16leExplicit = encoding.encodeUtf16LE(text)
-Buffer utf16beExplicit = encoding.encodeUtf16BE(text)
-Buffer utf32leExplicit = encoding.encodeUtf32LE(text)
-Buffer utf32beExplicit = encoding.encodeUtf32BE(text)
-Buffer utf8Explicit = encoding.encodeUtf8(text)
-assert(encoding.decodeUtf8(utf8Explicit) == text)
-assert(encoding.decodeUtf16LE(utf16leExplicit) == text)
-assert(encoding.decodeUtf16BE(utf16beExplicit) == text)
-assert(encoding.decodeUtf32LE(utf32leExplicit) == text)
-assert(encoding.decodeUtf32BE(utf32beExplicit) == text)
-assert(encoding.swapUtf16Endian(utf16leExplicit) == utf16beExplicit)
-assert(encoding.swapUtf32Endian(utf32leExplicit) == utf32beExplicit)
+bytes be16 = encoding.encodeUtf16BE(text)
+bytes le32 = encoding.encodeUtf32LE(text)
+bytes be32 = encoding.encodeUtf32BE(text)
+assert encoding.decodeUtf8(encoding.encodeUtf8(text)) == text
+assert encoding.decodeUtf16LE(utf16) == text
+assert encoding.decodeUtf16BE(be16) == text
+assert encoding.decodeUtf32LE(le32) == text
+assert encoding.decodeUtf32BE(be32) == text
+assert encoding.transcode(be16, encoding.utf16BE, encoding.utf16LE) == utf16
+assert encoding.transcode(le32, encoding.utf32LE, encoding.utf32BE) == be32
 println("explicit=ok")

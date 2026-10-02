@@ -74,7 +74,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_number_float_buffer.c", 0, {"XRT_MODULE_NUMBER_FLOAT", "XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_unicode.c", 0, {"XRT_MODULE_UNICODE", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_unicode_validator.c", 0, {"XRT_MODULE_UNICODE", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
-    {"src/runtime/xl6_html.c", 0, {"XRT_MODULE_HTML_ESCAPE"}}
+    {"src/runtime/xl6_html.c", 0, {"XRT_MODULE_HTML_ESCAPE"}},
+    {"src/runtime/xl6_encoding.c", 0, {"XRT_MODULE_CHARSET", "XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_encoding_meta.c", 0, {"XRT_MODULE_CHARSET"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
