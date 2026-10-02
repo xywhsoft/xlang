@@ -438,8 +438,8 @@ static int xl6IrCgenEmitCallOperand(
         xl6OutputPrintf(out, "v%u", (unsigned int)value);
         return !xl6OutputHasFailed(out);
     }
-    if ( target->parameterPhysicalAbis[parameter] !=
-             XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ) return 0;
+    if ( target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
+         target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ) return 0;
     if ( xl6IrCgenParameterAbiIsIndirect(target->parameterAbis[parameter]) ) {
         const char* type = xl6IrCgenType(
             module, target->parameterTypes[parameter]);

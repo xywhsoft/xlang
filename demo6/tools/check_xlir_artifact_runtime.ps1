@@ -180,7 +180,8 @@ $process=Start-Process @start
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(PATTERN|REGEX_(SET|REPLACE|SPLIT))$'}).Count
                 }elseif($case-in@('stdlib_regex_iterators','stdlib_regex_replace_only','stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors',
-                    'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_extended_errors','stdlib_regex_byte_boundaries')){
+                    'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_extended_errors','stdlib_regex_byte_boundaries',
+                    'stdlib_regex_replace_func','stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors','stdlib_regex_error_metadata')){
                     $expectedRegex=switch($case){
                         'stdlib_regex_iterators' {@('core','match','iterator')}
                         'stdlib_regex_replace_only' {@('core','replace')}
@@ -190,11 +191,16 @@ $process=Start-Process @start
                         'stdlib_regex_set_only' {@('core','set')}
                         'stdlib_regex_extended_errors' {@('core','match','iterator','replace','split','set')}
                         'stdlib_regex_byte_boundaries' {@('core','match','replace','split')}
+                        'stdlib_regex_replace_func' {@('core','match','replace_func')}
+                        'stdlib_regex_replace_func_buffer' {@('core','match','replace_func','replace_func_buffer')}
+                        'stdlib_regex_replace_func_errors' {@('core','match','replace_func','replace_func_buffer')}
+                        'stdlib_regex_error_metadata' {@('core','set')}
                     }
                     $regexSources=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_regex_'}|Sort-Object)
                     $expectedSources=@($expectedRegex|ForEach-Object {"src/runtime/xl6_regex_$_.c"}|Sort-Object)
                     $selectionMatches=!(Compare-Object $regexSources $expectedSources)-and
-                        (('XRT_MODULE_BUFFER'-in$plan.NativeModules)-eq($case-in@('stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors')))-and
+                        (('XRT_MODULE_BUFFER'-in$plan.NativeModules)-eq($case-in@('stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors',
+                            'stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors')))-and
                         'XRT_MODULE_PATTERN'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
                 }

@@ -12870,7 +12870,13 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
                      XL6_IR_PARAMETER_ABI_BORROW )
                 return xl6IrLowerDiag(ctx, declaration,
                     "XLIR foreign C function parameter has no borrowed callback ABI");
-            if ( (parameter->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&
+            if ((parameter->flags & XL6_AST_FLAG_C_CALLBACK)==0 &&
+                xl6IrRuntimeDirectBridgeCheckedClosureParameter(target->cName,parameterOffset+i)) {
+                /* The closed registry carries an exact checked closure
+                 * signature. Keep its borrowed physical pointer; no erased
+                 * XL6_Function adapter and no backend library-name guess. */
+                target->parameterPhysicalAbis[parameterOffset+i]=XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW;
+            } else if ( (parameter->flags & XL6_AST_FLAG_C_CALLBACK) != 0 &&
                  xl6IrRawCCallbackSignatureSupported(
                      module, parameter->storageType) ) {
                 target->parameterPhysicalAbis[parameterOffset + i] =

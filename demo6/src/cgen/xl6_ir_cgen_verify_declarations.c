@@ -54,6 +54,15 @@ static int xl6IrCgenVerifyDeclarations(
                       parameterType->kind == XL6_IR_TYPE_FUNCTION) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
+            } else if (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
+                if ((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
+                    target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                    !parameterType || parameterType->kind!=XL6_IR_TYPE_FUNCTION ||
+                    parameterType->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR ||
+                    parameterType->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                    parameterType->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+                    target->parameterPhysicalFieldDeclarations[parameter]!=XL6_IR_NODE_INVALID)
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no checked borrowed closure pointer ABI");
             } else if ( target->parameterPhysicalAbis[parameter] ==
                             XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) {
                 if ( (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&

@@ -1,6 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
 typedef struct XL6_RegexIterator {
-    uint64_t thread;
+    XL6_RegexThreadOwner thread;
     xregex* regex;
     xregexmatcher* matcher;
     xvalue* input;
@@ -12,7 +12,7 @@ static XL6_RegexIterator* check(void* handle)
 {
     XL6_RegexIterator* it=handle;
     if (!it) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
-    if (it->thread!=xrtThreadCurrentId()) { xrtSetErrorKind(XERR_STATE); return NULL; }
+    if (!xl6RegexThreadCheck(&it->thread)) return NULL;
     return it;
 }
 static void closeInput(XL6_RegexIterator* it)
@@ -23,13 +23,14 @@ static void closeInput(XL6_RegexIterator* it)
     xrtValueRelease(it->input); it->input=NULL; it->text=(xstrview){NULL,0};
 }
 void xl6RegexIteratorDestroyV1(void* handle)
-{ XL6_RegexIterator* it=handle; if (it) {closeInput(it); xrtFree(it);} }
+{ XL6_RegexIterator* it=handle; if (it) {closeInput(it);xl6RegexThreadDrop(&it->thread);xrtFree(it);} }
 void* xl6RegexIteratorCreateV1(void* regex, xstrview text, int64_t start, int64_t limit, int64_t size)
 {
     size_t count;
     if (!xl6RegexInput(regex,&text,start,size) || !xl6RegexLimit(limit,&count)) return NULL;
     XL6_RegexIterator* it=xrtCalloc(1,sizeof(*it)); if (!it) return NULL;
-    it->thread=xrtThreadCurrentId(); it->start=(size_t)start; it->remaining=count; it->first=true;
+    if (!xl6RegexThreadInit(&it->thread)) goto fail;
+    it->start=(size_t)start; it->remaining=count; it->first=true;
     it->regex=xrtRegexRef(regex); if (!it->regex) goto fail;
     it->input=xrtValueString(text);
     if (!it->input || !xrtValueGetString(it->input,&it->text)) goto fail;

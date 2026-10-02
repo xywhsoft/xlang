@@ -1,0 +1,2 @@
+extern "xl6RegexErrorOffsetV1" @no_raise func offset(int value) as int
+assert offset(0) == -1

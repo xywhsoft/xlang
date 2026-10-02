@@ -109,6 +109,23 @@ int main(int argc, char** argv)
         }
         for (size_t p=0; p<count; ++p) {
             XL6_IrType* scalar = &ir.types.items[t->parameterTypes[p] - 1];
+            if (t->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
+                size_t arity=scalar->paramCount;scalar->paramCount=1;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));scalar->paramCount=arity;
+                XL6_IrCallableErasureAbi erasure=scalar->callableErasureAbi;
+                scalar->callableErasureAbi=XL6_IR_CALLABLE_ERASURE_OPEN;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));scalar->callableErasureAbi=erasure;
+                XL6_IrTypeId physicalResult=scalar->callableResultType;scalar->callableResultType=XL6_IR_TYPE_INVALID;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));scalar->callableResultType=physicalResult;
+                XL6_IrType* returned=&ir.types.items[physicalResult-1];
+                XL6_IrCAbi returnedAbi=returned->cAbi;returned->cAbi=XL6_IR_C_ABI_I64;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));returned->cAbi=returnedAbi;
+                t->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));
+                t->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));
+                t->parameterPhysicalAbis[p]=XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW;
+            }
             if (scalar->cAbi == XL6_IR_C_ABI_I64) {
                 XL6_IrIntegerTarget width = scalar->integerTarget;
                 scalar->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_32;
@@ -151,6 +168,10 @@ int main(int argc, char** argv)
                 destroy->cName = name;
             }
             XL6_IrType* parameter = &ir.types.items[t->parameterTypes[p] - 1];
+            if (parameter->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR) {
+                XL6_IrCAbi abi=parameter->cAbi;parameter->cAbi=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));parameter->cAbi=abi;
+            }
             if (parameter->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
                 XL6_IrType* item = &ir.types.items[parameter->params[0] - 1];
                 XL6_IrCAbi itemAbi = item->cAbi;

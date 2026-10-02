@@ -1,0 +1,44 @@
+auto r = regex.compile("(a+)")
+int called = 0
+string input = "a\0aa你"
+func(RegexMatch) as string replacement = func(RegexMatch item) as string
+    called += 1
+    assert item.input == input
+    auto group = item.text(1)
+    if group != null then return "[" + group + "]" end
+    return "?"
+end
+assert r.replaceWith(input, replacement) == "[a]\0[aa]你"
+assert called == 2
+assert r.replaceWith(input, replacement, 0) == input
+assert called == 2
+assert r.replaceWith(input, replacement, 1) == "[a]\0aa你"
+assert called == 3
+auto empty = regex.compile("")
+assert empty.replaceWith("你", func(RegexMatch item) as string
+    assert item.startByte() == 0 or item.startByte() == 3
+    return "X"
+end) == "X你X"
+auto recursive = regex.compile("a")
+assert recursive.replaceWith("a", func(RegexMatch item) as string
+    return recursive.replaceWith("a", func(RegexMatch nested) as string
+        return "b"
+    end)
+end) == "b"
+assert r.replaceWith("none", replacement) == "none"
+assert r.replaceWith(input, func(RegexMatch item) as string
+    assert item.input == "a"
+    return "x\0你"
+end, -1, 1) == "x\0你"
+func namedReplacement(RegexMatch item) as string
+    auto text = item.text()
+    if text != null then return "<" + text + ">" end
+    return ""
+end
+assert r.replaceWith("aa", namedReplacement) == "<aa>"
+array<RegexMatch> saved = []
+assert r.replaceWith("a aa", func(RegexMatch item) as string
+    saved.append(item)
+    return "x"
+end) == "x x"
+assert saved[0].input == "a aa" and saved[1].startByte() == 2

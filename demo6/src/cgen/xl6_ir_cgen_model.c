@@ -622,8 +622,8 @@ static const char* xl6IrCgenExternParameterType(
         return xl6IrCgenNativeClassPhysicalField(
                    module, target, parameter) != NULL
             ? "void*" : NULL;
-    if ( target->parameterPhysicalAbis[parameter] !=
-             XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ) return NULL;
+    if ( target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
+         target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ) return NULL;
     type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
     /* Legacy C entry points are pointer ABI boundaries. Language and runtime
      * bridge calls keep the full length-bearing value. */
