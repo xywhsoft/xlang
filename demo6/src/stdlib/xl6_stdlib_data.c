@@ -3202,33 +3202,6 @@ static const XL6_StdlibParam xl6StdXrtStringPadParams[] = {
     {"string", "pad"}
 };
 
-static const XL6_StdlibParam xl6StdXrtTimeToStrParams[] = {
-    {"int", "value"},
-    {"c_int", "format"}
-};
-
-static const XL6_StdlibParam xl6StdXrtTimeFormatParams[] = {
-    {"int", "value"},
-    {"string", "pattern"}
-};
-
-static const XL6_StdlibParam xl6StdXrtTimeParseParams[] = {
-    {"string", "text"},
-    {"string", "pattern"}
-};
-
-static const XL6_StdlibParam xl6StdXrtTryStrToTimeParams[] = {
-    {"string", "text"},
-    {"c_size", "size"},
-    {"point", "outValue"}
-};
-
-static const XL6_StdlibParam xl6StdXrtTryTimeParseParams[] = {
-    {"string", "text"},
-    {"string", "pattern"},
-    {"point", "outValue"}
-};
-
 static const XL6_StdlibParam xl6StdXrtYearParams[] = {
     {"int", "year"}
 };
@@ -3284,11 +3257,6 @@ static const XL6_StdlibParam xl6StdXrtDateDiffParams[] = {
     {"c_int", "interval"},
     {"int", "left"},
     {"int", "right"}
-};
-
-static const XL6_StdlibParam xl6StdXrtStrToTimeParams[] = {
-    {"string", "text"},
-    {"c_size", "size"}
 };
 
 static const XL6_StdlibParam xl6StdXrtIntUnaryParams[] = {
@@ -4426,30 +4394,16 @@ static const char xl6StdTimeFromDateBody[] =
     "extern \"xl6TimeFromDateV1\" func __xl_std_time_from_date(int year, int month, int day) as time\n";
 
 static const char xl6StdTimeParseBody[] =
-    "func __xl_std_time_parse(string text) as time\n"
-    "    return time(__xl_std_xrt_str_to_time(text, 0))\n"
-    "end\n";
+    "extern \"xl6TimeParseAnyV1\" func __xl_std_time_parse(string text, int size = -1) as time\n";
 
 static const char xl6StdTimeParsePatternBody[] =
-    "func __xl_std_time_parse_pattern(string text, string pattern) as time\n"
-    "    return time(__xl_std_xrt_time_parse(text, pattern))\n"
-    "end\n";
+    "extern \"xl6TimeParsePatternV1\" func __xl_std_time_parse_pattern(string text, string pattern, int size = -1, int patternSize = -1) as time\n";
 
 static const char xl6StdTimeTryParseBody[] =
-    "func __xl_std_time_try_parse(string text) as (bool, time)\n"
-    "    if __xl_std_xrt_try_str_to_time(text, 0, null) then\n"
-    "        return true, time(__xl_std_xrt_str_to_time(text, 0))\n"
-    "    end\n"
-    "    return false, time(0)\n"
-    "end\n";
+    "extern \"xl6TimeTryParseAnyV1\" func __xl_std_time_try_parse(string text, int size = -1) as (bool, time)\n";
 
 static const char xl6StdTimeTryParsePatternBody[] =
-    "func __xl_std_time_try_parse_pattern(string text, string pattern) as (bool, time)\n"
-    "    if __xl_std_xrt_try_time_parse(text, pattern, null) then\n"
-    "        return true, time(__xl_std_xrt_time_parse(text, pattern))\n"
-    "    end\n"
-    "    return false, time(0)\n"
-    "end\n";
+    "extern \"xl6TimeTryParsePatternV1\" func __xl_std_time_try_parse_pattern(string text, string pattern, int size = -1, int patternSize = -1) as (bool, time)\n";
 
 static const char xl6StdTimeYearBody[] =
     "extern \"xl6TimeYearV1\" @pure @no_raise @nonblocking func __xl_std_time_year(time value) as int\n";
@@ -4706,29 +4660,33 @@ static const char xl6StdTimeWeekOfMonthBody[] =
     "end\n";
 
 static const char xl6StdTimeFormatBody[] =
-    "func __xl_std_time_format(time value, int format = 0) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), c_int(format)))\n"
-    "end\n";
+    "extern \"xl6TimeFormatV1\" func __xl_std_time_format(time value, string pattern = \"%F %T\", int offset = 0, int patternSize = -1) as string\n";
 
 static const char xl6StdTimeFormatPatternBody[] =
-    "func __xl_std_time_format_pattern(time value, string pattern) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_format(int(value), pattern))\n"
-    "end\n";
+    "extern \"xl6TimeFormatV1\" func __xl_std_time_format_pattern(time value, string pattern, int offset = 0, int patternSize = -1) as string\n";
 
 static const char xl6StdTimeDateStringBody[] =
-    "func __xl_std_time_date_string(time value) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), 1))\n"
+    "func __xl_std_time_date_string(time value, int offset = 0) as string\n"
+    "    return __xl_std_time_format(value, \"%F\", offset)\n"
     "end\n";
 
 static const char xl6StdTimeTimeStringBody[] =
-    "func __xl_std_time_time_string(time value) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), 2))\n"
+    "func __xl_std_time_time_string(time value, int offset = 0) as string\n"
+    "    return __xl_std_time_format(value, \"%T\", offset)\n"
     "end\n";
 
-static const char xl6StdTimeRelativeBody[] =
-    "func __xl_std_time_relative(time value, time base) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_relative_time(int(value), int(base)))\n"
-    "end\n";
+static const char xl6StdTimeRFC3339Body[] =
+    "extern \"xl6TimeRFC3339V1\" func __xl_std_time_rfc3339(time value, int offset = 0) as string\n";
+static const char xl6StdTimeHTTPDateBody[] =
+    "extern \"xl6TimeHTTPDateV1\" func __xl_std_time_http_date(time value) as string\n";
+static const char xl6StdTimeParseRFC3339Body[] =
+    "extern \"xl6TimeParseRFC3339V1\" func __xl_std_time_parse_rfc3339(string text, int size = -1) as time\n";
+static const char xl6StdTimeTryParseRFC3339Body[] =
+    "extern \"xl6TimeTryParseRFC3339V1\" func __xl_std_time_try_parse_rfc3339(string text, int size = -1) as (bool, time)\n";
+static const char xl6StdTimeParseHTTPDateBody[] =
+    "extern \"xl6TimeParseHTTPDateV1\" func __xl_std_time_parse_http_date(string text, int size = -1) as time\n";
+static const char xl6StdTimeTryParseHTTPDateBody[] =
+    "extern \"xl6TimeTryParseHTTPDateV1\" func __xl_std_time_try_parse_http_date(string text, int size = -1) as (bool, time)\n";
 
 static const char xl6StdRandomU32Body[] =
     "func __xl_std_random_u32() as uint32\n"
@@ -6567,13 +6525,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_math", "sign", "__xl_std_xrt_math_sign", "xrtMathSign", xl6StdMathUnaryFloatParams, 1, "c_int", NULL},
     {"__xrt_time", "dateAdd", "__xl_std_xrt_date_add", NULL, NULL, 0, "time", "extern \"xl6TimeAddV1\" func __xl_std_xrt_date_add(time value, int amount, int unit) as time\n"},
     {"__xrt_time", "dateDiff", "__xl_std_xrt_date_diff", NULL, NULL, 0, "int", "extern \"xl6TimeDiffV1\" func __xl_std_xrt_date_diff(time left, time right, int unit) as int\n"},
-    {"__xrt_time", "strToTime", "__xl_std_xrt_str_to_time", "xl6_xrt_time_parse_any_value", xl6StdXrtStrToTimeParams, 2, "int", NULL},
-    {"__xrt_time", "tryStrToTime", "__xl_std_xrt_try_str_to_time", "xl6_xrt_time_parse_any_try", xl6StdXrtTryStrToTimeParams, 3, "c_bool", NULL},
-    {"__xrt_time", "timeToStr", "__xl_std_xrt_time_to_str", "xl6_xrt_time_string_owned", xl6StdXrtTimeToStrParams, 2, "point", NULL},
-    {"__xrt_time", "timeFormat", "__xl_std_xrt_time_format", "xl6_xrt_time_format_owned", xl6StdXrtTimeFormatParams, 2, "point", NULL},
-    {"__xrt_time", "timeParse", "__xl_std_xrt_time_parse", "xl6_xrt_time_parse_value", xl6StdXrtTimeParseParams, 2, "int", NULL},
-    {"__xrt_time", "tryTimeParse", "__xl_std_xrt_try_time_parse", "xl6_xrt_time_parse_try", xl6StdXrtTryTimeParseParams, 3, "c_bool", NULL},
-    {"__xrt_time", "relativeTime", "__xl_std_xrt_relative_time", "xl6_xrt_time_relative", xl6StdXrtIntBinaryParams, 2, "point", NULL},
     {"__xrt_random", "rand32", "__xl_std_xrt_rand32", "xl6_xrt_random_u32", NULL, 0, "c_uint", NULL},
     {"__xrt_random", "rand64", "__xl_std_xrt_rand64", "xl6_xrt_random_u64", NULL, 0, "uint64", NULL},
     {"__xrt_random", "below", "__xl_std_xrt_rand_below", "xl6_xrt_random_below", xl6StdXrtRandBelowParams, 1, "uint64", NULL},
@@ -7010,7 +6961,13 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "formatPattern", "__xl_std_time_format_pattern", NULL, NULL, 0, "string", xl6StdTimeFormatPatternBody},
     {"time", "dateString", "__xl_std_time_date_string", NULL, NULL, 0, "string", xl6StdTimeDateStringBody},
     {"time", "timeString", "__xl_std_time_time_string", NULL, NULL, 0, "string", xl6StdTimeTimeStringBody},
-    {"time", "relative", "__xl_std_time_relative", NULL, NULL, 0, "string", xl6StdTimeRelativeBody},
+    {"time", "parseFields", "__xl_std_time_parse_fields", NULL, NULL, 0, "DateTime", xl6StdTimeParseFieldsBody},
+    {"time", "rfc3339", "__xl_std_time_rfc3339", NULL, NULL, 0, "string", xl6StdTimeRFC3339Body},
+    {"time", "httpDate", "__xl_std_time_http_date", NULL, NULL, 0, "string", xl6StdTimeHTTPDateBody},
+    {"time", "parseRFC3339", "__xl_std_time_parse_rfc3339", NULL, NULL, 0, "time", xl6StdTimeParseRFC3339Body},
+    {"time", "tryParseRFC3339", "__xl_std_time_try_parse_rfc3339", NULL, NULL, 0, "(bool,time)", xl6StdTimeTryParseRFC3339Body},
+    {"time", "parseHTTPDate", "__xl_std_time_parse_http_date", NULL, NULL, 0, "time", xl6StdTimeParseHTTPDateBody},
+    {"time", "tryParseHTTPDate", "__xl_std_time_try_parse_http_date", NULL, NULL, 0, "(bool,time)", xl6StdTimeTryParseHTTPDateBody},
 
     {"random", "u32", "__xl_std_random_u32", NULL, NULL, 0, "uint32", xl6StdRandomU32Body},
     {"random", "u64", "__xl_std_random_u64", NULL, NULL, 0, "uint64", xl6StdRandomU64Body},

@@ -19853,7 +19853,7 @@ static int xl6SemIsInternalStdRuntimeExtern(const XL6_AstNode* node)
 }
 
 /* The native product ABI is closed: three language signed 64-bit values or
- * two absolute time values,
+ * two absolute time values, or a bool followed by absolute time,
  * in declaration order. Resolve aliases here; Typed XLIR independently
  * verifies the exact physical carrier, ownership and representation. C
  * integer aliases are deliberately not admitted based on host sizeof. */
@@ -19865,7 +19865,8 @@ static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
     for (i = 0; i < returns->childCount; ++i) {
         const XL6_AstNode* type = xl6SemResolveAliasType(ctx, returns->children[i]);
         if (type == NULL || type->childCount != 0 ||
-            (returns->childCount == 2 ? !xl6TextEquals(type->text, "time") :
+            (returns->childCount == 2 ? (!xl6TextEquals(type->text, "time") &&
+                !(i == 0 && xl6TextEquals(type->text, "bool"))) :
              (!xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64"))))
             return 0;
     }

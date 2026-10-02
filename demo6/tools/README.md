@@ -21,15 +21,19 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 
 ## Guard scripts and inventory
 
-B18 time gates: `check_stdlib_time_core.ps1` and
-`check_stdlib_time_calendar.ps1` require one immutable current-source
+B18 time gates: `check_stdlib_time_core.ps1`, `check_stdlib_time_calendar.ps1`,
+and `check_stdlib_time_text.ps1` require one immutable current-source
 PublicSourceDirectory and separate fresh Directory values. The full Windows
-stdlib suite builds the compiler once and executes both gates. Linux
+stdlib suite builds the compiler once and executes all three gates. Linux
 `check_stdlib_time_calendar.sh <fresh-directory>` covers core/calendar/snapshots,
 process-local New York and Lord Howe DST oracles, and seven actual sanitized
 native closures. Shared CLI/JIT libraries are not sanitized; their allocation
-sweeps use the logical ledger. These gates do not cover time_text or all 53
-modules. Parser source-differential mode additionally requires
+ledger does not measure physical allocator caches. `check_stdlib_time_text.sh`
+adds exact pattern/protocol/DateTime text, native diagnostic OOM, closed bool/time
+ABI mutations, and eight actual sanitized program closures. Each gate freezes
+its input hashes; only a results.json with Complete=true denotes an accepted
+run. These subsets do not replace the 53-module cross-group acceptance.
+Parser source-differential mode additionally requires
 BaselineGeneratedParser, so the old API adapter is never linked to current
 generated parser tables and mistaken for an independent baseline.
 

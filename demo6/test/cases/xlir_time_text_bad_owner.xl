@@ -1,0 +1,2 @@
+extern "xl6TimeFormatV1" func bad(time value, string pattern, int offset, int size) as point
+auto text = bad(time(0), "%F", 0, -1)

@@ -57,7 +57,8 @@ int main(int argc, char** argv)
         XL6_IrType* type = &ir.types.items[i];
         if (type->nativeProductAbi == XL6_IR_NATIVE_PRODUCT_NONE) continue;
         XL6_IrNativeProductAbi profile = type->nativeProductAbi;
-        assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1 || profile == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1);
+          assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1 || profile == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ||
+              profile == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1);
         type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
         assert(!xl6IrVerifyModule(&ir, NULL)); type->nativeProductAbi = profile;
         type->nativeProductAbi = (XL6_IrNativeProductAbi)999;
@@ -227,7 +228,8 @@ int main(int argc, char** argv)
         XL6_IrCAbi abi = result->cAbi;
         if (abi == XL6_IR_C_ABI_PRODUCT) {
             XL6_IrNativeProductAbi profile = result->nativeProductAbi;
-            assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1 || profile == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1);
+             assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1 || profile == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ||
+                 profile == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1);
             result->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
             assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));
             result->nativeProductAbi = profile;

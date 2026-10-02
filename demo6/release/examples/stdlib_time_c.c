@@ -31,39 +31,6 @@ static int owned_text_eq(char* text, const char* expected)
 
 
 
-/* 把 xlang 的本地墙上时间语义映射到 XRT 的绝对时间 API。 */
-static xtime local_to_utc(xtime value)
-{
-    xdatetime dateTime;
-    xtime result = 0;
-
-    if ( !xrtTimeSplit(value, &dateTime) ||
-         !xrtTimeFromLocal(&dateTime, XTIME_FOLD_EARLIER, &result) ) {
-        return 0;
-    }
-    return result;
-}
-
-
-
-/* 把绝对时间转换为使用 UTC 结构保存的本地墙上时间。 */
-static xtime utc_to_local(xtime value)
-{
-    xdatetime dateTime;
-    xtime result = 0;
-
-    if ( !xrtTimeLocal(value, &dateTime) ) {
-        return 0;
-    }
-    dateTime.Offset = 0;
-    if ( !xrtTimeMake(&dateTime, &result) ) {
-        return 0;
-    }
-    return result;
-}
-
-
-
 /* 返回以星期一开始的月内周序号。 */
 static int week_of_month(xtime value)
 {
@@ -266,22 +233,23 @@ int main(void)
     {
         int64 unixSeconds = xrtTimeUnix(releaseMoment);
         xtime unixMoment = 0;
-        xtime utcMoment = local_to_utc(releaseMoment);
-        xtime localMoment = utc_to_local(utcMoment);
+        xtime utcMoment = 0;
         xtime now = xrtNow();
-        xtime nowLocal = utc_to_local(now);
+        xdatetime localMoment;
+        uint64 clock = xrtClock();
         xdatetime localDateTime;
         bool systemOk =
             xrtTimeFromUnix(unixSeconds, &unixMoment) &&
+            xrtTimeLocal(releaseMoment, &localMoment) &&
+            xrtTimeFromLocal(&localMoment, XTIME_FOLD_REJECT, &utcMoment) &&
             xrtTimeLocal(now, &localDateTime);
 
         require_line("system",
             systemOk &&
             unixMoment == releaseMoment &&
-            localMoment == releaseMoment &&
-            xrtYear(nowLocal) >= 1970 &&
-            xrtYear(xrtDatePart(nowLocal)) >= 1970 &&
-            xrtHour(xrtTimePart(nowLocal)) >= 0 &&
+            utcMoment == releaseMoment &&
+            xrtYear(xrtDatePart(now)) >= 1970 &&
+            xrtClock() >= clock &&
             xrtYear(now) >= 1970 &&
             localDateTime.Offset > -86400 &&
             localDateTime.Offset < 86400);
@@ -301,7 +269,28 @@ int main(void)
         owned_text_eq(xrtTimeRFC3339(releaseMoment, 0),
             "2026-06-18T09:30:00Z"));
 
+    {
+        xtime precise = INT64_C(1709251137123456), parsed = 0, httpParsed = 0, fieldsTime = 0;
+        char protocol[64], http[64], fieldText[64];
+        size_t protocolSize = xrtTimeWriteRFC3339(protocol, sizeof(protocol), precise, 28800);
+        size_t httpSize = xrtTimeWriteHTTPDate(http, sizeof(http), releaseMoment);
+        xdatetime fields;
+        bool protocolOk = protocolSize != XRT_NPOS && httpSize != XRT_NPOS &&
+            strcmp(protocol, "2024-03-01T07:58:57.123456+08:00") == 0 &&
+            xrtTimeParseRFC3339((xstrview){protocol, protocolSize}, &parsed) && parsed == precise &&
+            xrtTimeParseHTTPDate((xstrview){http, httpSize}, &httpParsed) && httpParsed == releaseMoment &&
+            xrtTimeTryParseHTTPDate((xstrview){http, httpSize}, &httpParsed) &&
+            xrtDateTimeParse(XRT_STR_LITERAL("2024-03-01 07:58:57.123456 +08:00"),
+                XRT_STR_LITERAL("%F %T.%f %:z"), &fields) &&
+            fields.Offset == 28800 && xrtTimeMake(&fields, &fieldsTime) && fieldsTime == precise &&
+            xrtDateTimeWrite(fieldText, sizeof(fieldText), &fields, XRT_STR_LITERAL("%F %T.%f %:z")) != XRT_NPOS &&
+            strcmp(fieldText, "2024-03-01 07:58:57.123456 +08:00") == 0 &&
+            xrtTimeParseAny((xstrview){"2024-02-29\0ignored", 10}, &parsed) &&
+            xrtYear(parsed) == 2024 && xrtMonth(parsed) == 2 && xrtDay(parsed) == 29;
+        require_line("protocol", protocolOk);
+    }
+
     require_line("timer", xrtTimer() >= 0.0);
-    xrtSleep(0);
+    xrtSleepUs(0);
     return 0;
 }

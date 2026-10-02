@@ -1,0 +1,2 @@
+extern "xl6TimeParseAnyV1" func bad(string text, int32 size) as time
+auto value = bad("1970-01-01", -1)

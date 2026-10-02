@@ -193,6 +193,20 @@ $process=Start-Process @start
                         'XRT_MODULE_REGEX_CORE'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_regex_|xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
+                }elseif($case-in@('stdlib_time_text_only','stdlib_time_text','stdlib_time_protocol','stdlib_time_fields_text')){
+                    $baseline=Get-Content -LiteralPath "$outputPath/cgen_basic.native-plan.log" -TotalCount 1|ConvertFrom-Json
+                    $extraSources=if($case-eq'stdlib_time_fields_text'){@('src/runtime/xl6_code_finalizer.c','src/runtime/xl6_time_core.c',
+                        'src/runtime/xl6_time_datetime.c','src/runtime/xl6_time_datetime_text.c')}
+                        elseif($case-eq'stdlib_time_text_only'){@('src/runtime/xl6_time_text.c')}
+                        else{@('src/runtime/xl6_time_core.c','src/runtime/xl6_time_text.c')}
+                    if($case-eq'stdlib_time_text'){$extraSources+='src/runtime/xl6_text_value.c'}
+                    $extraModules=@('XRT_MODULE_TIME_TEXT','XRT_MODULE_UNICODE_TEXT','XRT_MODULE_STRING')
+                    if($case-ne'stdlib_time_text_only'){$extraModules+='XRT_MODULE_TIME'}
+                    if($case-eq'stdlib_time_fields_text'){$extraModules+='XRT_MODULE_VALUE_CONTAINER'}
+                    $expectedSources=@(@($baseline.Sources)+$extraSources|Sort-Object -Unique)
+                    $expectedModules=@(@($baseline.NativeModules)+$extraModules|Sort-Object -Unique)
+                    $selectionMatches=!(Compare-Object @($selectedSources|Sort-Object -Unique) $expectedSources)-and
+                        !(Compare-Object @($plan.NativeModules|Sort-Object -Unique) $expectedModules)
                 }elseif($case-in@('stdlib_time_core','stdlib_time_core_only')){
                     $selectionMatches='src/runtime/xl6_time_core.c'-in$selectedSources-and
                         'XRT_MODULE_TIME'-in$plan.NativeModules-and

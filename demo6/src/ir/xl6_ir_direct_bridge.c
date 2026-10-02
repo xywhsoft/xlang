@@ -37,6 +37,19 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    {"xl6TimeFormatV1",T,S,4,{M,S,I,I}},
+    {"xl6TimeRFC3339V1",T,S,2,{M,I}},
+    {"xl6TimeHTTPDateV1",T,S,1,{M}},
+    {"xl6TimeParsePatternV1",T,M,4,{S,S,I,I}},
+    {"xl6TimeTryParsePatternV1",T,XL6_IR_C_ABI_PRODUCT,4,{S,S,I,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
+    {"xl6TimeParseAnyV1",T,M,2,{S,I}},
+    {"xl6TimeTryParseAnyV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
+    {"xl6TimeParseRFC3339V1",T,M,2,{S,I}},
+    {"xl6TimeTryParseRFC3339V1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
+    {"xl6TimeParseHTTPDateV1",T,M,2,{S,I}},
+    {"xl6TimeTryParseHTTPDateV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
+    {"xl6DateTimeParseV1",T,V,4,{S,S,I,I},.resultOwner="xl6DateTimeDestroyV1"},
+    {"xl6DateTimeFormatV1",T,S,3,{V,S,I},.parameterOwners={"xl6DateTimeDestroyV1"}},
     {"xl6TimeYearV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
     {"xl6TimeMonthV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
     {"xl6TimeDayV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},

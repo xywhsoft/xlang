@@ -1,0 +1,2 @@
+extern "xl6TimeTryParseAnyV1" @no_raise func bad(string text, int size) as (bool, time)
+auto ok, value = bad("bad", -1)

@@ -1,0 +1,54 @@
+time value = time.fromDateTime(2024, 2, 29, 23, 58, 57, 123456)
+assert time.format(value) == "2024-02-29 23:58:57"
+assert time.formatPattern(value, "%F %T.%f %:z", 28800) == "2024-03-01 07:58:57.123456 +08:00"
+assert time.dateString(value) == "2024-02-29" and time.timeString(value) == "23:58:57"
+assert time.format(value, "%F\0ignored", 0, 2) == "2024-02-29"
+assert time.format(value, "中文 %F", 0, 1000) == "中文 2024-02-29"
+assert time.format(value, "", 0, 1000) == ""
+string longPattern = string.repeat("%Y", 300)
+assert time.format(value, longPattern) == string.repeat("2024", 300)
+assert time.parse("2024-02-29 23:58:57\0junk", 19) == #2024-02-29 23:58:57#
+assert time.parsePattern("2024/2/29 23:58:57junk", "%Y/%-m/%-d %Tjunk", 18, 13) == #2024-02-29 23:58:57#
+assert time.parsePattern("2024/02/29", "%Y/%m/%d", 999, 999) == #2024-02-29#
+auto parsed, result = time.tryParse("2024-02-29 23:58:57")
+assert parsed and result == #2024-02-29 23:58:57#
+auto bad, invalid = time.tryParse("2023-02-29")
+assert not bad and invalid == time(0)
+auto nul, _ = time.tryParse("2024-02-29\0junk")
+assert not nul
+auto patternOk, patternValue = time.tryParsePattern("2024/2/29", "%Y/%-m/%-d")
+assert patternOk and patternValue == #2024-02-29#
+auto mismatch, _ = time.tryParsePattern("bad", "%F")
+assert not mismatch
+int caught = 0
+try
+    time.parse("bad")
+catch ValueError e
+    caught += 1
+end
+try
+    time.format(value, "%Q")
+catch ValueError e
+    caught += 1
+end
+try
+    time.format(value, "%F\0junk")
+catch ValueError e
+    caught += 1
+end
+try
+    time.format(value, "%F", 4294967296)
+catch RangeError e
+    caught += 1
+end
+try
+    time.parse("2024-02-29", -2)
+catch RangeError e
+    caught += 1
+end
+try
+    time.format(value, "你", 0, 1)
+catch ValueError e
+    caught += 1
+end
+assert caught == 6

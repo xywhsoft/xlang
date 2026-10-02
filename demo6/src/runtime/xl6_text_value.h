@@ -12,6 +12,19 @@
 #endif
 
 struct xlir_closure;
+XL6_TEXT_API xstrview xl6TimeFormatV1(int64_t value, xstrview pattern, int64_t offset, int64_t size);
+XL6_TEXT_API xstrview xl6TimeRFC3339V1(int64_t value, int64_t offset);
+XL6_TEXT_API xstrview xl6TimeHTTPDateV1(int64_t value);
+XL6_TEXT_API int64_t xl6TimeParsePatternV1(xstrview text, xstrview pattern, int64_t size, int64_t patternSize);
+XL6_TEXT_API XL6_ProductBoolTimeV1 xl6TimeTryParsePatternV1(xstrview text, xstrview pattern, int64_t size, int64_t patternSize);
+XL6_TEXT_API int64_t xl6TimeParseAnyV1(xstrview text, int64_t size);
+XL6_TEXT_API XL6_ProductBoolTimeV1 xl6TimeTryParseAnyV1(xstrview text, int64_t size);
+XL6_TEXT_API int64_t xl6TimeParseRFC3339V1(xstrview text, int64_t size);
+XL6_TEXT_API XL6_ProductBoolTimeV1 xl6TimeTryParseRFC3339V1(xstrview text, int64_t size);
+XL6_TEXT_API int64_t xl6TimeParseHTTPDateV1(xstrview text, int64_t size);
+XL6_TEXT_API XL6_ProductBoolTimeV1 xl6TimeTryParseHTTPDateV1(xstrview text, int64_t size);
+XL6_TEXT_API void* xl6DateTimeParseV1(xstrview text, xstrview pattern, int64_t size, int64_t patternSize);
+XL6_TEXT_API xstrview xl6DateTimeFormatV1(void* handle, xstrview pattern, int64_t size);
 XL6_TEXT_API int64_t xl6TimeYearV1(int64_t value);
 XL6_TEXT_API int64_t xl6TimeMonthV1(int64_t value);
 XL6_TEXT_API int64_t xl6TimeDayV1(int64_t value);
