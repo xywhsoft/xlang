@@ -1,0 +1,38 @@
+auto fields = DateTime(2024, 2, 29, 23, 59, 58, 123456, 28800)
+assert fields.year == 2024 and fields.month == 2 and fields.day == 29
+assert fields.hour == 23 and fields.minute == 59 and fields.second == 58
+assert fields.microsecond == 123456 and fields.offset == 28800
+assert fields.weekday == 4 and fields.dayOfYear == 60 and fields.isDST == -1
+assert fields.toTime() == time.fromDateTime(2024, 2, 29, 23, 59, 58, 123456, 28800)
+auto utc = time.split(fields.toTime())
+assert utc.hour == 15 and utc.offset == 0 and utc.toTime() == fields.toTime()
+auto same = DateTime(fields.toTime(), 28800)
+assert same.hour == fields.hour and same.microsecond == 123456
+auto negative = time.split(time(-1), -1)
+assert negative.year == 1969 and negative.month == 12 and negative.day == 31
+assert negative.second == 58 and negative.microsecond == 999999 and negative.toTime() == time(-1)
+auto low = time.split(time(-9223372036854775807 - 1), 86399)
+auto high = time.split(time(9223372036854775807), -86399)
+assert low.toTime() == time(-9223372036854775807 - 1)
+assert high.toTime() == time(9223372036854775807)
+// Aliasing a read-only snapshot cannot mutate another owner's fields.
+DateTime alias = fields
+fields = DateTime(1970, 1, 1)
+assert alias.year == 2024 and fields.year == 1970
+int caught = 0
+try
+    DateTime(2023, 2, 29)
+catch RangeError e
+    caught += 1
+end
+try
+    DateTime(2024, 4294967298, 1)
+catch RangeError e
+    caught += 1
+end
+try
+    time.split(time(0), 86400)
+catch RangeError e
+    caught += 1
+end
+assert caught == 3

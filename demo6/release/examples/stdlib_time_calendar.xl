@@ -1,0 +1,17 @@
+// Absolute instants, immutable fixed-offset fields and half-open UTC ranges.
+time instant = time.fromDateTime(2024, 2, 29, 23, 59, 58, 123456, 28800)
+auto fields = time.split(instant, 28800)
+assert fields.year == 2024 and fields.microsecond == 123456
+assert fields.toTime() == instant
+auto monthStart, monthEnd = time.monthRange(instant)
+assert monthStart == #2024-02-01# and monthEnd == #2024-03-01#
+auto yearStart, yearEnd = time.yearRange(instant)
+assert yearStart == #2024-01-01# and yearEnd == #2025-01-01#
+auto weekStart, weekEnd = time.weekRange(instant)
+assert weekStart == #2024-02-26# and weekEnd == #2024-03-04#
+auto isoYear, isoWeek, isoDay = time.isoWeek(#2021-01-01#)
+assert isoYear == 2020 and isoWeek == 53 and isoDay == 5
+auto local = time.local(instant)
+assert local.toTime() == instant
+assert local.offset == time.timezoneOffset(instant)
+assert time.local(time.fromLocal(local, TimeFold.earlier)).hour == local.hour

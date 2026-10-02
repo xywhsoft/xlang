@@ -1,0 +1,8 @@
+class BadCalendar
+    private native point handle
+    extern "xl6DateTimeSplitV1" create(time value, int offset = 0)
+    extern "xl6DateTimeDestroyV1" destroy()
+    extern "xl6DateTimeToTimeV1" @pure @no_raise @nonblocking get value() as time
+end
+auto value = BadCalendar(time(0))
+assert value.value == time(0)

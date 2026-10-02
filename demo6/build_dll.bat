@@ -188,6 +188,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_pattern_core.c ^
     src\runtime\xl6_pattern_builder.c ^
     src\runtime\xl6_time_core.c ^
+    src\runtime\xl6_time_datetime.c ^
+    src\runtime\xl6_time_local.c ^
     src\runtime\xl6_pattern_options.c ^
     src\runtime\xl6_pattern_match.c ^
     src\runtime\xl6_log.c ^
@@ -315,6 +317,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_pattern_core.c ^
     src\runtime\xl6_pattern_builder.c ^
     src\runtime\xl6_time_core.c ^
+    src\runtime\xl6_time_datetime.c ^
+    src\runtime\xl6_time_local.c ^
     src\runtime\xl6_pattern_options.c ^
     src\runtime\xl6_pattern_match.c ^
     src\runtime\xl6_log.c ^

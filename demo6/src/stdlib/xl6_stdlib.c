@@ -1610,6 +1610,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsIoReader, needsIoWriter, needsIoLines, needsIoProtocols, needsIoBuffer;
     int needsStringIterator, needsUtf8Validator, needsRegex, needsRegexSet, needsRegexBuffer;
     int needsPattern;
+    int needsDateTime;
     int needsVfs;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
@@ -1642,6 +1643,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "Pattern") || xl6StdlibNodeUsesTypeName(root, "PatternOptions") ||
         xl6StdlibNodeUsesTypeName(root, "PatternMatch") || xl6StdlibNodeUsesTypeName(root, "PatternBuilder") ||
         xl6StdlibNodeUsesTypeName(root, "PatternKey") || xl6StdlibNodeUsesTypeName(root, "PatternSpec");
+    needsDateTime = xl6StdlibNodeUsesTypeName(root, "DateTime") ||
+        xl6StdlibFuncUsed(used, "time", "split") || xl6StdlibFuncUsed(used, "time", "local") ||
+        xl6StdlibFuncUsed(used, "time", "fromLocal") || xl6StdlibFuncUsed(used, "time", "utcToLocal") ||
+        xl6StdlibFuncUsed(used, "time", "localToUTC");
     needsRegexBuffer = needsRegex && (xl6StdlibNodeUsesMemberName(root, "replaceTo") ||
         xl6StdlibNodeUsesMemberName(root, "replaceWithTo"));
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||
@@ -1787,7 +1792,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -1859,6 +1864,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if (needsRegexSet) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSetSource);
     if (needsPattern) xl6StdlibBuilderAppend(&builder, xl6StdlibPatternSource);
+    if (needsDateTime) xl6StdlibBuilderAppend(&builder, xl6StdlibDateTimeSource);
+    if (needsDateTime || xl6StdlibNodeUsesTypeName(root, "TimeFold"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTimeFoldSource);
     if (xl6StdlibNodeUsesTypeName(root, "RegexSplitFlags"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSplitFlagsSource);
     if (xl6StdlibNodeUsesTypeName(root, "RegexFlags"))

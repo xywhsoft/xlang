@@ -5,6 +5,7 @@
 #include "src/stdlib/xl6_stdlib_encoding.inc"
 #include "src/stdlib/xl6_stdlib_regex.inc"
 #include "src/stdlib/xl6_stdlib_pattern.inc"
+#include "src/stdlib/xl6_stdlib_time.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
@@ -4412,13 +4413,11 @@ static const char xl6StdTimeNowBody[] =
 
 static const char xl6StdTimeTodayBody[] =
     "func __xl_std_time_today() as time\n"
-    "    return time(__xl_std_xrt_date())\n"
+    "    return __xl_std_time_date_part(__xl_std_time_now())\n"
     "end\n";
 
 static const char xl6StdTimeClockBody[] =
-    "func __xl_std_time_clock() as time\n"
-    "    return time(__xl_std_xrt_time())\n"
-    "end\n";
+    "extern \"xl6TimeMonotonicV1\" func __xl_std_time_clock() as uint64\n";
 
 static const char xl6StdTimeFromTimeBody[] =
     "extern \"xl6TimeFromTimeV1\" func __xl_std_time_from_time(int hour, int minute, int second, int microsecond = 0) as time\n";
@@ -4453,94 +4452,58 @@ static const char xl6StdTimeTryParsePatternBody[] =
     "end\n";
 
 static const char xl6StdTimeYearBody[] =
-    "func __xl_std_time_year(time value) as int\n"
-    "    return __xl_std_xrt_year(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeYearV1\" @pure @no_raise @nonblocking func __xl_std_time_year(time value) as int\n";
 
 static const char xl6StdTimeMonthBody[] =
-    "func __xl_std_time_month(time value) as int\n"
-    "    return __xl_std_xrt_month(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeMonthV1\" @pure @no_raise @nonblocking func __xl_std_time_month(time value) as int\n";
 
 static const char xl6StdTimeDayBody[] =
-    "func __xl_std_time_day(time value) as int\n"
-    "    return __xl_std_xrt_day(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeDayV1\" @pure @no_raise @nonblocking func __xl_std_time_day(time value) as int\n";
 
 static const char xl6StdTimeHourBody[] =
-    "func __xl_std_time_hour(time value) as int\n"
-    "    return __xl_std_xrt_hour(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeHourV1\" @pure @no_raise @nonblocking func __xl_std_time_hour(time value) as int\n";
 
 static const char xl6StdTimeMinuteBody[] =
-    "func __xl_std_time_minute(time value) as int\n"
-    "    return __xl_std_xrt_minute(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeMinuteV1\" @pure @no_raise @nonblocking func __xl_std_time_minute(time value) as int\n";
 
 static const char xl6StdTimeSecondBody[] =
-    "func __xl_std_time_second(time value) as int\n"
-    "    return __xl_std_xrt_second(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeSecondV1\" @pure @no_raise @nonblocking func __xl_std_time_second(time value) as int\n";
 
 static const char xl6StdTimeWeekdayBody[] =
-    "func __xl_std_time_weekday(time value) as int\n"
-    "    return __xl_std_xrt_weekday(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeWeekdayV1\" @pure @no_raise @nonblocking func __xl_std_time_weekday(time value) as int\n";
 
 static const char xl6StdTimeDayOfYearBody[] =
-    "func __xl_std_time_day_of_year(time value) as int\n"
-    "    return __xl_std_xrt_day_of_year(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeDayOfYearV1\" @pure @no_raise @nonblocking func __xl_std_time_day_of_year(time value) as int\n";
 
 static const char xl6StdTimeQuarterBody[] =
-    "func __xl_std_time_quarter(time value) as int\n"
-    "    return __xl_std_xrt_quarter(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeQuarterV1\" @pure @no_raise @nonblocking func __xl_std_time_quarter(time value) as int\n";
 
 static const char xl6StdTimeIsLeapYearBody[] =
-    "func __xl_std_time_is_leap_year(int year) as bool\n"
-    "    return __xl_std_xrt_is_leap_year(year)\n"
-    "end\n";
+    "extern \"xl6TimeLeapV1\" @pure @no_raise @nonblocking func __xl_std_time_is_leap_year(int year) as bool\n";
 
 static const char xl6StdTimeDaysInMonthBody[] =
-    "func __xl_std_time_days_in_month(int year, int month) as int\n"
-    "    return int(__xl_std_xrt_days_in_month(year, c_int(month)))\n"
-    "end\n";
+    "extern \"xl6TimeDaysInMonthV1\" func __xl_std_time_days_in_month(int year, int month) as int\n";
 
 static const char xl6StdTimeDaysInYearBody[] =
-    "func __xl_std_time_days_in_year(int year) as int\n"
-    "    return int(__xl_std_xrt_days_in_year(year))\n"
-    "end\n";
+    "extern \"xl6TimeDaysInYearV1\" @pure @no_raise @nonblocking func __xl_std_time_days_in_year(int year) as int\n";
 
 static const char xl6StdTimeDatePartBody[] =
-    "func __xl_std_time_date_part(time value) as time\n"
-    "    return time(__xl_std_xrt_date_part(int(value)))\n"
-    "end\n";
+    "extern \"xl6TimeDatePartV1\" func __xl_std_time_date_part(time value) as time\n";
 
 static const char xl6StdTimeTimePartBody[] =
-    "func __xl_std_time_time_part(time value) as time\n"
-    "    return time(__xl_std_xrt_time_part(int(value)))\n"
-    "end\n";
+    "extern \"xl6TimeTimePartV1\" @pure @no_raise @nonblocking func __xl_std_time_time_part(time value) as int\n";
 
 static const char xl6StdTimeIsSameDayBody[] =
-    "func __xl_std_time_is_same_day(time left, time right) as bool\n"
-    "    return __xl_std_xrt_is_same_day(int(left), int(right))\n"
-    "end\n";
+    "extern \"xl6TimeSameDayV1\" @pure @no_raise @nonblocking func __xl_std_time_is_same_day(time left, time right) as bool\n";
 
 static const char xl6StdTimeIsSameMonthBody[] =
-    "func __xl_std_time_is_same_month(time left, time right) as bool\n"
-    "    return __xl_std_xrt_is_same_month(int(left), int(right))\n"
-    "end\n";
+    "extern \"xl6TimeSameMonthV1\" @pure @no_raise @nonblocking func __xl_std_time_is_same_month(time left, time right) as bool\n";
 
 static const char xl6StdTimeIsSameYearBody[] =
-    "func __xl_std_time_is_same_year(time left, time right) as bool\n"
-    "    return __xl_std_xrt_is_same_year(int(left), int(right))\n"
-    "end\n";
+    "extern \"xl6TimeSameYearV1\" @pure @no_raise @nonblocking func __xl_std_time_is_same_year(time left, time right) as bool\n";
 
 static const char xl6StdTimeInRangeBody[] =
-    "func __xl_std_time_in_range(time value, time start, time endValue) as bool\n"
-    "    return __xl_std_xrt_time_in_range(int(value), int(start), int(endValue))\n"
-    "end\n";
+    "extern \"xl6TimeInV1\" @pure @no_raise @nonblocking func __xl_std_time_in_range(time value, time start, time endValue) as bool\n";
 
 static const char xl6StdTimeAddYearsBody[] =
     "func __xl_std_time_add_years(time value, int amount) as time\n"
@@ -4623,27 +4586,25 @@ static const char xl6StdTimeDiffQuartersBody[] =
     "end\n";
 
 static const char xl6StdTimeTimerBody[] =
-    "func __xl_std_time_timer() as float\n"
-    "    return __xl_std_xrt_timer()\n"
-    "end\n";
+    "extern \"xl6TimeTimerV1\" func __xl_std_time_timer() as float\n";
 
 static const char xl6StdTimeSleepBody[] =
-    "func __xl_std_time_sleep(int ms)\n"
-    "    __xl_std_xrt_sleep(c_uint(ms))\n"
-    "end\n";
+    "extern \"xl6TimeSleepV1\" func __xl_std_time_sleep(int milliseconds)\n";
 
 static const char xl6StdTimeNowUtcBody[] =
     "extern \"xl6TimeNowV1\" func __xl_std_time_now_utc() as time\n";
 
 static const char xl6StdTimeTimezoneOffsetBody[] =
+    "extern \"xl6TimeTimezoneOffsetV1\" func __xl_time_offset_native(time value) as int\n"
+    "func __xl_std_time_timezone_offset(time value) as int\n"
+    "    return __xl_time_offset_native(value)\n"
+    "end\n"
     "func __xl_std_time_timezone_offset() as int\n"
-    "    return __xl_std_xrt_timezone_offset()\n"
+    "    return __xl_time_offset_native(__xl_std_time_now())\n"
     "end\n";
 
 static const char xl6StdTimeRangeOverlapBody[] =
-    "func __xl_std_time_range_overlap(time start1, time end1, time start2, time end2) as bool\n"
-    "    return __xl_std_xrt_time_range_overlap(int(start1), int(end1), int(start2), int(end2))\n"
-    "end\n";
+    "extern \"xl6TimeOverlapV1\" @pure @no_raise @nonblocking func __xl_std_time_range_overlap(time start1, time end1, time start2, time end2) as bool\n";
 
 static const char xl6StdTimeApproxBody[] =
     "extern \"xl6TimeNearV1\" @pure @no_raise @nonblocking func __xl_std_time_approx(time left, time right, uint64 tolerance = 0) as bool\n";
@@ -4684,53 +4645,64 @@ static const char xl6StdTimeDiffMsBody[] =
     "end\n";
 
 static const char xl6StdTimeUtcToLocalBody[] =
-    "func __xl_std_time_utc_to_local(time value) as time\n"
-    "    return time(__xl_std_xrt_utc_to_local(int(value)))\n"
+    "func __xl_std_time_utc_to_local(time value) as DateTime\n"
+    "    return DateTime(value, true)\n"
     "end\n";
 
 static const char xl6StdTimeLocalToUtcBody[] =
-    "func __xl_std_time_local_to_utc(time value) as time\n"
-    "    return time(__xl_std_xrt_local_to_utc(int(value)))\n"
+    "extern \"xl6TimeFromLocalV1\" func __xl_time_local_to_utc_native(DateTime value, int fold) as time\n"
+    "func __xl_std_time_local_to_utc(DateTime value, TimeFold fold = TimeFold.reject) as time\n"
+    "    return __xl_time_local_to_utc_native(value, int(fold))\n"
     "end\n";
 
 static const char xl6StdTimeFirstDayOfMonthBody[] =
     "func __xl_std_time_first_day_of_month(time value) as time\n"
-    "    return time(__xl_std_xrt_first_day_of_month(int(value)))\n"
+    "    auto start, finish = __xl_std_time_month_range(value)\n"
+    "    return start\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfMonthBody[] =
     "func __xl_std_time_last_day_of_month(time value) as time\n"
-    "    return time(__xl_std_xrt_last_day_of_month(int(value)))\n"
+    "    auto start, finish = __xl_std_time_month_range(value)\n"
+    "    return __xl_std_xrt_date_add(finish, -1, 5)\n"
     "end\n";
 
 static const char xl6StdTimeFirstDayOfYearBody[] =
     "func __xl_std_time_first_day_of_year(time value) as time\n"
-    "    return time(__xl_std_xrt_first_day_of_year(int(value)))\n"
+    "    auto start, finish = __xl_std_time_year_range(value)\n"
+    "    return start\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfYearBody[] =
     "func __xl_std_time_last_day_of_year(time value) as time\n"
-    "    return time(__xl_std_xrt_last_day_of_year(int(value)))\n"
+    "    auto start, finish = __xl_std_time_year_range(value)\n"
+    "    return __xl_std_xrt_date_add(finish, -1, 5)\n"
     "end\n";
 
 static const char xl6StdTimeFirstDayOfWeekBody[] =
     "func __xl_std_time_first_day_of_week(time value, int startDay = 1) as time\n"
-    "    return time(__xl_std_xrt_first_day_of_week(int(value), c_int(startDay)))\n"
+    "    auto start, finish = __xl_std_time_week_range(value, startDay)\n"
+    "    return start\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfWeekBody[] =
     "func __xl_std_time_last_day_of_week(time value, int startDay = 1) as time\n"
-    "    return time(__xl_std_xrt_last_day_of_week(int(value), c_int(startDay)))\n"
+    "    auto start, finish = __xl_std_time_week_range(value, startDay)\n"
+    "    return __xl_std_xrt_date_add(finish, -1, 5)\n"
     "end\n";
 
 static const char xl6StdTimeWeekOfYearBody[] =
     "func __xl_std_time_week_of_year(time value) as int\n"
-    "    return __xl_std_xrt_week_of_year(int(value))\n"
+    "    auto year, week, weekday = __xl_std_time_iso_week(value)\n"
+    "    return week\n"
     "end\n";
 
 static const char xl6StdTimeWeekOfMonthBody[] =
-    "func __xl_std_time_week_of_month(time value) as int\n"
-    "    return __xl_std_xrt_week_of_month(int(value))\n"
+    "func __xl_std_time_week_of_month(time value, int startDay = 1) as int\n"
+    "    if startDay < 0 or startDay > 6 then throw RangeError \"Invalid first weekday\" end\n"
+    "    auto start, finish = __xl_std_time_month_range(value)\n"
+    "    int padding = (__xl_std_time_weekday(start) - startDay + 7) % 7\n"
+    "    return (padding + __xl_std_time_day(value) - 1) / 7 + 1\n"
     "end\n";
 
 static const char xl6StdTimeFormatBody[] =
@@ -6602,48 +6574,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_time", "timeParse", "__xl_std_xrt_time_parse", "xl6_xrt_time_parse_value", xl6StdXrtTimeParseParams, 2, "int", NULL},
     {"__xrt_time", "tryTimeParse", "__xl_std_xrt_try_time_parse", "xl6_xrt_time_parse_try", xl6StdXrtTryTimeParseParams, 3, "c_bool", NULL},
     {"__xrt_time", "relativeTime", "__xl_std_xrt_relative_time", "xl6_xrt_time_relative", xl6StdXrtIntBinaryParams, 2, "point", NULL},
-    {"__xrt_time", "dateTimeSerial", "__xl_std_xrt_datetime_serial", "xl6_xrt_time_datetime", xl6StdTimeFromDateTimeParams, 6, "int", NULL},
-    {"__xrt_time", "now", "__xl_std_xrt_now", "xl6_xrt_time_now_local", NULL, 0, "int", NULL},
-    {"__xrt_time", "date", "__xl_std_xrt_date", "xl6_xrt_time_today", NULL, 0, "int", NULL},
-    {"__xrt_time", "time", "__xl_std_xrt_time", "xl6_xrt_time_clock", NULL, 0, "int", NULL},
-    {"__xrt_time", "timeSerial", "__xl_std_xrt_time_serial", "xl6_xrt_time_clock_value", xl6StdTimeFromTimeParams, 3, "int", NULL},
-    {"__xrt_time", "dateSerial", "__xl_std_xrt_date_serial", "xl6_xrt_time_date", xl6StdTimeFromDateParams, 3, "int", NULL},
-    {"__xrt_time", "year", "__xl_std_xrt_year", "xrtYear", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "month", "__xl_std_xrt_month", "xrtMonth", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "day", "__xl_std_xrt_day", "xrtDay", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "hour", "__xl_std_xrt_hour", "xrtHour", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "minute", "__xl_std_xrt_minute", "xrtMinute", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "second", "__xl_std_xrt_second", "xrtSecond", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "weekday", "__xl_std_xrt_weekday", "xrtWeekday", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "dayOfYear", "__xl_std_xrt_day_of_year", "xrtDayOfYear", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "quarter", "__xl_std_xrt_quarter", "xrtQuarter", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "isLeapYear", "__xl_std_xrt_is_leap_year", "xrtIsLeapYear", xl6StdXrtYearParams, 1, "c_bool", NULL},
-    {"__xrt_time", "daysInMonth", "__xl_std_xrt_days_in_month", "xrtDaysInMonth", xl6StdXrtYearMonthParams, 2, "c_int", NULL},
-    {"__xrt_time", "daysInYear", "__xl_std_xrt_days_in_year", "xrtDaysInYear", xl6StdXrtYearParams, 1, "c_int", NULL},
-    {"__xrt_time", "datePart", "__xl_std_xrt_date_part", "xrtDatePart", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "timePart", "__xl_std_xrt_time_part", "xrtTimePart", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "isSameDay", "__xl_std_xrt_is_same_day", "xrtTimeSameDay", xl6StdXrtIntBinaryParams, 2, "c_bool", NULL},
-    {"__xrt_time", "isSameMonth", "__xl_std_xrt_is_same_month", "xrtTimeSameMonth", xl6StdXrtIntBinaryParams, 2, "c_bool", NULL},
-    {"__xrt_time", "isSameYear", "__xl_std_xrt_is_same_year", "xrtTimeSameYear", xl6StdXrtIntBinaryParams, 2, "c_bool", NULL},
-    {"__xrt_time", "inRange", "__xl_std_xrt_time_in_range", "xrtTimeIn", xl6StdXrtIntInRangeParams, 3, "c_bool", NULL},
-    {"__xrt_time", "timer", "__xl_std_xrt_timer", "xrtTimer", NULL, 0, "c_double", NULL},
-    {"__xrt_time", "sleep", "__xl_std_xrt_sleep", "xrtSleep", xl6StdXrtSleepParams, 1, "", NULL},
-    {"__xrt_time", "nowUTC", "__xl_std_xrt_now_utc", "xl6_xrt_time_now_utc", NULL, 0, "int", NULL},
-    {"__xrt_time", "timezoneOffset", "__xl_std_xrt_timezone_offset", "xl6_xrt_time_timezone_offset", NULL, 0, "c_int", NULL},
-    {"__xrt_time", "rangeOverlap", "__xl_std_xrt_time_range_overlap", "xrtTimeOverlap", xl6StdXrtTimeOverlapParams, 4, "c_bool", NULL},
-    {"__xrt_time", "approx", "__xl_std_xrt_time_approx", "xl6_xrt_time_approx", xl6StdXrtIntBinaryParams, 2, "c_bool", NULL},
-    {"__xrt_time", "toUnix", "__xl_std_xrt_time_to_unix", "xrtTimeUnix", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "fromUnix", "__xl_std_xrt_time_from_unix", "xl6_xrt_time_from_unix", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "utcToLocal", "__xl_std_xrt_utc_to_local", "xl6_xrt_time_utc_to_local", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "localToUTC", "__xl_std_xrt_local_to_utc", "xl6_xrt_time_local_to_utc", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "firstDayOfMonth", "__xl_std_xrt_first_day_of_month", "xl6_xrt_time_first_day_of_month", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "lastDayOfMonth", "__xl_std_xrt_last_day_of_month", "xl6_xrt_time_last_day_of_month", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "firstDayOfYear", "__xl_std_xrt_first_day_of_year", "xl6_xrt_time_first_day_of_year", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "lastDayOfYear", "__xl_std_xrt_last_day_of_year", "xl6_xrt_time_last_day_of_year", xl6StdXrtIntUnaryParams, 1, "int", NULL},
-    {"__xrt_time", "firstDayOfWeek", "__xl_std_xrt_first_day_of_week", "xl6_xrt_time_first_day_of_week", xl6StdXrtWeekBoundaryParams, 2, "int", NULL},
-    {"__xrt_time", "lastDayOfWeek", "__xl_std_xrt_last_day_of_week", "xl6_xrt_time_last_day_of_week", xl6StdXrtWeekBoundaryParams, 2, "int", NULL},
-    {"__xrt_time", "weekOfYear", "__xl_std_xrt_week_of_year", "xl6_xrt_time_week_of_year", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
-    {"__xrt_time", "weekOfMonth", "__xl_std_xrt_week_of_month", "xl6_xrt_time_week_of_month", xl6StdXrtIntUnaryParams, 1, "c_int", NULL},
     {"__xrt_random", "rand32", "__xl_std_xrt_rand32", "xl6_xrt_random_u32", NULL, 0, "c_uint", NULL},
     {"__xrt_random", "rand64", "__xl_std_xrt_rand64", "xl6_xrt_random_u64", NULL, 0, "uint64", NULL},
     {"__xrt_random", "below", "__xl_std_xrt_rand_below", "xl6_xrt_random_below", xl6StdXrtRandBelowParams, 1, "uint64", NULL},
@@ -6998,8 +6928,15 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "bytes", xl6StdStringBytesBody},
 
     {"time", "now", "__xl_std_time_now", NULL, NULL, 0, "time", xl6StdTimeNowBody},
+    {"time", "split", "__xl_std_time_split", NULL, NULL, 0, "DateTime", xl6StdTimeSplitBody},
+    {"time", "local", "__xl_std_time_local", NULL, NULL, 0, "DateTime", xl6StdTimeLocalBody},
+    {"time", "fromLocal", "__xl_std_time_from_local", NULL, NULL, 0, "time", xl6StdTimeFromLocalBody},
+    {"time", "monthRange", "__xl_std_time_month_range", NULL, NULL, 0, "(time, time)", xl6StdTimeMonthRangeBody},
+    {"time", "yearRange", "__xl_std_time_year_range", NULL, NULL, 0, "(time, time)", xl6StdTimeYearRangeBody},
+    {"time", "weekRange", "__xl_std_time_week_range", NULL, NULL, 0, "(time, time)", xl6StdTimeWeekRangeBody},
+    {"time", "isoWeek", "__xl_std_time_iso_week", NULL, NULL, 0, "(int, int, int)", xl6StdTimeISOWeekBody},
     {"time", "today", "__xl_std_time_today", NULL, NULL, 0, "time", xl6StdTimeTodayBody},
-    {"time", "clock", "__xl_std_time_clock", NULL, NULL, 0, "time", xl6StdTimeClockBody},
+    {"time", "clock", "__xl_std_time_clock", NULL, NULL, 0, "uint64", xl6StdTimeClockBody},
     {"time", "fromTime", "__xl_std_time_from_time", NULL, NULL, 0, "time", xl6StdTimeFromTimeBody},
     {"time", "fromDate", "__xl_std_time_from_date", NULL, NULL, 0, "time", xl6StdTimeFromDateBody},
     {"time", "fromDateTime", "__xl_std_time_from_datetime", NULL, NULL, 0, "time", xl6StdTimeFromDateTimeBody},
@@ -7020,7 +6957,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "daysInMonth", "__xl_std_time_days_in_month", NULL, NULL, 0, "int", xl6StdTimeDaysInMonthBody},
     {"time", "daysInYear", "__xl_std_time_days_in_year", NULL, NULL, 0, "int", xl6StdTimeDaysInYearBody},
     {"time", "datePart", "__xl_std_time_date_part", NULL, NULL, 0, "time", xl6StdTimeDatePartBody},
-    {"time", "timePart", "__xl_std_time_time_part", NULL, NULL, 0, "time", xl6StdTimeTimePartBody},
+    {"time", "timePart", "__xl_std_time_time_part", NULL, NULL, 0, "int", xl6StdTimeTimePartBody},
     {"time", "isSameDay", "__xl_std_time_is_same_day", NULL, NULL, 0, "bool", xl6StdTimeIsSameDayBody},
     {"time", "isSameMonth", "__xl_std_time_is_same_month", NULL, NULL, 0, "bool", xl6StdTimeIsSameMonthBody},
     {"time", "isSameYear", "__xl_std_time_is_same_year", NULL, NULL, 0, "bool", xl6StdTimeIsSameYearBody},
@@ -7059,7 +6996,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "addMilliseconds", "__xl_std_time_add_ms", NULL, NULL, 0, "time", xl6StdTimeAddMsBody},
     {"time", "diffMicroseconds", "__xl_std_time_diff_us", NULL, NULL, 0, "int", xl6StdTimeDiffUsBody},
     {"time", "diffMilliseconds", "__xl_std_time_diff_ms", NULL, NULL, 0, "int", xl6StdTimeDiffMsBody},
-    {"time", "utcToLocal", "__xl_std_time_utc_to_local", NULL, NULL, 0, "time", xl6StdTimeUtcToLocalBody},
+    {"time", "utcToLocal", "__xl_std_time_utc_to_local", NULL, NULL, 0, "DateTime", xl6StdTimeUtcToLocalBody},
     {"time", "localToUTC", "__xl_std_time_local_to_utc", NULL, NULL, 0, "time", xl6StdTimeLocalToUtcBody},
     {"time", "firstDayOfMonth", "__xl_std_time_first_day_of_month", NULL, NULL, 0, "time", xl6StdTimeFirstDayOfMonthBody},
     {"time", "lastDayOfMonth", "__xl_std_time_last_day_of_month", NULL, NULL, 0, "time", xl6StdTimeLastDayOfMonthBody},

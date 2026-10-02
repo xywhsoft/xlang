@@ -1,0 +1,2 @@
+extern "xl6TimeMonthRangeV1" func wrong(time value) as (int, int)
+auto start, finish = wrong(time(0))

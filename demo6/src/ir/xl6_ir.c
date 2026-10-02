@@ -566,22 +566,26 @@ static int xl6IrTypeUnionCName(
 XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     size_t i;
-    if (!pool || !type || type->kind != XL6_IR_TYPE_TUPLE || type->paramCount != 3 ||
+    if (!pool || !type || type->kind != XL6_IR_TYPE_TUPLE || (type->paramCount != 2 && type->paramCount != 3) ||
         !type->params || type->returnCount) return XL6_IR_NATIVE_PRODUCT_NONE;
-    for (i=0;i<3;++i) {
+    XL6_IrCAbi expected = type->paramCount == 2 ? XL6_IR_C_ABI_TIME_I64 : XL6_IR_C_ABI_I64;
+    for (i=0;i<type->paramCount;++i) {
         const XL6_IrType* item = xl6IrTypeGet(pool,type->params[i]);
         if (!item || item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount || item->returnCount ||
-            item->collectionAbi != XL6_IR_COLLECTION_NONE || item->cAbi != XL6_IR_C_ABI_I64 ||
-            item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64 ||
+            item->collectionAbi != XL6_IR_COLLECTION_NONE || item->cAbi != expected ||
+            (expected == XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64) ||
+            (expected == XL6_IR_C_ABI_TIME_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_INVALID) ||
             item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || item->nullAbi != XL6_IR_NULL_ABI_NONE)
             return XL6_IR_NATIVE_PRODUCT_NONE;
     }
-    return XL6_IR_NATIVE_PRODUCT_I64X3_V1;
+    return type->paramCount == 2 ? XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 : XL6_IR_NATIVE_PRODUCT_I64X3_V1;
 }
 const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi)
-{ return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_ProductI64x3V1" : NULL; }
+{ return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_ProductI64x3V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_ProductTimeX2V1" : NULL; }
 const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
-{ return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_PRODUCT_ABI_I64X3_V1" : NULL; }
+{ return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_PRODUCT_ABI_I64X3_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_PRODUCT_ABI_TIMEX2_V1" : NULL; }
 
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -17476,11 +17480,18 @@ XL6_IrCallExecutionBoundaryAbi xl6IrCallExecutionBoundaryForKind(XL6_IrCallTarge
     }
 }
 
+int xl6IrDeclarationAllowsForeignContract(XL6_AstKind sourceKind, unsigned int flags)
+{
+    return sourceKind == XL6_AST_EXTERN_FUNC || sourceKind == XL6_AST_NATIVE_EXTERN_FUNC ||
+        sourceKind == XL6_AST_NATIVE_EXTERN_SPECIAL ||
+        ((sourceKind == XL6_AST_GET || sourceKind == XL6_AST_LET) && (flags & XL6_AST_FLAG_EXTERN));
+}
+
 XL6_IrCallExecutionBoundaryAbi xl6IrCallExecutionBoundaryForDeclaration(
     XL6_IrCallTargetKind kind, XL6_AstKind sourceKind, unsigned int flags)
 {
-    if ( kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-         sourceKind == XL6_AST_EXTERN_FUNC &&
+    if ( (kind == XL6_IR_CALL_TARGET_EXTERN_C || kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
+         xl6IrDeclarationAllowsForeignContract(sourceKind, flags) &&
          (flags & XL6_AST_FLAG_FOREIGN_NONBLOCKING) != 0 ) {
         return XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING;
     }
@@ -17500,8 +17511,8 @@ const char* xl6IrCallExecutionBoundaryAbiName(XL6_IrCallExecutionBoundaryAbi abi
 XL6_IrCallEffectAbi xl6IrCallEffectForDeclaration(
     XL6_IrCallTargetKind kind, XL6_AstKind sourceKind, unsigned int flags)
 {
-    return kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-           sourceKind == XL6_AST_EXTERN_FUNC &&
+    return (kind == XL6_IR_CALL_TARGET_EXTERN_C || kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
+           xl6IrDeclarationAllowsForeignContract(sourceKind, flags) &&
            (flags & XL6_AST_FLAG_FOREIGN_PURE) != 0
         ? XL6_IR_CALL_EFFECT_PURE : XL6_IR_CALL_EFFECT_CONSERVATIVE;
 }
@@ -32585,7 +32596,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
              target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE &&
              target->errorAbi != (declaration != NULL &&
-                 declaration->sourceKind == XL6_AST_EXTERN_FUNC &&
+                 xl6IrDeclarationAllowsForeignContract(declaration->sourceKind, declaration->flags) &&
                  (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0
                     ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE) )
             return xl6IrDiag(diags, NULL,

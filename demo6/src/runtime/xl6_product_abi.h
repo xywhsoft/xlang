@@ -9,4 +9,8 @@
 #define XL6_PRODUCT_ABI_I64X3_V1
 typedef struct XL6_ProductI64x3V1 { int64_t e0; int64_t e1; int64_t e2; } XL6_ProductI64x3V1;
 #endif
+#ifndef XL6_PRODUCT_ABI_TIMEX2_V1
+#define XL6_PRODUCT_ABI_TIMEX2_V1
+typedef struct XL6_ProductTimeX2V1 { int64_t e0; int64_t e1; } XL6_ProductTimeX2V1;
+#endif
 #endif

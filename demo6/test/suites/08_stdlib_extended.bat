@@ -1275,6 +1275,15 @@ for %%S in (XRT_MODULE_WEBSOCKET_STREAM_TLS XRT_MODULE_TLS_STREAM_FUTURE xl6_xrt
     )
 )
 
+rem Fresh immutable compiler inputs shared by the two time acceptance gates.
+set "XL6_TIME_CONTRACT_DIR=build\test\stdlib_time_%RANDOM%_%RANDOM%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\build_xlir_public_source_driver.ps1 -Directory "%XL6_TIME_CONTRACT_DIR%\compiler"
+if errorlevel 1 exit /b 1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_time_core.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\core"
+if errorlevel 1 exit /b 1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_time_calendar.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\calendar"
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: extended standard library
 exit /b 0
 

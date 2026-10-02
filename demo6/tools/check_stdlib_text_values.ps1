@@ -251,7 +251,7 @@ try {
     foreach ($name in $negative) {
         $path = "$outPath/$name.c"
         Run $name $driver @("test/cases/$name.xl",'cgen-default',$path) 1
-        $marker = if ($name -match '(?:iterator|validator)_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI|C ABI extern product requires exactly three language signed 64-bit results'}
+        $marker = if ($name -match '(?:iterator|validator)_handle_') {'private'} else {'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI|C ABI extern product requires a closed primitive product profile'}
         if ((Get-Content "$outPath/$name.log" -Raw) -notmatch $marker -or (Test-Path -LiteralPath $path)) { throw "Unsafe text ABI emitted $name" }
     }
     foreach ($name in $defaultsNegative) {

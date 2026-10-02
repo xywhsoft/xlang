@@ -1,13 +1,24 @@
 param(
     [string]$Root = '',
     [string]$BaselineParser = '',
-    [string]$Baseline = 'tools/baselines/xlir_parser_corpus.json'
+    [string]$Baseline = 'tools/baselines/xlir_parser_corpus.json',
+    [string]$BaselineGeneratedParser = '',
+    [string]$Directory = ''
 )
 $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
 try {
-    $inputs = @('test/cases/xlir_parser_corpus.c','src/parser/xl6_parser.c',
+    if ($Directory) {
+        $Directory = [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory))
+        if (Test-Path -LiteralPath $Directory) { throw 'Preserve prior parser corpus evidence' }
+        New-Item -ItemType Directory -Path $Directory | Out-Null
+    } else { $Directory = 'build/test' }
+    if ($BaselineParser -and !$BaselineGeneratedParser) {
+        throw 'Source differential requires the baseline generated parser, not just its API adapter'
+    }
+    Copy-Item release/xl.dll "$Directory/xl.dll" -Force
+    $inputs = @('test/cases/xlir_parser_corpus.c',
         'src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c','src/lexer/xl6_token.c','src/diag/xl6_diag.c',
         'src/ast/xl6_ast.c','src/common/xl6_output.c','src/common/xl6_console.c')
     $paths = @(Get-ChildItem test/cases -File -Filter '*.xl' | Sort-Object Name | ForEach-Object FullName)
@@ -15,12 +26,13 @@ try {
     $passes = if ($BaselineParser) { @('baseline','current') } else { @('current') }
     foreach ($pass in $passes) {
         $parser = if ($pass -eq 'baseline') { $BaselineParser } else { 'src/parser/xl6_parser_api.c' }
-        $prefix = "build/test/xlir_parser_corpus.$pass"
-        & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -O2 -I. @inputs $parser release/xl.dll -o "$prefix.exe"
+        $generatedParser = if ($pass -eq 'baseline') { $BaselineGeneratedParser } else { 'src/parser/xl6_parser.c' }
+        $prefix = "$Directory/xlir_parser_corpus.$pass"
+        & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -O2 -I. @inputs $generatedParser $parser release/xl.dll -o "$prefix.exe"
         if ($LASTEXITCODE -ne 0) { throw "$pass parser corpus build failed" }
         $outputs[$pass] = @($paths | & "$prefix.exe")
         if ($LASTEXITCODE -ne 0 -or $outputs[$pass].Count -ne $paths.Count) { throw "$pass parser corpus incomplete" }
-        [IO.File]::WriteAllLines((Join-Path (Get-Location) "$prefix.log"), [string[]]$outputs[$pass], [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllLines([IO.Path]::GetFullPath("$prefix.log"), [string[]]$outputs[$pass], [Text.UTF8Encoding]::new($false))
     }
 
     $rootPath = (Resolve-Path -LiteralPath '.').Path.TrimEnd('\')
@@ -72,7 +84,8 @@ try {
         BaselineMode=if ($BaselineParser) {'source-differential'} else {'versioned-golden'};
         BaselineSha256=$baselineSha256;CurrentParserSha256=(Get-FileHash src/parser/xl6_parser_api.c).Hash;
         Scope='Parse-only corpus comparison, preserving accepted status and anonymous-function AST count; not semantic or runtime coverage.'}
-    [IO.File]::WriteAllText((Join-Path (Get-Location) 'build/test/xlir_parser_corpus.results.json'), ($report | ConvertTo-Json -Depth 4), [Text.UTF8Encoding]::new($false))
+    $report | Add-Member -NotePropertyName BaselineGeneratedParserSha256 -NotePropertyValue $(if($BaselineGeneratedParser){(Get-FileHash $BaselineGeneratedParser).Hash}else{$null})
+    [IO.File]::WriteAllText([IO.Path]::GetFullPath("$Directory/xlir_parser_corpus.results.json"), ($report | ConvertTo-Json -Depth 4), [Text.UTF8Encoding]::new($false))
     Write-Output ($report | ConvertTo-Json -Depth 4)
     if (!$baselineMatches) { throw 'Parser corpus differs from its reviewed baseline' }
 } finally { Pop-Location }

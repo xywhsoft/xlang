@@ -1,0 +1,3 @@
+extern "xl6DateTimeToTimeV1" func invalidCalendar(Regex value) as time
+auto value = Regex("a")
+invalidCalendar(value)

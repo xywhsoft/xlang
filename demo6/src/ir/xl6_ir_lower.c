@@ -14326,7 +14326,7 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
             if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) {
                 target->errorAbi = target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
                                    declaration != NULL &&
-                                   declaration->sourceKind == XL6_AST_EXTERN_FUNC &&
+                                   xl6IrDeclarationAllowsForeignContract(declaration->sourceKind, declaration->flags) &&
                                    (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0
                     ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
             }

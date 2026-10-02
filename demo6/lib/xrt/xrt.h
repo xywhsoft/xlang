@@ -73809,6 +73809,7 @@ static bool __xrtTimeAddMonths(xtime iTime, int64 iMonths, xtime* pResult)
 	if ( !__xrtTimeMulChecked(tDateTime.Year, 12, &iMonthIndex) ||
 		 !__xrtTimeAddChecked(iMonthIndex, tDateTime.Month - 1, &iMonthIndex) ||
 		 !__xrtTimeAddChecked(iMonthIndex, iMonths, &iTarget) ) {
+		__xrtTimeSetOverflow("add");
 		return false;
 	}
 	iTargetYear = __xrtTimeFloorDiv(iTarget, 12);
@@ -73860,11 +73861,10 @@ XRT_API bool xrtTimeAdd(xtime iTime, int64 iValue, xtimeunit Unit, xtime* pResul
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	if ( !__xrtTimeAddMonths(iTime, iMonths, pResult) ) {
-		__xrtTimeSetOverflow("add");
-		return false;
-	}
-	return true;
+	/* The helper diagnoses arithmetic overflow and xrtTimeMake diagnoses the
+	 * final date. Propagate its error once: rebuilding here can mask an OOM
+	 * while constructing the first diagnostic and needlessly allocate twice. */
+	return __xrtTimeAddMonths(iTime, iMonths, pResult);
 }
 
 

@@ -1589,24 +1589,26 @@ native_type_ref(A) ::= name_tok(N) STAR. {
     A = xl6AstNewText(XL6_AST_TYPE, "point", 5, &N);
 }
 
-class_extern_func(A) ::= KW_EXTERN(E) STRING(S) KW_FUNC name_tok(N) name_params(P) return_sig(R) need_sep. {
+class_extern_func(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_FUNC name_tok(N) name_params(P) return_sig(R) need_sep. {
     A = xl6AstNew(XL6_AST_NATIVE_EXTERN_FUNC, &S);
+    A->flags |= C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
     (void)E;
 }
 
-class_extern_special(A) ::= KW_EXTERN(E) STRING(S) name_tok(N) name_params(P) need_sep. {
+class_extern_special(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) name_tok(N) name_params(P) need_sep. {
     A = xl6AstNew(XL6_AST_NATIVE_EXTERN_SPECIAL, &S);
+    A->flags |= C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     (void)E;
 }
 
-class_extern_get(A) ::= KW_EXTERN(E) STRING(S) KW_GET member_name_tok(N) name_params(P) return_sig(R) need_sep. {
+class_extern_get(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_GET member_name_tok(N) name_params(P) return_sig(R) need_sep. {
     A = xl6AstNew(XL6_AST_GET, &S);
-    A->flags |= XL6_AST_FLAG_EXTERN;
+    A->flags |= XL6_AST_FLAG_EXTERN | C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
@@ -1614,9 +1616,9 @@ class_extern_get(A) ::= KW_EXTERN(E) STRING(S) KW_GET member_name_tok(N) name_pa
     (void)E;
 }
 
-class_extern_let(A) ::= KW_EXTERN(E) STRING(S) KW_LET member_name_tok(N) name_params(P) need_sep. {
+class_extern_let(A) ::= KW_EXTERN(E) STRING(S) extern_func_contract(C) KW_LET member_name_tok(N) name_params(P) need_sep. {
     A = xl6AstNew(XL6_AST_LET, &S);
-    A->flags |= XL6_AST_FLAG_EXTERN;
+    A->flags |= XL6_AST_FLAG_EXTERN | C;
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
