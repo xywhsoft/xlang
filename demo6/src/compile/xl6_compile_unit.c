@@ -80,7 +80,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_encoding_meta.c", NULL, 0, {"XRT_MODULE_CHARSET"}},
     {"src/runtime/xl6_encoding_detect.c", NULL, 0, {"XRT_MODULE_CHARSET_DETECT", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_regex_core.c", NULL, 0, {"XRT_MODULE_REGEX_CORE", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
-    {"src/runtime/xl6_regex_match.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_MATCH", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}}
+    {"src/runtime/xl6_regex_match.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_MATCH", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_regex_iterator.c", D(R(REGEX_MATCH)), {"XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_regex_replace.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_REPLACE", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_regex_replace_buffer.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_REPLACE", "XRT_MODULE_BUFFER", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_regex_split.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_SPLIT", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_regex_set.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_SET", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE_CONTAINER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

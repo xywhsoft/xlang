@@ -1,0 +1,2 @@
+auto it = Regex(",").split("a,b")
+it.consume()

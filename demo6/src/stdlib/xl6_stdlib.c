@@ -1608,7 +1608,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsXlangClass;
     int needsCoreClass;
     int needsIoReader, needsIoWriter, needsIoLines, needsIoProtocols, needsIoBuffer;
-    int needsStringIterator, needsUtf8Validator, needsRegex;
+    int needsStringIterator, needsUtf8Validator, needsRegex, needsRegexSet, needsRegexBuffer;
     int needsVfs;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
@@ -1633,7 +1633,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsUtf8Validator = xl6StdlibFuncUsed(used, "unicode", "validator") ||
         xl6StdlibNodeUsesTypeName(root, "Utf8Validator");
     needsRegex = xl6StdlibFuncUsed(used, "regex", "compile") ||
-        xl6StdlibNodeUsesTypeName(root, "Regex") || xl6StdlibNodeUsesTypeName(root, "RegexMatch");
+        xl6StdlibNodeUsesTypeName(root, "Regex") || xl6StdlibNodeUsesTypeName(root, "RegexMatch") ||
+        xl6StdlibNodeUsesTypeName(root, "RegexIterator") || xl6StdlibNodeUsesTypeName(root, "RegexSplitIterator") ||
+        xl6StdlibNodeUsesTypeName(root, "RegexSplitPart");
+    needsRegexSet = xl6StdlibFuncUsed(used, "regex", "set") || xl6StdlibNodeUsesTypeName(root, "RegexSet");
+    needsRegexBuffer = needsRegex && xl6StdlibNodeUsesMemberName(root, "replaceTo");
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||
         xl6StdlibNodeUsesTypeName(root, "ConsoleSession") || xl6StdlibNodeUsesTypeName(root, "ConsoleEvent");
     needsConsoleOptions = needsConsoleSession || xl6StdlibNodeUsesTypeName(root, "ConsoleOptions") ||
@@ -1759,7 +1763,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
+    needsBufferClass = needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetInterfaceClass || needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
@@ -1839,7 +1843,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (needsIoLines) xl6StdlibBuilderAppend(&builder, xl6StdlibIoLinesSource);
     if (needsStringIterator) xl6StdlibBuilderAppend(&builder, xl6StdlibStringIteratorSource);
     if (needsUtf8Validator) xl6StdlibBuilderAppend(&builder, xl6StdlibUtf8ValidatorSource);
-    if (needsRegex) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSource);
+    if (needsRegex) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSource);
+        if (needsRegexBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexBufferSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibRegexEndSource);
+    }
+    if (needsRegexSet) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSetSource);
+    if (xl6StdlibNodeUsesTypeName(root, "RegexSplitFlags"))
+        xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSplitFlagsSource);
     if (xl6StdlibNodeUsesTypeName(root, "RegexFlags"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibRegexFlagsSource);
     if (xl6StdlibNodeUsesTypeName(root, "NumberParseFlags"))

@@ -1,0 +1,56 @@
+auto r = regex.compile("a")
+int caught = 0
+try
+    r.all("a", 0, -2)
+catch RangeError
+    caught += 1
+end
+try
+    r.split("a", -1, 4)
+catch RangeError
+    caught += 1
+end
+try
+    r.replace("a", "x", -2)
+catch RangeError
+    caught += 1
+end
+try
+    r.replace("a", "你", -1, -1, 1)
+catch ValueError
+    caught += 1
+end
+try
+    r.replace("a", "$9")
+catch ValueError
+    caught += 1
+end
+array<string> invalid = ["a", "("]
+try
+    regex.set(invalid)
+catch ValueError
+    caught += 1
+end
+array<string> one = ["a"]
+try
+    RegexSet(one, 0, 1048576, 4096, 0)
+catch RangeError
+    caught += 1
+end
+auto set = RegexSet(one)
+try
+    set.pattern(1)
+catch RangeError
+    caught += 1
+end
+try
+    set.hits("你", 1)
+catch RangeError
+    caught += 1
+end
+try
+    set.hits("a", 0, -2)
+catch RangeError
+    caught += 1
+end
+assert caught == 10

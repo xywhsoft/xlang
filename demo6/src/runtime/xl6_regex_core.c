@@ -1,20 +1,13 @@
-#include "src/runtime/xl6_text_internal.h"
+#include "src/runtime/xl6_regex_internal.h"
 
 /* Immutable XRT regex is the native field itself: no second refcount layer,
  * no exposed matcher, and no generated implementation in Cgen. */
 void* xl6RegexCreateV1(xstrview pattern, int64_t flags, int64_t maxPatternBytes,
     int64_t maxCaptures, int64_t size)
 {
-    if (flags < 0 || flags > 15 || maxPatternBytes <= 0 || maxCaptures <= 0 ||
-        (uint64_t)maxPatternBytes > SIZE_MAX || (uint64_t)maxCaptures > SIZE_MAX) {
-        xrtSetErrorKind(XERR_RANGE); return NULL;
-    }
-    if (!xl6TextSelect(&pattern, size)) return NULL;
     xregexconfig config;
-    xrtRegexConfigInit(&config);
-    config.Flags = (uint32)flags;
-    config.MaxPatternBytes = (size_t)maxPatternBytes;
-    config.MaxCaptures = (size_t)maxCaptures;
+    if (!xl6RegexConfig(flags,maxPatternBytes,maxCaptures,&config)) return NULL;
+    if (!xl6TextSelect(&pattern, size)) return NULL;
     return xrtRegexCompileConfig(pattern, &config);
 }
 void xl6RegexDestroyV1(void* handle) { xrtRegexRelease(handle); }

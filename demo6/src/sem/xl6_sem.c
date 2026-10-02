@@ -19968,7 +19968,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
         /* Generated stdlib and native resource methods use the language string ABI,
          * including its null Data sentinel. This is not a general C char* ABI
          * admission; exact bridge/result ownership is checked by Typed XLIR. */
-        if (xl6SemIsInternalStdRuntimeExtern(node) || node->kind == XL6_AST_NATIVE_EXTERN_FUNC) {
+        if (xl6SemIsInternalStdRuntimeExtern(node) || node->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+            (node->kind == XL6_AST_GET && xl6SemAstHasFlag(node, XL6_AST_FLAG_EXTERN))) {
             const XL6_AstNode* inner = xl6SemResolveAliasType(
                 ctx, xl6SemNullableInnerType(typeNode));
             if (inner != NULL && inner->childCount == 0 && xl6TextEquals(inner->text, "string"))
@@ -20620,6 +20621,8 @@ static int xl6SemCheckClassMemberFlags(XL6_SemContext* ctx, XL6_AstNode* member)
          member->kind != XL6_AST_FIELD &&
          member->kind != XL6_AST_FUNC &&
          member->kind != XL6_AST_ASYNC_FUNC &&
+         member->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
+         member->kind != XL6_AST_NATIVE_EXTERN_SPECIAL &&
          member->kind != XL6_AST_GET &&
          member->kind != XL6_AST_LET &&
          member->kind != XL6_AST_CREATE ) {
@@ -21782,46 +21785,38 @@ static int xl6SemCheckClassExternParamsNoVararg(XL6_SemContext* ctx, XL6_AstNode
 
 static int xl6SemCheckNativeMemberDirectCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 {
-    XL6_AstNode* params;
-    XL6_AstNode* returns;
-    size_t i;
-    int ok;
-
-    if ( ctx == NULL || node == NULL ) {
-        return 0;
-    }
-
-    ok = 1;
-    params = node->childCount > 1 ? node->children[1] : NULL;
-    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
-        XL6_AstNode* param = params->children[i];
-        XL6_AstNode* typeNode = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
-
-        /* native-backed 成员没有普通 extern 的容器桥接层，签名必须能直接落到 C ABI。 */
-        typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
-        if ( xl6SemIsCAbiTypedContainerType(ctx, typeNode) ) {
-            xl6SemErrorNode(
-                ctx,
-                typeNode,
-                "native-backed class extern parameter does not support typed container direct C ABI");
-            ok = 0;
+    static const char* const declaredArrays[] = {
+#define XL6_NATIVE_ARRAY_BRIDGE(Name,...) Name,
+#include "src/abi/xl6_native_array_contracts.inc"
+#undef XL6_NATIVE_ARRAY_BRIDGE
+    };
+    /* Only declared direct arrays bypass the old blanket container ban.
+     * This is the same registry typed XLIR verifies, not a library-name
+     * heuristic or a second signature table. Undeclared native APIs retain
+     * their existing source rejection; wrong declared signatures fail XLIR. */
+    const char* symbol=node->text?node->text:"";
+    size_t length=strlen(symbol);
+    if (length>=2 && symbol[0]=='"' && symbol[length-1]=='"') {++symbol;length-=2;}
+    for (size_t i=0;i<sizeof(declaredArrays)/sizeof(declaredArrays[0]);++i)
+        if (length==strlen(declaredArrays[i]) && !memcmp(symbol,declaredArrays[i],length)) return 1;
+    int ok=1;
+    XL6_AstNode* params=node->childCount>1?node->children[1]:NULL;
+    for (size_t i=0;params&&i<params->childCount;++i) {
+        XL6_AstNode* param=params->children[i];
+        XL6_AstNode* type=param&&param->childCount?(XL6_AstNode*)xl6SemResolveAliasType(ctx,param->children[0]):NULL;
+        if (xl6SemIsCAbiTypedContainerType(ctx,type)) {
+            xl6SemErrorNode(ctx,type,"native-backed class extern parameter does not support typed container direct C ABI");ok=0;
         }
     }
-
-    returns = node->childCount > 2 ? node->children[2] : NULL;
-    for ( i = 0; returns != NULL && i < returns->childCount; ++i ) {
-        XL6_AstNode* typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, returns->children[i]);
-        if ( xl6SemIsCAbiTypedContainerType(ctx, typeNode) ) {
-            xl6SemErrorNode(
-                ctx,
-                typeNode,
-                "native-backed class extern return does not support typed container direct C ABI");
-            ok = 0;
+    XL6_AstNode* returns=node->childCount>2?node->children[2]:NULL;
+    for (size_t i=0;returns&&i<returns->childCount;++i) {
+        XL6_AstNode* type=(XL6_AstNode*)xl6SemResolveAliasType(ctx,returns->children[i]);
+        if (xl6SemIsCAbiTypedContainerType(ctx,type)) {
+            xl6SemErrorNode(ctx,type,"native-backed class extern return does not support typed container direct C ABI");ok=0;
         }
     }
     return ok;
 }
-
 static int xl6SemCheckClassExternSpecial(XL6_SemContext* ctx, XL6_AstNode* classNode, XL6_AstNode* node)
 {
     XL6_AstNode* nameNode;
@@ -21849,9 +21844,7 @@ static int xl6SemCheckClassExternSpecial(XL6_SemContext* ctx, XL6_AstNode* class
     if ( !xl6SemCheckExternCAbi(ctx, node) ) {
         ok = 0;
     }
-    if ( !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) {
-        ok = 0;
-    }
+    if ( !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) ok = 0;
     return ok;
 }
 
@@ -21878,9 +21871,7 @@ static int xl6SemCheckClassExternFunc(XL6_SemContext* ctx, XL6_AstNode* classNod
     if ( !xl6SemCheckExternCAbi(ctx, node) ) {
         ok = 0;
     }
-    if ( !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) {
-        ok = 0;
-    }
+    if ( !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) ok = 0;
     return ok;
 }
 
@@ -21940,9 +21931,7 @@ static int xl6SemCheckClassExternProperty(XL6_SemContext* ctx, XL6_AstNode* clas
     if ( propertyParamsOk && !xl6SemCheckExternCAbi(ctx, node) ) {
         ok = 0;
     }
-    if ( propertyParamsOk && !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) {
-        ok = 0;
-    }
+    if ( propertyParamsOk && !xl6SemCheckNativeMemberDirectCAbi(ctx, node) ) ok = 0;
     return ok;
 }
 

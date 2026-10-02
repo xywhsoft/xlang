@@ -1,0 +1,8 @@
+class BadSnapshot
+    private native point handle
+    extern "xl6RegexIteratorSnapshotV1" create(RegexIterator source)
+    extern "xl6RegexDestroyV1" destroy()
+end
+auto it = Regex(".").all("a")
+assert it.hasNext()
+BadSnapshot(it)

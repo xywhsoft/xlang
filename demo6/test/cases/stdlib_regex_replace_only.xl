@@ -1,0 +1,11 @@
+auto r = regex.compile("(?<key>[a-z])=(?<value>\\d)")
+assert r.replace("a=1 b=2", "${key}:$2=$$0") == "a:1=$0 b:2=$0"
+assert r.replace("a=1 b=2", "$2", 1) == "1 b=2"
+assert r.replace("a=1", "x", 0) == "a=1"
+assert r.replace("nothing", "x") == "nothing"
+assert Regex("(a)?b").replace("b ab", "<$1|$0>") == "<|b> <a|ab>"
+assert Regex("").replace("你A", "_") == "_你_A_"
+assert Regex(".").replace("a\0b", "<$0>\0") == "<a>\0<\0>\0<b>\0"
+assert Regex(".").replace("你Aignored", "xignored", 1, 4, 1) == "xA"
+assert Regex(".").replace("", "x") == ""
+assert Regex(".").replace("abc", "") == ""

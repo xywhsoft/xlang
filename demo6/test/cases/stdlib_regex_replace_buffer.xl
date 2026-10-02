@@ -1,0 +1,11 @@
+auto r = regex.compile(".")
+auto target = Buffer()
+target.append("prefix")
+target.appendByte(0)
+assert r.replaceTo(target, "你\0A", "<$0>") == 3
+assert target.len() == 18 and target.byteAt(6) == 0 and target.byteAt(13) == 0
+assert r.replaceTo(target, "ab", "x", 0) == 0
+assert target.len() == 20 and target.byteAt(18) == 97 and target.byteAt(19) == 98
+auto raw = Buffer()
+assert Regex("\\C").replaceTo(raw, "你", "<$0>") == 3
+assert raw.len() == 9 and raw.byteAt(1) == 228 and raw.byteAt(4) == 189 and raw.byteAt(7) == 160

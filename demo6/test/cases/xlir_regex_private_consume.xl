@@ -1,0 +1,2 @@
+auto it = Regex(".").all("ab")
+it.consume()

@@ -6,12 +6,12 @@ typedef struct XL6_IrDirectBridgeContract {
     XL6_IrRuntimeBridgeKind kind;
     XL6_IrCAbi result;
     size_t parameterCount;
-    XL6_IrCAbi parameters[6];
+    XL6_IrCAbi parameters[8];
     XL6_IrCAbi resultArrayItemAbi;
     XL6_IrIntegerTarget resultIntegerTarget;
-    XL6_IrCAbi parameterArrayItemAbis[6];
+    XL6_IrCAbi parameterArrayItemAbis[8];
     const char* resultOwner;
-    const char* parameterOwners[6];
+    const char* parameterOwners[8];
     int nullableResult;
     int noRaise;
     XL6_IrNativeProductAbi resultProductAbi;
@@ -27,6 +27,9 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define Y XL6_IR_C_ABI_MANAGED_BYTES
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
+#define XL6_NATIVE_ARRAY_BRIDGE(Name,...) {Name,__VA_ARGS__},
+#include "src/abi/xl6_native_array_contracts.inc"
+#undef XL6_NATIVE_ARRAY_BRIDGE
     {"xl6TextLowerV1",T,S,2,{S,I}},
     {"xl6TextUpperV1",T,S,2,{S,I}},
     {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
@@ -50,7 +53,6 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6TextByteAtV1",T,I,3,{S,I,I},0,XL6_IR_INTEGER_TARGET_UNSIGNED_8},
     {"xl6TextCharAtV1",T,C,3,{S,I,I}},
     {"xl6TextBytesV1",T,Y,2,{S,I}},
-    {"xl6TextCharsV1",T,V,2,{S,I},C},
     {"xl6TextCompareV1",T,I,5,{S,S,B,I,I}},
     {"xl6TextEqualsV1",T,B,5,{S,S,B,I,I}},
     {"xl6TextContainsV1",T,B,5,{S,S,B,I,I}},
@@ -68,10 +70,6 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6TextDistanceV1",T,I,5,{S,S,I,I,I}},
     {"xl6TextSimilarityV1",T,F,4,{S,S,I,I}},
     {"xl6TextApproxV1",T,B,5,{S,S,F,I,I}},
-    {"xl6TextSplitV1",T,V,4,{S,S,I,I},S},
-    {"xl6TextLinesV1",T,V,2,{S,I},S},
-    {"xl6TextFieldsV1",T,V,2,{S,I},S},
-    {"xl6TextJoinV1",T,S,4,{V,S,I,I},.parameterArrayItemAbis={S}},
     {"xl6TextIteratorCreateV1",T,V,5,{S,S,I,I,I},.resultOwner="xl6TextIteratorDestroyV1"},
     {"xl6TextIteratorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.noRaise=1},
     {"xl6TextIteratorNextV1",T,S,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.nullableResult=1},
@@ -145,6 +143,33 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6RegexMatchNameV1",T,S,2,{V,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
     {"xl6RegexMatchIndexV1",T,I,3,{V,S,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
     {"xl6RegexMatchInputV1",T,S,1,{V},.parameterOwners={"xl6RegexMatchDestroyV1"}},
+    {"xl6RegexIteratorCreateV1",T,V,5,{V,S,I,I,I},.resultOwner="xl6RegexIteratorDestroyV1",.parameterOwners={"xl6RegexDestroyV1"}},
+    {"xl6RegexIteratorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"},.noRaise=1},
+    {"xl6RegexIteratorHasNextV1",T,B,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
+    {"xl6RegexIteratorSnapshotV1",T,V,1,{V},.resultOwner="xl6RegexMatchDestroyV1",.parameterOwners={"xl6RegexIteratorDestroyV1"}},
+    {"xl6RegexIteratorConsumeV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
+    {"xl6RegexIteratorCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
+    {"xl6RegexIteratorClosedV1",T,B,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
+    {"xl6RegexReplaceV1",T,S,6,{V,S,S,I,I,I},.parameterOwners={"xl6RegexDestroyV1"}},
+    {"xl6RegexReplaceBufferV1",T,I,7,{V,V,S,S,I,I,I},.parameterOwners={"xl6RegexDestroyV1","xl6_xrt_buffer_destroy"}},
+    {"xl6RegexSplitCreateV1",T,V,5,{V,S,I,I,I},.resultOwner="xl6RegexSplitDestroyV1",.parameterOwners={"xl6RegexDestroyV1"}},
+    {"xl6RegexSplitDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"},.noRaise=1},
+    {"xl6RegexSplitHasNextV1",T,B,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
+    {"xl6RegexSplitSnapshotV1",T,V,1,{V},.resultOwner="xl6RegexSplitPartDestroyV1",.parameterOwners={"xl6RegexSplitDestroyV1"}},
+    {"xl6RegexSplitConsumeV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
+    {"xl6RegexSplitCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
+    {"xl6RegexSplitClosedV1",T,B,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
+    {"xl6RegexSplitPartDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"},.noRaise=1},
+    {"xl6RegexSplitPartTextV1",T,S,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"},.nullableResult=1},
+    {"xl6RegexSplitPartMatchedV1",T,B,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
+    {"xl6RegexSplitPartCaptureV1",T,I,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
+    {"xl6RegexSplitPartStartV1",T,I,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
+    {"xl6RegexSplitPartEndV1",T,I,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
+    {"xl6RegexSetDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSetDestroyV1"},.noRaise=1},
+    {"xl6RegexSetCountV1",T,I,1,{V},.parameterOwners={"xl6RegexSetDestroyV1"}},
+    {"xl6RegexSetPatternV1",T,S,2,{V,I},.parameterOwners={"xl6RegexSetDestroyV1"}},
+    {"xl6RegexSetFirstV1",T,I,4,{V,S,I,I},.parameterOwners={"xl6RegexSetDestroyV1"}},
+    {"xl6RegexSetTestV1",T,B,4,{V,S,I,I},.parameterOwners={"xl6RegexSetDestroyV1"}},
 #undef U
 #undef F
 #undef Y
@@ -279,6 +304,8 @@ static int xl6IrDirectBridgeArrayMatches(const XL6_IrModule* module,
     if (itemAbi == XL6_IR_C_ABI_MANAGED_STRING)
         return item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
             item->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL;
+    if (itemAbi == XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64) return 0;
+    if (itemAbi == XL6_IR_C_ABI_U64 && item->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64) return 0;
     return xl6IrBufferRuntimeBridgeResultMatches(item, itemAbi);
 }
 
