@@ -3,6 +3,7 @@
 #include "src/common/xl6_console.h"
 
 #include <stdio.h>
+#include <limits.h>
 
 static const char* xl6SkipUtf8Bom(const char* sourceText)
 {
@@ -31,6 +32,9 @@ int xl6LexerOpen(XL6_Lexer* lexer, const char* sourceText)
     lexer->extra.line = 1;
     lexer->extra.column = 1;
     lexer->extra.sourceText = scanText;
+    lexer->extra.sourceSize = strlen(scanText);
+    /* Flex's scan_bytes uses int and reserves two end-of-buffer sentinels. */
+    if ( lexer->extra.sourceSize > (size_t)INT_MAX - 2 ) return 0;
 
     if ( xl6lex_init_extra(&lexer->extra, (yyscan_t*)&lexer->scanner) != 0 ) {
         return 0;

@@ -34,6 +34,23 @@ int main(int argc, char** argv)
         ++characterConversions;
     }
     if (strstr(argv[1], "stdlib_text_interpolation.xl") != NULL) assert(characterConversions == 3);
+    if (strstr(argv[1], "stdlib_text_literals_nested.xl") != NULL) {
+        unsigned projections = 0;
+        for (size_t i = 0; i < ir.instructionCount; ++i) {
+            XL6_IrInstruction* instruction = &ir.instructions[i];
+            assert(instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY);
+            assert(instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_STRING_COPY);
+            if (instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_PROJECT_STRING_COPY) continue;
+            assert(xl6IrInstructionIsFallibleProjection(&ir, instruction));
+            XL6_IrTypeId payload = instruction->payloadType;
+            instruction->payloadType = XL6_IR_TYPE_INVALID;
+            assert(!xl6IrVerifyModule(&ir, NULL));
+            instruction->payloadType = payload;
+            assert(xl6IrVerifyModule(&ir, NULL));
+            ++projections;
+        }
+        assert(projections >= 3); /* array, stored sparse list, temporary list */
+    }
     /* Generic product verification, including plain language functions with
      * no standard-library bridge. A corrupted closed ABI must never reach C. */
     for (size_t i=0; i<ir.types.count; ++i) {

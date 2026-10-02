@@ -140,3 +140,14 @@ Linux ASan/UBSan 范围仅为集合内核和有符号常量的生成 C 宿主，
 和文本 provider 用 ASan/UBSan，链接共享库的生成宿主用逻辑账本；两者
 覆盖范围不能混同。额外独立产物门核对实际闭包，不以全运行库宿主链接代替
 裁剪验收。此批不是全部 53 模块或全仓 RC0 完成。
+
+### B12 有界字面量与嵌套插值
+
+`xlir_literal_span_contract.c` 对精确缓冲区、截断前缀、128 层限制、CRLF/
+UTF-8 token 位置和实际 lexer 做 101301 项检查；另跑前端 fuzz 10000 次。
+`stdlib_text_literals_nested.xl` 覆盖同引号/嵌套/raw/三引号、临时 array/list、
+拥有副本及复合赋值。主门还核对 10 个插值负例/历史诊断，禁止错误输入
+产生 C/H/IR；新有效程序的全部逻辑分配点必须传播 MemoryError 并平衡
+退役账本。`xlir_text_value_contract.c` 禁止旧 aborting array/list string-copy
+操作并损坏 owning projection payload 验证拒绝。Linux 门真正 instrument
+扫描器和实际 lexer/parser/fuzz；共享库宿主仍只声称逻辑账本覆盖。

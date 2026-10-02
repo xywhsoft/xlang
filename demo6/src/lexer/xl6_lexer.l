@@ -4,6 +4,7 @@
 
 %{
 #include "src/lexer/xl6_lexer_api.h"
+#include "src/lexer/xl6_literal_span.h"
 
 #define YY_EXTRA_TYPE XL6_LexerExtra*
 
@@ -11,6 +12,7 @@ typedef void* yyscan_t;
 XL6_LexerExtra* xl6get_extra(yyscan_t yyscanner);
 char* xl6get_text(yyscan_t yyscanner);
 int xl6get_leng(yyscan_t yyscanner);
+static int xl6ScanQuoted(yyscan_t yyscanner, XL6_TokenKind kind);
 
 static int xl6Utf8Columns(const char* text, int len)
 {
@@ -164,7 +166,6 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
 %option prefix="xl6"
 %option extra-type="XL6_LexerExtra*"
 %option warn
-%option noinput
 %option nounput
 %option never-interactive
 %option nounistd
@@ -213,27 +214,12 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 
 ";"                                { xl6SetToken(yyscanner, XL6_TK_SEP); return XL6_TK_SEP; }
 
-"rf\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"f\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"rf\""[^"\r\n]*"\""               { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"f\""([^"\\\r\n]|\\.)*"\""        { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"rf`"[^`]*"`"                      { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
-"f`"[^`]*"`"                       { xl6SetToken(yyscanner, XL6_TK_FSTRING); return XL6_TK_FSTRING; }
+"rf\"\"\""|"f\"\"\""|"rf\""|"f\""|"rf`"|"f`" { return xl6ScanQuoted(yyscanner, XL6_TK_FSTRING); }
 
-"br\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
-"b\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
-"br\""[^"\r\n]*"\""               { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
-"b\""([^"\\\r\n]|\\.)*"\""        { xl6SetToken(yyscanner, XL6_TK_BYTES); return XL6_TK_BYTES; }
+"br\"\"\""|"b\"\"\""|"br\""|"b\"" { return xl6ScanQuoted(yyscanner, XL6_TK_BYTES); }
 
-"r\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"\"\"\""([^"]|\"[^"]|\"\"[^"])*"\"\"\"" { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"r\""[^"\r\n]*"\""                { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"\""([^"\\\r\n]|\\.)*"\""         { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"r`"[^`]*"`"                       { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"`"[^`]*"`"                        { xl6SetToken(yyscanner, XL6_TK_STRING); return XL6_TK_STRING; }
-"'"([^'\\\r\n]|\\.)*"'"           { xl6SetToken(yyscanner, XL6_TK_CHAR); return XL6_TK_CHAR; }
-"\""([^"\\\r\n]|\\.)*             { return xl6SetErrorToken(yyscanner, "未闭合的字符串"); }
-"'"([^'\\\r\n]|\\.)*               { return xl6SetErrorToken(yyscanner, "未闭合的字符字面量"); }
+"r\"\"\""|"\"\"\""|"r\""|"\""|"r`"|"`" { return xl6ScanQuoted(yyscanner, XL6_TK_STRING); }
+"'"                                { return xl6ScanQuoted(yyscanner, XL6_TK_CHAR); }
 
 "#"[^#\r\n]*"#"                   { xl6SetToken(yyscanner, XL6_TK_TIME); return XL6_TK_TIME; }
 "#"[^#\r\n]*                       { return xl6SetErrorToken(yyscanner, "未闭合的时间字面量"); }
@@ -299,3 +285,34 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 .                                   { return xl6SetErrorToken(yyscanner, "无法识别的字符"); }
 
 %%
+
+static int xl6ScanQuoted(yyscan_t yyscanner, XL6_TokenKind kind)
+{
+    XL6_LexerExtra* extra = xl6get_extra(yyscanner);
+    XL6_LiteralSpan span = xl6ScanLiteralSpan(extra->sourceText, extra->sourceSize,
+                                             extra->tokenStartOffset, 0);
+    size_t consumed = extra->offset;
+    XL6_Token* token = &extra->current;
+    /* Prefix matching already advanced the position. Consume exactly the span,
+     * then advance from the stable source once (input does not run USER_ACTION). */
+    if ( span.end < consumed ) span.end = consumed;
+    while ( consumed < span.end ) { (void)input(yyscanner); ++consumed; }
+    xl6AdvancePosition(extra, extra->sourceText + extra->offset,
+                       (int)(span.end - extra->offset));
+    memset(token, 0, sizeof(*token));
+    token->kind = span.error == NULL ? kind : XL6_TK_ERROR;
+    token->text = extra->sourceText + extra->tokenStartOffset;
+    token->len = extra->offset - extra->tokenStartOffset;
+    token->startOffset = extra->tokenStartOffset;
+    token->endOffset = extra->offset;
+    token->startLine = extra->tokenStartLine;
+    token->startColumn = extra->tokenStartColumn;
+    token->endLine = extra->line;
+    token->endColumn = extra->column;
+    if ( span.error != NULL ) {
+        extra->hadError = 1;
+        snprintf(extra->errorText, sizeof(extra->errorText), "%s", span.error);
+        snprintf(token->message, sizeof(token->message), "%s", span.error);
+    }
+    return token->kind;
+}

@@ -1,0 +1,44 @@
+// Same delimiters are legal inside an interpolation expression.
+int visits = 0
+func nestedText() as string
+    visits += 1
+    return "a\0你"
+end
+assert f"{string.format(42, "04")}" == "0042"
+assert f"{string.format(255, "X")}/{string.format(0.125, ".1%")}" == "FF/12.5%"
+assert f"{{{string.format(0, "c")}}}" == "{\0}"
+assert f"{f"{f"{'你'}:{"a\0b"}"}"}" == "你:a\0b"
+assert f"{f`{`}`}`}" == "}"
+assert f`{f"{f`{`{}`}`}"}` == "{}"
+assert rf"raw\{rf"nested\{"text"}"}" == "raw\\nested\\text"
+assert f"{r"C:\{root}\"}" == "C:\\{root}\\"
+assert f"{r`raw\}text`}" == "raw\\}text"
+assert f"{b"a\0b".length}" == "3"
+assert f"{br"a\b".length}" == "3"
+assert f"{["}", "{", "你"][2]}" == "你"
+list<string> sparse = list[7: "a\0你"]
+assert f"{sparse[7]}" == "a\0你"
+assert f"{list<string>[3: "temporary"][3]}" == "temporary"
+array<string> values = ["x\0你"]
+string copy = values[0]
+values[0] += "!"
+sparse[7] += "!"
+assert copy == "x\0你"
+assert values[0] == "x\0你!"
+assert sparse[7] == "a\0你!"
+assert f"{nestedText()}:{nestedText()}" == "a\0你:a\0你"
+assert visits == 2
+assert f"{1 /* outer } " /* inner { ` */ still comment */ + 2}" == "3"
+assert f"{string.format(
+    42, // } " { do not close the expression
+    "04"
+)}" == "0042"
+assert f"""{f"""{string.format(42, "04")}"""}""" == "0042"
+assert f"{ """first
+last""" }" == "first\nlast"
+assert f"escaped:\"quoted\" {"ok"}" == "escaped:\"quoted\" ok"
+assert """embedded \""" delimiter""" == "embedded \"\"\" delimiter"
+assert f"{"""embedded \""" delimiter"""}" == "embedded \"\"\" delimiter"
+string saved = f"{nestedText()}"
+assert visits == 3
+assert saved == "a\0你"

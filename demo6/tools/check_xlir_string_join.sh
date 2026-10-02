@@ -19,13 +19,19 @@ run() {
     checks=$((checks + 1))
 }
 cases=(xlir_string_bridge_abi xlir_string_join_failure xlir_string_repeat_abi
-    stdlib_text_interpolation stdlib_text_interpolation_error xlir_string_bridge_minimal
+    stdlib_text_interpolation stdlib_text_literals_nested stdlib_text_interpolation_error xlir_string_bridge_minimal
     cgen_dynamic_to_typed_containers cgen_implicit_string_methods cgen_function_value_error_propagation)
 negative=(xlir_string_bridge_bad_result xlir_string_bridge_bad_parameter
     xlir_string_join_bad_result xlir_string_join_bad_parameter
     xlir_string_bytes_bad_result xlir_string_bytes_bad_parameter
     xlir_string_chars_bad_result xlir_string_chars_bad_parameter
     xlir_string_repeat_bad_result xlir_string_repeat_bad_parameter)
+literal_negative=(parse_fstring_unclosed_comment parse_fstring_mismatched_group
+    parse_fstring_unclosed_inner_quote parse_fstring_bad_time parse_fstring_unclosed
+    parse_fstring_empty_expr parse_fstring_bad_brace sem_fstring_nested_undeclared_identifier
+    sem_fstring_undeclared_identifier sem_fstring_multiline_undeclared_identifier)
+literal_diagnostic=('未闭合的块注释' '括号不匹配' '未闭合' '未闭合的时间字面量' '未闭合'
+    '不能为空' '单独的' ':1:16: \[sem\].*missingNested' ':2:28: \[sem\].*missingValue' ':3:8: \[sem\].*missingValue')
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
@@ -33,9 +39,11 @@ negative=(xlir_string_bridge_bad_result xlir_string_bridge_bad_parameter
     printf '%s\0' test/cases/xlir_text_value_contract.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_string_bridge_abi_host.c test/cases/xlir_string_repeat_host.c
     printf '%s\0' test/cases/xlir_string_interpolation_host.c test/cases/xlir_generated_module_host.c
+    printf '%s\0' test/cases/xlir_literal_span_contract.c test/fuzz/xl6_frontend_fuzz.c
+    printf '%s\0' test/cases/cgen_fstring.xl
     printf '%s\0' test/cases/stdlib_string.xl test/cases/stdlib_string_support.c test/support/string_bridge_native.c
     printf '%s\0' release/examples/stdlib_string_boundaries.xl release/examples/stdlib_string_boundaries_c.c
-    for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
+    for fixture in "${cases[@]}" "${negative[@]}" "${literal_negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 while IFS='|' read -r kind target source; do
     if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
@@ -56,6 +64,15 @@ run artifact-contract "$OUT/artifact" "${fixtures[@]}"
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie)
+frontend=(src/lexer/xl6_lexer_api.c src/lexer/xl6_lexer_gen.c src/lexer/xl6_token.c
+    src/common/xl6_output.c src/common/xl6_console.c)
+run literal-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_literal_span_contract.c \
+    "${frontend[@]}" -lxl "${libs[@]}" -o "$OUT/literal-span"
+run literal-contract "$OUT/literal-span"
+run frontend-fuzz-build "$CC" "${strict[@]}" "${sanitize[@]}" test/fuzz/xl6_frontend_fuzz.c \
+    "${frontend[@]}" src/parser/xl6_parser.c src/parser/xl6_parser_api.c src/ast/xl6_ast.c src/diag/xl6_diag.c \
+    -lxl "${libs[@]}" -o "$OUT/frontend-fuzz"
+run frontend-fuzz "$OUT/frontend-fuzz" 10000 1481397778
 native=(test/support/string_bridge_native.c src/runtime/xl6_text_value.c
     src/runtime/xl6_text_binary.c src/runtime/xl6_text_chars.c src/runtime/xl6_text_split.c src/runtime/xl6_text_join.c)
 for mode in bridge repeat; do
@@ -78,19 +95,19 @@ for fixture in "${cases[@]}"; do
     host=test/cases/xlir_generated_module_host.c; entry=()
     if [[ "$fixture" = xlir_string_bridge_abi ]]; then host=test/cases/xlir_string_bridge_abi_host.c
     elif [[ "$fixture" = xlir_string_repeat_abi ]]; then host=test/cases/xlir_string_repeat_host.c
-    elif [[ "$fixture" = stdlib_text_interpolation ]]; then host=test/cases/xlir_string_interpolation_host.c
+    elif [[ "$fixture" = stdlib_text_interpolation || "$fixture" = stdlib_text_literals_nested ]]; then host=test/cases/xlir_string_interpolation_host.c
     elif [[ "$fixture" = xlir_string_join_failure || "$fixture" = cgen_dynamic_to_typed_containers ||
             "$fixture" = cgen_implicit_string_methods ]]; then entry=(-DXLIR_GENERATED_MODULE_USER_ENTRY)
     fi
     run "$fixture.strict-build" "$CC" "${strict[@]}" -include "$OUT/$fixture.c" \
         -DXLIR_GENERATED_MODULE_PREINCLUDED "${entry[@]}" "$host" -lxl "${libs[@]}" -o "$OUT/$fixture.strict"
     run "$fixture.strict" "$OUT/$fixture.strict"
-    if [[ "$fixture" = stdlib_text_interpolation ]]; then
-        for ((point=0; point<=256; ++point)); do
+    if [[ "$fixture" = stdlib_text_interpolation || "$fixture" = stdlib_text_literals_nested ]]; then
+        for ((point=0; point<=512; ++point)); do
             name="$fixture.logical-oom-$point"; run "$name" "$OUT/$fixture.strict" "$point"
             grep -q 'hit=0 balanced' "$OUT/$name.log" && break
         done
-        ((point<=256)) || { printf 'Incomplete logical allocation sweep\n' >&2; exit 1; }
+        ((point<=512)) || { printf 'Incomplete logical allocation sweep\n' >&2; exit 1; }
     fi
     run "$fixture.jit" "$CLI" run "$source" --inc-path "$OUT/include"
     run "$fixture.aot-build" "$CLI" build "$source" --inc-path "$OUT/include" --save-temps -o "$OUT/$fixture.aot"
@@ -115,14 +132,26 @@ for fixture in "${negative[@]}"; do
     grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
     checks=$((checks + 1))
 done
+for index in "${!literal_negative[@]}"; do
+    fixture="${literal_negative[$index]}"
+    if "$CLI" cgen "test/cases/$fixture.xl" --emit "$OUT/$fixture.c" >"$OUT/$fixture.log" 2>&1; then
+        printf 'Malformed interpolation accepted: %s\n' "$fixture" >&2; exit 1
+    fi
+    [[ ! -e "$OUT/$fixture.c" ]]
+    grep -Eq "${literal_diagnostic[$index]}" "$OUT/$fixture.log"
+    checks=$((checks + 1))
+done
 run stdlib-jit "$CLI" run test/cases/stdlib_string.xl test/cases/stdlib_string_support.c
 run stdlib-build "$CLI" build test/cases/stdlib_string.xl test/cases/stdlib_string_support.c -o "$OUT/stdlib"
 run stdlib-aot "$OUT/stdlib"
+run legacy-fstring-jit "$CLI" run test/cases/cgen_fstring.xl test/cases/stdlib_string_support.c
+run legacy-fstring-build "$CLI" build test/cases/cgen_fstring.xl test/cases/stdlib_string_support.c -o "$OUT/legacy-fstring"
+run legacy-fstring-aot "$OUT/legacy-fstring"
 run example-xl "$CLI" run release/examples/stdlib_string_boundaries.xl
 run example-c-build "$CC" "${strict[@]}" -Ilib/xrt release/examples/stdlib_string_boundaries_c.c -lxl "${libs[@]}" -o "$OUT/example-c"
 run example-c "$OUT/example-c"
 run examples-equal cmp "$OUT/example-xl.log" "$OUT/example-c.log"
 [[ "$(wc -l <"$OUT/example-xl.log")" = 21 ]]
 run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"PositiveFixtures":9,"AbiNegativeFixtures":10,"ActualNativeClosures":9,"InputsUnchanged":true,"SanitizedScope":"selected XRT/native text probes only; generated libxl hosts use logical allocation tracking"}\n' "$checks" >"$OUT/results.json"
-printf 'String B11 Linux: %d checks passed; native ASan/UBSan, 2000 threaded joins, 600 repeat cases, logical OOM, strict C/JIT/AOT and 9 actual closures.\n' "$checks" | tee "$OUT/summary.txt"
+printf '{"Complete":true,"Checks":%d,"PositiveFixtures":10,"AbiNegativeFixtures":10,"LiteralNegativeFixtures":10,"ActualNativeClosures":10,"InputsUnchanged":true,"SanitizedScope":"literal scanner, actual lexer/parser/fuzz and selected XRT/native text probes; generated libxl hosts use logical allocation tracking"}\n' "$checks" >"$OUT/results.json"
+printf 'String B12 Linux: %d checks passed; native/frontend ASan/UBSan, 2000 threaded joins, 600 repeat cases, nested logical OOM, strict C/JIT/AOT and 10 actual closures.\n' "$checks" | tee "$OUT/summary.txt"
