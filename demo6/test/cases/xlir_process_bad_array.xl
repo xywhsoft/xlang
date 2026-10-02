@@ -1,0 +1,6 @@
+class WrongCommand
+    private native point handle
+    extern "xl6ProcessCommandDirectV1" create(string program, array<int> args, int size, int argSize)
+    extern "xl6ProcessCommandDestroyV1" destroy()
+end
+auto invalid = WrongCommand("never-run", [1], -1, -1)

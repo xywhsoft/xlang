@@ -1,1 +1,8 @@
-assert dir.glob("build/test/xlir_absent_directory_probe", "*.txt").length == 0
+bool caught = false
+try
+    auto value = dir.glob("build/test/xlir_absent_directory_probe", "*.txt")
+catch e
+    assert e.kind == "FileError"
+    caught = true
+end
+assert caught

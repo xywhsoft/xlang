@@ -1,2 +1,2 @@
-extern "xl6_xrt_dir_list" func bad(string path, c_bool recursive, c_int mode) as array
-bad(".", c_bool(false), c_int(0))
+extern "xl6_xrt_fs_dir_list" func bad(string path, c_bool recursive, int mode, int size) as array
+bad(".", c_bool(false), 0, -1)

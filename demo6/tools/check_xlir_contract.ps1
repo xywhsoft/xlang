@@ -998,16 +998,20 @@ foreach ($required in @("xl6IrDirectBridgeContracts", "parameterPhysicalFieldDec
     "parameterConstraintAbis", "XL6_IR_PARAMETER_ABI_BORROW", "XL6_IR_PARAMETER_ABI_VALUE",
     "XL6_IR_CALL_RESULT_PHYSICAL_DIRECT", "XL6_IR_ERROR_ABI_NO_RAISE",
     "xl6_xrt_dir_list", "xl6_xrt_dir_glob", "xl6_xrt_dir_entries", "xl6_xrt_dir_is_empty",
-    "xl6_xrt_dir_count", "xl6_xrt_dir_size", "xl6_xrt_process_exec", "xl6_xrt_process_success",
-    "xl6_xrt_process_exit_code")) {
+    "xl6_xrt_dir_count", "xl6_xrt_dir_size", "xl6ProcessRunV1", "xl6ProcessResultDestroyV1",
+    "xl6ProcessCommandShellV1")) {
     if (!$directBridge.Contains($required)) { throw "Direct runtime bridge registry lost ABI evidence: $required" }
 }
-foreach ($component in @("dir", "process_run")) {
+foreach ($component in @("dir")) {
     if (!$sharedRuntime.Contains('#include "src/cgen/xl6_cgen_' + $component + '.c"')) {
         throw "Directory/process emitter must be a shared runtime component: $component"
     }
 }
 $xlangRuntime = Read-Utf8 "src\cgen\xl6_cgen_xlang_runtime.c"
+if ($sharedRuntime.Contains("xl6_cgen_process_run") -or
+    (Read-Utf8 "src/cgen/xl6_ir_cgen_needs_call_targets.c").Contains("PROCESS_EXEC")) {
+    throw "Process implementations must stay out of Cgen"
+}
 $xlangStdlib = Read-Utf8 "src\stdlib\xl6_stdlib_data.c"
 $xlangNeeds = Read-Utf8 "src\cgen\xl6_ir_cgen_needs_call_targets.c"
 $xlangModuleEmit = Read-Utf8 "src\cgen\xl6_ir_cgen_module_emit.c"
@@ -5225,8 +5229,9 @@ foreach ($required in @('XL6_IrStringBridgeContract', 'target->errorAbi != contr
     'XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES')) {
     if (!$source.Contains($required)) { throw "XLIR string ABI registry is incomplete: $required" }
 }
+$nativeCollectionContracts = Read-Utf8 'src/abi/xl6_native_collection_contracts.inc'
 foreach ($required in @('xl6TextJoinV1', 'xl6TextSplitV1', 'xl6TextLinesV1')) {
-    if (!$directBridge.Contains($required)) {throw "Resident text exact ABI missing: $required"}
+    if (!$nativeCollectionContracts.Contains($required)) {throw "Resident text exact ABI missing: $required"}
 }
 foreach ($entry in @(@('src/runtime/xl6_text_pieces.h', 'xrtStrSplitNext'),
         @('src/runtime/xl6_text_join.c', 'xrtStrJoinSized'))) {

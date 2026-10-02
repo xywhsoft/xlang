@@ -1,9 +1,12 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
-    [string[]]$Cases = @())
+    [string[]]$Cases = @(),
+    [string]$ProcessChild = '')
 $ErrorActionPreference='Stop'
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
+$priorProcessChild=$env:XL6_PROCESS_CHILD
+$processChildConfigured=$false
 try {
     $outputPath=[IO.Path]::GetFullPath($Directory)
     if(Test-Path -LiteralPath $outputPath){throw 'Preserve prior artifact-runtime evidence'}
@@ -14,9 +17,17 @@ try {
         'xlir_cell_loop_binding','xlir_nullable_cell_capture','cgen_function_value_error_propagation','xlir_generator_string_machine',
         'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
+    $processInputs=@()
+    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases){
+        if(!$ProcessChild){throw 'Process fixtures require an explicit private ProcessChild'}
+        $ProcessChild=(Resolve-Path -LiteralPath $ProcessChild).Path
+        $processInputs=@($ProcessChild)
+        $env:XL6_PROCESS_CHILD=$ProcessChild
+        $processChildConfigured=$true
+    }
     $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
         'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',
-        'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures)
+        'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures+$processInputs)
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale artifact input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
@@ -193,6 +204,11 @@ $process=Start-Process @start
                         'XRT_MODULE_REGEX_CORE'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_regex_|xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
+                }elseif($case-eq'stdlib_process_command_only'-or$case-eq'stdlib_process_options_only'){
+                    $leaf=if($case-eq'stdlib_process_command_only'){'command'}else{'options'}
+                    $expected="src/runtime/xl6_process_$leaf.c"
+                    $selectedProcess=@($selectedSources|Where-Object {$_-match '/xl6_process_'})
+                    $selectionMatches=$selectedProcess.Count-eq1-and$selectedProcess[0]-eq$expected
                 }elseif($case-eq'stdlib_signal_subscription_only'){
                     $baseline=Get-Content -LiteralPath "$outputPath/cgen_basic.native-plan.log" -TotalCount 1|ConvertFrom-Json
                     $expectedSources=@(@($baseline.Sources)+@('src/runtime/xl6_signal_core.c','src/runtime/xl6_signal_queue.c','src/runtime/xl6_code_finalizer.c')|Sort-Object -Unique)
@@ -308,4 +324,7 @@ $process=Start-Process @start
         Scope='Current-source standalone CLI with explicit private declaration/source staging and TCC provider. Covers exactly the listed fixtures, all resident export ownership and dependency pairs, native object closure and actual assembly/plan equality. Not shared release xlc.dll, isolated deployment or whole-platform acceptance.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if(!$complete){throw 'Artifact runtime failures retained'}
-} finally {Pop-Location}
+} finally {
+    if($processChildConfigured){$env:XL6_PROCESS_CHILD=$priorProcessChild}
+    Pop-Location
+}

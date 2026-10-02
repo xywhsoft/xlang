@@ -1,2 +1,6 @@
-extern "xl6_xrt_process_exit_code" func bad(string command, int timeout) as c_int
-bad("exit 0", 0)
+class WrongOptions
+    private native point handle
+    extern "xl6ProcessRunOptionsCreateV1" create(c_int timeoutMs, int stdoutLimit, int stderrLimit, int overflow, int stopGraceMs, uint64 deadline)
+    extern "xl6ProcessRunOptionsDestroyV1" destroy()
+end
+auto invalid = WrongOptions(c_int(-1), 1, 1, 0, 10, 0)

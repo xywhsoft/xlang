@@ -1,1 +1,8 @@
-assert dir.count("build/test/xlir_absent_directory_probe") == 0
+bool caught = false
+try
+    auto value = dir.count("build/test/xlir_absent_directory_probe")
+catch e
+    assert e.kind == "FileError"
+    caught = true
+end
+assert caught

@@ -1,0 +1,46 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+auto childEnv = process.cmd(child, ["env", "XL6_PROCESS_环境"])
+childEnv.env("XL6_PROCESS_环境", "值你")
+assert childEnv.run().stdoutText() == "值你"
+childEnv.env("XL6_PROCESS_环境", "")
+assert childEnv.run().stdout.length == 0
+childEnv.removeEnv("XL6_PROCESS_环境")
+assert childEnv.run().exitCode == 17
+assert child != ""
+array<string> args = ["echo"]
+auto command = process.cmd(child, args)
+args[0] = "exit"
+auto result = process.run(command, b"a\0你b", 5000)
+assert result.success and not result.timedOut and not result.cancelled
+assert result.exitCode == 0 and result.waitResult == 0
+assert result.stdout == b"a\0你b" and result.stderr == b"E\0R"
+assert result.inputWritten == 6
+assert result.readStdout(200) == result.stdout
+assert result.readStdout(2) == b"a\0"
+assert result.stdoutText() == "a\0你b"
+assert result.stderrText() == "E\0R"
+assert not result.stdoutTruncated and not result.stderrTruncated
+auto status = result.status
+assert status.kind == 1 and status.code == 0 and status.signal == 0
+assert status.stop == 0 and not status.coreDumped
+bytes saved = result.stdout
+string text = result.stdoutText()
+result = process.cmd(child, ["exit", "7"]).run()
+assert not result.success and result.exitCode == 7
+assert saved == b"a\0你b" and text == "a\0你b" and status.code == 0
+auto prefix = command.run(b"a\0bc", 5000, 3)
+assert prefix.stdout == b"a\0b" and prefix.inputWritten == 3
+auto literalArgs = process.cmd(child, ["args", "a b", "", "quote\"tail", "你", "$&;"]).run()
+assert literalArgs.stdout == b"a b\0\0quote\"tail\0你\0$&;\0"
+int utf8Rejected = 0
+try
+    auto invalid = process.cmd(child, ["invalid"]).run().stdoutText()
+catch e
+    utf8Rejected += 1
+end
+try
+    auto cut = prefix.stdoutText(-2)
+catch e
+    utf8Rejected += 1
+end
+assert utf8Rejected == 2

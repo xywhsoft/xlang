@@ -2497,85 +2497,9 @@ const char* xl6StdlibJsonClassSource =
     "    end\n"
     "end\n";
 
-const char* xl6StdlibProcessClassSource =
-    "class ProcessResult\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_process_result_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_process_result_exit_code\" get exitCode() as int\n"
-    "    extern \"xl6_xrt_process_result_success\" get success() as bool\n"
-    "    extern \"xl6_xrt_process_result_timed_out\" get timedOut() as bool\n"
-    "    extern \"xl6_xrt_process_result_cancelled\" get cancelled() as bool\n"
-    "    extern \"xl6_xrt_process_result_spawn_failed\" get spawnFailed() as bool\n"
-    "    extern \"xl6_xrt_process_result_killed\" get killed() as bool\n"
-    "    extern \"xl6_xrt_process_result_stdout_truncated\" get stdoutTruncated() as bool\n"
-    "    extern \"xl6_xrt_process_result_stderr_truncated\" get stderrTruncated() as bool\n"
-    "    extern \"xl6_xrt_process_result_duration_ms\" get durationMs() as int\n"
-    "    extern \"xl6_xrt_process_result_exit_info\" func exitInfo() as var\n"
-    "    extern \"xl6_xrt_process_result_stdout_copy\" func stdoutNative() as point\n"
-    "    extern \"xl6_xrt_process_result_stderr_copy\" func stderrNative() as point\n"
-    "\n"
-    "    get stdout() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.stdoutNative())\n"
-    "    end\n"
-    "\n"
-    "    get stderr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.stderrNative())\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class ProcessCommand\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_process_command_create_file\" create(string program, array args)\n"
-    "    extern \"xl6_xrt_process_command_create_shell\" create(string command)\n"
-    "    extern \"xl6_xrt_process_command_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_process_command_work_dir\" func workDir(string path) as bool\n"
-    "    extern \"xl6_xrt_process_command_env\" func env(string name, string value) as bool\n"
-    "    extern \"xl6_xrt_process_command_clear_env\" func clearEnv() as bool\n"
-    "    extern \"xl6_xrt_process_command_inherit_env\" func inheritEnv(bool enabled) as bool\n"
-    "    extern \"xl6_xrt_process_command_use_terminal\" func terminalNative(bool enabled) as bool\n"
-    "    extern \"xl6_xrt_process_command_new_console\" func newConsoleNative(bool enabled) as bool\n"
-    "    extern \"xl6_xrt_process_command_merge_stderr\" func mergeStderrNative(bool enabled) as bool\n"
-    "    extern \"xl6_xrt_process_command_process_group\" func processGroupNative(bool enabled) as bool\n"
-    "    extern \"xl6_xrt_process_command_hide_window\" func hideWindowNative(bool enabled) as bool\n"
-    "    extern \"xl6_xrt_process_command_terminal_size\" func terminalSize(int cols, int rows) as bool\n"
-    "    extern \"xl6_xrt_process_command_read_chunk_size\" func readChunkSize(int size) as bool\n"
-    "    extern \"xl6_xrt_process_command_max_capture_bytes\" func maxCaptureBytes(int size) as bool\n"
-    "    extern \"xl6_xrt_process_command_max_event_count\" func maxEventCount(int count) as bool\n"
-    "    extern \"xl6_xrt_process_command_stdio\" func stdioNative(int stream, int mode, bool capture) as bool\n"
-    "    extern \"xl6_xrt_process_command_run\" func runNative(string input, c_size inputSize, int timeoutMs) as point\n"
-    "    extern \"xl6_xrt_process_command_start\" func startNative() as point\n"
-    "\n"
-    "    func stdio(int stream, int mode, bool capture = false) as bool\n"
-    "        return self.stdioNative(stream, mode, capture)\n"
-    "    end\n"
-    "\n"
-    "    func terminal(bool enabled = true) as bool\n"
-    "        return self.terminalNative(enabled)\n"
-    "    end\n"
-    "\n"
-    "    func newConsole(bool enabled = true) as bool\n"
-    "        return self.newConsoleNative(enabled)\n"
-    "    end\n"
-    "\n"
-    "    func mergeStderr(bool enabled = true) as bool\n"
-    "        return self.mergeStderrNative(enabled)\n"
-    "    end\n"
-    "\n"
-    "    func processGroup(bool enabled = true) as bool\n"
-    "        return self.processGroupNative(enabled)\n"
-    "    end\n"
-    "\n"
-    "    func hideWindow(bool enabled = true) as bool\n"
-    "        return self.hideWindowNative(enabled)\n"
-    "    end\n"
-    "\n"
-    "    func run(string input = \"\", int timeoutMs = 0) as ProcessResult\n"
-    "        c_size __xl_size_input = __xl_std_xrt_string_byte_len(input)\n"
-    "        point raw = self.runNative(input, __xl_size_input, timeoutMs)\n"
-    "        return ProcessResult(raw)\n"
-    "    end\n"
-    "end\n"
-    "\n"
+#include "src/stdlib/xl6_stdlib_process.inc"
+/* Live-process/pipeline declarations migrate in the following process batch. */
+const char* xl6StdlibLegacyProcessClassSource =
     "class PipelineResult\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_process_pipeline_destroy\" destroy()\n"
@@ -3001,17 +2925,6 @@ static const XL6_StdlibParam xl6StdRuntimeCryptoRsaVerifyParams[] = {
     {"c_size", "modulusHexSize"},
     {"string", "exponentHex"},
     {"c_size", "exponentHexSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeProcessExecParams[] = {
-    {"string", "command"},
-    {"c_int", "timeoutMs"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeProcessRunFileParams[] = {
-    {"string", "program"},
-    {"var", "args"},
-    {"c_int", "timeoutMs"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeProcessPipelineParams[] = {
@@ -4151,44 +4064,32 @@ static const char xl6StdStringDistanceBody[] =
     "extern \"xl6TextDistanceV1\" func __xl_std_string_distance(string left, string right, int limit = -1, int leftSize = -1, int rightSize = -1) as int\n";
 
 static const char xl6StdProcessExecBody[] =
-    "func __xl_std_process_exec(string command, int timeoutMs = 0) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_process_exec(command, c_int(timeoutMs)))\n"
-    "end\n";
+    "func __xl_std_process_exec(string command, int timeoutMs = -1, int size = -1) as string\n    return ProcessCommand(command, size).run(b\"\", timeoutMs).stdoutText()\nend\n";
 
 static const char xl6StdProcessSuccessBody[] =
-    "func __xl_std_process_success(string command, int timeoutMs = 0) as bool\n"
-    "    return __xl_std_runtime_process_success(command, c_int(timeoutMs))\n"
-    "end\n";
+    "func __xl_std_process_success(string command, int timeoutMs = -1, int size = -1) as bool\n    return ProcessCommand(command, size).run(b\"\", timeoutMs).success\nend\n";
 
 static const char xl6StdProcessExitCodeBody[] =
-    "func __xl_std_process_exit_code(string command, int timeoutMs = 0) as int\n"
-    "    return int(__xl_std_runtime_process_exit_code(command, c_int(timeoutMs)))\n"
-    "end\n";
+    "func __xl_std_process_exit_code(string command, int timeoutMs = -1, int size = -1) as int\n    return ProcessCommand(command, size).run(b\"\", timeoutMs).exitCode\nend\n";
 
 static const char xl6StdProcessRunBody[] =
-    "func __xl_std_process_run(string command, int timeoutMs = 0) as ProcessResult\n"
-    "    return ProcessResult(__xl_std_runtime_process_run(command, c_int(timeoutMs)))\n"
-    "end\n";
+    "func __xl_std_process_run(string command, int timeoutMs = -1, int size = -1) as ProcessResult\n    return ProcessCommand(command, size).run(b\"\", timeoutMs)\nend\n";
 
 static const char xl6StdProcessRunCommandBody[] =
-    "func __xl_std_process_run(ProcessCommand command, string input = \"\", int timeoutMs = 0) as ProcessResult\n"
-    "    return command.run(input, timeoutMs)\n"
-    "end\n";
-
+    "func __xl_std_process_run(ProcessCommand command, bytes input = b\"\", int timeoutMs = -1, int size = -1) as ProcessResult\n"
+    "    return command.run(input, timeoutMs, size)\nend\n";
+static const char xl6StdProcessRunOptionsBody[] =
+    "func __xl_std_process_run(ProcessCommand command, ProcessRunOptions options, bytes input = b\"\", int size = -1) as ProcessResult\n"
+    "    return command.run(options, input, size)\nend\n";
 static const char xl6StdProcessRunFileBody[] =
-    "func __xl_std_process_run_file(string program, array args = [], int timeoutMs = 0) as ProcessResult\n"
-    "    return ProcessResult(__xl_std_runtime_process_run_file(program, args, c_int(timeoutMs)))\n"
-    "end\n";
-
+    "func __xl_std_process_run_file(string program, array<string> args = [], int timeoutMs = -1, int size = -1, int argSize = -1) as ProcessResult\n"
+    "    return ProcessCommand(program, args, size, argSize).run(b\"\", timeoutMs)\nend\n";
 static const char xl6StdProcessCmdBody[] =
-    "func __xl_std_process_cmd(string program, array args = []) as ProcessCommand\n"
-    "    return ProcessCommand(program, args)\n"
-    "end\n";
-
+    "func __xl_std_process_cmd(string program, array<string> args = [], int size = -1, int argSize = -1) as ProcessCommand\n"
+    "    return ProcessCommand(program, args, size, argSize)\nend\n";
 static const char xl6StdProcessShellBody[] =
-    "func __xl_std_process_shell(string command) as ProcessCommand\n"
-    "    return ProcessCommand(command)\n"
-    "end\n";
+    "func __xl_std_process_shell(string command, int size = -1) as ProcessCommand\n"
+    "    return ProcessCommand(command, size)\nend\n";
 
 static const char xl6StdProcessPipelineBody[] =
     "func __xl_std_process_pipeline(array commands, int timeoutMs = 0) as PipelineResult\n"
@@ -4823,7 +4724,7 @@ static const char xl6StdOsStartFileBody[] =
 
 static const char xl6StdOsChainBody[] =
     "func __xl_std_os_chain(string command) as int\n"
-    "    return int(__xl_std_runtime_process_exit_code(command, -1))\n"
+    "    return process.exitCode(command)\n"
     "end\n";
 
 static const char xl6StdPathHomeBody[] =
@@ -6350,11 +6251,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "ecdsaVerify", "__xl_std_runtime_ecdsa_verify", "xl6_xrt_ecdsa_verify", xl6StdRuntimeCryptoVerifyParams, 6, "c_bool", NULL},
     {"__xl_runtime", "rsaPssVerify", "__xl_std_runtime_rsa_pss_verify", "xl6_xrt_rsa_pss_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "rsaPkcs1Verify", "__xl_std_runtime_rsa_pkcs1_verify", "xl6_xrt_rsa_pkcs1_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
-    {"__xl_runtime", "processExec", "__xl_std_runtime_process_exec", "xl6_xrt_process_exec", xl6StdRuntimeProcessExecParams, 2, "point", NULL},
-    {"__xl_runtime", "processSuccess", "__xl_std_runtime_process_success", "xl6_xrt_process_success", xl6StdRuntimeProcessExecParams, 2, "c_bool", NULL},
-    {"__xl_runtime", "processExitCode", "__xl_std_runtime_process_exit_code", "xl6_xrt_process_exit_code", xl6StdRuntimeProcessExecParams, 2, "c_int", NULL},
-    {"__xl_runtime", "processRun", "__xl_std_runtime_process_run", "xl6_xrt_process_run_shell_result", xl6StdRuntimeProcessExecParams, 2, "point", NULL},
-    {"__xl_runtime", "processRunFile", "__xl_std_runtime_process_run_file", "xl6_xrt_process_run_file_result", xl6StdRuntimeProcessRunFileParams, 3, "point", NULL},
     {"__xl_runtime", "processPipeline", "__xl_std_runtime_process_pipeline", "xl6_xrt_process_pipeline_run", xl6StdRuntimeProcessPipelineParams, 2, "point", NULL},
     {"__xl_runtime", "processTerminalSupported", "__xl_std_runtime_process_terminal_supported", "xl6_xrt_process_terminal_supported", NULL, 0, "c_bool", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
@@ -7226,6 +7122,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"process", "exitCode", "__xl_std_process_exit_code", NULL, NULL, 0, "int", xl6StdProcessExitCodeBody},
     {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunBody},
     {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunCommandBody},
+    {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunOptionsBody},
     {"process", "runFile", "__xl_std_process_run_file", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunFileBody},
     {"process", "cmd", "__xl_std_process_cmd", NULL, NULL, 0, "ProcessCommand", xl6StdProcessCmdBody},
     {"process", "shell", "__xl_std_process_shell", NULL, NULL, 0, "ProcessCommand", xl6StdProcessShellBody},

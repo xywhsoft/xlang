@@ -1,0 +1,1 @@
+auto command = process.shell("exit 0")

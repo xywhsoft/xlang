@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3615，其中扩展自有 452。
 - 低层能力：3615 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1725 个函数。其余 1890 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1732 个函数。其余 1883 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -22,7 +22,7 @@
 | xrt | `include/xrt/atomic.h` | 29 | 17 | 12 |
 | xrt | `include/xrt/avl.h` | 43 | 0 | 43 |
 | xrt | `include/xrt/buffer.h` | 23 | 17 | 6 |
-| xrt | `include/xrt/cancel.h` | 15 | 11 | 4 |
+| xrt | `include/xrt/cancel.h` | 15 | 12 | 3 |
 | xrt | `include/xrt/channel.h` | 42 | 14 | 28 |
 | xrt | `include/xrt/charset.h` | 72 | 40 | 32 |
 | xrt | `include/xrt/codec.h` | 20 | 6 | 14 |
@@ -77,7 +77,7 @@
 | xrt | `include/xrt/random.h` | 39 | 25 | 14 |
 | xrt | `include/xrt/regex.h` | 54 | 38 | 16 |
 | xrt | `include/xrt/set.h` | 34 | 0 | 34 |
-| xrt | `include/xrt/signal.h` | 20 | 11 | 9 |
+| xrt | `include/xrt/signal.h` | 20 | 16 | 4 |
 | xrt | `include/xrt/slot_map.h` | 16 | 0 | 16 |
 | xrt | `include/xrt/spin.h` | 7 | 0 | 7 |
 | xrt | `include/xrt/stack.h` | 74 | 0 | 74 |
@@ -102,7 +102,7 @@
 | xrt | `include/xrt/udp.h` | 73 | 25 | 48 |
 | xrt | `include/xrt/value.h` | 142 | 116 | 26 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
-| xrt | `include/xrt/wait.h` | 3 | 2 | 1 |
+| xrt | `include/xrt/wait.h` | 3 | 3 | 0 |
 | xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |
 | xrt | `include/xrt/websocket_stream.h` | 38 | 25 | 13 |
 | xrt | `include/xrt/websocket_upgrade.h` | 9 | 6 | 3 |

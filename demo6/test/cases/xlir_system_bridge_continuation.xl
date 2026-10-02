@@ -3,21 +3,21 @@ async func ready() as int
 end
 
 async func directoryAcrossAwait(string path) as int
-    array entries = dir.entries(path)
+    array<WalkEntry> entries = dir.entries(path)
     string text = process.exec("echo async")
     int value = await ready()
     assert entries.length == 1
-    assert entries[0]["name"] == "value.txt"
+    assert entries[0].name == "value.txt"
     assert text == "async\r\n" or text == "async\n"
     assert process.success("exit 0")
     return value
 end
 
 func directoryAcrossYield() as generator<int>
-    array names = dir.list("build/test/xlir_system_continuation_data")
+    array<string> names = dir.list("build/test/xlir_system_continuation_data")
     yield process.exitCode("exit 3")
     assert names.length == 1
-    assert string.contains(string(names[0]), "value.txt")
+    assert string.contains(names[0], "value.txt")
     yield process.exitCode("exit 4")
 end
 

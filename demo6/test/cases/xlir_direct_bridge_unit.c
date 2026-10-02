@@ -318,9 +318,6 @@ static int testDirectBridgeAbi(void)
         { "xl6_xrt_dir_is_empty", 2, 1, {1} },
         { "xl6_xrt_dir_count", 4, 3, {1, 2, 3} },
         { "xl6_xrt_dir_size", 4, 2, {1, 2} },
-        { "xl6_xrt_process_exec", 6, 2, {1, 3} },
-        { "xl6_xrt_process_success", 2, 2, {1, 3} },
-        { "xl6_xrt_process_exit_code", 3, 2, {1, 3} }
     };
     XL6_IrModule module;
     XL6_IrType types[6];

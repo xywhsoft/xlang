@@ -1,0 +1,11 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.env("XL6_PROCESS_ALLOCATION", "value")
+command.workDir(".")
+auto options = ProcessRunOptions(5000, 1024, 1024, 0, 10)
+auto result = command.run(options, b"a\0b")
+bytes saved = result.stdout
+string text = result.stdoutText()
+auto status = result.status
+assert saved == b"a\0b" and text == "a\0b" and status.code == 0

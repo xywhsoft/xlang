@@ -12,6 +12,48 @@
 #endif
 
 struct xlir_closure;
+/* Checked process resources and exact input/output views. */
+XL6_TEXT_API void* xl6ProcessCommandDirectV1(xstrview program, const xvalue* args, int64_t size, int64_t argSize);
+XL6_TEXT_API void* xl6ProcessCommandShellV1(xstrview p0, int64_t p1);
+XL6_TEXT_API void xl6ProcessCommandDestroyV1(void* p0);
+XL6_TEXT_API void xl6ProcessCommandWorkDirV1(void* p0, xstrview p1, int64_t p2);
+XL6_TEXT_API void xl6ProcessCommandArg0V1(void* p0, xstrview p1, int64_t p2);
+XL6_TEXT_API void xl6ProcessCommandRemoveEnvV1(void* p0, xstrview p1, int64_t p2);
+XL6_TEXT_API void xl6ProcessCommandEnvV1(void* p0, xstrview p1, xstrview p2, int64_t p3, int64_t p4);
+XL6_TEXT_API void xl6ProcessCommandClearEnvV1(void* p0);
+XL6_TEXT_API void xl6ProcessCommandInheritEnvV1(void* p0, bool p1);
+XL6_TEXT_API void xl6ProcessCommandNewConsoleV1(void* p0, bool p1);
+XL6_TEXT_API void xl6ProcessCommandProcessGroupV1(void* p0, bool p1);
+XL6_TEXT_API void xl6ProcessCommandHideWindowV1(void* p0, bool p1);
+XL6_TEXT_API void xl6ProcessCommandTerminalV1(void* p0, bool p1);
+XL6_TEXT_API void xl6ProcessCommandTerminalSizeV1(void* p0, int64_t p1, int64_t p2);
+XL6_TEXT_API void xl6ProcessCommandStdioV1(void* p0, int64_t p1, int64_t p2);
+XL6_TEXT_API void* xl6ProcessRunOptionsCreateV1(int64_t p0, int64_t p1, int64_t p2, int64_t p3, int64_t p4, uint64_t p5);
+XL6_TEXT_API void xl6ProcessRunOptionsDestroyV1(void* p0);
+XL6_TEXT_API bool xl6ProcessRunOptionsCancelV1(void* p0);
+XL6_TEXT_API bool xl6ProcessRunOptionsRequestedV1(void* p0);
+XL6_TEXT_API void* xl6ProcessRunV1(void* command, void* options, const xvalue* input, int64_t size);
+XL6_TEXT_API void xl6ProcessResultDestroyV1(void* p0);
+XL6_TEXT_API bool xl6ProcessResultSuccessV1(void* p0);
+XL6_TEXT_API bool xl6ProcessResultTimedOutV1(void* p0);
+XL6_TEXT_API bool xl6ProcessResultCancelledV1(void* p0);
+XL6_TEXT_API int64_t xl6ProcessResultWaitV1(void* p0);
+XL6_TEXT_API uint64_t xl6ProcessResultInputWrittenV1(void* p0);
+XL6_TEXT_API uint64_t xl6ProcessResultDurationV1(void* p0);
+XL6_TEXT_API bool xl6ProcessResultStdoutTruncatedV1(void* p0);
+XL6_TEXT_API bool xl6ProcessResultStderrTruncatedV1(void* p0);
+XL6_TEXT_API int64_t xl6ProcessResultExitCodeV1(void* p0);
+XL6_TEXT_API xvalue* xl6ProcessResultStdoutV1(void* p0, int64_t p1);
+XL6_TEXT_API xvalue* xl6ProcessResultStderrV1(void* p0, int64_t p1);
+XL6_TEXT_API xstrview xl6ProcessResultStdoutTextV1(void* p0, int64_t p1);
+XL6_TEXT_API xstrview xl6ProcessResultStderrTextV1(void* p0, int64_t p1);
+XL6_TEXT_API void* xl6ProcessResultStatusV1(void* p0);
+XL6_TEXT_API void xl6ProcessStatusDestroyV1(void* p0);
+XL6_TEXT_API int64_t xl6ProcessStatusKindV1(void* p0);
+XL6_TEXT_API int64_t xl6ProcessStatusCodeV1(void* p0);
+XL6_TEXT_API int64_t xl6ProcessStatusSignalV1(void* p0);
+XL6_TEXT_API int64_t xl6ProcessStatusStopV1(void* p0);
+XL6_TEXT_API bool xl6ProcessStatusCoreDumpedV1(void* p0);
 /* Scalar signal foundation only. These are checked calls: lazy native
  * initialization can fail; restore/shutdown can wait for native callbacks.
  * name owns its exact result; count retains the unsigned native total. */
