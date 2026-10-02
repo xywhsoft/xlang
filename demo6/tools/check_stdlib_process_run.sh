@@ -18,6 +18,7 @@ negative+=(xlir_process_open_bad_width xlir_process_open_bad_effect xlir_process
     printf '%s\0' tools/check_stdlib_process_run.sh tools/check_stdlib_process_run.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_process_run_host.c test/support/process_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_process_support_host.c
+    printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_text_closure_host.c test/cases/xlir_process_child.c
     printf '%s\0' release/examples/stdlib_process_run.xl
@@ -41,6 +42,11 @@ sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -
 run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xlir_process_child.c -o "$OUT/child"
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
+run io-loan-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_io_loan.c -pthread -ldl -lm -o "$OUT/io-loan"
+run io-loan "$OUT/io-loan"
+grep -q 'process IO loan: 3 deterministic close races, 8 failure guards, short/EOF/zero/peer guards, balanced; safe=1' "$OUT/io-loan.log"
+run io-loan-terminal-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_PROCESS_TERMINAL test/cases/xlir_process_io_loan.c -pthread -ldl -lm -o "$OUT/io-loan-terminal"
+run io-loan-terminal "$OUT/io-loan-terminal"
 run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_run_host.c test/support/process_native.c src/runtime/xl6_process_command.c src/runtime/xl6_process_options.c src/runtime/xl6_process_run.c src/runtime/xl6_process_status.c -pthread -ldl -lm -o "$OUT/native"
 run native "$OUT/native" "$OUT/child"
 grep -q '3 first no-hit completions, balanced' "$OUT/native.log"
