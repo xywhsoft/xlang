@@ -1614,7 +1614,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsXlangClass;
     int needsCoreClass;
     int needsIoReader, needsIoWriter, needsIoLines, needsIoProtocols, needsIoBuffer;
-    int needsStringIterator;
+    int needsStringIterator, needsUtf8Validator;
     int needsVfs;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
@@ -1636,6 +1636,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsStringIterator = xl6StdlibFuncUsed(used, "string", "splitIter") ||
         xl6StdlibFuncUsed(used, "string", "linesIter") || xl6StdlibFuncUsed(used, "string", "fieldsIter") ||
         xl6StdlibNodeUsesTypeName(root, "StringIterator");
+    needsUtf8Validator = xl6StdlibFuncUsed(used, "unicode", "validator") ||
+        xl6StdlibNodeUsesTypeName(root, "Utf8Validator");
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||
         xl6StdlibNodeUsesTypeName(root, "ConsoleSession") || xl6StdlibNodeUsesTypeName(root, "ConsoleEvent");
     needsConsoleOptions = needsConsoleSession || xl6StdlibNodeUsesTypeName(root, "ConsoleOptions") ||
@@ -1779,7 +1781,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -1840,6 +1842,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if (needsIoLines) xl6StdlibBuilderAppend(&builder, xl6StdlibIoLinesSource);
     if (needsStringIterator) xl6StdlibBuilderAppend(&builder, xl6StdlibStringIteratorSource);
+    if (needsUtf8Validator) xl6StdlibBuilderAppend(&builder, xl6StdlibUtf8ValidatorSource);
     if (xl6StdlibNodeUsesTypeName(root, "NumberParseFlags"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibNumberParseFlagsSource);
     if (xl6StdlibNodeUsesTypeName(root, "IntegerTextFlags"))

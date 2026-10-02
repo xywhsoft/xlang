@@ -1,0 +1,7 @@
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_VALUE
+#define XRT_MODULE_THREAD
+#define XRT_MODULE_HTML_ESCAPE
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRT_IMPLEMENTATION
+#include "lib/xrt/xrt.h"

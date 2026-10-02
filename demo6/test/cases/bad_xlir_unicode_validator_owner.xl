@@ -1,0 +1,6 @@
+class WrongOwner
+    private native point handle
+    extern "xl6UnicodeValidatorCreateV1" create()
+    extern "xl6TextIteratorDestroyV1" destroy()
+end
+auto bad = WrongOwner()

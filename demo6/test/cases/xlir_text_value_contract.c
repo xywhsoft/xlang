@@ -41,6 +41,12 @@ int main(int argc, char** argv)
         --t->parameterCount;
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
         t->parameterCount = count;
+        if (count) {
+            XL6_IrTypeId* types = t->parameterTypes;
+            t->parameterTypes = NULL;
+            assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+            t->parameterTypes = types;
+        }
         for (size_t p=0; p<count; ++p) {
             XL6_IrType* scalar = &ir.types.items[t->parameterTypes[p] - 1];
             if (scalar->cAbi == XL6_IR_C_ABI_I64) {

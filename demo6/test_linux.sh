@@ -54,6 +54,10 @@ printf 'Running Linux numeric declaration, sanitizer and artifact contracts...\n
 bash "$ROOT/tools/check_stdlib_number_values.sh" \
     "$TEST_DIR/numeric-$(date +%Y%m%d-%H%M%S)-$$"
 
+printf 'Running Linux Unicode/HTML declaration, sanitizer and artifact contracts...\n'
+bash "$ROOT/tools/check_stdlib_unicode.sh" \
+    "$TEST_DIR/unicode-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'Running Linux UTF-8 path tests...\n'
 "$XL" run "$ROOT/test/cases/stdlib_release_string_abi.xl"
 "$XL" build "$ROOT/test/cases/stdlib_release_string_abi.xl" \

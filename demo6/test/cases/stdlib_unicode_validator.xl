@@ -1,0 +1,41 @@
+auto v = unicode.validator()
+assert v.errorOffset == -1 and v.total == 0 and not v.finished
+assert v.feed(b"A\xE4") == unicode.more
+assert v.total == 2 and v.errorOffset == -1
+bytes tail = b"\xBD\xA0\0\xF0\x9F"
+assert v.feed(tail) == unicode.more
+tail = b"replaced"
+assert v.feed(b"\x98\x80", true) == unicode.complete
+assert v.total == 9 and v.errorOffset == -1 and v.finished
+int caught = 0
+try
+    v.feed(b"")
+catch RuntimeError e
+    caught += 1
+end
+v.reset()
+assert not v.finished and v.errorOffset == -1 and v.total == 0
+assert v.feed(b"ok\xE4") == unicode.more
+assert v.feed(b"", true) == unicode.invalid
+assert v.errorOffset == 2 and v.finished
+v.reset()
+assert v.feed(b"x\xFF") == unicode.invalid
+assert v.errorOffset == 1 and v.total == 2
+assert v.feed(b"y") == unicode.invalid
+assert v.total == 2
+assert v.feed(b"", true) == unicode.invalid and v.finished
+v.reset()
+try
+    v.feed(b"abc", false, -2)
+catch RangeError e
+    caught += 1
+end
+assert v.total == 0 and not v.finished
+assert v.feed(b"abc\xFF", true, 3) == unicode.complete
+assert v.total == 3 and v.finished
+auto alias = v
+alias.reset()
+assert v.total == 0 and not v.finished
+assert alias.feed(b"\0", true, 100) == unicode.complete
+assert v.total == 1
+assert caught == 2

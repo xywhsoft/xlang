@@ -98,6 +98,21 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6NumberBufferIntStringV1",T,B,4,{V,I,I,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
     {"xl6NumberBufferUIntStringV1",T,B,4,{V,U,I,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
     {"xl6NumberBufferFloatStringV1",T,B,3,{V,F,I},.parameterOwners={"xl6_xrt_buffer_destroy"}},
+    {"xl6UnicodeScalarV1",T,B,1,{I}},
+    {"xl6UnicodeCharStringV1",T,S,1,{C}},
+    {"xl6UnicodeInvalidTextV1",T,I,2,{S,I}},
+    {"xl6UnicodeInvalidBytesV1",T,I,2,{Y,I}},
+    {"xl6UnicodeByteOffsetV1",T,I,3,{S,I,I}},
+    {"xl6UnicodeScalarIndexV1",T,I,3,{S,I,I}},
+    {"xl6UnicodeValidatorCreateV1",T,V,0,{0},.resultOwner="xl6UnicodeValidatorDestroyV1"},
+    {"xl6UnicodeValidatorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"},.noRaise=1},
+    {"xl6UnicodeValidatorFeedV1",T,I,4,{V,Y,B,I},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
+    {"xl6UnicodeValidatorResetV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
+    {"xl6UnicodeValidatorErrorV1",T,I,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
+    {"xl6UnicodeValidatorTotalV1",T,I,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
+    {"xl6UnicodeValidatorFinishedV1",T,B,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
+    {"xl6HtmlEscapeTextV1",T,S,2,{S,I}},
+    {"xl6HtmlEscapeAttributeV1",T,S,2,{S,I}},
 #undef U
 #undef F
 #undef Y
@@ -258,9 +273,9 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID || target->resultPhysicalDestroySymbol != 0)) ||
         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
         target->parameterCount != contract->parameterCount ||
-        target->parameterTypes == NULL || target->parameterAbis == NULL ||
-        target->parameterPhysicalAbis == NULL || target->parameterConstraintAbis == NULL ||
-        target->parameterPhysicalFieldDeclarations == NULL) return 0;
+        (target->parameterCount && (target->parameterTypes == NULL || target->parameterAbis == NULL ||
+         target->parameterPhysicalAbis == NULL || target->parameterConstraintAbis == NULL ||
+         target->parameterPhysicalFieldDeclarations == NULL))) return 0;
     result = xl6IrTypeGet(&module->types, target->returnType);
     if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);

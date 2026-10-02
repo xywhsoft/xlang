@@ -1,0 +1,20 @@
+string input = "<&>\"'你\0😀"
+assert html.escapeText(input) == "&lt;&amp;&gt;\"'你\0😀"
+assert html.escapeAttribute(input) == "&lt;&amp;&gt;&quot;&#39;你\0😀"
+assert html.escapeText(input, 1) == "&lt;"
+assert html.escapeAttribute(input, 5) == "&lt;&amp;&gt;&quot;&#39;"
+assert html.escapeText("<\0>", 200) == "&lt;\0&gt;"
+assert html.escapeAttribute("") == ""
+assert html.escapeText("&lt;") == "&amp;lt;"
+int caught = 0
+try
+    html.escapeText("你", 2)
+catch ValueError e
+    caught += 1
+end
+try
+    html.escapeAttribute(input, -2)
+catch RangeError e
+    caught += 1
+end
+assert caught == 2

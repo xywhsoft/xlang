@@ -1,0 +1,2 @@
+extern "xl6UnicodeByteOffsetV1" func unsafe(string text, int32 index, int size) as int
+unsafe("x", int32(0), -1)

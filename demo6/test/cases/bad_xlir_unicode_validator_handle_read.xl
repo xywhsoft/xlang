@@ -1,0 +1,2 @@
+auto v = unicode.validator()
+auto raw = v.handle

@@ -1,0 +1,2 @@
+extern "xl6UnicodeCharStringV1" func unsafe(uint32 scalar) as string
+unsafe(uint32(65))
