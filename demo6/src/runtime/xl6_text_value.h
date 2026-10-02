@@ -12,6 +12,10 @@
 #endif
 
 struct xlir_closure;
+XL6_TEXT_API xstrview xl6EnvGetV1(xstrview name, int64_t size);
+XL6_TEXT_API bool xl6EnvHasV1(xstrview name, int64_t size);
+XL6_TEXT_API void xl6EnvSetV1(xstrview name, xstrview value, int64_t nameSize, int64_t valueSize);
+XL6_TEXT_API void xl6EnvRemoveV1(xstrview name, int64_t size);
 XL6_TEXT_API xstrview xl6TimeFormatV1(int64_t value, xstrview pattern, int64_t offset, int64_t size);
 XL6_TEXT_API xstrview xl6TimeRFC3339V1(int64_t value, int64_t offset);
 XL6_TEXT_API xstrview xl6TimeHTTPDateV1(int64_t value);

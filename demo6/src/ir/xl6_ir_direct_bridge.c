@@ -37,6 +37,10 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    {"xl6EnvGetV1",T,S,2,{S,I},.nullableResult=1},
+    {"xl6EnvHasV1",T,B,2,{S,I}},
+    {"xl6EnvSetV1",T,XL6_IR_C_ABI_VOID,4,{S,S,I,I}},
+    {"xl6EnvRemoveV1",T,XL6_IR_C_ABI_VOID,2,{S,I}},
     {"xl6TimeFormatV1",T,S,4,{M,S,I,I}},
     {"xl6TimeRFC3339V1",T,S,2,{M,I}},
     {"xl6TimeHTTPDateV1",T,S,1,{M}},

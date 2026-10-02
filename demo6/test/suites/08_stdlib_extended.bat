@@ -1285,6 +1285,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_time_
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_time_text.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\text"
 if errorlevel 1 exit /b 1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_environment.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\environment"
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: extended standard library
 exit /b 0

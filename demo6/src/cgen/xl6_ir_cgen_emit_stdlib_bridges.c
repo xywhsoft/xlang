@@ -131,28 +131,6 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "size_t xl6_xrt_string_char_len(xlir_string text)\n"
             "{ return xrtUtf8Count(text); }\n\n",
             out);
-    if ( needs->needsCrtEnvBridgeRuntime )
-        xl6OutputPuts(
-            "/* Environment is CString-based at the OS boundary.  Validate the\n"
-            " * complete language value before passing its trailing-NUL data. */\n"
-            "extern char* xrtEnvGet(const char*);\n"
-            "extern bool xrtEnvLookup(const char*, char**);\n"
-            "extern bool xrtEnvSet(const char*, const char*);\n"
-            "extern bool xrtEnvRemove(const char*);\n"
-            "void* xl6_crt_env_get(xlir_string name)\n"
-            "{ const char* key = xlir_string_cstr(name); return key != NULL ? xrtEnvGet(key) : NULL; }\n"
-            "bool xl6_crt_env_has(xlir_string name)\n"
-            "{ const char* key = xlir_string_cstr(name); char* value = NULL; bool ok, found;\n"
-            "  if (key == NULL) { return false; } ok = xrtEnvLookup(key, &value);\n"
-            "  if (!ok) { return false; } found = value != NULL; xrtFree(value); return found; }\n"
-            "bool xl6_crt_env_set(xlir_string name, xlir_string value)\n"
-            "{ const char* key = xlir_string_cstr(name); const char* text =\n"
-            "      key != NULL ? xlir_string_cstr(value) : NULL;\n"
-            "  return key != NULL && text != NULL && xrtEnvSet(key, text); }\n"
-            "bool xl6_crt_env_remove(xlir_string name)\n"
-            "{ const char* key = xlir_string_cstr(name);\n"
-            "  return key != NULL && xrtEnvRemove(key); }\n\n",
-            out);
     if ( needs->needsTextCodecBridgeRuntime ||
          needs->needsCryptoTextHashBridgeRuntime )
         xl6OutputPuts(

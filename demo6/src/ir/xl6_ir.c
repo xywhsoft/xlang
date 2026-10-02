@@ -26799,7 +26799,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
           target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_BUFFER &&
           target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_FILE &&
-          target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_CRT_ENV &&
           !xl6IrRuntimeStringBridgeKindIs(target->runtimeBridge) &&
           !xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)) ||
          target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
@@ -26914,33 +26913,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                    module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
                    XL6_IR_PARAMETER_ABI_BORROW,
                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_CRT_ENV ) {
-        int get;
-        int set;
-        if ( target->cName == NULL ||
-             (strcmp(target->cName, "xl6_crt_env_get") != 0 &&
-              strcmp(target->cName, "xl6_crt_env_has") != 0 &&
-              strcmp(target->cName, "xl6_crt_env_set") != 0 &&
-              strcmp(target->cName, "xl6_crt_env_remove") != 0) ) return 0;
-        get = strcmp(target->cName, "xl6_crt_env_get") == 0;
-        set = strcmp(target->cName, "xl6_crt_env_set") == 0;
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        return target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-               target->parameterCount == (set ? 2u : 1u) &&
-               target->variadicAbi == XL6_IR_CALL_VARIADIC_NONE &&
-               target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
-               target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               xl6IrBufferRuntimeBridgeResultMatches(
-                   result, get ? XL6_IR_C_ABI_RAW_POINTER : XL6_IR_C_ABI_BOOL) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               (!set || xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT));
     }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC ||
          target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC ) {
@@ -42357,7 +42329,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_TEMPLATE: return "template";
     case XL6_IR_RUNTIME_BRIDGE_BUFFER: return "buffer";
     case XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN: return "string-char-len";
-    case XL6_IR_RUNTIME_BRIDGE_CRT_ENV: return "crt-env";
     case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN: return "string-byte-len";
     case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT: return "string-byte-at";
     case XL6_IR_RUNTIME_BRIDGE_STRING_SLICE: return "string-slice";

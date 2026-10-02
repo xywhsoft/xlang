@@ -1,0 +1,56 @@
+string name = "XLANG_ENV_EXACT_20261003"
+string padded = name + "\0unused"
+int size = string.byteLen(name)
+env.remove(name)
+assert env.get(name) == null and not env.has(name)
+assert os.env(name, "missing") == "missing"
+env.set(padded, "你-value\0unused", size, 9)
+assert env.has(padded, size)
+assert (env.get(padded, size) ?? "missing") == "你-value"
+assert os.env(padded, "missing", size) == "你-value"
+string? saved = env.get(name, 9999)
+env.set(name, "", 9999, 9999)
+assert env.has(name) and (env.get(name) ?? "missing") == ""
+assert os.env(name, "missing") == ""
+assert (saved ?? "missing") == "你-value"
+env.set(name, "ignored", -1, 0)
+assert (env.get(name) ?? "missing") == ""
+
+bool invalid = false
+try
+    env.set(name, "你", -1, 1)
+catch ValueError e
+    invalid = true
+end
+assert invalid and (env.get(name) ?? "missing") == ""
+invalid = false
+try
+    env.get(padded)
+catch ValueError e
+    invalid = true
+end
+assert invalid
+invalid = false
+try
+    env.remove(name, 0)
+catch ValueError e
+    invalid = true
+end
+assert invalid
+invalid = false
+try
+    env.has(name, -2)
+catch RangeError e
+    invalid = true
+end
+assert invalid
+invalid = false
+try
+    env.set(name, "replacement", -1, -2)
+catch RangeError e
+    invalid = true
+end
+assert invalid and (env.get(name) ?? "missing") == ""
+env.remove(padded, size)
+env.remove(name, 9999)
+assert not env.has(name) and env.get(name) == null

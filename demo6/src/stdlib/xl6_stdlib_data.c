@@ -3331,18 +3331,6 @@ static const XL6_StdlibParam xl6StdPathUnaryParams[] = {
     {"string", "path"}
 };
 
-static const XL6_StdlibParam xl6StdOsEnvParams[] = {
-    {"string", "name"},
-    {"string", "defaultValue"}
-};
-
-static const XL6_StdlibParam xl6StdEnvNameParams[] = {
-    {"string", "name"}
-};
-static const XL6_StdlibParam xl6StdEnvSetParams[] = {
-    {"string", "name"}, {"string", "value"}
-};
-
 static const XL6_StdlibParam xl6StdConsoleStreamParams[] = {
     {"c_int", "stream"}
 };
@@ -4838,32 +4826,18 @@ static const char xl6StdPathSetCwdBody[] =
     "end\n";
 
 static const char xl6StdOsEnvBody[] =
-    "func __xl_std_os_env(string name, string defaultValue = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_os_env(name, defaultValue))\n"
+    "func __xl_std_os_env(string name, string defaultValue = \"\", int size = -1) as string\n"
+    "    return __xl_std_runtime_env_get(name, size) ?? defaultValue\n"
     "end\n";
 
 static const char xl6StdEnvGetBody[] =
-    "func __xl_std_env_get(string name) as string?\n"
-    "    point owned = __xl_std_env_get_native(name)\n"
-    "    if owned == null then return null end\n"
-    "    return __xl_std_runtime_take_cstr(owned)\n"
-    "end\n";
+    "extern \"xl6EnvGetV1\" func __xl_std_runtime_env_get(string name, int size = -1) as string?\n";
 static const char xl6StdEnvHasBody[] =
-    "func __xl_std_env_has(string name) as bool\n"
-    "    return __xl_std_env_has_native(name)\n"
-    "end\n";
+    "extern \"xl6EnvHasV1\" func __xl_std_runtime_env_has(string name, int size = -1) as bool\n";
 static const char xl6StdEnvSetBody[] =
-    "func __xl_std_env_set(string name, string value)\n"
-    "    if not __xl_std_env_set_native(name, value) then\n"
-    "        throw IOError \"environment update failed\"\n"
-    "    end\n"
-    "end\n";
+    "extern \"xl6EnvSetV1\" func __xl_std_runtime_env_set(string name, string value, int nameSize = -1, int valueSize = -1)\n";
 static const char xl6StdEnvRemoveBody[] =
-    "func __xl_std_env_remove(string name)\n"
-    "    if not __xl_std_env_remove_native(name) then\n"
-    "        throw IOError \"environment removal failed\"\n"
-    "    end\n"
-    "end\n";
+    "extern \"xl6EnvRemoveV1\" func __xl_std_runtime_env_remove(string name, int size = -1)\n";
 
 static const char xl6StdOsPlatformBody[] =
     "func __xl_std_os_platform() as string\n"
@@ -6558,7 +6532,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_path", "appDir", "__xl_std_xrt_path_app_dir", "xrtPathAppDir", NULL, 0, "point", NULL},
     {"__xrt_path", "withExt", "__xl_std_xrt_path_with_ext", "xrtPathWithExt", xl6StdPathWithExtParams, 2, "point", NULL},
     {"__xrt_path", "withName", "__xl_std_xrt_path_with_name", "xrtPathWithName", xl6StdPathWithNameParams, 2, "point", NULL},
-    {"__xl_runtime", "osEnv", "__xl_std_runtime_os_env", "xl6_xrt_os_env", xl6StdOsEnvParams, 2, "point", NULL},
     {"__xl_runtime", "osPlatform", "__xl_std_runtime_os_platform", "xl6_xrt_os_platform", NULL, 0, "point", NULL},
     {"__xl_runtime", "osArgs", "__xl_std_runtime_os_args", "xl6_xrt_os_args", NULL, 0, "var", NULL},
     {"__xrt_file", "exists", "__xl_std_xrt_file_exists", "xrtFileExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
@@ -7016,15 +6989,11 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"path", "withExt", "__xl_std_path_with_ext", NULL, NULL, 0, "string", xl6StdPathWithExtBody},
     {"path", "withName", "__xl_std_path_with_name", NULL, NULL, 0, "string", xl6StdPathWithNameBody},
 
-    {"os", "env", "__xl_std_os_env", NULL, xl6StdOsEnvParams, 2, "string", xl6StdOsEnvBody},
-    {"__crt_env", "getNative", "__xl_std_env_get_native", "xl6_crt_env_get", xl6StdEnvNameParams, 1, "point", NULL},
-    {"__crt_env", "hasNative", "__xl_std_env_has_native", "xl6_crt_env_has", xl6StdEnvNameParams, 1, "bool", NULL},
-    {"__crt_env", "setNative", "__xl_std_env_set_native", "xl6_crt_env_set", xl6StdEnvSetParams, 2, "bool", NULL},
-    {"__crt_env", "removeNative", "__xl_std_env_remove_native", "xl6_crt_env_remove", xl6StdEnvNameParams, 1, "bool", NULL},
-    {"env", "get", "__xl_std_env_get", NULL, NULL, 0, "string?", xl6StdEnvGetBody},
-    {"env", "has", "__xl_std_env_has", NULL, NULL, 0, "bool", xl6StdEnvHasBody},
-    {"env", "set", "__xl_std_env_set", NULL, NULL, 0, "", xl6StdEnvSetBody},
-    {"env", "remove", "__xl_std_env_remove", NULL, NULL, 0, "", xl6StdEnvRemoveBody},
+    {"os", "env", "__xl_std_os_env", NULL, NULL, 0, "string", xl6StdOsEnvBody},
+    {"env", "get", "__xl_std_runtime_env_get", NULL, NULL, 0, "string?", xl6StdEnvGetBody},
+    {"env", "has", "__xl_std_runtime_env_has", NULL, NULL, 0, "bool", xl6StdEnvHasBody},
+    {"env", "set", "__xl_std_runtime_env_set", NULL, NULL, 0, "", xl6StdEnvSetBody},
+    {"env", "remove", "__xl_std_runtime_env_remove", NULL, NULL, 0, "", xl6StdEnvRemoveBody},
     {"os", "platform", "__xl_std_os_platform", NULL, NULL, 0, "string", xl6StdOsPlatformBody},
     {"os", "args", "__xl_std_os_args", NULL, NULL, 0, "array", xl6StdOsArgsBody},
     {"os", "cwd", "__xl_std_os_cwd", NULL, NULL, 0, "string", xl6StdOsCwdBody},
