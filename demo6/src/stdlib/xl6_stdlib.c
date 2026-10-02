@@ -1646,7 +1646,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsDateTime = xl6StdlibNodeUsesTypeName(root, "DateTime") ||
         xl6StdlibFuncUsed(used, "time", "split") || xl6StdlibFuncUsed(used, "time", "local") ||
         xl6StdlibFuncUsed(used, "time", "fromLocal") || xl6StdlibFuncUsed(used, "time", "utcToLocal") ||
-        xl6StdlibFuncUsed(used, "time", "localToUTC");
+        xl6StdlibFuncUsed(used, "time", "localToUTC") || xl6StdlibFuncUsed(used, "time", "parseFields");
     needsRegexBuffer = needsRegex && (xl6StdlibNodeUsesMemberName(root, "replaceTo") ||
         xl6StdlibNodeUsesMemberName(root, "replaceWithTo"));
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||

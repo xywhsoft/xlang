@@ -207,5 +207,7 @@ LD_LIBRARY_PATH="$ROOT/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
 
 bash "$ROOT/tools/check_stdlib_time_calendar.sh" \
     "$TEST_DIR/time-calendar-$(date +%Y%m%d-%H%M%S)-$$"
+bash "$ROOT/tools/check_stdlib_time_text.sh" \
+    "$TEST_DIR/time-text-$(date +%Y%m%d-%H%M%S)-$$"
 
 printf 'DEMO6 Linux compatibility tests passed.\n'

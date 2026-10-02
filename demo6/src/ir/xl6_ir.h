@@ -485,7 +485,8 @@ typedef enum XL6_IrReleaseEffect {
 typedef enum XL6_IrNativeProductAbi {
     XL6_IR_NATIVE_PRODUCT_NONE = 0,
     XL6_IR_NATIVE_PRODUCT_I64X3_V1,
-    XL6_IR_NATIVE_PRODUCT_TIMEX2_V1
+    XL6_IR_NATIVE_PRODUCT_TIMEX2_V1,
+    XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1
 } XL6_IrNativeProductAbi;
 
 typedef struct XL6_IrType {
