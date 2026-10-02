@@ -317061,10 +317061,10 @@ static void __xrtProcessOpenError(cstr sMessage)
 	Desc.Message = sMessage;
 	Desc.Cause = pCause;
 	pError = xrtErrorBuild(&Desc);
+	/* Build failure already publishes Memory/Range/State. Restoring the
+	 * launch cause here would replace that real failure with an older error. */
 	if ( pError != NULL ) {
 		__xrtErrorSetOwned(pError);
-	} else if ( pCause != NULL ) {
-		xrtSetError(pCause);
 	}
 	xrtErrorFree(pCause);
 }

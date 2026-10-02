@@ -266,4 +266,10 @@ Windows console control 与 POSIX 的平台支持不同；生产退出流程应�
 
 `process.terminalSupported()` 查询当前平台是否能创建伪终端。标准流编号为 `process.stdin`、`process.stdout`、`process.stderr`；重定向模式为 `process.stdioInherit`、`process.stdioPipe`、`process.stdioNull`。
 
+`process.open(target, size = -1)` 请求系统关联应用/launcher。按字节选择
+前缀后严格拒绝空串、不完整 UTF-8 与内嵌 NUL；长度超过输入时截断。
+成功仅表示系统接受请求，不等于应用完成，不产生可等待的 Process；
+原生操作失败抛出结构化错误。详细合同与不启动 GUI 的专项验证边界见
+`Process配置与运行设计.md`。
+
 进程状态直接对应 XRT：`process.stateRunning` 表示正在运行，`process.stateExited` 表示已经退出。状态只用于观察，不替代 `wait`、`close` 等生命周期操作。

@@ -222,3 +222,7 @@ instruments actual XRT/resident/program closures; shared CLI/JIT is uninstrument
 The POSIX launch-plan prefix sweep verifies every argument-copy failure and
 cleanup. Live Process/pipeline/Future/file redirection/PTY remain later batches;
 passing this gate does not complete the seven process modules or all 53 modules.
+The same gates cover process.open input/error transport with a controlled
+association launcher (never claim OS launch acceptance), a real XRT terminal
+capability probe, exact support ABI/effect negatives, and separately pruned
+open-only/terminal-only artifacts. PTY sessions are still a later batch.

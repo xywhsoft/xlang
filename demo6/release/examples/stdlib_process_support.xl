@@ -1,0 +1,13 @@
+// Native capability query: unavailable is false, not a fabricated exception.
+bool terminalAvailable = process.terminalSupported()
+
+// process.open(target, size=-1) requests the OS associated application/launcher.
+// Its result means accepted, not completed. This example deliberately does not
+// launch a GUI: an embedded NUL must fail before reaching the native launcher.
+bool rejected = false
+try
+    process.open("example:target\0ignored")
+catch ValueError
+    rejected = true
+end
+assert rejected

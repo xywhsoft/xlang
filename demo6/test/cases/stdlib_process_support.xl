@@ -1,0 +1,30 @@
+// This acceptance fixture never launches the user's associated applications.
+bool available = process.terminalSupported()
+assert available == true or available == false
+int rejected = 0
+try
+    process.open("")
+catch ValueError
+    rejected += 1
+end
+try
+    process.open("a\0b")
+catch ValueError
+    rejected += 1
+end
+try
+    process.open("你", 1)
+catch ValueError
+    rejected += 1
+end
+try
+    process.open("abc", -2)
+catch RangeError
+    rejected += 1
+end
+try
+    process.open("abc", 0)
+catch ValueError
+    rejected += 1
+end
+assert rejected == 5

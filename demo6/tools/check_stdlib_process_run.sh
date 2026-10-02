@@ -9,15 +9,19 @@ mkdir -p "$OUT"
 CC="$(command -v gcc)"; CLI="$ROOT/release/xl"; checks=0
 run() { local name="$1"; shift; "$@" >"$OUT/$name.log" 2>&1; checks=$((checks+1)); }
 cases=(stdlib_process_command_only stdlib_process_command_config stdlib_process_options_only stdlib_process_run_bytes stdlib_process_run_limits stdlib_process_run_allocations stdlib_process_shell_exact xlir_process_exec_bridge xlir_process_success_bridge xlir_process_exit_code_bridge)
+cases+=(stdlib_process_support stdlib_process_terminal_only stdlib_process_open_only)
 negative=(xlir_process_bad_array xlir_process_bad_effect xlir_process_bad_width xlir_process_bad_owner)
+negative+=(xlir_process_open_bad_width xlir_process_open_bad_effect xlir_process_terminal_bad_pure)
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
     printf '%s\0' tools/check_stdlib_process_run.sh tools/check_stdlib_process_run.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_process_run_host.c test/support/process_native.c test/cases/xlir_text_value_contract.c
+    printf '%s\0' test/cases/xlir_process_support_host.c
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_text_closure_host.c test/cases/xlir_process_child.c
     printf '%s\0' release/examples/stdlib_process_run.xl
+    printf '%s\0' release/examples/stdlib_process_support.xl
     for fixture in "${cases[@]}" "${negative[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
 while IFS='|' read -r kind target source; do
@@ -43,6 +47,10 @@ grep -q '3 first no-hit completions, balanced' "$OUT/native.log"
 grep -q 'concurrent cancellation and absolute deadline' "$OUT/native.log"
 grep -Eq 'native run complete prefix: [0-9]+ failures and 1 first no-hit, balanced' "$OUT/native.log"
 grep -q 'POSIX launch plan: 13 allocation failures and 2 completions, balanced' "$OUT/native.log"
+run support-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_support_host.c -pthread -ldl -lm -o "$OUT/support-native"
+run support-native "$OUT/support-native"
+grep -Eq '7 rejected inputs, exact prefix/clamp, native error transport; [0-9]+ allocation failures and 1 first no-hit, balanced; real terminal probe=' "$OUT/support-native.log"
+grep -q 'process open error prefix: 3 failures and 3 first no-hit, causes preserved, balanced' "$OUT/support-native.log"
 run contract-build "$CC" "${strict[@]}" test/cases/xlir_text_value_contract.c "${libs[@]}" -lxlc -lxl -o "$OUT/contract"
 run artifact-contract-build "$CC" "${strict[@]}" test/cases/xlir_artifact_runtime_contract.c "${libs[@]}" -lxlc -lxl -o "$OUT/artifact-contract"
 for fixture in "${cases[@]}"; do
@@ -59,7 +67,7 @@ for fixture in "${cases[@]}"; do
     run "$fixture-aot-build" "$CLI" build "$source" -o "$OUT/$fixture.aot"
     run "$fixture-aot" "$OUT/$fixture.aot"
     run "$fixture-native-emit" "$OUT/artifact-contract" --emit-native "$source" "$OUT/$fixture.native.c"
-    if [[ "$fixture" = stdlib_process_command_only || "$fixture" = stdlib_process_options_only ]]; then
+    if [[ "$fixture" = stdlib_process_command_only || "$fixture" = stdlib_process_options_only || "$fixture" = stdlib_process_open_only || "$fixture" = stdlib_process_terminal_only ]]; then
         leaf="${fixture#stdlib_process_}"; leaf="${leaf%_only}"
         python3 -c 'import json,sys;p=json.loads(open(sys.argv[1]).readline());selected=[s for s in p["Sources"] if "/xl6_process_" in s];assert selected==["src/runtime/xl6_process_"+sys.argv[2]+".c"],selected' "$OUT/$fixture-native-emit.log" "$leaf"
     fi
@@ -91,6 +99,9 @@ done
 run example-run "$CLI" run release/examples/stdlib_process_run.xl
 run example-build "$CLI" build release/examples/stdlib_process_run.xl -o "$OUT/example"
 run example-execute "$OUT/example"
+run support-example-run "$CLI" run release/examples/stdlib_process_support.xl
+run support-example-build "$CLI" build release/examples/stdlib_process_support.xl -o "$OUT/support-example"
+run support-example-execute "$OUT/support-example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run, exact OS text, owned binary output and status, options/deadline/cancellation. Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented; logical OOM. Live Process/pipeline/Future/redirection/PTY and other 53-module acceptance pending."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run, exact OS text, owned binary output and status, options/deadline/cancellation. Association adapter has controlled launcher, not OS launch acceptance; terminal probe is real XRT. Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented; logical OOM. Live Process/pipeline/Future/redirection/PTY sessions and other 53-module acceptance pending."}\n' "$checks" >"$OUT/results.json"
 printf 'Process run Linux checks: %d\n' "$checks"
