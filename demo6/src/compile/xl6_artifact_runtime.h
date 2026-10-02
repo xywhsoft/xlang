@@ -1,6 +1,7 @@
 #ifndef XL6_ARTIFACT_RUNTIME_H
 #define XL6_ARTIFACT_RUNTIME_H
 #include "src/ir/xl6_ir.h"
+#include "src/compile/xl6_component_set.h"
 
 /* Artifact linkage identities, not source-language semantics. Lowered XLIR
  * supplies the physical ABI roots; this layer closes the resident libraries
@@ -53,12 +54,29 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_ENCODING_DETECT,
     XL6_ARTIFACT_RUNTIME_COUNT
 } XL6_ArtifactRuntimeId;
-#define XL6_ARTIFACT_BIT(Name) ((uint64)1u << XL6_ARTIFACT_##Name)
+#define XL6_ARTIFACT_RUNTIME_WORD_COUNT (XL6_ARTIFACT_RUNTIME_COUNT / 64u + (XL6_ARTIFACT_RUNTIME_COUNT % 64u != 0))
+typedef struct XL6_ArtifactRuntimeSet {
+    uint64_t words[XL6_ARTIFACT_RUNTIME_WORD_COUNT];
+} XL6_ArtifactRuntimeSet;
+
+static inline XL6_ArtifactRuntimeSet xl6ArtifactRuntimeSetSingleton(size_t id)
+{
+    XL6_ArtifactRuntimeSet set = {{0}};
+    (void)xl6ComponentSetAdd(set.words,XL6_ARTIFACT_RUNTIME_COUNT,id);
+    return set;
+}
+static inline int xl6ArtifactRuntimeSetHas(const XL6_ArtifactRuntimeSet* set, size_t id)
+{ return set != NULL && xl6ComponentSetHas(set->words,XL6_ARTIFACT_RUNTIME_COUNT,id); }
+static inline int xl6ArtifactRuntimeSetEmpty(const XL6_ArtifactRuntimeSet* set)
+{ return set != NULL && xl6ComponentSetEmpty(set->words,XL6_ARTIFACT_RUNTIME_COUNT); }
+static inline int xl6ArtifactRuntimeSetEqual(const XL6_ArtifactRuntimeSet* left, const XL6_ArtifactRuntimeSet* right)
+{ return left != NULL && right != NULL && xl6ComponentSetEqual(left->words,right->words,XL6_ARTIFACT_RUNTIME_COUNT); }
 #define XL6_ARTIFACT_NATIVE_MODULE_LIMIT 512
 
 typedef struct XL6_ArtifactRuntimeComponent {
     const char* source;
-    uint64 dependencies;
+    const size_t* dependencies;
+    size_t dependencyCount;
     const char* nativeModules[8];
 } XL6_ArtifactRuntimeComponent;
 
@@ -75,8 +93,8 @@ typedef enum XL6_ArtifactEntryAbi {
 
 typedef struct XL6_ArtifactRuntimePlan {
     XL6_ArtifactEntryAbi entry;
-    uint64 roots;
-    uint64 components;
+    XL6_ArtifactRuntimeSet roots;
+    XL6_ArtifactRuntimeSet components;
     size_t sourceCount;
     const char* sources[XL6_ARTIFACT_RUNTIME_COUNT];
     size_t nativeModuleCount;
@@ -84,10 +102,11 @@ typedef struct XL6_ArtifactRuntimePlan {
 } XL6_ArtifactRuntimePlan;
 
 const XL6_ArtifactRuntimeComponent* xl6ArtifactRuntimeComponentGet(unsigned id);
-uint64 xl6ArtifactRuntimeSymbolOwner(const char* symbol);
+/* RUNTIME_COUNT denotes no resident owner, not an empty scalar mask. */
+XL6_ArtifactRuntimeId xl6ArtifactRuntimeSymbolOwner(const char* symbol);
 /* Exact C linkage lookup. A shared implementation may have several providers. */
 const XL6_ArtifactNativeSymbol* xl6ArtifactNativeSymbolLookup(const char* symbol, size_t* count);
-int xl6ArtifactRuntimeClosePlan(uint64 roots, XL6_ArtifactRuntimePlan* plan);
+int xl6ArtifactRuntimeClosePlan(const XL6_ArtifactRuntimeSet* roots, XL6_ArtifactRuntimePlan* plan);
 /* Refuses Typed/corrupt IR. Failure leaves a zero plan, never a partial set. */
 int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
     XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags);

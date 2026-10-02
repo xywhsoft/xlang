@@ -532,15 +532,13 @@ static int xl6IrLowerDigitValue(char ch)
 /* Source integer spelling may use separators and XL-only octal/binary
  * prefixes.  Lower it once into a portable C payload rather than asking Cgen
  * to parse source text or relying on a host compiler extension. */
-static char* xl6IrLowerCanonicalIntegerLiteral(const char* text)
+static int xl6IrLowerIntegerMagnitude(const char* text, uint64_t* result)
 {
     const char* p;
     uint64_t value = 0;
     int base = 10;
     int digits = 0;
-    char buffer[32];
-    int length;
-    if ( text == NULL || text[0] == '\0' ) return NULL;
+    if ( result == NULL || text == NULL || text[0] == '\0' ) return 0;
     p = text;
     if ( p[0] == '0' && p[1] == 'x' ) { base = 16; p += 2; }
     else if ( p[0] == '0' && p[1] == 'o' ) { base = 8; p += 2; }
@@ -550,12 +548,22 @@ static char* xl6IrLowerCanonicalIntegerLiteral(const char* text)
         if ( *p == '_' ) { ++p; continue; }
         digit = xl6IrLowerDigitValue(*p);
         if ( digit < 0 || digit >= base || value > (UINT64_MAX - (uint64_t)digit) / (uint64_t)base )
-            return NULL;
+            return 0;
         value = value * (uint64_t)base + (uint64_t)digit;
         ++digits;
         ++p;
     }
-    if ( digits == 0 ) return NULL;
+    if ( digits == 0 ) return 0;
+    *result = value;
+    return 1;
+}
+
+static char* xl6IrLowerCanonicalIntegerLiteral(const char* text)
+{
+    uint64_t value;
+    char buffer[32];
+    int length;
+    if (!xl6IrLowerIntegerMagnitude(text, &value)) return NULL;
     length = value > (uint64_t)INT64_MAX
         ? snprintf(buffer, sizeof(buffer), "%lluULL", (unsigned long long)value)
         : snprintf(buffer, sizeof(buffer), "%lluLL", (unsigned long long)value);
@@ -31007,6 +31015,41 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 &ctx->module->types, node->storageType);
             const XL6_IrType* operandType = operandNode != NULL
                 ? xl6IrTypeGet(&ctx->module->types, operandNode->storageType) : NULL;
+            /* Fold the signed literal as a value, before forming an operand.
+             * INT64_MIN has no positive signed counterpart. Materializing
+             * its magnitude then negating an int64 temporary would overflow
+             * in C. The closed canonical payload uses only representable LL
+             * operands; Cgen remains a serializer, not a literal parser. */
+            if (node->opcode == XL6_IR_OPCODE_NEG && resultType != NULL &&
+                resultType->cAbi == XL6_IR_C_ABI_I64 &&
+                (resultType->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_8 ||
+                 resultType->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_16 ||
+                 resultType->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_32 ||
+                 resultType->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64) &&
+                operandNode != NULL && operandNode->kind == XL6_IR_NODE_LITERAL &&
+                operandNode->sourceKind == XL6_AST_INT) {
+                uint64_t magnitude;
+                char payload[48];
+                int length;
+                if (!xl6IrLowerIntegerMagnitude(operandNode->text, &magnitude) ||
+                    magnitude > (uint64_t)INT64_MAX + 1u ||
+                    (magnitude == (uint64_t)INT64_MAX + 1u &&
+                     resultType->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64)) {
+                    xl6IrLowerDiag(ctx,id,"XLIR signed literal magnitude is out of range");
+                    return XL6_IR_VALUE_INVALID;
+                }
+                length = magnitude == (uint64_t)INT64_MAX + 1u
+                    ? snprintf(payload,sizeof(payload),"(-9223372036854775807LL - 1LL)")
+                    : snprintf(payload,sizeof(payload),"-%lluLL",(unsigned long long)magnitude);
+                if (length <= 0 || (size_t)length >= sizeof(payload) ||
+                    !xl6IrLowerEmit(ctx,XL6_IR_INSTR_CONST,id,node->storageType,0,NULL,0,&result))
+                    return XL6_IR_VALUE_INVALID;
+                ctx->module->instructions[ctx->module->instructionCount-1].immediateText = xrtStrDupN(payload,(size_t)length);
+                if (!ctx->module->instructions[ctx->module->instructionCount-1].immediateText) {
+                    ctx->failed = 1; return XL6_IR_VALUE_INVALID;
+                }
+                return result;
+            }
             int canonicalScalarOperand = resultType != NULL &&
                 operandType != NULL &&
                 ((node->opcode == XL6_IR_OPCODE_NOT &&

@@ -30,7 +30,7 @@ int main(void)
         }
         ir.abi.retirementAbi=XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4;verify(&ir);
         XL6_ArtifactRuntimePlan plan={0};assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,&plan,&parse.diags));
-        assert(plan.components & XL6_ARTIFACT_BIT(NETWORK_SERVICE));
+        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_NETWORK_SERVICE));
         XL6_IrCgenOptions options={0};options.emitScriptEntry=1;
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitCEx(&out,&ir,&parse.diags,&options));
         text=xl6OutputTakeMemoryText(&out,NULL);

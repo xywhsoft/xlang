@@ -26,7 +26,7 @@ try {
         'stdlib_number_float_only','stdlib_crt_parse','cgen_overload_default_rank',
         'stdlib_unicode','stdlib_unicode_only','stdlib_unicode_validator','stdlib_html','stdlib_html_only',
         'stdlib_encoding','stdlib_encoding_only','stdlib_encoding_meta_only','stdlib_encoding_transcode_only','stdlib_unicode_repair',
-        'stdlib_encoding_detect','stdlib_encoding_detect_only','cgen_native_product_i64x3','cgen_extern_native_product_i64x3')
+        'stdlib_encoding_detect','stdlib_encoding_detect_only','cgen_native_product_i64x3','cgen_extern_native_product_i64x3','cgen_signed_integer_constants')
     $negative = @('bad_xlir_text_input','bad_xlir_text_result','bad_xlir_text_effect','bad_xlir_text_no_raise',
         'bad_xlir_text_chars_type','bad_xlir_text_byte_type','bad_xlir_text_length_width','bad_xlir_text_split_type','bad_xlir_text_join_type',
         'bad_xlir_text_iterator_result','bad_xlir_text_iterator_owner',
@@ -44,8 +44,13 @@ try {
     $overloadRegressions = @('cgen_overload_costs','cgen_overloads','cgen_overload_varargs',
         'cgen_class_overloads','cgen_generic_class_overloads','cgen_generic_explicit_overload',
         'cgen_generic_overload_priority','cgen_generic_overload_var_priority','cgen_protocol_overload_index')
-    $files = @($cases + $negative + $defaultsNegative + $overloadRegressions | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
+    $integerNegative = @('sem_int64_positive_overflow','sem_int_out_of_range_literal','sem_auto_int_overflow','sem_var_int_overflow')
+    $integerRegressions = @('cgen_numeric_literals','operators_int_literal_forms','type_int_narrowing_wrap',
+        'xlir_integer_conversion_source_abi','xlir_checked_integer_arithmetic_abi',
+        'xlir_checked_integer_compound_error_abi','xlir_checked_integer_continuation_abi')
+    $files = @($cases + $negative + $defaultsNegative + $overloadRegressions + $integerNegative + $integerRegressions | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
         @(Get-Item test/cases/stdlib_text_values_host.c,test/cases/xlir_text_value_contract.c,test/cases/cgen_extern_native_product_i64x3_provider.c,
+            test/cases/xlir_signed_integer_constants_contract.c,test/cases/xlir_component_set.c,
             test/cases/stdlib_text_queries_host.c,test/support/text_queries_native.c,
             test/cases/stdlib_text_split_host.c,test/support/text_split_native.c,
             test/cases/stdlib_text_iterator_host.c,test/support/text_iterator_native.c,
@@ -56,7 +61,7 @@ try {
             test/cases/stdlib_encoding_host.c,test/support/encoding_native.c,
             test/cases/stdlib_encoding_detect_host.c,test/support/encoding_detect_native.c,
             test/support/text_selected_native.c,test/cases/stdlib_string_support.c,
-            tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,$PSCommandPath,$gcc)
+            tools/stage_xlir_artifact_runtime_sources.ps1,tools/xlir_native_process.ps1,release/xl.exe,$PSCommandPath,$gcc)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -95,6 +100,11 @@ try {
     $objects = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o' } | ForEach-Object Path)
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c') + $objects +
         @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
+    Run 'signed-contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_signed_integer_constants_contract.c') + $objects +
+        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/signed-contract.exe"))
+    Run 'component-set-build' $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror','-I.','test/cases/xlir_component_set.c','-o',"$outPath/component-set.exe")
+    Run 'component-set-run' "$outPath/component-set.exe" @()
+    Run 'component-set-tcc' ([IO.Path]::GetFullPath('release/xl.exe')) @('run','test/cases/xlir_component_set.c','--inc-path',$rootPath)
     Run 'native-build' $gcc ($strict + @('test/cases/stdlib_text_values_host.c','test/support/text_selected_native.c',
         'src/runtime/xl6_text_value.c','-o',"$outPath/native.exe"))
     Run 'native-run' "$outPath/native.exe" @()
@@ -197,7 +207,11 @@ try {
             Run "$name.contract" "$outPath/contract.exe" @($source,"$outPath/$name.contract.c")
             if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.contract.c").Hash) { throw "Generic product ABI/Cgen mismatch $name" }
         }
-        if ($name -notin @('cgen_extern_defaults','cgen_overload_default_rank','cgen_native_product_i64x3','cgen_extern_native_product_i64x3')) {
+        if ($name -eq 'cgen_signed_integer_constants') {
+            Run "$name.contract" "$outPath/signed-contract.exe" @($source,"$outPath/$name.contract.c")
+            if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.contract.c").Hash) { throw 'Signed constant ABI/Cgen mismatch' }
+        }
+        if ($name -notin @('cgen_extern_defaults','cgen_overload_default_rank','cgen_native_product_i64x3','cgen_extern_native_product_i64x3','cgen_signed_integer_constants')) {
             Run "$name.contract" "$outPath/contract.exe" @($source,"$outPath/$name.contract.c")
             if ((Get-FileHash "$outPath/$name.c").Hash -ne (Get-FileHash "$outPath/$name.contract.c").Hash) { throw "ABI/Cgen mismatch $name" }
             $c = Get-Content -LiteralPath "$outPath/$name.c" -Raw
@@ -260,10 +274,20 @@ try {
     foreach ($name in $overloadRegressions) {
         Run "$name.regression" $driver @("test/cases/$name.xl",'run',"$outPath/$name.regression",'test/cases/stdlib_string_support.c')
     }
+    foreach ($name in $integerNegative) {
+        $path = "$outPath/$name.c"
+        Run "$name.literal-negative" $driver @("test/cases/$name.xl",'cgen-default',$path) 1
+        $marker = -join ([char[]]@(25972,25968,23383,38754,37327,36229,20986))
+        if (!(Get-Content "$outPath/$name.literal-negative.log" -Raw -Encoding UTF8).Contains($marker) -or
+            (Test-Path -LiteralPath $path)) {throw "Invalid integer literal emitted $name"}
+    }
+    foreach ($name in $integerRegressions) {
+        Run "$name.regression" $driver @("test/cases/$name.xl",'run',"$outPath/$name.regression",'test/cases/stdlib_string_support.c')
+    }
     foreach ($record in $inputs) {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -ne $record.Sha256) { throw "Text input changed $($record.Path)" }
     }
-    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='B1-B9 text/numeric/Unicode-validator/HTML/charset/guess/native-product batches and default overload rank only; not 53-module completion or full RC0'}
+    $report = [pscustomobject]@{Inputs=$inputs;Rows=$rows;PublicBuild=$public;Scope='B1-B10 text/numeric/Unicode-validator/HTML/charset/guess/native-product/signed-constant/component-set batches and default overload rank only; not 53-module completion or full RC0'}
     [IO.File]::WriteAllText("$outPath/summary.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     Write-Output "Text values: $($rows.Count) checks passed. Evidence: $outPath"
 } finally { Pop-Location }

@@ -125,3 +125,13 @@ certify concurrent mutation of one matcher, untested platforms or performance.
 - `build.sh` dispatches to `build_linux.sh` on Linux and to `build.bat` through `cmd.exe` on Windows.
 - Linux builds require GCC, GNU Make and Python 3, but do not require a preinstalled TCC.
 - Flex/Lemon are only required when `XL6_REGEN_GRAMMAR=1`.
+
+`check_xlir_scalar_component_kernel.sh` is the Linux B10 scalar/graph gate, wired
+into `test_linux.sh`. It requires a current `build_linux.sh` build and a fresh
+evidence directory. The gate exercises the production component-set closure
+kernel through 257 nodes against an independent Floyd oracle, validates the
+actual resident graph and native Future/network IR contracts, and checks safe
+signed-minimum constants, corrupted-IR refusal before C/header output, strict
+generated C, TinyCC JIT and standalone AOT. ASan/UBSan instrument the generic
+set and signed generated-C host, not the linked shared libraries. This is a
+scoped compiler foundation batch, not completion of all 53 stdlib modules.

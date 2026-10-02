@@ -1074,14 +1074,25 @@ static int xl6IrIsCanonicalIntegerLiteral(const char* text)
     size_t i;
     size_t length;
     size_t digitsEnd;
+    uint64_t magnitude = 0;
+    int negative;
     if ( text == NULL || text[0] == '\0' ) return 0;
+    if (strcmp(text,"(-9223372036854775807LL - 1LL)") == 0) return 1;
     length = strlen(text);
     if ( length >= 3 && strcmp(text + length - 3, "ULL") == 0 ) digitsEnd = length - 3;
     else if ( length >= 2 && strcmp(text + length - 2, "LL") == 0 ) digitsEnd = length - 2;
     else return 0;
-    if ( digitsEnd == 0 ) return 0;
-    for ( i = 0; i < digitsEnd; ++i )
+    negative = text[0] == '-';
+    if ( digitsEnd <= (size_t)negative ) return 0;
+    if (negative && text[digitsEnd] == 'U') return 0;
+    for ( i = (size_t)negative; i < digitsEnd; ++i ) {
+        uint64_t digit;
         if ( text[i] < '0' || text[i] > '9' ) return 0;
+        digit = (uint64_t)(text[i]-'0');
+        if (magnitude > (UINT64_MAX-digit)/10u) return 0;
+        magnitude = magnitude*10u+digit;
+    }
+    if (text[digitsEnd] == 'L' && magnitude > (uint64_t)INT64_MAX) return 0;
     return 1;
 }
 
@@ -1090,7 +1101,18 @@ static int xl6IrIsCanonicalUnsignedIntegerLiteral(const char* text)
     size_t length;
     if ( !xl6IrIsCanonicalIntegerLiteral(text) ) return 0;
     length = strlen(text);
-    return length >= 4 && strcmp(text + length - 3, "ULL") == 0;
+    return text[0] >= '0' && text[0] <= '9' && length >= 4 && strcmp(text + length - 3, "ULL") == 0;
+}
+
+static int xl6IrIsCanonicalSignedIntegerLiteral(const char* text)
+{
+    uint64_t value = 0;
+    size_t length, i;
+    if (!xl6IrIsCanonicalIntegerLiteral(text)) return 0;
+    length = strlen(text);
+    if (length < 3 || strcmp(text+length-3,"ULL") != 0) return 1;
+    for (i=0; i<length-3; ++i) value = value*10u+(uint64_t)(text[i]-'0');
+    return value <= (uint64_t)INT64_MAX;
 }
 
 static int xl6IrParseCanonicalU32(const char* text, uint32* result)
@@ -1099,7 +1121,7 @@ static int xl6IrParseCanonicalU32(const char* text, uint32* result)
     size_t length;
     size_t digitsEnd;
     uint32 value = 0;
-    if ( result == NULL || !xl6IrIsCanonicalIntegerLiteral(text) ) return 0;
+    if ( result == NULL || !xl6IrIsCanonicalIntegerLiteral(text) || text[0] < '0' || text[0] > '9' ) return 0;
     length = strlen(text);
     digitsEnd = strcmp(text + length - 3, "ULL") == 0
         ? length - 3 : length - 2;
@@ -34595,7 +34617,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     const XL6_IrType* constantType = xl6IrTypeGet(&module->types, instruction->type);
                     if ( constantType == NULL ||
                          (constantType->cAbi == XL6_IR_C_ABI_I64 &&
-                           !xl6IrIsCanonicalIntegerLiteral(instruction->immediateText)) ||
+                           !xl6IrIsCanonicalSignedIntegerLiteral(instruction->immediateText)) ||
                          (constantType->cAbi == XL6_IR_C_ABI_U64 &&
                           !xl6IrIsCanonicalUnsignedIntegerLiteral(instruction->immediateText)) ||
                          (constantType->cAbi == XL6_IR_C_ABI_TYPE_ID &&
