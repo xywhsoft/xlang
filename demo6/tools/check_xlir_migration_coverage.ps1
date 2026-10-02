@@ -2477,7 +2477,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xlir_callable_reachability.xl", "reachability -ne 'unreachable'",
-    "xlir_reachability_dead_external", "xl6_xrt_string_count",
+    "xlir_reachability_dead_external", "xl6TextCountV1",
     "virtual-call", "protocol-call", "xlir_async_start_",
     "generated-C runtime failed", "-Werror"
 ) ) {

@@ -128,3 +128,15 @@ Future/网络 IR 依赖、确定性 C、JIT/AOT 与损坏常量在 C/header 输�
 Linux ASan/UBSan 范围仅为集合内核和有符号常量的生成 C 宿主，不能把所链接
 但未 instrument 的共享库算为 sanitizer 覆盖。整数回归只声称其实际执行
 路径；此批不替代全仓 RC0 或 53 模块完成验收。
+
+### B11 字符串存量与格式合同
+
+`tools/check_xlir_string_join.ps1` 为当前源码冻结输入主门；旧 bridges/repeat
+入口委托同一矩阵。覆盖 10 个声明负例、typed array/char/bytes、精确 NUL
+视图、2000 次多线程 join、600 repeat、语言故障 catch、确定性 C/H/IR、
+严格 C/JIT/AOT、char 插值及其 IR 操作损坏拒绝。插值宿主对实际逻辑分配
+逐点失败，和可恢复的缓存预分配区别开来。Linux 主门
+`tools/check_xlir_string_join.sh` 已接入 test_linux.sh：原生 selected XRT
+和文本 provider 用 ASan/UBSan，链接共享库的生成宿主用逻辑账本；两者
+覆盖范围不能混同。额外独立产物门核对实际闭包，不以全运行库宿主链接代替
+裁剪验收。此批不是全部 53 模块或全仓 RC0 完成。

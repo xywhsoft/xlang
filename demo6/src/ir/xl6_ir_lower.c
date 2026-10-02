@@ -8985,6 +8985,9 @@ static XL6_IrValueId xl6IrLowerInterpolatedStringPart(
             NULL, XL6_IR_TYPE_INVALID, &borrowed, 1);
     } else {
         switch ( sourceType->cAbi ) {
+        case XL6_IR_C_ABI_CHAR_U32:
+            runtimeOp = XL6_IR_RUNTIME_CHAR_TO_STRING;
+            break;
         case XL6_IR_C_ABI_BOOL:
             runtimeOp = XL6_IR_RUNTIME_BOOL_TO_STRING;
             break;

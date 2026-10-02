@@ -1,2 +1,2 @@
-extern "xl6_xrt_string_bytes" func invalid(string text) as point
+extern "xl6TextBytesV1" func invalid(string text, int size = -1) as point
 invalid("text")

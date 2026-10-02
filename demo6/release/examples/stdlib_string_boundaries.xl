@@ -12,20 +12,20 @@ println(int(string.startsWith("Content-Type", "content", true)))
 println(int(string.endsWith("report.TXT", ".txt", true)))
 
 // 拆分保留空片段，所得数组独立拥有内容。
-array parts = string.split("red||你好", "|")
+array<string> parts = string.split("red||你好", "|")
 for part in parts
     println("[" + string(part) + "]")
 end
-array lines = string.splitLines("first\r\nsecond\nthird")
+array<string> lines = string.splitLines("first\r\nsecond\nthird")
 for line in lines
     println(string(line))
 end
 
-// join 不修改输入；字符串直接连接，其他值按统一文本转换处理。
+// join 只接受字符串数组；其他值先显式转换，不隐藏动态分派。
 println(string.join(parts, " / "))
-println(string.join(["answer", 42, true, null], ":"))
+println(string.join(["answer", string(42), string(true), "null"], ":"))
 
-// 显式取字符数组或字节整数数组，返回的内容不借用源文本。
+// chars 返回 array<char>，bytes 返回连续 bytes；结果不借用源文本。
 for character in string.chars("A你")
     println(string(character))
 end

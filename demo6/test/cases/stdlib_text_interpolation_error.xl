@@ -1,0 +1,10 @@
+// Error behavior is separate from the successful-workflow allocation sweep:
+// creating a ValueError may use XRT's allocation-free emergency error record.
+bool caught = false
+try
+    string invalid = f`prefix:{string.format(1, "?")}:suffix`
+catch ValueError
+    caught = true
+end
+assert caught
+assert f"{'你'}:{'\0'}" == "你:\0"

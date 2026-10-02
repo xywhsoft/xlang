@@ -1,5 +1,17 @@
 assert string.repeat("ab", 3) == "ababab"
 assert string.repeat("你好", 2) == "你好你好"
 assert string.repeat("x", 0) == ""
-assert string.repeat("x", -7) == ""
 assert string.repeat("", 4) == ""
+assert string.repeat("a\0b", 2) == "a\0ba\0b"
+assert string.repeat("a\0b", 2, 2) == "a\0a\0"
+assert string.repeat("你好", 2, 99) == "你好你好"
+for count in [-1, -7, -9223372036854775808]
+    bool caught = false
+    try
+        string.repeat("x", count)
+    catch RangeError
+        caught = true
+    end
+    assert caught
+end
+println("string repeat boundaries ok")

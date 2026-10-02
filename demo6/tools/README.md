@@ -135,3 +135,14 @@ signed-minimum constants, corrupted-IR refusal before C/header output, strict
 generated C, TinyCC JIT and standalone AOT. ASan/UBSan instrument the generic
 set and signed generated-C host, not the linked shared libraries. This is a
 scoped compiler foundation batch, not completion of all 53 stdlib modules.
+
+`check_xlir_string_join.ps1` is the B11 frozen current-source string matrix.
+The legacy bridges/repeat entry scripts delegate to it; custom mutable validation
+drivers are no longer accepted as evidence. It verifies exact view/typed-result
+ABIs, ten bad declarations, in-memory char conversion corruption, deterministic
+outputs, native thread/OOM oracles, logical allocation failure propagation and
+strict C/JIT/AOT. `check_xlir_string_join.sh OUT` now uses the current Linux release
+compiler and a fresh evidence directory; it regenerates native outputs on Linux
+rather than compiling historical Windows C. ASan/UBSan instrument the selected
+native providers; generated libxl hosts use logical accounting. Both require a
+separate actual-artifact closure check and do not claim full RC0/53 completion.

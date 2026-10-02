@@ -1,0 +1,23 @@
+// One language format model: expressions + explicit typed number formatting.
+int visits = 0
+func nextText() as string
+    visits += 1
+    return "a\0你"
+end
+string exact = f"head:{nextText()}:tail"
+assert visits == 1
+assert exact == "head:a\0你:tail"
+assert string.byteLen(exact) == 15
+assert f"{'你'}:{'\0'}:{65}" == "你:\0:65"
+assert f"{uint64(18446744073709551615)}" == "18446744073709551615"
+assert f"{-9223372036854775808}" == "-9223372036854775808"
+assert f`{{{string.format(255, "X")}}}` == "{FF}"
+assert f`{string.format(42, "04")}/{string.format(0.125, ".1%")}` == "0042/12.5%"
+assert f`{string.format(0, "c")}` == "\0"
+assert rf"path\{visits}" == "path\\1"
+assert f`raw\{visits}` == "raw\\1"
+assert f"""first:{visits}
+last:{'你'}""" == "first:1\nlast:你"
+string snapshot = f"{exact}"
+exact = "changed"
+assert snapshot == "head:a\0你:tail"
