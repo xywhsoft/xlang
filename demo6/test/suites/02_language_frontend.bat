@@ -2597,14 +2597,14 @@ if errorlevel 1 exit /b 1
 
 rem The complete dynamic-container fixture covers all four collection ABIs,
 rem module/class/argument conversion sites, failure atomicity, and the explicit
-rem string-split-lines compiler-runtime bridge.  Generated C must be standalone
-rem apart from XRT; linking xl.dll would hide a missing bridge implementation.
+rem resident typed string-split-lines contract. Library code is not generated;
+rem independent native closure admission is owned by check_xlir_artifact_runtime.
 release\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --backend xlir --emit build\test\cgen_dynamic_to_typed_containers_xlir_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue* xl6_xrt_string_split_lines(xlir_string text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
+findstr /C:"xl6TextLinesV1(" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xrtStrSplitLines(text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
-if errorlevel 1 exit /b 1
+findstr /C:"xvalue* xl6TextLinesV1(" /C:"xrtStrSplitLines(text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
+if not errorlevel 1 exit /b 1
 findstr /C:", 9, 0);" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1
 findstr /C:", 9, 2);" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul

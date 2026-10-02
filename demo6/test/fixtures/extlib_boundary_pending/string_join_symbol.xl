@@ -1,0 +1,2 @@
+array<string> values = ["a", "b"]
+assert string.join(values, ",") == "a,b"

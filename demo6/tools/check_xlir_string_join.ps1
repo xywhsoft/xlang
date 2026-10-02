@@ -7,7 +7,9 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $Root 'tools/extlib_smoke_process.ps1')
-$compilerDir = (Resolve-Path -LiteralPath (Join-Path $Root $PublicSourceDirectory)).Path
+$compilerDir = (Resolve-Path -LiteralPath $(if ([IO.Path]::IsPathRooted($PublicSourceDirectory)) {
+    $PublicSourceDirectory
+} else {Join-Path $Root $PublicSourceDirectory})).Path
 $build = Get-Content (Join-Path $compilerDir 'build.json') -Raw -Encoding utf8 | ConvertFrom-Json
 $driver = $build.Driver
 if ($build.RuntimeOnly -or (Get-FileHash $driver).Hash -ne $build.DriverSha256) { throw 'Invalid public source compiler' }
@@ -46,14 +48,21 @@ $cExample = 'release/examples/stdlib_string_boundaries_c.c'
 $negatives = @('xlir_string_bridge_bad_result','xlir_string_bridge_bad_parameter',
     'xlir_string_join_bad_result','xlir_string_join_bad_parameter',
     'xlir_string_bytes_bad_result','xlir_string_bytes_bad_parameter',
-    'xlir_string_chars_bad_result','xlir_string_chars_bad_parameter')
+    'xlir_string_chars_bad_result','xlir_string_chars_bad_parameter',
+    'xlir_string_repeat_bad_result','xlir_string_repeat_bad_parameter')
 $objects = @($build.Sources | Where-Object {$_ -like 'src/runtime/*' -or $_ -eq 'tools/xrt_single_header_impl.c'} |
     ForEach-Object {Join-Path $compilerDir ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
-$paths = @($build.Inputs.Path) + @($driver,$gcc,$PSCommandPath,(Join-Path $compilerDir 'build.json')) + $objects
+$paths = @($build.Inputs.Path) + @($build.Headers.Path) + @($build.Objects.Path) +
+    @($driver,$gcc,$PSCommandPath,(Join-Path $compilerDir 'build.json')) + $objects
 $paths += @($artifactPath,(Join-Path $Root $artifact.Mapping)) + @($artifact.Files.Source) + @($artifact.Files.Path)
 $paths += @($source,$failure,$example,$cExample,'test/cases/xlir_string_bridge_minimal.xl',
     'test/cases/xlir_string_bridge_abi_host.c','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
     'test/cases/stdlib_string.xl','test/cases/stdlib_string_support.c',
+    'test/cases/xlir_string_repeat_abi.xl','test/cases/xlir_string_repeat_host.c',
+    'test/cases/stdlib_text_interpolation.xl','test/cases/xlir_string_interpolation_host.c',
+    'test/cases/stdlib_text_interpolation_error.xl',
+    'test/cases/xlir_text_value_contract.c','test/support/string_bridge_native.c',
+    'tools/check_xlir_string_bridges.ps1','tools/check_xlir_string_repeat.ps1',
     'tools/stage_xlir_artifact_runtime_sources.ps1','test/fixtures/extlib_boundary_pending/string_join_symbol.xl') |
     ForEach-Object {Join-Path $Root $_}
 $paths += $negatives | ForEach-Object {Join-Path $Root "test/cases/$_.xl"}
@@ -78,46 +87,85 @@ try {
         if ((Get-FileHash "$module.$extension").Hash -ne (Get-FileHash "$module.repeat.$extension").Hash) { throw "Non-deterministic $extension emission" }
     }
     $ir = Get-Content "$module.json" -Raw -Encoding utf8 | ConvertFrom-Json
-    $fallible = @('join','split','split_lines','repeat','replace','slice','bytes','chars')
-    foreach ($name in @('byte_len','byte_at','starts_with','ends_with')+$fallible) {
-        $targets = @($ir.callTargets | Where-Object cName -eq "xl6_xrt_string_$name")
-        $effect = if ($name -in $fallible) {'may-raise'} else {'no-raise'}
-        $physical = if ($name -in $fallible) {'xrt-thread-error'} else {'none'}
+    $signatures = [ordered]@{Length=2;ByteLength=2;ByteAt=3;StartsWith=5;EndsWith=5;
+        Join=4;Split=4;Lines=2;Repeat=3;Replace=6;Slice=4;Bytes=2;Chars=2}
+    foreach ($name in $signatures.Keys) {
+        $targets = @($ir.callTargets | Where-Object cName -eq "xl6Text${name}V1")
         if (!$targets.Count) { throw "Missing string contract: $name" }
         foreach ($target in $targets) {
-            if ($target.runtimeBridgeName -ne "string-$($name.Replace('_','-'))" -or
-                $target.errorAbiName -ne $effect -or $target.errorPhysicalAbiName -ne $physical -or
+            if ($target.runtimeBridgeName -ne 'text-value' -or $target.parameterCount -ne $signatures[$name] -or
+                $target.parameterAbis[0] -ne 2 -or $target.errorAbiName -ne 'may-raise' -or
+                $target.errorPhysicalAbiName -ne 'xrt-thread-error' -or
                 $target.resultConversionAbiName -ne 'direct') { throw "Invalid string contract: $name" }
         }
     }
-    $take = @($ir.callTargets | Where-Object cName -eq 'xl6_xrt_take_cstr')
-    if ($take.Count -ne 1 -or $take[0].errorPhysicalAbiName -ne 'xrt-thread-error') { throw 'takeCstr lost its failure contract' }
     foreach ($negative in $negatives) {
-        $null = Check $negative $driver @("test/cases/$negative.xl",'emit',(Join-Path $work $negative)) 'string runtime bridge has no exact parameter/result ABI'
+        $prefix = Join-Path $work $negative
+        $null = Check $negative $driver @("test/cases/$negative.xl",'emit',$prefix) 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'
+        if ((Test-Path "$prefix.c") -or (Test-Path "$prefix.h")) {throw "Unsafe ABI output exists: $negative"}
     }
     $null = Check 'minimal' $driver @('test/cases/xlir_string_bridge_minimal.xl','emit',(Join-Path $work 'minimal'))
     $minimal = Get-Content (Join-Path $work 'minimal.c') -Raw
-    if ($minimal -match 'xl6_xrt_string_(join|split|replace|slice|bytes|chars)\(' -or $minimal -match 'xlir_xvalue_to_string\(') { throw 'Unused string adapters were emitted' }
+    if ($minimal -notmatch 'xl6TextByteLengthV1\(' -or
+        $minimal -match 'xl6Text(?:Join|Split|Lines|Replace|Slice|Bytes|Chars)V1\(' -or
+        $minimal -match 'xl6_xrt_(?:string_|take_cstr)|xlir_xvalue_to_string\(') { throw 'Unused string adapters were emitted' }
+    $generated = Get-Content "$module.c" -Raw
+    if ($generated -match '(?m)^\s*(?:static\s+)?(?:xstrview|xlir_string|xvalue\s*\*)\s+xl6Text\w+\([^;]*\)\s*\{' -or
+        $generated -match 'xl6_xrt_(?:string_|take_cstr)|typedef struct xlir_string_list') {throw 'Cgen contains a text implementation'}
 
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label',
-        '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-missing-field-initializers',
+        '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
+        '-Wno-missing-field-initializers','-Wno-format-truncation','-Wno-pointer-sign',
         "-I$compilerDir/include",'-Irelease/include','-Ilib/xrt','-Ilib/xruntime','-I.')
     $native = Join-Path $work 'native.exe'
     $null = Check 'native-build' $gcc ($flags+@('-include',"$module.c",'test/cases/xlir_string_bridge_abi_host.c')+
-        $objects+@('-lWs2_32','-lIPHLPAPI','-lShell32','-o',$native))
+        $objects+@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$native))
     $nativeOutput = Check 'native' $native @()
     if ($nativeOutput -notmatch 'string join allocation failures ok' -or
         $nativeOutput -notmatch 'string join threads ok: 2000 rounds' -or
         $nativeOutput -notmatch 'string enumeration failures ok' -or
         $nativeOutput -notmatch 'string bridges ok') { throw 'Native oracle did not finish' }
-    foreach ($entry in @(@('boundary',$source),@('allocation',$failure),
+    $repeat = Join-Path $work 'repeat'
+    $null = Check 'repeat-emit' $driver @('test/cases/xlir_string_repeat_abi.xl','emit',$repeat)
+    $null = Check 'repeat-emit-again' $driver @('test/cases/xlir_string_repeat_abi.xl','emit',"$repeat.again")
+    foreach ($extension in @('c','h','json')) {
+        if ((Get-FileHash "$repeat.$extension").Hash -ne (Get-FileHash "$repeat.again.$extension").Hash) {throw "Nondeterministic repeat $extension"}
+    }
+    $repeatC = Get-Content "$repeat.c" -Raw
+    if ($repeatC -notmatch 'xl6TextRepeatV1\(' -or $repeatC -match 'xl6Text(?:Replace|Split|Join)V1\(') {throw 'Repeat-only calls are not minimal'}
+    $repeatExe = Join-Path $work 'repeat.exe'
+    $null = Check 'repeat-strict-build' $gcc ($flags+@('-include',"$repeat.c",'test/cases/xlir_string_repeat_host.c')+
+        $objects+@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$repeatExe))
+    if ((Check 'repeat-native' $repeatExe @()) -notmatch '600 cases, 300 real allocation failures, balanced memory') {throw 'Repeat native oracle incomplete'}
+    $contract = Join-Path $work 'contract.exe'
+    $compilerObjects = @($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o'} | ForEach-Object Path)
+    $null = Check 'contract-build' $gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
+        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$contract))
+    Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $work 'xl.dll')
+    foreach ($entry in @(@('boundary',$source),@('repeat','test/cases/xlir_string_repeat_abi.xl'),@('allocation',$failure),
+            @('interpolation','test/cases/stdlib_text_interpolation.xl'),
+            @('interpolation-error','test/cases/stdlib_text_interpolation_error.xl'),
             @('regression','test/fixtures/extlib_boundary_pending/string_join_symbol.xl'))) {
+        $closed = Join-Path $work "$($entry[0])-contract.c"
+        $null = Check "$($entry[0])-contract" $contract @($entry[1],$closed)
+        $null = Check "$($entry[0])-default" $driver @($entry[1],'cgen-default',(Join-Path $work "$($entry[0])-default.c"))
+        if ((Get-FileHash $closed).Hash -ne (Get-FileHash (Join-Path $work "$($entry[0])-default.c")).Hash) {throw 'Closed ABI emission differs from default compiler'}
         $null = Check "$($entry[0])-jit" $driver @($entry[1],'run',(Join-Path $work "$($entry[0])-jit"))
         $prefix = Join-Path $work "$($entry[0])-aot"
         $null = Check "$($entry[0])-build" $driver @($entry[1],'exe',$prefix)
         $null = Check "$($entry[0])-aot" "$prefix.exe" @()
     }
     $null = Check 'relocated-module' $driver @($source,'module',(Join-Path $work 'relocated-module'))
+    $interpolation = Join-Path $work 'interpolation-native.exe'
+    $null = Check 'interpolation-strict-build' $gcc ($flags+@('-include',(Join-Path $work 'interpolation-default.c'),
+        'test/cases/xlir_string_interpolation_host.c')+$objects+
+        @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$interpolation))
+    $null = Check 'interpolation-native' $interpolation @()
+    for ($point=0; $point -le 256; ++$point) {
+        $output = Check "interpolation-oom-$point" $interpolation @("$point")
+        if ($output -match 'hit=0 balanced') {break}
+    }
+    if ($point -gt 256) {throw 'Incomplete interpolation allocation sweep'}
     $null = Check 'stdlib-jit' $driver @('test/cases/stdlib_string.xl','run',(Join-Path $work 'stdlib-jit'),'test/cases/stdlib_string_support.c')
     $stdlib = Join-Path $work 'stdlib-aot'
     $null = Check 'stdlib-build' $driver @('test/cases/stdlib_string.xl','exe',$stdlib,'test/cases/stdlib_string_support.c')
@@ -135,7 +183,7 @@ try {
     $changed = @($inputs.Keys | Where-Object {!(Test-Path -LiteralPath $_) -or (Get-FileHash -LiteralPath $_).Hash -ne $inputs[$_]})
     if ($changed.Count) { $outcome = 'invalid-input-change' }
     $record = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;compiler=$driver;buildManifest=(Join-Path $compilerDir 'build.json');
-        scope='Current-source compiler/public API; exact string bridge contracts, deterministic C/H/IR, negative ABIs, native OOM, language OOM JIT/AOT, module relocation and C/xlang examples. Not formal release, Linux, or whole ecosystem admission.';
+        scope='Current-source compiler/public API; two-field strings, typed arrays/chars/bytes, 10 negative declarations and in-memory ABI/effect/ownership mutations, deterministic C/H/IR, native OOM and 4-thread 2000 joins, 600 repeat probes, language OOM JIT/AOT, relocation and C/xlang examples. Host links resident object set; actual standalone pruning is a separate artifact gate. Not full RC0 or 53-module completion.';
         inputs=$inputs;changedInputs=$changed;checks=$checks.ToArray()}
     [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record | ConvertTo-Json -Depth 8),$utf8)
 }

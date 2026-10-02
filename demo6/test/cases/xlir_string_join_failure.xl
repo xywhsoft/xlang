@@ -4,7 +4,8 @@ extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
 extern "xrtMemDebugFailClear" func failClear()
 
 func main(...) as int
-    array values = ["text", true, null, -7, uint64(42), 1.5, [1, 2]]
+    // Conversion is explicit and happens before arming allocation faults.
+    array<string> values = ["text", string(true), "null", string(-7), string(uint64(42)), string(1.5), "[1,2]"]
     int rejected = 0
     int completed = 0
     for operation in range(8)
@@ -22,16 +23,16 @@ func main(...) as int
                 elseif operation == 3 then
                     result = string.repeat("ab", 3)
                 elseif operation == 4 then
-                    array parts = string.split("a,b,c", ",")
+                    array<string> parts = string.split("a,b,c", ",")
                     result = string(parts.length)
                 elseif operation == 5 then
-                    array lines = string.splitLines("a\r\nb\nc")
+                    array<string> lines = string.splitLines("a\r\nb\nc")
                     result = string(lines.length)
                 elseif operation == 6 then
-                    array characters = string.chars("A你好")
+                    array<char> characters = string.chars("A你好")
                     result = string(characters.length)
                 else
-                    array octets = string.bytes("ABC")
+                    bytes octets = string.bytes("ABC")
                     result = string(octets.length)
                 end
             catch MemoryError

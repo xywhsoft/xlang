@@ -1,8 +1,12 @@
-typedef struct xvalue xvalue;
+#include "include/xruntime_decl.h"
 
 int xlang_main(xvalue* arg);
 
 int main(void)
 {
-    return xlang_main((xvalue*)0);
+    xvalue* arguments = xrtValueArray();
+    if (arguments == NULL) return 1;
+    int result = xlang_main(arguments);
+    xrtValueRelease(arguments);
+    return result;
 }

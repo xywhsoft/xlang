@@ -1,2 +1,2 @@
-extern "xl6_xrt_string_repeat" func malformed(string text, int count) as string
-println(malformed("ab", 3))
+extern "xl6TextRepeatV1" func malformed(string text, int count, int size = -1) as point
+malformed("ab", 3)

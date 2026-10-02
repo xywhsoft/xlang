@@ -155,12 +155,12 @@ if ($effectClosureTests.Count -ne 1 -or $effectClosureOutcome.id -ne $effectClos
     throw "XLIR first-class callable outcome must be tested exactly once before its distinct cleanup outcome"
 }
 $bridges = @($effectModule.callTargets | Where-Object {
-    $_.runtimeBridgeName -in @("print", "string-contains")
+    $_.runtimeBridgeName -eq 'print' -or $_.cName -eq 'xl6TextContainsV1'
 })
 if ( $bridges.Count -ne 2 -or
      @($bridges | Where-Object {
-         $_.runtimeBridgeName -eq "string-contains" -and
-         $_.cName -eq "xl6_xrt_string_contains" -and $_.parameterCount -eq 3
+         $_.runtimeBridgeName -eq 'text-value' -and
+         $_.cName -eq 'xl6TextContainsV1' -and $_.parameterCount -eq 5
      }).Count -ne 1 ) {
     throw "XLIR standard wrapper dependencies have no explicit verified runtime-bridge ABI"
 }
@@ -226,7 +226,8 @@ try {
              (! [regex]::IsMatch($generatedText,
                  'static bool xlir_closure_invoke_[^(]+\(void\* environment, int64_t\* result, int64_t a0\)') -or
               ! $generatedText.Contains("((bool (*)(void*, int64_t*, int64_t))") -or
-              ! $generatedText.Contains("bool xl6_xrt_string_contains(")) ) {
+              ! $generatedText.Contains('xl6TextContainsV1(') -or
+              $generatedText.Contains('bool xl6TextContainsV1(')) ) {
             throw "XLIR generated C lost the uniform callable-effect or explicit runtime-bridge ABI"
         }
         if ( $fixture -eq "cgen_function_param_modes" -and

@@ -42153,6 +42153,7 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
 {
     switch ( bridge ) {
     case XL6_IR_RUNTIME_BRIDGE_NONE: return "none";
+    case XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE: return "text-value";
     case XL6_IR_RUNTIME_BRIDGE_PRINT: return "print";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE: return "text-write";
     case XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN: return "text-writeln";

@@ -21,6 +21,19 @@ int main(int argc, char** argv)
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||
         !xl6IrLowerModule(&ir, &parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir, NULL));
+    /* Interpolation must use the same closed scalar ABI as string(char).
+     * Changing it to integer formatting must be rejected, not guessed in C. */
+    unsigned characterConversions = 0;
+    for (size_t i = 0; i < ir.instructionCount; ++i) {
+        XL6_IrInstruction* instruction = &ir.instructions[i];
+        if (instruction->runtimeOp != XL6_IR_RUNTIME_CHAR_TO_STRING) continue;
+        instruction->runtimeOp = XL6_IR_RUNTIME_I64_TO_STRING;
+        assert(!xl6IrVerifyModule(&ir, NULL));
+        instruction->runtimeOp = XL6_IR_RUNTIME_CHAR_TO_STRING;
+        assert(xl6IrVerifyModule(&ir, NULL));
+        ++characterConversions;
+    }
+    if (strstr(argv[1], "stdlib_text_interpolation.xl") != NULL) assert(characterConversions == 3);
     /* Generic product verification, including plain language functions with
      * no standard-library bridge. A corrupted closed ABI must never reach C. */
     for (size_t i=0; i<ir.types.count; ++i) {

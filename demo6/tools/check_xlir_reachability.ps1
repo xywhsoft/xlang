@@ -148,14 +148,14 @@ foreach ( $forbidden in @(
 & $xl ir $classSource --lowered --format json --emit $classJsonPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR class reachability lowering failed" }
 $classModule = Read-Json $classJsonPath
-$unusedStringCount = @($classModule.callTargets | Where-Object { $_.cName -eq 'xl6_xrt_string_count' })
+$unusedStringCount = @($classModule.callTargets | Where-Object { $_.cName -eq 'xl6TextCountV1' })
 if ( $unusedStringCount.Count -ne 1 -or $unusedStringCount[0].reachability -ne 'unreachable' ) {
     throw "XLIR unused standard-library wrapper is not explicitly unreachable"
 }
 & $xl cgen $classSource --backend xlir --emit $classCPath
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR class reachability Cgen failed" }
 $classGenerated = [System.IO.File]::ReadAllText($classCPath, [System.Text.Encoding]::UTF8)
-if ( $classGenerated.Contains('xl6_xrt_string_count') ) {
+if ( $classGenerated.Contains('xl6TextCountV1') ) {
     throw "XLIR Cgen retained an unreachable standard-library wrapper dependency"
 }
 

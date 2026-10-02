@@ -43,13 +43,18 @@ function Assert-OwnedChain($Module, $Operations, $First, $Second, [string]$Name)
         $_.kindName -eq "store" -and $_.operandCount -eq 1 -and
         $_.operands[0] -eq $First.result
     })
-    if ( $initialStores.Count -ne 1 ) { throw "$Name has no unique owned-result anchor" }
-    $initialAnchor = $initialStores[0].targetSymbol
     $useLoads = @($Operations | Where-Object {
         $_.kindName -eq "load" -and $_.result -eq $Second.operands[0]
     })
     if ( $useLoads.Count -ne 1 ) { throw "$Name has no unique borrowed use" }
     $useAnchor = $useLoads[0].targetSymbol
+    if ($initialStores.Count -gt 1) {
+        # A fallible direct native call also anchors its result on the unwind
+        # edge. Select the exact success anchor consumed by this next call.
+        $initialStores = @($initialStores | Where-Object targetSymbol -eq $useAnchor)
+    }
+    if ($initialStores.Count -ne 1) {throw "$Name has no unique owned-result anchor"}
+    $initialAnchor = $initialStores[0].targetSymbol
     $storages = @($Module.storages | Where-Object {
         $_.symbol -eq $initialAnchor -or $_.symbol -eq $useAnchor
     })
@@ -206,18 +211,23 @@ $case = Read-Case "cgen_implicit_string_methods"
 $wrappers = @{}
 foreach ( $name in @("trim", "lower") ) {
     $native = @($case.Ir.callTargets | Where-Object {
-        $_.cName -eq "xl6_xrt_string_$name" -and $_.reachability -ne "unreachable"
+        $_.cName -eq $(if ($name -eq 'trim') {'xl6TextTrimV1'} else {'xl6TextLowerV1'}) -and $_.reachability -ne "unreachable"
     })
-    if ( $native.Count -ne 1 -or @($native[0].parameterAbis | Where-Object {
-            $_ -ne 2
-        }).Count -ne 0 ) { throw "Implicit string $name has no exact borrowed native ABI" }
+    if ($native.Count -ne 1 -or $native[0].runtimeBridgeName -ne 'text-value' -or
+        $native[0].parameterAbis[0] -ne 2 -or $native[0].errorPhysicalAbiName -ne 'xrt-thread-error' -or
+        ($name -eq 'trim' -and ($native[0].parameterCount -ne 4 -or $native[0].parameterAbis[1] -ne 2)) -or
+        ($name -eq 'lower' -and $native[0].parameterCount -ne 2)) {
+        throw "Implicit string $name has no exact borrowed native ABI"
+    }
     $owners = @($case.Ir.functions | Where-Object {
         @(Function-Ops $case.Ir $_ | Where-Object {
             $_.kindName -eq "call" -and $_.targetSymbol -eq $native[0].symbol
-        }).Count -eq 1
+        }).Count -ge 1
     })
-    if ( $owners.Count -ne 1 ) { throw "Implicit string $name has no unique resolved wrapper" }
-    $wrappers[$name] = $owners[0].symbol
+    if ($owners.Count -ne 1 -or $owners[0].kindName -ne 'user') {
+        throw "Implicit string $name has no unique direct language caller"
+    }
+    $wrappers[$name] = $native[0].symbol
 }
 $main = @($case.Ir.functions | Where-Object {
     $_.kindName -eq "user" -and $_.reachability -eq "root"

@@ -2143,12 +2143,8 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE",
     "XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF",
     "XL6_IR_RUNTIME_BRIDGE_JSON_PARSE",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT",
-    "XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR",
+    "XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE",
     "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_RUNTIME_BRIDGE_BUFFER",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN",
     "XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC",
     "XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH",
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
@@ -2192,14 +2188,13 @@ foreach ( $required in @(
     "XLIR xvalue table-remove runtime bridge has no exact private helper ABI",
     "XLIR string-index-of runtime bridge has no exact private helper ABI",
     "XLIR JSON value runtime bridge has no exact parameter/result ABI",
-    "XLIR string-format runtime bridge has no exact private helper ABI",
+    "XLIR direct runtime bridge has no exact declared ABI",
     "XLIR DynamicFields runtime bridge has no exact private helper ABI",
     "XLIR template runtime bridge has no exact borrowed native handle ABI",
     "XLIR Buffer runtime bridge has no exact component ABI",
     "XLIR File runtime bridge has no exact component ABI",
     "XLIR last-error-text runtime bridge has no exact owned-string ABI",
     "XLIR call target has no exact physical error ABI",
-    "XLIR string character-count runtime bridge has no exact ABI",
     "XLIR text codec runtime bridge has no exact ABI",
     "XLIR crypto text-hash runtime bridge has no exact ABI",
     "XLIR path-join runtime bridge has no exact strings/rest/result ABI"
@@ -2212,18 +2207,11 @@ foreach ( $required in @(
     "XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER", "XL6_IR_FUNCTION_NAMED_ADAPTER",
     "XLIR C emitter closure adapter role is unresolved",
     "target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_PRINT",
-    "target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS",
-    "target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES",
+    "target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE",
     "XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS",
     "XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF",
     "XL6_IR_RUNTIME_BRIDGE_JSON_PARSE",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT",
-    "XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR",
     "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_RUNTIME_BRIDGE_BUFFER",
-    "XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN",
     "XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC",
     "XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH",
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
@@ -2232,8 +2220,7 @@ foreach ( $required in @(
     "XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR",
     "needsPathJoinBridgeRuntime", "void* xl6_xrt_path_join",
     "needsLastErrorTextBridgeRuntime", "xlir_string xl6_xrt_last_error_text",
-    'xlir_string_from_utf8(message, strlen(message))',
-    "bool xl6_xrt_string_contains", "xvalue* xl6_xrt_string_split_lines"
+    'xlir_string_from_utf8(message, strlen(message))'
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical named-adapter consumption: $required"
@@ -3052,7 +3039,7 @@ if ( $cEmitter.Contains("xl6IrCgenTargetNeedsBody") ) {
 }
 foreach ( $required in @(
     "xlir_callable_reachability.xl", "xlir_reachability_dead_external",
-    "xl6_xrt_string_count", "virtual-call", "protocol-call",
+    "xl6TextCountV1", "virtual-call", "protocol-call",
     "xlir_async_start_", "-Werror", "generated-C runtime failed"
 ) ) {
     if ( ! $reachabilityGate.Contains($required) ) {
@@ -5224,12 +5211,8 @@ if ( ! $languageFrontendSuite.Contains("tools\check_xlir_time_conversion_abi.ps1
 foreach ( $required in @("XL6_IR_RUNTIME_BRIDGE_PRINT", "needsPrintRuntime", "bool xl6_xrt_print", "xlir_print_one", "xrtValueArrayAt") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR print runtime bridge contract is incomplete: $required" }
 }
-foreach ( $required in @(
-    "XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES", "needsStringSplitLinesRuntime",
-    "xlir_string_list_take(xstrlist* parts)", "xrtStrSplitLines", "xrtStrListFree",
-    "xvalue* xl6_xrt_string_split_lines"
-) ) {
-    if ( ! $cEmitter.Contains($required) ) { throw "XLIR string-split-lines runtime bridge contract is incomplete: $required" }
+foreach ($required in @('XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE', 'needsTextAdapterDeclarations')) {
+    if (!$cEmitter.Contains($required)) {throw "Cgen must consume resident text declarations: $required"}
 }
 if ($cEmitter.Contains("typedef struct xlir_string_list")) {
     throw "XLIR string split must consume the public XRT list ABI"
@@ -5239,14 +5222,21 @@ if (!$languageFrontendSuite.Contains("tools\check_xlir_string_bridges.ps1")) {
 }
 foreach ($required in @('XL6_IrStringBridgeContract', 'target->errorAbi != contract->errorAbi',
     'xl6IrRuntimeStringBridgeErrorAbi', 'XL6_IR_RUNTIME_BRIDGE_STRING_JOIN',
-    'XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR', 'XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES')) {
+    'XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES')) {
     if (!$source.Contains($required)) { throw "XLIR string ABI registry is incomplete: $required" }
 }
-foreach ($required in @('needsStringJoinBridgeRuntime', 'XL6_IR_RUNTIME_BRIDGE_STRING_JOIN',
-    'void* xl6_xrt_string_join(xvalue* values, xlir_string separator)', 'xrtStrJoin')) {
-    if (!$cEmitter.Contains($required)) { throw "XLIR string-join runtime bridge is incomplete: $required" }
+foreach ($required in @('xl6TextJoinV1', 'xl6TextSplitV1', 'xl6TextLinesV1')) {
+    if (!$directBridge.Contains($required)) {throw "Resident text exact ABI missing: $required"}
+}
+foreach ($entry in @(@('src/runtime/xl6_text_pieces.h', 'xrtStrSplitNext'),
+        @('src/runtime/xl6_text_join.c', 'xrtStrJoinSized'))) {
+    if (!(Read-Utf8 $entry[0]).Contains($entry[1])) {throw 'Resident text must reuse sized XRT algorithms'}
 }
 $stringJoinGate = Read-Utf8 'tools\check_xlir_string_join.ps1'
+if (!$stringJoinGate.Contains('Cgen contains a text implementation') -or
+    !$stringJoinGate.Contains('xl6_xrt_(?:string_|take_cstr)')) {
+    throw 'Default string programs must reject generated/legacy library implementations'
+}
 foreach ($required in @('xlir_string_join_failure.xl', 'errorPhysicalAbiName', 'xrt-thread-error',
     'string join threads ok: 2000 rounds', 'xlir_string_join_bad_parameter',
     'xlir_string_join_bad_result', 'changedInputs', 'passed-scoped')) {
@@ -5257,8 +5247,7 @@ if (!(Read-Utf8 'tools\run_xlir_parameterized_guards.ps1').Contains("'check_xlir
 }
 foreach ( $required in @(
     "cgen_dynamic_to_typed_containers.xl", "--backend xlir",
-    "xvalue* xl6_xrt_string_split_lines(xlir_string text)",
-    "xrtStrSplitLines(text)", "-Werror",
+    "xl6TextLinesV1", "-Werror",
     "xlir_dynamic_to_typed_containers_host.c"
 ) ) {
     if ( ! $languageFrontendSuite.Contains($required) ) { throw "XLIR dynamic collection bridge runtime gate is incomplete: $required" }

@@ -1,3 +1,3 @@
 // byteAt 的索引是 int64，不能缩窄成 C int 后仍套用相同适配器。
-extern "xl6_xrt_string_byte_at" func malformed(string text, c_int index) as c_int
+extern "xl6TextByteAtV1" func malformed(string text, c_int index, int size = -1) as uint8
 println(malformed("abc", c_int(0)))
