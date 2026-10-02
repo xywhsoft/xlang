@@ -1,0 +1,7 @@
+bool rejected = false
+try
+    process.open("a\0b")
+catch ValueError
+    rejected = true
+end
+assert rejected

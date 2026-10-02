@@ -1,0 +1,2 @@
+bool available = process.terminalSupported()
+assert available == true or available == false

@@ -1,7 +1,7 @@
 #ifndef XL6_PROCESS_INTERNAL_H
 #define XL6_PROCESS_INTERNAL_H
 #include "src/runtime/xl6_text_thread.h"
-#include <string.h>
+#include "src/runtime/xl6_process_text.h"
 
 /* Owned configuration. XRT borrows its views only until Spawn/Run returns.
  * No script pointers, managed graph edges or OS handles are hidden here. */
@@ -19,16 +19,6 @@ static inline XL6_ProcessCommand* xl6ProcessCommandCheck(void* handle)
     if (!handle) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
     XL6_ProcessCommand* command=handle;
     return xl6TextThreadCheck(&command->owner) ? command : NULL;
-}
-static inline char* xl6ProcessCString(xstrview value,int64_t size,bool nonempty)
-{
-    if (!xl6TextSelect(&value,size)) return NULL;
-    if ((nonempty && !value.Size) || memchr(value.Data,0,value.Size)) {
-        xrtSetErrorInfo(XERR_VALUE,"xrt.process",XPROCESS_ERROR_COMMAND,
-            "OS process text must be UTF-8 without embedded NUL");
-        return NULL;
-    }
-    return xrtStrDupView(value);
 }
 static inline bool xl6ProcessDuration(int64_t milliseconds,uint64* duration)
 {

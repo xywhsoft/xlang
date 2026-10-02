@@ -4112,9 +4112,10 @@ static const char xl6StdProcessStartFileBody[] =
     "end\n";
 
 static const char xl6StdProcessTerminalSupportedBody[] =
-    "func __xl_std_process_terminal_supported() as bool\n"
-    "    return __xl_std_runtime_process_terminal_supported()\n"
-    "end\n";
+    "extern \"xl6ProcessTerminalSupportedV1\" @no_raise func __xl_std_process_terminal_supported() as bool\n";
+
+static const char xl6StdProcessOpenBody[] =
+    "extern \"xl6ProcessOpenV1\" func __xl_std_process_open(string target, int size = -1) as bool\n";
 
 
 static const char xl6StdSignalOn0Body[] =
@@ -6252,7 +6253,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "rsaPssVerify", "__xl_std_runtime_rsa_pss_verify", "xl6_xrt_rsa_pss_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "rsaPkcs1Verify", "__xl_std_runtime_rsa_pkcs1_verify", "xl6_xrt_rsa_pkcs1_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "processPipeline", "__xl_std_runtime_process_pipeline", "xl6_xrt_process_pipeline_run", xl6StdRuntimeProcessPipelineParams, 2, "point", NULL},
-    {"__xl_runtime", "processTerminalSupported", "__xl_std_runtime_process_terminal_supported", "xl6_xrt_process_terminal_supported", NULL, 0, "c_bool", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
     {"__xl_runtime", "logReleaseDefault", "__xl_std_runtime_log_release_default", "xl6LogReleaseDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
     {"__xl_runtime", "logTextValidate", "__xl_std_runtime_log_text_validate", "xl6LogTextValidateV1", xl6StdLogTextValidateParams, 3, "bool", NULL},
@@ -7131,6 +7131,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartCommandBody},
     {"process", "startFile", "__xl_std_process_start_file", NULL, NULL, 0, "Process", xl6StdProcessStartFileBody},
     {"process", "terminalSupported", "__xl_std_process_terminal_supported", NULL, NULL, 0, "bool", xl6StdProcessTerminalSupportedBody},
+    {"process", "open", "__xl_std_process_open", NULL, NULL, 0, "bool", xl6StdProcessOpenBody},
 
     {"task", "group", "__xl_std_task_group", NULL, NULL, 0, "TaskGroup", xl6StdTaskGroupBody},
 

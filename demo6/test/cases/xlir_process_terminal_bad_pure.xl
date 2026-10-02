@@ -1,0 +1,2 @@
+extern "xl6ProcessTerminalSupportedV1" @pure @no_raise func bad() as bool
+bad()

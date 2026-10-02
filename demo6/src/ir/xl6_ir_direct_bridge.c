@@ -37,6 +37,8 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    {"xl6ProcessOpenV1",T,B,2,{S,I}},
+    {"xl6ProcessTerminalSupportedV1",T,B,0,{0},.noRaise=1},
     {"xl6ProcessCommandShellV1",T,V,2,{S,I},.resultOwner="xl6ProcessCommandDestroyV1"},
     {"xl6ProcessCommandDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessCommandDestroyV1"},.noRaise=1},
     {"xl6ProcessCommandWorkDirV1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},

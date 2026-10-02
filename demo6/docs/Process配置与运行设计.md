@@ -94,3 +94,27 @@ Windows 文本准备、内部 waiter 创建、并发 I/O 与失败回收均保�
 同步 run 在发布结果前还等待内部 waiter 退役；进程已退出并不等于
 该线程的进程引用和上下文已释放。故障注入按完整原生路径和语言路径
 扫描到首个未触发点，检查错误类型及活跃分配账本，而不是延时后回收。
+
+## 系统关联程序与终端能力
+
+`process.open(target: string, size: int = -1) as bool` 是显式副作用入口。
+按字节选择前缀，超出实际长度截断，`size < -1` 抛 RangeError；选择后
+必须为非空、完整 UTF-8、无内嵌 NUL，否则抛 ValueError。有效前缀可
+排除 NUL 后缀。适配器只创建一次拥有的 NUL 终止文本并调用
+`xrtProcessOpen`，不插入 shell、不解析或改写 URI、不复制库算法到 Cgen。
+操作失败通过原生结构化错误抛出；成功只代表 OS/launcher 已接受，
+不代表关联应用已经执行完或读取了文件。程序名、URI 和目标仍须由调用者
+决定信任边界；此 API 不是沙箱，也不返回一个可等待的 Process。
+
+`process.terminalSupported() as bool` 直接查询真实 XRT 平台能力；当前
+无法创建返回 false。其原生实现不建立 XRT 错误，登记为 no-raise，
+但不标记 pure/nonblocking，不把运行时资源可用性宣称为永久平台保证。
+查询和关联启动各自是独立 resident 组件，不依赖 Command/Run/Status。
+
+专项 `stdlib_process_support`、`stdlib_process_open_only`、
+`stdlib_process_terminal_only` 和示例 `stdlib_process_support.xl` 不会
+启动宿主关联程序。原生夹具使用真实 XRT 分配器/Unicode/终端查询，
+只替换 association launcher，验证精确前缀、截断、七类输入拒绝、原生
+错误传递及分配失败账本。这不是 Windows ShellExecute / Linux
+xdg-open / macOS open 的系统集成成功验收；不要将受控 launcher 算为
+真实关联应用验证。PTY 会话、resize 与 live Process 仍属后续批次。

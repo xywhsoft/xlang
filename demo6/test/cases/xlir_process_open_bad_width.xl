@@ -1,0 +1,2 @@
+extern "xl6ProcessOpenV1" func bad(string target, c_int size) as bool
+bad("a\0b", -1)

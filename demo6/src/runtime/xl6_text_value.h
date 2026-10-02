@@ -13,6 +13,8 @@
 
 struct xlir_closure;
 /* Checked process resources and exact input/output views. */
+XL6_TEXT_API bool xl6ProcessOpenV1(xstrview target, int64_t size);
+XL6_TEXT_API bool xl6ProcessTerminalSupportedV1(void);
 XL6_TEXT_API void* xl6ProcessCommandDirectV1(xstrview program, const xvalue* args, int64_t size, int64_t argSize);
 XL6_TEXT_API void* xl6ProcessCommandShellV1(xstrview p0, int64_t p1);
 XL6_TEXT_API void xl6ProcessCommandDestroyV1(void* p0);

@@ -204,8 +204,8 @@ $process=Start-Process @start
                         'XRT_MODULE_REGEX_CORE'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_regex_|xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
-                }elseif($case-eq'stdlib_process_command_only'-or$case-eq'stdlib_process_options_only'){
-                    $leaf=if($case-eq'stdlib_process_command_only'){'command'}else{'options'}
+                }elseif($case-in@('stdlib_process_command_only','stdlib_process_options_only','stdlib_process_open_only','stdlib_process_terminal_only')){
+                    $leaf=$case.Replace('stdlib_process_','').Replace('_only','')
                     $expected="src/runtime/xl6_process_$leaf.c"
                     $selectedProcess=@($selectedSources|Where-Object {$_-match '/xl6_process_'})
                     $selectionMatches=$selectedProcess.Count-eq1-and$selectedProcess[0]-eq$expected

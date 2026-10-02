@@ -16,11 +16,13 @@ try {
     if(!$?){throw 'Stage failed'}
     $stage=Get-Content "$public/artifact_sources.json" -Raw|ConvertFrom-Json
     $cases=@('stdlib_process_command_only','stdlib_process_command_config','stdlib_process_options_only','stdlib_process_run_bytes','stdlib_process_run_limits','stdlib_process_run_allocations','stdlib_process_shell_exact','xlir_process_exec_bridge','xlir_process_success_bridge','xlir_process_exit_code_bridge')
+    $cases+=@('stdlib_process_support','stdlib_process_terminal_only','stdlib_process_open_only')
     $negatives=@('xlir_process_bad_array','xlir_process_bad_effect','xlir_process_bad_width','xlir_process_bad_owner')
+    $negatives+=@('xlir_process_open_bad_width','xlir_process_open_bad_effect','xlir_process_terminal_bad_pure')
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
-        'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c',
+        'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
-        'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
+        'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
     $inputs=[ordered]@{}
@@ -47,6 +49,10 @@ try {
         $null=Check 'native-build' gcc ($flags+@('test/cases/xlir_process_run_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_run.c','src/runtime/xl6_process_status.c')+$libs+@('-o',"$work/native.exe"))
         $native=Check 'native' "$work/native.exe" @($child)
         foreach($witness in @('3 first no-hit completions, balanced','13 owner guards','projection OOM retry','concurrent cancellation and absolute deadline','native run complete prefix: [0-9]+ failures and 1 first no-hit, balanced')){if($native-notmatch$witness){throw 'Process native witness missing'}}
+        $null=Check 'support-native-build' gcc ($flags+@('test/cases/xlir_process_support_host.c')+$libs+@('-o',"$work/support-native.exe"))
+        $support=Check 'support-native' "$work/support-native.exe" @()
+        if($support-notmatch '7 rejected inputs, exact prefix/clamp, native error transport; [0-9]+ allocation failures and 1 first no-hit, balanced; real terminal probe='){throw 'Process support native witness missing'}
+        if($support-notmatch 'process open error prefix: 3 failures and 3 first no-hit, causes preserved, balanced'){throw 'Real process open error-build prefix missing'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'-or$_-eq'src/api/xl_task_group_bridge.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
@@ -84,12 +90,15 @@ try {
         $null=Check 'example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_run.xl')
         $null=Check 'example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_run.xl','-o',"$work/example.exe")
         $null=Check 'example-execute' "$work/example.exe" @()
+        $null=Check 'support-example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_support.xl')
+        $null=Check 'support-example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_support.xl','-o',"$work/support-example.exe")
+        $null=Check 'support-example-execute' "$work/support-example.exe" @()
         $complete=$true
     } finally {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         if($changed.Count){$complete=$false}
         [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process command/configuration, exact UTF-8 OS text, owned args/environment, run options/cancellation/deadline, native concurrent drains, binary result and independent status. Strict C, closed ABI mutations, source/formal JIT/AOT and logical OOM. Live Process, pipeline, Future, redirection and PTY remain pending; not the 53-module acceptance.'}|ConvertTo-Json -Depth 10),$utf8)
+            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process command/configuration, exact UTF-8 OS text, owned args/environment, run options/cancellation/deadline, native concurrent drains, binary result and independent status. Association adapter uses a controlled launcher (no GUI/OS launch acceptance claim); terminal capability probe uses real XRT. Strict C, closed ABI mutations, source/formal JIT/AOT and logical OOM. Live Process, pipeline, Future, redirection and PTY sessions remain pending; not the 53-module acceptance.'}|ConvertTo-Json -Depth 10),$utf8)
         if($changed.Count){throw 'Frozen process_run inputs changed'}
     }
     Write-Output "Process run Windows checks: $($rows.Count)"
