@@ -1,0 +1,2 @@
+extern "xl6TimeUnixV1" @pure @no_raise @nonblocking func bad(int value) as int
+bad(0)

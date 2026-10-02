@@ -1,0 +1,16 @@
+// time is absolute Unix-epoch microseconds; offsets do not change this model.
+auto epoch = time.fromDateTime(1970, 1, 1)
+assert epoch == time(0)
+assert time.fromDateTime(1970, 1, 1, microsecond = 1, offset = 1) == time(-999999)
+assert time.microsecond(time(-1)) == 999999
+assert time.fromUnixMs(-1) == time(-1000)
+assert time.toUnixMs(time(-1)) == -1
+assert time.addMicroseconds(epoch, 1) == time(1)
+assert time.addMilliseconds(epoch, 1) == time(1000)
+assert time.diffMicroseconds(epoch, time(1)) == 1
+assert time.diffMilliseconds(epoch, time(1000)) == 1
+assert time.approx(epoch, time(1), uint64(1))
+auto deadline = time.monotonic()
+time.sleepMicroseconds(uint64(0))
+time.sleepUntil(deadline)
+assert time.monotonic() >= deadline

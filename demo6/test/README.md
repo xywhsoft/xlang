@@ -4,6 +4,13 @@
 
 ## 主要入口
 
+- `tools/check_stdlib_time_core.ps1` / `tools/check_stdlib_time_core.sh`：时间核心
+  的完整整数参数、UTC 微秒、Unix 毫秒、日历增减与显式容差；严格 C、
+  声明合同变异、JIT/AOT、真实错误分配失败和语言 OOM 账本。Linux 原生
+  adapter + XRT 使用 ASan/UBSan/leak；语言 libxl 本身未做 sanitizer。
+  `cases/stdlib_time_core.xl` / `cases/stdlib_time_core_only.xl` 与五个非法 ABI
+  声明固定纳入本门，不代表 time_local/time_text 或 53 模块全部完成。
+
 - `test.bat`：主回归调度入口，先完成构建、清理和工具链准备，再按顺序运行 `test/suites` 下的分类套件。
 - `test_smoke.bat`：快速冒烟入口，覆盖构建、核心文档/源码/工具接线、CLI 基础阶段、ABI、source import/package、容器运行和一个标准库运行样本。
 - `test_all.bat`：完整回归入口，串联主回归、tutorial 和 DLL 测试。

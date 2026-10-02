@@ -191,6 +191,11 @@ XGE/XUI 范例基于 `_xge_native` 扩展库的 OOP 封装（native-backed class
 - `stdlib_fs_async_extended.xl`：异步原子写入、目录与句柄接管；回归：`check/run`。
 - `stdlib_console_codes.xl`：IO/console/file 公开常量；回归：`check/run`。
 
+- `stdlib_logging.xl`：日志记录、文件、异步与 ring 公开接口。
+- `stdlib_log_formats.xl`：日志文本/JSON formatter 与输出合同。
+- `stdlib_text_pattern.xl`：Unicode、编码、Regex、Pattern 和 Builder。
+- `stdlib_time_core.xl`：绝对微秒、完整参数、Unix 毫秒和单调截止点。
+
 在 `demo6` 目录下运行：
 
 ```bat

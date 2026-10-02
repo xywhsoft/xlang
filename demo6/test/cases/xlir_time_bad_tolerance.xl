@@ -1,0 +1,2 @@
+extern "xl6TimeNearV1" @pure @no_raise @nonblocking func bad(time left, time right, int tolerance) as bool
+bad(time(0), time(0), 0)

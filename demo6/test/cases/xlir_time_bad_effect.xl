@@ -1,0 +1,2 @@
+extern "xl6TimeFromDateV1" @no_raise func bad(int year, int month, int day) as time
+bad(1970, 1, 1)
