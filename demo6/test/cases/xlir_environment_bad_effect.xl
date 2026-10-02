@@ -1,0 +1,2 @@
+extern "xl6EnvHasV1" @pure @no_raise @nonblocking func bad(string name, int size) as bool
+auto value = bad("XLANG_ENV_REJECT", -1)

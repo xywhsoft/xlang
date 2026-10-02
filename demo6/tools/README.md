@@ -33,6 +33,15 @@ adds exact pattern/protocol/DateTime text, native diagnostic OOM, closed bool/ti
 ABI mutations, and eight actual sanitized program closures. Each gate freezes
 its input hashes; only a results.json with Complete=true denotes an accepted
 run. These subsets do not replace the 53-module cross-group acceptance.
+
+B19 environment gates: `check_stdlib_environment.ps1` shares that immutable
+PublicSourceDirectory and uses a fresh Directory; the full Windows stdlib suite
+reuses its existing compiler build. `check_stdlib_environment.sh <fresh-directory>`
+tests exact inputs, nullable versus empty values, four closed typed bridges,
+real native OOM and concurrent whole snapshots. Its three actual generated
+program/native/resident closures use ASan/UBSan/leak detection. External native
+writers require synchronization; libc/OS allocations are outside XRT failpoints.
+
 Parser source-differential mode additionally requires
 BaselineGeneratedParser, so the old API adapter is never linked to current
 generated parser tables and mistaken for an independent baseline.

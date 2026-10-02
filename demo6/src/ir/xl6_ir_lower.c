@@ -12165,36 +12165,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN;
         return 1;
     }
-    if ( strcmp(target->cName, "xl6_crt_env_get") == 0 ||
-         strcmp(target->cName, "xl6_crt_env_has") == 0 ||
-         strcmp(target->cName, "xl6_crt_env_set") == 0 ||
-         strcmp(target->cName, "xl6_crt_env_remove") == 0 ) {
-        int get = strcmp(target->cName, "xl6_crt_env_get") == 0;
-        int set = strcmp(target->cName, "xl6_crt_env_set") == 0;
-        target->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-             target->parameterCount != (set ? 2u : 1u) || result == NULL ||
-             result->cAbi != (get ? XL6_IR_C_ABI_RAW_POINTER : XL6_IR_C_ABI_BOOL) ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             result->nullAbi != (get ? XL6_IR_NULL_ABI_POINTER_SENTINEL :
-                                      XL6_IR_NULL_ABI_NONE) ||
-             target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-             target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-             target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-             !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
-                 XL6_IR_PARAMETER_ABI_BORROW,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
-             (set && !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
-                 XL6_IR_PARAMETER_ABI_BORROW,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR CRT environment adapter has no exact borrowed-string ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_CRT_ENV;
-        return 1;
-    }
     if ( strcmp(target->cName, "xl6_xrt_hex_encode_text") == 0 ||
          strcmp(target->cName, "xl6_xrt_hex_decode_text") == 0 ||
          strcmp(target->cName, "xl6_xrt_percent_encode_text") == 0 ||

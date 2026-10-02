@@ -1,0 +1,2 @@
+extern "xl6EnvSetV1" func bad(string name, string value, int nameSize, int valueSize) as bool
+auto value = bad("XLANG_ENV_REJECT", "value", -1, -1)

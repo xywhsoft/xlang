@@ -1,0 +1,2 @@
+extern "xl6EnvRemoveV1" func bad(string name, int32 size)
+bad("XLANG_ENV_REJECT", -1)

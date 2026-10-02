@@ -1,0 +1,6 @@
+env.remove("XLANG_ENV_LEAF_20261003")
+assert env.get("XLANG_ENV_LEAF_20261003") == null
+env.set("XLANG_ENV_LEAF_20261003", "")
+assert env.has("XLANG_ENV_LEAF_20261003")
+assert (env.get("XLANG_ENV_LEAF_20261003") ?? "missing") == ""
+env.remove("XLANG_ENV_LEAF_20261003")

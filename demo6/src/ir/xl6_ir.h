@@ -3457,7 +3457,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_BUFFER,
     XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN,
     /* Owned/nullable environment values; CString validation is inside the adapter. */
-    XL6_IR_RUNTIME_BRIDGE_CRT_ENV,
     /* 字符串辅助函数逐项记录物理 ABI，后端只生成实际用到的适配器。 */
     XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN,
     XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT,

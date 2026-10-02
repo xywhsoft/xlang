@@ -1,0 +1,14 @@
+// Environment is process-local. These mutations do not alter the parent shell.
+string name = "XLANG_ENV_EXAMPLE_20261003"
+try
+    env.remove(name)
+    assert env.get(name) == null
+    env.set(name, "")
+    assert env.has(name) and (env.get(name) ?? "missing") == ""
+    env.set(name, "你-value\0ignored", -1, 9)
+    string? saved = env.get(name)
+    env.set(name, "replacement")
+    assert (saved ?? "missing") == "你-value"
+finally
+    env.remove(name)
+end
