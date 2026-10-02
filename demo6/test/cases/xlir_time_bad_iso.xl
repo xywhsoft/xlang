@@ -1,0 +1,2 @@
+extern "xl6TimeISOWeekV1" func wrong(time value) as (int, int32, int)
+auto year, week, day = wrong(time(0))

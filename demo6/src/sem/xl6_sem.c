@@ -19852,7 +19852,8 @@ static int xl6SemIsInternalStdRuntimeExtern(const XL6_AstNode* node)
            strncmp(nameNode->text, prefix, strlen(prefix)) == 0;
 }
 
-/* The native product ABI is closed: three language signed 64-bit values,
+/* The native product ABI is closed: three language signed 64-bit values or
+ * two absolute time values,
  * in declaration order. Resolve aliases here; Typed XLIR independently
  * verifies the exact physical carrier, ownership and representation. C
  * integer aliases are deliberately not admitted based on host sizeof. */
@@ -19860,11 +19861,12 @@ static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
     const XL6_AstNode* returns)
 {
     size_t i;
-    if (returns == NULL || returns->childCount != 3) return 0;
+    if (returns == NULL || (returns->childCount != 2 && returns->childCount != 3)) return 0;
     for (i = 0; i < returns->childCount; ++i) {
         const XL6_AstNode* type = xl6SemResolveAliasType(ctx, returns->children[i]);
         if (type == NULL || type->childCount != 0 ||
-            (!xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64")))
+            (returns->childCount == 2 ? !xl6TextEquals(type->text, "time") :
+             (!xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64"))))
             return 0;
     }
     return 1;
@@ -19950,7 +19952,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( returns != NULL && returns->childCount > 1 &&
          !xl6SemIsCAbiPrimitiveProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,
-            "C ABI extern product requires exactly three language signed 64-bit results");
+            "C ABI extern product requires a closed primitive product profile");
         ok = 0;
     }
     if ( returns != NULL && returns->childCount == 1 ) {

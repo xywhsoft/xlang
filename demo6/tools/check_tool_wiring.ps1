@@ -123,6 +123,12 @@ $testWiredScripts = New-Object System.Collections.Generic.HashSet[string]
 $rc0WiredScripts = New-Object System.Collections.Generic.HashSet[string]
 $fullRegressionOnly = New-Object System.Collections.Generic.HashSet[string]
 $fullRegressionOnly.Add((Normalize-ToolPath "tools\check_stdlib_examples.ps1")) | Out-Null
+# These current-source/JIT/AOT/OOM gates remain mandatory in full regression;
+# the lightweight RC0 static/smoke gate does not duplicate their heavy builds.
+foreach ($name in @('check_stdlib_logging.ps1','check_stdlib_text_values.ps1',
+    'check_stdlib_time_core.ps1','check_stdlib_time_calendar.ps1')) {
+    $fullRegressionOnly.Add((Normalize-ToolPath ("tools\" + $name))) | Out-Null
+}
 
 if ( $checkScripts.Count -lt $minCheckScripts ) {
     Add-Failure "check script baseline regressed: $($checkScripts.Count) < $minCheckScripts"

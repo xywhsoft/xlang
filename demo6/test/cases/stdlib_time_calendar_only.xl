@@ -1,0 +1,4 @@
+auto start, finish = time.monthRange(#2024-02-29#)
+assert start == #2024-02-01# and finish == #2024-03-01#
+auto year, week, day = time.isoWeek(#2021-01-01#)
+assert year == 2020 and week == 53 and day == 5

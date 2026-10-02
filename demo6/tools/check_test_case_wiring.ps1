@@ -16,6 +16,7 @@ $minTestCaseFiles = 607
 $minCasePrefixes = 28
 $wiringFiles = @(
     "test.bat",
+    "test_linux.sh",
     "test_tutorial.bat",
     "release\examples\feature_suite\run_feature_suite.bat",
     "tools\run_extlib_tests.ps1"
@@ -165,7 +166,7 @@ function Get-CheckScriptWiringFiles()
     $files = New-Object System.Collections.Generic.List[string]
 
     $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
-    foreach ( $scriptFile in @(Get-VersionedFilesUnder "tools" @(".ps1") "check_*.ps1") ) {
+    foreach ( $scriptFile in @(Get-VersionedFilesUnder "tools" @(".ps1", ".sh") "check_*") ) {
         $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
     }
 
@@ -306,6 +307,24 @@ function Expand-PowerShellCaseNames($text)
     return @($expanded)
 }
 
+function Expand-ShellCaseMatrices($text)
+{
+    $expanded = New-Object System.Collections.Generic.List[string]
+    # Only literal test matrices, not arbitrary identifiers or shell expansion.
+    foreach ($matrix in [regex]::Matches($text,
+        '(?m)\b(?:cases|fixtures|negative|negatives)=\((?<names>[^)]*)\)')) {
+        foreach ($item in [regex]::Matches($matrix.Groups['names'].Value,
+            '(?<![A-Za-z0-9_./$-])(?<name>[A-Za-z0-9_.-]+)(?![A-Za-z0-9_./$-])')) {
+            $name = $item.Groups['name'].Value
+            if (!$name.EndsWith('.xl', [StringComparison]::OrdinalIgnoreCase)) { $name += '.xl' }
+            if (Test-Path -LiteralPath (Join-Path $script:caseDir $name) -PathType Leaf) {
+                $expanded.Add("test/cases/$name") | Out-Null
+            }
+        }
+    }
+    return @($expanded)
+}
+
 function Expand-PowerShellCaseFilters($text, $cases, $rootPath)
 {
     $expanded = New-Object System.Collections.Generic.List[string]
@@ -440,6 +459,7 @@ $casePrefixes = New-Object System.Collections.Generic.HashSet[string]
 $wiringText += "`n" + [string]::Join("`n", @(Expand-BatchCaseMatrices $wiringText))
 $wiringText += "`n" + [string]::Join("`n", @(Expand-CaseGlobs $wiringText $automatedCases $rootPath))
 $wiringText += "`n" + [string]::Join("`n", @(Expand-PowerShellCaseNames $wiringText))
+$wiringText += "`n" + [string]::Join("`n", @(Expand-ShellCaseMatrices $wiringText))
 $wiringText += "`n" + [string]::Join("`n", @(
     Expand-PowerShellCaseFilters $wiringText $automatedCases $rootPath))
 $wiringText += "`n" + [string]::Join("`n", @(

@@ -484,7 +484,8 @@ typedef enum XL6_IrReleaseEffect {
  * NONE preserves compiler-private products, including managed elements. */
 typedef enum XL6_IrNativeProductAbi {
     XL6_IR_NATIVE_PRODUCT_NONE = 0,
-    XL6_IR_NATIVE_PRODUCT_I64X3_V1
+    XL6_IR_NATIVE_PRODUCT_I64X3_V1,
+    XL6_IR_NATIVE_PRODUCT_TIMEX2_V1
 } XL6_IrNativeProductAbi;
 
 typedef struct XL6_IrType {
@@ -553,6 +554,7 @@ typedef struct XL6_IrTypePool {
 } XL6_IrTypePool;
 
 XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type);
+int xl6IrDeclarationAllowsForeignContract(XL6_AstKind sourceKind, unsigned int flags);
 const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi);
 const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi);
 

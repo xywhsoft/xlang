@@ -182,6 +182,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_pattern_core.c"
 	"$ROOT/src/runtime/xl6_pattern_builder.c"
 	"$ROOT/src/runtime/xl6_time_core.c"
+	"$ROOT/src/runtime/xl6_time_datetime.c"
+	"$ROOT/src/runtime/xl6_time_local.c"
 	"$ROOT/src/runtime/xl6_pattern_options.c"
 	"$ROOT/src/runtime/xl6_pattern_match.c"
 	"$ROOT/src/runtime/xl6_network_service.c"

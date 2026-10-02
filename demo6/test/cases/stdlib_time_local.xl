@@ -1,0 +1,22 @@
+extern "xl6TimeFromLocalV1" func invalidFold(DateTime value, int fold) as time
+time instant = time.fromDateTime(2024, 6, 14, 12, 30, 59, 123456)
+auto local = time.local(instant)
+assert local.toTime() == instant and local.microsecond == 123456
+assert local.offset == time.timezoneOffset(instant)
+assert local.isDST >= -1 and local.isDST <= 1
+auto legacy = time.utcToLocal(instant)
+assert legacy.toTime() == instant and legacy.offset == local.offset
+auto earlier = time.fromLocal(local, TimeFold.earlier)
+auto later = time.localToUTC(local, TimeFold.later)
+assert earlier <= later
+assert time.local(earlier).hour == local.hour and time.local(later).minute == local.minute
+assert DateTime(instant, false).toTime() == instant
+assert DateTime(instant, true).toTime() == instant
+assert time.timezoneOffset() > -86400 and time.timezoneOffset() < 86400
+int caught = 0
+try
+    invalidFold(local, 9)
+catch RangeError e
+    caught += 1
+end
+assert caught == 1

@@ -1,40 +1,82 @@
-extern "expect_i64" func expect(int actual, int expected)
-
-time moment = time.fromDateTime(2026, 6, 18, 12, 0, 0)
-int unixSeconds = time.toUnix(moment)
-time fromUnix = time.fromUnix(unixSeconds)
-
-expect(fromUnix == moment, 1)
-
-time utcValue = time.localToUTC(moment)
-time localValue = time.utcToLocal(utcValue)
-expect(localValue == moment, 1)
-
-time firstMonth = time.firstDayOfMonth(moment)
-time lastMonth = time.lastDayOfMonth(moment)
-time firstYear = time.firstDayOfYear(moment)
-time lastYear = time.lastDayOfYear(moment)
-time firstWeek = time.firstDayOfWeek(moment)
-time lastWeek = time.lastDayOfWeek(moment)
-
-expect(time.month(firstMonth), 6)
-expect(time.day(firstMonth), 1)
-expect(time.month(lastMonth), 6)
-expect(time.day(lastMonth), 30)
-expect(time.isLeapYear(2024), 1)
-expect(time.isLeapYear(2023), 0)
-expect(time.daysInMonth(2024, 2), 29)
-expect(time.daysInMonth(2023, 2), 28)
-expect(time.daysInYear(2024), 366)
-expect(time.daysInYear(2023), 365)
-
-expect(time.month(firstYear), 1)
-expect(time.day(firstYear), 1)
-expect(time.month(lastYear), 12)
-expect(time.day(lastYear), 31)
-
-expect(firstWeek <= moment, 1)
-expect(lastWeek >= moment, 1)
-expect(time.diffDays(firstWeek, lastWeek), 6)
-expect(time.weekOfYear(moment) > 0, 1)
-expect(time.weekOfMonth(moment) > 0, 1)
+time value = #2024-02-29 23:59:59#
+assert time.year(value) == 2024 and time.month(value) == 2 and time.day(value) == 29
+assert time.hour(value) == 23 and time.minute(value) == 59 and time.second(value) == 59
+assert time.weekday(value) == 4 and time.dayOfYear(value) == 60 and time.quarter(value) == 1
+assert time.isLeapYear(0) and time.isLeapYear(-400) and not time.isLeapYear(1900)
+assert time.daysInYear(2000) == 366 and time.daysInYear(1900) == 365
+assert time.daysInMonth(2024, 2) == 29
+assert time.datePart(value) == #2024-02-29#
+assert time.timePart(time(-1)) == 86399999999
+assert time.isSameDay(value, #2024-02-29#) and not time.isSameDay(value, #2024-03-01#)
+assert time.isSameMonth(value, #2024-02-01#) and not time.isSameMonth(value, #2023-02-01#)
+assert time.isSameYear(value, #2024-01-01#) and not time.isSameYear(value, #2023-02-01#)
+assert time.inRange(value, value, value) and not time.inRange(value, #2024-03-01#, value)
+assert time.rangeOverlap(value, value, value, value)
+assert not time.rangeOverlap(value, #2024-03-01#, #2024-01-01#, #2024-02-01#)
+auto monthStart, monthEnd = time.monthRange(value)
+assert monthStart == #2024-02-01# and monthEnd == #2024-03-01#
+auto yearStart, yearEnd = time.yearRange(value)
+assert yearStart == #2024-01-01# and yearEnd == #2025-01-01#
+auto weekStart, weekEnd = time.weekRange(value)
+assert weekStart == #2024-02-26# and weekEnd == #2024-03-04#
+auto sunday, nextSunday = time.weekRange(value, 0)
+assert sunday == #2024-02-25# and nextSunday == #2024-03-03#
+auto isoYear, isoWeek, isoDay = time.isoWeek(#2021-01-01#)
+assert isoYear == 2020 and isoWeek == 53 and isoDay == 5
+assert time.firstDayOfMonth(value) == monthStart and time.lastDayOfMonth(value) == #2024-02-29#
+assert time.firstDayOfYear(value) == yearStart and time.lastDayOfYear(value) == #2024-12-31#
+assert time.firstDayOfWeek(value) == weekStart and time.lastDayOfWeek(value) == #2024-03-03#
+assert time.weekOfYear(#2021-01-01#) == 53
+assert time.weekOfMonth(value) == 5 and time.weekOfMonth(#2024-02-01#) == 1
+assert time.today() == time.datePart(time.now())
+auto clock = time.clock()
+assert time.monotonic() >= clock
+assert time.timer() >= 0
+time.sleep(0)
+int caught = 0
+try
+    time.daysInMonth(2024, 4294967298)
+catch RangeError e
+    caught += 1
+end
+try
+    time.daysInMonth(2024, 0)
+catch RangeError e
+    caught += 1
+end
+try
+    time.weekRange(value, 4294967297)
+catch RangeError e
+    caught += 1
+end
+try
+    time.weekRange(value, -1)
+catch RangeError e
+    caught += 1
+end
+try
+    time.datePart(time(-9223372036854775807 - 1))
+catch RangeError e
+    caught += 1
+end
+try
+    time.yearRange(time(9223372036854775807))
+catch RangeError e
+    caught += 1
+end
+try
+    time.weekOfMonth(value, 7)
+catch RangeError e
+    caught += 1
+end
+try
+    time.sleep(-1)
+catch RangeError e
+    caught += 1
+end
+try
+    time.sleep(9223372036854775807)
+catch RangeError e
+    caught += 1
+end
+assert caught == 9

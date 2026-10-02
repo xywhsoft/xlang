@@ -21,6 +21,18 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 
 ## Guard scripts and inventory
 
+B18 time gates: `check_stdlib_time_core.ps1` and
+`check_stdlib_time_calendar.ps1` require one immutable current-source
+PublicSourceDirectory and separate fresh Directory values. The full Windows
+stdlib suite builds the compiler once and executes both gates. Linux
+`check_stdlib_time_calendar.sh <fresh-directory>` covers core/calendar/snapshots,
+process-local New York and Lord Howe DST oracles, and seven actual sanitized
+native closures. Shared CLI/JIT libraries are not sanitized; their allocation
+sweeps use the logical ledger. These gates do not cover time_text or all 53
+modules. Parser source-differential mode additionally requires
+BaselineGeneratedParser, so the old API adapter is never linked to current
+generated parser tables and mistaken for an independent baseline.
+
 The files matching `tools/check_*.ps1` are the canonical and exhaustive guard inventory. `check_tool_wiring.ps1` discovers that inventory directly and requires every script to be wired into the full regression and the RC0 guard (or an explicit full-regression-only exception). This README records the stable toolchain entry points and representative cross-cutting guards; it does not duplicate every specialized XLIR semantic gate name.
 
 Representative and cross-cutting guards include:
