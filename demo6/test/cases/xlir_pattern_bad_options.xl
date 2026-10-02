@@ -1,0 +1,10 @@
+class WrongOptions
+    private native point handle
+    extern "xl6RegexDestroyV1" destroy()
+end
+class InvalidPatternOptions
+    private native point handle
+    extern "xl6PatternCreateOptionsV1" create(WrongOptions options, string text, int size)
+    extern "xl6PatternDestroyV1" destroy()
+end
+auto p = InvalidPatternOptions(WrongOptions(), "a", -1)

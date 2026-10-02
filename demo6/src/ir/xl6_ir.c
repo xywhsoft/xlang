@@ -16148,6 +16148,13 @@ static XL6_IrErrorAbi xl6IrNodeProjectionErrorAbi(
         }
         return XL6_IR_ERROR_ABI_INVALID;
     }
+    if (node->memberAbi == XL6_IR_MEMBER_ABI_ERROR_MESSAGE_COPY ||
+        node->memberAbi == XL6_IR_MEMBER_ABI_ERROR_KIND_COPY ||
+        node->memberAbi == XL6_IR_MEMBER_ABI_ERROR_FILE_COPY ||
+        node->memberAbi == XL6_IR_MEMBER_ABI_ERROR_DOMAIN_COPY ||
+        node->memberAbi == XL6_IR_MEMBER_ABI_ERROR_OPERATION_COPY ||
+        node->memberAbi == XL6_IR_MEMBER_ABI_ERROR_DATA_COPY)
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
     result = xl6IrTypeGet(&module->types, node->storageType);
     if (result == NULL || result->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
         result->kind == XL6_IR_TYPE_NULLABLE) return XL6_IR_ERROR_ABI_INVALID;
@@ -17338,6 +17345,12 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
     case XL6_IR_RUNTIME_STRING_NULLABLE_COPY:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STRING_DUP:
+    case XL6_IR_RUNTIME_ERROR_MESSAGE_COPY:
+    case XL6_IR_RUNTIME_ERROR_KIND_COPY:
+    case XL6_IR_RUNTIME_ERROR_FILE_COPY:
+    case XL6_IR_RUNTIME_ERROR_DOMAIN_COPY:
+    case XL6_IR_RUNTIME_ERROR_OPERATION_COPY:
+    case XL6_IR_RUNTIME_ERROR_DATA_COPY:
     case XL6_IR_RUNTIME_STRING_FROM_UTF8:
     case XL6_IR_RUNTIME_STRING_COPY:
     case XL6_IR_RUNTIME_STRING_CONCAT:

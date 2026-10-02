@@ -1,0 +1,17 @@
+auto options = PatternOptions("/.\0", 1024, 32, 8, 4096, 1048576)
+assert options.separators == "/.\0"
+assert options.maxPatternBytes == 1024
+assert options.maxPatterns == 32
+assert options.maxCaptures == 8
+assert options.maxStates == 4096
+assert options.maxCompiledBytes == 1048576
+auto p = Pattern(options, "/users.{id}\0{*rest}", 123)
+assert p.test("/users.你\0a/b")
+assert p.captureCount() == 2
+assert p.tag() == 123
+auto same = pattern.compile(options, "/users.{id}\0{*rest}")
+assert same.test("/users.你\0")
+auto prefix = PatternOptions("/unused", 1024, 4, 8, 4096, 1048576, 1)
+assert prefix.separators == "/"
+auto noSeparators = Pattern(PatternOptions(""), "pre{name}post")
+assert noSeparators.test("pre你好post")

@@ -172,6 +172,23 @@ $process=Start-Process @start
                         (('XRT_MODULE_CHARSET'-in$plan.NativeModules)-eq($component-ne'encoding_detect'))-and
                         (('XRT_MODULE_CHARSET_DETECT'-in$plan.NativeModules)-eq($component-eq'encoding_detect'))-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
+                }elseif($case-in@('stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_errors','stdlib_pattern_tags','stdlib_pattern_error_modes')){
+                    $expectedPattern=switch($case){
+                        'stdlib_pattern_core_only' {@('core')}
+                        'stdlib_pattern_options' {@('core','options')}
+                        'stdlib_pattern_options_only' {@('options')}
+                        'stdlib_pattern_match' {@('core','match')}
+                        'stdlib_pattern_errors' {@('core','options','match')}
+                        'stdlib_pattern_tags' {@('core','match')}
+                        'stdlib_pattern_error_modes' {@('core')}
+                    }
+                    $patternSources=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_pattern_'}|Sort-Object)
+                    $expectedSources=@($expectedPattern|ForEach-Object {"src/runtime/xl6_pattern_$_.c"}|Sort-Object)
+                    $selectionMatches=!(Compare-Object $patternSources $expectedSources)-and
+                        'XRT_MODULE_PATTERN'-in$plan.NativeModules-and
+                        'XRT_MODULE_REGEX_CORE'-notin$plan.NativeModules-and
+                        'XRT_MODULE_BUFFER'-notin$plan.NativeModules-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_regex_|xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
                 }elseif($case-in@('stdlib_regex_core_only','stdlib_regex_match','stdlib_regex_errors')){
                     $selectionMatches='src/runtime/xl6_regex_core.c'-in$selectedSources-and
                         (('src/runtime/xl6_regex_match.c'-in$selectedSources)-eq($case-ne'stdlib_regex_core_only'))-and

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# B13-B15 snapshots, reusable matching and checked callbacks; formal binaries first.
+# B13-B16 Regex/Pattern snapshots and checked callbacks; formal binaries first.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 OUT="${1:?Provide a fresh evidence directory}"
+GROUP="${2:-all}"
+[[ "$GROUP" = all || "$GROUP" = pattern ]] || { printf 'Unknown validation group\n' >&2; exit 1; }
 [[ "$OUT" = /* ]] || OUT="$ROOT/$OUT"
 [[ ! -e "$OUT" ]] || { printf 'Preserve regex evidence\n' >&2; exit 1; }
 [[ "$(uname -m)" = x86_64 ]] && getconf GNU_LIBC_VERSION >/dev/null
@@ -19,19 +21,28 @@ run() {
 }
 cases=(stdlib_regex_core_only stdlib_regex_match stdlib_regex_errors stdlib_regex_iterators
     stdlib_regex_replace_only stdlib_regex_replace_buffer stdlib_regex_replace_buffer_errors stdlib_regex_split_only stdlib_regex_set_only stdlib_regex_extended_errors stdlib_regex_byte_boundaries
-    stdlib_regex_replace_func stdlib_regex_replace_func_buffer stdlib_regex_replace_func_errors stdlib_regex_error_metadata)
+    stdlib_regex_replace_func stdlib_regex_replace_func_buffer stdlib_regex_replace_func_errors stdlib_regex_error_metadata
+    stdlib_pattern_core_only stdlib_pattern_options stdlib_pattern_options_only stdlib_pattern_match stdlib_pattern_errors stdlib_pattern_tags stdlib_pattern_error_modes)
 negative=(xlir_regex_bad_result xlir_regex_bad_owner xlir_regex_bad_constructor xlir_regex_bad_nullable
     xlir_regex_bad_set_items xlir_regex_bad_set_hits xlir_regex_bad_iterator_owner
-    xlir_regex_bad_callback_arity xlir_regex_bad_callback_result xlir_regex_bad_callback_raw xlir_regex_bad_error_input)
-privacy=(xlir_regex_private_consume xlir_regex_private_split_consume)
+    xlir_regex_bad_callback_arity xlir_regex_bad_callback_result xlir_regex_bad_callback_raw xlir_regex_bad_error_input
+    xlir_pattern_bad_result xlir_pattern_bad_tag xlir_pattern_bad_options)
+privacy=(xlir_regex_private_consume xlir_regex_private_split_consume xlir_pattern_private_code)
 undeclared=(sem_native_class_extern_bad_type sem_native_class_extern_return_bad)
+if [[ "$GROUP" = pattern ]]; then
+    cases=(stdlib_pattern_core_only stdlib_pattern_options stdlib_pattern_options_only stdlib_pattern_match stdlib_pattern_errors stdlib_pattern_tags stdlib_pattern_error_modes)
+    negative=(xlir_pattern_bad_result xlir_pattern_bad_tag xlir_pattern_bad_options)
+    privacy=(xlir_pattern_private_code)
+    undeclared=()
+fi
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
     printf '%s\0' tools/check_stdlib_regex.sh tools/tcc_vfs_manifest_linux_xlc.txt
-    printf '%s\0' test/cases/xlir_regex_host.c test/support/regex_native.c
+    printf '%s\0' test/cases/xlir_regex_host.c test/support/regex_native.c test/cases/xlir_pattern_host.c test/support/pattern_native.c
     printf '%s\0' test/cases/xlir_regex_extended_host.c test/cases/xlir_regex_callback_host.c
     printf '%s\0' test/cases/xlir_text_value_contract.c test/cases/xlir_artifact_runtime_contract.c
+    printf '%s\0' test/cases/xlir_error_projection_contract.c test/cases/xlir_continuation_owner_test.h test/cases/xlir_synthetic_owner_edit.h
     printf '%s\0' test/cases/xlir_string_interpolation_host.c
     for fixture in "${cases[@]}" "${negative[@]}" "${privacy[@]}" "${undeclared[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
@@ -49,6 +60,7 @@ libs=(-Lrelease -Wl,-rpath,"$ROOT/release" -pthread -ldl -lm)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie)
+if [[ "$GROUP" = all ]]; then
 run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_regex_host.c \
     test/support/regex_native.c src/runtime/xl6_regex_core.c src/runtime/xl6_regex_match.c \
     -pthread -ldl -lm -o "$OUT/native"
@@ -60,19 +72,35 @@ run extended-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_
     -pthread -ldl -lm -o "$OUT/extended-native"
 run extended-native "$OUT/extended-native"
 grep -q '222 actual failures, 9 first no-hit completions' "$OUT/extended-native.log"
+fi
+run pattern-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_pattern_host.c \
+    test/support/pattern_native.c src/runtime/xl6_pattern_core.c src/runtime/xl6_pattern_options.c src/runtime/xl6_pattern_match.c \
+    -pthread -ldl -lm -o "$OUT/pattern-native"
+run pattern-native "$OUT/pattern-native"
+grep -q '60 actual failures, 5 first no-hit completions' "$OUT/pattern-native.log"
+if [[ "$GROUP" = all ]]; then
 run callback-native-build "$CC" "${strict[@]}" test/cases/xlir_regex_callback_host.c -lxl "${libs[@]}" -o "$OUT/callback-native"
 run callback-native "$OUT/callback-native"
 grep -q 'regex callback native OOM: 133 actual failures, 3 first no-hit completions, balanced' "$OUT/callback-native.log"
+fi
 run contract-build "$CC" "${strict[@]}" test/cases/xlir_text_value_contract.c -lxlc "${libs[@]}" -o "$OUT/contract"
 run artifact-build "$CC" "${strict[@]}" test/cases/xlir_artifact_runtime_contract.c -lxlc "${libs[@]}" -o "$OUT/artifact"
+run error-projection-contract-build "$CC" "${strict[@]}" test/cases/xlir_error_projection_contract.c -lxlc "${libs[@]}" -o "$OUT/error-projection-contract"
+run error-projection-contract "$OUT/error-projection-contract" test/cases/stdlib_pattern_tags.xl "$OUT/error-projection.closed.c"
+run error-projection-modes-contract "$OUT/error-projection-contract" test/cases/stdlib_pattern_error_modes.xl "$OUT/error-projection-modes.closed.c"
 for fixture in "${cases[@]}"; do
     source="test/cases/$fixture.xl"
     run "$fixture.cgen" "$CLI" cgen "$source" --inc-path "$OUT/include" --emit "$OUT/$fixture.c"
+    if [[ "$fixture" = stdlib_pattern_tags ]]; then
+        run "$fixture.error-projection-equality" cmp "$OUT/$fixture.c" "$OUT/error-projection.closed.c"
+    elif [[ "$fixture" = stdlib_pattern_error_modes ]]; then
+        run "$fixture.error-projection-equality" cmp "$OUT/$fixture.c" "$OUT/error-projection-modes.closed.c"
+    fi
     run "$fixture.repeat" "$CLI" cgen "$source" --inc-path "$OUT/include" --emit "$OUT/$fixture.repeat.c"
     run "$fixture.determinism" cmp "$OUT/$fixture.c" "$OUT/$fixture.repeat.c"
     run "$fixture.contract" "$OUT/contract" "$source" "$OUT/$fixture.contract.c"
     run "$fixture.contract-equality" cmp "$OUT/$fixture.c" "$OUT/$fixture.contract.c"
-    if grep -Eq 'xl6_xrt_take_cstr|xrtRegexMatcher(Find|Capture)[(]|^(static )?(void[*]|xstrview|int64_t|bool) +xl6Regex.*[{]' "$OUT/$fixture.c"; then
+    if grep -Eq 'xl6_xrt_take_cstr|xrtRegexMatcher(Find|Capture)[(]|xrtPattern(CompileManyConfig|Match|Lookup)[(]|^(static )?(void[*]|xstrview|int64_t|bool) +xl6(Regex|Pattern).*[{]' "$OUT/$fixture.c"; then
         printf 'Regex implementation in Cgen\n' >&2; exit 1
     fi
     run "$fixture.strict-build" "$CC" "${strict[@]}" -include "$OUT/$fixture.c" \
@@ -80,7 +108,9 @@ for fixture in "${cases[@]}"; do
     run "$fixture.strict" "$OUT/$fixture.strict"
     if [[ "$fixture" = stdlib_regex_match || "$fixture" = stdlib_regex_iterators || "$fixture" = stdlib_regex_replace_only ||
           "$fixture" = stdlib_regex_replace_buffer || "$fixture" = stdlib_regex_split_only || "$fixture" = stdlib_regex_set_only ||
-          "$fixture" = stdlib_regex_replace_func || "$fixture" = stdlib_regex_replace_func_buffer ]]; then
+          "$fixture" = stdlib_regex_replace_func || "$fixture" = stdlib_regex_replace_func_buffer ||
+          "$fixture" = stdlib_pattern_core_only || "$fixture" = stdlib_pattern_options || "$fixture" = stdlib_pattern_options_only ||
+          "$fixture" = stdlib_pattern_match || "$fixture" = stdlib_pattern_tags ]]; then
         for ((point=0;point<2048;++point)); do
             name="$fixture.oom-$point"; run "$name" "$OUT/$fixture.strict" "$point"
             grep -q 'hit=0 balanced' "$OUT/$name.log" && break
@@ -96,7 +126,14 @@ for fixture in "${cases[@]}"; do
     run "$fixture.actual-native-equality" cmp "$saved/xl6_xrt_impl.c" "$OUT/$fixture.native.c"
     run "$fixture.native-build" "$CC" "${strict[@]}" -Ilib/xruntime -c "$OUT/$fixture.native.c" -o "$OUT/$fixture.native.o"
     run "$fixture.generated-build" "$CC" "${strict[@]}" -c "$OUT/$fixture.c" -o "$OUT/$fixture.generated.o"
-    run "$fixture.selection" python3 -c 'import json,sys; p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\"")); name=sys.argv[2]; expected={"stdlib_regex_core_only":["core"],"stdlib_regex_match":["core","match"],"stdlib_regex_errors":["core","match"],"stdlib_regex_iterators":["core","match","iterator"],"stdlib_regex_replace_only":["core","replace"],"stdlib_regex_replace_buffer":["core","replace_buffer"],"stdlib_regex_replace_buffer_errors":["core","replace_buffer"],"stdlib_regex_split_only":["core","split"],"stdlib_regex_set_only":["core","set"],"stdlib_regex_extended_errors":["core","match","iterator","replace","split","set"],"stdlib_regex_byte_boundaries":["core","match","replace","split"],"stdlib_regex_replace_func":["core","match","replace_func"],"stdlib_regex_replace_func_buffer":["core","match","replace_func","replace_func_buffer"],"stdlib_regex_replace_func_errors":["core","match","replace_func","replace_func_buffer"],"stdlib_regex_error_metadata":["core","set"]}[name]; assert sorted(s for s in p["Sources"] if "src/runtime/xl6_regex_" in s)==sorted("src/runtime/xl6_regex_"+s+".c" for s in expected); assert "XRT_MODULE_REGEX_CORE" in p["NativeModules"]; assert ("XRT_MODULE_BUFFER" in p["NativeModules"])==(name in ("stdlib_regex_replace_buffer","stdlib_regex_replace_buffer_errors","stdlib_regex_replace_func_buffer","stdlib_regex_replace_func_errors")); assert "XRT_MODULE_PATTERN" not in p["NativeModules"]' \
+    run "$fixture.selection" python3 -c 'import json,sys; p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\"")); name=sys.argv[2]
+if name.startswith("stdlib_pattern_"):
+    expected={"stdlib_pattern_core_only":["core"],"stdlib_pattern_options":["core","options"],"stdlib_pattern_options_only":["options"],"stdlib_pattern_match":["core","match"],"stdlib_pattern_errors":["core","options","match"],"stdlib_pattern_tags":["core","match"],"stdlib_pattern_error_modes":["core"]}[name]
+    assert sorted(s for s in p["Sources"] if "src/runtime/xl6_pattern_" in s)==sorted("src/runtime/xl6_pattern_"+s+".c" for s in expected)
+    assert not any("src/runtime/xl6_regex_" in s for s in p["Sources"])
+    assert "XRT_MODULE_PATTERN" in p["NativeModules"] and "XRT_MODULE_REGEX_CORE" not in p["NativeModules"] and "XRT_MODULE_BUFFER" not in p["NativeModules"]
+else:
+    expected={"stdlib_regex_core_only":["core"],"stdlib_regex_match":["core","match"],"stdlib_regex_errors":["core","match"],"stdlib_regex_iterators":["core","match","iterator"],"stdlib_regex_replace_only":["core","replace"],"stdlib_regex_replace_buffer":["core","replace_buffer"],"stdlib_regex_replace_buffer_errors":["core","replace_buffer"],"stdlib_regex_split_only":["core","split"],"stdlib_regex_set_only":["core","set"],"stdlib_regex_extended_errors":["core","match","iterator","replace","split","set"],"stdlib_regex_byte_boundaries":["core","match","replace","split"],"stdlib_regex_replace_func":["core","match","replace_func"],"stdlib_regex_replace_func_buffer":["core","match","replace_func","replace_func_buffer"],"stdlib_regex_replace_func_errors":["core","match","replace_func","replace_func_buffer"],"stdlib_regex_error_metadata":["core","set"]}[name]; assert sorted(s for s in p["Sources"] if "src/runtime/xl6_regex_" in s)==sorted("src/runtime/xl6_regex_"+s+".c" for s in expected); assert "XRT_MODULE_REGEX_CORE" in p["NativeModules"]; assert ("XRT_MODULE_BUFFER" in p["NativeModules"])==(name in ("stdlib_regex_replace_buffer","stdlib_regex_replace_buffer_errors","stdlib_regex_replace_func_buffer","stdlib_regex_replace_func_errors")); assert "XRT_MODULE_PATTERN" not in p["NativeModules"]' \
         "$OUT/$fixture.native-plan.log" "$fixture"
 done
 for fixture in "${negative[@]}"; do
@@ -118,5 +155,5 @@ for fixture in "${undeclared[@]}"; do
     checks=$((checks+1))
 done
 run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"PositiveFixtures":15,"AbiNegativeFixtures":11,"PrivacyFixtures":2,"UndeclaredArrayFixtures":2,"ActualNativeClosures":15,"InputsUnchanged":true,"SanitizedScope":"XRT regex and core/iterator/split/template adapters; callback and generated libxl hosts use logical OOM"}\n' "$checks" >"$OUT/results.json"
-printf 'Regex B13-B15 Linux: %d checks passed\n' "$checks" | tee "$OUT/summary.txt"
+printf '{"Complete":true,"Checks":%d,"PositiveFixtures":%d,"AbiNegativeFixtures":%d,"PrivacyFixtures":%d,"UndeclaredArrayFixtures":%d,"ActualNativeClosures":%d,"InputsUnchanged":true,"Group":"%s","SanitizedScope":"Selected native XRT/adapter hosts; generated libxl hosts use logical OOM","Excludes":"PatternBuilder, isolated deployment, whole-task acceptance"}\n' "$checks" "${#cases[@]}" "${#negative[@]}" "${#privacy[@]}" "${#undeclared[@]}" "${#cases[@]}" "$GROUP" >"$OUT/results.json"
+printf 'Regex/Pattern B13-B16 Linux: %d checks passed\n' "$checks" | tee "$OUT/summary.txt"

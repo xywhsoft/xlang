@@ -1,0 +1,22 @@
+auto p = pattern.compile("/users/{id}")
+assert p.count == 1
+assert p.compiledBytes > 0
+assert p.source() == "/users/{id}"
+assert p.separators == "/"
+assert p.captureCount() == 1
+assert p.captureName(0) == "id"
+assert p.captureIndex("id") == 0
+assert p.captureIndex("missing") == -1
+assert p.id() != uint64(0)
+assert p.tag() == null
+assert p.test("/users/你好")
+assert not p.test("/users/")
+assert p.first("/users/你好") == 0
+assert p.first("/other/你好") == -1
+assert p.test("/users/aXYZ", 8)
+assert p.test("/users/a", 100)
+auto literal = Pattern("a\0{item}", "tag\0value")
+assert literal.test("a\0你好")
+assert literal.tag() == "tag\0value"
+auto selected = pattern.compile("/fixedIGNORED", null, 6)
+assert selected.test("/fixed")

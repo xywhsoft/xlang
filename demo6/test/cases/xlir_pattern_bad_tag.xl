@@ -1,0 +1,6 @@
+class InvalidPatternTag
+    private native point handle
+    extern "xl6PatternCreateV1" create(string text, point tag, int size)
+    extern "xl6PatternDestroyV1" destroy()
+end
+auto p = InvalidPatternTag("/{id}", null, -1)

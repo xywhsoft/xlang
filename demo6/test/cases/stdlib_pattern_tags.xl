@@ -1,0 +1,61 @@
+int finalized = 0
+class RouteTag
+    string label
+    create(string label)
+        self.label = label
+    end
+    destroy()
+        finalized += 1
+    end
+end
+func snapshot() as PatternMatch?
+    auto tag = RouteTag("tag\0你好")
+    auto p = Pattern("/{id}", tag)
+    RouteTag fromPattern = p.tag() as RouteTag
+    assert fromPattern.label == "tag\0你好"
+    fromPattern.label = "changed\0tag"
+    return p.find("/你好")
+end
+func verify()
+    auto item = snapshot()
+    assert item != null
+    assert finalized == 0
+    if item != null then
+        RouteTag tag = item.tag as RouteTag
+        assert tag.label == "changed\0tag"
+        assert item.text() == "你好"
+    end
+end
+verify()
+assert finalized == 1
+auto payload = {"key": "value\0tail"}
+auto p = Pattern("/{id}", payload)
+auto item = p.find("/a")
+if item != null then
+    auto tag = item.tag
+    assert tag["key"] == "value\0tail"
+end
+
+class RaisingTag
+    destroy()
+        throw ValueError "tag retired"
+    end
+end
+func retireRaisingTag()
+    auto p = Pattern("/{id}", RaisingTag())
+    auto item = p.find("/a")
+    assert item != null
+end
+int cleanupFailure = 0
+try
+    retireRaisingTag()
+catch ValueError error
+    assert error.message == "tag retired"
+    assert error.kind == "ValueError"
+    assert error.file == ""
+    assert error.domain == "xlang"
+    assert error.operation == "throw"
+    assert error.data == "ValueError"
+    cleanupFailure = 1
+end
+assert cleanupFailure == 1
