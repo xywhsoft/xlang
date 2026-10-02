@@ -6,7 +6,7 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 147
-#define XL6_STDLIB_FUNC_COUNT 998
+#define XL6_STDLIB_FUNC_COUNT 995
 extern const char* xl6StdlibNumberParseFlagsSource;
 extern const char* xl6StdlibIntegerTextFlagsSource;
 extern const char* xl6StdlibFloatTextFlagsSource;
@@ -95,6 +95,7 @@ extern const char* xl6StdlibBufferClassSource;
 extern const char* xl6StdlibLoggerClassSource;
 extern const char* xl6StdlibLogDefaultScopeSource;
 extern const char* xl6StdlibSignalClassSource;
+extern const char* xl6StdlibSignalHandleClassSource;
 extern const char* xl6StdlibTaskGroupClassSource;
 extern const char* xl6StdlibTemplateClassSource;
 extern const char* xl6StdlibCryptoClassSource;

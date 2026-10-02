@@ -421,12 +421,6 @@ static const XL6_StdlibDependency xl6StdlibDependencies[] = {
     {"log", "warn", "log", "write"},
     {"log", "error", "log", "write"},
     {"log", "fatal", "log", "write"},
-    {"signal", "on", "__xl_runtime", "signalOn0"},
-    {"signal", "on", "__xl_runtime", "signalOn1"},
-    {"signal", "once", "__xl_runtime", "signalOn0"},
-    {"signal", "once", "__xl_runtime", "signalOn1"},
-    {"signal", "sendTo", "__xl_runtime", "signalSendTo"},
-    {"signal", "cancelOn", "__xl_runtime", "signalOn0"},
 {"template", "renderFile", "template", "compileFile"},
 {"template", "renderFile", "__xl_runtime", "takeCstr"},
 };

@@ -278,14 +278,20 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_channel_class_element.xl >nul 2> build\test\sem_channel_class_element.err.txt
+release\xl.exe run test\cases\sem_channel_class_element.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_channel_class_graph_element.xl >nul 2> build\test\sem_channel_class_graph_element.err.txt
+if not errorlevel 1 exit /b 1
+findstr /C:"channel<T>" build\test\sem_channel_class_graph_element.err.txt >nul
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_channel_generic_class_element.xl >nul 2> build\test\sem_channel_generic_class_element.err.txt
 if not errorlevel 1 (
-    echo sem_channel_class_element.xl should fail.
+    echo sem_channel_generic_class_element.xl should fail.
     exit /b 1
 )
-findstr /C:"channel<T>" build\test\sem_channel_class_element.err.txt >nul
+findstr /C:"channel<T>" build\test\sem_channel_generic_class_element.err.txt >nul
 if errorlevel 1 (
-    echo sem_channel_class_element.xl missing channel element diagnostic.
+    echo sem_channel_generic_class_element.xl missing channel element diagnostic.
     exit /b 1
 )
 

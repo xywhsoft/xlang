@@ -194,6 +194,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_time_datetime_text.c ^
     src\runtime\xl6_environment.c ^
     src\runtime\xl6_signal_core.c ^
+    src\runtime\xl6_signal_queue.c ^
+    src\runtime\xl6_signal_task_group.c ^
     src\runtime\xl6_pattern_options.c ^
     src\runtime\xl6_pattern_match.c ^
     src\runtime\xl6_log.c ^
@@ -327,6 +329,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_time_datetime_text.c ^
     src\runtime\xl6_environment.c ^
     src\runtime\xl6_signal_core.c ^
+    src\runtime\xl6_signal_queue.c ^
+    src\runtime\xl6_signal_task_group.c ^
     src\runtime\xl6_pattern_options.c ^
     src\runtime\xl6_pattern_match.c ^
     src\runtime\xl6_log.c ^

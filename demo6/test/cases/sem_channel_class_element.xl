@@ -2,4 +2,14 @@ class Box
     int value = 0
 end
 
-channel<Box> ch = channel::<Box>(1)
+channel<Box> ch = channel::<Box>(2)
+auto sent = Box()
+sent.value = 41
+assert ch.trySend(sent)
+sent.value = 42
+auto received = Box()
+assert ch.tryRecvInto(received)
+assert received.value == 42, "class messages retain the same object, not a variable slot"
+assert ch.trySend(sent)
+ch.close()
+// Finalization must drain the retained class message even without receiving it.

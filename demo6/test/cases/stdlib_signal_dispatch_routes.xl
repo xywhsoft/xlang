@@ -1,0 +1,37 @@
+channel<SignalEvent> events = channel::<SignalEvent>(2)
+auto route = signal.sendTo(events, signal.INT, 2)
+assert signal.raise(signal.INT)
+assert route.dispatchFor(1000) == 1
+assert signal.raise(signal.INT)
+assert route.dispatchFor(1000) == 1
+assert signal.raise(signal.INT)
+assert route.dispatchFor(1000) == 0, "full channel must retain the pending event"
+assert route.pending > 0
+SignalSubscription spare = SignalSubscription(signal.TERM)
+assert signal.raise(signal.TERM)
+assert spare.prepare(1000)
+SignalEvent received = SignalEvent(spare)
+spare.consume()
+assert events.tryRecvInto(received)
+assert received.code == signal.INT
+assert route.dispatch() == 1, "retry must route the same pending event"
+assert route.pending == 0
+events.close()
+assert signal.raise(signal.INT)
+try
+    route.dispatchFor(1000)
+    assert false, "closed channel must reject routing"
+catch RuntimeError e
+    assert e.message == "signal route channel is closed"
+end
+assert route.pending > 0
+assert route.close() and spare.close()
+
+auto group = task.group()
+auto cancellation = signal.cancelOn(group, signal.TERM)
+assert signal.raise(signal.TERM)
+assert cancellation.dispatchFor(1000) == 1
+assert cancellation.close()
+group.close()
+signal.reset()
+println("signal channel backpressure and task cancellation ok")

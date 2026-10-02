@@ -1,51 +1,38 @@
-println("signal demo")
-
-println("known signals:")
-println(signal.name(signal.HUP))
-println(signal.name(signal.INT))
-println(signal.name(signal.TERM))
-println(signal.name(signal.BREAK))
-println(signal.name(signal.CLOSE))
-println(signal.name(signal.LOGOFF))
-println(signal.name(signal.SHUTDOWN))
-println("INT supported=" + string(signal.supported(signal.INT)))
-
-channel<var> events = channel::<var>(2)
-func(var) printSignal = func(var event)
-    println("callback " + string(event["name"]))
+// on/once record native events; only this thread's explicit pump runs script.
+println(signal.name(signal.HUP), signal.name(signal.INT), signal.name(signal.TERM))
+println(signal.name(signal.BREAK), signal.name(signal.CLOSE), signal.name(signal.LOGOFF), signal.name(signal.SHUTDOWN))
+signal.clear()
+auto listener = signal.on(signal.INT, func(SignalEvent event)
+    println("received " + event.name + " count=" + string(event.count))
+end)
+auto once = signal.once(signal.INT, func()
+    println("one-shot callback")
+end)
+channel<SignalEvent> inbox = channel::<SignalEvent>(2)
+auto route = signal.sendTo(inbox, signal.INT)
+auto group = task.group()
+auto cancel = signal.cancelOn(group, signal.INT)
+auto source = SignalSubscription(signal.INT)
+try
+    assert signal.raise(signal.INT)
+    assert listener.dispatchFor(1000) == 1
+    assert once.dispatchFor(1000) == 1
+    assert once.closed
+    assert route.dispatchFor(1000) == 1
+    assert cancel.dispatchFor(1000) == 1
+    assert source.prepare(1000)
+    auto event = SignalEvent(source)
+    source.consume()
+    assert inbox.recvInto(event)
+    println("routed " + event.name)
+finally
+    listener.close()
+    once.close()
+    route.close()
+    cancel.close()
+    source.close()
+    inbox.close()
+    group.close()
+    signal.restore(signal.INT)
+    signal.reset()
 end
-func() printOnce = func()
-    println("once callback")
-end
-
-SignalHandle direct = signal.on(signal.INT, printSignal)
-SignalHandle once = signal.once(signal.INT, printOnce)
-SignalHandle handle = signal.sendTo(events, signal.INT)
-TaskGroup group = task.group()
-SignalHandle cancelHandle = signal.cancelOn(group, signal.TERM)
-
-println("registered " + signal.name(signal.INT))
-
-signal.raise(signal.INT)
-signal.raise(signal.TERM)
-
-var event = null
-if events.recvInto(event) then
-    println("received " + string(event["name"]) + " count=" + string(event["count"]))
-end
-
-time.sleep(20)
-println("INT received=" + string(signal.received(signal.INT)))
-println("INT count=" + string(signal.count(signal.INT)))
-signal.clear(signal.INT)
-println("INT count after clear=" + string(signal.count(signal.INT)))
-
-direct.close()
-once.close()
-handle.close()
-cancelHandle.close()
-group.close()
-events.close()
-signal.restore(signal.INT)
-signal.restore(signal.TERM)
-signal.reset()

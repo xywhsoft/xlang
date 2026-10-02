@@ -337,15 +337,7 @@ const char* xl6StdlibXidClassSource =
 
 #include "src/stdlib/xl6_stdlib_log.inc"
 
-const char* xl6StdlibSignalClassSource =
-    "class SignalHandle\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_signal_handle_wrap\" create(point handle)\n"
-    "    extern \"xl6_xrt_signal_handle_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_signal_handle_close\" func close() as bool\n"
-    "    extern \"xl6_xrt_signal_handle_active\" get active() as bool\n"
-    "    extern \"xl6_xrt_signal_handle_code\" get code() as int\n"
-    "end\n";
+#include "src/stdlib/xl6_stdlib_signal.inc"
 
 const char* xl6StdlibTemplateClassSource =
     "class Template\n"
@@ -409,14 +401,14 @@ const char* xl6StdlibTemplateClassSource =
 const char* xl6StdlibTaskGroupClassSource =
     "class TaskGroup\n"
     "    native point handle\n"
-    "    extern \"xl6_xrt_task_group_create\" create()\n"
+    "    extern \"xl6SignalTaskGroupCreateV1\" create()\n"
     "    extern \"xl6_xrt_task_group_wrap\" create(point handle)\n"
-    "    extern \"xl6_xrt_task_group_destroy\" destroy()\n"
+    "    extern \"xl6SignalTaskGroupDestroyV1\" destroy()\n"
     "    extern \"xl6_xrt_task_group_child\" func childNative() as point\n"
     "    extern \"xl6_xrt_task_group_add\" func add(var task) as bool\n"
     "    extern \"xl6_xrt_task_group_bind_parent\" func bindParent(var task) as bool\n"
-    "    extern \"xl6_xrt_task_group_close\" func close()\n"
-    "    extern \"xl6_xrt_task_group_cancel\" func cancel()\n"
+    "    extern \"xl6SignalTaskGroupCloseV1\" func close() as bool\n"
+    "    extern \"xl6SignalTaskGroupCancelV1\" func cancel() as bool\n"
     "    extern \"xl6_xrt_task_group_count\" func countNative() as c_int\n"
     "    extern \"xl6_xrt_task_group_reap\" func reapNative() as c_int\n"
     "    extern \"xl6_xrt_task_group_join\" func join() as bool\n"
@@ -3031,43 +3023,6 @@ static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
     {"int", "level"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeSignalOn0Params[] = {
-    {"int", "code"},
-    {"func()", "handler"},
-    {"bool", "once"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeSignalOn1Params[] = {
-    {"int", "code"},
-    {"func(var)", "handler"},
-    {"bool", "once"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeSignalSendToParams[] = {
-    {"int", "code"},
-    {"channel<var>", "ch"}
-};
-
-static const XL6_StdlibParam xl6StdSignalOn0Params[] = {
-    {"int", "code"},
-    {"func()", "handler"}
-};
-
-static const XL6_StdlibParam xl6StdSignalOn1Params[] = {
-    {"int", "code"},
-    {"func(var)", "handler"}
-};
-
-static const XL6_StdlibParam xl6StdSignalSendToParams[] = {
-    {"channel<var>", "ch"},
-    {"int", "code"}
-};
-
-static const XL6_StdlibParam xl6StdSignalCancelOnParams[] = {
-    {"TaskGroup", "group"},
-    {"int", "code"}
-};
-
 static const XL6_StdlibParam xl6StdTemplateCompileParams[] = {
     {"string", "text"},
     {"string", "open"},
@@ -4262,24 +4217,24 @@ static const char xl6StdProcessTerminalSupportedBody[] =
 
 
 static const char xl6StdSignalOn0Body[] =
-    "func __xl_std_signal_on(int code, func() handler) as SignalHandle\n"
-    "    return SignalHandle(__xl_std_runtime_signal_on0(code, handler, false))\n"
-    "end\n";
+    "func __xl_std_signal_on(int code, func() handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        handler()\n        return true\n    end, true)\nend\n";
 
 static const char xl6StdSignalOn1Body[] =
-    "func __xl_std_signal_on(int code, func(var) handler) as SignalHandle\n"
-    "    return SignalHandle(__xl_std_runtime_signal_on1(code, handler, false))\n"
-    "end\n";
+    "func __xl_std_signal_on(int code, func(SignalEvent) handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        handler(event)\n        return true\n    end, true)\nend\n";
 
 static const char xl6StdSignalOnce0Body[] =
-    "func __xl_std_signal_once(int code, func() handler) as SignalHandle\n"
-    "    return SignalHandle(__xl_std_runtime_signal_on0(code, handler, true))\n"
-    "end\n";
+    "func __xl_std_signal_once(int code, func() handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, true, capacity), func(SignalEvent event) as bool\n"
+    "        handler()\n        return true\n    end, true, true)\nend\n";
 
 static const char xl6StdSignalOnce1Body[] =
-    "func __xl_std_signal_once(int code, func(var) handler) as SignalHandle\n"
-    "    return SignalHandle(__xl_std_runtime_signal_on1(code, handler, true))\n"
-    "end\n";
+    "func __xl_std_signal_once(int code, func(SignalEvent) handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, true, capacity), func(SignalEvent event) as bool\n"
+    "        handler(event)\n        return true\n    end, true, true)\nend\n";
 
 static const char xl6StdSignalSupportedBody[] =
     "extern \"xl6SignalSupportedV1\" func __xl_std_signal_supported(int code) as bool\n";
@@ -4315,17 +4270,15 @@ static const char xl6StdSignalClearBody[] =
     "extern \"xl6SignalClearV1\" func __xl_std_signal_clear(int code = 0)\n";
 
 static const char xl6StdSignalSendToBody[] =
-    "func __xl_std_signal_send_to(channel<var> ch, int code) as SignalHandle\n"
-    "    return SignalHandle(__xl_std_runtime_signal_send_to(code, ch))\n"
-    "end\n";
+    "func __xl_std_signal_send_to(channel<SignalEvent> ch, int code, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        if ch.isClosed() then throw RuntimeError \"signal route channel is closed\" end\n"
+    "        return ch.trySend(event)\n    end, false)\nend\n";
 
 static const char xl6StdSignalCancelOnBody[] =
-    "func __xl_std_signal_cancel_on(TaskGroup group, int code) as SignalHandle\n"
-    "    func() cancel = func()\n"
-    "        group.cancel()\n"
-    "    end\n"
-    "    return SignalHandle(__xl_std_runtime_signal_on0(code, cancel, false))\n"
-    "end\n";
+    "func __xl_std_signal_cancel_on(TaskGroup group, int code, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        group.cancel()\n        return true\n    end, false)\nend\n";
 
 static const char xl6StdTemplateCompileBody[] =
     "func __xl_std_template_compile(string text, string open = \"{\", string close = \"}\") as Template\n"
@@ -6414,9 +6367,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "logSetDefault", "__xl_std_runtime_log_set_default", "xl6LogSetDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
     {"__xl_runtime", "logStats", "__xl_std_runtime_log_stats", "xl6LogStatsV1", xl6StdLogStatsParams, 2, "point", NULL},
     {"__xl_runtime", "logLevelName", "__xl_std_runtime_log_level_name", "xl6LogLevelNameV1", xl6StdRuntimeLogLevelParams, 1, "string", NULL},
-    {"__xl_runtime", "signalOn0", "__xl_std_runtime_signal_on0", "xl6_xrt_signal_on0", xl6StdRuntimeSignalOn0Params, 3, "point", NULL},
-    {"__xl_runtime", "signalOn1", "__xl_std_runtime_signal_on1", "xl6_xrt_signal_on1", xl6StdRuntimeSignalOn1Params, 3, "point", NULL},
-    {"__xl_runtime", "signalSendTo", "__xl_std_runtime_signal_send_to", "xl6_xrt_signal_send_to", xl6StdRuntimeSignalSendToParams, 2, "point", NULL},
 
 
 
@@ -7318,10 +7268,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"log", "fatal", "__xl_std_log_fatal", NULL, NULL, 0, "LogResult", xl6StdLogfatalBody},
     {"log", "flush", "__xl_std_log_flush", NULL, NULL, 0, "", xl6StdLogFlushBody},
 
-    {"signal", "on", "__xl_std_signal_on", NULL, xl6StdSignalOn0Params, 2, "SignalHandle", xl6StdSignalOn0Body},
-    {"signal", "on", "__xl_std_signal_on", NULL, xl6StdSignalOn1Params, 2, "SignalHandle", xl6StdSignalOn1Body},
-    {"signal", "once", "__xl_std_signal_once", NULL, xl6StdSignalOn0Params, 2, "SignalHandle", xl6StdSignalOnce0Body},
-    {"signal", "once", "__xl_std_signal_once", NULL, xl6StdSignalOn1Params, 2, "SignalHandle", xl6StdSignalOnce1Body},
+    {"signal", "on", "__xl_std_signal_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalOn0Body},
+    {"signal", "on", "__xl_std_signal_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalOn1Body},
+    {"signal", "once", "__xl_std_signal_once", NULL, NULL, 0, "SignalHandle", xl6StdSignalOnce0Body},
+    {"signal", "once", "__xl_std_signal_once", NULL, NULL, 0, "SignalHandle", xl6StdSignalOnce1Body},
     {"signal", "supported", "__xl_std_signal_supported", NULL, NULL, 0, "bool", xl6StdSignalSupportedBody},
     {"signal", "name", "__xl_std_signal_name", NULL, NULL, 0, "string", xl6StdSignalNameBody},
     {"signal", "ignore", "__xl_std_signal_ignore", NULL, NULL, 0, "bool", xl6StdSignalIgnoreBody},
@@ -7333,8 +7283,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"signal", "count", "__xl_std_signal_count", NULL, NULL, 0, "uint64", xl6StdSignalCountBody},
     {"signal", "received", "__xl_std_signal_received", NULL, NULL, 0, "bool", xl6StdSignalReceivedBody},
     {"signal", "clear", "__xl_std_signal_clear", NULL, NULL, 0, "", xl6StdSignalClearBody},
-    {"signal", "sendTo", "__xl_std_signal_send_to", NULL, xl6StdSignalSendToParams, 2, "SignalHandle", xl6StdSignalSendToBody},
-    {"signal", "cancelOn", "__xl_std_signal_cancel_on", NULL, xl6StdSignalCancelOnParams, 2, "SignalHandle", xl6StdSignalCancelOnBody},
+    {"signal", "sendTo", "__xl_std_signal_send_to", NULL, NULL, 0, "SignalHandle", xl6StdSignalSendToBody},
+    {"signal", "cancelOn", "__xl_std_signal_cancel_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalCancelOnBody},
 
     {"template", "compile", "__xl_std_template_compile", NULL, xl6StdTemplateCompileParams, 3, "Template", xl6StdTemplateCompileBody},
     {"template", "compileFile", "__xl_std_template_compile_file", NULL, xl6StdTemplateCompileFileParams, 3, "Template", xl6StdTemplateCompileFileBody},

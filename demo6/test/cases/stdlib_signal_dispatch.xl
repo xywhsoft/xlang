@@ -1,0 +1,24 @@
+class SignalCounter
+    int hits = 0
+    uint64 count = 0
+end
+auto counter = SignalCounter()
+auto handle = signal.on(signal.INT, func(SignalEvent event)
+    assert event.code == signal.INT
+    assert event.name == "INT"
+    assert event.count > 0 and event.total > 0
+    counter.hits += 1
+    counter.count += event.count
+end)
+assert handle.active
+assert signal.raise(signal.INT)
+time.sleep(20)
+assert counter.hits == 0, "callbacks must not run before the owner pumps"
+assert handle.dispatchFor(1000) > 0
+assert counter.hits == 1
+assert counter.count > 0
+assert handle.dispatch() == 0
+assert handle.close()
+assert handle.closed
+assert handle.dispatch() == 0
+signal.reset()

@@ -1,0 +1,11 @@
+SignalSubscription source = SignalSubscription(signal.INT, false, 2)
+assert source.active
+assert source.code == signal.INT
+assert not source.closed
+assert source.pending == 0
+assert source.next() == null
+assert source.close()
+assert source.closed and not source.active
+assert source.next() == null
+assert source.close()
+signal.reset()
