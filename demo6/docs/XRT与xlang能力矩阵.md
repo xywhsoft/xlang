@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3605，其中扩展自有 452。
 - 低层能力：3605 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1617 个函数。其余 1988 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1635 个函数。其余 1970 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -75,7 +75,7 @@
 | xrt | `include/xrt/proxy.h` | 23 | 0 | 23 |
 | xrt | `include/xrt/queue.h` | 46 | 0 | 46 |
 | xrt | `include/xrt/random.h` | 39 | 25 | 14 |
-| xrt | `include/xrt/regex.h` | 54 | 0 | 54 |
+| xrt | `include/xrt/regex.h` | 54 | 18 | 36 |
 | xrt | `include/xrt/set.h` | 34 | 0 | 34 |
 | xrt | `include/xrt/signal.h` | 20 | 0 | 20 |
 | xrt | `include/xrt/slot_map.h` | 16 | 0 | 16 |

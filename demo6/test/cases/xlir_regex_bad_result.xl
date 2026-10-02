@@ -1,0 +1,2 @@
+extern "xl6RegexEscapeV1" func wrong(string text, int size) as point
+wrong("x", -1)

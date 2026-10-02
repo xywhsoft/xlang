@@ -1,0 +1,9 @@
+auto r = regex.compile("(?<word>a+)", int(RegexFlags.ignoreCase))
+assert r.pattern == "(?<word>a+)" and r.flags == 1
+assert r.captureCount == 2 and r.captureName(0) == ""
+assert r.captureName(1) == "word" and r.captureIndex("word") == 1
+assert r.captureIndex("missing") == -1 and r.captureIndex("") == -1
+assert r.captureIndex("wordTAIL", 4) == 1
+assert regex.escape("a\0.+") == "a\0\\.\\+"
+assert regex.compile("abcBAD", 0, 3, 1, 3).pattern == "abc"
+assert regex.compile("", 0, 1, 1, 100).captureCount == 1

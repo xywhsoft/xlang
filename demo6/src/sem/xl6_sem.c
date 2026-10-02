@@ -19885,10 +19885,13 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
             XL6_AstNode* param = params->children[i];
             XL6_AstNode* typeNode = (param != NULL && param->childCount > 0) ? param->children[0] : NULL;
 
-            /* Defaults are resolved at the language call site. They do not
-             * change the native arity or create an optional C ABI parameter. */
+            /* Function and native constructor defaults are resolved at the
+             * language call site. Neither changes the fixed native arity;
+             * callback signatures and native special destructors stay closed. */
             if (param != NULL && param->childCount > 1 &&
-                node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC) {
+                node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
+                !(node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL && node->childCount > 0 &&
+                    node->children[0] && xl6TextEquals(node->children[0]->text, "create"))) {
                 xl6SemErrorNode(ctx, param, "C ABI extern does not support optional parameters");
                 ok = 0;
             }

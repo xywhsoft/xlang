@@ -172,6 +172,13 @@ $process=Start-Process @start
                         (('XRT_MODULE_CHARSET'-in$plan.NativeModules)-eq($component-ne'encoding_detect'))-and
                         (('XRT_MODULE_CHARSET_DETECT'-in$plan.NativeModules)-eq($component-eq'encoding_detect'))-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
+                }elseif($case-in@('stdlib_regex_core_only','stdlib_regex_match','stdlib_regex_errors')){
+                    $selectionMatches='src/runtime/xl6_regex_core.c'-in$selectedSources-and
+                        (('src/runtime/xl6_regex_match.c'-in$selectedSources)-eq($case-ne'stdlib_regex_core_only'))-and
+                        'XRT_MODULE_REGEX_CORE'-in$plan.NativeModules-and
+                        (('XRT_MODULE_REGEX_MATCH'-in$plan.NativeModules)-eq($case-ne'stdlib_regex_core_only'))-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(PATTERN|REGEX_(SET|REPLACE|SPLIT))$'}).Count
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE

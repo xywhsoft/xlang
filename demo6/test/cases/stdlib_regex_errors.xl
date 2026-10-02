@@ -1,0 +1,64 @@
+auto r = regex.compile("你")
+int caught = 0
+try
+    r.find("你", 1)
+catch RangeError e
+    caught += 1
+end
+try
+    r.find("你", -1)
+catch RangeError e
+    caught += 1
+end
+try
+    r.find("你", 4)
+catch RangeError e
+    caught += 1
+end
+try
+    r.find("你", 0, -2)
+catch RangeError e
+    caught += 1
+end
+try
+    r.captureName(9)
+catch RangeError e
+    caught += 1
+end
+try
+    regex.compile("a", 16)
+catch RangeError e
+    caught += 1
+end
+try
+    regex.compile("a", 0, 0)
+catch RangeError e
+    caught += 1
+end
+auto m = RegexMatch(r, "你")
+try
+    m.text(-1)
+catch RangeError e
+    caught += 1
+end
+try
+    m.endByte(1)
+catch RangeError e
+    caught += 1
+end
+try
+    regex.compile("(")
+catch ValueError e
+    caught += 1
+end
+try
+    regex.compile("abc", 0, 2)
+catch RangeError e
+    caught += 1
+end
+try
+    regex.compile("(a)", 0, 10, 1)
+catch RangeError e
+    caught += 1
+end
+assert caught == 12

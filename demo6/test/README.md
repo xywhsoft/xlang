@@ -151,3 +151,17 @@ UTF-8 token 位置和实际 lexer 做 101301 项检查；另跑前端 fuzz 10000
 退役账本。`xlir_text_value_contract.c` 禁止旧 aborting array/list string-copy
 操作并损坏 owning projection payload 验证拒绝。Linux 门真正 instrument
 扫描器和实际 lexer/parser/fuzz；共享库宿主仍只声称逻辑账本覆盖。
+
+### B13 Regex 编译与独立匹配
+
+`check_xlir_regex_values.ps1` 接入中央参数化场景调度器；
+`check_stdlib_regex.sh` 接入 test_linux.sh。覆盖 `stdlib_regex_core_only.xl`、
+`stdlib_regex_match.xl`、`stdlib_regex_errors.xl`，以及错误 ABI 的返回值、
+原生所有者、构造参数数、nullable 捕获合同四个负例。复用
+`xlir_text_value_contract.c` 损坏并拒绝所有新声明的 ABI/效果/所有权信息，
+复用 `xlir_string_interpolation_host.c` 完整逐点语言 OOM/退役账本。
+`xlir_regex_host.c` 与 `test/support/regex_native.c` 是原生真实依赖探针，
+检查 NUL、空组/未匹配、独立寿命、1000 次跨线程读取和 68 个分配失败点。
+Linux sanitizer 覆盖原生 XRT/adapter；共享库生成宿主仍只计逻辑账本。
+另验三个实际 AOT 原生闭包与按需 CORE/MATCH；不是 all/replace/split/set/
+Pattern 或全部 53 模块完成证明。

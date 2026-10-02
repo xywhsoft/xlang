@@ -1,0 +1,38 @@
+func requireMatch(Regex source, string text) as RegexMatch
+    auto found = source.find(text)
+    if found != null then return found end
+    throw RuntimeError "expected a regex match"
+end
+func requireText(RegexMatch snapshot, int index = 0) as string
+    auto found = snapshot.text(index)
+    if found != null then return found end
+    throw RuntimeError "expected a participating group"
+end
+string input = "x你a\0b!"
+auto r = regex.compile("(?<head>你)(?<tail>a\0b)?()")
+assert r.test(input) and not r.test(input, true)
+auto first = requireMatch(r, input)
+assert first.matched and first.captureCount == 4
+assert first.startByte() == 1 and first.endByte() == 7 and requireText(first) == "你a\0b"
+assert requireText(first, 1) == "你" and requireText(first, 2) == "a\0b"
+assert requireText(first, 3) == "" and first.groupMatched(3)
+assert first.startByte(3) == 7 and first.endByte(3) == 7
+assert first.captureName(2) == "tail" and first.captureIndex("tail") == 2
+assert first.captureIndex("missing") == -1 and first.captureIndex("") == -1
+assert first.input == input
+assert r.at(input) == null and r.at(input, 1) != null
+assert r.full(input) == null and r.full("你a\0b") != null
+auto second = requireMatch(r, "你")
+assert second.text(2) == null and not second.groupMatched(2)
+assert second.startByte(2) == -1 and second.endByte(2) == -1
+assert requireText(second, 3) == "" and second.groupMatched(3)
+input = "changed"
+r = regex.compile("other")
+assert first.input == "x你a\0b!" and requireText(first, 2) == "a\0b"
+assert first.captureName(2) == "tail" and first.captureIndex("tail") == 2
+assert second.input == "你" and second.text(2) == null
+assert regex.compile(regex.escape("a\0.+")).test("a\0.+", true)
+assert regex.compile("").full("") != null
+assert regex.compile("b").find("abBAD", 1, 2) != null
+assert regex.compile("b").find("ab", 2) == null
+assert regex.compile("b").test("ab", false, 100)

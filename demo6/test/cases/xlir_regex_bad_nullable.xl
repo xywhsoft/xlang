@@ -1,0 +1,8 @@
+class WrongMatch
+    private native point handle
+    extern "xl6RegexMatchCreateV1" create(Regex source, string text, int mode, int start, int size)
+    extern "xl6RegexMatchDestroyV1" destroy()
+    extern "xl6RegexMatchTextV1" func text(int index) as string
+end
+auto bad = WrongMatch(regex.compile("a"), "a", 0, 0, -1)
+bad.text(0)

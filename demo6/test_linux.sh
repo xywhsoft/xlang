@@ -69,6 +69,9 @@ bash "$ROOT/tools/check_xlir_scalar_component_kernel.sh" \
 bash "$ROOT/tools/check_xlir_string_join.sh" \
     "$TEST_DIR/string-contract-$(date +%Y%m%d-%H%M%S)-$$"
 
+bash "$ROOT/tools/check_stdlib_regex.sh" \
+    "$TEST_DIR/regex-contract-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'Running Linux UTF-8 path tests...\n'
 "$XL" run "$ROOT/test/cases/stdlib_release_string_abi.xl"
 "$XL" build "$ROOT/test/cases/stdlib_release_string_abi.xl" \
