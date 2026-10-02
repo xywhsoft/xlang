@@ -1,0 +1,55 @@
+auto b = PatternBuilder()
+assert b.count == 0 and b.dirty
+auto initial = b.version
+b.reserve(8)
+assert b.version == initial
+auto first = b.add("/u/{id}", "old\0tag")
+assert b.count == 1 and b.contains(first) and b.version == initial + uint64(1)
+auto old = b.compile()
+assert not b.dirty and old.tag() == "old\0tag"
+assert old.id() == first.id
+b.set(first, "/v/{id}", "new\0tag", priority = 3)
+assert b.dirty and old.test("/u/a") and not old.test("/v/a")
+auto current = b.compile()
+assert not b.dirty and current.tag() == "new\0tag" and old.tag() == "old\0tag"
+auto item = current.find("/v/你好")
+if item != null then
+    assert item.id == first.id and item.tag == "new\0tag" and item.text() == "你好"
+else
+    assert false
+end
+auto other = PatternBuilder()
+assert not other.contains(first) and not other.remove(first)
+assert b.remove(first) and not b.remove(first) and not b.contains(first)
+auto replacement = b.add("/new", null)
+assert replacement.id != first.id
+int stale = 0
+try
+    b.set(first, "/bad")
+catch RuntimeError error
+    assert error.kind == "RuntimeError"
+    stale = 1
+end
+assert stale == 1 and b.contains(replacement)
+b.clear()
+assert b.count == 0 and not b.contains(replacement)
+auto noPatterns = b.compile()
+assert noPatterns.count == 0 and not noPatterns.test("anything") and not b.dirty
+array<PatternSpec> specs = array[PatternSpec("/{id}", "capture", 1), PatternSpec("/fixed", "literal", 2)]
+auto keys = b.addMany(specs)
+assert keys.length == 2 and b.count == 2 and b.contains(keys[0]) and b.contains(keys[1])
+auto many = b.compile()
+assert many.first("/fixed") == 1 and many.tag(1) == "literal"
+auto before = b.version
+array<PatternSpec> empty = array[]
+assert b.addMany(empty).length == 0 and b.version == before and not b.dirty
+array<PatternSpec> invalid = array[PatternSpec("/ok", "never"), PatternSpec("/{broken", "never")]
+int rejected = 0
+try
+    b.addMany(invalid)
+catch ValueError error
+    rejected = 1
+end
+assert rejected == 1 and b.version == before and b.count == 2 and not b.dirty
+b.clear()
+assert many.count == 2 and many.tag(0) == "capture" and many.tag(1) == "literal"

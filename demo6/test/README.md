@@ -37,13 +37,15 @@ test\suites\02_language_frontend.bat
 - `05_semantics_exceptions_concurrency_base.bat`：类型语义负例、异常/#doc、sync/thread/async 基础运行与生成形态守门。
 - `06_task_api_spawn.bat`：future/task API、task.spawn、task.all/race/cancel、任务边界和重复运行稳定性。
 - `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、文档注释和 f-string/语法负例。
-- `08_stdlib_extended.bat`：JSON/XSON、codec/hash/crypto、URL/query、log/template/regex/process 等扩展标准库；HTTP client/server 当前随 XRT 网络层更新暂缓，默认跳过，设置 `XL6_ENABLE_DEFERRED_HTTP=1` 可显式运行。
+- `08_stdlib_extended.bat`：JSON/XLON、codec/hash/crypto、IO/Console、URL/query、log/template/regex/process 等扩展标准库；HTTP client/server 当前随 XRT 网络层更新暂缓，默认跳过，设置 `XL6_ENABLE_DEFERRED_HTTP=1` 可显式运行。
 - `09_artifact_closure.bat`：负例诊断产物和 `build\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
 - `10_format_extlibs.bat`：gzip/bz2/zip/tar、CSV/INI/TOML/plist/netrc/XML 的 xlang/C 双语测试、Python 双向互操作、严格编译、私有依赖裁剪与按需链接守门。
 
 ## Manual probes
 
 `tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）覆盖 B1—B9 文本、数字、Unicode/HTML、编码与闭合原生 product：Windows 1040 项冻结输入检查，35 正向/42 负例，严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数、真实 OOM 与回归。`tools/check_xlir_artifact_runtime.ps1` 本轮核对 60 组件、3600 对依赖、384 导出，并完成 B9 八个实际闭包；B7/B8 的闭包仅保留历史证据，不混为本轮重新验收。Linux 的 `check_stdlib_number_values.sh` / `check_stdlib_unicode.sh` / `check_stdlib_encoding.sh` 均接入 `test_linux.sh`，分别保留数字 253、Unicode/HTML 148、编码 B8/B9 216 项专项；sanitizer 只覆盖原生探针，受管层使用逻辑账本，均核对实际闭包与冻结输入。最小 encoding meta/转码/repair/guess 不引入其他文本 resident 或 Buffer；guess 不带转换/元信息 resident 和 charset 根，猜测不是验证。通用三整数 product 的普通函数/函数值与独立 C 提供者回归通过。整个 53 模块目标仍未完成，专项不能代替全仓 RC0。
+
+`tools/check_stdlib_io_console.ps1` 批量验证二进制流、可选长度、结构化读写协议、独立行值、192 个分配故障探针、EOF 与非法 UTF-8、封闭 XLIR ABI 负例、确定性生成 C、严格 C 与 JIT/AOT。真实终端事件和正常返回/异常/finally 清理使用独立的隐藏 Windows 控制台，不改动用户终端；POSIX PTY 与 sanitizer 验证位于 XRT 仓库。这不包含尚未实现的全局 `exit(code)` 清理。
 
 `tools/check_xlir_conditional_nullable_join.ps1` 验证三元表达式的可空类型汇合、分支局部收窄、惰性表达式的确定赋值，以及字符串/类/闭包汇合的所有权。门禁包含语义正负例、IR 变异拒绝、确定性 C/header、严格 C 内存平衡和 C-host JIT/AOT；它不代表全部 `out` 参数异常路径已完成证明。
 
@@ -62,6 +64,8 @@ test\suites\02_language_frontend.bat
 以下前缀来自 `test/cases` 下递归发现的 `.xl` 用例。新增新前缀时，必须同步更新本节，避免测试资产变成只有批处理知道。
 
 <!-- case-prefix-index:start -->
+- `char`：Unicode 单字符值、整数字面量与字符串索引回归。
+- `syntax`：已移除参数修饰语法的拒绝，以及原关键字作为普通名称的正例。
 - `index`: indexed container read/write and temporary ownership regressions.
 - `runtime`: runtime type and dynamic value cases.
 - `bad`: focused negative regression cases for rejected source forms.
@@ -165,3 +169,15 @@ UTF-8 token 位置和实际 lexer 做 101301 项检查；另跑前端 fuzz 10000
 Linux sanitizer 覆盖原生 XRT/adapter；共享库生成宿主仍只计逻辑账本。
 另验三个实际 AOT 原生闭包与按需 CORE/MATCH；不是 all/replace/split/set/
 Pattern 或全部 53 模块完成证明。
+
+### B17b PatternBuilder 事务与快照
+
+Regex 专项门新增 `stdlib_pattern_builder.xl`、
+`stdlib_pattern_builder_lifetime.xl`、`stdlib_pattern_builder_cleanup.xl`，
+验证批量/实例键、取消与陈旧键、缓存快照、对象标签寿命及提交后析构错误。
+生命周期正例逐点注入真实语言分配失败并检查首个 no-hit 与退役账本。
+四个新增 ABI 负例拒绝错误标签表种类、整数宽度、批量标签类型与键所有者，
+另加 Builder private 负例。`xlir_pattern_builder_host.c` 和
+`test/support/pattern_builder_native.c` 检查准备/应用/键/编译实际 OOM、COW
+标签快照、孤立编辑、创建线程与取消键永久失效。Linux 对该原生 host
+执行 ASan/UBSan/leak 检查，语言共享库宿主仍只声称逻辑账本覆盖。

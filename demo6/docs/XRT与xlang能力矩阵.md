@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3615，其中扩展自有 452。
 - 低层能力：3615 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1674 个函数。其余 1941 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1691 个函数。其余 1924 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -68,7 +68,7 @@
 | xrt | `include/xrt/net_interface.h` | 12 | 0 | 12 |
 | xrt | `include/xrt/number.h` | 18 | 14 | 4 |
 | xrt | `include/xrt/path.h` | 32 | 29 | 3 |
-| xrt | `include/xrt/pattern.h` | 47 | 18 | 29 |
+| xrt | `include/xrt/pattern.h` | 47 | 34 | 13 |
 | xrt | `include/xrt/pem.h` | 7 | 3 | 4 |
 | xrt | `include/xrt/pool.h` | 58 | 0 | 58 |
 | xrt | `include/xrt/process.h` | 37 | 5 | 32 |
@@ -100,7 +100,7 @@
 | xrt | `include/xrt/tls_stream.h` | 53 | 27 | 26 |
 | xrt | `include/xrt/tls_verify.h` | 8 | 4 | 4 |
 | xrt | `include/xrt/udp.h` | 73 | 25 | 48 |
-| xrt | `include/xrt/value.h` | 142 | 115 | 27 |
+| xrt | `include/xrt/value.h` | 142 | 116 | 26 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
 | xrt | `include/xrt/wait.h` | 3 | 2 | 1 |
 | xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |

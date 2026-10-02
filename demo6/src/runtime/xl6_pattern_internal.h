@@ -9,6 +9,11 @@ typedef struct XL6_PatternOptions {
     char* separators;
 } XL6_PatternOptions;
 
+/* A bijection from the opaque unsigned ID into the existing signed int-map
+ * key domain. Do not decode generation/slot bits from an XRT implementation. */
+static inline int64_t xl6PatternTagKeyFromId(xpatternid id)
+{return id<=INT64_MAX?(int64_t)id:-1-(int64_t)(UINT64_MAX-id);}
+
 static inline bool xl6PatternIndex(const xpattern* handle,int64_t index)
 {
     if (!handle) {xrtSetErrorKind(XERR_ARGUMENT);return false;}

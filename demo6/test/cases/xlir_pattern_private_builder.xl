@@ -1,0 +1,2 @@
+auto b = PatternBuilder()
+auto native = b.code
