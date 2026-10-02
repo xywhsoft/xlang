@@ -177,6 +177,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_regex_replace_buffer.c"
 	"$ROOT/src/runtime/xl6_regex_split.c"
 	"$ROOT/src/runtime/xl6_regex_set.c"
+	"$ROOT/src/runtime/xl6_regex_replace_func.c"
+	"$ROOT/src/runtime/xl6_regex_replace_func_buffer.c"
 	"$ROOT/src/runtime/xl6_network_service.c"
 	"$ROOT/src/runtime/xl6_log.c"
 	"$ROOT/src/runtime/xl6_log_console.c"

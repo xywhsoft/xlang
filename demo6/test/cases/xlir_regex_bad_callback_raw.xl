@@ -1,0 +1,8 @@
+class BadReplacer
+    native point handle
+    extern "xl6RegexReplacerCreateV1" create(Regex source, string text, int limit, int size)
+    extern "xl6RegexReplacerDestroyV1" destroy()
+    extern "xl6RegexReplacerRunV1" func run(c_callback func() as c_int callback) as string
+end
+auto source = regex.compile("a")
+auto bad = BadReplacer(source, "a", -1, -1)

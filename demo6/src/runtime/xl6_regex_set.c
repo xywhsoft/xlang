@@ -1,6 +1,14 @@
 #include "src/runtime/xl6_regex_internal.h"
 void xl6RegexSetDestroyV1(void* handle)
 { xrtRegexSetRelease(handle); }
+int64_t xl6RegexErrorIndexV1(const xerror* error)
+{
+    for (;error;error=xrtErrorCause(error)) {
+        size_t index;
+        if (xrtRegexSetErrorIndex(error,&index) && index<=INT64_MAX) return (int64_t)index;
+    }
+    return -1;
+}
 void* xl6RegexSetCreateV1(const xvalue* patterns,int64_t flags,int64_t maxPatternBytes,
     int64_t maxCaptures,int64_t maxPatterns,int64_t itemSize)
 {

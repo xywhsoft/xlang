@@ -22,14 +22,17 @@ try {
     $inputs=[ordered]@{}
     $cases=@('stdlib_regex_core_only','stdlib_regex_match','stdlib_regex_errors','stdlib_regex_iterators',
         'stdlib_regex_replace_only','stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors',
-        'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_extended_errors','stdlib_regex_byte_boundaries')
+        'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_extended_errors','stdlib_regex_byte_boundaries',
+        'stdlib_regex_replace_func','stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors','stdlib_regex_error_metadata')
     $negatives=@('xlir_regex_bad_result','xlir_regex_bad_owner','xlir_regex_bad_constructor','xlir_regex_bad_nullable',
-        'xlir_regex_bad_set_items','xlir_regex_bad_set_hits','xlir_regex_bad_iterator_owner')
+        'xlir_regex_bad_set_items','xlir_regex_bad_set_hits','xlir_regex_bad_iterator_owner',
+        'xlir_regex_bad_callback_arity','xlir_regex_bad_callback_result','xlir_regex_bad_callback_raw','xlir_regex_bad_error_input')
     $privacy=@('xlir_regex_private_consume','xlir_regex_private_split_consume')
     $undeclared=@('sem_native_class_extern_bad_type','sem_native_class_extern_return_bad')
     $extra=@($PSCommandPath,'tools/check_stdlib_regex.sh','test/cases/xlir_regex_host.c','test/support/regex_native.c',
-        'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c',
+        'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c','test/cases/xlir_regex_callback_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
+        'release/xl.exe','release/xlc.dll','release/xl.dll',
         "$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Path)+@($stage.Files.Source)+$extra
     $paths+=@($cases+$negatives+$privacy+$undeclared|ForEach-Object {"test/cases/$_.xl"})
@@ -60,6 +63,10 @@ try {
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
+        Copy-Item release/xl.dll "$work/xl.dll"
+        $null=Check 'callback-native-build' gcc ($flags+@('test/cases/xlir_regex_callback_host.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/callback-native.exe"))
+        $callbackOutput=Check 'callback-native' "$work/callback-native.exe" @()
+        if ($callbackOutput-notmatch 'regex callback native OOM: 133 actual failures, 3 first no-hit completions, balanced') {throw 'Callback native OOM oracle incomplete'}
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
             $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
         Copy-Item release/xl.dll "$work/xl.dll"
@@ -80,8 +87,11 @@ try {
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
             $null=Check "$case-aot-build" $build.Driver @($source,'exe',"$prefix.aot")
             $null=Check "$case-aot-run" "$prefix.aot.exe" @()
+            $null=Check "$case-formal-run" 'release/xl.exe' @('run',$source)
+            $null=Check "$case-formal-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
+            $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
             if($case-in@('stdlib_regex_match','stdlib_regex_iterators','stdlib_regex_replace_only',
-                'stdlib_regex_replace_buffer','stdlib_regex_split_only','stdlib_regex_set_only')) {
+                'stdlib_regex_replace_buffer','stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_replace_func','stdlib_regex_replace_func_buffer')) {
                 $terminal=$false
                 for($point=0;$point-lt2048;++$point) {
                     $output=Check "$case-oom-$point" "$prefix.strict.exe" @("$point")
@@ -110,9 +120,9 @@ try {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         $report=[ordered]@{Complete=($complete-and!$changed.Count);Checks=$checks.Count;Cases=$cases;Negatives=$negatives;Privacy=$privacy;UndeclaredArrays=$undeclared;
             ChangedInputs=$changed;Inputs=$inputs;Results=$checks;
-            Scope='B13/B14 compile/match/all/template replace/transactional Buffer/lazy split/set; not function replacement, structured regex error facade, Pattern or whole-task release acceptance'}
+            Scope='B13-B15 compile/match/all/template and checked functional replacement/transactional Buffer/lazy split/set/error metadata; source strict C/JIT/AOT and rebuilt Windows CLI default embedded run/build/execute. Callback native and language OOM use logical allocation injection, not ASan. Excludes Pattern, isolated deployment and whole-task release acceptance'}
         [IO.File]::WriteAllText("$work/results.json",($report|ConvertTo-Json -Depth 8),$utf8)
         if($changed.Count){throw 'Regex gate inputs changed'}
     }
-    Write-Output "Regex B13/B14: $($checks.Count) checks passed"
+    Write-Output "Regex B13-B15: $($checks.Count) checks passed"
 }finally{Pop-Location}

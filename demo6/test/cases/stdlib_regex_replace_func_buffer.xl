@@ -1,0 +1,11 @@
+auto target = Buffer()
+target.append("prefix:")
+auto r = regex.compile("a")
+assert r.replaceWithTo(target, "a\0a", func(RegexMatch item) as string
+    return "你"
+end) == 2
+assert target.len() == 14 and target.byteAt(10) == 0
+assert r.replaceWithTo(target, "", func(RegexMatch item) as string
+    return "unused"
+end) == 0
+assert target.len() == 14 and target.byteAt(10) == 0

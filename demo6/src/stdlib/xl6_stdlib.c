@@ -1637,7 +1637,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "RegexIterator") || xl6StdlibNodeUsesTypeName(root, "RegexSplitIterator") ||
         xl6StdlibNodeUsesTypeName(root, "RegexSplitPart");
     needsRegexSet = xl6StdlibFuncUsed(used, "regex", "set") || xl6StdlibNodeUsesTypeName(root, "RegexSet");
-    needsRegexBuffer = needsRegex && xl6StdlibNodeUsesMemberName(root, "replaceTo");
+    needsRegexBuffer = needsRegex && (xl6StdlibNodeUsesMemberName(root, "replaceTo") ||
+        xl6StdlibNodeUsesMemberName(root, "replaceWithTo"));
     needsConsoleSession = xl6StdlibFuncUsed(used, "console", "openSession") ||
         xl6StdlibNodeUsesTypeName(root, "ConsoleSession") || xl6StdlibNodeUsesTypeName(root, "ConsoleEvent");
     needsConsoleOptions = needsConsoleSession || xl6StdlibNodeUsesTypeName(root, "ConsoleOptions") ||
@@ -1847,6 +1848,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSource);
         if (needsRegexBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexBufferSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibRegexEndSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibRegexReplacerSource);
+        if (needsRegexBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexReplacerBufferSource);
+        xl6StdlibBuilderAppend(&builder, "end\n");
     }
     if (needsRegexSet) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSetSource);
     if (xl6StdlibNodeUsesTypeName(root, "RegexSplitFlags"))

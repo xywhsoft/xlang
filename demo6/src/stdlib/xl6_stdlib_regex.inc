@@ -29,16 +29,25 @@ const char* xl6StdlibRegexSource =
     "    func all(string text, int start = 0, int limit = -1, int size = -1) as RegexIterator\n"
     "        return RegexIterator(self, text, start, limit, size)\nend\n"
     "    extern \"xl6RegexReplaceV1\" func replace(string text, string replacement, int limit = -1, int size = -1, int replacementSize = -1) as string\n"
+    "    func replaceWith(string text, func(RegexMatch) as string replacement, int limit = -1, int size = -1) as string\n"
+    "        auto session = RegexReplacer(self, text, limit, size)\n"
+    "        return session.run(func() as string\n"
+    "            return replacement(RegexMatch(session))\n        end)\nend\n"
     "    func split(string text, int limit = -1, int flags = 0, int size = -1) as RegexSplitIterator\n"
     "        return RegexSplitIterator(self, text, limit, flags, size)\nend\n";
 const char* xl6StdlibRegexBufferSource =
-    "    extern \"xl6RegexReplaceBufferV1\" func replaceTo(Buffer target, string text, string replacement, int limit = -1, int size = -1, int replacementSize = -1) as int\n";
+    "    extern \"xl6RegexReplaceBufferV1\" func replaceTo(Buffer target, string text, string replacement, int limit = -1, int size = -1, int replacementSize = -1) as int\n"
+    "    func replaceWithTo(Buffer target, string text, func(RegexMatch) as string replacement, int limit = -1, int size = -1) as int\n"
+    "        auto session = RegexReplacer(self, text, limit, size)\n"
+    "        return session.runTo(target, func() as string\n"
+    "            return replacement(RegexMatch(session))\n        end)\nend\n";
 const char* xl6StdlibRegexEndSource =
     "end\n"
     "class RegexMatch\n"
     "    private native point handle\n"
     "    extern \"xl6RegexMatchCreateV1\" create(Regex source, string text, int mode = 0, int start = 0, int size = -1)\n"
     "    extern \"xl6RegexIteratorSnapshotV1\" create(RegexIterator source)\n"
+    "    extern \"xl6RegexReplacerSnapshotV1\" create(RegexReplacer source)\n"
     "    extern \"xl6RegexMatchDestroyV1\" destroy()\n"
     "    extern \"xl6RegexMatchMatchedV1\" get matched() as bool\n"
     "    extern \"xl6RegexMatchCountV1\" get captureCount() as int\n"
@@ -92,6 +101,14 @@ const char* xl6StdlibRegexEndSource =
     "    extern \"xl6RegexSplitPartStartV1\" get startByte() as int\n"
     "    extern \"xl6RegexSplitPartEndV1\" get endByte() as int\n"
     "end\n";
+const char* xl6StdlibRegexReplacerSource =
+    "class RegexReplacer\n"
+    "    private native point handle\n"
+    "    extern \"xl6RegexReplacerCreateV1\" create(Regex source, string text, int limit = -1, int size = -1)\n"
+    "    extern \"xl6RegexReplacerDestroyV1\" destroy()\n"
+    "    extern \"xl6RegexReplacerRunV1\" func run(func() as string replacement) as string\n";
+const char* xl6StdlibRegexReplacerBufferSource =
+    "    extern \"xl6RegexReplacerRunBufferV1\" func runTo(Buffer target, func() as string replacement) as int\n";
 const char* xl6StdlibRegexSetSource =
     "class RegexSet\n"
     "    private native point handle\n"
@@ -116,3 +133,7 @@ static const char xl6StdRegexEscapeBody[] =
 static const char xl6StdRegexSetBody[] =
     "func __xl_std_regex_set(array<string> patterns, int flags = 0, int maxPatternBytes = 1048576, int maxCaptures = 4096, int maxPatterns = 4096, int itemSize = -1) as RegexSet\n"
     "    return RegexSet(patterns, flags, maxPatternBytes, maxCaptures, maxPatterns, itemSize)\nend\n";
+static const char xl6StdRegexErrorOffsetBody[] =
+    "extern \"xl6RegexErrorOffsetV1\" @no_raise func __xl_std_regex_error_offset(error value) as int\n";
+static const char xl6StdRegexErrorIndexBody[] =
+    "extern \"xl6RegexErrorIndexV1\" @no_raise func __xl_std_regex_error_index(error value) as int\n";

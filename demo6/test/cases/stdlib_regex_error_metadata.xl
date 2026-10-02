@@ -1,0 +1,24 @@
+int caught = 0
+try
+    regex.compile("(")
+catch ValueError error
+    assert error.domain == "xrt.regex"
+    assert regex.errorOffset(error) >= 0
+    assert regex.errorPatternIndex(error) == -1
+    caught += 1
+end
+try
+    regex.set(["valid", "("])
+catch ValueError error
+    assert regex.errorPatternIndex(error) == 1
+    assert regex.errorOffset(error) >= 0
+    caught += 1
+end
+try
+    throw ValueError "unrelated"
+catch ValueError error
+    assert regex.errorOffset(error) == -1
+    assert regex.errorPatternIndex(error) == -1
+    caught += 1
+end
+assert caught == 3

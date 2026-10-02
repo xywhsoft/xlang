@@ -3353,7 +3353,11 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
      * while one exact declared native field is borrowed as the void* expected
      * by its foreign C receiver. Lowering performs the projection; Cgen never
      * searches class fields or recognizes a conventional handle name. */
-    XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW,
+    /* Synchronous borrowed compiler closure with its checked invoke ABI.
+     * Admitted only by an exact native contract, never inferred from a
+     * source function type or confused with an erased XL6_Function. */
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -5759,6 +5763,9 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name);
 int xl6IrRuntimeDirectBridgeFactory(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name);
 const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t parameter);
+/* Borrow the exact checked compiler closure instead of erasing it to the
+ * general XL6_Function foreign ABI. Signature still needs full verification. */
+int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t parameter);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
 int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);

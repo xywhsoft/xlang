@@ -29,6 +29,29 @@ static inline bool xl6RegexLimit(int64_t limit, size_t* out)
     }
     *out=limit<0 ? SIZE_MAX:(size_t)limit; return true;
 }
+#if !defined(XRT_SINGLE_HEADER) || defined(XRT_FEATURE_THREAD)
+/* Managed thread identity must not degrade to a recyclable OS ID. Holding
+ * its XRT object also prevents address reuse after the creating thread exits.
+ * For externally created host threads, the caller keeps the creator alive. */
+typedef struct XL6_RegexThreadOwner {
+    xthread* managed;
+    uint64_t external;
+} XL6_RegexThreadOwner;
+static inline bool xl6RegexThreadInit(XL6_RegexThreadOwner* owner)
+{
+    xthread* current=xrtThreadCurrent();
+    if (current) {owner->managed=xrtThreadRef(current);return owner->managed!=NULL;}
+    owner->external=xrtThreadCurrentId();return true;
+}
+static inline bool xl6RegexThreadCheck(const XL6_RegexThreadOwner* owner)
+{
+    xthread* current=xrtThreadCurrent();
+    if (owner->managed ? current==owner->managed : !current && owner->external==xrtThreadCurrentId()) return true;
+    xrtSetErrorKind(XERR_STATE);return false;
+}
+static inline void xl6RegexThreadDrop(XL6_RegexThreadOwner* owner)
+{xrtThreadDestroy(owner->managed);owner->managed=NULL;}
+#endif
 /* One immutable carrier for all snapshot inputs. Internal retaining is not
  * language byref: no mutator or borrowed view escapes through the facade. */
 #if !defined(XRT_SINGLE_HEADER) || defined(XRT_FEATURE_REGEX_MATCH)

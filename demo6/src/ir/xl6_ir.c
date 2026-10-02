@@ -32879,6 +32879,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       parameterType->kind == XL6_IR_TYPE_FUNCTION) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
+            } else if (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
+                if ((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
+                    !xl6IrRuntimeDirectBridgeCheckedClosureParameter(target->cName,parameter) ||
+                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
+                    return xl6IrDiag(diags,NULL,"XLIR checked native closure lacks an exact declared signature contract");
             } else if ( target->parameterPhysicalAbis[parameter] ==
                              XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) {
                 if ( (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
@@ -42477,6 +42482,8 @@ static const char* xl6IrCallParameterPhysicalAbiName(
         return "raw-c-callback";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW:
         return "native-class-handle-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW:
+        return "checked-closure-borrow";
     default: return "invalid";
     }
 }

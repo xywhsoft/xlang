@@ -11,6 +11,14 @@ void* xl6RegexCreateV1(xstrview pattern, int64_t flags, int64_t maxPatternBytes,
     return xrtRegexCompileConfig(pattern, &config);
 }
 void xl6RegexDestroyV1(void* handle) { xrtRegexRelease(handle); }
+int64_t xl6RegexErrorOffsetV1(const xerror* error)
+{
+    for (;error;error=xrtErrorCause(error)) {
+        size_t offset;
+        if (xrtRegexErrorOffset(error,&offset) && offset<=INT64_MAX) return (int64_t)offset;
+    }
+    return -1;
+}
 static bool xl6RegexCheck(void* handle)
 {
     if (handle) return true;

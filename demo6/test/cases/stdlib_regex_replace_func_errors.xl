@@ -1,0 +1,37 @@
+auto r = regex.compile("a")
+auto target = Buffer()
+target.append("keep")
+int caught = 0
+try
+    r.replaceWith("a", func(RegexMatch item) as string
+        throw RangeError "original callback failure"
+    end)
+catch RangeError error
+    assert error.message == "original callback failure"
+    caught += 1
+end
+try
+    r.replaceWithTo(target, "aaa", func(RegexMatch item) as string
+        if item.startByte() == 1 then throw TypeError "second match failure" end
+        return "partial"
+    end)
+catch TypeError error
+    assert error.message == "second match failure"
+    caught += 1
+end
+assert target.len() == 4 and target.byteAt(0) == 107 and target.byteAt(3) == 112
+try
+    r.replaceWith("a", func(RegexMatch item) as string
+        return "unused"
+    end, -2)
+catch RangeError error
+    caught += 1
+end
+try
+    Regex("\\C").replaceWith("你", func(RegexMatch item) as string
+        return "?"
+    end, 1)
+catch ValueError error
+    caught += 1
+end
+assert caught == 4

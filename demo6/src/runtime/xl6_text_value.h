@@ -11,6 +11,17 @@
 #define XL6_TEXT_API
 #endif
 
+struct xlir_closure;
+XL6_TEXT_API void* xl6RegexReplacerCreateV1(void* regex,xstrview text,int64_t limit,int64_t size);
+XL6_TEXT_API void xl6RegexReplacerDestroyV1(void* handle);
+XL6_TEXT_API void* xl6RegexReplacerSnapshotV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexReplacerRunV1(void* handle,struct xlir_closure* callback);
+/* Internal resident dependency, never a language declaration. */
+XL6_TEXT_API bool xl6RegexReplacerRunOutputV1(void* handle,struct xlir_closure* callback,xstrbuf* output,size_t* count);
+XL6_TEXT_API int64_t xl6RegexReplacerRunBufferV1(void* handle,void* target,struct xlir_closure* callback);
+XL6_TEXT_API int64_t xl6RegexErrorOffsetV1(const xerror* error);
+XL6_TEXT_API int64_t xl6RegexErrorIndexV1(const xerror* error);
+
 /* Inputs borrow exact views for the call; textual operations validate UTF-8.
  * Every successful string result owns an independent XRT allocation, even
  * when empty; free only Data. Value/array/bytes results own one xvalue reference.

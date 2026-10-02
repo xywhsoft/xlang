@@ -28,6 +28,31 @@ static int wrongSplitThread(void* handle)
     xrtClearError();xl6RegexSplitCloseV1(handle);
     assert(xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();return 0;
 }
+typedef struct ThreadIdentityProbe {void* regex;void* iterator;void* split;} ThreadIdentityProbe;
+static int createOnThread(void* context)
+{
+    ThreadIdentityProbe* p=context;
+    p->iterator=xl6RegexIteratorCreateV1(p->regex,VIEW("abc"),0,-1,-1);
+    p->split=xl6RegexSplitCreateV1(p->regex,VIEW("abc"),-1,0,-1);
+    assert(p->iterator && p->split);return 0;
+}
+static int rejectExitedOwner(void* context)
+{
+    ThreadIdentityProbe* p=context;
+    wrongThread(p->iterator);wrongSplitThread(p->split);return 0;
+}
+static void exitedThreadIdentity(void* regex)
+{
+    ThreadIdentityProbe p={regex,NULL,NULL};
+    xthread* creator=xrtThreadCreate(createOnThread,&p,0);assert(creator);
+    assert(xrtThreadWait(creator)==XWAIT_OK);xrtThreadDestroy(creator);
+    /* Platform IDs may be recycled, but the owned creator object may not. */
+    for (size_t i=0;i<32;++i) {
+        xthread* other=xrtThreadCreate(rejectExitedOwner,&p,0);assert(other);
+        assert(xrtThreadWait(other)==XWAIT_OK);xrtThreadDestroy(other);
+    }
+    xl6RegexIteratorDestroyV1(p.iterator);xl6RegexSplitDestroyV1(p.split);
+}
 static void snapshots(void* regex)
 {
     char input[]="a\0b";
@@ -151,7 +176,7 @@ int main(void)
 {
     assert(xrtMemDebugEnable(true));xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
     void* regex=xl6RegexCreateV1(VIEW("."),0,1024,8,-1);assert(regex);
-    snapshots(regex);
+    snapshots(regex);exitedThreadIdentity(regex);
     text(xl6RegexReplaceV1(regex,VIEW("a\0b"),VIEW("<$0>"),-1,-1,-1),"<a><\0><b>",9);
     text(xl6RegexReplaceV1(regex,VIEW("abc"),VIEW(""),-1,-1,-1),"",0);
     text(xl6RegexReplaceV1(regex,VIEW(""),VIEW("x"),-1,-1,-1),"",0);
