@@ -23,11 +23,11 @@ int main(void)
             ir.abi.nativeFutureMapAbi=(XL6_IrNativeFutureMapAbi)invalid;reject(&ir,diagnostic);
             XL6_ArtifactRuntimePlan plan={0};XL6_DiagList diags={0};
             assert(!xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_FRAGMENT,&plan,&diags));
-            assert(plan.components==0 && plan.sourceCount==0 && plan.nativeModuleCount==0);xl6DiagFree(&diags);
+            assert(xl6ArtifactRuntimeSetEmpty(&plan.components) && plan.sourceCount==0 && plan.nativeModuleCount==0);xl6DiagFree(&diags);
         }
         ir.abi.nativeFutureMapAbi=XL6_IR_NATIVE_FUTURE_MAP_RESIDENT_EXCLUSIVE_V1;verify(&ir);
         XL6_ArtifactRuntimePlan plan={0};assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_FRAGMENT,&plan,&parse.diags));
-        assert((plan.components & XL6_ARTIFACT_BIT(FUTURE_CALLBACK)) && (plan.components & XL6_ARTIFACT_BIT(FUTURE_PAYLOAD)));
+        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_CALLBACK) && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_PAYLOAD));
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitC(&out,&ir,&parse.diags));first=xl6OutputTakeMemoryText(&out,NULL);
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitC(&out,&ir,&parse.diags));second=xl6OutputTakeMemoryText(&out,NULL);
         assert(first && second && !strcmp(first,second));xrtFree(second);

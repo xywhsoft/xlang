@@ -1,13 +1,31 @@
 // 字节索引与字符切片是两种单位，不能共用转换或越界规则。
+func expectByteRange(string text, int index)
+    bool caught = false
+    try
+        uint8 ignored = string.byteAt(text, index)
+    catch RangeError
+        caught = true
+    end
+    assert caught
+end
+
+func charsText(array<char> values) as string
+    string result = ""
+    for value in values
+        result = result + value
+    end
+    return result
+end
+
 func inspectText(string text)
     assert string.len(text) == 4
     assert string.byteLen(text) == 8
     assert string.byteAt(text, 1) == 228
     assert string.byteAt(text, -1) == 66
-    assert string.byteAt(text, 8) == -1
-    assert string.byteAt(text, -9) == -1
-    assert string.byteAt(text, 9223372036854775807) == -1
-    assert string.byteAt(text, -9223372036854775807 - 1) == -1
+    expectByteRange(text, 8)
+    expectByteRange(text, -9)
+    expectByteRange(text, 9223372036854775807)
+    expectByteRange(text, -9223372036854775808)
     assert string.slice(text, 1, 2) == "你好"
     assert string.slice(text, -2) == "好B"
     assert string.slice(text, 99) == ""
@@ -18,8 +36,8 @@ end
 func main(...) as int
     inspectText("A" + "你好B")
     assert string.byteLen("") == 0
-    assert string.byteAt("", 0) == -1
-    assert string.byteAt("", -1) == -1
+    expectByteRange("", 0)
+    expectByteRange("", -1)
 
     // 默认大小写敏感；显式忽略大小写与空前后缀分别验证。
     assert string.startsWith("Hello你好", "He")
@@ -33,65 +51,66 @@ func main(...) as int
     assert not string.endsWith("a", "ba")
 
     // split 的空片段必须保留，结果不借用输入临时值。
-    array parts = string.split(string.replace("|a||你好|", "a", "b"), "|")
+    array<string> parts = string.split(string.replace("|a||你好|", "a", "b"), "|")
     assert parts.length == 5
     assert string(parts[0]) == ""
     assert string(parts[1]) == "b"
     assert string(parts[2]) == ""
     assert string(parts[3]) == "你好"
     assert string(parts[4]) == ""
-    array whole = string.split("你好", "")
+    array<string> whole = string.split("你好", "")
     assert whole.length == 1 and string(whole[0]) == "你好"
-    array empty = string.split("", ",")
+    array<string> empty = string.split("", ",")
     assert empty.length == 1 and string(empty[0]) == ""
-    array lines = string.splitLines("a\r\n你好\nb")
+    array<string> lines = string.splitLines("a\r\n你好\nb")
     assert lines.length == 3
     assert string(lines[1]) == "你好"
 
-    // join 借用输入，结果独立拥有；空元素和非字符串按统一转换处理。
+    // join 借入精确 string 元素；非字符串须显式转换，结果独立拥有。
     assert string.join(parts, "|") == "|b||你好|"
     assert string.join([], ",") == ""
     assert string.join(["", ""], "::") == "::"
     assert string.join(["你", "好"]) == "你好"
     assert string.repeat("ab", 3) == "ababab"
-    assert string.join(["text", true, null, -7, uint64(42), 1.5], "|") == "text|true|null|-7|42|1.5"
+    var nullValue = null
+    assert string.join(["text", string(true), string(nullValue), string(-7), string(uint64(42)), string(1.5)], "|") == "text|true|null|-7|42|1.5"
     array nested = [[1, 2], {"answer": 42}]
-    assert string.join(nested, ";") == string(nested[0]) + ";" + string(nested[1])
+    assert string.join([string(nested[0]), string(nested[1])], ";") == string(nested[0]) + ";" + string(nested[1])
     string joined = string.join(string.split("a,你好,b", ","), " / ")
     assert joined == "a / 你好 / b"
-    func(array, string) as string joinValue = string.join
+    func(array<string>, string, int, int) as string joinValue = string.join
 
     // 具名函数值与重复分配经过同一条适配和清理路径。
-    func(string, string) as array splitValue = string.split
+    func(string, string, int, int) as array<string> splitValue = string.split
     for i in range(200)
-        array values = splitValue("你好::x", "::")
+        array<string> values = splitValue("你好::x", "::", -1, -1)
         assert values.length == 2 and string(values[0]) == "你好"
         inspectText("A你好B")
-        assert joinValue(values, "|") == "你好|x"
+        assert joinValue(values, "|", -1, -1) == "你好|x"
     end
     assert string(parts[3]) == "你好"
     assert joined == "a / 你好 / b"
-    // chars 按标量拆成独立字符串；bytes 的元素是 0..255 的整数。
+    // chars 是独立 array<char>；bytes 是连续基础值，元素为 uint8。
     assert string.chars("").length == 0
     assert string.bytes("").length == 0
-    array scalars = string.chars("A你𐐀é")
+    array<char> scalars = string.chars("A你𐐀é")
     assert scalars.length == 5
     assert string(scalars[0]) == "A" and string(scalars[1]) == "你"
     assert string(scalars[2]) == "𐐀" and string(scalars[3]) == "e"
     assert string.byteLen(string(scalars[4])) == 2
-    array octets = string.bytes("A你")
+    bytes octets = string.bytes("A你")
     assert octets.length == 4
     assert int(octets[0]) == 65 and int(octets[1]) == 228
     assert int(octets[2]) == 189 and int(octets[3]) == 160
-    func(string) as array charsValue = string.chars
-    func(string) as array bytesValue = string.bytes
+    func(string, int) as array<char> charsValue = string.chars
+    func(string, int) as bytes bytesValue = string.bytes
     string changed = "你好"
-    array independent = charsValue(changed)
+    array<char> independent = charsValue(changed, -1)
     changed = "replaced"
-    assert string.join(independent) == "你好"
+    assert charsText(independent) == "你好"
     for round in range(200)
-        assert string.join(charsValue(string.repeat("你", 4))) == "你你你你"
-        assert bytesValue("\t\n").length == 2
+        assert charsText(charsValue(string.repeat("你", 4), -1)) == "你你你你"
+        assert bytesValue("\t\n", -1).length == 2
     end
     println("string bridges ok")
     return 0

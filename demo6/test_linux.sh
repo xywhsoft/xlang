@@ -62,6 +62,10 @@ printf 'Running Linux encoding declaration, sanitizer and artifact contracts...\
 bash "$ROOT/tools/check_stdlib_encoding.sh" \
     "$TEST_DIR/encoding-$(date +%Y%m%d-%H%M%S)-$$"
 
+printf 'Running Linux scalar constant and component graph contracts...\n'
+bash "$ROOT/tools/check_xlir_scalar_component_kernel.sh" \
+    "$TEST_DIR/scalar-component-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'Running Linux UTF-8 path tests...\n'
 "$XL" run "$ROOT/test/cases/stdlib_release_string_abi.xl"
 "$XL" build "$ROOT/test/cases/stdlib_release_string_abi.xl" \

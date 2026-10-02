@@ -1,6 +1,7 @@
 func main(...) as int
     assert path.nameExt("a/b.txt") == "b.txt"
-    assert path.name("a/b.txt") == "b"
+    assert path.name("a/b.txt") == "b.txt"
+    assert path.stem("a/b.txt") == "b"
     assert path.ext("a/b.txt") == ".txt"
     assert string.len(path.dir("a/b.txt")) > 0
     assert path.isAbs(path.abs("release"))

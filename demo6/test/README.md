@@ -117,3 +117,14 @@ test\suites\02_language_frontend.bat
 - `tools/check_test_data_wiring.ps1`：所有 JSON 数据 fixture 必须有效，并通过完整相对路径或 package/import 语义被引用。
 - `tools/check_c_fixture_wiring.ps1`：所有 C/H fixture 必须被测试、范例、DLL 或同 package 目录内 metadata 接线。
 - `tools/check_stdlib_test_wiring.ps1`：所有 `test/cases/stdlib_*.xl` 必须按完整相对路径接入主回归。
+
+### B10 整数常量与组件集合
+
+`tools/check_stdlib_text_values.ps1` 在原 B1—B9 门上追加最小有符号常量、
+四个整数越界负例、七个存量整数回归，以及同一生产组件集合内核的严格 GCC
+与 TinyCC 检查。`tools/check_xlir_scalar_component_kernel.sh` 接入 Linux
+入口，验证 10 个人口规模至 257、全部双根与独立 Floyd 结果、真实组件图、
+Future/网络 IR 依赖、确定性 C、JIT/AOT 与损坏常量在 C/header 输出前拒绝。
+Linux ASan/UBSan 范围仅为集合内核和有符号常量的生成 C 宿主，不能把所链接
+但未 instrument 的共享库算为 sanitizer 覆盖。整数回归只声称其实际执行
+路径；此批不替代全仓 RC0 或 53 模块完成验收。

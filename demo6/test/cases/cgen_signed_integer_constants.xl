@@ -1,0 +1,25 @@
+int minimum = -9223372036854775808
+int separated = -9_223_372_036_854_775_808
+int hex = -0x8000_0000_0000_0000
+int octal = -0o1000000000000000000000
+int binary = -0b1000000000000000000000000000000000000000000000000000000000000000
+int grouped = -(9223372036854775808)
+assert minimum == -9223372036854775807 - 1
+assert separated == minimum and hex == minimum and octal == minimum and binary == minimum and grouped == minimum
+int zero = -0
+int negative = -42
+int8 small = -128
+int16 medium = -32768
+int32 large = -2147483648
+uint64 widest = 18446744073709551615
+assert zero == 0 and negative == -42
+assert int(small) == -128 and int(medium) == -32768 and int(large) == -2147483648
+assert widest == uint64(0xffff_ffff_ffff_ffff)
+func pick(int value = -9223372036854775808) as int
+    return value
+end
+assert pick() == minimum
+assert pick(-0x8000_0000_0000_0000) == minimum
+int positive = 7
+int computed = -positive
+assert computed == -7

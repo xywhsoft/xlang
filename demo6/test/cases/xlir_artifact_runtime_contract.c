@@ -18,11 +18,15 @@ static int closure_contract(void)
 {
     unsigned char reaches[XL6_ARTIFACT_RUNTIME_COUNT][XL6_ARTIFACT_RUNTIME_COUNT]={{0}};
     XL6_ArtifactRuntimePlan plan;
+    XL6_ArtifactRuntimeSet empty = {{0}};
     for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i) {
         const XL6_ArtifactRuntimeComponent* item=xl6ArtifactRuntimeComponentGet(i);
-        CHECK(item && item->source);
-        for (unsigned j=0;j<XL6_ARTIFACT_RUNTIME_COUNT;++j)
-            reaches[i][j]=(i==j)||((item->dependencies & ((uint64)1u<<j))!=0);
+        CHECK(item && item->source && (!item->dependencyCount || item->dependencies));
+        reaches[i][i] = 1;
+        for (size_t j=0;j<item->dependencyCount;++j) {
+            CHECK(item->dependencies[j] < XL6_ARTIFACT_RUNTIME_COUNT);
+            reaches[i][item->dependencies[j]] = 1;
+        }
     }
     for (unsigned k=0;k<XL6_ARTIFACT_RUNTIME_COUNT;++k)
         for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i)
@@ -30,27 +34,47 @@ static int closure_contract(void)
                 reaches[i][j] |= reaches[i][k] && reaches[k][j];
     for (unsigned a=0;a<XL6_ARTIFACT_RUNTIME_COUNT;++a)
         for (unsigned b=0;b<XL6_ARTIFACT_RUNTIME_COUNT;++b) {
-            uint64 expected=0, roots=((uint64)1u<<a)|((uint64)1u<<b);
+            XL6_ArtifactRuntimeSet expected={{0}}, roots=xl6ArtifactRuntimeSetSingleton(a);
             size_t count=0;
+            CHECK(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,b));
             for (unsigned j=0;j<XL6_ARTIFACT_RUNTIME_COUNT;++j)
-                if (reaches[a][j]||reaches[b][j]) { expected |= (uint64)1u<<j; ++count; }
-            CHECK(xl6ArtifactRuntimeClosePlan(roots,&plan));
-            CHECK(plan.roots==roots && plan.components==expected && plan.sourceCount==count);
+                if (reaches[a][j]||reaches[b][j]) {
+                    CHECK(xl6ComponentSetAdd(expected.words,XL6_ARTIFACT_RUNTIME_COUNT,j)); ++count;
+                }
+            CHECK(xl6ArtifactRuntimeClosePlan(&roots,&plan));
+            CHECK(xl6ArtifactRuntimeSetEqual(&plan.roots,&roots) &&
+                xl6ArtifactRuntimeSetEqual(&plan.components,&expected) && plan.sourceCount==count);
             for (size_t i=0;i<plan.sourceCount;++i)
                 for (size_t j=i+1;j<plan.sourceCount;++j) CHECK(strcmp(plan.sources[i],plan.sources[j]));
             for (size_t i=0;i<plan.nativeModuleCount;++i)
                 for (size_t j=i+1;j<plan.nativeModuleCount;++j) CHECK(strcmp(plan.nativeModules[i],plan.nativeModules[j]));
+            CHECK(xl6ArtifactRuntimeClosePlan(&plan.roots,&plan));
+            CHECK(xl6ArtifactRuntimeSetEqual(&plan.components,&expected));
         }
-    CHECK(xl6ArtifactRuntimeClosePlan(0,&plan) && empty_plan(&plan));
+    CHECK(xl6ArtifactRuntimeClosePlan(&empty,&plan) && empty_plan(&plan));
     memset(&plan,0xA5,sizeof(plan));
-    CHECK(!xl6ArtifactRuntimeClosePlan((uint64)1u<<63,&plan) && empty_plan(&plan));
-    CHECK(!xl6ArtifactRuntimeClosePlan(0,NULL));
+    CHECK(!xl6ArtifactRuntimeClosePlan(NULL,&plan) && empty_plan(&plan));
+    if (XL6_ARTIFACT_RUNTIME_COUNT % 64u) {
+        XL6_ArtifactRuntimeSet invalid = {{0}};
+        invalid.words[XL6_ARTIFACT_RUNTIME_WORD_COUNT-1] = UINT64_C(1) << (XL6_ARTIFACT_RUNTIME_COUNT % 64u);
+        CHECK(!xl6ArtifactRuntimeClosePlan(&invalid,&plan) && empty_plan(&plan));
+    }
+    CHECK(!xl6ArtifactRuntimeClosePlan(&empty,NULL));
     CHECK(!xl6ArtifactRuntimeComponentGet(XL6_ARTIFACT_RUNTIME_COUNT));
-    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SlotRuntimeV1Get")==XL6_ARTIFACT_BIT(SLOT));
-    CHECK(!xl6ArtifactRuntimeSymbolOwner("xl6SlotRuntimeV1GetAlmost"));
-    CHECK(!xl6ArtifactRuntimeSymbolOwner("xl6FutureLooksLikeRuntime"));
-    CHECK(!xl6ArtifactRuntimeSymbolOwner(NULL));
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SlotRuntimeV1Get")==XL6_ARTIFACT_SLOT);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SlotRuntimeV1GetAlmost")==XL6_ARTIFACT_RUNTIME_COUNT);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureLooksLikeRuntime")==XL6_ARTIFACT_RUNTIME_COUNT);
+    CHECK(xl6ArtifactRuntimeSymbolOwner(NULL)==XL6_ARTIFACT_RUNTIME_COUNT);
     return 1;
+}
+
+static void print_set(const XL6_ArtifactRuntimeSet* set)
+{
+    int comma = 0;
+    putchar('[');
+    for (size_t id=0;id<XL6_ARTIFACT_RUNTIME_COUNT;++id)
+        if (xl6ArtifactRuntimeSetHas(set,id)) { printf("%s%zu",comma?",":"",id); comma=1; }
+    putchar(']');
 }
 
 static int native_catalog_contract(void)
@@ -181,7 +205,8 @@ done:
 
 static void print_plan(const char* name, const XL6_ArtifactRuntimePlan* plan)
 {
-    printf("{\"Fixture\":\"%s\",\"Roots\":%llu,\"Components\":%llu,\"Sources\":[",name,(unsigned long long)plan->roots,(unsigned long long)plan->components);
+    printf("{\"Fixture\":\"%s\",\"Roots\":",name); print_set(&plan->roots);
+    printf(",\"Components\":"); print_set(&plan->components); printf(",\"Sources\":[");
     for (size_t i=0;i<plan->sourceCount;++i) printf("%s\"%s\"",i?",":"",plan->sources[i]);
     printf("],\"NativeModules\":[");
     for (size_t i=0;i<plan->nativeModuleCount;++i) printf("%s\"%s\"",i?",":"",plan->nativeModules[i]);
@@ -251,7 +276,9 @@ static int fixture_contract(const char* path)
         !empty_plan(&repeat) || !probe.count) ok=0;
     if (strstr(path,"cgen_basic") && !allocation_contract(&unit.ir)) ok=0;
     if (strstr(path,"xlir_artifact_linkage_literal"))
-        ok=ok && !(plan.components & (XL6_ARTIFACT_BIT(FUTURE_BRIDGE)|XL6_ARTIFACT_BIT(TASK_GROUP)|XL6_ARTIFACT_BIT(CHANNEL)));
+        ok=ok && !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_TASK_GROUP) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_CHANNEL);
     if (strstr(path,"xlir_artifact_native_linkage"))
         ok=ok && has_native_module(&plan,"XRT_MODULE_CHARSET") &&
             !has_native_module(&plan,"XRT_MODULE_MATH");
@@ -305,8 +332,11 @@ int main(int argc,char** argv)
         for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i) {
             const XL6_ArtifactRuntimeComponent* item=xl6ArtifactRuntimeComponentGet(i);
             XL6_ArtifactRuntimePlan plan;
-            if (!xl6ArtifactRuntimeClosePlan((uint64)1u<<i,&plan)) return 1;
-            printf("{\"Id\":%u,\"Source\":\"%s\",\"Dependencies\":%llu,\"Closure\":%llu}\n",i,item->source,(unsigned long long)item->dependencies,(unsigned long long)plan.components);
+            XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(i);
+            if (!xl6ArtifactRuntimeClosePlan(&roots,&plan)) return 1;
+            printf("{\"Id\":%u,\"Source\":\"%s\",\"Dependencies\":[",i,item->source);
+            for (size_t j=0;j<item->dependencyCount;++j) printf("%s%zu",j?",":"",item->dependencies[j]);
+            printf("],\"Closure\":"); print_set(&plan.components); puts("}");
         }
         return 0;
     }

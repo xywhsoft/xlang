@@ -1,7 +1,7 @@
 extern "xl6_test_native_product_i64x3" @pure @no_raise @nonblocking func nativeTriple(int64 seed = 10) as (int64, int, int64)
 auto a, b, c = nativeTriple()
 assert a == 10 and b == -17 and c == 9223372036854775807
-int64 minimum = -9223372036854775807 - 1
+int64 minimum = -9223372036854775808
 auto low, sentinel, high = nativeTriple(minimum)
 assert low == minimum and sentinel == -17 and high == 9223372036854775807
 int64 first = 0
