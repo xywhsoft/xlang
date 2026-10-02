@@ -1,0 +1,85 @@
+time epoch = time.fromDate(1970, 1, 1)
+assert epoch == time(0)
+assert time.fromDate(2000, 2, 29) == time(951782400000000)
+assert time.fromDateTime(1970, 1, 1) == epoch
+assert time.fromDateTime(1970, 1, 1, microsecond = 1, offset = 1) == time(-999999)
+assert time.fromTime(0, 0, 0, 1) == time(1)
+assert time.fromTime(12, 30, 59) == #12:30:59#
+assert time.fromUnix(-1) == time(-1000000)
+assert time.fromUnixMs(-1) == time(-1000)
+assert time.toUnix(time(-1)) == -1
+assert time.toUnixMs(time(-1)) == -1
+assert time.toUnix(time(-9223372036854775807 - 1)) == -9223372036855
+assert time.microsecond(time(-1)) == 999999
+assert time.approx(epoch, epoch)
+assert not time.approx(epoch, time(1))
+assert time.approx(epoch, time(1), uint64(1))
+assert time.approx(time(-9223372036854775807 - 1), time(9223372036854775807), uint64(18446744073709551615))
+assert time.addMicroseconds(epoch, 1) == time(1)
+assert time.addMilliseconds(epoch, 1) == time(1000)
+assert time.diffMicroseconds(time(1), time(-1)) == -2
+assert time.diffMilliseconds(epoch, time(-1999)) == -1
+assert time.addSeconds(epoch, 1) == time(1000000)
+assert time.addMinutes(epoch, 1) == time(60000000)
+assert time.addHours(epoch, 1) == time(3600000000)
+assert time.addDays(epoch, 1) == time(86400000000)
+assert time.addWeeks(epoch, 1) == time(604800000000)
+assert time.addMonths(#2024-01-31#, 1) == #2024-02-29#
+assert time.addQuarters(epoch, 1) == #1970-04-01#
+assert time.addYears(#2024-02-29#, 1) == #2025-02-28#
+assert time.diffSeconds(epoch, time.addSeconds(epoch, 1)) == 1
+assert time.diffMinutes(epoch, time.addMinutes(epoch, 1)) == 1
+assert time.diffHours(epoch, time.addHours(epoch, 1)) == 1
+assert time.diffDays(epoch, time.addDays(epoch, 1)) == 1
+assert time.diffWeeks(epoch, time.addWeeks(epoch, 1)) == 1
+assert time.diffMonths(epoch, #1971-01-01#) == 12
+assert time.diffQuarters(epoch, #1971-01-01#) == 4
+assert time.diffYears(epoch, #1971-01-01#) == 1
+auto before = time.monotonic()
+time.sleepMicroseconds(uint64(0))
+time.sleepUntil(before)
+assert time.monotonic() >= before
+assert time.now() > epoch and time.nowUTC() > epoch
+
+int caught = 0
+try
+    time.fromDate(1970, 4294967297, 1)
+catch RangeError e
+    caught += 1
+end
+try
+    time.fromDate(2023, 2, 29)
+catch RangeError e
+    caught += 1
+end
+try
+    time.fromUnix(9223372036854775807)
+catch RangeError e
+    caught += 1
+end
+try
+    time.fromUnixMs(-9223372036854775807 - 1)
+catch RangeError e
+    caught += 1
+end
+try
+    time.fromDateTime(1970, 1, 1, microsecond = 1000000)
+catch RangeError e
+    caught += 1
+end
+try
+    time.fromDateTime(1970, 1, 1, offset = 86400)
+catch RangeError e
+    caught += 1
+end
+try
+    time.addMicroseconds(time(9223372036854775807), 1)
+catch RangeError e
+    caught += 1
+end
+try
+    time.diffMicroseconds(time(-9223372036854775807 - 1), time(9223372036854775807))
+catch RangeError e
+    caught += 1
+end
+assert caught == 8

@@ -12,6 +12,21 @@
 #endif
 
 struct xlir_closure;
+XL6_TEXT_API int64_t xl6TimeFromDateTimeV1(int64_t year,int64_t month,int64_t day,int64_t hour,int64_t minute,int64_t second,int64_t microsecond,int64_t offset);
+XL6_TEXT_API int64_t xl6TimeFromDateV1(int64_t year,int64_t month,int64_t day);
+XL6_TEXT_API int64_t xl6TimeFromTimeV1(int64_t hour,int64_t minute,int64_t second,int64_t microsecond);
+XL6_TEXT_API int64_t xl6TimeFromUnixV1(int64_t seconds);
+XL6_TEXT_API int64_t xl6TimeFromUnixMsV1(int64_t milliseconds);
+XL6_TEXT_API int64_t xl6TimeUnixV1(int64_t value);
+XL6_TEXT_API int64_t xl6TimeUnixMsV1(int64_t value);
+XL6_TEXT_API int64_t xl6TimeMicrosecondV1(int64_t value);
+XL6_TEXT_API int64_t xl6TimeNowV1(void);
+XL6_TEXT_API uint64_t xl6TimeMonotonicV1(void);
+XL6_TEXT_API void xl6TimeSleepUsV1(uint64_t microseconds);
+XL6_TEXT_API void xl6TimeSleepUntilV1(uint64_t deadline);
+XL6_TEXT_API bool xl6TimeNearV1(int64_t left,int64_t right,uint64_t tolerance);
+XL6_TEXT_API int64_t xl6TimeAddV1(int64_t value,int64_t amount,int64_t unit);
+XL6_TEXT_API int64_t xl6TimeDiffV1(int64_t start,int64_t end,int64_t unit);
 XL6_TEXT_API void* xl6PatternOptionsCreateV1(xstrview separators,int64_t bytes,int64_t patterns,int64_t captures,int64_t states,int64_t compiled,int64_t size);
 XL6_TEXT_API void xl6PatternOptionsDestroyV1(void* handle);
 XL6_TEXT_API xstrview xl6PatternOptionsSeparatorsV1(void* handle);

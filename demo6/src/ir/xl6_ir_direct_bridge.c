@@ -22,6 +22,8 @@ typedef struct XL6_IrDirectBridgeContract {
      * the common xvalue* C representation. Zero preserves the array profile. */
     XL6_IrCollectionAbi resultCollectionAbi;
     unsigned char parameterDynamicBorrows[8];
+    unsigned char pure;
+    unsigned char nonblocking;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -34,6 +36,23 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define Y XL6_IR_C_ABI_MANAGED_BYTES
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
+#define M XL6_IR_C_ABI_TIME_I64
+    {"xl6TimeFromDateTimeV1",T,M,8,{I,I,I,I,I,I,I,I}},
+    {"xl6TimeFromDateV1",T,M,3,{I,I,I}},
+    {"xl6TimeFromTimeV1",T,M,4,{I,I,I,I}},
+    {"xl6TimeFromUnixV1",T,M,1,{I}},
+    {"xl6TimeFromUnixMsV1",T,M,1,{I}},
+    {"xl6TimeUnixV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
+    {"xl6TimeUnixMsV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
+    {"xl6TimeMicrosecondV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
+    {"xl6TimeNowV1",T,M,0,{0}},
+    {"xl6TimeMonotonicV1",T,U,0,{0}},
+    {"xl6TimeSleepUsV1",T,XL6_IR_C_ABI_VOID,1,{U}},
+    {"xl6TimeSleepUntilV1",T,XL6_IR_C_ABI_VOID,1,{U}},
+    {"xl6TimeNearV1",T,B,3,{M,M,U},.noRaise=1,.pure=1,.nonblocking=1},
+    {"xl6TimeAddV1",T,M,3,{M,I,I}},
+    {"xl6TimeDiffV1",T,I,3,{M,M,I}},
+#undef M
 #define XL6_NATIVE_COLLECTION_BRIDGE(Name,...) {Name,__VA_ARGS__},
 #include "src/abi/xl6_native_collection_contracts.inc"
 #undef XL6_NATIVE_COLLECTION_BRIDGE
@@ -417,8 +436,9 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     result = xl6IrTypeGet(&module->types, target->returnType);
     if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
-        if (target->effectAbi != XL6_IR_CALL_EFFECT_CONSERVATIVE ||
-            target->executionBoundaryAbi != XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK ||
+        if (target->effectAbi != (contract->pure ? XL6_IR_CALL_EFFECT_PURE : XL6_IR_CALL_EFFECT_CONSERVATIVE) ||
+            target->executionBoundaryAbi != (contract->nonblocking
+                ? XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING : XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK) ||
             !declaration || (!contract->noRaise && (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE))) return 0;
         if (contract->result == XL6_IR_C_ABI_I64 && (!result ||
             result->integerTarget != (contract->resultIntegerTarget ? contract->resultIntegerTarget

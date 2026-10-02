@@ -88,12 +88,16 @@ int main(int argc, char** argv)
         t->errorAbi = errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
         t->errorAbi = errorAbi;
-        t->effectAbi = XL6_IR_CALL_EFFECT_PURE;
+        XL6_IrCallEffectAbi effect = t->effectAbi;
+        t->effectAbi = effect == XL6_IR_CALL_EFFECT_PURE
+            ? XL6_IR_CALL_EFFECT_CONSERVATIVE : XL6_IR_CALL_EFFECT_PURE;
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
-        t->effectAbi = XL6_IR_CALL_EFFECT_CONSERVATIVE;
-        t->executionBoundaryAbi = XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING;
+        t->effectAbi = effect;
+        XL6_IrCallExecutionBoundaryAbi boundary = t->executionBoundaryAbi;
+        t->executionBoundaryAbi = boundary == XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING
+            ? XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK : XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING;
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
-        t->executionBoundaryAbi = XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK;
+        t->executionBoundaryAbi = boundary;
         t->errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
         t->errorPhysicalAbi = errorPhysicalAbi;
@@ -109,6 +113,11 @@ int main(int argc, char** argv)
         }
         for (size_t p=0; p<count; ++p) {
             XL6_IrType* scalar = &ir.types.items[t->parameterTypes[p] - 1];
+            if (scalar->cAbi == XL6_IR_C_ABI_TIME_I64) {
+                scalar->cAbi = XL6_IR_C_ABI_I64;
+                assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
+                scalar->cAbi = XL6_IR_C_ABI_TIME_I64;
+            }
             if (t->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
                 size_t arity=scalar->paramCount;scalar->paramCount=1;
                 assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir,t));scalar->paramCount=arity;

@@ -193,6 +193,19 @@ $process=Start-Process @start
                         'XRT_MODULE_REGEX_CORE'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_regex_|xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
+                }elseif($case-in@('stdlib_time_core','stdlib_time_core_only')){
+                    $selectionMatches='src/runtime/xl6_time_core.c'-in$selectedSources-and
+                        'XRT_MODULE_TIME'-in$plan.NativeModules-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(TIME_LOCAL|PATTERN|REGEX_|PROCESS)'}).Count-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_pattern_|xl6_regex_|xl6_number_|xl6_text_|xl6_encoding|xl6_unicode'}).Count
+                    $baselinePath="$outputPath/cgen_basic.native-plan.log"
+                    if(Test-Path -LiteralPath $baselinePath){
+                        $baseline=Get-Content -LiteralPath $baselinePath -TotalCount 1|ConvertFrom-Json
+                        $expectedSources=@(@($baseline.Sources)+@('src/runtime/xl6_time_core.c')|Sort-Object -Unique)
+                        $expectedModules=@(@($baseline.NativeModules)+@('XRT_MODULE_TIME','XRT_MODULE_STRING')|Sort-Object -Unique)
+                        $selectionMatches=$selectionMatches-and !(Compare-Object @($selectedSources|Sort-Object -Unique) $expectedSources)-and
+                            !(Compare-Object @($plan.NativeModules|Sort-Object -Unique) $expectedModules)
+                    }
                 }elseif($case-in@('stdlib_regex_core_only','stdlib_regex_match','stdlib_regex_errors')){
                     $selectionMatches='src/runtime/xl6_regex_core.c'-in$selectedSources-and
                         (('src/runtime/xl6_regex_match.c'-in$selectedSources)-eq($case-ne'stdlib_regex_core_only'))-and

@@ -1,0 +1,2 @@
+extern "xl6TimeFromDateV1" func bad(int year, int month, int day) as int
+bad(1970, 1, 1)

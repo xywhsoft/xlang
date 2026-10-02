@@ -4405,14 +4405,10 @@ static const char xl6StdTemplateRenderFileBody[] =
     "end\n";
 
 static const char xl6StdTimeFromDateTimeBody[] =
-    "func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0) as time\n"
-    "    return time(__xl_std_xrt_datetime_serial(year, c_int(month), c_int(day), c_int(hour), c_int(minute), c_int(second)))\n"
-    "end\n";
+    "extern \"xl6TimeFromDateTimeV1\" func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0, int microsecond = 0, int offset = 0) as time\n";
 
 static const char xl6StdTimeNowBody[] =
-    "func __xl_std_time_now() as time\n"
-    "    return time(__xl_std_xrt_now())\n"
-    "end\n";
+    "extern \"xl6TimeNowV1\" func __xl_std_time_now() as time\n";
 
 static const char xl6StdTimeTodayBody[] =
     "func __xl_std_time_today() as time\n"
@@ -4425,14 +4421,10 @@ static const char xl6StdTimeClockBody[] =
     "end\n";
 
 static const char xl6StdTimeFromTimeBody[] =
-    "func __xl_std_time_from_time(int hour, int minute, int second) as time\n"
-    "    return time(__xl_std_xrt_time_serial(c_int(hour), c_int(minute), c_int(second)))\n"
-    "end\n";
+    "extern \"xl6TimeFromTimeV1\" func __xl_std_time_from_time(int hour, int minute, int second, int microsecond = 0) as time\n";
 
 static const char xl6StdTimeFromDateBody[] =
-    "func __xl_std_time_from_date(int year, int month, int day) as time\n"
-    "    return time(__xl_std_xrt_date_serial(year, c_int(month), c_int(day)))\n"
-    "end\n";
+    "extern \"xl6TimeFromDateV1\" func __xl_std_time_from_date(int year, int month, int day) as time\n";
 
 static const char xl6StdTimeParseBody[] =
     "func __xl_std_time_parse(string text) as time\n"
@@ -4552,82 +4544,82 @@ static const char xl6StdTimeInRangeBody[] =
 
 static const char xl6StdTimeAddYearsBody[] =
     "func __xl_std_time_add_years(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(1, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 9)\n"
     "end\n";
 
 static const char xl6StdTimeAddMonthsBody[] =
     "func __xl_std_time_add_months(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(2, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 7)\n"
     "end\n";
 
 static const char xl6StdTimeAddDaysBody[] =
     "func __xl_std_time_add_days(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(3, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 5)\n"
     "end\n";
 
 static const char xl6StdTimeAddHoursBody[] =
     "func __xl_std_time_add_hours(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(4, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 4)\n"
     "end\n";
 
 static const char xl6StdTimeAddMinutesBody[] =
     "func __xl_std_time_add_minutes(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(5, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 3)\n"
     "end\n";
 
 static const char xl6StdTimeAddSecondsBody[] =
     "func __xl_std_time_add_seconds(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(6, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 2)\n"
     "end\n";
 
 static const char xl6StdTimeAddWeeksBody[] =
     "func __xl_std_time_add_weeks(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(7, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 6)\n"
     "end\n";
 
 static const char xl6StdTimeAddQuartersBody[] =
     "func __xl_std_time_add_quarters(time value, int amount) as time\n"
-    "    return time(__xl_std_xrt_date_add(8, amount, int(value)))\n"
+    "    return __xl_std_xrt_date_add(value, amount, 8)\n"
     "end\n";
 
 static const char xl6StdTimeDiffYearsBody[] =
     "func __xl_std_time_diff_years(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(1, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 9)\n"
     "end\n";
 
 static const char xl6StdTimeDiffMonthsBody[] =
     "func __xl_std_time_diff_months(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(2, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 7)\n"
     "end\n";
 
 static const char xl6StdTimeDiffDaysBody[] =
     "func __xl_std_time_diff_days(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(3, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 5)\n"
     "end\n";
 
 static const char xl6StdTimeDiffHoursBody[] =
     "func __xl_std_time_diff_hours(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(4, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 4)\n"
     "end\n";
 
 static const char xl6StdTimeDiffMinutesBody[] =
     "func __xl_std_time_diff_minutes(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(5, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 3)\n"
     "end\n";
 
 static const char xl6StdTimeDiffSecondsBody[] =
     "func __xl_std_time_diff_seconds(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(6, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 2)\n"
     "end\n";
 
 static const char xl6StdTimeDiffWeeksBody[] =
     "func __xl_std_time_diff_weeks(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(7, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 6)\n"
     "end\n";
 
 static const char xl6StdTimeDiffQuartersBody[] =
     "func __xl_std_time_diff_quarters(time left, time right) as int\n"
-    "    return __xl_std_xrt_date_diff(8, int(left), int(right))\n"
+    "    return __xl_std_xrt_date_diff(left, right, 8)\n"
     "end\n";
 
 static const char xl6StdTimeTimerBody[] =
@@ -4641,9 +4633,7 @@ static const char xl6StdTimeSleepBody[] =
     "end\n";
 
 static const char xl6StdTimeNowUtcBody[] =
-    "func __xl_std_time_now_utc() as time\n"
-    "    return time(__xl_std_xrt_now_utc())\n"
-    "end\n";
+    "extern \"xl6TimeNowV1\" func __xl_std_time_now_utc() as time\n";
 
 static const char xl6StdTimeTimezoneOffsetBody[] =
     "func __xl_std_time_timezone_offset() as int\n"
@@ -4656,18 +4646,41 @@ static const char xl6StdTimeRangeOverlapBody[] =
     "end\n";
 
 static const char xl6StdTimeApproxBody[] =
-    "func __xl_std_time_approx(time left, time right) as bool\n"
-    "    return __xl_std_xrt_time_approx(int(left), int(right))\n"
-    "end\n";
+    "extern \"xl6TimeNearV1\" @pure @no_raise @nonblocking func __xl_std_time_approx(time left, time right, uint64 tolerance = 0) as bool\n";
 
 static const char xl6StdTimeToUnixBody[] =
-    "func __xl_std_time_to_unix(time value) as int\n"
-    "    return __xl_std_xrt_time_to_unix(int(value))\n"
-    "end\n";
+    "extern \"xl6TimeUnixV1\" @pure @no_raise @nonblocking func __xl_std_time_to_unix(time value) as int\n";
 
 static const char xl6StdTimeFromUnixBody[] =
-    "func __xl_std_time_from_unix(int seconds) as time\n"
-    "    return time(__xl_std_xrt_time_from_unix(seconds))\n"
+    "extern \"xl6TimeFromUnixV1\" func __xl_std_time_from_unix(int seconds) as time\n";
+
+static const char xl6StdTimeFromUnixMsBody[] =
+    "extern \"xl6TimeFromUnixMsV1\" func __xl_std_time_from_unix_ms(int milliseconds) as time\n";
+static const char xl6StdTimeToUnixMsBody[] =
+    "extern \"xl6TimeUnixMsV1\" @pure @no_raise @nonblocking func __xl_std_time_to_unix_ms(time value) as int\n";
+static const char xl6StdTimeMicrosecondBody[] =
+    "extern \"xl6TimeMicrosecondV1\" @pure @no_raise @nonblocking func __xl_std_time_microsecond(time value) as int\n";
+static const char xl6StdTimeMonotonicBody[] =
+    "extern \"xl6TimeMonotonicV1\" func __xl_std_time_monotonic() as uint64\n";
+static const char xl6StdTimeSleepUsBody[] =
+    "extern \"xl6TimeSleepUsV1\" func __xl_std_time_sleep_us(uint64 microseconds)\n";
+static const char xl6StdTimeSleepUntilBody[] =
+    "extern \"xl6TimeSleepUntilV1\" func __xl_std_time_sleep_until(uint64 deadline)\n";
+static const char xl6StdTimeAddUsBody[] =
+    "func __xl_std_time_add_us(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 0)\n"
+    "end\n";
+static const char xl6StdTimeAddMsBody[] =
+    "func __xl_std_time_add_ms(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 1)\n"
+    "end\n";
+static const char xl6StdTimeDiffUsBody[] =
+    "func __xl_std_time_diff_us(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 0)\n"
+    "end\n";
+static const char xl6StdTimeDiffMsBody[] =
+    "func __xl_std_time_diff_ms(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 1)\n"
     "end\n";
 
 static const char xl6StdTimeUtcToLocalBody[] =
@@ -6580,8 +6593,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_string", "padCenter", "__xl_std_xrt_string_pad_center", "xl6_xrt_string_pad_center", xl6StdXrtStringPadParams, 3, "point", NULL},
     {"__xrt_string", "reverse", "__xl_std_xrt_string_reverse", "xl6_xrt_string_reverse", xl6StdXrtStringSizeParams, 1, "point", NULL},
     {"__xrt_math", "sign", "__xl_std_xrt_math_sign", "xrtMathSign", xl6StdMathUnaryFloatParams, 1, "c_int", NULL},
-    {"__xrt_time", "dateAdd", "__xl_std_xrt_date_add", "xl6_xrt_time_add", xl6StdXrtDateAddParams, 3, "int", NULL},
-    {"__xrt_time", "dateDiff", "__xl_std_xrt_date_diff", "xl6_xrt_time_diff", xl6StdXrtDateDiffParams, 3, "int", NULL},
+    {"__xrt_time", "dateAdd", "__xl_std_xrt_date_add", NULL, NULL, 0, "time", "extern \"xl6TimeAddV1\" func __xl_std_xrt_date_add(time value, int amount, int unit) as time\n"},
+    {"__xrt_time", "dateDiff", "__xl_std_xrt_date_diff", NULL, NULL, 0, "int", "extern \"xl6TimeDiffV1\" func __xl_std_xrt_date_diff(time left, time right, int unit) as int\n"},
     {"__xrt_time", "strToTime", "__xl_std_xrt_str_to_time", "xl6_xrt_time_parse_any_value", xl6StdXrtStrToTimeParams, 2, "int", NULL},
     {"__xrt_time", "tryStrToTime", "__xl_std_xrt_try_str_to_time", "xl6_xrt_time_parse_any_try", xl6StdXrtTryStrToTimeParams, 3, "c_bool", NULL},
     {"__xrt_time", "timeToStr", "__xl_std_xrt_time_to_str", "xl6_xrt_time_string_owned", xl6StdXrtTimeToStrParams, 2, "point", NULL},
@@ -7036,6 +7049,16 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "approx", "__xl_std_time_approx", NULL, NULL, 0, "bool", xl6StdTimeApproxBody},
     {"time", "toUnix", "__xl_std_time_to_unix", NULL, NULL, 0, "int", xl6StdTimeToUnixBody},
     {"time", "fromUnix", "__xl_std_time_from_unix", NULL, NULL, 0, "time", xl6StdTimeFromUnixBody},
+    {"time", "fromUnixMs", "__xl_std_time_from_unix_ms", NULL, NULL, 0, "time", xl6StdTimeFromUnixMsBody},
+    {"time", "toUnixMs", "__xl_std_time_to_unix_ms", NULL, NULL, 0, "int", xl6StdTimeToUnixMsBody},
+    {"time", "microsecond", "__xl_std_time_microsecond", NULL, NULL, 0, "int", xl6StdTimeMicrosecondBody},
+    {"time", "monotonic", "__xl_std_time_monotonic", NULL, NULL, 0, "uint64", xl6StdTimeMonotonicBody},
+    {"time", "sleepMicroseconds", "__xl_std_time_sleep_us", NULL, NULL, 0, "", xl6StdTimeSleepUsBody},
+    {"time", "sleepUntil", "__xl_std_time_sleep_until", NULL, NULL, 0, "", xl6StdTimeSleepUntilBody},
+    {"time", "addMicroseconds", "__xl_std_time_add_us", NULL, NULL, 0, "time", xl6StdTimeAddUsBody},
+    {"time", "addMilliseconds", "__xl_std_time_add_ms", NULL, NULL, 0, "time", xl6StdTimeAddMsBody},
+    {"time", "diffMicroseconds", "__xl_std_time_diff_us", NULL, NULL, 0, "int", xl6StdTimeDiffUsBody},
+    {"time", "diffMilliseconds", "__xl_std_time_diff_ms", NULL, NULL, 0, "int", xl6StdTimeDiffMsBody},
     {"time", "utcToLocal", "__xl_std_time_utc_to_local", NULL, NULL, 0, "time", xl6StdTimeUtcToLocalBody},
     {"time", "localToUTC", "__xl_std_time_local_to_utc", NULL, NULL, 0, "time", xl6StdTimeLocalToUtcBody},
     {"time", "firstDayOfMonth", "__xl_std_time_first_day_of_month", NULL, NULL, 0, "time", xl6StdTimeFirstDayOfMonthBody},
