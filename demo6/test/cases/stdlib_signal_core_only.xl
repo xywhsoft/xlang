@@ -1,0 +1,6 @@
+assert signal.supported(signal.INT)
+assert signal.name(signal.INT) == "INT"
+uint64 total = signal.count()
+assert total == 0 and signal.healthy()
+signal.clear()
+signal.reset()

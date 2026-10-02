@@ -1,0 +1,62 @@
+// This fixture runs in a private process. Never raise an unhandled signal.
+signal.clear()
+assert signal.supported(signal.INT) and signal.supported(signal.TERM)
+assert signal.name(0) == "UNKNOWN"
+assert signal.name(signal.INT) == "INT" and signal.name(signal.TERM) == "TERM"
+assert signal.name(signal.HUP) == "HUP" and signal.name(signal.BREAK) == "BREAK"
+assert signal.name(signal.CLOSE) == "CLOSE"
+assert signal.name(signal.LOGOFF) == "LOGOFF"
+assert signal.name(signal.SHUTDOWN) == "SHUTDOWN"
+assert not signal.supported(4294967298)
+assert signal.name(4294967298) == "UNKNOWN"
+assert not signal.supported(-9223372036854775807 - 1)
+assert signal.name(9223372036854775807) == "UNKNOWN"
+uint64 total = signal.count()
+assert total == 0 and signal.count(signal.INT) == 0
+assert not signal.received(signal.INT) and signal.healthy()
+
+int caught = 0
+try
+    signal.raise(4294967298)
+catch RangeError e
+    caught += 1
+end
+try
+    signal.ignore(-9223372036854775807 - 1)
+catch RangeError e
+    caught += 1
+end
+try
+    signal.restore(9223372036854775807)
+catch RangeError e
+    caught += 1
+end
+try
+    signal.count(4294967298)
+catch RangeError e
+    caught += 1
+end
+try
+    signal.received(4294967298)
+catch RangeError e
+    caught += 1
+end
+try
+    signal.clear(4294967298)
+catch RangeError e
+    caught += 1
+end
+assert caught == 6
+
+assert signal.ignore(signal.INT)
+try
+    assert signal.raise(signal.INT)
+    assert signal.count(signal.INT) == 0 and not signal.received(signal.INT)
+finally
+    assert signal.restore(signal.INT)
+end
+assert signal.restoreAll()
+signal.clear(signal.INT)
+signal.reset()
+signal.reset()
+assert signal.healthy() and signal.count() == 0

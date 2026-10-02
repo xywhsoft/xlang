@@ -42,6 +42,16 @@ real native OOM and concurrent whole snapshots. Its three actual generated
 program/native/resident closures use ASan/UBSan/leak detection. External native
 writers require synchronization; libc/OS allocations are outside XRT failpoints.
 
+B20a signal scalar gates: `check_stdlib_signal_core.ps1` shares the immutable
+PublicSourceDirectory and needs a fresh Directory; Linux uses
+`check_stdlib_signal_core.sh <fresh-directory>`. They cover eleven checked
+bridges, uint64 totals, enum narrowing, owned names, real native OOM and
+restoration of original dispositions. Native watch witnesses verify waiting
+for callback retirement and dispatcher restart; only ignored/watched INT is
+raised in private processes. Linux sanitizes the native adapter and two actual
+generated-program/native/resident closures. This does not accept xlang signal
+callbacks, channel/cancellation routes or the full signal/53-module surface.
+
 Parser source-differential mode additionally requires
 BaselineGeneratedParser, so the old API adapter is never linked to current
 generated parser tables and mistaken for an independent baseline.

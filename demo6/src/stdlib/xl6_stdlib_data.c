@@ -3031,10 +3031,6 @@ static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
     {"int", "level"}
 };
 
-static const XL6_StdlibParam xl6StdRuntimeSignalCodeParams[] = {
-    {"int", "code"}
-};
-
 static const XL6_StdlibParam xl6StdRuntimeSignalOn0Params[] = {
     {"int", "code"},
     {"func()", "handler"},
@@ -4286,44 +4282,37 @@ static const char xl6StdSignalOnce1Body[] =
     "end\n";
 
 static const char xl6StdSignalSupportedBody[] =
-    "func __xl_std_signal_supported(int code) as bool\n"
-    "    return __xl_std_runtime_signal_supported(code)\n"
-    "end\n";
+    "extern \"xl6SignalSupportedV1\" func __xl_std_signal_supported(int code) as bool\n";
 
 static const char xl6StdSignalNameBody[] =
-    "func __xl_std_signal_name(int code) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_signal_name(code))\n"
-    "end\n";
+    "extern \"xl6SignalNameV1\" func __xl_std_signal_name(int code) as string\n";
+
+static const char xl6StdSignalIgnoreBody[] =
+    "extern \"xl6SignalIgnoreV1\" func __xl_std_signal_ignore(int code) as bool\n";
 
 static const char xl6StdSignalRestoreBody[] =
-    "func __xl_std_signal_restore(int code) as bool\n"
-    "    return __xl_std_runtime_signal_restore(code)\n"
-    "end\n";
+    "extern \"xl6SignalRestoreV1\" func __xl_std_signal_restore(int code) as bool\n";
+
+static const char xl6StdSignalRestoreAllBody[] =
+    "extern \"xl6SignalRestoreAllV1\" func __xl_std_signal_restore_all() as bool\n";
+
+static const char xl6StdSignalHealthyBody[] =
+    "extern \"xl6SignalHealthyV1\" func __xl_std_signal_healthy() as bool\n";
 
 static const char xl6StdSignalResetBody[] =
-    "func __xl_std_signal_reset()\n"
-    "    __xl_std_runtime_signal_reset()\n"
-    "end\n";
+    "extern \"xl6SignalResetV1\" func __xl_std_signal_reset()\n";
 
 static const char xl6StdSignalRaiseBody[] =
-    "func __xl_std_signal_raise(int code) as bool\n"
-    "    return __xl_std_runtime_signal_raise(code)\n"
-    "end\n";
+    "extern \"xl6SignalRaiseV1\" func __xl_std_signal_raise(int code) as bool\n";
 
 static const char xl6StdSignalCountBody[] =
-    "func __xl_std_signal_count(int code = 0) as int\n"
-    "    return __xl_std_runtime_signal_count(code)\n"
-    "end\n";
+    "extern \"xl6SignalCountV1\" func __xl_std_signal_count(int code = 0) as uint64\n";
 
 static const char xl6StdSignalReceivedBody[] =
-    "func __xl_std_signal_received(int code) as bool\n"
-    "    return __xl_std_runtime_signal_received(code)\n"
-    "end\n";
+    "extern \"xl6SignalReceivedV1\" func __xl_std_signal_received(int code) as bool\n";
 
 static const char xl6StdSignalClearBody[] =
-    "func __xl_std_signal_clear(int code = 0)\n"
-    "    __xl_std_runtime_signal_clear(code)\n"
-    "end\n";
+    "extern \"xl6SignalClearV1\" func __xl_std_signal_clear(int code = 0)\n";
 
 static const char xl6StdSignalSendToBody[] =
     "func __xl_std_signal_send_to(channel<var> ch, int code) as SignalHandle\n"
@@ -6428,14 +6417,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "signalOn0", "__xl_std_runtime_signal_on0", "xl6_xrt_signal_on0", xl6StdRuntimeSignalOn0Params, 3, "point", NULL},
     {"__xl_runtime", "signalOn1", "__xl_std_runtime_signal_on1", "xl6_xrt_signal_on1", xl6StdRuntimeSignalOn1Params, 3, "point", NULL},
     {"__xl_runtime", "signalSendTo", "__xl_std_runtime_signal_send_to", "xl6_xrt_signal_send_to", xl6StdRuntimeSignalSendToParams, 2, "point", NULL},
-    {"__xl_runtime", "signalSupported", "__xl_std_runtime_signal_supported", "xl6_xrt_signal_supported", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
-    {"__xl_runtime", "signalName", "__xl_std_runtime_signal_name", "xl6_xrt_signal_name", xl6StdRuntimeSignalCodeParams, 1, "point", NULL},
-    {"__xl_runtime", "signalRestore", "__xl_std_runtime_signal_restore", "xl6_xrt_signal_restore", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
-    {"__xl_runtime", "signalReset", "__xl_std_runtime_signal_reset", "xl6_xrt_signal_reset", NULL, 0, "", NULL},
-    {"__xl_runtime", "signalRaise", "__xl_std_runtime_signal_raise", "xl6_xrt_signal_raise", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
-    {"__xl_runtime", "signalCount", "__xl_std_runtime_signal_count", "xl6_xrt_signal_count", xl6StdRuntimeSignalCodeParams, 1, "int", NULL},
-    {"__xl_runtime", "signalReceived", "__xl_std_runtime_signal_received", "xl6_xrt_signal_received", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
-    {"__xl_runtime", "signalClear", "__xl_std_runtime_signal_clear", "xl6_xrt_signal_clear", xl6StdRuntimeSignalCodeParams, 1, "", NULL},
 
 
 
@@ -7341,14 +7322,17 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"signal", "on", "__xl_std_signal_on", NULL, xl6StdSignalOn1Params, 2, "SignalHandle", xl6StdSignalOn1Body},
     {"signal", "once", "__xl_std_signal_once", NULL, xl6StdSignalOn0Params, 2, "SignalHandle", xl6StdSignalOnce0Body},
     {"signal", "once", "__xl_std_signal_once", NULL, xl6StdSignalOn1Params, 2, "SignalHandle", xl6StdSignalOnce1Body},
-    {"signal", "supported", "__xl_std_signal_supported", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalSupportedBody},
-    {"signal", "name", "__xl_std_signal_name", NULL, xl6StdRuntimeSignalCodeParams, 1, "string", xl6StdSignalNameBody},
-    {"signal", "restore", "__xl_std_signal_restore", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalRestoreBody},
+    {"signal", "supported", "__xl_std_signal_supported", NULL, NULL, 0, "bool", xl6StdSignalSupportedBody},
+    {"signal", "name", "__xl_std_signal_name", NULL, NULL, 0, "string", xl6StdSignalNameBody},
+    {"signal", "ignore", "__xl_std_signal_ignore", NULL, NULL, 0, "bool", xl6StdSignalIgnoreBody},
+    {"signal", "restore", "__xl_std_signal_restore", NULL, NULL, 0, "bool", xl6StdSignalRestoreBody},
+    {"signal", "restoreAll", "__xl_std_signal_restore_all", NULL, NULL, 0, "bool", xl6StdSignalRestoreAllBody},
+    {"signal", "healthy", "__xl_std_signal_healthy", NULL, NULL, 0, "bool", xl6StdSignalHealthyBody},
     {"signal", "reset", "__xl_std_signal_reset", NULL, NULL, 0, "", xl6StdSignalResetBody},
-    {"signal", "raise", "__xl_std_signal_raise", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalRaiseBody},
-    {"signal", "count", "__xl_std_signal_count", NULL, xl6StdRuntimeSignalCodeParams, 1, "int", xl6StdSignalCountBody},
-    {"signal", "received", "__xl_std_signal_received", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalReceivedBody},
-    {"signal", "clear", "__xl_std_signal_clear", NULL, xl6StdRuntimeSignalCodeParams, 1, "", xl6StdSignalClearBody},
+    {"signal", "raise", "__xl_std_signal_raise", NULL, NULL, 0, "bool", xl6StdSignalRaiseBody},
+    {"signal", "count", "__xl_std_signal_count", NULL, NULL, 0, "uint64", xl6StdSignalCountBody},
+    {"signal", "received", "__xl_std_signal_received", NULL, NULL, 0, "bool", xl6StdSignalReceivedBody},
+    {"signal", "clear", "__xl_std_signal_clear", NULL, NULL, 0, "", xl6StdSignalClearBody},
     {"signal", "sendTo", "__xl_std_signal_send_to", NULL, xl6StdSignalSendToParams, 2, "SignalHandle", xl6StdSignalSendToBody},
     {"signal", "cancelOn", "__xl_std_signal_cancel_on", NULL, xl6StdSignalCancelOnParams, 2, "SignalHandle", xl6StdSignalCancelOnBody},
 

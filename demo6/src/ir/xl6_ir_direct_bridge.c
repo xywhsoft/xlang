@@ -37,6 +37,17 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    {"xl6SignalSupportedV1",T,B,1,{I}},
+    {"xl6SignalNameV1",T,S,1,{I}},
+    {"xl6SignalIgnoreV1",T,B,1,{I}},
+    {"xl6SignalRestoreV1",T,B,1,{I}},
+    {"xl6SignalRestoreAllV1",T,B,0,{0}},
+    {"xl6SignalRaiseV1",T,B,1,{I}},
+    {"xl6SignalCountV1",T,U,1,{I}},
+    {"xl6SignalReceivedV1",T,B,1,{I}},
+    {"xl6SignalClearV1",T,XL6_IR_C_ABI_VOID,1,{I}},
+    {"xl6SignalHealthyV1",T,B,0,{0}},
+    {"xl6SignalResetV1",T,XL6_IR_C_ABI_VOID,0,{0}},
     {"xl6EnvGetV1",T,S,2,{S,I},.nullableResult=1},
     {"xl6EnvHasV1",T,B,2,{S,I}},
     {"xl6EnvSetV1",T,XL6_IR_C_ABI_VOID,4,{S,S,I,I}},

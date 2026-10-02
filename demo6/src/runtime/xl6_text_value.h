@@ -12,6 +12,20 @@
 #endif
 
 struct xlir_closure;
+/* Scalar signal foundation only. These are checked calls: lazy native
+ * initialization can fail; restore/shutdown can wait for native callbacks.
+ * name owns its exact result; count retains the unsigned native total. */
+XL6_TEXT_API bool xl6SignalSupportedV1(int64_t code);
+XL6_TEXT_API xstrview xl6SignalNameV1(int64_t code);
+XL6_TEXT_API bool xl6SignalIgnoreV1(int64_t code);
+XL6_TEXT_API bool xl6SignalRestoreV1(int64_t code);
+XL6_TEXT_API bool xl6SignalRestoreAllV1(void);
+XL6_TEXT_API bool xl6SignalRaiseV1(int64_t code);
+XL6_TEXT_API uint64_t xl6SignalCountV1(int64_t code);
+XL6_TEXT_API bool xl6SignalReceivedV1(int64_t code);
+XL6_TEXT_API void xl6SignalClearV1(int64_t code);
+XL6_TEXT_API bool xl6SignalHealthyV1(void);
+XL6_TEXT_API void xl6SignalResetV1(void);
 XL6_TEXT_API xstrview xl6EnvGetV1(xstrview name, int64_t size);
 XL6_TEXT_API bool xl6EnvHasV1(xstrview name, int64_t size);
 XL6_TEXT_API void xl6EnvSetV1(xstrview name, xstrview value, int64_t nameSize, int64_t valueSize);
