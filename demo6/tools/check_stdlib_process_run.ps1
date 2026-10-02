@@ -21,7 +21,8 @@ try {
     $negatives+=@('xlir_process_open_bad_width','xlir_process_open_bad_effect','xlir_process_terminal_bad_pure')
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
-        'test/cases/xlir_time_text_closure_host.c','tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
+        'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
+        'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
@@ -46,6 +47,9 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
+        $null=Check 'io-loan-build' gcc ($flags+@('test/cases/xlir_process_io_loan.c')+$libs+@('-o',"$work/io-loan.exe"))
+        $loan=Check 'io-loan' "$work/io-loan.exe" @()
+        if($loan-notmatch 'process IO loan: 3 deterministic close races, 8 failure guards, short/EOF/zero/peer guards, balanced; safe=1'){throw 'Process IO retirement witness missing'}
         $null=Check 'native-build' gcc ($flags+@('test/cases/xlir_process_run_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_run.c','src/runtime/xl6_process_status.c')+$libs+@('-o',"$work/native.exe"))
         $native=Check 'native' "$work/native.exe" @($child)
         foreach($witness in @('3 first no-hit completions, balanced','13 owner guards','projection OOM retry','concurrent cancellation and absolute deadline','native run complete prefix: [0-9]+ failures and 1 first no-hit, balanced')){if($native-notmatch$witness){throw 'Process native witness missing'}}
