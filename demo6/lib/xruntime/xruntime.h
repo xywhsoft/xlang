@@ -42175,7 +42175,10 @@ XRT_EXTERN_C_END
 
 
 
-/* 零值永远不是有效的 Builder 条目句柄。 */
+/*
+	零值永远不是有效的 Builder 条目句柄。ID 只在创建它的 Builder 内有效；
+	不同 Builder 的数字 ID 可以相同，跨实例使用须另外携带实例身份。
+*/
 typedef uint64 xpatternid;
 
 #define XPATTERN_ID_INVALID ((xpatternid)0)
@@ -42250,6 +42253,11 @@ typedef struct xpattern xpattern;
 
 /* Builder 可变且不保证并发安全；成功编译不会清空其中的模式。 */
 typedef struct xpatternbuilder xpatternbuilder;
+
+
+
+/* 尚未提交的独占编辑；准备阶段拥有解析结果，提交阶段不分配内存。 */
+typedef struct xpatternedit xpatternedit;
 
 
 
@@ -42529,6 +42537,69 @@ XRT_API bool xrtPatternBuilderRemove(
 	也不会撤销 Builder 中等待修正的修改。
 */
 XRT_API xpattern* xrtPatternBuilderCompile(xpatternbuilder* pBuilder);
+
+
+
+/* 判断 ID 是否仍为此 Builder 的活动条目；陈旧 ID 返回 false，不设置错误。 */
+XRT_API bool xrtPatternBuilderContains(const xpatternbuilder* pBuilder, xpatternid Id);
+
+
+
+/*
+	准备原子追加。复制/解析、预留槽和 ID 均在此阶段完成；失败不改变条目、
+	版本、Dirty 或缓存（物理容量可增长）。成功后其他结构修改被拒绝，
+	直至 Commit/Free。调用方可先准备关联元数据，再无分配提交。
+*/
+XRT_API xpatternedit* xrtPatternBuilderPrepareAdd(
+	xpatternbuilder* pBuilder, const xpatternspec* arrSpec, size_t iCount
+);
+
+
+
+/* 准备保留 ID/注册顺序的替换；无效或陈旧 ID 报 StateError。 */
+XRT_API xpatternedit* xrtPatternBuilderPrepareSet(
+	xpatternbuilder* pBuilder, xpatternid Id, const xpatternspec* pSpec
+);
+
+
+
+/* 准备删除；无效/陈旧 ID 或代际耗尽报 StateError，保持原状态不变。 */
+XRT_API xpatternedit* xrtPatternBuilderPrepareRemove(xpatternbuilder* pBuilder, xpatternid Id);
+
+
+
+/* 准备清空；版本或代际耗尽报 StateError，空 Builder 的提交不增加版本。 */
+XRT_API xpatternedit* xrtPatternBuilderPrepareClear(xpatternbuilder* pBuilder);
+
+
+
+/* 取消未提交的编辑并释放资源；已提交编辑仅释放元数据；NULL 安全。 */
+XRT_API void xrtPatternEditFree(xpatternedit* pEdit);
+
+
+
+/* 是否仍可提交；NULL、已提交或所属 Builder 已释放均返回 false，不设置错误。 */
+XRT_API bool xrtPatternEditReady(const xpatternedit* pEdit);
+
+
+
+/* 返回编辑的 ID 个数：Add 为批量长度，Set/Remove 为 1，Clear 为 0。 */
+XRT_API size_t xrtPatternEditCount(const xpatternedit* pEdit);
+
+
+
+/* 返回准备时确定的 ID，提交后仍可查询；越界报 RangeError。 */
+XRT_API xpatternid xrtPatternEditId(const xpatternedit* pEdit, size_t iIndex);
+
+
+
+/*
+	有效且串行使用的编辑提交不分配、不失败；提交后不可重复提交。
+	已提交或所属 Builder 已释放时报 StateError。释放 Builder 自动使编辑
+	失效，但不释放调用方拥有的编辑，仍须 EditFree。整个 Builder/edit 家族
+	须由调用方串行使用；这里不提供跨线程事务或回滚外部副作用。
+*/
+XRT_API bool xrtPatternEditCommit(xpatternedit* pEdit);
 
 
 
@@ -66068,6 +66139,28 @@ struct xpatternbuilder {
 	uint64 Version;
 	uint64 CompiledVersion;
 	xpattern* Cached;
+	xpatternedit* Pending;
+};
+
+
+
+typedef enum __xrt_pattern_edit_kind {
+	__XRT_PATTERN_EDIT_ADD,
+	__XRT_PATTERN_EDIT_SET,
+	__XRT_PATTERN_EDIT_REMOVE,
+	__XRT_PATTERN_EDIT_CLEAR
+} __xrt_pattern_edit_kind;
+
+typedef struct __xrt_pattern_edit_item {
+	__xrt_pattern_source* Source;
+	xpatternid Id;
+} __xrt_pattern_edit_item;
+
+struct xpatternedit {
+	xpatternbuilder* Builder;
+	__xrt_pattern_edit_kind Kind;
+	size_t Count;
+	__xrt_pattern_edit_item Items[];
 };
 
 
@@ -321995,6 +322088,10 @@ XRT_API bool xrtPatternErrorPattern(
 
 #if defined(XRT_FEATURE_PATTERN)
 
+static xpatternedit* __xrtPatternBuilderPrepareAdd(
+	xpatternbuilder* pBuilder, const xpatternspec* arrSpec, size_t iCount, cstr sOperation
+);
+
 /* 将槽下标与非零代际编码为公开稳定 ID。 */
 static xpatternid __xrtPatternBuilderId(size_t iIndex, uint32 iGeneration)
 {
@@ -322007,7 +322104,7 @@ static xpatternid __xrtPatternBuilderId(size_t iIndex, uint32 iGeneration)
 
 /* 解析 ID 并验证其仍指向活动槽。 */
 static __xrt_pattern_builder_slot* __xrtPatternBuilderSlot(
-	xpatternbuilder* pBuilder,
+	const xpatternbuilder* pBuilder,
 	xpatternid Id,
 	size_t* pIndex
 )
@@ -322039,7 +322136,7 @@ static __xrt_pattern_builder_slot* __xrtPatternBuilderSlot(
 /* 在修改前保留版本单调性，避免溢出后 Dirty 状态产生歧义。 */
 static bool __xrtPatternBuilderCanModify(xpatternbuilder* pBuilder)
 {
-	if ( pBuilder->Version == UINT64_MAX ) {
+	if ( (pBuilder->Pending != NULL) || (pBuilder->Version == UINT64_MAX) ) {
 		__xrtPatternSetInvalidState();
 		return false;
 	}
@@ -322170,6 +322267,10 @@ XRT_API void xrtPatternBuilderFree(xpatternbuilder* pBuilder)
 	if ( pBuilder == NULL ) {
 		return;
 	}
+	if ( pBuilder->Pending != NULL ) {
+		pBuilder->Pending->Builder = NULL;
+		pBuilder->Pending = NULL;
+	}
 	for ( size_t i = 0; i < pBuilder->SlotCount; i++ ) {
 		__xrtPatternSourceFree(pBuilder->Slots[i].Source);
 	}
@@ -322180,35 +322281,58 @@ XRT_API void xrtPatternBuilderFree(xpatternbuilder* pBuilder)
 
 
 
-XRT_API void xrtPatternBuilderClear(xpatternbuilder* pBuilder)
+static bool __xrtPatternBuilderClearAllowed(xpatternbuilder* pBuilder)
+{
+	if ( !__xrtPatternBuilderCanModify(pBuilder) ) {
+		return false;
+	}
+	/* 代际不能回绕，清空必须在释放任何源之前完成全量预检。 */
+	for ( size_t i = 0; i < pBuilder->SlotCount; i++ ) {
+		if ( pBuilder->Slots[i].Generation == UINT32_MAX ) {
+			__xrtPatternSetInvalidState();
+			return false;
+		}
+	}
+	return true;
+}
+
+
+
+static void __xrtPatternBuilderClearValid(xpatternbuilder* pBuilder)
 {
 	uint32 iFree = __XRT_PATTERN_SLOT_NONE;
-
-	if ( pBuilder == NULL ) {
-		__xrtPatternSetInvalidArgument();
-		return;
-	}
-	if ( pBuilder->Count == 0 ) {
-		return;
-	}
-	if ( !__xrtPatternBuilderCanModify(pBuilder) ) {
-		return;
-	}
 	for ( size_t i = pBuilder->SlotCount; i != 0; i-- ) {
 		__xrt_pattern_builder_slot* pSlot = &pBuilder->Slots[i - 1u];
 
 		__xrtPatternSourceFree(pSlot->Source);
 		pSlot->Source = NULL;
 		pSlot->Generation++;
-		if ( pSlot->Generation == 0 ) {
-			pSlot->Generation = 1u;
-		}
 		pSlot->NextFree = iFree;
 		iFree = (uint32)(i - 1u);
 	}
 	pBuilder->FreeSlot = iFree;
 	pBuilder->Count = 0;
 	pBuilder->Version++;
+}
+
+
+
+XRT_API void xrtPatternBuilderClear(xpatternbuilder* pBuilder)
+{
+	if ( pBuilder == NULL ) {
+		__xrtPatternSetInvalidArgument();
+		return;
+	}
+	if ( pBuilder->Pending != NULL ) {
+		__xrtPatternSetInvalidState();
+		return;
+	}
+	if ( pBuilder->Count == 0 ) {
+		return;
+	}
+	if ( __xrtPatternBuilderClearAllowed(pBuilder) ) {
+		__xrtPatternBuilderClearValid(pBuilder);
+	}
 }
 
 
@@ -322220,6 +322344,10 @@ XRT_API bool xrtPatternBuilderReserve(
 {
 	if ( pBuilder == NULL ) {
 		__xrtPatternSetInvalidArgument();
+		return false;
+	}
+	if ( pBuilder->Pending != NULL ) {
+		__xrtPatternSetInvalidState();
 		return false;
 	}
 	return __xrtPatternBuilderReserveValid(pBuilder, iCapacity);
@@ -322328,79 +322456,21 @@ XRT_API bool xrtPatternBuilderAddMany(
 	xpatternid* arrId
 )
 {
-	__xrt_pattern_source** arrSource = NULL;
-	size_t iParsed = 0;
-
+	xpatternedit* pEdit;
+	bool bResult;
 	if ( (pBuilder == NULL) || ((arrSpec == NULL) && (iCount != 0)) ) {
-		__xrtPatternSetInvalidArgument();
-		return false;
+		__xrtPatternSetInvalidArgument(); return false;
 	}
-	if ( iCount == 0 ) {
-		return true;
+	if ( pBuilder->Pending != NULL ) { __xrtPatternSetInvalidState(); return false; }
+	if ( iCount == 0 ) return true;
+	pEdit = __xrtPatternBuilderPrepareAdd(pBuilder, arrSpec, iCount, "builder_add_many");
+	if ( pEdit == NULL ) return false;
+	bResult = xrtPatternEditCommit(pEdit);
+	if ( bResult && (arrId != NULL) ) {
+		for ( size_t i = 0; i < iCount; i++ ) arrId[i] = pEdit->Items[i].Id;
 	}
-	if ( (iCount > (pBuilder->Options.MaxPatterns - pBuilder->Count)) ||
-		 (iCount > (UINT64_MAX - pBuilder->NextOrder)) ) {
-		__xrtPatternError(
-			XERR_RANGE,
-			XPATTERN_ERROR_LIMIT,
-			"builder_add_many",
-			"builder batch exceeds its pattern limit",
-			false,
-			0,
-			false,
-			0
-		);
-		return false;
-	}
-	if ( !__xrtPatternBuilderCanModify(pBuilder) ) {
-		return false;
-	}
-	if ( iCount > (SIZE_MAX / sizeof(*arrSource)) ) {
-		__xrtPatternSetSizeOverflow();
-		return false;
-	}
-	arrSource = (__xrt_pattern_source**)xrtCalloc(iCount, sizeof(*arrSource));
-	if ( arrSource == NULL ) {
-		return false;
-	}
-	for ( ; iParsed < iCount; iParsed++ ) {
-		arrSource[iParsed] = __xrtPatternSourceCreate(
-			&arrSpec[iParsed],
-			&pBuilder->Options,
-			"builder_add_many",
-			XPATTERN_ID_INVALID,
-			pBuilder->NextOrder + iParsed,
-			true,
-			iParsed
-		);
-		if ( arrSource[iParsed] == NULL ) {
-			break;
-		}
-	}
-	if ( (iParsed != iCount) ||
-		 !__xrtPatternBuilderReserveValid(pBuilder, pBuilder->Count + iCount) ) {
-		for ( size_t i = 0; i < iCount; i++ ) {
-			__xrtPatternSourceFree(arrSource[i]);
-		}
-		xrtFree(arrSource);
-		return false;
-	}
-	for ( size_t i = 0; i < iCount; i++ ) {
-		size_t iIndex = __xrtPatternBuilderTakeSlot(pBuilder);
-		__xrt_pattern_builder_slot* pSlot = &pBuilder->Slots[iIndex];
-		xpatternid Id = __xrtPatternBuilderId(iIndex, pSlot->Generation);
-
-		arrSource[i]->Id = Id;
-		pSlot->Source = arrSource[i];
-		if ( arrId != NULL ) {
-			arrId[i] = Id;
-		}
-	}
-	pBuilder->Count += iCount;
-	pBuilder->NextOrder += iCount;
-	pBuilder->Version++;
-	xrtFree(arrSource);
-	return true;
+	xrtPatternEditFree(pEdit);
+	return bResult;
 }
 
 
@@ -322416,6 +322486,10 @@ XRT_API bool xrtPatternBuilderSet(
 
 	if ( (pBuilder == NULL) || (pSpec == NULL) ) {
 		__xrtPatternSetInvalidArgument();
+		return false;
+	}
+	if ( pBuilder->Pending != NULL ) {
+		__xrtPatternSetInvalidState();
 		return false;
 	}
 	pSlot = __xrtPatternBuilderSlot(pBuilder, Id, NULL);
@@ -322445,16 +322519,31 @@ XRT_API bool xrtPatternBuilderSet(
 
 
 
-XRT_API bool xrtPatternBuilderRemove(
-	xpatternbuilder* pBuilder,
-	xpatternid Id
-)
+static void __xrtPatternBuilderRemoveValid(xpatternbuilder* pBuilder, size_t iIndex)
+{
+	__xrt_pattern_builder_slot* pSlot = &pBuilder->Slots[iIndex];
+	__xrtPatternSourceFree(pSlot->Source);
+	pSlot->Source = NULL;
+	pSlot->Generation++;
+	pSlot->NextFree = pBuilder->FreeSlot;
+	pBuilder->FreeSlot = (uint32)iIndex;
+	pBuilder->Count--;
+	pBuilder->Version++;
+}
+
+
+
+XRT_API bool xrtPatternBuilderRemove(xpatternbuilder* pBuilder, xpatternid Id)
 {
 	__xrt_pattern_builder_slot* pSlot;
 	size_t iIndex;
 
 	if ( pBuilder == NULL ) {
 		__xrtPatternSetInvalidArgument();
+		return false;
+	}
+	if ( pBuilder->Pending != NULL ) {
+		__xrtPatternSetInvalidState();
 		return false;
 	}
 	pSlot = __xrtPatternBuilderSlot(pBuilder, Id, &iIndex);
@@ -322464,16 +322553,267 @@ XRT_API bool xrtPatternBuilderRemove(
 	if ( !__xrtPatternBuilderCanModify(pBuilder) ) {
 		return false;
 	}
-	__xrtPatternSourceFree(pSlot->Source);
-	pSlot->Source = NULL;
-	pSlot->Generation++;
-	if ( pSlot->Generation == 0 ) {
-		pSlot->Generation = 1u;
+	if ( pSlot->Generation == UINT32_MAX ) {
+		__xrtPatternSetInvalidState();
+		return false;
 	}
-	pSlot->NextFree = pBuilder->FreeSlot;
-	pBuilder->FreeSlot = (uint32)iIndex;
-	pBuilder->Count--;
-	pBuilder->Version++;
+	__xrtPatternBuilderRemoveValid(pBuilder, iIndex);
+	return true;
+}
+
+
+
+XRT_API bool xrtPatternBuilderContains(const xpatternbuilder* pBuilder, xpatternid Id)
+{
+	if ( pBuilder == NULL ) {
+		__xrtPatternSetInvalidArgument();
+		return false;
+	}
+	return __xrtPatternBuilderSlot(pBuilder, Id, NULL) != NULL;
+}
+
+
+
+/* 只检查独占权；零项编辑不要求增加版本。 */
+static bool __xrtPatternBuilderPrepareAllowed(xpatternbuilder* pBuilder)
+{
+	if ( pBuilder == NULL ) {
+		__xrtPatternSetInvalidArgument();
+		return false;
+	}
+	if ( pBuilder->Pending != NULL ) {
+		__xrtPatternSetInvalidState();
+		return false;
+	}
+	return true;
+}
+
+
+
+static xpatternedit* __xrtPatternEditCreate(__xrt_pattern_edit_kind Kind, size_t iCount)
+{
+	xpatternedit* pEdit;
+	if ( iCount > ((SIZE_MAX - sizeof(*pEdit)) / sizeof(pEdit->Items[0])) ) {
+		__xrtPatternSetSizeOverflow();
+		return NULL;
+	}
+	pEdit = (xpatternedit*)xrtCalloc(1u, sizeof(*pEdit) + iCount * sizeof(pEdit->Items[0]));
+	if ( pEdit != NULL ) {
+		pEdit->Kind = Kind;
+		pEdit->Count = iCount;
+	}
+	return pEdit;
+}
+
+
+
+XRT_API void xrtPatternEditFree(xpatternedit* pEdit)
+{
+	if ( pEdit == NULL ) {
+		return;
+	}
+	if ( pEdit->Builder != NULL ) {
+		pEdit->Builder->Pending = NULL;
+		pEdit->Builder = NULL;
+	}
+	for ( size_t i = 0; i < pEdit->Count; i++ ) {
+		__xrtPatternSourceFree(pEdit->Items[i].Source);
+	}
+	xrtFree(pEdit);
+}
+
+
+
+XRT_API bool xrtPatternEditReady(const xpatternedit* pEdit)
+{
+	return (pEdit != NULL) && (pEdit->Builder != NULL) &&
+		(pEdit->Builder->Pending == pEdit);
+}
+
+
+
+XRT_API size_t xrtPatternEditCount(const xpatternedit* pEdit)
+{
+	if ( pEdit == NULL ) {
+		__xrtPatternSetInvalidArgument();
+		return 0;
+	}
+	return pEdit->Count;
+}
+
+
+
+XRT_API xpatternid xrtPatternEditId(const xpatternedit* pEdit, size_t iIndex)
+{
+	if ( pEdit == NULL ) {
+		__xrtPatternSetInvalidArgument();
+		return XPATTERN_ID_INVALID;
+	}
+	if ( iIndex >= pEdit->Count ) {
+		__xrtPatternSetRange();
+		return XPATTERN_ID_INVALID;
+	}
+	return pEdit->Items[iIndex].Id;
+}
+
+
+
+static xpatternedit* __xrtPatternBuilderPrepareAdd(
+	xpatternbuilder* pBuilder, const xpatternspec* arrSpec, size_t iCount, cstr sOperation
+)
+{
+	xpatternedit* pEdit;
+	uint32 iFree;
+	size_t iFresh;
+	if ( !__xrtPatternBuilderPrepareAllowed(pBuilder) ) {
+		return NULL;
+	}
+	if ( (arrSpec == NULL) && (iCount != 0) ) {
+		__xrtPatternSetInvalidArgument();
+		return NULL;
+	}
+	if ( (iCount > (pBuilder->Options.MaxPatterns - pBuilder->Count)) ||
+		 (iCount > (UINT64_MAX - pBuilder->NextOrder)) ) {
+		__xrtPatternError(XERR_RANGE, XPATTERN_ERROR_LIMIT, sOperation,
+			"builder batch exceeds its pattern limit", false, 0, false, 0);
+		return NULL;
+	}
+	if ( (iCount != 0) && !__xrtPatternBuilderCanModify(pBuilder) ) {
+		return NULL;
+	}
+	pEdit = __xrtPatternEditCreate(__XRT_PATTERN_EDIT_ADD, iCount);
+	if ( pEdit == NULL ) {
+		return NULL;
+	}
+	for ( size_t i = 0; i < iCount; i++ ) {
+		pEdit->Items[i].Source = __xrtPatternSourceCreate(&arrSpec[i], &pBuilder->Options,
+			sOperation, XPATTERN_ID_INVALID, pBuilder->NextOrder + i, true, i);
+		if ( pEdit->Items[i].Source == NULL ) {
+			xrtPatternEditFree(pEdit);
+			return NULL;
+		}
+	}
+	if ( !__xrtPatternBuilderReserveValid(pBuilder, pBuilder->Count + iCount) ) {
+		xrtPatternEditFree(pEdit);
+		return NULL;
+	}
+	/* 只读取空闲链，取消不会消费 ID、注册顺序或槽代际。 */
+	iFree = pBuilder->FreeSlot;
+	iFresh = pBuilder->SlotCount;
+	for ( size_t i = 0; i < iCount; i++ ) {
+		size_t iSlot;
+		if ( iFree != __XRT_PATTERN_SLOT_NONE ) {
+			iSlot = iFree;
+			iFree = pBuilder->Slots[iSlot].NextFree;
+		} else {
+			iSlot = iFresh++;
+		}
+		pEdit->Items[i].Id = __xrtPatternBuilderId(iSlot, pBuilder->Slots[iSlot].Generation);
+		pEdit->Items[i].Source->Id = pEdit->Items[i].Id;
+	}
+	pEdit->Builder = pBuilder;
+	pBuilder->Pending = pEdit;
+	return pEdit;
+}
+
+
+
+XRT_API xpatternedit* xrtPatternBuilderPrepareAdd(
+	xpatternbuilder* pBuilder, const xpatternspec* arrSpec, size_t iCount
+)
+{
+	return __xrtPatternBuilderPrepareAdd(pBuilder, arrSpec, iCount, "builder_prepare_add");
+}
+
+
+
+XRT_API xpatternedit* xrtPatternBuilderPrepareSet(
+	xpatternbuilder* pBuilder, xpatternid Id, const xpatternspec* pSpec
+)
+{
+	__xrt_pattern_builder_slot* pSlot;
+	xpatternedit* pEdit;
+	if ( !__xrtPatternBuilderPrepareAllowed(pBuilder) ) return NULL;
+	if ( pSpec == NULL ) { __xrtPatternSetInvalidArgument(); return NULL; }
+	pSlot = __xrtPatternBuilderSlot(pBuilder, Id, NULL);
+	if ( pSlot == NULL ) { __xrtPatternSetInvalidState(); return NULL; }
+	if ( !__xrtPatternBuilderCanModify(pBuilder) ) return NULL;
+	pEdit = __xrtPatternEditCreate(__XRT_PATTERN_EDIT_SET, 1u);
+	if ( pEdit == NULL ) return NULL;
+	pEdit->Items[0].Id = Id;
+	pEdit->Items[0].Source = __xrtPatternSourceCreate(pSpec, &pBuilder->Options,
+		"builder_prepare_set", Id, pSlot->Source->Order, false, 0);
+	if ( pEdit->Items[0].Source == NULL ) { xrtPatternEditFree(pEdit); return NULL; }
+	pEdit->Builder = pBuilder; pBuilder->Pending = pEdit;
+	return pEdit;
+}
+
+
+
+XRT_API xpatternedit* xrtPatternBuilderPrepareRemove(xpatternbuilder* pBuilder, xpatternid Id)
+{
+	__xrt_pattern_builder_slot* pSlot;
+	xpatternedit* pEdit;
+	if ( !__xrtPatternBuilderPrepareAllowed(pBuilder) ) return NULL;
+	pSlot = __xrtPatternBuilderSlot(pBuilder, Id, NULL);
+	if ( (pSlot == NULL) || (pSlot->Generation == UINT32_MAX) ) {
+		__xrtPatternSetInvalidState(); return NULL;
+	}
+	if ( !__xrtPatternBuilderCanModify(pBuilder) ) return NULL;
+	pEdit = __xrtPatternEditCreate(__XRT_PATTERN_EDIT_REMOVE, 1u);
+	if ( pEdit == NULL ) return NULL;
+	pEdit->Items[0].Id = Id; pEdit->Builder = pBuilder; pBuilder->Pending = pEdit;
+	return pEdit;
+}
+
+
+
+XRT_API xpatternedit* xrtPatternBuilderPrepareClear(xpatternbuilder* pBuilder)
+{
+	xpatternedit* pEdit;
+	if ( !__xrtPatternBuilderPrepareAllowed(pBuilder) ) return NULL;
+	if ( (pBuilder->Count != 0) && !__xrtPatternBuilderClearAllowed(pBuilder) ) return NULL;
+	pEdit = __xrtPatternEditCreate(__XRT_PATTERN_EDIT_CLEAR, 0);
+	if ( pEdit == NULL ) return NULL;
+	pEdit->Builder = pBuilder; pBuilder->Pending = pEdit;
+	return pEdit;
+}
+
+
+
+XRT_API bool xrtPatternEditCommit(xpatternedit* pEdit)
+{
+	xpatternbuilder* pBuilder;
+	if ( !xrtPatternEditReady(pEdit) ) { __xrtPatternSetInvalidState(); return false; }
+	pBuilder = pEdit->Builder;
+	switch ( pEdit->Kind ) {
+	case __XRT_PATTERN_EDIT_ADD:
+		for ( size_t i = 0; i < pEdit->Count; i++ ) {
+			size_t iSlot = __xrtPatternBuilderTakeSlot(pBuilder);
+			pBuilder->Slots[iSlot].Source = pEdit->Items[i].Source;
+			pEdit->Items[i].Source = NULL;
+		}
+		if ( pEdit->Count != 0 ) {
+			pBuilder->Count += pEdit->Count;
+			pBuilder->NextOrder += pEdit->Count;
+			pBuilder->Version++;
+		}
+		break;
+	case __XRT_PATTERN_EDIT_SET: {
+		__xrt_pattern_builder_slot* pSlot = &pBuilder->Slots[(uint32)pEdit->Items[0].Id - 1u];
+		__xrtPatternSourceFree(pSlot->Source);
+		pSlot->Source = pEdit->Items[0].Source; pEdit->Items[0].Source = NULL;
+		pBuilder->Version++;
+		break;
+	}
+	case __XRT_PATTERN_EDIT_REMOVE:
+		__xrtPatternBuilderRemoveValid(pBuilder, (uint32)pEdit->Items[0].Id - 1u);
+		break;
+	case __XRT_PATTERN_EDIT_CLEAR:
+		if ( pBuilder->Count != 0 ) __xrtPatternBuilderClearValid(pBuilder);
+		break;
+	}
+	pBuilder->Pending = NULL; pEdit->Builder = NULL;
 	return true;
 }
 
