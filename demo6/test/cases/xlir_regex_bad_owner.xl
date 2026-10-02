@@ -1,0 +1,7 @@
+class WrongRegex
+    private native point handle
+    extern "xl6UnicodeValidatorCreateV1" create()
+    extern "xl6UnicodeValidatorDestroyV1" destroy()
+    extern "xl6RegexFlagsV1" get flags() as int
+end
+assert WrongRegex().flags == 0

@@ -80,6 +80,7 @@ $reviewedGuards = @(
     'check_xlir_public_source_batch.ps1',
     'check_xlir_resident_closure.ps1',
     'check_xlir_resident_ownership_scopes.ps1',
+    'check_xlir_regex_values.ps1',
     'check_xlir_slot_transfers.ps1',
     'check_xlir_string_join.ps1',
     'check_xlir_task_pool_graph.ps1',

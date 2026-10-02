@@ -3,6 +3,7 @@
 #include "src/stdlib/xl6_stdlib_text.inc"
 #include "src/stdlib/xl6_stdlib_unicode.inc"
 #include "src/stdlib/xl6_stdlib_encoding.inc"
+#include "src/stdlib/xl6_stdlib_regex.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
@@ -6403,6 +6404,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"unicode", "validate", "__xl_std_unicode_validate", NULL, NULL, 0, NULL, xl6StdUnicodeValidateTextBody},
     {"unicode", "validate", "__xl_std_unicode_validate", NULL, NULL, 0, NULL, xl6StdUnicodeValidateBytesBody},
     {"unicode", "validator", "__xl_std_unicode_validator", NULL, NULL, 0, "Utf8Validator", xl6StdUnicodeValidatorBody},
+    {"regex", "compile", "__xl_std_regex_compile", NULL, NULL, 0, "Regex", xl6StdRegexCompileBody},
+    {"regex", "escape", "__xl_std_regex_escape", NULL, NULL, 0, "string", xl6StdRegexEscapeBody},
     {"html", "escapeText", "__xl_std_html_escape_text", NULL, NULL, 0, "string", xl6StdHtmlEscapeTextBody},
     {"html", "escapeAttribute", "__xl_std_html_escape_attribute", NULL, NULL, 0, "string", xl6StdHtmlEscapeAttributeBody},
     {"file", "takeAsync", "__xl_std_file_take_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_takeAsyncBody},

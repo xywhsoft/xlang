@@ -140,4 +140,28 @@ XL6_TEXT_API int64_t xl6UnicodeValidatorTotalV1(void* handle);
 XL6_TEXT_API bool xl6UnicodeValidatorFinishedV1(void* handle);
 XL6_TEXT_API xstrview xl6HtmlEscapeTextV1(xstrview text, int64_t size);
 XL6_TEXT_API xstrview xl6HtmlEscapeAttributeV1(xstrview text, int64_t size);
+/* Regex and match snapshots are immutable managed native fields. All strings
+ * returned here own exact independent spans. Optional group text NULL means
+ * unmatched (an empty matched group instead owns a one-byte allocation).
+ * mode 0 find / 1 at / 2 full; offsets are UTF-8 boundaries in bytes. */
+XL6_TEXT_API void* xl6RegexCreateV1(xstrview pattern, int64_t flags, int64_t maxPatternBytes, int64_t maxCaptures, int64_t size);
+XL6_TEXT_API void xl6RegexDestroyV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexPatternV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexFlagsV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexCaptureCountV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexCaptureNameV1(void* handle, int64_t index);
+XL6_TEXT_API int64_t xl6RegexCaptureIndexV1(void* handle, xstrview name, int64_t size);
+XL6_TEXT_API xstrview xl6RegexEscapeV1(xstrview text, int64_t size);
+XL6_TEXT_API void* xl6RegexMatchCreateV1(void* regex, xstrview text, int64_t mode, int64_t start, int64_t size);
+XL6_TEXT_API void xl6RegexMatchDestroyV1(void* handle);
+XL6_TEXT_API bool xl6RegexTestV1(void* regex, xstrview text, bool full, int64_t size);
+XL6_TEXT_API bool xl6RegexMatchMatchedV1(void* handle);
+XL6_TEXT_API int64_t xl6RegexMatchCountV1(void* handle);
+XL6_TEXT_API xstrview xl6RegexMatchTextV1(void* handle, int64_t index);
+XL6_TEXT_API bool xl6RegexMatchGroupMatchedV1(void* handle, int64_t index);
+XL6_TEXT_API int64_t xl6RegexMatchStartV1(void* handle, int64_t index);
+XL6_TEXT_API int64_t xl6RegexMatchEndV1(void* handle, int64_t index);
+XL6_TEXT_API xstrview xl6RegexMatchNameV1(void* handle, int64_t index);
+XL6_TEXT_API int64_t xl6RegexMatchIndexV1(void* handle, xstrview name, int64_t size);
+XL6_TEXT_API xstrview xl6RegexMatchInputV1(void* handle);
 #endif

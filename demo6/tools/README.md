@@ -156,3 +156,11 @@ IR uses the existing checked owning projection instead of an aborting read.
 Linux ASan/UBSan now instrument the scanner and actual lexer/parser/fuzz as well
 as selected native providers. Ten actual artifact closures remain independently
 verified; this is still a scoped batch, not all 53 modules or whole RC0.
+
+B13 `check_xlir_regex_values.ps1` is a reviewed central scenario with a frozen
+PublicSourceDirectory and fresh Directory. Its Linux companion
+`check_stdlib_regex.sh` is wired through test_linux.sh. Both cover compile budgets,
+immutable independent find/at/full snapshots, exact NUL spans, ABI mutations and
+negatives, native/threaded/OOM oracles and managed logical OOM. The artifact gate
+independently checks actual AOT native assembly and CORE/MATCH pruning for three
+fixtures. Replacement, all/split/set and Pattern are deliberately not claimed.
