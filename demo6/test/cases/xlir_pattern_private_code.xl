@@ -1,0 +1,2 @@
+auto p = Pattern("/{id}", 1)
+auto unsafe = p.code

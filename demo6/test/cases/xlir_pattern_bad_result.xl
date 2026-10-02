@@ -1,0 +1,8 @@
+class InvalidPatternResult
+    private native point handle
+    extern "xl6PatternCreateV1" create(string text, int size)
+    extern "xl6PatternDestroyV1" destroy()
+    extern "xl6PatternIdV1" func id(int index) as int
+end
+auto p = InvalidPatternResult("/{id}", -1)
+assert p.id(0) == 0

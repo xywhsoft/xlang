@@ -1,0 +1,7 @@
+auto options = PatternOptions("/.\0/", 2048, 100, 32, 8192, 1048576)
+assert options.separators == "/.\0/"
+assert options.maxPatternBytes == 2048
+assert options.maxPatterns == 100
+assert options.maxCaptures == 32
+assert options.maxStates == 8192
+assert options.maxCompiledBytes == 1048576

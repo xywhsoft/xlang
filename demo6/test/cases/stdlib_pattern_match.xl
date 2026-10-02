@@ -1,0 +1,37 @@
+func saved() as PatternMatch?
+    auto p = pattern.compile("/用户/{id}/pre{name}post/{*tail}", "route\0tag")
+    auto input = "/用户/你好/pre名字post/a/b\0c"
+    auto result = p.find(input)
+    input = "unrelated"
+    return result
+end
+auto item = saved()
+assert item != null
+if item != null then
+    assert item.matched
+    assert item.captureCount == 3
+    assert item.patternIndex == 0
+    assert item.id != uint64(0)
+    assert item.tag == "route\0tag"
+    assert item.source == "/用户/{id}/pre{name}post/{*tail}"
+    assert item.input == "/用户/你好/pre名字post/a/b\0c"
+    assert item.captureName(0) == "id"
+    assert item.captureIndex("name") == 1
+    assert item.captureIndex("tail") == 2
+    assert item.captureIndex("missing") == -1
+    assert item.text(0) == "你好"
+    assert item.text(1) == "名字"
+    assert item.text(2) == "a/b\0c"
+    assert item.startByte(0) == 8
+    assert item.endByte(0) == 14
+    assert item.endByte(2) - item.startByte(2) == 5
+end
+auto p = Pattern("/{*tail}")
+auto empty = p.find("/")
+assert empty != null
+if empty != null then
+    assert empty.text() == ""
+    assert empty.startByte() == 1
+    assert empty.endByte() == 1
+end
+assert Pattern("/literal").find("/different") == null

@@ -1,5 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$PublicSourceDirectory,
-    [Parameter(Mandatory=$true)][string]$Directory)
+    [Parameter(Mandatory=$true)][string]$Directory,
+    [switch]$PatternOnly)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . "$root/tools/extlib_smoke_process.ps1"
@@ -23,13 +24,22 @@ try {
     $cases=@('stdlib_regex_core_only','stdlib_regex_match','stdlib_regex_errors','stdlib_regex_iterators',
         'stdlib_regex_replace_only','stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors',
         'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_extended_errors','stdlib_regex_byte_boundaries',
-        'stdlib_regex_replace_func','stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors','stdlib_regex_error_metadata')
+        'stdlib_regex_replace_func','stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors','stdlib_regex_error_metadata',
+        'stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_errors','stdlib_pattern_tags','stdlib_pattern_error_modes')
     $negatives=@('xlir_regex_bad_result','xlir_regex_bad_owner','xlir_regex_bad_constructor','xlir_regex_bad_nullable',
         'xlir_regex_bad_set_items','xlir_regex_bad_set_hits','xlir_regex_bad_iterator_owner',
-        'xlir_regex_bad_callback_arity','xlir_regex_bad_callback_result','xlir_regex_bad_callback_raw','xlir_regex_bad_error_input')
-    $privacy=@('xlir_regex_private_consume','xlir_regex_private_split_consume')
+        'xlir_regex_bad_callback_arity','xlir_regex_bad_callback_result','xlir_regex_bad_callback_raw','xlir_regex_bad_error_input',
+        'xlir_pattern_bad_result','xlir_pattern_bad_tag','xlir_pattern_bad_options')
+    $privacy=@('xlir_regex_private_consume','xlir_regex_private_split_consume','xlir_pattern_private_code')
     $undeclared=@('sem_native_class_extern_bad_type','sem_native_class_extern_return_bad')
+    if($PatternOnly){
+        $cases=@($cases|Where-Object {$_-like'stdlib_pattern_*'})
+        $negatives=@($negatives|Where-Object {$_-like'xlir_pattern_*'})
+        $privacy=@($privacy|Where-Object {$_-like'xlir_pattern_*'})
+        $undeclared=@()
+    }
     $extra=@($PSCommandPath,'tools/check_stdlib_regex.sh','test/cases/xlir_regex_host.c','test/support/regex_native.c',
+        'test/cases/xlir_pattern_host.c','test/support/pattern_native.c','test/cases/xlir_error_projection_contract.c','test/cases/xlir_continuation_owner_test.h','test/cases/xlir_synthetic_owner_edit.h',
         'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c','test/cases/xlir_regex_callback_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll',
@@ -52,6 +62,7 @@ try {
             '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
             '-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',"-I$public/include",'-I.','-Irelease')
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+        if(!$PatternOnly){
         $null=Check 'native-build' gcc ($flags+@('test/cases/xlir_regex_host.c','test/support/regex_native.c',
             'src/runtime/xl6_regex_core.c','src/runtime/xl6_regex_match.c')+$libs+@('-o',"$work/native.exe"))
         if((Check 'native' "$work/native.exe" @())-notmatch '68 actual failures, 5 first no-hit completions'){throw 'Native OOM oracle incomplete'}
@@ -60,27 +71,41 @@ try {
             'src/runtime/xl6_regex_replace.c','src/runtime/xl6_regex_replace_buffer.c','src/runtime/xl6_regex_split.c',
             'src/runtime/xl6_regex_set.c')+$libs+@('-o',"$work/extended-native.exe"))
         if((Check 'extended-native' "$work/extended-native.exe" @())-notmatch '222 actual failures, 9 first no-hit completions'){throw 'Extended native OOM oracle incomplete'}
+        }
+        $null=Check 'pattern-native-build' gcc ($flags+@('test/cases/xlir_pattern_host.c','test/support/pattern_native.c',
+            'src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c','src/runtime/xl6_pattern_match.c')+$libs+@('-o',"$work/pattern-native.exe"))
+        if((Check 'pattern-native' "$work/pattern-native.exe" @())-notmatch '60 actual failures, 5 first no-hit completions'){throw 'Pattern native OOM oracle incomplete'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
         Copy-Item release/xl.dll "$work/xl.dll"
+        if(!$PatternOnly){
         $null=Check 'callback-native-build' gcc ($flags+@('test/cases/xlir_regex_callback_host.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/callback-native.exe"))
         $callbackOutput=Check 'callback-native' "$work/callback-native.exe" @()
         if ($callbackOutput-notmatch 'regex callback native OOM: 133 actual failures, 3 first no-hit completions, balanced') {throw 'Callback native OOM oracle incomplete'}
+        }
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
             $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        $null=Check 'error-projection-contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_error_projection_contract.c')+
+            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/error-projection-contract.exe"))
+        $null=Check 'error-projection-contract' "$work/error-projection-contract.exe" @('test/cases/stdlib_pattern_tags.xl',"$work/error-projection.closed.c")
+        $null=Check 'error-projection-modes-contract' "$work/error-projection-contract.exe" @('test/cases/stdlib_pattern_error_modes.xl',"$work/error-projection-modes.closed.c")
         Copy-Item release/xl.dll "$work/xl.dll"
         foreach($case in $cases) {
             $prefix="$work/$case"; $source="test/cases/$case.xl"
             $null=Check "$case-emit" $build.Driver @($source,'emit',$prefix)
+            if($case-in@('stdlib_pattern_tags','stdlib_pattern_error_modes')){
+                $closed=if($case-eq'stdlib_pattern_tags'){"$work/error-projection.closed.c"}else{"$work/error-projection-modes.closed.c"}
+                if((Get-FileHash "$prefix.c").Hash-ne(Get-FileHash $closed).Hash){throw 'Error projection contract changed generated C'}
+            }
             $null=Check "$case-repeat" $build.Driver @($source,'emit',"$prefix.repeat")
             foreach($ext in @('c','h','json')){if((Get-FileHash "$prefix.$ext").Hash-ne(Get-FileHash "$prefix.repeat.$ext").Hash){throw 'Nondeterministic regex output'}}
             $null=Check "$case-contract" "$work/contract.exe" @($source,"$prefix.closed.c")
             $null=Check "$case-default" $build.Driver @($source,'cgen-default',"$prefix.default.c")
             if((Get-FileHash "$prefix.closed.c").Hash-ne(Get-FileHash "$prefix.default.c").Hash){throw 'Closed regex emission differs'}
             $generated=Get-Content "$prefix.c" -Raw -Encoding UTF8
-            if($generated-match '(?m)^\s*(?:static\s+)?(?:void\s*\*|xstrview|int64_t|bool)\s*xl6Regex\w+\([^;]*\)\s*\{'-or
-                $generated-match 'xl6_xrt_take_cstr|xrtRegexMatcher(?:Find|Capture)\('){throw 'Cgen contains regex implementation'}
+            if($generated-match '(?m)^\s*(?:static\s+)?(?:void\s*\*|xstrview|int64_t|bool)\s*xl6(?:Regex|Pattern)\w+\([^;]*\)\s*\{'-or
+                $generated-match 'xl6_xrt_take_cstr|xrtRegexMatcher(?:Find|Capture)\(|xrtPattern(?:CompileManyConfig|Match|Lookup)\('){throw 'Cgen contains matcher implementation'}
             $null=Check "$case-strict-build" gcc ($flags+@('-include',"$prefix.c",'test/cases/xlir_string_interpolation_host.c')+
                 $nativeObjects+$libs+@('-o',"$prefix.strict.exe"))
             $null=Check "$case-strict-run" "$prefix.strict.exe" @()
@@ -91,7 +116,8 @@ try {
             $null=Check "$case-formal-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
             $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
             if($case-in@('stdlib_regex_match','stdlib_regex_iterators','stdlib_regex_replace_only',
-                'stdlib_regex_replace_buffer','stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_replace_func','stdlib_regex_replace_func_buffer')) {
+                'stdlib_regex_replace_buffer','stdlib_regex_split_only','stdlib_regex_set_only','stdlib_regex_replace_func','stdlib_regex_replace_func_buffer',
+                'stdlib_pattern_core_only','stdlib_pattern_options','stdlib_pattern_options_only','stdlib_pattern_match','stdlib_pattern_tags')) {
                 $terminal=$false
                 for($point=0;$point-lt2048;++$point) {
                     $output=Check "$case-oom-$point" "$prefix.strict.exe" @("$point")
@@ -118,11 +144,11 @@ try {
         $complete=$true
     } finally {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
-        $report=[ordered]@{Complete=($complete-and!$changed.Count);Checks=$checks.Count;Cases=$cases;Negatives=$negatives;Privacy=$privacy;UndeclaredArrays=$undeclared;
+        $report=[ordered]@{Complete=($complete-and!$changed.Count);Checks=$checks.Count;PatternOnly=[bool]$PatternOnly;Cases=$cases;Negatives=$negatives;Privacy=$privacy;UndeclaredArrays=$undeclared;
             ChangedInputs=$changed;Inputs=$inputs;Results=$checks;
-            Scope='B13-B15 compile/match/all/template and checked functional replacement/transactional Buffer/lazy split/set/error metadata; source strict C/JIT/AOT and rebuilt Windows CLI default embedded run/build/execute. Callback native and language OOM use logical allocation injection, not ASan. Excludes Pattern, isolated deployment and whole-task release acceptance'}
+            Scope='B13-B16 Regex and Pattern compiled resources, independent captures, managed tag fields, options and errors; source strict C/JIT/AOT and rebuilt Windows CLI default embedded run/build/execute. Native and language OOM use logical allocation injection, not ASan. Excludes PatternBuilder, isolated deployment and whole-task release acceptance'}
         [IO.File]::WriteAllText("$work/results.json",($report|ConvertTo-Json -Depth 8),$utf8)
         if($changed.Count){throw 'Regex gate inputs changed'}
     }
-    Write-Output "Regex B13-B15: $($checks.Count) checks passed"
+    Write-Output "Regex/Pattern B13-B16: $($checks.Count) checks passed"
 }finally{Pop-Location}

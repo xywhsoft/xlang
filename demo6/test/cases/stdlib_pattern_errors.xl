@@ -1,0 +1,53 @@
+int caught = 0
+try
+    Pattern("/{broken")
+catch ValueError error
+    assert error.domain == "xrt.pattern"
+    assert pattern.errorOffset(error) >= 0
+    assert pattern.errorPatternIndex(error) == 0
+    caught += 1
+end
+try
+    PatternOptions("你")
+catch ValueError error
+    caught += 1
+end
+try
+    PatternOptions("{/")
+catch ValueError error
+    caught += 1
+end
+try
+    PatternOptions("/", 0)
+catch RangeError error
+    caught += 1
+end
+try
+    Pattern("/{id}").test("/你", 2)
+catch ValueError error
+    caught += 1
+end
+try
+    Pattern("/{id}").captureName(9)
+catch RangeError error
+    caught += 1
+end
+try
+    auto item = Pattern("/{id}").find("/a")
+    if item != null then item.text(-1) end
+catch RangeError error
+    caught += 1
+end
+try
+    Pattern("/{id}").find("/a", -2)
+catch RangeError error
+    caught += 1
+end
+try
+    throw RangeError "unrelated"
+catch RangeError error
+    assert pattern.errorOffset(error) == -1
+    assert pattern.errorPatternIndex(error) == -1
+    caught += 1
+end
+assert caught == 9

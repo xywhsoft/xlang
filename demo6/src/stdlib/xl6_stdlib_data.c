@@ -4,6 +4,7 @@
 #include "src/stdlib/xl6_stdlib_unicode.inc"
 #include "src/stdlib/xl6_stdlib_encoding.inc"
 #include "src/stdlib/xl6_stdlib_regex.inc"
+#include "src/stdlib/xl6_stdlib_pattern.inc"
 #include "src/stdlib/xl6_stdlib_console.inc"
 #include "src/stdlib/xl6_stdlib_vfs.inc"
 #include "src/stdlib/xl6_stdlib_fs.inc"
@@ -6409,6 +6410,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"regex", "set", "__xl_std_regex_set", NULL, NULL, 0, "RegexSet", xl6StdRegexSetBody},
     {"regex", "errorOffset", "__xl_std_regex_error_offset", NULL, NULL, 0, "int", xl6StdRegexErrorOffsetBody},
     {"regex", "errorPatternIndex", "__xl_std_regex_error_index", NULL, NULL, 0, "int", xl6StdRegexErrorIndexBody},
+    {"pattern", "compile", "__xl_std_pattern_compile", NULL, NULL, 0, "Pattern", xl6StdPatternCompileBody},
+    {"pattern", "errorOffset", "__xl_std_pattern_error_offset", NULL, NULL, 0, "int", xl6StdPatternErrorOffsetBody},
+    {"pattern", "errorPatternIndex", "__xl_std_pattern_error_index", NULL, NULL, 0, "int", xl6StdPatternErrorIndexBody},
     {"html", "escapeText", "__xl_std_html_escape_text", NULL, NULL, 0, "string", xl6StdHtmlEscapeTextBody},
     {"html", "escapeAttribute", "__xl_std_html_escape_attribute", NULL, NULL, 0, "string", xl6StdHtmlEscapeAttributeBody},
     {"file", "takeAsync", "__xl_std_file_take_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_takeAsyncBody},
