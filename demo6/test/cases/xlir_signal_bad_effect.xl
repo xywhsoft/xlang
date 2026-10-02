@@ -1,0 +1,2 @@
+extern "xl6SignalHealthyV1" @pure @no_raise @nonblocking func bad() as bool
+auto value = bad()

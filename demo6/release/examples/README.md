@@ -197,6 +197,7 @@ XGE/XUI 范例基于 `_xge_native` 扩展库的 OOP 封装（native-backed class
 - `stdlib_time_core.xl`：绝对微秒、完整参数、Unix 毫秒和单调截止点。
 - `stdlib_time_calendar.xl`：半开日期区间、ISO 周、固定偏移快照和当地时间。
 - `stdlib_environment.xl`：环境变量的缺失/空值、精确长度、独立副本和 finally 清理。
+- `stdlib_signal_core.xl`：查询信号支持、稳定名称和 uint64 计数，finally 恢复处置；不发送信号。
 
 在 `demo6` 目录下运行：
 

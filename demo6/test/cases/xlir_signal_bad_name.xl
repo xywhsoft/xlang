@@ -1,0 +1,2 @@
+extern "xl6SignalNameV1" func bad(int code) as point
+auto value = bad(2)

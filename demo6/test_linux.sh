@@ -211,5 +211,7 @@ bash "$ROOT/tools/check_stdlib_time_text.sh" \
     "$TEST_DIR/time-text-$(date +%Y%m%d-%H%M%S)-$$"
 bash "$ROOT/tools/check_stdlib_environment.sh" \
     "$TEST_DIR/environment-$(date +%Y%m%d-%H%M%S)-$$"
+bash "$ROOT/tools/check_stdlib_signal_core.sh" \
+    "$TEST_DIR/signal-core-$(date +%Y%m%d-%H%M%S)-$$"
 
 printf 'DEMO6 Linux compatibility tests passed.\n'

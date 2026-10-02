@@ -1,0 +1,13 @@
+// No signals are sent; disposition changes are restored in this process.
+assert signal.supported(signal.INT)
+println(signal.name(signal.TERM))
+uint64 total = signal.count()
+assert total == 0
+assert signal.healthy()
+assert signal.ignore(signal.INT)
+try
+    assert not signal.received(signal.INT)
+finally
+    assert signal.restoreAll()
+end
+signal.reset()

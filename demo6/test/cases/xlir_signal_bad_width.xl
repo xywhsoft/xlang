@@ -1,0 +1,2 @@
+extern "xl6SignalRaiseV1" func bad(int32 code) as bool
+auto value = bad(2)
