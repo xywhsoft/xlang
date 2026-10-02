@@ -850,12 +850,6 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
         }
 
     }
-    if ( xl6StdlibFindFunc("encoding", "toBytes", &index) != NULL && used[index] ) {
-        return 1;
-    }
-    if ( xl6StdlibFindFunc("encoding", "convertBytes", &index) != NULL && used[index] ) {
-        return 1;
-    }
     if ( xl6StdlibFindFunc("file", "readBytes", &index) != NULL && used[index] ) {
         return 1;
     }

@@ -163,6 +163,15 @@ $process=Start-Process @start
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_'}).Count-and
                         'XRT_MODULE_CHARSET'-notin$plan.NativeModules-and
                         'XRT_MODULE_BUFFER'-notin$plan.NativeModules
+                }elseif($case-in@('stdlib_encoding_only','stdlib_encoding_meta_only','stdlib_encoding_transcode_only','stdlib_unicode_repair')){
+                    $component=if($case-eq'stdlib_encoding_meta_only'){'encoding_meta'}else{'encoding'}
+                    $other=if($component-eq'encoding_meta'){'encoding'}else{'encoding_meta'}
+                    $selectionMatches="src/runtime/xl6_$component.c"-in$selectedSources-and
+                        "src/runtime/xl6_$other.c"-notin$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.'}).Count-and
+                        'XRT_MODULE_CHARSET'-in$plan.NativeModules-and
+                        'XRT_MODULE_CHARSET_DETECT'-notin$plan.NativeModules-and
+                        'XRT_MODULE_BUFFER'-notin$plan.NativeModules
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE

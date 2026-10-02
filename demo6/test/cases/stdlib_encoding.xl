@@ -1,107 +1,119 @@
-assert(encoding.charSize(encoding.utf8) == 1)
-assert(encoding.charSize(encoding.utf16) == 2)
-assert(encoding.charSize(encoding.utf16BE) == 2)
-assert(encoding.charSize(encoding.utf32) == 4)
-assert(encoding.charSize(encoding.utf32BE) == 4)
-assert(encoding.name(encoding.autoDetect) == "auto")
-assert(encoding.name(encoding.binary) == "binary")
-assert(encoding.name(encoding.oem) == "oem")
-assert(encoding.name(encoding.utf8 + encoding.bom) == "utf-8")
-assert(encoding.isUtf8("hello"))
-assert(encoding.detect("hello") == encoding.utf8)
-
-func encodeBom(string text, int kind) as Buffer
-    return encoding.toBytes(text, kind + encoding.bom)
+string text = "A\0你😀"
+assert encoding.unitSize(encoding.unknown) == 0
+assert encoding.unitSize(encoding.utf8) == 1
+assert encoding.unitSize(encoding.utf16LE) == 2
+assert encoding.unitSize(encoding.utf16BE) == 2
+assert encoding.unitSize(encoding.utf32LE) == 4
+assert encoding.unitSize(encoding.utf32BE) == 4
+assert encoding.name(encoding.unknown) == "unknown"
+assert encoding.name(encoding.utf16LE) == "utf-16le"
+assert encoding.name(encoding.utf32BE) == "utf-32be"
+assert encoding.isUtf8(text) and encoding.isUtf8(b"A\0")
+assert not encoding.isUtf8(b"A\xFF")
+assert encoding.isUtf8(b"A\xFF", 1)
+bytes utf8 = encoding.encodeUtf8(text)
+bytes le16 = encoding.encodeUtf16LE(text)
+bytes be16 = encoding.encodeUtf16BE(text)
+bytes le32 = encoding.encodeUtf32LE(text)
+bytes be32 = encoding.encodeUtf32BE(text)
+assert encoding.decodeUtf8(utf8) == text
+assert encoding.decodeUtf16LE(le16) == text
+assert encoding.decodeUtf16BE(be16) == text
+assert encoding.decodeUtf32LE(le32) == text
+assert encoding.decodeUtf32BE(be32) == text
+assert utf8 == b"A\0\xE4\xBD\xA0\xF0\x9F\x98\x80"
+assert le16 == b"A\0\0\0\x60\x4F\x3D\xD8\0\xDE"
+assert be16 == b"\0A\0\0\x4F\x60\xD8\x3D\xDE\0"
+assert le32 == b"A\0\0\0\0\0\0\0\x60\x4F\0\0\0\xF6\x01\0"
+assert be32 == b"\0\0\0A\0\0\0\0\0\0\x4F\x60\0\x01\xF6\0"
+for kind in [1,2,3,4,5]
+    bytes marked = encoding.encode(text, kind, true)
+    assert encoding.bom(marked) == kind
+    assert encoding.bomSize(marked) == (kind == 1 ? 3 : kind < 4 ? 2 : 4)
+    assert encoding.decode(marked, kind, 0, encoding.requireBom) == text
+    assert encoding.transcode(marked, kind, encoding.utf8) == utf8
+    assert encoding.decode(encoding.encode("", kind, true), kind) == ""
 end
-
-Buffer globalUtf8Bom = encodeBom("hi", encoding.utf8)
-assert(globalUtf8Bom.len() == 5)
-
-Buffer utf8 = encoding.toBytes("A你好")
-assert(utf8.len() == string.byteLen("A你好"))
-assert(utf8.text() == "A你好")
-assert(encoding.fromBytes(utf8.data(), c_size(utf8.len())) == "A你好")
-assert(encoding.isUtf8Bytes(utf8.data(), c_size(utf8.len())))
-
-Buffer utf8Bom = encoding.toBytes("A", encoding.utf8 + encoding.bom)
-assert(utf8Bom.len() == 4)
-assert(utf8Bom.byteAt(0) == 239)
-assert(utf8Bom.byteAt(1) == 187)
-assert(utf8Bom.byteAt(2) == 191)
-assert(utf8Bom.byteAt(3) == 65)
-assert(encoding.fromBytes(utf8Bom.data(), c_size(utf8Bom.len()), encoding.utf8 + encoding.bom) == "A")
-
-Buffer utf16 = encoding.toBytes("A你好", encoding.utf16)
-assert(utf16.len() == 6)
-assert(utf16.byteAt(0) == 65)
-assert(utf16.byteAt(1) == 0)
-assert(encoding.fromBytes(utf16.data(), c_size(utf16.len()), encoding.utf16) == "A你好")
-
-Buffer utf16be = encoding.toBytes("A你好", encoding.utf16BE)
-assert(utf16be.len() == 6)
-assert(utf16be.byteAt(0) == 0)
-assert(utf16be.byteAt(1) == 65)
-
-Buffer utf16Bom = encoding.toBytes("A", encoding.utf16 + encoding.bom)
-assert(utf16Bom.len() == 4)
-assert(utf16Bom.byteAt(0) == 255)
-assert(utf16Bom.byteAt(1) == 254)
-assert(utf16Bom.byteAt(2) == 65)
-assert(utf16Bom.byteAt(3) == 0)
-assert(encoding.fromBytes(utf16Bom.data(), c_size(utf16Bom.len()), encoding.utf16 + encoding.bom) == "A")
-assert(encoding.fromBytes(utf16be.data(), c_size(utf16be.len()), encoding.utf16BE) == "A你好")
-
-Buffer utf16beBom = encodeBom("hi", encoding.utf16BE)
-assert(utf16beBom.len() == 6)
-assert(utf16beBom.byteAt(0) == 254)
-assert(utf16beBom.byteAt(1) == 255)
-
-Buffer utf32 = encoding.toBytes("A你好", encoding.utf32)
-assert(utf32.len() == 12)
-assert(encoding.fromBytes(utf32.data(), c_size(utf32.len()), encoding.utf32) == "A你好")
-
-Buffer utf32Bom = encodeBom("hi", encoding.utf32)
-assert(utf32Bom.len() == 12)
-assert(utf32Bom.byteAt(0) == 255)
-assert(utf32Bom.byteAt(1) == 254)
-assert(utf32Bom.byteAt(2) == 0)
-assert(utf32Bom.byteAt(3) == 0)
-
-Buffer utf32beBom = encodeBom("hi", encoding.utf32BE)
-assert(utf32beBom.len() == 12)
-assert(utf32beBom.byteAt(0) == 0)
-assert(utf32beBom.byteAt(1) == 0)
-assert(utf32beBom.byteAt(2) == 254)
-assert(utf32beBom.byteAt(3) == 255)
-
-Buffer converted = encoding.convertBytes(utf16.data(), c_size(utf16.len()), encoding.utf16, encoding.utf8)
-assert(converted.text() == "A你好")
-assert(encoding.detectBytes(converted.data(), c_size(converted.len())) == encoding.utf8)
-
-Buffer invalid = Buffer()
-assert(invalid.appendByte(255))
-assert(!encoding.isUtf8Bytes(invalid.data(), c_size(invalid.len())))
-assert(encoding.detectBytes(invalid.data(), c_size(invalid.len())) == encoding.oem)
-
-Buffer oddUtf16 = Buffer()
-assert(oddUtf16.appendByte(65))
-Buffer failed = encoding.convertBytes(oddUtf16.data(), c_size(oddUtf16.len()), encoding.utf16, encoding.utf8)
-assert(failed.len() == 0)
-
-string explicitText = "A你好"
-Buffer explicitUtf8 = encoding.encodeUtf8(explicitText, true)
-Buffer explicitUtf16LE = encoding.encodeUtf16LE(explicitText)
-Buffer explicitUtf16BE = encoding.encodeUtf16BE(explicitText)
-Buffer explicitUtf32LE = encoding.encodeUtf32LE(explicitText)
-Buffer explicitUtf32BE = encoding.encodeUtf32BE(explicitText)
-assert(encoding.decodeUtf8(explicitUtf8, true) == explicitText)
-assert(encoding.decodeUtf16LE(explicitUtf16LE) == explicitText)
-assert(encoding.decodeUtf16BE(explicitUtf16BE) == explicitText)
-assert(encoding.decodeUtf32LE(explicitUtf32LE) == explicitText)
-assert(encoding.decodeUtf32BE(explicitUtf32BE) == explicitText)
-assert(encoding.swapUtf16Endian(explicitUtf16LE) == explicitUtf16BE)
-assert(encoding.swapUtf16Endian(explicitUtf16BE) == explicitUtf16LE)
-assert(encoding.swapUtf32Endian(explicitUtf32LE) == explicitUtf32BE)
-assert(encoding.swapUtf32Endian(explicitUtf32BE) == explicitUtf32LE)
-assert(encoding.swapUtf16Endian(oddUtf16).len() == 0)
-assert(encoding.swapUtf32Endian(oddUtf16).len() == 0)
+assert encoding.bom(b"x") == encoding.unknown
+assert encoding.bomSize(b"x") == 0
+assert encoding.bomBytes(encoding.utf8) == b"\xEF\xBB\xBF"
+assert encoding.bomBytes(encoding.utf16LE) == b"\xFF\xFE"
+assert encoding.bomBytes(encoding.utf16BE) == b"\xFE\xFF"
+assert encoding.bomBytes(encoding.utf32LE) == b"\xFF\xFE\0\0"
+assert encoding.bomBytes(encoding.utf32BE) == b"\0\0\xFE\xFF"
+assert encoding.bomSize(b"\xEF\xBB\xBFA", 2) == 0
+assert encoding.decode(b"\xFF\xFE\0\0", encoding.utf16LE) == "\0"
+assert encoding.decode(b"\xFF\xFE\0\0", encoding.utf32LE) == ""
+assert encoding.decode(b"\xFF\xFE\0\0", encoding.utf16LE, 0, encoding.keepBom) == "\uFEFF\0"
+assert encoding.decode(b"\xE4\xBD", 1, encoding.replaceInvalid) == "�"
+assert encoding.decode(b"\xC0\xAF", 1, encoding.replaceInvalid) == "��"
+assert encoding.decode(b"\0\xD8A\0", 2, encoding.replaceInvalid) == "�A"
+assert encoding.decode(b"A\0\0\0\xFF", 4, encoding.replaceInvalid) == "A�"
+assert encoding.encode(text, 1, false, 0, 1000) == utf8
+assert encoding.decode(utf8, 1, 0, 0, 2) == "A\0"
+assert encoding.decode(encoding.encode("你", 2, false, 1, 1), 2) == "�"
+bytes copy = encoding.transcode(utf8, 1, 1)
+copy[0] = uint8(66)
+assert utf8[0] == uint8(65)
+int caught = 0
+try
+    encoding.decode(b"\xFF")
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.decode(b"A", 2)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.decode(b"A", 1, 0, encoding.requireBom)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.decode(b"\xFF\xFEA\0", 1)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.decode(b"\xEF\xBB\xBFA", 1, 0, encoding.rejectBom)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.encode("A", encoding.unknown)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.encode("A", 4294967297)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.encode("A", 1, false, 2)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.decode(b"A", 1, 0, 4)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.transcode(b"A", 1, 1, 0, 8)
+catch ValueError e
+    caught += 1
+end
+try
+    encoding.decode(b"A", 1, 0, 0, -2)
+catch RangeError e
+    caught += 1
+end
+try
+    encoding.encode("你", 1, false, 0, 1)
+catch ValueError e
+    caught += 1
+end
+assert caught == 12

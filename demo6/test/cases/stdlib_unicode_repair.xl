@@ -1,0 +1,17 @@
+assert unicode.decode(b"A\0\xC0\xAF", encoding.replaceInvalid) == "A\0��"
+assert unicode.decode(b"\xEF\xBB\xBFA") == "\uFEFFA"
+assert unicode.repair("A你", 2) == "A�"
+assert unicode.repair("A你\0😀", 1000) == "A你\0😀"
+assert unicode.repair("", 0) == ""
+int caught = 0
+try
+    unicode.decode(b"\xFF")
+catch ValueError e
+    caught += 1
+end
+try
+    unicode.repair("x", -2)
+catch RangeError e
+    caught += 1
+end
+assert caught == 2

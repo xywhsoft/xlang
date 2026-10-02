@@ -58,6 +58,10 @@ printf 'Running Linux Unicode/HTML declaration, sanitizer and artifact contracts
 bash "$ROOT/tools/check_stdlib_unicode.sh" \
     "$TEST_DIR/unicode-$(date +%Y%m%d-%H%M%S)-$$"
 
+printf 'Running Linux encoding declaration, sanitizer and artifact contracts...\n'
+bash "$ROOT/tools/check_stdlib_encoding.sh" \
+    "$TEST_DIR/encoding-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'Running Linux UTF-8 path tests...\n'
 "$XL" run "$ROOT/test/cases/stdlib_release_string_abi.xl"
 "$XL" build "$ROOT/test/cases/stdlib_release_string_abi.xl" \

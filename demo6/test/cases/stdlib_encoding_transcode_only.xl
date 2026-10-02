@@ -1,0 +1,5 @@
+bytes input = b"\xFF\xFEA\0\0\0"
+bytes result = encoding.transcode(input, encoding.utf16LE, encoding.utf8)
+assert result == b"A\0"
+assert input == b"\xFF\xFEA\0\0\0"
+assert encoding.transcode(result, encoding.utf8, encoding.utf32BE, 0, encoding.writeBom) == b"\0\0\xFE\xFF\0\0\0A\0\0\0\0"

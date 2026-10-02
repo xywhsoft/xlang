@@ -1,0 +1,2 @@
+extern "xl6EncodingNameV1" @pure func invalid(int encoding) as string
+invalid(1)

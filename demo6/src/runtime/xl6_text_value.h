@@ -108,6 +108,20 @@ XL6_TEXT_API int64_t xl6UnicodeInvalidTextV1(xstrview text, int64_t size);
 XL6_TEXT_API int64_t xl6UnicodeInvalidBytesV1(const xvalue* data, int64_t size);
 XL6_TEXT_API int64_t xl6UnicodeByteOffsetV1(xstrview text, int64_t index, int64_t size);
 XL6_TEXT_API int64_t xl6UnicodeScalarIndexV1(xstrview text, int64_t offset, int64_t size);
+/* Encoding ids 0 unknown / 1 UTF8 / 2 UTF16LE / 3 BE / 4 UTF32LE / 5 BE.
+ * Policy 0 strict / 1 replacement. Decode BOM modes: 0 literal, 1 optional
+ * matching strip, 2 require matching strip, 3 reject any BOM. Transcode adds
+ * bit 4 to emit a target BOM. Caps are bytes, not code units; all results own
+ * exact independent data and failed results expose no partial allocation. */
+XL6_TEXT_API xvalue* xl6EncodingEncodeV1(xstrview text, int64_t encoding, bool bom, int64_t policy, int64_t size);
+XL6_TEXT_API xstrview xl6EncodingDecodeV1(const xvalue* data, int64_t encoding, int64_t policy, int64_t bom, int64_t size);
+XL6_TEXT_API xvalue* xl6EncodingTranscodeV1(const xvalue* data, int64_t source, int64_t target, int64_t policy, int64_t bom, int64_t size);
+XL6_TEXT_API int64_t xl6EncodingBomV1(const xvalue* data, int64_t size);
+XL6_TEXT_API int64_t xl6EncodingBomSizeV1(const xvalue* data, int64_t size);
+XL6_TEXT_API xvalue* xl6EncodingBomBytesV1(int64_t encoding);
+XL6_TEXT_API int64_t xl6EncodingUnitSizeV1(int64_t encoding);
+XL6_TEXT_API xstrview xl6EncodingNameV1(int64_t encoding);
+XL6_TEXT_API xstrview xl6EncodingRepairTextV1(xstrview text, int64_t size);
 /* Validator chunks are synchronous borrows. Data-invalid is an ordinary
  * XUTF_INVALID result, not a raised error; argument/lifetime/overflow faults
  * raise. final seals the stream; reset starts a new stream on its owner thread. */

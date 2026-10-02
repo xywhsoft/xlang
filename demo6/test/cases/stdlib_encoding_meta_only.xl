@@ -1,0 +1,6 @@
+assert encoding.unitSize(encoding.unknown) == 0
+assert encoding.unitSize(encoding.utf8) == 1
+assert encoding.unitSize(encoding.utf16LE) == 2
+assert encoding.unitSize(encoding.utf32BE) == 4
+assert encoding.name(encoding.utf8) == "utf-8"
+assert encoding.name(encoding.utf32BE) == "utf-32be"

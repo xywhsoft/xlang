@@ -43,23 +43,25 @@ bool signatureOk = crypto.ecdsaVerify(publicKey, message, signature)
 
 ## 字符编码
 
-显式编码接口不做自动探测。`bom` 只控制 UTF-8 BOM；UTF-16/32 的 LE/BE 已由函数名确定。
+编码接口只支持 UTF-8/16LE/16BE/32LE/32BE，输入/输出都是精确长度的
+string 或 bytes，保留 NUL。严格/替换策略与 BOM 独立；不猜测源编码。
+签名、BOM 模式和错误合同见 [文本标准库接入的 B8](文本标准库接入.md)。
+编码猜测三字段结果尚待完成，旧 point/Buffer/code-page 外观不保留。
 
 ```xlang
-Buffer utf8 = encoding.encodeUtf8(text)
-Buffer utf8Bom = encoding.encodeUtf8(text, true)
+bytes utf8 = encoding.encodeUtf8(text)
+bytes utf8Bom = encoding.encodeUtf8(text, true)
 string text8 = encoding.decodeUtf8(utf8)
-
-Buffer utf16le = encoding.encodeUtf16LE(text)
-Buffer utf16be = encoding.encodeUtf16BE(text)
-Buffer utf32le = encoding.encodeUtf32LE(text)
-Buffer utf32be = encoding.encodeUtf32BE(text)
+bytes utf16le = encoding.encodeUtf16LE(text)
+bytes utf16be = encoding.encodeUtf16BE(text)
+bytes utf32le = encoding.encodeUtf32LE(text)
+bytes utf32be = encoding.encodeUtf32BE(text)
 string text16le = encoding.decodeUtf16LE(utf16le)
 string text16be = encoding.decodeUtf16BE(utf16be)
 string text32le = encoding.decodeUtf32LE(utf32le)
 string text32be = encoding.decodeUtf32BE(utf32be)
-Buffer swapped16 = encoding.swapUtf16Endian(utf16le)
-Buffer swapped32 = encoding.swapUtf32Endian(utf32le)
+bytes swapped16 = encoding.transcode(utf16le, encoding.utf16LE, encoding.utf16BE)
+bytes swapped32 = encoding.transcode(utf32le, encoding.utf32LE, encoding.utf32BE)
 ```
 
 ## 异步文件与目录

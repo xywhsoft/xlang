@@ -336,34 +336,14 @@ if not errorlevel 1 (
     echo stdlib_encoding.c unexpectedly imports the legacy private runtime header.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_encoding_to_bytes" build\test\stdlib_encoding.c >nul
+findstr /C:"xl6EncodingEncodeV1(" /C:"xl6EncodingDecodeV1(" /C:"xl6EncodingTranscodeV1(" build\test\stdlib_encoding.c >nul
 if errorlevel 1 (
-    echo stdlib_encoding.c missing encoding.toBytes runtime helper.
+    echo stdlib_encoding.c missing declared Unicode codec calls.
     exit /b 1
 )
-findstr /C:"int64_t xl6_xrt_encoding_detect_text" build\test\stdlib_encoding.c >nul
-if errorlevel 1 (
-    echo stdlib_encoding.c missing exact i64 encoding detect ABI.
-    exit /b 1
-)
-findstr /C:"bool xl6_xrt_encoding_is_utf8_bytes" build\test\stdlib_encoding.c >nul
-if errorlevel 1 (
-    echo stdlib_encoding.c missing encoding.isUtf8Bytes runtime helper.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_encoding_swap_utf16" build\test\stdlib_encoding.c >nul
-if errorlevel 1 (
-    echo stdlib_encoding.c missing UTF-16 endian runtime helper.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_encoding_swap_utf32" build\test\stdlib_encoding.c >nul
-if errorlevel 1 (
-    echo stdlib_encoding.c missing UTF-32 endian runtime helper.
-    exit /b 1
-)
-findstr /C:"void* xl6_xrt_buffer_wrap_handle" build\test\stdlib_encoding.c >nul
-if errorlevel 1 (
-    echo stdlib_encoding.c missing Buffer handle wrapper.
+findstr /C:"xl6_xrt_encoding_" /C:"xl6_xrt_take_cstr" /C:"xl6_xrt_buffer_wrap_handle" build\test\stdlib_encoding.c >nul
+if not errorlevel 1 (
+    echo stdlib_encoding.c retains obsolete encoding or Buffer helpers.
     exit /b 1
 )
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_encoding.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_encoding.exe
