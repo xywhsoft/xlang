@@ -5,6 +5,7 @@
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/runtime/xl6_code_lease.h"
+#include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_slot.h"
@@ -132,6 +133,11 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, #Name, (const void*)Name)) return 0;
 #include "src/runtime/xl6_text_symbols.inc"
 #undef XL6_TEXT_EXPORT
+    if (!xlApiAddTccSymbol(s, "xl6NativeHandleTakeV1", (const void*)xl6NativeHandleTakeV1) ||
+        !xlApiAddTccSymbol(s, "xl6NativeHandleTraceLeaf", (const void*)xl6NativeHandleTraceLeaf) ||
+        !xlApiAddTccSymbol(s, "xl6ProcessCommandHandlePolicyV1Get", (const void*)xl6ProcessCommandHandlePolicyV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6ProcessHandlePolicyV1Get", (const void*)xl6ProcessHandlePolicyV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6ProcessStatusHandlePolicyV1Get", (const void*)xl6ProcessStatusHandlePolicyV1Get)) return 0;
     if ( !xlApiAddTccSymbol(s, "xl6ProtocolWitnessValidate", (const void*)xl6ProtocolWitnessValidate) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolWitnessFind", (const void*)xl6ProtocolWitnessFind) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolRegister", (const void*)xl6ProtocolRegister) ||

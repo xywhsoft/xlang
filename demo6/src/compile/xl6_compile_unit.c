@@ -101,13 +101,13 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_signal_core.c", D(), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_queue.c", D(), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING", "XRT_MODULE_TIME", "XRT_MODULE_WAIT"}},
     {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP)), {"XRT_MODULE_ERROR"}},
-    {"src/runtime/xl6_process_command.c", D(), {"XRT_MODULE_PROCESS", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_process_command.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_process_options.c", D(), {"XRT_MODULE_PROCESS_RUN"}},
     {"src/runtime/xl6_process_run.c", D(R(PROCESS_COMMAND)), {"XRT_MODULE_PROCESS_RUN", "XRT_MODULE_VALUE", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
-    {"src/runtime/xl6_process_status.c", D(), {"XRT_MODULE_PROCESS"}},
+    {"src/runtime/xl6_process_status.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS"}},
     {"src/runtime/xl6_process_open.c", D(), {"XRT_MODULE_PROCESS_OPEN", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_process_terminal.c", D(), {"XRT_MODULE_PROCESS_TERMINAL"}},
-    {"src/runtime/xl6_process_live.c", D(), {"XRT_MODULE_PROCESS", "XRT_MODULE_ATOMIC", "XRT_MODULE_TIME"}},
+    {"src/runtime/xl6_process_live.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS", "XRT_MODULE_ATOMIC", "XRT_MODULE_TIME"}},
     {"src/runtime/xl6_process_stream.c", D(R(PROCESS_LIVE)), {"XRT_MODULE_IO"}},
     {"src/runtime/xl6_process_future.c", D(R(PROCESS_LIVE),R(FUTURE_PAYLOAD)),
         {"XRT_MODULE_PROCESS_FUTURE", "XRT_MODULE_FUTURE_CONTINUE"}},
@@ -115,7 +115,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_process_pipeline.c", D(), {"XRT_MODULE_PROCESS_PIPELINE", "XRT_MODULE_VALUE", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_process_file.c", D(), {"XRT_MODULE_PROCESS_FILE", "XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_process_terminal_config.c", D(), {"XRT_MODULE_PROCESS_TERMINAL"}},
-    {"src/runtime/xl6_process_terminal_live.c", D(), {"XRT_MODULE_PROCESS_TERMINAL"}}
+    {"src/runtime/xl6_process_terminal_live.c", D(), {"XRT_MODULE_PROCESS_TERMINAL"}},
+    {"src/runtime/xl6_native_handle.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -318,6 +319,16 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         xl6ArtifactTypeRequire(&work,instruction->payloadType);
         if (instruction->kind==XL6_IR_INSTR_AWAIT) REQUIRE(R(FUTURE_PAYLOAD));
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE) {
+            const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, instruction->targetSymbol);
+            if (destroy && destroy->nativeHandlePolicyAbi == XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) {
+                XL6_ArtifactRuntimeId owner = xl6ArtifactRuntimeSymbolOwner(destroy->nativeHandlePolicyCName);
+                if (owner == XL6_ARTIFACT_RUNTIME_COUNT) {
+                    xrtFree(work.seen); xrtFree(work.queue); return 0;
+                }
+                REQUIRE(R(NATIVE_HANDLE), owner);
+            }
+        }
         switch (instruction->runtimeOp) {
         case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE: REQUIRE(R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD)); break;
         case XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE: REQUIRE(R(TASK)); break;

@@ -4,7 +4,10 @@
 #define XRT_MODULE_STRING
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
+#define XRT_MODULE_ONCE
 #include "lib/xrt/xrt.h"
+#include "src/api/xl_foreign_error.c"
+#include "src/runtime/xl6_native_handle.c"
 #include <assert.h>
 #include <stdio.h>
 

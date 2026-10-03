@@ -1,5 +1,8 @@
 #include "src/runtime/xl6_process_internal.h"
+#include "src/runtime/xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 void xl6ProcessStatusDestroyV1(void* handle){xrtFree(handle);}
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6ProcessStatusHandlePolicyV1Get, xl6ProcessStatusDestroyV1)
 static xprocessstatus* statusCheck(void* handle)
 {if(!handle)xrtSetErrorKind(XERR_ARGUMENT);return handle;}
 #define STATUS(Name,Type,Field) \

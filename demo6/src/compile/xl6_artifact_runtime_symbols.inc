@@ -2,6 +2,11 @@
  * call targets, never generated C text or source-name prefixes. The artifact
  * contract test checks exports against actual resident object files. */
 XL6_ARTIFACT_SYMBOL("xl6ActivationCaptureRuntimeV1Get", CAPTURE)
+XL6_ARTIFACT_SYMBOL("xl6NativeHandleTakeV1", NATIVE_HANDLE)
+XL6_ARTIFACT_SYMBOL("xl6NativeHandleTraceLeaf", NATIVE_HANDLE)
+XL6_ARTIFACT_SYMBOL("xl6ProcessCommandHandlePolicyV1Get", PROCESS_COMMAND)
+XL6_ARTIFACT_SYMBOL("xl6ProcessHandlePolicyV1Get", PROCESS_LIVE)
+XL6_ARTIFACT_SYMBOL("xl6ProcessStatusHandlePolicyV1Get", PROCESS_STATUS)
 XL6_ARTIFACT_SYMBOL("xl6CallbackFutureWaitV1", FUTURE_CALLBACK)
 XL6_ARTIFACT_SYMBOL("xl6CaptureRuntimeV1Get", CAPTURE)
 XL6_ARTIFACT_SYMBOL("xl6CellOwnershipAdapterV1", CELL)

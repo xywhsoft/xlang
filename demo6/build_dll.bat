@@ -149,6 +149,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_continuation_executor.c ^
     src\runtime\xl6_continuation_future.c ^
     src\runtime\xl6_code_lease.c ^
+    src\runtime\xl6_native_handle.c ^
     src\runtime\xl6_closure.c ^
     src\runtime\xl6_cell.c ^
     src\runtime\xl6_slot.c ^
@@ -298,6 +299,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_continuation_executor.c ^
     src\runtime\xl6_continuation_future.c ^
     src\runtime\xl6_code_lease.c ^
+    src\runtime\xl6_native_handle.c ^
     src\runtime\xl6_closure.c ^
     src\runtime\xl6_cell.c ^
     src\runtime\xl6_slot.c ^

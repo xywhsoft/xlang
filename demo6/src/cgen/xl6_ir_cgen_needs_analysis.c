@@ -443,6 +443,13 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              module->instructions[i].runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE ) {
             needs->needsNativeHandleTakeRuntime = 1;
+            {
+                const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(
+                    module, module->instructions[i].targetSymbol);
+                if (destroy != NULL && destroy->nativeHandlePolicyAbi ==
+                        XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1)
+                    needs->needsNativeHandlePolicyRuntime = 1;
+            }
             needs->needsForeignErrorRuntime = 1;
             needs->needsErrorRuntime = 1;
             needs->needsRuntimeTrap = 1;

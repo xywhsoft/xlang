@@ -2,6 +2,7 @@
  * A private native observer joins the waiter tail before checking the heap;
  * public Process.wait/await deliberately do not promise a waiter-thread join. */
 #include "tools/xrt_single_header_impl.c"
+#include "src/runtime/xl6_native_handle.c"
 #include "src/runtime/xl6_process_command.c"
 #include "src/runtime/xl6_process_live.c"
 #include "src/runtime/xl6_process_future.c"

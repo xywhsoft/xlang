@@ -11,12 +11,21 @@ bool process_lifetime_launch(void) { return false; }
 /* Test-only canonical entry, not an extension to the public C export ABI. */
 XLIR_C_API xvalue* process_lifetime_create(void)
 {
+#ifdef PROCESS_GLOBAL_NATIVE
+    return xrtValueNull(); /* No scoped factory: init owns the real globals. */
+#else
     xlir_result_xvalue result=PROCESS_CREATE();
     return result.ok ? result.value : NULL;
+#endif
 }
 XLIR_C_API xfuture* process_lifetime_start(xvalue* process)
 {
+#ifdef PROCESS_GLOBAL_NATIVE
+    (void)process;
+    xlir_result_future result=PROCESS_RUN();
+#else
     xlir_result_future result=PROCESS_RUN(process);
+#endif
     return result.ok ? result.value : NULL;
 }
 XLIR_C_API XL6_FuturePayloadDrop process_lifetime_drop_address(void)

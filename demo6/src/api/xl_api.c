@@ -11,6 +11,7 @@
 #include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
+#include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
@@ -2674,6 +2675,15 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     if ((adapter = xrtCancelOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtErrorOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtNetAddrListOwnershipAdapterV1(ref)) != NULL) return adapter;
+    {
+        const XL6_NativeHandlePolicyV1* policies[] = {
+            xl6ProcessCommandHandlePolicyV1Get(), xl6ProcessHandlePolicyV1Get(),
+            xl6ProcessStatusHandlePolicyV1Get()
+        };
+        for (size_t i = 0; i < sizeof(policies)/sizeof(*policies); ++i)
+            if ((adapter = xrtValueHandleOwnershipAdapterV1(ref,
+                    policies[i]->Ops, policies[i]->Trace)) != NULL) return adapter;
+    }
     /* Unknown class/native policies and Future nodes still REFUSE before
      * Count/Trace. Known Handle bridges do not authorize opaque children. */
     return xrtValueOwnershipAdapterV1(ref);

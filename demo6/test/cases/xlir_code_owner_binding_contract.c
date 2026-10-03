@@ -51,6 +51,88 @@ static int dynamic_result_contract(void)
         (unsigned long)first, (unsigned long)discard, (unsigned long)(rejected-before));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
 }
+static int native_handle_contract(void)
+{
+    XL6_ParseResult parse; XL6_IrModule ir; size_t before=rejected, typed=0, policies=0;
+    xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
+    assert(xl6ParseFile("test/cases/xlir_process_future_module_globals.xl", &parse) &&
+        xl6StdlibExpandModule(parse.root, &parse.diags) &&
+        xl6SemCheckModule(parse.root, &parse.diags, "native_handles") &&
+        xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags));
+    for (unsigned phase=0;phase<2;++phase) {
+        if(phase) assert(xl6IrLowerModule(&ir, &parse.diags));
+        assert(xl6IrVerifyModule(&ir, &parse.diags));
+        if(!phase) {
+            size_t unknown=0;
+            for(size_t i=0;i<ir.classFieldCount;++i) {
+                XL6_IrClassField* bind=&ir.classFields[i];
+                XL6_IrNativeHandlePolicyAbi saved=bind->nativeHandlePolicyAbi;
+                const char* name=bind->nativeHandlePolicyCName;
+                if(saved==XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) {
+                    ++typed; assert(name);
+                    bind->nativeHandlePolicyAbi=XL6_IR_NATIVE_HANDLE_POLICY_NONE;
+                    reject(&ir,"typed native binding policy omitted",0);
+                    bind->nativeHandlePolicyAbi=(XL6_IrNativeHandlePolicyAbi)99;
+                    reject(&ir,"typed native binding policy unknown",0);
+                    bind->nativeHandlePolicyAbi=saved; bind->nativeHandlePolicyCName=NULL;
+                    reject(&ir,"typed native binding identity omitted",0);
+                    bind->nativeHandlePolicyCName="arbitrary_native_policy";
+                    reject(&ir,"typed native binding identity forged",0);
+                    bind->nativeHandlePolicyCName=name;
+                } else if(!unknown) {
+                    ++unknown; assert(!name);
+                    bind->nativeHandlePolicyAbi=XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1;
+                    bind->nativeHandlePolicyCName="xl6ProcessHandlePolicyV1Get";
+                    reject(&ir,"unknown typed native binding forged a certificate",0);
+                    bind->nativeHandlePolicyAbi=saved; bind->nativeHandlePolicyCName=name;
+                }
+            }
+            if(!typed || !unknown) {
+                fprintf(stderr,"native typed fields=%zu unknown=%zu total=%zu\n",typed,unknown,ir.classFieldCount);
+                for(size_t i=0;i<ir.classFieldCount;++i) {
+                    const XL6_IrClassField* field=&ir.classFields[i];
+                    const XL6_IrNode* destroy=xl6IrSymbolNodeGet(&ir,field->nativeDestroySymbol);
+                    if(destroy) fprintf(stderr,"native destroy declaration text=%s\n",destroy->text);
+                }
+            }
+            assert(typed && unknown && xl6IrVerifyModule(&ir,&parse.diags));
+            continue;
+        }
+        size_t known=0,unknown=0;
+        for(size_t i=0;i<ir.callTargetCount;++i) {
+            XL6_IrCallTarget* target=&ir.callTargets[i];
+            XL6_IrNativeHandlePolicyAbi saved=target->nativeHandlePolicyAbi;
+            const char* name=target->nativeHandlePolicyCName;
+            if(saved==XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) {
+                ++known; assert(name && target->kind==XL6_IR_CALL_TARGET_EXTERN_C);
+                target->nativeHandlePolicyAbi=XL6_IR_NATIVE_HANDLE_POLICY_NONE;
+                reject(&ir,"resident native policy ABI omitted",0);
+                target->nativeHandlePolicyAbi=(XL6_IrNativeHandlePolicyAbi)99;
+                reject(&ir,"unknown native policy ABI",0);
+                target->nativeHandlePolicyAbi=saved; target->nativeHandlePolicyCName=NULL;
+                reject(&ir,"resident native policy identity omitted",0);
+                target->nativeHandlePolicyCName="arbitrary_native_policy";
+                reject(&ir,"forged native policy identity",0);
+                target->nativeHandlePolicyCName=name;
+                XL6_IrRuntimeBridgeKind bridge=target->runtimeBridge;
+                target->runtimeBridge=XL6_IR_RUNTIME_BRIDGE_NONE;
+                reject(&ir,"resident native declaration downgraded to unknown bridge",0);
+                target->runtimeBridge=bridge;
+            } else if(!unknown && target->kind==XL6_IR_CALL_TARGET_EXTERN_C) {
+                ++unknown; assert(!name && saved==XL6_IR_NATIVE_HANDLE_POLICY_NONE);
+                target->nativeHandlePolicyAbi=XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1;
+                target->nativeHandlePolicyCName="xl6ProcessHandlePolicyV1Get";
+                reject(&ir,"unknown native target forged a resident certificate",0);
+                target->nativeHandlePolicyAbi=saved; target->nativeHandlePolicyCName=name;
+            }
+        }
+        if(known!=3 || unknown!=1) fprintf(stderr,"native declarations phase=%u known=%zu unknown=%zu\n",phase,known,unknown);
+        assert(known==3 && unknown==1 && xl6IrVerifyModule(&ir,&parse.diags)); policies+=known;
+    }
+    printf("Native resource policy: %zu typed fields, %zu lowered declarations, %zu rejected mutations before C/header output\n",
+        typed,policies,rejected-before);
+    xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
+}
 int main(int argc, char** argv)
 {
     static const char* fixtures[] = { "test/cases/xlir_code_owner_binding.xl",
@@ -61,6 +143,7 @@ int main(int argc, char** argv)
     if (argc == 5) return generate(argc, argv);
     if (argc == 2 && !strcmp(argv[1], "--owners")) return xlir_owner_driver_main(1, argv);
     if (argc == 2 && !strcmp(argv[1], "--dynamic-results")) return dynamic_result_contract();
+    if (argc == 2 && !strcmp(argv[1], "--native-handles")) return native_handle_contract();
     assert(argc == 1);
     for (n = 0; n < sizeof(fixtures)/sizeof(fixtures[0]); ++n) {
         XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out; char* text;

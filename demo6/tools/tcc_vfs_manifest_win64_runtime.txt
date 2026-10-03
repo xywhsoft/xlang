@@ -26,6 +26,7 @@ file|include/__xl_runtime/xl6_continuation_queue.h|%XL6_ROOT%\src\runtime\xl6_co
 file|include/__xl_runtime/xl6_continuation_executor.h|%XL6_ROOT%\src\runtime\xl6_continuation_executor.h
 file|include/__xl_runtime/xl6_continuation_future.h|%XL6_ROOT%\src\runtime\xl6_continuation_future.h
 file|include/__xl_runtime/xl6_code_lease.h|%XL6_ROOT%\src\runtime\xl6_code_lease.h
+file|include/__xl_runtime/xl6_native_handle.h|%XL6_ROOT%\src\runtime\xl6_native_handle.h
 file|include/__xl_runtime/xl6_ownership_scope.h|%XL6_ROOT%\src\runtime\xl6_ownership_scope.h
 file|include/__xl_runtime/xl6_closure.h|%XL6_ROOT%\src\runtime\xl6_closure.h
 file|include/__xl_runtime/xl6_cell.h|%XL6_ROOT%\src\runtime\xl6_cell.h

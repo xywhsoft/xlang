@@ -1295,6 +1295,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_proce
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_process_future_module.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\process_future_module"
 if errorlevel 1 exit /b 1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_process_future_module.ps1 -PublicSourceDirectory "%XL6_TIME_CONTRACT_DIR%\compiler" -Directory "%XL6_TIME_CONTRACT_DIR%\process_future_module_globals" -GlobalNativeHandles
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: extended standard library
 exit /b 0
