@@ -4623,6 +4623,13 @@ static int xl6IrBuildClassLayoutAppendField(
             ? xl6IrNativeHandleDestroySymbol(module, item->ownerType)
             : fieldType != NULL && fieldType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE
                 ? xl6IrNativeHandleDestroySymbol(module, item->type) : 0;
+    {
+        const XL6_IrNode* destroy = xl6IrSymbolNodeGet(module, item->nativeDestroySymbol);
+        item->nativeHandlePolicyCName = destroy != NULL
+            ? xl6IrRuntimeNativeHandlePolicyForName(destroy->text) : NULL;
+        item->nativeHandlePolicyAbi = item->nativeHandlePolicyCName != NULL
+            ? XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 : XL6_IR_NATIVE_HANDLE_POLICY_NONE;
+    }
     if ( initializer != XL6_IR_NODE_INVALID ) {
         const XL6_IrNode* initializerNode = xl6IrNodeGet(module, initializer);
         /* `null` has no standalone storage representation.  Record the exact
@@ -20645,6 +20652,17 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                     : fieldType != NULL &&
                       fieldType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE
                         ? xl6IrNativeHandleDestroySymbol(module, item->type) : 0;
+            const XL6_IrNode* policyDestroy = xl6IrSymbolNodeGet(module, expectedNativeDestroy);
+            const char* expectedPolicy = policyDestroy != NULL
+                ? xl6IrRuntimeNativeHandlePolicyForName(policyDestroy->text) : NULL;
+            if (expectedPolicy != NULL) {
+                if (item->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
+                    item->nativeHandlePolicyCName == NULL ||
+                    strcmp(expectedPolicy, item->nativeHandlePolicyCName) != 0)
+                    return 0;
+            } else if (item->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_NONE ||
+                       item->nativeHandlePolicyCName != NULL)
+                return 0;
             if ( item->ownerType != layout->type || item->name == NULL || item->name[0] == '\0' ||
                    xl6IrTypeGet(&module->types, item->type) == NULL || source == NULL ||
                    source->kind != XL6_IR_NODE_FIELD_DECL || expectedType != item->type ||
@@ -26724,6 +26742,16 @@ static int xl6IrRuntimeBridgeTargetMatches(
     const XL6_IrType* third;
     int reserved;
     if ( module == NULL || target == NULL ) return 0;
+    {
+        const char* expected = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
+        if (expected != NULL) {
+            if (target->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
+                target->nativeHandlePolicyCName == NULL ||
+                strcmp(expected, target->nativeHandlePolicyCName) != 0 ||
+                target->kind != XL6_IR_CALL_TARGET_EXTERN_C) return 0;
+        } else if (target->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_NONE ||
+                   target->nativeHandlePolicyCName != NULL) return 0;
+    }
     if ( !xl6IrRuntimeBridgeOperationTargetMatches(module, target) ) return 0;
     /* The private factory adapter and receiver adapters share one contract;
      * the native XRT symbol has a distinct opaque-pointer C result type. */
@@ -45817,7 +45845,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC)
             for (parameter = 0; parameter < target->parameterCount; ++parameter)
                 xl6OutputPrintf(out, "%s%d", parameter ? "," : "", (int)target->asyncCaptureDestroyAbis[parameter]);
-        xl6OutputPuts("],\"generatorCaptureAbis\":[", out);
+        xl6OutputPrintf(out, "],\"nativeHandlePolicyAbi\":%d,\"nativeHandlePolicyCName\":\"%s\",\"generatorCaptureAbis\":[",
+            (int)target->nativeHandlePolicyAbi,
+            target->nativeHandlePolicyCName != NULL ? target->nativeHandlePolicyCName : "");
         if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR )
             for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
                 if ( parameter != 0 ) xl6OutputPuts(",", out);

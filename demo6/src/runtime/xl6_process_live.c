@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_process_live.h"
+#include "src/runtime/xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6ProcessDestroyV1(void* handle)
 {
@@ -16,6 +18,7 @@ void xl6ProcessDestroyV1(void* handle)
     }
     xrtClearError(); xrtSetErrorTake(prior);
 }
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6ProcessHandlePolicyV1Get, xl6ProcessDestroyV1)
 void* xl6ProcessSpawnV1(void* commandHandle)
 {
     XL6_ProcessCommand* command=xl6ProcessCommandCheck(commandHandle);

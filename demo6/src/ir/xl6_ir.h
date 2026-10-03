@@ -3273,6 +3273,11 @@ typedef enum XL6_IrNativeHandleBindAbi {
     XL6_IR_NATIVE_HANDLE_BIND_CLASS_FIELD_TAKE
 } XL6_IrNativeHandleBindAbi;
 
+typedef enum XL6_IrNativeHandlePolicyAbi {
+    XL6_IR_NATIVE_HANDLE_POLICY_NONE = 0,
+    XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1
+} XL6_IrNativeHandlePolicyAbi;
+
 typedef struct XL6_IrNativeHandleBind {
     XL6_IrNodeId origin;
     XL6_IrTypeId targetType;
@@ -4608,6 +4613,11 @@ typedef struct XL6_IrCallTarget {
     XL6_IrCallEffectAbi effectAbi;
     XL6_IrRuntimeBridgeKind runtimeBridge;
     XL6_IrRuntimeBridgeOperation runtimeBridgeOperation;
+    /* Closed resident resource declaration, resolved once from the private
+     * ABI registry and independently verified. NONE preserves strict refusal
+     * for unknown/native module-local callbacks. The name has registry lifetime. */
+    XL6_IrNativeHandlePolicyAbi nativeHandlePolicyAbi;
+    const char* nativeHandlePolicyCName;
     XL6_IrCallTargetLifecycleAbi lifecycleAbi;
     XL6_IrReachability reachability;
     XL6_SymbolId symbol;
@@ -5110,6 +5120,8 @@ typedef enum XL6_IrPersistenceDefaultAbi {
 } XL6_IrPersistenceDefaultAbi;
 
 typedef struct XL6_IrClassField {
+    XL6_IrNativeHandlePolicyAbi nativeHandlePolicyAbi;
+    const char* nativeHandlePolicyCName; /* Immutable declaration-registry lifetime. */
     XL6_IrTypeId ownerType;
     XL6_IrTypeId type;
     XL6_IrNodeId declaration;
@@ -5777,6 +5789,7 @@ int xl6IrRuntimeStringBridgeTargetMatches(
 XL6_IrRuntimeBridgeKind xl6IrRuntimeSerializationBridgeKind(const char* name);
 /* Value/resource bridges share one signature/ownership/effect registry. */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name);
+const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name);
 int xl6IrRuntimeDirectBridgeFactory(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name);
 const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t parameter);

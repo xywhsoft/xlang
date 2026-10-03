@@ -273,10 +273,17 @@ isolation, independent exit statuses and an externally retained status pinning
 its code after Future release. Windows performs actual FreeLibrary and TCC
 delete/MEM_FREE; Linux performs actual dlclose/RTLD_NOLOAD refusal. The native
 observer supplies real EOF and joins private waiter tails, not a public wait
-promise. TCC's provider allocator/cache is checked separately. These are scoped
-ownership tests, not global owning-native handle admission, per-artifact pruning,
-Linux TCC or 53-module acceptance. The global native handle blocker is preserved
-under `test/fixtures/process_module_pending`, not waived.
+promise. TCC's provider allocator/cache is checked separately. The Windows
+`-GlobalNativeHandles` option and Linux second argument `globals` select the
+owning module-global Command/Process fixture; default selects scoped ownership.
+Both test exact resident native Ops+Trace admission, three pre-trace refusals,
+invalid policy keeping its input slot, the complete native boxing allocation
+prefix and first no-hit, 29 typed/lowered policy mutations rejected before C/H,
+and a raw status handle surviving actual unmapping of its generated class code.
+These gates do not replace per-artifact pruning, Linux TCC, other native policies
+or total 53-module acceptance. The B32 diagnosis remains documented under
+`test/fixtures/process_module_pending`; its fixture is now an accepted case in
+`test/cases/xlir_process_future_module_globals.xl`.
 
 `check_xlir_future_cancel_core.ps1` requires a frozen full source build and fresh
 Directory; `check_xlir_future_cancel_core.sh` freezes the Linux SDK/source inputs.

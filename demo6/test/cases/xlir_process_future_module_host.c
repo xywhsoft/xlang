@@ -114,10 +114,69 @@ static bool report_live(const xmemdebugallocation* allocation,void* unused)
         allocation->File ? allocation->File : "unknown",allocation->Line);
     return true;
 }
+static unsigned rejectedTraceCalls, droppedHandles;
+static bool rejected_trace(const xvalue* value,xrtownershipvisitor visitor,void* data)
+{ (void)value; (void)visitor; (void)data; ++rejectedTraceCalls; return true; }
+static void unknown_drop(void* value,void* data)
+{ (void)data; ++droppedHandles; xrtFree(value); }
+static void native_admission_contract(void)
+{
+    xmemdebugsnapshot before,after;
+    const XL6_NativeHandlePolicyV1* policy=xl6ProcessStatusHandlePolicyV1Get();
+    static const xvaluehandleops unknown={NULL,unknown_drop,NULL,NULL};
+    assert(policy->size==sizeof(*policy) && policy->abiTag==XL6_NATIVE_HANDLE_POLICY_V1_TAG);
+    xrtMemDebugSnapshot(&before);
+    /* Exact Ops without the declared Trace, exact Trace with unknown Ops and
+     * an entirely unknown callback all refuse BEFORE running that callback. */
+    for(unsigned variant=0;variant<3;++variant) {
+        void* payload=xrtCalloc(1,sizeof(xprocessstatus)); assert(payload);
+        xvalue* handle=xrtValueHandleTake(&payload,variant==0 ? policy->Ops : &unknown,NULL);
+        assert(handle && !payload);
+        assert(xrtValueHandleOwnershipBindPhased(handle,variant==1 ? policy->Trace : rejected_trace));
+        xrtownershipscope freeze={0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
+        assert(xlModuleResolveOwnership(xrtValueOwnership(handle),NULL)==NULL);
+        assert(xrtOwnershipScopeEnd(&freeze)); xrtValueRelease(handle);
+    }
+    assert(rejectedTraceCalls==0 && droppedHandles==2);
+    void* payload=xrtCalloc(1,sizeof(xprocessstatus)); assert(payload);
+    XL6_NativeHandlePolicyV1 invalid=*policy; invalid.abiTag=0;
+    assert(!xl6NativeHandleTakeV1(&payload,&invalid) && payload);
+    assert(xrtErrorKind(xrtGetError())==XERR_ARGUMENT); xrtClearError();
+    policy->Ops->Drop(payload,NULL);
+    unsigned failures=0;
+    for(uint64 point=0;point<64;++point) {
+        payload=xrtCalloc(1,sizeof(xprocessstatus)); assert(payload);
+        xl6_error_scope boundary={0}; assert(xl6ErrorScopeBegin(&boundary));
+        assert(xrtMemDebugFailAfter(point));
+        xvalue* handle=xl6NativeHandleTakeV1(&payload,policy);
+        bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+        assert(!payload); xl6_error_result outcome=xl6ErrorScopeEnd(&boundary);
+        if(hit) {
+            ++failures; assert(!handle && !outcome.ok);
+            assert(!outcome.error || xrtErrorKind(outcome.error)==XERR_MEMORY);
+        } else {
+            assert(handle && outcome.ok && !outcome.error);
+            xrtownershipscope freeze={0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
+            assert(xlModuleResolveOwnership(xrtValueOwnership(handle),NULL)!=NULL);
+            assert(xrtOwnershipScopeEnd(&freeze)); xrtValueRelease(handle);
+        }
+        xrtErrorFree(outcome.error); xrtClearError();
+        if(!hit) break;
+        assert(point<63);
+    }
+    assert(failures);
+    xrtMemDebugSnapshot(&after);
+    assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
+    assert(after.AllocCount-before.AllocCount==after.FreeCount-before.FreeCount);
+    assert(before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount);
+    assert(before.UseAfterFreeCount==after.UseAfterFreeCount);
+    printf("Resident native handle: 3 pre-trace refusals, invalid contract keeps slot, %u OOM prefix failures + first no-hit, exact ledger\n",failures);
+}
 int main(int argc,char** argv)
 {
     assert(argc==2); unsigned mode=(unsigned)strtoul(argv[1],NULL,10); assert(mode<2);
     assert(xrtMemDebugEnable(true));
+    native_admission_contract();
 #ifdef PROCESS_TCC_PROVIDER
     provider_init();
 #endif
@@ -174,9 +233,16 @@ int main(int argc,char** argv)
         }
         xrtFutureDestroy(first); xrtFutureDestroy(second); await_cleanups(2);
         collect(); assert(!atomic_load(&deleted));
-        /* Resident payload drop alone does not eliminate script-defined handle
-         * destructors/type capabilities. This external class must pin its code. */
-        check_status(retained); xrtValueRelease(retained); finish();
+        /* The escaped class still pins its generated type/lifecycle. Its native
+         * field alone has resident Ops+Trace: after releasing the class, it can
+         * outlive actual provider unmapping and retire safely in resident code. */
+        check_status(retained);
+        xvalue* field=xrtValueRetain(xrtValueObjectGet(retained,(xstrview){"handle",6})); assert(field);
+        xrtValueRelease(retained); finish();
+        void* native=NULL; const xvaluehandleops* ops=NULL; void* data=(void*)1;
+        assert(xrtValueGetHandle(field,&native,&ops,&data) && native && !data);
+        assert(ops==xl6ProcessStatusHandlePolicyV1Get()->Ops && xl6ProcessStatusCodeV1(native)==0);
+        xrtValueRelease(field);
         xrtFree(context.lastError); xrtClearError(); xrtMemDebugSnapshot(&after);
         if(before.LiveCount!=after.LiveCount || before.LiveBytes!=after.LiveBytes)
             xrtMemDebugVisitLive(report_live,NULL);

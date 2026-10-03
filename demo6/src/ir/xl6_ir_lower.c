@@ -11956,6 +11956,9 @@ static int xl6IrLowerResolveRuntimeBridge(
     if ( ctx == NULL || target == NULL ) return 0;
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
+    target->nativeHandlePolicyCName = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
+    target->nativeHandlePolicyAbi = target->nativeHandlePolicyCName != NULL
+        ? XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 : XL6_IR_NATIVE_HANDLE_POLICY_NONE;
     if ( target->cName == NULL ) return 1;
     if ( xl6IrRuntimeXlangBridgeName(target->cName) ) {
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_XLANG;

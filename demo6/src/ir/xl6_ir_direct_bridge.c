@@ -27,6 +27,7 @@ typedef struct XL6_IrDirectBridgeContract {
     /* Future is a managed generic carrier, never an unchecked pointer or
      * builtin. Its resident producer must publish this exact element ABI. */
     XL6_IrCAbi resultFutureElementAbi;
+    const char* nativeHandlePolicy;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -70,7 +71,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessStageStatusV1",T,V,1,{V},.resultOwner="xl6ProcessStatusDestroyV1",.parameterOwners={"xl6ProcessStageDestroyV1"}},
     {"xl6ProcessOpenV1",T,B,2,{S,I}},
     {"xl6ProcessSpawnV1",T,V,1,{V},.resultOwner="xl6ProcessDestroyV1",.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessDestroyV1"},.noRaise=1},
+    {"xl6ProcessDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessHandlePolicyV1Get"},
     {"xl6ProcessIdV1",T,U,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessStateV1",T,I,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessRunningV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
@@ -87,7 +88,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessWriterV1",T,V,1,{V},.resultOwner="xl6_xrt_io_writer_destroy",.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessTerminalSupportedV1",T,B,0,{0},.noRaise=1},
     {"xl6ProcessCommandShellV1",T,V,2,{S,I},.resultOwner="xl6ProcessCommandDestroyV1"},
-    {"xl6ProcessCommandDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessCommandDestroyV1"},.noRaise=1},
+    {"xl6ProcessCommandDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessCommandDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessCommandHandlePolicyV1Get"},
     {"xl6ProcessCommandWorkDirV1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
     {"xl6ProcessCommandArg0V1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
     {"xl6ProcessCommandRemoveEnvV1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
@@ -121,7 +122,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessResultStdoutTextV1",T,S,2,{V,I},.parameterOwners={"xl6ProcessResultDestroyV1"}},
     {"xl6ProcessResultStderrTextV1",T,S,2,{V,I},.parameterOwners={"xl6ProcessResultDestroyV1"}},
     {"xl6ProcessResultStatusV1",T,V,1,{V},.resultOwner="xl6ProcessStatusDestroyV1",.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessStatusDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"},.noRaise=1},
+    {"xl6ProcessStatusDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessStatusHandlePolicyV1Get"},
     {"xl6ProcessStatusKindV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
     {"xl6ProcessStatusCodeV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
     {"xl6ProcessStatusSignalV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
@@ -522,6 +523,25 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name)
 {
     const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
     return contract != NULL ? contract->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
+}
+
+const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name)
+{
+    const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
+    if (contract != NULL) return contract->nativeHandlePolicy;
+    /* Typed declarations retain the quoted C linkage literal; lowered targets
+     * store its canonical identifier. Match the SAME exact registry entry
+     * without allocating, interpreting escapes or recognizing name prefixes. */
+    if (name != NULL) {
+        size_t length = strlen(name);
+        if (length >= 2 && name[0] == '"' && name[length-1] == '"')
+            for (size_t i=0;i<sizeof(xl6IrDirectBridgeContracts)/sizeof(xl6IrDirectBridgeContracts[0]);++i) {
+                contract=&xl6IrDirectBridgeContracts[i];
+                if (contract->nativeHandlePolicy != NULL && strlen(contract->name) == length-2 &&
+                    memcmp(name+1,contract->name,length-2) == 0) return contract->nativeHandlePolicy;
+            }
+    }
+    return NULL;
 }
 
 int xl6IrRuntimeDirectBridgeFactory(const char* name)

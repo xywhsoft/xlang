@@ -683,6 +683,8 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     }
     if ( module->callTargetCount != 0 ) xl6OutputPuts("\n", out);
     if ( needs->needsNativeHandleTakeRuntime ) {
+        if (needs->needsNativeHandlePolicyRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_native_handle.h>\n", out);
         for ( i = 0; i < module->instructionCount; ++i ) {
             const XL6_IrInstruction* instruction = &module->instructions[i];
             const XL6_IrCallTarget* destroy;
@@ -707,6 +709,15 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                  destroy->cName == NULL || destroy->cName[0] == '\0' )
                 return xl6IrCgenDiag(diags, module, instruction->origin,
                     "XLIR C emitter native handle transfer has no destructor linkage ABI");
+            if (destroy->nativeHandlePolicyAbi == XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) {
+                xl6OutputPrintf(out,
+                    "extern const XL6_NativeHandlePolicyV1* %s(void);\n"
+                    "static xvalue* xlir_native_handle_take_s%u(void** handle)\n"
+                    "{ return xl6NativeHandleTakeV1(handle, %s()); }\n\n",
+                    destroy->nativeHandlePolicyCName, (unsigned int)instruction->targetSymbol,
+                    destroy->nativeHandlePolicyCName);
+                continue;
+            }
             {
                 char callback[80];
                 snprintf(callback, sizeof(callback), "xlir_native_handle_drop_s%u", (unsigned int)instruction->targetSymbol);

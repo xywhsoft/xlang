@@ -197,6 +197,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_process_open.c"
 	"$ROOT/src/runtime/xl6_process_terminal.c"
 	"$ROOT/src/runtime/xl6_process_live.c"
+	"$ROOT/src/runtime/xl6_native_handle.c"
 	"$ROOT/src/runtime/xl6_process_stream.c"
 	"$ROOT/src/runtime/xl6_process_future.c"
 	"$ROOT/src/runtime/xl6_process_pipeline_config.c"

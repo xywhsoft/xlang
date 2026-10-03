@@ -96,5 +96,5 @@ static void provider_init(void)
     }
     size_t found=0; xmemdebugsnapshot after; provider_snapshot(&after); visit(find_provider_cache,&found);
     assert(found==1 && after.LiveCount==1 && after.LiveBytes==sizeof("<static libtcc>"));
-    printf("TCC provider cache: one explicit process-lifetime cache; next 50 transactions checked separately\n");
+    printf("TCC provider cache: one explicit process-lifetime cache; next 25 transactions checked separately\n");
 }
