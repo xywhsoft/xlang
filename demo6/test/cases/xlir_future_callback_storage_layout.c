@@ -13,7 +13,7 @@
 
 typedef struct Payload {
     int64_t scalar;
-    char* string;
+    xstrview string;
     xvalue* first;
     xfuture* source;
     XL6_Closure* closure;
@@ -63,12 +63,12 @@ static void entry(void) {}
 static void initialize(Payload* p,xfuture* source)
 {
     *p=(Payload){0};live=p;roundDrops=0;
-    p->scalar=180;p->string=xrtStrDup("layout");p->source=xrtFutureRef(source);
+    p->scalar=180;p->string=(xstrview){xrtStrDup("layout"),6};p->source=xrtFutureRef(source);
     p->first=xl6ClassRuntimeV2Get()->CommitTake(xl6ClassRuntimeV2Get()->Create(NULL,finalize));
     p->last=xl6ClassRuntimeV2Get()->CommitTake(xl6ClassRuntimeV2Get()->Create(NULL,finalize));
     p->closure=xl6ClosureRuntimeV2Get()->Create(NULL,entry,NULL,NULL,NULL,NULL,NULL,0);
     p->error=xrtErrorCreate(XERR_ARGUMENT,"capture",180,"owned captured error");
-    assert(p->string && p->source && p->first && p->last && p->closure && p->error);
+    assert(p->string.Data && p->source && p->first && p->last && p->closure && p->error);
     firstObject=p->first;lastObject=p->last;
 }
 static void balanced(const xmemdebugsnapshot* before)
@@ -82,7 +82,7 @@ static void balanced(const xmemdebugsnapshot* before)
 static void cleanup(Payload* p)
 {
     if(taskMode)xl6TaskRuntimeV2Get()->Cleanup(p);else xl6FutureCallbackRuntimeV2Get()->Cleanup(p);
-    assert(p->scalar==180 && !p->string && !p->first && !p->source && !p->closure && !p->error && !p->last);
+    assert(p->scalar==180 && !p->string.Data && !p->string.Size && !p->first && !p->source && !p->closure && !p->error && !p->last);
 }
 static void callback(const xfutureresult* input,xpromise* output,xcancel* cancel,void* data)
 {

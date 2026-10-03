@@ -34,7 +34,10 @@ void result_commit_check(unsigned kind, xfuture* result, xfuture* input, xerror*
 {
     void* value = xrtFutureValue(result); assert(value);
     if (kind == 0) assert(*(int64_t*)value == 17);
-    else if (kind == 1) assert(*(char**)value && !strcmp(*(char**)value, "owned result"));
+    else if (kind == 1) {
+        const xlir_string* text = value;
+        assert(text->Data && text->Size == 12 && !memcmp(text->Data, "owned result", 12));
+    }
     else if (kind == 2) assert(*(xvalue**)value != NULL);
     else if (kind == 3) assert(*(xlir_closure**)value != NULL);
     else assert(*(xerror**)value == error);

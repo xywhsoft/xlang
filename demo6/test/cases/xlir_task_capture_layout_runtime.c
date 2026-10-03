@@ -15,7 +15,7 @@
 #include <windows.h>
 
 typedef struct Payload {
-    uint64_t number; char* string; xvalue* value; xfuture* future;
+    uint64_t number; xstrview string; xvalue* value; xfuture* future;
     XL6_Closure* closure; xerror* error; XL6_Cell* cell;
     XL6_ValueIterator* iterator; XL6_Generator* generator;
 } Payload;
@@ -63,7 +63,7 @@ static void all_slots(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
     Payload* p=xl6TaskRuntimeV2Get()->Allocate(NULL,sizeof(*p),unused_run,&layout);assert(p);*p=(Payload){0};
-    p->number=91;p->string=xrtStrDup("capture");p->value=xrtValueInt(42);
+    p->number=91;p->string=(xstrview){xrtStrDup("capture"),7};p->value=xrtValueInt(42);
     xpromise* promise=xrtPromiseCreate(&p->future,NULL);assert(promise);xrtPromiseDestroy(promise);
     p->closure=xl6ClosureRuntimeV1Get()->Create(NULL,closure_invoke,NULL,NULL,NULL,NULL,NULL,0,NULL);
     p->error=xrtErrorCreate(XERR_STATE,"capture",7,"capture");
@@ -73,7 +73,7 @@ static void all_slots(void)
     p->iterator=iterators->Create(source);xrtValueRelease(source);
     void* frame=xl6GeneratorRuntimeV1Get()->FrameAllocate(1);assert(frame);
     p->generator=xl6GeneratorRuntimeV1Get()->Create(NULL,frame,generator_resume,generator_drop,sizeof(int64_t),NULL,empty_trace,empty_trace);
-    assert(p->string&&p->value&&p->future&&p->closure&&p->error&&p->cell&&p->iterator&&p->generator);
+    assert(p->string.Data&&p->value&&p->future&&p->closure&&p->error&&p->cell&&p->iterator&&p->generator);
     xrtownershipref expected[7];
     expected[0]=xrtValueOwnership(p->value);expected[1]=xrtFutureOwnership(p->future);
     expected[2]=xl6ClosureRuntimeV1Get()->Ownership(p->closure);expected[3]=xrtErrorOwnership(p->error);
@@ -81,7 +81,7 @@ static void all_slots(void)
     expected[6]=xl6GeneratorRuntimeV1Get()->Ownership(p->generator);
     edges=0;assert(captures->Trace(&layout,p,edge,expected)&&edges==7);
     xrtSetErrorKind(XERR_STATE);xl6TaskRuntimeV2Get()->Cleanup(p);
-    assert(xrtErrorKind(xrtGetError())==XERR_STATE&&p->number==91&&!p->string&&!p->value&&!p->future&&
+    assert(xrtErrorKind(xrtGetError())==XERR_STATE&&p->number==91&&!p->string.Data&&!p->string.Size&&!p->value&&!p->future&&
         !p->closure&&!p->error&&!p->cell&&!p->iterator&&!p->generator);
     xl6TaskRuntimeV2Get()->Cleanup(p);assert(xrtErrorKind(xrtGetError())==XERR_STATE);
     xrtClearError();xl6TaskRuntimeV1Get()->Discard(p);balance(&before);
@@ -123,8 +123,12 @@ int main(void)
     assert(xrtMemDebugEnable(true));captures=xl6CaptureRuntimeV1Get();iterators=xl6ValueIteratorRuntimeV1Get();
     xl6_error_scope warm={0};assert(xl6ErrorScopeBegin(&warm));assert(xl6ErrorScopeEnd(&warm).ok);
     assert(captures->Validate(&layout,sizeof(Payload)));
-    for(unsigned kind=1;kind<=9;++kind){XL6_CaptureSlot slot={kind,0,kind==1?sizeof(uint64_t):sizeof(void*)};
+    for(unsigned kind=1;kind<=9;++kind){
+        size_t bytes=kind==XL6_CAPTURE_TRIVIAL?sizeof(uint64_t):
+            kind==XL6_CAPTURE_STRING?sizeof(xstrview):sizeof(void*);
+        XL6_CaptureSlot slot={kind,0,bytes};
         XL6_CaptureLayoutV1 one={sizeof(one),sizeof(Payload),1,&slot};assert(captures->Validate(&one,sizeof(Payload)));
+        if(kind==XL6_CAPTURE_STRING){slot.bytes=sizeof(void*);assert(!captures->Validate(&one,sizeof(Payload)));slot.bytes=bytes;}
         slot.kind=(XL6_CaptureKind)99;assert(!captures->Validate(&one,sizeof(Payload)));}
     for(unsigned n=0;n<100;++n){all_slots();for(unsigned kind=0;kind<4;++kind)iterator_case(kind);}
     for(unsigned fail=0;fail<12;++fail){

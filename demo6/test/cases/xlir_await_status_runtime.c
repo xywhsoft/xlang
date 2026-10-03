@@ -6,7 +6,7 @@
 #include <string.h>
 static unsigned mode, cleanups, acquired;
 static xmemdebugsnapshot before;
-static char* payload = "await-owned";
+static xstrview payload = {"await-owned", 11};
 void await_status_begin(unsigned which)
 {
     assert(xrtMemDebugEnable(true)); xrtClearError();
@@ -30,8 +30,8 @@ xfuture* await_status_input(void)
     xrtPromiseDestroy(promise); return future;
 }
 /* Exact public copy boundary, not a claim of allocator/OS fault injection. */
-char* await_status_copy(const char* value)
+char* await_status_copy(const char* value, size_t size)
 {
-    if (mode == 2 && value == payload) { assert(xrtGetError() == NULL); return NULL; }
-    return xrtStrDup(value);
+    if (mode == 2 && value == payload.Data && size == payload.Size) { assert(xrtGetError() == NULL); return NULL; }
+    return xrtStrDupN(value, size);
 }

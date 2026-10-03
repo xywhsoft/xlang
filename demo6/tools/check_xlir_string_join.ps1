@@ -50,7 +50,7 @@ $negatives = @('xlir_string_bridge_bad_result','xlir_string_bridge_bad_parameter
     'xlir_string_bytes_bad_result','xlir_string_bytes_bad_parameter',
     'xlir_string_chars_bad_result','xlir_string_chars_bad_parameter',
     'xlir_string_repeat_bad_result','xlir_string_repeat_bad_parameter')
-$objects = @($build.Sources | Where-Object {$_ -like 'src/runtime/*' -or $_ -eq 'tools/xrt_single_header_impl.c'} |
+$objects = @($build.Sources | Where-Object {$_ -like 'src/runtime/*' -or $_ -in @('tools/xrt_single_header_impl.c','src/api/xl_task_group_bridge.c')} |
     ForEach-Object {Join-Path $compilerDir ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
 $paths = @($build.Inputs.Path) + @($build.Headers.Path) + @($build.Objects.Path) +
     @($driver,$gcc,$PSCommandPath,(Join-Path $compilerDir 'build.json')) + $objects

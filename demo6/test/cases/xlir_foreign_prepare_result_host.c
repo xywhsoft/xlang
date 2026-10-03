@@ -6,6 +6,7 @@ extern bool xl6ForeignCallBegin(xl6_foreign_error_scope*);
 extern bool xrtMemDebugEnable(bool);
 extern uint64_t prepare_live_count(void), prepare_live_bytes(void);
 typedef struct xpromise xpromise;
+typedef struct xcancel xcancel;
 extern xpromise* xrtPromiseCreate(xfuture**, xcancel*);
 extern bool xrtPromiseResolve(xpromise*, void*);
 extern void xrtPromiseDestroy(xpromise*);

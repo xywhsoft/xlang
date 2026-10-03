@@ -18,7 +18,24 @@ bool xlir_async_test_execution_idle(void)
 static void xlir_async_test_bind(void)
 {
     static int bound;
-    if (!bound) { assert(xl_script_bind_code_owner(xlir_async_test_code_owner())); bound = 1; }
+    if (!bound) {
+        if (xlir_code_owner.size != 0) {
+            /* CLI/JIT/AOT binds the real provider before calling main. Keep
+             * that immutable capability; only the standalone native lane
+             * uses our lease/fault observer. Prove replacement is refused. */
+            XL6_CodeOwner original = xlir_code_owner;
+            const struct xrtownershipops* ops = xlir_code_owner_graph.ops;
+            assert(original.size >= sizeof(original) && original.acquire && original.release);
+            assert(!xl_script_bind_code_owner(xlir_async_test_code_owner()));
+            assert(xlir_code_owner.size == original.size &&
+                xlir_code_owner.context == original.context &&
+                xlir_code_owner.acquire == original.acquire &&
+                xlir_code_owner.release == original.release && xlir_code_owner_graph.ops == ops);
+        } else {
+            assert(xl_script_bind_code_owner(xlir_async_test_code_owner()));
+        }
+        bound = 1;
+    }
 }
 static void xlir_async_test_fini(void)
 {

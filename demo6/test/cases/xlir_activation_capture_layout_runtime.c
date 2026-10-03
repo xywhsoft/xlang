@@ -15,7 +15,7 @@
 #include <windows.h>
 
 typedef struct Payload {
-    char* string; xvalue* value; xfuture* future; XL6_Closure* closure;
+    xstrview string; xvalue* value; xfuture* future; XL6_Closure* closure;
     xerror* error; XL6_Cell* cell; XL6_ValueIterator* iterator; XL6_Generator* generator;
     void* loan; uint64_t number; unsigned char initialized[8];
 } Payload;
@@ -75,11 +75,11 @@ static void sparse(unsigned mask)
     p.loan=(void*)(uintptr_t)1;p.number=UINT64_C(0xfedcba9876543210);
     /* Inactive residents deliberately retain poison: flags must be checked
      * before loading or tracing the pointer; protected loans never own it. */
-    p.string=(char*)(uintptr_t)1;p.value=(xvalue*)(uintptr_t)1;p.future=(xfuture*)(uintptr_t)1;
+    p.string=(xstrview){(const char*)(uintptr_t)1,SIZE_MAX};p.value=(xvalue*)(uintptr_t)1;p.future=(xfuture*)(uintptr_t)1;
     p.closure=(XL6_Closure*)(uintptr_t)1;p.error=(xerror*)(uintptr_t)1;p.cell=(XL6_Cell*)(uintptr_t)1;
     p.iterator=(XL6_ValueIterator*)(uintptr_t)1;p.generator=(XL6_Generator*)(uintptr_t)1;
     for(unsigned i=0;i<8;++i)p.initialized[i]=(mask>>i)&1;
-    if(mask&1){p.string=xrtStrDup("sparse");assert(p.string);}
+    if(mask&1){p.string=(xstrview){xrtStrDup("sparse"),6};assert(p.string.Data);}
     if(mask&2){p.value=xrtValueInt(17);assert(p.value);}
     if(mask&4){xpromise* promise=xrtPromiseCreate(&p.future,NULL);assert(promise&&p.future);xrtPromiseDestroy(promise);}
     if(mask&8){p.closure=xl6ClosureRuntimeV1Get()->Create(NULL,invoke,NULL,NULL,NULL,NULL,NULL,0,NULL);assert(p.closure);}
@@ -98,6 +98,7 @@ static void sparse(unsigned mask)
     result=api->Cleanup(&layout,&p,result);assert(result.ok&&!result.error&&!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
     for(unsigned i=0;i<8;++i){assert(!p.initialized[i]);void* actual=NULL;memcpy(&actual,(char*)&p+slots[i].value.offset,sizeof(actual));
         assert(actual==((mask&(1u<<i))?NULL:(void*)(uintptr_t)1));}
+    assert(p.string.Size==((mask&1)?0:original.string.Size));
     assert(p.loan==original.loan&&p.number==original.number);edges=0;assert(api->Trace(&layout,&p,edge,NULL)&&!edges);
     ++sparseCases;balance(&before);
 }
