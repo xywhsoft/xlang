@@ -220,7 +220,11 @@ concurrent dual drains, cancellation/deadlines and logical OOM, with closed ABI,
 owner and effect mutations/negatives and deterministic strict C/JIT/AOT. Linux
 instruments actual XRT/resident/program closures; shared CLI/JIT is uninstrumented.
 The POSIX launch-plan prefix sweep verifies every argument-copy failure and
-cleanup. Live Process/pipeline/Future/file redirection/PTY remain later batches;
+cleanup. Live Process now adds real child ownership/unique stream lease,
+parent-drop survival, nullable timeout/independent status, and factory OOM
+rollback with explicit private waiter retirement in the native fixture.
+Generated live programs do not yet claim a full language OOM-prefix sweep.
+Pipeline/Future/file redirection/PTY remain later batches;
 passing this gate does not complete the seven process modules or all 53 modules.
 The same gates cover process.open input/error transport with a controlled
 association launcher (never claim OS launch acceptance), a real XRT terminal

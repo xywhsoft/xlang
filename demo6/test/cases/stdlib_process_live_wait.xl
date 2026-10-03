@@ -1,0 +1,16 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto processHandle = process.startFile(child, ["exit", "7"])
+assert processHandle.id > 0
+auto status = processHandle.wait()
+assert status != null
+if status != null then assert status.kind == 1 and status.code == 7 end
+assert not processHandle.running and processHandle.state == 1
+auto repeated = processHandle.status
+assert repeated != null
+if repeated != null then assert repeated.code == 7 end
+processHandle = process.cmd(child, ["exit", "0"]).start()
+if status != null then assert status.code == 7 end
+auto fresh = processHandle.wait()
+assert fresh != null
+if fresh != null then assert fresh.code == 0 end

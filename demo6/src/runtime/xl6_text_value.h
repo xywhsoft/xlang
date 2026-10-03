@@ -13,6 +13,20 @@
 
 struct xlir_closure;
 /* Checked process resources and exact input/output views. */
+XL6_TEXT_API void* xl6ProcessSpawnV1(void* command);
+XL6_TEXT_API void xl6ProcessDestroyV1(void* process);
+XL6_TEXT_API uint64_t xl6ProcessIdV1(void* process);
+XL6_TEXT_API int64_t xl6ProcessStateV1(void* process);
+XL6_TEXT_API bool xl6ProcessRunningV1(void* process);
+XL6_TEXT_API bool xl6ProcessCloseV1(void* process, int64_t stream);
+XL6_TEXT_API bool xl6ProcessInterruptV1(void* process);
+XL6_TEXT_API bool xl6ProcessTerminateV1(void* process);
+XL6_TEXT_API bool xl6ProcessKillV1(void* process);
+XL6_TEXT_API bool xl6ProcessKillTreeV1(void* process);
+XL6_TEXT_API bool xl6ProcessWaitReadyV1(void* process, int64_t timeoutMs);
+XL6_TEXT_API void* xl6ProcessLiveStatusV1(void* process);
+XL6_TEXT_API void* xl6ProcessReaderV1(void* process, int64_t stream);
+XL6_TEXT_API void* xl6ProcessWriterV1(void* process);
 XL6_TEXT_API bool xl6ProcessOpenV1(xstrview target, int64_t size);
 XL6_TEXT_API bool xl6ProcessTerminalSupportedV1(void);
 XL6_TEXT_API void* xl6ProcessCommandDirectV1(xstrview program, const xvalue* args, int64_t size, int64_t argSize);

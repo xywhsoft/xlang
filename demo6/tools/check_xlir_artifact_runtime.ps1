@@ -18,7 +18,7 @@ try {
         'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $processInputs=@()
-    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases){
+    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'}).Count){
         if(!$ProcessChild){throw 'Process fixtures require an explicit private ProcessChild'}
         $ProcessChild=(Resolve-Path -LiteralPath $ProcessChild).Path
         $processInputs=@($ProcessChild)
@@ -285,6 +285,16 @@ $process=Start-Process @start
                             'stdlib_regex_replace_func_buffer','stdlib_regex_replace_func_errors')))-and
                         'XRT_MODULE_PATTERN'-notin$plan.NativeModules-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_number_|xl6_text_|xl6_html\.|xl6_unicode\.|xl6_encoding'}).Count
+                }
+                if($case-in@('stdlib_process_live_wait','stdlib_process_live_streams','stdlib_process_live_drop')){
+                    $expectedProcess=@('command','live')
+                    if($case-ne'stdlib_process_live_drop'){$expectedProcess+=@('status')}
+                    if($case-ne'stdlib_process_live_wait'){$expectedProcess+=@('stream')}
+                    $actualProcess=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_process_'}|Sort-Object)
+                    $wantedProcess=@($expectedProcess|ForEach-Object {"src/runtime/xl6_process_$_.c"}|Sort-Object)
+                    $selectionMatches=$selectionMatches-and!(Compare-Object $actualProcess $wantedProcess)-and
+                        (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-ne'stdlib_process_live_wait'))-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_PROCESS_(RUN|PIPELINE|FUTURE|FILE|TERMINAL|OPEN)$'}).Count
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE

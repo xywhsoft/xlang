@@ -1,0 +1,7 @@
+class WrongProcess
+    private native point handle
+    extern "xl6ProcessSpawnV1" create(ProcessCommand command)
+    extern "xl6ProcessDestroyV1" destroy()
+    extern "xl6ProcessWaitReadyV1" @pure @no_raise @nonblocking func waitReady(int timeoutMs) as bool
+end
+assert WrongProcess(process.shell("exit 0")).waitReady(0)
