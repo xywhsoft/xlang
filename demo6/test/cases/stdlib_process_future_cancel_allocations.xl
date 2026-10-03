@@ -1,0 +1,24 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.stdio(process.stdin, process.stdioPipe)
+command.stdio(process.stdout, process.stdioNull)
+command.stdio(process.stderr, process.stdioNull)
+auto p = command.start()
+auto writer = p.stdinWriter()
+auto cancelled = p.waitAsync()
+auto remaining = p.waitAsync()
+cancelled.cancel()
+bool caught = false
+try
+    auto ignored = await cancelled
+catch CancelledError cancellation
+    caught = true
+end
+// Under OOM an eagerly failed Future raises MemoryError through await above;
+// only the normal cancellation path reaches this assertion and the real EOF.
+assert caught and cancelled.isCancelled() and not cancelled.isFailed()
+writer.close()
+auto status = await remaining
+assert status.kind == 1 and status.code == 0
+assert (await p.waitAsync()).code == 0

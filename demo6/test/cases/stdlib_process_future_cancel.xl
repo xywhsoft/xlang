@@ -13,10 +13,10 @@ assert cancelled.cancel()
 bool caught = false
 try
     auto ignored = await cancelled
-catch CancelledError
+catch CancelledError cancellation
     caught = true
 end
-assert caught and p.running
+assert caught and cancelled.isCancelled() and not cancelled.isFailed() and p.running
 assert remaining.isPending()
 writer.close()
 assert (await remaining).code == 0

@@ -231,7 +231,17 @@ every current-thread logical allocation prefix (native factory, managed boxing,
 owned streams/status and parent drop) through the first no-hit. An actual native
 Spawn observer joins private waiter tails; it does not mock results or give the
 public API a waiter-join guarantee. Other-thread allocations are not injected.
-Generated Future full OOM-prefix and module-unload acceptance remain pending.
+Four generated Process Future paths additionally sweep the whole current-thread
+logical allocation prefix: terminal/repeated wait, parent drop and explicit
+cancellation. Tests use a typed catch and exact Future state, retire real
+children/private waiters and the continuation executor, and require the first
+no-hit. Only an observed failure of the optional CANCELLED diagnostic allocation
+may preserve successful cancellation instead of MemoryError; no other error is
+accepted. `-FutureOnly` (Linux `--future-only` after Directory) runs six Future
+language fixtures, four exact ABI negatives and native factory/mapper prefixes;
+results explicitly record the subset. Compilation/results are fresh and inputs
+frozen; this mode does not claim other process or 53-module total acceptance.
+Other-thread injection and Process Future provider-unload acceptance remain pending.
 A native pipeline preflight additionally sweeps every calling-thread allocation
 prefix for success and last-stage launch failure, with selected modules and
 MODULE_ALL. It requires intact unrelated stdin, exact per-stage binary stderr,
