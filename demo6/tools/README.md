@@ -141,6 +141,14 @@ Representative and cross-cutting guards include:
 
 `check_xrt_ownership_contract.ps1` prevents the removed XRT object-mode compatibility layer from returning. xlang uses retain, ownership transfer and explicit clone/copy; synchronization primitives provide cross-thread publication and visibility.
 
+`check_linux_embedded_resources.py` compares the actual resource tables loaded
+from Linux `libxl.so` and `libxlc.so` with their current manifest inventories and
+source bytes, independently decoding LZMA with Python's standard library. It
+rejects missing, renamed, stale and length/encoding-invalid resources, verifies
+unchanged inputs and writes a fresh report. `test_linux.sh` runs its mutation
+tests and product check before integration tests. This is resource freshness
+evidence, not a self-hosting, Linux TCC unload or 53-module acceptance claim.
+
 `check_xrt_header_abi.ps1` compiles the XRT declaration SDK and xlang private runtime header in all supported include orders. It rejects duplicate declarations, type-layout drift and the historical `str` signedness mismatch.
 
 `check_xrt_product_trim.ps1` builds minimal and typed representative programs, verifies that both use one xruntime implementation product, and rejects duplicate core implementation or unnecessary typed module retention.
