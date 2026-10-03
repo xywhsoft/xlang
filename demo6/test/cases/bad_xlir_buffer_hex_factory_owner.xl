@@ -1,0 +1,6 @@
+class WrongBuffer
+    native point handle
+    extern "xl6TextIteratorDestroyV1" destroy()
+    static extern "xl6BufferFromHexV1" func fromHex(string text, int flags, int size) as WrongBuffer
+end
+WrongBuffer.fromHex("00", 0, -1)

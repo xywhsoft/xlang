@@ -20648,6 +20648,7 @@ static int xl6SemCheckClassMemberFlags(XL6_SemContext* ctx, XL6_AstNode* member)
          member->kind != XL6_AST_FIELD &&
          member->kind != XL6_AST_FUNC &&
          member->kind != XL6_AST_ASYNC_FUNC &&
+         member->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
          member->kind != XL6_AST_EXPORT_FUNC ) {
         xl6SemErrorNode(ctx, member, "static is only supported on class fields and funcs");
         ok = 0;
@@ -21792,7 +21793,8 @@ static int xl6SemCheckClassNativeExternBase(XL6_SemContext* ctx, XL6_AstNode* cl
         xl6SemErrorNode(ctx, node, "native-backed class extern member does not support generic class in this stage");
         ok = 0;
     }
-    if ( xl6SemAstHasFlag(node, XL6_AST_FLAG_STATIC) ) {
+    if ( xl6SemAstHasFlag(node, XL6_AST_FLAG_STATIC) &&
+         node->kind != XL6_AST_NATIVE_EXTERN_FUNC ) {
         xl6SemErrorNode(ctx, node, "native-backed class extern member cannot be static");
         ok = 0;
     }

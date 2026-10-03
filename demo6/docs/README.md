@@ -148,3 +148,8 @@
 `三组标准库接入长期任务.md`；对应跨平台门为
 `../tools/check_xlir_module_product_globals.ps1`/`.sh`。专项通过不等于
 三个分类全部 53 模块已封板。
+
+Buffer Hex/Base64 与 static/free native factory 的 B41 声明式 ABI 和
+失败清理范围见 `三组标准库接入长期任务.md`；跨平台专项门为
+`../tools/check_stdlib_buffer_codecs.ps1`/`.sh`，不涵盖旧 Buffer core
+的剩余迁移，也不等于全部容器或 53 模块完成。

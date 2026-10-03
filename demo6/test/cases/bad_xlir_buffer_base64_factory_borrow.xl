@@ -1,0 +1,5 @@
+class BorrowedBuffer
+    native point handle
+    static extern "xl6BufferFromBase64V1" func fromBase64(string text, int flags, string alphabet, int size, int alphabetSize) as BorrowedBuffer
+end
+BorrowedBuffer.fromBase64("AA==", 0, "", -1, -1)

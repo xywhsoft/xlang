@@ -1,0 +1,15 @@
+// No expected error branches: a real logical allocation failure must abort
+// module initialization, preserve MemoryError, and release every native result.
+extern "xl6BufferFromHexV1" func decodeHex(string text, int flags, int size) as Buffer
+Buffer raw = Buffer(b"\0\xffAZ")
+string hex = raw.hex()
+string base64 = raw.base64()
+Buffer first = Buffer.fromHex(hex)
+Buffer second = Buffer.fromBase64(base64)
+Buffer third = decodeHex(hex, 0, -1)
+assert first.toBytes() == raw.toBytes()
+assert second.toBytes() == raw.toBytes()
+assert third.toBytes() == raw.toBytes()
+// Discarded factories still transfer and then release their owned result.
+Buffer.fromHex("00")
+Buffer.fromBase64("AA==")

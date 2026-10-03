@@ -161,6 +161,18 @@ const char* xl6StdlibRandomBufferMethodsSource =
 const char* xl6StdlibRandomClassEndSource = "end\n";
 
 const char* xl6StdlibBufferClassSource =
+    "enum HexFlags as int\n"
+    "    None = 0\n"
+    "    Upper = 1\n"
+    "    IgnoreSpace = 2\n"
+    "end\n"
+    "enum Base64Flags as int\n"
+    "    None = 0\n"
+    "    Url = 1\n"
+    "    NoPadding = 2\n"
+    "    IgnoreSpace = 4\n"
+    "    OptionalPadding = 8\n"
+    "end\n"
     "class BufferIter\n"
     "    private native point handle\n"
     "    extern \"xl6BufferIteratorCreateV1\" create(Buffer source, int size = -1)\n"
@@ -187,6 +199,10 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6BufferFromBytesV1\" create(bytes data, int size = -1)\n"
     "    extern \"xl6BufferCopyV1\" create(Buffer source, int size = -1)\n"
     "    extern \"xl6_xrt_buffer_destroy\" destroy()\n"
+    "    static extern \"xl6BufferFromHexV1\" func fromHex(string text, int flags = 0, int size = -1) as Buffer\n"
+    "    extern \"xl6BufferHexV1\" func hex(int flags = 0, int size = -1) as string\n"
+    "    static extern \"xl6BufferFromBase64V1\" func fromBase64(string text, int flags = 0, string alphabet = \"\", int size = -1, int alphabetSize = -1) as Buffer\n"
+    "    extern \"xl6BufferBase64V1\" func base64(int flags = 0, string alphabet = \"\", int size = -1, int alphabetSize = -1) as string\n"
     "    extern \"xl6_xrt_buffer_len\" func len() as int\n"
     "    extern \"xl6_xrt_buffer_capacity\" func capacity() as int\n"
     "    extern \"xl6_xrt_buffer_reserve\" func reserve(int size) as bool\n"
@@ -3356,17 +3372,6 @@ static const XL6_StdlibParam xl6StdXrtCodecPercentParams[] = {
     {"point", "outSize"}
 };
 
-static const XL6_StdlibParam xl6StdXrtCodecDecodeBufferParams[] = {
-    {"string", "text"},
-    {"c_size", "size"}
-};
-
-static const XL6_StdlibParam xl6StdXrtCodecBase64DecodeBufferParams[] = {
-    {"string", "text"},
-    {"c_size", "size"},
-    {"point", "table"}
-};
-
 
 static const XL6_StdlibParam xl6StdXidCountParams[] = {
     {"int", "count"}
@@ -5104,8 +5109,7 @@ static const char xl6StdCodecHexEncodeBytesBody[] =
 
 static const char xl6StdCodecHexDecodeBytesBody[] =
     "func __xl_std_codec_hex_decode_bytes(string text) as Buffer\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return Buffer(point(__xl_std_xrt_buffer_from_hex(text, __xl_size_text)))\n"
+    "    return Buffer.fromHex(text)\n"
     "end\n";
 
 static const char xl6StdCodecBase64EncodeBytesBody[] =
@@ -5115,8 +5119,7 @@ static const char xl6StdCodecBase64EncodeBytesBody[] =
 
 static const char xl6StdCodecBase64DecodeBytesBody[] =
     "func __xl_std_codec_base64_decode_bytes(string text) as Buffer\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return Buffer(point(__xl_std_xrt_buffer_from_base64(text, __xl_size_text, null)))\n"
+    "    return Buffer.fromBase64(text)\n"
     "end\n";
 
 static const char xl6StdCodecPercentEncodeBody[] =
@@ -6311,8 +6314,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_codec", "base64Decode", "__xl_std_xrt_base64_decode", "xl6_xrt_base64_decode_text", xl6StdXrtCodecBase64Params, 3, "string", NULL},
     {"__xrt_codec", "hexEncodeBytes", "__xl_std_xrt_hex_encode_bytes", "xl6_xrt_hex_encode_bytes", xl6StdXrtCodecBytesParams, 2, "point", NULL},
     {"__xrt_codec", "base64EncodeBytes", "__xl_std_xrt_base64_encode_bytes", "xl6_xrt_base64_encode_bytes", xl6StdXrtCodecBase64BytesParams, 3, "point", NULL},
-    {"__xrt_codec", "bufferFromHex", "__xl_std_xrt_buffer_from_hex", "xl6_xrt_buffer_from_hex", xl6StdXrtCodecDecodeBufferParams, 2, "point", NULL},
-    {"__xrt_codec", "bufferFromBase64", "__xl_std_xrt_buffer_from_base64", "xl6_xrt_buffer_from_base64", xl6StdXrtCodecBase64DecodeBufferParams, 3, "point", NULL},
     {"__xrt_codec", "percentEncode", "__xl_std_xrt_percent_encode", "xl6_xrt_percent_encode_text", xl6StdXrtCodecPercentParams, 3, "string", NULL},
     {"__xrt_codec", "percentDecode", "__xl_std_xrt_percent_decode", "xl6_xrt_percent_decode_text", xl6StdXrtCodecPercentParams, 3, "string", NULL},
     {"__xrt_hash", "u32", "__xl_std_xrt_hash32", "xl6_xrt_hash32_string", xl6StdHashStringParams, 2, "c_uint", NULL},

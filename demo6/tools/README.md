@@ -336,3 +336,12 @@ probe is a separate C translation unit using actual SDK types, not duplicate
 ABI layouts. Linux separately sanitizes real pruned generated/resident/native
 closures; its full shared debug XRT OOM harness and CLI/JIT are not instrumented.
 This does not certify every product/capture combination or all 53 modules.
+
+`check_stdlib_buffer_codecs.ps1` and `.sh` freeze seven positive/four negative
+fixtures for exact Hex/Base64, static/free native factory ABI and legacy Buffer
+regressions. They verify actual pruned C/JIT/AOT closures, independent native
+vectors and complete logical allocation prefixes, including managed factory
+failure cleanup. Linux sanitizes real selected native/resident/generated closures;
+shared CLI/JIT and the separate full shared debug-XRT harness are not instrumented.
+`check_xlir_buffer_codec_ir.py` checks exact class/field/destructor identities.
+Neither gate certifies legacy Buffer core or all 53 modules.

@@ -1,0 +1,2 @@
+extern "xl6BufferFromHexV1" func bad(string text, int flags, int size) as point
+bad("00", 0, -1)

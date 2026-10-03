@@ -11,6 +11,9 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_buffer_values.ps1
 if errorlevel 1 exit /b 1
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_buffer_codecs.ps1
+if errorlevel 1 exit /b 1
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_module_product_globals.ps1
 if errorlevel 1 exit /b 1
 

@@ -69,7 +69,9 @@ try {
     $enum=[regex]::Match((Get-Content -LiteralPath src/compile/xl6_artifact_runtime.h -Raw),
         '(?s)typedef\s+enum\s+XL6_ArtifactRuntimeId\s*\{(?<body>.*?)\}\s*XL6_ArtifactRuntimeId\s*;')
     if(!$enum.Success){throw 'Missing explicit resident component identities'}
-    $idNames=[regex]::Matches($enum.Groups['body'].Value,'\bXL6_ARTIFACT_(?!RUNTIME_COUNT\b)([A-Z_]+)\b')
+    # Enum identifiers may contain digits (e.g. BUFFER_BASE64); count the exact
+    # C identities instead of silently omitting valid resident components.
+    $idNames=[regex]::Matches($enum.Groups['body'].Value,'\bXL6_ARTIFACT_(?!RUNTIME_COUNT\b)([A-Z_][A-Z_0-9]*)\b')
     $nameIds=@{};$componentIndex=0
     foreach($idName in $idNames){
         $name=$idName.Groups[1].Value

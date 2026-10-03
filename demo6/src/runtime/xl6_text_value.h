@@ -31,6 +31,10 @@ XL6_TEXT_API bool xl6BufferInsertBufferV1(void* buffer, int64_t offset, void* so
 XL6_TEXT_API bool xl6BufferRemoveV1(void* buffer, int64_t offset, int64_t count);
 XL6_TEXT_API xvalue* xl6BufferBytesV1(void* buffer, int64_t size);
 XL6_TEXT_API xstrview xl6BufferTextV1(void* buffer, int64_t size);
+XL6_TEXT_API void* xl6BufferFromHexV1(xstrview text, int64_t flags, int64_t size);
+XL6_TEXT_API xstrview xl6BufferHexV1(void* buffer, int64_t flags, int64_t size);
+XL6_TEXT_API void* xl6BufferFromBase64V1(xstrview text, int64_t flags, xstrview alphabet, int64_t size, int64_t alphabetSize);
+XL6_TEXT_API xstrview xl6BufferBase64V1(void* buffer, int64_t flags, xstrview alphabet, int64_t size, int64_t alphabetSize);
 XL6_TEXT_API void* xl6BufferIteratorCreateV1(void* source, int64_t size);
 XL6_TEXT_API void xl6BufferIteratorDestroyV1(void* iterator);
 XL6_TEXT_API bool xl6BufferIteratorHasNextV1(void* iterator);
