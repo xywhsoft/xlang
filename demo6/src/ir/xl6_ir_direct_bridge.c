@@ -75,6 +75,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessStateV1",T,I,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessRunningV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessCloseV1",T,B,2,{V,I},.parameterOwners={"xl6ProcessDestroyV1"}},
+    {"xl6ProcessResizeV1",T,B,3,{V,I,I},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessInterruptV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessTerminateV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessKillV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},

@@ -113,7 +113,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_PROCESS_FUTURE", "XRT_MODULE_FUTURE_CONTINUE"}},
     {"src/runtime/xl6_process_pipeline_config.c", D(), {"XRT_MODULE_PROCESS", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_process_pipeline.c", D(), {"XRT_MODULE_PROCESS_PIPELINE", "XRT_MODULE_VALUE", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
-    {"src/runtime/xl6_process_file.c", D(), {"XRT_MODULE_PROCESS_FILE", "XRT_MODULE_ATOMIC"}}
+    {"src/runtime/xl6_process_file.c", D(), {"XRT_MODULE_PROCESS_FILE", "XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_process_terminal_config.c", D(), {"XRT_MODULE_PROCESS_TERMINAL"}},
+    {"src/runtime/xl6_process_terminal_live.c", D(), {"XRT_MODULE_PROCESS_TERMINAL"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -14,12 +14,14 @@ cases+=(stdlib_process_live_wait stdlib_process_live_streams stdlib_process_live
 cases+=(stdlib_process_future stdlib_process_future_drop stdlib_process_future_cancel)
 cases+=(stdlib_process_pipeline_config stdlib_process_pipeline_bytes stdlib_process_pipeline_limits stdlib_process_pipeline_allocations)
 cases+=(stdlib_process_file_config stdlib_process_file_bytes stdlib_process_file_allocations)
+cases+=(stdlib_process_terminal_config stdlib_process_terminal_session stdlib_process_terminal_allocations)
 negative=(xlir_process_bad_array xlir_process_bad_effect xlir_process_bad_width xlir_process_bad_owner)
 negative+=(xlir_process_open_bad_width xlir_process_open_bad_effect xlir_process_terminal_bad_pure)
 negative+=(xlir_process_live_bad_owner xlir_process_live_bad_width xlir_process_live_bad_effect xlir_process_live_bad_stream)
 negative+=(xlir_process_future_bad_element xlir_process_future_bad_nullable xlir_process_future_bad_effect xlir_process_future_bad_owner)
 negative+=(xlir_process_pipeline_bad_owner xlir_process_pipeline_bad_width xlir_process_pipeline_bad_effect xlir_process_pipeline_bad_input)
 negative+=(xlir_process_file_bad_owner xlir_process_file_bad_width xlir_process_file_bad_effect xlir_process_file_bad_input)
+negative+=(xlir_process_resize_bad_owner xlir_process_resize_bad_width xlir_process_resize_bad_effect)
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
@@ -31,6 +33,7 @@ negative+=(xlir_process_file_bad_owner xlir_process_file_bad_width xlir_process_
     printf '%s\0' test/cases/xlir_process_pipeline_prefix.c
     printf '%s\0' test/cases/xlir_process_pipeline_host.c
     printf '%s\0' test/cases/xlir_process_file_host.c
+    printf '%s\0' test/cases/xlir_process_terminal_host.c
     printf '%s\0' test/cases/xlir_process_live_oom_host.c test/support/process_oom_observer.c
     printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
@@ -62,6 +65,9 @@ future_resident=(src/runtime/xl6_code_lease.c src/runtime/xl6_code_finalizer.c s
 run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xlir_process_child.c -o "$OUT/child"
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
+run terminal-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_terminal_host.c -pthread -ldl -lm -o "$OUT/terminal-native"
+run terminal-native "$OUT/terminal-native" "$OUT/child"
+grep -q 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=0, no extra handles' "$OUT/terminal-native.log"
 run file-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_file_host.c -pthread -ldl -lm -o "$OUT/file-native"
 run file-native "$OUT/file-native" "$OUT/child"
 grep -Eq 'process file: independent non-inheritable handles, replacement/rollback, original close, binary child, 5 guards; OS error prefix [0-9]+ failures \+ 1 first no-hit, heap/handles balanced' "$OUT/file-native.log"
@@ -82,12 +88,12 @@ run io-loan "$OUT/io-loan"
 grep -q 'process IO loan: 3 deterministic close races, 8 failure guards, short/EOF/zero/peer guards, balanced; safe=1' "$OUT/io-loan.log"
 run io-loan-terminal-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_PROCESS_TERMINAL test/cases/xlir_process_io_loan.c -pthread -ldl -lm -o "$OUT/io-loan-terminal"
 run io-loan-terminal "$OUT/io-loan-terminal"
-run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_run_host.c test/support/process_native.c src/runtime/xl6_process_command.c src/runtime/xl6_process_options.c src/runtime/xl6_process_run.c src/runtime/xl6_process_status.c -pthread -ldl -lm -o "$OUT/native"
+run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_run_host.c test/support/process_native.c src/runtime/xl6_process_command.c src/runtime/xl6_process_terminal_config.c src/runtime/xl6_process_options.c src/runtime/xl6_process_run.c src/runtime/xl6_process_status.c -pthread -ldl -lm -o "$OUT/native"
 run native "$OUT/native" "$OUT/child"
 grep -q '3 first no-hit completions, balanced' "$OUT/native.log"
 grep -q 'concurrent cancellation and absolute deadline' "$OUT/native.log"
 grep -Eq 'native run complete prefix: [0-9]+ failures and 1 first no-hit, balanced' "$OUT/native.log"
-run pipeline-resident-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_PROCESS_PIPELINE=1 test/cases/xlir_process_pipeline_host.c test/support/process_native.c src/runtime/xl6_process_command.c src/runtime/xl6_process_options.c src/runtime/xl6_process_status.c src/runtime/xl6_process_pipeline_config.c src/runtime/xl6_process_pipeline.c -pthread -ldl -lm -o "$OUT/pipeline-resident"
+run pipeline-resident-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_PROCESS_PIPELINE=1 test/cases/xlir_process_pipeline_host.c test/support/process_native.c src/runtime/xl6_process_command.c src/runtime/xl6_process_terminal_config.c src/runtime/xl6_process_options.c src/runtime/xl6_process_status.c src/runtime/xl6_process_pipeline_config.c src/runtime/xl6_process_pipeline.c -pthread -ldl -lm -o "$OUT/pipeline-resident"
 run pipeline-resident "$OUT/pipeline-resident" "$OUT/child"
 grep -Eq 'pipeline resident prefixes: [0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+ failures \+ 5 first no-hit; snapshots, 5 owner guards, real collectors balanced' "$OUT/pipeline-resident.log"
 grep -Eq 'pipeline projections: [0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+ failures \+ 6 first no-hit; independent binary/status, cancellation/deadline, balanced' "$OUT/pipeline-resident.log"
@@ -129,6 +135,19 @@ if sys.argv[2]=="stdlib_process_pipeline_config":
 else:
  assert "src/runtime/xl6_process_pipeline.c" in s and "XRT_MODULE_PROCESS_PIPELINE" in m,(s,m)' "$OUT/$fixture-native-emit.log" "$fixture"
     fi
+    if [[ "$fixture" = stdlib_process_terminal_config || "$fixture" = stdlib_process_terminal_session || "$fixture" = stdlib_process_terminal_allocations ]]; then
+        python3 -c 'import json,sys
+p=json.loads(open(sys.argv[1]).readline());case=sys.argv[2]
+parts=["command","terminal_config"]
+if case!="stdlib_process_terminal_config":parts+=["live","status"]
+if case=="stdlib_process_terminal_session":parts+=["terminal_live","stream"]
+actual=sorted(s for s in p["Sources"] if "/xl6_process_" in s)
+assert actual==sorted("src/runtime/xl6_process_"+s+".c" for s in parts),actual
+modules=set(p["NativeModules"])
+assert "XRT_MODULE_PROCESS_TERMINAL" in modules,modules
+assert not modules.intersection("XRT_MODULE_PROCESS_"+s for s in ("RUN","PIPELINE","FILE","FUTURE","OPEN")),modules' "$OUT/$fixture-native-emit.log" "$fixture"
+        checks=$((checks+1))
+    fi
     if [[ "$fixture" = stdlib_process_live_* || "$fixture" = stdlib_process_future* ]]; then
         python3 -c 'import json,sys
 p=json.loads(open(sys.argv[1]).readline());case=sys.argv[2];future=case.startswith("stdlib_process_future")
@@ -166,7 +185,7 @@ if future:assert "src/runtime/xl6_future_payload.c" in p["Sources"]' "$OUT/$fixt
         done
         "$terminal" || { echo 'Generated pipeline actual-closure allocation prefix incomplete' >&2; exit 1; }
     fi
-    if [[ "$fixture" = stdlib_process_live_wait || "$fixture" = stdlib_process_live_drop || "$fixture" = stdlib_process_live_allocations ]]; then
+    if [[ "$fixture" = stdlib_process_live_wait || "$fixture" = stdlib_process_live_drop || "$fixture" = stdlib_process_live_allocations || "$fixture" = stdlib_process_terminal_allocations ]]; then
         # The native debug root is added only to the failure-injection witness.
         # Normal artifact pruning above is still checked without test roots.
         run "$fixture-observer-build" "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_MEMORY_DEBUG -Ilib/xruntime -include "$OUT/$fixture.native.c" -c test/support/process_oom_observer.c -o "$OUT/$fixture.observer.o"
@@ -209,5 +228,5 @@ run pipeline-example-run "$CLI" run release/examples/stdlib_process_pipeline.xl
 run pipeline-example-build "$CLI" build release/examples/stdlib_process_pipeline.xl -o "$OUT/pipeline-example"
 run pipeline-example-execute "$OUT/pipeline-example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run/live/Future and typed pipeline. Owned pipeline configuration snapshots, independent per-stage binary stderr/status, native connectors, limits, shared deadlines/cancellation, exact input/output. Native configuration/collector/projection full current-thread prefixes plus first no-hit; generated pipeline actual debug closure full current-thread prefix includes native factory and managed boxing. Three generated live prefixes retain actual Spawn observer/private waiter retirement. Other-thread allocations not injected. Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Controlled association launcher/real terminal probe, not PTY session. Generated Future full OOM/unload, file redirection/PTY and 53-module total acceptance pending."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run/live/Future/pipeline/File/terminal. Exact bytes, independent streams/status and owned File capabilities, limits/deadlines/cancellation. Real PTY child reports tty, merged stderr and resized dimensions; terminal config/live modules independently selected, native heap/OS descriptors balanced. Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Four generated live/terminal current-thread logical allocation prefixes observe actual Spawn and explicitly join private waiter tails, including native factories and managed boxing. No other-thread allocation injection. Generated Future full OOM/unload and 53-module total acceptance pending."}\n' "$checks" >"$OUT/results.json"
 printf 'Process run Linux checks: %d\n' "$checks"

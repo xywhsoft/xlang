@@ -1,0 +1,27 @@
+auto command = process.cmd("not-launched", [])
+command.terminal()
+command.terminalSize(1, 32767)
+command.terminalSize(32767, 1)
+command.terminal(false)
+int rejected = 0
+try
+    command.terminalSize(0, 24)
+catch e
+    rejected += 1
+end
+try
+    command.terminalSize(80, -1)
+catch e
+    rejected += 1
+end
+try
+    command.terminalSize(32768, 24)
+catch e
+    rejected += 1
+end
+try
+    command.terminalSize(80, 9223372036854775807)
+catch e
+    rejected += 1
+end
+assert rejected == 4

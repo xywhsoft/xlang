@@ -1,0 +1,49 @@
+func containsBytes(bytes data, bytes needle) as bool
+    if needle.length > data.length then return false end
+    int start = 0
+    while start <= data.length - needle.length
+        int offset = 0
+        while offset < needle.length and data[start + offset] == needle[offset]
+            offset += 1
+        end
+        if offset == needle.length then return true end
+        start += 1
+    end
+    return false
+end
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+// Do not call terminalSupported first: it must not accidentally provide
+// the missing native terminal root for the configuration/start path.
+auto command = process.cmd(child, ["terminal"])
+command.terminal()
+command.terminalSize(80, 24)
+auto handle = command.start()
+int rejected = 0
+try
+    handle.resize(32768, 24)
+catch e
+    rejected += 1
+end
+try
+    auto invalid = handle.stderrReader()
+catch e
+    rejected += 1
+end
+assert rejected == 2
+assert handle.resize(96, 32)
+auto input = handle.stdinWriter()
+auto output = handle.stdoutReader()
+input.writeAll(b"hello\r\n")
+input.flush()
+// Terminal output is a byte stream, including platform terminal processing.
+bytes received = output.readAll(16384)
+assert containsBytes(received, b"tty:1:1:1")
+assert containsBytes(received, b"terminal-stderr")
+assert containsBytes(received, b"size:96:32")
+assert containsBytes(received, b"reply:hello")
+auto status = handle.wait(5000)
+assert status != null
+if status != null then assert status.code == 0 end
+input.close()
+output.close()

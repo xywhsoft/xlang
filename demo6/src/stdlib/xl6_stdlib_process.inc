@@ -83,6 +83,7 @@ const char* xl6StdlibProcessLiveSource =
     "    extern \"xl6ProcessRunningV1\" get running() as bool\n"
     "    extern \"xl6ProcessStateV1\" get state() as int\n"
     "    extern \"xl6ProcessCloseV1\" func close(int stream) as bool\n"
+    "    extern \"xl6ProcessResizeV1\" func resize(int columns, int rows) as bool\n"
     "    extern \"xl6ProcessInterruptV1\" func interrupt() as bool\n"
     "    extern \"xl6ProcessTerminateV1\" func terminate() as bool\n"
     "    extern \"xl6ProcessKillV1\" func kill() as bool\n"

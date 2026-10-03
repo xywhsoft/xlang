@@ -12,6 +12,7 @@
 #define XRT_IMPLEMENTATION
 #include "lib/xrt/xrt.h"
 #include "src/runtime/xl6_process_command.c"
+#include "src/runtime/xl6_process_terminal_config.c"
 #include "src/runtime/xl6_process_file.c"
 #include <assert.h>
 #include <stdio.h>

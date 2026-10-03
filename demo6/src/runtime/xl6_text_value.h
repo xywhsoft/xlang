@@ -49,6 +49,7 @@ XL6_TEXT_API uint64_t xl6ProcessIdV1(void* process);
 XL6_TEXT_API int64_t xl6ProcessStateV1(void* process);
 XL6_TEXT_API bool xl6ProcessRunningV1(void* process);
 XL6_TEXT_API bool xl6ProcessCloseV1(void* process, int64_t stream);
+XL6_TEXT_API bool xl6ProcessResizeV1(void* process, int64_t columns, int64_t rows);
 XL6_TEXT_API bool xl6ProcessInterruptV1(void* process);
 XL6_TEXT_API bool xl6ProcessTerminateV1(void* process);
 XL6_TEXT_API bool xl6ProcessKillV1(void* process);

@@ -1,0 +1,7 @@
+class WrongProcess
+    private native point handle
+    extern "xl6ProcessSpawnV1" create(ProcessCommand command)
+    extern "xl6ProcessDestroyV1" destroy()
+    extern "xl6ProcessResizeV1" func resize(int32 columns, int rows) as bool
+end
+assert WrongProcess(process.cmd("not-launched", [])).resize(80, 24)
