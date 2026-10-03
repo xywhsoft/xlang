@@ -265,6 +265,19 @@ open-only/terminal-only artifacts. PTY sessions are still a later batch.
 
 ## Explicit Future producer cancellation
 
+`check_stdlib_process_future_module.ps1` accepts a frozen full current-source
+PublicSourceDirectory and fresh Directory; `check_stdlib_process_future_module.sh`
+freezes Linux inputs and instruments the actual ELF and source API/XRT/resident
+host with ASan/UBSan/leaks. Both verify one Process/two pending awaits, cancellation
+isolation, independent exit statuses and an externally retained status pinning
+its code after Future release. Windows performs actual FreeLibrary and TCC
+delete/MEM_FREE; Linux performs actual dlclose/RTLD_NOLOAD refusal. The native
+observer supplies real EOF and joins private waiter tails, not a public wait
+promise. TCC's provider allocator/cache is checked separately. These are scoped
+ownership tests, not global owning-native handle admission, per-artifact pruning,
+Linux TCC or 53-module acceptance. The global native handle blocker is preserved
+under `test/fixtures/process_module_pending`, not waived.
+
 `check_xlir_future_cancel_core.ps1` requires a frozen full source build and fresh
 Directory; `check_xlir_future_cancel_core.sh` freezes the Linux SDK/source inputs.
 Both check the actual producer node, outside-lock publication handshake, V1
