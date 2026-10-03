@@ -1,10 +1,10 @@
 # Process 配置与同步运行
 
-本页记录三组长期任务 B21 的公开合同。live Process、pipeline、Future、
-文件重定向和 PTY 仍属于后续批次；本页不是七个 process 模块完整验收。
-旧 live 门面依赖的 `ProcessCommand.startNative` 暂留声明、尚不能运行；
-不属于本页已验收接口，下一批须替换为 typed Process，不能用裸 point
-转换绕过所有权合同。
+本页记录三组长期任务 B21 配置/同步运行、B23 live Process 和 B27
+生成程序分配失败验收的公开合同。typed Future 见 B26 专页；pipeline、
+文件重定向和 PTY 会话仍待后续开发，不是七个 process 模块完整验收。
+旧裸 point live 门面已由 typed Process 与 owned Reader/Writer 替换，
+不再用裸 point 转换绕过所有权合同。
 
 ## 构造与输入
 
@@ -185,3 +185,17 @@ end
 typed Future 的新增 B26 合同见《进程标准库异步等待.md》；其完整语言
 OOM/模块卸载与跨组验收仍待完成。pipeline、文件重定向与真实 PTY/resize
 会话仍待后续开发和验收，不将 B23/B26 专项写成 process 整组完成。
+
+## 生成程序分配失败验收（B27）
+
+等待/状态、完整 owned 流、跨函数返回流三条真实生成程序路径，从模块
+初始化开始逐点注入当前线程的逻辑分配失败，直到每条首个未触发点。
+其中包括原生工厂成功后的 managed handle/class 装箱与部分构造回滚；
+触发失败必须传播 MemoryError，不能用成功、伪造状态或捕获所有异常
+绕过失败。正常路径保留 bytes/NUL/UTF-8、非零退出与独立状态断言。
+
+测试仅通过原生 Spawn 观察者保留真实 child 引用，在 module fini 后
+关闭未完成的输入并显式 join 私有 waiter 尾部，再核对所有分配与错误
+账本。没有 mock 原生结果、sleep 重试或隐式 kill；这不是 public wait
+的线程退役保证。别的线程未被注入失败，Future/卸载与跨组完整验收
+仍待完成；双端冻结证据见三组长期任务 B27。

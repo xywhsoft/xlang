@@ -10,7 +10,7 @@ CC="$(command -v gcc)"; CLI="$ROOT/release/xl"; checks=0
 run() { local name="$1"; shift; "$@" >"$OUT/$name.log" 2>&1; checks=$((checks+1)); }
 cases=(stdlib_process_command_only stdlib_process_command_config stdlib_process_options_only stdlib_process_run_bytes stdlib_process_run_limits stdlib_process_run_allocations stdlib_process_shell_exact xlir_process_exec_bridge xlir_process_success_bridge xlir_process_exit_code_bridge)
 cases+=(stdlib_process_support stdlib_process_terminal_only stdlib_process_open_only)
-cases+=(stdlib_process_live_wait stdlib_process_live_streams stdlib_process_live_drop)
+cases+=(stdlib_process_live_wait stdlib_process_live_streams stdlib_process_live_drop stdlib_process_live_allocations)
 cases+=(stdlib_process_future stdlib_process_future_drop stdlib_process_future_cancel)
 negative=(xlir_process_bad_array xlir_process_bad_effect xlir_process_bad_width xlir_process_bad_owner)
 negative+=(xlir_process_open_bad_width xlir_process_open_bad_effect xlir_process_terminal_bad_pure)
@@ -24,6 +24,7 @@ negative+=(xlir_process_future_bad_element xlir_process_future_bad_nullable xlir
     printf '%s\0' test/cases/xlir_process_support_host.c
     printf '%s\0' test/cases/xlir_process_live_host.c
     printf '%s\0' test/cases/xlir_process_future_host.c
+    printf '%s\0' test/cases/xlir_process_live_oom_host.c test/support/process_oom_observer.c
     printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_text_closure_host.c test/cases/xlir_process_child.c
@@ -122,6 +123,20 @@ if future:assert "src/runtime/xl6_future_payload.c" in p["Sources"]' "$OUT/$fixt
     done
     run "$fixture-closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -include "$OUT/$fixture.c" test/cases/xlir_time_text_closure_host.c "$OUT/$fixture.native.o" "${resident_objects[@]}" -pthread -ldl -lm -o "$OUT/$fixture.closure"
     run "$fixture-closure" "$OUT/$fixture.closure"
+    if [[ "$fixture" = stdlib_process_live_wait || "$fixture" = stdlib_process_live_drop || "$fixture" = stdlib_process_live_allocations ]]; then
+        # The native debug root is added only to the failure-injection witness.
+        # Normal artifact pruning above is still checked without test roots.
+        run "$fixture-observer-build" "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_MEMORY_DEBUG -Ilib/xruntime -include "$OUT/$fixture.native.c" -c test/support/process_oom_observer.c -o "$OUT/$fixture.observer.o"
+        run "$fixture-live-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -include "$OUT/$fixture.c" test/cases/xlir_process_live_oom_host.c "$OUT/$fixture.observer.o" "${resident_objects[@]}" -Wl,--wrap=xrtProcessSpawn -pthread -ldl -lm -o "$OUT/$fixture.live-oom"
+        run "$fixture-live-oom-baseline" "$OUT/$fixture.live-oom"
+        terminal=false; children=1
+        if [[ "$fixture" = stdlib_process_live_wait ]]; then children=2; fi
+        for ((point=0; point<512; ++point)); do
+            run "$fixture-live-oom-$point" "$OUT/$fixture.live-oom" "$point"
+            if grep -q "hit=0 children=$children waiter retired balanced" "$OUT/$fixture-live-oom-$point.log"; then terminal=true; break; fi
+        done
+        "$terminal" || { echo 'Generated live Process current-thread allocation prefix incomplete' >&2; exit 1; }
+    fi
     if [[ "$fixture" = stdlib_process_run_allocations ]]; then
         terminal=false
         for ((point=0; point<512; ++point)); do
@@ -144,5 +159,5 @@ run support-example-run "$CLI" run release/examples/stdlib_process_support.xl
 run support-example-build "$CLI" build release/examples/stdlib_process_support.xl -o "$OUT/support-example"
 run support-example-execute "$OUT/support-example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run and live Process, unique owned streams, typed independent status/nullable timeout. Typed waitAsync, prompt language cancellation without shared source cancellation, parent drop. Native live factory and Future mapper/pending/terminal OOM with explicit private waiter retirement; no generated live/Future full language OOM-prefix or unload claim. Controlled association launcher, real terminal probe (not PTY session). Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Run logical OOM; pipeline/redirection/PTY sessions and 53-module total acceptance pending."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run and live Process, unique owned streams, typed independent status/nullable timeout. Three generated live paths sweep complete current-thread logical allocation prefixes including native factory and managed boxing plus first no-hit, with actual Spawn observation and explicit private waiter retirement. Other-thread allocations not injected. Typed waitAsync, prompt language cancellation without shared source cancellation, parent drop. Native live factory and Future mapper/pending/terminal OOM; generated Future full OOM-prefix and module unload pending. Controlled association launcher, real terminal probe (not PTY session). Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Run logical OOM; pipeline/redirection/PTY sessions and 53-module total acceptance pending."}\n' "$checks" >"$OUT/results.json"
 printf 'Process run Linux checks: %d\n' "$checks"

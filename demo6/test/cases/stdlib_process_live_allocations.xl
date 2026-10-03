@@ -1,0 +1,21 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.env("XL6_PROCESS_ALLOCATION", "value")
+auto processHandle = command.start()
+auto input = processHandle.stdinWriter()
+auto output = processHandle.stdoutReader()
+auto errors = processHandle.stderrReader()
+input.writeAll(b"a\0你b")
+input.close()
+bytes saved = output.readAll()
+bytes savedError = errors.readAll()
+auto status = processHandle.wait()
+assert saved == b"a\0你b" and savedError == b"E\0R"
+if status != null then
+    assert status.kind == 1 and status.code == 0
+else
+    assert false
+end
+output.close()
+errors.close()
