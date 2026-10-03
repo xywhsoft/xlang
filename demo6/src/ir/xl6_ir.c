@@ -15038,13 +15038,35 @@ static XL6_IrErrorAbi xl6IrClassifyIndexWriteErrorAbi(
     return XL6_IR_ERROR_ABI_INVALID;
 }
 
+static XL6_IrIndexReceiverGate xl6IrClassifyIndexReceiverGate(
+    const XL6_IrModule* module, const XL6_IrNode* node)
+{
+    const XL6_IrNode* receiver;
+    const XL6_IrType* type;
+    if (node == NULL || node->kind != XL6_IR_NODE_INDEX ||
+        node->sourceKind != XL6_AST_SAFE_INDEX || node->childCount != 2 ||
+        node->callKind != XL6_SEM_CALL_NONE)
+        return XL6_IR_INDEX_RECEIVER_UNCONDITIONAL;
+    receiver = xl6IrNodeGet(module, module->children[node->firstChild]);
+    type = receiver != NULL ? xl6IrTypeGet(&module->types,
+        receiver->type != XL6_IR_TYPE_INVALID ? receiver->type : receiver->storageType) : NULL;
+    if (type != NULL && type->kind == XL6_IR_TYPE_NULLABLE)
+        return XL6_IR_INDEX_RECEIVER_NULLABLE;
+    if (receiver != NULL && xl6IrTypeIsDynamicXValueBuiltin(module, receiver->storageType))
+        return XL6_IR_INDEX_RECEIVER_DYNAMIC;
+    return XL6_IR_INDEX_RECEIVER_UNCONDITIONAL;
+}
+
 static int xl6IrBuildIndexWriteAbis(XL6_IrModule* module)
 {
     size_t i;
     if ( module == NULL ) return 0;
-    for ( i = 0; i < module->nodeCount; ++i )
+    for ( i = 0; i < module->nodeCount; ++i ) {
+        module->nodes[i].indexReceiverGate = xl6IrClassifyIndexReceiverGate(
+            module, &module->nodes[i]);
         module->nodes[i].indexWriteAbi = xl6IrClassifyIndexWriteAbi(
             module, &module->nodes[i]);
+    }
     for ( i = 0; i < module->nodeCount; ++i )
         module->nodes[i].indexWriteErrorAbi =
             xl6IrClassifyIndexWriteErrorAbi(module, &module->nodes[i]);
@@ -29382,6 +29404,44 @@ static int xl6IrVerifyDeclarationOwners(const XL6_IrModule* module, XL6_DiagList
     return 1;
 }
 
+/* Null is the true successor of the receiver test, never the successor which
+ * evaluates the key. This semantic orientation is part of Lowered XLIR and
+ * must survive CFG transformations; a well-typed reversed branch is invalid. */
+static int xl6IrVerifySafeIndexReceiverBranches(const XL6_IrModule* module,
+    XL6_DiagList* diags)
+{
+    size_t i;
+    for (i = 0; i < module->instructionCount; ++i) {
+        const XL6_IrInstruction* branch = &module->instructions[i];
+        const XL6_IrInstruction *test, *absent, *present;
+        const XL6_IrNode* node;
+        const XL6_IrBlock *absentBlock, *presentBlock;
+        if (branch->kind != XL6_IR_INSTR_BRANCH || branch->operandCount != 1) continue;
+        node = xl6IrNodeGet(module, branch->origin);
+        if (node == NULL || node->indexReceiverGate == XL6_IR_INDEX_RECEIVER_UNCONDITIONAL) continue;
+        test = xl6IrValueDefinition(module, module->operands[branch->firstOperand], NULL);
+        if (test == NULL || test->kind != XL6_IR_INSTR_NULL_TEST || test->origin != branch->origin) continue;
+        if (branch->trueTarget == XL6_IR_BLOCK_INVALID || branch->falseTarget == XL6_IR_BLOCK_INVALID ||
+            branch->trueTarget > module->blockCount || branch->falseTarget > module->blockCount ||
+            branch->trueTarget == branch->falseTarget) goto invalid;
+        absentBlock = &module->blocks[branch->trueTarget - 1];
+        presentBlock = &module->blocks[branch->falseTarget - 1];
+        if (absentBlock->instructionCount == 0 || presentBlock->instructionCount == 0) goto invalid;
+        absent = &module->instructions[absentBlock->firstInstruction];
+        present = &module->instructions[presentBlock->firstInstruction];
+        if (absent->kind != XL6_IR_INSTR_NULL || absent->origin != branch->origin ||
+            absent->type != node->storageType ||
+            (node->indexReceiverGate == XL6_IR_INDEX_RECEIVER_NULLABLE &&
+             (present->kind != XL6_IR_INSTR_NULLABLE_UNWRAP || present->origin != branch->origin ||
+              present->operandCount != 1 || test->operandCount != 1 ||
+              module->operands[present->firstOperand] != module->operands[test->firstOperand]))) goto invalid;
+    }
+    return 1;
+invalid:
+    return xl6IrDiag(diags, xl6IrNodeGet(module, module->instructions[i].origin),
+        "XLIR safe-index receiver branch must skip its key and produce null only on the null successor");
+}
+
 int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t i;
@@ -33701,6 +33761,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             return xl6IrDiag(diags, node,
                 "typed XLIR member has no exact canonical member ABI");
         }
+        if (node->indexReceiverGate != xl6IrClassifyIndexReceiverGate(module, node)) {
+            xrtFree(incoming);
+            return xl6IrDiag(diags, node,
+                "typed XLIR safe index has no exact canonical receiver gate");
+        }
          if ( node->indexWriteAbi < XL6_IR_INDEX_WRITE_NONE ||
               node->indexWriteAbi >
                   XL6_IR_INDEX_WRITE_BYTES_SET_COPY ||
@@ -36059,8 +36124,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->immediateText != NULL ||
                              instruction->calleeType != XL6_IR_TYPE_INVALID ||
                              resultType == NULL || elementType == NULL ||
-                             resultType->cAbi !=
-                                 XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                             (resultType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                              resultType->cAbi != XL6_IR_C_ABI_MANAGED_BYTES) ||
                              resultType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_MANAGED ||
                               resultType->nullAbi !=
@@ -36070,8 +36135,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                   (elementType->kind == XL6_IR_TYPE_CLASS
                                       ? resultType->params[0]
                                       : XL6_IR_TYPE_INVALID) ||
-                             !((elementType->cAbi ==
-                                    XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                             !(((elementType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                                 elementType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
                                 elementType->ownershipAbi ==
                                     XL6_IR_OWNERSHIP_ABI_MANAGED) ||
                                (elementType->kind == XL6_IR_TYPE_CLASS &&
@@ -41454,6 +41519,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              !xl6IrVerifyEvaluationCleanupRegions(module, diags) ||
              !xl6IrVerifyScopeCleanupRegions(module, diags) ||
              !xl6IrVerifyPrimitiveSequenceLoopOutcomes(module, diags) ||
+             !xl6IrVerifySafeIndexReceiverBranches(module, diags) ||
              !xl6IrVerifyLoopLifetimes(module, diags) ||
              !xl6IrVerifyPendingExceptionRoutes(module, diags) ) return 0;
     }
@@ -45812,6 +45878,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrNode* node = &module->nodes[i];
         /* Names are deliberately omitted until the shared JSON escaping helper moves here. */
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
+        xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",
                         (unsigned long)(i + 1), (int)node->kind,
                         xl6IrNodeKindName(node->kind), (int)node->sourceKind,

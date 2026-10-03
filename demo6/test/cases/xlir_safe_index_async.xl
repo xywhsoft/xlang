@@ -1,0 +1,17 @@
+int calls = 0
+array<int>? items = array[41]
+
+async func key() as int
+    calls += 1
+    items = null
+    return 0
+end
+
+async func read(array<int>? source) as int?
+    return source?[await key()]
+end
+
+assert (await read(items) ?? -1) == 41
+assert items == null and calls == 1
+assert await read(items) == null
+assert calls == 1

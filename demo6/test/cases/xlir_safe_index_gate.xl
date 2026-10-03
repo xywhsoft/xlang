@@ -1,0 +1,59 @@
+int keyCalls = 0
+int receiverCalls = 0
+
+func nextKey() as int
+    keyCalls += 1
+    return 0
+end
+
+func textKey() as string
+    keyCalls += 1
+    return "a\0你"
+end
+
+func failKey() as int
+    keyCalls += 1
+    throw ValueError "key failure"
+end
+
+func makeItems(bool present) as array<int>?
+    receiverCalls += 1
+    if present then return array[11] end
+    return null
+end
+
+func main(...) as int
+    assert (makeItems(true)?[nextKey()] ?? -1) == 11
+    assert makeItems(false)?[nextKey()] == null
+    assert keyCalls == 1 and receiverCalls == 2
+    assert makeItems(false)?[failKey()] == null
+    assert keyCalls == 1 and receiverCalls == 3
+    bool caught = false
+    try
+        auto ignored = makeItems(true)?[failKey()]
+    catch ValueError e
+        assert e.message == "key failure"
+        caught = true
+    end
+    assert caught and keyCalls == 2 and receiverCalls == 4
+    array<int>? values = array[11]
+    assert values?[1000] == null
+    list<string>? sparse = list[0: "a\0你"]
+    assert (sparse?[nextKey()] ?? "") == "a\0你"
+    assert sparse?[99] == null
+    sparse = null
+    assert sparse?[nextKey()] == null
+    dict<string>? table = dict{"a\0你": "b\0你"}
+    assert (table?[textKey()] ?? "") == "b\0你"
+    assert (table?["a\0你"] ?? "") == "b\0你"
+    assert table?["missing"] == null
+    table = null
+    assert table?[textKey()] == null
+    var erased = array[33]
+    assert int(erased?[nextKey()]) == 33
+    erased = null
+    assert erased?[nextKey()] == null
+    assert erased?[failKey()] == null
+    assert keyCalls == 5
+    return 0
+end

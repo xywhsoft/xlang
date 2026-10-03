@@ -1,0 +1,56 @@
+int destroyed = 0
+int keyCalls = 0
+array<IndexPayload>? owner = null
+dict<IndexPayload>? table = null
+
+class IndexPayload
+    int value = 29
+    destroy()
+        destroyed += 1
+    end
+end
+
+func dropArray() as int
+    keyCalls += 1
+    owner = null
+    return 0
+end
+
+func dropTable() as string
+    keyCalls += 1
+    table = null
+    return "key"
+end
+
+func throwAfterDrop() as int
+    keyCalls += 1
+    owner = null
+    throw ValueError "after drop"
+end
+
+// Module-init execution makes the complete transaction visible to the OOM
+// host, rather than accidentally sweeping declarations without calling main.
+for i in range(0, 8)
+    owner = array[IndexPayload()]
+    auto item = owner?[dropArray()]
+    assert owner == null
+    if item != null then assert item.value == 29 else assert false end
+end
+assert destroyed == 8
+for i in range(0, 8)
+    table = dict{"key": IndexPayload()}
+    auto item = table?[dropTable()]
+    assert table == null
+    if item != null then assert item.value == 29 else assert false end
+end
+assert destroyed == 16 and keyCalls == 16
+owner = array[IndexPayload()]
+try
+    auto ignored = owner?[throwAfterDrop()]
+    assert false
+catch ValueError e
+    assert e.message == "after drop"
+end
+assert owner == null and destroyed == 17 and keyCalls == 17
+assert owner?[dropArray()] == null and table?[dropTable()] == null
+assert keyCalls == 17

@@ -1,0 +1,30 @@
+class IndexResult
+    int value = 31
+end
+
+func main(...) as int
+    array<string>? text = array["a\0你"]
+    assert (text?[0] ?? "") == "a\0你"
+    text = null
+    assert text?[0] == null
+    array<bytes>? binary = array[string.bytes("a\0你")]
+    auto b = binary?[0]
+    if b != null then assert b.length == 5 and b[1] == uint8(0) else assert false end
+    binary = null
+    assert binary?[0] == null
+    array<array<int>>? nested = array[array[19]]
+    auto n = nested?[0]
+    if n != null then assert n[0] == 19 else assert false end
+    nested = null
+    assert nested?[0] == null
+    array<IndexResult>? objects = array[IndexResult()]
+    auto p = objects?[0]
+    if p != null then assert p.value == 31 else assert false end
+    objects = null
+    assert objects?[0] == null
+    array<int?>? optional = array[null, 23]
+    assert optional?[0] == null and (optional?[1] ?? -1) == 23
+    optional = null
+    assert optional?[0] == null
+    return 0
+end

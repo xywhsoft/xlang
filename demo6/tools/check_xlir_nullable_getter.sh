@@ -9,7 +9,7 @@ mkdir -p "$OUT"
 CC="$(command -v gcc)"; CLI="$ROOT/release/xl"; checks=0
 run() { local name="$1"; shift; "$@" >"$OUT/$name.log" 2>&1; checks=$((checks+1)); }
 cases=(xlir_nullable_getter xlir_nullable_protocol_getter xlir_nullable_generic_getter xlir_nullable_inherited_getter xlir_nullable_getter_alias xlir_nullable_getter_cleanup stdlib_process_live_wait)
-regressions=(protocol_property_dispatch protocol_generic_property_dispatch cgen_class_self_property_dispatch xlir_internal_property_error_propagation)
+regressions=(protocol_property_dispatch protocol_generic_property_dispatch cgen_class_self_property_dispatch xlir_internal_property_error_propagation nullable_safe_navigation)
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
@@ -79,5 +79,5 @@ for fixture in "${regressions[@]}"; do run "$fixture-regression" "$CLI" run "tes
 if "$CLI" cgen test/cases/sem_nullable_getter_private.xl --emit "$OUT/private.c" >"$OUT/private-rejection.log" 2>&1; then exit 1; fi
 [[ ! -e "$OUT/private.c" ]]; grep -Eq 'safe member was not found|private|accessible' "$OUT/private-rejection.log"; checks=$((checks+1))
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Generic nullable getter gate; exact scalar/string/bytes/class/collection/var/already-nullable results, one evaluation, lazy null, error/alias lifetime, generic/protocol/inherited dispatch. Closed mutations, strict C/JIT/AOT; seven actual XRT/resident/generated closures ASan/UBSan/leaks. Alias full logical OOM prefix uses shared memory-debug XRT (uninstrumented shared library); CLI/JIT uninstrumented. Pre-existing nullable safe-index eager key remains separately pending. Not total 53-module acceptance."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Generic nullable getter gate; exact scalar/string/bytes/class/collection/var/already-nullable results, one evaluation, lazy null, error/alias lifetime, generic/protocol/inherited dispatch. Closed mutations, strict C/JIT/AOT; seven actual XRT/resident/generated closures ASan/UBSan/leaks. Alias full logical OOM prefix uses shared memory-debug XRT (uninstrumented shared library); CLI/JIT uninstrumented. Builtin safe-index lazy-key regression is included after B25. Not total 53-module acceptance."}\n' "$checks" >"$OUT/results.json"
 printf 'Nullable getter Linux checks: %d\n' "$checks"
