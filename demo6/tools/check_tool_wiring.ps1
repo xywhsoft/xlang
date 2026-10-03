@@ -128,6 +128,7 @@ $fullRegressionOnly.Add((Normalize-ToolPath "tools\check_stdlib_examples.ps1")) 
 foreach ($name in @('check_stdlib_logging.ps1','check_stdlib_text_values.ps1','check_stdlib_buffer_values.ps1',
     'check_stdlib_buffer_codecs.ps1','check_stdlib_buffer_core.ps1',
     'check_stdlib_stack_native.ps1',
+    'check_stdlib_stack_ownership.ps1',
     'check_xlir_module_product_globals.ps1',
     'check_stdlib_time_core.ps1','check_stdlib_time_calendar.ps1','check_stdlib_time_text.ps1','check_stdlib_environment.ps1',
     'check_stdlib_signal_core.ps1','check_stdlib_signal_queue.ps1','check_stdlib_process_run.ps1',

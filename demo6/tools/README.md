@@ -364,3 +364,17 @@ The Linux gate sanitizes actual selected generated/resident/native closures;
 shared CLI/JIT and full shared debug XRT are not instrumented. This is a storage
 migration prerequisite, not completion of owned-return APIs, char/bytes, batch,
 strong ownership graph/cycles, other containers, or all 53 modules.
+
+`check_stdlib_stack_ownership.ps1` / `.sh` validate the actual counted native
+wrapper and every strong element slot, including duplicate edges, shared
+shells, self/mutual cycles, rooted abort, weak quarantine and opaque refusal.
+Native-thread probes cover callback tails outside the owning mutation and
+cross-thread freezes; real create/refresh/commit OOM prefixes run through the
+first no-hit with original MemoryError and exact allocator totals. Linux
+sanitizes selected native graph/lifecycle code, not the shared public compiler.
+Both platforms execute module-global-reachable source/XLIR/JIT/retire cycles through the public
+API; Windows additionally measures real TCC MEM_FREE at host O0/O2. This is
+an ownership prerequisite, not completion of Stack owned-return APIs,
+char/bytes, batch/FixedStack or the remaining 53-module acceptance. Detached
+class/Stack code-lease islands are a separately recorded pending discovery
+case, not certified by these module-rooted fixtures.

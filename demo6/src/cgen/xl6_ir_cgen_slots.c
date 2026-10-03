@@ -40,7 +40,9 @@ static char* xl6IrCgenStoragePlace(const XL6_IrModule* module,
             xl6OutputPuts("*",&spelling);
         xl6IrCgenPutStorageName(&spelling,module,storage->symbol);
     }
-    return xl6OutputTakeMemoryText(&spelling,NULL);
+    char* result = xl6OutputTakeMemoryText(&spelling,NULL);
+    xl6OutputDiscard(&spelling);
+    return result;
 }
 /* STORE/PRODUCT_STORE_MOVE share this spelling in sync, async and generators.
  * Private ordinary locals need no graph synchronization; shared/indirect and
