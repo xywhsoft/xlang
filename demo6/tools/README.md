@@ -149,6 +149,16 @@ unchanged inputs and writes a fresh report. `test_linux.sh` runs its mutation
 tests and product check before integration tests. This is resource freshness
 evidence, not a self-hosting, Linux TCC unload or 53-module acceptance claim.
 
+`check_stdlib_text_values.sh` verifies Linux B1-B4 editing/query/binary/glob/
+distance, eager split/join and owned lazy iterators. It batches 14 strict C/JIT/
+AOT fixtures and 17 rejection cases, determinism, IR mutations, native OOM,
+cross-thread iterator boundaries, actual AOT/native-plan equality and sanitized
+pruned XRT/resident/program closures. Within a frozen input inventory it compiles
+each resident component once and caches identical native units separately for
+normal and debug roots; only successful compilations enter the cache. It collects
+failed groups before reporting failure. Shared CLI/JIT is not sanitizer-certified;
+this gate does not imply all-thread OOM or 53-module acceptance.
+
 `check_xrt_header_abi.ps1` compiles the XRT declaration SDK and xlang private runtime header in all supported include orders. It rejects duplicate declarations, type-layout drift and the historical `str` signedness mismatch.
 
 `check_xrt_product_trim.ps1` builds minimal and typed representative programs, verifies that both use one xruntime implementation product, and rejects duplicate core implementation or unnecessary typed module retention.
