@@ -16,6 +16,7 @@
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_text_value.h"
+#include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_payload.h"

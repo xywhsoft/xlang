@@ -8816,12 +8816,9 @@ static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRIM ||
+           (operation >= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE &&
+            operation <= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY &&
+            operation != XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO ||
@@ -40048,20 +40045,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE ||
                                   source->runtimeOp ==
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_CREATE ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_PUSH ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_PEEK_INTO ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_PEEK_AT_INTO ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_RESERVE ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_CLONE ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_TRIM ||
+                                  (source->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
+                                   source->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY &&
+                                   source->runtimeOp != XL6_IR_RUNTIME_STACK_CLEAR) ||
                                   xl6IrRuntimeAvlOpMayRaise(
                                       source->runtimeOp) ||
                                   xl6IrRuntimeSyncOpCreates(

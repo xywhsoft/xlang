@@ -122,9 +122,7 @@ foreach ( $call in $calls ) {
         $referenceType = @($typed.types | Where-Object {
             $_.id -eq $operands[$referenceIndex].type
         })[0]
-        $expectedError = if (
-            $call.runtimeResourceOpName -eq "stack-pop-into"
-        ) { "no-raise" } else { "may-raise" }
+        $expectedError = "may-raise"
         if ( $operands.Count -ne ($referenceIndex + 1) -or
              $operands[$referenceIndex].abiName -ne "storage-ref" -or
              $null -eq $referenceType -or $referenceType.params.Count -ne 1 -or
@@ -191,7 +189,7 @@ foreach ( $test in @($lowered.instructions | Where-Object {
         $stackErrorSources += $definition
     }
 }
-if ( $stackErrorSources.Count -ne 21 ) {
+if ( $stackErrorSources.Count -ne @($operations | Where-Object {$_.runtimeOpName -ne 'stack-clear'}).Count ) {
     throw "XLIR Stack may-raise RuntimeOps lost explicit error-test CFG edges"
 }
 $stackTypeIds = @($stackTypes.id)
@@ -212,7 +210,12 @@ $classCreates = @($classDefaultLowered.instructions | Where-Object {
 $classErrorTests = @($classDefaultLowered.instructions | Where-Object {
     $_.kindName -eq "error-test" -and $_.operands[0] -eq $classCreates[0].result
 })
-$classFailureReleases = @($classDefaultLowered.instructions | Where-Object {
+$classFailureBlock = @($classDefaultLowered.blocks | Where-Object {
+    $_.id -eq $classErrorTests[0].falseTarget
+})[0]
+$classFailureInstructions = @($classDefaultLowered.instructions | Select-Object `
+    -Skip $classFailureBlock.firstInstruction -First $classFailureBlock.instructionCount)
+$classFailureReleases = @($classFailureInstructions | Where-Object {
     $_.kindName -eq "release" -and $_.origin -eq $classCreates[0].origin
 })
 if ( $classCreates.Count -ne 1 -or $classErrorTests.Count -ne 1 -or
@@ -233,30 +236,25 @@ if ( $c -cne $second ) {
     throw "XLIR Stack generated C is not byte-for-byte deterministic"
 }
 foreach ( $required in @(
-    "typedef struct xlir_stack_handle", "xlir_stack_handle_ops",
-    "xrtRefRetain(&handle->refs)", "xrtRefRelease(&handle->refs)",
-    "handle->stack_type_id != stackTypeId",
-    "handle->payload_type_id != payloadTypeId",
-    "handle->payload_abi != payloadAbi", "xlir_stack_create",
-    "xlir_stack_push", "xlir_stack_pop_or_peek", "xlir_stack_peek_at",
-    "xlir_stack_reserve_value", "xlir_stack_clone", "xlir_stack_equals",
-    "xlir_stack_trim", "xlir_stack_clear", "xlir_stack_size"
+    "xl6StackCreateV1", "xl6StackPushV1", "xl6StackPopOrPeekV1", "xl6StackPeekAtV1",
+    "xl6StackReserveV1", "xl6StackCloneV1", "xl6StackEqualsV1", "xl6StackTrimV1",
+    "xl6StackClearV1", "xl6StackSizeV1", "xrtTypeStringView()", "xrtTypeValue()"
 ) ) {
     if ( ! $c.Contains($required) ) {
-        throw "XLIR Stack mechanical C ABI emission is missing: $required"
+        throw "XLIR Stack mechanical resident ABI emission is missing: $required"
     }
 }
 $helperCounts = [ordered]@{
-    'v[0-9]+ = xlir_stack_create\(' = 6
-    'v[0-9]+ = xlir_stack_push\(' = 7
-    'v[0-9]+ = xlir_stack_pop_or_peek\(' = 6
-    'v[0-9]+ = xlir_stack_peek_at\(' = 2
-    'v[0-9]+ = xlir_stack_clone\(' = 1
-    'v[0-9]+ = xlir_stack_equals\(' = 2
-    'v[0-9]+ = xlir_stack_reserve_value\(' = 1
-    'v[0-9]+ = xlir_stack_trim\(' = 1
-    '(?m)^\s+xlir_stack_clear\(v' = 1
-    'v[0-9]+ = xlir_stack_size\(' = 8
+    'v[0-9]+ = xl6StackCreateV1\(' = 6
+    'v[0-9]+ = xl6StackPushV1\(' = 7
+    'v[0-9]+ = xl6StackPopOrPeekV1\(' = 6
+    'v[0-9]+ = xl6StackPeekAtV1\(' = 2
+    'v[0-9]+ = xl6StackCloneV1\(' = 1
+    'v[0-9]+ = xl6StackEqualsV1\(' = 2
+    'v[0-9]+ = xl6StackReserveV1\(' = 1
+    'v[0-9]+ = xl6StackTrimV1\(' = 1
+    '(?m)^\s+xl6StackClearV1\(v' = 1
+    'v[0-9]+ = xl6StackSizeV1\(' = 8
 }
 foreach ( $entry in $helperCounts.GetEnumerator() ) {
     if ( ([regex]::Matches($c, $entry.Key)).Count -ne $entry.Value ) {
@@ -265,7 +263,8 @@ foreach ( $entry in $helperCounts.GetEnumerator() ) {
 }
 foreach ( $forbidden in @(
     "XL6_AST_", "xl6IrNodeGet", "xl6IrCgenLegacy",
-    "xl6SpecialStack", "__xl6_special_stack_dispatch"
+    "xl6SpecialStack", "__xl6_special_stack_dispatch", "typedef struct xlir_stack_handle",
+    "xlir_stack_payload_", "xlir_stack_reserve_handle", "xlir_stack_raise"
 ) ) {
     if ( $c.Contains($forbidden) ) {
         throw "XLIR Stack Cgen leaked source/legacy dispatch: $forbidden"

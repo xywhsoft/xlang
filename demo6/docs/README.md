@@ -158,3 +158,9 @@ B42 公共 Buffer 核心的直接 ABI、查询裁剪、u8 索引和失败事务�
 `标准库设计.md` 与 `三组标准库接入长期任务.md`；对应专项门为
 `../tools/check_stdlib_buffer_core.ps1`/`.sh`。旧 file/network 转换
 帮助函数仍是独立待迁移范围，不能混入本批封板结论。
+
+B43 Stack 原生存储前置批次见 `标准库设计.md` 与
+`三组标准库接入长期任务.md`；对应冻结专项门为
+`../tools/check_stdlib_stack_native.ps1`/`.sh`。
+仅移除旧生成 vector 并复用 typed stack；公开 owned-return、char/bytes、
+batch 和强引用拥有图仍待完成，不能视为 Stack 或全部 53 模块已封板。

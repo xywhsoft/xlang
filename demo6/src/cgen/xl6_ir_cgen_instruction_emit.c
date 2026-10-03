@@ -397,20 +397,8 @@ static int xl6IrCgenEmitInstruction(
                                       XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE ||
                                   source->runtimeOp ==
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_CREATE ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_PUSH ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_PEEK_INTO ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_PEEK_AT_INTO ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_RESERVE ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_CLONE ||
-                                  source->runtimeOp ==
-                                       XL6_IR_RUNTIME_STACK_TRIM ||
+                                  (xl6IrCgenStackRuntimeOpIs(source->runtimeOp) &&
+                                   source->runtimeOp != XL6_IR_RUNTIME_STACK_CLEAR) ||
                                   xl6IrCgenAvlRuntimeOpMayRaise(
                                       source->runtimeOp) ||
                                   xl6IrCgenSyncRuntimeOpCreates(

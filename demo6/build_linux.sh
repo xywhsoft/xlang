@@ -158,6 +158,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_buffer_base64.c"
 	"$ROOT/src/runtime/xl6_buffer_core.c"
 	"$ROOT/src/runtime/xl6_buffer_query.c"
+	"$ROOT/src/runtime/xl6_stack.c"
 	"$ROOT/src/runtime/xl6_text_chars.c"
 	"$ROOT/src/runtime/xl6_text_glob.c"
 	"$ROOT/src/runtime/xl6_text_distance.c"

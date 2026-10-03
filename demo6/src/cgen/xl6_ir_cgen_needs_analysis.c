@@ -495,9 +495,6 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
             needs->needsStackResourceRuntime = 1;
-            /* The shared payload helper includes its string-copy arm even
-             * when this module instantiates only scalar Stack elements. */
-            needs->needsStringRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;

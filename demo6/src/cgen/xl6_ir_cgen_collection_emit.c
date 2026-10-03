@@ -678,6 +678,7 @@ static int xl6IrCgenEmitStackRuntime(
     const XL6_IrType* payload;
     const char* payloadType;
     const char* payloadAbi;
+    const char* runtimeType;
     XL6_IrValueId first;
     if ( instruction == NULL ||
          !xl6IrCgenStackRuntimeOpIs(instruction->runtimeOp) ) return 0;
@@ -692,20 +693,21 @@ static int xl6IrCgenEmitStackRuntime(
     payloadType = xl6IrCgenType(module, instruction->payloadType);
     payloadAbi = xl6IrCgenChannelPayloadAbiToken(
         instruction->runtimeResourcePayloadAbi);
-    if ( payloadType == NULL || payloadAbi == NULL ) return -1;
+    runtimeType = xl6IrCgenAvlRuntimeTypeExpr(payload);
+    if ( payloadType == NULL || payloadAbi == NULL || runtimeType == NULL ) return -1;
 #define XL6_IR_CGEN_STACK_COMMON_ARGS                                      \
     (unsigned long long)stack->typeValueId,                                \
-    (unsigned long long)payload->typeValueId, payloadAbi, payloadType
+    (unsigned long long)payload->typeValueId, payloadAbi, payloadType, runtimeType
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_STACK_CREATE:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_create(0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
+            "    v%u = xl6StackCreateV1(0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
             (unsigned int)instruction->result,
             XL6_IR_CGEN_STACK_COMMON_ARGS);
         break;
     case XL6_IR_RUNTIME_STACK_PUSH:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_push(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), &v%u);\n",
+            "    v%u = xl6StackPushV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, &v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
@@ -713,7 +715,7 @@ static int xl6IrCgenEmitStackRuntime(
     case XL6_IR_RUNTIME_STACK_POP_INTO:
     case XL6_IR_RUNTIME_STACK_PEEK_INTO:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_pop_or_peek(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), v%u, %s);\n",
+            "    v%u = xl6StackPopOrPeekV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, v%u, %s);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1],
@@ -722,7 +724,7 @@ static int xl6IrCgenEmitStackRuntime(
         break;
     case XL6_IR_RUNTIME_STACK_PEEK_AT_INTO:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_peek_at(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), v%u, v%u);\n",
+            "    v%u = xl6StackPeekAtV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, v%u, v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1],
@@ -730,39 +732,39 @@ static int xl6IrCgenEmitStackRuntime(
         break;
     case XL6_IR_RUNTIME_STACK_RESERVE:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_reserve_value(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), v%u);\n",
+            "    v%u = xl6StackReserveV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
         break;
     case XL6_IR_RUNTIME_STACK_CLONE:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_clone(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
+            "    v%u = xl6StackCloneV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS);
         break;
     case XL6_IR_RUNTIME_STACK_EQUALS:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_equals(v%u, v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
+            "    v%u = xl6StackEqualsV1(v%u, v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned int)module->operands[instruction->firstOperand + 1],
             XL6_IR_CGEN_STACK_COMMON_ARGS);
         break;
     case XL6_IR_RUNTIME_STACK_TRIM:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_trim(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
+            "    v%u = xl6StackTrimV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS);
         break;
     case XL6_IR_RUNTIME_STACK_CLEAR:
         xl6OutputPrintf(out,
-            "    xlir_stack_clear(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
+            "    xl6StackClearV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
             (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
         break;
     case XL6_IR_RUNTIME_STACK_COUNT:
     case XL6_IR_RUNTIME_STACK_CAPACITY:
         xl6OutputPrintf(out,
-            "    v%u = xlir_stack_size(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
+            "    v%u = xl6StackSizeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CAPACITY
