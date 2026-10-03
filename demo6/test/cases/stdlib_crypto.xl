@@ -1,6 +1,15 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
+// Crypto's existing Buffer inputs are raw UTF-8 bytes. Do not use the retired
+// encoding.toBytes facade or implicitly transcode these ASCII test vectors.
+func utf8Buffer(string text) as Buffer
+    Buffer result = Buffer()
+    assert result.append(text)
+    assert result.len() == string.byteLen(text)
+    return result
+end
+
 expectStr(crypto.sha1("abc"), "A9993E364706816ABA3E25717850C26C9CD0D89D")
 expectStr(crypto.sha256("abc"), "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD")
 expectStr(crypto.sha384("abc"), "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7")
@@ -84,10 +93,10 @@ expectStr(codec.hexEncodeBytes(binaryHmac256.data(), c_size(binaryHmac256.len())
 expect(binaryHmac384.len(), 48)
 expect(binaryHmac512.len(), 64)
 
-Buffer key16Bytes = encoding.toBytes(key16)
-Buffer key32Bytes = encoding.toBytes(key32)
-Buffer nonceBytes = encoding.toBytes(nonce)
-Buffer aadBytes = encoding.toBytes(aad)
+Buffer key16Bytes = utf8Buffer(key16)
+Buffer key32Bytes = utf8Buffer(key32)
+Buffer nonceBytes = utf8Buffer(nonce)
+Buffer aadBytes = utf8Buffer(aad)
 Buffer streamBinaryCipher = crypto.chacha20Bytes(key32Bytes, nonceBytes, binary, 7)
 Buffer streamBinaryPlain = crypto.chacha20Bytes(key32Bytes, nonceBytes, streamBinaryCipher, 7)
 assert streamBinaryPlain == binary, "binary chacha20 roundtrip failed"
@@ -109,9 +118,9 @@ assert aes256BinaryPlain == binary, "binary aes256-gcm roundtrip failed"
 aes256BinaryCipher[0] = aes256BinaryCipher[0] ^ 1
 expect(crypto.aes256GcmDecryptBytes(key32Bytes, nonceBytes, aes256BinaryCipher, aadBytes).len(), 0)
 
-Buffer hkdfKeyBytes = encoding.toBytes("key")
-Buffer hkdfSaltBytes = encoding.toBytes("salt")
-Buffer hkdfInfoBytes = encoding.toBytes("info")
+Buffer hkdfKeyBytes = utf8Buffer("key")
+Buffer hkdfSaltBytes = utf8Buffer("salt")
+Buffer hkdfInfoBytes = utf8Buffer("info")
 Buffer hkdf256Bytes = crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 32)
 Buffer hkdf384Bytes = crypto.hkdfSha384Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 48)
 expect(hkdf256Bytes.len(), 32)
@@ -126,7 +135,7 @@ assert sha1Stream.update("a"), "sha1 stream update failed"
 assert sha1Stream.update("bc"), "sha1 stream second update failed"
 expectStr(sha1Stream.hex(), crypto.sha1("abc"))
 expectStr(sha1Stream.hex(), crypto.sha1("abc"))
-assert sha1Stream.bytes() == crypto.sha1Bytes(encoding.toBytes("abc")), "sha1 stream bytes mismatch"
+assert sha1Stream.bytes() == crypto.sha1Bytes(utf8Buffer("abc")), "sha1 stream bytes mismatch"
 
 Sha256 sha256Stream = crypto.sha256Stream()
 assert sha256Stream.update("a"), "sha256 stream update failed"
