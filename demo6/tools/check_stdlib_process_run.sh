@@ -10,14 +10,17 @@ CC="$(command -v gcc)"; CLI="$ROOT/release/xl"; checks=0
 run() { local name="$1"; shift; "$@" >"$OUT/$name.log" 2>&1; checks=$((checks+1)); }
 cases=(stdlib_process_command_only stdlib_process_command_config stdlib_process_options_only stdlib_process_run_bytes stdlib_process_run_limits stdlib_process_run_allocations stdlib_process_shell_exact xlir_process_exec_bridge xlir_process_success_bridge xlir_process_exit_code_bridge)
 cases+=(stdlib_process_support stdlib_process_terminal_only stdlib_process_open_only)
+cases+=(stdlib_process_live_wait stdlib_process_live_streams stdlib_process_live_drop)
 negative=(xlir_process_bad_array xlir_process_bad_effect xlir_process_bad_width xlir_process_bad_owner)
 negative+=(xlir_process_open_bad_width xlir_process_open_bad_effect xlir_process_terminal_bad_pure)
+negative+=(xlir_process_live_bad_owner xlir_process_live_bad_width xlir_process_live_bad_effect xlir_process_live_bad_stream)
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
     printf '%s\0' tools/check_stdlib_process_run.sh tools/check_stdlib_process_run.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/xlir_process_run_host.c test/support/process_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_process_support_host.c
+    printf '%s\0' test/cases/xlir_process_live_host.c
     printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_time_text_closure_host.c test/cases/xlir_process_child.c
@@ -42,6 +45,9 @@ sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -
 run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xlir_process_child.c -o "$OUT/child"
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
+run live-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_live_host.c -pthread -ldl -lm -o "$OUT/live-native"
+run live-native "$OUT/live-native" "$OUT/child"
+grep -q 'exact binary streams survive parent drop; unique leases, timeout/range/state, independent status; reader/writer OOM 3/3 failures + 2 first no-hit, balanced' "$OUT/live-native.log"
 run io-loan-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_io_loan.c -pthread -ldl -lm -o "$OUT/io-loan"
 run io-loan "$OUT/io-loan"
 grep -q 'process IO loan: 3 deterministic close races, 8 failure guards, short/EOF/zero/peer guards, balanced; safe=1' "$OUT/io-loan.log"
@@ -67,7 +73,9 @@ for fixture in "${cases[@]}"; do
     run "$fixture-contract" "$OUT/contract" "$source" "$OUT/$fixture.closed.c"
     cmp "$OUT/$fixture.c" "$OUT/$fixture.closed.c"
     ! grep -Eq 'xl6_xrt_process_|xrtProcess[A-Za-z]+\(|xl6_process_run_text' "$OUT/$fixture.c"
-    run "$fixture-strict-build" "$CC" "${strict[@]}" -include "$OUT/$fixture.c" test/cases/xlir_process_oom_host.c "${libs[@]}" -lxl -o "$OUT/$fixture.strict"
+    strict_host=test/cases/xlir_process_oom_host.c
+    [[ "$fixture" != stdlib_process_live_* ]] || strict_host=test/cases/xlir_time_text_closure_host.c
+    run "$fixture-strict-build" "$CC" "${strict[@]}" -include "$OUT/$fixture.c" "$strict_host" "${libs[@]}" -lxl -o "$OUT/$fixture.strict"
     run "$fixture-strict" "$OUT/$fixture.strict"
     run "$fixture-jit" "$CLI" run "$source"
     run "$fixture-aot-build" "$CLI" build "$source" -o "$OUT/$fixture.aot"
@@ -109,5 +117,5 @@ run support-example-run "$CLI" run release/examples/stdlib_process_support.xl
 run support-example-build "$CLI" build release/examples/stdlib_process_support.xl -o "$OUT/support-example"
 run support-example-execute "$OUT/support-example"
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run, exact OS text, owned binary output and status, options/deadline/cancellation. Association adapter has controlled launcher, not OS launch acceptance; terminal probe is real XRT. Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented; logical OOM. Live Process/pipeline/Future/redirection/PTY sessions and other 53-module acceptance pending."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run and live Process, unique owned streams, typed independent status/nullable timeout. Native live factory OOM and explicit private waiter retirement; no generated live full OOM-prefix claim. Controlled association launcher, real terminal probe (not PTY session). Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Run logical OOM; pipeline/Future/redirection/PTY sessions and 53-module total acceptance pending."}\n' "$checks" >"$OUT/results.json"
 printf 'Process run Linux checks: %d\n' "$checks"

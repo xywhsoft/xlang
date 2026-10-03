@@ -1,0 +1,13 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+func streams(string child) as (IoWriter, IoReader, IoReader)
+    auto processHandle = process.cmd(child, ["echo"]).start()
+    return processHandle.stdinWriter(), processHandle.stdoutReader(), processHandle.stderrReader()
+end
+auto input, output, errors = streams(child)
+input.writeAll("a\0你b", 3)
+input.close()
+assert output.readAll() == b"a\0\xe4"
+assert errors.readAll() == b"E\0R"
+output.close()
+errors.close()

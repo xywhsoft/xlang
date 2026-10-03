@@ -36,7 +36,9 @@ const char* xl6StdlibProcessClassSource =
     "    get durationMs() as uint64\n"
     "        return self.duration / 1000\n"
     "    end\n"
-    "end\n"
+    "end\n";
+
+const char* xl6StdlibProcessStatusSource =
     "class ProcessExitStatus\n"
     "    private native point handle\n"
     "    extern \"xl6ProcessResultStatusV1\" create(ProcessResult result)\n"
@@ -45,8 +47,9 @@ const char* xl6StdlibProcessClassSource =
     "    extern \"xl6ProcessStatusCodeV1\" get code() as int\n"
     "    extern \"xl6ProcessStatusSignalV1\" get signal() as int\n"
     "    extern \"xl6ProcessStatusStopV1\" get stop() as int\n"
-    "    extern \"xl6ProcessStatusCoreDumpedV1\" get coreDumped() as bool\n"
-    "end\n"
+    "    extern \"xl6ProcessStatusCoreDumpedV1\" get coreDumped() as bool\n";
+
+const char* xl6StdlibProcessCommandSource =
     "class ProcessCommand\n"
     "    private native point handle\n"
     "    extern \"xl6ProcessCommandDirectV1\" create(string program, array<string> args, int size = -1, int argSize = -1)\n"
@@ -64,11 +67,44 @@ const char* xl6StdlibProcessClassSource =
     "    extern \"xl6ProcessCommandTerminalV1\" func terminal(bool enabled = true)\n"
     "    extern \"xl6ProcessCommandTerminalSizeV1\" func terminalSize(int columns, int rows)\n"
     "    extern \"xl6ProcessCommandStdioV1\" func stdio(int stream, int mode)\n"
-    "    extern \"xl6_xrt_process_command_start\" func startNative() as point\n"
     "    func run(bytes input = b\"\", int timeoutMs = -1, int size = -1) as ProcessResult\n"
     "        return ProcessResult(self, ProcessRunOptions(timeoutMs), input, size)\n"
     "    end\n"
     "    func run(ProcessRunOptions options, bytes input = b\"\", int size = -1) as ProcessResult\n"
     "        return ProcessResult(self, options, input, size)\n"
+    "    end\n";
+
+const char* xl6StdlibProcessLiveSource =
+    "class Process\n"
+    "    private native point handle\n"
+    "    extern \"xl6ProcessSpawnV1\" create(ProcessCommand command)\n"
+    "    extern \"xl6ProcessDestroyV1\" destroy()\n"
+    "    extern \"xl6ProcessIdV1\" get id() as uint64\n"
+    "    extern \"xl6ProcessRunningV1\" get running() as bool\n"
+    "    extern \"xl6ProcessStateV1\" get state() as int\n"
+    "    extern \"xl6ProcessCloseV1\" func close(int stream) as bool\n"
+    "    extern \"xl6ProcessInterruptV1\" func interrupt() as bool\n"
+    "    extern \"xl6ProcessTerminateV1\" func terminate() as bool\n"
+    "    extern \"xl6ProcessKillV1\" func kill() as bool\n"
+    "    extern \"xl6ProcessKillTreeV1\" func killTree() as bool\n"
+    "    private extern \"xl6ProcessWaitReadyV1\" func waitReady(int timeoutMs) as bool\n"
+    "    func wait(int timeoutMs = -1) as ProcessExitStatus?\n"
+    "        if not self.waitReady(timeoutMs) then return null end\n"
+    "        return ProcessExitStatus(self)\n"
     "    end\n"
-    "end\n";
+    "    get status() as ProcessExitStatus?\n"
+    "        return self.wait(0)\n"
+    "    end\n"
+    "    func closeStdin() as bool\n"
+    "        return self.close(0)\n"
+    "    end\n";
+const char* xl6StdlibProcessStreamSource =
+    "    func stdinWriter() as IoWriter\n"
+    "        return IoWriter(self)\n"
+    "    end\n"
+    "    func stdoutReader() as IoReader\n"
+    "        return IoReader(self, 1)\n"
+    "    end\n"
+    "    func stderrReader() as IoReader\n"
+    "        return IoReader(self, 2)\n"
+    "    end\n";

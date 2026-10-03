@@ -13,8 +13,12 @@ Text 方法严格解码，status 为独立快照。基础设施错误抛异常�
 
 41 个声明式 resident 桥接分四组件，Cgen 不再实现 exec/success/
 exitCode 算法。完整默认值、尺寸/错误/线程/生命周期合同见
-`Process配置与运行设计.md`；live Process、pipeline、Future、重定向和
-PTY 尚未验收，本批不声称七个 process 模块完成。
+`Process配置与运行设计.md`。B23 的 live Process 已增加 id/state/running、
+独立的 nullable wait/status、显式停止、唯一拥有的 stdinWriter/
+stdoutReader/stderrReader；14 个新桥接经两个按需组件接入，复用 IO，
+不创建输出缓存。wait 超时返回 null，非零退出返回真实退出快照；
+流可以比父 Process 活得更久，原生工厂失败不误关管道。pipeline、typed
+Future、文件重定向和 PTY 会话仍待验收，不声称七个模块全部完成。
 
 ## 二进制加密与摘要
 

@@ -51,7 +51,6 @@ static void xl6IrCgenEmitIoRuntime(XL6_Output* out, uint64_t operations, int fil
             "bool xl6_xrt_io_write_text_file(xlir_string path, xlir_string data, int64_t mode, int64_t limit)\n"
             "{ return xlir_io_write_file(path, data.Data, data.Size, mode, limit); }\n\n", out);
     if (operations & (~UINT64_C(7))) xl6OutputPuts(
-        "typedef struct xlir_io_reader { xreader* stream; } xlir_io_reader;\n"
         "#include <__xl_runtime/xl6_io_handle.h>\n"
         "static bool xlir_io_size(int64_t count, size_t* size)\n"
         "{ if (count < 0 || (uint64_t)count > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }\n"

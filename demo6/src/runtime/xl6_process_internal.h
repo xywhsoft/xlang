@@ -10,10 +10,6 @@ typedef struct XL6_ProcessCommand {
     xprocessconfig config;
     size_t envCapacity;
 } XL6_ProcessCommand;
-typedef struct XL6_ProcessRunOptions {
-    xprocessrunoptions options;
-    int64_t timeoutMs;
-} XL6_ProcessRunOptions;
 static inline XL6_ProcessCommand* xl6ProcessCommandCheck(void* handle)
 {
     if (!handle) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }

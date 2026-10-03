@@ -2498,7 +2498,7 @@ const char* xl6StdlibJsonClassSource =
     "end\n";
 
 #include "src/stdlib/xl6_stdlib_process.inc"
-/* Live-process/pipeline declarations migrate in the following process batch. */
+/* Pipeline declarations remain pending their typed resident migration. */
 const char* xl6StdlibLegacyProcessClassSource =
     "class PipelineResult\n"
     "    native point handle\n"
@@ -2525,64 +2525,7 @@ const char* xl6StdlibLegacyProcessClassSource =
     "    func result(int index) as ProcessResult\n"
     "        return ProcessResult(self.resultNative(index))\n"
     "    end\n"
-    "end\n"
-    "\n"
-    "class Process\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_process_wrap\" create(point handle)\n"
-    "    extern \"xl6_xrt_process_spawn_file\" create(string program, array args)\n"
-    "    extern \"xl6_xrt_process_spawn_shell\" create(string command)\n"
-    "    extern \"xl6_xrt_process_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_process_running\" get running() as bool\n"
-    "    extern \"xl6_xrt_process_state\" get state() as int\n"
-    "    extern \"xl6_xrt_process_handle_exit_code\" get exitCode() as int\n"
-    "    extern \"xl6_xrt_process_write\" func write(string text) as bool\n"
-    "    extern \"xl6_xrt_process_write_bytes\" func writeBytesNative(point data, c_size size) as bool\n"
-    "    extern \"xl6_xrt_process_close_stdin\" func closeStdin() as bool\n"
-    "    extern \"xl6_xrt_process_wait\" func waitNative(int timeoutMs) as bool\n"
-    "    extern \"xl6_xrt_process_exit_info\" func exitInfo() as var\n"
-    "    extern \"xl6_xrt_process_read_stdout\" func readStdoutNative(int offset, int maxBytes) as var\n"
-    "    extern \"xl6_xrt_process_read_stderr\" func readStderrNative(int offset, int maxBytes) as var\n"
-    "    extern \"xl6_xrt_process_read_events\" func readEventsNative(int seq, int maxCount) as var\n"
-    "    extern \"xl6_xrt_process_interrupt\" func interrupt() as bool\n"
-    "    extern \"xl6_xrt_process_resize_terminal\" func resizeTerminal(int cols, int rows) as bool\n"
-    "    extern \"xl6_xrt_process_terminate\" func terminate() as bool\n"
-    "    extern \"xl6_xrt_process_kill\" func kill() as bool\n"
-    "    extern \"xl6_xrt_process_kill_tree\" func killTree() as bool\n"
-    "    extern \"xl6_xrt_process_stdout_copy\" func stdoutNative() as point\n"
-    "    extern \"xl6_xrt_process_stderr_copy\" func stderrNative() as point\n"
-    "\n"
-    "    func writeLine(string text) as bool\n"
-    "        return self.write(text + \"\\n\")\n"
-    "    end\n"
-    "\n"
-    "    func writeBytes(Buffer data) as bool\n"
-    "        return self.writeBytesNative(data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func wait(int timeoutMs = -1) as bool\n"
-    "        return self.waitNative(timeoutMs)\n"
-    "    end\n"
-    "\n"
-    "    func readStdout(int offset = 0, int maxBytes = 0) as var\n"
-    "        return self.readStdoutNative(offset, maxBytes)\n"
-    "    end\n"
-    "\n"
-    "    func readStderr(int offset = 0, int maxBytes = 0) as var\n"
-    "        return self.readStderrNative(offset, maxBytes)\n"
-    "    end\n"
-    "\n"
-    "    func readEvents(int seq = 0, int maxCount = 0) as var\n"
-    "        return self.readEventsNative(seq, maxCount)\n"
-    "    end\n"
-    "\n"
-    "    get stdout() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.stdoutNative())\n"
-    "    end\n"
-    "\n"
-    "    get stderr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.stderrNative())\n"
-    "    end\n";
+    "end\n";
 
 const char* xl6StdlibTccClassSource =
     "class TccContext\n"
@@ -2629,17 +2572,6 @@ const char* xl6StdlibTccClassSource =
     "    func run(array args) as int\n"
     "        return int(self.runNative(args))\n"
     "    end\n"
-    "end\n";
-
-const char* xl6StdlibProcessWaitAsyncMethodSource =
-    "\n"
-    "    extern \"xl6_xrt_process_wait_future\" func waitFutureNative() as future<point>\n"
-    "\n"
-    "    func waitAsync() as future<point>\n"
-    "        return self.waitFutureNative()\n"
-    "    end\n";
-
-const char* xl6StdlibProcessClassEndSource =
     "end\n";
 
 const char* xl6StdlibXlangClassSource =
@@ -4097,18 +4029,18 @@ static const char xl6StdProcessPipelineBody[] =
     "end\n";
 
 static const char xl6StdProcessStartBody[] =
-    "func __xl_std_process_start(string command) as Process\n"
-    "    return Process(command)\n"
+    "func __xl_std_process_start(string command, int size = -1) as Process\n"
+    "    return Process(ProcessCommand(command, size))\n"
     "end\n";
 
 static const char xl6StdProcessStartCommandBody[] =
     "func __xl_std_process_start(ProcessCommand command) as Process\n"
-    "    return Process(command.startNative())\n"
+    "    return Process(command)\n"
     "end\n";
 
 static const char xl6StdProcessStartFileBody[] =
-    "func __xl_std_process_start_file(string program, array args = []) as Process\n"
-    "    return Process(program, args)\n"
+    "func __xl_std_process_start_file(string program, array<string> args = [], int size = -1, int argSize = -1) as Process\n"
+    "    return Process(ProcessCommand(program, args, size, argSize))\n"
     "end\n";
 
 static const char xl6StdProcessTerminalSupportedBody[] =
@@ -4714,13 +4646,13 @@ static const char xl6StdOsRunBody[] =
     "end\n";
 
 static const char xl6StdOsStartBody[] =
-    "func __xl_std_os_start(string command) as Process\n"
-    "    return __xl_std_process_start(command)\n"
+    "func __xl_std_os_start(string command, int size = -1) as Process\n"
+    "    return __xl_std_process_start(command, size)\n"
     "end\n";
 
 static const char xl6StdOsStartFileBody[] =
-    "func __xl_std_os_start_file(string program, array args = []) as Process\n"
-    "    return __xl_std_process_start_file(program, args)\n"
+    "func __xl_std_os_start_file(string program, array<string> args = [], int size = -1, int argSize = -1) as Process\n"
+    "    return __xl_std_process_start_file(program, args, size, argSize)\n"
     "end\n";
 
 static const char xl6StdOsChainBody[] =

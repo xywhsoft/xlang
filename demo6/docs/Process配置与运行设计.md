@@ -118,3 +118,68 @@ Windows 文本准备、内部 waiter 创建、并发 I/O 与失败回收均保�
 错误传递及分配失败账本。这不是 Windows ShellExecute / Linux
 xdg-open / macOS open 的系统集成成功验收；不要将受控 launcher 算为
 真实关联应用验证。PTY 会话、resize 与 live Process 仍属后续批次。
+
+## Live Process 与标准流（B23）
+
+已接通的入口为 `process.start(ProcessCommand)`、
+`process.start(string command, int size = -1)`（显式 shell）、
+`process.startFile(string program, array<string> args = [], int size = -1,
+int argSize = -1)`，以及 `ProcessCommand.start()`。`os.start/startFile`
+仍转入相同路径，不维护第二份实现。程序与参数沿用配置的真实长度、
+UTF-8、NUL 和所属线程检查；传入数组修改不影响已经复制的 argv。
+
+`Process.id` 是 uint64 PID，`state/running` 查询 native 快照。
+`wait(timeoutMs = -1)` 返回 `ProcessExitStatus?`：-1 无限等待，0 轮询，
+正值为有溢出检查的毫秒期限；超时返回 null，基础设施失败抛原生异常。
+`status` 相当于 `wait(0)`。普通非零退出仍有真实状态，不等于异常；
+每次返回的退出快照独立拥有，父进程销毁后仍有效。访问 nullable 状态
+先使用 `if status != null` 缩窄，不能仅依靠 assert 完成静态缩窄。
+退出 kind 决定应读取 code 还是 signal；wait 不伪造退出状态，也不隐式
+关闭输入、读取输出或 join 尚在退役的 native waiter。
+
+`stdinWriter()/stdoutReader()/stderrReader()` 返回现有 IoWriter/IoReader。
+同步读写复用 XRT IO 的短操作、完整操作、bytes、string 精确字节前缀、
+EOF 与错误合同，不创建输出缓存或按 offset 回读历史输出；无 seek/size，
+writer 不缓冲，flush 为成功的空操作。Terminal 合并 stderr 时没有独立
+stderr reader；非 PIPE 标准流也不能获取管道适配器。
+
+每条标准流最多一个活动适配器；重复获取抛 StateError。可以共享同一个
+IoReader/IoWriter 的语言对象引用，但操作必须由调用方串行化，不能并发
+读取/写入/销毁同一适配器。不同流独立。每个适配器自有 resident 引用，
+父 Process 释放后仍有效，完全不依赖裸 OS handle 快照或语言对象图回链。
+原生构造 OOM 回滚引用与租约而不关闭管道，可以安全重试。
+
+`close(stream)` 使用 0/1/2 标识 stdin/stdout/stderr，`closeStdin()` 为
+便捷入口。重复关闭成功，已退役的流不能重新获取适配器；显式关闭会
+使现有适配器后续非零 I/O 失败，不保证取消已经开始的阻塞 I/O。
+IoReader/IoWriter.close 同时关闭对应父管道并释放资源引用；自动析构
+为 no-raise 并保留环境错误，显式 close 的原生失败仍会抛异常。
+
+`interrupt()/terminate()/kill()/killTree()` 直接使用 XRT 的停止强度与
+进程组边界，不等待子进程，也不扩张成扫描全系统进程树。terminate
+会先关闭 stdin。当前析构沿用 XRT：释放引用/管道，不暗中杀进程；
+native waiter 最终回收子进程。默认自动终止还是保持显式停止的可选
+策略尚未由用户确认，不能以该待选项阻塞已经明确的接入工作。
+
+必须先处理 stdin 和输出再等待（或并发排空输出）；任意子进程都可能
+因输出管道写满而阻塞。需要完整收集输出时优先使用同步 run；本 API
+不提供自动后台缓存，不把用户选择的等待误称为并发排空保证。
+
+```xlang
+auto child = process.startFile(program, ["--mode", "echo"])
+auto input = child.stdinWriter()
+auto output = child.stdoutReader()
+input.writeAll(b"a\0b")
+input.close()
+bytes data = output.readAll()
+auto status = child.wait()
+if status != null then
+    assert status.kind == 1
+    print status.code
+end
+```
+
+上例只适用于 stderr 不会写满的简单协议；一般情况必须并发排空两个
+输出流或使用 run。本批新增 14 个固定 ABI resident 桥接、两个独立
+组件；Cgen 只共用 IO 投影布局，没有增加 Process 算法或语义补丁。
+pipeline、typed Future、文件重定向与真实 PTY/resize 会话仍待后续验收。

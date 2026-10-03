@@ -202,6 +202,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_process_status.c ^
     src\runtime\xl6_process_open.c ^
     src\runtime\xl6_process_terminal.c ^
+    src\runtime\xl6_process_live.c ^
+    src\runtime\xl6_process_stream.c ^
     src\runtime\xl6_pattern_options.c ^
     src\runtime\xl6_pattern_match.c ^
     src\runtime\xl6_log.c ^
@@ -343,6 +345,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_process_status.c ^
     src\runtime\xl6_process_open.c ^
     src\runtime\xl6_process_terminal.c ^
+    src\runtime\xl6_process_live.c ^
+    src\runtime\xl6_process_stream.c ^
     src\runtime\xl6_pattern_options.c ^
     src\runtime\xl6_pattern_match.c ^
     src\runtime\xl6_log.c ^

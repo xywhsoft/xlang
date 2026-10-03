@@ -1613,9 +1613,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsJsonClass;
     int needsProcessClass;
     int needsLegacyProcessClass;
+    int needsLiveProcessClass;
+    int needsProcessStreams;
     int needsTaskGroupClass;
     int needsLoggerClass;
-    int needsProcessWaitAsync;
     int needsSignalClass;
     int needsSignalHandleClass;
     int needsTemplateClass;
@@ -1778,14 +1779,22 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
-    needsLegacyProcessClass = xl6StdlibFuncUsed(used,"process","start") ||
-        xl6StdlibFuncUsed(used,"process","startFile") || xl6StdlibFuncUsed(used,"process","pipeline") ||
-        xl6StdlibNodeUsesTypeName(root,"Process") || xl6StdlibNodeUsesTypeName(root,"PipelineResult");
+    needsLegacyProcessClass = xl6StdlibFuncUsed(used,"process","pipeline") ||
+        xl6StdlibNodeUsesTypeName(root,"PipelineResult");
+    needsLiveProcessClass = xl6StdlibFuncUsed(used,"process","start") ||
+        xl6StdlibFuncUsed(used,"process","startFile") || xl6StdlibNodeUsesTypeName(root,"Process") ||
+        (needsProcessClass && xl6StdlibNodeUsesMemberName(root,"start"));
+    needsProcessClass = needsProcessClass || needsLiveProcessClass;
+    needsProcessStreams = needsLiveProcessClass &&
+        (xl6StdlibNodeUsesMemberName(root,"stdinWriter") || xl6StdlibNodeUsesMemberName(root,"stdoutReader") ||
+         xl6StdlibNodeUsesMemberName(root,"stderrReader") || xl6StdlibNodeUsesTypeName(root,"IoReader") ||
+         xl6StdlibNodeUsesTypeName(root,"IoWriter"));
+    needsIoReader = needsIoReader || needsProcessStreams;
+    needsIoWriter = needsIoWriter || needsProcessStreams;
     needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used) || xl6StdlibFuncUsed(used, "signal", "cancelOn");
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
     needsIoWriter = needsIoWriter || needsLoggerClass;
     if (needsLoggerClass) xl6StdlibMarkFuncUsed(used,"__xl_runtime","logStats");
-    needsProcessWaitAsync = xl6StdlibNodeUsesMemberName(root, "waitAsync");
     needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
     needsSignalHandleClass = xl6StdlibNeedsSignalHandleClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
@@ -1859,6 +1868,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (needsConsoleSession) xl6StdlibBuilderAppend(&builder, xl6StdlibConsoleSessionSource);
     if (needsIoReader) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibIoReaderSource);
+        if (needsProcessStreams) xl6StdlibBuilderAppend(&builder,
+            "    extern \"xl6ProcessReaderV1\" create(Process process, int stream)\n");
         if (needsFileClass) xl6StdlibBuilderAppend(&builder,
             "    extern \"xl6_xrt_fs_file_reader\" create(File file)\n");
         if (needsIoBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibIoReaderBufferSource);
@@ -1866,6 +1877,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if (needsIoWriter) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibIoWriterSource);
+        if (needsProcessStreams) xl6StdlibBuilderAppend(&builder,
+            "    extern \"xl6ProcessWriterV1\" create(Process process)\n");
         if (needsFileClass) xl6StdlibBuilderAppend(&builder,
             "    extern \"xl6_xrt_fs_file_writer\" create(File file)\n");
         if (needsIoBuffer) xl6StdlibBuilderAppend(&builder, xl6StdlibIoWriterBufferSource);
@@ -2068,11 +2081,21 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsProcessClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibProcessStatusSource);
+        if (needsLiveProcessClass) xl6StdlibBuilderAppend(&builder,
+            "    extern \"xl6ProcessLiveStatusV1\" create(Process process)\n");
+        xl6StdlibBuilderAppend(&builder, "end\n");
+        xl6StdlibBuilderAppend(&builder, xl6StdlibProcessCommandSource);
+        if (needsLiveProcessClass) xl6StdlibBuilderAppend(&builder,
+            "    func start() as Process\n        return Process(self)\n    end\n");
+        xl6StdlibBuilderAppend(&builder, "end\n");
+        if (needsLiveProcessClass) {
+            xl6StdlibBuilderAppend(&builder, xl6StdlibProcessLiveSource);
+            if (needsProcessStreams) xl6StdlibBuilderAppend(&builder, xl6StdlibProcessStreamSource);
+            xl6StdlibBuilderAppend(&builder, "end\n");
+        }
         if (needsLegacyProcessClass) {
             xl6StdlibBuilderAppend(&builder, xl6StdlibLegacyProcessClassSource);
-            if ( needsProcessWaitAsync )
-                xl6StdlibBuilderAppend(&builder, xl6StdlibProcessWaitAsyncMethodSource);
-            xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassEndSource);
         }
     }
     if ( needsTccClass ) {

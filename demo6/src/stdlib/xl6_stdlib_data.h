@@ -139,9 +139,11 @@ extern const char* xl6StdlibAsyncFileClassSource;
 extern const char* xl6StdlibFsAsyncStatsSource;
 extern const char* xl6StdlibJsonClassSource;
 extern const char* xl6StdlibProcessClassSource;
+extern const char* xl6StdlibProcessStatusSource;
+extern const char* xl6StdlibProcessCommandSource;
+extern const char* xl6StdlibProcessLiveSource;
+extern const char* xl6StdlibProcessStreamSource;
 extern const char* xl6StdlibLegacyProcessClassSource;
-extern const char* xl6StdlibProcessWaitAsyncMethodSource;
-extern const char* xl6StdlibProcessClassEndSource;
 extern const char* xl6StdlibTccClassSource;
 extern const char* xl6StdlibXlangClassSource;
 

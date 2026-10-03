@@ -1,0 +1,32 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto processHandle = process.start(process.cmd(child, ["echo"]))
+assert processHandle.wait(0) == null and processHandle.status == null
+auto input = processHandle.stdinWriter()
+auto output = processHandle.stdoutReader()
+auto errors = processHandle.stderrReader()
+assert not output.canSeek() and not output.canSize()
+assert not input.canSeek() and not input.canSize()
+int denied = 0
+try
+    auto duplicate = processHandle.stdoutReader()
+catch e
+    denied += 1
+end
+try
+    auto duplicate = processHandle.stdinWriter()
+catch e
+    denied += 1
+end
+assert denied == 2
+input.writeAll(b"a\0你b")
+input.flush()
+input.close()
+assert output.readAll() == b"a\0你b"
+assert errors.readAll() == b"E\0R"
+auto status = processHandle.wait(5000)
+assert status != null
+if status != null then assert status.code == 0 end
+assert processHandle.closeStdin()
+output.close()
+errors.close()

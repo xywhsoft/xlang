@@ -1,0 +1,13 @@
+// Kernel acceptance gap found by nullable ProcessExitStatus integration.
+// Safe fields work; safe getter access is rejected before IR construction.
+class NullableGetterProbe
+    get code() as int
+        return 7
+    end
+end
+func makeGetterProbe(bool present) as NullableGetterProbe?
+    if present then return NullableGetterProbe() end
+    return null
+end
+auto status = makeGetterProbe(true)
+assert (status?.code ?? -1) == 7

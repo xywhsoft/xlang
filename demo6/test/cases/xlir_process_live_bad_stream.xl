@@ -1,0 +1,6 @@
+class WrongReader
+    private native point handle
+    extern "xl6ProcessReaderV1" create(Process process, int stream)
+    extern "xl6_xrt_io_writer_destroy" destroy()
+end
+auto invalid = WrongReader(process.start("exit 0"), 1)
