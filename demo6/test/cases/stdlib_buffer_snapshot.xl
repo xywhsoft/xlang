@@ -1,0 +1,59 @@
+Buffer source = Buffer(b"a\0\xffb")
+BufferIter snapshot = BufferIter(source)
+source[0] = 90
+assert source.resize(1000, 65)
+source = Buffer("other")
+auto found1, item1 = snapshot.__next__()
+if found1 then
+    uint8 typedItem = item1
+    assert typedItem == 97
+else
+    assert false
+end
+auto found2, item2 = snapshot.__next__()
+assert found2 and item2 == 0
+auto found3, item3 = snapshot.__next__()
+assert found3 and item3 == 255
+auto found4, item4 = snapshot.__next__()
+assert found4 and item4 == 98
+auto found5, item5 = snapshot.__next__()
+assert not found5 and item5 == 0
+snapshot.close()
+snapshot.close()
+assert snapshot.closed
+auto found6, item6 = snapshot.__next__()
+assert not found6 and item6 == 0
+
+BufferIter prefix = BufferIter(source, 2)
+source.clear()
+auto prefixFound1, prefixItem1 = prefix.__next__()
+auto prefixFound2, prefixItem2 = prefix.__next__()
+auto prefixFound3, prefixItem3 = prefix.__next__()
+assert prefixFound1 and prefixItem1 == 111
+assert prefixFound2 and prefixItem2 == 116
+assert not prefixFound3 and prefixItem3 == 0
+
+int sum = 0
+for value in Buffer(b"a\0\xff")
+    sum += value
+end
+assert sum == 352
+Buffer mutable = Buffer("abc")
+int count = 0
+for value in mutable
+    mutable.clear()
+    mutable.append("changed")
+    count += 1
+    assert value == 96 + count
+end
+assert count == 3
+for value in Buffer("early break")
+    assert value == 101
+    break
+end
+BufferIter empty = BufferIter(Buffer())
+auto emptyFound, emptyItem = empty.__next__()
+assert not emptyFound and emptyItem == 0
+empty.close()
+assert empty.closed
+println("stdlib buffer snapshots ok")

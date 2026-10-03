@@ -13,6 +13,30 @@
 
 struct xlir_closure;
 struct xfuture;
+/* Exact Buffer value/range adapters; raw payload remains an XRT xbuffer. */
+XL6_TEXT_API void* xl6BufferFromTextV1(xstrview text, int64_t size);
+XL6_TEXT_API void* xl6BufferFromBytesV1(const xvalue* bytes, int64_t size);
+XL6_TEXT_API void* xl6BufferCopyV1(void* source, int64_t size);
+XL6_TEXT_API bool xl6BufferResizeV1(void* buffer, int64_t size, int64_t fill);
+XL6_TEXT_API bool xl6BufferTrimV1(void* buffer);
+XL6_TEXT_API bool xl6BufferAssignTextV1(void* buffer, xstrview text, int64_t size);
+XL6_TEXT_API bool xl6BufferAssignBytesV1(void* buffer, const xvalue* bytes, int64_t size);
+XL6_TEXT_API bool xl6BufferAssignBufferV1(void* buffer, void* source, int64_t size);
+XL6_TEXT_API bool xl6BufferAppendTextV1(void* buffer, xstrview text, int64_t size);
+XL6_TEXT_API bool xl6BufferAppendBytesV1(void* buffer, const xvalue* bytes, int64_t size);
+XL6_TEXT_API bool xl6BufferAppendBufferV1(void* buffer, void* source, int64_t size);
+XL6_TEXT_API bool xl6BufferInsertTextV1(void* buffer, int64_t offset, xstrview text, int64_t size);
+XL6_TEXT_API bool xl6BufferInsertBytesV1(void* buffer, int64_t offset, const xvalue* bytes, int64_t size);
+XL6_TEXT_API bool xl6BufferInsertBufferV1(void* buffer, int64_t offset, void* source, int64_t size);
+XL6_TEXT_API bool xl6BufferRemoveV1(void* buffer, int64_t offset, int64_t count);
+XL6_TEXT_API xvalue* xl6BufferBytesV1(void* buffer, int64_t size);
+XL6_TEXT_API xstrview xl6BufferTextV1(void* buffer, int64_t size);
+XL6_TEXT_API void* xl6BufferIteratorCreateV1(void* source, int64_t size);
+XL6_TEXT_API void xl6BufferIteratorDestroyV1(void* iterator);
+XL6_TEXT_API bool xl6BufferIteratorHasNextV1(void* iterator);
+XL6_TEXT_API int64_t xl6BufferIteratorNextV1(void* iterator);
+XL6_TEXT_API void xl6BufferIteratorCloseV1(void* iterator);
+XL6_TEXT_API bool xl6BufferIteratorClosedV1(void* iterator);
 /* Pipeline configuration snapshots and independently owned results. */
 XL6_TEXT_API void* xl6ProcessPipelineCreateV1(void);
 XL6_TEXT_API void xl6ProcessPipelineDestroyV1(void* pipeline);

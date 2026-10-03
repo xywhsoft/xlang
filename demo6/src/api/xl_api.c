@@ -2665,7 +2665,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     {
         const XL6_NativeHandlePolicyV1* policies[] = {
             xl6ProcessCommandHandlePolicyV1Get(), xl6ProcessHandlePolicyV1Get(),
-            xl6ProcessStatusHandlePolicyV1Get()
+            xl6ProcessStatusHandlePolicyV1Get(), xl6BufferIteratorHandlePolicyV1Get()
         };
         for (size_t i = 0; i < sizeof(policies)/sizeof(*policies); ++i)
             if ((adapter = xrtValueHandleOwnershipAdapterV1(ref,

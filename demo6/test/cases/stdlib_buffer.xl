@@ -104,9 +104,9 @@ expect(buf.len(), 0)
 expectStr(buf.text(), "")
 
 Buffer stepped = Buffer(64)
-expect(stepped.appendBytes("hello", c_size(2)), 1)
+expect(stepped.append(b"hello", 2), 1)
 expectStr(stepped.text(), "he")
-expect(stepped.appendBytes("ignored", c_size(0)), 1)
+expect(stepped.append(b"ignored", 0), 1)
 expect(stepped.len(), 2)
 
 Buffer copied = Buffer()

@@ -209,3 +209,4 @@ XL6_ARTIFACT_SYMBOL("xl6AsyncFileClosedV1", FILE_ASYNC)
 #define XL6_TEXT_EXPORT(Name, Component) XL6_ARTIFACT_SYMBOL(#Name, Component)
 #include "src/runtime/xl6_text_symbols.inc"
 #undef XL6_TEXT_EXPORT
+XL6_ARTIFACT_SYMBOL("xl6BufferIteratorHandlePolicyV1Get", BUFFER_ITERATOR)

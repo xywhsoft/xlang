@@ -23,6 +23,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_log_file.c','src/runtime/xl6_log_file_text.c','src/runtime/xl6_log_file_json.c','src/runtime/xl6_log_async.c','src/runtime/xl6_log_ring.c',
     'src/runtime/xl6_log_printf.c','src/runtime/xl6_log_text_writer.c','src/runtime/xl6_log_json_writer.c','src/runtime/xl6_text_value.c',
     'src/runtime/xl6_text_query.c','src/runtime/xl6_text_binary.c','src/runtime/xl6_text_chars.c','src/runtime/xl6_text_glob.c','src/runtime/xl6_text_distance.c',
+    'src/runtime/xl6_buffer_value.c','src/runtime/xl6_buffer_iterator.c',
     'src/runtime/xl6_text_split.c','src/runtime/xl6_text_join.c','src/runtime/xl6_text_iterator.c',
     'src/runtime/xl6_number_format.c','src/runtime/xl6_number_format_buffer.c',
     'src/runtime/xl6_number_integer.c','src/runtime/xl6_number_float.c',

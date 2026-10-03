@@ -1,0 +1,7 @@
+class WrongBuffer
+    private native point handle
+    extern "xl6TextIteratorCreateV1" create(string text, string separator, int mode, int size, int separatorSize)
+    extern "xl6TextIteratorDestroyV1" destroy()
+    extern "xl6BufferIteratorNextV1" func next() as uint8
+end
+WrongBuffer("a", "", 1, -1, -1).next()

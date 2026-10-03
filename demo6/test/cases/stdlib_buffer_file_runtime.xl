@@ -17,11 +17,12 @@ bool textRejected = false
 try
     string text = bytes.text()
 catch e
-    if e.kind == "BufferError" and string.contains(e.message, "NUL") then
-        textRejected = true
-    end
+    textRejected = true
 end
-assert textRejected, "Buffer.text should reject binary data containing NUL"
+assert textRejected, "Buffer.text should reject invalid UTF-8 bytes"
+Buffer nulText = Buffer(b"\0A\0B")
+assert nulText.text() == "\0A\0B", "Buffer.text should preserve embedded NUL"
+assert string.byteLen(nulText.text()) == 4, "Buffer.text should preserve exact byte length"
 
 int byteSum = 0
 for b in bytes

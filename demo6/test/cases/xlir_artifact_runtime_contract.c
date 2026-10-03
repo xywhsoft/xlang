@@ -182,7 +182,7 @@ static int artifact_source_contract(void)
 
 static void print_plan(const char* name, const XL6_ArtifactRuntimePlan* plan);
 
-static int emit_native_source(const char* path, const char* output)
+static int emit_native_source(const char* path, const char* output, const char* cSource)
 {
     XL6_CompileUnit unit;
     XL6_ArtifactRuntimePlan plan;
@@ -191,8 +191,18 @@ static int emit_native_source(const char* path, const char* output)
     int ok=0;
     xl6CompileUnitInit(&unit);
     if (!xl6CompileUnitLoadFile(&unit,path,1) || !xl6IrLowerModule(&unit.ir,&unit.parse.diags) ||
-        !xl6ArtifactRuntimePlanBuild(&unit.ir,XL6_ARTIFACT_ENTRY_EXECUTABLE_V1,&plan,&unit.parse.diags) ||
-        !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit.importDeps,0,plan.nativeModules,plan.nativeModuleCount,&text)) goto done;
+        !xl6ArtifactRuntimePlanBuild(&unit.ir,XL6_ARTIFACT_ENTRY_EXECUTABLE_V1,&plan,&unit.parse.diags)) goto done;
+    if (cSource) {
+        /* Same explicit input policy as xlcAddCSourceFile: unrestricted C has
+         * undeclared native requirements and currently selects the full XRT.
+         * Do not pretend its executable uses the pure-language pruned plan. */
+        FILE* sidecar=fopen(cSource,"rb");
+        if (!sidecar) goto done;
+        fclose(sidecar);
+        unit.importDeps.hasUndeclaredCSourceModules=1;
+    }
+    if (!xl6XrtTrimBuildImplementationSourceFromArtifact(&unit.importDeps,0,
+            plan.nativeModules,plan.nativeModuleCount,&text)) goto done;
     if (!xl6OutputOpenFile(&out,output)) goto done;
     ok=xl6OutputPuts(text,&out)!=EOF && !xl6OutputHasFailed(&out);
     xl6OutputClose(&out);
@@ -327,7 +337,8 @@ int main(int argc,char** argv)
 {
     if (!xrtMemDebugEnable(true)) return 1;
     if (!closure_contract() || !artifact_source_contract()) return 1;
-    if (argc==4 && !strcmp(argv[1],"--emit-native")) return emit_native_source(argv[2],argv[3])?0:1;
+    if (argc==4 && !strcmp(argv[1],"--emit-native")) return emit_native_source(argv[2],argv[3],NULL)?0:1;
+    if (argc==5 && !strcmp(argv[1],"--emit-native-with-c")) return emit_native_source(argv[2],argv[3],argv[4])?0:1;
     if (argc==2 && !strcmp(argv[1],"--catalog")) {
         for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i) {
             const XL6_ArtifactRuntimeComponent* item=xl6ArtifactRuntimeComponentGet(i);

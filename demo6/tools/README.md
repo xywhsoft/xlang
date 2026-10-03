@@ -311,3 +311,17 @@ generated cancellation with catch/finally. GCC O0/O2 and TCC preserve the prior
 2106 interruption/300 race population and add 150 explicit public requests/50
 provisional-successor cancels. Linux instruments the complete kernel closure;
 that is not a per-program pruning, module-unload or 53-module acceptance claim.
+
+`check_stdlib_buffer_values.ps1` verifies the current-source Buffer value/range
+adapters and independent byte snapshot iterator through strict C, JIT and AOT,
+five private-field/owner/ABI refusals, and actual selected XRT allocation-failure,
+thread and allocator reentry checks. It freezes source, staged SDK and object
+hashes and preserves prior runs. Legacy Buffer core/codecs, Linux and the total
+53-module release boundary remain separate work; this gate is not that proof.
+
+`check_stdlib_buffer_values.sh` runs the same six positive and five negative
+fixtures, actual XRT allocation prefixes, strict C/JIT/AOT and instrumented
+generated/resident/native closure ASan/UBSan/leak checks on Linux. The legacy
+Buffer fixture's authentic C helper explicitly selects the existing full-XRT
+input policy; pure-language fixtures verify the actual pruned native plan.
+The shared CLI/JIT is not instrumented; legacy core/codecs remain separate work.

@@ -1,0 +1,2 @@
+BufferIter iterator = BufferIter(Buffer("abc"))
+point leaked = iterator.handle

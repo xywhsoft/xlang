@@ -1,0 +1,2 @@
+extern "xl6BufferTextV1" func bad(point buffer, int size) as point
+bad(null, -1)
