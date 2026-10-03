@@ -232,6 +232,13 @@ owned streams/status and parent drop) through the first no-hit. An actual native
 Spawn observer joins private waiter tails; it does not mock results or give the
 public API a waiter-join guarantee. Other-thread allocations are not injected.
 Generated Future full OOM-prefix and module-unload acceptance remain pending.
+A native pipeline preflight additionally sweeps every calling-thread allocation
+prefix for success and last-stage launch failure, with selected modules and
+MODULE_ALL. It requires intact unrelated stdin, exact per-stage binary stderr,
+collector-owned waiter retirement and balanced allocation ledgers. Linux
+instruments both native profiles; this is not public language pipeline or its
+per-program pruning acceptance. The production initialization/first-error/
+waiter fixes are recorded in stdlib53 B28a.
 Pipeline/file redirection/PTY remain later batches;
 passing this gate does not complete the seven process modules or all 53 modules.
 The same gates cover process.open input/error transport with a controlled

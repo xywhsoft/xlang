@@ -313394,28 +313394,30 @@ XRT_API bool xrtProcessPipeline(
 		iPumpCount,
 		sizeof(xprocesspipelinepump)
 	);
+	if ( pPumps == NULL ) goto cleanup;
 	pStageResults = (xprocessstageresult*)xrtCalloc(
 		iStageCount,
 		sizeof(xprocessstageresult)
 	);
+	if ( pStageResults == NULL ) goto cleanup;
 	pProcesses = (xprocess**)xrtCalloc(iStageCount, sizeof(xprocess*));
+	if ( pProcesses == NULL ) goto cleanup;
 	if ( iStageCount > 1u ) {
 		pPipes = (xprocesspipe*)xrtCalloc(
 			iStageCount - 1u,
 			sizeof(xprocesspipe)
 		);
-	}
-	if ( (pPumps == NULL) || (pStageResults == NULL) ||
-		(pProcesses == NULL) || ((iStageCount > 1u) && (pPipes == NULL)) ) {
-		goto cleanup;
+		if ( pPipes == NULL ) goto cleanup;
+		/* calloc's zero is a live POSIX descriptor, not an empty slot. Make
+		 * every owned connector invalid before any failing operation. */
+		for ( size_t i = 0u; i < (iStageCount - 1u); i++ ) {
+			pPipes[i].Read = -1;
+			pPipes[i].Write = -1;
+		}
 	}
 	for ( size_t i = 0u; i < iPumpCount; i++ ) {
 		(void)xrtBufferInit(&pPumps[i].Buffer);
 		pPumps[i].State = &State;
-	}
-	for ( size_t i = 0u; i < (iStageCount - 1u); i++ ) {
-		pPipes[i].Read = -1;
-		pPipes[i].Write = -1;
 	}
 	for ( size_t i = 0u; i < (iStageCount - 1u); i++ ) {
 		if ( !__xrtProcessPipeCreate(&pPipes[i]) ) {
@@ -313573,6 +313575,16 @@ stop_failed:
 	(void)__xrtProcessPipelineThreadsJoin(pPumps, iPumpCount, &Input);
 
 cleanup:
+	{
+	/* Preserve the first infrastructure error while retiring all physical
+	 * owners. In stop_failed it belongs to State, not the thread slot. */
+	xerror* pFailure = NULL;
+	if ( !bOk ) {
+		pFailure = State.Error;
+		State.Error = NULL;
+		if ( pFailure == NULL ) pFailure = xrtTakeError();
+		else xrtClearError();
+	}
 	if ( pPipes != NULL ) {
 		for ( size_t i = 0u; i < (iStageCount - 1u); i++ ) {
 			__xrtProcessPipeClose(&pPipes[i]);
@@ -313586,6 +313598,15 @@ cleanup:
 	}
 	if ( pProcesses != NULL ) {
 		for ( size_t i = 0u; i < iStageCount; i++ ) {
+			if ( pProcesses[i] == NULL ) continue;
+			/* Exit publication precedes the private waiter's last reference
+			 * and context retirement. A synchronous collector must join it,
+			 * just as ProcessRun does; public ProcessWait remains unchanged. */
+			if ( xrtThreadWait(pProcesses[i]->Waiter) != XWAIT_OK ) {
+				if ( pFailure == NULL ) pFailure = xrtTakeError();
+				else xrtClearError();
+				bOk = false;
+			}
 			xrtProcessDestroy(pProcesses[i]);
 		}
 	}
@@ -313593,9 +313614,6 @@ cleanup:
 		for ( size_t i = 0u; i < iStageCount; i++ ) {
 			xrtFree(pStageResults[i].Stderr);
 		}
-	}
-	if ( !bOk && (State.Error != NULL) ) {
-		xrtSetError(State.Error);
 	}
 	xrtFree(pStageResults);
 	xrtFree(pPumps);
@@ -313606,7 +313624,12 @@ cleanup:
 	if ( bLockReady ) {
 		(void)xrtMutexUnit(&State.Lock);
 	}
+	if ( pFailure != NULL ) {
+		xrtClearError();
+		xrtSetErrorTake(pFailure);
+	}
 	return bOk;
+	}
 }
 
 #endif
