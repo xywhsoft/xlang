@@ -2915,6 +2915,13 @@ typedef enum XL6_IrCallDispatchKind {
     XL6_IR_CALL_DISPATCH_CALLABLE_VALUE
 } XL6_IrCallDispatchKind;
 
+typedef enum XL6_IrCallReceiverGate {
+    XL6_IR_CALL_RECEIVER_UNCONDITIONAL = 0,
+    /* Evaluate/anchor the nullable receiver once. Invoke its exact getter
+     * only on the present edge, lifting (not nesting) the declared result. */
+    XL6_IR_CALL_RECEIVER_NULLABLE_GETTER
+} XL6_IrCallReceiverGate;
+
 typedef struct XL6_IrCallSite {
     XL6_IrNodeId origin;
     XL6_SemCallKind callKind;
@@ -2923,6 +2930,7 @@ typedef struct XL6_IrCallSite {
     /* Explicit instance receiver; for FUNCTION_VALUE, the exact callable
      * subject expression.  INVALID only for a free/static declaration call. */
     XL6_IrNodeId receiver;
+    XL6_IrCallReceiverGate receiverGate;
     /* For a compound property setter, origin of the canonical getter CallSite.
      * Receiver and key bindings are acquired once and shared across both calls.
      * The final argument is PROPERTY_UPDATE; getter, operator/RHS, then setter

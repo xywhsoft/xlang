@@ -1,0 +1,13 @@
+// Existing language defect, reproduced with both B23 and B24 source drivers:
+// a null receiver must not evaluate the index. Keep this expected assertion
+// until the common safe-index CFG gate (not getter/library code) is corrected.
+int safeIndexCalls = 0
+func nextSafeIndex() as int
+    safeIndexCalls += 1
+    return 0
+end
+array<int>? items = array[11]
+assert (items?[nextSafeIndex()] ?? -1) == 11
+items = null
+assert items?[nextSafeIndex()] == null
+assert safeIndexCalls == 1

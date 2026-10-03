@@ -1,0 +1,19 @@
+protocol NullableNamed
+    get label() as string
+end
+
+class NamedGetter
+    get label() as string
+        return "p\0你"
+    end
+end
+
+func readLabel(NullableNamed? value) as string?
+    return value?.label
+end
+
+func main(...) as int
+    assert (readLabel(NamedGetter()) ?? "") == "p\0你"
+    assert readLabel(null) == null
+    return 0
+end

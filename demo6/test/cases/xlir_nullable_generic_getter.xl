@@ -1,0 +1,23 @@
+class NullableBox<T>
+    T stored
+
+    create(T value)
+        self.stored = value
+    end
+
+    get item() as T
+        return self.stored
+    end
+end
+
+func main(...) as int
+    NullableBox<int>? number = NullableBox::<int>(42)
+    assert (number?.item ?? -1) == 42
+    number = null
+    assert number?.item == null
+    NullableBox<string>? text = NullableBox::<string>("g\0你")
+    assert (text?.item ?? "") == "g\0你"
+    text = null
+    assert text?.item == null
+    return 0
+end

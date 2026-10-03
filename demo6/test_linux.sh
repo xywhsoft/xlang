@@ -217,5 +217,7 @@ bash "$ROOT/tools/check_stdlib_signal_queue.sh" \
     "$TEST_DIR/signal-queue-$(date +%Y%m%d-%H%M%S)-$$"
 bash "$ROOT/tools/check_stdlib_process_run.sh" \
     "$TEST_DIR/process-run-$(date +%Y%m%d-%H%M%S)-$$"
+bash "$ROOT/tools/check_xlir_nullable_getter.sh" \
+    "$TEST_DIR/nullable-getter-$(date +%Y%m%d-%H%M%S)-$$"
 
 printf 'DEMO6 Linux compatibility tests passed.\n'
