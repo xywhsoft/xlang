@@ -28,6 +28,7 @@ try {
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_live_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
         'test/cases/xlir_process_future_host.c','test/cases/xlir_process_live_oom_host.c','test/support/process_oom_observer.c',
+        'test/cases/xlir_process_pipeline_prefix.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
@@ -53,6 +54,12 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
+        $null=Check 'pipeline-prefix-build' gcc ($flags+@('-DXL6_PIPELINE_PREFIX_FROM_XLANG=1','test/cases/xlir_process_pipeline_prefix.c')+$libs+@('-o',"$work/pipeline-prefix.exe"))
+        $pipelinePrefix=Check 'pipeline-prefix' "$work/pipeline-prefix.exe" @()
+        if($pipelinePrefix-notmatch 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced'){throw 'Pipeline physical-owner/setup prefix witness missing'}
+        $null=Check 'pipeline-prefix-full-build' gcc ($flags+@('-DXRT_MODULE_ALL=1','-DXL6_PIPELINE_PREFIX_FROM_XLANG=1','test/cases/xlir_process_pipeline_prefix.c')+$libs+@('-o',"$work/pipeline-prefix-full.exe"))
+        $pipelineFull=Check 'pipeline-prefix-full' "$work/pipeline-prefix-full.exe" @()
+        if($pipelineFull-notmatch 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced'){throw 'Full native Pipeline/Process Future retirement witness missing'}
         $null=Check 'live-native-build' gcc ($flags+@('test/cases/xlir_process_live_host.c')+$libs+@('-o',"$work/live-native.exe"))
         $live=Check 'live-native' "$work/live-native.exe" @($child)
         if($live-notmatch 'exact binary streams survive parent drop; unique leases, timeout/range/state, independent status; reader/writer OOM 3/3 failures \+ 2 first no-hit, balanced'){throw 'Live process ownership witness missing'}

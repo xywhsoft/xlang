@@ -6,6 +6,11 @@
 旧裸 point live 门面已由 typed Process 与 owned Reader/Writer 替换，
 不再用裸 point 转换绕过所有权合同。
 
+B28a 先修复下一批 pipeline 的原生底座：初始化失败不关闭无关句柄，
+首个错误穿过 cleanup 保留，同步 collector 归还各 Process 前退役私有
+waiter。正常执行/末段启动失败的调用线程完整分配失败前缀和双端存量
+回归通过；这不是公开 typed pipeline 接入完成证明，详见三组任务 B28a。
+
 ## 构造与输入
 
 `process.cmd(program, args: array<string> = [], size = -1, argSize = -1)`

@@ -24,6 +24,7 @@ negative+=(xlir_process_future_bad_element xlir_process_future_bad_nullable xlir
     printf '%s\0' test/cases/xlir_process_support_host.c
     printf '%s\0' test/cases/xlir_process_live_host.c
     printf '%s\0' test/cases/xlir_process_future_host.c
+    printf '%s\0' test/cases/xlir_process_pipeline_prefix.c
     printf '%s\0' test/cases/xlir_process_live_oom_host.c test/support/process_oom_observer.c
     printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
@@ -54,6 +55,12 @@ future_resident=(src/runtime/xl6_code_lease.c src/runtime/xl6_code_finalizer.c s
 run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xlir_process_child.c -o "$OUT/child"
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
+run pipeline-prefix-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXL6_PIPELINE_PREFIX_FROM_XLANG=1 test/cases/xlir_process_pipeline_prefix.c -pthread -ldl -lm -o "$OUT/pipeline-prefix"
+run pipeline-prefix "$OUT/pipeline-prefix"
+grep -Eq 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced' "$OUT/pipeline-prefix.log"
+run pipeline-prefix-full-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_ALL=1 -DXL6_PIPELINE_PREFIX_FROM_XLANG=1 test/cases/xlir_process_pipeline_prefix.c -pthread -ldl -lm -o "$OUT/pipeline-prefix-full"
+run pipeline-prefix-full "$OUT/pipeline-prefix-full"
+grep -Eq 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced' "$OUT/pipeline-prefix-full.log"
 run future-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_future_host.c "${future_resident[@]}" -pthread -ldl -lm -o "$OUT/future-native"
 run future-native "$OUT/future-native" "$OUT/child"
 grep -Eq 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced' "$OUT/future-native.log"
