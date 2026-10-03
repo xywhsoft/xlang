@@ -7144,6 +7144,10 @@ static uint32 xl6IrBuildCallSiteDispatchSlot(
     if (callKind == XL6_SEM_CALL_WITNESS) {
         XL6_IrTypeId type = receiverNode->type != XL6_IR_TYPE_INVALID
             ? receiverNode->type : receiverNode->storageType;
+        const XL6_IrType* receiverType = xl6IrTypeGet(&module->types, type);
+        if (receiverType != NULL && receiverType->kind == XL6_IR_TYPE_NULLABLE &&
+            receiverType->paramCount == 1 && receiverType->params != NULL)
+            type = receiverType->params[0];
         for (i = 0; i < module->protocolDispatchSlotCount; ++i)
             if (module->protocolDispatchSlots[i].declarationSymbol == targetSymbol &&
                 module->protocolDispatchSlots[i].protocolType == type)
@@ -7349,6 +7353,10 @@ static int xl6IrBuildSyntaxCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
     site->targetSymbol = operation->targetSymbol;
     site->resultType = operation->storageType;
     site->receiver = receiver;
+    site->receiverGate = operation->sourceKind == XL6_AST_SAFE_MEMBER &&
+        (operation->callKind == XL6_SEM_CALL_PROPERTY_GET ||
+         operation->callKind == XL6_SEM_CALL_WITNESS)
+        ? XL6_IR_CALL_RECEIVER_NULLABLE_GETTER : XL6_IR_CALL_RECEIVER_UNCONDITIONAL;
     site->preparedGetter = xl6IrNodeIsPropertyUpdate(operation)
         ? module->children[operation->firstChild] : XL6_IR_NODE_INVALID;
     site->dispatchSlot = xl6IrBuildCallSiteDispatchSlot(
@@ -29203,6 +29211,60 @@ int xl6IrGetPropertyAccessorSignature(const XL6_IrModule* module,
          (signature->parameterTypes != NULL && signature->parameterAbis != NULL));
 }
 
+static int xl6IrVerifyCallReceiverGate(const XL6_IrModule* module,
+    const XL6_IrCallSite* site, const XL6_IrNode* origin)
+{
+    int gated = origin->sourceKind == XL6_AST_SAFE_MEMBER &&
+        (origin->callKind == XL6_SEM_CALL_PROPERTY_GET ||
+         origin->callKind == XL6_SEM_CALL_WITNESS);
+    const XL6_IrNode* receiver;
+    const XL6_IrType* receiverType;
+    const XL6_IrType* resultType;
+    const XL6_IrType* declaredResult;
+    XL6_IrTypeId declaredResultType;
+    XL6_IrPropertyAccessorSignature signature;
+    if (!gated) return site->receiverGate == XL6_IR_CALL_RECEIVER_UNCONDITIONAL;
+    if (site->receiverGate != XL6_IR_CALL_RECEIVER_NULLABLE_GETTER ||
+        origin->kind != XL6_IR_NODE_MEMBER || origin->childCount != 1 ||
+        site->argumentCount != 0 || site->receiverEvaluationIndex != 0 ||
+        (receiver = xl6IrNodeGet(module, site->receiver)) == NULL ||
+        (receiverType = xl6IrTypeGet(&module->types, receiver->type != XL6_IR_TYPE_INVALID
+             ? receiver->type : receiver->storageType)) == NULL ||
+        receiverType->kind != XL6_IR_TYPE_NULLABLE || receiverType->paramCount != 1 ||
+        receiverType->params == NULL ||
+        (resultType = xl6IrTypeGet(&module->types, site->resultType)) == NULL)
+        return 0;
+    if (module->stage == XL6_IR_STAGE_TYPED) {
+        const XL6_IrNode* declaration = xl6IrSymbolNodeGet(module, site->targetSymbol);
+        const XL6_IrNode* parameters;
+        const XL6_IrNode* returns;
+        const XL6_IrNode* result;
+        XL6_IrCallableErasureAbi erasure;
+        if (declaration == NULL || declaration->sourceKind != XL6_AST_GET ||
+            !xl6IrNamedCallableSignatureParts(module,
+                (XL6_IrNodeId)(declaration - module->nodes + 1), &parameters, &returns, &erasure) ||
+            parameters->childCount != 0 || returns->childCount != 1 ||
+            (result = xl6IrNodeGet(module, module->children[returns->firstChild])) == NULL) return 0;
+        declaredResultType = result->type;
+        /* Unapplied templates are rechecked against their closed CallTarget
+         * after monomorphization; they cannot reach emitted SSA as-is. */
+        if (xl6IrTypeContainsTypeParam(&module->types, declaredResultType, 0))
+            return resultType->kind == XL6_IR_TYPE_NULLABLE ||
+                resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+    } else {
+        if (!xl6IrGetPropertyAccessorSignature(module, site, &signature)) return 0;
+        declaredResultType = signature.resultType;
+    }
+    declaredResult = xl6IrTypeGet(&module->types, declaredResultType);
+    if (declaredResult == NULL) return 0;
+    /* A getter that already returns nullable (or var) does not create T??. */
+    if (declaredResult->kind == XL6_IR_TYPE_NULLABLE ||
+        xl6IrTypeIsDynamicXValueBuiltin(module, declaredResultType))
+        return site->resultType == declaredResultType;
+    return resultType->kind == XL6_IR_TYPE_NULLABLE && resultType->paramCount == 1 &&
+        resultType->params != NULL && resultType->params[0] == declaredResultType;
+}
+
 static int xl6IrVerifyPropertyUpdateSite(
     const XL6_IrModule* module, const XL6_IrCallSite* setter)
 {
@@ -29508,6 +29570,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   (site->variadicAbi == XL6_IR_CALL_VARIADIC_NONE &&
                    (site->argumentCount != site->fixedParameterCount)) )
                 return xl6IrDiag(diags, NULL, "XLIR call site has no canonical target, receiver, result or argument slice ABI");
+            if (!xl6IrVerifyCallReceiverGate(module, site, call))
+                return xl6IrDiag(diags, call, "XLIR call receiver gate has no exact nullable getter and lifted result contract");
             if (!xl6IrVerifyPropertyUpdateSite(module, site))
                 return xl6IrDiag(diags, call, "XLIR property update has no exact shared getter/setter binding");
             if (!xl6IrRuntimeLogPrintfSiteMatches(module, site))
@@ -44075,14 +44139,14 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->callSiteCount; ++i ) {
         const XL6_IrCallSite* site = &module->callSites[i];
         xl6OutputPrintf(out,
-            "  call-site c%lu origin=n%u kind=%d target=%u result=t%u receiver=n%u dispatchSlot=%u arguments=%lu+%lu fixed=%lu variadic=%s dispatchKind=%d receiverAt=%llu\n",
+            "  call-site c%lu origin=n%u kind=%d target=%u result=t%u receiver=n%u dispatchSlot=%u arguments=%lu+%lu fixed=%lu variadic=%s dispatchKind=%d receiverAt=%llu receiverGate=%d\n",
             (unsigned long)i, (unsigned int)site->origin, (int)site->callKind,
             (unsigned int)site->targetSymbol, (unsigned int)site->resultType,
             (unsigned int)site->receiver, (unsigned int)site->dispatchSlot,
             (unsigned long)site->firstArgument,
             (unsigned long)site->argumentCount, (unsigned long)site->fixedParameterCount,
             xl6IrCallVariadicAbiName(site->variadicAbi), (int)site->dispatchKind,
-            (unsigned long long)site->receiverEvaluationIndex);
+            (unsigned long long)site->receiverEvaluationIndex, (int)site->receiverGate);
     }
     for ( i = 0; i < module->callSiteCount; ++i )
         if (module->callSites[i].preparedGetter != XL6_IR_NODE_INVALID)
@@ -45387,10 +45451,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         if (site->receiverEvaluationIndex == SIZE_MAX) snprintf(receiverAt, sizeof(receiverAt), "null");
         else snprintf(receiverAt, sizeof(receiverAt), "%llu", (unsigned long long)site->receiverEvaluationIndex);
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"origin\":%u,\"callKind\":%d,\"targetSymbol\":%u,\"resultType\":%u,\"receiver\":%u,\"dispatchSlot\":%u,\"dispatchKind\":%d,\"receiverEvaluationIndex\":%s,\"preparedGetter\":%u,\"firstArgument\":%lu,\"argumentCount\":%lu,\"fixedParameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\"}%s\n",
+            "    {\"id\":%lu,\"origin\":%u,\"callKind\":%d,\"targetSymbol\":%u,\"resultType\":%u,\"receiver\":%u,\"dispatchSlot\":%u,\"dispatchKind\":%d,\"receiverEvaluationIndex\":%s,\"receiverGate\":%d,\"preparedGetter\":%u,\"firstArgument\":%lu,\"argumentCount\":%lu,\"fixedParameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\"}%s\n",
             (unsigned long)i, (unsigned int)site->origin, (int)site->callKind,
             (unsigned int)site->targetSymbol, (unsigned int)site->resultType,
-            (unsigned int)site->receiver, (unsigned int)site->dispatchSlot, (int)site->dispatchKind, receiverAt, (unsigned int)site->preparedGetter,
+            (unsigned int)site->receiver, (unsigned int)site->dispatchSlot, (int)site->dispatchKind, receiverAt, (int)site->receiverGate, (unsigned int)site->preparedGetter,
             (unsigned long)site->firstArgument,
             (unsigned long)site->argumentCount, (unsigned long)site->fixedParameterCount,
             (int)site->variadicAbi, xl6IrCallVariadicAbiName(site->variadicAbi),

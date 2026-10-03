@@ -1,0 +1,7 @@
+class PrivateGetter
+    private get secret() as int
+        return 7
+    end
+end
+PrivateGetter? value = PrivateGetter()
+auto rejected = value?.secret

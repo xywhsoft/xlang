@@ -1,0 +1,16 @@
+class GetterBase
+    get value() as int
+        return 17
+    end
+end
+
+class GetterChild extends GetterBase
+end
+
+func main(...) as int
+    GetterChild? value = GetterChild()
+    assert (value?.value ?? -1) == 17
+    value = null
+    assert value?.value == null
+    return 0
+end

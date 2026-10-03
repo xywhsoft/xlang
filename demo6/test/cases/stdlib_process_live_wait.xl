@@ -4,6 +4,7 @@ auto processHandle = process.startFile(child, ["exit", "7"])
 assert processHandle.id > 0
 auto status = processHandle.wait()
 assert status != null
+assert (status?.code ?? -1) == 7
 if status != null then assert status.kind == 1 and status.code == 7 end
 assert not processHandle.running and processHandle.state == 1
 auto repeated = processHandle.status

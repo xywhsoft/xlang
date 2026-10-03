@@ -6233,7 +6233,9 @@ static XL6_AstNode* xl6SemClonePropertyGetterType(
     XL6_AstNode* result;
     size_t i;
 
-    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->text == NULL ) {
+    if ( member == NULL ||
+         (member->kind != XL6_AST_MEMBER && member->kind != XL6_AST_SAFE_MEMBER) ||
+         member->text == NULL ) {
         return NULL;
     }
 

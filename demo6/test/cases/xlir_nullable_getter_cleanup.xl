@@ -1,0 +1,49 @@
+int getterCleanupCount = 0
+
+class CleanupPayload
+    int value = 31
+end
+
+class CleanupGetter
+    CleanupPayload stored = CleanupPayload()
+    bool fail
+
+    create(bool fail)
+        self.fail = fail
+    end
+
+    destroy()
+        getterCleanupCount += 1
+        throw ValueError "getter receiver cleanup failed"
+    end
+
+    get payload() as CleanupPayload
+        if self.fail then throw TypeError "getter failed first" end
+        return self.stored
+    end
+end
+
+func makeCleanupGetter(bool present, bool fail = false) as CleanupGetter?
+    if present then return CleanupGetter(fail) end
+    return null
+end
+
+func main(...) as int
+    bool caught = false
+    try
+        auto rejected = makeCleanupGetter(true)?.payload
+    catch ValueError error
+        caught = true
+    end
+    assert caught and getterCleanupCount == 1
+    caught = false
+    try
+        auto rejected = makeCleanupGetter(true, true)?.payload
+    catch TypeError error
+        caught = true
+    end
+    assert caught and getterCleanupCount == 2
+    assert makeCleanupGetter(false)?.payload == null
+    assert getterCleanupCount == 2
+    return 0
+end

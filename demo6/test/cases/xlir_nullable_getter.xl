@@ -1,0 +1,106 @@
+int receiverCalls = 0
+int getterCalls = 0
+int destroyed = 0
+
+class GetterPayload
+    int value = 9
+end
+
+class NullableGetter
+    GetterPayload stored = GetterPayload()
+    bool fail = false
+
+    create(bool fail = false)
+        self.fail = fail
+    end
+
+    destroy()
+        destroyed += 1
+    end
+
+    get code() as int
+        getterCalls += 1
+        if self.fail then throw ValueError "getter failure" end
+        return 7
+    end
+
+    get text() as string
+        getterCalls += 1
+        return "a\0你"
+    end
+
+    get payload() as GetterPayload
+        getterCalls += 1
+        return self.stored
+    end
+
+    get optional() as int?
+        getterCalls += 1
+        return null
+    end
+
+    get binary() as bytes
+        return string.bytes("a\0你")
+    end
+
+    get items() as array<int>
+        return array[11, 22]
+    end
+
+    get erasedItems() as array
+        return array[33]
+    end
+
+    get dynamic() as var
+        return "v\0你"
+    end
+end
+
+func makeNullableGetter(bool present, bool fail = false) as NullableGetter?
+    receiverCalls += 1
+    if present then return NullableGetter(fail) end
+    return null
+end
+
+func main(...) as int
+    assert (makeNullableGetter(true)?.code ?? -1) == 7
+    assert receiverCalls == 1 and getterCalls == 1 and destroyed == 1
+    assert makeNullableGetter(false)?.code == null
+    assert receiverCalls == 2 and getterCalls == 1
+    string? text = makeNullableGetter(true)?.text
+    assert text != null
+    if text != null then assert text == "a\0你" and text.length == 3 end
+    auto payload = makeNullableGetter(true)?.payload
+    assert payload != null
+    if payload != null then assert payload.value == 9 end
+    int? optional = makeNullableGetter(true)?.optional
+    assert optional == null
+    assert makeNullableGetter(false)?.text == null
+    assert makeNullableGetter(false)?.payload == null
+    assert makeNullableGetter(false)?.optional == null
+    bool caught = false
+    try
+        auto ignored = makeNullableGetter(true, true)?.code
+    catch ValueError error
+        caught = true
+    end
+    assert caught
+    assert receiverCalls == 9 and getterCalls == 5 and destroyed == 5
+    for i in range(0, 64)
+        auto copy = makeNullableGetter(true)?.text
+        assert (copy ?? "") == "a\0你"
+    end
+    assert destroyed == 69
+    NullableGetter? extra = NullableGetter()
+    bytes binary = extra?.binary ?? string.bytes("")
+    assert binary.length == 5 and binary[1] == uint8(0)
+    auto items = extra?.items
+    if items != null then assert items[1] == 22 else assert false end
+    auto erasedItems = extra?.erasedItems
+    if erasedItems != null then assert erasedItems[0] == 33 else assert false end
+    assert extra?.dynamic == "v\0你"
+    extra = null
+    assert extra?.binary == null and extra?.items == null and extra?.dynamic == null
+    assert extra?.erasedItems == null
+    return 0
+end

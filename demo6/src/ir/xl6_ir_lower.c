@@ -17591,7 +17591,15 @@ static int xl6IrLowerMaterializeGenericClassSyntaxUses(XL6_IrLowerContext* ctx)
              !xl6IrLowerIsGenericDeclaration(module, declaration) ||
              (receiver = xl6IrLowerGenericClassSyntaxReceiver(
                   module, (XL6_IrNodeId)id, use)) == NULL ||
-             (owner = xl6IrTypeGet(&module->types, receiver->storageType)) == NULL ||
+             (owner = xl6IrTypeGet(&module->types, receiver->type != XL6_IR_TYPE_INVALID
+                 ? receiver->type : receiver->storageType)) == NULL ) continue;
+        {
+            const XL6_IrCallSite* site = xl6IrCallSiteGet(module, (XL6_IrNodeId)id);
+            if (site != NULL && site->receiverGate == XL6_IR_CALL_RECEIVER_NULLABLE_GETTER &&
+                owner->kind == XL6_IR_TYPE_NULLABLE && owner->paramCount == 1 && owner->params != NULL)
+                owner = xl6IrTypeGet(&module->types, owner->params[0]);
+        }
+        if (owner == NULL ||
              owner->kind != XL6_IR_TYPE_CLASS || owner->paramCount == 0 || owner->params == NULL ||
              xl6IrLowerTypeContainsTypeParam(module, receiver->storageType, 0) ) continue;
         if ( !xl6IrLowerBuildGenericSpecialization(
@@ -22755,9 +22763,12 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
     managedPointer = nullableType != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
         nullableType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-        nullableType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+        (nullableType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+         (nullableType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+          nullableType->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)) &&
         nullableType->paramCount == 1 && nullableType->params != NULL &&
         (xl6IrLowerTypeIsManagedString(ctx->module, leftType) ||
+         nullableType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
          xl6IrLowerTypeIsRefCountedPointer(ctx->module, leftType)) &&
         xl6IrTypeGet(&ctx->module->types, nullableType->params[0]) != NULL &&
         xl6IrTypeGet(&ctx->module->types, nullableType->params[0])->cAbi == nullableType->cAbi &&
@@ -28511,6 +28522,85 @@ static XL6_IrValueId xl6IrLowerResolvedPropertyGet(
     return result;
 }
 
+/* Nullable getter invocation is a normal accessor transaction behind a CFG
+ * gate. The receiver owner spans both successors, so alias mutation and a
+ * throwing getter cannot invalidate it. Neither backend nor a library wrapper
+ * has to rediscover the member, repeat its receiver, or guess a null result. */
+static XL6_IrValueId xl6IrLowerNullablePropertyGet(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* node,
+    const XL6_IrCallSite* site)
+{
+    XL6_IrPropertyAccessorSignature signature;
+    XL6_IrLowerPropertyTargetPlan plan;
+    XL6_IrLowerEvaluationOwner receiverOwner;
+    XL6_IrNode invocation = *node;
+    const XL6_IrType* nullable;
+    XL6_IrTypeId receiverType, elementType, boolean;
+    XL6_IrValueId receiver, isNull, result = XL6_IR_VALUE_INVALID;
+    XL6_IrBlockId presentBlock, nullBlock, mergeBlock;
+    XL6_SymbolId resultStorage;
+    size_t first = ctx->evaluationOwnerCount;
+    int ok = 0;
+    memset(&plan, 0, sizeof(plan));
+    if (site == NULL || site->receiverGate != XL6_IR_CALL_RECEIVER_NULLABLE_GETTER ||
+        !xl6IrGetPropertyAccessorSignature(ctx->module, site, &signature) ||
+        signature.parameterCount != 0) goto done;
+    invocation.type = invocation.storageType = signature.resultType;
+    if (xl6IrLowerPreparePropertyTargetPlan(ctx, origin, origin, &invocation, 0, 0, &plan) <= 0)
+        goto done;
+    receiver = xl6IrLowerNode(ctx, site->receiver);
+    receiverType = xl6IrLowerValueType(ctx, receiver);
+    nullable = xl6IrTypeGet(&ctx->module->types, receiverType);
+    if (nullable == NULL || nullable->kind != XL6_IR_TYPE_NULLABLE ||
+        nullable->paramCount != 1 || nullable->params == NULL) goto done;
+    elementType = nullable->params[0];
+    receiver = xl6IrLowerAcquireValueOwner(ctx, origin, receiver);
+    receiver = xl6IrLowerProtectOwnedBorrow(ctx, origin, receiver);
+    boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+    resultStorage = xl6IrLowerNewTempStorage(ctx, node->storageType, origin);
+    if (receiver == XL6_IR_VALUE_INVALID || boolean == XL6_IR_TYPE_INVALID ||
+        resultStorage == 0 || ctx->evaluationOwnerCount != first + 1 ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL_TEST, origin, boolean, 0, &receiver, 1, &isNull) ||
+        !xl6IrLowerNewBlock(ctx, &presentBlock) || !xl6IrLowerNewBlock(ctx, &nullBlock) ||
+        !xl6IrLowerNewBlock(ctx, &mergeBlock) ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin, XL6_IR_TYPE_INVALID, 0, &isNull, 1, NULL)) goto done;
+    receiverOwner = ctx->evaluationOwners[first];
+    ctx->module->instructions[ctx->module->instructionCount - 1].trueTarget = nullBlock;
+    ctx->module->instructions[ctx->module->instructionCount - 1].falseTarget = presentBlock;
+    xl6IrLowerEnterBlock(ctx, presentBlock);
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_UNWRAP, origin, elementType,
+            0, &receiver, 1, &plan.values[0])) goto done;
+    if (elementType != signature.receiverType)
+        plan.values[0] = xl6IrLowerEmitValueCopy(ctx, origin, signature.receiverType, plan.values[0]);
+    if (plan.values[0] == XL6_IR_VALUE_INVALID ||
+        !xl6IrLowerEmitPropertyAccessor(ctx, origin, &invocation, &plan, 0, 1,
+            XL6_IR_VALUE_INVALID, &result)) goto done;
+    if (signature.resultType != node->storageType &&
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_WRAP, origin, node->storageType,
+            0, &result, 1, &result)) goto done;
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, node->storageType, resultStorage, &result, 1, NULL) ||
+        !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) goto done;
+
+    xl6IrLowerEnterBlock(ctx, nullBlock);
+    ctx->evaluationOwners[first] = receiverOwner;
+    ctx->evaluationOwnerCount = first + 1;
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL, origin, node->storageType, 0, NULL, 0, &result) ||
+        !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, &result) ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, node->storageType, resultStorage, &result, 1, NULL) ||
+        !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) goto done;
+    xl6IrLowerEnterBlock(ctx, mergeBlock);
+    result = xl6IrLowerReadJoinStorage(ctx, origin, node->storageType, resultStorage);
+    ok = result != XL6_IR_VALUE_INVALID;
+done:
+    ctx->evaluationOwnerCount = first;
+    xl6IrLowerDisposePropertyTargetPlan(&plan);
+    if (!ok) {
+        xl6IrLowerDiag(ctx, origin, "XLIR nullable getter has no exact receiver gate, accessor or lifted result ABI");
+        return XL6_IR_VALUE_INVALID;
+    }
+    return result;
+}
+
 /* Protocol requirements have a separate witness-slot ABI, not class accessor
  * CallTargets. Route them by their explicit semantic kind before evaluating
  * the RHS; never retry a failed class setter as protocol syntax. */
@@ -29507,6 +29597,9 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         return xl6IrLowerRuntimeXValueIndexI64(ctx, id, node);
     case XL6_IR_NODE_MEMBER:
         {
+            const XL6_IrCallSite* memberSite = xl6IrCallSiteGet(ctx->module, id);
+            if (memberSite != NULL && memberSite->receiverGate == XL6_IR_CALL_RECEIVER_NULLABLE_GETTER)
+                return xl6IrLowerNullablePropertyGet(ctx, id, node, memberSite);
             if (xl6IrNodeIsDynamicMemberRead(ctx->module, id))
                 return xl6IrLowerDynamicCall(ctx, id, node);
             result = xl6IrLowerNumericEnumVariantMember(ctx, id, node);

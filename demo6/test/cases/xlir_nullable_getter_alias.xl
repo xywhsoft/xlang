@@ -1,0 +1,34 @@
+int aliasDestroyed = 0
+AliasingGetter? alias = null
+
+class AliasingPayload
+    int value = 29
+end
+
+class AliasingGetter
+    AliasingPayload stored = AliasingPayload()
+
+    destroy()
+        aliasDestroyed += 1
+    end
+
+    get payload() as AliasingPayload
+        alias = null
+        return self.stored
+    end
+end
+
+alias = AliasingGetter()
+auto result = alias?.payload
+assert alias == null and aliasDestroyed == 1
+if result != null then assert result.value == 29 else assert false end
+assert alias?.payload == null
+
+// Runs at module init so the ordinary allocation-failure host exercises the
+// entire gate, nullable owner, returning getter and lazy null successor.
+for i in range(0, 8)
+    alias = AliasingGetter()
+    auto current = alias?.payload
+    if current != null then assert current.value == 29 else assert false end
+end
+assert aliasDestroyed == 9

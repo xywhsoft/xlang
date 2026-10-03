@@ -75,7 +75,8 @@ static int xl6IrCgenNullInstructionAbi(
     return type != NULL && xl6IrCgenType(module, instruction->type) != NULL &&
         (type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
          (type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-          type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) ||
+          (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+           type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
          (type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
           type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE));
 }
