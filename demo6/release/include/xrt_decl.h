@@ -9213,6 +9213,25 @@ typedef struct xfutureproducerownershipv1 {
 	void (*Drop)(const void* pProducer);
 } xfutureproducerownershipv1;
 
+/* Optional explicit cooperative-cancellation capability of the SAME producer
+ * node. No Watch, hidden reference or additional graph edge is created.
+ * Both descriptors are immutable resident code for the full Future lifetime.
+ * Retain executes under the Future lock/mutation: it must only acquire one
+ * real producer reference, never call back into a Future, invoke semantic
+ * code, allocate, wait for work/callbacks or release a last reference.
+ * Request executes outside
+ * this API's lock/mutation with that real reference; it may wake accepted
+ * work, but must not execute language CFG inline or invent a terminal result.
+ * The ownership policy Drop returns the acquired reference afterwards.
+ * A caller-owned enclosing scope is never suspended. Request must be called
+ * outside such a scope if its producer may synchronize callback retirement.
+ * This capability does not admit the producer or its children for collection. */
+typedef struct xfutureproducercancellationv1 {
+	size_t size;
+	bool (*Retain)(const void* pProducer);
+	void (*Request)(const void* pProducer);
+} xfutureproducercancellationv1;
+
 /* A registered Watch owns exactly ONE Data node reference, returned by Release.
  * Immutable resident callbacks coordinate their own activity and code lifetime;
  * Ops describes that same physical node, not a synthetic watch leaf. The core
@@ -9275,6 +9294,15 @@ XRT_API xpromise* xrtPromiseCreate(xfuture** ppFuture, xcancel* pParentCancel);
  * is never suspended. A trace-only or unknown policy is not collection proof. */
 XRT_API bool xrtPromiseProducerBindTakeV1(xpromise* pPromise, xrtownershipref Producer,
 	const xfutureproducerownershipv1* pPolicy);
+
+/* Same bind-once/private-pair/transfer rules as V1. The cancellation capability
+ * belongs to that exact producer. xrtFutureCancel requests its output token,
+ * then calls Request only for the first accepted explicit request. Terminal
+ * publication may race Request; the independently retained producer decides
+ * whether any activation remains. Merely dropping an observer still does not
+ * cancel work. Raw token requests and PromiseClose are not routed through it. */
+XRT_API bool xrtPromiseProducerBindTakeV2(xpromise* pPromise, xrtownershipref Producer,
+	const xfutureproducerownershipv1* pPolicy, const xfutureproducercancellationv1* pCancellation);
 
 
 

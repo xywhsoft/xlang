@@ -10,6 +10,7 @@ XL6_ContinuationAdmission xl6ContinuationReserveSuccessor(XL6_ContinuationTicket
     XL6_ContinuationProc,XL6_ContinuationProc,void*);
 extern XL6_ContinuationQueue* cancel_wait_queue(void);
 extern void cancel_wait_frame(void*);
+extern void cancel_wait_before_successor(void);
 extern int cancel_watch_dropped(int),cancel_watch_finalized(void);
 XL6_ContinuationAdmission cancel_wait_reserve(XL6_ContinuationExecutor* executor,XL6_ContinuationTicket* ticket,
     XL6_ContinuationProc run,XL6_ContinuationProc release,void* data,const XL6_CodeOwner* owner)
@@ -20,7 +21,10 @@ XL6_ContinuationAdmission cancel_wait_reserve(XL6_ContinuationExecutor* executor
 XL6_ContinuationAdmission cancel_wait_successor(XL6_ContinuationTicket* previous,XL6_ContinuationTicket* ticket,
     XL6_ContinuationProc run,XL6_ContinuationProc release,void* data)
 {
-    cancel_wait_frame(data);return xl6ContinuationReserveSuccessor(previous,ticket,run,release,data);
+    cancel_wait_frame(data);
+    XL6_ContinuationAdmission result=xl6ContinuationReserveSuccessor(previous,ticket,run,release,data);
+    if(result==XL6_CONTINUATION_ADMITTED)cancel_wait_before_successor();
+    return result;
 }
 void cancel_watch_drop(int64_t id)
 {

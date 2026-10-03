@@ -126,7 +126,7 @@ static void release_header(const void* data)
     xl6CodeLeaseRelease(lease); /* may unmap descriptors, only resident code remains */
 }
 static void release_data(const void* data) { release_header(header(data)); }
-static const XL6_ContinuationStorageV2 storage={hold_data,release_data,ownership,NULL,NULL,NULL,NULL};
+static const XL6_ContinuationStorageV2 storage={hold_data,release_data,ownership,NULL,NULL,NULL,NULL,NULL};
 static void retire(void* data);
 static void* allocate_body(size_t bytes,const XL6_ContinuationFrameLayoutV2* layout)
 {
@@ -294,6 +294,8 @@ static void producer_release(const void* data)
     producer_unlock(producer);xrtFree(producer);if(!xrtOwnershipScopeEnd(&mutation))abort();
 }
 static const xfutureproducerownershipv1 producer_policy={sizeof(producer_policy),producer_release};
+static void producer_request_cancel(const void*);
+static const xfutureproducercancellationv1 producer_cancellation={sizeof(producer_cancellation),producer_hold,producer_request_cancel};
 const xfutureproducerownershipv1* xl6ContinuationProducerPolicyV1Get(void) {return &producer_policy;}
 static void frame_ready(ContinuationFrame* frame)
 {
@@ -345,7 +347,8 @@ static void detach_producer(const void* data)
     if(current)release_header(frame); /* caller/queue still owns the active base reference */
     producer_release(producer);
 }
-static const XL6_ContinuationStorageV2 produced_storage={hold_data,release_data,ownership,watch_init,producer_commit,detach_producer,ready_data};
+static void producer_published(const void*);
+static const XL6_ContinuationStorageV2 produced_storage={hold_data,release_data,ownership,watch_init,producer_commit,detach_producer,ready_data,producer_published};
 const XL6_ContinuationStorageV2* xl6ContinuationProducedStorageV2Get(void) {return &produced_storage;}
 static bool bind_produced_body(void* data)
 {
@@ -368,7 +371,7 @@ static bool bind_produced_body(void* data)
         producer->output=*frame_outer(frame);
         if(!hold_header(frame)){xrtFree(producer);xrtSetErrorKind(XERR_STATE);return false;}
         producer->current=frame;
-        if(!xrtPromiseProducerBindTakeV1(*frame_outer(frame),(xrtownershipref){producer,&producer_ops},&producer_policy)){
+        if(!xrtPromiseProducerBindTakeV2(*frame_outer(frame),(xrtownershipref){producer,&producer_ops},&producer_policy,&producer_cancellation)){
             producer->current=NULL;release_header(frame);producer_release(producer);return false;
         }
         if(!producer_hold(producer))abort(); /* frame owner, separate from the transferred output owner */
@@ -433,6 +436,36 @@ static bool cancel_wait_claimed(void* data,const void* token)
     release_header(frame);return accepted;
 }
 static bool cancel_wait(void* data) {return cancel_wait_claimed(data,NULL);}
+/* The Future's explicit cancellation hook supplies a real producer reference.
+ * Mark the logical request before taking a current-frame snapshot: an active
+ * predecessor or provisional successor may refuse interruption, but its next
+ * publication handshake cannot lose this request. No producer/queue gate is
+ * held while synchronizing the source Watch, and no shared source is cancelled. */
+static void producer_request_cancel(const void* data)
+{
+    ContinuationProducer* producer=(ContinuationProducer*)data;
+    ContinuationFrame* frame=NULL;xrtownershipscope mutation={0};
+    producer_begin(producer,&mutation);
+    if(!producer->cancelObserved){
+        producer->cancelRequested=true;
+        if(producer->current&&hold_header(producer->current))frame=producer->current;
+    }
+    producer_end(producer,&mutation);
+    if(frame){(void)cancel_wait(frame->data);release_header(frame);}
+}
+static void producer_published(const void* data)
+{
+    /* Queue PUBLISHING owns the entire frame through this call and forbids
+     * its execution/Retire. The frame's producer reference is therefore real
+     * and stable; this is not a borrowed pointer discovered through Trace. */
+    ContinuationFrame* frame=header(data);ContinuationProducer* producer=frame->producer;
+    xrtownershipscope mutation={0};bool requested;
+    if(!producer)abort();
+    producer_begin(producer,&mutation);
+    requested=producer->cancelRequested&&!producer->cancelObserved;
+    producer_end(producer,&mutation);
+    if(requested)(void)cancel_wait(frame->data);
+}
 const XL6_ContinuationFrameRuntimeV4* xl6ContinuationFrameRuntimeV4Get(void)
 {static const XL6_ContinuationFrameRuntimeV4 api={observe,cancel_wait};return &api;}
 static bool producer_claim(const void* data,const void* token)

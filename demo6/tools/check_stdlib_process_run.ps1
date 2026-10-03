@@ -18,13 +18,15 @@ try {
     $cases=@('stdlib_process_command_only','stdlib_process_command_config','stdlib_process_options_only','stdlib_process_run_bytes','stdlib_process_run_limits','stdlib_process_run_allocations','stdlib_process_shell_exact','xlir_process_exec_bridge','xlir_process_success_bridge','xlir_process_exit_code_bridge')
     $cases+=@('stdlib_process_support','stdlib_process_terminal_only','stdlib_process_open_only')
     $cases+=@('stdlib_process_live_wait','stdlib_process_live_streams','stdlib_process_live_drop')
+    $cases+=@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')
     $negatives=@('xlir_process_bad_array','xlir_process_bad_effect','xlir_process_bad_width','xlir_process_bad_owner')
     $negatives+=@('xlir_process_open_bad_width','xlir_process_open_bad_effect','xlir_process_terminal_bad_pure')
     $negatives+=@('xlir_process_live_bad_owner','xlir_process_live_bad_width','xlir_process_live_bad_effect','xlir_process_live_bad_stream')
+    $negatives+=@('xlir_process_future_bad_element','xlir_process_future_bad_nullable','xlir_process_future_bad_effect','xlir_process_future_bad_owner')
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_live_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
-        'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
+        'test/cases/xlir_process_future_host.c','tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
@@ -65,6 +67,12 @@ try {
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'-or$_-eq'src/api/xl_task_group_bridge.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
+        $futureResident=@('xl6_code_lease','xl6_code_finalizer','xl6_continuation_queue','xl6_continuation_executor','xl6_continuation_future',
+            'xl6_continuation_frame','xl6_future_wait','xl6_closure','xl6_cell','xl6_slot','xl6_frame_storage','xl6_task','xl6_capture',
+            'xl6_value_iterator','xl6_future_callback','xl6_generator','xl6_future_payload')|ForEach-Object {Join-Path $public ($_.ToString()+'.o')}
+        $null=Check 'future-native-build' gcc ($flags+@('test/cases/xlir_process_future_host.c')+$futureResident+$libs+@('-o',"$work/future-native.exe"))
+        $future=Check 'future-native' "$work/future-native.exe" @($child)
+        if($future-notmatch 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced'){throw 'Process Future native/OOM witness missing'}
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
         Copy-Item release/xl.dll "$work/xl.dll"
         foreach($case in $cases) {
@@ -75,7 +83,7 @@ try {
             $null=Check "$case-contract" "$work/contract.exe" @($source,"$prefix.closed.c")
             if((Get-FileHash "$prefix.c").Hash-ne(Get-FileHash "$prefix.closed.c").Hash){throw 'Process run contract C mismatch'}
             if((Get-Content "$prefix.c" -Raw)-match 'xl6_xrt_process_|\bxrtProcess[A-Za-z]+\(|xl6_process_run_text'){throw 'Process run algorithm leaked into Cgen'}
-            $strictHost=if($case-like'stdlib_process_live_*'){'test/cases/xlir_time_text_closure_host.c'}else{'test/cases/xlir_process_oom_host.c'}
+            $strictHost=if($case-like'stdlib_process_live_*'-or$case-like'stdlib_process_future*'){'test/cases/xlir_time_text_closure_host.c'}else{'test/cases/xlir_process_oom_host.c'}
             $null=Check "$case-strict-build" gcc ($flags+@('-include',"$prefix.c",$strictHost)+$nativeObjects+$libs+@('-o',"$prefix.strict.exe"))
             $null=Check "$case-strict-run" "$prefix.strict.exe" @()
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
@@ -108,7 +116,7 @@ try {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         if($changed.Count){$complete=$false}
         [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run and live Process, unique owned streams, independent typed status/nullable timeout, exact UTF-8/bytes. Native live factory OOM and private waiter retirement; generated live programs do not claim full OOM-prefix acceptance. Controlled association launcher, real terminal capability probe (not PTY session). Strict C, closed ABI mutations, source/formal JIT/AOT, run logical OOM. Pipeline/Future/redirection/PTY sessions and the 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
+            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run and live Process, unique owned streams, independent typed status/nullable timeout, exact UTF-8/bytes. Typed Process waitAsync, prompt language cancellation without cancelling the shared native source, parent drop, native mapper/pending/terminal OOM and private waiter retirement. Generated live/Future programs do not claim full language OOM-prefix or unload acceptance. Controlled association launcher, real terminal capability probe (not PTY session). Strict C, closed ABI mutations, source/formal JIT/AOT, run logical OOM. Pipeline/redirection/PTY sessions and the 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
         if($changed.Count){throw 'Frozen process_run inputs changed'}
     }
     Write-Output "Process run Windows checks: $($rows.Count)"

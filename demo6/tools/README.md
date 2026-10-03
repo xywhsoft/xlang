@@ -9,6 +9,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `build_xrt_obj.bat`: builds the default runtime object from `lib\xruntime\xruntime.h`; the product contains its exact XRT dependency closure.
 - `sync_xrt_snapshot.py`: validates XRT/xruntime maturity, synchronizes both product headers, and regenerates deterministic product metadata, the complete TCC symbol table, and the language capability matrix.
 - `gen_xrt_xlang_matrix.py`: validates all low-level runtime symbols, generates the module capability matrix, and maintains the exact xhttp/xws/xregex migration boundary.
+- `check_xrt_snapshot.ps1 -CheckIndex`: additionally checks all four staged header assets against staged metadata using raw Git blob bytes, detecting line-ending normalization mismatches before commit.
 - `generate_stdlib_index.py`: cross-platform standard-library hash-index generator used by the Linux build.
 - `gen_tcc_vfs_resources.py`: cross-platform LZMA VFS resource generator; its output is kept byte-identical with the PowerShell generator.
 - `tcc_vfs_manifest_linux_runtime.txt`: minimal Linux runtime VFS resource list for `libxl.so`.
@@ -223,10 +224,24 @@ The POSIX launch-plan prefix sweep verifies every argument-copy failure and
 cleanup. Live Process now adds real child ownership/unique stream lease,
 parent-drop survival, nullable timeout/independent status, and factory OOM
 rollback with explicit private waiter retirement in the native fixture.
-Generated live programs do not yet claim a full language OOM-prefix sweep.
-Pipeline/Future/file redirection/PTY remain later batches;
+Typed Process.waitAsync also covers prompt language cancellation, shared native
+source isolation, parent-drop survival and native mapper/pending/terminal OOM
+prefixes with explicit waiter retirement. Generated live/Future programs do not
+yet claim a full language OOM-prefix sweep or module-unload acceptance.
+Pipeline/file redirection/PTY remain later batches;
 passing this gate does not complete the seven process modules or all 53 modules.
 The same gates cover process.open input/error transport with a controlled
 association launcher (never claim OS launch acceptance), a real XRT terminal
 capability probe, exact support ABI/effect negatives, and separately pruned
 open-only/terminal-only artifacts. PTY sessions are still a later batch.
+
+## Explicit Future producer cancellation
+
+`check_xlir_future_cancel_core.ps1` requires a frozen full source build and fresh
+Directory; `check_xlir_future_cancel_core.sh` freezes the Linux SDK/source inputs.
+Both check the actual producer node, outside-lock publication handshake, V1
+ownership admission, ambient/OOM, terminal/source/commit/close races and canonical
+generated cancellation with catch/finally. GCC O0/O2 and TCC preserve the prior
+2106 interruption/300 race population and add 150 explicit public requests/50
+provisional-successor cancels. Linux instruments the complete kernel closure;
+that is not a per-program pruning, module-unload or 53-module acceptance claim.

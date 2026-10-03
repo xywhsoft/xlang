@@ -1,0 +1,7 @@
+class WrongProcess
+    private native point handle
+    extern "xl6ProcessSpawnV1" create(ProcessCommand command)
+    extern "xl6ProcessDestroyV1" destroy()
+    extern "xl6ProcessWaitReadyAsyncV1" @nonblocking func ready() as future<int>
+end
+auto invalid = WrongProcess(process.shell("exit 0")).ready()

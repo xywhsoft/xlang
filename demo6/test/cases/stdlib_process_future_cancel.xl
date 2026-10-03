@@ -1,0 +1,23 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.stdio(process.stdin, process.stdioPipe)
+command.stdio(process.stdout, process.stdioNull)
+command.stdio(process.stderr, process.stdioNull)
+auto p = command.start()
+auto writer = p.stdinWriter()
+auto cancelled = p.waitAsync()
+auto remaining = p.waitAsync()
+assert cancelled.isPending() and remaining.isPending()
+assert cancelled.cancel()
+bool caught = false
+try
+    auto ignored = await cancelled
+catch CancelledError
+    caught = true
+end
+assert caught and p.running
+assert remaining.isPending()
+writer.close()
+assert (await remaining).code == 0
+assert (await p.waitAsync()).code == 0

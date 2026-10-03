@@ -1,13 +1,14 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_VALUE
 #define XRT_MODULE_FUTURE
+#define XRT_MODULE_THREAD
+#define XRT_MODULE_ATOMIC
 #include "lib/xrt/xrt.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/api/xl_foreign_error.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>
 
 extern void cancel_wait_prepare(void),cancel_wait_finish(void);
 extern xvalue* cancel_watch_new(int64_t);
@@ -19,6 +20,15 @@ static void* frames[4];static unsigned frameCount,drops[3],sequence[2],dropCount
 static unsigned executions,races,oomArmed,reentries,refusals,retiredPins,sharedNotifications,sharedReleases;
 static int finalRaises,dropRaises;
 static xfuture* activeOutput;
+static bool cancelBeforeSuccessor;
+static unsigned explicitReentries;
+void cancel_wait_before_successor(void)
+{
+    if(cancelBeforeSuccessor){
+        cancelBeforeSuccessor=false;
+        assert(xrtFutureCancel(activeOutput)&&!xrtGetError());
+    }
+}
 static int64_t payload=10;
 XL6_ContinuationQueue* cancel_wait_queue(void) {return queue;}
 void cancel_wait_frame(void* frame)
@@ -148,24 +158,31 @@ static void interrupt(unsigned mode,unsigned ready,unsigned second,int raisingFi
     xrtPromiseDestroy(sourcePromise);xrtPromiseDestroy(cleanupPromise);xrtFutureDestroy(source);xrtFutureDestroy(cleanup);
     assert(!xrtGetError());balance(&before);++executions;
 }
-typedef struct Race {HANDLE start,completed;unsigned order;bool accepted;xpromise* source;void* frame;} Race;
-static DWORD WINAPI cancelling_worker(void* data)
+typedef struct Race {xatomic32 start,completed;unsigned order;bool accepted;xpromise* source;void* frame;} Race;
+static void wait_flag(const xatomic32* flag)
 {
-    Race* race=data;assert(WaitForSingleObject(race->start,5000)==WAIT_OBJECT_0);
-    if(race->order==1)assert(WaitForSingleObject(race->completed,5000)==WAIT_OBJECT_0);
+    uint64 deadline=xrtClock()+UINT64_C(5000000);
+    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(xrtClock()<deadline);xrtThreadYield();}
+}
+static int32 cancelling_worker(void* data)
+{
+    Race* race=data;wait_flag(&race->start);
+    if(race->order==1)wait_flag(&race->completed);
     race->accepted=cancellation->CancelWait(race->frame);assert(!xrtGetError());
-    if(race->order==2)assert(SetEvent(race->completed));
+    if(race->order==2)xrtAtomic32Store(&race->completed,1,XMEMORY_RELEASE);
     return 0;
 }
-static DWORD WINAPI source_worker(void* data)
+static int32 source_worker(void* data)
 {
-    Race* race=data;assert(WaitForSingleObject(race->start,5000)==WAIT_OBJECT_0);
-    if(race->order==2)assert(WaitForSingleObject(race->completed,5000)==WAIT_OBJECT_0);
-    complete(race->source,0);if(race->order==1)assert(SetEvent(race->completed));return 0;
+    Race* race=data;wait_flag(&race->start);
+    if(race->order==2)wait_flag(&race->completed);
+    complete(race->source,0);
+    if(race->order==1)xrtAtomic32Store(&race->completed,1,XMEMORY_RELEASE);
+    return 0;
 }
-static DWORD WINAPI executor_worker(void* data)
+static int32 executor_worker(void* data)
 {
-    Race* race=data;assert(WaitForSingleObject(race->start,5000)==WAIT_OBJECT_0);
+    Race* race=data;wait_flag(&race->start);
     assert(xl6ContinuationWaitRunOne(queue)&&!xrtGetError());return 0;
 }
 static void racing(unsigned mode,unsigned order)
@@ -175,14 +192,14 @@ static void racing(unsigned mode,unsigned order)
     xpromise* cleanupPromise=xrtPromiseCreate(&cleanup,NULL);assert(race.source&&cleanupPromise);
     xvalue *a=cancel_watch_new(1),*b=cancel_watch_new(2);assert(a&&b);
     activeOutput=cancel_wait_launch(a,b,source,cleanup,(int)mode);xrtValueRelease(a);xrtValueRelease(b);
-    race.frame=frames[0];race.start=CreateEventA(NULL,TRUE,FALSE,NULL);race.completed=CreateEventA(NULL,TRUE,FALSE,NULL);
-    assert(race.start&&race.completed);
-    HANDLE workers[3]={CreateThread(NULL,0,cancelling_worker,&race,0,NULL),CreateThread(NULL,0,source_worker,&race,0,NULL),
-        CreateThread(NULL,0,executor_worker,&race,0,NULL)};
-    assert(workers[0]&&workers[1]&&workers[2]&&SetEvent(race.start));
-    assert(WaitForMultipleObjects(3,workers,TRUE,10000)==WAIT_OBJECT_0);
-    for(unsigned i=0;i<3;++i)assert(CloseHandle(workers[i]));
-    assert(CloseHandle(race.start)&&CloseHandle(race.completed));
+    race.frame=frames[0];
+    xthread* workers[3]={xrtThreadCreate(cancelling_worker,&race,0),xrtThreadCreate(source_worker,&race,0),
+        xrtThreadCreate(executor_worker,&race,0)};
+    assert(workers[0]&&workers[1]&&workers[2]);xrtAtomic32Store(&race.start,1,XMEMORY_RELEASE);
+    for(unsigned i=0;i<3;++i){
+        assert(xrtThreadWaitFor(workers[i],UINT64_C(10000000))==XWAIT_OK&&!xrtThreadExitCode(workers[i]));
+        xrtThreadDestroy(workers[i]);
+    }
     if(order==1)assert(!race.accepted);
     if(order==2)assert(race.accepted);
     if(mode>=2){assert(frameCount==2&&!xrtFutureDone(activeOutput));
@@ -191,6 +208,49 @@ static void racing(unsigned mode,unsigned order)
     assert_outcome(activeOutput,mode,0,race.accepted);release_frames();
     xrtFutureDestroy(activeOutput);activeOutput=NULL;xrtPromiseDestroy(race.source);xrtPromiseDestroy(cleanupPromise);
     xrtFutureDestroy(source);xrtFutureDestroy(cleanup);assert(!xrtGetError());balance(&before);++races;
+}
+static void explicit_reenter(void* data)
+{
+    (void)data;assert(!xrtFutureCancel(activeOutput)&&!xrtGetError());++explicitReentries;
+}
+static void explicit_cancel(unsigned mode,bool duringSuccessor)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);reset(0,0);
+    xfuture *source=NULL,*cleanup=NULL;xpromise* first=xrtPromiseCreate(&source,NULL);
+    xpromise* last=xrtPromiseCreate(&cleanup,NULL);assert(first&&last);
+    xvalue *a=cancel_watch_new(1),*b=cancel_watch_new(2);assert(a&&b);
+    activeOutput=cancel_wait_launch(a,b,source,cleanup,(int)mode);assert(activeOutput&&frameCount==1);
+    xrtValueRelease(a);xrtValueRelease(b);
+    xcancel* token=xrtFutureCancelToken(activeOutput);assert(token);
+    xcancelwatch* watch=xrtCancelWatch(token,explicit_reenter,NULL);assert(watch);
+    if(duringSuccessor){
+        complete(first,0);cancelBeforeSuccessor=true;
+        assert(xl6ContinuationRunOne(queue)&&!cancelBeforeSuccessor&&frameCount==2);
+        assert(after==1&&!caught&&!finals&&!xrtFutureDone(cleanup));
+        /* The explicit request arrived while predecessor RUNNING and before
+         * successor Bind/Watch/Commit. Publication must deliver it, not wait
+         * for an unrelated source that is still pending. */
+        assert(xl6ContinuationRunOne(queue));xfutureresult result={0};
+        assert(xrtFutureResult(activeOutput,&result)&&result.State==XFUTURE_CANCELLED);
+        assert(after==1&&!caught&&!finals&&dropCount==2);
+    }else{
+        assert(xrtMemDebugFailAfter(0));
+        assert(xrtFutureCancel(activeOutput)&&!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
+        assert(!caught&&!after&&!finals&&!xrtFutureDone(activeOutput)&&!xrtFutureDone(source));
+        assert(xl6ContinuationRunOne(queue));
+        if(mode>=2){
+            assert(frameCount==2&&!xrtFutureDone(activeOutput)&&!xl6ContinuationRunOne(queue));
+            assert(!xrtFutureCancel(activeOutput)&&!xl6ContinuationRunOne(queue));
+            complete(last,0);assert(xl6ContinuationRunOne(queue));
+        }
+        assert_outcome(activeOutput,mode,0,true);
+    }
+    xcancel* sourceToken=xrtFutureCancelToken(duringSuccessor?cleanup:source);
+    assert(sourceToken&&!xrtCancelRequested(sourceToken));xrtCancelDestroy(sourceToken);
+    xrtCancelUnwatch(watch);xrtCancelDestroy(token);release_frames();
+    xrtFutureDestroy(activeOutput);activeOutput=NULL;
+    xrtPromiseDestroy(first);xrtPromiseDestroy(last);xrtFutureDestroy(source);xrtFutureDestroy(cleanup);
+    assert(!xrtGetError());balance(&before);
 }
 int main(void)
 {
@@ -204,9 +264,14 @@ int main(void)
         interrupt(mode,ready,second,final,drop,ambient);
     }
     for(unsigned round=0;round<20;++round)for(unsigned mode=0;mode<5;++mode)for(unsigned order=0;order<3;++order)racing(mode,order);
-    cancel_wait_finish();assert(executions==2106&&races==300&&oomArmed==executions&&reentries==executions);
+    assert(executions==2106&&races==300&&oomArmed==executions&&reentries==executions);
     assert(sharedNotifications==executions&&sharedReleases==executions&&refusals>10000&&retiredPins>4500);
-    assert(!xrtGetError());balance(&before);
     printf("Async cancel wait: %u generated interruptions, %u three-thread source/cancel/executor races, %u allocation-free armed-OOM admissions, %u native observer reentries; shared source untouched, once-only cancellation, exact finally/outcome/barrier and real retired-frame pins, balanced memory\n",executions,races,oomArmed,reentries);
+    for(unsigned round=0;round<50;++round){
+        for(unsigned mode=0;mode<3;++mode)explicit_cancel(mode,false);
+        explicit_cancel(2,true);
+    }
+    assert(explicitReentries==200);cancel_wait_finish();assert(!xrtGetError());balance(&before);
+    puts("Explicit Future cancellation: 150 public requests, 50 active-predecessor/provisional-successor handshakes, 200 native reentries; no inline CFG, shared source untouched, await-in-finally preserved, balanced memory");
     return 0;
 }
