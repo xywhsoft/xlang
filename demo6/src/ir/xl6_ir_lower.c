@@ -12365,25 +12365,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         return 1;
     }
     if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ) return 1;
-    if ( strcmp(target->cName, "xl6_xrt_print") == 0 ) {
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        first = target->parameterCount == 2
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 2
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[1]) : NULL;
-        if ( result == NULL || result->cAbi != XL6_IR_C_ABI_BOOL ||
-             target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-             target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-             first == NULL || second == NULL ||
-             first->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-             second->cAbi != XL6_IR_C_ABI_BOOL || target->parameterAbis == NULL ||
-             target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterAbis[1] != XL6_IR_PARAMETER_ABI_VALUE )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR print runtime bridge has no exact private helper ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_PRINT;
-        return 1;
-    }
     if ( strcmp(target->cName, "xl6_xrt_string_contains") == 0 ) {
         result = xl6IrTypeGet(&ctx->module->types, target->returnType);
         first = target->parameterCount == 3
@@ -13669,6 +13650,31 @@ static XL6_IrTypeId xl6IrLowerCaptureCellTypeForSource(
     return cellType;
 }
 
+/* Resolve a lexical value through the shared typed declaration binding API.
+ * Product fields are NAME children of the declaration's binding LIST, not
+ * standalone VALUE_DECL nodes. Parent links keep this independent of names
+ * and initializer trees, for both module globals and local captures. */
+static XL6_IrNodeId xl6IrLowerClosureValueBinding(const XL6_IrModule* module,
+    XL6_IrNodeId sourceId, const XL6_IrNode* source, XL6_IrDeclarationBinding* binding)
+{
+    XL6_IrNodeId declarationId = sourceId;
+    const XL6_IrNode* declaration;
+    size_t field;
+    if (source == NULL) return XL6_IR_NODE_INVALID;
+    if (source->kind == XL6_IR_NODE_NAME) {
+        const XL6_IrNode* names = xl6IrNodeGet(module, source->parent);
+        if (names == NULL || names->kind != XL6_IR_NODE_LIST) return XL6_IR_NODE_INVALID;
+        declarationId = names->parent;
+    }
+    declaration = xl6IrNodeGet(module, declarationId);
+    if (declaration == NULL || declaration->kind != XL6_IR_NODE_VALUE_DECL) return XL6_IR_NODE_INVALID;
+    for (field = 0; field < xl6IrDeclarationBindingCount(module, declarationId); ++field)
+        if (xl6IrDeclarationBindingAt(module, declarationId, field, binding) &&
+            binding->origin == sourceId && binding->symbol != 0 &&
+            binding->symbol == source->symbol) return declarationId;
+    return XL6_IR_NODE_INVALID;
+}
+
 static int xl6IrLowerCollectClosureCaptures(
     XL6_IrLowerContext* ctx, XL6_IrClosureTarget* closure, XL6_IrNodeId body, XL6_IrNodeId id)
 {
@@ -13679,10 +13685,11 @@ static int xl6IrLowerCollectClosureCaptures(
         const XL6_IrNode* source = xl6IrSymbolNodeGet(ctx->module, node->targetSymbol);
         XL6_IrNodeId sourceId = source != NULL ? (XL6_IrNodeId)(source - ctx->module->nodes + 1) : XL6_IR_NODE_INVALID;
         const XL6_IrEnumPayload* patternPayload = xl6IrPatternBindingPayload(ctx->module, sourceId);
-        const XL6_IrNode* root = xl6IrNodeGet(ctx->module, ctx->module->root);
-        int moduleGlobal = 0;
-        if ( root != NULL ) for ( i = 0; i < root->childCount; ++i )
-            if ( ctx->module->children[root->firstChild + i] == sourceId ) { moduleGlobal = 1; break; }
+        XL6_IrDeclarationBinding binding = {0};
+        XL6_IrNodeId bindingDeclaration = xl6IrLowerClosureValueBinding(ctx->module, sourceId, source, &binding);
+        const XL6_IrNode* declaration = xl6IrNodeGet(ctx->module, bindingDeclaration);
+        int moduleGlobal = (source != NULL && source->parent == ctx->module->root) ||
+            (declaration != NULL && declaration->parent == ctx->module->root);
         if ( source == NULL ) return xl6IrLowerDiag(ctx, id, "XLIR closure capture has no source binding ABI");
         /* A resolved namespace/type qualifier has no runtime value to place
          * in an environment.  Its member/call target is already explicit
@@ -13711,12 +13718,13 @@ static int xl6IrLowerCollectClosureCaptures(
          * state. */
         if ( moduleGlobal ) return 1;
         if ( source->kind == XL6_IR_NODE_PARAM_DECL ||
-             source->kind == XL6_IR_NODE_VALUE_DECL ||
+             bindingDeclaration != XL6_IR_NODE_INVALID ||
              patternPayload != NULL ||
              xl6IrLowerClosureSourceIsForTarget(
                  ctx->module, sourceId, source) )
             return xl6IrLowerClosureCaptureAdd(
-                ctx, closure, id, node->targetSymbol, patternPayload != NULL ? patternPayload->type : source->storageType,
+                ctx, closure, id, node->targetSymbol, patternPayload != NULL ? patternPayload->type :
+                    bindingDeclaration != XL6_IR_NODE_INVALID ? binding.type : source->storageType,
                 xl6IrLowerSubtreeWritesSymbol(ctx->module, body, node->targetSymbol));
         return xl6IrLowerDiag(ctx, id, "XLIR closure capture source has no lexical value-storage ABI");
     }
@@ -29070,11 +29078,20 @@ static int xl6IrLowerProductBindings(
             XL6_IrStorageKind kind =
                 ctx->module->functions[ctx->functionIndex].kind == XL6_IR_FUNCTION_MODULE_INIT &&
                 ctx->moduleTopLevel ? XL6_IR_STORAGE_GLOBAL : XL6_IR_STORAGE_LOCAL;
+            XL6_IrTypeId cellType;
             if (target == NULL || target->kind != XL6_IR_NODE_NAME || target->symbol == 0 ||
                 !xl6IrLowerRegisterStorage(ctx, kind, target->symbol, product->params[field],
-                    targetId, ctx->module->functions[ctx->functionIndex].declaration) ||
-                (managed && !xl6IrLowerCommitEvaluationOwnerRange(ctx, origin, first, first + 1)) ||
-                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, targetId, product->params[field],
+                    targetId, ctx->module->functions[ctx->functionIndex].declaration)) goto done;
+            cellType = xl6IrLowerCaptureCellTypeForSource(ctx->module, target->symbol);
+            if (cellType != XL6_IR_TYPE_INVALID &&
+                !xl6IrLowerSetStorageCell(ctx, target->symbol, cellType, targetId)) goto done;
+            /* Transfer this field out of the pending product owners before
+             * shared cell construction protects it across allocation. Other
+             * fields stay protected; no second owner aliases the same value. */
+            if (managed && !xl6IrLowerCommitEvaluationOwnerRange(ctx, origin, first, first + 1)) goto done;
+            if (cellType != XL6_IR_TYPE_INVALID
+                ? !xl6IrLowerConstructCell(ctx, targetId, targetId, target->symbol, elements[field])
+                : !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, targetId, product->params[field],
                     target->symbol, &elements[field], 1, NULL)) goto done;
         } else {
             XL6_IrLowerStorageTargetPlan plan;

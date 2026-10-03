@@ -40,3 +40,11 @@ Command、Options、Result、Status 的真实参数/结果、所有权、错误�
 - `../tools/check_cgenrule_docs.ps1`：本目录的退役文档与现役源码边界守门。
 
 旧 AST Cgen 的编号规则表、验证矩阵和函数索引已随实现一起删除；需要追溯迁移前行为时使用 Git 历史。新的语言功能不得在本目录建立绕开 XLIR 的平行规则体系。
+
+模块多返回值声明与普通声明使用同一作用域分类；闭包分析通过 XLIR
+declaration-binding 身份读取字段，不按名称或初始化源码恢复类型。
+全局字段保持全局存储；可写局部字段在统一 lowering 中构造共享 cell，
+产品其他字段在构造失败期间继续受保护。`print/println` 的私有桥在
+封闭 direct 描述表登记 borrowed 动态输入和 may-raise、非 pure、
+may-block 合同；Cgen 使用通用 checked 外部调用，不为它另加错误补丁。
+`check_xlir_module_product_globals.ps1`/`.sh` 验证这些边界与实际产物。

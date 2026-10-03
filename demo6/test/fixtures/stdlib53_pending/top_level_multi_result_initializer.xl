@@ -1,9 +1,0 @@
-// A top-level multi-result declaration is currently a sequential runtime local,
-// but later single-result declarations are checked early as module globals.
-// The initialized projection must be legal; retain this unresolved core probe.
-func pair() as (bool, uint8)
-    return true, uint8(97)
-end
-auto found, item = pair()
-uint8 copied = item
-assert found and copied == 97

@@ -325,3 +325,14 @@ generated/resident/native closure ASan/UBSan/leak checks on Linux. The legacy
 Buffer fixture's authentic C helper explicitly selects the existing full-XRT
 input policy; pure-language fixtures verify the actual pruned native plan.
 The shared CLI/JIT is not instrumented; legacy core/codecs remain separate work.
+
+`check_xlir_module_product_globals.ps1` and `.sh` freeze current products/source
+and run nine positive/five negative module-product/global/capture/print fixtures.
+They verify canonical binding/storage/cell identities, original memory-error
+propagation, strict C/JIT/AOT and actual selected native/resident artifacts.
+Four new fixtures scan every logical allocation prefix through the first no-hit,
+with balanced live/count/byte totals and idempotent module cleanup. The debug
+probe is a separate C translation unit using actual SDK types, not duplicate
+ABI layouts. Linux separately sanitizes real pruned generated/resident/native
+closures; its full shared debug XRT OOM harness and CLI/JIT are not instrumented.
+This does not certify every product/capture combination or all 53 modules.

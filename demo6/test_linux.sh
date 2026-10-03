@@ -235,4 +235,7 @@ bash "$ROOT/tools/check_xlir_safe_index.sh" \
 bash "$ROOT/tools/check_xlir_future_cancel_core.sh" \
     "$TEST_DIR/future-cancel-$(date +%Y%m%d-%H%M%S)-$$"
 
+bash "$ROOT/tools/check_xlir_module_product_globals.sh" \
+    "$TEST_DIR/module-product-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'DEMO6 Linux compatibility tests passed.\n'

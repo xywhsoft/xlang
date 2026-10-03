@@ -1,0 +1,28 @@
+func pair() as (string, bytes)
+    return "initial\0text", b"initial\0bytes"
+end
+auto text, data = pair()
+auto writer = func() as int
+    text = "global\0write"
+    data = b"global\0write"
+    return 42
+end
+auto reader = func() as bool
+    return text == "global\0write" and data == b"global\0write"
+end
+assert writer() == 42 and reader()
+assert text == "global\0write" and data == b"global\0write"
+
+func localClosure() as func() as string
+    auto localText, localData = pair()
+    return func() as string
+        localText = localText + "!"
+        assert localData == b"initial\0bytes"
+        return localText
+    end
+end
+auto local = localClosure()
+assert local() == "initial\0text!"
+assert local() == "initial\0text!!"
+assert text == "global\0write"
+println("module product closure globals ok")

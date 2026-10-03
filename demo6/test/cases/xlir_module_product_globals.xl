@@ -1,0 +1,35 @@
+func scalarPair() as (bool, uint8)
+    return true, uint8(97)
+end
+auto found, item = scalarPair()
+uint8 copied = item
+assert found and copied == 97
+
+func textPair(string seed) as (string, bytes)
+    return seed + "\0你", b"a\0\xff"
+end
+auto text, data = textPair("first")
+string savedText = text
+bytes savedData = data
+
+func updateGlobals()
+    item = uint8(98)
+    text = "replaced\0text"
+    data = b"new\0bytes"
+end
+func readGlobals() as bool
+    return found and item == 98 and text == "replaced\0text" and data == b"new\0bytes"
+end
+updateGlobals()
+assert readGlobals()
+assert copied == 97 and savedText == "first\0你" and savedData == b"a\0\xff"
+
+func genericPair<T>(T value) as (bool, T)
+    return true, value
+end
+auto genericFound, genericText = genericPair::<string>("generic\0value")
+string genericCopy = genericText
+auto _, kept = textPair("discarded")
+bytes keptCopy = kept
+assert genericFound and genericCopy == "generic\0value" and keptCopy == b"a\0\xff"
+println("module product globals ok")

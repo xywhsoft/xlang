@@ -26827,7 +26827,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
     if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LOG)
         return xl6IrRuntimeLogBridgeTargetMatches(module, target);
-    if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE)
+    if (xl6IrRuntimeDirectBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE)
         return xl6IrRuntimeDirectBridgeTargetMatches(module, target);
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG )
         return xl6IrRuntimeXlangBridgeTargetMatches(module, target);
@@ -27063,19 +27063,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                    module, target, 2, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
                    XL6_IR_PARAMETER_ABI_BORROW,
                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_PRINT ) {
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        first = target->parameterCount == 2
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 2
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[1]) : NULL;
-        return strcmp(target->cName, "xl6_xrt_print") == 0 &&
-               result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL && first != NULL && second != NULL &&
-               first->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               second->cAbi == XL6_IR_C_ABI_BOOL &&
-               target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_BORROW &&
-               target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_VALUE;
     }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS ) {
         result = xl6IrTypeGet(&module->types, target->returnType);

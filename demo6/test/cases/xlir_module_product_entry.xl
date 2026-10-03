@@ -1,0 +1,10 @@
+func pair() as (string, bytes)
+    return "entry\0你", b"entry\0bytes"
+end
+auto text, data = pair()
+string copied = text
+func main(...) as int
+    assert text == "entry\0你" and copied == text and data == b"entry\0bytes"
+    println("module product entry ok")
+    return 0
+end
