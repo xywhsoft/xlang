@@ -134,7 +134,7 @@
 
 ## 维护规则
 
-- `Process配置与运行设计.md`：B21 的精确 OS 输入、owned Command、取消/期限选项、bytes 结果和声明式执行边界；后续 live/pipeline/Future/PTY 不计本批完成。
+- `Process配置与运行设计.md`：精确 OS 输入、owned Command/Options、bytes 结果与声明式执行边界；B28b 增补 typed pipeline、独立 stage/status、配置快照与共享期限。live/Future 另有专项；文件重定向、PTY 和总验收不冒称完成。
 
 - 新设计先落到本目录，再进入实现。
 - 修改 C emitter 行为时，同步维护 `cgenrule/README.md`、XLIR 设计/验收文档和对应可执行质量门；不得恢复按源码语法维护的第二套规则表。

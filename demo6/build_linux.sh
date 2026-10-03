@@ -199,6 +199,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_process_live.c"
 	"$ROOT/src/runtime/xl6_process_stream.c"
 	"$ROOT/src/runtime/xl6_process_future.c"
+	"$ROOT/src/runtime/xl6_process_pipeline_config.c"
+	"$ROOT/src/runtime/xl6_process_pipeline.c"
 	"$ROOT/src/runtime/xl6_pattern_options.c"
 	"$ROOT/src/runtime/xl6_pattern_match.c"
 	"$ROOT/src/runtime/xl6_network_service.c"

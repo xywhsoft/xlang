@@ -1,15 +1,68 @@
 # Process 配置与同步运行
 
 本页记录三组长期任务 B21 配置/同步运行、B23 live Process 和 B27
-生成程序分配失败验收的公开合同。typed Future 见 B26 专页；pipeline、
-文件重定向和 PTY 会话仍待后续开发，不是七个 process 模块完整验收。
+生成程序分配失败验收的公开合同，B28b 增补真正的 typed pipeline。
+typed Future 见 B26 专页；文件重定向和 PTY 会话仍待后续开发，
+不是七个 process 模块或 53 模块的完整总验收。
 旧裸 point live 门面已由 typed Process 与 owned Reader/Writer 替换，
 不再用裸 point 转换绕过所有权合同。
 
 B28a 先修复下一批 pipeline 的原生底座：初始化失败不关闭无关句柄，
 首个错误穿过 cleanup 保留，同步 collector 归还各 Process 前退役私有
 waiter。正常执行/末段启动失败的调用线程完整分配失败前缀和双端存量
-回归通过；这不是公开 typed pipeline 接入完成证明，详见三组任务 B28a。
+回归通过；原生底座与语言接入的不同证据分别见三组任务 B28a/B28b。
+
+## Pipeline：配置、结果与执行合同
+
+`ProcessPipeline()` 创建空构建器；`add(ProcessCommand)` 保存全部已验证
+OS 文本/argv/env/stdio 标量的独立快照，成功后才发布新阶段。原 command
+修改或释放不会影响快照。`clear()` 释放阶段内容并保留容器容量；`count`
+是配置数。配置/计数/run 必须在创建线程调用；不是跨线程共享的可变容器。
+add 不接受 terminal 或借用 HANDLE，文件/PTY 有独立 capability 合同。
+
+`run(bytes input=b"", int timeoutMs=-1, int size=-1)` 与
+`run(ProcessRunOptions options, bytes input=b"", int size=-1)` 返回
+`PipelineResult`。`process.pipeline(array<ProcessCommand>, …)` 有相同两个
+重载，使用普通语言循环向构建器 add，再 run；不将 array<class> 当 xvalue
+动态数组强行解包，也不在 Cgen 增加 pipeline 算法。空配置报 ArgumentError。
+
+所有阶段并发启动，前段 stdout 通过真实 OS 管道接后段 stdin；不是依次
+捕获、复制并重放。提供的 bytes 写入首段，结果 stdout 是末段输出，各段
+stderr 独立排空。stderr 的 merge 配置被保留：中间段 merge 内容流入后段，
+末段 merge 内容进入结果 stdout；该段独立 stderr 为空，不虚构副本。
+其他 stdout/stdin 配置由连接器/捕获规则覆盖，与原生 pipeline 合同一致。
+
+timeout 在 run 时转为同一个绝对单调期限，不逐段重置；使用同一 cancel
+source、stopGrace、overflow 策略和输出限额。stderrLimit 对每段单独适用。
+启动/停止和资源退役可能越过期限，不承诺硬实时返回。error 溢出是异常；
+keep-first/keep-last 仍排空全部流并标记截断，避免管道背压死锁。
+基础设施/启动/捕获失败保持原生错误，不制造退出码或部分成功结果；
+非零退出、期限与取消是实际结果。一个阶段非零退出不阻止其余已启动阶段。
+
+PipelineResult 的只读字段为 success、waitResult、timedOut、cancelled、
+count（原生返回的状态数）、completedCount（已观察到非 NONE 终态数）、
+failedIndex（首个非 code=0 阶段；没有则 -1）、exitCode（末段 code）、
+inputWritten、duration（微秒）、durationMs（截断毫秒）、stdoutTruncated。
+预取消可能没有启动阶段，count=0、failedIndex=-1，但 success=false；
+此时 exitCode 报 StateError，不伪造 0。count 与配置数不是始终相等。
+
+`readStdout(size=-1)`/`stdout` 返回独立 bytes，`stdoutText(size=-1)` 严格
+验证 UTF-8，完整保留 NUL。size 低于 -1 拒绝、超过实际长度夹紧；bytes
+允许在任意字节边界截断，text 不允许截断 UTF-8 scalar。
+
+`stage(index)` 返回独立 owned `ProcessStageResult`，负索引/越界拒绝。
+stage 有 success、exitCode、stderrTruncated、readStderr(size=-1)、stderr、
+stderrText(size=-1)、status。status 是同一 ProcessExitStatus 的独立快照。
+释放/替换整个 PipelineResult 后，stage/status/bytes/string 仍可使用；
+投影 OOM 不修改原始结果，允许随后重试。不提供丢失归属的聚合 stderr，
+也不伪造中间阶段 stdout、按阶段 duration 或 inputWritten。
+
+28 个 resident 入口的宽度、bytes/string carrier、参数/结果 owner 和效果
+由 XLIR 闭合；除保持 ambient error 的析构外保守 checked，不虚报 pure/
+no-raise/nonblocking。两个按需组件区分配置与执行：配置-only 不选择执行
+组件/native PROCESS_PIPELINE；执行不带 resident live/Future/stream/open/
+terminal/run。原生的 PROCESS_PIPELINE → PROCESS_RUN 依赖仍保留，不把
+“不选 resident run”冒称“不需要 XRT run 底座”。没有新增 Cgen 算法。
 
 ## 构造与输入
 
@@ -122,7 +175,8 @@ Windows 文本准备、内部 waiter 创建、并发 I/O 与失败回收均保�
 只替换 association launcher，验证精确前缀、截断、七类输入拒绝、原生
 错误传递及分配失败账本。这不是 Windows ShellExecute / Linux
 xdg-open / macOS open 的系统集成成功验收；不要将受控 launcher 算为
-真实关联应用验证。PTY 会话、resize 与 live Process 仍属后续批次。
+真实关联应用验证。live Process 已由下方 B23 接通；PTY 会话与 resize
+仍属后续批次。
 
 ## Live Process 与标准流（B23）
 
@@ -188,8 +242,9 @@ end
 输出流或使用 run。本批新增 14 个固定 ABI resident 桥接、两个独立
 组件；Cgen 只共用 IO 投影布局，没有增加 Process 算法或语义补丁。
 typed Future 的新增 B26 合同见《进程标准库异步等待.md》；其完整语言
-OOM/模块卸载与跨组验收仍待完成。pipeline、文件重定向与真实 PTY/resize
-会话仍待后续开发和验收，不将 B23/B26 专项写成 process 整组完成。
+OOM/模块卸载与跨组验收仍待完成。pipeline 已由上方 B28b 接通；文件
+重定向与真实 PTY/resize 会话仍待后续开发和验收，不将这些专项写成
+process 整组完成。
 
 ## 生成程序分配失败验收（B27）
 

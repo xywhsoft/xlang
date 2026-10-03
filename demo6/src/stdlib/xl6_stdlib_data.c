@@ -2498,34 +2498,6 @@ const char* xl6StdlibJsonClassSource =
     "end\n";
 
 #include "src/stdlib/xl6_stdlib_process.inc"
-/* Pipeline declarations remain pending their typed resident migration. */
-const char* xl6StdlibLegacyProcessClassSource =
-    "class PipelineResult\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_process_pipeline_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_process_pipeline_success\" get success() as bool\n"
-    "    extern \"xl6_xrt_process_pipeline_exit_code\" get exitCode() as int\n"
-    "    extern \"xl6_xrt_process_pipeline_failed_index\" get failedIndex() as int\n"
-    "    extern \"xl6_xrt_process_pipeline_count\" get count() as int\n"
-    "    extern \"xl6_xrt_process_pipeline_completed_count\" get completedCount() as int\n"
-    "    extern \"xl6_xrt_process_pipeline_timed_out\" get timedOut() as bool\n"
-    "    extern \"xl6_xrt_process_pipeline_duration_ms\" get durationMs() as int\n"
-    "    extern \"xl6_xrt_process_pipeline_stdout_copy\" func stdoutNative() as point\n"
-    "    extern \"xl6_xrt_process_pipeline_stderr_copy\" func stderrNative() as point\n"
-    "    extern \"xl6_xrt_process_pipeline_result_at\" func resultNative(int index) as point\n"
-    "\n"
-    "    get stdout() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.stdoutNative())\n"
-    "    end\n"
-    "\n"
-    "    get stderr() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.stderrNative())\n"
-    "    end\n"
-    "\n"
-    "    func result(int index) as ProcessResult\n"
-    "        return ProcessResult(self.resultNative(index))\n"
-    "    end\n"
-    "end\n";
 
 const char* xl6StdlibTccClassSource =
     "class TccContext\n"
@@ -2857,11 +2829,6 @@ static const XL6_StdlibParam xl6StdRuntimeCryptoRsaVerifyParams[] = {
     {"c_size", "modulusHexSize"},
     {"string", "exponentHex"},
     {"c_size", "exponentHexSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeProcessPipelineParams[] = {
-    {"var", "commands"},
-    {"c_int", "timeoutMs"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
@@ -4024,8 +3991,16 @@ static const char xl6StdProcessShellBody[] =
     "    return ProcessCommand(command, size)\nend\n";
 
 static const char xl6StdProcessPipelineBody[] =
-    "func __xl_std_process_pipeline(array commands, int timeoutMs = 0) as PipelineResult\n"
-    "    return PipelineResult(__xl_std_runtime_process_pipeline(commands, c_int(timeoutMs)))\n"
+    "func __xl_std_process_pipeline(array<ProcessCommand> commands, bytes input = b\"\", int timeoutMs = -1, int size = -1) as PipelineResult\n"
+    "    auto pipeline = ProcessPipeline()\n"
+    "    for command in commands\n        pipeline.add(command)\n    end\n"
+    "    return pipeline.run(input, timeoutMs, size)\n"
+    "end\n";
+static const char xl6StdProcessPipelineOptionsBody[] =
+    "func __xl_std_process_pipeline(array<ProcessCommand> commands, ProcessRunOptions options, bytes input = b\"\", int size = -1) as PipelineResult\n"
+    "    auto pipeline = ProcessPipeline()\n"
+    "    for command in commands\n        pipeline.add(command)\n    end\n"
+    "    return pipeline.run(options, input, size)\n"
     "end\n";
 
 static const char xl6StdProcessStartBody[] =
@@ -6184,7 +6159,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "ecdsaVerify", "__xl_std_runtime_ecdsa_verify", "xl6_xrt_ecdsa_verify", xl6StdRuntimeCryptoVerifyParams, 6, "c_bool", NULL},
     {"__xl_runtime", "rsaPssVerify", "__xl_std_runtime_rsa_pss_verify", "xl6_xrt_rsa_pss_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "rsaPkcs1Verify", "__xl_std_runtime_rsa_pkcs1_verify", "xl6_xrt_rsa_pkcs1_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
-    {"__xl_runtime", "processPipeline", "__xl_std_runtime_process_pipeline", "xl6_xrt_process_pipeline_run", xl6StdRuntimeProcessPipelineParams, 2, "point", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
     {"__xl_runtime", "logReleaseDefault", "__xl_std_runtime_log_release_default", "xl6LogReleaseDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
     {"__xl_runtime", "logTextValidate", "__xl_std_runtime_log_text_validate", "xl6LogTextValidateV1", xl6StdLogTextValidateParams, 3, "bool", NULL},
@@ -7059,6 +7033,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"process", "cmd", "__xl_std_process_cmd", NULL, NULL, 0, "ProcessCommand", xl6StdProcessCmdBody},
     {"process", "shell", "__xl_std_process_shell", NULL, NULL, 0, "ProcessCommand", xl6StdProcessShellBody},
     {"process", "pipeline", "__xl_std_process_pipeline", NULL, NULL, 0, "PipelineResult", xl6StdProcessPipelineBody},
+    {"process", "pipeline", "__xl_std_process_pipeline", NULL, NULL, 0, "PipelineResult", xl6StdProcessPipelineOptionsBody},
     {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartBody},
     {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartCommandBody},
     {"process", "startFile", "__xl_std_process_start_file", NULL, NULL, 0, "Process", xl6StdProcessStartFileBody},

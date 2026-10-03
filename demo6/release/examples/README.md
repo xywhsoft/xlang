@@ -109,7 +109,8 @@
 - `stdlib_template_c.c`：与 `stdlib_template.xl` 对照的 C/XRT template 范例，展示预编译模板、控制流、定界符配置和文件模板渲染。
 - `stdlib_process_run.xl`：当前 B21 配置/同步捕获示例，精确 bytes、显式文本与独立状态；可在 Windows/Linux 运行。
 - `stdlib_process_support.xl`：终端能力查询与系统关联入口输入拒绝；不启动宿主 GUI，不能代替关联应用系统集成验收。
-- `stdlib_process.xl`：包含后续 live/pipeline 的历史组合示例，须随后续批次迁移，不代表当前 B21 完整验收。
+- `stdlib_process_pipeline.xl`：B28b owned builder、真实管线、独立 stage/status 与 clear；Windows/Linux 实际 JIT/AOT 验证。
+- `stdlib_process.xl`：已迁移的 run/pipeline/live 组合，bytes 与显式文本、owned 标准流和 nullable wait；需要宿主 shell/sort，Windows/Linux 实际 JIT/AOT 验证。
 - `stdlib_process_c.c`：与 `stdlib_process.xl` 对照的 C/XRT process 库范例，展示结构化执行、pipeline 和长生命周期进程。
 - `stdlib_signal.xl`：`signal` 标准库范例，展示信号常量、普通回调、一次性回调、channel 路由、任务组取消桥接和默认行为恢复。
 - `stdlib_tcc_xlang_embed.xl`：TCC C 脚本、动态 VFS、编译输出和内嵌 xlang 运行范例。

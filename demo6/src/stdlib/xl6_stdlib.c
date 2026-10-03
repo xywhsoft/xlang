@@ -1141,6 +1141,8 @@ static int xl6StdlibNeedsProcessClass(const XL6_AstNode* root, const int* used)
         xl6StdlibNodeUsesTypeName(root,"ProcessResult") ||
         xl6StdlibNodeUsesTypeName(root,"ProcessExitStatus") ||
         xl6StdlibNodeUsesTypeName(root,"Process") ||
+        xl6StdlibNodeUsesTypeName(root,"ProcessPipeline") ||
+        xl6StdlibNodeUsesTypeName(root,"ProcessStageResult") ||
         xl6StdlibNodeUsesTypeName(root,"PipelineResult")) return 1;
     if (xl6StdlibFuncUsed(used,"process","exec") ||
         xl6StdlibFuncUsed(used,"process","success") ||
@@ -1612,7 +1614,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsAsyncFileClass;
     int needsJsonClass;
     int needsProcessClass;
-    int needsLegacyProcessClass;
+    int needsPipelineClass;
     int needsLiveProcessClass;
     int needsProcessStreams;
     int needsTaskGroupClass;
@@ -1779,12 +1781,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
-    needsLegacyProcessClass = xl6StdlibFuncUsed(used,"process","pipeline") ||
-        xl6StdlibNodeUsesTypeName(root,"PipelineResult");
+    needsPipelineClass = xl6StdlibFuncUsed(used,"process","pipeline") ||
+        xl6StdlibNodeUsesTypeName(root,"PipelineResult") ||
+        xl6StdlibNodeUsesTypeName(root,"ProcessPipeline") || xl6StdlibNodeUsesTypeName(root,"ProcessStageResult");
     needsLiveProcessClass = xl6StdlibFuncUsed(used,"process","start") ||
         xl6StdlibFuncUsed(used,"process","startFile") || xl6StdlibNodeUsesTypeName(root,"Process") ||
         (needsProcessClass && xl6StdlibNodeUsesMemberName(root,"start"));
-    needsProcessClass = needsProcessClass || needsLiveProcessClass;
+    needsProcessClass = needsProcessClass || needsLiveProcessClass || needsPipelineClass;
     needsProcessStreams = needsLiveProcessClass &&
         (xl6StdlibNodeUsesMemberName(root,"stdinWriter") || xl6StdlibNodeUsesMemberName(root,"stdoutReader") ||
          xl6StdlibNodeUsesMemberName(root,"stderrReader") || xl6StdlibNodeUsesTypeName(root,"IoReader") ||
@@ -1808,10 +1811,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||
-        needsAsyncFileClass || needsCryptoClass || needsLegacyProcessClass || needsLoggerClass;
+        needsAsyncFileClass || needsCryptoClass || needsLoggerClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
-    if ( needsCryptoClass || needsLegacyProcessClass || needsFileClass ) {
+    if ( needsCryptoClass || needsFileClass ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "byteLen");
     }
     if ( needsNetEngineClass ) {
@@ -1834,14 +1837,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsWsHandshakeClass || needsWsUpgradeClass ||
         needsWebSocketConfigClass || needsWebSocketClass ||
         needsFileClass || needsAsyncFileClass ||
-        needsJsonClass || needsLegacyProcessClass || needsTaskGroupClass ||
+        needsJsonClass || needsTaskGroupClass ||
         needsLoggerClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetRuntime ||
          needsTlsSessionClass || needsHttp1Class || needsWsFrameClass ||
          needsWsHandshakeClass || needsWsUpgradeClass || needsWebSocketClass ||
          needsWebSocketConfigClass || needsFileClass ||
-         needsJsonClass || needsProcessClass ||
+         needsJsonClass ||
          needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
@@ -2084,6 +2087,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessStatusSource);
         if (needsLiveProcessClass) xl6StdlibBuilderAppend(&builder,
             "    extern \"xl6ProcessLiveStatusV1\" create(Process process)\n");
+        if (needsPipelineClass) xl6StdlibBuilderAppend(&builder,
+            "    extern \"xl6ProcessStageStatusV1\" create(ProcessStageResult stage)\n");
         xl6StdlibBuilderAppend(&builder, "end\n");
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessCommandSource);
         if (needsLiveProcessClass) xl6StdlibBuilderAppend(&builder,
@@ -2094,8 +2099,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             if (needsProcessStreams) xl6StdlibBuilderAppend(&builder, xl6StdlibProcessStreamSource);
             xl6StdlibBuilderAppend(&builder, "end\n");
         }
-        if (needsLegacyProcessClass) {
-            xl6StdlibBuilderAppend(&builder, xl6StdlibLegacyProcessClassSource);
+        if (needsPipelineClass) {
+            xl6StdlibBuilderAppend(&builder, xl6StdlibProcessPipelineSource);
         }
     }
     if ( needsTccClass ) {

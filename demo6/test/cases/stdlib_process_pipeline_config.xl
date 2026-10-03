@@ -1,0 +1,8 @@
+auto pipeline = ProcessPipeline()
+assert pipeline.count == 0
+pipeline.add(process.shell("echo unused"))
+assert pipeline.count == 1
+pipeline.clear()
+assert pipeline.count == 0
+pipeline.add(process.shell("echo still-unused"))
+assert pipeline.count == 1

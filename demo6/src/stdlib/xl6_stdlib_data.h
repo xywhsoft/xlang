@@ -143,7 +143,7 @@ extern const char* xl6StdlibProcessStatusSource;
 extern const char* xl6StdlibProcessCommandSource;
 extern const char* xl6StdlibProcessLiveSource;
 extern const char* xl6StdlibProcessStreamSource;
-extern const char* xl6StdlibLegacyProcessClassSource;
+extern const char* xl6StdlibProcessPipelineSource;
 extern const char* xl6StdlibTccClassSource;
 extern const char* xl6StdlibXlangClassSource;
 

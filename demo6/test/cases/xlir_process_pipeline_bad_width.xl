@@ -1,0 +1,7 @@
+class BadPipeline
+    private native point handle
+    extern "xl6ProcessPipelineCreateV1" create()
+    extern "xl6ProcessPipelineDestroyV1" destroy()
+    extern "xl6ProcessPipelineCountV1" get count() as c_int
+end
+println(BadPipeline().count)

@@ -1,0 +1,35 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+auto pipeline = ProcessPipeline()
+pipeline.add(command)
+pipeline.add(command)
+pipeline.add(command)
+assert pipeline.count == 3
+command.env("UNRELATED", "new")
+command.stdio(2, 4)
+auto result = pipeline.run(b"a\0你b", 5000)
+assert result.success and not result.timedOut and not result.cancelled
+assert result.count == 3 and result.completedCount == 3 and result.failedIndex == -1
+assert result.exitCode == 0 and result.waitResult == 0
+assert result.stdout == b"a\0你b" and result.stdoutText() == "a\0你b"
+assert result.inputWritten == 6 and not result.stdoutTruncated
+assert result.readStdout(2) == b"a\0" and result.readStdout(200) == result.stdout
+auto first = result.stage(0)
+auto last = result.stage(2)
+assert first.success and first.exitCode == 0 and first.stderr == b"E\0R"
+assert last.stderrText() == "E\0R" and not last.stderrTruncated
+assert last.readStderr(2) == b"E\0" and last.readStderr(200) == b"E\0R"
+auto status = first.status
+assert status.kind == 1 and status.code == 0 and status.signal == 0
+bytes saved = result.stdout
+result = pipeline.run(b"q\0w", 5000, 2)
+assert result.stdout == b"q\0" and result.inputWritten == 2
+pipeline.clear()
+assert pipeline.count == 0
+assert saved == b"a\0你b" and first.stderr == b"E\0R" and status.code == 0
+array<ProcessCommand> commands = [process.cmd(child, ["echo"]), process.cmd(child, ["echo"])]
+auto compact = process.pipeline(commands, b"z\0你", 5000)
+assert compact.stdout == b"z\0你" and compact.stage(1).stderr == b"E\0R"
+auto options = ProcessRunOptions(5000)
+assert process.pipeline(commands, options, b"a\0b", 2).stdout == b"a\0"

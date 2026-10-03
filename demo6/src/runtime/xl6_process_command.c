@@ -1,15 +1,11 @@
-#include "src/runtime/xl6_process_internal.h"
+#include "src/runtime/xl6_process_config.h"
 
 void xl6ProcessCommandDestroyV1(void* handle)
 {
     XL6_ProcessCommand* command=handle;if(!command)return;
-    xprocessconfig* c=&command->config;
-    xrtFree((void*)c->Program);xrtFree((void*)c->Command);
-    xrtFree((void*)c->Arg0);xrtFree((void*)c->WorkDir);
-    for(size_t i=0;i<c->ArgCount;++i)xrtFree((void*)c->Args[i]);
-    xrtFree((void*)c->Args);
-    for(size_t i=0;i<c->EnvCount;++i){xrtFree((void*)c->Env[i].Name);xrtFree((void*)c->Env[i].Value);}
-    xrtFree((void*)c->Env);xl6TextThreadDrop(&command->owner);xrtFree(command);
+    xerror* prior=xrtTakeError();xl6ProcessConfigUnit(&command->config);
+    xl6TextThreadDrop(&command->owner);xrtFree(command);
+    xrtClearError();xrtSetErrorTake(prior);
 }
 static XL6_ProcessCommand* commandCreate(void)
 {

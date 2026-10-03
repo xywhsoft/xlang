@@ -1,0 +1,8 @@
+class WrongPipelineInput
+    private native point handle
+    extern "xl6ProcessPipelineRunV1" create(ProcessPipeline pipeline, ProcessRunOptions options, string input, int size = -1)
+    extern "xl6PipelineResultDestroyV1" destroy()
+end
+auto p = ProcessPipeline()
+p.add(process.shell("unused"))
+auto result = WrongPipelineInput(p, ProcessRunOptions(), "unsafe")

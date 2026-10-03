@@ -13,6 +13,35 @@
 
 struct xlir_closure;
 struct xfuture;
+/* Pipeline configuration snapshots and independently owned results. */
+XL6_TEXT_API void* xl6ProcessPipelineCreateV1(void);
+XL6_TEXT_API void xl6ProcessPipelineDestroyV1(void* pipeline);
+XL6_TEXT_API void xl6ProcessPipelineAddV1(void* pipeline,void* command);
+XL6_TEXT_API void xl6ProcessPipelineClearV1(void* pipeline);
+XL6_TEXT_API int64_t xl6ProcessPipelineCountV1(void* pipeline);
+XL6_TEXT_API void* xl6ProcessPipelineRunV1(void* pipeline,void* options,const xvalue* input,int64_t size);
+XL6_TEXT_API void xl6PipelineResultDestroyV1(void* result);
+XL6_TEXT_API bool xl6PipelineResultSuccessV1(void* result);
+XL6_TEXT_API bool xl6PipelineResultTimedOutV1(void* result);
+XL6_TEXT_API bool xl6PipelineResultCancelledV1(void* result);
+XL6_TEXT_API int64_t xl6PipelineResultWaitV1(void* result);
+XL6_TEXT_API int64_t xl6PipelineResultCountV1(void* result);
+XL6_TEXT_API int64_t xl6PipelineResultCompletedV1(void* result);
+XL6_TEXT_API int64_t xl6PipelineResultFailedIndexV1(void* result);
+XL6_TEXT_API int64_t xl6PipelineResultExitCodeV1(void* result);
+XL6_TEXT_API uint64_t xl6PipelineResultInputWrittenV1(void* result);
+XL6_TEXT_API uint64_t xl6PipelineResultDurationV1(void* result);
+XL6_TEXT_API bool xl6PipelineResultStdoutTruncatedV1(void* result);
+XL6_TEXT_API xvalue* xl6PipelineResultStdoutV1(void* result,int64_t size);
+XL6_TEXT_API xstrview xl6PipelineResultStdoutTextV1(void* result,int64_t size);
+XL6_TEXT_API void* xl6PipelineResultStageV1(void* result,int64_t index);
+XL6_TEXT_API void xl6ProcessStageDestroyV1(void* stage);
+XL6_TEXT_API bool xl6ProcessStageSuccessV1(void* stage);
+XL6_TEXT_API int64_t xl6ProcessStageExitCodeV1(void* stage);
+XL6_TEXT_API bool xl6ProcessStageStderrTruncatedV1(void* stage);
+XL6_TEXT_API xvalue* xl6ProcessStageStderrV1(void* stage,int64_t size);
+XL6_TEXT_API xstrview xl6ProcessStageStderrTextV1(void* stage,int64_t size);
+XL6_TEXT_API void* xl6ProcessStageStatusV1(void* stage);
 /* Checked process resources and exact input/output views. */
 XL6_TEXT_API void* xl6ProcessSpawnV1(void* command);
 XL6_TEXT_API void xl6ProcessDestroyV1(void* process);

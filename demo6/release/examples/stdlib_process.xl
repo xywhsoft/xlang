@@ -1,102 +1,48 @@
-func require(string name, bool ok)
-    assert ok, name + " failed"
-    println(name + "=ok")
-end
-
+// Requires a shell and the host's sort command (Windows and POSIX).
 assert process.stdin == 0 and process.stdout == 1 and process.stderr == 2
 assert process.stdioInherit == 0 and process.stdioPipe == 1 and process.stdioNull == 2
 assert process.stateRunning == 0 and process.stateExited == 1
-bool terminalAvailable = process.terminalSupported()
-assert terminalAvailable or not terminalAvailable
+assert string.trim(process.exec("echo hello-process")) == "hello-process"
+assert process.success("exit 0") and not process.success("exit 5")
+assert process.exitCode("exit 5") == 5
 
-string text = process.exec("cmd /c echo hello-process")
-require("shell",
-    string.trim(text) == "hello-process" and
-    process.success("cmd /c exit /b 0") and
-    !process.success("cmd /c exit /b 5") and
-    process.exitCode("cmd /c exit /b 0") == 0 and
-    process.exitCode("cmd /c exit /b 5") == 5)
+auto configured = process.shell("echo configured")
+configured.env("XL6_PROCESS_EXAMPLE", "value")
+auto result = process.run(configured, ProcessRunOptions(5000, 1024, 1024))
+assert result.success and result.exitCode == 0 and not result.timedOut
+assert string.trim(result.stdoutText()) == "configured" and result.stderr.length == 0
+auto status = result.status
+assert status.kind == 1 and status.code == 0
+assert process.runFile("sort", [], 5000).success
+auto directLive = process.startFile("sort")
+assert directLive.closeStdin()
+auto directStatus = directLive.wait(5000)
+assert directStatus != null
+if directStatus != null then
+    assert directStatus.code == 0
+end
 
-ProcessResult runResult = process.run("cmd /c echo process-run")
-require("run",
-    runResult.success and
-    runResult.exitCode == 0 and
-    !runResult.timedOut and
-    !runResult.spawnFailed and
-    string.trim(runResult.stdout) == "process-run" and
-    string.trim(runResult.stderr) == "")
+auto pipe = process.pipeline([process.shell("echo alpha"), process.cmd("sort")], b"", 5000)
+auto stage = pipe.stage(1)
+assert pipe.success and pipe.count == 2 and pipe.completedCount == 2
+assert pipe.failedIndex == -1 and string.trim(pipe.stdoutText()) == "alpha"
+assert stage.success and stage.status.code == 0 and stage.stderr.length == 0
+auto failed = process.pipeline([process.shell("exit 5"), process.shell("echo still-runs")], b"", 5000)
+assert not failed.success and failed.failedIndex == 0 and failed.exitCode == 0
+assert failed.count == 2 and failed.completedCount == 2 and failed.stage(0).exitCode == 5
 
-ProcessCommand configured = process.shell("cmd /c echo %XL6_PROCESS_EXAMPLE%")
-configured.env("XL6_PROCESS_EXAMPLE", "configured")
-configured.readChunkSize(1024)
-configured.maxEventCount(64)
-ProcessResult configuredResult = process.run(configured, "", 5000)
-var configuredExit = configuredResult.exitInfo()
-require("configured",
-    configuredResult.success and
-    string.trim(configuredResult.stdout) == "configured" and
-    int(configuredExit["exitCode"]) == 0)
-
-ProcessResult fileResult = process.runFile("cmd", ["/c", "echo", "process-file"])
-require("runFile",
-    fileResult.success and
-    fileResult.exitCode == 0 and
-    string.trim(fileResult.stdout) == "process-file")
-
-PipelineResult pipe = process.pipeline([
-    process.shell("cmd /c echo alpha"),
-    process.cmd("cmd", ["/c", "findstr alpha"])
-])
-ProcessResult pipeStage = pipe.result(1)
-require("pipeline",
-    pipe.success and
-    pipe.exitCode == 0 and
-    pipe.failedIndex == -1 and
-    pipe.count == 2 and
-    pipe.completedCount == 2 and
-    string.trim(pipe.stdout) == "alpha" and
-    pipeStage.success)
-
-PipelineResult failedPipe = process.pipeline([
-    process.shell("cmd /c exit /b 5"),
-    process.shell("cmd /c echo should-not-run")
-])
-ProcessResult failedStage = failedPipe.result(0)
-require("pipelineFail",
-    !failedPipe.success and
-    failedPipe.exitCode == 0 and
-    failedPipe.failedIndex == 0 and
-    failedPipe.count == 2 and
-    failedPipe.completedCount == 2 and
-    failedStage.exitCode == 5)
-
-Process proc = process.startFile("cmd", ["/c", "more"])
-proc.writeLine("live-process")
-proc.closeStdin()
-Process shellProc = process.start("cmd /c more")
-shellProc.writeLine("shell-process")
-shellProc.closeStdin()
-require("process",
-    proc.wait(5000) and
-    !proc.running and
-    proc.exitCode == 0 and
-    string.trim(proc.stdout) == "live-process" and
-    shellProc.wait(5000) and
-    !shellProc.running and
-    shellProc.exitCode == 0 and
-    string.trim(shellProc.stdout) == "shell-process")
-
-ProcessCommand incrementalCommand = process.shell("cmd /c echo incremental-out ^& echo incremental-err 1^>^&2")
-Process incremental = process.start(incrementalCommand)
-incremental.wait(5000)
-var incrementalOut = incremental.readStdout(0, 4)
-var incrementalErr = incremental.readStderr()
-var incrementalEvents = incremental.readEvents()
-var incrementalExit = incremental.exitInfo()
-require("incremental",
-    string(incrementalOut["data"]) == "incr" and
-    int(incrementalOut["nextOffset"]) == 4 and
-    string.trim(string(incrementalErr["data"])) == "incremental-err" and
-    int(incrementalEvents["eventEndSeq"]) >= int(incrementalEvents["nextSeq"]) and
-    bool(incrementalEvents["done"]) and
-    int(incrementalExit["exitCode"]) == 0)
+auto live = process.start(process.cmd("sort"))
+auto input = live.stdinWriter()
+auto output = live.stdoutReader()
+auto errors = live.stderrReader()
+input.writeAll("live-process\n")
+input.close()
+assert string.trim(encoding.decode(output.readAll())) == "live-process"
+assert errors.readAll().length == 0
+auto ended = live.wait(5000)
+assert ended != null
+if ended != null then assert ended.code == 0 end
+assert not live.running
+output.close()
+errors.close()
+println("process run/pipeline/live=ok")

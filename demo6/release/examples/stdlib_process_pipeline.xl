@@ -1,0 +1,15 @@
+// Native connectors, not sequential capture-and-replay through language buffers.
+auto command = process.shell("echo alpha")
+auto pipeline = ProcessPipeline()
+pipeline.add(command)
+pipeline.add(process.shell("sort"))
+auto result = pipeline.run(ProcessRunOptions(5000, 1024, 1024))
+assert result.success and result.count == 2 and result.completedCount == 2
+assert string.trim(result.stdoutText()) == "alpha"
+auto stage = result.stage(0)
+assert stage.success and stage.exitCode == 0 and stage.stderr.length == 0
+auto status = stage.status
+assert status.kind == 1 and status.code == 0
+pipeline.clear()
+assert pipeline.count == 0 and stage.success
+println("process pipeline=ok")
