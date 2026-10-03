@@ -28,6 +28,9 @@ snapshot_runtime_temp() {
 
 printf 'Running Linux CLI and in-memory VFS smoke tests...\n'
 "$XL" --help >/dev/null
+python3 "$ROOT/test/test_linux_embedded_resources.py"
+python3 "$ROOT/tools/check_linux_embedded_resources.py" \
+    --root "$ROOT" --report "$TEST_DIR/embedded-resources-$(date +%Y%m%d-%H%M%S)-$$.json"
 "$XL" check "$ROOT/release/examples/hello.xl"
 snapshot_runtime_temp >"$TEST_DIR/temp.before"
 "$XL" run "$ROOT/release/examples/hello.xl"
