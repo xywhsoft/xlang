@@ -12220,13 +12220,8 @@ static int xl6IrLowerResolveRuntimeBridge(
         return 1;
     }
     if ( strcmp(target->cName, "xl6_xrt_hex_encode_bytes") == 0 ||
-         strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0 ||
-         strcmp(target->cName, "xl6_xrt_buffer_from_hex") == 0 ||
-         strcmp(target->cName, "xl6_xrt_buffer_from_base64") == 0 ) {
-        int base64 = strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0 ||
-            strcmp(target->cName, "xl6_xrt_buffer_from_base64") == 0;
-        int encode = strcmp(target->cName, "xl6_xrt_hex_encode_bytes") == 0 ||
-            strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0;
+         strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0 ) {
+        int base64 = strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0;
         result = xl6IrTypeGet(&ctx->module->types, target->returnType);
         if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
              target->parameterCount != (base64 ? 3u : 2u) || result == NULL ||
@@ -12236,8 +12231,7 @@ static int xl6IrLowerResolveRuntimeBridge(
              target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
              !xl6IrLowerBufferBridgeParameterMatches(
                  ctx->module, target, 0,
-                 encode ? XL6_IR_C_ABI_RAW_POINTER : XL6_IR_C_ABI_MANAGED_STRING,
-                 encode ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW,
+                 XL6_IR_C_ABI_RAW_POINTER, XL6_IR_PARAMETER_ABI_VALUE,
                  XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
              !xl6IrLowerBufferBridgeParameterMatches(
                  ctx->module, target, 1, XL6_IR_C_ABI_C_SIZE,
@@ -12713,6 +12707,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     } else if ( (node->sourceKind == XL6_AST_NATIVE_EXTERN_FUNC ||
                  (node->sourceKind == XL6_AST_NATIVE_EXTERN_SPECIAL &&
                   !xl6IrLowerNativeSpecialIsConstructor(module, node->symbol))) &&
+                (node->flags & XL6_AST_FLAG_STATIC) == 0 &&
                 xl6IrLowerEnclosingClass(module, declaration) != XL6_IR_NODE_INVALID ) {
         receiverType = xl6IrLowerClassReceiverType(module, declaration);
         if ( receiverType == XL6_IR_TYPE_INVALID )
@@ -12983,8 +12978,19 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
             if ( !xl6IrLowerMarkAsyncReadyFuture(ctx, node, target) ) return 0;
         }
     }
+    /* A registered owned native result is a factory regardless of whether
+     * the source spelling is create() or a static/free extern function.
+     * The declared result class supplies the canonical field/destructor;
+     * an unregistered extern class result remains an ordinary C ABI value. */
+    if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
+        xl6IrRuntimeDirectBridgeFactory(target->cName)) {
+        const XL6_IrType* declaredResult = xl6IrTypeGet(&module->types, target->returnType);
+        if (declaredResult && declaredResult->kind == XL6_IR_TYPE_CLASS)
+            target->kind = XL6_IR_CALL_TARGET_NATIVE_FACTORY;
+    }
     if ( target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) {
-        XL6_IrTypeId ownerType = xl6IrLowerClassReceiverType(module, declaration);
+        XL6_IrTypeId ownerType = target->returnType != XL6_IR_TYPE_INVALID
+            ? target->returnType : xl6IrLowerClassReceiverType(module, declaration);
         const XL6_IrType* owner = xl6IrTypeGet(&module->types, ownerType);
         const XL6_IrClassField* field = xl6IrLowerManagedNativeConstructorField(
             module, ownerType, XL6_IR_NODE_INVALID);

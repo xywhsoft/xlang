@@ -48,3 +48,12 @@ declaration-binding 身份读取字段，不按名称或初始化源码恢复类
 封闭 direct 描述表登记 borrowed 动态输入和 may-raise、非 pure、
 may-block 合同；Cgen 使用通用 checked 外部调用，不为它另加错误补丁。
 `check_xlir_module_product_globals.ps1`/`.sh` 验证这些边界与实际产物。
+
+类中的 `static extern func` 在 frontend/XLIR 解析为没有隐式 self 的
+直接 C 目标。封闭 direct 描述表登记 owned native 结果时，无论源
+声明是 create、static extern 或普通 extern，都从声明返回类取得
+canonical field/destructor TAKE ABI；不在 Cgen 识别函数名或补造
+Buffer 包装。未登记的普通 extern class 返回值不擅自改为原生工厂。
+`check_stdlib_buffer_codecs.ps1`/`.sh` 检查这种工厂、错 owner/borrow/
+result/effect 拒绝、实际按需闭包和分配失败清理。旧 raw Hex/Base64
+解码生成实现已删除，其他旧 Buffer core 分支仍是后续迁移项。

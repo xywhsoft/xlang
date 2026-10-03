@@ -1,0 +1,45 @@
+Buffer raw = Buffer(b"\0\xffAZ")
+assert raw.hex() == "00ff415a"
+assert raw.hex(int(HexFlags.Upper)) == "00FF415A"
+assert raw.hex(0, 1) == "00" and raw.hex(0, 50) == "00ff415a"
+assert Buffer.fromHex("00ff415a").toBytes() == b"\0\xffAZ"
+assert Buffer.fromHex("00 ff\t41 5a", int(HexFlags.IgnoreSpace)).toBytes() == raw.toBytes()
+assert Buffer.fromHex("0041junk", 0, 4).toBytes() == b"\0A"
+assert Buffer.fromHex("", 0, 50).len() == 0 and Buffer("").hex() == ""
+assert codec.hexDecodeBytes("0041").toBytes() == b"\0A"
+int refused = 0
+try
+    Buffer.fromHex("41\000")
+catch IOError failure
+    assert failure.code == 902
+    refused = refused + 1
+end
+try
+    Buffer.fromHex("f")
+catch IOError failure
+    assert failure.code == 902
+    refused = refused + 1
+end
+try
+    Buffer.fromHex("00 41")
+catch IOError failure
+    assert failure.code == 902
+    refused = refused + 1
+end
+try
+    raw.hex(int(HexFlags.IgnoreSpace))
+catch ValueError
+    refused = refused + 1
+end
+try
+    Buffer.fromHex("00", -1)
+catch RangeError
+    refused = refused + 1
+end
+try
+    Buffer.fromHex("00", 0, -2)
+catch RangeError
+    refused = refused + 1
+end
+assert refused == 6 and raw.toBytes() == b"\0\xffAZ"
+println("Buffer Hex checked exact bytes ok")

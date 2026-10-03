@@ -1,0 +1,54 @@
+Buffer raw = Buffer(b"\0\xffAZ")
+assert raw.base64() == "AP9BWg=="
+assert Buffer.fromBase64("AP9BWg==").toBytes() == raw.toBytes()
+assert raw.base64(int(Base64Flags.NoPadding)) == "AP9BWg"
+assert Buffer.fromBase64("AP9BWg", int(Base64Flags.NoPadding)).toBytes() == raw.toBytes()
+assert Buffer.fromBase64("AP9B Wg==\n", int(Base64Flags.IgnoreSpace)).toBytes() == raw.toBytes()
+assert Buffer.fromBase64("AP9BWg", int(Base64Flags.OptionalPadding)).toBytes() == raw.toBytes()
+assert Buffer.fromBase64("AP9BWg==", int(Base64Flags.OptionalPadding)).toBytes() == raw.toBytes()
+assert Buffer(b"\xfb\xff").base64(int(Base64Flags.Url)) == "-_8="
+assert Buffer.fromBase64("-_8=", int(Base64Flags.Url)).toBytes() == b"\xfb\xff"
+assert raw.base64(0, "", 1) == "AA==" and raw.base64(0, "", 50) == "AP9BWg=="
+assert Buffer.fromBase64("QQ==junk", 0, "", 4).toBytes() == b"A"
+string custom = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/"
+string encoded = raw.base64(0, custom)
+assert Buffer.fromBase64(encoded, 0, custom).toBytes() == raw.toBytes()
+assert raw.base64(0, custom + "unused", -1, 64) == encoded
+assert Buffer.fromBase64("", 0).len() == 0 and Buffer("").base64() == ""
+assert codec.base64DecodeBytes("AA==").toBytes() == b"\0"
+int refused = 0
+try
+    Buffer.fromBase64("QQ==\0QQ==")
+catch IOError failure
+    assert failure.code == 1002
+    refused = refused + 1
+end
+try
+    Buffer.fromBase64("QR==")
+catch IOError failure
+    assert failure.code == 1002
+    refused = refused + 1
+end
+try
+    Buffer.fromBase64("QQ==", int(Base64Flags.NoPadding))
+catch IOError failure
+    assert failure.code == 1002
+    refused = refused + 1
+end
+try
+    Buffer.fromBase64("QQ==", int(Base64Flags.NoPadding) + int(Base64Flags.OptionalPadding))
+catch ValueError
+    refused = refused + 1
+end
+try
+    raw.base64(int(Base64Flags.IgnoreSpace))
+catch ValueError
+    refused = refused + 1
+end
+try
+    raw.base64(0, "short")
+catch ValueError
+    refused = refused + 1
+end
+assert refused == 6 and raw.toBytes() == b"\0\xffAZ"
+println("Buffer Base64 checked config ok")

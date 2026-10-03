@@ -1,0 +1,2 @@
+extern "xl6BufferFromBase64V1" @no_raise func bad(string text, int flags, string alphabet, int size, int alphabetSize) as Buffer
+bad("AA==", 0, "", -1, -1)

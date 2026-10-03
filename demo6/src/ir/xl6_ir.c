@@ -26777,8 +26777,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          strcmp(target->cName, "xl6_xrt_base64_decode_text") == 0 ||
          strcmp(target->cName, "xl6_xrt_hex_encode_bytes") == 0 ||
          strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0 ||
-         strcmp(target->cName, "xl6_xrt_buffer_from_hex") == 0 ||
-         strcmp(target->cName, "xl6_xrt_buffer_from_base64") == 0 ||
          strcmp(target->cName, "xl6_xrt_sha1_hex") == 0 ||
          strcmp(target->cName, "xl6_xrt_sha256_hex") == 0 ||
          strcmp(target->cName, "xl6_xrt_sha384_hex") == 0 ||
@@ -27005,18 +27003,15 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HEX_BYTES_CODEC ||
          target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_BYTES_CODEC ) {
         int base64 = target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_BYTES_CODEC;
-        int encode = strcmp(target->cName, base64
+        int nameMatches = strcmp(target->cName, base64
             ? "xl6_xrt_base64_encode_bytes" : "xl6_xrt_hex_encode_bytes") == 0;
-        int decode = strcmp(target->cName, base64
-            ? "xl6_xrt_buffer_from_base64" : "xl6_xrt_buffer_from_hex") == 0;
         result = xl6IrTypeGet(&module->types, target->returnType);
-        return (encode || decode) && target->parameterCount == (base64 ? 3u : 2u) &&
+        return nameMatches && target->parameterCount == (base64 ? 3u : 2u) &&
                target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
                xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_RAW_POINTER) &&
                xl6IrBufferRuntimeBridgeParameterMatches(
                    module, target, 0,
-                   encode ? XL6_IR_C_ABI_RAW_POINTER : XL6_IR_C_ABI_MANAGED_STRING,
-                   encode ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW,
+                   XL6_IR_C_ABI_RAW_POINTER, XL6_IR_PARAMETER_ABI_VALUE,
                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
                xl6IrBufferRuntimeBridgeParameterMatches(
                    module, target, 1, XL6_IR_C_ABI_C_SIZE,
