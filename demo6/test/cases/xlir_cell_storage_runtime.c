@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 static const XL6_CellRuntimeV1* api;
-typedef union Payload { bool b; uint32_t c; int64_t i; uint64_t u; double f; char* s; xvalue* v;
+typedef union Payload { bool b; uint32_t c; int64_t i; uint64_t u; double f; xstrview s; xvalue* v;
     struct { bool has; uint64_t value; } tagged; } Payload;
-static size_t sizes[]={sizeof(bool),sizeof(int64_t),sizeof(double),sizeof(char*),sizeof(xvalue*),
+static size_t sizes[]={sizeof(bool),sizeof(int64_t),sizeof(double),sizeof(xstrview),sizeof(xvalue*),
     sizeof(uint64_t),sizeof(((Payload*)0)->tagged),sizeof(uint64_t),sizeof(uint32_t)};
 static LONG flag(volatile LONG* p) { return InterlockedCompareExchange(p,0,0); }
 static void wait_flag(volatile LONG* p) {
@@ -30,7 +30,7 @@ static Payload payload(unsigned kind,unsigned next) {
     case XL6_CELL_BOOL: p.b=next!=0; break;
     case XL6_CELL_I64: p.i=-169-(int64_t)next; break;
     case XL6_CELL_F64: p.f=169.25+next; break;
-    case XL6_CELL_STRING: p.s=xrtStrDup(next?"new":"old"); assert(p.s); break;
+    case XL6_CELL_STRING: p.s=(xstrview){xrtStrDup(next?"new":"old"),3}; assert(p.s.Data); break;
     case XL6_CELL_XVALUE: p.v=xrtValueArray(); assert(p.v && xrtValueReserve(p.v,4)); break;
     case XL6_CELL_U64: case XL6_CELL_TYPE_ID: p.u=UINT64_MAX-next; break;
     case XL6_CELL_TRIVIAL_BYTES: p.tagged.has=next!=0; p.tagged.value=169+next; break;
@@ -40,7 +40,7 @@ static Payload payload(unsigned kind,unsigned next) {
     return p;
 }
 static void drop_payload(unsigned kind,Payload* p) {
-    if(kind==XL6_CELL_STRING) xrtFree(p->s); else if(kind==XL6_CELL_XVALUE) xrtValueRelease(p->v);
+    if(kind==XL6_CELL_STRING) xrtFree((void*)p->s.Data); else if(kind==XL6_CELL_XVALUE) xrtValueRelease(p->v);
     memset(p,0,sizeof(*p));
 }
 static void family(unsigned kind) {
@@ -52,7 +52,7 @@ static void family(unsigned kind) {
     bool owns=kind==XL6_CELL_STRING || kind==XL6_CELL_XVALUE;
     if(owns) {
         api->Exchange(cell,&next,&taken,sizes[kind]); assert(!memcmp(&old,&taken,sizes[kind]));
-        if(kind==XL6_CELL_STRING) assert(!strcmp(taken.s,"old"));
+        if(kind==XL6_CELL_STRING) assert(taken.s.Data && taken.s.Size==3 && !memcmp(taken.s.Data,"old",3));
         else { xrtownershipref view=xrtValueOwnership(taken.v); size_t count; assert(view.Ops->Count(view.Data,&count) && count==1); }
         drop_payload(kind,&taken);
     } else api->Store(cell,&next,sizes[kind]);

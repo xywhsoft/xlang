@@ -81,7 +81,7 @@ try {
             'src/runtime/xl6_pattern_builder.c','src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c')+$libs+@('-o',"$work/pattern-builder-native.exe"))
         if((Check 'pattern-builder-native' "$work/pattern-builder-native.exe" @())-notmatch '45 actual failures, 10 first no-hit completions'){throw 'Builder adapter OOM oracle incomplete'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-        $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'}|
+        $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-in@('tools/xrt_single_header_impl.c','src/api/xl_task_group_bridge.c')}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
         Copy-Item release/xl.dll "$work/xl.dll"
         if(!$PatternOnly){

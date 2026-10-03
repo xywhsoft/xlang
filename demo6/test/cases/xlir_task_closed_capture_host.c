@@ -16,10 +16,10 @@ static unsigned runs,failures,rollbacks;
 static void transaction(int mode,int fault)
 {
     xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);assert(xlir_module_init());
-    char* text=xrtStrDup("capture");xvalue* value=xrtValueInt(42);xfuture* source=NULL;
+    xlir_string text={xrtStrDup("capture"),7};xvalue* value=xrtValueInt(42);xfuture* source=NULL;
     xpromise* promise=xrtPromiseCreate(&source,NULL);assert(promise);xrtPromiseDestroy(promise);
     XL6_Closure* callback=xl6ClosureRuntimeV1Get()->Create(NULL,(void(*)(void))seven,NULL,NULL,NULL,NULL,NULL,0,NULL);
-    xerror* error=xrtErrorCreate(XERR_STATE,"input",53,"retained input");assert(text&&value&&source&&callback&&error);
+    xerror* error=xrtErrorCreate(XERR_STATE,"input",53,"retained input");assert(text.Data&&value&&source&&callback&&error);
     xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));
     if(fault>=0)assert(xrtMemDebugFailAfter((uint64_t)fault));
     xlir_result_future result=CLOSED_CAPTURE_START(mode,text,value,source,callback,error);
@@ -27,7 +27,7 @@ static void transaction(int mode,int fault)
     bool triggered=xrtMemDebugFailTriggered();if(fault>=0)xrtMemDebugFailClear();
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     assert(result.ok==(result.value!=NULL)&&outcome.ok==result.ok);
-    xrtFree(text);xrtValueRelease(value);xrtFutureDestroy(source);xl6ClosureRuntimeV1Get()->Release(callback);xrtErrorFree(error);
+    xrtFree((void*)text.Data);xrtValueRelease(value);xrtFutureDestroy(source);xl6ClosureRuntimeV1Get()->Release(callback);xrtErrorFree(error);
     if(!result.ok){assert(triggered&&outcome.error&&xrtErrorKind(outcome.error)==XERR_MEMORY);++rollbacks;}
     else{
         assert(xrtFutureWait(result.value)==0);

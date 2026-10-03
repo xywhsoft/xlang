@@ -16,7 +16,7 @@ try {
     }
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable',
         '-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Ibuild/test')
-    & gcc @flags -DxrtStrDup=await_status_copy -include "$prefix.c" -c test/cases/xlir_await_status_host.c -o "$prefix.host.o"
+    & gcc @flags -DxrtStrDupN=await_status_copy -include "$prefix.c" -c test/cases/xlir_await_status_host.c -o "$prefix.host.o"
     if ($LASTEXITCODE -ne 0) { throw 'Await status strict C compile failed' }
     & gcc @flags "$prefix.host.o" test/cases/xlir_await_status_runtime.c release/xl.dll -o "$prefix.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Await status link failed' }

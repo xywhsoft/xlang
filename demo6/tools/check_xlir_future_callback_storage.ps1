@@ -14,7 +14,7 @@ try {
     if(!$public.SourceXrt -or $runtime.Count -ne 1){throw 'Current source XRT required'}
     $residentSources=@('src/runtime/xl6_code_lease.c','src/runtime/xl6_ownership_plan.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
         'src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_generator.c','src/runtime/xl6_code_finalizer.c',
-        'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_future_payload.c')
+        'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_future_payload.c','src/runtime/xl6_time_core.c')
     $files=@(Get-Item -LiteralPath $PSCommandPath,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
         'test/cases/xlir_class_release_isolation.c','test/cases/xlir_terminal_release_transitive.c','test/cases/xlir_future_producer_roots.c')+
         @(Get-ChildItem test/cases -File | Where-Object {$_.Name -match '^xlir_(future_callback_storage|future_continuation_abi_host|callback_boundary|pending_callback_preparation)' -or $_.Name -eq 'stdlib_future_continuation.xl'})
@@ -53,7 +53,7 @@ try {
         $first="$outputPath/xlir_pending_callback_preparation.$suffix";$second="$outputPath/xlir_pending_callback_preparation-repeat.$suffix"
         if(!(Test-Path $first) -or !(Test-Path $second) -or (Get-FileHash $first).Hash -ne (Get-FileHash $second).Hash){$deterministic=$false}
     }
-    $includes=@('-I.',"-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath")
+    $includes=@('-I.','-Irelease',"-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath")
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@();$dlls=@()

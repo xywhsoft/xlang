@@ -9,7 +9,7 @@ try {
     $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
     $runtime=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-eq'xrt_single_header_impl.o'})
     if(!$public.SourceXrt-or$runtime.Count-ne1){throw 'Current source runtime required'}
-    $resident=@($public.Sources|Where-Object {$_.StartsWith('src/runtime/')-and$_-ne'src/runtime/xl6_future_wait.c'})
+    $resident=@($public.Sources|Where-Object {$_.StartsWith('src/runtime/')-and$_-ne'src/runtime/xl6_future_wait.c'})+@('src/api/xl_task_group_bridge.c')
     $case='test/cases/xlir_future_wait_oracle.c'
     $files=Get-Item -LiteralPath $PSCommandPath,$case,$Tcc,(Get-Command gcc).Source,'C:/Windows/System32/ucrtbase.dll'
     $inputs=@($public.Inputs)+@($public.Headers)+@($runtime)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})

@@ -18,13 +18,13 @@ typedef struct Owner {
     const void* claim;
     XL6_Closure *closure, *retired;
 } Owner;
-typedef struct Environment { xvalue* value; XL6_Cell* cell; XL6_Closure* child; char* text; uint64_t number; } Environment;
+typedef struct Environment { xvalue* value; XL6_Cell* cell; XL6_Closure* child; xstrview text; uint64_t number; } Environment;
 static unsigned freed, faults, denied, transactions;
 static const XL6_ClosureCaptureSlot slots[] = {
     {XL6_CLOSURE_CAPTURE_XVALUE, offsetof(Environment, value), sizeof(xvalue*)},
     {XL6_CLOSURE_CAPTURE_CELL, offsetof(Environment, cell), sizeof(XL6_Cell*)},
     {XL6_CLOSURE_CAPTURE_CLOSURE, offsetof(Environment, child), sizeof(XL6_Closure*)},
-    {XL6_CLOSURE_CAPTURE_STRING, offsetof(Environment, text), sizeof(char*)},
+    {XL6_CLOSURE_CAPTURE_STRING, offsetof(Environment, text), sizeof(xstrview)},
     {XL6_CLOSURE_CAPTURE_TRIVIAL, offsetof(Environment, number), sizeof(uint64_t)}
 };
 static const XL6_ClosureEnvironmentV1 layout = {sizeof(layout), sizeof(Environment), 5, slots};
@@ -71,7 +71,7 @@ static Owner* make(xvalue** weak)
     env->cell=xl6CellRuntimeV1Get()->Create(XL6_CELL_XVALUE,sizeof(xvalue*));assert(env->cell);
     item=xrtValueRetain(env->value);assert(item);xl6CellRuntimeV1Get()->Initialize(env->cell,&item,sizeof(item));
     env->child=xl6ClosureRuntimeV2Get()->Create(&o->descriptor.base,entry,NULL,NULL,NULL,NULL,NULL,0);assert(env->child);
-    env->text=xrtStrDup("layout");env->number=42;assert(env->text);
+    env->text=(xstrview){xrtStrDup("layout"),6};env->number=42;assert(env->text.Data);
     o->closure=xl6ClosureRuntimeV2Get()->Create(&o->descriptor.base,entry,NULL,env,&layout,NULL,NULL,0);assert(o->closure);
     o->closed=true;release(o);assert(o->refs==2);return o;
 }

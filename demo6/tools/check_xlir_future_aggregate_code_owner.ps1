@@ -9,7 +9,7 @@ try {
     $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
     $runtime=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-eq'xrt_single_header_impl.o'})
     if(!$public.SourceXrt-or$runtime.Count-ne1){throw 'Current source runtime required'}
-    $resident=@($public.Sources|Where-Object {$_.StartsWith('src/runtime/')})+@('src/api/xl_future_bridge.c')
+    $resident=@($public.Sources|Where-Object {$_.StartsWith('src/runtime/')})+@('src/api/xl_future_bridge.c','src/api/xl_task_group_bridge.c')
     $case='test/cases/xlir_future_aggregate_code_owner_runtime.c'
     $dllCase='test/cases/xlir_future_aggregate_code_owner_box.c'
     $files=Get-Item -LiteralPath $PSCommandPath,$case,$dllCase,'test/cases/xlir_future_aggregate_code_owner_box.h',

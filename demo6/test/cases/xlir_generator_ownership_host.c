@@ -113,8 +113,22 @@ static void direct_graph(unsigned round, unsigned kind, unsigned stage, xlir_gen
 }
 typedef union Item {
     xvalue* value; xlir_closure* closure; xfuture* future; xerror* error;
-    xlir_generator* generator; char* string; int64_t scalar;
+    xlir_generator* generator; xlir_string string; int64_t scalar;
 } Item;
+/* Item is scratch storage, not the ABI width of every yielded type. */
+static size_t item_size(unsigned kind)
+{
+    switch (kind) {
+    case 0: case 7: return sizeof(((Item*)0)->value);
+    case 1: return sizeof(((Item*)0)->closure);
+    case 2: return sizeof(((Item*)0)->future);
+    case 3: return sizeof(((Item*)0)->error);
+    case 4: return sizeof(((Item*)0)->generator);
+    case 5: return sizeof(((Item*)0)->string);
+    case 6: return sizeof(((Item*)0)->scalar);
+    default: assert(0); return 0;
+    }
+}
 static xrtownershipref item_ref(unsigned kind, Item item)
 {
     if (kind == 0 || kind == 7) return xrtValueOwnership(item.value);
@@ -133,7 +147,8 @@ static void check_item(unsigned kind, unsigned index, Item item, xvalue* shared)
     } else if (kind == 2) assert(item.future == sources[0]);
     else if (kind == 3) assert(item.error && !strcmp(xrtErrorMessage(item.error), "generator owned error"));
     else if (kind == 4) assert(item.generator);
-    else if (kind == 5) assert(!strcmp(item.string, index ? "second string" : "owned string"));
+    else if (kind == 5) assert(item.string.Data && item.string.Size == (index ? 13u : 12u) &&
+        !memcmp(item.string.Data, index ? "second string" : "owned string", item.string.Size));
     else assert(item.scalar == (int64_t)(41 + index));
 }
 static void drop_item(unsigned kind, Item item)
@@ -143,7 +158,7 @@ static void drop_item(unsigned kind, Item item)
     else if (kind == 2) xrtFutureDestroy(item.future);
     else if (kind == 3) xrtErrorFree(item.error);
     else if (kind == 4) xlir_generator_destroy(item.generator);
-    else if (kind == 5) xrtFree(item.string);
+    else if (kind == 5) xrtFree((void*)item.string.Data);
 }
 static void direct_case(unsigned round, unsigned kind, unsigned outcome)
 {
@@ -173,7 +188,7 @@ static void direct_case(unsigned round, unsigned kind, unsigned outcome)
             assert(step.ok && step.value && generator->has_item);
             direct_graph(round || outcome != 1, kind, itemIndex ? 3 : 1, generator, shared, empty, empty);
             if (outcome == 2) continue; /* actual current-item discard on next/close */
-            assert(xlir_generator_item_get(generator, &item, sizeof(item), kind != 6));
+            assert(xlir_generator_item_get(generator, &item, item_size(kind), kind != 6));
             check_item(kind, itemIndex, item, shared);
             if (kind == 3) { if (!itemIndex) firstError = item.error; else assert(item.error == firstError); }
             direct_graph(round, kind, itemIndex ? 4 : 2, generator, shared, item_ref(kind, item), empty);
