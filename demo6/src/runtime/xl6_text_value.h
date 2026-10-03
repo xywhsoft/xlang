@@ -12,6 +12,7 @@
 #endif
 
 struct xlir_closure;
+struct xfuture;
 /* Checked process resources and exact input/output views. */
 XL6_TEXT_API void* xl6ProcessSpawnV1(void* command);
 XL6_TEXT_API void xl6ProcessDestroyV1(void* process);
@@ -24,6 +25,7 @@ XL6_TEXT_API bool xl6ProcessTerminateV1(void* process);
 XL6_TEXT_API bool xl6ProcessKillV1(void* process);
 XL6_TEXT_API bool xl6ProcessKillTreeV1(void* process);
 XL6_TEXT_API bool xl6ProcessWaitReadyV1(void* process, int64_t timeoutMs);
+XL6_TEXT_API struct xfuture* xl6ProcessWaitReadyAsyncV1(void* process);
 XL6_TEXT_API void* xl6ProcessLiveStatusV1(void* process);
 XL6_TEXT_API void* xl6ProcessReaderV1(void* process, int64_t stream);
 XL6_TEXT_API void* xl6ProcessWriterV1(void* process);

@@ -24,6 +24,9 @@ typedef struct XL6_IrDirectBridgeContract {
     unsigned char parameterDynamicBorrows[8];
     unsigned char pure;
     unsigned char nonblocking;
+    /* Future is a managed generic carrier, never an unchecked pointer or
+     * builtin. Its resident producer must publish this exact element ABI. */
+    XL6_IrCAbi resultFutureElementAbi;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -49,6 +52,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessKillV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessKillTreeV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessWaitReadyV1",T,B,2,{V,I},.parameterOwners={"xl6ProcessDestroyV1"}},
+    {"xl6ProcessWaitReadyAsyncV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},.parameterOwners={"xl6ProcessDestroyV1"},.nonblocking=1,.resultFutureElementAbi=B},
     {"xl6ProcessLiveStatusV1",T,V,1,{V},.resultOwner="xl6ProcessStatusDestroyV1",.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessReaderV1",T,V,2,{V,I},.resultOwner="xl6_xrt_io_reader_destroy",.parameterOwners={"xl6ProcessDestroyV1"}},
     {"xl6ProcessWriterV1",T,V,1,{V},.resultOwner="xl6_xrt_io_writer_destroy",.parameterOwners={"xl6ProcessDestroyV1"}},
@@ -598,6 +602,20 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi != XL6_IR_NULL_ABI_NONE ||
                 strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
+        } else if (contract->resultFutureElementAbi) {
+            const XL6_IrType* element = result && result->paramCount == 1 && result->params
+                ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
+            if (contract->result != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || !result ||
+                result->kind != XL6_IR_TYPE_GENERIC_INSTANCE ||
+                result->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+                result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount ||
+                !element || element->kind != XL6_IR_TYPE_BUILTIN || element->paramCount || element->returnCount ||
+                element->collectionAbi != XL6_IR_COLLECTION_NONE ||
+                element->cAbi != contract->resultFutureElementAbi ||
+                element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                element->nullAbi != XL6_IR_NULL_ABI_NONE) return 0;
         } else if (contract->resultArrayItemAbi) {
             if (!xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi,
                 contract->resultCollectionAbi ? contract->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY)) return 0;

@@ -9,7 +9,7 @@
 
 enum { COMMITTED = XL6_CONTINUATION_COMMITTED, READY = XL6_CONTINUATION_READY,
     TRANSPORT_RELEASED = XL6_CONTINUATION_TRANSPORT_RELEASED, RUNNING = XL6_CONTINUATION_RUNNING,
-    COMPLETED = XL6_CONTINUATION_COMPLETED };
+    COMPLETED = XL6_CONTINUATION_COMPLETED, PUBLISHING = 32u };
 struct XL6_ContinuationQueue {
     xmutex* lock;
     xcond* ready;
@@ -216,7 +216,7 @@ static void publish_ticket(XL6_ContinuationQueue* queue, XL6_ContinuationTicket*
     queue->tail = ticket;
     if (!xrtCondSignal(queue->ready)) abort();
 }
-static void xl6OwnershipBody_signal_ticket(XL6_ContinuationTicket* ticket, unsigned flag)
+static bool xl6OwnershipBody_signal_ticket(XL6_ContinuationTicket* ticket, unsigned flag)
 {
     XL6_ContinuationQueue* queue = ticket->queue;
     if (queue == NULL) abort();
@@ -224,6 +224,8 @@ static void xl6OwnershipBody_signal_ticket(XL6_ContinuationTicket* ticket, unsig
     if ((ticket->flags & (flag | RUNNING)) != 0) abort();
     if (flag == COMMITTED && ticket->storage != NULL && ticket->storage->Commit != NULL)
         ticket->storage->Commit(ticket->data);
+    bool publishing = flag == COMMITTED && ticket->storage != NULL && ticket->storage->Published != NULL;
+    if (publishing) ticket->flags |= PUBLISHING;
     if (flag == TRANSPORT_RELEASED && ticket->transportOwned) {
         if (ticket->ownershipRefs != 2) abort();
         --ticket->ownershipRefs;
@@ -234,10 +236,27 @@ static void xl6OwnershipBody_signal_ticket(XL6_ContinuationTicket* ticket, unsig
     ticket->flags |= flag;
     publish_ticket(queue, ticket);
     unlock_queue(queue);
+    return publishing;
 }
 static void signal_ticket(XL6_ContinuationTicket* ticket, unsigned flag)
 {
-    XL6_OWNERSHIP_RETURN_VOID(xl6OwnershipBody_signal_ticket(ticket, flag));
+    xrtownershipscope mutation = {0};
+    if (!xrtOwnershipMutationBegin(&mutation)) abort();
+    bool publishing = xl6OwnershipBody_signal_ticket(ticket, flag);
+    if (!xrtOwnershipScopeEnd(&mutation)) abort();
+    if (!publishing) return; /* the ticket may already have retired */
+    /* PUBLISHING keeps the queue's actual execution reference unpublished.
+     * Native Watch tails may signal freely, but no executor can retire the
+     * frame while its resident publication handshake borrows that storage. */
+    XL6_ContinuationQueue* queue = ticket->queue;
+    ticket->storage->Published(ticket->data);
+    if (!xrtOwnershipMutationBegin(&mutation)) abort();
+    lock_queue(queue);
+    if (!(ticket->flags & PUBLISHING)) abort();
+    ticket->flags &= ~PUBLISHING;
+    publish_ticket(queue, ticket);
+    unlock_queue(queue);
+    if (!xrtOwnershipScopeEnd(&mutation)) abort();
 }
 void xl6ContinuationCommit(XL6_ContinuationTicket* ticket) { signal_ticket(ticket, COMMITTED); }
 void xl6ContinuationReady(XL6_ContinuationTicket* ticket) { signal_ticket(ticket, READY); }

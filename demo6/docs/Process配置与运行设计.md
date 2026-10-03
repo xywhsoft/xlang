@@ -182,4 +182,6 @@ end
 上例只适用于 stderr 不会写满的简单协议；一般情况必须并发排空两个
 输出流或使用 run。本批新增 14 个固定 ABI resident 桥接、两个独立
 组件；Cgen 只共用 IO 投影布局，没有增加 Process 算法或语义补丁。
-pipeline、typed Future、文件重定向与真实 PTY/resize 会话仍待后续验收。
+typed Future 的新增 B26 合同见《进程标准库异步等待.md》；其完整语言
+OOM/模块卸载与跨组验收仍待完成。pipeline、文件重定向与真实 PTY/resize
+会话仍待后续开发和验收，不将 B23/B26 专项写成 process 整组完成。

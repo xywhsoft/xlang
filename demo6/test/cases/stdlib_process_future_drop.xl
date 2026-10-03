@@ -1,0 +1,20 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.stdio(process.stdin, process.stdioPipe)
+command.stdio(process.stdout, process.stdioNull)
+command.stdio(process.stderr, process.stdioNull)
+Process? original = command.start()
+if original != null then
+    auto writer = original.stdinWriter()
+    auto waiting = original.waitAsync()
+    assert waiting.isPending()
+    // The async receiver and stream have their own lifetimes, independently
+    // of this nullable variable. The child cannot exit before stdin EOF.
+    original = null
+    writer.close()
+    auto status = await waiting
+    assert status.kind == 1 and status.code == 0
+else
+    assert false
+end

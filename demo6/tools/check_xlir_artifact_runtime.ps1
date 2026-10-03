@@ -18,7 +18,7 @@ try {
         'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $processInputs=@()
-    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'}).Count){
+    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'-or$_-like'stdlib_process_future*'}).Count){
         if(!$ProcessChild){throw 'Process fixtures require an explicit private ProcessChild'}
         $ProcessChild=(Resolve-Path -LiteralPath $ProcessChild).Path
         $processInputs=@($ProcessChild)
@@ -295,6 +295,17 @@ $process=Start-Process @start
                     $selectionMatches=$selectionMatches-and!(Compare-Object $actualProcess $wantedProcess)-and
                         (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-ne'stdlib_process_live_wait'))-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_PROCESS_(RUN|PIPELINE|FUTURE|FILE|TERMINAL|OPEN)$'}).Count
+                }
+                if($case-in@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')){
+                    $expectedProcess=@('command','live','status','future')
+                    if($case-ne'stdlib_process_future'){$expectedProcess+=@('stream')}
+                    $actualProcess=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_process_'}|Sort-Object)
+                    $wantedProcess=@($expectedProcess|ForEach-Object {"src/runtime/xl6_process_$_.c"}|Sort-Object)
+                    $selectionMatches=$selectionMatches-and!(Compare-Object $actualProcess $wantedProcess)-and
+                        'XRT_MODULE_PROCESS_FUTURE'-in$plan.NativeModules-and
+                        'src/runtime/xl6_future_payload.c'-in$selectedSources-and
+                        (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-ne'stdlib_process_future'))-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_PROCESS_(RUN|PIPELINE|FILE|TERMINAL|OPEN)$'}).Count
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE

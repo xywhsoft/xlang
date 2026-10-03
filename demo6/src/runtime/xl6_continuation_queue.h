@@ -54,6 +54,12 @@ typedef struct XL6_ContinuationStorageV2 {
     /* Optional exactly-once source/interrupt arbitration, including READY
      * registration. It signals the existing queue event, never executes CFG. */
     void (*Ready)(const void*);
+    /* Optional cancellation handshake after Commit, outside the queue lock
+     * and its API-owned mutation. The execution reference stays unpublished
+     * until this returns; Ready/TransportReleased may arrive concurrently.
+     * It may synchronize native transport retirement, never execute CFG.
+     * Same-source private ABI: all producers/consumers must be rebuilt. */
+    void (*Published)(const void*);
 } XL6_ContinuationStorageV2;
 enum { XL6_CONTINUATION_COMMITTED = 1u, XL6_CONTINUATION_READY = 2u,
     XL6_CONTINUATION_TRANSPORT_RELEASED = 4u, XL6_CONTINUATION_RUNNING = 8u,

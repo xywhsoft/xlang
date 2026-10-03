@@ -1,0 +1,13 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto p = process.startFile(child, ["exit", "7"])
+future<ProcessExitStatus> first = p.waitAsync()
+auto status = await first
+assert status.kind == 1 and status.code == 7
+assert not p.running
+// Already terminal native source and multiple independent status wrappers.
+auto repeated = await p.waitAsync()
+assert repeated.code == 7 and repeated.kind == 1
+p = process.startFile(child, ["exit", "0"])
+assert status.code == 7 and repeated.code == 7
+assert (await p.waitAsync()).code == 0
