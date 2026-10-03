@@ -7,7 +7,7 @@ with open(path, encoding="utf-8-sig") as stream:
     module = json.load(stream)
 targets = module["callTargets"]
 types = {t["id"]: t for t in module["types"]}
-destroy = [t for t in targets if t.get("cName") == "xl6_xrt_buffer_destroy"]
+destroy = [t for t in targets if t.get("cName") == "xl6BufferDestroyV1"]
 assert len(destroy) == 1
 factories = [t for t in targets if t.get("cName") in
              ("xl6BufferFromHexV1", "xl6BufferFromBase64V1")]

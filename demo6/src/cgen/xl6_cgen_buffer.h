@@ -3,9 +3,9 @@
 
 #include "src/common/xl6_output.h"
 
-/* Buffer is a generated-program runtime component selected by verified XLIR
- * bridge identities.  It uses either the shared declaration SDK or the exact
- * narrow public-XRT declaration surface emitted by this component. */
+/* Legacy file/network conversion helpers only. Public Buffer operations are
+ * sealed resident components selected through the direct ABI registry; this
+ * emitter must not implement their factories, byte operations or queries. */
 void xl6CgenEmitBufferRuntime(
     XL6_Output* out, int hasFileRuntime, int hasXrtDeclarations);
 

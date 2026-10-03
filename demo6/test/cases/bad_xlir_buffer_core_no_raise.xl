@@ -1,0 +1,2 @@
+extern "xl6BufferCreateReserveV1" @no_raise func bad(int capacity) as Buffer
+bad(16)

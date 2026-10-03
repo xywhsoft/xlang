@@ -1,0 +1,6 @@
+Buffer b = Buffer(16)
+assert b.appendByte(0) and b.appendByte(255)
+assert b.len() == 2 and b[1] == 255
+assert b.fill(65, 0, 1) and b[0] == 65
+assert b.copyWithin(1, 0, 1) and b[1] == 65
+assert b.clear() and b.len() == 0

@@ -56,4 +56,8 @@ canonical field/destructor TAKE ABI；不在 Cgen 识别函数名或补造
 Buffer 包装。未登记的普通 extern class 返回值不擅自改为原生工厂。
 `check_stdlib_buffer_codecs.ps1`/`.sh` 检查这种工厂、错 owner/borrow/
 result/effect 拒绝、实际按需闭包和分配失败清理。旧 raw Hex/Base64
-解码生成实现已删除，其他旧 Buffer core 分支仍是后续迁移项。
+解码生成实现已删除。B42进一步删除旧 Buffer core 的名称匹配、
+verifier profile及生成实现；公开工厂、字节操作和查询只消费封闭
+direct合同与resident plan。`check_stdlib_buffer_core.ps1`/`.sh` 验证
+owner/field/u8宽度、按需查询裁剪、错误与分配失败事务。旧file/network
+转换帮助函数仍是独立待迁移范围，不得重新用于实现公共Buffer核心。

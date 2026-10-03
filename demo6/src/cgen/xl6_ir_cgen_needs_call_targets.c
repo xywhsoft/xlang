@@ -371,10 +371,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsXValueRuntime = 1;
             needs->needsErrorRuntime = 1;
         } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_BUFFER ) {
-            needs->needsBufferBridgeRuntime = 1;
-            needs->needsErrorRuntime = 1;
-        } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN ) {
             needs->needsStringCharLenBridgeRuntime = 1;
             needs->needsStringViews = 1;

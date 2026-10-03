@@ -153,3 +153,8 @@ Buffer Hex/Base64 与 static/free native factory 的 B41 声明式 ABI 和
 失败清理范围见 `三组标准库接入长期任务.md`；跨平台专项门为
 `../tools/check_stdlib_buffer_codecs.ps1`/`.sh`，不涵盖旧 Buffer core
 的剩余迁移，也不等于全部容器或 53 模块完成。
+
+B42 公共 Buffer 核心的直接 ABI、查询裁剪、u8 索引和失败事务见
+`标准库设计.md` 与 `三组标准库接入长期任务.md`；对应专项门为
+`../tools/check_stdlib_buffer_core.ps1`/`.sh`。旧 file/network 转换
+帮助函数仍是独立待迁移范围，不能混入本批封板结论。

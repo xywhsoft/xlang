@@ -112,7 +112,7 @@ static const char* xl6LogOwner(XL6_LogShape shape)
     case LOG_SINK: case LOG_SINK_FACTORY: return "xl6LogSinkDestroyV1";
     case LOG_STATS: case LOG_STATS_FACTORY: return "xl6LogStatsDestroyV1";
     case LOG_RECORD: case LOG_RECORD_FACTORY: return "xl6LogRecordDestroyV1";
-    case LOG_BUFFER: return "xl6_xrt_buffer_destroy";
+    case LOG_BUFFER: return "xl6BufferDestroyV1";
     case LOG_IO_WRITER: return "xl6_xrt_io_writer_destroy";
     case LOG_FILE_STATS: case LOG_FILE_STATS_FACTORY: return "xl6LogFileStatsDestroyV1";
     case LOG_QUEUE_STATS: case LOG_QUEUE_STATS_FACTORY: return "xl6LogQueueStatsDestroyV1";

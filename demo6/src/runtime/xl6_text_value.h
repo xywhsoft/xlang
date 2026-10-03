@@ -14,6 +14,26 @@
 struct xlir_closure;
 struct xfuture;
 /* Exact Buffer value/range adapters; raw payload remains an XRT xbuffer. */
+XL6_TEXT_API void* xl6BufferCreateV1(void);
+XL6_TEXT_API void* xl6BufferCreateReserveV1(int64_t capacity);
+XL6_TEXT_API void* xl6BufferAdoptV1(void* buffer);
+XL6_TEXT_API void xl6BufferDestroyV1(void* buffer);
+XL6_TEXT_API int64_t xl6BufferLengthV1(void* buffer);
+XL6_TEXT_API int64_t xl6BufferCapacityV1(void* buffer);
+XL6_TEXT_API bool xl6BufferReserveV1(void* buffer, int64_t capacity);
+XL6_TEXT_API bool xl6BufferClearV1(void* buffer);
+XL6_TEXT_API bool xl6BufferAppendRawV1(void* buffer, void* data, int64_t size);
+XL6_TEXT_API bool xl6BufferInsertRawV1(void* buffer, int64_t offset, void* data, int64_t size);
+XL6_TEXT_API bool xl6BufferAppendByteV1(void* buffer, int64_t value);
+XL6_TEXT_API int64_t xl6BufferByteAtV1(void* buffer, int64_t index);
+XL6_TEXT_API bool xl6BufferSetByteV1(void* buffer, int64_t index, int64_t value);
+XL6_TEXT_API bool xl6BufferCopyFromV1(void* buffer, int64_t offset, void* source, int64_t sourceOffset, int64_t count);
+XL6_TEXT_API bool xl6BufferCopyWithinV1(void* buffer, int64_t offset, int64_t sourceOffset, int64_t count);
+XL6_TEXT_API bool xl6BufferFillV1(void* buffer, int64_t value, int64_t offset, int64_t count);
+XL6_TEXT_API int64_t xl6BufferCompareV1(void* buffer, void* other, int64_t size, int64_t otherSize);
+XL6_TEXT_API int64_t xl6BufferIndexOfV1(void* buffer, void* needle, int64_t start, int64_t size, int64_t needleSize);
+XL6_TEXT_API void* xl6BufferDataV1(void* buffer);
+XL6_TEXT_API void* xl6BufferHandleV1(void* buffer);
 XL6_TEXT_API void* xl6BufferFromTextV1(xstrview text, int64_t size);
 XL6_TEXT_API void* xl6BufferFromBytesV1(const xvalue* bytes, int64_t size);
 XL6_TEXT_API void* xl6BufferCopyV1(void* source, int64_t size);
