@@ -53,6 +53,10 @@ gcc -std=c11 -Wall -Wextra -Werror -frounding-math -fno-builtin \
 "$XL" build "$ROOT/release/examples/stdlib_math_c.c" -o "$TEST_DIR/stdlib_math_c"
 "$TEST_DIR/stdlib_math_c"
 
+printf 'Running Linux text declaration, sanitizer and artifact contracts...\n'
+bash "$ROOT/tools/check_stdlib_text_values.sh" \
+    "$TEST_DIR/text-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'Running Linux numeric declaration, sanitizer and artifact contracts...\n'
 bash "$ROOT/tools/check_stdlib_number_values.sh" \
     "$TEST_DIR/numeric-$(date +%Y%m%d-%H%M%S)-$$"
