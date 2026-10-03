@@ -16552,6 +16552,7 @@ static int xl6SemIsModuleGlobalDecl(const XL6_AstNode* node)
 {
     return node != NULL &&
            (node->kind == XL6_AST_VAR_DECL ||
+            node->kind == XL6_AST_MULTI_VAR_DECL ||
             node->kind == XL6_AST_CONST_DECL ||
             xl6SemIsPackageExportVarDecl(node));
 }
@@ -16660,7 +16661,8 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
     return xl6SemTypeEquals(ctx, valueType, targetType);
 }
 
-static int xl6SemCheckMultiVarDecl(XL6_SemContext* ctx, XL6_AstNode* node)
+static int xl6SemCheckMultiVarDeclWithKind(
+    XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKind valueKind)
 {
     XL6_AstNode* names;
     XL6_AstNode* expr;
@@ -16713,12 +16715,17 @@ static int xl6SemCheckMultiVarDecl(XL6_SemContext* ctx, XL6_AstNode* node)
                 }
                 typeNode = symbolType;
             }
-            if ( !xl6ScopeAddTyped(ctx, name, XL6_SYM_VALUE, typeNode) ) {
+            if ( !xl6ScopeAddTyped(ctx, name, valueKind, typeNode) ) {
                 ok = 0;
             }        }
     }
     xl6AstFree(ownedReturnType);
     return ok;
+}
+
+static int xl6SemCheckMultiVarDecl(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    return xl6SemCheckMultiVarDeclWithKind(ctx, node, XL6_SYM_VALUE);
 }
 
 static int xl6SemCompoundAssignIsSimpleNumericOp(const char* op)
@@ -24120,8 +24127,7 @@ static int xl6SemIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_EXTERN_VAR &&
            node->kind != XL6_AST_EXPORT_VAR &&
            node->kind != XL6_AST_EXPORT_CONST &&
-           node->kind != XL6_AST_VAR_DECL &&
-           node->kind != XL6_AST_CONST_DECL &&
+           !xl6SemIsModuleGlobalDecl(node) &&
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
            node->kind != XL6_AST_UNION &&
@@ -24668,7 +24674,13 @@ int xl6SemCheckModule(
     }
     for ( i = 0; i < root->childCount; ++i ) {
         XL6_AstNode* child = root->children[i];
-        if ( xl6SemIsModuleGlobalDecl(child) && !xl6SemDeclareModuleGlobalVar(&ctx, child) ) {
+        /* Single and product bindings share the same module declaration
+         * order and global symbol contract. Do not check product bindings
+         * later as executable locals after global initializers are checked. */
+        if ( xl6SemIsModuleGlobalDecl(child) &&
+             !(child->kind == XL6_AST_MULTI_VAR_DECL
+                ? xl6SemCheckMultiVarDeclWithKind(&ctx, child, XL6_SYM_GLOBAL_VALUE)
+                : xl6SemDeclareModuleGlobalVar(&ctx, child)) ) {
             ok = 0;
         }
     }

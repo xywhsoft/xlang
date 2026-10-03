@@ -41,6 +41,10 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    /* Printing borrows one dynamic argument array and can allocate or fail I/O.
+     * Checked calls propagate the original thread error before the language
+     * wrapper considers its boolean-only I/O fallback. */
+    {"xl6_xrt_print",XL6_IR_RUNTIME_BRIDGE_PRINT,B,2,{V,B},.parameterDynamicBorrows={1,0}},
     {"xl6BufferFromTextV1",T,V,2,{S,I},.resultOwner="xl6_xrt_buffer_destroy"},
     {"xl6BufferFromBytesV1",T,V,2,{Y,I},.resultOwner="xl6_xrt_buffer_destroy"},
     {"xl6BufferCopyV1",T,V,2,{V,I},.resultOwner="xl6_xrt_buffer_destroy",.parameterOwners={"xl6_xrt_buffer_destroy"}},
@@ -479,57 +483,57 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #undef I
 #undef T
     { "xl6_xrt_write", XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING } },
+      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
     { "xl6_xrt_writeln", XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING } },
+      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
     { "xl6_xrt_console_error", XL6_IR_RUNTIME_BRIDGE_TEXT_ERROR, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING } },
+      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
     { "xl6_xrt_console_error_line", XL6_IR_RUNTIME_BRIDGE_TEXT_ERRORLN, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING } },
+      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
     { "xl6_xrt_console_flush", XL6_IR_RUNTIME_BRIDGE_TEXT_FLUSH, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_C_INT } },
+      1, { XL6_IR_C_ABI_C_INT }, .noRaise=1 },
     { "xl6_xrt_dir_list", XL6_IR_RUNTIME_BRIDGE_DIR_LIST, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT } },
+      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
     { "xl6_xrt_dir_glob", XL6_IR_RUNTIME_BRIDGE_DIR_GLOB, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-      4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT } },
+      4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
     { "xl6_xrt_dir_entries", XL6_IR_RUNTIME_BRIDGE_DIR_ENTRIES, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-      5, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_INT } },
+      5, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
     { "xl6_xrt_dir_is_empty", XL6_IR_RUNTIME_BRIDGE_DIR_IS_EMPTY, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING } },
+      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
     { "xl6_xrt_dir_count", XL6_IR_RUNTIME_BRIDGE_DIR_COUNT, XL6_IR_C_ABI_I64,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT } },
+      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
     { "xl6_xrt_dir_size", XL6_IR_RUNTIME_BRIDGE_DIR_SIZE, XL6_IR_C_ABI_I64,
-      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL } },
+      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, .noRaise=1 },
     { "xl6_xrt_hash32_string", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_UINT,
-      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 } },
+      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash32_string_seed", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_UINT,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash64_string", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_ULONGLONG,
-      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 } },
+      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash64_string_seed", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash32_bytes", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_UINT,
-      2, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 } },
+      2, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash32_bytes_seed", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_UINT,
-      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash64_bytes", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_ULONGLONG,
-      2, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 } },
+      2, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash64_bytes_seed", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash32_raw", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_UINT,
-      3, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash32_raw_seed", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_UINT,
-      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 } },
+      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash64_raw", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_hash64_raw_seed", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_ULONGLONG,
-      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 } },
+      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_siphash64_string", XL6_IR_RUNTIME_BRIDGE_SIPHASH_STRING, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_siphash64_bytes", XL6_IR_RUNTIME_BRIDGE_SIPHASH_BYTES, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 } },
+      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
     { "xl6_xrt_siphash64_raw", XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW, XL6_IR_C_ABI_C_ULONGLONG,
-      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 } }
+      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 }
 };
 
 static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContract(const char* name)
@@ -572,7 +576,7 @@ int xl6IrRuntimeDirectBridgeFactory(const char* name)
 XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name)
 {
     const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
-    return c && c->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && !c->noRaise
+    return c && !c->noRaise
         ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
 }
 const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t index)
@@ -654,7 +658,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
          target->parameterPhysicalAbis == NULL || target->parameterConstraintAbis == NULL ||
          target->parameterPhysicalFieldDeclarations == NULL))) return 0;
     result = xl6IrTypeGet(&module->types, target->returnType);
-    if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
+    if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE ||
+        contract->kind == XL6_IR_RUNTIME_BRIDGE_PRINT) {
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
         if (target->effectAbi != (contract->pure ? XL6_IR_CALL_EFFECT_PURE : XL6_IR_CALL_EFFECT_CONSERVATIVE) ||
             target->executionBoundaryAbi != (contract->nonblocking

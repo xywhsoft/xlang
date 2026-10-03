@@ -1,0 +1,8 @@
+// Product fields and subsequent single bindings share module-global scope.
+// This is the original previously rejected initializer, now an automatic case.
+func pair() as (bool, uint8)
+    return true, uint8(97)
+end
+auto found, item = pair()
+uint8 copied = item
+assert found and copied == 97

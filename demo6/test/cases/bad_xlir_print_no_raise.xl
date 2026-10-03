@@ -1,0 +1,2 @@
+extern "xl6_xrt_print" @no_raise func falseContract(var arguments, bool newline) as bool
+falseContract([1], true)

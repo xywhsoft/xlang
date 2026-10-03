@@ -143,3 +143,8 @@
 - 修改标准库命名、参数默认值或 XRT/CRT 边界时，同步维护 `标准库设计.md`。
 - 修改 import/package 行为时，同步维护 `扩展库系统设计.md`、`C混编设计.md`、XLIR dependency plan 合同和对应质量门。
 - 历史任务单中的旧状态不能作为当前实现结论直接引用，必须回查当前权威设计或代码。
+
+模块产品声明、闭包 cell 和 `println` 原始错误传播的 B40 验收范围见
+`三组标准库接入长期任务.md`；对应跨平台门为
+`../tools/check_xlir_module_product_globals.ps1`/`.sh`。专项通过不等于
+三个分类全部 53 模块已封板。

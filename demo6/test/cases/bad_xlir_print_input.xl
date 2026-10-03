@@ -1,0 +1,2 @@
+extern "xl6_xrt_print" func wrongInput(string arguments, bool newline) as bool
+wrongInput("text", true)

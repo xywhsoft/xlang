@@ -1,0 +1,5 @@
+func pair() as (int, int)
+    return 1, 2
+end
+auto first, second = pair()
+int second = 3
