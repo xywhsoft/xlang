@@ -218,6 +218,8 @@ static int xl6IrCgenEmitSymbolRelease(
     if (indirect) xl6OutputPuts("*", &spelling);
     xl6IrCgenPutStorageName(&spelling, module, symbol);
     place = xl6OutputTakeMemoryText(&spelling, NULL);
+    xl6OutputDiscard(&spelling);
+    if (place == NULL) return 0;
     ok = xl6IrCgenEmitDetachedRelease(out, xl6IrCgenType(module, type), destroy, place, NULL);
     xrtFree(place);
     return ok;

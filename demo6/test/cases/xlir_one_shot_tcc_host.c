@@ -127,6 +127,9 @@ static void load_artifact(void)
     BIND(xl6FutureCallbackOwnershipAdapterV1);
     BIND(xl6CaptureRuntimeV1Get);
     BIND(xl6ActivationCaptureRuntimeV1Get);
+#ifdef JOINT_TCC_EXTRA_SYMBOLS
+    JOINT_TCC_EXTRA_SYMBOLS(BIND)
+#endif
 #undef BIND
 #ifdef JOINT_SOURCE_XRT
     /* TCC keeps the first definition of an injected symbol. Register the

@@ -1,0 +1,41 @@
+// Pending: after host releases the captured value, this self-cycle has NO
+// path from module global slots. Its class code lease still owns the module.
+// The existing module-root-only collector safely refuses to unmap it, but
+// cannot discover and reclaim this detached island. Do not mark as passed.
+extern "stack_graph_capture" func capture(var value)
+extern "stack_graph_dropped" func dropped(int id, int count)
+string stackGraphText = "module" + " alive"
+class StackGraphMarker
+    int id = 0
+    Stack<StackGraphMarker> links
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        assert(stackGraphText == "module alive")
+        dropped(self.id, self.links.count())
+    end
+end
+func makeStackGraph(int id) as StackGraphMarker
+    StackGraphMarker marker = StackGraphMarker(id)
+    assert(marker.links.push(marker))
+    return marker
+end
+StackGraphMarker internalStackGraph = makeStackGraph(7)
+export "stack_graph_setup" func setupStackGraph(int mode) as int
+    assert(internalStackGraph.links.count() == 1)
+    if mode > 0 then
+        StackGraphMarker marker = makeStackGraph(42)
+        StackGraphMarker child = StackGraphMarker(9)
+        assert(marker.links.push(child))
+        if mode == 1 then
+            capture(marker)
+        else
+            capture(marker.links)
+        end
+    end
+    return 42
+end
+func main(...) as int
+    return 0
+end

@@ -25,6 +25,10 @@ typedef struct PlanBuild {
     XL6_OwnershipPlan* plan;
     PlanNode* nodes;
     size_t count, capacity;
+    /* Snapshot rejection reports STATE. Our admission callback can also
+     * fail while allocating its own bookkeeping; retain that diagnostic
+     * explicitly across the callback boundary instead of losing MEM/RANGE. */
+    xerror* admissionError;
 } PlanBuild;
 static bool same_ref(xrtownershipref a,xrtownershipref b)
 { return a.Data==b.Data && a.Ops==b.Ops; }
@@ -62,8 +66,11 @@ static bool admit(xrtownershipref ref,void* context)
     if(build->count==build->capacity){
         size_t capacity=build->capacity?build->capacity*2:16;
         PlanNode* nodes;
-        if(capacity<build->capacity || capacity>SIZE_MAX/sizeof(*nodes)){xrtSetErrorKind(XERR_RANGE);return false;}
-        nodes=xrtRealloc(build->nodes,capacity*sizeof(*nodes));if(!nodes)return false;
+        if(capacity<build->capacity || capacity>SIZE_MAX/sizeof(*nodes)){
+            xrtSetErrorKind(XERR_RANGE);build->admissionError=xrtTakeError();return false;
+        }
+        nodes=xrtRealloc(build->nodes,capacity*sizeof(*nodes));
+        if(!nodes){build->admissionError=xrtTakeError();return false;}
         build->nodes=nodes;build->capacity=capacity;
     }
     build->nodes[build->count++]=node;return true;
@@ -81,7 +88,7 @@ static void rollback(PlanBuild* build)
 }
 static XL6_OwnershipPlanResult rebuild(XL6_OwnershipPlan* plan)
 {
-    PlanBuild build={plan,NULL,0,0};xrtownershipsnapshot* snapshot=NULL;
+    PlanBuild build={.plan=plan};xrtownershipsnapshot* snapshot=NULL;
     xrtownershipref* anchors=NULL;XL6_OwnershipPlanResult result=XL6_OWNERSHIP_PLAN_ERROR;
     bool rootFound=false,rooted=false,pending=false,preparing=false;
     if(plan->count){
@@ -128,7 +135,9 @@ static XL6_OwnershipPlanResult rebuild(XL6_OwnershipPlan* plan)
     return rooted?XL6_OWNERSHIP_PLAN_ROOTED:preparing?XL6_OWNERSHIP_PLAN_PREPARATIONS:
         pending?XL6_OWNERSHIP_PLAN_FINALIZERS:XL6_OWNERSHIP_PLAN_READY;
 failed:
-    { xerror* error=xrtTakeError();rollback(&build);xrtOwnershipSnapshotDestroy(snapshot);xrtFree(anchors);
+    { xerror* error=build.admissionError?build.admissionError:xrtTakeError();
+      if(build.admissionError)xrtClearError();
+      rollback(&build);xrtOwnershipSnapshotDestroy(snapshot);xrtFree(anchors);
       xrtClearError();xrtSetErrorTake(error); }
     return result;
 }
