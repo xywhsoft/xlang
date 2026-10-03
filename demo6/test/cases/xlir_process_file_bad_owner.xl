@@ -1,0 +1,7 @@
+class BadCommand
+    private native point handle
+    extern "xl6ProcessCommandShellV1" create(string text, int size = -1)
+    extern "xl6ProcessCommandDestroyV1" destroy()
+    extern "xl6ProcessCommandFileV1" func redirect(int stream, ProcessCommand file)
+end
+BadCommand("unused").redirect(0, process.shell("unused"))

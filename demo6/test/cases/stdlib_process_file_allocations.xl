@@ -1,0 +1,10 @@
+// No child creation: sweep language boxing, native command and File factories,
+// binding, replacement, and finalizers from module initialization onward.
+auto command = process.shell("unused")
+auto first = file.temp()
+auto second = file.temp()
+command.stdout(first)
+command.stdout(second)
+assert first.close()
+assert second.close()
+command.stdio(process.stdout, process.stdioNull)

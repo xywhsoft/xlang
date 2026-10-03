@@ -99,6 +99,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessCommandTerminalV1",T,XL6_IR_C_ABI_VOID,2,{V,B},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
     {"xl6ProcessCommandTerminalSizeV1",T,XL6_IR_C_ABI_VOID,3,{V,I,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
     {"xl6ProcessCommandStdioV1",T,XL6_IR_C_ABI_VOID,3,{V,I,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
+    {"xl6ProcessCommandFileV1",T,XL6_IR_C_ABI_VOID,3,{V,I,V},.parameterOwners={"xl6ProcessCommandDestroyV1",NULL,"xl6_xrt_fs_file_destroy"}},
     {"xl6ProcessRunOptionsCreateV1",T,V,6,{I,I,I,I,I,U},.resultOwner="xl6ProcessRunOptionsDestroyV1"},
     {"xl6ProcessRunOptionsDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"},.noRaise=1},
     {"xl6ProcessRunOptionsCancelV1",T,B,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"}},

@@ -318986,7 +318986,10 @@ XRT_API xprocessio xrtProcessFile(xfile File)
 
 	Io.Mode = XPROCESS_IO_HANDLE;
 	Io.Handle = xrtFileNative(File);
-	if ( Io.Handle == -1 ) {
+	/* Preserve an actual backend failure (including unsupported VFS handles).
+	 * NULL input keeps the process argument contract; a silent backend still
+	 * receives a useful fallback rather than returning an unreported error. */
+	if ( (Io.Handle == -1) && ((File == NULL) || (xrtGetError() == NULL)) ) {
 		__xrtProcessErrorSet(
 			XERR_ARGUMENT,
 			XPROCESS_ERROR_ARGUMENT,

@@ -1,0 +1,22 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto input = file.temp()
+auto output = file.temp()
+auto errors = file.temp()
+assert input.writeAll(b"a\0你b") == 6
+input.seek(0)
+auto command = process.cmd(child, ["echo"])
+command.stdin(input)
+command.stdout(output)
+command.stderr(errors)
+assert input.close()
+auto live = command.start()
+// Replacing the configuration cannot invalidate copies already inherited by child.
+command.stdio(process.stdout, process.stdioNull)
+command.stdio(process.stderr, process.stdioNull)
+auto status = live.wait(5000)
+assert status != null
+if status != null then assert status.code == 0 end
+assert output.readAtExact(0, 6) == b"a\0你b"
+assert errors.readAtExact(0, 3) == b"E\0R"
+assert output.close() and errors.close()

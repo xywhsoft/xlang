@@ -1,0 +1,29 @@
+auto command = process.shell("unused")
+auto resource = file.temp()
+command.stdout(resource)
+assert resource.close()
+assert resource.closed
+int denied = 0
+try
+    command.terminal()
+catch e
+    denied += 1
+end
+assert denied == 1
+command.stdio(process.stdout, process.stdioNull)
+command.terminal()
+command.terminal(false)
+
+auto fs = vfs.create()
+auto memory = vfs.memory()
+assert memory.put("input", b"a\0b") and memory.seal()
+auto mount = fs.mount("/files", memory)
+auto input = fs.open("/files/input")
+try
+    command.stdin(input)
+catch e
+    denied += 1
+end
+assert denied == 2
+assert input.read(3) == b"a\0b"
+assert input.close()

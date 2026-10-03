@@ -103,6 +103,17 @@ const char* xl6StdlibProcessLiveSource =
     "    func closeStdin() as bool\n"
     "        return self.close(0)\n"
     "    end\n";
+const char* xl6StdlibProcessFileSource =
+    "    extern \"xl6ProcessCommandFileV1\" func redirect(int stream, File file)\n"
+    "    func stdin(File file)\n"
+    "        self.redirect(0, file)\n"
+    "    end\n"
+    "    func stdout(File file)\n"
+    "        self.redirect(1, file)\n"
+    "    end\n"
+    "    func stderr(File file)\n"
+    "        self.redirect(2, file)\n"
+    "    end\n";
 const char* xl6StdlibProcessStreamSource =
     "    func stdinWriter() as IoWriter\n"
     "        return IoWriter(self)\n"
