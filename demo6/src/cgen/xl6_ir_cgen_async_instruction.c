@@ -298,6 +298,7 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
         if (!xl6IrCgenEmitGeneratorConsumerInstruction(out, module, instruction)) return 0;
         break;
     case XL6_IR_INSTR_LOAD:
+        if (xl6IrCgenResultStorageOmitted(module, instruction)) break;
         {
             size_t parameter = xl6IrCgenAsyncParameterIndex(
                 module, function, instruction->targetSymbol);

@@ -35,6 +35,15 @@ try {
     }
     & "$prefix.contract.exe" "$prefix.baseline.c" "$prefix.baseline.h" "$prefix.baseline.json" --baseline
     if ($LASTEXITCODE -ne 0) { throw 'Generator frame loan baseline generation failed' }
+    # C-host AOT bypasses the language artifact plan. Link the actual resident
+    # generator/closure dependency chain, not implicit JIT DLL exports.
+    $runtimeSources = @('src/runtime/xl6_slot.c','src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_cell.c','src/runtime/xl6_closure.c','src/runtime/xl6_frame_storage.c',
+        'src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c',
+        'src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c',
+        'src/runtime/xl6_generator.c','src/runtime/xl6_code_finalizer.c',
+        'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
+        'src/runtime/xl6_continuation_future.c','src/runtime/xl6_future_payload.c')
     foreach ($variant in @('optimized','baseline')) {
         $hostSource = if ($variant -eq 'baseline') { 'test/cases/xlir_generator_frame_loan_baseline_host.c' } else { 'test/cases/xlir_generator_frame_loan_host.c' }
         # The host translation unit embeds only current-source verified C.
@@ -44,7 +53,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant runtime/memory failed" }
         & release/xl.exe run test/cases/xlir_generator_frame_loan_runtime.c $hostSource --inc-path . --inc-path build/test -- --smoke
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant C-host JIT failed" }
-        & release/xl.exe build test/cases/xlir_generator_frame_loan_runtime.c $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.$variant.aot.exe"
+        & release/xl.exe build test/cases/xlir_generator_frame_loan_runtime.c $hostSource @runtimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test --inc-path release -o "$prefix.$variant.aot.exe"
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant C-host AOT build failed" }
         & "$prefix.$variant.aot.exe" --smoke
         if ($LASTEXITCODE -ne 0) { throw "Generator frame loan $variant C-host AOT runtime failed" }

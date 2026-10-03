@@ -1840,30 +1840,6 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/api/xl_api.c",
         "src/api/xl_api_symbols.c",
         "src/api/xl_api_path.c",
-        "src/api/xl_foreign_error.c",
-        "src/api/xl_protocol_registry.c",
-        "src/api/xl_future_bridge.c",
-        "src/api/xl_task_group_bridge.c",
-        "src/runtime/xl6_continuation_queue.c",
-        "src/runtime/xl6_continuation_executor.c",
-        "src/runtime/xl6_continuation_future.c",
-        "src/runtime/xl6_code_lease.c",
-        "src/runtime/xl6_closure.c",
-        "src/runtime/xl6_cell.c",
-        "src/runtime/xl6_slot.c",
-        "src/runtime/xl6_frame_storage.c",
-        "src/runtime/xl6_task.c",
-        "src/runtime/xl6_task_file.c",
-        "src/runtime/xl6_network_service.c",
-        "src/runtime/xl6_continuation_frame.c", "src/runtime/xl6_future_wait.c",
-        "src/runtime/xl6_capture.c",
-        "src/runtime/xl6_value_iterator.c",
-        "src/runtime/xl6_future_callback.c",
-        "src/runtime/xl6_ownership_plan.c",
-        "src/runtime/xl6_generator.c",
-        "src/runtime/xl6_code_finalizer.c",
-        "src/runtime/xl6_future_payload.c",
-        "src/api/xl_channel_bridge.c",
         "src/abi/xl6_abi_json.c",
         "src/abi/xl6_callable.c",
         "src/backend/xl6_build_backend.c",
@@ -1938,6 +1914,17 @@ static int xlAddEmbeddedXlangRuntimeSources(
         if ( !xlAddTccSourceFile(ctx, s, runtimeSources[i]) ) {
             return 0;
         }
+    }
+    /* Explicit import xlang embeds a full language host, including the
+     * callable standard-library environment registered by xl_api_symbols.
+     * Use its canonical resident catalog once instead of a second, stale
+     * hand-maintained source list. Ordinary artifacts still consume only
+     * their verified, pruned XLIR plan in xlAddPrivateLanguageRuntimeSources. */
+    for ( i = 0; i < XL6_ARTIFACT_RUNTIME_COUNT; ++i ) {
+        const XL6_ArtifactRuntimeComponent* component =
+            xl6ArtifactRuntimeComponentGet((unsigned)i);
+        if (component == NULL || component->source == NULL ||
+            !xlAddTccSourceFile(ctx, s, component->source)) return 0;
     }
     if ( (features & XL6_IMPORT_FEATURE_XLANG_COMPILER) != 0 ) {
         for ( i = 0; i < sizeof(compilerSources) / sizeof(compilerSources[0]); ++i ) {
