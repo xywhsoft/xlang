@@ -1,83 +1,92 @@
-// 常量值是 XRT 进程 ABI 的稳定部分，状态和流编号可直接用于配置与诊断。
+// Exercise the current typed Process ABI, not the retired point/dict facade.
+// The private child is portable; do not invoke cmd, more or an external service.
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
 assert process.stdin == 0 and process.stdout == 1 and process.stderr == 2
 assert process.stdioInherit == 0 and process.stdioPipe == 1 and process.stdioNull == 2
 assert process.stateRunning == 0 and process.stateExited == 1
 
-// ProcessCommand 应完整承接 XRT 的进程配置能力。
-ProcessCommand envCommand = process.shell("cmd /c echo %XL6_PROCESS_EXT%")
-assert envCommand.workDir(".")
-assert envCommand.env("XL6_PROCESS_EXT", "configured")
-assert envCommand.inheritEnv(true)
-assert envCommand.mergeStderr(false)
-assert envCommand.processGroup(false)
-assert envCommand.hideWindow(true)
-assert envCommand.readChunkSize(1024)
-assert envCommand.maxCaptureBytes(1024 * 1024)
-assert envCommand.maxEventCount(128)
-assert envCommand.stdio(process.stdout, process.stdioPipe, true)
-assert !envCommand.stdio(9, process.stdioPipe, false)
-assert !envCommand.terminalSize(0, 24)
+ProcessCommand envCommand = process.cmd(child, ["env", "XL6_PROCESS_EXT"])
+envCommand.workDir(".")
+envCommand.env("XL6_PROCESS_EXT", "configured")
+envCommand.inheritEnv(false)
+envCommand.processGroup(false)
+envCommand.newConsole(false)
+envCommand.hideWindow(true)
+envCommand.stdio(process.stdout, process.stdioPipe)
+envCommand.stdio(process.stderr, process.stdioNull)
+// Capture bounds belong to immutable run options, not mutable live event queues.
+ProcessRunOptions options = ProcessRunOptions(5000, 1024 * 1024, 1024 * 1024)
+ProcessResult envResult = process.run(envCommand, options)
+assert envResult.success and envResult.stdoutText() == "configured"
+assert not envResult.timedOut and not envResult.cancelled
+auto resultExit = envResult.status
+assert resultExit.kind == 1 and resultExit.code == 0
 
-ProcessResult envResult = process.run(envCommand, "", 5000)
-assert envResult.success
-assert string.trim(envResult.stdout) == "configured"
-
-var resultExit = envResult.exitInfo()
-assert int(resultExit["exitCode"]) == 0
-assert !bool(resultExit["timedOut"])
-assert !bool(resultExit["cancelled"])
-
-// 启动后的增量读取必须同时返回数据与稳定游标。
-ProcessCommand ioCommand = process.shell("cmd /c echo incremental-out ^& echo incremental-err 1^>^&2")
-Process ioProcess = process.start(ioCommand)
-assert ioProcess.wait(5000)
+// Owned Reader maintains its byte position; retired event/cursor dictionaries
+// are deliberately not reconstructed. Every read keeps exact binary lengths.
+Process ioProcess = process.startFile(child, ["echo"])
+auto inputWriter = ioProcess.stdinWriter()
+auto stdoutReader = ioProcess.stdoutReader()
+auto stderrReader = ioProcess.stderrReader()
+inputWriter.writeAll(b"incremental-out\n")
+inputWriter.close()
+assert stdoutReader.readExact(4) == b"incr"
+assert stdoutReader.readAll() == b"emental-out\n"
+assert stderrReader.readAll() == b"E\0R"
+auto processExit = ioProcess.wait(5000)
+assert processExit != null
+if processExit != null then assert processExit.kind == 1 and processExit.code == 0 end
 assert ioProcess.state == process.stateExited
+stdoutReader.close()
+stderrReader.close()
 
-var stdoutPart = ioProcess.readStdout(0, 4)
-assert string(stdoutPart["data"]) == "incr"
-assert int(stdoutPart["baseOffset"]) == 0
-assert int(stdoutPart["nextOffset"]) == 4
-assert int(stdoutPart["streamEndOffset"]) >= 15
-
-var stdoutRest = ioProcess.readStdout(int(stdoutPart["nextOffset"]), 0)
-assert string.startsWith(string(stdoutRest["data"]), "emental-out")
-assert bool(stdoutRest["done"])
-
-var stderrAll = ioProcess.readStderr()
-assert string.trim(string(stderrAll["data"])) == "incremental-err"
-assert bool(stderrAll["done"])
-
-var events = ioProcess.readEvents()
-assert int(events["nextSeq"]) >= int(events["baseSeq"])
-assert int(events["eventEndSeq"]) >= int(events["nextSeq"])
-assert bool(events["done"])
-
-var processExit = ioProcess.exitInfo()
-assert int(processExit["exitCode"]) == 0
-
-// Buffer 写入路径不能退化为仅文本接口。
-Process bytesProcess = process.start("cmd /c more")
+// The byte-oriented writer also accepts Buffer; NUL is not a text terminator.
 Buffer input = Buffer()
-assert input.append("bytes-process\n")
-assert bytesProcess.writeBytes(input)
-assert bytesProcess.closeStdin()
-assert bytesProcess.wait(5000)
-assert string.trim(bytesProcess.stdout) == "bytes-process"
+assert input.append("bytes\0process\n")
+Process bytesProcess = process.startFile(child, ["echo"])
+auto bytesWriter = bytesProcess.stdinWriter()
+auto bytesReader = bytesProcess.stdoutReader()
+auto bytesErrors = bytesProcess.stderrReader()
+bytesWriter.writeAll(input)
+bytesWriter.close()
+assert bytesReader.readAll() == b"bytes\0process\n"
+assert bytesErrors.readAll() == b"E\0R"
+auto bytesExit = bytesProcess.wait(5000)
+assert bytesExit != null
+if bytesExit != null then assert bytesExit.code == 0 end
+bytesReader.close()
+bytesErrors.close()
 
-// 与平台能力相关的接口必须可查询，非法参数必须稳定失败。
+// Invalid configuration now raises checked errors instead of bool failure.
+int rejected = 0
+try
+    envCommand.stdio(9, process.stdioPipe)
+catch e
+    rejected += 1
+end
+try
+    envCommand.terminalSize(0, 24)
+catch e
+    rejected += 1
+end
+try
+    bytesProcess.resize(0, 0)
+catch e
+    rejected += 1
+end
+assert rejected == 3
 bool terminalAvailable = process.terminalSupported()
-assert terminalAvailable or !terminalAvailable
-assert !bytesProcess.resizeTerminal(0, 0)
+assert terminalAvailable or not terminalAvailable
 
-Process asyncProcess = process.start("cmd /c exit /b 0")
-future<point> waitFuture = asyncProcess.waitAsync()
-assert waitFuture.wait()
-assert await waitFuture != null
-assert asyncProcess.exitCode == 0
+Process asyncProcess = process.startFile(child, ["exit", "0"])
+future<ProcessExitStatus> waitFuture = asyncProcess.waitAsync()
+auto asyncExit = await waitFuture
+assert asyncExit.kind == 1 and asyncExit.code == 0
+assert not asyncProcess.running
 
-// clearEnv 会释放由命令对象持有的环境副本。
-ProcessCommand cleanupCommand = process.shell("cmd /c exit /b 0")
-assert cleanupCommand.env("XL6_TEMP", "1")
-assert cleanupCommand.clearEnv()
-
+// clearEnv releases the command's overrides, not the host environment.
+envCommand.clearEnv()
+assert envCommand.run(options).exitCode == 17
+assert resultExit.code == 0 and envResult.stdoutText() == "configured"
 println("stdlib process extended ok")
