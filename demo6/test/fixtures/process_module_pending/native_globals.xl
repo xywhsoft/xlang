@@ -1,0 +1,21 @@
+extern "process_lifetime_finally" func lifetimeFinally()
+extern "process_lifetime_launch" func lifetimeLaunch() as bool
+
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.stdio(process.stdin, process.stdioPipe)
+command.stdio(process.stdout, process.stdioNull)
+command.stdio(process.stderr, process.stdioNull)
+auto running = command.start()
+
+async func lifetimeWait() as ProcessExitStatus
+    try
+        return await running.waitAsync()
+    finally
+        lifetimeFinally()
+    end
+end
+if lifetimeLaunch()
+    auto ignored = lifetimeWait()
+end

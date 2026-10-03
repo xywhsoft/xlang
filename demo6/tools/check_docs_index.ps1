@@ -163,6 +163,7 @@ if ( $extraMarkdownDocs.Count -lt $minExtraMarkdownEntryDocs ) {
 
 $knownReadmeDocs = New-Object System.Collections.Generic.HashSet[string]
 $knownReadmeDocs.Add(("docs\README.md").ToLowerInvariant()) | Out-Null
+$knownReadmeDocs.Add(("test\fixtures\process_module_pending\README.md").ToLowerInvariant()) | Out-Null
 foreach ( $relative in $extraMarkdownDocs ) {
     $knownReadmeDocs.Add($relative.ToLowerInvariant()) | Out-Null
 }

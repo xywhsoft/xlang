@@ -1,0 +1,27 @@
+extern "process_lifetime_finally" func lifetimeFinally()
+extern "process_lifetime_launch" func lifetimeLaunch() as bool
+
+func lifetimeProcess() as Process
+    string child = env.get("XL6_PROCESS_CHILD") ?? ""
+    assert child != ""
+    auto command = process.cmd(child, ["echo"])
+    command.stdio(process.stdin, process.stdioPipe)
+    command.stdio(process.stdout, process.stdioNull)
+    command.stdio(process.stderr, process.stdioNull)
+    return command.start()
+end
+
+async func lifetimeWait(Process running) as ProcessExitStatus
+    try
+        return await running.waitAsync()
+    finally
+        lifetimeFinally()
+    end
+end
+
+// Keep the canonical async entry reachable without starting it at activation.
+// The test provider calls this verified entry under a real host entry lease.
+if lifetimeLaunch()
+    auto running = lifetimeProcess()
+    auto ignored = lifetimeWait(running)
+end
