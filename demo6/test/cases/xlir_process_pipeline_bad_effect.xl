@@ -1,0 +1,7 @@
+class PurePipeline
+    private native point handle
+    extern "xl6ProcessPipelineCreateV1" create()
+    extern "xl6ProcessPipelineDestroyV1" destroy()
+    extern "xl6ProcessPipelineCountV1" @pure @no_raise @nonblocking get count() as int
+end
+println(PurePipeline().count)

@@ -1,0 +1,8 @@
+class WrongPipeline
+    private native point handle
+    extern "xl6ProcessCommandShellV1" create(string text, int size = -1)
+    extern "xl6ProcessCommandDestroyV1" destroy()
+    extern "xl6ProcessPipelineCountV1" get count() as int
+end
+auto value = WrongPipeline("unused")
+println(value.count)

@@ -17,15 +17,13 @@ expect(runResult.success, 1)
 expect(runResult.exitCode, 0)
 expect(runResult.timedOut, 0)
 expect(runResult.cancelled, 0)
-expect(runResult.spawnFailed, 0)
-expect(runResult.killed, 0)
-expectStr(string.trim(runResult.stdout), "process-run")
-expectStr(string.trim(runResult.stderr), "")
+expectStr(string.trim(runResult.stdoutText()), "process-run")
+expectStr(string.trim(runResult.stderrText()), "")
 
 ProcessResult fileResult = process.runFile("cmd", ["/c", "echo", "process-file"])
 expect(fileResult.success, 1)
 expect(fileResult.exitCode, 0)
-expectStr(string.trim(fileResult.stdout), "process-file")
+expectStr(string.trim(fileResult.stdoutText()), "process-file")
 
 PipelineResult pipe = process.pipeline([
     process.shell("cmd /c echo alpha"),
@@ -37,17 +35,18 @@ expect(pipe.failedIndex, -1)
 expect(pipe.count, 2)
 expect(pipe.completedCount, 2)
 expect(pipe.timedOut, 0)
-expectStr(string.trim(pipe.stdout), "alpha")
+expectStr(string.trim(pipe.stdoutText()), "alpha")
 
-ProcessResult secondStage = pipe.result(1)
+ProcessStageResult secondStage = pipe.stage(1)
 expect(secondStage.success, 1)
-expectStr(string.trim(secondStage.stdout), "alpha")
+expect(secondStage.status.code, 0)
+expectStr(secondStage.stderrText(), "")
 
 PipelineResult failedPipe = process.pipeline([
     process.shell("cmd /c exit /b 5"),
-    process.shell("cmd /c echo should-not-run")
+    process.shell("cmd /c echo still-runs")
 ])
-ProcessResult failedStage = failedPipe.result(0)
+ProcessStageResult failedStage = failedPipe.stage(0)
 expect(failedPipe.success, 0)
 expect(failedPipe.exitCode, 0)
 expect(failedPipe.failedIndex, 0)
@@ -58,18 +57,32 @@ expect(failedStage.exitCode, 5)
 
 Process proc = process.startFile("cmd", ["/c", "more"])
 expect(proc.running, 1)
-expect(proc.writeLine("live-process"), 1)
+auto input = proc.stdinWriter()
+auto output = proc.stdoutReader()
+input.writeAll("live-process\r\n")
+input.close()
 expect(proc.closeStdin(), 1)
-expect(proc.wait(5000), 1)
+auto ended = proc.wait(5000)
+assert ended != null
+if ended != null then
+    expect(ended.code, 0)
+end
 expect(proc.running, 0)
-expect(proc.exitCode, 0)
-expectStr(string.trim(proc.stdout), "live-process")
+expectStr(string.trim(encoding.decode(output.readAll())), "live-process")
+output.close()
 
 Process shellProc = process.start("cmd /c more")
 expect(shellProc.running, 1)
-expect(shellProc.writeLine("shell-process"), 1)
+auto shellInput = shellProc.stdinWriter()
+auto shellOutput = shellProc.stdoutReader()
+shellInput.writeAll("shell-process\r\n")
+shellInput.close()
 expect(shellProc.closeStdin(), 1)
-expect(shellProc.wait(5000), 1)
+auto shellEnded = shellProc.wait(5000)
+assert shellEnded != null
+if shellEnded != null then
+    expect(shellEnded.code, 0)
+end
 expect(shellProc.running, 0)
-expect(shellProc.exitCode, 0)
-expectStr(string.trim(shellProc.stdout), "shell-process")
+expectStr(string.trim(encoding.decode(shellOutput.readAll())), "shell-process")
+shellOutput.close()

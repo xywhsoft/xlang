@@ -395,7 +395,6 @@ static const XL6_StdlibDependency xl6StdlibDependencies[] = {
     {"tcp", "connectAsync", "__xrt_tcp", "connectAsync"},
     {"tcp", "listen", "__xrt_tcp", "listen"},
     {"udp", "bind", "__xrt_udp", "bind"},
-    {"process", "pipeline", "__xl_runtime", "processPipeline"},
     {"log", "default", "__xl_runtime", "logDefault"},
     {"log", "setDefault", "__xl_runtime", "logSetDefault"},
     {"log", "setDefault", "__xl_runtime", "logReleaseDefault"},

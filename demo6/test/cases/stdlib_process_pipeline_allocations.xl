@@ -1,0 +1,15 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+command.env("XL6_PROCESS_PIPELINE_ALLOC", "original")
+auto pipeline = ProcessPipeline()
+pipeline.add(command)
+pipeline.add(command)
+auto result = pipeline.run(ProcessRunOptions(5000, 1024, 1024, 0, 0), b"a\0你b")
+auto stage = result.stage(0)
+auto status = stage.status
+bytes output = result.stdout
+bytes errors = stage.stderr
+string text = result.stdoutText()
+assert result.success and result.count == 2 and output == b"a\0你b"
+assert errors == b"E\0R" and text == "a\0你b" and status.code == 0

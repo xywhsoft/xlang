@@ -1,0 +1,55 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+array<ProcessCommand> commands = [process.cmd(child, ["both", "262144"]), process.cmd(child, ["echo"])]
+auto options = ProcessRunOptions(5000, 262144, 262144)
+auto full = process.pipeline(commands, options)
+assert full.success and full.stdout.length == 262144
+assert full.stage(0).stderr.length == 262144 and full.stage(1).stderr == b"E\0R"
+auto limited = process.pipeline(commands, ProcessRunOptions(5000, 64, 32, 1))
+assert limited.stdout.length == 64 and limited.stdoutTruncated
+assert limited.stage(0).stderr.length == 32 and limited.stage(0).stderrTruncated
+assert not limited.stage(1).stderrTruncated
+auto tail = process.pipeline(commands, ProcessRunOptions(5000, 65, 33, 2))
+assert tail.stdout.length == 65 and tail.stage(0).stderr.length == 33
+auto failure = process.pipeline([process.cmd(child, ["exit", "7"]), process.cmd(child, ["echo"])], b"", 5000)
+assert not failure.success and failure.failedIndex == 0 and failure.exitCode == 0
+assert failure.stage(0).exitCode == 7 and failure.stage(1).success
+auto cancelled = ProcessRunOptions()
+assert cancelled.cancel()
+auto skipped = process.pipeline([process.cmd(child, ["echo"])], cancelled)
+assert skipped.cancelled and not skipped.success and skipped.count == 0
+assert skipped.completedCount == 0 and skipped.failedIndex == -1
+auto timeout = process.pipeline([process.cmd(child, ["sleep", "1000"]), process.cmd(child, ["echo"])], ProcessRunOptions(20, 1024, 1024, 0, 0))
+assert timeout.timedOut and not timeout.success and timeout.count == 2
+assert timeout.completedCount == 2
+int rejected = 0
+try
+    auto empty = ProcessPipeline().run()
+catch e
+    rejected += 1
+end
+try
+    auto invalid = full.stage(-1)
+catch e
+    rejected += 1
+end
+try
+    auto invalid = full.stage(2)
+catch e
+    rejected += 1
+end
+try
+    auto invalid = skipped.exitCode
+catch e
+    rejected += 1
+end
+try
+    auto invalid = full.readStdout(-2)
+catch e
+    rejected += 1
+end
+try
+    auto overflow = process.pipeline(commands, ProcessRunOptions(5000, 64, 32, 0, 0))
+catch e
+    rejected += 1
+end
+assert rejected == 6

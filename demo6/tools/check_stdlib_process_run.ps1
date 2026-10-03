@@ -20,17 +20,20 @@ try {
     $cases+=@('stdlib_process_live_wait','stdlib_process_live_streams','stdlib_process_live_drop','stdlib_process_live_allocations')
     $liveOomCases=@('stdlib_process_live_wait','stdlib_process_live_drop','stdlib_process_live_allocations')
     $cases+=@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')
+    $cases+=@('stdlib_process_pipeline_config','stdlib_process_pipeline_bytes','stdlib_process_pipeline_limits','stdlib_process_pipeline_allocations')
     $negatives=@('xlir_process_bad_array','xlir_process_bad_effect','xlir_process_bad_width','xlir_process_bad_owner')
     $negatives+=@('xlir_process_open_bad_width','xlir_process_open_bad_effect','xlir_process_terminal_bad_pure')
     $negatives+=@('xlir_process_live_bad_owner','xlir_process_live_bad_width','xlir_process_live_bad_effect','xlir_process_live_bad_stream')
     $negatives+=@('xlir_process_future_bad_element','xlir_process_future_bad_nullable','xlir_process_future_bad_effect','xlir_process_future_bad_owner')
+    $negatives+=@('xlir_process_pipeline_bad_owner','xlir_process_pipeline_bad_width','xlir_process_pipeline_bad_effect','xlir_process_pipeline_bad_input')
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_live_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
         'test/cases/xlir_process_future_host.c','test/cases/xlir_process_live_oom_host.c','test/support/process_oom_observer.c',
         'test/cases/xlir_process_pipeline_prefix.c',
+        'test/cases/xlir_process_pipeline_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
-        'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
+        'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl','release/examples/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
     $inputs=[ordered]@{}
@@ -69,6 +72,9 @@ try {
         $null=Check 'native-build' gcc ($flags+@('test/cases/xlir_process_run_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_run.c','src/runtime/xl6_process_status.c')+$libs+@('-o',"$work/native.exe"))
         $native=Check 'native' "$work/native.exe" @($child)
         foreach($witness in @('3 first no-hit completions, balanced','13 owner guards','projection OOM retry','concurrent cancellation and absolute deadline','native run complete prefix: [0-9]+ failures and 1 first no-hit, balanced')){if($native-notmatch$witness){throw 'Process native witness missing'}}
+        $null=Check 'pipeline-resident-build' gcc ($flags+@('-DXRT_MODULE_PROCESS_PIPELINE=1','test/cases/xlir_process_pipeline_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_status.c','src/runtime/xl6_process_pipeline_config.c','src/runtime/xl6_process_pipeline.c')+$libs+@('-o',"$work/pipeline-resident.exe"))
+        $pipelineResident=Check 'pipeline-resident' "$work/pipeline-resident.exe" @($child)
+        if($pipelineResident-notmatch 'pipeline resident prefixes: [0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+ failures \+ 5 first no-hit; snapshots, 5 owner guards, real collectors balanced' -or $pipelineResident-notmatch 'pipeline projections: [0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+ failures \+ 6 first no-hit; independent binary/status, cancellation/deadline, balanced'){throw 'Pipeline resident prefix witness missing'}
         $null=Check 'support-native-build' gcc ($flags+@('test/cases/xlir_process_support_host.c')+$libs+@('-o',"$work/support-native.exe"))
         $support=Check 'support-native' "$work/support-native.exe" @()
         if($support-notmatch '7 rejected inputs, exact prefix/clamp, native error transport; [0-9]+ allocation failures and 1 first no-hit, balanced; real terminal probe='){throw 'Process support native witness missing'}
@@ -105,12 +111,12 @@ try {
             $null=Check "$case-formal-run" 'release/xl.exe' @('run',$source)
             $null=Check "$case-formal-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
             $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
-            if($case-eq'stdlib_process_run_allocations'){
+            if($case-in@('stdlib_process_run_allocations','stdlib_process_pipeline_allocations')){
                 $terminal=$false
                 for($point=0;$point-lt512;++$point){
                     if((Check "$case-oom-$point" "$prefix.strict.exe" @("$point"))-match'hit=0 balanced'){$terminal=$true;break}
                 }
-                if(!$terminal){throw 'Process run language allocation sweep incomplete'}
+                if(!$terminal){throw 'Process collector language allocation sweep incomplete'}
             }
             if($case-in$liveOomCases){
                 $terminal=$false; $children=if($case-eq'stdlib_process_live_wait'){2}else{1}
@@ -132,12 +138,15 @@ try {
         $null=Check 'support-example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_support.xl')
         $null=Check 'support-example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_support.xl','-o',"$work/support-example.exe")
         $null=Check 'support-example-execute' "$work/support-example.exe" @()
+        $null=Check 'pipeline-example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_pipeline.xl')
+        $null=Check 'pipeline-example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_pipeline.xl','-o',"$work/pipeline-example.exe")
+        $null=Check 'pipeline-example-execute' "$work/pipeline-example.exe" @()
         $complete=$true
     } finally {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         if($changed.Count){$complete=$false}
         [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run and live Process, unique owned streams, independent typed status/nullable timeout, exact UTF-8/bytes. Three generated live paths sweep complete current-thread logical allocation prefixes including native factory and managed boxing, each plus first no-hit; actual native Spawn observer joins private waiter tails. Other-thread allocations are not injected. Typed Process waitAsync, prompt language cancellation without cancelling the shared native source, parent drop, native mapper/pending/terminal OOM and private waiter retirement. Generated Future full OOM-prefix and module unload remain pending. Controlled association launcher, real terminal capability probe (not PTY session). Strict C, closed ABI mutations, source/formal JIT/AOT, run logical OOM. Pipeline/redirection/PTY sessions and the 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
+            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run and live Process, owned streams/status, exact bytes. Three generated live current-thread logical allocation prefixes use actual Spawn observation and explicit private waiter retirement. Typed waitAsync and isolated cooperative language cancellation; generated Future full OOM/unload remain pending. Typed pipeline owned configuration snapshots, independent per-stage stderr/status, shared deadlines/cancellation, exact binary input/output, limits and real native connectors. Native configuration/collector/projection prefixes and generated pipeline full current-thread prefix include native factory/managed boxing plus first no-hit; no other-thread allocation injection. Controlled association launcher, real terminal probe (not PTY session). Strict C, closed ABI mutations/negatives, deterministic source/formal JIT/AOT, run OOM. File redirection/PTY and 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
         if($changed.Count){throw 'Frozen process_run inputs changed'}
     }
     Write-Output "Process run Windows checks: $($rows.Count)"

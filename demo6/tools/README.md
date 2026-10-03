@@ -236,10 +236,17 @@ A native pipeline preflight additionally sweeps every calling-thread allocation
 prefix for success and last-stage launch failure, with selected modules and
 MODULE_ALL. It requires intact unrelated stdin, exact per-stage binary stderr,
 collector-owned waiter retirement and balanced allocation ledgers. Linux
-instruments both native profiles; this is not public language pipeline or its
-per-program pruning acceptance. The production initialization/first-error/
-waiter fixes are recorded in stdlib53 B28a.
-Pipeline/file redirection/PTY remain later batches;
+instruments both native profiles. The production initialization/first-error/
+waiter fixes are recorded in stdlib53 B28a. B28b additionally covers public typed
+ProcessPipeline/PipelineResult/ProcessStageResult, owned stage configuration
+snapshots, exact binary input/output and independent per-stage stderr/status.
+Its generated pipeline sweeps the complete calling-thread allocation prefix,
+including native factories and managed boxing, through the first no-hit.
+Configuration-only and executing artifacts verify two separate resident
+components and actual native pruning; Linux instruments the actual generated
+XRT/resident/program closures, including the debug OOM witness. This collector
+retires its own waiters; no extra Spawn observer hides a retirement defect.
+File redirection/PTY remain later batches;
 passing this gate does not complete the seven process modules or all 53 modules.
 The same gates cover process.open input/error transport with a controlled
 association launcher (never claim OS launch acceptance), a real XRT terminal
