@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "test/support/module_product_memory.h"
+#if defined(XL6_PRODUCT_USER_ENTRY)
+/* Generated programs that do not construct arrays need not declare this
+ * independent host argument factory. */
+extern xvalue* xrtValueArray(void);
+#endif
 int main(int argc, char** argv)
 {
     assert(argc == 1 || argc == 2);

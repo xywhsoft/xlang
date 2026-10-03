@@ -355,3 +355,12 @@ errors and balances allocation totals. Linux sanitizes the actual selected
 generated/resident/native closures, not shared CLI/JIT or full shared debug XRT.
 Trusted C pointer escapes and legacy file/network conversions remain separate.
 `check_xlir_buffer_core_ir.py` rejects a return to the retired Buffer profile.
+
+`check_stdlib_stack_native.ps1` / `.sh` freeze four fixtures against current
+sources. They cover actual typed-stack C/JIT/AOT/pruned artifacts, exact tuple
+mutation refusal, embedded NUL, retained object references, reentrant release,
+and every native/language OOM allocation prefix through the first no-hit.
+The Linux gate sanitizes actual selected generated/resident/native closures;
+shared CLI/JIT and full shared debug XRT are not instrumented. This is a storage
+migration prerequisite, not completion of owned-return APIs, char/bytes, batch,
+strong ownership graph/cycles, other containers, or all 53 modules.

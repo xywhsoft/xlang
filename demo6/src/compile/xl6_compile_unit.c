@@ -122,7 +122,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_buffer_hex.c", D(), {"XRT_MODULE_BUFFER_HEX"}},
     {"src/runtime/xl6_buffer_base64.c", D(), {"XRT_MODULE_BUFFER_BASE64"}},
     {"src/runtime/xl6_buffer_core.c", D(), {"XRT_MODULE_BUFFER"}},
-    {"src/runtime/xl6_buffer_query.c", D(), {"XRT_MODULE_BUFFER", "XRT_MODULE_STRING"}}
+    {"src/runtime/xl6_buffer_query.c", D(), {"XRT_MODULE_BUFFER", "XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_stack.c", D(), {"XRUNTIME_MODULE_TYPED_STACK", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",
+        "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -325,6 +327,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         xl6ArtifactTypeRequire(&work,instruction->payloadType);
         if (instruction->kind==XL6_IR_INSTR_AWAIT) REQUIRE(R(FUTURE_PAYLOAD));
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
+        if (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
+            instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
         if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE) {
             const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, instruction->targetSymbol);
             if (destroy && destroy->nativeHandlePolicyAbi == XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) {

@@ -1,0 +1,46 @@
+class StackItem
+    int value
+end
+
+func main(...) as int
+    Stack<string> text = Stack::<string>()
+    assert(text.reserve(8))
+    string original = "a\0你"
+    assert(text.push(original))
+    original = "changed"
+    string result = "old"
+    assert(text.peekInto(result))
+    assert(result == "a\0你")
+    Stack<string> copy = text.clone()
+    assert(copy.equals(text))
+    assert(text.popInto(result))
+    assert(result == "a\0你")
+    assert(text.count() == 0 and copy.count() == 1)
+    assert(not text.popInto(result))
+    assert(result == "a\0你")
+    assert(not text.peekAtInto(-1, result))
+    assert(not text.peekAtInto(10, result))
+    assert(copy.popInto(result))
+    assert(result == "a\0你")
+    assert(copy.trim())
+    assert(copy.capacity() == 0)
+    Stack<StackItem> items = Stack::<StackItem>()
+    StackItem item = StackItem()
+    item.value = 7
+    assert(items.push(item))
+    Stack<StackItem> references = items.clone()
+    StackItem observed = StackItem()
+    assert(items.peekInto(observed))
+    observed.value = 31
+    assert(item.value == 31)
+    assert(references.popInto(observed))
+    assert(observed.value == 31)
+    items.clear()
+    assert(items.count() == 0)
+    Stack<float> positive = Stack::<float>()
+    Stack<float> negative = Stack::<float>()
+    assert(positive.push(0.0))
+    assert(negative.push(-0.0))
+    assert(positive.equals(negative))
+    return 0
+end

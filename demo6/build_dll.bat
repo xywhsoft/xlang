@@ -165,6 +165,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_buffer_base64.c ^
     src\runtime\xl6_buffer_core.c ^
     src\runtime\xl6_buffer_query.c ^
+    src\runtime\xl6_stack.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
     src\runtime\xl6_text_distance.c ^
@@ -321,6 +322,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_buffer_base64.c ^
     src\runtime\xl6_buffer_core.c ^
     src\runtime\xl6_buffer_query.c ^
+    src\runtime\xl6_stack.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
     src\runtime\xl6_text_distance.c ^

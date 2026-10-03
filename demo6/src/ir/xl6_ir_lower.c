@@ -15746,18 +15746,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
             XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRIM ||
+        (xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) &&
+         intrinsic->runtimeResourceOp != XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
         intrinsic->runtimeResourceOp ==
@@ -24280,18 +24270,8 @@ static int xl6IrLowerIntrinsicRuntimeResource(
             XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRIM ||
+        (xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) &&
+         intrinsic->runtimeResourceOp != XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
         intrinsic->runtimeResourceOp ==
