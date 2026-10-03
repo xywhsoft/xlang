@@ -3,6 +3,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 OUT="${1:?fresh output directory required}"
+MODE="${2:---all}"
+[[ "$MODE" = --all || "$MODE" = --future-only ]] || { echo 'Expected --all or --future-only' >&2; exit 2; }
 [[ "$OUT" = /* ]] || OUT="$ROOT/$OUT"
 [[ ! -e "$OUT" ]] || { echo 'Preserve prior process_run evidence' >&2; exit 1; }
 mkdir -p "$OUT"
@@ -12,6 +14,7 @@ cases=(stdlib_process_command_only stdlib_process_command_config stdlib_process_
 cases+=(stdlib_process_support stdlib_process_terminal_only stdlib_process_open_only)
 cases+=(stdlib_process_live_wait stdlib_process_live_streams stdlib_process_live_drop stdlib_process_live_allocations)
 cases+=(stdlib_process_future stdlib_process_future_drop stdlib_process_future_cancel)
+cases+=(stdlib_process_future_allocations stdlib_process_future_drop_allocations stdlib_process_future_cancel_allocations)
 cases+=(stdlib_process_pipeline_config stdlib_process_pipeline_bytes stdlib_process_pipeline_limits stdlib_process_pipeline_allocations)
 cases+=(stdlib_process_file_config stdlib_process_file_bytes stdlib_process_file_allocations)
 cases+=(stdlib_process_terminal_config stdlib_process_terminal_session stdlib_process_terminal_allocations)
@@ -22,6 +25,10 @@ negative+=(xlir_process_future_bad_element xlir_process_future_bad_nullable xlir
 negative+=(xlir_process_pipeline_bad_owner xlir_process_pipeline_bad_width xlir_process_pipeline_bad_effect xlir_process_pipeline_bad_input)
 negative+=(xlir_process_file_bad_owner xlir_process_file_bad_width xlir_process_file_bad_effect xlir_process_file_bad_input)
 negative+=(xlir_process_resize_bad_owner xlir_process_resize_bad_width xlir_process_resize_bad_effect)
+if [[ "$MODE" = --future-only ]]; then
+    cases=(stdlib_process_future stdlib_process_future_drop stdlib_process_future_cancel stdlib_process_future_allocations stdlib_process_future_drop_allocations stdlib_process_future_cancel_allocations)
+    negative=(xlir_process_future_bad_element xlir_process_future_bad_nullable xlir_process_future_bad_effect xlir_process_future_bad_owner)
+fi
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
@@ -30,6 +37,7 @@ negative+=(xlir_process_resize_bad_owner xlir_process_resize_bad_width xlir_proc
     printf '%s\0' test/cases/xlir_process_support_host.c
     printf '%s\0' test/cases/xlir_process_live_host.c
     printf '%s\0' test/cases/xlir_process_future_host.c
+    printf '%s\0' test/cases/xlir_process_future_oom_host.c
     printf '%s\0' test/cases/xlir_process_pipeline_prefix.c
     printf '%s\0' test/cases/xlir_process_pipeline_host.c
     printf '%s\0' test/cases/xlir_process_file_host.c
@@ -65,6 +73,7 @@ future_resident=(src/runtime/xl6_code_lease.c src/runtime/xl6_code_finalizer.c s
 run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xlir_process_child.c -o "$OUT/child"
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
+if [[ "$MODE" = --all ]]; then
 run terminal-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_terminal_host.c -pthread -ldl -lm -o "$OUT/terminal-native"
 run terminal-native "$OUT/terminal-native" "$OUT/child"
 grep -q 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=0, no extra handles' "$OUT/terminal-native.log"
@@ -77,9 +86,6 @@ grep -Eq 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, un
 run pipeline-prefix-full-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_ALL=1 -DXL6_PIPELINE_PREFIX_FROM_XLANG=1 test/cases/xlir_process_pipeline_prefix.c -pthread -ldl -lm -o "$OUT/pipeline-prefix-full"
 run pipeline-prefix-full "$OUT/pipeline-prefix-full"
 grep -Eq 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced' "$OUT/pipeline-prefix-full.log"
-run future-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_future_host.c "${future_resident[@]}" -pthread -ldl -lm -o "$OUT/future-native"
-run future-native "$OUT/future-native" "$OUT/child"
-grep -Eq 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced' "$OUT/future-native.log"
 run live-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_live_host.c -pthread -ldl -lm -o "$OUT/live-native"
 run live-native "$OUT/live-native" "$OUT/child"
 grep -q 'exact binary streams survive parent drop; unique leases, timeout/range/state, independent status; reader/writer OOM 3/3 failures + 2 first no-hit, balanced' "$OUT/live-native.log"
@@ -102,6 +108,10 @@ run support-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_p
 run support-native "$OUT/support-native"
 grep -Eq '7 rejected inputs, exact prefix/clamp, native error transport; [0-9]+ allocation failures and 1 first no-hit, balanced; real terminal probe=' "$OUT/support-native.log"
 grep -q 'process open error prefix: 3 failures and 3 first no-hit, causes preserved, balanced' "$OUT/support-native.log"
+fi
+run future-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_future_host.c "${future_resident[@]}" -pthread -ldl -lm -o "$OUT/future-native"
+run future-native "$OUT/future-native" "$OUT/child"
+grep -Eq 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced' "$OUT/future-native.log"
 run contract-build "$CC" "${strict[@]}" test/cases/xlir_text_value_contract.c "${libs[@]}" -lxlc -lxl -o "$OUT/contract"
 run artifact-contract-build "$CC" "${strict[@]}" test/cases/xlir_artifact_runtime_contract.c "${libs[@]}" -lxlc -lxl -o "$OUT/artifact-contract"
 for fixture in "${cases[@]}"; do
@@ -154,7 +164,7 @@ p=json.loads(open(sys.argv[1]).readline());case=sys.argv[2];future=case.startswi
 parts=["command","live"]
 if case!="stdlib_process_live_drop":parts+=["status"]
 if future:parts+=["future"]
-if case not in ("stdlib_process_live_wait","stdlib_process_future"):parts+=["stream"]
+if case not in ("stdlib_process_live_wait","stdlib_process_future","stdlib_process_future_allocations"):parts+=["stream"]
 actual=sorted(s for s in p["Sources"] if "/xl6_process_" in s)
 assert actual==sorted("src/runtime/xl6_process_"+s+".c" for s in parts),actual
 modules=set(p["NativeModules"])
@@ -199,6 +209,21 @@ if future:assert "src/runtime/xl6_future_payload.c" in p["Sources"]' "$OUT/$fixt
         done
         "$terminal" || { echo 'Generated live Process current-thread allocation prefix incomplete' >&2; exit 1; }
     fi
+    if [[ "$fixture" = stdlib_process_future || "$fixture" = stdlib_process_future_allocations || "$fixture" = stdlib_process_future_drop_allocations || "$fixture" = stdlib_process_future_cancel_allocations ]]; then
+        run "$fixture-future-observer-build" "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_MEMORY_DEBUG -Ilib/xruntime -include "$OUT/$fixture.native.c" -c test/support/process_oom_observer.c -o "$OUT/$fixture.future-observer.o"
+        run "$fixture-future-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -include "$OUT/$fixture.c" test/cases/xlir_process_future_oom_host.c "$OUT/$fixture.future-observer.o" "${resident_objects[@]}" -Wl,--wrap=xrtProcessSpawn -Wl,--wrap=xrtErrorBuild -pthread -ldl -lm -o "$OUT/$fixture.future-oom"
+        run "$fixture-future-oom-baseline" "$OUT/$fixture.future-oom"
+        terminal=false; children=1
+        if [[ "$fixture" = stdlib_process_future ]]; then children=2; fi
+        for ((point=0; point<512; ++point)); do
+            run "$fixture-future-oom-$point" "$OUT/$fixture.future-oom" "$point"
+            if grep -q 'outcome=cancelled-diagnostic' "$OUT/$fixture-future-oom-$point.log"; then
+                [[ "$fixture" = stdlib_process_future_cancel_allocations ]] || { echo 'Unexpected cancelled diagnostic fallback' >&2; exit 1; }
+            fi
+            if grep -q "hit=0 children=$children waiter/executor retired balanced; outcome=success cancelled-diagnostic-failures=0" "$OUT/$fixture-future-oom-$point.log"; then terminal=true; break; fi
+        done
+        "$terminal" || { echo 'Generated Process Future current-thread allocation prefix incomplete' >&2; exit 1; }
+    fi
     if [[ "$fixture" = stdlib_process_run_allocations ]]; then
         terminal=false
         for ((point=0; point<512; ++point)); do
@@ -218,6 +243,7 @@ for fixture in "${negative[@]}"; do
     fi
     checks=$((checks+1))
 done
+if [[ "$MODE" = --all ]]; then
 run example-run "$CLI" run release/examples/stdlib_process_run.xl
 run example-build "$CLI" build release/examples/stdlib_process_run.xl -o "$OUT/example"
 run example-execute "$OUT/example"
@@ -227,6 +253,7 @@ run support-example-execute "$OUT/support-example"
 run pipeline-example-run "$CLI" run release/examples/stdlib_process_pipeline.xl
 run pipeline-example-build "$CLI" build release/examples/stdlib_process_pipeline.xl -o "$OUT/pipeline-example"
 run pipeline-example-execute "$OUT/pipeline-example"
+fi
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Process configuration/run/live/Future/pipeline/File/terminal. Exact bytes, independent streams/status and owned File capabilities, limits/deadlines/cancellation. Real PTY child reports tty, merged stderr and resized dimensions; terminal config/live modules independently selected, native heap/OS descriptors balanced. Actual generated XRT/resident/program closures ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Four generated live/terminal current-thread logical allocation prefixes observe actual Spawn and explicitly join private waiter tails, including native factories and managed boxing. No other-thread allocation injection. Generated Future full OOM/unload and 53-module total acceptance pending."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Mode":"%s","Scope":"Default --all checks Process configuration/run/live/Future/pipeline/File/terminal; --future-only checks six Process Future fixtures and four Future ABI negatives only, plus the native mapper/pending/terminal factory prefixes. Both lanes strictly compile and execute actual generated XRT/resident/program closures with ASan/UBSan/leaks; shared CLI/JIT uninstrumented. Four Future current-thread logical allocation prefixes observe actual Spawn and explicitly join private waiter/executor tails, including native factories and managed boxing. Future failure propagation and exact cancelled diagnostic OOM fallback checked. No other-thread allocation injection. No global Windows zero-handle-growth claim. Generated Process Future provider unload and 53-module total acceptance pending."}\n' "$checks" "$MODE" >"$OUT/results.json"
 printf 'Process run Linux checks: %d\n' "$checks"

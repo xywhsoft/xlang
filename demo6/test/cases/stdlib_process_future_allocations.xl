@@ -1,0 +1,18 @@
+// The child is already terminal before launching waitAsync. Both launches,
+// repeated status construction and top-level ownership still use the real
+// generated async machine; native factory/mapper prefixes are tested separately.
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["exit", "7"])
+command.stdio(process.stdin, process.stdioNull)
+command.stdio(process.stdout, process.stdioNull)
+command.stdio(process.stderr, process.stdioNull)
+auto p = command.start()
+auto completed = p.wait(5000)
+assert completed != null
+if completed != null then assert completed.code == 7 end
+auto first = await p.waitAsync()
+auto second = await p.waitAsync()
+assert first.kind == 1 and first.code == 7
+assert second.kind == 1 and second.code == 7
+assert not p.running

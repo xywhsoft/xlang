@@ -1,5 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$PublicSourceDirectory,
-    [Parameter(Mandatory=$true)][string]$Directory)
+    [Parameter(Mandatory=$true)][string]$Directory,
+    [switch]$FutureOnly)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . "$root/tools/extlib_smoke_process.ps1"
@@ -20,6 +21,8 @@ try {
     $cases+=@('stdlib_process_live_wait','stdlib_process_live_streams','stdlib_process_live_drop','stdlib_process_live_allocations')
     $liveOomCases=@('stdlib_process_live_wait','stdlib_process_live_drop','stdlib_process_live_allocations')
     $cases+=@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')
+    $cases+=@('stdlib_process_future_allocations','stdlib_process_future_drop_allocations','stdlib_process_future_cancel_allocations')
+    $futureOomCases=@('stdlib_process_future','stdlib_process_future_allocations','stdlib_process_future_drop_allocations','stdlib_process_future_cancel_allocations')
     $cases+=@('stdlib_process_pipeline_config','stdlib_process_pipeline_bytes','stdlib_process_pipeline_limits','stdlib_process_pipeline_allocations')
     $cases+=@('stdlib_process_file_config','stdlib_process_file_bytes','stdlib_process_file_allocations')
     $cases+=@('stdlib_process_terminal_config','stdlib_process_terminal_session','stdlib_process_terminal_allocations')
@@ -31,10 +34,16 @@ try {
     $negatives+=@('xlir_process_pipeline_bad_owner','xlir_process_pipeline_bad_width','xlir_process_pipeline_bad_effect','xlir_process_pipeline_bad_input')
     $negatives+=@('xlir_process_file_bad_owner','xlir_process_file_bad_width','xlir_process_file_bad_effect','xlir_process_file_bad_input')
     $negatives+=@('xlir_process_resize_bad_owner','xlir_process_resize_bad_width','xlir_process_resize_bad_effect')
+    if($FutureOnly){
+        $cases=@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel',
+            'stdlib_process_future_allocations','stdlib_process_future_drop_allocations','stdlib_process_future_cancel_allocations')
+        $negatives=@('xlir_process_future_bad_element','xlir_process_future_bad_nullable','xlir_process_future_bad_effect','xlir_process_future_bad_owner')
+        $liveOomCases=@()
+    }
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_live_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
-        'test/cases/xlir_process_future_host.c','test/cases/xlir_process_live_oom_host.c','test/support/process_oom_observer.c',
+        'test/cases/xlir_process_future_host.c','test/cases/xlir_process_future_oom_host.c','test/cases/xlir_process_live_oom_host.c','test/support/process_oom_observer.c',
         'test/cases/xlir_process_pipeline_prefix.c',
         'test/cases/xlir_process_pipeline_host.c',
         'test/cases/xlir_process_file_host.c',
@@ -64,6 +73,7 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
+        if(!$FutureOnly){
         $null=Check 'terminal-native-build' gcc ($flags+@('test/cases/xlir_process_terminal_host.c')+$libs+@('-o',"$work/terminal-native.exe"))
         $terminalNative=Check 'terminal-native' "$work/terminal-native.exe" @($child)
         if($terminalNative-notmatch 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=[0-9]+, no extra handles'){throw 'Real terminal IO/resize/lifetime witness missing'}
@@ -92,6 +102,7 @@ try {
         $support=Check 'support-native' "$work/support-native.exe" @()
         if($support-notmatch '7 rejected inputs, exact prefix/clamp, native error transport; [0-9]+ allocation failures and 1 first no-hit, balanced; real terminal probe='){throw 'Process support native witness missing'}
         if($support-notmatch 'process open error prefix: 3 failures and 3 first no-hit, causes preserved, balanced'){throw 'Real process open error-build prefix missing'}
+        }
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'-or$_-eq'src/api/xl_task_group_bridge.c'}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
@@ -117,6 +128,7 @@ try {
             if($case-eq'stdlib_process_file_allocations'){$strictHost='test/cases/xlir_process_oom_host.c'}
             $strictObjects=$nativeObjects; $wrap=@()
             if($case-in$liveOomCases){$strictHost='test/cases/xlir_process_live_oom_host.c';$strictObjects=$retirementObjects;$wrap=@('-Wl,--wrap=xrtProcessSpawn')}
+            if($case-in$futureOomCases){$strictHost='test/cases/xlir_process_future_oom_host.c';$strictObjects=$retirementObjects;$wrap=@('-Wl,--wrap=xrtProcessSpawn','-Wl,--wrap=xrtErrorBuild')}
             $null=Check "$case-strict-build" gcc ($flags+@('-include',"$prefix.c",$strictHost)+$strictObjects+$wrap+$libs+@('-o',"$prefix.strict.exe"))
             $null=Check "$case-strict-run" "$prefix.strict.exe" @()
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
@@ -140,6 +152,15 @@ try {
                 }
                 if(!$terminal){throw 'Generated live Process current-thread allocation prefix incomplete'}
             }
+            if($case-in$futureOomCases){
+                $terminal=$false; $children=if($case-eq'stdlib_process_future'){2}else{1}
+                for($point=0;$point-lt512;++$point){
+                    $witness=Check "$case-future-oom-$point" "$prefix.strict.exe" @("$point")
+                    if($witness-match'outcome=cancelled-diagnostic'-and$case-ne'stdlib_process_future_cancel_allocations'){throw 'Unexpected cancelled diagnostic fallback'}
+                    if($witness-match "hit=0 children=$children waiter/executor retired balanced; outcome=success cancelled-diagnostic-failures=0"){$terminal=$true;break}
+                }
+                if(!$terminal){throw 'Generated Process Future current-thread allocation prefix incomplete'}
+            }
         }
         foreach($case in $negatives){
             $prefix="$work/$case"
@@ -147,6 +168,7 @@ try {
             $null=Check $case $build.Driver @("test/cases/$case.xl",'emit',$prefix) $rejection
             foreach($ext in @('c','h','json')){if(Test-Path "$prefix.$ext"){throw 'Unsafe process_run ABI produced output'}}
         }
+        if(!$FutureOnly){
         $null=Check 'example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_run.xl')
         $null=Check 'example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_run.xl','-o',"$work/example.exe")
         $null=Check 'example-execute' "$work/example.exe" @()
@@ -156,12 +178,13 @@ try {
         $null=Check 'pipeline-example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_pipeline.xl')
         $null=Check 'pipeline-example-build' 'release/xl.exe' @('build','release/examples/stdlib_process_pipeline.xl','-o',"$work/pipeline-example.exe")
         $null=Check 'pipeline-example-execute' "$work/pipeline-example.exe" @()
+        }
         $complete=$true
     } finally {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         if($changed.Count){$complete=$false}
-        [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run/live/Future/pipeline/File/terminal. Exact bytes, independent status/stream/File capabilities, limits/deadlines/cancellation. Real PTY/ConPTY child reports tty, merged stderr and resized dimensions; terminal config and live components are independently selected. Raw Win32 API control retention is explicitly reported; owned handle closure and no additional XRT handle growth are checked, not global Windows zero-handle growth. Strict C, exact ABI/owner/effect negatives, deterministic source/formal JIT/AOT. Four generated live/terminal current-thread logical allocation prefixes observe actual Spawn and explicitly retire private waiter tails; native factories and managed boxing included. No other-thread allocation injection. Generated Future full OOM/unload and 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
+        [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;FutureOnly=[bool]$FutureOnly;
+            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Default checks Process configuration/run/live/Future/pipeline/File/terminal; FutureOnly checks six Process Future fixtures and four Future ABI negatives only, plus native mapper/pending/terminal factory prefixes. Both lanes check strict C, exact ABI/owner/effect, deterministic source/formal JIT/AOT and four generated Future current-thread logical allocation prefixes with real Spawn, private waiter/executor retirement, native factories and managed boxing. Future failure propagation and exact cancelled diagnostic OOM fallback checked. No other-thread allocation injection. Default terminal checks report raw Win32 platform retention and owned/no-extra handle closure, not global Windows zero-handle growth. Generated Process Future provider unload and 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
         if($changed.Count){throw 'Frozen process_run inputs changed'}
     }
     Write-Output "Process run Windows checks: $($rows.Count)"

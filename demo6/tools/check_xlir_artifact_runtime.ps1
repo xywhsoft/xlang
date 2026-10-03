@@ -305,15 +305,15 @@ $process=Start-Process @start
                         (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-ne'stdlib_process_live_wait'))-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_PROCESS_(RUN|PIPELINE|FUTURE|FILE|TERMINAL|OPEN)$'}).Count
                 }
-                if($case-in@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')){
+                if($case-in@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel','stdlib_process_future_allocations','stdlib_process_future_drop_allocations','stdlib_process_future_cancel_allocations')){
                     $expectedProcess=@('command','live','status','future')
-                    if($case-ne'stdlib_process_future'){$expectedProcess+=@('stream')}
+                    if($case-notin@('stdlib_process_future','stdlib_process_future_allocations')){$expectedProcess+=@('stream')}
                     $actualProcess=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_process_'}|Sort-Object)
                     $wantedProcess=@($expectedProcess|ForEach-Object {"src/runtime/xl6_process_$_.c"}|Sort-Object)
                     $selectionMatches=$selectionMatches-and!(Compare-Object $actualProcess $wantedProcess)-and
                         'XRT_MODULE_PROCESS_FUTURE'-in$plan.NativeModules-and
                         'src/runtime/xl6_future_payload.c'-in$selectedSources-and
-                        (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-ne'stdlib_process_future'))-and
+                        (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-notin@('stdlib_process_future','stdlib_process_future_allocations')))-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_PROCESS_(RUN|PIPELINE|FILE|TERMINAL|OPEN)$'}).Count
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
