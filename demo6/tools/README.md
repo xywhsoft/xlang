@@ -226,8 +226,12 @@ parent-drop survival, nullable timeout/independent status, and factory OOM
 rollback with explicit private waiter retirement in the native fixture.
 Typed Process.waitAsync also covers prompt language cancellation, shared native
 source isolation, parent-drop survival and native mapper/pending/terminal OOM
-prefixes with explicit waiter retirement. Generated live/Future programs do not
-yet claim a full language OOM-prefix sweep or module-unload acceptance.
+prefixes with explicit waiter retirement. Three generated live paths now sweep
+every current-thread logical allocation prefix (native factory, managed boxing,
+owned streams/status and parent drop) through the first no-hit. An actual native
+Spawn observer joins private waiter tails; it does not mock results or give the
+public API a waiter-join guarantee. Other-thread allocations are not injected.
+Generated Future full OOM-prefix and module-unload acceptance remain pending.
 Pipeline/file redirection/PTY remain later batches;
 passing this gate does not complete the seven process modules or all 53 modules.
 The same gates cover process.open input/error transport with a controlled
