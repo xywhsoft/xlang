@@ -125,7 +125,7 @@ $fullRegressionOnly = New-Object System.Collections.Generic.HashSet[string]
 $fullRegressionOnly.Add((Normalize-ToolPath "tools\check_stdlib_examples.ps1")) | Out-Null
 # These current-source/JIT/AOT/OOM gates remain mandatory in full regression;
 # the lightweight RC0 static/smoke gate does not duplicate their heavy builds.
-foreach ($name in @('check_stdlib_logging.ps1','check_stdlib_text_values.ps1',
+foreach ($name in @('check_stdlib_logging.ps1','check_stdlib_text_values.ps1','check_stdlib_buffer_values.ps1',
     'check_stdlib_time_core.ps1','check_stdlib_time_calendar.ps1','check_stdlib_time_text.ps1','check_stdlib_environment.ps1',
     'check_stdlib_signal_core.ps1','check_stdlib_signal_queue.ps1','check_stdlib_process_run.ps1',
     'check_stdlib_process_future_module.ps1')) {

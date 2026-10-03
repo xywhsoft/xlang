@@ -137,7 +137,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6NativeHandleTraceLeaf", (const void*)xl6NativeHandleTraceLeaf) ||
         !xlApiAddTccSymbol(s, "xl6ProcessCommandHandlePolicyV1Get", (const void*)xl6ProcessCommandHandlePolicyV1Get) ||
         !xlApiAddTccSymbol(s, "xl6ProcessHandlePolicyV1Get", (const void*)xl6ProcessHandlePolicyV1Get) ||
-        !xlApiAddTccSymbol(s, "xl6ProcessStatusHandlePolicyV1Get", (const void*)xl6ProcessStatusHandlePolicyV1Get)) return 0;
+        !xlApiAddTccSymbol(s, "xl6ProcessStatusHandlePolicyV1Get", (const void*)xl6ProcessStatusHandlePolicyV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6BufferIteratorHandlePolicyV1Get", (const void*)xl6BufferIteratorHandlePolicyV1Get)) return 0;
     if ( !xlApiAddTccSymbol(s, "xl6ProtocolWitnessValidate", (const void*)xl6ProtocolWitnessValidate) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolWitnessFind", (const void*)xl6ProtocolWitnessFind) ||
          !xlApiAddTccSymbol(s, "xl6ProtocolRegister", (const void*)xl6ProtocolRegister) ||

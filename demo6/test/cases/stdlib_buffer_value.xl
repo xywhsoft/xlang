@@ -1,0 +1,87 @@
+Buffer source = Buffer("a\0你b")
+assert source.length == 6
+assert source.text() == "a\0你b"
+assert source.text(99) == "a\0你b"
+assert source.toBytes() == b"a\0\xe4\xbd\xa0b"
+assert source.toBytes(2) == b"a\0"
+
+Buffer copied = Buffer(source)
+source[0] = 90
+assert copied.text() == "a\0你b"
+assert source.text() == "Z\0你b"
+assert copied.assign(b"\xff\0\xfe")
+assert copied.toBytes() == b"\xff\0\xfe"
+assert copied.assign("你好", 3)
+assert copied.text() == "你"
+assert copied.assign(source, 2)
+assert copied.toBytes() == b"Z\0"
+assert copied.append(b"xy", 99)
+assert copied.append("你", 3)
+assert copied.append(copied, 2)
+assert copied.text() == "Z\0xy你Z\0"
+assert copied.insert(1, b"Q\0", 1)
+assert copied.text() == "ZQ\0xy你Z\0"
+assert copied.insert(0, "你好", 3)
+assert copied.text() == "你ZQ\0xy你Z\0"
+assert copied.insert(3, copied, 3)
+assert copied.text() == "你你ZQ\0xy你Z\0"
+assert copied.remove(3, 3)
+assert copied.remove(3)
+assert copied.text() == "你"
+assert copied.resize(5, 65)
+assert copied.toBytes() == b"\xe4\xbd\xa0AA"
+assert copied.resize(7)
+assert copied.toBytes() == b"\xe4\xbd\xa0AA\0\0"
+assert copied.resize(1)
+assert copied.toBytes() == b"\xe4"
+assert copied.trim()
+assert copied.capacity() == 1
+assert copied.resize(0)
+assert copied.trim()
+assert copied.capacity() == 0
+assert copied.text() == "" and copied.toBytes() == b""
+
+Buffer prefix = Buffer(b"ab\0cd", 3)
+assert prefix.toBytes() == b"ab\0"
+Buffer bufferPrefix = Buffer(source, 2)
+assert bufferPrefix.toBytes() == b"Z\0"
+
+int rejected = 0
+try
+    source.text(3)
+catch e
+    rejected += 1
+end
+try
+    Buffer(b"\xff").text()
+catch e
+    rejected += 1
+end
+try
+    source.assign(b"x", -2)
+catch e
+    rejected += 1
+end
+try
+    source.resize(-1)
+catch e
+    rejected += 1
+end
+try
+    source.resize(10, 256)
+catch e
+    rejected += 1
+end
+try
+    source.remove(1, 99)
+catch e
+    rejected += 1
+end
+assert rejected == 6
+assert source.text() == "Z\0你b"
+bytes savedBytes = source.toBytes()
+string savedText = source.text()
+source = Buffer("replacement")
+assert savedBytes == b"Z\0\xe4\xbd\xa0b"
+assert savedText == "Z\0你b"
+println("stdlib buffer values ok")

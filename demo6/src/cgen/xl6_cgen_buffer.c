@@ -29,25 +29,10 @@ void xl6CgenEmitBufferRuntime(
         xl6OutputPuts("#ifndef XL6_CGEN_XRT_BYTES_VIEW_TYPEDEF\n#define XL6_CGEN_XRT_BYTES_VIEW_TYPEDEF\ntypedef xbytesview XL6_XrtBytesView;\n#endif\n", out);
         xl6OutputPuts("typedef xbuffer* XL6_XBuffer;\n\n", out);
     }
-    xl6OutputPuts("typedef struct XL6_BufferIter {\n", out);
-    xl6OutputPuts("    XL6_XBuffer buffer;\n", out);
-    xl6OutputPuts("    size_t index;\n", out);
-    xl6OutputPuts("} XL6_BufferIter;\n\n", out);
     xl6OutputPuts("static void xl6_buffer_raise(const char* kind, const char* message, const char* api)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    (void)api; xrtSetErrorTake(xlir_error_create_at(kind != 0 ? kind : \"BufferError\", message != 0 ? message : \"buffer error\", 0, 0));\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static int xl6_buffer_has_nul(const void* data, size_t size)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const unsigned char* p = (const unsigned char*)data;\n", out);
-    xl6OutputPuts("    size_t i;\n", out);
-    xl6OutputPuts("    if ( p == 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    for ( i = 0u; i < size; ++i ) {\n", out);
-    xl6OutputPuts("        if ( p[i] == 0u ) { return 1; }\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return 0;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
     xl6OutputPuts("static void* xl6_xrt_buffer_from_owned_bytes(void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( size > 4294967295u ) {\n", out);
@@ -266,36 +251,6 @@ void xl6CgenEmitBufferRuntime(
         "}\n\n",
         out);
 
-    xl6OutputPuts("void* xl6_xrt_buffer_text(void* self)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_XBuffer buf;\n", out);
-    xl6OutputPuts("    char* text;\n", out);
-    xl6OutputPuts("    size_t len;\n", out);
-    xl6OutputPuts("    if ( self == 0 ) {\n", out);
-    xl6OutputPuts("        xl6_buffer_raise(\"BufferError\", \"invalid buffer handle\", \"Buffer.text\");\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    buf = (XL6_XBuffer)self;\n", out);
-    xl6OutputPuts("    len = buf->Size;\n", out);
-    xl6OutputPuts("    if ( len > 0u && (buf->Data == 0 || xl6_buffer_has_nul(buf->Data, len)) ) {\n", out);
-    xl6OutputPuts("        xl6_buffer_raise(\"BufferError\", \"buffer contains NUL byte; use binary API\", \"Buffer.text\");\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( len > 0u && !xrtUtf8Valid((xstrview){ (const char*)buf->Data, len }, 0) ) {\n", out);
-    xl6OutputPuts("        xl6_buffer_raise(\"BufferError\", \"buffer is not valid UTF-8 text\", \"Buffer.text\");\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    text = (char*)xrtMalloc(len + 1u);\n", out);
-    xl6OutputPuts("    if ( text == 0 ) {\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( len > 0 && buf->Data != 0 ) {\n", out);
-    xl6OutputPuts("        memcpy(text, buf->Data, len);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    text[len] = 0;\n", out);
-    xl6OutputPuts("    return text;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
     xl6OutputPuts("void* xl6_xrt_buffer_data(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return self != 0 ? ((XL6_XBuffer)self)->Data : 0;\n", out);
@@ -395,41 +350,5 @@ void xl6CgenEmitBufferRuntime(
     xl6OutputPuts("}\n\n", out);
     }
 
-    xl6OutputPuts("void* xl6_xrt_buffer_iter_create(void* self)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_BufferIter* iter = (XL6_BufferIter*)xrtMalloc(sizeof(XL6_BufferIter));\n", out);
-    xl6OutputPuts("    if ( iter == 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    iter->buffer = (XL6_XBuffer)self;\n", out);
-    xl6OutputPuts("    iter->index = 0u;\n", out);
-    xl6OutputPuts("    return iter;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("void* xl6_xrt_buffer_iter_wrap_handle(void* handle)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return handle;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("void xl6_xrt_buffer_iter_destroy(void* self)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( self != 0 ) { xrtFree(self); }\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("XL6_CgenBool xl6_xrt_buffer_iter_has_next(void* self)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_BufferIter* iter = (XL6_BufferIter*)self;\n", out);
-    xl6OutputPuts("    return iter != 0 && iter->buffer != 0 && iter->index < iter->buffer->Size;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("long long xl6_xrt_buffer_iter_next(void* self)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_BufferIter* iter = (XL6_BufferIter*)self;\n", out);
-    xl6OutputPuts("    unsigned char byte;\n", out);
-    xl6OutputPuts("    if ( iter == 0 || iter->buffer == 0 || iter->index >= iter->buffer->Size || iter->buffer->Data == 0 ) {\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    byte = iter->buffer->Data[iter->index];\n", out);
-    xl6OutputPuts("    iter->index++;\n", out);
-    xl6OutputPuts("    return (long long)byte;\n", out);
-    xl6OutputPuts("}\n\n", out);
 
 }

@@ -1,0 +1,2 @@
+BufferIter iterator = BufferIter(Buffer("abc"))
+iterator.handle = null
