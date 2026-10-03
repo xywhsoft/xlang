@@ -1,4 +1,5 @@
-param([string]$PublicDirectory = '', [string]$Directory = '')
+param([string]$PublicDirectory = '', [string]$Directory = '',
+    [string]$Fixture = 'test/cases/stdlib_stack_ownership.xl')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath = Split-Path -Parent $PSScriptRoot
@@ -20,7 +21,9 @@ try {
         'test/cases/stdlib_stack_ownership_host.c','test/cases/stdlib_stack_ownership_public.c',
         'test/cases/stdlib_stack_ownership.xl','test/cases/stdlib_stack_ownership_artifact.c',
         'test/cases/stdlib_stack_ownership_tcc_host.c','test/cases/xlir_one_shot_tcc_host.c',
-        'test/cases/xlir_async_module_lifetime_host.c','test/support/stack_native.c')
+        'test/cases/xlir_async_module_lifetime_host.c','test/support/stack_native.c',
+        'test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',$Fixture,
+        'E:/software/tcc/tcc.exe')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) + @($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
     })
@@ -52,6 +55,25 @@ try {
     $strict = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers','-I.','-Irelease',"-I$outPath",'-Ilib/tcc')
     $sweeps = @()
+    foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
+        $name="discovery-$lane"; $binary="$outPath/$name.exe"
+        $sources=@('test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',
+            'src/runtime/xl6_stack.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c',
+            'src/runtime/xl6_ownership_plan.c','src/api/xl_foreign_error.c')
+        if ($lane -eq 'tcc') {
+            Run "$name.build" 'E:/software/tcc/tcc.exe' (@('-std=c11','-Wall','-Werror','-I.','-Irelease') +
+                $sources + @('C:/Windows/System32/ucrtbase.dll','-lws2_32','-liphlpapi','-lshell32','-o',$binary))
+        } else { Run "$name.build" $gcc ($strict+@("-$($lane.Substring(4))")+$sources+@('-lws2_32','-liphlpapi','-lshell32','-o',$binary)) }
+        Run "$name.vectors" $binary @()
+        foreach ($stage in @('create','refresh','commit')) {
+            for ($point=0; $point -le 2048; ++$point) {
+                Run "$name.$stage.oom-$point" $binary @($stage,"$point")
+                if ((Get-Content "$outPath/$name.$stage.oom-$point.log" -Raw) -match 'hit=0 balanced') { break }
+            }
+            if ($point -gt 2048) { throw "Incomplete discovery OOM prefix $stage" }
+            $sweeps += [pscustomobject]@{Lane=$name;Stage=$stage;FirstNoHit=$point}
+        }
+    }
     foreach ($level in @(0,2)) {
         $name = "native-O$level"; $binary = "$outPath/$name.exe"
         Run "$name.build" $gcc ($strict + @("-O$level",'test/cases/stdlib_stack_ownership_host.c',
@@ -67,8 +89,8 @@ try {
         }
     }
     $prefix = "$outPath/stdlib_stack_ownership.generated"
-    Run 'module.emit' $public.Driver @('test/cases/stdlib_stack_ownership.xl','emit',$prefix)
-    Run 'module.repeat' $public.Driver @('test/cases/stdlib_stack_ownership.xl','emit',"$outPath/repeat")
+    Run 'module.emit' $public.Driver @($Fixture,'emit',$prefix)
+    Run 'module.repeat' $public.Driver @($Fixture,'emit',"$outPath/repeat")
     foreach ($extension in @('c','h','json')) {
         if ((Get-FileHash "$prefix.$extension").Hash -ne (Get-FileHash "$outPath/repeat.$extension").Hash) { throw 'Noncanonical module emission' }
     }
@@ -85,11 +107,11 @@ try {
     Run 'public.build' $gcc ($strict + @('test/cases/stdlib_stack_ownership_public.c','release/xlc.dll','-o',"$outPath/public.exe"))
     foreach ($mode in 0..3) {
         Run "public.mode-$mode" "$outPath/public.exe" @("$mode",$outPath,"$outPath/public-$mode.temps",
-            "$rootPath/release/xl.dll","$rootPath/res/tcc/win64/x86_64")
+            "$rootPath/release/xl.dll","$rootPath/res/tcc/win64/x86_64",$Fixture)
     }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
-        Sweeps=$sweeps;Results=$rows;Scope='Stack physical graph/lifecycle prerequisite. Native O0/O2 real cycles, duplicate and shared-wrapper edges, weak quarantine/rooted abort, opaque refusal, callback tails, cross-thread freeze and OOM through no-hit. Current-source real TCC module O0/O2 and shared public compiler JIT lifetimes for MODULE-GLOBAL-REACHABLE class/Stack cycles, actual external roots/intact finalizers and Windows MEM_FREE. Detached code-lease islands remain a known pending discovery issue. Shared libraries are not sanitizer-instrumented. Owned return, char/bytes, batch/FixedStack and other 53-module work remain pending.'}
+        Sweeps=$sweeps;Results=$rows;Fixture=$Fixture;Scope='Stack physical graph/lifecycle and V4 borrowed discovery. Native GCC O0/O2/TCC class/Stack islands, exact code owner identities, original creation shell retired before copied island, foreign owners, alias/deep-copy rooted abort, new finalizer islands, peer resurrection and complete create/refresh/commit OOM prefixes. Original Stack graph/busy/thread/unknown/weak/tail population retained. Actual TCC module O0/O2 and public source/JIT lifetimes use the explicitly recorded fixture, intact finalizers, real strong roots and Windows MEM_FREE. No borrowed finalizer self resurrection, arbitrary policy or full 53-module completion claim. Shared libraries not instrumented; owned return, char/bytes and batch/FixedStack remain pending.'}
     [IO.File]::WriteAllText("$outPath/results.json",($report | ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if (!$unchanged) { throw 'Ownership inputs changed during verification' }
     Write-Host "Stack ownership Windows: $($rows.Count) checks"

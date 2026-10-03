@@ -23,6 +23,9 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_stack_ownership.ps1
 if errorlevel 1 exit /b 1
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_stack_ownership.ps1 -Fixture test/fixtures/stdlib53_pending/stack_detached_cycle.xl
+if errorlevel 1 exit /b 1
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_module_product_globals.ps1
 if errorlevel 1 exit /b 1
 

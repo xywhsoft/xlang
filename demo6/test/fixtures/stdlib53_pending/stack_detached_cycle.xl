@@ -1,7 +1,7 @@
-// Pending: after host releases the captured value, this self-cycle has NO
+// Regression: after host releases the captured value, this self-cycle has NO
 // path from module global slots. Its class code lease still owns the module.
-// The existing module-root-only collector safely refuses to unmap it, but
-// cannot discover and reclaim this detached island. Do not mark as passed.
+// Module-root-only collection cannot find this island. Acceptance requires
+// the original fixture with real discovery, intact finalizers and code tails.
 extern "stack_graph_capture" func capture(var value)
 extern "stack_graph_dropped" func dropped(int id, int count)
 string stackGraphText = "module" + " alive"

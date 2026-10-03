@@ -67,6 +67,17 @@ typedef bool (*XL6_OwnershipResolveV3)(struct xrtownershipref, void*,
     const XL6_OwnershipFinishV1**);
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV3(
     struct xrtownershipref, XL6_OwnershipResolveV3, void*, XL6_OwnershipPlan**);
+/* Read-only, resident discovery under the SAME freeze as each snapshot/pin
+ * transaction, including revalidation before semantic duties and Commit.
+ * These are borrowed physical anchors, NEVER extra internal owning slots.
+ * Discovery/data outlive the plan, obey its lifecycle exclusion, and may
+ * append only known live identities. Admission still precedes Count/Trace.
+ * false discards the entire partial anchor list without changing the old
+ * plan; preserve the discovery callback's primary diagnostic. */
+typedef bool (*XL6_OwnershipDiscoverV1)(XL6_ModuleOwnershipVisit, void*, void*);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(
+    struct xrtownershipref, XL6_OwnershipResolveV3, XL6_OwnershipDiscoverV1,
+    void*, XL6_OwnershipPlan**);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan*);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan*);
 /* Rebuild from EVERY real plan-held node, subtracting exactly those holds as
