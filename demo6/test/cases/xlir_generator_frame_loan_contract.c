@@ -7,6 +7,7 @@
 #include <string.h>
 
 static size_t mutations, reused, loans, sharedRejections;
+static XL6_IrValueId omittedLoads[4];
 static void verify(XL6_IrModule* ir)
 {
     XL6_DiagList diags = {0}; size_t i; int valid = xl6IrVerifyModule(ir, &diags);
@@ -59,7 +60,10 @@ static void reuseObservations(XL6_IrModule* ir)
                 reject(ir, "shared observation reused after yield", 1); ++sharedRejections;
                 ir->operands[instruction->firstOperand] = saved;
                 assert(xl6IrBuildGeneratorMachines(ir, &diags)); xl6DiagFree(&diags);
-            } else { assert(storage->kind == XL6_IR_STORAGE_PARAMETER); ++reused; }
+            } else {
+                assert(storage->kind == XL6_IR_STORAGE_PARAMETER && reused < 4);
+                omittedLoads[reused++] = saved;
+            }
         }
     }
     { XL6_DiagList diags = {0}; assert(xl6IrBuildGeneratorMachines(ir, &diags)); xl6DiagFree(&diags); }
@@ -125,6 +129,23 @@ int main(int argc, char** argv)
     assert(xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags));
     assert(xl6IrLowerModule(&ir, &parse.diags)); verify(&ir);
     if (argc == 4) { reuseObservations(&ir); checkFrames(&ir); }
+    if (argc == 4) {
+        /* Verified private observations can be reused across suspension.
+         * Their superseded borrowed LOADs have no physical C result. The
+         * state-machine emitter must agree with its local declarations,
+         * without disabling the IR reuse or adding a hidden owner. */
+        assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitC(&out, &ir, &parse.diags));
+        char* text = xl6OutputTakeMemoryText(&out, NULL); assert(text);
+        for (size_t i = 0; i < reused; ++i) {
+            char assignment[64];
+            const XL6_IrInstruction* load = definition(&ir, omittedLoads[i]);
+            assert(load && load->kind == XL6_IR_INSTR_LOAD &&
+                xl6IrValueOwnershipGet(&ir, omittedLoads[i]) == XL6_IR_OWNERSHIP_BORROW);
+            snprintf(assignment, sizeof(assignment), "    v%u = ", (unsigned)omittedLoads[i]);
+            assert(!strstr(text, assignment));
+        }
+        xrtFree(text);
+    }
     assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "GENERATOR_FRAME_LOAN", &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[3])); xl6IrDumpModuleJson(&out, &ir); assert(!xl6OutputHasFailed(&out)); xl6OutputClose(&out);

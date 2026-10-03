@@ -253,6 +253,7 @@ static int xl6IrCgenEmitGeneratorInstruction(
                         (unsigned int)instruction->result, instruction->immediateText);
         break;
     case XL6_IR_INSTR_LOAD:
+        if (xl6IrCgenResultStorageOmitted(module, instruction)) break;
         frameSlot = xl6IrCgenGeneratorFrameStorageSlot(
             module, machine, instruction->targetSymbol);
         if ( frameSlot != SIZE_MAX )
