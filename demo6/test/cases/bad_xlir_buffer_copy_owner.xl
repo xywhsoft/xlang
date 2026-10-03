@@ -1,0 +1,6 @@
+class WrongBuffer
+    native point handle
+    extern "xl6TextIteratorDestroyV1" destroy()
+    extern "xl6BufferCopyFromV1" func copyFrom(int offset, Buffer source, int sourceOffset, int count) as bool
+end
+assert true

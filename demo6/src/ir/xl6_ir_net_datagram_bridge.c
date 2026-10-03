@@ -104,7 +104,7 @@ const XL6_IrClassField* xl6IrRuntimeNetBufferField(const XL6_IrModule* module)
         const XL6_IrClassField* field = xl6IrRuntimeNetNativeField(module, module->classLayouts[i].type,
             XL6_IR_RUNTIME_BRIDGE_BUFFER);
         const XL6_IrCallTarget* destroy = field != NULL ? xl6IrCallTargetGet(module, field->nativeDestroySymbol) : NULL;
-        if (destroy == NULL || destroy->cName == NULL || strcmp(destroy->cName, "xl6_xrt_buffer_destroy")) continue;
+        if (destroy == NULL || destroy->cName == NULL || strcmp(destroy->cName, "xl6BufferDestroyV1")) continue;
         if (result != NULL && result != field) return NULL;
         result = field;
     }

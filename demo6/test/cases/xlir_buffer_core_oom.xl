@@ -1,0 +1,11 @@
+Buffer empty = Buffer()
+Buffer reserved = Buffer(16384)
+assert empty.appendByte(255)
+assert empty.reserve(32768)
+assert reserved.copyFrom(8192, empty)
+Buffer source = Buffer("abcdef")
+assert source.copyFrom(8192, source)
+assert source.copyWithin(1, 0, 5)
+assert source.fill(65, 7)
+assert source.indexOf(Buffer("bc")) == 2
+assert source.compare(Buffer("aabcde"), 6, 6) == 0

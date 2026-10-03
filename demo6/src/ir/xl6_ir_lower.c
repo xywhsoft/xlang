@@ -11746,37 +11746,7 @@ static void xl6IrLowerRefreshRawCallbackAbis(XL6_IrModule* module)
                 module, &module->closureTargets[i]);
 }
 
-static int xl6IrLowerIsBufferRuntimeBridgeName(const char* name)
-{
-    static const char* const names[] = {
-        "xl6_xrt_buffer_create", "xl6_xrt_buffer_create_step",
-        "xl6_xrt_buffer_wrap_handle", "xl6_xrt_buffer_destroy",
-        "xl6_xrt_buffer_len", "xl6_xrt_buffer_capacity",
-        "xl6_xrt_buffer_reserve", "xl6_xrt_buffer_clear",
-        "xl6_xrt_buffer_append_string", "xl6_xrt_buffer_append_bytes",
-        "xl6_xrt_buffer_append_raw", "xl6_xrt_buffer_insert_string",
-        "xl6_xrt_buffer_insert_raw", "xl6_xrt_buffer_append_byte",
-        "xl6_xrt_buffer_byte_at", "xl6_xrt_buffer_set_byte",
-        "xl6_xrt_buffer_text", "xl6_xrt_buffer_data",
-        "xl6_xrt_buffer_native_handle", "xl6_xrt_buffer_iter_create",
-        "xl6_xrt_buffer_iter_wrap_handle", "xl6_xrt_buffer_iter_destroy",
-        "xl6_xrt_buffer_iter_has_next", "xl6_xrt_buffer_iter_next"
-    };
-    size_t i;
-    if ( name == NULL ) return 0;
-    for ( i = 0; i < sizeof(names) / sizeof(names[0]); ++i )
-        if ( strcmp(name, names[i]) == 0 ) return 1;
-    return 0;
-}
 
-static int xl6IrLowerIsBufferFactoryBridgeName(const char* name)
-{
-    return name != NULL &&
-        (strcmp(name, "xl6_xrt_buffer_create") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_create_step") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_wrap_handle") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_wrap_handle") == 0);
-}
 
 static int xl6IrLowerBufferBridgeParameterMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target, size_t index,
@@ -11806,142 +11776,6 @@ static int xl6IrLowerBufferBridgeParameterMatches(
            target->parameterPhysicalAbis[index] == physicalAbi;
 }
 
-/* This matcher is intentionally exact.  It is evaluated while the semantic
- * declaration and physical native-handle ABI are both still present, so the C
- * emitter never has to rediscover which Buffer operation a C name represents. */
-static int xl6IrLowerBufferRuntimeBridgeMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    const char* name;
-    const XL6_IrType* result;
-    if ( module == NULL || target == NULL ||
-         (name = target->cName) == NULL ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->errorAbi !=
-             ((strcmp(name, "xl6_xrt_buffer_insert_string") == 0 ||
-               strcmp(name, "xl6_xrt_buffer_insert_raw") == 0 ||
-               strcmp(name, "xl6_xrt_buffer_append_byte") == 0 ||
-               strcmp(name, "xl6_xrt_buffer_byte_at") == 0 ||
-               strcmp(name, "xl6_xrt_buffer_set_byte") == 0 ||
-               strcmp(name, "xl6_xrt_buffer_text") == 0)
-                ? XL6_IR_ERROR_ABI_MAY_RAISE
-                : XL6_IR_ERROR_ABI_NO_RAISE) ) return 0;
-    if ( xl6IrLowerIsBufferFactoryBridgeName(name) ) {
-        size_t expected = strcmp(name, "xl6_xrt_buffer_create") == 0 ? 0u : 1u;
-        XL6_IrCAbi abi = strcmp(name, "xl6_xrt_buffer_create_step") == 0
-            ? XL6_IR_C_ABI_I64 : XL6_IR_C_ABI_RAW_POINTER;
-        return target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
-               target->parameterCount == expected &&
-               (expected == 0u || xl6IrLowerBufferBridgeParameterMatches(
-                    module, target, 0, abi, XL6_IR_PARAMETER_ABI_VALUE,
-                    XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT));
-    }
-    if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-         target->parameterCount == 0 ||
-         !xl6IrLowerBufferBridgeParameterMatches(
-             module, target, 0, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-             XL6_IR_PARAMETER_ABI_BORROW,
-             XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW) ||
-         target->parameterPhysicalFieldDeclarations == NULL ||
-         target->parameterPhysicalFieldDeclarations[0] == XL6_IR_NODE_INVALID ||
-         target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ) return 0;
-    result = target->returnType != XL6_IR_TYPE_INVALID
-        ? xl6IrTypeGet(&module->types, target->returnType) : NULL;
-    if ( strcmp(name, "xl6_xrt_buffer_destroy") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_destroy") == 0 )
-        return target->parameterCount == 1 && result == NULL;
-    if ( strcmp(name, "xl6_xrt_buffer_len") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_capacity") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_next") == 0 )
-        return target->parameterCount == 1 && result != NULL &&
-               result->cAbi == XL6_IR_C_ABI_I64;
-    if ( strcmp(name, "xl6_xrt_buffer_iter_has_next") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_clear") == 0 )
-        return target->parameterCount == 1 && result != NULL &&
-               result->cAbi == XL6_IR_C_ABI_BOOL;
-    if ( strcmp(name, "xl6_xrt_buffer_text") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_data") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_native_handle") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_create") == 0 )
-        return target->parameterCount == 1 && result != NULL &&
-               result->cAbi == XL6_IR_C_ABI_RAW_POINTER;
-    if ( strcmp(name, "xl6_xrt_buffer_byte_at") == 0 )
-        return target->parameterCount == 2 && result != NULL &&
-               result->cAbi == XL6_IR_C_ABI_I64 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( result == NULL || result->cAbi != XL6_IR_C_ABI_BOOL ) return 0;
-    if ( strcmp(name, "xl6_xrt_buffer_reserve") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_append_byte") == 0 )
-        return target->parameterCount == 2 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_append_string") == 0 )
-        return target->parameterCount == 2 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_append_bytes") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_C_SIZE,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_append_raw") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_RAW_POINTER,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_C_SIZE,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_insert_string") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_insert_raw") == 0 )
-        return target->parameterCount == 4 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_RAW_POINTER,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 3, XL6_IR_C_ABI_C_SIZE,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_set_byte") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrLowerBufferBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    return 0;
-}
 
 /* Standard-library wrappers declare a small set of compiler-private C
  * helpers.  Resolve that fact once, while the complete target ABI and source
@@ -12145,27 +11979,6 @@ static int xl6IrLowerResolveRuntimeBridge(
             return xl6IrLowerDiag(ctx, target->declaration,
                 "XLIR File runtime bridge has no exact component ABI");
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_FILE;
-        return 1;
-    }
-    if ( xl6IrLowerIsBufferRuntimeBridgeName(target->cName) ) {
-        /* Unused overloads have no constructor call site yet and therefore
-         * remain ordinary class-special declarations.  They become exact
-         * native factories as soon as a constructor use makes them reachable. */
-        if ( xl6IrLowerIsBufferFactoryBridgeName(target->cName) &&
-             target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY ) return 1;
-        target->errorAbi =
-            (strcmp(target->cName, "xl6_xrt_buffer_insert_string") == 0 ||
-             strcmp(target->cName, "xl6_xrt_buffer_insert_raw") == 0 ||
-             strcmp(target->cName, "xl6_xrt_buffer_append_byte") == 0 ||
-             strcmp(target->cName, "xl6_xrt_buffer_byte_at") == 0 ||
-             strcmp(target->cName, "xl6_xrt_buffer_set_byte") == 0 ||
-             strcmp(target->cName, "xl6_xrt_buffer_text") == 0)
-                ? XL6_IR_ERROR_ABI_MAY_RAISE
-                : XL6_IR_ERROR_ABI_NO_RAISE;
-        if ( !xl6IrLowerBufferRuntimeBridgeMatches(ctx->module, target) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR Buffer runtime bridge has no exact component ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_BUFFER;
         return 1;
     }
     if ( strcmp(target->cName, "xl6_xrt_string_char_len") == 0 ) {

@@ -345,3 +345,13 @@ failure cleanup. Linux sanitizes real selected native/resident/generated closure
 shared CLI/JIT and the separate full shared debug-XRT harness are not instrumented.
 `check_xlir_buffer_codec_ir.py` checks exact class/field/destructor identities.
 Neither gate certifies legacy Buffer core or all 53 modules.
+
+`check_stdlib_buffer_core.ps1` and `.sh` freeze five positive/three negative
+fixtures for direct Buffer factories, u8 indexing, copy/fill and byte queries.
+They check core/query pruning, exact class/field/destructor identities, native
+vectors and all logical allocation prefixes through first no-hit. Failed growth
+must preserve data/capacity and the original memory error; cleanup preserves
+errors and balances allocation totals. Linux sanitizes the actual selected
+generated/resident/native closures, not shared CLI/JIT or full shared debug XRT.
+Trusted C pointer escapes and legacy file/network conversions remain separate.
+`check_xlir_buffer_core_ir.py` rejects a return to the retired Buffer profile.

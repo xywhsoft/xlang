@@ -1,0 +1,63 @@
+Buffer b = Buffer(128)
+assert b.len() == 0 and b.capacity() >= 128
+assert b.append("a\0b") and b.appendByte(255)
+uint8 last = b[3]
+assert last == 255 and b.byteAt(1) == 0
+assert b.setByte(0, 65)
+assert b.compare(Buffer(b"A\0b\xff")) == 0
+assert b.compare(Buffer(b"A\0z"), 2, 2) == 0
+assert b.compare(Buffer(b"A\0z"), 90, 90) < 0
+assert b.indexOf(Buffer(b"\0b")) == 1
+assert b.indexOf(Buffer(b"\0b"), 0, 2) == -1
+assert b.indexOf(Buffer(b"\0b"), 0, -1, 1) == 1
+assert b.indexOf(Buffer(""), 4) == 4
+assert b.indexOf(Buffer(""), 5) == -1
+assert b.copyFrom(6, Buffer(b"XY"))
+assert b.toBytes() == b"A\0b\xff\0\0XY"
+assert b.copyWithin(1, 0, 7)
+assert b.toBytes() == b"AA\0b\xff\0\0X"
+assert b.fill(255, 5)
+assert b.toBytes() == b"AA\0b\xff\xff\xff\xff"
+assert b.copyFrom(8, b, 0, 8)
+assert b.toBytes() == b"AA\0b\xff\xff\xff\xffAA\0b\xff\xff\xff\xff"
+assert b.reserve(1024) and b.capacity() >= 1024
+int capacity = b.capacity()
+assert b.clear() and b.len() == 0 and b.capacity() == capacity
+int refused = 0
+try
+    Buffer(-1)
+catch RangeError
+    refused += 1
+end
+try
+    b.reserve(-1)
+catch RangeError
+    refused += 1
+end
+try
+    b.copyWithin(0, 0, -1)
+catch RangeError
+    refused += 1
+end
+try
+    b.copyFrom(0, Buffer("a"), 0, 2)
+catch RangeError
+    refused += 1
+end
+try
+    b.indexOf(Buffer(""), -1)
+catch RangeError
+    refused += 1
+end
+try
+    b.compare(Buffer(""), -2)
+catch RangeError
+    refused += 1
+end
+try
+    b.appendByte(256)
+catch ValueError
+    refused += 1
+end
+assert refused == 7 and b.len() == 0
+println("Buffer core precise borrowed ranges ok")

@@ -1,0 +1,2 @@
+extern "xl6BufferByteAtV1" func byteAt(Buffer buffer, int index) as int
+byteAt(Buffer("a"), 0)

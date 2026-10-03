@@ -25145,49 +25145,8 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge);
 static const char* xl6IrRuntimeBridgeOperationName(
     XL6_IrRuntimeBridgeOperation operation);
 
-static int xl6IrBufferRuntimeBridgeName(const char* name)
-{
-    static const char* const names[] = {
-        "xl6_xrt_buffer_create", "xl6_xrt_buffer_create_step",
-        "xl6_xrt_buffer_wrap_handle", "xl6_xrt_buffer_destroy",
-        "xl6_xrt_buffer_len", "xl6_xrt_buffer_capacity",
-        "xl6_xrt_buffer_reserve", "xl6_xrt_buffer_clear",
-        "xl6_xrt_buffer_append_string", "xl6_xrt_buffer_append_bytes",
-        "xl6_xrt_buffer_append_raw", "xl6_xrt_buffer_insert_string",
-        "xl6_xrt_buffer_insert_raw", "xl6_xrt_buffer_append_byte",
-        "xl6_xrt_buffer_byte_at", "xl6_xrt_buffer_set_byte",
-        "xl6_xrt_buffer_text", "xl6_xrt_buffer_data",
-        "xl6_xrt_buffer_native_handle", "xl6_xrt_buffer_iter_create",
-        "xl6_xrt_buffer_iter_wrap_handle", "xl6_xrt_buffer_iter_destroy",
-        "xl6_xrt_buffer_iter_has_next", "xl6_xrt_buffer_iter_next"
-    };
-    size_t i;
-    if ( name == NULL ) return 0;
-    for ( i = 0; i < sizeof(names) / sizeof(names[0]); ++i )
-        if ( strcmp(name, names[i]) == 0 ) return 1;
-    return 0;
-}
 
-static int xl6IrBufferFactoryRuntimeBridgeName(const char* name)
-{
-    return name != NULL &&
-        (strcmp(name, "xl6_xrt_buffer_create") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_create_step") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_wrap_handle") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_wrap_handle") == 0);
-}
 
-static XL6_IrErrorAbi xl6IrBufferRuntimeBridgeErrorAbi(const char* name)
-{
-    return name != NULL &&
-        (strcmp(name, "xl6_xrt_buffer_insert_string") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_insert_raw") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_append_byte") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_byte_at") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_set_byte") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_text") == 0)
-        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
-}
 
 static int xl6IrBufferRuntimeBridgeParameterMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target, size_t index,
@@ -25233,144 +25192,6 @@ static int xl6IrBufferRuntimeBridgeResultMatches(
            result->nullAbi == XL6_IR_NULL_ABI_NONE;
 }
 
-static int xl6IrBufferRuntimeBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    const char* name;
-    const XL6_IrType* result;
-    if ( module == NULL || target == NULL ||
-         (name = target->cName) == NULL ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->errorAbi != xl6IrBufferRuntimeBridgeErrorAbi(name) ) return 0;
-    if ( xl6IrBufferFactoryRuntimeBridgeName(name) ) {
-        size_t expected = strcmp(name, "xl6_xrt_buffer_create") == 0 ? 0u : 1u;
-        XL6_IrCAbi abi = strcmp(name, "xl6_xrt_buffer_create_step") == 0
-            ? XL6_IR_C_ABI_I64 : XL6_IR_C_ABI_RAW_POINTER;
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        if ( target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY ||
-             target->parameterCount != expected || result == NULL ||
-             result->kind != XL6_IR_TYPE_CLASS ||
-             result->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-             result->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
-             target->resultPhysicalAbi !=
-                 XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ||
-             target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID ||
-             target->resultPhysicalDestroySymbol == 0 ) return 0;
-        if ( expected != 0u &&
-             !xl6IrBufferRuntimeBridgeParameterMatches(
-                 module, target, 0, abi, XL6_IR_PARAMETER_ABI_VALUE,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ) return 0;
-        return 1;
-    }
-    if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-         target->parameterCount == 0 ||
-         !xl6IrBufferRuntimeBridgeParameterMatches(
-             module, target, 0, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-             XL6_IR_PARAMETER_ABI_BORROW,
-             XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW) ||
-         target->parameterPhysicalFieldDeclarations == NULL ||
-         target->parameterPhysicalFieldDeclarations[0] == XL6_IR_NODE_INVALID ||
-         target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ) return 0;
-    result = target->returnType != XL6_IR_TYPE_INVALID
-        ? xl6IrTypeGet(&module->types, target->returnType) : NULL;
-    if ( strcmp(name, "xl6_xrt_buffer_destroy") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_destroy") == 0 )
-        return target->parameterCount == 1 && result == NULL;
-    if ( strcmp(name, "xl6_xrt_buffer_len") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_capacity") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_next") == 0 )
-        return target->parameterCount == 1 &&
-               xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_I64);
-    if ( strcmp(name, "xl6_xrt_buffer_iter_has_next") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_clear") == 0 )
-        return target->parameterCount == 1 &&
-               xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_BOOL);
-    if ( strcmp(name, "xl6_xrt_buffer_text") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_data") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_native_handle") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_iter_create") == 0 )
-        return target->parameterCount == 1 &&
-               xl6IrBufferRuntimeBridgeResultMatches(
-                   result, XL6_IR_C_ABI_RAW_POINTER);
-    if ( strcmp(name, "xl6_xrt_buffer_byte_at") == 0 )
-        return target->parameterCount == 2 &&
-               xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_I64) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( !xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_BOOL) )
-        return 0;
-    if ( strcmp(name, "xl6_xrt_buffer_reserve") == 0 ||
-         strcmp(name, "xl6_xrt_buffer_append_byte") == 0 )
-        return target->parameterCount == 2 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_append_string") == 0 )
-        return target->parameterCount == 2 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_append_bytes") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_C_SIZE,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_append_raw") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_RAW_POINTER,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_C_SIZE,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_insert_string") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_MANAGED_STRING,
-                   XL6_IR_PARAMETER_ABI_BORROW,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_insert_raw") == 0 )
-        return target->parameterCount == 4 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_RAW_POINTER,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 3, XL6_IR_C_ABI_C_SIZE,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    if ( strcmp(name, "xl6_xrt_buffer_set_byte") == 0 )
-        return target->parameterCount == 3 &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 1, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) &&
-               xl6IrBufferRuntimeBridgeParameterMatches(
-                   module, target, 2, XL6_IR_C_ABI_I64,
-                   XL6_IR_PARAMETER_ABI_VALUE,
-                   XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-    return 0;
-}
 
 int xl6IrRuntimeFileBridgeName(const char* name)
 {
@@ -26788,11 +26609,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          strcmp(target->cName, "xl6_xrt_dynamic_fields_destroy") == 0 ||
          strcmp(target->cName, "xl6_xrt_dynamic_fields_get") == 0 ||
          strcmp(target->cName, "xl6_xrt_dynamic_fields_set") == 0);
-    /* Unused native constructor overloads intentionally have no physical
-     * factory result yet.  Every resolved Buffer operation is reserved. */
-    if ( target->cName != NULL && xl6IrBufferRuntimeBridgeName(target->cName) &&
-         !(xl6IrBufferFactoryRuntimeBridgeName(target->cName) &&
-           target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ) reserved = 1;
     if ( target->cName != NULL &&
          xl6IrRuntimeFileBridgeName(target->cName) &&
          !(strcmp(target->cName, "xl6_xrt_file_open") == 0 &&
@@ -26924,8 +26740,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
         }
         return 0;
     }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BUFFER )
-        return xl6IrBufferRuntimeBridgeTargetMatches(module, target);
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_FILE )
         return xl6IrRuntimeFileBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
@@ -32721,23 +32535,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
             unsigned int bridgeMismatch = 0;
             char message[512];
-            if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BUFFER &&
-                 xl6IrBufferFactoryRuntimeBridgeName(target->cName) ) {
-                size_t expected = strcmp(
-                    target->cName, "xl6_xrt_buffer_create") == 0 ? 0u : 1u;
-                if ( target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY ) bridgeMismatch |= 1u;
-                if ( target->parameterCount != expected ) bridgeMismatch |= 2u;
-                if ( bridgeResult == NULL ) bridgeMismatch |= 4u;
-                if ( bridgeResult != NULL && bridgeResult->kind != XL6_IR_TYPE_CLASS ) bridgeMismatch |= 8u;
-                if ( bridgeResult != NULL && bridgeResult->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) bridgeMismatch |= 16u;
-                if ( bridgeResult != NULL && bridgeResult->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ) bridgeMismatch |= 32u;
-                if ( bridgeResult != NULL && bridgeResult->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ) bridgeMismatch |= 64u;
-                if ( target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ) bridgeMismatch |= 128u;
-                if ( target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID ) bridgeMismatch |= 256u;
-                if ( target->resultPhysicalDestroySymbol == 0 ) bridgeMismatch |= 512u;
-                if ( target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) bridgeMismatch |= 1024u;
-                if ( target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ) bridgeMismatch |= 2048u;
-            }
             snprintf(message, sizeof(message),
                 "XLIR call target '%s' (bridge=%s mismatch=0x%X kind=%d error=%d variadic=%d parameters=%lu p0=t%u/%d/%d/%d abi=%d physical=%d result=t%u/%d/%d/%d/%d physical=%d field=n%u destroy=s%u) has no exact compiler-runtime bridge ABI",
                 target->cName != NULL ? target->cName : "<internal>",
