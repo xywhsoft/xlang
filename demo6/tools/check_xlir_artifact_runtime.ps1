@@ -18,7 +18,7 @@ try {
         'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $processInputs=@()
-    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or'stdlib_process_file_bytes'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'-or$_-like'stdlib_process_future*'}).Count){
+    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or'stdlib_process_file_bytes'-in$cases-or'stdlib_process_terminal_session'-in$cases-or'stdlib_process_terminal_allocations'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'-or$_-like'stdlib_process_future*'}).Count){
         if(!$ProcessChild){throw 'Process fixtures require an explicit private ProcessChild'}
         $ProcessChild=(Resolve-Path -LiteralPath $ProcessChild).Path
         $processInputs=@($ProcessChild)
@@ -209,6 +209,15 @@ $process=Start-Process @start
                     $expected="src/runtime/xl6_process_$leaf.c"
                     $selectedProcess=@($selectedSources|Where-Object {$_-match '/xl6_process_'})
                     $selectionMatches=$selectedProcess.Count-eq1-and$selectedProcess[0]-eq$expected
+                }elseif($case-in@('stdlib_process_terminal_config','stdlib_process_terminal_session','stdlib_process_terminal_allocations')){
+                    $parts=@('command','terminal_config')
+                    if($case-ne'stdlib_process_terminal_config'){$parts+=@('live','status')}
+                    if($case-eq'stdlib_process_terminal_session'){$parts+=@('stream','terminal_live')}
+                    $actual=@($selectedSources|Where-Object {$_-match '/xl6_process_'}|Sort-Object)
+                    $expected=@($parts|ForEach-Object {"src/runtime/xl6_process_$_.c"}|Sort-Object)
+                    $selectionMatches=!(Compare-Object $actual $expected)-and
+                        'XRT_MODULE_PROCESS_TERMINAL'-in$plan.NativeModules-and
+                        !@($plan.NativeModules|Where-Object {$_-in@('XRT_MODULE_PROCESS_RUN','XRT_MODULE_PROCESS_PIPELINE','XRT_MODULE_PROCESS_FILE','XRT_MODULE_PROCESS_FUTURE','XRT_MODULE_PROCESS_OPEN')}).Count
                 }elseif($case-eq'stdlib_signal_subscription_only'){
                     $baseline=Get-Content -LiteralPath "$outputPath/cgen_basic.native-plan.log" -TotalCount 1|ConvertFrom-Json
                     $expectedSources=@(@($baseline.Sources)+@('src/runtime/xl6_signal_core.c','src/runtime/xl6_signal_queue.c','src/runtime/xl6_code_finalizer.c')|Sort-Object -Unique)

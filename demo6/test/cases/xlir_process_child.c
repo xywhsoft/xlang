@@ -8,6 +8,7 @@
 #include <io.h>
 #else
 #include <unistd.h>
+#include <sys/ioctl.h>
 #endif
 static int childMain(int argc,char** argv)
 {
@@ -16,6 +17,31 @@ static int childMain(int argc,char** argv)
     _setmode(_fileno(stdin),_O_BINARY);_setmode(_fileno(stdout),_O_BINARY);_setmode(_fileno(stderr),_O_BINARY);
 #endif
     if(!strcmp(argv[1],"exit"))return argc>2 ? atoi(argv[2]) : 0;
+    if(!strcmp(argv[1],"terminal")){
+#if defined(_WIN32)
+        int in=_isatty(_fileno(stdin))!=0,out=_isatty(_fileno(stdout))!=0,err=_isatty(_fileno(stderr))!=0;
+#else
+        int in=isatty(STDIN_FILENO)!=0,out=isatty(STDOUT_FILENO)!=0,err=isatty(STDERR_FILENO)!=0;
+#endif
+        printf("tty:%d:%d:%d\n",in,out,err);
+        fputs("terminal-stderr\n",stderr);fflush(stdout);fflush(stderr);
+        char line[64];if(!fgets(line,sizeof(line),stdin))return 96;
+        size_t length=strlen(line);
+        while(length && (line[length-1]=='\r' || line[length-1]=='\n'))line[--length]=0;
+        unsigned columns,rows;
+#if defined(_WIN32)
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        if(!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&info))return 97;
+        columns=(unsigned)(info.srWindow.Right-info.srWindow.Left+1);
+        rows=(unsigned)(info.srWindow.Bottom-info.srWindow.Top+1);
+#else
+        struct winsize info;
+        if(ioctl(STDOUT_FILENO,TIOCGWINSZ,&info))return 97;
+        columns=info.ws_col;rows=info.ws_row;
+#endif
+        printf("size:%u:%u\nreply:%s\n",columns,rows,line);fflush(stdout);
+        return in && out && err && !strcmp(line,"hello") ? 0 : 98;
+    }
     if(!strcmp(argv[1],"sleep")){
         unsigned delay=argc>2 ? (unsigned)strtoul(argv[2],NULL,10) : 1000;
 #if defined(_WIN32)

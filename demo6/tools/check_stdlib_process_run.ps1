@@ -22,12 +22,15 @@ try {
     $cases+=@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')
     $cases+=@('stdlib_process_pipeline_config','stdlib_process_pipeline_bytes','stdlib_process_pipeline_limits','stdlib_process_pipeline_allocations')
     $cases+=@('stdlib_process_file_config','stdlib_process_file_bytes','stdlib_process_file_allocations')
+    $cases+=@('stdlib_process_terminal_config','stdlib_process_terminal_session','stdlib_process_terminal_allocations')
+    $liveOomCases+=@('stdlib_process_terminal_allocations')
     $negatives=@('xlir_process_bad_array','xlir_process_bad_effect','xlir_process_bad_width','xlir_process_bad_owner')
     $negatives+=@('xlir_process_open_bad_width','xlir_process_open_bad_effect','xlir_process_terminal_bad_pure')
     $negatives+=@('xlir_process_live_bad_owner','xlir_process_live_bad_width','xlir_process_live_bad_effect','xlir_process_live_bad_stream')
     $negatives+=@('xlir_process_future_bad_element','xlir_process_future_bad_nullable','xlir_process_future_bad_effect','xlir_process_future_bad_owner')
     $negatives+=@('xlir_process_pipeline_bad_owner','xlir_process_pipeline_bad_width','xlir_process_pipeline_bad_effect','xlir_process_pipeline_bad_input')
     $negatives+=@('xlir_process_file_bad_owner','xlir_process_file_bad_width','xlir_process_file_bad_effect','xlir_process_file_bad_input')
+    $negatives+=@('xlir_process_resize_bad_owner','xlir_process_resize_bad_width','xlir_process_resize_bad_effect')
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_live_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
@@ -35,6 +38,7 @@ try {
         'test/cases/xlir_process_pipeline_prefix.c',
         'test/cases/xlir_process_pipeline_host.c',
         'test/cases/xlir_process_file_host.c',
+        'test/cases/xlir_process_terminal_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl','release/examples/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
@@ -60,6 +64,9 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
+        $null=Check 'terminal-native-build' gcc ($flags+@('test/cases/xlir_process_terminal_host.c')+$libs+@('-o',"$work/terminal-native.exe"))
+        $terminalNative=Check 'terminal-native' "$work/terminal-native.exe" @($child)
+        if($terminalNative-notmatch 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=[0-9]+, no extra handles'){throw 'Real terminal IO/resize/lifetime witness missing'}
         $null=Check 'file-native-build' gcc ($flags+@('test/cases/xlir_process_file_host.c')+$libs+@('-o',"$work/file-native.exe"))
         $fileNative=Check 'file-native' "$work/file-native.exe" @($child)
         if($fileNative-notmatch 'process file: independent non-inheritable handles, replacement/rollback, original close, binary child, 5 guards; OS error prefix [0-9]+ failures \+ 1 first no-hit, heap/handles balanced'){throw 'Process File ownership/error ledger witness missing'}
@@ -75,10 +82,10 @@ try {
         $null=Check 'io-loan-build' gcc ($flags+@('test/cases/xlir_process_io_loan.c')+$libs+@('-o',"$work/io-loan.exe"))
         $loan=Check 'io-loan' "$work/io-loan.exe" @()
         if($loan-notmatch 'process IO loan: 3 deterministic close races, 8 failure guards, short/EOF/zero/peer guards, balanced; safe=1'){throw 'Process IO retirement witness missing'}
-        $null=Check 'native-build' gcc ($flags+@('test/cases/xlir_process_run_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_run.c','src/runtime/xl6_process_status.c')+$libs+@('-o',"$work/native.exe"))
+        $null=Check 'native-build' gcc ($flags+@('test/cases/xlir_process_run_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_terminal_config.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_run.c','src/runtime/xl6_process_status.c')+$libs+@('-o',"$work/native.exe"))
         $native=Check 'native' "$work/native.exe" @($child)
         foreach($witness in @('3 first no-hit completions, balanced','13 owner guards','projection OOM retry','concurrent cancellation and absolute deadline','native run complete prefix: [0-9]+ failures and 1 first no-hit, balanced')){if($native-notmatch$witness){throw 'Process native witness missing'}}
-        $null=Check 'pipeline-resident-build' gcc ($flags+@('-DXRT_MODULE_PROCESS_PIPELINE=1','test/cases/xlir_process_pipeline_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_status.c','src/runtime/xl6_process_pipeline_config.c','src/runtime/xl6_process_pipeline.c')+$libs+@('-o',"$work/pipeline-resident.exe"))
+        $null=Check 'pipeline-resident-build' gcc ($flags+@('-DXRT_MODULE_PROCESS_PIPELINE=1','test/cases/xlir_process_pipeline_host.c','test/support/process_native.c','src/runtime/xl6_process_command.c','src/runtime/xl6_process_terminal_config.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_status.c','src/runtime/xl6_process_pipeline_config.c','src/runtime/xl6_process_pipeline.c')+$libs+@('-o',"$work/pipeline-resident.exe"))
         $pipelineResident=Check 'pipeline-resident' "$work/pipeline-resident.exe" @($child)
         if($pipelineResident-notmatch 'pipeline resident prefixes: [0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+ failures \+ 5 first no-hit; snapshots, 5 owner guards, real collectors balanced' -or $pipelineResident-notmatch 'pipeline projections: [0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+/[0-9]+ failures \+ 6 first no-hit; independent binary/status, cancellation/deadline, balanced'){throw 'Pipeline resident prefix witness missing'}
         $null=Check 'support-native-build' gcc ($flags+@('test/cases/xlir_process_support_host.c')+$libs+@('-o',"$work/support-native.exe"))
@@ -154,7 +161,7 @@ try {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         if($changed.Count){$complete=$false}
         [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run and live Process, owned streams/status, exact bytes. Three generated live current-thread logical allocation prefixes use actual Spawn observation and explicit private waiter retirement. Typed waitAsync and isolated cooperative language cancellation; generated Future full OOM/unload remain pending. Typed pipeline owned configuration snapshots, independent per-stage stderr/status, shared deadlines/cancellation, exact binary input/output, limits and real native connectors. Native configuration/collector/projection prefixes and generated pipeline full current-thread prefix include native factory/managed boxing plus first no-hit; no other-thread allocation injection. Controlled association launcher, real terminal probe (not PTY session). Strict C, closed ABI mutations/negatives, deterministic source/formal JIT/AOT, run OOM. File redirection/PTY and 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
+            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Process configuration/run/live/Future/pipeline/File/terminal. Exact bytes, independent status/stream/File capabilities, limits/deadlines/cancellation. Real PTY/ConPTY child reports tty, merged stderr and resized dimensions; terminal config and live components are independently selected. Raw Win32 API control retention is explicitly reported; owned handle closure and no additional XRT handle growth are checked, not global Windows zero-handle growth. Strict C, exact ABI/owner/effect negatives, deterministic source/formal JIT/AOT. Four generated live/terminal current-thread logical allocation prefixes observe actual Spawn and explicitly retire private waiter tails; native factories and managed boxing included. No other-thread allocation injection. Generated Future full OOM/unload and 53-module total acceptance remain pending.'}|ConvertTo-Json -Depth 10),$utf8)
         if($changed.Count){throw 'Frozen process_run inputs changed'}
     }
     Write-Output "Process run Windows checks: $($rows.Count)"

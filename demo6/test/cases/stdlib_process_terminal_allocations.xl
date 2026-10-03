@@ -1,0 +1,10 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["exit", "0"])
+command.terminal()
+command.terminalSize(80, 24)
+auto handle = command.start()
+auto status = handle.wait(5000)
+assert status != null
+if status != null then assert status.code == 0 end
+handle.closeStdin()
