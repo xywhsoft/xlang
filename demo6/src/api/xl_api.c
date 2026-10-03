@@ -2752,6 +2752,16 @@ static XL6_OwnershipStepResult xlModuleOwnershipStepV2(XL6_OwnershipPlan* plan,
     }
     return status;
 }
+static bool xlModuleDiscoverOwnership(XL6_ModuleOwnershipVisit visit,void* visitorContext,void* context)
+{
+    const XL_Module* module=context;size_t count;
+    /* Reject active generated code, construction/retirement transitions and
+     * unsupported module contracts BEFORE inspecting the class registry.
+     * Freeze and the existing host lifecycle driver exclusion span this
+     * borrowed enumeration and its subsequent snapshot/pin transaction. */
+    if(!module || !module->retirementContract || !xlModuleOwnershipCount(module,&count))return false;
+    return xl6ClassOwnershipDiscoverV1(&module->codeOwnerGraph.base,visit,visitorContext);
+}
 static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
 {
     XL6_OwnershipPlanResult result; xerror* prior;
@@ -2759,8 +2769,8 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     if (xl__ownershipDriverRunning) return;
     xl__ownershipDriverRunning = 1; prior = xrtTakeError();
     if (!module->ownershipPlan) {
-        result = xl6OwnershipPlanTryCreateV3((xrtownershipref){module, &xlModuleOwnershipOps},
-            xlModuleResolveOwnershipV3, NULL, &module->ownershipPlan);
+        result = xl6OwnershipPlanTryCreateV4((xrtownershipref){module, &xlModuleOwnershipOps},
+            xlModuleResolveOwnershipV3, xlModuleDiscoverOwnership, module, &module->ownershipPlan);
         if (result <= XL6_OWNERSHIP_PLAN_BUSY) goto done;
         module->ownershipPhase = result == XL6_OWNERSHIP_PLAN_ROOTED ? 5 :
             result == XL6_OWNERSHIP_PLAN_PREPARATIONS ? 6 : 1;

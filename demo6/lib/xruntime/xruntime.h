@@ -13537,6 +13537,26 @@ XRT_API bool xrtValueObjectIdentityBindV1(xvalue* pObject, xvalueidentityhash pH
 	xvalueidentityequal pEqual, const xvalueobjectownershipv1* pExpectedPolicy);
 XRT_API const xrtownershipadapterv1* xrtValueObjectOwnershipAdapterV1(
 	xrtownershipref Reference, const xvalueobjectownershipv1* pExpectedPolicy);
+/* Borrowed discovery anchors for this instance's live, explicitly certified
+ * Object backings. Policy identity is exact; COW/deep-clone backings are each
+ * visited once, with their shared Lifetime UserData (possibly NULL). Ordinary
+ * objects and other policies are not enrolled. Enrollment/removal allocates
+ * nothing and changes NO reference count or owning graph edge.
+ *
+ * Caller holds exclusive whole-domain Freeze throughout enumeration and the
+ * subsequent snapshot/pin transaction. Visitor must remain read-only: it may
+ * collect/filter anchors, but must not mutate/release nodes or invoke their
+ * callbacks. Anchors are NOT internal slots and must never be subtracted from
+ * StrongCount. They are not pins, roots, reverse strong edges or unload proof.
+ * A running/finalizing backing may be discovered but must still be refused by
+ * snapshot admission; discovery is not lifecycle certification. Clear removes
+ * enrollment before Lifetime context retirement. false stops enumeration;
+ * prior visitor effects are not rolled back, so discard partial anchor lists.
+ * This is internal collector support, not automatic cycle collection. */
+typedef bool (*xvalueobjectownershipdiscoverv1)(xrtownershipref Reference,
+	const void* pLifetimeContext, ptr pContext);
+XRT_API bool xrtValueObjectOwnershipDiscoverV1(const xvalueobjectownershipv1* pExpectedPolicy,
+	xvalueobjectownershipdiscoverv1 pVisit, ptr pContext);
 /* Authorize a known resident Handle bridge, before any policy callback. The
  * expected immutable Ops/Trace must cover the complete coordinated payload;
  * identity hooks and non-NULL UserData are independently refused. This does
@@ -110891,10 +110911,52 @@ typedef struct xvalueobjectbacking {
 	const void* ReceiverClaim;
 	xvalueidentityhash OwnedIdentityHash;
 	xvalueidentityequal OwnedIdentityEqual;
+	/* Borrowed discovery links, never an owning edge or reference. Only exact
+	 * explicitly bound policies enroll; no global list of ordinary Values. */
+	struct xvalueobjectbacking* DiscoveryPrevious;
+	struct xvalueobjectbacking* DiscoveryNext;
 } xvalueobjectbacking;
 
 static bool __xrtValueObjectPolicyValid(const xvalueobjectownershipv1*);
 static bool __xrtValueObjectPolicyCallbacks(const xvalueobjectbacking*, const xvalueobjectownershipv1*);
+
+/* Mutators can run concurrently; this short lock protects ONLY intrusive link
+ * writes. Enter after ownership mutation, never across allocation, RC, a user
+ * callback or native teardown. Frozen enumeration needs no participant lock. */
+#if defined(__TINYC__) && !defined(_WIN32) && !defined(_WIN64)
+static xrt_spinlock __xrtValueObjectDiscoveryLock = { PTHREAD_MUTEX_INITIALIZER };
+#else
+static xrt_spinlock __xrtValueObjectDiscoveryLock = {0};
+#endif
+static xvalueobjectbacking* __xrtValueObjectDiscovery;
+static void __xrtValueObjectDiscoveryEnroll(xvalueobjectbacking* pObject)
+{
+	if (pObject->OwnershipPolicy == NULL) return;
+	__xrtSpinLock(&__xrtValueObjectDiscoveryLock);
+	if (pObject->DiscoveryPrevious != NULL || pObject->DiscoveryNext != NULL ||
+		__xrtValueObjectDiscovery == pObject) abort();
+	pObject->DiscoveryNext = __xrtValueObjectDiscovery;
+	if (__xrtValueObjectDiscovery != NULL) __xrtValueObjectDiscovery->DiscoveryPrevious = pObject;
+	__xrtValueObjectDiscovery = pObject;
+	__xrtSpinUnlock(&__xrtValueObjectDiscoveryLock);
+}
+static void __xrtValueObjectDiscoveryRemove(xvalueobjectbacking* pObject)
+{
+	if (pObject->OwnershipPolicy == NULL) return;
+	__xrtSpinLock(&__xrtValueObjectDiscoveryLock);
+	if (pObject->DiscoveryPrevious != NULL)
+		pObject->DiscoveryPrevious->DiscoveryNext = pObject->DiscoveryNext;
+	else if (__xrtValueObjectDiscovery == pObject)
+		__xrtValueObjectDiscovery = pObject->DiscoveryNext;
+	else {
+		if (pObject->DiscoveryNext != NULL) abort();
+		__xrtSpinUnlock(&__xrtValueObjectDiscoveryLock); return;
+	}
+	if (pObject->DiscoveryNext != NULL)
+		pObject->DiscoveryNext->DiscoveryPrevious = pObject->DiscoveryPrevious;
+	pObject->DiscoveryPrevious = pObject->DiscoveryNext = NULL;
+	__xrtSpinUnlock(&__xrtValueObjectDiscoveryLock);
+}
 
 static bool __xrtValueLifetimeOwnershipCount(const void* pData, size_t* pCount)
 {
@@ -110941,6 +111003,7 @@ static bool __xrtValueObjectBackingLifetimeCopy(xvalueobjectbacking* pTarget,
 	/* Only ordinary construction state is copyable. A finalization duty is
 	 * reference identity, deliberately never cloned into a new backing. */
 	pTarget->FinalizerPrepared = !pSource->FinalizerBound && pSource->FinalizerPrepared;
+	__xrtValueObjectDiscoveryEnroll(pTarget);
 	return true;
 }
 
@@ -111315,6 +111378,8 @@ static void __xrtValueBackingReleaseView(xvaluebacking* pBacking, xvalue* pView,
 	 * still-owned child references are real external roots while recursive
 	 * releases run, even if a child finalizer inspects/collects another graph.
 	 * Opaque legacy finalizers/lifetimes keep their conservative boundary. */
+	if (pBacking->Type == XVALUE_OBJECT)
+		__xrtValueObjectDiscoveryRemove((xvalueobjectbacking*)pBacking);
 	if (bPhased && !xrtOwnershipScopeEnd(pMutation)) abort();
 	if ( pBacking->Type == XVALUE_ARRAY ) {
 		xvaluearraybacking* pArray = (xvaluearraybacking*)pBacking;
@@ -111396,6 +111461,7 @@ static void __xrtValueBackingAdapterClear(const void* pData, const void* pToken)
 	} else if (pBacking->Type == XVALUE_SET) {
 		xrtSetClear(&((xvaluesetbacking*)pBacking)->Items);
 	} else if (pBacking->Type == XVALUE_OBJECT) {
+		__xrtValueObjectDiscoveryRemove((xvalueobjectbacking*)pBacking);
 		xrtMapClear(&((xvalueobjectbacking*)pBacking)->Items);
 	} else abort();
 	pBacking->Flags |= XRT_VALUE_BACKING_OWNERSHIP_CLEARED;
@@ -111596,10 +111662,30 @@ static bool __xrtOwnershipBody_ValueObjectOwnershipBindV1(xvalue* pValue, const 
 		__xrtErrorSetInvalidState(); return false;
 	}
 	pObject->OwnershipPolicy = pPolicy; pObject->Lifetime->OwnershipPolicy = pPolicy;
+	__xrtValueObjectDiscoveryEnroll(pObject);
 	return true;
 }
 XRT_API bool xrtValueObjectOwnershipBindV1(xvalue* pObject, const xvalueobjectownershipv1* pPolicy)
 { XRT_VALUE_MUTATION_RETURN(bool, __xrtOwnershipBody_ValueObjectOwnershipBindV1(pObject, pPolicy)); }
+XRT_API bool xrtValueObjectOwnershipDiscoverV1(const xvalueobjectownershipv1* pPolicy,
+	xvalueobjectownershipdiscoverv1 pVisit, ptr pContext)
+{
+	if (!__xrtValueObjectPolicyValid(pPolicy) || pVisit == NULL) {
+		__xrtErrorSetInvalidArgument(); return false;
+	}
+	/* Caller already owns Freeze. No lock/hold or invocation of the producer's
+	 * callbacks: exact immutable identity selects this family's borrowed nodes. */
+	for (const xvalueobjectbacking* pObject = __xrtValueObjectDiscovery;
+		pObject != NULL; pObject = pObject->DiscoveryNext) {
+		if (pObject->OwnershipPolicy != pPolicy) continue;
+		if (pObject->Lifetime == NULL || pObject->Lifetime->OwnershipPolicy != pPolicy) {
+			__xrtErrorSetInvalidState(); return false;
+		}
+		if (!pVisit((xrtownershipref){pObject, &__xrtValueBackingOwnershipOps},
+			pObject->Lifetime->UserData, pContext)) return false;
+	}
+	return true;
+}
 
 static bool __xrtOwnershipBody_ValueObjectIdentityBindV1(xvalue* pValue,
 	xvalueidentityhash pHash, xvalueidentityequal pEqual, const xvalueobjectownershipv1* pPolicy)

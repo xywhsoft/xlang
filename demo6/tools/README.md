@@ -372,9 +372,18 @@ Native-thread probes cover callback tails outside the owning mutation and
 cross-thread freezes; real create/refresh/commit OOM prefixes run through the
 first no-hit with original MemoryError and exact allocator totals. Linux
 sanitizes selected native graph/lifecycle code, not the shared public compiler.
-Both platforms execute module-global-reachable source/XLIR/JIT/retire cycles through the public
-API; Windows additionally measures real TCC MEM_FREE at host O0/O2. This is
+Both platforms execute source/XLIR/JIT/retire cycles through the public API;
+Windows additionally measures real TCC MEM_FREE at host O0/O2. The optional
+Windows `-Fixture` / Linux second argument selects the exact recorded source;
+the core suite also runs `test/fixtures/stdlib53_pending/stack_detached_cycle.xl`,
+the original detached class/Stack code-lease-island regression. V4 discovers
+physical borrowed backing anchors before every semantic duty and Commit,
+never subtracting them as owning slots. Actual selected Class/Stack/code-lease
+vectors cover foreign owners, original shell retirement before a copied island,
+alias/deep-copy rooted abort, new finalizer islands, peer resurrection, and
+the complete allocation prefixes through first no-hit. A borrowed finalizing
+receiver itself remains non-retainable under the existing XRT contract. This is
 an ownership prerequisite, not completion of Stack owned-return APIs,
-char/bytes, batch/FixedStack or the remaining 53-module acceptance. Detached
-class/Stack code-lease islands are a separately recorded pending discovery
-case, not certified by these module-rooted fixtures.
+char/bytes, batch/FixedStack or the remaining 53-module acceptance. Class-family
+discovery does not certify arbitrary policies, other families of disconnected
+cycles or every possible cross-module owning graph.

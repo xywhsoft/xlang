@@ -127,6 +127,28 @@ static const xvalueobjectownershipv1 class_ownership_policy = {
 };
 const xrtownershipadapterv1* xl6ClassOwnershipAdapterV1(xrtownershipref ref)
 { return xrtValueObjectOwnershipAdapterV1(ref, &class_ownership_policy); }
+typedef struct ClassDiscovery {
+    const XL6_CodeOwner* owner;
+    XL6_ModuleOwnershipVisit visit;
+    void* context;
+} ClassDiscovery;
+static bool class_discover(xrtownershipref ref,const void* lifetime,void* data)
+{
+    const ClassDiscovery* discovery=data;
+    /* Exact resident policy proves Lifetime UserData is this factory's raw
+     * lease. Read only its immutable identity, never foreign host callbacks. */
+    return !xl6CodeLeaseOwnerMatches(lifetime,discovery->owner) ||
+        discovery->visit(ref,discovery->context);
+}
+bool xl6ClassOwnershipDiscoverV1(const XL6_CodeOwner* owner,XL6_ModuleOwnershipVisit visit,void* context)
+{
+    if(!owner || owner->size<sizeof(*owner) || !owner->context || !owner->acquire ||
+        !owner->release || !xl6CodeOwnerGraphOps(owner) || !visit){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    ClassDiscovery discovery={owner,visit,context};
+    return xrtValueObjectOwnershipDiscoverV1(&class_ownership_policy,class_discover,&discovery);
+}
 static bool class_identity_bind(xvalue* value, xvalueidentityhash hash, xvalueidentityequal equal)
 { return xrtValueObjectIdentityBindV1(value, hash, equal, &class_ownership_policy); }
 

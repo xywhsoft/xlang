@@ -27,7 +27,8 @@ static void dropped(int64_t id, int64_t count)
     xrtownershipscope freeze = {0};
     assert(xrtOwnershipFreezeTryBegin(&freeze) && xrtOwnershipScopeEnd(&freeze)); ++droppedMarkers;
 }
-static void transaction(const char* headers, const char* temporary, const char* runtime, const char* libraries)
+static void transaction(const char* headers, const char* temporary, const char* runtime, const char* libraries,
+    const char* fixture)
 {
     XLC_ContextOptions options = xlcDefaultContextOptions();
     options.workDir = "."; options.tempDir = temporary; options.tccDllPath = runtime; options.tccLibPath = libraries;
@@ -35,7 +36,7 @@ static void transaction(const char* headers, const char* temporary, const char* 
     assert(xlcAddIncludePath(compiler,headers));
     assert(xlcRegisterCFunction(compiler,"stack_graph_capture",(void*)capture));
     assert(xlcRegisterCFunction(compiler,"stack_graph_dropped",(void*)dropped));
-    assert(xlcAddSourceFile(compiler,"test/cases/stdlib_stack_ownership.xl"));
+    assert(xlcAddSourceFile(compiler,fixture));
     if (!xlcCompile(compiler)) { fprintf(stderr,"%s\n",xlcGetLastError(compiler)); abort(); }
     XL_Module* module = xlcRelocateModule(compiler); assert(module);
     XL_Context* context = xlcRuntimeContext(compiler); assert(xlActivateModule(context,module,NULL));
@@ -49,13 +50,14 @@ static void transaction(const char* headers, const char* temporary, const char* 
 }
 int main(int argc, char** argv)
 {
-    assert(argc == 6); selected = (unsigned)strtoul(argv[1],NULL,10); assert(selected < 4);
+    assert(argc == 6 || argc == 7); selected = (unsigned)strtoul(argv[1],NULL,10); assert(selected < 4);
+    const char* fixture=argc==7?argv[6]:"test/cases/stdlib_stack_ownership.xl";
     assert(xrtMemDebugEnable(true));
     /* Warm actual process-level TCC/environment caches before the ledger. */
-    transaction(argv[2],argv[3],argv[4],argv[5]); transaction(argv[2],argv[3],argv[4],argv[5]);
+    transaction(argv[2],argv[3],argv[4],argv[5],fixture); transaction(argv[2],argv[3],argv[4],argv[5],fixture);
     for (unsigned round = 0; round < 25; ++round) {
         xmemdebugsnapshot before, after; xrtMemDebugSnapshot(&before);
-        transaction(argv[2],argv[3],argv[4],argv[5]); xrtMemDebugSnapshot(&after);
+        transaction(argv[2],argv[3],argv[4],argv[5],fixture); xrtMemDebugSnapshot(&after);
         if (before.LiveCount != after.LiveCount || before.LiveBytes != after.LiveBytes ||
             after.AllocCount-before.AllocCount != after.FreeCount-before.FreeCount ||
             before.InvalidFreeCount != after.InvalidFreeCount || before.DoubleFreeCount != after.DoubleFreeCount)

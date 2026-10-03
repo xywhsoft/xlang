@@ -74,6 +74,14 @@ static const xrtownershipops code_lease_ownership_ops = {
 };
 xrtownershipref xl6CodeLeaseOwnership(const XL6_CodeLease* lease)
 { return (xrtownershipref){lease, lease != NULL ? &code_lease_ownership_ops : NULL}; }
+bool xl6CodeLeaseOwnerMatches(const XL6_CodeLease* lease,const XL6_CodeOwner* owner)
+{
+    return lease && owner && owner->size>=sizeof(*owner) && owner->context &&
+        owner->acquire && owner->release && xl6CodeOwnerGraphOps(owner) &&
+        !lease->cleared && lease->context==owner->context &&
+        lease->acquire==owner->acquire && lease->release==owner->release &&
+        lease->ownerOps==xl6CodeOwnerGraphOps(owner);
+}
 static bool code_lease_hold(const void* data)
 {
     XL6_CodeLease* lease = (XL6_CodeLease*)data;

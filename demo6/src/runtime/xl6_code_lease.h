@@ -79,6 +79,10 @@ struct xrtownershipadapterv1;
 /* The resident lease is known; its arbitrary host owner still needs separate
  * pre-trace admission. Actual host acquisitions survive Clear until unpin. */
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6CodeLeaseOwnershipAdapterV1(struct xrtownershipref);
+/* Borrowed exact immutable owner identity, only under whole-domain freeze or
+ * equivalent quiescence. Does not invoke host hooks, inspect owner storage,
+ * retain, authorize an unknown policy, or reopen admission after Close. */
+XL6_CODE_LEASE_API bool xl6CodeLeaseOwnerMatches(const XL6_CodeLease*, const XL6_CodeOwner*);
 
 /* Transactional Future/destructor adapter. Create borrows parent and does not
  * consume value/context. Its failure never runs drop. It copies the callback
@@ -137,4 +141,10 @@ XL6_CODE_LEASE_API const XL6_ClassRuntimeV2* xl6ClassRuntimeV2Get(void);
 /* Only the resident Class factory's exact lifetime/finalizer family, never
  * arbitrary legacy CodeFinalizerBind contexts. Requires complete graph admission. */
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ClassOwnershipAdapterV1(struct xrtownershipref);
+/* Read-only discovery for the exact resident Class factory family and exact
+ * copied code owner. Includes actual COW/deep backings, not creation shells.
+ * Caller holds freeze through admission/snapshot/pins; anchors own nothing.
+ * Legacy finalizer bindings and arbitrary contexts remain outside the family. */
+XL6_CODE_LEASE_API bool xl6ClassOwnershipDiscoverV1(const XL6_CodeOwner*,
+    XL6_ModuleOwnershipVisit, void*);
 #endif
