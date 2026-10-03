@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include <windows.h>
 #include "../../build/test/xlir_cell_continuation_outcome.c"
 #include "../../build/test/xlir_cell_continuation_outcome.h.bind.h"
@@ -24,11 +25,13 @@ void cell_continuation_drop(int64_t id)
 
 static void take_word(xlir_generator* generator, int index)
 {
-    static const char* expected[] = {"ax", "axx", "bx", "bxx"};
-    char* item = NULL;
+    static const xlir_string expected[] = {{"ax",2}, {"axx",3}, {"bx",2}, {"bxx",3}};
+    xlir_string item = {0};
     assert(index >= 0 && index < 4);
     assert(xlir_generator_item_get(generator, &item, sizeof(item), true));
-    assert(item && !strcmp(item, expected[index])); xrtFree(item);
+    assert(item.Data && item.Size == expected[index].Size &&
+        !memcmp(item.Data, expected[index].Data, item.Size));
+    xrtFree((void*)item.Data);
 }
 void cell_continuation_prepare(void) { assert(xlir_module_init() && !xrtGetError()); }
 void cell_continuation_finish(void) { xlir_module_fini(); assert(!xrtGetError()); }

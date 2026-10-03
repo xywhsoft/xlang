@@ -24,11 +24,11 @@ int cell_outcome_run(int shape, int* nonnull, int* invoked, long long* value, un
     case 3: result = CELL_OUTCOME_3(false); break;
     case 4: result = CELL_OUTCOME_3(true); break;
     case 5: result = CELL_OUTCOME_4(7); break;
-    case 6: result = CELL_OUTCOME_5("value"); break;
+    case 6: result = CELL_OUTCOME_5((xlir_string){"value",5}); break;
     case 7: result = CELL_OUTCOME_6(cellInput); break;
-    case 8: result = CELL_OUTCOME_7(7, "value", cellInput); break;
-    case 9: result = CELL_OUTCOME_8(NULL); break;
-    case 10: result = CELL_OUTCOME_8("value"); break;
+    case 8: result = CELL_OUTCOME_7(7, (xlir_string){"value",5}, cellInput); break;
+    case 9: result = CELL_OUTCOME_8((xlir_string){0}); break;
+    case 10: result = CELL_OUTCOME_8((xlir_string){"value",5}); break;
     case 11: result = CELL_OUTCOME_9(); break;
     }
     *nonnull = result.value != NULL;

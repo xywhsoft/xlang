@@ -41,7 +41,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Cell allocation entry runtime/memory failed' }
     & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Cell allocation entry C-host JIT failed' }
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    # C-host artifacts do not have a language IR runtime plan. Supply the real
+    # resident implementations, rather than relying on the JIT's DLL symbols.
+    $syncRuntimeSources = @('src/runtime/xl6_slot.c','src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_cell.c','src/runtime/xl6_closure.c')
+    & release/xl.exe build $runtimeSource $hostSource @syncRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path release --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cell allocation entry C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Cell allocation entry C-host AOT runtime failed' }
@@ -52,7 +56,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Cell suspension strict C runtime failed' }
     & release/xl.exe run $suspensionHost --inc-path . --inc-path build/test
     if ($LASTEXITCODE -ne 0) { throw 'Cell suspension C-host JIT failed' }
-    & release/xl.exe build $suspensionHost src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.suspension.aot.exe"
+    $suspensionRuntimeSources = @($syncRuntimeSources) + @(
+        'src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c',
+        'src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c',
+        'src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
+        'src/runtime/xl6_code_finalizer.c','src/runtime/xl6_continuation_queue.c',
+        'src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c',
+        'src/runtime/xl6_future_payload.c','src/runtime/xl6_time_core.c')
+    & release/xl.exe build $suspensionHost @suspensionRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path release --inc-path build/test -o "$prefix.suspension.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cell suspension C-host AOT build failed' }
     & "$prefix.suspension.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Cell suspension C-host AOT runtime failed' }
