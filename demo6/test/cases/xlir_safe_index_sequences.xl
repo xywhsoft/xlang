@@ -1,0 +1,36 @@
+int calls = 0
+string? text = "a\0你"
+bytes? binary = b"a\0\xFF"
+
+func ordinal() as int
+    calls += 1
+    return 2
+end
+
+func dropText() as int
+    text = null
+    return 2
+end
+
+func dropBytes() as int
+    binary = null
+    return 2
+end
+
+func main(...) as int
+    assert (text?[ordinal()] ?? 'x') == '你'
+    if text != null then assert (text?[2] ?? 'x') == '你' end
+    assert text?[3] == null and text?[-1] == null
+    assert (binary?[ordinal()] ?? uint8(0)) == uint8(255)
+    assert binary?[3] == null and binary?[-1] == null
+    assert calls == 2
+    assert (text?[dropText()] ?? 'x') == '你' and text == null
+    assert (binary?[dropBytes()] ?? uint8(0)) == uint8(255) and binary == null
+    assert text?[ordinal()] == null and binary?[ordinal()] == null
+    assert calls == 2
+    string plain = "a\0你"
+    bytes data = b"a\0\xFF"
+    assert (plain?[2] ?? 'x') == '你' and plain?[3] == null
+    assert (data?[2] ?? uint8(0)) == uint8(255) and data?[3] == null
+    return 0
+end

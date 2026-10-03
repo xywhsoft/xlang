@@ -14,7 +14,7 @@ try {
     & ./tools/stage_xlir_artifact_runtime_sources.ps1 -Directory $public
     if(!$?){throw 'Stage failed'}
     $cases=@('xlir_nullable_getter','xlir_nullable_protocol_getter','xlir_nullable_generic_getter','xlir_nullable_inherited_getter','xlir_nullable_getter_alias','xlir_nullable_getter_cleanup','stdlib_process_live_wait')
-    $regressions=@('protocol_property_dispatch','protocol_generic_property_dispatch','cgen_class_self_property_dispatch','xlir_internal_property_error_propagation')
+    $regressions=@('protocol_property_dispatch','protocol_generic_property_dispatch','cgen_class_self_property_dispatch','xlir_internal_property_error_propagation','nullable_safe_navigation')
     $extra=@($PSCommandPath,'tools/check_xlir_nullable_getter.sh','test/cases/xlir_nullable_getter_contract.c',
         'test/cases/xlir_process_oom_host.c','test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_child.c',
         'test/cases/sem_nullable_getter_private.xl','release/xl.exe','release/xlc.dll','release/xl.dll',

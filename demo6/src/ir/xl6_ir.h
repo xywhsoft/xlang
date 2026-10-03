@@ -2354,6 +2354,15 @@ typedef enum XL6_IrMemberAbi {
     XL6_IR_MEMBER_ABI_BYTES_LENGTH
 } XL6_IrMemberAbi;
 
+/* Safe builtin indexing evaluates its key only on the present successor.
+ * The receiver contract is closed before lowering, independently of the
+ * lookup's missing/out-of-range result contract. */
+typedef enum XL6_IrIndexReceiverGate {
+    XL6_IR_INDEX_RECEIVER_UNCONDITIONAL = 0,
+    XL6_IR_INDEX_RECEIVER_NULLABLE,
+    XL6_IR_INDEX_RECEIVER_DYNAMIC
+} XL6_IrIndexReceiverGate;
+
 /* Canonical mutation identity for an INDEX node used as an lvalue.  Key
  * syntax, collection representation and consuming item ownership are
  * resolved before lowering; Cgen receives only the resulting RuntimeOp. */
@@ -2623,6 +2632,7 @@ typedef struct XL6_IrNode {
     XL6_IrGeneratorClosePointAbi generatorClosePointAbi;
     /* SIZE_MAX except for XL6_IR_MEMBER_ABI_UNION_FIELD. */
     size_t unionField;
+    XL6_IrIndexReceiverGate indexReceiverGate;
     XL6_IrIndexWriteAbi indexWriteAbi;
     /* Failure effect of an ASSIGN/MULTI_ASSIGN whose target uses an index
      * mutation ABI.  The write operation itself returns a boolean commit
