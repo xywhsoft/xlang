@@ -18,7 +18,7 @@ try {
         'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $processInputs=@()
-    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'-or$_-like'stdlib_process_future*'}).Count){
+    if('stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or'stdlib_process_file_bytes'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'-or$_-like'stdlib_process_future*'}).Count){
         if(!$ProcessChild){throw 'Process fixtures require an explicit private ProcessChild'}
         $ProcessChild=(Resolve-Path -LiteralPath $ProcessChild).Path
         $processInputs=@($ProcessChild)

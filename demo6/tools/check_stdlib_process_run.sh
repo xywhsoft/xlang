@@ -13,11 +13,13 @@ cases+=(stdlib_process_support stdlib_process_terminal_only stdlib_process_open_
 cases+=(stdlib_process_live_wait stdlib_process_live_streams stdlib_process_live_drop stdlib_process_live_allocations)
 cases+=(stdlib_process_future stdlib_process_future_drop stdlib_process_future_cancel)
 cases+=(stdlib_process_pipeline_config stdlib_process_pipeline_bytes stdlib_process_pipeline_limits stdlib_process_pipeline_allocations)
+cases+=(stdlib_process_file_config stdlib_process_file_bytes stdlib_process_file_allocations)
 negative=(xlir_process_bad_array xlir_process_bad_effect xlir_process_bad_width xlir_process_bad_owner)
 negative+=(xlir_process_open_bad_width xlir_process_open_bad_effect xlir_process_terminal_bad_pure)
 negative+=(xlir_process_live_bad_owner xlir_process_live_bad_width xlir_process_live_bad_effect xlir_process_live_bad_stream)
 negative+=(xlir_process_future_bad_element xlir_process_future_bad_nullable xlir_process_future_bad_effect xlir_process_future_bad_owner)
 negative+=(xlir_process_pipeline_bad_owner xlir_process_pipeline_bad_width xlir_process_pipeline_bad_effect xlir_process_pipeline_bad_input)
+negative+=(xlir_process_file_bad_owner xlir_process_file_bad_width xlir_process_file_bad_effect xlir_process_file_bad_input)
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
@@ -28,6 +30,7 @@ negative+=(xlir_process_pipeline_bad_owner xlir_process_pipeline_bad_width xlir_
     printf '%s\0' test/cases/xlir_process_future_host.c
     printf '%s\0' test/cases/xlir_process_pipeline_prefix.c
     printf '%s\0' test/cases/xlir_process_pipeline_host.c
+    printf '%s\0' test/cases/xlir_process_file_host.c
     printf '%s\0' test/cases/xlir_process_live_oom_host.c test/support/process_oom_observer.c
     printf '%s\0' test/cases/xlir_process_io_loan.c test/support/process_io_loan_probe.h
     printf '%s\0' test/cases/xlir_process_oom_host.c test/cases/xlir_artifact_runtime_contract.c
@@ -59,6 +62,9 @@ future_resident=(src/runtime/xl6_code_lease.c src/runtime/xl6_code_finalizer.c s
 run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xlir_process_child.c -o "$OUT/child"
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
+run file-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_file_host.c -pthread -ldl -lm -o "$OUT/file-native"
+run file-native "$OUT/file-native" "$OUT/child"
+grep -Eq 'process file: independent non-inheritable handles, replacement/rollback, original close, binary child, 5 guards; OS error prefix [0-9]+ failures \+ 1 first no-hit, heap/handles balanced' "$OUT/file-native.log"
 run pipeline-prefix-build "$CC" "${strict[@]}" "${sanitize[@]}" -DXL6_PIPELINE_PREFIX_FROM_XLANG=1 test/cases/xlir_process_pipeline_prefix.c -pthread -ldl -lm -o "$OUT/pipeline-prefix"
 run pipeline-prefix "$OUT/pipeline-prefix"
 grep -Eq 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced' "$OUT/pipeline-prefix.log"
@@ -101,7 +107,8 @@ for fixture in "${cases[@]}"; do
     cmp "$OUT/$fixture.c" "$OUT/$fixture.closed.c"
     ! grep -Eq 'xl6_xrt_process_|xrtProcess[A-Za-z]+\(|xl6_process_run_text' "$OUT/$fixture.c"
     strict_host=test/cases/xlir_process_oom_host.c
-    if [[ "$fixture" = stdlib_process_live_* || "$fixture" = stdlib_process_future* ]]; then strict_host=test/cases/xlir_time_text_closure_host.c; fi
+    if [[ "$fixture" = stdlib_process_live_* || "$fixture" = stdlib_process_future* || "$fixture" = stdlib_process_file* ]]; then strict_host=test/cases/xlir_time_text_closure_host.c; fi
+    if [[ "$fixture" = stdlib_process_file_allocations ]]; then strict_host=test/cases/xlir_process_oom_host.c; fi
     run "$fixture-strict-build" "$CC" "${strict[@]}" -include "$OUT/$fixture.c" "$strict_host" "${libs[@]}" -lxl -o "$OUT/$fixture.strict"
     run "$fixture-strict" "$OUT/$fixture.strict"
     run "$fixture-jit" "$CLI" run "$source"
@@ -148,7 +155,7 @@ if future:assert "src/runtime/xl6_future_payload.c" in p["Sources"]' "$OUT/$fixt
     done
     run "$fixture-closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -include "$OUT/$fixture.c" test/cases/xlir_time_text_closure_host.c "$OUT/$fixture.native.o" "${resident_objects[@]}" -pthread -ldl -lm -o "$OUT/$fixture.closure"
     run "$fixture-closure" "$OUT/$fixture.closure"
-    if [[ "$fixture" = stdlib_process_pipeline_allocations ]]; then
+    if [[ "$fixture" = stdlib_process_pipeline_allocations || "$fixture" = stdlib_process_file_allocations ]]; then
         run "$fixture-debug-native-build" "$CC" "${strict[@]}" "${sanitize[@]}" -DXRT_MODULE_MEMORY_DEBUG -Ilib/xruntime -c "$OUT/$fixture.native.c" -o "$OUT/$fixture.debug-native.o"
         run "$fixture-pipeline-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -include "$OUT/$fixture.c" test/cases/xlir_process_oom_host.c "$OUT/$fixture.debug-native.o" "${resident_objects[@]}" -pthread -ldl -lm -o "$OUT/$fixture.pipeline-oom"
         run "$fixture-pipeline-oom-baseline" "$OUT/$fixture.pipeline-oom"
@@ -185,7 +192,11 @@ done
 for fixture in "${negative[@]}"; do
     if "$CLI" cgen "test/cases/$fixture.xl" --emit "$OUT/$fixture.c" >"$OUT/$fixture.log" 2>&1; then exit 1; fi
     [[ ! -e "$OUT/$fixture.c" ]]
-    grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
+    if [[ "$fixture" = xlir_process_file_bad_input ]]; then
+        grep -q 'XLIR VFS resource parameter has no exact native field borrow' "$OUT/$fixture.log"
+    else
+        grep -Eq 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI' "$OUT/$fixture.log"
+    fi
     checks=$((checks+1))
 done
 run example-run "$CLI" run release/examples/stdlib_process_run.xl

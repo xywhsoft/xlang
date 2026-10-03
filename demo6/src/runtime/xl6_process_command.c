@@ -4,6 +4,7 @@ void xl6ProcessCommandDestroyV1(void* handle)
 {
     XL6_ProcessCommand* command=handle;if(!command)return;
     xerror* prior=xrtTakeError();xl6ProcessConfigUnit(&command->config);
+    for(unsigned stream=0;stream<3;++stream)xl6ProcessIoLeaseDrop(&command->stdio[stream]);
     xl6TextThreadDrop(&command->owner);xrtFree(command);
     xrtClearError();xrtSetErrorTake(prior);
 }
@@ -100,6 +101,9 @@ FLAG(HideWindow,HideWindow)
 void xl6ProcessCommandTerminalV1(void* handle,bool enabled)
 {
     XL6_ProcessCommand* command=xl6ProcessCommandCheck(handle);if(!command)return;
+    if(enabled && (command->stdio[0].owned || command->stdio[1].owned || command->stdio[2].owned)){
+        xrtSetErrorKind(XERR_UNSUPPORTED);return;
+    }
     command->config.Terminal=enabled;
     if(enabled){command->config.HideWindow=false;command->config.NewConsole=false;}
 }
@@ -112,8 +116,8 @@ void xl6ProcessCommandTerminalSizeV1(void* handle,int64_t columns,int64_t rows)
 void xl6ProcessCommandStdioV1(void* handle,int64_t stream,int64_t mode)
 {
     XL6_ProcessCommand* command=xl6ProcessCommandCheck(handle);if(!command)return;
-    /* Raw HANDLE is deliberately not a language integer configuration. Owned
-     * native-file duplication and VFS stream adapters are separate entries. */
+    /* Raw HANDLE is never a language integer. File bindings carry an owned
+     * native lease; generic VFS streams use explicit pipe IO instead. */
     if(stream<XPROCESS_STDIN || stream>XPROCESS_STDERR || mode<XPROCESS_IO_INHERIT ||
        mode>XPROCESS_IO_MERGE || mode==XPROCESS_IO_HANDLE || (mode==XPROCESS_IO_MERGE && stream!=XPROCESS_STDERR)) {
         xrtSetErrorKind(XERR_RANGE);return;
@@ -121,4 +125,5 @@ void xl6ProcessCommandStdioV1(void* handle,int64_t stream,int64_t mode)
     xprocessio* io=stream==XPROCESS_STDIN ? &command->config.Stdin :
         stream==XPROCESS_STDOUT ? &command->config.Stdout : &command->config.Stderr;
     io->Mode=(xprocessiomode)mode;
+    io->Handle=-1;xl6ProcessIoLeaseDrop(&command->stdio[stream]);
 }

@@ -2091,6 +2091,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             "    extern \"xl6ProcessStageStatusV1\" create(ProcessStageResult stage)\n");
         xl6StdlibBuilderAppend(&builder, "end\n");
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessCommandSource);
+        if (needsFileClass) xl6StdlibBuilderAppend(&builder, xl6StdlibProcessFileSource);
         if (needsLiveProcessClass) xl6StdlibBuilderAppend(&builder,
             "    func start() as Process\n        return Process(self)\n    end\n");
         xl6StdlibBuilderAppend(&builder, "end\n");

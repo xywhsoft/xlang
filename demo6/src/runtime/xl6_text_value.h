@@ -75,6 +75,7 @@ XL6_TEXT_API void xl6ProcessCommandHideWindowV1(void* p0, bool p1);
 XL6_TEXT_API void xl6ProcessCommandTerminalV1(void* p0, bool p1);
 XL6_TEXT_API void xl6ProcessCommandTerminalSizeV1(void* p0, int64_t p1, int64_t p2);
 XL6_TEXT_API void xl6ProcessCommandStdioV1(void* p0, int64_t p1, int64_t p2);
+XL6_TEXT_API void xl6ProcessCommandFileV1(void* command, int64_t stream, void* file);
 XL6_TEXT_API void* xl6ProcessRunOptionsCreateV1(int64_t p0, int64_t p1, int64_t p2, int64_t p3, int64_t p4, uint64_t p5);
 XL6_TEXT_API void xl6ProcessRunOptionsDestroyV1(void* p0);
 XL6_TEXT_API bool xl6ProcessRunOptionsCancelV1(void* p0);

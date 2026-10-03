@@ -21,17 +21,20 @@ try {
     $liveOomCases=@('stdlib_process_live_wait','stdlib_process_live_drop','stdlib_process_live_allocations')
     $cases+=@('stdlib_process_future','stdlib_process_future_drop','stdlib_process_future_cancel')
     $cases+=@('stdlib_process_pipeline_config','stdlib_process_pipeline_bytes','stdlib_process_pipeline_limits','stdlib_process_pipeline_allocations')
+    $cases+=@('stdlib_process_file_config','stdlib_process_file_bytes','stdlib_process_file_allocations')
     $negatives=@('xlir_process_bad_array','xlir_process_bad_effect','xlir_process_bad_width','xlir_process_bad_owner')
     $negatives+=@('xlir_process_open_bad_width','xlir_process_open_bad_effect','xlir_process_terminal_bad_pure')
     $negatives+=@('xlir_process_live_bad_owner','xlir_process_live_bad_width','xlir_process_live_bad_effect','xlir_process_live_bad_stream')
     $negatives+=@('xlir_process_future_bad_element','xlir_process_future_bad_nullable','xlir_process_future_bad_effect','xlir_process_future_bad_owner')
     $negatives+=@('xlir_process_pipeline_bad_owner','xlir_process_pipeline_bad_width','xlir_process_pipeline_bad_effect','xlir_process_pipeline_bad_input')
+    $negatives+=@('xlir_process_file_bad_owner','xlir_process_file_bad_width','xlir_process_file_bad_effect','xlir_process_file_bad_input')
     $extra=@($PSCommandPath,'tools/check_stdlib_process_run.sh','test/cases/xlir_process_run_host.c','test/cases/xlir_process_child.c',
         'test/support/process_native.c','test/cases/xlir_text_value_contract.c','test/cases/xlir_process_oom_host.c','test/cases/xlir_process_support_host.c',
         'test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_live_host.c','test/cases/xlir_process_io_loan.c','test/support/process_io_loan_probe.h',
         'test/cases/xlir_process_future_host.c','test/cases/xlir_process_live_oom_host.c','test/support/process_oom_observer.c',
         'test/cases/xlir_process_pipeline_prefix.c',
         'test/cases/xlir_process_pipeline_host.c',
+        'test/cases/xlir_process_file_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl','release/examples/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
@@ -57,6 +60,9 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
+        $null=Check 'file-native-build' gcc ($flags+@('test/cases/xlir_process_file_host.c')+$libs+@('-o',"$work/file-native.exe"))
+        $fileNative=Check 'file-native' "$work/file-native.exe" @($child)
+        if($fileNative-notmatch 'process file: independent non-inheritable handles, replacement/rollback, original close, binary child, 5 guards; OS error prefix [0-9]+ failures \+ 1 first no-hit, heap/handles balanced'){throw 'Process File ownership/error ledger witness missing'}
         $null=Check 'pipeline-prefix-build' gcc ($flags+@('-DXL6_PIPELINE_PREFIX_FROM_XLANG=1','test/cases/xlir_process_pipeline_prefix.c')+$libs+@('-o',"$work/pipeline-prefix.exe"))
         $pipelinePrefix=Check 'pipeline-prefix' "$work/pipeline-prefix.exe" @()
         if($pipelinePrefix-notmatch 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced'){throw 'Pipeline physical-owner/setup prefix witness missing'}
@@ -100,7 +106,8 @@ try {
             $null=Check "$case-contract" "$work/contract.exe" @($source,"$prefix.closed.c")
             if((Get-FileHash "$prefix.c").Hash-ne(Get-FileHash "$prefix.closed.c").Hash){throw 'Process run contract C mismatch'}
             if((Get-Content "$prefix.c" -Raw)-match 'xl6_xrt_process_|\bxrtProcess[A-Za-z]+\(|xl6_process_run_text'){throw 'Process run algorithm leaked into Cgen'}
-            $strictHost=if($case-like'stdlib_process_live_*'-or$case-like'stdlib_process_future*'){'test/cases/xlir_time_text_closure_host.c'}else{'test/cases/xlir_process_oom_host.c'}
+            $strictHost=if($case-like'stdlib_process_live_*'-or$case-like'stdlib_process_future*'-or$case-like'stdlib_process_file*'){'test/cases/xlir_time_text_closure_host.c'}else{'test/cases/xlir_process_oom_host.c'}
+            if($case-eq'stdlib_process_file_allocations'){$strictHost='test/cases/xlir_process_oom_host.c'}
             $strictObjects=$nativeObjects; $wrap=@()
             if($case-in$liveOomCases){$strictHost='test/cases/xlir_process_live_oom_host.c';$strictObjects=$retirementObjects;$wrap=@('-Wl,--wrap=xrtProcessSpawn')}
             $null=Check "$case-strict-build" gcc ($flags+@('-include',"$prefix.c",$strictHost)+$strictObjects+$wrap+$libs+@('-o',"$prefix.strict.exe"))
@@ -111,7 +118,7 @@ try {
             $null=Check "$case-formal-run" 'release/xl.exe' @('run',$source)
             $null=Check "$case-formal-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
             $null=Check "$case-formal-execute" "$prefix.formal.exe" @()
-            if($case-in@('stdlib_process_run_allocations','stdlib_process_pipeline_allocations')){
+            if($case-in@('stdlib_process_run_allocations','stdlib_process_pipeline_allocations','stdlib_process_file_allocations')){
                 $terminal=$false
                 for($point=0;$point-lt512;++$point){
                     if((Check "$case-oom-$point" "$prefix.strict.exe" @("$point"))-match'hit=0 balanced'){$terminal=$true;break}
@@ -129,7 +136,8 @@ try {
         }
         foreach($case in $negatives){
             $prefix="$work/$case"
-            $null=Check $case $build.Driver @("test/cases/$case.xl",'emit',$prefix) 'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'
+            $rejection=if($case-eq'xlir_process_file_bad_input'){'XLIR VFS resource parameter has no exact native field borrow'}else{'XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI'}
+            $null=Check $case $build.Driver @("test/cases/$case.xl",'emit',$prefix) $rejection
             foreach($ext in @('c','h','json')){if(Test-Path "$prefix.$ext"){throw 'Unsafe process_run ABI produced output'}}
         }
         $null=Check 'example-run' 'release/xl.exe' @('run','release/examples/stdlib_process_run.xl')

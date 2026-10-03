@@ -33,6 +33,7 @@
 - `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
 - `进程标准库异步等待.md`：Process.waitAsync 的 typed 结果、协作取消、共享源隔离、声明 ABI 与按需原生闭包。
+- `进程文件重定向.md`：Command 的独立 OS 句柄、File/VFS 边界、配置回滚、声明 ABI 与按需重定向组件。
 - `数据格式与归档扩展库设计.md`：JSON/XSON、codec、hash/crypto、archive、template、encoding 等数据格式与归档扩展库设计。
 - `网络服务基座补全设计.md`：XRT 网络服务基座、HTTP server 标准库、路由、静态资源、请求响应对象和 xs 静态原型支撑设计。
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
