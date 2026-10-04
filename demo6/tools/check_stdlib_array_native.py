@@ -34,6 +34,13 @@ def main() -> int:
         parser.error("Native C compiler and nm are required")
     out.mkdir(parents=True)
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable)]
+    projection_sources = ["test/cases/stdlib_array_value_native_host.c", "test/support/array_value_native.c",
+        "src/runtime/xl6_sequence.c", "src/runtime/xl6_array.c", "src/runtime/xl6_array_value.c",
+        "src/runtime/xl6_string_type.c", "src/runtime/xl6_string_value.c", "src/runtime/xl6_nullable_string.c",
+        "src/runtime/xl6_ownership_plan.c"]
+    for family in ("bool", "i64", "u64", "f32", "f64", "time", "char"):
+        projection_sources += [f"src/runtime/xl6_nullable_{family}.c", f"src/runtime/xl6_nullable_{family}_value.c"]
+    files += [root / name for name in projection_sources]
     files += [root / name for name in (
         "test/cases/stdlib_array_native_host.c", "test/cases/stdlib_array_iterator_native_host.c", "test/support/array_native.c",
         "test/support/stack_native.c", "src/runtime/xl6_sequence.c",
@@ -90,7 +97,8 @@ def main() -> int:
             assert "xl6ArrayIteratorCreateV1" in names and "xl6SequenceWrapV1" in names, "Missing snapshot-only closure"
             assert "xrtTypedArrayCreate" in names, "Missing selected typed storage"
             assert not any(re.match(r"xl6(?:Array(?!Iterator)|Stack)[A-Z]|xrtTypedStack[A-Z]", n) for n in names), "Snapshot-only closure pulled Array/Stack facade"
-            assert not {"xl6NullableStringTypeV1", "xl6NullableStringEqualV1", "xl6NullableStringConverterV1"} & names, "Scalar snapshot pulled nullable string provider"
+            assert not {"xl6NullableStringTypeV1", "xl6NullableStringEqualV1", "xl6NullableStringConverterV1",
+                        "xl6StringTypeV1", "xl6StringConverterV1", "xl6ArrayFromValueV1", "xl6ArrayToValueV1"} & names, "Scalar snapshot pulled text/projection provider"
             run(lane + ".vectors", [str(binary)])
             for mixed in (False, True):
                 lane = f"O{level}.{'mixed' if mixed else 'array'}"
@@ -128,6 +136,31 @@ def main() -> int:
                             break
                     else:
                         raise RuntimeError(f"Incomplete logical allocation prefix: {lane}/{operation}")
+            lane = f"O{level}.projection"
+            binary = out / (lane + (".exe" if os.name == "nt" else ""))
+            links = [] if os.name == "nt" else ["-pthread", "-lm"]
+            run(lane + ".build", [cc, *strict, f"-O{level}", *projection_sources, *links, "-o", str(binary)])
+            symbols = run(lane + ".symbols", [nm, "--defined-only", str(binary)])
+            names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
+            assert {"xl6ArrayFromValueV1", "xl6ArrayToValueV1", "xl6StringTypeV1", "xl6StringConverterV1",
+                    "xrtTypedArrayFromValue", "xrtTypedArrayToValue"} <= names, "Missing actual projection closure"
+            assert not any(re.match(r"(?:xl6(?:Stack|Regex|Log|Process)|xrt(?:TypedStack|Regex|Logger|Process))[A-Z]", n) for n in names), "Projection pulled unrelated implementation"
+            run(lane + ".vectors", [str(binary)])
+            projection_operations = ["string-init", "string-copy", "string-resize", "string-from", "string-to",
+                                     "ref-from", "ref-to", "graph-create", "graph-refresh", "graph-commit"]
+            projection_operations += [f"profile-{family}-{direction}" for family in
+                ("bool", "i64", "u64", "f32", "f64", "time", "char") for direction in ("from", "to")]
+            for operation in projection_operations:
+                for point in range(513):
+                    log = run(f"{lane}.{operation}.{point}", [str(binary), operation, str(point)])
+                    match = re.search(r"hit=([01]) balanced", log)
+                    if not match:
+                        raise RuntimeError("Missing balanced projection fault outcome")
+                    if match[1] == "0":
+                        sweeps.append({"Lane": lane, "Operation": operation, "FirstNoHit": point})
+                        break
+                else:
+                    raise RuntimeError(f"Incomplete projection allocation prefix: {lane}/{operation}")
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
             raise RuntimeError("Source or tool changed during acceptance")

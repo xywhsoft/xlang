@@ -23,6 +23,8 @@ XL6_TEXT_API const xrttype* xl6NullableF64TypeV1(void);
 XL6_TEXT_API const xrttype* xl6NullableTimeTypeV1(void);
 XL6_TEXT_API const xrttype* xl6NullableCharTypeV1(void);
 XL6_TEXT_API const xrttype* xl6NullableStringTypeV1(void);
+XL6_TEXT_API const xrttype* xl6StringTypeV1(void);
+XL6_TEXT_API const xvalueconverter* xl6StringConverterV1(void);
 XL6_TEXT_API bool xl6NullableStringEqualV1(xstrview, xstrview);
 XL6_TEXT_API const xvalueconverter* xl6NullableStringConverterV1(void);
 XL6_TEXT_API const xvalueconverter* xl6NullableBoolConverterV1(void);

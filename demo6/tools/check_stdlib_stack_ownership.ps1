@@ -26,7 +26,8 @@ try {
         'test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',$Fixture,
         'E:/software/tcc/tcc.exe',$script:XlirNativeProcessImplementation,$python,
         'tools/check_stdlib_array_native.py','test/cases/stdlib_array_native_host.c',
-        'test/cases/stdlib_array_iterator_native_host.c','test/support/array_native.c')
+        'test/cases/stdlib_array_iterator_native_host.c','test/support/array_native.c',
+        'test/cases/stdlib_array_value_native_host.c','test/support/array_value_native.c')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) + @($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
     })

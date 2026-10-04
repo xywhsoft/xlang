@@ -19,6 +19,7 @@
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_array.h"
+#include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_iterator.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
