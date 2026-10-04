@@ -711,6 +711,126 @@ const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi abi)
     }
 }
 
+XL6_IrCollectionCarrierAbi xl6IrCollectionCarrierAbiForType(const XL6_IrType* type)
+{
+    return type && type->collectionAbi != XL6_IR_COLLECTION_NONE &&
+        type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+        ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_NONE;
+}
+
+const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_COLLECTION_CARRIER_NONE: return "none";
+    case XL6_IR_COLLECTION_CARRIER_VALUE_V1: return "value-v1";
+    case XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1: return "sequence-v1";
+    default: return "invalid";
+    }
+}
+
+XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
+{
+    XL6_IrArrayLayout result={0};
+    const XL6_IrType* element;
+    const XL6_IrType* base;
+    if (!pool || !type || type->collectionAbi != XL6_IR_COLLECTION_ARRAY)
+        return result;
+    /* Both untyped builtins and erased zero-parameter generic rows occur in
+     * the canonical pool. Neither has an element recipe; do not recover an
+     * argument from the diagnostic spelling (for example "array<var>"). */
+    if ((type->kind == XL6_IR_TYPE_BUILTIN || type->kind == XL6_IR_TYPE_GENERIC_INSTANCE) &&
+        !type->paramCount && !type->returnCount) {
+        result.abi=XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE;
+        return result;
+    }
+    if (type->kind != XL6_IR_TYPE_GENERIC_INSTANCE || type->paramCount != 1 ||
+        !type->params || type->returnCount ||
+        !(element=xl6IrTypeGet(pool,type->params[0]))) return result;
+    result.elementType=type->params[0];
+    result.baseElementType=result.elementType;
+    result.nullable=element->kind == XL6_IR_TYPE_NULLABLE;
+    base=element;
+    if (result.nullable) {
+        if (element->paramCount != 1 || !element->params ||
+            !(base=xl6IrTypeGet(pool,element->params[0])) ||
+            base->kind == XL6_IR_TYPE_NULLABLE) return (XL6_IrArrayLayout){0};
+        result.baseElementType=element->params[0];
+    }
+    /* Re-derive from the shape; do not trust a cached field when verifying it. */
+    result.slotAbi=xl6IrNativeSlotAbiForType(pool,element);
+    result.transferAbi=xl6IrTypeResourcePayloadAbi(element);
+    result.admissionAbi=xl6IrValueAdmissionAbiForType(pool,element);
+    if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
+        result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
+        result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
+    } else if (result.admissionAbi == XL6_VALUE_ADMIT_ANY ||
+               result.admissionAbi == XL6_VALUE_ADMIT_BYTES) {
+        result.abi=result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+            result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
+            ? XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 : XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
+    } else if (result.admissionAbi != XL6_VALUE_ADMIT_NONE) {
+        result.abi=XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2;
+    } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               base->collectionAbi == XL6_IR_COLLECTION_NONE &&
+               base->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_NONE &&
+               (base->kind == XL6_IR_TYPE_CLASS || base->kind == XL6_IR_TYPE_PROTOCOL ||
+                base->kind == XL6_IR_TYPE_GENERIC_INSTANCE)) {
+        /* The module's closed nominal identity set is still required at the
+         * operation boundary. This recipe does not invent a set from a name. */
+        result.abi=XL6_IR_ARRAY_LAYOUT_NOMINAL_V2;
+    } else {
+        result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
+    }
+    if (result.abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 ||
+        result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2) {
+        result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
+            result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
+            result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_PENDING_BYTES :
+            result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_ARRAY_DEFAULT_EMPTY_STRING :
+            result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
+            XL6_IR_ARRAY_DEFAULT_ZERO;
+    }
+    return result;
+}
+
+int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout* left, const XL6_IrArrayLayout* right)
+{
+    return left && right && left->abi == right->abi &&
+        left->elementType == right->elementType && left->baseElementType == right->baseElementType &&
+        left->slotAbi == right->slotAbi && left->transferAbi == right->transferAbi &&
+        left->admissionAbi == right->admissionAbi && left->nullable == right->nullable &&
+        left->defaultAbi == right->defaultAbi;
+}
+
+const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_ARRAY_DEFAULT_NONE: return "none";
+    case XL6_IR_ARRAY_DEFAULT_ZERO: return "zero";
+    case XL6_IR_ARRAY_DEFAULT_EMPTY_STRING: return "empty-string";
+    case XL6_IR_ARRAY_DEFAULT_ABSENT: return "absent";
+    case XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL: return "dynamic-null";
+    case XL6_IR_ARRAY_DEFAULT_FORBIDDEN: return "forbidden";
+    case XL6_IR_ARRAY_DEFAULT_PENDING_BYTES: return "pending-bytes";
+    default: return "invalid";
+    }
+}
+
+const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_ARRAY_LAYOUT_NONE: return "none";
+    case XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE: return "dynamic-value";
+    case XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2: return "primitive-v2";
+    case XL6_IR_ARRAY_LAYOUT_REFERENCE_V2: return "reference-v2";
+    case XL6_IR_ARRAY_LAYOUT_NOMINAL_V2: return "nominal-v2";
+    case XL6_IR_ARRAY_LAYOUT_PENDING_SLOT: return "pending-slot";
+    case XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN: return "pending-domain";
+    default: return "invalid";
+    }
+}
+
 static int xl6IrTypeFinalizeErrorResultCName(
     XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -721,6 +841,8 @@ static int xl6IrTypeFinalizeErrorResultCName(
     if ( expected == NULL || !xl6IrTypeFinalizeDisplayName(pool, type) )
         return 0;
     type->nativeSlotAbi = xl6IrNativeSlotAbiForType(pool,type);
+    type->collectionCarrierAbi = xl6IrCollectionCarrierAbiForType(type);
+    type->arrayLayout = xl6IrArrayLayoutForType(pool,type);
     type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
     type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
         type->kind == XL6_IR_TYPE_NULLABLE;
@@ -18478,7 +18600,12 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                           XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
                        ? XL6_IR_C_ABI_CHAR_U32
                        : XL6_IR_C_ABI_I64)) ) return 0;
-        if (type->nativeSlotAbi != xl6IrNativeSlotAbiForType(pool,type)) return 0;
+        if (type->nativeSlotAbi != xl6IrNativeSlotAbiForType(pool,type) ||
+            type->collectionCarrierAbi != xl6IrCollectionCarrierAbiForType(type)) return 0;
+        {
+            XL6_IrArrayLayout expected=xl6IrArrayLayoutForType(pool,type);
+            if (!xl6IrArrayLayoutEqual(&type->arrayLayout,&expected)) return 0;
+        }
         if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
             type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
                 type->kind == XL6_IR_TYPE_NULLABLE)) return 0;
@@ -44196,8 +44323,15 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                     xl6IrParameterModeName(type->parameterModes[parameter]),
                     xl6IrParameterAbiName(type->parameterAbis[parameter]));
         }
-        xl6OutputPrintf(out, "] error-result=%s release-effect=%d\n", type->errorResultCName,
-            (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)));
+        xl6OutputPrintf(out, "] error-result=%s release-effect=%d carrier=%s\n", type->errorResultCName,
+            (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
+            xl6IrCollectionCarrierAbiName(type->collectionCarrierAbi));
+        if (type->arrayLayout.abi != XL6_IR_ARRAY_LAYOUT_NONE)
+            xl6OutputPrintf(out, "    array-layout=%s element=t%u base=t%u slot=%s transfer=%u admission=%u nullable=%d default=%s\n",
+                xl6IrArrayLayoutAbiName(type->arrayLayout.abi), type->arrayLayout.elementType,
+                type->arrayLayout.baseElementType, xl6IrNativeSlotAbiName(type->arrayLayout.slotAbi),
+                (unsigned int)type->arrayLayout.transferAbi, (unsigned int)type->arrayLayout.admissionAbi,
+                (int)type->arrayLayout.nullable, xl6IrArrayDefaultAbiName(type->arrayLayout.defaultAbi));
     }
     for ( i = 0; i < module->unionLayoutCount; ++i ) {
         const XL6_IrUnionLayout* layout = &module->unionLayouts[i];
@@ -45458,7 +45592,18 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->params[item]);
         }
-        xl6OutputPrintf(out,"],\"xvalueAdmissionTypeValueId\":\"0x%016llX\",\"parameterModes\":[",
+        xl6OutputPrintf(out,"],\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
+            "\"arrayLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"elementType\":%u,\"baseElementType\":%u,"
+            "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"transferAbi\":%u,\"admissionAbi\":%u,\"nullable\":%s,"
+            "\"defaultAbi\":%u,\"defaultAbiName\":\"%s\"},"
+            "\"xvalueAdmissionTypeValueId\":\"0x%016llX\",\"parameterModes\":[",
+            (unsigned int)type->collectionCarrierAbi, xl6IrCollectionCarrierAbiName(type->collectionCarrierAbi),
+            (unsigned int)type->arrayLayout.abi, xl6IrArrayLayoutAbiName(type->arrayLayout.abi),
+            type->arrayLayout.elementType, type->arrayLayout.baseElementType,
+            (unsigned int)type->arrayLayout.slotAbi, xl6IrNativeSlotAbiName(type->arrayLayout.slotAbi),
+            (unsigned int)type->arrayLayout.transferAbi, (unsigned int)type->arrayLayout.admissionAbi,
+            type->arrayLayout.nullable ? "true" : "false",
+            (unsigned int)type->arrayLayout.defaultAbi, xl6IrArrayDefaultAbiName(type->arrayLayout.defaultAbi),
             (unsigned long long)type->xvalueAdmissionTypeValueId);
         if ( type->kind == XL6_IR_TYPE_FUNCTION ) for ( item = 0; item < type->paramCount; ++item ) {
             if ( item != 0 ) xl6OutputPuts(",", out);

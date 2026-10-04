@@ -65,6 +65,16 @@ typedef enum XL6_IrCollectionAbi {
     XL6_IR_COLLECTION_DICT
 } XL6_IrCollectionAbi;
 
+/* Logical collection identity does not identify its physical owner. A Value
+ * array and a resident Sequence both use xvalue*, but are not interchangeable.
+ * SEQUENCE is deliberately refused by the current source type interner and
+ * verifier until the complete language/boundary cutover is installed. */
+typedef enum XL6_IrCollectionCarrierAbi {
+    XL6_IR_COLLECTION_CARRIER_NONE = 0,
+    XL6_IR_COLLECTION_CARRIER_VALUE_V1,
+    XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+} XL6_IrCollectionCarrierAbi;
+
 /* Complete element-admission family for checked erased collection rebinds.
  * NOMINAL consumes an already resolved identity set, not a Cgen callback. */
 typedef enum XL6_IrCollectionAdmissionAbi {
@@ -550,10 +560,48 @@ typedef enum XL6_IrNativeSlotAbi {
     XL6_IR_NATIVE_SLOT_C_WCHAR,
 } XL6_IrNativeSlotAbi;
 
+/* Target resident Array recipe, not permission to reinterpret an existing
+ * Value owner. Pending slot/domain recipes fail closed: a retainable xvalue*
+ * is not proof that recursive/callable/enum admission is implemented. */
+typedef enum XL6_IrArrayLayoutAbi {
+    XL6_IR_ARRAY_LAYOUT_NONE = 0,
+    XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE,
+    XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2,
+    XL6_IR_ARRAY_LAYOUT_REFERENCE_V2,
+    XL6_IR_ARRAY_LAYOUT_NOMINAL_V2,
+    XL6_IR_ARRAY_LAYOUT_PENDING_SLOT,
+    XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN
+} XL6_IrArrayLayoutAbi;
+
+typedef enum XL6_IrArrayDefaultAbi {
+    XL6_IR_ARRAY_DEFAULT_NONE = 0,
+    XL6_IR_ARRAY_DEFAULT_ZERO,
+    XL6_IR_ARRAY_DEFAULT_EMPTY_STRING,
+    XL6_IR_ARRAY_DEFAULT_ABSENT,
+    XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL,
+    XL6_IR_ARRAY_DEFAULT_FORBIDDEN,
+    /* Language bytes require present empty data; the current reference slot
+     * initializes NULL. Never silently substitute an absent default. */
+    XL6_IR_ARRAY_DEFAULT_PENDING_BYTES
+} XL6_IrArrayDefaultAbi;
+
+typedef struct XL6_IrArrayLayout {
+    XL6_IrArrayLayoutAbi abi;
+    XL6_IrTypeId elementType;
+    /* Nullable<T> owner identity and admitted T identity are distinct. */
+    XL6_IrTypeId baseElementType;
+    XL6_IrNativeSlotAbi slotAbi;
+    XL6_IrRuntimeResourcePayloadAbi transferAbi;
+    XL6_ValueAdmissionV1 admissionAbi;
+    bool nullable;
+    XL6_IrArrayDefaultAbi defaultAbi;
+} XL6_IrArrayLayout;
+
 typedef struct XL6_IrType {
     XL6_IrTypeKind kind;
     XL6_IrCAbi cAbi;
     XL6_IrCollectionAbi collectionAbi;
+    XL6_IrCollectionCarrierAbi collectionCarrierAbi;
     XL6_IrRuntimeResourceAbi runtimeResourceAbi;
     XL6_IrOwnershipAbi ownershipAbi;
     XL6_IrNullAbi nullAbi;
@@ -566,6 +614,7 @@ typedef struct XL6_IrType {
     XL6_IrIntegerTarget integerTarget;
     XL6_IrNativeProductAbi nativeProductAbi;
     XL6_IrNativeSlotAbi nativeSlotAbi;
+    XL6_IrArrayLayout arrayLayout;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -619,6 +668,13 @@ typedef struct XL6_IrTypePool {
     size_t* slots;
     size_t slotCapacity;
 } XL6_IrTypePool;
+
+XL6_IrCollectionCarrierAbi xl6IrCollectionCarrierAbiForType(const XL6_IrType* type);
+const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi);
+XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool*, const XL6_IrType*);
+int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout*, const XL6_IrArrayLayout*);
+const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi);
+const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi);
 
 XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type);
 int xl6IrDeclarationAllowsForeignContract(XL6_AstKind sourceKind, unsigned int flags);
