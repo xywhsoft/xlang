@@ -22,6 +22,18 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 
 ## Guard scripts and inventory
 
+B66 explicit cleanup gate: `check_stdlib_sequence_clear.py --out <fresh-directory>`
+requires `--public-directory` on Windows (first stage that directory with
+`stage_xlir_artifact_runtime_sources.ps1`) and supports Linux `--sanitize`.
+It checks native typed/erased Array and Stack first-error cleanup, pending-error
+priority, complete reverse Drop, reentry refusal, allocation-free clearing and
+last-owner callbacks. Minimal/synchronous/async/generator language fixtures
+verify source-void/private-bool IR, malformed-contract refusal, strict O0/O2 C,
+JIT and AOT. Linux instruments the selected native closure; shared-language
+runtime and CLI/JIT are not instrumented. The regular Stack native gates execute
+it as an independently frozen child. This is not language Array migration or
+whole 53-module acceptance.
+
 B18 time gates: `check_stdlib_time_core.ps1`, `check_stdlib_time_calendar.ps1`,
 and `check_stdlib_time_text.ps1` require one immutable current-source
 PublicSourceDirectory and separate fresh Directory values. The full Windows

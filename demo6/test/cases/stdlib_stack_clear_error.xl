@@ -1,0 +1,23 @@
+extern "clearProbeInstallV1" func installClearFailure(var values)
+extern "clearProbeDropsV1" func clearDropCount() as int
+extern "clearProbeFinishV1" func finishClearFailure()
+
+func main(...) as int
+    Stack<var> values = Stack::<var>()
+    installClearFailure(values)
+    int caught = 0
+    int finalized = 0
+    try
+        values.clear()
+        assert(false)
+    catch RangeError failure
+        caught += 1
+        assert(values.count() == 0 and clearDropCount() == 3)
+    finally
+        finalized += 1
+    end
+    assert(caught == 1 and finalized == 1)
+    values.clear()
+    finishClearFailure()
+    return 0
+end

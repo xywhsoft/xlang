@@ -34,6 +34,11 @@ frozen_files() {
     printf '%s\0' test/cases/xlir_stack_native_contract.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_native_host.c test/support/stack_native.c
     printf '%s\0' test/cases/xlir_nullable_scalar_native.c
+    printf '%s\0' tools/check_stdlib_sequence_clear.py test/support/sequence_clear_probe.c test/support/array_value_native.c
+    printf '%s\0' test/cases/stdlib_sequence_clear_native_host.c test/cases/xlir_time_text_closure_host.c
+    printf '%s\0' test/cases/stdlib_stack_clear_minimal.xl test/cases/stdlib_stack_clear_error.xl test/cases/stdlib_stack_clear_error_continuation.xl
+    printf '%s\0' tools/check_stdlib_collection_admission.py test/cases/stdlib_collection_admission.xl test/cases/stdlib_collection_nominal_admission.xl
+    printf '%s\0' test/cases/stdlib_array_defaults.xl test/cases/stdlib_array_defaults_continuation.xl
     printf '%s\0' test/cases/xlir_module_product_oom_host.c
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
     for fixture in "${cases[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
@@ -158,6 +163,12 @@ reject_fixture() {
 }
 for name in "${negative[@]}"; do
     if ! reject_fixture "$name"; then failures+=("negative:$name"); fi
+done
+if ! run sequence-clear "$PY" tools/check_stdlib_sequence_clear.py --out "$OUT/sequence-clear" --sanitize; then failures+=(sequence-clear); fi
+for mode in base nominal defaults; do
+    arguments=(tools/check_stdlib_collection_admission.py --out "$OUT/collection-$mode" --sanitize)
+    [[ "$mode" = base ]] || arguments+=("--$mode")
+    if ! run "collection-$mode" "$PY" "${arguments[@]}"; then failures+=("collection-$mode"); fi
 done
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi

@@ -453,10 +453,6 @@ static int xl6IrCgenRuntimeStackAbi(
         return instruction->operandCount == 0 &&
                instruction->result != XL6_IR_VALUE_INVALID;
     if ( receiver == NULL || receiver->type != stackTypeId ) return 0;
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CLEAR )
-        return instruction->operandCount == 1 &&
-               instruction->result == XL6_IR_VALUE_INVALID &&
-               instruction->type == XL6_IR_TYPE_INVALID;
     if ( instruction->result == XL6_IR_VALUE_INVALID || resultType == NULL )
         return 0;
     if ( instruction->operandCount > 1 )
@@ -500,6 +496,7 @@ static int xl6IrCgenRuntimeStackAbi(
                resultType->cAbi == XL6_IR_C_ABI_BOOL &&
                resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     case XL6_IR_RUNTIME_STACK_TRIM:
+    case XL6_IR_RUNTIME_STACK_CLEAR:
         return instruction->operandCount == 1 &&
                resultType->cAbi == XL6_IR_C_ABI_BOOL &&
                resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
@@ -760,8 +757,8 @@ static int xl6IrCgenEmitStackRuntime(
         break;
     case XL6_IR_RUNTIME_STACK_CLEAR:
         xl6OutputPrintf(out,
-            "    xl6StackClearV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
-            (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
+            "    v%u = xl6StackClearV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s);\n",
+            (unsigned int)instruction->result, (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
         break;
     case XL6_IR_RUNTIME_STACK_COUNT:
     case XL6_IR_RUNTIME_STACK_CAPACITY:

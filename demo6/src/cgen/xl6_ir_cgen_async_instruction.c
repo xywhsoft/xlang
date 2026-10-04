@@ -520,7 +520,8 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
             } else if (source != NULL && source->kind == XL6_IR_INSTR_GENERATOR_NEXT) {
                 xl6IrCgenEmitGeneratorNextTest(out, sourceIndex, tested, "ap",
                     block->trueTarget, block->falseTarget);
-            } else if (source != NULL && source->kind == XL6_IR_INSTR_CLEANUP_END) {
+            } else if (source != NULL && (source->kind == XL6_IR_INSTR_CLEANUP_END ||
+                       (source->kind == XL6_IR_INSTR_RUNTIME_CALL && source->runtimeOp == XL6_IR_RUNTIME_STACK_CLEAR))) {
                 xl6OutputPrintf(out, "    if (v%u) goto ap%lu; else goto ap%lu;\n",
                     (unsigned int)tested, (unsigned long)block->trueTarget,
                     (unsigned long)block->falseTarget);

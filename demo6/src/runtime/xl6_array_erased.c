@@ -94,11 +94,12 @@ xvalue* xl6ArrayErasedCloneV1(const xvalue* source)
     }
     xl6SequenceEndV1(owner); return result;
 }
-void xl6ArrayErasedClearV1(const xvalue* source)
+bool xl6ArrayErasedClearV1(const xvalue* source)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
     XL6_Sequence* owner=begin(source,&layout,&converter);
-    if (!owner) return;
-    xerror* saved=xrtTakeError(); xrtTypedArrayClear(xl6SequenceStorageV1(owner));
-    xrtClearError(); xrtSetErrorTake(saved); xl6SequenceEndV1(owner);
+    if (!owner) return false;
+    xrtTypedArrayClear(xl6SequenceStorageV1(owner));
+    xl6SequenceEndV1(owner);
+    return !xrtGetError();
 }

@@ -346200,13 +346200,28 @@ static void __xrtTypedArrayDropRange(
 	size_t iCount
 )
 {
+	/* Trivial slots cannot run a callback or publish a cleanup error. */
+	if ( (pArray->ItemType->Ops == NULL) ||
+		 (pArray->ItemType->Ops->Drop == NULL) ) {
+		return;
+	}
+	/* Finish every Drop, but never let a later cleanup replace the first
+	 * failure (or an error already being unwound). Each callback starts with
+	 * an empty error context so its own checked work can proceed normally. */
+	xerror* pPrimary = xrtTakeError();
 	while ( iCount != 0u ) {
 		iCount--;
 		xrtTypeDropValue(
 			pArray->ItemType,
 			xrtArrayGet(&pArray->Storage, iIndex + iCount)
 		);
+		if ( pPrimary == NULL ) {
+			pPrimary = xrtTakeError();
+		} else {
+			xrtClearError();
+		}
 	}
+	xrtSetErrorTake(pPrimary);
 }
 
 

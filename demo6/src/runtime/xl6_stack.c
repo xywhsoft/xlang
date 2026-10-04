@@ -74,13 +74,14 @@ bool xl6StackTrimV1(const xvalue* value, uint64_t identity, uint64_t elementIden
     bool ok = allocation(xrtTypedStackTrim(xl6SequenceStorageV1(stack)));
     xl6SequenceEndV1(stack); return ok;
 }
-void xl6StackClearV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
+bool xl6StackClearV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                      unsigned int transfer, size_t size, const xrttype* type)
 {
     XL6_Sequence* stack = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type);
-    if (!stack) return;
-    xerror* saved = xrtTakeError(); xrtTypedStackClear(xl6SequenceStorageV1(stack));
-    xrtClearError(); xrtSetErrorTake(saved); xl6SequenceEndV1(stack);
+    if (!stack) return false;
+    xrtTypedStackClear(xl6SequenceStorageV1(stack));
+    xl6SequenceEndV1(stack);
+    return !xrtGetError();
 }
 int64_t xl6StackSizeV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                       unsigned int transfer, size_t size, const xrttype* type, bool capacity)

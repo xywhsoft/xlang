@@ -158,6 +158,31 @@ int main(int argc, char** argv)
             }
         }
         assert(xl6IrVerifyModule(&ir,NULL)); ++checked;
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CLEAR) {
+            XL6_IrIntrinsicCall* intrinsic=(XL6_IrIntrinsicCall*)xl6IrIntrinsicCallGet(&ir,instruction->origin);
+            assert(intrinsic && intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
+            intrinsic->errorAbi=XL6_IR_ERROR_ABI_NO_RAISE; rejected(&ir);
+            intrinsic->errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
+            XL6_IrTypeId statusType=instruction->type;
+            XL6_IrValueId status=instruction->result;
+            assert(status && statusType && ir.types.items[statusType-1].cAbi==XL6_IR_C_ABI_BOOL);
+            instruction->type=XL6_IR_TYPE_INVALID; rejected(&ir); instruction->type=statusType;
+            instruction->result=XL6_IR_VALUE_INVALID; rejected(&ir); instruction->result=status;
+            bool tested=false;
+            for(size_t j=i+1;j<ir.instructionCount;++j) {
+                XL6_IrInstruction* test=&ir.instructions[j];
+                if(test->kind!=XL6_IR_INSTR_ERROR_TEST || test->operandCount!=1 ||
+                    ir.operands[test->firstOperand]!=status) continue;
+                ir.operands[test->firstOperand]=XL6_IR_VALUE_INVALID; rejected(&ir);
+                ir.operands[test->firstOperand]=status;
+                test->kind=XL6_IR_INSTR_BRANCH; rejected(&ir); test->kind=XL6_IR_INSTR_ERROR_TEST;
+                XL6_IrBlockId success=test->trueTarget;
+                test->trueTarget=test->falseTarget; rejected(&ir); test->trueTarget=success;
+                tested=true; break;
+            }
+            assert(tested);
+            assert(xl6IrVerifyModule(&ir,NULL));
+        }
     }
     assert(checked);
     unsigned lifetimes=0;

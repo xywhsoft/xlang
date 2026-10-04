@@ -468,7 +468,8 @@ static int xl6IrCgenEmitGeneratorInstruction(
             } else if (source->kind == XL6_IR_INSTR_GENERATOR_NEXT) {
                 xl6IrCgenEmitGeneratorNextTest(out, sourceIndex, tested, "gp",
                     block->trueTarget, block->falseTarget);
-            } else if (source->kind == XL6_IR_INSTR_CLEANUP_END) {
+            } else if (source->kind == XL6_IR_INSTR_CLEANUP_END ||
+                       (source->kind == XL6_IR_INSTR_RUNTIME_CALL && source->runtimeOp == XL6_IR_RUNTIME_STACK_CLEAR)) {
                 xl6OutputPrintf(out, "    if (v%u) goto gp%lu; else goto gp%lu;\n",
                     (unsigned int)tested, (unsigned long)block->trueTarget,
                     (unsigned long)block->falseTarget);

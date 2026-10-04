@@ -1,0 +1,43 @@
+extern "clearProbeInstallV1" func installClearFailure(var values)
+extern "clearProbeDropsV1" func clearDropCount() as int
+extern "clearProbeFinishV1" func finishClearFailure()
+
+async func clearAsync(Stack<var> values) as int
+    int caught = 0
+    try
+        values.clear()
+        assert(false)
+    catch RangeError failure
+        assert(values.count() == 0 and clearDropCount() == 3)
+        caught += 1
+    finally
+        caught += 10
+    end
+    values.clear()
+    return caught
+end
+
+func clearGenerator(Stack<var> values) as generator<int>
+    try
+        values.clear()
+        assert(false)
+    catch RangeError failure
+        yield values.count()
+    finally
+        values.clear()
+    end
+end
+
+Stack<var> asynchronous = Stack::<var>()
+installClearFailure(asynchronous)
+assert(await clearAsync(asynchronous) == 11 and asynchronous.count() == 0)
+finishClearFailure()
+Stack<var> yielded = Stack::<var>()
+installClearFailure(yielded)
+int seen = 0
+for count in clearGenerator(yielded)
+    assert(count == 0 and clearDropCount() == 3)
+    seen += 1
+end
+assert(seen == 1 and yielded.count() == 0)
+finishClearFailure()

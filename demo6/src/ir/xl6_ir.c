@@ -9047,8 +9047,7 @@ static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
            (operation >= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE &&
-            operation <= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY &&
-            operation != XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR) ||
+            operation <= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO ||
@@ -35236,8 +35235,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           instruction->runtimeOp !=
                               XL6_IR_RUNTIME_SPECIAL_QUEUE_CLOSE &&
                           instruction->runtimeOp !=
-                              XL6_IR_RUNTIME_STACK_CLEAR &&
-                          instruction->runtimeOp !=
                               XL6_IR_RUNTIME_AVL_TREE_CLEAR )
                         return xl6IrDiag(diags, NULL, "XLIR runtime call has no result ABI");
                     if ( instruction->runtimeOp >=
@@ -38988,12 +38985,19 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                         "XLIR runtime Stack trim has no exact boolean result or failure ABI");
                             } else if ( instruction->runtimeOp ==
                                             XL6_IR_RUNTIME_STACK_CLEAR ) {
+                                const XL6_IrInstruction* statusTest=j+1<block->instructionCount
+                                    ? &module->instructions[block->firstInstruction+j+1] : NULL;
                                 if ( instruction->operandCount != 1 ||
-                                     instruction->result !=
-                                         XL6_IR_VALUE_INVALID ||
-                                     instruction->type != XL6_IR_TYPE_INVALID )
+                                     instruction->result == XL6_IR_VALUE_INVALID ||
+                                     resultType == NULL || resultType->cAbi != XL6_IR_C_ABI_BOOL ||
+                                     resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                                     statusTest == NULL || statusTest->kind != XL6_IR_INSTR_ERROR_TEST ||
+                                     statusTest->operandCount != 1 || statusTest->firstOperand >= module->operandCount ||
+                                     module->operands[statusTest->firstOperand] != instruction->result ||
+                                     statusTest->trueTarget == statusTest->falseTarget ||
+                                     !xl6IrNodeRequiresThrowExitPlan(module, instruction->origin) )
                                     return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime Stack clear has no exact void result ABI");
+                                        "XLIR runtime Stack clear has no exact private status or failure ABI");
                             } else if ( instruction->runtimeOp ==
                                             XL6_IR_RUNTIME_STACK_COUNT ||
                                         instruction->runtimeOp ==
@@ -40429,8 +40433,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                   source->runtimeOp ==
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH ||
                                   (source->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
-                                   source->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY &&
-                                   source->runtimeOp != XL6_IR_RUNTIME_STACK_CLEAR) ||
+                                   source->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) ||
                                   xl6IrRuntimeAvlOpMayRaise(
                                       source->runtimeOp) ||
                                   xl6IrRuntimeSyncOpCreates(
