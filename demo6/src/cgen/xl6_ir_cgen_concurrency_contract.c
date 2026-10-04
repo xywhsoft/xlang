@@ -347,82 +347,73 @@ static XL6_IrRuntimeResourceKeyOrderAbi xl6IrCgenAvlKeyOrderAbi(
  * is physical ABI only; no source spelling or AST method name reaches Cgen. */
 static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
-    const XL6_IrType* type = xl6IrTypeGet(&module->types,typeId);
-    if (type == NULL || type->kind != XL6_IR_TYPE_NULLABLE) return "NULL";
-    if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING) return "xl6NullableStringConverterV1()";
-    if (type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE) return "NULL";
-    switch (xl6IrNullableScalarElementAbi(module,typeId)) {
-    case XL6_IR_C_ABI_BOOL: return "xl6NullableBoolConverterV1()";
-    case XL6_IR_C_ABI_I64: return "xl6NullableI64ConverterV1()";
-    case XL6_IR_C_ABI_U64: return "xl6NullableU64ConverterV1()";
-    case XL6_IR_C_ABI_F32: return "xl6NullableF32ConverterV1()";
-    case XL6_IR_C_ABI_F64: return "xl6NullableF64ConverterV1()";
-    case XL6_IR_C_ABI_TIME_I64: return "xl6NullableTimeConverterV1()";
-    case XL6_IR_C_ABI_CHAR_U32: return "xl6NullableCharConverterV1()";
+    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    if (type == NULL) return "NULL";
+    switch (type->nativeSlotAbi) {
+    case XL6_IR_NATIVE_SLOT_CHAR: return "xl6CharConverterV1()";
+    case XL6_IR_NATIVE_SLOT_STRING: return "xl6StringConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return "xl6NullableStringConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "xl6NullableF32ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "xl6NullableF64ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "xl6NullableTimeConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "xl6NullableCharConverterV1()";
     default: return "NULL";
     }
 }
 static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
-    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    if ( type == NULL || type->typeValueId == 0 ) return NULL;
-    switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_TAGGED_NULLABLE:
-        if ( type->kind != XL6_IR_TYPE_NULLABLE || type->paramCount != 1 || type->params == NULL ) return NULL;
-        switch ( xl6IrNullableScalarElementAbi(module, typeId) ) {
-        case XL6_IR_C_ABI_BOOL: return "xl6NullableBoolTypeV1()";
-        case XL6_IR_C_ABI_I64: return "xl6NullableI64TypeV1()";
-        case XL6_IR_C_ABI_U64: return "xl6NullableU64TypeV1()";
-        case XL6_IR_C_ABI_F32: return "xl6NullableF32TypeV1()";
-        case XL6_IR_C_ABI_F64: return "xl6NullableF64TypeV1()";
-        case XL6_IR_C_ABI_TIME_I64: return "xl6NullableTimeTypeV1()";
-        case XL6_IR_C_ABI_CHAR_U32: return "xl6NullableCharTypeV1()";
-        default: return NULL;
-        }
-    case XL6_IR_C_ABI_BOOL: return "xrtTypeBool()";
-    case XL6_IR_C_ABI_I64: return "xrtTypeInt64()";
-    case XL6_IR_C_ABI_U64: return "xrtTypeUInt64()";
-    case XL6_IR_C_ABI_F64: return "xrtTypeFloat64()";
-    case XL6_IR_C_ABI_TIME_I64: return "xrtTypeTime()";
-    case XL6_IR_C_ABI_TYPE_ID: return "xrtTypeType()";
-    case XL6_IR_C_ABI_CHAR_U32: return "xrtTypeUInt32()";
-    case XL6_IR_C_ABI_MANAGED_STRING:
-        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-            ? (type->kind == XL6_IR_TYPE_NULLABLE
-                ? "xl6NullableStringTypeV1()" : "xrtTypeStringView()") : NULL;
-    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
-    case XL6_IR_C_ABI_MANAGED_BYTES:
-        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-            ? "xrtTypeValue()" : NULL;
-    case XL6_IR_C_ABI_F32: return "xrtTypeFloat32()";
-    case XL6_IR_C_ABI_C_CHAR:
+    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    if (type == NULL || type->typeValueId == 0) return NULL;
+    switch (type->nativeSlotAbi) {
+    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolTypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "xl6NullableF32TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "xl6NullableF64TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "xl6NullableTimeTypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "xl6NullableCharTypeV1()";
+    case XL6_IR_NATIVE_SLOT_BOOL: return "xrtTypeBool()";
+    case XL6_IR_NATIVE_SLOT_I64: return "xrtTypeInt64()";
+    case XL6_IR_NATIVE_SLOT_U64: return "xrtTypeUInt64()";
+    case XL6_IR_NATIVE_SLOT_F64: return "xrtTypeFloat64()";
+    case XL6_IR_NATIVE_SLOT_TIME: return "xrtTypeTime()";
+    case XL6_IR_NATIVE_SLOT_TYPE_ID: return "xrtTypeType()";
+    case XL6_IR_NATIVE_SLOT_CHAR: return "xl6CharTypeV1()";
+    case XL6_IR_NATIVE_SLOT_STRING: return "xl6StringTypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return "xl6NullableStringTypeV1()";
+    case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return "xrtTypeValue()";
+    case XL6_IR_NATIVE_SLOT_F32: return "xrtTypeFloat32()";
+    case XL6_IR_NATIVE_SLOT_C_CHAR:
         return "(CHAR_MIN < 0 ? xrtTypeInt8() : xrtTypeUInt8())";
-    case XL6_IR_C_ABI_C_SCHAR: return "xrtTypeInt8()";
-    case XL6_IR_C_ABI_C_UCHAR: return "xrtTypeUInt8()";
-    case XL6_IR_C_ABI_C_SHORT: return "xrtTypeInt16()";
-    case XL6_IR_C_ABI_C_USHORT: return "xrtTypeUInt16()";
-    case XL6_IR_C_ABI_C_INT: return "xrtTypeInt32()";
-    case XL6_IR_C_ABI_C_UINT: return "xrtTypeUInt32()";
-    case XL6_IR_C_ABI_C_LONG:
+    case XL6_IR_NATIVE_SLOT_C_SCHAR: return "xrtTypeInt8()";
+    case XL6_IR_NATIVE_SLOT_C_UCHAR: return "xrtTypeUInt8()";
+    case XL6_IR_NATIVE_SLOT_C_SHORT: return "xrtTypeInt16()";
+    case XL6_IR_NATIVE_SLOT_C_USHORT: return "xrtTypeUInt16()";
+    case XL6_IR_NATIVE_SLOT_C_INT: return "xrtTypeInt32()";
+    case XL6_IR_NATIVE_SLOT_C_UINT: return "xrtTypeUInt32()";
+    case XL6_IR_NATIVE_SLOT_C_LONG:
         return "(sizeof(long) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
-    case XL6_IR_C_ABI_C_ULONG:
+    case XL6_IR_NATIVE_SLOT_C_ULONG:
         return "(sizeof(unsigned long) == 4 ? xrtTypeUInt32() : xrtTypeUInt64())";
-    case XL6_IR_C_ABI_C_LONGLONG: return "xrtTypeInt64()";
-    case XL6_IR_C_ABI_C_ULONGLONG: return "xrtTypeUInt64()";
-    case XL6_IR_C_ABI_C_SIZE:
+    case XL6_IR_NATIVE_SLOT_C_LONGLONG: return "xrtTypeInt64()";
+    case XL6_IR_NATIVE_SLOT_C_ULONGLONG: return "xrtTypeUInt64()";
+    case XL6_IR_NATIVE_SLOT_C_SIZE:
         return "(sizeof(size_t) == 4 ? xrtTypeUInt32() : xrtTypeUInt64())";
-    case XL6_IR_C_ABI_C_SSIZE:
+    case XL6_IR_NATIVE_SLOT_C_SSIZE:
         return "(sizeof(xl6_ssize_t) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
-    case XL6_IR_C_ABI_C_PTRDIFF:
+    case XL6_IR_NATIVE_SLOT_C_PTRDIFF:
         return "(sizeof(ptrdiff_t) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
-    case XL6_IR_C_ABI_C_INTPTR:
+    case XL6_IR_NATIVE_SLOT_C_INTPTR:
         return "(sizeof(intptr_t) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
-    case XL6_IR_C_ABI_C_UINTPTR:
+    case XL6_IR_NATIVE_SLOT_C_UINTPTR:
         return "(sizeof(uintptr_t) == 4 ? xrtTypeUInt32() : xrtTypeUInt64())";
-    case XL6_IR_C_ABI_C_BOOL: return "xrtTypeBool()";
-    case XL6_IR_C_ABI_C_FLOAT: return "xrtTypeFloat32()";
-    case XL6_IR_C_ABI_C_DOUBLE: return "xrtTypeFloat64()";
-    case XL6_IR_C_ABI_C_WCHAR:
+    case XL6_IR_NATIVE_SLOT_C_BOOL: return "xrtTypeBool()";
+    case XL6_IR_NATIVE_SLOT_C_FLOAT: return "xrtTypeFloat32()";
+    case XL6_IR_NATIVE_SLOT_C_DOUBLE: return "xrtTypeFloat64()";
+    case XL6_IR_NATIVE_SLOT_C_WCHAR:
         return "(sizeof(wchar_t) == 2 ? (WCHAR_MIN < 0 ? xrtTypeInt16() : xrtTypeUInt16()) : (WCHAR_MIN < 0 ? xrtTypeInt32() : xrtTypeUInt32()))";
     default:
         return NULL;

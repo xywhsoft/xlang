@@ -37,6 +37,7 @@ def main() -> int:
     projection_sources = ["test/cases/stdlib_array_value_native_host.c", "test/support/array_value_native.c",
         "src/runtime/xl6_sequence.c", "src/runtime/xl6_array.c", "src/runtime/xl6_array_value.c",
         "src/runtime/xl6_string_type.c", "src/runtime/xl6_string_value.c", "src/runtime/xl6_nullable_string.c",
+        "src/runtime/xl6_char_type.c", "src/runtime/xl6_char_value.c",
         "src/runtime/xl6_ownership_plan.c"]
     for family in ("bool", "i64", "u64", "f32", "f64", "time", "char"):
         projection_sources += [f"src/runtime/xl6_nullable_{family}.c", f"src/runtime/xl6_nullable_{family}_value.c"]
@@ -98,7 +99,7 @@ def main() -> int:
             assert "xrtTypedArrayCreate" in names, "Missing selected typed storage"
             assert not any(re.match(r"xl6(?:Array(?!Iterator)|Stack)[A-Z]|xrtTypedStack[A-Z]", n) for n in names), "Snapshot-only closure pulled Array/Stack facade"
             assert not {"xl6NullableStringTypeV1", "xl6NullableStringEqualV1", "xl6NullableStringConverterV1",
-                        "xl6StringTypeV1", "xl6StringConverterV1", "xl6ArrayFromValueV1", "xl6ArrayToValueV1"} & names, "Scalar snapshot pulled text/projection provider"
+                        "xl6CharTypeV1", "xl6CharConverterV1", "xl6StringTypeV1", "xl6StringConverterV1", "xl6ArrayFromValueV1", "xl6ArrayToValueV1"} & names, "Scalar snapshot pulled text/projection provider"
             run(lane + ".vectors", [str(binary)])
             for mixed in (False, True):
                 lane = f"O{level}.{'mixed' if mixed else 'array'}"
@@ -143,11 +144,12 @@ def main() -> int:
             symbols = run(lane + ".symbols", [nm, "--defined-only", str(binary)])
             names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
             assert {"xl6ArrayFromValueV1", "xl6ArrayToValueV1", "xl6StringTypeV1", "xl6StringConverterV1",
+                    "xl6CharTypeV1", "xl6CharConverterV1",
                     "xrtTypedArrayFromValue", "xrtTypedArrayToValue"} <= names, "Missing actual projection closure"
             assert not any(re.match(r"(?:xl6(?:Stack|Regex|Log|Process)|xrt(?:TypedStack|Regex|Logger|Process))[A-Z]", n) for n in names), "Projection pulled unrelated implementation"
             run(lane + ".vectors", [str(binary)])
             projection_operations = ["string-init", "string-copy", "string-resize", "string-from", "string-to",
-                                     "ref-from", "ref-to", "graph-create", "graph-refresh", "graph-commit"]
+                                     "ref-from", "ref-to", "char-from", "char-to", "graph-create", "graph-refresh", "graph-commit"]
             projection_operations += [f"profile-{family}-{direction}" for family in
                 ("bool", "i64", "u64", "f32", "f64", "time", "char") for direction in ("from", "to")]
             for operation in projection_operations:

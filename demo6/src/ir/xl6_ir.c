@@ -537,6 +537,107 @@ static int xl6IrTypeDisplayNameMatches(
     return matches;
 }
 
+XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
+{
+    if (!pool || !type) return XL6_IR_NATIVE_SLOT_NONE;
+    if (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE) {
+        const XL6_IrType* element=type->kind == XL6_IR_TYPE_NULLABLE && type->paramCount == 1 && type->params
+            ? xl6IrTypeGet(pool,type->params[0]) : NULL;
+        if (!element || element->nullAbi != XL6_IR_NULL_ABI_NONE) return XL6_IR_NATIVE_SLOT_NONE;
+        switch (element->cAbi) {
+        case XL6_IR_C_ABI_BOOL: return XL6_IR_NATIVE_SLOT_NULLABLE_BOOL;
+        case XL6_IR_C_ABI_I64: return XL6_IR_NATIVE_SLOT_NULLABLE_I64;
+        case XL6_IR_C_ABI_U64: return XL6_IR_NATIVE_SLOT_NULLABLE_U64;
+        case XL6_IR_C_ABI_F32: return XL6_IR_NATIVE_SLOT_NULLABLE_F32;
+        case XL6_IR_C_ABI_F64: return XL6_IR_NATIVE_SLOT_NULLABLE_F64;
+        case XL6_IR_C_ABI_TIME_I64: return XL6_IR_NATIVE_SLOT_NULLABLE_TIME;
+        case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_NATIVE_SLOT_NULLABLE_CHAR;
+        default: return XL6_IR_NATIVE_SLOT_NONE;
+        }
+    }
+    if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ?
+            (type->kind == XL6_IR_TYPE_NULLABLE ? XL6_IR_NATIVE_SLOT_NULLABLE_STRING : XL6_IR_NATIVE_SLOT_STRING) : XL6_IR_NATIVE_SLOT_NONE;
+    if (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)
+        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ? XL6_IR_NATIVE_SLOT_XVALUE_CARRIER : XL6_IR_NATIVE_SLOT_NONE;
+    switch (type->cAbi) {
+    case XL6_IR_C_ABI_BOOL: return XL6_IR_NATIVE_SLOT_BOOL;
+    case XL6_IR_C_ABI_I64: return XL6_IR_NATIVE_SLOT_I64;
+    case XL6_IR_C_ABI_U64: return XL6_IR_NATIVE_SLOT_U64;
+    case XL6_IR_C_ABI_F32: return XL6_IR_NATIVE_SLOT_F32;
+    case XL6_IR_C_ABI_F64: return XL6_IR_NATIVE_SLOT_F64;
+    case XL6_IR_C_ABI_TIME_I64: return XL6_IR_NATIVE_SLOT_TIME;
+    case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_NATIVE_SLOT_TYPE_ID;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_NATIVE_SLOT_CHAR;
+    case XL6_IR_C_ABI_C_CHAR: return XL6_IR_NATIVE_SLOT_C_CHAR;
+    case XL6_IR_C_ABI_C_SCHAR: return XL6_IR_NATIVE_SLOT_C_SCHAR;
+    case XL6_IR_C_ABI_C_UCHAR: return XL6_IR_NATIVE_SLOT_C_UCHAR;
+    case XL6_IR_C_ABI_C_SHORT: return XL6_IR_NATIVE_SLOT_C_SHORT;
+    case XL6_IR_C_ABI_C_USHORT: return XL6_IR_NATIVE_SLOT_C_USHORT;
+    case XL6_IR_C_ABI_C_INT: return XL6_IR_NATIVE_SLOT_C_INT;
+    case XL6_IR_C_ABI_C_UINT: return XL6_IR_NATIVE_SLOT_C_UINT;
+    case XL6_IR_C_ABI_C_LONG: return XL6_IR_NATIVE_SLOT_C_LONG;
+    case XL6_IR_C_ABI_C_ULONG: return XL6_IR_NATIVE_SLOT_C_ULONG;
+    case XL6_IR_C_ABI_C_LONGLONG: return XL6_IR_NATIVE_SLOT_C_LONGLONG;
+    case XL6_IR_C_ABI_C_ULONGLONG: return XL6_IR_NATIVE_SLOT_C_ULONGLONG;
+    case XL6_IR_C_ABI_C_SIZE: return XL6_IR_NATIVE_SLOT_C_SIZE;
+    case XL6_IR_C_ABI_C_SSIZE: return XL6_IR_NATIVE_SLOT_C_SSIZE;
+    case XL6_IR_C_ABI_C_PTRDIFF: return XL6_IR_NATIVE_SLOT_C_PTRDIFF;
+    case XL6_IR_C_ABI_C_INTPTR: return XL6_IR_NATIVE_SLOT_C_INTPTR;
+    case XL6_IR_C_ABI_C_UINTPTR: return XL6_IR_NATIVE_SLOT_C_UINTPTR;
+    case XL6_IR_C_ABI_C_BOOL: return XL6_IR_NATIVE_SLOT_C_BOOL;
+    case XL6_IR_C_ABI_C_FLOAT: return XL6_IR_NATIVE_SLOT_C_FLOAT;
+    case XL6_IR_C_ABI_C_DOUBLE: return XL6_IR_NATIVE_SLOT_C_DOUBLE;
+    case XL6_IR_C_ABI_C_WCHAR: return XL6_IR_NATIVE_SLOT_C_WCHAR;
+    default: return XL6_IR_NATIVE_SLOT_NONE;
+    }
+}
+const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_NATIVE_SLOT_NONE: return "none";
+    case XL6_IR_NATIVE_SLOT_BOOL: return "bool";
+    case XL6_IR_NATIVE_SLOT_I64: return "i64";
+    case XL6_IR_NATIVE_SLOT_U64: return "u64";
+    case XL6_IR_NATIVE_SLOT_F32: return "f32";
+    case XL6_IR_NATIVE_SLOT_F64: return "f64";
+    case XL6_IR_NATIVE_SLOT_TIME: return "time";
+    case XL6_IR_NATIVE_SLOT_TYPE_ID: return "type-id";
+    case XL6_IR_NATIVE_SLOT_CHAR: return "char";
+    case XL6_IR_NATIVE_SLOT_STRING: return "string";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return "nullable-string";
+    case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return "xvalue-carrier";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "nullable-bool";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "nullable-i64";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "nullable-u64";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "nullable-f32";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "nullable-f64";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "nullable-time";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "nullable-char";
+    case XL6_IR_NATIVE_SLOT_C_CHAR: return "c-char";
+    case XL6_IR_NATIVE_SLOT_C_SCHAR: return "c-schar";
+    case XL6_IR_NATIVE_SLOT_C_UCHAR: return "c-uchar";
+    case XL6_IR_NATIVE_SLOT_C_SHORT: return "c-short";
+    case XL6_IR_NATIVE_SLOT_C_USHORT: return "c-ushort";
+    case XL6_IR_NATIVE_SLOT_C_INT: return "c-int";
+    case XL6_IR_NATIVE_SLOT_C_UINT: return "c-uint";
+    case XL6_IR_NATIVE_SLOT_C_LONG: return "c-long";
+    case XL6_IR_NATIVE_SLOT_C_ULONG: return "c-ulong";
+    case XL6_IR_NATIVE_SLOT_C_LONGLONG: return "c-longlong";
+    case XL6_IR_NATIVE_SLOT_C_ULONGLONG: return "c-ulonglong";
+    case XL6_IR_NATIVE_SLOT_C_SIZE: return "c-size";
+    case XL6_IR_NATIVE_SLOT_C_SSIZE: return "c-ssize";
+    case XL6_IR_NATIVE_SLOT_C_PTRDIFF: return "c-ptrdiff";
+    case XL6_IR_NATIVE_SLOT_C_INTPTR: return "c-intptr";
+    case XL6_IR_NATIVE_SLOT_C_UINTPTR: return "c-uintptr";
+    case XL6_IR_NATIVE_SLOT_C_BOOL: return "c-bool";
+    case XL6_IR_NATIVE_SLOT_C_FLOAT: return "c-float";
+    case XL6_IR_NATIVE_SLOT_C_DOUBLE: return "c-double";
+    case XL6_IR_NATIVE_SLOT_C_WCHAR: return "c-wchar";
+    default: return "invalid";
+    }
+}
+
 static int xl6IrTypeFinalizeErrorResultCName(
     XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -546,6 +647,7 @@ static int xl6IrTypeFinalizeErrorResultCName(
     int written;
     if ( expected == NULL || !xl6IrTypeFinalizeDisplayName(pool, type) )
         return 0;
+    type->nativeSlotAbi = xl6IrNativeSlotAbiForType(pool,type);
     written = snprintf(type->errorResultCName, sizeof(type->errorResultCName), "%s", expected);
     return written >= 0 && (size_t)written < sizeof(type->errorResultCName);
 }
@@ -18279,6 +18381,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                           XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
                        ? XL6_IR_C_ABI_CHAR_U32
                        : XL6_IR_C_ABI_I64)) ) return 0;
+        if (type->nativeSlotAbi != xl6IrNativeSlotAbiForType(pool,type)) return 0;
         if (type->nativeProductAbi != xl6IrNativeProductAbiForShape(pool,type) ||
             (type->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
              strcmp(type->cName,xl6IrNativeProductAbiCName(type->nativeProductAbi)) != 0)) return 0;
@@ -43916,7 +44019,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         size_t parameter;
-        xl6OutputPrintf(out, "  type t%lu kind=%d collection=%s resource=%s persistence=%s/t%u cabi=%d callable=%s ownership=%d null=%d nominal=s%u typeValue=0x%016llX name=%s display=%s integer=%s params=[",
+        xl6OutputPrintf(out, "  type t%lu kind=%d collection=%s resource=%s persistence=%s/t%u cabi=%d native-slot=%s callable=%s ownership=%d null=%d nominal=s%u typeValue=0x%016llX name=%s display=%s integer=%s params=[",
                         (unsigned long)(i + 1), (int)type->kind,
                         xl6IrCollectionAbiName(type->collectionAbi),
                         xl6IrRuntimeResourceAbiName(type->runtimeResourceAbi),
@@ -43924,6 +44027,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                             type->persistenceValueAbi),
                         (unsigned int)type->persistencePayloadType,
                         (int)type->cAbi,
+                        xl6IrNativeSlotAbiName(type->nativeSlotAbi),
                         xl6IrCallableErasureAbiName(type->callableErasureAbi),
                         (int)type->ownershipAbi, (int)type->nullAbi,
                         (unsigned int)type->nominalSymbol,
@@ -45170,7 +45274,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrType* type = &module->types.items[i];
         size_t item;
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kind\":%d,\"collectionAbi\":%d,\"collectionAbiName\":\"%s\",\"runtimeResourceAbi\":%d,\"runtimeResourceAbiName\":\"%s\",\"persistenceValueAbi\":%d,\"persistenceValueAbiName\":\"%s\",\"persistencePayloadType\":%u,\"cAbi\":%d,\"callableErasureAbi\":%d,\"callableErasureAbiName\":\"%s\",\"ownershipAbi\":%d,\"nullAbi\":%d,\"integerTarget\":%d,\"integerTargetName\":\"%s\",\"nominalSymbol\":%u,\"typeValueId\":\"0x%016llX\",\"name\":\"%s\",\"displayName\":\"%s\",\"cName\":\"%s\",\"errorResultCName\":\"%s\",\"params\":[",
+            "    {\"id\":%lu,\"kind\":%d,\"collectionAbi\":%d,\"collectionAbiName\":\"%s\",\"runtimeResourceAbi\":%d,\"runtimeResourceAbiName\":\"%s\",\"persistenceValueAbi\":%d,\"persistenceValueAbiName\":\"%s\",\"persistencePayloadType\":%u,\"cAbi\":%d,\"nativeSlotAbi\":%d,\"nativeSlotAbiName\":\"%s\",\"callableErasureAbi\":%d,\"callableErasureAbiName\":\"%s\",\"ownershipAbi\":%d,\"nullAbi\":%d,\"integerTarget\":%d,\"integerTargetName\":\"%s\",\"nominalSymbol\":%u,\"typeValueId\":\"0x%016llX\",\"name\":\"%s\",\"displayName\":\"%s\",\"cName\":\"%s\",\"errorResultCName\":\"%s\",\"params\":[",
             (unsigned long)(i + 1), (int)type->kind, (int)type->collectionAbi,
             xl6IrCollectionAbiName(type->collectionAbi),
             (int)type->runtimeResourceAbi,
@@ -45179,6 +45283,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             xl6IrPersistenceValueAbiName(type->persistenceValueAbi),
             (unsigned int)type->persistencePayloadType,
             (int)type->cAbi,
+            (int)type->nativeSlotAbi,
+            xl6IrNativeSlotAbiName(type->nativeSlotAbi),
             (int)type->callableErasureAbi,
             xl6IrCallableErasureAbiName(type->callableErasureAbi),
             (int)type->ownershipAbi, (int)type->nullAbi,

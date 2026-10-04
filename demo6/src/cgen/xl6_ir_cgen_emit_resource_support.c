@@ -84,6 +84,8 @@ static int xl6IrCgenEmitResourceRuntime(
     if ( needs->needsStackResourceRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
         xl6OutputPuts(
             "typedef struct xrttype xrttype;\n"
+            "extern const xrttype* xl6CharTypeV1(void);\n"
+            "extern const xrttype* xl6StringTypeV1(void);\n"
             "extern const xrttype* xl6NullableBoolTypeV1(void);\n"
             "extern const xrttype* xl6NullableI64TypeV1(void);\n"
             "extern const xrttype* xl6NullableU64TypeV1(void);\n"
@@ -93,6 +95,8 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern const xrttype* xl6NullableCharTypeV1(void);\n"
             "extern const xrttype* xl6NullableStringTypeV1(void);\n"
             "typedef struct xvalueconverter xvalueconverter;\n"
+            "extern const xvalueconverter* xl6CharConverterV1(void);\n"
+            "extern const xvalueconverter* xl6StringConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableStringConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableBoolConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableI64ConverterV1(void);\n"

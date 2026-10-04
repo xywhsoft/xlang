@@ -17,6 +17,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                            "extern xvalue* xrtValueFloat(double);\n"
                            "extern xvalue* xrtValueTime(int64_t);\n"
                            "extern xvalue* xrtValueChar(uint32_t);\n"
+                           "extern bool xrtValueGetChar(const xvalue*, uint32_t*);\n"
                            "extern xvalue* xrtValueRetain(const xvalue*);\n"
                            "extern xvalue* xrtValueClone(const xvalue*);\n"
                            "extern xvalue* xrtValueDeepClone(const xvalue*);\n"

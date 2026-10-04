@@ -180,6 +180,8 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_string_type.c"
     "$ROOT/src/runtime/xl6_string_value.c"
     "$ROOT/src/runtime/xl6_array_value.c"
+    "$ROOT/src/runtime/xl6_char_type.c"
+    "$ROOT/src/runtime/xl6_char_value.c"
 	"$ROOT/src/runtime/xl6_text_chars.c"
 	"$ROOT/src/runtime/xl6_text_glob.c"
 	"$ROOT/src/runtime/xl6_text_distance.c"
