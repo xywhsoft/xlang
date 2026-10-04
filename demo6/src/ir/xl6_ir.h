@@ -494,6 +494,52 @@ typedef enum XL6_IrNativeProductAbi {
     XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1
 } XL6_IrNativeProductAbi;
 
+/* Exact resident slot/projection profile, independent of source spelling and
+ * nominal identity. NONE is an explicit unsupported profile, never permission
+ * for Cgen to guess. XVALUE_CARRIER fixes the carrier only; an owning container
+ * must separately specify reference-retain versus value-copy transfer. */
+typedef enum XL6_IrNativeSlotAbi {
+    XL6_IR_NATIVE_SLOT_NONE = 0,
+    XL6_IR_NATIVE_SLOT_BOOL,
+    XL6_IR_NATIVE_SLOT_I64,
+    XL6_IR_NATIVE_SLOT_U64,
+    XL6_IR_NATIVE_SLOT_F32,
+    XL6_IR_NATIVE_SLOT_F64,
+    XL6_IR_NATIVE_SLOT_TIME,
+    XL6_IR_NATIVE_SLOT_TYPE_ID,
+    XL6_IR_NATIVE_SLOT_CHAR,
+    XL6_IR_NATIVE_SLOT_STRING,
+    XL6_IR_NATIVE_SLOT_NULLABLE_STRING,
+    XL6_IR_NATIVE_SLOT_XVALUE_CARRIER,
+    XL6_IR_NATIVE_SLOT_NULLABLE_BOOL,
+    XL6_IR_NATIVE_SLOT_NULLABLE_I64,
+    XL6_IR_NATIVE_SLOT_NULLABLE_U64,
+    XL6_IR_NATIVE_SLOT_NULLABLE_F32,
+    XL6_IR_NATIVE_SLOT_NULLABLE_F64,
+    XL6_IR_NATIVE_SLOT_NULLABLE_TIME,
+    XL6_IR_NATIVE_SLOT_NULLABLE_CHAR,
+    XL6_IR_NATIVE_SLOT_C_CHAR,
+    XL6_IR_NATIVE_SLOT_C_SCHAR,
+    XL6_IR_NATIVE_SLOT_C_UCHAR,
+    XL6_IR_NATIVE_SLOT_C_SHORT,
+    XL6_IR_NATIVE_SLOT_C_USHORT,
+    XL6_IR_NATIVE_SLOT_C_INT,
+    XL6_IR_NATIVE_SLOT_C_UINT,
+    XL6_IR_NATIVE_SLOT_C_LONG,
+    XL6_IR_NATIVE_SLOT_C_ULONG,
+    XL6_IR_NATIVE_SLOT_C_LONGLONG,
+    XL6_IR_NATIVE_SLOT_C_ULONGLONG,
+    XL6_IR_NATIVE_SLOT_C_SIZE,
+    XL6_IR_NATIVE_SLOT_C_SSIZE,
+    XL6_IR_NATIVE_SLOT_C_PTRDIFF,
+    XL6_IR_NATIVE_SLOT_C_INTPTR,
+    XL6_IR_NATIVE_SLOT_C_UINTPTR,
+    XL6_IR_NATIVE_SLOT_C_BOOL,
+    XL6_IR_NATIVE_SLOT_C_FLOAT,
+    XL6_IR_NATIVE_SLOT_C_DOUBLE,
+    XL6_IR_NATIVE_SLOT_C_WCHAR,
+} XL6_IrNativeSlotAbi;
+
 typedef struct XL6_IrType {
     XL6_IrTypeKind kind;
     XL6_IrCAbi cAbi;
@@ -509,6 +555,7 @@ typedef struct XL6_IrType {
      * enough to distinguish int8/uint8/.../int64 semantics. */
     XL6_IrIntegerTarget integerTarget;
     XL6_IrNativeProductAbi nativeProductAbi;
+    XL6_IrNativeSlotAbi nativeSlotAbi;
     /* Diagnostics/provenance only, except for TYPE_PARAM identity.  Concrete
      * aliases with the same ABI and shape share one canonical XLIR type. */
     XL6_TypeId sourceTypeId;
@@ -6011,6 +6058,8 @@ const XL6_IrEnumVariant* xl6IrEnumVariantGet(
 /* Recompute the representation facts which depend on type parameters.  This
  * is used both by primary AST type interning and generic specialization. */
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
+XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
+const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi);
 /* Finalize the stable source-language `type` token for a concrete type.  The
  * value is structural and intentionally independent of the backend C ABI. */
 int xl6IrTypeFinalizeTypeValueId(XL6_IrTypePool* pool, XL6_IrType* type);

@@ -12,6 +12,7 @@
 #define OPTIONAL_TEXT_ARGS UINT64_C(702),UINT64_C(802),2,sizeof(xstrview),xl6NullableStringTypeV1()
 #define REF_ARGS UINT64_C(703),UINT64_C(803),3,sizeof(xvalue*),xrtTypeValue()
 #define I64_ARGS UINT64_C(704),UINT64_C(804),1,sizeof(int64_t),xrtTypeInt64()
+#define CHAR_ARGS UINT64_C(706),UINT64_C(806),1,sizeof(uint32_t),xl6CharTypeV1()
 
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -82,6 +83,44 @@ static void textVectors(void)
     snapshot=xl6ArrayToValueV1(value,OPTIONAL_TEXT_ARGS,xl6NullableStringConverterV1());
     assert(snapshot && xrtValueType(xrtValueArrayAt(snapshot,0))==XVALUE_NULL);
     xrtValueRelease(value); xrtValueRelease(source); xrtValueRelease(snapshot);
+}
+
+static xvalue* chars(void)
+{
+    xvalue* source=xrtValueArray(); assert(source);
+    assert(xrtValueArrayAppendNew(source,xrtValueChar(0)));
+    assert(xrtValueArrayAppendNew(source,xrtValueChar(0x4f60)));
+    assert(xrtValueArrayAppendNew(source,xrtValueChar(0x10ffff)));
+    return source;
+}
+static void charVectors(void)
+{
+    const xrttype* type=xl6CharTypeV1();
+    const xvalueconverter* converter=xl6CharConverterV1();
+    assert(xrtTypeValidate(type) && type->Kind==XRT_TYPE_RECORD && type->Size==sizeof(uint32_t));
+    assert(type->Id==xrtTypeId((xstrview){"xl6.char.v1",11}));
+    uint32_t initial=99, zero=0, last=0x10ffff; int order; uint64_t hash;
+    assert(xrtTypeInitValue(type,&initial) && initial==0);
+    assert(xrtTypeCompareValue(type,&zero,&last,&order) && order<0);
+    assert(xrtTypeHashValue(type,&last,&hash));
+    assert(!converter->ToTyped(xrtValueNull(),type,&initial,NULL)); error(XERR_TYPE); assert(initial==0);
+    xvalue* wrong=xrtValueUInt(65); assert(wrong);
+    assert(!converter->ToTyped(wrong,type,&initial,NULL)); error(XERR_TYPE); assert(initial==0);
+    xrtValueRelease(wrong);
+    xrttype forged=*type;
+    assert(!converter->FromTyped(&forged,&last,NULL)); error(XERR_TYPE);
+    uint32_t invalid=0xd800;
+    assert(!converter->FromTyped(type,&invalid,NULL)); error(XERR_VALUE);
+    invalid=0x110000; assert(!converter->FromTyped(type,&invalid,NULL)); error(XERR_VALUE);
+    xvalue* source=chars();
+    xvalue* value=xl6ArrayFromValueV1(source,CHAR_ARGS,converter); assert(value);
+    xvalue* result=xl6ArrayToValueV1(value,CHAR_ARGS,converter);
+    assert(result && xrtValueEqual(source,result));
+    for(size_t i=0;i<3;++i) assert(xrtValueType(xrtValueArrayAt(result,i))==XVALUE_CHAR);
+    xrtValueRelease(result); xrtValueRelease(value); xrtValueRelease(source);
+    source=xrtValueArray(); assert(source && xrtValueArrayAppendNew(source,xrtValueUInt(65)));
+    assert(!xl6ArrayFromValueV1(source,CHAR_ARGS,converter)); error(XERR_TYPE);
+    xrtValueRelease(source);
 }
 
 typedef struct Profile { const char* name; const xrttype* type; const xvalueconverter* converter; } Profile;
@@ -243,6 +282,7 @@ static void fault(const char* operation, size_t point)
     const xrttype* type=xl6StringTypeV1(); const Profile* profile=NULL;
     bool from=strstr(operation,"-from")!=NULL, to=strstr(operation,"-to")!=NULL;
     bool reference=!strncmp(operation,"ref-",4);
+    bool character=!strncmp(operation,"char-",5);
     if(!strncmp(operation,"profile-",8)) {
         for(size_t i=0;i<7;i++) {
             if(!strncmp(operation+8,profiles[i].name,strlen(profiles[i].name)) && operation[8+strlen(profiles[i].name)]=='-') {
@@ -254,9 +294,10 @@ static void fault(const char* operation, size_t point)
         source=xrtValueArray(); xvalue* item=xrtValueArray();
         assert(source && item && xrtValueArrayAppendNew(item,xrtValueInt(19)));
         assert(xrtValueArrayAppendNew(source,item) && xrtValueArrayAppendNew(source,xrtValueNull()));
-    } else source=texts();
+    } else source=character ? chars() : texts();
     if(to) {
-        value=profile ? xl6ArrayFromValueV1(source,PROFILE_ARGS,profile->converter) : reference ?
+        value=character ? xl6ArrayFromValueV1(source,CHAR_ARGS,xl6CharConverterV1()) :
+            profile ? xl6ArrayFromValueV1(source,PROFILE_ARGS,profile->converter) : reference ?
             xl6ArrayFromValueV1(source,REF_ARGS,NULL) : xl6ArrayFromValueV1(source,TEXT_ARGS,xl6StringConverterV1());
         assert(value);
     } else if(!strcmp(operation,"string-resize")) {
@@ -268,11 +309,13 @@ static void fault(const char* operation, size_t point)
     else if(!strcmp(operation,"string-copy")) { xstrview input={"a\0b",3}; ok=xrtTypeCopyValue(type,&output,&input); }
     else if(!strcmp(operation,"string-resize")) ok=xl6ArrayResizeV1(value,TEXT_ARGS,4);
     else if(from) {
-        result=profile ? xl6ArrayFromValueV1(source,PROFILE_ARGS,profile->converter) : reference ?
+        result=character ? xl6ArrayFromValueV1(source,CHAR_ARGS,xl6CharConverterV1()) :
+            profile ? xl6ArrayFromValueV1(source,PROFILE_ARGS,profile->converter) : reference ?
             xl6ArrayFromValueV1(source,REF_ARGS,NULL) : xl6ArrayFromValueV1(source,TEXT_ARGS,xl6StringConverterV1());
         ok=result!=NULL;
     } else if(to) {
-        result=profile ? xl6ArrayToValueV1(value,PROFILE_ARGS,profile->converter) : reference ?
+        result=character ? xl6ArrayToValueV1(value,CHAR_ARGS,xl6CharConverterV1()) :
+            profile ? xl6ArrayToValueV1(value,PROFILE_ARGS,profile->converter) : reference ?
             xl6ArrayToValueV1(value,REF_ARGS,NULL) : xl6ArrayToValueV1(value,TEXT_ARGS,xl6StringConverterV1());
         ok=result!=NULL;
     } else abort();
@@ -286,7 +329,7 @@ static void fault(const char* operation, size_t point)
         xstrview check={0}; xl6ArrayReadV1(value,TEXT_ARGS,0,&check); text(check,"",0); xrtTypeDropValue(type,&check);
     }
     if(to) {
-        assert((profile ? xl6ArraySizeV1(value,PROFILE_ARGS,false) : reference ?
+        assert((character ? xl6ArraySizeV1(value,CHAR_ARGS,false) : profile ? xl6ArraySizeV1(value,PROFILE_ARGS,false) : reference ?
             xl6ArraySizeV1(value,REF_ARGS,false) : xl6ArraySizeV1(value,TEXT_ARGS,false))==(reference ? 2 : 3));
         if(ok) assert(xrtValueEqual(result,source));
     }
@@ -304,6 +347,6 @@ int main(int argc, char** argv)
         return 0;
     }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    textVectors(); scalarVectors(); referenceVectors(); callbackVectors(); graphFault("graph-create",0,false); balanced(&before);
+    textVectors(); charVectors(); scalarVectors(); referenceVectors(); callbackVectors(); graphFault("graph-create",0,false); balanced(&before);
     puts("array-value native vectors balanced"); return 0;
 }

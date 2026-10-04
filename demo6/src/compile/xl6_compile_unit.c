@@ -145,7 +145,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_char_value.c", D(R(NULLABLE_CHAR)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_string_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING"}},
     {"src/runtime/xl6_string_value.c", D(R(STRING_TYPE)), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}},
-    {"src/runtime/xl6_array_value.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
+    {"src/runtime/xl6_array_value.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_char_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_char_value.c", D(R(CHAR_TYPE)), {"XRUNTIME_MODULE_TYPED_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -360,38 +362,43 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
              instruction->runtimeOp <= XL6_IR_RUNTIME_AVL_TREE_CLONE) ||
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
-            switch (xl6IrNullableScalarElementAbi(module,instruction->payloadType)) {
-            case XL6_IR_C_ABI_BOOL: REQUIRE(R(NULLABLE_BOOL)); break;
-            case XL6_IR_C_ABI_I64: REQUIRE(R(NULLABLE_I64)); break;
-            case XL6_IR_C_ABI_U64: REQUIRE(R(NULLABLE_U64)); break;
-            case XL6_IR_C_ABI_F32: REQUIRE(R(NULLABLE_F32)); break;
-            case XL6_IR_C_ABI_F64: REQUIRE(R(NULLABLE_F64)); break;
-            case XL6_IR_C_ABI_TIME_I64: REQUIRE(R(NULLABLE_TIME)); break;
-            case XL6_IR_C_ABI_CHAR_U32: REQUIRE(R(NULLABLE_CHAR)); break;
-            default: break;
-            }
-            /* A storage profile is independent of its dynamic projection.
-             * Only these exact operations materialize/read dynamic elements. */
-            if (instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
-                instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
-                instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
-                switch (xl6IrNullableScalarElementAbi(module,instruction->payloadType)) {
-                case XL6_IR_C_ABI_BOOL: REQUIRE(R(NULLABLE_BOOL_VALUE)); break;
-                case XL6_IR_C_ABI_I64: REQUIRE(R(NULLABLE_I64_VALUE)); break;
-                case XL6_IR_C_ABI_U64: REQUIRE(R(NULLABLE_U64_VALUE)); break;
-                case XL6_IR_C_ABI_F32: REQUIRE(R(NULLABLE_F32_VALUE)); break;
-                case XL6_IR_C_ABI_F64: REQUIRE(R(NULLABLE_F64_VALUE)); break;
-                case XL6_IR_C_ABI_TIME_I64: REQUIRE(R(NULLABLE_TIME_VALUE)); break;
-                case XL6_IR_C_ABI_CHAR_U32: REQUIRE(R(NULLABLE_CHAR_VALUE)); break;
+            for (unsigned slot=0;slot<2;++slot) {
+                XL6_IrTypeId id=slot ? instruction->runtimeResourceKeyType : instruction->payloadType;
+                const XL6_IrType* physical=xl6IrTypeGet(&module->types,id);
+                if (!physical) continue;
+                switch (physical->nativeSlotAbi) {
+                case XL6_IR_NATIVE_SLOT_CHAR: REQUIRE(R(CHAR_TYPE)); break;
+                case XL6_IR_NATIVE_SLOT_STRING: REQUIRE(R(STRING_TYPE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: REQUIRE(R(NULLABLE_STRING)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: REQUIRE(R(NULLABLE_BOOL)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_I64: REQUIRE(R(NULLABLE_I64)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_U64: REQUIRE(R(NULLABLE_U64)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_F32: REQUIRE(R(NULLABLE_F32)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_F64: REQUIRE(R(NULLABLE_F64)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: REQUIRE(R(NULLABLE_TIME)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: REQUIRE(R(NULLABLE_CHAR)); break;
+                default: break;
+                }
+                /* A descriptor and its dynamic projection have separate
+                 * dependencies. Stack-only storage never pulls a converter. */
+                bool projection=slot ? instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS :
+                    instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO;
+                if (!projection) continue;
+                switch (physical->nativeSlotAbi) {
+                case XL6_IR_NATIVE_SLOT_CHAR: REQUIRE(R(CHAR_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_STRING: REQUIRE(R(STRING_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: REQUIRE(R(NULLABLE_BOOL_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_I64: REQUIRE(R(NULLABLE_I64_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_U64: REQUIRE(R(NULLABLE_U64_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_F32: REQUIRE(R(NULLABLE_F32_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_F64: REQUIRE(R(NULLABLE_F64_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: REQUIRE(R(NULLABLE_TIME_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: REQUIRE(R(NULLABLE_CHAR_VALUE)); break;
                 default: break;
                 }
             }
-            const XL6_IrType* physicalPayload = xl6IrTypeGet(&module->types,instruction->payloadType);
-            const XL6_IrType* physicalKey = xl6IrTypeGet(&module->types,instruction->runtimeResourceKeyType);
-            if ((physicalPayload && physicalPayload->kind == XL6_IR_TYPE_NULLABLE &&
-                 physicalPayload->cAbi == XL6_IR_C_ABI_MANAGED_STRING) ||
-                (physicalKey && physicalKey->kind == XL6_IR_TYPE_NULLABLE &&
-                 physicalKey->cAbi == XL6_IR_C_ABI_MANAGED_STRING)) REQUIRE(R(NULLABLE_STRING));
         }
         if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE) {
             const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, instruction->targetSymbol);

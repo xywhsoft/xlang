@@ -31,6 +31,17 @@ int main(int argc, char** argv)
         !xl6SemCheckModule(parse.root,&parse.diags,"stack_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
+    for (size_t i=0;i<ir.types.count;++i) {
+        XL6_IrType* type=&ir.types.items[i];
+        XL6_IrNativeSlotAbi saved=type->nativeSlotAbi;
+        assert(saved==xl6IrNativeSlotAbiForType(&ir.types,type));
+        type->nativeSlotAbi=saved==XL6_IR_NATIVE_SLOT_NONE ?
+            XL6_IR_NATIVE_SLOT_CHAR : XL6_IR_NATIVE_SLOT_NONE;
+        rejected(&ir);
+        type->nativeSlotAbi=(XL6_IrNativeSlotAbi)0x7fffffff; rejected(&ir);
+        type->nativeSlotAbi=saved;
+    }
+    assert(xl6IrVerifyModule(&ir,NULL));
     uint64 charIdentity=ir.runtimeTypeMap.charTypeValueId;
     assert(ir.runtimeTypeMap.abiVersion==2 && charIdentity && charIdentity!=ir.runtimeTypeMap.u64TypeValueId);
     ir.runtimeTypeMap.charTypeValueId=ir.runtimeTypeMap.fallbackTypeValueId; rejected(&ir);

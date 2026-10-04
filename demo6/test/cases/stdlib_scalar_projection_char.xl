@@ -1,0 +1,23 @@
+func main(...) as int
+    char last = char(0x10ffff)
+    AvlTree<int, char> tree = AvlTree::<int, char>()
+    assert(tree.set(1, '\0') and tree.set(2, '你') and tree.set(3, last))
+    array<char> values = tree.values()
+    assert(values.length == 3 and values[0] == '\0' and values[1] == '你' and values[2] == last)
+    var erased = values
+    assert(type(erased[0]) == char and type(erased[1]) == char)
+    SpscQueue<char> queue = SpscQueue::<char>(4)
+    assert(queue.pushBatch(values) == 3)
+    array<char> output = array<char>['A']
+    assert(queue.popBatchInto(output, 4) == 3)
+    assert(output[0] == '\0' and output[1] == '你' and output[2] == last)
+    int count = 0
+    for item in output
+        assert(type(item) == char)
+        count += 1
+    end
+    assert(count == 3)
+    Stack<char> stack = Stack::<char>()
+    assert(stack.push('你') and stack.pop() == '你')
+    return 0
+end
