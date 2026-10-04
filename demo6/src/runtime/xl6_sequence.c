@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_ownership_scope.h"
+#include "src/runtime/xl6_nullable_string.h"
 #include <limits.h>
 #include <string.h>
 
@@ -139,7 +140,7 @@ bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned in
         transfer < 1 || transfer > 3 || !xrtTypeIsCopyable(type) ||
         (transfer == 1 && (type->Flags & (XRT_TYPE_FLAG_TRIVIAL_COPY|XRT_TYPE_FLAG_TRIVIAL_DROP)) !=
                           (XRT_TYPE_FLAG_TRIVIAL_COPY|XRT_TYPE_FLAG_TRIVIAL_DROP)) ||
-        (transfer == 2 && type != xrtTypeStringView()) ||
+        (transfer == 2 && type != xrtTypeStringView() && !xl6NullableStringTypeAbiV1(type)) ||
         (transfer == 3 && type != xrtTypeValue())) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
@@ -287,7 +288,7 @@ bool xl6SequenceEqualsV1(const xvalue* left, const xvalue* right, uint64_t ident
     for (size_t depth=0; depth<count; ++depth) {
         const xvalue* x = *(xvalue* const*)xrtTypedArrayConstGet(a->storage,count-depth-1u);
         const xvalue* y = *(xvalue* const*)xrtTypedArrayConstGet(b->storage,count-depth-1u);
-        if (x != y && (!x || !y || !xrtValueEqual(x,y))) { equal = false; break; }
+        if (!xl6SequenceReferenceEqualV1(x,y)) { equal = false; break; }
     }
 done:
     if (b != a) xl6SequenceEndV1(b);

@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_ownership_plan.h"
+#include "src/runtime/xl6_nullable_string.h"
 #ifdef XL6_TEST_MIXED_STACK
 #include "src/runtime/xl6_stack.h"
 #endif
@@ -8,13 +9,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TEXT_ARGS UINT64_C(401),UINT64_C(501),2,sizeof(xstrview),xrtTypeStringView()
+static const xrttype* faultTextType;
+#define TEXT_ARGS UINT64_C(401),UINT64_C(501),2,sizeof(xstrview),(faultTextType ? faultTextType : xrtTypeStringView())
 #define I64_ARGS UINT64_C(402),UINT64_C(502),1,sizeof(int64_t),xrtTypeInt64()
 #define REF_ARGS UINT64_C(403),UINT64_C(503),3,sizeof(xvalue*),xrtTypeValue()
 #define BYTES_ARGS UINT64_C(404),UINT64_C(504),3,sizeof(xvalue*),xrtTypeValue()
 #define CHAR_ARGS UINT64_C(405),UINT64_C(505),1,sizeof(uint32_t),xrtTypeUInt32()
 #define U32_ARGS UINT64_C(406),UINT64_C(506),1,sizeof(uint32_t),xrtTypeUInt32()
 #define STACK_ARGS UINT64_C(407),UINT64_C(503),3,sizeof(xvalue*),xrtTypeValue()
+#define NULLABLE_TEXT_ARGS UINT64_C(408),UINT64_C(508),2,sizeof(xstrview),xl6NullableStringTypeV1()
 
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -139,7 +142,86 @@ static void referenceVectors(void)
     assert(xl6ArrayFindV1(value,REF_ARGS,&output)==0 && xl6ArrayEqualsV1(value,copy,REF_ARGS));
     assert(xl6ArrayResizeV1(copy,REF_ARGS,3));
     xvalue* empty=NULL; assert(xl6ArrayFindV1(copy,REF_ARGS,&empty)==1 && !xrtGetError());
+    xvalue* nullValue=xrtValueNull(); assert(nullValue);
+    assert(xl6ArrayFindV1(copy,REF_ARGS,&nullValue)==1 && !xrtGetError());
+    xvalue* filled=xl6ArrayCloneV1(value,REF_ARGS); assert(filled);
+    assert(xl6ArrayPushV1(filled,REF_ARGS,&nullValue) && xl6ArrayPushV1(filled,REF_ARGS,&nullValue));
+    assert(xl6ArrayEqualsV1(copy,filled,REF_ARGS) && !xrtGetError());
+    assert(xl6ArrayFindV1(filled,REF_ARGS,&empty)==1 && !xrtGetError());
+    xrtValueRelease(filled); xrtValueRelease(nullValue);
     xrtValueRelease(output); xrtValueRelease(item); xrtValueRelease(value); xrtValueRelease(copy);
+}
+static void nullableTextVectors(void)
+{
+    const xrttype* type=xl6NullableStringTypeV1(); assert(xl6NullableStringTypeAbiV1(type));
+    assert(xrtTypeId(type->AbiName)==type->Id && xrtTypeValidate(type));
+    xstrview absent={0},empty=XRT_STR_INIT(""),text=XRT_STR_INIT("a\0b"),output={0};
+    int order=0; uint64 hash1=99,hash2=99;
+    assert(xrtTypeCompareValue(type,&absent,&empty,&order) && order<0);
+    assert(xrtTypeCompareValue(type,&empty,&absent,&order) && order>0);
+    assert(xrtTypeHashValue(type,&absent,&hash1) && xrtTypeHashValue(type,&empty,&hash2) && hash1!=hash2);
+    const xvalueconverter* converter=xl6NullableStringConverterV1();
+    assert(converter && converter->ToTyped && converter->FromTyped);
+    const xstrview vectors[]={absent,empty,text};
+    for (size_t i=0;i<3;++i) {
+        xvalue* boxed=xrtValueFromTyped(type,&vectors[i],converter); assert(boxed);
+        xstrview roundtrip={0};
+        assert(xrtValueToTyped(boxed,type,&roundtrip,converter));
+        assert(xl6NullableStringEqualV1(vectors[i],roundtrip));
+        assert((vectors[i].Data!=NULL)==(roundtrip.Data!=NULL));
+        xrtTypeDropValue(type,&roundtrip); xrtValueRelease(boxed);
+    }
+    xstrview rejected={0};
+    assert(!xrtValueToTyped(xrtValueBool(true),type,&rejected,converter)); error(XERR_TYPE);
+    assert(!rejected.Data && !rejected.Size);
+    xstrview malformed={NULL,1};
+    assert(!xrtValueFromTyped(type,&malformed,converter)); error(XERR_ARGUMENT);
+    assert(xrtMemDebugFailAfter(0));
+    assert(xrtValueFromTyped(type,&absent,converter)==xrtValueNull());
+    assert(!xrtMemDebugFailTriggered() && !xrtGetError()); xrtMemDebugFailClear();
+    for (size_t point=0;;++point) {
+        assert(point<16 && xrtMemDebugFailAfter(point));
+        xvalue* boxed=xrtValueFromTyped(type,&text,converter);
+        bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+        if (hit) { assert(!boxed); error(XERR_MEMORY); }
+        else { assert(boxed); xrtValueRelease(boxed); break; }
+    }
+    xvalue* boxed=xrtValueString(text); assert(boxed);
+    assert(xrtMemDebugFailAfter(0));
+    assert(!xrtValueToTyped(boxed,type,&rejected,converter));
+    assert(xrtMemDebugFailTriggered() && !rejected.Data && !rejected.Size);
+    xrtMemDebugFailClear(); error(XERR_MEMORY); xrtValueRelease(boxed);
+    xvalue* value=xl6ArrayCreateV1(NULLABLE_TEXT_ARGS); assert(value);
+    assert(xl6ArrayPushV1(value,NULLABLE_TEXT_ARGS,&absent));
+    assert(xl6ArrayPushV1(value,NULLABLE_TEXT_ARGS,&empty));
+    assert(xl6ArrayPushV1(value,NULLABLE_TEXT_ARGS,&text));
+    assert(xl6ArrayFindV1(value,NULLABLE_TEXT_ARGS,&absent)==0 &&
+           xl6ArrayFindV1(value,NULLABLE_TEXT_ARGS,&empty)==1);
+    xvalue* cloned=xl6ArrayCloneV1(value,NULLABLE_TEXT_ARGS); assert(cloned);
+    assert(xl6ArrayEqualsV1(value,cloned,NULLABLE_TEXT_ARGS));
+    assert(xl6ArraySetV1(cloned,NULLABLE_TEXT_ARGS,0,&empty));
+    assert(!xl6ArrayEqualsV1(value,cloned,NULLABLE_TEXT_ARGS) && !xrtGetError());
+    xl6ArrayReadV1(value,NULLABLE_TEXT_ARGS,2,&output); exact(output,"a\0b",3);
+    assert(xrtMemDebugFailAfter(0)); xl6ArrayReadV1(value,NULLABLE_TEXT_ARGS,0,&output);
+    assert(!xrtMemDebugFailTriggered() && output.Data==NULL && output.Size==0 && !xrtGetError());
+    xrtMemDebugFailClear();
+    xl6ArrayReadV1(value,NULLABLE_TEXT_ARGS,1,&output); exact(output,"",0);
+    const char* prior=output.Data;
+    assert(xrtMemDebugFailAfter(0)); xl6ArrayReadV1(value,NULLABLE_TEXT_ARGS,2,&output);
+    assert(xrtMemDebugFailTriggered() && output.Data==prior);
+    xrtMemDebugFailClear(); error(XERR_MEMORY); exact(output,"",0);
+    xstrview invalid={NULL,1};
+    assert(!xrtTypeCopyValue(type,&output,&invalid) && output.Data==prior); error(XERR_ARGUMENT);
+    xrtTypeDropValue(type,&output);
+    assert(xl6ArrayResizeV1(value,NULLABLE_TEXT_ARGS,4));
+    xl6ArrayReadV1(value,NULLABLE_TEXT_ARGS,3,&output); assert(!output.Data && !output.Size);
+    xrttype forged=*type; forged.Id++;
+    assert(!xl6SequenceTupleV1(408,508,2,sizeof(xstrview),&forged)); error(XERR_ARGUMENT);
+    forged=*type; forged.AbiName=(xstrview)XRT_STR_INIT("wrong-nullable-string-abi");
+    assert(!xl6SequenceTupleV1(408,508,2,sizeof(xstrview),&forged)); error(XERR_ARGUMENT);
+    forged=*type; forged.Flags|=XRT_TYPE_FLAG_TRIVIAL_DROP;
+    assert(!xl6SequenceTupleV1(408,508,2,sizeof(xstrview),&forged)); error(XERR_ARGUMENT);
+    xrtValueRelease(value); xrtValueRelease(cloned);
 }
 static const xrtownershipadapterv1* resolve(xrtownershipref ref, void* context)
 {
@@ -338,10 +420,14 @@ int main(int argc, char** argv)
     if (argc==3) {
         size_t point=(size_t)strtoull(argv[2],NULL,10);
         if (!strncmp(argv[1],"graph-",6)) graphFault(argv[1],point);
-        else fault(argv[1],point);
+        else {
+            const char* operation=argv[1];
+            if (!strncmp(operation,"nullable-",9)) { faultTextType=xl6NullableStringTypeV1(); operation+=9; }
+            fault(operation,point);
+        }
         return 0;
     }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    scalarVectors(); textVectors(); referenceVectors(); graphVectors(); reentryVectors(); tailVectors(); balanced(&before);
+    scalarVectors(); textVectors(); referenceVectors(); nullableTextVectors(); graphVectors(); reentryVectors(); tailVectors(); balanced(&before);
     puts("array native vectors balanced"); return 0;
 }

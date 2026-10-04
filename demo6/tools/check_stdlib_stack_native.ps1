@@ -16,8 +16,8 @@ try {
     $public = Get-Content -Encoding UTF8 -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Full current-source compiler/runtime required' }
     $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation','stdlib_stack_try_owned','stdlib_stack_try_continuation',
-        'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char')
-    $extraCases = @('xlir_nullable_scalar_no_resource','stdlib_nullable_resource_transport','stdlib_nullable_queue_transport')
+        'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char','stdlib_sequence_nullable_identity')
+    $extraCases = @('xlir_nullable_scalar_no_resource','stdlib_nullable_resource_transport','stdlib_nullable_queue_transport','stdlib_nullable_text_resource_transport','stdlib_nullable_text_batch_projection','xlir_nullable_string_equal')
     $negative = @('char_output_type','bytes_output_type','bytes_input_type','owned_argument','owned_depth','owned_result','try_argument','try_depth','try_result','try_nullable_result',
         'nullable_literal_range','nullable_variable_narrow','nullable_identity',
         'retired_pop_into','retired_peek_into','retired_peek_at_into')
@@ -76,6 +76,7 @@ try {
     foreach ($case in ($cases + $extraCases)) {
         $plan = $artifact.NativeLinkage | Where-Object Fixture -eq $case
         $expected = if ($case -eq 'stdlib_stack_nullable_scalar') { @('bool','i64','u64','f32','f64','time','char') }
+            elseif ($case -eq 'stdlib_sequence_nullable_identity' -or $case -like 'stdlib_nullable_text_*' -or $case -eq 'xlir_nullable_string_equal') { @('string') }
             elseif ($case -eq 'stdlib_stack_nullable_continuation' -or $case -eq 'stdlib_nullable_resource_transport') { @('i64') }
             elseif ($case -match '^stdlib_stack_nullable_(bool|i64|u64|f32|f64|time|char)$') { @($Matches[1]) }
             else { @() }
@@ -106,7 +107,7 @@ try {
     }
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_stack_native_contract.c') +
         $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
-    foreach ($case in $cases) {
+    foreach ($case in ($cases + @('xlir_nullable_string_equal'))) {
         $prefix = "$outPath/$case"
         Run "$case.emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)
         # Large nullable fixtures deliberately reverify hundreds of malformed
@@ -140,8 +141,11 @@ try {
             (Test-Path "$prefix.c") -or (Test-Path "$prefix.h")){throw 'Wrong Stack type rejection or partial output'}
     }
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
-    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned','stdlib_stack_nullable_scalar')){
+    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned','stdlib_stack_nullable_scalar','stdlib_sequence_nullable_identity','stdlib_nullable_text_resource_transport','xlir_nullable_string_equal')){
     $prefix = "$outPath/$case"
+    if (!(Test-Path -LiteralPath "$prefix.c")) {
+        Run "$case.language-oom-emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)
+    }
     Run "$case.language-oom-build" $gcc ($strict + @('-DXL6_PRODUCT_USER_ENTRY','-include',"$prefix.c",
         'test/cases/xlir_module_product_oom_host.c',"$outPath/debug-host.o") +
         $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
@@ -157,7 +161,7 @@ try {
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;ExtraFixtures=$extraCases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;
-        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts: owned/try and seven tagged nullable stored profiles, exact carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation refusal. Old Into methods, IR and native exports retired; negatives and actual products exclude them. Nullable values/raw queue exclude descriptors; AVL selects only its used descriptor. Native and calling-thread language OOM prefixes. Batch and other 53-module acceptance remain pending.'}
+        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts: owned/try, seven tagged scalar profiles and nullable string presence/equality/hash/match, exact carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation refusal. Nullable text Queue/AVL transport preserves absence and exact lengths. Old Into methods, IR and native exports retired. Nullable values/raw scalar queue exclude descriptors; consumers select only used profiles. Native and calling-thread language OOM prefixes. Batch and other 53-module acceptance remain pending.'}
     [IO.File]::WriteAllText("$outPath/results.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     if (!$unchanged) { throw 'Stack inputs changed during acceptance' }
     Write-Host "Stack native Windows: $($rows.Count) checks"

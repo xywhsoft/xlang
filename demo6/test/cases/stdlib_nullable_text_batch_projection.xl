@@ -1,0 +1,15 @@
+func main(...) as int
+    string? empty = ""
+    string? text = "a\0b"
+    SpscQueue<string?> queue = SpscQueue::<string?>(4)
+    array<string?> inputs = array<string?>[null, empty, text]
+    array<string?> output = array<string?>["old"]
+    assert(queue.pushBatch(inputs) == 3)
+    assert(queue.popBatchInto(output, 2) == 2)
+    assert(output.length == 2 and output[0] == null and output[1] == empty)
+    assert(output[1] != null)
+    assert(queue.popBatchInto(output, 4) == 1)
+    assert(output.length == 1 and output[0] == text)
+    assert(queue.popBatchInto(output, 0) == 0 and output.length == 0)
+    return 0
+end

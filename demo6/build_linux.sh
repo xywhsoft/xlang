@@ -168,6 +168,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_nullable_f64.c"
     "$ROOT/src/runtime/xl6_nullable_time.c"
     "$ROOT/src/runtime/xl6_nullable_char.c"
+    "$ROOT/src/runtime/xl6_nullable_string.c"
 	"$ROOT/src/runtime/xl6_text_chars.c"
 	"$ROOT/src/runtime/xl6_text_glob.c"
 	"$ROOT/src/runtime/xl6_text_distance.c"

@@ -173,6 +173,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_nullable_f64.c ^
     src\runtime\xl6_nullable_time.c ^
     src\runtime\xl6_nullable_char.c ^
+    src\runtime\xl6_nullable_string.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
     src\runtime\xl6_text_distance.c ^
@@ -337,6 +338,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_nullable_f64.c ^
     src\runtime\xl6_nullable_time.c ^
     src\runtime\xl6_nullable_char.c ^
+    src\runtime\xl6_nullable_string.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
     src\runtime\xl6_text_distance.c ^

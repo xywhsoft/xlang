@@ -133,7 +133,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_f32.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_f64.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_time.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
-    {"src/runtime/xl6_nullable_char.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}}
+    {"src/runtime/xl6_nullable_char.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_string.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -338,6 +339,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
         if (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) REQUIRE(R(NULLABLE_STRING));
         /* Only operations which physically consume an xrttype descriptor
          * select its immutable resident profile. Raw scalar queue/channel
          * transports and ordinary optional values need no descriptor code. */
@@ -357,6 +359,12 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             case XL6_IR_C_ABI_CHAR_U32: REQUIRE(R(NULLABLE_CHAR)); break;
             default: break;
             }
+            const XL6_IrType* physicalPayload = xl6IrTypeGet(&module->types,instruction->payloadType);
+            const XL6_IrType* physicalKey = xl6IrTypeGet(&module->types,instruction->runtimeResourceKeyType);
+            if ((physicalPayload && physicalPayload->kind == XL6_IR_TYPE_NULLABLE &&
+                 physicalPayload->cAbi == XL6_IR_C_ABI_MANAGED_STRING) ||
+                (physicalKey && physicalKey->kind == XL6_IR_TYPE_NULLABLE &&
+                 physicalKey->cAbi == XL6_IR_C_ABI_MANAGED_STRING)) REQUIRE(R(NULLABLE_STRING));
         }
         if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE) {
             const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, instruction->targetSymbol);

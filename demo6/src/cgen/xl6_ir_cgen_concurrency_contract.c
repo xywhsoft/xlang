@@ -345,6 +345,13 @@ static XL6_IrRuntimeResourceKeyOrderAbi xl6IrCgenAvlKeyOrderAbi(
 
 /* xrtTypedTree owns values through immutable xrttype descriptors.  This map
  * is physical ABI only; no source spelling or AST method name reaches Cgen. */
+static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types,typeId);
+    return type != NULL && type->kind == XL6_IR_TYPE_NULLABLE &&
+        type->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+        ? "xl6NullableStringConverterV1()" : "NULL";
+}
 static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types, typeId) : NULL;
@@ -371,7 +378,8 @@ static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_
     case XL6_IR_C_ABI_CHAR_U32: return "xrtTypeUInt32()";
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-            ? "xrtTypeStringView()" : NULL;
+            ? (type->kind == XL6_IR_TYPE_NULLABLE
+                ? "xl6NullableStringTypeV1()" : "xrtTypeStringView()") : NULL;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
     case XL6_IR_C_ABI_MANAGED_BYTES:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED

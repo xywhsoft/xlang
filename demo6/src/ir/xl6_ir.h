@@ -1736,7 +1736,10 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STRING_SCALAR_AT,
        XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY,
        XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT,
-       XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT
+       XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT,
+       /* Exact optional-value equality, not plain text/view equality. Both
+        * borrowed operands have the same nullable<string> TypeId. */
+       XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -5941,6 +5944,7 @@ const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
  * Bytes use the language's existing read-sharing/write-copy discipline;
  * retaining their physical carrier does not grant a mutable language alias. */
 XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type);
+int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
 /* Exact (bool, optional payload) product for non-exceptional empty retrieval. */
 int xl6IrStackTryResultCompatible(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* Return the precomputed closed nominal acceptance set for one concrete class

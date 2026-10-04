@@ -40,7 +40,17 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Checked projection accessor transaction/runtime semantics failed' }
     & release/xl.exe run test/cases/xlir_checked_projection_runtime.c test/cases/xlir_checked_projection_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Checked projection generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_checked_projection_runtime.c test/cases/xlir_checked_projection_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    # A C host which textually includes generated C has no .xl compile unit
+    # from which the standalone builder could select resident components.
+    # This is the exact verified artifact Sources closure for this fixture;
+    # the AOT executable must not rely on xl.dll's resident exports.
+    $artifactRuntimeSources = @(
+        'src/runtime/xl6_slot.c','src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
+        'src/runtime/xl6_value_iterator.c','src/runtime/xl6_code_finalizer.c',
+        'src/api/xl_foreign_error.c'
+    )
+    & release/xl.exe build test/cases/xlir_checked_projection_runtime.c test/cases/xlir_checked_projection_host.c @artifactRuntimeSources --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Checked projection generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Checked projection generated C-host AOT runtime failed' }
