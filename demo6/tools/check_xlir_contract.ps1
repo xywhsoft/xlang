@@ -2517,7 +2517,7 @@ foreach ( $required in @(
     "xl6IrCgenEmitCallableBridgeCleanup",
     "xl6IrCgenEmitCallableResultCleanup",
     "xl6IrCgenRuntimeCallableScalarAbi",
-    "xrtCallableCreate", "xrtValueCallableTake", "xrtValueInvoke",
+    "xl6ClosureRuntimeV1Get()->Box", "xrtValueInvoke",
     "xrtCallResultSetTake", "xlir_closure_to_xvalue_scalar",
     "xlir_xvalue_dynamic_call", "xrtErrorCause(callError)",
     "xrtSetErrorTake(projected)"
@@ -2903,7 +2903,7 @@ foreach ( $required in @(
     "cgen_extern_function_value", "xlir_xcall_scalar_effect",
     "xvalue-callable-from-closure", "xvalue-dynamic-call",
     "consumed argument", "projected callable error causes", "ERROR_TEST",
-    "xrtCallableCreate", "-Werror", "runtime failed"
+    "xl6ClosureRuntimeV1Get()->Box", "-Werror", "runtime failed"
 ) ) {
     if ( ! $xcallGate.Contains($required) ) {
         throw "XLIR xcall quality gate is incomplete: $required"
