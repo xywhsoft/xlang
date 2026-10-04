@@ -64,6 +64,14 @@ typedef enum XL6_IrCollectionAbi {
     XL6_IR_COLLECTION_DICT
 } XL6_IrCollectionAbi;
 
+/* Complete element-admission family for checked erased collection rebinds.
+ * NOMINAL consumes an already resolved identity set, not a Cgen callback. */
+typedef enum XL6_IrCollectionAdmissionAbi {
+    XL6_IR_COLLECTION_ADMISSION_NONE = 0,
+    XL6_IR_COLLECTION_ADMISSION_PRIMITIVE,
+    XL6_IR_COLLECTION_ADMISSION_NOMINAL
+} XL6_IrCollectionAdmissionAbi;
+
 /* Canonical identity for language-visible runtime resources that share the
  * owning xvalue handle representation.  This is deliberately orthogonal to
  * C ABI: lowering/verifiers select operations from this closed identity and
@@ -2833,6 +2841,10 @@ typedef struct XL6_IrInstruction {
      * This is the canonical tag requested by language semantics; Cgen must not
      * recover it from a type or callee name. */
     XL6_IrCollectionAbi collectionAbi;
+    /* Valid exactly for CHECKED_REBIND; NONE on every other instruction. */
+    XL6_IrCollectionAdmissionAbi collectionAdmissionAbi;
+    XL6_IrNominalIdentitySetId collectionAdmissionIdentitySet;
+    bool collectionAdmissionNullable;
     /* Valid only for XVALUE_DYNAMIC_COLLECTION_METHOD.  Static collection
      * operations keep their exact collectionAbi and INVALID here. */
     XL6_IrDynamicCollectionOp dynamicCollectionOp;
@@ -6065,6 +6077,8 @@ const XL6_IrEnumVariant* xl6IrEnumVariantGet(
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
+XL6_IrCollectionAdmissionAbi xl6IrCollectionAdmissionForPayload(const XL6_IrModule*,
+    XL6_IrTypeId, XL6_IrNominalIdentitySetId*, bool*);
 const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi);
 /* Finalize the stable source-language `type` token for a concrete type.  The
  * value is structural and intentionally independent of the backend C ABI. */

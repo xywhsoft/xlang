@@ -27,13 +27,15 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--public-directory", type=Path)
     parser.add_argument("--sanitize", action="store_true")
+    parser.add_argument("--nominal", action="store_true", help="Select class/protocol and nullable nominal imports")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc = shutil.which("gcc")
     if not cc or out.exists() or (os.name == "nt" and not args.public_directory) or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
-    fixtures = ["stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
+    fixtures = ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+        "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
         parser.error("Full current-source compiler required")
@@ -45,7 +47,8 @@ def main() -> int:
         staged = json.loads(manifest.read_text(encoding="utf-8-sig"))
     cli = Path(public["Driver"]) if public else root / "release/xl"
     files = [Path(__file__), Path(cc), Path(sys.executable), cli,
-             root / "test/cases/stdlib_collection_admission_host.c"]
+             root / "test/cases/stdlib_collection_admission_host.c",
+             root / "test/cases/xlir_collection_admission_contract.c"]
     files += [root / f"test/cases/{fixture}.xl" for fixture in fixtures]
     if public:
         files += [args.public_directory / "build.json"] + [Path(row["Path"]) for row in public["Objects"]]
@@ -68,7 +71,7 @@ def main() -> int:
         shutil.copy2(root / "release/xl.dll", out / "xl.dll")
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
-              "Sanitized": args.sanitize, "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
+              "Sanitized": args.sanitize, "Nominal": args.nominal, "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
     env = dict(os.environ)
     if args.sanitize:
         env.update(ASAN_OPTIONS="detect_leaks=1:halt_on_error=1", UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
@@ -108,6 +111,14 @@ def main() -> int:
         strict += ["-g", "-fno-var-tracking", "-fno-var-tracking-assignments",
                    "-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-fno-pie", "-no-pie"]
     try:
+        contract = out / ("contract.exe" if os.name == "nt" else "contract")
+        compiler_links = ([row["Path"] for row in public["Objects"]
+                           if Path(row["Path"]).name != "xlir_public_source_driver.o"] +
+                          ["release/xl.dll", "-lws2_32", "-liphlpapi", "-lshell32", "-lole32", "-ladvapi32"]
+                          if public else ["-lxlc", *links])
+        run("contract.build", [cc, "-std=c11", "-O0", "-Wall", "-Wextra", "-Werror", "-DXL_STATIC_EMBED",
+            "-I.", "-Irelease", "-Irelease/include", "-Ilib/tcc", "test/cases/xlir_collection_admission_contract.c",
+            *compiler_links, "-o", str(contract)])
         for fixture in fixtures:
             prefix = out / fixture
             generated, ir = prefix.with_suffix(".c"), prefix.with_suffix(".json")
@@ -118,19 +129,51 @@ def main() -> int:
             assert ir.read_bytes() == prefix.with_suffix(".repeat.json").read_bytes()
             text = generated.read_text(encoding="utf-8")
             assert "xlir_xvalue_collection_checked_take" not in text
+            assert "xlir_nominal_runtime_tag" not in text
+            assert not re.search(r"static bool xlir_nominal_set_\d+_matches",text)
             lowered = json.loads(ir.read_text(encoding="utf-8"))
             checked = [row for row in lowered["instructions"] if row["runtimeOpName"] == "xvalue-collection-checked-rebind"]
             calls = re.findall(r"= xl6CollectionCheckedTakeV1\(v\d+, \d+, ([1-9]\d*), (true|false), 0x([0-9A-F]{16})ULL\);", text)
-            assert len(calls) == len(checked)
+            nominal_calls = re.findall(r"= xl6CollectionCheckedNominalTakeV1\(v\d+, \d+, &xlir_nominal_set_(\d+), (true|false)\);",text)
+            primitive = [row for row in checked if row["collectionAdmissionAbi"] == 1]
+            nominal = [row for row in checked if row["collectionAdmissionAbi"] == 2]
+            assert len(calls) == len(primitive) and len(nominal_calls) == len(nominal)
+            assert len(checked) == len(primitive) + len(nominal)
             types = {row["id"]: row for row in lowered["types"]}
-            for operation, (rule, nullable, identity) in zip(checked, calls):
+            for operation, (rule, nullable, identity) in zip(primitive, calls):
                 payload = types[operation["payloadType"]]
                 assert int(rule) == payload["xvalueAdmissionAbi"]
                 assert (nullable == "true") == payload["xvalueAdmissionNullable"]
                 assert int(identity, 16) == int(payload["xvalueAdmissionTypeValueId"], 16)
+                assert operation["collectionAdmissionIdentitySet"] == 0
+                assert operation["collectionAdmissionNullable"] == payload["xvalueAdmissionNullable"]
+            for operation, (identity_set, nullable) in zip(nominal, nominal_calls):
+                assert int(identity_set) == operation["collectionAdmissionIdentitySet"]
+                assert (nullable == "true") == operation["collectionAdmissionNullable"]
+                payload = types[operation["payloadType"]]
+                target = payload["params"][0] if operation["collectionAdmissionNullable"] else payload["id"]
+                assert lowered["nominalIdentitySets"][int(identity_set)-1]["targetType"] == target
+            for match in re.finditer(r"static const XL6_NominalAdmissionV1 xlir_nominal_set_(\d+) = \{(\d+), 0x([0-9A-F]{16})ULL, (xlir_nominal_ids_\d+|NULL), (\d+)\};",text):
+                identity_set,kind,non_object,span,count=match.groups()
+                schema=lowered["nominalIdentitySets"][int(identity_set)-1]
+                assert int(kind)==schema["kind"] and int(non_object,16)==schema["nonObjectTypeId"]
+                assert int(count)==len(schema["identities"])
+                if span == "NULL":
+                    assert not schema["identities"]
+                else:
+                    data=re.search(r"static const uint64_t "+re.escape(span)+r"\[\] = \{(.*?)\};",text,re.S)
+                    assert data
+                    assert [int(value,16) for value in re.findall(r"0x([0-9A-F]{16})ULL",data[1])] == schema["identities"]
+            if fixture == "stdlib_collection_nominal_admission":
+                assert len(nominal)==15 and not primitive
+                assert {False, True} == {row["collectionAdmissionNullable"] for row in nominal}
             if fixture == "stdlib_collection_admission":
                 assert {3, 6, 7, 8, 11, 13, 14, 15, 16} <= {int(row[0]) for row in calls}
                 assert len(checked) == 25
+            contract_c = prefix.with_suffix(".contract.c")
+            contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
+            assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
+            assert generated.read_bytes() == contract_c.read_bytes(), "Mutation contract changed canonical C"
             for level in (0, 2):
                 binary = prefix.with_suffix(f".O{level}" + (".exe" if os.name == "nt" else ""))
                 run(f"{fixture}.O{level}.build", [cc, *strict, f"-O{level}", str(generated),

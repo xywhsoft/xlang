@@ -1,0 +1,148 @@
+protocol Named
+    func name() as string
+end
+
+class Base
+    virtual func name() as string
+        return "base"
+    end
+end
+
+class Child extends Base
+    override func name() as string
+        return "child"
+    end
+end
+
+class Other
+    func number() as int
+        return 9
+    end
+end
+
+func objects(bool bad) as array
+    if bad
+        return [Other()]
+    end
+    return [Child(), Base()]
+end
+
+func optionalObjects(bool bad) as array
+    if bad
+        return [null, Other()]
+    end
+    return [null, Child()]
+end
+
+func sparseObjects(bool bad) as list
+    if bad
+        return [8: Other()]
+    end
+    return [3: Child(), 8: Base()]
+end
+
+func namedObjects(bool bad) as dict
+    if bad
+        return {"item": Other()}
+    end
+    return {"item": Child()}
+end
+
+func uniqueObjects(bool bad) as set
+    if bad
+        return {Other()}
+    end
+    return {Base(), Child()}
+end
+
+func identifiers(bool bad) as array
+    if bad
+        return [b"not-an-id"]
+    end
+    return [id.make()]
+end
+
+func nullObjects() as array
+    return [null]
+end
+
+func main(...) as int
+    array<Base> classes=objects(false)
+    assert classes.length==2
+    assert classes[0].name()=="child" and classes[1].name()=="base"
+    try
+        classes=objects(true)
+        return 1
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert classes.length==2 and classes[0].name()=="child"
+    array<Named> witnesses=objects(false)
+    assert witnesses[0].name()=="child"
+    try
+        witnesses=objects(true)
+        return 2
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert witnesses.length==2 and witnesses[1].name()=="base"
+    array<Base?> optional=optionalObjects(false)
+    assert optional[0]==null and optional[1]!=null
+    try
+        optional=optionalObjects(true)
+        return 3
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert optional.length==2 and optional[0]==null
+    try
+        classes=nullObjects()
+        return 4
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert classes.length==2
+    list<Base> sparse=sparseObjects(false)
+    assert sparse[3].name()=="child" and sparse[8].name()=="base"
+    try
+        sparse=sparseObjects(true)
+        return 5
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert sparse.length==2 and sparse[8].name()=="base"
+    dict<Named> named=namedObjects(false)
+    assert named["item"].name()=="child"
+    try
+        named=namedObjects(true)
+        return 6
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert named.length==1 and named["item"].name()=="child"
+    set<Base> unique=uniqueObjects(false)
+    assert unique.length==2
+    try
+        unique=uniqueObjects(true)
+        return 7
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert unique.length==2
+    array<Xid> ids=identifiers(false)
+    assert ids.length==1 and ids[0].toString().length==32
+    try
+        ids=identifiers(true)
+        return 8
+    catch e
+        assert e.kind=="TypeError"
+    end
+    assert ids.length==1
+    int count=0
+    for value in classes
+        assert value.name()=="base" or value.name()=="child"
+        count+=1
+    end
+    assert count==2
+    return 0
+end

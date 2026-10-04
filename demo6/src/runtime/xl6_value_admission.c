@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_value_admission.h"
+#include "src/runtime/xl6_value_admission_internal.h"
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -66,27 +67,17 @@ bool xl6ValueReadF32V1(const xvalue* source, uint64_t identity, float* output)
     double value; if (!xrtValueGetFloat(source,&value)) return false;
     *output=(float)value; return true;
 }
-static xvalue* failure(xvalue* source, xvalueiter* iterator, xerrkind kind)
+typedef struct PrimitiveContext { unsigned int rule; bool nullable; uint64_t identity; } PrimitiveContext;
+static bool admits(const xvalue* value, const void* opaque)
 {
-    if (!xrtGetError()) xrtSetErrorKind(kind);
-    xerror* error=xrtTakeError();
-    xrtValueIterDestroy(iterator); xrtValueRelease(source);
-    xrtClearError(); xrtSetErrorTake(error);
-    return NULL;
+    const PrimitiveContext* context=opaque;
+    return xl6ValueAdmitsV1(value,context->rule,context->nullable,context->identity);
 }
 xvalue* xl6CollectionCheckedTakeV1(xvalue* source, int container, unsigned int rule, bool nullable, uint64_t identity)
 {
-    if (container<XVALUE_ARRAY || container>XVALUE_OBJECT ||
-        rule>XL6_VALUE_ADMIT_TIME || (rule==XL6_VALUE_ADMIT_NONE && nullable))
-        return failure(source,NULL,XERR_ARGUMENT);
-    if (!source) return failure(NULL,NULL,XERR_ARGUMENT);
-    if (xrtValueType(source)!=container) return failure(source,NULL,XERR_TYPE);
-    if (rule==XL6_VALUE_ADMIT_NONE || rule==XL6_VALUE_ADMIT_ANY) return source;
-    xvalueiter* iterator=xrtValueIterCreate(source);
-    if (!iterator) return failure(source,NULL,XERR_MEMORY);
-    xvaluekey key={0}; xvalue* item=NULL; int step;
-    while ((step=xrtValueIterAdvance(iterator,&key,&item))>0)
-        if (!xl6ValueAdmitsV1(item,rule,nullable,identity)) return failure(source,iterator,XERR_TYPE);
-    if (step<0) return failure(source,iterator,XERR_TYPE);
-    xrtValueIterDestroy(iterator); return source;
+    if (rule>XL6_VALUE_ADMIT_TIME || (rule==XL6_VALUE_ADMIT_NONE && nullable))
+        return xl6AdmissionFailure(source,NULL,XERR_ARGUMENT);
+    const PrimitiveContext context={rule,nullable,identity};
+    return xl6AdmissionCollectionTake(source,container,
+        rule==XL6_VALUE_ADMIT_NONE || rule==XL6_VALUE_ADMIT_ANY ? NULL : admits,&context);
 }

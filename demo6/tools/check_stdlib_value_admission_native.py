@@ -20,14 +20,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--sanitize", action="store_true")
+    parser.add_argument("--nominal", action="store_true", help="Select the independent class/protocol identity closure")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc, nm = shutil.which("gcc"), shutil.which("nm")
     if not cc or not nm or out.exists() or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc/nm, a fresh evidence directory and Linux for sanitizers")
-    sources = ["test/cases/stdlib_value_admission_native_host.c", "test/support/value_admission_native.c",
-               "src/runtime/xl6_value_admission.c"]
+    sources = ["test/cases/stdlib_nominal_admission_native_host.c" if args.nominal else "test/cases/stdlib_value_admission_native_host.c",
+               "test/support/value_admission_native.c",
+               "src/runtime/xl6_nominal_admission.c" if args.nominal else "src/runtime/xl6_value_admission.c"]
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / "lib/xrt/xrt.h"]
     files += [root / name for name in sources]
     for directory in ("src/runtime", "release/include"):
@@ -35,7 +37,7 @@ def main() -> int:
     inputs = [{"Path": str(p.resolve()), "Sha256": digest(p)} for p in sorted(set(files))]
     out.mkdir(parents=True)
     rows, sweeps = [], []
-    report = {"Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
+    report = {"Complete": False, "InputsUnchanged": False, "Platform": sys.platform, "Nominal": args.nominal,
               "Sanitized": args.sanitize, "Scope": __doc__, "Inputs": inputs, "Rows": rows, "Sweeps": sweeps}
     env = dict(os.environ)
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-I.", "-Irelease", "-Irelease/include"]
@@ -62,7 +64,11 @@ def main() -> int:
             run(lane + ".build", [cc, *strict, f"-O{level}", *sources, *links, "-o", str(binary)])
             symbols = run(lane + ".symbols", [nm, "--defined-only", str(binary)])
             names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
-            assert {"xl6ValueAdmitsV1", "xl6CollectionCheckedTakeV1", "xl6ValueReadF32V1", "xl6ValueCheckedRetainV1"} <= names
+            expected = {"xl6ValueAdmitsNominalV1", "xl6CollectionCheckedNominalTakeV1"} if args.nominal else {
+                "xl6ValueAdmitsV1", "xl6CollectionCheckedTakeV1", "xl6ValueReadF32V1", "xl6ValueCheckedRetainV1"}
+            absent = {"xl6ValueAdmitsV1", "xl6CollectionCheckedTakeV1"} if args.nominal else {
+                "xl6ValueAdmitsNominalV1", "xl6CollectionCheckedNominalTakeV1"}
+            assert expected <= names and not absent & names
             assert not any(re.match(r"xl6(?:Array|Stack|Log|Regex|Process)[A-Z]|xrtTypedArray", name) for name in names)
             run(lane + ".vectors", [str(binary)])
             for mode in ("validate", "mismatch"):

@@ -425,4 +425,17 @@ libraries. Commands have a 60-second deadline; only the measured O2 sanitizer
 compiler step has a 180-second budget, with timings and timeout failures saved.
 `check_xlir_artifact_runtime.ps1` independently verifies selected
 native closure pruning. None of these gates certifies language Array's complete
-native-carrier migration, class/recursive element admission or all 53 modules.
+native-carrier migration, recursive element admission or all 53 modules.
+
+Both admission gates also support `--nominal`. The native gate selects the
+independent class/protocol identity component (without the primitive facade)
+and verifies inheritance, closed witness tags, nullable presence, exact bound
+non-object identity and invalid schemas with allocation/error-transparent
+predicates and complete consuming-validation failure prefixes. Its identity
+schema is borrowed for a synchronous call, NOT retained as an Array owner policy.
+The language gate checks all four erased collection imports, rejection keeping
+the destination unchanged, class/protocol dispatch and Xid versus plain bytes.
+Both language modes compile a current-compiler mutation host, reject forged
+family/set/nullable and unrelated instruction fields before any C/header output,
+restore each fact and require canonical C equality. Matching uses resident
+predicates and immutable verified identity data, not per-artifact matcher code.

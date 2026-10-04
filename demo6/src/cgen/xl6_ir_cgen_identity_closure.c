@@ -50,8 +50,11 @@ static int xl6IrCgenNominalIdentitySetUsed(
         const XL6_IrInstruction* instruction =
             &module->instructions[instructionIndex];
         if ( !xl6IrCgenInstructionIsReachable(module, instructionIndex) ||
-             instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
-             instruction->payloadType != set->targetType ) continue;
+             instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ) continue;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
+            instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL &&
+            instruction->collectionAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
+        if (instruction->payloadType != set->targetType) continue;
         if ( instruction->runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||
              instruction->runtimeOp ==
@@ -62,37 +65,28 @@ static int xl6IrCgenNominalIdentitySetUsed(
     return 0;
 }
 
-/* Render the already verified identity arena literally.  This is deliberately
- * not a class/protocol algorithm: Cgen selects one stored scalar identity and
- * emits a closed switch over the stored members. */
+/* Render verified, callback-free identity data literally. The resident
+ * predicate owns matching; generated programs contain no duplicate matcher. */
 static int xl6IrCgenEmitNominalIdentityRuntime(
     XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t setIndex;
-    int needsRuntimeTag = 0;
+    int needsAdmission = 0;
     if ( out == NULL || module == NULL ) return 0;
     for ( setIndex = 0; setIndex < module->nominalIdentitySetCount;
           ++setIndex ) {
         const XL6_IrNominalIdentitySet* set =
             &module->nominalIdentitySets[setIndex];
-        if ( xl6IrCgenNominalIdentitySetUsed(module, set) &&
-             (set->kind == XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG ||
-              set->kind ==
-                  XL6_IR_NOMINAL_IDENTITY_PROTOCOL_RUNTIME_TAG) ) {
-            needsRuntimeTag = 1;
+        if ( xl6IrCgenNominalIdentitySetUsed(module, set) ) {
+            needsAdmission = 1;
             break;
         }
     }
-    if ( needsRuntimeTag )
+    if ( needsAdmission )
         xl6OutputPuts(
-            "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
-            "static uint64_t xlir_nominal_runtime_tag(const xvalue* source)\n"
-            "{\n"
-            "    xvalue* item; int64_t tag = 0;\n"
-            "    if (source == NULL || xrtValueType(source) != 12) return 0;\n"
-            "    item = xrtValueObjectGet(source, xrtStrView(\"$xlir.class.runtime-type\"));\n"
-            "    return item != NULL && xrtValueGetInt(item, &tag) ? (uint64_t)tag : 0;\n"
-            "}\n",
+            "#include <__xl_runtime/xl6_nominal_admission_abi.h>\n"
+            "extern bool xl6ValueAdmitsNominalV1(const xvalue*, const XL6_NominalAdmissionV1*, bool);\n"
+            "extern xvalue* xl6CollectionCheckedNominalTakeV1(xvalue*, int, const XL6_NominalAdmissionV1*, bool);\n",
             out);
     for ( setIndex = 0; setIndex < module->nominalIdentitySetCount;
           ++setIndex ) {
@@ -105,39 +99,21 @@ static int xl6IrCgenEmitNominalIdentityRuntime(
              set->kind != XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C emitter nominal identity kind is unresolved");
-        xl6OutputPrintf(out,
-            "static bool xlir_nominal_set_%u_matches(const xvalue* source)\n"
-            "{\n"
-            "    uint64_t identity;\n"
-            "    if (source == NULL || xrtValueType(source) == 0) return false;\n",
-            (unsigned int)(setIndex + 1));
-        /* Object-backed classes use runtime tags so derived classes match.
-         * Inline/handle-backed class values have no object tag; their bound
-         * exact TypeId is the nominal identity (Xid is one such value). */
-        if ( set->kind == XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG &&
-             set->nonObjectTypeId != 0 )
+        if (set->identityCount)
             xl6OutputPrintf(out,
-                "    if (xrtValueType(source) != XVALUE_OBJECT &&\n"
-                "        xlir_xvalue_type_id(source) == 0x%016llXULL) return true;\n",
-                (unsigned long long)set->nonObjectTypeId);
-        xl6OutputPuts("    identity = ", out);
-        if ( set->kind == XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID )
-            xl6OutputPuts("xlir_xvalue_type_id(source);\n", out);
-        else
-            xl6OutputPuts(
-                "xlir_nominal_runtime_tag(source);\n",
-                out);
-        xl6OutputPuts("    switch (identity) {\n", out);
+                "static const uint64_t xlir_nominal_ids_%u[] = {\n",
+                (unsigned int)(setIndex+1));
         for ( identity = 0; identity < set->identityCount; ++identity )
             xl6OutputPrintf(out,
-                "    case 0x%016llXULL: return true;\n",
+                "    0x%016llXULL,\n",
                 (unsigned long long)module->nominalIdentities[
                     set->firstIdentity + identity]);
-        xl6OutputPuts(
-            "    default: return false;\n"
-            "    }\n"
-            "}\n",
-            out);
+        if (set->identityCount) xl6OutputPuts("};\n",out);
+        xl6OutputPrintf(out,"static const XL6_NominalAdmissionV1 xlir_nominal_set_%u = {%u, 0x%016llXULL, ",
+            (unsigned int)(setIndex+1),(unsigned int)set->kind,(unsigned long long)set->nonObjectTypeId);
+        if (set->identityCount) xl6OutputPrintf(out,"xlir_nominal_ids_%u",(unsigned int)(setIndex+1));
+        else xl6OutputPuts("NULL",out);
+        xl6OutputPrintf(out,", %lu};\n",(unsigned long)set->identityCount);
     }
     return 1;
 }

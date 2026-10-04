@@ -69,7 +69,10 @@ static int xl6IrCgenRuntimeCollectionCheckedRebindAbi(
            resultType->params[0] == instruction->payloadType &&
            resultType->collectionAbi == instruction->collectionAbi &&
            xl6IrCgenCollectionXValueTag(instruction->collectionAbi) != 0 &&
-           payloadType->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE;
+           (instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_PRIMITIVE ||
+            (instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL &&
+             instruction->collectionAdmissionIdentitySet>0 &&
+             instruction->collectionAdmissionIdentitySet<=module->nominalIdentitySetCount));
 }
 
 /* Iterator semantics are a closed RuntimeOp family.  Both synchronous and
@@ -584,23 +587,23 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
         if ( instruction->runtimeOp ==
              XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ) {
             xl6OutputPrintf(out,
-                "    v%u = xlir_nominal_set_%u_matches(v%u);\n",
-                (unsigned int)instruction->result, (unsigned int)setId,
-                (unsigned int)operand);
+                "    v%u = xl6ValueAdmitsNominalV1(v%u, &xlir_nominal_set_%u, false);\n",
+                (unsigned int)instruction->result, (unsigned int)operand,
+                (unsigned int)setId);
         } else if ( instruction->runtimeOp ==
                     XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED ) {
             xl6OutputPrintf(out,
                 "    v%u = NULL;\n"
-                "    if (xlir_nominal_set_%u_matches(v%u)) v%u = xrtValueRetain(v%u);\n"
+                "    if (xl6ValueAdmitsNominalV1(v%u, &xlir_nominal_set_%u, false)) v%u = xrtValueRetain(v%u);\n"
                 "    else if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic value does not match requested nominal target\"));\n",
-                (unsigned int)instruction->result, (unsigned int)setId,
-                (unsigned int)operand, (unsigned int)instruction->result,
+                (unsigned int)instruction->result, (unsigned int)operand,
+                (unsigned int)setId, (unsigned int)instruction->result,
                 (unsigned int)operand);
         } else {
             xl6OutputPrintf(out,
-                "    v%u = xlir_nominal_set_%u_matches(v%u) ? xrtValueRetain(v%u) : xrtValueRetain(xrtValueNull());\n",
-                (unsigned int)instruction->result, (unsigned int)setId,
-                (unsigned int)operand, (unsigned int)operand);
+                "    v%u = xl6ValueAdmitsNominalV1(v%u, &xlir_nominal_set_%u, false) ? xrtValueRetain(v%u) : xrtValueRetain(xrtValueNull());\n",
+                (unsigned int)instruction->result, (unsigned int)operand,
+                (unsigned int)setId, (unsigned int)operand);
         }
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_PROJECT_NATIVE_HANDLE_BORROW ) {

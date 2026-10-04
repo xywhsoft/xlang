@@ -3855,8 +3855,7 @@ static XL6_IrValueId xl6IrLowerOwnCheckedCollectionSource(
 static int xl6IrLowerCheckedCollectionPayloadSupported(
     const XL6_IrModule* module, XL6_IrTypeId payloadType)
 {
-    const XL6_IrType* payload = xl6IrTypeGet(&module->types, payloadType);
-    return payload != NULL && payload->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE;
+    return xl6IrCollectionAdmissionForPayload(module,payloadType,NULL,NULL)!=XL6_IR_COLLECTION_ADMISSION_NONE;
 }
 
 static int xl6IrLowerCheckedCollectionProjectionRequired(
@@ -3918,6 +3917,8 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     instruction = &ctx->module->instructions[ctx->module->instructionCount - 1];
     instruction->collectionAbi = target->collectionAbi;
     instruction->payloadType = target->params[0];
+    instruction->collectionAdmissionAbi=xl6IrCollectionAdmissionForPayload(ctx->module,
+        instruction->payloadType,&instruction->collectionAdmissionIdentitySet,&instruction->collectionAdmissionNullable);
     if ( !xl6IrLowerNewBlock(ctx, &successBlock) ||
          !xl6IrLowerNewBlock(ctx, &failureBlock) ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_TEST, sourceId,

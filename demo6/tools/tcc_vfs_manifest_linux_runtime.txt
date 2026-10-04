@@ -34,6 +34,7 @@ file|include/__xl_runtime/xl6_continuation_executor.h|%XL6_ROOT%/src/runtime/xl6
 file|include/__xl_runtime/xl6_continuation_future.h|%XL6_ROOT%/src/runtime/xl6_continuation_future.h
 file|include/__xl_runtime/xl6_future_payload.h|%XL6_ROOT%/src/runtime/xl6_future_payload.h
 file|include/__xl_runtime/xl6_text_value.h|%XL6_ROOT%/src/runtime/xl6_text_value.h
+file|include/__xl_runtime/xl6_nominal_admission_abi.h|%XL6_ROOT%/src/runtime/xl6_nominal_admission_abi.h
 file|include/__xl_runtime/xl6_product_abi.h|%XL6_ROOT%/src/runtime/xl6_product_abi.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST%/lib/libtcc1.a
 # Runtime JIT resolves XRT/xruntime symbols from the host; compatibility paths

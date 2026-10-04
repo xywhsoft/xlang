@@ -1,4 +1,10 @@
 #include "src/ir/xl6_ir.h"
+#include "src/runtime/xl6_nominal_admission_abi.h"
+
+_Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_ADMIT_CLASS_TAG &&
+    (int)XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID==(int)XL6_NOMINAL_ADMIT_EXACT_ID &&
+    (int)XL6_IR_NOMINAL_IDENTITY_PROTOCOL_RUNTIME_TAG==(int)XL6_NOMINAL_ADMIT_PROTOCOL_TAG,
+    "Verified nominal identity data must use the resident schema ABI");
 #include "src/type/xl6_type_model.h"
 
 #include <stdio.h>
@@ -19631,9 +19637,29 @@ int xl6IrCollectionMemberRuntimeInstructionCompatible(
         operands[1] == xl6IrCollectionBoxedElementType(module, operands[0]);
 }
 
-static int xl6IrCheckedCollectionPayloadSupported(const XL6_IrType* payload)
+XL6_IrCollectionAdmissionAbi xl6IrCollectionAdmissionForPayload(const XL6_IrModule* module,
+    XL6_IrTypeId payloadId, XL6_IrNominalIdentitySetId* setOut, bool* nullableOut)
 {
-    return payload != NULL && payload->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE;
+    const XL6_IrType* payload=module ? xl6IrTypeGet(&module->types,payloadId) : NULL;
+    if (setOut) *setOut=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (nullableOut) *nullableOut=false;
+    if (!payload) return XL6_IR_COLLECTION_ADMISSION_NONE;
+    if (payload->xvalueAdmissionAbi!=XL6_VALUE_ADMIT_NONE) {
+        if (nullableOut) *nullableOut=payload->xvalueAdmissionNullable;
+        return XL6_IR_COLLECTION_ADMISSION_PRIMITIVE;
+    }
+    bool nullable=payload->kind==XL6_IR_TYPE_NULLABLE;
+    if (nullable) {
+        if (payload->paramCount!=1 || !payload->params) return XL6_IR_COLLECTION_ADMISSION_NONE;
+        payloadId=payload->params[0];
+        payload=xl6IrTypeGet(&module->types,payloadId);
+    }
+    XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!payload || payload->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        !xl6IrNominalIdentitySetGet(module,payloadId,&set)) return XL6_IR_COLLECTION_ADMISSION_NONE;
+    if (setOut) *setOut=set;
+    if (nullableOut) *nullableOut=nullable;
+    return XL6_IR_COLLECTION_ADMISSION_NOMINAL;
 }
 
 /* An explicit untyped collection conversion validates the requested runtime
@@ -19694,6 +19720,10 @@ static int xl6IrVerifyRuntimeCollectionCheckedRebind(
         ? xl6IrTypeGet(&module->types, source->type) : NULL;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     payloadType = xl6IrTypeGet(&module->types, instruction->payloadType);
+    XL6_IrNominalIdentitySetId admissionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    bool admissionNullable=false;
+    XL6_IrCollectionAdmissionAbi admission=xl6IrCollectionAdmissionForPayload(module,
+        instruction->payloadType,&admissionSet,&admissionNullable);
     return sourceType != NULL && resultType != NULL &&
            (xl6IrTypeIsDynamicXValueBuiltin(module, source->type) ||
             (xl6IrTypeIsStaticallyShapedErasedCollection(
@@ -19707,7 +19737,10 @@ static int xl6IrVerifyRuntimeCollectionCheckedRebind(
            resultType->collectionAbi <= XL6_IR_COLLECTION_DICT &&
            resultType->paramCount == 1 && resultType->params != NULL &&
            resultType->params[0] == instruction->payloadType &&
-           xl6IrCheckedCollectionPayloadSupported(payloadType);
+           payloadType != NULL && admission != XL6_IR_COLLECTION_ADMISSION_NONE &&
+           instruction->collectionAdmissionAbi==admission &&
+           instruction->collectionAdmissionIdentitySet==admissionSet &&
+           instruction->collectionAdmissionNullable==admissionNullable;
 }
 
 static int xl6IrVerifyRuntimeIntegerIndexRead(
@@ -34432,6 +34465,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 const XL6_IrInstruction* instruction = &module->instructions[block->firstInstruction + j];
                 const XL6_IrNode* instructionOrigin =
                     xl6IrNodeGet(module, instruction->origin);
+                if ((instruction->collectionAdmissionAbi!=XL6_IR_COLLECTION_ADMISSION_NONE ||
+                     instruction->collectionAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID ||
+                     instruction->collectionAdmissionNullable) &&
+                    (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+                     instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND))
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR element admission is attached to an unrelated instruction");
                 if (instruction->exitStep != 0 &&
                     (instruction->kind != XL6_IR_INSTR_CLEANUP_BEGIN ||
                      instruction->exitStep > module->exitStepCount ||
@@ -45146,6 +45185,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                             xl6IrCastAbiName(instruction->castAbi));
                     if (instruction->contextualCastSource != XL6_IR_NODE_INVALID)
                         xl6OutputPrintf(out, " contextual-source=n%u", (unsigned int)instruction->contextualCastSource);
+                    if (instruction->collectionAdmissionAbi!=XL6_IR_COLLECTION_ADMISSION_NONE)
+                        xl6OutputPrintf(out," element-admission=%d/set%u/%d",
+                            (int)instruction->collectionAdmissionAbi,(unsigned int)instruction->collectionAdmissionIdentitySet,
+                            (int)instruction->collectionAdmissionNullable);
                     if ( instruction->contextualIntegerConversionSource !=
                              XL6_IR_NODE_INVALID )
                         xl6OutputPrintf(out,
@@ -46619,7 +46662,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( operandIndex > 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)module->operands[instruction->firstOperand + operandIndex]);
         }
-        xl6OutputPrintf(out, "],\"awaitOutcomeAbi\":%d,\"resultOwnership\":%d,\"resultOwnershipName\":\"%s\",\"errorScope\":%lu,\"exitStep\":%lu,\"parameterScope\":%lu,\"evaluationScope\":%lu,\"evaluationResult\":%u,\"cleanupPlan\":%lu,\"loopOwner\":%lu,\"pendingException\":%lu,\"pendingFailure\":%u,\"pendingExit\":%u,\"instantiation\":%lu,\"executionOrigin\":%u}%s\n",
+        xl6OutputPrintf(out,"],\"collectionAdmissionAbi\":%d,\"collectionAdmissionIdentitySet\":%u,\"collectionAdmissionNullable\":%s,",
+            (int)instruction->collectionAdmissionAbi,(unsigned int)instruction->collectionAdmissionIdentitySet,
+            instruction->collectionAdmissionNullable ? "true" : "false");
+        xl6OutputPrintf(out, "\"awaitOutcomeAbi\":%d,\"resultOwnership\":%d,\"resultOwnershipName\":\"%s\",\"errorScope\":%lu,\"exitStep\":%lu,\"parameterScope\":%lu,\"evaluationScope\":%lu,\"evaluationResult\":%u,\"cleanupPlan\":%lu,\"loopOwner\":%lu,\"pendingException\":%lu,\"pendingFailure\":%u,\"pendingExit\":%u,\"instantiation\":%lu,\"executionOrigin\":%u}%s\n",
                         (int)instruction->awaitOutcomeAbi,
                         (int)xl6IrValueOwnershipGet(module, instruction->result),
                         xl6IrOwnershipName(xl6IrValueOwnershipGet(module, instruction->result)),
