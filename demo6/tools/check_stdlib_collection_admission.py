@@ -29,15 +29,16 @@ def main() -> int:
     parser.add_argument("--sanitize", action="store_true")
     parser.add_argument("--nominal", action="store_true", help="Select class/protocol and nullable nominal imports")
     parser.add_argument("--defaults", action="store_true", help="Select boxed Array logical defaults and checked resize effects")
+    parser.add_argument("--layouts", action="store_true", help="Select Array carrier/layout facts and actual resident recipe oracle")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc = shutil.which("gcc")
     if not cc or out.exists() or (os.name == "nt" and not args.public_directory) or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
-    if args.defaults and args.nominal:
+    if sum((args.defaults, args.nominal, args.layouts)) > 1:
         parser.error("Select one fixture family")
-    fixtures = ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+    fixtures = ["stdlib_array_layouts"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
@@ -74,7 +75,8 @@ def main() -> int:
         shutil.copy2(root / "release/xl.dll", out / "xl.dll")
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
-              "Sanitized": args.sanitize, "Nominal": args.nominal, "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
+              "Sanitized": args.sanitize, "Nominal": args.nominal, "Layouts": args.layouts,
+              "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
     env = dict(os.environ)
     if args.sanitize:
         env.update(ASAN_OPTIONS="detect_leaks=1:halt_on_error=1", UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
@@ -135,6 +137,33 @@ def main() -> int:
             assert "xlir_nominal_runtime_tag" not in text
             assert not re.search(r"static bool xlir_nominal_set_\d+_matches",text)
             lowered = json.loads(ir.read_text(encoding="utf-8"))
+            # Current carrier and target native layout are orthogonal. A recipe
+            # in this dump must never be mistaken for a source owner cutover.
+            types_by_id = {row["id"]: row for row in lowered["types"]}
+            array_types = []
+            for row in lowered["types"]:
+                assert row["collectionCarrierAbi"] == (1 if row["collectionAbi"] else 0)
+                plan = row["arrayLayout"]
+                if row["collectionAbi"] != 1:
+                    assert plan["abi"] == 0 and not any(plan[key] for key in (
+                        "elementType", "baseElementType", "slotAbi", "transferAbi", "admissionAbi", "nullable", "defaultAbi"))
+                    continue
+                array_types.append(row)
+                if not row["params"]:
+                    assert plan["abiName"] == "dynamic-value" and not plan["elementType"]
+                    continue
+                element = types_by_id[row["params"][0]]
+                assert plan["elementType"] == element["id"] and plan["slotAbi"] == element["nativeSlotAbi"]
+                assert plan["admissionAbi"] == element["xvalueAdmissionAbi"]
+                if plan["nullable"]:
+                    assert plan["baseElementType"] == element["params"][0]
+                else:
+                    assert plan["baseElementType"] == element["id"]
+            if args.layouts:
+                plans = [row["arrayLayout"] for row in array_types]
+                assert {"primitive-v2", "reference-v2", "nominal-v2", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
+                assert set(range(1, 7)) <= {p["defaultAbi"] for p in plans}
+                assert {"nullable-bool", "nullable-i64", "nullable-u64", "nullable-f32", "nullable-f64", "nullable-time", "nullable-char", "nullable-string"} <= {p["slotAbiName"] for p in plans}
             checked = [row for row in lowered["instructions"] if row["runtimeOpName"] == "xvalue-collection-checked-rebind"]
             calls = re.findall(r"= xl6CollectionCheckedTakeV1\(v\d+, \d+, ([1-9]\d*), (true|false), 0x([0-9A-F]{16})ULL\);", text)
             nominal_calls = re.findall(r"= xl6CollectionCheckedNominalTakeV1\(v\d+, \d+, &xlir_nominal_set_(\d+), (true|false)\);",text)
@@ -188,6 +217,8 @@ def main() -> int:
                 assert len(checked) == 25
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
+            recipe_count = sum(row["arrayLayout"]["abi"] in (2, 3, 4) for row in array_types)
+            assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {len(lowered['types']) * 11} carrier/layout mutations" in contract_log
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
             if defaults:
                 assert f"array defaults: {len(defaults)} resize contracts;" in contract_log
@@ -196,11 +227,11 @@ def main() -> int:
                 binary = prefix.with_suffix(f".O{level}" + (".exe" if os.name == "nt" else ""))
                 run(f"{fixture}.O{level}.build", [cc, *strict, f"-O{level}", str(generated),
                     "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)],
-                    # The new 30-default-contract fixture exceeded 180 s in
+                    # The rich default/layout fixtures exceed 180 s in
                     # full O2 ASan/UBSan compilation. Only that compiler step
                     # has a larger finite budget, with every strict flag kept;
                     # executions, JIT, AOT and ordinary C still use 60 s.
-                    timeout=(360 if args.defaults else 180) if args.sanitize and level == 2 else 60)
+                    timeout=(360 if args.defaults or args.layouts else 180) if args.sanitize and level == 2 else 60)
                 run(f"{fixture}.O{level}.run", [str(binary)])
             source = f"test/cases/{fixture}.xl"
             jit = [str(cli), source, "run", str(prefix)] if public else [str(cli), "run", source, "--inc-path", str(out / "include")]

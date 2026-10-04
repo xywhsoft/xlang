@@ -2,6 +2,8 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
 #include "src/stdlib/xl6_stdlib.h"
+#include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_array.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -17,6 +19,128 @@ static void rejected(const XL6_IrModule* ir)
         assert(size==0); xrtFree(text); xl6OutputDiscard(&output); xl6DiagFree(&diagnostics);
     }
 }
+
+/* Independent physical oracle: instantiate each emitted recipe with the real
+ * resident descriptor/factory. These native probes are NOT a claim that the
+ * generated language Array carrier has already changed. */
+static const xrttype* descriptor(XL6_IrNativeSlotAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_NATIVE_SLOT_BOOL: return xrtTypeBool();
+    case XL6_IR_NATIVE_SLOT_I64: return xrtTypeInt64();
+    case XL6_IR_NATIVE_SLOT_U64: return xrtTypeUInt64();
+    case XL6_IR_NATIVE_SLOT_F32: return xrtTypeFloat32();
+    case XL6_IR_NATIVE_SLOT_F64: return xrtTypeFloat64();
+    case XL6_IR_NATIVE_SLOT_TIME: return xrtTypeTime();
+    case XL6_IR_NATIVE_SLOT_CHAR: return xl6CharTypeV1();
+    case XL6_IR_NATIVE_SLOT_STRING: return xl6StringTypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return xl6NullableStringTypeV1();
+    case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return xrtTypeValue();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return xl6NullableBoolTypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return xl6NullableI64TypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return xl6NullableU64TypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return xl6NullableF32TypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return xl6NullableF64TypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return xl6NullableTimeTypeV1();
+    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return xl6NullableCharTypeV1();
+    default: return NULL;
+    }
+}
+static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
+{
+    const XL6_IrArrayLayout* plan=&type->arrayLayout;
+    if (plan->abi != XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 &&
+        plan->abi != XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_ARRAY_LAYOUT_NOMINAL_V2) return 0;
+    const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
+    const XL6_IrType* base=xl6IrTypeGet(&ir->types,plan->baseElementType);
+    assert(element && base && type->typeValueId && element->typeValueId && base->typeValueId);
+    const xrttype* physical=descriptor(plan->slotAbi);
+    assert(physical);
+    xvalue* value=NULL;
+    if (plan->abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2) {
+        value=xl6ArrayPrimitiveCreateV2(type->typeValueId,element->typeValueId,
+            plan->transferAbi,physical->Size,physical,plan->admissionAbi,plan->nullable,base->typeValueId);
+    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2) {
+        assert(plan->slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+            plan->transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN);
+        value=xl6ArrayReferenceCreateV2(type->typeValueId,element->typeValueId,plan->admissionAbi,
+            plan->nullable,plan->admissionAbi == XL6_VALUE_ADMIT_ANY ? 0 : base->typeValueId);
+    } else {
+        const XL6_IrNominalIdentitySet* set=xl6IrNominalIdentitySetGet(ir,plan->baseElementType,NULL);
+        assert(set && set->identityCount <= ir->nominalIdentityCount &&
+            set->firstIdentity <= ir->nominalIdentityCount-set->identityCount);
+        XL6_NominalAdmissionV1 schema={.kind=(XL6_NominalAdmissionKindV1)set->kind,
+            .nonObjectIdentity=set->nonObjectTypeId,
+            .identities=set->identityCount ? &ir->nominalIdentities[set->firstIdentity] : NULL,
+            .count=set->identityCount};
+        value=xl6ArrayNominalCreateV2(type->typeValueId,element->typeValueId,&schema,plan->nullable,base->typeValueId);
+    }
+    assert(value && !xrtGetError() && xrtValueType(value) == XVALUE_HANDLE);
+#define LAYOUT type->typeValueId,element->typeValueId,plan->transferAbi,physical->Size,physical
+    assert(xl6ArraySizeV1(value,LAYOUT,false) == 0 && !xrtGetError());
+    bool defaultable=plan->defaultAbi != XL6_IR_ARRAY_DEFAULT_FORBIDDEN &&
+        plan->defaultAbi != XL6_IR_ARRAY_DEFAULT_PENDING_BYTES;
+    assert(xl6ArrayResizeV1(value,LAYOUT,1) == defaultable);
+    if (!defaultable) {
+        assert(xrtGetError()); xrtClearError();
+        assert(xl6ArraySizeV1(value,LAYOUT,false) == 0);
+    } else {
+        assert(!xrtGetError() && xl6ArraySizeV1(value,LAYOUT,false) == 1);
+    }
+    assert(xl6ArrayClearV1(value,LAYOUT) && !xrtGetError());
+    xrtValueRelease(value); assert(!xrtGetError());
+#undef LAYOUT
+    return 1;
+}
+static void layouts(XL6_IrModule* ir)
+{
+    unsigned arrays=0, resident=0, mutations=0;
+    for (size_t i=0;i<ir->types.count;++i) {
+        XL6_IrType* type=&ir->types.items[i];
+        XL6_IrCollectionCarrierAbi carrier=type->collectionCarrierAbi;
+        XL6_IrArrayLayout saved=type->arrayLayout;
+        assert(carrier == (type->collectionAbi == XL6_IR_COLLECTION_NONE
+            ? XL6_IR_COLLECTION_CARRIER_NONE : XL6_IR_COLLECTION_CARRIER_VALUE_V1));
+        type->collectionCarrierAbi=carrier == XL6_IR_COLLECTION_CARRIER_NONE
+            ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_NONE;
+        rejected(ir); ++mutations;
+        type->collectionCarrierAbi=XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1; rejected(ir); ++mutations;
+        type->collectionCarrierAbi=(XL6_IrCollectionCarrierAbi)UINT32_MAX; rejected(ir); ++mutations;
+        type->collectionCarrierAbi=carrier;
+#define MUTATE(FIELD, VALUE) do { type->arrayLayout.FIELD=(VALUE); rejected(ir); \
+    type->arrayLayout=saved; ++mutations; } while (0)
+        MUTATE(abi,(XL6_IrArrayLayoutAbi)UINT32_MAX);
+        MUTATE(elementType,saved.elementType ? XL6_IR_TYPE_INVALID : (XL6_IrTypeId)1);
+        MUTATE(baseElementType,saved.baseElementType ? XL6_IR_TYPE_INVALID : (XL6_IrTypeId)1);
+        MUTATE(slotAbi,(XL6_IrNativeSlotAbi)UINT32_MAX);
+        MUTATE(transferAbi,(XL6_IrRuntimeResourcePayloadAbi)UINT32_MAX);
+        MUTATE(admissionAbi,(XL6_ValueAdmissionV1)UINT32_MAX);
+        MUTATE(nullable,!saved.nullable);
+        MUTATE(defaultAbi,(XL6_IrArrayDefaultAbi)UINT32_MAX);
+#undef MUTATE
+        if (type->collectionAbi != XL6_IR_COLLECTION_ARRAY) {
+            assert(saved.abi == XL6_IR_ARRAY_LAYOUT_NONE);
+            continue;
+        }
+        ++arrays;
+        if (!type->paramCount) {
+            assert(saved.abi == XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE && !saved.elementType &&
+                !saved.baseElementType && !saved.slotAbi && !saved.transferAbi && !saved.admissionAbi &&
+                !saved.nullable && !saved.defaultAbi);
+            continue;
+        }
+        assert(type->paramCount == 1 && saved.elementType == type->params[0]);
+        const XL6_IrType* element=xl6IrTypeGet(&ir->types,saved.elementType);
+        assert(element && saved.slotAbi == element->nativeSlotAbi);
+        assert(saved.nullable == (element->kind == XL6_IR_TYPE_NULLABLE));
+        assert(saved.baseElementType == (saved.nullable ? element->params[0] : saved.elementType));
+        assert(saved.admissionAbi == element->xvalueAdmissionAbi);
+        resident+=residentRecipe(ir,type);
+    }
+    assert(xl6IrVerifyModule(ir,NULL));
+    printf("array layout: %u arrays; %u real resident recipes; %u carrier/layout mutations refused before C/header output\n",
+        arrays,resident,mutations);
+}
 int main(int argc, char** argv)
 {
     assert(argc==3); int ok=0; unsigned checked=0, unrelated=0;
@@ -26,6 +150,7 @@ int main(int argc, char** argv)
         !xl6SemCheckModule(parse.root,&parse.diags,"collection_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
+    layouts(&ir);
     unsigned defaults=0;
     for (size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];

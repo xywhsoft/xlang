@@ -1,0 +1,60 @@
+class LayoutItem
+    int value = 7
+end
+
+// A type-id slot has a physical scalar carrier, but no resident admission
+// policy yet. Describe that signature without exercising unsupported boxing.
+func layoutTypeIds(array<type> values) as int
+    return values.length
+end
+
+func main(...) as int
+    array<bool> flags = [true]
+    array<int8> i8 = [7]
+    array<int16> i16 = [7]
+    array<int32> i32 = [7]
+    array<int64> i64 = [7]
+    array<uint8> u8 = [7]
+    array<uint16> u16 = [7]
+    array<uint32> u32 = [7]
+    array<uint64> u64 = [uint64(7)]
+    array<float32> f32 = [float32(1.5)]
+    array<float64> f64 = [1.5]
+    array<char> chars = ['你']
+    array<time> times = [#2026-01-01#]
+    array<string> texts = ["a\0你"]
+    array<bytes> binary = [b"a\0\xff"]
+    array<var> mixed = [7, "a\0", null]
+    array<bool?> nbool = [true, null]
+    array<int8?> ni8 = [7, null]
+    array<int16?> ni16 = [7, null]
+    array<int32?> ni32 = [7, null]
+    array<int64?> ni64 = [7, null]
+    array<uint8?> nu8 = [7, null]
+    array<uint16?> nu16 = [7, null]
+    array<uint32?> nu32 = [7, null]
+    array<uint64?> nu64 = [uint64(7), null]
+    array<float32?> nf32 = [float32(1.5), null]
+    array<float64?> nf64 = [1.5, null]
+    array<char?> nchar = ['你', null]
+    array<time?> ntime = [#2026-01-01#, null]
+    array<string?> ntext = ["a\0", null]
+    array<bytes?> nbytes = [b"a\0", null]
+    array<LayoutItem> objects = [LayoutItem()]
+    array<LayoutItem?> optionalObjects = [LayoutItem(), null]
+    array<array<int>> nested = [[1, 2], [3]]
+    array<func(int) as int> functions = [func(int value) as int
+        return value + 1
+    end]
+    assert(flags[0] and i8[0] == 7 and i16[0] == 7 and i32[0] == 7 and i64[0] == 7)
+    assert(u8[0] == 7 and u16[0] == 7 and u32[0] == 7 and u64[0] == uint64(7))
+    assert(f32[0] == float32(1.5) and f64[0] == 1.5 and chars[0] == '你')
+    assert(texts[0] == "a\0你" and binary[0] == b"a\0\xff" and mixed[2] == null)
+    assert(nbool[1] == null and ni8[1] == null and ni16[1] == null and ni32[1] == null)
+    assert(ni64[1] == null and nu8[1] == null and nu16[1] == null and nu32[1] == null)
+    assert(nu64[1] == null and nf32[1] == null and nf64[1] == null and nchar[1] == null)
+    assert(ntime[1] == null and ntext[1] == null and nbytes[1] == null)
+    assert(objects[0].value == 7 and optionalObjects[1] == null)
+    assert(nested[0][1] == 2 and functions[0](7) == 8)
+    return 0
+end

@@ -38,7 +38,8 @@ try {
             'test/cases/stdlib_stack_clear_minimal.xl','test/cases/stdlib_stack_clear_error.xl',
             'test/cases/stdlib_stack_clear_error_continuation.xl','tools/check_stdlib_collection_admission.py',
             'test/cases/stdlib_collection_admission.xl','test/cases/stdlib_collection_nominal_admission.xl',
-            'test/cases/stdlib_array_defaults.xl','test/cases/stdlib_array_defaults_continuation.xl'))
+            'test/cases/stdlib_array_defaults.xl','test/cases/stdlib_array_defaults_continuation.xl',
+            'test/cases/stdlib_array_layouts.xl'))
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -189,7 +190,7 @@ try {
     Run 'sequence-clear' $python @('tools/check_stdlib_sequence_clear.py','--out',"$outPath/sequence-clear",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     $clear = Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-clear/results.json" -Raw | ConvertFrom-Json
     if (!$clear.Complete -or !$clear.InputsUnchanged) { throw 'Incomplete explicit clear evidence' }
-    foreach ($mode in @('base','nominal','defaults')) {
+    foreach ($mode in @('base','nominal','defaults','layouts')) {
         $arguments=@('tools/check_stdlib_collection_admission.py','--out',"$outPath/collection-$mode",'--public-directory',$PublicDirectory)
         if ($mode -ne 'base') { $arguments += "--$mode" }
         Run "collection-$mode" $python $arguments -TimeoutMs 600000
