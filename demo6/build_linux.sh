@@ -163,6 +163,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_array_reference_admission.c"
 	"$ROOT/src/runtime/xl6_array_nominal_admission.c"
 	"$ROOT/src/runtime/xl6_array_default.c"
+	"$ROOT/src/runtime/xl6_array_primitive_admission.c"
 	"$ROOT/src/runtime/xl6_array.c"
 	"$ROOT/src/runtime/xl6_array_iterator.c"
     "$ROOT/src/runtime/xl6_nullable_bool.c"
