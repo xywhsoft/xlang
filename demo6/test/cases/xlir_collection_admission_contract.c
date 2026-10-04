@@ -78,14 +78,22 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
     assert(value && !xrtGetError() && xrtValueType(value) == XVALUE_HANDLE);
 #define LAYOUT type->typeValueId,element->typeValueId,plan->transferAbi,physical->Size,physical
     assert(xl6ArraySizeV1(value,LAYOUT,false) == 0 && !xrtGetError());
-    bool defaultable=plan->defaultAbi != XL6_IR_ARRAY_DEFAULT_FORBIDDEN &&
-        plan->defaultAbi != XL6_IR_ARRAY_DEFAULT_PENDING_BYTES;
+    bool defaultable=plan->defaultAbi != XL6_IR_ARRAY_DEFAULT_FORBIDDEN;
     assert(xl6ArrayResizeV1(value,LAYOUT,1) == defaultable);
     if (!defaultable) {
         assert(xrtGetError()); xrtClearError();
         assert(xl6ArraySizeV1(value,LAYOUT,false) == 0);
     } else {
         assert(!xrtGetError() && xl6ArraySizeV1(value,LAYOUT,false) == 1);
+        if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2) {
+            xvalue* item=NULL; xl6ArrayReadV1(value,LAYOUT,0,&item);
+            assert(!xrtGetError());
+            if (plan->defaultAbi == XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES) {
+                xbytesview bytes;
+                assert(item && xrtValueGetBytes(item,&bytes) && !bytes.Size);
+            } else assert(!item || xrtValueType(item)==XVALUE_NULL);
+            xrtValueRelease(item);
+        }
     }
     assert(xl6ArrayClearV1(value,LAYOUT) && !xrtGetError());
     xrtValueRelease(value); assert(!xrtGetError());

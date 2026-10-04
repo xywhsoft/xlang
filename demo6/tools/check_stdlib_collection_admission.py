@@ -163,6 +163,8 @@ def main() -> int:
                 plans = [row["arrayLayout"] for row in array_types]
                 assert {"primitive-v2", "reference-v2", "nominal-v2", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
                 assert set(range(1, 7)) <= {p["defaultAbi"] for p in plans}
+                assert {"empty-bytes", "absent", "forbidden"} <= {p["defaultAbiName"] for p in plans}
+                assert not any(p["defaultAbiName"] == "pending-bytes" for p in plans)
                 assert {"nullable-bool", "nullable-i64", "nullable-u64", "nullable-f32", "nullable-f64", "nullable-time", "nullable-char", "nullable-string"} <= {p["slotAbiName"] for p in plans}
             checked = [row for row in lowered["instructions"] if row["runtimeOpName"] == "xvalue-collection-checked-rebind"]
             calls = re.findall(r"= xl6CollectionCheckedTakeV1\(v\d+, \d+, ([1-9]\d*), (true|false), 0x([0-9A-F]{16})ULL\);", text)

@@ -44970,6 +44970,18 @@ XRT_API const void* xrtTypedArrayConstData(const xtypedarray* pArray);
  * Resize 增长分配或初始化失败，保留原地址、容量、数量与活动元素。 */
 XRT_API bool xrtTypedArrayReserve(xtypedarray* pArray, size_t iCapacity);
 XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount);
+/* Per-growth defaults are distinct from empty destinations used by Copy/Move.
+ * The initializer receives a zeroed inactive slot and the borrowed item type;
+ * success transfers that value to the array. Failure must release its own
+ * partial resources and set an XRT error. Context is borrowed only for this
+ * synchronous call, never retained. NULL selects the ordinary type Init.
+ * Existing values, capacity and addresses survive any growth failure; only
+ * successfully initialized new slots are dropped, in reverse order. Same-
+ * array callback/allocator reentry is rejected. Shrink/equal never invoke it. */
+typedef bool (*xrttypedarrayinitializer)(ptr pValue, const xrttype* pType, ptr pContext);
+XRT_API bool xrtTypedArrayResizeWithInitializer(
+    xtypedarray* pArray, size_t iCount, xrttypedarrayinitializer Initializer, ptr pContext
+);
 XRT_API bool xrtTypedArrayTrim(xtypedarray* pArray);
 XRT_API void xrtTypedArrayClear(xtypedarray* pArray);
 
@@ -346414,7 +346426,9 @@ XRT_API bool xrtTypedArrayReserve(xtypedarray* pArray, size_t iCapacity)
 /* 增长先完成所有可失败工作再发布；失败保留地址、容量、数量和旧值。
  * 无 Init 回调的零初始化走原始数组快路径；有回调时只初始化新增值，
  * 不复制或销毁旧元素。需要扩容时使用独立存储，提交只重定位字节。 */
-XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount)
+XRT_API bool xrtTypedArrayResizeWithInitializer(
+    xtypedarray* pArray, size_t iCount, xrttypedarrayinitializer Initializer, ptr pContext
+)
 {
 	size_t iOriginalCount;
 	size_t iAdded;
@@ -346444,8 +346458,8 @@ XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount)
 	}
 	iAdded = iCount - iOriginalCount;
 	__xrtTypedArrayCallbackBegin(pArray);
-	if ( (pArray->ItemType->Ops == NULL) ||
-		 (pArray->ItemType->Ops->Init == NULL) ) {
+	if ( (Initializer == NULL) && ((pArray->ItemType->Ops == NULL) ||
+		 (pArray->ItemType->Ops->Init == NULL)) ) {
 		bool bResized = xrtArrayResize(&pArray->Storage, iCount);
 
 		if ( !bResized ) {
@@ -346478,7 +346492,14 @@ XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount)
 	for ( size_t i = 0; i < iAdded; i++ ) {
 		ptr pItem = pNewItems + i * pArray->ItemType->Size;
 
-		if ( !xrtTypeInitValue(pArray->ItemType, pItem) ) {
+		bool bInitialized;
+		if ( Initializer != NULL ) {
+			memset(pItem, 0, pArray->ItemType->Size);
+			bInitialized = Initializer(pItem, pArray->ItemType, pContext);
+		} else {
+			bInitialized = xrtTypeInitValue(pArray->ItemType, pItem);
+		}
+		if ( !bInitialized ) {
 			xerror* pError = xrtTakeError();
 
 			/* A failed Init cleans its own partial value. Drop only completed
@@ -346517,6 +346538,13 @@ XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount)
 	}
 	__xrtTypedArrayCallbackEnd(pArray);
 	return true;
+}
+
+
+
+XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount)
+{
+	return xrtTypedArrayResizeWithInitializer(pArray, iCount, NULL, NULL);
 }
 
 

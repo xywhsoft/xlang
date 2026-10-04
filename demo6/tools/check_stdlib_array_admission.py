@@ -102,7 +102,10 @@ def main() -> int:
                 assert not {"xl6ArrayFromValueV1", "xl6ArrayToValueV1", "xl6StackCreateV1"} & names
                 assert not any(re.match(r"xl6(?:Log|Regex|Process)[A-Z]|xrtTypedStack", name) for name in names)
             run(lane + ".vectors", [str(binary)])
-            for operation in ("create", "clone", "erased-clone", "cursor"):
+            operations = ["create", "clone", "erased-clone", "cursor"]
+            if not args.nominal:
+                operations += ["resize", "resize-spare"]
+            for operation in operations:
                 for point in range(513):
                     log = run(f"{lane}.{operation}.{point}", [str(binary), operation, str(point)])
                     match = re.search(r"hit=([01]) balanced", log)

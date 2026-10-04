@@ -786,7 +786,7 @@ XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool, const XL6_
         result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2) {
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
-            result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_PENDING_BYTES :
+            result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
             result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_ARRAY_DEFAULT_EMPTY_STRING :
             result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
             XL6_IR_ARRAY_DEFAULT_ZERO;
@@ -812,7 +812,7 @@ const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi)
     case XL6_IR_ARRAY_DEFAULT_ABSENT: return "absent";
     case XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL: return "dynamic-null";
     case XL6_IR_ARRAY_DEFAULT_FORBIDDEN: return "forbidden";
-    case XL6_IR_ARRAY_DEFAULT_PENDING_BYTES: return "pending-bytes";
+    case XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES: return "empty-bytes";
     default: return "invalid";
     }
 }

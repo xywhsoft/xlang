@@ -582,7 +582,7 @@ typedef enum XL6_IrArrayDefaultAbi {
     XL6_IR_ARRAY_DEFAULT_FORBIDDEN,
     /* Language bytes require present empty data; the current reference slot
      * initializes NULL. Never silently substitute an absent default. */
-    XL6_IR_ARRAY_DEFAULT_PENDING_BYTES
+    XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES
 } XL6_IrArrayDefaultAbi;
 
 typedef struct XL6_IrArrayLayout {

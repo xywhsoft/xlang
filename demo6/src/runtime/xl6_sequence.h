@@ -18,6 +18,9 @@ typedef struct XL6_SequenceAdmissionOpsV1 {
     bool (*Value)(const void*, const xvalue*);
     bool (*Equivalent)(const void*, const void*);
     bool (*Defaultable)(const void*);
+    /* Optional per-growth default. This is a resident callback, not source
+     * code; it initializes a zeroed inactive slot or cleans up on failure. */
+    bool (*InitDefault)(const void*, ptr);
 } XL6_SequenceAdmissionOpsV1;
 typedef struct XL6_SequenceAdmissionV1 {
     const XL6_SequenceAdmissionOpsV1* ops;
@@ -39,6 +42,7 @@ XL6_TEXT_API bool xl6SequenceAdmitSlotV1(XL6_Sequence*, const void*);
 XL6_TEXT_API bool xl6SequenceAdmitValueV1(XL6_Sequence*, const xvalue*);
 XL6_TEXT_API bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence*, XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence*);
+XL6_TEXT_API bool xl6SequenceResizeStorageV1(XL6_Sequence*, size_t);
 typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;

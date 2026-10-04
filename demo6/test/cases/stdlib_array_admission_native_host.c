@@ -127,13 +127,65 @@ static void malformed(void)
     refusal(alias,good); xrtValueRelease(alias); xrtValueRelease(good); xrtValueRelease(value);
 #endif
 }
+#ifndef XL6_TEST_ARRAY_NOMINAL
+static void bytesDefaults(void)
+{
+    xvalue* value=create(false),*good=element(true); assert(value);
+    assert(xl6ArrayPushV1(value,LAYOUT,&good));
+    xvalue* alias=xl6ArrayEraseV1(value,LAYOUT,NULL); assert(alias==value);
+    assert(xl6ArrayResizeV1(value,LAYOUT,3));
+    for (int64_t i=1;i<3;++i) {
+        xvalue* item=xl6ArrayErasedReadV1(alias,i); xbytesview bytes;
+        assert(item && xrtValueType(item)==XVALUE_BYTES && xrtValueGetBytes(item,&bytes) && !bytes.Size);
+        xrtValueRelease(item);
+    }
+    /* Ordinary retained-reference transfer must not run the growth default
+     * initializer. In-place replacement/read do not allocate an empty shell. */
+    assert(xrtMemDebugFailAfter(0));
+    assert(xl6ArraySetV1(value,LAYOUT,0,&good));
+    xvalue* item=NULL; xl6ArrayReadV1(value,LAYOUT,0,&item);
+    assert(item==good && !xrtGetError() && !xrtMemDebugFailTriggered());
+    xrtValueRelease(item); xrtMemDebugFailClear();
+    xvalue* copy=xl6ArrayCloneV1(value,LAYOUT),*erasedCopy=xl6ArrayErasedCloneV1(alias);
+    xvalue* cursor=xl6ArrayIteratorCreateV1(value,LAYOUT,1002);
+    assert(copy && erasedCopy && cursor);
+    xvalue* independent=create(false); assert(independent && xl6ArrayResizeV1(independent,LAYOUT,1));
+    assert(xl6ArrayAppendV1(copy,independent,LAYOUT)); xrtValueRelease(independent);
+    xrtValueRelease(alias); xrtValueRelease(value);
+    /* Policy/default lifetime belongs to each owner, not the source shell. */
+    assert(xl6ArrayResizeV1(copy,LAYOUT,6) && xl6ArrayResizeV1(erasedCopy,LAYOUT,6));
+    for (int64_t i=3;i<6;++i) {
+        item=xl6ArrayErasedReadV1(erasedCopy,i); xbytesview bytes;
+        assert(item && xrtValueGetBytes(item,&bytes) && !bytes.Size); xrtValueRelease(item);
+    }
+    for (int64_t i=0;i<3;++i) {
+        assert(xl6ArrayIteratorAdvanceV1(cursor,1002,2001,3,sizeof(xvalue*),xrtTypeValue()));
+        item=NULL;
+        assert(xl6ArrayIteratorReadV1(cursor,1002,2001,3,sizeof(xvalue*),xrtTypeValue(),&item));
+        if (!i) assert(item==good);
+        else { xbytesview bytes; assert(item && xrtValueGetBytes(item,&bytes) && !bytes.Size); }
+        xrtValueRelease(item);
+    }
+    assert(!xl6ArrayIteratorAdvanceV1(cursor,1002,2001,3,sizeof(xvalue*),xrtTypeValue()) && !xrtGetError());
+    xrtValueRelease(cursor); xrtValueRelease(copy); xrtValueRelease(erasedCopy); xrtValueRelease(good);
+}
+#endif
 static void vectors(void)
 {
     xvalue* value=create(false),*good=element(true),*bad=element(false); assert(value);
     assert(xl6ArrayPushV1(value,LAYOUT,&good));
     xvalue* alias=xl6ArrayEraseV1(value,LAYOUT,NULL); assert(alias==value);
     refusal(alias,bad);
+#ifdef XL6_TEST_ARRAY_NOMINAL
     assert(!xl6ArrayResizeV1(alias,LAYOUT,2)); error(XERR_TYPE);
+    XL6_Sequence* pinned=xl6SequenceBeginV1(alias,LAYOUT); assert(pinned);
+    assert(!xl6SequenceResizeStorageV1(pinned,2)); error(XERR_TYPE); xl6SequenceEndV1(pinned);
+#else
+    assert(xl6ArrayResizeV1(alias,LAYOUT,2));
+    xvalue* empty=xl6ArrayErasedReadV1(alias,1); xbytesview bytes;
+    assert(empty && xrtValueGetBytes(empty,&bytes) && !bytes.Size);
+    xrtValueRelease(empty); assert(xl6ArrayResizeV1(alias,LAYOUT,1));
+#endif
     assert(xl6ArraySizeV1(alias,LAYOUT,false)==1);
     xvalue* copy=xl6ArrayCloneV1(alias,LAYOUT); assert(copy);
     assert(xl6ArrayEraseV1(copy,LAYOUT,NULL)==copy); xrtValueRelease(copy);
@@ -192,13 +244,38 @@ static void fault(const char* operation,size_t point)
         value=create(false); assert(value && xl6ArrayPushV1(value,LAYOUT,&good));
         alias=xl6ArrayEraseV1(value,LAYOUT,NULL); assert(alias);
     }
-    assert(xrtMemDebugFailAfter(point));
+#ifndef XL6_TEST_ARRAY_NOMINAL
+    if (!strcmp(operation,"resize-spare")) assert(xl6ArrayReserveV1(value,LAYOUT,80));
+#endif
+    xarray original={0};
+    if (value) {
+        XL6_Sequence* owner=xl6SequenceBeginV1(value,LAYOUT); assert(owner);
+        original=xl6SequenceStorageV1(owner)->Storage; xl6SequenceEndV1(owner);
+    }
+    assert(xrtMemDebugFailAfter(point)); bool ok=false;
     if (!strcmp(operation,"create")) result=create(false);
     else if (!strcmp(operation,"clone")) result=xl6ArrayCloneV1(value,LAYOUT);
     else if (!strcmp(operation,"erased-clone")) result=xl6ArrayErasedCloneV1(alias);
-    else { assert(!strcmp(operation,"cursor")); result=xl6ArrayIteratorCreateV1(value,LAYOUT,1002); }
+    else if (!strcmp(operation,"cursor")) result=xl6ArrayIteratorCreateV1(value,LAYOUT,1002);
+#ifndef XL6_TEST_ARRAY_NOMINAL
+    else { assert(!strcmp(operation,"resize") || !strcmp(operation,"resize-spare"));
+        ok=xl6ArrayResizeV1(value,LAYOUT,70); }
+#else
+    else abort();
+#endif
+    ok=ok || result!=NULL;
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
-    if (hit) { assert(!result); error(XERR_MEMORY); } else assert(result && !xrtGetError());
+    if (hit) {
+        assert(!ok); error(XERR_MEMORY);
+        if (value) {
+            XL6_Sequence* owner=xl6SequenceBeginV1(value,LAYOUT); assert(owner);
+            const xarray* storage=&xl6SequenceStorageV1(owner)->Storage;
+            assert(storage->Count==original.Count && storage->Capacity==original.Capacity &&
+                storage->Data==original.Data && storage->Allocation==original.Allocation);
+            xl6SequenceEndV1(owner);
+            xvalue* item=xl6ArrayErasedReadV1(alias,0); assert(item==good); xrtValueRelease(item);
+        }
+    } else assert(ok && !xrtGetError());
     xrtValueRelease(result); xrtValueRelease(value); xrtValueRelease(alias); xrtValueRelease(good);
     balanced(&before); printf("array-admission %s point=%zu hit=%d balanced\n",operation,point,hit);
 }
@@ -207,5 +284,9 @@ int main(int argc,char** argv)
     assert(xrtMemDebugEnable(true));
     if (argc==3) { fault(argv[1],(size_t)strtoull(argv[2],NULL,10)); return 0; }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    vectors(); malformed(); graph(); balanced(&before); puts("array-admission vectors balanced"); return 0;
+    vectors(); malformed(); graph();
+#ifndef XL6_TEST_ARRAY_NOMINAL
+    bytesDefaults();
+#endif
+    balanced(&before); puts("array-admission vectors balanced"); return 0;
 }

@@ -219,6 +219,23 @@ bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence* owner)
     }
     return true;
 }
+static bool initDefault(ptr slot,const xrttype* type,ptr context)
+{
+    const XL6_SequenceAdmissionV1* policy=context;
+    if (!policy->ops->InitDefault(policy->data,slot)) return false;
+    if (policy->ops->Slot(policy->data,slot)) return true;
+    xrtSetErrorKind(XERR_TYPE);
+    xerror* error=xrtTakeError(); xrtTypeDropValue(type,slot);
+    xrtClearError(); xrtSetErrorTake(error); return false;
+}
+bool xl6SequenceResizeStorageV1(XL6_Sequence* owner,size_t count)
+{
+    if (!pinned(owner)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (count>xrtTypedArrayCount(owner->storage) && !xl6SequenceAdmissionDefaultableV1(owner)) return false;
+    const XL6_SequenceAdmissionV1* policy=&owner->admission;
+    return xrtTypedArrayResizeWithInitializer(owner->storage,count,
+        policy->ops && policy->ops->InitDefault ? initDefault : NULL,(ptr)policy);
+}
 bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned int transfer,
                   size_t size, const xrttype* type)
 {
