@@ -117,6 +117,7 @@ static int xl6IrCgenEmitProductTypes(
 {
     size_t typeIndex;
     int emitted = 0;
+    int scalarCarriersIncluded = 0;
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
         const XL6_IrType* product = &module->types.items[typeIndex];
         size_t elementIndex;
@@ -127,16 +128,18 @@ static int xl6IrCgenEmitProductTypes(
             const XL6_IrType* element = product->kind == XL6_IR_TYPE_NULLABLE &&
                 product->paramCount == 1 && product->params != NULL
                     ? xl6IrTypeGet(&module->types, product->params[0]) : NULL;
-            const char* cType = element != NULL
-                ? xl6IrCgenType(module, product->params[0]) : NULL;
+            const char* cType = xl6IrCgenNullableScalarCarrier(module, (XL6_IrTypeId)(typeIndex + 1));
             if ( product->cName[0] == '\0' || element == NULL || cType == NULL ||
                  element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                  element->cAbi == XL6_IR_C_ABI_PRODUCT )
                 return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                                      "XLIR nullable type has no deterministic tagged C ABI");
+            if ( !scalarCarriersIncluded ) {
+                xl6OutputPuts("#include <__xl_runtime/xl6_product_abi.h>\n", out);
+                scalarCarriersIncluded = 1;
+            }
             xl6OutputPrintf(out,
-                "typedef struct %s { bool hasValue; %s value; } %s;\n",
-                product->cName, cType, product->cName);
+                "typedef %s %s;\n", cType, product->cName);
             emitted = 1;
             continue;
         }

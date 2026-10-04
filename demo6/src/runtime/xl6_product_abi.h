@@ -10,6 +10,16 @@
 #define XL6_PRODUCT_ABI_I64X3_V1
 typedef struct XL6_ProductI64x3V1 { int64_t e0; int64_t e1; int64_t e2; } XL6_ProductI64x3V1;
 #endif
+/* Canonical tagged scalar carriers. Language TypeIds (including integer
+ * widths and time/char identity) remain distinct; these only fix C layout.
+ * Resident immutable descriptors never borrow a generated module's data. */
+typedef struct XL6_NullableBoolV1 { bool hasValue; bool value; } XL6_NullableBoolV1;
+typedef struct XL6_NullableI64V1 { bool hasValue; int64_t value; } XL6_NullableI64V1;
+typedef struct XL6_NullableU64V1 { bool hasValue; uint64_t value; } XL6_NullableU64V1;
+typedef struct XL6_NullableF32V1 { bool hasValue; float value; } XL6_NullableF32V1;
+typedef struct XL6_NullableF64V1 { bool hasValue; double value; } XL6_NullableF64V1;
+typedef struct XL6_NullableTimeV1 { bool hasValue; int64_t value; } XL6_NullableTimeV1;
+typedef struct XL6_NullableCharV1 { bool hasValue; uint32_t value; } XL6_NullableCharV1;
 #ifndef XL6_PRODUCT_ABI_TIMEX2_V1
 #define XL6_PRODUCT_ABI_TIMEX2_V1
 typedef struct XL6_ProductTimeX2V1 { int64_t e0; int64_t e1; } XL6_ProductTimeX2V1;

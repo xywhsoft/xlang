@@ -1,0 +1,6 @@
+func main(...) as int
+    Stack<int32?> values = Stack::<int32?>()
+    int wide = 73
+    values.push(wide)
+    return 0
+end

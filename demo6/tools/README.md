@@ -356,14 +356,20 @@ generated/resident/native closures, not shared CLI/JIT or full shared debug XRT.
 Trusted C pointer escapes and legacy file/network conversions remain separate.
 `check_xlir_buffer_core_ir.py` rejects a return to the retired Buffer profile.
 
-`check_stdlib_stack_native.ps1` / `.sh` freeze nine positive/ten negative
-fixtures against current sources. They cover actual typed-stack C/JIT/AOT/pruned
+`check_stdlib_stack_native.ps1` / `.sh` freeze eighteen Stack positives,
+three nullable dependency probes and thirteen negatives against current sources.
+They cover actual typed-stack C/JIT/AOT/pruned
 artifacts, six exact tuple mutations and parameter lifetime fact mutations,
 exact owned/value pop/peek/peekAt result/effect mutations before C output,
 bool/optional tryPop/tryPeek/tryPeekAt product-field mutations,
 char/bytes TypeId refusal, all byte values, embedded NUL, value write isolation,
 nullable elements, retained references, continuation cleanup and reentrant release.
-Eight native OOM paths and the original/value/owned/try language fixtures run every
+Seven immutable nullable scalar profiles share canonical C carriers, delegate
+copy/move/compare/hash to xrttype, ignore inactive payload/padding and select only
+used resident descriptors. Literal-fit and width/identity refusal, finally/async/
+closure/generator transport, and descriptor-free ordinary values/raw queues are
+covered; the AVL probe selects only its used nullable value profile.
+Eight native OOM paths and the original/value/owned/try/nullable language fixtures run every
 allocation prefix through the first no-hit, preserving the original error and
 exact allocation totals. Language allocation injection covers the calling thread,
 not every background thread.

@@ -197,7 +197,8 @@ typedef enum XL6_IrRuntimeResourceOp {
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
  * addition to the exact payload TypeId.  TRIVIAL_COPY is restricted by the
- * verifier to closed scalar C representations; managed strings are copied and
+ * verifier to closed scalar C representations and canonical tagged nullable
+ * scalar carriers; managed strings are copied and
  * xvalues are retained on send, then moved into addressable storage on receive. */
 typedef enum XL6_IrRuntimeResourcePayloadAbi {
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID = 0,
@@ -6118,6 +6119,11 @@ XL6_IrCallVariadicAbi xl6IrCallVariadicAbiForParameter(
  * erased runtime wrapper or backend-selected representation conversion. */
 int xl6IrTypeSupportsCVararg(const XL6_IrModule* module, XL6_IrTypeId type);
 int xl6IrTaggedNullableScalarSupported(XL6_IrCAbi abi);
+XL6_IrCAbi xl6IrNullableScalarElementAbi(const XL6_IrModule* module, XL6_IrTypeId type);
+/* Fitting literals may choose a narrower expected integer TypeId;
+ * nonliteral inputs still require a lossless scalar conversion. */
+int xl6IrContextualIntegerLiteralValue(const XL6_IrModule* module, XL6_IrNodeId expression,
+    XL6_IrTypeId targetType, uint64_t* magnitude, int* negative);
 int xl6IrCollectionErasureAllowed(const XL6_IrModule* module,
     XL6_IrTypeId target, XL6_IrTypeId source);
 XL6_IrCVarargPhysicalAbi xl6IrCVarargPhysicalAbi(

@@ -166,6 +166,13 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_buffer_core.c ^
     src\runtime\xl6_buffer_query.c ^
     src\runtime\xl6_stack.c ^
+    src\runtime\xl6_nullable_bool.c ^
+    src\runtime\xl6_nullable_i64.c ^
+    src\runtime\xl6_nullable_u64.c ^
+    src\runtime\xl6_nullable_f32.c ^
+    src\runtime\xl6_nullable_f64.c ^
+    src\runtime\xl6_nullable_time.c ^
+    src\runtime\xl6_nullable_char.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
     src\runtime\xl6_text_distance.c ^
@@ -323,6 +330,13 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_buffer_core.c ^
     src\runtime\xl6_buffer_query.c ^
     src\runtime\xl6_stack.c ^
+    src\runtime\xl6_nullable_bool.c ^
+    src\runtime\xl6_nullable_i64.c ^
+    src\runtime\xl6_nullable_u64.c ^
+    src\runtime\xl6_nullable_f32.c ^
+    src\runtime\xl6_nullable_f64.c ^
+    src\runtime\xl6_nullable_time.c ^
+    src\runtime\xl6_nullable_char.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
     src\runtime\xl6_text_distance.c ^

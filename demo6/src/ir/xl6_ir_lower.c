@@ -1,4 +1,5 @@
 #include "src/ir/xl6_ir.h"
+#include "src/type/xl6_type_model.h"
 
 #include <ctype.h>
 #include <stdint.h>
@@ -521,41 +522,12 @@ static char* xl6IrLowerCanonicalIdentifierCString(const char* text)
     return output;
 }
 
-static int xl6IrLowerDigitValue(char ch)
-{
-    if ( ch >= '0' && ch <= '9' ) return ch - '0';
-    if ( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
-    if ( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
-    return -1;
-}
-
 /* Source integer spelling may use separators and XL-only octal/binary
  * prefixes.  Lower it once into a portable C payload rather than asking Cgen
  * to parse source text or relying on a host compiler extension. */
 static int xl6IrLowerIntegerMagnitude(const char* text, uint64_t* result)
 {
-    const char* p;
-    uint64_t value = 0;
-    int base = 10;
-    int digits = 0;
-    if ( result == NULL || text == NULL || text[0] == '\0' ) return 0;
-    p = text;
-    if ( p[0] == '0' && p[1] == 'x' ) { base = 16; p += 2; }
-    else if ( p[0] == '0' && p[1] == 'o' ) { base = 8; p += 2; }
-    else if ( p[0] == '0' && p[1] == 'b' ) { base = 2; p += 2; }
-    while ( *p != '\0' ) {
-        int digit;
-        if ( *p == '_' ) { ++p; continue; }
-        digit = xl6IrLowerDigitValue(*p);
-        if ( digit < 0 || digit >= base || value > (UINT64_MAX - (uint64_t)digit) / (uint64_t)base )
-            return 0;
-        value = value * (uint64_t)base + (uint64_t)digit;
-        ++digits;
-        ++p;
-    }
-    if ( digits == 0 ) return 0;
-    *result = value;
-    return 1;
+    return result != NULL && xl6TypeParseIntegerMagnitude(text, result);
 }
 
 static char* xl6IrLowerCanonicalIntegerLiteral(const char* text)
@@ -4455,6 +4427,26 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
                  target, target->integerTarget, sourceAbi) )
             return xl6IrLowerContextualCheckedIntegerConvert(
                 ctx, origin, sourceId, source, targetType);
+    }
+    {
+        uint64_t magnitude;
+        int negative;
+        if (source->storageType != targetType &&
+            xl6IrContextualIntegerLiteralValue(ctx->module, sourceId, targetType, &magnitude, &negative)) {
+            char payload[48];
+            int length = negative && magnitude == UINT64_C(9223372036854775808)
+                ? snprintf(payload, sizeof(payload), "(-9223372036854775807LL - 1LL)")
+                : snprintf(payload, sizeof(payload), "%s%llu%s", negative ? "-" : "",
+                    (unsigned long long)magnitude, target->cAbi == XL6_IR_C_ABI_U64 ? "ULL" : "LL");
+            if (length <= 0 || (size_t)length >= sizeof(payload) ||
+                !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, origin, targetType, 0, NULL, 0, &result))
+                return XL6_IR_VALUE_INVALID;
+            ctx->module->instructions[ctx->module->instructionCount-1].immediateText = xrtStrDupN(payload, (size_t)length);
+            if (ctx->module->instructions[ctx->module->instructionCount-1].immediateText == NULL) {
+                ctx->failed = 1; return XL6_IR_VALUE_INVALID;
+            }
+            return result;
+        }
     }
     if ( source->sourceKind == XL6_AST_INT &&
          (target->cAbi == XL6_IR_C_ABI_U64 ||
@@ -18886,6 +18878,7 @@ static int xl6IrLowerTypeSupportsDeferredReturn(const XL6_IrModule* module, XL6_
               * ABI, including closures/Futures/errors, not a separate subset
               * selected by source syntax. */
              xl6IrTypeHasStorageReleaseAbi(module, type) ||
+             xl6IrNullableScalarElementAbi(module, type) != XL6_IR_C_ABI_UNSUPPORTED ||
            (item->kind == XL6_IR_TYPE_TUPLE &&
             item->cAbi == XL6_IR_C_ABI_PRODUCT && item->cName[0] != '\0' &&
             item->paramCount != 0 &&
@@ -24344,10 +24337,11 @@ static int xl6IrLowerIntrinsicRuntimeResource(
                 writebackCount += 1;
             continue;
         }
-        operands[i] = bindings[i].type == source->storageType
+        /* Contextual null has the destination TypeId already, but still
+         * needs the expected-type NULL operation, never a literal token. */
+        operands[i] = bindings[i].type == source->storageType && source->sourceKind != XL6_AST_NULL
             ? xl6IrLowerNode(ctx, bindings[i].expression)
-            : xl6IrLowerNodeAsType(
-                ctx, id, bindings[i].expression, source, bindings[i].type);
+            : xl6IrLowerNodeAsType(ctx, id, bindings[i].expression, source, bindings[i].type);
         if ( operands[i] == XL6_IR_VALUE_INVALID ) {
             xl6IrLowerDiag(ctx, id,
                 "XLIR runtime resource operand has no exact lowered value ABI");

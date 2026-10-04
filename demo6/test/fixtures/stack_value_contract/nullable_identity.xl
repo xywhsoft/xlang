@@ -1,0 +1,6 @@
+func main(...) as int
+    Stack<char?> values = Stack::<char?>()
+    uint32? scalar = null
+    values.push(scalar)
+    return 0
+end

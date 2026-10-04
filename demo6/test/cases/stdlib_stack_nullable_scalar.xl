@@ -1,0 +1,115 @@
+class NullableStackOwner
+    Stack<int?> values
+end
+
+func nullableStackTake(Stack<int?> values) as (bool, int?)
+    return values.tryPop()
+end
+
+func main(...) as int
+    Stack<int?> values = Stack::<int?>()
+    assert(values.push(null) and values.push(0) and values.push(73))
+    auto foundNull, nullItem = values.tryPeekAt(2)
+    assert(foundNull and nullItem == null and values.count() == 3)
+    auto outOfRange, none = values.tryPeekAt(3)
+    assert(not outOfRange and none == null)
+    Stack<int?> copied = values.clone()
+    assert(copied.equals(values))
+    int? item = copied.pop()
+    assert(item != null and item == 73)
+    assert(not copied.equals(values))
+    item = copied.peek()
+    assert(item != null and item == 0)
+    auto found, taken = nullableStackTake(values)
+    assert(found and taken != null and taken == 73)
+    auto foundZero, zero = values.tryPop()
+    assert(foundZero and zero != null and zero == 0)
+    auto foundLast, last = values.tryPop()
+    assert(foundLast and last == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    int refused = 0
+    try
+        item = values.pop()
+    catch RangeError failure
+        refused += 1
+    end
+    try
+        values.tryPeekAt(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 2)
+    int loops = 0
+    while loops < 8
+        assert(values.push(null))
+        auto ok, missing = values.tryPop()
+        assert(ok and missing == null)
+        assert(values.push(loops))
+        auto hasLoop, loopValue = values.tryPeek()
+        assert(hasLoop and loopValue != null and loopValue == loops)
+        assert(values.pop() != null)
+        loops += 1
+    end
+    NullableStackOwner owner = NullableStackOwner()
+    assert(owner.values.push(null))
+    auto ownerHas, ownerItem = owner.values.tryPop()
+    assert(ownerHas and ownerItem == null)
+
+    Stack<bool?> flags = Stack::<bool?>()
+    assert(flags.push(null) and flags.push(false) and flags.push(true))
+    auto hasTrue, truth = flags.tryPop()
+    assert(hasTrue and truth != null and truth)
+    auto hasFalse, falsehood = flags.tryPop()
+    assert(hasFalse and falsehood != null and not falsehood)
+    auto hasNullFlag, nullFlag = flags.tryPop()
+    assert(hasNullFlag and nullFlag == null)
+
+    Stack<int32?> narrow = Stack::<int32?>()
+    assert(narrow.push(null) and narrow.push(-2147483648) and narrow.push(2147483647))
+    auto hasMax, maximum = narrow.tryPop()
+    assert(hasMax and maximum != null and maximum == 2147483647)
+    auto hasMin, minimum = narrow.tryPop()
+    assert(hasMin and minimum != null and minimum == -2147483648)
+    assert(narrow.pop() == null)
+
+    Stack<uint64?> unsignedValues = Stack::<uint64?>()
+    assert(unsignedValues.push(null) and unsignedValues.push(18446744073709551615))
+    auto hasUnsigned, unsignedValue = unsignedValues.tryPop()
+    assert(hasUnsigned and unsignedValue != null and unsignedValue == 18446744073709551615)
+    assert(unsignedValues.pop() == null)
+
+    Stack<float32?> single = Stack::<float32?>()
+    assert(single.push(null) and single.push(1.25))
+    auto hasSingle, singleValue = single.tryPeek()
+    assert(hasSingle and singleValue != null and singleValue == 1.25)
+    Stack<float32?> singleCopy = single.clone()
+    assert(singleCopy.equals(single))
+    single.pop()
+    auto hasSingleNull, singleNull = single.tryPop()
+    assert(hasSingleNull and singleNull == null)
+
+    Stack<float64?> real = Stack::<float64?>()
+    assert(real.push(null) and real.push(0.0))
+    Stack<float64?> realCopy = real.clone()
+    assert(realCopy.equals(real))
+    auto hasReal, realValue = real.tryPop()
+    assert(hasReal and realValue != null and realValue == 0.0)
+    assert(real.pop() == null)
+
+    Stack<char?> chars = Stack::<char?>()
+    assert(chars.push(null) and chars.push('你'))
+    auto hasChar, character = chars.tryPop()
+    assert(hasChar and character != null and character == '你')
+    assert(chars.pop() == null)
+
+    Stack<time?> instants = Stack::<time?>()
+    assert(instants.push(null) and instants.push(time(0)))
+    auto hasInstant, instant = instants.tryPop()
+    assert(hasInstant and instant != null and instant == time(0))
+    Stack<time?> instantCopy = instants.clone()
+    assert(instantCopy.equals(instants))
+    assert(instants.pop() == null)
+    return 0
+end

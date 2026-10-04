@@ -1,0 +1,16 @@
+func main(...) as int
+    int? item = null
+    SpscQueue<int?> queue = SpscQueue::<int?>(2)
+    assert(queue.tryPush(null) and queue.tryPush(0))
+    assert(queue.tryPopInto(item) and item == null)
+    assert(queue.tryPopInto(item) and item != null and item == 0)
+    assert(not queue.tryPopInto(item))
+
+    AvlTree<int, int?> tree = AvlTree::<int, int?>()
+    assert(tree.set(1, null) and tree.set(2, 81))
+    assert(tree.getInto(1, item) and item == null)
+    assert(tree.getInto(2, item) and item != null and item == 81)
+    AvlTree<int, int?> copied = tree.clone()
+    assert(copied.equals(tree))
+    return 0
+end

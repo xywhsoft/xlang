@@ -2,6 +2,32 @@
 
 #include "src/common/xl6_common.h"
 
+int xl6TypeParseIntegerMagnitude(const char* text, uint64_t* result)
+{
+    uint64_t value = 0;
+    unsigned base = 10;
+    size_t digits = 0;
+    const char* p = text;
+    if (p == NULL || *p == '\0') return 0;
+    if (p[0] == '0' && p[1] == 'x') { base = 16; p += 2; }
+    else if (p[0] == '0' && p[1] == 'o') { base = 8; p += 2; }
+    else if (p[0] == '0' && p[1] == 'b') { base = 2; p += 2; }
+    while (*p != '\0') {
+        unsigned digit;
+        if (*p == '_') { ++p; continue; }
+        if (*p >= '0' && *p <= '9') digit = (unsigned)(*p - '0');
+        else if (*p >= 'a' && *p <= 'f') digit = (unsigned)(*p - 'a') + 10;
+        else if (*p >= 'A' && *p <= 'F') digit = (unsigned)(*p - 'A') + 10;
+        else return 0;
+        if (digit >= base || value > (UINT64_MAX - digit) / base) return 0;
+        value = value * base + digit;
+        ++digits; ++p;
+    }
+    if (digits == 0) return 0;
+    if (result != NULL) *result = value;
+    return 1;
+}
+
 typedef struct XL6_TypeStringBuilder {
     char* data;
     size_t len;
