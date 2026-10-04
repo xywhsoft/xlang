@@ -63,6 +63,9 @@ struct XL6_Sequence {
     unsigned int transfer;
     size_t size;
     const xrttype* type;
+    XL6_SequenceRoleV1 role;
+    bool projectionBound;
+    const xvalueconverter* projection;
     xatomic32 busy;
     const void* claim;
     xtypedarray* retired;
@@ -177,13 +180,64 @@ static XL6_Sequence* beginAs(const xvalue* value, uint64_t identity, uint64_t el
 {
     xrtownershipscope mutation = {0}; mutationBegin(&mutation);
     XL6_Sequence* owner = borrow(value,identity,elementIdentity,transfer,size,type);
-    if (owner && owner->iterator.prepared != iterator) { xrtSetErrorKind(XERR_ARGUMENT); owner=NULL; }
+    if (owner && (owner->iterator.prepared != iterator ||
+        (iterator && owner->role!=XL6_SEQUENCE_CURSOR_V1))) { xrtSetErrorKind(XERR_ARGUMENT); owner=NULL; }
     if (owner && !beginBody(owner)) owner = NULL;
     mutationEnd(&mutation); return owner;
 }
 XL6_Sequence* xl6SequenceBeginV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                         unsigned int transfer, size_t size, const xrttype* type)
 { return beginAs(value,identity,elementIdentity,transfer,size,type,false); }
+XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue* value, XL6_SequenceRoleV1 role,
+    uint64_t identity, uint64_t elementIdentity, unsigned int transfer, size_t size, const xrttype* type)
+{
+    XL6_Sequence* owner=beginAs(value,identity,elementIdentity,transfer,size,type,false);
+    if (owner && owner->role!=role) {
+        xl6SequenceEndV1(owner); xrtSetErrorKind(XERR_ARGUMENT); return NULL;
+    }
+    return owner;
+}
+bool xl6SequenceBindProjectionV1(XL6_Sequence* owner, const xvalueconverter* converter)
+{
+    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) ||
+        owner->role!=XL6_SEQUENCE_ARRAY_V1 || owner->cleared ||
+        (converter && (converter->Context || !converter->ToTyped || !converter->FromTyped)) ||
+        (owner->projectionBound && owner->projection!=converter)) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    owner->projection=converter; owner->projectionBound=true; return true;
+}
+int xl6SequenceBeginErasedArrayV1(const xvalue* value, XL6_Sequence** result,
+    XL6_SequenceLayoutV1* layout, const xvalueconverter** converter)
+{
+    if (!result || !layout || !converter) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    /* No foreign pointer is dereferenced before the sealed handle ops match. */
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    if (!value || xrtValueType(value)!=XVALUE_HANDLE) { mutationEnd(&mutation); return 0; }
+    void* raw=NULL; const xvaluehandleops* actual=NULL;
+    if (!xrtValueGetHandle(value,&raw,&actual,NULL)) { mutationEnd(&mutation); return -1; }
+    if (actual!=&ops || !raw) { mutationEnd(&mutation); return 0; }
+    XL6_Sequence* owner=raw; int status=0; bool unbound=false;
+    if (owner->role==XL6_SEQUENCE_ARRAY_V1) {
+        status=-1;
+        if (owner->cleared || !owner->storage ||
+            xrtValueTypeId(value)!=owner->identity) xrtSetErrorKind(XERR_STATE);
+        else if (beginBody(owner)) {
+            /* Read the policy only AFTER acquiring BUSY. Binding publishes it
+             * through End's release; a concurrent binder must not race with
+             * an early read of projectionBound/projection. */
+            if (!owner->projectionBound) unbound=true;
+            else {
+                *layout=(XL6_SequenceLayoutV1){owner->identity,owner->elementIdentity,
+                    owner->transfer,owner->size,owner->type};
+                *converter=owner->projection; *result=owner; status=1;
+            }
+        }
+    }
+    mutationEnd(&mutation);
+    if (unbound) { xl6SequenceEndV1(owner); xrtSetErrorKind(XERR_STATE); }
+    return status;
+}
 XL6_Sequence* xl6SequenceIteratorBeginV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                         unsigned int transfer, size_t size, const xrttype* type)
 { return beginAs(value,identity,elementIdentity,transfer,size,type,true); }
@@ -260,11 +314,13 @@ const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV1(xrtownershipref ref)
         return ownershipCount(ref.Data,&refs) ? &adapter : NULL;
     return xrtValueHandleOwnershipAdapterV1(ref,&ops,handleTrace);
 }
-xvalue* xl6SequenceWrapV1(xtypedarray* storage, uint64_t identity, uint64_t elementIdentity,
+xvalue* xl6SequenceWrapAsV1(xtypedarray* storage, XL6_SequenceRoleV1 role, uint64_t identity, uint64_t elementIdentity,
                     unsigned int transfer, size_t size, const xrttype* type)
 {
     if (!storage) { allocation(false); return NULL; }
-    if (!xl6SequenceTupleV1(identity,elementIdentity,transfer,size,type)) {
+    if ((role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1 && role!=XL6_SEQUENCE_CURSOR_V1) ||
+        !xl6SequenceTupleV1(identity,elementIdentity,transfer,size,type)) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT);
         destroyStorage(storage); return NULL;
     }
     if (xrtTypedArrayItemType(storage) != xl6SequenceStorageTypeV1(transfer,type)) {
@@ -273,7 +329,7 @@ xvalue* xl6SequenceWrapV1(xtypedarray* storage, uint64_t identity, uint64_t elem
     XL6_Sequence* owner = xrtMalloc(sizeof(*owner));
     if (!owner) { allocation(false); destroyStorage(storage); return NULL; }
     *owner = (XL6_Sequence){.refs=1,.storage=storage,.identity=identity,
-        .elementIdentity=elementIdentity,.transfer=transfer,.size=size,.type=type};
+        .elementIdentity=elementIdentity,.transfer=transfer,.size=size,.type=type,.role=role};
     xrtAtomic32Init(&owner->busy,0);
     xvalue* result = xrtValueHandleTake((void**)&owner,&ops,NULL);
     if (!result) { allocation(false); drop(owner,NULL); return NULL; }
@@ -283,10 +339,13 @@ xvalue* xl6SequenceWrapV1(xtypedarray* storage, uint64_t identity, uint64_t elem
     }
     return result;
 }
-bool xl6SequenceEqualsV1(const xvalue* left, const xvalue* right, uint64_t identity, uint64_t elementIdentity,
+xvalue* xl6SequenceWrapV1(xtypedarray* storage, uint64_t identity, uint64_t elementIdentity,
+    unsigned int transfer, size_t size, const xrttype* type)
+{ return xl6SequenceWrapAsV1(storage,XL6_SEQUENCE_ARRAY_V1,identity,elementIdentity,transfer,size,type); }
+bool xl6SequenceEqualsRoleV1(const xvalue* left, const xvalue* right, XL6_SequenceRoleV1 role, uint64_t identity, uint64_t elementIdentity,
                       unsigned int transfer, size_t size, const xrttype* type)
 {
-    XL6_Sequence* a = xl6SequenceBeginV1(left,identity,elementIdentity,transfer,size,type);
+    XL6_Sequence* a = xl6SequenceBeginRoleV1(left,role,identity,elementIdentity,transfer,size,type);
     if (!a) return false;
     XL6_Sequence* b = xl6SequenceBeginOtherV1(right,identity,elementIdentity,transfer,size,type,a);
     if (!b) { xl6SequenceEndV1(a); return false; }
@@ -309,6 +368,9 @@ done:
     if (b != a) xl6SequenceEndV1(b);
     xl6SequenceEndV1(a); return equal;
 }
+bool xl6SequenceEqualsV1(const xvalue* left, const xvalue* right, uint64_t identity, uint64_t elementIdentity,
+                      unsigned int transfer, size_t size, const xrttype* type)
+{ return xl6SequenceEqualsRoleV1(left,right,XL6_SEQUENCE_ARRAY_V1,identity,elementIdentity,transfer,size,type); }
 
 const xrttype* xl6SequenceStorageTypeV1(unsigned int transfer, const xrttype* type)
 { return transfer == 3 ? &referenceType : type; }
@@ -321,7 +383,7 @@ XL6_Sequence* xl6SequenceBeginOtherV1(const xvalue* value, uint64_t identity,
     }
     xrtownershipscope mutation = {0}; mutationBegin(&mutation);
     XL6_Sequence* other = borrow(value,identity,elementIdentity,transfer,size,type);
-    if (other && other->iterator.prepared) { xrtSetErrorKind(XERR_ARGUMENT); other=NULL; }
+    if (other && (other->iterator.prepared || other->role!=first->role)) { xrtSetErrorKind(XERR_ARGUMENT); other=NULL; }
     if (other && other != first && !beginBody(other)) other = NULL;
     mutationEnd(&mutation); return other;
 }

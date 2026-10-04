@@ -23,6 +23,7 @@ frozen_files() {
     printf '%s\0' tools/check_stdlib_array_native.py test/cases/stdlib_array_native_host.c
     printf '%s\0' test/cases/stdlib_array_iterator_native_host.c test/support/array_native.c
     printf '%s\0' test/cases/stdlib_array_value_native_host.c test/support/array_value_native.c
+    printf '%s\0' test/cases/stdlib_array_erased_native_host.c
 }
 frozen_files | sort -zu >"$OUT/inputs.list"
 xargs -0 sha256sum <"$OUT/inputs.list" >"$OUT/inputs.sha256"

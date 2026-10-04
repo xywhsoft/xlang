@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_array.h"
+#include "src/runtime/xl6_array_index.h"
 #include <limits.h>
 
 #define PARAMS uint64_t identity, uint64_t elementIdentity, unsigned int transfer, size_t size, const xrttype* type
@@ -20,7 +21,7 @@ xvalue* xl6ArrayCreateV1(PARAMS)
 bool xl6ArrayPushV1(const xvalue* value, PARAMS, const void* item)
 {
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
     bool ok = allocation(xrtTypedArrayPush(xl6SequenceStorageV1(owner),item));
     xl6SequenceEndV1(owner); return ok;
@@ -28,53 +29,59 @@ bool xl6ArrayPushV1(const xvalue* value, PARAMS, const void* item)
 bool xl6ArraySetV1(const xvalue* value, PARAMS, int64_t index, const void* item)
 {
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (!range(index)) return false;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    bool ok = allocation(xrtTypedArraySet(xl6SequenceStorageV1(owner),(size_t)index,item));
+    xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
+    bool ok = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),false,&at) &&
+        allocation(xrtTypedArraySet(storage,at,item));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayInsertV1(const xvalue* value, PARAMS, int64_t index, const void* item)
 {
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (!range(index)) return false;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    bool ok = allocation(xrtTypedArrayInsert(xl6SequenceStorageV1(owner),(size_t)index,item));
+    xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
+    bool ok = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),true,&at) &&
+        allocation(xrtTypedArrayInsert(storage,at,item));
     xl6SequenceEndV1(owner); return ok;
 }
 void xl6ArrayReadV1(const xvalue* value, PARAMS, int64_t index, void* target)
 {
     if (!target) { xrtSetErrorKind(XERR_ARGUMENT); return; }
-    if (!range(index)) return;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
-    const void* item = xrtTypedArrayConstGet(storage,(size_t)index);
+    size_t at;
+    const void* item = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),false,&at) ?
+        xrtTypedArrayConstGet(storage,at) : NULL;
     if (item) (void)allocation(xrtTypeCopyValue(xrtTypedArrayItemType(storage),target,item));
     xl6SequenceEndV1(owner);
 }
 void xl6ArrayTakeV1(const xvalue* value, PARAMS, int64_t index, void* target)
 {
     if (!target) { xrtSetErrorKind(XERR_ARGUMENT); return; }
-    if (!range(index)) return;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return;
-    (void)allocation(xrtTypedArrayTake(xl6SequenceStorageV1(owner),(size_t)index,target));
+    xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
+    if (xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),false,&at))
+        (void)allocation(xrtTypedArrayTake(storage,at,target));
     xl6SequenceEndV1(owner);
 }
 bool xl6ArrayRemoveV1(const xvalue* value, PARAMS, int64_t index, int64_t count)
 {
-    if (!range(index) || !range(count)) return false;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    if (!range(count)) return false;
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    bool ok = xrtTypedArrayRemove(xl6SequenceStorageV1(owner),(size_t)index,(size_t)count);
+    xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
+    bool ok = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),true,&at) &&
+        xrtTypedArrayRemove(storage,at,(size_t)count);
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayReserveV1(const xvalue* value, PARAMS, int64_t capacity)
 {
     if (!range(capacity)) return false;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
     bool ok = allocation(xrtTypedArrayReserve(xl6SequenceStorageV1(owner),(size_t)capacity));
     xl6SequenceEndV1(owner); return ok;
@@ -82,28 +89,28 @@ bool xl6ArrayReserveV1(const xvalue* value, PARAMS, int64_t capacity)
 bool xl6ArrayResizeV1(const xvalue* value, PARAMS, int64_t count)
 {
     if (!range(count)) return false;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
     bool ok = allocation(xrtTypedArrayResize(xl6SequenceStorageV1(owner),(size_t)count));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayTrimV1(const xvalue* value, PARAMS)
 {
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
     bool ok = allocation(xrtTypedArrayTrim(xl6SequenceStorageV1(owner)));
     xl6SequenceEndV1(owner); return ok;
 }
 void xl6ArrayClearV1(const xvalue* value, PARAMS)
 {
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return;
     xerror* saved = xrtTakeError(); xrtTypedArrayClear(xl6SequenceStorageV1(owner));
     xrtClearError(); xrtSetErrorTake(saved); xl6SequenceEndV1(owner);
 }
 int64_t xl6ArraySizeV1(const xvalue* value, PARAMS, bool capacity)
 {
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return 0;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
     size_t count = capacity ? xrtTypedArrayCapacity(storage) : xrtTypedArrayCount(storage);
@@ -113,7 +120,7 @@ int64_t xl6ArraySizeV1(const xvalue* value, PARAMS, bool capacity)
 }
 xvalue* xl6ArrayCloneV1(const xvalue* value, PARAMS)
 {
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return NULL;
     xtypedarray* copy = xrtTypedArrayClone(xl6SequenceStorageV1(owner));
     xl6SequenceEndV1(owner);
@@ -123,7 +130,7 @@ bool xl6ArrayEqualsV1(const xvalue* left, const xvalue* right, PARAMS)
 { return xl6SequenceEqualsV1(left,right,LAYOUT); }
 bool xl6ArrayAppendV1(const xvalue* left, const xvalue* right, PARAMS)
 {
-    XL6_Sequence* a = xl6SequenceBeginV1(left,LAYOUT);
+    XL6_Sequence* a = xl6SequenceBeginRoleV1(left,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!a) return false;
     XL6_Sequence* b = xl6SequenceBeginOtherV1(right,LAYOUT,a);
     if (!b) { xl6SequenceEndV1(a); return false; }
@@ -133,15 +140,16 @@ bool xl6ArrayAppendV1(const xvalue* left, const xvalue* right, PARAMS)
 }
 bool xl6ArraySwapV1(const xvalue* value, PARAMS, int64_t left, int64_t right)
 {
-    if (!range(left) || !range(right)) return false;
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    bool ok = allocation(xrtTypedArraySwap(xl6SequenceStorageV1(owner),(size_t)left,(size_t)right));
+    xtypedarray* storage=xl6SequenceStorageV1(owner); size_t count=xrtTypedArrayCount(storage),a,b;
+    bool ok = xl6ArrayIndexV1(left,count,false,&a) && xl6ArrayIndexV1(right,count,false,&b) &&
+        allocation(xrtTypedArraySwap(storage,a,b));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayReverseV1(const xvalue* value, PARAMS)
 {
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
     bool ok = allocation(xrtTypedArrayReverse(xl6SequenceStorageV1(owner)));
     xl6SequenceEndV1(owner); return ok;
@@ -149,7 +157,7 @@ bool xl6ArrayReverseV1(const xvalue* value, PARAMS)
 int64_t xl6ArrayFindV1(const xvalue* value, PARAMS, const void* item)
 {
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
-    XL6_Sequence* owner = xl6SequenceBeginV1(value,LAYOUT);
+    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return -1;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
     size_t found = SIZE_MAX;

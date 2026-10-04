@@ -10,7 +10,7 @@ static XL6_Sequence* begin(const xvalue* value, PARAMS)
 xvalue* xl6ArrayIteratorCreateV1(const xvalue* source, PARAMS, uint64_t cursorIdentity)
 {
     if (!cursorIdentity || cursorIdentity==identity) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
-    XL6_Sequence* owner=xl6SequenceBeginV1(source,LAYOUT);
+    XL6_Sequence* owner=xl6SequenceBeginRoleV1(source,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return NULL;
     xtypedarray* storage=xl6SequenceStorageV1(owner);
     if (xrtTypedArrayCount(storage) > (size_t)INT64_MAX) {
@@ -18,9 +18,9 @@ xvalue* xl6ArrayIteratorCreateV1(const xvalue* source, PARAMS, uint64_t cursorId
     }
     xtypedarray* snapshot=xrtTypedArrayClone(storage);
     xl6SequenceEndV1(owner);
-    xvalue* result=xl6SequenceWrapV1(snapshot,cursorIdentity,elementIdentity,transfer,size,type);
+    xvalue* result=xl6SequenceWrapAsV1(snapshot,XL6_SEQUENCE_CURSOR_V1,cursorIdentity,elementIdentity,transfer,size,type);
     if (!result) return NULL;
-    owner=xl6SequenceBeginV1(result,cursorIdentity,elementIdentity,transfer,size,type);
+    owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_CURSOR_V1,cursorIdentity,elementIdentity,transfer,size,type);
     if (!owner) { xrtValueRelease(result); return NULL; }
     *xl6SequenceIteratorStateV1(owner)=(XL6_SequenceIteratorStateV1){.prepared=true};
     xl6SequenceEndV1(owner); return result;
