@@ -3228,6 +3228,16 @@
 #endif
 #endif
 
+/* process_open 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
+#ifndef XRT_FEATURE_PROCESS_OPEN
+#define XRT_FEATURE_PROCESS_OPEN
+#endif
+#ifndef XRT_MODULE_PROCESS
+#define XRT_MODULE_PROCESS
+#endif
+#endif
+
 /* process_run 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_RUN)
 #ifndef XRT_FEATURE_PROCESS_RUN
@@ -3241,16 +3251,6 @@
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
-#endif
-#endif
-
-/* process_open 及其直接依赖。 */
-#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
-#ifndef XRT_FEATURE_PROCESS_OPEN
-#define XRT_FEATURE_PROCESS_OPEN
-#endif
-#ifndef XRT_MODULE_PROCESS
-#define XRT_MODULE_PROCESS
 #endif
 #endif
 
@@ -47491,7 +47491,8 @@ XRT_API const void* xrtTypedArrayConstData(const xtypedarray* pArray);
 
 
 
-/* 预留、调整、裁剪或清空数组；新增元素按类型初始化。 */
+/* 预留、调整、裁剪或清空数组；新增元素按类型初始化。
+ * Resize 增长分配或初始化失败，保留原地址、容量、数量与活动元素。 */
 XRT_API bool xrtTypedArrayReserve(xtypedarray* pArray, size_t iCapacity);
 XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount);
 XRT_API bool xrtTypedArrayTrim(xtypedarray* pArray);
@@ -47560,6 +47561,19 @@ XRT_API bool xrtTypedArrayContains(
 XRT_API bool xrtTypedArrayAppend(
 	xtypedarray* pTarget,
 	const xtypedarray* pSource
+);
+/* 精确区间复制为独立数组；反序只改变交付顺序，不改变来源。 */
+XRT_API xtypedarray* xrtTypedArraySlice(
+	const xtypedarray* pArray,
+	size_t iIndex,
+	size_t iCount,
+	bool bReverse
+);
+/* 最多移交尾部指定数量为独立数组；分配失败时来源完全不变。 */
+XRT_API xtypedarray* xrtTypedArrayTakeTail(
+	xtypedarray* pArray,
+	size_t iMaxCount,
+	bool bReverse
 );
 XRT_API xtypedarray* xrtTypedArrayClone(const xtypedarray* pArray);
 XRT_API xtypedarray* xrtTypedArrayConcat(
@@ -49333,6 +49347,23 @@ XRT_API bool xrtTypedStackPush(
 
 /* 弹出栈顶；输出为空时销毁元素，否则移动到已初始化输出值。 */
 XRT_API bool xrtTypedStackPop(xtypedstack* pStack, ptr pValue);
+
+/* 数组顺序压入（最后一项成为栈顶）；允许栈自身作为来源。 */
+XRT_API bool xrtTypedStackPushBatch(
+	xtypedstack* pStack,
+	const xtypedarray* pItems
+);
+/* 最多弹出指定数量，结果按逐次 Pop 顺序；空栈返回空拥有数组。 */
+XRT_API xtypedarray* xrtTypedStackPopBatch(
+	xtypedstack* pStack,
+	size_t iMaxCount
+);
+/* 从指定深度最多复制指定数量，结果按栈顶向栈底顺序。 */
+XRT_API xtypedarray* xrtTypedStackPeekBatch(
+	const xtypedstack* pStack,
+	size_t iDepth,
+	size_t iMaxCount
+);
 
 
 
@@ -53627,6 +53658,16 @@ XRT_EXTERN_C_END
 #endif
 #endif
 
+/* process_open 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
+#ifndef XRT_FEATURE_PROCESS_OPEN
+#define XRT_FEATURE_PROCESS_OPEN
+#endif
+#ifndef XRT_MODULE_PROCESS
+#define XRT_MODULE_PROCESS
+#endif
+#endif
+
 /* process_run 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_RUN)
 #ifndef XRT_FEATURE_PROCESS_RUN
@@ -53640,16 +53681,6 @@ XRT_EXTERN_C_END
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
-#endif
-#endif
-
-/* process_open 及其直接依赖。 */
-#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
-#ifndef XRT_FEATURE_PROCESS_OPEN
-#define XRT_FEATURE_PROCESS_OPEN
-#endif
-#ifndef XRT_MODULE_PROCESS
-#define XRT_MODULE_PROCESS
 #endif
 #endif
 

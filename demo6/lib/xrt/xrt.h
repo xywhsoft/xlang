@@ -227,6 +227,16 @@
 #endif
 #endif
 
+/* process_open 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
+#ifndef XRT_FEATURE_PROCESS_OPEN
+#define XRT_FEATURE_PROCESS_OPEN
+#endif
+#ifndef XRT_MODULE_PROCESS
+#define XRT_MODULE_PROCESS
+#endif
+#endif
+
 /* process_run 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_RUN)
 #ifndef XRT_FEATURE_PROCESS_RUN
@@ -240,16 +250,6 @@
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
-#endif
-#endif
-
-/* process_open 及其直接依赖。 */
-#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
-#ifndef XRT_FEATURE_PROCESS_OPEN
-#define XRT_FEATURE_PROCESS_OPEN
-#endif
-#ifndef XRT_MODULE_PROCESS
-#define XRT_MODULE_PROCESS
 #endif
 #endif
 
@@ -48933,6 +48933,7 @@ struct xnetstream {
 	bool AbortRequested;
 	bool EngineHeld;
 	bool RuntimeHeld;
+	/* Worker-only synchronous send/close reentrancy, never cross-thread submit depth. */
 	uint32 ActiveDepth;
 	bool ReleasePending;
 	xnetstream* AcceptNext;
@@ -61430,8 +61431,8 @@ bool __xrtSignalPlatformRaise(uint32 iSlot, int* pSystemCode);
 /* ========================================================================== */
 
 #if defined(XRT_FEATURE_PROCESS) || \
-	defined(XRT_FEATURE_PROCESS_OPEN) || \
 	defined(XRT_FEATURE_PROCESS_RUN) || \
+	defined(XRT_FEATURE_PROCESS_OPEN) || \
 	defined(XRT_FEATURE_PROCESS_FUTURE) || \
 	defined(XRT_FEATURE_PROCESS_FILE) || \
 	defined(XRT_FEATURE_PROCESS_TERMINAL)
@@ -73861,7 +73862,12 @@ static bool __xrtTimeAddMonths(xtime iTime, int64 iMonths, xtime* pResult)
 		return false;
 	}
 	iTargetYear = __xrtTimeFloorDiv(iTarget, 12);
-	iTargetMonth = (int)(iTarget - (iTargetYear * 12)) + 1;
+	/* INT64_MIN 的向下整除商乘以 12 会越界；直接规范化余数。 */
+	iTargetMonth = (int)(iTarget % 12);
+	if ( iTargetMonth < 0 ) {
+		iTargetMonth += 12;
+	}
+	iTargetMonth++;
 	iTargetDays = xrtDaysInMonth(iTargetYear, iTargetMonth);
 	if ( tDateTime.Day > iTargetDays ) {
 		tDateTime.Day = iTargetDays;
@@ -125950,9 +125956,10 @@ static bool __xrtDirCreateOne(cstr sPath, uint32 iMode, bool bExistingOk)
 			int iCode = (int)GetLastError();
 
 			xrtFree(pPath);
-			if ( bExistingOk && (iCode == ERROR_ALREADY_EXISTS) &&
-				xrtDirExists(sPath) ) {
-				return true;
+			if ( bExistingOk && (iCode == ERROR_ALREADY_EXISTS) ) {
+				xfileinfo Info;
+				if ( !xrtPathStat(sPath, true, &Info) ) return false;
+				if ( Info.Type == XFILE_TYPE_DIRECTORY ) return true;
 			}
 			__xrtDirSetError(XDIR_ERROR_CREATE, "create",
 				"failed to create the directory", iCode);
@@ -125970,8 +125977,10 @@ static bool __xrtDirCreateOne(cstr sPath, uint32 iMode, bool bExistingOk)
 		{
 			int iCode = errno;
 
-			if ( bExistingOk && (iCode == EEXIST) && xrtDirExists(sPath) ) {
-				return true;
+			if ( bExistingOk && (iCode == EEXIST) ) {
+				xfileinfo Info;
+				if ( !xrtPathStat(sPath, true, &Info) ) return false;
+				if ( Info.Type == XFILE_TYPE_DIRECTORY ) return true;
 			}
 			__xrtDirSetError(XDIR_ERROR_CREATE, "create",
 				"failed to create the directory", iCode);
@@ -126051,14 +126060,17 @@ XRT_API bool xrtDirCreateAllMode(cstr sPath, uint32 iMode)
 		sCurrent[--iSize] = '\0';
 	}
 	if ( iSize == iRootSize ) {
-		bool bResult = xrtDirExists(sCurrent);
+		xfileinfo Info;
+		bool bResult = xrtPathStat(sCurrent, true, &Info);
 
 		xrtFree(sCurrent);
-		if ( !bResult ) {
-			__xrtDirError(XERR_NOT_FOUND, XDIR_ERROR_CREATE, "create-all",
-				"the directory root does not exist");
+		if ( !bResult ) return false;
+		if ( Info.Type != XFILE_TYPE_DIRECTORY ) {
+			__xrtDirError(XERR_TYPE, XDIR_ERROR_CREATE, "create-all",
+				"the directory root is not a directory");
+			return false;
 		}
-		return bResult;
+		return true;
 	}
 	if ( !__xrtDirCreateOne(sCurrent, iMode, true) ) {
 		xrtFree(sCurrent);
@@ -127966,10 +127978,12 @@ static void __xrtNetStreamTryFinish(xnetstream* pStream);
 
 
 
-/* 进入可能同步触发底层关闭的发送调用帧。 */
+/* 仅 Worker 调用帧可能同步重入关闭；跨线程发送由 SendSubmitters 保护。 */
 static void __xrtNetStreamActiveEnter(xnetstream* pStream)
 {
-	pStream->ActiveDepth++;
+	if ( xrtNetWorkerIsCurrent(pStream->Worker) ) {
+		pStream->ActiveDepth++;
+	}
 }
 
 
@@ -127994,6 +128008,9 @@ static void __xrtNetStreamReleaseRuntime(xnetstream* pStream)
 /* 离开最外层发送调用帧后完成延迟释放；必须是调用函数的最后一条语句。 */
 static void __xrtNetStreamActiveLeave(xnetstream* pStream)
 {
+	if ( !xrtNetWorkerIsCurrent(pStream->Worker) ) {
+		return;
+	}
 	pStream->ActiveDepth--;
 	if ( (pStream->ActiveDepth == 0) &&
 		pStream->ReleasePending ) {
@@ -130395,8 +130412,8 @@ static xnetresult __xrtNetStreamSend(
 		__xrtNetStreamEndSend(pStream);
 		return XNET_RESULT_OK;
 	}
-	if ( bCopy && pStream->BuffersReady &&
-		 xrtNetWorkerIsCurrent(pStream->Worker) ) {
+	if ( bCopy && xrtNetWorkerIsCurrent(pStream->Worker) &&
+		 pStream->BuffersReady ) {
 		xnetspan Span = { (cbytes)pData, iSize };
 
 		__xrtNetStreamActiveEnter(pStream);
@@ -130494,8 +130511,8 @@ XRT_API xnetresult xrtNetStreamSendVec(
 	if ( !__xrtNetStreamBeginSend(pStream) ) {
 		return XNET_RESULT_CLOSED;
 	}
-	if ( pStream->BuffersReady &&
-		 xrtNetWorkerIsCurrent(pStream->Worker) ) {
+	if ( xrtNetWorkerIsCurrent(pStream->Worker) &&
+		 pStream->BuffersReady ) {
 		__xrtNetStreamActiveEnter(pStream);
 		Result = __xrtNetStreamCopyCurrent(
 			pStream,
@@ -147537,7 +147554,7 @@ bool __xrtTlsClientHelloQueue(
 	bytes pOldHello;
 	size_t iOldWorkspaceSize;
 	size_t iOldHelloSize;
-	size_t iExtensions;
+	size_t iExtensions = 0;
 	size_t iBodySize;
 	size_t iHelloSize;
 	bool bResult = false;
@@ -165226,7 +165243,10 @@ static __xrt_tls_stream_async_result __xrtTlsStreamAsyncWaitResult(
 		}
 		if ( (pAsync->Kind == __XRT_TLS_STREAM_ASYNC_WAIT) &&
 			(pAsync->Wait == XTLS_STREAM_WAIT_END) &&
-			pStream->EndEmitted ) {
+			(pStream->EndEmitted ||
+			 (xrtTlsStreamAvailable(pStream) == 0)) ) {
+			/* CLOSED 已确认双向 close_notify。密文排空可同步重入 Close，
+			   先于 End 事件记账；明文已交付时不能因此丢失认证 EOF。 */
 			return __XRT_TLS_STREAM_ASYNC_READY;
 		}
 		if ( (pAsync->Kind == __XRT_TLS_STREAM_ASYNC_WAIT) &&
@@ -312107,159 +312127,6 @@ bool __xrtProcessPlatformKillTree(xprocess* pProcess)
 
 
 /* ========================================================================== */
-/* source: src/process/process_open.c */
-/* ========================================================================== */
-
-#if defined(XRT_FEATURE_PROCESS_OPEN)
-
-#if defined(_WIN32) || defined(_WIN64)
-	#include <shellapi.h>
-#endif
-
-
-
-#if defined(XRT_FEATURE_PROCESS_OPEN)
-
-/* 把默认程序启动失败包装为稳定的 Process Open 错误。 */
-static void __xrtProcessOpenError(cstr sMessage)
-{
-	xerror* pCause = xrtTakeError();
-	xerrordesc Desc;
-	xerror* pError;
-
-	memset(&Desc, 0, sizeof(Desc));
-	Desc.Kind = pCause != NULL ? xrtErrorKind(pCause) : XERR_IO;
-	Desc.Code = XPROCESS_ERROR_OPEN;
-	Desc.SystemCode = pCause != NULL ?
-		xrtErrorSystemCode(pCause) : 0;
-	Desc.Domain = "xrt.process";
-	Desc.Operation = "open";
-	Desc.Message = sMessage;
-	Desc.Cause = pCause;
-	pError = xrtErrorBuild(&Desc);
-	/* Build failure already publishes Memory/Range/State. Restoring the
-	 * launch cause here would replace that real failure with an older error. */
-	if ( pError != NULL ) {
-		__xrtErrorSetOwned(pError);
-	}
-	xrtErrorFree(pCause);
-}
-
-
-
-#if defined(_WIN32) || defined(_WIN64)
-/* 使用 Shell 关联处理器打开目标，不保留可能返回的进程句柄。 */
-static bool __xrtProcessOpenPlatform(cstr sTarget)
-{
-	HINSTANCE hResult;
-	wchar_t* sTarget16 = (wchar_t*)xrtUtf8To16(sTarget, NULL);
-	int iError;
-
-	if ( sTarget16 == NULL ) {
-		__xrtProcessOpenError(
-			"process open target could not be converted to UTF-16"
-		);
-		return false;
-	}
-	hResult = ShellExecuteW(
-		NULL,
-		L"open",
-		sTarget16,
-		NULL,
-		NULL,
-		SW_SHOWNORMAL
-	);
-	if ( ((INT_PTR)hResult) > 32 ) {
-		xrtFree(sTarget16);
-		return true;
-	}
-	iError = (int)GetLastError();
-	if ( iError == 0 ) {
-		iError = (int)(INT_PTR)hResult;
-	}
-	xrtFree(sTarget16);
-	__xrtProcessErrorSet(
-		iError != 0 ? __xrtSystemErrorKind(iError) : XERR_IO,
-		XPROCESS_ERROR_OPEN,
-		"open",
-		"system default application rejected the target",
-		iError
-	);
-	return false;
-}
-#else
-/* POSIX 桌面入口作为直接子进程启动，目标永远是独立参数。 */
-static bool __xrtProcessOpenPlatform(cstr sTarget)
-{
-	const cstr pArgs[] = { sTarget };
-	xprocessconfig Config;
-	xprocess* pProcess;
-
-	if ( !xrtProcessConfigInit(&Config) ) {
-		__xrtProcessOpenError(
-			"process open configuration could not be initialized"
-		);
-		return false;
-	}
-	#if defined(__APPLE__) && defined(__MACH__)
-		Config.Program = "/usr/bin/open";
-	#else
-		Config.Program = "xdg-open";
-	#endif
-	Config.Args = pArgs;
-	Config.ArgCount = 1u;
-	Config.Stdin.Mode = XPROCESS_IO_NULL;
-	Config.Stdout.Mode = XPROCESS_IO_NULL;
-	Config.Stderr.Mode = XPROCESS_IO_NULL;
-	pProcess = xrtProcessSpawn(&Config);
-	if ( pProcess == NULL ) {
-		__xrtProcessOpenError(
-			"system default application launcher could not start"
-		);
-		return false;
-	}
-	xrtProcessDestroy(pProcess);
-	return true;
-}
-#endif
-
-
-
-/* 校验目标后交给平台默认程序机制。 */
-XRT_API bool xrtProcessOpen(cstr sTarget)
-{
-	xstrview Target;
-
-	if ( (sTarget == NULL) || (sTarget[0] == 0) ) {
-		__xrtProcessErrorSet(
-			XERR_ARGUMENT,
-			XPROCESS_ERROR_OPEN,
-			"open",
-			"process open target is empty",
-			0
-		);
-		return false;
-	}
-	Target.Data = sTarget;
-	Target.Size = strlen(sTarget);
-	if ( !xrtUtf8Valid(Target, NULL) ) {
-		__xrtProcessErrorSet(
-			XERR_VALUE,
-			XPROCESS_ERROR_OPEN,
-			"open",
-			"process open target is not valid UTF-8",
-			0
-		);
-		return false;
-	}
-	return __xrtProcessOpenPlatform(sTarget);
-}
-
-#endif
-#endif
-
-
-/* ========================================================================== */
 /* source: src/process/process_run.c */
 /* ========================================================================== */
 
@@ -312986,6 +312853,159 @@ XRT_API bool xrtProcessShell(
 	}
 	Config.Stdin.Mode = XPROCESS_IO_NULL;
 	return xrtProcessRun(&Config, NULL, pResult);
+}
+
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* source: src/process/process_open.c */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_PROCESS_OPEN)
+
+#if defined(_WIN32) || defined(_WIN64)
+	#include <shellapi.h>
+#endif
+
+
+
+#if defined(XRT_FEATURE_PROCESS_OPEN)
+
+/* 把默认程序启动失败包装为稳定的 Process Open 错误。 */
+static void __xrtProcessOpenError(cstr sMessage)
+{
+	xerror* pCause = xrtTakeError();
+	xerrordesc Desc;
+	xerror* pError;
+
+	memset(&Desc, 0, sizeof(Desc));
+	Desc.Kind = pCause != NULL ? xrtErrorKind(pCause) : XERR_IO;
+	Desc.Code = XPROCESS_ERROR_OPEN;
+	Desc.SystemCode = pCause != NULL ?
+		xrtErrorSystemCode(pCause) : 0;
+	Desc.Domain = "xrt.process";
+	Desc.Operation = "open";
+	Desc.Message = sMessage;
+	Desc.Cause = pCause;
+	pError = xrtErrorBuild(&Desc);
+	/* Build failure already publishes Memory/Range/State. Restoring the
+	 * launch cause here would replace that real failure with an older error. */
+	if ( pError != NULL ) {
+		__xrtErrorSetOwned(pError);
+	}
+	xrtErrorFree(pCause);
+}
+
+
+
+#if defined(_WIN32) || defined(_WIN64)
+/* 使用 Shell 关联处理器打开目标，不保留可能返回的进程句柄。 */
+static bool __xrtProcessOpenPlatform(cstr sTarget)
+{
+	HINSTANCE hResult;
+	wchar_t* sTarget16 = (wchar_t*)xrtUtf8To16(sTarget, NULL);
+	int iError;
+
+	if ( sTarget16 == NULL ) {
+		__xrtProcessOpenError(
+			"process open target could not be converted to UTF-16"
+		);
+		return false;
+	}
+	hResult = ShellExecuteW(
+		NULL,
+		L"open",
+		sTarget16,
+		NULL,
+		NULL,
+		SW_SHOWNORMAL
+	);
+	if ( ((INT_PTR)hResult) > 32 ) {
+		xrtFree(sTarget16);
+		return true;
+	}
+	iError = (int)GetLastError();
+	if ( iError == 0 ) {
+		iError = (int)(INT_PTR)hResult;
+	}
+	xrtFree(sTarget16);
+	__xrtProcessErrorSet(
+		iError != 0 ? __xrtSystemErrorKind(iError) : XERR_IO,
+		XPROCESS_ERROR_OPEN,
+		"open",
+		"system default application rejected the target",
+		iError
+	);
+	return false;
+}
+#else
+/* POSIX 桌面入口作为直接子进程启动，目标永远是独立参数。 */
+static bool __xrtProcessOpenPlatform(cstr sTarget)
+{
+	const cstr pArgs[] = { sTarget };
+	xprocessconfig Config;
+	xprocess* pProcess;
+
+	if ( !xrtProcessConfigInit(&Config) ) {
+		__xrtProcessOpenError(
+			"process open configuration could not be initialized"
+		);
+		return false;
+	}
+	#if defined(__APPLE__) && defined(__MACH__)
+		Config.Program = "/usr/bin/open";
+	#else
+		Config.Program = "xdg-open";
+	#endif
+	Config.Args = pArgs;
+	Config.ArgCount = 1u;
+	Config.Stdin.Mode = XPROCESS_IO_NULL;
+	Config.Stdout.Mode = XPROCESS_IO_NULL;
+	Config.Stderr.Mode = XPROCESS_IO_NULL;
+	pProcess = xrtProcessSpawn(&Config);
+	if ( pProcess == NULL ) {
+		__xrtProcessOpenError(
+			"system default application launcher could not start"
+		);
+		return false;
+	}
+	xrtProcessDestroy(pProcess);
+	return true;
+}
+#endif
+
+
+
+/* 校验目标后交给平台默认程序机制。 */
+XRT_API bool xrtProcessOpen(cstr sTarget)
+{
+	xstrview Target;
+
+	if ( (sTarget == NULL) || (sTarget[0] == 0) ) {
+		__xrtProcessErrorSet(
+			XERR_ARGUMENT,
+			XPROCESS_ERROR_OPEN,
+			"open",
+			"process open target is empty",
+			0
+		);
+		return false;
+	}
+	Target.Data = sTarget;
+	Target.Size = strlen(sTarget);
+	if ( !xrtUtf8Valid(Target, NULL) ) {
+		__xrtProcessErrorSet(
+			XERR_VALUE,
+			XPROCESS_ERROR_OPEN,
+			"open",
+			"process open target is not valid UTF-8",
+			0
+		);
+		return false;
+	}
+	return __xrtProcessOpenPlatform(sTarget);
 }
 
 #endif

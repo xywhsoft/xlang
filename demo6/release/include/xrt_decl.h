@@ -2535,6 +2535,16 @@
 #endif
 #endif
 
+/* process_open 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
+#ifndef XRT_FEATURE_PROCESS_OPEN
+#define XRT_FEATURE_PROCESS_OPEN
+#endif
+#ifndef XRT_MODULE_PROCESS
+#define XRT_MODULE_PROCESS
+#endif
+#endif
+
 /* process_run 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_RUN)
 #ifndef XRT_FEATURE_PROCESS_RUN
@@ -2548,16 +2558,6 @@
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
-#endif
-#endif
-
-/* process_open 及其直接依赖。 */
-#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
-#ifndef XRT_FEATURE_PROCESS_OPEN
-#define XRT_FEATURE_PROCESS_OPEN
-#endif
-#ifndef XRT_MODULE_PROCESS
-#define XRT_MODULE_PROCESS
 #endif
 #endif
 
@@ -48387,6 +48387,16 @@ XRT_EXTERN_C_END
 #endif
 #endif
 
+/* process_open 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
+#ifndef XRT_FEATURE_PROCESS_OPEN
+#define XRT_FEATURE_PROCESS_OPEN
+#endif
+#ifndef XRT_MODULE_PROCESS
+#define XRT_MODULE_PROCESS
+#endif
+#endif
+
 /* process_run 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_RUN)
 #ifndef XRT_FEATURE_PROCESS_RUN
@@ -48400,16 +48410,6 @@ XRT_EXTERN_C_END
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
-#endif
-#endif
-
-/* process_open 及其直接依赖。 */
-#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_PROCESS_OPEN)
-#ifndef XRT_FEATURE_PROCESS_OPEN
-#define XRT_FEATURE_PROCESS_OPEN
-#endif
-#ifndef XRT_MODULE_PROCESS
-#define XRT_MODULE_PROCESS
 #endif
 #endif
 
