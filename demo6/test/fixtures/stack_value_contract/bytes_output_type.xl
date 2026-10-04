@@ -1,0 +1,6 @@
+func main(...) as int
+    Stack<bytes> values = Stack::<bytes>()
+    var output = null
+    values.peekInto(output)
+    return 0
+end

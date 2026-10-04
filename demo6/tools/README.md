@@ -356,14 +356,17 @@ generated/resident/native closures, not shared CLI/JIT or full shared debug XRT.
 Trusted C pointer escapes and legacy file/network conversions remain separate.
 `check_xlir_buffer_core_ir.py` rejects a return to the retired Buffer profile.
 
-`check_stdlib_stack_native.ps1` / `.sh` freeze four fixtures against current
-sources. They cover actual typed-stack C/JIT/AOT/pruned artifacts, exact tuple
-mutation refusal, embedded NUL, retained object references, reentrant release,
-and every native/language OOM allocation prefix through the first no-hit.
+`check_stdlib_stack_native.ps1` / `.sh` freeze five positive/three negative
+fixtures against current sources. They cover actual typed-stack C/JIT/AOT/pruned
+artifacts, six exact tuple mutations and parameter lifetime fact mutations,
+char/bytes TypeId refusal, all byte values, embedded NUL, value write isolation,
+retained object references and reentrant release. Six native OOM paths and both
+the original/value language fixtures run every allocation prefix through the
+first no-hit, preserving the original error and exact allocation totals.
 The Linux gate sanitizes actual selected generated/resident/native closures;
 shared CLI/JIT and full shared debug XRT are not instrumented. This is a storage
-migration prerequisite, not completion of owned-return APIs, char/bytes, batch,
-strong ownership graph/cycles, other containers, or all 53 modules.
+and value-contract prerequisite, not completion of owned-return APIs, legacy
+Into retirement, batch/FixedStack, other containers, or all 53 modules.
 
 `check_stdlib_stack_ownership.ps1` / `.sh` validate the actual counted native
 wrapper and every strong element slot, including duplicate edges, shared
@@ -384,6 +387,6 @@ alias/deep-copy rooted abort, new finalizer islands, peer resurrection, and
 the complete allocation prefixes through first no-hit. A borrowed finalizing
 receiver itself remains non-retainable under the existing XRT contract. This is
 an ownership prerequisite, not completion of Stack owned-return APIs,
-char/bytes, batch/FixedStack or the remaining 53-module acceptance. Class-family
+batch/FixedStack or the remaining 53-module acceptance. Class-family
 discovery does not certify arbitrary policies, other families of disconnected
 cycles or every possible cross-module owning graph.

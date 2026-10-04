@@ -15,10 +15,12 @@ try {
     }
     $public = Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Full current-source compiler/runtime required' }
-    $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi')
+    $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values')
+    $negative = @('char_output_type','bytes_output_type','bytes_input_type')
     $gcc = (Get-Command gcc -CommandType Application | Select-Object -First 1).Source
     $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
     $files = @($cases | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
+        @($negative | ForEach-Object { Get-Item "test/fixtures/stack_value_contract/$_.xl" }) +
         @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/xl.dll','test/cases/stdlib_stack_native_host.c',
             'test/support/stack_native.c','test/cases/xlir_module_product_oom_host.c',
             'test/support/module_product_memory.c','test/support/module_product_memory.h',
@@ -88,23 +90,31 @@ try {
         if ((Get-Content "$prefix.c" -Raw) -cne (Get-Content "$prefix.contract.c" -Raw)) { throw 'Noncanonical Stack C output' }
         if ((Get-Content "$prefix.c" -Raw) -match 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)') { throw 'Retired generated Stack implementation emitted' }
     }
+    foreach($case in $negative){
+        $prefix="$outPath/negative.$case"
+        Run "negative.$case" $public.Driver @("test/fixtures/stack_value_contract/$case.xl",'emit',$prefix) $true
+        if((Get-Content "$prefix.log" -Raw) -notmatch 'Stack.*: target (char|bytes), value (uint32|var|string)' -or
+            (Test-Path "$prefix.c") -or (Test-Path "$prefix.h")){throw 'Wrong Stack type rejection or partial output'}
+    }
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
-    $prefix = "$outPath/stdlib_stack_native"
-    Run 'language-oom-build' $gcc ($strict + @('-DXL6_PRODUCT_USER_ENTRY','-include',"$prefix.c",
+    foreach($case in @('stdlib_stack_native','stdlib_stack_values')){
+    $prefix = "$outPath/$case"
+    Run "$case.language-oom-build" $gcc ($strict + @('-DXL6_PRODUCT_USER_ENTRY','-include',"$prefix.c",
         'test/cases/xlir_module_product_oom_host.c',"$outPath/debug-host.o") +
         $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.host.exe"))
-    Run 'language-oom-normal' "$prefix.host.exe" @()
+    Run "$case.language-oom-normal" "$prefix.host.exe" @()
     for ($point=0; $point -le 4096; ++$point) {
-        $name = "language.oom-$point"
+        $name = "$case.language.oom-$point"
         Run $name "$prefix.host.exe" @("$point")
         if ((Get-Content "$outPath/$name.log" -Raw) -match 'hit=0 balanced') { break }
     }
     if ($point -gt 4096) { throw 'Incomplete Stack language allocation prefix' }
-    $sweeps += [pscustomobject]@{Fixture='stdlib_stack_native';FirstNoHit=$point}
+    $sweeps += [pscustomobject]@{Fixture=$case;FirstNoHit=$point}
+    }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
-        PositiveFixtures=$cases;Sweeps=$sweeps;Results=$rows;
-        Scope='Windows native Stack storage prerequisite: actual strict C/JIT/AOT/pruned artifacts, tuple mutation refusal, NUL/reference semantics, reentrant release, native and language OOM. Legacy Into methods still present; owned return products, char/bytes, batch and other 53-module acceptance remain pending.'}
+        PositiveFixtures=$cases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;
+        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts, char/bytes exact payloads and write-copy isolation, parameter rebind lifetime, pre-output contract mutation refusal, NUL/reference semantics, reentrant release, native and complete language OOM prefixes. Legacy Into methods still present; owned return products, batch and other 53-module acceptance remain pending.'}
     [IO.File]::WriteAllText("$outPath/results.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     if (!$unchanged) { throw 'Stack inputs changed during acceptance' }
     Write-Host "Stack native Windows: $($rows.Count) checks"

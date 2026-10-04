@@ -1,0 +1,67 @@
+// Read sharing is physical only: each bytes write replaces its own value.
+Stack<char> defaultChars
+
+class StackBytesHolder
+    Stack<bytes> values
+end
+
+func editStackBytes(bytes value) as bytes
+    value[0] = 90
+    return value
+end
+
+func editStackText(string value) as string
+    value[0] = '你'
+    return value
+end
+
+func main(...) as int
+    string text = "A\0b"
+    assert(editStackText(text) == "你\0b" and text == "A\0b")
+    assert(defaultChars.push('你'))
+    char scalar = '\0'
+    assert(defaultChars.peekInto(scalar) and scalar == '你')
+    Stack<char> chars = defaultChars.clone()
+    assert(chars.equals(defaultChars))
+    assert(chars.push('\U0010ffff'))
+    assert(chars.popInto(scalar) and scalar == '\U0010ffff')
+    assert(defaultChars.popInto(scalar) and scalar == '你')
+    assert(not defaultChars.popInto(scalar) and scalar == '你')
+    assert(chars.popInto(scalar) and scalar == '你')
+
+    StackBytesHolder holder = StackBytesHolder()
+    bytes original = b"A\0你\xff"
+    assert(holder.values.push(original))
+    original[0] = 66
+    Stack<bytes> copy = holder.values.clone()
+    assert(copy.equals(holder.values))
+    bytes observed = b"replace me"
+    assert(holder.values.peekInto(observed) and observed == b"A\0你\xff")
+    observed[0] = 67
+    bytes fresh = b""
+    assert(copy.peekAtInto(0, fresh) and fresh == b"A\0你\xff")
+    bytes changed = editStackBytes(fresh)
+    assert(changed == b"Z\0你\xff" and fresh == b"A\0你\xff")
+    assert(copy.popInto(observed) and observed == b"A\0你\xff")
+    assert(not copy.popInto(observed) and observed == b"A\0你\xff")
+    assert(holder.values.popInto(fresh) and fresh == b"A\0你\xff")
+    fresh[-1] = 0
+    assert(fresh == b"A\0你\0" and observed == b"A\0你\xff")
+    assert(copy.trim() and copy.capacity() == 0)
+
+    Stack<bytes> repeated = Stack::<bytes>()
+    int turn = 0
+    while turn < 4
+        assert(repeated.push(b""))
+        assert(repeated.push(b"\0\xff\x80"))
+        Stack<bytes> snapshot = repeated.clone()
+        assert(snapshot.popInto(observed) and observed == b"\0\xff\x80")
+        observed[1] = 0
+        assert(repeated.peekInto(fresh) and fresh == b"\0\xff\x80")
+        repeated.clear()
+        assert(snapshot.popInto(observed) and observed == b"")
+        assert(not snapshot.peekInto(observed) and observed == b"")
+        turn += 1
+    end
+    return 0
+end

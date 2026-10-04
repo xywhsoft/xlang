@@ -8907,20 +8907,18 @@ static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiForOp(
     return XL6_IR_RUNTIME_RESOURCE_NONE;
 }
 
-static XL6_IrRuntimeResourcePayloadAbi
-xl6IrRuntimeResourcePayloadAbiForType(
-    const XL6_IrModule* module, XL6_IrTypeId typeId)
+XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type)
 {
-    const XL6_IrType* type = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
     if ( type == NULL || type->typeValueId == 0 )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
          type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY;
-    if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
+    if ( (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+          type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
+         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
     if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          type->nullAbi == XL6_IR_NULL_ABI_NONE &&
@@ -8930,11 +8928,20 @@ xl6IrRuntimeResourcePayloadAbiForType(
           type->cAbi == XL6_IR_C_ABI_F64 ||
           type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
           type->cAbi == XL6_IR_C_ABI_TYPE_ID ||
+          type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
           (type->cAbi >= XL6_IR_C_ABI_C_CHAR &&
            type->cAbi <= XL6_IR_C_ABI_C_WCHAR) ||
           type->cAbi == XL6_IR_C_ABI_F32) )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY;
     return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+}
+
+static XL6_IrRuntimeResourcePayloadAbi
+xl6IrRuntimeResourcePayloadAbiForType(
+    const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    return xl6IrTypeResourcePayloadAbi(module != NULL
+        ? xl6IrTypeGet(&module->types, typeId) : NULL);
 }
 
 static XL6_IrTypeId xl6IrRuntimeChannelPayloadType(
@@ -28510,6 +28517,20 @@ static int xl6IrTargetContainsBinding(const XL6_IrModule* module,
     size_t i;
     if (node == NULL || depth > module->nodeCount) return 1;
     if (node->kind == XL6_IR_NODE_NAME && (node->targetSymbol == symbol || node->symbol == symbol)) return 1;
+    /* Index assignment to a value-semantic sequence replaces its receiver
+     * binding; it does not mutate an independently referenced container.
+     * Decide from the receiver's exact Typed IR ABI, not the index expression
+     * or source spelling. A class field/array slot remains its own binding. */
+    if (!expression && node->kind == XL6_IR_NODE_INDEX && node->childCount != 0) {
+        if (node->firstChild >= module->childCount) return 1;
+        const XL6_IrNode* receiver=xl6IrNodeGet(module,module->children[node->firstChild]);
+        const XL6_IrType* type=receiver != NULL
+            ? xl6IrTypeGet(&module->types,receiver->storageType) : NULL;
+        if (type != NULL && (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+                             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES))
+            return xl6IrTargetContainsBinding(module,module->children[node->firstChild],symbol,0,depth+1);
+        return 0;
+    }
     if (!expression && node->kind != XL6_IR_NODE_LIST) return 0;
     if (node->firstChild > module->childCount || node->childCount > module->childCount - node->firstChild) return 1;
     for (i = 0; i < node->childCount; ++i)
