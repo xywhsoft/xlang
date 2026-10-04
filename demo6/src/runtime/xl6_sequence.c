@@ -66,6 +66,7 @@ struct XL6_Sequence {
     XL6_SequenceRoleV1 role;
     bool projectionBound;
     const xvalueconverter* projection;
+    XL6_SequenceAdmissionV1 admission;
     xatomic32 busy;
     const void* claim;
     xtypedarray* retired;
@@ -97,7 +98,7 @@ static void drop(void* opaque, void* user)
     /* Detach first: destruction may invoke language object/allocator hooks. */
     xtypedarray* storage = owner->storage; owner->storage = NULL;
     mutationEnd(&mutation);
-    xrtTypedArrayDestroy(storage); xrtFree(owner);
+    xrtTypedArrayDestroy(storage); xl6SequenceAdmissionDropV1(&owner->admission); xrtFree(owner);
     xrtClearError(); xrtSetErrorTake(saved);
 }
 static bool retain(void* opaque, void** result, void* user)
@@ -142,6 +143,81 @@ XL6_SequenceIteratorStateV1* xl6SequenceIteratorStateV1(XL6_Sequence* owner)
 {
     if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE)) abort();
     return &owner->iterator;
+}
+static bool pinned(const XL6_Sequence* owner)
+{ return owner && xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) && !owner->cleared && owner->storage; }
+static bool policyValid(const XL6_SequenceAdmissionV1* policy)
+{
+    return policy && ((!policy->ops && !policy->data && !policy->elementIdentity && !policy->transfer &&
+        !policy->size && !policy->type) || (policy->ops && policy->data && policy->elementIdentity &&
+        policy->transfer>=1 && policy->transfer<=3 && policy->size && policy->type &&
+        policy->ops->Retain && policy->ops->Drop && policy->ops->Slot && policy->ops->Value &&
+        policy->ops->Equivalent && policy->ops->Defaultable));
+}
+void xl6SequenceAdmissionDropV1(XL6_SequenceAdmissionV1* policy)
+{
+    if (!policy || !policyValid(policy)) abort();
+    XL6_SequenceAdmissionV1 saved=*policy; *policy=(XL6_SequenceAdmissionV1){0};
+    if (saved.ops) {
+        xerror* error=xrtTakeError(); saved.ops->Drop(saved.data);
+        xrtClearError(); xrtSetErrorTake(error);
+    }
+}
+bool xl6SequenceAdmissionCopyV1(XL6_Sequence* owner, XL6_SequenceAdmissionV1* target)
+{
+    if (!pinned(owner) || !target || !policyValid(target) || target->ops) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (owner->admission.ops && !owner->admission.ops->Retain(owner->admission.data)) return false;
+    *target=owner->admission; return true;
+}
+bool xl6SequenceAdmissionTakeV1(XL6_Sequence* owner, XL6_SequenceAdmissionV1* source)
+{
+    if (!policyValid(source)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (!pinned(owner) || (owner->role!=XL6_SEQUENCE_ARRAY_V1 && owner->role!=XL6_SEQUENCE_CURSOR_V1) ||
+        owner->admission.ops || owner->admission.data || (source->ops &&
+        (source->elementIdentity!=owner->elementIdentity || source->transfer!=owner->transfer ||
+         source->size!=owner->size || source->type!=owner->type))) {
+        xrtSetErrorKind(XERR_ARGUMENT); xl6SequenceAdmissionDropV1(source); return false;
+    }
+    /* Cloned storage is allowed, but every already-owned reference must
+     * satisfy the policy before it becomes visible on this owner. */
+    if (source->ops) for (size_t i=0;i<xrtTypedArrayCount(owner->storage);++i)
+        if (!source->ops->Slot(source->data,xrtTypedArrayConstGet(owner->storage,i))) {
+            xrtSetErrorKind(XERR_TYPE); xl6SequenceAdmissionDropV1(source); return false;
+        }
+    owner->admission=*source; *source=(XL6_SequenceAdmissionV1){0}; return true;
+}
+bool xl6SequenceAdmitSlotV1(XL6_Sequence* owner, const void* slot)
+{
+    if (!pinned(owner) || !slot) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (owner->admission.ops && !owner->admission.ops->Slot(owner->admission.data,slot)) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    return true;
+}
+bool xl6SequenceAdmitValueV1(XL6_Sequence* owner, const xvalue* value)
+{
+    if (!pinned(owner) || !value) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (owner->admission.ops && !owner->admission.ops->Value(owner->admission.data,value)) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    return true;
+}
+bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence* left, XL6_Sequence* right)
+{
+    if (!pinned(left) || !pinned(right)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (left->admission.ops!=right->admission.ops ||
+        (left->admission.ops && !left->admission.ops->Equivalent(left->admission.data,right->admission.data))) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    return true;
+}
+bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence* owner)
+{
+    if (!pinned(owner)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (owner->admission.ops && !owner->admission.ops->Defaultable(owner->admission.data)) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    return true;
 }
 bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned int transfer,
                   size_t size, const xrttype* type)
@@ -349,7 +425,8 @@ bool xl6SequenceEqualsRoleV1(const xvalue* left, const xvalue* right, XL6_Sequen
     if (!a) return false;
     XL6_Sequence* b = xl6SequenceBeginOtherV1(right,identity,elementIdentity,transfer,size,type,a);
     if (!b) { xl6SequenceEndV1(a); return false; }
-    bool equal = true;
+    bool equal = xl6SequenceAdmissionEquivalentV1(a,b);
+    if (!equal) goto done;
     if (transfer != 3) {
         equal = xrtTypedArrayEquals(a->storage,b->storage);
         goto done;

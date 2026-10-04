@@ -23,7 +23,7 @@ bool xl6ArrayPushV1(const xvalue* value, PARAMS, const void* item)
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    bool ok = allocation(xrtTypedArrayPush(xl6SequenceStorageV1(owner),item));
+    bool ok = xl6SequenceAdmitSlotV1(owner,item) && allocation(xrtTypedArrayPush(xl6SequenceStorageV1(owner),item));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArraySetV1(const xvalue* value, PARAMS, int64_t index, const void* item)
@@ -33,7 +33,7 @@ bool xl6ArraySetV1(const xvalue* value, PARAMS, int64_t index, const void* item)
     if (!owner) return false;
     xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
     bool ok = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),false,&at) &&
-        allocation(xrtTypedArraySet(storage,at,item));
+        xl6SequenceAdmitSlotV1(owner,item) && allocation(xrtTypedArraySet(storage,at,item));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayInsertV1(const xvalue* value, PARAMS, int64_t index, const void* item)
@@ -43,7 +43,7 @@ bool xl6ArrayInsertV1(const xvalue* value, PARAMS, int64_t index, const void* it
     if (!owner) return false;
     xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
     bool ok = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),true,&at) &&
-        allocation(xrtTypedArrayInsert(storage,at,item));
+        xl6SequenceAdmitSlotV1(owner,item) && allocation(xrtTypedArrayInsert(storage,at,item));
     xl6SequenceEndV1(owner); return ok;
 }
 void xl6ArrayReadV1(const xvalue* value, PARAMS, int64_t index, void* target)
@@ -91,7 +91,9 @@ bool xl6ArrayResizeV1(const xvalue* value, PARAMS, int64_t count)
     if (!range(count)) return false;
     XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    bool ok = allocation(xrtTypedArrayResize(xl6SequenceStorageV1(owner),(size_t)count));
+    xtypedarray* storage=xl6SequenceStorageV1(owner);
+    bool ok = ((size_t)count<=xrtTypedArrayCount(storage) || xl6SequenceAdmissionDefaultableV1(owner)) &&
+        allocation(xrtTypedArrayResize(storage,(size_t)count));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayTrimV1(const xvalue* value, PARAMS)
@@ -123,8 +125,22 @@ xvalue* xl6ArrayCloneV1(const xvalue* value, PARAMS)
     XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return NULL;
     xtypedarray* copy = xrtTypedArrayClone(xl6SequenceStorageV1(owner));
+    XL6_SequenceAdmissionV1 admission={0};
+    if (copy && !xl6SequenceAdmissionCopyV1(owner,&admission)) {
+        xerror* error=xrtTakeError(); xrtTypedArrayDestroy(copy); copy=NULL;
+        xrtClearError(); xrtSetErrorTake(error);
+    }
     xl6SequenceEndV1(owner);
-    return xl6SequenceWrapV1(copy,LAYOUT);
+    xvalue* result=xl6SequenceWrapV1(copy,LAYOUT);
+    if (result) {
+        owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
+        if (!owner || !xl6SequenceAdmissionTakeV1(owner,&admission)) {
+            if (owner) xl6SequenceEndV1(owner);
+            xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
+            xrtClearError(); xrtSetErrorTake(error);
+        } else xl6SequenceEndV1(owner);
+    }
+    xl6SequenceAdmissionDropV1(&admission); return result;
 }
 bool xl6ArrayEqualsV1(const xvalue* left, const xvalue* right, PARAMS)
 { return xl6SequenceEqualsV1(left,right,LAYOUT); }
@@ -134,7 +150,8 @@ bool xl6ArrayAppendV1(const xvalue* left, const xvalue* right, PARAMS)
     if (!a) return false;
     XL6_Sequence* b = xl6SequenceBeginOtherV1(right,LAYOUT,a);
     if (!b) { xl6SequenceEndV1(a); return false; }
-    bool ok = allocation(xrtTypedArrayAppend(xl6SequenceStorageV1(a),xl6SequenceStorageV1(b)));
+    bool ok = xl6SequenceAdmissionEquivalentV1(a,b) &&
+        allocation(xrtTypedArrayAppend(xl6SequenceStorageV1(a),xl6SequenceStorageV1(b)));
     if (b != a) xl6SequenceEndV1(b);
     xl6SequenceEndV1(a); return ok;
 }

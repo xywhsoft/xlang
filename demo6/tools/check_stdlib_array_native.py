@@ -54,6 +54,10 @@ def main() -> int:
         "src/runtime/xl6_array.c", "src/runtime/xl6_stack.c", "src/runtime/xl6_nullable_string.c",
         "src/runtime/xl6_array_iterator.c",
         "src/runtime/xl6_ownership_plan.c", "lib/xrt/xrt.h", "lib/xruntime/xruntime.h")]
+    files += [root / name for name in (
+        "tools/check_stdlib_array_admission.py", "test/cases/stdlib_array_admission_native_host.c",
+        "src/runtime/xl6_array_reference_admission.c", "src/runtime/xl6_array_nominal_admission.c",
+        "src/runtime/xl6_value_admission.c", "src/runtime/xl6_nominal_admission.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -63,14 +67,15 @@ def main() -> int:
     report = {"Scope": "native Array foundation, not language Array migration",
               "Platform": sys.platform, "Sanitized": args.sanitize, "Inputs": inputs,
               "Rows": rows, "Sweeps": sweeps, "Complete": False, "InputsUnchanged": False}
+    report["AdmissionReports"] = []
     (out / "results.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     env = dict(os.environ)
     if args.sanitize:
         env.update(ASAN_OPTIONS="detect_leaks=1:halt_on_error=1",
                    UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
 
-    def run(name: str, command: list[str]) -> str:
-        result = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=45)
+    def run(name: str, command: list[str], timeout: int = 45) -> str:
+        result = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=timeout)
         data = result.stdout + result.stderr
         (out / (name + ".log")).write_bytes(data)
         rows.append({"Name": name, "Command": command, "Exit": result.returncode,
@@ -191,6 +196,24 @@ def main() -> int:
                         break
                 else:
                     raise RuntimeError(f"Incomplete projection allocation prefix: {lane}/{operation}")
+        # Keep owned write-time element policies on the actual regular Array
+        # regression path (and hence the Stack/Sequence ownership parent).
+        # Child inputs/results remain independently frozen and inspectable.
+        for nominal in (False, True):
+            child = out / ("admission-nominal" if nominal else "admission-reference")
+            command = [sys.executable, "tools/check_stdlib_array_admission.py", "--out", str(child)]
+            if nominal:
+                command += ["--nominal"]
+            if args.sanitize:
+                command += ["--sanitize"]
+            run(child.name, command, timeout=120)
+            admitted = json.loads((child / "results.json").read_text(encoding="utf-8"))
+            if not admitted["Complete"] or not admitted["InputsUnchanged"]:
+                raise RuntimeError("Incomplete owned Array admission evidence")
+            report["AdmissionReports"].append({"Directory": str(child), "Nominal": nominal,
+                "Checks": len(admitted["Rows"]), "ClosedPrefixes": len(admitted["Sweeps"]),
+                "AllocationPositions": sum(row["FirstNoHit"]+1 for row in admitted["Sweeps"]),
+                "Complete": True, "InputsUnchanged": True})
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
             raise RuntimeError("Source or tool changed during acceptance")
