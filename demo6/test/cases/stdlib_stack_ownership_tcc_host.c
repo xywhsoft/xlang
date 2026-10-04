@@ -2,7 +2,7 @@
 #define JOINT_TCC_SOURCE_FILE "test/cases/stdlib_stack_ownership_artifact.c"
 #define JOINT_TCC_EXTRA_SYMBOLS(Bind) \
     Bind(xl6StackCreateV1); Bind(xl6StackPushV1); Bind(xl6StackTakeV1); \
-    Bind(xl6StackTryTakeV1); Bind(xl6StackReserveV1); Bind(xl6StackCloneV1); \
+    Bind(xl6StackTryTakeV2); Bind(xl6StackReserveV1); Bind(xl6StackCloneV1); \
     Bind(xl6StackEqualsV1); Bind(xl6StackTrimV1); Bind(xl6StackClearV1); Bind(xl6StackSizeV1);
 #define main unused_stack_lifetime_main
 #include "xlir_one_shot_tcc_host.c"

@@ -10,8 +10,10 @@ XL6_TEXT_API xvalue* xl6ArrayCreateV1(XL6_ARRAY_LAYOUT);
 XL6_TEXT_API bool xl6ArrayPushV1(const xvalue*, XL6_ARRAY_LAYOUT, const void*);
 XL6_TEXT_API bool xl6ArraySetV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, const void*);
 XL6_TEXT_API bool xl6ArrayInsertV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, const void*);
-XL6_TEXT_API void xl6ArrayReadV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, void*);
-XL6_TEXT_API void xl6ArrayTakeV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, void*);
+/* Independent operation status; a diagnostic is not the success channel.
+ * Failure preserves the initialized output. Success owns its copied/moved item. */
+XL6_TEXT_API bool xl6ArrayReadV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, void*);
+XL6_TEXT_API bool xl6ArrayTakeV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, void*);
 XL6_TEXT_API bool xl6ArrayRemoveV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, int64_t);
 XL6_TEXT_API bool xl6ArrayReserveV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t);
 XL6_TEXT_API bool xl6ArrayResizeV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t);

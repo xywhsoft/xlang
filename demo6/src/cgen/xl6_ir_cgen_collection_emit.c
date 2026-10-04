@@ -699,8 +699,8 @@ static int xl6IrCgenEmitStackRuntime(
         xl6OutputPrintf(out, "    v%u = (%s){0};\n",
             (unsigned int)instruction->result, payloadType);
         xl6OutputPrintf(out,
-            "    xl6StackTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, ",
-            (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
+            "    bool projection_ok_%u = xl6StackTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, ",
+            (unsigned int)instruction->result, (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
         if ( instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_AT )
             xl6OutputPrintf(out, "v%u", (unsigned int)module->operands[instruction->firstOperand + 1]);
         else xl6OutputPuts("0", out);
@@ -725,13 +725,14 @@ static int xl6IrCgenEmitStackRuntime(
             xl6OutputPrintf(out, "    v%u = (%s){0};\n",
                 (unsigned int)instruction->result, xl6IrCgenType(module, instruction->type));
             xl6OutputPrintf(out,
-                "    v%u.e0 = xl6StackTryTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, ",
+                "    bool projection_ok_%u = xl6StackTryTakeV2(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, ",
                 (unsigned int)instruction->result, (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
             if ( instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT )
                 xl6OutputPrintf(out, "v%u", (unsigned int)module->operands[instruction->firstOperand + 1]);
             else xl6OutputPuts("0", out);
-            xl6OutputPrintf(out, ", &v%u.e1%s, %s);\n", (unsigned int)instruction->result,
-                tagged ? ".value" : "", instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ? "true" : "false");
+            xl6OutputPrintf(out, ", &v%u.e1%s, %s, &v%u.e0);\n", (unsigned int)instruction->result,
+                tagged ? ".value" : "", instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ? "true" : "false",
+                (unsigned int)instruction->result);
             if ( tagged ) xl6OutputPrintf(out, "    v%u.e1.hasValue = v%u.e0;\n",
                 (unsigned int)instruction->result, (unsigned int)instruction->result);
         }

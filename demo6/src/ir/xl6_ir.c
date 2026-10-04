@@ -18021,6 +18021,12 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     switch (instruction->runtimeOp) {
     case XL6_IR_RUNTIME_STRING_SCALAR_AT:
     case XL6_IR_RUNTIME_BYTES_AT:
+    case XL6_IR_RUNTIME_STACK_POP:
+    case XL6_IR_RUNTIME_STACK_PEEK:
+    case XL6_IR_RUNTIME_STACK_PEEK_AT:
+    case XL6_IR_RUNTIME_STACK_TRY_POP:
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK:
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK_AT:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_CLOSURE_COPY:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE:
@@ -40617,7 +40623,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                      xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                     xl6IrRuntimeInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) ||
+                     (xl6IrRuntimeInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ||
+                      xl6IrRuntimeInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                      (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CALLABLE_FROM_CLOSURE ||
                       instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NULLABLE_CLOSURE_BOX))) {

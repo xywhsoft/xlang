@@ -22,7 +22,7 @@ try {
         'test/cases/stdlib_stack_ownership_host.c','test/cases/stdlib_stack_ownership_public.c',
         'test/cases/stdlib_stack_ownership.xl','test/cases/stdlib_stack_ownership_artifact.c',
         'test/cases/stdlib_stack_ownership_tcc_host.c','test/cases/xlir_one_shot_tcc_host.c',
-        'test/cases/xlir_async_module_lifetime_host.c','test/support/stack_native.c',
+        'test/cases/xlir_async_module_lifetime_host.c','test/support/stack_native.c','test/support/stack_take_found.h',
         'test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',$Fixture,
         'E:/software/tcc/tcc.exe',$script:XlirNativeProcessImplementation,$python,
         'tools/check_stdlib_array_native.py','test/cases/stdlib_array_native_host.c',

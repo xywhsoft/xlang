@@ -6064,7 +6064,7 @@ foreach ( $required in @(
     "xl6IrCgenStackRuntimeOpIs", "xl6IrCgenStackTypeAbi",
     "xl6IrCgenRuntimeStackAbi", "xl6IrCgenEmitStackRuntime",
     "needsStackResourceRuntime", "xl6StackCreateV1",
-    "xl6StackTakeV1", "xl6StackTryTakeV1",
+    "xl6StackTakeV1", "xl6StackTryTakeV2",
     "xl6StackCloneV1", "xl6StackSizeV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -6076,7 +6076,7 @@ foreach ( $retired in @(
     "XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO",
     "XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO",
     "XL6_IR_RUNTIME_STACK_POP_INTO", "XL6_IR_RUNTIME_STACK_PEEK_INTO",
-    "XL6_IR_RUNTIME_STACK_PEEK_AT_INTO", "xl6StackPopOrPeekV1", "xl6StackPeekAtV1"
+    "XL6_IR_RUNTIME_STACK_PEEK_AT_INTO", "xl6StackPopOrPeekV1", "xl6StackPeekAtV1", "xl6StackTryTakeV1"
 ) ) {
     if ( $header.Contains($retired) -or $source.Contains($retired) -or
          $lower.Contains($retired) -or $cEmitter.Contains($retired) ) {

@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_stack.h"
+#include "test/support/stack_take_found.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -133,11 +134,11 @@ static void numericBoundaries(void)
     assert(xl6StackPushV1(stack, 101, type->Id, 1, sizeof(CARRIER), type, &a)); \
     xvalue* clone = xl6StackCloneV1(stack, 101, type->Id, 1, sizeof(CARRIER), type); \
     assert(clone && xl6StackEqualsV1(stack, clone, 101, type->Id, 1, sizeof(CARRIER), type)); \
-    assert(xl6StackTryTakeV1(stack, 101, type->Id, 1, sizeof(CARRIER), type, 0, &moved, true)); \
+    assert(xl6StackFoundTest(stack, 101, type->Id, 1, sizeof(CARRIER), type, 0, &moved, true)); \
     equal(type, &a, &moved); \
-    assert(xl6StackTryTakeV1(stack, 101, type->Id, 1, sizeof(CARRIER), type, 0, &moved, true)); \
+    assert(xl6StackFoundTest(stack, 101, type->Id, 1, sizeof(CARRIER), type, 0, &moved, true)); \
     assert(!moved.hasValue); \
-    assert(!xl6StackTryTakeV1(stack, 101, type->Id, 1, sizeof(CARRIER), type, 0, &moved, true)); \
+    assert(!xl6StackFoundTest(stack, 101, type->Id, 1, sizeof(CARRIER), type, 0, &moved, true)); \
     assert(!xrtGetError()); xrtValueRelease(clone); xrtValueRelease(stack); \
 } while (0)
 

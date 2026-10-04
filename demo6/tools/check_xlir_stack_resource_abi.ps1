@@ -244,7 +244,7 @@ foreach ( $required in @(
 $helperCounts = [ordered]@{
     'v[0-9]+ = xl6StackCreateV1\(' = 6
     'v[0-9]+ = xl6StackPushV1\(' = 7
-    '(?m)^\s+xl6StackTakeV1\(v' = 8
+    '(?m)^\s+bool projection_ok_\d+ = xl6StackTakeV1\(v' = 8
     'v[0-9]+ = xl6StackCloneV1\(' = 1
     'v[0-9]+ = xl6StackEqualsV1\(' = 2
     'v[0-9]+ = xl6StackReserveV1\(' = 1
