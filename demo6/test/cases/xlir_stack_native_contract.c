@@ -14,6 +14,11 @@ static void rejected(const XL6_IrModule* ir)
     assert(!xl6IrCgenEmitC(&output,ir,&diagnostics));
     char* text=xl6OutputTakeMemoryText(&output,&size);
     assert(size==0);xrtFree(text);xl6OutputDiscard(&output);xl6DiagFree(&diagnostics);
+    xl6DiagInit(&diagnostics); size=SIZE_MAX;
+    assert(xl6OutputOpenMemory(&output));
+    assert(!xl6IrCgenEmitHeader(&output,ir,"REJECTED_ELEMENT_ABI",&diagnostics));
+    text=xl6OutputTakeMemoryText(&output,&size);
+    assert(size==0);xrtFree(text);xl6OutputDiscard(&output);xl6DiagFree(&diagnostics);
 }
 int main(int argc, char** argv)
 {
@@ -40,6 +45,15 @@ int main(int argc, char** argv)
         rejected(&ir);
         type->nativeSlotAbi=(XL6_IrNativeSlotAbi)0x7fffffff; rejected(&ir);
         type->nativeSlotAbi=saved;
+        XL6_ValueAdmissionV1 admission=type->xvalueAdmissionAbi;
+        bool nullable=type->xvalueAdmissionNullable;
+        type->xvalueAdmissionAbi=admission==XL6_VALUE_ADMIT_NONE ? XL6_VALUE_ADMIT_ANY : XL6_VALUE_ADMIT_NONE;
+        rejected(&ir); type->xvalueAdmissionAbi=(XL6_ValueAdmissionV1)0x7fffffff; rejected(&ir);
+        type->xvalueAdmissionAbi=admission;
+        type->xvalueAdmissionNullable=!nullable; rejected(&ir); type->xvalueAdmissionNullable=nullable;
+        uint64 identity=type->xvalueAdmissionTypeValueId;
+        type->xvalueAdmissionTypeValueId=identity^UINT64_C(1); rejected(&ir);
+        type->xvalueAdmissionTypeValueId=identity;
     }
     assert(xl6IrVerifyModule(&ir,NULL));
     uint64 charIdentity=ir.runtimeTypeMap.charTypeValueId;

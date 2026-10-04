@@ -537,6 +537,44 @@ static int xl6IrTypeDisplayNameMatches(
     return matches;
 }
 
+XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
+{
+    if (!pool || !type) return XL6_VALUE_ADMIT_NONE;
+    if (type->kind == XL6_IR_TYPE_NULLABLE) {
+        const XL6_IrType* element=type->paramCount==1 && type->params
+            ? xl6IrTypeGet(pool,type->params[0]) : NULL;
+        /* No recursive walk through malformed/unverified nullable graphs. */
+        if (!element || element->kind!=XL6_IR_TYPE_BUILTIN) return XL6_VALUE_ADMIT_NONE;
+        type=element;
+    }
+    if (type->kind!=XL6_IR_TYPE_BUILTIN || type->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        type->paramCount || type->returnCount) return XL6_VALUE_ADMIT_NONE;
+    if (type->cAbi==XL6_IR_C_ABI_I64 || type->cAbi==XL6_IR_C_ABI_U64) {
+        switch (type->integerTarget) {
+        case XL6_IR_INTEGER_TARGET_SIGNED_8: return XL6_VALUE_ADMIT_I8;
+        case XL6_IR_INTEGER_TARGET_SIGNED_16: return XL6_VALUE_ADMIT_I16;
+        case XL6_IR_INTEGER_TARGET_SIGNED_32: return XL6_VALUE_ADMIT_I32;
+        case XL6_IR_INTEGER_TARGET_SIGNED_64: return XL6_VALUE_ADMIT_I64;
+        case XL6_IR_INTEGER_TARGET_UNSIGNED_8: return XL6_VALUE_ADMIT_U8;
+        case XL6_IR_INTEGER_TARGET_UNSIGNED_16: return XL6_VALUE_ADMIT_U16;
+        case XL6_IR_INTEGER_TARGET_UNSIGNED_32: return XL6_VALUE_ADMIT_U32;
+        case XL6_IR_INTEGER_TARGET_UNSIGNED_64: return XL6_VALUE_ADMIT_U64;
+        default: return XL6_VALUE_ADMIT_NONE;
+        }
+    }
+    switch (type->cAbi) {
+    case XL6_IR_C_ABI_BOOL: return XL6_VALUE_ADMIT_BOOL;
+    case XL6_IR_C_ABI_F32: return XL6_VALUE_ADMIT_F32;
+    case XL6_IR_C_ABI_F64: return XL6_VALUE_ADMIT_F64;
+    case XL6_IR_C_ABI_CHAR_U32: return XL6_VALUE_ADMIT_CHAR;
+    case XL6_IR_C_ABI_MANAGED_STRING: return XL6_VALUE_ADMIT_STRING;
+    case XL6_IR_C_ABI_MANAGED_BYTES: return XL6_VALUE_ADMIT_BYTES;
+    case XL6_IR_C_ABI_TIME_I64: return XL6_VALUE_ADMIT_TIME;
+    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_VALUE_ADMIT_ANY;
+    default: return XL6_VALUE_ADMIT_NONE;
+    }
+}
+
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     if (!pool || !type) return XL6_IR_NATIVE_SLOT_NONE;
@@ -648,6 +686,12 @@ static int xl6IrTypeFinalizeErrorResultCName(
     if ( expected == NULL || !xl6IrTypeFinalizeDisplayName(pool, type) )
         return 0;
     type->nativeSlotAbi = xl6IrNativeSlotAbiForType(pool,type);
+    type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
+    type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
+        type->kind == XL6_IR_TYPE_NULLABLE;
+    type->xvalueAdmissionTypeValueId = type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_NONE ||
+        type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_ANY ? 0 :
+        type->xvalueAdmissionNullable ? xl6IrTypeGet(pool,type->params[0])->typeValueId : type->typeValueId;
     written = snprintf(type->errorResultCName, sizeof(type->errorResultCName), "%s", expected);
     return written >= 0 && (size_t)written < sizeof(type->errorResultCName);
 }
@@ -941,6 +985,11 @@ int xl6IrTypeFinalizeTypeValueId(XL6_IrTypePool* pool, XL6_IrType* type)
         if ( !xl6IrTypeValueHashIrType(pool, type, &hash, 0) ) return 0;
     }
     type->typeValueId = hash != 0 ? hash : UINT64_C(1);
+    /* Identity finalization follows representation interning. Publish the
+     * admission identity only now, when this TypeId and its payload are fixed. */
+    type->xvalueAdmissionTypeValueId = type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_NONE ||
+        type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_ANY ? 0 :
+        type->xvalueAdmissionNullable ? xl6IrTypeGet(pool,type->params[0])->typeValueId : type->typeValueId;
     return 1;
 }
 
@@ -17568,6 +17617,11 @@ int xl6IrInstructionIsFallibleProjection(
         instruction->runtimeOp == XL6_IR_RUNTIME_STRING_SCALAR_AT ||
         instruction->runtimeOp == XL6_IR_RUNTIME_BYTES_AT) return 1;
     type = xl6IrTypeGet(&module->types, instruction->type);
+    if (type != NULL &&
+        ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN &&
+          type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) ||
+         (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY &&
+          type->cAbi == XL6_IR_C_ABI_F32))) return 1;
     return instruction->runtimeOp == XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_PROJECT &&
         type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
 }
@@ -17788,6 +17842,11 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     stringAbi = xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
+    const XL6_IrType* projectionType=xl6IrTypeGet(&module->types,instruction->type);
+    if (projectionType && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN &&
+        projectionType->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
+    if (projectionType && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY &&
+        projectionType->cAbi==XL6_IR_C_ABI_F32) return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     stringAbi = xl6IrRuntimeBoxingErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi = xl6IrRuntimeContainerAllocationErrorPhysicalAbi(instruction->runtimeOp);
@@ -18382,6 +18441,12 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                        ? XL6_IR_C_ABI_CHAR_U32
                        : XL6_IR_C_ABI_I64)) ) return 0;
         if (type->nativeSlotAbi != xl6IrNativeSlotAbiForType(pool,type)) return 0;
+        if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
+            type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
+                type->kind == XL6_IR_TYPE_NULLABLE)) return 0;
+        if (type->xvalueAdmissionTypeValueId != (type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_NONE ||
+            type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_ANY ? 0 : type->xvalueAdmissionNullable ?
+            xl6IrTypeGet(pool,type->params[0])->typeValueId : type->typeValueId)) return 0;
         if (type->nativeProductAbi != xl6IrNativeProductAbiForShape(pool,type) ||
             (type->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
              strcmp(type->cName,xl6IrNativeProductAbiCName(type->nativeProductAbi)) != 0)) return 0;
@@ -19568,12 +19633,7 @@ int xl6IrCollectionMemberRuntimeInstructionCompatible(
 
 static int xl6IrCheckedCollectionPayloadSupported(const XL6_IrType* payload)
 {
-    return payload != NULL &&
-           (payload->cAbi == XL6_IR_C_ABI_BOOL ||
-            payload->cAbi == XL6_IR_C_ABI_I64 ||
-            payload->cAbi == XL6_IR_C_ABI_U64 ||
-            payload->cAbi == XL6_IR_C_ABI_F64 ||
-            payload->cAbi == XL6_IR_C_ABI_MANAGED_STRING);
+    return payload != NULL && payload->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE;
 }
 
 /* An explicit untyped collection conversion validates the requested runtime
@@ -35217,8 +35277,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->type != left->type ||
                              instruction->type != instruction->payloadType ||
                              resultType->kind != XL6_IR_TYPE_CLASS ||
-                             resultType->cAbi !=
-                                 XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                             resultType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                              resultType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_MANAGED ||
                              layout == NULL ||
@@ -36240,8 +36299,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              resultType->kind == XL6_IR_TYPE_NULLABLE ||
                              xl6IrTypeIsDynamicXValueBuiltin(
                                  module, instruction->type) ||
-                             resultType->cAbi !=
-                                 XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                             (resultType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                              resultType->cAbi != XL6_IR_C_ABI_MANAGED_BYTES) ||
                              resultType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_MANAGED ||
                              instruction->payloadType != instruction->type ||
@@ -36272,6 +36331,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               resultType->cAbi != XL6_IR_C_ABI_CHAR_U32 &&
                               resultType->cAbi != XL6_IR_C_ABI_I64 &&
                               resultType->cAbi != XL6_IR_C_ABI_U64 &&
+                              resultType->cAbi != XL6_IR_C_ABI_F32 &&
                               resultType->cAbi != XL6_IR_C_ABI_F64 &&
                               resultType->cAbi != XL6_IR_C_ABI_TIME_I64) ||
                              resultType->ownershipAbi !=
@@ -44019,7 +44079,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         size_t parameter;
-        xl6OutputPrintf(out, "  type t%lu kind=%d collection=%s resource=%s persistence=%s/t%u cabi=%d native-slot=%s callable=%s ownership=%d null=%d nominal=s%u typeValue=0x%016llX name=%s display=%s integer=%s params=[",
+        xl6OutputPrintf(out, "  type t%lu kind=%d collection=%s resource=%s persistence=%s/t%u cabi=%d native-slot=%s value-admission=%u/%d/0x%016llX callable=%s ownership=%d null=%d nominal=s%u typeValue=0x%016llX name=%s display=%s integer=%s params=[",
                         (unsigned long)(i + 1), (int)type->kind,
                         xl6IrCollectionAbiName(type->collectionAbi),
                         xl6IrRuntimeResourceAbiName(type->runtimeResourceAbi),
@@ -44028,6 +44088,8 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                         (unsigned int)type->persistencePayloadType,
                         (int)type->cAbi,
                         xl6IrNativeSlotAbiName(type->nativeSlotAbi),
+                        (unsigned int)type->xvalueAdmissionAbi, (int)type->xvalueAdmissionNullable,
+                        (unsigned long long)type->xvalueAdmissionTypeValueId,
                         xl6IrCallableErasureAbiName(type->callableErasureAbi),
                         (int)type->ownershipAbi, (int)type->nullAbi,
                         (unsigned int)type->nominalSymbol,
@@ -45274,7 +45336,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrType* type = &module->types.items[i];
         size_t item;
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kind\":%d,\"collectionAbi\":%d,\"collectionAbiName\":\"%s\",\"runtimeResourceAbi\":%d,\"runtimeResourceAbiName\":\"%s\",\"persistenceValueAbi\":%d,\"persistenceValueAbiName\":\"%s\",\"persistencePayloadType\":%u,\"cAbi\":%d,\"nativeSlotAbi\":%d,\"nativeSlotAbiName\":\"%s\",\"callableErasureAbi\":%d,\"callableErasureAbiName\":\"%s\",\"ownershipAbi\":%d,\"nullAbi\":%d,\"integerTarget\":%d,\"integerTargetName\":\"%s\",\"nominalSymbol\":%u,\"typeValueId\":\"0x%016llX\",\"name\":\"%s\",\"displayName\":\"%s\",\"cName\":\"%s\",\"errorResultCName\":\"%s\",\"params\":[",
+            "    {\"id\":%lu,\"kind\":%d,\"collectionAbi\":%d,\"collectionAbiName\":\"%s\",\"runtimeResourceAbi\":%d,\"runtimeResourceAbiName\":\"%s\",\"persistenceValueAbi\":%d,\"persistenceValueAbiName\":\"%s\",\"persistencePayloadType\":%u,\"cAbi\":%d,\"nativeSlotAbi\":%d,\"nativeSlotAbiName\":\"%s\",\"xvalueAdmissionAbi\":%u,\"xvalueAdmissionNullable\":%s,\"callableErasureAbi\":%d,\"callableErasureAbiName\":\"%s\",\"ownershipAbi\":%d,\"nullAbi\":%d,\"integerTarget\":%d,\"integerTargetName\":\"%s\",\"nominalSymbol\":%u,\"typeValueId\":\"0x%016llX\",\"name\":\"%s\",\"displayName\":\"%s\",\"cName\":\"%s\",\"errorResultCName\":\"%s\",\"params\":[",
             (unsigned long)(i + 1), (int)type->kind, (int)type->collectionAbi,
             xl6IrCollectionAbiName(type->collectionAbi),
             (int)type->runtimeResourceAbi,
@@ -45285,6 +45347,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (int)type->cAbi,
             (int)type->nativeSlotAbi,
             xl6IrNativeSlotAbiName(type->nativeSlotAbi),
+            (unsigned int)type->xvalueAdmissionAbi,
+            type->xvalueAdmissionNullable ? "true" : "false",
             (int)type->callableErasureAbi,
             xl6IrCallableErasureAbiName(type->callableErasureAbi),
             (int)type->ownershipAbi, (int)type->nullAbi,
@@ -45299,7 +45363,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->params[item]);
         }
-        xl6OutputPuts("],\"parameterModes\":[", out);
+        xl6OutputPrintf(out,"],\"xvalueAdmissionTypeValueId\":\"0x%016llX\",\"parameterModes\":[",
+            (unsigned long long)type->xvalueAdmissionTypeValueId);
         if ( type->kind == XL6_IR_TYPE_FUNCTION ) for ( item = 0; item < type->paramCount; ++item ) {
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "\"%s\"",

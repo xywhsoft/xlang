@@ -103,8 +103,8 @@ $cases = @(
         LoweredRepeat = Join-Path $outputDir "xlir_collection_type_rebind_complete.lowered.repeat.json"
         C = Join-Path $outputDir "xlir_collection_type_rebind_complete.c"
         CRepeat = Join-Path $outputDir "xlir_collection_type_rebind_complete.repeat.c"
-        CheckedRebinds = 13
-        CheckedCasts = 1
+        CheckedRebinds = 12
+        CheckedCasts = 0
         Clones = 1
     }
 )
@@ -156,7 +156,7 @@ foreach ( $case in $cases ) {
         "extern bool xrtValueTypeIdRebind(xvalue*, uint64_t);",
         "static xvalue* xlir_xvalue_type_rebind_owned(xvalue* value, uint64_t typeId)",
         "xrtValueTypeIdRebind(value, typeId)",
-        "xlir_xvalue_collection_checked_take"
+        "extern xvalue* xl6CollectionCheckedTakeV1(xvalue*, int, unsigned int, bool, uint64_t);"
     ) ) {
         if ( ! $generated.Contains($required) ) {
             throw "XLIR $($case.Name) collection TypeId rebind C emission is incomplete: $required"
@@ -168,6 +168,7 @@ foreach ( $case in $cases ) {
         "typeValueId",
         "XL6_HIR",
         "xl6Hir"
+        "xlir_xvalue_collection_checked_take"
     ) ) {
         if ( $generated.Contains($forbidden) ) {
             throw "XLIR $($case.Name) generated C leaked semantic metadata or HIR tracing: $forbidden"
@@ -186,9 +187,9 @@ $projectionExe = Join-Path $outputDir "xlir_collection_type_rebind_projection.ex
 $completeExe = Join-Path $outputDir "xlir_collection_type_rebind_complete.exe"
 $compileCommands = @(
     "call test\suites\common.bat",
-    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror "{0}" !XL6_CGEN_LINKS! -o "{1}"' -f $projectionHost, $projectionExe),
+    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Irelease -Werror "{0}" !XL6_CGEN_LINKS! -o "{1}"' -f $projectionHost, $projectionExe),
     ('"{0}"' -f $projectionExe),
-    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $cases[1].C, $completeHost, $completeExe),
+    ('!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Irelease -Werror "{0}" "{1}" !XL6_CGEN_LINKS! -o "{2}"' -f $cases[1].C, $completeHost, $completeExe),
     ('"{0}"' -f $completeExe)
 )
 Push-Location $Root

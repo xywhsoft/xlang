@@ -149,7 +149,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_char_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_char_value.c", D(R(CHAR_TYPE)), {"XRUNTIME_MODULE_TYPED_VALUE"}},
     {"src/runtime/xl6_array_reference_value.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
-    {"src/runtime/xl6_array_erased.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
+    {"src/runtime/xl6_array_erased.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_value_admission.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -413,6 +414,14 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             }
         }
         switch (instruction->runtimeOp) {
+        case XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN:
+            if (xl6IrTypeGet(&module->types,instruction->type)->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) REQUIRE(R(VALUE_ADMISSION));
+            break;
+        case XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY:
+            if (xl6IrTypeGet(&module->types,instruction->type)->cAbi==XL6_IR_C_ABI_F32) REQUIRE(R(VALUE_ADMISSION));
+            break;
+        case XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST:
+        case XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND: REQUIRE(R(VALUE_ADMISSION)); break;
         case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE: REQUIRE(R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD)); break;
         case XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE: REQUIRE(R(TASK)); break;
         case XL6_IR_RUNTIME_FUTURE_SET_DEBUG_NAME: case XL6_IR_RUNTIME_FUTURE_DEBUG_NAME_COPY:

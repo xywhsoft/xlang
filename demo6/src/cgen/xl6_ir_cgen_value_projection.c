@@ -9,19 +9,6 @@ static int xl6IrCgenCollectionXValueTag(XL6_IrCollectionAbi abi)
     }
 }
 
-static int xl6IrCgenPayloadXValueTag(const XL6_IrType* payload)
-{
-    if ( payload == NULL ) return 0;
-    switch ( payload->cAbi ) {
-    case XL6_IR_C_ABI_BOOL: return 1;
-    case XL6_IR_C_ABI_I64: return 2;
-    case XL6_IR_C_ABI_F64: return 3;
-    case XL6_IR_C_ABI_MANAGED_STRING: return 4;
-    case XL6_IR_C_ABI_U64: return 13;
-    default: return 0;
-    }
-}
-
 /* Module verification has already proved whether a source is open dynamic or
  * statically shaped erased storage and whether its shape matches the checked
  * operation.  Cgen validates only the closed physical instruction ABI needed
@@ -82,7 +69,7 @@ static int xl6IrCgenRuntimeCollectionCheckedRebindAbi(
            resultType->params[0] == instruction->payloadType &&
            resultType->collectionAbi == instruction->collectionAbi &&
            xl6IrCgenCollectionXValueTag(instruction->collectionAbi) != 0 &&
-           xl6IrCgenPayloadXValueTag(payloadType) != 0;
+           payloadType->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE;
 }
 
 /* Iterator semantics are a closed RuntimeOp family.  Both synchronous and
@@ -412,6 +399,13 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
         identity = xl6IrTypeGet(&module->types, instruction->payloadType);
         if ( identity == NULL || instruction->payloadType !=
                  instruction->type || identity->typeValueId == 0 ) return 0;
+        if (identity->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) {
+            xl6OutputPrintf(out,"    v%u = xl6ValueCheckedRetainV1(v%u, %u, false, 0x%016llXULL);\n",
+                (unsigned int)instruction->result,(unsigned int)operand,
+                (unsigned int)identity->xvalueAdmissionAbi,
+                (unsigned long long)identity->xvalueAdmissionTypeValueId);
+            return !xl6OutputHasFailed(out);
+        }
         if ( instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ) {
             identity = xl6IrTypeGet(
                 &module->types, instruction->runtimeIdentityType);
@@ -424,6 +418,12 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (unsigned long long)exactTypeValueId);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY ) {
+        if (result->cAbi==XL6_IR_C_ABI_F32) {
+            xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueReadF32V1(v%u, 0x%016llXULL, &v%u);\n",
+                (unsigned int)instruction->result,(unsigned int)operand,
+                (unsigned long long)result->xvalueAdmissionTypeValueId,(unsigned int)instruction->result);
+            return !xl6OutputHasFailed(out);
+        }
         const char* getter = result->cAbi == XL6_IR_C_ABI_BOOL
             ? "xrtValueGetBool"
             : result->cAbi == XL6_IR_C_ABI_CHAR_U32

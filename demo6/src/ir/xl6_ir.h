@@ -10,6 +10,7 @@
 #include "src/diag/xl6_diag.h"
 #include "src/ast/xl6_ast.h"
 #include "src/type/xl6_type_id.h"
+#include "src/runtime/xl6_value_admission_abi.h"
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -556,6 +557,10 @@ typedef struct XL6_IrType {
     XL6_IrIntegerTarget integerTarget;
     XL6_IrNativeProductAbi nativeProductAbi;
     XL6_IrNativeSlotAbi nativeSlotAbi;
+    /* Logical boxed domain, independent of physical carrier/transfer. */
+    XL6_ValueAdmissionV1 xvalueAdmissionAbi;
+    bool xvalueAdmissionNullable;
+    uint64 xvalueAdmissionTypeValueId;
     /* Diagnostics/provenance only, except for TYPE_PARAM identity.  Concrete
      * aliases with the same ABI and shape share one canonical XLIR type. */
     XL6_TypeId sourceTypeId;
@@ -6059,6 +6064,7 @@ const XL6_IrEnumVariant* xl6IrEnumVariantGet(
  * is used both by primary AST type interning and generic specialization. */
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
+XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi);
 /* Finalize the stable source-language `type` token for a concrete type.  The
  * value is structural and intentionally independent of the backend C ABI. */

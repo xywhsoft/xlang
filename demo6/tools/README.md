@@ -403,3 +403,26 @@ the native Stack gate. This does not complete legacy Into retirement,
 try/outcome products, batch/FixedStack or the remaining 53-module acceptance. Class-family
 discovery does not certify arbitrary policies, other families of disconnected
 cycles or every possible cross-module owning graph.
+
+`check_stdlib_value_admission_native.py --out <fresh-directory>` validates the
+data-only boxed language element domains: signed/narrow unsigned bounds,
+lossless f32, exact char/string/bytes/time, nullable presence and bound nominal
+identity refusal. It checks allocation-free/error-transparent predicates,
+status/output projections, consuming collection validation, destructive cleanup
+error preservation and every actual allocation prefix at O0/O2. Linux
+`--sanitize` instruments its complete selected resident/native closure with
+ASan/UBSan/leaks; the symbol check excludes Array/Stack and unrelated facades.
+
+`check_stdlib_collection_admission.py --out <fresh-directory>` checks two
+language fixtures through deterministic IR/C, strict O0/O2 C, JIT and AOT.
+Windows requires `--public-directory <full-current-source-driver>` and the
+driver's `stage_xlir_artifact_runtime_sources.ps1` deployment first. The gate
+matches emitted rule/nullable/identity arguments to verified IR type facts,
+checks narrow integer and Xid-as-bytes refusal, exact nullable/NUL values and
+bytes read/write independence. Its strict C links the real shared runtime;
+Linux `--sanitize` instruments generated C and the host, NOT those shared
+libraries. Commands have a 60-second deadline; only the measured O2 sanitizer
+compiler step has a 180-second budget, with timings and timeout failures saved.
+`check_xlir_artifact_runtime.ps1` independently verifies selected
+native closure pruning. None of these gates certifies language Array's complete
+native-carrier migration, class/recursive element admission or all 53 modules.

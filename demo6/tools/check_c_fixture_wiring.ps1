@@ -65,7 +65,8 @@ function Get-CheckScriptWiringFiles()
 
     if ( Test-Path -LiteralPath $toolDir -PathType Container ) {
         $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
-        foreach ( $scriptFile in @(Get-ChildItem -LiteralPath $toolDir -File -Filter "check_*.ps1" |
+        foreach ( $scriptFile in @(Get-ChildItem -LiteralPath $toolDir -File |
+            Where-Object Name -Match '^check_.*\.(ps1|py|sh)$' |
             Sort-Object Name) ) {
             $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
         }

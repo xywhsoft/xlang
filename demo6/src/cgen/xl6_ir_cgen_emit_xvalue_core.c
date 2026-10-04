@@ -354,8 +354,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "    return false;\n"
                 "}\n",
                 out);
-        if ( needs->needsXValueIteratorRuntime ||
-             needs->needsXValueCollectionCheckedRebindRuntime )
+        if ( needs->needsXValueIteratorRuntime )
             xl6OutputPuts(
                 "#ifndef XLIR_XRT_DECLARATIONS\n"
                 "typedef struct xvalueiter xvalueiter;\n"
@@ -526,35 +525,12 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 out);
         if ( needs->needsXValueCollectionCheckedRebindRuntime )
             xl6OutputPuts(
-                "/* Consumes source on both paths.  itemTag==0 requests only the\n"
-                " * container check; typed projections also validate every item. */\n"
-                "static xvalue* xlir_xvalue_collection_checked_take(xvalue* source, int collectionTag, int itemTag)\n"
-                "{\n"
-                "    xvalueiter* iterator = NULL; xvaluekey key = { 0 };\n"
-                "    xvalue* item = NULL; int step;\n"
-                "    if (source == NULL) goto runtime_failure;\n"
-                "    if (xrtValueType(source) != collectionTag) goto incompatible_container;\n"
-                "    if (itemTag == 0) return source;\n"
-                "    iterator = xrtValueIterCreate(source);\n"
-                "    if (iterator == NULL) goto runtime_failure;\n"
-                "    while ((step = xrtValueIterAdvance(iterator, &key, &item)) > 0)\n"
-                "        if (item == NULL || xrtValueType(item) != itemTag) goto incompatible;\n"
-                "    if (step < 0) goto runtime_failure;\n"
-                "    xrtValueIterDestroy(iterator); return source;\n"
-                "incompatible_container:\n"
-                "    xrtValueRelease(source);\n"
-                "    xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic value is not the requested container\"));\n"
-                "    return NULL;\n"
-                "incompatible:\n"
-                "    xrtValueIterDestroy(iterator); xrtValueRelease(source);\n"
-                "    xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic container contains an incompatible value\"));\n"
-                "    return NULL;\n"
-                "runtime_failure:\n"
-                "    xrtValueIterDestroy(iterator); xrtValueRelease(source);\n"
-                "    if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"RuntimeError\", \"dynamic container validation failed\"));\n"
-                "    return NULL;\n"
-                "}\n",
+                "extern xvalue* xl6CollectionCheckedTakeV1(xvalue*, int, unsigned int, bool, uint64_t);\n",
                 out);
+        if (needs->needsXValueRetainProjectionRuntime)
+            xl6OutputPuts("extern xvalue* xl6ValueCheckedRetainV1(const xvalue*, unsigned int, bool, uint64_t);\n",out);
+        if (needs->needsXValueScalarProjectionRuntime)
+            xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n",out);
         if ( needs->needsXValueRuntime )
             xl6OutputPuts("extern xvalue* xrtValuePointer(void*);\n", out);
         if ( needs->needsXValueHandleRuntime )
