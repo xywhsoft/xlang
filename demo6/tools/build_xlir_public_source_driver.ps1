@@ -28,7 +28,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_buffer_core.c','src/runtime/xl6_buffer_query.c',
     'src/runtime/xl6_sequence.c','src/runtime/xl6_array.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_stack.c',
     'src/runtime/xl6_nullable_string.c',
-    'src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c','src/runtime/xl6_array_value.c','src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_erased.c',
+    'src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c','src/runtime/xl6_array_value.c','src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_erased.c','src/runtime/xl6_value_admission.c',
     'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c',
     'src/runtime/xl6_nullable_bool.c','src/runtime/xl6_nullable_i64.c','src/runtime/xl6_nullable_u64.c',
     'src/runtime/xl6_nullable_f32.c','src/runtime/xl6_nullable_f64.c','src/runtime/xl6_nullable_time.c','src/runtime/xl6_nullable_char.c',

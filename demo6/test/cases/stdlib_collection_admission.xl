@@ -1,0 +1,211 @@
+func narrowSource(bool bad) as array
+    if bad
+        return [128]
+    end
+    return [-128, 127]
+end
+
+func unsignedSource(bool bad) as array
+    if bad
+        return [256]
+    end
+    return [0, 255]
+end
+
+func optionalSource(bool bad) as array
+    if bad
+        return [null, "wrong"]
+    end
+    return [null, 7]
+end
+
+func charsSource(bool bad) as array
+    if bad
+        return [uint64(65)]
+    end
+    return ['你', '\0']
+end
+
+func bytesSource(bool bad) as array
+    if bad
+        return ["a\0b"]
+    end
+    return [b"a\0b"]
+end
+
+func realSource(bool bad) as array
+    if bad
+        return [0.1]
+    end
+    return [1.5, -0.0]
+end
+
+func optionalTextSource(bool bad) as array
+    if bad
+        return [null, 9]
+    end
+    return [null, "", "a\0b"]
+end
+
+func sparseSource(bool bad) as list
+    if bad
+        return [8: -1]
+    end
+    return [3: 0, 8: 65535]
+end
+
+func tableSource(bool bad) as dict
+    if bad
+        return {"payload": 1}
+    end
+    return {"payload": b"a\0b"}
+end
+
+func uniqueSource(bool bad) as set
+    if bad
+        return {32768}
+    end
+    return {-32768, 32767}
+end
+
+func optionalBytesSource(bool bad) as array
+    if bad
+        return [null, "wrong"]
+    end
+    return [null, b"a\0b"]
+end
+
+func timeSource(bool bad) as array
+    if bad
+        return [0]
+    end
+    return [time.fromDate(2026, 1, 1)]
+end
+
+func nominalBytesSource() as array
+    return [id.make()]
+end
+
+func main(...) as int
+    array<int8> narrow = narrowSource(false)
+    assert narrow[0] == -128 and narrow[1] == 127
+    try
+        narrow = narrowSource(true)
+        return 1
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert narrow.length == 2 and narrow[1] == 127
+    array<uint8> unsigned = unsignedSource(false)
+    assert unsigned[1] == 255
+    try
+        unsigned = unsignedSource(true)
+        return 2
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert unsigned.length == 2 and unsigned[1] == 255
+    array<int?> optional = optionalSource(false)
+    int? seven = 7
+    assert optional[0] == null and optional[1] == seven
+    try
+        optional = optionalSource(true)
+        return 3
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert optional.length == 2 and optional[1] == seven
+    array<char> chars = charsSource(false)
+    assert chars[0] == '你' and chars[1] == '\0'
+    try
+        chars = charsSource(true)
+        return 4
+    catch e
+        assert e.kind == "TypeError"
+    end
+    array<bytes> data = bytesSource(false)
+    assert data[0] == b"a\0b"
+    bytes copy = data[0]
+    copy[0] = 120
+    assert copy[0] == 120 and data[0] == b"a\0b"
+    try
+        data = bytesSource(true)
+        return 5
+    catch e
+        assert e.kind == "TypeError"
+    end
+    array<float32> reals = realSource(false)
+    assert reals[0] == 1.5
+    try
+        reals = realSource(true)
+        return 6
+    catch e
+        assert e.kind == "TypeError"
+    end
+    array<string?> texts = optionalTextSource(false)
+    string? empty = ""
+    string? nul = "a\0b"
+    assert texts[0] == null and texts[1] != null and texts[1] == empty
+    assert texts[2] == nul
+    try
+        texts = optionalTextSource(true)
+        return 7
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert texts.length == 3 and texts[2] == nul
+    list<uint16> sparse = sparseSource(false)
+    assert sparse[3] == 0 and sparse[8] == 65535
+    try
+        sparse = sparseSource(true)
+        return 8
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert sparse.length == 2 and sparse[8] == 65535
+    dict<bytes> table = tableSource(false)
+    assert table.length == 1 and table["payload"] == b"a\0b"
+    try
+        table = tableSource(true)
+        return 9
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert table.length == 1 and table["payload"] == b"a\0b"
+    set<int16> unique = uniqueSource(false)
+    assert unique.length == 2
+    array<bytes?> optionalData = optionalBytesSource(false)
+    bytes? expected = b"a\0b"
+    assert optionalData[0] == null and optionalData[1] == expected
+    try
+        optionalData = optionalBytesSource(true)
+        return 11
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert optionalData.length == 2 and optionalData[1] == expected
+    array<time> instants = timeSource(false)
+    assert instants[0] == time.fromDate(2026, 1, 1)
+    try
+        instants = timeSource(true)
+        return 12
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert instants.length == 1 and instants[0] == time.fromDate(2026, 1, 1)
+    try
+        data = nominalBytesSource()
+        return 13
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert data.length == 1 and data[0] == b"a\0b"
+    try
+        unique = uniqueSource(true)
+        return 10
+    catch e
+        assert e.kind == "TypeError"
+    end
+    assert unique.length == 2
+    return 0
+end

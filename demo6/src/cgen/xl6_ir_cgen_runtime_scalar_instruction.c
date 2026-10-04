@@ -593,7 +593,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter checked collection cast ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_collection_checked_take(v%u, %d, 0);\n",
+                        "    v%u = xl6CollectionCheckedTakeV1(v%u, %d, 0, false, 0);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         collectionTag);
@@ -604,19 +604,20 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     const XL6_IrType* payloadType =
                         xl6IrTypeGet(&module->types, instruction->payloadType);
                     int collectionTag;
-                    int payloadTag;
                     if ( !xl6IrCgenRuntimeCollectionCheckedRebindAbi(
                              module, instruction) || resultType == NULL ||
                         (collectionTag = xl6IrCgenCollectionXValueTag(
-                              instruction->collectionAbi)) == 0 ||
-                         (payloadTag = xl6IrCgenPayloadXValueTag(payloadType)) == 0 )
+                              instruction->collectionAbi)) == 0 || payloadType == NULL ||
+                         payloadType->xvalueAdmissionAbi == XL6_VALUE_ADMIT_NONE )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter checked collection projection ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_collection_checked_take(v%u, %d, %d);\n",
+                        "    v%u = xl6CollectionCheckedTakeV1(v%u, %d, %u, %s, 0x%016llXULL);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
-                        collectionTag, payloadTag);
+                        collectionTag, (unsigned int)payloadType->xvalueAdmissionAbi,
+                        payloadType->xvalueAdmissionNullable ? "true" : "false",
+                        (unsigned long long)payloadType->xvalueAdmissionTypeValueId);
                 } else return 0;
     return 1;
 }
