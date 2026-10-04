@@ -26,5 +26,5 @@ xvalue* xl6ArrayNominalCreateV2(uint64_t identity,uint64_t element,const XL6_Nom
     *data=(XL6_ArrayAdmissionData){.refs=1,.nullable=nullable,.identity=valueIdentity,.nominal=*schema};
     data->nominal.identities=data->identities;
     if (schema->count) memcpy(data->identities,schema->identities,schema->count*sizeof(uint64_t));
-    return create(identity,element,data);
+    return create(identity,element,data,&policyOps);
 }

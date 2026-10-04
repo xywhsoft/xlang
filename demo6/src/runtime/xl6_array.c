@@ -91,9 +91,7 @@ bool xl6ArrayResizeV1(const xvalue* value, PARAMS, int64_t count)
     if (!range(count)) return false;
     XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
     if (!owner) return false;
-    xtypedarray* storage=xl6SequenceStorageV1(owner);
-    bool ok = ((size_t)count<=xrtTypedArrayCount(storage) || xl6SequenceAdmissionDefaultableV1(owner)) &&
-        allocation(xrtTypedArrayResize(storage,(size_t)count));
+    bool ok = allocation(xl6SequenceResizeStorageV1(owner,(size_t)count));
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayTrimV1(const xvalue* value, PARAMS)

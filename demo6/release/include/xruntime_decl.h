@@ -47495,6 +47495,18 @@ XRT_API const void* xrtTypedArrayConstData(const xtypedarray* pArray);
  * Resize 增长分配或初始化失败，保留原地址、容量、数量与活动元素。 */
 XRT_API bool xrtTypedArrayReserve(xtypedarray* pArray, size_t iCapacity);
 XRT_API bool xrtTypedArrayResize(xtypedarray* pArray, size_t iCount);
+/* Per-growth defaults are distinct from empty destinations used by Copy/Move.
+ * The initializer receives a zeroed inactive slot and the borrowed item type;
+ * success transfers that value to the array. Failure must release its own
+ * partial resources and set an XRT error. Context is borrowed only for this
+ * synchronous call, never retained. NULL selects the ordinary type Init.
+ * Existing values, capacity and addresses survive any growth failure; only
+ * successfully initialized new slots are dropped, in reverse order. Same-
+ * array callback/allocator reentry is rejected. Shrink/equal never invoke it. */
+typedef bool (*xrttypedarrayinitializer)(ptr pValue, const xrttype* pType, ptr pContext);
+XRT_API bool xrtTypedArrayResizeWithInitializer(
+    xtypedarray* pArray, size_t iCount, xrttypedarrayinitializer Initializer, ptr pContext
+);
 XRT_API bool xrtTypedArrayTrim(xtypedarray* pArray);
 XRT_API void xrtTypedArrayClear(xtypedarray* pArray);
 

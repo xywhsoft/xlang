@@ -45,12 +45,12 @@ static bool equivalent(const void* a,const void* b)
 static bool defaultable(const void* opaque)
 {
     const XL6_ArrayAdmissionData* data=opaque;
-    return data->nullable || data->rule==XL6_VALUE_ADMIT_ANY;
+    return data->nullable || data->rule==XL6_VALUE_ADMIT_ANY || data->rule==XL6_VALUE_ADMIT_BYTES;
 }
-static const XL6_SequenceAdmissionOpsV1 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable};
-static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data)
+static const XL6_SequenceAdmissionOpsV1 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable,NULL};
+static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV1* ops)
 {
-    XL6_SequenceAdmissionV1 admission={&policyOps,data,element,3,sizeof(xvalue*),xrtTypeValue()};
+    XL6_SequenceAdmissionV1 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue()};
     xvalue* value=xl6ArrayCreateV1(identity,element,3,sizeof(xvalue*),xrtTypeValue());
     if (value) {
         XL6_Sequence* owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,

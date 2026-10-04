@@ -60,7 +60,7 @@ static bool equivalent(const void* left, const void* right)
     return a->rule==b->rule && a->nullable==b->nullable && a->identity==b->identity;
 }
 static bool defaultable(const void* opaque) { (void)opaque; return true; }
-static const XL6_SequenceAdmissionOpsV1 ops={retain,drop,slot,value,equivalent,defaultable};
+static const XL6_SequenceAdmissionOpsV1 ops={retain,drop,slot,value,equivalent,defaultable,NULL};
 
 static bool physical(const xrttype* type, unsigned int transfer, unsigned int rule, bool nullable)
 {
