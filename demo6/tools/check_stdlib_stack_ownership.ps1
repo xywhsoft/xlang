@@ -27,7 +27,8 @@ try {
         'E:/software/tcc/tcc.exe',$script:XlirNativeProcessImplementation,$python,
         'tools/check_stdlib_array_native.py','test/cases/stdlib_array_native_host.c',
         'test/cases/stdlib_array_iterator_native_host.c','test/support/array_native.c',
-        'test/cases/stdlib_array_value_native_host.c','test/support/array_value_native.c')
+        'test/cases/stdlib_array_value_native_host.c','test/support/array_value_native.c',
+        'test/cases/stdlib_array_erased_native_host.c')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) + @($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
     })
@@ -40,7 +41,7 @@ try {
         Copy-Item -LiteralPath $header.Path -Destination (Join-Path "$outPath/__xl_runtime" ([IO.Path]::GetFileName($header.Path)))
     }
     $rows = [Collections.Generic.List[object]]::new()
-    function Run([string]$Name, [string]$File, [string[]]$Arguments) {
+    function Run([string]$Name, [string]$File, [string[]]$Arguments, [int]$TimeoutMs = 60000) {
         $process = [Diagnostics.Process]::new()
         $process.StartInfo.FileName = $File; $process.StartInfo.Arguments = Join-XlirWindowsCommandLine $Arguments
         $process.StartInfo.WorkingDirectory = $rootPath; $process.StartInfo.UseShellExecute = $false
@@ -49,7 +50,7 @@ try {
         $process.StartInfo.StandardOutputEncoding = [Text.Encoding]::UTF8; $process.StartInfo.StandardErrorEncoding = [Text.Encoding]::UTF8
         try {
             [void]$process.Start(); $stdout = $process.StandardOutput.ReadToEndAsync(); $stderr = $process.StandardError.ReadToEndAsync()
-            if (!$process.WaitForExit(60000)) { Stop-XlirProcessTree $process; throw "Timeout $Name" }
+            if (!$process.WaitForExit($TimeoutMs)) { Stop-XlirProcessTree $process; throw "Timeout $Name" }
             $code = $process.ExitCode
             [IO.File]::WriteAllText("$outPath/$Name.log",$stdout.Result+$stderr.Result,[Text.UTF8Encoding]::new($false))
         } finally { $process.Dispose() }
@@ -116,7 +117,10 @@ try {
     # Array/snapshot owners share Sequence's phased graph with Stack. Run the
     # actual selected native gate, not just a source-reference wiring marker.
     $arrayNativeDirectory = "$outPath/array-native"
-    Run 'array-native' $python @('tools/check_stdlib_array_native.py','--out',$arrayNativeDirectory)
+    # This is a multi-process O0/O2 matrix (now including erasure), not one
+    # ordinary operation. Give the whole suite its own finite budget; its
+    # per-process 45-second limits, fault prefixes and memory checks stay intact.
+    Run 'array-native' $python @('tools/check_stdlib_array_native.py','--out',$arrayNativeDirectory) -TimeoutMs 120000
     $arrayNative = Get-Content -LiteralPath "$arrayNativeDirectory/results.json" -Raw | ConvertFrom-Json
     if (!$arrayNative.Complete -or !$arrayNative.InputsUnchanged) { throw 'Incomplete native Array/snapshot evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
