@@ -3,6 +3,10 @@
 
 #include "src/ast/xl6_ast.h"
 
+/* Allocation-free source integer spelling shared by semantic range checks
+ * and IR literal materialization. A sign belongs to the unary expression. */
+int xl6TypeParseIntegerMagnitude(const char* text, uint64_t* value);
+
 const XL6_AstNode* xl6TypeResolveAlias(const XL6_AstNode* root, const XL6_AstNode* typeNode);
 const char* xl6TypeCanonicalBuiltinName(const char* name);
 char* xl6TypeToCanonicalString(const XL6_AstNode* root, const XL6_AstNode* typeNode);

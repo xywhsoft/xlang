@@ -1,0 +1,11 @@
+func main(...) as int
+    Stack<float64?> values = Stack::<float64?>()
+    assert(values.push(null) and values.push(0.0))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == 0.0)
+    auto hasNull, none = values.tryPop()
+    assert(hasNull and none == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    return 0
+end

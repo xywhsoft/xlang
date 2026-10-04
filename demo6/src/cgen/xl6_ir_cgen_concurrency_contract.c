@@ -345,10 +345,23 @@ static XL6_IrRuntimeResourceKeyOrderAbi xl6IrCgenAvlKeyOrderAbi(
 
 /* xrtTypedTree owns values through immutable xrttype descriptors.  This map
  * is physical ABI only; no source spelling or AST method name reaches Cgen. */
-static const char* xl6IrCgenAvlRuntimeTypeExpr(const XL6_IrType* type)
+static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
+    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types, typeId) : NULL;
     if ( type == NULL || type->typeValueId == 0 ) return NULL;
     switch ( type->cAbi ) {
+    case XL6_IR_C_ABI_TAGGED_NULLABLE:
+        if ( type->kind != XL6_IR_TYPE_NULLABLE || type->paramCount != 1 || type->params == NULL ) return NULL;
+        switch ( xl6IrNullableScalarElementAbi(module, typeId) ) {
+        case XL6_IR_C_ABI_BOOL: return "xl6NullableBoolTypeV1()";
+        case XL6_IR_C_ABI_I64: return "xl6NullableI64TypeV1()";
+        case XL6_IR_C_ABI_U64: return "xl6NullableU64TypeV1()";
+        case XL6_IR_C_ABI_F32: return "xl6NullableF32TypeV1()";
+        case XL6_IR_C_ABI_F64: return "xl6NullableF64TypeV1()";
+        case XL6_IR_C_ABI_TIME_I64: return "xl6NullableTimeTypeV1()";
+        case XL6_IR_C_ABI_CHAR_U32: return "xl6NullableCharTypeV1()";
+        default: return NULL;
+        }
     case XL6_IR_C_ABI_BOOL: return "xrtTypeBool()";
     case XL6_IR_C_ABI_I64: return "xrtTypeInt64()";
     case XL6_IR_C_ABI_U64: return "xrtTypeUInt64()";
@@ -427,8 +440,8 @@ static int xl6IrCgenAvlTypeAbi(
                XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
            xl6IrCgenChannelPayloadAbi(value) !=
                XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
-           xl6IrCgenAvlRuntimeTypeExpr(key) != NULL &&
-           xl6IrCgenAvlRuntimeTypeExpr(value) != NULL &&
+           xl6IrCgenNativeValueTypeExpr(module, tree->params[0]) != NULL &&
+           xl6IrCgenNativeValueTypeExpr(module, tree->params[1]) != NULL &&
            xl6IrCgenType(module, tree->params[0]) != NULL &&
            xl6IrCgenType(module, tree->params[1]) != NULL;
 }

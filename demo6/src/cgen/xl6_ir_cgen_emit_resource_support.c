@@ -81,9 +81,21 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
             out);
+    if ( needs->needsStackResourceRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
+        xl6OutputPuts(
+            "typedef struct xrttype xrttype;\n"
+            "extern const xrttype* xl6NullableBoolTypeV1(void);\n"
+            "extern const xrttype* xl6NullableI64TypeV1(void);\n"
+            "extern const xrttype* xl6NullableU64TypeV1(void);\n"
+            "extern const xrttype* xl6NullableF32TypeV1(void);\n"
+            "extern const xrttype* xl6NullableF64TypeV1(void);\n"
+            "extern const xrttype* xl6NullableTimeTypeV1(void);\n"
+            "extern const xrttype* xl6NullableCharTypeV1(void);\n", out);
     if ( needs->needsChannelResourceRuntime &&
          !xl6IrCgenNeedsXrtDeclarations(needs) )
         xl6OutputPuts("typedef struct xchannel xchannel;\n", out);
+    if ( needs->needsChannelResourceRuntime )
+        xl6OutputPrintf(out, "#define XLIR_CHANNEL_HAS_STRING_PAYLOAD %d\n", needs->needsStringRuntime ? 1 : 0);
     if ( needs->needsChannelResourceRuntime )
         xl6OutputPuts(
             "/* channel<T> and verified concurrent queues use one exact XLIR\n"
@@ -127,8 +139,11 @@ static int xl6IrCgenEmitResourceRuntime(
             "static void xlir_channel_payload_drop(unsigned int abi, void* item)\n"
             "{\n"
             "    if (item == NULL) return;\n"
+            "#if XLIR_CHANNEL_HAS_STRING_PAYLOAD\n"
             "    if (abi == XLIR_CHANNEL_PAYLOAD_STRING_COPY) xlir_string_drop(*(xlir_string*)item);\n"
-            "    else if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) xrtValueRelease(*(xvalue**)item);\n"
+            "    else\n"
+            "#endif\n"
+            "    if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) xrtValueRelease(*(xvalue**)item);\n"
             "    else if (abi != XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY) abort();\n"
             "    xrtFree(item);\n"
             "}\n"
@@ -137,7 +152,9 @@ static int xl6IrCgenEmitResourceRuntime(
             "    if (item == NULL || source == NULL || size == 0) abort();\n"
             "    memset(item, 0, size);\n"
             "    if (abi == XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY) { memcpy(item, source, size); return true; }\n"
+            "#if XLIR_CHANNEL_HAS_STRING_PAYLOAD\n"
             "    if (abi == XLIR_CHANNEL_PAYLOAD_STRING_COPY) { xlir_string text = *(const xlir_string*)source; if (text.Data == NULL) abort(); *(xlir_string*)item = xlir_string_copy(text); return ((xlir_string*)item)->Data != NULL; }\n"
+            "#endif\n"
             "    if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) { xvalue* value = *(xvalue* const*)source; if (value == NULL) abort(); *(xvalue**)item = xrtValueRetain(value); return *(xvalue**)item != NULL; }\n"
             "    abort(); return false;\n"
             "}\n"
@@ -145,7 +162,9 @@ static int xl6IrCgenEmitResourceRuntime(
             "{\n"
             "    if (target == NULL || item == NULL || size == 0) abort();\n"
             "    if (abi == XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY) memcpy(target, item, size);\n"
+            "#if XLIR_CHANNEL_HAS_STRING_PAYLOAD\n"
             "    else if (abi == XLIR_CHANNEL_PAYLOAD_STRING_COPY) { xlir_string_drop(*(xlir_string*)target); *(xlir_string*)target = *(xlir_string*)item; *(xlir_string*)item = (xlir_string){0}; }\n"
+            "#endif\n"
             "    else if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) { xrtValueRelease(*(xvalue**)target); *(xvalue**)target = *(xvalue**)item; *(xvalue**)item = NULL; }\n"
             "    else abort();\n"
             "}\n"

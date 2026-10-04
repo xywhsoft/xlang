@@ -1,0 +1,11 @@
+func main(...) as int
+    Stack<char?> values = Stack::<char?>()
+    assert(values.push(null) and values.push('你'))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == '你')
+    auto hasNull, none = values.tryPop()
+    assert(hasNull and none == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    return 0
+end

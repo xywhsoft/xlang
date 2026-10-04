@@ -1,0 +1,63 @@
+async func nullableStackAsync(Stack<int?> values) as int?
+    auto found, item = values.tryPop()
+    time.sleep(1)
+    try
+        if found
+            return item
+        end
+        return null
+    finally
+        values.clear()
+    end
+end
+
+func nullableStackClosure(Stack<int?> values) as (bool, int?)
+    return values.tryPop()
+end
+
+func nullableStackItems(Stack<int?> values) as generator<int?>
+    try
+        while true
+            auto found, item = values.tryPop()
+            if not found
+                break
+            end
+            yield item
+        end
+    finally
+        values.clear()
+    end
+end
+
+Stack<int?> values = Stack::<int?>()
+assert(values.push(73))
+future<int?> pending = nullableStackAsync(values)
+int? completed = await pending
+assert(completed != null and completed == 73)
+completed = await pending
+assert(completed != null and completed == 73)
+assert(values.count() == 0)
+assert(values.push(null))
+assert(await nullableStackAsync(values) == null)
+assert(values.push(null) and values.push(0))
+func(Stack<int?>) as (bool, int?) take = nullableStackClosure
+auto foundZero, zero = take(values)
+assert(foundZero and zero != null and zero == 0)
+auto foundNull, none = take(values)
+assert(foundNull and none == null)
+auto absent, empty = take(values)
+assert(not absent and empty == null)
+assert(values.push(null) and values.push(81))
+int seen = 0
+int? retained = null
+for item in nullableStackItems(values)
+    retained = item
+    seen += 1
+end
+assert(seen == 2 and retained == null and values.count() == 0)
+assert(values.push(null) and values.push(99))
+for item in nullableStackItems(values)
+    retained = item
+    break
+end
+assert(retained != null and retained == 99 and values.count() == 0)

@@ -1,0 +1,9 @@
+func main(...) as int
+    SpscQueue<int?> queue = SpscQueue::<int?>(2)
+    int? item = null
+    assert(queue.tryPush(null) and queue.tryPush(0))
+    assert(queue.tryPopInto(item) and item == null)
+    assert(queue.tryPopInto(item) and item != null and item == 0)
+    assert(not queue.tryPopInto(item))
+    return 0
+end

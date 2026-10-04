@@ -124,7 +124,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_buffer_core.c", D(), {"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_buffer_query.c", D(), {"XRT_MODULE_BUFFER", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_stack.c", D(), {"XRUNTIME_MODULE_TYPED_STACK", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",
-        "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC"}}
+        "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_nullable_bool.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_i64.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_u64.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_f32.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_f64.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_time.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_char.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -329,6 +336,26 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
         if (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
+        /* Only operations which physically consume an xrttype descriptor
+         * select its immutable resident profile. Raw scalar queue/channel
+         * transports and ordinary optional values need no descriptor code. */
+        if ((instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
+             instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) ||
+            (instruction->runtimeOp >= XL6_IR_RUNTIME_AVL_TREE_CREATE &&
+             instruction->runtimeOp <= XL6_IR_RUNTIME_AVL_TREE_CLONE) ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
+            switch (xl6IrNullableScalarElementAbi(module,instruction->payloadType)) {
+            case XL6_IR_C_ABI_BOOL: REQUIRE(R(NULLABLE_BOOL)); break;
+            case XL6_IR_C_ABI_I64: REQUIRE(R(NULLABLE_I64)); break;
+            case XL6_IR_C_ABI_U64: REQUIRE(R(NULLABLE_U64)); break;
+            case XL6_IR_C_ABI_F32: REQUIRE(R(NULLABLE_F32)); break;
+            case XL6_IR_C_ABI_F64: REQUIRE(R(NULLABLE_F64)); break;
+            case XL6_IR_C_ABI_TIME_I64: REQUIRE(R(NULLABLE_TIME)); break;
+            case XL6_IR_C_ABI_CHAR_U32: REQUIRE(R(NULLABLE_CHAR)); break;
+            default: break;
+            }
+        }
         if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE) {
             const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, instruction->targetSymbol);
             if (destroy && destroy->nativeHandlePolicyAbi == XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) {

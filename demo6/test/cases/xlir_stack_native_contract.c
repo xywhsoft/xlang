@@ -2,6 +2,7 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
 #include "src/stdlib/xl6_stdlib.h"
+#include "src/type/xl6_type_model.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -17,6 +18,13 @@ static void rejected(const XL6_IrModule* ir)
 int main(int argc, char** argv)
 {
     assert(argc == 3); int ok = 0; unsigned checked = 0, ownedResults = 0;
+    uint64_t magnitude = 73;
+    assert(xl6TypeParseIntegerMagnitude("0xffff_ffff_ffff_ffff", &magnitude) && magnitude == UINT64_MAX);
+    assert(xl6TypeParseIntegerMagnitude("0b1010", &magnitude) && magnitude == 10);
+    assert(xl6TypeParseIntegerMagnitude("0o17", &magnitude) && magnitude == 15);
+    assert(!xl6TypeParseIntegerMagnitude("18446744073709551616", &magnitude) && magnitude == 15);
+    assert(!xl6TypeParseIntegerMagnitude("0x_", &magnitude) && magnitude == 15);
+    assert(!xl6TypeParseIntegerMagnitude("-1", &magnitude) && magnitude == 15);
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argv[1],&parse) || !xl6StdlibExpandModule(parse.root,&parse.diags) ||
@@ -46,6 +54,20 @@ int main(int argc, char** argv)
         type->nullAbi=nullAbi == XL6_IR_NULL_ABI_NONE
             ? XL6_IR_NULL_ABI_POINTER_SENTINEL : XL6_IR_NULL_ABI_NONE;
         rejected(&ir);type->nullAbi=nullAbi;
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PUSH &&
+            xl6IrNullableScalarElementAbi(&ir, payload) != XL6_IR_C_ABI_UNSUPPORTED) {
+            XL6_IrIntrinsicCall* intrinsic = (XL6_IrIntrinsicCall*)xl6IrIntrinsicCallGet(&ir, instruction->origin);
+            assert(intrinsic && intrinsic->operandCount == 2);
+            XL6_IrNodeId sourceId = ir.intrinsicOperands[intrinsic->firstOperand+1].expression;
+            if (ir.nodes[sourceId-1].storageType != type->params[0] &&
+                xl6IrContextualIntegerLiteralValue(&ir, sourceId, type->params[0], NULL, NULL)) {
+                XL6_IrNode* literal = &ir.nodes[sourceId-1];
+                if (literal->kind == XL6_IR_NODE_UNARY) literal = &ir.nodes[ir.children[literal->firstChild]-1];
+                char* spelling = literal->text;
+                literal->text = "18446744073709551616";
+                rejected(&ir); literal->text = spelling;
+            }
+        }
         if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_POP ||
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK ||
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_AT ||

@@ -1,0 +1,5 @@
+func main(...) as int
+    Stack<int32?> values = Stack::<int32?>()
+    values.push(2147483648)
+    return 0
+end

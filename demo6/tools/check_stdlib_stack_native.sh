@@ -11,8 +11,11 @@ OUT="${1:?Provide a fresh evidence directory}"
 mkdir -p "$OUT/include" "$OUT/components"
 CLI="$ROOT/release/xl"; CC="$(command -v gcc)"; PY="$(command -v python3)"
 checks=0; failures=()
-cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi stdlib_stack_values stdlib_stack_owned stdlib_stack_owned_continuation stdlib_stack_try_owned stdlib_stack_try_continuation)
-negative=(char_output_type bytes_output_type bytes_input_type owned_argument owned_depth owned_result try_argument try_depth try_result try_nullable_result)
+cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi stdlib_stack_values stdlib_stack_owned stdlib_stack_owned_continuation stdlib_stack_try_owned stdlib_stack_try_continuation
+    stdlib_stack_nullable_scalar stdlib_stack_nullable_continuation stdlib_stack_nullable_i64 stdlib_stack_nullable_bool stdlib_stack_nullable_u64 stdlib_stack_nullable_f32 stdlib_stack_nullable_f64 stdlib_stack_nullable_time stdlib_stack_nullable_char
+    xlir_nullable_scalar_no_resource stdlib_nullable_resource_transport stdlib_nullable_queue_transport)
+negative=(char_output_type bytes_output_type bytes_input_type owned_argument owned_depth owned_result try_argument try_depth try_result try_nullable_result nullable_literal_range nullable_variable_narrow nullable_identity)
+nullable_sources=(src/runtime/xl6_nullable_bool.c src/runtime/xl6_nullable_i64.c src/runtime/xl6_nullable_u64.c src/runtime/xl6_nullable_f32.c src/runtime/xl6_nullable_f64.c src/runtime/xl6_nullable_time.c src/runtime/xl6_nullable_char.c)
 run() {
     local name="$1"; shift
     if ! "$@" >"$OUT/$name.log" 2>&1; then
@@ -28,6 +31,7 @@ frozen_files() {
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_stack_native_contract.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_native_host.c test/support/stack_native.c
+    printf '%s\0' test/cases/xlir_nullable_scalar_native.c
     printf '%s\0' test/cases/xlir_module_product_oom_host.c
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
     for fixture in "${cases[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
@@ -58,6 +62,10 @@ native_probe() {
         test/support/stack_native.c src/runtime/xl6_stack.c \
         -no-pie -pthread -lm -o "$OUT/native" || return
     run native-vectors "$OUT/native" || return
+    run nullable-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_nullable_scalar_native.c \
+        test/support/stack_native.c src/runtime/xl6_stack.c "${nullable_sources[@]}" \
+        -no-pie -pthread -lm -o "$OUT/nullable-native" || return
+    run nullable-native-vectors "$OUT/nullable-native" || return
     local operation point terminal
     for operation in create reserve push peek clone trim owned-peek try-peek; do
         terminal=false
@@ -73,13 +81,15 @@ if ! native_probe; then failures+=(native); fi
 fixture() {
     local name="$1" source="test/cases/$1.xl" saved component object point terminal
     local objects=() components=() entry=()
-    [[ "$name" = xlir_stack_class_default_abi || "$name" = stdlib_stack_owned_continuation || "$name" = stdlib_stack_try_continuation ]] || entry=(-DXL6_TIME_USER_ENTRY)
+    [[ "$name" = xlir_stack_class_default_abi || "$name" = stdlib_stack_owned_continuation || "$name" = stdlib_stack_try_continuation || "$name" = stdlib_stack_nullable_continuation ]] || entry=(-DXL6_TIME_USER_ENTRY)
     run "$name.emit" "$CLI" cgen "$source" --inc-path "$OUT/include" --emit "$OUT/$name.c" || return
     run "$name.repeat" "$CLI" cgen "$source" --inc-path "$OUT/include" --emit "$OUT/$name.repeat.c" || return
     run "$name.deterministic" cmp "$OUT/$name.c" "$OUT/$name.repeat.c" || return
 
+    if [[ "$name" != xlir_nullable_scalar_no_resource && "$name" != stdlib_nullable_resource_transport && "$name" != stdlib_nullable_queue_transport ]]; then
         run "$name.contract" "$OUT/contract" "$source" "$OUT/$name.contract.c" || return
         run "$name.contract-equality" cmp "$OUT/$name.c" "$OUT/$name.contract.c" || return
+    fi
     if grep -Eq 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)' "$OUT/$name.c"; then return 1; fi
 
     run "$name.jit" "$CLI" run "$source" --inc-path "$OUT/include" || return
@@ -89,7 +99,7 @@ fixture() {
     saved="$(sed -n 's/^temporary files kept: //p' "$OUT/$name.aot-build.log")"
     [[ -n "$saved" && -f "$saved/xl6_xrt_impl.c" ]] || return 1
     run "$name.actual-native-equality" cmp "$saved/xl6_xrt_impl.c" "$OUT/$name.native.c" || return
-    run "$name.plan-sources" "$PY" -c 'import json,sys;p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\""));n=sys.argv[2];assert "src/runtime/xl6_stack.c" in p["Sources"] and "XRUNTIME_MODULE_TYPED_STACK" in p["NativeModules"];assert not any(s for s in p["Sources"] if any(k in s for k in ("xl6_buffer_","xl6_regex_","xl6_log_","xl6_process_")));print("\n".join(p["Sources"]))' "$OUT/$name.native-plan.log" "$name" || return
+    run "$name.plan-sources" "$PY" -c 'import json,sys;p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\""));n=sys.argv[2];families={"bool","i64","u64","f32","f64","time","char"};expected=families if n=="stdlib_stack_nullable_scalar" else {"i64"} if n in ("stdlib_stack_nullable_continuation","stdlib_nullable_resource_transport") else {n.removeprefix("stdlib_stack_nullable_")} if n.removeprefix("stdlib_stack_nullable_") in families else set();selected={s.removeprefix("src/runtime/xl6_nullable_").removesuffix(".c") for s in p["Sources"] if s.startswith("src/runtime/xl6_nullable_")};assert selected==expected,(selected,expected);assert n in ("xlir_nullable_scalar_no_resource","stdlib_nullable_resource_transport","stdlib_nullable_queue_transport") or ("src/runtime/xl6_stack.c" in p["Sources"] and "XRUNTIME_MODULE_TYPED_STACK" in p["NativeModules"]);assert not any(s for s in p["Sources"] if any(k in s for k in ("xl6_buffer_","xl6_regex_","xl6_log_","xl6_process_")));print("\n".join(p["Sources"]))' "$OUT/$name.native-plan.log" "$name" || return
     mapfile -t components <"$OUT/$name.plan-sources.log"
     for component in "${components[@]}"; do
         [[ "$component" = src/* && "$component" != *..* && -f "$component" ]] || return 1
@@ -104,7 +114,7 @@ fixture() {
     run "$name.closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
         "${entry[@]}" test/cases/xlir_time_text_closure_host.c "$OUT/$name.native.o" "${objects[@]}" -pthread -ldl -lm -o "$OUT/$name.closure" || return
     run "$name.closure" "$OUT/$name.closure" || return
-    if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values || "$name" = stdlib_stack_owned || "$name" = stdlib_stack_try_owned ]]; then
+    if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values || "$name" = stdlib_stack_owned || "$name" = stdlib_stack_try_owned || "$name" = stdlib_stack_nullable_scalar ]]; then
         run "$name.factory-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
             -DXL6_PRODUCT_USER_ENTRY test/cases/xlir_module_product_oom_host.c "$OUT/debug-host.o" -lxl "${libs[@]}" -o "$OUT/$name.oom" || return
         run "$name.factory-oom-normal" "$OUT/$name.oom" || return
@@ -132,6 +142,8 @@ reject_fixture() {
         try_depth) diagnostic='\[sem\].*Stack\.peekAt.*: target int, value string' ;;
         try_result) diagnostic='\[sem\].*: target nullable<bytes>, value nullable' ;;
         try_nullable_result) diagnostic='\[sem\].*: target string, value nullable' ;;
+        nullable_literal_range|nullable_variable_narrow) diagnostic='\[sem\].*Stack.push.*target nullable<int32>, value int' ;;
+        nullable_identity) diagnostic='\[sem\].*Stack.push.*target nullable<char>' ;;
     esac
     if "$CLI" cgen "test/fixtures/stack_value_contract/$name.xl" --emit "$target" >"$OUT/negative.$name.log" 2>&1; then return 1; fi
     [[ ! -e "$target" ]] && grep -Eq "$diagnostic" "$OUT/negative.$name.log" || return 1
@@ -143,7 +155,7 @@ done
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi
-"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":9,"NegativeFixtures":10,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: exact owned and bool/optional try results, nullable float32 and flow-refined string/bytes writeback, parameter isolation, continuation lifetime and pre-output result/effect mutation rejection. Native and calling-thread shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Legacy Into retirement, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
+"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":21,"NegativeFixtures":13,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: owned/try and seven tagged nullable stored profiles, canonical carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation rejection. Nullable value-only/raw queue exclude descriptors; AVL selects only its used descriptor. Native and calling-thread shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Legacy Into retirement, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
     "$OUT/results.json" "$checks" "$( [[ ! " ${failures[*]} " = *' inputs-changed '* ]] && printf true || printf false )" "${failures[@]}"
 printf 'Stack native Linux: %s successful checks, %s failed groups\n' "$checks" "${#failures[@]}"
 [[ ${#failures[@]} = 0 ]]

@@ -8040,6 +8040,42 @@ static int xl6IrBuildIntegerTargetSigned(XL6_IrIntegerTarget target)
            target == XL6_IR_INTEGER_TARGET_SIGNED_64;
 }
 
+int xl6IrContextualIntegerLiteralValue(const XL6_IrModule* module, XL6_IrNodeId expression,
+    XL6_IrTypeId targetType, uint64_t* magnitude, int* negative)
+{
+    const XL6_IrNode* literal;
+    const XL6_IrType* target;
+    uint64_t value, limit;
+    unsigned width;
+    int sign = 0;
+    if (module == NULL) return 0;
+    literal = xl6IrNodeGet(module, expression);
+    target = xl6IrTypeGet(&module->types, targetType);
+    if (target == NULL || target->kind != XL6_IR_TYPE_BUILTIN ||
+        target->nullAbi != XL6_IR_NULL_ABI_NONE || target->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        (target->cAbi != XL6_IR_C_ABI_I64 && target->cAbi != XL6_IR_C_ABI_U64) ||
+        target->integerTarget == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ||
+        (width = xl6IrBuildIntegerTargetWidth(target->integerTarget)) == 0) return 0;
+    if (literal != NULL && literal->kind == XL6_IR_NODE_UNARY && literal->childCount == 1 &&
+        (literal->opcode == XL6_IR_OPCODE_NEG || literal->opcode == XL6_IR_OPCODE_POS)) {
+        sign = literal->opcode == XL6_IR_OPCODE_NEG;
+        if (literal->firstChild >= module->childCount) return 0;
+        literal = xl6IrNodeGet(module, module->children[literal->firstChild]);
+    }
+    if (literal == NULL || literal->sourceKind != XL6_AST_INT ||
+        !xl6TypeParseIntegerMagnitude(literal->text, &value)) return 0;
+    if (xl6IrBuildIntegerTargetSigned(target->integerTarget))
+        limit = sign ? UINT64_C(1) << (width-1) : (UINT64_C(1) << (width-1))-1;
+    else {
+        if (sign) return 0;
+        limit = width == 64 ? UINT64_MAX : (UINT64_C(1) << width)-1;
+    }
+    if (value > limit) return 0;
+    if (magnitude != NULL) *magnitude = value;
+    if (negative != NULL) *negative = sign;
+    return 1;
+}
+
 /* Language integers share the normalized I64 execution carrier, but their
  * TypeIds retain width and signedness.  A frontend-selected lossless widening
  * must therefore still become an explicit SCALAR_CONVERT TypeId transition;
@@ -8927,6 +8963,13 @@ XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* ty
          type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
+    /* The canonical nullable shape is verified by the type pool. Its exact
+     * element TypeId remains part of every resource signature; this only
+     * admits the shared trivial carrier, not an arbitrary record/blob. */
+    if ( type->kind == XL6_IR_TYPE_NULLABLE && type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
+         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL && type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
+         type->paramCount == 1 && type->params != NULL && type->params[0] != XL6_IR_TYPE_INVALID )
+        return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY;
     if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          type->nullAbi == XL6_IR_NULL_ABI_NONE &&
          (type->cAbi == XL6_IR_C_ABI_BOOL ||
@@ -9865,13 +9908,21 @@ static XL6_IrTypeId xl6IrRuntimeResourceStorageTargetType(
 
 static int xl6IrRuntimeResourceInputCompatible(
     const XL6_IrModule* module, XL6_IrTypeId targetType,
-    XL6_IrTypeId sourceType)
+    XL6_IrTypeId sourceType, XL6_IrNodeId expression)
 {
     const XL6_IrType* target = xl6IrTypeGet(&module->types, targetType);
     const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceType);
+    /* A resource input is an expected-type boundary, just like a parameter
+     * or initializer. Preserve the exact nullable destination TypeId while
+     * allowing the existing scalar conversion followed by NULLABLE_WRAP.
+     * Do not reinterpret the unwrapped scalar as the stored carrier. */
+    if ( sourceType != targetType &&
+         xl6IrNullableScalarElementAbi(module, targetType) != XL6_IR_C_ABI_UNSUPPORTED )
+        return xl6IrRuntimeResourceInputCompatible(module, target->params[0], sourceType, expression);
     return target != NULL && source != NULL &&
         (sourceType == targetType ||
          xl6IrBuildCanScalarConvert(source, target) ||
+         xl6IrContextualIntegerLiteralValue(module, expression, targetType, NULL, NULL) ||
          (target->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
           xl6IrTypeCanBoxRuntimeXValue(module, sourceType)) ||
          xl6IrBuildClassAssignableTo(module, targetType, sourceType));
@@ -11885,7 +11936,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                             intrinsic.payloadType);
                     if ( inputTarget != XL6_IR_TYPE_INVALID ) {
                         compatible = xl6IrRuntimeResourceInputCompatible(
-                            module, inputTarget, operandTypes[i]);
+                            module, inputTarget, operandTypes[i], operands[i]);
                         if ( compatible ) operandTypes[i] = inputTarget;
                     } else if ( storageTarget != XL6_IR_TYPE_INVALID ) {
                         const XL6_IrNode* target =
@@ -17508,6 +17559,19 @@ int xl6IrTaggedNullableScalarSupported(XL6_IrCAbi abi)
     return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
            abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_F32 ||
            abi == XL6_IR_C_ABI_CHAR_U32 || abi == XL6_IR_C_ABI_TIME_I64;
+}
+
+XL6_IrCAbi xl6IrNullableScalarElementAbi(const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types, typeId) : NULL;
+    const XL6_IrType* element;
+    if ( type == NULL || type->kind != XL6_IR_TYPE_NULLABLE || type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
+         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || type->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
+         type->paramCount != 1 || type->params == NULL ||
+         (element = xl6IrTypeGet(&module->types, type->params[0])) == NULL ||
+         element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || element->nullAbi != XL6_IR_NULL_ABI_NONE ||
+         !xl6IrTaggedNullableScalarSupported(element->cAbi) ) return XL6_IR_C_ABI_UNSUPPORTED;
+    return element->cAbi;
 }
 
 XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTypeId typeId)
@@ -31348,7 +31412,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               (operand->type != inputTarget ||
                                !xl6IrRuntimeResourceInputCompatible(
                                    module, inputTarget,
-                                   expression->storageType))) ||
+                                   expression->storageType, operand->expression))) ||
                              (storageTarget != XL6_IR_TYPE_INVALID &&
                               (expression->kind != XL6_IR_NODE_NAME ||
                                expression->storageType != storageTarget)) )

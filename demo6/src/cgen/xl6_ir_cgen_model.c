@@ -633,3 +633,17 @@ static const char* xl6IrCgenExternParameterType(
             ? "const char*" : "char*";
     return xl6IrCgenType(module, target->parameterTypes[parameter]);
 }
+
+static const char* xl6IrCgenNullableScalarCarrier(const XL6_IrModule* module, XL6_IrTypeId type)
+{
+    switch ( xl6IrNullableScalarElementAbi(module, type) ) {
+    case XL6_IR_C_ABI_BOOL: return "XL6_NullableBoolV1";
+    case XL6_IR_C_ABI_I64: return "XL6_NullableI64V1";
+    case XL6_IR_C_ABI_U64: return "XL6_NullableU64V1";
+    case XL6_IR_C_ABI_F32: return "XL6_NullableF32V1";
+    case XL6_IR_C_ABI_F64: return "XL6_NullableF64V1";
+    case XL6_IR_C_ABI_TIME_I64: return "XL6_NullableTimeV1";
+    case XL6_IR_C_ABI_CHAR_U32: return "XL6_NullableCharV1";
+    default: return NULL;
+    }
+}

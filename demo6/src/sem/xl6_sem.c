@@ -2299,61 +2299,9 @@ static int xl6SemFloatTypeBits(const char* name)
     return 0;
 }
 
-static int xl6SemLiteralDigitValue(char ch)
-{
-    if ( ch >= '0' && ch <= '9' ) {
-        return ch - '0';
-    }
-    if ( ch >= 'a' && ch <= 'f' ) {
-        return ch - 'a' + 10;
-    }
-    if ( ch >= 'A' && ch <= 'F' ) {
-        return ch - 'A' + 10;
-    }
-    return -1;
-}
-
 static int xl6SemParseUIntLiteralText(const char* text, uint64* outValue)
 {
-    const char* p;
-    int base;
-    uint64 value;
-
-    if ( text == NULL || text[0] == '\0' ) {
-        return 0;
-    }
-    p = text;
-    base = 10;
-    if ( p[0] == '0' && p[1] == 'x' ) {
-        base = 16;
-        p += 2;
-    } else if ( p[0] == '0' && p[1] == 'o' ) {
-        base = 8;
-        p += 2;
-    } else if ( p[0] == '0' && p[1] == 'b' ) {
-        base = 2;
-        p += 2;
-    }
-
-    value = 0;
-    while ( *p != '\0' ) {
-        int digit;
-
-        if ( *p == '_' ) {
-            ++p;
-            continue;
-        }
-        digit = xl6SemLiteralDigitValue(*p);
-        if ( digit < 0 || digit >= base || value > (~(uint64)0 - (uint64)digit) / (uint64)base ) {
-            return 0;
-        }
-        value = value * (uint64)base + (uint64)digit;
-        ++p;
-    }
-    if ( outValue != NULL ) {
-        *outValue = value;
-    }
-    return 1;
+    return xl6TypeParseIntegerMagnitude(text, outValue);
 }
 
 static int xl6SemExprIntegerLiteralValue(const XL6_AstNode* expr, uint64* outMagnitude, int* outNegative)

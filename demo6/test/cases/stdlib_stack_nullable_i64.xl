@@ -1,0 +1,9 @@
+func main(...) as int
+    Stack<int?> values = Stack::<int?>()
+    assert(values.push(null) and values.push(73))
+    auto found, value = values.tryPop()
+    assert(found and value != null and value == 73)
+    auto foundNull, nullValue = values.tryPop()
+    assert(foundNull and nullValue == null)
+    return 0
+end

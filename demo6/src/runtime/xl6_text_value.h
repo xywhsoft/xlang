@@ -13,6 +13,15 @@
 
 struct xlir_closure;
 struct xfuture;
+/* Immutable, allocation-free physical descriptors, selected independently.
+ * They encode null presence, not raw padding or source-language TypeIds. */
+XL6_TEXT_API const xrttype* xl6NullableBoolTypeV1(void);
+XL6_TEXT_API const xrttype* xl6NullableI64TypeV1(void);
+XL6_TEXT_API const xrttype* xl6NullableU64TypeV1(void);
+XL6_TEXT_API const xrttype* xl6NullableF32TypeV1(void);
+XL6_TEXT_API const xrttype* xl6NullableF64TypeV1(void);
+XL6_TEXT_API const xrttype* xl6NullableTimeTypeV1(void);
+XL6_TEXT_API const xrttype* xl6NullableCharTypeV1(void);
 /* Exact Buffer value/range adapters; raw payload remains an XRT xbuffer. */
 XL6_TEXT_API void* xl6BufferCreateV1(void);
 XL6_TEXT_API void* xl6BufferCreateReserveV1(int64_t capacity);

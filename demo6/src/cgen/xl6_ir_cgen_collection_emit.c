@@ -306,7 +306,7 @@ static int xl6IrCgenEmitSpecialQueueRuntime(
         arrayValue = module->operands[instruction->firstOperand + 1];
         arrayDefinition = xl6IrCgenValueDefinition(
             module, arrayValue, NULL);
-        payloadRuntimeType = xl6IrCgenAvlRuntimeTypeExpr(payload);
+        payloadRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
         if ( arrayDefinition == NULL || payloadRuntimeType == NULL ||
              !xl6IrCgenExactArrayPayloadTypeAbi(
                  module, arrayDefinition->type,
@@ -709,7 +709,7 @@ static int xl6IrCgenEmitStackRuntime(
     payloadType = xl6IrCgenType(module, instruction->payloadType);
     payloadAbi = xl6IrCgenChannelPayloadAbiToken(
         instruction->runtimeResourcePayloadAbi);
-    runtimeType = xl6IrCgenAvlRuntimeTypeExpr(payload);
+    runtimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
     if ( payloadType == NULL || payloadAbi == NULL || runtimeType == NULL ) return -1;
 #define XL6_IR_CGEN_STACK_COMMON_ARGS                                      \
     (unsigned long long)stack->typeValueId,                                \
@@ -863,8 +863,8 @@ static int xl6IrCgenEmitAvlRuntime(
         instruction->runtimeResourceKeyPayloadAbi);
     valuePayloadAbi = xl6IrCgenChannelPayloadAbiToken(
         instruction->runtimeResourcePayloadAbi);
-    keyRuntimeType = xl6IrCgenAvlRuntimeTypeExpr(key);
-    valueRuntimeType = xl6IrCgenAvlRuntimeTypeExpr(value);
+    keyRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->runtimeResourceKeyType);
+    valueRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
     keyCType = xl6IrCgenType(module, tree->params[0]);
     valueCType = xl6IrCgenType(module, tree->params[1]);
     if ( keyPayloadAbi == NULL || valuePayloadAbi == NULL ||

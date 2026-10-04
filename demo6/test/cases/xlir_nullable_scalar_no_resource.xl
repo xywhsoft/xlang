@@ -1,0 +1,11 @@
+func unchanged(int? value) as int?
+    return value
+end
+func main(...) as int
+    int? value = null
+    assert(unchanged(value) == null)
+    value = 73
+    int? copied = unchanged(value)
+    assert(copied != null and copied == 73)
+    return 0
+end

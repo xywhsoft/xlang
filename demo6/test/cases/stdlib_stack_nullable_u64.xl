@@ -1,0 +1,11 @@
+func main(...) as int
+    Stack<uint64?> values = Stack::<uint64?>()
+    assert(values.push(null) and values.push(18446744073709551615))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == 18446744073709551615)
+    auto hasNull, none = values.tryPop()
+    assert(hasNull and none == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    return 0
+end
