@@ -23,6 +23,7 @@
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_value_admission.h"
+#include "src/runtime/xl6_nominal_admission.h"
 #include "src/runtime/xl6_array_iterator.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"

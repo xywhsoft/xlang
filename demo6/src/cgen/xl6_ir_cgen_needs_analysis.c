@@ -249,12 +249,6 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                     "XLIR C emitter nominal identity set is unresolved");
             needs->needsNominalIdentityRuntime = 1;
             needs->needsXValueRuntime = 1;
-            if ( set->kind == XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID )
-                needs->needsXValueTypeIdentityRuntime = 1;
-            else {
-                needs->needsStringViews = 1;
-                needs->needsXValueObjectRuntime = 1;
-            }
             if ( module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED )
                 needs->needsErrorRuntime = 1;
@@ -280,6 +274,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsXValueCollectionCheckedRebindRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsErrorRuntime = 1;
+            if (module->instructions[i].collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL)
+                needs->needsNominalIdentityRuntime = 1;
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenCheckedIntegerRuntimeOpIs(

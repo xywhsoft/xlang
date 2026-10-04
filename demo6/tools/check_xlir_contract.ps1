@@ -1284,11 +1284,22 @@ foreach ( $required in @(
     "xlir_xvalue_type_id(item) != exactTypeId",
     "nullable string cast result allocation failed",
     "xl6IrCgenEmitNominalIdentityRuntime", "xlir_nominal_set_",
-    "switch (identity)", "XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_NULLABLE"
+    "static const XL6_NominalAdmissionV1", "xl6ValueAdmitsNominalV1(",
+    "__xl_runtime/xl6_nominal_admission_abi.h", "XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_NULLABLE"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical closed Cast ABI emission: $required"
     }
+}
+foreach ($retired in @('static bool xlir_nominal_set_', 'xlir_nominal_runtime_tag')) {
+    if ($cEmitter.Contains($retired)) { throw "Retired generated nominal matcher remains: $retired" }
+}
+foreach ($required in @('collectionAdmissionAbi','collectionAdmissionIdentitySet','collectionAdmissionNullable',
+    'XL6_IR_COLLECTION_ADMISSION_PRIMITIVE','XL6_IR_COLLECTION_ADMISSION_NOMINAL')) {
+    if (!$header.Contains($required)) { throw "Missing closed collection element admission: $required" }
+}
+foreach ($required in @('xl6IrCollectionAdmissionForPayload','XLIR element admission is attached to an unrelated instruction')) {
+    if (!$source.Contains($required)) { throw "Missing independent collection admission verifier: $required" }
 }
 foreach ( $required in @(
     "xlir_checked_cast_abi.xl", "xvalue-cast-checked", "adjacent ERROR_TEST",

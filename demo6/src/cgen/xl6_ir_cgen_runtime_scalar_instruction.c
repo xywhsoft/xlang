@@ -608,9 +608,18 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                              module, instruction) || resultType == NULL ||
                         (collectionTag = xl6IrCgenCollectionXValueTag(
                               instruction->collectionAbi)) == 0 || payloadType == NULL ||
-                         payloadType->xvalueAdmissionAbi == XL6_VALUE_ADMIT_NONE )
+                         instruction->collectionAdmissionAbi == XL6_IR_COLLECTION_ADMISSION_NONE )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter checked collection projection ABI is unresolved");
+                    if (instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL) {
+                        xl6OutputPrintf(out,
+                            "    v%u = xl6CollectionCheckedNominalTakeV1(v%u, %d, &xlir_nominal_set_%u, %s);\n",
+                            (unsigned int)instruction->result,
+                            (unsigned int)module->operands[instruction->firstOperand],collectionTag,
+                            (unsigned int)instruction->collectionAdmissionIdentitySet,
+                            instruction->collectionAdmissionNullable ? "true" : "false");
+                        return !xl6OutputHasFailed(out);
+                    }
                     xl6OutputPrintf(out,
                         "    v%u = xl6CollectionCheckedTakeV1(v%u, %d, %u, %s, 0x%016llXULL);\n",
                         (unsigned int)instruction->result,

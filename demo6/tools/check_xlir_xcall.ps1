@@ -25,7 +25,7 @@ function Invoke-XlirStrict([string]$cPath, [string]$hostPath, [string]$exePath, 
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-O0',
         '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
-        '-I.','-Ibuild/test')
+        '-I.','-Ibuild/test','-Irelease','-Irelease/include')
     if ($preincluded) { $flags += '-DXLIR_GENERATED_MODULE_PREINCLUDED' }
     & gcc @flags -include $cPath $hostPath release/xl.dll -o $exePath
     if ($LASTEXITCODE -ne 0) { throw "XCall strict C compilation failed: $cPath" }
@@ -127,8 +127,7 @@ if ( $LASTEXITCODE -ne 0 ) {
 $generatedText = [System.IO.File]::ReadAllText(
     $generated, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xrtCallableCreate(",
-    "xrtValueCallableTake(",
+    "xl6ClosureRuntimeV1Get()->Box",
     "xrtValueInvoke(",
     "xrtCallResultSetTake(",
     "xlir_closure_to_xvalue_scalar(",
@@ -198,8 +197,14 @@ foreach ( $boxing in @("xvalue-bool", "xvalue-i64", "xvalue-f64") ) {
 }
 if ( @($scalarModule.functions | Where-Object {
          $_.kind -eq 4 -and $_.errorAbi -eq "may-raise"
-     }).Count -ne 1 ) {
-    throw "XLIR scalar xcall lost its may-raise named-adapter effect ABI"
+     }).Count -ne 3 -or @($scalarModule.functions | Where-Object {
+         $_.kind -eq 2 -and $_.errorAbi -eq "may-raise"
+     }).Count -ne 1 -or @($scalarModule.functions | Where-Object {
+         $_.kind -eq 2 -and $_.errorAbi -eq "no-raise"
+     }).Count -ne 2 ) {
+    # All three adapters own their invocation/cleanup boundary; only the
+    # explicitly throwing language implementation has a throwing body.
+    throw "XLIR scalar xcall lost its distinct body/owned-adapter effect ABI"
 }
 
 Invoke-XlirC $scalarSource $scalarGenerated
@@ -462,13 +467,18 @@ if ( $LASTEXITCODE -ne 0 ) {
 $classGeneratedText = [System.IO.File]::ReadAllText(
     $classGenerated, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xrtCallableCreate(", "xrtValueCallableTake(", "xrtValueInvoke(",
-    "xlir_xvalue_dynamic_call_owned(", "xlir_nominal_set_1_matches(",
+    "xl6ClosureRuntimeV1Get()->Box", "xrtValueInvoke(",
+    "xlir_xvalue_dynamic_call_owned(", "xl6ValueAdmitsNominalV1(",
+    "static const XL6_NominalAdmissionV1 xlir_nominal_set_",
     "dynamic value does not match requested nominal target"
 ) ) {
     if ( ! $classGeneratedText.Contains($required) ) {
         throw "XLIR nominal-class xcall generated C is incomplete: $required"
     }
+}
+if ($classGeneratedText.Contains('static bool xlir_nominal_set_') -or
+    $classGeneratedText.Contains('xlir_nominal_runtime_tag')) {
+    throw 'XLIR nominal-class xcall still contains a per-artifact matcher'
 }
 $classAdapterTypeIds = @([regex]::Matches(
     $classGeneratedText, 'static bool xlir_xcall_entry_t([0-9]+)\(') |

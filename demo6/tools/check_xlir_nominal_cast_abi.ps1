@@ -95,10 +95,14 @@ foreach ( $cast in $casts ) {
     if ( $cast.castErrorAbiName -ne $expectedEffect ) {
         throw "Typed XLIR nominal cast has the wrong effect: $($cast.castAbiName)"
     }
+    # A no-raise cast predicate is independent from acquiring/releasing its
+    # operand owner. The current IR gives fallible evaluation its own plan;
+    # do not mistake that cleanup contract for a throwing nominal match.
+    $evaluationMayRaise = $cast.evaluationErrorAbiName -eq 'may-raise'
     $plans = @($typed.exitPlans | Where-Object {
         $_.origin -eq $cast.id -and $_.kind -eq 4
     })
-    Assert-Count $plans $(if ($mayRaise) { 1 } else { 0 }) `
+    Assert-Count $plans $(if ($mayRaise -or $evaluationMayRaise) { 1 } else { 0 }) `
         "Typed XLIR nominal cast has the wrong THROW exit-plan count"
 }
 
@@ -165,10 +169,10 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $generated = [System.IO.File]::ReadAllText($generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static bool xlir_nominal_set_",
-    "switch (identity)",
-    "xlir_nominal_runtime_tag(source)",
-    "xrtValueType(source) != 12",
+    "static const XL6_NominalAdmissionV1 xlir_nominal_set_",
+    "static const uint64_t xlir_nominal_ids_",
+    "xl6ValueAdmitsNominalV1(",
+    "__xl_runtime/xl6_nominal_admission_abi.h",
     "dynamic value does not match requested nominal target",
     "xrtValueRetain(xrtValueNull())",
     "xlir_pdispatch_"
@@ -176,6 +180,10 @@ foreach ( $required in @(
     if ( ! $generated.Contains($required) ) {
         throw "XLIR nominal cast mechanical C emission is incomplete: $required"
     }
+}
+
+foreach ($retired in @('static bool xlir_nominal_set_','switch (identity)','xlir_nominal_runtime_tag')) {
+    if ($generated.Contains($retired)) { throw "Retired per-artifact nominal matcher: $retired" }
 }
 
 Push-Location $Root
