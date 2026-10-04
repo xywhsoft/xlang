@@ -19,7 +19,4 @@ XL6_TEXT_API bool xl6StackEqualsV1(const xvalue*, const xvalue*, uint64_t, uint6
 XL6_TEXT_API bool xl6StackTrimV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API void xl6StackClearV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API int64_t xl6StackSizeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);
-/* Resident certificate for BOTH the Value shell and its actual counted
- * wrapper. Caller holds an ownership freeze; unknown children stay refused. */
-XL6_TEXT_API const xrtownershipadapterv1* xl6StackOwnershipAdapterV1(xrtownershipref);
 #endif

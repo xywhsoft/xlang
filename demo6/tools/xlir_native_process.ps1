@@ -2,7 +2,7 @@ $script:XlirNativeProcessImplementation = $PSCommandPath
 if ($script:XlirNativeProcessHelpersLoaded) { return }
 $script:XlirNativeProcessHelpersLoaded = $true
 
-function New-XlirCStringDefine([string]$Name, [string]$Value) {
+function New-XlirCStringDefine([string]$Name, [string]$Value, [switch]$RawArgument) {
     if ($Name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or
         $Value.IndexOfAny([char[]]@([char]0, [char]10, [char]13, [char]34)) -ge 0) {
         throw 'Invalid C string preprocessor definition'
@@ -10,7 +10,9 @@ function New-XlirCStringDefine([string]$Name, [string]$Value) {
     $escaped = $Value.Replace('\', '\\')
     # Windows PowerShell 5 removes unescaped quotes while serializing native
     # arguments. PowerShell 7 uses the standard argument-passing contract.
-    $quote = if ($PSVersionTable.PSEdition -eq 'Desktop') { '\"' } else { '"' }
+    # ProcessStartInfo/ArgumentList callers require an unencoded raw argument;
+    # their own Windows command-line serializer performs transport escaping.
+    $quote = if (!$RawArgument -and $PSVersionTable.PSEdition -eq 'Desktop') { '\"' } else { '"' }
     return "-D$Name=$quote$escaped$quote"
 }
 

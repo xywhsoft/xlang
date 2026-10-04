@@ -23,7 +23,7 @@ try {
         'test/cases/stdlib_stack_ownership_tcc_host.c','test/cases/xlir_one_shot_tcc_host.c',
         'test/cases/xlir_async_module_lifetime_host.c','test/support/stack_native.c',
         'test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',$Fixture,
-        'E:/software/tcc/tcc.exe')
+        'E:/software/tcc/tcc.exe',$script:XlirNativeProcessImplementation)
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) + @($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
     })
@@ -58,7 +58,7 @@ try {
     foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
         $name="discovery-$lane"; $binary="$outPath/$name.exe"
         $sources=@('test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',
-            'src/runtime/xl6_stack.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c',
+            'src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c',
             'src/runtime/xl6_ownership_plan.c','src/api/xl_foreign_error.c')
         if ($lane -eq 'tcc') {
             Run "$name.build" 'E:/software/tcc/tcc.exe' (@('-std=c11','-Wall','-Werror','-I.','-Irelease') +
@@ -77,7 +77,7 @@ try {
     foreach ($level in @(0,2)) {
         $name = "native-O$level"; $binary = "$outPath/$name.exe"
         Run "$name.build" $gcc ($strict + @("-O$level",'test/cases/stdlib_stack_ownership_host.c',
-            'test/support/stack_native.c','src/runtime/xl6_stack.c','src/runtime/xl6_ownership_plan.c','-o',$binary))
+            'test/support/stack_native.c','src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c','src/runtime/xl6_ownership_plan.c','-o',$binary))
         Run "$name.vectors" $binary @()
         foreach ($stage in @('create','refresh','commit')) {
             for ($point=0; $point -le 64; ++$point) {
@@ -100,7 +100,7 @@ try {
     foreach ($level in @(0,2)) {
         $name = "module-O$level"; $binary = "$outPath/$name.exe"
         Run "$name.build" $gcc ($strict + @("-O$level",'-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',
-            (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outPath.Replace('\','/')),
+            (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outPath.Replace('\','/') -RawArgument),
             'test/cases/stdlib_stack_ownership_tcc_host.c') + $objects + $libraries + @('-o',$binary))
         foreach ($mode in 0..3) { Run "$name.mode-$mode" $binary @("$mode") }
     }

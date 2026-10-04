@@ -65,6 +65,20 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SlotRuntimeV1GetAlmost")==XL6_ARTIFACT_RUNTIME_COUNT);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureLooksLikeRuntime")==XL6_ARTIFACT_RUNTIME_COUNT);
     CHECK(xl6ArtifactRuntimeSymbolOwner(NULL)==XL6_ARTIFACT_RUNTIME_COUNT);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceOwnershipAdapterV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayCreateV1")==XL6_ARTIFACT_ARRAY_TYPED);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackCreateV1")==XL6_ARTIFACT_STACK);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackOwnershipAdapterV1")==XL6_ARTIFACT_RUNTIME_COUNT);
+    XL6_ArtifactRuntimeSet sequence=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeClosePlan(&sequence,&plan) && plan.sourceCount==1);
+    XL6_ArtifactRuntimeSet array=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_ARRAY_TYPED);
+    CHECK(xl6ArtifactRuntimeClosePlan(&array,&plan) && plan.sourceCount==2);
+    CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_STACK));
+    XL6_ArtifactRuntimeSet stack=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_STACK);
+    CHECK(xl6ArtifactRuntimeClosePlan(&stack,&plan) && plan.sourceCount==2);
+    CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED));
     return 1;
 }
 

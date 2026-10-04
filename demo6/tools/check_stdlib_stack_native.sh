@@ -59,11 +59,11 @@ run contract-build "$CC" "${strict[@]}" test/cases/xlir_stack_native_contract.c 
 run debug-host-build "$CC" "${strict[@]}" "${sanitize[@]}" -c test/support/module_product_memory.c -o "$OUT/debug-host.o"
 native_probe() {
     run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/stdlib_stack_native_host.c \
-        test/support/stack_native.c src/runtime/xl6_stack.c \
+        test/support/stack_native.c src/runtime/xl6_sequence.c src/runtime/xl6_stack.c \
         -no-pie -pthread -lm -o "$OUT/native" || return
     run native-vectors "$OUT/native" || return
     run nullable-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_nullable_scalar_native.c \
-        test/support/stack_native.c src/runtime/xl6_stack.c "${nullable_sources[@]}" \
+        test/support/stack_native.c src/runtime/xl6_sequence.c src/runtime/xl6_stack.c "${nullable_sources[@]}" \
         -no-pie -pthread -lm -o "$OUT/nullable-native" || return
     run nullable-native-vectors "$OUT/nullable-native" || return
     local operation point terminal
@@ -100,7 +100,7 @@ fixture() {
     saved="$(sed -n 's/^temporary files kept: //p' "$OUT/$name.aot-build.log")"
     [[ -n "$saved" && -f "$saved/xl6_xrt_impl.c" ]] || return 1
     run "$name.actual-native-equality" cmp "$saved/xl6_xrt_impl.c" "$OUT/$name.native.c" || return
-    run "$name.plan-sources" "$PY" -c 'import json,sys;p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\""));n=sys.argv[2];families={"bool","i64","u64","f32","f64","time","char"};expected=families if n=="stdlib_stack_nullable_scalar" else {"i64"} if n in ("stdlib_stack_nullable_continuation","stdlib_nullable_resource_transport") else {n.removeprefix("stdlib_stack_nullable_")} if n.removeprefix("stdlib_stack_nullable_") in families else set();selected={s.removeprefix("src/runtime/xl6_nullable_").removesuffix(".c") for s in p["Sources"] if s.startswith("src/runtime/xl6_nullable_")};assert selected==expected,(selected,expected);assert n in ("xlir_nullable_scalar_no_resource","stdlib_nullable_resource_transport","stdlib_nullable_queue_transport") or ("src/runtime/xl6_stack.c" in p["Sources"] and "XRUNTIME_MODULE_TYPED_STACK" in p["NativeModules"]);assert not any(s for s in p["Sources"] if any(k in s for k in ("xl6_buffer_","xl6_regex_","xl6_log_","xl6_process_")));print("\n".join(p["Sources"]))' "$OUT/$name.native-plan.log" "$name" || return
+    run "$name.plan-sources" "$PY" -c 'import json,sys;p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\""));n=sys.argv[2];families={"bool","i64","u64","f32","f64","time","char"};expected=families if n=="stdlib_stack_nullable_scalar" else {"i64"} if n in ("stdlib_stack_nullable_continuation","stdlib_nullable_resource_transport") else {n.removeprefix("stdlib_stack_nullable_")} if n.removeprefix("stdlib_stack_nullable_") in families else set();selected={s.removeprefix("src/runtime/xl6_nullable_").removesuffix(".c") for s in p["Sources"] if s.startswith("src/runtime/xl6_nullable_")};assert selected==expected,(selected,expected);assert n in ("xlir_nullable_scalar_no_resource","stdlib_nullable_resource_transport","stdlib_nullable_queue_transport") or ("src/runtime/xl6_stack.c" in p["Sources"] and "src/runtime/xl6_sequence.c" in p["Sources"] and "src/runtime/xl6_array.c" not in p["Sources"] and "XRUNTIME_MODULE_TYPED_STACK" in p["NativeModules"]);assert not any(s for s in p["Sources"] if any(k in s for k in ("xl6_buffer_","xl6_regex_","xl6_log_","xl6_process_")));print("\n".join(p["Sources"]))' "$OUT/$name.native-plan.log" "$name" || return
     mapfile -t components <"$OUT/$name.plan-sources.log"
     for component in "${components[@]}"; do
         [[ "$component" = src/* && "$component" != *..* && -f "$component" ]] || return 1

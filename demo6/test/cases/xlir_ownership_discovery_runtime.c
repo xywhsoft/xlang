@@ -1,6 +1,7 @@
 /* Real resident Class/lease/Stack storage; the native owner models physical
  * acquire/release/pin counts. Actual compiler/TCC module gates are separate. */
 #include "src/runtime/xl6_stack.h"
+#include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_code_lease.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
@@ -64,7 +65,7 @@ static bool resolve(xrtownershipref ref,void* context,const xrtownershipadapterv
     if(ref.Ops==&owner_ops){size_t count;if(!owner_count(ref.Data,&count))return false;*adapter=&owner_adapter;return true;}
     *adapter=xl6ClassOwnershipAdapterV1(ref);
     if(!*adapter)*adapter=xl6CodeLeaseOwnershipAdapterV1(ref);
-    if(!*adapter)*adapter=xl6StackOwnershipAdapterV1(ref);
+    if(!*adapter)*adapter=xl6SequenceOwnershipAdapterV1(ref);
     if(!*adapter)*adapter=xrtValueOwnershipAdapterV1(ref);
     return *adapter!=NULL;
 }
