@@ -9,6 +9,9 @@ XL6_TEXT_API xvalue* xl6StackCreateV1(uint64_t, uint64_t, unsigned int, size_t, 
 XL6_TEXT_API bool xl6StackPushV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const void*);
 XL6_TEXT_API bool xl6StackPopOrPeekV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, void*, bool);
 XL6_TEXT_API bool xl6StackPeekAtV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*);
+/* Output is one empty initialized SSA owner of the exact payload. Failure
+ * preserves it and sets the thread error; success owns the moved/copied item. */
+XL6_TEXT_API void xl6StackTakeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool);
 XL6_TEXT_API bool xl6StackReserveV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t);
 XL6_TEXT_API xvalue* xl6StackCloneV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API bool xl6StackEqualsV1(const xvalue*, const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);

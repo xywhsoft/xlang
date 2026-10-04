@@ -33,6 +33,9 @@ static void memoryFault(const char* operation, size_t point)
     else if (!strcmp(operation,"reserve")) ok = xl6StackReserveV1(stack,TEXT_ARGS,32768);
     else if (!strcmp(operation,"push")) ok = xl6StackPushV1(stack,TEXT_ARGS,&item);
     else if (!strcmp(operation,"peek")) ok = xl6StackPeekAtV1(stack,TEXT_ARGS,0,&output);
+    else if (!strcmp(operation,"owned-peek")) {
+        xl6StackTakeV1(stack,TEXT_ARGS,0,&output,false); ok = !xrtGetError();
+    }
     else if (!strcmp(operation,"clone")) ok = (created=xl6StackCloneV1(stack,TEXT_ARGS)) != NULL;
     else if (!strcmp(operation,"trim")) ok = xl6StackTrimV1(stack,TEXT_ARGS);
     else abort();
@@ -42,7 +45,7 @@ static void memoryFault(const char* operation, size_t point)
     assert(hit ? !ok && xrtErrorKind(xrtGetError()) == XERR_MEMORY : ok && !xrtGetError());
     xerror* failure = xrtTakeError();
     assert(xl6StackSizeV1(stack,TEXT_ARGS,false) == (ok && !strcmp(operation,"push") ? 2 : 1));
-    if (hit && !strcmp(operation,"peek"))
+    if (hit && (!strcmp(operation,"peek") || !strcmp(operation,"owned-peek")))
         assert(output.Size == 9 && !memcmp(output.Data,"unchanged",9));
     assert(xl6StackPeekAtV1(stack,TEXT_ARGS,0,&output)); exact(output);
     xrtTypeDropValue(xrtTypeStringView(),&output);
@@ -106,6 +109,15 @@ static void vectors(void)
     valueVectors();
     xvalue* stack = xl6StackCreateV1(TEXT_ARGS); assert(stack);
     xstrview input = {"a\0b",3}, output = {0};
+    xl6StackTakeV1(stack,TEXT_ARGS,0,&output,true);
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE && !output.Data && !output.Size); xrtClearError();
+    assert(xl6StackPushV1(stack,TEXT_ARGS,&input));
+    xl6StackTakeV1(stack,TEXT_ARGS,0,&output,false); assert(!xrtGetError()); exact(output);
+    xrtTypeDropValue(xrtTypeStringView(),&output);
+    assert(xrtMemDebugFailAfter(0));
+    xl6StackTakeV1(stack,TEXT_ARGS,0,&output,true);
+    assert(!xrtGetError() && !xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); exact(output);
+    xrtTypeDropValue(xrtTypeStringView(),&output);
     assert(xl6StackPushV1(stack,TEXT_ARGS,&input));
     assert(xl6StackPeekAtV1(stack,TEXT_ARGS,0,&output)); exact(output);
     xvalue* clone = xl6StackCloneV1(stack,TEXT_ARGS); assert(clone);

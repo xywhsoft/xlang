@@ -157,6 +157,10 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRIM,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_COUNT,
+    /* Exact owned/value results, never writable caller arguments. */
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY,
     /* AvlTree<K,V> is deliberately not encoded as a one-payload resource.
      * Every operation carries independent key/value transfer contracts plus
@@ -1628,6 +1632,9 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STACK_TRIM,
        XL6_IR_RUNTIME_STACK_CLEAR,
        XL6_IR_RUNTIME_STACK_COUNT,
+       XL6_IR_RUNTIME_STACK_POP,
+       XL6_IR_RUNTIME_STACK_PEEK,
+       XL6_IR_RUNTIME_STACK_PEEK_AT,
        XL6_IR_RUNTIME_STACK_CAPACITY,
        XL6_IR_RUNTIME_AVL_TREE_CREATE,
        XL6_IR_RUNTIME_AVL_TREE_SET,

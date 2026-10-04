@@ -513,6 +513,13 @@ static int xl6IrCgenRuntimeStackAbi(
     case XL6_IR_RUNTIME_STACK_CLONE:
         return instruction->operandCount == 1 &&
                instruction->type == stackTypeId;
+    case XL6_IR_RUNTIME_STACK_POP:
+    case XL6_IR_RUNTIME_STACK_PEEK:
+        return instruction->operandCount == 1 && instruction->type == instruction->payloadType;
+    case XL6_IR_RUNTIME_STACK_PEEK_AT:
+        return instruction->operandCount == 2 && instruction->type == instruction->payloadType &&
+               second != NULL && xl6IrTypeGet(&module->types, second->type) != NULL &&
+               xl6IrTypeGet(&module->types, second->type)->cAbi == XL6_IR_C_ABI_I64;
     case XL6_IR_RUNTIME_STACK_EQUALS:
         return instruction->operandCount == 2 && second != NULL &&
                second->type == stackTypeId &&
@@ -729,6 +736,23 @@ static int xl6IrCgenEmitStackRuntime(
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1],
             (unsigned int)module->operands[instruction->firstOperand + 2]);
+        break;
+    case XL6_IR_RUNTIME_STACK_POP:
+    case XL6_IR_RUNTIME_STACK_PEEK:
+    case XL6_IR_RUNTIME_STACK_PEEK_AT:
+        /* Like a physical return assignment, each evaluation replaces the
+         * consumed SSA spelling. It must not feed a stale prior-iteration
+         * pointer into the initialized-output native ABI. */
+        xl6OutputPrintf(out, "    v%u = (%s){0};\n",
+            (unsigned int)instruction->result, payloadType);
+        xl6OutputPrintf(out,
+            "    xl6StackTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, ",
+            (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
+        if ( instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_AT )
+            xl6OutputPrintf(out, "v%u", (unsigned int)module->operands[instruction->firstOperand + 1]);
+        else xl6OutputPuts("0", out);
+        xl6OutputPrintf(out, ", &v%u, %s);\n", (unsigned int)instruction->result,
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_POP ? "true" : "false");
         break;
     case XL6_IR_RUNTIME_STACK_RESERVE:
         xl6OutputPrintf(out,

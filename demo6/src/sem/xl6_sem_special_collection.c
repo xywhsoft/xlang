@@ -86,6 +86,19 @@ static int xl6SemCheckSpecialCollectionValueArg(
     const char* message)
 {
     if ( expr != NULL && targetType != NULL && xl6SemExprCanMatchParamType(ctx, expr, targetType) ) {
+        /* A generic method is an expected-type boundary just like a resolved
+         * parameter. Preserve the validated literal type before Typed IR;
+         * otherwise a fitting int32 literal is left as int64 and rejected. */
+        const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, targetType);
+        if ( concrete != NULL &&
+             (expr->kind == XL6_AST_NULL ||
+              xl6SemExprIntegerLiteralFitsType(expr, concrete->text) ||
+              (expr->kind == XL6_AST_FLOAT && xl6SemIsFloatTypeName(concrete->text))) ) {
+            XL6_AstNode* expected = xl6SemCloneTypeNode(targetType);
+            if ( expected == NULL ) return 0;
+            xl6AstFree(expr->inferredType);
+            expr->inferredType = expected;
+        }
         return 1;
     }
     xl6SemTypeMismatchError(
@@ -313,6 +326,13 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
                     "Stack.peekAtInto 输出目标必须是同类型具名变量");
+        } else if ( xl6TextEquals(method, "pop") || xl6TextEquals(method, "peek") ) {
+            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 0u);
+        } else if ( xl6TextEquals(method, "peekAt") ) {
+            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
+                 xl6SemCheckSpecialCollectionIntArg(
+                    ctx, xl6SemSpecialCollectionArgExpr(args, 0),
+                    "Stack.peekAt 深度必须是整数");
         } else if ( xl6TextEquals(method, "reserve") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionIntArg(
@@ -534,6 +554,15 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
         return NULL;
     }
     member = node->children[0];
+    if ( xl6TextEquals(member->text, "pop") || xl6TextEquals(member->text, "peek") ||
+         xl6TextEquals(member->text, "peekAt") ) {
+        receiverType = xl6SemCloneSpecialCollectionReceiverType(ctx, member);
+        concreteType = xl6SemResolveAliasType(ctx, receiverType);
+        XL6_AstNode* result = concreteType != NULL && xl6TextEquals(concreteType->text, "Stack")
+            ? xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx, receiverType, 0u)) : NULL;
+        xl6AstFree(receiverType);
+        return result;
+    }
     if ( xl6TextEquals(member->text, "clone") ) {
         receiverType = xl6SemCloneSpecialCollectionReceiverType(ctx, member);
         concreteType = xl6SemResolveAliasType(ctx, receiverType);

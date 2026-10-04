@@ -304,6 +304,18 @@ bool xl6StackReserveV1(const xvalue* value, uint64_t identity, uint64_t elementI
     bool ok = allocation(xrtTypedStackReserve(stack->storage,(size_t)capacity));
     end(stack); return ok;
 }
+void xl6StackTakeV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
+                    unsigned int transfer, size_t size, const xrttype* type,
+                    int64_t depth, void* target, bool pop)
+{
+    if (pop && depth != 0) { xrtSetErrorKind(XERR_ARGUMENT); return; }
+    bool ok = pop
+        ? xl6StackPopOrPeekV1(value,identity,elementIdentity,transfer,size,type,target,false)
+        : xl6StackPeekAtV1(value,identity,elementIdentity,transfer,size,type,depth,target);
+    /* Empty/out-of-range is a language failure, not a fabricated T default.
+     * Never replace an allocation/retain/state error from the actual storage. */
+    if (!ok && !xrtGetError()) xrtSetErrorKind(XERR_RANGE);
+}
 xvalue* xl6StackCloneV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                        unsigned int transfer, size_t size, const xrttype* type)
 {

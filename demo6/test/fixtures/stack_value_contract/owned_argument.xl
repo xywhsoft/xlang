@@ -1,0 +1,5 @@
+func main(...) as int
+    Stack<string> values = Stack::<string>()
+    values.pop("not an output argument")
+    return 0
+end

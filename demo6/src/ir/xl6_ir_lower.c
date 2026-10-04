@@ -15701,7 +15701,12 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
         intrinsic->runtimeResourceOp);
     creates = xl6IrLowerRuntimeResourceOpCreates(
         intrinsic->runtimeResourceOp);
-    returnsOwned = creates || intrinsic->runtimeResourceOp ==
+    returnsOwned = creates ||
+        ((intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
+          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK ||
+          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT) &&
+         result != NULL && result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
+        intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE ||
@@ -16026,6 +16031,13 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
                 second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
                 operands[1].abi == XL6_IR_INTRINSIC_OPERAND_VALUE &&
                 result->cAbi == XL6_IR_C_ABI_BOOL;
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP:
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK:
+            return intrinsic->operandCount == 1 && intrinsic->resultType == payloadType;
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT:
+            return intrinsic->operandCount == 2 && intrinsic->resultType == payloadType &&
+                second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
+                operands[1].abi == XL6_IR_INTRINSIC_OPERAND_VALUE;
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE:
             return intrinsic->operandCount == 1 &&
                 intrinsic->resultType == intrinsic->receiverType;
@@ -23995,6 +24007,12 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_STACK_COUNT;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY:
         return XL6_IR_RUNTIME_STACK_CAPACITY;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP:
+        return XL6_IR_RUNTIME_STACK_POP;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK:
+        return XL6_IR_RUNTIME_STACK_PEEK;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT:
+        return XL6_IR_RUNTIME_STACK_PEEK_AT;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE:
         return XL6_IR_RUNTIME_AVL_TREE_CREATE;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET:

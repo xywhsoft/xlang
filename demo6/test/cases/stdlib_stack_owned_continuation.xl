@@ -1,0 +1,57 @@
+async func asyncStackText(Stack<string> values) as string
+    time.sleep(1)
+    try
+        return values.pop()
+    finally
+        values.clear()
+    end
+end
+
+async func asyncEmptyStack(Stack<bytes> values) as bytes
+    try
+        return values.pop()
+    catch RangeError failure
+        return b"empty\0"
+    end
+end
+
+func stackByteItems(Stack<bytes> values) as generator<bytes>
+    try
+        while values.count() > 0
+            yield values.pop()
+        end
+    finally
+        values.clear()
+    end
+end
+
+func closureStackText(Stack<string> values) as string
+    return values.pop()
+end
+
+Stack<string> texts = Stack::<string>()
+assert(texts.push("async\0你"))
+future<string> pending = asyncStackText(texts)
+assert(await pending == "async\0你" and texts.count() == 0)
+assert(await pending == "async\0你")
+assert(texts.push("closure\0你"))
+func(Stack<string>) as string takeText = closureStackText
+assert(takeText(texts) == "closure\0你")
+
+Stack<bytes> data = Stack::<bytes>()
+assert(await asyncEmptyStack(data) == b"empty\0")
+assert(data.push(b"one\0") and data.push(b"two\xff"))
+bytes retained = b""
+int seen = 0
+for item in stackByteItems(data)
+    retained = item
+    item[0] = 42
+    seen += 1
+end
+assert(seen == 2 and data.count() == 0 and retained == b"one\0")
+assert(data.push(b"remaining") and data.push(b"first\0"))
+for item in stackByteItems(data)
+    retained = item
+    break
+end
+assert(data.count() == 0 and retained == b"first\0")
