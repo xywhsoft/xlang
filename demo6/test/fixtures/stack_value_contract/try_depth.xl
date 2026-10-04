@@ -1,0 +1,2 @@
+Stack<string> values = Stack::<string>()
+values.tryPeekAt("wrong")

@@ -48,7 +48,10 @@ int main(int argc, char** argv)
         rejected(&ir);type->nullAbi=nullAbi;
         if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_POP ||
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK ||
-            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_AT) {
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_AT ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT) {
             XL6_IrTypeId resultType=instruction->type;
             instruction->type=XL6_IR_TYPE_INVALID;rejected(&ir);instruction->type=resultType;
             XL6_IrIntrinsicCall* intrinsic=(XL6_IrIntrinsicCall*)xl6IrIntrinsicCallGet(&ir,instruction->origin);
@@ -60,6 +63,20 @@ int main(int argc, char** argv)
             XL6_IrErrorAbi errorAbi=intrinsic->errorAbi;
             intrinsic->errorAbi=XL6_IR_ERROR_ABI_NO_RAISE;rejected(&ir);intrinsic->errorAbi=errorAbi;
             ++ownedResults;
+            if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT) {
+                XL6_IrType* product=&ir.types.items[resultType-1];
+                XL6_IrTypeId status=product->params[0], optional=product->params[1];
+                product->params[0]=optional;rejected(&ir);product->params[0]=status;
+                product->params[1]=status;rejected(&ir);product->params[1]=optional;
+                XL6_IrType* value=&ir.types.items[optional-1];
+                if (value->kind==XL6_IR_TYPE_NULLABLE) {
+                    XL6_IrTypeId inner=value->params[0];
+                    value->params[0]=inner == status ? XL6_IR_TYPE_INVALID : status;
+                    rejected(&ir);value->params[0]=inner;
+                }
+            }
         }
         assert(xl6IrVerifyModule(&ir,NULL)); ++checked;
     }

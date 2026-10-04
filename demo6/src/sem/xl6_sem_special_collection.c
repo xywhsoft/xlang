@@ -326,9 +326,10 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
                     "Stack.peekAtInto 输出目标必须是同类型具名变量");
-        } else if ( xl6TextEquals(method, "pop") || xl6TextEquals(method, "peek") ) {
+        } else if ( xl6TextEquals(method, "pop") || xl6TextEquals(method, "peek") ||
+                    xl6TextEquals(method, "tryPop") || xl6TextEquals(method, "tryPeek") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 0u);
-        } else if ( xl6TextEquals(method, "peekAt") ) {
+        } else if ( xl6TextEquals(method, "peekAt") || xl6TextEquals(method, "tryPeekAt") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionIntArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0),
@@ -592,4 +593,30 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
         xl6AstFree(receiverType);
         return result;
     }
+}
+
+/* A successful nullable element may itself be null. The separate status
+ * preserves that distinction without inventing a default non-null T. */
+static XL6_AstNode* xl6SemCloneSpecialCollectionReturnTypes(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_AstNode* member = node != NULL && node->kind == XL6_AST_CALL && node->childCount
+        ? node->children[0] : NULL;
+    if ( member == NULL || member->kind != XL6_AST_MEMBER ||
+         (!xl6TextEquals(member->text, "tryPop") && !xl6TextEquals(member->text, "tryPeek") &&
+          !xl6TextEquals(member->text, "tryPeekAt")) ) return NULL;
+    XL6_AstNode* receiver = xl6SemCloneSpecialCollectionReceiverType(ctx, member);
+    const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, receiver);
+    const XL6_AstNode* item = concrete != NULL && xl6TextEquals(concrete->text, "Stack")
+        ? xl6SemResolveAliasType(ctx, xl6SemSpecialCollectionTypeArg(ctx, receiver, 0u)) : NULL;
+    XL6_AstNode* value = item != NULL
+        ? xl6SemLiftNullableType(xl6SemCloneTypeNode(item), member) : NULL;
+    xl6AstFree(receiver);
+    if ( value == NULL ) return NULL;
+    XL6_AstNode* returns = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
+    XL6_AstNode* status = xl6AstNewText(XL6_AST_TYPE, "bool", 4, NULL);
+    if ( returns == NULL || status == NULL ) {
+        xl6AstFree(returns); xl6AstFree(status); xl6AstFree(value); return NULL;
+    }
+    xl6AstAddChild(returns, status); xl6AstAddChild(returns, value);
+    return returns;
 }

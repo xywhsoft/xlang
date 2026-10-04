@@ -356,19 +356,20 @@ generated/resident/native closures, not shared CLI/JIT or full shared debug XRT.
 Trusted C pointer escapes and legacy file/network conversions remain separate.
 `check_xlir_buffer_core_ir.py` rejects a return to the retired Buffer profile.
 
-`check_stdlib_stack_native.ps1` / `.sh` freeze seven positive/six negative
+`check_stdlib_stack_native.ps1` / `.sh` freeze nine positive/ten negative
 fixtures against current sources. They cover actual typed-stack C/JIT/AOT/pruned
 artifacts, six exact tuple mutations and parameter lifetime fact mutations,
 exact owned/value pop/peek/peekAt result/effect mutations before C output,
+bool/optional tryPop/tryPeek/tryPeekAt product-field mutations,
 char/bytes TypeId refusal, all byte values, embedded NUL, value write isolation,
 nullable elements, retained references, continuation cleanup and reentrant release.
-Seven native OOM paths and the original/value/owned language fixtures run every
+Eight native OOM paths and the original/value/owned/try language fixtures run every
 allocation prefix through the first no-hit, preserving the original error and
 exact allocation totals. Language allocation injection covers the calling thread,
 not every background thread.
 The Linux gate sanitizes actual selected generated/resident/native closures;
 shared CLI/JIT and full shared debug XRT are not instrumented. Exact direct
-owned-return APIs are covered, but legacy Into retirement, try/outcome products,
+owned-return and try/outcome APIs are covered, but legacy Into retirement,
 batch/FixedStack, other containers and all 53 modules remain pending.
 
 `check_stdlib_stack_ownership.ps1` / `.sh` validate the actual counted native

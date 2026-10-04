@@ -304,6 +304,16 @@ bool xl6StackReserveV1(const xvalue* value, uint64_t identity, uint64_t elementI
     bool ok = allocation(xrtTypedStackReserve(stack->storage,(size_t)capacity));
     end(stack); return ok;
 }
+bool xl6StackTryTakeV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
+                       unsigned int transfer, size_t size, const xrttype* type,
+                       int64_t depth, void* target, bool pop)
+{
+    if (depth < 0 || (uint64_t)depth > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }
+    if (pop && depth != 0) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    return pop
+        ? xl6StackPopOrPeekV1(value,identity,elementIdentity,transfer,size,type,target,false)
+        : xl6StackPeekAtV1(value,identity,elementIdentity,transfer,size,type,depth,target);
+}
 void xl6StackTakeV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                     unsigned int transfer, size_t size, const xrttype* type,
                     int64_t depth, void* target, bool pop)

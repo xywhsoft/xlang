@@ -161,6 +161,9 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY,
     /* AvlTree<K,V> is deliberately not encoded as a one-payload resource.
      * Every operation carries independent key/value transfer contracts plus
@@ -1635,6 +1638,9 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STACK_POP,
        XL6_IR_RUNTIME_STACK_PEEK,
        XL6_IR_RUNTIME_STACK_PEEK_AT,
+       XL6_IR_RUNTIME_STACK_TRY_POP,
+       XL6_IR_RUNTIME_STACK_TRY_PEEK,
+       XL6_IR_RUNTIME_STACK_TRY_PEEK_AT,
        XL6_IR_RUNTIME_STACK_CAPACITY,
        XL6_IR_RUNTIME_AVL_TREE_CREATE,
        XL6_IR_RUNTIME_AVL_TREE_SET,
@@ -5940,6 +5946,8 @@ const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
  * Bytes use the language's existing read-sharing/write-copy discipline;
  * retaining their physical carrier does not grant a mutable language alias. */
 XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type);
+/* Exact (bool, optional payload) product for non-exceptional empty retrieval. */
+int xl6IrStackTryResultCompatible(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* Return the precomputed closed nominal acceptance set for one concrete class
  * or protocol target.  Lowering and Cgen consume this set directly; neither is
  * permitted to rediscover inheritance or protocol witnesses. */

@@ -520,6 +520,15 @@ static int xl6IrCgenRuntimeStackAbi(
         return instruction->operandCount == 2 && instruction->type == instruction->payloadType &&
                second != NULL && xl6IrTypeGet(&module->types, second->type) != NULL &&
                xl6IrTypeGet(&module->types, second->type)->cAbi == XL6_IR_C_ABI_I64;
+    case XL6_IR_RUNTIME_STACK_TRY_POP:
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK:
+        return instruction->operandCount == 1 &&
+               xl6IrStackTryResultCompatible(module, instruction->type, instruction->payloadType);
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK_AT:
+        return instruction->operandCount == 2 && second != NULL &&
+               xl6IrTypeGet(&module->types, second->type) != NULL &&
+               xl6IrTypeGet(&module->types, second->type)->cAbi == XL6_IR_C_ABI_I64 &&
+               xl6IrStackTryResultCompatible(module, instruction->type, instruction->payloadType);
     case XL6_IR_RUNTIME_STACK_EQUALS:
         return instruction->operandCount == 2 && second != NULL &&
                second->type == stackTypeId &&
@@ -760,6 +769,28 @@ static int xl6IrCgenEmitStackRuntime(
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
+        break;
+    case XL6_IR_RUNTIME_STACK_TRY_POP:
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK:
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK_AT:
+        {
+            const XL6_IrType* product = xl6IrTypeGet(&module->types, instruction->type);
+            const XL6_IrType* optional = xl6IrTypeGet(&module->types, product->params[1]);
+            int tagged = optional->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
+                product->params[1] != instruction->payloadType;
+            xl6OutputPrintf(out, "    v%u = (%s){0};\n",
+                (unsigned int)instruction->result, xl6IrCgenType(module, instruction->type));
+            xl6OutputPrintf(out,
+                "    v%u.e0 = xl6StackTryTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, ",
+                (unsigned int)instruction->result, (unsigned int)first, XL6_IR_CGEN_STACK_COMMON_ARGS);
+            if ( instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT )
+                xl6OutputPrintf(out, "v%u", (unsigned int)module->operands[instruction->firstOperand + 1]);
+            else xl6OutputPuts("0", out);
+            xl6OutputPrintf(out, ", &v%u.e1%s, %s);\n", (unsigned int)instruction->result,
+                tagged ? ".value" : "", instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ? "true" : "false");
+            if ( tagged ) xl6OutputPrintf(out, "    v%u.e1.hasValue = v%u.e0;\n",
+                (unsigned int)instruction->result, (unsigned int)instruction->result);
+        }
         break;
     case XL6_IR_RUNTIME_STACK_CLONE:
         xl6OutputPrintf(out,

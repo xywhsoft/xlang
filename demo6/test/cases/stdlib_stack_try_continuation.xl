@@ -1,0 +1,66 @@
+async func tryAsyncStackText(Stack<string> values) as string?
+    auto found, value = values.tryPop()
+    time.sleep(1)
+    try
+        if found
+            return value
+        end
+        return null
+    finally
+        values.clear()
+    end
+end
+
+func tryClosureStackText(Stack<string> values) as (bool, string?)
+    return values.tryPop()
+end
+
+func tryStackByteItems(Stack<bytes> values) as generator<bytes>
+    try
+        while true
+            auto found, item = values.tryPop()
+            if not found
+                break
+            end
+            assert(item != null)
+            if item != null
+                yield item
+            end
+        end
+    finally
+        values.clear()
+    end
+end
+
+Stack<string> texts = Stack::<string>()
+assert(texts.push("async\0你"))
+future<string?> pending = tryAsyncStackText(texts)
+string? completed = await pending
+assert(completed != null and completed == "async\0你")
+completed = await pending
+assert(completed != null and completed == "async\0你")
+assert(texts.count() == 0)
+assert(await tryAsyncStackText(texts) == null)
+assert(texts.push("closure\0你"))
+func(Stack<string>) as (bool, string?) takeText = tryClosureStackText
+auto found, fromClosure = takeText(texts)
+assert(found and fromClosure != null and fromClosure == "closure\0你")
+auto absent, none = takeText(texts)
+assert(not absent and none == null)
+
+Stack<bytes> data = Stack::<bytes>()
+assert(data.push(b"one\0") and data.push(b"two\xff"))
+bytes retained = b""
+int seen = 0
+for item in tryStackByteItems(data)
+    retained = item
+    item[0] = 42
+    seen += 1
+end
+assert(seen == 2 and data.count() == 0 and retained == b"one\0")
+assert(data.push(b"remaining") and data.push(b"first\0"))
+for item in tryStackByteItems(data)
+    retained = item
+    break
+end
+assert(data.count() == 0 and retained == b"first\0")

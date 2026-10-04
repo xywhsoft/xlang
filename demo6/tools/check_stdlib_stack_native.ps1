@@ -15,8 +15,8 @@ try {
     }
     $public = Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Full current-source compiler/runtime required' }
-    $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation')
-    $negative = @('char_output_type','bytes_output_type','bytes_input_type','owned_argument','owned_depth','owned_result')
+    $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation','stdlib_stack_try_owned','stdlib_stack_try_continuation')
+    $negative = @('char_output_type','bytes_output_type','bytes_input_type','owned_argument','owned_depth','owned_result','try_argument','try_depth','try_result','try_nullable_result')
     $gcc = (Get-Command gcc -CommandType Application | Select-Object -First 1).Source
     $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
     $files = @($cases | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
@@ -72,7 +72,7 @@ try {
     Run 'native-build' $gcc ($strict + @('test/cases/stdlib_stack_native_host.c','test/support/stack_native.c','src/runtime/xl6_stack.c','-o',"$outPath/native.exe"))
     Run 'native-vectors' "$outPath/native.exe" @()
     $sweeps = @()
-    foreach ($operation in @('create','reserve','push','peek','clone','trim','owned-peek')) {
+    foreach ($operation in @('create','reserve','push','peek','clone','trim','owned-peek','try-peek')) {
         for ($point=0; $point -le 64; ++$point) {
             $name = "native.$operation.oom-$point"
             Run $name "$outPath/native.exe" @($operation,"$point")
@@ -97,13 +97,17 @@ try {
             'owned_argument' { '\[sem\].*\[SC-ARG-COUNT\]' }
             'owned_depth' { '\[sem\].*Stack\.peekAt.*: target int, value string' }
             'owned_result' { '\[sem\].*: target string, value bytes' }
+            'try_argument' { '\[sem\].*\[SC-ARG-COUNT\]' }
+            'try_depth' { '\[sem\].*Stack\.peekAt.*: target int, value string' }
+            'try_result' { '\[sem\].*: target nullable<bytes>, value nullable' }
+            'try_nullable_result' { '\[sem\].*: target string, value nullable' }
             default { '\[sem\].*Stack.*: target (char|bytes), value (uint32|var|string)' }
         }
         if((Get-Content "$prefix.log" -Raw) -notmatch $diagnostic -or
             (Test-Path "$prefix.c") -or (Test-Path "$prefix.h")){throw 'Wrong Stack type rejection or partial output'}
     }
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
-    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned')){
+    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned')){
     $prefix = "$outPath/$case"
     Run "$case.language-oom-build" $gcc ($strict + @('-DXL6_PRODUCT_USER_ENTRY','-include',"$prefix.c",
         'test/cases/xlir_module_product_oom_host.c',"$outPath/debug-host.o") +
@@ -120,7 +124,7 @@ try {
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;
-        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts, exact owned pop/peek/peekAt and char/bytes, write isolation, contextual literal/checked input conversion, parameter lifetime and pre-output result/effect mutation refusal, NUL/reference semantics, reentrant release, native and complete language OOM prefixes. Legacy Into retirement, outcome products, batch and other 53-module acceptance remain pending.'}
+        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts, exact owned and bool/optional try results, nullable float32 and flow-refined string/bytes writeback, parameter isolation, continuation lifetime, pre-output result/effect mutation refusal, NUL/reference semantics, reentrant release, native and calling-thread language OOM prefixes. Legacy Into retirement, batch and other 53-module acceptance remain pending.'}
     [IO.File]::WriteAllText("$outPath/results.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     if (!$unchanged) { throw 'Stack inputs changed during acceptance' }
     Write-Host "Stack native Windows: $($rows.Count) checks"

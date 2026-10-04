@@ -140,6 +140,7 @@ static int xl6SemIsSpecialCollectionTypeName(const char* name);
 static int xl6SemCheckSpecialCollectionCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL6_AstNode* node);
+static XL6_AstNode* xl6SemCloneSpecialCollectionReturnTypes(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemFutureCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneFutureValueTypeFromType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
@@ -7071,6 +7072,10 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
         return NULL;
     }
     if ( callee->kind == XL6_AST_MEMBER ) {
+        if ( ownedType != NULL ) {
+            *ownedType = xl6SemCloneSpecialCollectionReturnTypes(ctx, expr);
+            if ( *ownedType != NULL ) return *ownedType;
+        }
         if ( expr->semanticCallKind == XL6_SEM_CALL_WITNESS &&
              expr->semanticTargetSymbolId != 0 && ownedType != NULL &&
              callee->childCount > 0 ) {

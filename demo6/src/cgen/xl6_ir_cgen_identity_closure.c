@@ -193,6 +193,9 @@ static int xl6IrCgenEmitTaggedNullableXValueRuntime(
         }
         if ( !needsBox && !needsGet && !needsIterator && !needsCast ) continue;
         elementType = xl6IrCgenType(module, tagged->params[0]);
+        /* XValue's real accessor writes double, never float*. Narrow only
+         * when packing the verified float32 payload in its result carrier. */
+        if ( element->cAbi == XL6_IR_C_ABI_F32 ) elementType = "double";
         constructor = element->cAbi == XL6_IR_C_ABI_BOOL ? "xrtValueBool"
             : element->cAbi == XL6_IR_C_ABI_I64 ? "xrtValueInt"
             : element->cAbi == XL6_IR_C_ABI_U64 ? "xrtValueUInt"
