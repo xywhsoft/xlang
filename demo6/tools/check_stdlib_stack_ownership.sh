@@ -19,6 +19,7 @@ frozen_files() {
     printf '%s\0' tools/check_stdlib_stack_ownership.sh tools/tcc_vfs_manifest_linux_xlc.txt
     printf '%s\0' test/cases/stdlib_stack_ownership_host.c test/cases/stdlib_stack_ownership_public.c
     printf '%s\0' test/cases/stdlib_stack_ownership.xl test/support/stack_native.c
+    printf '%s\0' test/support/stack_take_found.h
     printf '%s\0' "$FIXTURE" test/cases/xlir_ownership_discovery_runtime.c test/support/discovery_native.c
     printf '%s\0' tools/check_stdlib_array_native.py test/cases/stdlib_array_native_host.c
     printf '%s\0' test/cases/stdlib_array_iterator_native_host.c test/support/array_native.c

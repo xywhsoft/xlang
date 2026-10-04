@@ -30,7 +30,9 @@ try {
     $files = @(($cases + $extraCases) | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
         @($negative | ForEach-Object { Get-Item "test/fixtures/stack_value_contract/$_.xl" }) +
         @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/xl.dll','test/cases/stdlib_stack_native_host.c',
-            'test/support/stack_native.c','test/cases/xlir_module_product_oom_host.c',
+            'test/support/stack_native.c','test/support/stack_take_found.h',
+            'test/cases/stdlib_sequence_take_status_native_host.c','test/cases/stdlib_stack_retired_try_abi.c',
+            'test/cases/xlir_module_product_oom_host.c',
             'test/support/module_product_memory.c','test/support/module_product_memory.h',
             'test/cases/xlir_stack_native_contract.c','test/cases/xlir_nullable_scalar_native.c','tools/check_xlir_artifact_runtime.ps1',
             'tools/check_stdlib_sequence_clear.py','test/support/sequence_clear_probe.c','test/support/array_value_native.c',
@@ -82,7 +84,7 @@ try {
             'src/runtime/xl6_array.c' -in $plan.Sources -or 'xrtTypedStackCreate' -notin $plan.Defined -or
             'xrtTypedStackCreate' -notin $plan.Required) { throw 'Missing actual native typed Stack closure' }
         if (@($plan.Sources | Where-Object { $_ -match 'xl6_buffer_|xl6_regex_|xl6_log_|xl6_process_' }).Count) { throw 'Unrelated resident component in Stack' }
-        if (@($plan.Defined | Where-Object { $_ -match '^_?xl6Stack(PopOrPeek|PeekAt)V1$' }).Count) { throw 'Retired native Stack entry remains in actual artifact' }
+        if (@($plan.Defined | Where-Object { $_ -match '^_?xl6Stack(PopOrPeek|PeekAt|TryTake)V1$' }).Count) { throw 'Retired native Stack entry remains in actual artifact' }
     }
     foreach ($case in ($cases + $extraCases)) {
         $plan = $artifact.NativeLinkage | Where-Object Fixture -eq $case
@@ -121,6 +123,20 @@ try {
         '-I.','-Irelease','-Irelease/include',"-I$PublicDirectory/include")
     Run 'native-build' $gcc ($strict + @('test/cases/stdlib_stack_native_host.c','test/support/stack_native.c','src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c','-o',"$outPath/native.exe"))
     Run 'native-vectors' "$outPath/native.exe" @()
+    Run 'retired-try.compile' $gcc (@('-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease',
+        '-c','test/cases/stdlib_stack_retired_try_abi.c','-o',"$outPath/retired-try.o"))
+    Run 'retired-try.link' $gcc @("$outPath/retired-try.o",'release/xl.dll','-o',"$outPath/retired-try.exe") $true
+    if ((Get-Content -Encoding UTF8 "$outPath/retired-try.link.log" -Raw) -notmatch 'undefined reference.*xl6StackTryTakeV1') {
+        throw 'Retired ABI rejection was not the missing old symbol'
+    }
+    foreach ($level in @(0,2)) {
+        Run "take-status.O$level.build" $gcc (@('-std=c11','-Wall','-Wextra','-Werror',"-O$level",
+            '-DXL6_TEST_ERASED_STACK','-I.','-Irelease','-Irelease/include',
+            'test/cases/stdlib_sequence_take_status_native_host.c','test/support/array_value_native.c',
+            'src/runtime/xl6_sequence.c','src/runtime/xl6_array.c','src/runtime/xl6_stack.c',
+            'src/runtime/xl6_ownership_plan.c','-o',"$outPath/take-status.O$level.exe"))
+        Run "take-status.O$level.vectors" "$outPath/take-status.O$level.exe" @()
+    }
     Run 'nullable-native-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_nullable_scalar_native.c') +
         $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/nullable-native.exe"))
     Run 'nullable-native-vectors' "$outPath/nullable-native.exe" @()
@@ -146,6 +162,17 @@ try {
         if ((Get-Content -Encoding UTF8 "$prefix.c" -Raw) -cne (Get-Content -Encoding UTF8 "$prefix.contract.c" -Raw)) { throw 'Noncanonical Stack C output' }
         if ((Get-Content -Encoding UTF8 "$prefix.c" -Raw) -match 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)') { throw 'Retired generated Stack implementation emitted' }
         if ((Get-Content -Encoding UTF8 "$prefix.c" -Raw) -match 'xl6Stack(PopOrPeek|PeekAt)V1') { throw 'Retired Stack native prototype or call emitted' }
+        $code = Get-Content -Encoding UTF8 "$prefix.c" -Raw
+        $retrievals = [regex]::Matches($code,'bool projection_ok_(\d+) = xl6Stack(?:TakeV1|TryTakeV2)\(')
+        if ($retrievals.Count -ne [regex]::Matches($code,'xl6Stack(?:TakeV1|TryTakeV2)\(v').Count) {
+            throw 'Stack retrieval discarded its independent operation status'
+        }
+        if ($code.Contains('xl6StackTryTakeV1')) { throw 'Retired presence-only private Stack ABI emitted' }
+        foreach ($retrieval in $retrievals) {
+            if ($code -notmatch ('if \(projection_ok_' + $retrieval.Groups[1].Value + '\)')) {
+                throw 'Stack retrieval did not branch on its independent operation status'
+            }
+        }
     }
     foreach($case in $negative){
         $prefix="$outPath/negative.$case"

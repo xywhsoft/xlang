@@ -551,8 +551,8 @@ static void fault(const char* operation, size_t point)
     else if (!strcmp(operation,"push")) ok=xl6ArrayPushV1(value,TEXT_ARGS,&replacement);
     else if (!strcmp(operation,"set")) ok=xl6ArraySetV1(value,TEXT_ARGS,0,&replacement);
     else if (!strcmp(operation,"insert")) ok=xl6ArrayInsertV1(value,TEXT_ARGS,0,&replacement);
-    else if (!strcmp(operation,"read")) { xl6ArrayReadV1(value,TEXT_ARGS,0,&output); ok=!xrtGetError(); }
-    else if (!strcmp(operation,"take")) { xl6ArrayTakeV1(value,TEXT_ARGS,0,&output); ok=!xrtGetError(); }
+    else if (!strcmp(operation,"read")) ok=xl6ArrayReadV1(value,TEXT_ARGS,0,&output);
+    else if (!strcmp(operation,"take")) ok=xl6ArrayTakeV1(value,TEXT_ARGS,0,&output);
     else if (!strcmp(operation,"clone")) ok=(created=xl6ArrayCloneV1(value,TEXT_ARGS))!=NULL;
     else if (!strcmp(operation,"trim")) ok=xl6ArrayTrimV1(value,TEXT_ARGS);
     else if (!strcmp(operation,"resize")) ok=xl6ArrayResizeV1(value,TEXT_ARGS,32768);

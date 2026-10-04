@@ -131,6 +131,22 @@ int main(int argc, char** argv)
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ||
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK ||
             instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT) {
+            assert(xl6IrCallInstructionErrorPhysicalAbi(&ir,instruction) ==
+                XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT);
+            bool tested=false;
+            for (size_t j=i+1;j<ir.instructionCount;++j) {
+                XL6_IrInstruction* test=&ir.instructions[j];
+                if(test->kind != XL6_IR_INSTR_ERROR_TEST || test->operandCount != 1 ||
+                    ir.operands[test->firstOperand] != instruction->result) continue;
+                XL6_IrValueId outcome=ir.operands[test->firstOperand];
+                ir.operands[test->firstOperand]=XL6_IR_VALUE_INVALID; rejected(&ir);
+                ir.operands[test->firstOperand]=outcome;
+                test->kind=XL6_IR_INSTR_BRANCH; rejected(&ir); test->kind=XL6_IR_INSTR_ERROR_TEST;
+                XL6_IrBlockId success=test->trueTarget;
+                test->trueTarget=test->falseTarget; rejected(&ir); test->trueTarget=success;
+                tested=true; break;
+            }
+            assert(tested);
             XL6_IrTypeId resultType=instruction->type;
             instruction->type=XL6_IR_TYPE_INVALID;rejected(&ir);instruction->type=resultType;
             XL6_IrIntrinsicCall* intrinsic=(XL6_IrIntrinsicCall*)xl6IrIntrinsicCallGet(&ir,instruction->origin);

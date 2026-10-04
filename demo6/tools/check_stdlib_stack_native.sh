@@ -33,6 +33,7 @@ frozen_files() {
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_stack_native_contract.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_native_host.c test/support/stack_native.c
+    printf '%s\0' test/support/stack_take_found.h test/cases/stdlib_sequence_take_status_native_host.c test/cases/stdlib_stack_retired_try_abi.c
     printf '%s\0' test/cases/xlir_nullable_scalar_native.c
     printf '%s\0' tools/check_stdlib_sequence_clear.py test/support/sequence_clear_probe.c test/support/array_value_native.c
     printf '%s\0' test/cases/stdlib_sequence_clear_native_host.c test/cases/xlir_time_text_closure_host.c
@@ -70,6 +71,22 @@ native_probe() {
         test/support/stack_native.c src/runtime/xl6_sequence.c src/runtime/xl6_stack.c \
         -no-pie -pthread -lm -o "$OUT/native" || return
     run native-vectors "$OUT/native" || return
+    run retired-try.compile "$CC" -std=c11 -Wall -Wextra -Werror -I. -Irelease \
+        -c test/cases/stdlib_stack_retired_try_abi.c -o "$OUT/retired-try.o" || return
+    if "$CC" "$OUT/retired-try.o" -lxl "${libs[@]}" -o "$OUT/retired-try" >"$OUT/retired-try.link.log" 2>&1; then
+        printf 'Retired presence-only Stack ABI linked unexpectedly\n' >&2; return 1
+    fi
+    grep -Eq 'undefined reference.*xl6StackTryTakeV1' "$OUT/retired-try.link.log" || return
+    checks=$((checks+1))
+    for level in 0 2; do
+        run "take-status.O$level.build" "$CC" -std=c11 -Wall -Wextra -Werror -O"$level" -g \
+            -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -D_GNU_SOURCE \
+            -DXL6_TEST_ERASED_STACK -I. -Irelease -Irelease/include \
+            test/cases/stdlib_sequence_take_status_native_host.c test/support/array_value_native.c \
+            src/runtime/xl6_sequence.c src/runtime/xl6_array.c src/runtime/xl6_stack.c \
+            src/runtime/xl6_ownership_plan.c -pthread -lm -o "$OUT/take-status.O$level" || return
+        run "take-status.O$level.vectors" "$OUT/take-status.O$level" || return
+    done
     run nullable-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_nullable_scalar_native.c \
         test/support/stack_native.c src/runtime/xl6_sequence.c src/runtime/xl6_stack.c "${nullable_sources[@]}" \
         -no-pie -pthread -lm -o "$OUT/nullable-native" || return
@@ -100,6 +117,7 @@ fixture() {
     fi
     if grep -Eq 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)' "$OUT/$name.c"; then return 1; fi
     if grep -Eq 'xl6Stack(PopOrPeek|PeekAt)V1' "$OUT/$name.c"; then return 1; fi
+    run "$name.take-status" "$PY" -c 'import re,sys; s=open(sys.argv[1],encoding="utf-8-sig").read(); outcomes=re.findall(r"bool projection_ok_(\d+) = xl6Stack(?:TakeV1|TryTakeV2)\(",s); assert "xl6StackTryTakeV1" not in s; assert len(outcomes)==len(re.findall(r"xl6Stack(?:TakeV1|TryTakeV2)\(v",s)); assert all(re.search(r"if \(projection_ok_"+n+r"\)",s) for n in outcomes)' "$OUT/$name.c" || return
 
     run "$name.jit" "$CLI" run "$source" --inc-path "$OUT/include" || return
     run "$name.aot-build" "$CLI" build "$source" --inc-path "$OUT/include" --save-temps -o "$OUT/$name.aot" || return
@@ -123,7 +141,7 @@ fixture() {
     run "$name.closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
         "${entry[@]}" test/cases/xlir_time_text_closure_host.c "$OUT/$name.native.o" "${objects[@]}" -pthread -ldl -lm -o "$OUT/$name.closure" || return
     run "$name.closure" "$OUT/$name.closure" || return
-    run "$name.retired-symbols" bash -c '! nm -g --defined-only "$1" | grep -Eq "xl6Stack(PopOrPeek|PeekAt)V1$"' _ "$OUT/$name.closure" || return
+    run "$name.retired-symbols" bash -c '! nm -g --defined-only "$1" | grep -Eq "xl6Stack(PopOrPeek|PeekAt|TryTake)V1$"' _ "$OUT/$name.closure" || return
     if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values || "$name" = stdlib_stack_owned || "$name" = stdlib_stack_try_owned || "$name" = stdlib_stack_nullable_scalar || "$name" = stdlib_sequence_nullable_identity || "$name" = stdlib_nullable_text_resource_transport || "$name" = xlir_nullable_string_equal || "$name" = stdlib_nullable_projection_oom || "$name" = stdlib_scalar_projection_oom ]]; then
         run "$name.factory-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
             -DXL6_PRODUCT_USER_ENTRY test/cases/xlir_module_product_oom_host.c "$OUT/debug-host.o" -lxl "${libs[@]}" -o "$OUT/$name.oom" || return
