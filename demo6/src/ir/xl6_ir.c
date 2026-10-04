@@ -581,6 +581,35 @@ XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, c
     }
 }
 
+XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp operation)
+{
+    return operation == XL6_IR_TYPED_COLLECTION_RESIZE
+        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
+}
+
+XL6_ValueDefaultAbiV1 xl6IrValueDefaultAbiForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{
+    if (!pool || !type) return XL6_VALUE_DEFAULT_INVALID;
+    if (type->kind==XL6_IR_TYPE_NULLABLE) {
+        return type->paramCount==1 && type->params && xl6IrTypeGet(pool,type->params[0])
+            ? XL6_VALUE_DEFAULT_NULL : XL6_VALUE_DEFAULT_INVALID;
+    }
+    XL6_ValueAdmissionV1 rule=xl6IrValueAdmissionAbiForType(pool,type);
+    if (rule>=XL6_VALUE_ADMIT_I8 && rule<=XL6_VALUE_ADMIT_U32)
+        return XL6_VALUE_DEFAULT_INT;
+    switch (rule) {
+    case XL6_VALUE_ADMIT_ANY: return XL6_VALUE_DEFAULT_NULL;
+    case XL6_VALUE_ADMIT_BOOL: return XL6_VALUE_DEFAULT_BOOL;
+    case XL6_VALUE_ADMIT_U64: return XL6_VALUE_DEFAULT_UINT;
+    case XL6_VALUE_ADMIT_F32: case XL6_VALUE_ADMIT_F64: return XL6_VALUE_DEFAULT_FLOAT;
+    case XL6_VALUE_ADMIT_CHAR: return XL6_VALUE_DEFAULT_CHAR;
+    case XL6_VALUE_ADMIT_STRING: return XL6_VALUE_DEFAULT_STRING;
+    case XL6_VALUE_ADMIT_BYTES: return XL6_VALUE_DEFAULT_BYTES;
+    case XL6_VALUE_ADMIT_TIME: return XL6_VALUE_DEFAULT_TIME;
+    default: return XL6_VALUE_DEFAULT_FORBIDDEN;
+    }
+}
+
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     if (!pool || !type) return XL6_IR_NATIVE_SLOT_NONE;
@@ -12300,6 +12329,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         break;
     case XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER:
         {
+            intrinsic.errorAbi = xl6IrTypedCollectionErrorAbi(intrinsic.typedCollectionOp);
             XL6_IrTypeId operandTypes[3] = {
                 XL6_IR_TYPE_INVALID, XL6_IR_TYPE_INVALID, XL6_IR_TYPE_INVALID
             };
@@ -17725,7 +17755,7 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
     case XL6_IR_C_ABI_I64: return XL6_IR_RUNTIME_XVALUE_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_RUNTIME_XVALUE_U64;
     case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_RUNTIME_XVALUE_CHAR;
-    case XL6_IR_C_ABI_F64: return XL6_IR_RUNTIME_XVALUE_F64;
+    case XL6_IR_C_ABI_F32: case XL6_IR_C_ABI_F64: return XL6_IR_RUNTIME_XVALUE_F64;
     case XL6_IR_C_ABI_C_FLOAT: case XL6_IR_C_ABI_C_DOUBLE: return XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT;
     case XL6_IR_C_ABI_TIME_I64: return XL6_IR_RUNTIME_XVALUE_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:
@@ -17846,6 +17876,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+        xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     stringAbi = xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     const XL6_IrType* projectionType=xl6IrTypeGet(&module->types,instruction->type);
@@ -19605,11 +19638,18 @@ int xl6IrCollectionMemberRuntimeInstructionCompatible(
         if ( value == NULL ) return 0;
         operands[i] = value->type;
     }
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD )
+    if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD ) {
+        if (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) {
+            const XL6_IrType* element=xl6IrTypeGet(&module->types,
+                xl6IrCollectionElementType(module,operands[0]));
+            XL6_ValueDefaultAbiV1 expected=xl6IrValueDefaultAbiForType(&module->types,element);
+            if (expected==XL6_VALUE_DEFAULT_INVALID || instruction->collectionDefaultAbi!=expected) return 0;
+        }
         return xl6IrTypedCollectionRuntimeSignatureCompatible(
             module, instruction->typedCollectionOp, instruction->collectionAbi,
             operands[0], instruction->type, operands + 1,
             instruction->operandCount - 1);
+    }
     if ( instruction->operandCount != 2 ||
          instruction->typedCollectionOp != XL6_IR_TYPED_COLLECTION_INVALID ) return 0;
     receiver = xl6IrTypeGet(&module->types, operands[0]);
@@ -30883,7 +30923,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          intrinsic->errorAbi !=
                              (intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
                               intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD
-                                 ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE) ||
+                                 ? XL6_IR_ERROR_ABI_MAY_RAISE
+                                 : intrinsic->kind == XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER
+                                     ? xl6IrTypedCollectionErrorAbi(intrinsic->typedCollectionOp)
+                                     : XL6_IR_ERROR_ABI_NO_RAISE) ||
                          intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
                         return xl6IrDiag(diags, call,
                             "XLIR collection member intrinsic has no canonical identity ABI");
@@ -31501,7 +31544,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              intrinsic->resultType, operandTypes,
                              intrinsic->operandCount) ||
                          intrinsic->resultAbi != expectedResultAbi ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                         intrinsic->errorAbi != xl6IrTypedCollectionErrorAbi(intrinsic->typedCollectionOp) ||
                          intrinsic->integerTarget !=
                              XL6_IR_INTEGER_TARGET_INVALID )
                         return xl6IrDiag(diags, call,
@@ -34465,6 +34508,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 const XL6_IrInstruction* instruction = &module->instructions[block->firstInstruction + j];
                 const XL6_IrNode* instructionOrigin =
                     xl6IrNodeGet(module, instruction->origin);
+                if (instruction->collectionDefaultAbi!=XL6_VALUE_DEFAULT_INVALID &&
+                    (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+                     instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD ||
+                     instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_RESIZE))
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR collection default is attached to an unrelated instruction");
                 if ((instruction->collectionAdmissionAbi!=XL6_IR_COLLECTION_ADMISSION_NONE ||
                      instruction->collectionAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID ||
                      instruction->collectionAdmissionNullable) &&
@@ -37254,7 +37302,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
                              !xl6IrTypeIsRuntimeXValue(module, instruction->type) || left == NULL ||
                              xl6IrTypeGet(&module->types, left->type) == NULL ||
-                             xl6IrTypeGet(&module->types, left->type)->cAbi != XL6_IR_C_ABI_F64 )
+                             (xl6IrTypeGet(&module->types, left->type)->cAbi != XL6_IR_C_ABI_F32 &&
+                              xl6IrTypeGet(&module->types, left->type)->cAbi != XL6_IR_C_ABI_F64) )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime dynamic float has no canonical ABI");
                     } else if ( instruction->runtimeOp ==
@@ -46662,7 +46711,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( operandIndex > 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)module->operands[instruction->firstOperand + operandIndex]);
         }
-        xl6OutputPrintf(out,"],\"collectionAdmissionAbi\":%d,\"collectionAdmissionIdentitySet\":%u,\"collectionAdmissionNullable\":%s,",
+        xl6OutputPrintf(out,"],\"collectionDefaultAbi\":%d,\"collectionAdmissionAbi\":%d,\"collectionAdmissionIdentitySet\":%u,\"collectionAdmissionNullable\":%s,",
+            (int)instruction->collectionDefaultAbi,
             (int)instruction->collectionAdmissionAbi,(unsigned int)instruction->collectionAdmissionIdentitySet,
             instruction->collectionAdmissionNullable ? "true" : "false");
         xl6OutputPrintf(out, "\"awaitOutcomeAbi\":%d,\"resultOwnership\":%d,\"resultOwnershipName\":\"%s\",\"errorScope\":%lu,\"exitStep\":%lu,\"parameterScope\":%lu,\"evaluationScope\":%lu,\"evaluationResult\":%u,\"cleanupPlan\":%lu,\"loopOwner\":%lu,\"pendingException\":%lu,\"pendingFailure\":%u,\"pendingExit\":%u,\"instantiation\":%lu,\"executionOrigin\":%u}%s\n",

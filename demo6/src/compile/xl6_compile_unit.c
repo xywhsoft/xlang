@@ -153,7 +153,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_value_admission.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_nominal_admission.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_reference_admission.c", D(R(ARRAY_TYPED),R(VALUE_ADMISSION)), {NULL}},
-    {"src/runtime/xl6_array_nominal_admission.c", D(R(ARRAY_TYPED),R(NOMINAL_ADMISSION)), {NULL}}
+    {"src/runtime/xl6_array_nominal_admission.c", D(R(ARRAY_TYPED),R(NOMINAL_ADMISSION)), {NULL}},
+    {"src/runtime/xl6_array_default.c", D(), {"XRT_MODULE_VALUE_COLLECTION"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -356,6 +357,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         xl6ArtifactTypeRequire(&work,instruction->payloadType);
         if (instruction->kind==XL6_IR_INSTR_AWAIT) REQUIRE(R(FUTURE_PAYLOAD));
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+            instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) REQUIRE(R(ARRAY_BOXED_DEFAULT));
         if (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
         if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) REQUIRE(R(NULLABLE_STRING));

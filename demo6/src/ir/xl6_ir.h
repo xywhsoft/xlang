@@ -11,6 +11,7 @@
 #include "src/ast/xl6_ast.h"
 #include "src/type/xl6_type_id.h"
 #include "src/runtime/xl6_value_admission_abi.h"
+#include "src/runtime/xl6_value_default_abi.h"
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -2845,6 +2846,9 @@ typedef struct XL6_IrInstruction {
     XL6_IrCollectionAdmissionAbi collectionAdmissionAbi;
     XL6_IrNominalIdentitySetId collectionAdmissionIdentitySet;
     bool collectionAdmissionNullable;
+    /* Valid exactly for typed Array RESIZE; INVALID elsewhere. Logical
+     * element semantics fixed by lowering and replayed by the verifier. */
+    XL6_ValueDefaultAbiV1 collectionDefaultAbi;
     /* Valid only for XVALUE_DYNAMIC_COLLECTION_METHOD.  Static collection
      * operations keep their exact collectionAbi and INVALID here. */
     XL6_IrDynamicCollectionOp dynamicCollectionOp;
@@ -6077,6 +6081,8 @@ const XL6_IrEnumVariant* xl6IrEnumVariantGet(
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
+XL6_ValueDefaultAbiV1 xl6IrValueDefaultAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
+XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp);
 XL6_IrCollectionAdmissionAbi xl6IrCollectionAdmissionForPayload(const XL6_IrModule*,
     XL6_IrTypeId, XL6_IrNominalIdentitySetId*, bool*);
 const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi);

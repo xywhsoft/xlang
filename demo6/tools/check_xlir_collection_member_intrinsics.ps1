@@ -306,8 +306,9 @@ foreach ( $intrinsic in $typedMethods ) {
         $intrinsic.typedCollectionOpName -in @("pop", "take") -and
         $null -ne $resultType -and [int]$resultType.ownershipAbi -eq 2
     ) { "owned" } else { "value" }
+    $expectedErrorAbi = if ($intrinsic.typedCollectionOpName -eq 'resize') { 'may-raise' } else { 'no-raise' }
     if ( $intrinsic.admissionName -ne "verified" -or
-         $intrinsic.errorAbiName -ne "no-raise" -or
+         $intrinsic.errorAbiName -ne $expectedErrorAbi -or
          $intrinsic.resultAbiName -ne $expectedResultAbi -or
          $null -eq $receiverType -or
          $receiverType.collectionAbiName -ne $intrinsic.collectionAbiName -or
@@ -328,6 +329,7 @@ foreach ( $intrinsic in $typedMethods ) {
         $_.runtimeOpName -eq "xvalue-typed-collection-method"
     })
     if ( $runtime.Count -ne 1 -or
+         ([int]$runtime[0].collectionDefaultAbi -gt 0) -ne ($intrinsic.typedCollectionOpName -eq 'resize') -or
          $runtime[0].typedCollectionOpName -ne
              $intrinsic.typedCollectionOpName -or
          $runtime[0].collectionAbiName -ne $intrinsic.collectionAbiName -or
@@ -358,7 +360,7 @@ $requiredTypedMethodTokens = @(
     "xlir_xvalue_typed_collection_take_f64",
     "xlir_xvalue_typed_collection_take_string",
     "xlir_xvalue_typed_collection_take_xvalue",
-    "xlir_xvalue_typed_array_resize_default",
+    "xl6ArrayResizeDefaultV1",
     "xlir_xvalue_typed_array_index_of",
     "xlir_xvalue_typed_array_reverse",
     "xrtValueArrayInsert",

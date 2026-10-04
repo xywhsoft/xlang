@@ -1,0 +1,92 @@
+class DefaultItem
+    int value
+end
+
+int shrinkDrops = 0
+class ShrinkItem
+    destroy()
+        shrinkDrops += 1
+        throw RangeError "committed shrink destructor"
+    end
+end
+
+func main(...) as int
+    array<bool> flags = [true]
+    array<int8> i8 = [7]
+    array<int16> i16 = [7]
+    array<int32> i32 = [7]
+    array<int64> i64 = [7]
+    array<uint8> u8 = [7]
+    array<uint16> u16 = [7]
+    array<uint32> u32 = [7]
+    array<uint64> u64 = [uint64(7)]
+    array<float32> f32 = [float32(1.5)]
+    array<float64> f64 = [1.5]
+    array<char> chars = ['你']
+    array<string> texts = ["a\0你"]
+    array<bytes> binary = [b"a\0\xff"]
+    array<time> times = [time.fromDate(2026, 1, 1)]
+    var textAlias = texts
+    assert(flags.resize(3) and !flags[1])
+    assert(i8.resize(3) and i8[1] == 0)
+    assert(i16.resize(3) and i16[1] == 0)
+    assert(i32.resize(3) and i32[1] == 0)
+    assert(i64.resize(3) and i64[1] == 0)
+    assert(u8.resize(3) and u8[1] == 0)
+    assert(u16.resize(3) and u16[1] == 0)
+    assert(u32.resize(3) and u32[1] == 0)
+    assert(u64.resize(3) and u64[1] == uint64(0))
+    assert(f32.resize(3) and f32[1] == float32(0))
+    assert(f64.resize(3) and f64[1] == 0.0)
+    assert(chars.resize(3) and chars[1] == '\0')
+    assert(texts.resize(3) and texts[1] == "" and textAlias[0] == "a\0你")
+    assert(binary.resize(3) and binary[1] == b"")
+    assert(times.resize(3) and type(times[1]) == type(times[0]))
+    array<int?> optionalInt = [7, null]
+    array<float32?> optionalFloat = [float32(1.5), null]
+    array<bool?> optionalBool = [true, null]
+    array<uint64?> optionalUInt = [uint64(7), null]
+    array<char?> optionalChar = ['你', null]
+    array<time?> optionalTime = [time.fromDate(2026, 1, 1), null]
+    array<string?> optionalText = ["a\0", null]
+    array<bytes?> optionalBytes = [b"a\0", null]
+    array<DefaultItem?> optionalItem = [DefaultItem(), null]
+    assert(optionalInt.resize(3) and optionalInt[2] == null)
+    assert(optionalFloat.resize(3) and optionalFloat[2] == null)
+    assert(optionalBool.resize(3) and optionalBool[2] == null)
+    assert(optionalUInt.resize(3) and optionalUInt[2] == null)
+    assert(optionalChar.resize(3) and optionalChar[2] == null)
+    assert(optionalTime.resize(3) and optionalTime[2] == null)
+    assert(optionalText.resize(3) and optionalText[2] == null)
+    assert(optionalBytes.resize(3) and optionalBytes[2] == null)
+    assert(optionalItem.resize(3) and optionalItem[2] == null)
+    array<DefaultItem> objects = [DefaultItem()]
+    int caught = 0
+    int finalized = 0
+    try
+        objects.resize(2)
+    catch TypeError failure
+        caught += 1
+    finally
+        finalized += 1
+    end
+    try
+        chars.resize(-1)
+    catch RangeError failure
+        caught += 1
+    finally
+        finalized += 1
+    end
+    assert(caught == 2 and finalized == 2 and objects.length == 1 and chars.length == 3)
+    assert(objects.resize(1) and objects.resize(0))
+    assert(textAlias.length == 3 and texts.resize(1) and textAlias.length == 1)
+    array<ShrinkItem> doomed = [ShrinkItem()]
+    try
+        doomed.resize(0)
+        return 1
+    catch RangeError failure
+        assert(failure.message == "committed shrink destructor")
+    end
+    assert(shrinkDrops == 1 and doomed.length == 0)
+    return 0
+end

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scalar/bytes/nullable collection admission: IR, strict C, JIT and AOT.
+"""Collection admission and logical Array defaults: IR, strict C, JIT and AOT.
 
 Strict C links the real shared resident runtime; this gate does NOT certify a
 pruned native closure. check_xlir_artifact_runtime supplies that independent
@@ -28,13 +28,16 @@ def main() -> int:
     parser.add_argument("--public-directory", type=Path)
     parser.add_argument("--sanitize", action="store_true")
     parser.add_argument("--nominal", action="store_true", help="Select class/protocol and nullable nominal imports")
+    parser.add_argument("--defaults", action="store_true", help="Select boxed Array logical defaults and checked resize effects")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc = shutil.which("gcc")
     if not cc or out.exists() or (os.name == "nt" and not args.public_directory) or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
-    fixtures = ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+    if args.defaults and args.nominal:
+        parser.error("Select one fixture family")
+    fixtures = ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
@@ -140,6 +143,19 @@ def main() -> int:
             assert len(calls) == len(primitive) and len(nominal_calls) == len(nominal)
             assert len(checked) == len(primitive) + len(nominal)
             types = {row["id"]: row for row in lowered["types"]}
+            defaults = [row for row in lowered["instructions"] if row["collectionDefaultAbi"]]
+            default_calls = re.findall(r"v(\d+) = xl6ArrayResizeDefaultV1\(v(\d+), v(\d+), (\d+)\);", text)
+            # Async/resume machines can emit one canonical SSA operation in
+            # multiple execution shells. Verify exact tuples, not text counts.
+            expected_defaults = {(row["result"], *row["operands"], row["collectionDefaultAbi"]) for row in defaults}
+            assert {tuple(map(int, row)) for row in default_calls} == expected_defaults
+            for operation in defaults:
+                assert operation["typedCollectionOpName"] == "resize"
+            if args.defaults:
+                assert defaults and "xlir_xvalue_typed_array_resize" not in text
+                assert "xlir_xvalue_typed_array_default" not in text
+                if fixture == "stdlib_array_defaults":
+                    assert set(range(1,11)) == {row["collectionDefaultAbi"] for row in defaults}
             for operation, (rule, nullable, identity) in zip(primitive, calls):
                 payload = types[operation["payloadType"]]
                 assert int(rule) == payload["xvalueAdmissionAbi"]
@@ -173,15 +189,18 @@ def main() -> int:
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
+            if defaults:
+                assert f"array defaults: {len(defaults)} resize contracts;" in contract_log
             assert generated.read_bytes() == contract_c.read_bytes(), "Mutation contract changed canonical C"
             for level in (0, 2):
                 binary = prefix.with_suffix(f".O{level}" + (".exe" if os.name == "nt" else ""))
                 run(f"{fixture}.O{level}.build", [cc, *strict, f"-O{level}", str(generated),
                     "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)],
-                    # Measured full O2 ASan/UBSan compilation exceeds 60 s.
-                    # Only that compiler step has a larger finite budget;
+                    # The new 30-default-contract fixture exceeded 180 s in
+                    # full O2 ASan/UBSan compilation. Only that compiler step
+                    # has a larger finite budget, with every strict flag kept;
                     # executions, JIT, AOT and ordinary C still use 60 s.
-                    timeout=180 if args.sanitize and level == 2 else 60)
+                    timeout=(360 if args.defaults else 180) if args.sanitize and level == 2 else 60)
                 run(f"{fixture}.O{level}.run", [str(binary)])
             source = f"test/cases/{fixture}.xl"
             jit = [str(cli), source, "run", str(prefix)] if public else [str(cli), "run", source, "--inc-path", str(out / "include")]

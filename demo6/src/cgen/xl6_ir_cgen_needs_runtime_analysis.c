@@ -254,7 +254,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsXValueTypedCollectionBaseRuntime = 1;
             if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_RESIZE ) {
                 needs->needsXValueTypedArrayResizeRuntime = 1;
-                needs->needsStringViews = 1;
             } else if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_INDEX_OF ) {
                 needs->needsXValueTypedArrayIndexOfRuntime = 1;
             } else if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_REVERSE ) {

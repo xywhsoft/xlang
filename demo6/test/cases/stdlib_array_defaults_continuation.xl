@@ -1,0 +1,54 @@
+async func defaultReady(int value) as int
+    return value
+end
+
+async func resizeAfterAwait(array<char> values) as char
+    await defaultReady(1)
+    try
+        assert(values.resize(3))
+        return values[2]
+    finally
+        values.resize(1)
+    end
+end
+
+async func negativeAfterAwait(array<bytes> values) as int
+    await defaultReady(1)
+    try
+        values.resize(-1)
+        return 0
+    catch RangeError failure
+        return 1
+    finally
+        values.resize(1)
+    end
+end
+
+func resizedItems(array<char> values) as generator<char>
+    try
+        yield values[0]
+        assert(values.resize(3))
+        yield values[1]
+    finally
+        values.resize(1)
+    end
+end
+
+array<char> chars = ['你']
+assert(await resizeAfterAwait(chars) == '\0' and chars.length == 1)
+array<bytes> binary = [b"a\0"]
+assert(await negativeAfterAwait(binary) == 1 and binary.length == 1)
+int seen = 0
+for item in resizedItems(chars)
+    if seen == 0
+        assert(item == '你')
+    else
+        assert(item == '\0')
+    end
+    seen += 1
+end
+assert(seen == 2 and chars.length == 1)
+
+func main(...) as int
+    return 0
+end

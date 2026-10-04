@@ -3671,6 +3671,9 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
     case XL6_IR_C_ABI_CHAR_U32: runtimeOp = XL6_IR_RUNTIME_XVALUE_CHAR; break;
     case XL6_IR_C_ABI_I64: runtimeOp = XL6_IR_RUNTIME_XVALUE_I64; break;
     case XL6_IR_C_ABI_U64: runtimeOp = XL6_IR_RUNTIME_XVALUE_U64; break;
+    /* Every binary32 value widens exactly to the canonical xvalue binary64
+     * payload. Foreign C float keeps its separate nominal identity path. */
+    case XL6_IR_C_ABI_F32:
     case XL6_IR_C_ABI_F64: runtimeOp = XL6_IR_RUNTIME_XVALUE_F64; break;
     case XL6_IR_C_ABI_C_FLOAT:
     case XL6_IR_C_ABI_C_DOUBLE:
@@ -27571,7 +27574,7 @@ static int xl6IrLowerIntrinsicTypedCollectionMember(
          intrinsic->receiverType == XL6_IR_TYPE_INVALID ||
          intrinsic->operandCount > 2 ||
          intrinsic->resultType != call->storageType ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) return 0;
+         intrinsic->errorAbi != xl6IrTypedCollectionErrorAbi(intrinsic->typedCollectionOp) ) return 0;
     receiver = xl6IrNodeGet(ctx->module, intrinsic->receiver);
     receiverType = xl6IrTypeGet(&ctx->module->types, intrinsic->receiverType);
     resultType = xl6IrTypeGet(&ctx->module->types, intrinsic->resultType);
@@ -27661,6 +27664,11 @@ static int xl6IrLowerIntrinsicTypedCollectionMember(
     emitted = &ctx->module->instructions[ctx->module->instructionCount - 1];
     emitted->collectionAbi = intrinsic->collectionAbi;
     emitted->typedCollectionOp = intrinsic->typedCollectionOp;
+    if (intrinsic->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE)
+        emitted->collectionDefaultAbi=xl6IrValueDefaultAbiForType(&ctx->module->types,
+            xl6IrTypeGet(&ctx->module->types,xl6IrCollectionElementType(ctx->module,intrinsic->receiverType)));
+    if (intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
+        !xl6IrLowerEmitRuntimeErrorEdge(ctx, origin, call, *result)) goto done;
     if (!xl6IrLowerCompleteEvaluationBorrows(ctx, origin, evaluationOwnerFirst, result)) goto done;
     status = 1;
 done:

@@ -457,3 +457,17 @@ modes as independently frozen child gates; the Stack/Sequence ownership parent
 therefore exercises them on its existing regular path. No new default library
 API, arbitrary C identity unforgeability, recursive element closure or complete
 language Array/53-module migration is claimed.
+
+`check_stdlib_array_defaults.py --out <fresh-directory>` checks the separate
+resident boxed-array resize/default closure, not native Sequence migration.
+It verifies all nine value tags, aliases/snapshots, refusal before allocation,
+unchanged contents/count/capacity on validation/allocation failure, and strict
+O0/O2 full allocation prefixes. Linux `--sanitize` instruments that closure;
+`--shared` instead checks the actual product ABI (host-only instrumentation).
+The regular native Array gate executes it as an independently frozen child.
+`check_stdlib_collection_admission.py --defaults` adds current-compiler mutation,
+canonical C, strict O0/O2, JIT and AOT checks for logical defaults and immediate
+may-raise outcomes, including async/generator cleanup and committed-shrink
+destructor errors. It also covers exact binary32 boxing without foreign identity.
+It does not claim rollback of an already committed shrink after a destructor
+error, native language Array migration, or complete 53-module acceptance.
