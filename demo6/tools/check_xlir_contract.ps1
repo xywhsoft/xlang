@@ -2148,7 +2148,7 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF",
     "XL6_IR_RUNTIME_BRIDGE_JSON_PARSE",
     "XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE",
-    "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_RUNTIME_BRIDGE_BUFFER",
+    "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_CALL_TARGET_EXTERN_C",
     "XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC",
     "XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH",
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
@@ -2195,7 +2195,7 @@ foreach ( $required in @(
     "XLIR direct runtime bridge has no exact declared ABI",
     "XLIR DynamicFields runtime bridge has no exact private helper ABI",
     "XLIR template runtime bridge has no exact borrowed native handle ABI",
-    "XLIR Buffer runtime bridge has no exact component ABI",
+    "xl6IrRuntimeDirectBridgeTargetMatches(ctx->module, target)",
     "XLIR File runtime bridge has no exact component ABI",
     "XLIR last-error-text runtime bridge has no exact owned-string ABI",
     "XLIR call target has no exact physical error ABI",
@@ -2215,7 +2215,7 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS",
     "XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE",
     "XL6_IR_RUNTIME_BRIDGE_JSON_PARSE",
-    "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_RUNTIME_BRIDGE_BUFFER",
+    "XL6_IR_RUNTIME_BRIDGE_TEMPLATE", "XL6_IR_CALL_TARGET_EXTERN_C",
     "XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC",
     "XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH",
     "XL6_IR_RUNTIME_BRIDGE_PATH_JOIN", "XL6_IR_RUNTIME_BRIDGE_FILE",
@@ -4592,7 +4592,7 @@ if (!$header.Contains('XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1') -or
     !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
     $moduleTrace.IndexOf('xl6NetworkServiceRuntimeV2Get()->Trace') -gt $moduleTrace.IndexOf('xlir_module_initialized == 0') -or
     !$api.Contains('invalid module retirement V4 contract') -or
-    !$api.Contains('xl6OwnershipPlanTryCreateV3') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
+    !$api.Contains('xl6OwnershipPlanTryCreateV4') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
     !$api.Contains('retired == XL6_MODULE_RETIRE_BUSY') -or
     !$ownershipPlanHeader.Contains('XL6_OwnershipFinishV1') -or
     !$ownershipPlanSource.Contains('old->completion!=completion') -or
@@ -6004,12 +6004,13 @@ if ( ! $runtimeMatrix.Contains("stdlib_special_collections_concurrent.xl") ) {
 }
 
 # Stack<T> is an owning generic runtime resource. Typed XLIR owns its payload,
-# class-field default and effect contracts; lowering owns storage addresses and
+# class-field default and effect contracts; lowering owns exact return values and
 # partial-object cleanup; Cgen renders only verified RuntimeOps and TypeValueIds.
 foreach ( $required in @(
     "XL6_IR_RUNTIME_RESOURCE_STACK",
     "XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE",
-    "XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO",
+    "XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT",
+    "XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP",
     "XL6_IR_RUNTIME_STACK_CREATE", "XL6_IR_RUNTIME_STACK_CAPACITY",
     "initializerRuntimeResourceOp", "initializerPayloadType",
     "initializerRuntimeResourcePayloadAbi", "initializerErrorAbi"
@@ -6030,7 +6031,8 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xl6IrLowerRuntimeStackPayloadType", "xl6IrLowerRuntimeResourceOpCreates",
-    "XL6_IR_RUNTIME_STACK_CREATE", "XL6_IR_RUNTIME_STACK_PEEK_AT_INTO",
+    "XL6_IR_RUNTIME_STACK_CREATE", "XL6_IR_RUNTIME_STACK_PEEK_AT",
+    "XL6_IR_RUNTIME_STACK_TRY_POP",
     "xl6IrLowerBeginClassConstruction", "xl6IrLowerCommitClassConstruction",
     "XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW", "XL6_IR_INSTR_ERROR_TEST"
 ) ) {
@@ -6041,12 +6043,24 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrCgenStackRuntimeOpIs", "xl6IrCgenStackTypeAbi",
     "xl6IrCgenRuntimeStackAbi", "xl6IrCgenEmitStackRuntime",
-    "needsStackResourceRuntime", "xlir_stack_handle_ops",
-    "xlir_stack_create", "xlir_stack_pop_or_peek",
-    "xlir_stack_clone", "xlir_stack_size"
+    "needsStackResourceRuntime", "xl6StackCreateV1",
+    "xl6StackTakeV1", "xl6StackTryTakeV1",
+    "xl6StackCloneV1", "xl6StackSizeV1"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR Stack mechanical C boundary is incomplete: $required"
+    }
+}
+foreach ( $retired in @(
+    "XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO",
+    "XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO",
+    "XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO",
+    "XL6_IR_RUNTIME_STACK_POP_INTO", "XL6_IR_RUNTIME_STACK_PEEK_INTO",
+    "XL6_IR_RUNTIME_STACK_PEEK_AT_INTO", "xl6StackPopOrPeekV1", "xl6StackPeekAtV1"
+) ) {
+    if ( $header.Contains($retired) -or $source.Contains($retired) -or
+         $lower.Contains($retired) -or $cEmitter.Contains($retired) ) {
+        throw "Retired Stack caller-writeback path returned: $retired"
     }
 }
 foreach ( $required in @(
@@ -6107,7 +6121,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xl6IrCgenAvlRuntimeOpIs", "xl6IrCgenAvlRuntimeOpMayRaise",
-    "xl6IrCgenAvlKeyOrderAbi", "xl6IrCgenAvlRuntimeTypeExpr",
+    "xl6IrCgenAvlKeyOrderAbi", "xl6IrCgenNativeValueTypeExpr",
     "xl6IrCgenAvlTypeAbi", "xl6IrCgenRuntimeAvlAbi",
     "xl6IrCgenEmitAvlRuntime", "needsAvlTreeResourceRuntime",
     "xlir_avl_handle_ops", "xlir_avl_create", "xlir_avl_get_or_take",
@@ -6332,7 +6346,7 @@ if (!$header.Contains('XL6_IrAsyncOwnershipAbi')) { throw 'Async producer owners
 foreach ($required in @('XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1','ownershipAbi')) {
     if (!$header.Contains($required) -or !$source.Contains($required)) { throw "Async producer ownership must be explicit verified IR: $required" }
 }
-foreach ($required in @('xrtPromiseProducerBindTakeV1','xrtFutureWatchInitOwnershipV1','producer->current=frame',
+foreach ($required in @('xrtPromiseProducerBindTakeV2','xrtFutureWatchInitOwnershipV1','producer->current=frame',
     'producer->output!=*frame_outer(frame)','producer_commit','detach_producer','producer_adapter')) {
     if (!$asyncOwnership.Contains($required)) { throw "Resident async owning-edge protocol missing: $required" }
 }

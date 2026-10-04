@@ -32,7 +32,7 @@ static void memoryFault(const char* operation, size_t point)
     if (!strcmp(operation,"create")) ok = (created=xl6StackCreateV1(TEXT_ARGS)) != NULL;
     else if (!strcmp(operation,"reserve")) ok = xl6StackReserveV1(stack,TEXT_ARGS,32768);
     else if (!strcmp(operation,"push")) ok = xl6StackPushV1(stack,TEXT_ARGS,&item);
-    else if (!strcmp(operation,"peek")) ok = xl6StackPeekAtV1(stack,TEXT_ARGS,0,&output);
+    else if (!strcmp(operation,"peek")) ok = xl6StackTryTakeV1(stack,TEXT_ARGS,0,&output,false);
     else if (!strcmp(operation,"owned-peek")) {
         xl6StackTakeV1(stack,TEXT_ARGS,0,&output,false); ok = !xrtGetError();
     }
@@ -48,7 +48,7 @@ static void memoryFault(const char* operation, size_t point)
     assert(xl6StackSizeV1(stack,TEXT_ARGS,false) == (ok && !strcmp(operation,"push") ? 2 : 1));
     if (hit && (!strcmp(operation,"peek") || !strcmp(operation,"owned-peek") || !strcmp(operation,"try-peek")))
         assert(output.Size == 9 && !memcmp(output.Data,"unchanged",9));
-    assert(xl6StackPeekAtV1(stack,TEXT_ARGS,0,&output)); exact(output);
+    assert(xl6StackTryTakeV1(stack,TEXT_ARGS,0,&output,false)); exact(output);
     xrtTypeDropValue(xrtTypeStringView(),&output);
     xrtSetErrorTake(failure); const xerror* original = xrtGetError();
     xrtValueRelease(created); xrtValueRelease(stack);
@@ -80,9 +80,9 @@ static void valueVectors(void)
         assert(xl6StackPushV1(chars,CHAR_ARGS,&scalars[i]));
     xvalue* copy=xl6StackCloneV1(chars,CHAR_ARGS);assert(copy && xl6StackEqualsV1(chars,copy,CHAR_ARGS));
     for(size_t i=sizeof(scalars)/sizeof(*scalars);i--!=0;){
-        uint32_t output=0;assert(xl6StackPopOrPeekV1(chars,CHAR_ARGS,&output,false) && output==scalars[i]);
+        uint32_t output=0;assert(xl6StackTryTakeV1(chars,CHAR_ARGS,0,&output,true) && output==scalars[i]);
     }
-    uint32_t output=91;assert(!xl6StackPopOrPeekV1(chars,CHAR_ARGS,&output,false) && output==91);
+    uint32_t output=91;assert(!xl6StackTryTakeV1(chars,CHAR_ARGS,0,&output,true) && output==91);
     xrtValueRelease(chars);xrtValueRelease(copy);
 
     unsigned char data[256];for(size_t i=0;i<sizeof(data);++i)data[i]=(unsigned char)i;
@@ -95,12 +95,12 @@ static void valueVectors(void)
      * output owner. Language mutation is a separately verified write-copy. */
     xvalue* observed=xrtValueBytes((xbytesview){(const unsigned char*)"old",3});assert(observed);
     assert(xrtMemDebugFailAfter(0));
-    assert(xl6StackPeekAtV1(bytes,BYTES_ARGS,0,&observed));
+    assert(xl6StackTryTakeV1(bytes,BYTES_ARGS,0,&observed,false));
     assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
     xbytesview view={0};assert(xrtValueGetBytes(observed,&view));
     assert(view.Size==sizeof(data) && !memcmp(view.Data,data,sizeof(data)));
-    assert(xl6StackPopOrPeekV1(copy,BYTES_ARGS,&input,false) && input==observed);
-    assert(!xl6StackPopOrPeekV1(copy,BYTES_ARGS,&input,false) && input==observed && !xrtGetError());
+    assert(xl6StackTryTakeV1(copy,BYTES_ARGS,0,&input,true) && input==observed);
+    assert(!xl6StackTryTakeV1(copy,BYTES_ARGS,0,&input,true) && input==observed && !xrtGetError());
     xrtValueRelease(bytes);xrtValueRelease(copy);
     assert(xrtValueGetBytes(input,&view) && view.Size==sizeof(data) && view.Data[255]==255);
     xrtValueRelease(input);xrtValueRelease(observed);
@@ -128,12 +128,13 @@ static void vectors(void)
     assert(!xrtGetError() && !xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); exact(output);
     xrtTypeDropValue(xrtTypeStringView(),&output);
     assert(xl6StackPushV1(stack,TEXT_ARGS,&input));
-    assert(xl6StackPeekAtV1(stack,TEXT_ARGS,0,&output)); exact(output);
+    assert(xl6StackTryTakeV1(stack,TEXT_ARGS,0,&output,false)); exact(output);
     xvalue* clone = xl6StackCloneV1(stack,TEXT_ARGS); assert(clone);
     assert(xl6StackEqualsV1(stack,clone,TEXT_ARGS));
-    assert(xl6StackPopOrPeekV1(stack,TEXT_ARGS,&output,false)); exact(output);
-    assert(!xl6StackPopOrPeekV1(stack,TEXT_ARGS,&output,false)); exact(output); assert(!xrtGetError());
-    assert(!xl6StackPeekAtV1(stack,TEXT_ARGS,-1,&output)); assert(!xrtGetError());
+    assert(xl6StackTryTakeV1(stack,TEXT_ARGS,0,&output,true)); exact(output);
+    assert(!xl6StackTryTakeV1(stack,TEXT_ARGS,0,&output,true)); exact(output); assert(!xrtGetError());
+    assert(!xl6StackTryTakeV1(stack,TEXT_ARGS,-1,&output,false));
+    assert(xrtErrorKind(xrtGetError()) == XERR_RANGE); xrtClearError();
     assert(!xl6StackReserveV1(stack,TEXT_ARGS,-1)); assert(xrtErrorKind(xrtGetError()) == XERR_RANGE); xrtClearError();
     assert(!xl6StackPushV1(stack,101,999,2,sizeof(xstrview),xrtTypeStringView(),&input));
     assert(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT); xrtClearError();
@@ -145,12 +146,12 @@ static void vectors(void)
     xvalue* object = xrtValueArray(); assert(object);
     assert(xl6StackPushV1(refs,REF_ARGS,&object));
     xvalue* observed = NULL;
-    assert(xl6StackPeekAtV1(refs,REF_ARGS,0,&observed)); assert(observed == object);
+    assert(xl6StackTryTakeV1(refs,REF_ARGS,0,&observed,false)); assert(observed == object);
     xvalue* refsClone = xl6StackCloneV1(refs,REF_ARGS); assert(refsClone);
     xrtValueRelease(object); xrtValueRelease(observed); observed = NULL;
-    assert(xl6StackPopOrPeekV1(refsClone,REF_ARGS,&observed,false));
+    assert(xl6StackTryTakeV1(refsClone,REF_ARGS,0,&observed,true));
     assert(xrtValueArrayAppendNew(observed,xrtValueInt(71)));
-    xvalue* other = NULL; assert(xl6StackPeekAtV1(refs,REF_ARGS,0,&other));
+    xvalue* other = NULL; assert(xl6StackTryTakeV1(refs,REF_ARGS,0,&other,false));
     assert(other == observed && xrtValueCount(other) == 1);
     xrtValueRelease(other); xrtValueRelease(observed); xrtValueRelease(refs); xrtValueRelease(refsClone);
 

@@ -343,8 +343,6 @@ static int xl6IrCgenEmitResourceRuntime(
             "typedef struct xrttype xrttype;\n"
             "extern xvalue* xl6StackCreateV1(uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern bool xl6StackPushV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const void*);\n"
-            "extern bool xl6StackPopOrPeekV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, void*, bool);\n"
-            "extern bool xl6StackPeekAtV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*);\n"
         "extern void xl6StackTakeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool);\n"
         "extern bool xl6StackTryTakeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool);\n"
             "extern bool xl6StackReserveV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t);\n"

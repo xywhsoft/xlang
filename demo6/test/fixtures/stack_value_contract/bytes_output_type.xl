@@ -1,6 +1,5 @@
 func main(...) as int
     Stack<bytes> values = Stack::<bytes>()
-    var output = null
-    values.peekInto(output)
+    string output = values.peek()
     return 0
 end

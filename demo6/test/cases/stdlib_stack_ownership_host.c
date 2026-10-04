@@ -200,8 +200,8 @@ static void workerBody(Gate* gate)
 {
     if (gate->mode == 0) xl6StackClearV1(gate->stack,REF_ARGS);
     else if (gate->mode == 1) { xrtValueRelease(gate->stack); gate->stack = NULL; }
-    else if (gate->mode == 2) assert(xl6StackPopOrPeekV1(gate->stack,REF_ARGS,&gate->target,false));
-    else if (gate->mode == 3) assert(xl6StackPeekAtV1(gate->stack,REF_ARGS,0,&gate->target));
+    else if (gate->mode == 2) assert(xl6StackTryTakeV1(gate->stack,REF_ARGS,0,&gate->target,true));
+    else if (gate->mode == 3) assert(xl6StackTryTakeV1(gate->stack,REF_ARGS,0,&gate->target,false));
     else {
         xrtownershipscope refused = {0}; assert(!xrtOwnershipFreezeTryBegin(&refused));
         xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);

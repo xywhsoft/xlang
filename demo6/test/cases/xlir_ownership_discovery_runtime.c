@@ -190,7 +190,7 @@ static void copied_source_ends(void)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Owner owner;initialize(&owner);
     xvalue* source=create_cycle(&owner,1,false);xvalue* slot=NULL;
     xvalue* stack=xrtValueObjectGet(source,XRT_STR_LITERAL("links"));
-    assert(xl6StackPopOrPeekV1(stack,REF_ARGS,&slot,false) && slot==source);
+    assert(xl6StackTryTakeV1(stack,REF_ARGS,0,&slot,true) && slot==source);
     xrtValueRelease(slot);
     xvalue* copy=xrtValueDeepClone(source);assert(copy && copy!=source && anchors(&owner)==2);
     xrtValueRelease(source);assert(anchors(&owner)==1 && owner.acquisitions==1);

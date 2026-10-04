@@ -2,8 +2,8 @@ func main(...) as int
     Stack<int> stack = Stack::<int>()
     stack.push(10)
     stack.push(20)
-    int value = 0
-    assert(stack.popInto(value) and value == 20)
+    int value = stack.pop()
+    assert(value == 20)
     println("stack=ok")
 
     AvlTree<string, int> tree = AvlTree::<string, int>()

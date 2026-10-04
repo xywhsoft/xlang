@@ -357,7 +357,7 @@ Trusted C pointer escapes and legacy file/network conversions remain separate.
 `check_xlir_buffer_core_ir.py` rejects a return to the retired Buffer profile.
 
 `check_stdlib_stack_native.ps1` / `.sh` freeze eighteen Stack positives,
-three nullable dependency probes and thirteen negatives against current sources.
+three nullable dependency probes and sixteen negatives against current sources.
 They cover actual typed-stack C/JIT/AOT/pruned
 artifacts, six exact tuple mutations and parameter lifetime fact mutations,
 exact owned/value pop/peek/peekAt result/effect mutations before C output,
@@ -375,8 +375,10 @@ exact allocation totals. Language allocation injection covers the calling thread
 not every background thread.
 The Linux gate sanitizes actual selected generated/resident/native closures;
 shared CLI/JIT and full shared debug XRT are not instrumented. Exact direct
-owned-return and try/outcome APIs are covered, but legacy Into retirement,
-batch/FixedStack, other containers and all 53 modules remain pending.
+owned-return and try/outcome APIs are covered. The three old caller-writeback
+methods and their IR/Cgen/native exports are removed: semantic negatives,
+generated declarations and actual linked symbol sets guard their retirement.
+Batch/FixedStack, other containers and all 53 modules remain pending.
 
 `check_stdlib_stack_ownership.ps1` / `.sh` validate the actual counted native
 wrapper and every strong element slot, including duplicate edges, shared

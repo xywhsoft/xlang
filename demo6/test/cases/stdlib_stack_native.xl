@@ -8,19 +8,25 @@ func main(...) as int
     string original = "a\0你"
     assert(text.push(original))
     original = "changed"
-    string result = "old"
-    assert(text.peekInto(result))
+    string result = text.peek()
     assert(result == "a\0你")
     Stack<string> copy = text.clone()
     assert(copy.equals(text))
-    assert(text.popInto(result))
+    result = text.pop()
     assert(result == "a\0你")
     assert(text.count() == 0 and copy.count() == 1)
-    assert(not text.popInto(result))
-    assert(result == "a\0你")
-    assert(not text.peekAtInto(-1, result))
-    assert(not text.peekAtInto(10, result))
-    assert(copy.popInto(result))
+    auto hasText, absent = text.tryPop()
+    assert(not hasText and absent == null and result == "a\0你")
+    int refused = 0
+    try
+        text.peekAt(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 1)
+    auto hasDepth, missing = text.tryPeekAt(10)
+    assert(not hasDepth and missing == null)
+    result = copy.pop()
     assert(result == "a\0你")
     assert(copy.trim())
     assert(copy.capacity() == 0)
@@ -29,11 +35,10 @@ func main(...) as int
     item.value = 7
     assert(items.push(item))
     Stack<StackItem> references = items.clone()
-    StackItem observed = StackItem()
-    assert(items.peekInto(observed))
+    StackItem observed = items.peek()
     observed.value = 31
     assert(item.value == 31)
-    assert(references.popInto(observed))
+    observed = references.pop()
     assert(observed.value == 31)
     items.clear()
     assert(items.count() == 0)

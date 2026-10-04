@@ -14,7 +14,7 @@ checks=0; failures=()
 cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi stdlib_stack_values stdlib_stack_owned stdlib_stack_owned_continuation stdlib_stack_try_owned stdlib_stack_try_continuation
     stdlib_stack_nullable_scalar stdlib_stack_nullable_continuation stdlib_stack_nullable_i64 stdlib_stack_nullable_bool stdlib_stack_nullable_u64 stdlib_stack_nullable_f32 stdlib_stack_nullable_f64 stdlib_stack_nullable_time stdlib_stack_nullable_char
     xlir_nullable_scalar_no_resource stdlib_nullable_resource_transport stdlib_nullable_queue_transport)
-negative=(char_output_type bytes_output_type bytes_input_type owned_argument owned_depth owned_result try_argument try_depth try_result try_nullable_result nullable_literal_range nullable_variable_narrow nullable_identity)
+negative=(char_output_type bytes_output_type bytes_input_type owned_argument owned_depth owned_result try_argument try_depth try_result try_nullable_result nullable_literal_range nullable_variable_narrow nullable_identity retired_pop_into retired_peek_into retired_peek_at_into)
 nullable_sources=(src/runtime/xl6_nullable_bool.c src/runtime/xl6_nullable_i64.c src/runtime/xl6_nullable_u64.c src/runtime/xl6_nullable_f32.c src/runtime/xl6_nullable_f64.c src/runtime/xl6_nullable_time.c src/runtime/xl6_nullable_char.c)
 run() {
     local name="$1"; shift
@@ -91,6 +91,7 @@ fixture() {
         run "$name.contract-equality" cmp "$OUT/$name.c" "$OUT/$name.contract.c" || return
     fi
     if grep -Eq 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)' "$OUT/$name.c"; then return 1; fi
+    if grep -Eq 'xl6Stack(PopOrPeek|PeekAt)V1' "$OUT/$name.c"; then return 1; fi
 
     run "$name.jit" "$CLI" run "$source" --inc-path "$OUT/include" || return
     run "$name.aot-build" "$CLI" build "$source" --inc-path "$OUT/include" --save-temps -o "$OUT/$name.aot" || return
@@ -114,6 +115,7 @@ fixture() {
     run "$name.closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
         "${entry[@]}" test/cases/xlir_time_text_closure_host.c "$OUT/$name.native.o" "${objects[@]}" -pthread -ldl -lm -o "$OUT/$name.closure" || return
     run "$name.closure" "$OUT/$name.closure" || return
+    run "$name.retired-symbols" bash -c '! nm -g --defined-only "$1" | grep -Eq "xl6Stack(PopOrPeek|PeekAt)V1$"' _ "$OUT/$name.closure" || return
     if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values || "$name" = stdlib_stack_owned || "$name" = stdlib_stack_try_owned || "$name" = stdlib_stack_nullable_scalar ]]; then
         run "$name.factory-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
             -DXL6_PRODUCT_USER_ENTRY test/cases/xlir_module_product_oom_host.c "$OUT/debug-host.o" -lxl "${libs[@]}" -o "$OUT/$name.oom" || return
@@ -135,6 +137,9 @@ reject_fixture() {
     local name="$1" target="$OUT/negative.$1.c"
     local diagnostic='\[sem\].*Stack.*: target (char|bytes), value (uint32|var|string)'
     case "$name" in
+        char_output_type) diagnostic='\[sem\].*: target Stack<uint32>, value Stack<char>' ;;
+        bytes_output_type) diagnostic='\[sem\].*: target string, value bytes' ;;
+        retired_*) diagnostic='\[sem\].*unknown Stack method' ;;
         owned_argument) diagnostic='\[sem\].*\[SC-ARG-COUNT\]' ;;
         owned_depth) diagnostic='\[sem\].*Stack\.peekAt.*: target int, value string' ;;
         owned_result) diagnostic='\[sem\].*: target string, value bytes' ;;
@@ -155,7 +160,7 @@ done
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi
-"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":21,"NegativeFixtures":13,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: owned/try and seven tagged nullable stored profiles, canonical carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation rejection. Nullable value-only/raw queue exclude descriptors; AVL selects only its used descriptor. Native and calling-thread shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Legacy Into retirement, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
+"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":21,"NegativeFixtures":16,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: owned/try and seven tagged nullable stored profiles, canonical carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation rejection. Nullable value-only/raw queue exclude descriptors; AVL selects only its used descriptor. Native and calling-thread shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Old Into methods, IR and native exports are retired and rejected; actual native symbols exclude them. Batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
     "$OUT/results.json" "$checks" "$( [[ ! " ${failures[*]} " = *' inputs-changed '* ]] && printf true || printf false )" "${failures[@]}"
 printf 'Stack native Linux: %s successful checks, %s failed groups\n' "$checks" "${#failures[@]}"
 [[ ${#failures[@]} = 0 ]]

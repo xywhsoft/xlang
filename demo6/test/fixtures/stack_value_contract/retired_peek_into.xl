@@ -1,0 +1,6 @@
+func main(...) as int
+    Stack<string> values = Stack::<string>()
+    string output = ""
+    values.peekInto(output)
+    return 0
+end

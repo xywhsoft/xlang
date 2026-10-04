@@ -19,7 +19,8 @@ try {
         'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char')
     $extraCases = @('xlir_nullable_scalar_no_resource','stdlib_nullable_resource_transport','stdlib_nullable_queue_transport')
     $negative = @('char_output_type','bytes_output_type','bytes_input_type','owned_argument','owned_depth','owned_result','try_argument','try_depth','try_result','try_nullable_result',
-        'nullable_literal_range','nullable_variable_narrow','nullable_identity')
+        'nullable_literal_range','nullable_variable_narrow','nullable_identity',
+        'retired_pop_into','retired_peek_into','retired_peek_at_into')
     $gcc = (Get-Command gcc -CommandType Application | Select-Object -First 1).Source
     $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
     $files = @(($cases + $extraCases) | ForEach-Object { Get-Item "test/cases/$_.xl" }) +
@@ -65,6 +66,7 @@ try {
         if ('src/runtime/xl6_stack.c' -notin $plan.Sources -or 'xrtTypedStackCreate' -notin $plan.Defined -or
             'xrtTypedStackCreate' -notin $plan.Required) { throw 'Missing actual native typed Stack closure' }
         if (@($plan.Sources | Where-Object { $_ -match 'xl6_buffer_|xl6_regex_|xl6_log_|xl6_process_' }).Count) { throw 'Unrelated resident component in Stack' }
+        if (@($plan.Defined | Where-Object { $_ -match '^_?xl6Stack(PopOrPeek|PeekAt)V1$' }).Count) { throw 'Retired native Stack entry remains in actual artifact' }
     }
     foreach ($case in ($cases + $extraCases)) {
         $plan = $artifact.NativeLinkage | Where-Object Fixture -eq $case
@@ -105,11 +107,15 @@ try {
         Run "$case.contract" "$outPath/contract.exe" @("test/cases/$case.xl","$prefix.contract.c")
         if ((Get-Content "$prefix.c" -Raw) -cne (Get-Content "$prefix.contract.c" -Raw)) { throw 'Noncanonical Stack C output' }
         if ((Get-Content "$prefix.c" -Raw) -match 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)') { throw 'Retired generated Stack implementation emitted' }
+        if ((Get-Content "$prefix.c" -Raw) -match 'xl6Stack(PopOrPeek|PeekAt)V1') { throw 'Retired Stack native prototype or call emitted' }
     }
     foreach($case in $negative){
         $prefix="$outPath/negative.$case"
         Run "negative.$case" $public.Driver @("test/fixtures/stack_value_contract/$case.xl",'emit',$prefix) $true
         $diagnostic = switch ($case) {
+            'char_output_type' { '\[sem\].*: target Stack<uint32>, value Stack<char>' }
+            'bytes_output_type' { '\[sem\].*: target string, value bytes' }
+            { $_ -like 'retired_*' } { '\[sem\].*unknown Stack method' }
             'owned_argument' { '\[sem\].*\[SC-ARG-COUNT\]' }
             'owned_depth' { '\[sem\].*Stack\.peekAt.*: target int, value string' }
             'owned_result' { '\[sem\].*: target string, value bytes' }
@@ -143,7 +149,7 @@ try {
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;ExtraFixtures=$extraCases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;
-        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts: owned/try and seven tagged nullable stored profiles, exact carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation refusal. Nullable values/raw queue exclude descriptors; AVL selects only its used descriptor. Native and calling-thread language OOM prefixes. Legacy Into retirement, batch and other 53-module acceptance remain pending.'}
+        Scope='Windows actual strict C/JIT/AOT/pruned Stack artifacts: owned/try and seven tagged nullable stored profiles, exact carrier identity, padding-independent compare/hash, literal fit/widening, parameter isolation, continuation/finally lifetime and pre-output mutation refusal. Old Into methods, IR and native exports retired; negatives and actual products exclude them. Nullable values/raw queue exclude descriptors; AVL selects only its used descriptor. Native and calling-thread language OOM prefixes. Batch and other 53-module acceptance remain pending.'}
     [IO.File]::WriteAllText("$outPath/results.json", ($report | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     if (!$unchanged) { throw 'Stack inputs changed during acceptance' }
     Write-Host "Stack native Windows: $($rows.Count) checks"

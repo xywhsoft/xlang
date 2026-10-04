@@ -19,15 +19,19 @@ func main(...) as int
     string text = "A\0b"
     assert(editStackText(text) == "你\0b" and text == "A\0b")
     assert(defaultChars.push('你'))
-    char scalar = '\0'
-    assert(defaultChars.peekInto(scalar) and scalar == '你')
+    char scalar = defaultChars.peek()
+    assert(scalar == '你')
     Stack<char> chars = defaultChars.clone()
     assert(chars.equals(defaultChars))
     assert(chars.push('\U0010ffff'))
-    assert(chars.popInto(scalar) and scalar == '\U0010ffff')
-    assert(defaultChars.popInto(scalar) and scalar == '你')
-    assert(not defaultChars.popInto(scalar) and scalar == '你')
-    assert(chars.popInto(scalar) and scalar == '你')
+    scalar = chars.pop()
+    assert(scalar == '\U0010ffff')
+    scalar = defaultChars.pop()
+    assert(scalar == '你')
+    auto hasChar, absentChar = defaultChars.tryPop()
+    assert(not hasChar and absentChar == null and scalar == '你')
+    scalar = chars.pop()
+    assert(scalar == '你')
 
     StackBytesHolder holder = StackBytesHolder()
     bytes original = b"A\0你\xff"
@@ -35,16 +39,19 @@ func main(...) as int
     original[0] = 66
     Stack<bytes> copy = holder.values.clone()
     assert(copy.equals(holder.values))
-    bytes observed = b"replace me"
-    assert(holder.values.peekInto(observed) and observed == b"A\0你\xff")
+    bytes observed = holder.values.peek()
+    assert(observed == b"A\0你\xff")
     observed[0] = 67
-    bytes fresh = b""
-    assert(copy.peekAtInto(0, fresh) and fresh == b"A\0你\xff")
+    bytes fresh = copy.peekAt(0)
+    assert(fresh == b"A\0你\xff")
     bytes changed = editStackBytes(fresh)
     assert(changed == b"Z\0你\xff" and fresh == b"A\0你\xff")
-    assert(copy.popInto(observed) and observed == b"A\0你\xff")
-    assert(not copy.popInto(observed) and observed == b"A\0你\xff")
-    assert(holder.values.popInto(fresh) and fresh == b"A\0你\xff")
+    observed = copy.pop()
+    assert(observed == b"A\0你\xff")
+    auto hasCopy, absentCopy = copy.tryPop()
+    assert(not hasCopy and absentCopy == null and observed == b"A\0你\xff")
+    fresh = holder.values.pop()
+    assert(fresh == b"A\0你\xff")
     fresh[-1] = 0
     assert(fresh == b"A\0你\0" and observed == b"A\0你\xff")
     assert(copy.trim() and copy.capacity() == 0)
@@ -55,12 +62,16 @@ func main(...) as int
         assert(repeated.push(b""))
         assert(repeated.push(b"\0\xff\x80"))
         Stack<bytes> snapshot = repeated.clone()
-        assert(snapshot.popInto(observed) and observed == b"\0\xff\x80")
+        observed = snapshot.pop()
+        assert(observed == b"\0\xff\x80")
         observed[1] = 0
-        assert(repeated.peekInto(fresh) and fresh == b"\0\xff\x80")
+        fresh = repeated.peek()
+        assert(fresh == b"\0\xff\x80")
         repeated.clear()
-        assert(snapshot.popInto(observed) and observed == b"")
-        assert(not snapshot.peekInto(observed) and observed == b"")
+        observed = snapshot.pop()
+        assert(observed == b"")
+        auto hasSnapshot, absentSnapshot = snapshot.tryPeek()
+        assert(not hasSnapshot and absentSnapshot == null and observed == b"")
         turn += 1
     end
     return 0

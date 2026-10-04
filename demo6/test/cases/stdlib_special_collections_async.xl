@@ -28,9 +28,7 @@ func makeStackSync() as Stack<int>
 end
 
 func takeStackValue(Stack<int> values) as int
-    int value = 0
-    assert values.popInto(value)
-    return value
+    return values.pop()
 end
 
 Stack<int> source = Stack::<int>()
@@ -44,19 +42,23 @@ future<Stack<int>> stackFuture = makeStackAsync(7)
 Stack<int> stackA = await stackFuture
 Stack<int> stackB = await stackFuture
 int number = 0
-assert stackA.popInto(number) and number == 7
+number = stackA.pop()
+assert number == 7
 assert stackB.count() == 0
 
 Stack<int> temporaryStack = await makeStackAsync(8)
-assert temporaryStack.popInto(number) and number == 8
+number = temporaryStack.pop()
+assert number == 8
 
 bool chooseNamed = true
 future<Stack<int>> conditionalSource = makeStackAsync(9)
 Stack<int> conditionalNamed = await (chooseNamed ? conditionalSource : makeStackAsync(10))
-assert conditionalNamed.popInto(number) and number == 9
+number = conditionalNamed.pop()
+assert number == 9
 chooseNamed = false
 Stack<int> conditionalOwned = await (chooseNamed ? conditionalSource : makeStackAsync(10))
-assert conditionalOwned.popInto(number) and number == 10
+number = conditionalOwned.pop()
+assert number == 10
 
 AvlTree<string, int> tree = await makeTreeAsync()
 assert tree.getInto("answer", number) and number == 42
@@ -68,7 +70,8 @@ assert queue.popInto(text) and text == "ready"
 func() as Stack<int> maker = makeStackSync
 future<Stack<int>> spawned = task.spawn(maker)
 Stack<int> spawnedStack = await spawned
-assert spawnedStack.popInto(number) and number == 99
+number = spawnedStack.pop()
+assert number == 99
 
 Stack<int> inputStack = Stack::<int>()
 inputStack.push(123)
