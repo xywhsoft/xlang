@@ -7,6 +7,8 @@
 #define TEXT_ARGS UINT64_C(101),UINT64_C(201),2,sizeof(xstrview),xrtTypeStringView()
 #define REF_ARGS UINT64_C(102),UINT64_C(202),3,sizeof(xvalue*),xrtTypeValue()
 #define FLOAT_ARGS UINT64_C(103),UINT64_C(203),1,sizeof(double),xrtTypeFloat64()
+#define CHAR_ARGS UINT64_C(104),UINT64_C(204),1,sizeof(uint32_t),xrtTypeUInt32()
+#define BYTES_ARGS UINT64_C(105),UINT64_C(205),3,sizeof(xvalue*),xrtTypeValue()
 static void balanced(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
@@ -66,8 +68,42 @@ static void dropHandle(void* source, void* user)
 static uint64_t hashHandle(void* source, void* user)
 { (void)source; (void)user; return 1; }
 static const xvaluehandleops equalityOps = {cloneHandle,dropHandle,hashHandle,equalHandle};
+static void valueVectors(void)
+{
+    const uint32_t scalars[] = {0,65,0x4F60,0x10FFFF};
+    xvalue* chars=xl6StackCreateV1(CHAR_ARGS);assert(chars);
+    for(size_t i=0;i<sizeof(scalars)/sizeof(*scalars);++i)
+        assert(xl6StackPushV1(chars,CHAR_ARGS,&scalars[i]));
+    xvalue* copy=xl6StackCloneV1(chars,CHAR_ARGS);assert(copy && xl6StackEqualsV1(chars,copy,CHAR_ARGS));
+    for(size_t i=sizeof(scalars)/sizeof(*scalars);i--!=0;){
+        uint32_t output=0;assert(xl6StackPopOrPeekV1(chars,CHAR_ARGS,&output,false) && output==scalars[i]);
+    }
+    uint32_t output=91;assert(!xl6StackPopOrPeekV1(chars,CHAR_ARGS,&output,false) && output==91);
+    xrtValueRelease(chars);xrtValueRelease(copy);
+
+    unsigned char data[256];for(size_t i=0;i<sizeof(data);++i)data[i]=(unsigned char)i;
+    xvalue* input=xrtValueBytes((xbytesview){data,sizeof(data)});
+    xvalue* bytes=xl6StackCreateV1(BYTES_ARGS);assert(input && bytes);
+    assert(xl6StackPushV1(bytes,BYTES_ARGS,&input));
+    copy=xl6StackCloneV1(bytes,BYTES_ARGS);assert(copy && xl6StackEqualsV1(bytes,copy,BYTES_ARGS));
+    xrtValueRelease(input);input=NULL;
+    /* Retained immutable read needs no allocation even with a nonempty old
+     * output owner. Language mutation is a separately verified write-copy. */
+    xvalue* observed=xrtValueBytes((xbytesview){(const unsigned char*)"old",3});assert(observed);
+    assert(xrtMemDebugFailAfter(0));
+    assert(xl6StackPeekAtV1(bytes,BYTES_ARGS,0,&observed));
+    assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
+    xbytesview view={0};assert(xrtValueGetBytes(observed,&view));
+    assert(view.Size==sizeof(data) && !memcmp(view.Data,data,sizeof(data)));
+    assert(xl6StackPopOrPeekV1(copy,BYTES_ARGS,&input,false) && input==observed);
+    assert(!xl6StackPopOrPeekV1(copy,BYTES_ARGS,&input,false) && input==observed && !xrtGetError());
+    xrtValueRelease(bytes);xrtValueRelease(copy);
+    assert(xrtValueGetBytes(input,&view) && view.Size==sizeof(data) && view.Data[255]==255);
+    xrtValueRelease(input);xrtValueRelease(observed);
+}
 static void vectors(void)
 {
+    valueVectors();
     xvalue* stack = xl6StackCreateV1(TEXT_ARGS); assert(stack);
     xstrview input = {"a\0b",3}, output = {0};
     assert(xl6StackPushV1(stack,TEXT_ARGS,&input));

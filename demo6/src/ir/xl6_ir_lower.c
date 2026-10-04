@@ -15392,30 +15392,8 @@ static XL6_IrRuntimeResourcePayloadAbi
 xl6IrLowerRuntimeResourcePayloadAbiForType(
     const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
-    const XL6_IrType* type = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    if ( type == NULL || type->typeValueId == 0 )
-        return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
-    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-         type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
-        return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY;
-    if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
-        return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
-    if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-         type->nullAbi == XL6_IR_NULL_ABI_NONE &&
-         (type->cAbi == XL6_IR_C_ABI_BOOL ||
-          type->cAbi == XL6_IR_C_ABI_I64 ||
-          type->cAbi == XL6_IR_C_ABI_U64 ||
-          type->cAbi == XL6_IR_C_ABI_F64 ||
-          type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
-          type->cAbi == XL6_IR_C_ABI_TYPE_ID ||
-          (type->cAbi >= XL6_IR_C_ABI_C_CHAR &&
-           type->cAbi <= XL6_IR_C_ABI_C_WCHAR) ||
-          type->cAbi == XL6_IR_C_ABI_F32) )
-        return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY;
-    return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+    return xl6IrTypeResourcePayloadAbi(module != NULL
+        ? xl6IrTypeGet(&module->types, typeId) : NULL);
 }
 
 static XL6_IrTypeId xl6IrLowerRuntimeChannelPayloadType(

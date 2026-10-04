@@ -11,7 +11,8 @@ OUT="${1:?Provide a fresh evidence directory}"
 mkdir -p "$OUT/include" "$OUT/components"
 CLI="$ROOT/release/xl"; CC="$(command -v gcc)"; PY="$(command -v python3)"
 checks=0; failures=()
-cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi)
+cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi stdlib_stack_values)
+negative=(char_output_type bytes_output_type bytes_input_type)
 run() {
     local name="$1"; shift
     if ! "$@" >"$OUT/$name.log" 2>&1; then
@@ -30,6 +31,7 @@ frozen_files() {
     printf '%s\0' test/cases/xlir_module_product_oom_host.c
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
     for fixture in "${cases[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
+    for fixture in "${negative[@]}"; do printf '%s\0' "test/fixtures/stack_value_contract/$fixture.xl"; done
 }
 frozen_files | sort -zu >"$OUT/inputs.list"
 xargs -0 sha256sum <"$OUT/inputs.list" >"$OUT/inputs.sha256"
@@ -102,14 +104,14 @@ fixture() {
     run "$name.closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
         "${entry[@]}" test/cases/xlir_time_text_closure_host.c "$OUT/$name.native.o" "${objects[@]}" -pthread -ldl -lm -o "$OUT/$name.closure" || return
     run "$name.closure" "$OUT/$name.closure" || return
-    if [[ "$name" = stdlib_stack_native ]]; then
-        run factory-oom-build "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
+    if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values ]]; then
+        run "$name.factory-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
             -DXL6_PRODUCT_USER_ENTRY test/cases/xlir_module_product_oom_host.c "$OUT/debug-host.o" -lxl "${libs[@]}" -o "$OUT/$name.oom" || return
-        run factory-oom-normal "$OUT/$name.oom" || return
+        run "$name.factory-oom-normal" "$OUT/$name.oom" || return
         terminal=false
         for ((point=0;point<=4096;++point)); do
-            run "factory.oom-$point" "$OUT/$name.oom" "$point" || return
-            if grep -q 'hit=0 balanced' "$OUT/factory.oom-$point.log"; then terminal=true; break; fi
+            run "$name.factory.oom-$point" "$OUT/$name.oom" "$point" || return
+            if grep -q 'hit=0 balanced' "$OUT/$name.factory.oom-$point.log"; then terminal=true; break; fi
         done
         "$terminal" || { printf 'Incomplete managed factory allocation prefix\n' >&2; return 1; }
         printf '%s %s\n' "$name" "$point" >>"$OUT/oom-terminals.txt"
@@ -119,10 +121,19 @@ for name in "${cases[@]}"; do
     printf 'Stack Linux fixture: %s\n' "$name"
     if ! fixture "$name"; then failures+=("fixture:$name"); fi
 done
+reject_fixture() {
+    local name="$1" target="$OUT/negative.$1.c"
+    if "$CLI" cgen "test/fixtures/stack_value_contract/$name.xl" --emit "$target" >"$OUT/negative.$name.log" 2>&1; then return 1; fi
+    [[ ! -e "$target" ]] && grep -Eq 'Stack.*: target (char|bytes), value (uint32|var|string)' "$OUT/negative.$name.log" || return 1
+    checks=$((checks+1))
+}
+for name in "${negative[@]}"; do
+    if ! reject_fixture "$name"; then failures+=("negative:$name"); fi
+done
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi
-"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":4,"NegativeFixtures":0,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux native Stack storage prerequisite: actual strict C/JIT/AOT and pruned generated/resident/native ASan/UBSan/leaks. Full shared runtime OOM and CLI/JIT are not instrumented. Legacy Into, owned return products, char/bytes, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
+"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":5,"NegativeFixtures":3,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: exact char/bytes, write-copy isolation, parameter rebind lifetime and pre-output contract mutation rejection. Complete native and full shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Legacy Into, owned return products, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
     "$OUT/results.json" "$checks" "$( [[ ! " ${failures[*]} " = *' inputs-changed '* ]] && printf true || printf false )" "${failures[@]}"
 printf 'Stack native Linux: %s successful checks, %s failed groups\n' "$checks" "${#failures[@]}"
 [[ ${#failures[@]} = 0 ]]

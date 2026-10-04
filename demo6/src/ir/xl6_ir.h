@@ -5929,6 +5929,10 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags);
 const XL6_IrNode* xl6IrNodeGet(const XL6_IrModule* module, XL6_IrNodeId nodeId);
 const XL6_IrNode* xl6IrSymbolNodeGet(const XL6_IrModule* module, XL6_SymbolId symbol);
 const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
+/* One closed payload transfer contract shared by Typed IR, lowering and Cgen.
+ * Bytes use the language's existing read-sharing/write-copy discipline;
+ * retaining their physical carrier does not grant a mutable language alias. */
+XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type);
 /* Return the precomputed closed nominal acceptance set for one concrete class
  * or protocol target.  Lowering and Cgen consume this set directly; neither is
  * permitted to rediscover inheritance or protocol witnesses. */
