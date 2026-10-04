@@ -1,8 +1,6 @@
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_value_admission_internal.h"
-#include <float.h>
-#include <limits.h>
-#include <math.h>
+#include "src/runtime/xl6_value_domain.h"
 
 bool xl6ValueAdmitsV1(const xvalue* value, unsigned int rule, bool nullable, uint64_t identity)
 {
@@ -15,25 +13,10 @@ bool xl6ValueAdmitsV1(const xvalue* value, unsigned int rule, bool nullable, uin
      * as that primitive. Unbound XRT primitives remain valid inputs. */
     uint64_t actual=xrtValueTypeId(value);
     if (actual && actual!=identity) return false;
-    if (rule>=XL6_VALUE_ADMIT_I8 && rule<=XL6_VALUE_ADMIT_I64) {
+    if (rule>=XL6_VALUE_ADMIT_I8 && rule<=XL6_VALUE_ADMIT_U32) {
         int64_t number;
         if (tag!=XVALUE_INT || !xrtValueGetInt(value,&number)) return false;
-        switch (rule) {
-        case XL6_VALUE_ADMIT_I8: return number>=INT8_MIN && number<=INT8_MAX;
-        case XL6_VALUE_ADMIT_I16: return number>=INT16_MIN && number<=INT16_MAX;
-        case XL6_VALUE_ADMIT_I32: return number>=INT32_MIN && number<=INT32_MAX;
-        default: return true;
-        }
-    }
-    if (rule>=XL6_VALUE_ADMIT_U8 && rule<=XL6_VALUE_ADMIT_U32) {
-        int64_t number;
-        if (tag!=XVALUE_INT || !xrtValueGetInt(value,&number) || number<0) return false;
-        switch (rule) {
-        case XL6_VALUE_ADMIT_U8: return number<=UINT8_MAX;
-        case XL6_VALUE_ADMIT_U16: return number<=UINT16_MAX;
-        case XL6_VALUE_ADMIT_U32: return number<=UINT32_MAX;
-        default: return false;
-        }
+        return xl6IntegerDomainV1(number,rule);
     }
     switch (rule) {
     case XL6_VALUE_ADMIT_U64: return tag==XVALUE_UINT;
@@ -44,8 +27,7 @@ bool xl6ValueAdmitsV1(const xvalue* value, unsigned int rule, bool nullable, uin
         if (tag!=XVALUE_FLOAT || !xrtValueGetFloat(value,&number)) return false;
         /* The retained source must already represent an f32, not a value
          * silently rounded on each typed read. Avoid out-of-range C casts. */
-        if (isnan(number) || isinf(number)) return true;
-        return number>=-FLT_MAX && number<=FLT_MAX && (double)(float)number==number;
+        return xl6Float32DomainV1(number);
     }
     case XL6_VALUE_ADMIT_CHAR: return tag==XVALUE_CHAR;
     case XL6_VALUE_ADMIT_STRING: return tag==XVALUE_STRING;

@@ -26,7 +26,8 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc, nm = shutil.which("gcc"), shutil.which("nm")
-    if not cc or not nm or out.exists() or (args.sanitize and os.name == "nt"):
+    objdump = shutil.which("objdump") if args.shared and os.name == "nt" else None
+    if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc/nm, fresh evidence and Linux for sanitizers")
     component = "nominal" if args.nominal else "reference"
     sources = ["test/cases/stdlib_array_admission_native_host.c", "test/support/array_value_native.c",
@@ -40,6 +41,8 @@ def main() -> int:
     product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
     if args.shared:
         files += [product]
+        if objdump:
+            files += [Path(objdump)]
     for directory in ("src/runtime", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
     inputs = [{"Path": str(p.resolve()), "Sha256": digest(p)} for p in sorted(set(files))]
@@ -84,8 +87,10 @@ def main() -> int:
             run(lane + ".build", [cc, *strict, f"-O{level}", *compiled_sources, *links, "-o", str(binary)])
             # Linux release products are stripped; their public ABI lives in
             # the dynamic symbol table, not the removed static symbol table.
-            dynamic = ["-D"] if args.shared and os.name != "nt" else []
-            symbols = run(lane + ".symbols", [nm, *dynamic, "--defined-only", str(product if args.shared else binary)])
+            # Stripped release DLLs retain PE exports, not debug symbols.
+            symbol_command = ([objdump, "-p", str(product)] if objdump else
+                [nm, *(["-D"] if args.shared else []), "--defined-only", str(product if args.shared else binary)])
+            symbols = run(lane + ".symbols", symbol_command)
             names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
             expected = "xl6ArrayNominalCreateV2" if args.nominal else "xl6ArrayReferenceCreateV2"
             absent = {"xl6ArrayReferenceCreateV2", "xl6ValueAdmitsV1"} if args.nominal else {

@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_text_value.h"
+#include "src/runtime/xl6_scalar_type_abi.h"
 #include <stdlib.h>
 
 /* XRT has no char type kind. This closed physical record deliberately avoids
@@ -20,10 +21,10 @@ XL6_TEXT_API const xrttype* xl6CharTypeV1(void)
 {
     static const xrttypeops operations={.Compare=compare,.Hash=hash};
     static const xrttype descriptor={
-        .Id=UINT64_C(0x76D1885EB4BC3548),.Kind=XRT_TYPE_RECORD,
+        .Id=XL6_CHAR_ID,.Kind=XRT_TYPE_RECORD,
         .Flags=XRT_TYPE_FLAG_TRIVIAL_COPY|XRT_TYPE_FLAG_TRIVIAL_DROP|
             XRT_TYPE_FLAG_COPYABLE|XRT_TYPE_FLAG_FINAL|XRT_TYPE_FLAG_RELOCATABLE,
-        .Name=XRT_STR_INIT("char"),.AbiName=XRT_STR_INIT("xl6.char.v1"),
+        .Name=XRT_STR_INIT("char"),.AbiName=XRT_STR_INIT(XL6_CHAR_ABI),
         .Size=sizeof(uint32_t),.Align=_Alignof(uint32_t),.InstanceAlign=1,.Ops=&operations
     };
     return &descriptor;

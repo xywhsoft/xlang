@@ -29,7 +29,8 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc, nm = shutil.which("gcc"), shutil.which("nm")
-    if not cc or not nm or out.exists() or (args.sanitize and os.name == "nt"):
+    objdump = shutil.which("objdump") if args.shared and os.name == "nt" else None
+    if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc/nm, a fresh output and Linux for sanitizers")
     sources = ["test/cases/stdlib_array_default_native_host.c", "test/support/array_default_native.c",
                "src/runtime/xl6_array_default.c"]
@@ -40,6 +41,8 @@ def main() -> int:
     files += sorted((root / "release/include").rglob("*.h"))
     if args.shared:
         files += [product]
+        if objdump:
+            files += [Path(objdump)]
     inputs = [{"Path": str(p.resolve()), "Sha256": digest(p)} for p in sorted(set(files))]
     out.mkdir(parents=True)
     if args.shared and os.name == "nt":
@@ -77,8 +80,10 @@ def main() -> int:
             lane=f"O{level}"
             binary=out/(lane+(".exe" if os.name=="nt" else ""))
             run(lane+".build",[cc,*strict,f"-O{level}",*compiled,*links,"-o",str(binary)])
-            symbols=run(lane+".symbols",[nm, *(["-D"] if args.shared and os.name!="nt" else []),
-                "--defined-only",str(product if args.shared else binary)])
+            # Inspect actual PE exports/ELF dynamic symbols on stripped products.
+            symbol_command=([objdump,"-p",str(product)] if objdump else
+                [nm,*(["-D"] if args.shared else []),"--defined-only",str(product if args.shared else binary)])
+            symbols=run(lane+".symbols",symbol_command)
             names={line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
             assert {"xl6ArrayResizeDefaultV1","xrtValueArrayExtend"} <= names
             if not args.shared:

@@ -471,3 +471,18 @@ may-raise outcomes, including async/generator cleanup and committed-shrink
 destructor errors. It also covers exact binary32 boxing without foreign identity.
 It does not claim rollback of an already committed shrink after a destructor
 error, native language Array migration, or complete 53-module acceptance.
+
+`check_stdlib_array_primitive_admission.py --out <fresh-directory>` checks the
+owned scalar/text/nullable native Array policies in eleven independently linked
+physical closures. Strict O0/O2 vectors cover exact integer domains, binary32,
+Unicode scalars, NUL text, nullable presence, nominal IDs, aliases, cloned policy,
+cursor retirement, bulk-policy equivalence, refusal before allocation, pending
+error transparency and complete logical allocation prefixes. Symbol checks
+require only the selected optional physical factory/codecs. Linux `--sanitize`
+instruments the full closure; `--shared` instead tests the actual product ABI
+(host-only instrumentation), not pruning. The ordinary native Array gate runs
+this independently frozen child on the existing ownership regression path.
+Native typed resize currently rolls back contents/count after initialization
+failure but may retain enlarged capacity; language boxed resize has the stronger
+failure-atomic capacity contract. Neither native language Array migration nor
+whole 53-module acceptance is claimed by this gate.

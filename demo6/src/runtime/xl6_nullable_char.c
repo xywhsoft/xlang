@@ -4,6 +4,7 @@
 #define XL6_NULLABLE_COMPARE xl6NullableCharCompareV1
 #define XL6_NULLABLE_HASH xl6NullableCharHashV1
 #define XL6_NULLABLE_NAME "nullable<char>"
-#define XL6_NULLABLE_ABI "xl6.nullable-char.v1"
-#define XL6_NULLABLE_ID UINT64_C(0x6CCBB59F9C4D2AA2)
+#include "src/runtime/xl6_scalar_type_abi.h"
+#define XL6_NULLABLE_ABI XL6_NULLABLE_CHAR_ABI
+#define XL6_NULLABLE_ID XL6_NULLABLE_CHAR_ID
 #include "src/runtime/xl6_nullable_scalar_impl.h"

@@ -61,6 +61,9 @@ def main() -> int:
     files += [root / name for name in ("tools/check_stdlib_array_defaults.py",
         "test/cases/stdlib_array_default_native_host.c", "test/support/array_default_native.c",
         "src/runtime/xl6_array_default.c")]
+    files += [root / name for name in ("tools/check_stdlib_array_primitive_admission.py",
+        "test/cases/stdlib_array_primitive_admission_native_host.c",
+        "src/runtime/xl6_array_primitive_admission.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -228,6 +231,18 @@ def main() -> int:
         report["DefaultReport"] = {"Directory": str(child), "Checks": len(defaults["Rows"]),
             "ClosedPrefixes": len(defaults["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in defaults["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "admission-primitive"
+        command = [sys.executable, "tools/check_stdlib_array_primitive_admission.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=180)
+        primitive = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not primitive["Complete"] or not primitive["InputsUnchanged"]:
+            raise RuntimeError("Incomplete scalar/text owned Array admission evidence")
+        report["PrimitiveAdmissionReport"] = {"Directory": str(child), "Checks": len(primitive["Rows"]),
+            "Profiles": primitive["Profiles"], "ClosedPrefixes": len(primitive["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in primitive["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:

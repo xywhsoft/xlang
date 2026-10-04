@@ -4,6 +4,7 @@
 #define XL6_NULLABLE_COMPARE xl6NullableTimeCompareV1
 #define XL6_NULLABLE_HASH xl6NullableTimeHashV1
 #define XL6_NULLABLE_NAME "nullable<time>"
-#define XL6_NULLABLE_ABI "xl6.nullable-time.v1"
-#define XL6_NULLABLE_ID UINT64_C(0xDE9CB1C2DE241F69)
+#include "src/runtime/xl6_scalar_type_abi.h"
+#define XL6_NULLABLE_ABI XL6_NULLABLE_TIME_ABI
+#define XL6_NULLABLE_ID XL6_NULLABLE_TIME_ID
 #include "src/runtime/xl6_nullable_scalar_impl.h"
