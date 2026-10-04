@@ -117,10 +117,11 @@ try {
     # Array/snapshot owners share Sequence's phased graph with Stack. Run the
     # actual selected native gate, not just a source-reference wiring marker.
     $arrayNativeDirectory = "$outPath/array-native"
-    # This is a multi-process O0/O2 matrix (now including erasure), not one
-    # ordinary operation. Give the whole suite its own finite budget; its
-    # per-process 45-second limits, fault prefixes and memory checks stay intact.
-    Run 'array-native' $python @('tools/check_stdlib_array_native.py','--out',$arrayNativeDirectory) -TimeoutMs 120000
+    # This aggregate includes O0/O2 projection/erasure plus three independently
+    # frozen policy/default child gates. The old 120-second aggregate expired
+    # under the combined acceptance load; per-operation limits and all complete
+    # fault prefixes remain unchanged. No timeout is accepted as a pass.
+    Run 'array-native' $python @('tools/check_stdlib_array_native.py','--out',$arrayNativeDirectory) -TimeoutMs 300000
     $arrayNative = Get-Content -LiteralPath "$arrayNativeDirectory/results.json" -Raw | ConvertFrom-Json
     if (!$arrayNative.Complete -or !$arrayNative.InputsUnchanged) { throw 'Incomplete native Array/snapshot evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count

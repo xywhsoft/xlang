@@ -26,6 +26,38 @@ int main(int argc, char** argv)
         !xl6SemCheckModule(parse.root,&parse.diags,"collection_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
+    unsigned defaults=0;
+    for (size_t i=0;i<ir.instructionCount;++i) {
+        XL6_IrInstruction* instruction=&ir.instructions[i];
+        XL6_ValueDefaultAbiV1 saved=instruction->collectionDefaultAbi;
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+            instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) {
+            assert(saved!=XL6_VALUE_DEFAULT_INVALID);
+            assert(xl6IrCallInstructionErrorAbi(&ir,instruction)==XL6_IR_ERROR_ABI_MAY_RAISE);
+            instruction->collectionDefaultAbi=XL6_VALUE_DEFAULT_INVALID; rejected(&ir);
+            instruction->collectionDefaultAbi=(XL6_ValueDefaultAbiV1)UINT32_MAX; rejected(&ir);
+            instruction->collectionDefaultAbi=saved==XL6_VALUE_DEFAULT_NULL ? XL6_VALUE_DEFAULT_INT : XL6_VALUE_DEFAULT_NULL;
+            rejected(&ir); instruction->collectionDefaultAbi=saved;
+            XL6_IrInstruction* test=&ir.instructions[i+1];
+            assert(test->kind==XL6_IR_INSTR_ERROR_TEST);
+            XL6_IrInstructionKind kind=test->kind; test->kind=XL6_IR_INSTR_INVALID; rejected(&ir); test->kind=kind;
+            ++defaults;
+        } else {
+            assert(saved==XL6_VALUE_DEFAULT_INVALID);
+            if (i==0) { instruction->collectionDefaultAbi=XL6_VALUE_DEFAULT_INT; rejected(&ir);
+                instruction->collectionDefaultAbi=saved; }
+        }
+    }
+    for (size_t i=0;i<ir.intrinsicCallCount;++i) {
+        XL6_IrIntrinsicCall* intrinsic=&ir.intrinsicCalls[i];
+        if (intrinsic->kind==XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER &&
+            intrinsic->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) {
+            assert(intrinsic->errorAbi==XL6_IR_ERROR_ABI_MAY_RAISE);
+            intrinsic->errorAbi=XL6_IR_ERROR_ABI_NO_RAISE; rejected(&ir);
+            intrinsic->errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
+        }
+    }
     for (size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
@@ -62,6 +94,7 @@ int main(int argc, char** argv)
     if (!xl6OutputOpenFile(&output,argv[2])) goto done;
     ok=xl6IrCgenEmitC(&output,&ir,&parse.diags); xl6OutputClose(&output);
     printf("collection contract: %u checked rebinds; family/set/nullable and unrelated fields refused before C/header output\n",checked);
+    if (defaults) printf("array defaults: %u resize contracts; default/effect/immediate outcome refused before C/header output\n",defaults);
 done:
     for (size_t i=0;i<parse.diags.count;++i) fprintf(stderr,"%d:%d: %s\n",parse.diags.items[i].line,
         parse.diags.items[i].column,parse.diags.items[i].message);

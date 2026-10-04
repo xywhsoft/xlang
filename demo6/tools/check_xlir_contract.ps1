@@ -2412,7 +2412,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_xvalue_typed_collection_take_raw",
     "xl6IrCgenEmitSharedCollectionRuntime",
-    "xlir_xvalue_typed_array_resize_default",
+    "xl6ArrayResizeDefaultV1",
     "xlir_xvalue_typed_array_index_of",
     "xlir_xvalue_typed_array_reverse",
     "xlir_xvalue_dynamic_collection_method"
@@ -2420,6 +2420,15 @@ foreach ( $required in @(
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR Cgen is missing mechanical collection-method emission: $required"
     }
+}
+foreach ($required in @('collectionDefaultAbi','xl6IrValueDefaultAbiForType','xl6IrTypedCollectionErrorAbi')) {
+    if (!$header.Contains($required) -or !$source.Contains($required) -or !$lower.Contains($required)) {
+        throw "Array logical default/effect ABI is not shared by IR and lowering: $required"
+    }
+}
+if ($cEmitter.Contains('xlir_xvalue_typed_array_resize_default') -or
+    $cEmitter.Contains('xlir_xvalue_typed_array_default')) {
+    throw 'Cgen must not reconstruct Array defaults or embed a resize algorithm'
 }
 foreach ( $required in @(
     "xlir_typed_collection_methods", "typedCollectionOpName",

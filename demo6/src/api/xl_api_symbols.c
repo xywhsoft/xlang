@@ -20,6 +20,7 @@
 #include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_array_default.h"
 #include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_erased.h"

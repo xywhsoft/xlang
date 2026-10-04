@@ -333,47 +333,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 out);
         if ( needs->needsXValueTypedArrayResizeRuntime )
             xl6OutputPuts(
-                "extern size_t xrtValueCount(const xvalue*);\n"
-                "extern bool xrtValueArrayAppend(xvalue*, const xvalue*);\n"
-                "extern bool xrtValueArrayRemove(xvalue*, size_t, size_t);\n"
-                "extern xvalue* xrtValueNull(void);\n"
-                "extern xvalue* xrtValueBool(bool);\n"
-                "extern xvalue* xrtValueInt(int64_t);\n"
-                "extern xvalue* xrtValueUInt(uint64_t);\n"
-                "extern xvalue* xrtValueFloat(double);\n"
-                "extern void xrtValueRelease(xvalue*);\n"
-                "static xvalue* xlir_xvalue_typed_array_default(unsigned int elementAbi)\n"
-                "{\n"
-                "    switch (elementAbi) {\n"
-                "    case 1u: return xrtValueBool(false);\n"
-                "    case 2u: return xrtValueInt(0);\n"
-                "    case 3u: return xrtValueUInt(0u);\n"
-                "    case 4u: return xrtValueFloat(0.0);\n"
-                "    case 5u: return xrtValueString(xrtStrView(\"\"));\n"
-                "    case 6u: return xrtValueNull();\n"
-                "    default: return NULL;\n"
-                "    }\n"
-                "}\n"
-                "static bool xlir_xvalue_typed_array_resize_default(\n"
-                "    xvalue* array, size_t target, unsigned int elementAbi)\n"
-                "{\n"
-                "    size_t count = xrtValueCount(array);\n"
-                "    xvalue* item;\n"
-                "    if (target < count) return xrtValueArrayRemove(array, target, count - target);\n"
-                "    if (target == count) return true;\n"
-                "    if (!xrtValueReserve(array, target)) return false;\n"
-                "    item = xlir_xvalue_typed_array_default(elementAbi);\n"
-                "    if (item == NULL) return false;\n"
-                "    while (count < target) {\n"
-                "        if (!xrtValueArrayAppend(array, item)) {\n"
-                "            xrtValueRelease(item);\n"
-                "            return false;\n"
-                "        }\n"
-                "        ++count;\n"
-                "    }\n"
-                "    xrtValueRelease(item);\n"
-                "    return true;\n"
-                "}\n",
+                "extern bool xl6ArrayResizeDefaultV1(xvalue*, int64_t, unsigned int);\n",
                 out);
         if ( needs->needsXValueTypedArrayIndexOfRuntime )
             xl6OutputPuts(

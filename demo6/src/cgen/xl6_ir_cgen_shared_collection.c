@@ -74,25 +74,6 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
         XL6_IrValueId argument1 = instruction->operandCount > 2
             ? module->operands[instruction->firstOperand + 2]
             : XL6_IR_VALUE_INVALID;
-        const XL6_IrInstruction* receiverDefinition =
-            xl6IrCgenValueDefinition(module, receiver, NULL);
-        const XL6_IrType* elementType = receiverDefinition != NULL
-            ? xl6IrTypeGet(&module->types, xl6IrCollectionElementType(
-                module, receiverDefinition->type)) : NULL;
-        unsigned int resizeElementAbi = 0u;
-        if ( elementType != NULL ) {
-            switch ( elementType->cAbi ) {
-            case XL6_IR_C_ABI_BOOL: resizeElementAbi = 1u; break;
-            case XL6_IR_C_ABI_I64: resizeElementAbi = 2u; break;
-            case XL6_IR_C_ABI_U64: resizeElementAbi = 3u; break;
-            case XL6_IR_C_ABI_F64: resizeElementAbi = 4u; break;
-            case XL6_IR_C_ABI_MANAGED_STRING:
-                resizeElementAbi = 5u; break;
-            case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
-                resizeElementAbi = 6u; break;
-            default: break;
-            }
-        }
         const char* helper = NULL;
         if ( typedResult != NULL &&
              (instruction->typedCollectionOp ==
@@ -183,12 +164,11 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             break;
         case XL6_IR_TYPED_COLLECTION_RESIZE:
             xl6OutputPrintf(out,
-                "    v%u = v%u >= 0 && xlir_xvalue_typed_array_resize_default(v%u, (size_t)v%u, %u);\n",
+                "    v%u = xl6ArrayResizeDefaultV1(v%u, v%u, %u);\n",
                 (unsigned int)instruction->result,
-                (unsigned int)argument0,
                 (unsigned int)receiver,
                 (unsigned int)argument0,
-                resizeElementAbi);
+                (unsigned int)instruction->collectionDefaultAbi);
             break;
         case XL6_IR_TYPED_COLLECTION_TRIM:
             if ( instruction->collectionAbi == XL6_IR_COLLECTION_LIST )
