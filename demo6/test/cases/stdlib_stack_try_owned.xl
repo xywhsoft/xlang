@@ -1,0 +1,140 @@
+class TryStackItem
+    int value
+end
+
+class TryStackRealHolder
+    float32? value
+end
+
+func tryStackText(Stack<string> values) as (bool, string?)
+    try
+        return values.tryPop()
+    finally
+        values.clear()
+    end
+end
+
+func mutateOptionalText(string? value) as string?
+    if value != null
+        value[0] = '你'
+    end
+    return value
+end
+
+func mutateOptionalData(bytes? value) as bytes?
+    if value != null
+        value[0] = 42
+    end
+    return value
+end
+
+func main(...) as int
+    Stack<char> chars = Stack::<char>()
+    auto hasChar, scalar = chars.tryPop()
+    assert(not hasChar and scalar == null)
+    assert(chars.push('你'))
+    auto foundChar, keptChar = chars.tryPeek()
+    assert(foundChar and keptChar != null and keptChar == '你')
+    auto tooDeep, missingChar = chars.tryPeekAt(1)
+    assert(not tooDeep and missingChar == null and chars.count() == 1)
+    assert(chars.pop() == '你')
+    int refused = 0
+    try
+        chars.tryPeekAt(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 1)
+
+    Stack<int32> integers = Stack::<int32>()
+    assert(integers.push(-2147483648))
+    auto hasInt, integer = integers.tryPop()
+    assert(hasInt and integer != null and integer == -2147483648)
+    auto noInt, absentInt = integers.tryPop()
+    assert(not noInt and absentInt == null)
+    Stack<bool> flags = Stack::<bool>()
+    assert(flags.push(false))
+    auto hasFlag, flag = flags.tryPop()
+    assert(hasFlag and flag != null and not flag)
+    Stack<float32> reals = Stack::<float32>()
+    assert(reals.push(1.25))
+    auto hasReal, real = reals.tryPeekAt(0)
+    assert(hasReal and real != null and real == float32(1.25))
+    TryStackRealHolder realHolder = TryStackRealHolder()
+    realHolder.value = real
+    float32? fieldReal = realHolder.value
+    assert(fieldReal != null and fieldReal == float32(1.25))
+    realHolder.value = null
+    assert(realHolder.value == null)
+
+    Stack<string> texts = Stack::<string>()
+    assert(texts.push("A\0你"))
+    auto hasText, text = texts.tryPeek()
+    assert(hasText and text != null)
+    if text != null
+        text[0] = 'B'
+        assert(text == "B\0你")
+    end
+    auto returnedText, ownedText = tryStackText(texts)
+    assert(returnedText and ownedText != null and ownedText == "A\0你")
+    string? mutatedText = mutateOptionalText(ownedText)
+    assert(mutatedText != null and mutatedText == "你\0你")
+    assert(ownedText != null and ownedText == "A\0你")
+    assert(mutateOptionalText(null) == null)
+    auto emptyText, noText = texts.tryPop()
+    assert(not emptyText and noText == null)
+
+    Stack<bytes> data = Stack::<bytes>()
+    assert(data.push(b"A\0\xff"))
+    auto hasData, copy = data.tryPeek()
+    if copy != null
+        copy[0] = 66
+        assert(hasData and copy == b"B\0\xff")
+    end
+    assert(data.pop() == b"A\0\xff")
+    bytes? mutatedData = mutateOptionalData(copy)
+    assert(mutatedData != null and mutatedData == b"*\0\xff")
+    assert(copy != null and copy == b"B\0\xff")
+    assert(mutateOptionalData(null) == null)
+    auto emptyData, noData = data.tryPop()
+    assert(not emptyData and noData == null)
+
+    Stack<TryStackItem?> objects = Stack::<TryStackItem?>()
+    assert(objects.push(null))
+    auto hasNull, storedNull = objects.tryPop()
+    assert(hasNull and storedNull == null)
+    auto noObject, absentObject = objects.tryPop()
+    assert(not noObject and absentObject == null)
+    TryStackItem object = TryStackItem()
+    object.value = 9
+    assert(objects.push(object))
+    auto hasObject, keptObject = objects.tryPeek()
+    objects.clear()
+    assert(hasObject and keptObject != null and keptObject.value == 9)
+    Stack<TryStackItem> nonnullObjects = Stack::<TryStackItem>()
+    auto noNonnullObject, absentNonnullObject = nonnullObjects.tryPop()
+    assert(not noNonnullObject and absentNonnullObject == null)
+
+    Stack<var> dynamic = Stack::<var>()
+    assert(dynamic.push(null))
+    auto hasDynamicNull, dynamicNull = dynamic.tryPop()
+    assert(hasDynamicNull and dynamicNull == null)
+    auto noDynamic, missingDynamic = dynamic.tryPeek()
+    assert(not noDynamic and missingDynamic == null)
+
+    int turn = 0
+    while turn < 8
+        assert(texts.push("loop\0你") and data.push(b"\0\xff"))
+        auto found, value = texts.tryPeek()
+        assert(found and value != null and value == "loop\0你")
+        texts.tryPeek()
+        auto taken, bytesValue = data.tryPop()
+        if bytesValue != null
+            bytesValue[0] = 42
+            assert(taken and bytesValue == b"*\xff")
+        end
+        assert(texts.pop() == "loop\0你")
+        turn += 1
+    end
+    return 0
+end

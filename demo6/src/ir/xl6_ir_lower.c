@@ -15704,7 +15704,10 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
     returnsOwned = creates ||
         ((intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
           intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK ||
-          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT) &&
+          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT ||
+          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP ||
+          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK ||
+          intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT) &&
          result != NULL && result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
@@ -16038,6 +16041,14 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
             return intrinsic->operandCount == 2 && intrinsic->resultType == payloadType &&
                 second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
                 operands[1].abi == XL6_IR_INTRINSIC_OPERAND_VALUE;
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP:
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK:
+            return intrinsic->operandCount == 1 &&
+                xl6IrStackTryResultCompatible(module, intrinsic->resultType, payloadType);
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT:
+            return intrinsic->operandCount == 2 && second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
+                operands[1].abi == XL6_IR_INTRINSIC_OPERAND_VALUE &&
+                xl6IrStackTryResultCompatible(module, intrinsic->resultType, payloadType);
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE:
             return intrinsic->operandCount == 1 &&
                 intrinsic->resultType == intrinsic->receiverType;
@@ -24013,6 +24024,12 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_STACK_PEEK;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT:
         return XL6_IR_RUNTIME_STACK_PEEK_AT;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP:
+        return XL6_IR_RUNTIME_STACK_TRY_POP;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK:
+        return XL6_IR_RUNTIME_STACK_TRY_PEEK;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT:
+        return XL6_IR_RUNTIME_STACK_TRY_PEEK_AT;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE:
         return XL6_IR_RUNTIME_AVL_TREE_CREATE;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET:
@@ -26523,19 +26540,24 @@ static int xl6IrLowerPrepareStorageTargetPlan(
     if (symbol == 0) symbol = xl6IrLowerPromotedParameterStorage(ctx, lhs->targetSymbol);
     if (symbol == 0) symbol = lhs->targetSymbol;
     storage = xl6IrStorageGet(ctx->module, symbol);
-    type = xl6IrTypeGet(&ctx->module->types, lhs->storageType);
-    if (symbol == 0 || storage == NULL || type == NULL || storage->type != lhs->storageType ||
+    type = storage != NULL ? xl6IrTypeGet(&ctx->module->types, storage->type) : NULL;
+    /* Flow refinement changes an observed value, never the owning slot's
+     * declared type. Publication still targets its exact nullable carrier. */
+    int refined = type != NULL && type->kind == XL6_IR_TYPE_NULLABLE &&
+        type->paramCount == 1 && type->params != NULL && type->params[0] == lhs->storageType;
+    if (symbol == 0 || storage == NULL || type == NULL ||
+        (storage->type != lhs->storageType && !refined) ||
         (field != NULL && (storage->kind != XL6_IR_STORAGE_GLOBAL ||
-                          field->type != lhs->storageType ||
+                          field->type != storage->type ||
                           storage->cellType != XL6_IR_TYPE_INVALID)) ||
         (type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          (type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-          !xl6IrLowerTypeHasStorageReleaseAbi(ctx->module, lhs->storageType)))) {
+          !xl6IrLowerTypeHasStorageReleaseAbi(ctx->module, storage->type)))) {
         xl6IrLowerDiag(ctx, origin, "XLIR storage target requires an exact type and ownership ABI");
         return -1;
     }
     plan->symbol = symbol;
-    plan->type = lhs->storageType;
+    plan->type = storage->type;
     plan->nullAbi = type->nullAbi;
     plan->cAbi = type->cAbi;
     plan->managed = type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
@@ -26671,7 +26693,9 @@ static int xl6IrLowerValueSequenceElementAssign(
         return xl6IrLowerDiag(ctx, origin,
             "XLIR string/bytes indexed write has no canonical signed index TypeId");
     first = ctx->evaluationOwnerCount;
-    current = xl6IrLowerReadStorageTargetPlan(ctx, origin, &storage);
+    current = storage.type == receiver->storageType
+        ? xl6IrLowerReadStorageTargetPlan(ctx, origin, &storage)
+        : xl6IrLowerNode(ctx, ctx->module->children[lhs->firstChild]);
     owned = xl6IrLowerOwnedStorageValue(
         ctx, origin, receiver->storageType, receiver, current);
     operands[0] = xl6IrLowerAnchorEvaluationBorrow(
@@ -26685,9 +26709,15 @@ static int xl6IrLowerValueSequenceElementAssign(
     replacement = xl6IrLowerEmitRuntimeCall(
         ctx, origin, receiver->storageType, operation, operands, 3);
     if ( replacement == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerCompleteEvaluationBorrows(
-             ctx, origin, first, &replacement) ||
-         !xl6IrLowerWriteStorageTargetPlan(
+         !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, &replacement) ) {
+        replacement = XL6_IR_VALUE_INVALID; goto done;
+    }
+    if ( storage.type != receiver->storageType &&
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_WRAP, origin, storage.type,
+                         0, &replacement, 1, &replacement) ) {
+        replacement = XL6_IR_VALUE_INVALID; goto done;
+    }
+    if ( !xl6IrLowerWriteStorageTargetPlan(
              ctx, origin, &storage, replacement) )
         replacement = XL6_IR_VALUE_INVALID;
 done:
@@ -27118,11 +27148,6 @@ static int xl6IrLowerManagedBinary(
         }
         if ( !strings && !bytes && !stringChar ) {
             owned = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, child, sources[i], operandType);
-        } else if ( bytes ) {
-            ownedType = sourceTypes[i];
-            owned = xl6IrLowerNode(ctx, child);
-            owned = xl6IrLowerOwnedStorageValue(
-                ctx, origin, ownedType, sources[i], owned);
         } else if ( abis[i] == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
             XL6_IrValueId input = xl6IrLowerNodeAsRuntimeXValue(
                 ctx, origin, child, sources[i], sourceTypes[i]);
@@ -27133,7 +27158,7 @@ static int xl6IrLowerManagedBinary(
         } else {
             owned = xl6IrLowerNode(ctx, child);
             /* A flow-narrowed nullable name has already produced a concrete
-             * string SSA value. Its copy and anchor must use that actual
+             * string/bytes SSA value. Its copy and anchor must use that actual
              * TypeId, not the nullable type of the original storage. */
             ownedType = xl6IrLowerValueType(ctx, owned);
             owned = xl6IrLowerOwnedStorageValue(ctx, origin, ownedType, sources[i], owned);

@@ -8797,7 +8797,10 @@ static int xl6IrRuntimeResourceOpReturnsOwned(
     return xl6IrRuntimeResourceOpCreates(operation) ||
            ((operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK ||
-             operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT) &&
+             operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT ||
+             operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP ||
+             operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK ||
+             operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT) &&
             result != NULL && result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE ||
@@ -9239,6 +9242,12 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK;
         if ( strcmp(callee->text, "peekAt") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT;
+        if ( strcmp(callee->text, "tryPop") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP;
+        if ( strcmp(callee->text, "tryPeek") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK;
+        if ( strcmp(callee->text, "tryPeekAt") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT;
         if ( strcmp(callee->text, "reserve") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE;
         if ( strcmp(callee->text, "clone") == 0 )
@@ -9342,6 +9351,29 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     }
     *outReceiver = XL6_IR_NODE_INVALID;
     return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
+}
+
+int xl6IrStackTryResultCompatible(
+    const XL6_IrModule* module, XL6_IrTypeId resultId, XL6_IrTypeId payloadId)
+{
+    const XL6_IrType* result = module != NULL ? xl6IrTypeGet(&module->types, resultId) : NULL;
+    const XL6_IrType* payload = module != NULL ? xl6IrTypeGet(&module->types, payloadId) : NULL;
+    if ( result == NULL || payload == NULL || result->kind != XL6_IR_TYPE_TUPLE ||
+         result->cAbi != XL6_IR_C_ABI_PRODUCT || result->paramCount != 2 ||
+         result->params == NULL || result->returnCount != 0 || result->nullAbi != XL6_IR_NULL_ABI_NONE ) return 0;
+    const XL6_IrType* status = xl6IrTypeGet(&module->types, result->params[0]);
+    const XL6_IrType* value = xl6IrTypeGet(&module->types, result->params[1]);
+    if ( status == NULL || value == NULL || status->kind != XL6_IR_TYPE_BUILTIN ||
+         status->cAbi != XL6_IR_C_ABI_BOOL || status->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+         status->nullAbi != XL6_IR_NULL_ABI_NONE || status->paramCount != 0 ) return 0;
+    if ( result->params[1] == payloadId )
+        return payload->kind == XL6_IR_TYPE_NULLABLE || xl6IrTypeIsDynamicXValueBuiltin(module, payloadId);
+    return value->kind == XL6_IR_TYPE_NULLABLE && value->paramCount == 1 && value->params != NULL &&
+        value->params[0] == payloadId && value->ownershipAbi == payload->ownershipAbi &&
+        ((value->cAbi == payload->cAbi && value->nullAbi == payload->nullAbi &&
+          (value->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
+         (value->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
+          xl6IrTaggedNullableScalarSupported(payload->cAbi)));
 }
 
 static int xl6IrRuntimeResourceSignatureCompatible(
@@ -9552,6 +9584,12 @@ static int xl6IrRuntimeResourceSignatureCompatible(
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT:
             return operandCount == 2 && second != NULL &&
                 second->cAbi == XL6_IR_C_ABI_I64 && resultType == payloadType;
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP:
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK:
+            return operandCount == 1 && xl6IrStackTryResultCompatible(module, resultType, payloadType);
+        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT:
+            return operandCount == 2 && second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
+                xl6IrStackTryResultCompatible(module, resultType, payloadType);
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE:
             return operandCount == 1 && resultType == receiverType;
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_EQUALS:
@@ -13377,10 +13415,7 @@ static int xl6IrNullableProjectionTypeIsClosed(
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-         (element->cAbi == XL6_IR_C_ABI_BOOL ||
-          element->cAbi == XL6_IR_C_ABI_I64 ||
-          element->cAbi == XL6_IR_C_ABI_U64 ||
-          element->cAbi == XL6_IR_C_ABI_F64) ) return 1;
+         xl6IrTaggedNullableScalarSupported(element->cAbi) ) return 1;
     if ( nullable->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          nullable->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
@@ -17471,7 +17506,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp op
 int xl6IrTaggedNullableScalarSupported(XL6_IrCAbi abi)
 {
     return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
-           abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_F64 ||
+           abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_F32 ||
            abi == XL6_IR_C_ABI_CHAR_U32 || abi == XL6_IR_C_ABI_TIME_I64;
 }
 
@@ -38564,6 +38599,19 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                      !xl6IrNodeRequiresThrowExitPlan(module, instruction->origin) )
                                     return xl6IrDiag(diags, NULL,
                                         "XLIR runtime Stack retrieval has no exact owned/value result, depth or failure ABI");
+                            } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_POP ||
+                                        instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK ||
+                                        instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT ) {
+                                const XL6_IrType* depth = right != NULL
+                                    ? xl6IrTypeGet(&module->types, right->type) : NULL;
+                                int indexed = instruction->runtimeOp == XL6_IR_RUNTIME_STACK_TRY_PEEK_AT;
+                                if ( instruction->operandCount != (indexed ? 2u : 1u) ||
+                                     !xl6IrStackTryResultCompatible(module, instruction->type, payloadTypeId) ||
+                                     instruction->result == XL6_IR_VALUE_INVALID ||
+                                     (indexed && (depth == NULL || depth->cAbi != XL6_IR_C_ABI_I64)) ||
+                                     !xl6IrNodeRequiresThrowExitPlan(module, instruction->origin) )
+                                    return xl6IrDiag(diags, NULL,
+                                        "XLIR runtime Stack try retrieval has no exact status/optional result, depth or failure ABI");
                             } else if ( receives ) {
                                 const XL6_IrType* referenceType = right != NULL
                                     ? xl6IrTypeGet(
@@ -41858,6 +41906,9 @@ static const char* xl6IrRuntimeResourceOpName(
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP: return "stack-pop";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK: return "stack-peek";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT: return "stack-peek-at";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP: return "stack-try-pop";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK: return "stack-try-peek";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT: return "stack-try-peek-at";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE:
         return "avl-tree-create";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET: return "avl-tree-set";
@@ -43517,6 +43568,9 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
     case XL6_IR_RUNTIME_STACK_POP: return "stack-pop";
     case XL6_IR_RUNTIME_STACK_PEEK: return "stack-peek";
     case XL6_IR_RUNTIME_STACK_PEEK_AT: return "stack-peek-at";
+    case XL6_IR_RUNTIME_STACK_TRY_POP: return "stack-try-pop";
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK: return "stack-try-peek";
+    case XL6_IR_RUNTIME_STACK_TRY_PEEK_AT: return "stack-try-peek-at";
     case XL6_IR_RUNTIME_AVL_TREE_CREATE: return "avl-tree-create";
     case XL6_IR_RUNTIME_AVL_TREE_SET: return "avl-tree-set";
     case XL6_IR_RUNTIME_AVL_TREE_GET_INTO: return "avl-tree-get-into";

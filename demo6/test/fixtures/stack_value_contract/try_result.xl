@@ -1,0 +1,3 @@
+func wrongTryResult(Stack<string> values) as (bool, bytes?)
+    return values.tryPop()
+end

@@ -1,0 +1,3 @@
+func wrongTryResult(Stack<string> values) as (bool, string)
+    return values.tryPeek()
+end
