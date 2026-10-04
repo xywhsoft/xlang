@@ -11,8 +11,8 @@ OUT="${1:?Provide a fresh evidence directory}"
 mkdir -p "$OUT/include" "$OUT/components"
 CLI="$ROOT/release/xl"; CC="$(command -v gcc)"; PY="$(command -v python3)"
 checks=0; failures=()
-cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi stdlib_stack_values)
-negative=(char_output_type bytes_output_type bytes_input_type)
+cases=(stdlib_stack_native stdlib_stack_scalar xlir_stack_resource_abi xlir_stack_class_default_abi stdlib_stack_values stdlib_stack_owned stdlib_stack_owned_continuation)
+negative=(char_output_type bytes_output_type bytes_input_type owned_argument owned_depth owned_result)
 run() {
     local name="$1"; shift
     if ! "$@" >"$OUT/$name.log" 2>&1; then
@@ -59,7 +59,7 @@ native_probe() {
         -no-pie -pthread -lm -o "$OUT/native" || return
     run native-vectors "$OUT/native" || return
     local operation point terminal
-    for operation in create reserve push peek clone trim; do
+    for operation in create reserve push peek clone trim owned-peek; do
         terminal=false
         for ((point=0;point<=64;++point)); do
             run "native.$operation.oom-$point" "$OUT/native" "$operation" "$point" || return
@@ -73,7 +73,7 @@ if ! native_probe; then failures+=(native); fi
 fixture() {
     local name="$1" source="test/cases/$1.xl" saved component object point terminal
     local objects=() components=() entry=()
-    [[ "$name" = xlir_stack_class_default_abi ]] || entry=(-DXL6_TIME_USER_ENTRY)
+    [[ "$name" = xlir_stack_class_default_abi || "$name" = stdlib_stack_owned_continuation ]] || entry=(-DXL6_TIME_USER_ENTRY)
     run "$name.emit" "$CLI" cgen "$source" --inc-path "$OUT/include" --emit "$OUT/$name.c" || return
     run "$name.repeat" "$CLI" cgen "$source" --inc-path "$OUT/include" --emit "$OUT/$name.repeat.c" || return
     run "$name.deterministic" cmp "$OUT/$name.c" "$OUT/$name.repeat.c" || return
@@ -104,7 +104,7 @@ fixture() {
     run "$name.closure-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
         "${entry[@]}" test/cases/xlir_time_text_closure_host.c "$OUT/$name.native.o" "${objects[@]}" -pthread -ldl -lm -o "$OUT/$name.closure" || return
     run "$name.closure" "$OUT/$name.closure" || return
-    if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values ]]; then
+    if [[ "$name" = stdlib_stack_native || "$name" = stdlib_stack_values || "$name" = stdlib_stack_owned ]]; then
         run "$name.factory-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
             -DXL6_PRODUCT_USER_ENTRY test/cases/xlir_module_product_oom_host.c "$OUT/debug-host.o" -lxl "${libs[@]}" -o "$OUT/$name.oom" || return
         run "$name.factory-oom-normal" "$OUT/$name.oom" || return
@@ -123,8 +123,14 @@ for name in "${cases[@]}"; do
 done
 reject_fixture() {
     local name="$1" target="$OUT/negative.$1.c"
+    local diagnostic='\[sem\].*Stack.*: target (char|bytes), value (uint32|var|string)'
+    case "$name" in
+        owned_argument) diagnostic='\[sem\].*\[SC-ARG-COUNT\]' ;;
+        owned_depth) diagnostic='\[sem\].*Stack\.peekAt.*: target int, value string' ;;
+        owned_result) diagnostic='\[sem\].*: target string, value bytes' ;;
+    esac
     if "$CLI" cgen "test/fixtures/stack_value_contract/$name.xl" --emit "$target" >"$OUT/negative.$name.log" 2>&1; then return 1; fi
-    [[ ! -e "$target" ]] && grep -Eq 'Stack.*: target (char|bytes), value (uint32|var|string)' "$OUT/negative.$name.log" || return 1
+    [[ ! -e "$target" ]] && grep -Eq "$diagnostic" "$OUT/negative.$name.log" || return 1
     checks=$((checks+1))
 }
 for name in "${negative[@]}"; do
@@ -133,7 +139,7 @@ done
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi
-"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":5,"NegativeFixtures":3,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: exact char/bytes, write-copy isolation, parameter rebind lifetime and pre-output contract mutation rejection. Complete native and full shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Legacy Into, owned return products, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
+"$PY" -c 'import json,sys;p=sys.argv;f=p[4:];json.dump({"Complete":not f,"Checks":int(p[2]),"PositiveFixtures":7,"NegativeFixtures":6,"InputsUnchanged":p[3]=="true","Failures":f,"Scope":"Linux actual strict C/JIT/AOT and pruned generated/resident/native Stack ASan/UBSan/leaks: exact owned pop/peek/peekAt and char/bytes, write isolation, contextual literal/checked input conversion, parameter lifetime and pre-output result/effect mutation rejection. Complete native and current-thread shared runtime OOM prefixes; shared runtime and CLI/JIT are not instrumented. Legacy Into retirement, outcome products, batch and other 53 modules remain pending."},open(p[1],"w"),indent=2)' \
     "$OUT/results.json" "$checks" "$( [[ ! " ${failures[*]} " = *' inputs-changed '* ]] && printf true || printf false )" "${failures[@]}"
 printf 'Stack native Linux: %s successful checks, %s failed groups\n' "$checks" "${#failures[@]}"
 [[ ${#failures[@]} = 0 ]]

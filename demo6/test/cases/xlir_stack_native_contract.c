@@ -16,7 +16,7 @@ static void rejected(const XL6_IrModule* ir)
 }
 int main(int argc, char** argv)
 {
-    assert(argc == 3); int ok = 0; unsigned checked = 0;
+    assert(argc == 3); int ok = 0; unsigned checked = 0, ownedResults = 0;
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argv[1],&parse) || !xl6StdlibExpandModule(parse.root,&parse.diags) ||
@@ -46,6 +46,21 @@ int main(int argc, char** argv)
         type->nullAbi=nullAbi == XL6_IR_NULL_ABI_NONE
             ? XL6_IR_NULL_ABI_POINTER_SENTINEL : XL6_IR_NULL_ABI_NONE;
         rejected(&ir);type->nullAbi=nullAbi;
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_POP ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_AT) {
+            XL6_IrTypeId resultType=instruction->type;
+            instruction->type=XL6_IR_TYPE_INVALID;rejected(&ir);instruction->type=resultType;
+            XL6_IrIntrinsicCall* intrinsic=(XL6_IrIntrinsicCall*)xl6IrIntrinsicCallGet(&ir,instruction->origin);
+            assert(intrinsic);
+            XL6_IrIntrinsicResultAbi resultAbi=intrinsic->resultAbi;
+            intrinsic->resultAbi=resultAbi == XL6_IR_INTRINSIC_RESULT_OWNED
+                ? XL6_IR_INTRINSIC_RESULT_VALUE : XL6_IR_INTRINSIC_RESULT_OWNED;
+            rejected(&ir);intrinsic->resultAbi=resultAbi;
+            XL6_IrErrorAbi errorAbi=intrinsic->errorAbi;
+            intrinsic->errorAbi=XL6_IR_ERROR_ABI_NO_RAISE;rejected(&ir);intrinsic->errorAbi=errorAbi;
+            ++ownedResults;
+        }
         assert(xl6IrVerifyModule(&ir,NULL)); ++checked;
     }
     assert(checked);
@@ -63,7 +78,7 @@ int main(int argc, char** argv)
     }
     if (!xl6OutputOpenFile(&out,argv[2])) goto done;
     ok = xl6IrCgenEmitC(&out,&ir,&parse.diags); xl6OutputClose(&out);
-    printf("stack contract: %u exact element/transfer/identity/ownership/null instructions, %u parameter lifetimes; mutations refused before C output\n",checked,lifetimes);
+    printf("stack contract: %u exact element/transfer/identity/ownership/null instructions, %u parameter lifetimes, %u owned/value result contracts; mutations refused before C output\n",checked,lifetimes,ownedResults);
 done:
     for (size_t i=0;i<parse.diags.count;++i) fprintf(stderr,"%d:%d: %s\n",parse.diags.items[i].line,
         parse.diags.items[i].column,parse.diags.items[i].message);

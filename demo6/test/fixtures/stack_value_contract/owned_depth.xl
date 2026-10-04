@@ -1,0 +1,5 @@
+func main(...) as int
+    Stack<int> values = Stack::<int>()
+    values.peekAt("0")
+    return 0
+end

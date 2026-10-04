@@ -1,0 +1,118 @@
+class OwnedStackItem
+    int value
+end
+
+class OwnedStackHolder
+    Stack<bytes> values
+end
+
+Stack<char> ownedStackChars
+
+func ownStackText() as string
+    Stack<string> local = Stack::<string>()
+    assert(local.push("A\0你"))
+    try
+        return local.pop()
+    finally
+        local.clear()
+    end
+end
+
+func main(...) as int
+    assert(ownedStackChars.push('你'))
+    assert(ownedStackChars.peek() == '你' and ownedStackChars.count() == 1)
+    char scalar = ownedStackChars.pop()
+    assert(scalar == '你' and ownedStackChars.count() == 0)
+    assert(ownedStackChars.push(65) and ownedStackChars.pop() == 'A')
+    int code = 66
+    assert(ownedStackChars.push(char(code)) and ownedStackChars.pop() == 'B')
+    assert(ownStackText() == "A\0你")
+    Stack<string> strings = Stack::<string>()
+    assert(strings.push("A\0你"))
+    string observed = strings.peek()
+    observed[0] = 'B'
+    assert(strings.peekAt(0) == "A\0你" and observed == "B\0你")
+    assert(strings.pop() == "A\0你")
+    int refused = 0
+    try
+        observed = strings.pop()
+    catch RangeError failure
+        refused += 1
+    end
+    assert(observed == "B\0你")
+    try
+        strings.peek()
+    catch RangeError failure
+        refused += 1
+    end
+    assert(strings.push("kept"))
+    try
+        strings.peekAt(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    try
+        strings.peekAt(9223372036854775807)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 4 and strings.pop() == "kept")
+    code = 55296
+    try
+        ownedStackChars.push(char(code))
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 5 and ownedStackChars.count() == 0)
+
+    OwnedStackHolder holder = OwnedStackHolder()
+    assert(holder.values.push(b"A\0\xff你"))
+    bytes item = holder.values.peek()
+    item[0] = 66
+    assert(holder.values.peekAt(0) == b"A\0\xff你")
+    Stack<bytes> independent = holder.values.clone()
+    bytes popped = independent.pop()
+    popped[-1] = 0
+    assert(holder.values.pop() == b"A\0\xff你" and item == b"B\0\xff你")
+    assert(independent.count() == 0)
+
+    Stack<OwnedStackItem> objects = Stack::<OwnedStackItem>()
+    OwnedStackItem object = OwnedStackItem()
+    object.value = 7
+    assert(objects.push(object))
+    OwnedStackItem returned = objects.pop()
+    returned.value = 9
+    assert(object.value == 9)
+    objects.clear()
+    assert(returned.value == 9)
+    Stack<OwnedStackItem?> optional = Stack::<OwnedStackItem?>()
+    assert(optional.push(null))
+    OwnedStackItem? missing = optional.pop()
+    assert(missing == null and optional.count() == 0)
+    assert(optional.push(object))
+    missing = optional.peek()
+    assert(missing != null and missing.value == 9)
+    optional.clear()
+    Stack<int32> integers = Stack::<int32>()
+    assert(integers.push(2147483647) and integers.peekAt(0) == 2147483647)
+    assert(integers.pop() == 2147483647)
+    assert(integers.push(-2147483648) and integers.pop() == -2147483648)
+    Stack<bool> flags = Stack::<bool>()
+    assert(flags.push(false) and not flags.pop())
+    Stack<float32> reals = Stack::<float32>()
+    assert(reals.push(1.25) and reals.pop() == float32(1.25))
+    int turn = 0
+    while turn < 8
+        assert(strings.push("loop\0你"))
+        string owned = strings.peek()
+        owned[0] = '你'
+        strings.peek()
+        assert(strings.pop() == "loop\0你" and owned == "你oop\0你")
+        assert(holder.values.push(b"\0\xff"))
+        bytes taken = holder.values.pop()
+        taken[0] = 42
+        assert(taken == b"*\xff")
+        turn += 1
+    end
+    return 0
+end
