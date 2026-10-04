@@ -1,0 +1,23 @@
+func main(...) as int
+    float32? first = float32(-1.25)
+    float32? second = float32(1.25)
+    AvlTree<int, float32?> tree = AvlTree::<int, float32?>()
+    assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
+    array<float32?> values = tree.values()
+    assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
+    SpscQueue<float32?> queue = SpscQueue::<float32?>(4)
+    array<float32?> output = array<float32?>[second]
+    assert(queue.pushBatch(values) == 3 and queue.popBatchInto(output, 4) == 3)
+    assert(output.length == 3 and output[0] == null and output[1] == first and output[2] == second)
+    float32? absentA = null
+    float32? absentB = null
+    assert(absentA == absentB and absentA != first and first != second and first == first)
+    int count = 0
+    for item in output
+        if item != null
+            count += 1
+        end
+    end
+    assert(count == 2)
+    return 0
+end

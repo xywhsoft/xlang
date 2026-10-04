@@ -1,0 +1,5 @@
+#define XL6_NULLABLE_CARRIER XL6_NullableTimeV1
+#define XL6_NULLABLE_ELEMENT xrtTypeTime
+#define XL6_NULLABLE_GET xl6NullableTimeTypeV1
+#define XL6_NULLABLE_CONVERTER xl6NullableTimeConverterV1
+#include "src/runtime/xl6_nullable_scalar_value_impl.h"

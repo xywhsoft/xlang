@@ -629,6 +629,18 @@ static const char* xl6IrCgenSharedStringCompareRelation(XL6_IrRuntimeOp operatio
     }
 }
 
+static int xl6IrCgenEmitNullableScalarEqual(XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (instruction->runtimeOp!=XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL) return 0;
+    if (!xl6IrNullableScalarEqualSignatureValid(module,instruction)) return -1;
+    unsigned left=(unsigned)module->operands[instruction->firstOperand];
+    unsigned right=(unsigned)module->operands[instruction->firstOperand+1];
+    xl6OutputPrintf(out,"    v%u = v%u.hasValue == v%u.hasValue && (!v%u.hasValue || v%u.value == v%u.value);\n",
+        (unsigned)instruction->result,left,right,left,left,right);
+    return xl6OutputHasFailed(out) ? -1 : 1;
+}
+
 static int xl6IrCgenSharedStringCompareAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {

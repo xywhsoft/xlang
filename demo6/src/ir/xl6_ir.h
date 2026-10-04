@@ -1739,7 +1739,10 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT,
        /* Exact optional-value equality, not plain text/view equality. Both
         * borrowed operands have the same nullable<string> TypeId. */
-       XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL
+       XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL,
+       /* Same closed tagged scalar type; absent==absent, present payloads use
+        * language scalar equality (including IEEE NaN), not storage ordering. */
+       XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -1762,6 +1765,7 @@ typedef struct XL6_IrRuntimeTypeMap {
     uint64 setTypeValueId;
     uint64 objectTypeValueId;
     uint64 u64TypeValueId;
+    uint64 charTypeValueId;
 } XL6_IrRuntimeTypeMap;
 
 /* Checked integer conversion normalizes every accepted language/C source
@@ -5945,6 +5949,7 @@ const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
  * retaining their physical carrier does not grant a mutable language alias. */
 XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type);
 int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrNullableScalarEqualSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
 /* Exact (bool, optional payload) product for non-exceptional empty retrieval. */
 int xl6IrStackTryResultCompatible(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* Return the precomputed closed nominal acceptance set for one concrete class

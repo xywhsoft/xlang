@@ -16,6 +16,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                           "extern xvalue* xrtValueUInt(uint64_t);\n"
                            "extern xvalue* xrtValueFloat(double);\n"
                            "extern xvalue* xrtValueTime(int64_t);\n"
+                           "extern xvalue* xrtValueChar(uint32_t);\n"
                            "extern xvalue* xrtValueRetain(const xvalue*);\n"
                            "extern xvalue* xrtValueClone(const xvalue*);\n"
                            "extern xvalue* xrtValueDeepClone(const xvalue*);\n"
@@ -159,6 +160,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "    case 11: return 0x%016llXULL;\n"
                 "    case 12: return 0x%016llXULL;\n"
                 "    case 13: return 0x%016llXULL;\n"
+                "    case 14: return 0x%016llXULL;\n"
                 "    default: return 0x%016llXULL;\n"
                 "    }\n"
                 "}\n",
@@ -177,6 +179,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 (unsigned long long)map->setTypeValueId,
                 (unsigned long long)map->objectTypeValueId,
                 (unsigned long long)map->u64TypeValueId,
+                (unsigned long long)map->charTypeValueId,
                 (unsigned long long)map->fallbackTypeValueId);
         }
         if ( needs->needsXValueCheckedCastRuntime )

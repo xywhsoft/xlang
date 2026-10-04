@@ -135,7 +135,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_time.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_char.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_string.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}},
-    {"src/runtime/xl6_array_iterator.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY"}}
+    {"src/runtime/xl6_array_iterator.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY"}},
+    {"src/runtime/xl6_nullable_bool_value.c", D(R(NULLABLE_BOOL)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_i64_value.c", D(R(NULLABLE_I64)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_u64_value.c", D(R(NULLABLE_U64)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_f32_value.c", D(R(NULLABLE_F32)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_f64_value.c", D(R(NULLABLE_F64)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_time_value.c", D(R(NULLABLE_TIME)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_char_value.c", D(R(NULLABLE_CHAR)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -359,6 +366,22 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             case XL6_IR_C_ABI_TIME_I64: REQUIRE(R(NULLABLE_TIME)); break;
             case XL6_IR_C_ABI_CHAR_U32: REQUIRE(R(NULLABLE_CHAR)); break;
             default: break;
+            }
+            /* A storage profile is independent of its dynamic projection.
+             * Only these exact operations materialize/read dynamic elements. */
+            if (instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
+                switch (xl6IrNullableScalarElementAbi(module,instruction->payloadType)) {
+                case XL6_IR_C_ABI_BOOL: REQUIRE(R(NULLABLE_BOOL_VALUE)); break;
+                case XL6_IR_C_ABI_I64: REQUIRE(R(NULLABLE_I64_VALUE)); break;
+                case XL6_IR_C_ABI_U64: REQUIRE(R(NULLABLE_U64_VALUE)); break;
+                case XL6_IR_C_ABI_F32: REQUIRE(R(NULLABLE_F32_VALUE)); break;
+                case XL6_IR_C_ABI_F64: REQUIRE(R(NULLABLE_F64_VALUE)); break;
+                case XL6_IR_C_ABI_TIME_I64: REQUIRE(R(NULLABLE_TIME_VALUE)); break;
+                case XL6_IR_C_ABI_CHAR_U32: REQUIRE(R(NULLABLE_CHAR_VALUE)); break;
+                default: break;
+                }
             }
             const XL6_IrType* physicalPayload = xl6IrTypeGet(&module->types,instruction->payloadType);
             const XL6_IrType* physicalKey = xl6IrTypeGet(&module->types,instruction->runtimeResourceKeyType);

@@ -214,6 +214,8 @@ static int xl6IrCgenEmitTaggedNullableXValueRuntime(
         if ( elementType == NULL )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR tagged nullable xvalue bridge has no scalar C ABI");
+        if (needsGet || needsIterator || needsCast)
+            xl6OutputPrintf(out,"extern bool %s(const xvalue*, %s*);\n",getter,elementType);
         if ( needsBox ) {
             xl6OutputPrintf(out,
                 "static xvalue* xlir_xvalue_box_%s(%s value)\n"

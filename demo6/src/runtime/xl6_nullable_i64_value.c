@@ -1,0 +1,5 @@
+#define XL6_NULLABLE_CARRIER XL6_NullableI64V1
+#define XL6_NULLABLE_ELEMENT xrtTypeInt64
+#define XL6_NULLABLE_GET xl6NullableI64TypeV1
+#define XL6_NULLABLE_CONVERTER xl6NullableI64ConverterV1
+#include "src/runtime/xl6_nullable_scalar_value_impl.h"

@@ -17,7 +17,9 @@ try {
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Full current-source compiler/runtime required' }
     $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation','stdlib_stack_try_owned','stdlib_stack_try_continuation',
         'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char','stdlib_sequence_nullable_identity')
-    $extraCases = @('xlir_nullable_scalar_no_resource','stdlib_nullable_resource_transport','stdlib_nullable_queue_transport','stdlib_nullable_text_resource_transport','stdlib_nullable_text_batch_projection','xlir_nullable_string_equal')
+    $projections = @('stdlib_nullable_projection_bool','stdlib_nullable_projection_i64','stdlib_nullable_projection_u64',
+        'stdlib_nullable_projection_f32','stdlib_nullable_projection_f64','stdlib_nullable_projection_time','stdlib_nullable_projection_char','stdlib_nullable_projection_oom')
+    $extraCases = @('xlir_nullable_scalar_no_resource','stdlib_nullable_resource_transport','stdlib_nullable_queue_transport','stdlib_nullable_text_resource_transport','stdlib_nullable_text_batch_projection','xlir_nullable_string_equal') + $projections
     $negative = @('char_output_type','bytes_output_type','bytes_input_type','owned_argument','owned_depth','owned_result','try_argument','try_depth','try_result','try_nullable_result',
         'nullable_literal_range','nullable_variable_narrow','nullable_identity',
         'retired_pop_into','retired_peek_into','retired_peek_at_into')
@@ -76,6 +78,8 @@ try {
     foreach ($case in ($cases + $extraCases)) {
         $plan = $artifact.NativeLinkage | Where-Object Fixture -eq $case
         $expected = if ($case -eq 'stdlib_stack_nullable_scalar') { @('bool','i64','u64','f32','f64','time','char') }
+            elseif ($case -eq 'stdlib_nullable_projection_oom') { @('bool','i64','u64','f32','f64','time','char') | ForEach-Object { $_; "${_}_value" } }
+            elseif ($case -match '^stdlib_nullable_projection_(bool|i64|u64|f32|f64|time|char)$') { @($Matches[1],($Matches[1] + '_value')) }
             elseif ($case -eq 'stdlib_sequence_nullable_identity' -or $case -like 'stdlib_nullable_text_*' -or $case -eq 'xlir_nullable_string_equal') { @('string') }
             elseif ($case -eq 'stdlib_stack_nullable_continuation' -or $case -eq 'stdlib_nullable_resource_transport') { @('i64') }
             elseif ($case -match '^stdlib_stack_nullable_(bool|i64|u64|f32|f64|time|char)$') { @($Matches[1]) }
@@ -107,7 +111,7 @@ try {
     }
     Run 'contract-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_stack_native_contract.c') +
         $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/contract.exe"))
-    foreach ($case in ($cases + @('xlir_nullable_string_equal'))) {
+    foreach ($case in ($cases + @('xlir_nullable_string_equal','xlir_nullable_scalar_no_resource') + $projections)) {
         $prefix = "$outPath/$case"
         Run "$case.emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)
         # Large nullable fixtures deliberately reverify hundreds of malformed
@@ -141,7 +145,7 @@ try {
             (Test-Path "$prefix.c") -or (Test-Path "$prefix.h")){throw 'Wrong Stack type rejection or partial output'}
     }
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
-    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned','stdlib_stack_nullable_scalar','stdlib_sequence_nullable_identity','stdlib_nullable_text_resource_transport','xlir_nullable_string_equal')){
+    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned','stdlib_stack_nullable_scalar','stdlib_sequence_nullable_identity','stdlib_nullable_text_resource_transport','xlir_nullable_string_equal','stdlib_nullable_projection_oom')){
     $prefix = "$outPath/$case"
     if (!(Test-Path -LiteralPath "$prefix.c")) {
         Run "$case.language-oom-emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)

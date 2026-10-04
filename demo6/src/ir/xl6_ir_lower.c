@@ -30976,6 +30976,24 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 return result;
             }
         }
+        if ((opcode==XL6_IR_OPCODE_EQ || opcode==XL6_IR_OPCODE_NE) &&
+            operandNodes[0] && operandNodes[1] &&
+            operandNodes[0]->storageType==operandNodes[1]->storageType &&
+            xl6IrNullableScalarElementAbi(ctx->module,operandNodes[0]->storageType)!=XL6_IR_C_ABI_UNSUPPORTED) {
+            for (size_t i=0;i<2;++i) {
+                values[i]=xl6IrLowerNodeAsType(ctx,id,ctx->module->children[node->firstChild+i],
+                    operandNodes[i],operandNodes[i]->storageType);
+                if (values[i]==XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
+            }
+            result=xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,
+                XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL,values,2);
+            if (result==XL6_IR_VALUE_INVALID || opcode==XL6_IR_OPCODE_EQ) return result;
+            XL6_IrValueId equal=result;
+            if (!xl6IrLowerEmit(ctx,XL6_IR_INSTR_UNARY,id,node->storageType,0,&equal,1,&result))
+                return XL6_IR_VALUE_INVALID;
+            ctx->module->instructions[ctx->module->instructionCount-1].opcode=XL6_IR_OPCODE_NOT;
+            return result;
+        }
         {
             int managed = xl6IrLowerManagedBinary(ctx, id, node, operandNodes, &result);
             if ( managed != 0 ) return managed > 0 ? result : XL6_IR_VALUE_INVALID;
