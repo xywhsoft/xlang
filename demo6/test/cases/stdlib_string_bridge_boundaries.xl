@@ -1,11 +1,11 @@
 import xlang
 
 Buffer buffer = Buffer()
-assert buffer.appendBytes("a\0b", c_size(20))
+assert buffer.append("a\0b", 20)
 assert buffer.len() == 3 and buffer.byteAt(0) == 97
 assert buffer.byteAt(1) == 0 and buffer.byteAt(2) == 98
-assert buffer.appendBytes("ignored", c_size(0)) and buffer.len() == 3
-assert buffer.appendBytes("你好", c_size(3))
+assert buffer.append("ignored", 0) and buffer.len() == 3
+assert buffer.append("你好", 3)
 assert buffer.len() == 6 and buffer.byteAt(3) == 228 and buffer.byteAt(5) == 160
 var object = {"a": 1, "a\0b": 2}
 assert dict.remove(object, "a\0b")

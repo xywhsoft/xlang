@@ -15,6 +15,8 @@ try {
     }
     $public = Get-Content -Encoding UTF8 -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Full current-source compiler/runtime required' }
+    & "$PSScriptRoot/stage_xlir_artifact_runtime_sources.ps1" -Directory $PublicDirectory *> "$outPath/stage.log"
+    if (!$?) { throw 'Current-source native package staging failed' }
     $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation','stdlib_stack_try_owned','stdlib_stack_try_continuation',
         'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char','stdlib_sequence_nullable_identity')
     $projections = @('stdlib_nullable_projection_bool','stdlib_nullable_projection_i64','stdlib_nullable_projection_u64',
@@ -30,7 +32,13 @@ try {
         @(Get-Item -LiteralPath @($PSCommandPath,$gcc,$python,'release/xl.dll','test/cases/stdlib_stack_native_host.c',
             'test/support/stack_native.c','test/cases/xlir_module_product_oom_host.c',
             'test/support/module_product_memory.c','test/support/module_product_memory.h',
-            'test/cases/xlir_stack_native_contract.c','test/cases/xlir_nullable_scalar_native.c','tools/check_xlir_artifact_runtime.ps1'))
+            'test/cases/xlir_stack_native_contract.c','test/cases/xlir_nullable_scalar_native.c','tools/check_xlir_artifact_runtime.ps1',
+            'tools/check_stdlib_sequence_clear.py','test/support/sequence_clear_probe.c','test/support/array_value_native.c',
+            'test/cases/stdlib_sequence_clear_native_host.c','test/cases/xlir_time_text_closure_host.c',
+            'test/cases/stdlib_stack_clear_minimal.xl','test/cases/stdlib_stack_clear_error.xl',
+            'test/cases/stdlib_stack_clear_error_continuation.xl','tools/check_stdlib_collection_admission.py',
+            'test/cases/stdlib_collection_admission.xl','test/cases/stdlib_collection_nominal_admission.xl',
+            'test/cases/stdlib_array_defaults.xl','test/cases/stdlib_array_defaults_continuation.xl'))
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -177,6 +185,16 @@ try {
     }
     if ($point -gt 4096) { throw 'Incomplete Stack language allocation prefix' }
     $sweeps += [pscustomobject]@{Fixture=$case;FirstNoHit=$point}
+    }
+    Run 'sequence-clear' $python @('tools/check_stdlib_sequence_clear.py','--out',"$outPath/sequence-clear",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $clear = Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-clear/results.json" -Raw | ConvertFrom-Json
+    if (!$clear.Complete -or !$clear.InputsUnchanged) { throw 'Incomplete explicit clear evidence' }
+    foreach ($mode in @('base','nominal','defaults')) {
+        $arguments=@('tools/check_stdlib_collection_admission.py','--out',"$outPath/collection-$mode",'--public-directory',$PublicDirectory)
+        if ($mode -ne 'base') { $arguments += "--$mode" }
+        Run "collection-$mode" $python $arguments -TimeoutMs 600000
+        $admission=Get-Content -Encoding UTF8 -LiteralPath "$outPath/collection-$mode/results.json" -Raw | ConvertFrom-Json
+        if (!$admission.Complete -or !$admission.InputsUnchanged) { throw "Incomplete collection $mode evidence" }
     }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;

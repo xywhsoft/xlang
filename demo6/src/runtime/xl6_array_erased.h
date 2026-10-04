@@ -16,5 +16,5 @@ XL6_TEXT_API bool xl6ArrayErasedPushV1(const xvalue*, const xvalue*);
 XL6_TEXT_API bool xl6ArrayErasedInsertV1(const xvalue*, int64_t, const xvalue*);
 XL6_TEXT_API int64_t xl6ArrayErasedSizeV1(const xvalue*);
 XL6_TEXT_API xvalue* xl6ArrayErasedCloneV1(const xvalue*);
-XL6_TEXT_API void xl6ArrayErasedClearV1(const xvalue*);
+XL6_TEXT_API bool xl6ArrayErasedClearV1(const xvalue*);
 #endif

@@ -367,7 +367,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6StackCloneV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern bool xl6StackEqualsV1(const xvalue*, const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern bool xl6StackTrimV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
-            "extern void xl6StackClearV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
+            "extern bool xl6StackClearV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern int64_t xl6StackSizeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);\n"
             "extern const xrttype* xrtTypeBool(void);\n"
             "extern const xrttype* xrtTypeInt8(void);\n"

@@ -15753,8 +15753,7 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
             XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
-        (xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) &&
-         intrinsic->runtimeResourceOp != XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR) ||
+        xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
         intrinsic->runtimeResourceOp ==
@@ -24283,8 +24282,7 @@ static int xl6IrLowerIntrinsicRuntimeResource(
             XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
-        (xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) &&
-         intrinsic->runtimeResourceOp != XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR) ||
+        xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
         intrinsic->runtimeResourceOp ==
@@ -24394,7 +24392,16 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         runtimeOperandCount = 3;
     }
     runtimeInstructionIndex = ctx->module->instructionCount;
-    if ( returnsVoid ) {
+    if ( returnsVoid && mayRaise ) {
+        /* A source void operation can still have a physical status result.
+         * Its SSA token belongs solely to the explicit error outcome; it is
+         * not a synthetic language return value or a backend TLS probe. */
+        XL6_IrTypeId statusType=xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_BOOL);
+        *result=xl6IrLowerEmitRuntimeCall(ctx,id,statusType,runtimeOp,operands,runtimeOperandCount);
+        if ( statusType == XL6_IR_TYPE_INVALID || *result == XL6_IR_VALUE_INVALID ) {
+            ok=0; goto done;
+        }
+    } else if ( returnsVoid ) {
         if ( !xl6IrLowerEmitRuntimeCallVoid(
                  ctx, id, runtimeOp, operands, runtimeOperandCount) ) {
             ok = 0;
@@ -24428,6 +24435,7 @@ static int xl6IrLowerIntrinsicRuntimeResource(
              ctx, id, *result, writebacks, writebackCount) ) ok = 0;
     if ( ok && !xl6IrLowerCompleteEvaluationBorrows(
              ctx, id, evaluationFirst, result) ) ok = 0;
+    if ( returnsVoid ) *result=XL6_IR_VALUE_INVALID;
 done:
     ctx->evaluationOwnerCount = evaluationFirst;
     if ( !ok ) *result = XL6_IR_VALUE_INVALID;

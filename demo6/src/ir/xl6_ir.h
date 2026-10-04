@@ -1689,6 +1689,8 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STACK_CLONE,
        XL6_IR_RUNTIME_STACK_EQUALS,
        XL6_IR_RUNTIME_STACK_TRIM,
+       /* Source void; physical bool success status consumed by ERROR_TEST.
+        * TLS carries only the diagnostic, not the branch decision. */
        XL6_IR_RUNTIME_STACK_CLEAR,
        XL6_IR_RUNTIME_STACK_COUNT,
        XL6_IR_RUNTIME_STACK_POP,

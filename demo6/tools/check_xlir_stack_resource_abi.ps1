@@ -186,7 +186,7 @@ foreach ( $test in @($lowered.instructions | Where-Object {
         $stackErrorSources += $definition
     }
 }
-if ( $stackErrorSources.Count -ne @($operations | Where-Object {$_.runtimeOpName -ne 'stack-clear'}).Count ) {
+if ( $stackErrorSources.Count -ne $operations.Count ) {
     throw "XLIR Stack may-raise RuntimeOps lost explicit error-test CFG edges"
 }
 $stackTypeIds = @($stackTypes.id)
@@ -235,7 +235,7 @@ if ( $c -cne $second ) {
 foreach ( $required in @(
     "xl6StackCreateV1", "xl6StackPushV1", "xl6StackTakeV1",
     "xl6StackReserveV1", "xl6StackCloneV1", "xl6StackEqualsV1", "xl6StackTrimV1",
-    "xl6StackClearV1", "xl6StackSizeV1", "xrtTypeStringView()", "xrtTypeValue()"
+    "xl6StackClearV1", "xl6StackSizeV1", "xl6StringTypeV1()", "xrtTypeValue()"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR Stack mechanical resident ABI emission is missing: $required"
@@ -249,7 +249,7 @@ $helperCounts = [ordered]@{
     'v[0-9]+ = xl6StackEqualsV1\(' = 2
     'v[0-9]+ = xl6StackReserveV1\(' = 1
     'v[0-9]+ = xl6StackTrimV1\(' = 1
-    '(?m)^\s+xl6StackClearV1\(v' = 1
+    '(?m)^\s+v\d+ = xl6StackClearV1\(v' = 1
     'v[0-9]+ = xl6StackSizeV1\(' = 8
 }
 foreach ( $entry in $helperCounts.GetEnumerator() ) {

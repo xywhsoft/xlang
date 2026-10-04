@@ -103,12 +103,13 @@ bool xl6ArrayTrimV1(const xvalue* value, PARAMS)
     bool ok = allocation(xrtTypedArrayTrim(xl6SequenceStorageV1(owner)));
     xl6SequenceEndV1(owner); return ok;
 }
-void xl6ArrayClearV1(const xvalue* value, PARAMS)
+bool xl6ArrayClearV1(const xvalue* value, PARAMS)
 {
     XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
-    if (!owner) return;
-    xerror* saved = xrtTakeError(); xrtTypedArrayClear(xl6SequenceStorageV1(owner));
-    xrtClearError(); xrtSetErrorTake(saved); xl6SequenceEndV1(owner);
+    if (!owner) return false;
+    xrtTypedArrayClear(xl6SequenceStorageV1(owner));
+    xl6SequenceEndV1(owner);
+    return !xrtGetError();
 }
 int64_t xl6ArraySizeV1(const xvalue* value, PARAMS, bool capacity)
 {

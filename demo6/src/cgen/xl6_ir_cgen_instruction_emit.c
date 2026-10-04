@@ -348,7 +348,8 @@ static int xl6IrCgenEmitInstruction(
                     if ( source == NULL )
                         return xl6IrCgenDiag(diags, module, instruction->origin,
                                              "XLIR C emitter error-result test has no source carrier");
-                    if (source->kind == XL6_IR_INSTR_CLEANUP_END) {
+                    if (source->kind == XL6_IR_INSTR_CLEANUP_END ||
+                        (source->kind == XL6_IR_INSTR_RUNTIME_CALL && source->runtimeOp == XL6_IR_RUNTIME_STACK_CLEAR)) {
                         xl6OutputPrintf(out, "    if (v%u) goto b%u; else goto b%u;\n",
                             (unsigned int)value, (unsigned int)instruction->trueTarget,
                             (unsigned int)instruction->falseTarget);
@@ -397,8 +398,7 @@ static int xl6IrCgenEmitInstruction(
                                       XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE ||
                                   source->runtimeOp ==
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH ||
-                                  (xl6IrCgenStackRuntimeOpIs(source->runtimeOp) &&
-                                   source->runtimeOp != XL6_IR_RUNTIME_STACK_CLEAR) ||
+                                  xl6IrCgenStackRuntimeOpIs(source->runtimeOp) ||
                                   xl6IrCgenAvlRuntimeOpMayRaise(
                                       source->runtimeOp) ||
                                   xl6IrCgenSyncRuntimeOpCreates(

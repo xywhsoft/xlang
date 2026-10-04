@@ -3,8 +3,8 @@
   "product": "xruntime",
   "implementation": {
     "source": "xrt/extlibs/xruntime/single/xruntime.h",
-    "sha256": "0E7B389CA018F4C508F7EEB774DE8FB3FD1D71CDEC62CF4DC4DB7EF9200E9F35",
-    "bytes": 8951838
+    "sha256": "FC217468DEC9625B345995079AEF76526E78DEECB5692FCCE3D6CF63439C62A9",
+    "bytes": 8952387
   },
   "declarations": {
     "source": "xrt/extlibs/xruntime/single/xruntime_decl.h",

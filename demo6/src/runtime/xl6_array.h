@@ -16,7 +16,9 @@ XL6_TEXT_API bool xl6ArrayRemoveV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t, int
 XL6_TEXT_API bool xl6ArrayReserveV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t);
 XL6_TEXT_API bool xl6ArrayResizeV1(const xvalue*, XL6_ARRAY_LAYOUT, int64_t);
 XL6_TEXT_API bool xl6ArrayTrimV1(const xvalue*, XL6_ARRAY_LAYOUT);
-XL6_TEXT_API void xl6ArrayClearV1(const xvalue*, XL6_ARRAY_LAYOUT);
+/* Committed emptying retains capacity, finishes every Drop, and exposes the
+ * first cleanup error unless an existing pending error takes precedence. */
+XL6_TEXT_API bool xl6ArrayClearV1(const xvalue*, XL6_ARRAY_LAYOUT);
 XL6_TEXT_API int64_t xl6ArraySizeV1(const xvalue*, XL6_ARRAY_LAYOUT, bool);
 XL6_TEXT_API xvalue* xl6ArrayCloneV1(const xvalue*, XL6_ARRAY_LAYOUT);
 XL6_TEXT_API bool xl6ArrayEqualsV1(const xvalue*, const xvalue*, XL6_ARRAY_LAYOUT);
