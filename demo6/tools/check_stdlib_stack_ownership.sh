@@ -20,6 +20,8 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_stack_ownership_host.c test/cases/stdlib_stack_ownership_public.c
     printf '%s\0' test/cases/stdlib_stack_ownership.xl test/support/stack_native.c
     printf '%s\0' "$FIXTURE" test/cases/xlir_ownership_discovery_runtime.c test/support/discovery_native.c
+    printf '%s\0' tools/check_stdlib_array_native.py test/cases/stdlib_array_native_host.c
+    printf '%s\0' test/cases/stdlib_array_iterator_native_host.c test/support/array_native.c
 }
 frozen_files | sort -zu >"$OUT/inputs.list"
 xargs -0 sha256sum <"$OUT/inputs.list" >"$OUT/inputs.sha256"
@@ -67,6 +69,9 @@ for mode in 0 1 2 3; do
     run "public.mode-$mode" "$OUT/public" "$mode" "$OUT/include" "$OUT/public-$mode.temps" \
         "$ROOT/release/libxl.so" "$ROOT/build/linux/tcc-dist/lib" "$FIXTURE"
 done
+# Array/cursor uses the same phased Sequence graph. Freeze and verify its real
+# pruned O0/O2 closures, mixed cycles and complete allocation-failure prefixes.
+run array-native "$PY" tools/check_stdlib_array_native.py --out "$OUT/array-native" --sanitize
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"
 run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"

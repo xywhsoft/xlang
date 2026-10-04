@@ -35,9 +35,10 @@ def main() -> int:
     out.mkdir(parents=True)
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable)]
     files += [root / name for name in (
-        "test/cases/stdlib_array_native_host.c", "test/support/array_native.c",
+        "test/cases/stdlib_array_native_host.c", "test/cases/stdlib_array_iterator_native_host.c", "test/support/array_native.c",
         "test/support/stack_native.c", "src/runtime/xl6_sequence.c",
         "src/runtime/xl6_array.c", "src/runtime/xl6_stack.c", "src/runtime/xl6_nullable_string.c",
+        "src/runtime/xl6_array_iterator.c",
         "src/runtime/xl6_ownership_plan.c", "lib/xrt/xrt.h", "lib/xruntime/xruntime.h")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
@@ -73,15 +74,30 @@ def main() -> int:
                   "trim", "resize", "append", "self-append", "remove", "swap", "reverse", "find",
                   "clear", "equals", "graph-create", "graph-refresh", "graph-commit",
                   "nullable-create", "nullable-push", "nullable-set", "nullable-insert", "nullable-read",
-                  "nullable-clone", "nullable-trim", "nullable-append", "nullable-self-append")
+                  "nullable-clone", "nullable-trim", "nullable-append", "nullable-self-append",
+                  "cursor-create", "cursor-read", "nullable-cursor-create", "nullable-cursor-read",
+                  "cursor-graph-create", "cursor-graph-refresh", "cursor-graph-commit")
     try:
         for level in (0, 2):
+            lane = f"O{level}.cursor"
+            binary = out / (lane + (".exe" if os.name == "nt" else ""))
+            sources = ["test/cases/stdlib_array_iterator_native_host.c", "test/support/array_native.c",
+                       "src/runtime/xl6_sequence.c", "src/runtime/xl6_array_iterator.c"]
+            links = [] if os.name == "nt" else ["-pthread", "-lm"]
+            run(lane + ".build", [cc, *strict, f"-O{level}", *sources, *links, "-o", str(binary)])
+            symbols = run(lane + ".symbols", [nm, "--defined-only", str(binary)])
+            names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
+            assert "xl6ArrayIteratorCreateV1" in names and "xl6SequenceWrapV1" in names, "Missing snapshot-only closure"
+            assert "xrtTypedArrayCreate" in names, "Missing selected typed storage"
+            assert not any(re.match(r"xl6(?:Array(?!Iterator)|Stack)[A-Z]|xrtTypedStack[A-Z]", n) for n in names), "Snapshot-only closure pulled Array/Stack facade"
+            assert not {"xl6NullableStringTypeV1", "xl6NullableStringEqualV1", "xl6NullableStringConverterV1"} & names, "Scalar snapshot pulled nullable string provider"
+            run(lane + ".vectors", [str(binary)])
             for mixed in (False, True):
                 lane = f"O{level}.{'mixed' if mixed else 'array'}"
                 binary = out / (lane + (".exe" if os.name == "nt" else ""))
                 sources = ["test/cases/stdlib_array_native_host.c",
                            "test/support/stack_native.c" if mixed else "test/support/array_native.c",
-                           "src/runtime/xl6_sequence.c", "src/runtime/xl6_array.c", "src/runtime/xl6_nullable_string.c", "src/runtime/xl6_ownership_plan.c"]
+                           "src/runtime/xl6_sequence.c", "src/runtime/xl6_array.c", "src/runtime/xl6_array_iterator.c", "src/runtime/xl6_nullable_string.c", "src/runtime/xl6_ownership_plan.c"]
                 defines = ["-DXL6_TEST_MIXED_STACK"] if mixed else []
                 if mixed:
                     sources += ["src/runtime/xl6_stack.c"]
@@ -90,6 +106,7 @@ def main() -> int:
                 symbols = run(lane + ".symbols", [nm, "--defined-only", str(binary)])
                 names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
                 assert "xl6ArrayCreateV1" in names and "xl6SequenceOwnershipAdapterV1" in names, "Missing Array/Sequence resident owner"
+                assert "xl6ArrayIteratorCreateV1" in names and "xl6ArrayIteratorReadV1" in names, "Missing actual native snapshot cursor"
                 assert "xrtTypedArrayCreate" in names, "Missing actual typed Array implementation"
                 assert ("xl6StackCreateV1" in names) == mixed and ("xrtTypedStackCreate" in names) == mixed, "Incorrect Stack closure"
                 assert "xl6StackOwnershipAdapterV1" not in names, "Retired Stack ownership adapter remains"

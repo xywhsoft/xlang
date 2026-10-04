@@ -63,6 +63,7 @@ $reviewedGuards = @(
     'check_xlir_native_adapters.ps1',
     'check_xlir_native_future_map.ps1',
     'check_xlir_native_linkage.ps1',
+    'check_xlir_native_process.ps1',
     'check_xlir_nullable_getter.ps1',
     'check_xlir_safe_index.ps1',
     'check_xlir_future_cancel_core.ps1',

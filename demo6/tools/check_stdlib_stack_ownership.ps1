@@ -17,13 +17,16 @@ try {
     $public = Get-Content (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Current full source compiler/runtime required' }
     $gcc = (Get-Command gcc -CommandType Application | Select-Object -First 1).Source
+    $python = (Get-Command python -CommandType Application | Select-Object -First 1).Source
     $files = @(Get-Item -LiteralPath $PSCommandPath,$gcc,'release/xl.dll','release/xlc.dll',
         'test/cases/stdlib_stack_ownership_host.c','test/cases/stdlib_stack_ownership_public.c',
         'test/cases/stdlib_stack_ownership.xl','test/cases/stdlib_stack_ownership_artifact.c',
         'test/cases/stdlib_stack_ownership_tcc_host.c','test/cases/xlir_one_shot_tcc_host.c',
         'test/cases/xlir_async_module_lifetime_host.c','test/support/stack_native.c',
         'test/cases/xlir_ownership_discovery_runtime.c','test/support/discovery_native.c',$Fixture,
-        'E:/software/tcc/tcc.exe',$script:XlirNativeProcessImplementation)
+        'E:/software/tcc/tcc.exe',$script:XlirNativeProcessImplementation,$python,
+        'tools/check_stdlib_array_native.py','test/cases/stdlib_array_native_host.c',
+        'test/cases/stdlib_array_iterator_native_host.c','test/support/array_native.c')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) + @($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
     })
@@ -109,8 +112,15 @@ try {
         Run "public.mode-$mode" "$outPath/public.exe" @("$mode",$outPath,"$outPath/public-$mode.temps",
             "$rootPath/release/xl.dll","$rootPath/res/tcc/win64/x86_64",$Fixture)
     }
+    # Array/snapshot owners share Sequence's phased graph with Stack. Run the
+    # actual selected native gate, not just a source-reference wiring marker.
+    $arrayNativeDirectory = "$outPath/array-native"
+    Run 'array-native' $python @('tools/check_stdlib_array_native.py','--out',$arrayNativeDirectory)
+    $arrayNative = Get-Content -LiteralPath "$arrayNativeDirectory/results.json" -Raw | ConvertFrom-Json
+    if (!$arrayNative.Complete -or !$arrayNative.InputsUnchanged) { throw 'Incomplete native Array/snapshot evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
+        NativeArrayDirectory=$arrayNativeDirectory;NativeArrayChecks=$arrayNative.Rows.Count;
         Sweeps=$sweeps;Results=$rows;Fixture=$Fixture;Scope='Stack physical graph/lifecycle and V4 borrowed discovery. Native GCC O0/O2/TCC class/Stack islands, exact code owner identities, original creation shell retired before copied island, foreign owners, alias/deep-copy rooted abort, new finalizer islands, peer resurrection and complete create/refresh/commit OOM prefixes. Original Stack graph/busy/thread/unknown/weak/tail population retained. Actual TCC module O0/O2 and public source/JIT lifetimes use the explicitly recorded fixture, intact finalizers, real strong roots and Windows MEM_FREE. No borrowed finalizer self resurrection, arbitrary policy or full 53-module completion claim. Shared libraries not instrumented; owned return, char/bytes and batch/FixedStack remain pending.'}
     [IO.File]::WriteAllText("$outPath/results.json",($report | ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if (!$unchanged) { throw 'Ownership inputs changed during verification' }
