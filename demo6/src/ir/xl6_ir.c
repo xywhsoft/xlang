@@ -9885,12 +9885,18 @@ static int xl6IrRuntimeResourceInputCompatible(
 {
     const XL6_IrType* target = xl6IrTypeGet(&module->types, targetType);
     const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceType);
+    const XL6_IrNode* input = xl6IrNodeGet(module, expression);
     /* A resource input is an expected-type boundary, just like a parameter
      * or initializer. Preserve the exact nullable destination TypeId while
      * allowing the existing scalar conversion followed by NULLABLE_WRAP.
      * Do not reinterpret the unwrapped scalar as the stored carrier. */
-    if ( sourceType != targetType &&
-         xl6IrNullableScalarElementAbi(module, targetType) != XL6_IR_C_ABI_UNSUPPORTED )
+    if ( input != NULL && input->sourceKind == XL6_AST_NULL && target != NULL &&
+         target->kind == XL6_IR_TYPE_NULLABLE && target->paramCount == 1 && target->params != NULL &&
+         (target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+          target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ||
+          target->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL) ) return 1;
+    if ( sourceType != targetType && target != NULL && target->kind == XL6_IR_TYPE_NULLABLE &&
+         target->paramCount == 1 && target->params != NULL )
         return xl6IrRuntimeResourceInputCompatible(module, target->params[0], sourceType, expression);
     return target != NULL && source != NULL &&
         (sourceType == targetType ||
@@ -17760,6 +17766,40 @@ static int xl6IrPrimitiveSequenceRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation == XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY ||
            operation == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT ||
            operation == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT;
+}
+
+int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->result == XL6_IR_VALUE_INVALID || instruction->operandCount != 2 ||
+        instruction->immediateText || instruction->targetSymbol ||
+        instruction->targetValue != XL6_IR_VALUE_INVALID || instruction->calleeType != XL6_IR_TYPE_INVALID ||
+        instruction->payloadType != XL6_IR_TYPE_INVALID || instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
+        instruction->opcode != XL6_IR_OPCODE_INVALID || instruction->firstOperand > module->operandCount ||
+        2 > module->operandCount-instruction->firstOperand) return 0;
+    int optional = instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL;
+    if (!optional && instruction->runtimeOp != XL6_IR_RUNTIME_STRING_EQUAL &&
+        instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_LT && instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_LE &&
+        instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_GT && instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_GE) return 0;
+    const XL6_IrType* result = xl6IrTypeGet(&module->types,instruction->type);
+    if (!result || result->cAbi != XL6_IR_C_ABI_BOOL) return 0;
+    XL6_IrTypeId previous = XL6_IR_TYPE_INVALID;
+    for (size_t i=0;i<2;++i) {
+        const XL6_IrInstruction* value = xl6IrValueDefinition(module,module->operands[instruction->firstOperand+i],NULL);
+        const XL6_IrType* type = value ? xl6IrTypeGet(&module->types,value->type) : NULL;
+        if (!type || type->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+            type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || type->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+            (type->kind == XL6_IR_TYPE_NULLABLE) != optional) return 0;
+        if (optional && (type->paramCount != 1 || !type->params ||
+            (previous != XL6_IR_TYPE_INVALID && previous != value->type))) return 0;
+        if (optional) {
+            const XL6_IrType* element = xl6IrTypeGet(&module->types,type->params[0]);
+            if (!element || element->kind == XL6_IR_TYPE_NULLABLE || element->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+                element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || element->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL) return 0;
+        }
+        previous = value->type;
+    }
+    return 1;
 }
 
 static int xl6IrPrimitiveSequenceRuntimeSignatureValid(
@@ -35598,21 +35638,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              !xl6IrTypeIsManagedString(module, right->type) )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime string concatenation has no exact operand ABI");
-                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL ||
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL ||
+                                instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_LT ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_LE ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_GT ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_GE ) {
-                        if ( instruction->operandCount != 2 ||
-                             instruction->immediateText != NULL ||
-                             instruction->targetSymbol != 0 ||
-                             instruction->targetValue != XL6_IR_VALUE_INVALID ||
-                             instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                             instruction->payloadType != XL6_IR_TYPE_INVALID ||
-                             instruction->opcode != XL6_IR_OPCODE_INVALID ||
-                             !xl6IrTypeIsBool(module, instruction->type) || left == NULL || right == NULL ||
-                             !xl6IrTypeIsManagedString(module, left->type) ||
-                             !xl6IrTypeIsManagedString(module, right->type) )
+                        if ( !xl6IrStringCompareRuntimeSignatureValid(module,instruction) )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime string comparison has no exact borrowed operands and boolean ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_UTF8_COUNT ) {
@@ -43170,6 +43202,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_XVALUE_CLASS_AS: return "xvalue-class-as";
     case XL6_IR_RUNTIME_STRING_CONCAT: return "string-concat";
     case XL6_IR_RUNTIME_STRING_EQUAL: return "string-equal";
+    case XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL: return "nullable-string-equal";
     case XL6_IR_RUNTIME_STRING_ORDER_LT: return "string-order-lt";
     case XL6_IR_RUNTIME_STRING_ORDER_LE: return "string-order-le";
     case XL6_IR_RUNTIME_STRING_ORDER_GT: return "string-order-gt";

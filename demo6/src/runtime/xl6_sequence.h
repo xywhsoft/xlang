@@ -6,6 +6,15 @@
  * pins one wrapper and closes its graph while an operation runs. No raw
  * element borrows or parameter write-back are exposed to xlang. */
 typedef struct XL6_Sequence XL6_Sequence;
+/* A nullable managed carrier may use the C ABI's NULL slot or XRT's immortal
+ * null value. They denote one absent value; never send a NULL C pointer to
+ * xrtValueEqual, which requires two actual xvalue instances. */
+static inline bool xl6SequenceReferenceEqualV1(const xvalue* left, const xvalue* right)
+{
+    if (left == right) return true;
+    if (!left || !right) return xrtValueType(left ? left : right) == XVALUE_NULL;
+    return xrtValueEqual(left,right);
+}
 XL6_TEXT_API bool xl6SequenceTupleV1(uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype*);
 /* Consumes valid owned storage on both success and failure. */

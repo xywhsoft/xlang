@@ -56,6 +56,8 @@ static int xl6IrCgenEmitRuntimePrelude(
             "static xlir_string xlir_string_take_known(char*, size_t);\n"
             "static const char* xlir_string_cstr(xlir_string);\n"
             "static void xlir_string_drop(xlir_string);\n", out);
+    if (needs->needsStringRuntime)
+        xl6OutputPuts("extern bool xl6NullableStringEqualV1(xlir_string, xlir_string);\n",out);
     if ( needs->needsRuntimeTrap ) xl6OutputPuts("#include <stdlib.h>\n", out);
     if ( needs->needsCheckedI64Runtime || needs->needsWrappingIntegerRuntime ||
          needs->needsCheckedIntegerArithmeticRuntime ||

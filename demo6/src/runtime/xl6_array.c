@@ -160,7 +160,7 @@ int64_t xl6ArrayFindV1(const xvalue* value, PARAMS, const void* item)
         size_t count = xrtTypedArrayCount(storage);
         for (size_t i = 0; i < count; ++i) {
             const xvalue* current = *(xvalue* const*)xrtTypedArrayConstGet(storage,i);
-            if (current == search || (current && search && xrtValueEqual(current,search))) {
+            if (xl6SequenceReferenceEqualV1(current,search)) {
                 found = i; break;
             }
             if (xrtGetError()) break;

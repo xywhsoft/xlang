@@ -1,0 +1,23 @@
+func main(...) as int
+    Stack<string?> absent = Stack::<string?>()
+    Stack<string?> empty = Stack::<string?>()
+    Stack<string?> emptyCopy = Stack::<string?>()
+    string? absentValue = null
+    string? emptyValue = ""
+    absent.push(absentValue)
+    absent.push(null)
+    empty.push(emptyValue)
+    empty.push("")
+    emptyCopy.push(emptyValue)
+    emptyCopy.push("")
+    assert(not absent.equals(empty))
+    assert(empty.equals(emptyCopy))
+    string? missing = absent.pop()
+    string? present = empty.pop()
+    assert(missing == null)
+    assert(present != null)
+    string? expectedEmpty = ""
+    assert(present == expectedEmpty)
+    assert(missing != expectedEmpty)
+    return 0
+end

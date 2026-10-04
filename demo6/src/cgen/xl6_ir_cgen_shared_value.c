@@ -620,6 +620,7 @@ static const char* xl6IrCgenSharedStringCompareRelation(XL6_IrRuntimeOp operatio
 {
     switch (operation) {
     case XL6_IR_RUNTIME_STRING_EQUAL: return "==";
+    case XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL: return "==";
     case XL6_IR_RUNTIME_STRING_ORDER_LT: return "<";
     case XL6_IR_RUNTIME_STRING_ORDER_LE: return "<=";
     case XL6_IR_RUNTIME_STRING_ORDER_GT: return ">";
@@ -631,22 +632,7 @@ static const char* xl6IrCgenSharedStringCompareRelation(XL6_IrRuntimeOp operatio
 static int xl6IrCgenSharedStringCompareAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
-    const XL6_IrType* result;
-    size_t i;
-    if (module == NULL || instruction == NULL ||
-        xl6IrCgenSharedStringCompareRelation(instruction->runtimeOp) == NULL ||
-        instruction->result == XL6_IR_VALUE_INVALID || instruction->operandCount != 2 ||
-        instruction->immediateText != NULL || instruction->firstOperand > module->operandCount ||
-        2 > module->operandCount - instruction->firstOperand) return 0;
-    result = xl6IrTypeGet(&module->types, instruction->type);
-    if (result == NULL || result->cAbi != XL6_IR_C_ABI_BOOL) return 0;
-    for (i = 0; i < 2; ++i) {
-        const XL6_IrInstruction* operand = xl6IrCgenValueDefinition(module,
-            module->operands[instruction->firstOperand + i], NULL);
-        const XL6_IrType* type = operand != NULL ? xl6IrTypeGet(&module->types, operand->type) : NULL;
-        if (type == NULL || type->cAbi != XL6_IR_C_ABI_MANAGED_STRING) return 0;
-    }
-    return 1;
+    return xl6IrStringCompareRuntimeSignatureValid(module,instruction);
 }
 
 static int xl6IrCgenEmitSharedStringCompare(
@@ -656,7 +642,12 @@ static int xl6IrCgenEmitSharedStringCompare(
     if (instruction == NULL ||
         (relation = xl6IrCgenSharedStringCompareRelation(instruction->runtimeOp)) == NULL) return 0;
     if (!xl6IrCgenSharedStringCompareAbi(module, instruction)) return -1;
-    if (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL)
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL)
+        xl6OutputPrintf(out, "    v%u = xl6NullableStringEqualV1(v%u, v%u);\n",
+            (unsigned int)instruction->result,
+            (unsigned int)module->operands[instruction->firstOperand],
+            (unsigned int)module->operands[instruction->firstOperand + 1]);
+    else if (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL)
         xl6OutputPrintf(out, "    v%u = xrtStrEqual(v%u, v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],

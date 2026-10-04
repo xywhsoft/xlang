@@ -159,7 +159,8 @@ static int xl6IrCgenVerifyInstructions(
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_SET_STRING_NEW &&
                   (instruction->immediateText != NULL || instruction->operandCount != 3 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||
-                   (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL &&
+                   ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL ||
+                     instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) &&
                     (instruction->immediateText != NULL || instruction->operandCount != 2 ||
                      xl6IrCgenType(module, instruction->type) == NULL)) ||
                    ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_LT ||
@@ -562,6 +563,7 @@ static int xl6IrCgenVerifyInstructions(
                      instruction->runtimeOp != XL6_IR_RUNTIME_INTEGER_CONVERT_WRAPPING &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_CONCAT &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_EQUAL &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_LT &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_LE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_GT &&

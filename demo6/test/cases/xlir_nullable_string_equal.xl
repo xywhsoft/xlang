@@ -1,0 +1,25 @@
+func kindOf(string? value) as int
+    return match value
+    case null then 1
+    case "" then 2
+    case "a\0b" then 3
+    else then 4
+    end
+end
+
+func main(...) as int
+    string? absent = null
+    string? empty = ""
+    string? copy = ""
+    string? text = "a\0b"
+    string? prefix = "a"
+    assert(absent != empty and empty != absent)
+    assert(empty == copy and absent == null)
+    assert(text != prefix)
+    assert(kindOf(null) == 1 and kindOf("") == 2 and kindOf("a\0b") == 3)
+    if text != null then
+        assert(text == "a\0b")
+    end
+    assert(kindOf("其他") == 4)
+    return 0
+end

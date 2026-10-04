@@ -7248,17 +7248,20 @@ static XL6_IrValueId xl6IrLowerBorrowManagedStringOperand(
     XL6_IrValueId source, XL6_SymbolId* temporary)
 {
     XL6_IrValueId loaded;
+    XL6_IrTypeId sourceType = xl6IrLowerValueType(ctx,source);
     if ( temporary == NULL || sourceNode == NULL || source == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerTypeIsManagedString(ctx->module, sourceNode->storageType) )
+         !xl6IrLowerTypeIsManagedString(ctx->module, sourceType) )
         return XL6_IR_VALUE_INVALID;
     *temporary = 0;
     source = xl6IrLowerStableBorrowValue(ctx, origin, source);
     if ( source == XL6_IR_VALUE_INVALID || !xl6IrLowerValueHasOwner(ctx, source) ) return source;
-    *temporary = xl6IrLowerNewTempStorage(ctx, sourceNode->storageType, origin);
+    /* Expected-type lifting and flow projection have already fixed this SSA
+     * carrier. Anchor that exact type, not the source literal/name's storage. */
+    *temporary = xl6IrLowerNewTempStorage(ctx, sourceType, origin);
     if ( *temporary == 0 ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, sourceNode->storageType,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, sourceType,
                          *temporary, &source, 1, NULL) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, origin, sourceNode->storageType,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, origin, sourceType,
                          *temporary, NULL, 0, &loaded) ) return XL6_IR_VALUE_INVALID;
     return loaded;
 }
@@ -22206,7 +22209,10 @@ static XL6_IrValueId xl6IrLowerScalarMatch(XL6_IrLowerContext* ctx, XL6_IrNodeId
                     goto fail;
                 }
                 comparison = xl6IrLowerEmitRuntimeCall(
-                    ctx, caseId, boolType, XL6_IR_RUNTIME_STRING_EQUAL, operands, 2);
+                    ctx, caseId, boolType,
+                    xl6IrTypeGet(&ctx->module->types,subjectType)->kind == XL6_IR_TYPE_NULLABLE
+                        ? XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL : XL6_IR_RUNTIME_STRING_EQUAL,
+                    operands, 2);
                 if ( comparison == XL6_IR_VALUE_INVALID ||
                      (literalTemporary != 0 &&
                       !xl6IrLowerEmit(ctx, XL6_IR_INSTR_RELEASE, caseId,
@@ -27053,7 +27059,14 @@ static int xl6IrLowerManagedBinary(
         operandType = opcode == XL6_IR_OPCODE_ADD ? node->storageType : sourceTypes[0];
         switch ( opcode ) {
         case XL6_IR_OPCODE_ADD: operation = XL6_IR_RUNTIME_STRING_CONCAT; break;
-        case XL6_IR_OPCODE_EQ: case XL6_IR_OPCODE_NE: operation = XL6_IR_RUNTIME_STRING_EQUAL; break;
+        case XL6_IR_OPCODE_EQ: case XL6_IR_OPCODE_NE: {
+            const XL6_IrType* leftType = xl6IrTypeGet(&ctx->module->types,xl6IrNodeMaterializedValueType(ctx->module,sources[0]));
+            const XL6_IrType* rightType = xl6IrTypeGet(&ctx->module->types,xl6IrNodeMaterializedValueType(ctx->module,sources[1]));
+            if (!leftType || !rightType) return -1;
+            operation = leftType->kind == XL6_IR_TYPE_NULLABLE || rightType->kind == XL6_IR_TYPE_NULLABLE
+                ? XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL : XL6_IR_RUNTIME_STRING_EQUAL;
+            break;
+        }
         case XL6_IR_OPCODE_LT: operation = XL6_IR_RUNTIME_STRING_ORDER_LT; break;
         case XL6_IR_OPCODE_LE: operation = XL6_IR_RUNTIME_STRING_ORDER_LE; break;
         case XL6_IR_OPCODE_GT: operation = XL6_IR_RUNTIME_STRING_ORDER_GT; break;

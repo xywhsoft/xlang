@@ -17,7 +17,7 @@ static void rejected(const XL6_IrModule* ir)
 }
 int main(int argc, char** argv)
 {
-    assert(argc == 3); int ok = 0; unsigned checked = 0, ownedResults = 0;
+    assert(argc == 3); int ok = 0; unsigned checked = 0, ownedResults = 0, nullableComparisons = 0;
     uint64_t magnitude = 73;
     assert(xl6TypeParseIntegerMagnitude("0xffff_ffff_ffff_ffff", &magnitude) && magnitude == UINT64_MAX);
     assert(xl6TypeParseIntegerMagnitude("0b1010", &magnitude) && magnitude == 10);
@@ -33,6 +33,17 @@ int main(int argc, char** argv)
     assert(xl6IrVerifyModule(&ir,NULL));
     for (size_t i=0; i<ir.instructionCount; ++i) {
         XL6_IrInstruction* instruction = &ir.instructions[i];
+        if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) {
+            assert(xl6IrStringCompareRuntimeSignatureValid(&ir,instruction));
+            assert(xl6IrRuntimeOperandOwnership(instruction->runtimeOp,0)==XL6_IR_OPERAND_OWNERSHIP_OBSERVE);
+            assert(xl6IrRuntimeOperandOwnership(instruction->runtimeOp,1)==XL6_IR_OPERAND_OWNERSHIP_OBSERVE);
+            instruction->runtimeOp=XL6_IR_RUNTIME_STRING_EQUAL; rejected(&ir);
+            instruction->runtimeOp=XL6_IR_RUNTIME_STRING_ORDER_LT; rejected(&ir);
+            instruction->runtimeOp=XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL;
+            instruction->payloadType=instruction->type; rejected(&ir); instruction->payloadType=XL6_IR_TYPE_INVALID;
+            assert(xl6IrVerifyModule(&ir,NULL)); ++checked; ++nullableComparisons;
+            continue;
+        }
         if (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL || instruction->runtimeOp < XL6_IR_RUNTIME_STACK_CREATE ||
             instruction->runtimeOp > XL6_IR_RUNTIME_STACK_CAPACITY) continue;
         XL6_IrTypeId payload = instruction->payloadType;
@@ -118,6 +129,7 @@ int main(int argc, char** argv)
     if (!xl6OutputOpenFile(&out,argv[2])) goto done;
     ok = xl6IrCgenEmitC(&out,&ir,&parse.diags); xl6OutputClose(&out);
     printf("stack contract: %u exact element/transfer/identity/ownership/null instructions, %u parameter lifetimes, %u owned/value result contracts; mutations refused before C output\n",checked,lifetimes,ownedResults);
+    printf("nullable string contract: %u explicit borrowed comparisons; plain text equality/ordering substitution refused before C output\n",nullableComparisons);
 done:
     for (size_t i=0;i<parse.diags.count;++i) fprintf(stderr,"%d:%d: %s\n",parse.diags.items[i].line,
         parse.diags.items[i].column,parse.diags.items[i].message);

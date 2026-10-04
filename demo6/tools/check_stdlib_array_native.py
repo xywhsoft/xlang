@@ -37,7 +37,7 @@ def main() -> int:
     files += [root / name for name in (
         "test/cases/stdlib_array_native_host.c", "test/support/array_native.c",
         "test/support/stack_native.c", "src/runtime/xl6_sequence.c",
-        "src/runtime/xl6_array.c", "src/runtime/xl6_stack.c",
+        "src/runtime/xl6_array.c", "src/runtime/xl6_stack.c", "src/runtime/xl6_nullable_string.c",
         "src/runtime/xl6_ownership_plan.c", "lib/xrt/xrt.h", "lib/xruntime/xruntime.h")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
@@ -71,7 +71,9 @@ def main() -> int:
         strict += ["-g", "-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-fno-pie", "-no-pie"]
     operations = ("create", "reserve", "push", "set", "insert", "read", "take", "clone",
                   "trim", "resize", "append", "self-append", "remove", "swap", "reverse", "find",
-                  "clear", "equals", "graph-create", "graph-refresh", "graph-commit")
+                  "clear", "equals", "graph-create", "graph-refresh", "graph-commit",
+                  "nullable-create", "nullable-push", "nullable-set", "nullable-insert", "nullable-read",
+                  "nullable-clone", "nullable-trim", "nullable-append", "nullable-self-append")
     try:
         for level in (0, 2):
             for mixed in (False, True):
@@ -79,7 +81,7 @@ def main() -> int:
                 binary = out / (lane + (".exe" if os.name == "nt" else ""))
                 sources = ["test/cases/stdlib_array_native_host.c",
                            "test/support/stack_native.c" if mixed else "test/support/array_native.c",
-                           "src/runtime/xl6_sequence.c", "src/runtime/xl6_array.c", "src/runtime/xl6_ownership_plan.c"]
+                           "src/runtime/xl6_sequence.c", "src/runtime/xl6_array.c", "src/runtime/xl6_nullable_string.c", "src/runtime/xl6_ownership_plan.c"]
                 defines = ["-DXL6_TEST_MIXED_STACK"] if mixed else []
                 if mixed:
                     sources += ["src/runtime/xl6_stack.c"]

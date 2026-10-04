@@ -331,17 +331,19 @@ static int xl6IrCgenEmitSpecialQueueRuntime(
         break;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH:
         xl6OutputPrintf(out,
-            "    v%u = xlir_special_queue_push_batch(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, 0x%016llXULL, v%u);\n",
+            "    v%u = xlir_special_queue_push_batch(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s, 0x%016llXULL, v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_SPECIAL_QUEUE_COMMON_ARGS, payloadRuntimeType,
+            xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType),
             (unsigned long long)array->typeValueId,
             (unsigned int)arrayValue);
         break;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO:
         xl6OutputPrintf(out,
-            "    v%u = xlir_special_queue_pop_batch_into(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, 0x%016llXULL, v%u, v%u);\n",
+            "    v%u = xlir_special_queue_pop_batch_into(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s, 0x%016llXULL, v%u, v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_SPECIAL_QUEUE_COMMON_ARGS, payloadRuntimeType,
+            xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType),
             (unsigned long long)array->typeValueId,
             (unsigned int)arrayValue,
             (unsigned int)module->operands[
@@ -928,7 +930,7 @@ static int xl6IrCgenEmitAvlRuntime(
             return -1;
         }
         xl6OutputPrintf(out,
-            "    v%u = xlir_avl_collect(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), 0x%016llXULL, 0x%016llXULL, %s);\n",
+            "    v%u = xlir_avl_collect(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), 0x%016llXULL, 0x%016llXULL, %s, %s);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_AVL_COMMON_ARGS,
             (unsigned long long)resultType->typeValueId,
@@ -936,7 +938,9 @@ static int xl6IrCgenEmitAvlRuntime(
                     XL6_IR_RUNTIME_AVL_TREE_KEYS
                 ? key->typeValueId : value->typeValueId),
             instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS
-                ? "true" : "false");
+                ? "true" : "false",
+            xl6IrCgenNativeValueConverterExpr(module,instruction->runtimeOp ==
+                XL6_IR_RUNTIME_AVL_TREE_KEYS ? tree->params[0] : tree->params[1]));
         break;
     case XL6_IR_RUNTIME_AVL_TREE_CLONE:
         xl6OutputPrintf(out,

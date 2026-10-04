@@ -603,6 +603,7 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_CONCAT ||
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL ||
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_LT ||
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_LE ||
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_GT ||
