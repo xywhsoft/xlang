@@ -7,5 +7,9 @@ func main(...) as int
     value = 73
     int? copied = unchanged(value)
     assert(copied != null and copied == 73)
+    assert(copied == value and not (copied != value))
+    int? absentA = null
+    int? absentB = null
+    assert(absentA == absentB and absentA != copied)
     return 0
 end

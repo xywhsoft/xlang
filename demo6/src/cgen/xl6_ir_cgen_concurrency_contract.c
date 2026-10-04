@@ -348,9 +348,19 @@ static XL6_IrRuntimeResourceKeyOrderAbi xl6IrCgenAvlKeyOrderAbi(
 static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types,typeId);
-    return type != NULL && type->kind == XL6_IR_TYPE_NULLABLE &&
-        type->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-        ? "xl6NullableStringConverterV1()" : "NULL";
+    if (type == NULL || type->kind != XL6_IR_TYPE_NULLABLE) return "NULL";
+    if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING) return "xl6NullableStringConverterV1()";
+    if (type->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE) return "NULL";
+    switch (xl6IrNullableScalarElementAbi(module,typeId)) {
+    case XL6_IR_C_ABI_BOOL: return "xl6NullableBoolConverterV1()";
+    case XL6_IR_C_ABI_I64: return "xl6NullableI64ConverterV1()";
+    case XL6_IR_C_ABI_U64: return "xl6NullableU64ConverterV1()";
+    case XL6_IR_C_ABI_F32: return "xl6NullableF32ConverterV1()";
+    case XL6_IR_C_ABI_F64: return "xl6NullableF64ConverterV1()";
+    case XL6_IR_C_ABI_TIME_I64: return "xl6NullableTimeConverterV1()";
+    case XL6_IR_C_ABI_CHAR_U32: return "xl6NullableCharConverterV1()";
+    default: return "NULL";
+    }
 }
 static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {

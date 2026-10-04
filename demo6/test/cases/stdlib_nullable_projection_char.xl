@@ -1,0 +1,27 @@
+func main(...) as int
+    char? first = '\0'
+    char? second = '你'
+    AvlTree<int, char?> tree = AvlTree::<int, char?>()
+    assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
+    array<char?> values = tree.values()
+    assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
+    SpscQueue<char?> queue = SpscQueue::<char?>(4)
+    array<char?> output = array<char?>[second]
+    assert(queue.pushBatch(values) == 3 and queue.popBatchInto(output, 4) == 3)
+    assert(output.length == 3 and output[0] == null and output[1] == first and output[2] == second)
+    var scalar = '你'
+    assert(type(scalar) == char and scalar is char)
+    var absent = null
+    assert(type(absent) == null)
+    char? absentA = null
+    char? absentB = null
+    assert(absentA == absentB and absentA != first and first != second and first == first)
+    int count = 0
+    for item in output
+        if item != null
+            count += 1
+        end
+    end
+    assert(count == 2)
+    return 0
+end

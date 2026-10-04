@@ -1,0 +1,5 @@
+#define XL6_NULLABLE_CARRIER XL6_NullableCharV1
+#define XL6_NULLABLE_GET xl6NullableCharTypeV1
+#define XL6_NULLABLE_CONVERTER xl6NullableCharConverterV1
+#define XL6_NULLABLE_CHAR
+#include "src/runtime/xl6_nullable_scalar_value_impl.h"

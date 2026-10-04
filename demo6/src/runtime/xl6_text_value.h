@@ -25,6 +25,13 @@ XL6_TEXT_API const xrttype* xl6NullableCharTypeV1(void);
 XL6_TEXT_API const xrttype* xl6NullableStringTypeV1(void);
 XL6_TEXT_API bool xl6NullableStringEqualV1(xstrview, xstrview);
 XL6_TEXT_API const xvalueconverter* xl6NullableStringConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableBoolConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableI64ConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableU64ConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableF32ConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableF64ConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableTimeConverterV1(void);
+XL6_TEXT_API const xvalueconverter* xl6NullableCharConverterV1(void);
 /* Exact Buffer value/range adapters; raw payload remains an XRT xbuffer. */
 XL6_TEXT_API void* xl6BufferCreateV1(void);
 XL6_TEXT_API void* xl6BufferCreateReserveV1(int64_t capacity);

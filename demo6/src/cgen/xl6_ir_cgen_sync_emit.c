@@ -247,6 +247,7 @@ static int xl6IrCgenEmitSyncRuntime(
 static int xl6IrCgenSharedRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
     return xl6IrCgenSharedScalarStringRuntimeOpIs(operation) ||
+           operation == XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL ||
            xl6IrCgenSpecialF64RuntimeOpIs(operation) ||
            xl6IrCgenScalarConversionRuntimeOpIs(operation) ||
            xl6IrCgenSharedStringCompareRelation(operation) != NULL ||
@@ -268,6 +269,8 @@ static int xl6IrCgenSharedRuntimeAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
     if ( instruction == NULL ) return 0;
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL)
+        return xl6IrNullableScalarEqualSignatureValid(module,instruction);
     if ( xl6IrCgenSpecialF64RuntimeOpIs(instruction->runtimeOp) )
         return xl6IrCgenRuntimeSpecialF64Abi(module, instruction);
     if ( xl6IrDynamicCompareRuntimeOpIs(instruction->runtimeOp) )
@@ -317,6 +320,8 @@ static int xl6IrCgenEmitSharedRuntime(
         emitted = xl6IrCgenEmitScalarConversionRuntime(out, module, instruction);
     if ( emitted == 0 )
         emitted = xl6IrCgenEmitSharedStringCompare(out, module, instruction);
+    if ( emitted == 0 )
+        emitted = xl6IrCgenEmitNullableScalarEqual(out, module, instruction);
     if ( emitted == 0 )
         emitted = xl6IrCgenEmitErrorProjection(out, module, instruction);
     if ( emitted == 0 )

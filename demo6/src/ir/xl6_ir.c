@@ -733,7 +733,7 @@ static void xl6IrBuildRuntimeTypeMap(XL6_IrModule* module)
     if ( module == NULL ) return;
     map = &module->runtimeTypeMap;
     memset(map, 0, sizeof(*map));
-    map->abiVersion = 1;
+    map->abiVersion = 2;
     map->fallbackTypeValueId = xl6IrBuiltinTypeValueId("var");
     map->nullTypeValueId = xl6IrBuiltinTypeValueId("null");
     map->boolTypeValueId = xl6IrBuiltinTypeValueId("bool");
@@ -749,6 +749,7 @@ static void xl6IrBuildRuntimeTypeMap(XL6_IrModule* module)
     map->setTypeValueId = xl6IrBuiltinTypeValueId("set");
     map->objectTypeValueId = xl6IrBuiltinTypeValueId("dict");
     map->u64TypeValueId = xl6IrBuiltinTypeValueId("uint64");
+    map->charTypeValueId = xl6IrBuiltinTypeValueId("char");
 }
 
 static int xl6IrVerifyRuntimeTypeMap(const XL6_IrRuntimeTypeMap* map)
@@ -17766,6 +17767,24 @@ static int xl6IrPrimitiveSequenceRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation == XL6_IR_RUNTIME_STRING_SCALAR_SET_COPY ||
            operation == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_RIGHT ||
            operation == XL6_IR_RUNTIME_STRING_CONCAT_CHAR_LEFT;
+}
+
+int xl6IrNullableScalarEqualSignatureValid(const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp != XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL ||
+        instruction->result == XL6_IR_VALUE_INVALID || instruction->operandCount != 2 ||
+        instruction->immediateText || instruction->targetSymbol ||
+        instruction->targetValue != XL6_IR_VALUE_INVALID || instruction->calleeType != XL6_IR_TYPE_INVALID ||
+        instruction->payloadType != XL6_IR_TYPE_INVALID || instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
+        instruction->opcode != XL6_IR_OPCODE_INVALID || instruction->firstOperand > module->operandCount ||
+        2 > module->operandCount-instruction->firstOperand) return 0;
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,instruction->type);
+    const XL6_IrInstruction* left=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrInstruction* right=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL);
+    return result && result->cAbi==XL6_IR_C_ABI_BOOL &&
+        result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && left && right && left->type==right->type &&
+        xl6IrNullableScalarElementAbi(module,left->type)!=XL6_IR_C_ABI_UNSUPPORTED;
 }
 
 int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule* module, const XL6_IrInstruction* instruction)
@@ -35638,6 +35657,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              !xl6IrTypeIsManagedString(module, right->type) )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime string concatenation has no exact operand ABI");
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL ) {
+                        if (!xl6IrNullableScalarEqualSignatureValid(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR nullable scalar equality requires the same closed physical operands and boolean result");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_STRING_EQUAL ||
                                 instruction->runtimeOp == XL6_IR_RUNTIME_STRING_ORDER_LT ||
@@ -43203,6 +43225,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_STRING_CONCAT: return "string-concat";
     case XL6_IR_RUNTIME_STRING_EQUAL: return "string-equal";
     case XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL: return "nullable-string-equal";
+    case XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL: return "nullable-scalar-equal";
     case XL6_IR_RUNTIME_STRING_ORDER_LT: return "string-order-lt";
     case XL6_IR_RUNTIME_STRING_ORDER_LE: return "string-order-le";
     case XL6_IR_RUNTIME_STRING_ORDER_GT: return "string-order-gt";
@@ -43872,13 +43895,14 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                     (unsigned long)module->cleanupActionCount,
                     (unsigned long)module->blockCount, (unsigned long)module->instructionCount);
     xl6OutputPrintf(out,
-        "  runtime-type-map version=%u fallback=0x%016llX null=0x%016llX bool=0x%016llX i64=0x%016llX u64=0x%016llX f64=0x%016llX string=0x%016llX bytes=0x%016llX time=0x%016llX pointer=0x%016llX handle=0x%016llX array=0x%016llX int-map=0x%016llX set=0x%016llX object=0x%016llX\n",
+        "  runtime-type-map version=%u fallback=0x%016llX null=0x%016llX bool=0x%016llX i64=0x%016llX u64=0x%016llX char=0x%016llX f64=0x%016llX string=0x%016llX bytes=0x%016llX time=0x%016llX pointer=0x%016llX handle=0x%016llX array=0x%016llX int-map=0x%016llX set=0x%016llX object=0x%016llX\n",
         (unsigned int)module->runtimeTypeMap.abiVersion,
         (unsigned long long)module->runtimeTypeMap.fallbackTypeValueId,
         (unsigned long long)module->runtimeTypeMap.nullTypeValueId,
         (unsigned long long)module->runtimeTypeMap.boolTypeValueId,
         (unsigned long long)module->runtimeTypeMap.i64TypeValueId,
         (unsigned long long)module->runtimeTypeMap.u64TypeValueId,
+        (unsigned long long)module->runtimeTypeMap.charTypeValueId,
         (unsigned long long)module->runtimeTypeMap.f64TypeValueId,
         (unsigned long long)module->runtimeTypeMap.stringTypeValueId,
         (unsigned long long)module->runtimeTypeMap.bytesTypeValueId,
@@ -45124,13 +45148,14 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"functionParameterCount\": %lu,\n",
                     (unsigned long)module->functionParameterCount);
     xl6OutputPrintf(out,
-        "  \"runtimeTypeMap\": {\"abiVersion\":%u,\"fallback\":\"0x%016llX\",\"null\":\"0x%016llX\",\"bool\":\"0x%016llX\",\"i64\":\"0x%016llX\",\"u64\":\"0x%016llX\",\"f64\":\"0x%016llX\",\"string\":\"0x%016llX\",\"bytes\":\"0x%016llX\",\"time\":\"0x%016llX\",\"pointer\":\"0x%016llX\",\"handle\":\"0x%016llX\",\"array\":\"0x%016llX\",\"intMap\":\"0x%016llX\",\"set\":\"0x%016llX\",\"object\":\"0x%016llX\"},\n  \"types\": [\n",
+        "  \"runtimeTypeMap\": {\"abiVersion\":%u,\"fallback\":\"0x%016llX\",\"null\":\"0x%016llX\",\"bool\":\"0x%016llX\",\"i64\":\"0x%016llX\",\"u64\":\"0x%016llX\",\"char\":\"0x%016llX\",\"f64\":\"0x%016llX\",\"string\":\"0x%016llX\",\"bytes\":\"0x%016llX\",\"time\":\"0x%016llX\",\"pointer\":\"0x%016llX\",\"handle\":\"0x%016llX\",\"array\":\"0x%016llX\",\"intMap\":\"0x%016llX\",\"set\":\"0x%016llX\",\"object\":\"0x%016llX\"},\n  \"types\": [\n",
         (unsigned int)module->runtimeTypeMap.abiVersion,
         (unsigned long long)module->runtimeTypeMap.fallbackTypeValueId,
         (unsigned long long)module->runtimeTypeMap.nullTypeValueId,
         (unsigned long long)module->runtimeTypeMap.boolTypeValueId,
         (unsigned long long)module->runtimeTypeMap.i64TypeValueId,
         (unsigned long long)module->runtimeTypeMap.u64TypeValueId,
+        (unsigned long long)module->runtimeTypeMap.charTypeValueId,
         (unsigned long long)module->runtimeTypeMap.f64TypeValueId,
         (unsigned long long)module->runtimeTypeMap.stringTypeValueId,
         (unsigned long long)module->runtimeTypeMap.bytesTypeValueId,

@@ -93,7 +93,14 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern const xrttype* xl6NullableCharTypeV1(void);\n"
             "extern const xrttype* xl6NullableStringTypeV1(void);\n"
             "typedef struct xvalueconverter xvalueconverter;\n"
-            "extern const xvalueconverter* xl6NullableStringConverterV1(void);\n", out);
+            "extern const xvalueconverter* xl6NullableStringConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableBoolConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableI64ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableU64ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableF32ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableF64ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableTimeConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableCharConverterV1(void);\n", out);
     if ( needs->needsChannelResourceRuntime && needs->needsStringRuntime )
         xl6OutputPuts("typedef struct xrttype xrttype;\n"
                       "extern const xrttype* xrtTypeStringView(void);\n"
@@ -336,8 +343,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "        if (!xlir_channel_recv(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize, slot, XLIR_CHANNEL_RECV_TRY, 0)) break;\n"
             "        item = xrtValueFromTyped(payloadType, slot, converter); xrtTypeDropValue(payloadType, slot);\n"
             "        if (item == NULL) { hardFailure = true; break; }\n"
-            "        /* Canonical null is immutable and has no nominal payload identity. */\n"
-            "        if (xrtValueType(item) != 0 && !xrtValueTypeIdRebind(item, payloadTypeId)) { xrtValueRelease(item); hardFailure = true; break; }\n"
+            "        /* The closed array records T. Converted values retain their actual scalar/managed identity; canonical null/bool are immutable. */\n"
             "        if (!xrtValueArrayAppendNew(output, item)) { hardFailure = true; break; }\n"
             "        ++processed;\n"
             "    }\n"
@@ -483,7 +489,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "static int64_t xlir_avl_count(const xvalue* object, uint64_t treeTypeId, uint64_t keyTypeId, uint64_t valueTypeId, unsigned int keyPayloadAbi, unsigned int keyOrderAbi, unsigned int valuePayloadAbi, const xrttype* keyType, const xrttype* valueType, size_t keySize, size_t valueSize)\n"
             "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); size_t result = handle != NULL ? xrtTypedTreeCount(handle->tree) : 0; return result > (size_t)INT64_MAX ? INT64_MAX : (int64_t)result; }\n"
             "static xvalue* xlir_avl_collect(const xvalue* object, uint64_t treeTypeId, uint64_t keyTypeId, uint64_t valueTypeId, unsigned int keyPayloadAbi, unsigned int keyOrderAbi, unsigned int valuePayloadAbi, const xrttype* keyType, const xrttype* valueType, size_t keySize, size_t valueSize, uint64_t arrayTypeId, uint64_t itemTypeId, bool keys, const xvalueconverter* converter)\n"
-            "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); const void* key = NULL; const void* value; const xrttype* itemType; xvalue* array; if (handle == NULL || arrayTypeId == 0 || itemTypeId == 0) return NULL; itemType = keys ? keyType : valueType; array = xrtValueArray(); if (array == NULL) goto fail; value = xrtTypedTreeFirst(handle->tree, &key); while (value != NULL) { xvalue* item = xrtValueFromTyped(itemType, keys ? key : value, converter); if (item == NULL) goto fail; /* Null retains its canonical identity; never mutate the immutable sentinel. */ if (xrtValueType(item) != 0 && !xrtValueTypeIdRebind(item, itemTypeId)) { xrtValueRelease(item); goto fail; } if (!xrtValueArrayAppendNew(array, item)) goto fail; value = xrtTypedTreeUpperBound(handle->tree, key, &key); } if (!xrtValueTypeIdBind(array, arrayTypeId)) goto fail; return array; fail: xrtValueRelease(array); xlir_avl_ensure_error(\"tree projection failed\"); return NULL; }\n"
+            "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); const void* key = NULL; const void* value; const xrttype* itemType; xvalue* array; if (handle == NULL || arrayTypeId == 0 || itemTypeId == 0) return NULL; itemType = keys ? keyType : valueType; array = xrtValueArray(); if (array == NULL) goto fail; value = xrtTypedTreeFirst(handle->tree, &key); while (value != NULL) { xvalue* item = xrtValueFromTyped(itemType, keys ? key : value, converter); if (item == NULL) goto fail; /* The closed array owns T; elements retain their actual dynamic identity. */ if (!xrtValueArrayAppendNew(array, item)) goto fail; value = xrtTypedTreeUpperBound(handle->tree, key, &key); } if (!xrtValueTypeIdBind(array, arrayTypeId)) goto fail; return array; fail: xrtValueRelease(array); xlir_avl_ensure_error(\"tree projection failed\"); return NULL; }\n"
             "static xvalue* xlir_avl_clone(const xvalue* object, uint64_t treeTypeId, uint64_t keyTypeId, uint64_t valueTypeId, unsigned int keyPayloadAbi, unsigned int keyOrderAbi, unsigned int valuePayloadAbi, const xrttype* keyType, const xrttype* valueType, size_t keySize, size_t valueSize)\n"
             "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); xtypedtree* clone; if (handle == NULL) return NULL; clone = xrtTypedTreeClone(handle->tree); if (clone == NULL) { xlir_avl_ensure_error(\"typed tree clone failed\"); return NULL; } return xlir_avl_wrap(clone, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); }\n\n",
             out);

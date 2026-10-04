@@ -31,8 +31,29 @@ int main(int argc, char** argv)
         !xl6SemCheckModule(parse.root,&parse.diags,"stack_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
+    uint64 charIdentity=ir.runtimeTypeMap.charTypeValueId;
+    assert(ir.runtimeTypeMap.abiVersion==2 && charIdentity && charIdentity!=ir.runtimeTypeMap.u64TypeValueId);
+    ir.runtimeTypeMap.charTypeValueId=ir.runtimeTypeMap.fallbackTypeValueId; rejected(&ir);
+    ir.runtimeTypeMap.charTypeValueId=charIdentity;
     for (size_t i=0; i<ir.instructionCount; ++i) {
         XL6_IrInstruction* instruction = &ir.instructions[i];
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL) {
+            assert(xl6IrNullableScalarEqualSignatureValid(&ir,instruction));
+            assert(xl6IrRuntimeOperandOwnership(instruction->runtimeOp,0)==XL6_IR_OPERAND_OWNERSHIP_OBSERVE);
+            assert(xl6IrRuntimeOperandOwnership(instruction->runtimeOp,1)==XL6_IR_OPERAND_OWNERSHIP_OBSERVE);
+            instruction->runtimeOp=XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL; rejected(&ir);
+            instruction->runtimeOp=XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL;
+            instruction->payloadType=instruction->type; rejected(&ir); instruction->payloadType=XL6_IR_TYPE_INVALID;
+            XL6_IrTypeId saved=instruction->type;
+            const XL6_IrInstruction* operand=NULL;
+            for(size_t definition=0;definition<ir.instructionCount;++definition)
+                if(ir.instructions[definition].result==ir.operands[instruction->firstOperand]) operand=&ir.instructions[definition];
+            assert(operand);
+            instruction->type=operand->type; rejected(&ir); instruction->type=saved;
+            instruction->opcode=XL6_IR_OPCODE_EQ; rejected(&ir); instruction->opcode=XL6_IR_OPCODE_INVALID;
+            assert(xl6IrVerifyModule(&ir,NULL)); ++checked;
+            continue;
+        }
         if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) {
             assert(xl6IrStringCompareRuntimeSignatureValid(&ir,instruction));
             assert(xl6IrRuntimeOperandOwnership(instruction->runtimeOp,0)==XL6_IR_OPERAND_OWNERSHIP_OBSERVE);

@@ -564,6 +564,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_CONCAT &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_EQUAL &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_LT &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_LE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_STRING_ORDER_GT &&

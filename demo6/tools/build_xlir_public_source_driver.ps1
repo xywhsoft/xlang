@@ -30,6 +30,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_nullable_string.c',
     'src/runtime/xl6_nullable_bool.c','src/runtime/xl6_nullable_i64.c','src/runtime/xl6_nullable_u64.c',
     'src/runtime/xl6_nullable_f32.c','src/runtime/xl6_nullable_f64.c','src/runtime/xl6_nullable_time.c','src/runtime/xl6_nullable_char.c',
+    'src/runtime/xl6_nullable_bool_value.c','src/runtime/xl6_nullable_i64_value.c','src/runtime/xl6_nullable_u64_value.c',
+    'src/runtime/xl6_nullable_f32_value.c','src/runtime/xl6_nullable_f64_value.c','src/runtime/xl6_nullable_time_value.c','src/runtime/xl6_nullable_char_value.c',
     'src/runtime/xl6_text_split.c','src/runtime/xl6_text_join.c','src/runtime/xl6_text_iterator.c',
     'src/runtime/xl6_number_format.c','src/runtime/xl6_number_format_buffer.c',
     'src/runtime/xl6_number_integer.c','src/runtime/xl6_number_float.c',

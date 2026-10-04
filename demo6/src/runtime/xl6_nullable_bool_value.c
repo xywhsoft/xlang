@@ -1,0 +1,5 @@
+#define XL6_NULLABLE_CARRIER XL6_NullableBoolV1
+#define XL6_NULLABLE_ELEMENT xrtTypeBool
+#define XL6_NULLABLE_GET xl6NullableBoolTypeV1
+#define XL6_NULLABLE_CONVERTER xl6NullableBoolConverterV1
+#include "src/runtime/xl6_nullable_scalar_value_impl.h"

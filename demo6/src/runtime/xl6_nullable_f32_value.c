@@ -1,0 +1,5 @@
+#define XL6_NULLABLE_CARRIER XL6_NullableF32V1
+#define XL6_NULLABLE_ELEMENT xrtTypeFloat32
+#define XL6_NULLABLE_GET xl6NullableF32TypeV1
+#define XL6_NULLABLE_CONVERTER xl6NullableF32ConverterV1
+#include "src/runtime/xl6_nullable_scalar_value_impl.h"
