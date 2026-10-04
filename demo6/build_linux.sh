@@ -159,6 +159,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_buffer_core.c"
 	"$ROOT/src/runtime/xl6_buffer_query.c"
 	"$ROOT/src/runtime/xl6_stack.c"
+	"$ROOT/src/runtime/xl6_sequence.c"
+	"$ROOT/src/runtime/xl6_array.c"
     "$ROOT/src/runtime/xl6_nullable_bool.c"
     "$ROOT/src/runtime/xl6_nullable_i64.c"
     "$ROOT/src/runtime/xl6_nullable_u64.c"

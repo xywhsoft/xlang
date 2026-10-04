@@ -13,7 +13,7 @@ try {
         & "$PSScriptRoot/build_xlir_public_source_driver.ps1" -Directory $PublicDirectory
         if (!$?) { throw 'Current-source Stack compiler build failed' }
     }
-    $public = Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
+    $public = Get-Content -Encoding UTF8 -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
     if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Full current-source compiler/runtime required' }
     $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation','stdlib_stack_try_owned','stdlib_stack_try_continuation',
         'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char')
@@ -35,7 +35,8 @@ try {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -ne $record.Sha256) { throw "Stale core input $($record.Path)" }
     }
     $rows = [Collections.Generic.List[object]]::new()
-    function Run([string]$Name, [string]$File, [string[]]$Arguments, [bool]$Reject = $false) {
+    function Run([string]$Name, [string]$File, [string[]]$Arguments, [bool]$Reject = $false,
+        [int]$TimeoutMs = 45000) {
         $process = [Diagnostics.Process]::new()
         $process.StartInfo.FileName = $File
         $process.StartInfo.Arguments = Join-XlirWindowsCommandLine $Arguments
@@ -46,24 +47,28 @@ try {
         $process.StartInfo.RedirectStandardError = $true
         $process.StartInfo.StandardOutputEncoding = [Text.Encoding]::UTF8
         $process.StartInfo.StandardErrorEncoding = [Text.Encoding]::UTF8
+        $watch = [Diagnostics.Stopwatch]::StartNew()
         try {
             [void]$process.Start()
             $stdout = $process.StandardOutput.ReadToEndAsync(); $stderr = $process.StandardError.ReadToEndAsync()
-            if (!$process.WaitForExit(45000)) { Stop-XlirProcessTree $process; throw "Timeout $Name" }
+            if (!$process.WaitForExit($TimeoutMs)) { Stop-XlirProcessTree $process; throw "Timeout $Name" }
             $code = $process.ExitCode
             [IO.File]::WriteAllText("$outPath/$Name.log", $stdout.Result + $stderr.Result, [Text.UTF8Encoding]::new($false))
         } finally { $process.Dispose() }
         $ok = if ($Reject) { $code -ne 0 } else { $code -eq 0 }
-        $rows.Add([pscustomobject]@{Name=$Name;Exit=$code;Complete=$ok})
-        if (!$ok) { Get-Content "$outPath/$Name.log" -Tail 25; throw "$Name failed: $code" }
+        $watch.Stop()
+        $rows.Add([pscustomobject]@{Name=$Name;Exit=$code;Complete=$ok;
+            Seconds=$watch.Elapsed.TotalSeconds;TimeoutMs=$TimeoutMs})
+        if (!$ok) { Get-Content -Encoding UTF8 "$outPath/$Name.log" -Tail 25; throw "$Name failed: $code" }
     }
     & "$PSScriptRoot/check_xlir_artifact_runtime.ps1" -PublicDirectory $PublicDirectory -Directory "$outPath/artifact" -Cases ($cases + $extraCases) *> "$outPath/artifact.log"
     if (!$?) { throw 'Stack actual artifact acceptance failed' }
-    $artifact = Get-Content "$outPath/artifact/results.json" -Raw | ConvertFrom-Json
+    $artifact = Get-Content -Encoding UTF8 "$outPath/artifact/results.json" -Raw | ConvertFrom-Json
     if (!$artifact.Complete -or !$artifact.InputsUnchanged) { throw 'Incomplete Stack artifact evidence' }
     foreach ($case in $cases) {
         $plan = $artifact.NativeLinkage | Where-Object Fixture -eq $case
-        if ('src/runtime/xl6_stack.c' -notin $plan.Sources -or 'xrtTypedStackCreate' -notin $plan.Defined -or
+        if ('src/runtime/xl6_stack.c' -notin $plan.Sources -or 'src/runtime/xl6_sequence.c' -notin $plan.Sources -or
+            'src/runtime/xl6_array.c' -in $plan.Sources -or 'xrtTypedStackCreate' -notin $plan.Defined -or
             'xrtTypedStackCreate' -notin $plan.Required) { throw 'Missing actual native typed Stack closure' }
         if (@($plan.Sources | Where-Object { $_ -match 'xl6_buffer_|xl6_regex_|xl6_log_|xl6_process_' }).Count) { throw 'Unrelated resident component in Stack' }
         if (@($plan.Defined | Where-Object { $_ -match '^_?xl6Stack(PopOrPeek|PeekAt)V1$' }).Count) { throw 'Retired native Stack entry remains in actual artifact' }
@@ -84,7 +89,7 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',
         '-I.','-Irelease','-Irelease/include',"-I$PublicDirectory/include")
-    Run 'native-build' $gcc ($strict + @('test/cases/stdlib_stack_native_host.c','test/support/stack_native.c','src/runtime/xl6_stack.c','-o',"$outPath/native.exe"))
+    Run 'native-build' $gcc ($strict + @('test/cases/stdlib_stack_native_host.c','test/support/stack_native.c','src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c','-o',"$outPath/native.exe"))
     Run 'native-vectors' "$outPath/native.exe" @()
     Run 'nullable-native-build' $gcc ($strict + @('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_nullable_scalar_native.c') +
         $objects + @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/nullable-native.exe"))
@@ -94,7 +99,7 @@ try {
         for ($point=0; $point -le 64; ++$point) {
             $name = "native.$operation.oom-$point"
             Run $name "$outPath/native.exe" @($operation,"$point")
-            if ((Get-Content "$outPath/$name.log" -Raw) -match 'hit=0 balanced') { break }
+            if ((Get-Content -Encoding UTF8 "$outPath/$name.log" -Raw) -match 'hit=0 balanced') { break }
         }
         if ($point -gt 64) { throw "Incomplete Stack native prefix: $operation" }
         $sweeps += [pscustomobject]@{Fixture=$operation;FirstNoHit=$point}
@@ -104,10 +109,13 @@ try {
     foreach ($case in $cases) {
         $prefix = "$outPath/$case"
         Run "$case.emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)
-        Run "$case.contract" "$outPath/contract.exe" @("test/cases/$case.xl","$prefix.contract.c")
-        if ((Get-Content "$prefix.c" -Raw) -cne (Get-Content "$prefix.contract.c" -Raw)) { throw 'Noncanonical Stack C output' }
-        if ((Get-Content "$prefix.c" -Raw) -match 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)') { throw 'Retired generated Stack implementation emitted' }
-        if ((Get-Content "$prefix.c" -Raw) -match 'xl6Stack(PopOrPeek|PeekAt)V1') { throw 'Retired Stack native prototype or call emitted' }
+        # Large nullable fixtures deliberately reverify hundreds of malformed
+        # whole-module contracts. Measured ~49 seconds at O0; keep the ordinary
+        # operation bound, with a separate finite budget for this CPU test.
+        Run "$case.contract" "$outPath/contract.exe" @("test/cases/$case.xl","$prefix.contract.c") -TimeoutMs 90000
+        if ((Get-Content -Encoding UTF8 "$prefix.c" -Raw) -cne (Get-Content -Encoding UTF8 "$prefix.contract.c" -Raw)) { throw 'Noncanonical Stack C output' }
+        if ((Get-Content -Encoding UTF8 "$prefix.c" -Raw) -match 'xlir_stack_(handle|payload|create|push|clone|raise|reserve|pop|peek|equals|trim|clear|size)') { throw 'Retired generated Stack implementation emitted' }
+        if ((Get-Content -Encoding UTF8 "$prefix.c" -Raw) -match 'xl6Stack(PopOrPeek|PeekAt)V1') { throw 'Retired Stack native prototype or call emitted' }
     }
     foreach($case in $negative){
         $prefix="$outPath/negative.$case"
@@ -128,7 +136,7 @@ try {
             'nullable_identity' { '\[sem\].*Stack.push.*target nullable<char>' }
             default { '\[sem\].*Stack.*: target (char|bytes), value (uint32|var|string)' }
         }
-        if((Get-Content "$prefix.log" -Raw) -notmatch $diagnostic -or
+        if((Get-Content -Encoding UTF8 "$prefix.log" -Raw) -notmatch $diagnostic -or
             (Test-Path "$prefix.c") -or (Test-Path "$prefix.h")){throw 'Wrong Stack type rejection or partial output'}
     }
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
@@ -141,7 +149,7 @@ try {
     for ($point=0; $point -le 4096; ++$point) {
         $name = "$case.language.oom-$point"
         Run $name "$prefix.host.exe" @("$point")
-        if ((Get-Content "$outPath/$name.log" -Raw) -match 'hit=0 balanced') { break }
+        if ((Get-Content -Encoding UTF8 "$outPath/$name.log" -Raw) -match 'hit=0 balanced') { break }
     }
     if ($point -gt 4096) { throw 'Incomplete Stack language allocation prefix' }
     $sweeps += [pscustomobject]@{Fixture=$case;FirstNoHit=$point}

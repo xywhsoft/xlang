@@ -34,7 +34,7 @@ sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 run discovery-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_ownership_discovery_runtime.c \
-    test/support/discovery_native.c src/runtime/xl6_stack.c src/runtime/xl6_code_lease.c \
+    test/support/discovery_native.c src/runtime/xl6_sequence.c src/runtime/xl6_stack.c src/runtime/xl6_code_lease.c \
     src/runtime/xl6_code_finalizer.c src/runtime/xl6_ownership_plan.c src/api/xl_foreign_error.c \
     -no-pie -pthread -lm -o "$OUT/discovery"
 run discovery-vectors "$OUT/discovery"
@@ -48,7 +48,7 @@ for stage in create refresh commit; do
     printf 'discovery %s %s\n' "$stage" "$point" >>"$OUT/oom-terminals.txt"
 done
 run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/stdlib_stack_ownership_host.c \
-    test/support/stack_native.c src/runtime/xl6_stack.c src/runtime/xl6_ownership_plan.c -no-pie -pthread -lm -o "$OUT/native"
+    test/support/stack_native.c src/runtime/xl6_sequence.c src/runtime/xl6_stack.c src/runtime/xl6_ownership_plan.c -no-pie -pthread -lm -o "$OUT/native"
 run native-vectors "$OUT/native"
 for stage in create refresh commit; do
     terminal=false

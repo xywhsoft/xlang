@@ -143,12 +143,12 @@
 | `extlibs/xruntime/include/xrt/runtime_type_future.h` | future<T> runtime type identity | kernel | direct | 1 | 1 | `test/cases/cgen_future_task_wait.xl` |
 | `extlibs/xruntime/include/xrt/runtime_type_string.h` | stable language type names | kernel | direct | 2 | 2 | `test/cases/cgen_runtime_type_baseline.xl` |
 | `extlibs/xruntime/include/xrt/runtime_value.h` | var lifecycle, boxing, comparison, and cloning | kernel | direct | 28 | 13 | `test/cases/runtime_var_type_storage_matrix.xl` |
-| `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 31 | 19 | `test/cases/cgen_typed_container_functions.xl` |
+| `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 31 | 25 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_dict.h` | dict<T> | language-type | direct | 30 | 14 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_list.h` | list<T> | language-type | direct | 30 | 11 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_queue.h` | typed SPSC/MPSC/MPMC queues | language-type | direct | 54 | 0 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_set.h` | set<T> | language-type | direct | 33 | 20 | `test/cases/cgen_typed_container_functions.xl` |
-| `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 18 | 13 | `test/cases/stdlib_special_collections.xl` |
+| `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 18 | 11 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 19 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_value.h` | typed values used by generic containers | kernel | direct | 32 | 26 | `test/cases/cgen_typed_container_functions.xl` |
 

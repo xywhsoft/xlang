@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_stack.h"
+#include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
 #include <stdio.h>
@@ -27,7 +28,7 @@ static void balanced(const xmemdebugsnapshot* before)
 static const xrtownershipadapterv1* resolve(xrtownershipref ref, void* context)
 {
     (void)context;
-    const xrtownershipadapterv1* adapter = xl6StackOwnershipAdapterV1(ref);
+    const xrtownershipadapterv1* adapter = xl6SequenceOwnershipAdapterV1(ref);
     return adapter ? adapter : xrtValueOwnershipAdapterV1(ref);
 }
 static bool admit(xrtownershipref ref, void* context) { return resolve(ref,context) != NULL; }
