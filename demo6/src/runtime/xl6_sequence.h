@@ -6,6 +6,39 @@
  * pins one wrapper and closes its graph while an operation runs. No raw
  * element borrows or parameter write-back are exposed to xlang. */
 typedef struct XL6_Sequence XL6_Sequence;
+/* Private immutable resident policy. No function/context from generated code
+ * may be stored here. Data owns its identity metadata independently of the
+ * source module; it has no owning Value edges. Retain/Drop share that metadata
+ * across clones and snapshots. Slot/Value predicates are allocation-free and
+ * error-transparent. Empty policies preserve the low-level unprofiled ABI. */
+typedef struct XL6_SequenceAdmissionOpsV1 {
+    bool (*Retain)(const void*);
+    void (*Drop)(const void*);
+    bool (*Slot)(const void*, const void*);
+    bool (*Value)(const void*, const xvalue*);
+    bool (*Equivalent)(const void*, const void*);
+    bool (*Defaultable)(const void*);
+} XL6_SequenceAdmissionOpsV1;
+typedef struct XL6_SequenceAdmissionV1 {
+    const XL6_SequenceAdmissionOpsV1* ops;
+    const void* data;
+    uint64_t elementIdentity;
+    unsigned int transfer;
+    size_t size;
+    const xrttype* type;
+} XL6_SequenceAdmissionV1;
+/* Copy returns an owned metadata reference; Take consumes valid policies on
+ * both paths (a malformed foreign descriptor remains the caller's property).
+ * Binding is only allowed on an Array/Cursor with no prior policy and
+ * validates existing slots before publication.
+ * These functions require an operation pin. They do not retain source code. */
+XL6_TEXT_API bool xl6SequenceAdmissionCopyV1(XL6_Sequence*, XL6_SequenceAdmissionV1*);
+XL6_TEXT_API bool xl6SequenceAdmissionTakeV1(XL6_Sequence*, XL6_SequenceAdmissionV1*);
+XL6_TEXT_API void xl6SequenceAdmissionDropV1(XL6_SequenceAdmissionV1*);
+XL6_TEXT_API bool xl6SequenceAdmitSlotV1(XL6_Sequence*, const void*);
+XL6_TEXT_API bool xl6SequenceAdmitValueV1(XL6_Sequence*, const xvalue*);
+XL6_TEXT_API bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence*, XL6_Sequence*);
+XL6_TEXT_API bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence*);
 typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;

@@ -50,9 +50,9 @@ static bool write(const xvalue* source, int64_t index, const xvalue* item, Write
     if (!owner) return false;
     xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
     bool ok=false;
-    if (operation==PUSH) ok=allocation(xrtTypedArrayPushValue(storage,item,converter));
+    if (operation==PUSH) ok=xl6SequenceAdmitValueV1(owner,item) && allocation(xrtTypedArrayPushValue(storage,item,converter));
     else if (xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),operation==INSERT,&at))
-        ok=allocation(operation==SET ? xrtTypedArraySetValue(storage,at,item,converter) :
+        ok=xl6SequenceAdmitValueV1(owner,item) && allocation(operation==SET ? xrtTypedArraySetValue(storage,at,item,converter) :
                                      xrtTypedArrayInsertValue(storage,at,item,converter));
     xl6SequenceEndV1(owner); return ok;
 }
@@ -75,15 +75,21 @@ xvalue* xl6ArrayErasedCloneV1(const xvalue* source)
     XL6_Sequence* owner=begin(source,&layout,&converter);
     if (!owner) return NULL;
     xtypedarray* storage=xrtTypedArrayClone(xl6SequenceStorageV1(owner));
+    XL6_SequenceAdmissionV1 admission={0};
+    if (storage && !xl6SequenceAdmissionCopyV1(owner,&admission)) {
+        xerror* error=xrtTakeError(); xrtTypedArrayDestroy(storage); storage=NULL;
+        xrtClearError(); xrtSetErrorTake(error);
+    }
     xl6SequenceEndV1(owner);
     xvalue* result=xl6SequenceWrapV1(storage,layout.identity,layout.elementIdentity,
         layout.transfer,layout.size,layout.type);
-    if (!result) return NULL;
+    if (!result) { xl6SequenceAdmissionDropV1(&admission); return NULL; }
     owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,layout.identity,
         layout.elementIdentity,layout.transfer,layout.size,layout.type);
-    if (!owner || !xl6SequenceBindProjectionV1(owner,converter)) {
+    if (!owner || !xl6SequenceAdmissionTakeV1(owner,&admission) || !xl6SequenceBindProjectionV1(owner,converter)) {
         if (owner) xl6SequenceEndV1(owner);
         xerror* saved=xrtTakeError(); xrtValueRelease(result); xrtClearError(); xrtSetErrorTake(saved);
+        xl6SequenceAdmissionDropV1(&admission);
         return NULL;
     }
     xl6SequenceEndV1(owner); return result;

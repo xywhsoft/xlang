@@ -439,3 +439,21 @@ Both language modes compile a current-compiler mutation host, reject forged
 family/set/nullable and unrelated instruction fields before any C/header output,
 restore each fact and require canonical C equality. Matching uses resident
 predicates and immutable verified identity data, not per-artifact matcher code.
+
+`check_stdlib_array_admission.py --out <fresh-directory>` checks owned native
+Array reference-element policies: ANY/bytes or `--nominal` class/protocol/exact
+identity domains, distinct nullable-owner/base-value identities, write-time
+typed/erased rejection before allocation, clone/cursor policy ownership, bulk
+append policy equivalence, invalid physical layouts/schemas and profiled
+Array/cursor cycle retirement. Each mode runs strict O0/O2 C and four complete
+logical-allocation prefixes per level through the first no-hit, with the full
+memory ledger checked. Linux `--sanitize` instruments the selected native and
+resident closure, including stack-use-after-return and leaks; actual symbols
+exclude the other admission flavor and unrelated/snapshot-only facades.
+`--shared` instead checks the actual product ABI (Linux dynamic export table);
+it does not certify pruning, and sanitizers instrument only its host.
+The ordinary `check_stdlib_array_native.py` now executes both selected-native
+modes as independently frozen child gates; the Stack/Sequence ownership parent
+therefore exercises them on its existing regular path. No new default library
+API, arbitrary C identity unforgeability, recursive element closure or complete
+language Array/53-module migration is claimed.
