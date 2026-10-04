@@ -273,28 +273,6 @@ bool xl6StackPushV1(const xvalue* value, uint64_t identity, uint64_t elementIden
     bool ok = allocation(xrtTypedStackPush(stack->storage,item));
     end(stack); return ok;
 }
-bool xl6StackPopOrPeekV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
-                         unsigned int transfer, size_t size, const xrttype* type, void* target, bool peek)
-{
-    if (peek) return xl6StackPeekAtV1(value,identity,elementIdentity,transfer,size,type,0,target);
-    if (!target) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    XL6_Stack* stack = begin(value,identity,elementIdentity,transfer,size,type);
-    if (!stack) return false;
-    bool ok = xrtTypedStackPop(stack->storage,target);
-    end(stack); return ok;
-}
-bool xl6StackPeekAtV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
-                      unsigned int transfer, size_t size, const xrttype* type, int64_t depth, void* target)
-{
-    if (depth < 0 || (uint64_t)depth > SIZE_MAX) return false;
-    if (!target) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    XL6_Stack* stack = begin(value,identity,elementIdentity,transfer,size,type);
-    if (!stack) return false;
-    const void* item = xrtTypedStackConstPeek(stack->storage,(size_t)depth);
-    if (!item) { end(stack); return false; }
-    bool ok = allocation(xrtTypeCopyValue(xrtTypedStackItemType(stack->storage),target,item));
-    end(stack); return ok;
-}
 bool xl6StackReserveV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                        unsigned int transfer, size_t size, const xrttype* type, int64_t capacity)
 {
@@ -310,18 +288,22 @@ bool xl6StackTryTakeV1(const xvalue* value, uint64_t identity, uint64_t elementI
 {
     if (depth < 0 || (uint64_t)depth > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return false; }
     if (pop && depth != 0) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    return pop
-        ? xl6StackPopOrPeekV1(value,identity,elementIdentity,transfer,size,type,target,false)
-        : xl6StackPeekAtV1(value,identity,elementIdentity,transfer,size,type,depth,target);
+    if (!target) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    XL6_Stack* stack = begin(value,identity,elementIdentity,transfer,size,type);
+    if (!stack) return false;
+    bool ok;
+    if (pop) ok = xrtTypedStackPop(stack->storage,target);
+    else {
+        const void* item = xrtTypedStackConstPeek(stack->storage,(size_t)depth);
+        ok = item != NULL && allocation(xrtTypeCopyValue(xrtTypedStackItemType(stack->storage),target,item));
+    }
+    end(stack); return ok;
 }
 void xl6StackTakeV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                     unsigned int transfer, size_t size, const xrttype* type,
                     int64_t depth, void* target, bool pop)
 {
-    if (pop && depth != 0) { xrtSetErrorKind(XERR_ARGUMENT); return; }
-    bool ok = pop
-        ? xl6StackPopOrPeekV1(value,identity,elementIdentity,transfer,size,type,target,false)
-        : xl6StackPeekAtV1(value,identity,elementIdentity,transfer,size,type,depth,target);
+    bool ok = xl6StackTryTakeV1(value,identity,elementIdentity,transfer,size,type,depth,target,pop);
     /* Empty/out-of-range is a language failure, not a fabricated T default.
      * Never replace an allocation/retain/state error from the actual storage. */
     if (!ok && !xrtGetError()) xrtSetErrorKind(XERR_RANGE);

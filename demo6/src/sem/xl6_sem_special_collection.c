@@ -313,19 +313,6 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
                     "Stack.push 参数类型必须匹配 Stack<T>");
-        } else if ( xl6TextEquals(method, "popInto") || xl6TextEquals(method, "peekInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
-                    "Stack 输出目标必须是同类型具名变量");
-        } else if ( xl6TextEquals(method, "peekAtInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
-                 xl6SemCheckSpecialCollectionIntArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0),
-                    "Stack.peekAtInto 深度必须是整数") &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
-                    "Stack.peekAtInto 输出目标必须是同类型具名变量");
         } else if ( xl6TextEquals(method, "pop") || xl6TextEquals(method, "peek") ||
                     xl6TextEquals(method, "tryPop") || xl6TextEquals(method, "tryPeek") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 0u);
@@ -514,8 +501,7 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
         return NULL;
     }
     method = member->text;
-    if ( xl6TextEquals(method, "push") || xl6TextEquals(method, "popInto") ||
-         xl6TextEquals(method, "peekInto") || xl6TextEquals(method, "peekAtInto") ||
+    if ( xl6TextEquals(method, "push") ||
          xl6TextEquals(method, "reserve") || xl6TextEquals(method, "set") ||
          xl6TextEquals(method, "getInto") || xl6TextEquals(method, "takeInto") ||
          xl6TextEquals(method, "contains") || xl6TextEquals(method, "remove") ||

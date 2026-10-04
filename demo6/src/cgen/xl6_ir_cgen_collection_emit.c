@@ -417,7 +417,6 @@ static int xl6IrCgenRuntimeStackAbi(
 {
     const XL6_IrInstruction* receiver = NULL;
     const XL6_IrInstruction* second = NULL;
-    const XL6_IrInstruction* third = NULL;
     const XL6_IrType* stack = NULL;
     const XL6_IrType* payload = NULL;
     const XL6_IrType* resultType;
@@ -461,48 +460,12 @@ static int xl6IrCgenRuntimeStackAbi(
     if ( instruction->operandCount > 1 )
         second = xl6IrCgenValueDefinition(
             module, module->operands[instruction->firstOperand + 1], NULL);
-    if ( instruction->operandCount > 2 )
-        third = xl6IrCgenValueDefinition(
-            module, module->operands[instruction->firstOperand + 2], NULL);
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_STACK_PUSH:
         return instruction->operandCount == 2 && second != NULL &&
                second->type == instruction->payloadType &&
                resultType->cAbi == XL6_IR_C_ABI_BOOL &&
                resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    case XL6_IR_RUNTIME_STACK_POP_INTO:
-    case XL6_IR_RUNTIME_STACK_PEEK_INTO:
-        {
-            const XL6_IrType* reference = second != NULL
-                ? xl6IrTypeGet(&module->types, second->type) : NULL;
-            return instruction->operandCount == 2 && second != NULL &&
-                   second->kind == XL6_IR_INSTR_STORAGE_ADDRESS &&
-                   reference != NULL &&
-                   reference->kind == XL6_IR_TYPE_STORAGE_REF &&
-                   reference->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                   reference->paramCount == 1 && reference->params != NULL &&
-                   reference->params[0] == instruction->payloadType &&
-                   resultType->cAbi == XL6_IR_C_ABI_BOOL &&
-                   resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-        }
-    case XL6_IR_RUNTIME_STACK_PEEK_AT_INTO:
-        {
-            const XL6_IrType* indexType = second != NULL
-                ? xl6IrTypeGet(&module->types, second->type) : NULL;
-            const XL6_IrType* reference = third != NULL
-                ? xl6IrTypeGet(&module->types, third->type) : NULL;
-            return instruction->operandCount == 3 && indexType != NULL &&
-                   indexType->cAbi == XL6_IR_C_ABI_I64 &&
-                   third != NULL &&
-                   third->kind == XL6_IR_INSTR_STORAGE_ADDRESS &&
-                   reference != NULL &&
-                   reference->kind == XL6_IR_TYPE_STORAGE_REF &&
-                   reference->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                   reference->paramCount == 1 && reference->params != NULL &&
-                   reference->params[0] == instruction->payloadType &&
-                   resultType->cAbi == XL6_IR_C_ABI_BOOL &&
-                   resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-        }
     case XL6_IR_RUNTIME_STACK_RESERVE:
         return instruction->operandCount == 2 && second != NULL &&
                xl6IrTypeGet(&module->types, second->type) != NULL &&
@@ -727,24 +690,6 @@ static int xl6IrCgenEmitStackRuntime(
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_STACK_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
-        break;
-    case XL6_IR_RUNTIME_STACK_POP_INTO:
-    case XL6_IR_RUNTIME_STACK_PEEK_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xl6StackPopOrPeekV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, v%u, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_STACK_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            instruction->runtimeOp == XL6_IR_RUNTIME_STACK_PEEK_INTO
-                ? "true" : "false");
-        break;
-    case XL6_IR_RUNTIME_STACK_PEEK_AT_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xl6StackPeekAtV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, v%u, v%u);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_STACK_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            (unsigned int)module->operands[instruction->firstOperand + 2]);
         break;
     case XL6_IR_RUNTIME_STACK_POP:
     case XL6_IR_RUNTIME_STACK_PEEK:

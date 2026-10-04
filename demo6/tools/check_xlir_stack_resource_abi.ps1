@@ -60,9 +60,9 @@ if ( $resourceFields.Count -ne 1 -or
 $expectedTypedCounts = [ordered]@{
     "stack-create" = 2
     "stack-push" = 7
-    "stack-pop-into" = 3
-    "stack-peek-into" = 3
-    "stack-peek-at-into" = 2
+    "stack-pop" = 3
+    "stack-peek" = 3
+    "stack-peek-at" = 2
     "stack-reserve" = 1
     "stack-clone" = 1
     "stack-equals" = 2
@@ -115,20 +115,17 @@ foreach ( $call in $calls ) {
             throw "XLIR Stack push payload/effect ABI is not exact"
         }
     } elseif ( $call.runtimeResourceOpName -in @(
-            "stack-pop-into", "stack-peek-into", "stack-peek-at-into") ) {
-        $referenceIndex = if (
-            $call.runtimeResourceOpName -eq "stack-peek-at-into"
-        ) { 2 } else { 1 }
-        $referenceType = @($typed.types | Where-Object {
-            $_.id -eq $operands[$referenceIndex].type
-        })[0]
-        $expectedError = "may-raise"
-        if ( $operands.Count -ne ($referenceIndex + 1) -or
-             $operands[$referenceIndex].abiName -ne "storage-ref" -or
-             $null -eq $referenceType -or $referenceType.params.Count -ne 1 -or
-             $referenceType.params[0] -ne $call.payloadType -or
-             $call.errorAbiName -ne $expectedError ) {
-            throw "XLIR Stack pop/peek storage-ref or effect ABI is not exact"
+            "stack-pop", "stack-peek", "stack-peek-at") ) {
+        $indexed = $call.runtimeResourceOpName -eq "stack-peek-at"
+        $payloadType = @($typed.types | Where-Object { $_.id -eq $call.payloadType })[0]
+        $resultAbi = if ($payloadType.ownershipAbi -eq 1) { 'value' } else { 'owned' }
+        if ( $operands.Count -ne $(if ($indexed) { 2 } else { 1 }) -or
+             $call.resultType -ne $call.payloadType -or
+             $call.resultAbiName -ne $resultAbi -or
+             $call.errorAbiName -ne 'may-raise' -or
+             @($operands | Where-Object abiName -eq 'storage-ref').Count -ne 0 -or
+             ($indexed -and $operands[1].abiName -ne 'value') ) {
+            throw "XLIR Stack pop/peek exact result or effect ABI is not exact"
         }
     }
 }
@@ -236,7 +233,7 @@ if ( $c -cne $second ) {
     throw "XLIR Stack generated C is not byte-for-byte deterministic"
 }
 foreach ( $required in @(
-    "xl6StackCreateV1", "xl6StackPushV1", "xl6StackPopOrPeekV1", "xl6StackPeekAtV1",
+    "xl6StackCreateV1", "xl6StackPushV1", "xl6StackTakeV1",
     "xl6StackReserveV1", "xl6StackCloneV1", "xl6StackEqualsV1", "xl6StackTrimV1",
     "xl6StackClearV1", "xl6StackSizeV1", "xrtTypeStringView()", "xrtTypeValue()"
 ) ) {
@@ -247,8 +244,7 @@ foreach ( $required in @(
 $helperCounts = [ordered]@{
     'v[0-9]+ = xl6StackCreateV1\(' = 6
     'v[0-9]+ = xl6StackPushV1\(' = 7
-    'v[0-9]+ = xl6StackPopOrPeekV1\(' = 6
-    'v[0-9]+ = xl6StackPeekAtV1\(' = 2
+    '(?m)^\s+xl6StackTakeV1\(v' = 8
     'v[0-9]+ = xl6StackCloneV1\(' = 1
     'v[0-9]+ = xl6StackEqualsV1\(' = 2
     'v[0-9]+ = xl6StackReserveV1\(' = 1
@@ -264,7 +260,8 @@ foreach ( $entry in $helperCounts.GetEnumerator() ) {
 foreach ( $forbidden in @(
     "XL6_AST_", "xl6IrNodeGet", "xl6IrCgenLegacy",
     "xl6SpecialStack", "__xl6_special_stack_dispatch", "typedef struct xlir_stack_handle",
-    "xlir_stack_payload_", "xlir_stack_reserve_handle", "xlir_stack_raise"
+    "xlir_stack_payload_", "xlir_stack_reserve_handle", "xlir_stack_raise",
+    "xl6StackPopOrPeekV1", "xl6StackPeekAtV1"
 ) ) {
     if ( $c.Contains($forbidden) ) {
         throw "XLIR Stack Cgen leaked source/legacy dispatch: $forbidden"
@@ -280,5 +277,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR Stack class-default strict-C/runtime gate failed"
 }
 
-Write-Output "XLIR Stack resource ABI gate passed: exact Stack<T>/payload identities, class-field resource defaults and partial-construction cleanup, storage refs, retained closure capture, deterministic mechanical C, and strict runtime."
+Write-Output "XLIR Stack resource ABI gate passed: exact Stack<T>/payload identities, class-field resource defaults and partial-construction cleanup, owned/value results without storage refs, retained closure capture, deterministic mechanical C, and strict runtime."
 exit 0

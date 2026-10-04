@@ -10,17 +10,23 @@ func main(...) as int
     assert(numbersClone.push(30))
     assert(not numbers.equals(numbersClone))
 
-    int number = 0
-    assert(numbers.peekInto(number))
+    int number = numbers.peek()
     assert(number == 20)
-    assert(numbers.peekAtInto(1, number))
+    number = numbers.peekAt(1)
     assert(number == 10)
-    assert(not numbers.peekAtInto(-1, number))
-    assert(numbers.popInto(number))
+    int refused = 0
+    try
+        numbers.peekAt(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 1 and number == 10)
+    number = numbers.pop()
     assert(number == 20)
-    assert(numbers.popInto(number))
+    number = numbers.pop()
     assert(number == 10)
-    assert(not numbers.popInto(number))
+    auto hasNumber, absentNumber = numbers.tryPop()
+    assert(not hasNumber and absentNumber == null and number == 10)
     assert(numbers.trim())
     assert(numbers.capacity() == 0)
 
@@ -28,20 +34,20 @@ func main(...) as int
     int8 tiny = int8(-7)
     int8 tinyResult = int8(0)
     assert(tinyNumbers.push(tiny))
-    assert(tinyNumbers.popInto(tinyResult))
+    tinyResult = tinyNumbers.pop()
     assert(tinyResult == tiny)
 
     Stack<float32> reals = Stack::<float32>()
     float32 real = float32(1.25)
     float32 realResult = float32(0.0)
     assert(reals.push(real))
-    assert(reals.popInto(realResult))
+    realResult = reals.pop()
     assert(realResult == real)
 
     Stack<bool> flags = Stack::<bool>()
     bool flag = false
     assert(flags.push(true))
-    assert(flags.popInto(flag))
+    flag = flags.pop()
     assert(flag)
 
     AvlTree<string, int> scores = AvlTree::<string, int>()

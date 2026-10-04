@@ -1,0 +1,6 @@
+func main(...) as int
+    Stack<int> values = Stack::<int>()
+    int output = 0
+    values.popInto(output)
+    return 0
+end

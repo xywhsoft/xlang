@@ -1,11 +1,10 @@
 func main(...) as int
     Stack<int> values = Stack::<int>()
     assert(values.push(3))
-    int result = 99
-    assert(values.popInto(result))
+    int result = values.pop()
     assert(result == 3)
-    assert(not values.popInto(result))
-    assert(result == 3)
+    auto found, absent = values.tryPop()
+    assert(not found and absent == null and result == 3)
     assert(values.trim())
     return 0
 end

@@ -20,13 +20,18 @@ func main(...) as int
     assert(clone.push(30))
     assert(not numbers.equals(clone))
 
-    int number = 0
-    assert(numbers.peekInto(number))
+    int number = numbers.peek()
     assert(number == 20)
-    assert(numbers.peekAtInto(1, number))
+    number = numbers.peekAt(1)
     assert(number == 10)
-    assert(not numbers.peekAtInto(-1, number))
-    assert(numbers.popInto(number))
+    int refused = 0
+    try
+        numbers.peekAt(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 1 and number == 10)
+    number = numbers.pop()
     assert(number == 20)
     numbers.clear()
     assert(numbers.count() == 0)
@@ -36,9 +41,9 @@ func main(...) as int
     StackHolder holder = StackHolder()
     string text = ""
     assert(holder.values.push("alpha"))
-    assert(holder.values.peekInto(text))
+    text = holder.values.peek()
     assert(text == "alpha")
-    assert(holder.values.popInto(text))
+    text = holder.values.pop()
     assert(text == "alpha")
     assert(holder.values.count() == 0)
 
@@ -46,9 +51,9 @@ func main(...) as int
     StackHolder object = StackHolder()
     StackHolder objectResult = StackHolder()
     assert(objects.push(object))
-    assert(objects.peekInto(objectResult))
+    objectResult = objects.peek()
     assert(objectResult.values.push("nested"))
-    assert(objects.popInto(objectResult))
+    objectResult = objects.pop()
     assert(objects.count() == 0)
 
     func() as int observe = func() as int

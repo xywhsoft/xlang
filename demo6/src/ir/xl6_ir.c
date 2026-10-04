@@ -9273,12 +9273,6 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
                     module, receiver->storageType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "push") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH;
-        if ( strcmp(callee->text, "popInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO;
-        if ( strcmp(callee->text, "peekInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO;
-        if ( strcmp(callee->text, "peekAtInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO;
         if ( strcmp(callee->text, "pop") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP;
         if ( strcmp(callee->text, "peek") == 0 )
@@ -9601,22 +9595,6 @@ static int xl6IrRuntimeResourceSignatureCompatible(
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH:
             return operandCount == 2 && operandTypes[1] == payloadType &&
                 result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO:
-            return operandCount == 2 && second != NULL &&
-                second->kind == XL6_IR_TYPE_STORAGE_REF &&
-                second->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                second->paramCount == 1 && second->params != NULL &&
-                second->params[0] == payloadType && result != NULL &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO:
-            return operandCount == 3 && second != NULL && third != NULL &&
-                second->cAbi == XL6_IR_C_ABI_I64 &&
-                third->kind == XL6_IR_TYPE_STORAGE_REF &&
-                third->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                third->paramCount == 1 && third->params != NULL &&
-                third->params[0] == payloadType && result != NULL &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE:
             return operandCount == 2 && second != NULL &&
                 second->cAbi == XL6_IR_C_ABI_I64 && result != NULL &&
@@ -9880,12 +9858,7 @@ static XL6_IrTypeId xl6IrRuntimeResourceStorageTargetType(
           operation ==
               XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_INTO ||
           operation ==
-              XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_TIMEOUT_INTO ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO) )
-        return payloadType;
-    if ( operandIndex == 2 &&
-         operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO )
+              XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_TIMEOUT_INTO) )
         return payloadType;
     if ( operandIndex == 2 &&
          (operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
@@ -38589,18 +38562,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             &module->types, payloadTypeId);
                         const XL6_IrType* resultType = xl6IrTypeGet(
                             &module->types, instruction->type);
-                        const XL6_IrInstruction* third =
-                            instruction->operandCount > 2
-                                ? xl6IrValueDefinition(
-                                    module, module->operands[
-                                        instruction->firstOperand + 2], NULL)
-                                : NULL;
                         int creates = instruction->runtimeOp ==
                             XL6_IR_RUNTIME_STACK_CREATE;
-                        int receives = instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_STACK_POP_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_STACK_PEEK_INTO;
                         if ( stackType == NULL ||
                              stackType->cAbi !=
                                  XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
@@ -38676,55 +38639,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                      !xl6IrNodeRequiresThrowExitPlan(module, instruction->origin) )
                                     return xl6IrDiag(diags, NULL,
                                         "XLIR runtime Stack try retrieval has no exact status/optional result, depth or failure ABI");
-                            } else if ( receives ) {
-                                const XL6_IrType* referenceType = right != NULL
-                                    ? xl6IrTypeGet(
-                                        &module->types, right->type) : NULL;
-                                int peeks = instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_STACK_PEEK_INTO;
-                                if ( instruction->operandCount != 2 ||
-                                     right == NULL ||
-                                     right->kind !=
-                                         XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                     referenceType == NULL ||
-                                     referenceType->kind !=
-                                         XL6_IR_TYPE_STORAGE_REF ||
-                                     referenceType->paramCount != 1 ||
-                                     referenceType->params == NULL ||
-                                     referenceType->params[0] != payloadTypeId ||
-                                     resultType == NULL ||
-                                     resultType->cAbi != XL6_IR_C_ABI_BOOL ||
-                                     (peeks &&
-                                      !xl6IrNodeRequiresThrowExitPlan(
-                                          module, instruction->origin)) )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime Stack pop/peek has no exact storage address, boolean result or failure ABI");
-                            } else if ( instruction->runtimeOp ==
-                                            XL6_IR_RUNTIME_STACK_PEEK_AT_INTO ) {
-                                const XL6_IrType* indexType = right != NULL
-                                    ? xl6IrTypeGet(
-                                        &module->types, right->type) : NULL;
-                                const XL6_IrType* referenceType = third != NULL
-                                    ? xl6IrTypeGet(
-                                        &module->types, third->type) : NULL;
-                                if ( instruction->operandCount != 3 ||
-                                     indexType == NULL ||
-                                     indexType->cAbi != XL6_IR_C_ABI_I64 ||
-                                     third == NULL ||
-                                     third->kind !=
-                                         XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                     referenceType == NULL ||
-                                     referenceType->kind !=
-                                         XL6_IR_TYPE_STORAGE_REF ||
-                                     referenceType->paramCount != 1 ||
-                                     referenceType->params == NULL ||
-                                     referenceType->params[0] != payloadTypeId ||
-                                     resultType == NULL ||
-                                     resultType->cAbi != XL6_IR_C_ABI_BOOL ||
-                                     !xl6IrNodeRequiresThrowExitPlan(
-                                         module, instruction->origin) )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime Stack peekAtInto has no exact index, storage address, boolean result or failure ABI");
                             } else if ( instruction->runtimeOp ==
                                             XL6_IR_RUNTIME_STACK_RESERVE ) {
                                 const XL6_IrType* capacityType = right != NULL
@@ -41953,12 +41867,6 @@ static const char* xl6IrRuntimeResourceOpName(
         return "special-queue-pop-batch-into";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE: return "stack-create";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH: return "stack-push";
-    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO:
-        return "stack-pop-into";
-    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO:
-        return "stack-peek-into";
-    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO:
-        return "stack-peek-at-into";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE: return "stack-reserve";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE: return "stack-clone";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_EQUALS: return "stack-equals";
@@ -43618,10 +43526,6 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
         return "special-queue-pop-batch-into";
     case XL6_IR_RUNTIME_STACK_CREATE: return "stack-create";
     case XL6_IR_RUNTIME_STACK_PUSH: return "stack-push";
-    case XL6_IR_RUNTIME_STACK_POP_INTO: return "stack-pop-into";
-    case XL6_IR_RUNTIME_STACK_PEEK_INTO: return "stack-peek-into";
-    case XL6_IR_RUNTIME_STACK_PEEK_AT_INTO:
-        return "stack-peek-at-into";
     case XL6_IR_RUNTIME_STACK_RESERVE: return "stack-reserve";
     case XL6_IR_RUNTIME_STACK_CLONE: return "stack-clone";
     case XL6_IR_RUNTIME_STACK_EQUALS: return "stack-equals";

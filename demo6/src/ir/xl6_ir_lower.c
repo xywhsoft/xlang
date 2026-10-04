@@ -16002,25 +16002,6 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
                         ? XL6_IR_INTRINSIC_OPERAND_VALUE
                         : XL6_IR_INTRINSIC_OPERAND_BORROW) &&
                 result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO:
-            return intrinsic->operandCount == 2 && result != NULL &&
-                second != NULL && second->kind == XL6_IR_TYPE_STORAGE_REF &&
-                second->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                second->paramCount == 1 && second->params != NULL &&
-                second->params[0] == payloadType &&
-                operands[1].abi == XL6_IR_INTRINSIC_OPERAND_STORAGE_REF &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO:
-            return intrinsic->operandCount == 3 && result != NULL &&
-                second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
-                operands[1].abi == XL6_IR_INTRINSIC_OPERAND_VALUE &&
-                third != NULL && third->kind == XL6_IR_TYPE_STORAGE_REF &&
-                third->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                third->paramCount == 1 && third->params != NULL &&
-                third->params[0] == payloadType &&
-                operands[2].abi == XL6_IR_INTRINSIC_OPERAND_STORAGE_REF &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE:
             return intrinsic->operandCount == 2 && result != NULL &&
                 second != NULL && second->cAbi == XL6_IR_C_ABI_I64 &&
@@ -23991,12 +23972,6 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_STACK_CREATE;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH:
         return XL6_IR_RUNTIME_STACK_PUSH;
-    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_INTO:
-        return XL6_IR_RUNTIME_STACK_POP_INTO;
-    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_INTO:
-        return XL6_IR_RUNTIME_STACK_PEEK_INTO;
-    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT_INTO:
-        return XL6_IR_RUNTIME_STACK_PEEK_AT_INTO;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE:
         return XL6_IR_RUNTIME_STACK_RESERVE;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE:
