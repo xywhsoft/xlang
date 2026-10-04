@@ -4,6 +4,7 @@
 #include "src/runtime/xl6_array_iterator.h"
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_scalar_type_abi.h"
+#include "src/runtime/xl6_sequence.h"
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -328,6 +329,11 @@ static void fault(const Spec* s,const char* operation,size_t point)
     }
     int64_t count=owner ? xl6ArraySizeV1(owner,LAYOUT(s),false) : 0;
     int64_t capacity=owner ? xl6ArraySizeV1(owner,LAYOUT(s),true) : 0;
+    xarray beforeStorage={0};
+    if (owner) {
+        XL6_Sequence* sequence=xl6SequenceBeginV1(owner,LAYOUT(s)); assert(sequence);
+        beforeStorage=xl6SequenceStorageV1(sequence)->Storage; xl6SequenceEndV1(sequence);
+    }
     assert(xrtMemDebugFailAfter(point)); bool ok=false;
     if (!strcmp(operation,"create")) { result=create(s); ok=result!=NULL; }
     else if (!strcmp(operation,"clone")) { result=xl6ArrayCloneV1(owner,LAYOUT(s)); ok=result!=NULL; }
@@ -344,12 +350,11 @@ static void fault(const Spec* s,const char* operation,size_t point)
         assert(!ok); error(XERR_MEMORY);
         if (owner) {
             assert(xl6ArraySizeV1(alias,LAYOUT(s),false)==count);
-            /* XRT typed resize promises rollback of initialized elements and
-             * count, but can keep a successfully grown capacity when later
-             * default initialization fails. The language boxed resize has a
-             * stronger capacity contract; do not misreport it here. */
-            if (strcmp(operation,"resize")) assert(xl6ArraySizeV1(alias,LAYOUT(s),true)==capacity);
-            else assert(xl6ArraySizeV1(alias,LAYOUT(s),true)>=capacity);
+            assert(xl6ArraySizeV1(alias,LAYOUT(s),true)==capacity);
+            XL6_Sequence* sequence=xl6SequenceBeginV1(owner,LAYOUT(s)); assert(sequence);
+            xtypedarray* storage=xl6SequenceStorageV1(sequence);
+            assert(storage->Storage.Data==beforeStorage.Data && storage->Storage.Allocation==beforeStorage.Allocation);
+            xl6SequenceEndV1(sequence);
             observed(s,alias,0,good);
         }
     } else {

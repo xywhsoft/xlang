@@ -482,7 +482,11 @@ require only the selected optional physical factory/codecs. Linux `--sanitize`
 instruments the full closure; `--shared` instead tests the actual product ABI
 (host-only instrumentation), not pruning. The ordinary native Array gate runs
 this independently frozen child on the existing ownership regression path.
-Native typed resize currently rolls back contents/count after initialization
-failure but may retain enlarged capacity; language boxed resize has the stronger
-failure-atomic capacity contract. Neither native language Array migration nor
-whole 53-module acceptance is claimed by this gate.
+Native typed resize now preserves contents/count/capacity and both storage
+addresses on allocation/default-initialization failure, matching language boxed
+resize. The primitive gate checks these identities through the actual native
+owner under full fault prefixes. The canonical xruntime module and single-header
+tests additionally exercise fallible defaults, reverse cleanup, primary errors,
+allocator reentry and over-alignment; this is not a Cgen compensating adapter.
+Neither native language Array migration nor whole 53-module acceptance is claimed
+by this gate.
