@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_nullable_string.h"
+#include "src/runtime/xl6_array_iterator.h"
 #ifdef XL6_TEST_MIXED_STACK
 #include "src/runtime/xl6_stack.h"
 #endif
@@ -18,6 +19,12 @@ static const xrttype* faultTextType;
 #define U32_ARGS UINT64_C(406),UINT64_C(506),1,sizeof(uint32_t),xrtTypeUInt32()
 #define STACK_ARGS UINT64_C(407),UINT64_C(503),3,sizeof(xvalue*),xrtTypeValue()
 #define NULLABLE_TEXT_ARGS UINT64_C(408),UINT64_C(508),2,sizeof(xstrview),xl6NullableStringTypeV1()
+#define CURSOR_I64_ARGS UINT64_C(602),UINT64_C(502),1,sizeof(int64_t),xrtTypeInt64()
+#define CURSOR_TEXT_ARGS UINT64_C(601),UINT64_C(501),2,sizeof(xstrview),(faultTextType ? faultTextType : xrtTypeStringView())
+#define CURSOR_REF_ARGS UINT64_C(603),UINT64_C(503),3,sizeof(xvalue*),xrtTypeValue()
+#define CURSOR_BYTES_ARGS UINT64_C(604),UINT64_C(504),3,sizeof(xvalue*),xrtTypeValue()
+#define CURSOR_CHAR_ARGS UINT64_C(605),UINT64_C(505),1,sizeof(uint32_t),xrtTypeUInt32()
+#define CURSOR_NULLABLE_TEXT_ARGS UINT64_C(608),UINT64_C(508),2,sizeof(xstrview),xl6NullableStringTypeV1()
 
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -264,6 +271,142 @@ static void graphVectors(void)
     xrtValueRelease(weak); xrtValueRelease(stackWeak);
 #endif
 }
+static void iteratorVectors(void)
+{
+    xvalue* value=xl6ArrayCreateV1(I64_ARGS); assert(value);
+    xvalue* cursor=xl6ArrayIteratorCreateV1(value,I64_ARGS,602); assert(cursor);
+    assert(!xl6ArrayIteratorAdvanceV1(cursor,CURSOR_I64_ARGS) && !xrtGetError());
+    int64_t number=777;
+    assert(!xl6ArrayIteratorReadV1(cursor,CURSOR_I64_ARGS,&number) && number==777); error(XERR_STATE);
+    assert(xl6ArrayIteratorOrdinalV1(cursor,CURSOR_I64_ARGS)==-1); error(XERR_STATE);
+    xrtValueRelease(cursor);
+    for (int64_t i=1;i<=3;++i) assert(xl6ArrayPushV1(value,I64_ARGS,&i));
+    cursor=xl6ArrayIteratorCreateV1(value,I64_ARGS,602); assert(cursor);
+    assert(!xl6ArrayIteratorAdvanceV1(value,I64_ARGS)); error(XERR_ARGUMENT);
+    assert(!xl6ArrayIteratorCreateV1(value,I64_ARGS,0)); error(XERR_ARGUMENT);
+    assert(!xl6ArrayIteratorCreateV1(value,I64_ARGS,402)); error(XERR_ARGUMENT);
+    assert(!xl6ArrayIteratorCreateV1(cursor,CURSOR_I64_ARGS,702)); error(XERR_ARGUMENT);
+    assert(!xl6ArrayPushV1(cursor,CURSOR_I64_ARGS,&number)); error(XERR_ARGUMENT);
+    assert(!xl6ArrayIteratorAdvanceV1(cursor,602,999,1,sizeof(number),xrtTypeInt64())); error(XERR_ARGUMENT);
+    assert(!xl6ArrayIteratorAdvanceV1(cursor,602,502,1,sizeof(number),xrtTypeUInt64())); error(XERR_ARGUMENT);
+    xl6ArrayClearV1(value,I64_ARGS); assert(!xrtGetError()); xrtValueRelease(value);
+    xvalue* alias=xrtValueDeepClone(cursor); assert(alias && alias!=cursor);
+    assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_I64_ARGS));
+    assert(xl6ArrayIteratorReadV1(alias,CURSOR_I64_ARGS,&number) && number==1);
+    assert(xl6ArrayIteratorOrdinalV1(alias,CURSOR_I64_ARGS)==0);
+    XL6_Sequence* guard=xl6SequenceIteratorBeginV1(cursor,CURSOR_I64_ARGS); assert(guard);
+    assert(!xl6ArrayIteratorAdvanceV1(alias,CURSOR_I64_ARGS)); error(XERR_STATE);
+    xl6SequenceEndV1(guard);
+    assert(xl6ArrayIteratorAdvanceV1(alias,CURSOR_I64_ARGS));
+    assert(xl6ArrayIteratorReadV1(cursor,CURSOR_I64_ARGS,&number) && number==2);
+    assert(xl6ArrayIteratorOrdinalV1(cursor,CURSOR_I64_ARGS)==1);
+    assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_I64_ARGS));
+    assert(xl6ArrayIteratorReadV1(cursor,CURSOR_I64_ARGS,&number) && number==3);
+    xrtSetErrorKind(XERR_ARGUMENT); const xerror* ambient=xrtGetError();
+    assert(!xl6ArrayIteratorAdvanceV1(cursor,CURSOR_I64_ARGS) && xrtGetError()==ambient);
+    assert(!xl6ArrayIteratorAdvanceV1(alias,CURSOR_I64_ARGS) && xrtGetError()==ambient); xrtClearError();
+    assert(!xl6ArrayIteratorReadV1(cursor,CURSOR_I64_ARGS,&number) && number==3); error(XERR_STATE);
+    xrtValueRelease(alias); xrtValueRelease(cursor);
+
+    value=xl6ArrayCreateV1(NULLABLE_TEXT_ARGS); assert(value);
+    xstrview vectors[]={{NULL,0},{"",0},{"a\0b",3},{"你",3}},output={0};
+    for (size_t i=0;i<4;++i) assert(xl6ArrayPushV1(value,NULLABLE_TEXT_ARGS,&vectors[i]));
+    cursor=xl6ArrayIteratorCreateV1(value,NULLABLE_TEXT_ARGS,608); assert(cursor);
+    assert(xl6ArraySetV1(value,NULLABLE_TEXT_ARGS,2,&vectors[3]));
+    xrtValueRelease(value);
+    for (size_t i=0;i<4;++i) {
+        assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_NULLABLE_TEXT_ARGS));
+        assert(xl6ArrayIteratorReadV1(cursor,CURSOR_NULLABLE_TEXT_ARGS,&output));
+        assert(xl6NullableStringEqualV1(output,vectors[i]));
+        assert(xl6ArrayIteratorOrdinalV1(cursor,CURSOR_NULLABLE_TEXT_ARGS)==(int64_t)i);
+    }
+    xrtTypeDropValue(xl6NullableStringTypeV1(),&output); xrtValueRelease(cursor);
+
+    value=xl6ArrayCreateV1(REF_ARGS); xvalue* item=xrtValueArray(); assert(value && item);
+    assert(xl6ArrayPushV1(value,REF_ARGS,&item) && xl6ArrayPushV1(value,REF_ARGS,&item));
+    cursor=xl6ArrayIteratorCreateV1(value,REF_ARGS,603); assert(cursor);
+    xrtValueRelease(value); assert(xrtValueArrayAppendNew(item,xrtValueInt(7)));
+    assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_REF_ARGS));
+    xvalue* outputValue=NULL;
+    assert(xl6ArrayIteratorReadV1(cursor,CURSOR_REF_ARGS,&outputValue));
+    assert(outputValue==item && xrtValueCount(outputValue)==1);
+    xrtValueRelease(outputValue); xrtValueRelease(item); xrtValueRelease(cursor);
+
+    value=xl6ArrayCreateV1(REF_ARGS); assert(value && xl6ArrayPushV1(value,REF_ARGS,&value));
+    cursor=xl6ArrayIteratorCreateV1(value,REF_ARGS,603); assert(cursor);
+    assert(xl6ArrayPushV1(value,REF_ARGS,&cursor));
+    xvalue* valueWeak=xrtValueWeakRef(value),*cursorWeak=xrtValueWeakRef(cursor); assert(valueWeak && cursorWeak);
+    xrtValueRelease(value); xrtValueRelease(cursor);
+    retire(value);
+    assert(xrtValueWeakRefExpired(valueWeak) && xrtValueWeakRefExpired(cursorWeak));
+    xrtValueRelease(valueWeak); xrtValueRelease(cursorWeak);
+}
+static void iteratorFault(const char* operation, size_t point)
+{
+    xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
+    xstrview text={"a\0b",3},output={xrtStrDup("old"),3};
+    xvalue* value=xl6ArrayCreateV1(TEXT_ARGS); assert(value && output.Data);
+    assert(xl6ArrayPushV1(value,TEXT_ARGS,&text) && xl6ArrayPushV1(value,TEXT_ARGS,&text));
+    bool create=!strcmp(operation,"cursor-create"); assert(create || !strcmp(operation,"cursor-read"));
+    xvalue* cursor=create ? NULL : xl6ArrayIteratorCreateV1(value,TEXT_ARGS,601);
+    if (!create) assert(cursor && xl6ArrayIteratorAdvanceV1(cursor,CURSOR_TEXT_ARGS));
+    const char* prior=output.Data;
+    assert(xrtMemDebugFailAfter(point));
+    bool ok=create ? (cursor=xl6ArrayIteratorCreateV1(value,TEXT_ARGS,601))!=NULL :
+        xl6ArrayIteratorReadV1(cursor,CURSOR_TEXT_ARGS,&output);
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+    assert(hit ? !ok && xrtErrorKind(xrtGetError())==XERR_MEMORY : ok && !xrtGetError());
+    xerror* failure=xrtTakeError();
+    if (hit || create) { assert(output.Data==prior); exact(output,"old",3); }
+    else exact(output,"a\0b",3);
+    if (!create) {
+        assert(xl6ArrayIteratorOrdinalV1(cursor,CURSOR_TEXT_ARGS)==0);
+        assert(xl6ArrayIteratorReadV1(cursor,CURSOR_TEXT_ARGS,&output)); exact(output,"a\0b",3);
+    }
+    assert(xl6ArraySizeV1(value,TEXT_ARGS,false)==2);
+    xrtTypeDropValue(xrtTypeStringView(),&output);
+    xrtSetErrorTake(failure); const xerror* saved=xrtGetError();
+    xrtValueRelease(cursor); xrtValueRelease(value);
+    assert(xrtGetError()==saved); xrtClearError(); balanced(&before);
+    printf("array %s point=%zu hit=%d balanced\n",operation,point,hit);
+}
+static void iteratorEarlyCloseVectors(void)
+{
+    const uint32_t scalars[]={0,65,0x4F60,0x10FFFF};
+    xvalue* value=xl6ArrayCreateV1(CHAR_ARGS); assert(value);
+    for (size_t i=0;i<4;++i) assert(xl6ArrayPushV1(value,CHAR_ARGS,&scalars[i]));
+    xvalue* cursor=xl6ArrayIteratorCreateV1(value,CHAR_ARGS,605); assert(cursor);
+    xrtValueRelease(value);
+    for (size_t i=0;i<4;++i) {
+        uint32_t observed=99;
+        assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_CHAR_ARGS));
+        assert(xl6ArrayIteratorReadV1(cursor,CURSOR_CHAR_ARGS,&observed) && observed==scalars[i]);
+    }
+    assert(!xl6ArrayIteratorAdvanceV1(cursor,CURSOR_CHAR_ARGS) && !xrtGetError());
+    xrtValueRelease(cursor);
+    for (unsigned mode=0;mode<2;++mode) {
+        unsigned char bytes[256];
+        for (size_t i=0;i<sizeof(bytes);++i) bytes[i]=(unsigned char)i;
+        xvalue* item=xrtValueBytes((xbytesview){bytes,sizeof(bytes)});
+        xvalue* weak=xrtValueWeakRef(item);
+        value=xl6ArrayCreateV1(BYTES_ARGS); assert(item && weak && value);
+        assert(xl6ArrayPushV1(value,BYTES_ARGS,&item) && xl6ArrayPushV1(value,BYTES_ARGS,&item));
+        cursor=xl6ArrayIteratorCreateV1(value,BYTES_ARGS,604); assert(cursor);
+        xrtValueRelease(item); xrtValueRelease(value);
+        assert(!xrtValueWeakRefExpired(weak));
+        if (mode) {
+            xvalue* output=NULL; xbytesview observed={0};
+            assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_BYTES_ARGS));
+            assert(xl6ArrayIteratorReadV1(cursor,CURSOR_BYTES_ARGS,&output));
+            assert(xrtValueGetBytes(output,&observed) && observed.Size==sizeof(bytes) &&
+                   !memcmp(observed.Data,bytes,sizeof(bytes)));
+            xrtValueRelease(output);
+        }
+        xrtSetErrorKind(XERR_ARGUMENT); const xerror* ambient=xrtGetError();
+        xrtValueRelease(cursor); assert(xrtGetError()==ambient); xrtClearError();
+        assert(xrtValueWeakRefExpired(weak)); xrtValueRelease(weak);
+    }
+}
 static xvalue* callbackOwner;
 static unsigned callbackDrops,callbackEquals;
 static bool cloneHandle(void* source, void** target, void* user)
@@ -316,6 +459,30 @@ static void tailDrop(void* raw, void* user)
     xvalue* owner=callbackOwner; callbackOwner=NULL; xrtValueRelease(owner);
 }
 static const xvaluehandleops tailOps={NULL,tailDrop,NULL,NULL};
+static void iteratorTailDrop(void* raw, void* user)
+{
+    (void)raw; (void)user;
+    assert(!xl6ArrayIteratorAdvanceV1(callbackOwner,CURSOR_REF_ARGS)); error(XERR_STATE);
+    xvalue* owner=callbackOwner; callbackOwner=NULL; xrtValueRelease(owner);
+}
+static const xvaluehandleops iteratorTailOps={NULL,iteratorTailDrop,NULL,NULL};
+static void iteratorTailVectors(void)
+{
+    xvalue* source=xl6ArrayCreateV1(REF_ARGS),*item=xrtValueArray(); assert(source && item);
+    assert(xl6ArrayPushV1(source,REF_ARGS,&item));
+    xvalue* cursor=xl6ArrayIteratorCreateV1(source,REF_ARGS,603),*weak=xrtValueWeakRef(cursor);
+    assert(cursor && weak && xl6ArrayIteratorAdvanceV1(cursor,CURSOR_REF_ARGS));
+    xrtValueRelease(source); xrtValueRelease(item);
+    int raw=1; void* pointer=&raw;
+    xvalue* output=xrtValueHandleTake(&pointer,&iteratorTailOps,NULL); assert(output);
+    callbackOwner=cursor;
+    /* Replacing the initialized result invokes a destructor that releases
+     * the last cursor shell. Only the Begin pin owns the wrapper thereafter. */
+    assert(xl6ArrayIteratorReadV1(cursor,CURSOR_REF_ARGS,&output));
+    assert(!callbackOwner && !xrtGetError() && xrtValueWeakRefExpired(weak));
+    assert(output==item && xrtValueCount(output)==0);
+    xrtValueRelease(output); xrtValueRelease(weak);
+}
 static void tailVectors(void)
 {
     for (unsigned mode=0;mode<4;++mode) {
@@ -338,9 +505,19 @@ static void graphFault(const char* stage, size_t point)
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
     xvalue* value=xl6ArrayCreateV1(REF_ARGS),*weak=xrtValueWeakRef(value); assert(value && weak);
     assert(xl6ArrayPushV1(value,REF_ARGS,&value) && xl6ArrayPushV1(value,REF_ARGS,&value));
+    bool iterator=!strncmp(stage,"cursor-",7);
+    xvalue* cursor=NULL,*cursorWeak=NULL,*alias=NULL;
+    if (iterator) {
+        cursor=xl6ArrayIteratorCreateV1(value,REF_ARGS,603); assert(cursor);
+        alias=xrtValueDeepClone(cursor); cursorWeak=xrtValueWeakRef(cursor); assert(alias && cursorWeak);
+        assert(xl6ArrayPushV1(value,REF_ARGS,&cursor) && xl6ArrayPushV1(value,REF_ARGS,&alias));
+        assert(xl6ArrayIteratorAdvanceV1(cursor,CURSOR_REF_ARGS));
+        xrtValueRelease(cursor); xrtValueRelease(alias);
+    }
     xrtValueRelease(value); XL6_OwnershipPlan* plan=NULL;
-    bool create=!strcmp(stage,"graph-create"),commit=!strcmp(stage,"graph-commit");
-    assert(create || commit || !strcmp(stage,"graph-refresh"));
+    const char* operation=iterator ? stage+7 : stage;
+    bool create=!strcmp(operation,"graph-create"),commit=!strcmp(operation,"graph-commit");
+    assert(create || commit || !strcmp(operation,"graph-refresh"));
     if (!create) assert(xl6OwnershipPlanTryCreate(xrtValueOwnership(value),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_READY);
     assert(xrtMemDebugFailAfter(point));
     XL6_OwnershipPlanResult result=create ? xl6OwnershipPlanTryCreate(xrtValueOwnership(value),resolve,NULL,&plan) :
@@ -348,13 +525,15 @@ static void graphFault(const char* stage, size_t point)
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
     assert(hit ? result==XL6_OWNERSHIP_PLAN_ERROR : result==XL6_OWNERSHIP_PLAN_READY);
     if (hit) {
-        error(XERR_MEMORY); assert(xl6ArraySizeV1(value,REF_ARGS,false)==2);
+        error(XERR_MEMORY); assert(xl6ArraySizeV1(value,REF_ARGS,false)==(iterator ? 4 : 2));
+        if (iterator) assert(xl6ArrayIteratorOrdinalV1(cursor,CURSOR_REF_ARGS)==0);
         if (plan) assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
         retire(value);
     } else {
         if (!commit) assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY);
         assert(xl6OwnershipPlanFinish(plan) && xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
     }
+    if (iterator) { assert(xrtValueWeakRefExpired(cursorWeak)); xrtValueRelease(cursorWeak); }
     assert(xrtValueWeakRefExpired(weak)); xrtValueRelease(weak); balanced(&before);
     printf("array %s point=%zu hit=%d balanced\n",stage,point,hit);
 }
@@ -419,15 +598,17 @@ int main(int argc, char** argv)
     assert(xrtMemDebugEnable(true));
     if (argc==3) {
         size_t point=(size_t)strtoull(argv[2],NULL,10);
-        if (!strncmp(argv[1],"graph-",6)) graphFault(argv[1],point);
+        if (!strncmp(argv[1],"graph-",6) || !strncmp(argv[1],"cursor-graph-",13)) graphFault(argv[1],point);
         else {
             const char* operation=argv[1];
             if (!strncmp(operation,"nullable-",9)) { faultTextType=xl6NullableStringTypeV1(); operation+=9; }
-            fault(operation,point);
+            if (!strncmp(operation,"cursor-",7)) iteratorFault(operation,point);
+            else fault(operation,point);
         }
         return 0;
     }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    scalarVectors(); textVectors(); referenceVectors(); nullableTextVectors(); graphVectors(); reentryVectors(); tailVectors(); balanced(&before);
+    scalarVectors(); textVectors(); referenceVectors(); nullableTextVectors(); graphVectors(); iteratorVectors();
+    iteratorEarlyCloseVectors(); iteratorTailVectors(); reentryVectors(); tailVectors(); balanced(&before);
     puts("array native vectors balanced"); return 0;
 }

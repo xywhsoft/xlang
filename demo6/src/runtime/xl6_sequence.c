@@ -66,6 +66,7 @@ struct XL6_Sequence {
     const void* claim;
     xtypedarray* retired;
     bool cleared;
+    XL6_SequenceIteratorStateV1 iterator;
 };
 
 static bool allocation(bool ok)
@@ -133,6 +134,11 @@ void xl6SequenceEndV1(XL6_Sequence* owner)
     xrtAtomic32Store(&owner->busy,0,XMEMORY_RELEASE);
     mutationEnd(&mutation); drop(owner,NULL);
 }
+XL6_SequenceIteratorStateV1* xl6SequenceIteratorStateV1(XL6_Sequence* owner)
+{
+    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE)) abort();
+    return &owner->iterator;
+}
 bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned int transfer,
                   size_t size, const xrttype* type)
 {
@@ -164,14 +170,21 @@ static XL6_Sequence* borrow(const xvalue* value, uint64_t identity, uint64_t ele
     }
     return owner;
 }
-XL6_Sequence* xl6SequenceBeginV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
-                        unsigned int transfer, size_t size, const xrttype* type)
+static XL6_Sequence* beginAs(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
+                        unsigned int transfer, size_t size, const xrttype* type, bool iterator)
 {
     xrtownershipscope mutation = {0}; mutationBegin(&mutation);
     XL6_Sequence* owner = borrow(value,identity,elementIdentity,transfer,size,type);
+    if (owner && owner->iterator.prepared != iterator) { xrtSetErrorKind(XERR_ARGUMENT); owner=NULL; }
     if (owner && !beginBody(owner)) owner = NULL;
     mutationEnd(&mutation); return owner;
 }
+XL6_Sequence* xl6SequenceBeginV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
+                        unsigned int transfer, size_t size, const xrttype* type)
+{ return beginAs(value,identity,elementIdentity,transfer,size,type,false); }
+XL6_Sequence* xl6SequenceIteratorBeginV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
+                        unsigned int transfer, size_t size, const xrttype* type)
+{ return beginAs(value,identity,elementIdentity,transfer,size,type,true); }
 
 /* Physical graph: each Value shell owns ONE wrapper, and the wrapper owns
  * each native reference slot once (including duplicates). Never flatten the
@@ -301,11 +314,12 @@ XL6_Sequence* xl6SequenceBeginOtherV1(const xvalue* value, uint64_t identity,
     uint64_t elementIdentity, unsigned int transfer, size_t size,
     const xrttype* type, XL6_Sequence* first)
 {
-    if (!first || !xrtAtomic32Load(&first->busy,XMEMORY_ACQUIRE)) {
+    if (!first || first->iterator.prepared || !xrtAtomic32Load(&first->busy,XMEMORY_ACQUIRE)) {
         xrtSetErrorKind(XERR_ARGUMENT); return NULL;
     }
     xrtownershipscope mutation = {0}; mutationBegin(&mutation);
     XL6_Sequence* other = borrow(value,identity,elementIdentity,transfer,size,type);
+    if (other && other->iterator.prepared) { xrtSetErrorKind(XERR_ARGUMENT); other=NULL; }
     if (other && other != first && !beginBody(other)) other = NULL;
     mutationEnd(&mutation); return other;
 }

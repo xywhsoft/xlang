@@ -134,7 +134,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_f64.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_time.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_char.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
-    {"src/runtime/xl6_nullable_string.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}}
+    {"src/runtime/xl6_nullable_string.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}},
+    {"src/runtime/xl6_array_iterator.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
