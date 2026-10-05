@@ -7492,6 +7492,30 @@ XRT_API xfuture* xrtFutureRef(xfuture* pFuture);
 /* 释放 Future 消费端引用；空指针视为空操作。 */
 XRT_API void xrtFutureDestroy(xfuture* pFuture);
 
+/* Optional, leaf-only observation state owned by the physical Future, never
+ * a second reference count or a strong Promise/Future edge. FirstObserved and
+ * FirstTerminalObserved are monotonic microseconds of first observation, not
+ * submission/completion timestamps. A terminal Future first observed now has
+ * both times equal. PendingWatches counts linked public completion Watches,
+ * including native producers/continuations, but not blocking internal waiters.
+ * Snapshot may allocate the optional state; failure leaves output unchanged.
+ * No borrowed name pointer escapes a Future lock. No callback/policy
+ * or code owner is stored in this leaf state. Claimed/cleared graphs refuse
+ * observation/mutation. These calls do not grant lifetime or cancellation. */
+typedef struct xfuturedebugsnapshot {
+	uint64 FirstObserved;
+	uint64 FirstTerminalObserved;
+	size_t PendingWatches;
+} xfuturedebugsnapshot;
+XRT_API bool xrtFutureDebugSnapshot(xfuture* pFuture, xfuturedebugsnapshot* pOutput);
+/* Return an owned, byte-exact, NUL-terminated copy. Free Output.Data with
+ * xrtFree. Embedded NUL is data. Failure leaves Output unchanged. Keep an
+ * actual Future reference during this call, not for the returned copy. */
+XRT_API bool xrtFutureDebugNameCopy(xfuture* pFuture, xstrview* pOutput);
+/* Copy exactly Size bytes, including embedded NUL. (NULL,0) sets empty.
+ * Preparation failure preserves the current name and observation state. */
+XRT_API bool xrtFutureDebugSetNameN(xfuture* pFuture, cstr Name, size_t Size);
+
 /* Borrowed views of the SAME physical control block: every FutureRef and
  * PromiseRef owns one reference. Do not invent a second Promise node.
  * Trace includes cancellation parents, error causes, forwarded source and
@@ -50361,6 +50385,7 @@ typedef struct xrt_future_waiter {
 	/* Explicit opt-in: the resident callbacks coordinate their own graph
 	 * transitions and activity/refusal states. A trace alone does not prove it. */
 	bool Phased;
+	bool PublicWatch; /* Public completion callback, not a blocking waiter. */
 	uint8 Certified; /* 0=opaque/traced, 1=direct Data owner, 2=projected owner. */
 	/* Exact ownership released by Release(Data); NULL keeps old opaque nodes
 	 * fail-closed. Fits the existing 64-byte public Watch storage on x64. */
@@ -97403,6 +97428,16 @@ struct xpromise {
 
 
 
+/* Unique raw leaf storage, folded into its Future's allocation ownership.
+ * No reference/policy/callback or graph edge is hidden in these records. */
+typedef struct xrt_future_debug {
+	char* Name;
+	size_t NameSize;
+	uint64 FirstObserved;
+	uint64 FirstTerminalObserved;
+	bool TerminalObserved;
+} xrt_future_debug;
+
 /* Future 用一个锁保护终态、结果、条件变量和内部等待链。 */
 struct xfuture {
 	volatile int32 RefCount;
@@ -97426,8 +97461,105 @@ struct xfuture {
 	xcancel* Cancel;
 	xrt_future_waiter* Waiters;
 	xrt_future_waiter* WaitersTail;
+	xrt_future_debug* Debug; /* NULL unless observation is explicitly requested. */
 	xpromise Promise;
 };
+
+/* Under the physical Future lock/mutation. Do not publish an allocation or
+ * timestamps until preparation succeeds. Observational clocks never affect
+ * completion/cancellation: this helper runs only on explicit observation. */
+static bool __xrtFutureDebugPrepareLocked(xfuture* pFuture)
+{
+	xrt_future_debug* pDebug = pFuture->Debug;
+	uint64 Now; xerror* Previous; xerror* ClockError;
+	if (pFuture->OwnershipClaim != NULL || pFuture->OwnershipCleared) {
+		__xrtErrorSetInvalidState(); return false;
+	}
+	if (pDebug != NULL && (pFuture->State == XFUTURE_PENDING ||
+		pDebug->TerminalObserved)) return true;
+	Previous=xrtTakeError(); Now=xrtClock(); ClockError=xrtTakeError();
+	if (ClockError != NULL) { xrtErrorFree(Previous); xrtSetErrorTake(ClockError); return false; }
+	xrtSetErrorTake(Previous);
+	if (pDebug == NULL) {
+		pDebug = (xrt_future_debug*)xrtCalloc(1,sizeof(*pDebug));
+		if (pDebug == NULL) return false;
+		pDebug->FirstObserved = Now;
+	}
+	if (pFuture->State != XFUTURE_PENDING) {
+		pDebug->FirstTerminalObserved = Now < pDebug->FirstObserved ? pDebug->FirstObserved : Now;
+		pDebug->TerminalObserved = true;
+	}
+	pFuture->Debug = pDebug;
+	return true;
+}
+
+XRT_API bool xrtFutureDebugSnapshot(xfuture* pFuture, xfuturedebugsnapshot* pOutput)
+{
+	xrtownershipscope Mutation = {0}; xfuturedebugsnapshot Result = {0}; bool Success;
+	if (pFuture == NULL || pOutput == NULL) { __xrtErrorSetInvalidArgument(); return false; }
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	if (!xrtMutexLock(&pFuture->Lock)) { if (!xrtOwnershipScopeEnd(&Mutation)) abort(); return false; }
+	Success = __xrtFutureDebugPrepareLocked(pFuture);
+	if (Success) {
+		const xrt_future_debug* pDebug = pFuture->Debug;
+		Result.FirstObserved = pDebug->FirstObserved;
+		Result.FirstTerminalObserved = pDebug->FirstTerminalObserved;
+		for (const xrt_future_waiter* pWaiter=pFuture->Waiters;pWaiter!=NULL;pWaiter=pWaiter->Next)
+			if (pWaiter->PublicWatch) ++Result.PendingWatches;
+	}
+	(void)xrtMutexUnlock(&pFuture->Lock);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (Success) *pOutput = Result;
+	return Success;
+}
+
+XRT_API bool xrtFutureDebugNameCopy(xfuture* pFuture, xstrview* pOutput)
+{
+	xrtownershipscope Mutation = {0}; char* Name; size_t Size; bool Success;
+	if (pFuture == NULL || pOutput == NULL) { __xrtErrorSetInvalidArgument(); return false; }
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	if (!xrtMutexLock(&pFuture->Lock)) { if (!xrtOwnershipScopeEnd(&Mutation)) abort(); return false; }
+	Size = pFuture->Debug != NULL ? pFuture->Debug->NameSize : 0;
+	/* Allocate first: a failed copy must not publish observation state. */
+	Name = (char*)xrtMalloc(Size+1);
+	Success = Name != NULL && __xrtFutureDebugPrepareLocked(pFuture);
+	if (Success) {
+		if (Size != 0) memcpy(Name,pFuture->Debug->Name,Size);
+		Name[Size]='\0';
+	}
+	(void)xrtMutexUnlock(&pFuture->Lock);
+	if (!Success) xrtFree(Name);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (Success) *pOutput = (xstrview){Name,Size};
+	return Success;
+}
+
+XRT_API bool xrtFutureDebugSetNameN(xfuture* pFuture, cstr Name, size_t Size)
+{
+	xrtownershipscope Mutation = {0}; char* pName; char* Previous = NULL; bool Success;
+	if (pFuture == NULL || Size == SIZE_MAX || !__xrtRangeValid(Name,Size)) {
+		__xrtErrorSetInvalidArgument(); return false;
+	}
+	if (!xrtOwnershipMutationBegin(&Mutation)) return false;
+	pName = (char*)xrtMalloc(Size+1);
+	if (pName == NULL) { if (!xrtOwnershipScopeEnd(&Mutation)) abort(); return false; }
+	if (Size != 0) memcpy(pName,Name,Size);
+	pName[Size] = '\0';
+	if (!xrtMutexLock(&pFuture->Lock)) {
+		xrtFree(pName); if (!xrtOwnershipScopeEnd(&Mutation)) abort(); return false;
+	}
+	Success = __xrtFutureDebugPrepareLocked(pFuture);
+	if (Success) {
+		Previous=pFuture->Debug->Name;
+		pFuture->Debug->Name=pName;
+		pFuture->Debug->NameSize=Size;
+	}
+	(void)xrtMutexUnlock(&pFuture->Lock);
+	xrtFree(Previous);
+	if (!Success) xrtFree(pName);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	return Success;
+}
 
 
 
@@ -97843,6 +97975,7 @@ static xfuture* __xrtFutureFree(xfuture* pFuture, xrtownershipscope* pMutation)
 	xerror* pError = pFuture->Error;
 	xcancel* pCancel = pFuture->Cancel;
 	bool bPhased = pFuture->OwnershipPolicy != NULL;
+	xrt_future_debug* pDebug = pFuture->Debug;
 	/* Last PromiseDestroy closes before returning its physical reference;
 	 * terminal publication or graph Finish has already returned this owner. */
 	if (pFuture->Producer.Data != NULL || pFuture->ProducerPolicy != NULL || pFuture->ProducerCancellation != NULL) abort();
@@ -97850,6 +97983,10 @@ static xfuture* __xrtFutureFree(xfuture* pFuture, xrtownershipscope* pMutation)
 	(void)xrtCondUnit(&pFuture->Ready);
 	(void)xrtMutexUnit(&pFuture->Lock);
 	xrtFree(pFuture);
+	if (pDebug != NULL) {
+		xrtFree(pDebug->Name);
+		xrtFree(pDebug);
+	}
 	/* Only explicit payload policies certify cooperative destruction. Legacy
 	 * trace-only callbacks retain their conservative mutation exclusion. */
 	if (bPhased && !xrtOwnershipScopeEnd(pMutation)) abort();
@@ -98340,6 +98477,7 @@ static bool __xrtOwnershipBody_FutureWatchInit(
 	}
 	memset(pWatch, 0, sizeof(*pWatch));
 	pImpl = __xrtFutureWatchImpl(pWatch);
+	pImpl->Waiter.PublicWatch = true;
 	pImpl->Waiter.Proc = pNotify;
 	pImpl->Waiter.Release = pRelease;
 	pImpl->Waiter.Data = pData;
@@ -201216,6 +201354,7 @@ static xfuture* __xrtOwnershipBody_FutureContinueCreate(
 	pContinue->DestroyData = pDestroyData;
 	pContinue->Mode = Mode;
 	pContinue->Waiter.Proc = __xrtFutureContinueRun;
+	pContinue->Waiter.PublicWatch = true;
 	pContinue->Waiter.Release = __xrtFutureContinueRelease;
 	pContinue->Waiter.Data = pContinue;
 	if ( pContinue->Cancel == NULL ) {
@@ -249541,6 +249680,7 @@ static xrt_task_group_item* __xrtTaskGroupItemCreate(
 	pItem->Group = pGroup;
 	pItem->Child = pChild;
 	pItem->Waiter.Proc = __xrtTaskGroupSourceDone;
+	pItem->Waiter.PublicWatch = true;
 	pItem->Waiter.Release = __xrtTaskGroupWaiterRelease;
 	pItem->Waiter.Data = pItem;
 	if ( !__xrtTaskGroupRef(pGroup) ) {

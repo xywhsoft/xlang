@@ -2033,7 +2033,8 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     if ((xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeObjectPublicationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
-         xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
+         xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrRuntimeFutureMetadataErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
         !xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin, xl6IrNodeGet(ctx->module, failureOrigin), result))
         return XL6_IR_VALUE_INVALID;
     return result;
@@ -24808,9 +24809,8 @@ static int xl6IrLowerIntrinsicFutureInspection(
     return 1;
 }
 
-/* Future metadata is a language-runtime ABI, not a direct XRT field access.
- * Typed XLIR owns the member identity and borrow contract; lowering anchors
- * rvalue Future/string operands and emits one closed RuntimeOp. */
+/* Typed XLIR owns operation/effect identity. Borrowed operands join the same
+ * evaluation-owner transaction used by other checked runtime operations. */
 static int xl6IrLowerIntrinsicFutureMetadata(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
     const XL6_IrIntrinsicCall* intrinsic, XL6_IrValueId* result)
@@ -24825,9 +24825,7 @@ static int xl6IrLowerIntrinsicFutureMetadata(
     XL6_IrValueId operands[2] = {
         XL6_IR_VALUE_INVALID, XL6_IR_VALUE_INVALID
     };
-    XL6_IrValueId loaded;
-    XL6_SymbolId futureTemporary = 0;
-    XL6_SymbolId nameTemporary = 0;
+    size_t firstOwner;
     int setsName;
     int returnsName;
     size_t operandCount;
@@ -24847,7 +24845,7 @@ static int xl6IrLowerIntrinsicFutureMetadata(
          intrinsic->resultAbi != (returnsName
              ? XL6_IR_INTRINSIC_RESULT_OWNED
              : XL6_IR_INTRINSIC_RESULT_VALUE) ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) return 0;
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) return 0;
     bindings = &ctx->module->intrinsicOperands[intrinsic->firstOperand];
     source = xl6IrNodeGet(ctx->module, bindings[0].expression);
     sourceType = source != NULL
@@ -24880,37 +24878,21 @@ static int xl6IrLowerIntrinsicFutureMetadata(
             "XLIR Future metadata operation requires an exact borrowed Future, optional managed name and result ABI");
         return 1;
     }
+    firstOwner = ctx->evaluationOwnerCount;
     operands[0] = xl6IrLowerNode(ctx, bindings[0].expression);
     if ( operands[0] == XL6_IR_VALUE_INVALID ) return 1;
-    if ( source->valueCategory == XL6_IR_VALUE_RVALUE ) {
-        futureTemporary = xl6IrLowerNewTempStorage(
-            ctx, source->storageType, id);
-        if ( futureTemporary == 0 ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, bindings[0].expression,
-                              source->storageType, futureTemporary,
-                              &operands[0], 1, NULL) ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, bindings[0].expression,
-                              source->storageType, futureTemporary,
-                              NULL, 0, &loaded) ) return 1;
-        operands[0] = loaded;
-    }
+    operands[0] = xl6IrLowerProtectOwnedBorrow(ctx, id, operands[0]);
+    if ( operands[0] == XL6_IR_VALUE_INVALID ) return 1;
     if ( setsName ) {
         operands[1] = xl6IrLowerNode(ctx, bindings[1].expression);
         if ( operands[1] == XL6_IR_VALUE_INVALID ) return 1;
-        operands[1] = xl6IrLowerBorrowManagedStringOperand(
-            ctx, id, name, operands[1], &nameTemporary);
+        operands[1] = xl6IrLowerProtectOwnedBorrow(ctx, id, operands[1]);
         if ( operands[1] == XL6_IR_VALUE_INVALID ) return 1;
     }
     *result = xl6IrLowerEmitRuntimeCall(
         ctx, id, call->storageType, runtimeOp, operands, operandCount);
     if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if ( nameTemporary != 0 && !xl6IrLowerEmit(
-             ctx, XL6_IR_INSTR_RELEASE, bindings[1].expression,
-             name->storageType, nameTemporary, NULL, 0, NULL) )
-        *result = XL6_IR_VALUE_INVALID;
-    if ( futureTemporary != 0 && !xl6IrLowerEmit(
-             ctx, XL6_IR_INSTR_RELEASE, bindings[0].expression,
-             source->storageType, futureTemporary, NULL, 0, NULL) )
+    if (!xl6IrLowerCompleteEvaluationBorrows(ctx, id, firstOwner, result))
         *result = XL6_IR_VALUE_INVALID;
     return 1;
 }

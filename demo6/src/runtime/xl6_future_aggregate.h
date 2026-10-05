@@ -9,26 +9,22 @@ struct xrtownershipadapterv1;
 struct xfuturecombineownershipv1;
 typedef struct xvalue* (*XL6_FutureAggregateBoxV1)(const void*);
 
-/* One resident bridge to the native ALL/ANY producer. All borrows ordered
- * input slots (duplicates included); array forms unpack the verified xvalue
- * Future carrier in the same resident implementation. NULL Box explicitly
- * selects void All; otherwise it boxes one borrowed successful payload.
- * A non-NULL Box must be protected by the supplied module owner, or an
- * explicitly externally-resident NULL owner. Acquisition inherits only this
- * thread's accepted same-owner CodeScope, otherwise it needs fresh admission.
- * Caller pins its entry code through preparation and failure rollback.
- * NULL return consumes no input and invokes no boxer; every accepted callback,
- * result, cancellation and source cleanup follows the native producer path.
- * This table does not prove multi-input deadlock or grant cancellation rights. */
-typedef struct XL6_FutureAggregateRuntimeV1 {
-    struct xfuture* (*All)(struct xfuture* const*, size_t, XL6_FutureAggregateBoxV1, const XL6_CodeOwner*);
-    struct xfuture* (*Race)(struct xfuture* const*, size_t);
-    struct xfuture* (*WhenAnyIndex)(struct xfuture* const*, size_t);
-    struct xfuture* (*AllArray)(const struct xvalue*, XL6_FutureAggregateBoxV1, const XL6_CodeOwner*);
-    struct xfuture* (*RaceArray)(const struct xvalue*);
-    struct xfuture* (*WhenAnyIndexArray)(const struct xvalue*);
-} XL6_FutureAggregateRuntimeV1;
-XL6_CODE_LEASE_API const XL6_FutureAggregateRuntimeV1* xl6FutureAggregateRuntimeV1Get(void);
+/* Direct owned-mapper ABI. Native lists select the shared kernel; Array forms
+ * also select the input adapter. NULL Box selects void All; otherwise the
+ * supplied module owner (or an explicitly resident NULL owner) protects Box.
+ * Scoped admission, producer cancellation and ownership graphs stay unchanged.
+ * Input order and duplicate owning edges are preserved. NULL return consumes
+ * no input and invokes no boxer; caller pins entry code through rollback.
+ * No function table or borrowed Array/slot escapes the synchronous adapter.
+ * These entries do not grant cancellation rights or certify deadlock. */
+XL6_CODE_LEASE_API struct xfuture* xl6FutureAggregateAllV2(struct xfuture* const*, size_t,
+    XL6_FutureAggregateBoxV1, const XL6_CodeOwner*);
+XL6_CODE_LEASE_API struct xfuture* xl6FutureAggregateRaceV2(struct xfuture* const*, size_t);
+XL6_CODE_LEASE_API struct xfuture* xl6FutureAggregateWhenAnyIndexV2(struct xfuture* const*, size_t);
+XL6_CODE_LEASE_API struct xfuture* xl6FutureAggregateAllArrayV2(const struct xvalue*,
+    XL6_FutureAggregateBoxV1, const XL6_CodeOwner*);
+XL6_CODE_LEASE_API struct xfuture* xl6FutureAggregateRaceArrayV2(const struct xvalue*);
+XL6_CODE_LEASE_API struct xfuture* xl6FutureAggregateWhenAnyIndexArrayV2(const struct xvalue*);
 /* Exact resident identity. Recognizing the native group does not admit this
  * mapper or its code owner; the host must independently resolve every node. */
 XL6_CODE_LEASE_API const struct xfuturecombineownershipv1* xl6FutureAggregatePolicyV1Get(void);

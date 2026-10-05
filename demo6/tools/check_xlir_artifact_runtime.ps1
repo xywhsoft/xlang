@@ -15,7 +15,8 @@ try {
         'xlir_task_aggregate_array_abi','xlir_task_when_any_array_abi','xlir_artifact_linkage_literal',
         'cgen_closure_ownership','cgen_generator','cgen_generator_two_targets','cgen_channel_string',
         'xlir_cell_loop_binding','xlir_nullable_cell_capture','cgen_function_value_error_propagation','xlir_generator_string_machine',
-        'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring') }
+        'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring',
+        'stdlib_future_aggregate_variadic_only','stdlib_future_aggregate_array_only','stdlib_future_metadata_only') }
     $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
     $processInputs=@()
     if('stdlib_process_extended'-in$cases-or'stdlib_process_run_bytes'-in$cases-or'stdlib_process_run_allocations'-in$cases-or'stdlib_process_file_bytes'-in$cases-or'stdlib_process_terminal_session'-in$cases-or'stdlib_process_terminal_allocations'-in$cases-or @($cases|Where-Object {$_-like'stdlib_process_live_*'-or$_-like'stdlib_process_future*'}).Count){
@@ -143,6 +144,16 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-in@('stdlib_future_aggregate_variadic_only','stdlib_future_aggregate_array_only','stdlib_future_metadata_only')){
+                    $metadata=$case-eq'stdlib_future_metadata_only'
+                    $arrayInput=$case-eq'stdlib_future_aggregate_array_only'
+                    $selectionMatches=(('src/runtime/xl6_future_aggregate.c'-in$selectedSources)-eq!$metadata)-and
+                        (('src/runtime/xl6_future_aggregate_array.c'-in$selectedSources)-eq$arrayInput)-and
+                        (('src/runtime/xl6_array_input.c'-in$selectedSources)-eq$arrayInput)-and
+                        (('src/runtime/xl6_sequence.c'-in$selectedSources)-eq$arrayInput)-and
+                        (('src/runtime/xl6_future_metadata.c'-in$selectedSources)-eq$metadata)-and
+                        'src/api/xl_future_bridge.c'-notin$selectedSources
+                }
                 if($case-eq'stdlib_text_join_only'){
                     $selectionMatches='src/runtime/xl6_text_join.c'-in$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!join\.)'}).Count-and

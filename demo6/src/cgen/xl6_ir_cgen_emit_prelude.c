@@ -473,30 +473,19 @@ static int xl6IrCgenEmitRuntimePrelude(
                               "static xerror* xlir_future_error_ref(xfuture* future)\n"
                               "{ const xerror* error = future != NULL ? xrtFutureError(future) : NULL; return error != NULL ? xrtErrorRef(error) : NULL; }\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 10)) != 0 )
-                xl6OutputPuts("extern bool xl6FutureSetName(xfuture*, const char*);\n"
-                              "static bool xlir_future_set_debug_name(xfuture* future, xlir_string name)\n"
-                              "{ const char* text = xlir_string_cstr(name); return future != NULL && text != NULL && xl6FutureSetName(future, text); }\n", out);
+                xl6OutputPuts("extern bool xl6FutureDebugNameSetV2(xfuture*, xlir_string);\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 11)) != 0 )
-                xl6OutputPuts("extern const char* xl6FutureName(xfuture*);\n"
-                              "extern char* xrtStrDup(const char*);\n"
-                              "static xlir_string xlir_future_debug_name_copy(xfuture* future)\n"
-                              "{ const char* name = future != NULL ? xl6FutureName(future) : NULL; return xlir_string_from_utf8(name != NULL ? name : \"\", name != NULL ? strlen(name) : 0); }\n", out);
+                xl6OutputPuts("extern xlir_string xl6FutureDebugNameCopyV2(xfuture*);\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 12)) != 0 )
-                xl6OutputPuts("extern unsigned long long xl6FutureCreatedMs(xfuture*);\n"
-                              "static int64_t xlir_future_create_time_ms(xfuture* future)\n"
-                              "{ return future != NULL ? (int64_t)xl6FutureCreatedMs(future) : INT64_C(0); }\n", out);
+                xl6OutputPuts("extern int64_t xl6FutureFirstObservedMsV2(xfuture*);\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 13)) != 0 )
-                xl6OutputPuts("extern unsigned long long xl6FutureCompletedMs(xfuture*);\n"
-                              "static int64_t xlir_future_complete_time_ms(xfuture* future)\n"
-                              "{ return future != NULL ? (int64_t)xl6FutureCompletedMs(future) : INT64_C(0); }\n", out);
+                xl6OutputPuts("extern int64_t xl6FutureFirstTerminalObservedMsV2(xfuture*);\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 14)) != 0 )
-                xl6OutputPuts("extern int xl6FuturePendingCount(xfuture*);\n"
-                              "static int64_t xlir_future_pending_continuations(xfuture* future)\n"
-                              "{ return future != NULL ? (int64_t)xl6FuturePendingCount(future) : INT64_C(0); }\n", out);
+                xl6OutputPuts("extern int64_t xl6FuturePendingWatchesV2(xfuture*);\n", out);
         }
         if (needs->needsFutureAggregateAll || needs->needsFutureAggregateRace || needs->needsFutureAggregateWhenAny ||
             needs->needsFutureAggregateAllArray || needs->needsFutureAggregateRaceArray || needs->needsFutureAggregateWhenAnyArray) {
-            if (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1)
+            if (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2)
                 return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR Future aggregate mapper ABI is unresolved");
             xl6OutputPuts("#include <__xl_runtime/xl6_future_aggregate.h>\n", out);
             xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT

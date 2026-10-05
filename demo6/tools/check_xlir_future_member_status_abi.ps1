@@ -74,12 +74,14 @@ foreach ( $entry in $expected.GetEnumerator() ) {
         })[0]
         $returnsError = $intrinsic.kindName -eq "future-error"
         $returnsName = $intrinsic.kindName -eq "future-debug-name"
+        $isMetadata = $intrinsic.kindName -in @('future-set-debug-name','future-debug-name',
+            'future-create-time-ms','future-complete-time-ms','future-pending-continuations')
         $returnsI64 = $intrinsic.kindName -in @(
             "future-state", "future-status", "future-create-time-ms",
             "future-complete-time-ms", "future-pending-continuations")
         if ( $intrinsic.admissionName -ne "verified" -or
              $intrinsic.resultAbiName -ne $(if ( $returnsError -or $returnsName ) { "owned" } else { "value" }) -or
-             $intrinsic.errorAbiName -ne "no-raise" -or
+             $intrinsic.errorAbiName -ne $(if ($isMetadata) { 'may-raise' } else { 'no-raise' }) -or
              $intrinsic.operandCount -ne $(if ( $takesTime -or $takesName ) { 2 } else { 1 }) -or
              $operands.Count -ne $intrinsic.operandCount -or
              $operands[0].abiName -ne "borrow" -or
@@ -148,6 +150,8 @@ foreach ( $entry in $runtimeExpected.GetEnumerator() ) {
         $takesName = $operation.runtimeOpName -eq "future-set-debug-name"
         $returnsError = $operation.runtimeOpName -eq "future-error-ref"
         $returnsName = $operation.runtimeOpName -eq "future-debug-name-copy"
+        $isMetadata = $operation.runtimeOpName -in @('future-set-debug-name','future-debug-name-copy',
+            'future-create-time-ms','future-complete-time-ms','future-pending-continuations')
         $returnsI64 = $operation.runtimeOpName -in @(
             "future-state", "future-status", "future-create-time-ms",
             "future-complete-time-ms", "future-pending-continuations")
@@ -174,6 +178,14 @@ foreach ( $entry in $runtimeExpected.GetEnumerator() ) {
              $null -eq $receiverType -or $receiverType.name -ne "future" -or
              @($receiverType.params).Count -ne 1 ) {
             throw "XLIR Future member Lowered RuntimeOp ABI is incomplete for $($entry.Key)"
+        }
+        if ($isMetadata) {
+            $index=[array]::IndexOf([object[]]$lowered.instructions,$operation)
+            $test=$lowered.instructions[$index+1]
+            if ($index-lt0-or$test.kindName-ne'error-test'-or$test.operandCount-ne1-or
+                $test.operands[0]-ne$operation.result-or$test.trueTarget-eq$test.falseTarget) {
+                throw "Fallible Future metadata is missing an immediate distinct outcome: $($entry.Key)"
+            }
         }
         if ( $takesTime ) {
             $timeDefinition = @($lowered.instructions | Where-Object {
@@ -227,11 +239,11 @@ foreach ( $required in @(
     "static int64_t xlir_future_state(xfuture* future)",
     "static int64_t xlir_future_status(xfuture* future)",
     "static xerror* xlir_future_error_ref(xfuture* future)",
-    "static bool xlir_future_set_debug_name(xfuture* future, const char* name)",
-    "static char* xlir_future_debug_name_copy(xfuture* future)",
-    "static int64_t xlir_future_create_time_ms(xfuture* future)",
-    "static int64_t xlir_future_complete_time_ms(xfuture* future)",
-    "static int64_t xlir_future_pending_continuations(xfuture* future)",
+    "extern bool xl6FutureDebugNameSetV2(xfuture*, xlir_string);",
+    "extern xlir_string xl6FutureDebugNameCopyV2(xfuture*);",
+    "extern int64_t xl6FutureFirstObservedMsV2(xfuture*);",
+    "extern int64_t xl6FutureFirstTerminalObservedMsV2(xfuture*);",
+    "extern int64_t xl6FuturePendingWatchesV2(xfuture*);",
     "xrtFutureWaitFor(future, xlir_future_milliseconds(milliseconds))",
     "xrtFutureWaitUntil(future, xlir_future_milliseconds(milliseconds))",
     "xrtFutureState(future) == XFUTURE_RESOLVED",
@@ -240,9 +252,9 @@ foreach ( $required in @(
     " = xlir_future_is_pending(", " = xlir_future_is_cancelled(",
     " = xlir_future_is_failed(", " = xlir_future_state(",
     " = xlir_future_status(", " = xlir_future_error_ref(",
-    " = xlir_future_set_debug_name(", " = xlir_future_debug_name_copy(",
-    " = xlir_future_create_time_ms(", " = xlir_future_complete_time_ms(",
-    " = xlir_future_pending_continuations("
+    " = xl6FutureDebugNameSetV2(", " = xl6FutureDebugNameCopyV2(",
+    " = xl6FutureFirstObservedMsV2(", " = xl6FutureFirstTerminalObservedMsV2(",
+    " = xl6FuturePendingWatchesV2("
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR Future member generated C is missing mechanical RuntimeOp emission: $required"
@@ -250,7 +262,8 @@ foreach ( $required in @(
 }
 foreach ( $forbidden in @(
     "xl6FutureWait(", "xl6FutureWaitFor(", "xl6FutureWaitUntil(",
-    "xl6FutureState(", "waitTimeout", "isCancelled"
+    "xl6FutureState(", "waitTimeout", "isCancelled", "xl6FutureName(",
+    "xlir_future_set_debug_name(", "xlir_future_debug_name_copy("
 ) ) {
     if ( $c.Contains($forbidden) ) {
         throw "XLIR Future member Cgen guessed legacy/source semantics: $forbidden"

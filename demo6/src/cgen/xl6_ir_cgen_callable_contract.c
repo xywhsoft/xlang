@@ -865,15 +865,15 @@ static const char* xl6IrCgenFutureMemberHelper(XL6_IrRuntimeOp operation)
     case XL6_IR_RUNTIME_FUTURE_STATUS: return "xlir_future_status";
     case XL6_IR_RUNTIME_FUTURE_ERROR_REF: return "xlir_future_error_ref";
     case XL6_IR_RUNTIME_FUTURE_SET_DEBUG_NAME:
-        return "xlir_future_set_debug_name";
+        return "xl6FutureDebugNameSetV2";
     case XL6_IR_RUNTIME_FUTURE_DEBUG_NAME_COPY:
-        return "xlir_future_debug_name_copy";
+        return "xl6FutureDebugNameCopyV2";
     case XL6_IR_RUNTIME_FUTURE_CREATE_TIME_MS:
-        return "xlir_future_create_time_ms";
+        return "xl6FutureFirstObservedMsV2";
     case XL6_IR_RUNTIME_FUTURE_COMPLETE_TIME_MS:
-        return "xlir_future_complete_time_ms";
+        return "xl6FutureFirstTerminalObservedMsV2";
     case XL6_IR_RUNTIME_FUTURE_PENDING_CONTINUATIONS:
-        return "xlir_future_pending_continuations";
+        return "xl6FuturePendingWatchesV2";
     default: return NULL;
     }
 }

@@ -9,9 +9,33 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
 #include <windows.h>
+typedef HMODULE AggregateLibrary;
+typedef FARPROC AggregateSymbol;
+static AggregateLibrary libraryOpen(const char* path) { return LoadLibraryA(path); }
+static AggregateSymbol librarySymbol(AggregateLibrary library,const char* name) { return GetProcAddress(library,name); }
+static void libraryCloseUnmapped(AggregateLibrary library,void* address)
+{
+    MEMORY_BASIC_INFORMATION memory;
+    assert(FreeLibrary(library));
+    assert(VirtualQuery(address,&memory,sizeof(memory))==sizeof(memory) && memory.State==MEM_FREE);
+}
+#else
+#include <dlfcn.h>
+#include <pthread.h>
+#include <time.h>
+typedef void* AggregateLibrary;
+typedef void* AggregateSymbol;
+static AggregateLibrary libraryOpen(const char* path) { return dlopen(path,RTLD_NOW|RTLD_LOCAL); }
+static AggregateSymbol librarySymbol(AggregateLibrary library,const char* name) { return dlsym(library,name); }
+static void libraryCloseUnmapped(AggregateLibrary library,void* address)
+{
+    Dl_info info;
+    assert(dlclose(library)==0 && dladdr(address,&info)==0);
+}
+#endif
 
-static const XL6_FutureAggregateRuntimeV1* api;
 static void balanced(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
@@ -22,7 +46,7 @@ static void balanced(const xmemdebugsnapshot* before)
 }
 typedef struct Owner {
     XL6_CodeOwnerGraph descriptor; unsigned pins, acquired, released, unmapped;
-    bool closed; HMODULE library; void* address; AggregateBoxHooks hooks;
+    bool closed; AggregateLibrary library; void* address; AggregateBoxHooks hooks;
     XL6_FutureAggregateBoxV1 parent, child;
     xfuture *childSource, *childOutput; xpromise* childPromise;
 } Owner;
@@ -30,13 +54,12 @@ static int acquire(void* data)
 { Owner* owner = data; if (owner->closed) return 0; ++owner->pins; ++owner->acquired; return 1; }
 static void release(void* data)
 {
-    Owner* owner = data; MEMORY_BASIC_INFORMATION memory;
+    Owner* owner = data;
     assert(owner->pins && !xl6CodeOwnerScopeActive(&owner->descriptor.base));
     --owner->pins; ++owner->released;
     if (!owner->pins && owner->library) {
         assert(owner->closed && owner->hooks.calls == 3 && owner->hooks.children == 2 && owner->hooks.returned == 5);
-        assert(FreeLibrary(owner->library));
-        assert(VirtualQuery(owner->address, &memory, sizeof(memory)) == sizeof(memory) && memory.State == MEM_FREE);
+        libraryCloseUnmapped(owner->library,owner->address);
         ++owner->unmapped;
     }
 }
@@ -47,13 +70,17 @@ static bool trace(const void* data, xrtownershipvisitor visit, void* context)
 static const xrtownershipops ownerOps = {count, trace};
 static xvalue* box_scalar(const void* input) { return xrtValueInt(*(const int64_t*)input); }
 static xvalue* box_int(int64_t value) { return xrtValueInt(value); }
+#ifdef _WIN32
 static DWORD WINAPI unrelated_thread(void* data)
+#else
+static void* unrelated_thread(void* data)
+#endif
 {
     Owner* owner = data; xfuture* inputs[] = {owner->childSource};
     xrtownershipscope freeze = {0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
     assert(xl6CodeOwnerScopeActive(&owner->descriptor.base)); /* active on the other thread */
     assert(xrtOwnershipScopeEnd(&freeze));
-    assert(!api->All(inputs, 1, owner->child, &owner->descriptor.base) && xrtGetError());
+    assert(!xl6FutureAggregateAllV2(inputs, 1, owner->child, &owner->descriptor.base) && xrtGetError());
     xrtClearError(); return 0;
 }
 static void during(void* data, unsigned child)
@@ -65,10 +92,17 @@ static void during(void* data, unsigned child)
     assert(xrtOwnershipScopeEnd(&freeze));
     if (!child && !owner->childPromise) {
         owner->childPromise = xrtPromiseCreate(&owner->childSource, NULL); assert(owner->childPromise);
+#ifdef _WIN32
         HANDLE thread = CreateThread(NULL, 0, unrelated_thread, owner, 0, NULL); assert(thread);
         assert(WaitForSingleObject(thread, 10000) == WAIT_OBJECT_0 && CloseHandle(thread));
+#else
+        pthread_t thread; struct timespec limit;
+        assert(pthread_create(&thread,NULL,unrelated_thread,owner)==0);
+        assert(clock_gettime(CLOCK_REALTIME,&limit)==0); limit.tv_sec+=10;
+        assert(pthread_timedjoin_np(thread,NULL,&limit)==0);
+#endif
         xfuture* inputs[] = {owner->childSource, owner->childSource};
-        owner->childOutput = api->All(inputs, 2, owner->child, &owner->descriptor.base);
+        owner->childOutput = xl6FutureAggregateAllV2(inputs, 2, owner->child, &owner->descriptor.base);
         assert(owner->childOutput && !xrtFutureDone(owner->childOutput) && owner->acquired == 1);
     }
 }
@@ -88,16 +122,18 @@ static void code_graph(Owner*, xfuture*);
 static void dll_round(const char* path)
 {
     Owner owner = {0}; xmemdebugsnapshot before; xfuture *source = NULL, *output; xpromise* promise;
-    xrtMemDebugSnapshot(&before); owner.library = LoadLibraryA(path); assert(owner.library);
-    FARPROC proc = GetProcAddress(owner.library, "aggregate_owner_box"); memcpy(&owner.parent, &proc, sizeof(proc)); owner.address = (void*)proc;
-    proc = GetProcAddress(owner.library, "aggregate_owner_child_box"); memcpy(&owner.child, &proc, sizeof(proc)); assert(owner.parent && owner.child);
+    xrtMemDebugSnapshot(&before); owner.library = libraryOpen(path); assert(owner.library);
+    AggregateSymbol proc = librarySymbol(owner.library,"aggregate_owner_box");
+    _Static_assert(sizeof(proc)==sizeof(owner.parent),"Host symbol and callback pointer representations must match");
+    memcpy(&owner.parent,&proc,sizeof(proc)); owner.address=(void*)proc;
+    proc=librarySymbol(owner.library,"aggregate_owner_child_box"); memcpy(&owner.child,&proc,sizeof(proc)); assert(owner.parent && owner.child);
     owner.descriptor = (XL6_CodeOwnerGraph){{sizeof(owner.descriptor), &owner, acquire, release}, 0x584C36434F574E31ULL, &ownerOps};
     owner.hooks = (AggregateBoxHooks){box_int, during, &owner, 0, 0, 0};
     promise = xrtPromiseCreate(&source, NULL); assert(promise); xfuture* inputs[] = {source, source, source};
-    output = api->All(inputs, 3, owner.parent, &owner.descriptor.base); assert(output && owner.pins == 1 && owner.acquired == 1);
+    output = xl6FutureAggregateAllV2(inputs, 3, owner.parent, &owner.descriptor.base); assert(output && owner.pins == 1 && owner.acquired == 1);
     code_graph(&owner, output);
     owner.closed = true;
-    assert(!api->All(inputs, 3, owner.parent, &owner.descriptor.base) && xrtGetError()); xrtClearError();
+    assert(!xl6FutureAggregateAllV2(inputs, 3, owner.parent, &owner.descriptor.base) && xrtGetError()); xrtClearError();
     publish(promise, 42, &owner.hooks); check_result(output, 3, 42);
     assert(owner.hooks.calls == 3 && owner.hooks.returned == 3 && !owner.released && owner.pins == 1);
     code_graph(&owner, owner.childOutput);
@@ -160,7 +196,7 @@ static void graph_round(unsigned mode)
     xmemdebugsnapshot before; xfuture *source = NULL, *output; xrtownershipscope freeze = {0};
     xrtMemDebugSnapshot(&before); xpromise* promise = xrtPromiseCreate(&source, NULL); assert(promise);
     xfuture* inputs[] = {source, source, source};
-    output = mode == 0 ? api->All(inputs, 3, box_scalar, NULL) : mode == 1 ? api->Race(inputs, 3) : api->WhenAnyIndex(inputs, 3); assert(output);
+    output = mode == 0 ? xl6FutureAggregateAllV2(inputs, 3, box_scalar, NULL) : mode == 1 ? xl6FutureAggregateRaceV2(inputs, 3) : xl6FutureAggregateWhenAnyIndexV2(inputs, 3); assert(output);
     assert(xrtOwnershipFreezeTryBegin(&freeze)); Graph graph = {0}; assert(collect(xrtFutureOwnership(output), &graph));
     unsigned maps = 0, groups = 0, watches = 0;
     for (size_t i = 0; i < graph.count; ++i) {
@@ -209,7 +245,7 @@ static unsigned allocation_failures(void)
             assert(xrtValueArrayAppendNew(array, xrtValueFuture(source)) && xrtValueArrayAppendNew(array, xrtValueFuture(source)));
             if (ready) publish(promise, 42, NULL);
             assert(xrtMemDebugFailAfter(point));
-            output = arrayForm ? api->AllArray(array, box_scalar, &owner.descriptor.base) : api->All(inputs, 2, box_scalar, &owner.descriptor.base);
+            output = arrayForm ? xl6FutureAggregateAllArrayV2(array, box_scalar, &owner.descriptor.base) : xl6FutureAggregateAllV2(inputs, 2, box_scalar, &owner.descriptor.base);
             bool triggered = xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xrtClearError();
             if (!output) {
                 ++failures; ++localFailures; assert(triggered && owner.pins == 1 && owner.acquired == owner.released);
@@ -233,7 +269,7 @@ static unsigned allocation_failures(void)
 }
 int main(int argc, char** argv)
 {
-    assert(argc == 2 && xrtMemDebugEnable(true)); api = xl6FutureAggregateRuntimeV1Get();
+    assert(argc == 2 && xrtMemDebugEnable(true));
     xrtSetErrorKind(XERR_STATE); xrtClearError(); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
     for (unsigned round = 0; round < 100; ++round) { dll_round(argv[1]); for (unsigned mode = 0; mode < 3; ++mode) graph_round(mode); legacy_refusal(); }
     assert(allocation_failures());

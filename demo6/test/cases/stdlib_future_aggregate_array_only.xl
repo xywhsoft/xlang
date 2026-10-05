@@ -1,0 +1,15 @@
+async func aggregateArrayText() as string
+    return "a\0你"
+end
+
+future<string> first = aggregateArrayText()
+future<string> second = aggregateArrayText()
+assert first.wait() and second.wait()
+array<future<string>> inputs = array[first, first, second]
+array<string> values = await task.all(inputs)
+assert values.length == 3
+assert values[0] == "a\0你" and values[1] == values[0] and values[2] == values[0]
+assert await task.race(inputs) == "a\0你"
+int index = await task.whenAny(inputs)
+assert index >= 0 and index < 3
+println("Array aggregate direct ABI ok")

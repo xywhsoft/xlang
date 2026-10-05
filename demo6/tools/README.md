@@ -502,3 +502,13 @@ tests additionally exercise fallible defaults, reverse cleanup, primary errors,
 allocator reentry and over-alignment; this is not a Cgen compensating adapter.
 Neither native language Array migration nor whole 53-module acceptance is claimed
 by this gate.
+
+`check_stdlib_array_input.py` also validates the split Future aggregate V2 ABI
+and optional native-owned metadata. Its metadata host instruments the resident
+metadata/legacy bridge on Linux and checks exact owned UTF-8/NUL names, 1000
+physical lifetimes, accepted-thread cooperative cancellation, and fourteen
+complete O0/O2 allocation prefixes. Shared XRT remains outside this sanitizer
+scope. `xlir_future_metadata_contract.c` rejects typed no-raise/borrow corruption
+and missing or merged lowered error outcomes before C/header emission. The
+metadata-only product must omit the aggregate kernel, Array adapter and legacy
+Future bridge. Observation times are not actual task submission/completion.

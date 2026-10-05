@@ -65,7 +65,6 @@ XL_API bool xl6FutureWait(xfuture* pFuture);
 XL_API bool xl6FutureWaitFor(xfuture* pFuture, long long iTimeoutMs);
 XL_API bool xl6FutureWaitUntil(xfuture* pFuture, long long iDeadlineMs);
 XL_API bool xl6FutureSetName(xfuture* pFuture, const char* sName);
-XL_API const char* xl6FutureName(xfuture* pFuture);
 XL_API unsigned long long xl6FutureCreatedMs(xfuture* pFuture);
 XL_API unsigned long long xl6FutureCompletedMs(xfuture* pFuture);
 XL_API int xl6FuturePendingCount(xfuture* pFuture);

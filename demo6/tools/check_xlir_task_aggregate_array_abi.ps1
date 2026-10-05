@@ -142,8 +142,8 @@ foreach ( $required in @(
     "xrtValueFuture(v",
     "#include <__xl_runtime/xl6_future_aggregate.h>",
     "xlir_future_aggregate_owner",
-    " = (xl6FutureAggregateRuntimeV1Get()->AllArray)(v",
-    " = (xl6FutureAggregateRuntimeV1Get()->RaceArray)(v"
+    " = xl6FutureAggregateAllArrayV2(v",
+    " = xl6FutureAggregateRaceArrayV2(v"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR task aggregate array generated C is missing mechanical ABI emission: $required"

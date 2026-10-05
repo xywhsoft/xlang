@@ -36,6 +36,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_nullable_c_scalar_admission.c',
     'src/runtime/xl6_array_numeric_enum_admission.c',
     'src/runtime/xl6_array_callable_admission.c','src/runtime/xl6_array_input.c',
+    'src/runtime/xl6_future_aggregate.c','src/runtime/xl6_future_aggregate_array.c',
+    'src/runtime/xl6_future_metadata.c',
     'src/runtime/xl6_nullable_native_i8.c',
     'src/runtime/xl6_nullable_native_i8_value.c',
     'src/runtime/xl6_nullable_native_u8.c',

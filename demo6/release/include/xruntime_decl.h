@@ -10017,6 +10017,30 @@ XRT_API xfuture* xrtFutureRef(xfuture* pFuture);
 /* 释放 Future 消费端引用；空指针视为空操作。 */
 XRT_API void xrtFutureDestroy(xfuture* pFuture);
 
+/* Optional, leaf-only observation state owned by the physical Future, never
+ * a second reference count or a strong Promise/Future edge. FirstObserved and
+ * FirstTerminalObserved are monotonic microseconds of first observation, not
+ * submission/completion timestamps. A terminal Future first observed now has
+ * both times equal. PendingWatches counts linked public completion Watches,
+ * including native producers/continuations, but not blocking internal waiters.
+ * Snapshot may allocate the optional state; failure leaves output unchanged.
+ * No borrowed name pointer escapes a Future lock. No callback/policy
+ * or code owner is stored in this leaf state. Claimed/cleared graphs refuse
+ * observation/mutation. These calls do not grant lifetime or cancellation. */
+typedef struct xfuturedebugsnapshot {
+	uint64 FirstObserved;
+	uint64 FirstTerminalObserved;
+	size_t PendingWatches;
+} xfuturedebugsnapshot;
+XRT_API bool xrtFutureDebugSnapshot(xfuture* pFuture, xfuturedebugsnapshot* pOutput);
+/* Return an owned, byte-exact, NUL-terminated copy. Free Output.Data with
+ * xrtFree. Embedded NUL is data. Failure leaves Output unchanged. Keep an
+ * actual Future reference during this call, not for the returned copy. */
+XRT_API bool xrtFutureDebugNameCopy(xfuture* pFuture, xstrview* pOutput);
+/* Copy exactly Size bytes, including embedded NUL. (NULL,0) sets empty.
+ * Preparation failure preserves the current name and observation state. */
+XRT_API bool xrtFutureDebugSetNameN(xfuture* pFuture, cstr Name, size_t Size);
+
 /* Borrowed views of the SAME physical control block: every FutureRef and
  * PromiseRef owns one reference. Do not invent a second Promise node.
  * Trace includes cancellation parents, error causes, forwarded source and

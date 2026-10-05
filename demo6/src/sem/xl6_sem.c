@@ -12742,6 +12742,7 @@ static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
     const XL6_AstNode* concreteReceiverType;
     int expectedCount;
     int isContinuation;
+    int isMetadata;
 
     if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
         return -1;
@@ -12760,7 +12761,12 @@ static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
     isContinuation = xl6TextEquals(member->text, "then") ||
                      xl6TextEquals(member->text, "catch") ||
                      xl6TextEquals(member->text, "finally");
-    if ( (receiver == NULL || receiver->kind != XL6_AST_NAME) && !isContinuation ) {
+    isMetadata = xl6TextEquals(member->text, "setDebugName") ||
+                 xl6TextEquals(member->text, "debugName") ||
+                 xl6TextEquals(member->text, "createTimeMs") ||
+                 xl6TextEquals(member->text, "completeTimeMs") ||
+                 xl6TextEquals(member->text, "pendingContinuations");
+    if ( (receiver == NULL || receiver->kind != XL6_AST_NAME) && !isContinuation && !isMetadata ) {
         xl6SemErrorNode(ctx, receiver != NULL ? receiver : member, "future receiver 当前只支持具名变量");
         xl6AstFree(receiverType);
         return 0;

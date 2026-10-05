@@ -167,7 +167,7 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR async-error race C generation failed" }
 $raceC = [System.IO.File]::ReadAllText(
     $raceGeneratedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "(xl6FutureAggregateRuntimeV1Get()->Race)(",
+    "xl6FutureAggregateRaceV2(",
     "xerror* const* payload = (xerror* const*)(xrtFutureValue(",
     "*payload != NULL ? xrtErrorRef(*payload) : NULL;",
     "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR);"
@@ -278,7 +278,7 @@ foreach ( $required in @(
     "static xvalue* xlir_xvalue_error_ref(const xerror* error, uint64_t typeId)",
     "static xerror* xlir_xvalue_project_error_ref(const xvalue* value, uint64_t typeId)",
     "if (xrtValueType(value) == 0) return NULL;",
-    "(xl6FutureAggregateRuntimeV1Get()->All)(",
+    "xl6FutureAggregateAllV2(",
     "xerror* const* payload = (xerror* const*)(xrtFutureValue("
 ) ) {
     if ( ! $allC.Contains($required) ) {

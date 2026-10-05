@@ -83,13 +83,13 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                         if ( instruction->asyncResultAbi ==
                              XL6_IR_ASYNC_RESULT_VOID )
                             xl6OutputPrintf(out,
-                                "    v%u = (xl6FutureAggregateRuntimeV1Get()->AllArray)(v%u, NULL, NULL);\n",
+                                "    v%u = xl6FutureAggregateAllArrayV2(v%u, NULL, NULL);\n",
                                 (unsigned int)instruction->result,
                                 (unsigned int)module->operands[
                                     instruction->firstOperand]);
                         else
                             xl6OutputPrintf(out,
-                                "    v%u = (xl6FutureAggregateRuntimeV1Get()->AllArray)(v%u, xlir_future_payload_box_t%u, xlir_future_aggregate_owner);\n",
+                                "    v%u = xl6FutureAggregateAllArrayV2(v%u, xlir_future_payload_box_t%u, xlir_future_aggregate_owner);\n",
                                 (unsigned int)instruction->result,
                                 (unsigned int)module->operands[
                                     instruction->firstOperand],
@@ -97,7 +97,7 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                     }
                     else
                         xl6OutputPrintf(out,
-                            "    v%u = (xl6FutureAggregateRuntimeV1Get()->RaceArray)(v%u);\n",
+                            "    v%u = xl6FutureAggregateRaceArrayV2(v%u);\n",
                             (unsigned int)instruction->result,
                             (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp ==
@@ -107,7 +107,7 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter runtime Future array aggregate ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = (xl6FutureAggregateRuntimeV1Get()->WhenAnyIndexArray)(v%u);\n",
+                        "    v%u = xl6FutureAggregateWhenAnyIndexArrayV2(v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp ==
@@ -138,13 +138,13 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                         if ( instruction->asyncResultAbi ==
                              XL6_IR_ASYNC_RESULT_VOID )
                             xl6OutputPrintf(out,
-                                "    v%u = (xl6FutureAggregateRuntimeV1Get()->All)(fa%lu, %lu, NULL, NULL);\n",
+                                "    v%u = xl6FutureAggregateAllV2(fa%lu, %lu, NULL, NULL);\n",
                                 (unsigned int)instruction->result,
                                 (unsigned long)instructionIndex,
                                 (unsigned long)instruction->operandCount);
                         else
                             xl6OutputPrintf(out,
-                                "    v%u = (xl6FutureAggregateRuntimeV1Get()->All)(fa%lu, %lu, xlir_future_payload_box_t%u, xlir_future_aggregate_owner);\n",
+                                "    v%u = xl6FutureAggregateAllV2(fa%lu, %lu, xlir_future_payload_box_t%u, xlir_future_aggregate_owner);\n",
                                 (unsigned int)instruction->result,
                                 (unsigned long)instructionIndex,
                                 (unsigned long)instruction->operandCount,
@@ -153,12 +153,12 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                     else if ( instruction->runtimeOp ==
                               XL6_IR_RUNTIME_FUTURE_RACE )
                         xl6OutputPrintf(out,
-                            "    v%u = (xl6FutureAggregateRuntimeV1Get()->Race)(fa%lu, %lu);\n",
+                            "    v%u = xl6FutureAggregateRaceV2(fa%lu, %lu);\n",
                             (unsigned int)instruction->result, (unsigned long)instructionIndex,
                             (unsigned long)instruction->operandCount);
                     else
                         xl6OutputPrintf(out,
-                            "    v%u = (xl6FutureAggregateRuntimeV1Get()->WhenAnyIndex)(fa%lu, %lu);\n",
+                            "    v%u = xl6FutureAggregateWhenAnyIndexV2(fa%lu, %lu);\n",
                             (unsigned int)instruction->result, (unsigned long)instructionIndex,
                             (unsigned long)instruction->operandCount);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL ||

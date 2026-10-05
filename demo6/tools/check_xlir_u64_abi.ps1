@@ -50,7 +50,8 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR U64 typed text IR failed" }
 $typedText = [System.IO.File]::ReadAllText($typedTextPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "cabi=34 callable=invalid ownership=1 null=0 nominal=s0 typeValue=0x7A24932689D8B089 name=uint64 display=uint64 integer=u64",
+    "cabi=34 native-slot=u64 value-admission=10/0/0x7A24932689D8B089",
+    "callable=invalid ownership=1 null=0 nominal=s0 typeValue=0x7A24932689D8B089 name=uint64 display=uint64 integer=u64",
     "kind=trivial-integer-convert admission=verified result=t3 resultAbi=value",
     "kind=string-convert admission=verified"
 ) ) {
@@ -112,7 +113,12 @@ foreach ( $required in @(
     "static char* xlir_u64_to_string(uint64_t value)",
     "uint64_t xlir_u64_maximum = 18446744073709551615ULL;",
     "extern uint64_t xlir_u64_external;",
-    "return result.ok ? result.value : (uint64_t){0};"
+    "if (!result.ok) xl6ErrorScopeCaptureFailure(&entry);",
+    "else pending_result = result.value;",
+    "outcome = xl6ForeignCallEnd(&entry);",
+    "xl6ErrorScopePropagateFailure(outcome);",
+    "return (uint64_t){0};",
+    "return pending_result;"
 ) ) {
     if ( ! $generated.Contains($required) ) {
         throw "XLIR U64 C emission is incomplete: $required"
@@ -151,10 +157,11 @@ foreach ( $required in @(
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR U64 async/closure Cgen failed" }
 $asyncGenerated = [System.IO.File]::ReadAllText($asyncCPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static uint64_t xlir_future_await_u64(xfuture* future)",
-    "static xlir_cell* xlir_cell_new_u64(void)",
-    "static uint64_t xlir_cell_load_u64(const xlir_cell* cell)",
-    "static void xlir_cell_store_u64(xlir_cell* cell, uint64_t value)",
+    "xlir_future_wait_checked(",
+    "uint64_t const* payload = (uint64_t const*)(xrtFutureValue(",
+    "(xl6CellRuntimeV1Get()->Create)(XL6_CELL_U64, sizeof(uint64_t));",
+    "(xl6CellRuntimeV1Get()->Load)(",
+    "(xl6CellRuntimeV1Get()->Store)(",
     "uint64_t* value;"
 ) ) {
     if ( ! $asyncGenerated.Contains($required) ) {
@@ -232,10 +239,10 @@ foreach ( $required in @(
     "static uint64_t xlir_xvalue_object_get_literal_u64",
     "xlir_xvalue_binary(v",
     "if (frame->ArgumentCount > 0) { f0 = frame->Arguments[0]; bound0 = true; }",
-    "if (bound0) { if (!xrtValueGetUInt(f0, &a0)) goto argument_fail; }",
-    "boxed = xrtValueUInt(value);",
+    "if (bound0) { if (!xl6ValueReadIntegerV1(f0, 10, 0x7A24932689D8B089ULL, false, &a0)) goto argument_fail; }",
+    "boxed = xl6ValueBoxIntegerV1(&value, 10, 0x7A24932689D8B089ULL, false);",
     "return xrtValueUInt(*(const uint64_t*)payload);",
-    "(xl6FutureAggregateRuntimeV1Get()->All)("
+    "xl6FutureAggregateAllV2("
 ) ) {
     if ( ! $dynamicGenerated.Contains($required) ) {
         throw "XLIR dynamic U64 C emission is incomplete: $required"

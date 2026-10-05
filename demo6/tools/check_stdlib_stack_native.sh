@@ -49,6 +49,8 @@ frozen_files() {
     printf '%s\0' test/cases/xlir_module_product_oom_host.c
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
     printf '%s\0' tools/check_stdlib_array_input.py test/cases/stdlib_array_input_host.c
+    printf '%s\0' test/cases/stdlib_future_metadata_host.c test/cases/xlir_future_metadata_contract.c
+    printf '%s\0' test/cases/stdlib_future_aggregate_variadic_only.xl test/cases/stdlib_future_aggregate_array_only.xl test/cases/stdlib_future_metadata_only.xl
     printf '%s\0' test/cases/stdlib_text_join_only.xl test/cases/stdlib_text_join.xl test/cases/stdlib_regex_set_only.xl
     printf '%s\0' test/cases/stdlib_pattern_builder.xl test/cases/stdlib_pattern_builder_lifetime.xl
     printf '%s\0' test/cases/xlir_task_aggregate_array_abi.xl test/cases/xlir_task_when_any_array_abi.xl

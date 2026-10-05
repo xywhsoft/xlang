@@ -81,8 +81,8 @@ assert await appendText() == "a\0b!"
 future<string> named = sourceText()
 assert named.setDebugName("named")
 assert named.debugName() == "named"
-assert not named.setDebugName("bad\0name")
-assert named.debugName() == "named"
+assert named.setDebugName("exact\0name")
+assert named.debugName() == "exact\0name"
 assert await named == "a\0b"
 char? releaseEmptyChar = null
 char? releasePresentChar = '你'
