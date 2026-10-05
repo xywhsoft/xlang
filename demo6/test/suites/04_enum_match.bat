@@ -6,6 +6,8 @@ echo Running DEMO6 suite: enum and match...
 
 for %%F in (
     enum_numeric_runtime
+    stdlib_nullable_numeric_enum
+    stdlib_nullable_numeric_enum_absent
     enum_match_matrix
     enum_nested_generic
     enum_recursive_container

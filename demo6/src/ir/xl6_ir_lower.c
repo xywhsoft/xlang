@@ -1922,6 +1922,9 @@ static int xl6IrLowerFinallyBody(XL6_IrLowerContext* ctx, XL6_IrNodeId finallyBo
 static XL6_IrValueId xl6IrLowerEmitValueCopy(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId type,
     XL6_IrValueId source);
+static XL6_IrValueId xl6IrLowerReadJoinStorage(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
+    XL6_IrTypeId type, XL6_SymbolId storage);
 static int xl6IrLowerClassValueAssignableTo(
     const XL6_IrLowerContext* ctx, XL6_IrTypeId expected, XL6_IrTypeId actual);
 static int xl6IrLowerRuntimeCallableSignatureSupported(
@@ -3615,8 +3618,96 @@ static int xl6IrLowerValueIsOwnedXValue(
         xl6IrValueOwnershipGet(module, value) == XL6_IR_OWNERSHIP_MOVE;
 }
 
-/* A dynamic slot owns an xvalue handle.  Conversion into that slot is a
+/* Numeric enum members and match patterns share one exact integer domain. */
+static XL6_IrValueId xl6IrLowerNumericEnumConstant(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrEnumVariant* variant)
+{
+    const XL6_IrType* type = variant != NULL
+        ? xl6IrTypeGet(&ctx->module->types, variant->ownerType) : NULL;
+    uint64_t magnitude;
+    int negative, length;
+    char literal[48];
+    XL6_IrValueId result;
+    if (type == NULL || type->kind != XL6_IR_TYPE_NUMERIC_ENUM ||
+        !xl6IrContextualIntegerLiteralValue(ctx->module, variant->valueExpression,
+            variant->ownerType, &magnitude, &negative)) return XL6_IR_VALUE_INVALID;
+    /* Semantic normalization retains unary minus. Never ask Cgen to parse it;
+     * the signed minimum needs a portable payload, not negation of U64. */
+    length = negative && magnitude == UINT64_C(9223372036854775808)
+        ? snprintf(literal, sizeof(literal), "(-9223372036854775807LL - 1LL)")
+        : snprintf(literal, sizeof(literal), "%s%llu%s", negative ? "-" : "",
+            (unsigned long long)magnitude, type->cAbi == XL6_IR_C_ABI_U64 ? "ULL" : "LL");
+    if (length <= 0 || (size_t)length >= sizeof(literal) ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, origin, variant->ownerType,
+            0, NULL, 0, &result)) return XL6_IR_VALUE_INVALID;
+    ctx->module->instructions[ctx->module->instructionCount - 1].immediateText =
+        xrtStrDupN(literal, (size_t)length);
+    if (ctx->module->instructions[ctx->module->instructionCount - 1].immediateText == NULL) {
+        ctx->failed = 1; return XL6_IR_VALUE_INVALID;
+    }
+    return result;
+}
+
+/* A dynamic slot owns an xvalue handle. Conversion into that slot is a
  * typed XLIR operation, never a Cgen-side boxing convention. */
+static XL6_IrValueId xl6IrLowerBoxNullableNumericEnum(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId targetType,
+    XL6_IrValueId source, const XL6_IrType* nullable)
+{
+    const XL6_IrType* element;
+    XL6_IrTypeId elementType, boolean;
+    XL6_IrRuntimeOp boxing;
+    XL6_IrValueId isNull, payload, boxed;
+    XL6_IrBlockId presentBlock, absentBlock, mergeBlock;
+    XL6_SymbolId storage;
+    if (nullable == NULL || nullable->kind != XL6_IR_TYPE_NULLABLE ||
+        nullable->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
+        nullable->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
+        nullable->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        nullable->paramCount != 1 || nullable->params == NULL ||
+        (element = xl6IrTypeGet(&ctx->module->types, nullable->params[0])) == NULL ||
+        element->kind != XL6_IR_TYPE_NUMERIC_ENUM || element->typeValueId == 0 ||
+        element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        element->nullAbi != XL6_IR_NULL_ABI_NONE ||
+        (element->cAbi != XL6_IR_C_ABI_I64 && element->cAbi != XL6_IR_C_ABI_U64))
+        return XL6_IR_VALUE_INVALID;
+    elementType = nullable->params[0];
+    boxing = element->cAbi == XL6_IR_C_ABI_I64
+        ? XL6_IR_RUNTIME_XVALUE_I64 : XL6_IR_RUNTIME_XVALUE_U64;
+    boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+    storage = xl6IrLowerNewTempStorage(ctx, targetType, origin);
+    if (boolean == XL6_IR_TYPE_INVALID || storage == 0 ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL_TEST, origin, boolean, 0, &source, 1, &isNull) ||
+        !xl6IrLowerNewBlock(ctx, &presentBlock) || !xl6IrLowerNewBlock(ctx, &absentBlock) ||
+        !xl6IrLowerNewBlock(ctx, &mergeBlock) ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin, XL6_IR_TYPE_INVALID, 0, &isNull, 1, NULL))
+        return XL6_IR_VALUE_INVALID;
+    ctx->module->instructions[ctx->module->instructionCount - 1].trueTarget = absentBlock;
+    ctx->module->instructions[ctx->module->instructionCount - 1].falseTarget = presentBlock;
+
+    /* A null singleton cannot carry a nominal identity. Test presence in IR,
+     * then reuse ordinary scalar boxing and the consuming exact TYPE_BIND.
+     * The checked allocation edge precedes binding; absent payload bytes are
+     * never observed. Cgen receives no nullable-enum semantic special case. */
+    xl6IrLowerEnterBlock(ctx, presentBlock);
+    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_UNWRAP, origin, elementType,
+            0, &source, 1, &payload)) return XL6_IR_VALUE_INVALID;
+    boxed = xl6IrLowerEmitRuntimeCall(ctx, origin, targetType, boxing, &payload, 1);
+    boxed = xl6IrLowerBindRuntimeTypeIdentity(ctx, origin, targetType, elementType, boxed);
+    if (boxed == XL6_IR_VALUE_INVALID ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, targetType, storage, &boxed, 1, NULL) ||
+        !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) return XL6_IR_VALUE_INVALID;
+
+    xl6IrLowerEnterBlock(ctx, absentBlock);
+    boxed = xl6IrLowerEmitRuntimeLiteralCall(ctx, origin, targetType,
+        XL6_IR_RUNTIME_XVALUE_NULL, "null", NULL, 0);
+    if (boxed == XL6_IR_VALUE_INVALID ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, targetType, storage, &boxed, 1, NULL) ||
+        !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) return XL6_IR_VALUE_INVALID;
+    xl6IrLowerEnterBlock(ctx, mergeBlock);
+    return xl6IrLowerReadJoinStorage(ctx, origin, targetType, storage);
+}
+
 static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId targetType,
     const XL6_IrNode* sourceNode, XL6_IrValueId source,
@@ -3662,10 +3753,15 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
         return XL6_IR_VALUE_INVALID;
     }
     if ( sourceType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-         sourceType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE )
+         sourceType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ) {
+        const XL6_IrType* element = sourceType->paramCount == 1 && sourceType->params != NULL
+            ? xl6IrTypeGet(&ctx->module->types, sourceType->params[0]) : NULL;
+        if (element != NULL && element->kind == XL6_IR_TYPE_NUMERIC_ENUM)
+            return xl6IrLowerBoxNullableNumericEnum(ctx, origin, targetType, source, sourceType);
         return xl6IrLowerEmitRuntimeCall(
             ctx, origin, targetType,
             XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX, &source, 1);
+    }
     switch ( sourceType->cAbi ) {
     case XL6_IR_C_ABI_BOOL: runtimeOp = XL6_IR_RUNTIME_XVALUE_BOOL; break;
     case XL6_IR_C_ABI_CHAR_U32: runtimeOp = XL6_IR_RUNTIME_XVALUE_CHAR; break;
@@ -7692,8 +7788,15 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
             "XLIR nullable unwrap has no canonical TypeError CFG ABI");
         return XL6_IR_VALUE_INVALID;
     }
-    source = xl6IrLowerNode(
-        ctx, ctx->module->children[node->firstChild]);
+    /* An explicit checked cast consumes the nullable storage carrier, even
+     * when flow has already projected a NAME to its present scalar TypeId.
+     * Match the existing nominal/string checked-cast storage boundary. */
+    source = sourceNode->kind == XL6_IR_NODE_NAME &&
+             sourceNode->type != XL6_IR_TYPE_INVALID &&
+             sourceNode->type != sourceNode->storageType
+        ? xl6IrLowerNamePhysicalStorageValue(
+            ctx, id, ctx->module->children[node->firstChild], sourceNode)
+        : xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( source == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     if ( managed && sourceNode->valueCategory == XL6_IR_VALUE_RVALUE ) {
         temporary = xl6IrLowerNewTempStorage(
@@ -22197,12 +22300,7 @@ static XL6_IrValueId xl6IrLowerScalarMatch(XL6_IrLowerContext* ctx, XL6_IrNodeId
                     ctx->module, subjectType, pattern->targetSymbol, NULL);
                 const XL6_IrNode* initializer = variant != NULL
                     ? xl6IrNodeGet(ctx->module, variant->valueExpression) : NULL;
-                literal = initializer != NULL &&
-                          initializer->sourceKind == XL6_AST_INT &&
-                          initializer->text != NULL
-                    ? xl6IrLowerEmitIntConst(
-                          ctx, caseId, subjectType, initializer->text)
-                    : XL6_IR_VALUE_INVALID;
+                literal = xl6IrLowerNumericEnumConstant(ctx, caseId, variant);
                 literalNode = initializer;
             } else {
                 XL6_IrNodeId literalId =
@@ -28683,7 +28781,6 @@ static XL6_IrValueId xl6IrLowerNumericEnumVariantMember(
     const XL6_IrType* type = node != NULL
         ? xl6IrTypeGet(&ctx->module->types, node->storageType) : NULL;
     const XL6_IrEnumVariant* variant;
-    const XL6_IrNode* initializer;
     if ( node == NULL || node->kind != XL6_IR_NODE_MEMBER ||
          type == NULL || type->kind != XL6_IR_TYPE_NUMERIC_ENUM ||
          node->targetSymbol == 0 ) return XL6_IR_VALUE_INVALID;
@@ -28695,15 +28792,13 @@ static XL6_IrValueId xl6IrLowerNumericEnumVariantMember(
     if (!declaration || declaration->kind != XL6_IR_NODE_ENUM_VARIANT) return XL6_IR_VALUE_INVALID;
     variant = xl6IrEnumVariantGet(
         ctx->module, node->storageType, node->targetSymbol, NULL);
-    initializer = variant != NULL
-        ? xl6IrNodeGet(ctx->module, variant->valueExpression) : NULL;
-    if ( variant == NULL || initializer == NULL ||
-         initializer->sourceKind != XL6_AST_INT || initializer->text == NULL ) {
+    XL6_IrValueId result = xl6IrLowerNumericEnumConstant(ctx, id, variant);
+    if ( result == XL6_IR_VALUE_INVALID ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR numeric enum variant has no canonical integer initializer ABI");
         return XL6_IR_VALUE_INVALID;
     }
-    return xl6IrLowerEmitIntConst(ctx, id, node->storageType, initializer->text);
+    return result;
 }
 
 static XL6_IrValueId xl6IrLowerTaggedEnumVariantCall(

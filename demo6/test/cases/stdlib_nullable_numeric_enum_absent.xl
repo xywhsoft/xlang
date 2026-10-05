@@ -1,0 +1,16 @@
+enum EmptyCode as int8
+    first = 1
+end
+
+func erase(EmptyCode? value) as var
+    return value
+end
+
+func main(...) as int
+    EmptyCode? absent = null
+    var boxed = absent
+    assert boxed == null
+    assert erase(absent) == null
+    assert (boxed as EmptyCode?) == null
+    return 0
+end

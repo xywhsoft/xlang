@@ -219,7 +219,7 @@ try {
     Run 'sequence-clear' $python @('tools/check_stdlib_sequence_clear.py','--out',"$outPath/sequence-clear",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     $clear = Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-clear/results.json" -Raw | ConvertFrom-Json
     if (!$clear.Complete -or !$clear.InputsUnchanged) { throw 'Incomplete explicit clear evidence' }
-    foreach ($mode in @('base','nominal','defaults','layouts')) {
+    foreach ($mode in @('base','nominal','defaults','layouts','numeric-enums')) {
         $arguments=@('tools/check_stdlib_collection_admission.py','--out',"$outPath/collection-$mode",'--public-directory',$PublicDirectory)
         if ($mode -ne 'base') { $arguments += "--$mode" }
         Run "collection-$mode" $python $arguments -TimeoutMs 600000
