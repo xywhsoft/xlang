@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verified F32/time/integer callable programs: both adapters, strict C, JIT/AOT and OOM.
+"""Verified F32/time/integer/native-C callable programs: both adapters, strict C, JIT/AOT and OOM.
 
 Strict C/hosts link the real shared runtime. Linux --sanitize instruments the
 generated C and hosts, not shared libraries. Native pruning is independently
@@ -38,11 +38,13 @@ def main() -> int:
         parser.error("Require a full current-source compiler")
     staged = json.loads((args.public_directory / "artifact_sources.json").read_text(encoding="utf-8-sig")) if public else None
     cli = Path(public["Driver"]) if public else root / "release/xl"
-    fixtures = ["stdlib_callable_scalars", "stdlib_callable_scalars_unused", "stdlib_callable_integer_domains"]
+    fixtures = ["stdlib_callable_scalars", "stdlib_callable_scalars_unused", "stdlib_callable_integer_domains",
+                "stdlib_callable_native_scalars"]
     files = [Path(__file__), Path(cc), Path(sys.executable), cli,
              root / "test/cases/stdlib_callable_scalars_contract.c",
              root / "test/cases/stdlib_callable_scalars_host.c",
              root / "test/cases/stdlib_callable_integer_domains_host.c",
+             root / "test/cases/stdlib_callable_native_scalars_host.c",
              root / "test/cases/xlir_callable_bridge_mutations.h",
              root / "test/cases/stdlib_collection_admission_host.c",
              root / "test/cases/xlir_module_product_oom_host.c",
@@ -132,22 +134,30 @@ def main() -> int:
             assert generated.read_bytes() == prefix.with_suffix(".repeat.c").read_bytes()
             assert ir.read_bytes() == prefix.with_suffix(".repeat.json").read_bytes()
             integers = name.endswith("_integer_domains")
+            native = name.endswith("_native_scalars")
             log = run(name + ".contract", [str(contract), f"test/cases/{name}.xl", str(prefix.with_suffix(".contract.c")),
                 str(binding), str(prefix.with_suffix(".contract.json"))],
                 # The 16-domain fixture re-verifies the entire module and both
                 # emitters for every plan mutation; keep all checks, with a
                 # finite separate budget for this substantially richer oracle.
-                timeout=360 if integers else 60)
-            proof = re.search(r"scalar bridge: f32=(\d+) time=(\d+) mutations=(\d+) resident-reader=([01]) integers=(\d+) nominal=(\d+)", log)
-            assert proof and (int(proof[5]) >= 32 and int(proof[6]) >= 16 if integers else int(proof[1])) and int(proof[3])
+                timeout=600 if native else 360 if integers else 60)
+            proof = re.search(r"scalar bridge: f32=(\d+) time=(\d+) mutations=(\d+) resident-reader=([01]) integers=(\d+) nominal=(\d+) native=(\d+) profiles=(\d+)", log)
+            assert proof and (int(proof[7]) >= 44 and int(proof[8]) == (1 << 22) - 2 if native else
+                              int(proof[5]) >= 32 and int(proof[6]) >= 16 if integers else int(proof[1])) and int(proof[3])
             report["Contracts"].append({"Fixture": name, "F32Slots": int(proof[1]), "TimeSlots": int(proof[2]),
                 "Mutations": int(proof[3]), "ResidentReader": bool(int(proof[4])),
-                "IntegerSlots": int(proof[5]), "NominalIntegerSlots": int(proof[6])})
+                "IntegerSlots": int(proof[5]), "NominalIntegerSlots": int(proof[6]),
+                "NativeScalarSlots": int(proof[7]), "NativeProfiles": int(proof[8])})
             assert generated.read_bytes() == prefix.with_suffix(".contract.c").read_bytes()
             assert ir.read_bytes() == prefix.with_suffix(".contract.json").read_bytes()
             if name.endswith("_unused"):
                 assert "xl6ValueReadF32V1" not in generated.read_text(encoding="utf-8")
                 assert "xl6ValueReadIntegerV1" not in generated.read_text(encoding="utf-8")
+                assert "xl6ValueReadNativeScalarV1" not in generated.read_text(encoding="utf-8")
+                assert "xl6ValueBoxNativeScalarV1" not in generated.read_text(encoding="utf-8")
+            elif native:
+                assert "xl6ValueReadNativeScalarV1" in generated.read_text(encoding="utf-8")
+                assert "xl6ValueBoxNativeScalarV1" in generated.read_text(encoding="utf-8")
             elif integers:
                 assert "xl6ValueReadIntegerV1" in generated.read_text(encoding="utf-8")
                 assert "xl6ValueBoxIntegerV1" in generated.read_text(encoding="utf-8")
@@ -156,7 +166,7 @@ def main() -> int:
             for level in (0, 2):
                 binary = prefix.with_suffix(f".O{level}" + suffix)
                 run(f"{name}.O{level}.build", [cc, *strict, f"-O{level}", str(generated),
-                    "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)], timeout=360 if args.sanitize and integers else 180 if args.sanitize else 60)
+                    "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)], timeout=360 if args.sanitize and (integers or native) else 180 if args.sanitize else 60)
                 run(f"{name}.O{level}.run", [str(binary)])
                 if name.endswith("_unused"):
                     continue
@@ -164,9 +174,9 @@ def main() -> int:
                 memory = out / f"{lane}.memory.o"
                 run(lane + ".memory.build", [cc, *strict, f"-O{level}", "-c", "test/support/module_product_memory.c", "-o", str(memory)])
                 vectors = out / (lane + ".vectors" + suffix)
-                host = "stdlib_callable_integer_domains_host" if integers else "stdlib_callable_scalars_host"
+                host = "stdlib_callable_native_scalars_host" if native else "stdlib_callable_integer_domains_host" if integers else "stdlib_callable_scalars_host"
                 run(lane + ".vectors.build", [cc, *strict, f"-O{level}", "-include", str(generated), "-include", str(binding),
-                    f"test/cases/{host}.c", str(memory), *links, "-o", str(vectors)], timeout=360 if args.sanitize and integers else 180 if args.sanitize else 60)
+                    f"test/cases/{host}.c", str(memory), *links, "-o", str(vectors)], timeout=360 if args.sanitize and (integers or native) else 180 if args.sanitize else 60)
                 run(lane + ".vectors.run", [str(vectors)])
                 module = out / (lane + ".module" + suffix)
                 run(lane + ".module.build", [cc, *strict, f"-O{level}", "-DXL6_PRODUCT_USER_ENTRY", "-include", str(generated),

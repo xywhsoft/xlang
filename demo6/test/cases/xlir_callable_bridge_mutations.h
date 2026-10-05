@@ -34,6 +34,10 @@ static void xlirCallableBridgeMutations(
         reject(ir); *p = saved;
         p->integerDomain.identity ^= UINT64_C(1); reject(ir); *p = saved;
         p->integerDomain.nominal = !saved.integerDomain.nominal; reject(ir); *p = saved;
+        p->nativeScalarProfile = saved.nativeScalarProfile == XL6_NATIVE_SCALAR_NONE ? XL6_NATIVE_SCALAR_CHAR : XL6_NATIVE_SCALAR_NONE;
+        reject(ir); *p = saved;
+        p->nativeScalarProfile = saved.nativeScalarProfile == XL6_NATIVE_SCALAR_INT ? XL6_NATIVE_SCALAR_UINT : XL6_NATIVE_SCALAR_INT;
+        reject(ir); *p = saved;
         p->invokeAbi = saved.invokeAbi == XL6_IR_CALLBACK_INVOKE_TAKE
             ? XL6_IR_CALLBACK_INVOKE_BORROW : XL6_IR_CALLBACK_INVOKE_TAKE;
         reject(ir); *p = saved;
@@ -54,6 +58,10 @@ static void xlirCallableBridgeMutations(
         reject(ir); *r = saved;
         r->integerDomain.identity ^= UINT64_C(1); reject(ir); *r = saved;
         r->integerDomain.nominal = !saved.integerDomain.nominal; reject(ir); *r = saved;
+        r->nativeScalarProfile = saved.nativeScalarProfile == XL6_NATIVE_SCALAR_NONE ? XL6_NATIVE_SCALAR_CHAR : XL6_NATIVE_SCALAR_NONE;
+        reject(ir); *r = saved;
+        r->nativeScalarProfile = saved.nativeScalarProfile == XL6_NATIVE_SCALAR_INT ? XL6_NATIVE_SCALAR_UINT : XL6_NATIVE_SCALAR_INT;
+        reject(ir); *r = saved;
         r->destroyAbi = saved.destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE
             ? XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE : XL6_IR_ASYNC_FRAME_DESTROY_NONE;
         reject(ir); *r = saved;

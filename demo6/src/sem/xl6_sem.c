@@ -2806,7 +2806,7 @@ static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* 
     if ( xl6TextEquals(typeName, "var") || xl6TextEquals(typeName, "error") ||
          xl6TextEquals(typeName, "bool") || xl6TextEquals(typeName, "c_bool") ||
          xl6TextEquals(typeName, "string") || xl6TextEquals(typeName, "bytes") ||
-         xl6TextEquals(typeName, "time") ||
+         xl6TextEquals(typeName, "time") || xl6TextEquals(typeName, "type") ||
          xl6TextEquals(typeName, "point") || xl6SemIsFloatTypeName(typeName) ) {
         return 1;
     }
@@ -2815,13 +2815,9 @@ static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* 
         return 1;
     }
     if ( xl6SemIsIntegerTypeName(typeName) ) {
-        /* Language uint64 has its own lossless XVALUE_UINT payload.  Foreign
-         * width-dependent unsigned types remain outside this bridge until
-         * their ABI is normalized explicitly. */
-        return !xl6TextEquals(typeName, "c_ulong") &&
-               !xl6TextEquals(typeName, "c_ulonglong") &&
-               !xl6TextEquals(typeName, "c_size") &&
-               !xl6TextEquals(typeName, "c_uintptr");
+        /* Closed C profiles resolve width and signedness in the resident
+         * provider; unsigned payloads never pass through signed int64. */
+        return 1;
     }
     if ( xl6SemIsSpecialCollectionTypeName(typeName) ) {
         return 1;

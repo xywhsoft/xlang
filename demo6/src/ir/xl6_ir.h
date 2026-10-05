@@ -12,6 +12,7 @@
 #include "src/type/xl6_type_id.h"
 #include "src/runtime/xl6_value_admission_abi.h"
 #include "src/runtime/xl6_value_default_abi.h"
+#include "src/runtime/xl6_native_scalar_abi.h"
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -4304,7 +4305,8 @@ typedef enum XL6_IrCallableBridgeValueAbi {
     XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE,
     /* F32 uses the lossless resident Value domain reader; TIME is not I64. */
     XL6_IR_CALLABLE_BRIDGE_F32,
-    XL6_IR_CALLABLE_BRIDGE_TIME
+    XL6_IR_CALLABLE_BRIDGE_TIME,
+    XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR
 } XL6_IrCallableBridgeValueAbi;
 
 /* Logical integer domains are independent of the widened I64/U64 carrier.
@@ -4322,6 +4324,7 @@ typedef struct XL6_IrCallableBridgeParameter {
     XL6_IrCallableBridgeValueAbi decodeAbi;
     XL6_IrCallableBridgeValueAbi encodeAbi;
     XL6_IrCallableBridgeIntegerDomain integerDomain;
+    XL6_NativeScalarProfileV1 nativeScalarProfile;
     XL6_IrCallbackInvokeAbi invokeAbi;
     XL6_IrAsyncFrameDestroyAbi decodedDestroyAbi;
     XL6_IrAsyncFrameDestroyAbi inputDestroyAbi;
@@ -4347,6 +4350,7 @@ typedef struct XL6_IrCallableBridgeResult {
     XL6_IrCallableBridgeValueAbi decodeAbi;
     XL6_IrCallableBridgeValueAbi encodeAbi;
     XL6_IrCallableBridgeIntegerDomain integerDomain;
+    XL6_NativeScalarProfileV1 nativeScalarProfile;
     XL6_IrAsyncFrameDestroyAbi destroyAbi;
 } XL6_IrCallableBridgeResult;
 

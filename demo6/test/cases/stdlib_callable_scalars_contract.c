@@ -18,6 +18,33 @@ static void reject(const XL6_IrModule* ir)
     }
     xl6DiagFree(&diags); ++mutations;
 }
+static XL6_NativeScalarProfileV1 expectedNative(XL6_IrCAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_C_ABI_C_CHAR: return XL6_NATIVE_SCALAR_CHAR;
+    case XL6_IR_C_ABI_C_SCHAR: return XL6_NATIVE_SCALAR_SCHAR;
+    case XL6_IR_C_ABI_C_UCHAR: return XL6_NATIVE_SCALAR_UCHAR;
+    case XL6_IR_C_ABI_C_SHORT: return XL6_NATIVE_SCALAR_SHORT;
+    case XL6_IR_C_ABI_C_USHORT: return XL6_NATIVE_SCALAR_USHORT;
+    case XL6_IR_C_ABI_C_INT: return XL6_NATIVE_SCALAR_INT;
+    case XL6_IR_C_ABI_C_UINT: return XL6_NATIVE_SCALAR_UINT;
+    case XL6_IR_C_ABI_C_LONG: return XL6_NATIVE_SCALAR_LONG;
+    case XL6_IR_C_ABI_C_ULONG: return XL6_NATIVE_SCALAR_ULONG;
+    case XL6_IR_C_ABI_C_LONGLONG: return XL6_NATIVE_SCALAR_LONGLONG;
+    case XL6_IR_C_ABI_C_ULONGLONG: return XL6_NATIVE_SCALAR_ULONGLONG;
+    case XL6_IR_C_ABI_C_SIZE: return XL6_NATIVE_SCALAR_SIZE;
+    case XL6_IR_C_ABI_C_SSIZE: return XL6_NATIVE_SCALAR_SSIZE;
+    case XL6_IR_C_ABI_C_PTRDIFF: return XL6_NATIVE_SCALAR_PTRDIFF;
+    case XL6_IR_C_ABI_C_INTPTR: return XL6_NATIVE_SCALAR_INTPTR;
+    case XL6_IR_C_ABI_C_UINTPTR: return XL6_NATIVE_SCALAR_UINTPTR;
+    case XL6_IR_C_ABI_C_BOOL: return XL6_NATIVE_SCALAR_BOOL;
+    case XL6_IR_C_ABI_C_FLOAT: return XL6_NATIVE_SCALAR_FLOAT;
+    case XL6_IR_C_ABI_C_DOUBLE: return XL6_NATIVE_SCALAR_DOUBLE;
+    case XL6_IR_C_ABI_C_WCHAR: return XL6_NATIVE_SCALAR_WCHAR;
+    case XL6_IR_C_ABI_TYPE_ID: return XL6_NATIVE_SCALAR_TYPE_ID;
+    default: return XL6_NATIVE_SCALAR_NONE;
+    }
+}
 int main(int argc,char** argv)
 {
     assert(argc==5); XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
@@ -30,25 +57,35 @@ int main(int argc,char** argv)
     assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,&plan,&parse.diags));
     bool unused=strstr(argv[1],"_unused")!=NULL;
     bool integers=strstr(argv[1],"_integer_domains")!=NULL;
-    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_ADMISSION)==!unused);
+    bool native=strstr(argv[1],"_native_scalars")!=NULL;
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_NATIVE_SCALAR_VALUE)==native);
+    if (!native) assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_ADMISSION)==!unused);
     xlirCallableBridgeMutations(&ir,reject);
-    unsigned f32=0,time=0,bindings=0,integer=0,nominal=0;
+    unsigned f32=0,time=0,bindings=0,integer=0,nominal=0,nativeSlots=0; uint32_t profiles=0;
     for (size_t i=0;i<ir.callableBridgeCount;++i) {
         const XL6_IrCallableBridge* b=&ir.callableBridges[i];
         for (size_t p=0;p<b->parameterCount+b->resultCount;++p) {
             XL6_IrCallableBridgeValueAbi decode,encode; XL6_IrTypeId id;
             XL6_IrCallableBridgeIntegerDomain domain;
+            XL6_NativeScalarProfileV1 profile;
             if (p<b->parameterCount) {
                 const XL6_IrCallableBridgeParameter* s=&ir.callableBridgeParameters[b->firstParameter+p];
                 decode=s->decodeAbi; encode=s->encodeAbi; id=s->type;
                 domain=s->integerDomain;
+                profile=s->nativeScalarProfile;
                 assert(s->decodedDestroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NONE || decode!=XL6_IR_CALLABLE_BRIDGE_F32);
             } else {
                 const XL6_IrCallableBridgeResult* s=&ir.callableBridgeResults[b->firstResult+p-b->parameterCount];
                 decode=s->decodeAbi; encode=s->encodeAbi; id=s->type;
                 domain=s->integerDomain;
+                profile=s->nativeScalarProfile;
             }
             const XL6_IrType* t=xl6IrTypeGet(&ir.types,id); assert(t);
+            assert(profile==expectedNative(t->cAbi));
+            if (profile) {
+                assert(decode==XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR && encode==decode && !domain.rule && t->typeValueId);
+                ++nativeSlots; profiles|=UINT32_C(1)<<profile;
+            }
             if (t->cAbi==XL6_IR_C_ABI_F32) { assert(decode==XL6_IR_CALLABLE_BRIDGE_F32 && encode==decode); ++f32; }
             if (t->cAbi==XL6_IR_C_ABI_TIME_I64) { assert(decode==XL6_IR_CALLABLE_BRIDGE_TIME && encode==decode); ++time; }
             if (domain.rule!=XL6_VALUE_ADMIT_NONE) {
@@ -59,7 +96,7 @@ int main(int argc,char** argv)
             }
         }
     }
-    assert(integers ? integer>=32 && nominal>=16 : f32 && (unused || time));
+    assert(native ? nativeSlots>=44 && profiles==((UINT32_C(1)<<22)-2) : integers ? integer>=32 && nominal>=16 : f32 && (unused || time));
     assert(xl6OutputOpenFile(&out,argv[2])); assert(xl6IrCgenEmitC(&out,&ir,&parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out,argv[3]));
     for (size_t i=0;i<ir.storageCount;++i) {
@@ -70,6 +107,7 @@ int main(int argc,char** argv)
         else if (!strcmp(n->text,"scalarNativeTime")) name="TIME";
         else if (!strcmp(n->text,"scalarNativeMixed")) name="MIXED";
         else if (integers && !strncmp(n->text,"domainNative",12)) name=n->text+12;
+        else if (native && !strncmp(n->text,"nativeSlot",10)) name=n->text+10;
         if (!name) continue;
         const XL6_IrCallableBridge* b=xl6IrCallableBridgeGet(&ir,s->type); assert(b && b->reverseSupported);
         if (integers) {
@@ -78,6 +116,30 @@ int main(int argc,char** argv)
             assert(p->integerDomain.rule==r->integerDomain.rule && p->integerDomain.identity==r->integerDomain.identity);
             xl6OutputPrintf(&out,"#define SCALAR_%s_IDENTITY UINT64_C(0x%016llX)\n",name,(unsigned long long)p->integerDomain.identity);
         }
+        if (native) {
+            const XL6_IrCallableBridgeParameter* p=&ir.callableBridgeParameters[b->firstParameter];
+            const XL6_IrType* t=xl6IrTypeGet(&ir.types,p->type); assert(t && p->nativeScalarProfile);
+            xl6OutputPrintf(&out,"#define SCALAR_%s_IDENTITY UINT64_C(0x%016llX)\n#define SCALAR_%s_PROFILE %u\n",
+                name,(unsigned long long)t->typeValueId,name,(unsigned)p->nativeScalarProfile);
+            if (strcmp(name,"MIXED")) {
+                const XL6_IrType* array=NULL;
+                const XL6_IrType* signature=xl6IrTypeGet(&ir.types,s->type); assert(signature);
+                for (size_t j=1;j<=ir.types.count;++j) {
+                    const XL6_IrType* candidate=xl6IrTypeGet(&ir.types,(XL6_IrTypeId)j);
+                    if (candidate && candidate->collectionAbi==XL6_IR_COLLECTION_ARRAY && candidate->paramCount==1 && candidate->params[0]==s->type)
+                        array=candidate;
+                }
+                assert(array && array->arrayLayout.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 &&
+                    array->arrayLayout.codecAbi==XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1 &&
+                    array->arrayLayout.baseElementType==s->type && !array->arrayLayout.nullable);
+                xl6OutputPrintf(&out,"#define SCALAR_%s_SIGNATURE UINT64_C(0x%016llX)\n#define SCALAR_%s_ARRAY UINT64_C(0x%016llX)\n",
+                    name,(unsigned long long)signature->typeValueId,name,(unsigned long long)array->typeValueId);
+            }
+            if (!strcmp(name,"MIXED")) {
+                const XL6_IrType* code=xl6IrTypeGet(&ir.types,ir.callableBridgeParameters[b->firstParameter+1].type);
+                assert(code); xl6OutputPrintf(&out,"#define SCALAR_MIXED_TYPE_IDENTITY UINT64_C(0x%016llX)\n",(unsigned long long)code->typeValueId);
+            }
+        }
         xl6OutputPrintf(&out,"#define SCALAR_%s_NATIVE s%u\n#define SCALAR_%s_FORWARD xlir_xcall_entry_t%u\n"
             "#define SCALAR_%s_REVERSE xlir_xvalue_closure_entry_t%u\n",name,(unsigned)s->symbol,
             name,(unsigned)s->type,name,(unsigned)s->type);
@@ -85,9 +147,9 @@ int main(int argc,char** argv)
             "#define SCALAR_MIXED_DROP xlir_product_drop_t%u\n",(unsigned)b->resultType,(unsigned)b->resultType);
         ++bindings;
     }
-    assert(unused ? !bindings : bindings==(integers ? 17u : 3u)); xl6OutputClose(&out);
+    assert(unused ? !bindings : bindings==(native ? 22u : integers ? 17u : 3u)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out,argv[4])); xl6IrDumpModuleJson(&out,&ir); xl6OutputClose(&out);
-    printf("scalar bridge: f32=%u time=%u mutations=%u resident-reader=%d integers=%u nominal=%u\n",f32,time,mutations,!unused,integer,nominal);
+    printf("scalar bridge: f32=%u time=%u mutations=%u resident-reader=%d integers=%u nominal=%u native=%u profiles=%u\n",f32,time,mutations,!unused,integer,nominal,nativeSlots,profiles);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
 failed:
     for (size_t i=0;i<parse.diags.count;++i) fprintf(stderr,"%s\n",parse.diags.items[i].message);

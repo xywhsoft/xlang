@@ -2,8 +2,18 @@
 func keepNative(func(float32) as float32 callback, float32 value) as float32
     return callback(value)
 end
+func keepNativeC(func(c_ulong) as c_ulong callback, c_ulong value) as c_ulong
+    return callback(value)
+end
+func keepNativeType(func(type) as type callback, type value) as type
+    return callback(value)
+end
 func main(...) as int
     auto native = func(float32 value) as float32 => value
     assert(keepNative(native, float32(1.5)) == float32(1.5))
+    auto nativeC = func(c_ulong value) as c_ulong => value
+    auto nativeType = func(type value) as type => value
+    assert(keepNativeC(nativeC, c_ulong(7)) == c_ulong(7))
+    assert(keepNativeType(nativeType, string) == string)
     return 0
 end

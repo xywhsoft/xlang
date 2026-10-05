@@ -1,0 +1,307 @@
+// Closed native C profiles and type: forward erasure, reverse restoration and Array expression calls.
+func nativeChar(c_char value) as c_char
+    return value
+end
+func(c_char) as c_char nativeSlotChar = nativeChar
+var erasedChar = xcall(nativeSlotChar)
+func(c_char) as c_char restoredChar = erasedChar
+
+func nativeSChar(c_schar value) as c_schar
+    return value
+end
+func(c_schar) as c_schar nativeSlotSChar = nativeSChar
+var erasedSChar = xcall(nativeSlotSChar)
+func(c_schar) as c_schar restoredSChar = erasedSChar
+
+func nativeUChar(c_uchar value) as c_uchar
+    return value
+end
+func(c_uchar) as c_uchar nativeSlotUChar = nativeUChar
+var erasedUChar = xcall(nativeSlotUChar)
+func(c_uchar) as c_uchar restoredUChar = erasedUChar
+
+func nativeShort(c_short value) as c_short
+    return value
+end
+func(c_short) as c_short nativeSlotShort = nativeShort
+var erasedShort = xcall(nativeSlotShort)
+func(c_short) as c_short restoredShort = erasedShort
+
+func nativeUShort(c_ushort value) as c_ushort
+    return value
+end
+func(c_ushort) as c_ushort nativeSlotUShort = nativeUShort
+var erasedUShort = xcall(nativeSlotUShort)
+func(c_ushort) as c_ushort restoredUShort = erasedUShort
+
+func nativeInt(c_int value) as c_int
+    return value
+end
+func(c_int) as c_int nativeSlotInt = nativeInt
+var erasedInt = xcall(nativeSlotInt)
+func(c_int) as c_int restoredInt = erasedInt
+
+func nativeUInt(c_uint value) as c_uint
+    return value
+end
+func(c_uint) as c_uint nativeSlotUInt = nativeUInt
+var erasedUInt = xcall(nativeSlotUInt)
+func(c_uint) as c_uint restoredUInt = erasedUInt
+
+func nativeLong(c_long value) as c_long
+    return value
+end
+func(c_long) as c_long nativeSlotLong = nativeLong
+var erasedLong = xcall(nativeSlotLong)
+func(c_long) as c_long restoredLong = erasedLong
+
+func nativeULong(c_ulong value) as c_ulong
+    return value
+end
+func(c_ulong) as c_ulong nativeSlotULong = nativeULong
+var erasedULong = xcall(nativeSlotULong)
+func(c_ulong) as c_ulong restoredULong = erasedULong
+
+func nativeLongLong(c_longlong value) as c_longlong
+    return value
+end
+func(c_longlong) as c_longlong nativeSlotLongLong = nativeLongLong
+var erasedLongLong = xcall(nativeSlotLongLong)
+func(c_longlong) as c_longlong restoredLongLong = erasedLongLong
+
+func nativeULongLong(c_ulonglong value) as c_ulonglong
+    return value
+end
+func(c_ulonglong) as c_ulonglong nativeSlotULongLong = nativeULongLong
+var erasedULongLong = xcall(nativeSlotULongLong)
+func(c_ulonglong) as c_ulonglong restoredULongLong = erasedULongLong
+
+func nativeSize(c_size value) as c_size
+    return value
+end
+func(c_size) as c_size nativeSlotSize = nativeSize
+var erasedSize = xcall(nativeSlotSize)
+func(c_size) as c_size restoredSize = erasedSize
+
+func nativeSSize(c_ssize value) as c_ssize
+    return value
+end
+func(c_ssize) as c_ssize nativeSlotSSize = nativeSSize
+var erasedSSize = xcall(nativeSlotSSize)
+func(c_ssize) as c_ssize restoredSSize = erasedSSize
+
+func nativePtrDiff(c_ptrdiff value) as c_ptrdiff
+    return value
+end
+func(c_ptrdiff) as c_ptrdiff nativeSlotPtrDiff = nativePtrDiff
+var erasedPtrDiff = xcall(nativeSlotPtrDiff)
+func(c_ptrdiff) as c_ptrdiff restoredPtrDiff = erasedPtrDiff
+
+func nativeIntPtr(c_intptr value) as c_intptr
+    return value
+end
+func(c_intptr) as c_intptr nativeSlotIntPtr = nativeIntPtr
+var erasedIntPtr = xcall(nativeSlotIntPtr)
+func(c_intptr) as c_intptr restoredIntPtr = erasedIntPtr
+
+func nativeUIntPtr(c_uintptr value) as c_uintptr
+    return value
+end
+func(c_uintptr) as c_uintptr nativeSlotUIntPtr = nativeUIntPtr
+var erasedUIntPtr = xcall(nativeSlotUIntPtr)
+func(c_uintptr) as c_uintptr restoredUIntPtr = erasedUIntPtr
+
+func nativeBool(c_bool value) as c_bool
+    return value
+end
+func(c_bool) as c_bool nativeSlotBool = nativeBool
+var erasedBool = xcall(nativeSlotBool)
+func(c_bool) as c_bool restoredBool = erasedBool
+
+func nativeFloat(c_float value) as c_float
+    return value
+end
+func(c_float) as c_float nativeSlotFloat = nativeFloat
+var erasedFloat = xcall(nativeSlotFloat)
+func(c_float) as c_float restoredFloat = erasedFloat
+
+func nativeDouble(c_double value) as c_double
+    return value
+end
+func(c_double) as c_double nativeSlotDouble = nativeDouble
+var erasedDouble = xcall(nativeSlotDouble)
+func(c_double) as c_double restoredDouble = erasedDouble
+
+func nativeWChar(c_wchar value) as c_wchar
+    return value
+end
+func(c_wchar) as c_wchar nativeSlotWChar = nativeWChar
+var erasedWChar = xcall(nativeSlotWChar)
+func(c_wchar) as c_wchar restoredWChar = erasedWChar
+
+func nativeType(type value) as type
+    return value
+end
+func(type) as type nativeSlotType = nativeType
+var erasedType = xcall(nativeSlotType)
+func(type) as type restoredType = erasedType
+
+func nativeMixed(c_ulong number, type code) as (c_ulong, type, string)
+    return number, code, "a\0你"
+end
+func(c_ulong, type) as (c_ulong, type, string) nativeSlotMIXED = nativeMixed
+var erasedMixed = xcall(nativeSlotMIXED)
+func(c_ulong, type) as (c_ulong, type, string) restoredMixed = erasedMixed
+
+func checkNativeChar()
+    assert(restoredChar(c_char(7)) == c_char(7))
+    array<func(c_char) as c_char> slotsChar = [restoredChar]
+    assert(slotsChar[0](c_char(7)) == c_char(7))
+end
+
+func checkNativeSChar()
+    assert(restoredSChar(c_schar(-7)) == c_schar(-7))
+    array<func(c_schar) as c_schar> slotsSChar = [restoredSChar]
+    assert(slotsSChar[0](c_schar(-7)) == c_schar(-7))
+end
+
+func checkNativeUChar()
+    assert(restoredUChar(c_uchar(250)) == c_uchar(250))
+    array<func(c_uchar) as c_uchar> slotsUChar = [restoredUChar]
+    assert(slotsUChar[0](c_uchar(250)) == c_uchar(250))
+end
+
+func checkNativeShort()
+    assert(restoredShort(c_short(-32767)) == c_short(-32767))
+    array<func(c_short) as c_short> slotsShort = [restoredShort]
+    assert(slotsShort[0](c_short(-32767)) == c_short(-32767))
+end
+
+func checkNativeUShort()
+    assert(restoredUShort(c_ushort(65535)) == c_ushort(65535))
+    array<func(c_ushort) as c_ushort> slotsUShort = [restoredUShort]
+    assert(slotsUShort[0](c_ushort(65535)) == c_ushort(65535))
+end
+
+func checkNativeInt()
+    assert(restoredInt(c_int(-2147483647)) == c_int(-2147483647))
+    array<func(c_int) as c_int> slotsInt = [restoredInt]
+    assert(slotsInt[0](c_int(-2147483647)) == c_int(-2147483647))
+end
+
+func checkNativeUInt()
+    assert(restoredUInt(c_uint(4294967295)) == c_uint(4294967295))
+    array<func(c_uint) as c_uint> slotsUInt = [restoredUInt]
+    assert(slotsUInt[0](c_uint(4294967295)) == c_uint(4294967295))
+end
+
+func checkNativeLong()
+    assert(restoredLong(c_long(-7)) == c_long(-7))
+    array<func(c_long) as c_long> slotsLong = [restoredLong]
+    assert(slotsLong[0](c_long(-7)) == c_long(-7))
+end
+
+func checkNativeULong()
+    assert(restoredULong(c_ulong(4294967295)) == c_ulong(4294967295))
+    array<func(c_ulong) as c_ulong> slotsULong = [restoredULong]
+    assert(slotsULong[0](c_ulong(4294967295)) == c_ulong(4294967295))
+end
+
+func checkNativeLongLong()
+    assert(restoredLongLong(c_longlong(-9223372036854775807)) == c_longlong(-9223372036854775807))
+    array<func(c_longlong) as c_longlong> slotsLongLong = [restoredLongLong]
+    assert(slotsLongLong[0](c_longlong(-9223372036854775807)) == c_longlong(-9223372036854775807))
+end
+
+func checkNativeULongLong()
+    assert(restoredULongLong(c_ulonglong(uint64(18446744073709551615))) == c_ulonglong(uint64(18446744073709551615)))
+    array<func(c_ulonglong) as c_ulonglong> slotsULongLong = [restoredULongLong]
+    assert(slotsULongLong[0](c_ulonglong(uint64(18446744073709551615))) == c_ulonglong(uint64(18446744073709551615)))
+end
+
+func checkNativeSize()
+    assert(restoredSize(c_size(7)) == c_size(7))
+    array<func(c_size) as c_size> slotsSize = [restoredSize]
+    assert(slotsSize[0](c_size(7)) == c_size(7))
+end
+
+func checkNativeSSize()
+    assert(restoredSSize(c_ssize(-7)) == c_ssize(-7))
+    array<func(c_ssize) as c_ssize> slotsSSize = [restoredSSize]
+    assert(slotsSSize[0](c_ssize(-7)) == c_ssize(-7))
+end
+
+func checkNativePtrDiff()
+    assert(restoredPtrDiff(c_ptrdiff(-7)) == c_ptrdiff(-7))
+    array<func(c_ptrdiff) as c_ptrdiff> slotsPtrDiff = [restoredPtrDiff]
+    assert(slotsPtrDiff[0](c_ptrdiff(-7)) == c_ptrdiff(-7))
+end
+
+func checkNativeIntPtr()
+    assert(restoredIntPtr(c_intptr(-7)) == c_intptr(-7))
+    array<func(c_intptr) as c_intptr> slotsIntPtr = [restoredIntPtr]
+    assert(slotsIntPtr[0](c_intptr(-7)) == c_intptr(-7))
+end
+
+func checkNativeUIntPtr()
+    assert(restoredUIntPtr(c_uintptr(7)) == c_uintptr(7))
+    array<func(c_uintptr) as c_uintptr> slotsUIntPtr = [restoredUIntPtr]
+    assert(slotsUIntPtr[0](c_uintptr(7)) == c_uintptr(7))
+end
+
+func checkNativeBool()
+    assert(restoredBool(c_bool(true)) == c_bool(true))
+    array<func(c_bool) as c_bool> slotsBool = [restoredBool]
+    assert(slotsBool[0](c_bool(true)) == c_bool(true))
+end
+
+func checkNativeFloat()
+    assert(restoredFloat(c_float(1.5)) == c_float(1.5))
+    array<func(c_float) as c_float> slotsFloat = [restoredFloat]
+    assert(slotsFloat[0](c_float(1.5)) == c_float(1.5))
+end
+
+func checkNativeDouble()
+    assert(restoredDouble(c_double(1.5)) == c_double(1.5))
+    array<func(c_double) as c_double> slotsDouble = [restoredDouble]
+    assert(slotsDouble[0](c_double(1.5)) == c_double(1.5))
+end
+
+func checkNativeWChar()
+    assert(restoredWChar(c_wchar(65)) == c_wchar(65))
+    array<func(c_wchar) as c_wchar> slotsWChar = [restoredWChar]
+    assert(slotsWChar[0](c_wchar(65)) == c_wchar(65))
+end
+
+func checkNativeType()
+    assert(restoredType(int) == int)
+    array<func(type) as type> slotsType = [restoredType]
+    assert(slotsType[0](int) == int)
+end
+
+func main(...) as int
+    checkNativeChar()
+    checkNativeSChar()
+    checkNativeUChar()
+    checkNativeShort()
+    checkNativeUShort()
+    checkNativeInt()
+    checkNativeUInt()
+    checkNativeLong()
+    checkNativeULong()
+    checkNativeLongLong()
+    checkNativeULongLong()
+    checkNativeSize()
+    checkNativeSSize()
+    checkNativePtrDiff()
+    checkNativeIntPtr()
+    checkNativeUIntPtr()
+    checkNativeBool()
+    checkNativeFloat()
+    checkNativeDouble()
+    checkNativeWChar()
+    checkNativeType()
+    auto number, code, text = restoredMixed(c_ulong(7), string)
+    assert(number == c_ulong(7) and code == string and text == "a\0你")
+    return 0
+end

@@ -19181,10 +19181,38 @@ static XL6_IrTypeId xl6IrFindDynamicXValueBuiltinType(
     return XL6_IR_TYPE_INVALID;
 }
 
+static XL6_NativeScalarProfileV1 xl6IrCallableNativeScalarProfile(XL6_IrCAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_C_ABI_C_CHAR: return XL6_NATIVE_SCALAR_CHAR;
+    case XL6_IR_C_ABI_C_SCHAR: return XL6_NATIVE_SCALAR_SCHAR;
+    case XL6_IR_C_ABI_C_UCHAR: return XL6_NATIVE_SCALAR_UCHAR;
+    case XL6_IR_C_ABI_C_SHORT: return XL6_NATIVE_SCALAR_SHORT;
+    case XL6_IR_C_ABI_C_USHORT: return XL6_NATIVE_SCALAR_USHORT;
+    case XL6_IR_C_ABI_C_INT: return XL6_NATIVE_SCALAR_INT;
+    case XL6_IR_C_ABI_C_UINT: return XL6_NATIVE_SCALAR_UINT;
+    case XL6_IR_C_ABI_C_LONG: return XL6_NATIVE_SCALAR_LONG;
+    case XL6_IR_C_ABI_C_ULONG: return XL6_NATIVE_SCALAR_ULONG;
+    case XL6_IR_C_ABI_C_LONGLONG: return XL6_NATIVE_SCALAR_LONGLONG;
+    case XL6_IR_C_ABI_C_ULONGLONG: return XL6_NATIVE_SCALAR_ULONGLONG;
+    case XL6_IR_C_ABI_C_SIZE: return XL6_NATIVE_SCALAR_SIZE;
+    case XL6_IR_C_ABI_C_SSIZE: return XL6_NATIVE_SCALAR_SSIZE;
+    case XL6_IR_C_ABI_C_PTRDIFF: return XL6_NATIVE_SCALAR_PTRDIFF;
+    case XL6_IR_C_ABI_C_INTPTR: return XL6_NATIVE_SCALAR_INTPTR;
+    case XL6_IR_C_ABI_C_UINTPTR: return XL6_NATIVE_SCALAR_UINTPTR;
+    case XL6_IR_C_ABI_C_BOOL: return XL6_NATIVE_SCALAR_BOOL;
+    case XL6_IR_C_ABI_C_FLOAT: return XL6_NATIVE_SCALAR_FLOAT;
+    case XL6_IR_C_ABI_C_DOUBLE: return XL6_NATIVE_SCALAR_DOUBLE;
+    case XL6_IR_C_ABI_C_WCHAR: return XL6_NATIVE_SCALAR_WCHAR;
+    case XL6_IR_C_ABI_TYPE_ID: return XL6_NATIVE_SCALAR_TYPE_ID;
+    default: return XL6_NATIVE_SCALAR_NONE;
+    }
+}
 static int xl6IrRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 {
-    return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
-           abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_TYPE_ID ||
+    return xl6IrCallableNativeScalarProfile(abi) != XL6_NATIVE_SCALAR_NONE ||
+           abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
+           abi == XL6_IR_C_ABI_U64 ||
            abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_F32 ||
            abi == XL6_IR_C_ABI_TIME_I64 || abi == XL6_IR_C_ABI_CHAR_U32;
 }
@@ -45067,18 +45095,18 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     }
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
-        xl6OutputPrintf(out, "  callable-bridge-parameter %lu parameter=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d invoke=%d decoded-destroy=%d input-destroy=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge-parameter %lu parameter=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d native-scalar=%d invoke=%d decoded-destroy=%d input-destroy=%d\n",
             (unsigned long)i, (unsigned long)p->parameter, (unsigned)p->type,
             (int)p->decodeAbi, (int)p->encodeAbi, (int)p->integerDomain.rule,
-            (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->invokeAbi,
+            (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->nativeScalarProfile, (int)p->invokeAbi,
             (int)p->decodedDestroyAbi, (int)p->inputDestroyAbi);
     }
     for (i = 0; i < module->callableBridgeResultCount; ++i) {
         const XL6_IrCallableBridgeResult* r = &module->callableBridgeResults[i];
-        xl6OutputPrintf(out, "  callable-bridge-result %lu result=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d destroy=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge-result %lu result=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d native-scalar=%d destroy=%d\n",
             (unsigned long)i, (unsigned long)r->result, (unsigned)r->type,
             (int)r->decodeAbi, (int)r->encodeAbi, (int)r->integerDomain.rule,
-            (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->destroyAbi);
+            (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->nativeScalarProfile, (int)r->destroyAbi);
     }
     for (i = 0; i < module->callbackBoundaryCount; ++i) {
         const XL6_IrCallbackBoundary* b = &module->callbackBoundaries[i];
@@ -46531,20 +46559,20 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridgeParameters\": [\n", out);
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"parameter\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"invokeAbi\":%d,\"decodedDestroyAbi\":%d,\"inputDestroyAbi\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"parameter\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"nativeScalarProfile\":%d,\"invokeAbi\":%d,\"decodedDestroyAbi\":%d,\"inputDestroyAbi\":%d}%s\n",
             (unsigned long)i, (unsigned long)p->parameter, (unsigned)p->type,
             (int)p->decodeAbi, (int)p->encodeAbi, (int)p->integerDomain.rule,
-            (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->invokeAbi,
+            (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->nativeScalarProfile, (int)p->invokeAbi,
             (int)p->decodedDestroyAbi, (int)p->inputDestroyAbi,
             i + 1 == module->callableBridgeParameterCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"callableBridgeResults\": [\n", out);
     for (i = 0; i < module->callableBridgeResultCount; ++i) {
         const XL6_IrCallableBridgeResult* r = &module->callableBridgeResults[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"destroyAbi\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"nativeScalarProfile\":%d,\"destroyAbi\":%d}%s\n",
             (unsigned long)i, (unsigned long)r->result, (unsigned)r->type,
             (int)r->decodeAbi, (int)r->encodeAbi, (int)r->integerDomain.rule,
-            (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->destroyAbi,
+            (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->nativeScalarProfile, (int)r->destroyAbi,
             i + 1 == module->callableBridgeResultCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"callbackBoundaries\": [\n", out);

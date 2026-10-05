@@ -47,6 +47,7 @@ try {
             'test/cases/stdlib_callable_scalars.xl','test/cases/stdlib_callable_scalars_unused.xl',
             'test/cases/stdlib_callable_scalars_contract.c','test/cases/stdlib_callable_scalars_host.c',
             'test/cases/stdlib_callable_integer_domains.xl','test/cases/stdlib_callable_integer_domains_host.c',
+            'test/cases/stdlib_callable_native_scalars.xl','test/cases/stdlib_callable_native_scalars_host.c',
             'test/cases/xlir_callable_bridge_mutations.h'))
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
@@ -228,7 +229,9 @@ try {
     foreach ($mode in @('base','nominal','defaults','layouts','numeric-enums')) {
         $arguments=@('tools/check_stdlib_collection_admission.py','--out',"$outPath/collection-$mode",'--public-directory',$PublicDirectory)
         if ($mode -ne 'base') { $arguments += "--$mode" }
-        Run "collection-$mode" $python $arguments -TimeoutMs 600000
+        # Layouts includes the separately bounded scalar and expression gates.
+        $collectionTimeout = if ($mode -eq 'layouts') { 2700000 } else { 600000 }
+        Run "collection-$mode" $python $arguments -TimeoutMs $collectionTimeout
         $admission=Get-Content -Encoding UTF8 -LiteralPath "$outPath/collection-$mode/results.json" -Raw | ConvertFrom-Json
         if (!$admission.Complete -or !$admission.InputsUnchanged) { throw "Incomplete collection $mode evidence" }
     }
