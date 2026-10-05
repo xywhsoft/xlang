@@ -1,0 +1,19 @@
+// Native shuffle consumer is ready; language Array still uses value-v1.
+array<int> values = [0, 1, 2, 3, 4, 5, 6, 7]
+array<int> alias = values
+array<int> replay = [0, 1, 2, 3, 4, 5, 6, 7]
+random.seed(uint64(2026), uint64(7))
+random.shuffle(values)
+uint64 next = random.u64()
+random.seed(uint64(2026), uint64(7))
+random.shuffle(replay)
+assert(values == replay and alias == values)
+assert(next == random.u64())
+assert(values != [0, 1, 2, 3, 4, 5, 6, 7])
+array<string> texts = ["a\0b", "你", ""]
+random.shuffle(texts)
+assert(texts.length == 3)
+assert(texts.contains("a\0b") and texts.contains("你") and texts.contains(""))
+array empty = []
+random.shuffle(empty)
+assert(empty.length == 0)

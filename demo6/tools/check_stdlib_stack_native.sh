@@ -50,6 +50,8 @@ frozen_files() {
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
     printf '%s\0' tools/check_stdlib_array_input.py test/cases/stdlib_array_input_host.c
     printf '%s\0' test/cases/stdlib_array_future_reference.xl tools/check_stdlib_array_future.py test/cases/stdlib_array_future_native_host.c test/support/array_future_native.c test/cases/stdlib_sequence_retired_admission_abi.c
+    printf '%s\0' tools/check_stdlib_array_shuffle.py test/cases/stdlib_array_shuffle_native_host.c test/support/array_shuffle_native.c
+    printf '%s\0' test/cases/stdlib_array_shuffle_default_only.xl test/cases/stdlib_array_shuffle_explicit_only.xl test/cases/stdlib_random_extended.xl
     printf '%s\0' test/cases/stdlib_future_metadata_host.c test/cases/xlir_future_metadata_contract.c
     printf '%s\0' test/cases/stdlib_future_aggregate_variadic_only.xl test/cases/stdlib_future_aggregate_array_only.xl test/cases/stdlib_future_metadata_only.xl
     printf '%s\0' test/cases/stdlib_text_join_only.xl test/cases/stdlib_text_join.xl test/cases/stdlib_regex_set_only.xl
@@ -203,6 +205,7 @@ for mode in base nominal defaults layouts; do
 done
 if ! run array-input "$PY" tools/check_stdlib_array_input.py --out "$OUT/array-input" --sanitize; then failures+=(array-input); fi
 if ! run array-future "$PY" tools/check_stdlib_array_future.py --out "$OUT/array-future" --sanitize; then failures+=(array-future); fi
+if ! run array-shuffle "$PY" tools/check_stdlib_array_shuffle.py --out "$OUT/array-shuffle" --sanitize --language; then failures+=(array-shuffle); fi
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi

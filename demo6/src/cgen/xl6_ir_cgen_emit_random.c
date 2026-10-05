@@ -8,6 +8,8 @@ static void xl6IrCgenEmitRandomRuntime(XL6_Output* out, unsigned int operations)
         XL6_CGEN_SECURE_STRING);
     unsigned int alphabet = operations & (XL6_CGEN_RNG_TEXT_MASK |
         XL6_CGEN_SECURE_STRING);
+    if (operations & XL6_CGEN_RNG_ARRAY_MASK)
+        xl6OutputPuts("#include <__xl_runtime/xl6_array_shuffle.h>\n", out);
     if (counted)
         xl6OutputPuts(
             "static bool xlir_random_count(int64_t requested, size_t* count)\n"
@@ -119,13 +121,8 @@ static void xl6IrCgenEmitRandomRuntime(XL6_Output* out, unsigned int operations)
     if (operations & XL6_CGEN_RNG_SHUFFLE_ARRAY)
         xl6OutputPuts(
             "bool xl6_xrt_rng_shuffle_array(void* handle, xvalue* values)\n"
-            "{ xrng* rng = xlir_random_state_get(handle); size_t i, count;\n"
-            "  if (rng == NULL) return false;\n"
-            "  if (values == NULL || xrtValueType(values) != XVALUE_ARRAY)\n"
-            "    { xrtSetErrorKind(XERR_ARGUMENT); return false; }\n"
-            "  count = xrtValueCount(values); for (i = count; i > 1u; --i)\n"
-            "    if (!xrtValueArraySwap(values, i - 1u, (size_t)xrtRngBelow64(rng, (uint64_t)i))) return false;\n"
-            "  return true; }\n\n", out);
+            "{ xrng* rng = xlir_random_state_get(handle);\n"
+            "  return rng != NULL && xl6ArrayRngShuffleV1(rng, values); }\n\n", out);
     if (operations & XL6_CGEN_RNG_SHUFFLE_BUFFER)
         xl6OutputPuts(
             "bool xl6_xrt_rng_shuffle_buffer(void* handle, void* target)\n"
@@ -186,12 +183,7 @@ static void xl6IrCgenEmitRandomRuntime(XL6_Output* out, unsigned int operations)
     if (operations & XL6_CGEN_RAND_SHUFFLE_ARRAY)
         xl6OutputPuts(
             "bool xl6_xrt_random_shuffle_array(xvalue* values)\n"
-            "{ size_t i, count; if (values == NULL || xrtValueType(values) != XVALUE_ARRAY)\n"
-            "    { xrtSetErrorKind(XERR_ARGUMENT); return false; }\n"
-            "  if (!xrtRandBytes(NULL, 0u)) return false;\n"
-            "  count = xrtValueCount(values); for (i = count; i > 1u; --i)\n"
-            "    if (!xrtValueArraySwap(values, i - 1u, (size_t)xrtRandBelow((uint64_t)i))) return false;\n"
-            "  return true; }\n\n", out);
+            "{ return xl6ArrayRandShuffleV1(values); }\n\n", out);
     if (operations & XL6_CGEN_RAND_SHUFFLE_BUFFER)
         xl6OutputPuts(
             "bool xl6_xrt_random_shuffle_buffer(void* target)\n"
