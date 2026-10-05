@@ -79,6 +79,20 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeClosePlan(&stack,&plan) && plan.sourceCount==2);
     CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
         !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED));
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureAggregateRuntimeV1Get")==XL6_ARTIFACT_RUNTIME_COUNT);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureAggregateAllV2")==XL6_ARTIFACT_FUTURE_AGGREGATE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureAggregateAllArrayV2")==XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY);
+    const XL6_ArtifactRuntimeId roots[]={XL6_ARTIFACT_FUTURE_BRIDGE,
+        XL6_ARTIFACT_FUTURE_AGGREGATE,XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY};
+    for (size_t i=0;i<3;++i) {
+        XL6_ArtifactRuntimeSet root=xl6ArtifactRuntimeSetSingleton(roots[i]);
+        CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan));
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE)==(i!=0));
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY)==(i==2));
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT)==(i==2));
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE)==(i==2));
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE)==(i==0));
+    }
     return 1;
 }
 
@@ -322,6 +336,16 @@ static int fixture_contract(const char* path)
             xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_NULLABLE_C_SCALAR_ADMISSION)) ok=0;
     }
     if (strstr(path,"cgen_basic") && !allocation_contract(&unit.ir)) ok=0;
+    if (strstr(path,"stdlib_future_aggregate_") || strstr(path,"stdlib_future_metadata_only")) {
+        bool metadata=strstr(path,"metadata_only")!=NULL;
+        bool arrayInput=strstr(path,"aggregate_array_only")!=NULL;
+        ok=ok && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE)==!metadata &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY)==arrayInput &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT)==arrayInput &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE)==arrayInput &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_METADATA)==metadata &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE);
+    }
     if (strstr(path,"xlir_artifact_linkage_literal"))
         ok=ok && !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE) &&
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_TASK_GROUP) &&

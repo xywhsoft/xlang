@@ -1,5 +1,5 @@
 /* 由 tools/gen_xrt_symbol_table.py 或 .ps1 生成；不要手工修改。 */
-/* 当前登记 3623 个 XRT/xruntime 公共函数。 */
+/* 当前登记 3626 个 XRT/xruntime 公共函数。 */
 XL_XRT_SYMBOL(xrtAVLClear)
 XL_XRT_SYMBOL(xrtAVLFind)
 XL_XRT_SYMBOL(xrtAVLFirst)
@@ -645,6 +645,9 @@ XL_XRT_SYMBOL(xrtFutureCombineWatchPolicyV2Get)
 XL_XRT_SYMBOL(xrtFutureContinue)
 XL_XRT_SYMBOL(xrtFutureContinueOwned)
 XL_XRT_SYMBOL(xrtFutureContinueOwnedCancelSource)
+XL_XRT_SYMBOL(xrtFutureDebugNameCopy)
+XL_XRT_SYMBOL(xrtFutureDebugSetNameN)
+XL_XRT_SYMBOL(xrtFutureDebugSnapshot)
 XL_XRT_SYMBOL(xrtFutureDestroy)
 XL_XRT_SYMBOL(xrtFutureDone)
 XL_XRT_SYMBOL(xrtFutureError)

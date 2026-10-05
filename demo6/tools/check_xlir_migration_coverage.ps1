@@ -976,6 +976,7 @@ $rangeForAbiGateText = [System.IO.File]::ReadAllText($rangeForAbiGate, [System.T
 $generatorMachineGateText = [System.IO.File]::ReadAllText($generatorMachineGate, [System.Text.Encoding]::UTF8)
 $interpolatedStringGateText = [System.IO.File]::ReadAllText($interpolatedStringGate, [System.Text.Encoding]::UTF8)
 $arrayI64ForAbiGateText = [System.IO.File]::ReadAllText($arrayI64ForAbiGate, [System.Text.Encoding]::UTF8)
+$arrayLanguageLifetimeGateText = [System.IO.File]::ReadAllText((Join-Path $Root 'tools\check_stdlib_collection_continuations.py'), [System.Text.Encoding]::UTF8)
 $xvalueIteratorAbiGateText = [System.IO.File]::ReadAllText($xvalueIteratorAbiGate, [System.Text.Encoding]::UTF8)
 $setI64IteratorAbiGateText = [System.IO.File]::ReadAllText($setI64IteratorAbiGate, [System.Text.Encoding]::UTF8)
 $iteratorScalarProjectionGateText = [System.IO.File]::ReadAllText($iteratorScalarProjectionGate, [System.Text.Encoding]::UTF8)
@@ -1152,7 +1153,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_task_when_any_literal_abi.xl", 'kindName -eq "task-when-any"',
     'runtimeOpName -eq "future-when-any-index"', "heterogeneous Future payload identities",
-    "(xl6FutureAggregateRuntimeV1Get()->WhenAnyIndex)(fa", "xrtFutureThenOwnedCancelSource",
+    "xl6FutureAggregateWhenAnyIndexV2(fa", "xrtFutureThenOwnedCancelSource",
     "SequenceEqual", "strict-C/runtime gate failed"
 
 ) ) {
@@ -1164,7 +1165,7 @@ foreach ( $required in @(
     "xlir_task_when_any_array_abi.xl", 'kindName -eq "task-when-any-array"',
     'runtimeOpName -eq "xvalue-future-ref"',
     'runtimeOpName -eq "future-when-any-index-array"',
-    "borrowed array<Future<T>>", "xrtValueFuture(v", "(xl6FutureAggregateRuntimeV1Get()->WhenAnyIndexArray)(v",
+    "borrowed array<Future<T>>", "xrtValueFuture(v", "xl6FutureAggregateWhenAnyIndexArrayV2(v",
     "xl6_future_aggregate.h", "SequenceEqual", "strict-C/runtime gate failed"
 
 ) ) {
@@ -1180,8 +1181,8 @@ foreach ( $required in @(
     'runtimeOpName -eq "future-race-array"',
     "borrowed array<Future<T>>", "xrtValueFuture(v",
     "xl6_future_aggregate.h", "xlir_future_aggregate_owner",
-    "(xl6FutureAggregateRuntimeV1Get()->AllArray)(v",
-    "(xl6FutureAggregateRuntimeV1Get()->RaceArray)(v",
+    "xl6FutureAggregateAllArrayV2(v",
+    "xl6FutureAggregateRaceArrayV2(v",
     "SequenceEqual", "XL6_CGEN_XLANG_LINKS",
     "strict-C/runtime gate failed"
 ) ) {
@@ -1273,7 +1274,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_stack_resource_abi.xl", "xlir_stack_class_default_abi.xl",
     'runtimeResourceOpName -like "stack-*"',
-    'runtimeOpName -like "stack-*"', '"storage-ref"',
+    'runtimeOpName -like "stack-*"', "Where-Object abiName -eq 'storage-ref').Count -ne 0",
     'initializerAbiName -eq "runtime-resource-default"',
     'errorAbiName -ne "may-raise"', 'abiName -ne "retain-xvalue"',
     "partial-object cleanup", "byte-for-byte deterministic",
@@ -1660,7 +1661,7 @@ foreach ( $required in @(
     "unique canonical exit release", "call/return admission",
     "local and outward exception routing", "return/throw/finally cleanup",
     "non-container excluded from array ABI",
-    "runtime snapshot/transfer semantics", "mechanical C", "-Werror"
+    "runtime snapshot/transfer semantics", "mechanical C", "check_stdlib_collection_continuations.py", "--array-only"
 ) ) {
     if ( ! $arrayI64ForAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the canonical array<i64> for ABI gate: $required"
@@ -1966,12 +1967,12 @@ foreach ( $required in @(
     "xlir_u64_async_closure.xl",
     "xlir_u64_generic_intrinsic.xl",
     "xlir_u64_dynamic.xl",
-    "cabi=34 callable=invalid ownership=1",
+    "cabi=34 native-slot=u64", "callable=invalid ownership=1",
     "18446744073709551615ULL",
     "runtime=u64-to-string",
     "xlir_result_u64",
-    "xlir_future_await_u64",
-    "xlir_cell_store_u64",
+    "xlir_future_wait_checked", "xrtFutureValue(",
+    "xl6CellRuntimeV1Get()->Store", "XL6_CELL_U64",
     "xvalue-u64",
     "xvalue-array-at-i64-u64",
     "xvalue-int-map-at-i64-u64",
@@ -1982,7 +1983,7 @@ foreach ( $required in @(
     "xlir_xvalue_to_u64_checked",
     "xrtValueUInt",
     "xrtValueGetUInt",
-    "(xl6FutureAggregateRuntimeV1Get()->All)(",
+    "xl6FutureAggregateAllV2(",
     "generic specialization",
     "xrtUIntFormatTo",
     "-Werror",
@@ -2247,7 +2248,7 @@ foreach ( $required in @(
     "xlir_xcall_nullable_closure.xl", "nullable-unwrap",
     "narrowed nullable closure storage",
     "xvalue-callable-from-closure", "xvalue-dynamic-call",
-    "xrtCallableCreate", "xrtValueInvoke", "projected callable error causes",
+    "xl6ClosureRuntimeV1Get()->Box", "xrtValueInvoke", "projected callable error causes",
     "-Werror", "runtime failed"
 ) ) {
     if ( ! $xcallGateText.Contains($required) ) {
@@ -2816,6 +2817,11 @@ foreach ( $gate in @(
 foreach ($required in @('xlir_exit_route.xl', 'exitSteps', 'failureTarget', 'firstStep', 'stepCount',
     'xlir_exit_route_contract.c', '-Werror', 'does not certify CFG cleanup outcomes')) {
     if (!$exitRouteGateText.Contains($required)) { throw "XLIR exit route topology gate lost contract evidence: $required" }
+}
+foreach ($required in @('--array-only', '-std=c11', '-Wall', '-Wextra', '-Werror')) {
+    if (!$arrayLanguageLifetimeGateText.Contains($required)) {
+        throw "XLIR array language lifetime worker lost its strict-C contract: $required"
+    }
 }
 $rows = $matrix.Count
 $matrixFixtures = @($matrix.Values | ForEach-Object { $_ } | Select-Object -Unique).Count

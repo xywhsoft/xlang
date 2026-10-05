@@ -1,0 +1,26 @@
+async func metadataValue() as int
+    return 42
+end
+func metadataName() as string
+    return "temporary\0你" + "!"
+end
+
+future<int> value = metadataValue()
+assert value.wait()
+assert value.setDebugName("metadata\0你")
+string copy = value.debugName()
+assert copy == "metadata\0你"
+assert value.setDebugName("replaced")
+assert value.debugName() == "replaced" and copy == "metadata\0你"
+assert value.createTimeMs() > 0
+assert value.completeTimeMs() >= value.createTimeMs()
+assert value.pendingContinuations() >= 0
+assert await value == 42
+assert value.setDebugName(metadataName())
+assert value.debugName() == "temporary\0你!"
+assert metadataValue().setDebugName(metadataName())
+assert metadataValue().debugName() == ""
+assert metadataValue().createTimeMs() >= 0
+assert metadataValue().completeTimeMs() >= 0
+assert metadataValue().pendingContinuations() == 0
+println("Future metadata without aggregate components ok")

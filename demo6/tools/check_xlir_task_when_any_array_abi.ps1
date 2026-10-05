@@ -118,7 +118,7 @@ $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "xrtValueFuture(v",
     "#include <__xl_runtime/xl6_future_aggregate.h>",
-    " = (xl6FutureAggregateRuntimeV1Get()->WhenAnyIndexArray)(v"
+    " = xl6FutureAggregateWhenAnyIndexArrayV2(v"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR task.whenAny array generated C is missing direct mechanical XRT emission: $required"

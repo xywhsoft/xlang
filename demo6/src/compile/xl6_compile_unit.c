@@ -37,8 +37,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_code_finalizer.c", D(R(CODE_LEASE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_ownership_plan.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
     {"src/api/xl_protocol_registry.c", NULL, 0, {"XRT_MODULE_ONCE", "XRT_MODULE_MUTEX", "XRT_MODULE_MEMORY"}},
-    {"src/api/xl_future_bridge.c", D(R(CODE_LEASE),R(FUTURE_PAYLOAD),R(ARRAY_INPUT)),
-        {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_THREAD", "XRT_MODULE_MUTEX", "XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"}},
+    {"src/api/xl_future_bridge.c", D(R(CODE_LEASE),R(FUTURE_PAYLOAD),R(FUTURE_METADATA)),
+        {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_THREAD", "XRT_MODULE_MUTEX"}},
     {"src/api/xl_channel_bridge.c", NULL, 0, {"XRT_MODULE_CHANNEL_SELECT_CANCEL", "XRT_MODULE_CHANNEL_COROUTINE"}},
     {"src/api/xl_task_group_bridge.c", NULL, 0, {"XRT_MODULE_TASK_GROUP_POOL", "XRT_MODULE_TASK_GROUP_COROUTINE"}},
     {"src/api/xl_foreign_error.c", NULL, 0, {"XRT_MODULE_ONCE", "XRT_MODULE_ERROR"}},
@@ -176,7 +176,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_callable_admission.c", D(R(ARRAY_TYPED)),
         {"XRUNTIME_MODULE_RUNTIME_CALL", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
     {"src/runtime/xl6_native_scalar_value.c", D(), {"XRUNTIME_MODULE_TYPED_VALUE"}},
-    {"src/runtime/xl6_array_input.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE", "XRT_MODULE_VALUE_CONTAINER"}}
+    {"src/runtime/xl6_array_input.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_future_aggregate.c", D(R(CODE_LEASE),R(FUTURE_PAYLOAD)), {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_future_aggregate_array.c", D(R(FUTURE_AGGREGATE),R(ARRAY_INPUT)), {"XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"}},
+    {"src/runtime/xl6_future_metadata.c", D(), {"XRT_MODULE_FUTURE", "XRT_MODULE_UNICODE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -362,7 +365,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         if (module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
             xl6IrRuntimeFsBridgeUsesOwner(module->callTargets[i].runtimeBridge,"xl6_xrt_fs_async_destroy"))
             REQUIRE(R(FILE_ASYNC));
-    if (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_NONE) REQUIRE(R(FUTURE_BRIDGE));
+    if (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_NONE) REQUIRE(R(FUTURE_AGGREGATE));
     if (module->abi.nativeFutureMapAbi != XL6_IR_NATIVE_FUTURE_MAP_NONE) REQUIRE(R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD));
     if (module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE) REQUIRE(R(NETWORK_SERVICE));
     if (module->asyncMachineCount) REQUIRE(R(CONTINUATION_FRAME),R(FUTURE_PAYLOAD));
@@ -479,11 +482,14 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         case XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST:
         case XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED:
         case XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_NULLABLE: REQUIRE(R(NOMINAL_ADMISSION)); break;
+        case XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY: case XL6_IR_RUNTIME_FUTURE_RACE_ARRAY:
+        case XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX_ARRAY:
+            REQUIRE(R(FUTURE_AGGREGATE_ARRAY)); break;
         case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE: REQUIRE(R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD)); break;
         case XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE: REQUIRE(R(TASK)); break;
         case XL6_IR_RUNTIME_FUTURE_SET_DEBUG_NAME: case XL6_IR_RUNTIME_FUTURE_DEBUG_NAME_COPY:
         case XL6_IR_RUNTIME_FUTURE_CREATE_TIME_MS: case XL6_IR_RUNTIME_FUTURE_COMPLETE_TIME_MS:
-        case XL6_IR_RUNTIME_FUTURE_PENDING_CONTINUATIONS: REQUIRE(R(FUTURE_BRIDGE)); break;
+        case XL6_IR_RUNTIME_FUTURE_PENDING_CONTINUATIONS: REQUIRE(R(FUTURE_METADATA)); break;
         default: break;
         }
     }

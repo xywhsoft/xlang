@@ -134,7 +134,7 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "#include <__xl_runtime/xl6_future_aggregate.h>",
-    "xfuture* fa", " = (xl6FutureAggregateRuntimeV1Get()->WhenAnyIndex)(fa"
+    "xfuture* fa", " = xl6FutureAggregateWhenAnyIndexV2(fa"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR task.whenAny generated C is missing direct mechanical XRT emission: $required"

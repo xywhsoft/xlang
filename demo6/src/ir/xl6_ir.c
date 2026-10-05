@@ -12705,6 +12705,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         }
         break;
     case XL6_IR_INTRINSIC_FUTURE_SET_DEBUG_NAME:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( operandCount == 2 && result != NULL &&
              result->cAbi == XL6_IR_C_ABI_BOOL && sourceType != NULL &&
              sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
@@ -12717,6 +12718,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
     case XL6_IR_INTRINSIC_FUTURE_DEBUG_NAME:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( operandCount == 1 && result != NULL &&
              result->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
              result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -12728,6 +12730,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
     case XL6_IR_INTRINSIC_FUTURE_CREATE_TIME_MS:
     case XL6_IR_INTRINSIC_FUTURE_COMPLETE_TIME_MS:
     case XL6_IR_INTRINSIC_FUTURE_PENDING_CONTINUATIONS:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( operandCount == 1 && result != NULL &&
              result->cAbi == XL6_IR_C_ABI_I64 && sourceType != NULL &&
              sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
@@ -17328,7 +17331,7 @@ XL6_IrFutureAggregateAbi xl6IrModuleFutureAggregateRequirement(const XL6_IrModul
         case XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY:
         case XL6_IR_RUNTIME_FUTURE_RACE_ARRAY:
         case XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX_ARRAY:
-            return XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1;
+            return XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2;
         default: break;
         }
     }
@@ -17404,7 +17407,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     if (module->abi.futureAggregateAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_FUTURE_AGGREGATE_NONE : xl6IrModuleFutureAggregateRequirement(module)) ||
         (module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_NONE &&
-         module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1))
+         module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2))
         return xl6IrDiag(diags, NULL, "XLIR Future aggregate mapper/code ownership ABI is unresolved");
     if (module->abi.closureStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_CLOSURE_STORAGE_NONE : XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2))
@@ -18121,6 +18124,20 @@ const char* xl6IrCallPreparationFailureAbiName(XL6_IrCallPreparationFailureAbi a
     }
 }
 
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeFutureMetadataErrorPhysicalAbi(XL6_IrRuntimeOp operation)
+{
+    switch (operation) {
+    case XL6_IR_RUNTIME_FUTURE_DEBUG_NAME_COPY:
+        return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
+    case XL6_IR_RUNTIME_FUTURE_SET_DEBUG_NAME:
+    case XL6_IR_RUNTIME_FUTURE_CREATE_TIME_MS:
+    case XL6_IR_RUNTIME_FUTURE_COMPLETE_TIME_MS:
+    case XL6_IR_RUNTIME_FUTURE_PENDING_CONTINUATIONS:
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+    default: return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    }
+}
+
 static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
@@ -18130,6 +18147,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
         xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+    stringAbi=xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp);
+    if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi = xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     const XL6_IrType* projectionType=xl6IrTypeGet(&module->types,instruction->type);
@@ -31279,6 +31298,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_INTRINSIC_FUTURE_THEN ||
                         intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_CATCH ||
                         intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_FINALLY;
+                    int isMetadata = intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_SET_DEBUG_NAME ||
+                        intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_DEBUG_NAME ||
+                        intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_CREATE_TIME_MS ||
+                        intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_COMPLETE_TIME_MS ||
+                        intrinsic->kind == XL6_IR_INTRINSIC_FUTURE_PENDING_CONTINUATIONS;
                     int returnsOwned = intrinsic->kind ==
                             XL6_IR_INTRINSIC_FUTURE_ERROR ||
                         intrinsic->kind ==
@@ -31292,7 +31316,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                    ? XL6_IR_INTRINSIC_RESULT_OWNED
                                    : XL6_IR_INTRINSIC_RESULT_VALUE) ||
                           intrinsic->errorAbi !=
-                              (isContinuation
+                              (isContinuation || isMetadata
                                    ? XL6_IR_ERROR_ABI_MAY_RAISE
                                    : XL6_IR_ERROR_ABI_NO_RAISE) ||
                          intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
@@ -32134,7 +32158,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          intrinsic->resultAbi != (returnsName
                              ? XL6_IR_INTRINSIC_RESULT_OWNED
                              : XL6_IR_INTRINSIC_RESULT_VALUE) ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                          intrinsic->integerTarget !=
                              XL6_IR_INTEGER_TARGET_INVALID )
                         return xl6IrDiag(diags, call,
@@ -40798,6 +40822,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->runtimeOp == XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_SET_NEW)) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                      xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
+                    (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
+                     xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                      (xl6IrRuntimeInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ||
                       xl6IrRuntimeInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)) ||

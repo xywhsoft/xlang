@@ -5133,7 +5133,7 @@ typedef enum XL6_IrModuleTaskPoolOwnershipAbi {
  * This certifies neither a wait-cycle proof nor unknown source producers. */
 typedef enum XL6_IrFutureAggregateAbi {
     XL6_IR_FUTURE_AGGREGATE_NONE = 0,
-    XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1
+    XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2 = 2
 } XL6_IrFutureAggregateAbi;
 
 /* Native network result adaptation owns an exclusive source production chain.
@@ -6441,6 +6441,8 @@ XL6_IrErrorAbi xl6IrCallInstructionErrorAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 XL6_IrCallErrorPhysicalAbi xl6IrCallInstructionErrorPhysicalAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
+/* Optional native Future observation can allocate and must be checked. */
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeFutureMetadataErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 /* Fixed result protocol for runtime string allocation. INVALID means this
  * operation is outside the family. Shared by lowering and module verification;
  * a nullable string copy uses status, never NULL as a failure discriminator. */

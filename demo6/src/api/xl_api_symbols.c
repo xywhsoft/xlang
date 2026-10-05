@@ -32,6 +32,7 @@
 #include "src/runtime/xl6_array_iterator.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
+#include "src/runtime/xl6_future_metadata.h"
 #include "src/runtime/xl6_future_payload.h"
 
 #if defined(CONFIG_TCC_STATIC) && !defined(XL_STATIC_TCC)
@@ -229,7 +230,17 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV2Get", (const void*)xl6FutureCallbackRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV3Get", (const void*)xl6FutureCallbackRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackCancelPolicyV1Get", (const void*)xl6FutureCallbackCancelPolicyV1Get)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateRuntimeV1Get", (const void*)xl6FutureAggregateRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateAllV2", (const void*)xl6FutureAggregateAllV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureDebugNameSetV2", (const void*)xl6FutureDebugNameSetV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureDebugNameCopyV2", (const void*)xl6FutureDebugNameCopyV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureFirstObservedMsV2", (const void*)xl6FutureFirstObservedMsV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureFirstTerminalObservedMsV2", (const void*)xl6FutureFirstTerminalObservedMsV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FuturePendingWatchesV2", (const void*)xl6FuturePendingWatchesV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateRaceV2", (const void*)xl6FutureAggregateRaceV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateWhenAnyIndexV2", (const void*)xl6FutureAggregateWhenAnyIndexV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateAllArrayV2", (const void*)xl6FutureAggregateAllArrayV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateRaceArrayV2", (const void*)xl6FutureAggregateRaceArrayV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureAggregateWhenAnyIndexArrayV2", (const void*)xl6FutureAggregateWhenAnyIndexArrayV2)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackProducerPolicyV1Get", (const void*)xl6FutureCallbackProducerPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackWatchPolicyV1Get", (const void*)xl6FutureCallbackWatchPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackOwnershipAdapterV1", (const void*)xl6FutureCallbackOwnershipAdapterV1)) return 0;
@@ -265,7 +276,6 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xl6FutureWaitFor", (const void*)xl6FutureWaitFor) ||
          !xlApiAddTccSymbol(s, "xl6FutureWaitUntil", (const void*)xl6FutureWaitUntil) ||
          !xlApiAddTccSymbol(s, "xl6FutureSetName", (const void*)xl6FutureSetName) ||
-         !xlApiAddTccSymbol(s, "xl6FutureName", (const void*)xl6FutureName) ||
          !xlApiAddTccSymbol(s, "xl6FutureCreatedMs", (const void*)xl6FutureCreatedMs) ||
          !xlApiAddTccSymbol(s, "xl6FutureCompletedMs", (const void*)xl6FutureCompletedMs) ||
          !xlApiAddTccSymbol(s, "xl6FuturePendingCount", (const void*)xl6FuturePendingCount) ||

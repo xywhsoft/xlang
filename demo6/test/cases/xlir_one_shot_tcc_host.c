@@ -93,7 +93,17 @@ static void load_artifact(void)
     BIND(xl6PayloadTraceGet);
     BIND(xl6PayloadResolveOwned);
     BIND(xl6PayloadObserveOutcome);
-    BIND(xl6FutureAggregateRuntimeV1Get);
+    BIND(xl6FutureAggregateAllV2);
+    BIND(xl6FutureDebugNameSetV2);
+    BIND(xl6FutureDebugNameCopyV2);
+    BIND(xl6FutureFirstObservedMsV2);
+    BIND(xl6FutureFirstTerminalObservedMsV2);
+    BIND(xl6FuturePendingWatchesV2);
+    BIND(xl6FutureAggregateRaceV2);
+    BIND(xl6FutureAggregateWhenAnyIndexV2);
+    BIND(xl6FutureAggregateAllArrayV2);
+    BIND(xl6FutureAggregateRaceArrayV2);
+    BIND(xl6FutureAggregateWhenAnyIndexArrayV2);
     BIND(xl6ClosureRuntimeV1Get);
     BIND(xl6ClosureRuntimeV2Get);
     BIND(xl6ClassRuntimeV1Get);

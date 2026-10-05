@@ -200,8 +200,8 @@ static void sweep(unsigned mode,size_t point)
     if (mode==5) { result=xl6PatternEditAddManyV1(builder,a,numbers,numbers); ok=result!=NULL; }
     if (mode==6) { xl6PatternEditApplyManyV1(edit,state,a); ok=xrtGetError()==NULL; }
     if (mode>=7) {
-        const XL6_FutureAggregateRuntimeV1* api=xl6FutureAggregateRuntimeV1Get(); unsigned which=(mode-7)%3;
-        result=which==0 ? api->AllArray(a,NULL,NULL) : which==1 ? api->RaceArray(a) : api->WhenAnyIndexArray(a);
+        unsigned which=(mode-7)%3;
+        result=which==0 ? xl6FutureAggregateAllArrayV2(a,NULL,NULL) : which==1 ? xl6FutureAggregateRaceArrayV2(a) : xl6FutureAggregateWhenAnyIndexArrayV2(a);
         ok=result!=NULL;
     }
     bool hit=xl6ProductMemoryEnd();

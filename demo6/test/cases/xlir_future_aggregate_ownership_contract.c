@@ -13,18 +13,18 @@ int main(void)
         xl6SemCheckModule(parse.root, &parse.diags, "aggregate_ownership") &&
         xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags));
     assert(ir.abi.futureAggregateAbi == XL6_IR_FUTURE_AGGREGATE_NONE); verify(&ir);
-    ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1;
+    ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2;
     reject(&ir, abiDiagnostic); ++abiMutations;
     ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_NONE;
     assert(xl6IrLowerModule(&ir, &parse.diags));
-    assert(ir.abi.futureAggregateAbi == XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1);
+    assert(ir.abi.futureAggregateAbi == XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2);
     assert(xl6IrModuleFutureAggregateRequirement(&ir) == ir.abi.futureAggregateAbi);
     for (int invalid = -1; invalid <= 2; ++invalid) {
-        if (invalid == XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1) continue;
+        if (invalid == XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2) continue;
         ir.abi.futureAggregateAbi = (XL6_IrFutureAggregateAbi)invalid;
         reject(&ir, abiDiagnostic); ++abiMutations;
     }
-    ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1;
+    ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2;
     verify(&ir);
     for (size_t i = 0; i < ir.instructionCount; ++i) {
         XL6_IrInstruction* instruction = &ir.instructions[i]; XL6_IrInstruction saved = *instruction;
@@ -54,19 +54,19 @@ int main(void)
     verify(&ir);
     assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); text = xl6OutputTakeMemoryText(&out, NULL);
     assert(text && strstr(text, "#include <__xl_runtime/xl6_future_aggregate.h>") &&
-        strstr(text, "(xl6FutureAggregateRuntimeV1Get()->All)") && strstr(text, "xlir_future_aggregate_owner"));
-    if (fixture == 0) assert(strstr(text, "(xl6FutureAggregateRuntimeV1Get()->AllArray)") &&
-        strstr(text, "(xl6FutureAggregateRuntimeV1Get()->Race)") && strstr(text, "(xl6FutureAggregateRuntimeV1Get()->WhenAnyIndex)") &&
-        strstr(text, "(xl6FutureAggregateRuntimeV1Get()->RaceArray)") && strstr(text, "(xl6FutureAggregateRuntimeV1Get()->WhenAnyIndexArray)"));
+        strstr(text, "xl6FutureAggregateAllV2") && strstr(text, "xlir_future_aggregate_owner"));
+    if (fixture == 0) assert(strstr(text, "xl6FutureAggregateAllArrayV2") &&
+        strstr(text, "xl6FutureAggregateRaceV2") && strstr(text, "xl6FutureAggregateWhenAnyIndexV2") &&
+        strstr(text, "xl6FutureAggregateRaceArrayV2") && strstr(text, "xl6FutureAggregateWhenAnyIndexArrayV2"));
     assert(!strstr(text, "xl6FutureAllXValues(") && !strstr(text, "xl6FutureAllChecked(") &&
         !strstr(text, "xl6FutureRaceChecked(") && !strstr(text, "xl6FutureWhenAnyIndex(") &&
         !strstr(text, "xlir_future_array_unpack") && !strstr(text, "xlir_future_when_any_array"));
     assert(!strstr(text, "xlir_future_when_any_index_continue") && !strstr(text, "xrtFutureThenOwnedCancelSource(") && !strstr(text, "xl6FutureThenOwned("));
     xrtFree(text);
     assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out, &ir); text = xl6OutputTakeMemoryText(&out, NULL);
-    assert(text && strstr(text, "future-aggregate: 1\n")); xrtFree(text);
+    assert(text && strstr(text, "future-aggregate: 2\n")); xrtFree(text);
     assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleJson(&out, &ir); text = xl6OutputTakeMemoryText(&out, NULL);
-    assert(text && strstr(text, "\"futureAggregateAbi\": 1")); xrtFree(text);
+    assert(text && strstr(text, "\"futureAggregateAbi\": 2")); xrtFree(text);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
     /* The capability is computed from actual instructions, not a needs bit or
@@ -79,7 +79,7 @@ int main(void)
         probe.instructions = &instruction; probe.instructionCount = 1;
         for (size_t i = 0; i < sizeof(ops)/sizeof(*ops); ++i) {
             instruction.kind = XL6_IR_INSTR_RUNTIME_CALL; instruction.runtimeOp = ops[i];
-            assert(xl6IrModuleFutureAggregateRequirement(&probe) == XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1);
+            assert(xl6IrModuleFutureAggregateRequirement(&probe) == XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2);
             instruction.kind = XL6_IR_INSTR_VALUE;
             assert(xl6IrModuleFutureAggregateRequirement(&probe) == XL6_IR_FUTURE_AGGREGATE_NONE);
         }
@@ -88,7 +88,7 @@ int main(void)
             xl6SemCheckModule(parse.root, &parse.diags, "aggregate_none") &&
             xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) && xl6IrLowerModule(&ir, &parse.diags));
         assert(ir.abi.futureAggregateAbi == XL6_IR_FUTURE_AGGREGATE_NONE); verify(&ir);
-        ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_RESIDENT_OWNED_MAPPER_V1;
+        ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2;
         reject(&ir, abiDiagnostic); ++abiMutations;
         ir.abi.futureAggregateAbi = XL6_IR_FUTURE_AGGREGATE_NONE; verify(&ir);
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
