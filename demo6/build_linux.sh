@@ -159,6 +159,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_buffer_core.c"
 	"$ROOT/src/runtime/xl6_buffer_query.c"
 	"$ROOT/src/runtime/xl6_stack.c"
+	"$ROOT/src/runtime/xl6_stack_batch.c"
 	"$ROOT/src/runtime/xl6_sequence.c"
 	"$ROOT/src/runtime/xl6_array_reference_admission.c"
 	"$ROOT/src/runtime/xl6_array_nominal_admission.c"

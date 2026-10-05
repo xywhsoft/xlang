@@ -17,6 +17,7 @@
 #include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_stack.h"
+#include "src/runtime/xl6_stack_batch.h"
 #include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_admission.h"

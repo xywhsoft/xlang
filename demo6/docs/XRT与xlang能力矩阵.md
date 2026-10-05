@@ -5,10 +5,10 @@
 ## 契约结论
 
 - XRT 核心公共函数：3165。
-- xruntime 产品公共函数：3622，其中扩展自有 457。
-- 低层能力：3622 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- xruntime 产品公共函数：3623，其中扩展自有 458。
+- 低层能力：3623 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1770 个函数。其余 1852 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1771 个函数。其余 1852 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -119,7 +119,7 @@
 | xruntime | `extlibs/xruntime/include/xrt/runtime_type_future.h` | 1 | 1 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_type_string.h` | 2 | 2 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_value.h` | 28 | 28 | 0 |
-| xruntime | `extlibs/xruntime/include/xrt/typed_array.h` | 33 | 33 | 0 |
+| xruntime | `extlibs/xruntime/include/xrt/typed_array.h` | 34 | 34 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/typed_dict.h` | 30 | 30 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/typed_list.h` | 30 | 30 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/typed_queue.h` | 54 | 54 | 0 |
@@ -143,12 +143,12 @@
 | `extlibs/xruntime/include/xrt/runtime_type_future.h` | future<T> runtime type identity | kernel | direct | 1 | 1 | `test/cases/cgen_future_task_wait.xl` |
 | `extlibs/xruntime/include/xrt/runtime_type_string.h` | stable language type names | kernel | direct | 2 | 2 | `test/cases/cgen_runtime_type_baseline.xl` |
 | `extlibs/xruntime/include/xrt/runtime_value.h` | var lifecycle, boxing, comparison, and cloning | kernel | direct | 28 | 13 | `test/cases/runtime_var_type_storage_matrix.xl` |
-| `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 33 | 25 | `test/cases/cgen_typed_container_functions.xl` |
+| `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 34 | 28 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_dict.h` | dict<T> | language-type | direct | 30 | 14 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_list.h` | list<T> | language-type | direct | 30 | 11 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_queue.h` | typed SPSC/MPSC/MPMC queues | language-type | direct | 54 | 0 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_set.h` | set<T> | language-type | direct | 33 | 20 | `test/cases/cgen_typed_container_functions.xl` |
-| `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 21 | 11 | `test/cases/stdlib_special_collections.xl` |
+| `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 21 | 12 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 19 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_value.h` | typed values used by generic containers | kernel | direct | 32 | 27 | `test/cases/cgen_typed_container_functions.xl` |
 

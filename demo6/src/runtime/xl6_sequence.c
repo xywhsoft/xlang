@@ -243,6 +243,39 @@ bool xl6SequenceResizeStorageV1(XL6_Sequence* owner,size_t count)
     return xrtTypedArrayResizeWithInitializer(owner->storage,count,
         policy->ops && policy->ops->InitDefault ? initDefault : NULL,(ptr)policy);
 }
+bool xl6SequenceExtractTailV1(XL6_Sequence* source, XL6_Sequence* target,
+    size_t depth, size_t maximum, bool take)
+{
+    if (!pinned(source) || !pinned(target) || source==target ||
+        (source->role!=XL6_SEQUENCE_ARRAY_V1 && source->role!=XL6_SEQUENCE_STACK_V1) ||
+        target->role!=XL6_SEQUENCE_ARRAY_V1 || source->iterator.prepared || target->iterator.prepared ||
+        source->elementIdentity!=target->elementIdentity || source->transfer!=target->transfer ||
+        source->size!=target->size || source->type!=target->type ||
+        xrtTypedArrayCount(target->storage)!=0 || (take && depth)) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    size_t count=xrtTypedArrayCount(source->storage);
+    if (depth>count) { xrtSetErrorKind(XERR_RANGE); return false; }
+    size_t available=count-depth, selected=maximum<available ? maximum : available;
+    /* Stack's native payload contract does not by itself prove an Array's
+     * logical domain. Check every selected slot against the final target's
+     * resident policy before copying or moving anything. */
+    for (size_t i=0;i<selected;++i)
+        if (!xl6SequenceAdmitSlotV1(target,xrtTypedArrayConstGet(source->storage,count-depth-1-i)))
+            return false;
+    xtypedarray* prepared=take ? xrtTypedArrayTakeTail(source->storage,selected,true) :
+        xrtTypedArraySlice(source->storage,available-selected,selected,true);
+    if (!prepared) { allocation(false); return false; }
+    /* TakeTail has already committed the source. The remaining publication
+     * must not allocate, bind identities, retain metadata or run element
+     * callbacks. Both BUSY owner pins protect the graph until this swap. */
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    xtypedarray* previous=target->storage; target->storage=prepared;
+    mutationEnd(&mutation);
+    /* The detached target storage was empty: no element destructor runs here.
+     * Preserve the operation's pending diagnostic during allocator cleanup. */
+    destroyStorage(previous); return true;
+}
 bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned int transfer,
                   size_t size, const xrttype* type)
 {
