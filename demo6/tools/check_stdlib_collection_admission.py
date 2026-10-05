@@ -161,7 +161,11 @@ def main() -> int:
                     assert plan["baseElementType"] == element["id"]
             if args.layouts:
                 plans = [row["arrayLayout"] for row in array_types]
-                assert {"primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
+                assert {"primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "sequence-reference-v1", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
+                nested=[p for p in plans if p['abiName']=='sequence-reference-v1']
+                assert len(nested)>=3 and {False,True}=={p['nullable'] for p in nested}
+                assert all(p['slotAbiName']=='xvalue-carrier' and not p['admissionAbi'] and
+                    p['defaultAbiName']==('absent' if p['nullable'] else 'forbidden') for p in nested)
                 c_scalars=[p for p in plans if p["abiName"]=="c-scalar-v1"]
                 assert len(c_scalars)==21 and all(not p["nullable"] and not p["admissionAbi"] and p["defaultAbiName"]=="zero" for p in c_scalars)
                 assert set(range(1, 7)) <= {p["defaultAbi"] for p in plans}
@@ -222,8 +226,11 @@ def main() -> int:
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
             recipe_count = sum(row["arrayLayout"]["abiName"] in
-                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1") for row in array_types)
-            assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {len(lowered['types']) * 11} carrier/layout mutations" in contract_log
+                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "sequence-reference-v1") for row in array_types)
+            recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
+                len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
+            mutation_count=len(lowered['types'])*11+recursive_mutations
+            assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {mutation_count} carrier/layout mutations" in contract_log, 'Actual resident recipe/mutation totals differ from IR'
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
             if defaults:
                 assert f"array defaults: {len(defaults)} resize contracts;" in contract_log

@@ -67,6 +67,9 @@ struct XL6_Sequence {
     bool projectionBound;
     const xvalueconverter* projection;
     XL6_SequenceAdmissionV2 admission;
+    /* One-way release publication of the immutable admission capability.
+     * Nested domain probes acquire this flag without pinning child storage. */
+    xatomic32 admitted;
     xatomic32 busy;
     const void* claim;
     xtypedarray* retired;
@@ -185,7 +188,9 @@ bool xl6SequenceAdmissionTakeV2(XL6_Sequence* owner, XL6_SequenceAdmissionV2* so
         if (!source->ops->Slot(source->data,xrtTypedArrayConstGet(owner->storage,i))) {
             xrtSetErrorKind(XERR_TYPE); xl6SequenceAdmissionDropV2(source); return false;
         }
-    owner->admission=*source; *source=(XL6_SequenceAdmissionV2){0}; return true;
+    owner->admission=*source; *source=(XL6_SequenceAdmissionV2){0};
+    if (owner->admission.ops) xrtAtomic32Store(&owner->admitted,1,XMEMORY_RELEASE);
+    return true;
 }
 bool xl6SequenceAdmitSlotV1(XL6_Sequence* owner, const void* slot)
 {
@@ -289,6 +294,24 @@ bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned in
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     return true;
+}
+bool xl6SequenceAdmitsArrayV1(const xvalue* value,uint64_t identity)
+{
+    if (!identity || !value || xrtValueType(value)!=XVALUE_HANDLE || xrtValueTypeId(value)!=identity)
+        return false;
+    /* Participating mutation excludes graph freeze/clear. The role/identity
+     * are immutable; the acquired publication flag is the only policy fact
+     * read. Do not access storage, projection or callbacks, or reject BUSY:
+     * a legal nested value graph can point back to an already-pinned owner. */
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    bool result=false;
+    if (xrtValueGetHandle(value,&raw,&actual,&user) && actual==&ops && raw && !user) {
+        const XL6_Sequence* owner=raw;
+        result=owner->role==XL6_SEQUENCE_ARRAY_V1 && owner->identity==identity &&
+            xrtAtomic32Load(&owner->admitted,XMEMORY_ACQUIRE)==1 && !owner->cleared;
+    }
+    mutationEnd(&mutation); return result;
 }
 static XL6_Sequence* borrow(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                          unsigned int transfer, size_t size, const xrttype* type)
@@ -464,6 +487,7 @@ xvalue* xl6SequenceWrapAsV1(xtypedarray* storage, XL6_SequenceRoleV1 role, uint6
     *owner = (XL6_Sequence){.refs=1,.storage=storage,.identity=identity,
         .elementIdentity=elementIdentity,.transfer=transfer,.size=size,.type=type,.role=role};
     xrtAtomic32Init(&owner->busy,0);
+    xrtAtomic32Init(&owner->admitted,0);
     xvalue* result = xrtValueHandleTake((void**)&owner,&ops,NULL);
     if (!result) { allocation(false); drop(owner,NULL); return NULL; }
     if (!xrtValueHandleOwnershipBindPhased(result,handleTrace) || !xrtValueTypeIdBind(result,identity)) {

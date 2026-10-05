@@ -86,6 +86,11 @@ static inline bool xl6SequenceReferenceEqualV1(const xvalue* left, const xvalue*
     return xrtValueEqual(left,right);
 }
 XL6_TEXT_API bool xl6SequenceTupleV1(uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Error-transparent resident domain probe, not an element borrow. Requires a
+ * sealed ARRAY owner with a published immutable admission policy and exact
+ * logical identity. BUSY is allowed: no storage or mutable policy is read.
+ * Private ops are checked before dereferencing a foreign handle pointer. */
+XL6_TEXT_API bool xl6SequenceAdmitsArrayV1(const xvalue*, uint64_t);
 XL6_TEXT_API const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype*);
 /* Consumes valid owned storage on both success and failure. */
 XL6_TEXT_API xvalue* xl6SequenceWrapV1(xtypedarray*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);

@@ -70,6 +70,8 @@ def main() -> int:
         "test/cases/stdlib_array_c_scalar_native_host.c", "src/runtime/xl6_array_c_scalar_admission.c")]
     files += [root / name for name in ("tools/check_stdlib_stack_batch.py",
         "test/cases/stdlib_stack_batch_native_host.c", "src/runtime/xl6_stack_batch.c")]
+    files += [root / name for name in ("tools/check_stdlib_array_sequence_admission.py",
+        "test/cases/stdlib_array_sequence_admission_native_host.c", "src/runtime/xl6_array_sequence_admission.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -275,6 +277,18 @@ def main() -> int:
         report["StackBatchReport"] = {"Directory": str(child), "Checks": len(batch["Rows"]),
             "Profiles": batch["Profiles"], "ClosedPrefixes": len(batch["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in batch["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "admission-sequence"
+        command = [sys.executable, "tools/check_stdlib_array_sequence_admission.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=180)
+        sequence = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not sequence["Complete"] or not sequence["InputsUnchanged"] or sequence["Profiles"]!=8 or len(sequence["Sweeps"])!=184:
+            raise RuntimeError("Incomplete sealed nested Array domain evidence")
+        report["SequenceAdmissionReport"] = {"Directory": str(child), "Checks": len(sequence["Rows"]),
+            "Profiles": sequence["Profiles"], "ClosedPrefixes": len(sequence["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in sequence["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:

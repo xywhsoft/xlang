@@ -22,4 +22,10 @@ XL6_TEXT_API xvalue* xl6ArrayPrimitiveCreateV2(uint64_t, uint64_t, unsigned int,
  * equals the element identity. A type-id projection requires explicit identity;
  * an unbound ordinary UInt is not a type value. No custom descriptors. */
 XL6_TEXT_API xvalue* xl6ArrayCScalarCreateV1(uint64_t, uint64_t, const xrttype*, uint64_t);
+/* Nested Array references retain the same child owner. Child type identity
+ * is checked against a sealed, profiled native ARRAY, not just Value.TypeId.
+ * Nonnullable element identity equals child identity; nullable identity is
+ * separate. No recursive traversal, borrowed schema/descriptor or code lease.
+ * Nonnullable resize growth is forbidden; nullable growth yields absent. */
+XL6_TEXT_API xvalue* xl6ArraySequenceCreateV1(uint64_t, uint64_t, uint64_t, bool);
 #endif
