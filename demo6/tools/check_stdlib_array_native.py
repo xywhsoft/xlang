@@ -88,6 +88,10 @@ def main() -> int:
         "src/runtime/xl6_array_callable_admission.c", "src/runtime/xl6_closure.c",
         "src/runtime/xl6_cell.c", "src/runtime/xl6_code_lease.c")]
     # Freeze project header dependencies, including the real resident layouts.
+    files += [root / name for name in ('tools/check_stdlib_sequence_publication.py',
+        'test/cases/stdlib_sequence_publication_native_host.c')]
+    files += [root / name for name in ('tools/check_stdlib_sequence_factories.py',
+        'test/cases/stdlib_sequence_factory_only_host.c','test/support/sequence_factory_native.c')]
     files += [root / name for name in ('tools/check_stdlib_array_scalar_read.py',
         'test/cases/stdlib_array_scalar_read_native_host.c', 'test/cases/stdlib_array_scalar_read_header.c',
         'src/runtime/xl6_array_scalar_read.c')]
@@ -400,6 +404,26 @@ def main() -> int:
         if not read["Complete"] or not read["InputsUnchanged"]:
             raise RuntimeError("Incomplete native/wire scalar Array read evidence")
         report["ScalarReadReport"] = {"Directory": str(child), "Checks": len(read["Rows"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "sequence-publication"
+        command = [sys.executable, "tools/check_stdlib_sequence_publication.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        publication = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not publication["Complete"] or not publication["InputsUnchanged"] or len(publication["Sweeps"])!=50:
+            raise RuntimeError("Incomplete Sequence publication/Stack domain evidence")
+        report["SequencePublicationReport"] = {"Directory": str(child), "Checks": len(publication["Rows"]),
+            "ClosedPrefixes": len(publication["Sweeps"]), "Complete": True, "InputsUnchanged": True}
+        child = out / "sequence-factories"
+        command = [sys.executable, "tools/check_stdlib_sequence_factories.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        factories = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not factories["Complete"] or not factories["InputsUnchanged"] or factories["Profiles"]!=9:
+            raise RuntimeError("Incomplete construction-only native closure evidence")
+        report["SequenceFactoriesReport"] = {"Directory": str(child), "Checks": len(factories["Rows"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:

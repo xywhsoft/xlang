@@ -543,3 +543,22 @@ instrument host/generated C only. Array/Stack parents freeze and invoke it.
 Read-only artifact selection requires ScalarRead/Sequence, not ArrayInput,
 Array facade or CollectionCount. This is not a full Array carrier migration or
 an allocation-prefix/OOM proof for source construction.
+
+`check_stdlib_sequence_publication.py` exercises the shared resident
+creation/publication transaction and domain-preserving Array/Stack clone.
+Five real profiles run 100 lifetime/ownership cycles and complete native
+create/clone/push/batch/extract allocation-failure prefixes at O0/O2.
+Malformed policies remain caller-owned; valid owned policies are consumed
+on both paths. Single and batch Stack writes check the actual target domain
+before allocation; clone metadata survives retirement of its source owner.
+XRT push/append roll back count/content, not necessarily grown capacity.
+Linux standalone sanitizes the selected native implementation; `--shared`
+uses the real product and sanitizes host code only.
+
+`check_stdlib_sequence_factories.py` builds nine construction-only actual
+native closures independently at O0/O2, checking symbol selection and 100
+owned-policy publication/clone cycles. They exclude Array/Stack facades,
+other factories and `xrtTypedStack` algorithms. Linux `--sanitize` instruments
+the entire selected closure. Array/Stack parents freeze and invoke both gates.
+These are native construction/domain contracts, not the full source Array
+carrier switch, source Stack closed-recipe publication or 53-module acceptance.

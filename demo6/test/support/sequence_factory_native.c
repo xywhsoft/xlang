@@ -1,0 +1,17 @@
+/* Construction-only actual native selection; no Array/Stack facade and no
+ * xrtTypedStack algorithms. Optional callable/Future domains stay separate. */
+#define XRUNTIME_MODULE_TYPED_ARRAY
+#define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
+#define XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE
+#define XRT_MODULE_ATOMIC
+#define XRT_MODULE_MEMORY_DEBUG
+#if XL6_FACTORY_PROFILE == 7
+#define XRUNTIME_MODULE_RUNTIME_CALL
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#endif
+#if XL6_FACTORY_PROFILE == 8
+#define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
+#define XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE
+#endif
+#define XRUNTIME_IMPLEMENTATION
+#include "lib/xruntime/xruntime.h"

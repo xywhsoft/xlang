@@ -1,7 +1,6 @@
 #define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE
 #include "src/runtime/xl6_array_admission.h"
-#include "src/runtime/xl6_array.h"
 #include <stdlib.h>
 
 typedef struct FuturePolicy {
@@ -58,15 +57,5 @@ xvalue* xl6ArrayFutureCreateV1(uint64_t identity,uint64_t element,uint64_t baseI
     const xrttype* type=xrtTypeFuture();
     XL6_SequenceAdmissionV3 admission={&ops,policy,element,XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1,
         sizeof(xfuture*),type,baseIdentity};
-    xvalue* result=xl6ArrayCreateV1(identity,element,admission.transfer,admission.size,type);
-    if (result) {
-        XL6_Sequence* owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,
-            identity,element,admission.transfer,admission.size,type);
-        if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
-            if (owner) xl6SequenceEndV1(owner);
-            xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
-            xrtClearError(); xrtSetErrorTake(error);
-        } else xl6SequenceEndV1(owner);
-    }
-    xl6SequenceAdmissionDropV3(&admission); return result;
+    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
 }

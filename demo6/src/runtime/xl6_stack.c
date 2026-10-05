@@ -16,7 +16,7 @@ bool xl6StackPushV1(const xvalue* value, uint64_t identity, uint64_t elementIden
     if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     XL6_Sequence* stack = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type);
     if (!stack) return false;
-    bool ok = allocation(xrtTypedStackPush(xl6SequenceStorageV1(stack),item));
+    bool ok = xl6SequenceAdmitSlotV1(stack,item) && allocation(xrtTypedStackPush(xl6SequenceStorageV1(stack),item));
     xl6SequenceEndV1(stack); return ok;
 }
 bool xl6StackReserveV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
@@ -65,13 +65,7 @@ bool xl6StackTakeV1(const xvalue* value, uint64_t identity, uint64_t elementIden
 }
 xvalue* xl6StackCloneV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                        unsigned int transfer, size_t size, const xrttype* type)
-{
-    XL6_Sequence* stack = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type);
-    if (!stack) return NULL;
-    xtypedstack* copy = xrtTypedStackClone(xl6SequenceStorageV1(stack));
-    xl6SequenceEndV1(stack);
-    return xl6SequenceWrapAsV1(copy,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type);
-}
+{ return xl6SequenceCloneRoleV1(value,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type); }
 bool xl6StackEqualsV1(const xvalue* left, const xvalue* right, uint64_t identity,
     uint64_t elementIdentity, unsigned int transfer, size_t size, const xrttype* type)
 { return xl6SequenceEqualsRoleV1(left,right,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type); }

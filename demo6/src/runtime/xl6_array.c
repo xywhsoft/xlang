@@ -122,27 +122,7 @@ int64_t xl6ArraySizeV1(const xvalue* value, PARAMS, bool capacity)
     return (int64_t)count;
 }
 xvalue* xl6ArrayCloneV1(const xvalue* value, PARAMS)
-{
-    XL6_Sequence* owner = xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
-    if (!owner) return NULL;
-    xtypedarray* copy = xrtTypedArrayClone(xl6SequenceStorageV1(owner));
-    XL6_SequenceAdmissionV3 admission={0};
-    if (copy && !xl6SequenceAdmissionCopyV3(owner,&admission)) {
-        xerror* error=xrtTakeError(); xrtTypedArrayDestroy(copy); copy=NULL;
-        xrtClearError(); xrtSetErrorTake(error);
-    }
-    xl6SequenceEndV1(owner);
-    xvalue* result=xl6SequenceWrapV1(copy,LAYOUT);
-    if (result) {
-        owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,LAYOUT);
-        if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
-            if (owner) xl6SequenceEndV1(owner);
-            xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
-            xrtClearError(); xrtSetErrorTake(error);
-        } else xl6SequenceEndV1(owner);
-    }
-    xl6SequenceAdmissionDropV3(&admission); return result;
-}
+{ return xl6SequenceCloneRoleV1(value,XL6_SEQUENCE_ARRAY_V1,LAYOUT); }
 bool xl6ArrayEqualsV1(const xvalue* left, const xvalue* right, PARAMS)
 { return xl6SequenceEqualsV1(left,right,LAYOUT); }
 bool xl6ArrayAppendV1(const xvalue* left, const xvalue* right, PARAMS)
