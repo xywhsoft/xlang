@@ -56,7 +56,10 @@ def main() -> int:
              root / "test/cases/xlir_collection_admission_contract.c"]
     files += [root / f"test/cases/{fixture}.xl" for fixture in fixtures]
     if args.layouts:
-        files += [root / "tools/check_stdlib_callable_scalars.py",
+        files += [root / "tools/check_xlir_function_value_calls.py",
+                  root / "test/cases/xlir_function_value_calls.xl",
+                  root / "test/cases/xlir_function_value_calls_contract.c",
+                  root / "tools/check_stdlib_callable_scalars.py",
                   root / "test/cases/stdlib_callable_scalars.xl",
                   root / "test/cases/stdlib_callable_scalars_unused.xl",
                   root / "test/cases/stdlib_callable_scalars_contract.c",
@@ -350,6 +353,18 @@ def main() -> int:
             assert proof["Complete"] and proof["InputsUnchanged"] and len(proof["Sweeps"]) == 12
             assert all(digest(Path(row["Path"])) == row["Sha256"] for row in proof["Inputs"])
             report["CallableScalarsReport"] = str(child / "results.json")
+            child = out / "function-value-calls"
+            command = [sys.executable, str(root / "tools/check_xlir_function_value_calls.py"), "--out", str(child)]
+            if args.public_directory:
+                command += ["--public-directory", str(args.public_directory.resolve())]
+            if args.sanitize:
+                command += ["--sanitize"]
+            run("function-value-calls", command, timeout=600)
+            proof = json.loads((child / "results.json").read_text(encoding="utf-8"))
+            assert proof["Complete"] and proof["InputsUnchanged"] and len(proof["Sweeps"]) == 2
+            assert proof["Contract"]["SemanticRejections"] == 64
+            assert all(digest(Path(row["Path"])) == row["Sha256"] for row in proof["Inputs"])
+            report["FunctionValueCallsReport"] = str(child / "results.json")
         report["InputsUnchanged"] = all(digest(Path(row["Path"])) == row["Sha256"] for row in inputs)
         report["Complete"] = report["InputsUnchanged"]
         if not report["Complete"]:

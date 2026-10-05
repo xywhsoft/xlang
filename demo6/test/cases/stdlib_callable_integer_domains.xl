@@ -259,8 +259,7 @@ func main(...) as int
     checkDomainPU64(callbacks)
     checkDomainEU64(callbacks)
     array<func(int8, DomainI8) as (int8, DomainI8, string)> mixed = [domainNativeMIXED]
-    func(int8, DomainI8) as (int8, DomainI8, string) mixedCallback = mixed[0]
-    auto number, code, text = mixedCallback(int8(127), DomainI8.high)
+    auto number, code, text = mixed[0](int8(127), DomainI8.high)
     assert(number == 127 and code == DomainI8.high and text == "a\0你")
     return 0
 end

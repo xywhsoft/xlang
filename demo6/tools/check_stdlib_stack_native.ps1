@@ -42,6 +42,8 @@ try {
             'test/cases/stdlib_collection_admission.xl','test/cases/stdlib_collection_nominal_admission.xl',
             'test/cases/stdlib_array_defaults.xl','test/cases/stdlib_array_defaults_continuation.xl',
             'test/cases/stdlib_array_layouts.xl','tools/check_stdlib_callable_scalars.py',
+            'tools/check_xlir_function_value_calls.py','test/cases/xlir_function_value_calls.xl',
+            'test/cases/xlir_function_value_calls_contract.c',
             'test/cases/stdlib_callable_scalars.xl','test/cases/stdlib_callable_scalars_unused.xl',
             'test/cases/stdlib_callable_scalars_contract.c','test/cases/stdlib_callable_scalars_host.c',
             'test/cases/stdlib_callable_integer_domains.xl','test/cases/stdlib_callable_integer_domains_host.c',
