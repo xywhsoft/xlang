@@ -17,4 +17,9 @@ XL6_TEXT_API xvalue* xl6ArrayNominalCreateV2(uint64_t, uint64_t, const XL6_Nomin
  * into generated code. No optional physical factory is selected implicitly. */
 XL6_TEXT_API xvalue* xl6ArrayPrimitiveCreateV2(uint64_t, uint64_t, unsigned int, size_t,
     const xrttype*, unsigned int, bool, uint64_t);
+/* Nonnullable C ABI scalars/type-id: actual native-width builtin descriptor,
+ * exact dynamic tag/range/identity, zero default. The admitted boxed identity
+ * equals the element identity. A type-id projection requires explicit identity;
+ * an unbound ordinary UInt is not a type value. No custom descriptors. */
+XL6_TEXT_API xvalue* xl6ArrayCScalarCreateV1(uint64_t, uint64_t, const xrttype*, uint64_t);
 #endif

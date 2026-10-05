@@ -763,6 +763,13 @@ XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool, const XL6_
     if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
+    } else if (!result.nullable && base->kind==XL6_IR_TYPE_BUILTIN &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
+               (result.slotAbi==XL6_IR_NATIVE_SLOT_TYPE_ID ||
+                (result.slotAbi>=XL6_IR_NATIVE_SLOT_C_CHAR && result.slotAbi<=XL6_IR_NATIVE_SLOT_C_WCHAR))) {
+        /* Exact resident C scalar policy selects the target native descriptor.
+         * Do not reuse widened language u8's signed boxed representation. */
+        result.abi=XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1;
     } else if (result.admissionAbi == XL6_VALUE_ADMIT_ANY ||
                result.admissionAbi == XL6_VALUE_ADMIT_BYTES) {
         result.abi=result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
@@ -783,7 +790,8 @@ XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool, const XL6_
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     }
     if (result.abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2) {
+        result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
+        result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) {
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
             result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
@@ -827,6 +835,7 @@ const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
     case XL6_IR_ARRAY_LAYOUT_NOMINAL_V2: return "nominal-v2";
     case XL6_IR_ARRAY_LAYOUT_PENDING_SLOT: return "pending-slot";
     case XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN: return "pending-domain";
+    case XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1: return "c-scalar-v1";
     default: return "invalid";
     }
 }

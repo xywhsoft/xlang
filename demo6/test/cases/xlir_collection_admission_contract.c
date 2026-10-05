@@ -6,6 +6,8 @@
 #include "src/runtime/xl6_array.h"
 #include <assert.h>
 #include <stdio.h>
+#include <limits.h>
+#include <wchar.h>
 
 static void rejected(const XL6_IrModule* ir)
 {
@@ -32,6 +34,28 @@ static const xrttype* descriptor(XL6_IrNativeSlotAbi abi)
     case XL6_IR_NATIVE_SLOT_F32: return xrtTypeFloat32();
     case XL6_IR_NATIVE_SLOT_F64: return xrtTypeFloat64();
     case XL6_IR_NATIVE_SLOT_TIME: return xrtTypeTime();
+    case XL6_IR_NATIVE_SLOT_TYPE_ID: return xrtTypeType();
+    case XL6_IR_NATIVE_SLOT_C_CHAR: return CHAR_MIN<0 ? xrtTypeInt8() : xrtTypeUInt8();
+    case XL6_IR_NATIVE_SLOT_C_SCHAR: return xrtTypeInt8();
+    case XL6_IR_NATIVE_SLOT_C_UCHAR: return xrtTypeUInt8();
+    case XL6_IR_NATIVE_SLOT_C_SHORT: return xrtTypeInt16();
+    case XL6_IR_NATIVE_SLOT_C_USHORT: return xrtTypeUInt16();
+    case XL6_IR_NATIVE_SLOT_C_INT: return xrtTypeInt32();
+    case XL6_IR_NATIVE_SLOT_C_UINT: return xrtTypeUInt32();
+    case XL6_IR_NATIVE_SLOT_C_LONG: return sizeof(long)==4 ? xrtTypeInt32() : xrtTypeInt64();
+    case XL6_IR_NATIVE_SLOT_C_ULONG: return sizeof(unsigned long)==4 ? xrtTypeUInt32() : xrtTypeUInt64();
+    case XL6_IR_NATIVE_SLOT_C_LONGLONG: return xrtTypeInt64();
+    case XL6_IR_NATIVE_SLOT_C_ULONGLONG: return xrtTypeUInt64();
+    case XL6_IR_NATIVE_SLOT_C_SIZE: case XL6_IR_NATIVE_SLOT_C_UINTPTR:
+        return sizeof(size_t)==4 ? xrtTypeUInt32() : xrtTypeUInt64();
+    case XL6_IR_NATIVE_SLOT_C_SSIZE: case XL6_IR_NATIVE_SLOT_C_PTRDIFF: case XL6_IR_NATIVE_SLOT_C_INTPTR:
+        return sizeof(ptrdiff_t)==4 ? xrtTypeInt32() : xrtTypeInt64();
+    case XL6_IR_NATIVE_SLOT_C_BOOL: return xrtTypeBool();
+    case XL6_IR_NATIVE_SLOT_C_FLOAT: return xrtTypeFloat32();
+    case XL6_IR_NATIVE_SLOT_C_DOUBLE: return xrtTypeFloat64();
+    case XL6_IR_NATIVE_SLOT_C_WCHAR:
+        return sizeof(wchar_t)==2 ? (WCHAR_MIN<0 ? xrtTypeInt16() : xrtTypeUInt16()) :
+            (WCHAR_MIN<0 ? xrtTypeInt32() : xrtTypeUInt32());
     case XL6_IR_NATIVE_SLOT_CHAR: return xl6CharTypeV1();
     case XL6_IR_NATIVE_SLOT_STRING: return xl6StringTypeV1();
     case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return xl6NullableStringTypeV1();
@@ -50,14 +74,20 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
 {
     const XL6_IrArrayLayout* plan=&type->arrayLayout;
     if (plan->abi != XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_ARRAY_LAYOUT_NOMINAL_V2) return 0;
+        plan->abi != XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 &&
+        plan->abi != XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) return 0;
     const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&ir->types,plan->baseElementType);
     assert(element && base && type->typeValueId && element->typeValueId && base->typeValueId);
     const xrttype* physical=descriptor(plan->slotAbi);
     assert(physical);
     xvalue* value=NULL;
-    if (plan->abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2) {
+    if (plan->abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) {
+        assert(!plan->nullable && !plan->admissionAbi &&
+            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
+            plan->defaultAbi==XL6_IR_ARRAY_DEFAULT_ZERO);
+        value=xl6ArrayCScalarCreateV1(type->typeValueId,element->typeValueId,physical,base->typeValueId);
+    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2) {
         value=xl6ArrayPrimitiveCreateV2(type->typeValueId,element->typeValueId,
             plan->transferAbi,physical->Size,physical,plan->admissionAbi,plan->nullable,base->typeValueId);
     } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2) {

@@ -161,7 +161,9 @@ def main() -> int:
                     assert plan["baseElementType"] == element["id"]
             if args.layouts:
                 plans = [row["arrayLayout"] for row in array_types]
-                assert {"primitive-v2", "reference-v2", "nominal-v2", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
+                assert {"primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
+                c_scalars=[p for p in plans if p["abiName"]=="c-scalar-v1"]
+                assert len(c_scalars)==21 and all(not p["nullable"] and not p["admissionAbi"] and p["defaultAbiName"]=="zero" for p in c_scalars)
                 assert set(range(1, 7)) <= {p["defaultAbi"] for p in plans}
                 assert {"empty-bytes", "absent", "forbidden"} <= {p["defaultAbiName"] for p in plans}
                 assert not any(p["defaultAbiName"] == "pending-bytes" for p in plans)
@@ -219,7 +221,8 @@ def main() -> int:
                 assert len(checked) == 25
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
-            recipe_count = sum(row["arrayLayout"]["abi"] in (2, 3, 4) for row in array_types)
+            recipe_count = sum(row["arrayLayout"]["abiName"] in
+                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1") for row in array_types)
             assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {len(lowered['types']) * 11} carrier/layout mutations" in contract_log
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
             if defaults:
