@@ -51,6 +51,10 @@ frozen_files() {
     printf '%s\0' tools/check_stdlib_array_input.py test/cases/stdlib_array_input_host.c
     printf '%s\0' test/cases/stdlib_array_future_reference.xl tools/check_stdlib_array_future.py test/cases/stdlib_array_future_native_host.c test/support/array_future_native.c test/cases/stdlib_sequence_retired_admission_abi.c
     printf '%s\0' tools/check_stdlib_array_shuffle.py test/cases/stdlib_array_shuffle_native_host.c test/support/array_shuffle_native.c
+    printf '%s\0' tools/check_stdlib_collection_count.py test/cases/stdlib_collection_count_native_host.c test/support/collection_count_native.c
+    printf '%s\0' test/cases/stdlib_collection_count_header.c
+    printf '%s\0' src/runtime/xl6_collection_count.c test/cases/stdlib_collection_count.xl test/cases/stdlib_collection_count_continuation.xl
+    printf '%s\0' test/cases/xlir_collection_count_contract.c test/cases/stdlib_collection_count_projection_host.c
     printf '%s\0' test/cases/stdlib_array_shuffle_default_only.xl test/cases/stdlib_array_shuffle_explicit_only.xl test/cases/stdlib_random_extended.xl
     printf '%s\0' test/cases/stdlib_future_metadata_host.c test/cases/xlir_future_metadata_contract.c
     printf '%s\0' test/cases/stdlib_future_aggregate_variadic_only.xl test/cases/stdlib_future_aggregate_array_only.xl test/cases/stdlib_future_metadata_only.xl
@@ -206,6 +210,7 @@ done
 if ! run array-input "$PY" tools/check_stdlib_array_input.py --out "$OUT/array-input" --sanitize; then failures+=(array-input); fi
 if ! run array-future "$PY" tools/check_stdlib_array_future.py --out "$OUT/array-future" --sanitize; then failures+=(array-future); fi
 if ! run array-shuffle "$PY" tools/check_stdlib_array_shuffle.py --out "$OUT/array-shuffle" --sanitize --language; then failures+=(array-shuffle); fi
+if ! run collection-count "$PY" tools/check_stdlib_collection_count.py --out "$OUT/collection-count" --sanitize --language; then failures+=(collection-count); fi
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi

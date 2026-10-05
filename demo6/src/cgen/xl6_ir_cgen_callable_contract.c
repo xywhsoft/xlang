@@ -563,58 +563,6 @@ static int xl6IrCgenRuntimeTaggedNullableXValueAbi(
     return 0;
 }
 
-static int xl6IrCgenRuntimeSafeXValueCountAbi(
-    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
-{
-    const XL6_IrInstruction* operand;
-    const XL6_IrType* receiverType;
-    const XL6_IrType* resultType;
-    const XL6_IrType* element;
-    int tagged;
-    if ( module == NULL || instruction == NULL ||
-         (instruction->runtimeOp !=
-              XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE &&
-          instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL) ||
-         instruction->operandCount != 1 || instruction->immediateText != NULL ||
-         instruction->targetSymbol != 0 ||
-         instruction->targetValue != XL6_IR_VALUE_INVALID ||
-         instruction->calleeType != XL6_IR_TYPE_INVALID ||
-         instruction->payloadType != XL6_IR_TYPE_INVALID ||
-         instruction->opcode != XL6_IR_OPCODE_INVALID ) return 0;
-    operand = xl6IrCgenValueDefinition(
-        module, module->operands[instruction->firstOperand], NULL);
-    receiverType = operand != NULL
-        ? xl6IrTypeGet(&module->types, operand->type) : NULL;
-    resultType = xl6IrTypeGet(&module->types, instruction->type);
-    element = resultType != NULL && resultType->paramCount == 1 &&
-        resultType->params != NULL
-            ? xl6IrTypeGet(&module->types, resultType->params[0]) : NULL;
-    tagged = instruction->runtimeOp ==
-        XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE;
-    if ( receiverType == NULL ||
-         receiverType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
-    if ( tagged )
-        return receiverType->collectionAbi != XL6_IR_COLLECTION_NONE &&
-               resultType != NULL &&
-               resultType->kind == XL6_IR_TYPE_NULLABLE &&
-               resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-               resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               resultType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-               resultType->cName[0] != '\0' && element != NULL &&
-               element->cAbi == XL6_IR_C_ABI_I64;
-    return receiverType->kind == XL6_IR_TYPE_BUILTIN &&
-           receiverType->collectionAbi == XL6_IR_COLLECTION_NONE &&
-           receiverType->paramCount == 0 && receiverType->nominalSymbol == 0 &&
-           resultType != NULL && resultType->kind == XL6_IR_TYPE_BUILTIN &&
-           resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-           resultType->collectionAbi == XL6_IR_COLLECTION_NONE &&
-           resultType->paramCount == 0 && resultType->nominalSymbol == 0 &&
-           resultType->typeValueId ==
-               module->runtimeTypeMap.fallbackTypeValueId &&
-           receiverType->typeValueId ==
-               module->runtimeTypeMap.fallbackTypeValueId;
-}
-
 static int xl6IrCgenRuntimeUnionBoxAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {

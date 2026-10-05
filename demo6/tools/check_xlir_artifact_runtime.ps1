@@ -144,6 +144,12 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-like'stdlib_collection_count*'){
+                    $selectionMatches='src/runtime/xl6_collection_count.c'-in$selectedSources-and
+                        'src/runtime/xl6_sequence.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_input.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array.c'-notin$selectedSources
+                }
                 if($case-in@('stdlib_array_shuffle_default_only','stdlib_array_shuffle_explicit_only')){
                     $default=$case-eq'stdlib_array_shuffle_default_only'
                     $selectionMatches=(('src/runtime/xl6_array_rand_shuffle.c'-in$selectedSources)-eq$default)-and

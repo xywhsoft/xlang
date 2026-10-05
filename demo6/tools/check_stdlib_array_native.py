@@ -88,6 +88,9 @@ def main() -> int:
         "src/runtime/xl6_array_callable_admission.c", "src/runtime/xl6_closure.c",
         "src/runtime/xl6_cell.c", "src/runtime/xl6_code_lease.c")]
     # Freeze project header dependencies, including the real resident layouts.
+    files += [root / name for name in ('tools/check_stdlib_collection_count.py',
+        'test/cases/stdlib_collection_count_native_host.c','test/cases/stdlib_collection_count_header.c','test/support/collection_count_native.c',
+        'src/runtime/xl6_collection_count.c')]
     files += [root / name for name in ('tools/check_stdlib_array_shuffle.py',
         'test/cases/stdlib_array_shuffle_native_host.c','test/support/array_shuffle_native.c',
         'src/runtime/xl6_array_rng_shuffle.c','src/runtime/xl6_array_rand_shuffle.c')]
@@ -375,6 +378,16 @@ def main() -> int:
             "ClosedPrefixes": len(shuffle["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in shuffle["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
+        child = out / "count"
+        command = [sys.executable, "tools/check_stdlib_collection_count.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        count = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not count["Complete"] or not count["InputsUnchanged"] or len(count["Sweeps"])!=4:
+            raise RuntimeError("Incomplete native/wire collection count evidence")
+        report["CountReport"] = {"Directory": str(child), "Checks": len(count["Rows"]),
+            "ClosedPrefixes": len(count["Sweeps"]), "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
             raise RuntimeError("Source or tool changed during acceptance")

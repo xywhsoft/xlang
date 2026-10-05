@@ -185,7 +185,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_rng_shuffle.c", D(R(SEQUENCE)),
         {"XRT_MODULE_RANDOM", "XRT_MODULE_VALUE_COLLECTION"}},
     {"src/runtime/xl6_array_rand_shuffle.c", D(R(SEQUENCE)),
-        {"XRT_MODULE_RANDOM_DEFAULT", "XRT_MODULE_VALUE_COLLECTION"}}
+        {"XRT_MODULE_RANDOM_DEFAULT", "XRT_MODULE_VALUE_COLLECTION"}},
+    {"src/runtime/xl6_collection_count.c", D(R(SEQUENCE)), {"XRT_MODULE_VALUE_CONTAINER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

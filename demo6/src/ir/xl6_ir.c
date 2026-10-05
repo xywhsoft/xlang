@@ -9002,6 +9002,26 @@ static XL6_IrTypeId xl6IrBuildStringConversionSourceType(
         : source != NULL ? source->storageType : XL6_IR_TYPE_INVALID;
 }
 
+/* Count has no element projection. Normalize only the one explicit nullable
+ * wrapper; never infer a collection family from spelling or pointer shape. */
+static const XL6_IrType* xl6IrCollectionCountReceiverBase(
+    const XL6_IrModule* module, XL6_IrTypeId id)
+{
+    const XL6_IrType* source=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    if(!source || source->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        source->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        source->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL) return NULL;
+    if(source->kind==XL6_IR_TYPE_NULLABLE) {
+        if(source->paramCount!=1 || !source->params) return NULL;
+        id=source->params[0]; source=xl6IrTypeGet(&module->types,id);
+    }
+    if(!source || source->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        source->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        source->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_NONE) return NULL;
+    return (source->collectionAbi>=XL6_IR_COLLECTION_ARRAY && source->collectionAbi<=XL6_IR_COLLECTION_DICT) ||
+        xl6IrTypeIsDynamicXValueBuiltin(module,id) ? source : NULL;
+}
+
 XL6_IrTypeId xl6IrCollectionElementType(
     const XL6_IrModule* module, XL6_IrTypeId receiverTypeId)
 {
@@ -14364,6 +14384,8 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
         if ( strcmp(member->text, "length") != 0 || receiverType == NULL ||
              receiverType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
              resultType == NULL ) return XL6_IR_MEMBER_ABI_NONE;
+        receiverType=xl6IrCollectionCountReceiverBase(module,receiver->storageType);
+        if(!receiverType) return XL6_IR_MEMBER_ABI_NONE;
         if ( receiverType->collectionAbi != XL6_IR_COLLECTION_NONE &&
              resultType->kind == XL6_IR_TYPE_NULLABLE &&
              resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
@@ -14390,6 +14412,9 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
          receiverType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_I64 )
         return XL6_IR_MEMBER_ABI_BYTES_LENGTH;
+    if(strcmp(member->text,"length")==0 && resultType && resultType->cAbi==XL6_IR_C_ABI_I64 &&
+        xl6IrCollectionCountReceiverBase(module,receiver ? receiver->storageType : XL6_IR_TYPE_INVALID))
+        return XL6_IR_MEMBER_ABI_XVALUE_COUNT;
     if ( xl6IrUnionFieldForMemberAbi(module, member, NULL) != NULL ) {
         if ( xl6IrMemberIsPlainAssignmentTarget(module, member) ) {
             if ( receiver != NULL && receiver->kind == XL6_IR_NODE_NAME &&
@@ -16685,6 +16710,10 @@ static XL6_IrErrorAbi xl6IrNodeProjectionErrorAbi(
     if (node == NULL) return XL6_IR_ERROR_ABI_INVALID;
     /* Projection effects belong to the typed read or loop, not the storage
      * representation. Nullable success is distinct from allocation failure. */
+    if(node->memberAbi==XL6_IR_MEMBER_ABI_XVALUE_COUNT ||
+        node->memberAbi==XL6_IR_MEMBER_ABI_SAFE_XVALUE_COUNT_TAGGED_NULLABLE ||
+        node->memberAbi==XL6_IR_MEMBER_ABI_SAFE_XVALUE_COUNT_XVALUE)
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
     if (node->kind == XL6_IR_NODE_NAME && node->type != node->storageType &&
         xl6IrTypeIsDynamicXValueBuiltin(module, node->storageType)) {
         result = xl6IrTypeGet(&module->types, node->type);
@@ -18182,6 +18211,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    stringAbi=xl6IrRuntimeCollectionCountErrorPhysicalAbi(instruction->runtimeOp);
+    if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
         xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
@@ -19912,8 +19943,60 @@ int xl6IrCollectionMemberRuntimeOpIs(XL6_IrRuntimeOp operation)
  * carriers and borrowed receiver/key operands that lowering materialized. */
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return operation == XL6_IR_RUNTIME_XVALUE_COUNT ||
+    return xl6IrCollectionCountRuntimeOpIs(operation) ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;
+}
+
+int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation)
+{
+    return operation==XL6_IR_RUNTIME_XVALUE_COUNT ||
+        operation==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ||
+        operation==XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL;
+}
+
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeCollectionCountErrorPhysicalAbi(XL6_IrRuntimeOp operation)
+{
+    if(operation==XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL) return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
+    return operation==XL6_IR_RUNTIME_XVALUE_COUNT || operation==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ?
+        XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+}
+
+int xl6IrCollectionCountRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    const XL6_IrInstruction* receiver;
+    const XL6_IrType* receiverType;
+    const XL6_IrType* result;
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        !xl6IrCollectionCountRuntimeOpIs(instruction->runtimeOp) ||
+        instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=1 ||
+        !module->operands || instruction->firstOperand>=module->operandCount ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue!=XL6_IR_VALUE_INVALID ||
+        instruction->calleeType!=XL6_IR_TYPE_INVALID || instruction->payloadType!=XL6_IR_TYPE_INVALID ||
+        instruction->runtimeIdentityType!=XL6_IR_TYPE_INVALID ||
+        instruction->opcode!=XL6_IR_OPCODE_INVALID || instruction->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_INVALID ||
+        instruction->dynamicCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID) return 0;
+    receiver=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    receiverType=receiver ? xl6IrTypeGet(&module->types,receiver->type) : NULL;
+    result=xl6IrTypeGet(&module->types,instruction->type);
+    if (!receiverType || !result ||
+        !(receiverType=xl6IrCollectionCountReceiverBase(module,receiver->type))) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL)
+        return xl6IrTypeIsDynamicXValueBuiltin(module,receiver->type) &&
+            xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type);
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE) {
+        if (receiverType->collectionAbi==XL6_IR_COLLECTION_NONE ||
+            result->kind!=XL6_IR_TYPE_NULLABLE || result->cAbi!=XL6_IR_C_ABI_TAGGED_NULLABLE ||
+            result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+            result->nullAbi!=XL6_IR_NULL_ABI_TAGGED_VALUE || result->paramCount!=1 || !result->params)
+            return 0;
+        result=xl6IrTypeGet(&module->types,result->params[0]);
+    }
+    return result && result->kind==XL6_IR_TYPE_BUILTIN && result->cAbi==XL6_IR_C_ABI_I64 &&
+        result->integerTarget==XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+        result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && result->nullAbi==XL6_IR_NULL_ABI_NONE;
 }
 
 int xl6IrCollectionReadRuntimeInstructionCompatible(
@@ -19925,6 +20008,8 @@ int xl6IrCollectionReadRuntimeInstructionCompatible(
     const XL6_IrType* receiverType;
     const XL6_IrType* indexType;
     size_t count;
+    if (instruction && xl6IrCollectionCountRuntimeOpIs(instruction->runtimeOp))
+        return xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction);
     if (module == NULL || instruction == NULL ||
         instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
         !xl6IrCollectionReadRuntimeOpIs(instruction->runtimeOp) ||
@@ -34317,7 +34402,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 "typed XLIR named callable has no exact declaration and signature ABI");
         }
         if ( node->memberAbi < XL6_IR_MEMBER_ABI_NONE ||
-             node->memberAbi > XL6_IR_MEMBER_ABI_BYTES_LENGTH ||
+             node->memberAbi > XL6_IR_MEMBER_ABI_XVALUE_COUNT ||
              node->memberAbi != expectedMemberAbi ||
              node->unionField != expectedUnionField ) {
             xrtFree(incoming);
@@ -37989,14 +38074,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                     XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ||
                                 instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL ) {
-                        const XL6_IrType* receiverType = left != NULL
-                            ? xl6IrTypeGet(&module->types, left->type) : NULL;
-                        const XL6_IrType* resultType =
-                            xl6IrTypeGet(&module->types, instruction->type);
-                        const XL6_IrType* element = resultType != NULL &&
-                            resultType->paramCount == 1 && resultType->params != NULL
-                                ? xl6IrTypeGet(
-                                    &module->types, resultType->params[0]) : NULL;
                         const XL6_IrNode* originNode =
                             xl6IrNodeGet(module, instruction->origin);
                         int tagged = instruction->runtimeOp ==
@@ -38004,34 +38081,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         XL6_IrMemberAbi expectedMember = tagged
                             ? XL6_IR_MEMBER_ABI_SAFE_XVALUE_COUNT_TAGGED_NULLABLE
                             : XL6_IR_MEMBER_ABI_SAFE_XVALUE_COUNT_XVALUE;
-                        int resultMatches = tagged
-                            ? resultType != NULL &&
-                              resultType->kind == XL6_IR_TYPE_NULLABLE &&
-                              resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                              resultType->ownershipAbi ==
-                                  XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                              resultType->nullAbi ==
-                                  XL6_IR_NULL_ABI_TAGGED_VALUE &&
-                              element != NULL &&
-                              element->cAbi == XL6_IR_C_ABI_I64
-                            : xl6IrTypeIsDynamicXValueBuiltin(
-                                  module, instruction->type);
-                        int receiverMatches = receiverType != NULL &&
-                            receiverType->cAbi ==
-                                XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                            (tagged
-                                ? receiverType->collectionAbi !=
-                                      XL6_IR_COLLECTION_NONE
-                                : xl6IrTypeIsDynamicXValueBuiltin(
-                                      module, left->type));
-                        if ( instruction->operandCount != 1 ||
-                             instruction->immediateText != NULL ||
-                             instruction->targetSymbol != 0 ||
-                             instruction->targetValue != XL6_IR_VALUE_INVALID ||
-                             instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                             instruction->payloadType != XL6_IR_TYPE_INVALID ||
-                             instruction->opcode != XL6_IR_OPCODE_INVALID ||
-                             !receiverMatches || !resultMatches ||
+                        if ( !xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction) ||
                              originNode == NULL ||
                              originNode->kind != XL6_IR_NODE_MEMBER ||
                              originNode->sourceKind != XL6_AST_SAFE_MEMBER ||
@@ -43395,6 +43445,7 @@ static const char* xl6IrMemberAbiName(XL6_IrMemberAbi abi)
         return "safe-xvalue-count-tagged-nullable";
     case XL6_IR_MEMBER_ABI_SAFE_XVALUE_COUNT_XVALUE:
         return "safe-xvalue-count-xvalue";
+    case XL6_IR_MEMBER_ABI_XVALUE_COUNT: return "xvalue-count";
     case XL6_IR_MEMBER_ABI_CLASS_FIELD_UNION_COPY:
         return "class-field-union-copy";
     case XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE:

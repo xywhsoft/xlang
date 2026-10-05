@@ -54,6 +54,11 @@ try {
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_shuffle.py','test/cases/stdlib_array_shuffle_native_host.c',
         'test/support/array_shuffle_native.c','test/cases/stdlib_array_shuffle_default_only.xl','test/cases/stdlib_array_shuffle_explicit_only.xl',
         'test/cases/stdlib_random_extended.xl','src/runtime/xl6_array_rng_shuffle.c','src/runtime/xl6_array_rand_shuffle.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_collection_count.py','test/cases/stdlib_collection_count_native_host.c',
+        'test/cases/stdlib_collection_count_header.c',
+        'test/support/collection_count_native.c','src/runtime/xl6_collection_count.c','test/cases/stdlib_collection_count.xl',
+        'test/cases/stdlib_collection_count_continuation.xl','test/cases/xlir_collection_count_contract.c',
+        'test/cases/stdlib_collection_count_projection_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
         'test/cases/stdlib_future_metadata_host.c','test/cases/xlir_future_metadata_contract.c',
         'test/cases/stdlib_future_aggregate_variadic_only.xl','test/cases/stdlib_future_aggregate_array_only.xl','test/cases/stdlib_future_metadata_only.xl',
@@ -255,6 +260,9 @@ try {
     Run 'array-shuffle' $python @('tools/check_stdlib_array_shuffle.py','--out',"$outPath/array-shuffle",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $arrayShuffle=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-shuffle/results.json" -Raw | ConvertFrom-Json
     if (!$arrayShuffle.Complete -or !$arrayShuffle.InputsUnchanged -or $arrayShuffle.Sweeps.Count -ne 8) { throw 'Incomplete Array shuffle consumer evidence' }
+    Run 'collection-count' $python @('tools/check_stdlib_collection_count.py','--out',"$outPath/collection-count",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $collectionCount=Get-Content -Encoding UTF8 -LiteralPath "$outPath/collection-count/results.json" -Raw | ConvertFrom-Json
+    if (!$collectionCount.Complete -or !$collectionCount.InputsUnchanged -or $collectionCount.Sweeps.Count -ne 4) { throw 'Incomplete collection count evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;ExtraFixtures=$extraCases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;

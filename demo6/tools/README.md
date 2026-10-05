@@ -512,3 +512,19 @@ scope. `xlir_future_metadata_contract.c` rejects typed no-raise/borrow corruptio
 and missing or merged lowered error outcomes before C/header emission. The
 metadata-only product must omit the aggregate kernel, Array adapter and legacy
 Future bridge. Observation times are not actual task submission/completion.
+
+`check_stdlib_collection_count.py` closes the ordinary, tagged-nullable and
+open-var `.length` consumer contracts. It checks the actual native ARRAY BUSY
+pin/domain, wire Array/List/Dict/Set, absence versus type errors, zero-allocation
+scalar/present reads and complete owned-box allocation prefixes at O0/O2.
+Its leaf declaration header compiles pedantically without XRT/Sequence headers,
+runtime libraries or additional private include search paths.
+`--language --public-directory <current-source>` adds pre-output IR/outcome
+corruption refusal, deterministic C/IR, strict generated C, sync/async/generator,
+JIT/AOT, normal module lifetime, and actual generated functions called with
+native storage. `--sanitize` is Linux-only: standalone instruments the selected
+native closure; `--shared` and language runs instrument host/generated C only.
+The Array/Stack parent paths freeze and invoke this child. Independent artifact
+checks require only CollectionCount/Sequence, not the Array facade or ArrayInput.
+The source Array producer remains value-v1; this gate does not certify the full
+language Array carrier migration or the remaining 53-module objective.

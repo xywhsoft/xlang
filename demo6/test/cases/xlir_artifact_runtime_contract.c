@@ -348,7 +348,13 @@ static int fixture_contract(const char* path)
     }
     if (strstr(path,"cgen_basic"))
         ok=ok && !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RNG_SHUFFLE) &&
-            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RAND_SHUFFLE);
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RAND_SHUFFLE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_COLLECTION_COUNT);
+    if (strstr(path,"stdlib_collection_count"))
+        ok=ok && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_COLLECTION_COUNT) &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED);
     if (strstr(path,"stdlib_future_aggregate_") || strstr(path,"stdlib_future_metadata_only")) {
         bool metadata=strstr(path,"metadata_only")!=NULL;
         bool arrayInput=strstr(path,"aggregate_array_only")!=NULL;

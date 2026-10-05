@@ -2518,7 +2518,9 @@ typedef enum XL6_IrMemberAbi {
     /* Source `bytes.length`: byte cardinality, kept distinct from Unicode
      * scalar count.  Both return canonical int, but their physical
      * observation is unrelated. */
-    XL6_IR_MEMBER_ABI_BYTES_LENGTH
+    XL6_IR_MEMBER_ABI_BYTES_LENGTH,
+    /* Collection cardinality, not a dynamic object field. */
+    XL6_IR_MEMBER_ABI_XVALUE_COUNT
 } XL6_IrMemberAbi;
 
 /* Safe builtin indexing evaluates its key only on the present successor.
@@ -6281,6 +6283,12 @@ int xl6IrDynamicCompareRuntimeOpIs(XL6_IrRuntimeOp operation);
 int xl6IrDynamicCompareRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation);
+int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation);
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeCollectionCountErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+/* Exact normal/tagged-nullable/open-var count contract, shared by verification
+ * and all C emitters. Borrowed receiver, trivial or independently owned result. */
+int xl6IrCollectionCountRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionMemberRuntimeInstructionCompatible(
