@@ -214,6 +214,16 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    for (size_t i=0;i<module->instructionCount;++i) {
+        const XL6_IrInstruction* instruction=&module->instructions[i];
+        if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+            !xl6IrCollectionCountRuntimeOpIs(instruction->runtimeOp)) continue;
+        if (!xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction)) return 0;
+        const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT ? "xl6CollectionCountV1" :
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ?
+                "xl6CollectionCountIfPresentV1" : "xl6CollectionCountOrNullV1";
+        if (!visitor(context,symbol)) return 0;
+    }
     if ((needs.randomBridgeOperations & XL6_CGEN_RNG_SHUFFLE_ARRAY) &&
         !visitor(context,"xl6ArrayRngShuffleV1")) return 0;
     if ((needs.randomBridgeOperations & XL6_CGEN_RAND_SHUFFLE_ARRAY) &&

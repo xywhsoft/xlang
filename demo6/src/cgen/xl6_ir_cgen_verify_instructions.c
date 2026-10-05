@@ -289,7 +289,7 @@ static int xl6IrCgenVerifyInstructions(
                          XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ||
                      instruction->runtimeOp ==
                          XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL) &&
-                    !xl6IrCgenRuntimeSafeXValueCountAbi(module, instruction)) ||
+                    !xl6IrCollectionCountRuntimeInstructionCompatible(module, instruction)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_NEW &&
                   (instruction->immediateText != NULL || instruction->operandCount != 0 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||

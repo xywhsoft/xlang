@@ -11,7 +11,17 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     if ( !(read ? xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction)
                 : xl6IrCollectionMemberRuntimeInstructionCompatible(module, instruction)) ) return -1;
     if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT ) {
-        xl6OutputPrintf(out, "    v%u = (int64_t)xrtValueCount(v%u);\n",
+        xl6OutputPrintf(out, "    v%u = xl6CollectionCountV1(v%u);\n",
+            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
+    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE) {
+        xl6OutputPrintf(out,
+            "    v%u = (%s){0};\n"
+            "    v%u.hasValue = xl6CollectionCountIfPresentV1(v%u, &v%u.value);\n",
+            (unsigned)instruction->result, xl6IrCgenType(module,instruction->type),
+            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
+            (unsigned)instruction->result);
+    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL) {
+        xl6OutputPrintf(out, "    v%u = xl6CollectionCountOrNullV1(v%u);\n",
             (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ) {
         xl6OutputPrintf(out, "    v%u = xrtValueArrayAt(v%u, v%u);\n",

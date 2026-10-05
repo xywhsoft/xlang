@@ -2034,6 +2034,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
          xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeObjectPublicationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrRuntimeCollectionCountErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeFutureMetadataErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
         !xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin, xl6IrNodeGet(ctx->module, failureOrigin), result))
         return XL6_IR_VALUE_INVALID;
@@ -6281,7 +6282,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueCount(
     XL6_IrValueId value, result;
     size_t first = ctx->evaluationOwnerCount;
     if ( node == NULL || node->kind != XL6_IR_NODE_MEMBER || node->childCount != 1 ||
-         node->text == NULL || strcmp(node->text, "length") != 0 ||
+         node->memberAbi != XL6_IR_MEMBER_ABI_XVALUE_COUNT ||
          (resultType = xl6IrTypeGet(&ctx->module->types, node->storageType)) == NULL ||
          resultType->cAbi != XL6_IR_C_ABI_I64 ) return XL6_IR_VALUE_INVALID;
     receiver = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
@@ -20519,16 +20520,18 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
             : xl6IrLowerEmitRuntimeCall(
                   ctx, id, iterator->storageType, XL6_IR_RUNTIME_XVALUE_CLONE,
                   &iteratorValue, 1));
+    /* Cardinality can now fail (native BUSY/domain/range). Keep the acquired
+     * snapshot in the evaluation transaction until that observation succeeds.
+     * The hidden loop owner is activated only by the following STORE; setup
+     * failure must not leak it or run body/iteration cleanup before activation. */
+    size_t setupFirst=ctx->evaluationOwnerCount;
     if ( snapshot == XL6_IR_VALUE_INVALID ||
+         (snapshot=xl6IrLowerProtectEvaluationValue(ctx,id,iterator->storageType,snapshot))==XL6_IR_VALUE_INVALID ||
+         (count=xl6IrLowerEmitRuntimeCall(ctx,id,itemTypeId,XL6_IR_RUNTIME_XVALUE_COUNT,&snapshot,1))==XL6_IR_VALUE_INVALID ||
+         !xl6IrLowerCommitEvaluationOwners(ctx,id,setupFirst) ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id,
                           iterator->storageType, snapshotSymbol,
                           &snapshot, 1, NULL) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id,
-                          iterator->storageType, snapshotSymbol,
-                          NULL, 0, &operands[0]) ||
-         (count = xl6IrLowerEmitRuntimeCall(
-              ctx, id, itemTypeId, XL6_IR_RUNTIME_XVALUE_COUNT,
-              operands, 1)) == XL6_IR_VALUE_INVALID ||
          (zero = xl6IrLowerEmitIntConst(ctx, id, itemTypeId, "0")) ==
               XL6_IR_VALUE_INVALID ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, itemTypeId,

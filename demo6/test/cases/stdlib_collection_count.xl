@@ -1,0 +1,43 @@
+func countErased(var value) as int
+    return value.length
+end
+func countSafeErased(var value) as var
+    return value?.length
+end
+func countOptional(array<int>? value) as int?
+    return value?.length
+end
+array<int> values = array[1, 2, 3]
+array<int>? present = values
+array<int>? absent = null
+var dynamic = values
+var missing = null
+assert values.length == 3
+assert (present?.length ?? -1) == 3
+assert absent?.length == null
+assert dynamic.length == 3 and dynamic?.length == 3
+assert missing?.length == null
+assert countErased(dynamic) == 3 and countSafeErased(dynamic) == 3
+assert (countOptional(present) ?? -1) == 3 and countOptional(null) == null
+list<int> sparse = list[9: 1, 70: 2]
+dict<int> named = dict{"first": 1}
+set<int> unique = set{1, 1, 3}
+assert sparse.length == 2 and named.length == 1 and unique.length == 2
+for i in array[0, 1, 2]
+    array<int>? maybe = null
+    if i == 1 then
+        maybe = values
+    end
+    int expected = -1
+    if i == 1 then
+        expected = 3
+    end
+    assert (maybe?.length ?? -1) == expected
+end
+try
+    var invalid = true
+    var unexpected = invalid?.length
+    assert false, "present non-container must raise"
+catch TypeError failure
+end
+println("collection count ok")

@@ -3,36 +3,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction, XL6_DiagList* diags)
 {
-    if ( instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ) {
-                    const XL6_IrType* resultType =
-                        xl6IrTypeGet(&module->types, instruction->type);
-                    if ( !xl6IrCgenRuntimeSafeXValueCountAbi(
-                             module, instruction) || resultType == NULL )
-                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
-                            "XLIR C emitter safe tagged count ABI is unresolved");
-                    xl6OutputPrintf(out,
-                        "    v%u = (%s){ false, 0 };\n"
-                        "    if (v%u != NULL && xrtValueType(v%u) != 0) { v%u.hasValue = true; v%u.value = (int64_t)xrtValueCount(v%u); }\n",
-                        (unsigned int)instruction->result, resultType->cName,
-                        (unsigned int)module->operands[instruction->firstOperand],
-                        (unsigned int)module->operands[instruction->firstOperand],
-                        (unsigned int)instruction->result,
-                        (unsigned int)instruction->result,
-                        (unsigned int)module->operands[instruction->firstOperand]);
-                } else if ( instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL ) {
-                    if ( !xl6IrCgenRuntimeSafeXValueCountAbi(
-                             module, instruction) )
-                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
-                            "XLIR C emitter safe xvalue count ABI is unresolved");
-                    xl6OutputPrintf(out,
-                        "    v%u = (v%u == NULL || xrtValueType(v%u) == 0) ? xrtValueRetain(xrtValueNull()) : xrtValueInt((int64_t)xrtValueCount(v%u));\n",
-                        (unsigned int)instruction->result,
-                        (unsigned int)module->operands[instruction->firstOperand],
-                        (unsigned int)module->operands[instruction->firstOperand],
-                        (unsigned int)module->operands[instruction->firstOperand]);
-                } else if ( xl6IrCgenEmitXValueIteratorInstruction(
+    if ( xl6IrCgenEmitXValueIteratorInstruction(
                                out, module, instruction) ) {
         } else if ( xl6IrCgenEmitXValueProjectionInstruction(
                                out, module, instruction) ) {

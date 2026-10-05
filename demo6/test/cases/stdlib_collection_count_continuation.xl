@@ -1,0 +1,20 @@
+async func asyncCount(array<int>? values) as int
+    time.sleep(1)
+    return values?.length ?? -1
+end
+func countItems(array<int>? values) as generator<int>
+    yield values?.length ?? -1
+    yield values?.length ?? -1
+end
+array<int> values = array[4, 5, 6]
+assert await asyncCount(values) == 3
+assert await asyncCount(null) == -1
+int total = 0
+for n in countItems(values)
+    total += n
+end
+for n in countItems(null)
+    total += n
+end
+assert total == 4
+println("collection count continuation ok")
