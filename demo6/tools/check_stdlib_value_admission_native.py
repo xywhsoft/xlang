@@ -65,7 +65,8 @@ def main() -> int:
             symbols = run(lane + ".symbols", [nm, "--defined-only", str(binary)])
             names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
             expected = {"xl6ValueAdmitsNominalV1", "xl6CollectionCheckedNominalTakeV1"} if args.nominal else {
-                "xl6ValueAdmitsV1", "xl6CollectionCheckedTakeV1", "xl6ValueReadF32V1", "xl6ValueCheckedRetainV1"}
+                "xl6ValueAdmitsV1", "xl6CollectionCheckedTakeV1", "xl6ValueReadF32V1", "xl6ValueCheckedRetainV1",
+                "xl6ValueIntegerSlotAdmitsV1", "xl6ValueReadIntegerV1", "xl6ValueBoxIntegerV1"}
             absent = {"xl6ValueAdmitsV1", "xl6CollectionCheckedTakeV1"} if args.nominal else {
                 "xl6ValueAdmitsNominalV1", "xl6CollectionCheckedNominalTakeV1"}
             assert expected <= names and not absent & names

@@ -14,11 +14,18 @@ static void check_language_boundary(void)
         "func factory() as func(byref int) as int\nreturn consume\nend\nvar erased = xcall(factory)\n",
         "func consume(out int value)\nvalue = 1\nend\n"
         "func factory() as func(out int)\nreturn consume\nend\nvar erased = xcall(factory)\n",
-        "func answer() as int\nreturn 42\nend\nfunc() as int callback = answer\nvar implicit = callback\n"
+        "func consume(future<int> value) as int\nreturn 42\nend\n"
+        "func factory() as func(future<int>) as int\nreturn consume\nend\nvar erased = xcall(factory)\n"
     };
     size_t i;
     for (i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
         XL6_ParseResult rejected; xl6ParseResultInit(&rejected);
+        if (i < 2) {
+            /* Parameter modifiers were removed from the language. Rejection
+             * is now lexical/grammar, not an xcall-specific semantic rule. */
+            assert(!xl6ParseSource(cases[i], "callable_result_invalid", &rejected) && rejected.diags.count);
+            xl6ParseResultFree(&rejected); continue;
+        }
         if (!xl6ParseSource(cases[i], "callable_result_invalid", &rejected)) {
             size_t d;
             for (d = 0; d < rejected.diags.count; ++d) fprintf(stderr, "negative %lu: %s\n",
@@ -27,7 +34,7 @@ static void check_language_boundary(void)
         }
         assert(xl6StdlibExpandModule(rejected.root, &rejected.diags));
         assert(!xl6SemCheckModule(rejected.root, &rejected.diags, "callable_result_invalid") && rejected.diags.count);
-        if (i < 2) {
+        {
             size_t d; int found = 0;
             for (d = 0; d < rejected.diags.count; ++d)
                 if (strstr(rejected.diags.items[d].message, "xcall 返回值类型")) found = 1;

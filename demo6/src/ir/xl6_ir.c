@@ -45067,16 +45067,18 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     }
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
-        xl6OutputPrintf(out, "  callable-bridge-parameter %lu parameter=%lu type=t%u decode=%d encode=%d invoke=%d decoded-destroy=%d input-destroy=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge-parameter %lu parameter=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d invoke=%d decoded-destroy=%d input-destroy=%d\n",
             (unsigned long)i, (unsigned long)p->parameter, (unsigned)p->type,
-            (int)p->decodeAbi, (int)p->encodeAbi, (int)p->invokeAbi,
+            (int)p->decodeAbi, (int)p->encodeAbi, (int)p->integerDomain.rule,
+            (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->invokeAbi,
             (int)p->decodedDestroyAbi, (int)p->inputDestroyAbi);
     }
     for (i = 0; i < module->callableBridgeResultCount; ++i) {
         const XL6_IrCallableBridgeResult* r = &module->callableBridgeResults[i];
-        xl6OutputPrintf(out, "  callable-bridge-result %lu result=%lu type=t%u decode=%d encode=%d destroy=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge-result %lu result=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d destroy=%d\n",
             (unsigned long)i, (unsigned long)r->result, (unsigned)r->type,
-            (int)r->decodeAbi, (int)r->encodeAbi, (int)r->destroyAbi);
+            (int)r->decodeAbi, (int)r->encodeAbi, (int)r->integerDomain.rule,
+            (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->destroyAbi);
     }
     for (i = 0; i < module->callbackBoundaryCount; ++i) {
         const XL6_IrCallbackBoundary* b = &module->callbackBoundaries[i];
@@ -46529,18 +46531,20 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridgeParameters\": [\n", out);
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"parameter\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"invokeAbi\":%d,\"decodedDestroyAbi\":%d,\"inputDestroyAbi\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"parameter\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"invokeAbi\":%d,\"decodedDestroyAbi\":%d,\"inputDestroyAbi\":%d}%s\n",
             (unsigned long)i, (unsigned long)p->parameter, (unsigned)p->type,
-            (int)p->decodeAbi, (int)p->encodeAbi, (int)p->invokeAbi,
+            (int)p->decodeAbi, (int)p->encodeAbi, (int)p->integerDomain.rule,
+            (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->invokeAbi,
             (int)p->decodedDestroyAbi, (int)p->inputDestroyAbi,
             i + 1 == module->callableBridgeParameterCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"callableBridgeResults\": [\n", out);
     for (i = 0; i < module->callableBridgeResultCount; ++i) {
         const XL6_IrCallableBridgeResult* r = &module->callableBridgeResults[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"destroyAbi\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"destroyAbi\":%d}%s\n",
             (unsigned long)i, (unsigned long)r->result, (unsigned)r->type,
-            (int)r->decodeAbi, (int)r->encodeAbi, (int)r->destroyAbi,
+            (int)r->decodeAbi, (int)r->encodeAbi, (int)r->integerDomain.rule,
+            (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->destroyAbi,
             i + 1 == module->callableBridgeResultCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"callbackBoundaries\": [\n", out);

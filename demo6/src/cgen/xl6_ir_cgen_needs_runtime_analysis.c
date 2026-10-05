@@ -723,6 +723,12 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 signature->kind == XL6_IR_TYPE_FUNCTION) {
                 const XL6_IrCallableBridge* bridge = xl6IrCallableBridgeGet(module, signatureType);
                 if (!bridge) return 0;
+                for (parameter = 0; parameter < bridge->parameterCount; ++parameter)
+                    if (module->callableBridgeParameters[bridge->firstParameter + parameter].integerDomain.rule != XL6_VALUE_ADMIT_NONE)
+                        needs->needsCallableIntegerCodec = 1;
+                for (parameter = 0; parameter < bridge->resultCount; ++parameter)
+                    if (module->callableBridgeResults[bridge->firstResult + parameter].integerDomain.rule != XL6_VALUE_ADMIT_NONE)
+                        needs->needsCallableIntegerCodec = 1;
                 if (forward) for (parameter = 0; parameter < bridge->parameterCount; ++parameter)
                     if (module->callableBridgeParameters[bridge->firstParameter + parameter].decodeAbi == XL6_IR_CALLABLE_BRIDGE_F32)
                         needs->needsCallableF32Reader = 1;

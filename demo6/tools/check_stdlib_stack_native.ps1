@@ -44,6 +44,7 @@ try {
             'test/cases/stdlib_array_layouts.xl','tools/check_stdlib_callable_scalars.py',
             'test/cases/stdlib_callable_scalars.xl','test/cases/stdlib_callable_scalars_unused.xl',
             'test/cases/stdlib_callable_scalars_contract.c','test/cases/stdlib_callable_scalars_host.c',
+            'test/cases/stdlib_callable_integer_domains.xl','test/cases/stdlib_callable_integer_domains_host.c',
             'test/cases/xlir_callable_bridge_mutations.h'))
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })

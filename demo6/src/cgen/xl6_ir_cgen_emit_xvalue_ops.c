@@ -274,6 +274,10 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
             if (needs->needsCallableF32Reader)
                 xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n", out);
+            if (needs->needsCallableIntegerCodec)
+                xl6OutputPuts("extern bool xl6ValueIntegerSlotAdmitsV1(const void*, unsigned int);\n"
+                    "extern bool xl6ValueReadIntegerV1(const xvalue*, unsigned int, uint64_t, bool, void*);\n"
+                    "extern xvalue* xl6ValueBoxIntegerV1(const void*, unsigned int, uint64_t, bool);\n", out);
             /* Pure erased invocation and bound methods use XRT callables,
              * not native XLIR closures. Emit this bridge only when required. */
             if (needs->needsClosureRuntime)

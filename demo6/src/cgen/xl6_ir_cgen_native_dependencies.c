@@ -214,5 +214,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if (needs.needsCallableIntegerCodec &&
+        (!visitor(context,"xl6ValueIntegerSlotAdmitsV1") ||
+         !visitor(context,"xl6ValueReadIntegerV1") || !visitor(context,"xl6ValueBoxIntegerV1"))) return 0;
     return !needs.needsCallableF32Reader || visitor(context,"xl6ValueReadF32V1");
 }

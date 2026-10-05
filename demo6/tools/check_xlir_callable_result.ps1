@@ -41,7 +41,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Callable result fault rollback, invocation or memory balance failed' }
     & release/xl.exe run test/cases/xlir_callable_result_runtime.c test/cases/xlir_callable_result_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Callable result generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_callable_result_runtime.c test/cases/xlir_callable_result_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    # C-host fixtures need explicit resident sources in their single embedded
+    # runtime; ordinary .xl programs derive these from the artifact plan.
+    $resident = @('src/runtime/xl6_slot.c','src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_value_admission.c')
+    & release/xl.exe build test/cases/xlir_callable_result_runtime.c test/cases/xlir_callable_result_host.c src/api/xl_foreign_error.c @resident --inc-path . --inc-path release --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Callable result generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Callable result generated C-host AOT run failed' }

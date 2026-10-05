@@ -142,7 +142,7 @@ if (!$lower.Contains('xl6IrBuildCallableBridges') -or !$source.Contains('xl6IrVe
     throw 'Callable bridge generation must require complete IR plans and retain fault/mutation coverage'
 }
 $bridgeMutations = Read-Utf8 'test\cases\xlir_callable_bridge_mutations.h'
-foreach ($required in @('callableBridgeCount', 'callableBridgeParameterCount', 'decodeAbi', 'encodeAbi', 'invokeAbi', 'decodedDestroyAbi', 'inputDestroyAbi')) {
+foreach ($required in @('callableBridgeCount', 'callableBridgeParameterCount', 'decodeAbi', 'encodeAbi', 'integerDomain.rule', 'integerDomain.identity', 'integerDomain.nominal', 'invokeAbi', 'decodedDestroyAbi', 'inputDestroyAbi')) {
     if (!$bridgeMutations.Contains($required)) { throw "Callable bridge mutation coverage is missing: $required" }
 }
 $callableResults = Read-Utf8 'src\cgen\xl6_ir_cgen_callable_results.c'
@@ -157,6 +157,12 @@ if ((Read-Utf8 'src\cgen\xl6_ir_cgen_callable_contract.c').Contains('xl6IrCgenRu
     !(Read-Utf8 'src\compile\xl6_compile_unit.c').Contains('xl6IrCgenVisitResidentSymbols') -or
     !(Read-Utf8 'test\cases\stdlib_callable_scalars_contract.c').Contains('XL6_ARTIFACT_VALUE_ADMISSION')) {
     throw 'Callable scalars need resident exact F32 reads, closed programs and emission-aligned pruning, not a Cgen type whitelist'
+}
+foreach ($required in @('xl6ValueReadIntegerV1', 'xl6ValueBoxIntegerV1')) {
+    if (!$callableResults.Contains($required) -or
+        !(Read-Utf8 'src\cgen\xl6_ir_cgen_native_dependencies.c').Contains($required)) {
+        throw "Callable integer domains must use resident range/identity codecs and pruning: $required"
+    }
 }
 foreach ($required in @('resultCommitAbi', 'frameCleanupAbi', 'callableBridgeResults')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or

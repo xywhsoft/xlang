@@ -54,7 +54,7 @@ int result_init(void)
 static void assert_native(RESULT_TYPE* result)
 {
     int64_t answer = 0;
-    assert(result->e0 && !strcmp(result->e0, "text") && result->e1 && result->e2 && result->e3);
+    assert(result->e0.Data && result->e0.Size==4 && !memcmp(result->e0.Data, "text", 4) && result->e1 && result->e2 && result->e3);
     assert(((bool (*)(void*, int64_t*))result->e3->invoke)(result->e3->environment, &answer) && answer == 42);
 }
 void result_language_check(void)
@@ -69,10 +69,10 @@ void result_prepare(unsigned kind)
     currentKind = kind; calls = drops = 0; raiseDrops = kind == 2 || (kind >= 4 && kind <= 8);
     activeFrame = NULL;
     if (kind < 3) {
-        preparedNative.e0 = xrtStrDup("text"); preparedNative.e1 = handle_value(0);
+        preparedNative.e0 = xlir_string_from_utf8("text",4); preparedNative.e1 = handle_value(0);
         preparedNative.e2 = xrtErrorRef(primary);
         preparedNative.e3 = xlir_xvalue_project_closure_try_copy(RESULT_ANSWER, (void (*)(void))RESULT_ANSWER_ENTRY);
-        assert(preparedNative.e0 && preparedNative.e2 && preparedNative.e3);
+        assert(preparedNative.e0.Data && preparedNative.e2 && preparedNative.e3);
     } else if (kind < 9) {
         values[0] = xrtValueString(xrtStrView("text")); values[1] = handle_value(0);
         values[2] = kind == 4 ? xrtValueInt(1) : xlir_xvalue_error_ref(primary, RESULT_ERROR_TYPE);
@@ -90,10 +90,10 @@ bool result_run(unsigned kind)
         activeFrame = &outputFrame; ok = RESULT_FORWARD(&native, &frame, &outputFrame);
     } else if (kind == 9) {
         ok = xrtValueInvoke(RESULT_MANY, &frame, &outputFrame);
-    } else ok = RESULT_ENTRY(rawValue, &outputNative);
+    } else ok = RESULT_ENTRY(&rawValue, &outputNative);
     inBridge = 0; activeFrame = NULL;
     if (!ok) {
-        assert(!outputNative.e0 && !outputNative.e1 && !outputNative.e2 && !outputNative.e3);
+        assert(!outputNative.e0.Data && !outputNative.e0.Size && !outputNative.e1 && !outputNative.e2 && !outputNative.e3);
         assert(xrtCallResultCount(&outputFrame) == 0);
     }
     return ok;

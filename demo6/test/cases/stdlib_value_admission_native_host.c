@@ -24,8 +24,44 @@ static void probe(xvalue* value, unsigned int rule, bool expected)
 }
 static void drop(void* value, void* context)
 { (void)value; ++*(unsigned int*)context; xrtSetErrorKind(XERR_RANGE); }
+static void integer_codecs(void)
+{
+    const int64_t maxima[]={INT8_MAX,INT16_MAX,INT32_MAX,INT64_MAX,UINT8_MAX,UINT16_MAX,UINT32_MAX};
+    const int64_t minima[]={INT8_MIN,INT16_MIN,INT32_MIN,INT64_MIN,0,0,0};
+    for (unsigned rule=XL6_VALUE_ADMIT_I8;rule<=XL6_VALUE_ADMIT_U64;++rule) {
+        uint64_t identity=UINT64_C(900)+rule;
+        for (unsigned edge=0;edge<2;++edge) {
+            unsigned char slot[9]={0},output[9]={0};
+            if (rule==XL6_VALUE_ADMIT_U64) { uint64_t value=edge ? UINT64_MAX : 0; memcpy(slot+1,&value,8); }
+            else { int64_t value=edge ? maxima[rule-XL6_VALUE_ADMIT_I8] : minima[rule-XL6_VALUE_ADMIT_I8]; memcpy(slot+1,&value,8); }
+            xrtSetErrorKind(XERR_RANGE); const xerror* error=xrtGetError(); assert(xrtMemDebugFailAfter(0));
+            assert(xl6ValueIntegerSlotAdmitsV1(slot+1,rule) && xrtGetError()==error && !xrtMemDebugFailTriggered());
+            xrtMemDebugFailClear(); xrtClearError();
+            xvalue* boxed=xl6ValueBoxIntegerV1(slot+1,rule,identity,true); assert(boxed && xrtValueTypeId(boxed)==identity);
+            assert(xl6ValueReadIntegerV1(boxed,rule,identity,true,output+1) && !memcmp(slot+1,output+1,8));
+            memset(output,0xA5,sizeof(output)); unsigned char before[9]; memcpy(before,output,9);
+            assert(!xl6ValueReadIntegerV1(boxed,rule,identity+1,true,output+1) && !memcmp(before,output,9) && xrtErrorKind(xrtGetError())==XERR_TYPE);
+            xrtClearError(); xrtValueRelease(boxed);
+            boxed=xl6ValueBoxIntegerV1(slot+1,rule,identity,false); assert(boxed && !xrtValueTypeId(boxed));
+            assert(!xl6ValueReadIntegerV1(boxed,rule,identity,true,output+1) && !memcmp(before,output,9) && xrtErrorKind(xrtGetError())==XERR_TYPE);
+            xrtClearError(); assert(xl6ValueReadIntegerV1(boxed,rule,identity,false,output+1) && !memcmp(slot+1,output+1,8));
+            xrtValueRelease(boxed);
+        }
+        if (rule!=XL6_VALUE_ADMIT_U64 && rule!=XL6_VALUE_ADMIT_I64) {
+            int64_t invalid=maxima[rule-XL6_VALUE_ADMIT_I8]+1;
+            assert(!xl6ValueIntegerSlotAdmitsV1(&invalid,rule));
+            assert(!xl6ValueBoxIntegerV1(&invalid,rule,identity,false) && xrtErrorKind(xrtGetError())==XERR_TYPE); xrtClearError();
+        }
+    }
+    int64_t output=42;
+    assert(!xl6ValueReadIntegerV1(NULL,XL6_VALUE_ADMIT_I8,1,false,&output) && output==42 && xrtErrorKind(xrtGetError())==XERR_TYPE); xrtClearError();
+    assert(!xl6ValueReadIntegerV1(NULL,XL6_VALUE_ADMIT_NONE,1,false,&output) && output==42 && xrtErrorKind(xrtGetError())==XERR_ARGUMENT); xrtClearError();
+    assert(!xl6ValueBoxIntegerV1(NULL,XL6_VALUE_ADMIT_I8,1,false) && xrtErrorKind(xrtGetError())==XERR_ARGUMENT); xrtClearError();
+    assert(!xl6ValueIntegerSlotAdmitsV1(NULL,XL6_VALUE_ADMIT_I8) && !xl6ValueIntegerSlotAdmitsV1(&output,999) && !xrtGetError());
+}
 static void vectors(void)
 {
+    integer_codecs();
     const int64_t limits[]={INT8_MAX,INT16_MAX,INT32_MAX,INT64_MAX};
     const unsigned int signedRules[]={XL6_VALUE_ADMIT_I8,XL6_VALUE_ADMIT_I16,XL6_VALUE_ADMIT_I32,XL6_VALUE_ADMIT_I64};
     const uint64_t maxima[]={UINT8_MAX,UINT16_MAX,UINT32_MAX,UINT64_MAX};
