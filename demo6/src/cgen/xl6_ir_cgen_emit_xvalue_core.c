@@ -638,30 +638,9 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                           "    }\n"
                           "    return xrtValueArrayGet(array, resolved);\n"
                           "}\n", out);
-        if ( needs->needsXValueArrayIntegerReadRuntime )
-            xl6OutputPuts("extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
-                          "static int64_t xlir_xvalue_array_at_i64_integer(const xvalue* array, int64_t index)\n"
-                          "{ xvalue* item = xrtValueArrayAt(array, index); int64_t value = 0;\n"
-                          "  if (item == NULL || !xrtValueGetInt(item, &value)) abort();\n"
-                          "  return value; }\n", out);
-        if ( needs->needsXValueArrayU64ReadRuntime )
-            xl6OutputPuts("extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
-                          "static uint64_t xlir_xvalue_array_at_i64_u64(const xvalue* array, int64_t index)\n"
-                          "{ xvalue* item = xrtValueArrayAt(array, index); uint64_t value = 0;\n"
-                          "  if (item == NULL || !xrtValueGetUInt(item, &value)) abort();\n"
-                          "  return value; }\n", out);
-        if ( needs->needsXValueArrayBoolReadRuntime )
-            xl6OutputPuts("extern bool xrtValueGetBool(const xvalue*, bool*);\n"
-                          "static bool xlir_xvalue_array_at_i64_bool(const xvalue* array, int64_t index)\n"
-                          "{ xvalue* item = xrtValueArrayAt(array, index); bool value = false;\n"
-                          "  if (item == NULL || !xrtValueGetBool(item, &value)) abort();\n"
-                          "  return value; }\n", out);
-        if ( needs->needsXValueArrayF64ReadRuntime )
-            xl6OutputPuts("extern bool xrtValueGetFloat(const xvalue*, double*);\n"
-                          "static double xlir_xvalue_array_at_i64_f64(const xvalue* array, int64_t index)\n"
-                          "{ xvalue* item = xrtValueArrayAt(array, index); double value = 0.0;\n"
-                          "  if (item == NULL || !xrtValueGetFloat(item, &value)) abort();\n"
-                          "  return value; }\n", out);
+        if (needs->needsXValueArrayIntegerReadRuntime || needs->needsXValueArrayU64ReadRuntime ||
+            needs->needsXValueArrayBoolReadRuntime || needs->needsXValueArrayF64ReadRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_array_scalar_read.h>\n", out);
         if ( needs->needsXValueArrayStringReadRuntime )
             xl6OutputPuts("extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                           "extern char* xrtStrDupN(const char*, size_t);\n"

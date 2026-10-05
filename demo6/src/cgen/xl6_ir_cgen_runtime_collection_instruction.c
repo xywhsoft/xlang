@@ -14,26 +14,6 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
-                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_at_i64_integer(v%u, v%u);\n",
-                                    (unsigned int)instruction->result,
-                                    (unsigned int)module->operands[instruction->firstOperand],
-                                    (unsigned int)module->operands[instruction->firstOperand + 1]);
-                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64 ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_at_i64_u64(v%u, v%u);\n",
-                                    (unsigned int)instruction->result,
-                                    (unsigned int)module->operands[instruction->firstOperand],
-                                    (unsigned int)module->operands[instruction->firstOperand + 1]);
-                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_at_i64_bool(v%u, v%u);\n",
-                                    (unsigned int)instruction->result,
-                                    (unsigned int)module->operands[instruction->firstOperand],
-                                    (unsigned int)module->operands[instruction->firstOperand + 1]);
-                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64 ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_at_i64_f64(v%u, v%u);\n",
-                                    (unsigned int)instruction->result,
-                                    (unsigned int)module->operands[instruction->firstOperand],
-                                    (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY ) {
                     xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_at_i64_string_copy(v%u, v%u);\n",
                                     (unsigned int)instruction->result,

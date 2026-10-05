@@ -528,3 +528,18 @@ The Array/Stack parent paths freeze and invoke this child. Independent artifact
 checks require only CollectionCount/Sequence, not the Array facade or ArrayInput.
 The source Array producer remains value-v1; this gate does not certify the full
 language Array carrier migration or the remaining 53-module objective.
+
+`check_stdlib_array_scalar_read.py` validates the four checked I64/U64/bool/F64
+Array read consumers. Native reads validate the sealed ARRAY, BUSY state,
+logical identities and canonical physical descriptor before copying one slot;
+wire reads keep exact tag semantics. Both success paths allocate and box
+nothing. The standalone leaf ABI header needs no XRT/Sequence dependencies.
+`--language --public-directory <current-source>` adds deterministic C/IR,
+pre-output metadata/outcome corruption refusal, strict O0/O2, JIT/AOT, normal
+module lifetime and actual generated functions reading native storage. It also
+checks loop snapshot cleanup after a failed item projection. Linux sanitizer
+instruments the selected standalone native closure; shared/language lanes
+instrument host/generated C only. Array/Stack parents freeze and invoke it.
+Read-only artifact selection requires ScalarRead/Sequence, not ArrayInput,
+Array facade or CollectionCount. This is not a full Array carrier migration or
+an allocation-prefix/OOM proof for source construction.

@@ -1,5 +1,15 @@
 /* One physical collection emitter is shared by sync functions and both
  * continuation machines.  No backend path resolves source member spellings. */
+static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
+{
+    switch (operation) {
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER: return "xl6ArrayReadI64V1";
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64: return "xl6ArrayReadU64V1";
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL: return "xl6ArrayReadBoolV1";
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64: return "xl6ArrayReadF64V1";
+    default: return NULL;
+    }
+}
 static int xl6IrCgenEmitSharedCollectionRuntime(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
@@ -10,7 +20,15 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     if ( !read && !xl6IrCollectionMemberRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !(read ? xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction)
                 : xl6IrCollectionMemberRuntimeInstructionCompatible(module, instruction)) ) return -1;
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT ) {
+    if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp)) {
+        const XL6_IrType* receiver = xl6IrArrayScalarReadReceiverType(module, instruction);
+        const XL6_IrType* result = xl6IrTypeGet(&module->types, instruction->type);
+        xl6OutputPrintf(out, "    v%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, v%u);\n",
+            (unsigned)instruction->result, xl6IrCgenArrayScalarReadSymbol(instruction->runtimeOp),
+            (unsigned)module->operands[instruction->firstOperand],
+            (unsigned long long)receiver->typeValueId, (unsigned long long)result->typeValueId,
+            (unsigned)module->operands[instruction->firstOperand + 1]);
+    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT ) {
         xl6OutputPrintf(out, "    v%u = xl6CollectionCountV1(v%u);\n",
             (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE) {

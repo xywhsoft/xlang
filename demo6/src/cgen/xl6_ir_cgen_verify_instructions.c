@@ -300,18 +300,8 @@ static int xl6IrCgenVerifyInstructions(
                        XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_OR_NULL &&
                    !xl6IrCgenRuntimeSafeIntegerIndexReadAbi(
                        module, instruction, XL6_IR_COLLECTION_ARRAY)) ||
-                 (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER &&
-                  (instruction->immediateText != NULL || instruction->operandCount != 2 ||
-                   xl6IrCgenType(module, instruction->type) == NULL)) ||
-                 (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64 &&
-                  (instruction->immediateText != NULL || instruction->operandCount != 2 ||
-                   xl6IrCgenType(module, instruction->type) == NULL)) ||
-                 (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL &&
-                  (instruction->immediateText != NULL || instruction->operandCount != 2 ||
-                   xl6IrCgenType(module, instruction->type) == NULL)) ||
-                 (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64 &&
-                  (instruction->immediateText != NULL || instruction->operandCount != 2 ||
-                   xl6IrCgenType(module, instruction->type) == NULL)) ||
+                 (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
+                  !xl6IrArrayScalarReadRuntimeInstructionCompatible(module, instruction)) ||
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY &&
                   (instruction->immediateText != NULL || instruction->operandCount != 2 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||

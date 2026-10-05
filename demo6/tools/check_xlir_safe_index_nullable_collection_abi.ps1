@@ -62,6 +62,21 @@ foreach ( $operation in @($safeArray + $safeList) ) {
         Get-TypeById $lowered $receiverDefinition.type
     } else { $null }
     $collectionType = $receiverType
+    # Flow lowering records the original nullable input behind one explicit
+    # unwrap; safe access still handles the sentinel in its receiver. Validate
+    # that edge instead of requiring nullable spelling on the projected result.
+    if ($null -ne $receiverDefinition -and $receiverDefinition.kindName -eq 'nullable-unwrap') {
+        $original = @($lowered.instructions | Where-Object {
+            $_.result -eq $receiverDefinition.operands[0]
+        })[0]
+        $originalType = if ($null -ne $original) { Get-TypeById $lowered $original.type } else { $null }
+        if ($receiverDefinition.operandCount -ne 1 -or $null -eq $originalType -or
+            $originalType.name -ne 'nullable' -or @($originalType.params).Count -ne 1 -or
+            $originalType.params[0] -ne $receiverDefinition.type) {
+            throw 'Safe-index flow unwrap does not preserve its exact nullable collection input'
+        }
+        ++$nullableReceiverCount
+    }
     if ( $null -ne $receiverType -and $receiverType.name -eq "nullable" -and
          @($receiverType.params).Count -eq 1 ) {
         ++$nullableReceiverCount
@@ -96,6 +111,22 @@ foreach ( $projection in @($tagged + $strings) ) {
 $narrowedReceiver = @($lowered.instructions | Where-Object {
     $_.result -eq $narrowedReads[0].operands[0]
 })[0]
+if ($null -ne $narrowedReceiver -and $narrowedReceiver.kindName -eq 'load') {
+    # A checked read pins its managed input in an evaluation owner. Require the
+    # exact retain/store/load chain rather than ignoring that lifetime boundary.
+    $stores = @($lowered.instructions | Where-Object {
+        $_.kindName -eq 'store' -and $_.targetSymbol -eq $narrowedReceiver.targetSymbol -and
+        $_.origin -eq $narrowedReads[0].origin -and $_.id -lt $narrowedReceiver.id
+    })
+    if ($stores.Count -ne 1 -or $stores[0].operandCount -ne 1 -or
+        $stores[0].type -ne $narrowedReceiver.type) { throw 'Checked narrowed read has no unique evaluation-owner activation' }
+    $retain = @($lowered.instructions | Where-Object { $_.result -eq $stores[0].operands[0] })[0]
+    if ($null -eq $retain -or $retain.runtimeOpName -ne 'xvalue-retain' -or
+        $retain.operandCount -ne 1 -or $retain.type -ne $narrowedReceiver.type) {
+        throw 'Checked narrowed read does not retain its exact borrowed receiver'
+    }
+    $narrowedReceiver = @($lowered.instructions | Where-Object { $_.result -eq $retain.operands[0] })[0]
+}
 if ( $null -eq $narrowedReceiver -or
      $narrowedReceiver.kindName -ne "nullable-unwrap" ) {
     throw "XLIR ordinary narrowed collection index does not consume an explicit NULLABLE_UNWRAP"
@@ -120,7 +151,7 @@ foreach ( $required in @(
     "if (v", "== NULL) v", "= xrtValueNull();",
     "xlir_xvalue_project_nullable_string_copy(v",
     "xlir_xvalue_project_xlir_nullable_t",
-    "xlir_xvalue_array_at_i64_integer(v"
+    "xl6ArrayReadI64V1(v"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR safe-index nullable-collection generated C is missing mechanical RuntimeOp emission: $required"

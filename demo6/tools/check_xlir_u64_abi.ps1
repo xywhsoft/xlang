@@ -234,7 +234,7 @@ foreach ( $required in @(
     "extern xvalue* xrtValueUInt(uint64_t);",
     "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);",
     "static inline uint64_t xlir_xvalue_to_u64_checked(const xvalue* value)",
-    "static uint64_t xlir_xvalue_array_at_i64_u64",
+    "xl6ArrayReadU64V1(v",
     "static uint64_t xlir_xvalue_int_map_at_i64_u64",
     "static uint64_t xlir_xvalue_object_get_literal_u64",
     "xlir_xvalue_binary(v",
