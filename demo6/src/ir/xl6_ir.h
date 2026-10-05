@@ -6289,6 +6289,12 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeCollectionCountErrorPhysicalAbi(XL6_IrRun
  * and all C emitters. Borrowed receiver, trivial or independently owned result. */
 int xl6IrCollectionCountRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
+int xl6IrArrayScalarReadRuntimeOpIs(XL6_IrRuntimeOp operation);
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+const XL6_IrType* xl6IrArrayScalarReadReceiverType(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction);
+int xl6IrArrayScalarReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionMemberRuntimeInstructionCompatible(

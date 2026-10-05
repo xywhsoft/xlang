@@ -108,8 +108,11 @@ def main():
                 assert sum(row['loopResourceAbiName']=='xvalue-owned-iterator-release' for row in loops)==2
                 instructions=data['instructions']
                 for loop in loops:
+                    owners=[row for row in data['loopOwners'] if row['origin']==loop['id']
+                        and row['target']==0 and row['type']==loop['loopResourceType']]
+                    assert len(owners)==1,f"Loop {loop['id']}: expected one authoritative hidden owner"
                     owned=[row for row in instructions if row['origin']==loop['id'] and row['kindName']=='store'
-                        and row['type']==loop['loopResourceType'] and row['targetSymbol']>=0xf0000000]
+                        and row['type']==loop['loopResourceType'] and row['targetSymbol']==owners[0]['symbol']]
                     assert len(owned)==1,f"Loop {loop['id']}: expected exactly one Array owner"
                     assert any(row['kindName']=='release' and row['type']==loop['loopResourceType']
                         and row['targetSymbol']==owned[0]['targetSymbol'] for row in instructions)

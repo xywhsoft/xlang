@@ -1,0 +1,44 @@
+async func scalarLater(array<int> values, int index) as int
+    time.sleep(1)
+    return values[index]
+end
+async func scalarLaterU64(array<uint64> values) as uint64
+    time.sleep(1)
+    return values[-1]
+end
+async func scalarLaterBool(array<bool> values) as bool
+    time.sleep(1)
+    return values[-1]
+end
+func scalarFloatItems(array<float> values) as generator<float>
+    yield values[-1]
+end
+func scalarItems(array<int> values) as generator<int>
+    yield values[0]
+    yield values[-1]
+end
+array<int> values = array[4, 6]
+assert await scalarLater(values, -1) == 6
+array<uint64> unsigned = array[uint64(18446744073709551615)]
+array<bool> flags = array[false, true]
+array<float> reals = array[-3.5]
+assert await scalarLaterU64(unsigned) == uint64(18446744073709551615)
+assert await scalarLaterBool(flags)
+float last = 0.0
+for value in scalarFloatItems(reals)
+    last = value
+end
+assert last == -3.5
+int total = 0
+for value in scalarItems(values)
+    total += value
+end
+assert total == 10
+bool caught = false
+try
+    int unused = await scalarLater(values, 2)
+catch RangeError failure
+    caught = true
+end
+assert caught
+println("scalar Array continuation ok")

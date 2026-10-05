@@ -88,6 +88,9 @@ def main() -> int:
         "src/runtime/xl6_array_callable_admission.c", "src/runtime/xl6_closure.c",
         "src/runtime/xl6_cell.c", "src/runtime/xl6_code_lease.c")]
     # Freeze project header dependencies, including the real resident layouts.
+    files += [root / name for name in ('tools/check_stdlib_array_scalar_read.py',
+        'test/cases/stdlib_array_scalar_read_native_host.c', 'test/cases/stdlib_array_scalar_read_header.c',
+        'src/runtime/xl6_array_scalar_read.c')]
     files += [root / name for name in ('tools/check_stdlib_collection_count.py',
         'test/cases/stdlib_collection_count_native_host.c','test/cases/stdlib_collection_count_header.c','test/support/collection_count_native.c',
         'src/runtime/xl6_collection_count.c')]
@@ -388,6 +391,16 @@ def main() -> int:
             raise RuntimeError("Incomplete native/wire collection count evidence")
         report["CountReport"] = {"Directory": str(child), "Checks": len(count["Rows"]),
             "ClosedPrefixes": len(count["Sweeps"]), "Complete": True, "InputsUnchanged": True}
+        child = out / "scalar-read"
+        command = [sys.executable, "tools/check_stdlib_array_scalar_read.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        read = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not read["Complete"] or not read["InputsUnchanged"]:
+            raise RuntimeError("Incomplete native/wire scalar Array read evidence")
+        report["ScalarReadReport"] = {"Directory": str(child), "Checks": len(read["Rows"]),
+            "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
             raise RuntimeError("Source or tool changed during acceptance")

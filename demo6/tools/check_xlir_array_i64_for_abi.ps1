@@ -118,16 +118,45 @@ foreach ( $loopId in $loopIds ) {
          $counts.Count -ne 1 -or $items.Count -ne 1 ) {
         throw "Lowered XLIR array loop does not match its clone-or-transfer/count/typed-item contract: n$loopId"
     }
+    $owners = @($lowered.loopOwners | Where-Object {
+        $_.origin -eq $loopId -and $_.target -eq 0 -and $_.type -eq $arrayTypes[0].id
+    })
+    if ($owners.Count -ne 1) { throw "Array loop has no unique hidden owner: n$loopId" }
     $snapshotStores = @($instructions | Where-Object {
         $_.kindName -eq "store" -and $_.type -eq $arrayTypes[0].id -and
-        $_.operandCount -eq 1 -and $_.targetSymbol -ge 0xF0000000
+        $_.operandCount -eq 1 -and $_.targetSymbol -eq $owners[0].symbol
     })
-    if ( $snapshotStores.Count -ne 1 -or
-         ($expectedCloneCount -eq 1 -and
-          $snapshotStores[0].operands[0] -ne $clones[0].result) ) {
+    if ( $snapshotStores.Count -ne 1 -or $snapshotStores[0].id -le $counts[0].id -or
+         $snapshotStores[0].operands[0] -ne $counts[0].operands[0] ) {
         throw "Lowered XLIR array loop acquisition is not owned by compiler resource storage: n$loopId"
     }
+    $protected = @($instructions | Where-Object { $_.result -eq $counts[0].operands[0] })
+    if ($protected.Count -ne 1 -or $protected[0].kindName -ne 'load' -or
+        $protected[0].targetSymbol -eq $owners[0].symbol) {
+        throw "Array setup must protect its snapshot before checked count: n$loopId"
+    }
+    $acquisition = @($instructions | Where-Object {
+        $_.kindName -eq 'store' -and $_.targetSymbol -eq $protected[0].targetSymbol -and
+        $_.type -eq $arrayTypes[0].id -and $_.operandCount -eq 1 -and $_.id -lt $protected[0].id
+    })
+    if ($acquisition.Count -ne 1 -or ($expectedCloneCount -eq 1 -and
+        $acquisition[0].operands[0] -ne $clones[0].result)) {
+        throw "Array evaluation owner does not acquire the exact clone/temporary: n$loopId"
+    }
+    if ($lowered.instructions[[int]$counts[0].index+1].kindName -ne 'error-test' -or
+        $lowered.instructions[[int]$items[0].index+1].kindName -ne 'error-test') {
+        throw "Array count/item read must expose physical failure edges: n$loopId"
+    }
     $snapshotSymbol = $snapshotStores[0].targetSymbol
+    $itemFailure = @($lowered.blocks | Where-Object {
+        $_.id -eq $lowered.instructions[[int]$items[0].index+1].falseTarget
+    })
+    if ($itemFailure.Count -ne 1) { throw "Array item failure has no exact CFG target: n$loopId" }
+    $itemFailureInstructions = @($lowered.instructions | Select-Object -Skip ([int]$itemFailure[0].firstInstruction) |
+        Select-Object -First ([int]$itemFailure[0].instructionCount))
+    if (@($itemFailureInstructions | Where-Object {
+        $_.kindName -eq 'release' -and $_.targetSymbol -eq $snapshotSymbol
+    }).Count -ne 1) { throw "Array item failure must close its activated snapshot exactly once: n$loopId" }
     $releases = @($instructions | Where-Object {
         $_.kindName -eq "release" -and $_.type -eq $arrayTypes[0].id -and
         $_.targetSymbol -eq $snapshotSymbol -and $_.operandCount -eq 0
@@ -229,7 +258,8 @@ if ( @($snapshotReleaseCounts | Where-Object { $_ -lt 1 }).Count -ne 0 -or
      @($transactionFailureSuccessors | Where-Object { $_ -eq "throw" }).Count -lt 1 -or
      @($transactionFailureSuccessors | Where-Object { $_ -eq "jump" }).Count -lt 1 -or
      @($errorUnwindSuccessors | Where-Object { $_ -eq "throw" }).Count -lt 1 -or
-     @($errorUnwindSuccessors | Where-Object { $_ -eq "jump" }).Count -ne 2 ) {
+     # Two outer catches each have a body-call failure and an item-read failure.
+     @($errorUnwindSuccessors | Where-Object { $_ -eq "jump" }).Count -ne 4 ) {
     throw "Lowered XLIR array-loop resource exits do not cover return, exception and finally routes exactly"
 }
 
@@ -256,7 +286,7 @@ $dynamicGenerated = [System.IO.File]::ReadAllText(
     $rejectCPath, [System.Text.Encoding]::UTF8)
 if ( ! $dynamicGenerated.Contains("xlir_xvalue_iterator_create_checked") -or
      ! $dynamicGenerated.Contains("for in value must be array, list, set or dict") -or
-     $dynamicGenerated.Contains("xlir_xvalue_array_at_i64_integer") ) {
+     $dynamicGenerated.Contains("xl6ArrayReadI64V1") ) {
     throw "XLIR non-container source was not routed exclusively to the checked dynamic TypeError ABI"
 }
 
@@ -264,9 +294,9 @@ if ( ! $dynamicGenerated.Contains("xlir_xvalue_iterator_create_checked") -or
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR array<i64> for Cgen failed" }
 $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($generated, "=\s*xrtValueClone\(v\d+\);")).Count -ne 9 -or
-     ([regex]::Matches($generated, "=\s*\(int64_t\)xrtValueCount\(v\d+\);")).Count -ne 11 -or
+     ([regex]::Matches($generated, "=\s*xl6CollectionCountV1\(v\d+\);")).Count -ne 11 -or
      ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_array_at_i64_integer\(v\d+, v\d+\);")).Count -ne 12 -or
+        "=\s*xl6ArrayReadI64V1\(v\d+, 0x[0-9A-F]+ULL, 0x[0-9A-F]+ULL, v\d+\);")).Count -ne 12 -or
      ([regex]::Matches($generated, "\bfor\s*\(")).Count -ne 0 -or
      $generated.Contains("loopAbi") ) {
     throw "XLIR array<i64> loop C rendering is not mechanical from verified CFG"
@@ -275,10 +305,11 @@ foreach ( $loopId in $loopIds ) {
     $clone = @($loopInstructions | Where-Object {
         $_.origin -eq $loopId -and $_.runtimeOpName -eq "xvalue-clone"
     })
+    $owner = @($lowered.loopOwners | Where-Object { $_.origin -eq $loopId -and $_.target -eq 0 })[0]
     $snapshotStore = @($loopInstructions | Where-Object {
         $_.origin -eq $loopId -and $_.kindName -eq "store" -and
         $_.type -eq $arrayTypes[0].id -and $_.operandCount -eq 1 -and
-        $_.targetSymbol -ge 0xF0000000
+        $_.targetSymbol -eq $owner.symbol
     })[0]
     $releaseCount = @($loopInstructions | Where-Object {
         $_.origin -eq $loopId -and $_.kindName -eq "release" -and

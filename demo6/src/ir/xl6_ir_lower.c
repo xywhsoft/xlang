@@ -2035,6 +2035,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
          xl6IrRuntimeObjectPublicationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeCollectionCountErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeFutureMetadataErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
         !xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin, xl6IrNodeGet(ctx->module, failureOrigin), result))
         return XL6_IR_VALUE_INVALID;
@@ -20391,11 +20392,10 @@ static XL6_IrValueId xl6IrLowerRangeFor(XL6_IrLowerContext* ctx, XL6_IrNodeId id
     return 0;
 }
 
-/* The first storage-backed iterable ABI is intentionally exact.  A stable
- * array<i64> name is shallow-cloned once, then ordinary XLIR count/index CFG
- * drives a checked typed element projection.  The clone lives in explicit
- * storage and is released by the unique loop exit block; Typed XLIR admits
- * this ABI only when no return or exceptional edge can bypass that block. */
+/* A stable array<i64> name is shallow-cloned once, then ordinary XLIR
+ * count/index CFG drives a checked typed element projection. Setup keeps the
+ * snapshot in the evaluation transaction. After activation, register its loop
+ * owner before projecting any item, so failure and normal exit share cleanup. */
 static XL6_IrValueId xl6IrLowerArrayI64For(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
@@ -20567,16 +20567,16 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, itemTypeId,
                           positionSymbol, NULL, 0, &operands[1]) ) return 0;
     position = operands[1];
-    item = xl6IrLowerEmitRuntimeCall(
-        ctx, id, itemTypeId, XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER,
-        operands, 2);
-    if ( item == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerPushLoop(
-              ctx, node->region, afterLoopBlock, incrementBlock) ) return 0;
+    if ( !xl6IrLowerPushLoop(
+             ctx, node->region, afterLoopBlock, incrementBlock) ) return 0;
     if ( !xl6IrLowerPushLoopResource(ctx, node, id, snapshotSymbol) ) {
         ctx->loopCount -= 1;
         return 0;
     }
+    item = xl6IrLowerEmitRuntimeCall(
+        ctx, id, itemTypeId, XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER,
+        operands, 2);
+    if ( item == XL6_IR_VALUE_INVALID ) return 0;
     if ((hasIndex && !xl6IrLowerInitializeIterationTarget(ctx, id, node, indexTargetId, position, node->loopKeyLifetimeAbi)) ||
         !xl6IrLowerInitializeIterationTarget(ctx, id, node, valueTargetId, item, node->loopItemLifetimeAbi)) return 0;
     (void)xl6IrLowerNode(

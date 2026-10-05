@@ -1,0 +1,17 @@
+func scalarI64(array<int> source, int index) as int
+    return source[index]
+end
+
+func scalarU64(array<uint64> source, int index) as uint64
+    return source[index]
+end
+
+func scalarBool(array<bool> source, int index) as bool
+    return source[index]
+end
+
+func scalarF64(array<float> source, int index) as float
+    return source[index]
+end
+
+assert true

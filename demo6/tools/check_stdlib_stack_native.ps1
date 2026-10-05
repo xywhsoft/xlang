@@ -59,6 +59,10 @@ try {
         'test/support/collection_count_native.c','src/runtime/xl6_collection_count.c','test/cases/stdlib_collection_count.xl',
         'test/cases/stdlib_collection_count_continuation.xl','test/cases/xlir_collection_count_contract.c',
         'test/cases/stdlib_collection_count_projection_host.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_scalar_read.py','test/cases/stdlib_array_scalar_read_native_host.c',
+        'test/cases/stdlib_array_scalar_read_header.c','src/runtime/xl6_array_scalar_read.c',
+        'test/cases/stdlib_array_scalar_read.xl','test/cases/stdlib_array_scalar_read_continuation.xl',
+        'test/cases/xlir_array_scalar_read_contract.c','test/cases/stdlib_array_scalar_read_projection_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
         'test/cases/stdlib_future_metadata_host.c','test/cases/xlir_future_metadata_contract.c',
         'test/cases/stdlib_future_aggregate_variadic_only.xl','test/cases/stdlib_future_aggregate_array_only.xl','test/cases/stdlib_future_metadata_only.xl',
@@ -263,6 +267,9 @@ try {
     Run 'collection-count' $python @('tools/check_stdlib_collection_count.py','--out',"$outPath/collection-count",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $collectionCount=Get-Content -Encoding UTF8 -LiteralPath "$outPath/collection-count/results.json" -Raw | ConvertFrom-Json
     if (!$collectionCount.Complete -or !$collectionCount.InputsUnchanged -or $collectionCount.Sweeps.Count -ne 4) { throw 'Incomplete collection count evidence' }
+    Run 'array-scalar-read' $python @('tools/check_stdlib_array_scalar_read.py','--out',"$outPath/array-scalar-read",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $arrayScalarRead=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-scalar-read/results.json" -Raw | ConvertFrom-Json
+    if (!$arrayScalarRead.Complete -or !$arrayScalarRead.InputsUnchanged) { throw 'Incomplete scalar Array read evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;ExtraFixtures=$extraCases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;

@@ -68,6 +68,8 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceOwnershipAdapterV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayCreateV1")==XL6_ARTIFACT_ARRAY_TYPED);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackCreateV1")==XL6_ARTIFACT_STACK);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayReadI64V1")==XL6_ARTIFACT_ARRAY_SCALAR_READ);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayReadF64V1")==XL6_ARTIFACT_ARRAY_SCALAR_READ);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackOwnershipAdapterV1")==XL6_ARTIFACT_RUNTIME_COUNT);
     XL6_ArtifactRuntimeSet sequence=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeClosePlan(&sequence,&plan) && plan.sourceCount==1);
@@ -349,9 +351,15 @@ static int fixture_contract(const char* path)
     if (strstr(path,"cgen_basic"))
         ok=ok && !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RNG_SHUFFLE) &&
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RAND_SHUFFLE) &&
-            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_COLLECTION_COUNT);
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_COLLECTION_COUNT) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_SCALAR_READ);
     if (strstr(path,"stdlib_collection_count"))
         ok=ok && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_COLLECTION_COUNT) &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED);
+    if (strstr(path,"stdlib_array_scalar_read"))
+        ok=ok && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_SCALAR_READ) &&
             xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT) &&
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED);

@@ -1,0 +1,50 @@
+func scalarI64(array<int> values, int index) as int
+    return values[index]
+end
+func scalarU64(array<uint64> values, int index) as uint64
+    return values[index]
+end
+func scalarBool(array<bool> values, int index) as bool
+    return values[index]
+end
+func scalarF64(array<float> values, int index) as float
+    return values[index]
+end
+func scalarSum(array<int> values) as int
+    int result = 0
+    for item in values
+        result += item
+    end
+    return result
+end
+array<int> signed = array[0, -7, 19]
+array<uint64> unsigned = array[uint64(0), uint64(18446744073709551615)]
+array<bool> flags = array[false, true]
+array<float> reals = array[0.0, -3.5]
+assert scalarI64(signed, -1) == 19
+assert scalarU64(unsigned, -1) == uint64(18446744073709551615)
+assert scalarBool(flags, -1)
+assert scalarF64(reals, -1) == -3.5
+signed[1] += 2
+assert signed[1] == -5
+int total = 0
+for value in signed
+    total += value
+end
+assert total == 14
+assert scalarSum(signed) == 14
+bool caught = false
+try
+    int unused = scalarI64(signed, 3)
+catch RangeError failure
+    caught = true
+end
+assert caught
+caught = false
+try
+    uint64 unused = scalarU64(unsigned, -9223372036854775808)
+catch RangeError failure
+    caught = true
+end
+assert caught
+println("scalar Array read ok")
