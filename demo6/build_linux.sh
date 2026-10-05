@@ -172,6 +172,8 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_array_callable_admission.c"
   "$ROOT/src/runtime/xl6_array_future_admission.c"
   "$ROOT/src/runtime/xl6_array_input.c"
+  "$ROOT/src/runtime/xl6_array_rng_shuffle.c"
+  "$ROOT/src/runtime/xl6_array_rand_shuffle.c"
   "$ROOT/src/runtime/xl6_future_aggregate.c"
   "$ROOT/src/runtime/xl6_future_aggregate_array.c"
   "$ROOT/src/runtime/xl6_future_metadata.c"

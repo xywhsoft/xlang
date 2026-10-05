@@ -214,6 +214,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if ((needs.randomBridgeOperations & XL6_CGEN_RNG_SHUFFLE_ARRAY) &&
+        !visitor(context,"xl6ArrayRngShuffleV1")) return 0;
+    if ((needs.randomBridgeOperations & XL6_CGEN_RAND_SHUFFLE_ARRAY) &&
+        !visitor(context,"xl6ArrayRandShuffleV1")) return 0;
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
     if (needs.needsCallableIntegerCodec &&

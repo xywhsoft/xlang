@@ -1,0 +1,18 @@
+// Receiver thread-affinity remains part of Random; slots stay private.
+Random rng = Random(uint64(2026), uint64(7))
+Random other = Random(uint64(2026), uint64(7))
+array<int> values = [0, 1, 2, 3, 4, 5, 6, 7]
+array<int> alias = values
+array<int> replay = [0, 1, 2, 3, 4, 5, 6, 7]
+rng.shuffle(values)
+other.shuffle(replay)
+assert(values == replay and alias == values)
+assert(rng.u64() == other.u64())
+assert(values != [0, 1, 2, 3, 4, 5, 6, 7])
+array<string> texts = ["a\0b", "你", ""]
+rng.shuffle(texts)
+assert(texts.length == 3)
+assert(texts.contains("a\0b") and texts.contains("你") and texts.contains(""))
+array empty = []
+rng.shuffle(empty)
+assert(empty.length == 0)

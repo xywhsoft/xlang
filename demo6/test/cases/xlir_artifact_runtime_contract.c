@@ -336,6 +336,19 @@ static int fixture_contract(const char* path)
             xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_NULLABLE_C_SCALAR_ADMISSION)) ok=0;
     }
     if (strstr(path,"cgen_basic") && !allocation_contract(&unit.ir)) ok=0;
+    if (strstr(path,"stdlib_array_shuffle_")) {
+        bool useDefault=strstr(path,"default_only")!=NULL;
+        ok=ok && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RAND_SHUFFLE)==useDefault &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RNG_SHUFFLE)==!useDefault &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_FUTURE_ADMISSION) &&
+            (useDefault || !has_native_module(&plan,"XRT_MODULE_RANDOM_DEFAULT"));
+    }
+    if (strstr(path,"cgen_basic"))
+        ok=ok && !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RNG_SHUFFLE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_RAND_SHUFFLE);
     if (strstr(path,"stdlib_future_aggregate_") || strstr(path,"stdlib_future_metadata_only")) {
         bool metadata=strstr(path,"metadata_only")!=NULL;
         bool arrayInput=strstr(path,"aggregate_array_only")!=NULL;

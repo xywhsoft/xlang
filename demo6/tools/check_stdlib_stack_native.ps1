@@ -51,6 +51,9 @@ try {
             'test/cases/xlir_callable_bridge_mutations.h'))
     $files += @(Get-Item -LiteralPath 'test/cases/stdlib_array_future_reference.xl','tools/check_stdlib_array_future.py','test/cases/stdlib_array_future_native_host.c',
         'test/support/array_future_native.c','test/cases/stdlib_sequence_retired_admission_abi.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_shuffle.py','test/cases/stdlib_array_shuffle_native_host.c',
+        'test/support/array_shuffle_native.c','test/cases/stdlib_array_shuffle_default_only.xl','test/cases/stdlib_array_shuffle_explicit_only.xl',
+        'test/cases/stdlib_random_extended.xl','src/runtime/xl6_array_rng_shuffle.c','src/runtime/xl6_array_rand_shuffle.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
         'test/cases/stdlib_future_metadata_host.c','test/cases/xlir_future_metadata_contract.c',
         'test/cases/stdlib_future_aggregate_variadic_only.xl','test/cases/stdlib_future_aggregate_array_only.xl','test/cases/stdlib_future_metadata_only.xl',
@@ -249,6 +252,9 @@ try {
     Run 'array-future' $python @('tools/check_stdlib_array_future.py','--out',"$outPath/array-future") -TimeoutMs 900000
     $arrayFuture=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-future/results.json" -Raw | ConvertFrom-Json
     if (!$arrayFuture.Complete -or !$arrayFuture.InputsUnchanged -or $arrayFuture.Sweeps.Count -ne 42) { throw 'Incomplete Future Array native evidence' }
+    Run 'array-shuffle' $python @('tools/check_stdlib_array_shuffle.py','--out',"$outPath/array-shuffle",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $arrayShuffle=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-shuffle/results.json" -Raw | ConvertFrom-Json
+    if (!$arrayShuffle.Complete -or !$arrayShuffle.InputsUnchanged -or $arrayShuffle.Sweeps.Count -ne 8) { throw 'Incomplete Array shuffle consumer evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;ExtraFixtures=$extraCases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;

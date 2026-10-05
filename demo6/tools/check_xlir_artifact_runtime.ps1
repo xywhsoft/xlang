@@ -144,6 +144,16 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-in@('stdlib_array_shuffle_default_only','stdlib_array_shuffle_explicit_only')){
+                    $default=$case-eq'stdlib_array_shuffle_default_only'
+                    $selectionMatches=(('src/runtime/xl6_array_rand_shuffle.c'-in$selectedSources)-eq$default)-and
+                        (('src/runtime/xl6_array_rng_shuffle.c'-in$selectedSources)-eq!$default)-and
+                        'src/runtime/xl6_sequence.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_input.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_future_admission.c'-notin$selectedSources-and
+                        ($default-or'XRT_MODULE_RANDOM_DEFAULT'-notin$plan.NativeModules)
+                }
                 if($case-in@('stdlib_future_aggregate_variadic_only','stdlib_future_aggregate_array_only','stdlib_future_metadata_only')){
                     $metadata=$case-eq'stdlib_future_metadata_only'
                     $arrayInput=$case-eq'stdlib_future_aggregate_array_only'

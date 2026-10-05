@@ -88,6 +88,9 @@ def main() -> int:
         "src/runtime/xl6_array_callable_admission.c", "src/runtime/xl6_closure.c",
         "src/runtime/xl6_cell.c", "src/runtime/xl6_code_lease.c")]
     # Freeze project header dependencies, including the real resident layouts.
+    files += [root / name for name in ('tools/check_stdlib_array_shuffle.py',
+        'test/cases/stdlib_array_shuffle_native_host.c','test/support/array_shuffle_native.c',
+        'src/runtime/xl6_array_rng_shuffle.c','src/runtime/xl6_array_rand_shuffle.c')]
     files += [root / name for name in ('tools/check_stdlib_array_future.py',
         'test/cases/stdlib_array_future_native_host.c','test/support/array_future_native.c',
         'src/runtime/xl6_array_future_admission.c','test/cases/stdlib_sequence_retired_admission_abi.c')]
@@ -359,6 +362,18 @@ def main() -> int:
         report["FutureReport"] = {"Directory": str(child), "Checks": len(futures["Rows"]),
             "ClosedPrefixes": len(futures["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in futures["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "shuffle"
+        command = [sys.executable, "tools/check_stdlib_array_shuffle.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        shuffle = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not shuffle["Complete"] or not shuffle["InputsUnchanged"] or len(shuffle["Sweeps"])!=8:
+            raise RuntimeError("Incomplete native Array shuffle consumer evidence")
+        report["ShuffleReport"] = {"Directory": str(child), "Checks": len(shuffle["Rows"]),
+            "ClosedPrefixes": len(shuffle["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in shuffle["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
