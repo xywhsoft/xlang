@@ -2,10 +2,17 @@
  * never an ownership or conversion decision in the renderer. */
 static int xl6IrCgenEmitCallableBridgeEncode(
     XL6_Output* out, const XL6_IrModule* module, XL6_IrTypeId type,
-    XL6_IrCallableBridgeValueAbi abi, const char* input, const char* boxed)
+    XL6_IrCallableBridgeValueAbi abi, XL6_IrCallableBridgeIntegerDomain domain,
+    const char* input, const char* boxed)
 {
     const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
     if (!item) return 0;
+    if (domain.rule != XL6_VALUE_ADMIT_NONE) {
+        xl6OutputPrintf(out, "    %s = xl6ValueBoxIntegerV1(&%s, %u, 0x%016llXULL, %s);\n",
+            boxed, input, (unsigned)domain.rule, (unsigned long long)domain.identity,
+            domain.nominal ? "true" : "false");
+        return !xl6OutputHasFailed(out);
+    }
     switch (abi) {
     case XL6_IR_CALLABLE_BRIDGE_XVALUE_MOVE:
         xl6OutputPrintf(out, "    %s = %s; %s = NULL;\n", boxed, input, input); break;
@@ -54,6 +61,12 @@ static int xl6IrCgenEmitCallableBridgeDecode(
     const XL6_IrType* item = xl6IrTypeGet(&module->types, slot->type);
     const char* getter = NULL;
     if (!item) return 0;
+    if (slot->integerDomain.rule != XL6_VALUE_ADMIT_NONE) {
+        xl6OutputPrintf(out, "    if (!xl6ValueReadIntegerV1(%s, %u, 0x%016llXULL, %s, &%s)) goto conversion_fail;\n",
+            boxed, (unsigned)slot->integerDomain.rule, (unsigned long long)slot->integerDomain.identity,
+            slot->integerDomain.nominal ? "true" : "false", output);
+        return !xl6OutputHasFailed(out);
+    }
     switch (slot->decodeAbi) {
     case XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN:
         xl6OutputPrintf(out, "    %s = xrtValueRetain(%s); if (%s == NULL) goto conversion_fail;\n", output, boxed, output); break;

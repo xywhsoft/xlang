@@ -1,4 +1,24 @@
 /* Included by xl6_ir.c after the shared runtime-callable admission rules. */
+static XL6_IrCallableBridgeIntegerDomain xl6IrCallableBridgeIntegerDomain(
+    const XL6_IrType* type)
+{
+    XL6_IrCallableBridgeIntegerDomain domain = {0};
+    if (type && (type->cAbi == XL6_IR_C_ABI_I64 || type->cAbi == XL6_IR_C_ABI_U64)) {
+        domain.rule = xl6IrIntegerAdmissionAbi(type->integerTarget);
+        if (domain.rule != XL6_VALUE_ADMIT_NONE) {
+            domain.identity = type->typeValueId;
+            domain.nominal = type->kind == XL6_IR_TYPE_NUMERIC_ENUM;
+        }
+    }
+    return domain;
+}
+
+static int xl6IrCallableBridgeIntegerDomainEqual(
+    XL6_IrCallableBridgeIntegerDomain a, XL6_IrCallableBridgeIntegerDomain b)
+{
+    return a.rule == b.rule && a.identity == b.identity && a.nominal == b.nominal;
+}
+
 static int xl6IrCallableBridgeParameterPlan(
     const XL6_IrModule* module, const XL6_IrType* signature,
     size_t parameter, XL6_IrCallableBridgeParameter* plan)
@@ -11,6 +31,7 @@ static int xl6IrCallableBridgeParameterPlan(
         !(type = xl6IrTypeGet(&module->types, signature->params[parameter]))) return 0;
     memset(plan, 0, sizeof(*plan));
     plan->parameter = parameter; plan->type = signature->params[parameter];
+    plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
     abi = signature->parameterAbis[parameter];
     plan->invokeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED ? XL6_IR_CALLBACK_INVOKE_TAKE
         : abi == XL6_IR_PARAMETER_ABI_BORROW ? XL6_IR_CALLBACK_INVOKE_BORROW
@@ -80,6 +101,7 @@ static int xl6IrCallableBridgeResultPlan(
         !(type = xl6IrTypeGet(&module->types, signature->returns[result]))) return 0;
     memset(plan, 0, sizeof(*plan));
     plan->result = result; plan->type = signature->returns[result];
+    plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
     plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_NONE;
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BOOL; break;
@@ -226,6 +248,7 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
             actual = &module->callableBridgeParameters[next++];
             if (actual->parameter != expected.parameter || actual->type != expected.type ||
                 actual->decodeAbi != expected.decodeAbi || actual->encodeAbi != expected.encodeAbi ||
+                !xl6IrCallableBridgeIntegerDomainEqual(actual->integerDomain, expected.integerDomain) ||
                 actual->invokeAbi != expected.invokeAbi ||
                 actual->decodedDestroyAbi != expected.decodedDestroyAbi ||
                 actual->inputDestroyAbi != expected.inputDestroyAbi) goto malformed;
@@ -238,6 +261,7 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
             actual = &module->callableBridgeResults[nextResult++];
             if (actual->result != expected.result || actual->type != expected.type ||
                 actual->decodeAbi != expected.decodeAbi || actual->encodeAbi != expected.encodeAbi ||
+                !xl6IrCallableBridgeIntegerDomainEqual(actual->integerDomain, expected.integerDomain) ||
                 actual->destroyAbi != expected.destroyAbi) goto malformed;
         }
     }

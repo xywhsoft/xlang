@@ -30,6 +30,10 @@ static void xlirCallableBridgeMutations(
         p->type = XL6_IR_TYPE_INVALID; reject(ir); *p = saved;
         p->decodeAbi = XL6_IR_CALLABLE_BRIDGE_INVALID; reject(ir); *p = saved;
         p->encodeAbi = XL6_IR_CALLABLE_BRIDGE_INVALID; reject(ir); *p = saved;
+        p->integerDomain.rule = saved.integerDomain.rule == XL6_VALUE_ADMIT_NONE ? XL6_VALUE_ADMIT_I8 : XL6_VALUE_ADMIT_NONE;
+        reject(ir); *p = saved;
+        p->integerDomain.identity ^= UINT64_C(1); reject(ir); *p = saved;
+        p->integerDomain.nominal = !saved.integerDomain.nominal; reject(ir); *p = saved;
         p->invokeAbi = saved.invokeAbi == XL6_IR_CALLBACK_INVOKE_TAKE
             ? XL6_IR_CALLBACK_INVOKE_BORROW : XL6_IR_CALLBACK_INVOKE_TAKE;
         reject(ir); *p = saved;
@@ -46,6 +50,10 @@ static void xlirCallableBridgeMutations(
         r->type = XL6_IR_TYPE_INVALID; reject(ir); *r = saved;
         r->decodeAbi = XL6_IR_CALLABLE_BRIDGE_INVALID; reject(ir); *r = saved;
         r->encodeAbi = XL6_IR_CALLABLE_BRIDGE_INVALID; reject(ir); *r = saved;
+        r->integerDomain.rule = saved.integerDomain.rule == XL6_VALUE_ADMIT_NONE ? XL6_VALUE_ADMIT_I8 : XL6_VALUE_ADMIT_NONE;
+        reject(ir); *r = saved;
+        r->integerDomain.identity ^= UINT64_C(1); reject(ir); *r = saved;
+        r->integerDomain.nominal = !saved.integerDomain.nominal; reject(ir); *r = saved;
         r->destroyAbi = saved.destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE
             ? XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE : XL6_IR_ASYNC_FRAME_DESTROY_NONE;
         reject(ir); *r = saved;

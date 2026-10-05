@@ -292,6 +292,20 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 (unsigned long)signature->paramCount, (unsigned long)i,
                 (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
                 (unsigned long)i, (unsigned long)i, (unsigned long)i);
+        } else if (slot->integerDomain.rule != XL6_VALUE_ADMIT_NONE) {
+            const int wide = slot->integerDomain.rule == XL6_VALUE_ADMIT_U64;
+            xl6OutputPrintf(out,
+                "    if (bound%lu) { if (!xl6ValueReadIntegerV1(f%lu, %u, 0x%016llXULL, %s, &a%lu)) goto argument_fail; }\n"
+                "    else if (closure->call_parameter_count == %lu && closure->call_parameter_defaults != NULL && closure->call_parameter_defaults[%lu].abi == %d) {\n"
+                "        a%lu = closure->call_parameter_defaults[%lu].%s;\n"
+                "        if (!xl6ValueIntegerSlotAdmitsV1(&a%lu, %u)) { xrtSetErrorKind(XERR_TYPE); goto argument_fail; }\n"
+                "    } else { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable integer argument binding is incomplete\")); goto argument_fail; }\n",
+                (unsigned long)i, (unsigned long)i, (unsigned)slot->integerDomain.rule,
+                (unsigned long long)slot->integerDomain.identity, slot->integerDomain.nominal ? "true" : "false", (unsigned long)i,
+                (unsigned long)signature->paramCount, (unsigned long)i,
+                wide ? (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 : (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_I64,
+                (unsigned long)i, (unsigned long)i, wide ? "u64_value" : "i64_value",
+                (unsigned long)i, (unsigned)slot->integerDomain.rule);
         } else if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_F32) {
             /* No numeric default opcode currently certifies an F32 literal.
              * Decode only bound values, without a double* -> float* cast. */
@@ -376,7 +390,7 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
         char place[64];
         if (bridge->resultCount == 1) snprintf(place, sizeof(place), "value");
         else snprintf(place, sizeof(place), "value.e%lu", (unsigned long)slot->result);
-        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, place, "boxed"))
+        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, slot->integerDomain, place, "boxed"))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR callable result encoding plan is unresolved");
         xl6OutputPrintf(out,
             "    if (boxed == NULL) goto result_fail;\n"
@@ -460,7 +474,7 @@ static int xl6IrCgenEmitRuntimeCallableClosureEntry(
         char input[64], argument[64];
         snprintf(input, sizeof(input), "a%lu", (unsigned long)i);
         snprintf(argument, sizeof(argument), "arguments[%lu]", (unsigned long)i);
-        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, input, argument))
+        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, slot->integerDomain, input, argument))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR callable parameter encoding plan is unresolved");
         xl6OutputPrintf(out, "    if (%s == NULL) goto argument_fail;\n", argument);
     }

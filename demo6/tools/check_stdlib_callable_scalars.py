@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verified F32/time callable programs: both adapters, strict C, JIT/AOT and OOM.
+"""Verified F32/time/integer callable programs: both adapters, strict C, JIT/AOT and OOM.
 
 Strict C/hosts link the real shared runtime. Linux --sanitize instruments the
 generated C and hosts, not shared libraries. Native pruning is independently
@@ -38,10 +38,11 @@ def main() -> int:
         parser.error("Require a full current-source compiler")
     staged = json.loads((args.public_directory / "artifact_sources.json").read_text(encoding="utf-8-sig")) if public else None
     cli = Path(public["Driver"]) if public else root / "release/xl"
-    fixtures = ["stdlib_callable_scalars", "stdlib_callable_scalars_unused"]
+    fixtures = ["stdlib_callable_scalars", "stdlib_callable_scalars_unused", "stdlib_callable_integer_domains"]
     files = [Path(__file__), Path(cc), Path(sys.executable), cli,
              root / "test/cases/stdlib_callable_scalars_contract.c",
              root / "test/cases/stdlib_callable_scalars_host.c",
+             root / "test/cases/stdlib_callable_integer_domains_host.c",
              root / "test/cases/xlir_callable_bridge_mutations.h",
              root / "test/cases/stdlib_collection_admission_host.c",
              root / "test/cases/xlir_module_product_oom_host.c",
@@ -130,41 +131,53 @@ def main() -> int:
                 run(f"{name}.ir.{repeat}", emit(name, "ir-lowered", prefix.with_suffix(".repeat.json") if repeat else ir))
             assert generated.read_bytes() == prefix.with_suffix(".repeat.c").read_bytes()
             assert ir.read_bytes() == prefix.with_suffix(".repeat.json").read_bytes()
+            integers = name.endswith("_integer_domains")
             log = run(name + ".contract", [str(contract), f"test/cases/{name}.xl", str(prefix.with_suffix(".contract.c")),
-                str(binding), str(prefix.with_suffix(".contract.json"))])
-            proof = re.search(r"scalar bridge: f32=(\d+) time=(\d+) mutations=(\d+) resident-reader=([01])", log)
-            assert proof and int(proof[1]) and int(proof[3])
+                str(binding), str(prefix.with_suffix(".contract.json"))],
+                # The 16-domain fixture re-verifies the entire module and both
+                # emitters for every plan mutation; keep all checks, with a
+                # finite separate budget for this substantially richer oracle.
+                timeout=360 if integers else 60)
+            proof = re.search(r"scalar bridge: f32=(\d+) time=(\d+) mutations=(\d+) resident-reader=([01]) integers=(\d+) nominal=(\d+)", log)
+            assert proof and (int(proof[5]) >= 32 and int(proof[6]) >= 16 if integers else int(proof[1])) and int(proof[3])
             report["Contracts"].append({"Fixture": name, "F32Slots": int(proof[1]), "TimeSlots": int(proof[2]),
-                "Mutations": int(proof[3]), "ResidentReader": bool(int(proof[4]))})
+                "Mutations": int(proof[3]), "ResidentReader": bool(int(proof[4])),
+                "IntegerSlots": int(proof[5]), "NominalIntegerSlots": int(proof[6])})
             assert generated.read_bytes() == prefix.with_suffix(".contract.c").read_bytes()
             assert ir.read_bytes() == prefix.with_suffix(".contract.json").read_bytes()
             if name.endswith("_unused"):
                 assert "xl6ValueReadF32V1" not in generated.read_text(encoding="utf-8")
+                assert "xl6ValueReadIntegerV1" not in generated.read_text(encoding="utf-8")
+            elif integers:
+                assert "xl6ValueReadIntegerV1" in generated.read_text(encoding="utf-8")
+                assert "xl6ValueBoxIntegerV1" in generated.read_text(encoding="utf-8")
             else:
                 assert "xl6ValueReadF32V1" in generated.read_text(encoding="utf-8")
             for level in (0, 2):
                 binary = prefix.with_suffix(f".O{level}" + suffix)
                 run(f"{name}.O{level}.build", [cc, *strict, f"-O{level}", str(generated),
-                    "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)], timeout=180 if args.sanitize else 60)
+                    "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)], timeout=360 if args.sanitize and integers else 180 if args.sanitize else 60)
                 run(f"{name}.O{level}.run", [str(binary)])
                 if name.endswith("_unused"):
                     continue
-                memory = out / f"memory.O{level}.o"
-                run(f"memory.O{level}.build", [cc, *strict, f"-O{level}", "-c", "test/support/module_product_memory.c", "-o", str(memory)])
-                vectors = out / (f"vectors.O{level}" + suffix)
-                run(f"vectors.O{level}.build", [cc, *strict, f"-O{level}", "-include", str(generated), "-include", str(binding),
-                    "test/cases/stdlib_callable_scalars_host.c", str(memory), *links, "-o", str(vectors)], timeout=180 if args.sanitize else 60)
-                run(f"vectors.O{level}.run", [str(vectors)])
-                module = out / (f"module.O{level}" + suffix)
-                run(f"module.O{level}.build", [cc, *strict, f"-O{level}", "-DXL6_PRODUCT_USER_ENTRY", "-include", str(generated),
+                lane = f"{name}.O{level}"
+                memory = out / f"{lane}.memory.o"
+                run(lane + ".memory.build", [cc, *strict, f"-O{level}", "-c", "test/support/module_product_memory.c", "-o", str(memory)])
+                vectors = out / (lane + ".vectors" + suffix)
+                host = "stdlib_callable_integer_domains_host" if integers else "stdlib_callable_scalars_host"
+                run(lane + ".vectors.build", [cc, *strict, f"-O{level}", "-include", str(generated), "-include", str(binding),
+                    f"test/cases/{host}.c", str(memory), *links, "-o", str(vectors)], timeout=360 if args.sanitize and integers else 180 if args.sanitize else 60)
+                run(lane + ".vectors.run", [str(vectors)])
+                module = out / (lane + ".module" + suffix)
+                run(lane + ".module.build", [cc, *strict, f"-O{level}", "-DXL6_PRODUCT_USER_ENTRY", "-include", str(generated),
                     "test/cases/xlir_module_product_oom_host.c", str(memory), *links, "-o", str(module)], timeout=180 if args.sanitize else 60)
                 for operation in ("module", "forward", "reverse"):
                     for point in range(4097):
                         command = [str(module), str(point)] if operation == "module" else [str(vectors), operation, str(point)]
-                        proof = run(f"{operation}.O{level}.{point}", command)
+                        proof = run(f"{lane}.{operation}.{point}", command)
                         assert re.search(r"hit=[01] balanced", proof)
                         if "hit=0 balanced" in proof:
-                            report["Sweeps"].append({"Lane": f"{operation}.O{level}", "FirstNoHit": point})
+                            report["Sweeps"].append({"Lane": f"{lane}.{operation}", "FirstNoHit": point})
                             break
                     else:
                         raise AssertionError("Allocation sweep did not close")

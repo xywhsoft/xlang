@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_value_admission_internal.h"
 #include "src/runtime/xl6_value_domain.h"
+#include <string.h>
 
 bool xl6ValueAdmitsV1(const xvalue* value, unsigned int rule, bool nullable, uint64_t identity)
 {
@@ -48,6 +49,49 @@ bool xl6ValueReadF32V1(const xvalue* source, uint64_t identity, float* output)
     if (!xl6ValueAdmitsV1(source,XL6_VALUE_ADMIT_F32,false,identity)) { xrtSetErrorKind(XERR_TYPE); return false; }
     double value; if (!xrtValueGetFloat(source,&value)) return false;
     *output=(float)value; return true;
+}
+bool xl6ValueIntegerSlotAdmitsV1(const void* slot, unsigned int rule)
+{
+    if (!slot || rule < XL6_VALUE_ADMIT_I8 || rule > XL6_VALUE_ADMIT_U64) return false;
+    if (rule == XL6_VALUE_ADMIT_U64) return true;
+    int64_t value; memcpy(&value,slot,sizeof(value));
+    return xl6IntegerDomainV1(value,rule);
+}
+bool xl6ValueReadIntegerV1(const xvalue* source, unsigned int rule,
+    uint64_t identity, bool nominal, void* output)
+{
+    if (!output || rule < XL6_VALUE_ADMIT_I8 || rule > XL6_VALUE_ADMIT_U64 || !identity) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    if (!xl6ValueAdmitsV1(source,rule,false,identity) ||
+        (nominal && xrtValueTypeId(source) != identity)) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    if (rule == XL6_VALUE_ADMIT_U64) {
+        uint64_t value; if (!xrtValueGetUInt(source,&value)) return false;
+        memcpy(output,&value,sizeof(value));
+    } else {
+        int64_t value; if (!xrtValueGetInt(source,&value)) return false;
+        memcpy(output,&value,sizeof(value));
+    }
+    return true;
+}
+xvalue* xl6ValueBoxIntegerV1(const void* slot, unsigned int rule, uint64_t identity, bool nominal)
+{
+    if (!slot || rule < XL6_VALUE_ADMIT_I8 || rule > XL6_VALUE_ADMIT_U64 || !identity) {
+        xrtSetErrorKind(XERR_ARGUMENT); return NULL;
+    }
+    if (!xl6ValueIntegerSlotAdmitsV1(slot,rule)) { xrtSetErrorKind(XERR_TYPE); return NULL; }
+    xvalue* value;
+    if (rule == XL6_VALUE_ADMIT_U64) {
+        uint64_t number; memcpy(&number,slot,sizeof(number)); value=xrtValueUInt(number);
+    } else {
+        int64_t number; memcpy(&number,slot,sizeof(number)); value=xrtValueInt(number);
+    }
+    if (!value || !nominal || xrtValueTypeIdBind(value,identity)) return value;
+    /* Binding can allocate. Preserve its error across destructive rollback. */
+    xerror* error=xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error);
+    return NULL;
 }
 typedef struct PrimitiveContext { unsigned int rule; bool nullable; uint64_t identity; } PrimitiveContext;
 static bool admits(const xvalue* value, const void* opaque)

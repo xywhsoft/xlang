@@ -1,0 +1,266 @@
+// All eight language integer and numeric-enum backing domains through both callable adapters.
+
+enum DomainI8 as int8
+    low = -128
+    high = 127
+end
+
+enum DomainI16 as int16
+    low = -32768
+    high = 32767
+end
+
+enum DomainI32 as int32
+    low = -2147483648
+    high = 2147483647
+end
+
+enum DomainI64 as int64
+    low = -9223372036854775808
+    high = 9223372036854775807
+end
+
+enum DomainU8 as uint8
+    low = 0
+    high = 255
+end
+
+enum DomainU16 as uint16
+    low = 0
+    high = 65535
+end
+
+enum DomainU32 as uint32
+    low = 0
+    high = 4294967295
+end
+
+enum DomainU64 as uint64
+    low = 0
+    high = 18446744073709551615
+end
+
+func domainPI8(int8 value = 127) as int8
+    return value
+end
+func(int8) as int8 domainNativePI8 = domainPI8
+
+func domainEI8(DomainI8 value) as DomainI8
+    return value
+end
+func(DomainI8) as DomainI8 domainNativeEI8 = domainEI8
+
+func domainPI16(int16 value) as int16
+    return value
+end
+func(int16) as int16 domainNativePI16 = domainPI16
+
+func domainEI16(DomainI16 value) as DomainI16
+    return value
+end
+func(DomainI16) as DomainI16 domainNativeEI16 = domainEI16
+
+func domainPI32(int32 value) as int32
+    return value
+end
+func(int32) as int32 domainNativePI32 = domainPI32
+
+func domainEI32(DomainI32 value) as DomainI32
+    return value
+end
+func(DomainI32) as DomainI32 domainNativeEI32 = domainEI32
+
+func domainPI64(int64 value) as int64
+    return value
+end
+func(int64) as int64 domainNativePI64 = domainPI64
+
+func domainEI64(DomainI64 value) as DomainI64
+    return value
+end
+func(DomainI64) as DomainI64 domainNativeEI64 = domainEI64
+
+func domainPU8(uint8 value) as uint8
+    return value
+end
+func(uint8) as uint8 domainNativePU8 = domainPU8
+
+func domainEU8(DomainU8 value) as DomainU8
+    return value
+end
+func(DomainU8) as DomainU8 domainNativeEU8 = domainEU8
+
+func domainPU16(uint16 value) as uint16
+    return value
+end
+func(uint16) as uint16 domainNativePU16 = domainPU16
+
+func domainEU16(DomainU16 value) as DomainU16
+    return value
+end
+func(DomainU16) as DomainU16 domainNativeEU16 = domainEU16
+
+func domainPU32(uint32 value) as uint32
+    return value
+end
+func(uint32) as uint32 domainNativePU32 = domainPU32
+
+func domainEU32(DomainU32 value) as DomainU32
+    return value
+end
+func(DomainU32) as DomainU32 domainNativeEU32 = domainEU32
+
+func domainPU64(uint64 value) as uint64
+    return value
+end
+func(uint64) as uint64 domainNativePU64 = domainPU64
+
+func domainEU64(DomainU64 value) as DomainU64
+    return value
+end
+func(DomainU64) as DomainU64 domainNativeEU64 = domainEU64
+
+func domainMixed(int8 number, DomainI8 code) as (int8, DomainI8, string)
+    return number, code, "a\0你"
+end
+func(int8, DomainI8) as (int8, DomainI8, string) domainNativeMIXED = domainMixed
+
+class DomainCallbacks
+    func(int8) as int8 PI8 = domainPI8
+    func(DomainI8) as DomainI8 EI8 = domainEI8
+    func(int16) as int16 PI16 = domainPI16
+    func(DomainI16) as DomainI16 EI16 = domainEI16
+    func(int32) as int32 PI32 = domainPI32
+    func(DomainI32) as DomainI32 EI32 = domainEI32
+    func(int64) as int64 PI64 = domainPI64
+    func(DomainI64) as DomainI64 EI64 = domainEI64
+    func(uint8) as uint8 PU8 = domainPU8
+    func(DomainU8) as DomainU8 EU8 = domainEU8
+    func(uint16) as uint16 PU16 = domainPU16
+    func(DomainU16) as DomainU16 EU16 = domainEU16
+    func(uint32) as uint32 PU32 = domainPU32
+    func(DomainU32) as DomainU32 EU32 = domainEU32
+    func(uint64) as uint64 PU64 = domainPU64
+    func(DomainU64) as DomainU64 EU64 = domainEU64
+end
+
+func checkDomainPI8(DomainCallbacks callbacks)
+    assert(callbacks.PI8(int8(127)) == int8(127))
+    array<func(int8) as int8> values = [domainNativePI8]
+    assert(values[0](int8(127)) == int8(127))
+end
+
+func checkDomainEI8(DomainCallbacks callbacks)
+    assert(callbacks.EI8(DomainI8.high) == DomainI8.high)
+    array<func(DomainI8) as DomainI8> values = [domainNativeEI8]
+    assert(values[0](DomainI8.high) == DomainI8.high)
+end
+
+func checkDomainPI16(DomainCallbacks callbacks)
+    assert(callbacks.PI16(int16(32767)) == int16(32767))
+    array<func(int16) as int16> values = [domainNativePI16]
+    assert(values[0](int16(32767)) == int16(32767))
+end
+
+func checkDomainEI16(DomainCallbacks callbacks)
+    assert(callbacks.EI16(DomainI16.high) == DomainI16.high)
+    array<func(DomainI16) as DomainI16> values = [domainNativeEI16]
+    assert(values[0](DomainI16.high) == DomainI16.high)
+end
+
+func checkDomainPI32(DomainCallbacks callbacks)
+    assert(callbacks.PI32(int32(2147483647)) == int32(2147483647))
+    array<func(int32) as int32> values = [domainNativePI32]
+    assert(values[0](int32(2147483647)) == int32(2147483647))
+end
+
+func checkDomainEI32(DomainCallbacks callbacks)
+    assert(callbacks.EI32(DomainI32.high) == DomainI32.high)
+    array<func(DomainI32) as DomainI32> values = [domainNativeEI32]
+    assert(values[0](DomainI32.high) == DomainI32.high)
+end
+
+func checkDomainPI64(DomainCallbacks callbacks)
+    assert(callbacks.PI64(int64(9223372036854775807)) == int64(9223372036854775807))
+    array<func(int64) as int64> values = [domainNativePI64]
+    assert(values[0](int64(9223372036854775807)) == int64(9223372036854775807))
+end
+
+func checkDomainEI64(DomainCallbacks callbacks)
+    assert(callbacks.EI64(DomainI64.high) == DomainI64.high)
+    array<func(DomainI64) as DomainI64> values = [domainNativeEI64]
+    assert(values[0](DomainI64.high) == DomainI64.high)
+end
+
+func checkDomainPU8(DomainCallbacks callbacks)
+    assert(callbacks.PU8(uint8(255)) == uint8(255))
+    array<func(uint8) as uint8> values = [domainNativePU8]
+    assert(values[0](uint8(255)) == uint8(255))
+end
+
+func checkDomainEU8(DomainCallbacks callbacks)
+    assert(callbacks.EU8(DomainU8.high) == DomainU8.high)
+    array<func(DomainU8) as DomainU8> values = [domainNativeEU8]
+    assert(values[0](DomainU8.high) == DomainU8.high)
+end
+
+func checkDomainPU16(DomainCallbacks callbacks)
+    assert(callbacks.PU16(uint16(65535)) == uint16(65535))
+    array<func(uint16) as uint16> values = [domainNativePU16]
+    assert(values[0](uint16(65535)) == uint16(65535))
+end
+
+func checkDomainEU16(DomainCallbacks callbacks)
+    assert(callbacks.EU16(DomainU16.high) == DomainU16.high)
+    array<func(DomainU16) as DomainU16> values = [domainNativeEU16]
+    assert(values[0](DomainU16.high) == DomainU16.high)
+end
+
+func checkDomainPU32(DomainCallbacks callbacks)
+    assert(callbacks.PU32(uint32(4294967295)) == uint32(4294967295))
+    array<func(uint32) as uint32> values = [domainNativePU32]
+    assert(values[0](uint32(4294967295)) == uint32(4294967295))
+end
+
+func checkDomainEU32(DomainCallbacks callbacks)
+    assert(callbacks.EU32(DomainU32.high) == DomainU32.high)
+    array<func(DomainU32) as DomainU32> values = [domainNativeEU32]
+    assert(values[0](DomainU32.high) == DomainU32.high)
+end
+
+func checkDomainPU64(DomainCallbacks callbacks)
+    assert(callbacks.PU64(uint64(18446744073709551615)) == uint64(18446744073709551615))
+    array<func(uint64) as uint64> values = [domainNativePU64]
+    assert(values[0](uint64(18446744073709551615)) == uint64(18446744073709551615))
+end
+
+func checkDomainEU64(DomainCallbacks callbacks)
+    assert(callbacks.EU64(DomainU64.high) == DomainU64.high)
+    array<func(DomainU64) as DomainU64> values = [domainNativeEU64]
+    assert(values[0](DomainU64.high) == DomainU64.high)
+end
+
+func main(...) as int
+    DomainCallbacks callbacks = DomainCallbacks()
+    checkDomainPI8(callbacks)
+    checkDomainEI8(callbacks)
+    checkDomainPI16(callbacks)
+    checkDomainEI16(callbacks)
+    checkDomainPI32(callbacks)
+    checkDomainEI32(callbacks)
+    checkDomainPI64(callbacks)
+    checkDomainEI64(callbacks)
+    checkDomainPU8(callbacks)
+    checkDomainEU8(callbacks)
+    checkDomainPU16(callbacks)
+    checkDomainEU16(callbacks)
+    checkDomainPU32(callbacks)
+    checkDomainEU32(callbacks)
+    checkDomainPU64(callbacks)
+    checkDomainEU64(callbacks)
+    array<func(int8, DomainI8) as (int8, DomainI8, string)> mixed = [domainNativeMIXED]
+    func(int8, DomainI8) as (int8, DomainI8, string) mixedCallback = mixed[0]
+    auto number, code, text = mixedCallback(int8(127), DomainI8.high)
+    assert(number == 127 and code == DomainI8.high and text == "a\0你")
+    return 0
+end

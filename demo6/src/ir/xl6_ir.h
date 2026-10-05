@@ -4307,11 +4307,21 @@ typedef enum XL6_IrCallableBridgeValueAbi {
     XL6_IR_CALLABLE_BRIDGE_TIME
 } XL6_IrCallableBridgeValueAbi;
 
+/* Logical integer domains are independent of the widened I64/U64 carrier.
+ * Nominal enums require this exact identity on input and bind it on output;
+ * primitive integer inputs can be unbound, but never foreign nominal values. */
+typedef struct XL6_IrCallableBridgeIntegerDomain {
+    XL6_ValueAdmissionV1 rule;
+    uint64 identity;
+    bool nominal;
+} XL6_IrCallableBridgeIntegerDomain;
+
 typedef struct XL6_IrCallableBridgeParameter {
     size_t parameter;
     XL6_IrTypeId type;
     XL6_IrCallableBridgeValueAbi decodeAbi;
     XL6_IrCallableBridgeValueAbi encodeAbi;
+    XL6_IrCallableBridgeIntegerDomain integerDomain;
     XL6_IrCallbackInvokeAbi invokeAbi;
     XL6_IrAsyncFrameDestroyAbi decodedDestroyAbi;
     XL6_IrAsyncFrameDestroyAbi inputDestroyAbi;
@@ -4336,6 +4346,7 @@ typedef struct XL6_IrCallableBridgeResult {
     XL6_IrTypeId type;
     XL6_IrCallableBridgeValueAbi decodeAbi;
     XL6_IrCallableBridgeValueAbi encodeAbi;
+    XL6_IrCallableBridgeIntegerDomain integerDomain;
     XL6_IrAsyncFrameDestroyAbi destroyAbi;
 } XL6_IrCallableBridgeResult;
 
