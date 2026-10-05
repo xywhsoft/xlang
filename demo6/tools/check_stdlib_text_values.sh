@@ -83,7 +83,7 @@ native_probe() {
             src/runtime/xl6_text_query.c src/runtime/xl6_text_binary.c src/runtime/xl6_text_chars.c
             src/runtime/xl6_text_glob.c src/runtime/xl6_text_distance.c); modes=(bytes chars distance);;
         split) sources=(test/cases/stdlib_text_split_host.c test/support/text_split_native.c
-            src/runtime/xl6_text_split.c src/runtime/xl6_text_join.c)
+            src/runtime/xl6_text_split.c src/runtime/xl6_text_join.c src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c)
             modes=(split lines fields join split-large lines-large fields-large join-large); limit=512;;
         iterator) sources=(test/cases/stdlib_text_iterator_host.c test/support/text_iterator_native.c src/runtime/xl6_text_iterator.c)
             modes=(0 1 2); limit=32;;

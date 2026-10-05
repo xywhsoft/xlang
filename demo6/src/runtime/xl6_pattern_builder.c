@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_pattern_internal.h"
 #include "src/runtime/xl6_text_thread.h"
+#include "src/runtime/xl6_array_input.h"
 #include <stdlib.h>
 
 /* identity is a private, freshly allocated immutable UINT, never a user value.
@@ -132,26 +133,28 @@ void* xl6PatternEditAddManyV1(void* handle,const xvalue* expressions,const xvalu
 {
     XL6_PatternBuilder* b=handle;
     if (!builderCheck(b)) return NULL;
-    if (!expressions || !priorities || !sizes || xrtValueType(expressions)!=XVALUE_ARRAY ||
-        xrtValueType(priorities)!=XVALUE_ARRAY || xrtValueType(sizes)!=XVALUE_ARRAY) {
-        xrtSetErrorKind(XERR_TYPE);return NULL;
-    }
-    size_t count=xrtValueCount(expressions);
-    if (xrtValueCount(priorities)!=count || xrtValueCount(sizes)!=count) {xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
-    if (count>SIZE_MAX/sizeof(xpatternspec)) {xrtSetErrorKind(XERR_RANGE);return NULL;}
-    xpatternspec* specs=count?xrtMalloc(count*sizeof(*specs)):NULL;if (count&&!specs) return NULL;
+    XL6_ArrayInputV1 inputs[3]={{0}};
+    xpatternspec* specs=NULL; XL6_PatternEdit* e=NULL;
+    if (!xl6ArrayInputAcquireV1(expressions,&inputs[0]) ||
+        !xl6ArrayInputAcquireV1(priorities,&inputs[1]) ||
+        !xl6ArrayInputAcquireV1(sizes,&inputs[2])) goto done;
+    size_t count=inputs[0].count;
+    if (inputs[1].count!=count || inputs[2].count!=count) {xrtSetErrorKind(XERR_ARGUMENT);goto done;}
+    if (count>SIZE_MAX/sizeof(xpatternspec)) {xrtSetErrorKind(XERR_RANGE);goto done;}
+    specs=count?xrtMalloc(count*sizeof(*specs)):NULL;if (count&&!specs) goto done;
     for (size_t i=0;i<count;++i) {
         xstrview text;int64 priority,size;
-        if (!xrtValueGetString(xrtValueArrayGet(expressions,i),&text) ||
-            !xrtValueGetInt(xrtValueArrayGet(priorities,i),&priority) ||
-            !xrtValueGetInt(xrtValueArrayGet(sizes,i),&size) || !specInit(&specs[i],text,priority,size)) {
-            xrtFree(specs);return NULL;
-        }
+        if (!xrtValueGetString(inputs[0].items[i],&text) ||
+            !xrtValueGetInt(inputs[1].items[i],&priority) ||
+            !xrtValueGetInt(inputs[2].items[i],&size) || !specInit(&specs[i],text,priority,size)) goto done;
     }
-    XL6_PatternEdit* e=editCreate(b,ADD);
+    e=editCreate(b,ADD);
     if (e) {e->edit=xrtPatternBuilderPrepareAdd(b->builder,specs,count);
         if (!e->edit) {xl6PatternEditDestroyV1(e);e=NULL;}}
-    xrtFree(specs);return e;
+done:
+    xrtFree(specs);
+    for (size_t i=0;i<3;++i) xl6ArrayInputReleaseV1(&inputs[i]);
+    return e;
 }
 static bool keyCheck(XL6_PatternBuilder* b,XL6_PatternKey* key)
 {
@@ -236,19 +239,22 @@ static void apply(XL6_PatternEdit* e,xvalue* state,const xvalue* payload,bool ma
     if (xrtValueObjectGet(state,XRT_STR_LITERAL("identity"))!=e->identity ||
         xrtValueCount(tags)!=e->originalCount) {xrtSetErrorKind(XERR_STATE);return;}
     size_t count=xrtPatternEditCount(e->edit);
-    if (many && (e->kind!=ADD || !payload || xrtValueType(payload)!=XVALUE_ARRAY || xrtValueCount(payload)!=count)) {
-        xrtSetErrorKind(XERR_ARGUMENT);return;
+    XL6_ArrayInputV1 input={0};
+    if (many) {
+        if (e->kind!=ADD) {xrtSetErrorKind(XERR_ARGUMENT);return;}
+        if (!xl6ArrayInputAcquireV1(payload,&input)) return;
+        if (input.count!=count) {xrtSetErrorKind(XERR_ARGUMENT);xl6ArrayInputReleaseV1(&input);return;}
     }
     if ((e->kind==ADD || e->kind==SET) && !many && (!payload || count!=1)) {
         xrtSetErrorKind(XERR_ARGUMENT);return;
     }
-    xrtownershipscope scope={0};if (!xrtOwnershipMutationBegin(&scope)) return;
+    xrtownershipscope scope={0};if (!xrtOwnershipMutationBegin(&scope)) {xl6ArrayInputReleaseV1(&input);return;}
     xvalue* pin=NULL; xvalue* candidate=NULL;bool ok=false;
     if (e->kind==CLEAR || (many && count!=1)) {
         pin=xrtValueRetain(tags);if (!pin) goto done;
         candidate=e->kind==CLEAR?xrtValueIntMap():xrtValueClone(tags);if (!candidate) goto done;
         if (e->kind==ADD) for (size_t i=0;i<count;++i) {
-            if (!xrtValueIntMapSet(candidate,xl6PatternTagKeyFromId(xrtPatternEditId(e->edit,i)),xrtValueArrayGet(payload,i))) goto done;
+            if (!xrtValueIntMapSet(candidate,xl6PatternTagKeyFromId(xrtPatternEditId(e->edit,i)),input.items[i])) goto done;
         }
         if (!xrtValueObjectSetTake(state,XRT_STR_LITERAL("tags"),&candidate)) goto done;
         ok=true;
@@ -259,7 +265,7 @@ static void apply(XL6_PatternEdit* e,xvalue* state,const xvalue* payload,bool ma
         pin=old?xrtValueRetain(old):NULL;if (old&&!pin) goto done;
         tags=xrtValueObjectEdit(state,XRT_STR_LITERAL("tags"));if (!tags) goto done;
         if (e->kind==REMOVE) ok=xrtValueIntMapRemove(tags,slot);
-        else ok=xrtValueIntMapSet(tags,slot,many?xrtValueArrayGet(payload,0):payload);
+        else ok=xrtValueIntMapSet(tags,slot,many?input.items[0]:payload);
     }
     if (ok && !xrtPatternEditCommit(e->edit)) abort(); /* Ready edit, same thread, no callbacks occurred. */
     if (ok && e->publication) xrtAtomic32Store(publicationFlag(e->publication),1,XMEMORY_RELEASE);
@@ -268,6 +274,7 @@ done:
     if (!xrtOwnershipScopeEnd(&scope)) abort();
     /* Preserve a preparation failure over cleanup of temporary references. */
     xerror* failure=xrtTakeError();xrtValueRelease(candidate);xrtValueRelease(pin);
+    xl6ArrayInputReleaseV1(&input);
     if (failure) {xrtClearError();xrtSetErrorTake(failure);}
 }
 void xl6PatternEditApplyV1(void* handle,xvalue* state,const xvalue* payload)

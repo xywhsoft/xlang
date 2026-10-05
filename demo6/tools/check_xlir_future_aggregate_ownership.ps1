@@ -35,7 +35,7 @@ $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
 $includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-DXL_STATIC_EMBED')
-$sources=@('test/cases/xlir_future_aggregate_ownership_host.c','src/api/xl_future_bridge.c','src/runtime/xl6_future_payload.c',
+$sources=@('test/cases/xlir_future_aggregate_ownership_host.c','src/api/xl_future_bridge.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c','src/runtime/xl6_future_payload.c',
     'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_slot.c',
     'src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
     'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c')

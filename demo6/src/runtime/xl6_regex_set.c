@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "src/runtime/xl6_array_input.h"
 void xl6RegexSetDestroyV1(void* handle)
 { xrtRegexSetRelease(handle); }
 int64_t xl6RegexErrorIndexV1(const xerror* error)
@@ -15,21 +16,24 @@ void* xl6RegexSetCreateV1(const xvalue* patterns,int64_t flags,int64_t maxPatter
     xregexconfig config;
     if(!xl6RegexConfig(flags,maxPatternBytes,maxCaptures,&config))return NULL;
     if(maxPatterns<=0||itemSize < -1){xrtSetErrorKind(XERR_RANGE);return NULL;}
-    if(!patterns||xrtValueType(patterns)!=XVALUE_ARRAY){xrtSetErrorKind(XERR_TYPE);return NULL;}
-    size_t count=xrtValueCount(patterns);
+    XL6_ArrayInputV1 input={0};
+    if (!xl6ArrayInputAcquireV1(patterns,&input)) return NULL;
+    size_t count=input.count;
     if(count>(uint64_t)maxPatterns||count>SIZE_MAX/sizeof(xstrview)){
-        xrtSetErrorKind(XERR_RANGE);return NULL;
+        xrtSetErrorKind(XERR_RANGE);goto fail;
     }
     xstrview* views=count?xrtMalloc(count*sizeof(*views)):NULL;
-    if(count&&!views)return NULL;
+    if(count&&!views)goto fail;
     for(size_t i=0;i<count;++i){
-        const xvalue* v=xrtValueArrayGet(patterns,i);
+        const xvalue* v=input.items[i];
         if(!v||!xrtValueGetString(v,&views[i])||!xl6TextSelect(&views[i],itemSize)){
-            xrtFree(views);return NULL;
+            xrtFree(views);goto fail;
         }
     }
     xregexset* set=xrtRegexSetCompileConfig(views,count,&config);
-    xrtFree(views);return set;
+    xrtFree(views);xl6ArrayInputReleaseV1(&input);return set;
+fail:
+    xl6ArrayInputReleaseV1(&input);return NULL;
 }
 int64_t xl6RegexSetCountV1(void* handle)
 { if(!handle){xrtSetErrorKind(XERR_ARGUMENT);return 0;}return (int64_t)xrtRegexSetCount(handle); }

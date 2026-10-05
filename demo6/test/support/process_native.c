@@ -3,9 +3,13 @@
 #define XRT_MODULE_UNICODE_TEXT
 #define XRT_MODULE_STRING
 #define XRT_MODULE_MEMORY_DEBUG
-#define XRT_IMPLEMENTATION
+#define XRUNTIME_MODULE_TYPED_ARRAY_VALUE
+#define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
+#define XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE
+#define XRT_MODULE_ATOMIC
+#define XRUNTIME_IMPLEMENTATION
 #define XRT_MODULE_ONCE
-#include "lib/xrt/xrt.h"
+#include "lib/xruntime/xruntime.h"
 #include "src/api/xl_foreign_error.c"
 #include "src/runtime/xl6_native_handle.c"
 #include <assert.h>

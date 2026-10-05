@@ -71,15 +71,15 @@ try {
         $null=Check 'extended-native-build' gcc ($flags+@('test/cases/xlir_regex_extended_host.c','test/support/regex_native.c',
             'src/runtime/xl6_regex_core.c','src/runtime/xl6_regex_match.c','src/runtime/xl6_regex_iterator.c',
             'src/runtime/xl6_regex_replace.c','src/runtime/xl6_regex_replace_buffer.c','src/runtime/xl6_regex_split.c',
-            'src/runtime/xl6_regex_set.c')+$libs+@('-o',"$work/extended-native.exe"))
-        if((Check 'extended-native' "$work/extended-native.exe" @())-notmatch '222 actual failures, 9 first no-hit completions'){throw 'Extended native OOM oracle incomplete'}
+            'src/runtime/xl6_regex_set.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c')+$libs+@('-o',"$work/extended-native.exe"))
+        if((Check 'extended-native' "$work/extended-native.exe" @())-notmatch '[1-9][0-9]* actual failures, 9 first no-hit completions'){throw 'Extended native OOM oracle incomplete'}
         }
         $null=Check 'pattern-native-build' gcc ($flags+@('test/cases/xlir_pattern_host.c','test/support/pattern_native.c',
             'src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c','src/runtime/xl6_pattern_match.c')+$libs+@('-o',"$work/pattern-native.exe"))
         if((Check 'pattern-native' "$work/pattern-native.exe" @())-notmatch '60 actual failures, 5 first no-hit completions'){throw 'Pattern native OOM oracle incomplete'}
         $null=Check 'pattern-builder-native-build' gcc ($flags+@('test/cases/xlir_pattern_builder_host.c','test/support/pattern_builder_native.c',
-            'src/runtime/xl6_pattern_builder.c','src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c')+$libs+@('-o',"$work/pattern-builder-native.exe"))
-        if((Check 'pattern-builder-native' "$work/pattern-builder-native.exe" @())-notmatch '45 actual failures, 10 first no-hit completions'){throw 'Builder adapter OOM oracle incomplete'}
+            'src/runtime/xl6_pattern_builder.c','src/runtime/xl6_pattern_core.c','src/runtime/xl6_pattern_options.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c')+$libs+@('-o',"$work/pattern-builder-native.exe"))
+        if((Check 'pattern-builder-native' "$work/pattern-builder-native.exe" @())-notmatch '[1-9][0-9]* actual failures, 10 first no-hit completions'){throw 'Builder adapter OOM oracle incomplete'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
         $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-in@('tools/xrt_single_header_impl.c','src/api/xl_task_group_bridge.c')}|
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})

@@ -25,6 +25,7 @@
 #include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_erased.h"
+#include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_native_scalar_value.h"
 #include "src/runtime/xl6_nominal_admission.h"

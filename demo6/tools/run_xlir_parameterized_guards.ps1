@@ -20,6 +20,7 @@ $reviewedGuards = @(
     'check_xlir_aggregate_dependencies.ps1',
     'check_xlir_aggregate_strict_source.ps1',
     'check_xlir_artifact_runtime.ps1',
+    'check_xlir_artifact_staging.ps1',
     'check_xlir_async_cancel_wait.ps1',
     'check_xlir_async_dependency_cycles.ps1',
     'check_xlir_async_dispatch.ps1',

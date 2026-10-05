@@ -49,6 +49,10 @@ try {
             'test/cases/stdlib_callable_integer_domains.xl','test/cases/stdlib_callable_integer_domains_host.c',
             'test/cases/stdlib_callable_native_scalars.xl','test/cases/stdlib_callable_native_scalars_host.c',
             'test/cases/xlir_callable_bridge_mutations.h'))
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
+        'test/cases/stdlib_text_join_only.xl','test/cases/stdlib_text_join.xl','test/cases/stdlib_regex_set_only.xl',
+        'test/cases/stdlib_pattern_builder.xl','test/cases/stdlib_pattern_builder_lifetime.xl',
+        'test/cases/xlir_task_aggregate_array_abi.xl','test/cases/xlir_task_when_any_array_abi.xl')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -235,6 +239,9 @@ try {
         $admission=Get-Content -Encoding UTF8 -LiteralPath "$outPath/collection-$mode/results.json" -Raw | ConvertFrom-Json
         if (!$admission.Complete -or !$admission.InputsUnchanged) { throw "Incomplete collection $mode evidence" }
     }
+    Run 'array-input' $python @('tools/check_stdlib_array_input.py','--out',"$outPath/array-input",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $arrayInput=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-input/results.json" -Raw | ConvertFrom-Json
+    if (!$arrayInput.Complete -or !$arrayInput.InputsUnchanged -or $arrayInput.Sweeps.Count -ne 26) { throw 'Incomplete Array standard-library input evidence' }
     $unchanged = !@($inputs | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count
     $report = [pscustomobject]@{Complete=$unchanged;InputsUnchanged=$unchanged;Checks=$rows.Count;Inputs=$inputs;
         PositiveFixtures=$cases;ExtraFixtures=$extraCases;NegativeFixtures=$negative;Sweeps=$sweeps;Results=$rows;
