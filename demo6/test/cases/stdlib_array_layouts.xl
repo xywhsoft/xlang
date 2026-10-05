@@ -2,6 +2,67 @@ class LayoutItem
     int value = 7
 end
 
+enum LayoutI8 as int8
+    low = -128
+    high = 127
+end
+enum LayoutI16 as int16
+    low = -32768
+    high = 32767
+end
+enum LayoutI32 as int32
+    low = -2147483648
+    high = 2147483647
+end
+enum LayoutI64 as int64
+    low = -9223372036854775808
+    high = 9223372036854775807
+end
+enum LayoutU8 as uint8
+    low = 0
+    high = 255
+end
+enum LayoutU16 as uint16
+    low = 0
+    high = 65535
+end
+enum LayoutU32 as uint32
+    low = 0
+    high = 4294967295
+end
+enum LayoutU64 as uint64
+    low = 0
+    high = 18446744073709551615
+end
+
+func layoutEnumI8(array<LayoutI8> values, array<LayoutI8?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumI16(array<LayoutI16> values, array<LayoutI16?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumI32(array<LayoutI32> values, array<LayoutI32?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumI64(array<LayoutI64> values, array<LayoutI64?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumU8(array<LayoutU8> values, array<LayoutU8?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumU16(array<LayoutU16> values, array<LayoutU16?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumU32(array<LayoutU32> values, array<LayoutU32?> optional) as int
+    return values.length + optional.length
+end
+func layoutEnumU64(array<LayoutU64> values, array<LayoutU64?> optional) as int
+    return values.length + optional.length
+end
+func layoutNestedEnums(array<array<LayoutI8?>> values) as int
+    return values.length
+end
+
 // Exact C scalar/type-id resident recipes are validated by the native oracle.
 // Source Array still has its old carrier; these signatures do not claim cutover.
 func layoutTypeIds(array<type> values) as int

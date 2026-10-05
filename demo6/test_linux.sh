@@ -238,4 +238,7 @@ bash "$ROOT/tools/check_xlir_future_cancel_core.sh" \
 bash "$ROOT/tools/check_xlir_module_product_globals.sh" \
     "$TEST_DIR/module-product-$(date +%Y%m%d-%H%M%S)-$$"
 
+python3 "$ROOT/tools/check_stdlib_enum_c_abi.py" --sanitize \
+    --out "$TEST_DIR/enum-cabi-$(date +%Y%m%d-%H%M%S)-$$"
+
 printf 'DEMO6 Linux compatibility tests passed.\n'

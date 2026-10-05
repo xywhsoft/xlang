@@ -171,7 +171,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_native_i32.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_native_i32_value.c", D(R(NULLABLE_NATIVE_I32)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_nullable_native_u32.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
-    {"src/runtime/xl6_nullable_native_u32_value.c", D(R(NULLABLE_NATIVE_U32)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}}
+    {"src/runtime/xl6_nullable_native_u32_value.c", D(R(NULLABLE_NATIVE_U32)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_array_numeric_enum_admission.c", D(R(ARRAY_TYPED)), {"XRUNTIME_MODULE_RUNTIME_TYPE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -159,7 +159,12 @@ def main() -> int:
                     continue
                 element = types_by_id[row["params"][0]]
                 assert plan["elementType"] == element["id"] and plan["slotAbi"] == element["nativeSlotAbi"]
-                assert plan["admissionAbi"] == element["xvalueAdmissionAbi"]
+                if plan["abiName"] == "numeric-enum-v1":
+                    base=types_by_id[plan["baseElementType"]]
+                    assert not element["xvalueAdmissionAbi"]
+                    assert plan["admissionAbi"] == [0,3,7,4,8,5,9,6,10][base["integerTarget"]]
+                else:
+                    assert plan["admissionAbi"] == element["xvalueAdmissionAbi"]
                 if plan["nullable"]:
                     assert plan["baseElementType"] == element["params"][0]
                 else:
@@ -174,6 +179,10 @@ def main() -> int:
                 c_scalars=[p for p in plans if p["abiName"]=="c-scalar-v1"]
                 assert len(c_scalars)==21 and all(not p["nullable"] and not p["admissionAbi"] and p["defaultAbiName"]=="zero" for p in c_scalars)
                 optional_c=[p for p in plans if p["abiName"]=="nullable-c-scalar-v1"]
+                numeric=[p for p in plans if p["abiName"]=="numeric-enum-v1"]
+                assert len(numeric)==16 and set(range(3,11))=={p["admissionAbi"] for p in numeric}
+                assert {False,True}=={p["nullable"] for p in numeric}
+                assert all(p["defaultAbiName"]==("absent" if p["nullable"] else "zero") for p in numeric)
                 assert len(optional_c)==21 and all(p["nullable"] and not p["admissionAbi"] and
                     p["defaultAbiName"]=="absent" for p in optional_c)
                 assert {"nullable-native-i8", "nullable-native-u8", "nullable-native-i16", "nullable-native-u16",
@@ -252,7 +261,7 @@ def main() -> int:
                     assert int(enum_proof[2]) >= 16
                     assert "(-9223372036854775807LL - 1LL)" in text and "18446744073709551615ULL" in text
             recipe_count = sum(row["arrayLayout"]["abiName"] in
-                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1") for row in array_types)
+                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "numeric-enum-v1") for row in array_types)
             recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
                 len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
             mutation_count=len(lowered['types'])*11+recursive_mutations

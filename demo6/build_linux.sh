@@ -168,6 +168,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_array_c_scalar_admission.c"
   "$ROOT/src/runtime/xl6_array_sequence_admission.c"
   "$ROOT/src/runtime/xl6_array_nullable_c_scalar_admission.c"
+  "$ROOT/src/runtime/xl6_array_numeric_enum_admission.c"
   "$ROOT/src/runtime/xl6_nullable_native_i8.c"
   "$ROOT/src/runtime/xl6_nullable_native_i8_value.c"
   "$ROOT/src/runtime/xl6_nullable_native_u8.c"
