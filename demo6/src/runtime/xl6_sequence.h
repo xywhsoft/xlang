@@ -22,24 +22,33 @@ typedef struct XL6_SequenceAdmissionOpsV1 {
      * code; it initializes a zeroed inactive slot or cleans up on failure. */
     bool (*InitDefault)(const void*, ptr);
 } XL6_SequenceAdmissionOpsV1;
-typedef struct XL6_SequenceAdmissionV1 {
+typedef struct XL6_SequenceAdmissionV2 {
     const XL6_SequenceAdmissionOpsV1* ops;
     const void* data;
     uint64_t elementIdentity;
     unsigned int transfer;
     size_t size;
     const xrttype* type;
-} XL6_SequenceAdmissionV1;
+    /* Required nonzero logical primitive identity on owned boxed projections.
+     * Zero preserves a retained reference's actual identity (ANY/nominal).
+     * This is copied with the policy, never recovered from a type spelling. */
+    uint64_t boxedIdentity;
+} XL6_SequenceAdmissionV2;
 /* Copy returns an owned metadata reference; Take consumes valid policies on
  * both paths (a malformed foreign descriptor remains the caller's property).
  * Binding is only allowed on an Array/Cursor with no prior policy and
  * validates existing slots before publication.
- * These functions require an operation pin. They do not retain source code. */
-XL6_TEXT_API bool xl6SequenceAdmissionCopyV1(XL6_Sequence*, XL6_SequenceAdmissionV1*);
-XL6_TEXT_API bool xl6SequenceAdmissionTakeV1(XL6_Sequence*, XL6_SequenceAdmissionV1*);
-XL6_TEXT_API void xl6SequenceAdmissionDropV1(XL6_SequenceAdmissionV1*);
+ * These functions require an operation pin. They do not retain source code.
+ * V2 includes projection identity in the copied owner metadata. The V1 record
+ * entry points are retired: a stale smaller record must not reach this ABI. */
+XL6_TEXT_API bool xl6SequenceAdmissionCopyV2(XL6_Sequence*, XL6_SequenceAdmissionV2*);
+XL6_TEXT_API bool xl6SequenceAdmissionTakeV2(XL6_Sequence*, XL6_SequenceAdmissionV2*);
+XL6_TEXT_API void xl6SequenceAdmissionDropV2(XL6_SequenceAdmissionV2*);
 XL6_TEXT_API bool xl6SequenceAdmitSlotV1(XL6_Sequence*, const void*);
 XL6_TEXT_API bool xl6SequenceAdmitValueV1(XL6_Sequence*, const xvalue*);
+/* Valid only under an operation pin. Absent nullable projections keep the
+ * canonical null identity; the returned ID is for present primitive values. */
+XL6_TEXT_API uint64_t xl6SequenceBoxedIdentityV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence*, XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceResizeStorageV1(XL6_Sequence*, size_t);

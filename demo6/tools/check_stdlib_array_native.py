@@ -63,6 +63,8 @@ def main() -> int:
         "src/runtime/xl6_array_default.c")]
     files += [root / name for name in ("tools/check_stdlib_array_primitive_admission.py",
         "test/cases/stdlib_array_primitive_admission_native_host.c",
+        "test/cases/stdlib_array_projection_identity_native_host.c",
+        "test/cases/stdlib_sequence_retired_admission_abi.c",
         "src/runtime/xl6_array_primitive_admission.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
@@ -233,14 +235,15 @@ def main() -> int:
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in defaults["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         child = out / "admission-primitive"
-        command = [sys.executable, "tools/check_stdlib_array_primitive_admission.py", "--out", str(child)]
+        command = [sys.executable, "tools/check_stdlib_array_primitive_admission.py", "--projections", "--out", str(child)]
         if args.sanitize:
             command += ["--sanitize"]
         run(child.name, command, timeout=180)
         primitive = json.loads((child / "results.json").read_text(encoding="utf-8"))
-        if not primitive["Complete"] or not primitive["InputsUnchanged"]:
+        if not primitive["Complete"] or not primitive["InputsUnchanged"] or not primitive["Projections"]:
             raise RuntimeError("Incomplete scalar/text owned Array admission evidence")
         report["PrimitiveAdmissionReport"] = {"Directory": str(child), "Checks": len(primitive["Rows"]),
+            "Projections": True,
             "Profiles": primitive["Profiles"], "ClosedPrefixes": len(primitive["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in primitive["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}

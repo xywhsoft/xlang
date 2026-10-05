@@ -87,15 +87,15 @@ xvalue* xl6ArrayPrimitiveCreateV2(uint64_t identity, uint64_t element, unsigned 
     PrimitivePolicy* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(PrimitivePolicy){.refs=1,.rule=rule,.nullable=nullable,.identity=valueIdentity};
-    XL6_SequenceAdmissionV1 admission={&ops,data,element,transfer,size,type};
+    XL6_SequenceAdmissionV2 admission={&ops,data,element,transfer,size,type,valueIdentity};
     xvalue* result=xl6ArrayCreateV1(identity,element,transfer,size,type);
     if (result) {
         XL6_Sequence* owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,identity,element,transfer,size,type);
-        if (!owner || !xl6SequenceAdmissionTakeV1(owner,&admission)) {
+        if (!owner || !xl6SequenceAdmissionTakeV2(owner,&admission)) {
             if (owner) xl6SequenceEndV1(owner);
             xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
             xrtClearError(); xrtSetErrorTake(error);
         } else xl6SequenceEndV1(owner);
     }
-    xl6SequenceAdmissionDropV1(&admission); return result;
+    xl6SequenceAdmissionDropV2(&admission); return result;
 }

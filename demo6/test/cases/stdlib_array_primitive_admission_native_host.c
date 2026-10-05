@@ -126,11 +126,24 @@ static xvalue* element(const Spec* s)
 }
 static void toSlot(const Spec* s,const xvalue* value,Slot* result)
 { assert(xrtValueToTyped(value,s->type,result,s->converter)); }
+static uint64_t projectionIdentity(const Spec* s,const xvalue* value)
+{
+    xvaluetype tag=xrtValueType(value);
+    return tag==XVALUE_NULL || tag==XVALUE_BOOL ? 0 : s->identity;
+}
 static void observed(const Spec* s,const xvalue* value,int64_t index,const xvalue* expected)
 {
-    xvalue* boxed=xl6ArrayErasedReadV1(value,index); assert(boxed && xrtValueEqual(boxed,expected));
+    xvalue* boxed=xl6ArrayErasedReadV1(value,index);
+    if (!boxed || xrtValueTypeId(boxed)!=projectionIdentity(s,expected))
+        fprintf(stderr,"projection rule=%u nullable=%u expected=%llu actual=%llu error=%d\n",s->rule,
+            (unsigned)s->nullable,(unsigned long long)s->identity,
+            (unsigned long long)(boxed ? xrtValueTypeId(boxed) : 0),
+            xrtGetError() ? (int)xrtErrorKind(xrtGetError()) : 0);
+    assert(boxed && xrtValueTypeId(boxed)==projectionIdentity(s,expected));
     Slot read={0}; xl6ArrayReadV1(value,LAYOUT(s),index,&read); assert(!xrtGetError());
     xvalue* second=xrtValueFromTyped(s->type,&read,s->converter); assert(second && xrtValueEqual(second,expected));
+    if (projectionIdentity(s,second)) assert(xrtValueTypeIdBind(second,s->identity));
+    assert(xrtValueEqual(boxed,second));
     xrtValueRelease(second); xrtTypeDropValue(s->type,&read); xrtValueRelease(boxed);
 }
 static void refusal(const Spec* s,const xvalue* owner,const xvalue* bad,const Slot* badSlot)
@@ -230,9 +243,12 @@ static void defaults(const Spec* s)
         if (s->rule==XL6_VALUE_ADMIT_STRING) { xstrview text; assert(xrtValueGetString(item,&text) && text.Data && !text.Size); }
         else {
             Slot zero={0}; xvalue* expected=xrtValueFromTyped(s->type,&zero,s->converter);
-            assert(expected && xrtValueEqual(item,expected)); xrtValueRelease(expected);
+            assert(expected);
+            if (projectionIdentity(s,expected)) assert(xrtValueTypeIdBind(expected,s->identity));
+            assert(xrtValueEqual(item,expected)); xrtValueRelease(expected);
         }
     }
+    assert(xrtValueTypeId(item)==projectionIdentity(s,item));
     xrtValueRelease(item); assert(xl6ArrayResizeV1(owner,LAYOUT(s),0)); xrtValueRelease(alias); xrtValueRelease(owner);
 }
 static void vectors(const Spec* s)
