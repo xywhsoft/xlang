@@ -39,7 +39,7 @@ def main() -> int:
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
     if sum((args.defaults, args.nominal, args.layouts, args.numeric_enums)) > 1:
         parser.error("Select one fixture family")
-    fixtures = ["stdlib_nullable_numeric_enum", "stdlib_nullable_numeric_enum_absent", "enum_numeric_runtime", "enum_match_matrix"] if args.numeric_enums else ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+    fixtures = ["stdlib_nullable_numeric_enum", "stdlib_nullable_numeric_enum_absent", "enum_numeric_runtime", "enum_match_matrix"] if args.numeric_enums else ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8", "stdlib_array_future_reference"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
@@ -175,7 +175,11 @@ def main() -> int:
                     continue
                 element = types_by_id[row["params"][0]]
                 assert plan["elementType"] == element["id"]
-                if plan["abiName"] == "callable-reference-v1":
+                if plan["abiName"] == "future-reference-v1":
+                    base=types_by_id[plan["baseElementType"]]
+                    assert not element["nativeSlotAbi"] and base["cAbi"]==30  # RUNTIME_FUTURE_PTR
+                    assert plan["slotAbiName"]=="future-ptr" and plan["codecAbiName"]=="direct" and plan["transferAbi"]==4
+                elif plan["abiName"] == "callable-reference-v1":
                     base=types_by_id[plan["baseElementType"]]
                     assert not element["nativeSlotAbi"] and base["cAbi"]==31  # XL6_IR_C_ABI_CLOSURE_PTR
                     assert plan["slotAbiName"]=="xvalue-carrier" and plan["codecAbiName"]=="closure-value-v1"
@@ -207,6 +211,10 @@ def main() -> int:
                 assert {False,True}=={p["nullable"] for p in numeric}
                 assert all(p["defaultAbiName"]==("absent" if p["nullable"] else "zero") for p in numeric)
                 callable_plans=[p for p in plans if p["abiName"]=="callable-reference-v1"]
+                future_plans=[p for p in plans if p["abiName"]=="future-reference-v1"]
+                assert len(future_plans)>=2 and {False,True}=={p["nullable"] for p in future_plans}
+                assert all(p["slotAbiName"]=="future-ptr" and p["transferAbi"]==4 and
+                    p["defaultAbiName"]==("absent" if p["nullable"] else "forbidden") for p in future_plans)
                 assert len(callable_plans)>=2 and {False,True}=={p["nullable"] for p in callable_plans}
                 assert all(p["codecAbiName"]=="closure-value-v1" and p["transferAbi"]==3 and
                     not p["admissionAbi"] and p["defaultAbiName"]==("absent" if p["nullable"] else "forbidden")
@@ -282,6 +290,16 @@ def main() -> int:
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c),
                 *(["numeric-enums"] if args.numeric_enums else [])])
+            assert "Future container semantics: 5 accepted; 7 independent copy/resource refusals" in contract_log
+            if fixture == "stdlib_array_future_reference":
+                projections = [row for row in lowered["instructions"] if row["runtimeOpName"] in (
+                    "xvalue-project-future-copy", "xvalue-project-nullable-future-copy")]
+                assert {"xvalue-project-future-copy", "xvalue-project-nullable-future-copy"} == {row["runtimeOpName"] for row in projections}
+                for projection in projections:
+                    result = types_by_id[projection["type"]]
+                    future = types_by_id[result["params"][0]] if projection["runtimeOpName"] == "xvalue-project-nullable-future-copy" else result
+                    assert projection["payloadType"] == future["params"][0]
+                assert f"Future projection contracts: {len(projections)} projections; {len(projections)*5} payload/nullability/metadata mutations refused before C/header output" in contract_log
             if args.numeric_enums and fixture in ("stdlib_nullable_numeric_enum", "enum_numeric_runtime"):
                 enum_proof = re.search(r"numeric enum bridge: (\d+) binds; (\d+) nullable boxes; (\d+) rejected mutations before C/header output", contract_log)
                 assert enum_proof and int(enum_proof[1]) > 0 and int(enum_proof[3]) > 0
@@ -289,13 +307,14 @@ def main() -> int:
                     assert int(enum_proof[2]) >= 16
                     assert "(-9223372036854775807LL - 1LL)" in text and "18446744073709551615ULL" in text
             recipe_count = sum(row["arrayLayout"]["abiName"] in
-                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "numeric-enum-v1", "callable-reference-v1") for row in array_types)
+                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "numeric-enum-v1", "callable-reference-v1", "future-reference-v1") for row in array_types)
             recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
                 len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
             codec_mutations=sum(row['arrayLayout']['abiName']=='callable-reference-v1' for row in array_types)
             signature_mutations=sum(row['arrayLayout']['abiName']=='callable-reference-v1' and
                 bool(types_by_id[row['arrayLayout']['baseElementType']]['params']) for row in array_types)
-            mutation_count=len(lowered['types'])*12+recursive_mutations+codec_mutations+signature_mutations
+            future_mutations=sum(row['arrayLayout']['abiName']=='future-reference-v1' for row in array_types)
+            mutation_count=len(lowered['types'])*12+recursive_mutations+codec_mutations+signature_mutations+future_mutations
             if not args.numeric_enums:
                 assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {mutation_count} carrier/layout mutations" in contract_log, 'Actual resident recipe/mutation totals differ from IR'
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
@@ -304,14 +323,23 @@ def main() -> int:
             assert generated.read_bytes() == contract_c.read_bytes(), "Mutation contract changed canonical C"
             for level in (0, 2):
                 binary = prefix.with_suffix(f".O{level}" + (".exe" if os.name == "nt" else ""))
-                run(f"{fixture}.O{level}.build", [cc, *strict, f"-O{level}", str(generated),
-                    "test/cases/stdlib_collection_admission_host.c", *links, "-o", str(binary)],
+                if fixture == "stdlib_array_future_reference":
+                    memory = out / f"memory.O{level}.o"
+                    run(f"future-memory.O{level}.build", [cc, *strict, f"-O{level}", "-c",
+                        "test/support/module_product_memory.c", "-o", str(memory)])
+                    source_arguments = ["-include", str(generated),
+                        "test/cases/xlir_module_product_oom_host.c", str(memory)]
+                else:
+                    source_arguments = [str(generated), "test/cases/stdlib_collection_admission_host.c"]
+                run(f"{fixture}.O{level}.build", [cc, *strict, f"-O{level}", *source_arguments, *links, "-o", str(binary)],
                     # The rich default/layout fixtures exceed 180 s in
                     # full O2 ASan/UBSan compilation. Only that compiler step
                     # has a larger finite budget, with every strict flag kept;
                     # executions, JIT, AOT and ordinary C still use 60 s.
                     timeout=(360 if args.defaults or args.layouts else 180) if args.sanitize and level == 2 else 60)
-                run(f"{fixture}.O{level}.run", [str(binary)])
+                language_proof = run(f"{fixture}.O{level}.run", [str(binary)])
+                if fixture == "stdlib_array_future_reference":
+                    assert "hit=0 balanced" in language_proof
                 if args.numeric_enums and fixture.startswith("stdlib_nullable_numeric_enum"):
                     lane = f"{fixture}.O{level}.oom"
                     memory = out / f"memory.O{level}.o"

@@ -239,6 +239,7 @@ static int xl6IrCgenXValueProjectionRuntimeOpIs(
            operation == XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_NULLABLE ||
            operation == XL6_IR_RUNTIME_XVALUE_PROJECT_CLOSURE_COPY ||
            operation == XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY ||
+           operation == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY ||
            operation ==
                XL6_IR_RUNTIME_XVALUE_PROJECT_NATIVE_HANDLE_BORROW;
 }
@@ -621,13 +622,25 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (unsigned int)instruction->result, (unsigned int)operand,
             (unsigned long long)identity->typeValueId);
     } else if ( instruction->runtimeOp ==
-                XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY ) {
-        if ( result->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-             result->paramCount != 1 || result->params == NULL ||
-             result->params[0] != instruction->payloadType ||
-             xl6IrTypeGet(
-                 &module->types, instruction->payloadType) == NULL ) return 0;
+                XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY ) {
+        XL6_IrTypeId payload = xl6IrFutureProjectionPayloadType(
+            module, instruction->type, instruction->runtimeOp);
+        if (payload == XL6_IR_TYPE_INVALID || payload != instruction->payloadType) return 0;
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY) {
+            xl6OutputPrintf(out,
+                "    v%u = NULL;\n"
+                "    if (v%u != NULL && xrtValueType(v%u) != XVALUE_NULL) {\n"
+                "        v%u = xrtValueGetFuture(v%u);\n"
+                "        if (v%u == NULL || (v%u = xrtFutureRef(v%u)) == NULL) abort();\n"
+                "    }\n",
+                (unsigned int)instruction->result,
+                (unsigned int)operand, (unsigned int)operand,
+                (unsigned int)instruction->result, (unsigned int)operand,
+                (unsigned int)instruction->result, (unsigned int)instruction->result,
+                (unsigned int)instruction->result);
+            return 1;
+        }
         xl6OutputPrintf(out,
             "    v%u = xrtValueGetFuture(v%u);\n"
             "    if (v%u == NULL || (v%u = xrtFutureRef(v%u)) == NULL) abort();\n",

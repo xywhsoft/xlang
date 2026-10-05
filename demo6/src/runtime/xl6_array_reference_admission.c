@@ -16,8 +16,8 @@ static bool bytesDefault(const void* opaque,ptr slot)
     if (!value) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return false; }
     *(xvalue**)slot=value; return true;
 }
-static const XL6_SequenceAdmissionOpsV1 bytesOps={policyRetain,policyDrop,slotAdmitted,
-    admitted,equivalent,defaultable,bytesDefault};
+static const XL6_SequenceAdmissionOpsV2 bytesOps={policyRetain,policyDrop,slotAdmitted,
+    admitted,equivalent,defaultable,bytesDefault,NULL};
 xvalue* xl6ArrayReferenceCreateV2(uint64_t identity,uint64_t element,unsigned int rule,bool nullable,uint64_t valueIdentity)
 {
     if (!identity || !element || (rule!=XL6_VALUE_ADMIT_ANY && rule!=XL6_VALUE_ADMIT_BYTES) ||

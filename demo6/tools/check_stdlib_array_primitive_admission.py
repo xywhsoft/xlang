@@ -111,7 +111,7 @@ def main() -> int:
                     [nm, *(["-D"] if args.shared else []), "--defined-only", str(product if args.shared else binary)])
                 symbols = run(name + ".symbols", symbol_command)
                 names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
-                assert {"xl6ArrayPrimitiveCreateV2", "xl6ValueAdmitsV1", "xl6SequenceAdmissionTakeV2"} <= names
+                assert {"xl6ArrayPrimitiveCreateV2", "xl6ValueAdmitsV1", "xl6SequenceAdmissionTakeV3"} <= names
                 if not args.shared:
                     factories = {n for n in names if re.match(r"xl6(?:Nullable.*|String|Char)TypeV1$", n)}
                     expected = set()

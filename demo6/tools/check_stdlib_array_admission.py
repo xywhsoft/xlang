@@ -96,7 +96,7 @@ def main() -> int:
             absent = {"xl6ArrayReferenceCreateV2", "xl6ValueAdmitsV1"} if args.nominal else {
                 "xl6ArrayNominalCreateV2", "xl6ValueAdmitsNominalV1"}
             assert expected in names, f"Missing factory export: {expected}"
-            assert {"xl6SequenceAdmissionTakeV2", "xl6SequenceAdmitSlotV1", "xl6SequenceAdmitValueV1"} <= names, "Missing resident admission ABI"
+            assert {"xl6SequenceAdmissionTakeV3", "xl6SequenceAdmitSlotV1", "xl6SequenceAdmitValueV1"} <= names, "Missing resident admission ABI"
             if not args.shared:
                 assert not absent & names
                 assert not {"xl6ArrayFromValueV1", "xl6ArrayToValueV1", "xl6StackCreateV1"} & names

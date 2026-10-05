@@ -1,0 +1,10 @@
+/* Actual selected Future slot/value and typed Array runtime, not all xruntime. */
+#define XRUNTIME_MODULE_TYPED_ARRAY_VALUE
+#define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
+#define XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE
+#define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
+#define XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE
+#define XRT_MODULE_ATOMIC
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRUNTIME_IMPLEMENTATION
+#include "lib/xruntime/xruntime.h"

@@ -44,7 +44,7 @@ static bool equivalent(const void* a,const void* b)
     return left->type==right->type && left->identity==right->identity;
 }
 static bool defaultable(const void* opaque) { (void)opaque; return true; }
-static const XL6_SequenceAdmissionOpsV1 ops={retain,drop,slot,value,equivalent,defaultable,NULL};
+static const XL6_SequenceAdmissionOpsV2 ops={retain,drop,slot,value,equivalent,defaultable,NULL,NULL};
 
 xvalue* xl6ArrayCScalarCreateV1(uint64_t identity,uint64_t element,const xrttype* type,uint64_t boxedIdentity)
 {
@@ -54,15 +54,15 @@ xvalue* xl6ArrayCScalarCreateV1(uint64_t identity,uint64_t element,const xrttype
     CScalarPolicy* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(CScalarPolicy){.refs=1,.type=type,.identity=boxedIdentity};
-    XL6_SequenceAdmissionV2 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
+    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
     xvalue* result=xl6ArrayCreateV1(identity,element,1,type->Size,type);
     if (result) {
         XL6_Sequence* owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,identity,element,1,type->Size,type);
-        if (!owner || !xl6SequenceAdmissionTakeV2(owner,&admission)) {
+        if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
             if (owner) xl6SequenceEndV1(owner);
             xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
             xrtClearError(); xrtSetErrorTake(error);
         } else xl6SequenceEndV1(owner);
     }
-    xl6SequenceAdmissionDropV2(&admission); return result;
+    xl6SequenceAdmissionDropV3(&admission); return result;
 }

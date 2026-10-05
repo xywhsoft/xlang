@@ -17,19 +17,19 @@ xvalue* xl6ArrayIteratorCreateV1(const xvalue* source, PARAMS, uint64_t cursorId
         xrtSetErrorKind(XERR_RANGE); xl6SequenceEndV1(owner); return NULL;
     }
     xtypedarray* snapshot=xrtTypedArrayClone(storage);
-    XL6_SequenceAdmissionV2 admission={0};
-    if (snapshot && !xl6SequenceAdmissionCopyV2(owner,&admission)) {
+    XL6_SequenceAdmissionV3 admission={0};
+    if (snapshot && !xl6SequenceAdmissionCopyV3(owner,&admission)) {
         xerror* error=xrtTakeError(); xrtTypedArrayDestroy(snapshot); snapshot=NULL;
         xrtClearError(); xrtSetErrorTake(error);
     }
     xl6SequenceEndV1(owner);
     xvalue* result=xl6SequenceWrapAsV1(snapshot,XL6_SEQUENCE_CURSOR_V1,cursorIdentity,elementIdentity,transfer,size,type);
-    if (!result) { xl6SequenceAdmissionDropV2(&admission); return NULL; }
+    if (!result) { xl6SequenceAdmissionDropV3(&admission); return NULL; }
     owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_CURSOR_V1,cursorIdentity,elementIdentity,transfer,size,type);
-    if (!owner || !xl6SequenceAdmissionTakeV2(owner,&admission)) {
+    if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
         if (owner) xl6SequenceEndV1(owner);
         xerror* error=xrtTakeError(); xrtValueRelease(result);
-        xrtClearError(); xrtSetErrorTake(error); xl6SequenceAdmissionDropV2(&admission); return NULL;
+        xrtClearError(); xrtSetErrorTake(error); xl6SequenceAdmissionDropV3(&admission); return NULL;
     }
     *xl6SequenceIteratorStateV1(owner)=(XL6_SequenceIteratorStateV1){.prepared=true};
     xl6SequenceEndV1(owner); return result;

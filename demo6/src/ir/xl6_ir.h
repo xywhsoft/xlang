@@ -222,7 +222,9 @@ typedef enum XL6_IrRuntimeResourcePayloadAbi {
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID = 0,
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY,
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY,
-    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
+    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN,
+    /* Array recipe only; not admission for other resource payload ABIs. */
+    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF
 } XL6_IrRuntimeResourcePayloadAbi;
 
 /* Closed ordering selected for AvlTree keys at the Typed XLIR boundary.
@@ -566,6 +568,7 @@ typedef enum XL6_IrNativeSlotAbi {
     XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32,
     XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32,
     XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID,
+    XL6_IR_NATIVE_SLOT_FUTURE_PTR,
 } XL6_IrNativeSlotAbi;
 
 /* Target resident Array recipe, not permission to reinterpret an existing
@@ -583,7 +586,8 @@ typedef enum XL6_IrArrayLayoutAbi {
     XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1,
     XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1,
     XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1,
-    XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1
+    XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1,
+    XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1
 } XL6_IrArrayLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
@@ -1886,7 +1890,11 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL,
        /* Same closed tagged scalar type; absent==absent, present payloads use
         * language scalar equality (including IEEE NaN), not storage ordering. */
-       XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL
+       XL6_IR_RUNTIME_NULLABLE_SCALAR_EQUAL,
+       /* Typed nullable Future lookup: NULL stays absent; a present value
+        * projects a new retained owner. payloadType is the underlying T,
+        * never the outer nullable parameter (Future<T>). */
+       XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6443,6 +6451,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrCallInstructionErrorPhysicalAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 /* Optional native Future observation can allocate and must be checked. */
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeFutureMetadataErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+XL6_IrTypeId xl6IrFutureProjectionPayloadType(const XL6_IrModule* module,
+    XL6_IrTypeId resultType, XL6_IrRuntimeOp operation);
 /* Fixed result protocol for runtime string allocation. INVALID means this
  * operation is outside the family. Shared by lowering and module verification;
  * a nullable string copy uses status, never NULL as a failure discriminator. */

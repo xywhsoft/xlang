@@ -11,7 +11,7 @@ typedef struct XL6_Sequence XL6_Sequence;
  * source module; it has no owning Value edges. Retain/Drop share that metadata
  * across clones and snapshots. Slot/Value predicates are allocation-free and
  * error-transparent. Empty policies preserve the low-level unprofiled ABI. */
-typedef struct XL6_SequenceAdmissionOpsV1 {
+typedef struct XL6_SequenceAdmissionOpsV2 {
     bool (*Retain)(const void*);
     void (*Drop)(const void*);
     bool (*Slot)(const void*, const void*);
@@ -21,9 +21,13 @@ typedef struct XL6_SequenceAdmissionOpsV1 {
     /* Optional per-growth default. This is a resident callback, not source
      * code; it initializes a zeroed inactive slot or cleans up on failure. */
     bool (*InitDefault)(const void*, ptr);
-} XL6_SequenceAdmissionOpsV1;
-typedef struct XL6_SequenceAdmissionV2 {
-    const XL6_SequenceAdmissionOpsV1* ops;
+    /* Optional native-reference edge, under the graph's frozen observation.
+     * Required for FUTURE_REF; the resident policy visits the actual control
+     * block, never an invented Value shell. Other transfers leave it NULL. */
+    bool (*TraceSlot)(const void*, const void*, xrtownershipvisitor, void*);
+} XL6_SequenceAdmissionOpsV2;
+typedef struct XL6_SequenceAdmissionV3 {
+    const XL6_SequenceAdmissionOpsV2* ops;
     const void* data;
     uint64_t elementIdentity;
     unsigned int transfer;
@@ -33,17 +37,17 @@ typedef struct XL6_SequenceAdmissionV2 {
      * Zero preserves a retained reference's actual identity (ANY/nominal).
      * This is copied with the policy, never recovered from a type spelling. */
     uint64_t boxedIdentity;
-} XL6_SequenceAdmissionV2;
+} XL6_SequenceAdmissionV3;
 /* Copy returns an owned metadata reference; Take consumes valid policies on
  * both paths (a malformed foreign descriptor remains the caller's property).
  * Binding is only allowed on an Array/Cursor with no prior policy and
  * validates existing slots before publication.
  * These functions require an operation pin. They do not retain source code.
- * V2 includes projection identity in the copied owner metadata. The V1 record
- * entry points are retired: a stale smaller record must not reach this ABI. */
-XL6_TEXT_API bool xl6SequenceAdmissionCopyV2(XL6_Sequence*, XL6_SequenceAdmissionV2*);
-XL6_TEXT_API bool xl6SequenceAdmissionTakeV2(XL6_Sequence*, XL6_SequenceAdmissionV2*);
-XL6_TEXT_API void xl6SequenceAdmissionDropV2(XL6_SequenceAdmissionV2*);
+ * V3 requires the larger V2 ops record with native-reference tracing. V1/V2
+ * entry points are retired; a stale smaller ops record cannot reach this ABI. */
+XL6_TEXT_API bool xl6SequenceAdmissionCopyV3(XL6_Sequence*, XL6_SequenceAdmissionV3*);
+XL6_TEXT_API bool xl6SequenceAdmissionTakeV3(XL6_Sequence*, XL6_SequenceAdmissionV3*);
+XL6_TEXT_API void xl6SequenceAdmissionDropV3(XL6_SequenceAdmissionV3*);
 XL6_TEXT_API bool xl6SequenceAdmitSlotV1(XL6_Sequence*, const void*);
 XL6_TEXT_API bool xl6SequenceAdmitValueV1(XL6_Sequence*, const xvalue*);
 /* Valid only under an operation pin. Absent nullable projections keep the
@@ -62,6 +66,7 @@ XL6_TEXT_API bool xl6SequenceExtractTailV1(XL6_Sequence*, XL6_Sequence*, size_t,
 typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;
+enum { XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 = 4 };
 typedef struct XL6_SequenceLayoutV1 {
     uint64_t identity, elementIdentity;
     unsigned int transfer;
@@ -112,4 +117,9 @@ XL6_TEXT_API void xl6SequenceEndV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceEqualsV1(const xvalue*, const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API bool xl6SequenceEqualsRoleV1(const xvalue*, const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV1(xrtownershipref);
+/* Native-reference TraceSlot is authorized separately by exact resident ops
+ * identity BEFORE Count/Trace. V1 refuses those wrappers; an absent or wrong
+ * allowlist is not permission to ignore children or execute unknown callbacks. */
+XL6_TEXT_API const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV2(xrtownershipref,
+    const XL6_SequenceAdmissionOpsV2* const*, size_t);
 #endif

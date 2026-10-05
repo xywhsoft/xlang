@@ -170,6 +170,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_array_nullable_c_scalar_admission.c"
   "$ROOT/src/runtime/xl6_array_numeric_enum_admission.c"
   "$ROOT/src/runtime/xl6_array_callable_admission.c"
+  "$ROOT/src/runtime/xl6_array_future_admission.c"
   "$ROOT/src/runtime/xl6_array_input.c"
   "$ROOT/src/runtime/xl6_future_aggregate.c"
   "$ROOT/src/runtime/xl6_future_aggregate_array.c"
