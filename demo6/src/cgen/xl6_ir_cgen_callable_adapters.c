@@ -292,6 +292,12 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 (unsigned long)signature->paramCount, (unsigned long)i,
                 (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
                 (unsigned long)i, (unsigned long)i, (unsigned long)i);
+        } else if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR) {
+            xl6OutputPrintf(out,
+                "    if (!bound%lu) { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable native scalar binding is incomplete\")); goto argument_fail; }\n"
+                "    if (!xl6ValueReadNativeScalarV1(f%lu, %u, 0x%016llXULL, &a%lu)) goto argument_fail;\n",
+                (unsigned long)i, (unsigned long)i, (unsigned)slot->nativeScalarProfile,
+                (unsigned long long)parameter->typeValueId, (unsigned long)i);
         } else if (slot->integerDomain.rule != XL6_VALUE_ADMIT_NONE) {
             const int wide = slot->integerDomain.rule == XL6_VALUE_ADMIT_U64;
             xl6OutputPrintf(out,
@@ -390,7 +396,7 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
         char place[64];
         if (bridge->resultCount == 1) snprintf(place, sizeof(place), "value");
         else snprintf(place, sizeof(place), "value.e%lu", (unsigned long)slot->result);
-        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, slot->integerDomain, place, "boxed"))
+        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, slot->integerDomain, slot->nativeScalarProfile, place, "boxed"))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR callable result encoding plan is unresolved");
         xl6OutputPrintf(out,
             "    if (boxed == NULL) goto result_fail;\n"
@@ -474,7 +480,7 @@ static int xl6IrCgenEmitRuntimeCallableClosureEntry(
         char input[64], argument[64];
         snprintf(input, sizeof(input), "a%lu", (unsigned long)i);
         snprintf(argument, sizeof(argument), "arguments[%lu]", (unsigned long)i);
-        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, slot->integerDomain, input, argument))
+        if (!xl6IrCgenEmitCallableBridgeEncode(out, module, slot->type, slot->encodeAbi, slot->integerDomain, slot->nativeScalarProfile, input, argument))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR callable parameter encoding plan is unresolved");
         xl6OutputPrintf(out, "    if (%s == NULL) goto argument_fail;\n", argument);
     }

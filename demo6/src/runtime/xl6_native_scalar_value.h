@@ -1,0 +1,12 @@
+#ifndef XL6_NATIVE_SCALAR_VALUE_H
+#define XL6_NATIVE_SCALAR_VALUE_H
+#include "src/runtime/xl6_native_scalar_abi.h"
+#include "src/runtime/xl6_text_value.h"
+/* Exact domain, no numeric coercion. Read commits native bytes only after a
+ * successful conversion, including unaligned output slots. Box binds identity
+ * only on an independently owned primitive, never the canonical bool singleton.
+ * TYPE_ID requires its exact logical identity on input; other primitives may
+ * be unbound but must not carry a foreign nominal identity. */
+XL6_TEXT_API bool xl6ValueReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, void*);
+XL6_TEXT_API xvalue* xl6ValueBoxNativeScalarV1(const void*, unsigned int, uint64_t);
+#endif

@@ -45,6 +45,7 @@ frozen_files() {
     printf '%s\0' tools/check_stdlib_callable_scalars.py test/cases/stdlib_callable_scalars.xl test/cases/stdlib_callable_scalars_unused.xl
     printf '%s\0' test/cases/stdlib_callable_scalars_contract.c test/cases/stdlib_callable_scalars_host.c test/cases/xlir_callable_bridge_mutations.h
     printf '%s\0' test/cases/stdlib_callable_integer_domains.xl test/cases/stdlib_callable_integer_domains_host.c
+    printf '%s\0' test/cases/stdlib_callable_native_scalars.xl test/cases/stdlib_callable_native_scalars_host.c
     printf '%s\0' test/cases/xlir_module_product_oom_host.c
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
     for fixture in "${cases[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done

@@ -66,6 +66,8 @@ def main() -> int:
                   root / "test/cases/stdlib_callable_scalars_host.c",
                   root / "test/cases/stdlib_callable_integer_domains.xl",
                   root / "test/cases/stdlib_callable_integer_domains_host.c",
+                  root / "test/cases/stdlib_callable_native_scalars.xl",
+                  root / "test/cases/stdlib_callable_native_scalars_host.c",
                   root / "test/cases/xlir_callable_bridge_mutations.h",
                   root / "test/cases/xlir_module_product_oom_host.c",
                   root / "test/support/module_product_memory.c", root / "test/support/module_product_memory.h"]
@@ -348,9 +350,9 @@ def main() -> int:
                 command += ["--public-directory", str(args.public_directory.resolve())]
             if args.sanitize:
                 command += ["--sanitize"]
-            run("callable-scalars", command, timeout=1200)
+            run("callable-scalars", command, timeout=1800)
             proof = json.loads((child / "results.json").read_text(encoding="utf-8"))
-            assert proof["Complete"] and proof["InputsUnchanged"] and len(proof["Sweeps"]) == 12
+            assert proof["Complete"] and proof["InputsUnchanged"] and len(proof["Sweeps"]) == 18
             assert all(digest(Path(row["Path"])) == row["Sha256"] for row in proof["Inputs"])
             report["CallableScalarsReport"] = str(child / "results.json")
             child = out / "function-value-calls"

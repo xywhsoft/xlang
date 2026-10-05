@@ -3,10 +3,16 @@
 static int xl6IrCgenEmitCallableBridgeEncode(
     XL6_Output* out, const XL6_IrModule* module, XL6_IrTypeId type,
     XL6_IrCallableBridgeValueAbi abi, XL6_IrCallableBridgeIntegerDomain domain,
+    XL6_NativeScalarProfileV1 nativeProfile,
     const char* input, const char* boxed)
 {
     const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
     if (!item) return 0;
+    if (abi == XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR) {
+        xl6OutputPrintf(out, "    %s = xl6ValueBoxNativeScalarV1(&%s, %u, 0x%016llXULL);\n",
+            boxed, input, (unsigned)nativeProfile, (unsigned long long)item->typeValueId);
+        return !xl6OutputHasFailed(out);
+    }
     if (domain.rule != XL6_VALUE_ADMIT_NONE) {
         xl6OutputPrintf(out, "    %s = xl6ValueBoxIntegerV1(&%s, %u, 0x%016llXULL, %s);\n",
             boxed, input, (unsigned)domain.rule, (unsigned long long)domain.identity,
@@ -61,6 +67,11 @@ static int xl6IrCgenEmitCallableBridgeDecode(
     const XL6_IrType* item = xl6IrTypeGet(&module->types, slot->type);
     const char* getter = NULL;
     if (!item) return 0;
+    if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR) {
+        xl6OutputPrintf(out, "    if (!xl6ValueReadNativeScalarV1(%s, %u, 0x%016llXULL, &%s)) goto conversion_fail;\n",
+            boxed, (unsigned)slot->nativeScalarProfile, (unsigned long long)item->typeValueId, output);
+        return !xl6OutputHasFailed(out);
+    }
     if (slot->integerDomain.rule != XL6_VALUE_ADMIT_NONE) {
         xl6OutputPrintf(out, "    if (!xl6ValueReadIntegerV1(%s, %u, 0x%016llXULL, %s, &%s)) goto conversion_fail;\n",
             boxed, (unsigned)slot->integerDomain.rule, (unsigned long long)slot->integerDomain.identity,

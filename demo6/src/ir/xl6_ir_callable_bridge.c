@@ -32,6 +32,7 @@ static int xl6IrCallableBridgeParameterPlan(
     memset(plan, 0, sizeof(*plan));
     plan->parameter = parameter; plan->type = signature->params[parameter];
     plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
+    plan->nativeScalarProfile = xl6IrCallableNativeScalarProfile(type->cAbi);
     abi = signature->parameterAbis[parameter];
     plan->invokeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED ? XL6_IR_CALLBACK_INVOKE_TAKE
         : abi == XL6_IR_PARAMETER_ABI_BORROW ? XL6_IR_CALLBACK_INVOKE_BORROW
@@ -49,12 +50,15 @@ static int xl6IrCallableBridgeParameterPlan(
         plan->decodedDestroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE;
         return 1;
     }
+    if (plan->nativeScalarProfile != XL6_NATIVE_SCALAR_NONE) {
+        plan->decodeAbi = plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR;
+        return plan->invokeAbi == XL6_IR_CALLBACK_INVOKE_VALUE;
+    }
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BOOL; break;
     case XL6_IR_C_ABI_CHAR_U32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_CHAR; break;
     case XL6_IR_C_ABI_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_I64; break;
-    case XL6_IR_C_ABI_U64:
-    case XL6_IR_C_ABI_TYPE_ID: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
+    case XL6_IR_C_ABI_U64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
     case XL6_IR_C_ABI_F64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F64; break;
     case XL6_IR_C_ABI_F32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F32; break;
     case XL6_IR_C_ABI_TIME_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_TIME; break;
@@ -102,13 +106,17 @@ static int xl6IrCallableBridgeResultPlan(
     memset(plan, 0, sizeof(*plan));
     plan->result = result; plan->type = signature->returns[result];
     plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
+    plan->nativeScalarProfile = xl6IrCallableNativeScalarProfile(type->cAbi);
     plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_NONE;
+    if (plan->nativeScalarProfile != XL6_NATIVE_SCALAR_NONE) {
+        plan->decodeAbi = plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR;
+        return 1;
+    }
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_BOOL; break;
     case XL6_IR_C_ABI_CHAR_U32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_CHAR; break;
     case XL6_IR_C_ABI_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_I64; break;
-    case XL6_IR_C_ABI_U64:
-    case XL6_IR_C_ABI_TYPE_ID: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
+    case XL6_IR_C_ABI_U64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
     case XL6_IR_C_ABI_F64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F64; break;
     case XL6_IR_C_ABI_F32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F32; break;
     case XL6_IR_C_ABI_TIME_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_TIME; break;
@@ -249,6 +257,7 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
             if (actual->parameter != expected.parameter || actual->type != expected.type ||
                 actual->decodeAbi != expected.decodeAbi || actual->encodeAbi != expected.encodeAbi ||
                 !xl6IrCallableBridgeIntegerDomainEqual(actual->integerDomain, expected.integerDomain) ||
+                actual->nativeScalarProfile != expected.nativeScalarProfile ||
                 actual->invokeAbi != expected.invokeAbi ||
                 actual->decodedDestroyAbi != expected.decodedDestroyAbi ||
                 actual->inputDestroyAbi != expected.inputDestroyAbi) goto malformed;
@@ -262,6 +271,7 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
             if (actual->result != expected.result || actual->type != expected.type ||
                 actual->decodeAbi != expected.decodeAbi || actual->encodeAbi != expected.encodeAbi ||
                 !xl6IrCallableBridgeIntegerDomainEqual(actual->integerDomain, expected.integerDomain) ||
+                actual->nativeScalarProfile != expected.nativeScalarProfile ||
                 actual->destroyAbi != expected.destroyAbi) goto malformed;
         }
     }
