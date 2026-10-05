@@ -1,0 +1,57 @@
+// Language Future containers still use value-v1; native slot cutover is separate.
+// Alias/nullable normalization must not reject their existing shared handles.
+typedef FutureAlias = future<int>
+typedef MaybeFutureAlias = FutureAlias?
+
+async func arrayFutureReady(int value) as int
+    return value
+end
+
+array<MaybeFutureAlias> jobs = [arrayFutureReady(11), null]
+array<MaybeFutureAlias> alias = jobs
+array<array<MaybeFutureAlias>> nested = [jobs]
+assert(alias.length == 2 and alias[1] == null)
+assert(nested[0][1] == null)
+auto absent = alias[1]
+assert(absent == null)
+auto first = alias[0]
+assert(first != null)
+if first != null then
+    assert(first.wait())
+    assert(await first == 11)
+end
+jobs[0] = null
+assert(jobs[0] == null)
+array<FutureAlias> required = [arrayFutureReady(22)]
+auto second = required[0]
+assert(second.wait())
+assert(await second == 22)
+auto safePresent = required?[0]
+auto safeAbsent = required?[9]
+assert(safeAbsent == null)
+if safePresent != null then
+    assert(await safePresent == 22)
+else
+    assert(false)
+end
+list<MaybeFutureAlias> sparse = [3: arrayFutureReady(33), 7: null]
+dict<MaybeFutureAlias> named = {"ready": arrayFutureReady(44), "absent": null}
+auto sparseFuture = sparse[3]
+auto namedFuture = named["ready"]
+auto sparseAbsent = sparse[7]
+auto namedAbsent = named["absent"]
+assert(sparseAbsent == null and namedAbsent == null)
+if sparseFuture != null and namedFuture != null then
+    assert(sparseFuture.wait() and namedFuture.wait())
+    assert(await sparseFuture == 33 and await namedFuture == 44)
+else
+    assert(false)
+end
+dict<FutureAlias> requiredNamed = {"ready": arrayFutureReady(55)}
+auto requiredNamedFuture = requiredNamed["ready"]
+assert(requiredNamedFuture.wait())
+assert(await requiredNamedFuture == 55)
+string readyKey = "ready"
+auto dynamicKeyFuture = requiredNamed[readyKey]
+assert(dynamicKeyFuture.wait())
+assert(await dynamicKeyFuture == 55)

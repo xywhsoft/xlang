@@ -48,4 +48,14 @@ XL6_TEXT_API xvalue* xl6ArrayNumericEnumCreateV1(uint64_t, uint64_t,
  * slots have a default. This policy owns scalar metadata, no module callback,
  * and does not independently certify a callback's ownership/retirement graph. */
 XL6_TEXT_API xvalue* xl6ArrayCallableCreateV1(uint64_t, uint64_t, uint64_t, bool);
+/* Actual xfuture* slots copy the native consumer reference. The owned policy
+ * traces those control blocks, not temporary boxes, and erased writes require
+ * the exact base Future identity and genuine runtime Future Value family.
+ * Native slots are statically typed by IR; this is not a payload-type test of
+ * arbitrary C pointers. Nonnullable growth is forbidden; nullable yields NULL.
+ * No generated descriptor, callback or code address is retained. */
+XL6_TEXT_API xvalue* xl6ArrayFutureCreateV1(uint64_t, uint64_t, uint64_t, bool);
+/* Exact resident graph capability; the Future policy still needs independent
+ * authorization by the caller's resolver, including its payload and waiters. */
+XL6_TEXT_API const XL6_SequenceAdmissionOpsV2* xl6ArrayFutureAdmissionOpsV2Get(void);
 #endif

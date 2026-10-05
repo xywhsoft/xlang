@@ -47,20 +47,20 @@ static bool defaultable(const void* opaque)
     const XL6_ArrayAdmissionData* data=opaque;
     return data->nullable || data->rule==XL6_VALUE_ADMIT_ANY || data->rule==XL6_VALUE_ADMIT_BYTES;
 }
-static const XL6_SequenceAdmissionOpsV1 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable,NULL};
-static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV1* ops)
+static const XL6_SequenceAdmissionOpsV2 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable,NULL,NULL};
+static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV2* ops)
 {
-    XL6_SequenceAdmissionV2 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
+    XL6_SequenceAdmissionV3 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
     xvalue* value=xl6ArrayCreateV1(identity,element,3,sizeof(xvalue*),xrtTypeValue());
     if (value) {
         XL6_Sequence* owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,
             identity,element,3,sizeof(xvalue*),xrtTypeValue());
-        if (!owner || !xl6SequenceAdmissionTakeV2(owner,&admission)) {
+        if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
             if (owner) xl6SequenceEndV1(owner);
             xerror* error=xrtTakeError(); xrtValueRelease(value); value=NULL;
             xrtClearError(); xrtSetErrorTake(error);
         } else xl6SequenceEndV1(owner);
     }
-    xl6SequenceAdmissionDropV2(&admission); return value;
+    xl6SequenceAdmissionDropV3(&admission); return value;
 }
 #endif

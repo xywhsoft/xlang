@@ -79,21 +79,21 @@ xvalue* xl6ArrayErasedCloneV1(const xvalue* source)
     XL6_Sequence* owner=begin(source,&layout,&converter);
     if (!owner) return NULL;
     xtypedarray* storage=xrtTypedArrayClone(xl6SequenceStorageV1(owner));
-    XL6_SequenceAdmissionV2 admission={0};
-    if (storage && !xl6SequenceAdmissionCopyV2(owner,&admission)) {
+    XL6_SequenceAdmissionV3 admission={0};
+    if (storage && !xl6SequenceAdmissionCopyV3(owner,&admission)) {
         xerror* error=xrtTakeError(); xrtTypedArrayDestroy(storage); storage=NULL;
         xrtClearError(); xrtSetErrorTake(error);
     }
     xl6SequenceEndV1(owner);
     xvalue* result=xl6SequenceWrapV1(storage,layout.identity,layout.elementIdentity,
         layout.transfer,layout.size,layout.type);
-    if (!result) { xl6SequenceAdmissionDropV2(&admission); return NULL; }
+    if (!result) { xl6SequenceAdmissionDropV3(&admission); return NULL; }
     owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,layout.identity,
         layout.elementIdentity,layout.transfer,layout.size,layout.type);
-    if (!owner || !xl6SequenceAdmissionTakeV2(owner,&admission) || !xl6SequenceBindProjectionV1(owner,converter)) {
+    if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission) || !xl6SequenceBindProjectionV1(owner,converter)) {
         if (owner) xl6SequenceEndV1(owner);
         xerror* saved=xrtTakeError(); xrtValueRelease(result); xrtClearError(); xrtSetErrorTake(saved);
-        xl6SequenceAdmissionDropV2(&admission);
+        xl6SequenceAdmissionDropV3(&admission);
         return NULL;
     }
     xl6SequenceEndV1(owner); return result;

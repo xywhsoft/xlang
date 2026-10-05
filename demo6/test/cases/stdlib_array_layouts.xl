@@ -92,9 +92,14 @@ end
 func layoutUnclosedSignature(array<func(future<int>) as int> functions) as int
     return functions.length
 end
-// Open function signatures and resource payloads must stay pending.
+// Open function signatures and unclosed resource payloads stay pending.
 func layoutUnclosed(array<function> functions, array<Stack<int>> stacks, array<future<int>> pending) as int
     return functions.length + stacks.length + pending.length
+end
+
+// Actual native Future slots have an independent owned-reference graph policy.
+func layoutFutures(array<future<int>> values, array<future<int>?> optional, array<array<future<int>>> nested) as int
+    return values.length + optional.length + nested.length
 end
 
 func layout_c_char(array<c_char> values) as int

@@ -2137,6 +2137,9 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
               element->kind == XL6_IR_TYPE_FUNCTION &&
               element->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
         operation = XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_CLOSURE_COPY;
+    else if (xl6IrFutureProjectionPayloadType(ctx->module, nullableTypeId,
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY) != XL6_IR_TYPE_INVALID)
+        operation = XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY;
     else if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
               nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
               nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
@@ -2173,6 +2176,9 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
     else if ( operation ==
              XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_CLOSURE_COPY )
         projection->calleeType = nullable->params[0];
+    else if ( operation == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY )
+        projection->payloadType = xl6IrFutureProjectionPayloadType(
+            ctx->module, nullableTypeId, operation);
     else if ( operation ==
              XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_XVALUE_RETAIN ) {
         projection->payloadType = nullable->params[0];
@@ -2381,14 +2387,10 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsFuture(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     XL6_IrValueId borrowed, XL6_IrTypeId futureTypeId)
 {
-    const XL6_IrType* future = ctx != NULL
-        ? xl6IrTypeGet(&ctx->module->types, futureTypeId) : NULL;
+    XL6_IrTypeId payload = ctx != NULL ? xl6IrFutureProjectionPayloadType(
+        ctx->module, futureTypeId, XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY) : XL6_IR_TYPE_INVALID;
     XL6_IrValueId result;
-    if ( ctx == NULL || borrowed == XL6_IR_VALUE_INVALID || future == NULL ||
-         future->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-         future->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-         future->paramCount != 1 || future->params == NULL ||
-         xl6IrTypeGet(&ctx->module->types, future->params[0]) == NULL ||
+    if ( ctx == NULL || borrowed == XL6_IR_VALUE_INVALID || payload == XL6_IR_TYPE_INVALID ||
          !xl6IrLowerTypeIsDynamicXValueBuiltin(
              ctx->module, xl6IrLowerValueType(ctx, borrowed)) )
         return XL6_IR_VALUE_INVALID;
@@ -2397,7 +2399,7 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsFuture(
         XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY, &borrowed, 1);
     if ( result != XL6_IR_VALUE_INVALID )
         ctx->module->instructions[
-            ctx->module->instructionCount - 1].payloadType = future->params[0];
+            ctx->module->instructionCount - 1].payloadType = payload;
     return result;
 }
 
@@ -2493,6 +2495,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
          resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
         return xl6IrLowerProjectBorrowedXValueAsClosure(
             ctx, origin, borrowed, resultTypeId);
+    if (resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
+        return xl6IrLowerProjectBorrowedXValueAsFuture(ctx, origin, borrowed, resultTypeId);
     if ( resultType->cAbi == XL6_IR_C_ABI_RAW_POINTER )
         return xl6IrLowerProjectBorrowedXValueAsRawPointer(
             ctx, origin, borrowed, resultTypeId);
@@ -5542,6 +5546,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
           resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
           resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
           resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
+          resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
           resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE) ) {
         XL6_IrValueId borrowed;
         dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
@@ -5837,6 +5842,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
                   (resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
                    resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
                    resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
+                   resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
                    resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE) ) {
             dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
             runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
@@ -5856,6 +5862,12 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
             dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
             runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
             closureProjection = 1;
+        }
+        else if (exactTypedDict && xl6IrFutureProjectionPayloadType(ctx->module,
+                     node->storageType, XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY) != XL6_IR_TYPE_INVALID) {
+            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
+            exactProjection = 1;
         }
         else if ( exactTypedDict && resultType->kind == XL6_IR_TYPE_CLASS &&
                   resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&
@@ -30644,7 +30656,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             size_t awaitInstruction;
             if ( node->childCount != 1 || node->storageType == XL6_IR_TYPE_INVALID ||
                   (futureNode = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild])) == NULL ||
-                  (futureType = xl6IrTypeGet(&ctx->module->types, futureNode->storageType)) == NULL ||
+                  (futureType = xl6IrTypeGet(&ctx->module->types, futureNode->type)) == NULL ||
                   futureType->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || futureType->paramCount != 1 ||
                   (errorPlan = xl6IrLowerExitPlan(ctx, id, XL6_SEM_EXIT_THROW)) == NULL ) {
                 xl6IrLowerDiag(ctx, id,

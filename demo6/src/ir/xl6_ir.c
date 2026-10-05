@@ -756,6 +756,7 @@ const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi abi)
     case XL6_IR_NATIVE_SLOT_C_FLOAT: return "c-float";
     case XL6_IR_NATIVE_SLOT_C_DOUBLE: return "c-double";
     case XL6_IR_NATIVE_SLOT_C_WCHAR: return "c-wchar";
+    case XL6_IR_NATIVE_SLOT_FUTURE_PTR: return "future-ptr";
     default: return "invalid";
     }
 }
@@ -819,6 +820,14 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
         result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
         result.codecAbi=XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1;
+    } else if (base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+        base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        base->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && base->paramCount==1 &&
+        base->params && xl6IrTypeGet(pool,base->params[0]) && base->typeValueId) {
+        result.abi=XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1;
+        result.slotAbi=XL6_IR_NATIVE_SLOT_FUTURE_PTR;
+        result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF;
+        result.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT;
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
@@ -866,6 +875,7 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
             child.abi==XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1
             ? XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     } else {
@@ -876,7 +886,8 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
         result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
+        result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
+        result.abi == XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
@@ -884,6 +895,7 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
             result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_ARRAY_DEFAULT_EMPTY_STRING :
             result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
             result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
+            result.abi == XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1 ||
             result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
             XL6_IR_ARRAY_DEFAULT_ZERO;
     }
@@ -942,6 +954,7 @@ const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
     case XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
     case XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
     case XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1: return "callable-reference-v1";
+    case XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1: return "future-reference-v1";
     default: return "invalid";
     }
 }
@@ -18124,6 +18137,31 @@ const char* xl6IrCallPreparationFailureAbiName(XL6_IrCallPreparationFailureAbi a
     }
 }
 
+XL6_IrTypeId xl6IrFutureProjectionPayloadType(const XL6_IrModule* module,
+    XL6_IrTypeId resultType, XL6_IrRuntimeOp operation)
+{
+    const XL6_IrType* future = module != NULL
+        ? xl6IrTypeGet(&module->types, resultType) : NULL;
+    if (operation == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY) {
+        const XL6_IrType* nullable = future;
+        if (nullable == NULL || nullable->kind != XL6_IR_TYPE_NULLABLE ||
+            nullable->paramCount != 1 || nullable->params == NULL ||
+            nullable->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+            nullable->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+            nullable->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL)
+            return XL6_IR_TYPE_INVALID;
+        future = xl6IrTypeGet(&module->types, nullable->params[0]);
+    } else if (operation != XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY)
+        return XL6_IR_TYPE_INVALID;
+    return future != NULL && future->kind != XL6_IR_TYPE_NULLABLE &&
+        future->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+        future->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        future->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+        future->paramCount == 1 && future->params != NULL &&
+        xl6IrTypeGet(&module->types, future->params[0]) != NULL
+        ? future->params[0] : XL6_IR_TYPE_INVALID;
+}
+
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeFutureMetadataErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
@@ -35067,6 +35105,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                XL6_IR_RUNTIME_XVALUE_PROJECT_STRING_COPY ||
                            instruction->runtimeOp ==
                                XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY ||
+                           instruction->runtimeOp ==
+                               XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY ||
                             instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_PROJECT_ERROR_REF ||
                             instruction->runtimeOp ==
@@ -37173,9 +37213,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags, NULL,
                                 "XLIR xvalue closure projection has no exact source, callable and ownership ABI");
                     } else if ( instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY ) {
-                        const XL6_IrType* resultType =
-                            xl6IrTypeGet(&module->types, instruction->type);
+                                XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY ||
+                                instruction->runtimeOp ==
+                                XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY ) {
+                        XL6_IrTypeId payload = xl6IrFutureProjectionPayloadType(
+                            module, instruction->type, instruction->runtimeOp);
                         if ( instruction->operandCount != 1 || left == NULL ||
                              !xl6IrTypeIsDynamicXValueBuiltin(
                                  module, left->type) ||
@@ -37186,17 +37228,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->calleeType != XL6_IR_TYPE_INVALID ||
                              instruction->runtimeIdentityType !=
                                  XL6_IR_TYPE_INVALID ||
-                             resultType == NULL ||
-                             resultType->cAbi !=
-                                 XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                             resultType->ownershipAbi !=
-                                 XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             resultType->paramCount != 1 ||
-                             resultType->params == NULL ||
-                             resultType->params[0] !=
-                                 instruction->payloadType ||
-                             xl6IrTypeGet(&module->types,
-                                 instruction->payloadType) == NULL )
+                             payload == XL6_IR_TYPE_INVALID ||
+                             payload != instruction->payloadType )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR xvalue Future projection has no exact borrowed source, payload and retained result ABI");
                     } else if ( instruction->runtimeOp ==
@@ -42667,6 +42700,8 @@ static const char* xl6IrRuntimeResourcePayloadAbiName(
         return "string-copy";
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN:
         return "xvalue-retain";
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF:
+        return "future-ref";
     default:
         return "invalid";
     }
@@ -43953,6 +43988,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
         return "xvalue-project-closure-copy";
     case XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY:
         return "xvalue-project-future-copy";
+    case XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY:
+        return "xvalue-project-nullable-future-copy";
     case XL6_IR_RUNTIME_XVALUE_PROJECT_NATIVE_HANDLE_BORROW:
         return "xvalue-project-native-handle-borrow";
     case XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX:

@@ -194,6 +194,7 @@ static int xl6SemBinaryIsContainerOp(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemClassHasTypeParams(const XL6_AstNode* classNode);
 static int xl6SemClassHasCreate(const XL6_AstNode* classNode);
 static const XL6_AstNode* xl6SemResolveAliasType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
+static int xl6SemIsSharedContainerFuture(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode* classNode);
 static const XL6_AstNode* xl6SemTypeNodeGenericArgs(const XL6_AstNode* typeNode);
 static const XL6_AstNode* xl6SemClassHandleTargetType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
@@ -1459,7 +1460,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
         const XL6_AstNode* itemType = args != NULL && args->kind == XL6_AST_LIST && args->childCount == 1 ?
                                       args->children[0] : NULL;
         if ( itemType != NULL &&
-             !xl6SemIsFutureLikeTypeName(itemType->text) &&
+             !xl6SemIsSharedContainerFuture(ctx, itemType) &&
              !xl6SemTypeUsesClassReferenceSemantics(ctx, itemType) &&
              !xl6SemTypeCanCopy(ctx, itemType) ) {
             xl6SemErrorNode(ctx, itemType, "typed container item type must be copyable");
@@ -2030,7 +2031,7 @@ static int xl6SemTypeCanCopyDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNo
                                       args->children[0] : NULL;
         /* future/task 在容器中使用共享句柄语义，容器复制会保留句柄引用。 */
         return itemType == NULL ||
-               xl6SemIsFutureLikeTypeName(itemType->text) ||
+               xl6SemIsSharedContainerFuture(ctx, itemType) ||
                xl6SemTypeUsesClassReferenceSemantics(ctx, itemType) ||
                xl6SemTypeCanCopyDepth(ctx, itemType, depth + 1);
     }
@@ -11976,6 +11977,28 @@ static int xl6SemIsFutureLikeTypeName(const char* name)
     return xl6TextEquals(name, "future") || xl6TextEquals(name, "task");
 }
 
+/* Containers retain shared Future handles, including nullable/aliased items.
+ * This is deliberately not the general resource copy predicate: a standalone
+ * Future still follows its existing resource transfer rules. */
+static int xl6SemIsSharedContainerFuture(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    int depth;
+
+    for ( depth = 0; typeNode != NULL && depth <= 32; ++depth ) {
+        const XL6_AstNode* args;
+        typeNode = xl6SemResolveAliasType(ctx, typeNode);
+        if ( typeNode == NULL ) return 0;
+        if ( xl6SemTypeIsNullable(typeNode) ) {
+            typeNode = xl6SemNullableInnerType(typeNode);
+            continue;
+        }
+        args = xl6SemTypeNodeGenericArgs(typeNode);
+        return xl6SemIsFutureLikeTypeName(typeNode->text) &&
+               args != NULL && args->childCount == 1 && args->children[0] != NULL;
+    }
+    return 0;
+}
+
 static int xl6SemTypeIsFutureLikeResource(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;
@@ -14216,6 +14239,24 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
     if ( expr->kind == XL6_AST_TYPED_LITERAL ) {
         return expr->childCount > 0 &&
                xl6SemExprIsFreshTypeValue(ctx, expr->children[0]);
+    }
+
+    /* A typed collection lookup projects a separately retained Future owner,
+     * not a copy of local linear storage. Do not apply this exception to user
+     * getters or arbitrary resource elements. Lowering must still prove the
+     * exact projection/ownership contract. */
+    if ( (expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX) &&
+         expr->childCount > 0 ) {
+        XL6_AstNode* receiverType = xl6SemInferAutoTypeNode(
+            ctx, (XL6_AstNode*)expr->children[0]);
+        int typed = 0;
+        XL6_SemContainerKind kind = xl6SemContainerKindFromType(ctx, receiverType, &typed);
+        int fresh = typed &&
+            (kind == XL6_SEM_CONTAINER_ARRAY || kind == XL6_SEM_CONTAINER_LIST ||
+             kind == XL6_SEM_CONTAINER_DICT) &&
+            xl6SemIsSharedContainerFuture(ctx, xl6SemContainerItemType(ctx, receiverType));
+        xl6AstFree(receiverType);
+        return fresh;
     }
 
     if ( expr->kind == XL6_AST_ARRAY_LITERAL ||

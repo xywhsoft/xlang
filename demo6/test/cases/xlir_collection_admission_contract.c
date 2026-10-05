@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <wchar.h>
+#include <stdlib.h>
 
 static void rejected(const XL6_IrModule* ir)
 {
@@ -60,6 +61,7 @@ static const xrttype* descriptor(XL6_IrNativeSlotAbi abi)
     case XL6_IR_NATIVE_SLOT_STRING: return xl6StringTypeV1();
     case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return xl6NullableStringTypeV1();
     case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return xrtTypeValue();
+    case XL6_IR_NATIVE_SLOT_FUTURE_PTR: return xrtTypeFuture();
     case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return xl6NullableBoolTypeV1();
     case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return xl6NullableI64TypeV1();
     case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return xl6NullableU64TypeV1();
@@ -86,6 +88,7 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
         plan->abi != XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 &&
+        plan->abi != XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) return 0;
     const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&ir->types,plan->baseElementType);
@@ -93,7 +96,11 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
     const xrttype* physical=descriptor(plan->slotAbi);
     assert(physical);
     xvalue* value=NULL;
-    if (plan->abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
+    if (plan->abi == XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1) {
+        assert(base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR && !element->nativeSlotAbi &&
+            plan->slotAbi==XL6_IR_NATIVE_SLOT_FUTURE_PTR && plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
+        value=xl6ArrayFutureCreateV1(type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
         assert(base->kind==XL6_IR_TYPE_FUNCTION && base->cAbi==XL6_IR_C_ABI_CLOSURE_PTR &&
             xl6IrRuntimeCallableClosureToXValueSignatureSupported(ir,plan->baseElementType) &&
             !element->nativeSlotAbi && !plan->admissionAbi &&
@@ -215,7 +222,15 @@ static void layouts(XL6_IrModule* ir)
         assert(type->paramCount == 1 && saved.elementType == type->params[0]);
         const XL6_IrType* element=xl6IrTypeGet(&ir->types,saved.elementType);
         assert(element);
-        if (saved.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
+        if (saved.abi==XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1) {
+            assert(!element->nativeSlotAbi && saved.slotAbi==XL6_IR_NATIVE_SLOT_FUTURE_PTR &&
+                saved.codecAbi==XL6_IR_ARRAY_CODEC_DIRECT && saved.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
+            XL6_IrType* future=&ir->types.items[saved.baseElementType-1];
+            XL6_IrTypeId* parameters=future->params; future->params=NULL;
+            XL6_IrArrayLayout derived=xl6IrArrayLayoutForType(&ir->types,type);
+            assert(derived.abi==XL6_IR_ARRAY_LAYOUT_PENDING_SLOT && !derived.codecAbi);
+            rejected(ir); ++mutations; future->params=parameters;
+        } else if (saved.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
             assert(!element->nativeSlotAbi && saved.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                 saved.codecAbi==XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1);
             type->arrayLayout.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT; rejected(ir); ++mutations;
@@ -326,9 +341,75 @@ static void numericEnums(XL6_IrModule* ir)
         binds,nullableBoxes,mutations);
 }
 
+static void futureProjectionContracts(XL6_IrModule* ir)
+{
+    unsigned projections = 0, mutations = 0;
+    for (size_t i = 0; i < ir->instructionCount; ++i) {
+        XL6_IrInstruction* instruction = &ir->instructions[i];
+        XL6_IrRuntimeOp operation = instruction->runtimeOp;
+        if (operation != XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY &&
+            operation != XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY) continue;
+        XL6_IrTypeId payload = instruction->payloadType;
+        assert(payload == xl6IrFutureProjectionPayloadType(ir, instruction->type, operation));
+        instruction->payloadType = XL6_IR_TYPE_INVALID; rejected(ir); ++mutations;
+        instruction->payloadType = instruction->type; rejected(ir); ++mutations;
+        instruction->payloadType = payload;
+        instruction->runtimeOp = operation == XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY
+            ? XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY : XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY;
+        rejected(ir); ++mutations; instruction->runtimeOp = operation;
+        XL6_IrTypeId callee = instruction->calleeType;
+        instruction->calleeType = instruction->type; rejected(ir); ++mutations;
+        instruction->calleeType = callee;
+        XL6_IrTypeId identity = instruction->runtimeIdentityType;
+        instruction->runtimeIdentityType = instruction->type; rejected(ir); ++mutations;
+        instruction->runtimeIdentityType = identity;
+        assert(xl6IrVerifyModule(ir, NULL)); ++projections;
+    }
+    if (projections) printf("Future projection contracts: %u projections; %u payload/nullability/metadata mutations refused before C/header output\n",
+        projections, mutations);
+}
+
+static void futureContainerSemantics(void)
+{
+    const struct { const char* source; bool accepted; } cases[] = {
+        {"func good(array<future<int>> values)\n auto item = values[0]\nend\n", true},
+        {"func good(array<future<int>?> values)\n auto item = values[0]\nend\n", true},
+        {"typedef F = future<int>\ntypedef MaybeF = F?\n"
+         "func good(array<MaybeF> values)\n auto item = values[0]\nend\n", true},
+        {"func good(list<future<int>?> values)\n auto item = values[0]\nend\n", true},
+        {"func good(dict<future<int>?> values)\n auto item = values[\"a\"]\nend\n", true},
+        {"func bad(future<int> value)\n auto copy = value\nend\n", false},
+        {"func bad(future<int>? value)\n auto copy = value\nend\n", false},
+        {"typedef F = future<int>\nfunc bad(F value)\n auto copy = value\nend\n", false},
+        {"func bad(array<mutex?> values)\nend\n", false},
+        {"func bad(array<generator<int>?> values)\nend\n", false},
+        {"func bad(list<mutex?> values)\nend\n", false},
+        {"func bad(dict<mutex?> values)\nend\n", false}
+    };
+    unsigned accepted = 0, rejectedCount = 0;
+    for (size_t i = 0; i < sizeof(cases)/sizeof(cases[0]); ++i) {
+        XL6_ParseResult parse; xl6ParseResultInit(&parse);
+        assert(xl6ParseSource(cases[i].source, "future-container-semantics", &parse));
+        assert(xl6StdlibExpandModule(parse.root, &parse.diags));
+        bool ok = xl6SemCheckModule(parse.root, &parse.diags, "future_container_semantics") != 0;
+        if (ok != cases[i].accepted) {
+            fprintf(stderr, "Future container semantics case %zu failed\n", i);
+            for (size_t d = 0; d < parse.diags.count; ++d)
+                fprintf(stderr, "%s\n", parse.diags.items[d].message);
+            abort();
+        }
+        if (ok) { assert(!parse.diags.count); ++accepted; }
+        else { assert(parse.diags.count); ++rejectedCount; }
+        xl6ParseResultFree(&parse);
+    }
+    printf("Future container semantics: %u accepted; %u independent copy/resource refusals\n",
+        accepted, rejectedCount);
+}
+
 int main(int argc, char** argv)
 {
     assert(argc==3 || (argc==4 && strcmp(argv[3],"numeric-enums")==0));
+    futureContainerSemantics();
     int ok=0; unsigned checked=0, unrelated=0;
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output output;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
@@ -336,6 +417,7 @@ int main(int argc, char** argv)
         !xl6SemCheckModule(parse.root,&parse.diags,"collection_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
+    futureProjectionContracts(&ir);
     numericEnums(&ir);
     if (argc==3) layouts(&ir);
     unsigned defaults=0;

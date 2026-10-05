@@ -45,18 +45,18 @@ static void snapshotVectors(const Spec* s)
 static void metadataVectors(const Spec* s)
 {
     xvalue* source=populated(s);
-    XL6_SequenceAdmissionV2 metadata={0};
+    XL6_SequenceAdmissionV3 metadata={0};
     XL6_Sequence* pin=xl6SequenceBeginRoleV1(source,XL6_SEQUENCE_ARRAY_V1,LAYOUT(s));
-    assert(pin && xl6SequenceAdmissionCopyV2(pin,&metadata)); xl6SequenceEndV1(pin);
+    assert(pin && xl6SequenceAdmissionCopyV3(pin,&metadata)); xl6SequenceEndV1(pin);
     assert(metadata.boxedIdentity==s->identity);
     xvalue* target=xl6ArrayCreateV1(LAYOUT(s)); assert(target);
     pin=xl6SequenceBeginRoleV1(target,XL6_SEQUENCE_ARRAY_V1,LAYOUT(s)); assert(pin);
     metadata.boxedIdentity=0;
     /* Malformed data remains the native caller's responsibility. */
-    assert(!xl6SequenceAdmissionTakeV2(pin,&metadata)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceAdmissionTakeV3(pin,&metadata)); error(XERR_ARGUMENT);
     assert(metadata.ops && metadata.data);
     metadata.boxedIdentity=s->identity;
-    assert(xl6SequenceAdmissionTakeV2(pin,&metadata) && !metadata.ops && !metadata.data);
+    assert(xl6SequenceAdmissionTakeV3(pin,&metadata) && !metadata.ops && !metadata.data);
     assert(xl6SequenceBoxedIdentityV1(pin)==s->identity); xl6SequenceEndV1(pin);
     assert(xl6ArrayAppendV1(target,source,LAYOUT(s)));
     xvalue* alias=xl6ArrayEraseV1(target,LAYOUT(s),s->converter); assert(alias);
@@ -66,11 +66,11 @@ static void metadataVectors(const Spec* s)
      * bool/null stay canonical singletons and cannot carry such metadata. */
     if (s->rule!=XL6_VALUE_ADMIT_BOOL) {
         pin=xl6SequenceBeginRoleV1(source,XL6_SEQUENCE_ARRAY_V1,LAYOUT(s));
-        assert(pin && xl6SequenceAdmissionCopyV2(pin,&metadata)); xl6SequenceEndV1(pin);
+        assert(pin && xl6SequenceAdmissionCopyV3(pin,&metadata)); xl6SequenceEndV1(pin);
         ++metadata.boxedIdentity;
         target=xl6ArrayCreateV1(LAYOUT(s)); assert(target);
         pin=xl6SequenceBeginRoleV1(target,XL6_SEQUENCE_ARRAY_V1,LAYOUT(s)); assert(pin);
-        assert(xl6SequenceAdmissionTakeV2(pin,&metadata)); xl6SequenceEndV1(pin);
+        assert(xl6SequenceAdmissionTakeV3(pin,&metadata)); xl6SequenceEndV1(pin);
         xvalue* good=element(s); Slot slot={0}; toSlot(s,good,&slot);
         assert(xl6ArrayPushV1(target,LAYOUT(s),&slot)); xrtTypeDropValue(s->type,&slot);
         alias=xl6ArrayEraseV1(target,LAYOUT(s),s->converter); assert(alias);
