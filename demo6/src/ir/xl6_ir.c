@@ -728,12 +728,13 @@ const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi)
     }
 }
 
-XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
+static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool,
+    const XL6_IrType* type,size_t depth)
 {
     XL6_IrArrayLayout result={0};
     const XL6_IrType* element;
     const XL6_IrType* base;
-    if (!pool || !type || type->collectionAbi != XL6_IR_COLLECTION_ARRAY)
+    if (!pool || !type || depth>64 || type->collectionAbi != XL6_IR_COLLECTION_ARRAY)
         return result;
     /* Both untyped builtins and erased zero-parameter generic rows occur in
      * the canonical pool. Neither has an element recipe; do not recover an
@@ -786,21 +787,37 @@ XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool, const XL6_
         /* The module's closed nominal identity set is still required at the
          * operation boundary. This recipe does not invent a set from a name. */
         result.abi=XL6_IR_ARRAY_LAYOUT_NOMINAL_V2;
+    } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               base->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
+        /* A child is admitted by its owned, sealed native Array domain. Its
+         * constructor must itself have a complete recipe. Re-derive rather
+         * than trust cached metadata; bound malformed recursive graphs. */
+        XL6_IrArrayLayout child=xl6IrArrayLayoutForTypeDepth(pool,base,depth+1);
+        result.abi=child.abi==XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1
+            ? XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     } else {
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     }
     if (result.abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) {
+        result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
             result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
             result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_ARRAY_DEFAULT_EMPTY_STRING :
-            result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
+            result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
+            result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
             XL6_IR_ARRAY_DEFAULT_ZERO;
     }
     return result;
 }
+
+XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{ return xl6IrArrayLayoutForTypeDepth(pool,type,0); }
 
 int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout* left, const XL6_IrArrayLayout* right)
 {
@@ -836,6 +853,7 @@ const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
     case XL6_IR_ARRAY_LAYOUT_PENDING_SLOT: return "pending-slot";
     case XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN: return "pending-domain";
     case XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1: return "c-scalar-v1";
+    case XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1: return "sequence-reference-v1";
     default: return "invalid";
     }
 }

@@ -75,14 +75,19 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
     const XL6_IrArrayLayout* plan=&type->arrayLayout;
     if (plan->abi != XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) return 0;
+        plan->abi != XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 &&
+        plan->abi != XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) return 0;
     const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&ir->types,plan->baseElementType);
     assert(element && base && type->typeValueId && element->typeValueId && base->typeValueId);
     const xrttype* physical=descriptor(plan->slotAbi);
     assert(physical);
     xvalue* value=NULL;
-    if (plan->abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) {
+    if (plan->abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
+        assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN && !plan->admissionAbi);
+        value=xl6ArraySequenceCreateV1(type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) {
         assert(!plan->nullable && !plan->admissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
             plan->defaultAbi==XL6_IR_ARRAY_DEFAULT_ZERO);
@@ -115,7 +120,8 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
         assert(xl6ArraySizeV1(value,LAYOUT,false) == 0);
     } else {
         assert(!xrtGetError() && xl6ArraySizeV1(value,LAYOUT,false) == 1);
-        if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2) {
+        if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 ||
+            plan->abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
             xvalue* item=NULL; xl6ArrayReadV1(value,LAYOUT,0,&item);
             assert(!xrtGetError());
             if (plan->defaultAbi == XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES) {
@@ -173,6 +179,23 @@ static void layouts(XL6_IrModule* ir)
         assert(saved.nullable == (element->kind == XL6_IR_TYPE_NULLABLE));
         assert(saved.baseElementType == (saved.nullable ? element->params[0] : saved.elementType));
         assert(saved.admissionAbi == element->xvalueAdmissionAbi);
+        if (saved.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
+            XL6_IrType* base=&ir->types.items[saved.baseElementType-1];
+            assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY);
+            XL6_IrArrayLayout childSaved=base->arrayLayout;
+            base->arrayLayout.abi=(XL6_IrArrayLayoutAbi)UINT32_MAX;
+            XL6_IrArrayLayout derived=xl6IrArrayLayoutForType(&ir->types,type);
+            assert(xl6IrArrayLayoutEqual(&derived,&saved)); /* Never trust child cache. */
+            base->arrayLayout=childSaved;
+            if (base->paramCount==1) {
+                XL6_IrTypeId parameter=base->params[0];
+                base->params[0]=saved.baseElementType; /* Malformed self-recursive type graph. */
+                derived=xl6IrArrayLayoutForType(&ir->types,type);
+                assert(derived.abi==XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN);
+                rejected(ir); ++mutations;
+                base->params[0]=parameter;
+            }
+        }
         resident+=residentRecipe(ir,type);
     }
     assert(xl6IrVerifyModule(ir,NULL));

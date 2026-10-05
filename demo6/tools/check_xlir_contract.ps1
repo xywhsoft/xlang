@@ -1210,6 +1210,7 @@ $lengthProtocolMemberGate = Read-Utf8 "tools\check_xlir_length_protocol_member.p
 $classFieldMemberAbiGate = Read-Utf8 "tools\check_xlir_class_field_member_abi.ps1"
 $rangeForAbiGate = Read-Utf8 "tools\check_xlir_range_for_abi.ps1"
 $arrayI64ForAbiGate = Read-Utf8 "tools\check_xlir_array_i64_for_abi.ps1"
+$collectionContinuationGate = Read-Utf8 "tools\check_stdlib_collection_continuations.py"
 $xvalueIteratorAbiGate = Read-Utf8 "tools\check_xlir_xvalue_iterator_abi.ps1"
 $setI64IteratorAbiGate = Read-Utf8 "tools\check_xlir_set_i64_iterator_abi.ps1"
 $iteratorScalarProjectionGate = Read-Utf8 "tools\check_xlir_xvalue_iterator_scalar_projection.ps1"
@@ -4203,10 +4204,17 @@ foreach ( $required in @(
     "unique canonical exit release", "call/return admission",
     "local and outward exception routing", "return/throw/finally cleanup",
     "non-container excluded from array ABI",
-    "runtime snapshot/transfer semantics", "mechanical C", "-Werror"
+    "runtime snapshot/transfer semantics", "mechanical C", "strict compile",
+    "check_stdlib_collection_continuations.py", "--array-only"
 ) ) {
     if ( ! $arrayI64ForAbiGate.Contains($required) ) {
         throw "XLIR array<i64> for ABI quality gate is incomplete: $required"
+    }
+}
+foreach ( $required in @("'-std=c11'", "'-Wall'", "'-Wextra'", "'-Werror'",
+    "for level in [0,2]", "InputsUnchanged", "--array-only", "--multi-only", "--strings-only") ) {
+    if ( ! $collectionContinuationGate.Contains($required) ) {
+        throw "XLIR collection continuation strict-C child gate is incomplete: $required"
     }
 }
 foreach ( $required in @(

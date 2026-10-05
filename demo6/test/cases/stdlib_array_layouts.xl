@@ -8,6 +8,11 @@ func layoutTypeIds(array<type> values) as int
     return values.length
 end
 
+// Nested recipes must stay pending when the child's slot/domain is unclosed.
+func layoutUnclosed(array<array<func(int) as int>> functions, array<Stack<int>> stacks) as int
+    return functions.length + stacks.length
+end
+
 func layoutCScalars(array<c_char> a, array<c_schar> b, array<c_uchar> c,
     array<c_short> d, array<c_ushort> e, array<c_int> f, array<c_uint> g,
     array<c_long> h, array<c_ulong> i, array<c_longlong> j, array<c_ulonglong> k,
@@ -52,6 +57,8 @@ func main(...) as int
     array<LayoutItem> objects = [LayoutItem()]
     array<LayoutItem?> optionalObjects = [LayoutItem(), null]
     array<array<int>> nested = [[1, 2], [3]]
+    array<array<int>?> optionalNested = [[1], null]
+    array<array<array<int>>> deepNested = [[[1, 2]]]
     array<func(int) as int> functions = [func(int value) as int
         return value + 1
     end]
@@ -65,5 +72,6 @@ func main(...) as int
     assert(ntime[1] == null and ntext[1] == null and nbytes[1] == null)
     assert(objects[0].value == 7 and optionalObjects[1] == null)
     assert(nested[0][1] == 2 and functions[0](7) == 8)
+    assert(optionalNested[1] == null and deepNested[0][0][1] == 2)
     return 0
 end
