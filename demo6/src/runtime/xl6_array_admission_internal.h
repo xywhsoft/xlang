@@ -50,17 +50,17 @@ static bool defaultable(const void* opaque)
 static const XL6_SequenceAdmissionOpsV1 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable,NULL};
 static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV1* ops)
 {
-    XL6_SequenceAdmissionV1 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue()};
+    XL6_SequenceAdmissionV2 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
     xvalue* value=xl6ArrayCreateV1(identity,element,3,sizeof(xvalue*),xrtTypeValue());
     if (value) {
         XL6_Sequence* owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,
             identity,element,3,sizeof(xvalue*),xrtTypeValue());
-        if (!owner || !xl6SequenceAdmissionTakeV1(owner,&admission)) {
+        if (!owner || !xl6SequenceAdmissionTakeV2(owner,&admission)) {
             if (owner) xl6SequenceEndV1(owner);
             xerror* error=xrtTakeError(); xrtValueRelease(value); value=NULL;
             xrtClearError(); xrtSetErrorTake(error);
         } else xl6SequenceEndV1(owner);
     }
-    xl6SequenceAdmissionDropV1(&admission); return value;
+    xl6SequenceAdmissionDropV2(&admission); return value;
 }
 #endif

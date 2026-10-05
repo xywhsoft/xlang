@@ -206,13 +206,13 @@ static void vectors(void)
     assert(xl6ArrayAppendV1(copy,copy,LAYOUT) && xl6ArraySizeV1(copy,LAYOUT,false)==4);
     /* Reject a policy copied onto another physical carrier before invoking
      * its pointer-slot predicate (integer bits are not a Value address). */
-    XL6_SequenceAdmissionV1 policy={0};
+    XL6_SequenceAdmissionV2 policy={0};
     XL6_Sequence* owner=xl6SequenceBeginRoleV1(copy,XL6_SEQUENCE_ARRAY_V1,LAYOUT); assert(owner);
-    assert(xl6SequenceAdmissionCopyV1(owner,&policy)); xl6SequenceEndV1(owner);
+    assert(xl6SequenceAdmissionCopyV2(owner,&policy)); xl6SequenceEndV1(owner);
     xvalue* scalar=xl6ArrayCreateV1(1003,2001,1,sizeof(int64_t),xrtTypeInt64()); assert(scalar);
     int64_t bits=INT64_MAX; assert(xl6ArrayPushV1(scalar,1003,2001,1,sizeof(int64_t),xrtTypeInt64(),&bits));
     owner=xl6SequenceBeginRoleV1(scalar,XL6_SEQUENCE_ARRAY_V1,1003,2001,1,sizeof(int64_t),xrtTypeInt64());
-    assert(owner && !xl6SequenceAdmissionTakeV1(owner,&policy)); error(XERR_ARGUMENT);
+    assert(owner && !xl6SequenceAdmissionTakeV2(owner,&policy)); error(XERR_ARGUMENT);
     assert(!policy.ops && !policy.data); xl6SequenceEndV1(owner); xrtValueRelease(scalar);
     xrtValueRelease(value); xrtValueRelease(copy); xrtValueRelease(erasedCopy); xrtValueRelease(cursor);
     value=create(true); assert(value && xl6ArrayResizeV1(value,LAYOUT,2));

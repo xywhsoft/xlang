@@ -66,7 +66,7 @@ struct XL6_Sequence {
     XL6_SequenceRoleV1 role;
     bool projectionBound;
     const xvalueconverter* projection;
-    XL6_SequenceAdmissionV1 admission;
+    XL6_SequenceAdmissionV2 admission;
     xatomic32 busy;
     const void* claim;
     xtypedarray* retired;
@@ -98,7 +98,7 @@ static void drop(void* opaque, void* user)
     /* Detach first: destruction may invoke language object/allocator hooks. */
     xtypedarray* storage = owner->storage; owner->storage = NULL;
     mutationEnd(&mutation);
-    xrtTypedArrayDestroy(storage); xl6SequenceAdmissionDropV1(&owner->admission); xrtFree(owner);
+    xrtTypedArrayDestroy(storage); xl6SequenceAdmissionDropV2(&owner->admission); xrtFree(owner);
     xrtClearError(); xrtSetErrorTake(saved);
 }
 static bool retain(void* opaque, void** result, void* user)
@@ -146,45 +146,46 @@ XL6_SequenceIteratorStateV1* xl6SequenceIteratorStateV1(XL6_Sequence* owner)
 }
 static bool pinned(const XL6_Sequence* owner)
 { return owner && xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) && !owner->cleared && owner->storage; }
-static bool policyValid(const XL6_SequenceAdmissionV1* policy)
+static bool policyValid(const XL6_SequenceAdmissionV2* policy)
 {
     return policy && ((!policy->ops && !policy->data && !policy->elementIdentity && !policy->transfer &&
-        !policy->size && !policy->type) || (policy->ops && policy->data && policy->elementIdentity &&
+        !policy->size && !policy->type && !policy->boxedIdentity) || (policy->ops && policy->data && policy->elementIdentity &&
         policy->transfer>=1 && policy->transfer<=3 && policy->size && policy->type &&
+        ((policy->transfer==3)==(!policy->boxedIdentity)) &&
         policy->ops->Retain && policy->ops->Drop && policy->ops->Slot && policy->ops->Value &&
         policy->ops->Equivalent && policy->ops->Defaultable));
 }
-void xl6SequenceAdmissionDropV1(XL6_SequenceAdmissionV1* policy)
+void xl6SequenceAdmissionDropV2(XL6_SequenceAdmissionV2* policy)
 {
     if (!policy || !policyValid(policy)) abort();
-    XL6_SequenceAdmissionV1 saved=*policy; *policy=(XL6_SequenceAdmissionV1){0};
+    XL6_SequenceAdmissionV2 saved=*policy; *policy=(XL6_SequenceAdmissionV2){0};
     if (saved.ops) {
         xerror* error=xrtTakeError(); saved.ops->Drop(saved.data);
         xrtClearError(); xrtSetErrorTake(error);
     }
 }
-bool xl6SequenceAdmissionCopyV1(XL6_Sequence* owner, XL6_SequenceAdmissionV1* target)
+bool xl6SequenceAdmissionCopyV2(XL6_Sequence* owner, XL6_SequenceAdmissionV2* target)
 {
     if (!pinned(owner) || !target || !policyValid(target) || target->ops) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     if (owner->admission.ops && !owner->admission.ops->Retain(owner->admission.data)) return false;
     *target=owner->admission; return true;
 }
-bool xl6SequenceAdmissionTakeV1(XL6_Sequence* owner, XL6_SequenceAdmissionV1* source)
+bool xl6SequenceAdmissionTakeV2(XL6_Sequence* owner, XL6_SequenceAdmissionV2* source)
 {
     if (!policyValid(source)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     if (!pinned(owner) || (owner->role!=XL6_SEQUENCE_ARRAY_V1 && owner->role!=XL6_SEQUENCE_CURSOR_V1) ||
         owner->admission.ops || owner->admission.data || (source->ops &&
         (source->elementIdentity!=owner->elementIdentity || source->transfer!=owner->transfer ||
          source->size!=owner->size || source->type!=owner->type))) {
-        xrtSetErrorKind(XERR_ARGUMENT); xl6SequenceAdmissionDropV1(source); return false;
+        xrtSetErrorKind(XERR_ARGUMENT); xl6SequenceAdmissionDropV2(source); return false;
     }
     /* Cloned storage is allowed, but every already-owned reference must
      * satisfy the policy before it becomes visible on this owner. */
     if (source->ops) for (size_t i=0;i<xrtTypedArrayCount(owner->storage);++i)
         if (!source->ops->Slot(source->data,xrtTypedArrayConstGet(owner->storage,i))) {
-            xrtSetErrorKind(XERR_TYPE); xl6SequenceAdmissionDropV1(source); return false;
+            xrtSetErrorKind(XERR_TYPE); xl6SequenceAdmissionDropV2(source); return false;
         }
-    owner->admission=*source; *source=(XL6_SequenceAdmissionV1){0}; return true;
+    owner->admission=*source; *source=(XL6_SequenceAdmissionV2){0}; return true;
 }
 bool xl6SequenceAdmitSlotV1(XL6_Sequence* owner, const void* slot)
 {
@@ -206,10 +207,16 @@ bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence* left, XL6_Sequence* right)
 {
     if (!pinned(left) || !pinned(right)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     if (left->admission.ops!=right->admission.ops ||
+        left->admission.boxedIdentity!=right->admission.boxedIdentity ||
         (left->admission.ops && !left->admission.ops->Equivalent(left->admission.data,right->admission.data))) {
         xrtSetErrorKind(XERR_TYPE); return false;
     }
     return true;
+}
+uint64_t xl6SequenceBoxedIdentityV1(XL6_Sequence* owner)
+{
+    if (!pinned(owner)) abort();
+    return owner->admission.boxedIdentity;
 }
 bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence* owner)
 {
@@ -221,7 +228,7 @@ bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence* owner)
 }
 static bool initDefault(ptr slot,const xrttype* type,ptr context)
 {
-    const XL6_SequenceAdmissionV1* policy=context;
+    const XL6_SequenceAdmissionV2* policy=context;
     if (!policy->ops->InitDefault(policy->data,slot)) return false;
     if (policy->ops->Slot(policy->data,slot)) return true;
     xrtSetErrorKind(XERR_TYPE);
@@ -232,7 +239,7 @@ bool xl6SequenceResizeStorageV1(XL6_Sequence* owner,size_t count)
 {
     if (!pinned(owner)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     if (count>xrtTypedArrayCount(owner->storage) && !xl6SequenceAdmissionDefaultableV1(owner)) return false;
-    const XL6_SequenceAdmissionV1* policy=&owner->admission;
+    const XL6_SequenceAdmissionV2* policy=&owner->admission;
     return xrtTypedArrayResizeWithInitializer(owner->storage,count,
         policy->ops && policy->ops->InitDefault ? initDefault : NULL,(ptr)policy);
 }

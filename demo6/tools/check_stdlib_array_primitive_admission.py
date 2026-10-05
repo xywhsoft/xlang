@@ -21,6 +21,7 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--sanitize", action="store_true")
     parser.add_argument("--shared", action="store_true", help="Actual shared product ABI; sanitizer instruments host only")
+    parser.add_argument("--projections", action="store_true", help="Exact owned boxed identity, snapshots, V2 metadata and rollback")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
@@ -28,11 +29,13 @@ def main() -> int:
     objdump = shutil.which("objdump") if args.shared and os.name == "nt" else None
     if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc/nm, fresh evidence and Linux for sanitizers")
-    host = "test/cases/stdlib_array_primitive_admission_native_host.c"
+    host = "test/cases/stdlib_array_projection_identity_native_host.c" if args.projections else "test/cases/stdlib_array_primitive_admission_native_host.c"
     common = ["test/support/array_value_native.c", "src/runtime/xl6_sequence.c",
               "src/runtime/xl6_array.c", "src/runtime/xl6_array_iterator.c", "src/runtime/xl6_array_erased.c",
               "src/runtime/xl6_array_reference_value.c", "src/runtime/xl6_ownership_plan.c",
               "src/runtime/xl6_array_primitive_admission.c", "src/runtime/xl6_value_admission.c"]
+    if args.projections:
+        common += ["src/runtime/xl6_array_value.c"]
     profiles = [[], *[[f"src/runtime/xl6_nullable_{name}.c", f"src/runtime/xl6_nullable_{name}_value.c"]
         for name in ("bool", "i64", "u64", "f32", "f64", "time", "char")],
         ["src/runtime/xl6_char_type.c", "src/runtime/xl6_char_value.c"],
@@ -42,6 +45,8 @@ def main() -> int:
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host,
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
     files += [root / name for name in common + [p for profile in profiles for p in profile]]
+    if args.projections:
+        files += [root / "test/cases/stdlib_array_primitive_admission_native_host.c",root / "test/cases/stdlib_sequence_retired_admission_abi.c"]
     if args.shared:
         files += [product]
         if objdump:
@@ -57,6 +62,7 @@ def main() -> int:
               "Scope": __doc__, "SharedRuntime": args.shared, "Sanitized": args.sanitize,
               "RuntimeInstrumented": args.sanitize and not args.shared,
               "Inputs": inputs, "Rows": rows, "Sweeps": sweeps, "Profiles": len(profiles)}
+    report["Projections"] = args.projections
     env = dict(os.environ)
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-I.", "-Irelease", "-Irelease/include"]
     links = [] if os.name == "nt" else ["-pthread", "-lm"]
@@ -67,12 +73,13 @@ def main() -> int:
         env.update(ASAN_OPTIONS="detect_stack_use_after_return=1:detect_leaks=1:halt_on_error=1",
                    UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
 
-    def run(name: str, command: list[str]) -> str:
+    def run(name: str, command: list[str], reject: bool = False) -> str:
         result = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=60)
         data = result.stdout + result.stderr
         (out / (name + ".log")).write_bytes(data)
-        rows.append({"Name": name, "Command": command, "Exit": result.returncode, "Complete": result.returncode == 0})
-        if result.returncode:
+        complete = result.returncode != 0 if reject else result.returncode == 0
+        rows.append({"Name": name, "Command": command, "Exit": result.returncode, "Complete": complete})
+        if not complete:
             raise RuntimeError(f"{name}: {data[-4000:].decode(errors='replace')}")
         return data.decode(errors="replace")
 
@@ -104,7 +111,7 @@ def main() -> int:
                     [nm, *(["-D"] if args.shared else []), "--defined-only", str(product if args.shared else binary)])
                 symbols = run(name + ".symbols", symbol_command)
                 names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
-                assert {"xl6ArrayPrimitiveCreateV2", "xl6ValueAdmitsV1", "xl6SequenceAdmissionTakeV1"} <= names
+                assert {"xl6ArrayPrimitiveCreateV2", "xl6ValueAdmitsV1", "xl6SequenceAdmissionTakeV2"} <= names
                 if not args.shared:
                     factories = {n for n in names if re.match(r"xl6(?:Nullable.*|String|Char)TypeV1$", n)}
                     expected = set()
@@ -118,11 +125,25 @@ def main() -> int:
                     elif profile == 10:
                         expected = {"xl6NullableStringTypeV1"}
                     assert factories == expected, (factories, expected)
-                    assert not {"xl6ArrayFromValueV1", "xl6ArrayToValueV1", "xl6ArrayNominalCreateV2",
+                    forbidden = {"xl6ArrayNominalCreateV2",
                         "xl6ArrayReferenceCreateV2", "xl6StackCreateV1"} & names
+                    if not args.projections:
+                        forbidden |= {"xl6ArrayFromValueV1", "xl6ArrayToValueV1"} & names
+                    assert not forbidden
+                    assert not {"xl6SequenceAdmissionCopyV1","xl6SequenceAdmissionTakeV1","xl6SequenceAdmissionDropV1"} & names
                     assert not any(re.match(r"xl6(?:Log|Regex|Process)[A-Z]|xrtTypedStack", n) for n in names)
                 run(name + ".vectors", [str(binary)])
-                for operation in ("create", "clone", "erased-clone", "cursor", "read", "take", "push", "set", "insert", "resize"):
+                if args.projections and profile == 0:
+                    retired=out / (lane+".retired-admission.o")
+                    run(lane+".retired-admission.compile",[cc,*strict,"-c",
+                        "test/cases/stdlib_sequence_retired_admission_abi.c","-o",str(retired)])
+                    rejected=run(lane+".retired-admission.link",[cc,*strict,str(retired),*selected,*linked,
+                        "-o",str(out / (lane+".retired-admission"))],reject=True)
+                    assert "undefined reference" in rejected
+                    for operation in ("Copy","Take","Drop"):
+                        assert f"xl6SequenceAdmission{operation}V1" in rejected
+                operations = ("create", "clone", "erased-clone", "cursor", "read", "take", "push", "set", "insert", "resize") + (("snapshot",) if args.projections else ())
+                for operation in operations:
                     for point in range(513):
                         log = run(f"{name}.{operation}.{point}", [str(binary), operation, str(point)])
                         match = re.search(r"hit=([01]) balanced", log)
