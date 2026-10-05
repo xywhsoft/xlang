@@ -9,4 +9,4 @@ end
 future<string> source = makeText()
 future<string> pending = appendAll(source, " ")
 string completed = await pending
-assert completed == "hello !"
+assert completed == "he\0llo !"

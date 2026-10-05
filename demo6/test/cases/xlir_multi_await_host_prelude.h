@@ -5,7 +5,8 @@
 
 /* Test-only interposition: the real resident registration runs first while
  * the host still owns the unresolved Promise. Completion is delivered only
- * AFTER its real Watch is attached, BEFORE generated activation Commit.
+ * AFTER its real Watch is attached, either before activation Commit (default)
+ * or after the real Commit returns (XLIR_MULTI_AWAIT_AFTER_COMMIT).
  * No sleeps, readiness races or synthetic Future notifications are used. */
 #ifdef XLIR_MULTI_AWAIT_PENDING
 static bool xlir_multi_await_pending_register(XL6_ContinuationTicket*,xfuturewatch*,xfuture*);

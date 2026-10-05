@@ -1,60 +1,15 @@
-/* The suite generates this file immediately before compiling this host. */
-#include <stdbool.h>
-#include "../../build/test/xlir_async_future_string_chain_generated.c"
-
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, xcancel*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern bool xrtPromiseReject(xpromise*, const struct xerror*);
-extern bool xrtPromiseCancel(xpromise*);
-extern void xrtPromiseDestroy(xpromise*);
-
-static const char* xlir_future_string_chain_value = "hello";
-static int xlir_future_string_chain_calls = 0;
-
-xfuture* xlir_make_string_future(void)
-{
-    xfuture* future = NULL;
-    xpromise* promise = xrtPromiseCreate(&future, NULL);
-    xerror* error = NULL;
-    xlir_future_string_chain_calls += 1;
-#ifdef XLIR_STRING_FUTURE_CHAIN_SECOND_REJECT
-    if ( xlir_future_string_chain_calls == 2 )
-        error = xrtErrorCreate(17, "xlir-test", 1, "expected carried-string failure");
+/* One generated module TU; canonical ABI and shared lifecycle assertions. */
+#ifndef XLIR_STRING_FUTURE_GENERATED_SOURCE
+#define XLIR_STRING_FUTURE_GENERATED_SOURCE "../../build/test/xlir_async_future_string_chain_generated.c"
 #endif
-    if ( error != NULL ) {
-        bool rejected = promise != NULL && xrtPromiseReject(promise, error);
-        xrtErrorFree(error);
-        xrtPromiseDestroy(promise);
-        return rejected ? future : NULL;
-    }
+#define XLIR_STRING_FUTURE_COUNT 2
+#ifdef XLIR_STRING_FUTURE_CHAIN_SECOND_REJECT
+#define XLIR_STRING_FUTURE_REJECT
+#endif
 #ifdef XLIR_STRING_FUTURE_CHAIN_SECOND_CANCEL
-    if ( xlir_future_string_chain_calls == 2 && promise != NULL ) {
-        bool cancelled = xrtPromiseCancel(promise);
-        xrtPromiseDestroy(promise);
-        return cancelled ? future : NULL;
-    }
+#define XLIR_STRING_FUTURE_CANCEL
 #endif
 #ifdef XLIR_STRING_FUTURE_CHAIN_SECOND_CLOSE
-    if ( xlir_future_string_chain_calls == 2 && promise != NULL ) {
-        xrtPromiseDestroy(promise);
-        return future;
-    }
+#define XLIR_STRING_FUTURE_CLOSE
 #endif
-    if ( promise == NULL || !xrtPromiseResolve(promise, &xlir_future_string_chain_value) ) {
-        xrtPromiseDestroy(promise);
-        return NULL;
-    }
-    xrtPromiseDestroy(promise);
-    return future;
-}
-
-int main(void)
-{
-#if defined(XLIR_STRING_FUTURE_CHAIN_SECOND_REJECT) || defined(XLIR_STRING_FUTURE_CHAIN_SECOND_CANCEL) || defined(XLIR_STRING_FUTURE_CHAIN_SECOND_CLOSE)
-    return xlir_module_init() == 0 ? 0 : 1;
-#else
-    return xlir_module_init() == 1 ? 0 : 1;
-#endif
-}
+#include "xlir_string_future_host_support.h"

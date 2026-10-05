@@ -1,56 +1,15 @@
-/* The suite generates this file immediately before compiling this host. */
-#include <stdbool.h>
-#include "../../build/test/xlir_async_future_then_string_parameter_chain_generated.c"
-
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, xcancel*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern bool xrtPromiseReject(xpromise*, const struct xerror*);
-extern bool xrtPromiseCancel(xpromise*);
-extern void xrtPromiseDestroy(xpromise*);
-
-static const char* xlir_async_then_string_parameter_chain_value = "hello";
-
-xfuture* xlir_make_string_future(void)
-{
-    xfuture* future = NULL;
-    xpromise* promise = xrtPromiseCreate(&future, NULL);
+/* One generated module TU; canonical ABI and shared lifecycle assertions. */
+#ifndef XLIR_STRING_FUTURE_GENERATED_SOURCE
+#define XLIR_STRING_FUTURE_GENERATED_SOURCE "../../build/test/xlir_async_future_then_string_parameter_chain_generated.c"
+#endif
+#define XLIR_STRING_FUTURE_COUNT 1
 #ifdef XLIR_STRING_PARAMETER_CHAIN_REJECT
-    xerror* error = xrtErrorCreate(17, "xlir-test", 18, "expected direct parameter-chain failure");
-    if ( error != NULL ) {
-        bool rejected = promise != NULL && xrtPromiseReject(promise, error);
-        xrtErrorFree(error);
-        xrtPromiseDestroy(promise);
-        return rejected ? future : NULL;
-    }
+#define XLIR_STRING_FUTURE_REJECT
 #endif
 #ifdef XLIR_STRING_PARAMETER_CHAIN_CANCEL
-    if ( promise != NULL ) {
-        bool cancelled = xrtPromiseCancel(promise);
-        xrtPromiseDestroy(promise);
-        return cancelled ? future : NULL;
-    }
+#define XLIR_STRING_FUTURE_CANCEL
 #endif
 #ifdef XLIR_STRING_PARAMETER_CHAIN_CLOSE
-    if ( promise != NULL ) {
-        xrtPromiseDestroy(promise);
-        return future;
-    }
+#define XLIR_STRING_FUTURE_CLOSE
 #endif
-    if ( promise == NULL || !xrtPromiseResolve(promise, &xlir_async_then_string_parameter_chain_value) ) {
-        xrtPromiseDestroy(promise);
-        return NULL;
-    }
-    xrtPromiseDestroy(promise);
-    return future;
-}
-
-int main(void)
-{
-#if defined(XLIR_STRING_PARAMETER_CHAIN_REJECT) || defined(XLIR_STRING_PARAMETER_CHAIN_CANCEL) || defined(XLIR_STRING_PARAMETER_CHAIN_CLOSE)
-    return xlir_module_init() == 0 ? 0 : 1;
-#else
-    return xlir_module_init() == 1 ? 0 : 1;
-#endif
-}
+#include "xlir_string_future_host_support.h"
