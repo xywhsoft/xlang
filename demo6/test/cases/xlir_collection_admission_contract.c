@@ -224,16 +224,79 @@ static void layouts(XL6_IrModule* ir)
     printf("array layout: %u arrays; %u real resident recipes; %u carrier/layout mutations refused before C/header output\n",
         arrays,resident,mutations);
 }
+static XL6_IrInstruction* definition(XL6_IrModule* ir, XL6_IrValueId value)
+{
+    for (size_t i=0;i<ir->instructionCount;++i)
+        if (ir->instructions[i].result==value && value!=XL6_IR_VALUE_INVALID)
+            return &ir->instructions[i];
+    return NULL;
+}
+
+static void numericEnums(XL6_IrModule* ir)
+{
+    unsigned binds=0, nullableBoxes=0, mutations=0;
+    for (size_t i=0;i<ir->instructionCount;++i) {
+        XL6_IrInstruction* bind=&ir->instructions[i];
+        if (bind->runtimeOp!=XL6_IR_RUNTIME_XVALUE_TYPE_BIND) continue;
+        const XL6_IrType* identity=xl6IrTypeGet(&ir->types,bind->runtimeIdentityType);
+        if (!identity || identity->kind!=XL6_IR_TYPE_NUMERIC_ENUM) continue;
+        assert(bind->operandCount==1);
+        XL6_IrInstruction* box=definition(ir,ir->operands[bind->firstOperand]);
+        assert(box && box->operandCount==1 && box->kind==XL6_IR_INSTR_RUNTIME_CALL);
+        XL6_IrInstruction* scalar=definition(ir,ir->operands[box->firstOperand]);
+        assert(scalar && scalar->type==bind->runtimeIdentityType);
+        assert(box->runtimeOp==(identity->cAbi==XL6_IR_C_ABI_U64
+            ? XL6_IR_RUNTIME_XVALUE_U64 : XL6_IR_RUNTIME_XVALUE_I64));
+        assert(xl6IrCallInstructionErrorAbi(ir,box)==XL6_IR_ERROR_ABI_MAY_RAISE);
+        assert(xl6IrCallInstructionErrorPhysicalAbi(ir,box)==XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
+        XL6_IrTypeId saved=bind->runtimeIdentityType;
+        bind->runtimeIdentityType=XL6_IR_TYPE_INVALID; rejected(ir); ++mutations;
+        unsigned otherEnums=0, otherScalars=0;
+        for (size_t t=0;t<ir->types.count;++t) {
+            const XL6_IrType* other=&ir->types.items[t];
+            if ((XL6_IrTypeId)(t+1)==saved) continue;
+            /* The contract is exact TypeId equality; one peer and one raw
+             * scalar witness suffice for each actual producer. Do not repeat
+             * the same refusal for every unrelated type in the module. */
+            if (other->kind==XL6_IR_TYPE_NUMERIC_ENUM) {
+                if (otherEnums++) continue;
+            } else if (other->kind==XL6_IR_TYPE_BUILTIN && other->cAbi==XL6_IR_C_ABI_I64) {
+                if (otherScalars++) continue;
+            } else continue;
+            bind->runtimeIdentityType=(XL6_IrTypeId)(t+1); rejected(ir); ++mutations;
+        }
+        bind->runtimeIdentityType=saved;
+        XL6_IrRuntimeOp operation=box->runtimeOp;
+        box->runtimeOp=operation==XL6_IR_RUNTIME_XVALUE_U64
+            ? XL6_IR_RUNTIME_XVALUE_I64 : XL6_IR_RUNTIME_XVALUE_U64;
+        rejected(ir); ++mutations; box->runtimeOp=operation;
+        if (scalar->kind==XL6_IR_INSTR_NULLABLE_UNWRAP) {
+            ++nullableBoxes;
+            assert(scalar->operandCount==1);
+            XL6_IrValueId operand=ir->operands[box->firstOperand];
+            ir->operands[box->firstOperand]=ir->operands[scalar->firstOperand];
+            box->runtimeOp=XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX;
+            rejected(ir); ++mutations;
+            ir->operands[box->firstOperand]=operand; box->runtimeOp=operation;
+        }
+        assert(xl6IrVerifyModule(ir,NULL)); ++binds;
+    }
+    if (binds) printf("numeric enum bridge: %u binds; %u nullable boxes; %u rejected mutations before C/header output\n",
+        binds,nullableBoxes,mutations);
+}
+
 int main(int argc, char** argv)
 {
-    assert(argc==3); int ok=0; unsigned checked=0, unrelated=0;
+    assert(argc==3 || (argc==4 && strcmp(argv[3],"numeric-enums")==0));
+    int ok=0; unsigned checked=0, unrelated=0;
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output output;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argv[1],&parse) || !xl6StdlibExpandModule(parse.root,&parse.diags) ||
         !xl6SemCheckModule(parse.root,&parse.diags,"collection_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
-    layouts(&ir);
+    numericEnums(&ir);
+    if (argc==3) layouts(&ir);
     unsigned defaults=0;
     for (size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];

@@ -8433,7 +8433,8 @@ int xl6IrContextualIntegerLiteralValue(const XL6_IrModule* module, XL6_IrNodeId 
     if (module == NULL) return 0;
     literal = xl6IrNodeGet(module, expression);
     target = xl6IrTypeGet(&module->types, targetType);
-    if (target == NULL || target->kind != XL6_IR_TYPE_BUILTIN ||
+    if (target == NULL ||
+        (target->kind != XL6_IR_TYPE_BUILTIN && target->kind != XL6_IR_TYPE_NUMERIC_ENUM) ||
         target->nullAbi != XL6_IR_NULL_ABI_NONE || target->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
         (target->cAbi != XL6_IR_C_ABI_I64 && target->cAbi != XL6_IR_C_ABI_U64) ||
         target->integerTarget == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ||
@@ -20802,7 +20803,8 @@ static int xl6IrVerifyEnumLayouts(const XL6_IrModule* module)
                 if ( variant->payloadCount != 0 || source->childCount != 1 ||
                      variant->valueExpression !=
                          module->children[source->firstChild] ||
-                     xl6IrNodeGet(module, variant->valueExpression) == NULL ) return 0;
+                     !xl6IrContextualIntegerLiteralValue(module,
+                         variant->valueExpression, layout->type, NULL, NULL) ) return 0;
             } else {
                 const XL6_IrNode* payloads = source->childCount == 1
                     ? xl6IrNodeGet(module, module->children[source->firstChild])
@@ -35227,7 +35229,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           testedType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                           !(testedType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
                             testedType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) )
-                        return xl6IrDiag(diags, NULL,
+                        return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                                          "XLIR null test has no exact sentinel operand ABI");
                 }
                 if ( instruction->kind == XL6_IR_INSTR_NULLABLE_WRAP ||
@@ -35541,6 +35543,25 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               sourceType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
                              return xl6IrDiag(diags, NULL,
                                  "XLIR runtime type bind has no exact owned xvalue and semantic identity ABI");
+                        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPE_BIND) {
+                            const XL6_IrInstruction* scalar =
+                                left->kind == XL6_IR_INSTR_RUNTIME_CALL && left->operandCount == 1 &&
+                                left->firstOperand < module->operandCount &&
+                                (left->runtimeOp == XL6_IR_RUNTIME_XVALUE_I64 ||
+                                 left->runtimeOp == XL6_IR_RUNTIME_XVALUE_U64)
+                                    ? xl6IrValueDefinition(module,
+                                        module->operands[left->firstOperand], NULL) : NULL;
+                            const XL6_IrType* scalarType = scalar != NULL
+                                ? xl6IrTypeGet(&module->types, scalar->type) : NULL;
+                            if ((identityType->kind == XL6_IR_TYPE_NUMERIC_ENUM ||
+                                 (scalarType != NULL && scalarType->kind == XL6_IR_TYPE_NUMERIC_ENUM)) &&
+                                (scalarType == NULL || scalarType->kind != XL6_IR_TYPE_NUMERIC_ENUM ||
+                                 scalar->type != instruction->runtimeIdentityType ||
+                                 left->runtimeOp != (scalarType->cAbi == XL6_IR_C_ABI_U64
+                                     ? XL6_IR_RUNTIME_XVALUE_U64 : XL6_IR_RUNTIME_XVALUE_I64)))
+                                return xl6IrDiag(diags, NULL,
+                                    "XLIR numeric enum identity bind has no exact scalar producer and nominal identity ABI");
+                        }
                         if ( instruction->runtimeOp ==
                                  XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED &&
                              (left->kind != XL6_IR_INSTR_RUNTIME_CALL ||
@@ -37345,6 +37366,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              sourceType->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
                              sourceType->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
                              sourceType->cName[0] == '\0' || elementType == NULL ||
+                             elementType->kind == XL6_IR_TYPE_NUMERIC_ENUM ||
                              !xl6IrTaggedNullableScalarSupported(elementType->cAbi) )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR tagged nullable dynamic box has no exact scalar carrier ABI");

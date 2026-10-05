@@ -30,15 +30,16 @@ def main() -> int:
     parser.add_argument("--nominal", action="store_true", help="Select class/protocol and nullable nominal imports")
     parser.add_argument("--defaults", action="store_true", help="Select boxed Array logical defaults and checked resize effects")
     parser.add_argument("--layouts", action="store_true", help="Select Array carrier/layout facts and actual resident recipe oracle")
+    parser.add_argument("--numeric-enums", action="store_true", help="Select exact nullable numeric-enum Value boundaries, negative constants and closed language OOM sweeps")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc = shutil.which("gcc")
     if not cc or out.exists() or (os.name == "nt" and not args.public_directory) or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
-    if sum((args.defaults, args.nominal, args.layouts)) > 1:
+    if sum((args.defaults, args.nominal, args.layouts, args.numeric_enums)) > 1:
         parser.error("Select one fixture family")
-    fixtures = ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+    fixtures = ["stdlib_nullable_numeric_enum", "stdlib_nullable_numeric_enum_absent", "enum_numeric_runtime", "enum_match_matrix"] if args.numeric_enums else ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
@@ -54,6 +55,9 @@ def main() -> int:
              root / "test/cases/stdlib_collection_admission_host.c",
              root / "test/cases/xlir_collection_admission_contract.c"]
     files += [root / f"test/cases/{fixture}.xl" for fixture in fixtures]
+    if args.numeric_enums:
+        files += [root / "test/cases/xlir_module_product_oom_host.c",
+                  root / "test/support/module_product_memory.c", root / "test/support/module_product_memory.h"]
     if public:
         files += [args.public_directory / "build.json"] + [Path(row["Path"]) for row in public["Objects"]]
         files += [Path(row["Path"]) for row in public["Inputs"]]
@@ -76,6 +80,7 @@ def main() -> int:
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
               "Sanitized": args.sanitize, "Nominal": args.nominal, "Layouts": args.layouts,
+              "NumericEnums": args.numeric_enums, "Sweeps": [],
               "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
     env = dict(os.environ)
     if args.sanitize:
@@ -238,13 +243,21 @@ def main() -> int:
                 assert {3, 6, 7, 8, 11, 13, 14, 15, 16} <= {int(row[0]) for row in calls}
                 assert len(checked) == 25
             contract_c = prefix.with_suffix(".contract.c")
-            contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
+            contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c),
+                *(["numeric-enums"] if args.numeric_enums else [])])
+            if args.numeric_enums and fixture in ("stdlib_nullable_numeric_enum", "enum_numeric_runtime"):
+                enum_proof = re.search(r"numeric enum bridge: (\d+) binds; (\d+) nullable boxes; (\d+) rejected mutations before C/header output", contract_log)
+                assert enum_proof and int(enum_proof[1]) > 0 and int(enum_proof[3]) > 0
+                if fixture == "stdlib_nullable_numeric_enum":
+                    assert int(enum_proof[2]) >= 16
+                    assert "(-9223372036854775807LL - 1LL)" in text and "18446744073709551615ULL" in text
             recipe_count = sum(row["arrayLayout"]["abiName"] in
                 ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1") for row in array_types)
             recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
                 len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
             mutation_count=len(lowered['types'])*11+recursive_mutations
-            assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {mutation_count} carrier/layout mutations" in contract_log, 'Actual resident recipe/mutation totals differ from IR'
+            if not args.numeric_enums:
+                assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {mutation_count} carrier/layout mutations" in contract_log, 'Actual resident recipe/mutation totals differ from IR'
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
             if defaults:
                 assert f"array defaults: {len(defaults)} resize contracts;" in contract_log
@@ -259,6 +272,25 @@ def main() -> int:
                     # executions, JIT, AOT and ordinary C still use 60 s.
                     timeout=(360 if args.defaults or args.layouts else 180) if args.sanitize and level == 2 else 60)
                 run(f"{fixture}.O{level}.run", [str(binary)])
+                if args.numeric_enums and fixture.startswith("stdlib_nullable_numeric_enum"):
+                    lane = f"{fixture}.O{level}.oom"
+                    memory = out / f"memory.O{level}.o"
+                    if not memory.exists():
+                        run(f"memory.O{level}.build", [cc, *strict, f"-O{level}", "-c",
+                            "test/support/module_product_memory.c", "-o", str(memory)])
+                    oom = out / (lane + (".exe" if os.name == "nt" else ""))
+                    run(lane + ".build", [cc, *strict, f"-O{level}", "-DXL6_PRODUCT_USER_ENTRY",
+                        "-include", str(generated), "test/cases/xlir_module_product_oom_host.c",
+                        str(memory), *links, "-o", str(oom)], timeout=360 if args.sanitize and level == 2 else 60)
+                    assert "hit=0 balanced" in run(lane + ".normal", [str(oom)])
+                    for point in range(4097):
+                        proof = run(lane + f".{point}", [str(oom), str(point)])
+                        assert re.search(r"hit=[01] balanced", proof)
+                        if "hit=0 balanced" in proof:
+                            report["Sweeps"].append({"Lane": lane, "FirstNoHit": point})
+                            break
+                    else:
+                        raise AssertionError("Unclosed numeric-enum language allocation prefix")
             source = f"test/cases/{fixture}.xl"
             jit = [str(cli), source, "run", str(prefix)] if public else [str(cli), "run", source, "--inc-path", str(out / "include")]
             log = run(f"{fixture}.jit", jit)

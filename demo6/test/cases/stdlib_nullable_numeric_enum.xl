@@ -1,0 +1,344 @@
+// Numeric enums preserve nominal identity across nullable Value boundaries.
+
+enum S8 as int8
+    low = -128
+    high = 127
+end
+
+func boxS8(S8? value) as var
+    return value
+end
+
+func checkS8()
+    S8? present = S8.high
+    var boxed = present
+    S8? restored = boxed as S8?
+    assert restored != null
+    assert int(restored as S8) == int(S8.high)
+    S8? low = boxS8(S8.low) as S8?
+    assert low != null
+    assert int(low as S8) == int(S8.low)
+    S8? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxS8(absent) as S8?) == null
+    var unbound = int(S8.high)
+    assert (unbound as S8?) == null
+    int selected = match low as S8
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum U8 as uint8
+    low = 0
+    high = 255
+end
+
+func boxU8(U8? value) as var
+    return value
+end
+
+func checkU8()
+    U8? present = U8.high
+    var boxed = present
+    U8? restored = boxed as U8?
+    assert restored != null
+    assert uint64(restored as U8) == uint64(U8.high)
+    U8? low = boxU8(U8.low) as U8?
+    assert low != null
+    assert uint64(low as U8) == uint64(U8.low)
+    U8? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxU8(absent) as U8?) == null
+    var unbound = uint64(U8.high)
+    assert (unbound as U8?) == null
+    int selected = match low as U8
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum S16 as int16
+    low = -32768
+    high = 32767
+end
+
+func boxS16(S16? value) as var
+    return value
+end
+
+func checkS16()
+    S16? present = S16.high
+    var boxed = present
+    S16? restored = boxed as S16?
+    assert restored != null
+    assert int(restored as S16) == int(S16.high)
+    S16? low = boxS16(S16.low) as S16?
+    assert low != null
+    assert int(low as S16) == int(S16.low)
+    S16? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxS16(absent) as S16?) == null
+    var unbound = int(S16.high)
+    assert (unbound as S16?) == null
+    int selected = match low as S16
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum U16 as uint16
+    low = 0
+    high = 65535
+end
+
+func boxU16(U16? value) as var
+    return value
+end
+
+func checkU16()
+    U16? present = U16.high
+    var boxed = present
+    U16? restored = boxed as U16?
+    assert restored != null
+    assert uint64(restored as U16) == uint64(U16.high)
+    U16? low = boxU16(U16.low) as U16?
+    assert low != null
+    assert uint64(low as U16) == uint64(U16.low)
+    U16? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxU16(absent) as U16?) == null
+    var unbound = uint64(U16.high)
+    assert (unbound as U16?) == null
+    int selected = match low as U16
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum S32 as int32
+    low = -2147483648
+    high = 2147483647
+end
+
+func boxS32(S32? value) as var
+    return value
+end
+
+func checkS32()
+    S32? present = S32.high
+    var boxed = present
+    S32? restored = boxed as S32?
+    assert restored != null
+    assert int(restored as S32) == int(S32.high)
+    S32? low = boxS32(S32.low) as S32?
+    assert low != null
+    assert int(low as S32) == int(S32.low)
+    S32? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxS32(absent) as S32?) == null
+    var unbound = int(S32.high)
+    assert (unbound as S32?) == null
+    int selected = match low as S32
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum U32 as uint32
+    low = 0
+    high = 4294967295
+end
+
+func boxU32(U32? value) as var
+    return value
+end
+
+func checkU32()
+    U32? present = U32.high
+    var boxed = present
+    U32? restored = boxed as U32?
+    assert restored != null
+    assert uint64(restored as U32) == uint64(U32.high)
+    U32? low = boxU32(U32.low) as U32?
+    assert low != null
+    assert uint64(low as U32) == uint64(U32.low)
+    U32? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxU32(absent) as U32?) == null
+    var unbound = uint64(U32.high)
+    assert (unbound as U32?) == null
+    int selected = match low as U32
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum S64 as int64
+    low = -9223372036854775808
+    high = 9223372036854775807
+end
+
+func boxS64(S64? value) as var
+    return value
+end
+
+func checkS64()
+    S64? present = S64.high
+    var boxed = present
+    S64? restored = boxed as S64?
+    assert restored != null
+    assert int(restored as S64) == int(S64.high)
+    S64? low = boxS64(S64.low) as S64?
+    assert low != null
+    assert int(low as S64) == int(S64.low)
+    S64? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxS64(absent) as S64?) == null
+    var unbound = int(S64.high)
+    assert (unbound as S64?) == null
+    int selected = match low as S64
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum U64 as uint64
+    low = 0
+    high = 18446744073709551615
+end
+
+func boxU64(U64? value) as var
+    return value
+end
+
+func checkU64()
+    U64? present = U64.high
+    var boxed = present
+    U64? restored = boxed as U64?
+    assert restored != null
+    assert uint64(restored as U64) == uint64(U64.high)
+    U64? low = boxU64(U64.low) as U64?
+    assert low != null
+    assert uint64(low as U64) == uint64(U64.low)
+    U64? absent = null
+    var erasedAbsent = absent
+    assert erasedAbsent == null
+    assert (boxU64(absent) as U64?) == null
+    var unbound = uint64(U64.high)
+    assert (unbound as U64?) == null
+    int selected = match low as U64
+    case low then 1
+    case high then 2
+    end
+    assert selected == 1
+end
+
+enum Status as int32
+    ok = 200
+    missing = 404
+end
+
+enum OtherStatus as int32
+    ok = 200
+end
+
+class EnumEnvelope
+    Status? value = null
+
+    create(Status? item)
+        self.value = item
+    end
+end
+
+func checkTransport()
+    Status? present = Status.ok
+    Status? absent = null
+    var peer = OtherStatus.ok
+    assert (peer as Status?) == null
+    var plain = 200
+    assert (plain as Status?) == null
+    var copied = present
+    var again = copied
+    assert (again as Status?) == present
+    Status strict = again as Status
+    assert strict == Status.ok
+    int caught = 0
+    try
+        Status wrong = peer as Status
+    catch TypeError error
+        caught += 1
+    end
+    assert caught == 1
+
+    EnumEnvelope item = EnumEnvelope(present)
+    var boxedField = item.value
+    assert (boxedField as Status?) == present
+    item.value = absent
+    var emptyField = item.value
+    assert emptyField == null
+
+    array<Status?> values = array[present, absent, Status.missing]
+    assert values[0] == present
+    assert values[1] == null
+    int total = 0
+    int missing = 0
+    for value in values
+        var erased = value
+        Status? roundtrip = erased as Status?
+        assert roundtrip == value
+        if roundtrip == null
+            missing += 1
+        else
+            total += int(roundtrip as Status)
+        end
+    end
+    assert total == 604
+    assert missing == 1
+    list<Status?> sparse = list[0: present, 3: absent]
+    assert sparse[0] == present
+    assert sparse[3] == null
+
+    Stack<Status?> stack = Stack::<Status?>()
+    stack.push(present)
+    stack.push(absent)
+    var emptyPop = stack.pop()
+    assert emptyPop == null
+    var presentPop = stack.pop()
+    assert (presentPop as Status?) == present
+
+    auto closure = func() as var
+        return present
+    end
+    assert (closure() as Status?) == present
+    present = null
+    // Read-only captures own a value snapshot, not a reference to this slot.
+    assert (closure() as Status) == Status.ok
+end
+
+func main(...) as int
+    checkS8()
+    checkU8()
+    checkS16()
+    checkU16()
+    checkS32()
+    checkU32()
+    checkS64()
+    checkU64()
+    checkTransport()
+    return 0
+end
