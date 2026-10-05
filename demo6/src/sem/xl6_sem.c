@@ -7005,6 +7005,18 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
     if ( callee == NULL ) {
         return NULL;
     }
+    if (expr->semanticCallKind == XL6_SEM_CALL_FUNCTION_VALUE) {
+        /* The checked callee's complete signature is the only return-shape
+         * authority for a function value, regardless of its expression form.
+         * Own a clone: alias targets and cached inferred types are borrowed. */
+        const XL6_AstNode* callable = xl6SemResolveAliasType(ctx, callee->inferredType);
+        if (ownedType != NULL && callable != NULL && xl6TextEquals(callable->text, "function") &&
+            callable->childCount > 1 && callable->children[1] != NULL) {
+            *ownedType = xl6SemCloneTypeNode(callable->children[1]);
+            return *ownedType;
+        }
+        return NULL;
+    }
     if ( callee->kind == XL6_AST_GENERIC_INSTANT ) {
         XL6_AstNode* nameNode = callee->childCount > 0 ? callee->children[0] : NULL;
         XL6_AstNode* typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;
@@ -7074,14 +7086,6 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
             }
             return staticMethod->children[2];
         }
-        XL6_AstNode* memberType = xl6SemCloneMemberFieldType(ctx, callee);
-        if ( memberType != NULL && xl6TextEquals(memberType->text, "function") && memberType->childCount > 1 ) {
-            if ( ownedType != NULL ) {
-                *ownedType = memberType;
-                return memberType->children[1];
-            }
-        }
-        xl6AstFree(memberType);
         if ( callee->childCount > 0 ) {
             XL6_AstNode* receiverType = xl6SemCloneMemberReceiverType(ctx, callee);
             const XL6_AstNode* concreteType = xl6SemClassValueType(ctx, receiverType);
@@ -7144,11 +7148,6 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
         }
     }
     return func != NULL && func->childCount > 2 ? func->children[2] : NULL;
-}
-
-static XL6_AstNode* xl6SemCallReturnTypes(XL6_SemContext* ctx, XL6_AstNode* expr)
-{
-    return xl6SemCallReturnTypesEx(ctx, expr, NULL);
 }
 
 /*
@@ -8735,12 +8734,6 @@ static int xl6SemCheckMemberFunctionValueCall(XL6_SemContext* ctx, XL6_AstNode* 
     if ( memberType == NULL ) {
         return -1;
     }
-    if ( xl6TextEquals(memberType->text, "function") ) {
-        xl6SemSetCallPlan(call, XL6_SEM_CALL_FUNCTION_VALUE, NULL);
-        ok = xl6SemCheckFunctionValueCall(ctx, call, memberType);
-        xl6AstFree(memberType);
-        return ok;
-    }
     if ( xl6TextEquals(memberType->text, "var") ) {
         xl6SemSetCallPlan(call, XL6_SEM_CALL_DYNAMIC_FUNCTION, NULL);
         ok = xl6SemCheckVarFunctionCall(ctx, call);
@@ -8750,6 +8743,31 @@ static int xl6SemCheckMemberFunctionValueCall(XL6_SemContext* ctx, XL6_AstNode* 
 
     xl6AstFree(memberType);
     return -1;
+}
+/* Declaration/method overloads retain their own resolution paths. Everything
+ * that actually produces a function value shares this signature-based check;
+ * no index/conditional/factory/anonymous-function syntax whitelist. */
+static int xl6SemCheckFunctionValueExprCall(XL6_SemContext* ctx, XL6_AstNode* call)
+{
+    XL6_AstNode* callee = call != NULL && call->childCount > 0 ? call->children[0] : NULL;
+    const XL6_AstNode* callable;
+    const XL6_AstNode* nullable;
+    XL6_Symbol* symbol = NULL;
+    if (callee == NULL || callee->kind == XL6_AST_GENERIC_INSTANT) return -1;
+    if (callee->kind == XL6_AST_NAME) {
+        symbol = xl6ScopeFind(ctx->scope, callee->text);
+        if (symbol != NULL && symbol->kind == XL6_SYM_FUNC) return -1;
+    }
+    callable = xl6SemResolveAliasType(ctx, callee->inferredType);
+    nullable = xl6SemResolveAliasType(ctx, xl6SemNullableInnerType(callable));
+    if (nullable != NULL && xl6TextEquals(nullable->text, "function")) {
+        xl6SemErrorNode(ctx, callee, "nullable function must be checked for null before calling");
+        return 0;
+    }
+    if (callable == NULL || !xl6TextEquals(callable->text, "function")) return -1;
+    xl6SemSetCallPlan(call, XL6_SEM_CALL_FUNCTION_VALUE, NULL);
+    if (symbol != NULL) call->semanticTargetSymbolId = symbol->id;
+    return xl6SemCheckFunctionValueCall(ctx, call, callable);
 }
 static int xl6SemCheckTypeCall(XL6_SemContext* ctx, XL6_AstNode* call)
 {
@@ -10951,6 +10969,8 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( memberCallOk >= 0 ) {
         return memberCallOk && ok;
     }
+    memberCallOk = xl6SemCheckFunctionValueExprCall(ctx, node);
+    if (memberCallOk >= 0) return memberCallOk && ok;
 
     if ( node->childCount > 0 && node->children[0] != NULL &&
          node->children[0]->kind == XL6_AST_GENERIC_INSTANT ) {
@@ -10987,35 +11007,6 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
         sym = xl6ScopeFind(ctx->scope, node->children[0]->text);
         if ( sym != NULL && !xl6SemCheckBoundarySymbolUse(ctx, node->children[0], sym, 0) ) {
             return 0;
-        }
-        if ( sym != NULL && sym->kind != XL6_SYM_FUNC && sym->type != NULL ) {
-            const XL6_AstNode* callableType =
-                xl6SemFlowTypeForSymbol(ctx, sym->id);
-            const XL6_AstNode* nullableInner;
-
-            if ( callableType == NULL ) {
-                callableType = sym->type;
-            }
-            if ( xl6TextEquals(callableType->text, "function") ) {
-                xl6SemSetCallPlan(node, XL6_SEM_CALL_FUNCTION_VALUE, NULL);
-                node->semanticTargetSymbolId = sym->id;
-                if ( !xl6SemCheckFunctionValueCall(ctx, node, callableType) ) {
-                    ok = 0;
-                }
-                return ok;
-            }
-            nullableInner = xl6SemNullableInnerType(
-                xl6SemResolveAliasType(ctx, callableType)
-            );
-            if ( nullableInner != NULL &&
-                 xl6TextEquals(nullableInner->text, "function") ) {
-                xl6SemErrorNode(
-                    ctx,
-                    node->children[0],
-                    "nullable function must be checked for null before calling"
-                );
-                return 0;
-            }
         }
         if ( sym != NULL && sym->kind != XL6_SYM_FUNC && sym->type != NULL && xl6TextEquals(sym->type->text, "var") ) {
             xl6SemSetCallPlan(node, XL6_SEM_CALL_DYNAMIC_FUNCTION, NULL);

@@ -1,0 +1,99 @@
+typedef PairCallback = func(int) as (int, string)
+
+int valueCallFactories = 0
+int valueCallEntries = 0
+int valueCallFinalizers = 0
+
+func valueCallPair(int value) as (int, string)
+    valueCallEntries += 1
+    return value, "a\0你"
+end
+
+func valueCallFactory() as PairCallback
+    valueCallFactories += 1
+    return valueCallPair
+end
+
+class ValueCallHolder
+    PairCallback callback = valueCallPair
+    get same() as PairCallback
+        return callback
+    end
+end
+
+func valueCallHolder() as ValueCallHolder
+    valueCallFactories += 1
+    return ValueCallHolder()
+end
+
+func valueCallForward(array<PairCallback> callbacks) as (int, string)
+    return callbacks[0](42)
+end
+
+func valueCallFinally(array<PairCallback> callbacks) as (int, string)
+    try
+        return callbacks[0](42)
+    finally
+        valueCallFinalizers += 1
+    end
+end
+
+func valueCallMixed(int8 number, char code, bytes data) as (int8, char, bytes, string)
+    return number, code, data, "a\0你"
+end
+
+func valueCallDeclarations()
+    array<PairCallback> callbacks = [valueCallPair]
+    auto number, text = callbacks[0](42)
+    assert number == 42 and text == "a\0你"
+    int explicitNumber = 0
+    string explicitText = "old"
+    explicitNumber, explicitText = callbacks[0](43)
+    assert explicitNumber == 43 and explicitText == "a\0你"
+    number, text = callbacks[0](44)
+    assert number == 44 and text == "a\0你"
+    number, text = valueCallForward(callbacks)
+    assert number == 42 and text == "a\0你"
+    number, text = valueCallFinally(callbacks)
+    assert number == 42 and text == "a\0你" and valueCallFinalizers == 1
+end
+
+func valueCallExpressions()
+    auto number, text = valueCallFactory()(45)
+    assert number == 45 and text == "a\0你" and valueCallFactories == 1
+    number, text = valueCallHolder().callback(46)
+    assert number == 46 and text == "a\0你" and valueCallFactories == 2
+    number, text = valueCallHolder().same(47)
+    assert number == 47 and text == "a\0你" and valueCallFactories == 3
+    array<PairCallback> callbacks = [valueCallPair]
+    number, text = (true ? callbacks[0] : valueCallFactory())(48)
+    assert number == 48 and text == "a\0你" and valueCallFactories == 3
+    number, text = (false ? valueCallFactory() : callbacks[0])(49)
+    assert number == 49 and text == "a\0你" and valueCallFactories == 3
+    PairCallback? optional = callbacks[0]
+    number, text = (optional ?? valueCallFactory())(50)
+    assert number == 50 and text == "a\0你" and valueCallFactories == 3
+    optional = null
+    number, text = (optional ?? valueCallFactory())(51)
+    assert number == 51 and text == "a\0你" and valueCallFactories == 4
+    assert (func(int value) as int => value + 1)(41) == 42
+end
+
+func valueCallOwnedResults()
+    array<func(int8, char, bytes) as (int8, char, bytes, string)> callbacks = [valueCallMixed]
+    bytes original = b"a\x00你"
+    auto number, code, data, text = callbacks[0](int8(127), '你', original)
+    assert number == 127 and code == '你' and data == original and text == "a\0你"
+    original[0] = 98
+    assert data[0] == 97 and data.length == 5 and data[1] == 0
+    number, code, data, text = callbacks[0](int8(-128), 'A', b"z\x00")
+    assert number == -128 and code == 65 and data == b"z\x00" and text == "a\0你"
+end
+
+func main(...) as int
+    valueCallDeclarations()
+    valueCallExpressions()
+    valueCallOwnedResults()
+    assert valueCallEntries == 12
+    return 0
+end

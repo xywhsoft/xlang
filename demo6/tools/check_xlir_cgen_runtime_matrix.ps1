@@ -12,6 +12,7 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $generated = Join-Path $Root "build\test\xlir_cgen_runtime_matrix_generated.c"
 $fixtures = @(
+    @{ Name = "exact function-value expression calls and managed products"; Source = "test\cases\xlir_function_value_calls.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "length-bearing Buffer, dictionary and embedded xlang boundaries"; Source = "test\cases\stdlib_string_bridge_boundaries.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true; XlangLinks = $true },
     @{ Name = "task race source and loser cancellation"; Source = "test\cases\cgen_task_race_source_cancel.xl"; Host = "test\cases\xlir_generated_module_host.c"; Support = "test\cases\cgen_task_race_source_cancel_support.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "scalar ABI"; Source = "test\cases\xlir_cgen_differential_scalar.xl"; Host = "test\cases\xlir_cgen_differential_scalar_host.c" },
