@@ -52,6 +52,13 @@ XL6_TEXT_API uint64_t xl6SequenceBoxedIdentityV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence*, XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceResizeStorageV1(XL6_Sequence*, size_t);
+/* Both owners are pinned. Target is an already-created empty ARRAY with its
+ * final owned admission/projection metadata. Source is ARRAY or STACK with
+ * the same element/physical tuple. All range/policy checks and allocations
+ * precede ownership movement. A take only extracts the tail (depth zero).
+ * Success publishes top-down order without allocating a post-move wrapper;
+ * failure preserves both counts, capacity, storage and target metadata. */
+XL6_TEXT_API bool xl6SequenceExtractTailV1(XL6_Sequence*, XL6_Sequence*, size_t, size_t, bool);
 typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;

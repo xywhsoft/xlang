@@ -68,6 +68,8 @@ def main() -> int:
         "src/runtime/xl6_array_primitive_admission.c")]
     files += [root / name for name in ("tools/check_stdlib_array_c_scalar.py",
         "test/cases/stdlib_array_c_scalar_native_host.c", "src/runtime/xl6_array_c_scalar_admission.c")]
+    files += [root / name for name in ("tools/check_stdlib_stack_batch.py",
+        "test/cases/stdlib_stack_batch_native_host.c", "src/runtime/xl6_stack_batch.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -261,6 +263,18 @@ def main() -> int:
             "Profiles": c_scalar["Profiles"], "NativeMappings": c_scalar["NativeMappings"],
             "ClosedPrefixes": len(c_scalar["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in c_scalar["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "stack-batch"
+        command = [sys.executable, "tools/check_stdlib_stack_batch.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=180)
+        batch = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not batch["Complete"] or not batch["InputsUnchanged"] or batch["Profiles"]!=8:
+            raise RuntimeError("Incomplete native Stack batch/Array publication evidence")
+        report["StackBatchReport"] = {"Directory": str(child), "Checks": len(batch["Rows"]),
+            "Profiles": batch["Profiles"], "ClosedPrefixes": len(batch["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in batch["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
