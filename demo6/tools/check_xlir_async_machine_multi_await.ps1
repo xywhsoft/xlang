@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$OutputDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,8 +10,8 @@ if ( $Root -eq "" ) {
 }
 
 $xl = Join-Path $Root "release\xl.exe"
-$outputDir = Join-Path $Root "build\tmp"
-$generatedDir = Join-Path $Root "build\test"
+$outputDir = if ($OutputDirectory) { [System.IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $Root "build\tmp" }
+$generatedDir = if ($OutputDirectory) { $outputDir } else { Join-Path $Root "build\test" }
 $cases = @(
     [pscustomobject]@{
         Name = "xlir_async_future_two_awaits"
@@ -49,6 +50,7 @@ $cases = @(
 if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
     throw "XLIR multi-await machine gate compiler is missing: $xl"
 }
+if ($OutputDirectory -and (Test-Path -LiteralPath $outputDir)) { throw 'Require a fresh multi-await gate output directory' }
 New-Item -ItemType Directory -Force -Path $outputDir,$generatedDir | Out-Null
 
 foreach ( $case in $cases ) {
@@ -302,27 +304,8 @@ foreach ( $case in $cases ) {
     }
 }
 
-$commands = @("call test\suites\common.bat")
-foreach ( $case in $cases ) {
-    $modeIndex = 0
-    foreach ( $mode in $case.Modes ) {
-        $suffix = if ( $mode -eq "" ) { "success" } else { "mode$modeIndex" }
-        $modeArgument = if ( $mode -eq "" ) { "" } else { "$mode " }
-        $commands += ("!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror {0}test\cases\{1}_host.c !XL6_CGEN_LINKS! -o build\tmp\{1}.multi-await.{2}.exe" -f
-            $modeArgument, $case.Name, $suffix)
-        $commands += ("build\tmp\{0}.multi-await.{1}.exe" -f $case.Name, $suffix)
-        ++$modeIndex
-    }
-}
-
-Push-Location $Root
-try {
-    & $env:ComSpec /d /v:on /c ($commands -join " && ")
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "XLIR multi-await strict-C/runtime terminal-state propagation gate failed"
-    }
-} finally {
-    Pop-Location
-}
+$continuationOutput = Join-Path $outputDir ("multi-await-language-lifetimes-" + [Guid]::NewGuid().ToString('N'))
+& python (Join-Path $Root 'tools\check_stdlib_collection_continuations.py') --multi-only --out $continuationOutput
+if ($LASTEXITCODE -ne 0) { throw 'Multi-await language lifetime O0/O2 gate failed' }
 
 Write-Host "XLIR async multi-await machine gate ok: direct scalar/managed two/three-await machine CFG, canonical single-layout activation handoff, forward/reverse transactional resident transfer, exact managed operand owners and anchored borrow-storage observations with success/failure cleanup, legacy async-chain renderer forbidden, deterministic C, -Werror and runtime terminal-state propagation."

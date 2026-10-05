@@ -9,4 +9,4 @@ future<string> second = makeFuture()
 future<string> third = makeFuture()
 future<string> pending = combineThreeText(first, second, third)
 string completed = await pending
-assert completed == "hellohellohello"
+assert completed == "he\0llohe\0llohe\0llo"

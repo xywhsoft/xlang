@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$OutputDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,21 +13,21 @@ $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_array_i64_for_abi.xl"
 $rejectSource = Join-Path $Root "test\cases\cgen_xlir_array_i64_for_escape_reject.xl"
 $compatSource = Join-Path $Root "test\cases\cgen_export_typed_container_abi.xl"
-$hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
-$outputDir = Join-Path $Root "build\test"
+$hostSource = Join-Path $Root "test\cases\xlir_array_i64_for_snapshot_host.c"
+$outputDir = if ($OutputDirectory) { [System.IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $Root "build\test" }
 $typedJsonPath = Join-Path $outputDir "xlir_array_i64_for_abi.typed.json"
 $loweredJsonPath = Join-Path $outputDir "xlir_array_i64_for_abi.lowered.json"
 $rejectTypedJsonPath = Join-Path $outputDir "xlir_array_i64_for_escape_reject.typed.json"
 $rejectCPath = Join-Path $outputDir "xlir_array_i64_for_escape_reject.c"
 $cPath = Join-Path $outputDir "xlir_array_i64_for_abi_generated.c"
 $compatCPath = Join-Path $outputDir "cgen_export_typed_container_abi_xlir.c"
-$exePath = Join-Path $outputDir "xlir_array_i64_for_abi_host.exe"
 
 foreach ( $path in @($xl, $source, $rejectSource, $compatSource, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR array<i64> for ABI gate input is missing: $path"
     }
 }
+if ($OutputDirectory -and (Test-Path -LiteralPath $outputDir)) { throw 'Require a fresh Array gate output directory' }
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
 & $xl ir $source --typed --format json --emit $typedJsonPath
@@ -285,10 +286,13 @@ foreach ( $loopId in $loopIds ) {
     }).Count
     $symbol = $snapshotStore.targetSymbol
     $renderedReleasePattern =
+        [regex]::Escape("xvalue* const xlir_empty = {0};") +
+        "\s*" + [regex]::Escape("{ const XL6_SlotWrite xlir_writes[] = {") + "\s*" +
         [regex]::Escape("{ &(xlir_released), &(s$symbol), sizeof(xlir_released) },") +
         "\s*" +
-        [regex]::Escape("{ &(s$symbol), &(xvalue*){0}, sizeof(s$symbol) },") +
-        "[\s\S]{0,256}?" + [regex]::Escape("xrtValueRelease(xlir_released);")
+        [regex]::Escape("{ &(s$symbol), &(xlir_empty), sizeof(s$symbol) },") +
+        "\s*" + [regex]::Escape("}; (xl6SlotRuntimeV1Get()->Apply)(xlir_writes, sizeof(xlir_writes)/sizeof(*xlir_writes)); }") +
+        "\s*" + [regex]::Escape("xrtValueRelease(xlir_released);")
     $renderedReleaseCount = ([regex]::Matches($generated, $renderedReleasePattern)).Count
     if ( $renderedReleaseCount -ne $releaseCount -or
          $generated.Contains("xrtValueRelease(s$symbol);") ) {
@@ -301,11 +305,9 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR established exported array<int> parameter loop compatibility Cgen failed"
 }
 
-$command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include `"$cPath`" `"$hostSource`" !XL6_CGEN_LINKS! -o `"$exePath`" && `"$exePath`""
-& $env:ComSpec /d /v:on /c $command
-if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR array<i64> for strict generated-C runtime failed"
-}
+$continuationOutput = Join-Path $outputDir ("array-language-lifetimes-" + [Guid]::NewGuid().ToString('N'))
+& python (Join-Path $Root 'tools\check_stdlib_collection_continuations.py') --array-only --out $continuationOutput
+if ($LASTEXITCODE -ne 0) { throw 'Array language lifetime O0/O2 gate failed' }
 
 Write-Output "XLIR array<i64> for ABI gate ok: exact named and owned-rvalue admission, first-class shallow-snapshot and owned-iterator LoopResourceAbi, clone-or-transfer acquisition, count/index CFG, typed i64 projection, call/return admission, local and outward exception routing, return/throw/finally cleanup, continue/break canonical release, non-container excluded from array ABI and routed to checked dynamic TypeError, mechanical C, strict compile, and runtime snapshot/transfer semantics."
 exit 0
