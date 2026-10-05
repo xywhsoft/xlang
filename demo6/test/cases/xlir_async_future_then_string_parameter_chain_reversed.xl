@@ -7,4 +7,4 @@ end
 future<string> source = makeFuture()
 future<string> pending = surroundParameters(source, "[", "]")
 string completed = await pending
-assert completed == "[hello]"
+assert completed == "[he\0llo]"

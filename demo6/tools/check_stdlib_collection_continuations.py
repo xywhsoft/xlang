@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Actual Array loop / multi-await language ownership; shared runtime, not full-source ASan or JIT."""
+"""Actual Array loop / managed continuation ownership; shared runtime, not full-source ASan or JIT."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -18,6 +18,7 @@ def main():
     family=parser.add_mutually_exclusive_group()
     family.add_argument('--array-only',action='store_true')
     family.add_argument('--multi-only',action='store_true')
+    family.add_argument('--strings-only',action='store_true')
     args=parser.parse_args(); root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
     cc=shutil.which('gcc'); cli=root/('release/xl.exe' if os.name=='nt' else 'release/xl')
     if out.exists() or not cc or not cli.is_file() or (args.sanitize and os.name=='nt'):
@@ -25,19 +26,30 @@ def main():
     # Eleven terminal modes, including managed text with embedded NUL. Every
     # binary checks two full activations, actual retirement and MemDebug balance.
     cases=[]
-    if not args.multi_only:
+    if not args.multi_only and not args.strings_only:
         cases.append(('xlir_array_i64_for_abi','test/cases/xlir_array_i64_for_snapshot_host.c',
             'XLIR_ARRAY_FOR_GENERATED_SOURCE',[None],0))
-    if not args.array_only:
+    if not args.array_only and not args.strings_only:
         for name,modes,suspensions in [
             ('xlir_async_future_two_awaits',[None,'XLIR_CHAIN_SECOND_REJECT'],2),
             ('xlir_async_future_three_awaits',[None,'XLIR_CHAIN_THIRD_REJECT','XLIR_CHAIN_THIRD_CANCEL','XLIR_CHAIN_THIRD_CLOSE'],3),
             ('xlir_async_future_three_awaits_mixed',[None],3),
             ('xlir_async_future_three_strings',[None,'XLIR_STRING_THIRD_REJECT','XLIR_STRING_THIRD_CANCEL','XLIR_STRING_THIRD_CLOSE'],3)]:
             cases.append((name,f'test/cases/{name}_host.c','XLIR_MULTI_AWAIT_GENERATED_SOURCE',modes,suspensions))
+    if not args.array_only and not args.multi_only:
+        # Complete existing then-string/capture/parameter/reversed inventory,
+        # not just the one fixture that first exposed the old char* host ABI.
+        for suffix in ['then_string','then_string_capture_chain','then_string_capture_chain_reversed',
+            'then_string_immediate','then_string_local','then_string_mixed_capture_chain',
+            'then_string_parameter_chain','then_string_parameter_chain_reversed','then_string_reversed','string_chain']:
+            name='xlir_async_future_'+suffix
+            cases.append((name,f'test/cases/{name}_host.c','XLIR_STRING_FUTURE_GENERATED_SOURCE',
+                [None,'XLIR_STRING_FUTURE_REJECT','XLIR_STRING_FUTURE_CANCEL','XLIR_STRING_FUTURE_CLOSE'],
+                2 if suffix=='string_chain' else 1))
     files={Path(__file__),Path(cc),Path(sys.executable),cli,
         root/'test/cases/xlir_multi_await_host_support.h',
         root/'test/cases/xlir_multi_await_host_prelude.h',
+        root/'test/cases/xlir_string_future_host_support.h',
         root/'tools/check_xlir_array_i64_for_abi.ps1',root/'tools/check_xlir_async_machine_multi_await.ps1',
         root/'lib/xrt/xrt.snapshot.json',root/'lib/xruntime/xruntime.snapshot.json'}
     for directory in ['src/runtime','src/ir','src/cgen','src/compile','src/stdlib','release/include']:

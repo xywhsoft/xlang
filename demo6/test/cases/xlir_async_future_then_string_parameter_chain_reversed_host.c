@@ -1,29 +1,6 @@
-/* The suite generates this file immediately before compiling this host. */
-#include <stdbool.h>
-#include "../../build/test/xlir_async_future_then_string_parameter_chain_reversed_generated.c"
-
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, xcancel*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern void xrtPromiseDestroy(xpromise*);
-
-static const char* xlir_async_then_string_parameter_chain_reversed_value = "hello";
-
-xfuture* xlir_make_string_future(void)
-{
-    xfuture* future = NULL;
-    xpromise* promise = xrtPromiseCreate(&future, NULL);
-    if ( promise == NULL || !xrtPromiseResolve(
-             promise, &xlir_async_then_string_parameter_chain_reversed_value) ) {
-        xrtPromiseDestroy(promise);
-        return NULL;
-    }
-    xrtPromiseDestroy(promise);
-    return future;
-}
-
-int main(void)
-{
-    return xlir_module_init() == 1 ? 0 : 1;
-}
+/* One generated module TU; canonical ABI and shared lifecycle assertions. */
+#ifndef XLIR_STRING_FUTURE_GENERATED_SOURCE
+#define XLIR_STRING_FUTURE_GENERATED_SOURCE "../../build/test/xlir_async_future_then_string_parameter_chain_reversed_generated.c"
+#endif
+#define XLIR_STRING_FUTURE_COUNT 1
+#include "xlir_string_future_host_support.h"

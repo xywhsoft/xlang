@@ -308,4 +308,8 @@ $continuationOutput = Join-Path $outputDir ("multi-await-language-lifetimes-" + 
 & python (Join-Path $Root 'tools\check_stdlib_collection_continuations.py') --multi-only --out $continuationOutput
 if ($LASTEXITCODE -ne 0) { throw 'Multi-await language lifetime O0/O2 gate failed' }
 
+$stringOutput = Join-Path $outputDir ("string-future-language-lifetimes-" + [Guid]::NewGuid().ToString('N'))
+& python (Join-Path $Root 'tools\check_stdlib_collection_continuations.py') --strings-only --out $stringOutput
+if ($LASTEXITCODE -ne 0) { throw 'Managed string continuation lifetime O0/O2 gate failed' }
+
 Write-Host "XLIR async multi-await machine gate ok: direct scalar/managed two/three-await machine CFG, canonical single-layout activation handoff, forward/reverse transactional resident transfer, exact managed operand owners and anchored borrow-storage observations with success/failure cleanup, legacy async-chain renderer forbidden, deterministic C, -Werror and runtime terminal-state propagation."

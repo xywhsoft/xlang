@@ -8,4 +8,4 @@ end
 future<string> source = makeFuture()
 future<string> pending = surroundMixed(source, "[", "]")
 string completed = await pending
-assert completed == "[hello-]"
+assert completed == "[he\0llo-]"
