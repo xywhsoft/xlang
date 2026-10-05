@@ -1,0 +1,7 @@
+func count(Stack<int>? values) as int
+    if values != null
+        values = null
+        return values.count()
+    end
+    return 0
+end

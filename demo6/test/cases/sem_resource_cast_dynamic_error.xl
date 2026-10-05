@@ -1,0 +1,3 @@
+func convert(var value) as Stack<int>
+    return value as Stack<int>
+end

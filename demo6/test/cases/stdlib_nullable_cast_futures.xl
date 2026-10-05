@@ -1,0 +1,29 @@
+async func resolved() as int
+    return 42
+end
+
+future<int>? lifted = resolved() as future<int>?
+if lifted != null
+    assert(await lifted == 42)
+else
+    assert(false)
+end
+future<int> temporary = (resolved() as future<int>?) as future<int>
+assert(await temporary == 42)
+future<int> identity = resolved() as future<int>
+assert(await identity == 42)
+future<int>? absent = null as future<int>?
+assert(absent == null)
+array<future<int>?> owners = [resolved(), null]
+future<int> projected = owners[0] as future<int>
+owners[0] = null
+assert(await projected == 42)
+int rejected = 0
+try
+    future<int> missing = owners[1] as future<int>
+catch TypeError failure
+    rejected += 1
+finally
+    rejected += 1
+end
+assert(rejected == 2)

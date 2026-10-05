@@ -39,6 +39,10 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_sequence_clear_native_host.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_clear_minimal.xl test/cases/stdlib_stack_clear_error.xl test/cases/stdlib_stack_clear_error_continuation.xl
     printf '%s\0' tools/check_stdlib_collection_admission.py test/cases/stdlib_collection_admission.xl test/cases/stdlib_collection_nominal_admission.xl
+    printf '%s\0' test/cases/stdlib_nullable_resource_casts.xl test/cases/stdlib_nullable_cast_values.xl test/cases/stdlib_nullable_cast_futures.xl
+    printf '%s\0' test/cases/nullable_function_lifecycle.xl test/cases/nullable_function_frames.xl
+    printf '%s\0' test/cases/sem_nullable_resource_member_error.xl test/cases/sem_resource_cast_generic_identity_error.xl
+    printf '%s\0' test/cases/sem_resource_cast_dynamic_error.xl test/cases/sem_nullable_resource_fact_invalidated_error.xl test/cases/sem_resource_cast_copy_error.xl
     printf '%s\0' test/cases/stdlib_array_defaults.xl test/cases/stdlib_array_defaults_continuation.xl
     printf '%s\0' test/cases/stdlib_array_layouts.xl
     printf '%s\0' tools/check_xlir_function_value_calls.py test/cases/xlir_function_value_calls.xl test/cases/xlir_function_value_calls_contract.c
@@ -207,7 +211,7 @@ for name in "${negative[@]}"; do
     if ! reject_fixture "$name"; then failures+=("negative:$name"); fi
 done
 if ! run sequence-clear "$PY" tools/check_stdlib_sequence_clear.py --out "$OUT/sequence-clear" --sanitize; then failures+=(sequence-clear); fi
-for mode in base nominal defaults layouts; do
+for mode in base nominal defaults layouts nullable-resources; do
     arguments=(tools/check_stdlib_collection_admission.py --out "$OUT/collection-$mode" --sanitize)
     [[ "$mode" = base ]] || arguments+=("--$mode")
     if ! run "collection-$mode" "$PY" "${arguments[@]}"; then failures+=("collection-$mode"); fi

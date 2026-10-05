@@ -51,6 +51,11 @@ try {
             'test/cases/xlir_callable_bridge_mutations.h'))
     $files += @(Get-Item -LiteralPath 'test/cases/stdlib_array_future_reference.xl','tools/check_stdlib_array_future.py','test/cases/stdlib_array_future_native_host.c',
         'test/support/array_future_native.c','test/cases/stdlib_sequence_retired_admission_abi.c')
+    $files += @(Get-Item -LiteralPath 'test/cases/stdlib_nullable_resource_casts.xl','test/cases/stdlib_nullable_cast_values.xl',
+        'test/cases/stdlib_nullable_cast_futures.xl','test/cases/nullable_function_lifecycle.xl','test/cases/nullable_function_frames.xl',
+        'test/cases/sem_nullable_resource_member_error.xl','test/cases/sem_resource_cast_generic_identity_error.xl',
+        'test/cases/sem_resource_cast_dynamic_error.xl','test/cases/sem_nullable_resource_fact_invalidated_error.xl',
+        'test/cases/sem_resource_cast_copy_error.xl')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_shuffle.py','test/cases/stdlib_array_shuffle_native_host.c',
         'test/support/array_shuffle_native.c','test/cases/stdlib_array_shuffle_default_only.xl','test/cases/stdlib_array_shuffle_explicit_only.xl',
         'test/cases/stdlib_random_extended.xl','src/runtime/xl6_array_rng_shuffle.c','src/runtime/xl6_array_rand_shuffle.c')
@@ -248,7 +253,7 @@ try {
     Run 'sequence-clear' $python @('tools/check_stdlib_sequence_clear.py','--out',"$outPath/sequence-clear",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     $clear = Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-clear/results.json" -Raw | ConvertFrom-Json
     if (!$clear.Complete -or !$clear.InputsUnchanged) { throw 'Incomplete explicit clear evidence' }
-    foreach ($mode in @('base','nominal','defaults','layouts','numeric-enums')) {
+    foreach ($mode in @('base','nominal','defaults','layouts','numeric-enums','nullable-resources')) {
         $arguments=@('tools/check_stdlib_collection_admission.py','--out',"$outPath/collection-$mode",'--public-directory',$PublicDirectory)
         if ($mode -ne 'base') { $arguments += "--$mode" }
         # Layouts includes the separately bounded scalar and expression gates.

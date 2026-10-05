@@ -2106,8 +2106,17 @@ typedef enum XL6_IrCastAbi {
      * source `as` always owns an explicit recoverable TypeError edge. */
     XL6_IR_CAST_XVALUE_TO_UNION_CHECKED,
     XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED,
-    XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED
+    XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED,
+    /* Representation-preserving casts have no runtime type test. Exact
+     * logical TypeIds (including generic arguments) remain mandatory. */
+    XL6_IR_CAST_IDENTITY,
+    XL6_IR_CAST_NULL_TO_NULLABLE
 } XL6_IrCastAbi;
+
+/* One closed contract for managed T <-> T? representation. No inference from
+ * pointer size, spelling, ownership hints or an unrelated resource family. */
+int xl6IrNullableManagedRepresentationCompatible(
+    const XL6_IrTypePool*, XL6_IrTypeId, XL6_IrTypeId);
 
 /* Calls selected by language semantics but not represented by a source-level
  * callable declaration live in their own typed arena.  The spelling is used

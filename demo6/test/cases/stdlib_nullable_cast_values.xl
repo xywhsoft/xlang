@@ -1,0 +1,79 @@
+func takeI8(int8? value) as int8
+    return value as int8
+end
+func takeU8(uint8? value) as uint8
+    return value as uint8
+end
+func keepText(string? value) as string
+    return value as string
+end
+func keepBytes(bytes? value) as bytes
+    return value as bytes
+end
+func add(int value) as int
+    return value + 7
+end
+func makeCallback(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+func keepCallback((func(int) as int)? value) as func(int) as int
+    return value as func(int) as int
+end
+
+func main(...) as int
+    int same = 7 as int
+    int? optional = 7 as int?
+    int? copied = optional as int?
+    int? absent = null as int?
+    assert(same == 7 and copied == optional and absent == null)
+    if optional != null
+        int? observedCopy = optional as int?
+        assert((observedCopy as int) == 7)
+    end
+    var dynamicNumber = 19
+    int? fromDynamic = dynamicNumber as int?
+    assert((fromDynamic as int) == 19)
+    var dynamicText = "a\0你"
+    string? fromDynamicText = dynamicText as string?
+    assert(keepText(fromDynamicText) == "a\0你")
+    assert(takeI8(-128) == -128 and takeI8(127) == 127 and takeU8(255) == 255)
+    Stack<int8?> narrow = Stack::<int8?>()
+    assert(narrow.push(42))
+    int8 extracted = narrow.pop() as int8
+    assert(extracted == 42)
+    string text = "a\0你"
+    string textIdentity = text as string
+    string? optionalText = textIdentity as string?
+    assert(keepText(optionalText) == "a\0你")
+    string? emptyText = "" as string?
+    assert(emptyText != null and keepText(emptyText) == "")
+    bytes data = b"a\0b"
+    bytes? optionalData = data as bytes?
+    bytes independent = keepBytes(optionalData)
+    data = b"x"
+    optionalData = null
+    assert(independent == b"a\0b")
+    bytes? emptyData = b"" as bytes?
+    assert(emptyData != null and keepBytes(emptyData) == b"")
+    func(int) as int callback = makeCallback(7)
+    (func(int) as int)? optionalCallback = callback as (func(int) as int)?
+    func(int) as int kept = keepCallback(optionalCallback)
+    callback = add
+    optionalCallback = null
+    assert(kept(5) == 12)
+    int refused = 0
+    try
+        int8 failure = takeI8(null)
+    catch TypeError failure
+        refused += 1
+    end
+    try
+        bytes failure = keepBytes(null)
+    catch TypeError failure
+        refused += 1
+    end
+    assert(refused == 2)
+    return 0
+end

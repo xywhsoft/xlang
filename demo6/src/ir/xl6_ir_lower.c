@@ -7745,8 +7745,7 @@ static XL6_IrValueId xl6IrLowerNullableLiftCast(
         ctx, ctx->module->children[node->firstChild]);
     if ( source == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     if ( abi == XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE ) {
-        source = xl6IrLowerOwnedManagedStringValue(
-            ctx, id, sourceNode->storageType, sourceNode, source);
+        source = xl6IrLowerAcquireValueOwner(ctx, id, source);
         if ( source == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     }
     if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_WRAP, id,
@@ -7818,7 +7817,7 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
             ctx, id, ctx->module->children[node->firstChild], sourceNode)
         : xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( source == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    if ( managed && sourceNode->valueCategory == XL6_IR_VALUE_RVALUE ) {
+    if ( managed && xl6IrLowerValueHasOwner(ctx, source) ) {
         temporary = xl6IrLowerNewTempStorage(
             ctx, sourceNode->storageType, id);
         if ( temporary == 0 ||
@@ -7863,8 +7862,7 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
                               &source, 1, NULL) ) return XL6_IR_VALUE_INVALID;
         return result;
     }
-    return xl6IrLowerOwnedManagedStringValue(
-        ctx, id, node->storageType, sourceNode, result);
+    return xl6IrLowerAcquireValueOwner(ctx, id, result);
 }
 
 static int xl6IrLowerNominalTargetShape(
@@ -8093,6 +8091,26 @@ static XL6_IrValueId xl6IrLowerCast(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
     switch ( node != NULL ? node->castAbi : XL6_IR_CAST_INVALID ) {
+    case XL6_IR_CAST_IDENTITY:
+        {
+            XL6_IrNodeId sourceId = ctx->module->children[node->firstChild];
+            const XL6_IrNode* source = xl6IrNodeGet(ctx->module,sourceId);
+            XL6_IrValueId value = source != NULL
+                ? source->kind == XL6_IR_NODE_NAME && source->type != source->storageType
+                    ? xl6IrLowerNamePhysicalStorageValue(ctx,id,sourceId,source)
+                    : xl6IrLowerNode(ctx,sourceId)
+                : XL6_IR_VALUE_INVALID;
+            return source != NULL && source->storageType == node->storageType &&
+                xl6IrLowerValueType(ctx,value) == node->storageType
+                ? xl6IrLowerAcquireValueOwner(ctx,id,value) : XL6_IR_VALUE_INVALID;
+        }
+    case XL6_IR_CAST_NULL_TO_NULLABLE:
+        {
+            XL6_IrNodeId sourceId = ctx->module->children[node->firstChild];
+            const XL6_IrNode* source = xl6IrNodeGet(ctx->module,sourceId);
+            return source != NULL && source->sourceKind == XL6_AST_NULL
+                ? xl6IrLowerNodeAsType(ctx,id,sourceId,source,node->storageType) : XL6_IR_VALUE_INVALID;
+        }
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_U64_CHECKED:

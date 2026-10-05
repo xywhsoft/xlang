@@ -442,9 +442,68 @@ static void stackConstruction(XL6_IrModule* ir)
     if (count) printf("Stack construction: %u exact Sequence factories; schema/payload/transfer and unrelated metadata refused before C/header output\n",count);
 }
 
+static void nullableValueContracts(XL6_IrModule* ir)
+{
+    unsigned casts=0, receivers=0, wrappers=0, mutations=0;
+    for (size_t i=0;i<ir->nodeCount;++i) {
+        XL6_IrNode* node=&ir->nodes[i];
+        if (node->sourceKind!=XL6_AST_TYPE_AS) continue;
+        assert(node->castAbi!=XL6_IR_CAST_INVALID);
+        XL6_IrCastAbi abi=node->castAbi;
+        node->castAbi=XL6_IR_CAST_INVALID; rejected(ir); ++mutations;
+        node->castAbi=(XL6_IrCastAbi)UINT32_MAX; rejected(ir); ++mutations;
+        node->castAbi=abi;
+        XL6_IrErrorAbi effect=node->castErrorAbi;
+        node->castErrorAbi=effect==XL6_IR_ERROR_ABI_NO_RAISE
+            ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
+        rejected(ir); ++mutations; node->castErrorAbi=effect;
+        assert(xl6IrVerifyModule(ir,NULL)); ++casts;
+    }
+    for (size_t i=0;i<ir->intrinsicCallCount;++i) {
+        XL6_IrIntrinsicCall* call=&ir->intrinsicCalls[i];
+        if (call->kind!=XL6_IR_INTRINSIC_RUNTIME_RESOURCE ||
+            call->receiver==XL6_IR_NODE_INVALID) continue;
+        const XL6_IrNode* receiver=xl6IrNodeGet(ir,call->receiver);
+        assert(receiver && call->operandCount);
+        if (receiver->storageType==call->receiverType) continue;
+        assert(receiver->type==call->receiverType &&
+            xl6IrNullableManagedRepresentationCompatible(&ir->types,receiver->storageType,call->receiverType));
+        XL6_IrTypeId observed=call->receiverType;
+        call->receiverType=receiver->storageType; rejected(ir); ++mutations;
+        call->receiverType=observed;
+        XL6_IrIntrinsicOperand* input=&ir->intrinsicOperands[call->firstOperand];
+        XL6_IrTypeId type=input->type;
+        assert(type==observed);
+        input->type=receiver->storageType; rejected(ir); ++mutations;
+        input->type=type;
+        assert(xl6IrVerifyModule(ir,NULL)); ++receivers;
+    }
+    for (size_t i=0;i<ir->instructionCount;++i) {
+        XL6_IrInstruction* instruction=&ir->instructions[i];
+        if (instruction->kind!=XL6_IR_INSTR_NULLABLE_WRAP &&
+            instruction->kind!=XL6_IR_INSTR_NULLABLE_UNWRAP) continue;
+        XL6_IrInstructionKind kind=instruction->kind;
+        instruction->kind=kind==XL6_IR_INSTR_NULLABLE_WRAP
+            ? XL6_IR_INSTR_NULLABLE_UNWRAP : XL6_IR_INSTR_NULLABLE_WRAP;
+        rejected(ir); ++mutations; instruction->kind=kind;
+        XL6_IrTypeId type=instruction->type;
+        instruction->type=XL6_IR_TYPE_INVALID; rejected(ir); ++mutations;
+        instruction->type=type;
+        if (instruction->castAbi!=XL6_IR_CAST_INVALID) {
+            XL6_IrCastAbi abi=instruction->castAbi;
+            instruction->castAbi=(XL6_IrCastAbi)UINT32_MAX; rejected(ir); ++mutations;
+            instruction->castAbi=abi;
+        }
+        assert(xl6IrVerifyModule(ir,NULL)); ++wrappers;
+    }
+    if (casts || receivers || wrappers) printf("nullable value contracts: %u casts; %u observed resource receivers; %u wrap/unwrap instructions; %u mutations refused before C/header output\n",
+        casts,receivers,wrappers,mutations);
+}
+
 int main(int argc, char** argv)
 {
-    assert(argc==3 || (argc==4 && strcmp(argv[3],"numeric-enums")==0));
+    assert(argc==3 || (argc==4 && (strcmp(argv[3],"numeric-enums")==0 ||
+        strcmp(argv[3],"nullable-resources")==0)));
     futureContainerSemantics();
     int ok=0; unsigned checked=0, unrelated=0;
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output output;
@@ -456,7 +515,8 @@ int main(int argc, char** argv)
     stackConstruction(&ir);
     futureProjectionContracts(&ir);
     numericEnums(&ir);
-    if (argc==3) layouts(&ir);
+    if (argc==4 && strcmp(argv[3],"nullable-resources")==0) nullableValueContracts(&ir);
+    if (argc==3 || strcmp(argv[3],"nullable-resources")==0) layouts(&ir);
     unsigned defaults=0;
     for (size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];

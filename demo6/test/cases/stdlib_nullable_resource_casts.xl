@@ -1,0 +1,78 @@
+typedef TextStack = Stack<string>
+TextStack? globalStack = null
+
+func maybeStack(bool present) as TextStack?
+    if not present
+        return null as TextStack?
+    end
+    TextStack values = Stack::<string>()
+    assert(values.push("a\0你"))
+    return values as TextStack?
+end
+
+func readCount(TextStack? values) as int
+    if values != null
+        return values.count()
+    end
+    return -1
+end
+
+func take(TextStack? values) as TextStack
+    return values as TextStack
+end
+
+func takeTemporary() as TextStack
+    return maybeStack(true) as TextStack
+end
+
+func retireGlobal() as string
+    globalStack = null
+    return "owned\0result"
+end
+
+func main(...) as int
+    TextStack? optional = maybeStack(true)
+    assert(readCount(optional) == 1 and readCount(null) == -1)
+    if optional != null
+        TextStack? sameOptional = optional as TextStack?
+        assert(readCount(sameOptional) == 1)
+        assert(optional.count() == 1 and optional.peek() == "a\0你")
+        TextStack cloned = optional.clone()
+        assert(cloned.pop() == "a\0你")
+    end
+    TextStack observed = take(optional)
+    TextStack identity = observed as TextStack
+    assert(identity.push("tail"))
+    optional = null
+    assert(observed.count() == 2 and identity.pop() == "tail")
+    TextStack temporary = takeTemporary()
+    assert(temporary.peek() == "a\0你")
+    globalStack = temporary as TextStack?
+    TextStack retained = globalStack as TextStack
+    globalStack = null
+    assert(retained.pop() == "a\0你")
+    int refused = 0
+    try
+        TextStack absent = maybeStack(false) as TextStack
+    catch TypeError failure
+        refused += 1
+    finally
+        refused += 1
+    end
+    assert(refused == 2)
+    Stack<Stack<string>?> outer = Stack::<Stack<string>?>()
+    assert(outer.push(identity) and outer.push(null))
+    assert(outer.pop() == null)
+    TextStack? nested = outer.pop()
+    TextStack child = nested as TextStack
+    assert(child.pop() == "a\0你")
+    globalStack = maybeStack(true)
+    TextStack stable = take(globalStack)
+    if globalStack != null
+        assert(globalStack.push(retireGlobal()))
+    else
+        assert(false)
+    end
+    assert(globalStack == null and stable.pop() == "owned\0result")
+    return 0
+end
