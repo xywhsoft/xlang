@@ -44,17 +44,15 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionReceiverType(
     XL6_AstNode* member)
 {
     XL6_AstNode* receiver;
-    XL6_Symbol* sym;
 
     if ( member == NULL || member->kind != XL6_AST_MEMBER || member->childCount == 0 ) {
         return NULL;
     }
     receiver = member->children[0];
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return xl6SemInferAutoTypeNode(ctx, receiver);
-    }
-    sym = xl6ScopeFind(ctx->scope, receiver->text);
-    return sym != NULL && sym->type != NULL ? xl6SemCloneTypeNode(sym->type) : NULL;
+    /* Observe the proven flow type, not the nullable binding's storage type.
+     * InferAutoTypeNode preserves that observation on the expression for IR.
+     * An unproven nullable receiver is deliberately not unwrapped here. */
+    return xl6SemInferAutoTypeNode(ctx, receiver);
 }
 
 static const XL6_AstNode* xl6SemSpecialCollectionTypeArg(

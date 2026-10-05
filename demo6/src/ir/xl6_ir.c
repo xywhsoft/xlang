@@ -9706,8 +9706,8 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
         return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     receiverId = module->children[callee->firstChild];
     receiver = xl6IrNodeGet(module, receiverId);
-    resource = receiver != NULL
-        ? xl6IrTypeGet(&module->types, receiver->storageType) : NULL;
+    XL6_IrTypeId receiverValueType = xl6IrNodeMaterializedValueType(module,receiver);
+    resource = xl6IrTypeGet(&module->types,receiverValueType);
     if ( resource == NULL ) return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     *outReceiver = receiverId;
     if ( resource->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_THREAD ) {
@@ -9724,7 +9724,7 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     } else if ( resource->runtimeResourceAbi ==
                     XL6_IR_RUNTIME_RESOURCE_CHANNEL &&
                 xl6IrRuntimeChannelPayloadType(
-                    module, receiver->storageType) != XL6_IR_TYPE_INVALID ) {
+                    module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "send") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND;
         if ( strcmp(callee->text, "trySend") == 0 )
@@ -9744,7 +9744,7 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     } else if ( xl6IrRuntimeResourceAbiIsSpecialQueue(
                     resource->runtimeResourceAbi) &&
                 xl6IrRuntimeSpecialQueuePayloadType(
-                    module, receiver->storageType) != XL6_IR_TYPE_INVALID ) {
+                    module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "tryPush") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH;
         if ( resource->runtimeResourceAbi !=
@@ -9782,7 +9782,7 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     } else if ( resource->runtimeResourceAbi ==
                     XL6_IR_RUNTIME_RESOURCE_STACK &&
                 xl6IrRuntimeStackPayloadType(
-                    module, receiver->storageType) != XL6_IR_TYPE_INVALID ) {
+                    module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "push") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH;
         if ( strcmp(callee->text, "pop") == 0 )
@@ -9814,9 +9814,9 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     } else if ( resource->runtimeResourceAbi ==
                     XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
                 xl6IrRuntimeAvlKeyType(
-                    module, receiver->storageType) != XL6_IR_TYPE_INVALID &&
+                    module, receiverValueType) != XL6_IR_TYPE_INVALID &&
                 xl6IrRuntimeAvlValueType(
-                    module, receiver->storageType) != XL6_IR_TYPE_INVALID ) {
+                    module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "set") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET;
         if ( strcmp(callee->text, "getInto") == 0 )
@@ -12269,8 +12269,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             operandExpressions = operands;
             ++operandCount;
             intrinsic.receiver = runtimeResourceReceiver;
-            intrinsic.receiverType =
-                module->nodes[runtimeResourceReceiver - 1].storageType;
+            intrinsic.receiverType = xl6IrNodeMaterializedValueType(
+                module,&module->nodes[runtimeResourceReceiver - 1]);
             sourceType = xl6IrTypeGet(
                 &module->types, intrinsic.receiverType);
         }
@@ -12412,8 +12412,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             int compatible = 1;
             if ( operandCount <= 4 ) {
                 for ( i = 0; i < operandCount; ++i )
-                    operandTypes[i] =
-                        module->nodes[operands[i] - 1].storageType;
+                    operandTypes[i] = i==0 && intrinsic.receiver!=XL6_IR_NODE_INVALID
+                        ? intrinsic.receiverType : module->nodes[operands[i] - 1].storageType;
                 for ( i = 0; compatible && i < operandCount; ++i ) {
                     XL6_IrTypeId inputTarget =
                         xl6IrRuntimeResourceInputTargetType(
@@ -13233,7 +13233,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
          operand->expression = operandExpressions[i];
          operand->type =
              (intrinsic.kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
-              intrinsic.kind == XL6_IR_INTRINSIC_SET_ADD)
+              intrinsic.kind == XL6_IR_INTRINSIC_SET_ADD ||
+              (intrinsic.kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE &&
+               i==0 && operandExpressions[i]==intrinsic.receiver))
                 ? xl6IrNodeMaterializedValueType(
                     module, &module->nodes[operandExpressions[i] - 1])
                 : module->nodes[operandExpressions[i] - 1].storageType;
@@ -14791,6 +14793,30 @@ int xl6IrRefreshOperatorAbis(XL6_IrModule* module)
  * dynamic xvalue cast is intentionally distinct from builtin numeric
  * conversion: it accepts only the target runtime identity and reports a
  * recoverable TypeError on mismatch. */
+int xl6IrNullableManagedRepresentationCompatible(const XL6_IrTypePool* pool,
+    XL6_IrTypeId nullableId, XL6_IrTypeId elementId)
+{
+    const XL6_IrType* nullable = xl6IrTypeGet(pool, nullableId);
+    const XL6_IrType* element = xl6IrTypeGet(pool, elementId);
+    if (nullable == NULL || element == NULL || nullable->kind != XL6_IR_TYPE_NULLABLE ||
+        nullable->paramCount != 1 || nullable->params == NULL || nullable->params[0] != elementId ||
+        nullable->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        (nullable->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+         nullable->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL) ||
+        nullable->nullAbi != element->nullAbi || nullable->cAbi != element->cAbi ||
+        nullable->runtimeResourceAbi != XL6_IR_RUNTIME_RESOURCE_NONE) return 0;
+    switch (element->cAbi) {
+    case XL6_IR_C_ABI_MANAGED_STRING:
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR:
+    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR:
+    case XL6_IR_C_ABI_CLOSURE_PTR: return 1;
+    default: return 0;
+    }
+}
+
 static XL6_IrCastAbi xl6IrClassifyCastAbi(
     const XL6_IrModule* module, const XL6_IrNode* node)
 {
@@ -14884,6 +14910,16 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
             : XL6_IR_CAST_INVALID;
     }
 
+    if (source->storageType == node->storageType) return XL6_IR_CAST_IDENTITY;
+    if (source->sourceKind == XL6_AST_NULL && sourceType->kind == XL6_IR_TYPE_BUILTIN &&
+        sourceType->cAbi == XL6_IR_C_ABI_UNSUPPORTED && sourceType->paramCount == 0 &&
+        sourceType->name != NULL && strcmp(sourceType->name,"null") == 0 &&
+        target->kind == XL6_IR_TYPE_NULLABLE && target->paramCount == 1 && target->params != NULL &&
+        xl6IrTypeGet(&module->types,target->params[0]) != NULL &&
+        (target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ||
+         target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+         target->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)) return XL6_IR_CAST_NULL_TO_NULLABLE;
+
     /* Exact element -> nullable is a representation-explicit lift. */
     if ( target->kind == XL6_IR_TYPE_NULLABLE && target->paramCount == 1 &&
          target->params != NULL && source->storageType == target->params[0] ) {
@@ -14894,12 +14930,8 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
              target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
              element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL )
             return XL6_IR_CAST_VALUE_TO_TAGGED_NULLABLE;
-        if ( target->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-             target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-             target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-             element->cAbi == target->cAbi &&
-             element->nullAbi == target->nullAbi &&
-             element->ownershipAbi == target->ownershipAbi )
+        if ( xl6IrNullableManagedRepresentationCompatible(
+                &module->types,node->storageType,target->params[0]) )
             return XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE;
         return XL6_IR_CAST_INVALID;
     }
@@ -14915,12 +14947,8 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
              sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
              element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL )
             return XL6_IR_CAST_TAGGED_NULLABLE_TO_VALUE_CHECKED;
-        if ( sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-             sourceType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-             sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-             element->cAbi == sourceType->cAbi &&
-             element->nullAbi == sourceType->nullAbi &&
-             element->ownershipAbi == sourceType->ownershipAbi )
+        if ( xl6IrNullableManagedRepresentationCompatible(
+                &module->types,source->storageType,node->storageType) )
             return XL6_IR_CAST_NULLABLE_POINTER_TO_MANAGED_CHECKED;
         return XL6_IR_CAST_INVALID;
     }
@@ -14982,6 +15010,8 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
         return XL6_IR_ERROR_ABI_INVALID;
     abi = xl6IrClassifyCastAbi(module, node);
     switch ( abi ) {
+    case XL6_IR_CAST_IDENTITY:
+    case XL6_IR_CAST_NULL_TO_NULLABLE:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_U64_TRY:
@@ -30970,9 +31000,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 int convertedResourceInput =
                     resourceInputTarget != XL6_IR_TYPE_INVALID &&
                     operand->type == resourceInputTarget;
-                int projectedCollectionInsert =
+                int materializedValueInput =
                     (intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
-                     intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD) &&
+                     intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD ||
+                     (intrinsic->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE &&
+                      operandIndex==0 && operand->expression==intrinsic->receiver)) &&
                     operand->type == xl6IrNodeMaterializedValueType(
                         module, expression);
                 if ( expression == NULL || operand->type == XL6_IR_TYPE_INVALID ||
@@ -30983,7 +31015,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                            operandType->params == NULL ||
                            operandType->params[0] != expression->storageType)
                         : (!convertedResourceInput &&
-                           !projectedCollectionInsert &&
+                           !materializedValueInput &&
                            operand->type != expression->storageType)) ||
                      operand->abi <= XL6_IR_INTRINSIC_OPERAND_INVALID ||
                      operand->abi > XL6_IR_INTRINSIC_OPERAND_STORAGE_REF )
@@ -31102,7 +31134,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             : (resourceReceiver == XL6_IR_NODE_INVALID ||
                                intrinsic->receiver != resourceReceiver ||
                                intrinsic->receiverType !=
-                                   module->nodes[resourceReceiver - 1].storageType)) ||
+                                   xl6IrNodeMaterializedValueType(module,
+                                       &module->nodes[resourceReceiver - 1]))) ||
                           intrinsic->resultAbi != (resourceReturnsVoid
                              ? XL6_IR_INTRINSIC_RESULT_VOID
                              : xl6IrRuntimeResourceOpReturnsOwned(
@@ -34447,7 +34480,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   XL6_IR_OPERATOR_OPERAND_NULLABLE_UNWRAP_SCALAR_CONVERT ||
              node->castAbi < XL6_IR_CAST_INVALID ||
              node->castAbi >
-                 XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED ||
+                 XL6_IR_CAST_NULL_TO_NULLABLE ||
              node->castErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
              node->castErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
              node->implicitConversionRuntimeOp < XL6_IR_RUNTIME_NONE ||
@@ -35609,9 +35642,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                taggedAbi) ||
                               (instruction->castAbi ==
                                    XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE &&
-                               sentinelAbi && element != NULL &&
-                               element->cAbi ==
-                                   XL6_IR_C_ABI_MANAGED_STRING)) &&
+                               sentinelAbi && xl6IrNullableManagedRepresentationCompatible(
+                                   &module->types,instruction->type,elementType))) &&
                              origin->castErrorAbi ==
                                  XL6_IR_ERROR_ABI_NO_RAISE) ||
                             (instruction->kind ==
@@ -35621,9 +35653,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                taggedAbi) ||
                               (instruction->castAbi ==
                                    XL6_IR_CAST_NULLABLE_POINTER_TO_MANAGED_CHECKED &&
-                               sentinelAbi && element != NULL &&
-                               element->cAbi ==
-                                   XL6_IR_C_ABI_MANAGED_STRING) ||
+                               sentinelAbi && xl6IrNullableManagedRepresentationCompatible(
+                                   &module->types,operand->type,elementType)) ||
                               (instruction->castAbi ==
                                    XL6_IR_CAST_NULLABLE_NOMINAL_TO_NOMINAL_CHECKED &&
                                sentinelAbi && element != NULL &&
@@ -40677,7 +40708,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->castAbi != XL6_IR_CAST_INVALID) ||
                      instruction->castAbi < XL6_IR_CAST_INVALID ||
                      instruction->castAbi >
-                         XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED )
+                         XL6_IR_CAST_NULL_TO_NULLABLE )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous closed cast ABI");
                 if ( instruction->kind == XL6_IR_INSTR_BRANCH &&
@@ -42240,6 +42271,8 @@ static const char* xl6IrErrorAbiName(XL6_IrErrorAbi abi)
 static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
 {
     switch ( abi ) {
+    case XL6_IR_CAST_IDENTITY: return "identity";
+    case XL6_IR_CAST_NULL_TO_NULLABLE: return "null-to-nullable";
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
         return "xvalue-to-bool-checked";
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:

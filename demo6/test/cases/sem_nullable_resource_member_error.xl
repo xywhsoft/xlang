@@ -1,0 +1,3 @@
+func count(Stack<int>? values) as int
+    return values.count()
+end

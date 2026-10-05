@@ -7326,6 +7326,16 @@ static int xl6SemRuntimeTypeTargetIsInvalid(XL6_SemContext* ctx, const XL6_AstNo
     return 0;
 }
 
+static int xl6SemRuntimeResourceCastTarget(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, typeNode);
+    const XL6_TypeInfo* info = concrete != NULL && concrete->text != NULL
+        ? xl6TypeRegistryFind(&ctx->types, concrete->text) : NULL;
+    return info != NULL && info->kind == XL6_TYPE_BUILTIN &&
+        (xl6SemIsResourceHandleTypeName(concrete->text) ||
+         xl6SemIsSpecialCollectionTypeName(concrete->text));
+}
+
 static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;
@@ -7345,6 +7355,7 @@ static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNo
     if ( xl6SemClassHandleTargetType(ctx, concreteType) != NULL ) {
         return 1;
     }
+    if ( xl6SemRuntimeResourceCastTarget(ctx, concreteType) ) return 1;
 
     /*
         func 进入 var 必须显式经过 xcall；反向恢复同样只允许完整签名，
@@ -7415,7 +7426,7 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
         xl6SemErrorNode(
             ctx,
             target,
-            "as 当前只支持基础值、error、class、native-backed class、union、enum 和 protocol 目标类型");
+            "as 当前只支持基础值、error、class、native-backed class、union、enum、protocol 和精确资源目标类型");
         ok = 0;
     }
 
@@ -7440,6 +7451,15 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
             null 保持为空；T 直接提升为 T?；已经是同一 T? 时保持原值。
             这些路径不需要运行时类型检查。
         */
+    } else if ( xl6SemRuntimeResourceCastTarget(ctx, effectiveTarget) ) {
+        /* Resource handles are invariant. This is exact identity/lift/unwrap,
+         * not a dynamic projection or a change of generic element domain. */
+        if ( effectiveSource == NULL ||
+             !xl6SemTypeEquals(ctx, effectiveSource, effectiveTarget) ) {
+            xl6SemErrorNode(ctx, value,
+                "[CAST-RESOURCE-IDENTITY] resource as requires the same complete source and target type");
+            ok = 0;
+        }
     } else if ( effectiveTarget != NULL &&
                 effectiveTarget->text != NULL &&
                 xl6TypeRegistryFind(&ctx->types, effectiveTarget->text) != NULL &&
@@ -14239,6 +14259,23 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
     if ( expr->kind == XL6_AST_TYPED_LITERAL ) {
         return expr->childCount > 0 &&
                xl6SemExprIsFreshTypeValue(ctx, expr->children[0]);
+    }
+
+    if ( expr->kind == XL6_AST_TYPE_AS && expr->childCount == 2 ) {
+        /* Representation-only casts preserve a producer's fresh owner. They
+         * never turn an existing linear local into a copyable value. */
+        XL6_AstNode* source = xl6SemInferAutoTypeNode(ctx, expr->children[0]);
+        const XL6_AstNode* from = xl6SemResolveAliasType(ctx, source);
+        const XL6_AstNode* to = xl6SemResolveAliasType(ctx, expr->children[1]);
+        const XL6_AstNode* fromInner = xl6SemNullableInnerType(from);
+        const XL6_AstNode* toInner = xl6SemNullableInnerType(to);
+        int fresh = from != NULL && to != NULL &&
+            ((toInner != NULL && xl6TextEquals(from->text, "null")) ||
+             (xl6SemTypeEquals(ctx, fromInner != NULL ? fromInner : from,
+                 toInner != NULL ? toInner : to) &&
+              xl6SemExprIsFreshTypeValue(ctx, expr->children[0])));
+        xl6AstFree(source);
+        return fresh;
     }
 
     /* A typed collection lookup projects a separately retained Future owner,

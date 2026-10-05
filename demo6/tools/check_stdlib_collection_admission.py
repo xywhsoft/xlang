@@ -32,6 +32,7 @@ def main() -> int:
     parser.add_argument("--defaults", action="store_true", help="Select boxed Array logical defaults and checked resize effects")
     parser.add_argument("--layouts", action="store_true", help="Select Array carrier/layout facts and actual resident recipe oracle")
     parser.add_argument("--stacks", action="store_true", help="Source Stack direct factories, exact recipes and nested Stack owners")
+    parser.add_argument("--nullable-resources", action="store_true", help="Flow-observed resource receivers and exact owning nullable/identity casts")
     parser.add_argument("--numeric-enums", action="store_true", help="Select exact nullable numeric-enum Value boundaries, negative constants and closed language OOM sweeps")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
@@ -39,11 +40,17 @@ def main() -> int:
     cc = shutil.which("gcc")
     if not cc or out.exists() or (os.name == "nt" and not args.public_directory) or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
-    if sum((args.defaults, args.nominal, args.layouts, args.numeric_enums, args.stacks)) > 1:
+    if sum((args.defaults, args.nominal, args.layouts, args.numeric_enums, args.stacks, args.nullable_resources)) > 1:
         parser.error("Select one fixture family")
     fixtures = ["stdlib_stack_admitted_construction", "stdlib_stack_factory_only", "xlir_stack_resource_abi", "xlir_stack_class_default_abi", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8"] if args.stacks else ["stdlib_nullable_numeric_enum", "stdlib_nullable_numeric_enum_absent", "enum_numeric_runtime", "enum_match_matrix"] if args.numeric_enums else ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8", "stdlib_array_future_reference"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     if args.stacks: fixtures.insert(2,"stdlib_stack_nested_factory_only")
+    if args.nullable_resources:
+        fixtures = ["stdlib_nullable_resource_casts", "stdlib_nullable_cast_values",
+                    "stdlib_nullable_cast_futures", "nullable_function_lifecycle", "nullable_function_frames"]
+    nullable_refusals = ["sem_nullable_resource_member_error", "sem_resource_cast_generic_identity_error",
+                        "sem_resource_cast_dynamic_error", "sem_nullable_resource_fact_invalidated_error",
+                        "sem_resource_cast_copy_error"] if args.nullable_resources else []
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
         parser.error("Full current-source compiler required")
@@ -58,6 +65,10 @@ def main() -> int:
              root / "test/cases/stdlib_collection_admission_host.c",
              root / "test/cases/xlir_collection_admission_contract.c"]
     files += [root / f"test/cases/{fixture}.xl" for fixture in fixtures]
+    files += [root / f"test/cases/{fixture}.xl" for fixture in nullable_refusals]
+    if args.nullable_resources:
+        files += [root / "test/cases/xlir_module_product_oom_host.c",
+                  root / "test/support/module_product_memory.c", root / "test/support/module_product_memory.h"]
     if args.stacks:
         files += [root / "test/cases/stdlib_stack_wire_child_refused.xl",
                   root / "test/cases/xlir_module_product_oom_host.c",root / "test/support/module_product_memory.c"]
@@ -102,7 +113,7 @@ def main() -> int:
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
               "Sanitized": args.sanitize, "Nominal": args.nominal, "Layouts": args.layouts, "Stacks": args.stacks,
-              "NumericEnums": args.numeric_enums, "Sweeps": [],
+              "NumericEnums": args.numeric_enums, "NullableResources": args.nullable_resources, "Sweeps": [],
               "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
     env = dict(os.environ)
     if args.sanitize:
@@ -164,6 +175,17 @@ def main() -> int:
             assert "xlir_nominal_runtime_tag" not in text
             assert not re.search(r"static bool xlir_nominal_set_\d+_matches",text)
             lowered = json.loads(ir.read_text(encoding="utf-8"))
+            if args.nullable_resources:
+                casts = [row for row in lowered["nodes"] if row["sourceKindName"] == "type_as"]
+                assert all(row["castAbiName"] != "invalid" for row in casts)
+                if fixture.startswith("stdlib_nullable_"):
+                    assert casts
+                for cast in casts:
+                    expected = "may-raise" if cast["castAbiName"].endswith("checked") or cast["castAbiName"] == "xvalue-to-nullable-string-try" else "no-raise"
+                    assert cast["castErrorAbiName"] == expected, cast
+                if fixture == "stdlib_nullable_cast_values":
+                    assert {"identity", "null-to-nullable", "managed-to-pointer-nullable",
+                            "nullable-pointer-to-managed-checked", "tagged-nullable-to-value-checked"} <= {row["castAbiName"] for row in casts}
             if args.stacks:
                 assert 'xl6StackCreateV1' not in text
                 creates={row['result']:row for row in lowered['instructions'] if row['runtimeOpName']=='stack-create'}
@@ -323,10 +345,16 @@ def main() -> int:
                 assert len(checked) == 25
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c),
-                *(["numeric-enums"] if args.numeric_enums else [])])
+                *(["numeric-enums"] if args.numeric_enums else ["nullable-resources"] if args.nullable_resources else [])])
             if args.stacks:
                 assert f'Stack construction: {len(creates)} exact Sequence factories;' in contract_log
             assert "Future container semantics: 5 accepted; 7 independent copy/resource refusals" in contract_log
+            if args.nullable_resources:
+                proof = re.search(r"nullable value contracts: (\d+) casts; (\d+) observed resource receivers; (\d+) wrap/unwrap instructions; (\d+) mutations refused before C/header output", contract_log)
+                assert proof and int(proof[4]) > 0
+                assert int(proof[1]) == len(casts)
+                if fixture == "stdlib_nullable_resource_casts":
+                    assert int(proof[2]) >= 4
             if fixture == "stdlib_array_future_reference":
                 projections = [row for row in lowered["instructions"] if row["runtimeOpName"] in (
                     "xvalue-project-future-copy", "xvalue-project-nullable-future-copy")]
@@ -359,11 +387,13 @@ def main() -> int:
             assert generated.read_bytes() == contract_c.read_bytes(), "Mutation contract changed canonical C"
             for level in (0, 2):
                 binary = prefix.with_suffix(f".O{level}" + (".exe" if os.name == "nt" else ""))
-                if fixture == "stdlib_array_future_reference":
+                if fixture == "stdlib_array_future_reference" or args.nullable_resources:
                     memory = out / f"memory.O{level}.o"
-                    run(f"future-memory.O{level}.build", [cc, *strict, f"-O{level}", "-c",
-                        "test/support/module_product_memory.c", "-o", str(memory)])
-                    source_arguments = ["-include", str(generated),
+                    if not memory.exists():
+                        run(f"future-memory.O{level}.build", [cc, *strict, f"-O{level}", "-c",
+                            "test/support/module_product_memory.c", "-o", str(memory)])
+                    source_arguments = (["-DXL6_PRODUCT_USER_ENTRY"] if fixture in
+                        ("stdlib_nullable_resource_casts", "stdlib_nullable_cast_values") else []) + ["-include", str(generated),
                         "test/cases/xlir_module_product_oom_host.c", str(memory)]
                 else:
                     source_arguments = [str(generated), "test/cases/stdlib_collection_admission_host.c"]
@@ -374,18 +404,19 @@ def main() -> int:
                     # executions, JIT, AOT and ordinary C still use 60 s.
                     timeout=(360 if args.defaults or args.layouts else 180) if args.sanitize and level == 2 else 60)
                 language_proof = run(f"{fixture}.O{level}.run", [str(binary)])
-                if fixture == "stdlib_array_future_reference":
+                if fixture == "stdlib_array_future_reference" or args.nullable_resources:
                     assert "hit=0 balanced" in language_proof
-                if (args.numeric_enums and fixture.startswith("stdlib_nullable_numeric_enum")) or (args.stacks and fixture=='stdlib_stack_admitted_construction'):
+                if (args.numeric_enums and fixture.startswith("stdlib_nullable_numeric_enum")) or (args.stacks and fixture=='stdlib_stack_admitted_construction') or (args.nullable_resources and fixture in ("stdlib_nullable_resource_casts", "stdlib_nullable_cast_values")):
                     lane = f"{fixture}.O{level}.oom"
                     memory = out / f"memory.O{level}.o"
                     if not memory.exists():
                         run(f"memory.O{level}.build", [cc, *strict, f"-O{level}", "-c",
                             "test/support/module_product_memory.c", "-o", str(memory)])
-                    oom = out / (lane + (".exe" if os.name == "nt" else ""))
-                    run(lane + ".build", [cc, *strict, f"-O{level}", "-DXL6_PRODUCT_USER_ENTRY",
-                        "-include", str(generated), "test/cases/xlir_module_product_oom_host.c",
-                        str(memory), *links, "-o", str(oom)], timeout=360 if args.sanitize and level == 2 else 60)
+                    oom = binary if args.nullable_resources else out / (lane + (".exe" if os.name == "nt" else ""))
+                    if not args.nullable_resources:
+                        run(lane + ".build", [cc, *strict, f"-O{level}", "-DXL6_PRODUCT_USER_ENTRY",
+                            "-include", str(generated), "test/cases/xlir_module_product_oom_host.c",
+                            str(memory), *links, "-o", str(oom)], timeout=360 if args.sanitize and level == 2 else 60)
                     assert "hit=0 balanced" in run(lane + ".normal", [str(oom)])
                     for point in range(4097):
                         proof = run(lane + f".{point}", [str(oom), str(point)])
@@ -394,7 +425,7 @@ def main() -> int:
                             report["Sweeps"].append({"Lane": lane, "FirstNoHit": point})
                             break
                     else:
-                        raise AssertionError("Unclosed numeric-enum language allocation prefix")
+                        raise AssertionError("Unclosed language allocation prefix")
             source = f"test/cases/{fixture}.xl"
             jit = [str(cli), source, "run", str(prefix)] if public else [str(cli), "run", source, "--inc-path", str(out / "include")]
             log = run(f"{fixture}.jit", jit)
@@ -407,6 +438,21 @@ def main() -> int:
                 run(f"{fixture}.aot.build", [str(cli), "build", source, "--inc-path", str(out / "include"), "-o", str(product)])
             assert product.is_file(), f"AOT output missing: {product}"
             run(f"{fixture}.aot.run", [str(product)])
+        for fixture in nullable_refusals:
+            target = out / (fixture + ".refused.c")
+            source = f"test/cases/{fixture}.xl"
+            command = ([str(cli), source, "cgen-default", str(target)] if public else
+                       [str(cli), "cgen", source, "--inc-path", str(out / "include"), "--emit", str(target)])
+            refusal = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=60)
+            data = refusal.stdout + refusal.stderr
+            (out / (fixture + ".refused.log")).write_bytes(data)
+            diagnostic = (b"nullable receiver must be narrowed" if fixture in
+                          ("sem_nullable_resource_member_error", "sem_nullable_resource_fact_invalidated_error") else
+                          "不可复制类型不能从已有值初始化".encode() if fixture == "sem_resource_cast_copy_error" else
+                          b"[CAST-RESOURCE-IDENTITY]")
+            accepted = refusal.returncode != 0 and b"[sem]" in data and diagnostic in data and (not target.exists() or not target.stat().st_size)
+            rows.append({"Name": fixture + ".refused", "Command": command, "Exit": refusal.returncode, "Complete": accepted})
+            assert accepted, "Invalid resource operation must be refused during semantics before C output"
         if args.stacks:
             target=out/'wire-child.refused.c'
             source='test/cases/stdlib_stack_wire_child_refused.xl'

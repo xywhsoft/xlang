@@ -1,0 +1,3 @@
+func convert(Stack<int>? values) as Stack<string>
+    return values as Stack<string>
+end

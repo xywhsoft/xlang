@@ -582,3 +582,16 @@ Sequence gate covers 16 nullable/required child domains across both roles,
 including same-ID published wrong tuples and complete allocation prefixes.
 These do not complete source Array migration, pending element domains,
 nullable generic-resource member/unwrap semantics or the 53-module goal.
+
+`check_stdlib_collection_admission.py --nullable-resources` verifies flow-observed
+Stack receivers, invariant generic resource casts, identity/null/lift/checked
+unwrap and producer-based ownership. It covers aliases, guarded storage copies,
+nested Stack owners, exact NUL text/bytes, narrow scalar boundaries, closures
+and fresh/projected Futures. Five semantic refusals preserve null guards and
+linear Future copy restrictions. Cast/effect, receiver and wrap/unwrap mutations
+must fail before C/header output. O0/O2, JIT and AOT run the real runtime;
+the non-threaded resource/value fixtures close every allocation prefix. Future
+normal runs include module retirement, but do not claim worker-thread OOM
+injection. Linux sanitizes generated C/host only, not shared libraries. Stack
+parent gates include this mode. Native artifact closure checks are independent;
+this batch does not complete source Array migration or the 53-module goal.

@@ -1,0 +1,5 @@
+async func resolved() as int
+    return 42
+end
+future<int> source = resolved()
+future<int>? forbidden = source as future<int>?
