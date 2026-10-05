@@ -14,6 +14,7 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
                 "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
                 "extern bool xrtValueGetFloat(const xvalue*, double*);\n"
+                "extern bool xrtValueGetTime(const xvalue*, int64_t*);\n"
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "static int xlir_xvalue_is_numeric(int type)\n"
                 "{ return type == XVALUE_BOOL || type == XVALUE_INT || type == XVALUE_FLOAT || type == XVALUE_UINT; }\n"
@@ -271,6 +272,8 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern xvalue* xrtValuePointer(void*);\n"
                 "extern char* xrtStrDup(const char*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
+            if (needs->needsCallableF32Reader)
+                xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n", out);
             /* Pure erased invocation and bound methods use XRT callables,
              * not native XLIR closures. Emit this bridge only when required. */
             if (needs->needsClosureRuntime)

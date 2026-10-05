@@ -41,7 +41,10 @@ try {
             'test/cases/stdlib_stack_clear_error_continuation.xl','tools/check_stdlib_collection_admission.py',
             'test/cases/stdlib_collection_admission.xl','test/cases/stdlib_collection_nominal_admission.xl',
             'test/cases/stdlib_array_defaults.xl','test/cases/stdlib_array_defaults_continuation.xl',
-            'test/cases/stdlib_array_layouts.xl'))
+            'test/cases/stdlib_array_layouts.xl','tools/check_stdlib_callable_scalars.py',
+            'test/cases/stdlib_callable_scalars.xl','test/cases/stdlib_callable_scalars_unused.xl',
+            'test/cases/stdlib_callable_scalars_contract.c','test/cases/stdlib_callable_scalars_host.c',
+            'test/cases/xlir_callable_bridge_mutations.h'))
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {

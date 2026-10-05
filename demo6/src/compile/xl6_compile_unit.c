@@ -308,6 +308,14 @@ static int xl6ArtifactInstructionReachable(const XL6_IrModule* module, size_t in
     return 0;
 }
 
+static int xl6ArtifactVisitResidentSymbol(void* opaque, const char* symbol)
+{
+    XL6_ArtifactRuntimeSet* roots = opaque;
+    XL6_ArtifactRuntimeId owner = xl6ArtifactRuntimeSymbolOwner(symbol);
+    return owner != XL6_ARTIFACT_RUNTIME_COUNT &&
+        xl6ComponentSetAdd(roots->words,XL6_ARTIFACT_RUNTIME_COUNT,owner);
+}
+
 int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
     XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags)
 {
@@ -503,6 +511,9 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         xl6ArtifactTypeRequire(&work,type->callableResultType);
     }
     xrtFree(work.seen); xrtFree(work.queue);
+    cOptions.emitScriptEntry=entry!=XL6_ARTIFACT_ENTRY_FRAGMENT;
+    cOptions.emitMainWrapper=entry==XL6_ARTIFACT_ENTRY_EXECUTABLE_V1;
+    if (!xl6IrCgenVisitResidentSymbols(module,diags,&cOptions,xl6ArtifactVisitResidentSymbol,&roots)) return 0;
     if (!xl6ArtifactRuntimeClosePlan(&roots,plan)) return 0;
     {
         /* The public xlValue ABI includes graph cloning, native/callable/type

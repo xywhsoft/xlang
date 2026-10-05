@@ -292,38 +292,34 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 (unsigned long)signature->paramCount, (unsigned long)i,
                 (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
                 (unsigned long)i, (unsigned long)i, (unsigned long)i);
+        } else if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_F32) {
+            /* No numeric default opcode currently certifies an F32 literal.
+             * Decode only bound values, without a double* -> float* cast. */
+            xl6OutputPrintf(out,
+                "    if (!bound%lu) { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable f32 argument binding is incomplete\")); goto argument_fail; }\n"
+                "    if (!xl6ValueReadF32V1(f%lu, 0x%016llXULL, &a%lu)) goto argument_fail;\n",
+                (unsigned long)i, (unsigned long)i,
+                (unsigned long long)parameter->typeValueId, (unsigned long)i);
         } else {
-            const char* getter = parameter != NULL &&
-                    slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BOOL
-                ? "xrtValueGetBool" : parameter != NULL &&
-                    slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CHAR
-                    ? "xrtValueGetChar" : parameter != NULL &&
-                    slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_I64
-                    ? "xrtValueGetInt" : parameter != NULL &&
-                        slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_U64
-                        ? "xrtValueGetUInt" : "xrtValueGetFloat";
-            XL6_IrDynamicMethodDefaultAbi defaultAbi = parameter != NULL &&
-                    slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BOOL
-                ? XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL
-                : parameter != NULL && slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CHAR
-                    ? XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
-                : parameter != NULL && slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_I64
-                    ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64
-                    : parameter != NULL &&
-                        slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_U64
-                        ? XL6_IR_DYNAMIC_METHOD_DEFAULT_U64
-                        : XL6_IR_DYNAMIC_METHOD_DEFAULT_F64;
-            const char* field = defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL
-                ? "boolean_value" : defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64
-                    ? "i64_value" : defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64
-                        ? "u64_value" : defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
-                            ? "char_value" : "f64_value";
-            if ( parameter == NULL ||
-                 (slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_BOOL &&
-                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_I64 &&
-                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_U64 &&
-                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_F64 &&
-                  slot->decodeAbi != XL6_IR_CALLABLE_BRIDGE_CHAR) )
+            const char* getter = NULL;
+            const char* field = NULL;
+            XL6_IrDynamicMethodDefaultAbi defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
+            switch (slot->decodeAbi) {
+            case XL6_IR_CALLABLE_BRIDGE_BOOL:
+                getter = "xrtValueGetBool"; defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL; field = "boolean_value"; break;
+            case XL6_IR_CALLABLE_BRIDGE_CHAR:
+                getter = "xrtValueGetChar"; defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR; field = "char_value"; break;
+            case XL6_IR_CALLABLE_BRIDGE_I64:
+                getter = "xrtValueGetInt"; defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_I64; field = "i64_value"; break;
+            case XL6_IR_CALLABLE_BRIDGE_U64:
+                getter = "xrtValueGetUInt"; defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_U64; field = "u64_value"; break;
+            case XL6_IR_CALLABLE_BRIDGE_F64:
+                getter = "xrtValueGetFloat"; defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_F64; field = "f64_value"; break;
+            case XL6_IR_CALLABLE_BRIDGE_TIME:
+                getter = "xrtValueGetTime"; defaultAbi = XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME; field = "i64_value"; break;
+            default: break;
+            }
+            if (!parameter || !getter || !field)
                 return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                     "XLIR C emitter runtime callable parameter has no closed scalar ABI");
             xl6OutputPrintf(out,

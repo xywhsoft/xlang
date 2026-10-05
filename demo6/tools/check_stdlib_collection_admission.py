@@ -55,6 +55,15 @@ def main() -> int:
              root / "test/cases/stdlib_collection_admission_host.c",
              root / "test/cases/xlir_collection_admission_contract.c"]
     files += [root / f"test/cases/{fixture}.xl" for fixture in fixtures]
+    if args.layouts:
+        files += [root / "tools/check_stdlib_callable_scalars.py",
+                  root / "test/cases/stdlib_callable_scalars.xl",
+                  root / "test/cases/stdlib_callable_scalars_unused.xl",
+                  root / "test/cases/stdlib_callable_scalars_contract.c",
+                  root / "test/cases/stdlib_callable_scalars_host.c",
+                  root / "test/cases/xlir_callable_bridge_mutations.h",
+                  root / "test/cases/xlir_module_product_oom_host.c",
+                  root / "test/support/module_product_memory.c", root / "test/support/module_product_memory.h"]
     if args.numeric_enums:
         files += [root / "test/cases/xlir_module_product_oom_host.c",
                   root / "test/support/module_product_memory.c", root / "test/support/module_product_memory.h"]
@@ -327,6 +336,18 @@ def main() -> int:
                 run(f"{fixture}.aot.build", [str(cli), "build", source, "--inc-path", str(out / "include"), "-o", str(product)])
             assert product.is_file(), f"AOT output missing: {product}"
             run(f"{fixture}.aot.run", [str(product)])
+        if args.layouts:
+            child = out / "callable-scalars"
+            command = [sys.executable, str(root / "tools/check_stdlib_callable_scalars.py"), "--out", str(child)]
+            if args.public_directory:
+                command += ["--public-directory", str(args.public_directory.resolve())]
+            if args.sanitize:
+                command += ["--sanitize"]
+            run("callable-scalars", command, timeout=600)
+            proof = json.loads((child / "results.json").read_text(encoding="utf-8"))
+            assert proof["Complete"] and proof["InputsUnchanged"] and len(proof["Sweeps"]) == 6
+            assert all(digest(Path(row["Path"])) == row["Sha256"] for row in proof["Inputs"])
+            report["CallableScalarsReport"] = str(child / "results.json")
         report["InputsUnchanged"] = all(digest(Path(row["Path"])) == row["Sha256"] for row in inputs)
         report["Complete"] = report["InputsUnchanged"]
         if not report["Complete"]:

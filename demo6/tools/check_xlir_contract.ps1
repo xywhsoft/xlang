@@ -146,6 +146,18 @@ foreach ($required in @('callableBridgeCount', 'callableBridgeParameterCount', '
     if (!$bridgeMutations.Contains($required)) { throw "Callable bridge mutation coverage is missing: $required" }
 }
 $callableResults = Read-Utf8 'src\cgen\xl6_ir_cgen_callable_results.c'
+foreach ($required in @('XL6_IR_CALLABLE_BRIDGE_F32', 'XL6_IR_CALLABLE_BRIDGE_TIME')) {
+    if (!$header.Contains($required) -or !$callableBridge.Contains($required) -or
+        !$callableEmitter.Contains($required) -or !$callableResults.Contains($required)) {
+        throw "Callable scalar transport must use closed bidirectional opcodes: $required"
+    }
+}
+if ((Read-Utf8 'src\cgen\xl6_ir_cgen_callable_contract.c').Contains('xl6IrCgenRuntimeCallableScalarAbi') -or
+    !$callableResults.Contains('xl6ValueReadF32V1') -or
+    !(Read-Utf8 'src\compile\xl6_compile_unit.c').Contains('xl6IrCgenVisitResidentSymbols') -or
+    !(Read-Utf8 'test\cases\stdlib_callable_scalars_contract.c').Contains('XL6_ARTIFACT_VALUE_ADMISSION')) {
+    throw 'Callable scalars need resident exact F32 reads, closed programs and emission-aligned pruning, not a Cgen type whitelist'
+}
 foreach ($required in @('resultCommitAbi', 'frameCleanupAbi', 'callableBridgeResults')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or
         !$callableBridge.Contains($required) -or !$callableResults.Contains($required)) {
@@ -2526,7 +2538,7 @@ foreach ( $required in @(
     "xl6IrCallableBridgeGet",
     "xl6IrCgenEmitCallableBridgeCleanup",
     "xl6IrCgenEmitCallableResultCleanup",
-    "xl6IrCgenRuntimeCallableScalarAbi",
+    "XL6_IR_CALLABLE_BRIDGE_F32", "XL6_IR_CALLABLE_BRIDGE_TIME",
     "xl6ClosureRuntimeV1Get()->Box", "xrtValueInvoke",
     "xrtCallResultSetTake", "xlir_closure_to_xvalue_scalar",
     "xlir_xvalue_dynamic_call", "xrtErrorCause(callError)",

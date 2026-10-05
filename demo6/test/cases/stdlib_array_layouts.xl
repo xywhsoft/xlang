@@ -84,8 +84,12 @@ end
 func layoutNestedFunctions(array<array<func(int) as int>> functions) as int
     return functions.length
 end
-// F32 callable value projection is not a currently supported dual ABI.
-func layoutUnclosedSignature(array<func(float32) as float32> functions) as int
+// Scalar bridge signatures are closed independently of the Array cutover.
+func layoutScalarSignatures(array<func(float32) as float32> functions, array<func(time) as time> times) as int
+    return functions.length + times.length
+end
+// Resource parameters are not a currently closed dual ABI.
+func layoutUnclosedSignature(array<func(future<int>) as int> functions) as int
     return functions.length
 end
 // Open function signatures and resource payloads must stay pending.

@@ -19185,7 +19185,8 @@ static int xl6IrRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 {
     return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
            abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_TYPE_ID ||
-           abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_CHAR_U32;
+           abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_F32 ||
+           abi == XL6_IR_C_ABI_TIME_I64 || abi == XL6_IR_C_ABI_CHAR_U32;
 }
 
 static int xl6IrTypeHasStorageReleaseAbiDepth(

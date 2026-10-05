@@ -636,11 +636,11 @@ static char* xl6IrLowerCanonicalTimeLiteral(const char* text)
         return NULL;
     }
     written = value == INT64_MIN
-        ? snprintf(buffer, sizeof(buffer), "(-INT64_C(9223372036854775807)-INT64_C(1))")
+        ? snprintf(buffer, sizeof(buffer), "(-9223372036854775807LL - 1LL)")
         : value < 0
-            ? snprintf(buffer, sizeof(buffer), "-INT64_C(%llu)",
+            ? snprintf(buffer, sizeof(buffer), "-%lluLL",
                        (unsigned long long)(-value))
-            : snprintf(buffer, sizeof(buffer), "INT64_C(%llu)",
+            : snprintf(buffer, sizeof(buffer), "%lluLL",
                        (unsigned long long)value);
     return written > 0 && (size_t)written < sizeof(buffer)
         ? xrtStrDupN(buffer, (size_t)written) : NULL;

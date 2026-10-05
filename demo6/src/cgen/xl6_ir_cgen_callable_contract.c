@@ -4,16 +4,6 @@ static int xl6IrCgenRuntimeCallableSignatureAbi(
     return xl6IrRuntimeCallableClosureToXValueSignatureSupported(module, type);
 }
 
-/* Mirror the verifier's closed scalar carrier set at the emission boundary.
- * This prevents a final `else` branch from silently treating a newly-added
- * C ABI as f64 after the verified callable contract evolves. */
-static int xl6IrCgenRuntimeCallableScalarAbi(XL6_IrCAbi abi)
-{
-    return abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
-           abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_TYPE_ID ||
-           abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_CHAR_U32;
-}
-
 static int xl6IrCgenRuntimeCallableSlotIsErrorRef(
     const XL6_IrType* type)
 {

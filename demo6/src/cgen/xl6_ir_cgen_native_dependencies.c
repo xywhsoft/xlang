@@ -208,3 +208,11 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
 #undef XL6_IR_CGEN_NEED
     return 1;
 }
+
+int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diags,
+    const XL6_IrCgenOptions* options, XL6_IrCgenNativeModuleVisitor visitor, void* context)
+{
+    XL6_IrCgenNeeds needs;
+    if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    return !needs.needsCallableF32Reader || visitor(context,"xl6ValueReadF32V1");
+}
