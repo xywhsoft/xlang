@@ -1,0 +1,5 @@
+#define XL6_NULLABLE_CARRIER XL6_NullableNativeU8V1
+#define XL6_NULLABLE_ELEMENT xrtTypeUInt8
+#define XL6_NULLABLE_GET xl6NullableNativeU8TypeV1
+#define XL6_NULLABLE_CONVERTER xl6NullableNativeU8ConverterV1
+#include "src/runtime/xl6_nullable_scalar_value_impl.h"

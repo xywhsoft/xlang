@@ -636,14 +636,22 @@ static const char* xl6IrCgenExternParameterType(
 
 static const char* xl6IrCgenNullableScalarCarrier(const XL6_IrModule* module, XL6_IrTypeId type)
 {
-    switch ( xl6IrNullableScalarElementAbi(module, type) ) {
-    case XL6_IR_C_ABI_BOOL: return "XL6_NullableBoolV1";
-    case XL6_IR_C_ABI_I64: return "XL6_NullableI64V1";
-    case XL6_IR_C_ABI_U64: return "XL6_NullableU64V1";
-    case XL6_IR_C_ABI_F32: return "XL6_NullableF32V1";
-    case XL6_IR_C_ABI_F64: return "XL6_NullableF64V1";
-    case XL6_IR_C_ABI_TIME_I64: return "XL6_NullableTimeV1";
-    case XL6_IR_C_ABI_CHAR_U32: return "XL6_NullableCharV1";
+    const XL6_IrType* item=xl6IrTypeGet(&module->types,type);
+    if (!item || item->cAbi!=XL6_IR_C_ABI_TAGGED_NULLABLE) return NULL;
+    switch (item->nativeSlotAbi) {
+    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "XL6_NullableBoolV1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "XL6_NullableI64V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: return "XL6_NullableU64V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "XL6_NullableF32V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "XL6_NullableF64V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "XL6_NullableTimeV1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "XL6_NullableCharV1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: return "XL6_NullableNativeI8V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: return "XL6_NullableNativeU8V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: return "XL6_NullableNativeI16V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: return "XL6_NullableNativeU16V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: return "XL6_NullableNativeI32V1";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "XL6_NullableNativeU32V1";
     default: return NULL;
     }
 }

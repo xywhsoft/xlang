@@ -298,6 +298,29 @@ static int fixture_contract(const char* path)
     xl6DiagFree(&probe); xl6DiagInit(&probe);
     if (xl6ArtifactRuntimePlanBuild(&unit.ir,(XL6_ArtifactEntryAbi)99,&repeat,&probe) ||
         !empty_plan(&repeat) || !probe.count) ok=0;
+    if (strstr(path,"stdlib_stack_nullable_c_")) {
+        const XL6_ArtifactRuntimeId descriptors[]={XL6_ARTIFACT_NULLABLE_BOOL,
+            XL6_ARTIFACT_NULLABLE_I64,XL6_ARTIFACT_NULLABLE_U64,
+            XL6_ARTIFACT_NULLABLE_F32,XL6_ARTIFACT_NULLABLE_F64,
+            XL6_ARTIFACT_NULLABLE_NATIVE_I8,XL6_ARTIFACT_NULLABLE_NATIVE_U8,
+            XL6_ARTIFACT_NULLABLE_NATIVE_I16,XL6_ARTIFACT_NULLABLE_NATIVE_U16,
+            XL6_ARTIFACT_NULLABLE_NATIVE_I32,XL6_ARTIFACT_NULLABLE_NATIVE_U32};
+        const XL6_ArtifactRuntimeId converters[]={XL6_ARTIFACT_NULLABLE_BOOL_VALUE,
+            XL6_ARTIFACT_NULLABLE_I64_VALUE,XL6_ARTIFACT_NULLABLE_U64_VALUE,
+            XL6_ARTIFACT_NULLABLE_F32_VALUE,XL6_ARTIFACT_NULLABLE_F64_VALUE,
+            XL6_ARTIFACT_NULLABLE_NATIVE_I8_VALUE,XL6_ARTIFACT_NULLABLE_NATIVE_U8_VALUE,
+            XL6_ARTIFACT_NULLABLE_NATIVE_I16_VALUE,XL6_ARTIFACT_NULLABLE_NATIVE_U16_VALUE,
+            XL6_ARTIFACT_NULLABLE_NATIVE_I32_VALUE,XL6_ARTIFACT_NULLABLE_NATIVE_U32_VALUE};
+        bool one=strstr(path,"stdlib_stack_nullable_c_i8")!=NULL;
+        for (size_t i=0;i<sizeof(descriptors)/sizeof(*descriptors);++i) {
+            if (xl6ArtifactRuntimeSetHas(&plan.components,descriptors[i])!=
+                (!one || descriptors[i]==XL6_ARTIFACT_NULLABLE_NATIVE_I8) ||
+                xl6ArtifactRuntimeSetHas(&plan.components,converters[i])) ok=0;
+        }
+        if (!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_STACK) ||
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED) ||
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_NULLABLE_C_SCALAR_ADMISSION)) ok=0;
+    }
     if (strstr(path,"cgen_basic") && !allocation_contract(&unit.ir)) ok=0;
     if (strstr(path,"xlir_artifact_linkage_literal"))
         ok=ok && !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE) &&

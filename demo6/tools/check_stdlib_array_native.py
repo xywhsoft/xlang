@@ -72,6 +72,12 @@ def main() -> int:
         "test/cases/stdlib_stack_batch_native_host.c", "src/runtime/xl6_stack_batch.c")]
     files += [root / name for name in ("tools/check_stdlib_array_sequence_admission.py",
         "test/cases/stdlib_array_sequence_admission_native_host.c", "src/runtime/xl6_array_sequence_admission.c")]
+    files += [root / name for name in ("tools/check_stdlib_array_nullable_c_scalar.py",
+        "test/cases/stdlib_array_nullable_c_scalar_native_host.c",
+        "test/cases/stdlib_array_nullable_c_scalar_storage_host.c",
+        "src/runtime/xl6_array_nullable_c_scalar_admission.c")]
+    for profile in ("i8", "u8", "i16", "u16", "i32", "u32"):
+        files += [root / f"src/runtime/xl6_nullable_native_{profile}{suffix}.c" for suffix in ("", "_value")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -289,6 +295,22 @@ def main() -> int:
         report["SequenceAdmissionReport"] = {"Directory": str(child), "Checks": len(sequence["Rows"]),
             "Profiles": sequence["Profiles"], "ClosedPrefixes": len(sequence["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in sequence["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "admission-nullable-c-scalar"
+        command = [sys.executable, "tools/check_stdlib_array_nullable_c_scalar.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        # Eleven independently compiled storage-only closures keep every
+        # descriptor separate from converters. A finite compiler budget does
+        # not change the strict flags or individual execution limits.
+        run(child.name, command, timeout=600)
+        optional = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not optional["Complete"] or not optional["InputsUnchanged"] or optional["NativeMappings"]!=21 or len(optional["Sweeps"])!=288:
+            raise RuntimeError("Incomplete nullable native C scalar/type-id evidence")
+        report["NullableCScalarReport"] = {"Directory": str(child), "Checks": len(optional["Rows"]),
+            "Profiles": optional["Profiles"], "NativeMappings": optional["NativeMappings"],
+            "ClosedPrefixes": len(optional["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in optional["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:

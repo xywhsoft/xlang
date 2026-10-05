@@ -18,7 +18,7 @@ try {
     & "$PSScriptRoot/stage_xlir_artifact_runtime_sources.ps1" -Directory $PublicDirectory *> "$outPath/stage.log"
     if (!$?) { throw 'Current-source native package staging failed' }
     $cases = @('stdlib_stack_native','stdlib_stack_scalar','xlir_stack_resource_abi','xlir_stack_class_default_abi','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_owned_continuation','stdlib_stack_try_owned','stdlib_stack_try_continuation',
-        'stdlib_stack_nullable_scalar','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char','stdlib_sequence_nullable_identity')
+        'stdlib_stack_nullable_scalar','stdlib_stack_nullable_c_scalar','stdlib_stack_nullable_c_i8','stdlib_stack_nullable_continuation','stdlib_stack_nullable_i64','stdlib_stack_nullable_bool','stdlib_stack_nullable_u64','stdlib_stack_nullable_f32','stdlib_stack_nullable_f64','stdlib_stack_nullable_time','stdlib_stack_nullable_char','stdlib_sequence_nullable_identity')
     $projections = @('stdlib_nullable_projection_bool','stdlib_nullable_projection_i64','stdlib_nullable_projection_u64',
         'stdlib_nullable_projection_f32','stdlib_nullable_projection_f64','stdlib_nullable_projection_time','stdlib_nullable_projection_char','stdlib_nullable_projection_oom','stdlib_scalar_projection_char','stdlib_scalar_projection_text','stdlib_scalar_projection_oom')
     $extraCases = @('xlir_nullable_scalar_no_resource','stdlib_nullable_resource_transport','stdlib_nullable_queue_transport','stdlib_nullable_text_resource_transport','stdlib_nullable_text_batch_projection','xlir_nullable_string_equal') + $projections
@@ -89,6 +89,8 @@ try {
     foreach ($case in ($cases + $extraCases)) {
         $plan = $artifact.NativeLinkage | Where-Object Fixture -eq $case
         $expected = if ($case -eq 'stdlib_stack_nullable_scalar') { @('bool','i64','u64','f32','f64','time','char') }
+            elseif ($case -eq 'stdlib_stack_nullable_c_scalar') { @('bool','i64','u64','f32','f64','native_i8','native_u8','native_i16','native_u16','native_i32','native_u32') }
+            elseif ($case -eq 'stdlib_stack_nullable_c_i8') { @('native_i8') }
             elseif ($case -eq 'stdlib_nullable_projection_oom') { @('bool','i64','u64','f32','f64','time','char') | ForEach-Object { $_; "${_}_value" } }
             elseif ($case -match '^stdlib_nullable_projection_(bool|i64|u64|f32|f64|time|char)$') { @($Matches[1],($Matches[1] + '_value')) }
             elseif ($case -eq 'stdlib_sequence_nullable_identity' -or $case -like 'stdlib_nullable_text_*' -or $case -eq 'xlir_nullable_string_equal') { @('string') }
@@ -197,7 +199,7 @@ try {
             (Test-Path "$prefix.c") -or (Test-Path "$prefix.h")){throw 'Wrong Stack type rejection or partial output'}
     }
     Run 'debug-host-build' $gcc ($strict + @('-c','test/support/module_product_memory.c','-o',"$outPath/debug-host.o"))
-    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned','stdlib_stack_nullable_scalar','stdlib_sequence_nullable_identity','stdlib_nullable_text_resource_transport','xlir_nullable_string_equal','stdlib_nullable_projection_oom','stdlib_scalar_projection_oom')){
+    foreach($case in @('stdlib_stack_native','stdlib_stack_values','stdlib_stack_owned','stdlib_stack_try_owned','stdlib_stack_nullable_scalar','stdlib_stack_nullable_c_scalar','stdlib_stack_nullable_c_i8','stdlib_sequence_nullable_identity','stdlib_nullable_text_resource_transport','xlir_nullable_string_equal','stdlib_nullable_projection_oom','stdlib_scalar_projection_oom')){
     $prefix = "$outPath/$case"
     if (!(Test-Path -LiteralPath "$prefix.c")) {
         Run "$case.language-oom-emit" $public.Driver @("test/cases/$case.xl",'emit',$prefix)

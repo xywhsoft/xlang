@@ -20,6 +20,12 @@ typedef struct XL6_NullableF32V1 { bool hasValue; float value; } XL6_NullableF32
 typedef struct XL6_NullableF64V1 { bool hasValue; double value; } XL6_NullableF64V1;
 typedef struct XL6_NullableTimeV1 { bool hasValue; int64_t value; } XL6_NullableTimeV1;
 typedef struct XL6_NullableCharV1 { bool hasValue; uint32_t value; } XL6_NullableCharV1;
+typedef struct XL6_NullableNativeI8V1 { bool hasValue; int8_t value; } XL6_NullableNativeI8V1;
+typedef struct XL6_NullableNativeU8V1 { bool hasValue; uint8_t value; } XL6_NullableNativeU8V1;
+typedef struct XL6_NullableNativeI16V1 { bool hasValue; int16_t value; } XL6_NullableNativeI16V1;
+typedef struct XL6_NullableNativeU16V1 { bool hasValue; uint16_t value; } XL6_NullableNativeU16V1;
+typedef struct XL6_NullableNativeI32V1 { bool hasValue; int32_t value; } XL6_NullableNativeI32V1;
+typedef struct XL6_NullableNativeU32V1 { bool hasValue; uint32_t value; } XL6_NullableNativeU32V1;
 #ifndef XL6_PRODUCT_ABI_TIMEX2_V1
 #define XL6_PRODUCT_ABI_TIMEX2_V1
 typedef struct XL6_ProductTimeX2V1 { int64_t e0; int64_t e1; } XL6_ProductTimeX2V1;

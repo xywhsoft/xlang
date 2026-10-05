@@ -1,0 +1,320 @@
+// Exact nullable native C/type carriers; no dynamic Value boxing is involved.
+// Each profile has its own lexical lifetime, avoiding a quadratic cleanup fixture.
+func profile0() as bool
+    Stack<c_char?> values = Stack::<c_char?>()
+    assert(values.push(null) and values.push(c_char(7)))
+    Stack<c_char?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_char(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile1() as bool
+    Stack<c_schar?> values = Stack::<c_schar?>()
+    assert(values.push(null) and values.push(c_schar(7)))
+    Stack<c_schar?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_schar(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile2() as bool
+    Stack<c_uchar?> values = Stack::<c_uchar?>()
+    assert(values.push(null) and values.push(c_uchar(7)))
+    Stack<c_uchar?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_uchar(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile3() as bool
+    Stack<c_short?> values = Stack::<c_short?>()
+    assert(values.push(null) and values.push(c_short(7)))
+    Stack<c_short?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_short(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile4() as bool
+    Stack<c_ushort?> values = Stack::<c_ushort?>()
+    assert(values.push(null) and values.push(c_ushort(7)))
+    Stack<c_ushort?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_ushort(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile5() as bool
+    Stack<c_int?> values = Stack::<c_int?>()
+    assert(values.push(null) and values.push(c_int(7)))
+    Stack<c_int?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_int(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile6() as bool
+    Stack<c_uint?> values = Stack::<c_uint?>()
+    assert(values.push(null) and values.push(c_uint(7)))
+    Stack<c_uint?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_uint(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile7() as bool
+    Stack<c_long?> values = Stack::<c_long?>()
+    assert(values.push(null) and values.push(c_long(7)))
+    Stack<c_long?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_long(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile8() as bool
+    Stack<c_ulong?> values = Stack::<c_ulong?>()
+    assert(values.push(null) and values.push(c_ulong(7)))
+    Stack<c_ulong?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_ulong(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile9() as bool
+    Stack<c_longlong?> values = Stack::<c_longlong?>()
+    assert(values.push(null) and values.push(c_longlong(7)))
+    Stack<c_longlong?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_longlong(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile10() as bool
+    Stack<c_ulonglong?> values = Stack::<c_ulonglong?>()
+    assert(values.push(null) and values.push(c_ulonglong(7)))
+    Stack<c_ulonglong?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_ulonglong(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile11() as bool
+    Stack<c_size?> values = Stack::<c_size?>()
+    assert(values.push(null) and values.push(c_size(7)))
+    Stack<c_size?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_size(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile12() as bool
+    Stack<c_ssize?> values = Stack::<c_ssize?>()
+    assert(values.push(null) and values.push(c_ssize(7)))
+    Stack<c_ssize?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_ssize(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile13() as bool
+    Stack<c_ptrdiff?> values = Stack::<c_ptrdiff?>()
+    assert(values.push(null) and values.push(c_ptrdiff(7)))
+    Stack<c_ptrdiff?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_ptrdiff(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile14() as bool
+    Stack<c_intptr?> values = Stack::<c_intptr?>()
+    assert(values.push(null) and values.push(c_intptr(7)))
+    Stack<c_intptr?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_intptr(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile15() as bool
+    Stack<c_uintptr?> values = Stack::<c_uintptr?>()
+    assert(values.push(null) and values.push(c_uintptr(7)))
+    Stack<c_uintptr?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_uintptr(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile16() as bool
+    Stack<c_bool?> values = Stack::<c_bool?>()
+    assert(values.push(null) and values.push(c_bool(true)))
+    Stack<c_bool?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_bool(true))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile17() as bool
+    Stack<c_float?> values = Stack::<c_float?>()
+    assert(values.push(null) and values.push(c_float(1.5)))
+    Stack<c_float?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_float(1.5))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile18() as bool
+    Stack<c_double?> values = Stack::<c_double?>()
+    assert(values.push(null) and values.push(c_double(1.5)))
+    Stack<c_double?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_double(1.5))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile19() as bool
+    Stack<c_wchar?> values = Stack::<c_wchar?>()
+    assert(values.push(null) and values.push(c_wchar(7)))
+    Stack<c_wchar?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_wchar(7))
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func profile20() as bool
+    Stack<type?> values = Stack::<type?>()
+    assert(values.push(null) and values.push(int))
+    Stack<type?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == int)
+    assert(values.pop() == null)
+    auto absent, empty = values.tryPop()
+    assert(not absent and empty == null)
+    assert(copied.pop() != null and copied.pop() == null)
+    return true
+end
+
+func main(...) as int
+    assert(profile0())
+    assert(profile1())
+    assert(profile2())
+    assert(profile3())
+    assert(profile4())
+    assert(profile5())
+    assert(profile6())
+    assert(profile7())
+    assert(profile8())
+    assert(profile9())
+    assert(profile10())
+    assert(profile11())
+    assert(profile12())
+    assert(profile13())
+    assert(profile14())
+    assert(profile15())
+    assert(profile16())
+    assert(profile17())
+    assert(profile18())
+    assert(profile19())
+    assert(profile20())
+    return 0
+end

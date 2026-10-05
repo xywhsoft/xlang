@@ -158,7 +158,20 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_primitive_admission.c", D(R(ARRAY_TYPED),R(VALUE_ADMISSION)), {NULL}},
     {"src/runtime/xl6_array_c_scalar_admission.c", D(R(ARRAY_TYPED)), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_stack_batch.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_STACK"}},
-    {"src/runtime/xl6_array_sequence_admission.c", D(R(ARRAY_TYPED)), {NULL}}
+    {"src/runtime/xl6_array_sequence_admission.c", D(R(ARRAY_TYPED)), {NULL}},
+    {"src/runtime/xl6_array_nullable_c_scalar_admission.c", D(R(ARRAY_TYPED)), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_i8.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_i8_value.c", D(R(NULLABLE_NATIVE_I8)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_native_u8.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_u8_value.c", D(R(NULLABLE_NATIVE_U8)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_native_i16.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_i16_value.c", D(R(NULLABLE_NATIVE_I16)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_native_u16.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_u16_value.c", D(R(NULLABLE_NATIVE_U16)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_native_i32.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_i32_value.c", D(R(NULLABLE_NATIVE_I32)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_nullable_native_u32.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_nullable_native_u32_value.c", D(R(NULLABLE_NATIVE_U32)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -386,6 +399,13 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: REQUIRE(R(NULLABLE_BOOL)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_I64: REQUIRE(R(NULLABLE_I64)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_U64: REQUIRE(R(NULLABLE_U64)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: REQUIRE(R(NULLABLE_U64)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: REQUIRE(R(NULLABLE_NATIVE_I8)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: REQUIRE(R(NULLABLE_NATIVE_U8)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: REQUIRE(R(NULLABLE_NATIVE_I16)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: REQUIRE(R(NULLABLE_NATIVE_U16)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: REQUIRE(R(NULLABLE_NATIVE_I32)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: REQUIRE(R(NULLABLE_NATIVE_U32)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_F32: REQUIRE(R(NULLABLE_F32)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_F64: REQUIRE(R(NULLABLE_F64)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: REQUIRE(R(NULLABLE_TIME)); break;
@@ -405,6 +425,13 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: REQUIRE(R(NULLABLE_BOOL_VALUE)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_I64: REQUIRE(R(NULLABLE_I64_VALUE)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_U64: REQUIRE(R(NULLABLE_U64_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: REQUIRE(R(NULLABLE_U64_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: REQUIRE(R(NULLABLE_NATIVE_I8_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: REQUIRE(R(NULLABLE_NATIVE_U8_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: REQUIRE(R(NULLABLE_NATIVE_I16_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: REQUIRE(R(NULLABLE_NATIVE_U16_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: REQUIRE(R(NULLABLE_NATIVE_I32_VALUE)); break;
+                case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: REQUIRE(R(NULLABLE_NATIVE_U32_VALUE)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_F32: REQUIRE(R(NULLABLE_F32_VALUE)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_F64: REQUIRE(R(NULLABLE_F64_VALUE)); break;
                 case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: REQUIRE(R(NULLABLE_TIME_VALUE)); break;

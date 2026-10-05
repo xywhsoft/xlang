@@ -9,6 +9,8 @@ _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_
 
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
+#include <wchar.h>
 
 static int xl6IrRuntimeCallableSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type);
@@ -610,6 +612,19 @@ XL6_ValueDefaultAbiV1 xl6IrValueDefaultAbiForType(const XL6_IrTypePool* pool,con
     }
 }
 
+/* The supported compiler and native backend share one target C ABI. Record
+ * actual widths in IR, so Cgen selects one resident profile, not both sides
+ * of a sizeof ternary that would pull unused descriptors into artifacts. */
+static XL6_IrNativeSlotAbi xl6IrNullableNativeIntegerSlot(size_t size,int isSigned)
+{
+    switch (size) {
+    case 1: return isSigned ? XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8 : XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8;
+    case 2: return isSigned ? XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16 : XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16;
+    case 4: return isSigned ? XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32 : XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32;
+    case 8: return isSigned ? XL6_IR_NATIVE_SLOT_NULLABLE_I64 : XL6_IR_NATIVE_SLOT_NULLABLE_U64;
+    default: return XL6_IR_NATIVE_SLOT_NONE;
+    }
+}
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     if (!pool || !type) return XL6_IR_NATIVE_SLOT_NONE;
@@ -625,6 +640,26 @@ XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const 
         case XL6_IR_C_ABI_F64: return XL6_IR_NATIVE_SLOT_NULLABLE_F64;
         case XL6_IR_C_ABI_TIME_I64: return XL6_IR_NATIVE_SLOT_NULLABLE_TIME;
         case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_NATIVE_SLOT_NULLABLE_CHAR;
+        case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID;
+        case XL6_IR_C_ABI_C_BOOL: return XL6_IR_NATIVE_SLOT_NULLABLE_BOOL;
+        case XL6_IR_C_ABI_C_FLOAT: return XL6_IR_NATIVE_SLOT_NULLABLE_F32;
+        case XL6_IR_C_ABI_C_DOUBLE: return XL6_IR_NATIVE_SLOT_NULLABLE_F64;
+        case XL6_IR_C_ABI_C_CHAR: return xl6IrNullableNativeIntegerSlot(sizeof(char),CHAR_MIN<0);
+        case XL6_IR_C_ABI_C_SCHAR: return xl6IrNullableNativeIntegerSlot(sizeof(signed char),1);
+        case XL6_IR_C_ABI_C_UCHAR: return xl6IrNullableNativeIntegerSlot(sizeof(unsigned char),0);
+        case XL6_IR_C_ABI_C_SHORT: return xl6IrNullableNativeIntegerSlot(sizeof(short),1);
+        case XL6_IR_C_ABI_C_USHORT: return xl6IrNullableNativeIntegerSlot(sizeof(unsigned short),0);
+        case XL6_IR_C_ABI_C_INT: return xl6IrNullableNativeIntegerSlot(sizeof(int),1);
+        case XL6_IR_C_ABI_C_UINT: return xl6IrNullableNativeIntegerSlot(sizeof(unsigned int),0);
+        case XL6_IR_C_ABI_C_LONG: return xl6IrNullableNativeIntegerSlot(sizeof(long),1);
+        case XL6_IR_C_ABI_C_ULONG: return xl6IrNullableNativeIntegerSlot(sizeof(unsigned long),0);
+        case XL6_IR_C_ABI_C_LONGLONG: return xl6IrNullableNativeIntegerSlot(sizeof(long long),1);
+        case XL6_IR_C_ABI_C_ULONGLONG: return xl6IrNullableNativeIntegerSlot(sizeof(unsigned long long),0);
+        case XL6_IR_C_ABI_C_SIZE: return xl6IrNullableNativeIntegerSlot(sizeof(size_t),0);
+        case XL6_IR_C_ABI_C_SSIZE: case XL6_IR_C_ABI_C_PTRDIFF: case XL6_IR_C_ABI_C_INTPTR:
+            return xl6IrNullableNativeIntegerSlot(sizeof(ptrdiff_t),1);
+        case XL6_IR_C_ABI_C_UINTPTR: return xl6IrNullableNativeIntegerSlot(sizeof(uintptr_t),0);
+        case XL6_IR_C_ABI_C_WCHAR: return xl6IrNullableNativeIntegerSlot(sizeof(wchar_t),WCHAR_MIN<0);
         default: return XL6_IR_NATIVE_SLOT_NONE;
         }
     }
@@ -688,6 +723,13 @@ const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi abi)
     case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "nullable-time";
     case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "nullable-char";
     case XL6_IR_NATIVE_SLOT_C_CHAR: return "c-char";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: return "nullable-native-i8";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: return "nullable-native-u8";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: return "nullable-native-i16";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: return "nullable-native-u16";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: return "nullable-native-i32";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "nullable-native-u32";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: return "nullable-type-id";
     case XL6_IR_NATIVE_SLOT_C_SCHAR: return "c-schar";
     case XL6_IR_NATIVE_SLOT_C_UCHAR: return "c-uchar";
     case XL6_IR_NATIVE_SLOT_C_SHORT: return "c-short";
@@ -764,13 +806,14 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
     if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
-    } else if (!result.nullable && base->kind==XL6_IR_TYPE_BUILTIN &&
+    } else if (base->kind==XL6_IR_TYPE_BUILTIN &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
-               (result.slotAbi==XL6_IR_NATIVE_SLOT_TYPE_ID ||
-                (result.slotAbi>=XL6_IR_NATIVE_SLOT_C_CHAR && result.slotAbi<=XL6_IR_NATIVE_SLOT_C_WCHAR))) {
+               (xl6IrNativeSlotAbiForType(pool,base)==XL6_IR_NATIVE_SLOT_TYPE_ID ||
+                (xl6IrNativeSlotAbiForType(pool,base)>=XL6_IR_NATIVE_SLOT_C_CHAR &&
+                 xl6IrNativeSlotAbiForType(pool,base)<=XL6_IR_NATIVE_SLOT_C_WCHAR))) {
         /* Exact resident C scalar policy selects the target native descriptor.
          * Do not reuse widened language u8's signed boxed representation. */
-        result.abi=XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1;
+        result.abi=result.nullable ? XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 : XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1;
     } else if (result.admissionAbi == XL6_VALUE_ADMIT_ANY ||
                result.admissionAbi == XL6_VALUE_ADMIT_BYTES) {
         result.abi=result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
@@ -797,6 +840,7 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
         result.abi=child.abi==XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE ||
             child.abi==XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1
             ? XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     } else {
@@ -804,7 +848,8 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
     }
     if (result.abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
+        result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+        result.abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1) {
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
             result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
@@ -854,6 +899,7 @@ const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
     case XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN: return "pending-domain";
     case XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1: return "c-scalar-v1";
     case XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1: return "sequence-reference-v1";
+    case XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
     default: return "invalid";
     }
 }
@@ -9745,7 +9791,7 @@ int xl6IrStackTryResultCompatible(
         ((value->cAbi == payload->cAbi && value->nullAbi == payload->nullAbi &&
           (value->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
          (value->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-          xl6IrTaggedNullableScalarSupported(payload->cAbi)));
+          xl6IrNullableScalarElementAbi(module,result->params[1])==payload->cAbi));
 }
 
 static int xl6IrRuntimeResourceSignatureCompatible(
@@ -13781,7 +13827,7 @@ static int xl6IrNullableProjectionTypeIsClosed(
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-         xl6IrTaggedNullableScalarSupported(element->cAbi) ) return 1;
+         xl6IrNullableScalarElementAbi(module,nullableTypeId)!=XL6_IR_C_ABI_UNSUPPORTED ) return 1;
     if ( nullable->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          nullable->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
@@ -17890,7 +17936,14 @@ XL6_IrCAbi xl6IrNullableScalarElementAbi(const XL6_IrModule* module, XL6_IrTypeI
          type->paramCount != 1 || type->params == NULL ||
          (element = xl6IrTypeGet(&module->types, type->params[0])) == NULL ||
          element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || element->nullAbi != XL6_IR_NULL_ABI_NONE ||
-         !xl6IrTaggedNullableScalarSupported(element->cAbi) ) return XL6_IR_C_ABI_UNSUPPORTED;
+         (!xl6IrTaggedNullableScalarSupported(element->cAbi) &&
+          !(element->kind==XL6_IR_TYPE_BUILTIN &&
+            (element->nativeSlotAbi==XL6_IR_NATIVE_SLOT_TYPE_ID ||
+             (element->nativeSlotAbi>=XL6_IR_NATIVE_SLOT_C_CHAR &&
+              element->nativeSlotAbi<=XL6_IR_NATIVE_SLOT_C_WCHAR)) &&
+            type->nativeSlotAbi!=XL6_IR_NATIVE_SLOT_NONE &&
+            type->nativeSlotAbi==xl6IrNativeSlotAbiForType(&module->types,type))) )
+        return XL6_IR_C_ABI_UNSUPPORTED;
     return element->cAbi;
 }
 
