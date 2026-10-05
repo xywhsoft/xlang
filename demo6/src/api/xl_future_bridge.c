@@ -8,6 +8,7 @@
 #include "xl_future_bridge.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/runtime/xl6_future_aggregate.h"
+#include "src/runtime/xl6_array_input.h"
 
 
 
@@ -1299,30 +1300,32 @@ static xfuture* __xl6FutureAggregateAny(xfuture* const* futures, size_t count)
 static xfuture* __xl6FutureAggregateArray(unsigned mode, const xvalue* array, XL6_FutureAggregateBoxV1 box, const XL6_CodeOwner* owner)
 {
     xfuture** futures; xfuture* output; size_t count;
-    if (!array || !(count = xrtValueCount(array)) || count > SIZE_MAX / sizeof(*futures) ||
+    XL6_ArrayInputV1 input={0};
+    if (!xl6ArrayInputAcquireV1(array,&input)) return NULL;
+    if (!(count = input.count) || count > SIZE_MAX / sizeof(*futures) ||
         count > (size_t)INT64_MAX || (mode != XL6_AGGREGATE_ANY && count > (size_t)INT_MAX)) {
         __xl6FutureSetAggregateError(mode == XL6_AGGREGATE_ALL
             ? "task.all requires a non-empty future array"
             : mode == XL6_AGGREGATE_RACE
                 ? "task.race requires a non-empty future array"
                 : "task.whenAny requires a non-empty future array");
-        return NULL;
+        xl6ArrayInputReleaseV1(&input); return NULL;
     }
     futures = xrtMalloc(count * sizeof(*futures));
-    if (!futures) { __xl6FutureSetAggregateError("task aggregate Future array allocation failed"); return NULL; }
+    if (!futures) { __xl6FutureSetAggregateError("task aggregate Future array allocation failed"); xl6ArrayInputReleaseV1(&input); return NULL; }
     for (size_t i = 0; i < count; ++i) {
-        const xvalue* item = xrtValueArrayGet(array, i);
+        const xvalue* item = input.items[i];
         futures[i] = item != NULL && xrtValueType(item) != XVALUE_NULL
             ? xrtValueGetFuture(item) : NULL;
         if (!futures[i]) {
             xrtFree(futures);
             __xl6FutureSetAggregateError(
                 __xl6FutureAggregateNullSourceError(mode));
-            return NULL;
+            xl6ArrayInputReleaseV1(&input); return NULL;
         }
     }
     output = __xl6FutureAggregateStart(mode, futures, count, box, owner, true);
-    xrtFree(futures); return output;
+    xrtFree(futures); xl6ArrayInputReleaseV1(&input); return output;
 }
 static xfuture* __xl6FutureAggregateAllArray(const xvalue* array, XL6_FutureAggregateBoxV1 box, const XL6_CodeOwner* owner)
 { return __xl6FutureAggregateArray(XL6_AGGREGATE_ALL, array, box, owner); }

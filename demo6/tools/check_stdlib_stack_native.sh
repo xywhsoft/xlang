@@ -48,6 +48,10 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_callable_native_scalars.xl test/cases/stdlib_callable_native_scalars_host.c
     printf '%s\0' test/cases/xlir_module_product_oom_host.c
     printf '%s\0' test/support/module_product_memory.c test/support/module_product_memory.h
+    printf '%s\0' tools/check_stdlib_array_input.py test/cases/stdlib_array_input_host.c
+    printf '%s\0' test/cases/stdlib_text_join_only.xl test/cases/stdlib_text_join.xl test/cases/stdlib_regex_set_only.xl
+    printf '%s\0' test/cases/stdlib_pattern_builder.xl test/cases/stdlib_pattern_builder_lifetime.xl
+    printf '%s\0' test/cases/xlir_task_aggregate_array_abi.xl test/cases/xlir_task_when_any_array_abi.xl
     for fixture in "${cases[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
     for fixture in "${negative[@]}"; do printf '%s\0' "test/fixtures/stack_value_contract/$fixture.xl"; done
 }
@@ -194,6 +198,7 @@ for mode in base nominal defaults layouts; do
     [[ "$mode" = base ]] || arguments+=("--$mode")
     if ! run "collection-$mode" "$PY" "${arguments[@]}"; then failures+=("collection-$mode"); fi
 done
+if ! run array-input "$PY" tools/check_stdlib_array_input.py --out "$OUT/array-input" --sanitize; then failures+=(array-input); fi
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi

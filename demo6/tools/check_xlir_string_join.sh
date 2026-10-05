@@ -74,7 +74,8 @@ run frontend-fuzz-build "$CC" "${strict[@]}" "${sanitize[@]}" test/fuzz/xl6_fron
     -lxl "${libs[@]}" -o "$OUT/frontend-fuzz"
 run frontend-fuzz "$OUT/frontend-fuzz" 10000 1481397778
 native=(test/support/string_bridge_native.c src/runtime/xl6_text_value.c
-    src/runtime/xl6_text_binary.c src/runtime/xl6_text_chars.c src/runtime/xl6_text_split.c src/runtime/xl6_text_join.c)
+    src/runtime/xl6_text_binary.c src/runtime/xl6_text_chars.c src/runtime/xl6_text_split.c src/runtime/xl6_text_join.c
+    src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c)
 for mode in bridge repeat; do
     host=test/cases/xlir_string_repeat_host.c
     [[ "$mode" != bridge ]] || host=test/cases/xlir_string_bridge_abi_host.c

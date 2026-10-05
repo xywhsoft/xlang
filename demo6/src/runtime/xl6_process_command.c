@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_process_config.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
+#include "src/runtime/xl6_array_input.h"
 
 void xl6ProcessCommandDestroyV1(void* handle)
 {
@@ -25,23 +26,25 @@ static XL6_ProcessCommand* commandCreate(void)
 }
 void* xl6ProcessCommandDirectV1(xstrview program,const xvalue* args,int64_t size,int64_t argSize)
 {
-    if(!args || xrtValueType(args)!=XVALUE_ARRAY){xrtSetErrorKind(XERR_TYPE);return NULL;}
     if(argSize < -1){xrtSetErrorKind(XERR_RANGE);return NULL;}
-    size_t count=xrtValueCount(args);
-    if(count>SIZE_MAX/sizeof(cstr)){xrtSetErrorKind(XERR_RANGE);return NULL;}
-    XL6_ProcessCommand* command=commandCreate();if(!command)return NULL;
+    XL6_ArrayInputV1 input={0};
+    if (!xl6ArrayInputAcquireV1(args,&input)) return NULL;
+    size_t count=input.count;
+    XL6_ProcessCommand* command=NULL;
+    if(count>SIZE_MAX/sizeof(cstr)){xrtSetErrorKind(XERR_RANGE);goto fail;}
+    command=commandCreate();if(!command)goto fail;
     command->config.Program=xl6ProcessCString(program,size,true);if(!command->config.Program)goto fail;
     cstr* argv=count ? xrtCalloc(count,sizeof(*argv)) : NULL;
     if(count && !argv)goto fail;
     command->config.Args=argv;
     for(size_t i=0;i<count;++i) {
         xstrview item;
-        if(!xrtValueGetString(xrtValueArrayGet(args,i),&item))goto fail;
+        if(!xrtValueGetString(input.items[i],&item))goto fail;
         argv[i]=xl6ProcessCString(item,argSize,false);if(!argv[i])goto fail;
         ++command->config.ArgCount;
     }
-    return command;
-fail:xl6ProcessCommandDestroyV1(command);return NULL;
+    xl6ArrayInputReleaseV1(&input); return command;
+fail:xl6ProcessCommandDestroyV1(command);xl6ArrayInputReleaseV1(&input);return NULL;
 }
 void* xl6ProcessCommandShellV1(xstrview text,int64_t size)
 {

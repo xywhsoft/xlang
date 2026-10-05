@@ -6,13 +6,36 @@ $destination = (Resolve-Path $Directory).Path
 $manifestPath = Join-Path $destination 'build.json'
 $build = Get-Content $manifestPath -Raw | ConvertFrom-Json
 if ((Get-FileHash $build.Driver).Hash -ne $build.DriverSha256) { throw 'Compiler binary changed' }
+$stageManifest=Join-Path $destination 'artifact_sources.json'
+$mappingHash=(Get-FileHash tools/tcc_vfs_manifest_win64_xlc.txt).Hash
+$stageHash=(Get-FileHash $PSCommandPath).Hash
+$priorStage=if (Test-Path -LiteralPath $stageManifest) { Get-Content -LiteralPath $stageManifest -Raw | ConvertFrom-Json } else { $null }
+if ($priorStage -and ($priorStage.DriverSha256 -ne $build.DriverSha256 -or
+    $priorStage.MappingSha256 -ne $mappingHash -or $priorStage.StageScriptSha256 -ne $stageHash)) {
+    throw 'Staging contract changed; use a fresh source build directory rather than replacing a published package'
+}
 $records = @()
 function Stage-File([string]$source, [string]$relative) {
     $target = [IO.Path]::GetFullPath((Join-Path $destination $relative))
     if (!$target.StartsWith($destination + [IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) { throw 'Staged source escaped private build directory' }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
-    Copy-Item -LiteralPath $source -Destination $target -Force
     $hash = (Get-FileHash -LiteralPath $source).Hash
+    if (Test-Path -LiteralPath $target) {
+        if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) {
+            throw "Published staged file changed; use a fresh source directory: $target"
+        }
+    } else {
+        if ($priorStage) { throw "Published staging inventory changed: $target" }
+        # Publish once. Concurrent initial staging may race to publish the same
+        # bytes, but readers never see a target being truncated or rewritten.
+        $temporary=$target+'.stage-'+[Guid]::NewGuid().ToString('N')
+        try {
+            Copy-Item -LiteralPath $source -Destination $temporary
+            if ((Get-FileHash -LiteralPath $temporary).Hash -ne $hash) { throw "Source changed during staging: $source" }
+            try { [IO.File]::Move($temporary,$target) }
+            catch { if (!(Test-Path -LiteralPath $target) -or (Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw } }
+        } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
+    }
     if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw "Staging mismatch: $source" }
     [pscustomobject]@{Source=$source;Path=$target;Sha256=$hash}
 }
@@ -34,9 +57,29 @@ foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt
     }
 }
 if ($records.Count -lt 20) { throw 'Runtime source package unexpectedly incomplete' }
+if ($priorStage) {
+    $expected=@($priorStage.Files | ForEach-Object { $_.Source+'|'+$_.Path+'|'+$_.Sha256 })
+    $actual=@($records | ForEach-Object { $_.Source+'|'+$_.Path+'|'+$_.Sha256 })
+    if ($expected.Count -ne $actual.Count -or @(Compare-Object $expected $actual).Count) { throw 'Published staging inventory changed; use a fresh source directory' }
+    Write-Output "Reused immutable staged package: $($records.Count) source/header files"
+    return
+}
 $report = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Files=$records;Compiler=$build.Driver;DriverSha256=$build.DriverSha256;
-    Mapping='tools/tcc_vfs_manifest_win64_xlc.txt';MappingSha256=(Get-FileHash tools/tcc_vfs_manifest_win64_xlc.txt).Hash;
-    StageScriptSha256=(Get-FileHash $PSCommandPath).Hash;
+    Mapping='tools/tcc_vfs_manifest_win64_xlc.txt';MappingSha256=$mappingHash;
+    StageScriptSha256=$stageHash;
     Scope='Disk deployment of existing compiler-relative language runtime sources and declarations; not rebuilt release/VFS or recursive import-xlang/TCC payload.'}
-[IO.File]::WriteAllText((Join-Path $destination 'artifact_sources.json'), ($report | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
+$temporaryManifest=$stageManifest+'.stage-'+[Guid]::NewGuid().ToString('N')
+try {
+    [IO.File]::WriteAllText($temporaryManifest, ($report | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
+    try { [IO.File]::Move($temporaryManifest,$stageManifest) }
+    catch {
+        if (!(Test-Path -LiteralPath $stageManifest)) { throw }
+        $published=Get-Content -LiteralPath $stageManifest -Raw | ConvertFrom-Json
+        $publishedRows=@($published.Files | ForEach-Object { $_.Source+'|'+$_.Path+'|'+$_.Sha256 })
+        $recordRows=@($records | ForEach-Object { $_.Source+'|'+$_.Path+'|'+$_.Sha256 })
+        if ($published.DriverSha256 -ne $report.DriverSha256 -or $published.MappingSha256 -ne $mappingHash -or
+            $published.StageScriptSha256 -ne $stageHash -or $published.Files.Count -ne $records.Count -or
+            @(Compare-Object -ReferenceObject $publishedRows -DifferenceObject $recordRows).Count) { throw }
+    }
+} finally { if (Test-Path -LiteralPath $temporaryManifest) { Remove-Item -LiteralPath $temporaryManifest } }
 Write-Output "Staged $($records.Count) source/header files without rebuilding compiler or release"

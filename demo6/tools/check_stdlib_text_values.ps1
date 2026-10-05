@@ -121,7 +121,7 @@ try {
         if ($point -gt 256) {throw "Incomplete native allocation sweep: $kind"}
     }
     Run 'split-native-build' $gcc ($strict + @('test/cases/stdlib_text_split_host.c','test/support/text_split_native.c',
-        'src/runtime/xl6_text_split.c','src/runtime/xl6_text_join.c','-o',"$outPath/split-native.exe"))
+        'src/runtime/xl6_text_split.c','src/runtime/xl6_text_join.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c','-o',"$outPath/split-native.exe"))
     Run 'split-native-run' "$outPath/split-native.exe" @()
     foreach ($kind in @('split','lines','fields','join','split-large','lines-large','fields-large','join-large')) {
         for ($point = 1; $point -le 512; ++$point) {
@@ -192,12 +192,10 @@ try {
     Run 'encoding-detect-native-build' $gcc ($strict + @('test/cases/stdlib_encoding_detect_host.c','test/support/encoding_detect_native.c',
         'src/runtime/xl6_encoding_detect.c','-o',"$outPath/encoding-detect-native.exe"))
     Run 'encoding-detect-native-run' "$outPath/encoding-detect-native.exe" @()
-    $runtime = @($public.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -in @('xrt_single_header_impl.o','xl6_text_value.o',
-        'xl6_text_query.o','xl6_text_binary.o','xl6_text_chars.o','xl6_text_glob.o','xl6_text_distance.o','xl6_text_split.o','xl6_text_join.o',
-        'xl6_text_iterator.o','xl6_number_format.o','xl6_number_format_buffer.o',
-        'xl6_number_integer.o','xl6_number_float.o','xl6_number_integer_buffer.o','xl6_number_float_buffer.o',
-        'xl6_unicode.o','xl6_unicode_validator.o','xl6_html.o','xl6_encoding.o','xl6_encoding_meta.o','xl6_encoding_detect.o',
-        'xl6_slot.o','xl6_value_iterator.o','xl6_closure.o','xl6_cell.o','xl6_code_lease.o','xl6_code_finalizer.o','xl6_ownership_plan.o') } | ForEach-Object Path)
+    # This is a source-linked regression lane, NOT a pruned artifact witness.
+    # Use the frozen source providers instead of a hand-maintained object subset
+    # that silently omits Buffer/Array dependencies as facade fixtures evolve.
+    $runtime = $objects + @('release/xl.dll')
     foreach ($name in $cases) {
         $source = "test/cases/$name.xl"
         Run "$name.emit" $driver @($source,'cgen-default',"$outPath/$name.c")
