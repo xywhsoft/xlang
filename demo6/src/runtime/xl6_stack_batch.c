@@ -16,7 +16,14 @@ bool xl6StackPushBatchV1(const xvalue* stack,PARAMS,const xvalue* array,uint64_t
     if (!target) return false;
     XL6_Sequence* source=xl6SequenceBeginRoleV1(array,XL6_SEQUENCE_ARRAY_V1,ARRAY_LAYOUT);
     if (!source) { xl6SequenceEndV1(target); return false; }
-    bool ok=allocation(xrtTypedStackPushBatch(xl6SequenceStorageV1(target),xl6SequenceStorageV1(source)));
+    /* Validate the actual target domain before XRT allocates or publishes any
+     * element. Low-level unprofiled sources may contain valid slots too; an
+     * identity/physical match alone is not proof of their logical domain. */
+    xtypedarray* items=xl6SequenceStorageV1(source);
+    bool ok=true;
+    for (size_t i=0;i<xrtTypedArrayCount(items);++i)
+        if (!xl6SequenceAdmitSlotV1(target,xrtTypedArrayConstGet(items,i))) { ok=false; break; }
+    if (ok) ok=allocation(xrtTypedStackPushBatch(xl6SequenceStorageV1(target),items));
     xl6SequenceEndV1(source); xl6SequenceEndV1(target); return ok;
 }
 bool xl6StackExtractBatchV1(const xvalue* stack,PARAMS,const xvalue* array,uint64_t arrayIdentity,

@@ -1,7 +1,6 @@
 #ifndef XL6_ARRAY_ADMISSION_INTERNAL_H
 #define XL6_ARRAY_ADMISSION_INTERNAL_H
 #include "src/runtime/xl6_array_admission.h"
-#include "src/runtime/xl6_array.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -51,16 +50,6 @@ static const XL6_SequenceAdmissionOpsV2 policyOps={policyRetain,policyDrop,slotA
 static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV2* ops)
 {
     XL6_SequenceAdmissionV3 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
-    xvalue* value=xl6ArrayCreateV1(identity,element,3,sizeof(xvalue*),xrtTypeValue());
-    if (value) {
-        XL6_Sequence* owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,
-            identity,element,3,sizeof(xvalue*),xrtTypeValue());
-        if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
-            if (owner) xl6SequenceEndV1(owner);
-            xerror* error=xrtTakeError(); xrtValueRelease(value); value=NULL;
-            xrtClearError(); xrtSetErrorTake(error);
-        } else xl6SequenceEndV1(owner);
-    }
-    xl6SequenceAdmissionDropV3(&admission); return value;
+    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
 }
 #endif

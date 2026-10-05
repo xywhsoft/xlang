@@ -1,5 +1,4 @@
 #include "src/runtime/xl6_array_admission.h"
-#include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_c_scalar_domain.h"
 #include "src/runtime/xl6_scalar_type_abi.h"
 #include <stdlib.h>
@@ -54,14 +53,5 @@ xvalue* xl6ArrayNullableCScalarCreateV1(uint64_t identity,uint64_t element,
     *data=(NullableCScalarPolicy){.refs=1,.base=base,.type=type,.identity=boxedIdentity,
         .offset=(1+base->Align-1)/base->Align*base->Align};
     XL6_SequenceAdmissionV3 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
-    xvalue* result=xl6ArrayCreateV1(identity,element,1,type->Size,type);
-    if (result) {
-        XL6_Sequence* owner=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,identity,element,1,type->Size,type);
-        if (!owner || !xl6SequenceAdmissionTakeV3(owner,&admission)) {
-            if (owner) xl6SequenceEndV1(owner);
-            xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
-            xrtClearError(); xrtSetErrorTake(error);
-        } else xl6SequenceEndV1(owner);
-    }
-    xl6SequenceAdmissionDropV3(&admission); return result;
+    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
 }

@@ -56,6 +56,8 @@ frozen_files() {
     printf '%s\0' src/runtime/xl6_collection_count.c test/cases/stdlib_collection_count.xl test/cases/stdlib_collection_count_continuation.xl
     printf '%s\0' test/cases/xlir_collection_count_contract.c test/cases/stdlib_collection_count_projection_host.c
     printf '%s\0' tools/check_stdlib_array_scalar_read.py test/cases/stdlib_array_scalar_read_native_host.c test/cases/stdlib_array_scalar_read_header.c
+    printf '%s\0' tools/check_stdlib_sequence_publication.py test/cases/stdlib_sequence_publication_native_host.c
+    printf '%s\0' tools/check_stdlib_sequence_factories.py test/cases/stdlib_sequence_factory_only_host.c test/support/sequence_factory_native.c
     printf '%s\0' src/runtime/xl6_array_scalar_read.c test/cases/stdlib_array_scalar_read.xl test/cases/stdlib_array_scalar_read_continuation.xl
     printf '%s\0' test/cases/xlir_array_scalar_read_contract.c test/cases/stdlib_array_scalar_read_projection_host.c
     printf '%s\0' test/cases/stdlib_array_shuffle_default_only.xl test/cases/stdlib_array_shuffle_explicit_only.xl test/cases/stdlib_random_extended.xl
@@ -215,6 +217,8 @@ if ! run array-future "$PY" tools/check_stdlib_array_future.py --out "$OUT/array
 if ! run array-shuffle "$PY" tools/check_stdlib_array_shuffle.py --out "$OUT/array-shuffle" --sanitize --language; then failures+=(array-shuffle); fi
 if ! run collection-count "$PY" tools/check_stdlib_collection_count.py --out "$OUT/collection-count" --sanitize --language; then failures+=(collection-count); fi
 if ! run array-scalar-read "$PY" tools/check_stdlib_array_scalar_read.py --out "$OUT/array-scalar-read" --sanitize --language; then failures+=(array-scalar-read); fi
+if ! run sequence-publication "$PY" tools/check_stdlib_sequence_publication.py --out "$OUT/sequence-publication" --sanitize; then failures+=(sequence-publication); fi
+if ! run sequence-factories "$PY" tools/check_stdlib_sequence_factories.py --out "$OUT/sequence-factories" --sanitize; then failures+=(sequence-factories); fi
 frozen_files | sort -zu >"$OUT/inputs.after.list"
 if ! run inventory-unchanged cmp "$OUT/inputs.list" "$OUT/inputs.after.list"; then failures+=(inputs-changed); fi
 if ! run inputs-unchanged sha256sum --check "$OUT/inputs.sha256"; then failures+=(inputs-changed); fi

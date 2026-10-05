@@ -66,6 +66,8 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureLooksLikeRuntime")==XL6_ARTIFACT_RUNTIME_COUNT);
     CHECK(xl6ArtifactRuntimeSymbolOwner(NULL)==XL6_ARTIFACT_RUNTIME_COUNT);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceOwnershipAdapterV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceCreateAdmittedV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceCloneRoleV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayCreateV1")==XL6_ARTIFACT_ARRAY_TYPED);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackCreateV1")==XL6_ARTIFACT_STACK);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayReadI64V1")==XL6_ARTIFACT_ARRAY_SCALAR_READ);
@@ -73,6 +75,20 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackOwnershipAdapterV1")==XL6_ARTIFACT_RUNTIME_COUNT);
     XL6_ArtifactRuntimeSet sequence=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeClosePlan(&sequence,&plan) && plan.sourceCount==1);
+    const XL6_ArtifactRuntimeId factories[]={XL6_ARTIFACT_ARRAY_REFERENCE_ADMISSION,
+        XL6_ARTIFACT_ARRAY_NOMINAL_ADMISSION,XL6_ARTIFACT_ARRAY_PRIMITIVE_ADMISSION,
+        XL6_ARTIFACT_ARRAY_C_SCALAR_ADMISSION,XL6_ARTIFACT_ARRAY_SEQUENCE_ADMISSION,
+        XL6_ARTIFACT_ARRAY_NULLABLE_C_SCALAR_ADMISSION,XL6_ARTIFACT_ARRAY_NUMERIC_ENUM_ADMISSION,
+        XL6_ARTIFACT_ARRAY_CALLABLE_ADMISSION,XL6_ARTIFACT_ARRAY_FUTURE_ADMISSION};
+    for (size_t i=0;i<sizeof(factories)/sizeof(factories[0]);++i) {
+        XL6_ArtifactRuntimeSet root=xl6ArtifactRuntimeSetSingleton(factories[i]);
+        CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan));
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_STACK));
+        for (size_t j=0;j<plan.nativeModuleCount;++j)
+            CHECK(strcmp(plan.nativeModules[j],"XRUNTIME_MODULE_TYPED_STACK"));
+    }
     XL6_ArtifactRuntimeSet array=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_ARRAY_TYPED);
     CHECK(xl6ArtifactRuntimeClosePlan(&array,&plan) && plan.sourceCount==2);
     CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&

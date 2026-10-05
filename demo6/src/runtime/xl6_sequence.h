@@ -40,7 +40,7 @@ typedef struct XL6_SequenceAdmissionV3 {
 } XL6_SequenceAdmissionV3;
 /* Copy returns an owned metadata reference; Take consumes valid policies on
  * both paths (a malformed foreign descriptor remains the caller's property).
- * Binding is only allowed on an Array/Cursor with no prior policy and
+ * Binding is only allowed on an Array/Stack/Cursor with no prior policy and
  * validates existing slots before publication.
  * These functions require an operation pin. They do not retain source code.
  * V3 requires the larger V2 ops record with native-reference tracing. V1/V2
@@ -100,6 +100,16 @@ XL6_TEXT_API const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype
 /* Consumes valid owned storage on both success and failure. */
 XL6_TEXT_API xvalue* xl6SequenceWrapV1(xtypedarray*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API xvalue* xl6SequenceWrapAsV1(xtypedarray*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* One construction/publication transaction for ARRAY/STACK. A nonempty valid
+ * resident policy supplies the exact element/physical tuple and is consumed
+ * on both paths, including invalid role/owner identity. Malformed descriptors
+ * remain the caller's property. No unprofiled owner escapes on failure.
+ * STACK shares XRT's typed-array storage, not a second allocator/container. */
+XL6_TEXT_API xvalue* xl6SequenceCreateAdmittedV1(XL6_SequenceRoleV1, uint64_t, XL6_SequenceAdmissionV3*);
+/* Clone ARRAY/STACK storage and its immutable admission metadata together.
+ * Existing low-level unprofiled owners remain unprofiled; a profiled owner
+ * cannot lose its domain through clone. Source is unchanged on failure. */
+XL6_TEXT_API xvalue* xl6SequenceCloneRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 /* Erasure is a reference alias, never a dynamic Value snapshot. The converter
  * is an immutable resident policy with module-independent lifetime and NULL

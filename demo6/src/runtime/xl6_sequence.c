@@ -177,7 +177,8 @@ bool xl6SequenceAdmissionCopyV3(XL6_Sequence* owner, XL6_SequenceAdmissionV3* ta
 bool xl6SequenceAdmissionTakeV3(XL6_Sequence* owner, XL6_SequenceAdmissionV3* source)
 {
     if (!policyValid(source)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (!pinned(owner) || (owner->role!=XL6_SEQUENCE_ARRAY_V1 && owner->role!=XL6_SEQUENCE_CURSOR_V1) ||
+    if (!pinned(owner) || (owner->role!=XL6_SEQUENCE_ARRAY_V1 && owner->role!=XL6_SEQUENCE_STACK_V1 &&
+        owner->role!=XL6_SEQUENCE_CURSOR_V1) ||
         owner->admission.ops || owner->admission.data || (source->ops &&
         (source->elementIdentity!=owner->elementIdentity || source->transfer!=owner->transfer ||
          source->size!=owner->size || source->type!=owner->type))) {
@@ -524,6 +525,56 @@ xvalue* xl6SequenceWrapAsV1(xtypedarray* storage, XL6_SequenceRoleV1 role, uint6
 xvalue* xl6SequenceWrapV1(xtypedarray* storage, uint64_t identity, uint64_t elementIdentity,
     unsigned int transfer, size_t size, const xrttype* type)
 { return xl6SequenceWrapAsV1(storage,XL6_SEQUENCE_ARRAY_V1,identity,elementIdentity,transfer,size,type); }
+/* Internal callers own a validated policy (empty is allowed for low-level
+ * clones). Wrap consumes storage; Take consumes metadata. Rollback must not
+ * replace the first failure with an error from a destructor. */
+static xvalue* wrapAdmitted(xtypedarray* storage, XL6_SequenceRoleV1 role, uint64_t identity,
+    uint64_t element, unsigned int transfer, size_t size, const xrttype* type,
+    XL6_SequenceAdmissionV3* admission)
+{
+    xvalue* result=xl6SequenceWrapAsV1(storage,role,identity,element,transfer,size,type);
+    if (result) {
+        XL6_Sequence* owner=xl6SequenceBeginRoleV1(result,role,identity,element,transfer,size,type);
+        if (!owner || !xl6SequenceAdmissionTakeV3(owner,admission)) {
+            if (owner) xl6SequenceEndV1(owner);
+            xerror* failure=xrtTakeError(); xrtValueRelease(result); result=NULL;
+            xrtClearError(); xrtSetErrorTake(failure);
+        } else xl6SequenceEndV1(owner);
+    }
+    xl6SequenceAdmissionDropV3(admission); return result;
+}
+xvalue* xl6SequenceCreateAdmittedV1(XL6_SequenceRoleV1 role, uint64_t identity,
+    XL6_SequenceAdmissionV3* admission)
+{
+    if (!policyValid(admission)) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    if (!admission->ops || (role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1)) {
+        xrtSetErrorKind(XERR_ARGUMENT); xl6SequenceAdmissionDropV3(admission); return NULL;
+    }
+    if (!xl6SequenceTupleV1(identity,admission->elementIdentity,admission->transfer,admission->size,admission->type)) {
+        xl6SequenceAdmissionDropV3(admission); return NULL;
+    }
+    /* xtypedstack is xtypedarray; creating its common storage does not select
+     * optional Stack algorithms in an Array-only artifact. */
+    xtypedarray* storage=xrtTypedArrayCreate(xl6SequenceStorageTypeV1(admission->transfer,admission->type));
+    return wrapAdmitted(storage,role,identity,admission->elementIdentity,admission->transfer,
+        admission->size,admission->type,admission);
+}
+xvalue* xl6SequenceCloneRoleV1(const xvalue* value, XL6_SequenceRoleV1 role,
+    uint64_t identity, uint64_t element, unsigned int transfer, size_t size, const xrttype* type)
+{
+    if (role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1) {
+        xrtSetErrorKind(XERR_ARGUMENT); return NULL;
+    }
+    XL6_Sequence* owner=xl6SequenceBeginRoleV1(value,role,identity,element,transfer,size,type);
+    if (!owner) return NULL;
+    xtypedarray* copy=xrtTypedArrayClone(owner->storage);
+    XL6_SequenceAdmissionV3 admission={0};
+    if (copy && !xl6SequenceAdmissionCopyV3(owner,&admission)) {
+        destroyStorage(copy); copy=NULL;
+    }
+    xl6SequenceEndV1(owner);
+    return wrapAdmitted(copy,role,identity,element,transfer,size,type,&admission);
+}
 bool xl6SequenceEqualsRoleV1(const xvalue* left, const xvalue* right, XL6_SequenceRoleV1 role, uint64_t identity, uint64_t elementIdentity,
                       unsigned int transfer, size_t size, const xrttype* type)
 {
