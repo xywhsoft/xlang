@@ -1,0 +1,50 @@
+func scalarIdentityF32(float32 value) as float32
+    return value
+end
+func scalarIdentityTime(time value = #2026-01-01#) as time
+    return value
+end
+func scalarMixed(float32 number, time stamp) as (float32, time, string)
+    return number, stamp, "a\0你"
+end
+func scalarFactory() as func(float32) as float32
+    return scalarIdentityF32
+end
+
+func(float32) as float32 scalarNativeF32 = scalarIdentityF32
+func(time) as time scalarNativeTime = scalarIdentityTime
+func(float32, time) as (float32, time, string) scalarNativeMixed = scalarMixed
+var scalarErasedF32 = xcall(scalarNativeF32)
+var scalarErasedTime = xcall(scalarNativeTime)
+var scalarErasedMixed = xcall(scalarNativeMixed)
+var scalarErasedFactory = xcall(scalarFactory)
+func(float32) as float32 scalarRestoredF32 = scalarErasedF32
+func(time) as time scalarRestoredTime = scalarErasedTime
+func(float32, time) as (float32, time, string) scalarRestoredMixed = scalarErasedMixed
+
+class ScalarCallbacks
+    func(float32) as float32 real = scalarIdentityF32
+    func(time) as time stamp = scalarIdentityTime
+end
+
+func main(...) as int
+    assert(scalarRestoredF32(float32(1.5)) == float32(1.5))
+    assert(scalarRestoredTime(#2026-01-01#) == #2026-01-01#)
+    auto number, stamp, text = scalarRestoredMixed(float32(1.5), #2026-01-01#)
+    assert(number == float32(1.5) and stamp == #2026-01-01# and text == "a\0你")
+    ScalarCallbacks callbacks = ScalarCallbacks()
+    assert(callbacks.real(float32(2.5)) == float32(2.5))
+    assert(callbacks.stamp(#2026-01-01#) == #2026-01-01#)
+    array<func(float32) as float32> reals = [scalarRestoredF32]
+    array<func(time) as time> times = [scalarRestoredTime]
+    assert(reals[0](float32(3.5)) == float32(3.5))
+    assert(times[0](#2026-01-01#) == #2026-01-01#)
+    func() as func(float32) as float32 factory = scalarErasedFactory
+    auto made = factory()
+    assert(made(float32(4.5)) == float32(4.5))
+    // The erased argument is exactly a widened f32, never implicitly rounded.
+    var exact = float32(1.5)
+    assert(scalarErasedF32(exact) == 1.5)
+    assert(scalarErasedTime() == #2026-01-01#)
+    return 0
+end

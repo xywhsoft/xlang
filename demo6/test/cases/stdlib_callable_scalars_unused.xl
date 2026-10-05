@@ -1,0 +1,9 @@
+// A closed signature alone does not select a Value decoder or an adapter.
+func keepNative(func(float32) as float32 callback, float32 value) as float32
+    return callback(value)
+end
+func main(...) as int
+    auto native = func(float32 value) as float32 => value
+    assert(keepNative(native, float32(1.5)) == float32(1.5))
+    return 0
+end

@@ -20,6 +20,11 @@ typedef int (*XL6_IrCgenNativeModuleVisitor)(void* context, const char* moduleNa
  * Lowered XLIR. Does not emit C, read AST, or inspect source/identifier text. */
 int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
     const XL6_IrCgenOptions* options, XL6_IrCgenNativeModuleVisitor visitor, void* context);
+/* Resident helper dependencies selected by the same verified feature closure
+ * as emission. Symbol ownership is resolved by the artifact registry, never
+ * by scanning generated C or overselecting every interned signature. */
+int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diags,
+    const XL6_IrCgenOptions* options, XL6_IrCgenNativeModuleVisitor visitor, void* context);
 int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
                      XL6_DiagList* diags, const XL6_IrCgenOptions* options);
 int xl6IrCgenEmitC(XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags);

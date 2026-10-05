@@ -35,6 +35,8 @@ static int xl6IrCallableBridgeParameterPlan(
     case XL6_IR_C_ABI_U64:
     case XL6_IR_C_ABI_TYPE_ID: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
     case XL6_IR_C_ABI_F64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F64; break;
+    case XL6_IR_C_ABI_F32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F32; break;
+    case XL6_IR_C_ABI_TIME_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_TIME; break;
     case XL6_IR_C_ABI_RAW_POINTER: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_POINTER; break;
     case XL6_IR_C_ABI_MANAGED_STRING:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_STRING_COPY;
@@ -86,6 +88,8 @@ static int xl6IrCallableBridgeResultPlan(
     case XL6_IR_C_ABI_U64:
     case XL6_IR_C_ABI_TYPE_ID: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_U64; break;
     case XL6_IR_C_ABI_F64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F64; break;
+    case XL6_IR_C_ABI_F32: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_F32; break;
+    case XL6_IR_C_ABI_TIME_I64: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_TIME; break;
     case XL6_IR_C_ABI_RAW_POINTER: plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_POINTER; break;
     case XL6_IR_C_ABI_MANAGED_STRING:
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_STRING_COPY;

@@ -4301,7 +4301,10 @@ typedef enum XL6_IrCallableBridgeValueAbi {
      * its XVALUE_BYTES identity instead of treating it as open `var`. */
     XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW,
     XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN,
-    XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE
+    XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE,
+    /* F32 uses the lossless resident Value domain reader; TIME is not I64. */
+    XL6_IR_CALLABLE_BRIDGE_F32,
+    XL6_IR_CALLABLE_BRIDGE_TIME
 } XL6_IrCallableBridgeValueAbi;
 
 typedef struct XL6_IrCallableBridgeParameter {

@@ -36,7 +36,10 @@ static int xl6IrCgenEmitCallableBridgeEncode(
     case XL6_IR_CALLABLE_BRIDGE_U64:
         xl6OutputPrintf(out, "    %s = xrtValueUInt(%s);\n", boxed, input); break;
     case XL6_IR_CALLABLE_BRIDGE_F64:
+    case XL6_IR_CALLABLE_BRIDGE_F32:
         xl6OutputPrintf(out, "    %s = xrtValueFloat(%s);\n", boxed, input); break;
+    case XL6_IR_CALLABLE_BRIDGE_TIME:
+        xl6OutputPrintf(out, "    %s = xrtValueTime(%s);\n", boxed, input); break;
     case XL6_IR_CALLABLE_BRIDGE_POINTER:
         xl6OutputPrintf(out, "    %s = xrtValuePointer(%s);\n", boxed, input); break;
     default: return 0;
@@ -71,6 +74,10 @@ static int xl6IrCgenEmitCallableBridgeDecode(
     case XL6_IR_CALLABLE_BRIDGE_I64: getter = "xrtValueGetInt"; break;
     case XL6_IR_CALLABLE_BRIDGE_U64: getter = "xrtValueGetUInt"; break;
     case XL6_IR_CALLABLE_BRIDGE_F64: getter = "xrtValueGetFloat"; break;
+    case XL6_IR_CALLABLE_BRIDGE_TIME: getter = "xrtValueGetTime"; break;
+    case XL6_IR_CALLABLE_BRIDGE_F32:
+        xl6OutputPrintf(out, "    if (!xl6ValueReadF32V1(%s, 0x%016llXULL, &%s)) goto conversion_fail;\n",
+            boxed, (unsigned long long)item->typeValueId, output); break;
     case XL6_IR_CALLABLE_BRIDGE_POINTER: getter = "xrtValueGetPointer"; break;
     default: return 0;
     }
