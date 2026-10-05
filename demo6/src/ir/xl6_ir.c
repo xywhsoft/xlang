@@ -545,6 +545,21 @@ static int xl6IrTypeDisplayNameMatches(
     return matches;
 }
 
+static XL6_ValueAdmissionV1 xl6IrIntegerAdmissionAbi(XL6_IrIntegerTarget target)
+{
+    switch (target) {
+    case XL6_IR_INTEGER_TARGET_SIGNED_8: return XL6_VALUE_ADMIT_I8;
+    case XL6_IR_INTEGER_TARGET_SIGNED_16: return XL6_VALUE_ADMIT_I16;
+    case XL6_IR_INTEGER_TARGET_SIGNED_32: return XL6_VALUE_ADMIT_I32;
+    case XL6_IR_INTEGER_TARGET_SIGNED_64: return XL6_VALUE_ADMIT_I64;
+    case XL6_IR_INTEGER_TARGET_UNSIGNED_8: return XL6_VALUE_ADMIT_U8;
+    case XL6_IR_INTEGER_TARGET_UNSIGNED_16: return XL6_VALUE_ADMIT_U16;
+    case XL6_IR_INTEGER_TARGET_UNSIGNED_32: return XL6_VALUE_ADMIT_U32;
+    case XL6_IR_INTEGER_TARGET_UNSIGNED_64: return XL6_VALUE_ADMIT_U64;
+    default: return XL6_VALUE_ADMIT_NONE;
+    }
+}
+
 XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     if (!pool || !type) return XL6_VALUE_ADMIT_NONE;
@@ -558,17 +573,7 @@ XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, c
     if (type->kind!=XL6_IR_TYPE_BUILTIN || type->collectionAbi!=XL6_IR_COLLECTION_NONE ||
         type->paramCount || type->returnCount) return XL6_VALUE_ADMIT_NONE;
     if (type->cAbi==XL6_IR_C_ABI_I64 || type->cAbi==XL6_IR_C_ABI_U64) {
-        switch (type->integerTarget) {
-        case XL6_IR_INTEGER_TARGET_SIGNED_8: return XL6_VALUE_ADMIT_I8;
-        case XL6_IR_INTEGER_TARGET_SIGNED_16: return XL6_VALUE_ADMIT_I16;
-        case XL6_IR_INTEGER_TARGET_SIGNED_32: return XL6_VALUE_ADMIT_I32;
-        case XL6_IR_INTEGER_TARGET_SIGNED_64: return XL6_VALUE_ADMIT_I64;
-        case XL6_IR_INTEGER_TARGET_UNSIGNED_8: return XL6_VALUE_ADMIT_U8;
-        case XL6_IR_INTEGER_TARGET_UNSIGNED_16: return XL6_VALUE_ADMIT_U16;
-        case XL6_IR_INTEGER_TARGET_UNSIGNED_32: return XL6_VALUE_ADMIT_U32;
-        case XL6_IR_INTEGER_TARGET_UNSIGNED_64: return XL6_VALUE_ADMIT_U64;
-        default: return XL6_VALUE_ADMIT_NONE;
-        }
+        return xl6IrIntegerAdmissionAbi(type->integerTarget);
     }
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: return XL6_VALUE_ADMIT_BOOL;
@@ -806,6 +811,13 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
     if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
+    } else if (base->kind==XL6_IR_TYPE_NUMERIC_ENUM &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
+               xl6IrIntegerAdmissionAbi(base->integerTarget)!=XL6_VALUE_ADMIT_NONE) {
+        /* Recipe-local backing rule, not generic primitive Value admission.
+         * The resident policy additionally requires this enum's identity. */
+        result.admissionAbi=xl6IrIntegerAdmissionAbi(base->integerTarget);
+        result.abi=XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1;
     } else if (base->kind==XL6_IR_TYPE_BUILTIN &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
                (xl6IrNativeSlotAbiForType(pool,base)==XL6_IR_NATIVE_SLOT_TYPE_ID ||
@@ -841,6 +853,7 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
             child.abi==XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1
             ? XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     } else {
@@ -849,7 +862,8 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
     if (result.abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1) {
+        result.abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
+        result.abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1) {
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
             result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
@@ -900,6 +914,7 @@ const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
     case XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1: return "c-scalar-v1";
     case XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1: return "sequence-reference-v1";
     case XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
+    case XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
     default: return "invalid";
     }
 }

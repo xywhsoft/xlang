@@ -84,6 +84,7 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
         plan->abi != XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 &&
+        plan->abi != XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 &&
         plan->abi != XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) return 0;
     const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&ir->types,plan->baseElementType);
@@ -95,6 +96,12 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
         assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN && !plan->admissionAbi);
         value=xl6ArraySequenceCreateV1(type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1) {
+        assert(base->kind==XL6_IR_TYPE_NUMERIC_ENUM && !element->xvalueAdmissionAbi &&
+            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
+            plan->admissionAbi>=XL6_VALUE_ADMIT_I8 && plan->admissionAbi<=XL6_VALUE_ADMIT_U64);
+        value=xl6ArrayNumericEnumCreateV1(type->typeValueId,element->typeValueId,
+            physical,plan->admissionAbi,plan->nullable,base->typeValueId);
     } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1) {
         const xrttype* basePhysical=descriptor(base->nativeSlotAbi);
         assert(basePhysical && plan->nullable && !plan->admissionAbi &&
@@ -200,7 +207,15 @@ static void layouts(XL6_IrModule* ir)
         assert(element && saved.slotAbi == element->nativeSlotAbi);
         assert(saved.nullable == (element->kind == XL6_IR_TYPE_NULLABLE));
         assert(saved.baseElementType == (saved.nullable ? element->params[0] : saved.elementType));
-        assert(saved.admissionAbi == element->xvalueAdmissionAbi);
+        if (saved.abi==XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1) {
+            const XL6_IrType* base=xl6IrTypeGet(&ir->types,saved.baseElementType);
+            assert(base && base->kind==XL6_IR_TYPE_NUMERIC_ENUM && !element->xvalueAdmissionAbi);
+            static const XL6_ValueAdmissionV1 rules[]={XL6_VALUE_ADMIT_NONE,
+                XL6_VALUE_ADMIT_I8,XL6_VALUE_ADMIT_U8,XL6_VALUE_ADMIT_I16,XL6_VALUE_ADMIT_U16,
+                XL6_VALUE_ADMIT_I32,XL6_VALUE_ADMIT_U32,XL6_VALUE_ADMIT_I64,XL6_VALUE_ADMIT_U64};
+            assert(base->integerTarget>0 && base->integerTarget<sizeof(rules)/sizeof(rules[0]) &&
+                saved.admissionAbi==rules[base->integerTarget]);
+        } else assert(saved.admissionAbi == element->xvalueAdmissionAbi);
         if (saved.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
             XL6_IrType* base=&ir->types.items[saved.baseElementType-1];
             assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY);

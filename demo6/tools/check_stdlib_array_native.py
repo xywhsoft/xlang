@@ -78,6 +78,10 @@ def main() -> int:
         "src/runtime/xl6_array_nullable_c_scalar_admission.c")]
     for profile in ("i8", "u8", "i16", "u16", "i32", "u32"):
         files += [root / f"src/runtime/xl6_nullable_native_{profile}{suffix}.c" for suffix in ("", "_value")]
+    files += [root / name for name in ("tools/check_stdlib_array_numeric_enum.py",
+        "test/cases/stdlib_array_numeric_enum_native_host.c",
+        "test/cases/stdlib_array_numeric_enum_storage_host.c",
+        "src/runtime/xl6_array_numeric_enum_admission.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -311,6 +315,18 @@ def main() -> int:
             "Profiles": optional["Profiles"], "NativeMappings": optional["NativeMappings"],
             "ClosedPrefixes": len(optional["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in optional["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "admission-numeric-enum"
+        command = [sys.executable, "tools/check_stdlib_array_numeric_enum.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        enums = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not enums["Complete"] or not enums["InputsUnchanged"] or enums["Profiles"]!=16 or len(enums["Sweeps"])!=384:
+            raise RuntimeError("Incomplete numeric enum native Array evidence")
+        report["NumericEnumReport"] = {"Directory": str(child), "Checks": len(enums["Rows"]),
+            "Profiles": enums["Profiles"], "ClosedPrefixes": len(enums["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in enums["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:

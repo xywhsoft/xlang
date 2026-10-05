@@ -71,3 +71,23 @@ end
 export "enum_kind_string" func enum_kind(string value) as int
     return value.length
 end
+
+export "enum_make_inspector" func makeInspector() as EnumInspector
+    return EnumInspector()
+end
+
+export "enum_failure_matches" func failureMatches(Packet<string> packet, string expected) as bool
+    return match packet
+    case empty then expected == ""
+    case value(value) then value == expected
+    case failure(code, message) then message == expected
+    end
+end
+
+export "enum_status" func status(HttpStatus code) as HttpStatus
+    return code
+end
+
+export "enum_fail" func failExport()
+    assert false, "enum export failure"
+end

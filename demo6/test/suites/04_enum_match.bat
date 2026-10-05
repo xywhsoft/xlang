@@ -74,14 +74,15 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\export_enum_abi.xl --emit build\test\export_enum_abi.c --emit-header build\test\export_enum_abi.h
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Enum_Packet__int" build\test\export_enum_abi.h >nul
+findstr /C:"xvalue* enum_make_packet(int64_t" build\test\export_enum_abi.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_enum_make_XL_Enum_Packet__string__failure" build\test\export_enum_abi.h >nul
+findstr /C:"xvalue* enum_make_failure(xlir_string" build\test\export_enum_abi.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xtarray __xl6_cabi_arg_0 = xl6TypedArrayClone(values);" build\test\export_enum_abi.c >nul
-if errorlevel 1 exit /b 1
+rem Obsolete HIR struct/reflection/copy exports must not reappear.
+findstr /C:"XL_Enum_Packet" /C:"xl6_enum_copy_" build\test\export_enum_abi.h >nul
+if not errorlevel 1 exit /b 1
 
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_enum_abi.c test\cases\export_enum_abi_host.c %XL6_CGEN_LINKS% -o build\test\export_enum_abi_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% -Werror %XL6_CGEN_INCLUDES% build\test\export_enum_abi.c test\cases\export_enum_abi_host.c %XL6_CGEN_LINKS% -o build\test\export_enum_abi_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_enum_abi_host.exe
 if errorlevel 1 exit /b 1
@@ -92,9 +93,20 @@ release\xl.exe impdef build\test\export_enum_abi.dll -o build\test\export_enum_a
 if errorlevel 1 exit /b 1
 findstr /C:"enum_make_packet" build\test\export_enum_abi.def >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_enum_copy_XL_Enum_Packet__int" build\test\export_enum_abi.def >nul
+findstr /C:"enum_failure_matches" build\test\export_enum_abi.def >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_enum_type_XL_Enum_Packet__int" build\test\export_enum_abi.def >nul
+findstr /C:"enum_make_inspector" build\test\export_enum_abi.def >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_enum_copy_" /C:"xl6_enum_type_" build\test\export_enum_abi.def >nul
+if not errorlevel 1 exit /b 1
+
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% -Werror %XL6_CGEN_INCLUDES% -DXL6_USE_SHARED test\cases\export_enum_abi_host.c build\test\export_enum_abi.dll %XL6_CGEN_LINKS% -o build\test\export_enum_abi_shared_host.exe
+if errorlevel 1 exit /b 1
+build\test\export_enum_abi_shared_host.exe
+if errorlevel 1 exit /b 1
+
+rem Persistent strict O0/O2 raw/shared ABI gate with frozen input evidence.
+python tools\check_stdlib_enum_c_abi.py --out build/test/enum-cabi-%RANDOM%-%RANDOM%
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: enum and match

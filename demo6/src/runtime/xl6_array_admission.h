@@ -34,4 +34,11 @@ XL6_TEXT_API xvalue* xl6ArraySequenceCreateV1(uint64_t, uint64_t, uint64_t, bool
  * Optional logical element identity differs from the nonnullable identity. */
 XL6_TEXT_API xvalue* xl6ArrayNullableCScalarCreateV1(uint64_t, uint64_t,
     const xrttype*, const xrttype*, uint64_t);
+/* Numeric enums require exact nominal identity AND full backing integer
+ * range. i8..u32 use widened i64; u64 uses u64. Optional descriptors must be
+ * immutable resident I64/U64 profile getter results, not module callbacks.
+ * Nonnullable element/boxed identity match; nullable identities differ.
+ * Defaults are zero/absent. No generic primitive or tagged-enum admission. */
+XL6_TEXT_API xvalue* xl6ArrayNumericEnumCreateV1(uint64_t, uint64_t,
+    const xrttype*, unsigned int, bool, uint64_t);
 #endif
