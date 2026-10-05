@@ -417,7 +417,7 @@ static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_
     case XL6_IR_NATIVE_SLOT_C_SIZE:
         return "(sizeof(size_t) == 4 ? xrtTypeUInt32() : xrtTypeUInt64())";
     case XL6_IR_NATIVE_SLOT_C_SSIZE:
-        return "(sizeof(xl6_ssize_t) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
+        return "(sizeof(intptr_t) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
     case XL6_IR_NATIVE_SLOT_C_PTRDIFF:
         return "(sizeof(ptrdiff_t) == 4 ? xrtTypeInt32() : xrtTypeInt64())";
     case XL6_IR_NATIVE_SLOT_C_INTPTR:

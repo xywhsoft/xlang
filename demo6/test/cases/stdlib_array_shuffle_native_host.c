@@ -34,7 +34,7 @@ static xfuture* ready(void)
 }
 static xvalue* integers(bool bind)
 {
-    xvalue* value=xl6ArrayPrimitiveCreateV2(INT_LAYOUT,XL6_VALUE_ADMIT_I64,false,ITEM); assert(value);
+    xvalue* value=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,INT_LAYOUT,XL6_VALUE_ADMIT_I64,false,ITEM); assert(value);
     for (int64_t i=0;i<16;++i) assert(xl6ArrayPushV1(value,INT_LAYOUT,&i));
     if (bind) { xvalue* alias=xl6ArrayEraseV1(value,INT_LAYOUT,NULL); assert(alias==value); xrtValueRelease(alias); }
     return value;
@@ -66,7 +66,7 @@ static void vectors(bool useDefault)
     assert((useDefault ? xrtRand64() : xrtRng64(&rng))==xrtRng64(&oracle));
     xrtValueRelease(alias); xrtValueRelease(value);
 
-    value=xl6ArrayPrimitiveCreateV2(STR_LAYOUT,XL6_VALUE_ADMIT_STRING,false,ITEM); assert(value);
+    value=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,STR_LAYOUT,XL6_VALUE_ADMIT_STRING,false,ITEM); assert(value);
     const xstrview strings[]={{"a\0b",3},{"你",3},{"",0}};
     for (unsigned i=0;i<3;++i) assert(xl6ArrayPushV1(value,STR_LAYOUT,&strings[i]));
     alias=xl6ArrayEraseV1(value,STR_LAYOUT,xl6StringConverterV1()); assert(alias==value); xrtValueRelease(alias);
@@ -79,7 +79,7 @@ static void vectors(bool useDefault)
     }
     xrtValueRelease(value);
 
-    value=xl6ArrayReferenceCreateV2(ID,ITEM,XL6_VALUE_ADMIT_ANY,false,ITEM); assert(value);
+    value=xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,ID,ITEM,XL6_VALUE_ADMIT_ANY,false,ITEM); assert(value);
     xvalue* objects[3]={xrtValueObject(),xrtValueObject(),xrtValueObject()};
     for (unsigned i=0;i<3;++i) { assert(objects[i]); assert(xl6ArrayPushV1(value,REF_LAYOUT,&objects[i])); }
     assert(xl6ArrayPushV1(value,REF_LAYOUT,&objects[0]));
@@ -95,7 +95,7 @@ static void vectors(bool useDefault)
     for (unsigned i=0;i<3;++i) xrtValueRelease(objects[i]);
     xrtValueRelease(value);
 
-    value=xl6ArrayFutureCreateV1(ID,ITEM,ITEM+1,true); assert(value);
+    value=xl6SequenceFutureCreateV1(XL6_SEQUENCE_ARRAY_V1,ID,ITEM,ITEM+1,true); assert(value);
     xfuture* futures[3]={ready(),ready(),NULL};
     for (unsigned i=0;i<3;++i) assert(xl6ArrayPushV1(value,FUT_LAYOUT,&futures[i]));
     alias=xl6ArrayEraseV1(value,FUT_LAYOUT,NULL); assert(alias); xrtValueRelease(alias);
@@ -110,7 +110,7 @@ static void vectors(bool useDefault)
     assert(seen[0]==1 && seen[1]==1 && seen[2]==1);
     xrtValueRelease(value); xrtFutureDestroy(futures[0]); xrtFutureDestroy(futures[1]);
 
-    value=xl6ArrayPrimitiveCreateV2(INT_LAYOUT,XL6_VALUE_ADMIT_I64,false,ITEM); assert(value);
+    value=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,INT_LAYOUT,XL6_VALUE_ADMIT_I64,false,ITEM); assert(value);
     alias=xl6ArrayEraseV1(value,INT_LAYOUT,NULL); assert(alias); xrtValueRelease(alias);
     seed(&rng); oracle=rng; zeroAllocation(value,&rng,useDefault);
     int64_t one=9; assert(xl6ArrayPushV1(value,INT_LAYOUT,&one)); zeroAllocation(value,&rng,useDefault);

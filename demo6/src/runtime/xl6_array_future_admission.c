@@ -45,7 +45,7 @@ static bool trace(const void* opaque,const void* item,xrtownershipvisitor visit,
 }
 static const XL6_SequenceAdmissionOpsV2 ops={retain,drop,slot,value,equivalent,defaultable,NULL,trace};
 const XL6_SequenceAdmissionOpsV2* xl6ArrayFutureAdmissionOpsV2Get(void) { return &ops; }
-xvalue* xl6ArrayFutureCreateV1(uint64_t identity,uint64_t element,uint64_t baseIdentity,bool nullable)
+xvalue* xl6SequenceFutureCreateV1(unsigned int role,uint64_t identity,uint64_t element,uint64_t baseIdentity,bool nullable)
 {
     if (!identity || !element || !baseIdentity ||
         (nullable ? element==baseIdentity : element!=baseIdentity)) {
@@ -57,5 +57,5 @@ xvalue* xl6ArrayFutureCreateV1(uint64_t identity,uint64_t element,uint64_t baseI
     const xrttype* type=xrtTypeFuture();
     XL6_SequenceAdmissionV3 admission={&ops,policy,element,XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1,
         sizeof(xfuture*),type,baseIdentity};
-    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
+    return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

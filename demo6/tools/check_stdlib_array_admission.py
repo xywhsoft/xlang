@@ -92,9 +92,9 @@ def main() -> int:
                 [nm, *(["-D"] if args.shared else []), "--defined-only", str(product if args.shared else binary)])
             symbols = run(lane + ".symbols", symbol_command)
             names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
-            expected = "xl6ArrayNominalCreateV2" if args.nominal else "xl6ArrayReferenceCreateV2"
-            absent = {"xl6ArrayReferenceCreateV2", "xl6ValueAdmitsV1"} if args.nominal else {
-                "xl6ArrayNominalCreateV2", "xl6ValueAdmitsNominalV1"}
+            expected = "xl6SequenceNominalCreateV1" if args.nominal else "xl6SequenceReferenceCreateV1"
+            absent = {"xl6SequenceReferenceCreateV1", "xl6ValueAdmitsV1"} if args.nominal else {
+                "xl6SequenceNominalCreateV1", "xl6ValueAdmitsNominalV1"}
             assert expected in names, f"Missing factory export: {expected}"
             assert {"xl6SequenceAdmissionTakeV3", "xl6SequenceAdmitSlotV1", "xl6SequenceAdmitValueV1"} <= names, "Missing resident admission ABI"
             if not args.shared:

@@ -571,59 +571,72 @@ typedef enum XL6_IrNativeSlotAbi {
     XL6_IR_NATIVE_SLOT_FUTURE_PTR,
 } XL6_IrNativeSlotAbi;
 
-/* Target resident Array recipe, not permission to reinterpret an existing
+/* Target resident Sequence recipe, not permission to reinterpret an existing
  * Value owner. Pending slot/domain recipes fail closed: a retainable xvalue*
  * is not proof that recursive/callable/enum admission is implemented. */
-typedef enum XL6_IrArrayLayoutAbi {
-    XL6_IR_ARRAY_LAYOUT_NONE = 0,
-    XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE,
-    XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2,
-    XL6_IR_ARRAY_LAYOUT_REFERENCE_V2,
-    XL6_IR_ARRAY_LAYOUT_NOMINAL_V2,
-    XL6_IR_ARRAY_LAYOUT_PENDING_SLOT,
-    XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN,
-    XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1,
-    XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1,
-    XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1,
-    XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1,
-    XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1,
-    XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1
-} XL6_IrArrayLayoutAbi;
+typedef enum XL6_IrSequenceLayoutAbi {
+    XL6_IR_SEQUENCE_LAYOUT_NONE = 0,
+    XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE,
+    XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2,
+    XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2,
+    XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2,
+    XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT,
+    XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN,
+    XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1,
+    XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1,
+    XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1,
+    XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1
+} XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
  * DIRECT preserves the declared native slot. CLOSURE_VALUE uses the existing
  * typed closure box/project operations at both boundaries; never reinterpret
  * a closure pointer as an xvalue pointer. Pending/dynamic recipes have NONE. */
-typedef enum XL6_IrArrayCodecAbi {
-    XL6_IR_ARRAY_CODEC_NONE = 0,
-    XL6_IR_ARRAY_CODEC_DIRECT,
-    XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1
-} XL6_IrArrayCodecAbi;
+typedef enum XL6_IrSequenceCodecAbi {
+    XL6_IR_SEQUENCE_CODEC_NONE = 0,
+    XL6_IR_SEQUENCE_CODEC_DIRECT,
+    XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1
+} XL6_IrSequenceCodecAbi;
 
-typedef enum XL6_IrArrayDefaultAbi {
-    XL6_IR_ARRAY_DEFAULT_NONE = 0,
-    XL6_IR_ARRAY_DEFAULT_ZERO,
-    XL6_IR_ARRAY_DEFAULT_EMPTY_STRING,
-    XL6_IR_ARRAY_DEFAULT_ABSENT,
-    XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL,
-    XL6_IR_ARRAY_DEFAULT_FORBIDDEN,
+typedef enum XL6_IrSequenceDefaultAbi {
+    XL6_IR_SEQUENCE_DEFAULT_NONE = 0,
+    XL6_IR_SEQUENCE_DEFAULT_ZERO,
+    XL6_IR_SEQUENCE_DEFAULT_EMPTY_STRING,
+    XL6_IR_SEQUENCE_DEFAULT_ABSENT,
+    XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL,
+    XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN,
     /* Language bytes require present empty data; the current reference slot
      * initializes NULL. Never silently substitute an absent default. */
-    XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES
-} XL6_IrArrayDefaultAbi;
+    XL6_IR_SEQUENCE_DEFAULT_EMPTY_BYTES
+} XL6_IrSequenceDefaultAbi;
 
-typedef struct XL6_IrArrayLayout {
-    XL6_IrArrayLayoutAbi abi;
+typedef enum XL6_IrSequenceRoleAbi {
+    XL6_IR_SEQUENCE_ROLE_NONE = 0,
+    XL6_IR_SEQUENCE_ROLE_ARRAY,
+    XL6_IR_SEQUENCE_ROLE_STACK
+} XL6_IrSequenceRoleAbi;
+
+typedef struct XL6_IrSequenceLayout {
+    XL6_IrSequenceLayoutAbi abi;
+    XL6_IrSequenceRoleAbi role;
     XL6_IrTypeId elementType;
     /* Nullable<T> owner identity and admitted T identity are distinct. */
     XL6_IrTypeId baseElementType;
     XL6_IrNativeSlotAbi slotAbi;
-    XL6_IrArrayCodecAbi codecAbi;
+    XL6_IrSequenceCodecAbi codecAbi;
     XL6_IrRuntimeResourcePayloadAbi transferAbi;
     XL6_ValueAdmissionV1 admissionAbi;
     bool nullable;
-    XL6_IrArrayDefaultAbi defaultAbi;
-} XL6_IrArrayLayout;
+    XL6_IrSequenceDefaultAbi defaultAbi;
+    /* Exact immutable child tuple for nested Sequence references. These are
+     * derived in IR, not recovered from the child spelling by Cgen. */
+    XL6_IrSequenceRoleAbi childRole;
+    XL6_IrTypeId childElementType;
+    XL6_IrNativeSlotAbi childSlotAbi;
+    XL6_IrRuntimeResourcePayloadAbi childTransferAbi;
+} XL6_IrSequenceLayout;
 
 typedef struct XL6_IrType {
     XL6_IrTypeKind kind;
@@ -642,7 +655,7 @@ typedef struct XL6_IrType {
     XL6_IrIntegerTarget integerTarget;
     XL6_IrNativeProductAbi nativeProductAbi;
     XL6_IrNativeSlotAbi nativeSlotAbi;
-    XL6_IrArrayLayout arrayLayout;
+    XL6_IrSequenceLayout sequenceLayout;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -699,11 +712,11 @@ typedef struct XL6_IrTypePool {
 
 XL6_IrCollectionCarrierAbi xl6IrCollectionCarrierAbiForType(const XL6_IrType* type);
 const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi);
-XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool*, const XL6_IrType*);
-int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout*, const XL6_IrArrayLayout*);
-const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi);
-const char* xl6IrArrayCodecAbiName(XL6_IrArrayCodecAbi abi);
-const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi);
+XL6_IrSequenceLayout xl6IrSequenceLayoutForType(const XL6_IrTypePool*, const XL6_IrType*);
+int xl6IrSequenceLayoutEqual(const XL6_IrSequenceLayout*, const XL6_IrSequenceLayout*);
+const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi);
+const char* xl6IrSequenceCodecAbiName(XL6_IrSequenceCodecAbi abi);
+const char* xl6IrSequenceDefaultAbiName(XL6_IrSequenceDefaultAbi abi);
 
 XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type);
 int xl6IrDeclarationAllowsForeignContract(XL6_AstKind sourceKind, unsigned int flags);
@@ -2939,6 +2952,9 @@ typedef struct XL6_IrInstruction {
     XL6_IrCollectionAdmissionAbi collectionAdmissionAbi;
     XL6_IrNominalIdentitySetId collectionAdmissionIdentitySet;
     bool collectionAdmissionNullable;
+    /* Source Stack construction owns an exact resident Sequence recipe.
+     * Only nominal recipes carry a set; NONE on every other instruction. */
+    XL6_IrNominalIdentitySetId sequenceAdmissionIdentitySet;
     /* Valid exactly for typed Array RESIZE; INVALID elsewhere. Logical
      * element semantics fixed by lowering and replayed by the verifier. */
     XL6_ValueDefaultAbiV1 collectionDefaultAbi;
@@ -6136,6 +6152,10 @@ int xl6IrStackTryResultCompatible(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeI
 const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
     const XL6_IrModule* module, XL6_IrTypeId targetType,
     XL6_IrNominalIdentitySetId* idOut);
+/* Closed source-producer capability, distinct from a native target recipe.
+ * No wire Array or unsupported slot codec is silently accepted. */
+int xl6IrStackConstructionContract(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrNominalIdentitySetId*);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
  * Typed construction, lowering, verification and statistics from developing
  * separate lists of operations which can fail without source throw syntax. */

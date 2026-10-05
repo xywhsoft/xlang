@@ -41,7 +41,7 @@ static bool equivalent(const void* left,const void* right)
 }
 static bool defaultable(const void* opaque) { (void)opaque; return true; }
 static const XL6_SequenceAdmissionOpsV2 ops={retain,drop,slot,value,equivalent,defaultable,NULL,NULL};
-xvalue* xl6ArrayNullableCScalarCreateV1(uint64_t identity,uint64_t element,
+xvalue* xl6SequenceNullableCScalarCreateV1(unsigned int role,uint64_t identity,uint64_t element,
     const xrttype* type,const xrttype* base,uint64_t boxedIdentity)
 {
     if (!identity || !element || !boxedIdentity || element==boxedIdentity ||
@@ -53,5 +53,5 @@ xvalue* xl6ArrayNullableCScalarCreateV1(uint64_t identity,uint64_t element,
     *data=(NullableCScalarPolicy){.refs=1,.base=base,.type=type,.identity=boxedIdentity,
         .offset=(1+base->Align-1)/base->Align*base->Align};
     XL6_SequenceAdmissionV3 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
-    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
+    return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

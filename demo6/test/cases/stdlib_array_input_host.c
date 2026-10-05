@@ -24,7 +24,7 @@ static xvalue* bound(xvalue* value,uint64_t id,uint64_t element,unsigned transfe
 }
 static xvalue* strings(const xstrview* texts,size_t count)
 {
-    xvalue* a=bound(xl6ArrayPrimitiveCreateV2(1001,STR_ID,2,sizeof(xstrview),
+    xvalue* a=bound(xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,STR_ID,2,sizeof(xstrview),
         xl6StringTypeV1(),XL6_VALUE_ADMIT_STRING,false,STR_ID),1001,STR_ID,2,
         sizeof(xstrview),xl6StringTypeV1(),xl6StringConverterV1());
     for (size_t i=0;i<count;++i) {
@@ -35,7 +35,7 @@ static xvalue* strings(const xstrview* texts,size_t count)
 }
 static xvalue* integers(int64_t n,size_t count)
 {
-    xvalue* a=bound(xl6ArrayPrimitiveCreateV2(1003,INT_ID,1,sizeof(int64_t),
+    xvalue* a=bound(xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,1003,INT_ID,1,sizeof(int64_t),
         xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,INT_ID),1003,INT_ID,1,
         sizeof(int64_t),xrtTypeInt64(),NULL);
     for (size_t i=0;i<count;++i) {
@@ -46,7 +46,7 @@ static xvalue* integers(int64_t n,size_t count)
 }
 static xvalue* references(const xvalue* item,size_t count)
 {
-    xvalue* a=bound(xl6ArrayReferenceCreateV2(1005,ANY_ID,XL6_VALUE_ADMIT_ANY,
+    xvalue* a=bound(xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1005,ANY_ID,XL6_VALUE_ADMIT_ANY,
         false,ANY_ID),1005,ANY_ID,3,sizeof(xvalue*),xrtTypeValue(),NULL);
     for (size_t i=0;i<count;++i) assert(xl6ArrayErasedPushV1(a,item));
     return a;
@@ -110,7 +110,7 @@ static void boundaries(void)
     xvalue* other=foreign(0);
     assert(xrtValueTypeIdBind(other,1003));
     assert(!xl6ArrayInputAcquireV1(other,&output)); expectError(XERR_TYPE); xrtValueRelease(other);
-    xvalue* unbound=xl6ArrayPrimitiveCreateV2(1003,INT_ID,1,sizeof(int64_t),
+    xvalue* unbound=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,1003,INT_ID,1,sizeof(int64_t),
         xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,INT_ID); assert(unbound);
     assert(!xl6ArrayInputAcquireV1(unbound,&output)); expectError(XERR_STATE);
     xrtValueRelease(unbound);

@@ -20,13 +20,13 @@ def main() -> int:
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     if out.exists() or not cc or not nm or (args.sanitize and os.name=='nt'):
         parser.error('Require gcc/nm, fresh evidence and Linux for sanitizers')
-    profiles=[('reference',['src/runtime/xl6_value_admission.c'],'xl6ArrayReferenceCreateV2'),
-        ('nominal',['src/runtime/xl6_nominal_admission.c'],'xl6ArrayNominalCreateV2'),
-        ('primitive',['src/runtime/xl6_value_admission.c'],'xl6ArrayPrimitiveCreateV2'),
-        ('c_scalar',[],'xl6ArrayCScalarCreateV1'),('sequence',[],'xl6ArraySequenceCreateV1'),
-        ('nullable_c_scalar',['src/runtime/xl6_nullable_native_u16.c'],'xl6ArrayNullableCScalarCreateV1'),
-        ('numeric_enum',[],'xl6ArrayNumericEnumCreateV1'),('callable',[],'xl6ArrayCallableCreateV1'),
-        ('future',[],'xl6ArrayFutureCreateV1')]
+    profiles=[('reference',['src/runtime/xl6_value_admission.c'],'xl6SequenceReferenceCreateV1'),
+        ('nominal',['src/runtime/xl6_nominal_admission.c'],'xl6SequenceNominalCreateV1'),
+        ('primitive',['src/runtime/xl6_value_admission.c'],'xl6SequencePrimitiveCreateV1'),
+        ('c_scalar',[],'xl6SequenceCScalarCreateV1'),('sequence',[],'xl6SequenceNestedCreateV1'),
+        ('nullable_c_scalar',['src/runtime/xl6_nullable_native_u16.c'],'xl6SequenceNullableCScalarCreateV1'),
+        ('numeric_enum',[],'xl6SequenceNumericEnumCreateV1'),('callable',[],'xl6SequenceCallableCreateV1'),
+        ('future',[],'xl6SequenceFutureCreateV1')]
     common=['test/cases/stdlib_sequence_factory_only_host.c','test/support/sequence_factory_native.c','src/runtime/xl6_sequence.c']
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
     files.update(root/name for name in common)
@@ -59,7 +59,7 @@ def main() -> int:
                 assert not ({item[2] for item in profiles}-{factory}) & names
                 assert not any(name.startswith(('xl6Stack','xrtTypedStack')) for name in names)
                 assert not {'xl6ArrayCreateV1','xl6ArrayCloneV1','xl6ArrayPushV1','xl6ArrayFromValueV1','xl6ArrayToValueV1'}&names
-                assert f'factory {index}: 100 publication/clone cycles balanced' in run(lane+'.vectors',[str(binary)])
+                assert f'factory {index}: 100 ARRAY/STACK direct publication/clone cycles balanced' in run(lane+'.vectors',[str(binary)])
         report['InputsUnchanged']=all(digest(Path(row['Path']))==row['Sha256'] for row in inputs)
         assert report['InputsUnchanged']; report['Complete']=True
     except Exception as error:

@@ -491,6 +491,9 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
             needs->needsStackResourceRuntime = 1;
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
+                module->instructions[i].sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID)
+                needs->needsNominalIdentityRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;

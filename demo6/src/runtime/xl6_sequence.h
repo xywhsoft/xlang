@@ -96,6 +96,9 @@ XL6_TEXT_API bool xl6SequenceTupleV1(uint64_t, uint64_t, unsigned int, size_t, c
  * logical identity. BUSY is allowed: no storage or mutable policy is read.
  * Private ops are checked before dereferencing a foreign handle pointer. */
 XL6_TEXT_API bool xl6SequenceAdmitsArrayV1(const xvalue*, uint64_t);
+/* Exact immutable role/physical tuple probe. Like the erased Array probe it
+ * is error-transparent and permits BUSY, without reading slots or callbacks. */
+XL6_TEXT_API bool xl6SequenceAdmitsRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype*);
 /* Consumes valid owned storage on both success and failure. */
 XL6_TEXT_API xvalue* xl6SequenceWrapV1(xtypedarray*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);

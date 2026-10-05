@@ -16,7 +16,7 @@ static xvalue* create(bool nullable)
      * construction; every subsequent owner must use its own identity span. */
     uint64_t tags[]={10,11};
     XL6_NominalAdmissionV1 schema={XL6_NOMINAL_ADMIT_CLASS_TAG,2001,tags,2};
-    xvalue* value=xl6ArrayNominalCreateV2(1001,2001,&schema,nullable,2001);
+    xvalue* value=xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,nullable,2001);
     tags[0]=12; tags[1]=13; schema.kind=0;
     return value;
 }
@@ -28,7 +28,7 @@ static xvalue* element(bool good)
 }
 #else
 static xvalue* create(bool nullable)
-{ return xl6ArrayReferenceCreateV2(1001,2001,XL6_VALUE_ADMIT_BYTES,nullable,2001); }
+{ return xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,XL6_VALUE_ADMIT_BYTES,nullable,2001); }
 static xvalue* element(bool good)
 {
     xvalue* value=xrtValueBytes((xbytesview){(const uint8_t*)"a\0b",3}); assert(value);
@@ -75,9 +75,9 @@ static void graph(void)
 #ifdef XL6_TEST_ARRAY_NOMINAL
     uint64_t identities[]={1001,1002};
     XL6_NominalAdmissionV1 schema={XL6_NOMINAL_ADMIT_EXACT_ID,0,identities,2};
-    xvalue* value=xl6ArrayNominalCreateV2(1001,2001,&schema,false,1001);
+    xvalue* value=xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,1001);
 #else
-    xvalue* value=xl6ArrayReferenceCreateV2(1001,2001,XL6_VALUE_ADMIT_ANY,false,0);
+    xvalue* value=xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,XL6_VALUE_ADMIT_ANY,false,0);
 #endif
     assert(value && xl6ArrayPushV1(value,LAYOUT,&value));
     xvalue* cursor=xl6ArrayIteratorCreateV1(value,LAYOUT,1002);
@@ -99,28 +99,28 @@ static void malformed(void)
 #ifdef XL6_TEST_ARRAY_NOMINAL
     uint64_t identity=0;
     XL6_NominalAdmissionV1 schema={XL6_NOMINAL_ADMIT_CLASS_TAG,0,&identity,1};
-    assert(!xl6ArrayNominalCreateV2(1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
     identity=UINT64_MAX;
-    assert(!xl6ArrayNominalCreateV2(1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
     identity=11; schema.count=SIZE_MAX;
-    assert(!xl6ArrayNominalCreateV2(1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
     schema.count=1; schema.identities=NULL;
-    assert(!xl6ArrayNominalCreateV2(1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
     schema.identities=&identity; schema.nonObjectIdentity=2002;
-    assert(!xl6ArrayNominalCreateV2(1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
     schema.kind=XL6_NOMINAL_ADMIT_PROTOCOL_TAG; schema.nonObjectIdentity=2001;
-    assert(!xl6ArrayNominalCreateV2(1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&schema,false,2001)); error(XERR_ARGUMENT);
 #else
-    assert(!xl6ArrayReferenceCreateV2(1001,2001,XL6_VALUE_ADMIT_I64,false,2001)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayReferenceCreateV2(1001,2001,XL6_VALUE_ADMIT_BYTES,false,0)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayReferenceCreateV2(0,2001,XL6_VALUE_ADMIT_ANY,false,0)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,XL6_VALUE_ADMIT_I64,false,2001)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,XL6_VALUE_ADMIT_BYTES,false,0)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,0,2001,XL6_VALUE_ADMIT_ANY,false,0)); error(XERR_ARGUMENT);
 #endif
     assert(!xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
 #ifdef XL6_TEST_ARRAY_NOMINAL
     /* Empty closed protocol domains remain meaningful; nullable admits only
      * Null. Deep copy that schema even though its identity span is empty. */
     XL6_NominalAdmissionV1 empty={XL6_NOMINAL_ADMIT_PROTOCOL_TAG,0,NULL,0};
-    xvalue* value=xl6ArrayNominalCreateV2(1001,2001,&empty,true,2001);
+    xvalue* value=xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,2001,&empty,true,2001);
     xvalue* good=element(true),*null=xrtValueNull();
     assert(value && xl6ArrayPushV1(value,LAYOUT,&null));
     xvalue* alias=xl6ArrayEraseV1(value,LAYOUT,NULL); assert(alias);
@@ -227,9 +227,9 @@ static void vectors(void)
     assert(good && xrtValueTypeIdBind(good,2001));
 #ifdef XL6_TEST_ARRAY_NOMINAL
     uint64_t tags[]={10}; XL6_NominalAdmissionV1 schema={XL6_NOMINAL_ADMIT_CLASS_TAG,2001,tags,1};
-    value=xl6ArrayNominalCreateV2(1101,2101,&schema,true,2001);
+    value=xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,1101,2101,&schema,true,2001);
 #else
-    value=xl6ArrayReferenceCreateV2(1101,2101,XL6_VALUE_ADMIT_BYTES,true,2001);
+    value=xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1101,2101,XL6_VALUE_ADMIT_BYTES,true,2001);
 #endif
     assert(value && xl6ArrayPushV1(value,1101,2101,3,sizeof(xvalue*),xrtTypeValue(),&good));
     alias=xl6ArrayEraseV1(value,1101,2101,3,sizeof(xvalue*),xrtTypeValue(),NULL); assert(alias);

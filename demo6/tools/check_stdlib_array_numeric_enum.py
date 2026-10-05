@@ -72,9 +72,9 @@ def main() -> int:
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else
                 [nm,*(['-D'] if args.shared else []),'--defined-only',str(product if args.shared else binary)]))
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert 'xl6ArrayNumericEnumCreateV1' in names
+            assert 'xl6SequenceNumericEnumCreateV1' in names
             if not args.shared:
-                assert 'xl6ArrayPrimitiveCreateV2' not in names
+                assert 'xl6SequencePrimitiveCreateV1' not in names
                 assert not {'xl6NullableTimeTypeV1','xl6NullableCharTypeV1','xl6NullableStringTypeV1'} & names
             if not args.shared:
                 for profile,rule in [('I64','XL6_VALUE_ADMIT_I8'),('U64','XL6_VALUE_ADMIT_U64')]:

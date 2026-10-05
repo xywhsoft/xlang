@@ -233,7 +233,7 @@ if ( $c -cne $second ) {
     throw "XLIR Stack generated C is not byte-for-byte deterministic"
 }
 foreach ( $required in @(
-    "xl6StackCreateV1", "xl6StackPushV1", "xl6StackTakeV1",
+    "xl6SequencePrimitiveCreateV1", "xl6SequenceNominalCreateV1", "xl6StackPushV1", "xl6StackTakeV1",
     "xl6StackReserveV1", "xl6StackCloneV1", "xl6StackEqualsV1", "xl6StackTrimV1",
     "xl6StackClearV1", "xl6StackSizeV1", "xl6StringTypeV1()", "xrtTypeValue()"
 ) ) {
@@ -242,7 +242,7 @@ foreach ( $required in @(
     }
 }
 $helperCounts = [ordered]@{
-    'v[0-9]+ = xl6StackCreateV1\(' = 6
+    'v[0-9]+ = xl6Sequence(?:Primitive|Nominal)CreateV1\(2,' = 6
     'v[0-9]+ = xl6StackPushV1\(' = 7
     '(?m)^\s+bool projection_ok_\d+ = xl6StackTakeV1\(v' = 8
     'v[0-9]+ = xl6StackCloneV1\(' = 1

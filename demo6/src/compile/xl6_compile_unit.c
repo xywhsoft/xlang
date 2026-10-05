@@ -401,7 +401,19 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
             instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) REQUIRE(R(ARRAY_BOXED_DEFAULT));
-        if (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CREATE) {
+            const XL6_IrType* stack=xl6IrTypeGet(&module->types,instruction->type);
+            switch (stack->sequenceLayout.abi) {
+            case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: REQUIRE(R(ARRAY_PRIMITIVE_ADMISSION)); break;
+            case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2: REQUIRE(R(ARRAY_REFERENCE_ADMISSION)); break;
+            case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2: REQUIRE(R(ARRAY_NOMINAL_ADMISSION)); break;
+            case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: REQUIRE(R(ARRAY_C_SCALAR_ADMISSION)); break;
+            case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: REQUIRE(R(ARRAY_NULLABLE_C_SCALAR_ADMISSION)); break;
+            case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: REQUIRE(R(ARRAY_NUMERIC_ENUM_ADMISSION)); break;
+            case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1: REQUIRE(R(ARRAY_SEQUENCE_ADMISSION)); break;
+            default: return 0; /* Verifier must reject unsupported producers. */
+            }
+        } else if (instruction->runtimeOp > XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
         if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) REQUIRE(R(NULLABLE_STRING));
         /* Only operations which physically consume an xrttype descriptor
@@ -413,8 +425,12 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
              instruction->runtimeOp <= XL6_IR_RUNTIME_AVL_TREE_CLONE) ||
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
-            for (unsigned slot=0;slot<2;++slot) {
-                XL6_IrTypeId id=slot ? instruction->runtimeResourceKeyType : instruction->payloadType;
+            const XL6_IrType* created=instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE
+                ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
+            XL6_IrTypeId child=created && created->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1
+                ? created->sequenceLayout.childElementType : XL6_IR_TYPE_INVALID;
+            for (unsigned slot=0;slot<(child ? 3u : 2u);++slot) {
+                XL6_IrTypeId id=slot==2 ? child : slot ? instruction->runtimeResourceKeyType : instruction->payloadType;
                 const XL6_IrType* physical=xl6IrTypeGet(&module->types,id);
                 if (!physical) continue;
                 switch (physical->nativeSlotAbi) {

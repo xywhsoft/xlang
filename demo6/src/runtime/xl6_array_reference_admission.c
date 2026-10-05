@@ -18,7 +18,7 @@ static bool bytesDefault(const void* opaque,ptr slot)
 }
 static const XL6_SequenceAdmissionOpsV2 bytesOps={policyRetain,policyDrop,slotAdmitted,
     admitted,equivalent,defaultable,bytesDefault,NULL};
-xvalue* xl6ArrayReferenceCreateV2(uint64_t identity,uint64_t element,unsigned int rule,bool nullable,uint64_t valueIdentity)
+xvalue* xl6SequenceReferenceCreateV1(unsigned int role,uint64_t identity,uint64_t element,unsigned int rule,bool nullable,uint64_t valueIdentity)
 {
     if (!identity || !element || (rule!=XL6_VALUE_ADMIT_ANY && rule!=XL6_VALUE_ADMIT_BYTES) ||
         (rule==XL6_VALUE_ADMIT_BYTES && !valueIdentity)) {
@@ -27,5 +27,5 @@ xvalue* xl6ArrayReferenceCreateV2(uint64_t identity,uint64_t element,unsigned in
     XL6_ArrayAdmissionData* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(XL6_ArrayAdmissionData){.refs=1,.nullable=nullable,.rule=rule,.identity=valueIdentity};
-    return create(identity,element,data,rule==XL6_VALUE_ADMIT_BYTES && !nullable ? &bytesOps : &policyOps);
+    return create(role,identity,element,data,rule==XL6_VALUE_ADMIT_BYTES && !nullable ? &bytesOps : &policyOps);
 }

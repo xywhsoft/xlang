@@ -81,61 +81,65 @@ static const xrttype* descriptor(XL6_IrNativeSlotAbi abi)
 }
 static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
 {
-    const XL6_IrArrayLayout* plan=&type->arrayLayout;
-    if (plan->abi != XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1 &&
-        plan->abi != XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) return 0;
+    const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
+    if (plan->abi != XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 && plan->abi != XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 &&
+        plan->abi != XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) return 0;
     const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&ir->types,plan->baseElementType);
     assert(element && base && type->typeValueId && element->typeValueId && base->typeValueId);
     const xrttype* physical=descriptor(plan->slotAbi);
     assert(physical);
     xvalue* value=NULL;
-    if (plan->abi == XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1) {
+    if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
         assert(base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR && !element->nativeSlotAbi &&
             plan->slotAbi==XL6_IR_NATIVE_SLOT_FUTURE_PTR && plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
-        value=xl6ArrayFutureCreateV1(type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
+        value=xl6SequenceFutureCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1) {
         assert(base->kind==XL6_IR_TYPE_FUNCTION && base->cAbi==XL6_IR_C_ABI_CLOSURE_PTR &&
             xl6IrRuntimeCallableClosureToXValueSignatureSupported(ir,plan->baseElementType) &&
             !element->nativeSlotAbi && !plan->admissionAbi &&
-            plan->codecAbi==XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1 &&
+            plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN);
-        value=xl6ArrayCallableCreateV1(type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
-        assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+        value=xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
+        assert((base->collectionAbi==XL6_IR_COLLECTION_ARRAY || base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK) &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN && !plan->admissionAbi);
-        value=xl6ArraySequenceCreateV1(type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1) {
+        const XL6_IrType* childElement=xl6IrTypeGet(&ir->types,plan->childElementType);
+        const xrttype* childPhysical=descriptor(plan->childSlotAbi); assert(childElement && childPhysical);
+        value=xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
+            plan->childRole,base->typeValueId,childElement->typeValueId,plan->childTransferAbi,
+            childPhysical->Size,childPhysical,plan->nullable);
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1) {
         assert(base->kind==XL6_IR_TYPE_NUMERIC_ENUM && !element->xvalueAdmissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
             plan->admissionAbi>=XL6_VALUE_ADMIT_I8 && plan->admissionAbi<=XL6_VALUE_ADMIT_U64);
-        value=xl6ArrayNumericEnumCreateV1(type->typeValueId,element->typeValueId,
+        value=xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
             physical,plan->admissionAbi,plan->nullable,base->typeValueId);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1) {
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1) {
         const xrttype* basePhysical=descriptor(base->nativeSlotAbi);
         assert(basePhysical && plan->nullable && !plan->admissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
-            plan->defaultAbi==XL6_IR_ARRAY_DEFAULT_ABSENT);
-        value=xl6ArrayNullableCScalarCreateV1(type->typeValueId,element->typeValueId,
+            plan->defaultAbi==XL6_IR_SEQUENCE_DEFAULT_ABSENT);
+        value=xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
             physical,basePhysical,base->typeValueId);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1) {
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1) {
         assert(!plan->nullable && !plan->admissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
-            plan->defaultAbi==XL6_IR_ARRAY_DEFAULT_ZERO);
-        value=xl6ArrayCScalarCreateV1(type->typeValueId,element->typeValueId,physical,base->typeValueId);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2) {
-        value=xl6ArrayPrimitiveCreateV2(type->typeValueId,element->typeValueId,
+            plan->defaultAbi==XL6_IR_SEQUENCE_DEFAULT_ZERO);
+        value=xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,physical,base->typeValueId);
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2) {
+        value=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
             plan->transferAbi,physical->Size,physical,plan->admissionAbi,plan->nullable,base->typeValueId);
-    } else if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2) {
+    } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2) {
         assert(plan->slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
             plan->transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN);
-        value=xl6ArrayReferenceCreateV2(type->typeValueId,element->typeValueId,plan->admissionAbi,
+        value=xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,plan->admissionAbi,
             plan->nullable,plan->admissionAbi == XL6_VALUE_ADMIT_ANY ? 0 : base->typeValueId);
     } else {
         const XL6_IrNominalIdentitySet* set=xl6IrNominalIdentitySetGet(ir,plan->baseElementType,NULL);
@@ -145,31 +149,31 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
             .nonObjectIdentity=set->nonObjectTypeId,
             .identities=set->identityCount ? &ir->nominalIdentities[set->firstIdentity] : NULL,
             .count=set->identityCount};
-        value=xl6ArrayNominalCreateV2(type->typeValueId,element->typeValueId,&schema,plan->nullable,base->typeValueId);
+        value=xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,&schema,plan->nullable,base->typeValueId);
     }
     assert(value && !xrtGetError() && xrtValueType(value) == XVALUE_HANDLE);
 #define LAYOUT type->typeValueId,element->typeValueId,plan->transferAbi,physical->Size,physical
     assert(xl6ArraySizeV1(value,LAYOUT,false) == 0 && !xrtGetError());
-    bool defaultable=plan->defaultAbi != XL6_IR_ARRAY_DEFAULT_FORBIDDEN;
+    bool defaultable=plan->defaultAbi != XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN;
     assert(xl6ArrayResizeV1(value,LAYOUT,1) == defaultable);
     if (!defaultable) {
         assert(xrtGetError()); xrtClearError();
         assert(xl6ArraySizeV1(value,LAYOUT,false) == 0);
     } else {
         assert(!xrtGetError() && xl6ArraySizeV1(value,LAYOUT,false) == 1);
-        if (plan->abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1) {
+        if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1) {
             union { max_align_t alignment; unsigned char bytes[64]; } slot;
             assert(physical->Size<=sizeof(slot.bytes));
             memset(slot.bytes,0xA5,sizeof(slot.bytes));
             xl6ArrayReadV1(value,LAYOUT,0,slot.bytes);
             assert(!xrtGetError() && slot.bytes[0]==0); /* No absent payload read. */
         }
-        if (plan->abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 ||
-            plan->abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
-            plan->abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
+        if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 ||
+            plan->abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
+            plan->abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
             xvalue* item=NULL; xl6ArrayReadV1(value,LAYOUT,0,&item);
             assert(!xrtGetError());
-            if (plan->defaultAbi == XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES) {
+            if (plan->defaultAbi == XL6_IR_SEQUENCE_DEFAULT_EMPTY_BYTES) {
                 xbytesview bytes;
                 assert(item && xrtValueGetBytes(item,&bytes) && !bytes.Size);
             } else assert(!item || xrtValueType(item)==XVALUE_NULL);
@@ -187,7 +191,7 @@ static void layouts(XL6_IrModule* ir)
     for (size_t i=0;i<ir->types.count;++i) {
         XL6_IrType* type=&ir->types.items[i];
         XL6_IrCollectionCarrierAbi carrier=type->collectionCarrierAbi;
-        XL6_IrArrayLayout saved=type->arrayLayout;
+        XL6_IrSequenceLayout saved=type->sequenceLayout;
         assert(carrier == (type->collectionAbi == XL6_IR_COLLECTION_NONE
             ? XL6_IR_COLLECTION_CARRIER_NONE : XL6_IR_COLLECTION_CARRIER_VALUE_V1));
         type->collectionCarrierAbi=carrier == XL6_IR_COLLECTION_CARRIER_NONE
@@ -196,25 +200,31 @@ static void layouts(XL6_IrModule* ir)
         type->collectionCarrierAbi=XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1; rejected(ir); ++mutations;
         type->collectionCarrierAbi=(XL6_IrCollectionCarrierAbi)UINT32_MAX; rejected(ir); ++mutations;
         type->collectionCarrierAbi=carrier;
-#define MUTATE(FIELD, VALUE) do { type->arrayLayout.FIELD=(VALUE); rejected(ir); \
-    type->arrayLayout=saved; ++mutations; } while (0)
-        MUTATE(abi,(XL6_IrArrayLayoutAbi)UINT32_MAX);
+#define MUTATE(FIELD, VALUE) do { type->sequenceLayout.FIELD=(VALUE); rejected(ir); \
+    type->sequenceLayout=saved; ++mutations; } while (0)
+        MUTATE(abi,(XL6_IrSequenceLayoutAbi)UINT32_MAX);
+        MUTATE(role,(XL6_IrSequenceRoleAbi)UINT32_MAX);
         MUTATE(elementType,saved.elementType ? XL6_IR_TYPE_INVALID : (XL6_IrTypeId)1);
         MUTATE(baseElementType,saved.baseElementType ? XL6_IR_TYPE_INVALID : (XL6_IrTypeId)1);
         MUTATE(slotAbi,(XL6_IrNativeSlotAbi)UINT32_MAX);
-        MUTATE(codecAbi,(XL6_IrArrayCodecAbi)UINT32_MAX);
+        MUTATE(codecAbi,(XL6_IrSequenceCodecAbi)UINT32_MAX);
         MUTATE(transferAbi,(XL6_IrRuntimeResourcePayloadAbi)UINT32_MAX);
         MUTATE(admissionAbi,(XL6_ValueAdmissionV1)UINT32_MAX);
         MUTATE(nullable,!saved.nullable);
-        MUTATE(defaultAbi,(XL6_IrArrayDefaultAbi)UINT32_MAX);
+        MUTATE(defaultAbi,(XL6_IrSequenceDefaultAbi)UINT32_MAX);
+        MUTATE(childRole,(XL6_IrSequenceRoleAbi)UINT32_MAX);
+        MUTATE(childElementType,saved.childElementType ? XL6_IR_TYPE_INVALID : (XL6_IrTypeId)1);
+        MUTATE(childSlotAbi,(XL6_IrNativeSlotAbi)UINT32_MAX);
+        MUTATE(childTransferAbi,(XL6_IrRuntimeResourcePayloadAbi)UINT32_MAX);
 #undef MUTATE
         if (type->collectionAbi != XL6_IR_COLLECTION_ARRAY) {
-            assert(saved.abi == XL6_IR_ARRAY_LAYOUT_NONE);
+            assert(type->kind==XL6_IR_TYPE_GENERIC_INSTANCE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK
+                ? saved.role==XL6_IR_SEQUENCE_ROLE_STACK : saved.abi==XL6_IR_SEQUENCE_LAYOUT_NONE);
             continue;
         }
         ++arrays;
         if (!type->paramCount) {
-            assert(saved.abi == XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE && !saved.elementType &&
+            assert(saved.abi == XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE && !saved.elementType &&
                 !saved.baseElementType && !saved.slotAbi && !saved.transferAbi && !saved.admissionAbi &&
                 !saved.codecAbi && !saved.nullable && !saved.defaultAbi);
             continue;
@@ -222,33 +232,33 @@ static void layouts(XL6_IrModule* ir)
         assert(type->paramCount == 1 && saved.elementType == type->params[0]);
         const XL6_IrType* element=xl6IrTypeGet(&ir->types,saved.elementType);
         assert(element);
-        if (saved.abi==XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1) {
+        if (saved.abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
             assert(!element->nativeSlotAbi && saved.slotAbi==XL6_IR_NATIVE_SLOT_FUTURE_PTR &&
-                saved.codecAbi==XL6_IR_ARRAY_CODEC_DIRECT && saved.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
+                saved.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT && saved.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
             XL6_IrType* future=&ir->types.items[saved.baseElementType-1];
             XL6_IrTypeId* parameters=future->params; future->params=NULL;
-            XL6_IrArrayLayout derived=xl6IrArrayLayoutForType(&ir->types,type);
-            assert(derived.abi==XL6_IR_ARRAY_LAYOUT_PENDING_SLOT && !derived.codecAbi);
+            XL6_IrSequenceLayout derived=xl6IrSequenceLayoutForType(&ir->types,type);
+            assert(derived.abi==XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT && !derived.codecAbi);
             rejected(ir); ++mutations; future->params=parameters;
-        } else if (saved.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
+        } else if (saved.abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1) {
             assert(!element->nativeSlotAbi && saved.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
-                saved.codecAbi==XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1);
-            type->arrayLayout.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT; rejected(ir); ++mutations;
-            type->arrayLayout=saved;
+                saved.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1);
+            type->sequenceLayout.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT; rejected(ir); ++mutations;
+            type->sequenceLayout=saved;
             XL6_IrType* signature=&ir->types.items[saved.baseElementType-1];
             if (signature->paramCount) {
                 XL6_IrTypeId* parameters=signature->params; signature->params=NULL;
-                XL6_IrArrayLayout derived=xl6IrArrayLayoutForType(&ir->types,type);
-                assert(derived.abi==XL6_IR_ARRAY_LAYOUT_PENDING_SLOT && !derived.codecAbi);
+                XL6_IrSequenceLayout derived=xl6IrSequenceLayoutForType(&ir->types,type);
+                assert(derived.abi==XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT && !derived.codecAbi);
                 rejected(ir); ++mutations; signature->params=parameters;
             }
         } else {
             assert(saved.slotAbi==element->nativeSlotAbi);
-            assert(saved.codecAbi==(saved.defaultAbi ? XL6_IR_ARRAY_CODEC_DIRECT : XL6_IR_ARRAY_CODEC_NONE));
+            assert(saved.codecAbi==(saved.defaultAbi ? XL6_IR_SEQUENCE_CODEC_DIRECT : XL6_IR_SEQUENCE_CODEC_NONE));
         }
         assert(saved.nullable == (element->kind == XL6_IR_TYPE_NULLABLE));
         assert(saved.baseElementType == (saved.nullable ? element->params[0] : saved.elementType));
-        if (saved.abi==XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1) {
+        if (saved.abi==XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1) {
             const XL6_IrType* base=xl6IrTypeGet(&ir->types,saved.baseElementType);
             assert(base && base->kind==XL6_IR_TYPE_NUMERIC_ENUM && !element->xvalueAdmissionAbi);
             static const XL6_ValueAdmissionV1 rules[]={XL6_VALUE_ADMIT_NONE,
@@ -257,19 +267,19 @@ static void layouts(XL6_IrModule* ir)
             assert(base->integerTarget>0 && base->integerTarget<sizeof(rules)/sizeof(rules[0]) &&
                 saved.admissionAbi==rules[base->integerTarget]);
         } else assert(saved.admissionAbi == element->xvalueAdmissionAbi);
-        if (saved.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1) {
+        if (saved.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
             XL6_IrType* base=&ir->types.items[saved.baseElementType-1];
-            assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY);
-            XL6_IrArrayLayout childSaved=base->arrayLayout;
-            base->arrayLayout.abi=(XL6_IrArrayLayoutAbi)UINT32_MAX;
-            XL6_IrArrayLayout derived=xl6IrArrayLayoutForType(&ir->types,type);
-            assert(xl6IrArrayLayoutEqual(&derived,&saved)); /* Never trust child cache. */
-            base->arrayLayout=childSaved;
+            assert(base->collectionAbi==XL6_IR_COLLECTION_ARRAY || base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK);
+            XL6_IrSequenceLayout childSaved=base->sequenceLayout;
+            base->sequenceLayout.abi=(XL6_IrSequenceLayoutAbi)UINT32_MAX;
+            XL6_IrSequenceLayout derived=xl6IrSequenceLayoutForType(&ir->types,type);
+            assert(xl6IrSequenceLayoutEqual(&derived,&saved)); /* Never trust child cache. */
+            base->sequenceLayout=childSaved;
             if (base->paramCount==1) {
                 XL6_IrTypeId parameter=base->params[0];
                 base->params[0]=saved.baseElementType; /* Malformed self-recursive type graph. */
-                derived=xl6IrArrayLayoutForType(&ir->types,type);
-                assert(derived.abi==XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN);
+                derived=xl6IrSequenceLayoutForType(&ir->types,type);
+                assert(derived.abi==XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN);
                 rejected(ir); ++mutations;
                 base->params[0]=parameter;
             }
@@ -406,6 +416,32 @@ static void futureContainerSemantics(void)
         accepted, rejectedCount);
 }
 
+static void stackConstruction(XL6_IrModule* ir)
+{
+    unsigned count=0,unrelated=0;
+    for (size_t i=0;i<ir->instructionCount;++i) {
+        XL6_IrInstruction* instruction=&ir->instructions[i];
+        XL6_IrNominalIdentitySetId saved=instruction->sequenceAdmissionIdentitySet;
+        if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL || instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE) {
+            assert(!saved);
+            if (!unrelated++) { instruction->sequenceAdmissionIdentitySet=1; rejected(ir); instruction->sequenceAdmissionIdentitySet=saved; }
+            continue;
+        }
+        XL6_IrNominalIdentitySetId expected=0;
+        assert(xl6IrStackConstructionContract(ir,instruction->type,&expected) && expected==saved);
+        instruction->sequenceAdmissionIdentitySet=saved ? 0 : 1; rejected(ir);
+        instruction->sequenceAdmissionIdentitySet=UINT32_MAX; rejected(ir);
+        instruction->sequenceAdmissionIdentitySet=saved;
+        XL6_IrTypeId payload=instruction->payloadType;
+        instruction->payloadType=XL6_IR_TYPE_INVALID; rejected(ir); instruction->payloadType=payload;
+        XL6_IrRuntimeResourcePayloadAbi transfer=instruction->runtimeResourcePayloadAbi;
+        instruction->runtimeResourcePayloadAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID; rejected(ir);
+        instruction->runtimeResourcePayloadAbi=transfer;
+        assert(xl6IrVerifyModule(ir,NULL)); ++count;
+    }
+    if (count) printf("Stack construction: %u exact Sequence factories; schema/payload/transfer and unrelated metadata refused before C/header output\n",count);
+}
+
 int main(int argc, char** argv)
 {
     assert(argc==3 || (argc==4 && strcmp(argv[3],"numeric-enums")==0));
@@ -417,6 +453,7 @@ int main(int argc, char** argv)
         !xl6SemCheckModule(parse.root,&parse.diags,"collection_contract") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir,NULL));
+    stackConstruction(&ir);
     futureProjectionContracts(&ir);
     numericEnums(&ir);
     if (argc==3) layouts(&ir);

@@ -56,7 +56,7 @@ static void balanced(const xmemdebugsnapshot* before)
         after.UseAfterFreeCount==before->UseAfterFreeCount && !xrtGetError());
 }
 static xvalue* create(const Spec* s)
-{ return xl6ArrayNumericEnumCreateV1(s->owner,s->element,s->type,s->rule,s->nullable,s->identity); }
+{ return xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->rule,s->nullable,s->identity); }
 static xvalue* encoded(const Spec* s,uint64_t identity,bool high)
 {
     xvalue* item=s->rule==XL6_VALUE_ADMIT_U64 ? xrtValueUInt(high ? UINT64_MAX : 0) :
@@ -82,17 +82,17 @@ static void refused(xvalue* owner,const xvalue* wrong)
 }
 static void vectors(const Spec* s)
 {
-    assert(!xl6ArrayNumericEnumCreateV1(0,s->element,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,0,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,NULL,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,s->type,s->rule,s->nullable,0)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,s->type,XL6_VALUE_ADMIT_BOOL,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,s->type,UINT_MAX,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,s->type,s->rule,!s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,0,s->element,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,0,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,NULL,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->rule,s->nullable,0)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,XL6_VALUE_ADMIT_BOOL,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,UINT_MAX,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->rule,!s->nullable,s->identity)); error(XERR_ARGUMENT);
     xrttype broken=*s->type; broken.Size+=1;
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,&broken,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,&broken,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
     broken=*s->type; broken.Id^=1;
-    assert(!xl6ArrayNumericEnumCreateV1(s->owner,s->element,&broken,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,&broken,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
     xvalue* owner=create(s),*good=encoded(s,s->identity,false),*high=encoded(s,s->identity,true); assert(owner);
     Slot present={0}; assert(xrtValueToTyped(good,s->type,&present,s->converter));
     assert(xl6ArrayPushV1(owner,LAYOUT(s),&present));

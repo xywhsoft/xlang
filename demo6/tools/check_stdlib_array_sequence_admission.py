@@ -42,7 +42,7 @@ def main() -> int:
     inputs=[{'Path':str(path.resolve()),'Sha256':digest(path)} for path in sorted(files)]
     rows=[]; sweeps=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Sweeps':sweeps,
-        'Profiles':8,'SharedRuntime':args.shared,'Sanitized':args.sanitize,
+        'Profiles':16,'SharedRuntime':args.shared,'Sanitized':args.sanitize,
         'RuntimeInstrumented':args.sanitize and not args.shared,'Scope':__doc__}
     out.mkdir(parents=True)
     if args.shared and os.name=='nt': shutil.copy2(product,out/'xl.dll')
@@ -71,12 +71,12 @@ def main() -> int:
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else
                 [nm,*(['-D'] if args.shared else []),'--defined-only',str(product if args.shared else binary)]))
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert {'xl6ArraySequenceCreateV1','xl6SequenceAdmitsArrayV1'}<=names
+            assert {'xl6SequenceNestedCreateV1','xl6SequenceAdmitsArrayV1','xl6SequenceAdmitsRoleV1'}<=names
             if not args.shared:
-                assert not {'xl6ArrayNominalCreateV2','xl6ArrayCScalarCreateV1','xl6ArrayDefaultCreateV1'} & names
+                assert not {'xl6SequenceNominalCreateV1','xl6SequenceCScalarCreateV1','xl6ArrayDefaultCreateV1'} & names
             vectors=run(lane+'.vectors',[str(binary)])
-            assert '8 nested Array domains' in vectors and 'identity/role/publication and cyclic owners balanced' in vectors
-            for profile in range(8):
+            assert '16 nested Sequence domains' in vectors and 'identity/role/publication and cyclic owners balanced' in vectors
+            for profile in range(16):
                 operations=['create','clone','erased-clone','cursor','snapshot','read','take','push','set','insert','reserve']
                 if profile%2: operations+=['resize']
                 for operation in operations:
@@ -86,7 +86,7 @@ def main() -> int:
                         if match[1]=='0':
                             sweeps.append({'Lane':lane,'Profile':profile,'Operation':operation,'FirstNoHit':point}); break
                     else: raise AssertionError('Unclosed allocation failure prefix')
-        assert len(sweeps)==184
+        assert len(sweeps)==368
         report['InputsUnchanged']=all(digest(Path(row['Path']))==row['Sha256'] for row in inputs)
         assert report['InputsUnchanged']
         report['Complete']=True

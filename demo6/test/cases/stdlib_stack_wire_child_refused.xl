@@ -1,0 +1,5 @@
+// A target native recipe does not authorize an unmigrated wire producer.
+func main(...) as int
+    Stack<array<int>> value = Stack::<array<int>>()
+    return 0
+end

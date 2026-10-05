@@ -27,16 +27,16 @@ static Spec spec(unsigned profile)
 }
 static xvalue* create(const Spec* s)
 {
-    if (s->profile==7) return xl6ArrayCScalarCreateV1(s->array,s->element,s->type,s->element);
+    if (s->profile==7) return xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,s->type,s->element);
     if (s->profile==5) {
         const uint64_t identities[]={777};
         XL6_NominalAdmissionV1 schema={.kind=XL6_NOMINAL_ADMIT_EXACT_ID,.identities=identities,.count=1};
-        return xl6ArrayNominalCreateV2(s->array,s->element,&schema,true,777);
+        return xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,&schema,true,777);
     }
-    if (s->transfer==3) return xl6ArrayReferenceCreateV2(s->array,s->element,
+    if (s->transfer==3) return xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,
         s->profile==4 ? XL6_VALUE_ADMIT_BYTES : XL6_VALUE_ADMIT_ANY,false,s->profile==4 ? s->element : 0);
     unsigned rule=s->profile==1 || s->profile==2 ? XL6_VALUE_ADMIT_STRING : XL6_VALUE_ADMIT_I8;
-    return xl6ArrayPrimitiveCreateV2(s->array,s->element,s->transfer,s->type->Size,s->type,rule,
+    return xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,s->transfer,s->type->Size,s->type,rule,
         s->profile==2 || s->profile==6,s->profile==2 || s->profile==6 ? s->element+1000 : s->element);
 }
 static Slot item(const Spec* s,int64_t number)

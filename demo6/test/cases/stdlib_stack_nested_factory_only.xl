@@ -1,0 +1,5 @@
+// Only the outer factory executes. Its child descriptor must still be selected.
+func main(...) as int
+    Stack<Stack<char?>> value = Stack::<Stack<char?>>()
+    return 0
+end

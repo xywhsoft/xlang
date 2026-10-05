@@ -71,7 +71,7 @@ static xvalue* callable(uint64_t signature,Owner* state)
     xl6ClosureRuntimeV1Get()->Release(source); assert(result); return result;
 }
 static xvalue* create(const Spec* s)
-{ return xl6ArrayCallableCreateV1(s->owner,s->element,s->signature,s->nullable); }
+{ return xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->signature,s->nullable); }
 static int64_t projectInvoke(void* environment)
 {
     xvalue* value=*(xvalue**)environment; xrtcallframe frame={0};
@@ -134,11 +134,11 @@ static void foreignDrop(void* data,void* context)
 { (void)context; assert(data==(void*)(uintptr_t)1); ++foreignDrops; }
 static void vectors(const Spec* s)
 {
-    assert(!xl6ArrayCallableCreateV1(0,s->element,s->signature,s->nullable)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCallableCreateV1(s->owner,0,s->signature,s->nullable)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCallableCreateV1(s->owner,s->element,0,s->nullable)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCallableCreateV1(s->owner,s->signature,s->signature,true)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCallableCreateV1(s->owner,s->signature+10,s->signature,false)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,0,s->element,s->signature,s->nullable)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,0,s->signature,s->nullable)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,0,s->nullable)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->signature,s->signature,true)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->signature+10,s->signature,false)); error(XERR_ARGUMENT);
     Owner state={0}; xvalue* good=callable(s->signature,&state),*array=create(s); assert(array);
     assert(state.pins==2 && state.acquired==2 && !state.released);
     assert(xl6ArrayPushV1(array,LAYOUT(s),&good));

@@ -300,7 +300,8 @@ bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned in
     }
     return true;
 }
-bool xl6SequenceAdmitsArrayV1(const xvalue* value,uint64_t identity)
+static bool admitsRole(const xvalue* value,XL6_SequenceRoleV1 role,uint64_t identity,
+    uint64_t element,unsigned int transfer,size_t size,const xrttype* type)
 {
     if (!identity || !value || xrtValueType(value)!=XVALUE_HANDLE || xrtValueTypeId(value)!=identity)
         return false;
@@ -313,10 +314,21 @@ bool xl6SequenceAdmitsArrayV1(const xvalue* value,uint64_t identity)
     bool result=false;
     if (xrtValueGetHandle(value,&raw,&actual,&user) && actual==&ops && raw && !user) {
         const XL6_Sequence* owner=raw;
-        result=owner->role==XL6_SEQUENCE_ARRAY_V1 && owner->identity==identity &&
+        result=owner->role==role && owner->identity==identity &&
+            (!element || (owner->elementIdentity==element && owner->transfer==transfer &&
+                owner->size==size && owner->type==type)) &&
             xrtAtomic32Load(&owner->admitted,XMEMORY_ACQUIRE)==1 && !owner->cleared;
     }
     mutationEnd(&mutation); return result;
+}
+bool xl6SequenceAdmitsArrayV1(const xvalue* value,uint64_t identity)
+{ return admitsRole(value,XL6_SEQUENCE_ARRAY_V1,identity,0,0,0,NULL); }
+bool xl6SequenceAdmitsRoleV1(const xvalue* value,XL6_SequenceRoleV1 role,uint64_t identity,
+    uint64_t element,unsigned int transfer,size_t size,const xrttype* type)
+{
+    return (role==XL6_SEQUENCE_ARRAY_V1 || role==XL6_SEQUENCE_STACK_V1) && element &&
+        transfer>=1 && transfer<=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 && size && type &&
+        admitsRole(value,role,identity,element,transfer,size,type);
 }
 static XL6_Sequence* borrow(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                          unsigned int transfer, size_t size, const xrttype* type)
