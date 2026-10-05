@@ -4,7 +4,7 @@
 int main(void)
 {
     assert(xrtMemDebugEnable(true)); xmemdebugsnapshot before,after; xrtMemDebugSnapshot(&before);
-    xvalue* value=xl6ArrayCallableCreateV1(11,22,33,true); assert(value);
+    xvalue* value=xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,11,22,33,true); assert(value);
     assert(xl6ArrayResizeV1(value,11,22,3,sizeof(xvalue*),xrtTypeValue(),4));
     xvalue* item=NULL;
     xl6ArrayReadV1(value,11,22,3,sizeof(xvalue*),xrtTypeValue(),3,&item);

@@ -35,9 +35,9 @@ static void balanced(const xmemdebugsnapshot* before)
 }
 static xvalue* array(const Spec* s)
 {
-    if (s->transfer==3) return xl6ArrayReferenceCreateV2(1001,s->element,
+    if (s->transfer==3) return xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,s->element,
         s->profile==2 ? XL6_VALUE_ADMIT_BYTES : XL6_VALUE_ADMIT_ANY,false,s->profile==2 ? s->element : 0);
-    return xl6ArrayPrimitiveCreateV2(1001,s->element,s->transfer,s->type->Size,s->type,
+    return xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,1001,s->element,s->transfer,s->type->Size,s->type,
         s->profile==1 ? XL6_VALUE_ADMIT_STRING : XL6_VALUE_ADMIT_I8,s->profile==3,
         s->profile==3 ? s->element+1000 : s->element);
 }

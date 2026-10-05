@@ -111,7 +111,7 @@ def main() -> int:
                     [nm, *(["-D"] if args.shared else []), "--defined-only", str(product if args.shared else binary)])
                 symbols = run(name + ".symbols", symbol_command)
                 names = {line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
-                assert {"xl6ArrayPrimitiveCreateV2", "xl6ValueAdmitsV1", "xl6SequenceAdmissionTakeV3"} <= names
+                assert {"xl6SequencePrimitiveCreateV1", "xl6ValueAdmitsV1", "xl6SequenceAdmissionTakeV3"} <= names
                 if not args.shared:
                     factories = {n for n in names if re.match(r"xl6(?:Nullable.*|String|Char)TypeV1$", n)}
                     expected = set()
@@ -125,8 +125,8 @@ def main() -> int:
                     elif profile == 10:
                         expected = {"xl6NullableStringTypeV1"}
                     assert factories == expected, (factories, expected)
-                    forbidden = {"xl6ArrayNominalCreateV2",
-                        "xl6ArrayReferenceCreateV2", "xl6StackCreateV1"} & names
+                    forbidden = {"xl6SequenceNominalCreateV1",
+                        "xl6SequenceReferenceCreateV1", "xl6StackCreateV1"} & names
                     if not args.projections:
                         forbidden |= {"xl6ArrayFromValueV1", "xl6ArrayToValueV1"} & names
                     assert not forbidden

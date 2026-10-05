@@ -12,7 +12,7 @@ static bool admitted(const void* opaque,const xvalue* value)
     if (!value || xrtValueType(value)==XVALUE_NULL) return data->nullable;
     return xrtValueTypeId(value)==data->identity && xrtValueIsCallable(value);
 }
-xvalue* xl6ArrayCallableCreateV1(uint64_t identity,uint64_t element,
+xvalue* xl6SequenceCallableCreateV1(unsigned int role,uint64_t identity,uint64_t element,
     uint64_t signature,bool nullable)
 {
     if (!identity || !element || !signature ||
@@ -22,5 +22,5 @@ xvalue* xl6ArrayCallableCreateV1(uint64_t identity,uint64_t element,
     XL6_ArrayAdmissionData* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(XL6_ArrayAdmissionData){.refs=1,.nullable=nullable,.identity=signature};
-    return create(identity,element,data,&policyOps);
+    return create(role,identity,element,data,&policyOps);
 }

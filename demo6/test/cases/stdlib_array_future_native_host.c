@@ -31,7 +31,7 @@ static xfuture* ready(void)
     xfuture* future=NULL; xpromise* promise=xrtPromiseCreate(&future,NULL); assert(promise && future);
     assert(xrtPromiseResolve(promise,NULL)); xrtPromiseDestroy(promise); return future;
 }
-static xvalue* create(bool nullable) { return xl6ArrayFutureCreateV1(ID(nullable),ELEM(nullable),BASE,nullable); }
+static xvalue* create(bool nullable) { return xl6SequenceFutureCreateV1(XL6_SEQUENCE_ARRAY_V1,ID(nullable),ELEM(nullable),BASE,nullable); }
 static xvalue* box(xfuture* future,uint64_t identity)
 { xvalue* value=xrtValueFuture(future); assert(value && xrtValueTypeIdBind(value,identity)); return value; }
 static void vectors(bool nullable)

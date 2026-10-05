@@ -778,20 +778,28 @@ const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi)
     }
 }
 
-static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool,
+static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
 {
-    XL6_IrArrayLayout result={0};
+    XL6_IrSequenceLayout result={0};
     const XL6_IrType* element;
     const XL6_IrType* base;
-    if (!pool || !type || depth>64 || type->collectionAbi != XL6_IR_COLLECTION_ARRAY)
+    if (!pool || !type || depth>64 || (type->collectionAbi != XL6_IR_COLLECTION_ARRAY &&
+        type->runtimeResourceAbi != XL6_IR_RUNTIME_RESOURCE_STACK))
         return result;
+    /* A nullable owner inherits resource ABI but is not a constructor domain.
+     * Only an actual closed Stack instance owns a Sequence layout recipe. */
+    if (type->collectionAbi!=XL6_IR_COLLECTION_ARRAY &&
+        (type->kind!=XL6_IR_TYPE_GENERIC_INSTANCE || type->paramCount!=1 || !type->params)) return result;
+    result.role=type->collectionAbi==XL6_IR_COLLECTION_ARRAY
+        ? XL6_IR_SEQUENCE_ROLE_ARRAY : XL6_IR_SEQUENCE_ROLE_STACK;
     /* Both untyped builtins and erased zero-parameter generic rows occur in
      * the canonical pool. Neither has an element recipe; do not recover an
      * argument from the diagnostic spelling (for example "array<var>"). */
-    if ((type->kind == XL6_IR_TYPE_BUILTIN || type->kind == XL6_IR_TYPE_GENERIC_INSTANCE) &&
+    if (result.role==XL6_IR_SEQUENCE_ROLE_ARRAY &&
+        (type->kind == XL6_IR_TYPE_BUILTIN || type->kind == XL6_IR_TYPE_GENERIC_INSTANCE) &&
         !type->paramCount && !type->returnCount) {
-        result.abi=XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE;
         return result;
     }
     if (type->kind != XL6_IR_TYPE_GENERIC_INSTANCE || type->paramCount != 1 ||
@@ -804,7 +812,7 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
     if (result.nullable) {
         if (element->paramCount != 1 || !element->params ||
             !(base=xl6IrTypeGet(pool,element->params[0])) ||
-            base->kind == XL6_IR_TYPE_NULLABLE) return (XL6_IrArrayLayout){0};
+            base->kind == XL6_IR_TYPE_NULLABLE) return (XL6_IrSequenceLayout){0};
         result.baseElementType=element->params[0];
     }
     /* Re-derive from the shape; do not trust a cached field when verifying it. */
@@ -816,28 +824,28 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
         /* Invocation storage is still a closure pointer. The Array recipe
          * deliberately selects an owned boxed callable with an explicit
          * bidirectional codec; the element's global slot ABI stays NONE. */
-        result.abi=XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1;
         result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
-        result.codecAbi=XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1;
+        result.codecAbi=XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
     } else if (base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
         base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
         base->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && base->paramCount==1 &&
         base->params && xl6IrTypeGet(pool,base->params[0]) && base->typeValueId) {
-        result.abi=XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1;
         result.slotAbi=XL6_IR_NATIVE_SLOT_FUTURE_PTR;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF;
-        result.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT;
+        result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
-        result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT;
     } else if (base->kind==XL6_IR_TYPE_NUMERIC_ENUM &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
                xl6IrIntegerAdmissionAbi(base->integerTarget)!=XL6_VALUE_ADMIT_NONE) {
         /* Recipe-local backing rule, not generic primitive Value admission.
          * The resident policy additionally requires this enum's identity. */
         result.admissionAbi=xl6IrIntegerAdmissionAbi(base->integerTarget);
-        result.abi=XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1;
     } else if (base->kind==XL6_IR_TYPE_BUILTIN &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
                (xl6IrNativeSlotAbiForType(pool,base)==XL6_IR_NATIVE_SLOT_TYPE_ID ||
@@ -845,14 +853,14 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
                  xl6IrNativeSlotAbiForType(pool,base)<=XL6_IR_NATIVE_SLOT_C_WCHAR))) {
         /* Exact resident C scalar policy selects the target native descriptor.
          * Do not reuse widened language u8's signed boxed representation. */
-        result.abi=result.nullable ? XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 : XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1;
+        result.abi=result.nullable ? XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 : XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1;
     } else if (result.admissionAbi == XL6_VALUE_ADMIT_ANY ||
                result.admissionAbi == XL6_VALUE_ADMIT_BYTES) {
         result.abi=result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
             result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
-            ? XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 : XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
+            ? XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 : XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT;
     } else if (result.admissionAbi != XL6_VALUE_ADMIT_NONE) {
-        result.abi=XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2;
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
                base->collectionAbi == XL6_IR_COLLECTION_NONE &&
@@ -861,100 +869,108 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
                 base->kind == XL6_IR_TYPE_GENERIC_INSTANCE)) {
         /* The module's closed nominal identity set is still required at the
          * operation boundary. This recipe does not invent a set from a name. */
-        result.abi=XL6_IR_ARRAY_LAYOUT_NOMINAL_V2;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2;
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
-               base->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
-        /* A child is admitted by its owned, sealed native Array domain. Its
+               (base->collectionAbi == XL6_IR_COLLECTION_ARRAY ||
+                base->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_STACK)) {
+        /* A child is admitted by its owned, sealed native Sequence domain. Its
          * constructor must itself have a complete recipe. Re-derive rather
          * than trust cached metadata; bound malformed recursive graphs. */
-        XL6_IrArrayLayout child=xl6IrArrayLayoutForTypeDepth(pool,base,depth+1);
-        result.abi=child.abi==XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1 ||
-            child.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1
-            ? XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
+        XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,base,depth+1);
+        result.abi=child.abi==XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 || child.abi==XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1
+            ? XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
+        if (result.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
+            result.childRole=child.role;
+            result.childElementType=child.elementType;
+            result.childSlotAbi=child.slotAbi;
+            result.childTransferAbi=child.transferAbi;
+        }
     } else {
-        result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
     }
-    if (result.abi == XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1) {
-        if (!result.codecAbi) result.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT;
-        result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
-            result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
-            result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
-            result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_ARRAY_DEFAULT_EMPTY_STRING :
-            result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
-            result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
-            result.abi == XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1 ||
-            result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
-            XL6_IR_ARRAY_DEFAULT_ZERO;
+    if (result.abi == XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
+        if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
+        result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
+            result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
+            result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_SEQUENCE_DEFAULT_EMPTY_BYTES :
+            result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_SEQUENCE_DEFAULT_EMPTY_STRING :
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
+            XL6_IR_SEQUENCE_DEFAULT_ZERO;
     }
     return result;
 }
 
-XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
-{ return xl6IrArrayLayoutForTypeDepth(pool,type,0); }
+XL6_IrSequenceLayout xl6IrSequenceLayoutForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{ return xl6IrSequenceLayoutForTypeDepth(pool,type,0); }
 
-int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout* left, const XL6_IrArrayLayout* right)
+int xl6IrSequenceLayoutEqual(const XL6_IrSequenceLayout* left, const XL6_IrSequenceLayout* right)
 {
-    return left && right && left->abi == right->abi &&
+    return left && right && left->abi == right->abi && left->role == right->role &&
         left->elementType == right->elementType && left->baseElementType == right->baseElementType &&
         left->slotAbi == right->slotAbi && left->codecAbi == right->codecAbi &&
         left->transferAbi == right->transferAbi &&
         left->admissionAbi == right->admissionAbi && left->nullable == right->nullable &&
-        left->defaultAbi == right->defaultAbi;
+        left->defaultAbi == right->defaultAbi && left->childRole == right->childRole &&
+        left->childElementType == right->childElementType && left->childSlotAbi == right->childSlotAbi &&
+        left->childTransferAbi == right->childTransferAbi;
 }
 
-const char* xl6IrArrayCodecAbiName(XL6_IrArrayCodecAbi abi)
+const char* xl6IrSequenceCodecAbiName(XL6_IrSequenceCodecAbi abi)
 {
     switch (abi) {
-    case XL6_IR_ARRAY_CODEC_NONE: return "none";
-    case XL6_IR_ARRAY_CODEC_DIRECT: return "direct";
-    case XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1: return "closure-value-v1";
+    case XL6_IR_SEQUENCE_CODEC_NONE: return "none";
+    case XL6_IR_SEQUENCE_CODEC_DIRECT: return "direct";
+    case XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1: return "closure-value-v1";
     default: return "invalid";
     }
 }
 
-const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi)
+const char* xl6IrSequenceDefaultAbiName(XL6_IrSequenceDefaultAbi abi)
 {
     switch (abi) {
-    case XL6_IR_ARRAY_DEFAULT_NONE: return "none";
-    case XL6_IR_ARRAY_DEFAULT_ZERO: return "zero";
-    case XL6_IR_ARRAY_DEFAULT_EMPTY_STRING: return "empty-string";
-    case XL6_IR_ARRAY_DEFAULT_ABSENT: return "absent";
-    case XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL: return "dynamic-null";
-    case XL6_IR_ARRAY_DEFAULT_FORBIDDEN: return "forbidden";
-    case XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES: return "empty-bytes";
+    case XL6_IR_SEQUENCE_DEFAULT_NONE: return "none";
+    case XL6_IR_SEQUENCE_DEFAULT_ZERO: return "zero";
+    case XL6_IR_SEQUENCE_DEFAULT_EMPTY_STRING: return "empty-string";
+    case XL6_IR_SEQUENCE_DEFAULT_ABSENT: return "absent";
+    case XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL: return "dynamic-null";
+    case XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN: return "forbidden";
+    case XL6_IR_SEQUENCE_DEFAULT_EMPTY_BYTES: return "empty-bytes";
     default: return "invalid";
     }
 }
 
-const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
+const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
 {
     switch (abi) {
-    case XL6_IR_ARRAY_LAYOUT_NONE: return "none";
-    case XL6_IR_ARRAY_LAYOUT_DYNAMIC_VALUE: return "dynamic-value";
-    case XL6_IR_ARRAY_LAYOUT_PRIMITIVE_V2: return "primitive-v2";
-    case XL6_IR_ARRAY_LAYOUT_REFERENCE_V2: return "reference-v2";
-    case XL6_IR_ARRAY_LAYOUT_NOMINAL_V2: return "nominal-v2";
-    case XL6_IR_ARRAY_LAYOUT_PENDING_SLOT: return "pending-slot";
-    case XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN: return "pending-domain";
-    case XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1: return "c-scalar-v1";
-    case XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1: return "sequence-reference-v1";
-    case XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
-    case XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
-    case XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1: return "callable-reference-v1";
-    case XL6_IR_ARRAY_LAYOUT_FUTURE_REFERENCE_V1: return "future-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_NONE: return "none";
+    case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE: return "dynamic-value";
+    case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: return "primitive-v2";
+    case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2: return "reference-v2";
+    case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2: return "nominal-v2";
+    case XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT: return "pending-slot";
+    case XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN: return "pending-domain";
+    case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: return "c-scalar-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1: return "sequence-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: return "callable-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: return "future-reference-v1";
     default: return "invalid";
     }
 }
@@ -970,7 +986,7 @@ static int xl6IrTypeFinalizeErrorResultCName(
         return 0;
     type->nativeSlotAbi = xl6IrNativeSlotAbiForType(pool,type);
     type->collectionCarrierAbi = xl6IrCollectionCarrierAbiForType(type);
-    type->arrayLayout = xl6IrArrayLayoutForType(pool,type);
+    type->sequenceLayout = xl6IrSequenceLayoutForType(pool,type);
     type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
     type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
         type->kind == XL6_IR_TYPE_NULLABLE;
@@ -1437,13 +1453,14 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
         if ( type->returnCount != 0 &&
              type->callableResultType == XL6_IR_TYPE_INVALID ) return 0;
     }
-    /* Array codecs depend on closed callable result carriers. Construction
-     * may intern an Array before these results exist; finalize its derived
+    /* Sequence codecs depend on closed callable result carriers. Construction
+     * may intern a Sequence before these results exist; finalize its derived
      * recipe only after ALL signatures/products in the graph are complete.
      * Verification still re-derives and rejects stale/mutated recipes. */
     for (i=0;i<pool->count;++i)
-        if (pool->items[i].collectionAbi==XL6_IR_COLLECTION_ARRAY)
-            pool->items[i].arrayLayout=xl6IrArrayLayoutForType(pool,&pool->items[i]);
+        if (pool->items[i].collectionAbi==XL6_IR_COLLECTION_ARRAY ||
+            pool->items[i].runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK)
+            pool->items[i].sequenceLayout=xl6IrSequenceLayoutForType(pool,&pool->items[i]);
     return 1;
 }
 
@@ -7044,6 +7061,37 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
         }
     return NULL;
 }
+
+static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
+    XL6_IrTypeId typeId, XL6_IrNominalIdentitySetId* setOut, size_t depth)
+{
+    const XL6_IrType* type = module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    const XL6_IrSequenceLayout* plan = type ? &type->sequenceLayout : NULL;
+    if (setOut) *setOut=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!plan || depth>64 || type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_STACK ||
+        plan->role!=XL6_IR_SEQUENCE_ROLE_STACK || plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
+        plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
+        plan->transferAbi!=xl6IrRuntimeResourcePayloadAbiForType(module,plan->elementType)) return 0;
+    switch (plan->abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
+    case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
+    case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
+        return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
+    case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
+        /* Source Array still has the Value-wire producer. Its native target
+         * recipe is not authority to pass that owner as a sealed Sequence. */
+        return plan->childRole==XL6_IR_SEQUENCE_ROLE_STACK &&
+            xl6IrStackConstructionContractDepth(module,plan->baseElementType,NULL,depth+1);
+    default: return 0;
+    }
+}
+
+int xl6IrStackConstructionContract(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    XL6_IrNominalIdentitySetId* setOut)
+{ return xl6IrStackConstructionContractDepth(module,typeId,setOut,0); }
 
 XL6_IrNodeId xl6IrCallParameterListGet(
     const XL6_IrModule* module, XL6_IrNodeId declaration)
@@ -18837,8 +18885,8 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
         if (type->nativeSlotAbi != xl6IrNativeSlotAbiForType(pool,type) ||
             type->collectionCarrierAbi != xl6IrCollectionCarrierAbiForType(type)) return 0;
         {
-            XL6_IrArrayLayout expected=xl6IrArrayLayoutForType(pool,type);
-            if (!xl6IrArrayLayoutEqual(&type->arrayLayout,&expected)) return 0;
+            XL6_IrSequenceLayout expected=xl6IrSequenceLayoutForType(pool,type);
+            if (!xl6IrSequenceLayoutEqual(&type->sequenceLayout,&expected)) return 0;
         }
         if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
             type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
@@ -35016,6 +35064,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
                      instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND))
                     return xl6IrDiag(diags,instructionOrigin,"XLIR element admission is attached to an unrelated instruction");
+                if (instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID &&
+                    (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+                     instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE))
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR Sequence admission set is attached to an unrelated instruction");
                 if (instruction->exitStep != 0 &&
                     (instruction->kind != XL6_IR_INSTR_CLEANUP_BEGIN ||
                      instruction->exitStep > module->exitStepCount ||
@@ -39320,6 +39372,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags, NULL,
                                 "XLIR runtime Stack operation has no exact resource and payload identity ABI");
                         if ( creates ) {
+                            XL6_IrNominalIdentitySetId admissionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+                            if (!xl6IrStackConstructionContract(module,stackTypeId,&admissionSet) ||
+                                instruction->sequenceAdmissionIdentitySet!=admissionSet)
+                                return xl6IrDiag(diags,NULL,
+                                    "XLIR Stack construction has no exact resident Sequence admission contract");
                             if ( instruction->result ==
                                      XL6_IR_VALUE_INVALID ||
                                  instruction->operandCount != 0 ||
@@ -44634,13 +44691,13 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         xl6OutputPrintf(out, "] error-result=%s release-effect=%d carrier=%s\n", type->errorResultCName,
             (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
             xl6IrCollectionCarrierAbiName(type->collectionCarrierAbi));
-        if (type->arrayLayout.abi != XL6_IR_ARRAY_LAYOUT_NONE)
-            xl6OutputPrintf(out, "    array-layout=%s element=t%u base=t%u slot=%s codec=%s transfer=%u admission=%u nullable=%d default=%s\n",
-                xl6IrArrayLayoutAbiName(type->arrayLayout.abi), type->arrayLayout.elementType,
-                type->arrayLayout.baseElementType, xl6IrNativeSlotAbiName(type->arrayLayout.slotAbi),
-                xl6IrArrayCodecAbiName(type->arrayLayout.codecAbi),
-                (unsigned int)type->arrayLayout.transferAbi, (unsigned int)type->arrayLayout.admissionAbi,
-                (int)type->arrayLayout.nullable, xl6IrArrayDefaultAbiName(type->arrayLayout.defaultAbi));
+        if (type->sequenceLayout.abi != XL6_IR_SEQUENCE_LAYOUT_NONE)
+            xl6OutputPrintf(out, "    sequence-layout=%s role=%u element=t%u base=t%u slot=%s codec=%s transfer=%u admission=%u nullable=%d default=%s\n",
+                xl6IrSequenceLayoutAbiName(type->sequenceLayout.abi), (unsigned int)type->sequenceLayout.role, type->sequenceLayout.elementType,
+                type->sequenceLayout.baseElementType, xl6IrNativeSlotAbiName(type->sequenceLayout.slotAbi),
+                xl6IrSequenceCodecAbiName(type->sequenceLayout.codecAbi),
+                (unsigned int)type->sequenceLayout.transferAbi, (unsigned int)type->sequenceLayout.admissionAbi,
+                (int)type->sequenceLayout.nullable, xl6IrSequenceDefaultAbiName(type->sequenceLayout.defaultAbi));
     }
     for ( i = 0; i < module->unionLayoutCount; ++i ) {
         const XL6_IrUnionLayout* layout = &module->unionLayouts[i];
@@ -45686,6 +45743,9 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                         xl6OutputPrintf(out," element-admission=%d/set%u/%d",
                             (int)instruction->collectionAdmissionAbi,(unsigned int)instruction->collectionAdmissionIdentitySet,
                             (int)instruction->collectionAdmissionNullable);
+                    if (instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID)
+                        xl6OutputPrintf(out," sequence-admission=set%u",
+                            (unsigned int)instruction->sequenceAdmissionIdentitySet);
                     if ( instruction->contextualIntegerConversionSource !=
                              XL6_IR_NODE_INVALID )
                         xl6OutputPrintf(out,
@@ -45904,19 +45964,22 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             xl6OutputPrintf(out, "%u", (unsigned int)type->params[item]);
         }
         xl6OutputPrintf(out,"],\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
-            "\"arrayLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"elementType\":%u,\"baseElementType\":%u,"
+            "\"sequenceLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"role\":%u,\"elementType\":%u,\"baseElementType\":%u,"
             "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"codecAbi\":%u,\"codecAbiName\":\"%s\","
             "\"transferAbi\":%u,\"admissionAbi\":%u,\"nullable\":%s,"
-            "\"defaultAbi\":%u,\"defaultAbiName\":\"%s\"},"
+            "\"defaultAbi\":%u,\"defaultAbiName\":\"%s\",\"childRole\":%u,\"childElementType\":%u,\"childSlotAbi\":%u,\"childTransferAbi\":%u},"
             "\"xvalueAdmissionTypeValueId\":\"0x%016llX\",\"parameterModes\":[",
             (unsigned int)type->collectionCarrierAbi, xl6IrCollectionCarrierAbiName(type->collectionCarrierAbi),
-            (unsigned int)type->arrayLayout.abi, xl6IrArrayLayoutAbiName(type->arrayLayout.abi),
-            type->arrayLayout.elementType, type->arrayLayout.baseElementType,
-            (unsigned int)type->arrayLayout.slotAbi, xl6IrNativeSlotAbiName(type->arrayLayout.slotAbi),
-            (unsigned int)type->arrayLayout.codecAbi, xl6IrArrayCodecAbiName(type->arrayLayout.codecAbi),
-            (unsigned int)type->arrayLayout.transferAbi, (unsigned int)type->arrayLayout.admissionAbi,
-            type->arrayLayout.nullable ? "true" : "false",
-            (unsigned int)type->arrayLayout.defaultAbi, xl6IrArrayDefaultAbiName(type->arrayLayout.defaultAbi),
+            (unsigned int)type->sequenceLayout.abi, xl6IrSequenceLayoutAbiName(type->sequenceLayout.abi),
+            (unsigned int)type->sequenceLayout.role,
+            type->sequenceLayout.elementType, type->sequenceLayout.baseElementType,
+            (unsigned int)type->sequenceLayout.slotAbi, xl6IrNativeSlotAbiName(type->sequenceLayout.slotAbi),
+            (unsigned int)type->sequenceLayout.codecAbi, xl6IrSequenceCodecAbiName(type->sequenceLayout.codecAbi),
+            (unsigned int)type->sequenceLayout.transferAbi, (unsigned int)type->sequenceLayout.admissionAbi,
+            type->sequenceLayout.nullable ? "true" : "false",
+            (unsigned int)type->sequenceLayout.defaultAbi, xl6IrSequenceDefaultAbiName(type->sequenceLayout.defaultAbi),
+            (unsigned int)type->sequenceLayout.childRole,type->sequenceLayout.childElementType,
+            (unsigned int)type->sequenceLayout.childSlotAbi,(unsigned int)type->sequenceLayout.childTransferAbi,
             (unsigned long long)type->xvalueAdmissionTypeValueId);
         if ( type->kind == XL6_IR_TYPE_FUNCTION ) for ( item = 0; item < type->paramCount; ++item ) {
             if ( item != 0 ) xl6OutputPuts(",", out);
@@ -47174,7 +47237,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( operandIndex > 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)module->operands[instruction->firstOperand + operandIndex]);
         }
-        xl6OutputPrintf(out,"],\"collectionDefaultAbi\":%d,\"collectionAdmissionAbi\":%d,\"collectionAdmissionIdentitySet\":%u,\"collectionAdmissionNullable\":%s,",
+        xl6OutputPrintf(out,"],\"sequenceAdmissionIdentitySet\":%u,\"collectionDefaultAbi\":%d,\"collectionAdmissionAbi\":%d,\"collectionAdmissionIdentitySet\":%u,\"collectionAdmissionNullable\":%s,",
+            (unsigned int)instruction->sequenceAdmissionIdentitySet,
             (int)instruction->collectionDefaultAbi,
             (int)instruction->collectionAdmissionAbi,(unsigned int)instruction->collectionAdmissionIdentitySet,
             instruction->collectionAdmissionNullable ? "true" : "false");

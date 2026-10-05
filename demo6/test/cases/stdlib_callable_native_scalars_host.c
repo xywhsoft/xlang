@@ -78,7 +78,7 @@ static void codec(const void* slot,size_t size,unsigned profile,uint64_t id,xval
     xrtCallResultUnit(&prepared); xrtValueRelease(raw); \
 } while(0)
 #define ARRAY(N,T,I) do { \
-    xvalue* array=xl6ArrayCallableCreateV1(SCALAR_##N##_ARRAY,SCALAR_##N##_SIGNATURE,SCALAR_##N##_SIGNATURE,false); assert(array); \
+    xvalue* array=xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,SCALAR_##N##_ARRAY,SCALAR_##N##_SIGNATURE,SCALAR_##N##_SIGNATURE,false); assert(array); \
     xvalue* boxed=xlir_closure_to_xvalue_scalar(SCALAR_##N##_NATIVE,SCALAR_##N##_FORWARD,SCALAR_##N##_SIGNATURE); assert(boxed); \
     assert(!xl6ArrayErasedPushV1(array,boxed) && xrtErrorKind(xrtGetError())==XERR_STATE); xrtClearError(); \
     xvalue* erased=xl6ArrayEraseV1(array,SCALAR_##N##_ARRAY,SCALAR_##N##_SIGNATURE,3,sizeof(xvalue*),xrtTypeValue(),NULL); assert(erased==array); xrtValueRelease(erased); \

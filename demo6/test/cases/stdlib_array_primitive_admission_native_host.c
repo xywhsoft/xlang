@@ -109,7 +109,7 @@ static void balanced(const xmemdebugsnapshot* before)
         before->UseAfterFreeCount==after.UseAfterFreeCount && !xrtGetError());
 }
 static xvalue* create(const Spec* s)
-{ return xl6ArrayPrimitiveCreateV2(LAYOUT(s),s->rule,s->nullable,s->identity); }
+{ return xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,LAYOUT(s),s->rule,s->nullable,s->identity); }
 static xvalue* element(const Spec* s)
 {
     if (s->rule>=XL6_VALUE_ADMIT_I8 && s->rule<=XL6_VALUE_ADMIT_U32) return xrtValueInt(65);
@@ -310,27 +310,27 @@ static void policyVectors(const Spec* s)
 static void malformed(const Spec* s)
 {
     assert(xrtMemDebugFailAfter(0));
-    assert(!xl6ArrayPrimitiveCreateV2(0,s->element,s->transfer,s->type->Size,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(s->owner,0,s->transfer,s->type->Size,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(LAYOUT(s),s->rule,s->nullable,0)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(LAYOUT(s),XL6_VALUE_ADMIT_NONE,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(LAYOUT(s),XL6_VALUE_ADMIT_ANY,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(LAYOUT(s),XL6_VALUE_ADMIT_BYTES,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(LAYOUT(s),s->rule,!s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(s->owner,s->element,3,s->type->Size,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayPrimitiveCreateV2(s->owner,s->element,s->transfer,s->type->Size+1,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,0,s->element,s->transfer,s->type->Size,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,0,s->transfer,s->type->Size,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,LAYOUT(s),s->rule,s->nullable,0)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,LAYOUT(s),XL6_VALUE_ADMIT_NONE,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,LAYOUT(s),XL6_VALUE_ADMIT_ANY,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,LAYOUT(s),XL6_VALUE_ADMIT_BYTES,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,LAYOUT(s),s->rule,!s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,3,s->type->Size,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->transfer,s->type->Size+1,s->type,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
     /* Type names/Ids alone are not permission to dispatch slot predicates on
      * an incompatible descriptor. Test size/alignment/ops/flags/ABI changes. */
     xrttype fake=*s->type;
     if (s->nullable || s->rule==XL6_VALUE_ADMIT_CHAR || s->rule==XL6_VALUE_ADMIT_STRING) {
         fake.Align++;
-        assert(!xl6ArrayPrimitiveCreateV2(s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+        assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
         fake=*s->type; fake.AbiName=(xstrview){"wrong",5};
-        assert(!xl6ArrayPrimitiveCreateV2(s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+        assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
         fake=*s->type; fake.Ops=NULL;
-        assert(!xl6ArrayPrimitiveCreateV2(s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+        assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
     } else {
-        assert(!xl6ArrayPrimitiveCreateV2(s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
+        assert(!xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->transfer,fake.Size,&fake,s->rule,s->nullable,s->identity)); error(XERR_ARGUMENT);
     }
     assert(!xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
 }

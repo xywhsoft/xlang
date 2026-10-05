@@ -10,13 +10,17 @@
 #include <string.h>
 
 #define REF(id,element) id,element,3,sizeof(xvalue*),xrtTypeValue()
-typedef struct Spec { unsigned kind; bool nullable; uint64_t owner,element,child; } Spec;
+typedef struct Spec { unsigned kind; bool nullable; uint64_t owner,element,child; unsigned role; } Spec;
 static Spec spec(unsigned profile)
 {
-    assert(profile<8); uint64_t child=1001+profile/2;
-    return (Spec){profile/2,!!(profile%2),2001+profile,profile%2 ? 3001+profile : child,child};
+    assert(profile<16); uint64_t child=1001+(profile%8)/2;
+    return (Spec){(profile%8)/2,!!(profile%2),2001+profile,profile%2 ? 3001+profile : child,child,1+profile/8};
 }
 #define LAYOUT(s) REF((s)->owner,(s)->element)
+#define CHILD(s) (s)->role,(s)->child,(s)->kind==3 ? 6001 : 5001+(s)->kind, \
+    (s)->kind==0 ? 1u : (s)->kind==1 ? 2u : 3u, \
+    (s)->kind==0 ? sizeof(int64_t) : (s)->kind==1 ? sizeof(xstrview) : sizeof(xvalue*), \
+    (s)->kind==0 ? xrtTypeInt64() : (s)->kind==1 ? xl6StringTypeV1() : xrtTypeValue()
 static void error(xerrkind kind)
 { assert(xrtGetError() && xrtErrorKind(xrtGetError())==kind); xrtClearError(); }
 static void balanced(const xmemdebugsnapshot* before)
@@ -28,26 +32,31 @@ static void balanced(const xmemdebugsnapshot* before)
         after.UseAfterFreeCount==before->UseAfterFreeCount && !xrtGetError());
 }
 static xvalue* create(const Spec* s)
-{ return xl6ArraySequenceCreateV1(s->owner,s->element,s->child,s->nullable); }
+{ return xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,CHILD(s),s->nullable); }
+static bool push(const Spec* s,xvalue* value,uint64_t identity,uint64_t element,
+    unsigned int transfer,size_t size,const xrttype* type,const void* item)
+{ return s->role==XL6_SEQUENCE_ARRAY_V1 ? xl6ArrayPushV1(value,identity,element,transfer,size,type,item)
+    : xl6StackPushV1(value,identity,element,transfer,size,type,item); }
 static xvalue* child(const Spec* s,uint64_t identity)
 {
     xvalue* result;
     if (s->kind==0) {
-        result=xl6ArrayPrimitiveCreateV2(identity,5001,1,sizeof(int64_t),xrtTypeInt64(),XL6_VALUE_ADMIT_I8,false,5001);
-        int64_t number=7; assert(result && xl6ArrayPushV1(result,identity,5001,1,sizeof(number),xrtTypeInt64(),&number));
+        result=xl6SequencePrimitiveCreateV1(s->role,identity,5001,1,sizeof(int64_t),xrtTypeInt64(),XL6_VALUE_ADMIT_I8,false,5001);
+        int64_t number=7; assert(result && push(s,result,identity,5001,1,sizeof(number),xrtTypeInt64(),&number));
     } else if (s->kind==1) {
-        result=xl6ArrayPrimitiveCreateV2(identity,5002,2,sizeof(xstrview),xl6StringTypeV1(),XL6_VALUE_ADMIT_STRING,false,5002);
-        xstrview text={"a\0你",5}; assert(result && xl6ArrayPushV1(result,identity,5002,2,sizeof(text),xl6StringTypeV1(),&text));
+        result=xl6SequencePrimitiveCreateV1(s->role,identity,5002,2,sizeof(xstrview),xl6StringTypeV1(),XL6_VALUE_ADMIT_STRING,false,5002);
+        xstrview text={"a\0你",5}; assert(result && push(s,result,identity,5002,2,sizeof(text),xl6StringTypeV1(),&text));
     } else {
         xvalue* item;
         if (s->kind==2) {
-            result=xl6ArrayReferenceCreateV2(identity,5003,XL6_VALUE_ADMIT_ANY,false,0);
+            result=xl6SequenceReferenceCreateV1(s->role,identity,5003,XL6_VALUE_ADMIT_ANY,false,0);
             item=xrtValueInt(7);
-            assert(result && item && xl6ArrayPushV1(result,REF(identity,5003),&item));
+            assert(result && item && push(s,result,REF(identity,5003),&item));
         } else {
-            result=xl6ArraySequenceCreateV1(identity,6001,6001,false);
-            item=xl6ArrayReferenceCreateV2(6001,6002,XL6_VALUE_ADMIT_ANY,false,0);
-            assert(result && item && xl6ArrayPushV1(result,REF(identity,6001),&item));
+            result=xl6SequenceNestedCreateV1(s->role,identity,6001,
+                s->role,6001,6002,3,sizeof(xvalue*),xrtTypeValue(),false);
+            item=xl6SequenceReferenceCreateV1(s->role,6001,6002,XL6_VALUE_ADMIT_ANY,false,0);
+            assert(result && item && push(s,result,REF(identity,6001),&item));
         }
         xrtValueRelease(item);
     }
@@ -71,15 +80,22 @@ static void refused(const Spec* s,xvalue* owner,xvalue* wrong)
 static void foreignDrop(void* data,void* user) { (void)data; (void)user; }
 static void vectors(const Spec* s)
 {
-    assert(!xl6ArraySequenceCreateV1(0,s->element,s->child,s->nullable)); error(XERR_ARGUMENT);
-    assert(!xl6ArraySequenceCreateV1(s->owner,0,s->child,s->nullable)); error(XERR_ARGUMENT);
-    assert(!xl6ArraySequenceCreateV1(s->owner,s->element,0,s->nullable)); error(XERR_ARGUMENT);
-    assert(!xl6ArraySequenceCreateV1(s->owner,s->child,s->child,true)); error(XERR_ARGUMENT);
-    assert(!xl6ArraySequenceCreateV1(s->owner,s->child+1,s->child,false)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,0,s->element,CHILD(s),s->nullable)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,0,CHILD(s),s->nullable)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,XL6_SEQUENCE_ARRAY_V1,
+        0,7001,1,sizeof(int64_t),xrtTypeInt64(),s->nullable)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->child,CHILD(s),true)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->child+1,CHILD(s),false)); error(XERR_ARGUMENT);
     xvalue* owner=create(s),*good=child(s,s->child); assert(owner && good);
     assert(xl6ArrayPushV1(owner,LAYOUT(s),&good));
     xvalue* alias=xl6ArrayEraseV1(owner,LAYOUT(s),NULL); assert(alias==owner);
     xvalue* wrong=child(s,s->child+10); refused(s,alias,wrong); xrtValueRelease(wrong);
+    /* Same logical owner identity AND published admission are insufficient:
+     * the immutable element/transfer/descriptor tuple must also agree. */
+    wrong=xl6SequenceReferenceCreateV1(s->role,s->child,9001,XL6_VALUE_ADMIT_ANY,false,0);
+    assert(wrong); refused(s,alias,wrong); xrtValueRelease(wrong);
+    wrong=xl6SequencePrimitiveCreateV1(s->role==1 ? 2 : 1,s->child,5001,1,sizeof(int64_t),xrtTypeInt64(),XL6_VALUE_ADMIT_I8,false,5001);
+    assert(wrong); refused(s,alias,wrong); xrtValueRelease(wrong);
     wrong=xrtValueArray(); assert(wrong && xrtValueTypeIdBind(wrong,s->child));
     refused(s,alias,wrong); xrtValueRelease(wrong);
     wrong=xl6ArrayCreateV1(s->child,7001,1,sizeof(int64_t),xrtTypeInt64()); assert(wrong);
@@ -103,7 +119,7 @@ static void vectors(const Spec* s)
     XL6_Sequence* pin=xl6SequenceBeginRoleV1(owner,XL6_SEQUENCE_ARRAY_V1,LAYOUT(s)); assert(pin);
     xrtSetErrorKind(XERR_TIMEOUT); const xerror* pending=xrtGetError(); assert(pending);
     assert(xrtMemDebugFailAfter(0));
-    assert(xl6SequenceAdmitsArrayV1(owner,s->owner) && xl6SequenceAdmitsArrayV1(good,s->child) &&
+    assert(xl6SequenceAdmitsArrayV1(owner,s->owner) && xl6SequenceAdmitsRoleV1(good,CHILD(s)) &&
         !xl6SequenceAdmitsArrayV1(owner,s->child) && !xl6SequenceAdmitsArrayV1(NULL,s->child));
     assert(xrtGetError()==pending && !xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
     xl6SequenceEndV1(pin); assert(xrtGetError()==pending); xrtClearError();
@@ -111,10 +127,12 @@ static void vectors(const Spec* s)
     xvalue* cursor=xl6ArrayIteratorCreateV1(owner,LAYOUT(s),999); assert(clone && snapshot && cursor);
     assert(xrtValueArrayAt(snapshot,0)==good);
     xrtValueRelease(alias); xrtValueRelease(owner); xrtValueRelease(good);
-    xvalue* observed=xl6ArrayErasedReadV1(clone,0); assert(observed==good && xl6SequenceAdmitsArrayV1(observed,s->child));
+    xvalue* observed=xl6ArrayErasedReadV1(clone,0); assert(observed==good && xl6SequenceAdmitsRoleV1(observed,CHILD(s)));
     if (s->kind==1) {
         xstrview text={0};
-        xl6ArrayReadV1(observed,s->child,5002,2,sizeof(text),xl6StringTypeV1(),0,&text);
+        if (s->role==XL6_SEQUENCE_ARRAY_V1)
+            xl6ArrayReadV1(observed,s->child,5002,2,sizeof(text),xl6StringTypeV1(),0,&text);
+        else assert(xl6StackTakeV1(observed,s->child,5002,2,sizeof(text),xl6StringTypeV1(),0,&text,false));
         assert(!xrtGetError() && text.Data && text.Size==5 && !memcmp(text.Data,"a\0你",5));
         xrtTypeDropValue(xl6StringTypeV1(),&text);
     }
@@ -130,8 +148,9 @@ static const xrtownershipadapterv1* resolve(xrtownershipref ref,void* context)
 { (void)context; const xrtownershipadapterv1* a=xl6SequenceOwnershipAdapterV1(ref); return a ? a : xrtValueOwnershipAdapterV1(ref); }
 static void graph(void)
 {
-    xvalue* inner=xl6ArrayReferenceCreateV2(11,33,XL6_VALUE_ADMIT_ANY,false,0);
-    xvalue* outer=xl6ArraySequenceCreateV1(22,11,11,false); assert(inner && outer);
+    xvalue* inner=xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,11,33,XL6_VALUE_ADMIT_ANY,false,0);
+    xvalue* outer=xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,22,11,
+        XL6_SEQUENCE_ARRAY_V1,11,33,3,sizeof(xvalue*),xrtTypeValue(),false); assert(inner && outer);
     assert(xl6ArrayPushV1(outer,REF(22,11),&inner) && xl6ArrayPushV1(inner,REF(11,33),&outer));
     xvalue* cursor=xl6ArrayIteratorCreateV1(outer,REF(22,11),44); assert(cursor);
     assert(xl6ArrayPushV1(inner,REF(11,33),&cursor));
@@ -181,7 +200,7 @@ int main(int argc,char** argv)
     assert(xrtMemDebugEnable(true));
     if (argc==4) { Spec s=spec((unsigned)strtoul(argv[1],NULL,10)); fault(&s,argv[2],(size_t)strtoull(argv[3],NULL,10)); return 0; }
     assert(argc==1);
-    for (unsigned i=0;i<8;++i) { Spec s=spec(i); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before); vectors(&s); balanced(&before); }
+    for (unsigned i=0;i<16;++i) { Spec s=spec(i); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before); vectors(&s); balanced(&before); }
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before); graph(); balanced(&before);
-    puts("8 nested Array domains, precise NUL text, nullable defaults, identity/role/publication and cyclic owners balanced"); return 0;
+    puts("16 nested Sequence domains, precise NUL text, nullable defaults, identity/role/publication and cyclic owners balanced"); return 0;
 }

@@ -72,7 +72,7 @@ def main() -> int:
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
             assert {'xl6SequenceCreateAdmittedV1','xl6SequenceCloneRoleV1','xl6StackPushBatchV1'}<=names
             if not args.shared:
-                assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6ArrayErasedReadV1','xl6ArrayNominalCreateV2'}&names
+                assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6ArrayErasedReadV1','xl6SequenceNominalCreateV1'}&names
             text=run(lane+'.vectors',[str(binary)])
             assert '5 profiles, 100 cycles' in text and 'owned policies/clone/write/batch/graph balanced' in text
             for profile in range(5):

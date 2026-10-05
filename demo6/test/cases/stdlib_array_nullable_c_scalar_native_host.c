@@ -42,7 +42,7 @@ static void balanced(const xmemdebugsnapshot* before)
         after.UseAfterFreeCount==before->UseAfterFreeCount && !xrtGetError());
 }
 static xvalue* create(const Spec* s)
-{ return xl6ArrayNullableCScalarCreateV1(s->owner,s->element,s->type,s->base,s->identity); }
+{ return xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->base,s->identity); }
 static xvalue* encoded(const Spec* s,uint64_t identity)
 {
     xvalue* value=NULL;
@@ -75,18 +75,18 @@ static void refused(const Spec* s,xvalue* owner,const xvalue* wrong)
 }
 static void vectors(const Spec* s)
 {
-    assert(!xl6ArrayNullableCScalarCreateV1(0,s->element,s->type,s->base,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,0,s->type,s->base,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->identity,s->type,s->base,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->element,s->type,s->base,0)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->element,s->type,NULL,s->identity)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->element,NULL,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,0,s->element,s->type,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,0,s->type,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->identity,s->type,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->base,0)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,NULL,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,NULL,s->base,s->identity)); error(XERR_ARGUMENT);
     xrttype broken=*s->type; broken.Id^=1;
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->element,&broken,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,&broken,s->base,s->identity)); error(XERR_ARGUMENT);
     broken=*s->type; broken.Align+=1;
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->element,&broken,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,&broken,s->base,s->identity)); error(XERR_ARGUMENT);
     broken=*s->type; broken.Size+=1;
-    assert(!xl6ArrayNullableCScalarCreateV1(s->owner,s->element,&broken,s->base,s->identity)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,&broken,s->base,s->identity)); error(XERR_ARGUMENT);
     xvalue* owner=create(s),*good=encoded(s,s->identity); assert(owner);
     Slot present={0}; assert(xrtValueToTyped(good,s->type,&present,s->converter));
     assert(xl6ArrayPushV1(owner,LAYOUT(s),&present));

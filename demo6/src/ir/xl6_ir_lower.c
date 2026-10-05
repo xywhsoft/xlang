@@ -2019,6 +2019,11 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     instruction->runtimeOp = runtimeOp;
     instruction->payloadType = payloadType;
     instruction->runtimeIdentityType = identityType;
+    if (runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
+        !xl6IrStackConstructionContract(ctx->module,type,&instruction->sequenceAdmissionIdentitySet)) {
+        xl6IrLowerDiag(ctx,origin,"Stack construction requires a closed resident Sequence recipe; wire Array and unsupported element domains are not native slots");
+        return XL6_IR_VALUE_INVALID;
+    }
     if (immediate != NULL) {
         instruction->immediateText = xrtStrDupN(immediate, strlen(immediate));
         if (instruction->immediateText == NULL) {

@@ -69,9 +69,9 @@ def main() -> int:
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else
                 [nm,*(['-D'] if args.shared else []),'--defined-only',str(product if args.shared else binary)]))
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert 'xl6ArrayCScalarCreateV1' in names
+            assert 'xl6SequenceCScalarCreateV1' in names
             if not args.shared:
-                assert 'xl6ArrayPrimitiveCreateV2' not in names
+                assert 'xl6SequencePrimitiveCreateV1' not in names
                 assert not any(re.match(r'xl6(?:Nullable.*|String|Char)(?:Type|Converter)V1$',name) for name in names)
             vectors=run(lane+'.vectors',[str(binary)])
             assert '21 native C ABI/type-id mappings' in vectors and '12 exact native C scalar/type-id policies and identities balanced' in vectors

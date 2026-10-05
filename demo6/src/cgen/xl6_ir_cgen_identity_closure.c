@@ -54,6 +54,8 @@ static int xl6IrCgenNominalIdentitySetUsed(
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
             instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL &&
             instruction->collectionAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
+            instruction->sequenceAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
         if (instruction->payloadType != set->targetType) continue;
         if ( instruction->runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||

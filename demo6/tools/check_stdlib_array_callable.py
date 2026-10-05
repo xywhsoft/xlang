@@ -74,9 +74,9 @@ def main() -> int:
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else
                 [nm,*(['-D'] if args.shared else []),'--defined-only',str(product if args.shared else binary)]))
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert {'xl6ArrayCallableCreateV1','xl6ClosureRuntimeV1Get','xl6ClosureRuntimeV2Get'}<=names
+            assert {'xl6SequenceCallableCreateV1','xl6ClosureRuntimeV1Get','xl6ClosureRuntimeV2Get'}<=names
             if not args.shared:
-                assert not {'xl6ArrayNominalCreateV2','xl6ArrayCScalarCreateV1','xl6ArrayDefaultCreateV1'} & names
+                assert not {'xl6SequenceNominalCreateV1','xl6SequenceCScalarCreateV1','xl6ArrayDefaultCreateV1'} & names
             vectors=run(lane+'.vectors',[str(binary)])
             assert '4 callable Array domains' in vectors and 'code leases and cyclic captures balanced' in vectors
             for profile in range(4):
@@ -98,9 +98,9 @@ def main() -> int:
                 run(lane+'.storage.build',[cc,*flags,f'-O{level}',*selected,*links,'-o',str(storage)],timeout=180)
                 symbols=run(lane+'.storage.symbols',[nm,'--defined-only',str(storage)])
                 names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-                assert 'xl6ArrayCallableCreateV1' in names
+                assert 'xl6SequenceCallableCreateV1' in names
                 assert not {'xl6ClosureRuntimeV1Get','xl6ClosureRuntimeV2Get','xl6CodeLeaseAcquire',
-                    'xl6CellRuntimeV1Get','xl6ArrayNominalCreateV2','xl6ArrayToValueV1'} & names
+                    'xl6CellRuntimeV1Get','xl6SequenceNominalCreateV1','xl6ArrayToValueV1'} & names
                 run(lane+'.storage.run',[str(storage)])
         assert len(sweeps)==108
         report['InputsUnchanged']=all(digest(Path(row['Path']))==row['Sha256'] for row in inputs)

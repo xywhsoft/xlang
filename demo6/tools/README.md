@@ -562,3 +562,23 @@ other factories and `xrtTypedStack` algorithms. Linux `--sanitize` instruments
 the entire selected closure. Array/Stack parents freeze and invoke both gates.
 These are native construction/domain contracts, not the full source Array
 carrier switch, source Stack closed-recipe publication or 53-module acceptance.
+
+`check_stdlib_collection_admission.py --stacks` checks seven source fixtures:
+the seven direct Stack recipe families, nested Stack owners, default class
+fields, nullable C widths and construction-only owners. IR dumps must match
+the exact factory call and nominal set in deterministic C; mutated recipe,
+schema, payload, transfer and unrelated metadata fail before C/header output.
+The rich fixture closes every O0/O2 language allocation prefix. Strict C,
+JIT and AOT execute the real runtime. Linux `--sanitize` instruments generated
+C and host code, not shared libraries. Wire Array children fail before C output.
+The artifact-runtime gate independently checks both construction-only native
+plans: no Stack/Array facade or TypedStack algorithms, exact child descriptor.
+
+The nine construction-only native factories now take an explicit ARRAY/STACK
+role. Their gate exercises 100 direct publication/clone cycles per role,
+owned-policy retirement, BUSY/error-transparent exact-tuple probes and invalid
+roles; Linux standalone instruments the entire selected closure. The nested
+Sequence gate covers 16 nullable/required child domains across both roles,
+including same-ID published wrong tuples and complete allocation prefixes.
+These do not complete source Array migration, pending element domains,
+nullable generic-resource member/unwrap semantics or the 53-module goal.

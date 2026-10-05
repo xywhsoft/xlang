@@ -99,14 +99,14 @@ def main() -> int:
                 [nm, *(['-D'] if args.shared and os.name != 'nt' else []),
                 '--defined-only', str(product if args.shared else binary)])
             names = {line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert {'xl6ArrayFutureCreateV1', 'xl6ArrayFutureAdmissionOpsV2Get', 'xl6SequenceOwnershipAdapterV2',
+            assert {'xl6SequenceFutureCreateV1', 'xl6ArrayFutureAdmissionOpsV2Get', 'xl6SequenceOwnershipAdapterV2',
                 'xl6SequenceAdmissionTakeV3', 'xrtTypeFuture', 'xrtTypedArrayCreate'} <= names
             assert not {'xl6SequenceAdmissionCopyV1', 'xl6SequenceAdmissionTakeV1', 'xl6SequenceAdmissionDropV1',
                 'xl6SequenceAdmissionCopyV2', 'xl6SequenceAdmissionTakeV2', 'xl6SequenceAdmissionDropV2'} & names
             if not args.shared:
                 assert not any(re.match(r'(?:xl6(?:Regex|Log|Process|Stack)|xrt(?:Regex|Logger|Process|TypedStack))[A-Z]', n) for n in names)
-                assert not {'xl6FutureRef', 'xl6FutureAggregatePolicyV1Get', 'xl6ArrayCallableCreateV1',
-                    'xl6ArrayNominalCreateV2', 'xl6ClosureRuntimeV1Get', 'xl6CodeLeaseAcquire'} & names
+                assert not {'xl6FutureRef', 'xl6FutureAggregatePolicyV1Get', 'xl6SequenceCallableCreateV1',
+                    'xl6SequenceNominalCreateV1', 'xl6ClosureRuntimeV1Get', 'xl6CodeLeaseAcquire'} & names
             vectors = run(lane + '.vectors', [str(binary)])
             assert '200 physical cycles balanced' in vectors
             for version in (1, 2):

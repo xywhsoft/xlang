@@ -11,6 +11,8 @@ typedef struct XL6_ArrayAdmissionData {
     bool nullable;
     unsigned int rule;
     uint64_t identity;
+    XL6_SequenceRoleV1 childRole;
+    XL6_SequenceLayoutV1 childLayout;
     XL6_NominalAdmissionV1 nominal;
     uint64_t identities[];
 } XL6_ArrayAdmissionData;
@@ -37,6 +39,10 @@ static bool equivalent(const void* a,const void* b)
 {
     const XL6_ArrayAdmissionData* left=a; const XL6_ArrayAdmissionData* right=b;
     return left->nullable==right->nullable && left->rule==right->rule && left->identity==right->identity &&
+        left->childRole==right->childRole && left->childLayout.identity==right->childLayout.identity &&
+        left->childLayout.elementIdentity==right->childLayout.elementIdentity &&
+        left->childLayout.transfer==right->childLayout.transfer && left->childLayout.size==right->childLayout.size &&
+        left->childLayout.type==right->childLayout.type &&
         left->nominal.kind==right->nominal.kind && left->nominal.nonObjectIdentity==right->nominal.nonObjectIdentity &&
         left->nominal.count==right->nominal.count && (!left->nominal.count ||
         !memcmp(left->nominal.identities,right->nominal.identities,left->nominal.count*sizeof(uint64_t)));
@@ -47,9 +53,9 @@ static bool defaultable(const void* opaque)
     return data->nullable || data->rule==XL6_VALUE_ADMIT_ANY || data->rule==XL6_VALUE_ADMIT_BYTES;
 }
 static const XL6_SequenceAdmissionOpsV2 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable,NULL,NULL};
-static xvalue* create(uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV2* ops)
+static xvalue* create(unsigned int role,uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV2* ops)
 {
     XL6_SequenceAdmissionV3 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
-    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
+    return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }
 #endif

@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 
 
 def digest(path: Path) -> str:
@@ -30,6 +31,7 @@ def main() -> int:
     parser.add_argument("--nominal", action="store_true", help="Select class/protocol and nullable nominal imports")
     parser.add_argument("--defaults", action="store_true", help="Select boxed Array logical defaults and checked resize effects")
     parser.add_argument("--layouts", action="store_true", help="Select Array carrier/layout facts and actual resident recipe oracle")
+    parser.add_argument("--stacks", action="store_true", help="Source Stack direct factories, exact recipes and nested Stack owners")
     parser.add_argument("--numeric-enums", action="store_true", help="Select exact nullable numeric-enum Value boundaries, negative constants and closed language OOM sweeps")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
@@ -37,10 +39,11 @@ def main() -> int:
     cc = shutil.which("gcc")
     if not cc or out.exists() or (os.name == "nt" and not args.public_directory) or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
-    if sum((args.defaults, args.nominal, args.layouts, args.numeric_enums)) > 1:
+    if sum((args.defaults, args.nominal, args.layouts, args.numeric_enums, args.stacks)) > 1:
         parser.error("Select one fixture family")
-    fixtures = ["stdlib_nullable_numeric_enum", "stdlib_nullable_numeric_enum_absent", "enum_numeric_runtime", "enum_match_matrix"] if args.numeric_enums else ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8", "stdlib_array_future_reference"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+    fixtures = ["stdlib_stack_admitted_construction", "stdlib_stack_factory_only", "xlir_stack_resource_abi", "xlir_stack_class_default_abi", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8"] if args.stacks else ["stdlib_nullable_numeric_enum", "stdlib_nullable_numeric_enum_absent", "enum_numeric_runtime", "enum_match_matrix"] if args.numeric_enums else ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8", "stdlib_array_future_reference"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
+    if args.stacks: fixtures.insert(2,"stdlib_stack_nested_factory_only")
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
         parser.error("Full current-source compiler required")
@@ -55,6 +58,9 @@ def main() -> int:
              root / "test/cases/stdlib_collection_admission_host.c",
              root / "test/cases/xlir_collection_admission_contract.c"]
     files += [root / f"test/cases/{fixture}.xl" for fixture in fixtures]
+    if args.stacks:
+        files += [root / "test/cases/stdlib_stack_wire_child_refused.xl",
+                  root / "test/cases/xlir_module_product_oom_host.c",root / "test/support/module_product_memory.c"]
     if args.layouts:
         files += [root / "tools/check_xlir_function_value_calls.py",
                   root / "test/cases/xlir_function_value_calls.xl",
@@ -95,7 +101,7 @@ def main() -> int:
         shutil.copy2(root / "release/xl.dll", out / "xl.dll")
     rows = []
     report = {"Scope": __doc__, "Complete": False, "InputsUnchanged": False, "Platform": sys.platform,
-              "Sanitized": args.sanitize, "Nominal": args.nominal, "Layouts": args.layouts,
+              "Sanitized": args.sanitize, "Nominal": args.nominal, "Layouts": args.layouts, "Stacks": args.stacks,
               "NumericEnums": args.numeric_enums, "Sweeps": [],
               "Inputs": inputs, "Rows": rows, "Fixtures": fixtures}
     env = dict(os.environ)
@@ -158,18 +164,46 @@ def main() -> int:
             assert "xlir_nominal_runtime_tag" not in text
             assert not re.search(r"static bool xlir_nominal_set_\d+_matches",text)
             lowered = json.loads(ir.read_text(encoding="utf-8"))
+            if args.stacks:
+                assert 'xl6StackCreateV1' not in text
+                creates={row['result']:row for row in lowered['instructions'] if row['runtimeOpName']=='stack-create'}
+                names={'primitive-v2':'Primitive','reference-v2':'Reference','nominal-v2':'Nominal',
+                    'c-scalar-v1':'CScalar','nullable-c-scalar-v1':'NullableCScalar',
+                    'numeric-enum-v1':'NumericEnum','sequence-reference-v1':'Nested'}
+                factory_calls=re.findall(r'v(\d+) = xl6Sequence(\w+)CreateV1\(2, 0x([0-9A-F]{16})ULL, 0x([0-9A-F]{16})ULL, (.*)\);',text)
+                assert factory_calls and len({int(row[0]) for row in factory_calls})==len(factory_calls)
+                pool={row['id']:row for row in lowered['types']}
+                for result,name,owner,element,args_text in factory_calls:
+                    operation=creates[int(result)]; stack=pool[operation['type']]; plan=stack['sequenceLayout']
+                    assert name==names[plan['abiName']] and plan['role']==2 and plan['codecAbiName']=='direct'
+                    assert int(owner,16)==int(stack['typeValueId'],16)
+                    assert int(element,16)==int(pool[plan['elementType']]['typeValueId'],16)
+                    assert operation['payloadType']==plan['elementType'] and operation['runtimeResourcePayloadAbi']==plan['transferAbi']
+                    if name=='Nominal':
+                        schema=operation['sequenceAdmissionIdentitySet']; assert schema
+                        assert args_text.startswith(f'&xlir_nominal_set_{schema}, ')
+                        assert f'static const XL6_NominalAdmissionV1 xlir_nominal_set_{schema} = ' in text
+                        assert lowered['nominalIdentitySets'][schema-1]['targetType']==plan['baseElementType']
+                    else: assert not operation['sequenceAdmissionIdentitySet']
+                    if name=='Nested':
+                        assert plan['childRole']==2
+                        assert args_text.startswith(f"2, {pool[plan['baseElementType']]['typeValueId']}ULL, {pool[plan['childElementType']]['typeValueId']}ULL, ")
+                if fixture=='stdlib_stack_admitted_construction':
+                    assert set(names.values())<={row[1] for row in factory_calls}
             # Current carrier and target native layout are orthogonal. A recipe
             # in this dump must never be mistaken for a source owner cutover.
             types_by_id = {row["id"]: row for row in lowered["types"]}
             array_types = []
             for row in lowered["types"]:
                 assert row["collectionCarrierAbi"] == (1 if row["collectionAbi"] else 0)
-                plan = row["arrayLayout"]
-                if row["collectionAbi"] != 1:
+                plan = row["sequenceLayout"]
+                is_stack=row['kind']==6 and row['runtimeResourceAbiName']=='stack'
+                if row["collectionAbi"] != 1 and not is_stack:
                     assert plan["abi"] == 0 and not any(plan[key] for key in (
                         "elementType", "baseElementType", "slotAbi", "codecAbi", "transferAbi", "admissionAbi", "nullable", "defaultAbi"))
                     continue
-                array_types.append(row)
+                assert plan['role']==(2 if is_stack else 1)
+                if not is_stack: array_types.append(row)
                 if not row["params"]:
                     assert plan["abiName"] == "dynamic-value" and not plan["elementType"]
                     continue
@@ -197,7 +231,7 @@ def main() -> int:
                 else:
                     assert plan["baseElementType"] == element["id"]
             if args.layouts and fixture=="stdlib_array_layouts":
-                plans = [row["arrayLayout"] for row in array_types]
+                plans = [row["sequenceLayout"] for row in array_types]
                 assert {"primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
                 nested=[p for p in plans if p['abiName']=='sequence-reference-v1']
                 assert len(nested)>=3 and {False,True}=={p['nullable'] for p in nested}
@@ -228,7 +262,7 @@ def main() -> int:
                 assert not any(p["defaultAbiName"] == "pending-bytes" for p in plans)
                 assert {"nullable-bool", "nullable-i64", "nullable-u64", "nullable-f32", "nullable-f64", "nullable-time", "nullable-char", "nullable-string"} <= {p["slotAbiName"] for p in plans}
             if fixture.startswith("stdlib_stack_nullable_c_"):
-                assert "xl6StackCreateV1" in text and "xlir_xvalue_box_xlir_nullable_" not in text
+                assert "xl6SequenceNullableCScalarCreateV1(2," in text and "xl6StackCreateV1" not in text and "xlir_xvalue_box_xlir_nullable_" not in text
                 slots={row["nativeSlotAbiName"] for row in lowered["types"]}
                 if fixture=="stdlib_stack_nullable_c_scalar":
                     assert {"nullable-native-i8", "nullable-native-u8", "nullable-native-i16", "nullable-native-u16",
@@ -290,6 +324,8 @@ def main() -> int:
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c),
                 *(["numeric-enums"] if args.numeric_enums else [])])
+            if args.stacks:
+                assert f'Stack construction: {len(creates)} exact Sequence factories;' in contract_log
             assert "Future container semantics: 5 accepted; 7 independent copy/resource refusals" in contract_log
             if fixture == "stdlib_array_future_reference":
                 projections = [row for row in lowered["instructions"] if row["runtimeOpName"] in (
@@ -306,15 +342,15 @@ def main() -> int:
                 if fixture == "stdlib_nullable_numeric_enum":
                     assert int(enum_proof[2]) >= 16
                     assert "(-9223372036854775807LL - 1LL)" in text and "18446744073709551615ULL" in text
-            recipe_count = sum(row["arrayLayout"]["abiName"] in
+            recipe_count = sum(row["sequenceLayout"]["abiName"] in
                 ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "numeric-enum-v1", "callable-reference-v1", "future-reference-v1") for row in array_types)
-            recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
-                len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
-            codec_mutations=sum(row['arrayLayout']['abiName']=='callable-reference-v1' for row in array_types)
-            signature_mutations=sum(row['arrayLayout']['abiName']=='callable-reference-v1' and
-                bool(types_by_id[row['arrayLayout']['baseElementType']]['params']) for row in array_types)
-            future_mutations=sum(row['arrayLayout']['abiName']=='future-reference-v1' for row in array_types)
-            mutation_count=len(lowered['types'])*12+recursive_mutations+codec_mutations+signature_mutations+future_mutations
+            recursive_mutations=sum(row['sequenceLayout']['abiName']=='sequence-reference-v1' and
+                len(types[row['sequenceLayout']['baseElementType']]['params'])==1 for row in array_types)
+            codec_mutations=sum(row['sequenceLayout']['abiName']=='callable-reference-v1' for row in array_types)
+            signature_mutations=sum(row['sequenceLayout']['abiName']=='callable-reference-v1' and
+                bool(types_by_id[row['sequenceLayout']['baseElementType']]['params']) for row in array_types)
+            future_mutations=sum(row['sequenceLayout']['abiName']=='future-reference-v1' for row in array_types)
+            mutation_count=len(lowered['types'])*17+recursive_mutations+codec_mutations+signature_mutations+future_mutations
             if not args.numeric_enums:
                 assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {mutation_count} carrier/layout mutations" in contract_log, 'Actual resident recipe/mutation totals differ from IR'
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log
@@ -340,7 +376,7 @@ def main() -> int:
                 language_proof = run(f"{fixture}.O{level}.run", [str(binary)])
                 if fixture == "stdlib_array_future_reference":
                     assert "hit=0 balanced" in language_proof
-                if args.numeric_enums and fixture.startswith("stdlib_nullable_numeric_enum"):
+                if (args.numeric_enums and fixture.startswith("stdlib_nullable_numeric_enum")) or (args.stacks and fixture=='stdlib_stack_admitted_construction'):
                     lane = f"{fixture}.O{level}.oom"
                     memory = out / f"memory.O{level}.o"
                     if not memory.exists():
@@ -371,6 +407,16 @@ def main() -> int:
                 run(f"{fixture}.aot.build", [str(cli), "build", source, "--inc-path", str(out / "include"), "-o", str(product)])
             assert product.is_file(), f"AOT output missing: {product}"
             run(f"{fixture}.aot.run", [str(product)])
+        if args.stacks:
+            target=out/'wire-child.refused.c'
+            source='test/cases/stdlib_stack_wire_child_refused.xl'
+            command=([str(cli),source,'cgen-default',str(target)] if public else
+                [str(cli),'cgen',source,'--inc-path',str(out/'include'),'--emit',str(target)])
+            rejection=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=60)
+            (out/'wire-child.refused.log').write_bytes(rejection.stdout+rejection.stderr)
+            accepted=rejection.returncode!=0 and b'closed resident Sequence recipe' in rejection.stdout+rejection.stderr and (not target.exists() or not target.stat().st_size)
+            rows.append({'Name':'wire-child.refused','Command':command,'Exit':rejection.returncode,'Complete':accepted})
+            assert accepted,'Unmigrated wire producer must be rejected before C output'
         if args.layouts:
             child = out / "callable-scalars"
             command = [sys.executable, str(root / "tools/check_stdlib_callable_scalars.py"), "--out", str(child)]
@@ -401,7 +447,8 @@ def main() -> int:
             raise RuntimeError("Frozen inputs changed during acceptance")
     except Exception as error:
         report["Error"] = f"{type(error).__name__}: {error}"
-        print(error, file=sys.stderr)
+        report["Traceback"] = traceback.format_exc()
+        print(report["Traceback"], file=sys.stderr)
     finally:
         (out / "results.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"Collection admission: {len(rows)} checks, complete={report['Complete']}")

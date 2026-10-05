@@ -7,7 +7,7 @@ int main(void)
     assert(xrtMemDebugEnable(true));
     xmemdebugsnapshot before,after; xrtMemDebugSnapshot(&before);
     const xrttype* type=XL6_TEST_ENUM_DESCRIPTOR();
-    xvalue* owner=xl6ArrayNumericEnumCreateV1(1,2,type,XL6_TEST_ENUM_RULE,true,3); assert(owner);
+    xvalue* owner=xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,1,2,type,XL6_TEST_ENUM_RULE,true,3); assert(owner);
     assert(xl6ArrayResizeV1(owner,1,2,1,type->Size,type,7));
     xrtValueRelease(owner); xrtMemDebugSnapshot(&after);
     assert(!xrtGetError() && after.LiveCount==before.LiveCount && after.LiveBytes==before.LiveBytes);

@@ -3,3 +3,10 @@ class StackDefaultHolder
 end
 
 StackDefaultHolder stackDefaultHolder
+
+func main(...) as int
+    Stack<string> values = stackDefaultHolder.values
+    assert(values.count() == 0 and values.push("a\0你"))
+    assert(string.byteLen(values.peek()) == 5 and values.pop() == "a\0你")
+    return 0
+end

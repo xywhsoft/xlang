@@ -78,7 +78,7 @@ static bool physical(const xrttype* type, unsigned int transfer, unsigned int ru
     default: return false;
     }
 }
-xvalue* xl6ArrayPrimitiveCreateV2(uint64_t identity, uint64_t element, unsigned int transfer,
+xvalue* xl6SequencePrimitiveCreateV1(unsigned int role,uint64_t identity, uint64_t element, unsigned int transfer,
     size_t size, const xrttype* type, unsigned int rule, bool nullable, uint64_t valueIdentity)
 {
     if (!identity || !element || !valueIdentity || !type || type->Size!=size ||
@@ -87,5 +87,5 @@ xvalue* xl6ArrayPrimitiveCreateV2(uint64_t identity, uint64_t element, unsigned 
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(PrimitivePolicy){.refs=1,.rule=rule,.nullable=nullable,.identity=valueIdentity};
     XL6_SequenceAdmissionV3 admission={&ops,data,element,transfer,size,type,valueIdentity};
-    return xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,identity,&admission);
+    return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

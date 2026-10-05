@@ -7,7 +7,7 @@ static bool admitted(const void* opaque,const xvalue* value)
     const XL6_ArrayAdmissionData* data=opaque;
     return xl6ValueAdmitsNominalV1(value,&data->nominal,data->nullable);
 }
-xvalue* xl6ArrayNominalCreateV2(uint64_t identity,uint64_t element,const XL6_NominalAdmissionV1* schema,bool nullable,uint64_t valueIdentity)
+xvalue* xl6SequenceNominalCreateV1(unsigned int role,uint64_t identity,uint64_t element,const XL6_NominalAdmissionV1* schema,bool nullable,uint64_t valueIdentity)
 {
     if (!identity || !element || !valueIdentity || !schema || schema->kind<XL6_NOMINAL_ADMIT_CLASS_TAG ||
         schema->kind>XL6_NOMINAL_ADMIT_PROTOCOL_TAG || (schema->count && !schema->identities) ||
@@ -26,5 +26,5 @@ xvalue* xl6ArrayNominalCreateV2(uint64_t identity,uint64_t element,const XL6_Nom
     *data=(XL6_ArrayAdmissionData){.refs=1,.nullable=nullable,.identity=valueIdentity,.nominal=*schema};
     data->nominal.identities=data->identities;
     if (schema->count) memcpy(data->identities,schema->identities,schema->count*sizeof(uint64_t));
-    return create(identity,element,data,&policyOps);
+    return create(role,identity,element,data,&policyOps);
 }

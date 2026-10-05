@@ -7,7 +7,7 @@ int main(void)
     assert(xrtMemDebugEnable(true));
     xmemdebugsnapshot before,after; xrtMemDebugSnapshot(&before);
     const xrttype* type=XL6_TEST_NATIVE_C_DESCRIPTOR();
-    xvalue* owner=xl6ArrayNullableCScalarCreateV1(1,2,type,XL6_TEST_NATIVE_C_BASE(),3); assert(owner);
+    xvalue* owner=xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,1,2,type,XL6_TEST_NATIVE_C_BASE(),3); assert(owner);
     assert(xl6ArrayResizeV1(owner,1,2,1,type->Size,type,7));
     assert(xl6ArraySizeV1(owner,1,2,1,type->Size,type,false)==7);
     xrtValueRelease(owner); xrtMemDebugSnapshot(&after);

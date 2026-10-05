@@ -315,7 +315,7 @@ def main() -> int:
             command += ["--sanitize"]
         run(child.name, command, timeout=180)
         sequence = json.loads((child / "results.json").read_text(encoding="utf-8"))
-        if not sequence["Complete"] or not sequence["InputsUnchanged"] or sequence["Profiles"]!=8 or len(sequence["Sweeps"])!=184:
+        if not sequence["Complete"] or not sequence["InputsUnchanged"] or sequence["Profiles"]!=16 or len(sequence["Sweeps"])!=368:
             raise RuntimeError("Incomplete sealed nested Array domain evidence")
         report["SequenceAdmissionReport"] = {"Directory": str(child), "Checks": len(sequence["Rows"]),
             "Profiles": sequence["Profiles"], "ClosedPrefixes": len(sequence["Sweeps"]),

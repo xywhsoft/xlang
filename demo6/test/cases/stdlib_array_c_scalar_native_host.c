@@ -33,7 +33,7 @@ static void balanced(const xmemdebugsnapshot* before)
         after.UseAfterFreeCount==before->UseAfterFreeCount && !xrtGetError());
 }
 static xvalue* create(const Spec* s)
-{ return xl6ArrayCScalarCreateV1(s->owner,s->element,s->type,s->element); }
+{ return xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->element); }
 static xvalue* encoded(const Spec* s,uint64_t identity)
 {
     xvalue* result=NULL;
@@ -67,14 +67,14 @@ static void refused(const Spec* s,xvalue* owner,xvalue* wrong)
 }
 static void malformed(const Spec* s)
 {
-    assert(!xl6ArrayCScalarCreateV1(0,s->element,s->type,s->element)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCScalarCreateV1(s->owner,0,s->type,s->element)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCScalarCreateV1(s->owner,s->element,s->type,s->element+1)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,0,s->element,s->type,s->element)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,0,s->type,s->element)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,s->type,s->element+1)); error(XERR_ARGUMENT);
     xrttype foreign=*s->type;
-    assert(!xl6ArrayCScalarCreateV1(s->owner,s->element,&foreign,s->element)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCScalarCreateV1(s->owner,s->element,NULL,s->element)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCScalarCreateV1(s->owner,s->element,xrtTypeTime(),s->element)); error(XERR_ARGUMENT);
-    assert(!xl6ArrayCScalarCreateV1(s->owner,s->element,(const xrttype*)(uintptr_t)1,s->element)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,&foreign,s->element)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,NULL,s->element)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,xrtTypeTime(),s->element)); error(XERR_ARGUMENT);
+    assert(!xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->owner,s->element,(const xrttype*)(uintptr_t)1,s->element)); error(XERR_ARGUMENT);
 }
 static void vectors(const Spec* s)
 {

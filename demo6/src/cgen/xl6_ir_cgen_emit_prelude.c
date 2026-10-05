@@ -61,6 +61,7 @@ static int xl6IrCgenEmitRuntimePrelude(
     if ( needs->needsRuntimeTrap ) xl6OutputPuts("#include <stdlib.h>\n", out);
     if ( needs->needsCheckedI64Runtime || needs->needsWrappingIntegerRuntime ||
          needs->needsCheckedIntegerArithmeticRuntime ||
+         needs->needsStackResourceRuntime ||
          needs->needsFutureAggregateAllArray || needs->needsFutureAggregateRaceArray )
         xl6OutputPuts("#include <limits.h>\n", out);
     if ( needs->needsXValueIntegerConvertRuntime || needs->needsStringI64ConvertRuntime ||

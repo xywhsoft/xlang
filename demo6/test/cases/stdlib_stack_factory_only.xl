@@ -1,0 +1,4 @@
+func main(...) as int
+    Stack<int> value = Stack::<int>()
+    return 0
+end

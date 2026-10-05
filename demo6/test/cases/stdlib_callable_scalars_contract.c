@@ -129,9 +129,9 @@ int main(int argc,char** argv)
                     if (candidate && candidate->collectionAbi==XL6_IR_COLLECTION_ARRAY && candidate->paramCount==1 && candidate->params[0]==s->type)
                         array=candidate;
                 }
-                assert(array && array->arrayLayout.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 &&
-                    array->arrayLayout.codecAbi==XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1 &&
-                    array->arrayLayout.baseElementType==s->type && !array->arrayLayout.nullable);
+                assert(array && array->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 &&
+                    array->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
+                    array->sequenceLayout.baseElementType==s->type && !array->sequenceLayout.nullable);
                 xl6OutputPrintf(&out,"#define SCALAR_%s_SIGNATURE UINT64_C(0x%016llX)\n#define SCALAR_%s_ARRAY UINT64_C(0x%016llX)\n",
                     name,(unsigned long long)signature->typeValueId,name,(unsigned long long)array->typeValueId);
             }
