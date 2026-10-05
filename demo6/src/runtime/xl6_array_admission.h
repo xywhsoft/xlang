@@ -41,4 +41,11 @@ XL6_TEXT_API xvalue* xl6ArrayNullableCScalarCreateV1(uint64_t, uint64_t,
  * Defaults are zero/absent. No generic primitive or tagged-enum admission. */
 XL6_TEXT_API xvalue* xl6ArrayNumericEnumCreateV1(uint64_t, uint64_t,
     const xrttype*, unsigned int, bool, uint64_t);
+/* Typed function slots own boxed callable Value references, NOT XL6_Closure*.
+ * Producers/consumers must use the explicit closure-value codec. Exact base
+ * signature TypeId and actual resident callable family are required; an
+ * unbound callable or a same-tag foreign handle is refused. Only nullable
+ * slots have a default. This policy owns scalar metadata, no module callback,
+ * and does not independently certify a callback's ownership/retirement graph. */
+XL6_TEXT_API xvalue* xl6ArrayCallableCreateV1(uint64_t, uint64_t, uint64_t, bool);
 #endif

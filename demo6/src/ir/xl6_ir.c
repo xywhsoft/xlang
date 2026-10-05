@@ -14,6 +14,8 @@ _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_
 
 static int xl6IrRuntimeCallableSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type);
+static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
+    const XL6_IrTypePool*, XL6_IrTypeId, int, size_t);
 static const XL6_IrInstruction* xl6IrValueDefinition(
     const XL6_IrModule* module, XL6_IrValueId value, size_t* indexOut);
 static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind);
@@ -808,7 +810,16 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
     result.slotAbi=xl6IrNativeSlotAbiForType(pool,element);
     result.transferAbi=xl6IrTypeResourcePayloadAbi(element);
     result.admissionAbi=xl6IrValueAdmissionAbiForType(pool,element);
-    if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
+    if (base->kind==XL6_IR_TYPE_FUNCTION && base->cAbi==XL6_IR_C_ABI_CLOSURE_PTR &&
+        xl6IrRuntimeCallableAdapterSignatureSupportedDepth(pool,result.baseElementType,1,0)) {
+        /* Invocation storage is still a closure pointer. The Array recipe
+         * deliberately selects an owned boxed callable with an explicit
+         * bidirectional codec; the element's global slot ABI stays NONE. */
+        result.abi=XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1;
+        result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
+        result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
+        result.codecAbi=XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1;
+    } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_ARRAY_LAYOUT_PENDING_SLOT;
     } else if (base->kind==XL6_IR_TYPE_NUMERIC_ENUM &&
@@ -854,6 +865,7 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
             child.abi==XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
+            child.abi==XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
             child.abi==XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1
             ? XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_ARRAY_LAYOUT_PENDING_DOMAIN;
     } else {
@@ -863,12 +875,15 @@ static XL6_IrArrayLayout xl6IrArrayLayoutForTypeDepth(const XL6_IrTypePool* pool
         result.abi == XL6_IR_ARRAY_LAYOUT_REFERENCE_V2 || result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ||
         result.abi == XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1 ||
-        result.abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1) {
+        result.abi == XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1 ||
+        result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1) {
+        if (!result.codecAbi) result.codecAbi=XL6_IR_ARRAY_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_ARRAY_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_ARRAY_DEFAULT_DYNAMIC_NULL :
             result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_ARRAY_DEFAULT_EMPTY_BYTES :
             result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_ARRAY_DEFAULT_EMPTY_STRING :
             result.abi == XL6_IR_ARRAY_LAYOUT_NOMINAL_V2 ||
+            result.abi == XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1 ||
             result.abi == XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1 ? XL6_IR_ARRAY_DEFAULT_FORBIDDEN :
             XL6_IR_ARRAY_DEFAULT_ZERO;
     }
@@ -882,9 +897,20 @@ int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout* left, const XL6_IrArrayLayout
 {
     return left && right && left->abi == right->abi &&
         left->elementType == right->elementType && left->baseElementType == right->baseElementType &&
-        left->slotAbi == right->slotAbi && left->transferAbi == right->transferAbi &&
+        left->slotAbi == right->slotAbi && left->codecAbi == right->codecAbi &&
+        left->transferAbi == right->transferAbi &&
         left->admissionAbi == right->admissionAbi && left->nullable == right->nullable &&
         left->defaultAbi == right->defaultAbi;
+}
+
+const char* xl6IrArrayCodecAbiName(XL6_IrArrayCodecAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_ARRAY_CODEC_NONE: return "none";
+    case XL6_IR_ARRAY_CODEC_DIRECT: return "direct";
+    case XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1: return "closure-value-v1";
+    default: return "invalid";
+    }
 }
 
 const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi)
@@ -915,6 +941,7 @@ const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi)
     case XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1: return "sequence-reference-v1";
     case XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
     case XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
+    case XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1: return "callable-reference-v1";
     default: return "invalid";
     }
 }
@@ -1397,6 +1424,13 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
         if ( type->returnCount != 0 &&
              type->callableResultType == XL6_IR_TYPE_INVALID ) return 0;
     }
+    /* Array codecs depend on closed callable result carriers. Construction
+     * may intern an Array before these results exist; finalize its derived
+     * recipe only after ALL signatures/products in the graph are complete.
+     * Verification still re-derives and rejects stale/mutated recipes. */
+    for (i=0;i<pool->count;++i)
+        if (pool->items[i].collectionAbi==XL6_IR_COLLECTION_ARRAY)
+            pool->items[i].arrayLayout=xl6IrArrayLayoutForType(pool,&pool->items[i]);
     return 1;
 }
 
@@ -19155,12 +19189,12 @@ static int xl6IrRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 }
 
 static int xl6IrTypeHasStorageReleaseAbiDepth(
-    const XL6_IrModule* module, XL6_IrTypeId type, size_t depth)
+    const XL6_IrTypePool* pool, XL6_IrTypeId type, size_t depth)
 {
-    const XL6_IrType* item = module != NULL
-        ? xl6IrTypeGet(&module->types, type) : NULL;
+    const XL6_IrType* item = pool != NULL
+        ? xl6IrTypeGet(pool, type) : NULL;
     size_t i;
-    if ( module == NULL || depth > module->types.count || item == NULL ) return 0;
+    if ( pool == NULL || depth > pool->count || item == NULL ) return 0;
     if ( item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return 1;
     if ( item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ) return 0;
     if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
@@ -19176,7 +19210,7 @@ static int xl6IrTypeHasStorageReleaseAbiDepth(
          (item->paramCount != 0 && item->params == NULL) ) return 0;
     for ( i = 0; i < item->paramCount; ++i )
         if ( !xl6IrTypeHasStorageReleaseAbiDepth(
-                 module, item->params[i], depth + 1) ) return 0;
+                 pool, item->params[i], depth + 1) ) return 0;
     return 1;
 }
 
@@ -19223,7 +19257,7 @@ int xl6IrTypeHasStorageReleaseAbi(
         ? xl6IrTypeGet(&module->types, type) : NULL;
     return item != NULL &&
         item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-        xl6IrTypeHasStorageReleaseAbiDepth(module, type, 0);
+        xl6IrTypeHasStorageReleaseAbiDepth(&module->types, type, 0);
 }
 
 /* Runtime-callable construction uses the same closed, bidirectional ABI as
@@ -19259,19 +19293,15 @@ static int xl6IrRuntimeCallableAdapterParameterSlotSupported(
           parameter->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED));
 }
 
-static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-    const XL6_IrModule* module, XL6_IrTypeId type,
-    int allowDictVariadic, size_t depth);
-
 static int xl6IrRuntimeCallableAdapterResultSlotSupported(
-    const XL6_IrModule* module, XL6_IrTypeId type,
+    const XL6_IrTypePool* pool, XL6_IrTypeId type,
     int allowDictVariadic, size_t depth)
 {
-    const XL6_IrType* result = module != NULL
-        ? xl6IrTypeGet(&module->types, type) : NULL;
+    const XL6_IrType* result = pool != NULL
+        ? xl6IrTypeGet(pool, type) : NULL;
     if ( result != NULL &&
          result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-         !xl6IrTypeHasStorageReleaseAbi(module, type) ) return 0;
+         !xl6IrTypeHasStorageReleaseAbiDepth(pool, type, 0) ) return 0;
     return result != NULL &&
         (xl6IrRuntimeCallableScalarAbi(result->cAbi) ||
          (result->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
@@ -19290,23 +19320,23 @@ static int xl6IrRuntimeCallableAdapterResultSlotSupported(
          (result->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
           result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
           xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-              module, type, allowDictVariadic, depth + 1)));
+              pool, type, allowDictVariadic, depth + 1)));
 }
 
 static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-    const XL6_IrModule* module, XL6_IrTypeId type,
+    const XL6_IrTypePool* pool, XL6_IrTypeId type,
     int allowDictVariadic, size_t depth)
 {
-    const XL6_IrType* signature = module != NULL
-        ? xl6IrTypeGet(&module->types, type) : NULL;
+    const XL6_IrType* signature = pool != NULL
+        ? xl6IrTypeGet(pool, type) : NULL;
     const XL6_IrType* carrier;
     size_t fixedCount;
     size_t i;
-    if ( module == NULL || depth > module->types.count ||
+    if ( pool == NULL || depth > pool->count ||
          signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
          signature->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
          (signature->paramCount != 0 &&
-          (signature->parameterModes == NULL ||
+          (signature->params == NULL || signature->parameterModes == NULL ||
            signature->parameterAbis == NULL)) ||
          (signature->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_FIXED &&
           signature->callableErasureAbi !=
@@ -19325,7 +19355,7 @@ static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
     if ( signature->callableErasureAbi !=
              XL6_IR_CALLABLE_ERASURE_FIXED ) {
         const XL6_IrType* variadic = xl6IrTypeGet(
-            &module->types, signature->params[signature->paramCount - 1]);
+            pool, signature->params[signature->paramCount - 1]);
         if ( variadic == NULL ||
              variadic->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
              variadic->collectionAbi !=
@@ -19339,7 +19369,7 @@ static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
     }
     for ( i = 0; i < fixedCount; ++i ) {
         const XL6_IrType* parameter = xl6IrTypeGet(
-            &module->types, signature->params[i]);
+            pool, signature->params[i]);
         if ( parameter == NULL ||
              (signature->parameterModes[i] != XL6_IR_PARAMETER_MODE_DEFAULT &&
               signature->parameterModes[i] != XL6_IR_PARAMETER_MODE_BYVAL) ||
@@ -19351,14 +19381,14 @@ static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
     if ( signature->returnCount == 0 ) return 1;
     for ( i = 0; i < signature->returnCount; ++i )
         if ( !xl6IrRuntimeCallableAdapterResultSlotSupported(
-                 module, signature->returns[i], allowDictVariadic, depth) )
+                 pool, signature->returns[i], allowDictVariadic, depth) )
             return 0;
     carrier = xl6IrTypeGet(
-        &module->types, signature->callableResultType);
+        pool, signature->callableResultType);
     if ( signature->returnCount == 1 )
         return signature->returns[0] == signature->callableResultType &&
             xl6IrRuntimeCallableAdapterResultSlotSupported(
-                module, signature->callableResultType,
+                pool, signature->callableResultType,
                 allowDictVariadic, depth);
     if ( carrier == NULL || carrier->kind != XL6_IR_TYPE_TUPLE ||
          carrier->cAbi != XL6_IR_C_ABI_PRODUCT ||
@@ -19373,14 +19403,14 @@ int xl6IrRuntimeCallableClosureToXValueSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type)
 {
     return xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-        module, type, 1, 0);
+        module ? &module->types : NULL, type, 1, 0);
 }
 
 int xl6IrRuntimeCallableFieldSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type)
 {
     return xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-        module, type, 0, 0);
+        module ? &module->types : NULL, type, 0, 0);
 }
 
 #include "src/ir/xl6_ir_callable_bridge.c"
@@ -44451,9 +44481,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
             (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
             xl6IrCollectionCarrierAbiName(type->collectionCarrierAbi));
         if (type->arrayLayout.abi != XL6_IR_ARRAY_LAYOUT_NONE)
-            xl6OutputPrintf(out, "    array-layout=%s element=t%u base=t%u slot=%s transfer=%u admission=%u nullable=%d default=%s\n",
+            xl6OutputPrintf(out, "    array-layout=%s element=t%u base=t%u slot=%s codec=%s transfer=%u admission=%u nullable=%d default=%s\n",
                 xl6IrArrayLayoutAbiName(type->arrayLayout.abi), type->arrayLayout.elementType,
                 type->arrayLayout.baseElementType, xl6IrNativeSlotAbiName(type->arrayLayout.slotAbi),
+                xl6IrArrayCodecAbiName(type->arrayLayout.codecAbi),
                 (unsigned int)type->arrayLayout.transferAbi, (unsigned int)type->arrayLayout.admissionAbi,
                 (int)type->arrayLayout.nullable, xl6IrArrayDefaultAbiName(type->arrayLayout.defaultAbi));
     }
@@ -45718,13 +45749,15 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         }
         xl6OutputPrintf(out,"],\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
             "\"arrayLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"elementType\":%u,\"baseElementType\":%u,"
-            "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"transferAbi\":%u,\"admissionAbi\":%u,\"nullable\":%s,"
+            "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"codecAbi\":%u,\"codecAbiName\":\"%s\","
+            "\"transferAbi\":%u,\"admissionAbi\":%u,\"nullable\":%s,"
             "\"defaultAbi\":%u,\"defaultAbiName\":\"%s\"},"
             "\"xvalueAdmissionTypeValueId\":\"0x%016llX\",\"parameterModes\":[",
             (unsigned int)type->collectionCarrierAbi, xl6IrCollectionCarrierAbiName(type->collectionCarrierAbi),
             (unsigned int)type->arrayLayout.abi, xl6IrArrayLayoutAbiName(type->arrayLayout.abi),
             type->arrayLayout.elementType, type->arrayLayout.baseElementType,
             (unsigned int)type->arrayLayout.slotAbi, xl6IrNativeSlotAbiName(type->arrayLayout.slotAbi),
+            (unsigned int)type->arrayLayout.codecAbi, xl6IrArrayCodecAbiName(type->arrayLayout.codecAbi),
             (unsigned int)type->arrayLayout.transferAbi, (unsigned int)type->arrayLayout.admissionAbi,
             type->arrayLayout.nullable ? "true" : "false",
             (unsigned int)type->arrayLayout.defaultAbi, xl6IrArrayDefaultAbiName(type->arrayLayout.defaultAbi),
