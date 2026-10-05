@@ -581,8 +581,19 @@ typedef enum XL6_IrArrayLayoutAbi {
     XL6_IR_ARRAY_LAYOUT_C_SCALAR_V1,
     XL6_IR_ARRAY_LAYOUT_SEQUENCE_REFERENCE_V1,
     XL6_IR_ARRAY_LAYOUT_NULLABLE_C_SCALAR_V1,
-    XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1
+    XL6_IR_ARRAY_LAYOUT_NUMERIC_ENUM_V1,
+    XL6_IR_ARRAY_LAYOUT_CALLABLE_REFERENCE_V1
 } XL6_IrArrayLayoutAbi;
+
+/* A recipe's physical slot need not equal its element's invocation ABI.
+ * DIRECT preserves the declared native slot. CLOSURE_VALUE uses the existing
+ * typed closure box/project operations at both boundaries; never reinterpret
+ * a closure pointer as an xvalue pointer. Pending/dynamic recipes have NONE. */
+typedef enum XL6_IrArrayCodecAbi {
+    XL6_IR_ARRAY_CODEC_NONE = 0,
+    XL6_IR_ARRAY_CODEC_DIRECT,
+    XL6_IR_ARRAY_CODEC_CLOSURE_VALUE_V1
+} XL6_IrArrayCodecAbi;
 
 typedef enum XL6_IrArrayDefaultAbi {
     XL6_IR_ARRAY_DEFAULT_NONE = 0,
@@ -602,6 +613,7 @@ typedef struct XL6_IrArrayLayout {
     /* Nullable<T> owner identity and admitted T identity are distinct. */
     XL6_IrTypeId baseElementType;
     XL6_IrNativeSlotAbi slotAbi;
+    XL6_IrArrayCodecAbi codecAbi;
     XL6_IrRuntimeResourcePayloadAbi transferAbi;
     XL6_ValueAdmissionV1 admissionAbi;
     bool nullable;
@@ -685,6 +697,7 @@ const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi);
 XL6_IrArrayLayout xl6IrArrayLayoutForType(const XL6_IrTypePool*, const XL6_IrType*);
 int xl6IrArrayLayoutEqual(const XL6_IrArrayLayout*, const XL6_IrArrayLayout*);
 const char* xl6IrArrayLayoutAbiName(XL6_IrArrayLayoutAbi abi);
+const char* xl6IrArrayCodecAbiName(XL6_IrArrayCodecAbi abi);
 const char* xl6IrArrayDefaultAbiName(XL6_IrArrayDefaultAbi abi);
 
 XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool, const XL6_IrType* type);

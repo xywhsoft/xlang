@@ -151,14 +151,21 @@ def main() -> int:
                 plan = row["arrayLayout"]
                 if row["collectionAbi"] != 1:
                     assert plan["abi"] == 0 and not any(plan[key] for key in (
-                        "elementType", "baseElementType", "slotAbi", "transferAbi", "admissionAbi", "nullable", "defaultAbi"))
+                        "elementType", "baseElementType", "slotAbi", "codecAbi", "transferAbi", "admissionAbi", "nullable", "defaultAbi"))
                     continue
                 array_types.append(row)
                 if not row["params"]:
                     assert plan["abiName"] == "dynamic-value" and not plan["elementType"]
                     continue
                 element = types_by_id[row["params"][0]]
-                assert plan["elementType"] == element["id"] and plan["slotAbi"] == element["nativeSlotAbi"]
+                assert plan["elementType"] == element["id"]
+                if plan["abiName"] == "callable-reference-v1":
+                    base=types_by_id[plan["baseElementType"]]
+                    assert not element["nativeSlotAbi"] and base["cAbi"]==31  # XL6_IR_C_ABI_CLOSURE_PTR
+                    assert plan["slotAbiName"]=="xvalue-carrier" and plan["codecAbiName"]=="closure-value-v1"
+                else:
+                    assert plan["slotAbi"] == element["nativeSlotAbi"]
+                    assert plan["codecAbiName"] == ("direct" if plan["defaultAbi"] else "none")
                 if plan["abiName"] == "numeric-enum-v1":
                     base=types_by_id[plan["baseElementType"]]
                     assert not element["xvalueAdmissionAbi"]
@@ -183,6 +190,11 @@ def main() -> int:
                 assert len(numeric)==16 and set(range(3,11))=={p["admissionAbi"] for p in numeric}
                 assert {False,True}=={p["nullable"] for p in numeric}
                 assert all(p["defaultAbiName"]==("absent" if p["nullable"] else "zero") for p in numeric)
+                callable_plans=[p for p in plans if p["abiName"]=="callable-reference-v1"]
+                assert len(callable_plans)>=2 and {False,True}=={p["nullable"] for p in callable_plans}
+                assert all(p["codecAbiName"]=="closure-value-v1" and p["transferAbi"]==3 and
+                    not p["admissionAbi"] and p["defaultAbiName"]==("absent" if p["nullable"] else "forbidden")
+                    for p in callable_plans)
                 assert len(optional_c)==21 and all(p["nullable"] and not p["admissionAbi"] and
                     p["defaultAbiName"]=="absent" for p in optional_c)
                 assert {"nullable-native-i8", "nullable-native-u8", "nullable-native-i16", "nullable-native-u16",
@@ -261,10 +273,13 @@ def main() -> int:
                     assert int(enum_proof[2]) >= 16
                     assert "(-9223372036854775807LL - 1LL)" in text and "18446744073709551615ULL" in text
             recipe_count = sum(row["arrayLayout"]["abiName"] in
-                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "numeric-enum-v1") for row in array_types)
+                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "numeric-enum-v1", "callable-reference-v1") for row in array_types)
             recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
                 len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
-            mutation_count=len(lowered['types'])*11+recursive_mutations
+            codec_mutations=sum(row['arrayLayout']['abiName']=='callable-reference-v1' for row in array_types)
+            signature_mutations=sum(row['arrayLayout']['abiName']=='callable-reference-v1' and
+                bool(types_by_id[row['arrayLayout']['baseElementType']]['params']) for row in array_types)
+            mutation_count=len(lowered['types'])*12+recursive_mutations+codec_mutations+signature_mutations
             if not args.numeric_enums:
                 assert f"array layout: {len(array_types)} arrays; {recipe_count} real resident recipes; {mutation_count} carrier/layout mutations" in contract_log, 'Actual resident recipe/mutation totals differ from IR'
             assert f"collection contract: {len(checked)} checked rebinds;" in contract_log

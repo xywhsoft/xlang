@@ -77,9 +77,20 @@ func layoutNestedCScalars(array<array<c_int?>> values) as int
     return values.length
 end
 
-// Nested recipes must stay pending when the child's slot/domain is unclosed.
-func layoutUnclosed(array<array<func(int) as int>> functions, array<Stack<int>> stacks) as int
-    return functions.length + stacks.length
+// Closed callable slots use explicit closure-value codecs; not pointer casts.
+func layoutFunctions(array<(func(int) as int)?> optional) as int
+    return optional.length
+end
+func layoutNestedFunctions(array<array<func(int) as int>> functions) as int
+    return functions.length
+end
+// F32 callable value projection is not a currently supported dual ABI.
+func layoutUnclosedSignature(array<func(float32) as float32> functions) as int
+    return functions.length
+end
+// Open function signatures and resource payloads must stay pending.
+func layoutUnclosed(array<function> functions, array<Stack<int>> stacks, array<future<int>> pending) as int
+    return functions.length + stacks.length + pending.length
 end
 
 func layout_c_char(array<c_char> values) as int
@@ -319,6 +330,12 @@ func layoutNested() as bool
     array<func(int) as int> functions = [func(int value) as int
         return value + 1
     end]
+    array<(func(int) as int)?> optionalFunctions = [functions[0], null]
+    auto callback = optionalFunctions[0]
+    assert(callback != null and optionalFunctions[1] == null)
+    if callback != null then
+        assert(callback(7) == 8)
+    end
     assert(nested[0][1] == 2 and functions[0](7) == 8)
     assert(optionalNested[1] == null and deepNested[0][0][1] == 2)
     return true

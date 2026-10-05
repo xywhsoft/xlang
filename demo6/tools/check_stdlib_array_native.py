@@ -82,6 +82,11 @@ def main() -> int:
         "test/cases/stdlib_array_numeric_enum_native_host.c",
         "test/cases/stdlib_array_numeric_enum_storage_host.c",
         "src/runtime/xl6_array_numeric_enum_admission.c")]
+    files += [root / name for name in ("tools/check_stdlib_array_callable.py",
+        "test/cases/stdlib_array_callable_native_host.c", "test/cases/stdlib_array_callable_storage_host.c",
+        "test/support/array_callable_native.c",
+        "src/runtime/xl6_array_callable_admission.c", "src/runtime/xl6_closure.c",
+        "src/runtime/xl6_cell.c", "src/runtime/xl6_code_lease.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -327,6 +332,18 @@ def main() -> int:
         report["NumericEnumReport"] = {"Directory": str(child), "Checks": len(enums["Rows"]),
             "Profiles": enums["Profiles"], "ClosedPrefixes": len(enums["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in enums["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "admission-callable"
+        command = [sys.executable, "tools/check_stdlib_array_callable.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=600)
+        callables = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not callables["Complete"] or not callables["InputsUnchanged"] or callables["Profiles"]!=4 or len(callables["Sweeps"])!=108:
+            raise RuntimeError("Incomplete callable native Array evidence")
+        report["CallableReport"] = {"Directory": str(child), "Checks": len(callables["Rows"]),
+            "Profiles": callables["Profiles"], "ClosedPrefixes": len(callables["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in callables["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
