@@ -1,6 +1,6 @@
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array.h"
-#include "src/runtime/xl6_value_domain.h"
+#include "src/runtime/xl6_c_scalar_domain.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,10 +14,7 @@ typedef struct CScalarPolicy {
 } CScalarPolicy;
 static bool physical(const xrttype* type)
 {
-    return type && (type==xrtTypeBool() || type==xrtTypeInt8() || type==xrtTypeUInt8() ||
-        type==xrtTypeInt16() || type==xrtTypeUInt16() || type==xrtTypeInt32() ||
-        type==xrtTypeUInt32() || type==xrtTypeInt64() || type==xrtTypeUInt64() ||
-        type==xrtTypeFloat32() || type==xrtTypeFloat64() || type==xrtTypeType());
+    return xl6CScalarTypeV1(type);
 }
 static bool retain(const void* opaque)
 {
@@ -34,63 +31,12 @@ static void drop(const void* opaque)
 static bool slot(const void* opaque,const void* item)
 {
     const CScalarPolicy* data=opaque;
-    if (!item) return false;
-    if (data->type==xrtTypeBool()) {
-        /* Do not read a possibly malformed native bool through a bool lvalue. */
-        unsigned char representation=0;
-        _Static_assert(sizeof(bool)==1,"Supported native bool has a one-byte representation");
-        memcpy(&representation,item,1); return representation<=1;
-    }
-    return true;
-}
-static bool signedDomain(int64_t number,size_t size)
-{
-    switch (size) {
-    case 1: return number>=INT8_MIN && number<=INT8_MAX;
-    case 2: return number>=INT16_MIN && number<=INT16_MAX;
-    case 4: return number>=INT32_MIN && number<=INT32_MAX;
-    case 8: return true;
-    default: return false;
-    }
-}
-static bool unsignedDomain(uint64_t number,size_t size)
-{
-    switch (size) {
-    case 1: return number<=UINT8_MAX;
-    case 2: return number<=UINT16_MAX;
-    case 4: return number<=UINT32_MAX;
-    case 8: return true;
-    default: return false;
-    }
+    return xl6CScalarSlotV1(data->type,item);
 }
 static bool value(const void* opaque,const xvalue* item)
 {
     const CScalarPolicy* data=opaque;
-    if (!item) return false;
-    uint64_t actual=xrtValueTypeId(item);
-    if (actual && actual!=data->identity) return false;
-    xvaluetype tag=xrtValueType(item);
-    switch (data->type->Kind) {
-    case XRT_TYPE_BOOL: return tag==XVALUE_BOOL;
-    case XRT_TYPE_SIGNED_INT: {
-        int64_t number;
-        return tag==XVALUE_INT && xrtValueGetInt(item,&number) && signedDomain(number,data->type->Size);
-    }
-    case XRT_TYPE_TYPE:
-        /* A uint64 payload alone is not a language type value. */
-        if (!actual) return false;
-        /* fall through */
-    case XRT_TYPE_UNSIGNED_INT: {
-        uint64_t number;
-        return tag==XVALUE_UINT && xrtValueGetUInt(item,&number) && unsignedDomain(number,data->type->Size);
-    }
-    case XRT_TYPE_FLOAT: {
-        double number;
-        return tag==XVALUE_FLOAT && xrtValueGetFloat(item,&number) &&
-            (data->type==xrtTypeFloat64() || xl6Float32DomainV1(number));
-    }
-    default: return false;
-    }
+    return xl6CScalarValueV1(data->type,data->identity,item);
 }
 static bool equivalent(const void* a,const void* b)
 {

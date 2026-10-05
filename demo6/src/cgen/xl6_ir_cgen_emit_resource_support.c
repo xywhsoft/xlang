@@ -93,6 +93,12 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern const xrttype* xl6NullableF64TypeV1(void);\n"
             "extern const xrttype* xl6NullableTimeTypeV1(void);\n"
             "extern const xrttype* xl6NullableCharTypeV1(void);\n"
+            "extern const xrttype* xl6NullableNativeI8TypeV1(void);\n"
+            "extern const xrttype* xl6NullableNativeU8TypeV1(void);\n"
+            "extern const xrttype* xl6NullableNativeI16TypeV1(void);\n"
+            "extern const xrttype* xl6NullableNativeU16TypeV1(void);\n"
+            "extern const xrttype* xl6NullableNativeI32TypeV1(void);\n"
+            "extern const xrttype* xl6NullableNativeU32TypeV1(void);\n"
             "extern const xrttype* xl6NullableStringTypeV1(void);\n"
             "typedef struct xvalueconverter xvalueconverter;\n"
             "extern const xvalueconverter* xl6CharConverterV1(void);\n"
@@ -104,7 +110,13 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern const xvalueconverter* xl6NullableF32ConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableF64ConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableTimeConverterV1(void);\n"
-            "extern const xvalueconverter* xl6NullableCharConverterV1(void);\n", out);
+            "extern const xvalueconverter* xl6NullableCharConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableNativeI8ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableNativeU8ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableNativeI16ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableNativeU16ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableNativeI32ConverterV1(void);\n"
+            "extern const xvalueconverter* xl6NullableNativeU32ConverterV1(void);\n", out);
     if ( needs->needsChannelResourceRuntime && needs->needsStringRuntime )
         xl6OutputPuts("typedef struct xrttype xrttype;\n"
                       "extern const xrttype* xrtTypeStringView(void);\n"

@@ -356,6 +356,13 @@ static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module,
     case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolConverterV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64ConverterV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: return "xl6NullableU64ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: return "xl6NullableNativeI8ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: return "xl6NullableNativeU8ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: return "xl6NullableNativeI16ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: return "xl6NullableNativeU16ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: return "xl6NullableNativeI32ConverterV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "xl6NullableNativeU32ConverterV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "xl6NullableF32ConverterV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "xl6NullableF64ConverterV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "xl6NullableTimeConverterV1()";
@@ -371,6 +378,13 @@ static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_
     case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolTypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64TypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: return "xl6NullableU64TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: return "xl6NullableNativeI8TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: return "xl6NullableNativeU8TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: return "xl6NullableNativeI16TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: return "xl6NullableNativeU16TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: return "xl6NullableNativeI32TypeV1()";
+    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "xl6NullableNativeU32TypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "xl6NullableF32TypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "xl6NullableF64TypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "xl6NullableTimeTypeV1()";

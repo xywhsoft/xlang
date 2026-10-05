@@ -8,21 +8,182 @@ func layoutTypeIds(array<type> values) as int
     return values.length
 end
 
+func layoutNullableTypeIds(array<type?> values) as int
+    return values.length
+end
+
+func layoutNestedCScalars(array<array<c_int?>> values) as int
+    return values.length
+end
+
 // Nested recipes must stay pending when the child's slot/domain is unclosed.
 func layoutUnclosed(array<array<func(int) as int>> functions, array<Stack<int>> stacks) as int
     return functions.length + stacks.length
 end
 
-func layoutCScalars(array<c_char> a, array<c_schar> b, array<c_uchar> c,
-    array<c_short> d, array<c_ushort> e, array<c_int> f, array<c_uint> g,
-    array<c_long> h, array<c_ulong> i, array<c_longlong> j, array<c_ulonglong> k,
-    array<c_size> l, array<c_ssize> m, array<c_ptrdiff> n, array<c_intptr> o,
-    array<c_uintptr> p, array<c_bool> q, array<c_float> r, array<c_double> s,
-    array<c_wchar> t) as int
-    return a.length + b.length + c.length + d.length + e.length + f.length + g.length + h.length + i.length + j.length + k.length + l.length + m.length + n.length + o.length + p.length + q.length + r.length + s.length + t.length
+func layout_c_char(array<c_char> values) as int
+    return values.length
 end
 
-func main(...) as int
+func layout_c_char_nullable(array<c_char?> values) as int
+    return values.length
+end
+
+func layout_c_schar(array<c_schar> values) as int
+    return values.length
+end
+
+func layout_c_schar_nullable(array<c_schar?> values) as int
+    return values.length
+end
+
+func layout_c_uchar(array<c_uchar> values) as int
+    return values.length
+end
+
+func layout_c_uchar_nullable(array<c_uchar?> values) as int
+    return values.length
+end
+
+func layout_c_short(array<c_short> values) as int
+    return values.length
+end
+
+func layout_c_short_nullable(array<c_short?> values) as int
+    return values.length
+end
+
+func layout_c_ushort(array<c_ushort> values) as int
+    return values.length
+end
+
+func layout_c_ushort_nullable(array<c_ushort?> values) as int
+    return values.length
+end
+
+func layout_c_int(array<c_int> values) as int
+    return values.length
+end
+
+func layout_c_int_nullable(array<c_int?> values) as int
+    return values.length
+end
+
+func layout_c_uint(array<c_uint> values) as int
+    return values.length
+end
+
+func layout_c_uint_nullable(array<c_uint?> values) as int
+    return values.length
+end
+
+func layout_c_long(array<c_long> values) as int
+    return values.length
+end
+
+func layout_c_long_nullable(array<c_long?> values) as int
+    return values.length
+end
+
+func layout_c_ulong(array<c_ulong> values) as int
+    return values.length
+end
+
+func layout_c_ulong_nullable(array<c_ulong?> values) as int
+    return values.length
+end
+
+func layout_c_longlong(array<c_longlong> values) as int
+    return values.length
+end
+
+func layout_c_longlong_nullable(array<c_longlong?> values) as int
+    return values.length
+end
+
+func layout_c_ulonglong(array<c_ulonglong> values) as int
+    return values.length
+end
+
+func layout_c_ulonglong_nullable(array<c_ulonglong?> values) as int
+    return values.length
+end
+
+func layout_c_size(array<c_size> values) as int
+    return values.length
+end
+
+func layout_c_size_nullable(array<c_size?> values) as int
+    return values.length
+end
+
+func layout_c_ssize(array<c_ssize> values) as int
+    return values.length
+end
+
+func layout_c_ssize_nullable(array<c_ssize?> values) as int
+    return values.length
+end
+
+func layout_c_ptrdiff(array<c_ptrdiff> values) as int
+    return values.length
+end
+
+func layout_c_ptrdiff_nullable(array<c_ptrdiff?> values) as int
+    return values.length
+end
+
+func layout_c_intptr(array<c_intptr> values) as int
+    return values.length
+end
+
+func layout_c_intptr_nullable(array<c_intptr?> values) as int
+    return values.length
+end
+
+func layout_c_uintptr(array<c_uintptr> values) as int
+    return values.length
+end
+
+func layout_c_uintptr_nullable(array<c_uintptr?> values) as int
+    return values.length
+end
+
+func layout_c_bool(array<c_bool> values) as int
+    return values.length
+end
+
+func layout_c_bool_nullable(array<c_bool?> values) as int
+    return values.length
+end
+
+func layout_c_float(array<c_float> values) as int
+    return values.length
+end
+
+func layout_c_float_nullable(array<c_float?> values) as int
+    return values.length
+end
+
+func layout_c_double(array<c_double> values) as int
+    return values.length
+end
+
+func layout_c_double_nullable(array<c_double?> values) as int
+    return values.length
+end
+
+func layout_c_wchar(array<c_wchar> values) as int
+    return values.length
+end
+
+func layout_c_wchar_nullable(array<c_wchar?> values) as int
+    return values.length
+end
+
+// Preserve all domains and assertions in bounded lexical lifetimes. A layout
+// oracle must not spend minutes optimizing quadratic test-only cleanup paths.
+func layoutPrimitiveIntegers() as bool
     array<bool> flags = [true]
     array<int8> i8 = [7]
     array<int16> i16 = [7]
@@ -32,13 +193,30 @@ func main(...) as int
     array<uint16> u16 = [7]
     array<uint32> u32 = [7]
     array<uint64> u64 = [uint64(7)]
+    assert(flags[0] and i8[0] == 7 and i16[0] == 7 and i32[0] == 7 and i64[0] == 7)
+    assert(u8[0] == 7 and u16[0] == 7 and u32[0] == 7 and u64[0] == uint64(7))
+    return true
+end
+
+func layoutPrimitiveOther() as bool
     array<float32> f32 = [float32(1.5)]
     array<float64> f64 = [1.5]
     array<char> chars = ['你']
     array<time> times = [#2026-01-01#]
+    assert(f32[0] == float32(1.5) and f64[0] == 1.5 and chars[0] == '你')
+    assert(times[0] == #2026-01-01#)
+    return true
+end
+
+func layoutTextValues() as bool
     array<string> texts = ["a\0你"]
     array<bytes> binary = [b"a\0\xff"]
     array<var> mixed = [7, "a\0", null]
+    assert(texts[0] == "a\0你" and binary[0] == b"a\0\xff" and mixed[2] == null)
+    return true
+end
+
+func layoutNullableIntegers() as bool
     array<bool?> nbool = [true, null]
     array<int8?> ni8 = [7, null]
     array<int16?> ni16 = [7, null]
@@ -48,30 +226,50 @@ func main(...) as int
     array<uint16?> nu16 = [7, null]
     array<uint32?> nu32 = [7, null]
     array<uint64?> nu64 = [uint64(7), null]
+    assert(nbool[1] == null and ni8[1] == null and ni16[1] == null and ni32[1] == null)
+    assert(ni64[1] == null and nu8[1] == null and nu16[1] == null and nu32[1] == null)
+    assert(nu64[1] == null)
+    return true
+end
+
+func layoutNullableOther() as bool
     array<float32?> nf32 = [float32(1.5), null]
     array<float64?> nf64 = [1.5, null]
     array<char?> nchar = ['你', null]
     array<time?> ntime = [#2026-01-01#, null]
     array<string?> ntext = ["a\0", null]
     array<bytes?> nbytes = [b"a\0", null]
+    assert(nf32[1] == null and nf64[1] == null and nchar[1] == null)
+    assert(ntime[1] == null and ntext[1] == null and nbytes[1] == null)
+    return true
+end
+
+func layoutNominals() as bool
     array<LayoutItem> objects = [LayoutItem()]
     array<LayoutItem?> optionalObjects = [LayoutItem(), null]
+    assert(objects[0].value == 7 and optionalObjects[1] == null)
+    return true
+end
+
+func layoutNested() as bool
     array<array<int>> nested = [[1, 2], [3]]
     array<array<int>?> optionalNested = [[1], null]
     array<array<array<int>>> deepNested = [[[1, 2]]]
     array<func(int) as int> functions = [func(int value) as int
         return value + 1
     end]
-    assert(flags[0] and i8[0] == 7 and i16[0] == 7 and i32[0] == 7 and i64[0] == 7)
-    assert(u8[0] == 7 and u16[0] == 7 and u32[0] == 7 and u64[0] == uint64(7))
-    assert(f32[0] == float32(1.5) and f64[0] == 1.5 and chars[0] == '你')
-    assert(texts[0] == "a\0你" and binary[0] == b"a\0\xff" and mixed[2] == null)
-    assert(nbool[1] == null and ni8[1] == null and ni16[1] == null and ni32[1] == null)
-    assert(ni64[1] == null and nu8[1] == null and nu16[1] == null and nu32[1] == null)
-    assert(nu64[1] == null and nf32[1] == null and nf64[1] == null and nchar[1] == null)
-    assert(ntime[1] == null and ntext[1] == null and nbytes[1] == null)
-    assert(objects[0].value == 7 and optionalObjects[1] == null)
     assert(nested[0][1] == 2 and functions[0](7) == 8)
     assert(optionalNested[1] == null and deepNested[0][0][1] == 2)
+    return true
+end
+
+func main(...) as int
+    assert(layoutPrimitiveIntegers())
+    assert(layoutPrimitiveOther())
+    assert(layoutTextValues())
+    assert(layoutNullableIntegers())
+    assert(layoutNullableOther())
+    assert(layoutNominals())
+    assert(layoutNested())
     return 0
 end

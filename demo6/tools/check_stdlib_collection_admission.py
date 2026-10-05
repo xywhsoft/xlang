@@ -38,7 +38,7 @@ def main() -> int:
         parser.error("Require gcc, a fresh output, Windows current-source driver and Linux for sanitizers")
     if sum((args.defaults, args.nominal, args.layouts)) > 1:
         parser.error("Select one fixture family")
-    fixtures = ["stdlib_array_layouts"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
+    fixtures = ["stdlib_array_layouts", "stdlib_stack_nullable_c_scalar", "stdlib_stack_nullable_c_i8"] if args.layouts else ["stdlib_array_defaults", "stdlib_array_defaults_continuation"] if args.defaults else ["stdlib_collection_nominal_admission", "protocol_container_matrix"] if args.nominal else [
         "stdlib_collection_admission", "cgen_dynamic_to_typed_containers"]
     public = json.loads((args.public_directory / "build.json").read_text(encoding="utf-8-sig")) if args.public_directory else None
     if public and (public["RuntimeOnly"] or not public["SourceXrt"]):
@@ -159,19 +159,33 @@ def main() -> int:
                     assert plan["baseElementType"] == element["params"][0]
                 else:
                     assert plan["baseElementType"] == element["id"]
-            if args.layouts:
+            if args.layouts and fixture=="stdlib_array_layouts":
                 plans = [row["arrayLayout"] for row in array_types]
-                assert {"primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "sequence-reference-v1", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
+                assert {"primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1", "pending-slot", "pending-domain"} <= {p["abiName"] for p in plans}
                 nested=[p for p in plans if p['abiName']=='sequence-reference-v1']
                 assert len(nested)>=3 and {False,True}=={p['nullable'] for p in nested}
                 assert all(p['slotAbiName']=='xvalue-carrier' and not p['admissionAbi'] and
                     p['defaultAbiName']==('absent' if p['nullable'] else 'forbidden') for p in nested)
                 c_scalars=[p for p in plans if p["abiName"]=="c-scalar-v1"]
                 assert len(c_scalars)==21 and all(not p["nullable"] and not p["admissionAbi"] and p["defaultAbiName"]=="zero" for p in c_scalars)
+                optional_c=[p for p in plans if p["abiName"]=="nullable-c-scalar-v1"]
+                assert len(optional_c)==21 and all(p["nullable"] and not p["admissionAbi"] and
+                    p["defaultAbiName"]=="absent" for p in optional_c)
+                assert {"nullable-native-i8", "nullable-native-u8", "nullable-native-i16", "nullable-native-u16",
+                    "nullable-native-i32", "nullable-native-u32", "nullable-type-id"} <= {p["slotAbiName"] for p in optional_c}
                 assert set(range(1, 7)) <= {p["defaultAbi"] for p in plans}
                 assert {"empty-bytes", "absent", "forbidden"} <= {p["defaultAbiName"] for p in plans}
                 assert not any(p["defaultAbiName"] == "pending-bytes" for p in plans)
                 assert {"nullable-bool", "nullable-i64", "nullable-u64", "nullable-f32", "nullable-f64", "nullable-time", "nullable-char", "nullable-string"} <= {p["slotAbiName"] for p in plans}
+            if fixture.startswith("stdlib_stack_nullable_c_"):
+                assert "xl6StackCreateV1" in text and "xlir_xvalue_box_xlir_nullable_" not in text
+                slots={row["nativeSlotAbiName"] for row in lowered["types"]}
+                if fixture=="stdlib_stack_nullable_c_scalar":
+                    assert {"nullable-native-i8", "nullable-native-u8", "nullable-native-i16", "nullable-native-u16",
+                        "nullable-native-i32", "nullable-native-u32", "nullable-type-id"} <= slots
+                else:
+                    assert "xl6NullableNativeI8TypeV1()" in text
+                    assert not re.search(r"xl6Nullable(?:Native(?:U8|I16|U16|I32|U32)|Bool|I64|U64|F32|F64|Time|Char)(?:Type|Converter)V1\(\)",text)
             checked = [row for row in lowered["instructions"] if row["runtimeOpName"] == "xvalue-collection-checked-rebind"]
             calls = re.findall(r"= xl6CollectionCheckedTakeV1\(v\d+, \d+, ([1-9]\d*), (true|false), 0x([0-9A-F]{16})ULL\);", text)
             nominal_calls = re.findall(r"= xl6CollectionCheckedNominalTakeV1\(v\d+, \d+, &xlir_nominal_set_(\d+), (true|false)\);",text)
@@ -226,7 +240,7 @@ def main() -> int:
             contract_c = prefix.with_suffix(".contract.c")
             contract_log = run(f"{fixture}.contract", [str(contract), f"test/cases/{fixture}.xl", str(contract_c)])
             recipe_count = sum(row["arrayLayout"]["abiName"] in
-                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "sequence-reference-v1") for row in array_types)
+                ("primitive-v2", "reference-v2", "nominal-v2", "c-scalar-v1", "nullable-c-scalar-v1", "sequence-reference-v1") for row in array_types)
             recursive_mutations=sum(row['arrayLayout']['abiName']=='sequence-reference-v1' and
                 len(types[row['arrayLayout']['baseElementType']]['params'])==1 for row in array_types)
             mutation_count=len(lowered['types'])*11+recursive_mutations

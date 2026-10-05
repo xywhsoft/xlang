@@ -28,4 +28,10 @@ XL6_TEXT_API xvalue* xl6ArrayCScalarCreateV1(uint64_t, uint64_t, const xrttype*,
  * separate. No recursive traversal, borrowed schema/descriptor or code lease.
  * Nonnullable resize growth is forbidden; nullable growth yields absent. */
 XL6_TEXT_API xvalue* xl6ArraySequenceCreateV1(uint64_t, uint64_t, uint64_t, bool);
+/* Tagged native C scalars: absent has no payload domain; present uses the
+ * exact builtin width/kind, with explicit identity for type values. The
+ * optional descriptor must be an immutable resident profile getter result.
+ * Optional logical element identity differs from the nonnullable identity. */
+XL6_TEXT_API xvalue* xl6ArrayNullableCScalarCreateV1(uint64_t, uint64_t,
+    const xrttype*, const xrttype*, uint64_t);
 #endif

@@ -1,0 +1,13 @@
+func main(...) as int
+    Stack<c_schar?> values = Stack::<c_schar?>()
+    assert(values.push(null) and values.push(c_schar(-128)) and values.push(c_schar(127)))
+    Stack<c_schar?> copied = values.clone()
+    assert(copied.equals(values))
+    auto found, item = values.tryPop()
+    assert(found and item != null and item == c_schar(127))
+    auto lower = values.pop()
+    assert(lower != null and lower == c_schar(-128) and values.pop() == null)
+    auto absent, empty = values.tryPeek()
+    assert(not absent and empty == null)
+    return 0
+end
