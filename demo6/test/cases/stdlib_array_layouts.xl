@@ -2,10 +2,19 @@ class LayoutItem
     int value = 7
 end
 
-// A type-id slot has a physical scalar carrier, but no resident admission
-// policy yet. Describe that signature without exercising unsupported boxing.
+// Exact C scalar/type-id resident recipes are validated by the native oracle.
+// Source Array still has its old carrier; these signatures do not claim cutover.
 func layoutTypeIds(array<type> values) as int
     return values.length
+end
+
+func layoutCScalars(array<c_char> a, array<c_schar> b, array<c_uchar> c,
+    array<c_short> d, array<c_ushort> e, array<c_int> f, array<c_uint> g,
+    array<c_long> h, array<c_ulong> i, array<c_longlong> j, array<c_ulonglong> k,
+    array<c_size> l, array<c_ssize> m, array<c_ptrdiff> n, array<c_intptr> o,
+    array<c_uintptr> p, array<c_bool> q, array<c_float> r, array<c_double> s,
+    array<c_wchar> t) as int
+    return a.length + b.length + c.length + d.length + e.length + f.length + g.length + h.length + i.length + j.length + k.length + l.length + m.length + n.length + o.length + p.length + q.length + r.length + s.length + t.length
 end
 
 func main(...) as int

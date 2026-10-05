@@ -66,6 +66,8 @@ def main() -> int:
         "test/cases/stdlib_array_projection_identity_native_host.c",
         "test/cases/stdlib_sequence_retired_admission_abi.c",
         "src/runtime/xl6_array_primitive_admission.c")]
+    files += [root / name for name in ("tools/check_stdlib_array_c_scalar.py",
+        "test/cases/stdlib_array_c_scalar_native_host.c", "src/runtime/xl6_array_c_scalar_admission.c")]
     # Freeze project header dependencies, including the real resident layouts.
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
@@ -246,6 +248,19 @@ def main() -> int:
             "Projections": True,
             "Profiles": primitive["Profiles"], "ClosedPrefixes": len(primitive["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in primitive["Sweeps"]),
+            "Complete": True, "InputsUnchanged": True}
+        child = out / "admission-c-scalar"
+        command = [sys.executable, "tools/check_stdlib_array_c_scalar.py", "--out", str(child)]
+        if args.sanitize:
+            command += ["--sanitize"]
+        run(child.name, command, timeout=180)
+        c_scalar = json.loads((child / "results.json").read_text(encoding="utf-8"))
+        if not c_scalar["Complete"] or not c_scalar["InputsUnchanged"] or c_scalar["NativeMappings"]!=21:
+            raise RuntimeError("Incomplete exact native C scalar/type-id admission evidence")
+        report["CScalarReport"] = {"Directory": str(child), "Checks": len(c_scalar["Rows"]),
+            "Profiles": c_scalar["Profiles"], "NativeMappings": c_scalar["NativeMappings"],
+            "ClosedPrefixes": len(c_scalar["Sweeps"]),
+            "AllocationPositions": sum(row["FirstNoHit"]+1 for row in c_scalar["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
         report["InputsUnchanged"] = all(digest(Path(p["Path"])) == p["Sha256"] for p in inputs)
         if not report["InputsUnchanged"]:
