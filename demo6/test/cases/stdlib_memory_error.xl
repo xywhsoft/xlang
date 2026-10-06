@@ -1,0 +1,19 @@
+func failMemory() as int
+    throw MemoryError "memory\0你"
+    return 0
+end
+
+int handled = 0
+try
+    int ignored = failMemory()
+catch MemoryError failure
+    assert failure.kind == "MemoryError"
+    assert failure.message == "memory\0你"
+    assert string(failure) == "memory\0你"
+    assert f"{failure}" == "memory\0你"
+    handled = 73
+catch Error failure
+    handled = 91
+end
+assert handled == 73
+print("typed MemoryError ok")

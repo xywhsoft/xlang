@@ -117,11 +117,8 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
         xl6CgenEmitBase64BytesCodecRuntime(out, xl6IrCgenNeedsXrtDeclarations(needs));
     if ( needs->needsLastErrorTextBridgeRuntime )
         xl6OutputPuts(
-            "extern size_t strlen(const char*);\n"
             "xlir_string xl6_xrt_last_error_text(void)\n"
-            "{ const xerror* error = xrtGetError(); const char* message = error != NULL ? xrtErrorMessage(error) : NULL;\n"
-            "  if (message == NULL) message = \"\";\n"
-            "  return xlir_string_from_utf8(message, strlen(message)); }\n\n",
+            "{ return xl6ErrorMessageCopyV1(xrtGetError()); }\n\n",
             out);
     if ( needs->needsStringCharLenBridgeRuntime )
         xl6OutputPuts(

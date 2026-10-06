@@ -13,7 +13,7 @@ if ! getconf GNU_LIBC_VERSION >/dev/null 2>&1; then
     exit 1
 fi
 
-BUILD_DIR="$ROOT/build/linux"
+BUILD_DIR="${XL6_LINUX_BUILD_DIR:-$ROOT/build/linux}"
 TCC_SOURCE_DIR="$BUILD_DIR/tcc-source"
 TCC_DIST_DIR="$BUILD_DIR/tcc-dist"
 PACK_TOOL="$BUILD_DIR/tcc_vfs_lzma_pack"
@@ -233,6 +233,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_value_text.c"
     "$ROOT/src/runtime/xl6_print_values.c"
     "$ROOT/src/runtime/xl6_class_text.c"
+    "$ROOT/src/runtime/xl6_error_text.c"
     "$ROOT/src/runtime/xl6_nominal_admission.c"
     "$ROOT/src/runtime/xl6_char_type.c"
     "$ROOT/src/runtime/xl6_char_value.c"

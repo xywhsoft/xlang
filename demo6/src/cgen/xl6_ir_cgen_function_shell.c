@@ -105,7 +105,7 @@ static int xl6IrCgenEmitHostBindings(
         "#ifndef XLIR_XRT_DECLARATIONS\n"
         "typedef enum xconsolestream { XCONSOLE_STDOUT = 1, XCONSOLE_STDERR } xconsolestream;\n"
         "extern const xerror* xrtGetError(void);\n"
-        "extern const char* xrtErrorMessage(const xerror*);\n"
+        "extern xstrview xrtErrorMessageView(const xerror*);\n"
         "extern void xrtClearError(void);\n"
         "extern xstrview xrtStrView(const char*);\n"
         "extern bool xrtConsoleWrite(xconsolestream, xstrview);\n"
@@ -125,7 +125,7 @@ static int xl6IrCgenEmitHostBindings(
             "        (void)xrtConsoleWrite(XCONSOLE_STDERR, xrtStrView(\": \"));\n",
             out);
     xl6OutputPuts(
-        "        (void)xrtConsoleWriteLine(XCONSOLE_STDERR, xrtStrView(xrtErrorMessage(error)));\n"
+        "        (void)xrtConsoleWriteLine(XCONSOLE_STDERR, xrtErrorMessageView(error));\n"
         "    }\n"
         "}\n\n"
         "XLIR_C_API void xl_script_clear_error(void)\n"

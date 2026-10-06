@@ -2297,7 +2297,9 @@ typedef enum XL6_IrStringConversionAbi {
      * not an integer that Cgen may format numerically. */
     XL6_IR_STRING_CONVERSION_CHAR_VALUE,
     /* Exact F32 value, widened once before the common F64 formatter. */
-    XL6_IR_STRING_CONVERSION_F32_VALUE
+    XL6_IR_STRING_CONVERSION_F32_VALUE,
+    /* Borrow the immutable Error and return an exact owned message copy. */
+    XL6_IR_STRING_CONVERSION_BORROW_ERROR_MESSAGE
 } XL6_IrStringConversionAbi;
 
 /* Operand ABI describes what the intrinsic is allowed to do with the source

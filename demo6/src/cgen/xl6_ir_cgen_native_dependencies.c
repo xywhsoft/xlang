@@ -214,6 +214,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    /* All Error text operations share one resident immutable-error provider.
+     * This is a verified emission need, not a scan of generated C tokens. */
+    if (needs.needsErrorRuntime && !visitor(context,"xl6ErrorCreateV1")) return 0;
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {

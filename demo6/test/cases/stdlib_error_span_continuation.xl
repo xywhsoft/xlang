@@ -1,0 +1,39 @@
+async func preserveSpan(error value) as error
+    time.sleep(1)
+    return value
+end
+
+func failSpan() as int
+    throw ValueError "worker\0你"
+    return 0
+end
+
+func recoverSpan(error failure) as int
+    if failure.kind == "MemoryError" then
+        throw MemoryError failure.message
+    end
+    error original = failure.cause
+    if original.kind == "MemoryError" then
+        throw MemoryError original.message
+    end
+    assert failure.kind == "AsyncError"
+    assert failure.message == "worker\0你"
+    assert original.message == "worker\0你" and original.kind == "ValueError"
+    return 73
+end
+
+try
+    throw ValueError "catch\0你"
+catch ValueError captured
+    future<error> pending = preserveSpan(captured)
+    error first = await pending
+    error second = await pending
+    assert first.message == "catch\0你" and second.message == "catch\0你"
+    error temporary = await preserveSpan(captured)
+    var dynamic = temporary
+    assert string(dynamic) == "catch\0你"
+    assert f"{temporary}" == "catch\0你"
+end
+future<int> result = task.spawn(failSpan).catch(recoverSpan)
+assert await result == 73
+print("exact error continuation ok")

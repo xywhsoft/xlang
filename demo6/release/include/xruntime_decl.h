@@ -8318,6 +8318,26 @@ typedef struct xerrorlocation {
 	int32 Column;
 } xerrorlocation;
 
+/* Exact immutable diagnostic text. Views are borrowed only during Build;
+ * every field is copied with its byte size, including embedded NUL. NULL/0
+ * is empty; NULL/nonzero is invalid. No view or caller buffer is retained. */
+typedef struct xerrordescview {
+	xerrkind Kind;
+	int32 Code;
+	int32 SystemCode;
+	xstrview Domain;
+	xstrview Operation;
+	xstrview Message;
+	xstrview Data;
+	const xerror* Cause;
+} xerrordescview;
+
+typedef struct xerrorlocationview {
+	xstrview File;
+	int32 Line;
+	int32 Column;
+} xerrorlocationview;
+
 
 
 /* 错误处理器只借用错误对象，保存时必须增加引用。 */
@@ -8338,6 +8358,15 @@ XRT_API xerror* xrtErrorBuild(const xerrordesc* pDesc);
 XRT_API xerror* xrtErrorBuildAt(
 	const xerrordesc* pDesc,
 	const xerrorlocation* pLocation
+);
+
+/* One allocation for the immutable object and all five copied, terminated
+ * byte spans. Failure retains no input or cause. Size arithmetic is checked
+ * before allocation/copy. The C-string Build APIs adapt to this same core. */
+XRT_API xerror* xrtErrorBuildView(const xerrordescview* pDesc);
+XRT_API xerror* xrtErrorBuildViewAt(
+	const xerrordescview* pDesc,
+	const xerrorlocationview* pLocation
 );
 
 
@@ -8408,6 +8437,15 @@ XRT_API cstr xrtErrorData(const xerror* pError);
 
 /* 返回可选的源码文件名。 */
 XRT_API cstr xrtErrorFile(const xerror* pError);
+
+/* Exact borrowed immutable spans, valid while the error is alive. NULL error
+ * yields empty views. C-string getters above remain explicit C interop:
+ * they terminate at the first NUL, whereas these sizes retain every byte. */
+XRT_API xstrview xrtErrorDomainView(const xerror* pError);
+XRT_API xstrview xrtErrorOperationView(const xerror* pError);
+XRT_API xstrview xrtErrorMessageView(const xerror* pError);
+XRT_API xstrview xrtErrorDataView(const xerror* pError);
+XRT_API xstrview xrtErrorFileView(const xerror* pError);
 
 
 

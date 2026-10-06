@@ -5317,6 +5317,26 @@ typedef struct xerrorlocation {
 	int32 Column;
 } xerrorlocation;
 
+/* Exact immutable diagnostic text. Views are borrowed only during Build;
+ * every field is copied with its byte size, including embedded NUL. NULL/0
+ * is empty; NULL/nonzero is invalid. No view or caller buffer is retained. */
+typedef struct xerrordescview {
+	xerrkind Kind;
+	int32 Code;
+	int32 SystemCode;
+	xstrview Domain;
+	xstrview Operation;
+	xstrview Message;
+	xstrview Data;
+	const xerror* Cause;
+} xerrordescview;
+
+typedef struct xerrorlocationview {
+	xstrview File;
+	int32 Line;
+	int32 Column;
+} xerrorlocationview;
+
 
 
 /* 错误处理器只借用错误对象，保存时必须增加引用。 */
@@ -5337,6 +5357,15 @@ XRT_API xerror* xrtErrorBuild(const xerrordesc* pDesc);
 XRT_API xerror* xrtErrorBuildAt(
 	const xerrordesc* pDesc,
 	const xerrorlocation* pLocation
+);
+
+/* One allocation for the immutable object and all five copied, terminated
+ * byte spans. Failure retains no input or cause. Size arithmetic is checked
+ * before allocation/copy. The C-string Build APIs adapt to this same core. */
+XRT_API xerror* xrtErrorBuildView(const xerrordescview* pDesc);
+XRT_API xerror* xrtErrorBuildViewAt(
+	const xerrordescview* pDesc,
+	const xerrorlocationview* pLocation
 );
 
 
@@ -5407,6 +5436,15 @@ XRT_API cstr xrtErrorData(const xerror* pError);
 
 /* 返回可选的源码文件名。 */
 XRT_API cstr xrtErrorFile(const xerror* pError);
+
+/* Exact borrowed immutable spans, valid while the error is alive. NULL error
+ * yields empty views. C-string getters above remain explicit C interop:
+ * they terminate at the first NUL, whereas these sizes retain every byte. */
+XRT_API xstrview xrtErrorDomainView(const xerror* pError);
+XRT_API xstrview xrtErrorOperationView(const xerror* pError);
+XRT_API xstrview xrtErrorMessageView(const xerror* pError);
+XRT_API xstrview xrtErrorDataView(const xerror* pError);
+XRT_API xstrview xrtErrorFileView(const xerror* pError);
 
 
 
@@ -64795,11 +64833,11 @@ struct xerror {
 	xerrkind Kind;
 	int32 Code;
 	int32 SystemCode;
-	cstr Domain;
-	cstr Operation;
-	cstr Message;
-	cstr Data;
-	cstr File;
+	xstrview Domain;
+	xstrview Operation;
+	xstrview Message;
+	xstrview Data;
+	xstrview File;
 	int32 Line;
 	int32 Column;
 	xerror* Cause;
@@ -64862,78 +64900,36 @@ XRT_API const xrtownershipadapterv1* xrtErrorOwnershipAdapterV1(xrtownershipref 
 }
 
 /* 核心错误使用静态对象，保证分配失败时仍能报告。 */
+#define XRT_ERROR_LITERAL(Text) { (Text), sizeof(Text) - 1u }
+#define XRT_STATIC_ERROR(Kind, Code, Domain, Operation, Message) \
+	{ INT32_MAX, XRT_ERROR_STATIC, (Kind), (Code), 0, \
+	  XRT_ERROR_LITERAL(Domain), XRT_ERROR_LITERAL(Operation), \
+	  XRT_ERROR_LITERAL(Message), XRT_ERROR_LITERAL(""), XRT_ERROR_LITERAL(""), \
+	  0, 0, NULL }
 static xerror __xrtOutOfMemoryError = {
 	INT32_MAX, XRT_ERROR_STATIC, XERR_MEMORY, 1, 0,
-	"xrt.memory", "allocate", "memory allocation failed", "", "", 0, 0, NULL
+	XRT_ERROR_LITERAL("xrt.memory"), XRT_ERROR_LITERAL("allocate"),
+	XRT_ERROR_LITERAL("memory allocation failed"), XRT_ERROR_LITERAL(""), XRT_ERROR_LITERAL(""), 0, 0, NULL
 };
-static xerror __xrtIoErrorStatic = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_IO, 1, 0,
-	"xrt.io", "io", "input or output operation failed", "", "", 0, 0, NULL
-};
-static xerror __xrtNotFoundErrorStatic = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_NOT_FOUND, 1, 0,
-	"xrt.core", "lookup", "requested value was not found", "", "", 0, 0, NULL
-};
-static xerror __xrtPermissionErrorStatic = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_PERMISSION, 1, 0,
-	"xrt.core", "access", "operation is not permitted", "", "", 0, 0, NULL
-};
-static xerror __xrtProtocolErrorStatic = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_PROTOCOL, 1, 0,
-	"xrt.core", "protocol", "protocol contract was violated", "", "", 0, 0, NULL
-};
-static xerror __xrtInvalidArgumentError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_ARGUMENT, 1, 0,
-	"xrt.core", "validate", "invalid argument", "", "", 0, 0, NULL
-};
-static xerror __xrtTypeError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_TYPE, 1, 0,
-	"xrt.core", "type", "value has an incompatible type", "", "", 0, 0, NULL
-};
-static xerror __xrtValueError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_VALUE, 1, 0,
-	"xrt.core", "value", "value is not valid for this operation", "", "", 0, 0, NULL
-};
-static xerror __xrtInvalidStateError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_STATE, 1, 0,
-	"xrt.core", "state", "operation is not valid in the current state", "", "", 0, 0, NULL
-};
-static xerror __xrtSizeOverflowError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_RANGE, 1, 0,
-	"xrt.memory", "size", "memory size overflow", "", "", 0, 0, NULL
-};
-static xerror __xrtRangeError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_RANGE, 2, 0,
-	"xrt.core", "index", "index or range is out of bounds", "", "", 0, 0, NULL
-};
-static xerror __xrtAgainError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_AGAIN, 1, 0,
-	"xrt.core", "capacity", "operation cannot continue without available capacity", "", "", 0, 0, NULL
-};
-static xerror __xrtUnsupportedError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_UNSUPPORTED, 1, 0,
-	"xrt.core", "operation", "operation is not supported", "", "", 0, 0, NULL
-};
-static xerror __xrtExistsError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_EXISTS, 1, 0,
-	"xrt.core", "insert", "value already exists", "", "", 0, 0, NULL
-};
-static xerror __xrtCancelledError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_CANCELLED, 1, 0,
-	"xrt.core", "cancel", "operation was cancelled", "", "", 0, 0, NULL
-};
-static xerror __xrtTimeoutError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_TIMEOUT, 1, 0,
-	"xrt.core", "wait", "operation timed out", "", "", 0, 0, NULL
-};
-static xerror __xrtClosedError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_CLOSED, 1, 0,
-	"xrt.core", "close", "resource is closed", "", "", 0, 0, NULL
-};
-static xerror __xrtInternalError = {
-	INT32_MAX, XRT_ERROR_STATIC, XERR_INTERNAL, 1, 0,
-	"xrt.core", "invariant", "internal contract was violated", "", "", 0, 0, NULL
-};
+static xerror __xrtIoErrorStatic = XRT_STATIC_ERROR(XERR_IO, 1, "xrt.io", "io", "input or output operation failed");
+static xerror __xrtNotFoundErrorStatic = XRT_STATIC_ERROR(XERR_NOT_FOUND, 1, "xrt.core", "lookup", "requested value was not found");
+static xerror __xrtPermissionErrorStatic = XRT_STATIC_ERROR(XERR_PERMISSION, 1, "xrt.core", "access", "operation is not permitted");
+static xerror __xrtProtocolErrorStatic = XRT_STATIC_ERROR(XERR_PROTOCOL, 1, "xrt.core", "protocol", "protocol contract was violated");
+static xerror __xrtInvalidArgumentError = XRT_STATIC_ERROR(XERR_ARGUMENT, 1, "xrt.core", "validate", "invalid argument");
+static xerror __xrtTypeError = XRT_STATIC_ERROR(XERR_TYPE, 1, "xrt.core", "type", "value has an incompatible type");
+static xerror __xrtValueError = XRT_STATIC_ERROR(XERR_VALUE, 1, "xrt.core", "value", "value is not valid for this operation");
+static xerror __xrtInvalidStateError = XRT_STATIC_ERROR(XERR_STATE, 1, "xrt.core", "state", "operation is not valid in the current state");
+static xerror __xrtSizeOverflowError = XRT_STATIC_ERROR(XERR_RANGE, 1, "xrt.memory", "size", "memory size overflow");
+static xerror __xrtRangeError = XRT_STATIC_ERROR(XERR_RANGE, 2, "xrt.core", "index", "index or range is out of bounds");
+static xerror __xrtAgainError = XRT_STATIC_ERROR(XERR_AGAIN, 1, "xrt.core", "capacity", "operation cannot continue without available capacity");
+static xerror __xrtUnsupportedError = XRT_STATIC_ERROR(XERR_UNSUPPORTED, 1, "xrt.core", "operation", "operation is not supported");
+static xerror __xrtExistsError = XRT_STATIC_ERROR(XERR_EXISTS, 1, "xrt.core", "insert", "value already exists");
+static xerror __xrtCancelledError = XRT_STATIC_ERROR(XERR_CANCELLED, 1, "xrt.core", "cancel", "operation was cancelled");
+static xerror __xrtTimeoutError = XRT_STATIC_ERROR(XERR_TIMEOUT, 1, "xrt.core", "wait", "operation timed out");
+static xerror __xrtClosedError = XRT_STATIC_ERROR(XERR_CLOSED, 1, "xrt.core", "close", "resource is closed");
+static xerror __xrtInternalError = XRT_STATIC_ERROR(XERR_INTERNAL, 1, "xrt.core", "invariant", "internal contract was violated");
+#undef XRT_STATIC_ERROR
+#undef XRT_ERROR_LITERAL
 
 
 
@@ -65212,21 +65208,21 @@ static void __xrtCurrentErrorSet(xerror* pError)
 
 
 
-/* 复制一个可选字符串到连续错误内存。 */
-static cstr __xrtErrorCopyText(char** pWrite, cstr sText)
+/* C-string entry points explicitly measure once; view entry points never do. */
+static xstrview __xrtErrorCStringView(cstr sText)
 {
-	size_t iSize;
-	cstr sResult;
+	xstrview Text = { sText != NULL ? sText : "", sText != NULL ? strlen(sText) : 0 };
+	return Text;
+}
 
-	if ( sText == NULL ) {
-		sText = "";
-	}
-	iSize = strlen(sText) + 1;
-	sResult = *pWrite;
-	memcpy(*pWrite, sText, iSize);
-	*pWrite += iSize;
-
-	return sResult;
+/* Sizes and NULL spans have already been checked by the single constructor. */
+static xstrview __xrtErrorCopyText(char** pWrite, xstrview Text)
+{
+	xstrview Result = { *pWrite, Text.Size };
+	if (Text.Size != 0) memcpy(*pWrite, Text.Data, Text.Size);
+	(*pWrite)[Text.Size] = '\0';
+	*pWrite += Text.Size + 1;
+	return Result;
 }
 
 
@@ -65491,12 +65487,36 @@ XRT_API xerror* xrtErrorBuildAt(
 	const xerrorlocation* pLocation
 )
 {
-	size_t iDomainSize;
-	size_t iOperationSize;
-	size_t iMessageSize;
-	size_t iDataSize;
-	size_t iFileSize;
-	size_t iTextSize;
+	xerrordescview Desc;
+	xerrorlocationview Location;
+	if (pDesc == NULL) { __xrtErrorSetInvalidArgument(); return NULL; }
+	Desc.Kind = pDesc->Kind;
+	Desc.Code = pDesc->Code;
+	Desc.SystemCode = pDesc->SystemCode;
+	Desc.Domain = __xrtErrorCStringView(pDesc->Domain);
+	Desc.Operation = __xrtErrorCStringView(pDesc->Operation);
+	Desc.Message = __xrtErrorCStringView(pDesc->Message);
+	Desc.Data = __xrtErrorCStringView(pDesc->Data);
+	Desc.Cause = pDesc->Cause;
+	if (pLocation != NULL) {
+		Location.File = __xrtErrorCStringView(pLocation->File);
+		Location.Line = pLocation->Line;
+		Location.Column = pLocation->Column;
+	}
+	return xrtErrorBuildViewAt(&Desc, pLocation != NULL ? &Location : NULL);
+}
+
+XRT_API xerror* xrtErrorBuildView(const xerrordescview* pDesc)
+{ return xrtErrorBuildViewAt(pDesc, NULL); }
+
+XRT_API xerror* xrtErrorBuildViewAt(
+	const xerrordescview* pDesc,
+	const xerrorlocationview* pLocation
+)
+{
+	size_t iAllocationSize = sizeof(xerror);
+	size_t i;
+	xstrview Text[5];
 	xerror* pError;
 	char* pWrite;
 
@@ -65514,28 +65534,23 @@ XRT_API xerror* xrtErrorBuildAt(
 		return NULL;
 	}
 
-	iDomainSize = strlen(pDesc->Domain != NULL ? pDesc->Domain : "") + 1;
-	iOperationSize = strlen(pDesc->Operation != NULL ? pDesc->Operation : "") + 1;
-	iMessageSize = strlen(pDesc->Message != NULL ? pDesc->Message : "") + 1;
-	iDataSize = strlen(pDesc->Data != NULL ? pDesc->Data : "") + 1;
-	iFileSize = strlen(
-		(pLocation != NULL) && (pLocation->File != NULL) ? pLocation->File : ""
-	) + 1;
-	if ( (iDomainSize > (SIZE_MAX - iOperationSize)) ||
-		 ((iDomainSize + iOperationSize) > (SIZE_MAX - iMessageSize)) ||
-		 ((iDomainSize + iOperationSize + iMessageSize) > (SIZE_MAX - iDataSize)) ||
-		 ((iDomainSize + iOperationSize + iMessageSize + iDataSize) >
-		  (SIZE_MAX - iFileSize)) ) {
-		__xrtErrorSetSizeOverflow();
-		return NULL;
-	}
-	iTextSize = iDomainSize + iOperationSize + iMessageSize + iDataSize + iFileSize;
-	if ( iTextSize > (SIZE_MAX - sizeof(xerror)) ) {
-		__xrtErrorSetSizeOverflow();
-		return NULL;
+	Text[0] = pDesc->Domain;
+	Text[1] = pDesc->Operation;
+	Text[2] = pDesc->Message;
+	Text[3] = pDesc->Data;
+	Text[4] = pLocation != NULL ? pLocation->File : (xstrview){ NULL, 0 };
+	for (i = 0; i < 5; ++i) {
+		if (Text[i].Data == NULL && Text[i].Size != 0) {
+			__xrtErrorSetInvalidArgument(); return NULL;
+		}
+		/* Every copied span also needs its C-interoperability terminator. */
+		if (Text[i].Size >= SIZE_MAX - iAllocationSize) {
+			__xrtErrorSetSizeOverflow(); return NULL;
+		}
+		iAllocationSize += Text[i].Size + 1;
 	}
 
-	pError = (xerror*)xrtMalloc(sizeof(xerror) + iTextSize);
+	pError = (xerror*)xrtMalloc(iAllocationSize);
 	if ( pError == NULL ) {
 		return NULL;
 	}
@@ -65557,10 +65572,7 @@ XRT_API xerror* xrtErrorBuildAt(
 	pError->Operation = __xrtErrorCopyText(&pWrite, pDesc->Operation);
 	pError->Message = __xrtErrorCopyText(&pWrite, pDesc->Message);
 	pError->Data = __xrtErrorCopyText(&pWrite, pDesc->Data);
-	pError->File = __xrtErrorCopyText(
-		&pWrite,
-		pLocation != NULL ? pLocation->File : NULL
-	);
+	pError->File = __xrtErrorCopyText(&pWrite, Text[4]);
 
 	return pError;
 }
@@ -65651,7 +65663,7 @@ XRT_API xerrkind xrtErrorKind(const xerror* pError)
 /* 返回错误所属的稳定域。 */
 XRT_API cstr xrtErrorDomain(const xerror* pError)
 {
-	return pError != NULL ? pError->Domain : "";
+	return pError != NULL ? pError->Domain.Data : "";
 }
 
 
@@ -65675,7 +65687,7 @@ XRT_API int32 xrtErrorSystemCode(const xerror* pError)
 /* 返回发生错误的操作名称。 */
 XRT_API cstr xrtErrorOperation(const xerror* pError)
 {
-	return pError != NULL ? pError->Operation : "";
+	return pError != NULL ? pError->Operation.Data : "";
 }
 
 
@@ -65683,7 +65695,7 @@ XRT_API cstr xrtErrorOperation(const xerror* pError)
 /* 返回错误消息。 */
 XRT_API cstr xrtErrorMessage(const xerror* pError)
 {
-	return pError != NULL ? pError->Message : "";
+	return pError != NULL ? pError->Message.Data : "";
 }
 
 
@@ -65691,7 +65703,7 @@ XRT_API cstr xrtErrorMessage(const xerror* pError)
 /* 返回可选的机器可读附加数据。 */
 XRT_API cstr xrtErrorData(const xerror* pError)
 {
-	return pError != NULL ? pError->Data : "";
+	return pError != NULL ? pError->Data.Data : "";
 }
 
 
@@ -65699,8 +65711,19 @@ XRT_API cstr xrtErrorData(const xerror* pError)
 /* 返回可选的源码文件名。 */
 XRT_API cstr xrtErrorFile(const xerror* pError)
 {
-	return pError != NULL ? pError->File : "";
+	return pError != NULL ? pError->File.Data : "";
 }
+
+XRT_API xstrview xrtErrorDomainView(const xerror* pError)
+{ return pError != NULL ? pError->Domain : (xstrview){ "", 0 }; }
+XRT_API xstrview xrtErrorOperationView(const xerror* pError)
+{ return pError != NULL ? pError->Operation : (xstrview){ "", 0 }; }
+XRT_API xstrview xrtErrorMessageView(const xerror* pError)
+{ return pError != NULL ? pError->Message : (xstrview){ "", 0 }; }
+XRT_API xstrview xrtErrorDataView(const xerror* pError)
+{ return pError != NULL ? pError->Data : (xstrview){ "", 0 }; }
+XRT_API xstrview xrtErrorFileView(const xerror* pError)
+{ return pError != NULL ? pError->File : (xstrview){ "", 0 }; }
 
 
 
@@ -65745,11 +65768,14 @@ XRT_API const xerror* xrtErrorIs(const xerror* pError, xerrkind Kind)
 /* 沿原因链查找完全匹配的错误域和代码，返回借用的错误对象。 */
 XRT_API const xerror* xrtErrorFind(const xerror* pError, cstr sDomain, int32 iCode)
 {
+	size_t iDomainSize;
 	if ( sDomain == NULL ) {
 		return NULL;
 	}
+	iDomainSize = strlen(sDomain);
 	while ( pError != NULL ) {
-		if ( (pError->Code == iCode) && (strcmp(pError->Domain, sDomain) == 0) ) {
+		if ( (pError->Code == iCode) && pError->Domain.Size == iDomainSize &&
+			 (iDomainSize == 0 || memcmp(pError->Domain.Data, sDomain, iDomainSize) == 0) ) {
 			return pError;
 		}
 		pError = pError->Cause;
@@ -198646,7 +198672,13 @@ XRT_API void xrtSetErrorFormat(
 		return;
 	}
 	va_end(Args);
-	xrtSetErrorInfo(Kind, sDomain, iCode, sMessage);
+	{
+		xerrordescview Desc = { Kind, iCode, 0,
+			{ sDomain != NULL ? sDomain : "", sDomain != NULL ? strlen(sDomain) : 0 },
+			{ "", 0 }, { sMessage, (size_t)iLength }, { "", 0 }, NULL };
+		xerror* pError = xrtErrorBuildView(&Desc);
+		if (pError != NULL) xrtSetErrorTake(pError);
+	}
 	if ( sMessage != arrLocal ) {
 		xrtFree(sMessage);
 	}
@@ -300586,14 +300618,6 @@ static bool __xrtLogTextView(xlogtextwriter* pWriter, xstrview Text)
 
 
 
-/* 把保证非空的错误文本转换为借用视图。 */
-static xstrview __xrtLogTextCString(cstr sText)
-{
-	return (xstrview){ sText, strlen(sText) };
-}
-
-
-
 /* 把控制字节和反斜杠转义为稳定单行文本。 */
 static bool __xrtLogTextEscape(
 	xlogtextwriter* pWriter,
@@ -300876,7 +300900,7 @@ static bool __xrtLogTextFieldValue(
 		__xrtLogTextAscii(pWriter, ",domain=") &&
 		__xrtLogTextEscape(
 			pWriter,
-			__xrtLogTextCString(xrtErrorDomain(pField->Value.Error)),
+			xrtErrorDomainView(pField->Value.Error),
 			true
 		) &&
 		__xrtLogTextAscii(pWriter, ",code=") &&
@@ -300887,7 +300911,7 @@ static bool __xrtLogTextFieldValue(
 		__xrtLogTextAscii(pWriter, ",message=") &&
 		__xrtLogTextEscape(
 			pWriter,
-			__xrtLogTextCString(xrtErrorMessage(pField->Value.Error)),
+			xrtErrorMessageView(pField->Value.Error),
 			true
 		) &&
 		__xrtLogTextAscii(pWriter, "}");
@@ -301484,8 +301508,8 @@ static bool __xrtLogJsonErrorValue(
 )
 {
 	bool bAny = false;
-	cstr sOperation;
-	cstr sData;
+	xstrview Operation;
+	xstrview Data;
 	const xerror* pCause;
 
 	if ( pError == NULL ) {
@@ -301501,8 +301525,8 @@ static bool __xrtLogJsonErrorValue(
 		pWriter->Failed = true;
 		return false;
 	}
-	sOperation = xrtErrorOperation(pError);
-	sData = xrtErrorData(pError);
+	Operation = xrtErrorOperationView(pError);
+	Data = xrtErrorDataView(pError);
 	pCause = xrtErrorCause(pError);
 	return
 		__xrtLogJsonAscii(pWriter, "{") &&
@@ -301511,7 +301535,7 @@ static bool __xrtLogJsonErrorValue(
 		__xrtLogJsonMember(pWriter, &bAny, "domain") &&
 		__xrtLogJsonQuote(
 			pWriter,
-			__xrtLogJsonCString(xrtErrorDomain(pError))
+			xrtErrorDomainView(pError)
 		) &&
 		__xrtLogJsonMember(pWriter, &bAny, "code") &&
 		__xrtLogJsonInt(pWriter, (int64)xrtErrorCode(pError)) &&
@@ -301526,25 +301550,25 @@ static bool __xrtLogJsonErrorValue(
 			)
 		) &&
 		(
-			(sOperation[0] == 0) ||
+			(Operation.Size == 0) ||
 			(
 				__xrtLogJsonMember(pWriter, &bAny, "operation") &&
 				__xrtLogJsonQuote(
 					pWriter,
-					__xrtLogJsonCString(sOperation)
+					Operation
 				)
 			)
 		) &&
 		__xrtLogJsonMember(pWriter, &bAny, "message") &&
 		__xrtLogJsonQuote(
 			pWriter,
-			__xrtLogJsonCString(xrtErrorMessage(pError))
+			xrtErrorMessageView(pError)
 		) &&
 		(
-			(sData[0] == 0) ||
+			(Data.Size == 0) ||
 			(
 				__xrtLogJsonMember(pWriter, &bAny, "data") &&
-				__xrtLogJsonQuote(pWriter, __xrtLogJsonCString(sData))
+				__xrtLogJsonQuote(pWriter, Data)
 			)
 		) &&
 		(

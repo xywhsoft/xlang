@@ -27,7 +27,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
           * optional method happens to accompany a minimal consumer. This
           * header contributes no implementation or native component root. */
          needs->needsXValueRuntime || needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ||
-         needs->needsStringScalarRuntime || needs->needsBytesRuntime ||
+         needs->needsStringScalarRuntime || needs->needsBytesRuntime || needs->needsErrorRuntime ||
          needs->needsXCallRuntime || needs->needsClosureRuntime || needs->needsCellRuntime ||
          /* Even scalar-only machines emit physical Future/Promise frame
           * traces. Consume the canonical DECLARATION header, not a second
