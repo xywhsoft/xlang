@@ -1,0 +1,43 @@
+class ExactValueFields
+    char zero = '\0'
+    char unicode = '你'
+    float32 number = float32(1.25)
+    bytes data = b"A\0你"
+    bytes? optional = null
+
+    func implicitChar() as char
+        return unicode
+    end
+
+    func implicitBytes() as bytes
+        return data
+    end
+end
+
+ExactValueFields item = ExactValueFields()
+assert item.zero == '\0' and item.unicode == '你'
+assert item.number == float32(1.25)
+assert string(item.number) == "1.25" and f"{item.number}" == "1.25"
+assert item.implicitChar() == '你'
+assert item.data == b"A\0你" and item.optional == null
+assert item.implicitBytes() == item.data
+bytes copy = item.data
+copy[0] = uint8(90)
+assert copy == b"Z\0你" and item.data == b"A\0你"
+item.optional = b"B\0你"
+bytes? optionalCopy = item.optional
+bytes? expectedOptional = b"B\0你"
+assert optionalCopy == expectedOptional
+assert ExactValueFields().zero == '\0'
+assert ExactValueFields().number == float32(1.25)
+assert ExactValueFields().data == b"A\0你"
+assert ExactValueFields().optional == null
+ExactValueFields? present = item
+ExactValueFields? absent = null
+char? expectedChar = '你'
+bytes? expectedData = b"A\0你"
+assert present?.unicode == expectedChar and absent?.unicode == null
+assert present?.data == expectedData and absent?.data == null
+array<ExactValueFields> values = array<ExactValueFields>[item]
+assert values[0].zero == '\0' and values[0].data == b"A\0你"
+print("class exact value fields ok")

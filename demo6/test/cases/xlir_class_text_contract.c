@@ -5,7 +5,7 @@ int main(int argc, char** argv)
     XL6_ParseResult parse;
     XL6_IrModule ir;
     XL6_Output out;
-    size_t conversions = 0, layouts = 0;
+    size_t conversions = 0, layouts = 0, members = 0;
     assert(argc == 5);
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argv[1], &parse) ||
@@ -16,6 +16,24 @@ int main(int argc, char** argv)
         xl6DiagPrintText(&parse.diags, argv[1]); return 2;
     }
     verify(&ir);
+    for (size_t i = 0; i < ir.nodeCount; ++i) {
+        XL6_IrNode* node = &ir.nodes[i];
+        XL6_IrNode saved = *node;
+        if (node->memberAbi != XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE &&
+            node->memberAbi != XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE) continue;
+        ++members;
+        node->memberAbi = XL6_IR_MEMBER_ABI_NONE; reject(&ir, NULL); *node = saved;
+        node->memberAbi = XL6_IR_MEMBER_ABI_CLASS_FIELD_BOOL; reject(&ir, NULL); *node = saved;
+        const XL6_IrType* type = xl6IrTypeGet(&ir.types, node->storageType);
+        assert(type);
+        if (type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            saved.ownership == XL6_IR_OWNERSHIP_MOVE) {
+            node->ownership = XL6_IR_OWNERSHIP_BORROW; reject(&ir, NULL); *node = saved;
+        }
+        if (node->projectionErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE) {
+            node->projectionErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE; reject(&ir, NULL); *node = saved;
+        }
+    }
     for (size_t i = 0; i < ir.classLayoutCount; ++i) {
         XL6_IrClassLayout* layout = &ir.classLayouts[i];
         XL6_IrClassLayout saved = *layout;
@@ -56,12 +74,12 @@ int main(int argc, char** argv)
         ir.operands[test->firstOperand] = XL6_IR_VALUE_INVALID; reject(&ir, NULL);
         ir.operands[test->firstOperand] = operand;
     }
-    assert(layouts && conversions); verify(&ir);
+    assert((layouts && conversions) || members); verify(&ir);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[3]) && xl6IrCgenEmitHeader(&out, &ir, "CLASS_TEXT", &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[4])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);
-    printf("class text contract: %zu checked conversions, %zu closed layouts, %zu rejected C/header mutations\n",
-        conversions, layouts, mutations);
+    printf("class text contract: %zu checked conversions, %zu closed layouts, %zu exact member reads, %zu rejected C/header mutations\n",
+        conversions, layouts, members, mutations);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     return 0;
 }

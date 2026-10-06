@@ -1,8 +1,0 @@
-// Independent pre-existing discrepancy: interpolation serializes the erased
-// object rather than selecting the same exact class protocol as string(item).
-class InterpolationRecord
-    derive string
-    string text = "a\0你"
-end
-InterpolationRecord item = InterpolationRecord()
-assert f"{item}" == string(item)

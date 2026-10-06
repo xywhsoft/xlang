@@ -332,9 +332,19 @@ if (!$source.Contains('xl6IrCallArgumentBindingIsExact') -or !$lower.Contains('x
     throw 'CallSite source binding proof and reverse acquisition cleanup must remain explicit'
 }
 $stringConversion = [regex]::Match($lower, '(?ms)^static int xl6IrLowerIntrinsicStringConvert\(.*?^\}').Value
-if (!$stringConversion.Contains('xl6IrLowerProtectOwnedBorrow(ctx, id, operand)') -or
+$stringValueConversion = [regex]::Match($lower, '(?ms)^static XL6_IrValueId xl6IrLowerConvertValueToString\(.*?^\}').Value
+$interpolationConversion = [regex]::Match($lower, '(?ms)^static XL6_IrValueId xl6IrLowerInterpolatedStringPart\(.*?^\}').Value
+if (!$stringConversion.Contains('xl6IrLowerConvertValueToString') -or
     !$stringConversion.Contains('xl6IrLowerCompleteEvaluationBorrows(ctx, id, first, result)') -or
-    $stringConversion.Contains('source->valueCategory')) {
+    $stringConversion.Contains('source->valueCategory') -or
+    !$stringValueConversion.Contains('xl6IrClassifyStringConversionAbi') -or
+    !$stringValueConversion.Contains('xl6IrLowerProtectOwnedBorrow(ctx, failureOrigin, operand)') -or
+    !$stringValueConversion.Contains('XL6_IR_INSTR_CALL') -or
+    !$stringValueConversion.Contains('xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin,') -or
+    !$interpolationConversion.Contains('xl6IrNodeMaterializedValueType') -or
+    !$interpolationConversion.Contains('xl6IrLowerConvertValueToString') -or
+    !$interpolationConversion.Contains('xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, &result)') -or
+    $interpolationConversion.Contains('XL6_IR_RUNTIME_XVALUE_TO_STRING')) {
     throw 'String conversion must protect and retire producers through the shared evaluation owner transaction'
 }
 if (!$header.Contains('XL6_IR_DYNAMIC_CALL_MEMBER_GET') -or !$source.Contains('xl6IrNodeIsDynamicMemberRead')) {
@@ -5443,7 +5453,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xl6IrBuildClassStringContract", "xl6IrBuildFieldDeriveIncluded",
-    "xl6IrBuildStringConversionAbi", "xl6IrVerifyClassStringAbi",
+    "xl6IrClassifyStringConversionAbi", "xl6IrVerifyClassStringAbi",
     "stringConversionAbiName", "stringAbiName",
     "type-id-to-string", "class-derived-to-string",
     "derived class string conversion has no exact layout"
@@ -5454,12 +5464,14 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xl6IrLowerIntrinsicStringConvert",
+    "xl6IrLowerConvertValueToString",
+    "XL6_IR_STRING_CONVERSION_F32_VALUE",
     "XL6_IR_STRING_CONVERSION_TYPE_ID_NAME",
     "XL6_IR_STRING_CONVERSION_CLASS_DERIVED",
     "XL6_IR_STRING_CONVERSION_CLASS_PROTOCOL_CALL",
     "XL6_IR_RUNTIME_TYPE_ID_TO_STRING",
     "XL6_IR_RUNTIME_CLASS_DERIVED_TO_STRING",
-    "classLayout->stringTarget"
+    "layout->stringTarget"
 ) ) {
     if ( ! $lower.Contains($required) ) {
         throw "XLIR closed string conversion lowering contract is incomplete: $required"
