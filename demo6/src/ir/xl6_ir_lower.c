@@ -14916,6 +14916,7 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
 {
     XL6_IrModule* module;
     const XL6_IrType* original;
+    XL6_IrType originalSnapshot;
     XL6_IrTypeId mapped;
     XL6_IrTypeId callableResultType = XL6_IR_TYPE_INVALID;
     XL6_IrTypeId* params = NULL;
@@ -14928,6 +14929,10 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
     module = build->ctx->module;
     original = xl6IrTypeGet(&module->types, source);
     if ( original == NULL ) return XL6_IR_TYPE_INVALID;
+    /* Recursive substitution may grow the TypePool arena. Its separately
+     * allocated child spans remain stable, but the row pointer does not. */
+    originalSnapshot = *original;
+    original = &originalSnapshot;
     if ( original->paramCount != 0 &&
          (params = (XL6_IrTypeId*)xrtCalloc(original->paramCount, sizeof(*params))) == NULL ) return 0;
     if ( original->returnCount != 0 &&
@@ -14957,21 +14962,33 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
         }
     }
     if ( !changed ) { xrtFree(params); xrtFree(returns); return source; }
+    if (original->kind == XL6_IR_TYPE_NULLABLE && original->paramCount == 1 && params) {
+        const XL6_IrType* inner = xl6IrTypeGet(&module->types, params[0]);
+        if (inner != NULL && (inner->kind == XL6_IR_TYPE_NULLABLE ||
+            (inner->kind == XL6_IR_TYPE_BUILTIN && strcmp(inner->name, "var") == 0))) {
+            XL6_IrTypeId flattened = params[0];
+            xrtFree(params); xrtFree(returns); return flattened;
+        }
+    }
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* candidate = &module->types.items[i];
         if ( candidate->kind == original->kind &&
-             candidate->cAbi == original->cAbi &&
-             candidate->ownershipAbi == original->ownershipAbi &&
+             ((original->kind == XL6_IR_TYPE_NULLABLE || original->kind == XL6_IR_TYPE_TUPLE) ||
+              (candidate->cAbi == original->cAbi && candidate->ownershipAbi == original->ownershipAbi)) &&
              candidate->collectionAbi == original->collectionAbi &&
              candidate->runtimeResourceAbi == original->runtimeResourceAbi &&
              candidate->integerTarget == original->integerTarget &&
-             /* Callable and tuple identities are structural in the XLIR
+             (original->kind != XL6_IR_TYPE_TYPE_PARAM ||
+              candidate->sourceTypeId == original->sourceTypeId) &&
+             /* Callable, tuple and nullable identities are structural in the XLIR
               * TypePool. A concrete source type may carry a frontend ABI ID
               * while the equivalent specialized shape does not. */
              ((original->kind == XL6_IR_TYPE_FUNCTION ||
-               original->kind == XL6_IR_TYPE_TUPLE) ||
-              (candidate->sourceTypeId == original->sourceTypeId &&
-               candidate->abiId == original->abiId)) &&
+               original->kind == XL6_IR_TYPE_TUPLE || original->kind == XL6_IR_TYPE_NULLABLE) ||
+              candidate->abiId == original->abiId) &&
+             (original->abiId != XL6_TYPE_ABI_ID_INVALID ||
+              (candidate->name != NULL && original->name != NULL &&
+               strcmp(candidate->name, original->name) == 0)) &&
              candidate->paramCount == original->paramCount &&
              candidate->callableErasureAbi == original->callableErasureAbi &&
              candidate->returnCount == original->returnCount &&
@@ -14999,6 +15016,8 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
         target->kind = original->kind;
         target->cAbi = original->cAbi;
         target->collectionAbi = original->collectionAbi;
+        target->runtimeResourceAbi = original->runtimeResourceAbi;
+        target->integerTarget = original->integerTarget;
         target->ownershipAbi = original->ownershipAbi;
         target->nullAbi = original->nullAbi;
         target->sourceTypeId = original->sourceTypeId;
@@ -17042,8 +17061,14 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
         target->typeQueryTarget = source.typeQueryTarget == XL6_IR_TYPE_INVALID
             ? XL6_IR_TYPE_INVALID
             : xl6IrLowerSpecializationSubstituteType(build, source.typeQueryTarget);
+        if (target->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE) {
+            const XL6_IrType* concrete = xl6IrTypeGet(&module->types, target->resultType);
+            target->runtimeResourcePayloadAbi = xl6IrLowerRuntimeResourcePayloadAbiForType(module, target->payloadType);
+            target->resultAbi = xl6IrRuntimeResourceResultAbiForType(target->runtimeResourceOp, concrete);
+        }
         target->firstOperand = module->intrinsicOperandCount;
-        if ( target->resultType == XL6_IR_TYPE_INVALID ||
+        if ( (source.resultType != XL6_IR_TYPE_INVALID &&
+              target->resultType == XL6_IR_TYPE_INVALID) ||
              (source.payloadType != XL6_IR_TYPE_INVALID &&
               target->payloadType == XL6_IR_TYPE_INVALID) ||
              (source.typeQueryTarget != XL6_IR_TYPE_INVALID &&
@@ -17501,9 +17526,10 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
             const XL6_IrNode* receiver = callee != NULL && callee->kind == XL6_IR_NODE_MEMBER &&
                 callee->childCount == 1
                 ? xl6IrNodeGet(module, module->children[callee->firstChild]) : NULL;
-            XL6_IrTypeId receiverType = receiver != NULL &&
-                receiver->storageType != XL6_IR_TYPE_INVALID ? receiver->storageType
-                : (receiver != NULL ? receiver->type : XL6_IR_TYPE_INVALID);
+            /* A flow-proven nonnull receiver may still have nullable storage.
+             * Generic arguments belong to the value being called, not that
+             * variable's wider declared storage domain. */
+            XL6_IrTypeId receiverType = xl6IrNodeMaterializedValueType(module, receiver);
             const XL6_IrType* owner = xl6IrTypeGet(&module->types, receiverType);
             size_t parameter;
             if ( owner != NULL && owner->kind == XL6_IR_TYPE_CLASS &&
@@ -17855,12 +17881,17 @@ static int xl6IrLowerMaterializeGenericDynamicMethods(
                 exactClassParameters = 0;
         xrtFree(declarationParams);
         if ( !exactClassParameters ) continue;
+        /* Specialization interns types and can relocate the type arena. The
+         * separately owned argument span remains stable; the owner row does
+         * not. Never dereference that row again after materialization. */
+        const XL6_IrTypeId* ownerParams = owner->params;
+        size_t ownerCount = owner->paramCount;
         if ( !xl6IrLowerBuildGenericSpecialization(
                  ctx, XL6_IR_NODE_INVALID, sourceDeclaration,
-                 owner->params, owner->paramCount, &symbol) || symbol == 0 ||
+                 ownerParams, ownerCount, &symbol) || symbol == 0 ||
              (specialization = xl6IrLowerFindGenericSpecialization(
-                  module, sourceDeclaration, owner->params,
-                  owner->paramCount)) == NULL ||
+                  module, sourceDeclaration, ownerParams,
+                  ownerCount)) == NULL ||
              specialization->symbol != symbol ||
              !xl6IrRebindDynamicMethodSpecialization(
                  module, i, specialization->declaration) )
@@ -32392,6 +32423,12 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
                 "XLIR lowering generic dynamic method materialization failed without diagnostic provenance");
         return 0;
     }
+    /* Registry-only specializations may introduce concrete nullable/product
+     * types after layout construction. Derive their persistence contracts
+     * from the final TypePool just as for source-instantiated types. */
+    if (!xl6IrRefreshPersistenceTypeAbis(module))
+        return xl6IrLowerDiag(&ctx, module->root,
+            "XLIR specialization persistence-type refresh failed");
     if ( !xl6IrRefreshOperatorAbis(module) ) {
         if ( diags == NULL || diags->count == 0 )
             xl6IrLowerDiag(&ctx, module->root,

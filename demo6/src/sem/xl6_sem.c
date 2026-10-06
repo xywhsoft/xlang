@@ -3986,6 +3986,21 @@ static const XL6_AstNode* xl6SemGenericTypeParamArg(
     return NULL;
 }
 
+/* Substitution, unlike source syntax, may introduce an already optional
+ * argument beneath T?. There is one null state, not an extra presence tag;
+ * explicit nested nullable suffixes remain rejected by the type checker. */
+static XL6_AstNode* xl6SemNormalizeSubstitutedNullable(XL6_AstNode* type)
+{
+    const XL6_AstNode* value = xl6SemNullableInnerType(type);
+    if (value != NULL && (xl6SemTypeIsNullable(value) || xl6TextEquals(value->text, "var"))) {
+        XL6_AstNode* inner = type->children[0]->children[0];
+        type->children[0]->children[0] = NULL;
+        xl6AstFree(type);
+        return inner;
+    }
+    return type;
+}
+
 static XL6_AstNode* xl6SemSubstituteGenericTypeArgs(
     const XL6_AstNode* typeParams,
     const XL6_AstNode* typeArgs,
@@ -4016,7 +4031,7 @@ static XL6_AstNode* xl6SemSubstituteGenericTypeArgs(
         xl6AstFree(copy->children[i]);
         copy->children[i] = child;
     }
-    return copy;
+    return xl6SemNormalizeSubstitutedNullable(copy);
 }
 
 static int xl6SemExprExplicitGenericParamMatchCost(
@@ -4919,7 +4934,7 @@ static XL6_AstNode* xl6SemSubstituteClassType(
         xl6AstFree(copy->children[i]);
         copy->children[i] = child;
     }
-    return copy;
+    return xl6SemNormalizeSubstitutedNullable(copy);
 }
 
 static const XL6_AstNode* xl6SemProtocolTypeParamArg(
@@ -4982,7 +4997,7 @@ static XL6_AstNode* xl6SemSubstituteProtocolType(
         xl6AstFree(copy->children[i]);
         copy->children[i] = child;
     }
-    return copy;
+    return xl6SemNormalizeSubstitutedNullable(copy);
 }
 
 static int xl6SemTypeParamIndexInList(

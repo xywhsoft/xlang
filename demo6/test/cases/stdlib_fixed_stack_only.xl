@@ -1,0 +1,6 @@
+func main(...) as int
+    auto values = FixedStack::<int>(1)
+    assert(values.push(7) and not values.push(8))
+    assert(values.capacity() == 1 and values.pop() == 7)
+    return 0
+end

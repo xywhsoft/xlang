@@ -39,6 +39,10 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_sequence_clear_native_host.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_clear_minimal.xl test/cases/stdlib_stack_clear_error.xl test/cases/stdlib_stack_clear_error_continuation.xl
     printf '%s\0' tools/check_stdlib_collection_admission.py test/cases/stdlib_collection_admission.xl test/cases/stdlib_collection_nominal_admission.xl
+    printf '%s\0' tools/check_stdlib_fixed_stack.py test/cases/xlir_fixed_stack_contract.c
+    printf '%s\0' test/cases/stdlib_fixed_stack_only.xl test/cases/stdlib_fixed_stack.xl test/cases/xlir_generic_tuple_returns.xl
+    printf '%s\0' test/cases/sem_fixed_stack_private_error.xl test/cases/sem_fixed_stack_reserve_error.xl test/cases/sem_fixed_stack_payload_error.xl test/cases/sem_generic_nested_nullable_error.xl
+    printf '%s\0' test/cases/stdlib_stack_admitted_construction.xl test/cases/stdlib_stack_wire_child_refused.xl
     printf '%s\0' test/cases/stdlib_nullable_resource_casts.xl test/cases/stdlib_nullable_cast_values.xl test/cases/stdlib_nullable_cast_futures.xl
     printf '%s\0' test/cases/nullable_function_lifecycle.xl test/cases/nullable_function_frames.xl
     printf '%s\0' test/cases/sem_nullable_resource_member_error.xl test/cases/sem_resource_cast_generic_identity_error.xl
@@ -211,11 +215,12 @@ for name in "${negative[@]}"; do
     if ! reject_fixture "$name"; then failures+=("negative:$name"); fi
 done
 if ! run sequence-clear "$PY" tools/check_stdlib_sequence_clear.py --out "$OUT/sequence-clear" --sanitize; then failures+=(sequence-clear); fi
-for mode in base nominal defaults layouts nullable-resources; do
+for mode in base nominal defaults layouts nullable-resources stacks; do
     arguments=(tools/check_stdlib_collection_admission.py --out "$OUT/collection-$mode" --sanitize)
     [[ "$mode" = base ]] || arguments+=("--$mode")
     if ! run "collection-$mode" "$PY" "${arguments[@]}"; then failures+=("collection-$mode"); fi
 done
+if ! run fixed-stack "$PY" tools/check_stdlib_fixed_stack.py --out "$OUT/fixed-stack" --sanitize; then failures+=(fixed-stack); fi
 if ! run array-input "$PY" tools/check_stdlib_array_input.py --out "$OUT/array-input" --sanitize; then failures+=(array-input); fi
 if ! run array-future "$PY" tools/check_stdlib_array_future.py --out "$OUT/array-future" --sanitize; then failures+=(array-future); fi
 if ! run array-shuffle "$PY" tools/check_stdlib_array_shuffle.py --out "$OUT/array-shuffle" --sanitize --language; then failures+=(array-shuffle); fi

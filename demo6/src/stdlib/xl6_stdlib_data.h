@@ -51,6 +51,7 @@ typedef struct XL6_StdlibConst {
 } XL6_StdlibConst;
 
 extern const char* xl6StdlibCoreClassSource;
+extern const char* xl6StdlibFixedStackSource;
 extern const char* xl6StdlibConsoleOptionsSource;
 extern const char* xl6StdlibConsoleSessionSource;
 extern const char* xl6StdlibIoReaderSource;

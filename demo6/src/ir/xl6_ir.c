@@ -1040,6 +1040,22 @@ const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
     abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_PRODUCT_ABI_TIMEX2_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1 ? "XL6_PRODUCT_ABI_BOOLTIME_V1" : NULL; }
 
+/* Open generic products have no C carrier until specialization. Interning
+ * must use the same derived ABI as representation finalization; assuming
+ * PRODUCT for (bool,T?) allocated duplicate unsupported canonical rows. */
+static XL6_IrCAbi xl6IrTupleCAbiForItems(const XL6_IrTypePool* pool,
+    const XL6_IrTypeId* items, size_t count)
+{
+    if (!pool || !items || count < 2) return XL6_IR_C_ABI_UNSUPPORTED;
+    for (size_t i = 0; i < count; ++i) {
+        const XL6_IrType* element = xl6IrTypeGet(pool, items[i]);
+        if (!element || element->cAbi == XL6_IR_C_ABI_UNSUPPORTED ||
+            element->cAbi == XL6_IR_C_ABI_VOID || element->cAbi == XL6_IR_C_ABI_PRODUCT)
+            return XL6_IR_C_ABI_UNSUPPORTED;
+    }
+    return XL6_IR_C_ABI_PRODUCT;
+}
+
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
 {
     const XL6_IrType* element;
@@ -1077,18 +1093,16 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
         size_t typeIndex;
         int hasManagedElement = 0;
         if ( type->paramCount < 2 || type->params == NULL || type->returnCount != 0 ) return 0;
+        if (xl6IrTupleCAbiForItems(pool, type->params, type->paramCount) == XL6_IR_C_ABI_UNSUPPORTED) {
+            type->cAbi = XL6_IR_C_ABI_UNSUPPORTED;
+            type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
+            type->nullAbi = XL6_IR_NULL_ABI_NONE;
+            type->cName[0] = '\0';
+            return xl6IrTypeFinalizeErrorResultCName(pool, type);
+        }
         for ( i = 0; i < type->paramCount; ++i ) {
             element = xl6IrTypeGet(pool, type->params[i]);
             if ( element == NULL ) return 0;
-            if ( element->cAbi == XL6_IR_C_ABI_UNSUPPORTED ||
-                 element->cAbi == XL6_IR_C_ABI_VOID ||
-                 element->cAbi == XL6_IR_C_ABI_PRODUCT ) {
-                type->cAbi = XL6_IR_C_ABI_UNSUPPORTED;
-                type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
-                type->nullAbi = XL6_IR_NULL_ABI_NONE;
-                type->cName[0] = '\0';
-                return xl6IrTypeFinalizeErrorResultCName(pool, type);
-            }
             if ( element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
                 hasManagedElement = 1;
         }
@@ -2209,7 +2223,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         : kind == XL6_IR_TYPE_WEAK
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : kind == XL6_IR_TYPE_TUPLE
-        ? XL6_IR_C_ABI_PRODUCT
+        ? xl6IrTupleCAbiForItems(&module->types, params, paramCount)
         : kind == XL6_IR_TYPE_UNION
         ? XL6_IR_C_ABI_UNION
         : kind == XL6_IR_TYPE_NULLABLE && paramCount == 1
@@ -2232,7 +2246,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
              item->collectionAbi == collectionAbi &&
              item->runtimeResourceAbi == runtimeResourceAbi &&
              (kind != XL6_IR_TYPE_TYPE_PARAM || item->sourceTypeId == type->semanticTypeId) &&
-             (kind == XL6_IR_TYPE_FUNCTION || kind == XL6_IR_TYPE_TUPLE ||
+             (kind == XL6_IR_TYPE_FUNCTION || kind == XL6_IR_TYPE_TUPLE || kind == XL6_IR_TYPE_NULLABLE ||
               item->abiId == type->semanticTypeAbiId) &&
              /* A valid frontend ABI id is the canonical identity shared by
               * spelling aliases such as int/int64.  Builtins without one are
@@ -3954,10 +3968,23 @@ static XL6_IrTypeId xl6IrBuildClassSubstituteTypeDepth(
         }
     }
     if ( !changed ) { result = sourceType; goto done; }
+    /* T? with T already nullable denotes the same optional domain, not a
+     * second presence tag. The operation's independent status preserves a
+     * present null element (e.g. Stack<int?>.tryPop()). */
+    if (source->kind == XL6_IR_TYPE_NULLABLE && source->paramCount == 1 && substitutedParams) {
+        const XL6_IrType* inner = xl6IrTypeGet(&module->types, substitutedParams[0]);
+        if (inner != NULL && (inner->kind == XL6_IR_TYPE_NULLABLE ||
+            (inner->kind == XL6_IR_TYPE_BUILTIN && strcmp(inner->name, "var") == 0))) {
+            result = substitutedParams[0]; goto done;
+        }
+    }
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* candidate = &module->types.items[i];
-        if ( candidate->kind == source->kind && candidate->cAbi == source->cAbi &&
-             candidate->ownershipAbi == source->ownershipAbi && candidate->abiId == source->abiId &&
+        if ( candidate->kind == source->kind &&
+             ((source->kind == XL6_IR_TYPE_NULLABLE || source->kind == XL6_IR_TYPE_TUPLE) ||
+              (candidate->cAbi == source->cAbi && candidate->ownershipAbi == source->ownershipAbi)) &&
+             ((source->kind == XL6_IR_TYPE_NULLABLE || source->kind == XL6_IR_TYPE_TUPLE) ||
+              candidate->abiId == source->abiId) &&
              candidate->paramCount == source->paramCount && candidate->returnCount == source->returnCount &&
              ((candidate->name == NULL && source->name == NULL) ||
               (candidate->name != NULL && source->name != NULL &&
@@ -5618,7 +5645,7 @@ static void xl6IrBuildExpectedPersistenceTypeAbi(
     }
 }
 
-static int xl6IrBuildPersistenceTypeAbis(XL6_IrModule* module)
+int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module)
 {
     size_t i;
     if ( module == NULL ) return 0;
@@ -5670,7 +5697,7 @@ static int xl6IrBuildPersistenceConstructionAbis(XL6_IrModule* module)
                 module, &module->classLayouts[layoutIndex], 0)
                 ? XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT
                 : XL6_IR_PERSISTENCE_CONSTRUCTION_NONE;
-    return xl6IrBuildPersistenceTypeAbis(module);
+    return xl6IrRefreshPersistenceTypeAbis(module);
 }
 
 static int xl6IrClassLayoutFailure(
@@ -9366,6 +9393,13 @@ static int xl6IrRuntimeResourceOpReturnsVoid(
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLEAR;
 }
 
+XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
+    XL6_IrRuntimeResourceOp operation, const XL6_IrType* result)
+{
+    return xl6IrRuntimeResourceOpReturnsVoid(operation) ? XL6_IR_INTRINSIC_RESULT_VOID :
+        xl6IrRuntimeResourceOpReturnsOwned(operation, result) ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE;
+}
+
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
     return xl6IrRuntimeResourceOpCreates(operation) ||
@@ -9923,6 +9957,68 @@ int xl6IrStackTryResultCompatible(
           (value->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
          (value->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
           xl6IrNullableScalarElementAbi(module,result->params[1])==payload->cAbi));
+}
+
+/* Stack algorithms in an open generic body have exact logical types but no
+ * physical slot transfer yet. Keep this distinct from both VERIFIED and an
+ * unsupported concrete ABI. Only an actual enclosing generic function may
+ * carry this contract; executable instructions never consume it. */
+static int xl6IrGenericStackSignatureCompatible(const XL6_IrModule* module,
+    XL6_IrNodeId origin, XL6_IrRuntimeResourceOp operation,
+    XL6_IrTypeId receiverType, XL6_IrTypeId resultType,
+    const XL6_IrTypeId* operands, size_t count)
+{
+    if (!module || !xl6IrRuntimeResourceOpIsStack(operation) || count > 2) return 0;
+    int creates = operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE;
+    XL6_IrTypeId resourceType = creates ? resultType : receiverType;
+    XL6_IrTypeId payload = xl6IrRuntimeStackPayloadType(module, resourceType);
+    if (!payload || !xl6IrBuildTypeContainsTypeParam(module, payload, 0)) return 0;
+    const XL6_IrNode* owner = xl6IrNodeGet(module, origin);
+    size_t depth = 0;
+    while (owner && owner->kind != XL6_IR_NODE_FUNC_DECL && ++depth <= module->nodeCount)
+        owner = xl6IrNodeGet(module, owner->parent);
+    if (!owner || (!xl6IrBuildTypeContainsTypeParam(module, owner->declarationOwnerType, 0) &&
+        !xl6IrBuildTypeContainsTypeParam(module, owner->storageType, 0))) return 0;
+    if (creates) return receiverType == XL6_IR_TYPE_INVALID && count == 0;
+    if (!count || !operands || operands[0] != receiverType) return 0;
+    const XL6_IrType* result = xl6IrTypeGet(&module->types, resultType);
+    const XL6_IrType* argument = count == 2 ? xl6IrTypeGet(&module->types, operands[1]) : NULL;
+    switch (operation) {
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH:
+        return count == 2 && operands[1] == payload && result && result->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP:
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK:
+        return count == 1 && resultType == payload;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT:
+        return count == 2 && argument && argument->cAbi == XL6_IR_C_ABI_I64 && resultType == payload;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP:
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK:
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT: {
+        if (count != (operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT ? 2u : 1u) ||
+            (count == 2 && (!argument || argument->cAbi != XL6_IR_C_ABI_I64)) ||
+            !result || result->kind != XL6_IR_TYPE_TUPLE || result->paramCount != 2 || !result->params) return 0;
+        const XL6_IrType* status = xl6IrTypeGet(&module->types, result->params[0]);
+        const XL6_IrType* value = xl6IrTypeGet(&module->types, result->params[1]);
+        const XL6_IrType* element = xl6IrTypeGet(&module->types, payload);
+        return status && status->kind == XL6_IR_TYPE_BUILTIN && status->cAbi == XL6_IR_C_ABI_BOOL &&
+            value && element && ((result->params[1] == payload && element->kind == XL6_IR_TYPE_NULLABLE) ||
+            (value->kind == XL6_IR_TYPE_NULLABLE && value->paramCount == 1 && value->params && value->params[0] == payload));
+    }
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE:
+        return count == 2 && argument && argument->cAbi == XL6_IR_C_ABI_I64 && result && result->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE:
+        return count == 1 && resultType == receiverType;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_EQUALS:
+        return count == 2 && operands[1] == receiverType && result && result->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRIM:
+        return count == 1 && result && result->cAbi == XL6_IR_C_ABI_BOOL;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR:
+        return count == 1 && resultType == XL6_IR_TYPE_INVALID;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_COUNT:
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY:
+        return count == 1 && result && result->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
+    default: return 0;
+    }
 }
 
 static int xl6IrRuntimeResourceSignatureCompatible(
@@ -12447,6 +12543,10 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                          operandTypes, operandCount) )
                     intrinsic.admission =
                         XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
+                else if (compatible && xl6IrGenericStackSignatureCompatible(module, origin,
+                    intrinsic.runtimeResourceOp, intrinsic.receiverType, intrinsic.resultType,
+                    operandTypes, operandCount))
+                    intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
             }
         }
         break;
@@ -18792,7 +18892,7 @@ static int xl6IrTypesShareCanonicalKey(
          (left->kind == XL6_IR_TYPE_TYPE_PARAM &&
           left->sourceTypeId != right->sourceTypeId) ||
          ((left->kind != XL6_IR_TYPE_FUNCTION &&
-           left->kind != XL6_IR_TYPE_TUPLE) &&
+           left->kind != XL6_IR_TYPE_TUPLE && left->kind != XL6_IR_TYPE_NULLABLE) &&
           left->abiId != right->abiId) ||
          (left->kind != XL6_IR_TYPE_TUPLE &&
           left->abiId == XL6_TYPE_ABI_ID_INVALID &&
@@ -18813,14 +18913,16 @@ static int xl6IrTypesShareCanonicalKey(
                   left->returnCount * sizeof(*left->returns)) == 0;
 }
 
-static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
+static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
 {
     size_t i;
+    if (invalidIndex) *invalidIndex = SIZE_MAX;
     if ( pool == NULL || pool->count > pool->capacity ||
          (pool->count != 0 && pool->items == NULL) ||
          (pool->slotCapacity > 0 && pool->slots == NULL) ) return 0;
     for ( i = 0; i < pool->count; ++i ) {
         const XL6_IrType* type = &pool->items[i];
+        if (invalidIndex) *invalidIndex = i;
         XL6_IrType expectedTypeValue;
         XL6_IrIntegerTarget expectedIntegerTarget;
         char structuralResultName[48];
@@ -30256,8 +30358,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         return xl6IrDiag(diags, NULL, "XLIR module is not initialized");
     }
     if (!xl6IrVerifyNodeTopology(module, diags)) return 0;
-    if ( !xl6IrVerifyTypePool(&module->types) ) {
-        return xl6IrDiag(diags, NULL, "XLIR type pool is malformed");
+    {
+        size_t invalidIndex;
+        if ( !xl6IrVerifyTypePool(&module->types, &invalidIndex) ) {
+            char message[256];
+            if (invalidIndex == SIZE_MAX)
+                return xl6IrDiag(diags, NULL, "XLIR type pool is malformed");
+            const XL6_IrType* invalid = &module->types.items[invalidIndex];
+            snprintf(message, sizeof(message), "XLIR type pool is malformed at TypeId %zu (%s)",
+                invalidIndex + 1, invalid->displayName ? invalid->displayName : "unnamed");
+            return xl6IrDiag(diags, NULL, message);
+        }
     }
     if ( !xl6IrVerifyRuntimeTypeMap(&module->runtimeTypeMap) ) {
         return xl6IrDiag(diags, NULL,
@@ -30962,7 +31073,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   intrinsic->kind <= XL6_IR_INTRINSIC_INVALID ||
                    intrinsic->kind > XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT ||
                   (intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED &&
-                   intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI) ||
+                   intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI &&
+                   intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT) ||
+                  (intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT &&
+                   intrinsic->kind != XL6_IR_INTRINSIC_RUNTIME_RESOURCE) ||
                    intrinsic->resultType != call->storageType ||
                   (returnsVoid
                       ? (intrinsic->resultType != XL6_IR_TYPE_INVALID ||
@@ -31166,8 +31280,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                intrinsic->runtimeResourcePayloadAbi !=
                                    xl6IrRuntimeResourcePayloadAbiForType(
                                        module, intrinsic->payloadType) ||
-                               intrinsic->runtimeResourcePayloadAbi ==
-                                   XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID)
+                               (intrinsic->runtimeResourcePayloadAbi ==
+                                   XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
+                                intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT))
                             : (intrinsic->payloadType != XL6_IR_TYPE_INVALID ||
                                intrinsic->runtimeResourcePayloadAbi !=
                                    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID)) ||
@@ -31663,7 +31778,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             default:
                 return xl6IrDiag(diags, call, "XLIR intrinsic kind is invalid");
             }
-            if ( intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_VERIFIED ) {
+            if ( intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
+                 intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT ) {
              switch ( intrinsic->kind ) {
             case XL6_IR_INTRINSIC_WEAK_LOCK:
                 if ( intrinsic->operandCount != 1 || source == NULL ||
@@ -32207,10 +32323,16 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         operandTypes[operandIndex] =
                             module->intrinsicOperands[
                                 intrinsic->firstOperand + operandIndex].type;
-                    if ( !xl6IrRuntimeResourceSignatureCompatible(
+                    int dependent = xl6IrGenericStackSignatureCompatible(module, intrinsic->origin,
+                        intrinsic->runtimeResourceOp, intrinsic->receiverType, intrinsic->resultType,
+                        operandTypes, intrinsic->operandCount);
+                    if (intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT ? !dependent :
+                        (dependent || !xl6IrRuntimeResourceSignatureCompatible(
                              module, intrinsic->runtimeResourceOp,
                              intrinsic->receiverType, intrinsic->resultType,
-                             operandTypes, intrinsic->operandCount) ||
+                             operandTypes, intrinsic->operandCount)))
+                        return xl6IrDiag(diags, call, "XLIR runtime resource admission is not the exact generic/physical contract");
+                    if (
                          (!creates &&
                           (intrinsic->operandCount == 0 ||
                            module->intrinsicOperands[
@@ -42826,6 +42948,7 @@ static const char* xl6IrIntrinsicAdmissionName(XL6_IrIntrinsicAdmission admissio
     switch ( admission ) {
     case XL6_IR_INTRINSIC_ADMISSION_VERIFIED: return "verified";
     case XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI: return "unsupported-abi";
+    case XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT: return "generic-dependent";
     default: return "invalid";
     }
 }

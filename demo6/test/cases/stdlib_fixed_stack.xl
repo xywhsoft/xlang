@@ -1,0 +1,108 @@
+class FixedItem
+    int value
+end
+
+class FixedHolder
+    FixedStack<bytes>? values
+end
+
+func takeFixedText(FixedStack<string> values) as (bool, string?)
+    try
+        return values.tryPop()
+    finally
+        values.clear()
+    end
+end
+
+func main(...) as int
+    auto zero = FixedStack::<int>(0)
+    assert(zero.empty() and zero.full() and zero.capacity() == 0)
+    assert(not zero.push(1) and zero.count() == 0)
+    auto absent, missing = zero.tryPop()
+    assert(not absent and missing == null)
+    int errors = 0
+    try
+        zero.pop()
+    catch RangeError failure
+        errors += 1
+    end
+    try
+        auto invalid = FixedStack::<int>(-1)
+    catch RangeError failure
+        errors += 1
+    end
+    assert(errors == 2)
+
+    auto numbers = FixedStack::<int32>(2)
+    assert(numbers.push(-2147483648) and numbers.push(2147483647))
+    assert(numbers.full() and not numbers.push(9) and numbers.count() == 2)
+    assert(numbers.peekAt(1) == -2147483648)
+    auto shallow = numbers
+    assert(shallow.pop() == 2147483647 and numbers.count() == 1)
+    auto copied = copy(numbers)
+    auto cloned = clone(numbers)
+    assert(copied.equals(numbers) and cloned.equals(numbers))
+    assert(copied.capacity() == 2 and copied.pop() == -2147483648)
+    assert(numbers.count() == 1 and cloned.count() == 1)
+    cloned.clear()
+    assert(cloned.empty() and cloned.capacity() == 2)
+    assert(cloned.push(8) and cloned.push(9) and not cloned.push(10))
+    auto present, top = numbers.tryPeekAt(0)
+    assert(present and top != null and top == -2147483648)
+    auto outside, noTop = numbers.tryPeekAt(1)
+    assert(not outside and noTop == null)
+
+    auto texts = FixedStack::<string>(2)
+    assert(texts.push("A\0你") and texts.push(""))
+    assert(not texts.push("discarded"))
+    string text = texts.pop()
+    assert(text == "")
+    auto hasText, ownedText = takeFixedText(texts)
+    assert(hasText and ownedText != null and ownedText == "A\0你")
+    assert(texts.empty())
+    if ownedText != null
+        ownedText[0] = 'B'
+        assert(ownedText == "B\0你")
+    end
+
+    auto holder = FixedHolder()
+    holder.values = FixedStack::<bytes>(1)
+    auto data = holder.values
+    assert(data != null)
+    if data != null
+        bytes original = b"A\0\xff"
+        assert(data.push(original))
+        original[0] = 90
+        auto snapshot = data.clone()
+        bytes observed = snapshot.pop()
+        assert(observed == b"A\0\xff" and data.count() == 1)
+        observed[0] = 66
+        assert(data.peek() == b"A\0\xff")
+        data.clear()
+        assert(data.capacity() == 1 and data.push(b""))
+    end
+    holder.values = null
+
+    auto chars = FixedStack::<char>(1)
+    assert(chars.push('你') and chars.pop() == '你')
+    auto optional = FixedStack::<int?>(1)
+    assert(optional.push(null))
+    auto hasNull, nullValue = optional.tryPop()
+    assert(hasNull and nullValue == null)
+    auto noNull, absentValue = optional.tryPop()
+    assert(not noNull and absentValue == null)
+    auto dynamic = FixedStack::<var>(1)
+    assert(dynamic.push(null))
+    auto dynamicPresent, dynamicValue = dynamic.tryPop()
+    assert(dynamicPresent and dynamicValue == null)
+    assert(dynamic.push(b"a\0b"))
+    auto dynamicCopy = dynamic.clone()
+    assert(dynamicCopy.pop() == b"a\0b" and dynamic.count() == 1)
+    auto objects = FixedStack::<FixedItem>(1)
+    auto item = FixedItem()
+    item.value = 17
+    assert(objects.push(item))
+    auto kept = objects.pop()
+    assert(kept.value == 17)
+    return 0
+end

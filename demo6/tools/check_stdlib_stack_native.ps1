@@ -33,6 +33,12 @@ try {
             'test/support/stack_native.c','test/support/stack_take_found.h',
             'test/cases/stdlib_sequence_take_status_native_host.c','test/cases/stdlib_stack_retired_try_abi.c',
             'test/cases/xlir_module_product_oom_host.c',
+            'tools/check_stdlib_fixed_stack.py','test/cases/xlir_fixed_stack_contract.c',
+            'test/cases/stdlib_fixed_stack_only.xl','test/cases/stdlib_fixed_stack.xl',
+            'test/cases/xlir_generic_tuple_returns.xl','test/cases/sem_fixed_stack_private_error.xl',
+            'test/cases/sem_fixed_stack_reserve_error.xl','test/cases/sem_fixed_stack_payload_error.xl',
+            'test/cases/sem_generic_nested_nullable_error.xl',
+            'test/cases/stdlib_stack_admitted_construction.xl','test/cases/stdlib_stack_wire_child_refused.xl',
             'test/support/module_product_memory.c','test/support/module_product_memory.h',
             'test/cases/xlir_stack_native_contract.c','test/cases/xlir_nullable_scalar_native.c','tools/check_xlir_artifact_runtime.ps1',
             'tools/check_stdlib_sequence_clear.py','test/support/sequence_clear_probe.c','test/support/array_value_native.c',
@@ -253,7 +259,7 @@ try {
     Run 'sequence-clear' $python @('tools/check_stdlib_sequence_clear.py','--out',"$outPath/sequence-clear",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     $clear = Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-clear/results.json" -Raw | ConvertFrom-Json
     if (!$clear.Complete -or !$clear.InputsUnchanged) { throw 'Incomplete explicit clear evidence' }
-    foreach ($mode in @('base','nominal','defaults','layouts','numeric-enums','nullable-resources')) {
+    foreach ($mode in @('base','nominal','defaults','layouts','numeric-enums','nullable-resources','stacks')) {
         $arguments=@('tools/check_stdlib_collection_admission.py','--out',"$outPath/collection-$mode",'--public-directory',$PublicDirectory)
         if ($mode -ne 'base') { $arguments += "--$mode" }
         # Layouts includes the separately bounded scalar and expression gates.
@@ -262,6 +268,9 @@ try {
         $admission=Get-Content -Encoding UTF8 -LiteralPath "$outPath/collection-$mode/results.json" -Raw | ConvertFrom-Json
         if (!$admission.Complete -or !$admission.InputsUnchanged) { throw "Incomplete collection $mode evidence" }
     }
+    Run 'fixed-stack' $python @('tools/check_stdlib_fixed_stack.py','--out',"$outPath/fixed-stack",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $fixedStack = Get-Content -Encoding UTF8 -LiteralPath "$outPath/fixed-stack/results.json" -Raw | ConvertFrom-Json
+    if (!$fixedStack.Complete -or !$fixedStack.InputsUnchanged -or $fixedStack.Sweeps.Count -ne 6) { throw 'Incomplete generic FixedStack evidence' }
     Run 'array-input' $python @('tools/check_stdlib_array_input.py','--out',"$outPath/array-input",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     $arrayInput=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-input/results.json" -Raw | ConvertFrom-Json
     if (!$arrayInput.Complete -or !$arrayInput.InputsUnchanged -or $arrayInput.Sweeps.Count -ne 26 -or $arrayInput.MetadataSweeps.Count -ne 14) { throw 'Incomplete Array/Future input evidence' }

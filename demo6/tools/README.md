@@ -595,3 +595,13 @@ normal runs include module retirement, but do not claim worker-thread OOM
 injection. Linux sanitizes generated C/host only, not shared libraries. Stack
 parent gates include this mode. Native artifact closure checks are independent;
 this batch does not complete source Array migration or the 53-module goal.
+
+`check_stdlib_fixed_stack.py` checks the ordinary generic `FixedStack<T>` facade,
+canonical repeated product/nullable types, template-only dependent intrinsics
+and exact concrete Stack ABI. Mutated admission/result/payload/effect/type rows
+must be refused before C/header output. Three actual language programs run
+strict O0/O2, JIT/AOT and six complete allocation-prefix sweeps with module
+finalization twice. Windows requires a staged current-source public driver;
+Linux supports generated-C/host sanitizer flags, not shared-runtime coverage.
+Stack parent gates include the new gate. Independent native artifact validation
+is separate; the source Array migration and the whole 53-module goal remain open.
