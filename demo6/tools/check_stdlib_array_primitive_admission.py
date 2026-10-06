@@ -22,20 +22,27 @@ def main() -> int:
     parser.add_argument("--sanitize", action="store_true")
     parser.add_argument("--shared", action="store_true", help="Actual shared product ABI; sanitizer instruments host only")
     parser.add_argument("--projections", action="store_true", help="Exact owned boxed identity, snapshots, V2 metadata and rollback")
+    parser.add_argument("--iterator", action="store_true", help="Native Array snapshots through the real language ValueIterator ABI")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc, nm = shutil.which("gcc"), shutil.which("nm")
     objdump = shutil.which("objdump") if args.shared and os.name == "nt" else None
-    if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt"):
+    if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt") or (args.iterator and args.projections):
         parser.error("Require gcc/nm, fresh evidence and Linux for sanitizers")
     host = "test/cases/stdlib_array_projection_identity_native_host.c" if args.projections else "test/cases/stdlib_array_primitive_admission_native_host.c"
+    if args.iterator: host="test/cases/stdlib_array_value_iterator_native_host.c"
     common = ["test/support/array_value_native.c", "src/runtime/xl6_sequence.c",
               "src/runtime/xl6_array.c", "src/runtime/xl6_array_iterator.c", "src/runtime/xl6_array_erased.c",
               "src/runtime/xl6_array_reference_value.c", "src/runtime/xl6_ownership_plan.c",
               "src/runtime/xl6_array_primitive_admission.c", "src/runtime/xl6_value_admission.c"]
     if args.projections:
         common += ["src/runtime/xl6_array_value.c"]
+    if args.iterator:
+        common += ["src/runtime/xl6_value_iterator.c","src/runtime/xl6_array_value_iterator.c"]
+    graph_sources=["test/cases/stdlib_array_value_iterator_graph_host.c",
+        "test/support/collection_count_native.c","src/runtime/xl6_array_reference_admission.c",
+        "src/runtime/xl6_array_default.c"] if args.iterator else []
     profiles = [[], *[[f"src/runtime/xl6_nullable_{name}.c", f"src/runtime/xl6_nullable_{name}_value.c"]
         for name in ("bool", "i64", "u64", "f32", "f64", "time", "char")],
         ["src/runtime/xl6_char_type.c", "src/runtime/xl6_char_value.c"],
@@ -45,7 +52,8 @@ def main() -> int:
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host,
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
     files += [root / name for name in common + [p for profile in profiles for p in profile]]
-    if args.projections:
+    files += [root / name for name in graph_sources]
+    if args.projections or args.iterator:
         files += [root / "test/cases/stdlib_array_primitive_admission_native_host.c",root / "test/cases/stdlib_sequence_retired_admission_abi.c"]
     if args.shared:
         files += [product]
@@ -63,6 +71,8 @@ def main() -> int:
               "RuntimeInstrumented": args.sanitize and not args.shared,
               "Inputs": inputs, "Rows": rows, "Sweeps": sweeps, "Profiles": len(profiles)}
     report["Projections"] = args.projections
+    report["Iterator"] = args.iterator
+    if args.iterator: report["Scope"]="Native Array scalar/text snapshots through resident ValueIterator V2; not whole language carrier cutover"
     env = dict(os.environ)
     strict = ["-std=c11", "-Wall", "-Wextra", "-Werror", "-I.", "-Irelease", "-Irelease/include"]
     links = [] if os.name == "nt" else ["-pthread", "-lm"]
@@ -91,7 +101,7 @@ def main() -> int:
             # the selected profile objects; sharing build work must not turn
             # into an all-profile runtime dependency or relaxed compiler flags.
             if not args.shared:
-                for source in sorted(set(common + [p for profile in profiles for p in profile])):
+                for source in sorted(set(common + [p for profile in profiles for p in profile] + graph_sources[1:])):
                     obj = out / (lane + "." + Path(source).stem + ".o")
                     run(lane + ".compile." + Path(source).stem,
                         [cc, *strict, f"-O{level}", "-c", source, "-o", str(obj)])
@@ -143,17 +153,23 @@ def main() -> int:
                     for operation in ("Copy","Take","Drop"):
                         assert f"xl6SequenceAdmission{operation}V1" in rejected
                 operations = ("create", "clone", "erased-clone", "cursor", "read", "take", "push", "set", "insert", "resize") + (("snapshot",) if args.projections else ())
+                if args.iterator: operations=("create","first","second")
                 for operation in operations:
                     for point in range(513):
                         log = run(f"{name}.{operation}.{point}", [str(binary), operation, str(point)])
-                        match = re.search(r"hit=([01]) balanced", log)
-                        if not match:
+                        hits = re.findall(r"hit=([01]) balanced", log)
+                        if not hits:
                             raise RuntimeError("Missing allocation/ownership outcome")
-                        if match[1] == "0":
+                        if all(hit=="0" for hit in hits):
                             sweeps.append({"Lane": lane, "Profile": profile, "Operation": operation, "FirstNoHit": point})
                             break
                     else:
                         raise RuntimeError("Incomplete logical allocation prefix")
+            if args.iterator:
+                binary=out/(lane+'.graph'+('.exe' if os.name=='nt' else ''))
+                selected=[objects[source] for source in common+graph_sources[1:] if source!='test/support/array_value_native.c'] if not args.shared else []
+                run(lane+'.graph.build',[cc,*strict,f'-O{level}',graph_sources[0],*selected,*linked,'-o',str(binary)])
+                assert '75 complete transactions, 2400 OOM budgets' in run(lane+'.graph.run',[str(binary)])
         report["InputsUnchanged"] = all(digest(Path(row["Path"])) == row["Sha256"] for row in inputs)
         report["Complete"] = report["InputsUnchanged"]
         if not report["Complete"]:

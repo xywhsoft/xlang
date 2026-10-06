@@ -14,5 +14,9 @@ XL6_TEXT_API xvalue* xl6ArrayIteratorCreateV1(const xvalue*, XL6_ARRAY_ITERATOR_
 XL6_TEXT_API bool xl6ArrayIteratorAdvanceV1(const xvalue*, XL6_ARRAY_ITERATOR_LAYOUT);
 XL6_TEXT_API bool xl6ArrayIteratorReadV1(const xvalue*, XL6_ARRAY_ITERATOR_LAYOUT, void*);
 XL6_TEXT_API int64_t xl6ArrayIteratorOrdinalV1(const xvalue*, XL6_ARRAY_ITERATOR_LAYOUT);
+/* Resident callers already own an ARRAY pin and its exact immutable layout.
+ * Consumes that pin on every path; clone before releasing BUSY. Does not
+ * select optional Value slot projection in a typed-storage-only artifact. */
+XL6_TEXT_API xvalue* xl6ArrayIteratorSnapshotV1(XL6_Sequence*, XL6_ARRAY_ITERATOR_LAYOUT, uint64_t);
 #undef XL6_ARRAY_ITERATOR_LAYOUT
 #endif

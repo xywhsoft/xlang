@@ -83,6 +83,9 @@ try {
         'test/cases/xlir_value_iterator_checked_contract.c','test/cases/stdlib_value_iterator_checked.xl',
         'test/cases/stdlib_value_iterator_checked_continuation.xl')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_publication.py','test/cases/stdlib_sequence_publication_native_host.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_primitive_admission.py',
+        'test/cases/stdlib_array_primitive_admission_native_host.c','test/cases/stdlib_array_value_iterator_native_host.c',
+        'test/cases/stdlib_array_value_iterator_graph_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_factories.py','test/cases/stdlib_sequence_factory_only_host.c','test/support/sequence_factory_native.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
         'test/cases/stdlib_future_metadata_host.c','test/cases/xlir_future_metadata_contract.c',
@@ -284,7 +287,7 @@ try {
     if (!$arrayInput.Complete -or !$arrayInput.InputsUnchanged -or $arrayInput.Sweeps.Count -ne 26 -or $arrayInput.MetadataSweeps.Count -ne 14) { throw 'Incomplete Array/Future input evidence' }
     Run 'array-future' $python @('tools/check_stdlib_array_future.py','--out',"$outPath/array-future") -TimeoutMs 900000
     $arrayFuture=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-future/results.json" -Raw | ConvertFrom-Json
-    if (!$arrayFuture.Complete -or !$arrayFuture.InputsUnchanged -or $arrayFuture.Sweeps.Count -ne 42) { throw 'Incomplete Future Array native evidence' }
+    if (!$arrayFuture.Complete -or !$arrayFuture.InputsUnchanged -or $arrayFuture.Sweeps.Count -ne 54) { throw 'Incomplete Future Array native evidence' }
     Run 'array-shuffle' $python @('tools/check_stdlib_array_shuffle.py','--out',"$outPath/array-shuffle",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $arrayShuffle=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-shuffle/results.json" -Raw | ConvertFrom-Json
     if (!$arrayShuffle.Complete -or !$arrayShuffle.InputsUnchanged -or $arrayShuffle.Sweeps.Count -ne 8) { throw 'Incomplete Array shuffle consumer evidence' }
@@ -300,6 +303,9 @@ try {
     Run 'value-iterator-checked' $python @('tools/check_stdlib_array_scalar_read.py','--checked-iterator','--out',"$outPath/value-iterator-checked",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $checkedIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/value-iterator-checked/results.json" -Raw | ConvertFrom-Json
     if (!$checkedIterator.Complete -or !$checkedIterator.InputsUnchanged -or $checkedIterator.Sweeps.Count-ne4) { throw 'Incomplete checked value iterator evidence' }
+    Run 'array-native-iterator' $python @('tools/check_stdlib_array_primitive_admission.py','--iterator','--out',"$outPath/array-native-iterator") -TimeoutMs 900000
+    $nativeIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-native-iterator/results.json" -Raw | ConvertFrom-Json
+    if (!$nativeIterator.Complete -or !$nativeIterator.InputsUnchanged -or $nativeIterator.Sweeps.Count-ne66) { throw 'Incomplete native Array iterator evidence' }
     Run 'sequence-publication' $python @('tools/check_stdlib_sequence_publication.py','--out',"$outPath/sequence-publication") -TimeoutMs 600000
     $sequencePublication=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-publication/results.json" -Raw | ConvertFrom-Json
     if (!$sequencePublication.Complete -or !$sequencePublication.InputsUnchanged -or $sequencePublication.Sweeps.Count-ne50) { throw 'Incomplete Sequence publication evidence' }

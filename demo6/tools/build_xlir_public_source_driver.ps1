@@ -26,7 +26,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_buffer_value.c','src/runtime/xl6_buffer_iterator.c',
     'src/runtime/xl6_buffer_hex.c','src/runtime/xl6_buffer_base64.c',
     'src/runtime/xl6_buffer_core.c','src/runtime/xl6_buffer_query.c',
-    'src/runtime/xl6_sequence.c','src/runtime/xl6_array.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_stack.c',
+    'src/runtime/xl6_sequence.c','src/runtime/xl6_array.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_stack.c',
     'src/runtime/xl6_stack_batch.c',
     'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_array_nominal_admission.c',
     'src/runtime/xl6_array_default.c',

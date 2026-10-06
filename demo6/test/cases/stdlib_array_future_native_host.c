@@ -5,6 +5,7 @@
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_iterator.h"
+#include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
@@ -53,7 +54,18 @@ static void vectors(bool nullable)
         xrtValueGetFuture(xrtValueArrayAt(snapshot,0))==future && xrtValueTypeId(xrtValueArrayAt(snapshot,0))==BASE);
     xvalue* cloned=xl6ArrayCloneV1(array,LAYOUT(nullable)); assert(cloned && xl6ArrayEqualsV1(array,cloned,LAYOUT(nullable)));
     xvalue* cursor=xl6ArrayIteratorCreateV1(array,LAYOUT(nullable),ID(nullable)+50); assert(cursor);
+    const XL6_ValueIteratorRuntimeV2* api=xl6ValueIteratorRuntimeV2Get();
+    XL6_ValueIterator* language=api->Create(array); assert(language);
     assert(xl6ArrayClearV1(array,LAYOUT(nullable))); xrtFutureDestroy(future);
+    for (size_t i=0;i<(size_t)count+1;++i) {
+        bool found=false; assert(api->Advance(language,&found) && found);
+        const XL6_ValueIteratorView* view=api->View(language);
+        assert(view && view->ordinal==i && view->key.Type==XVALUE_KEY_INDEX && view->key.Index==i);
+        if (nullable && i==2) assert(view->item==xrtValueNull());
+        else assert(xrtValueIsFuture(view->item) && xrtValueGetFuture(view->item)==future &&
+            xrtValueTypeId(view->item)==BASE && xrtFutureDone(xrtValueGetFuture(view->item)));
+    }
+    bool found=true; assert(api->Advance(language,&found) && !found); api->Destroy(language);
     assert(xl6ArrayIteratorAdvanceV1(cursor,ID(nullable)+50,ELEM(nullable),4,sizeof(xfuture*),xrtTypeFuture()));
     copy=NULL; assert(xl6ArrayIteratorReadV1(cursor,ID(nullable)+50,ELEM(nullable),4,sizeof(xfuture*),xrtTypeFuture(),&copy));
     assert(copy && xrtFutureDone(copy)); xrtFutureDestroy(copy);
@@ -107,10 +119,20 @@ static void fault(bool nullable,const char* operation,size_t point)
         alias=xl6ArrayEraseV1(array,LAYOUT(nullable),NULL); assert(alias);
     }
     xvalue* good=box(future,BASE);
+    const XL6_ValueIteratorRuntimeV2* api=xl6ValueIteratorRuntimeV2Get(); XL6_ValueIterator* language=NULL;
+    if (!strcmp(operation,"language-first") || !strcmp(operation,"language-second")) {
+        if (!strcmp(operation,"language-second")) assert(xl6ArrayPushV1(array,LAYOUT(nullable),&future));
+        language=api->Create(array); assert(language);
+        if (!strcmp(operation,"language-second")) { bool found=false; assert(api->Advance(language,&found) && found); }
+    }
     XL6_Sequence* owner=array ? xl6SequenceBeginV1(array,LAYOUT(nullable)) : NULL;
     xarray original={0}; if (owner) { original=xl6SequenceStorageV1(owner)->Storage; xl6SequenceEndV1(owner); }
     assert(xrtMemDebugFailAfter(point)); bool ok=false;
     if (!strcmp(operation,"create")) { result=create(nullable); ok=result!=NULL; }
+    else if (!strcmp(operation,"language-create")) { language=api->Create(array); ok=language!=NULL; }
+    else if (!strcmp(operation,"language-first") || !strcmp(operation,"language-second")) {
+        bool found=false; ok=api->Advance(language,&found); assert(found==ok);
+    }
     else if (!strcmp(operation,"clone")) { result=xl6ArrayCloneV1(array,LAYOUT(nullable)); ok=result!=NULL; }
     else if (!strcmp(operation,"cursor")) { result=xl6ArrayIteratorCreateV1(array,LAYOUT(nullable),ID(nullable)+50); ok=result!=NULL; }
     else if (!strcmp(operation,"read")) ok=xl6ArrayReadV1(array,LAYOUT(nullable),0,&output);
@@ -125,13 +147,18 @@ static void fault(bool nullable,const char* operation,size_t point)
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
     if (hit) assert(!ok && xrtErrorKind(xrtGetError())==XERR_MEMORY);
     else assert(ok && !xrtGetError());
+    if (hit && language) {
+        xrtClearError(); bool found=true;
+        assert(!api->Advance(language,&found) && !found && xrtErrorKind(xrtGetError())==XERR_STATE);
+        xrtClearError(); assert(!api->View(language) && xrtErrorKind(xrtGetError())==XERR_STATE);
+    }
     if (!ok && array && strcmp(operation,"push") && strcmp(operation,"erased-push")) {
         owner=xl6SequenceBeginV1(array,LAYOUT(nullable)); assert(owner);
         const xarray* current=&xl6SequenceStorageV1(owner)->Storage;
         assert(current->Data==original.Data && current->Count==original.Count && current->Capacity==original.Capacity);
         xl6SequenceEndV1(owner); assert(!output && !input.items && !input.count);
     }
-    xrtClearError(); xrtValueRelease(result); xl6ArrayInputReleaseV1(&input); xrtFutureDestroy(output);
+    xrtClearError(); api->Destroy(language); xrtValueRelease(result); xl6ArrayInputReleaseV1(&input); xrtFutureDestroy(output);
     xrtValueRelease(good); xrtValueRelease(alias); xrtValueRelease(array); xrtFutureDestroy(future);
     balanced(&before); printf("future Array fault %s %zu hit=%d balanced\n",operation,point,(int)hit);
 }

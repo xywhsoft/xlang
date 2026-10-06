@@ -72,6 +72,9 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackCreateV1")==XL6_ARTIFACT_STACK);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayReadI64V1")==XL6_ARTIFACT_ARRAY_SCALAR_READ);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayReadF64V1")==XL6_ARTIFACT_ARRAY_SCALAR_READ);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayIteratorSnapshotV1")==XL6_ARTIFACT_ARRAY_ITERATOR);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayIteratorCreateErasedV1")==XL6_ARTIFACT_ARRAY_VALUE_ITERATOR);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayIteratorAdvanceValueV1")==XL6_ARTIFACT_ARRAY_VALUE_ITERATOR);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackOwnershipAdapterV1")==XL6_ARTIFACT_RUNTIME_COUNT);
     XL6_ArtifactRuntimeSet sequence=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeClosePlan(&sequence,&plan) && plan.sourceCount==1);
@@ -97,6 +100,15 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeClosePlan(&stack,&plan) && plan.sourceCount==2);
     CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
         !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED));
+    XL6_ArtifactRuntimeSet typedCursor=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_ARRAY_ITERATOR);
+    CHECK(xl6ArtifactRuntimeClosePlan(&typedCursor,&plan) && plan.sourceCount==2 &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_VALUE_ITERATOR) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_ITERATOR));
+    XL6_ArtifactRuntimeSet valueCursor=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_ARRAY_VALUE_ITERATOR);
+    CHECK(xl6ArtifactRuntimeClosePlan(&valueCursor,&plan) && plan.sourceCount==3 &&
+        xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_ITERATOR) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT));
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureAggregateRuntimeV1Get")==XL6_ARTIFACT_RUNTIME_COUNT);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureAggregateAllV2")==XL6_ARTIFACT_FUTURE_AGGREGATE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6FutureAggregateAllArrayV2")==XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY);
@@ -108,7 +120,12 @@ static int closure_contract(void)
         CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE)==(i!=0));
         CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY)==(i==2));
         CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT)==(i==2));
-        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE)==(i==2));
+        /* Common capture lifetime now includes the native-capable iterator.
+         * This is a real dependency, not an ArrayInput/Array facade request. */
+        CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_ITERATOR) &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_VALUE_ITERATOR) &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+            !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED));
         CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE)==(i==0));
     }
     return 1;
@@ -385,7 +402,8 @@ static int fixture_contract(const char* path)
         ok=ok && xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE)==!metadata &&
             xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_AGGREGATE_ARRAY)==arrayInput &&
             xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_INPUT)==arrayInput &&
-            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE)==arrayInput &&
+            xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE)==
+                (arrayInput || xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_ITERATOR)) &&
             xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_METADATA)==metadata &&
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FUTURE_BRIDGE);
     }

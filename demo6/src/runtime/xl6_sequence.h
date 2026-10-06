@@ -78,7 +78,7 @@ typedef struct XL6_SequenceLayoutV1 {
  * No slot pointer is cached: snapshot storage is the sole element owner. */
 typedef struct XL6_SequenceIteratorStateV1 {
     size_t next, current;
-    bool prepared, ended, currentValid;
+    bool prepared, ended, currentValid, failed;
 } XL6_SequenceIteratorStateV1;
 XL6_TEXT_API XL6_SequenceIteratorStateV1* xl6SequenceIteratorStateV1(XL6_Sequence*);
 /* A nullable managed carrier may use the C ABI's NULL slot or XRT's immortal
