@@ -592,8 +592,18 @@ XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, c
 
 XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp operation)
 {
-    return operation == XL6_IR_TYPED_COLLECTION_RESIZE
-        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
+    switch (operation) {
+    case XL6_IR_TYPED_COLLECTION_CLEAR:
+    case XL6_IR_TYPED_COLLECTION_CAPACITY:
+    case XL6_IR_TYPED_COLLECTION_RESERVE:
+    case XL6_IR_TYPED_COLLECTION_RESIZE:
+    case XL6_IR_TYPED_COLLECTION_TRIM:
+    case XL6_IR_TYPED_COLLECTION_SWAP:
+    case XL6_IR_TYPED_COLLECTION_INSERT:
+    case XL6_IR_TYPED_COLLECTION_INDEX_OF:
+    case XL6_IR_TYPED_COLLECTION_REVERSE: return XL6_IR_ERROR_ABI_MAY_RAISE;
+    default: return XL6_IR_ERROR_ABI_NO_RAISE;
+    }
 }
 
 XL6_ValueDefaultAbiV1 xl6IrValueDefaultAbiForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
@@ -12777,6 +12787,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         }
         break;
     case XL6_IR_INTRINSIC_ARRAY_REMOVE_VALUE:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( operandCount == 1 && result != NULL &&
              result->cAbi == XL6_IR_C_ABI_BOOL &&
              intrinsic.receiver != XL6_IR_NODE_INVALID &&
@@ -18450,6 +18461,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(instruction->runtimeOp);
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE)
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
         xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
@@ -31747,6 +31760,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  : XL6_IR_INTRINSIC_RESULT_VALUE) ||
                          intrinsic->errorAbi !=
                              (intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
+                              intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_REMOVE_VALUE ||
                               intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD
                                  ? XL6_IR_ERROR_ABI_MAY_RAISE
                                  : intrinsic->kind == XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER
@@ -32324,7 +32338,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      intrinsic->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
                      result->cAbi != XL6_IR_C_ABI_BOOL ||
                      intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                      intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
                     return xl6IrDiag(diags, call,
                         "XLIR array remove-value intrinsic has no exact borrowed receiver, item or boolean result ABI");

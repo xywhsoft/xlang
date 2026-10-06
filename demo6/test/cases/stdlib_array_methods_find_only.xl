@@ -1,0 +1,3 @@
+func arrayFindOnly(array<int> values, int item) as int
+    return values.indexOf(item)
+end

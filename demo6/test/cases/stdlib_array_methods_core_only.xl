@@ -1,0 +1,7 @@
+func arrayCoreOnly(array<int> values) as int
+    assert values.reserve(16)
+    assert values.trim()
+    assert values.reverse()
+    assert values.clear()
+    return values.capacity()
+end

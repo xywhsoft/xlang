@@ -63,6 +63,9 @@ def main() -> int:
         "test/cases/stdlib_array_default_native_host.c", "test/support/array_default_native.c",
         "src/runtime/xl6_array_default.c")]
     files += [root / name for name in ("tools/check_stdlib_array_primitive_admission.py",
+        "tools/check_stdlib_array_methods.py","test/cases/stdlib_array_methods_native_host.c",
+        "test/cases/stdlib_array_methods_header.c","src/runtime/xl6_array_methods.c",
+        "src/runtime/xl6_array_method_insert.c","src/runtime/xl6_array_method_find.c",
         "tools/check_stdlib_array_import.py","test/cases/stdlib_array_import_native_host.c",
         "test/cases/stdlib_array_import_header.c","test/cases/stdlib_array_primitive_import_native_host.c",
         "test/support/array_import_native.c","src/runtime/xl6_array_import.c",
@@ -333,6 +336,15 @@ def main() -> int:
         if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=9 or len(evidence["Sweeps"])!=36:
             raise RuntimeError("Incomplete profiled Array import evidence")
         report["AdmittedImportReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
+            "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
+        child=out / "resident-methods"
+        command=[sys.executable,"tools/check_stdlib_array_methods.py","--out",str(child)]
+        if args.sanitize: command += ["--sanitize"]
+        run(child.name,command,timeout=360)
+        evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=9 or len(evidence["Sweeps"])!=252:
+            raise RuntimeError("Incomplete profiled resident Array methods evidence")
+        report["ResidentMethodsReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
             "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         child = out / "admission-c-scalar"
         command = [sys.executable, "tools/check_stdlib_array_c_scalar.py", "--out", str(child)]

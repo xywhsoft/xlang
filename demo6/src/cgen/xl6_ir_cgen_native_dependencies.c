@@ -216,6 +216,14 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+            const char* method=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ?
+                "xl6ArrayMethodRemoveValueV1" :
+                instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+                instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
+                    xl6IrCgenArrayMethodSymbol(instruction->typedCollectionOp) : NULL;
+            if (method && !visitor(context,method)) return 0;
+        }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
             const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ?
                 "xl6ArrayValueReadCopyV1" : instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ?

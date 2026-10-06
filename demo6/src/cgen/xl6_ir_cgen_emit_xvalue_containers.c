@@ -288,23 +288,8 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "    xrtValueIterDestroy(iterator);\n"
                 "    return found;\n"
                 "}\n", out);
-        if ( needs->needsXValueArrayRemoveValueRuntime )
-            xl6OutputPuts(
-                "extern size_t xrtValueCount(const xvalue*);\n"
-                "extern xvalue* xrtValueArrayGet(const xvalue*, size_t);\n"
-                "extern bool xrtValueEqual(const xvalue*, const xvalue*);\n"
-                "extern bool xrtValueArrayRemove(xvalue*, size_t, size_t);\n"
-                "static bool xlir_xvalue_array_remove_value(xvalue* array, const xvalue* item)\n"
-                "{\n"
-                "    size_t index; size_t count = xrtValueCount(array); xvalue* current;\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        current = xrtValueArrayGet(array, index);\n"
-                "        if (current != NULL && xrtValueEqual(current, item))\n"
-                "            return xrtValueArrayRemove(array, index, 1u);\n"
-                "    }\n"
-                "    return false;\n"
-                "}\n",
-                out);
+        if ( needs->needsXValueArrayMethodsRuntime )
+            xl6OutputPuts("#include <__xl_runtime/xl6_array_methods.h>\n",out);
         if ( needs->needsXValueTypedCollectionBaseRuntime )
             xl6OutputPuts(
                 "extern bool xrtValueClear(xvalue*);\n"
@@ -319,36 +304,6 @@ static int xl6IrCgenEmitXValueContainerRuntime(
         if ( needs->needsXValueTypedArrayResizeRuntime )
             xl6OutputPuts(
                 "extern bool xl6ArrayResizeDefaultV1(xvalue*, int64_t, unsigned int);\n",
-                out);
-        if ( needs->needsXValueTypedArrayIndexOfRuntime )
-            xl6OutputPuts(
-                "extern size_t xrtValueCount(const xvalue*);\n"
-                "extern xvalue* xrtValueArrayGet(const xvalue*, size_t);\n"
-                "extern bool xrtValueEqual(const xvalue*, const xvalue*);\n"
-                "static int64_t xlir_xvalue_typed_array_index_of(\n"
-                "    const xvalue* array, const xvalue* item)\n"
-                "{\n"
-                "    size_t index; size_t count = xrtValueCount(array);\n"
-                "    xvalue* current;\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        current = xrtValueArrayGet(array, index);\n"
-                "        if (current != NULL && xrtValueEqual(current, item))\n"
-                "            return (int64_t)index;\n"
-                "    }\n"
-                "    return -1;\n"
-                "}\n",
-                out);
-        if ( needs->needsXValueTypedArrayReverseRuntime )
-            xl6OutputPuts(
-                "extern size_t xrtValueCount(const xvalue*);\n"
-                "extern bool xrtValueArraySwap(xvalue*, size_t, size_t);\n"
-                "static bool xlir_xvalue_typed_array_reverse(xvalue* array)\n"
-                "{\n"
-                "    size_t left; size_t count = xrtValueCount(array);\n"
-                "    for (left = 0; left < count / 2u; ++left)\n"
-                "        if (!xrtValueArraySwap(array, left, count - left - 1u)) return false;\n"
-                "    return true;\n"
-                "}\n",
                 out);
         if ( needs->needsXValueTypedCollectionTakeRuntime ) {
             xl6OutputPrintf(out,

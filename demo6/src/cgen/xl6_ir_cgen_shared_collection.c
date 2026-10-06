@@ -1,5 +1,19 @@
 /* One physical collection emitter is shared by sync functions and both
  * continuation machines.  No backend path resolves source member spellings. */
+static const char* xl6IrCgenArrayMethodSymbol(XL6_IrTypedCollectionOp operation)
+{
+    switch (operation) {
+    case XL6_IR_TYPED_COLLECTION_CLEAR: return "xl6ArrayMethodClearV1";
+    case XL6_IR_TYPED_COLLECTION_CAPACITY: return "xl6ArrayMethodCapacityV1";
+    case XL6_IR_TYPED_COLLECTION_RESERVE: return "xl6ArrayMethodReserveV1";
+    case XL6_IR_TYPED_COLLECTION_TRIM: return "xl6ArrayMethodTrimV1";
+    case XL6_IR_TYPED_COLLECTION_SWAP: return "xl6ArrayMethodSwapV1";
+    case XL6_IR_TYPED_COLLECTION_INSERT: return "xl6ArrayMethodInsertV1";
+    case XL6_IR_TYPED_COLLECTION_INDEX_OF: return "xl6ArrayMethodIndexOfV1";
+    case XL6_IR_TYPED_COLLECTION_REVERSE: return "xl6ArrayMethodReverseV1";
+    default: return NULL;
+    }
+}
 static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
@@ -94,7 +108,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     } else if ( instruction->runtimeOp ==
                     XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ) {
         xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_array_remove_value(v%u, v%u);\n",
+            "    v%u = xl6ArrayMethodRemoveValueV1(v%u, v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             (unsigned int)module->operands[
@@ -181,17 +195,26 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             break;
         case XL6_IR_TYPED_COLLECTION_CLEAR:
             xl6OutputPrintf(out,
-                "    v%u = xrtValueClear(v%u);\n",
+                instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY
+                    ? "    v%u = xl6ArrayMethodClearV1(v%u);\n"
+                    : "    v%u = xrtValueClear(v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver);
             break;
         case XL6_IR_TYPED_COLLECTION_CAPACITY:
             xl6OutputPrintf(out,
-                "    v%u = (int64_t)xrtValueCapacity(v%u);\n",
+                instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY
+                    ? "    v%u = xl6ArrayMethodCapacityV1(v%u);\n"
+                    : "    v%u = (int64_t)xrtValueCapacity(v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver);
             break;
         case XL6_IR_TYPED_COLLECTION_RESERVE:
+            if (instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
+                xl6OutputPrintf(out,"    v%u = xl6ArrayMethodReserveV1(v%u, v%u);\n",
+                    (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
+                break;
+            }
             xl6OutputPrintf(out,
                 "    v%u = v%u >= 0 && xrtValueReserve(v%u, (size_t)v%u);\n",
                 (unsigned int)instruction->result,
@@ -215,7 +238,9 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                     (unsigned int)receiver);
             else
                 xl6OutputPrintf(out,
-                    "    v%u = xrtValueTrim(v%u);\n",
+                    instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY
+                        ? "    v%u = xl6ArrayMethodTrimV1(v%u);\n"
+                        : "    v%u = xrtValueTrim(v%u);\n",
                     (unsigned int)instruction->result,
                     (unsigned int)receiver);
             break;
@@ -229,33 +254,30 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             break;
         case XL6_IR_TYPED_COLLECTION_SWAP:
             xl6OutputPrintf(out,
-                "    v%u = v%u >= 0 && v%u >= 0 && xrtValueArraySwap(v%u, (size_t)v%u, (size_t)v%u);\n",
+                "    v%u = xl6ArrayMethodSwapV1(v%u, v%u, v%u);\n",
                 (unsigned int)instruction->result,
-                (unsigned int)argument0,
-                (unsigned int)argument1,
                 (unsigned int)receiver,
                 (unsigned int)argument0,
                 (unsigned int)argument1);
             break;
         case XL6_IR_TYPED_COLLECTION_INSERT:
             xl6OutputPrintf(out,
-                "    v%u = v%u >= 0 && xrtValueArrayInsert(v%u, (size_t)v%u, v%u);\n",
+                "    v%u = xl6ArrayMethodInsertV1(v%u, v%u, v%u);\n",
                 (unsigned int)instruction->result,
-                (unsigned int)argument0,
                 (unsigned int)receiver,
                 (unsigned int)argument0,
                 (unsigned int)argument1);
             break;
         case XL6_IR_TYPED_COLLECTION_INDEX_OF:
             xl6OutputPrintf(out,
-                "    v%u = xlir_xvalue_typed_array_index_of(v%u, v%u);\n",
+                "    v%u = xl6ArrayMethodIndexOfV1(v%u, v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver,
                 (unsigned int)argument0);
             break;
         case XL6_IR_TYPED_COLLECTION_REVERSE:
             xl6OutputPrintf(out,
-                "    v%u = xlir_xvalue_typed_array_reverse(v%u);\n",
+                "    v%u = xl6ArrayMethodReverseV1(v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver);
             break;

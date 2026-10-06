@@ -225,6 +225,16 @@ $process=Start-Process @start
                         'src/runtime/xl6_number_format_buffer.c'-notin$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_'}).Count-and
                         'XRT_MODULE_STRING_SPLIT'-notin$plan.NativeModules
+                }elseif($case-in@('stdlib_array_methods_core_only','stdlib_array_methods_insert_only','stdlib_array_methods_find_only')){
+                    $leaf=@{stdlib_array_methods_core_only='methods';stdlib_array_methods_insert_only='method_insert';stdlib_array_methods_find_only='method_find'}[$case]
+                    $wanted="src/runtime/xl6_array_$leaf.c"
+                    $methods=@($selectedSources|Where-Object {$_-match 'xl6_array_(methods|method_insert|method_find)\.c$'})
+                    $selectionMatches=$methods.Count-eq1-and$methods[0]-eq$wanted-and
+                        'src/runtime/xl6_sequence.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_import.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_input.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array.c'-notin$selectedSources-and
+                        (('XRUNTIME_MODULE_TYPED_ARRAY_VALUE'-in$plan.NativeModules)-eq($leaf-ne'methods'))
                 }elseif($case-eq'stdlib_text_iterator_only'){
                     $selectionMatches='src/runtime/xl6_text_iterator.c'-in$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!iterator\.)'}).Count

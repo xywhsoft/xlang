@@ -27664,6 +27664,10 @@ static XL6_IrValueId xl6IrLowerXValueContains(
                 : XL6_IR_RUNTIME_XVALUE_CONTAINS,
         operands, 2);
     if ( result != XL6_IR_VALUE_INVALID &&
+         requestedOperation == XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE &&
+         !xl6IrLowerEmitRuntimeErrorEdge(ctx, origin, expression, result) )
+        result = XL6_IR_VALUE_INVALID;
+    if ( result != XL6_IR_VALUE_INVALID &&
          !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, evaluationOwnerFirst, &result) )
         result = XL6_IR_VALUE_INVALID;
 done:
@@ -27724,7 +27728,7 @@ static int xl6IrLowerIntrinsicArrayRemoveValue(
          intrinsic->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
          intrinsic->resultType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) return 0;
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) return 0;
     binding = &ctx->module->intrinsicOperands[intrinsic->firstOperand];
     item = xl6IrNodeGet(ctx->module, binding->expression);
     receiver = xl6IrNodeGet(ctx->module, intrinsic->receiver);

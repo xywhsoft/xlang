@@ -211,3 +211,21 @@ wire/native 导入、真实拥有边、BUSY 和完整 OOM 前缀。
 语言类型；每配方 15 次损坏均在输出前拒绝，将九类 native target 构造
 实际编译并运行 100 轮。Array/Stack 父门接入以上子门。源 Array
 仍为 Value-v1；此门不能冒充整个语言 Array producer/carrier 已迁移。
+
+### B99 Array resident 核心 / 查询方法
+
+`tools/check_stdlib_array_methods.py` 在九类实际 native/wire 闭包执行
+严格 O0/O2、拥有边、未绑定/BUSY/错误角色拒绝及完整 OOM 前缀。
+Linux native lanes 用 ASan/UBSan/leak 插桩选定闭包全源；shared lanes
+只插桩宿主，不声称共享 runtime 全源插桩。
+`tools/check_stdlib_array_methods_language.py` 检查
+`test/cases/stdlib_array_methods.xl` 和
+`test/cases/stdlib_array_methods_continuation.xl` 的真实 IR 错误合同、
+C/header 输出前拒绝、确定性、严格 O0/O2、finally、模块 OOM、
+JIT/AOT；抽取真实函数和 TypeId 后，以 native int/双字段 string Array
+调用生成函数，检查 NUL、顺序、别名和拥有账本及逐点 OOM。
+`test/cases/stdlib_array_methods_core_only.xl`、
+`test/cases/stdlib_array_methods_insert_only.xl`、
+`test/cases/stdlib_array_methods_find_only.xl` 用于实际 artifact 组件裁剪。
+Array/Stack 父门接线；pop/take、resize 默认值、动态分派及整个源 carrier
+切换不属于本批完成范围。
