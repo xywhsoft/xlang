@@ -422,11 +422,11 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter derived class string ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_string_take_cstr(xlir_class_derive_to_string_t%u(v%u));\n",
+                        "    v%u = xl6ClassValueTextV1(v%u, &xlir_class_string_schema_t%u);\n",
                         (unsigned int)instruction->result,
-                        (unsigned int)instruction->payloadType,
                         (unsigned int)module->operands[
-                             instruction->firstOperand]);
+                             instruction->firstOperand],
+                        (unsigned int)instruction->payloadType);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL ) {
                     if ( !xl6IrCgenRuntimeClassDerivedEqualAbi(

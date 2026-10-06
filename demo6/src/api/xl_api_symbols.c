@@ -37,6 +37,7 @@
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_native_scalar_value.h"
 #include "src/runtime/xl6_value_format.h"
+#include "src/runtime/xl6_class_text.h"
 #include "src/runtime/xl6_nominal_admission.h"
 #include "src/runtime/xl6_array_iterator.h"
 #include "src/runtime/xl6_array_value_iterator.h"

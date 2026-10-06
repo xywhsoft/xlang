@@ -98,15 +98,15 @@ try {
     $generatedText = [System.IO.File]::ReadAllText(
         $generatedPath, [System.Text.Encoding]::UTF8)
     foreach ( $required in @(
-        "xlir_type_id_to_string", "xlir_class_derive_to_string_t",
-        'xrtStrDup("StringRecord")', 'xrtStrView("id")',
-        'xrtStrView("name")'
+        "xlir_type_id_to_string", "xl6ClassValueTextV1", "xlir_class_string_schema_t",
+        'sizeof("StringRecord") - 1u', 'sizeof("id") - 1u',
+        'sizeof("name") - 1u'
     ) ) {
         if ( ! $generatedText.Contains($required) ) {
             throw "XLIR string conversion generated C lacks exact runtime data: $required"
         }
     }
-    $helperStart = $generatedText.IndexOf("static char* xlir_class_derive_to_string_t")
+    $helperStart = $generatedText.IndexOf("static const xstrview xlir_class_string_fields_t")
     $helperEnd = if ( $helperStart -ge 0 ) {
         $generatedText.IndexOf("static ", $helperStart + 20)
     } else { -1 }
@@ -114,8 +114,13 @@ try {
         throw "XLIR derived class string helper boundary is missing"
     }
     $helperText = $generatedText.Substring($helperStart, $helperEnd - $helperStart)
-    if ( $helperText.Contains('xrtStrView("hidden")') ) {
+    if ( $helperText.Contains('sizeof("hidden")') ) {
         throw "XLIR derived class string helper ignored the typed skip partition"
+    }
+    if ($generatedText.Contains('xlir_string_append_take') -or
+        $generatedText.Contains('static char* xlir_xvalue_to_string') -or
+        $generatedText.Contains('xlir_string_take_cstr(xlir_class_derive')) {
+        throw "XLIR derived class formatter still uses a generated lossy C-string algorithm"
     }
 
     $command = "call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include $generatedPath $runtimeHost !XL6_CGEN_LINKS! -o $xlirExe && $xlirExe"
@@ -128,3 +133,11 @@ try {
 }
 
 Write-Output "XLIR TypeId, derived class and explicit class-protocol string conversion ABI ok."
+
+# Keep the exact NUL/char/UTF-8 and complete allocation-prefix regression in
+# the regular language gate, with fresh evidence outside the source checkout.
+$classTextEvidence = Join-Path ([IO.Path]::GetTempPath()) ('xlir-class-text-' + [guid]::NewGuid().ToString('N'))
+& python (Join-Path $Root 'tools/check_xlir_class_text.py') --mode native --out ($classTextEvidence + '-native')
+if ($LASTEXITCODE -ne 0) { throw 'XLIR resident class text native gate failed' }
+& python (Join-Path $Root 'tools/check_xlir_class_text.py') --mode language --out ($classTextEvidence + '-language')
+if ($LASTEXITCODE -ne 0) { throw 'XLIR resident class text language gate failed' }

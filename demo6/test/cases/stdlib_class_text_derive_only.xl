@@ -1,0 +1,9 @@
+// Minimal resident class display selection: no print/console provider needed.
+class CoreTextRecord
+    derive string
+    string value = "a\0你"
+    char zero = '\0'
+    int ignored @string(skip) = 19
+end
+CoreTextRecord item = CoreTextRecord()
+assert string(item) == "CoreTextRecord{value=a\0你, zero=\0}"

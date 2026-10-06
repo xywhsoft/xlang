@@ -134,10 +134,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         if ( needs->needsXValueToStringRuntime )
             xl6OutputPuts(
                 "extern xlir_string xl6ValueTextV1(const xvalue*);\n", out);
-        if ( needs->needsClassDerivedToStringRuntime )
-            xl6OutputPuts(
-                "static char* xlir_xvalue_to_string(const xvalue* value)\n"
-                "{ return (char*)xl6ValueTextV1(value).Data; }\n", out);
         xl6OutputPuts("\n", out);
     }
     if ( needs->needsTypeIdToStringRuntime ) {
@@ -345,16 +341,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     }
     if ( needs->needsClassDerivedToStringRuntime ) {
         size_t instructionIndex;
-        xl6OutputPuts(
-            "static char* xlir_string_append_take(char* left, const char* right)\n"
-            "{\n"
-            "    char* joined;\n"
-            "    if (left == NULL || right == NULL) { xrtFree(left); return NULL; }\n"
-            "    joined = xrtStrConcat(xrtStrView(left), xrtStrView(right));\n"
-            "    xrtFree(left);\n"
-            "    return joined;\n"
-            "}\n\n",
-            out);
+        xl6OutputPuts("#include <__xl_runtime/xl6_class_text.h>\n", out);
         for ( instructionIndex = 0;
               instructionIndex < module->instructionCount;
               ++instructionIndex ) {
@@ -364,7 +351,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             const XL6_IrType* classType;
             size_t priorInstruction;
             size_t fieldOffset;
-            int wroteField = 0;
+            size_t includedFields = 0;
             if ( !xl6IrCgenInstructionIsReachable(
                      module, instructionIndex) ||
                  instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
@@ -393,24 +380,17 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             classType = xl6IrTypeGet(
                 &module->types, instruction->payloadType);
             if ( layout == NULL || classType == NULL ||
-                 classType->name == NULL )
+                 classType->name == NULL || classType->typeValueId == 0 )
                 return xl6IrCgenDiag(diags, module, instruction->origin,
                     "XLIR C emitter derived class string layout name is unresolved");
-            xl6OutputPrintf(out,
-                "static char* xlir_class_derive_to_string_t%u(const xvalue* value)\n"
-                "{\n"
-                "    char* result; char* text; xvalue* item;\n"
-                "    if (value == NULL || xrtValueType(value) == 0) return xrtStrDup(\"null\");\n"
-                "    if (xlir_xvalue_object_get_literal_i64(value, xrtStrView(\"$xlir.class.runtime-type\")) != INT64_C(%u)) abort();\n"
-                "    result = xrtStrDup(",
-                (unsigned int)instruction->payloadType,
-                (unsigned int)layout->runtimeTypeTag);
-            xl6IrCgenEmitCStringLiteral(out, classType->name);
-            xl6OutputPuts("); if (result == NULL) return NULL;\n", out);
-            xl6OutputPuts(
-                "    result = xlir_string_append_take(result, \"{\");\n"
-                "    if (result == NULL) return NULL;\n",
-                out);
+            for ( fieldOffset = layout->inheritedFieldCount;
+                  fieldOffset < layout->fieldCount; ++fieldOffset )
+                if ( module->classFields[layout->firstField + fieldOffset].stringDeriveIncluded )
+                    ++includedFields;
+            if ( includedFields != 0 )
+                xl6OutputPrintf(out,
+                    "static const xstrview xlir_class_string_fields_t%u[] = {\n",
+                    (unsigned int)instruction->payloadType);
             for ( fieldOffset = layout->inheritedFieldCount;
                   fieldOffset < layout->fieldCount;
                   ++fieldOffset ) {
@@ -418,36 +398,28 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                     &module->classFields[
                         layout->firstField + fieldOffset];
                 if ( !field->stringDeriveIncluded ) continue;
-                xl6OutputPuts(
-                    "    result = xlir_string_append_take(result, ", out);
-                xl6IrCgenEmitCStringLiteral(
-                    out, wroteField ? ", " : "");
-                xl6OutputPuts("); if (result == NULL) return NULL;\n", out);
-                xl6OutputPuts(
-                    "    result = xlir_string_append_take(result, ", out);
+                xl6OutputPuts("    { ", out);
                 xl6IrCgenEmitCStringLiteral(
                     out, field->name != NULL ? field->name : "");
-                xl6OutputPuts("); if (result == NULL) return NULL;\n", out);
-                xl6OutputPuts(
-                    "    result = xlir_string_append_take(result, \"=\");\n"
-                    "    if (result == NULL) return NULL;\n"
-                    "    item = xrtValueObjectGet(value, xrtStrView(",
-                    out);
+                xl6OutputPuts(", sizeof(", out);
                 xl6IrCgenEmitCStringLiteral(
                     out, field->name != NULL ? field->name : "");
-                xl6OutputPuts(
-                    "));\n"
-                    "    text = xlir_xvalue_to_string(item != NULL ? item : xrtValueNull());\n"
-                    "    result = xlir_string_append_take(result, text);\n"
-                    "    xrtFree(text);\n"
-                    "    if (result == NULL) return NULL;\n",
-                    out);
-                wroteField = 1;
+                xl6OutputPuts(") - 1u },\n", out);
             }
-            xl6OutputPuts(
-                "    return xlir_string_append_take(result, \"}\");\n"
-                "}\n\n",
-                out);
+            if ( includedFields != 0 ) xl6OutputPuts("};\n", out);
+            xl6OutputPrintf(out,
+                "static const XL6_ClassTextSchemaV1 xlir_class_string_schema_t%u = {\n    { ",
+                (unsigned int)instruction->payloadType);
+            xl6IrCgenEmitCStringLiteral(out, classType->name);
+            xl6OutputPuts(", sizeof(", out);
+            xl6IrCgenEmitCStringLiteral(out, classType->name);
+            xl6OutputPrintf(out, ") - 1u }, INT64_C(%u), UINT64_C(0x%016llX), ",
+                (unsigned int)layout->runtimeTypeTag,
+                (unsigned long long)classType->typeValueId);
+            if ( includedFields != 0 )
+                xl6OutputPrintf(out, "xlir_class_string_fields_t%u, %luu\n};\n\n",
+                    (unsigned int)instruction->payloadType, (unsigned long)includedFields);
+            else xl6OutputPuts("NULL, 0u\n};\n\n", out);
         }
     }
     if ( needs->needsStringContainsRuntime ) {
