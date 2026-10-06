@@ -31,6 +31,12 @@ XL6_TEXT_API xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t
  * Nonnullable element identity equals child identity; nullable is separate.
  * Nonnullable resize growth is forbidden; nullable growth yields absent. */
 XL6_TEXT_API xvalue* xl6SequenceNestedCreateTakeV2(unsigned int, uint64_t, uint64_t, xvalue*, bool);
+/* Explicit import-plan edge validation. Parent is operation-pinned; child is
+ * a sealed schema witness (BUSY is legal). Only the actual nested resident
+ * policy authorizes this edge; IDs/layout equality alone are insufficient.
+ * NULL checks a chain endpoint: no Array child may remain unplanned. A Stack
+ * child ends data conversion and must already be a genuine native Stack. */
+XL6_TEXT_API bool xl6SequenceNestedChildCheckV1(XL6_Sequence*, const xvalue*);
 /* Tagged native C scalars: absent has no payload domain; present uses the
  * exact builtin width/kind, with explicit identity for type values. The
  * optional descriptor must be an immutable resident profile getter result.

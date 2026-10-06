@@ -40,6 +40,7 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_array_extract_char_only.xl test/cases/stdlib_array_extract_f32_only.xl test/cases/stdlib_collection_extract_only.xl
     printf '%s\0' test/cases/stdlib_array_extract_trivial.xl test/cases/stdlib_array_extract_trivial_only.xl test/cases/stdlib_array_extract_nullable_char_only.xl test/cases/stdlib_array_extract_unreachable_c_scalar_only.xl tools/check_stdlib_array_trivial_extract.py test/cases/stdlib_array_extract_trivial_host.c
     printf '%s\0' tools/check_stdlib_array_import.py test/cases/stdlib_array_import_native_host.c test/cases/stdlib_array_import_header.c test/cases/stdlib_array_primitive_import_native_host.c test/support/array_import_native.c
+    printf '%s\0' src/runtime/xl6_array_import_chain.c test/cases/stdlib_array_import_chain_native_host.c
     printf '%s\0' tools/check_stdlib_sequence_recipe_emit.py test/cases/xlir_sequence_recipe_emit_contract.c test/cases/stdlib_sequence_recipe_emit_host.c
     printf '%s\0' tools/check_stdlib_sequence_schema_language.py test/cases/stdlib_sequence_nested_schema.xl test/cases/stdlib_sequence_nested_schema_continuation.xl
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
@@ -258,6 +259,7 @@ if ! run array-extraction-language "$PY" tools/check_stdlib_array_methods_langua
 if ! run array-trivial-extraction "$PY" tools/check_stdlib_array_trivial_extract.py --out "$OUT/array-trivial-extraction" --sanitize; then failures+=(array-trivial-extraction); fi
 if ! run array-methods-language "$PY" tools/check_stdlib_array_methods_language.py --out "$OUT/array-methods-language" --sanitize; then failures+=(array-methods-language); fi
 if ! run array-admitted-import "$PY" tools/check_stdlib_array_import.py --out "$OUT/array-admitted-import" --sanitize; then failures+=(array-admitted-import); fi
+if ! run array-recursive-import "$PY" tools/check_stdlib_array_import.py --chain --out "$OUT/array-recursive-import" --sanitize; then failures+=(array-recursive-import); fi
 if ! run array-codec-import "$PY" tools/check_stdlib_array_primitive_admission.py --imports --out "$OUT/array-codec-import" --sanitize; then failures+=(array-codec-import); fi
 if ! run sequence-recipe-emitter "$PY" tools/check_stdlib_sequence_recipe_emit.py --out "$OUT/sequence-recipe-emitter"; then failures+=(sequence-recipe-emitter); fi
 if ! run sequence-schema-language "$PY" tools/check_stdlib_sequence_schema_language.py --out "$OUT/sequence-schema-language" --sanitize; then failures+=(sequence-schema-language); fi

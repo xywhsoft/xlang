@@ -168,7 +168,10 @@ static void fault(bool native,size_t point)
     xrtValueRelease(result); xrtValueRelease(source); balanced(&before);
     printf("array-import profile=%u native=%u point=%zu hit=%u balanced\n",XL6_FACTORY_PROFILE,native,point,hit);
 }
-int main(int argc,char** argv)
+#ifndef XL6_IMPORT_FIXTURE_MAIN
+#define XL6_IMPORT_FIXTURE_MAIN main
+#endif
+int XL6_IMPORT_FIXTURE_MAIN(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true));
     if (argc==3) { fault(!strcmp(argv[1],"native"),(size_t)strtoull(argv[2],NULL,10)); return 0; }

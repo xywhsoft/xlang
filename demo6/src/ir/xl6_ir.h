@@ -6190,6 +6190,12 @@ int xl6IrStackConstructionContract(const XL6_IrModule*, XL6_IrTypeId,
  * are bounded. Source producer authorization remains a separate contract. */
 int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrSequenceRoleAbi, XL6_IrNominalIdentitySetId*);
+/* Complete explicit data-import chain, outer Array first. Recurses only into
+ * Array children; Stack children retain their native identity. No source
+ * carrier cutover authority. All descendant recipes/codecs are verified before
+ * publishing any output. NULL/zero queries length; short buffers are unchanged. */
+int xl6IrArrayImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrTypeId*, size_t, size_t*);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
  * Typed construction, lowering, verification and statistics from developing
  * separate lists of operations which can fail without source throw syntax. */

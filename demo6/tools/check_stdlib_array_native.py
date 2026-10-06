@@ -73,6 +73,7 @@ def main() -> int:
         "tools/check_stdlib_array_import.py","test/cases/stdlib_array_import_native_host.c",
         "test/cases/stdlib_array_import_header.c","test/cases/stdlib_array_primitive_import_native_host.c",
         "test/support/array_import_native.c","src/runtime/xl6_array_import.c",
+        "test/cases/stdlib_array_import_chain_native_host.c","src/runtime/xl6_array_import_chain.c",
         "test/cases/stdlib_array_primitive_admission_native_host.c",
         "test/cases/stdlib_array_projection_identity_native_host.c",
         "test/cases/stdlib_sequence_retired_admission_abi.c",
@@ -342,6 +343,15 @@ def main() -> int:
         if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=9 or len(evidence["Sweeps"])!=36:
             raise RuntimeError("Incomplete profiled Array import evidence")
         report["AdmittedImportReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
+            "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
+        child=out / "recursive-import"
+        command=[sys.executable,"tools/check_stdlib_array_import.py","--chain","--out",str(child)]
+        if args.sanitize: command += ["--sanitize"]
+        run(child.name,command,timeout=900)
+        evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or not evidence["Chain"] or len(evidence["Sweeps"])!=38:
+            raise RuntimeError("Incomplete recursive Array import evidence")
+        report["RecursiveImportReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
             "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         child=out / "resident-methods"
         command=[sys.executable,"tools/check_stdlib_array_methods.py","--out",str(child)]

@@ -47,6 +47,17 @@ def main() -> int:
     strict=['-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-const-variable',
         '-Wno-unused-parameter','-Wno-unused-label','-Wno-missing-field-initializers','-I.','-Irelease','-Irelease/include','-I'+str(out/'include')]
     links=[str(product)] if os.name=='nt' else ['-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']
+    # The current-source driver may be newer than the released DLL. These two
+    # inseparable resident islands share a private policy-ops identity; link
+    # BOTH current objects, never mix an old factory with a new policy probe.
+    # Their hashes are already frozen by the public manifest and this report.
+    overlays=[]
+    if public:
+        wanted={'xl6_array_import_chain.o','xl6_array_sequence_admission.o'}
+        overlays=[row['Path'] for row in public['Objects'] if Path(row['Path']).name in wanted]
+        assert len(overlays)==2,'Missing current-source recursive import runtime'
+        links=overlays+links
+    report['SourceRuntimeOverlay']=overlays
     if os.name!='nt': strict+=['-D_GNU_SOURCE']
     def run(name,command):
         result=subprocess.run(command,cwd=root,capture_output=True,timeout=180)
@@ -71,9 +82,16 @@ def main() -> int:
             assert nested,'Missing recursive schema rejection proof'
             if fixture=='stdlib_array_layouts': assert int(nested[1])>0,'Missing actual nested recipes'
             proofs[-1]['DescendantMutations']=int(nested[1])
+            chains=re.search(r'Array import chain recipes: (\d+) complete plans; short/malformed outputs unchanged',log)
+            assert chains,'Missing verified Array import-chain contracts'
+            if fixture=='stdlib_array_layouts': assert int(chains[1])>0,'Missing actual Array import chains'
+            proofs[-1]['ImportChainPlans']=int(chains[1])
             text=generated.read_text(encoding='utf-8')
             probe=text.split('int xl6_recipe_probe(void)',1)[1]
-            assert 'xrtValueArray(' not in probe and 'xl6ArrayFromValueV1' not in probe
+            factory_probe,import_probe=probe.split('/* Explicit Array data-import plans, separate from creation. */',1)
+            assert 'xrtValueArray(' not in factory_probe and 'xl6ArrayFromValueV1' not in probe
+            assert import_probe.count('xl6ArrayImportChainTakeV1(')==int(chains[1])
+            assert 'for (' not in import_probe.split('xrtMemDebugSnapshot(&after)',1)[0]
             assert 'xl6SequenceNestedCreateV1' not in probe
             if int(nested[1])>0: assert 'xl6SequenceNestedCreateTakeV2' in probe
             for level in (0,2):
