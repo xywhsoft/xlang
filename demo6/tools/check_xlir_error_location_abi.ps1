@@ -64,8 +64,8 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR error location Cgen failed" }
 $generated = [System.IO.File]::ReadAllText(
     $cPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xrtErrorBuildAt(&desc, &location)",
-    "xrtErrorFile(",
+    "#include <__xl_runtime/xl6_error_text.h>",
+    "xl6ErrorFileCopyV1(",
     "xrtErrorLine(",
     "xrtErrorColumn("
 ) ) {
@@ -74,7 +74,7 @@ foreach ( $required in @(
     }
 }
 if ( $generated -notmatch
-     'xlir_error_create_at\("ValueError", v[0-9]+, [1-9][0-9]*, [1-9][0-9]*\)' ) {
+     'xl6ErrorCreateV1\("ValueError", v[0-9]+, [1-9][0-9]*, [1-9][0-9]*\)' ) {
     throw "XLIR Error C emission did not preserve the verified throw source position"
 }
 

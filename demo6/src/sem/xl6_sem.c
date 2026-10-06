@@ -3118,7 +3118,7 @@ static int xl6SemCanConvertType(const char* source, const char* target)
         return xl6SemIsIntegerTypeName(source) || xl6SemIsFloatTypeName(source) ||
                xl6SemIsBoolTypeName(source) || xl6TextEquals(source, "string") ||
                xl6TextEquals(source, "time") || xl6TextEquals(source, "point") ||
-               xl6TextEquals(source, "type");
+               xl6TextEquals(source, "type") || xl6TextEquals(source, "error");
     }
     if ( xl6TextEquals(target, "time") ) {
         return xl6TextEquals(source, "time") || xl6TextEquals(source, "string") ||
@@ -8910,6 +8910,7 @@ static int xl6SemTypeNameHasImplicitToString(const char* name)
            xl6TextEquals(name, "string") ||
            xl6TextEquals(name, "time") ||
            xl6TextEquals(name, "type") ||
+           xl6TextEquals(name, "error") ||
            xl6TextEquals(name, "point");
 }
 
@@ -18450,7 +18451,7 @@ static int xl6SemIsErrorKindName(const char* name)
         "Error",
         "RuntimeError", "AssertionError", "NullReferenceError", "NotImplementedError", "NativeError",
         "ArithmeticError", "ZeroDivisionError", "OverflowError",
-        "TypeError",
+        "TypeError", "MemoryError",
         "ValueError", "RangeError",
         "LookupError", "IndexError", "KeyError", "AttributeError", "NameError",
         "IOError", "FileError", "EncodingError", "NetworkError", "TimeoutError",

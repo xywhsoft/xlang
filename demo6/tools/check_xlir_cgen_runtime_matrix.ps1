@@ -12,6 +12,9 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $generated = Join-Path $Root "build\test\xlir_cgen_runtime_matrix_generated.c"
 $fixtures = @(
+    @{ Name = "exact immutable Error text and typed interpolation"; Source = "test\cases\stdlib_error_span.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "exact Error cause and continuation text ownership"; Source = "test\cases\stdlib_error_span_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "canonical MemoryError throw and typed catch"; Source = "test\cases\stdlib_memory_error.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "exact char F32 bytes and nullable class-field value projection"; Source = "test\cases\stdlib_class_value_fields.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "canonical class protocol and derived interpolation"; Source = "test\cases\stdlib_class_interpolation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "exact class-field and interpolation continuation ownership"; Source = "test\cases\stdlib_class_values_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },

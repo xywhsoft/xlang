@@ -160,8 +160,8 @@ XL6_FOREIGN_API void xl6ForeignCallbackFail(void)
 {
     xerror* original = xrtTakeError();
     xerror* diagnostic;
-    xerrordesc description;
-    xerrorlocation location;
+    xerrordescview description;
+    xerrorlocationview location;
     if (original == NULL)
         original = xrtErrorCreate(XERR_STATE, "xlang", 0,
             "language callback failed without an error");
@@ -170,15 +170,15 @@ XL6_FOREIGN_API void xl6ForeignCallbackFail(void)
     description.Kind = xrtErrorKind(original);
     description.Code = xrtErrorCode(original);
     description.SystemCode = xrtErrorSystemCode(original);
-    description.Domain = xrtErrorDomain(original);
-    description.Operation = "callback";
-    description.Message = xrtErrorMessage(original);
-    description.Data = xrtErrorData(original);
+    description.Domain = xrtErrorDomainView(original);
+    description.Operation = (xstrview){"callback", 8};
+    description.Message = xrtErrorMessageView(original);
+    description.Data = xrtErrorDataView(original);
     description.Cause = xrtErrorCause(original);
-    location.File = xrtErrorFile(original);
+    location.File = xrtErrorFileView(original);
     location.Line = xrtErrorLine(original);
     location.Column = xrtErrorColumn(original);
-    diagnostic = xrtErrorBuildAt(&description, &location);
+    diagnostic = xrtErrorBuildViewAt(&description, &location);
     /* Diagnostic allocation failure cannot replace a preserved language error. */
     xrtSetErrorTake(diagnostic != NULL ? diagnostic : xrtErrorRef(original));
     xrtErrorFree(original);

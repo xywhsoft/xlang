@@ -19,6 +19,15 @@ int main(int argc,char** argv)
         return 2;
     }
     verify(&ir);
+    for (size_t i=0;i<ir.intrinsicCallCount;++i) {
+        XL6_IrIntrinsicCall* intrinsic=&ir.intrinsicCalls[i];
+        if (intrinsic->stringConversionAbi!=XL6_IR_STRING_CONVERSION_BORROW_ERROR_MESSAGE) continue;
+        XL6_IrIntrinsicCall saved=*intrinsic;
+        intrinsic->stringConversionAbi=XL6_IR_STRING_CONVERSION_BORROW_XVALUE;
+        reject(&ir,NULL);*intrinsic=saved;
+        intrinsic->stringConversionAbi=XL6_IR_STRING_CONVERSION_BORROW_STRING_COPY;
+        reject(&ir,NULL);*intrinsic=saved;
+    }
     for(size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];size_t kind=0;
         if(instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL)continue;

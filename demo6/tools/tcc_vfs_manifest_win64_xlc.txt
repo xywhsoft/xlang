@@ -65,6 +65,7 @@ file|include/__xl_runtime/xl6_log.h|%XL6_ROOT%\src\runtime\xl6_log.h
 file|include/__xl_runtime/xl6_text_value.h|%XL6_ROOT%\src\runtime\xl6_text_value.h
 file|include/__xl_runtime/xl6_error_value.h|%XL6_ROOT%\src\runtime\xl6_error_value.h
 file|include/__xl_runtime/xl6_class_text.h|%XL6_ROOT%\src\runtime\xl6_class_text.h
+file|include/__xl_runtime/xl6_error_text.h|%XL6_ROOT%\src\runtime\xl6_error_text.h
 file|include/__xl_runtime/xl6_array_shuffle.h|%XL6_ROOT%\src\runtime\xl6_array_shuffle.h
 file|include/__xl_runtime/xl6_collection_count.h|%XL6_ROOT%\src\runtime\xl6_collection_count.h
 file|include/__xl_runtime/xl6_array_scalar_read.h|%XL6_ROOT%\src\runtime\xl6_array_scalar_read.h

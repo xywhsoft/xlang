@@ -1,0 +1,35 @@
+func failText(string text) as int
+    throw ValueError text
+    return 0
+end
+
+func textFromError(error failure) as string
+    return failure.message
+end
+
+func checkText(string text) as bool
+    try
+        int ignored = failText(text)
+        return false
+    catch ValueError failure
+        assert failure.message == text
+        assert textFromError(failure) == text
+        assert failure.kind == "ValueError" and failure.domain == "xlang"
+        assert failure.operation == "throw" and failure.data == "ValueError"
+        assert failure.file == ""
+        assert failure.line > 0 and failure.column > 0
+        var dynamic = failure
+        assert string(dynamic) == text
+        assert string(failure) == text
+        assert f"{failure}" == text
+        assert f"caught={dynamic}" == "caught=" + text
+        return true
+    end
+end
+
+assert checkText("a\0你")
+assert checkText("\0")
+assert checkText("")
+assert checkText("你\0好")
+assert checkText("large".repeat(1024) + "\0尾")
+print("exact error spans ok")

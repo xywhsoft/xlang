@@ -59,7 +59,7 @@ static bool render(const xvalue* value, TextSink sink, void* output)
     }
     case XVALUE_HANDLE: {
         const xerror* error = xl6ErrorValueBorrowV1(value);
-        if (error) return sink(xrtStrView(xrtErrorMessage(error)), output);
+        if (error) return sink(xrtErrorMessageView(error), output);
         break;
     }
     default: break;

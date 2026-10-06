@@ -2264,7 +2264,7 @@ foreach ( $required in @(
     "XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR",
     "needsPathJoinBridgeRuntime", "void* xl6_xrt_path_join",
     "needsLastErrorTextBridgeRuntime", "xlir_string xl6_xrt_last_error_text",
-    'xlir_string_from_utf8(message, strlen(message))'
+    'xl6ErrorMessageCopyV1(xrtGetError())'
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR C emitter is missing mechanical named-adapter consumption: $required"
@@ -4793,13 +4793,13 @@ $cEmitterOutsideStringNameData = $cEmitter.Remove(
 if ( $cEmitterOutsideStringNameData -match '(?:type|result|signature)->name' ) {
     throw "XLIR C emitter must consume frontend-fixed C ABI categories, not type names"
 }
-$kindBridgeStart = $cEmitter.IndexOf("static xerrkind xlir_error_xrt_kind")
-$kindBridgeEnd = $cEmitter.IndexOf("static xerror* xlir_error_create")
-if ( $kindBridgeStart -lt 0 -or $kindBridgeEnd -lt $kindBridgeStart ) {
-    throw "XLIR C emitter error-kind bridge must be an explicit bounded runtime ABI"
+foreach ($required in @('xl6_error_text.h', 'xl6ErrorCreateV1', 'xl6ErrorKindNameV1', 'xl6ErrorKindIsV1')) {
+    if (!$cEmitter.Contains($required)) { throw "Error emission must select the explicit resident text ABI: $required" }
 }
-$cEmitterOutsideKindBridge = $cEmitter.Remove($kindBridgeStart, $kindBridgeEnd - $kindBridgeStart)
-if ( $cEmitterOutsideKindBridge -match
+if ($cEmitter.Contains('static xerrkind xlir_error_xrt_kind') -or $cEmitter.Contains('static inline const char* xlir_error_parent_kind')) {
+    throw 'Error classification belongs to the resident provider, not generated C'
+}
+if ( $cEmitter -match
      'strcmp\s*\(\s*(?:type|result|signature)->' ) {
     throw "XLIR C emitter may compare C ABI tokens only inside its explicit bounded bridges"
 }
@@ -4955,7 +4955,7 @@ foreach ( $required in @("xl6IrLowerErrorMember", "XL6_IR_RUNTIME_ERROR_MESSAGE_
 foreach ( $required in @("xl6IrLowerErrorMember", "XL6_IR_RUNTIME_ERROR_CODE") ) {
     if ( ! $lower.Contains($required) ) { throw "XLIR error-code lowering contract is incomplete: $required" }
 }
-foreach ( $required in @("XL6_IR_RUNTIME_ERROR_MESSAGE_COPY", "xrtErrorMessage") ) {
+foreach ( $required in @("XL6_IR_RUNTIME_ERROR_MESSAGE_COPY", "xl6ErrorMessageCopyV1") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR error-message C ABI contract is incomplete: $required" }
 }
 foreach ( $required in @("XL6_IR_RUNTIME_ERROR_CODE", "xrtErrorCode") ) {
@@ -4969,7 +4969,7 @@ foreach ( $required in @("XL6_IR_RUNTIME_ERROR_DOMAIN_COPY", "XL6_IR_RUNTIME_ERR
 foreach ( $required in @("xl6IrLowerErrorMember", "XL6_IR_RUNTIME_ERROR_DOMAIN_COPY", "XL6_IR_RUNTIME_ERROR_SYSTEM_CODE") ) {
     if ( ! $lower.Contains($required) ) { throw "XLIR error-runtime-field lowering contract is incomplete: $required" }
 }
-foreach ( $required in @("XL6_IR_RUNTIME_ERROR_DOMAIN_COPY", "xrtErrorDomain", "xrtErrorOperation", "xrtErrorData", "xrtErrorSystemCode") ) {
+foreach ( $required in @("XL6_IR_RUNTIME_ERROR_DOMAIN_COPY", "xl6ErrorDomainCopyV1", "xl6ErrorOperationCopyV1", "xl6ErrorDataCopyV1", "xrtErrorSystemCode") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR error-runtime-field C ABI contract is incomplete: $required" }
 }
 foreach ( $required in @("XL6_IR_RUNTIME_ERROR_CAUSE_REF", "error-cause-ref", "runtime error cause has no exact borrowed-to-owned error ABI") ) {
@@ -4994,7 +4994,7 @@ foreach ( $required in @("XL6_IR_RUNTIME_ERROR_KIND_COPY", "error-kind-copy", "r
 foreach ( $required in @("xl6IrLowerErrorMember", "XL6_IR_RUNTIME_ERROR_KIND_COPY") ) {
     if ( ! $lower.Contains($required) ) { throw "XLIR error-kind lowering contract is incomplete: $required" }
 }
-foreach ( $required in @("XL6_IR_RUNTIME_ERROR_KIND_COPY", "xlir_error_kind_name", "xlir_error_create", "xrtErrorBuild") ) {
+foreach ( $required in @("XL6_IR_RUNTIME_ERROR_KIND_COPY", "xl6ErrorKindCopyV1", "xlir_error_create", "xl6ErrorCreateV1") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR error-kind C ABI contract is incomplete: $required" }
 }
 foreach ( $required in @("XL6_IR_RUNTIME_ERROR_KIND_IS", "error-kind-is", "runtime error kind test has no exact borrowed error predicate ABI") ) {
@@ -5049,7 +5049,7 @@ foreach ($renderer in @('async_contract', 'generator', 'release')) {
         throw "Continuation frame storage must share the physical destructor renderer: $renderer"
     }
 }
-foreach ( $required in @("XL6_IR_RUNTIME_ERROR_KIND_IS", "xlir_error_kind_is", "xlir_error_parent_kind", "xrtSetErrorTake") ) {
+foreach ( $required in @("XL6_IR_RUNTIME_ERROR_KIND_IS", "xlir_error_kind_is", "xl6ErrorKindIsV1", "xrtSetErrorTake") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR typed-catch C ABI contract is incomplete: $required" }
 }
 foreach ( $required in @(

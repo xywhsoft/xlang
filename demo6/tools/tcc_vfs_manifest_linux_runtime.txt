@@ -36,6 +36,7 @@ file|include/__xl_runtime/xl6_future_payload.h|%XL6_ROOT%/src/runtime/xl6_future
 file|include/__xl_runtime/xl6_text_value.h|%XL6_ROOT%/src/runtime/xl6_text_value.h
 file|include/__xl_runtime/xl6_error_value.h|%XL6_ROOT%/src/runtime/xl6_error_value.h
 file|include/__xl_runtime/xl6_class_text.h|%XL6_ROOT%/src/runtime/xl6_class_text.h
+file|include/__xl_runtime/xl6_error_text.h|%XL6_ROOT%/src/runtime/xl6_error_text.h
 file|include/__xl_runtime/xl6_array_string_read.h|%XL6_ROOT%/src/runtime/xl6_array_string_read.h
 file|include/__xl_runtime/xl6_array_value_write.h|%XL6_ROOT%/src/runtime/xl6_array_value_write.h
 file|include/__xl_runtime/xl6_array_value_read.h|%XL6_ROOT%/src/runtime/xl6_array_value_read.h

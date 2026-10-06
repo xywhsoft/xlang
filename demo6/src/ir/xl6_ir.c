@@ -9103,6 +9103,10 @@ XL6_IrStringConversionAbi xl6IrClassifyStringConversionAbi(
         return source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL
             ? XL6_IR_STRING_CONVERSION_TYPE_ID_NAME
             : XL6_IR_STRING_CONVERSION_INVALID;
+    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR:
+        return source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+            ? XL6_IR_STRING_CONVERSION_BORROW_ERROR_MESSAGE
+            : XL6_IR_STRING_CONVERSION_INVALID;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         if ( source->kind != XL6_IR_TYPE_CLASS ||
              source->nominalSymbol == XL6_SYMBOL_ID_INVALID )
@@ -43103,6 +43107,7 @@ static const char* xl6IrStringConversionAbiName(
         return "class-protocol-call";
     case XL6_IR_STRING_CONVERSION_CHAR_VALUE: return "char-value";
     case XL6_IR_STRING_CONVERSION_F32_VALUE: return "f32-value";
+    case XL6_IR_STRING_CONVERSION_BORROW_ERROR_MESSAGE: return "borrow-error-message";
     default: return "invalid";
     }
 }
