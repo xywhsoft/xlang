@@ -370,11 +370,9 @@ static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module,
     default: return "NULL";
     }
 }
-static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
+static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi slot)
 {
-    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types,typeId) : NULL;
-    if (type == NULL || type->typeValueId == 0) return NULL;
-    switch (type->nativeSlotAbi) {
+    switch (slot) {
     case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolTypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64TypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64TypeV1()";
@@ -399,6 +397,7 @@ static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_
     case XL6_IR_NATIVE_SLOT_STRING: return "xl6StringTypeV1()";
     case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return "xl6NullableStringTypeV1()";
     case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return "xrtTypeValue()";
+    case XL6_IR_NATIVE_SLOT_FUTURE_PTR: return "xrtTypeFuture()";
     case XL6_IR_NATIVE_SLOT_F32: return "xrtTypeFloat32()";
     case XL6_IR_NATIVE_SLOT_C_CHAR:
         return "(CHAR_MIN < 0 ? xrtTypeInt8() : xrtTypeUInt8())";
@@ -432,6 +431,11 @@ static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_
     default:
         return NULL;
     }
+}
+static const char* xl6IrCgenNativeValueTypeExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    return type && type->typeValueId ? xl6IrCgenNativeSlotTypeExpr(type->nativeSlotAbi) : NULL;
 }
 static int xl6IrCgenAvlTypeAbi(
     const XL6_IrModule* module, XL6_IrTypeId typeId,

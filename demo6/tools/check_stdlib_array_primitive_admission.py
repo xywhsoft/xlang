@@ -24,16 +24,18 @@ def main() -> int:
     parser.add_argument("--projections", action="store_true", help="Exact owned boxed identity, snapshots, V2 metadata and rollback")
     parser.add_argument("--iterator", action="store_true", help="Native Array snapshots through the real language ValueIterator ABI")
     parser.add_argument("--reads", action="store_true", help="Owned strict/safe/keyed native and wire index reads")
+    parser.add_argument("--imports", action="store_true", help="Profiled native import; exact scalar/text codecs and rollback")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc, nm = shutil.which("gcc"), shutil.which("nm")
     objdump = shutil.which("objdump") if args.shared and os.name == "nt" else None
-    if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt") or sum((args.iterator,args.projections,args.reads))>1:
+    if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt") or sum((args.iterator,args.projections,args.reads,args.imports))>1:
         parser.error("Require gcc/nm, fresh evidence and Linux for sanitizers")
     host = "test/cases/stdlib_array_projection_identity_native_host.c" if args.projections else "test/cases/stdlib_array_primitive_admission_native_host.c"
     if args.iterator: host="test/cases/stdlib_array_value_iterator_native_host.c"
     if args.reads: host="test/cases/stdlib_array_value_read_native_host.c"
+    if args.imports: host="test/cases/stdlib_array_primitive_import_native_host.c"
     common = ["test/support/array_value_native.c", "src/runtime/xl6_sequence.c",
               "src/runtime/xl6_array.c", "src/runtime/xl6_array_iterator.c", "src/runtime/xl6_array_erased.c",
               "src/runtime/xl6_array_reference_value.c", "src/runtime/xl6_ownership_plan.c",
@@ -44,6 +46,8 @@ def main() -> int:
         common += ["src/runtime/xl6_value_iterator.c","src/runtime/xl6_array_value_iterator.c"]
     if args.reads:
         common += ["src/runtime/xl6_array_value_read.c"]
+    if args.imports:
+        common += ["src/runtime/xl6_array_import.c","src/runtime/xl6_array_input.c"]
     graph_sources=["test/cases/stdlib_array_value_iterator_graph_host.c",
         "test/support/collection_count_native.c","src/runtime/xl6_array_reference_admission.c",
         "src/runtime/xl6_array_default.c"] if args.iterator else []
@@ -57,7 +61,7 @@ def main() -> int:
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
     files += [root / name for name in common + [p for profile in profiles for p in profile]]
     files += [root / name for name in graph_sources]
-    if args.projections or args.iterator or args.reads:
+    if args.projections or args.iterator or args.reads or args.imports:
         files += [root / "test/cases/stdlib_array_primitive_admission_native_host.c",root / "test/cases/stdlib_sequence_retired_admission_abi.c"]
     if args.shared:
         files += [product]
@@ -77,6 +81,8 @@ def main() -> int:
     report["Projections"] = args.projections
     report["Iterator"] = args.iterator
     report["OwnedReads"] = args.reads
+    report["Imports"] = args.imports
+    if args.imports: report["Scope"]="Profiled native Array import, same-layout unboxed copy and exact scalar/text conversion; not source carrier cutover"
     if args.reads: report["Scope"]="Owned strict/safe/keyed native Array projections and wire retain; not whole language carrier cutover"
     if args.iterator: report["Scope"]="Native Array scalar/text snapshots through resident ValueIterator V2; not whole language carrier cutover"
     env = dict(os.environ)
@@ -161,6 +167,7 @@ def main() -> int:
                 operations = ("create", "clone", "erased-clone", "cursor", "read", "take", "push", "set", "insert", "resize") + (("snapshot",) if args.projections else ())
                 if args.iterator: operations=("create","first","second")
                 if args.reads: operations=("read","safe","keyed")
+                if args.imports: operations=("wire","native","fallback")
                 for operation in operations:
                     for point in range(513):
                         log = run(f"{name}.{operation}.{point}", [str(binary), operation, str(point)])

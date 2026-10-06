@@ -193,6 +193,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_string_read.c", D(R(SEQUENCE),R(STRING_TYPE)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_RUNTIME_TYPE_STRING"}},
     {"src/runtime/xl6_array_value_read.c", D(R(SEQUENCE)),
+        {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_array_import.c", D(R(SEQUENCE),R(ARRAY_INPUT)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,

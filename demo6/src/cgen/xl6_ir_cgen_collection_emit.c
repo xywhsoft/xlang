@@ -647,6 +647,114 @@ static int xl6IrCgenRuntimeAvlAbi(
     }
 }
 
+/* Shared mechanical ARRAY/STACK factory selection. A target recipe does not
+ * authorize source carrier cutover: the caller still verifies its producer.
+ * No element traversal, schema reconstruction or generated codec is emitted. */
+static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloadAbi transfer)
+{
+    /* Sequence is not a Channel prelude consumer. Emit the verified private
+     * transfer ABI directly, without an unrelated generated macro dependency. */
+    switch (transfer) {
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY: return "1";
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY: return "2";
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN: return "3";
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF: return "4";
+    default: return NULL;
+    }
+}
+static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
+{
+    const XL6_IrType* sequence=xl6IrTypeGet(&module->types,typeId);
+    XL6_IrNominalIdentitySetId expectedSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!sequence || !xl6IrSequenceConstructionRecipe(module,typeId,sequence->sequenceLayout.role,&expectedSet) ||
+        admissionSet!=expectedSet) return -1;
+    const XL6_IrSequenceLayout* plan=&sequence->sequenceLayout;
+    const XL6_IrType* payload=xl6IrTypeGet(&module->types,plan->elementType);
+    const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
+    const char* descriptor=xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
+    const char* baseDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->baseElementType);
+    const char* payloadType=xl6IrCgenType(module,plan->elementType);
+    const char* transfer=xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
+#define XL6_SEQUENCE_CREATE_IDS (unsigned)result,(unsigned)plan->role, \
+    (unsigned long long)sequence->typeValueId,(unsigned long long)payload->typeValueId
+    switch (plan->abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
+        if (!descriptor || !payloadType || !transfer) return -1;
+        xl6OutputPrintf(out,
+            "    v%u = xl6SequencePrimitiveCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %u, %s, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,transfer,payloadType,descriptor,(unsigned)plan->admissionAbi,
+            plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
+        xl6OutputPrintf(out,
+            "    v%u = xl6SequenceReferenceCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, %s, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,(unsigned)plan->admissionAbi,plan->nullable ? "true" : "false",
+            (unsigned long long)base->typeValueId);
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
+        xl6OutputPrintf(out,
+            "    v%u = xl6SequenceNominalCreateV1(%u, 0x%016llXULL, 0x%016llXULL, &xlir_nominal_set_%u, %s, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,(unsigned)admissionSet,plan->nullable ? "true" : "false",
+            (unsigned long long)base->typeValueId);
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1:
+        if (!descriptor) return -1;
+        xl6OutputPrintf(out,
+            "    v%u = xl6SequenceCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,descriptor,(unsigned long long)base->typeValueId);
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
+        if (!descriptor || !baseDescriptor) return -1;
+        xl6OutputPrintf(out,
+            "    v%u = xl6SequenceNullableCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %s, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,descriptor,baseDescriptor,(unsigned long long)base->typeValueId);
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1:
+        if (!descriptor) return -1;
+        xl6OutputPrintf(out,
+            "    v%u = xl6SequenceNumericEnumCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,descriptor,(unsigned)plan->admissionAbi,
+            plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
+        xl6OutputPrintf(out,
+            "    v%u = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s);\n",
+            (unsigned)result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
+                "xl6SequenceCallableCreateV1" : "xl6SequenceFutureCreateV1",
+            (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
+            (unsigned long long)payload->typeValueId,(unsigned long long)base->typeValueId,
+            plan->nullable ? "true" : "false");
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
+        {
+            const XL6_IrType* child=xl6IrTypeGet(&module->types,plan->childElementType);
+            const XL6_IrSequenceLayout* childPlan=&base->sequenceLayout;
+            const char* childType=xl6IrCgenType(module,plan->childElementType);
+            const char* childDescriptor=xl6IrCgenNativeSlotTypeExpr(plan->childSlotAbi);
+            const char* childTransfer=xl6IrCgenSequenceTransferAbiToken(plan->childTransferAbi);
+            /* A callable's physical slot is an owned Value, not its invocation
+             * Closure*. Future slots are actual native consumer references. */
+            if (childPlan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
+                childType="xvalue*"; childDescriptor="xrtTypeValue()";
+            } else if (childPlan->abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
+                childType="xfuture*"; childDescriptor="xrtTypeFuture()";
+            }
+            if (!child || !childType || !childDescriptor || !childTransfer) return -1;
+            xl6OutputPrintf(out,
+                "    v%u = xl6SequenceNestedCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s);\n",
+                XL6_SEQUENCE_CREATE_IDS,(unsigned)plan->childRole,(unsigned long long)base->typeValueId,
+                (unsigned long long)child->typeValueId,childTransfer,childType,childDescriptor,
+                plan->nullable ? "true" : "false");
+        }
+        break;
+    default: return -1;
+    }
+#undef XL6_SEQUENCE_CREATE_IDS
+    return xl6OutputHasFailed(out) ? -1 : 1;
+}
+
 static int xl6IrCgenEmitStackRuntime(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
@@ -678,78 +786,8 @@ static int xl6IrCgenEmitStackRuntime(
     (unsigned long long)payload->typeValueId, payloadAbi, payloadType, runtimeType
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_STACK_CREATE:
-        {
-            const XL6_IrSequenceLayout* plan=&stack->sequenceLayout;
-            const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
-            const char* baseDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->baseElementType);
-            if (!base || !baseDescriptor) return -1;
-            /* Mechanical selection from verified IR: no temporary Array,
-             * unprofiled owner, schema reconstruction or post-publication fix. */
-            switch (plan->abi) {
-            case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
-                xl6OutputPrintf(out,
-                    "    v%u = xl6SequencePrimitiveCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %u, %s, 0x%016llXULL);\n",
-                    (unsigned int)instruction->result,(unsigned int)plan->role,
-                    XL6_IR_CGEN_STACK_COMMON_ARGS,(unsigned int)plan->admissionAbi,
-                    plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
-                break;
-            case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
-                xl6OutputPrintf(out,
-                    "    v%u = xl6SequenceReferenceCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, %s, 0x%016llXULL);\n",
-                    (unsigned int)instruction->result,(unsigned int)plan->role,
-                    (unsigned long long)stack->typeValueId,(unsigned long long)payload->typeValueId,
-                    (unsigned int)plan->admissionAbi,plan->nullable ? "true" : "false",
-                    (unsigned long long)base->typeValueId);
-                break;
-            case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
-                xl6OutputPrintf(out,
-                    "    v%u = xl6SequenceNominalCreateV1(%u, 0x%016llXULL, 0x%016llXULL, &xlir_nominal_set_%u, %s, 0x%016llXULL);\n",
-                    (unsigned int)instruction->result,(unsigned int)plan->role,
-                    (unsigned long long)stack->typeValueId,(unsigned long long)payload->typeValueId,
-                    (unsigned int)instruction->sequenceAdmissionIdentitySet,
-                    plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
-                break;
-            case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1:
-                xl6OutputPrintf(out,
-                    "    v%u = xl6SequenceCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, 0x%016llXULL);\n",
-                    (unsigned int)instruction->result,(unsigned int)plan->role,
-                    (unsigned long long)stack->typeValueId,(unsigned long long)payload->typeValueId,
-                    runtimeType,(unsigned long long)base->typeValueId);
-                break;
-            case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
-                xl6OutputPrintf(out,
-                    "    v%u = xl6SequenceNullableCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %s, 0x%016llXULL);\n",
-                    (unsigned int)instruction->result,(unsigned int)plan->role,
-                    (unsigned long long)stack->typeValueId,(unsigned long long)payload->typeValueId,
-                    runtimeType,baseDescriptor,(unsigned long long)base->typeValueId);
-                break;
-            case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1:
-                xl6OutputPrintf(out,
-                    "    v%u = xl6SequenceNumericEnumCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, 0x%016llXULL);\n",
-                    (unsigned int)instruction->result,(unsigned int)plan->role,
-                    (unsigned long long)stack->typeValueId,(unsigned long long)payload->typeValueId,
-                    runtimeType,(unsigned int)plan->admissionAbi,plan->nullable ? "true" : "false",
-                    (unsigned long long)base->typeValueId);
-                break;
-            case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
-                {
-                    const XL6_IrType* child=xl6IrTypeGet(&module->types,plan->childElementType);
-                    const char* childType=xl6IrCgenType(module,plan->childElementType);
-                    const char* childDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->childElementType);
-                    const char* childTransfer=xl6IrCgenChannelPayloadAbiToken(plan->childTransferAbi);
-                    if (!child || !childType || !childDescriptor || !childTransfer) return -1;
-                    xl6OutputPrintf(out,
-                        "    v%u = xl6SequenceNestedCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s);\n",
-                        (unsigned int)instruction->result,(unsigned int)plan->role,
-                        (unsigned long long)stack->typeValueId,(unsigned long long)payload->typeValueId,
-                        (unsigned int)plan->childRole,(unsigned long long)base->typeValueId,
-                        (unsigned long long)child->typeValueId,childTransfer,childType,childDescriptor,
-                        plan->nullable ? "true" : "false");
-                }
-                break;
-            default: return -1;
-            }
-        }
+        if (xl6IrCgenEmitSequenceCreate(out,module,instruction->type,instruction->result,
+            instruction->sequenceAdmissionIdentitySet)<0) return -1;
         break;
     case XL6_IR_RUNTIME_STACK_PUSH:
         xl6OutputPrintf(out,
