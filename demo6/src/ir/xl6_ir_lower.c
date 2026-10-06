@@ -21105,12 +21105,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     }
     dynamicSource = xl6IrLowerTypeIsDynamicXValueBuiltin(
         ctx->module, iterator->storageType);
-    if ( node->loopErrorAbi != (dynamicSource ||
-             node->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
-             node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
-             node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY
-             ? XL6_IR_ERROR_ABI_MAY_RAISE
-             : XL6_IR_ERROR_ABI_NO_RAISE) ||
+    if ( node->loopErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
          (node->loopErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
           (errorPlan = xl6IrLowerExitPlan(
                ctx, id, XL6_SEM_EXIT_THROW)) == NULL) ) {
@@ -21431,6 +21426,14 @@ invalidItemProjection:
     if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id,
                           node->loopResourceType, iteratorStateSymbol,
                           NULL, 0, &loadedState) ) return 0;
+    /* Publication owns the cursor before Advance as well as item projection.
+     * Register that same lifetime for either fallible observation; the failure
+     * route must destroy it even before entering the first loop body. */
+    if (!xl6IrLowerPushLoop(ctx, node->region, afterLoopBlock, conditionBlock)) return 0;
+    if (!xl6IrLowerPushLoopResource(ctx, node, id, iteratorStateSymbol)) {
+        ctx->loopCount -= 1;
+        return 0;
+    }
     condition = xl6IrLowerEmitRuntimeCall(
         ctx, id, boolType, XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE,
         &loadedState, 1);
@@ -21442,13 +21445,6 @@ invalidItemProjection:
     branch->falseTarget = exitBlock;
 
     xl6IrLowerEnterBlock(ctx, bodyBlock);
-    /* Register the cursor before the first fallible projection. Failure while
-     * acquiring an item must unwind its snapshot just like a body failure. */
-    if (!xl6IrLowerPushLoop(ctx, node->region, afterLoopBlock, conditionBlock)) return 0;
-    if (!xl6IrLowerPushLoopResource(ctx, node, id, iteratorStateSymbol)) {
-        ctx->loopCount -= 1;
-        return 0;
-    }
     if ( (materializesItem || materializesKey) &&
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id,
                           node->loopResourceType, iteratorStateSymbol,
@@ -32633,7 +32629,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
             ? XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2)
         : XL6_IR_MODULE_RETIREMENT_NONE;
     module->abi.cellStorageAbi = XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
-    module->abi.valueIteratorStorageAbi = XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_SNAPSHOT_V1;
+    module->abi.valueIteratorStorageAbi = XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;
     module->abi.slotTransferAbi = XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1;
     module->abi.generatorStorageAbi = XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2;
     module->abi.asyncStorageAbi = XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2;

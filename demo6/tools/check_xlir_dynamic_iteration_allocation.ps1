@@ -41,7 +41,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration allocation/close runtime failed (all finally assertions are mandatory)' }
     & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host JIT failed' }
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    # This is a private C-host smoke fixture, not an xlang artifact plan. Its
+    # explicit resident probes must have a source closure in standalone AOT.
+    $residentSources = @('src/runtime/xl6_code_lease.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
+        'src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_generator.c','src/runtime/xl6_code_finalizer.c',
+        'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c',
+        'src/runtime/xl6_future_payload.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_future_callback.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c',
+        'src/runtime/xl6_task.c','src/runtime/xl6_ownership_plan.c')
+    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c @residentSources --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Dynamic iteration C-host AOT runtime failed' }

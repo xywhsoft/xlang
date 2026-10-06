@@ -118,7 +118,7 @@ static void load_artifact(void)
     BIND(xl6ContinuationProducerPolicyV1Get);
     BIND(xl6ContinuationWatchPolicyV1Get);
     BIND(xl6ContinuationFrameOwnershipAdapterV1);
-    BIND(xl6ValueIteratorRuntimeV1Get);
+    BIND(xl6ValueIteratorRuntimeV2Get);
     BIND(xl6FrameStorageRuntimeV1Get);
     BIND(xl6TaskRuntimeV1Get);
     BIND(xl6TaskRuntimeV2Get);

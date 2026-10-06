@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'xlir_iterator_gate_contract.ps1')
 
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -38,7 +39,7 @@ if ( $loops.Count -ne 9 -or @($loops | Where-Object {
         $_.loopAbiName -ne "xvalue-iterator-value" -or
         $_.loopKeyAbiName -ne "none" -or
         $_.loopItemAbiName -ne "i64" -or
-        $_.loopErrorAbiName -ne "no-raise"
+        $_.loopErrorAbiName -ne "may-raise"
     }).Count -ne 0 ) {
     throw "Typed XLIR set<i64> value-only projection contract is not exact"
 }
@@ -68,21 +69,19 @@ if ( $i64Types.Count -ne 1 -or $setTypes.Count -ne 1 -or
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR set<i64> iterator lowering failed" }
 $lowered = [System.IO.File]::ReadAllText(
     $loweredJsonPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$loopIds = @($loops | ForEach-Object { $_.id })
+$loopIds = @($loops | ForEach-Object { Get-XlirIteratorOrigins $typed $_ })
 $loopInstructions = @($lowered.instructions | Where-Object {
     $_.origin -in $loopIds
 })
 $releaseTotal = 0
 $cursorSymbols = @()
 foreach ( $loop in $loops ) {
+    Assert-XlirCheckedIteratorAdvance $lowered $loop
+    $origins = @(Get-XlirIteratorOrigins $typed $loop)
     $instructions = @($loopInstructions | Where-Object {
-        $_.origin -eq $loop.id
+        $_.origin -in $origins
     })
-    $cursorStores = @($instructions | Where-Object {
-        $_.kindName -eq "store" -and
-        $_.type -eq $iteratorTypes[0].id -and
-        $_.targetSymbol -ge 0xF0000000
-    })
+    $cursorStores = @(Get-XlirIteratorCursorStore $lowered $loop)
     if ( @($instructions | Where-Object {
             $_.runtimeOpName -eq "xvalue-iterator-create"
          }).Count -ne 1 -or
@@ -109,7 +108,7 @@ foreach ( $loop in $loops ) {
     }
     $releaseTotal += $releaseCount
 }
-if ( $releaseTotal -ne 13 -or @($cursorSymbols | Select-Object -Unique).Count -ne 9 ) {
+if ( $releaseTotal -ne 27 -or @($cursorSymbols | Select-Object -Unique).Count -ne 9 ) {
     throw "Lowered XLIR set<i64> iterator resource exit distribution changed"
 }
 
@@ -139,7 +138,7 @@ $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 9 -or
      ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_advance\(v\d+\);")).Count -ne 9 -or
+        "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 9 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_item_i64\(v\d+\);")).Count -ne 9 -or
      ([regex]::Matches($generated,
@@ -149,13 +148,10 @@ if ( ([regex]::Matches($generated,
     throw "XLIR set<i64> iterator C rendering is not mechanical from verified CFG"
 }
 foreach ( $cursorSymbol in $cursorSymbols ) {
-    $loweredReleaseCount = @($loopInstructions | Where-Object {
+    $loweredReleaseCount = @($lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and $_.targetSymbol -eq $cursorSymbol
     }).Count
-    $renderedReleaseCount = ([regex]::Matches(
-        $generated,
-        "xlir_xvalue_iterator_destroy\(s$cursorSymbol\);\s*s$cursorSymbol = NULL;"
-    )).Count
+    $renderedReleaseCount = Get-XlirRenderedIteratorReleases $generated $cursorSymbol 'xlir_xvalue_iterator*' 'xlir_xvalue_iterator_destroy'
     if ( $renderedReleaseCount -ne $loweredReleaseCount ) {
         throw "Generated C does not preserve every set iterator destroy edge: s$cursorSymbol"
     }

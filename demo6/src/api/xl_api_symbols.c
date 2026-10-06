@@ -199,7 +199,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6ContinuationFrameRuntimeV3Get", (const void*)xl6ContinuationFrameRuntimeV3Get) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationProducerPolicyV1Get", (const void*)xl6ContinuationProducerPolicyV1Get) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationWatchPolicyV1Get", (const void*)xl6ContinuationWatchPolicyV1Get)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ValueIteratorRuntimeV1Get", (const void*)xl6ValueIteratorRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ValueIteratorRuntimeV2Get", (const void*)xl6ValueIteratorRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ContinuationExecutorIsIdle", (const void*)xl6ContinuationExecutorIsIdle)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FrameStorageRuntimeV1Get", (const void*)xl6FrameStorageRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV1Get", (const void*)xl6TaskRuntimeV1Get)) return 0;

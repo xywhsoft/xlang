@@ -1,0 +1,28 @@
+async func later(list<int> values) as int
+    time.sleep(1)
+    int total = 0
+    for value in values
+        total += value
+    end
+    return total
+end
+func textItems(array<string> values) as generator<string>
+    for value in values
+        yield value
+    end
+end
+list<int> values = list[2: 4, 7: 6]
+assert await later(values) == 10
+array<string> texts = array["a\0b", "tail"]
+int total = 0
+for value in textItems(texts)
+    total += string.byteLen(value)
+end
+assert total == 7
+total = 0
+for value in textItems(texts)
+    total += string.byteLen(value)
+    break
+end
+assert total == 3
+println("checked value iterator continuation ok")

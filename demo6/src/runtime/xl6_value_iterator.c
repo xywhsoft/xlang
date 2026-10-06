@@ -12,7 +12,7 @@ struct xlir_xvalue_iterator {
     XL6_ValueIteratorView view;
     size_t nextOrdinal;
     const void* claim;
-    bool active, cleared;
+    bool active, cleared, failed;
 };
 static void mutation_begin(xrtownershipscope* scope)
 { if (!xrtOwnershipMutationBegin(scope)) abort(); }
@@ -27,18 +27,27 @@ static XL6_ValueIterator* iterator_create(const xvalue* source)
     if (!state->cursor) { xrtFree(state); return NULL; }
     return state;
 }
-static bool iterator_advance(XL6_ValueIterator* state)
+static bool iterator_advance(XL6_ValueIterator* state, bool* found)
 {
     xrtownershipscope mutation = {0}; xvaluekey key = {0}; xvalue* item = NULL; int result;
+    if (!found) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    *found=false;
     mutation_begin(&mutation);
-    if (!state || state->refs <= 0 || state->active || state->cleared || !state->cursor) abort();
-    state->active = true; mutation_end(&mutation);
+    if (!state || state->refs <= 0 || state->active || state->cleared || state->failed || !state->cursor) {
+        mutation_end(&mutation); xrtSetErrorKind(XERR_STATE); return false;
+    }
+    state->active = true; state->view=(XL6_ValueIteratorView){0}; mutation_end(&mutation);
     result = xrtValueCursorAdvance(state->cursor, &key, &item);
-    if (result < 0) abort();
+    if (result > 0 && (!item || (unsigned int)key.Type>3u)) {
+        xrtSetErrorKind(XERR_STATE); result=-1;
+    }
+    if (result > 0 && state->nextOrdinal>(size_t)INT64_MAX) {
+        xrtSetErrorKind(XERR_RANGE); result=-1;
+    }
+    if (result<0 && !xrtGetError()) xrtSetErrorKind(XERR_STATE);
     mutation_begin(&mutation);
-    state->view = (XL6_ValueIteratorView){0};
+    state->failed=result<0;
     if (result > 0) {
-        if (state->nextOrdinal == SIZE_MAX) abort();
         state->view.item = item; state->view.ordinal = state->nextOrdinal++;
         state->view.key.Type = key.Type;
         switch (key.Type) {
@@ -46,16 +55,18 @@ static bool iterator_advance(XL6_ValueIterator* state)
         case 1: state->view.key.Index = key.Index; break;
         case 2: state->view.key.Integer = key.Integer; break;
         case 3: state->view.key.String.Data = key.String.Data; state->view.key.String.Size = key.String.Size; break;
-        default: abort();
+        default: break; /* Validated before publication. */
         }
     }
     state->active = false; mutation_end(&mutation);
-    return result > 0;
+    *found=result>0; return result>=0;
 }
 static const XL6_ValueIteratorView* iterator_view(const XL6_ValueIterator* state)
 {
     if (!state) return NULL;
-    if (state->active || state->cleared || state->refs <= 0) abort();
+    if (state->active || state->cleared || state->failed || state->refs <= 0) {
+        xrtSetErrorKind(XERR_STATE); return NULL;
+    }
     return &state->view;
 }
 static void iterator_destroy(XL6_ValueIterator* state)
@@ -84,9 +95,9 @@ static bool iterator_trace(const void* data, xrtownershipvisitor visit, void* co
 static const xrtownershipops iterator_ops = {iterator_count, iterator_trace};
 static xrtownershipref iterator_ownership(const XL6_ValueIterator* state)
 { return (xrtownershipref){state, state ? &iterator_ops : NULL}; }
-const XL6_ValueIteratorRuntimeV1* xl6ValueIteratorRuntimeV1Get(void)
+const XL6_ValueIteratorRuntimeV2* xl6ValueIteratorRuntimeV2Get(void)
 {
-    static const XL6_ValueIteratorRuntimeV1 api = {iterator_create, iterator_advance, iterator_view,
+    static const XL6_ValueIteratorRuntimeV2 api = {iterator_create, iterator_advance, iterator_view,
         iterator_destroy, iterator_ownership}; return &api;
 }
 static bool iterator_hold(const void* data)

@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'xlir_iterator_gate_contract.ps1')
 
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -99,16 +100,15 @@ if ( $rejectExit -eq 0 -or
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR xvalue iterator scalar projection lowering failed" }
 $lowered = [System.IO.File]::ReadAllText(
     $loweredJsonPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$loopIds = @($loops | ForEach-Object { $_.id })
+$loopIds = @($loops | ForEach-Object { Get-XlirIteratorOrigins $typed $_ })
 $loopInstructions = @($lowered.instructions | Where-Object { $_.origin -in $loopIds })
 $cursorSymbols = @()
 foreach ( $loop in $loops ) {
-    $instructions = @($loopInstructions | Where-Object { $_.origin -eq $loop.id })
+    Assert-XlirCheckedIteratorAdvance $lowered $loop
+    $origins = @(Get-XlirIteratorOrigins $typed $loop)
+    $instructions = @($loopInstructions | Where-Object { $_.origin -in $origins })
     $expectedItemOp = "xvalue-iterator-item-$($loop.loopItemAbiName)"
-    $cursorStores = @($instructions | Where-Object {
-        $_.kindName -eq "store" -and $_.type -eq $loop.loopResourceType -and
-        $_.targetSymbol -ge 0xF0000000
-    })
+    $cursorStores = @(Get-XlirIteratorCursorStore $lowered $loop)
     $expectedKeyCount = if ( $loop.loopAbiName -eq "xvalue-iterator-key-value" ) { 1 } else { 0 }
     if ( @($instructions | Where-Object {
             $_.runtimeOpName -eq "xvalue-iterator-create"
@@ -130,7 +130,7 @@ foreach ( $loop in $loops ) {
     if ( @($instructions | Where-Object {
             $_.kindName -eq "release" -and $_.type -eq $loop.loopResourceType -and
             $_.targetSymbol -eq $cursorSymbol
-         }).Count -ne 1 ) {
+         }).Count -ne 2 ) {
         throw "Lowered XLIR scalar iterator has no unique canonical destroy: n$($loop.id)"
     }
 }
@@ -156,7 +156,7 @@ foreach ( $projection in @(
 if ( ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 5 -or
      ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_advance\(v\d+\);")).Count -ne 5 -or
+        "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 5 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_key_i64\(v\d+\);")).Count -ne 3 -or
      ([regex]::Matches($generated, "\bfor\s*\(")).Count -ne 0 -or

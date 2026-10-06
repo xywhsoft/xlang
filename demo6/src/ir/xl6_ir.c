@@ -16661,6 +16661,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
          iteratorType->collectionAbi == XL6_IR_COLLECTION_SET ||
          iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT ) {
         XL6_IrTypeId iteratorStateType = XL6_IR_TYPE_INVALID;
+        /* Snapshot creation and cursor advancement can fail independently
+         * of element/key projection. EOF is not the failure channel. */
+        if (errorAbi != NULL) *errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
         for ( i = 0; i < module->types.count; ++i ) {
             const XL6_IrType* candidate = &module->types.items[i];
             if ( candidate->kind == XL6_IR_TYPE_VALUE_ITERATOR &&
@@ -17644,7 +17647,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
             ? XL6_IR_CELL_STORAGE_NONE : XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1))
         return xl6IrDiag(diags, NULL, "XLIR cell storage/resident transfer ABI is unresolved");
     if (module->abi.valueIteratorStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_VALUE_ITERATOR_STORAGE_NONE : XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_SNAPSHOT_V1))
+            ? XL6_IR_VALUE_ITERATOR_STORAGE_NONE : XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2))
         return xl6IrDiag(diags, NULL, "XLIR value iterator storage ABI is unresolved");
     if (module->abi.slotTransferAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_SLOT_TRANSFER_NONE : XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1))
@@ -18266,6 +18269,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW:
     case XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW:
         return XL6_IR_CALL_ERROR_PHYSICAL_SCOPED_BOOL_RESULT;
+    case XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE:
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     default:
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
@@ -20207,6 +20212,31 @@ int xl6IrArrayStringReadRuntimeInstructionCompatible(
 {
     return instruction && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY &&
         xl6IrArrayTypedReadRuntimeInstructionCompatible(module,instruction);
+}
+
+int xl6IrValueIteratorAdvanceRuntimeInstructionCompatible(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE ||
+        instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=1 ||
+        instruction->firstOperand>=module->operandCount ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue!=XL6_IR_VALUE_INVALID ||
+        instruction->calleeType!=XL6_IR_TYPE_INVALID || instruction->payloadType!=XL6_IR_TYPE_INVALID ||
+        instruction->runtimeIdentityType!=XL6_IR_TYPE_INVALID || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+        instruction->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_INVALID ||
+        instruction->dynamicCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* iterator=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    return xl6IrTypeIsBool(module,instruction->type) && iterator &&
+        iterator->kind==XL6_IR_TYPE_VALUE_ITERATOR &&
+        iterator->cAbi==XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR &&
+        iterator->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        iterator->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+        iterator->paramCount==1 && iterator->params &&
+        xl6IrTypeGet(&module->types,iterator->params[0])!=NULL;
 }
 
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -36792,20 +36822,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 "XLIR xvalue iterator create has no exact physical source, logical collection or snapshot ABI");
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE ) {
-                        const XL6_IrType* iteratorType = left != NULL
-                            ? xl6IrTypeGet(&module->types, left->type) : NULL;
-                        if ( instruction->operandCount != 1 ||
-                             instruction->targetSymbol != 0 ||
-                             instruction->targetValue != XL6_IR_VALUE_INVALID ||
-                             instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                             instruction->payloadType != XL6_IR_TYPE_INVALID ||
-                             instruction->opcode != XL6_IR_OPCODE_INVALID ||
-                             instruction->immediateText != NULL ||
-                             !xl6IrTypeIsBool(module, instruction->type) ||
-                             iteratorType == NULL ||
-                             iteratorType->kind != XL6_IR_TYPE_VALUE_ITERATOR ||
-                             iteratorType->cAbi !=
-                                 XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR )
+                        if (!xl6IrValueIteratorAdvanceRuntimeInstructionCompatible(module,instruction))
                             return xl6IrDiag(diags, NULL,
                                 "XLIR xvalue iterator advance has no exact state or boolean ABI");
                     } else if ( instruction->runtimeOp ==

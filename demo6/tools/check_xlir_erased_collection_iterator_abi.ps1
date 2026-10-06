@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'xlir_iterator_gate_contract.ps1')
 
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -132,7 +133,7 @@ if ( $loops.Count -ne 10 -or
         $_.loopItemAbiName -eq "none"
      }).Count -ne 1 -or
      @($loops | Where-Object {
-        $_.loopErrorAbiName -ne "no-raise" -or
+        $_.loopErrorAbiName -ne "may-raise" -or
         $_.loopResourceAbiName -ne "xvalue-iterator-destroy"
      }).Count -ne 0 ) {
     throw "Typed XLIR erased collection loop target/key/item/resource contract is not exact"
@@ -146,7 +147,7 @@ foreach ( $loop in $loops ) {
     }
 }
 
-$loopIds = @($loops | ForEach-Object { $_.id })
+$loopIds = @($loops | ForEach-Object { Get-XlirIteratorOrigins $typed $_ })
 $loopInstructions = @($lowered.instructions | Where-Object {
     $_.origin -in $loopIds
 })
@@ -172,11 +173,10 @@ if ( @($loopInstructions | Where-Object {
 }
 $cursorSymbols = @()
 foreach ( $loop in $loops ) {
-    $instructions = @($loopInstructions | Where-Object { $_.origin -eq $loop.id })
-    $cursorStores = @($instructions | Where-Object {
-        $_.kindName -eq "store" -and $_.type -eq $loop.loopResourceType -and
-        $_.targetSymbol -ge 0xF0000000
-    })
+    Assert-XlirCheckedIteratorAdvance $lowered $loop
+    $origins = @(Get-XlirIteratorOrigins $typed $loop)
+    $instructions = @($loopInstructions | Where-Object { $_.origin -in $origins })
+    $cursorStores = @(Get-XlirIteratorCursorStore $lowered $loop)
     if ( $cursorStores.Count -ne 1 ) {
         throw "Lowered XLIR erased collection loop has no unique cursor storage: n$($loop.id)"
     }
@@ -208,7 +208,7 @@ $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 10 -or
      ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_advance\(v\d+\);")).Count -ne 10 -or
+        "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 10 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_item_xvalue_retain\(v\d+\);")).Count -ne 9 -or
      ([regex]::Matches($generated,
@@ -225,13 +225,10 @@ if ( ([regex]::Matches($generated,
     throw "XLIR erased collection iterator C rendering is not mechanical from verified CFG"
 }
 foreach ( $cursorSymbol in $cursorSymbols ) {
-    $loweredReleaseCount = @($loopInstructions | Where-Object {
+    $loweredReleaseCount = @($lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and $_.targetSymbol -eq $cursorSymbol
     }).Count
-    $renderedReleaseCount = ([regex]::Matches(
-        $generated,
-        "xlir_xvalue_iterator_destroy\(s$cursorSymbol\);\s*s$cursorSymbol = NULL;"
-    )).Count
+    $renderedReleaseCount = Get-XlirRenderedIteratorReleases $generated $cursorSymbol 'xlir_xvalue_iterator*' 'xlir_xvalue_iterator_destroy'
     if ( $renderedReleaseCount -ne $loweredReleaseCount ) {
         throw "Generated C does not preserve every erased collection cursor destroy edge: s$cursorSymbol"
     }

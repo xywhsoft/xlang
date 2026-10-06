@@ -43,7 +43,7 @@ static bool capture_trace(const XL6_CaptureSlot* slot, const void* data,
         CAPTURE_VIEW(XL6_CAPTURE_CLOSURE, XL6_Closure*, xl6ClosureRuntimeV1Get()->Ownership)
         CAPTURE_VIEW(XL6_CAPTURE_ERROR, xerror*, xrtErrorOwnership)
         CAPTURE_VIEW(XL6_CAPTURE_CELL, XL6_Cell*, xl6CellRuntimeV1Get()->Ownership)
-        CAPTURE_VIEW(XL6_CAPTURE_VALUE_ITERATOR, XL6_ValueIterator*, xl6ValueIteratorRuntimeV1Get()->Ownership)
+        CAPTURE_VIEW(XL6_CAPTURE_VALUE_ITERATOR, XL6_ValueIterator*, xl6ValueIteratorRuntimeV2Get()->Ownership)
         CAPTURE_VIEW(XL6_CAPTURE_GENERATOR, XL6_Generator*, xl6GeneratorRuntimeV1Get()->Ownership)
 #undef CAPTURE_VIEW
         case XL6_CAPTURE_TRIVIAL: case XL6_CAPTURE_STRING: return true;
@@ -85,7 +85,7 @@ static void capture_cleanup(const XL6_CaptureSlot* slot, void* data, unsigned ch
         CAPTURE_DROP(XL6_CAPTURE_CLOSURE, XL6_Closure*, xl6ClosureRuntimeV1Get()->Release)
         CAPTURE_DROP(XL6_CAPTURE_ERROR, xerror*, xrtErrorFree)
         CAPTURE_DROP(XL6_CAPTURE_CELL, XL6_Cell*, xl6CellRuntimeV1Get()->Release)
-        CAPTURE_DROP(XL6_CAPTURE_VALUE_ITERATOR, XL6_ValueIterator*, xl6ValueIteratorRuntimeV1Get()->Destroy)
+        CAPTURE_DROP(XL6_CAPTURE_VALUE_ITERATOR, XL6_ValueIterator*, xl6ValueIteratorRuntimeV2Get()->Destroy)
         CAPTURE_DROP(XL6_CAPTURE_GENERATOR, XL6_Generator*, xl6GeneratorRuntimeV1Get()->Destroy)
 #undef CAPTURE_DROP
         case XL6_CAPTURE_TRIVIAL: return;

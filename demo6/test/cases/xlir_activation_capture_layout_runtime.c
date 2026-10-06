@@ -86,7 +86,7 @@ static void sparse(unsigned mask)
     if(mask&16){p.error=xrtErrorCreate(XERR_STATE,"sparse",7,"sparse");assert(p.error);}
     if(mask&32){p.cell=xl6CellRuntimeV1Get()->Create(XL6_CELL_I64,sizeof(int64_t));int64_t value=19;assert(p.cell);xl6CellRuntimeV1Get()->Initialize(p.cell,&value,sizeof(value));}
     if(mask&64){xvalue* source=xrtValueArray();assert(source&&xrtValueArrayAppendNew(source,xrtValueInt(23)));
-        p.iterator=xl6ValueIteratorRuntimeV1Get()->Create(source);assert(p.iterator);xrtValueRelease(source);}
+        p.iterator=xl6ValueIteratorRuntimeV2Get()->Create(source);assert(p.iterator);xrtValueRelease(source);}
     if(mask&128)p.generator=make_generator(3,0,&p.initialized[7],&p.generator);
     unsigned expected=0;for(unsigned i=1;i<8;++i)expected+=(mask>>i)&1;
     edges=0;assert(api->Trace(&layout,&p,edge,NULL)&&edges==expected);
