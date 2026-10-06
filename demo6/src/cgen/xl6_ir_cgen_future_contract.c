@@ -652,7 +652,7 @@ static int xl6IrCgenEmitCollectionAlgebraInstruction(
     right = module->operands[instruction->firstOperand + 1];
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_XVALUE_ARRAY_CONCAT:
-        function = "xrtValueArrayConcat";
+        function = "xl6ArrayConcatV1";
         break;
     case XL6_IR_RUNTIME_XVALUE_LIST_MERGE_RIGHT:
         function = "xlir_xvalue_list_merge_right";

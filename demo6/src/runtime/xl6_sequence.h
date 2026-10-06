@@ -123,6 +123,11 @@ XL6_TEXT_API xvalue* xl6SequenceCreateAdmittedV1(XL6_SequenceRoleV1, uint64_t, X
  * Existing low-level unprofiled owners remain unprofiled; a profiled owner
  * cannot lose its domain through clone. Source is unchanged on failure. */
 XL6_TEXT_API xvalue* xl6SequenceCloneRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Both ARRAY owners are operation-pinned (the same pin is allowed). Copies
+ * storage into a new owner only after the complete schema and projection
+ * policies match; inputs and their capacity are never changed. The result
+ * preserves the independently owned admission and resident projection. */
+XL6_TEXT_API xvalue* xl6SequenceConcatPinnedV1(XL6_Sequence*, XL6_Sequence*);
 XL6_TEXT_API XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 /* Erasure is a reference alias, never a dynamic Value snapshot. The converter
  * is an immutable resident policy with module-independent lifetime and NULL

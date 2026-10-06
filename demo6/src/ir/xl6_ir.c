@@ -14724,6 +14724,13 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
         if ( target != NULL ) operatorType = target->storageType;
     }
     resultType = xl6IrTypeGet(&module->types, operatorType);
+    /* Array concatenation allocates an independent owner. This applies to
+     * both + and +=; the replacement is committed only after its outcome
+     * branch. The resident primitive also rejects invalid native schemas. */
+    if (node->opcode==XL6_IR_OPCODE_ADD && resultType &&
+        resultType->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        resultType->collectionAbi==XL6_IR_COLLECTION_ARRAY)
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
     if ( node->sourceKind == XL6_AST_BINARY &&
          node->opcode == XL6_IR_OPCODE_ADD && resultType != NULL &&
          resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -18368,6 +18375,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
 {
     switch (operation) {
     case XL6_IR_RUNTIME_XVALUE_ARRAY_NEW:
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_CONCAT:
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY:

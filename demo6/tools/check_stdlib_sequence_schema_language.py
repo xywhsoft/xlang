@@ -20,6 +20,7 @@ def main() -> int:
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--sanitize', action='store_true', help='Host/generated C only, not the shared product')
+    parser.add_argument('--algebra', action='store_true', help='Array concatenation outcome, source independence and cleanup')
     args = parser.parse_args()
     root, out = Path(__file__).resolve().parents[1], args.out.resolve()
     cc = shutil.which('gcc')
@@ -27,6 +28,8 @@ def main() -> int:
         parser.error('Require gcc, fresh evidence and Linux for sanitizers')
     cases = ['stdlib_sequence_nested_schema', 'stdlib_sequence_nested_schema_continuation',
              'stdlib_stack_admitted_construction', 'stdlib_stack_nested_factory_only', 'stdlib_stack_factory_only']
+    if args.algebra:
+        cases = ['stdlib_array_algebra_language']
     runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     compiler = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
     cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
@@ -37,6 +40,8 @@ def main() -> int:
     for folder in ('src', 'release/include', 'lib/tcc'):
         files.update(p for p in (root / folder).rglob('*') if p.suffix in ('.c', '.h', '.inc'))
     files.update(root / f'test/cases/{case}.xl' for case in cases)
+    if args.algebra:
+        files.add(root / 'test/cases/xlir_array_algebra_outcome_contract.c')
     public = None
     if args.public_directory:
         public = json.loads((args.public_directory / 'build.json').read_text(encoding='utf-8-sig'))
@@ -57,7 +62,8 @@ def main() -> int:
     if os.name == 'nt':
         shutil.copy2(runtime, out / 'xl.dll')
     rows, sweeps, failures = [], [], []
-    report = {'Complete': False, 'InputsUnchanged': False, 'Scope': __doc__, 'Inputs': inputs,
+    report = {'Complete': False, 'InputsUnchanged': False,
+              'Scope': 'Array concatenation outcome, source independence and cleanup' if args.algebra else __doc__, 'Inputs': inputs,
               'Rows': rows, 'Sweeps': sweeps, 'Failures': failures, 'Cases': cases,
               'SanitizedHost': args.sanitize, 'SharedRuntimeInstrumented': False, 'PublicSourceDriver': public is not None}
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', '-I.', '-Irelease',
@@ -67,6 +73,14 @@ def main() -> int:
     links = [str(runtime)] if os.name == 'nt' else ['-Lrelease', '-lxl', '-Wl,-rpath,' + str(root / 'release'),
                                                      '-pthread', '-lm', '-ldl']
     env = dict(os.environ)
+    if args.algebra and public:
+        # The private Sequence handle ops are inseparable from their factories
+        # and consumers. Use the complete frozen source runtime/compiler here,
+        # not a new concat object mixed with the released DLL's old owner ops.
+        source_objects = [row['Path'] for row in public['Objects']
+                          if Path(row['Path']).name != 'xlir_public_source_driver.o']
+        links = [*source_objects, *links, '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        report['SourceRuntimeObjects'] = source_objects
     if os.name != 'nt':
         flags += ['-D_GNU_SOURCE']
     if args.sanitize:
@@ -92,6 +106,12 @@ def main() -> int:
                 '--format', 'json', '--emit', target]
 
     try:
+        if args.algebra:
+            contract = out / ('outcome_contract.exe' if os.name == 'nt' else 'outcome_contract')
+            contract_links = links if public else ['-Lrelease', '-lxlc', *links]
+            run('outcome.contract.build', [cc, *flags, '-O0', 'test/cases/xlir_array_algebra_outcome_contract.c',
+                                           *contract_links, '-o', contract])
+            assert b'Array algebra outcome:' in run('outcome.contract', [contract])
         for level in (0, 2):
             run(f'memory.O{level}.build', [cc, *flags, f'-O{level}', '-c',
                 'test/support/module_product_memory.c', '-o', out / f'memory.O{level}.o'])
@@ -109,7 +129,16 @@ def main() -> int:
                     assert path.read_bytes() == repeated.read_bytes(), 'Nondeterministic ' + mode
                 code = target.read_text(encoding='utf-8')
                 assert 'xl6SequenceNestedCreateV1' not in code
-                if case != 'stdlib_stack_factory_only':
+                if args.algebra:
+                    assert 'xl6ArrayConcatV1(' in code and 'xrtValueArrayConcat(' not in code
+                    lowered = json.loads((out / (case + '.json')).read_text(encoding='utf-8'))
+                    concat = [row for row in lowered['instructions'] if row['runtimeOpName'] == 'xvalue-array-concat']
+                    assert concat and all(int(row['operandCount']) == 2 for row in concat)
+                    for row in concat:
+                        test = lowered['instructions'][int(row['index']) + 1]
+                        assert test['kindName'] == 'error-test' and test['operands'] == [int(row['result'])]
+                        assert int(test['trueTarget']) != int(test['falseTarget']), 'Unchecked Array concat result'
+                elif case != 'stdlib_stack_factory_only':
                     assert 'xl6SequenceNestedCreateTakeV2(' in code and 'xlir_sequence_schema_1' in code
                 for level in (0, 2):
                     binary = out / (case + f'.O{level}' + ('.exe' if os.name == 'nt' else ''))

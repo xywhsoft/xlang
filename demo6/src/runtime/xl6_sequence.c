@@ -622,6 +622,34 @@ xvalue* xl6SequenceCreateAdmittedV1(XL6_SequenceRoleV1 role, uint64_t identity,
     return wrapAdmitted(storage,role,identity,admission->elementIdentity,admission->transfer,
         admission->size,admission->type,admission);
 }
+static xvalue* copyPinned(XL6_Sequence* owner, XL6_Sequence* append)
+{
+    xtypedarray* copy=xrtTypedArrayClone(owner->storage);
+    if (!copy) { allocation(false); return NULL; }
+    if (append && !xrtTypedArrayAppend(copy,append->storage)) {
+        allocation(false);
+        xerror* failure=xrtTakeError(); destroyStorage(copy);
+        xrtClearError(); xrtSetErrorTake(failure); return NULL;
+    }
+    XL6_SequenceAdmissionV3 admission={0};
+    if (!xl6SequenceAdmissionCopyV3(owner,&admission)) {
+        xerror* failure=xrtTakeError(); destroyStorage(copy);
+        xrtClearError(); xrtSetErrorTake(failure); return NULL;
+    }
+    xvalue* result=wrapAdmitted(copy,owner->role,owner->identity,owner->elementIdentity,
+        owner->transfer,owner->size,owner->type,&admission);
+    if (result && owner->projectionBound) {
+        XL6_Sequence* target=xl6SequenceBeginRoleV1(result,owner->role,owner->identity,
+            owner->elementIdentity,owner->transfer,owner->size,owner->type);
+        bool ok=target && xl6SequenceBindProjectionV1(target,owner->projection);
+        if (target) xl6SequenceEndV1(target);
+        if (!ok) {
+            xerror* failure=xrtTakeError(); xrtValueRelease(result); result=NULL;
+            xrtClearError(); xrtSetErrorTake(failure);
+        }
+    }
+    return result;
+}
 xvalue* xl6SequenceCloneRoleV1(const xvalue* value, XL6_SequenceRoleV1 role,
     uint64_t identity, uint64_t element, unsigned int transfer, size_t size, const xrttype* type)
 {
@@ -630,13 +658,29 @@ xvalue* xl6SequenceCloneRoleV1(const xvalue* value, XL6_SequenceRoleV1 role,
     }
     XL6_Sequence* owner=xl6SequenceBeginRoleV1(value,role,identity,element,transfer,size,type);
     if (!owner) return NULL;
-    xtypedarray* copy=xrtTypedArrayClone(owner->storage);
-    XL6_SequenceAdmissionV3 admission={0};
-    if (copy && !xl6SequenceAdmissionCopyV3(owner,&admission)) {
-        destroyStorage(copy); copy=NULL;
+    xvalue* result=copyPinned(owner,NULL);
+    xl6SequenceEndV1(owner); return result;
+}
+xvalue* xl6SequenceConcatPinnedV1(XL6_Sequence* left, XL6_Sequence* right)
+{
+    if (!left || !right || left->role!=XL6_SEQUENCE_ARRAY_V1 ||
+        right->role!=XL6_SEQUENCE_ARRAY_V1 || left->iterator.prepared || right->iterator.prepared ||
+        !xrtAtomic32Load(&left->busy,XMEMORY_ACQUIRE) ||
+        !xrtAtomic32Load(&right->busy,XMEMORY_ACQUIRE)) {
+        xrtSetErrorKind(XERR_ARGUMENT); return NULL;
     }
-    xl6SequenceEndV1(owner);
-    return wrapAdmitted(copy,role,identity,element,transfer,size,type,&admission);
+    if (!left->projectionBound || !right->projectionBound || !left->admission.ops ||
+        left->identity!=right->identity || left->elementIdentity!=right->elementIdentity ||
+        left->transfer!=right->transfer || left->size!=right->size || left->type!=right->type ||
+        left->projection!=right->projection || !xl6SequenceAdmissionEquivalentV1(left,right)) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
+        return NULL;
+    }
+    size_t a=xrtTypedArrayCount(left->storage), b=xrtTypedArrayCount(right->storage);
+    if (a>INT64_MAX || b>(uint64_t)INT64_MAX-a) {
+        xrtSetErrorKind(XERR_RANGE); return NULL;
+    }
+    return copyPinned(left,right);
 }
 bool xl6SequenceEqualsRoleV1(const xvalue* left, const xvalue* right, XL6_SequenceRoleV1 role, uint64_t identity, uint64_t elementIdentity,
                       unsigned int transfer, size_t size, const xrttype* type)

@@ -96,12 +96,14 @@ try {
         'tools/check_stdlib_array_trivial_extract.py','test/cases/stdlib_array_extract_trivial_host.c')
     $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_import.c','tools/check_stdlib_array_import.py',
         'src/runtime/xl6_array_import_chain.c','test/cases/stdlib_array_import_chain_native_host.c',
+        'src/runtime/xl6_array_algebra.c','test/cases/stdlib_array_algebra_native_host.c','test/support/array_algebra_native.c',
         'test/cases/stdlib_array_import_native_host.c','test/cases/stdlib_array_import_header.c',
         'test/cases/stdlib_array_primitive_import_native_host.c','test/support/array_import_native.c',
         'tools/check_stdlib_sequence_recipe_emit.py','test/cases/xlir_sequence_recipe_emit_contract.c',
         'test/cases/stdlib_sequence_recipe_emit_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_schema_language.py',
         'test/cases/stdlib_sequence_nested_schema.xl','test/cases/stdlib_sequence_nested_schema_continuation.xl')
+    $files += @(Get-Item -LiteralPath 'test/cases/stdlib_array_algebra_language.xl','test/cases/xlir_array_algebra_outcome_contract.c')
     $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_string_read.c',
         'test/cases/stdlib_array_value_boundaries_header.c','test/cases/stdlib_array_value_boundaries_native_host.c',
         'test/cases/stdlib_array_value_boundaries_projection_host.c','test/cases/stdlib_array_value_boundaries.xl',
@@ -344,6 +346,11 @@ try {
     $recursiveImport=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-recursive-import/results.json" -Raw | ConvertFrom-Json
     if (!$recursiveImport.Complete -or !$recursiveImport.InputsUnchanged -or !$recursiveImport.Chain -or $recursiveImport.Sweeps.Count-ne38) { throw 'Incomplete recursive Array import evidence' }
     Run 'array-codec-import' $python @('tools/check_stdlib_array_primitive_admission.py','--imports','--out',"$outPath/array-codec-import") -TimeoutMs 900000
+    Run 'array-resident-algebra' $python @('tools/check_stdlib_array_import.py','--algebra','--out',"$outPath/array-resident-algebra") -TimeoutMs 900000
+    $algebra=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-resident-algebra/results.json" -Raw | ConvertFrom-Json
+    if (!$algebra.Complete -or !$algebra.InputsUnchanged -or !$algebra.Algebra -or $algebra.Sweeps.Count-ne72) { throw 'Incomplete resident Array algebra evidence' }
+    Run 'array-algebra-language' $python @('tools/check_stdlib_sequence_schema_language.py','--algebra',
+        '--out',"$outPath/array-algebra-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     Run 'sequence-recipe-emitter' $python @('tools/check_stdlib_sequence_recipe_emit.py','--out',"$outPath/sequence-recipe-emitter",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     Run 'sequence-schema-language' $python @('tools/check_stdlib_sequence_schema_language.py',
         '--out',"$outPath/sequence-schema-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
