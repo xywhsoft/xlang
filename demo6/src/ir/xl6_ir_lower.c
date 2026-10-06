@@ -2518,6 +2518,37 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
     return XL6_IR_VALUE_INVALID;
 }
 
+/* Native general reads acquire a real owned projection. Keep it in the
+ * existing evaluation cleanup transaction while reconstructing an exact
+ * language value; both reconstruction failure and cleanup failure see its
+ * owner. Dynamic results transfer directly, without a redundant retain. */
+static XL6_IrValueId xl6IrLowerOwnedIndexRead(
+    XL6_IrLowerContext* ctx,XL6_IrNodeId origin,XL6_IrRuntimeOp operation,
+    const XL6_IrValueId* operands,XL6_IrTypeId targetType)
+{
+    XL6_IrTypeId dynamic=xl6IrLowerFindDynamicBuiltinType(ctx->module);
+    const XL6_IrType* target=xl6IrTypeGet(&ctx->module->types,targetType);
+    if (dynamic==XL6_IR_TYPE_INVALID || !target || !xl6IrOwnedIndexReadRuntimeOpIs(operation))
+        return XL6_IR_VALUE_INVALID;
+    XL6_IrValueId owned=xl6IrLowerEmitRuntimeCall(ctx,origin,dynamic,operation,operands,2);
+    if (owned==XL6_IR_VALUE_INVALID || targetType==dynamic) return owned;
+    size_t first=ctx->evaluationOwnerCount;
+    XL6_SymbolId anchor=xl6IrLowerNewTempStorage(ctx,dynamic,origin);
+    XL6_IrValueId borrowed;
+    if (!anchor || !xl6IrLowerEmit(ctx,XL6_IR_INSTR_STORE,origin,dynamic,anchor,&owned,1,NULL) ||
+        !xl6IrLowerEmit(ctx,XL6_IR_INSTR_LOAD,origin,dynamic,anchor,NULL,0,&borrowed) ||
+        !xl6IrLowerProtectEvaluationStorage(ctx,origin,anchor,borrowed,0,0)) return XL6_IR_VALUE_INVALID;
+    XL6_IrValueId result=target->kind==XL6_IR_TYPE_NULLABLE ?
+        xl6IrLowerProjectBorrowedXValueAsNullable(ctx,origin,borrowed,targetType) :
+        target->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR ?
+        xl6IrLowerProjectBorrowedXValueAsError(ctx,origin,borrowed,targetType) :
+        xl6IrLowerProjectBorrowedXValueAsExactType(ctx,origin,borrowed,targetType);
+    if (result==XL6_IR_VALUE_INVALID ||
+        !xl6IrLowerCompleteEvaluationBorrowRange(ctx,origin,first,first+1,&result))
+        return XL6_IR_VALUE_INVALID;
+    return result;
+}
+
 static int xl6IrLowerClassLayoutHasRuntimeIdentity(
     const XL6_IrClassLayout* layout)
 {
@@ -4968,7 +4999,7 @@ static int xl6IrLowerResolveElementTargetOperations(
     int dynamicField = xl6IrLowerTypeUsesDynamicFieldStorage(ctx->module, shape);
     switch (plan->lhs->indexWriteAbi) {
     case XL6_IR_INDEX_WRITE_XVALUE_ARRAY_I64_SET_NEW:
-        plan->borrowOperation = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;
+        plan->borrowOperation = XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY;
         plan->writeOperation = XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW;
         break;
     case XL6_IR_INDEX_WRITE_XVALUE_LIST_I64_SET_NEW:
@@ -4988,7 +5019,7 @@ static int xl6IrLowerResolveElementTargetOperations(
                                            : XL6_IR_RUNTIME_XVALUE_OBJECT_SET_STRING_NEW;
         break;
     case XL6_IR_INDEX_WRITE_XVALUE_KEY_DISPATCH_SET_NEW:
-        plan->borrowOperation = XL6_IR_RUNTIME_XVALUE_INDEX_GET_XVALUE_KEY;
+        plan->borrowOperation = XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY;
         plan->writeOperation = XL6_IR_RUNTIME_XVALUE_INDEX_SET_XVALUE_KEY_NEW;
         break;
     default:
@@ -5144,6 +5175,8 @@ static XL6_IrValueId xl6IrLowerBorrowElementTargetPlan(
             plan->borrowOperation, plan->keyLiteral, &plan->receiverValue, 1);
     operands[0] = plan->receiverValue;
     operands[1] = plan->keyValue;
+    if (xl6IrOwnedIndexReadRuntimeOpIs(plan->borrowOperation))
+        return xl6IrLowerOwnedIndexRead(ctx,origin,plan->borrowOperation,operands,carrier);
     return xl6IrLowerEmitRuntimeCall(ctx, origin, carrier, plan->borrowOperation, operands, 2);
 }
 
@@ -5175,7 +5208,7 @@ static XL6_IrRuntimeOp xl6IrLowerElementTargetReadOp(
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64;
         case XL6_IR_C_ABI_MANAGED_STRING:
             return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64
-                        : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;
+                        : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
         default:
             return XL6_IR_RUNTIME_NONE;
         }
@@ -5271,6 +5304,8 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
     operands[0] = plan->receiverValue;
     operands[1] = plan->keyValue;
     if ( itemType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) {
+        if (operation==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)
+            return xl6IrLowerEmitRuntimeCall(ctx,origin,plan->lhs->storageType,operation,operands,2);
         XL6_IrTypeId dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
         XL6_IrValueId borrowed = dynamicType == XL6_IR_TYPE_INVALID ? XL6_IR_VALUE_INVALID
             : xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, operation, operands, 2);
@@ -5449,9 +5484,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
     XL6_IrRuntimeOp safeDynamicOp;
     XL6_IrTypeId dynamicType;
     XL6_IrTypeId keyTemporaryType = XL6_IR_TYPE_INVALID;
-    XL6_IrTypeId temporaryTypes[2];
     XL6_SymbolId keyTemporary = 0;
-    XL6_SymbolId temporaries[2];
     XL6_IrValueId result;
     XL6_IrValueId operands[2];
     if ( node == NULL || node->kind != XL6_IR_NODE_INDEX || node->childCount != 2 ||
@@ -5494,8 +5527,8 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
      * payload is an array, sparse list or object.  An i64 source key therefore
      * cannot select ARRAY_AT merely because the static collection ABI is NONE.
      * Box the key and preserve that runtime tag dispatch as an explicit XLIR
-     * operation.  The runtime lookup itself returns a borrow; XLIR retains
-     * that result and owns any temporary receiver until the retain completes. */
+     * operation. The runtime lookup returns an owned projection; XLIR keeps
+     * that result and owns any temporary receiver until the read completes. */
     if ( xl6IrLowerTypeIsDynamicXValueBuiltin(
              ctx->module, receiver->storageType) ) {
         dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
@@ -5509,15 +5542,12 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
             ctx, origin, index, operands[1], dynamicType,
             &keyTemporary, &keyTemporaryType);
         if ( operands[1] == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-        result = xl6IrLowerEmitRuntimeCall(
-            ctx, origin, node->storageType,
-            XL6_IR_RUNTIME_XVALUE_INDEX_GET_XVALUE_KEY, operands, 2);
-        temporaries[0] = 0;
-        temporaries[1] = keyTemporary;
-        temporaryTypes[0] = receiver->storageType;
-        temporaryTypes[1] = keyTemporaryType;
-        return xl6IrLowerOwnBorrowedIndexResult(
-            ctx, origin, node, result, temporaries, temporaryTypes, 2);
+        size_t first=ctx->evaluationOwnerCount;
+        if (keyTemporary && !xl6IrLowerProtectEvaluationStorage(ctx,origin,keyTemporary,operands[1],0,0))
+            return XL6_IR_VALUE_INVALID;
+        result=xl6IrLowerOwnedIndexRead(ctx,origin,XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY,operands,node->storageType);
+        return result!=XL6_IR_VALUE_INVALID && xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,&result)
+            ? result : XL6_IR_VALUE_INVALID;
     }
     if ( receiverType->collectionAbi == XL6_IR_COLLECTION_LIST ) {
         dynamicOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64;
@@ -5543,6 +5573,17 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
     operands[1] = indexValue;
     if ( operands[0] == XL6_IR_VALUE_INVALID || operands[1] == XL6_IR_VALUE_INVALID )
         return XL6_IR_VALUE_INVALID;
+    /* Preserve direct native scalar/string reads. All other Array element
+     * domains and safe indices share one owned Value projection boundary. */
+    if ((receiverType->collectionAbi==XL6_IR_COLLECTION_ARRAY ||
+         xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,receiver->storageType)) &&
+        (node->sourceKind==XL6_AST_SAFE_INDEX || resultType->kind==XL6_IR_TYPE_NULLABLE ||
+         (resultType->cAbi!=XL6_IR_C_ABI_I64 && resultType->cAbi!=XL6_IR_C_ABI_U64 &&
+          resultType->cAbi!=XL6_IR_C_ABI_BOOL && resultType->cAbi!=XL6_IR_C_ABI_F64 &&
+          resultType->cAbi!=XL6_IR_C_ABI_MANAGED_STRING)))
+        return xl6IrLowerOwnedIndexRead(ctx,origin,node->sourceKind==XL6_AST_SAFE_INDEX ?
+            XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY : XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY,
+            operands,node->storageType);
     if ( resultType->kind == XL6_IR_TYPE_NULLABLE &&
          resultType->paramCount == 1 && resultType->params != NULL &&
          receiverType->paramCount == 1 && receiverType->params != NULL &&
@@ -6030,7 +6071,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead(
         receiverType = xl6IrTypeGet(&ctx->module->types, receiverType->params[0]);
     if (receiverType == NULL) return XL6_IR_VALUE_INVALID;
     operation = keyType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
-        ? XL6_IR_RUNTIME_XVALUE_INDEX_GET_XVALUE_KEY
+        ? XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY
         : (receiverType->collectionAbi == XL6_IR_COLLECTION_DICT
             ? XL6_IR_RUNTIME_XVALUE_OBJECT_GET_STRING
             : XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_STRING);
@@ -6046,8 +6087,12 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead(
     if (operands[1] == XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
     dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
     if (dynamicType == XL6_IR_TYPE_INVALID) return XL6_IR_VALUE_INVALID;
-    borrowed = xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, operation, operands, 2);
-    result = xl6IrLowerProjectBorrowedIndexResult(ctx, origin, node, borrowed, NULL, NULL, 0);
+    if (xl6IrOwnedIndexReadRuntimeOpIs(operation))
+        result=xl6IrLowerOwnedIndexRead(ctx,origin,operation,operands,node->storageType);
+    else {
+        borrowed = xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, operation, operands, 2);
+        result = xl6IrLowerProjectBorrowedIndexResult(ctx, origin, node, borrowed, NULL, NULL, 0);
+    }
     if (result == XL6_IR_VALUE_INVALID ||
         !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, evaluationFirst, &result))
         return XL6_IR_VALUE_INVALID;

@@ -637,3 +637,15 @@ finalization twice. Windows requires a staged current-source public driver;
 Linux supports generated-C/host sanitizer flags, not shared-runtime coverage.
 Stack parent gates include the new gate. Independent native artifact validation
 is separate; the source Array migration and the whole 53-module goal remain open.
+
+`check_stdlib_array_value_read.py` verifies owned strict/safe/dynamic-key reads:
+exact XLIR result/input ownership, NULL failure vs canonical null, immediate
+error CFG, mutation rejection before C/header output, deterministic C/IR,
+strict O0/O2 and JIT/AOT. The real generated native-char caller uses function
+and TypeIds extracted from verified IR, checks complete allocation prefixes
+and exactly-once finally. Module probes check retirement and double finalization.
+`check_stdlib_array_primitive_admission.py --reads` checks eleven real resident
+profiles with native/wire ownership, reentry, converter refusal, precise keys
+and complete OOM prefixes. Standalone Linux sanitizes the native closure;
+shared tests instrument hosts only. Array/Stack parents include these gates.
+This boundary batch does not complete Array carrier migration or the 53-module goal.

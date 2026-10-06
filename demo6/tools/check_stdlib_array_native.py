@@ -22,6 +22,7 @@ def main() -> int:
     parser.add_argument("--cc", default="gcc")
     parser.add_argument("--nm", default="nm")
     parser.add_argument("--sanitize", action="store_true")
+    parser.add_argument("--reuse-children", type=Path, help="Reuse independently complete, SHA-unchanged child evidence; never a parent verdict")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
@@ -65,6 +66,10 @@ def main() -> int:
         "test/cases/stdlib_array_primitive_admission_native_host.c",
         "test/cases/stdlib_array_projection_identity_native_host.c",
         "test/cases/stdlib_sequence_retired_admission_abi.c",
+        "test/cases/stdlib_array_value_read_native_host.c","src/runtime/xl6_array_value_read.c",
+        "test/cases/stdlib_array_value_iterator_native_host.c","src/runtime/xl6_array_value_iterator.c",
+        "test/cases/stdlib_array_value_iterator_graph_host.c","test/support/collection_count_native.c",
+        "src/runtime/xl6_value_iterator.c",
         "src/runtime/xl6_array_primitive_admission.c")]
     files += [root / name for name in ("tools/check_stdlib_array_c_scalar.py",
         "test/cases/stdlib_array_c_scalar_native_host.c", "src/runtime/xl6_array_c_scalar_admission.c")]
@@ -122,6 +127,27 @@ def main() -> int:
                    UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
 
     def run(name: str, command: list[str], timeout: int = 45) -> str:
+        if args.reuse_children and len(command)>2 and command[0]==sys.executable and "--out" in command:
+            destination=Path(command[command.index("--out")+1]).resolve()
+            previous=args.reuse_children.resolve()/destination.name
+            proof=previous/"results.json"
+            if proof.is_file() and not destination.exists() and previous!=destination:
+                evidence=json.loads(proof.read_text(encoding="utf-8"))
+                matching=evidence.get("Complete") and evidence.get("InputsUnchanged") and \
+                    evidence.get("Sanitized")==args.sanitize
+                for flag,field in (("--projections","Projections"),("--iterator","Iterator"),("--reads","OwnedReads")):
+                    if flag in command: matching=matching and evidence.get(field) is True
+                if matching and evidence.get("Inputs") and all(Path(row["Path"]).is_file() and
+                    digest(Path(row["Path"]))==row["Sha256"].lower() for row in evidence["Inputs"]):
+                    # Preserve the original report, commands and paths: this is
+                    # reuse of an unchanged verdict, NOT a claimed fresh run.
+                    inputs.append({"Path":str(proof),"Sha256":digest(proof)})
+                    inputs.extend(evidence["Inputs"])
+                    shutil.copytree(previous,destination)
+                    rows.append({"Name":name,"Command":command,"Exit":0,"Complete":True,
+                        "ReusedFrom":str(proof),"FreshExecution":False})
+                    (out/(name+".log")).write_text("Reused SHA-unchanged complete child: "+str(proof)+"\n",encoding="utf-8")
+                    return ""
         result = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=timeout)
         data = result.stdout + result.stderr
         (out / (name + ".log")).write_bytes(data)
@@ -286,6 +312,16 @@ def main() -> int:
             "Profiles": primitive["Profiles"], "ClosedPrefixes": len(primitive["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in primitive["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
+        for mode in ("iterator","reads"):
+            child=out / ("native-"+mode)
+            command=[sys.executable,"tools/check_stdlib_array_primitive_admission.py","--"+mode,"--out",str(child)]
+            if args.sanitize: command += ["--sanitize"]
+            run(child.name,command,timeout=360)
+            evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
+            if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=11:
+                raise RuntimeError("Incomplete native Array "+mode+" evidence")
+            report[mode.title()+"Report"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
+                "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         child = out / "admission-c-scalar"
         command = [sys.executable, "tools/check_stdlib_array_c_scalar.py", "--out", str(child)]
         if args.sanitize:
@@ -369,7 +405,7 @@ def main() -> int:
             command += ["--sanitize"]
         run(child.name, command, timeout=600)
         futures = json.loads((child / "results.json").read_text(encoding="utf-8"))
-        if not futures["Complete"] or not futures["InputsUnchanged"] or len(futures["Sweeps"])!=42:
+        if not futures["Complete"] or not futures["InputsUnchanged"] or len(futures["Sweeps"])!=54:
             raise RuntimeError("Incomplete native Future Array evidence")
         report["FutureReport"] = {"Directory": str(child), "Checks": len(futures["Rows"]),
             "ClosedPrefixes": len(futures["Sweeps"]),

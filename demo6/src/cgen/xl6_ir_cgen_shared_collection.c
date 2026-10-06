@@ -21,7 +21,14 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     if ( !read && !xl6IrCollectionMemberRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !(read ? xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction)
                 : xl6IrCollectionMemberRuntimeInstructionCompatible(module, instruction)) ) return -1;
-    if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
+    if (xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
+        const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ?
+            "xl6ArrayValueReadCopyV1" : instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ?
+            "xl6ArrayValueReadOrNullCopyV1" : "xl6ValueIndexReadCopyV1";
+        xl6OutputPrintf(out,"    v%u = %s(v%u, v%u);\n",(unsigned)instruction->result,symbol,
+            (unsigned)module->operands[instruction->firstOperand],
+            (unsigned)module->operands[instruction->firstOperand+1]);
+    } else if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY) {
         const XL6_IrType* receiver = xl6IrArrayScalarReadReceiverType(module, instruction);
         const XL6_IrType* result = xl6IrTypeGet(&module->types, instruction->type);

@@ -177,6 +177,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_nullable_f32_value.c src\runtime\xl6_nullable_f64_value.c src\runtime\xl6_nullable_time_value.c src\runtime\xl6_nullable_char_value.c ^
     src\runtime\xl6_nullable_string.c src\runtime\xl6_string_type.c src\runtime\xl6_string_value.c src\runtime\xl6_array_value.c src\runtime\xl6_array_reference_value.c src\runtime\xl6_array_erased.c src\runtime\xl6_array_input.c src\runtime\xl6_array_rng_shuffle.c src\runtime\xl6_array_rand_shuffle.c src\runtime\xl6_collection_count.c src\runtime\xl6_array_scalar_read.c src\runtime\xl6_value_admission.c src\runtime\xl6_native_scalar_value.c src\runtime\xl6_nominal_admission.c src\runtime\xl6_char_type.c src\runtime\xl6_char_value.c ^
     src\runtime\xl6_array_string_read.c ^
+    src\runtime\xl6_array_value_read.c ^
     src\runtime\xl6_future_aggregate.c src\runtime\xl6_future_aggregate_array.c src\runtime\xl6_future_metadata.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
@@ -346,6 +347,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_nullable_f32_value.c src\runtime\xl6_nullable_f64_value.c src\runtime\xl6_nullable_time_value.c src\runtime\xl6_nullable_char_value.c ^
     src\runtime\xl6_nullable_string.c src\runtime\xl6_string_type.c src\runtime\xl6_string_value.c src\runtime\xl6_array_value.c src\runtime\xl6_array_reference_value.c src\runtime\xl6_array_erased.c src\runtime\xl6_array_input.c src\runtime\xl6_array_rng_shuffle.c src\runtime\xl6_array_rand_shuffle.c src\runtime\xl6_collection_count.c src\runtime\xl6_array_scalar_read.c src\runtime\xl6_value_admission.c src\runtime\xl6_native_scalar_value.c src\runtime\xl6_nominal_admission.c src\runtime\xl6_char_type.c src\runtime\xl6_char_value.c ^
     src\runtime\xl6_array_string_read.c ^
+    src\runtime\xl6_array_value_read.c ^
     src\runtime\xl6_future_aggregate.c src\runtime\xl6_future_aggregate_array.c src\runtime\xl6_future_metadata.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^

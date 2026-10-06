@@ -206,6 +206,13 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_NEW ||
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW) )
             needs->needsXValueArrayRuntime = 1;
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            xl6IrOwnedIndexReadRuntimeOpIs(module->instructions[i].runtimeOp)) {
+            /* The leaf header is declaration-only; native requirements come
+             * from the exact resident symbol rather than a generic library bit. */
+            needs->needsXValueRuntime=1;
+            needs->needsXValueArrayOwnedReadRuntime=1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||
                module->instructions[i].runtimeOp ==

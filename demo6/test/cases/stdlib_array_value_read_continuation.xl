@@ -1,0 +1,23 @@
+async func later(array<char> values, int index) as char?
+    time.sleep(1)
+    return values?[index]
+end
+async func keyedLater(var values, var key) as var
+    time.sleep(1)
+    return values[key]
+end
+func items(array<char> values) as generator<char>
+    yield values[0]
+    yield values[-1]
+end
+array<char> letters = array['你', 'A']
+assert ((await later(letters, 0)) ?? 'X') == '你'
+assert await later(letters, 9) == null
+assert await keyedLater(letters, -1) == 'A'
+assert await keyedLater(letters, 9) == null
+int total = 0
+for item in items(letters)
+    total += int(item)
+end
+assert total == int('你') + 65
+println("owned index continuation reads ok")

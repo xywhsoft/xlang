@@ -1,0 +1,70 @@
+int cleanupCount = 0
+func readChar(array<char> values, int index) as char
+    try
+        return values[index]
+    finally
+        cleanupCount += 1
+    end
+end
+func readSafe(array<char> values, int index) as char?
+    try
+        return values?[index]
+    finally
+        cleanupCount += 1
+    end
+end
+func readDynamic(var values, var key) as var
+    try
+        return values[key]
+    finally
+        cleanupCount += 1
+    end
+end
+array<char> letters = array['你', 'A']
+assert readChar(letters, -1) == 'A'
+assert (readSafe(letters, 0) ?? 'X') == '你'
+assert readSafe(letters, 2) == null
+assert readSafe(letters, -9223372036854775808) == null
+array<char>? absentLetters = null
+assert absentLetters?[0] == null
+array<float32> singles = array[float32(1.25)]
+assert singles[0] == float32(1.25)
+array<time> instants = array[time(0)]
+assert instants[-1] == time(0)
+array<string?> texts = array["a\0b", null]
+assert (texts[0] ?? "") == "a\0b"
+assert texts[-1] == null
+assert texts?[9] == null
+var dynamicLetters = letters
+assert readDynamic(dynamicLetters, 0) == '你'
+assert readDynamic(dynamicLetters, 9) == null
+array<bytes> payloads = array[b"a\0b", b"tail"]
+auto copied = payloads[0]
+copied[0] = 88
+assert payloads[0][0] == 97
+assert payloads?[9] == null
+array<int?> numbers = array[3, null]
+assert (numbers[0] ?? 0) == 3
+assert numbers[-1] == null
+assert numbers?[9] == null
+list<string> entries = [3: "a\0b"]
+dict<string> fields = {"a\0b": "exact", "a": "prefix"}
+assert string(readDynamic(entries, 3)) == "a\0b"
+assert readDynamic(entries, 2) == null
+assert string(readDynamic(fields, "a\0b")) == "exact"
+assert string(readDynamic(fields, "a")) == "prefix"
+assert readDynamic(fields, "missing") == null
+var lazy = array[null, 3]
+lazy[0] ?= "a\0b"
+assert string(lazy[0]) == "a\0b"
+array<int> counters = array[3]
+counters[0] += 4
+assert counters[0] == 7
+bool caught = false
+try
+    auto unused = readChar(letters, -9223372036854775808)
+catch RangeError failure
+    caught = true
+end
+assert caught
+println("owned Array and dynamic index reads ok")
