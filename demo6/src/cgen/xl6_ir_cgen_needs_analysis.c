@@ -320,14 +320,16 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp ==
-                  XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT ||
+                  XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ||
               module->instructions[i].runtimeOp ==
                   XL6_IR_RUNTIME_XVALUE_ERROR_REF) ) {
-            needs->needsXValueTypeIdentityRuntime = 1;
             needs->needsXValueRuntime = 1;
-            needs->needsRuntimeTrap = 1;
             if ( module->instructions[i].runtimeOp ==
                      XL6_IR_RUNTIME_XVALUE_ERROR_REF ) {
+                /* The native scalar provider binds identity internally. Only
+                 * the older error projection needs a generated bind helper. */
+                needs->needsXValueTypeIdentityRuntime = 1;
+                needs->needsRuntimeTrap = 1;
                 needs->needsXValueErrorBoxRuntime = 1;
                 needs->needsXValueHandleRuntime = 1;
                 needs->needsErrorRuntime = 1;

@@ -579,7 +579,7 @@ static int xl6IrCgenRuntimeIdentityBoxMetadataAbi(
         instruction->operandCount == 1;
 }
 
-static int xl6IrCgenRuntimeForeignFloatBoxAbi(
+static int xl6IrCgenRuntimeForeignScalarBoxAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
     const XL6_IrInstruction* source;
@@ -587,15 +587,14 @@ static int xl6IrCgenRuntimeForeignFloatBoxAbi(
     const XL6_IrType* resultType;
     if ( module == NULL ||
          !xl6IrCgenRuntimeIdentityBoxMetadataAbi(
-             instruction, XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT) ) return 0;
+             instruction, XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR) ) return 0;
     source = xl6IrCgenValueDefinition(
         module, module->operands[instruction->firstOperand], NULL);
     sourceType = source != NULL
         ? xl6IrTypeGet(&module->types, source->type) : NULL;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     return source != NULL && sourceType != NULL && resultType != NULL &&
-        (sourceType->cAbi == XL6_IR_C_ABI_C_FLOAT ||
-         sourceType->cAbi == XL6_IR_C_ABI_C_DOUBLE) &&
+        xl6IrNativeScalarProfileForCAbi(sourceType->cAbi)!=XL6_NATIVE_SCALAR_NONE &&
         sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
         sourceType->typeValueId != 0 &&
         instruction->runtimeIdentityType == source->type &&

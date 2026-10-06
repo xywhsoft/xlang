@@ -1,0 +1,5 @@
+array<bool?> values = [false, null]
+auto absent = values.pop()
+auto present = values.take(0)
+assert(absent == null and present != null and present == false)
+assert(values.length == 0)

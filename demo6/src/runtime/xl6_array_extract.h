@@ -25,6 +25,13 @@ XL6_TEXT_API uint32_t xl6ArrayExtractCharV1(const xvalue*,uint64_t,uint64_t,int6
  * string. On failure any prepared owner is released before returning. */
 XL6_TEXT_API xstrview xl6ArrayExtractStringV1(const xvalue*,uint64_t,uint64_t,int64_t,bool,bool);
 XL6_TEXT_API xvalue* xl6ArrayExtractValueV1(const xvalue*,uint64_t,uint64_t,int64_t,bool);
+/* Closed trivial scalar/nullable descriptors only. Exact logical admission
+ * precedes wire conversion/removal. Native slots move without projection.
+ * Output may be unaligned and is unchanged on failure; null presence is data.
+ * rule=0 selects the exact builtin C domain, otherwise a language value domain.
+ * The descriptor/converter are resident, not generated module callbacks. */
+XL6_TEXT_API bool xl6ArrayExtractTrivialV1(const xvalue*,uint64_t,uint64_t,int64_t,bool,
+    const xrttype*,const xrttype*,const xvalueconverter*,unsigned int,uint64_t,void*);
 /* List/dictionary Take returns an owned canonical null on an ordinary miss.
  * Their explicit carrier codes are independent of the compiler enum. */
 #define XL6_COLLECTION_EXTRACT_LIST_V1 2u

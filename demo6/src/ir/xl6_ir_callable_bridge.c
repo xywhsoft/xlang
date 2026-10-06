@@ -32,7 +32,7 @@ static int xl6IrCallableBridgeParameterPlan(
     memset(plan, 0, sizeof(*plan));
     plan->parameter = parameter; plan->type = signature->params[parameter];
     plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
-    plan->nativeScalarProfile = xl6IrCallableNativeScalarProfile(type->cAbi);
+    plan->nativeScalarProfile = xl6IrNativeScalarProfileForCAbi(type->cAbi);
     abi = signature->parameterAbis[parameter];
     plan->invokeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED ? XL6_IR_CALLBACK_INVOKE_TAKE
         : abi == XL6_IR_PARAMETER_ABI_BORROW ? XL6_IR_CALLBACK_INVOKE_BORROW
@@ -106,7 +106,7 @@ static int xl6IrCallableBridgeResultPlan(
     memset(plan, 0, sizeof(*plan));
     plan->result = result; plan->type = signature->returns[result];
     plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
-    plan->nativeScalarProfile = xl6IrCallableNativeScalarProfile(type->cAbi);
+    plan->nativeScalarProfile = xl6IrNativeScalarProfileForCAbi(type->cAbi);
     plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_NONE;
     if (plan->nativeScalarProfile != XL6_NATIVE_SCALAR_NONE) {
         plan->decodeAbi = plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR;

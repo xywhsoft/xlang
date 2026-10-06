@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -29,7 +30,8 @@ def main() -> int:
         parser.error('Require gcc, fresh evidence and Windows current-source driver')
     fixtures = ['stdlib_array_methods', 'stdlib_array_methods_continuation']
     if args.defaults: fixtures = ['stdlib_array_resident_defaults', 'stdlib_array_resident_defaults_continuation']
-    if args.extract: fixtures = ['stdlib_array_extract', 'stdlib_array_extract_continuation']
+    if args.extract: fixtures = ['stdlib_array_extract', 'stdlib_array_extract_continuation',
+                                 'stdlib_array_extract_trivial']
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     public = None
     files = {Path(__file__), Path(cc), Path(sys.executable), product, root / 'lib/xrt/xrt.h',
@@ -56,10 +58,11 @@ def main() -> int:
         cli = root / 'release/xl'
         files.update((cli, root / 'release/libxlc.so'))
     inputs = [{'Path': str(path.resolve()), 'Sha256': digest(path)} for path in sorted(files)]
-    rows, sweeps = [], []
+    rows, sweeps, contracts = [], [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows, 'Sweeps': sweeps,
               'Scope': __doc__, 'NativeDefaults': args.defaults, 'LanguageRuntimeInstrumented': False, 'SanitizedHost': args.sanitize}
     report['CheckedExtraction'] = args.extract
+    report['ContractProfiles'] = contracts
     out.mkdir(parents=True)
     private = out / 'include/__xl_runtime'; private.mkdir(parents=True)
     for directory in (root / 'src/runtime', root / 'release/include'):
@@ -119,8 +122,16 @@ def main() -> int:
                 assert path.read_bytes() == repeat.read_bytes()
             original = target.read_bytes()
             proof = run(name + '.contract', [str(contract), source, str(target),
-                *([str(bindings)] if name == fixtures[0] else [])])
+                *([str(bindings)] if name == fixtures[0] else ['--profiles'] if args.extract and name==fixtures[2] else [])],
+                600 if args.extract and name==fixtures[2] else 180)
             assert 'mutations refused before C/header output' in proof and original == target.read_bytes()
+            if args.extract and name==fixtures[2]: assert 'deduplicated=1' in proof
+            coverage = re.search(r'Closed profiles: (\d+) intrinsic; (\d+) instruction; deduplicated=(\d+)', proof)
+            mutations = re.search(r'(\d+) operations; (\d+) ABI/outcome mutations', proof)
+            assert coverage and mutations
+            contracts.append({'Fixture': name, 'Operations': int(mutations[1]), 'RejectedMutations': int(mutations[2]),
+                'IntrinsicProfiles': int(coverage[1]), 'InstructionProfiles': int(coverage[2]),
+                'Deduplicated': coverage[3]=='1'})
             code = original.decode('utf-8'); assert ('xl6_array_extract.h' if args.extract else
                 'xl6_array_default.h' if args.defaults else 'xl6_array_methods.h') in code
             assert not any(token in code for token in ('static bool xlir_xvalue_array_remove_value(',
@@ -135,7 +146,7 @@ def main() -> int:
                 assert not any(token in code for token in ('xlir_xvalue_typed_array_pop',
                     'xlir_xvalue_typed_array_take', 'xlir_xvalue_typed_list_take',
                     'xlir_xvalue_typed_dict_take', 'xlir_xvalue_typed_take_raw'))
-                required = ('I64', 'String') if name == fixtures[0] else (
+                required = ('I64', 'String') if name == fixtures[0] else ('Trivial',) if name == fixtures[2] else (
                     'Bool', 'U64', 'F64', 'F32', 'Time', 'Char', 'String', 'Value')
                 assert all('xl6ArrayExtract' + suffix + 'V1(' in code for suffix in required)
                 if name == fixtures[0]: assert 'xl6CollectionExtractValueV1(' in code
@@ -150,7 +161,7 @@ def main() -> int:
                     *(['-DXL6_PRODUCT_USER_ENTRY'] if user_entry else []), '-include', str(target),
                     'test/cases/xlir_module_product_oom_host.c', str(memory), *links, '-o', str(binary)], 360)
                 assert 'balanced' in run(name + f'.O{level}.run', [str(binary)])
-                if name == fixtures[0]:
+                if name == fixtures[0] or (args.extract and name == fixtures[2]):
                     for point in range(4097):
                         proof = run(name + f'.O{level}.oom.{point}', [str(binary), str(point)])
                         assert 'balanced' in proof
@@ -158,6 +169,7 @@ def main() -> int:
                             assert not user_entry or point > 0, 'User entry must execute allocation work'
                             sweeps.append({'Fixture': name, 'Level': level, 'FirstNoHit': point}); break
                     else: raise RuntimeError('Unclosed complete module allocation prefix')
+                if name == fixtures[0]:
                     projected = out / (f'projection.O{level}' + ('.exe' if os.name == 'nt' else ''))
                     run(f'projection.O{level}.build', [cc, *strict, f'-O{level}', '-include', str(target),
                         *(['-DXL6_METHOD_EXTRACT'] if args.extract else []),

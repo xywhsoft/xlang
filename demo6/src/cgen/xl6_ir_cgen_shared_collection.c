@@ -28,6 +28,7 @@ static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
 static const char* xl6IrCgenArrayExtractSymbol(const XL6_IrType* result)
 {
     if (!result) return NULL;
+    if (xl6IrArrayTrivialExtractResult(result)) return "xl6ArrayExtractTrivialV1";
     switch (result->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "xl6ArrayExtractBoolV1";
     case XL6_IR_C_ABI_I64: return "xl6ArrayExtractI64V1";
@@ -152,6 +153,24 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                     xl6IrCollectionElementType(module,definition->type)) : NULL;
                 const char* symbol=xl6IrCgenArrayExtractSymbol(typedResult);
                 if (!array || !element || !array->typeValueId || !element->typeValueId || !symbol) return -1;
+                if (xl6IrArrayTrivialExtractResult(typedResult)) {
+                    XL6_IrTypeId baseId=typedResult->kind==XL6_IR_TYPE_NULLABLE ? typedResult->params[0] : instruction->type;
+                    const XL6_IrType* base=xl6IrTypeGet(&module->types,baseId);
+                    const char* physical=xl6IrCgenNativeValueTypeExpr(module,instruction->type);
+                    const char* basePhysical=xl6IrCgenNativeValueTypeExpr(module,baseId);
+                    const char* outputType=xl6IrCgenType(module,instruction->type);
+                    if (!base || !base->typeValueId || !physical || !basePhysical || !outputType) return -1;
+                    xl6OutputPrintf(out,"    v%u = (%s){0};\n    bool extraction_ok_%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, ",
+                        (unsigned)instruction->result,outputType,(unsigned)instruction->result,symbol,(unsigned)receiver,
+                        (unsigned long long)array->typeValueId,(unsigned long long)element->typeValueId);
+                    if (pop) xl6OutputPuts("0",out); else xl6OutputPrintf(out,"v%u",(unsigned)argument0);
+                    xl6OutputPrintf(out,", %s, %s, %s, %s, %u, 0x%016llXULL, &v%u);\n",
+                        pop ? "true" : "false",physical,basePhysical,
+                        xl6IrCgenNativeValueConverterExpr(module,instruction->type),
+                        (unsigned)xl6IrValueAdmissionAbiForType(&module->types,typedResult),
+                        (unsigned long long)base->typeValueId,(unsigned)instruction->result);
+                    return xl6OutputHasFailed(out) ? -1 : 1;
+                }
                 xl6OutputPrintf(out,"    v%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, ",
                     (unsigned)instruction->result,symbol,(unsigned)receiver,
                     (unsigned long long)array->typeValueId,(unsigned long long)element->typeValueId);

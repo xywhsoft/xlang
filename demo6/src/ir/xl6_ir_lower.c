@@ -3693,7 +3693,7 @@ static XL6_IrValueId xl6IrLowerNumericEnumConstant(
 
 /* A dynamic slot owns an xvalue handle. Conversion into that slot is a
  * typed XLIR operation, never a Cgen-side boxing convention. */
-static XL6_IrValueId xl6IrLowerBoxNullableNumericEnum(
+static XL6_IrValueId xl6IrLowerBoxNullableIdentifiedScalar(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId targetType,
     XL6_IrValueId source, const XL6_IrType* nullable)
 {
@@ -3709,13 +3709,16 @@ static XL6_IrValueId xl6IrLowerBoxNullableNumericEnum(
         nullable->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
         nullable->paramCount != 1 || nullable->params == NULL ||
         (element = xl6IrTypeGet(&ctx->module->types, nullable->params[0])) == NULL ||
-        element->kind != XL6_IR_TYPE_NUMERIC_ENUM || element->typeValueId == 0 ||
+        (element->kind != XL6_IR_TYPE_NUMERIC_ENUM &&
+         xl6IrNativeScalarProfileForCAbi(element->cAbi)==XL6_NATIVE_SCALAR_NONE) || element->typeValueId == 0 ||
         element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
         element->nullAbi != XL6_IR_NULL_ABI_NONE ||
-        (element->cAbi != XL6_IR_C_ABI_I64 && element->cAbi != XL6_IR_C_ABI_U64))
+        (element->kind==XL6_IR_TYPE_NUMERIC_ENUM &&
+         element->cAbi != XL6_IR_C_ABI_I64 && element->cAbi != XL6_IR_C_ABI_U64))
         return XL6_IR_VALUE_INVALID;
     elementType = nullable->params[0];
-    boxing = element->cAbi == XL6_IR_C_ABI_I64
+    boxing = element->kind!=XL6_IR_TYPE_NUMERIC_ENUM ? XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR :
+        element->cAbi == XL6_IR_C_ABI_I64
         ? XL6_IR_RUNTIME_XVALUE_I64 : XL6_IR_RUNTIME_XVALUE_U64;
     boolean = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
     storage = xl6IrLowerNewTempStorage(ctx, targetType, origin);
@@ -3735,8 +3738,12 @@ static XL6_IrValueId xl6IrLowerBoxNullableNumericEnum(
     xl6IrLowerEnterBlock(ctx, presentBlock);
     if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULLABLE_UNWRAP, origin, elementType,
             0, &source, 1, &payload)) return XL6_IR_VALUE_INVALID;
-    boxed = xl6IrLowerEmitRuntimeCall(ctx, origin, targetType, boxing, &payload, 1);
-    boxed = xl6IrLowerBindRuntimeTypeIdentity(ctx, origin, targetType, elementType, boxed);
+    boxed = boxing==XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ?
+        xl6IrLowerEmitRuntimeCallMetadata(ctx,origin,origin,targetType,boxing,NULL,
+            XL6_IR_TYPE_INVALID,elementType,&payload,1) :
+        xl6IrLowerEmitRuntimeCall(ctx,origin,targetType,boxing,&payload,1);
+    if (element->kind==XL6_IR_TYPE_NUMERIC_ENUM)
+        boxed = xl6IrLowerBindRuntimeTypeIdentity(ctx, origin, targetType, elementType, boxed);
     if (boxed == XL6_IR_VALUE_INVALID ||
         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, targetType, storage, &boxed, 1, NULL) ||
         !xl6IrLowerEmitJump(ctx, origin, mergeBlock)) return XL6_IR_VALUE_INVALID;
@@ -3799,8 +3806,9 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
          sourceType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ) {
         const XL6_IrType* element = sourceType->paramCount == 1 && sourceType->params != NULL
             ? xl6IrTypeGet(&ctx->module->types, sourceType->params[0]) : NULL;
-        if (element != NULL && element->kind == XL6_IR_TYPE_NUMERIC_ENUM)
-            return xl6IrLowerBoxNullableNumericEnum(ctx, origin, targetType, source, sourceType);
+        if (element != NULL && (element->kind == XL6_IR_TYPE_NUMERIC_ENUM ||
+            xl6IrNativeScalarProfileForCAbi(element->cAbi)!=XL6_NATIVE_SCALAR_NONE))
+            return xl6IrLowerBoxNullableIdentifiedScalar(ctx, origin, targetType, source, sourceType);
         return xl6IrLowerEmitRuntimeCall(
             ctx, origin, targetType,
             XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX, &source, 1);
@@ -3811,18 +3819,26 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
     case XL6_IR_C_ABI_I64: runtimeOp = XL6_IR_RUNTIME_XVALUE_I64; break;
     case XL6_IR_C_ABI_U64: runtimeOp = XL6_IR_RUNTIME_XVALUE_U64; break;
     /* Every binary32 value widens exactly to the canonical xvalue binary64
-     * payload. Foreign C float keeps its separate nominal identity path. */
+     * payload. Native C scalars keep their exact nominal identity path. */
     case XL6_IR_C_ABI_F32:
     case XL6_IR_C_ABI_F64: runtimeOp = XL6_IR_RUNTIME_XVALUE_F64; break;
     case XL6_IR_C_ABI_C_FLOAT:
     case XL6_IR_C_ABI_C_DOUBLE:
+    case XL6_IR_C_ABI_C_CHAR: case XL6_IR_C_ABI_C_SCHAR: case XL6_IR_C_ABI_C_UCHAR:
+    case XL6_IR_C_ABI_C_SHORT: case XL6_IR_C_ABI_C_USHORT:
+    case XL6_IR_C_ABI_C_INT: case XL6_IR_C_ABI_C_UINT:
+    case XL6_IR_C_ABI_C_LONG: case XL6_IR_C_ABI_C_ULONG:
+    case XL6_IR_C_ABI_C_LONGLONG: case XL6_IR_C_ABI_C_ULONGLONG:
+    case XL6_IR_C_ABI_C_SIZE: case XL6_IR_C_ABI_C_SSIZE: case XL6_IR_C_ABI_C_PTRDIFF:
+    case XL6_IR_C_ABI_C_INTPTR: case XL6_IR_C_ABI_C_UINTPTR:
+    case XL6_IR_C_ABI_C_BOOL: case XL6_IR_C_ABI_C_WCHAR: case XL6_IR_C_ABI_TYPE_ID:
         if ( sourceType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              sourceType->typeValueId == 0 ) {
             xl6IrLowerDiag(ctx, origin,
-                "XLIR foreign floating dynamic boxing has no exact value and runtime identity ABI");
+                "XLIR native scalar dynamic boxing has no exact value and runtime identity ABI");
             return XL6_IR_VALUE_INVALID;
         }
-        runtimeOp = XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT;
+        runtimeOp = XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR;
         break;
     case XL6_IR_C_ABI_TIME_I64: runtimeOp = XL6_IR_RUNTIME_XVALUE_TIME; break;
     case XL6_IR_C_ABI_MANAGED_STRING:
@@ -3916,7 +3932,7 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
         XL6_IrValueId boxed =
             xl6IrLowerEmitRuntimeCallMetadata(ctx, origin, origin, targetType, runtimeOp, NULL,
                 runtimeOp == XL6_IR_RUNTIME_XVALUE_UNION_BOX ? loweredSourceType : XL6_IR_TYPE_INVALID,
-                runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT ? loweredSourceType : XL6_IR_TYPE_INVALID,
+                runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ? loweredSourceType : XL6_IR_TYPE_INVALID,
                 &source, 1);
         if ( boxed != XL6_IR_VALUE_INVALID &&
              (runtimeOp == XL6_IR_RUNTIME_XVALUE_NULLABLE_CLOSURE_BOX ||

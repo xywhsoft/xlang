@@ -213,7 +213,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_extract_f32.c", D(R(SEQUENCE),R(VALUE_ADMISSION)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_array_extract_char.c", D(R(SEQUENCE)),
-        {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY"}}
+        {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY"}},
+    {"src/runtime/xl6_array_extract_trivial.c", D(R(SEQUENCE),R(VALUE_ADMISSION)),
+        {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -442,7 +444,11 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         /* Only operations which physically consume an xrttype descriptor
          * select its immutable resident profile. Raw scalar queue/channel
          * transports and ordinary optional values need no descriptor code. */
-        if ((instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
+        bool trivialExtract=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+            (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP ||
+             instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) &&
+            xl6IrArrayTrivialExtractResult(xl6IrTypeGet(&module->types,instruction->type));
+        if (trivialExtract || (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
              instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) ||
             (instruction->runtimeOp >= XL6_IR_RUNTIME_AVL_TREE_CREATE &&
              instruction->runtimeOp <= XL6_IR_RUNTIME_AVL_TREE_CLONE) ||
@@ -452,8 +458,15 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
             XL6_IrTypeId child=created && created->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1
                 ? created->sequenceLayout.childElementType : XL6_IR_TYPE_INVALID;
-            for (unsigned slot=0;slot<(child ? 3u : 2u);++slot) {
-                XL6_IrTypeId id=slot==2 ? child : slot ? instruction->runtimeResourceKeyType : instruction->payloadType;
+            const XL6_IrType* extracted=trivialExtract ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
+            /* Extraction consumes the result descriptor AND the optional's
+             * base descriptor. Only the result consumes a Value converter. */
+            XL6_IrTypeId base=extracted && extracted->kind==XL6_IR_TYPE_NULLABLE &&
+                extracted->paramCount==1 && extracted->params ? extracted->params[0] : XL6_IR_TYPE_INVALID;
+            for (unsigned slot=0;slot<(trivialExtract ? (base ? 2u : 1u) : child ? 3u : 2u);++slot) {
+                XL6_IrTypeId id=trivialExtract ? instruction->type :
+                    slot==2 ? child : slot ? instruction->runtimeResourceKeyType : instruction->payloadType;
+                if (trivialExtract && slot) id=base;
                 const XL6_IrType* physical=xl6IrTypeGet(&module->types,id);
                 if (!physical) continue;
                 switch (physical->nativeSlotAbi) {
@@ -478,10 +491,10 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 }
                 /* A descriptor and its dynamic projection have separate
                  * dependencies. Stack-only storage never pulls a converter. */
-                bool projection=slot ? instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS :
+                bool projection=trivialExtract ? slot==0 : (slot ? instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS :
                     instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
                     instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
-                    instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO;
+                    instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO);
                 if (!projection) continue;
                 switch (physical->nativeSlotAbi) {
                 case XL6_IR_NATIVE_SLOT_CHAR: REQUIRE(R(CHAR_VALUE)); break;

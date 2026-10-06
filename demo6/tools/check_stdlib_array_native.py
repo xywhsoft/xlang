@@ -120,6 +120,8 @@ def main() -> int:
     files += [root / name for name in ('tools/check_stdlib_array_future.py',
         'test/cases/stdlib_array_future_native_host.c','test/support/array_future_native.c',
         'src/runtime/xl6_array_future_admission.c','test/cases/stdlib_sequence_retired_admission_abi.c')]
+    files += [root / name for name in ('tools/check_stdlib_array_trivial_extract.py',
+        'test/cases/stdlib_array_extract_trivial_host.c','src/runtime/xl6_array_extract_trivial.c')]
     for directory in ("src/runtime", "src/api", "release/include"):
         files += sorted((root / directory).rglob("*.h"))
     inputs = [{"Path": str(p.resolve()), "Sha256": digest(p)} for p in sorted(set(files))]
@@ -367,6 +369,15 @@ def main() -> int:
             raise RuntimeError("Incomplete checked native/wire Array extraction evidence")
         report["CheckedExtractionReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
             "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
+        child=out / "trivial-extraction"
+        command=[sys.executable,"tools/check_stdlib_array_trivial_extract.py","--out",str(child)]
+        if args.sanitize: command += ["--sanitize"]
+        run(child.name,command,timeout=900)
+        evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=50 or sum(row["CompletePrefixes"] for row in evidence["Sweeps"])!=600:
+            raise RuntimeError("Incomplete closed trivial Array extraction evidence")
+        report["TrivialExtractionReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
+            "ClosedPrefixes":600,"Complete":True,"InputsUnchanged":True}
         child = out / "admission-c-scalar"
         command = [sys.executable, "tools/check_stdlib_array_c_scalar.py", "--out", str(child)]
         if args.sanitize:

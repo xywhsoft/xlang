@@ -38,6 +38,7 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_array_extract.xl test/cases/stdlib_array_extract_continuation.xl
     printf '%s\0' test/cases/stdlib_array_extract_scalar_only.xl test/cases/stdlib_array_extract_string_only.xl test/cases/stdlib_array_extract_value_only.xl
     printf '%s\0' test/cases/stdlib_array_extract_char_only.xl test/cases/stdlib_array_extract_f32_only.xl test/cases/stdlib_collection_extract_only.xl
+    printf '%s\0' test/cases/stdlib_array_extract_trivial.xl test/cases/stdlib_array_extract_trivial_only.xl test/cases/stdlib_array_extract_nullable_char_only.xl test/cases/stdlib_array_extract_unreachable_c_scalar_only.xl tools/check_stdlib_array_trivial_extract.py test/cases/stdlib_array_extract_trivial_host.c
     printf '%s\0' tools/check_stdlib_array_import.py test/cases/stdlib_array_import_native_host.c test/cases/stdlib_array_import_header.c test/cases/stdlib_array_primitive_import_native_host.c test/support/array_import_native.c
     printf '%s\0' tools/check_stdlib_sequence_recipe_emit.py test/cases/xlir_sequence_recipe_emit_contract.c test/cases/stdlib_sequence_recipe_emit_host.c
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
@@ -253,6 +254,7 @@ if ! run array-native-defaults "$PY" tools/check_stdlib_array_methods.py --defau
 if ! run array-defaults-language "$PY" tools/check_stdlib_array_methods_language.py --defaults --out "$OUT/array-defaults-language" --sanitize; then failures+=(array-defaults-language); fi
 if ! run array-checked-extraction "$PY" tools/check_stdlib_array_methods.py --extract --out "$OUT/array-checked-extraction" --sanitize; then failures+=(array-checked-extraction); fi
 if ! run array-extraction-language "$PY" tools/check_stdlib_array_methods_language.py --extract --out "$OUT/array-extraction-language" --sanitize; then failures+=(array-extraction-language); fi
+if ! run array-trivial-extraction "$PY" tools/check_stdlib_array_trivial_extract.py --out "$OUT/array-trivial-extraction" --sanitize; then failures+=(array-trivial-extraction); fi
 if ! run array-methods-language "$PY" tools/check_stdlib_array_methods_language.py --out "$OUT/array-methods-language" --sanitize; then failures+=(array-methods-language); fi
 if ! run array-admitted-import "$PY" tools/check_stdlib_array_import.py --out "$OUT/array-admitted-import" --sanitize; then failures+=(array-admitted-import); fi
 if ! run array-codec-import "$PY" tools/check_stdlib_array_primitive_admission.py --imports --out "$OUT/array-codec-import" --sanitize; then failures+=(array-codec-import); fi

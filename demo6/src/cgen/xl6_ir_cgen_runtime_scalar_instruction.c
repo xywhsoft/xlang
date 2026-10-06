@@ -503,23 +503,20 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT ) {
+                            XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ) {
                     const XL6_IrInstruction* source = xl6IrCgenValueDefinition(
                         module, module->operands[instruction->firstOperand], NULL);
                     const XL6_IrType* sourceType = source != NULL
                         ? xl6IrTypeGet(&module->types, source->type) : NULL;
                     if ( sourceType == NULL ||
-                         !xl6IrCgenRuntimeForeignFloatBoxAbi(module, instruction) )
+                         !xl6IrCgenRuntimeForeignScalarBoxAbi(module, instruction) )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
-                            "XLIR C emitter foreign floating box ABI is unresolved");
+                              "XLIR C emitter native scalar box ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xrtValueFloat((double)v%u);\n"
-                        "    if (v%u != NULL) v%u = xlir_xvalue_type_bind(v%u, 0x%016llXULL);\n",
+                        "    v%u = xl6ValueBoxNativeScalarV1(&v%u, %u, 0x%016llXULL);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
-                        (unsigned int)instruction->result,
-                        (unsigned int)instruction->result,
-                        (unsigned int)instruction->result,
+                        (unsigned)xl6IrNativeScalarProfileForCAbi(sourceType->cAbi),
                         (unsigned long long)xl6IrTypeGet(&module->types, instruction->runtimeIdentityType)->typeValueId);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_ERROR_REF ) {

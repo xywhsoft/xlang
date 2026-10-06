@@ -5,6 +5,11 @@ static int xl6IrCgenEmitXValueOperationRuntime(
     size_t i;
     size_t parameter;
     if ( needs->needsXValueRuntime || module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
+        /* Direct scalar boxing and callable bridges share this resident ABI.
+         * Declaration selection must not depend on an unrelated call bridge. */
+        if (needs->needsCallableNativeScalarCodec)
+            xl6OutputPuts("extern bool xl6ValueReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, void*);\n"
+                "extern xvalue* xl6ValueBoxNativeScalarV1(const void*, unsigned int, uint64_t);\n", out);
         if ( needs->needsXValueTaggedNullableRuntime &&
              !xl6IrCgenEmitTaggedNullableXValueRuntime(out, module, diags) ) return 0;
         if ( needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ) {
@@ -274,9 +279,6 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
             if (needs->needsCallableF32Reader)
                 xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n", out);
-            if (needs->needsCallableNativeScalarCodec)
-                xl6OutputPuts("extern bool xl6ValueReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, void*);\n"
-                    "extern xvalue* xl6ValueBoxNativeScalarV1(const void*, unsigned int, uint64_t);\n", out);
             if (needs->needsCallableIntegerCodec)
                 xl6OutputPuts("extern bool xl6ValueIntegerSlotAdmitsV1(const void*, unsigned int);\n"
                     "extern bool xl6ValueReadIntegerV1(const xvalue*, unsigned int, uint64_t, bool, void*);\n"
