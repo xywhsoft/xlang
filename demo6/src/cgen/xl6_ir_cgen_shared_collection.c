@@ -7,6 +7,7 @@ static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
     case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64: return "xl6ArrayReadU64V1";
     case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL: return "xl6ArrayReadBoolV1";
     case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64: return "xl6ArrayReadF64V1";
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY: return "xl6ArrayReadStringV1";
     default: return NULL;
     }
 }
@@ -20,7 +21,8 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     if ( !read && !xl6IrCollectionMemberRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !(read ? xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction)
                 : xl6IrCollectionMemberRuntimeInstructionCompatible(module, instruction)) ) return -1;
-    if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp)) {
+    if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY) {
         const XL6_IrType* receiver = xl6IrArrayScalarReadReceiverType(module, instruction);
         const XL6_IrType* result = xl6IrTypeGet(&module->types, instruction->type);
         xl6OutputPrintf(out, "    v%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, v%u);\n",

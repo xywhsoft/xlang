@@ -524,7 +524,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
         break;
     case XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW:
         xl6OutputPrintf(out,
-            "    v%u = xrtValueArrayAppendNew(v%u, v%u);\n",
+            "    v%u = xl6ArrayValueAppendTakeV1(v%u, v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             (unsigned int)module->operands[instruction->firstOperand + 1]);

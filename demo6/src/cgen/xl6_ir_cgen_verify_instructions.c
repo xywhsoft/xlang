@@ -303,8 +303,7 @@ static int xl6IrCgenVerifyInstructions(
                  (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
                   !xl6IrArrayScalarReadRuntimeInstructionCompatible(module, instruction)) ||
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY &&
-                  (instruction->immediateText != NULL || instruction->operandCount != 2 ||
-                   xl6IrCgenType(module, instruction->type) == NULL)) ||
+                  !xl6IrArrayStringReadRuntimeInstructionCompatible(module,instruction)) ||
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW &&
                   (instruction->immediateText != NULL || instruction->operandCount != 2 ||
                    xl6IrCgenType(module, instruction->type) == NULL)) ||

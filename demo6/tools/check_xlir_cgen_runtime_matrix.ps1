@@ -42,6 +42,8 @@ $fixtures = @(
     @{ Name = "safe typed/dynamic collection count ABI"; Source = "test\cases\cgen_safe_member.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "checked scalar Array reads and loop cleanup ABI"; Source = "test\cases\stdlib_array_scalar_read.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "checked scalar Array continuation reads ABI"; Source = "test\cases\stdlib_array_scalar_read_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "resident owned string and consuming Array/index boundaries"; Source = "test\cases\stdlib_array_value_boundaries.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "resident Array boundaries in continuations"; Source = "test\cases\stdlib_array_value_boundaries_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "safe nullable declared-class field ABI"; Source = "test\cases\nullable_safe_navigation.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "typed dict literal-key projection and safe-index ABI"; Source = "test\cases\xlir_typed_dict_literal_index_abi.xl"; Host = "test\cases\xlir_generated_module_host.c"; Support = "test\cases\cgen_class_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "xvalue dynamic-key borrowed index ABI"; Source = "test\cases\xlir_xvalue_dynamic_key_index.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },

@@ -5690,6 +5690,9 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
                                            floatOp, operands, 2);
       if ( resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING && receiverType->paramCount == 1 &&
          receiverType->params != NULL && receiverType->params[0] == node->storageType ) {
+        if (receiverType->collectionAbi==XL6_IR_COLLECTION_ARRAY)
+            return xl6IrLowerEmitRuntimeCall(ctx,origin,node->storageType,
+                XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY,operands,2);
         /* An owned element copy can fail even when the index and item type are
          * valid. Reuse the checked physical projection and its explicit error
          * edge; never hide allocation failure inside an aborting access helper. */

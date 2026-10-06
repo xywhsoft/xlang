@@ -347,7 +347,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY ) {
-            needs->needsXValueArrayReadRuntime = 1;
             needs->needsXValueArrayStringReadRuntime = 1;
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;

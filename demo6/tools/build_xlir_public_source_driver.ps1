@@ -39,6 +39,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_rng_shuffle.c','src/runtime/xl6_array_rand_shuffle.c',
     'src/runtime/xl6_collection_count.c',
     'src/runtime/xl6_array_scalar_read.c',
+    'src/runtime/xl6_array_string_read.c',
     'src/runtime/xl6_future_aggregate.c','src/runtime/xl6_future_aggregate_array.c',
     'src/runtime/xl6_future_metadata.c',
     'src/runtime/xl6_nullable_native_i8.c',
