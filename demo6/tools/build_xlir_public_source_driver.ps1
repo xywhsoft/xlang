@@ -67,6 +67,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c',
     'src/runtime/xl6_error_value.c','src/runtime/xl6_value_text.c',
     'src/runtime/xl6_print_values.c',
+    'src/runtime/xl6_class_text.c',
     'src/runtime/xl6_nullable_bool.c','src/runtime/xl6_nullable_i64.c','src/runtime/xl6_nullable_u64.c',
     'src/runtime/xl6_nullable_f32.c','src/runtime/xl6_nullable_f64.c','src/runtime/xl6_nullable_time.c','src/runtime/xl6_nullable_char.c',
     'src/runtime/xl6_nullable_bool_value.c','src/runtime/xl6_nullable_i64_value.c','src/runtime/xl6_nullable_u64_value.c',

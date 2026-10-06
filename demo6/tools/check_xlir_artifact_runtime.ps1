@@ -144,6 +144,25 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-in@('stdlib_class_text','stdlib_class_text_derive_only',
+                    'xlir_string_conversion_abi','cgen_derive_string_hash_equals')){
+                    $selectionMatches='src/runtime/xl6_class_text.c'-in$selectedSources-and
+                        'src/runtime/xl6_value_text.c'-in$selectedSources-and
+                        'src/runtime/xl6_error_value.c'-in$selectedSources-and
+                        'XRT_MODULE_VALUE_CONTAINER'-in$plan.NativeModules-and
+                        'XRT_MODULE_STRING'-in$plan.NativeModules
+                    if($case-eq'stdlib_class_text_derive_only'){
+                        # Script entry diagnostics already require XRT console,
+                        # even for cgen_basic. Class formatting must not select
+                        # a language print/console provider of its own.
+                        $selectionMatches=$selectionMatches-and
+                            'src/runtime/xl6_print_values.c'-notin$selectedSources-and
+                            !@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_console_'}).Count
+                    }
+                }
+                if($case-in@('basic','cgen_basic','stdlib_error_text')){
+                    $selectionMatches='src/runtime/xl6_class_text.c'-notin$selectedSources
+                }
                 if($case-like'stdlib_value_iterator_checked*'){
                     $selectionMatches='src/runtime/xl6_value_iterator.c'-in$selectedSources-and
                         'src/runtime/xl6_array_value_iterator.c'-in$selectedSources-and

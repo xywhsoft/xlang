@@ -1,0 +1,36 @@
+class ExactTextRecord
+    derive string
+    string text = "a\0你"
+    char zero = '\0'
+    char unicode = '你'
+    uint64 large = uint64(18446744073709551615)
+    int hidden @string(skip) = 99
+end
+
+class EmptyTextRecord
+    derive string
+    string hidden @string(skip) = "ignored\0text"
+end
+
+class CustomExactText
+    func __toString__() as string
+        return "custom\0你"
+    end
+end
+
+func exactText(ExactTextRecord item) as string
+    return string(item)
+end
+
+ExactTextRecord record = ExactTextRecord()
+string expected = "ExactTextRecord{text=a\0你, zero=\0, unicode=你, large=18446744073709551615}"
+string text = exactText(record)
+print(text)
+assert text == expected
+assert record.toString() == expected
+assert f"before:{text}:after" == "before:" + expected + ":after"
+assert text.length == expected.length
+assert !string.contains(text, "hidden")
+assert string(EmptyTextRecord()) == "EmptyTextRecord{}"
+assert string(CustomExactText()) == "custom\0你"
+assert record.text == "a\0你"

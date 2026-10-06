@@ -1,0 +1,8 @@
+// Independent core defect found during class text integration: a stored char
+// field formats correctly but its direct typed member projection is unresolved.
+class CharMemberRecord
+    char zero = '\0'
+    char unicode = '你'
+end
+CharMemberRecord record = CharMemberRecord()
+assert record.zero == '\0' and record.unicode == '你'

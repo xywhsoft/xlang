@@ -4146,7 +4146,7 @@ foreach ( $required in @(
     "xvalue-int-map-at-i64-or-null",
     "xvalue-iterator-item-borrow",
     "ownership-only exact-TypeId retain",
-    "explicit VALUE rebinds", "named print tag ABI",
+    "explicit VALUE rebinds", "resident print ABI",
     "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $nullableContainerProjectionGate.Contains($required) ) {
@@ -5468,7 +5468,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrCgenRuntimeTypeIdToStringAbi",
     "xl6IrCgenRuntimeClassDerivedStringAbi",
-    "xlir_type_id_to_string", "xlir_class_derive_to_string_t",
+    "xlir_type_id_to_string", "xl6ClassValueTextV1", "xlir_class_string_schema_t",
     "stringDeriveIncluded", "xrtValueObjectGet"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {

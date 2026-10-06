@@ -232,6 +232,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_error_value.c"
     "$ROOT/src/runtime/xl6_value_text.c"
     "$ROOT/src/runtime/xl6_print_values.c"
+    "$ROOT/src/runtime/xl6_class_text.c"
     "$ROOT/src/runtime/xl6_nominal_admission.c"
     "$ROOT/src/runtime/xl6_char_type.c"
     "$ROOT/src/runtime/xl6_char_value.c"

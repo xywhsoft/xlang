@@ -639,12 +639,7 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             else if ( module->instructions[i].runtimeOp ==
                       XL6_IR_RUNTIME_CLASS_DERIVED_TO_STRING ) {
                 needs->needsClassDerivedToStringRuntime = 1;
-                needs->needsXValueToStringRuntime = 1;
                 needs->needsXValueRuntime = 1;
-                needs->needsXValueObjectRuntime = 1;
-                needs->needsXValueObjectLiteralI64Runtime = 1;
-                needs->needsStringViewOperations = 1;
-                needs->needsRuntimeTrap = 1;
             }
             else {
                 needs->needsXValueToStringRuntime = 1;
