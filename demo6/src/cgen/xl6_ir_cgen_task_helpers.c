@@ -59,7 +59,7 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
         xl6OutputPrintf(out,
-            "    return xlir_xvalue_error_ref(*(xerror* const*)payload, 0x%016llXULL);\n",
+            "    return xl6ErrorValueRefV1(*(xerror* const*)payload, 0x%016llXULL);\n",
             (unsigned long long)xl6IrTypeGet(
                 &module->types, instruction->payloadType)->typeValueId);
         break;

@@ -2,7 +2,7 @@
 #include "../../build/test/xlir_callable_byval.h.bind.h"
 int bridge_init(void) { return xlir_module_init(); }
 void bridge_fini(void) { xlir_module_fini(); }
-xvalue* bridge_error_value(xerror* error) { return xlir_xvalue_error_ref(error, BRIDGE_ERROR_TYPE); }
+xvalue* bridge_error_value(xerror* error) { return xl6ErrorValueRefV1(error, BRIDGE_ERROR_TYPE); }
 bool bridge_forward(int kind, xvalue** arguments, size_t count, int64_t* result)
 {
     xrtcallframe frame = {0}; xrtcallresult results = {0}; bool ok;

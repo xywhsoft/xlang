@@ -78,9 +78,8 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR extended dynamic-boxing Cgen failed" }
 $generated = [System.IO.File]::ReadAllText(
     $generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static xvalue* xlir_xvalue_error_ref(const xerror* error, uint64_t typeId)",
-    "xlir_error_value_handle_clone",
-    "xrtErrorRef(error)",
+    "extern xvalue* xl6ErrorValueRefV1(const xerror*, uint64_t)",
+    " = xl6ErrorValueRefV1(",
     "xlir_xvalue_object_get_literal_f64"
 ) ) {
     if ( ! $generated.Contains($required) ) {

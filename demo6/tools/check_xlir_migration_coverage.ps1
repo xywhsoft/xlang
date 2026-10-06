@@ -1117,7 +1117,7 @@ foreach ( $required in @(
     "canonical TypeValueId binding", "xrtErrorRef(a0)",
     "xl6TaskRuntimeV2Get()->Cleanup", "xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR)",
     "byte-for-byte deterministic",
-    "xlir_xvalue_error_ref", "xvalue-project-error-ref",
+    "xl6ErrorValueRefV1", "xvalue-project-error-ref",
     "-Werror", "repeated-await runtime", "source re-await ABI"
 ) ) {
     if ( ! $asyncErrorAbiGateText.Contains($required) ) {

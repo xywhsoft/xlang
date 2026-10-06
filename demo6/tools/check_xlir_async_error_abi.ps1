@@ -269,15 +269,13 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $allC = [System.IO.File]::ReadAllText(
     $allGeneratedC, [System.Text.Encoding]::UTF8)
-$allBox = "return xlir_xvalue_error_ref(*(xerror* const*)payload, $($allPayload.typeValueId)ULL);"
+$allBox = "return xl6ErrorValueRefV1(*(xerror* const*)payload, $($allPayload.typeValueId)ULL);"
 foreach ( $required in @(
     "static xvalue* xlir_future_payload_box_t",
     $allBox,
-    "static bool xlir_error_value_handle_clone(void* handle, void** clone, void* user)",
-    "static void xlir_error_value_handle_drop(void* handle, void* user)",
-    "static xvalue* xlir_xvalue_error_ref(const xerror* error, uint64_t typeId)",
+    "extern xvalue* xl6ErrorValueRefV1(const xerror*, uint64_t)",
     "static xerror* xlir_xvalue_project_error_ref(const xvalue* value, uint64_t typeId)",
-    "if (xrtValueType(value) == 0) return NULL;",
+    "if (!xl6ErrorValueReadRefV1(value, typeId, &result)) abort();",
     "xl6FutureAggregateAllV2(",
     "xerror* const* payload = (xerror* const*)(xrtFutureValue("
 ) ) {

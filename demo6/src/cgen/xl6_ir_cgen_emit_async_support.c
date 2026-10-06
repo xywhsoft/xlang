@@ -103,17 +103,17 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     if ( needs->needsBoolToStringRuntime || needs->needsI64ToStringRuntime || needs->needsU64ToStringRuntime ||
          needs->needsF64ToStringRuntime || needs->needsXValueToStringRuntime ) {
         xl6OutputPuts("extern char* xrtStrDupN(const char*, size_t);\n", out);
-        if ( needs->needsI64ToStringRuntime || needs->needsXValueToStringRuntime )
+        if ( needs->needsI64ToStringRuntime )
             xl6OutputPuts("extern bool xrtIntFormatTo(int64_t, xlir_string_view, char*, size_t, size_t*);\n", out);
         if ( needs->needsU64ToStringRuntime )
             xl6OutputPuts("extern bool xrtUIntFormatTo(uint64_t, xlir_string_view, char*, size_t, size_t*);\n", out);
-        if ( needs->needsF64ToStringRuntime || needs->needsXValueToStringRuntime )
+        if ( needs->needsF64ToStringRuntime )
             xl6OutputPuts("extern bool xrtNumFormatTo(double, xlir_string_view, char*, size_t, size_t*);\n", out);
-        if ( needs->needsBoolToStringRuntime || needs->needsXValueToStringRuntime )
+        if ( needs->needsBoolToStringRuntime )
             xl6OutputPuts(
                 "static char* xlir_bool_to_string(bool value)\n"
                 "{ return xrtStrDup(value ? \"true\" : \"false\"); }\n", out);
-        if ( needs->needsI64ToStringRuntime || needs->needsXValueToStringRuntime )
+        if ( needs->needsI64ToStringRuntime )
             xl6OutputPuts(
                 "static char* xlir_i64_to_string(int64_t value)\n"
                 "{ char buffer[64]; size_t size = 0;\n"
@@ -125,7 +125,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "{ char buffer[64]; size_t size = 0;\n"
                 "  if (!xrtUIntFormatTo(value, (xlir_string_view){\"\", 0}, buffer, sizeof(buffer), &size)) return xrtStrDup(\"\");\n"
                 "  return xrtStrDupN(buffer, size); }\n", out);
-        if ( needs->needsF64ToStringRuntime || needs->needsXValueToStringRuntime )
+        if ( needs->needsF64ToStringRuntime )
             xl6OutputPuts(
                 "static char* xlir_f64_to_string(double value)\n"
                 "{ char buffer[128]; size_t size = 0;\n"
@@ -133,36 +133,11 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "  return xrtStrDupN(buffer, size); }\n", out);
         if ( needs->needsXValueToStringRuntime )
             xl6OutputPuts(
-                "#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
-                "extern bool xrtValueGetBool(const xvalue*, bool*);\n"
-                "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
-                "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
-                "extern bool xrtValueGetFloat(const xvalue*, double*);\n"
-                "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
-                "extern char* xrtXlonStringify(const xvalue*, bool, size_t*);\n"
+                "extern xlir_string xl6ValueTextV1(const xvalue*);\n", out);
+        if ( needs->needsClassDerivedToStringRuntime )
+            xl6OutputPuts(
                 "static char* xlir_xvalue_to_string(const xvalue* value)\n"
-                "{\n"
-                "    bool boolean = false; int64_t integer = 0; uint64_t unsignedInteger = 0; double number = 0.0;\n"
-                "    xlir_string_view text = {0}; size_t size = 0;\n"
-                "    switch (value != NULL ? xrtValueType(value) : 0) {\n"
-                "    case 0: return xrtStrDup(\"null\");\n"
-                "    case 1: return xrtValueGetBool(value, &boolean) ? xlir_bool_to_string(boolean) : xrtStrDup(\"\");\n"
-                "    case 2: return xrtValueGetInt(value, &integer) ? xlir_i64_to_string(integer) : xrtStrDup(\"\");\n"
-                "    case 13: return xrtValueGetUInt(value, &unsignedInteger) ? xlir_u64_to_string(unsignedInteger) : xrtStrDup(\"\");\n"
-                "    case 3: return xrtValueGetFloat(value, &number) ? xlir_f64_to_string(number) : xrtStrDup(\"\");\n"
-                "    case 4: return xrtValueGetString(value, &text) ? xrtStrDupN(text.Data, text.Size) : xrtStrDup(\"\");\n"
-                "    default: return xrtXlonStringify(value, false, &size);\n"
-                "    }\n"
-                "}\n"
-                "static xlir_string xlir_xvalue_to_string_value(const xvalue* value)\n"
-                "{\n"
-                "    xlir_string_view text = {0};\n"
-                "    if (value != NULL && xrtValueType(value) == 4) {\n"
-                "        if (!xrtValueGetString(value, &text)) return (xlir_string){0};\n"
-                "        return xlir_string_from_utf8(text.Data, text.Size);\n"
-                "    }\n"
-                "    return xlir_string_take_cstr(xlir_xvalue_to_string(value));\n"
-                "}\n", out);
+                "{ return (char*)xl6ValueTextV1(value).Data; }\n", out);
         xl6OutputPuts("\n", out);
     }
     if ( needs->needsTypeIdToStringRuntime ) {
@@ -535,87 +510,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             out);
     }
     if ( needs->needsPrintRuntime ) {
-        /* The xvalue tag ABI is public and stable, but generated C must not
-         * repeat its numeric layout as magic literals.  Snapshot the values
-         * from the XRT headers used to build this compiler and give every
-         * emitted branch a named ABI constant. */
-        xl6OutputPrintf(out,
-            "enum xlir_xvalue_tag_abi { XLIR_XVALUE_NULL = %d, XLIR_XVALUE_BOOL = %d, "
-            "XLIR_XVALUE_INT = %d, XLIR_XVALUE_FLOAT = %d, XLIR_XVALUE_STRING = %d, "
-            "XLIR_XVALUE_POINTER = %d, XLIR_XVALUE_ARRAY = %d, XLIR_XVALUE_UINT = %d };\n",
-            (int)XVALUE_NULL, (int)XVALUE_BOOL, (int)XVALUE_INT,
-            (int)XVALUE_FLOAT, (int)XVALUE_STRING, (int)XVALUE_POINTER,
-            (int)XVALUE_ARRAY, (int)XVALUE_UINT);
-        xl6OutputPuts(
-            "#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
-            "extern bool xrtValueGetBool(const xvalue*, bool*);\n"
-            "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
-            "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
-            "extern bool xrtValueGetFloat(const xvalue*, double*);\n"
-            "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
-            "extern bool xrtValueGetPointer(const xvalue*, void**);\n"
-            "extern xvalue* xrtValueArrayAt(const xvalue*, int64_t);\n"
-            "extern bool xrtIntFormatTo(int64_t, xlir_string_view, char*, size_t, size_t*);\n"
-            "extern bool xrtUIntFormatTo(uint64_t, xlir_string_view, char*, size_t, size_t*);\n"
-            "extern bool xrtNumFormatTo(double, xlir_string_view, char*, size_t, size_t*);\n"
-            "extern char* xrtXlonStringify(const xvalue*, bool, size_t*);\n"
-            "static bool xlir_print_append(xstrbuf* output, const char* text, size_t size)\n"
-            "{ return size == 0 || (text != NULL && xrtStrBufAppend(output, xrtStrViewN(text, size))); }\n"
-            "static bool xlir_print_one(xstrbuf* output, const xvalue* value)\n"
-            "{\n"
-            "    char buffer[128]; size_t size = 0; xlir_string_view text = {0}; bool boolean = false;\n"
-            "    int64_t integer = 0; uint64_t unsignedInteger = 0; double number = 0.0; void* pointer = NULL;\n"
-            "    char* serialized = NULL; bool appended = false; int written = 0;\n"
-            "    switch (value != NULL ? xrtValueType(value) : XLIR_XVALUE_NULL) {\n"
-            "    case XLIR_XVALUE_NULL: return xlir_print_append(output, \"null\", 4);\n"
-            "    case XLIR_XVALUE_BOOL:\n"
-            "        return xrtValueGetBool(value, &boolean) &&\n"
-            "            xlir_print_append(output, boolean ? \"true\" : \"false\", boolean ? 4 : 5);\n"
-            "    case XLIR_XVALUE_INT:\n"
-            "        return xrtValueGetInt(value, &integer) &&\n"
-            "            xrtIntFormatTo(integer, (xlir_string_view){\"\", 0}, buffer, sizeof(buffer), &size) &&\n"
-            "            xlir_print_append(output, buffer, size);\n"
-            "    case XLIR_XVALUE_UINT:\n"
-            "        return xrtValueGetUInt(value, &unsignedInteger) &&\n"
-            "            xrtUIntFormatTo(unsignedInteger, (xlir_string_view){\"\", 0}, buffer, sizeof(buffer), &size) &&\n"
-            "            xlir_print_append(output, buffer, size);\n"
-            "    case XLIR_XVALUE_FLOAT:\n"
-            "        return xrtValueGetFloat(value, &number) &&\n"
-            "            xrtNumFormatTo(number, (xlir_string_view){\"\", 0}, buffer, sizeof(buffer), &size) &&\n"
-            "            xlir_print_append(output, buffer, size);\n"
-            "    case XLIR_XVALUE_STRING:\n"
-            "        return xrtValueGetString(value, &text) && xlir_print_append(output, text.Data, text.Size);\n"
-            "    case XLIR_XVALUE_POINTER:\n"
-            "        if (!xrtValueGetPointer(value, &pointer)) return false;\n"
-            "        written = snprintf(buffer, sizeof(buffer), \"%p\", pointer);\n"
-            "        return written >= 0 && (size_t)written < sizeof(buffer) &&\n"
-            "            xlir_print_append(output, buffer, (size_t)written);\n"
-            "    default:\n"
-            "        serialized = xrtXlonStringify(value, false, &size);\n"
-            "        if (serialized == NULL) return false;\n"
-            "        appended = xlir_print_append(output, serialized, size);\n"
-            "        xrtFree(serialized);\n"
-            "        return appended;\n"
-            "    }\n"
-            "}\n"
-            "bool xl6_xrt_print(xvalue* values, bool newline)\n"
-            "{\n"
-            "    xstrbuf output; size_t count = 0; size_t i = 0; bool ready = true;\n"
-            "    xrtStrBufInit(&output);\n"
-            "    if (values != NULL && (int)xrtValueType(values) == (int)XLIR_XVALUE_ARRAY) {\n"
-            "        count = xrtValueCount(values);\n"
-            "        for (i = 0; ready && i < count; ++i) {\n"
-            "            if (i != 0) ready = xlir_print_append(&output, \" \", 1);\n"
-            "            if (ready) ready = xlir_print_one(&output, xrtValueArrayAt(values, (int64_t)i));\n"
-            "        }\n"
-            "    } else ready = xlir_print_one(&output, values);\n"
-            "    if (ready) {\n"
-            "        if (newline) ready = xrtConsoleWriteLine(XCONSOLE_STDOUT, xrtStrBufView(&output));\n"
-            "        else ready = xrtConsoleWrite(XCONSOLE_STDOUT, xrtStrBufView(&output));\n"
-            "    }\n"
-            "    xrtStrBufFree(&output);\n"
-            "    return ready;\n"
-            "}\n\n", out);
+        xl6OutputPuts("extern bool xl6_xrt_print(xvalue*, bool);\n", out);
     }
     if ( needs->needsLanguageFunctionRuntime ) {
         xl6OutputPuts(

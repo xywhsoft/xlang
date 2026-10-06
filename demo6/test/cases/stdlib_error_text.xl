@@ -1,0 +1,24 @@
+func checkErrorText() as bool
+    try
+        int invalid = int("abc")
+        return false
+    catch ValueError e
+        var dynamic = e
+        assert string(dynamic) == e.message, "dynamic error uses the same resident text contract"
+        assert f"caught={dynamic}" == "caught=" + e.message, "interpolated error preserves text"
+        print(e)
+        print(dynamic)
+    end
+    var nulText = "a\0你"
+    assert string(nulText) == "a\0你", "dynamic string preserves embedded NUL and UTF-8"
+    print(nulText)
+    var nulChar = '\0'
+    assert string(nulChar) == "\0", "dynamic char preserves U+0000"
+    var scalar = '你'
+    assert string(scalar) == "你", "dynamic char converts without XLON quotes"
+    var largest = uint64(18446744073709551615)
+    assert string(largest) == "18446744073709551615", "dynamic uint64 is not narrowed"
+    print(nulChar, scalar, largest)
+    return true
+end
+assert checkErrorText(), "error text regression"

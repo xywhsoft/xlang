@@ -14,6 +14,7 @@
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_native_handle.h"
+#include "src/runtime/xl6_error_value.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
@@ -2664,6 +2665,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     if ((adapter = xl6FutureAggregateOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtCancelOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtErrorOwnershipAdapterV1(ref)) != NULL) return adapter;
+    if ((adapter = xl6ErrorValueOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtNetAddrListOwnershipAdapterV1(ref)) != NULL) return adapter;
     {
         const XL6_NativeHandlePolicyV1* policies[] = {

@@ -640,7 +640,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                       XL6_IR_RUNTIME_CLASS_DERIVED_TO_STRING ) {
                 needs->needsClassDerivedToStringRuntime = 1;
                 needs->needsXValueToStringRuntime = 1;
-                needs->needsU64ToStringRuntime = 1;
                 needs->needsXValueRuntime = 1;
                 needs->needsXValueObjectRuntime = 1;
                 needs->needsXValueObjectLiteralI64Runtime = 1;
@@ -649,7 +648,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             }
             else {
                 needs->needsXValueToStringRuntime = 1;
-                needs->needsU64ToStringRuntime = 1;
                 needs->needsXValueRuntime = 1;
             }
         }
