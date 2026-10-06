@@ -1,0 +1,2 @@
+array<int> values = [1]
+assert(values.pop() == 1 and values.length == 0)

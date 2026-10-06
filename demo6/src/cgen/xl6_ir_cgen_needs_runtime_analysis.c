@@ -262,55 +262,12 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 xl6IrCgenArrayMethodSymbol(typedCollectionOp))
                 needs->needsXValueArrayMethodsRuntime = 1;
             else needs->needsXValueTypedCollectionBaseRuntime = 1;
-            if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_RESIZE ) {
+            if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_RESIZE )
                 needs->needsXValueTypedArrayResizeRuntime = 1;
-            } else if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_TAKE ) {
-                needs->needsXValueTypedCollectionTakeRuntime = 1;
-                needs->needsStringViews = 1;
-            }
-            if ( resultType != NULL &&
-                 (typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP ||
-                  typedCollectionOp == XL6_IR_TYPED_COLLECTION_TAKE) ) {
-                switch ( resultType->cAbi ) {
-                case XL6_IR_C_ABI_BOOL:
-                    if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP )
-                        needs->needsXValueTypedArrayPopBoolRuntime = 1;
-                    else
-                        needs->needsXValueTypedCollectionTakeBoolRuntime = 1;
-                    break;
-                case XL6_IR_C_ABI_I64:
-                    if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP )
-                        needs->needsXValueTypedArrayPopI64Runtime = 1;
-                    else
-                        needs->needsXValueTypedCollectionTakeI64Runtime = 1;
-                    break;
-                case XL6_IR_C_ABI_U64:
-                    if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP )
-                        needs->needsXValueTypedArrayPopU64Runtime = 1;
-                    else
-                        needs->needsXValueTypedCollectionTakeU64Runtime = 1;
-                    break;
-                case XL6_IR_C_ABI_F64:
-                    if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP )
-                        needs->needsXValueTypedArrayPopF64Runtime = 1;
-                    else
-                        needs->needsXValueTypedCollectionTakeF64Runtime = 1;
-                    break;
-                case XL6_IR_C_ABI_MANAGED_STRING:
-                    if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP )
-                        needs->needsXValueTypedArrayPopStringRuntime = 1;
-                    else
-                        needs->needsXValueTypedCollectionTakeStringRuntime = 1;
-                    needs->needsStringRuntime = 1;
-                    needs->needsStringViews = 1;
-                    break;
-                case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
-                    if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP )
-                        needs->needsXValueTypedArrayPopXValueRuntime = 1;
-                    else
-                        needs->needsXValueTypedCollectionTakeXValueRuntime = 1;
-                    break;
-                default: break;
+            if (typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) {
+                needs->needsArrayExtractRuntime=1;
+                if (resultType && resultType->cAbi==XL6_IR_C_ABI_MANAGED_STRING) {
+                    needs->needsStringRuntime=1; needs->needsStringViews=1;
                 }
             }
         }

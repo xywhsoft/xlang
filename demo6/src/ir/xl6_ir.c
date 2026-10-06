@@ -593,6 +593,8 @@ XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, c
 XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp operation)
 {
     switch (operation) {
+    case XL6_IR_TYPED_COLLECTION_POP:
+    case XL6_IR_TYPED_COLLECTION_TAKE:
     case XL6_IR_TYPED_COLLECTION_CLEAR:
     case XL6_IR_TYPED_COLLECTION_CAPACITY:
     case XL6_IR_TYPED_COLLECTION_RESERVE:
@@ -11903,8 +11905,12 @@ static int xl6IrTypedCollectionElementResultSupported(const XL6_IrType* type)
         (type->cAbi == XL6_IR_C_ABI_BOOL ||
          type->cAbi == XL6_IR_C_ABI_I64 ||
          type->cAbi == XL6_IR_C_ABI_U64 ||
+         type->cAbi == XL6_IR_C_ABI_F32 ||
          type->cAbi == XL6_IR_C_ABI_F64 ||
+         type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
+         type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
          type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+         type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
          type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR);
 }
 

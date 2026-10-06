@@ -1,0 +1,2 @@
+array<float32> values = [float32(1.25)]
+assert(values.pop() == float32(1.25) and values.length == 0)

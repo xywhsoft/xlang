@@ -542,6 +542,12 @@ static int xl6IrOwnerAbsentOnFailure(
         /* Checked casts/constructors leave an empty output on failure even
          * where the older physical observer still uses the error slot. */
         switch (producer->runtimeOp) {
+        case XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD:
+            /* Checked extraction destroys a prepared result if commit or
+             * cleanup fails. A successful nullable null is distinct: this
+             * rule applies only to the explicit failure CFG edge. */
+            return producer->typedCollectionOp == XL6_IR_TYPED_COLLECTION_POP ||
+                producer->typedCollectionOp == XL6_IR_TYPED_COLLECTION_TAKE;
         case XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED:
         case XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED:
         case XL6_IR_RUNTIME_XVALUE_CAST_CHECKED:

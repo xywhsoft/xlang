@@ -14084,6 +14084,20 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
             return NULL;
         }
         if ( expr->children[0]->kind == XL6_AST_MEMBER ) {
+            /* Extraction from a statically typed Array returns its complete
+             * element type, including nullable/bytes/nested identities. A
+             * type-name fallback would silently erase these results to var. */
+            if ( callee->childCount > 0 &&
+                 (xl6TextEquals(callee->text, "pop") ||
+                  xl6TextEquals(callee->text, "take")) ) {
+                XL6_AstNode* receiverType = xl6SemInferAutoTypeNode(ctx, callee->children[0]);
+                int typed = 0;
+                XL6_SemContainerKind kind = xl6SemContainerKindFromType(ctx, receiverType, &typed);
+                XL6_AstNode* element = typed && kind == XL6_SEM_CONTAINER_ARRAY
+                    ? xl6SemCloneContainerItemType(ctx, receiverType) : NULL;
+                xl6AstFree(receiverType);
+                if ( element != NULL ) return element;
+            }
             XL6_AstNode* ownedReturnType = NULL;
             XL6_AstNode* memberReturns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
             XL6_AstNode* result = NULL;

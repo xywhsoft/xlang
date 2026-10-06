@@ -25,6 +25,23 @@ static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
     default: return NULL;
     }
 }
+static const char* xl6IrCgenArrayExtractSymbol(const XL6_IrType* result)
+{
+    if (!result) return NULL;
+    switch (result->cAbi) {
+    case XL6_IR_C_ABI_BOOL: return "xl6ArrayExtractBoolV1";
+    case XL6_IR_C_ABI_I64: return "xl6ArrayExtractI64V1";
+    case XL6_IR_C_ABI_U64: return "xl6ArrayExtractU64V1";
+    case XL6_IR_C_ABI_F64: return "xl6ArrayExtractF64V1";
+    case XL6_IR_C_ABI_F32: return "xl6ArrayExtractF32V1";
+    case XL6_IR_C_ABI_TIME_I64: return "xl6ArrayExtractTimeV1";
+    case XL6_IR_C_ABI_CHAR_U32: return "xl6ArrayExtractCharV1";
+    case XL6_IR_C_ABI_MANAGED_STRING: return "xl6ArrayExtractStringV1";
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xl6ArrayExtractValueV1";
+    default: return NULL;
+    }
+}
 static int xl6IrCgenEmitSharedCollectionRuntime(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
@@ -125,74 +142,37 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
         XL6_IrValueId argument1 = instruction->operandCount > 2
             ? module->operands[instruction->firstOperand + 2]
             : XL6_IR_VALUE_INVALID;
-        const char* helper = NULL;
-        if ( typedResult != NULL &&
-             (instruction->typedCollectionOp ==
-                  XL6_IR_TYPED_COLLECTION_POP ||
-              instruction->typedCollectionOp ==
-                  XL6_IR_TYPED_COLLECTION_TAKE) ) {
-            switch ( typedResult->cAbi ) {
-            case XL6_IR_C_ABI_BOOL:
-                helper = instruction->typedCollectionOp ==
-                        XL6_IR_TYPED_COLLECTION_POP
-                    ? "xlir_xvalue_typed_array_pop_bool"
-                    : "xlir_xvalue_typed_collection_take_bool";
-                break;
-            case XL6_IR_C_ABI_I64:
-                helper = instruction->typedCollectionOp ==
-                        XL6_IR_TYPED_COLLECTION_POP
-                    ? "xlir_xvalue_typed_array_pop_i64"
-                    : "xlir_xvalue_typed_collection_take_i64";
-                break;
-            case XL6_IR_C_ABI_U64:
-                helper = instruction->typedCollectionOp ==
-                        XL6_IR_TYPED_COLLECTION_POP
-                    ? "xlir_xvalue_typed_array_pop_u64"
-                    : "xlir_xvalue_typed_collection_take_u64";
-                break;
-            case XL6_IR_C_ABI_F64:
-                helper = instruction->typedCollectionOp ==
-                        XL6_IR_TYPED_COLLECTION_POP
-                    ? "xlir_xvalue_typed_array_pop_f64"
-                    : "xlir_xvalue_typed_collection_take_f64";
-                break;
-            case XL6_IR_C_ABI_MANAGED_STRING:
-                helper = instruction->typedCollectionOp ==
-                        XL6_IR_TYPED_COLLECTION_POP
-                    ? "xlir_xvalue_typed_array_pop_string"
-                    : "xlir_xvalue_typed_collection_take_string";
-                break;
-            case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
-                helper = instruction->typedCollectionOp ==
-                        XL6_IR_TYPED_COLLECTION_POP
-                    ? "xlir_xvalue_typed_array_pop_xvalue"
-                    : "xlir_xvalue_typed_collection_take_xvalue";
-                break;
-            default: break;
-            }
+        if (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP ||
+            instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) {
+            bool pop=instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP;
+            if (instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY) {
+                const XL6_IrInstruction* definition=xl6IrCgenValueDefinition(module,receiver,NULL);
+                const XL6_IrType* array=definition ? xl6IrTypeGet(&module->types,definition->type) : NULL;
+                const XL6_IrType* element=definition ? xl6IrTypeGet(&module->types,
+                    xl6IrCollectionElementType(module,definition->type)) : NULL;
+                const char* symbol=xl6IrCgenArrayExtractSymbol(typedResult);
+                if (!array || !element || !array->typeValueId || !element->typeValueId || !symbol) return -1;
+                xl6OutputPrintf(out,"    v%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, ",
+                    (unsigned)instruction->result,symbol,(unsigned)receiver,
+                    (unsigned long long)array->typeValueId,(unsigned long long)element->typeValueId);
+                if (pop) xl6OutputPuts("0",out);
+                else xl6OutputPrintf(out,"v%u",(unsigned)argument0);
+                xl6OutputPrintf(out,", %s",pop ? "true" : "false");
+                if (typedResult->cAbi==XL6_IR_C_ABI_MANAGED_STRING)
+                    xl6OutputPrintf(out,", %s",typedResult->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false");
+                xl6OutputPuts(");\n",out);
+            } else if (!pop && (instruction->collectionAbi==XL6_IR_COLLECTION_LIST ||
+                instruction->collectionAbi==XL6_IR_COLLECTION_DICT)) {
+                if (instruction->collectionAbi==XL6_IR_COLLECTION_DICT)
+                    xl6OutputPrintf(out,"    v%u = xl6CollectionExtractValueV1(v%u, XL6_COLLECTION_EXTRACT_DICT_V1, 0, v%u);\n",
+                        (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
+                else xl6OutputPrintf(out,"    v%u = xl6CollectionExtractValueV1(v%u, XL6_COLLECTION_EXTRACT_LIST_V1, v%u, (xlir_string){0});\n",
+                    (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
+            } else return -1;
+            return xl6OutputHasFailed(out) ? -1 : 1;
         }
         switch ( instruction->typedCollectionOp ) {
-        case XL6_IR_TYPED_COLLECTION_POP:
-            xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
-                (unsigned int)instruction->result, helper,
-                (unsigned int)receiver);
-            break;
-        case XL6_IR_TYPED_COLLECTION_TAKE:
-            if ( instruction->collectionAbi == XL6_IR_COLLECTION_DICT )
-                xl6OutputPrintf(out,
-                    "    v%u = %s(v%u, %d, 0, v%u);\n",
-                    (unsigned int)instruction->result, helper,
-                    (unsigned int)receiver,
-                    (int)instruction->collectionAbi,
-                    (unsigned int)argument0);
-            else
-                xl6OutputPrintf(out,
-                    "    v%u = %s(v%u, %d, v%u, (xlir_string){0});\n",
-                    (unsigned int)instruction->result, helper,
-                    (unsigned int)receiver,
-                    (int)instruction->collectionAbi,
-                    (unsigned int)argument0);
-            break;
+
         case XL6_IR_TYPED_COLLECTION_CLEAR:
             xl6OutputPrintf(out,
                 instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY

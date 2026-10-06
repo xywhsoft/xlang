@@ -22,11 +22,12 @@ def main() -> int:
     parser.add_argument('--sanitize', action='store_true')
     parser.add_argument('--shared', action='store_true')
     parser.add_argument('--defaults', action='store_true', help='Native resize: sealed defaults, 12 layouts, aliases/snapshots and atomic OOM')
+    parser.add_argument('--extract', action='store_true', help='Checked native/wire extraction: nine projection layouts and atomic allocation failure')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
     cc, nm = shutil.which('gcc'), shutil.which('nm')
-    if not cc or not nm or out.exists() or (args.sanitize and os.name == 'nt'):
+    if not cc or not nm or out.exists() or (args.sanitize and os.name == 'nt') or (args.defaults and args.extract):
         parser.error('Require gcc/nm, fresh evidence, Linux for sanitizers')
     profiles = [
         ('reference', ['src/runtime/xl6_value_admission.c'], 'xl6SequenceReferenceCreateV1'),
@@ -54,15 +55,27 @@ def main() -> int:
                   'src/runtime/xl6_array_reference_value.c']
         host = 'test/cases/stdlib_array_resident_default_host.c'
         header = 'test/cases/stdlib_array_default_header.c'
+    if args.extract:
+        common = ['src/runtime/xl6_sequence.c', 'src/runtime/xl6_array_extract_value.c',
+                  'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c']
+        host = 'test/cases/stdlib_array_extract_native_host.c'
+        header = 'test/cases/stdlib_array_extract_header.c'
     def provider(profile):
         return 'src/runtime/xl6_array_' + {'managed_string': 'primitive', 'bytes': 'reference',
             'nullable_string': 'primitive'}.get(profile, profile) + '_admission.c'
     support = 'test/support/array_import_native.c'
+    core_sources = ['src/runtime/xl6_array_extract_scalar.c', 'src/runtime/xl6_array_extract_string.c',
+        'src/runtime/xl6_array_extract_f32.c', 'src/runtime/xl6_array_extract_char.c',
+        'src/runtime/xl6_collection_extract_value.c', 'src/runtime/xl6_string_type.c',
+        'src/runtime/xl6_string_value.c', 'src/runtime/xl6_nullable_string.c',
+        'src/runtime/xl6_char_type.c', 'src/runtime/xl6_char_value.c'] if args.extract else []
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host, root / support,
              root / 'test/cases/stdlib_sequence_factory_only_host.c',
              root / header, root / 'lib/xrt/xrt.h',
              root / 'lib/xruntime/xruntime.h'}
     files.update(root / name for name in common)
+    files.update(root / name for name in core_sources)
+    if args.extract: files.add(root / 'test/cases/stdlib_array_extract_core_host.c')
     for profile, extras, _ in profiles:
         files.update(root / name for name in [provider(profile), *extras])
     for directory in ('src/runtime', 'release/include'):
@@ -75,8 +88,11 @@ def main() -> int:
     rows, sweeps = [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs,
               'Rows': rows, 'Sweeps': sweeps, 'Profiles': len(profiles),
-              'Scope': 'Native Array resize/defaults: 12 layouts, resident policies, aliases/snapshots, failure atomicity' if args.defaults else __doc__, 'NativeDefaults': args.defaults,
+              'Scope': 'Checked Array extraction: nine native/wire projection layouts, 12 basic/presence profiles, COW Array/List/Dict atomic OOM and native admission' if args.extract else
+                  'Native Array resize/defaults: 12 layouts, resident policies, aliases/snapshots, failure atomicity' if args.defaults else __doc__, 'NativeDefaults': args.defaults,
               'SharedRuntime': args.shared, 'Sanitized': args.sanitize,
+              'CheckedExtraction': args.extract,
+              'CoreProfiles': 12 if args.extract else 0, 'CollectionCowProfiles': 2 if args.extract else 0,
               'RuntimeInstrumented': args.sanitize and not args.shared}
     env = dict(os.environ)
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-I.', '-Irelease', '-Irelease/include']
@@ -105,7 +121,7 @@ def main() -> int:
         for level in (0, 2):
             objects, support_objects = {}, {}
             if not args.shared:
-                sources = set(common)
+                sources = set(common + core_sources)
                 for profile, extras, _ in profiles:
                     sources.update([provider(profile), *extras])
                 for source in sorted(sources):
@@ -116,9 +132,32 @@ def main() -> int:
                 for variant in (0, 7, 8):
                     obj = out / f'O{level}.xruntime{variant}.o'
                     run(f'O{level}.native{variant}', [cc, *flags, f'-O{level}',
-                        f'-DXL6_FACTORY_PROFILE={variant}', *(['-DXRT_MODULE_VALUE_COLLECTION'] if args.defaults else []),
+                        f'-DXL6_FACTORY_PROFILE={variant}', *(['-DXRT_MODULE_VALUE_COLLECTION'] if args.defaults or args.extract else []),
                         '-c', support, '-o', str(obj)])
                     support_objects[variant] = str(obj)
+            if args.extract:
+                lane=f'core.O{level}'
+                binary=out / (lane + ('.exe' if os.name=='nt' else ''))
+                selected=[] if args.shared else [objects[name] for name in
+                    [*common,*core_sources,'src/runtime/xl6_array_primitive_admission.c',
+                     'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_value_admission.c']]
+                if not args.shared: selected.append(support_objects[0])
+                linked=links if not args.shared else [str(product)] if os.name=='nt' else [
+                    '-Lrelease','-lxl','-Wl,-rpath,'+str(root / 'release'),*links]
+                run(lane+'.build',[cc,*flags,f'-O{level}','test/cases/stdlib_array_extract_core_host.c',
+                    *selected,*linked,'-o',str(binary)])
+                assert '12 basic/presence profiles' in run(lane+'.vectors',[str(binary)])
+                for profile in range(14):
+                    for carrier in (('wire',) if profile>=12 else ('wire','native')):
+                        for operation in (('take',) if profile>=12 else ('pop','take')):
+                            for point in range(513):
+                                log=run(f'{lane}.{profile}.{carrier}.{operation}.{point}',
+                                    [str(binary),str(profile),carrier,operation,str(point)])
+                                hits=re.findall(r'hit=([01]) balanced',log); assert hits
+                                if all(hit=='0' for hit in hits):
+                                    sweeps.append({'CoreProfile':profile,'Lane':level,'Carrier':carrier,
+                                        'Operation':operation,'FirstNoHit':point}); break
+                            else: raise RuntimeError('Incomplete basic extraction allocation prefix')
             for index, (profile, extras, factory) in enumerate(profiles):
                 lane = f'{profile}.O{level}'
                 binary = out / (lane + ('.exe' if os.name == 'nt' else ''))
@@ -133,7 +172,8 @@ def main() -> int:
                 if not args.shared:
                     names = {line.split()[-1].lstrip('_') for line in
                         run(lane + '.symbols', [nm, '--defined-only', str(binary)]).splitlines() if line.split()}
-                    methods = ({'xl6ArrayResizeDefaultV1', 'xl6SequenceResizeStorageV1',
+                    methods = ({'xl6ArrayExtractValueV1'} if args.extract else
+                               {'xl6ArrayResizeDefaultV1', 'xl6SequenceResizeStorageV1',
                                 'xrtTypedArrayResizeWithInitializer'} if args.defaults else
                                {'xl6ArrayMethod' + suffix + 'V1' for suffix in
                                 ('Clear', 'Capacity', 'Reserve', 'Trim', 'Swap', 'Reverse', 'Insert', 'IndexOf', 'RemoveValue')})
@@ -145,6 +185,10 @@ def main() -> int:
                     assert not any(re.match(r'xl6(?:Log|Process|Regex)[A-Z]|xrtTypedStack', name) for name in names)
                     if args.defaults:
                         assert not any(name.startswith('xl6ArrayMethod') for name in names)
+                    if args.extract:
+                        assert not any(name.startswith(('xl6ArrayMethod', 'xl6ArrayExtractString',
+                            'xl6ArrayExtractBool', 'xl6ArrayExtractF32', 'xl6ArrayExtractChar',
+                            'xl6CollectionExtract')) for name in names)
                 if args.defaults:
                     assert 'native defaults: 100 alias/snapshot/policy cycles balanced' in run(lane + '.vectors', [str(binary)])
                     nullable = index in (1, 4, 7, 8)
@@ -159,10 +203,12 @@ def main() -> int:
                                 break
                         else: raise RuntimeError('Incomplete native default allocation prefix')
                     continue
-                assert f'Array methods profile={index}: 100 native/wire cycles balanced' in run(
+                label = 'extraction' if args.extract else 'methods'
+                assert f'Array {label} profile={index}: 100 native/wire cycles balanced' in run(
                     lane + '.vectors', [str(binary)])
                 for carrier in ('wire', 'native'):
-                    for operation in ('reserve', 'insert', 'find', 'remove', 'swap', 'reverse', 'trim'):
+                    for operation in (('pop', 'take') if args.extract else
+                        ('reserve', 'insert', 'find', 'remove', 'swap', 'reverse', 'trim')):
                         for point in range(513):
                             log = run(f'{lane}.{carrier}.{operation}.{point}',
                                       [str(binary), carrier, operation, str(point)])

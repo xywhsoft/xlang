@@ -33,6 +33,7 @@
 #include "src/runtime/xl6_array_value_read.h"
 #include "src/runtime/xl6_array_import.h"
 #include "src/runtime/xl6_array_methods.h"
+#include "src/runtime/xl6_array_extract.h"
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_native_scalar_value.h"
 #include "src/runtime/xl6_nominal_admission.h"

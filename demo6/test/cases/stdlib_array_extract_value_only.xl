@@ -1,0 +1,2 @@
+array<var> values = [null]
+assert(values.pop() == null and values.length == 0)

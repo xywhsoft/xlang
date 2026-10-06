@@ -407,6 +407,37 @@ $process=Start-Process @start
                         (('XRT_MODULE_IO'-in$plan.NativeModules)-eq($case-notin@('stdlib_process_future','stdlib_process_future_allocations')))-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_PROCESS_(RUN|PIPELINE|FILE|TERMINAL|OPEN)$'}).Count
                 }
+                $extractLeaves=@{
+                    stdlib_array_extract_scalar_only='array_extract_scalar';
+                    stdlib_array_extract_string_only='array_extract_string';
+                    stdlib_array_extract_value_only='array_extract_value';
+                    stdlib_array_extract_char_only='array_extract_char';
+                    stdlib_array_extract_f32_only='array_extract_f32';
+                    stdlib_collection_extract_only='collection_extract_value'
+                }
+                if($extractLeaves.ContainsKey($case)) {
+                    $wanted="src/runtime/xl6_$($extractLeaves[$case]).c"
+                    $actual=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_(array_extract_|collection_extract_)'})
+                    $selectionMatches=$selectionMatches-and$actual.Count-eq1-and$actual[0]-eq$wanted-and
+                        !@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_array(?:\.c|_(?:import|input|methods|method_insert|method_find)\.c)$'}).Count
+                    if($case-eq'stdlib_collection_extract_only') {
+                        $selectionMatches=$selectionMatches-and'src/runtime/xl6_sequence.c'-notin$selectedSources-and
+                            'XRUNTIME_MODULE_TYPED_ARRAY'-notin$plan.NativeModules-and
+                            'XRUNTIME_MODULE_TYPED_ARRAY_VALUE'-notin$plan.NativeModules
+                    } else {
+                        # These executable fixtures populate their Array with a
+                        # literal. Its consuming append genuinely selects the
+                        # existing VALUE_V1 write provider and TypedArrayValue.
+                        # That dependency is not an extraction projection: keep
+                        # the one-leaf check above, and verify the constructor
+                        # reference rather than forbidding a required module.
+                        $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
+                        $selectionMatches=$selectionMatches-and
+                            $generatedText.Contains('xl6ArrayValueAppendTakeV1(')-and
+                            'src/runtime/xl6_array_erased.c'-in$selectedSources-and
+                            'XRUNTIME_MODULE_TYPED_ARRAY_VALUE'-in$plan.NativeModules
+                    }
+                }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
                 $nativeBuild=$LASTEXITCODE
                 & gcc @flags "-I$includes" -c "$prefix.c" -o "$prefix.generated.o" *> "$prefix.generated-build.log"
