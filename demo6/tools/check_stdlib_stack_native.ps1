@@ -78,6 +78,10 @@ try {
         'test/cases/stdlib_array_value_boundaries_header.c','test/cases/stdlib_array_value_boundaries_native_host.c',
         'test/cases/stdlib_array_value_boundaries_projection_host.c','test/cases/stdlib_array_value_boundaries.xl',
         'test/cases/stdlib_array_value_boundaries_continuation.xl','test/cases/stdlib_array_value_boundaries_only.xl')
+    $files += @(Get-Item -LiteralPath 'test/cases/stdlib_value_iterator_checked_header.c',
+        'test/cases/stdlib_value_iterator_checked_native_host.c','test/cases/stdlib_value_iterator_checked_projection_host.c',
+        'test/cases/xlir_value_iterator_checked_contract.c','test/cases/stdlib_value_iterator_checked.xl',
+        'test/cases/stdlib_value_iterator_checked_continuation.xl')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_publication.py','test/cases/stdlib_sequence_publication_native_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_factories.py','test/cases/stdlib_sequence_factory_only_host.c','test/support/sequence_factory_native.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
@@ -293,6 +297,9 @@ try {
     Run 'array-value-boundaries' $python @('tools/check_stdlib_array_scalar_read.py','--boundaries','--out',"$outPath/array-value-boundaries",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $arrayBoundaries=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-value-boundaries/results.json" -Raw | ConvertFrom-Json
     if (!$arrayBoundaries.Complete -or !$arrayBoundaries.InputsUnchanged -or $arrayBoundaries.Sweeps.Count-ne16) { throw 'Incomplete Array value boundary evidence' }
+    Run 'value-iterator-checked' $python @('tools/check_stdlib_array_scalar_read.py','--checked-iterator','--out',"$outPath/value-iterator-checked",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $checkedIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/value-iterator-checked/results.json" -Raw | ConvertFrom-Json
+    if (!$checkedIterator.Complete -or !$checkedIterator.InputsUnchanged -or $checkedIterator.Sweeps.Count-ne4) { throw 'Incomplete checked value iterator evidence' }
     Run 'sequence-publication' $python @('tools/check_stdlib_sequence_publication.py','--out',"$outPath/sequence-publication") -TimeoutMs 600000
     $sequencePublication=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-publication/results.json" -Raw | ConvertFrom-Json
     if (!$sequencePublication.Complete -or !$sequencePublication.InputsUnchanged -or $sequencePublication.Sweeps.Count-ne50) { throw 'Incomplete Sequence publication evidence' }

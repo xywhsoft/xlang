@@ -144,6 +144,11 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-like'stdlib_value_iterator_checked*'){
+                    $selectionMatches='src/runtime/xl6_value_iterator.c'-in$selectedSources-and
+                        'src/runtime/xl6_array.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_input.c'-notin$selectedSources
+                }
                 if($case-like'stdlib_array_value_boundaries*'){
                     $selectionMatches='src/runtime/xl6_array_string_read.c'-in$selectedSources-and
                         'src/runtime/xl6_sequence.c'-in$selectedSources-and

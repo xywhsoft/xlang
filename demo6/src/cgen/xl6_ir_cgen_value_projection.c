@@ -169,8 +169,11 @@ static int xl6IrCgenEmitXValueIteratorInstruction(
                     instruction->payloadType)->collectionAbi));
         return !xl6OutputHasFailed(out);
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE:
-        helper = "xlir_xvalue_iterator_advance";
-        break;
+        if (!xl6IrValueIteratorAdvanceRuntimeInstructionCompatible(module,instruction)) return 0;
+        xl6OutputPrintf(out,
+            "    bool projection_ok_%u = xlir_xvalue_iterator_advance(v%u, &v%u);\n",
+            (unsigned int)instruction->result,(unsigned int)operand,(unsigned int)instruction->result);
+        return !xl6OutputHasFailed(out);
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_I64:
         helper = "xlir_xvalue_iterator_item_i64";
         break;

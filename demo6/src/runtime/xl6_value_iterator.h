@@ -20,14 +20,17 @@ typedef struct XL6_ValueIteratorView {
         };
     } key;
 } XL6_ValueIteratorView;
-typedef struct XL6_ValueIteratorRuntimeV1 {
+typedef struct XL6_ValueIteratorRuntimeV2 {
     XL6_ValueIterator* (*Create)(const struct xvalue*);
-    bool (*Advance)(XL6_ValueIterator*);
+    /* Status and end-of-stream are independent: false is failure, never EOF.
+     * On success *found distinguishes an item from the terminal snapshot.
+     * Failure remains observable if allocating its diagnostic also fails. */
+    bool (*Advance)(XL6_ValueIterator*, bool* found);
     const XL6_ValueIteratorView* (*View)(const XL6_ValueIterator*);
     void (*Destroy)(XL6_ValueIterator*);
     struct xrtownershipref (*Ownership)(const XL6_ValueIterator*);
-} XL6_ValueIteratorRuntimeV1;
-XL6_CODE_LEASE_API const XL6_ValueIteratorRuntimeV1* xl6ValueIteratorRuntimeV1Get(void);
+} XL6_ValueIteratorRuntimeV2;
+XL6_CODE_LEASE_API const XL6_ValueIteratorRuntimeV2* xl6ValueIteratorRuntimeV2Get(void);
 /* Certifies only this resident carrier. Its actual managed XRT cursor has an
  * independent ValueCursor adapter; legacy stack/unique cursors do not. The
  * resolver must admit that cursor and all backing/finalizer children too. */

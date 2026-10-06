@@ -73,7 +73,7 @@ int main(int argc, char** argv)
         return 1;
     }
     text = xl6OutputTakeMemoryText(&out, NULL);
-    assert(text && strstr(text, "XL6_CaptureLayoutV1 xlir_generator_item_layout_") && strstr(text, "xl6ValueIteratorRuntimeV1Get()->Ownership") &&
+    assert(text && strstr(text, "XL6_CaptureLayoutV1 xlir_generator_item_layout_") && strstr(text, "xl6ValueIteratorRuntimeV2Get()->Ownership") &&
         strstr(text, "__xl_runtime/xl6_value_iterator.h") && !strstr(text, "xlir_xvalue_iterator_ownership_ops") &&
         strstr(text, "XL6_CAPTURE_GENERATOR") && strstr(text, "XL6_CAPTURE_VALUE_ITERATOR"));
     for(size_t i=0;i<ir.asyncMachineCount;++i){const XL6_IrAsyncMachine* machine=&ir.asyncMachines[i];

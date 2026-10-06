@@ -552,6 +552,15 @@ NUL/Unicode lengths, independent copies, generated functions reading a real
 native Array and pre-output IR corruption refusal. The Array/Stack parents
 invoke it separately. It does not certify the remaining Array carrier cutover.
 
+The gate's `--checked-iterator` mode checks the resident V2 wire cursor's
+independent status/EOF outputs, latched failures and invalid/reentrant use.
+`--language` adds pre-output IR mutations, strict C/JIT/AOT, continuation lifetime,
+and real generated-function failure/finally cleanup with and without diagnostics.
+Four actual allocation prefixes cover native cursor creation and complete sync
+programs at O0/O2. Advance injection checks status, not actual cursor OOM.
+Linux sanitizes the selected native closure; the shared runtime is uninstrumented.
+Array/Stack parents invoke this mode. Native Array cursor integration is pending.
+
 `check_stdlib_sequence_publication.py` exercises the shared resident
 creation/publication transaction and domain-preserving Array/Stack clone.
 Five real profiles run 100 lifetime/ownership cycles and complete native

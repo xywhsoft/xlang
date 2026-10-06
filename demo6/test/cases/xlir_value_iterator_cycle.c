@@ -13,7 +13,7 @@ typedef struct Stats {
     xvaluecursor* extra;  /* An actual independently retained external owner. */
 } Stats;
 typedef struct Context {Stats* stats;XL6_ValueIterator* iterator;} Context;
-static const XL6_ValueIteratorRuntimeV1* api;
+static const XL6_ValueIteratorRuntimeV2* api;
 static unsigned graphs,rooted,refusals,ooms,budgets,finalizers,drops,probes;
 static void freeze(xrtownershipscope* scope)
 {ULONGLONG stop=GetTickCount64()+5000;while(!xrtOwnershipFreezeTryBegin(scope)){assert(GetTickCount64()<stop);SwitchToThread();}}
@@ -82,7 +82,8 @@ static void transaction(unsigned mode)
         xrtValueObjectLifetimeBindOwned(object,NULL,empty_trace,empty_drop)&&
         xrtValueObjectFinalizerPrepareOwned(object,finalize_terminal,context,trace_context,drop_context)&&
         xrtValueObjectOwnershipBindV1(object,&policy)&&xrtValueObjectFinalizerCommit(object));
-    XL6_ValueIterator* iterator=api->Create(object);assert(iterator&&api->Advance(iterator));
+    XL6_ValueIterator* iterator=api->Create(object);bool found=false;
+    assert(iterator&&api->Advance(iterator,&found)&&found);
     xrtownershipscope mutation={0};assert(xrtOwnershipMutationBegin(&mutation));
     context->iterator=iterator;assert(xrtOwnershipScopeEnd(&mutation)); /* Transfer the actual creation reference. */
     xrtownershipref root=api->Ownership(iterator);xrtownershipscope scope={0};freeze(&scope);
@@ -133,7 +134,7 @@ static void transaction(unsigned mode)
 }
 int main(void)
 {
-    api=xl6ValueIteratorRuntimeV1Get();assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_MEMORY);xrtClearError();
+    api=xl6ValueIteratorRuntimeV2Get();assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_MEMORY);xrtClearError();
     for(unsigned round=0;round<25;++round)for(unsigned mode=0;mode<3;++mode)transaction(mode);
     assert(graphs==75&&rooted==100&&refusals==75&&budgets==1800&&ooms&&finalizers==75&&drops==75&&probes==150);
     printf("Managed iterator cycles: 75 complete six-node/seven-edge graphs, 100 real-root deferrals, 75 missing-child refusals, 1800 OOM budgets and %u actual refusals, 75 finalizers, 75 context drops and 150 cross-thread freezes; failure retry and native resurrection without duplicate finalization, exact memory balance\n",ooms);return 0;

@@ -74,7 +74,7 @@ if ( $loops.Count -ne 10 -or
         $_.loopItemLifetimeAbiName -eq "owned-iteration-release"
      }).Count -ne 3 -or
      @($loops | Where-Object {
-        $_.loopErrorAbiName -ne "no-raise" -or
+        $_.loopErrorAbiName -ne "may-raise" -or
         $_.loopResourceAbiName -ne "xvalue-iterator-destroy"
      }).Count -ne 0 ) {
     throw "Typed XLIR xvalue-array loop projection/lifetime matrix is not exact"
@@ -301,7 +301,7 @@ $generated = [System.IO.File]::ReadAllText(
     $generatedPath, [System.Text.Encoding]::UTF8)
 $renderedCounts = [ordered]@{
     "=\s*xlir_xvalue_iterator_create\(v\d+\);" = 10
-    "=\s*xlir_xvalue_iterator_advance\(v\d+\);" = 11
+    "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);" = 11
     "=\s*xlir_xvalue_iterator_item_string_copy\(v\d+\);" = 4
     "=\s*xlir_xvalue_iterator_item_xvalue_retain\(v\d+\);" = 4
     "=\s*xlir_xvalue_iterator_key_ordinal_i64\(v\d+\);" = 6

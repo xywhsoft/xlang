@@ -13,7 +13,7 @@ int main(int argc,char** argv)
             xl6SemCheckModule(parse.root,&parse.diags,"task_storage") && xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags));
         verify(&ir);assert(ir.abi.taskStorageAbi==XL6_IR_TASK_STORAGE_NONE);
         assert(ir.abi.valueIteratorStorageAbi==XL6_IR_VALUE_ITERATOR_STORAGE_NONE);
-        ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_SNAPSHOT_V1;reject(&ir,"value iterator storage ABI");
+        ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;reject(&ir,"value iterator storage ABI");
         ir.abi.valueIteratorStorageAbi=(XL6_IrValueIteratorStorageAbi)99;reject(&ir,"value iterator storage ABI");
         ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_NONE;
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_FRAME_POOL_V1;reject(&ir,"task frame/pool storage ABI");
@@ -26,7 +26,7 @@ int main(int argc,char** argv)
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2;
         ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_NONE;reject(&ir,"value iterator storage ABI");
         ir.abi.valueIteratorStorageAbi=(XL6_IrValueIteratorStorageAbi)99;reject(&ir,"value iterator storage ABI");
-        ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_SNAPSHOT_V1;
+        ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;
         for(size_t i=0;i<ir.callTargetCount;++i){
             XL6_IrCallTarget* t=&ir.callTargets[i];
             if(t->kind!=XL6_IR_CALL_TARGET_INTERNAL_ASYNC || !t->parameterCount){

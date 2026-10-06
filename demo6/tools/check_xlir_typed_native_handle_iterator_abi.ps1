@@ -41,7 +41,7 @@ if ( $loops.Count -ne 1 -or
      $loops[0].loopKeyAbiName -ne "none" -or
      $loops[0].loopItemLifetimeAbiName -ne "owned-iteration-release" -or
      $loops[0].loopResourceAbiName -ne "xvalue-iterator-destroy" -or
-     $loops[0].loopErrorAbiName -ne "no-raise" -or
+     $loops[0].loopErrorAbiName -ne "may-raise" -or
      $loops[0].loopResourceType -eq 0 ) {
     throw "Typed XLIR native-backed class loop has no exact cursor, retained managed item, owned target lifetime, and cursor cleanup ABI"
 }

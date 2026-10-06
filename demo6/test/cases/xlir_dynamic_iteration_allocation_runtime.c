@@ -32,15 +32,15 @@ static void end_window(void)
 }
 static XL6_ValueIterator* iteration_projection_cursor_create(const xvalue* source)
 {
-    XL6_ValueIterator* cursor = xl6ValueIteratorRuntimeV1Get()->Create(source);
+    XL6_ValueIterator* cursor = xl6ValueIteratorRuntimeV2Get()->Create(source);
     assert(cursor && !created && !active); ++created; ++active; return cursor;
 }
-static bool iteration_projection_cursor_advance(XL6_ValueIterator* cursor)
+static bool iteration_projection_cursor_advance(XL6_ValueIterator* cursor, bool* found)
 {
-    int result = xl6ValueIteratorRuntimeV1Get()->Advance(cursor);
-    assert(active == 1 && !armed && result >= 0);
-    if (result == XVALUE_ITER_ITEM) {
-        const XL6_ValueIteratorView* view = xl6ValueIteratorRuntimeV1Get()->View(cursor);
+    bool ok = xl6ValueIteratorRuntimeV2Get()->Advance(cursor,found);
+    assert(active == 1 && !armed && ok);
+    if (*found) {
+        const XL6_ValueIteratorView* view = xl6ValueIteratorRuntimeV2Get()->View(cursor);
         ++advances; currentKey.Type = view->key.Type; currentItem = view->item;
         if (currentKey.Type == XVALUE_KEY_STRING) currentKey.String = (xstrview){view->key.String.Data,view->key.String.Size};
         else if (currentKey.Type == XVALUE_KEY_INT) currentKey.Integer = view->key.Integer;
@@ -49,17 +49,17 @@ static bool iteration_projection_cursor_advance(XL6_ValueIterator* cursor)
             assert(!everArmed); armed = everArmed = 1; continuation_owner_fault_arm(selectedFault);
         }
     }
-    return result;
+    return ok;
 }
 static void iteration_projection_cursor_destroy(XL6_ValueIterator* cursor)
 {
     assert(cursor && active == 1 && !destroyed);
-    xl6ValueIteratorRuntimeV1Get()->Destroy(cursor); --active; ++destroyed;
+    xl6ValueIteratorRuntimeV2Get()->Destroy(cursor); --active; ++destroyed;
 }
-const XL6_ValueIteratorRuntimeV1* iteration_projection_iterator_runtime(void)
+const XL6_ValueIteratorRuntimeV2* iteration_projection_iterator_runtime(void)
 {
-    static XL6_ValueIteratorRuntimeV1 api;
-    if (!api.Create) { api = *xl6ValueIteratorRuntimeV1Get(); api.Create = iteration_projection_cursor_create;
+    static XL6_ValueIteratorRuntimeV2 api;
+    if (!api.Create) { api = *xl6ValueIteratorRuntimeV2Get(); api.Create = iteration_projection_cursor_create;
         api.Advance = iteration_projection_cursor_advance; api.Destroy = iteration_projection_cursor_destroy; }
     return &api;
 }

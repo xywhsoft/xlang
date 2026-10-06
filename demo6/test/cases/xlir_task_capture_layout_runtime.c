@@ -26,7 +26,7 @@ static const XL6_CaptureSlot slots[]={SLOT(XL6_CAPTURE_TRIVIAL,number),SLOT(XL6_
 static const XL6_CaptureLayoutV1 layout={sizeof(layout),sizeof(Payload),9,slots};
 static unsigned drops,probes,edges,iteratorCases,rollbacks;
 static const XL6_CaptureRuntimeV1* captures;
-static const XL6_ValueIteratorRuntimeV1* iterators;
+static const XL6_ValueIteratorRuntimeV2* iterators;
 static void balance(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after;xrtClearError();xrtMemDebugSnapshot(&after);
@@ -104,7 +104,7 @@ static void iterator_case(unsigned kind)
     assert(xrtValueCursorOwnershipAdapterV1(child)&&!xrtValueCursorOwnershipAdapterV1(root));
     const XL6_ValueIteratorView* view=iterators->View(iterator);assert(view&&!view->item);
     unsigned mask=0,n=0;
-    while(iterators->Advance(iterator)){
+    for(;;){bool found=false;assert(iterators->Advance(iterator,&found));if(!found)break;
         view=iterators->View(iterator);int64_t value=0;assert(view&&view->item&&view->ordinal==n++);
         assert(xrtValueGetInt(view->item,&value)&&value>=41&&value<=42);mask|=1u<<(value-41);
         if(!kind)assert(view->key.Type==XVALUE_KEY_INDEX&&view->key.Index==n-1);
@@ -120,7 +120,7 @@ static void iterator_case(unsigned kind)
 }
 int main(void)
 {
-    assert(xrtMemDebugEnable(true));captures=xl6CaptureRuntimeV1Get();iterators=xl6ValueIteratorRuntimeV1Get();
+    assert(xrtMemDebugEnable(true));captures=xl6CaptureRuntimeV1Get();iterators=xl6ValueIteratorRuntimeV2Get();
     xl6_error_scope warm={0};assert(xl6ErrorScopeBegin(&warm));assert(xl6ErrorScopeEnd(&warm).ok);
     assert(captures->Validate(&layout,sizeof(Payload)));
     for(unsigned kind=1;kind<=9;++kind){

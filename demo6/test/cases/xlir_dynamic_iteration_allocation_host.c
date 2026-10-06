@@ -3,10 +3,10 @@
 // Observe the resident boundary without replacing its physical cursor. Arm
 // the real allocator only after the real resident/XRT advance has completed.
 #include "src/runtime/xl6_value_iterator.h"
-const XL6_ValueIteratorRuntimeV1* iteration_projection_iterator_runtime(void);
-#define xl6ValueIteratorRuntimeV1Get iteration_projection_iterator_runtime
+const XL6_ValueIteratorRuntimeV2* iteration_projection_iterator_runtime(void);
+#define xl6ValueIteratorRuntimeV2Get iteration_projection_iterator_runtime
 #include "xlir_dynamic_iteration_allocation.c"
-#undef xl6ValueIteratorRuntimeV1Get
+#undef xl6ValueIteratorRuntimeV2Get
 #include "xlir_dynamic_iteration_allocation.h.bind.h"
 #define XLIR_TEST_LAUNCH_FUTURE
 #define XLIR_TEST_LAUNCH_GENERATOR

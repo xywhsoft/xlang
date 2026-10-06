@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'xlir_iterator_gate_contract.ps1')
 
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -156,7 +157,7 @@ if ( $loops.Count -ne 14 -or $valueLoops.Count -ne 7 -or
     throw "Typed XLIR dynamic var loop shape, projection, effect or resource ABI is not exact"
 }
 
-$loopIds = @($loops | ForEach-Object { $_.id })
+$loopIds = @($loops | ForEach-Object { Get-XlirIteratorOrigins $typed $_ })
 $loopInstructions = @($instructions | Where-Object { $_.origin -in $loopIds })
 $expectedRuntimeOps = @{
     "xvalue-iterator-create-checked" = 14
@@ -189,7 +190,9 @@ if ( @($projectionOperations | Where-Object {
 $cursorSymbols = @()
 $ownedRvalueAcquisitions = 0
 foreach ( $loop in $loops ) {
-    $perLoop = @($loopInstructions | Where-Object { $_.origin -eq $loop.id })
+    Assert-XlirCheckedIteratorAdvance $lowered $loop
+    $origins = @(Get-XlirIteratorOrigins $typed $loop)
+    $perLoop = @($loopInstructions | Where-Object { $_.origin -in $origins })
     $creates = @($perLoop | Where-Object {
         $_.runtimeOpName -eq "xvalue-iterator-create-checked"
     })
@@ -247,10 +250,7 @@ foreach ( $loop in $loops ) {
         throw "Dynamic checked-create result has no unique ERROR_TEST consumer: v$($create.result)"
     }
 
-    $cursorStores = @($perLoop | Where-Object {
-        $_.kindName -eq "store" -and $_.type -eq $cursorType.id -and
-        [long]$_.targetSymbol -ge 4026531840L
-    })
+    $cursorStores = @(Get-XlirIteratorCursorStore $lowered $loop)
     if ( $cursorStores.Count -ne 1 ) {
         throw "Lowered XLIR dynamic loop has no unique compiler-owned cursor storage: n$($loop.id)"
     }
@@ -291,7 +291,7 @@ $generated = Read-Utf8 $cPath
 $renderedCounts = @{
     "=\s*xlir_xvalue_iterator_create_checked\(v\d+,\s*0\);" = 13
     "=\s*xlir_xvalue_iterator_create_checked\(v\d+,\s*9\);" = 1
-    "=\s*xlir_xvalue_iterator_advance\(v\d+\);" = 14
+    "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);" = 14
     "=\s*xlir_xvalue_iterator_dynamic_logical_xvalue\(v\d+\);" = 7
     "=\s*xlir_xvalue_iterator_item_xvalue_retain\(v\d+\);" = 5
     "=\s*xlir_xvalue_iterator_key_dynamic_xvalue\(v\d+\);" = 5
@@ -312,8 +312,8 @@ foreach ( $required in @(
     "else if (state->key.Type == 2)",
     "else if (state->key.Type == 3)",
     "static xvalue* xlir_xvalue_iterator_dynamic_logical_xvalue(",
-    "if (state->key.Type == 3) return xlir_xvalue_iterator_key_dynamic_xvalue(state);",
-    "return xlir_xvalue_iterator_item_xvalue_retain(state);"
+    "if (state->key.Type == 3) return xlir_xvalue_iterator_key_dynamic_xvalue(iterator);",
+    "return xlir_xvalue_iterator_item_xvalue_retain(iterator);"
 ) ) {
     if ( ! $generated.Contains($required) ) {
         throw "Generated C dynamic iterator runtime contract is incomplete: $required"
@@ -328,14 +328,11 @@ foreach ( $forbidden in @(
     }
 }
 foreach ( $cursorSymbol in $cursorSymbols ) {
-    $loweredReleaseCount = @($loopInstructions | Where-Object {
+    $loweredReleaseCount = @($lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and
         [long]$_.targetSymbol -eq $cursorSymbol
     }).Count
-    $renderedReleaseCount = ([regex]::Matches(
-        $generated,
-        "xlir_xvalue_iterator_destroy\(s$cursorSymbol\);\s*s$cursorSymbol = NULL;"
-    )).Count
+    $renderedReleaseCount = Get-XlirRenderedIteratorReleases $generated $cursorSymbol 'xlir_xvalue_iterator*' 'xlir_xvalue_iterator_destroy'
     if ( $renderedReleaseCount -ne $loweredReleaseCount ) {
         throw "Generated C does not preserve every dynamic cursor cleanup edge: s$cursorSymbol"
     }

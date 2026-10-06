@@ -71,15 +71,15 @@ static int xl6IrCgenEmitRuntimePrelude(
         xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("\n", out);
     if (needs->needsXValueIteratorRuntime) {
-        if (module->abi.valueIteratorStorageAbi != XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_SNAPSHOT_V1)
+        if (module->abi.valueIteratorStorageAbi != XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2)
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR value iterator storage ABI is unresolved");
         xl6OutputPuts(
             "#include <__xl_runtime/xl6_value_iterator.h>\n"
             "typedef XL6_ValueIterator xlir_xvalue_iterator;\n"
-            "#define xlir_xvalue_iterator_create (xl6ValueIteratorRuntimeV1Get()->Create)\n"
-            "#define xlir_xvalue_iterator_advance (xl6ValueIteratorRuntimeV1Get()->Advance)\n"
-            "#define xlir_xvalue_iterator_destroy (xl6ValueIteratorRuntimeV1Get()->Destroy)\n"
-            "#define xlir_xvalue_iterator_ownership (xl6ValueIteratorRuntimeV1Get()->Ownership)\n", out);
+            "#define xlir_xvalue_iterator_create (xl6ValueIteratorRuntimeV2Get()->Create)\n"
+            "#define xlir_xvalue_iterator_advance (xl6ValueIteratorRuntimeV2Get()->Advance)\n"
+            "#define xlir_xvalue_iterator_destroy (xl6ValueIteratorRuntimeV2Get()->Destroy)\n"
+            "#define xlir_xvalue_iterator_ownership (xl6ValueIteratorRuntimeV2Get()->Ownership)\n", out);
     }
     if (needs->needsAsyncErrorResult || needs->needsAsyncFutureResult ||
         needs->needsAsyncStringResult || needs->needsAsyncXValueResult ||

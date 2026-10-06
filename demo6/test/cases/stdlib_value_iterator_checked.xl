@@ -1,0 +1,43 @@
+int cleanupCount = 0
+func counted(list<int> values) as int
+    int total = 0
+    try
+        for value in values
+            total += value
+        end
+    finally
+        cleanupCount += 1
+    end
+    return total
+end
+list<int> values = list[2: 1, 7: 2]
+assert counted(values) == 3
+assert cleanupCount == 1
+array<string> texts = array["a\0你", "", "tail"]
+int bytes = 0
+for key, text in texts
+    bytes += string.byteLen(text)
+    if key == 0
+        texts[1] = "changed"
+    end
+end
+assert bytes == 9
+dict<int> fields = dict{"a\0b": 3, "tail": 4}
+int total = 0
+for key, value in fields
+    total += value
+end
+assert total == 7
+var dynamic = list[2: 3, 5: 4]
+total = 0
+for key, value in dynamic
+    total += int(key) + int(value)
+end
+assert total == 14
+set<int> unique = set{2, 4}
+total = 0
+for value in unique
+    total += value
+end
+assert total == 6
+println("checked value iterator ok")

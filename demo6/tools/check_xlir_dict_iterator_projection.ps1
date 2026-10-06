@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'xlir_iterator_gate_contract.ps1')
 if ( $Root -eq "" ) { $Root = Split-Path -Parent $PSScriptRoot }
 
 $xl = Join-Path $Root "release\xl.exe"
@@ -47,7 +48,7 @@ if ( $loops.Count -ne 12 -or @($loops | Where-Object {
         $_.loopAbiName -ne "xvalue-iterator-key-value" -or
         $_.loopKeyAbiName -ne "string-copy" -or
         $_.loopKeyLifetimeAbiName -ne "owned-iteration-release" -or
-        $_.loopErrorAbiName -ne "no-raise" -or
+        $_.loopErrorAbiName -ne "may-raise" -or
         $_.loopResourceAbiName -ne "xvalue-iterator-destroy"
     }).Count -ne 0 ) {
     throw "Typed XLIR dict key+item layout/lifetime ABI is not exact"
@@ -103,7 +104,7 @@ foreach ( $loop in $loops ) {
     }
 }
 
-$loopIds = @($loops | ForEach-Object { $_.id })
+$loopIds = @($loops | ForEach-Object { Get-XlirIteratorOrigins $main.Typed $_ })
 $loopInstructions = @($main.Lowered.instructions | Where-Object {
     $_.origin -in $loopIds
 })
@@ -114,20 +115,17 @@ $keyReleaseTotal = 0
 $itemReleaseTotal = 0
 $cursorReleaseTotal = 0
 foreach ( $loop in $loops ) {
+    Assert-XlirCheckedIteratorAdvance $main.Lowered $loop
+    $origins = @(Get-XlirIteratorOrigins $main.Typed $loop)
     $instructions = @($loopInstructions | Where-Object {
-        $_.origin -eq $loop.id
+        $_.origin -in $origins
     })
-    $stringStores = @($instructions | Where-Object {
-        $_.kindName -eq "store" -and $_.type -eq $stringTypes[0].id
-    })
+    $stringStores = @(Get-XlirIteratorTargetStores $main.Typed $main.Lowered $loop $stringTypes[0].id)
     $expectedStringStores = 1
     if ( $loop.loopItemAbiName -eq "string-copy" ) {
         $expectedStringStores = 2
     }
-    $cursorStores = @($instructions | Where-Object {
-        $_.kindName -eq "store" -and $_.type -eq $loop.loopResourceType -and
-        $_.targetSymbol -ge 0xF0000000
-    })
+    $cursorStores = @(Get-XlirIteratorCursorStore $main.Lowered $loop)
     if ( @($instructions | Where-Object {
             $_.runtimeOpName -eq "xvalue-iterator-create"
          }).Count -ne 1 -or
@@ -174,11 +172,10 @@ foreach ( $loop in $loops ) {
 if ( @($keySymbols | Select-Object -Unique).Count -ne 12 -or
      @($managedItemSymbols | Select-Object -Unique).Count -ne 3 -or
      @($cursorSymbols | Select-Object -Unique).Count -ne 12 -or
-     # Returning a key first creates the independent string-copy below; the
-     # iteration key therefore has one owner release, not a duplicated return
-     # cleanup.  Cursor cleanup remains split only where CFG exits require it.
-     $keyReleaseTotal -ne 17 -or $itemReleaseTotal -ne 6 -or
-     $cursorReleaseTotal -ne 16 -or
+     # Exact static cleanup sites include checked Advance/projection failures
+     # and construction temporaries; they are not simultaneous live owners.
+     $keyReleaseTotal -ne 29 -or $itemReleaseTotal -ne 8 -or
+     $cursorReleaseTotal -ne 53 -or
      @($main.Lowered.instructions | Where-Object {
         $_.runtimeOpName -eq "string-copy" -and
         $_.origin -in @($main.Typed.nodes | Where-Object {
@@ -201,7 +198,8 @@ if ( $keyLoops.Count -ne 2 -or @($keyLoops | Where-Object {
     }).Count -ne 0 ) {
     throw "Typed XLIR dict key-only loop is not semantically distinct from item iteration"
 }
-$keyLoopIds = @($keyLoops | ForEach-Object { $_.id })
+$keyLoopIds = @($keyLoops | ForEach-Object { Get-XlirIteratorOrigins $keyOnly.Typed $_ })
+foreach ($loop in $keyLoops) { Assert-XlirCheckedIteratorAdvance $keyOnly.Lowered $loop }
 $keyLoopInstructions = @($keyOnly.Lowered.instructions | Where-Object {
     $_.origin -in $keyLoopIds
 })
@@ -212,14 +210,17 @@ if ( @($keyLoopInstructions | Where-Object {
         $_.runtimeOpName -like "xvalue-iterator-item-*"
      }).Count -ne 0 -or
      @($keyOnly.Lowered.instructions | Where-Object {
-        $_.runtimeOpName -eq "string-copy"
+        $_.runtimeOpName -eq "string-copy" -and
+        $_.origin -in @($keyOnly.Typed.nodes | Where-Object {
+            $_.kind -eq 12
+        } | ForEach-Object id)
      }).Count -ne 1 ) {
     throw "Lowered XLIR dict key-only projection or return ownership is ambiguous"
 }
 
 foreach ( $generatedCase in @($main, $keyOnly) ) {
     if ( ([regex]::Matches($generatedCase.Generated,
-            "static char\* xlir_xvalue_iterator_key_string_copy\(")).Count -ne 1 -or
+            "static xlir_string xlir_xvalue_iterator_key_string_copy\(")).Count -ne 1 -or
          ([regex]::Matches($generatedCase.Generated, "\bfor\s*\(")).Count -ne 0 -or
          $generatedCase.Generated.Contains("loopKeyAbi") -or
          $generatedCase.Generated.Contains("loopKeyLifetimeAbi") ) {
@@ -235,23 +236,19 @@ if ( ([regex]::Matches($main.Generated,
     throw "Generated C does not preserve dict key-only/key+item projection counts"
 }
 foreach ( $keySymbol in $keySymbols ) {
-    $loweredReleaseCount = @($loopInstructions | Where-Object {
+    $loweredReleaseCount = @($main.Lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and $_.targetSymbol -eq $keySymbol
     }).Count
-    $renderedReleaseCount = ([regex]::Matches(
-        $main.Generated, "xrtFree\(s$keySymbol\);\s*s$keySymbol = NULL;"
-    )).Count
+    $renderedReleaseCount = Get-XlirRenderedIteratorReleases $main.Generated $keySymbol 'xlir_string' 'xlir_string_drop'
     if ( $renderedReleaseCount -ne $loweredReleaseCount ) {
         throw "Generated C does not preserve every dict key release: s$keySymbol"
     }
 }
 foreach ( $itemSymbol in $managedItemSymbols ) {
-    $loweredReleaseCount = @($loopInstructions | Where-Object {
+    $loweredReleaseCount = @($main.Lowered.instructions | Where-Object {
         $_.kindName -eq "release" -and $_.targetSymbol -eq $itemSymbol
     }).Count
-    $renderedReleaseCount = ([regex]::Matches(
-        $main.Generated, "xrtFree\(s$itemSymbol\);\s*s$itemSymbol = NULL;"
-    )).Count
+    $renderedReleaseCount = Get-XlirRenderedIteratorReleases $main.Generated $itemSymbol 'xlir_string' 'xlir_string_drop'
     if ( $renderedReleaseCount -ne $loweredReleaseCount ) {
         throw "Generated C does not preserve every dict managed item release: s$itemSymbol"
     }

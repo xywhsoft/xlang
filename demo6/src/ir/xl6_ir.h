@@ -5100,7 +5100,7 @@ typedef enum XL6_IrCellStorageAbi {
 
 typedef enum XL6_IrValueIteratorStorageAbi {
     XL6_IR_VALUE_ITERATOR_STORAGE_NONE = 0,
-    XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_SNAPSHOT_V1
+    XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2
 } XL6_IrValueIteratorStorageAbi;
 
 /* Storage/frame commands already carry exact types, owners and commit phases.
@@ -6330,6 +6330,8 @@ const XL6_IrType* xl6IrArrayScalarReadReceiverType(
 int xl6IrArrayScalarReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrArrayStringReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction);
+int xl6IrValueIteratorAdvanceRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
