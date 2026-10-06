@@ -42,8 +42,12 @@ int main(int argc, char** argv)
         assert(xrtMemDebugFailAfter((size_t)strtoull(argv[2], NULL, 10)));
         XL6_METHOD_CORE_RESULT result = text ? XL6_METHOD_TEXT(source) : XL6_METHOD_CORE(source);
         bool hit = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
-        assert(hit ? !result.ok && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_MEMORY :
-            result.ok && !xrtGetError());
+        assert(hit ? !result.ok && xrtGetError() : result.ok && !xrtGetError());
+        if (hit) {
+            const xerror* failure=xrtGetError();
+            while (failure && xrtErrorKind(failure)!=XERR_MEMORY) failure=xrtErrorCause(failure);
+            assert(failure);
+        }
         if (!text) assert(XL6_METHOD_CLEANUP == cleanup + 1);
         xerror* failure = xrtTakeError();
         /* Individual successful mutations may already have committed. The

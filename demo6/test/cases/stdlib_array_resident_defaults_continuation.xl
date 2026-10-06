@@ -1,0 +1,35 @@
+async func readyCount() as int
+    time.sleep(1)
+    return 1
+end
+
+async func resizeAsync() as int
+    array<string> values = ["a\0你"]
+    int finalized = 0
+    try
+        assert await readyCount() == 1
+        assert(values.resize(3) and values[2] == "")
+        values.resize(-1)
+        return 1
+    catch RangeError failure
+        assert(values.length == 3)
+    finally
+        finalized += 1
+    end
+    return finalized
+end
+
+func resizeGenerator() as generator<int>
+    array<string> values = ["a\0你"]
+    assert(values.resize(3) and values[2] == "")
+    yield values.length
+    assert(values.resize(1) and values[0] == "a\0你")
+    yield values.length
+end
+
+assert await resizeAsync() == 1
+int total = 0
+for value in resizeGenerator()
+    total += value
+end
+assert(total == 4)

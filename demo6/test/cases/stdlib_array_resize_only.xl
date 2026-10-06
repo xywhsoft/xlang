@@ -1,0 +1,3 @@
+func resizeOnly(array<int> values, int size) as bool
+    return values.resize(size)
+end

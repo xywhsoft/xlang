@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_array_default.h"
+#include "src/runtime/xl6_array_method_view.h"
 
 static xvalue* valueDefault(unsigned int abi)
 {
@@ -24,8 +25,7 @@ static void cleanup(xvalue* value)
 }
 bool xl6ArrayResizeDefaultV1(xvalue* array, int64_t target, unsigned int abi)
 {
-    if (!array || xrtValueType(array)!=XVALUE_ARRAY ||
-        abi<=XL6_VALUE_DEFAULT_INVALID || abi>XL6_VALUE_DEFAULT_TIME) {
+    if (!array || abi<=XL6_VALUE_DEFAULT_INVALID || abi>XL6_VALUE_DEFAULT_TIME) {
         xrtSetErrorKind(XERR_ARGUMENT);
         return false;
     }
@@ -33,23 +33,43 @@ bool xl6ArrayResizeDefaultV1(xvalue* array, int64_t target, unsigned int abi)
         xrtSetErrorKind(XERR_RANGE);
         return false;
     }
-    size_t count = xrtValueCount(array), size = (size_t)target;
-    if (size<count) return xrtValueArrayRemove(array, size, count-size);
-    if (size==count) return true;
+    ArrayView view = {0};
+    if (!begin(array,&view)) return false;
+    if (view.owner) {
+        /* The sealed resident policy, not the boxed compatibility hint, owns
+         * defaultability and the actual slot initializer. Keep the receiver
+         * pinned through initialization, rollback and committed destruction. */
+        xerror* prior=xrtTakeError();
+        bool ok=allocated(xl6SequenceResizeStorageV1(view.owner,(size_t)target));
+        xerror* failure=xrtTakeError();
+        ok=ok && failure==NULL;
+        if (prior) { xrtErrorFree(failure); xrtSetErrorTake(prior); }
+        else xrtSetErrorTake(failure);
+        finish(&view);
+        return ok;
+    }
+    size_t original = count(&view), size = (size_t)target;
+    bool ok = false;
+    if (size<original) {
+        ok=xrtValueArrayRemove(view.wire,size,original-size);
+        finish(&view); return ok;
+    }
+    if (size==original) { finish(&view); return true; }
     if (abi==XL6_VALUE_DEFAULT_FORBIDDEN) {
         xrtSetErrorKind(XERR_TYPE);
+        finish(&view);
         return false;
     }
     /* Never reserve/mutate the receiver before the full delta is ready. XRT
      * owns copying, allocation, backing snapshots and atomic graph commit. */
     xvalue* item = valueDefault(abi), *delta = NULL;
-    bool ok = false;
-    if (!item || !(delta=xrtValueArray()) || !xrtValueReserve(delta,size-count)) goto done;
-    for (size_t i=count;i<size;++i) if (!xrtValueArrayAppend(delta,item)) goto done;
-    ok = xrtValueArrayExtend(array, delta);
+    if (!item || !(delta=xrtValueArray()) || !xrtValueReserve(delta,size-original)) goto done;
+    for (size_t i=original;i<size;++i) if (!xrtValueArrayAppend(delta,item)) goto done;
+    ok = xrtValueArrayExtend(view.wire, delta);
 done:
     if (!ok && !xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
     cleanup(delta);
     cleanup(item);
+    finish(&view);
     return ok;
 }

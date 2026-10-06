@@ -64,6 +64,7 @@ def main() -> int:
         "src/runtime/xl6_array_default.c")]
     files += [root / name for name in ("tools/check_stdlib_array_primitive_admission.py",
         "tools/check_stdlib_array_methods.py","test/cases/stdlib_array_methods_native_host.c",
+        "test/cases/stdlib_array_resident_default_host.c","test/cases/stdlib_array_default_header.c",
         "test/cases/stdlib_array_methods_header.c","src/runtime/xl6_array_methods.c",
         "src/runtime/xl6_array_method_insert.c","src/runtime/xl6_array_method_find.c",
         "tools/check_stdlib_array_import.py","test/cases/stdlib_array_import_native_host.c",
@@ -293,14 +294,14 @@ def main() -> int:
                 "Checks": len(admitted["Rows"]), "ClosedPrefixes": len(admitted["Sweeps"]),
                 "AllocationPositions": sum(row["FirstNoHit"]+1 for row in admitted["Sweeps"]),
                 "Complete": True, "InputsUnchanged": True})
-        child = out / "boxed-defaults"
+        child = out / "wire-defaults"
         command = [sys.executable, "tools/check_stdlib_array_defaults.py", "--out", str(child)]
         if args.sanitize:
             command += ["--sanitize"]
         run(child.name, command, timeout=120)
         defaults = json.loads((child / "results.json").read_text(encoding="utf-8"))
         if not defaults["Complete"] or not defaults["InputsUnchanged"]:
-            raise RuntimeError("Incomplete boxed Array default evidence")
+            raise RuntimeError("Incomplete wire Array default evidence")
         report["DefaultReport"] = {"Directory": str(child), "Checks": len(defaults["Rows"]),
             "ClosedPrefixes": len(defaults["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in defaults["Sweeps"]),
@@ -345,6 +346,15 @@ def main() -> int:
         if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=9 or len(evidence["Sweeps"])!=252:
             raise RuntimeError("Incomplete profiled resident Array methods evidence")
         report["ResidentMethodsReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
+            "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
+        child=out / "native-defaults"
+        command=[sys.executable,"tools/check_stdlib_array_methods.py","--defaults","--out",str(child)]
+        if args.sanitize: command += ["--sanitize"]
+        run(child.name,command,timeout=360)
+        evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=12 or len(evidence["Sweeps"])!=48:
+            raise RuntimeError("Incomplete profiled native Array defaults evidence")
+        report["NativeDefaultsReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
             "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         child = out / "admission-c-scalar"
         command = [sys.executable, "tools/check_stdlib_array_c_scalar.py", "--out", str(child)]

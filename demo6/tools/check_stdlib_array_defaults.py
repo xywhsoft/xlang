@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Resident boxed Array defaults: strict C, failure atomicity, aliases and full OOM prefixes.
+"""Wire Array defaults: strict C, failure atomicity, aliases and full OOM prefixes.
 
-Not native Sequence/language Array migration. --shared checks real product ABI;
+The companion native-default gate covers admitted Sequence policies.
+--shared checks real product ABI;
 Linux --sanitize instruments the entire selected native closure except in --shared.
 """
 from __future__ import annotations
@@ -33,7 +34,7 @@ def main() -> int:
     if not cc or not nm or (args.shared and os.name == "nt" and not objdump) or out.exists() or (args.sanitize and os.name == "nt"):
         parser.error("Require gcc/nm, a fresh output and Linux for sanitizers")
     sources = ["test/cases/stdlib_array_default_native_host.c", "test/support/array_default_native.c",
-               "src/runtime/xl6_array_default.c"]
+               "src/runtime/xl6_array_default.c", "src/runtime/xl6_sequence.c"]
     product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / "lib/xrt/xrt.h"]
     files += [root / name for name in sources]
@@ -87,7 +88,9 @@ def main() -> int:
             names={line.split()[-1].lstrip("_") for line in symbols.splitlines() if line.split()}
             assert {"xl6ArrayResizeDefaultV1","xrtValueArrayExtend"} <= names
             if not args.shared:
-                assert not any(re.match(r"xl6(?:ArrayCreate|Sequence|Stack|Log|Regex|Process)|xrtTypedArray",n) for n in names)
+                assert not any(re.match(r"xl6(?:ArrayCreate|Sequence(?:Primitive|Reference|Nominal|CScalar|NullableCScalar|Nested|NumericEnum|Callable|Future)Create|Stack|Log|Regex|Process)",n) for n in names)
+                assert {"xl6SequenceResizeStorageV1", "xrtTypedArrayResizeWithInitializer"} <= names
+                assert "xrtTypedArrayGetValue" not in names
             run(lane+".vectors",[str(binary)])
             for abi in range(0,11):
                 if abi==1:

@@ -61,6 +61,12 @@ int main(int argc, char** argv)
         MUTATE(firstOperand, SIZE_MAX);
         MUTATE(payloadType, saved.type);
         MUTATE(opcode, XL6_IR_OPCODE_ADD);
+        if (saved.typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) {
+            MUTATE(collectionDefaultAbi, XL6_VALUE_DEFAULT_INVALID);
+            MUTATE(collectionDefaultAbi, (XL6_ValueDefaultAbiV1)UINT32_MAX);
+            MUTATE(collectionDefaultAbi, saved.collectionDefaultAbi==XL6_VALUE_DEFAULT_NULL ?
+                XL6_VALUE_DEFAULT_INT : XL6_VALUE_DEFAULT_NULL);
+        }
 #undef MUTATE
         XL6_IrValueId* receiver = &ir.operands[saved.firstOperand];
         XL6_IrValueId operand = *receiver;

@@ -155,7 +155,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nominal_admission.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_reference_admission.c", D(R(SEQUENCE),R(VALUE_ADMISSION)), {NULL}},
     {"src/runtime/xl6_array_nominal_admission.c", D(R(SEQUENCE),R(NOMINAL_ADMISSION)), {NULL}},
-    {"src/runtime/xl6_array_default.c", D(), {"XRT_MODULE_VALUE_COLLECTION"}},
+    {"src/runtime/xl6_array_default.c", D(R(SEQUENCE)),
+        {"XRT_MODULE_VALUE_COLLECTION", "XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_array_primitive_admission.c", D(R(SEQUENCE),R(VALUE_ADMISSION)), {NULL}},
     {"src/runtime/xl6_array_c_scalar_admission.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_stack_batch.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_STACK"}},
@@ -412,8 +413,6 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         xl6ArtifactTypeRequire(&work,instruction->payloadType);
         if (instruction->kind==XL6_IR_INSTR_AWAIT) REQUIRE(R(FUTURE_PAYLOAD));
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
-        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
-            instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE) REQUIRE(R(ARRAY_BOXED_DEFAULT));
         if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CREATE) {
             const XL6_IrType* stack=xl6IrTypeGet(&module->types,instruction->type);
             switch (stack->sequenceLayout.abi) {

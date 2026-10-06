@@ -20,12 +20,14 @@ def main() -> int:
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--sanitize', action='store_true', help='Generated/host code only; shared runtime is not instrumented')
+    parser.add_argument('--defaults', action='store_true', help='Actual resize IR/native caller, sync/async/generator and full OOM prefixes')
     args = parser.parse_args()
     root, out = Path(__file__).resolve().parents[1], args.out.resolve()
     cc = shutil.which('gcc')
     if not cc or out.exists() or (os.name == 'nt' and (not args.public_directory or args.sanitize)):
         parser.error('Require gcc, fresh evidence and Windows current-source driver')
     fixtures = ['stdlib_array_methods', 'stdlib_array_methods_continuation']
+    if args.defaults: fixtures = ['stdlib_array_resident_defaults', 'stdlib_array_resident_defaults_continuation']
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     public = None
     files = {Path(__file__), Path(cc), Path(sys.executable), product, root / 'lib/xrt/xrt.h',
@@ -36,6 +38,9 @@ def main() -> int:
         'test/cases/stdlib_array_methods_projection_host.c', 'test/cases/xlir_module_product_oom_host.c',
         'test/support/module_product_memory.c', 'test/support/module_product_memory.h'))
     files.update(root / f'test/cases/{name}.xl' for name in fixtures)
+    if args.defaults:
+        files.update(root / name for name in ('test/cases/stdlib_array_default_commit_host.c',
+            'test/support/array_default_native.c'))
     if args.public_directory:
         public = json.loads((args.public_directory / 'build.json').read_text(encoding='utf-8-sig'))
         staged = json.loads((args.public_directory / 'artifact_sources.json').read_text(encoding='utf-8-sig'))
@@ -51,7 +56,7 @@ def main() -> int:
     inputs = [{'Path': str(path.resolve()), 'Sha256': digest(path)} for path in sorted(files)]
     rows, sweeps = [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows, 'Sweeps': sweeps,
-              'Scope': __doc__, 'LanguageRuntimeInstrumented': False, 'SanitizedHost': args.sanitize}
+              'Scope': __doc__, 'NativeDefaults': args.defaults, 'LanguageRuntimeInstrumented': False, 'SanitizedHost': args.sanitize}
     out.mkdir(parents=True)
     private = out / 'include/__xl_runtime'; private.mkdir(parents=True)
     for directory in (root / 'src/runtime', root / 'release/include'):
@@ -81,6 +86,17 @@ def main() -> int:
         return data.decode(errors='replace')
 
     try:
+        if args.defaults:
+            for level in (0, 2):
+                binary=out / (f'commit.O{level}' + ('.exe' if os.name=='nt' else ''))
+                run(f'commit.O{level}.build', [cc,*flags,*(['-g','-fsanitize=address,undefined',
+                    '-fno-omit-frame-pointer','-fno-pie','-no-pie'] if args.sanitize else []),f'-O{level}',
+                    'test/cases/stdlib_array_default_commit_host.c','test/support/array_default_native.c',
+                    'src/runtime/xl6_array_default.c','src/runtime/xl6_sequence.c',
+                    'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_array_reference_value.c',
+                    'src/runtime/xl6_value_admission.c',*platform,'-o',str(binary)])
+                assert '200 drops' in run(f'commit.O{level}.run',[str(binary)])
+            report['CommitRuntimeInstrumented']=args.sanitize
         compiler_links = ([row['Path'] for row in public['Objects'] if Path(row['Path']).name != 'xlir_public_source_driver.o'] +
             [str(product), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32'] if public else ['-lxlc', *links])
         contract = out / ('contract.exe' if os.name == 'nt' else 'contract')
@@ -102,19 +118,24 @@ def main() -> int:
             proof = run(name + '.contract', [str(contract), source, str(target),
                 *([str(bindings)] if name == fixtures[0] else [])])
             assert 'mutations refused before C/header output' in proof and original == target.read_bytes()
-            code = original.decode('utf-8'); assert 'xl6_array_methods.h' in code
+            code = original.decode('utf-8'); assert ('xl6_array_default.h' if args.defaults else 'xl6_array_methods.h') in code
             assert not any(token in code for token in ('static bool xlir_xvalue_array_remove_value(',
                 'static int64_t xlir_xvalue_typed_array_index_of(', 'static bool xlir_xvalue_typed_array_reverse('))
-            if name == fixtures[0]:
+            if name == fixtures[0] and not args.defaults:
                 assert all('xl6ArrayMethod' + suffix + 'V1(' in code for suffix in
                     ('Clear', 'Capacity', 'Reserve', 'Trim', 'Swap', 'Reverse', 'Insert', 'IndexOf', 'RemoveValue'))
+            if args.defaults:
+                assert 'xl6ArrayResizeDefaultV1(' in code
+                assert not any(token in code for token in ('xlir_xvalue_typed_array_resize', 'xlir_xvalue_typed_array_default'))
             for level in (0, 2):
                 binary = out / (name + f'.O{level}' + ('.exe' if os.name == 'nt' else ''))
                 memory = out / f'memory.O{level}.o'
                 if not memory.exists():
                     run(f'memory.O{level}.build', [cc, *strict, f'-O{level}', '-c',
                         'test/support/module_product_memory.c', '-o', str(memory)])
-                run(name + f'.O{level}.build', [cc, *strict, f'-O{level}', '-include', str(target),
+                user_entry = args.defaults and name == fixtures[0]
+                run(name + f'.O{level}.build', [cc, *strict, f'-O{level}',
+                    *(['-DXL6_PRODUCT_USER_ENTRY'] if user_entry else []), '-include', str(target),
                     'test/cases/xlir_module_product_oom_host.c', str(memory), *links, '-o', str(binary)], 360)
                 assert 'balanced' in run(name + f'.O{level}.run', [str(binary)])
                 if name == fixtures[0]:
@@ -122,6 +143,7 @@ def main() -> int:
                         proof = run(name + f'.O{level}.oom.{point}', [str(binary), str(point)])
                         assert 'balanced' in proof
                         if 'hit=0 balanced' in proof:
+                            assert not user_entry or point > 0, 'User entry must execute allocation work'
                             sweeps.append({'Fixture': name, 'Level': level, 'FirstNoHit': point}); break
                     else: raise RuntimeError('Unclosed complete module allocation prefix')
                     projected = out / (f'projection.O{level}' + ('.exe' if os.name == 'nt' else ''))
