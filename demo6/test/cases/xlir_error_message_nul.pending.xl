@@ -1,0 +1,7 @@
+// Core defect discovered in protocol failure validation: language throw text
+// loses the suffix at the native Error message C-string boundary.
+try
+    throw "reject\0你"
+catch failure
+    assert failure.message == "reject\0你"
+end

@@ -1,0 +1,49 @@
+int conversions = 0
+bool rejectText = false
+int finalizations = 0
+
+class InterpolationValue
+    derive string
+    string text = "a\0你"
+    char zero = '\0'
+end
+
+class ProtocolValue
+    func __toString__() as string
+        conversions += 1
+        if rejectText
+            throw "reject你"
+        end
+        return "custom\0你"
+    end
+end
+
+InterpolationValue item = InterpolationValue()
+string expected = "InterpolationValue{text=a\0你, zero=\0}"
+assert string(item) == expected and f"{item}" == expected, "derived"
+assert f"before:{item}:after" == "before:" + expected + ":after"
+assert f"{InterpolationValue()}" == expected
+ProtocolValue custom = ProtocolValue()
+assert f"{custom}:{custom}" == "custom\0你:custom\0你"
+assert conversions == 2, "two protocol calls"
+assert f"{ProtocolValue()}" == "custom\0你"
+assert conversions == 3, "temporary protocol call"
+string text = "a\0你"
+assert f"{text}:{'\0'}:{'你'}:{type(item)}" == "a\0你:\0:你:InterpolationValue", "mixed conversions"
+var refined = "refined\0你"
+if refined is string
+    assert f"{refined}" == "refined\0你"
+end
+rejectText = true
+try
+    string rejected = f"prefix\0{custom}suffix"
+    assert false
+catch failure
+    assert failure.message == "reject你", "protocol failure message"
+finally
+    finalizations += 1
+end
+assert finalizations == 1 and conversions == 4, "protocol finally"
+rejectText = false
+assert f"{custom}" == "custom\0你" and conversions == 5
+print("class interpolation protocol ok")

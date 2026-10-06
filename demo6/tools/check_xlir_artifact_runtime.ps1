@@ -144,7 +144,8 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
-                if($case-in@('stdlib_class_text','stdlib_class_text_derive_only',
+                if($case-in@('stdlib_class_interpolation','stdlib_class_values_continuation',
+                    'stdlib_class_text','stdlib_class_text_derive_only',
                     'xlir_string_conversion_abi','cgen_derive_string_hash_equals')){
                     $selectionMatches='src/runtime/xl6_class_text.c'-in$selectedSources-and
                         'src/runtime/xl6_value_text.c'-in$selectedSources-and
@@ -160,7 +161,7 @@ $process=Start-Process @start
                             !@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_console_'}).Count
                     }
                 }
-                if($case-in@('basic','cgen_basic','stdlib_error_text')){
+                if($case-in@('basic','cgen_basic','stdlib_error_text','stdlib_class_value_fields')){
                     $selectionMatches='src/runtime/xl6_class_text.c'-notin$selectedSources
                 }
                 if($case-like'stdlib_value_iterator_checked*'){

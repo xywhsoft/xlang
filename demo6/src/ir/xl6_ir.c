@@ -9070,7 +9070,7 @@ static int xl6IrBuildClassAssignableTo(
     return 0;
 }
 
-static XL6_IrStringConversionAbi xl6IrBuildStringConversionAbi(
+XL6_IrStringConversionAbi xl6IrClassifyStringConversionAbi(
     const XL6_IrModule* module, XL6_IrTypeId sourceTypeId,
     XL6_IrTypeId* stringClassType)
 {
@@ -9091,6 +9091,8 @@ static XL6_IrStringConversionAbi xl6IrBuildStringConversionAbi(
         return XL6_IR_STRING_CONVERSION_U64_VALUE;
     case XL6_IR_C_ABI_F64:
         return XL6_IR_STRING_CONVERSION_F64_VALUE;
+    case XL6_IR_C_ABI_F32:
+        return XL6_IR_STRING_CONVERSION_F32_VALUE;
     case XL6_IR_C_ABI_TIME_I64:
         return XL6_IR_STRING_CONVERSION_TIME_VALUE;
     case XL6_IR_C_ABI_MANAGED_STRING:
@@ -12242,7 +12244,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_OWNED;
             intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
             if ( operandCount == 1 )
-                intrinsic.stringConversionAbi = xl6IrBuildStringConversionAbi(
+                intrinsic.stringConversionAbi = xl6IrClassifyStringConversionAbi(
                     module, xl6IrBuildStringConversionSourceType(
                         &module->nodes[operands[0] - 1]),
                     &intrinsic.stringClassType);
@@ -12336,7 +12338,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         intrinsic.kind = XL6_IR_INTRINSIC_STRING_CONVERT;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_OWNED;
         intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        intrinsic.stringConversionAbi = xl6IrBuildStringConversionAbi(
+        intrinsic.stringConversionAbi = xl6IrClassifyStringConversionAbi(
             module, xl6IrBuildStringConversionSourceType(
                 &module->nodes[stringMemberReceiver - 1]),
             &intrinsic.stringClassType);
@@ -14147,10 +14149,12 @@ static int xl6IrNullableProjectionTypeIsClosed(
          element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          element->typeValueId != 0 &&
          xl6IrUnionLayoutGet(module, nullable->params[0]) != NULL ) return 1;
-    return nullable->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+    return (nullable->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            nullable->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
            nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
            nullable->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-           ((element->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+           (((element->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+              element->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
              element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
             (element->kind == XL6_IR_TYPE_CLASS &&
              element->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&
@@ -14499,6 +14503,10 @@ static XL6_IrMemberAbi xl6IrClassFieldMemberAbi(
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_U64;
     case XL6_IR_C_ABI_F64:
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_F64;
+    case XL6_IR_C_ABI_CHAR_U32:
+    case XL6_IR_C_ABI_F32:
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        return XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE;
     case XL6_IR_C_ABI_TIME_I64:
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:
@@ -16920,6 +16928,8 @@ static int xl6IrNodeRequiresOwnedReadResult(
         case XL6_IR_MEMBER_ABI_CLASS_FIELD_STRING_COPY:
         case XL6_IR_MEMBER_ABI_CLASS_FIELD_NULLABLE_STRING_COPY:
         case XL6_IR_MEMBER_ABI_CLASS_FIELD_ERROR_REF:
+        case XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE:
+        case XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE:
         case XL6_IR_MEMBER_ABI_ERROR_MESSAGE_COPY:
         case XL6_IR_MEMBER_ABI_ERROR_KIND_COPY:
         case XL6_IR_MEMBER_ABI_ERROR_FILE_COPY:
@@ -16968,9 +16978,15 @@ static XL6_IrErrorAbi xl6IrNodeProjectionErrorAbi(
                               result->cAbi == XL6_IR_C_ABI_MANAGED_STRING))
             return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
-    if (node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_CLOSURE ||
+    if (node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE ||
+        node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_CLOSURE ||
         node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_NULLABLE_STRING_COPY)
         return XL6_IR_ERROR_ABI_MAY_RAISE;
+    if (node->memberAbi == XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE) {
+        result = xl6IrTypeGet(&module->types, node->storageType);
+        if (result != NULL && result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED)
+            return XL6_IR_ERROR_ABI_MAY_RAISE;
+    }
     if ((node->kind == XL6_IR_NODE_MEMBER || node->kind == XL6_IR_NODE_INDEX) &&
         !xl6IrReadIsWriteTarget(module, id) && node->childCount != 0) {
         receiver = xl6IrNodeGet(module, module->children[node->firstChild]);
@@ -31682,7 +31698,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                      intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
                      intrinsic->stringConversionAbi !=
-                         xl6IrBuildStringConversionAbi(
+                         xl6IrClassifyStringConversionAbi(
                              module,
                              intrinsic->operandCount == 1
                                  ? xl6IrBuildStringConversionSourceType(
@@ -32200,7 +32216,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      intrinsic->stringConversionAbi ==
                          XL6_IR_STRING_CONVERSION_INVALID ||
                      intrinsic->stringConversionAbi !=
-                         xl6IrBuildStringConversionAbi(
+                         xl6IrClassifyStringConversionAbi(
                              module,
                              xl6IrBuildStringConversionSourceType(
                                  xl6IrNodeGet(
@@ -34837,7 +34853,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 "typed XLIR named callable has no exact declaration and signature ABI");
         }
         if ( node->memberAbi < XL6_IR_MEMBER_ABI_NONE ||
-             node->memberAbi > XL6_IR_MEMBER_ABI_XVALUE_COUNT ||
+             node->memberAbi > XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE ||
              node->memberAbi != expectedMemberAbi ||
              node->unionField != expectedUnionField ) {
             xrtFree(incoming);
@@ -43086,6 +43102,7 @@ static const char* xl6IrStringConversionAbiName(
     case XL6_IR_STRING_CONVERSION_CLASS_PROTOCOL_CALL:
         return "class-protocol-call";
     case XL6_IR_STRING_CONVERSION_CHAR_VALUE: return "char-value";
+    case XL6_IR_STRING_CONVERSION_F32_VALUE: return "f32-value";
     default: return "invalid";
     }
 }
@@ -43841,6 +43858,7 @@ static const char* xl6IrMemberAbiName(XL6_IrMemberAbi abi)
     case XL6_IR_MEMBER_ABI_SAFE_CLASS_FIELD_NULLABLE:
         return "safe-class-field-nullable";
     case XL6_IR_MEMBER_ABI_BYTES_LENGTH: return "bytes-length";
+    case XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE: return "class-field-exact-value";
     default: return "invalid";
     }
 }

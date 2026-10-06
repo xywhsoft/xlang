@@ -33,7 +33,8 @@ def main():
     runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     compiler_runtime = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
     cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
-    cases = ['stdlib_class_text', 'stdlib_class_text_derive_only', 'xlir_string_conversion_abi',
+    cases = ['stdlib_class_value_fields', 'stdlib_class_interpolation', 'stdlib_class_values_continuation',
+             'stdlib_class_text', 'stdlib_class_text_derive_only', 'xlir_string_conversion_abi',
              'cgen_derive_string_hash_equals', 'cgen_basic']
     sources = ['test/cases/stdlib_class_text_native_host.c', 'test/support/module_product_memory.c']
     if args.mode == 'native':
@@ -74,7 +75,7 @@ def main():
                   Sweeps=sweeps, Contracts=contracts, Platform=sys.platform, Mode=args.mode,
                   Sanitized=args.sanitize, SelectedClosureInstrumented=args.sanitize and args.mode == 'native',
                   HostAndGeneratedOnlyInstrumented=args.sanitize and args.mode != 'native',
-                  Scope='Resident class display; native prefixes or five real language fixtures, not all 53 modules')
+                  Scope='Resident class display and exact field/interpolation language fixtures, not all 53 modules')
     env = dict(os.environ)
     if args.sanitize:
         env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',
@@ -142,7 +143,8 @@ def main():
                 run('contract.build', [cc, *generated_flags, '-Wno-pointer-sign', '-Wno-format-truncation',
                     '-Ilib/tcc', 'test/cases/xlir_class_text_contract.c', *objects, *links,
                     *contract_links, '-o', contract])
-                for case in ['stdlib_class_text', 'stdlib_class_text_derive_only', 'xlir_string_conversion_abi']:
+                for case in ['stdlib_class_value_fields', 'stdlib_class_interpolation', 'stdlib_class_values_continuation',
+                             'stdlib_class_text', 'stdlib_class_text_derive_only', 'xlir_string_conversion_abi']:
                     paths = [out / (case + '.contract' + suffix) for suffix in ['.c', '.h', '.json']]
                     run(case + '.contract', [contract, 'test/cases/' + case + '.xl', *paths])
                     repeated = [path.with_name(path.stem + '.repeat' + path.suffix) for path in paths]
@@ -182,6 +184,7 @@ def main():
                     assert b'balanced' in data
                     if case == 'stdlib_class_text':
                         assert b'text=a\0\xe4\xbd\xa0, zero=\0, unicode=\xe4\xbd\xa0, large=18446744073709551615}' in data
+                    if case in ['stdlib_class_text', 'stdlib_class_value_fields', 'stdlib_class_values_continuation']:
                         for point in range(4097):
                             data = run(case + f'.O{level}.oom.{point}', [binary, point])
                             assert b'balanced' in data

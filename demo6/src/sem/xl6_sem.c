@@ -8909,6 +8909,7 @@ static int xl6SemTypeNameHasImplicitToString(const char* name)
            xl6SemIsFloatTypeName(name) ||
            xl6TextEquals(name, "string") ||
            xl6TextEquals(name, "time") ||
+           xl6TextEquals(name, "type") ||
            xl6TextEquals(name, "point");
 }
 

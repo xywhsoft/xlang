@@ -1,0 +1,28 @@
+class ContinuationValue
+    derive string
+    char scalar = '你'
+    bytes data = b"A\0你"
+    string text = "a\0你"
+end
+
+async func scalarLater(ContinuationValue item) as char
+    return item.scalar
+end
+
+async func bytesLater(ContinuationValue item) as bytes
+    return item.data
+end
+
+async func textLater(ContinuationValue item) as string
+    char scalar = await scalarLater(item)
+    return f"{item}:{scalar}"
+end
+
+ContinuationValue item = ContinuationValue()
+assert await scalarLater(item) == '你'
+bytes copy = await bytesLater(item)
+copy[0] = uint8(90)
+assert copy == b"Z\0你" and item.data == b"A\0你"
+assert await textLater(item) == string(item) + ":你"
+assert await textLater(ContinuationValue()) == string(item) + ":你"
+print("class value continuation ok")

@@ -2295,7 +2295,9 @@ typedef enum XL6_IrStringConversionAbi {
     XL6_IR_STRING_CONVERSION_CLASS_PROTOCOL_CALL,
     /* Append-only: a language char is one already validated Unicode scalar,
      * not an integer that Cgen may format numerically. */
-    XL6_IR_STRING_CONVERSION_CHAR_VALUE
+    XL6_IR_STRING_CONVERSION_CHAR_VALUE,
+    /* Exact F32 value, widened once before the common F64 formatter. */
+    XL6_IR_STRING_CONVERSION_F32_VALUE
 } XL6_IrStringConversionAbi;
 
 /* Operand ABI describes what the intrinsic is allowed to do with the source
@@ -2552,7 +2554,11 @@ typedef enum XL6_IrMemberAbi {
      * observation is unrelated. */
     XL6_IR_MEMBER_ABI_BYTES_LENGTH,
     /* Collection cardinality, not a dynamic object field. */
-    XL6_IR_MEMBER_ABI_XVALUE_COUNT
+    XL6_IR_MEMBER_ABI_XVALUE_COUNT,
+    /* A declared value field without a specialized physical getter. Borrow
+     * its erased slot, then apply the canonical exact-TypeId projection.
+     * The result is an independent scalar/value, never a slot reference. */
+    XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE
 } XL6_IrMemberAbi;
 
 /* Safe builtin indexing evaluates its key only on the present successor.
@@ -6261,6 +6267,11 @@ XL6_IrParameterAbi xl6IrParameterAbiForMode(
  * wrapping, truth or other nontrivial operation instead. */
 XL6_IrScalarConversionAbi xl6IrClassifyScalarConversionAbi(
     const XL6_IrType* source, const XL6_IrType* result);
+/* The single declared string-conversion contract shared by intrinsic
+ * construction, interpolation lowering and verification. */
+XL6_IrStringConversionAbi xl6IrClassifyStringConversionAbi(
+    const XL6_IrModule* module, XL6_IrTypeId sourceType,
+    XL6_IrTypeId* stringClassType);
 /* Classify one conversion implied by a binary node's already-fixed
  * operatorExecutionType.  INVALID means either no conversion is required or
  * the operand cannot enter that execution domain. */
