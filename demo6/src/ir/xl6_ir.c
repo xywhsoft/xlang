@@ -18256,6 +18256,9 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
 {
     switch (operation) {
     case XL6_IR_RUNTIME_XVALUE_ARRAY_NEW:
+    case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY:
+    case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY:
+    case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW:
     case XL6_IR_RUNTIME_XVALUE_SET_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_NEW:
@@ -20139,9 +20142,49 @@ int xl6IrCollectionMemberRuntimeOpIs(XL6_IrRuntimeOp operation)
  * carriers and borrowed receiver/key operands that lowering materialized. */
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
+    return xl6IrOwnedIndexReadRuntimeOpIs(operation) || xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
+}
+
+int xl6IrOwnedIndexReadRuntimeOpIs(XL6_IrRuntimeOp operation)
+{
+    return operation==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ||
+        operation==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ||
+        operation==XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY;
+}
+int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        !xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp) ||
+        instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=2 ||
+        !module->operands || instruction->firstOperand>module->operandCount ||
+        module->operandCount-instruction->firstOperand<2 ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue!=XL6_IR_VALUE_INVALID ||
+        instruction->calleeType!=XL6_IR_TYPE_INVALID || instruction->payloadType!=XL6_IR_TYPE_INVALID ||
+        instruction->runtimeIdentityType!=XL6_IR_TYPE_INVALID || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+        instruction->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_INVALID ||
+        instruction->dynamicCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+        instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID ||
+        !xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type)) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrInstruction* key=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL);
+    const XL6_IrType* receiver=source ? xl6IrCollectionCountReceiverBase(module,source->type) : NULL;
+    const XL6_IrType* index=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
+    if (!source || !receiver || !index) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY)
+        return xl6IrTypeIsRuntimeXValue(module,source->type) &&
+            xl6IrTypeIsDynamicXValueBuiltin(module,key->type) &&
+            (xl6IrTypeIsDynamicXValueBuiltin(module,source->type) ||
+             receiver->collectionAbi==XL6_IR_COLLECTION_ARRAY ||
+             receiver->collectionAbi==XL6_IR_COLLECTION_LIST || receiver->collectionAbi==XL6_IR_COLLECTION_DICT);
+    return index->cAbi==XL6_IR_C_ABI_I64 && index->nullAbi==XL6_IR_NULL_ABI_NONE &&
+        (xl6IrTypeIsDynamicXValueBuiltin(module,source->type) || receiver->collectionAbi==XL6_IR_COLLECTION_ARRAY) &&
+        (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ||
+         xl6IrTypeGet(&module->types,source->type)->kind!=XL6_IR_TYPE_NULLABLE);
 }
 
 int xl6IrArrayScalarReadRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -20302,6 +20345,8 @@ int xl6IrCollectionReadRuntimeInstructionCompatible(
     size_t count;
     if (instruction && xl6IrCollectionCountRuntimeOpIs(instruction->runtimeOp))
         return xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction);
+    if (instruction && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp))
+        return xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp))
         return xl6IrArrayScalarReadRuntimeInstructionCompatible(module,instruction);
     if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)
@@ -38395,6 +38440,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              originNode->memberAbi != expectedMember )
                             return xl6IrDiag(diags, originNode,
                                 "XLIR safe xvalue count has no exact receiver, nullable result or ownership ABI");
+                    } else if (xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
+                        if (!xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR owned index read has no exact observed inputs and dynamic result ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_NEW ) {
                         if ( instruction->operandCount != 0 || instruction->immediateText != NULL ||
                              !xl6IrTypeIsRuntimeXValue(module, instruction->type) )
@@ -44324,6 +44372,9 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
         return "xvalue-collection-checked-rebind";
     case XL6_IR_RUNTIME_XVALUE_COUNT: return "xvalue-count";
     case XL6_IR_RUNTIME_XVALUE_ARRAY_NEW: return "xvalue-array-new";
+case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY: return "array-read-value-copy";
+case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY: return "array-read-value-or-null-copy";
+case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY: return "index-read-value-copy";
 case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64: return "xvalue-array-at-i64";
 case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_OR_NULL: return "xvalue-array-at-i64-or-null";
     case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER: return "xvalue-array-at-i64-integer";

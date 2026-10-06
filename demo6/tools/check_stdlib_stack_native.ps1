@@ -74,6 +74,11 @@ try {
         'test/cases/stdlib_array_scalar_read_header.c','src/runtime/xl6_array_scalar_read.c',
         'test/cases/stdlib_array_scalar_read.xl','test/cases/stdlib_array_scalar_read_continuation.xl',
         'test/cases/xlir_array_scalar_read_contract.c','test/cases/stdlib_array_scalar_read_projection_host.c')
+    $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_value_read.c',
+        'tools/check_stdlib_array_value_read.py','test/cases/xlir_array_value_read_contract.c',
+        'test/cases/stdlib_array_value_read_native_host.c','test/cases/stdlib_array_value_read_projection_host.c',
+        'test/cases/stdlib_array_value_read_header.c',
+        'test/cases/stdlib_array_value_read.xl','test/cases/stdlib_array_value_read_continuation.xl')
     $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_string_read.c',
         'test/cases/stdlib_array_value_boundaries_header.c','test/cases/stdlib_array_value_boundaries_native_host.c',
         'test/cases/stdlib_array_value_boundaries_projection_host.c','test/cases/stdlib_array_value_boundaries.xl',
@@ -303,6 +308,8 @@ try {
     Run 'value-iterator-checked' $python @('tools/check_stdlib_array_scalar_read.py','--checked-iterator','--out',"$outPath/value-iterator-checked",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $checkedIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/value-iterator-checked/results.json" -Raw | ConvertFrom-Json
     if (!$checkedIterator.Complete -or !$checkedIterator.InputsUnchanged -or $checkedIterator.Sweeps.Count-ne4) { throw 'Incomplete checked value iterator evidence' }
+    Run 'array-owned-read-language' $python @('tools/check_stdlib_array_value_read.py','--out',"$outPath/array-owned-read-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    Run 'array-owned-read-native' $python @('tools/check_stdlib_array_primitive_admission.py','--reads','--out',"$outPath/array-owned-read-native") -TimeoutMs 900000
     Run 'array-native-iterator' $python @('tools/check_stdlib_array_primitive_admission.py','--iterator','--out',"$outPath/array-native-iterator") -TimeoutMs 900000
     $nativeIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-native-iterator/results.json" -Raw | ConvertFrom-Json
     if (!$nativeIterator.Complete -or !$nativeIterator.InputsUnchanged -or $nativeIterator.Sweeps.Count-ne66) { throw 'Incomplete native Array iterator evidence' }

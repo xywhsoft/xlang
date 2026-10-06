@@ -216,6 +216,13 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
+            const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ?
+                "xl6ArrayValueReadCopyV1" : instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ?
+                "xl6ArrayValueReadOrNullCopyV1" : "xl6ValueIndexReadCopyV1";
+            if (!xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction) || !visitor(context,symbol)) return 0;
+            continue;
+        }
         if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
             (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
              instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)) {

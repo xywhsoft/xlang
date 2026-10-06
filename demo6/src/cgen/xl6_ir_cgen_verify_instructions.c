@@ -612,6 +612,9 @@ static int xl6IrCgenVerifyInstructions(
                     instruction->runtimeOp !=
                         XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_NEW &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_OR_NULL &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER &&

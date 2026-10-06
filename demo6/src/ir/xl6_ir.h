@@ -1907,7 +1907,14 @@ typedef enum XL6_IrRuntimeOp {
        /* Typed nullable Future lookup: NULL stays absent; a present value
         * projects a new retained owner. payloadType is the underlying T,
         * never the outer nullable parameter (Future<T>). */
-       XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY
+       XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY,
+       /* Owned general index reads. Native slot projection may allocate; NULL
+        * is failure independently of TLS. Safe misses are owned canonical null.
+        * Receiver/key are observed, never consumed. No borrowed wire-result
+        * contract can be used for these native-capable operations. */
+       XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY,
+       XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY,
+       XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6317,6 +6324,9 @@ int xl6IrDynamicCompareRuntimeOpIs(XL6_IrRuntimeOp operation);
 int xl6IrDynamicCompareRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation);
+int xl6IrOwnedIndexReadRuntimeOpIs(XL6_IrRuntimeOp operation);
+int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction);
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeCollectionCountErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 /* Exact normal/tagged-nullable/open-var count contract, shared by verification

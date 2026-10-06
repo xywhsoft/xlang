@@ -188,3 +188,14 @@ Regex 专项门新增 `stdlib_pattern_builder.xl`、
 `test/support/pattern_builder_native.c` 检查准备/应用/键/编译实际 OOM、COW
 标签快照、孤立编辑、创建线程与取消键永久失效。Linux 对该原生 host
 执行 ASan/UBSan/leak 检查，语言共享库宿主仍只声称逻辑账本覆盖。
+
+### B97 拥有型 Array / 动态索引读取
+
+`tools/check_stdlib_array_value_read.py` 验证 `stdlib_array_value_read.xl`
+及 continuation 的真实 IR、C/header 拒绝、C/IR 确定性、严格 O0/O2、
+模块逐点 OOM、JIT/AOT。contract 抽取真实函数与 TypeId，原生 projection
+host 用其调用生成函数，检查 char、nullable、NULL 失败、BUSY、finally
+和拥有账本。声明头另作无 XRT 实现的独立 C11 编译。
+`check_stdlib_array_primitive_admission.py --reads` 重用 11 个真实物理闭包，
+检查 strict/safe/keyed native/wire 读取、codec、NUL、寿命和完整分配前缀。
+Array / Stack 父门已纳入这些测试；不表示源 Array carrier 已迁移完成。
