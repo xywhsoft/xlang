@@ -781,6 +781,14 @@ static int xl6StdlibNodeUsesTypeName(const XL6_AstNode* node, const char* typeNa
     if ( node->kind == XL6_AST_TYPE && xl6StdlibTextEquals(node->text, typeName) ) {
         return 1;
     }
+    /* Explicit generic construction (Type::<T>(...)) has a NAME inside a
+     * GENERIC_INSTANT, not a TYPE or a direct CALL callee. It is nevertheless
+     * a declaration dependency, including when the binding uses auto. */
+    if ( node->kind == XL6_AST_GENERIC_INSTANT && node->childCount > 0 &&
+         node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME &&
+         xl6StdlibTextEquals(node->children[0]->text, typeName) ) {
+        return 1;
+    }
     if ( node->kind == XL6_AST_CALL &&
          node->childCount > 0 &&
          node->children[0] != NULL &&
@@ -1928,6 +1936,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsBufferClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibBufferClassSource);
+    }
+    if ( xl6StdlibNodeUsesTypeName(root, "FixedStack") ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFixedStackSource);
     }
     if ( needsSipHasher64Class ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibSipHasher64ClassSource);

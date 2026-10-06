@@ -1,0 +1,5 @@
+func main(...) as int
+    auto values = FixedStack::<int>(1)
+    values.reserve(2)
+    return 0
+end

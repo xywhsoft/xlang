@@ -2320,7 +2320,10 @@ typedef enum XL6_IrIntrinsicResultAbi {
 typedef enum XL6_IrIntrinsicAdmission {
     XL6_IR_INTRINSIC_ADMISSION_INVALID = 0,
     XL6_IR_INTRINSIC_ADMISSION_VERIFIED,
-    XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI
+    XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI,
+    /* Logical generic template contract, never an executable physical ABI.
+     * Specialization must derive VERIFIED from its closed types. */
+    XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT
 } XL6_IrIntrinsicAdmission;
 
 /* Emission reachability is a canonical Lowered XLIR fact.  ROOT entities are
@@ -6111,6 +6114,7 @@ XL6_IrErrorAbi xl6IrCopyIntrinsicErrorAbi(const XL6_IrModule* module,
  * XLIR construction.  Append exactly the missing runtime layouts and rebuild
  * their derived destruction/persistence contracts before body lowering. */
 int xl6IrRefreshClassLayouts(XL6_IrModule* module);
+int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module);
 /* Validated execution provenance, distinct from instruction->sourceSpan. */
 XL6_IrNodeId xl6IrInstructionExecutionOrigin(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
@@ -6151,6 +6155,7 @@ const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
  * Bytes use the language's existing read-sharing/write-copy discipline;
  * retaining their physical carrier does not grant a mutable language alias. */
 XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type);
+XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(XL6_IrRuntimeResourceOp, const XL6_IrType*);
 int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrNullableScalarEqualSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
 /* Exact (bool, optional payload) product for non-exceptional empty retrieval. */

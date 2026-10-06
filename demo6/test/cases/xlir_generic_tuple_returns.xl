@@ -1,0 +1,43 @@
+// Repeated open product signatures must intern one canonical type, then
+// specialize to the exact scalar/managed optional result. No Stack involved.
+class GenericProduct<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func read() as (bool, T?)
+        return true, self.value
+    end
+
+    func readAgain() as (bool, T?)
+        return true, self.value
+    end
+
+    func absent() as (bool, T?)
+        return false, null
+    end
+end
+
+func main(...) as int
+    auto numbers = GenericProduct::<int32>(42)
+    auto found, number = numbers.read()
+    auto foundAgain, numberAgain = numbers.readAgain()
+    auto missing, absentNumber = numbers.absent()
+    assert(found and foundAgain and number != null and number == 42)
+    assert(numberAgain != null and numberAgain == 42 and not missing and absentNumber == null)
+    auto texts = GenericProduct::<string>("A\0你")
+    auto hasText, text = texts.read()
+    auto hasAgain, textAgain = texts.readAgain()
+    assert(hasText and hasAgain and text != null and text == "A\0你")
+    assert(textAgain != null and textAgain == "A\0你")
+    if text != null
+        text[0] = 'B'
+        assert(text == "B\0你")
+    end
+    assert(textAgain != null and textAgain == "A\0你")
+    auto missingText, absentText = texts.absent()
+    assert(not missingText and absentText == null)
+    return 0
+end

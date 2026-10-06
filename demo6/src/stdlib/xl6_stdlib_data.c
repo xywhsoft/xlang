@@ -11,6 +11,7 @@
 #include "src/stdlib/xl6_stdlib_fs.inc"
 #include "src/stdlib/xl6_stdlib_fs_walk.inc"
 #include "src/stdlib/xl6_stdlib_fs_async.inc"
+#include "src/stdlib/xl6_stdlib_fixed_stack.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
