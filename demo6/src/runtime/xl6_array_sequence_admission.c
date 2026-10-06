@@ -52,6 +52,17 @@ static bool equivalent(const void* left,const void* right)
 }
 static bool defaultable(const void* opaque) { return ((const NestedPolicy*)opaque)->nullable; }
 static const XL6_SequenceAdmissionOpsV2 policyOps={retain,drop,slot,admitted,equivalent,defaultable,NULL,NULL};
+bool xl6SequenceNestedChildCheckV1(XL6_Sequence* parent,const xvalue* child)
+{
+    XL6_SequenceAdmissionV3 policy={0};
+    if (!xl6SequenceAdmissionCopyV3(parent,&policy)) return false;
+    bool ok=child ? policy.ops==&policyOps && xrtValueType(child)!=XVALUE_NULL &&
+        admitted(policy.data,child) : policy.ops &&
+        (policy.ops!=&policyOps || ((const NestedPolicy*)policy.data)->childRole!=XL6_SEQUENCE_ARRAY_V1);
+    xl6SequenceAdmissionDropV3(&policy);
+    if (!ok) xrtSetErrorKind(XERR_TYPE);
+    return ok;
+}
 static void releasePreservingError(xvalue* value)
 {
     xerror* prior=xrtTakeError(); xrtValueRelease(value);

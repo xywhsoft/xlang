@@ -49,6 +49,7 @@ file|include/__xl_runtime/xl6_array_string_read.h|%XL6_ROOT%\src\runtime\xl6_arr
 file|include/__xl_runtime/xl6_array_value_write.h|%XL6_ROOT%\src\runtime\xl6_array_value_write.h
 file|include/__xl_runtime/xl6_array_value_read.h|%XL6_ROOT%\src\runtime\xl6_array_value_read.h
 file|include/__xl_runtime/xl6_array_import.h|%XL6_ROOT%\src\runtime\xl6_array_import.h
+file|include/__xl_runtime/xl6_array_import_chain.h|%XL6_ROOT%\src\runtime\xl6_array_import_chain.h
 file|include/__xl_runtime/xl6_array_methods.h|%XL6_ROOT%\src\runtime\xl6_array_methods.h
 file|include/__xl_runtime/xl6_array_default.h|%XL6_ROOT%\src\runtime\xl6_array_default.h
 file|include/__xl_runtime/xl6_array_extract.h|%XL6_ROOT%\src\runtime\xl6_array_extract.h

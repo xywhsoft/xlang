@@ -663,7 +663,8 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
     }
 }
 static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
-    XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth)
+    XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
+    const char* importChain,size_t importCount)
 {
     const XL6_IrType* sequence=xl6IrTypeGet(&module->types,typeId);
     XL6_IrNominalIdentitySetId expectedSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
@@ -738,7 +739,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
              * on either path and retains only its immutable owned schema. */
             xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
             if (xl6IrCgenEmitSequenceCreateDepth(out,module,plan->baseElementType,
-                childResult,childSet,depth+1)<0) return -1;
+                childResult,childSet,depth+1,importChain,importCount)<0) return -1;
             xl6OutputPrintf(out,
                 "    %s = xl6SequenceNestedCreateTakeV2(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
                 XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
@@ -747,13 +748,41 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     default: return -1;
     }
 #undef XL6_SEQUENCE_CREATE_IDS
+    if (importChain && depth<importCount) {
+        xl6OutputPrintf(out,
+            "    %s[%u] = %s ? xl6ArrayEraseV1(%s, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s) : NULL;\n",
+            importChain,(unsigned)depth,result,result,(unsigned long long)sequence->typeValueId,
+            (unsigned long long)payload->typeValueId,transfer,payloadType,descriptor,
+            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
+                xl6IrCgenNativeValueConverterExpr(module,plan->elementType));
+    }
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
 {
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
-    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0);
+    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0,NULL,0);
+}
+
+/* Explicit data boundary renderer. IR owns the complete chain and physical
+ * codecs. Cgen emits only factories, resident projection bindings and ONE
+ * import call; no generated item loops, recursive conversion or memo table.
+ * Source producer/cast authorization will select this separately from the
+ * native target recipe. Validate everything before emitting any C. */
+static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId typeId,XL6_IrValueId result,const char* source)
+{
+    size_t count=0; XL6_IrNominalIdentitySetId set=0;
+    if (!source || !xl6IrArrayImportChainRecipe(module,typeId,NULL,0,&count) ||
+        !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_ARRAY,&set)) return -1;
+    char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
+    xl6OutputPrintf(out,"    { xvalue* xlir_array_import_seeds[%u] = {0};\n",(unsigned)count);
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count)<0) return -1;
+    xl6OutputPrintf(out,"    xrtValueRelease(%s);\n"
+        "    %s = xl6ArrayImportChainTakeV1(xlir_array_import_seeds, %u, %s); }\n",
+        target,target,(unsigned)count,source);
+    return xl6OutputHasFailed(out) ? -1 : 1;
 }
 
 static int xl6IrCgenEmitStackRuntime(

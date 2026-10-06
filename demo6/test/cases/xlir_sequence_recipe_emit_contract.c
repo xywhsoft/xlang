@@ -12,6 +12,12 @@ static void refused(const XL6_IrModule* ir,XL6_IrTypeId id,XL6_IrNominalIdentity
     XL6_Output out; assert(xl6OutputOpenMemory(&out));
     assert(xl6IrCgenEmitSequenceCreate(&out,ir,id,id,set)<0);
     assert(out.buffer.Size==0); xl6OutputDiscard(&out);
+    size_t count=0;
+    if (!xl6IrArrayImportChainRecipe(ir,id,NULL,0,&count)) {
+        assert(xl6OutputOpenMemory(&out));
+        assert(xl6IrCgenEmitArrayImportChain(&out,ir,id,id,"wire")<0);
+        assert(out.buffer.Size==0); xl6OutputDiscard(&out);
+    }
 }
 static void schemas(XL6_Output* out,const XL6_IrModule* ir)
 {
@@ -36,6 +42,7 @@ int main(int argc,char** argv)
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir); int ok=0; unsigned recipes=0,mutations=0;
     unsigned layouts=0;
     unsigned nestedMutations=0;
+    unsigned importPlans=0;
     if (!xl6ParseFile(argv[1],&parse) || !xl6StdlibExpandModule(parse.root,&parse.diags) ||
         !xl6SemCheckModule(parse.root,&parse.diags,"recipe_probe") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
@@ -45,6 +52,27 @@ int main(int argc,char** argv)
         XL6_IrNominalIdentitySetId set=0;
         if (!xl6IrSequenceConstructionRecipe(&ir,id,type->sequenceLayout.role,&set)) continue;
         ++recipes; layouts|=1u<<(unsigned)type->sequenceLayout.abi;
+        if (type->sequenceLayout.role==XL6_IR_SEQUENCE_ROLE_ARRAY) {
+            XL6_IrTypeId chain[65]={0}; size_t count=123,queried=456;
+            assert(xl6IrArrayImportChainRecipe(&ir,id,NULL,0,&queried));
+            assert(queried>0 && queried<=65 && xl6IrArrayImportChainRecipe(&ir,id,chain,65,&count));
+            assert(count==queried && chain[0]==id);
+            for (size_t n=1;n<count;++n) assert(chain[n]==ir.types.items[chain[n-1]-1].sequenceLayout.baseElementType);
+            const XL6_IrSequenceLayout* leaf=&ir.types.items[chain[count-1]-1].sequenceLayout;
+            assert(leaf->abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 || leaf->childRole!=XL6_IR_SEQUENCE_ROLE_ARRAY);
+            XL6_IrTypeId untouched[65]; memcpy(untouched,chain,sizeof(chain)); count=123;
+            assert(!xl6IrArrayImportChainRecipe(&ir,id,chain,queried-1,&count));
+            assert(count==123 && !memcmp(chain,untouched,sizeof(chain)));
+            XL6_IrSequenceLayout savedLeaf=ir.types.items[chain[queried-1]-1].sequenceLayout;
+            ir.types.items[chain[queried-1]-1].sequenceLayout.codecAbi=(XL6_IrSequenceCodecAbi)UINT32_MAX;
+            assert(!xl6IrArrayImportChainRecipe(&ir,id,chain,65,&count));
+            assert(count==123 && !memcmp(chain,untouched,sizeof(chain)));
+            ir.types.items[chain[queried-1]-1].sequenceLayout=savedLeaf;
+            ++importPlans;
+        } else {
+            size_t untouched=123;
+            assert(!xl6IrArrayImportChainRecipe(&ir,id,NULL,0,&untouched) && untouched==123);
+        }
         XL6_IrSequenceLayout saved=type->sequenceLayout;
 #define BAD(FIELD,VALUE) do { type->sequenceLayout.FIELD=(VALUE); refused(&ir,id,set); \
     type->sequenceLayout=saved; ++mutations; } while (0)
@@ -78,6 +106,7 @@ int main(int argc,char** argv)
         }
     }
     assert(recipes && xl6IrVerifyModule(&ir,NULL));
+    printf("Array import chain recipes: %u complete plans; short/malformed outputs unchanged\n",importPlans);
     if (!xl6OutputOpenFile(&out,argv[2])) goto done;
     /* This is an independent native target-plan product, not an injection
      * into a source module whose selected declarations intentionally omit
@@ -85,6 +114,9 @@ int main(int argc,char** argv)
     xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
         "#include <assert.h>\n#include <limits.h>\n#include <wchar.h>\n"
         "#include <__xl_runtime/xl6_array_admission.h>\n"
+        "#include <__xl_runtime/xl6_array_erased.h>\n"
+        "#include <__xl_runtime/xl6_array_import_chain.h>\n"
+        "#include <__xl_runtime/xl6_nullable_string.h>\n"
         "typedef xstrview xlir_string;\n"
         "typedef struct xlir_closure xlir_closure;\n"
         "typedef struct xlir_generator xlir_generator;\n",&out);
@@ -116,6 +148,16 @@ int main(int argc,char** argv)
             (unsigned)id,(unsigned)id,(unsigned)plan->role,(unsigned long long)type->typeValueId,
             (unsigned long long)element->typeValueId,(unsigned)plan->transferAbi,physicalType,
             xl6IrCgenNativeSlotTypeExpr(plan->slotAbi),(unsigned)id);
+    }
+    xl6OutputPuts("    /* Explicit Array data-import plans, separate from creation. */\n",&out);
+    for (size_t i=0;i<ir.types.count;++i) {
+        XL6_IrTypeId id=(XL6_IrTypeId)(i+1); size_t count=0;
+        if (!xl6IrArrayImportChainRecipe(&ir,id,NULL,0,&count)) continue;
+        xl6OutputPrintf(&out,"    { xvalue* wire=xrtValueArray(); xvalue* v%u=NULL; assert(wire);\n",(unsigned)id);
+        assert(xl6IrCgenEmitArrayImportChain(&out,&ir,id,id,"wire")>0);
+        xl6OutputPrintf(&out,"    assert(v%u && xl6ArrayErasedSizeV1(v%u)==0);\n"
+            "    xrtValueRelease(v%u); xrtValueRelease(wire); assert(!xrtGetError()); }\n",
+            (unsigned)id,(unsigned)id,(unsigned)id);
     }
     xl6OutputPuts("    }\n    xrtMemDebugSnapshot(&after);\n"
         "    assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);\n"

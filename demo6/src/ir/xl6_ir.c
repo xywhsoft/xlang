@@ -7139,6 +7139,28 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId type
     XL6_IrSequenceRoleAbi role,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrSequenceConstructionRecipeDepth(module,typeId,role,setOut,0); }
 
+int xl6IrArrayImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    XL6_IrTypeId* output,size_t capacity,size_t* count)
+{
+    XL6_IrTypeId prepared[65]; size_t used=0;
+    if (!count || (!output && capacity) ||
+        !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL)) return 0;
+    for (;;) {
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
+        if (!type || used>=65) return 0;
+        prepared[used++]=typeId;
+        const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
+        if (plan->abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+            plan->childRole!=XL6_IR_SEQUENCE_ROLE_ARRAY) break;
+        typeId=plan->baseElementType;
+    }
+    if (output) {
+        if (capacity<used) return 0;
+        memcpy(output,prepared,used*sizeof(*prepared));
+    }
+    *count=used; return 1;
+}
+
 static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     XL6_IrTypeId typeId, XL6_IrNominalIdentitySetId* setOut, size_t depth)
 {

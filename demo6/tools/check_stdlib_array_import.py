@@ -21,6 +21,7 @@ def main() -> int:
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--sanitize',action='store_true')
     parser.add_argument('--shared',action='store_true')
+    parser.add_argument('--chain',action='store_true',help='Explicit full recursive Array data-import plans and alias preservation')
     args=parser.parse_args(); root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     if not cc or not nm or out.exists() or (args.sanitize and os.name=='nt'):
@@ -37,8 +38,12 @@ def main() -> int:
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_reference_value.c']
     common.append('src/api/xl_foreign_error.c')
     host='test/cases/stdlib_array_import_native_host.c'; support='test/support/array_import_native.c'
+    if args.chain:
+        common += ['src/runtime/xl6_array_import_chain.c','src/runtime/xl6_array_sequence_admission.c']
+        host='test/cases/stdlib_array_import_chain_native_host.c'
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/host,root/support,
         root/'test/cases/stdlib_sequence_factory_only_host.c',root/'test/cases/stdlib_array_import_header.c',
+        root/'test/cases/stdlib_array_import_native_host.c',
         root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
     files.update(root/name for name in common)
     files.add(root/'src/api/xl_foreign_error.h')
@@ -49,7 +54,8 @@ def main() -> int:
     inputs=[{'Path':str(path.resolve()),'Sha256':digest(path)} for path in sorted(files)]
     out.mkdir(parents=True); rows=[]; sweeps=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Sweeps':sweeps,'Profiles':9,
-        'Scope':__doc__,'SharedRuntime':args.shared,'Sanitized':args.sanitize,'RuntimeInstrumented':args.sanitize and not args.shared}
+        'Scope':'Explicit recursive Array import chain; nine leaf families, not source carrier cutover' if args.chain else __doc__,
+        'Chain':args.chain,'SharedRuntime':args.shared,'Sanitized':args.sanitize,'RuntimeInstrumented':args.sanitize and not args.shared}
     env=dict(os.environ); flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
     links=[] if os.name=='nt' else ['-pthread','-lm']
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
@@ -83,7 +89,7 @@ def main() -> int:
                     support_objects[variant]=str(obj)
             for index,(profile,extras,factory) in enumerate(profiles):
                 lane=f'{profile}.O{level}'; binary=out/(lane+('.exe' if os.name=='nt' else ''))
-                selected=[] if args.shared else [objects[name] for name in [*common,f'src/runtime/xl6_array_{profile}_admission.c',*extras]]
+                selected=[] if args.shared else [objects[name] for name in dict.fromkeys([*common,f'src/runtime/xl6_array_{profile}_admission.c',*extras])]
                 if not args.shared: selected.append(support_objects[index if index in (7,8) else 0])
                 linked=links if not args.shared else [str(product)] if os.name=='nt' else ['-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),*links]
                 run(lane+'.build',[cc,*flags,f'-O{level}',f'-DXL6_FACTORY_PROFILE={index}',host,*selected,*linked,'-o',str(binary)])
@@ -91,12 +97,15 @@ def main() -> int:
                     names={line.split()[-1].lstrip('_') for line in run(lane+'.symbols',[nm,'--defined-only',str(binary)]).splitlines() if line.split()}
                     assert {factory,'xl6ArrayImportTakeV1','xl6ArrayInputAcquireV1'}<=names
                     allowed={factory,'xl6SequencePrimitiveCreateV1'} if index==4 else {factory}
+                    if args.chain: allowed.add('xl6SequenceNestedCreateTakeV2')
                     assert not ({row[2] for row in profiles}-allowed)&names
                     assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6StackCreateV1'}&names
                     assert not any(re.match(r'xl6(?:Log|Process|Regex)[A-Z]|xrtTypedStack',name) for name in names)
-                assert f'array-import profile={index}: 100 source/destination cycles balanced' in run(lane+'.vectors',[str(binary)])
-                for operation in ('wire','native'):
-                    for point in range(513):
+                expected=f'array-chain profile={index}: 25 complete graph cycles balanced' if args.chain else f'array-import profile={index}: 100 source/destination cycles balanced'
+                assert expected in run(lane+'.vectors',[str(binary)])
+                operations=('chain','wide','deep') if args.chain and index==2 else ('chain','wide') if args.chain else ('wire','native')
+                for operation in operations:
+                    for point in range(1025 if args.chain else 513):
                         log=run(f'{lane}.{operation}.{point}',[str(binary),operation,str(point)])
                         hits=re.findall(r'hit=([01]) balanced',log); assert hits
                         if all(hit=='0' for hit in hits):
