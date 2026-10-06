@@ -1,0 +1,2 @@
+array<char> values = ['你']
+assert(values.pop() == '你' and values.length == 0)

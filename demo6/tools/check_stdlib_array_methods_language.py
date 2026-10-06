@@ -21,13 +21,15 @@ def main() -> int:
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--sanitize', action='store_true', help='Generated/host code only; shared runtime is not instrumented')
     parser.add_argument('--defaults', action='store_true', help='Actual resize IR/native caller, sync/async/generator and full OOM prefixes')
+    parser.add_argument('--extract', action='store_true', help='Checked pop/take, complete basic element types, native caller, continuation and OOM')
     args = parser.parse_args()
     root, out = Path(__file__).resolve().parents[1], args.out.resolve()
     cc = shutil.which('gcc')
-    if not cc or out.exists() or (os.name == 'nt' and (not args.public_directory or args.sanitize)):
+    if not cc or out.exists() or (os.name == 'nt' and (not args.public_directory or args.sanitize)) or (args.defaults and args.extract):
         parser.error('Require gcc, fresh evidence and Windows current-source driver')
     fixtures = ['stdlib_array_methods', 'stdlib_array_methods_continuation']
     if args.defaults: fixtures = ['stdlib_array_resident_defaults', 'stdlib_array_resident_defaults_continuation']
+    if args.extract: fixtures = ['stdlib_array_extract', 'stdlib_array_extract_continuation']
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     public = None
     files = {Path(__file__), Path(cc), Path(sys.executable), product, root / 'lib/xrt/xrt.h',
@@ -57,6 +59,7 @@ def main() -> int:
     rows, sweeps = [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows, 'Sweeps': sweeps,
               'Scope': __doc__, 'NativeDefaults': args.defaults, 'LanguageRuntimeInstrumented': False, 'SanitizedHost': args.sanitize}
+    report['CheckedExtraction'] = args.extract
     out.mkdir(parents=True)
     private = out / 'include/__xl_runtime'; private.mkdir(parents=True)
     for directory in (root / 'src/runtime', root / 'release/include'):
@@ -118,22 +121,31 @@ def main() -> int:
             proof = run(name + '.contract', [str(contract), source, str(target),
                 *([str(bindings)] if name == fixtures[0] else [])])
             assert 'mutations refused before C/header output' in proof and original == target.read_bytes()
-            code = original.decode('utf-8'); assert ('xl6_array_default.h' if args.defaults else 'xl6_array_methods.h') in code
+            code = original.decode('utf-8'); assert ('xl6_array_extract.h' if args.extract else
+                'xl6_array_default.h' if args.defaults else 'xl6_array_methods.h') in code
             assert not any(token in code for token in ('static bool xlir_xvalue_array_remove_value(',
                 'static int64_t xlir_xvalue_typed_array_index_of(', 'static bool xlir_xvalue_typed_array_reverse('))
-            if name == fixtures[0] and not args.defaults:
+            if name == fixtures[0] and not args.defaults and not args.extract:
                 assert all('xl6ArrayMethod' + suffix + 'V1(' in code for suffix in
                     ('Clear', 'Capacity', 'Reserve', 'Trim', 'Swap', 'Reverse', 'Insert', 'IndexOf', 'RemoveValue'))
             if args.defaults:
                 assert 'xl6ArrayResizeDefaultV1(' in code
                 assert not any(token in code for token in ('xlir_xvalue_typed_array_resize', 'xlir_xvalue_typed_array_default'))
+            if args.extract:
+                assert not any(token in code for token in ('xlir_xvalue_typed_array_pop',
+                    'xlir_xvalue_typed_array_take', 'xlir_xvalue_typed_list_take',
+                    'xlir_xvalue_typed_dict_take', 'xlir_xvalue_typed_take_raw'))
+                required = ('I64', 'String') if name == fixtures[0] else (
+                    'Bool', 'U64', 'F64', 'F32', 'Time', 'Char', 'String', 'Value')
+                assert all('xl6ArrayExtract' + suffix + 'V1(' in code for suffix in required)
+                if name == fixtures[0]: assert 'xl6CollectionExtractValueV1(' in code
             for level in (0, 2):
                 binary = out / (name + f'.O{level}' + ('.exe' if os.name == 'nt' else ''))
                 memory = out / f'memory.O{level}.o'
                 if not memory.exists():
                     run(f'memory.O{level}.build', [cc, *strict, f'-O{level}', '-c',
                         'test/support/module_product_memory.c', '-o', str(memory)])
-                user_entry = args.defaults and name == fixtures[0]
+                user_entry = (args.defaults or args.extract) and name == fixtures[0]
                 run(name + f'.O{level}.build', [cc, *strict, f'-O{level}',
                     *(['-DXL6_PRODUCT_USER_ENTRY'] if user_entry else []), '-include', str(target),
                     'test/cases/xlir_module_product_oom_host.c', str(memory), *links, '-o', str(binary)], 360)
@@ -148,6 +160,7 @@ def main() -> int:
                     else: raise RuntimeError('Unclosed complete module allocation prefix')
                     projected = out / (f'projection.O{level}' + ('.exe' if os.name == 'nt' else ''))
                     run(f'projection.O{level}.build', [cc, *strict, f'-O{level}', '-include', str(target),
+                        *(['-DXL6_METHOD_EXTRACT'] if args.extract else []),
                         '-include', str(bindings), 'test/cases/stdlib_array_methods_projection_host.c',
                         *links, '-o', str(projected)], 360)
                     assert '100 physical cycles balanced' in run(f'projection.O{level}.run', [str(projected)])

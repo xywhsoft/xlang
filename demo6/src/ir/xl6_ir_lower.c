@@ -16783,7 +16783,7 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
             return receiverNode != NULL &&
                    receiverNode->storageType == intrinsic->receiverType &&
                    intrinsic->resultAbi == expectedResultAbi &&
-                   intrinsic->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE &&
+                   intrinsic->errorAbi == xl6IrTypedCollectionErrorAbi(intrinsic->typedCollectionOp) &&
                    xl6IrLowerTypedCollectionSignatureCompatible(ctx, intrinsic);
         }
     case XL6_IR_INTRINSIC_COLLECTION_REMOVE:

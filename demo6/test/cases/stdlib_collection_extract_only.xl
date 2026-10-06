@@ -1,0 +1,4 @@
+list<var> entries = [7: null]
+dict<var> fields = {"a\0b": false}
+assert(entries.take(7) == null and entries.take(7) == null)
+assert(fields.take("a\0b") == false and fields.take("a\0b") == null and fields.take("a") == null)

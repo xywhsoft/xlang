@@ -1,0 +1,57 @@
+int methodCleanup = 0
+async func readyCount() as int
+    time.sleep(1)
+    return 1
+end
+async func extractAsync() as int
+    array<string> values = ["a\0你", "z"]
+    try
+        assert(await readyCount() == 1)
+        assert(values.take(0) == "a\0你" and values.pop() == "z")
+        string unused = values.pop()
+        return 1
+    catch RangeError failure
+        assert(values.length == 0)
+    finally
+        methodCleanup += 1
+    end
+    return 0
+end
+func extractGenerator() as generator<string>
+    array<string> values = ["a\0你", "z"]
+    try
+        yield values.take(0)
+        yield values.pop()
+        assert(values.length == 0)
+    finally
+        methodCleanup += 1
+    end
+end
+array<bool> flags = [false, true]
+assert(flags.take(0) == false and flags.pop() == true)
+array<uint64> unsigneds = [uint64(18446744073709551615)]
+assert(unsigneds.pop() == uint64(18446744073709551615))
+array<float64> doubles = [-0.0, -3.5]
+assert(doubles.take(0) == 0.0 and doubles.pop() == -3.5)
+array<float32> singles = [float32(1.25)]
+assert(singles.pop() == float32(1.25))
+array<char> letters = ['你', 'A']
+assert(letters.take(0) == '你' and letters.pop() == 'A')
+array<time> instants = [time(0)]
+assert(instants.pop() == time(0))
+array<string?> texts = ["", null, "a\0b"]
+assert((texts.take(0) ?? "bad") == "" and texts.take(0) == null and (texts.pop() ?? "") == "a\0b")
+bytes seed = b"a\0b"
+array<bytes> payloads = [seed, seed]
+auto copied = payloads.take(0)
+copied[0] = 88
+assert(seed[0] == 97 and payloads[0][0] == 97 and payloads.pop() == b"a\0b")
+array<var> dynamicItems = [null, 3]
+assert(dynamicItems.take(0) == null and dynamicItems.pop() == 3)
+assert(await extractAsync() == 0 and methodCleanup == 1)
+string joined = ""
+for item in extractGenerator()
+    joined += item
+end
+assert(joined == "a\0你z" and methodCleanup == 2)
+println("Array checked extraction basic/continuation ok")

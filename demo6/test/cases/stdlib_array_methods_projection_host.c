@@ -53,7 +53,11 @@ int main(int argc, char** argv)
         /* Individual successful mutations may already have committed. The
          * whole function is not transactional; its owner must still be valid. */
         int64_t size = text ? xl6ArraySizeV1(source, TEXTS, false) : xl6ArraySizeV1(source, INTS, false);
+#ifdef XL6_METHOD_EXTRACT
+        assert(size >= 0 && size <= 2);
+#else
         assert(size == 2 || size == 3);
+#endif
         assert(!xrtGetError());
         xrtValueRelease(alias); xrtValueRelease(source); xrtErrorFree(failure); balanced(&before);
         xlir_module_fini(); xlir_module_fini(); assert(!xrtGetError());

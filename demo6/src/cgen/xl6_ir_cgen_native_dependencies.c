@@ -224,6 +224,12 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                     xl6IrCgenArrayMethodSymbol(instruction->typedCollectionOp) : NULL;
             if (method && !visitor(context,method)) return 0;
             if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+                (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE)) {
+                const char* extract=instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
+                    xl6IrCgenArrayExtractSymbol(xl6IrTypeGet(&module->types,instruction->type)) : "xl6CollectionExtractValueV1";
+                if (!extract || !visitor(context,extract)) return 0;
+            }
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
                 instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE &&
                 !visitor(context,"xl6ArrayResizeDefaultV1")) return 0;
         }

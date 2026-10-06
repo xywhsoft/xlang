@@ -85,6 +85,11 @@ try {
         'test/cases/stdlib_array_methods_projection_host.c','test/cases/xlir_array_methods_contract.c')
     $files += @(Get-Item -LiteralPath 'test/cases/stdlib_array_resident_default_host.c','test/cases/stdlib_array_default_header.c',
         'test/cases/stdlib_array_default_commit_host.c','test/cases/stdlib_array_resident_defaults.xl','test/cases/stdlib_array_resident_defaults_continuation.xl')
+    $files += @(Get-Item -LiteralPath 'test/cases/stdlib_array_extract_native_host.c','test/cases/stdlib_array_extract_core_host.c',
+        'test/cases/stdlib_array_extract_header.c','test/cases/stdlib_array_extract.xl','test/cases/stdlib_array_extract_continuation.xl',
+        'test/cases/stdlib_array_extract_scalar_only.xl','test/cases/stdlib_array_extract_string_only.xl',
+        'test/cases/stdlib_array_extract_value_only.xl','test/cases/stdlib_array_extract_char_only.xl',
+        'test/cases/stdlib_array_extract_f32_only.xl','test/cases/stdlib_collection_extract_only.xl')
     $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_import.c','tools/check_stdlib_array_import.py',
         'test/cases/stdlib_array_import_native_host.c','test/cases/stdlib_array_import_header.c',
         'test/cases/stdlib_array_primitive_import_native_host.c','test/support/array_import_native.c',
@@ -323,6 +328,8 @@ try {
     Run 'array-methods' $python @('tools/check_stdlib_array_methods.py','--out',"$outPath/array-methods") -TimeoutMs 900000
     Run 'array-native-defaults' $python @('tools/check_stdlib_array_methods.py','--defaults','--out',"$outPath/array-native-defaults") -TimeoutMs 900000
     Run 'array-defaults-language' $python @('tools/check_stdlib_array_methods_language.py','--defaults','--out',"$outPath/array-defaults-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    Run 'array-checked-extraction' $python @('tools/check_stdlib_array_methods.py','--extract','--out',"$outPath/array-checked-extraction") -TimeoutMs 900000
+    Run 'array-extraction-language' $python @('tools/check_stdlib_array_methods_language.py','--extract','--out',"$outPath/array-extraction-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     Run 'array-methods-language' $python @('tools/check_stdlib_array_methods_language.py','--out',"$outPath/array-methods-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     Run 'array-admitted-import' $python @('tools/check_stdlib_array_import.py','--out',"$outPath/array-admitted-import") -TimeoutMs 900000
     Run 'array-codec-import' $python @('tools/check_stdlib_array_primitive_admission.py','--imports','--out',"$outPath/array-codec-import") -TimeoutMs 900000

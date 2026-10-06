@@ -1,0 +1,2 @@
+array<string> values = ["a\0你"]
+assert(values.take(0) == "a\0你" and values.length == 0)
