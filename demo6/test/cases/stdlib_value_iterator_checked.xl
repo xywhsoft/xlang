@@ -10,9 +10,33 @@ func counted(list<int> values) as int
     end
     return total
 end
+func countedArray(array<int> values) as int
+    int total = 0
+    try
+        for value in values
+            total += value
+        end
+    finally
+        cleanupCount += 1
+    end
+    return total
+end
+func countedTextArray(array<string> values) as int
+    int total = 0
+    try
+        for value in values
+            total += string.byteLen(value)
+        end
+    finally
+        cleanupCount += 1
+    end
+    return total
+end
 list<int> values = list[2: 1, 7: 2]
 assert counted(values) == 3
 assert cleanupCount == 1
+assert countedArray(array[1, 2]) == 3
+assert countedTextArray(array["a\0你", ""]) == 5
 array<string> texts = array["a\0你", "", "tail"]
 int bytes = 0
 for key, text in texts

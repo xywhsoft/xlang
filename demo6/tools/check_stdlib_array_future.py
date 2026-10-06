@@ -40,6 +40,7 @@ def main() -> int:
         'src/runtime/xl6_array_future_admission.c', 'src/runtime/xl6_array_erased.c',
         'src/runtime/xl6_array_value.c', 'src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_array_iterator.c', 'src/runtime/xl6_array_input.c',
+        'src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_value_iterator.c',
         'src/runtime/xl6_string_type.c', 'src/runtime/xl6_nullable_string.c',
         'src/runtime/xl6_ownership_plan.c']
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
@@ -119,7 +120,7 @@ def main() -> int:
                 assert all(f'xl6SequenceAdmission{op}V{version}' in rejection for op in ('Copy', 'Take', 'Drop'))
             for profile in (0, 1):
                 operations = ['create', 'clone', 'cursor', 'read', 'erased-read', 'erased-take',
-                    'snapshot', 'input', 'push', 'erased-push'] + (['resize'] if profile else [])
+                    'snapshot', 'input', 'push', 'erased-push','language-create','language-first','language-second'] + (['resize'] if profile else [])
                 for operation in operations:
                     for point in range(256):
                         text = run(f'{lane}.{profile}.{operation}.{point}', [str(binary), str(profile), operation, str(point)])
@@ -130,7 +131,7 @@ def main() -> int:
                             break
                     else:
                         raise AssertionError('Unclosed OOM prefix: ' + operation)
-        assert len(sweeps) == 42
+        assert len(sweeps) == 54
         report['InputsUnchanged'] = all(digest(Path(row['Path'])) == row['Sha256'] for row in inputs)
         assert report['InputsUnchanged']
         report['Complete'] = True

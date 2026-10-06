@@ -45,7 +45,8 @@ def main() -> int:
     if args.checked_iterator:
         host='test/cases/stdlib_value_iterator_checked_native_host.c'
         provider='src/runtime/xl6_value_iterator.c'
-        sources=[host,'test/support/collection_count_native.c',provider]
+        sources=[host,'test/support/collection_count_native.c',provider,
+            'src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_sequence.c']
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable),
         root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h'}
@@ -94,7 +95,7 @@ def main() -> int:
         'ZeroAllocationChecks': 'Not applicable to owned string copies' if args.boundaries else
         'FailAfter(0) around all four successful native and wire reads; not an OOM prefix sweep'}
     if args.checked_iterator:
-        report.update(Scope='Checked resident wire cursor and language error/owner CFG; native Array cursor not yet integrated',
+        report.update(Scope='Checked resident wire cursor and language error/owner CFG; native Array uses a separate acceptance gate',
             ZeroAllocationChecks='Cursor creation allocates; Advance failure injection is a status-contract test, not actual cursor OOM')
     out.mkdir(parents=True)
     env = dict(os.environ)

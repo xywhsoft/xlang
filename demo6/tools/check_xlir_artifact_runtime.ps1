@@ -146,6 +146,9 @@ $process=Start-Process @start
                 $selectionMatches=$true
                 if($case-like'stdlib_value_iterator_checked*'){
                     $selectionMatches='src/runtime/xl6_value_iterator.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_value_iterator.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_iterator.c'-in$selectedSources-and
+                        'src/runtime/xl6_sequence.c'-in$selectedSources-and
                         'src/runtime/xl6_array.c'-notin$selectedSources-and
                         'src/runtime/xl6_array_input.c'-notin$selectedSources
                 }
@@ -206,7 +209,7 @@ $process=Start-Process @start
                     $selectionMatches=(('src/runtime/xl6_future_aggregate.c'-in$selectedSources)-eq!$metadata)-and
                         (('src/runtime/xl6_future_aggregate_array.c'-in$selectedSources)-eq$arrayInput)-and
                         (('src/runtime/xl6_array_input.c'-in$selectedSources)-eq$arrayInput)-and
-                        (('src/runtime/xl6_sequence.c'-in$selectedSources)-eq$arrayInput)-and
+                        (('src/runtime/xl6_sequence.c'-in$selectedSources)-eq($arrayInput-or('src/runtime/xl6_value_iterator.c'-in$selectedSources)))-and
                         (('src/runtime/xl6_future_metadata.c'-in$selectedSources)-eq$metadata)-and
                         'src/api/xl_future_bridge.c'-notin$selectedSources
                 }

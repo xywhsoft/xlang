@@ -559,7 +559,22 @@ and real generated-function failure/finally cleanup with and without diagnostics
 Four actual allocation prefixes cover native cursor creation and complete sync
 programs at O0/O2. Advance injection checks status, not actual cursor OOM.
 Linux sanitizes the selected native closure; the shared runtime is uninstrumented.
-Array/Stack parents invoke this mode. Native Array cursor integration is pending.
+Array/Stack parents invoke this mode.
+The B96 native integration now reuses the native Sequence snapshot directly;
+`--language` calls actual generated integer/text Array loops with exact IR IDs
+and complete function-allocation prefixes. The separate
+`check_stdlib_array_primitive_admission.py --iterator` mode checks eleven
+independently linked scalar/text profiles, 66 create/first/second allocation
+prefixes, BUSY/reentry/type refusal, NUL/nullable metadata, and 75 complete
+native snapshot/current-value ownership graph transactions with finalizer retry
+and native snapshot resurrection at O0/O2. Full selected Linux closures are
+sanitized; `--shared` instruments the host only and does not prove pruning.
+Array/Stack parents freeze and invoke the new mode. Future native acceptance
+also includes projected language cursors (54 prefixes). Typed storage-only
+cursors do not select the optional Value-projection component. Generic capture
+does depend on the native-capable ValueIterator; artifact checks record that
+real closure rather than claiming Sequence-free capture. Full source Array
+construction/carrier cutover and whole 53-module acceptance remain pending.
 
 `check_stdlib_sequence_publication.py` exercises the shared resident
 creation/publication transaction and domain-preserving Array/Stack clone.

@@ -57,9 +57,25 @@ int main(int argc,char** argv)
         unsigned bindings=0; assert(xl6OutputOpenFile(&out,argv[3]));
         for(size_t i=0;i<ir.functionCount;++i) {
             const XL6_IrFunction* f=&ir.functions[i];
-            if(!f->debugName || strcmp(f->debugName,"counted")) continue;
+            if(!f->debugName) continue;
+            const char* suffix=!strcmp(f->debugName,"counted") ? "COUNTED" :
+                !strcmp(f->debugName,"countedArray") ? "ARRAY" :
+                !strcmp(f->debugName,"countedTextArray") ? "TEXT_ARRAY" : NULL;
+            if (!suffix) continue;
             const XL6_IrType* type=xl6IrTypeGet(&ir.types,f->returnType); assert(type && type->errorResultCName);
-            xl6OutputPrintf(&out,"#define XL6_ITER_COUNTED xlir_fn_%u\n#define XL6_ITER_RESULT %s\n",(unsigned)f->symbol,type->errorResultCName); ++bindings;
+            xl6OutputPrintf(&out,"#define XL6_ITER_%s xlir_fn_%u\n#define XL6_ITER_%s_RESULT %s\n",
+                suffix,(unsigned)f->symbol,suffix,type->errorResultCName); ++bindings;
+        }
+        for (size_t i=0;i<ir.types.count;++i) {
+            const XL6_IrType* type=&ir.types.items[i];
+            if (type->kind!=XL6_IR_TYPE_GENERIC_INSTANCE || type->collectionAbi!=XL6_IR_COLLECTION_ARRAY ||
+                type->paramCount!=1 || !type->params) continue;
+            const XL6_IrType* element=xl6IrTypeGet(&ir.types,type->params[0]); assert(element);
+            const char* suffix=element->cAbi==XL6_IR_C_ABI_I64 ? "ARRAY" :
+                element->cAbi==XL6_IR_C_ABI_MANAGED_STRING ? "TEXT_ARRAY" : NULL;
+            if (!suffix) continue;
+            xl6OutputPrintf(&out,"#define XL6_ITER_%s_OWNER 0x%016llXULL\n#define XL6_ITER_%s_ELEMENT 0x%016llXULL\n",
+                suffix,(unsigned long long)type->typeValueId,suffix,(unsigned long long)element->typeValueId); ++bindings;
         }
         for(size_t i=0;i<ir.storageCount;++i) {
             const XL6_IrStorage* s=&ir.storages[i]; if(s->kind!=XL6_IR_STORAGE_GLOBAL) continue;
@@ -70,7 +86,7 @@ int main(int argc,char** argv)
                 }
             }
         }
-        assert(bindings==2); xl6OutputClose(&out);
+        assert(bindings==6); xl6OutputClose(&out);
     }
     printf("checked cursor contract: %u operations; %u mutations refused before C/header output\n",operations,mutations); ok=1;
 done:

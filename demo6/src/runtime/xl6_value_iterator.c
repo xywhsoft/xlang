@@ -1,7 +1,4 @@
-#define XRT_MODULE_MEMORY
-#define XRT_MODULE_ATOMIC
-#define XRT_MODULE_VALUE_CONTAINER
-#include "lib/xrt/xrt.h"
+#include "xl6_array_value_iterator.h"
 #include "xl6_value_iterator.h"
 #include "xl6_ownership_scope.h"
 
@@ -9,6 +6,14 @@ struct xlir_xvalue_iterator {
     volatile int32_t refs;
     xvaluecursor* cursor;
     xvaluecursor* retired;
+    /* Native snapshot and its current owned projection are distinct physical
+     * edges. A View only borrows the latter; never trace it a second time. */
+    xvalue* nativeCursor;
+    xvalue* nativeItem;
+    xvalue* retiredNativeCursor;
+    xvalue* retiredNativeItem;
+    XL6_SequenceLayoutV1 nativeLayout;
+    const xvalueconverter* nativeProjection;
     XL6_ValueIteratorView view;
     size_t nextOrdinal;
     const void* claim;
@@ -18,11 +23,23 @@ static void mutation_begin(xrtownershipscope* scope)
 { if (!xrtOwnershipMutationBegin(scope)) abort(); }
 static void mutation_end(xrtownershipscope* scope)
 { if (!xrtOwnershipScopeEnd(scope)) abort(); }
+static void release_values(xvalue* item, xvalue* cursor)
+{
+    /* The wire path owns neither. Do not touch error TLS or enter XRT's
+     * ownership mutation scopes for two NULL releases on every hot step. */
+    if (!item && !cursor) return;
+    xerror* saved=xrtTakeError();
+    xrtValueRelease(item); xrtValueRelease(cursor);
+    xrtClearError(); xrtSetErrorTake(saved);
+}
 static XL6_ValueIterator* iterator_create(const xvalue* source)
 {
     XL6_ValueIterator* state = xrtMalloc(sizeof(*state));
     if (!state) return NULL;
     *state = (XL6_ValueIterator){0}; state->refs = 1;
+    int native=xl6ArrayIteratorCreateErasedV1(source,&state->nativeCursor,
+        &state->nativeLayout,&state->nativeProjection);
+    if (native) { if (native<0) { xrtFree(state); return NULL; } return state; }
     state->cursor = xrtValueCursorCreate(source);
     if (!state->cursor) { xrtFree(state); return NULL; }
     return state;
@@ -33,11 +50,22 @@ static bool iterator_advance(XL6_ValueIterator* state, bool* found)
     if (!found) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     *found=false;
     mutation_begin(&mutation);
-    if (!state || state->refs <= 0 || state->active || state->cleared || state->failed || !state->cursor) {
+    if (!state || state->refs <= 0 || state->active || state->cleared || state->failed ||
+        (!state->cursor && !state->nativeCursor)) {
         mutation_end(&mutation); xrtSetErrorKind(XERR_STATE); return false;
     }
-    state->active = true; state->view=(XL6_ValueIteratorView){0}; mutation_end(&mutation);
-    result = xrtValueCursorAdvance(state->cursor, &key, &item);
+    state->active = true; state->view=(XL6_ValueIteratorView){0};
+    xvalue* prior=state->nativeItem; state->nativeItem=NULL;
+    mutation_end(&mutation); release_values(prior,NULL);
+    if (state->nativeCursor) {
+        const XL6_SequenceLayoutV1* layout=&state->nativeLayout;
+        bool hasItem=false; size_t ordinal=0;
+        bool ok=xl6ArrayIteratorAdvanceValueV1(state->nativeCursor,layout->identity,
+            layout->elementIdentity,layout->transfer,layout->size,layout->type,
+            state->nativeProjection,&hasItem,&item,&ordinal);
+        result=ok ? (hasItem ? 1 : 0) : -1;
+        if (result>0) { key.Type=XVALUE_KEY_INDEX; key.Index=ordinal; }
+    } else result = xrtValueCursorAdvance(state->cursor, &key, &item);
     if (result > 0 && (!item || (unsigned int)key.Type>3u)) {
         xrtSetErrorKind(XERR_STATE); result=-1;
     }
@@ -45,8 +73,12 @@ static bool iterator_advance(XL6_ValueIterator* state, bool* found)
         xrtSetErrorKind(XERR_RANGE); result=-1;
     }
     if (result<0 && !xrtGetError()) xrtSetErrorKind(XERR_STATE);
+    /* Checked native advancement transfers ownership even though the public
+     * View is borrowed. Withdraw rejected projections before graph publication. */
+    if (state->nativeCursor && result<=0) { release_values(item,NULL); item=NULL; }
     mutation_begin(&mutation);
     state->failed=result<0;
+    if (state->nativeCursor) state->nativeItem=item;
     if (result > 0) {
         state->view.item = item; state->view.ordinal = state->nextOrdinal++;
         state->view.key.Type = key.Type;
@@ -76,21 +108,29 @@ static void iterator_destroy(XL6_ValueIterator* state)
     mutation_begin(&mutation);
     if (state->active || (refs = xrtRefRelease(&state->refs)) < 0) abort();
     if (refs) { mutation_end(&mutation); return; }
-    if (state->retired) abort();
+    if (state->retired || state->retiredNativeCursor || state->retiredNativeItem) abort();
     cursor = state->cursor; state->cursor = NULL; state->view = (XL6_ValueIteratorView){0};
+    xvalue* nativeCursor=state->nativeCursor; state->nativeCursor=NULL;
+    xvalue* nativeItem=state->nativeItem; state->nativeItem=NULL;
     mutation_end(&mutation);
-    xrtValueCursorRelease(cursor); xrtFree(state);
+    xerror* saved=xrtTakeError();
+    xrtValueCursorRelease(cursor); release_values(nativeItem,nativeCursor); xrtFree(state);
+    xrtClearError(); xrtSetErrorTake(saved);
 }
 static bool iterator_count(const void* data, size_t* count)
 {
     const XL6_ValueIterator* state = data;
-    if (!state || !count || state->refs <= 0 || state->active || state->cleared || !state->cursor) return false;
+    if (!state || !count || state->refs <= 0 || state->active || state->cleared ||
+        (!state->cursor && !state->nativeCursor)) return false;
     *count = (size_t)state->refs; return true;
 }
 static bool iterator_trace(const void* data, xrtownershipvisitor visit, void* context)
 {
     const XL6_ValueIterator* state = data; size_t count;
-    return visit && iterator_count(data, &count) && visit(xrtValueCursorOwnership(state->cursor), context);
+    if (!visit || !iterator_count(data,&count)) return false;
+    if (state->cursor) return visit(xrtValueCursorOwnership(state->cursor),context);
+    return visit(xrtValueOwnership(state->nativeCursor),context) &&
+        (!state->nativeItem || visit(xrtValueOwnership(state->nativeItem),context));
 }
 static const xrtownershipops iterator_ops = {iterator_count, iterator_trace};
 static xrtownershipref iterator_ownership(const XL6_ValueIterator* state)
@@ -123,13 +163,19 @@ static void iterator_clear(const void* data, const void* token)
     XL6_ValueIterator* state = (XL6_ValueIterator*)data;
     if (state->claim != token || state->cleared || state->active) abort();
     state->retired = state->cursor; state->cursor = NULL;
+    state->retiredNativeCursor=state->nativeCursor; state->nativeCursor=NULL;
+    state->retiredNativeItem=state->nativeItem; state->nativeItem=NULL;
     state->view = (XL6_ValueIteratorView){0}; state->cleared = true;
 }
 static bool iterator_finish(const void* data, const void* token)
 {
     XL6_ValueIterator* state = (XL6_ValueIterator*)data; xvaluecursor* cursor;
     if (state->claim != token || !state->cleared) abort();
-    cursor = state->retired; state->retired = NULL; xrtValueCursorRelease(cursor); return true;
+    cursor = state->retired; state->retired = NULL;
+    xvalue* nativeCursor=state->retiredNativeCursor; state->retiredNativeCursor=NULL;
+    xvalue* nativeItem=state->retiredNativeItem; state->retiredNativeItem=NULL;
+    xerror* saved=xrtTakeError(); xrtValueCursorRelease(cursor);
+    release_values(nativeItem,nativeCursor); xrtClearError(); xrtSetErrorTake(saved); return true;
 }
 const xrtownershipadapterv1* xl6ValueIteratorOwnershipAdapterV1(xrtownershipref ref)
 {

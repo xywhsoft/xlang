@@ -5,8 +5,9 @@
 
 struct xvalue;
 typedef struct xlir_xvalue_iterator XL6_ValueIterator;
-/* Borrowed projection of the current snapshot item. The cursor owns the key
- * bytes and item; neither is another owning edge. Valid until advance/destroy.
+/* Borrowed projection of the current snapshot item. Wire cursors own their
+ * key/item; native snapshots keep one owned current projection on this carrier.
+ * Neither View field is another owning edge. Valid until advance/destroy.
  * Language aliases borrow the unique owning handle and serialize its use. */
 typedef struct XL6_ValueIteratorView {
     struct xvalue* item;
@@ -31,9 +32,9 @@ typedef struct XL6_ValueIteratorRuntimeV2 {
     struct xrtownershipref (*Ownership)(const XL6_ValueIterator*);
 } XL6_ValueIteratorRuntimeV2;
 XL6_CODE_LEASE_API const XL6_ValueIteratorRuntimeV2* xl6ValueIteratorRuntimeV2Get(void);
-/* Certifies only this resident carrier. Its actual managed XRT cursor has an
- * independent ValueCursor adapter; legacy stack/unique cursors do not. The
- * resolver must admit that cursor and all backing/finalizer children too. */
+/* Certifies only this resident carrier. The resolver must also admit the real
+ * wire ValueCursor or native Sequence snapshot shell, its owned current value
+ * projection, and all storage/finalizer children. No native handle is a leaf. */
 struct xrtownershipadapterv1;
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ValueIteratorOwnershipAdapterV1(struct xrtownershipref);
 #endif

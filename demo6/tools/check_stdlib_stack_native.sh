@@ -65,6 +65,8 @@ frozen_files() {
     printf '%s\0' test/cases/xlir_collection_count_contract.c test/cases/stdlib_collection_count_projection_host.c
     printf '%s\0' tools/check_stdlib_array_scalar_read.py test/cases/stdlib_array_scalar_read_native_host.c test/cases/stdlib_array_scalar_read_header.c
     printf '%s\0' tools/check_stdlib_sequence_publication.py test/cases/stdlib_sequence_publication_native_host.c
+    printf '%s\0' tools/check_stdlib_array_primitive_admission.py test/cases/stdlib_array_primitive_admission_native_host.c
+    printf '%s\0' test/cases/stdlib_array_value_iterator_native_host.c test/cases/stdlib_array_value_iterator_graph_host.c
     printf '%s\0' tools/check_stdlib_sequence_factories.py test/cases/stdlib_sequence_factory_only_host.c test/support/sequence_factory_native.c
     printf '%s\0' src/runtime/xl6_array_scalar_read.c test/cases/stdlib_array_scalar_read.xl test/cases/stdlib_array_scalar_read_continuation.xl
     printf '%s\0' test/cases/xlir_array_scalar_read_contract.c test/cases/stdlib_array_scalar_read_projection_host.c
@@ -232,6 +234,7 @@ if ! run collection-count "$PY" tools/check_stdlib_collection_count.py --out "$O
 if ! run array-scalar-read "$PY" tools/check_stdlib_array_scalar_read.py --out "$OUT/array-scalar-read" --sanitize --language; then failures+=(array-scalar-read); fi
 if ! run array-value-boundaries "$PY" tools/check_stdlib_array_scalar_read.py --out "$OUT/array-value-boundaries" --boundaries --sanitize --language; then failures+=(array-value-boundaries); fi
 if ! run value-iterator-checked "$PY" tools/check_stdlib_array_scalar_read.py --out "$OUT/value-iterator-checked" --checked-iterator --sanitize --language; then failures+=(value-iterator-checked); fi
+if ! run array-native-iterator "$PY" tools/check_stdlib_array_primitive_admission.py --out "$OUT/array-native-iterator" --iterator --sanitize; then failures+=(array-native-iterator); fi
 if ! run sequence-publication "$PY" tools/check_stdlib_sequence_publication.py --out "$OUT/sequence-publication" --sanitize; then failures+=(sequence-publication); fi
 if ! run sequence-factories "$PY" tools/check_stdlib_sequence_factories.py --out "$OUT/sequence-factories" --sanitize; then failures+=(sequence-factories); fi
 frozen_files | sort -zu >"$OUT/inputs.after.list"

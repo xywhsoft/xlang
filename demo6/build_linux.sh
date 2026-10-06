@@ -194,6 +194,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_nullable_native_u32_value.c"
 	"$ROOT/src/runtime/xl6_array.c"
 	"$ROOT/src/runtime/xl6_array_iterator.c"
+	"$ROOT/src/runtime/xl6_array_value_iterator.c"
     "$ROOT/src/runtime/xl6_nullable_bool.c"
     "$ROOT/src/runtime/xl6_nullable_i64.c"
     "$ROOT/src/runtime/xl6_nullable_u64.c"

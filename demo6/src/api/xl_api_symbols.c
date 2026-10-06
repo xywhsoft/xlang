@@ -34,6 +34,7 @@
 #include "src/runtime/xl6_native_scalar_value.h"
 #include "src/runtime/xl6_nominal_admission.h"
 #include "src/runtime/xl6_array_iterator.h"
+#include "src/runtime/xl6_array_value_iterator.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_metadata.h"
