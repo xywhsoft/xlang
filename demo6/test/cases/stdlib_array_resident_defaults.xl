@@ -1,0 +1,40 @@
+int methodCleanup = 0
+
+func coreMethods(array<int> values) as int
+    try
+        assert(values.length == 2)
+        assert(values.resize(3) and values[2] == 0)
+        assert(values.resize(2) and values[0] == 1 and values[1] == 2)
+        return 3
+    finally
+        methodCleanup += 1
+    end
+end
+
+func textMethods(array<string> values) as int
+    assert(values.length == 2 and values[0] == "a\0你")
+    assert(values.resize(3) and values[2] == "")
+    assert(values.resize(2) and values[0] == "a\0你" and values[1] == "z")
+    return 5
+end
+
+func clearMethods(array<int> values) as int
+    assert(values.resize(0))
+    return values.length
+end
+
+func main(...) as int
+    array<int> values = [1, 2]
+    var alias = values
+    assert(coreMethods(values) == 3 and methodCleanup == 1 and alias.length == 2)
+    array<string> texts = ["a\0你", "z"]
+    assert(textMethods(texts) == 5)
+    assert(clearMethods(values) == 0 and alias.length == 0)
+    try
+        texts.resize(-1)
+        return 1
+    catch RangeError failure
+        assert(texts.length == 2)
+    end
+    return 0
+end

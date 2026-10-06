@@ -1,6 +1,9 @@
-/* Exact resident boxed-array default closure; not the native Sequence ABI. */
+/* Exact wire/native resize closure; no element Value projection or factories. */
+#define XRUNTIME_MODULE_TYPED_ARRAY
+#define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
+#define XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE
 #define XRT_MODULE_VALUE_COLLECTION
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_ATOMIC
-#define XRT_IMPLEMENTATION
-#include "lib/xrt/xrt.h"
+#define XRUNTIME_IMPLEMENTATION
+#include "lib/xruntime/xruntime.h"

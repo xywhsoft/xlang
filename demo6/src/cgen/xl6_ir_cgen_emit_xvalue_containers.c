@@ -302,9 +302,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueSetIsDisjoint(const xvalue*, const xvalue*);\n",
                 out);
         if ( needs->needsXValueTypedArrayResizeRuntime )
-            xl6OutputPuts(
-                "extern bool xl6ArrayResizeDefaultV1(xvalue*, int64_t, unsigned int);\n",
-                out);
+            xl6OutputPuts("#include <__xl_runtime/xl6_array_default.h>\n",out);
         if ( needs->needsXValueTypedCollectionTakeRuntime ) {
             xl6OutputPrintf(out,
                 "enum xlir_typed_collection_abi {\n"

@@ -229,3 +229,26 @@ JIT/AOT；抽取真实函数和 TypeId 后，以 native int/双字段 string Arr
 `test/cases/stdlib_array_methods_find_only.xl` 用于实际 artifact 组件裁剪。
 Array/Stack 父门接线；pop/take、resize 默认值、动态分派及整个源 carrier
 切换不属于本批完成范围。
+
+### B100 Array resident 默认值 / 扩容
+
+`tools/check_stdlib_array_methods.py --defaults` 使用
+`test/cases/stdlib_array_resident_default_host.c` 和独立声明头
+`test/cases/stdlib_array_default_header.c` 验证 12 类真实原生槽位，
+覆盖别名/快照、nullable、禁止默认构造、BUSY/未绑定/错误角色，
+容量足够与重新扩容两类完整 OOM 前缀。Linux 插桩选定 native 闭包全源。
+`tools/check_stdlib_array_defaults.py` 继续验证 wire carrier 的逻辑默认值。
+
+`tools/check_stdlib_array_methods_language.py --defaults` 检查
+`test/cases/stdlib_array_resident_defaults.xl` 与
+`test/cases/stdlib_array_resident_defaults_continuation.xl` 的真实 IR、
+严格 O0/O2、JIT/AOT、async/generator、finally 和完整模块 OOM；
+抽取真实函数/TypeId 后以原生 int/string Array 调用生成函数。
+完整模块 OOM host 对显式 main 选择 USER_ENTRY，并要求首个 no-hit
+为非零，防止只执行 module_init 而没有实际执行用户程序的空通过。
+`test/cases/stdlib_array_default_commit_host.c` 验证提交后析构错误、
+回调重入 BUSY 拒绝及保留首错；Linux 单独插桩此原生闭包全源，
+不将共享 runtime 的宿主插桩说成全源插桩。
+`test/cases/stdlib_array_resize_only.xl` 用于真实 artifact 组件裁剪。
+Array/Stack 父门接入新 native 子门，Stack 父门同时接入语言子门。
+pop/take、动态分派和全部 Array source carrier 切换仍需后续完成。

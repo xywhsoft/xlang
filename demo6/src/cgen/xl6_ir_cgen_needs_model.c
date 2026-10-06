@@ -20,7 +20,13 @@ static int xl6IrCgenNeedsWebSocketRuntime(
 static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
 {
     return needs != NULL &&
-        (needs->needsTextAdapterDeclarations || needs->needsLogAdapterDeclarations || needs->needsModuleOwnershipViews || needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ||
+        (needs->needsTextAdapterDeclarations || needs->needsLogAdapterDeclarations || needs->needsModuleOwnershipViews ||
+         /* Value consumers now share resident providers and their public
+          * physical types. Select the canonical DECLARATIONS for the entire
+          * family before emitting any fallback typedef, not by whichever
+          * optional method happens to accompany a minimal consumer. This
+          * header contributes no implementation or native component root. */
+         needs->needsXValueRuntime || needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ||
          needs->needsStringScalarRuntime || needs->needsBytesRuntime ||
          needs->needsXCallRuntime || needs->needsClosureRuntime || needs->needsCellRuntime ||
          /* Even scalar-only machines emit physical Future/Promise frame

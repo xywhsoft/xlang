@@ -223,6 +223,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
                     xl6IrCgenArrayMethodSymbol(instruction->typedCollectionOp) : NULL;
             if (method && !visitor(context,method)) return 0;
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+                instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE &&
+                !visitor(context,"xl6ArrayResizeDefaultV1")) return 0;
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
             const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ?

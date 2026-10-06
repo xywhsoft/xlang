@@ -235,6 +235,15 @@ $process=Start-Process @start
                         'src/runtime/xl6_array_input.c'-notin$selectedSources-and
                         'src/runtime/xl6_array.c'-notin$selectedSources-and
                         (('XRUNTIME_MODULE_TYPED_ARRAY_VALUE'-in$plan.NativeModules)-eq($leaf-ne'methods'))
+                }elseif($case-eq'stdlib_array_resize_only'){
+                    $selectionMatches='src/runtime/xl6_array_default.c'-in$selectedSources-and
+                        'src/runtime/xl6_sequence.c'-in$selectedSources-and
+                        'src/runtime/xl6_array.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_import.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_input.c'-notin$selectedSources-and
+                        !@($selectedSources|Where-Object {$_-match 'xl6_array_(methods|method_insert|method_find|.*admission)\.c$'}).Count-and
+                        'XRUNTIME_MODULE_TYPED_ARRAY_VALUE'-notin$plan.NativeModules-and
+                        'XRT_MODULE_VALUE_COLLECTION'-in$plan.NativeModules
                 }elseif($case-eq'stdlib_text_iterator_only'){
                     $selectionMatches='src/runtime/xl6_text_iterator.c'-in$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!iterator\.)'}).Count
