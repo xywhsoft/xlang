@@ -529,7 +529,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter dynamic error reference box ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_error_ref(v%u, 0x%016llXULL);\n",
+                        "    v%u = xl6ErrorValueRefV1(v%u, 0x%016llXULL);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned long long)sourceType->typeValueId);

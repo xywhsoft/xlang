@@ -75,7 +75,7 @@ void result_prepare(unsigned kind)
         assert(preparedNative.e0.Data && preparedNative.e2 && preparedNative.e3);
     } else if (kind < 9) {
         values[0] = xrtValueString(xrtStrView("text")); values[1] = handle_value(0);
-        values[2] = kind == 4 ? xrtValueInt(1) : xlir_xvalue_error_ref(primary, RESULT_ERROR_TYPE);
+        values[2] = kind == 4 ? xrtValueInt(1) : xl6ErrorValueRefV1(primary, RESULT_ERROR_TYPE);
         values[3] = kind == 5 ? xrtValueInt(2) : xrtValueRetain(RESULT_ANSWER);
         count = kind == 6 || kind == 7 ? 5 : 4;
         if (count == 5) values[4] = kind == 7 ? handle_value(1) : xrtValueInt(3);

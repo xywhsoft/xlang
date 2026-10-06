@@ -35,7 +35,7 @@ static int xl6IrCgenEmitCallableBridgeEncode(
     case XL6_IR_CALLABLE_BRIDGE_STRING_COPY:
         xl6OutputPrintf(out, "    %s = %s.Data != NULL ? xrtValueString(%s) : NULL;\n", boxed, input, input); break;
     case XL6_IR_CALLABLE_BRIDGE_ERROR_REF:
-        xl6OutputPrintf(out, "    %s = xlir_xvalue_error_ref(%s, 0x%016llXULL);\n",
+        xl6OutputPrintf(out, "    %s = xl6ErrorValueRefV1(%s, 0x%016llXULL);\n",
             boxed, input, (unsigned long long)item->typeValueId); break;
     case XL6_IR_CALLABLE_BRIDGE_CLOSURE_REF:
         xl6OutputPrintf(out, "    %s = %s != NULL ? xlir_closure_to_xvalue_scalar(%s, xlir_xcall_entry_t%u, 0x%016llXULL) : NULL;\n",

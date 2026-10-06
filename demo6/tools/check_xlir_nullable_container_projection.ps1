@@ -87,7 +87,7 @@ $loops = @($typed.nodes | Where-Object {
 })
 if ( $loops.Count -ne 5 -or
      @($loops | Where-Object {
-        $_.loopErrorAbiName -ne "no-raise" -or
+        $_.loopErrorAbiName -ne "may-raise" -or
         $_.loopResourceAbiName -ne "xvalue-iterator-destroy"
      }).Count -ne 0 -or
      @($loops | Where-Object {
@@ -110,17 +110,19 @@ foreach ( $entry in @{
 }
 
 $expectedRuntimeOps = @{
-    "xvalue-tagged-nullable-box" = 4
+    "xvalue-tagged-nullable-box" = 6
     "xvalue-project-tagged-nullable-copy" = 3
-    "xvalue-nullable-string-box" = 4
+    "xvalue-nullable-string-box" = 6
     "xvalue-project-nullable-string-copy" = 7
-    "string-nullable-copy" = 3
     "xvalue-nullable-closure-box" = 6
     "xvalue-project-nullable-closure-copy" = 6
-    "xvalue-project-nullable-xvalue-retain" = 1
+    "xvalue-project-nullable-xvalue-retain" = 3
     "xvalue-int-map-at-i64-or-null" = 3
     "xvalue-iterator-item-borrow" = 4
     "xvalue-iterator-item-xvalue-retain" = 1
+    "array-read-value-copy" = 9
+    "xvalue-iterator-create" = 5
+    "xvalue-iterator-advance" = 5
 }
 foreach ( $entry in $expectedRuntimeOps.GetEnumerator() ) {
     if ( @($instructions | Where-Object {
@@ -194,9 +196,8 @@ foreach ( $required in @(
     "static xvalue* xlir_xvalue_project_nullable_retain(",
     "exactTypeId != 0",
     "static xlir_nullable_t7 xlir_xvalue_project_xlir_nullable_t7(",
-    "enum xlir_xvalue_tag_abi {",
-    "(int)xrtValueType(values) == (int)XLIR_XVALUE_ARRAY",
-    "!= NULL ? xrtStrDup("
+    "extern bool xl6_xrt_print(xvalue*, bool)",
+    "*output = xlir_string_from_utf8(value.Data, value.Size);"
 ) ) {
     if ( ! $generated.Contains($required) ) {
         throw "Generated C nullable runtime contract is incomplete: $required"
@@ -232,5 +233,5 @@ try {
     Pop-Location
 }
 
-Write-Output "XLIR nullable container projection gate ok: tagged/string/closure/protocol layouts, array/list/set/dict indexing and iteration, safe missing reads, discarded keys, ownership-only exact-TypeId retain, explicit VALUE rebinds, named print tag ABI, deterministic mechanical C, strict compile, and heap-clean exit."
+Write-Output "XLIR nullable container projection gate ok: tagged/string/closure/protocol layouts, array/list/set/dict indexing and iteration, safe missing reads, discarded keys, ownership-only exact-TypeId retain, explicit VALUE rebinds, resident print ABI, deterministic mechanical C, strict compile, and heap-clean exit."
 exit 0

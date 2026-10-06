@@ -2429,11 +2429,12 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xlir_xvalue_typed_collection_take_raw",
+    "xl6ArrayExtractValueV1",
+    "xl6ArrayExtractTrivialV1",
     "xl6IrCgenEmitSharedCollectionRuntime",
     "xl6ArrayResizeDefaultV1",
-    "xlir_xvalue_typed_array_index_of",
-    "xlir_xvalue_typed_array_reverse",
+    "xl6ArrayMethodIndexOfV1",
+    "xl6ArrayMethodReverseV1",
     "xlir_xvalue_dynamic_collection_method"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -2445,9 +2446,12 @@ foreach ($required in @('collectionDefaultAbi','xl6IrValueDefaultAbiForType','xl
         throw "Array logical default/effect ABI is not shared by IR and lowering: $required"
     }
 }
-if ($cEmitter.Contains('xlir_xvalue_typed_array_resize_default') -or
+if ($cEmitter.Contains('xlir_xvalue_typed_collection_take_raw') -or
+    $cEmitter.Contains('xlir_xvalue_typed_array_index_of') -or
+    $cEmitter.Contains('xlir_xvalue_typed_array_reverse') -or
+    $cEmitter.Contains('xlir_xvalue_typed_array_resize_default') -or
     $cEmitter.Contains('xlir_xvalue_typed_array_default')) {
-    throw 'Cgen must not reconstruct Array defaults or embed a resize algorithm'
+    throw 'Cgen must not reconstruct Array defaults, extraction, find or mutation algorithms'
 }
 foreach ( $required in @(
     "xlir_typed_collection_methods", "typedCollectionOpName",
@@ -5258,8 +5262,12 @@ foreach ( $required in @(
 if ( ! $languageFrontendSuite.Contains("tools\check_xlir_time_conversion_abi.ps1") ) {
     throw "XLIR time conversion quality gate is not wired into the language frontend suite"
 }
-foreach ( $required in @("XL6_IR_RUNTIME_BRIDGE_PRINT", "needsPrintRuntime", "bool xl6_xrt_print", "xlir_print_one", "xrtValueArrayAt") ) {
+foreach ( $required in @("XL6_IR_RUNTIME_BRIDGE_PRINT", "needsPrintRuntime", "extern bool xl6_xrt_print") ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR print runtime bridge contract is incomplete: $required" }
+}
+if ($cEmitter.Contains('static bool xlir_print_one(') -or
+    $cEmitter.Contains('serialized = xrtXlonStringify(value, false, &size)')) {
+    throw 'Cgen must not implement resident value display/printing algorithms'
 }
 foreach ($required in @('XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE', 'needsTextAdapterDeclarations')) {
     if (!$cEmitter.Contains($required)) {throw "Cgen must consume resident text declarations: $required"}

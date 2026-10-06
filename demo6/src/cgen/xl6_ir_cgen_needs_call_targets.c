@@ -177,7 +177,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
         if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_PRINT ) {
             needs->needsPrintRuntime = 1;
             needs->needsXValueRuntime = 1;
-            needs->needsXValueCountRuntime = 1;
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG ) {
@@ -429,7 +428,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsXValueRuntime = 1;
                 needs->needsXValueArrayRuntime = 1;
                 needs->needsXValueToStringRuntime = 1;
-                needs->needsU64ToStringRuntime = 1;
                 break;
             default: return 0;
             }

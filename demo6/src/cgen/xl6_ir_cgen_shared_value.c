@@ -736,7 +736,7 @@ static int xl6IrCgenEmitSharedScalarStringRuntime(
                 : instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_STRING
                     ? "xlir_f64_to_string" : "xlir_xvalue_to_string";
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_STRING)
-        xl6OutputPrintf(out, "    v%u = xlir_xvalue_to_string_value(v%u);\n",
+        xl6OutputPrintf(out, "    v%u = xl6ValueTextV1(v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand]);
     else

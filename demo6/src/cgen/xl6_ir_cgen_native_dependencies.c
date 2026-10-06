@@ -270,6 +270,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         !visitor(context,"xl6ArrayRandShuffleV1")) return 0;
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
+    if (needs.needsXValueErrorBoxRuntime && !visitor(context,"xl6ErrorValueRefV1")) return 0;
+    if ((needs.needsXValueErrorProjectionRuntime || needs.needsXValueCheckedCastRuntime) &&
+        !visitor(context,"xl6ErrorValueReadRefV1")) return 0;
+    if (needs.needsXValueToStringRuntime && !visitor(context,"xl6ValueTextV1")) return 0;
     if (needs.needsCallableIntegerCodec &&
         (!visitor(context,"xl6ValueIntegerSlotAdmitsV1") ||
          !visitor(context,"xl6ValueReadIntegerV1") || !visitor(context,"xl6ValueBoxIntegerV1"))) return 0;

@@ -3932,7 +3932,8 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
         XL6_IrValueId boxed =
             xl6IrLowerEmitRuntimeCallMetadata(ctx, origin, origin, targetType, runtimeOp, NULL,
                 runtimeOp == XL6_IR_RUNTIME_XVALUE_UNION_BOX ? loweredSourceType : XL6_IR_TYPE_INVALID,
-                runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ? loweredSourceType : XL6_IR_TYPE_INVALID,
+                (runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ||
+                 runtimeOp == XL6_IR_RUNTIME_XVALUE_ERROR_REF) ? loweredSourceType : XL6_IR_TYPE_INVALID,
                 &source, 1);
         if ( boxed != XL6_IR_VALUE_INVALID &&
              (runtimeOp == XL6_IR_RUNTIME_XVALUE_NULLABLE_CLOSURE_BOX ||
@@ -3955,11 +3956,6 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
              runtimeOp == XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE )
             ctx->module->instructions[ctx->module->instructionCount - 1].targetSymbol =
                 nativeDestroySymbol;
-        if ( boxed != XL6_IR_VALUE_INVALID &&
-             runtimeOp == XL6_IR_RUNTIME_XVALUE_ERROR_REF )
-            ctx->module->instructions[
-                ctx->module->instructionCount - 1].runtimeIdentityType =
-                    loweredSourceType;
         if ( boxed != XL6_IR_VALUE_INVALID &&
              sourceType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE )
             boxed = xl6IrLowerBindRuntimeTypeIdentity(

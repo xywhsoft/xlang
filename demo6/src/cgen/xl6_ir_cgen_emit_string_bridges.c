@@ -57,7 +57,7 @@ static int xl6IrCgenEmitStringBridgeRuntime(
      * 拼接及长度溢出检查由 XRT 负责，调用者只接管最终缓冲区。 */
     if ( needs->needsStringJoinBridgeRuntime )
         xl6OutputPuts(
-            "static char* xlir_xvalue_to_string(const xvalue* value);\n"
+            "extern xlir_string xl6ValueTextV1(const xvalue*);\n"
             "void* xl6_xrt_string_join(xvalue* values, xlir_string separator)\n"
             "{\n"
             "    size_t count, i; xstrview* parts; char** owned; char* result = NULL;\n"
@@ -73,9 +73,9 @@ static int xl6IrCgenEmitStringBridgeRuntime(
             "        if (xrtValueIs(item, XVALUE_STRING)) {\n"
             "            if (!xrtValueGetString(item, &parts[i])) goto done;\n"
             "        } else {\n"
-            "            owned[i] = xlir_xvalue_to_string(item);\n"
+            "            parts[i] = xl6ValueTextV1(item);\n"
+            "            owned[i] = (char*)parts[i].Data;\n"
             "            if (owned[i] == NULL) goto done;\n"
-            "            parts[i] = xrtStrView(owned[i]);\n"
             "        }\n"
             "    }\n"
             "    result = xrtStrJoin(separator, parts, count);\n"

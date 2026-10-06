@@ -193,12 +193,11 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "extern bool xrtValueGetTime(const xvalue*, int64_t*);\n"
                 "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
                 "extern bool xrtValueGetPointer(const xvalue*, void**);\n"
-                "extern bool xrtValueGetHandle(const xvalue*, void**, const struct xvaluehandleops**, void**);\n"
-                "extern xerror* xrtErrorRef(const xerror*);\n"
+                "extern bool xl6ErrorValueReadRefV1(const xvalue*, uint64_t, xerror**);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n"
                 "static bool xlir_xvalue_cast_checked(const xvalue* source, uint64_t expectedTypeId, int castAbi, void* outValue)\n"
                 "{\n"
-                "    xlir_string_view text = { 0 }; char* copy = NULL; void* handle = NULL; xerror* error = NULL;\n"
+                "    xlir_string_view text = { 0 }; char* copy = NULL;\n"
                 "    if (outValue == NULL || expectedTypeId == 0) goto runtime_failure;\n"
                 "    switch (castAbi) {\n"
                 "    case %d: *(bool*)outValue = false; break;\n"
@@ -226,10 +225,8 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "        *(char**)outValue = copy; return true;\n"
                 "    case %d: if (xrtValueGetPointer(source, (void**)outValue)) return true; break;\n"
                 "    case %d:\n"
-                "        if (!xrtValueGetHandle(source, &handle, NULL, NULL) || handle == NULL) break;\n"
-                "        error = xrtErrorRef((const xerror*)handle);\n"
-                "        if (error == NULL) goto runtime_failure;\n"
-                "        *(xerror**)outValue = error; return true;\n"
+                "        if (xl6ErrorValueReadRefV1(source, expectedTypeId, (xerror**)outValue)) return true;\n"
+                "        break;\n"
                 "    case %d:\n"
                 "        *(xvalue**)outValue = xrtValueRetain(source);\n"
                 "        if (*(xvalue**)outValue != NULL) return true;\n"
@@ -549,50 +546,16 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 out);
         if ( needs->needsXValueErrorBoxRuntime )
             xl6OutputPuts(
-                "extern xerror* xrtErrorRef(const xerror*);\n"
-                "extern void xrtErrorFree(xerror*);\n"
-                "static bool xlir_error_value_handle_clone(void* handle, void** clone, void* user)\n"
-                "{\n"
-                "    xerror* owned; (void)user;\n"
-                "    if (clone == NULL || handle == NULL) return false;\n"
-                "    owned = xrtErrorRef((xerror*)handle);\n"
-                "    if (owned == NULL) return false;\n"
-                "    *clone = owned; return true;\n"
-                "}\n"
-                "static void xlir_error_value_handle_drop(void* handle, void* user)\n"
-                "{ (void)user; xrtErrorFree((xerror*)handle); }\n"
-                "static const xvaluehandleops xlir_error_value_handle_ops = {\n"
-                "    xlir_error_value_handle_clone, xlir_error_value_handle_drop, NULL, NULL\n"
-                "};\n",
-                out);
-        if ( needs->needsXValueErrorBoxRuntime )
-            xl6OutputPuts(
-                "static xvalue* xlir_xvalue_error_ref(const xerror* error, uint64_t typeId)\n"
-                "{\n"
-                "    void* owned; xvalue* value;\n"
-                "    if (error == NULL) return xrtValueRetain(xrtValueNull());\n"
-                "    owned = xrtErrorRef(error);\n"
-                "    if (owned == NULL) return NULL;\n"
-                "    value = xrtValueHandleTake(&owned, &xlir_error_value_handle_ops, NULL);\n"
-                "    if (value == NULL) {\n"
-                "        if (owned != NULL) xrtErrorFree((xerror*)owned);\n"
-                "        return NULL;\n"
-                "    }\n"
-                "    return xlir_xvalue_type_bind(value, typeId);\n"
-                "}\n",
+                "extern xvalue* xl6ErrorValueRefV1(const xerror*, uint64_t);\n",
                 out);
         if ( needs->needsXValueErrorProjectionRuntime )
             xl6OutputPuts(
-                "extern uint64_t xrtValueTypeId(const xvalue*);\n"
-                "extern bool xrtValueGetHandle(const xvalue*, void**, const xvaluehandleops**, void**);\n"
+                "extern bool xl6ErrorValueReadRefV1(const xvalue*, uint64_t, xerror**);\n"
                 "static xerror* xlir_xvalue_project_error_ref(const xvalue* value, uint64_t typeId)\n"
                 "{\n"
-                "    void* handle = NULL;\n"
-                "    if (value == NULL || typeId == 0) abort();\n"
-                "    if (xrtValueType(value) == 0) return NULL;\n"
-                "    if (xrtValueTypeId(value) != typeId ||\n"
-                "        !xrtValueGetHandle(value, &handle, NULL, NULL) || handle == NULL) abort();\n"
-                "    return xrtErrorRef((const xerror*)handle);\n"
+                "    xerror* result = NULL;\n"
+                "    if (!xl6ErrorValueReadRefV1(value, typeId, &result)) abort();\n"
+                "    return result;\n"
                 "}\n",
                 out);
         if ( needs->needsXValueCountRuntime )
