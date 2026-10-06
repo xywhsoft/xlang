@@ -150,7 +150,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_char_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_char_value.c", D(R(CHAR_TYPE)), {"XRUNTIME_MODULE_TYPED_VALUE"}},
     {"src/runtime/xl6_array_reference_value.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
-    {"src/runtime/xl6_array_erased.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_array_erased.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_value_admission.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_nominal_admission.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_reference_admission.c", D(R(SEQUENCE),R(VALUE_ADMISSION)), {NULL}},

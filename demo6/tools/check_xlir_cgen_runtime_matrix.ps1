@@ -12,6 +12,8 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $generated = Join-Path $Root "build\test\xlir_cgen_runtime_matrix_generated.c"
 $fixtures = @(
+    @{ Name = "contextual literal element conversion before collection erasure"; Source = "test\cases\stdlib_collection_contextual_literals.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "nullable TypeId narrowed equality and short circuit ABI"; Source = "test\cases\stdlib_nullable_type_equality.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "exact function-value expression calls and managed products"; Source = "test\cases\xlir_function_value_calls.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "native C scalar and type callable bridges"; Source = "test\cases\stdlib_callable_native_scalars.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "length-bearing Buffer, dictionary and embedded xlang boundaries"; Source = "test\cases\stdlib_string_bridge_boundaries.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true; XlangLinks = $true },

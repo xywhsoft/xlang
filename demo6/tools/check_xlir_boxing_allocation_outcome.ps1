@@ -1,4 +1,4 @@
-param([string]$Root = '')
+param([string]$Root = '', [string]$PublicDirectory = '')
 $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
@@ -41,7 +41,26 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome runtime/memory failed' }
     & release/xl.exe run $runtimeSource $hostSource --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome C-host JIT failed' }
-    & release/xl.exe build $runtimeSource $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    # A raw C host cannot supply language IR to the executable planner. Use
+    # the verified language plan to select ALL resident providers, rather
+    # than a hard-coded foreign-error-only link that hid missing components.
+    if (!$PublicDirectory) {
+        $PublicDirectory="$prefix.source-$([Guid]::NewGuid().ToString('N'))"
+        & "$PSScriptRoot/build_xlir_public_source_driver.ps1" -Directory $PublicDirectory
+    }
+    $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
+    if ($public.RuntimeOnly -or !$public.SourceXrt) { throw 'Plan requires current complete compiler source' }
+    foreach($row in @($public.Inputs)+@($public.Headers)+@($public.Objects)) {
+        if ((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256) { throw "Stale plan input: $($row.Path)" }
+    }
+    $objects=@($public.Objects | Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'} | ForEach-Object Path)
+    & gcc @strict -DXL_STATIC_EMBED -Ilib/tcc test/cases/xlir_artifact_runtime_contract.c @objects release/xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o "$prefix.plan.exe"
+    if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome artifact plan build failed' }
+    & "$prefix.plan.exe" --emit-native test/cases/xlir_boxing_allocation_outcome.xl "$prefix.native.c" 1> "$prefix.plan.log"
+    if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome verified artifact plan failed' }
+    $plan=Get-Content -LiteralPath "$prefix.plan.log" | Where-Object {$_-match '^\{"Fixture"'} | ConvertFrom-Json
+    if (!$plan.Sources.Count) { throw 'Boxing allocation outcome resident plan is empty' }
+    & release/xl.exe build $runtimeSource $hostSource @($plan.Sources) --inc-path . --inc-path release --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Boxing allocation outcome C-host AOT runtime failed' }

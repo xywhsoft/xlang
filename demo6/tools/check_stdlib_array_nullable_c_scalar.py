@@ -30,10 +30,12 @@ def main() -> int:
         'src/runtime/xl6_array_iterator.c','src/runtime/xl6_array_value.c','src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_nullable_c_scalar_admission.c','src/runtime/xl6_ownership_plan.c']
     sources += ["src/runtime/xl6_nullable_bool.c","src/runtime/xl6_nullable_bool_value.c","src/runtime/xl6_nullable_i64.c","src/runtime/xl6_nullable_i64_value.c","src/runtime/xl6_nullable_u64.c","src/runtime/xl6_nullable_u64_value.c","src/runtime/xl6_nullable_f32.c","src/runtime/xl6_nullable_f32_value.c","src/runtime/xl6_nullable_f64.c","src/runtime/xl6_nullable_f64_value.c","src/runtime/xl6_nullable_native_i8.c","src/runtime/xl6_nullable_native_i8_value.c","src/runtime/xl6_nullable_native_u8.c","src/runtime/xl6_nullable_native_u8_value.c","src/runtime/xl6_nullable_native_i16.c","src/runtime/xl6_nullable_native_i16_value.c","src/runtime/xl6_nullable_native_u16.c","src/runtime/xl6_nullable_native_u16_value.c","src/runtime/xl6_nullable_native_i32.c","src/runtime/xl6_nullable_native_i32_value.c","src/runtime/xl6_nullable_native_u32.c","src/runtime/xl6_nullable_native_u32_value.c"]
+    sources.append('src/api/xl_foreign_error.c')
     product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h',root/'test/support/array_native.c',
         root/'test/cases/stdlib_array_nullable_c_scalar_storage_host.c'}
     files.update(root/name for name in sources)
+    files.add(root/'src/api/xl_foreign_error.h')
     for directory in ['src/runtime','release/include']: files.update((root/directory).rglob('*.h'))
     if args.shared:
         files.add(product)

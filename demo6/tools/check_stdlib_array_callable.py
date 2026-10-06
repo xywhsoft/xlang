@@ -32,9 +32,11 @@ def main() -> int:
         'src/runtime/xl6_array_callable_admission.c','src/runtime/xl6_closure.c',
         'src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c',
         'src/runtime/xl6_string_type.c','src/runtime/xl6_nullable_string.c','src/runtime/xl6_ownership_plan.c']
+    sources.append('src/api/xl_foreign_error.c')
     product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
     files.update(root/name for name in sources)
+    files.add(root/'src/api/xl_foreign_error.h')
     files.add(root/'test/support/array_value_native.c')
     storage_host='test/cases/stdlib_array_callable_storage_host.c'
     files.add(root/storage_host)

@@ -37,7 +37,9 @@ def main() -> int:
                f"src/runtime/xl6_array_{component}_admission.c",
                "src/runtime/xl6_nominal_admission.c" if args.nominal else "src/runtime/xl6_value_admission.c"]
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
+    sources.append('src/api/xl_foreign_error.c')
     files += [root / name for name in sources]
+    files.append(root / 'src/api/xl_foreign_error.h')
     product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
     if args.shared:
         files += [product]

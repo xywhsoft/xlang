@@ -1,0 +1,62 @@
+// Resolve a typed container's element before erasure, including nullable
+// payloads. No pre-cast variables may conceal the literal conversion boundary.
+func checkContextualLiterals() as int
+    uint64 maximum = 18446744073709551615
+    array<uint64?> values = [18446744073709551615, null, 0]
+    auto first = values.take(0)
+    assert(first != null and first == maximum)
+    assert(values[0] == null)
+    auto zero = values.pop()
+    assert(zero != null and zero == uint64(0))
+
+    array<uint64> direct = [18446744073709551615]
+    assert(direct.pop() == maximum)
+    list<uint64?> sparse = list[-7: 18446744073709551615, 3: null, 9: 0]
+    auto atNegative = sparse[-7]
+    assert(atNegative != null and atNegative == maximum)
+    assert(sparse[3] == null)
+    auto atZero = sparse[9]
+    assert(atZero != null and atZero == uint64(0))
+
+    dict<uint64?> mapped = dict{"a\0b": 18446744073709551615, "a": null, "zero": 0}
+    auto atNul = mapped["a\0b"]
+    assert(atNul != null and atNul == maximum)
+    assert(mapped["a"] == null)
+    auto mappedZero = mapped["zero"]
+    assert(mappedZero != null and mappedZero == uint64(0))
+
+    set<uint64?> unique = set{18446744073709551615, null, 0, 18446744073709551615}
+    int present = 0
+    int absent = 0
+    for item in unique
+        if item == null
+            absent += 1
+        else
+            assert(item == maximum or item == uint64(0))
+            present += 1
+        end
+    end
+    assert(present == 2 and absent == 1)
+
+    array<int8?> narrowSigned = [-128, null, 127]
+    auto low = narrowSigned.take(0)
+    assert(low != null and low == int8(-128))
+    array<uint32?> narrowUnsigned = [4294967295, null]
+    auto wide = narrowUnsigned.take(0)
+    assert(wide != null and wide == uint32(4294967295))
+    array<float32?> real = [0.5, null]
+    auto half = real.take(0)
+    assert(half != null and half == float32(0.5))
+    array<char?> characters = ['你', null]
+    auto character = characters.take(0)
+    assert(character != null and character == '你')
+    array<string?> text = ["a\0你", null, ""]
+    auto stored = text.take(0)
+    assert(stored != null and stored == "a\0你")
+    assert(text[0] == null)
+    auto empty = text.pop()
+    assert(empty != null and empty == "")
+    return 0
+end
+
+assert(checkContextualLiterals() == 0)

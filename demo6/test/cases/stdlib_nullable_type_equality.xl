@@ -1,0 +1,23 @@
+// Narrowed expression ABI is TypeId; its local storage remains nullable.
+func matches(type? candidate) as bool
+    return candidate != null and candidate == bool and bool == candidate and candidate != int and int != candidate
+end
+
+func checkNullableTypes() as int
+    array<type?> values = [bool, null, int]
+    auto number = values.pop()
+    assert(number != null and number == int and int == number)
+    assert(number != null and number != bool and bool != number)
+    auto absent = values.pop()
+    assert(absent == null)
+    assert(not matches(absent))
+    assert(absent == null or absent == bool)
+    auto logical = values.pop()
+    assert(logical != null and logical == bool and bool == logical)
+    assert(matches(logical))
+    assert(not matches(number))
+    assert(values.length == 0)
+    return 0
+end
+
+assert(checkNullableTypes() == 0)

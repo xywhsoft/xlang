@@ -47,10 +47,13 @@ def main() -> int:
         provider='src/runtime/xl6_value_iterator.c'
         sources=[host,'test/support/collection_count_native.c',provider,
             'src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_array_iterator.c','src/runtime/xl6_sequence.c']
+    if not args.checked_iterator:
+        sources.append('src/api/xl_foreign_error.c')
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable),
         root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h'}
     files.update(root / source for source in sources)
+    files.add(root / 'src/api/xl_foreign_error.h')
     files.add(root / 'test/cases/stdlib_array_scalar_read_header.c')
     if args.boundaries: files.add(root/'test/cases/stdlib_array_value_boundaries_header.c')
     if args.checked_iterator: files.add(root/'test/cases/stdlib_value_iterator_checked_header.c')
@@ -160,7 +163,8 @@ def main() -> int:
                         report['Sweeps'].append({'Lane':lane,'Operation':'checked-cursor-create','FirstNoHit':point}); break
                 else: raise AssertionError('Unclosed resident cursor creation prefix')
             if args.boundaries:
-                for operation in ('copy-native','copy-wire','set-native','set-wire','append-native','append-wire'):
+                for operation in ('copy-native','copy-wire','set-native','set-wire','append-native','append-wire',
+                        'rollback-append','rollback-set','rollback-sparse','rollback-object'):
                     for point in range(128):
                         log=run(f'{lane}.{operation}.oom.{point}',[str(binary),operation,str(point)])
                         assert 'balanced' in log

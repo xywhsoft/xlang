@@ -40,10 +40,12 @@ def main() -> int:
     sources = [host, 'test/support/collection_count_native.c', provider,
         'src/runtime/xl6_sequence.c', 'src/runtime/xl6_array.c',
         'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c']
+    sources.append('src/api/xl_foreign_error.c')
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable),
         root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h'}
     files.update(root / source for source in sources)
+    files.add(root / 'src/api/xl_foreign_error.h')
     files.add(root / 'test/cases/stdlib_collection_count_header.c')
     for directory in ('src/runtime', 'release/include'):
         files.update((root / directory).rglob('*.h'))

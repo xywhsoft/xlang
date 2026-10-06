@@ -34,11 +34,13 @@ def main() -> int:
         'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_char_type.c', 'src/runtime/xl6_char_value.c']
     sources += [f'src/runtime/xl6_nullable_{profile}{suffix}.c' for profile in optional for suffix in ('', '_value')]
+    sources.append('src/api/xl_foreign_error.c')
     host = 'test/cases/stdlib_array_extract_trivial_host.c'
     support = 'test/support/array_import_native.c'
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host, root / support,
         root / 'lib/xruntime/xruntime.h', root / 'lib/xrt/xrt.h', *[root / source for source in sources]}
+    files.add(root / 'src/api/xl_foreign_error.h')
     for directory in ('src/runtime', 'release/include'):
         files.update((root / directory).rglob('*.h'))
     if args.shared: files.add(product)
