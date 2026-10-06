@@ -35,11 +35,13 @@ def main() -> int:
         ('callable',[],'xl6SequenceCallableCreateV1'),('future',[],'xl6SequenceFutureCreateV1')]
     common=['src/runtime/xl6_sequence.c','src/runtime/xl6_array_import.c','src/runtime/xl6_array_input.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_reference_value.c']
+    common.append('src/api/xl_foreign_error.c')
     host='test/cases/stdlib_array_import_native_host.c'; support='test/support/array_import_native.c'
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/host,root/support,
         root/'test/cases/stdlib_sequence_factory_only_host.c',root/'test/cases/stdlib_array_import_header.c',
         root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
     files.update(root/name for name in common)
+    files.add(root/'src/api/xl_foreign_error.h')
     for profile,extras,_ in profiles: files.update(root/name for name in [f'src/runtime/xl6_array_{profile}_admission.c',*extras])
     for directory in ('src/runtime','release/include'): files.update((root/directory).rglob('*.h'))
     product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')

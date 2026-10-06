@@ -4151,6 +4151,9 @@ static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
 static XL6_IrValueId xl6IrLowerCollectionItemAsRuntimeXValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId itemId,
     const XL6_IrNode* item);
+static XL6_IrValueId xl6IrLowerContextualCollectionItemAsRuntimeXValue(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId itemId,
+    const XL6_IrNode* item, XL6_IrTypeId collectionType);
 static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId sourceId,
     const XL6_IrNode* source, XL6_IrTypeId targetType);
@@ -4190,7 +4193,7 @@ static XL6_IrValueId xl6IrLowerArrayLiteralAsRuntimeXValue(
         XL6_IrValueId boxed;
         XL6_IrValueId appended;
         if ( item == NULL ) return XL6_IR_VALUE_INVALID;
-        boxed = xl6IrLowerCollectionItemAsRuntimeXValue(ctx, origin, itemId, item);
+        boxed = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
         if ( boxed == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
         {
             XL6_IrValueId operands[2] = { array, boxed };
@@ -4255,7 +4258,7 @@ static XL6_IrValueId xl6IrLowerListLiteralAsRuntimeXValue(
         }
         operands[0] = map;
         operands[1] = xl6IrLowerNode(ctx, keyId);
-        operands[2] = xl6IrLowerCollectionItemAsRuntimeXValue(ctx, origin, itemId, item);
+        operands[2] = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
         if ( operands[1] == XL6_IR_VALUE_INVALID || operands[2] == XL6_IR_VALUE_INVALID )
             return XL6_IR_VALUE_INVALID;
         stored = xl6IrLowerEmitRuntimeCall(ctx, origin, boolType,
@@ -4332,7 +4335,7 @@ static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
         XL6_IrValueId added;
         if ( item == NULL ) return XL6_IR_VALUE_INVALID;
         operands[0] = set;
-        operands[1] = xl6IrLowerCollectionItemAsRuntimeXValue(ctx, origin, itemId, item);
+        operands[1] = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
         if ( operands[1] == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
         added = xl6IrLowerEmitRuntimeCall(ctx, origin, boolType,
                                           XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW, operands, 2);
@@ -4391,7 +4394,7 @@ static XL6_IrValueId xl6IrLowerObjectLiteralAsRuntimeXValue(
         }
         keyLiteral = xl6IrLowerCanonicalCStringLiteral(key->text);
         if ( keyLiteral == NULL ) return XL6_IR_VALUE_INVALID;
-        boxed = xl6IrLowerCollectionItemAsRuntimeXValue(ctx, origin, itemId, item);
+        boxed = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
         if ( boxed == XL6_IR_VALUE_INVALID ) { xrtFree(keyLiteral); return XL6_IR_VALUE_INVALID; }
         operands[0] = object;
         operands[1] = boxed;
@@ -4409,6 +4412,32 @@ static XL6_IrValueId xl6IrLowerObjectLiteralAsRuntimeXValue(
     return object;
 }
 
+/* Boxing borrows managed carriers; one boundary owns the evaluated source
+ * until its independent box is ready. Both contextual collection elements
+ * and ordinary erasure use this exact lifetime contract. */
+static XL6_IrValueId xl6IrLowerBoxEvaluatedRuntimeXValue(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* source,
+    XL6_IrTypeId targetType, XL6_IrValueId value)
+{
+    const XL6_IrType* physical = xl6IrTypeGet(
+        &ctx->module->types, xl6IrLowerValueType(ctx, value));
+    if (physical != NULL && xl6IrLowerValueHasOwner(ctx, value) &&
+        (physical->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+         physical->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
+         physical->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
+         physical->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)) {
+        size_t first = ctx->evaluationOwnerCount;
+        XL6_IrValueId boxed;
+        value = xl6IrLowerProtectOwnedBorrow(ctx, origin, value);
+        if (value == XL6_IR_VALUE_INVALID) return value;
+        boxed = xl6IrLowerBoxRuntimeXValue(ctx, origin, targetType, source, value);
+        return boxed != XL6_IR_VALUE_INVALID &&
+            xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, &boxed)
+                ? boxed : XL6_IR_VALUE_INVALID;
+    }
+    return xl6IrLowerBoxRuntimeXValue(ctx, origin, targetType, source, value);
+}
+
 /* The target dynamic container representation is chosen at the conversion
  * boundary.  Nested source collections must therefore lower recursively to
  * owned xvalues instead of first materializing an unrelated typed-container
@@ -4424,6 +4453,26 @@ static XL6_IrValueId xl6IrLowerCollectionItemAsRuntimeXValue(
         return XL6_IR_VALUE_INVALID;
     }
     return xl6IrLowerNodeAsRuntimeXValue(ctx, origin, itemId, item, erasedType);
+}
+
+/* Apply the resolved collection payload before erasure. In particular an
+ * unsigned or nullable unsigned literal cannot first become an out-of-range
+ * signed CONST. This is the same value boundary as calls/returns/assignment,
+ * not a backend literal or numeric-domain exception. Untyped literals retain
+ * their ordinary dynamic element semantics. */
+static XL6_IrValueId xl6IrLowerContextualCollectionItemAsRuntimeXValue(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId itemId,
+    const XL6_IrNode* item, XL6_IrTypeId collectionType)
+{
+    XL6_IrTypeId payload = xl6IrCollectionElementType(ctx->module, collectionType);
+    XL6_IrTypeId erased = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+    if (payload == XL6_IR_TYPE_INVALID)
+        return xl6IrLowerCollectionItemAsRuntimeXValue(ctx, origin, itemId, item);
+    if (erased == XL6_IR_TYPE_INVALID) return XL6_IR_VALUE_INVALID;
+    XL6_IrValueId value = xl6IrLowerNodeAsType(ctx, origin, itemId, item, payload);
+    return value != XL6_IR_VALUE_INVALID
+        ? xl6IrLowerBoxEvaluatedRuntimeXValue(ctx, origin, item, erased, value)
+        : XL6_IR_VALUE_INVALID;
 }
 
 /* A conversion into a runtime xvalue is a typed lowering boundary.  In
@@ -4477,32 +4526,11 @@ static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
         return xl6IrLowerConditionalAsRuntimeXValue(ctx, origin, source, targetType);
     value = xl6IrLowerNode(ctx, sourceId);
     if ( value == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    /* Erased boxing borrows native managed carriers. The enclosing
-     * evaluation, not the box, must end their original ownership. This
-     * includes capture-free named closures produced directly in a literal. */
-    {
-        const XL6_IrType* physical = xl6IrTypeGet(
-            &ctx->module->types, xl6IrLowerValueType(ctx, value));
-        if (physical != NULL && xl6IrLowerValueHasOwner(ctx, value) &&
-            (physical->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-             physical->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
-             physical->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
-             physical->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)) {
-            size_t first = ctx->evaluationOwnerCount;
-            XL6_IrValueId boxed;
-            value = xl6IrLowerProtectOwnedBorrow(ctx, origin, value);
-            if (value == XL6_IR_VALUE_INVALID) return value;
-            boxed = xl6IrLowerBoxRuntimeXValue(ctx, origin, targetType, source, value);
-            return boxed != XL6_IR_VALUE_INVALID &&
-                xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, &boxed)
-                    ? boxed : XL6_IR_VALUE_INVALID;
-        }
-    }
     if ( xl6IrLowerCheckedCollectionProjectionRequired(
              ctx->module, targetType, source->storageType) )
         return xl6IrLowerCheckedCollectionRebind(
             ctx, origin, sourceId, source, targetType, value);
-    return xl6IrLowerBoxRuntimeXValue(ctx, origin, targetType, source, value);
+    return xl6IrLowerBoxEvaluatedRuntimeXValue(ctx, origin, source, targetType, value);
 }
 
 /* Every context which fixes an expected value type enters lowering here.
@@ -31110,23 +31138,23 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         }
         if ( opcode == XL6_IR_OPCODE_EQ || opcode == XL6_IR_OPCODE_NE ) {
             const XL6_IrType* leftType = operandNodes[0] != NULL
-                ? xl6IrTypeGet(&ctx->module->types, operandNodes[0]->storageType) : NULL;
+                ? xl6IrTypeGet(&ctx->module->types, operandNodes[0]->type) : NULL;
             const XL6_IrType* rightType = operandNodes[1] != NULL
-                ? xl6IrTypeGet(&ctx->module->types, operandNodes[1]->storageType) : NULL;
+                ? xl6IrTypeGet(&ctx->module->types, operandNodes[1]->type) : NULL;
             int leftTypeValue = leftType != NULL &&
                 leftType->cAbi == XL6_IR_C_ABI_TYPE_ID;
             int rightTypeValue = rightType != NULL &&
                 rightType->cAbi == XL6_IR_C_ABI_TYPE_ID;
             if ( leftTypeValue || rightTypeValue ) {
                 XL6_IrTypeId typeIdType = leftTypeValue
-                    ? operandNodes[0]->storageType : operandNodes[1]->storageType;
+                    ? operandNodes[0]->type : operandNodes[1]->type;
                 size_t operandIndex;
                 if ( !xl6IrLowerTypeIsBool(ctx->module, node->storageType) )
                     return XL6_IR_VALUE_INVALID;
                 for ( operandIndex = 0; operandIndex < 2; ++operandIndex ) {
                     const XL6_IrNode* operand = operandNodes[operandIndex];
                     const XL6_IrType* operandType = operand != NULL
-                        ? xl6IrTypeGet(&ctx->module->types, operand->storageType) : NULL;
+                        ? xl6IrTypeGet(&ctx->module->types, operand->type) : NULL;
                     if ( operandType != NULL &&
                          operandType->cAbi == XL6_IR_C_ABI_TYPE_ID ) {
                         values[operandIndex] = xl6IrLowerNode(

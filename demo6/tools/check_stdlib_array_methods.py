@@ -60,6 +60,8 @@ def main() -> int:
                   'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c']
         host = 'test/cases/stdlib_array_extract_native_host.c'
         header = 'test/cases/stdlib_array_extract_header.c'
+    if not args.defaults:
+        common.append('src/api/xl_foreign_error.c')
     def provider(profile):
         return 'src/runtime/xl6_array_' + {'managed_string': 'primitive', 'bytes': 'reference',
             'nullable_string': 'primitive'}.get(profile, profile) + '_admission.c'
@@ -74,6 +76,7 @@ def main() -> int:
              root / header, root / 'lib/xrt/xrt.h',
              root / 'lib/xruntime/xruntime.h'}
     files.update(root / name for name in common)
+    files.add(root / 'src/api/xl_foreign_error.h')
     files.update(root / name for name in core_sources)
     if args.extract: files.add(root / 'test/cases/stdlib_array_extract_core_host.c')
     for profile, extras, _ in profiles:

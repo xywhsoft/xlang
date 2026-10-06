@@ -324,7 +324,7 @@ try {
     if (!$arrayScalarRead.Complete -or !$arrayScalarRead.InputsUnchanged) { throw 'Incomplete scalar Array read evidence' }
     Run 'array-value-boundaries' $python @('tools/check_stdlib_array_scalar_read.py','--boundaries','--out',"$outPath/array-value-boundaries",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $arrayBoundaries=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-value-boundaries/results.json" -Raw | ConvertFrom-Json
-    if (!$arrayBoundaries.Complete -or !$arrayBoundaries.InputsUnchanged -or $arrayBoundaries.Sweeps.Count-ne16) { throw 'Incomplete Array value boundary evidence' }
+    if (!$arrayBoundaries.Complete -or !$arrayBoundaries.InputsUnchanged -or $arrayBoundaries.Sweeps.Count-ne24) { throw 'Incomplete Array value boundary evidence' }
     Run 'value-iterator-checked' $python @('tools/check_stdlib_array_scalar_read.py','--checked-iterator','--out',"$outPath/value-iterator-checked",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $checkedIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/value-iterator-checked/results.json" -Raw | ConvertFrom-Json
     if (!$checkedIterator.Complete -or !$checkedIterator.InputsUnchanged -or $checkedIterator.Sweeps.Count-ne4) { throw 'Incomplete checked value iterator evidence' }

@@ -48,6 +48,7 @@ def main() -> int:
         common += ["src/runtime/xl6_array_value_read.c"]
     if args.imports:
         common += ["src/runtime/xl6_array_import.c","src/runtime/xl6_array_input.c"]
+    common.append('src/api/xl_foreign_error.c')
     graph_sources=["test/cases/stdlib_array_value_iterator_graph_host.c",
         "test/support/collection_count_native.c","src/runtime/xl6_array_reference_admission.c",
         "src/runtime/xl6_array_default.c"] if args.iterator else []
@@ -59,6 +60,7 @@ def main() -> int:
     product = root / ("release/xl.dll" if os.name == "nt" else "release/libxl.so")
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), root / host,
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
+    files.append(root / 'src/api/xl_foreign_error.h')
     files += [root / name for name in common + [p for profile in profiles for p in profile]]
     files += [root / name for name in graph_sources]
     if args.projections or args.iterator or args.reads or args.imports:

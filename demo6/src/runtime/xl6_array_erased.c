@@ -2,7 +2,9 @@
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_index.h"
 #include "src/runtime/xl6_sequence_projection.h"
+#include "src/api/xl_foreign_error.h"
 #include <limits.h>
+#include <stdlib.h>
 
 static XL6_Sequence* begin(const xvalue* value, XL6_SequenceLayoutV1* layout,
     const xvalueconverter** converter)
@@ -71,9 +73,23 @@ bool xl6ArrayErasedPushV1(const xvalue* source, const xvalue* item) { return wri
 bool xl6ArrayErasedInsertV1(const xvalue* source, int64_t index, const xvalue* item) { return write(source,index,item,INSERT); }
 static void consume(xvalue* item)
 {
-    xerror* saved=xrtTakeError();
+    if (!item) return;
+    /* A language destructor reports to the immediate callback boundary as
+     * well as to XRT's diagnostic slot. Join the primary outcome before
+     * dropping, so neither channel can replace an insertion failure. */
+    xl6_error_scope cleanup={0};
+    xerror* primary=xrtTakeError();
+    /* This operation owns its own diagnostic, not an outer cleanup's earlier
+     * error. A nested native call still reports its local failure to its
+     * caller; propagation keeps an already-failed parent latched separately. */
+    if (!xl6ErrorScopeBegin(&cleanup)) abort();
+    if (primary) {
+        xrtSetErrorTake(primary);
+        xl6ErrorScopeCaptureFailure(&cleanup);
+    }
     xrtValueRelease(item);
-    if (saved) { xrtClearError(); xrtSetErrorTake(saved); }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
 }
 static bool writeTake(xvalue* source, int64_t index, xvalue* item, Write operation)
 {
@@ -92,14 +108,16 @@ static bool writeTake(xvalue* source, int64_t index, xvalue* item, Write operati
     }
     if (!status) {
         if (xrtValueType(source)!=XVALUE_ARRAY) xrtSetErrorKind(XERR_TYPE);
-        else if (operation==PUSH) return xrtValueArrayAppendNew(source,item);
+        /* Take leaves the item with us on failure. The New shortcut drops
+         * it before this boundary can protect the operation's first error. */
+        else if (operation==PUSH) ok=xrtValueArrayAppendTake(source,&item);
         else {
             size_t at;
             if (xl6ArrayIndexV1(index,xrtValueCount(source),false,&at))
-                return xrtValueArraySetNew(source,at,item);
+                ok=xrtValueArraySetTake(source,at,&item);
         }
     }
-    consume(item); return false;
+    consume(item); return ok;
 }
 bool xl6ArrayValueAppendTakeV1(xvalue* source, xvalue* item)
 { return writeTake(source,0,item,PUSH); }
@@ -112,11 +130,17 @@ bool xl6ValueIndexSetTakeV1(xvalue* source, const xvalue* key, xvalue* item)
     }
     int64_t index; xstrview text;
     if (xrtValueType(key)==XVALUE_INT && xrtValueGetInt(key,&index)) {
-        if (xrtValueType(source)==XVALUE_INT_MAP) return xrtValueIntMapSetNew(source,index,item);
+        if (xrtValueType(source)==XVALUE_INT_MAP) {
+            bool ok=xrtValueIntMapSetTake(source,index,&item);
+            consume(item); return ok;
+        }
         return xl6ArrayValueSetTakeV1(source,index,item);
     }
     if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT &&
-        xrtValueGetString(key,&text)) return xrtValueObjectSetNew(source,text,item);
+        xrtValueGetString(key,&text)) {
+        bool ok=xrtValueObjectSetTake(source,text,&item);
+        consume(item); return ok;
+    }
     xrtSetErrorKind(XERR_TYPE); consume(item); return false;
 }
 int64_t xl6ArrayErasedSizeV1(const xvalue* source)

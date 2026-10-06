@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_array_string_read.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
+#include "src/api/xl_foreign_error.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +11,12 @@
 static const char original[]="a\0\xE4\xBD\xA0";
 static const char replacement[]="b\0c";
 static void error(xerrkind kind)
-{ assert(xrtGetError() && xrtErrorKind(xrtGetError())==kind); xrtClearError(); }
+{
+    if (!xrtGetError() || xrtErrorKind(xrtGetError())!=kind)
+        fprintf(stderr,"expected error=%d actual=%d\n",(int)kind,
+            xrtGetError() ? (int)xrtErrorKind(xrtGetError()) : -1);
+    assert(xrtGetError() && xrtErrorKind(xrtGetError())==kind); xrtClearError();
+}
 static void text(xstrview value,const char* expected,size_t size)
 { assert(value.Data && value.Size==size && !memcmp(value.Data,expected,size)); }
 static xvalue* source(bool native)
@@ -38,6 +44,7 @@ static void drop(void* value,void* context)
         error(XERR_STATE);
     }
     xrtSetErrorKind(XERR_IO);
+    xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
 }
 static const xvaluehandleops foreign={NULL,drop,NULL,NULL};
 static xvalue* rejectedItem(void)
@@ -120,11 +127,59 @@ static void sweep(const char* operation,size_t point)
     else assert(!xrtGetError());
     xrtValueRelease(value); printf("hit=%u balanced\n",hit ? 1u : 0u);
 }
+/* A clone forces real wire COW allocation. Rejected item's destructor raises
+ * IO, so every failing allocation must retain MEMORY as the primary error.
+ * Both the source and its independent snapshot retain their previous value. */
+static void rollbackSweep(const char* operation,size_t point)
+{
+    bool array=!strcmp(operation,"rollback-append") || !strcmp(operation,"rollback-set");
+    bool sparse=!strcmp(operation,"rollback-sparse");
+    assert(array || sparse || !strcmp(operation,"rollback-object"));
+    xvalue* value=array ? xrtValueArray() : sparse ? xrtValueIntMap() : xrtValueObject();
+    xvalue* key=array ? xrtValueInt(0) : sparse ? xrtValueInt(INT64_MIN) :
+        xrtValueString((xstrview){"a\0b",3});
+    assert(value && key);
+    if (array) assert(xl6ArrayValueAppendTakeV1(value,xrtValueInt(9)));
+    else assert(xl6ValueIndexSetTakeV1(value,key,xrtValueInt(9)));
+    xvalue* snapshot=xrtValueClone(value); assert(snapshot);
+    unsigned beforeDestroyed=destroyed;
+    xvalue* item=rejectedItem();
+    xl6_foreign_error_scope boundary={0}; assert(xl6ForeignCallBegin(&boundary));
+    assert(xrtMemDebugFailAfter(point));
+    bool ok=!strcmp(operation,"rollback-append") ? xl6ArrayValueAppendTakeV1(value,item) :
+        !strcmp(operation,"rollback-set") ? xl6ArrayValueSetTakeV1(value,0,item) :
+        xl6ValueIndexSetTakeV1(value,key,item);
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+    xl6_foreign_error_result outcome=xl6ForeignCallEnd(&boundary);
+    assert(outcome.ok==ok);
+    if (!outcome.ok) {
+        assert(outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY);
+        xrtSetErrorTake(outcome.error);
+    }
+    if (hit) { assert(!ok && destroyed==beforeDestroyed+1); error(XERR_MEMORY); }
+    else { assert(ok && destroyed==beforeDestroyed && !xrtGetError()); }
+    int64_t number=0;
+    const xvalue* originalItem=array ? xrtValueArrayGet(snapshot,0) : sparse ?
+        xrtValueIntMapGet(snapshot,INT64_MIN) : xrtValueObjectGet(snapshot,(xstrview){"a\0b",3});
+    assert(xrtValueCount(snapshot)==1 && xrtValueGetInt(originalItem,&number) && number==9);
+    if (hit) {
+        const xvalue* currentItem=array ? xrtValueArrayGet(value,0) : sparse ?
+            xrtValueIntMapGet(value,INT64_MIN) : xrtValueObjectGet(value,(xstrview){"a\0b",3});
+        assert(xrtValueCount(value)==1 && xrtValueGetInt(currentItem,&number) && number==9);
+    }
+    xrtValueRelease(snapshot); xrtValueRelease(key); xrtValueRelease(value);
+    if (!hit) error(XERR_IO);
+    assert(destroyed==beforeDestroyed+1);
+    printf("hit=%u balanced\n",hit ? 1u : 0u);
+}
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true)); xmemdebugsnapshot before,after;
     xrtMemDebugSnapshot(&before);
-    if (argc==3) sweep(argv[1],(size_t)strtoull(argv[2],NULL,10));
+    if (argc==3) {
+        if (!strncmp(argv[1],"rollback-",9)) rollbackSweep(argv[1],(size_t)strtoull(argv[2],NULL,10));
+        else sweep(argv[1],(size_t)strtoull(argv[2],NULL,10));
+    }
     else { assert(argc==1); for (unsigned i=0;i<100;++i) vectors(); assert(destroyed==700); }
     xrtMemDebugSnapshot(&after);
     assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes &&

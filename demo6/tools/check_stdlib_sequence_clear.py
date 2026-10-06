@@ -57,10 +57,11 @@ def main() -> int:
     native_sources = ["test/cases/stdlib_sequence_clear_native_host.c", sidecar, "test/support/array_value_native.c",
                       "src/runtime/xl6_sequence.c", "src/runtime/xl6_stack.c", "src/runtime/xl6_array.c",
                       "src/runtime/xl6_array_erased.c", "src/runtime/xl6_array_reference_value.c",
-                      "src/runtime/xl6_ownership_plan.c"]
+                      "src/runtime/xl6_ownership_plan.c", "src/api/xl_foreign_error.c"]
     files = [Path(__file__), Path(cc), Path(nm), Path(sys.executable), cli,
              root / "test/cases/xlir_stack_native_contract.c", root / "test/cases/xlir_time_text_closure_host.c",
              root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h"]
+    files.append(root / 'src/api/xl_foreign_error.h')
     files += [root / name for name in native_sources] + [root / f"test/cases/{name}.xl" for name in fixtures]
     files += [root / "release/xl.dll"] if public else [root / "release/libxl.so", root / "release/libxlc.so"]
     if public:

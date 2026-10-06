@@ -46,7 +46,8 @@ def main() -> int:
     erased_sources = [name for name in projection_sources if name not in (
         "test/cases/stdlib_array_value_native_host.c", "src/runtime/xl6_array_value.c")]
     erased_sources += ["test/cases/stdlib_array_erased_native_host.c", "src/runtime/xl6_array_erased.c",
-                       "src/runtime/xl6_stack.c", "src/runtime/xl6_array_iterator.c"]
+                       "src/runtime/xl6_stack.c", "src/runtime/xl6_array_iterator.c", "src/api/xl_foreign_error.c"]
+    files.append(root / 'src/api/xl_foreign_error.h')
     files += [root / name for name in erased_sources]
     files += [root / name for name in projection_sources]
     files += [root / name for name in (
@@ -504,7 +505,7 @@ def main() -> int:
         if args.sanitize: command += ['--sanitize']
         run(child.name,command,timeout=600)
         boundaries=json.loads((child/'results.json').read_text(encoding='utf-8'))
-        if not boundaries['Complete'] or not boundaries['InputsUnchanged'] or len(boundaries['Sweeps'])!=12:
+        if not boundaries['Complete'] or not boundaries['InputsUnchanged'] or len(boundaries['Sweeps'])!=20:
             raise RuntimeError('Incomplete native/wire Array value boundaries evidence')
         report['ValueBoundariesReport']={'Directory':str(child),'Checks':len(boundaries['Rows']),
             'ClosedPrefixes':len(boundaries['Sweeps']),'Complete':True,'InputsUnchanged':True}
