@@ -4,7 +4,26 @@
 #include "src/stdlib/xl6_stdlib.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+/* A repeated call with the same closed type/operation contract does not
+ * need the same whole-module C/header rejection proof again. Every call is
+ * still verified, including its physical error ABI and adjacent outcome. */
+static int same_intrinsic_profile(const XL6_IrIntrinsicCall* a, const XL6_IrIntrinsicCall* b)
+{
+    return a->kind==b->kind && a->resultType==b->resultType &&
+        a->receiverType==b->receiverType && a->collectionAbi==b->collectionAbi &&
+        a->typedCollectionOp==b->typedCollectionOp && a->payloadType==b->payloadType;
+}
+
+static int same_instruction_profile(const XL6_IrInstruction* a, const XL6_IrInstruction* b)
+{
+    return a->runtimeOp==b->runtimeOp && a->type==b->type &&
+        a->payloadType==b->payloadType && a->runtimeIdentityType==b->runtimeIdentityType &&
+        a->typedCollectionOp==b->typedCollectionOp && a->collectionAbi==b->collectionAbi &&
+        a->collectionDefaultAbi==b->collectionDefaultAbi && a->operandCount==b->operandCount;
+}
 
 static void rejected(const XL6_IrModule* ir)
 {
@@ -22,19 +41,30 @@ static void rejected(const XL6_IrModule* ir)
 int main(int argc, char** argv)
 {
     assert(argc == 3 || argc == 4);
+    const int profiles = argc==4 && !strcmp(argv[3], "--profiles");
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output output;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     int ok = 0; unsigned methods = 0, mutations = 0;
+    size_t* seen = NULL; size_t seenCount = 0, intrinsicProfiles = 0, instructionProfiles = 0;
     if (!xl6ParseFile(argv[1], &parse) || !xl6StdlibExpandModule(parse.root, &parse.diags) ||
         !xl6SemCheckModule(parse.root, &parse.diags, "array_methods_contract") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) || !xl6IrLowerModule(&ir, &parse.diags)) goto done;
     assert(xl6IrVerifyModule(&ir, NULL));
+    seen = calloc(ir.intrinsicCallCount + ir.instructionCount + 1, sizeof(*seen));
+    assert(seen);
     for (size_t i = 0; i < ir.intrinsicCallCount; ++i) {
         XL6_IrIntrinsicCall* intrinsic = &ir.intrinsicCalls[i];
         if (intrinsic->kind != XL6_IR_INTRINSIC_ARRAY_REMOVE_VALUE &&
             !(intrinsic->kind == XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER &&
               intrinsic->collectionAbi == XL6_IR_COLLECTION_ARRAY)) continue;
         assert(intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
+        if (profiles) {
+            size_t j=0;
+            for (;j<seenCount;++j) if (same_intrinsic_profile(intrinsic,&ir.intrinsicCalls[seen[j]])) break;
+            if (j<seenCount) continue;
+            seen[seenCount++]=i;
+        }
+        ++intrinsicProfiles;
         XL6_IrIntrinsicCall saved = *intrinsic;
 #define MUTATE(Field, Value) do { intrinsic->Field = (Value); rejected(&ir); \
     *intrinsic = saved; ++mutations; } while (0)
@@ -44,14 +74,45 @@ int main(int argc, char** argv)
         MUTATE(collectionAbi, XL6_IR_COLLECTION_NONE);
 #undef MUTATE
     }
+    seenCount=0;
     for (size_t i = 0; i < ir.instructionCount; ++i) {
         XL6_IrInstruction* instruction = &ir.instructions[i];
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR) {
+            XL6_IrInstruction saved=*instruction;
+            assert(xl6IrCallInstructionErrorPhysicalAbi(&ir,instruction)==
+                XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
+            if (profiles) {
+                size_t j=0;
+                for (;j<seenCount;++j) if (same_instruction_profile(instruction,&ir.instructions[seen[j]])) break;
+                if (j<seenCount) continue;
+                seen[seenCount++]=i;
+            }
+            ++instructionProfiles;
+#define BOX_MUTATE(Field,Value) do { instruction->Field=(Value); rejected(&ir); \
+    *instruction=saved; ++mutations; } while(0)
+            BOX_MUTATE(runtimeIdentityType,XL6_IR_TYPE_INVALID);
+            BOX_MUTATE(payloadType,saved.runtimeIdentityType);
+            BOX_MUTATE(operandCount,0);
+            BOX_MUTATE(immediateText,"7");
+#undef BOX_MUTATE
+            continue;
+        }
         if (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
             (instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE &&
              !(instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
                instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY))) continue;
         assert(xl6IrCallInstructionErrorAbi(&ir, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE);
         assert(xl6IrCallInstructionErrorPhysicalAbi(&ir, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE);
+        assert(i + 1 < ir.instructionCount && ir.instructions[i + 1].kind == XL6_IR_INSTR_ERROR_TEST);
+        ++methods;
+        if (profiles) {
+            size_t j=0;
+            for (;j<seenCount;++j) if (same_instruction_profile(instruction,&ir.instructions[seen[j]])) break;
+            if (j<seenCount) continue;
+            seen[seenCount++]=i;
+        }
+        ++instructionProfiles;
         XL6_IrInstruction saved = *instruction;
 #define MUTATE(Field, Value) do { instruction->Field = (Value); rejected(&ir); \
     *instruction = saved; ++mutations; } while (0)
@@ -71,16 +132,15 @@ int main(int argc, char** argv)
         XL6_IrValueId* receiver = &ir.operands[saved.firstOperand];
         XL6_IrValueId operand = *receiver;
         *receiver = XL6_IR_VALUE_INVALID; rejected(&ir); *receiver = operand; ++mutations;
-        assert(i + 1 < ir.instructionCount && ir.instructions[i + 1].kind == XL6_IR_INSTR_ERROR_TEST);
         XL6_IrInstruction outcome = ir.instructions[i + 1];
         ir.instructions[i + 1].kind = XL6_IR_INSTR_CONST;
         rejected(&ir); ir.instructions[i + 1] = outcome; ++mutations;
-        assert(xl6IrVerifyModule(&ir, NULL)); ++methods;
     }
     assert(methods);
+    assert(xl6IrVerifyModule(&ir, NULL));
     if (!xl6OutputOpenFile(&output, argv[2])) goto done;
     ok = xl6IrCgenEmitC(&output, &ir, &parse.diags); xl6OutputClose(&output);
-    if (ok && argc == 4) {
+    if (ok && argc == 4 && !profiles) {
         assert(xl6OutputOpenFile(&output, argv[3])); unsigned bindings = 0;
         for (size_t i = 0; i < ir.functionCount; ++i) {
             const XL6_IrFunction* function = &ir.functions[i];
@@ -114,7 +174,10 @@ int main(int argc, char** argv)
         assert(bindings == 6 && !xl6OutputHasFailed(&output)); xl6OutputClose(&output);
     }
     printf("Array method contract: %u operations; %u ABI/outcome mutations refused before C/header output\n", methods, mutations);
+    printf("Closed profiles: %zu intrinsic; %zu instruction; deduplicated=%d\n",
+        intrinsicProfiles, instructionProfiles, profiles);
 done:
+    free(seen);
     for (size_t i = 0; i < parse.diags.count; ++i) fprintf(stderr, "%d:%d: %s\n", parse.diags.items[i].line,
         parse.diags.items[i].column, parse.diags.items[i].message);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return !ok;

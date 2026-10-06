@@ -2,7 +2,7 @@
 
 static const XL6_IrRuntimeOp boxingOperations[] = {
     XL6_IR_RUNTIME_XVALUE_I64, XL6_IR_RUNTIME_XVALUE_U64,
-    XL6_IR_RUNTIME_XVALUE_F64, XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT,
+    XL6_IR_RUNTIME_XVALUE_F64, XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR,
     XL6_IR_RUNTIME_XVALUE_TIME, XL6_IR_RUNTIME_XVALUE_STRING_COPY,
     XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX,
     XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX, XL6_IR_RUNTIME_XVALUE_UNION_BOX
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
             XL6_IrTypeId type = instruction->payloadType;
             instruction->payloadType = 0; reject(&ir, NULL); instruction->payloadType = type;
         }
-        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT) {
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR) {
             XL6_IrTypeId type = instruction->runtimeIdentityType;
             instruction->runtimeIdentityType = 0; reject(&ir, NULL); instruction->runtimeIdentityType = type;
         }

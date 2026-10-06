@@ -11899,6 +11899,14 @@ static XL6_IrIntrinsicKind xl6IrCollectionMemberCalleeKind(
     return kind;
 }
 
+int xl6IrArrayTrivialExtractResult(const XL6_IrType* type)
+{
+    return type && type->nativeSlotAbi!=XL6_IR_NATIVE_SLOT_NONE &&
+        (type->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE || type->cAbi==XL6_IR_C_ABI_TYPE_ID ||
+         (type->cAbi>=XL6_IR_C_ABI_C_CHAR && type->cAbi<=XL6_IR_C_ABI_C_WCHAR) ||
+         (type->cAbi==XL6_IR_C_ABI_I64 && type->integerTarget!=XL6_IR_INTEGER_TARGET_SIGNED_64));
+}
+
 static int xl6IrTypedCollectionElementResultSupported(const XL6_IrType* type)
 {
     return type != NULL &&
@@ -11911,7 +11919,8 @@ static int xl6IrTypedCollectionElementResultSupported(const XL6_IrType* type)
          type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
          type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
          type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
-         type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR);
+         type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+         xl6IrArrayTrivialExtractResult(type));
 }
 
 static int xl6IrTypedCollectionDynamicTakeResultSupported(
@@ -18244,7 +18253,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp op
     case XL6_IR_RUNTIME_XVALUE_U64:
     case XL6_IR_RUNTIME_XVALUE_CHAR:
     case XL6_IR_RUNTIME_XVALUE_F64:
-    case XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT:
+    case XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR:
     case XL6_IR_RUNTIME_XVALUE_TIME:
     case XL6_IR_RUNTIME_XVALUE_STRING_COPY:
     case XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX:
@@ -18294,12 +18303,14 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
     const XL6_IrType* type = module != NULL
         ? xl6IrTypeGet(&module->types, typeId) : NULL;
     if (type == NULL) return XL6_IR_RUNTIME_NONE;
+    if (xl6IrNativeScalarProfileForCAbi(type->cAbi)!=XL6_NATIVE_SCALAR_NONE)
+        return XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR;
     switch (type->cAbi) {
     case XL6_IR_C_ABI_I64: return XL6_IR_RUNTIME_XVALUE_I64;
     case XL6_IR_C_ABI_U64: return XL6_IR_RUNTIME_XVALUE_U64;
     case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_RUNTIME_XVALUE_CHAR;
     case XL6_IR_C_ABI_F32: case XL6_IR_C_ABI_F64: return XL6_IR_RUNTIME_XVALUE_F64;
-    case XL6_IR_C_ABI_C_FLOAT: case XL6_IR_C_ABI_C_DOUBLE: return XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT;
+    case XL6_IR_C_ABI_C_FLOAT: case XL6_IR_C_ABI_C_DOUBLE: return XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR;
     case XL6_IR_C_ABI_TIME_I64: return XL6_IR_RUNTIME_XVALUE_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->kind == XL6_IR_TYPE_NULLABLE ? XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX : XL6_IR_RUNTIME_XVALUE_STRING_COPY;
@@ -19527,7 +19538,7 @@ static XL6_IrTypeId xl6IrFindDynamicXValueBuiltinType(
     return XL6_IR_TYPE_INVALID;
 }
 
-static XL6_NativeScalarProfileV1 xl6IrCallableNativeScalarProfile(XL6_IrCAbi abi)
+XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi abi)
 {
     switch (abi) {
     case XL6_IR_C_ABI_C_CHAR: return XL6_NATIVE_SCALAR_CHAR;
@@ -19556,7 +19567,7 @@ static XL6_NativeScalarProfileV1 xl6IrCallableNativeScalarProfile(XL6_IrCAbi abi
 }
 static int xl6IrRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 {
-    return xl6IrCallableNativeScalarProfile(abi) != XL6_NATIVE_SCALAR_NONE ||
+    return xl6IrNativeScalarProfileForCAbi(abi) != XL6_NATIVE_SCALAR_NONE ||
            abi == XL6_IR_C_ABI_BOOL || abi == XL6_IR_C_ABI_I64 ||
            abi == XL6_IR_C_ABI_U64 ||
            abi == XL6_IR_C_ABI_F64 || abi == XL6_IR_C_ABI_F32 ||
@@ -35786,7 +35797,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_CLOSURE ||
                         instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT ||
+                            XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_ERROR_REF ||
                         instruction->runtimeOp ==
@@ -38166,7 +38177,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime dynamic float has no canonical ABI");
                     } else if ( instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT ) {
+                                XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ) {
                         const XL6_IrType* sourceType = left != NULL
                             ? xl6IrTypeGet(&module->types, left->type) : NULL;
                         if ( instruction->operandCount != 1 ||
@@ -38178,14 +38189,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->opcode != XL6_IR_OPCODE_INVALID ||
                              !xl6IrTypeIsRuntimeXValue(module, instruction->type) ||
                              sourceType == NULL ||
-                             (sourceType->cAbi != XL6_IR_C_ABI_C_FLOAT &&
-                              sourceType->cAbi != XL6_IR_C_ABI_C_DOUBLE) ||
+                             xl6IrNativeScalarProfileForCAbi(sourceType->cAbi)==XL6_NATIVE_SCALAR_NONE ||
                              sourceType->ownershipAbi !=
                                  XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                              sourceType->typeValueId == 0 ||
                              instruction->runtimeIdentityType != left->type )
                             return xl6IrDiag(diags, NULL,
-                                "XLIR runtime foreign floating box has no exact source and identity ABI");
+                                "XLIR runtime native scalar box has no exact source and identity ABI");
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_ERROR_REF ) {
                         const XL6_IrType* sourceType = left != NULL
@@ -44414,8 +44424,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_XVALUE_BOOL: return "xvalue-bool";
     case XL6_IR_RUNTIME_XVALUE_I64: return "xvalue-i64";
     case XL6_IR_RUNTIME_XVALUE_F64: return "xvalue-f64";
-    case XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT:
-        return "xvalue-foreign-float";
+    case XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR:
+        return "xvalue-foreign-scalar";
     case XL6_IR_RUNTIME_XVALUE_TIME: return "xvalue-time";
     case XL6_IR_RUNTIME_XVALUE_STRING_COPY: return "xvalue-string-copy";
     case XL6_IR_RUNTIME_XVALUE_FUTURE_REF: return "xvalue-future-ref";

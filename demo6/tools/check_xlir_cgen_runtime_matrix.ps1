@@ -152,6 +152,7 @@ $fixtures = @(
     @{ Name = "checked resident Array resize in async and generator"; Source = "test\cases\stdlib_array_resident_defaults_continuation.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },
     @{ Name = "checked resident Array extraction and List/Dict misses"; Source = "test\cases\stdlib_array_extract.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "checked basic Array extraction in async and generator"; Source = "test\cases\stdlib_array_extract_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "checked trivial Array extraction with nullable and C scalars"; Source = "test\cases\stdlib_array_extract_trivial.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "managed class byval ownership ABI"; Source = "test\cases\cgen_class_param_value_ownership.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "plain union value and replacement-return ABI"; Source = "test\cases\cgen_union_value_semantics.xl"; Host = "test\cases\xlir_program_entry_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "trivial union dynamic box and checked projection ABI"; Source = "test\cases\xlir_union_dynamic_box_abi.xl"; Host = "test\cases\xlir_default_class_layout_host.c"; IncludeGenerated = $true },

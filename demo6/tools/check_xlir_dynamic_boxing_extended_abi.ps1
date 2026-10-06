@@ -41,13 +41,13 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR extended dynamic-boxing lowering failed
 $lowered = [System.IO.File]::ReadAllText(
     $loweredPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 $foreign = @($lowered.instructions | Where-Object {
-    $_.runtimeOpName -eq "xvalue-foreign-float"
+    $_.runtimeOpName -eq "xvalue-foreign-scalar"
 })
 $errorBox = @($lowered.instructions | Where-Object {
     $_.runtimeOpName -eq "xvalue-error-ref"
 })
 if ( $foreign.Count -ne 1 -or $errorBox.Count -ne 1 ) {
-    throw "Lowered XLIR has no unique foreign-float and error-reference boxes"
+    throw "Lowered XLIR has no unique native-scalar and error-reference boxes"
 }
 foreach ( $box in @($foreign[0], $errorBox[0]) ) {
     $sourceValue = $box.operands[0]
@@ -87,8 +87,8 @@ foreach ( $required in @(
         throw "XLIR extended dynamic-boxing C emission is incomplete: $required"
     }
 }
-if ( $generated -notmatch '(?m)^\s*(?<boxed>v[0-9]+) = xrtValueFloat\(\(double\)v[0-9]+\);\r?\n\s*if \(\k<boxed> != NULL\) \k<boxed> = xlir_xvalue_type_bind\(\k<boxed>, 0x[0-9A-F]+ULL\);' ) {
-    throw "XLIR foreign float boxing does not bind its exact TypeId through one null-guarded SSA value"
+if ( $generated -notmatch '(?m)^\s*v[0-9]+ = xl6ValueBoxNativeScalarV1\(&v[0-9]+, [0-9]+, 0x[0-9A-F]+ULL\);' ) {
+    throw "XLIR foreign scalar boxing does not use one exact resident profile and logical TypeId"
 }
 
 Push-Location $Root

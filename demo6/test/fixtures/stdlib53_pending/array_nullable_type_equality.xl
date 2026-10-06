@@ -1,0 +1,4 @@
+// Pending language regression: narrowed TypeId must use its unwrapped physical value.
+array<type?> values = [bool]
+auto result = values.pop()
+assert(result != null and result == bool)

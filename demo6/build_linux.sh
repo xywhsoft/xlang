@@ -188,6 +188,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_collection_extract_value.c"
   "$ROOT/src/runtime/xl6_array_extract_f32.c"
   "$ROOT/src/runtime/xl6_array_extract_char.c"
+  "$ROOT/src/runtime/xl6_array_extract_trivial.c"
   "$ROOT/src/runtime/xl6_future_aggregate.c"
   "$ROOT/src/runtime/xl6_future_aggregate_array.c"
   "$ROOT/src/runtime/xl6_future_metadata.c"

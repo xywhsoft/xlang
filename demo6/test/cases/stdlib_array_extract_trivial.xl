@@ -1,0 +1,445 @@
+// Full trivial Array results: exact language domains and target C widths.
+// Bounded functions keep adversarial whole-module verification proportional.
+// Every function executes from module initialization under C/JIT/AOT and OOM.
+
+func checkTrivialNarrow()
+    array<int8> narrow_int8 = [int8(-128)]
+    auto moved_int8 = narrow_int8.pop()
+    assert(moved_int8 == int8(-128) and narrow_int8.length == 0)
+
+    array<uint8> narrow_uint8 = [uint8(255)]
+    auto moved_uint8 = narrow_uint8.pop()
+    assert(moved_uint8 == uint8(255) and narrow_uint8.length == 0)
+
+    array<int16> narrow_int16 = [int16(-32768)]
+    auto moved_int16 = narrow_int16.pop()
+    assert(moved_int16 == int16(-32768) and narrow_int16.length == 0)
+
+    array<uint16> narrow_uint16 = [uint16(65535)]
+    auto moved_uint16 = narrow_uint16.pop()
+    assert(moved_uint16 == uint16(65535) and narrow_uint16.length == 0)
+
+    array<int32> narrow_int32 = [int32(-2147483648)]
+    auto moved_int32 = narrow_int32.pop()
+    assert(moved_int32 == int32(-2147483648) and narrow_int32.length == 0)
+
+    array<uint32> narrow_uint32 = [uint32(4294967295)]
+    auto moved_uint32 = narrow_uint32.pop()
+    assert(moved_uint32 == uint32(4294967295) and narrow_uint32.length == 0)
+end
+
+func checkTrivialNullableLanguage()
+    array<bool?> nullable_bool = [true, null]
+    auto absent_bool = nullable_bool.pop()
+    auto present_bool = nullable_bool.take(0)
+    assert(absent_bool == null and present_bool != null and present_bool == true)
+    assert(nullable_bool.length == 0)
+
+    array<int?> nullable_int = [0, null]
+    auto absent_int = nullable_int.pop()
+    auto present_int = nullable_int.take(0)
+    assert(absent_int == null and present_int != null and present_int == 0)
+    assert(nullable_int.length == 0)
+
+    uint64 maximum_uint64 = 18446744073709551615
+    array<uint64?> nullable_uint64 = [maximum_uint64, null]
+    auto absent_uint64 = nullable_uint64.pop()
+    auto present_uint64 = nullable_uint64.take(0)
+    assert(absent_uint64 == null and present_uint64 != null and present_uint64 == maximum_uint64)
+    assert(nullable_uint64.length == 0)
+
+    array<float32?> nullable_float32 = [float32(0.5), null]
+    auto absent_float32 = nullable_float32.pop()
+    auto present_float32 = nullable_float32.take(0)
+    assert(absent_float32 == null and present_float32 != null and present_float32 == float32(0.5))
+    assert(nullable_float32.length == 0)
+
+    array<float?> nullable_float = [0.5, null]
+    auto absent_float = nullable_float.pop()
+    auto present_float = nullable_float.take(0)
+    assert(absent_float == null and present_float != null and present_float == 0.5)
+    assert(nullable_float.length == 0)
+
+    array<char?> nullable_char = ['你', null]
+    auto absent_char = nullable_char.pop()
+    auto present_char = nullable_char.take(0)
+    assert(absent_char == null and present_char != null and present_char == '你')
+    assert(nullable_char.length == 0)
+
+    array<time?> nullable_time = [time.fromUnix(0), null]
+    auto absent_time = nullable_time.pop()
+    auto present_time = nullable_time.take(0)
+    assert(absent_time == null and present_time != null and present_time == time.fromUnix(0))
+    assert(nullable_time.length == 0)
+
+    array<int8?> nullable_int8 = [-128, null]
+    auto absent_int8 = nullable_int8.pop()
+    auto present_int8 = nullable_int8.take(0)
+    assert(absent_int8 == null and present_int8 != null and present_int8 == -128)
+    assert(nullable_int8.length == 0)
+
+    array<uint8?> nullable_uint8 = [255, null]
+    auto absent_uint8 = nullable_uint8.pop()
+    auto present_uint8 = nullable_uint8.take(0)
+    assert(absent_uint8 == null and present_uint8 != null and present_uint8 == 255)
+    assert(nullable_uint8.length == 0)
+
+    array<int16?> nullable_int16 = [-32768, null]
+    auto absent_int16 = nullable_int16.pop()
+    auto present_int16 = nullable_int16.take(0)
+    assert(absent_int16 == null and present_int16 != null and present_int16 == -32768)
+    assert(nullable_int16.length == 0)
+
+    array<uint16?> nullable_uint16 = [65535, null]
+    auto absent_uint16 = nullable_uint16.pop()
+    auto present_uint16 = nullable_uint16.take(0)
+    assert(absent_uint16 == null and present_uint16 != null and present_uint16 == 65535)
+    assert(nullable_uint16.length == 0)
+
+    array<int32?> nullable_int32 = [-2147483648, null]
+    auto absent_int32 = nullable_int32.pop()
+    auto present_int32 = nullable_int32.take(0)
+    assert(absent_int32 == null and present_int32 != null and present_int32 == -2147483648)
+    assert(nullable_int32.length == 0)
+
+    array<uint32?> nullable_uint32 = [4294967295, null]
+    auto absent_uint32 = nullable_uint32.pop()
+    auto present_uint32 = nullable_uint32.take(0)
+    assert(absent_uint32 == null and present_uint32 != null and present_uint32 == 4294967295)
+    assert(nullable_uint32.length == 0)
+end
+
+func checkTrivialTypeIds()
+    array<type> type_ids = [int]
+    auto moved_type = type_ids.pop()
+    assert(moved_type == int and type_ids.length == 0)
+    array<type?> nullable_type_ids = [bool, null]
+    auto absent_type = nullable_type_ids.take(1)
+    auto present_type = nullable_type_ids.pop()
+    assert(absent_type == null and present_type != null)
+    if present_type != null then
+        type restored_type = present_type
+        assert(restored_type == bool)
+    end
+
+    array<type?> reboxed_type_ids = [present_type, absent_type]
+    auto absent_again_type = reboxed_type_ids.pop()
+    auto present_again_type = reboxed_type_ids.pop()
+    assert(absent_again_type == null and present_again_type != null)
+end
+
+func checkTrivial_c_char()
+    array<c_char> native_c_char = [c_char(7)]
+    auto result_c_char = native_c_char.pop()
+    assert(result_c_char == c_char(7) and native_c_char.length == 0)
+    array<c_char?> optional_c_char = [c_char(7), null]
+    auto missing_c_char = optional_c_char.take(1)
+    auto found_c_char = optional_c_char.pop()
+    assert(missing_c_char == null and found_c_char != null and found_c_char == c_char(7))
+    array<c_char?> reboxed_c_char = [found_c_char, missing_c_char]
+    auto absent_again_c_char = reboxed_c_char.pop()
+    auto present_again_c_char = reboxed_c_char.pop()
+    assert(absent_again_c_char == null and present_again_c_char != null and present_again_c_char == c_char(7)), "nullable C rebox c_char"
+end
+
+func checkTrivial_c_schar()
+    array<c_schar> native_c_schar = [c_schar(7)]
+    auto result_c_schar = native_c_schar.pop()
+    assert(result_c_schar == c_schar(7) and native_c_schar.length == 0)
+    array<c_schar?> optional_c_schar = [c_schar(7), null]
+    auto missing_c_schar = optional_c_schar.take(1)
+    auto found_c_schar = optional_c_schar.pop()
+    assert(missing_c_schar == null and found_c_schar != null and found_c_schar == c_schar(7))
+    array<c_schar?> reboxed_c_schar = [found_c_schar, missing_c_schar]
+    auto absent_again_c_schar = reboxed_c_schar.pop()
+    auto present_again_c_schar = reboxed_c_schar.pop()
+    assert(absent_again_c_schar == null and present_again_c_schar != null and present_again_c_schar == c_schar(7)), "nullable C rebox c_schar"
+end
+
+func checkTrivial_c_uchar()
+    array<c_uchar> native_c_uchar = [c_uchar(7)]
+    auto result_c_uchar = native_c_uchar.pop()
+    assert(result_c_uchar == c_uchar(7) and native_c_uchar.length == 0)
+    array<c_uchar?> optional_c_uchar = [c_uchar(7), null]
+    auto missing_c_uchar = optional_c_uchar.take(1)
+    auto found_c_uchar = optional_c_uchar.pop()
+    assert(missing_c_uchar == null and found_c_uchar != null and found_c_uchar == c_uchar(7))
+    array<c_uchar?> reboxed_c_uchar = [found_c_uchar, missing_c_uchar]
+    auto absent_again_c_uchar = reboxed_c_uchar.pop()
+    auto present_again_c_uchar = reboxed_c_uchar.pop()
+    assert(absent_again_c_uchar == null and present_again_c_uchar != null and present_again_c_uchar == c_uchar(7)), "nullable C rebox c_uchar"
+end
+
+func checkTrivial_c_short()
+    array<c_short> native_c_short = [c_short(7)]
+    auto result_c_short = native_c_short.pop()
+    assert(result_c_short == c_short(7) and native_c_short.length == 0)
+    array<c_short?> optional_c_short = [c_short(7), null]
+    auto missing_c_short = optional_c_short.take(1)
+    auto found_c_short = optional_c_short.pop()
+    assert(missing_c_short == null and found_c_short != null and found_c_short == c_short(7))
+    array<c_short?> reboxed_c_short = [found_c_short, missing_c_short]
+    auto absent_again_c_short = reboxed_c_short.pop()
+    auto present_again_c_short = reboxed_c_short.pop()
+    assert(absent_again_c_short == null and present_again_c_short != null and present_again_c_short == c_short(7)), "nullable C rebox c_short"
+end
+
+func checkTrivial_c_ushort()
+    array<c_ushort> native_c_ushort = [c_ushort(7)]
+    auto result_c_ushort = native_c_ushort.pop()
+    assert(result_c_ushort == c_ushort(7) and native_c_ushort.length == 0)
+    array<c_ushort?> optional_c_ushort = [c_ushort(7), null]
+    auto missing_c_ushort = optional_c_ushort.take(1)
+    auto found_c_ushort = optional_c_ushort.pop()
+    assert(missing_c_ushort == null and found_c_ushort != null and found_c_ushort == c_ushort(7))
+    array<c_ushort?> reboxed_c_ushort = [found_c_ushort, missing_c_ushort]
+    auto absent_again_c_ushort = reboxed_c_ushort.pop()
+    auto present_again_c_ushort = reboxed_c_ushort.pop()
+    assert(absent_again_c_ushort == null and present_again_c_ushort != null and present_again_c_ushort == c_ushort(7)), "nullable C rebox c_ushort"
+end
+
+func checkTrivial_c_int()
+    array<c_int> native_c_int = [c_int(7)]
+    auto result_c_int = native_c_int.pop()
+    assert(result_c_int == c_int(7) and native_c_int.length == 0)
+    array<c_int?> optional_c_int = [c_int(7), null]
+    auto missing_c_int = optional_c_int.take(1)
+    auto found_c_int = optional_c_int.pop()
+    assert(missing_c_int == null and found_c_int != null and found_c_int == c_int(7))
+    array<c_int?> reboxed_c_int = [found_c_int, missing_c_int]
+    auto absent_again_c_int = reboxed_c_int.pop()
+    auto present_again_c_int = reboxed_c_int.pop()
+    assert(absent_again_c_int == null and present_again_c_int != null and present_again_c_int == c_int(7)), "nullable C rebox c_int"
+end
+
+func checkTrivial_c_uint()
+    array<c_uint> native_c_uint = [c_uint(7)]
+    auto result_c_uint = native_c_uint.pop()
+    assert(result_c_uint == c_uint(7) and native_c_uint.length == 0)
+    array<c_uint?> optional_c_uint = [c_uint(7), null]
+    auto missing_c_uint = optional_c_uint.take(1)
+    auto found_c_uint = optional_c_uint.pop()
+    assert(missing_c_uint == null and found_c_uint != null and found_c_uint == c_uint(7))
+    array<c_uint?> reboxed_c_uint = [found_c_uint, missing_c_uint]
+    auto absent_again_c_uint = reboxed_c_uint.pop()
+    auto present_again_c_uint = reboxed_c_uint.pop()
+    assert(absent_again_c_uint == null and present_again_c_uint != null and present_again_c_uint == c_uint(7)), "nullable C rebox c_uint"
+end
+
+func checkTrivial_c_long()
+    array<c_long> native_c_long = [c_long(7)]
+    auto result_c_long = native_c_long.pop()
+    assert(result_c_long == c_long(7) and native_c_long.length == 0)
+    array<c_long?> optional_c_long = [c_long(7), null]
+    auto missing_c_long = optional_c_long.take(1)
+    auto found_c_long = optional_c_long.pop()
+    assert(missing_c_long == null and found_c_long != null and found_c_long == c_long(7))
+    array<c_long?> reboxed_c_long = [found_c_long, missing_c_long]
+    auto absent_again_c_long = reboxed_c_long.pop()
+    auto present_again_c_long = reboxed_c_long.pop()
+    assert(absent_again_c_long == null and present_again_c_long != null and present_again_c_long == c_long(7)), "nullable C rebox c_long"
+end
+
+func checkTrivial_c_ulong()
+    array<c_ulong> native_c_ulong = [c_ulong(7)]
+    auto result_c_ulong = native_c_ulong.pop()
+    assert(result_c_ulong == c_ulong(7) and native_c_ulong.length == 0)
+    array<c_ulong?> optional_c_ulong = [c_ulong(7), null]
+    auto missing_c_ulong = optional_c_ulong.take(1)
+    auto found_c_ulong = optional_c_ulong.pop()
+    assert(missing_c_ulong == null and found_c_ulong != null and found_c_ulong == c_ulong(7))
+    array<c_ulong?> reboxed_c_ulong = [found_c_ulong, missing_c_ulong]
+    auto absent_again_c_ulong = reboxed_c_ulong.pop()
+    auto present_again_c_ulong = reboxed_c_ulong.pop()
+    assert(absent_again_c_ulong == null and present_again_c_ulong != null and present_again_c_ulong == c_ulong(7)), "nullable C rebox c_ulong"
+end
+
+func checkTrivial_c_longlong()
+    array<c_longlong> native_c_longlong = [c_longlong(7)]
+    auto result_c_longlong = native_c_longlong.pop()
+    assert(result_c_longlong == c_longlong(7) and native_c_longlong.length == 0)
+    array<c_longlong?> optional_c_longlong = [c_longlong(7), null]
+    auto missing_c_longlong = optional_c_longlong.take(1)
+    auto found_c_longlong = optional_c_longlong.pop()
+    assert(missing_c_longlong == null and found_c_longlong != null and found_c_longlong == c_longlong(7))
+    array<c_longlong?> reboxed_c_longlong = [found_c_longlong, missing_c_longlong]
+    auto absent_again_c_longlong = reboxed_c_longlong.pop()
+    auto present_again_c_longlong = reboxed_c_longlong.pop()
+    assert(absent_again_c_longlong == null and present_again_c_longlong != null and present_again_c_longlong == c_longlong(7)), "nullable C rebox c_longlong"
+end
+
+func checkTrivial_c_ulonglong()
+    array<c_ulonglong> native_c_ulonglong = [c_ulonglong(7)]
+    auto result_c_ulonglong = native_c_ulonglong.pop()
+    assert(result_c_ulonglong == c_ulonglong(7) and native_c_ulonglong.length == 0)
+    array<c_ulonglong?> optional_c_ulonglong = [c_ulonglong(7), null]
+    auto missing_c_ulonglong = optional_c_ulonglong.take(1)
+    auto found_c_ulonglong = optional_c_ulonglong.pop()
+    assert(missing_c_ulonglong == null and found_c_ulonglong != null and found_c_ulonglong == c_ulonglong(7))
+    array<c_ulonglong?> reboxed_c_ulonglong = [found_c_ulonglong, missing_c_ulonglong]
+    auto absent_again_c_ulonglong = reboxed_c_ulonglong.pop()
+    auto present_again_c_ulonglong = reboxed_c_ulonglong.pop()
+    assert(absent_again_c_ulonglong == null and present_again_c_ulonglong != null and present_again_c_ulonglong == c_ulonglong(7)), "nullable C rebox c_ulonglong"
+end
+
+func checkTrivial_c_size()
+    array<c_size> native_c_size = [c_size(7)]
+    auto result_c_size = native_c_size.pop()
+    assert(result_c_size == c_size(7) and native_c_size.length == 0)
+    array<c_size?> optional_c_size = [c_size(7), null]
+    auto missing_c_size = optional_c_size.take(1)
+    auto found_c_size = optional_c_size.pop()
+    assert(missing_c_size == null and found_c_size != null and found_c_size == c_size(7))
+    array<c_size?> reboxed_c_size = [found_c_size, missing_c_size]
+    auto absent_again_c_size = reboxed_c_size.pop()
+    auto present_again_c_size = reboxed_c_size.pop()
+    assert(absent_again_c_size == null and present_again_c_size != null and present_again_c_size == c_size(7)), "nullable C rebox c_size"
+end
+
+func checkTrivial_c_ssize()
+    array<c_ssize> native_c_ssize = [c_ssize(7)]
+    auto result_c_ssize = native_c_ssize.pop()
+    assert(result_c_ssize == c_ssize(7) and native_c_ssize.length == 0)
+    array<c_ssize?> optional_c_ssize = [c_ssize(7), null]
+    auto missing_c_ssize = optional_c_ssize.take(1)
+    auto found_c_ssize = optional_c_ssize.pop()
+    assert(missing_c_ssize == null and found_c_ssize != null and found_c_ssize == c_ssize(7))
+    array<c_ssize?> reboxed_c_ssize = [found_c_ssize, missing_c_ssize]
+    auto absent_again_c_ssize = reboxed_c_ssize.pop()
+    auto present_again_c_ssize = reboxed_c_ssize.pop()
+    assert(absent_again_c_ssize == null and present_again_c_ssize != null and present_again_c_ssize == c_ssize(7)), "nullable C rebox c_ssize"
+end
+
+func checkTrivial_c_ptrdiff()
+    array<c_ptrdiff> native_c_ptrdiff = [c_ptrdiff(7)]
+    auto result_c_ptrdiff = native_c_ptrdiff.pop()
+    assert(result_c_ptrdiff == c_ptrdiff(7) and native_c_ptrdiff.length == 0)
+    array<c_ptrdiff?> optional_c_ptrdiff = [c_ptrdiff(7), null]
+    auto missing_c_ptrdiff = optional_c_ptrdiff.take(1)
+    auto found_c_ptrdiff = optional_c_ptrdiff.pop()
+    assert(missing_c_ptrdiff == null and found_c_ptrdiff != null and found_c_ptrdiff == c_ptrdiff(7))
+    array<c_ptrdiff?> reboxed_c_ptrdiff = [found_c_ptrdiff, missing_c_ptrdiff]
+    auto absent_again_c_ptrdiff = reboxed_c_ptrdiff.pop()
+    auto present_again_c_ptrdiff = reboxed_c_ptrdiff.pop()
+    assert(absent_again_c_ptrdiff == null and present_again_c_ptrdiff != null and present_again_c_ptrdiff == c_ptrdiff(7)), "nullable C rebox c_ptrdiff"
+end
+
+func checkTrivial_c_intptr()
+    array<c_intptr> native_c_intptr = [c_intptr(7)]
+    auto result_c_intptr = native_c_intptr.pop()
+    assert(result_c_intptr == c_intptr(7) and native_c_intptr.length == 0)
+    array<c_intptr?> optional_c_intptr = [c_intptr(7), null]
+    auto missing_c_intptr = optional_c_intptr.take(1)
+    auto found_c_intptr = optional_c_intptr.pop()
+    assert(missing_c_intptr == null and found_c_intptr != null and found_c_intptr == c_intptr(7))
+    array<c_intptr?> reboxed_c_intptr = [found_c_intptr, missing_c_intptr]
+    auto absent_again_c_intptr = reboxed_c_intptr.pop()
+    auto present_again_c_intptr = reboxed_c_intptr.pop()
+    assert(absent_again_c_intptr == null and present_again_c_intptr != null and present_again_c_intptr == c_intptr(7)), "nullable C rebox c_intptr"
+end
+
+func checkTrivial_c_uintptr()
+    array<c_uintptr> native_c_uintptr = [c_uintptr(7)]
+    auto result_c_uintptr = native_c_uintptr.pop()
+    assert(result_c_uintptr == c_uintptr(7) and native_c_uintptr.length == 0)
+    array<c_uintptr?> optional_c_uintptr = [c_uintptr(7), null]
+    auto missing_c_uintptr = optional_c_uintptr.take(1)
+    auto found_c_uintptr = optional_c_uintptr.pop()
+    assert(missing_c_uintptr == null and found_c_uintptr != null and found_c_uintptr == c_uintptr(7))
+    array<c_uintptr?> reboxed_c_uintptr = [found_c_uintptr, missing_c_uintptr]
+    auto absent_again_c_uintptr = reboxed_c_uintptr.pop()
+    auto present_again_c_uintptr = reboxed_c_uintptr.pop()
+    assert(absent_again_c_uintptr == null and present_again_c_uintptr != null and present_again_c_uintptr == c_uintptr(7)), "nullable C rebox c_uintptr"
+end
+
+func checkTrivial_c_bool()
+    array<c_bool> native_c_bool = [c_bool(true)]
+    auto result_c_bool = native_c_bool.pop()
+    assert(result_c_bool == c_bool(true) and native_c_bool.length == 0)
+    array<c_bool?> optional_c_bool = [c_bool(false), null]
+    auto missing_c_bool = optional_c_bool.take(1)
+    auto found_c_bool = optional_c_bool.pop()
+    assert(missing_c_bool == null and found_c_bool != null and found_c_bool == c_bool(false))
+    array<c_bool?> reboxed_c_bool = [found_c_bool, missing_c_bool]
+    auto absent_again_c_bool = reboxed_c_bool.pop()
+    auto present_again_c_bool = reboxed_c_bool.pop()
+    assert(absent_again_c_bool == null and present_again_c_bool != null and present_again_c_bool == c_bool(false)), "nullable C rebox c_bool"
+end
+
+func checkTrivial_c_float()
+    array<c_float> native_c_float = [c_float(0.5)]
+    auto result_c_float = native_c_float.pop()
+    assert(result_c_float == c_float(0.5) and native_c_float.length == 0)
+    array<c_float?> optional_c_float = [c_float(0.5), null]
+    auto missing_c_float = optional_c_float.take(1)
+    auto found_c_float = optional_c_float.pop()
+    assert(missing_c_float == null and found_c_float != null and found_c_float == c_float(0.5))
+    array<c_float?> reboxed_c_float = [found_c_float, missing_c_float]
+    auto absent_again_c_float = reboxed_c_float.pop()
+    auto present_again_c_float = reboxed_c_float.pop()
+    assert(absent_again_c_float == null and present_again_c_float != null and present_again_c_float == c_float(0.5)), "nullable C rebox c_float"
+end
+
+func checkTrivial_c_double()
+    array<c_double> native_c_double = [c_double(0.5)]
+    auto result_c_double = native_c_double.pop()
+    assert(result_c_double == c_double(0.5) and native_c_double.length == 0)
+    array<c_double?> optional_c_double = [c_double(0.5), null]
+    auto missing_c_double = optional_c_double.take(1)
+    auto found_c_double = optional_c_double.pop()
+    assert(missing_c_double == null and found_c_double != null and found_c_double == c_double(0.5))
+    array<c_double?> reboxed_c_double = [found_c_double, missing_c_double]
+    auto absent_again_c_double = reboxed_c_double.pop()
+    auto present_again_c_double = reboxed_c_double.pop()
+    assert(absent_again_c_double == null and present_again_c_double != null and present_again_c_double == c_double(0.5)), "nullable C rebox c_double"
+end
+
+func checkTrivial_c_wchar()
+    array<c_wchar> native_c_wchar = [c_wchar(7)]
+    auto result_c_wchar = native_c_wchar.pop()
+    assert(result_c_wchar == c_wchar(7) and native_c_wchar.length == 0)
+    array<c_wchar?> optional_c_wchar = [c_wchar(7), null]
+    auto missing_c_wchar = optional_c_wchar.take(1)
+    auto found_c_wchar = optional_c_wchar.pop()
+    assert(missing_c_wchar == null and found_c_wchar != null and found_c_wchar == c_wchar(7))
+    array<c_wchar?> reboxed_c_wchar = [found_c_wchar, missing_c_wchar]
+    auto absent_again_c_wchar = reboxed_c_wchar.pop()
+    auto present_again_c_wchar = reboxed_c_wchar.pop()
+    assert(absent_again_c_wchar == null and present_again_c_wchar != null and present_again_c_wchar == c_wchar(7)), "nullable C rebox c_wchar"
+end
+
+func checkTrivialEmpty()
+    array<int?> empty_values = []
+    bool empty_refused = false
+    try
+        empty_values.pop()
+    catch RangeError failure
+        empty_refused = true
+    end
+    assert(empty_refused)
+end
+
+checkTrivialNarrow()
+checkTrivialNullableLanguage()
+checkTrivialTypeIds()
+checkTrivial_c_char()
+checkTrivial_c_schar()
+checkTrivial_c_uchar()
+checkTrivial_c_short()
+checkTrivial_c_ushort()
+checkTrivial_c_int()
+checkTrivial_c_uint()
+checkTrivial_c_long()
+checkTrivial_c_ulong()
+checkTrivial_c_longlong()
+checkTrivial_c_ulonglong()
+checkTrivial_c_size()
+checkTrivial_c_ssize()
+checkTrivial_c_ptrdiff()
+checkTrivial_c_intptr()
+checkTrivial_c_uintptr()
+checkTrivial_c_bool()
+checkTrivial_c_float()
+checkTrivial_c_double()
+checkTrivial_c_wchar()
+checkTrivialEmpty()

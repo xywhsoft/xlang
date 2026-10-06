@@ -1,0 +1,4 @@
+// Pending language regression: contextual UInt64 literal must be fixed before boxing.
+array<uint64?> values = [18446744073709551615, null]
+auto result = values.take(0)
+assert(result != null)

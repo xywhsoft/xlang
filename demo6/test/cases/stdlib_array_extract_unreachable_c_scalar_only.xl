@@ -1,0 +1,12 @@
+// An unused C-scalar boxing body must not retain its resident codec.
+func unreachableNativeBox() as var
+    c_int number = 65
+    var boxed = number
+    return boxed
+end
+
+array<bool?> values = [false, null]
+auto absent = values.pop()
+auto present = values.take(0)
+assert(absent == null and present != null and present == false)
+assert(values.length == 0)

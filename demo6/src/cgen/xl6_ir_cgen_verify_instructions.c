@@ -244,8 +244,8 @@ static int xl6IrCgenVerifyInstructions(
                    (instruction->immediateText != NULL || instruction->operandCount != 1 ||
                     xl6IrCgenType(module, instruction->type) == NULL)) ||
                    (instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT &&
-                    !xl6IrCgenRuntimeForeignFloatBoxAbi(module, instruction)) ||
+                        XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR &&
+                    !xl6IrCgenRuntimeForeignScalarBoxAbi(module, instruction)) ||
                    (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ERROR_REF &&
                     !xl6IrCgenRuntimeErrorXValueRefAbi(module, instruction)) ||
                    (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TIME &&
@@ -590,7 +590,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_UNION_UNBOX &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_F64 &&
                    instruction->runtimeOp !=
-                       XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT &&
+                       XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ERROR_REF &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_TIME &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_STRING_COPY &&

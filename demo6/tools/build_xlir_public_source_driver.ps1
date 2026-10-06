@@ -1,4 +1,5 @@
-param([string]$Directory = 'build/test/xlir_public_source', [switch]$RuntimeOnly, [switch]$NoCache)
+param([string]$Directory = 'build/test/xlir_public_source', [switch]$RuntimeOnly, [switch]$NoCache,
+    [string]$CacheDirectory = '')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 $rootPath = (Get-Location).Path
@@ -9,7 +10,7 @@ $batchPath = if ([IO.Path]::IsPathRooted($Directory)) {
 }
 if (Test-Path -LiteralPath $batchPath) { throw 'Choose a fresh public build directory; prior evidence must not be overwritten' }
 $buildTimer = [Diagnostics.Stopwatch]::StartNew()
-$buildContext = New-XlirCBuildContext -Root $rootPath -Directory $batchPath -NoCache:$NoCache
+$buildContext = New-XlirCBuildContext -Root $rootPath -Directory $batchPath -NoCache:$NoCache -CacheDirectory $CacheDirectory
 $driverSource = if ($RuntimeOnly) { 'test/cases/xlir_public_runtime_driver.c' } else { 'test/cases/xlir_public_source_driver.c' }
 $binaryName = if ($RuntimeOnly) { 'runtime_source.exe' } else { 'public_source.exe' }
 $enableExe = if ($RuntimeOnly) { 0 } else { 1 }
@@ -46,6 +47,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_extract_scalar.c','src/runtime/xl6_array_extract_string.c',
     'src/runtime/xl6_array_extract_value.c','src/runtime/xl6_collection_extract_value.c',
     'src/runtime/xl6_array_extract_f32.c','src/runtime/xl6_array_extract_char.c',
+    'src/runtime/xl6_array_extract_trivial.c',
     'src/runtime/xl6_future_aggregate.c','src/runtime/xl6_future_aggregate_array.c',
     'src/runtime/xl6_future_metadata.c',
     'src/runtime/xl6_nullable_native_i8.c',

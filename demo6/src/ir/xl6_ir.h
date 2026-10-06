@@ -1104,9 +1104,9 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_XVALUE_BOOL,
     XL6_IR_RUNTIME_XVALUE_I64,
     XL6_IR_RUNTIME_XVALUE_F64,
-    /* Boxes a foreign C float/double without erasing its concrete semantic
+    /* Boxes a native C scalar without erasing its concrete semantic
      * TypeValueId.  runtimeIdentityType is the exact source C scalar type. */
-    XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT,
+    XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR,
     XL6_IR_RUNTIME_XVALUE_TIME,
     /* Copies a managed string into a newly owned dynamic string value. */
     XL6_IR_RUNTIME_XVALUE_STRING_COPY,
@@ -6236,6 +6236,8 @@ const XL6_IrEnumVariant* xl6IrEnumVariantGet(
  * is used both by primary AST type interning and generic specialization. */
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
+int xl6IrArrayTrivialExtractResult(const XL6_IrType*);
+XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi);
 XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 XL6_ValueDefaultAbiV1 xl6IrValueDefaultAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp);

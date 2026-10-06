@@ -413,6 +413,9 @@ $process=Start-Process @start
                     stdlib_array_extract_value_only='array_extract_value';
                     stdlib_array_extract_char_only='array_extract_char';
                     stdlib_array_extract_f32_only='array_extract_f32';
+                    stdlib_array_extract_trivial_only='array_extract_trivial';
+                    stdlib_array_extract_nullable_char_only='array_extract_trivial';
+                    stdlib_array_extract_unreachable_c_scalar_only='array_extract_trivial';
                     stdlib_collection_extract_only='collection_extract_value'
                 }
                 if($extractLeaves.ContainsKey($case)) {
@@ -436,6 +439,18 @@ $process=Start-Process @start
                             $generatedText.Contains('xl6ArrayValueAppendTakeV1(')-and
                             'src/runtime/xl6_array_erased.c'-in$selectedSources-and
                             'XRUNTIME_MODULE_TYPED_ARRAY_VALUE'-in$plan.NativeModules
+                        if($case-in@('stdlib_array_extract_trivial_only','stdlib_array_extract_nullable_char_only','stdlib_array_extract_unreachable_c_scalar_only')) {
+                            $profile=if($case-eq'stdlib_array_extract_nullable_char_only'){'char'}else{'bool'}
+                            $expected=@("src/runtime/xl6_nullable_$profile.c","src/runtime/xl6_nullable_${profile}_value.c")
+                            $actual=@($selectedSources|Where-Object {$_-match 'src/runtime/xl6_nullable_.*\.c$'}|Sort-Object)
+                            $selectionMatches=$selectionMatches-and!(Compare-Object $actual ($expected|Sort-Object))-and
+                                (('src/runtime/xl6_char_type.c'-in$selectedSources)-eq($profile-eq'char'))-and
+                                'src/runtime/xl6_char_value.c'-notin$selectedSources
+                            if($case-eq'stdlib_array_extract_unreachable_c_scalar_only') {
+                                $selectionMatches=$selectionMatches-and
+                                    !@($selectedSources|Where-Object {$_-match 'native_scalar'}).Count
+                            }
+                        }
                     }
                 }
                 & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
