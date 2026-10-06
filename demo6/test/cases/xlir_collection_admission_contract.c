@@ -79,7 +79,7 @@ static const xrttype* descriptor(XL6_IrNativeSlotAbi abi)
     default: return NULL;
     }
 }
-static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
+static xvalue* residentCreate(const XL6_IrModule* ir, const XL6_IrType* type)
 {
     const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
     if (plan->abi != XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 &&
@@ -99,47 +99,44 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
     if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
         assert(base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR && !element->nativeSlotAbi &&
             plan->slotAbi==XL6_IR_NATIVE_SLOT_FUTURE_PTR && plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
-        value=xl6SequenceFutureCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+        value=xl6SequenceFutureCreateV1(plan->role,type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1) {
         assert(base->kind==XL6_IR_TYPE_FUNCTION && base->cAbi==XL6_IR_C_ABI_CLOSURE_PTR &&
             xl6IrRuntimeCallableClosureToXValueSignatureSupported(ir,plan->baseElementType) &&
             !element->nativeSlotAbi && !plan->admissionAbi &&
             plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN);
-        value=xl6SequenceCallableCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
+        value=xl6SequenceCallableCreateV1(plan->role,type->typeValueId,element->typeValueId,base->typeValueId,plan->nullable);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
         assert((base->collectionAbi==XL6_IR_COLLECTION_ARRAY || base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK) &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN && !plan->admissionAbi);
-        const XL6_IrType* childElement=xl6IrTypeGet(&ir->types,plan->childElementType);
-        const xrttype* childPhysical=descriptor(plan->childSlotAbi); assert(childElement && childPhysical);
-        value=xl6SequenceNestedCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
-            plan->childRole,base->typeValueId,childElement->typeValueId,plan->childTransferAbi,
-            childPhysical->Size,childPhysical,plan->nullable);
+        value=xl6SequenceNestedCreateTakeV2(plan->role,type->typeValueId,element->typeValueId,
+            residentCreate(ir,base),plan->nullable);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1) {
         assert(base->kind==XL6_IR_TYPE_NUMERIC_ENUM && !element->xvalueAdmissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
             plan->admissionAbi>=XL6_VALUE_ADMIT_I8 && plan->admissionAbi<=XL6_VALUE_ADMIT_U64);
-        value=xl6SequenceNumericEnumCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
+        value=xl6SequenceNumericEnumCreateV1(plan->role,type->typeValueId,element->typeValueId,
             physical,plan->admissionAbi,plan->nullable,base->typeValueId);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1) {
         const xrttype* basePhysical=descriptor(base->nativeSlotAbi);
         assert(basePhysical && plan->nullable && !plan->admissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
             plan->defaultAbi==XL6_IR_SEQUENCE_DEFAULT_ABSENT);
-        value=xl6SequenceNullableCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
+        value=xl6SequenceNullableCScalarCreateV1(plan->role,type->typeValueId,element->typeValueId,
             physical,basePhysical,base->typeValueId);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1) {
         assert(!plan->nullable && !plan->admissionAbi &&
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
             plan->defaultAbi==XL6_IR_SEQUENCE_DEFAULT_ZERO);
-        value=xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,physical,base->typeValueId);
+        value=xl6SequenceCScalarCreateV1(plan->role,type->typeValueId,element->typeValueId,physical,base->typeValueId);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2) {
-        value=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,
+        value=xl6SequencePrimitiveCreateV1(plan->role,type->typeValueId,element->typeValueId,
             plan->transferAbi,physical->Size,physical,plan->admissionAbi,plan->nullable,base->typeValueId);
     } else if (plan->abi == XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2) {
         assert(plan->slotAbi == XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
             plan->transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN);
-        value=xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,plan->admissionAbi,
+        value=xl6SequenceReferenceCreateV1(plan->role,type->typeValueId,element->typeValueId,plan->admissionAbi,
             plan->nullable,plan->admissionAbi == XL6_VALUE_ADMIT_ANY ? 0 : base->typeValueId);
     } else {
         const XL6_IrNominalIdentitySet* set=xl6IrNominalIdentitySetGet(ir,plan->baseElementType,NULL);
@@ -149,9 +146,17 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
             .nonObjectIdentity=set->nonObjectTypeId,
             .identities=set->identityCount ? &ir->nominalIdentities[set->firstIdentity] : NULL,
             .count=set->identityCount};
-        value=xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,type->typeValueId,element->typeValueId,&schema,plan->nullable,base->typeValueId);
+        value=xl6SequenceNominalCreateV1(plan->role,type->typeValueId,element->typeValueId,&schema,plan->nullable,base->typeValueId);
     }
     assert(value && !xrtGetError() && xrtValueType(value) == XVALUE_HANDLE);
+    return value;
+}
+static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
+{
+    xvalue* value=residentCreate(ir,type); if (!value) return 0;
+    const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
+    const XL6_IrType* element=xl6IrTypeGet(&ir->types,plan->elementType);
+    const xrttype* physical=descriptor(plan->slotAbi);
 #define LAYOUT type->typeValueId,element->typeValueId,plan->transferAbi,physical->Size,physical
     assert(xl6ArraySizeV1(value,LAYOUT,false) == 0 && !xrtGetError());
     bool defaultable=plan->defaultAbi != XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN;

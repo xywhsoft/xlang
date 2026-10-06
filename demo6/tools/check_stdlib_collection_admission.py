@@ -192,12 +192,16 @@ def main() -> int:
                 names={'primitive-v2':'Primitive','reference-v2':'Reference','nominal-v2':'Nominal',
                     'c-scalar-v1':'CScalar','nullable-c-scalar-v1':'NullableCScalar',
                     'numeric-enum-v1':'NumericEnum','sequence-reference-v1':'Nested'}
-                factory_calls=re.findall(r'v(\d+) = xl6Sequence(\w+)CreateV1\(2, 0x([0-9A-F]{16})ULL, 0x([0-9A-F]{16})ULL, (.*)\);',text)
+                assert 'xl6SequenceNestedCreateV1' not in text
+                factory_calls=re.findall(r'v(\d+) = xl6Sequence(\w+)Create(V1|TakeV2)\(2, 0x([0-9A-F]{16})ULL, 0x([0-9A-F]{16})ULL, (.*?)\);',text)
                 assert factory_calls and len({int(row[0]) for row in factory_calls})==len(factory_calls)
+                assert {int(row[0]) for row in factory_calls}==set(creates)
+                seed_calls=re.findall(r'(xlir_sequence_schema_\d+) = xl6Sequence(\w+)Create(V1|TakeV2)\((\d+), 0x([0-9A-F]{16})ULL, 0x([0-9A-F]{16})ULL, (.*?)\);',text)
                 pool={row['id']:row for row in lowered['types']}
-                for result,name,owner,element,args_text in factory_calls:
+                for result,name,version,owner,element,args_text in factory_calls:
                     operation=creates[int(result)]; stack=pool[operation['type']]; plan=stack['sequenceLayout']
                     assert name==names[plan['abiName']] and plan['role']==2 and plan['codecAbiName']=='direct'
+                    assert version==('TakeV2' if name=='Nested' else 'V1')
                     assert int(owner,16)==int(stack['typeValueId'],16)
                     assert int(element,16)==int(pool[plan['elementType']]['typeValueId'],16)
                     assert operation['payloadType']==plan['elementType'] and operation['runtimeResourcePayloadAbi']==plan['transferAbi']
@@ -209,7 +213,12 @@ def main() -> int:
                     else: assert not operation['sequenceAdmissionIdentitySet']
                     if name=='Nested':
                         assert plan['childRole']==2
-                        assert args_text.startswith(f"2, {pool[plan['baseElementType']]['typeValueId']}ULL, {pool[plan['childElementType']]['typeValueId']}ULL, ")
+                        child=pool[plan['baseElementType']]; child_name=names[child['sequenceLayout']['abiName']]
+                        assert args_text=='xlir_sequence_schema_1, '+('true' if plan['nullable'] else 'false')
+                        expected=('xlir_sequence_schema_1',child_name,
+                            'TakeV2' if child_name=='Nested' else 'V1',str(plan['childRole']),
+                            child['typeValueId'][2:],pool[plan['childElementType']]['typeValueId'][2:])
+                        assert any(row[:6]==expected for row in seed_calls),expected
                 if fixture=='stdlib_stack_admitted_construction':
                     assert set(names.values())<={row[1] for row in factory_calls}
             # Current carrier and target native layout are orthogonal. A recipe

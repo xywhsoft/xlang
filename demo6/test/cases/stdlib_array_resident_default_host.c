@@ -36,7 +36,9 @@ static xvalue* make(unsigned role,bool nullable)
     assert(!nullable); layout.transfer=1; layout.type=xrtTypeUInt16(); layout.size=layout.type->Size;
     result=xl6SequenceCScalarCreateV1(role,layout.identity,layout.elementIdentity,layout.type,3001);
 #elif XL6_FACTORY_PROFILE == 4
-    result=xl6SequenceNestedCreateV1(role,layout.identity,layout.elementIdentity,XL6_SEQUENCE_ARRAY_V1,3001,4001,1,sizeof(int64_t),xrtTypeInt64(),nullable);
+    result=xl6SequenceNestedCreateTakeV2(role,layout.identity,layout.elementIdentity,
+        xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,3001,4001,1,sizeof(int64_t),
+            xrtTypeInt64(),XL6_VALUE_ADMIT_I8,false,4001),nullable);
 #elif XL6_FACTORY_PROFILE == 5
     assert(!nullable); layout.transfer=1; layout.type=xl6NullableNativeU16TypeV1(); layout.size=layout.type->Size;
     result=xl6SequenceNullableCScalarCreateV1(role,layout.identity,layout.elementIdentity,layout.type,xrtTypeUInt16(),4001);

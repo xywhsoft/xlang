@@ -99,6 +99,16 @@ XL6_TEXT_API bool xl6SequenceAdmitsArrayV1(const xvalue*, uint64_t);
 /* Exact immutable role/physical tuple probe. Like the erased Array probe it
  * is error-transparent and permits BUSY, without reading slots or callbacks. */
 XL6_TEXT_API bool xl6SequenceAdmitsRoleV1(const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* Immutable schema capture, not storage capture: ARRAY/STACK only. Copy owns
+ * the admission metadata independently of the source wrapper; the admission
+ * output must be empty and all outputs are unchanged on failure. BUSY is legal because no slots or
+ * projection state are read. The match probe is allocation/error transparent
+ * and compares the complete owned logical policy as well as the physical
+ * tuple, under the same graph-mutation exclusion as the role probe. */
+XL6_TEXT_API bool xl6SequenceSchemaCopyV1(const xvalue*, XL6_SequenceRoleV1*,
+    XL6_SequenceLayoutV1*, XL6_SequenceAdmissionV3*);
+XL6_TEXT_API bool xl6SequenceAdmitsSchemaV1(const xvalue*, XL6_SequenceRoleV1,
+    const XL6_SequenceLayoutV1*, const XL6_SequenceAdmissionV3*);
 XL6_TEXT_API const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype*);
 /* Consumes valid owned storage on both success and failure. */
 XL6_TEXT_API xvalue* xl6SequenceWrapV1(xtypedarray*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);

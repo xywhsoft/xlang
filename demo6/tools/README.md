@@ -589,11 +589,23 @@ uses the real product and sanitizes host code only.
 
 `check_stdlib_sequence_factories.py` builds nine construction-only actual
 native closures independently at O0/O2, checking symbol selection and 100
-owned-policy publication/clone cycles. They exclude Array/Stack facades,
-other factories and `xrtTypedStack` algorithms. Linux `--sanitize` instruments
+owned-policy publication/clone cycles. Nested construction also selects its
+actual child factory to capture the full owned schema. They exclude Array/Stack
+facades, unrelated factories and `xrtTypedStack` algorithms. Linux `--sanitize` instruments
 the entire selected closure. Array/Stack parents freeze and invoke both gates.
 These are native construction/domain contracts, not the full source Array
 carrier switch, source Stack closed-recipe publication or 53-module acceptance.
+
+`check_stdlib_sequence_schema_language.py` checks five actual programs with
+deterministic typed/lowered IR and C, strict O0/O2, JIT/AOT and ten complete
+calling-thread allocation prefixes. The resident nested factory consumes an
+exemplar and owns only its recursive admission metadata, not a child storage
+snapshot. The native domain gate additionally rejects same-layout wrong
+policies/grandchild domains and tests 64-deep independent metadata, BUSY,
+foreign/unprofiled exemplars, cyclic owners and complete constructor OOM.
+The old layout-only nested factory is absent from emitted C/native exports.
+Linux language sanitizers cover host/generated C only; native sanitizers cover
+the entire selected closure. These checks are not the source Array cutover.
 
 `check_stdlib_collection_admission.py --stacks` checks seven source fixtures:
 the seven direct Stack recipe families, nested Stack owners, default class

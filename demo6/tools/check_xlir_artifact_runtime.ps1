@@ -216,12 +216,13 @@ $process=Start-Process @start
                 }
                 if($case-eq'stdlib_stack_nested_factory_only'){
                     $selectionMatches='src/runtime/xl6_array_sequence_admission.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_primitive_admission.c'-in$selectedSources-and
                         'src/runtime/xl6_sequence.c'-in$selectedSources-and
                         'src/runtime/xl6_nullable_char.c'-in$selectedSources-and
                         'src/runtime/xl6_stack.c'-notin$selectedSources-and
                         'src/runtime/xl6_array.c'-notin$selectedSources-and
                         'XRUNTIME_MODULE_TYPED_STACK'-notin$plan.NativeModules-and
-                        @($selectedSources|Where-Object {$_-match 'xl6_array_\w+_admission\.c$'}).Count-eq1
+                        @($selectedSources|Where-Object {$_-match 'xl6_array_\w+_admission\.c$'}).Count-eq2
                 }
                 if($case-in@('stdlib_future_aggregate_variadic_only','stdlib_future_aggregate_array_only','stdlib_future_metadata_only')){
                     $metadata=$case-eq'stdlib_future_metadata_only'

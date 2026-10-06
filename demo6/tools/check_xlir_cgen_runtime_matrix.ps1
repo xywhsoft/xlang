@@ -12,6 +12,8 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $generated = Join-Path $Root "build\test\xlir_cgen_runtime_matrix_generated.c"
 $fixtures = @(
+    @{ Name = "owned recursive Sequence schema and exact nested values"; Source = "test\cases\stdlib_sequence_nested_schema.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
+    @{ Name = "recursive Sequence schema across async and generator lifetimes"; Source = "test\cases\stdlib_sequence_nested_schema_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "exact immutable Error text and typed interpolation"; Source = "test\cases\stdlib_error_span.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "exact Error cause and continuation text ownership"; Source = "test\cases\stdlib_error_span_continuation.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },
     @{ Name = "canonical MemoryError throw and typed catch"; Source = "test\cases\stdlib_memory_error.xl"; Host = "test\cases\xlir_generated_module_host.c"; IncludeGenerated = $true; GenericHost = $true },

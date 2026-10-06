@@ -212,6 +212,13 @@ wire/native 导入、真实拥有边、BUSY 和完整 OOM 前缀。
 实际编译并运行 100 轮。Array/Stack 父门接入以上子门。源 Array
 仍为 Value-v1；此门不能冒充整个语言 Array producer/carrier 已迁移。
 
+`check_stdlib_sequence_schema_language.py` 验证完整递归 schema 工厂在
+真实语言程序中的严格 C、JIT/AOT、确定性和十条当前线程 OOM 前缀。
+原生嵌套准入门另外验证同布局错域/孙级策略拒绝、64 层独立元数据、
+BUSY、foreign/unprofiled 拒绝、循环拥有图及深层构造完整失败前缀。
+schema 只拥有准入元数据，不缓存源代码地址或子容器存储；没有切换
+源 Array carrier。已接入 Stack 父门；新增接线不等于父套件重跑通过。
+
 ### B99 Array resident 核心 / 查询方法
 
 `tools/check_stdlib_array_methods.py` 在九类实际 native/wire 闭包执行

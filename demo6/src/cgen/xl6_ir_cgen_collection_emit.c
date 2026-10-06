@@ -662,12 +662,12 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
     default: return NULL;
     }
 }
-static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
-    XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
+static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth)
 {
     const XL6_IrType* sequence=xl6IrTypeGet(&module->types,typeId);
     XL6_IrNominalIdentitySetId expectedSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-    if (!sequence || !xl6IrSequenceConstructionRecipe(module,typeId,sequence->sequenceLayout.role,&expectedSet) ||
+    if (depth>64 || !sequence || !xl6IrSequenceConstructionRecipe(module,typeId,sequence->sequenceLayout.role,&expectedSet) ||
         admissionSet!=expectedSet) return -1;
     const XL6_IrSequenceLayout* plan=&sequence->sequenceLayout;
     const XL6_IrType* payload=xl6IrTypeGet(&module->types,plan->elementType);
@@ -676,52 +676,52 @@ static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* modul
     const char* baseDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->baseElementType);
     const char* payloadType=xl6IrCgenType(module,plan->elementType);
     const char* transfer=xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
-#define XL6_SEQUENCE_CREATE_IDS (unsigned)result,(unsigned)plan->role, \
+#define XL6_SEQUENCE_CREATE_IDS result,(unsigned)plan->role, \
     (unsigned long long)sequence->typeValueId,(unsigned long long)payload->typeValueId
     switch (plan->abi) {
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
         if (!descriptor || !payloadType || !transfer) return -1;
         xl6OutputPrintf(out,
-            "    v%u = xl6SequencePrimitiveCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %u, %s, 0x%016llXULL);\n",
+            "    %s = xl6SequencePrimitiveCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %u, %s, 0x%016llXULL);\n",
             XL6_SEQUENCE_CREATE_IDS,transfer,payloadType,descriptor,(unsigned)plan->admissionAbi,
             plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
         break;
     case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
         xl6OutputPrintf(out,
-            "    v%u = xl6SequenceReferenceCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, %s, 0x%016llXULL);\n",
+            "    %s = xl6SequenceReferenceCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, %s, 0x%016llXULL);\n",
             XL6_SEQUENCE_CREATE_IDS,(unsigned)plan->admissionAbi,plan->nullable ? "true" : "false",
             (unsigned long long)base->typeValueId);
         break;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         xl6OutputPrintf(out,
-            "    v%u = xl6SequenceNominalCreateV1(%u, 0x%016llXULL, 0x%016llXULL, &xlir_nominal_set_%u, %s, 0x%016llXULL);\n",
+            "    %s = xl6SequenceNominalCreateV1(%u, 0x%016llXULL, 0x%016llXULL, &xlir_nominal_set_%u, %s, 0x%016llXULL);\n",
             XL6_SEQUENCE_CREATE_IDS,(unsigned)admissionSet,plan->nullable ? "true" : "false",
             (unsigned long long)base->typeValueId);
         break;
     case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1:
         if (!descriptor) return -1;
         xl6OutputPrintf(out,
-            "    v%u = xl6SequenceCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, 0x%016llXULL);\n",
+            "    %s = xl6SequenceCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, 0x%016llXULL);\n",
             XL6_SEQUENCE_CREATE_IDS,descriptor,(unsigned long long)base->typeValueId);
         break;
     case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
         if (!descriptor || !baseDescriptor) return -1;
         xl6OutputPrintf(out,
-            "    v%u = xl6SequenceNullableCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %s, 0x%016llXULL);\n",
+            "    %s = xl6SequenceNullableCScalarCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %s, 0x%016llXULL);\n",
             XL6_SEQUENCE_CREATE_IDS,descriptor,baseDescriptor,(unsigned long long)base->typeValueId);
         break;
     case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1:
         if (!descriptor) return -1;
         xl6OutputPrintf(out,
-            "    v%u = xl6SequenceNumericEnumCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, 0x%016llXULL);\n",
+            "    %s = xl6SequenceNumericEnumCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, 0x%016llXULL);\n",
             XL6_SEQUENCE_CREATE_IDS,descriptor,(unsigned)plan->admissionAbi,
             plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
         break;
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
         xl6OutputPrintf(out,
-            "    v%u = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s);\n",
-            (unsigned)result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
+            "    %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s);\n",
+            result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
                 "xl6SequenceCallableCreateV1" : "xl6SequenceFutureCreateV1",
             (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
             (unsigned long long)payload->typeValueId,(unsigned long long)base->typeValueId,
@@ -729,30 +729,31 @@ static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* modul
         break;
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
         {
-            const XL6_IrType* child=xl6IrTypeGet(&module->types,plan->childElementType);
-            const XL6_IrSequenceLayout* childPlan=&base->sequenceLayout;
-            const char* childType=xl6IrCgenType(module,plan->childElementType);
-            const char* childDescriptor=xl6IrCgenNativeSlotTypeExpr(plan->childSlotAbi);
-            const char* childTransfer=xl6IrCgenSequenceTransferAbiToken(plan->childTransferAbi);
-            /* A callable's physical slot is an owned Value, not its invocation
-             * Closure*. Future slots are actual native consumer references. */
-            if (childPlan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
-                childType="xvalue*"; childDescriptor="xrtTypeValue()";
-            } else if (childPlan->abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
-                childType="xfuture*"; childDescriptor="xrtTypeFuture()";
-            }
-            if (!child || !childType || !childDescriptor || !childTransfer) return -1;
+            XL6_IrNominalIdentitySetId childSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+            char childResult[48];
+            if (!xl6IrSequenceConstructionRecipe(module,plan->baseElementType,plan->childRole,&childSet)) return -1;
+            snprintf(childResult,sizeof(childResult),"xlir_sequence_schema_%u",(unsigned)(depth+1));
+            /* Render the already-verified child recipe, not a layout-only
+             * approximation. The resident parent consumes the temporary seed
+             * on either path and retains only its immutable owned schema. */
+            xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
+            if (xl6IrCgenEmitSequenceCreateDepth(out,module,plan->baseElementType,
+                childResult,childSet,depth+1)<0) return -1;
             xl6OutputPrintf(out,
-                "    v%u = xl6SequenceNestedCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s);\n",
-                XL6_SEQUENCE_CREATE_IDS,(unsigned)plan->childRole,(unsigned long long)base->typeValueId,
-                (unsigned long long)child->typeValueId,childTransfer,childType,childDescriptor,
-                plan->nullable ? "true" : "false");
+                "    %s = xl6SequenceNestedCreateTakeV2(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
+                XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
         }
         break;
     default: return -1;
     }
 #undef XL6_SEQUENCE_CREATE_IDS
     return xl6OutputHasFailed(out) ? -1 : 1;
+}
+static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
+{
+    char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
+    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0);
 }
 
 static int xl6IrCgenEmitStackRuntime(

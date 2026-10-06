@@ -6112,7 +6112,7 @@ foreach ( $required in @(
     "needsStackResourceRuntime", "xl6SequencePrimitiveCreateV1",
     "xl6SequenceReferenceCreateV1", "xl6SequenceNominalCreateV1",
     "xl6SequenceCScalarCreateV1", "xl6SequenceNullableCScalarCreateV1",
-    "xl6SequenceNumericEnumCreateV1", "xl6SequenceNestedCreateV1",
+    "xl6SequenceNumericEnumCreateV1", "xl6SequenceNestedCreateTakeV2",
     "xl6StackTakeV1", "xl6StackTryTakeV2",
     "xl6StackCloneV1", "xl6StackSizeV1"
 ) ) {

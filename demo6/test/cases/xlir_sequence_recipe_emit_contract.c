@@ -35,6 +35,7 @@ int main(int argc,char** argv)
     assert(argc==3); XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir); int ok=0; unsigned recipes=0,mutations=0;
     unsigned layouts=0;
+    unsigned nestedMutations=0;
     if (!xl6ParseFile(argv[1],&parse) || !xl6StdlibExpandModule(parse.root,&parse.diags) ||
         !xl6SemCheckModule(parse.root,&parse.diags,"recipe_probe") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
@@ -61,6 +62,20 @@ int main(int argc,char** argv)
         BAD(childTransferAbi,(XL6_IrRuntimeResourcePayloadAbi)UINT32_MAX);
 #undef BAD
         refused(&ir,id,set ? 0 : 1); ++mutations;
+        if (saved.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
+            XL6_IrType* child=&ir.types.items[saved.baseElementType-1];
+            XL6_IrSequenceLayout childSaved=child->sequenceLayout;
+            child->sequenceLayout.admissionAbi=(XL6_ValueAdmissionV1)UINT32_MAX;
+            refused(&ir,id,set); ++nestedMutations;
+            child->sequenceLayout=childSaved;
+            if (childSaved.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
+                XL6_IrType* grandchild=&ir.types.items[childSaved.baseElementType-1];
+                XL6_IrSequenceLayout grandchildSaved=grandchild->sequenceLayout;
+                grandchild->sequenceLayout.defaultAbi=(XL6_IrSequenceDefaultAbi)UINT32_MAX;
+                refused(&ir,id,set); ++nestedMutations;
+                grandchild->sequenceLayout=grandchildSaved;
+            }
+        }
     }
     assert(recipes && xl6IrVerifyModule(&ir,NULL));
     if (!xl6OutputOpenFile(&out,argv[2])) goto done;
@@ -109,6 +124,7 @@ int main(int argc,char** argv)
         "    return 0;\n}\n",&out);
     ok=!xl6OutputHasFailed(&out); xl6OutputClose(&out);
     printf("Sequence recipe emitter: %u actual recipes; %u refused mutations; layout-mask=%u; source carrier unchanged\n",recipes,mutations,layouts);
+    printf("Nested schema rejection: %u descendant mutations refused before output\n",nestedMutations);
 done:
     for (size_t i=0;i<parse.diags.count;++i) fprintf(stderr,"%d:%d %s\n",parse.diags.items[i].line,
         parse.diags.items[i].column,parse.diags.items[i].message);

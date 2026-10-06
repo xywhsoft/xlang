@@ -41,6 +41,7 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_array_extract_trivial.xl test/cases/stdlib_array_extract_trivial_only.xl test/cases/stdlib_array_extract_nullable_char_only.xl test/cases/stdlib_array_extract_unreachable_c_scalar_only.xl tools/check_stdlib_array_trivial_extract.py test/cases/stdlib_array_extract_trivial_host.c
     printf '%s\0' tools/check_stdlib_array_import.py test/cases/stdlib_array_import_native_host.c test/cases/stdlib_array_import_header.c test/cases/stdlib_array_primitive_import_native_host.c test/support/array_import_native.c
     printf '%s\0' tools/check_stdlib_sequence_recipe_emit.py test/cases/xlir_sequence_recipe_emit_contract.c test/cases/stdlib_sequence_recipe_emit_host.c
+    printf '%s\0' tools/check_stdlib_sequence_schema_language.py test/cases/stdlib_sequence_nested_schema.xl test/cases/stdlib_sequence_nested_schema_continuation.xl
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_stack_native_contract.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_native_host.c test/support/stack_native.c
@@ -259,6 +260,7 @@ if ! run array-methods-language "$PY" tools/check_stdlib_array_methods_language.
 if ! run array-admitted-import "$PY" tools/check_stdlib_array_import.py --out "$OUT/array-admitted-import" --sanitize; then failures+=(array-admitted-import); fi
 if ! run array-codec-import "$PY" tools/check_stdlib_array_primitive_admission.py --imports --out "$OUT/array-codec-import" --sanitize; then failures+=(array-codec-import); fi
 if ! run sequence-recipe-emitter "$PY" tools/check_stdlib_sequence_recipe_emit.py --out "$OUT/sequence-recipe-emitter"; then failures+=(sequence-recipe-emitter); fi
+if ! run sequence-schema-language "$PY" tools/check_stdlib_sequence_schema_language.py --out "$OUT/sequence-schema-language" --sanitize; then failures+=(sequence-schema-language); fi
 if ! run array-owned-read-native "$PY" tools/check_stdlib_array_primitive_admission.py --out "$OUT/array-owned-read-native" --reads --sanitize; then failures+=(array-owned-read-native); fi
 if ! run array-native-iterator "$PY" tools/check_stdlib_array_primitive_admission.py --out "$OUT/array-native-iterator" --iterator --sanitize; then failures+=(array-native-iterator); fi
 if ! run sequence-publication "$PY" tools/check_stdlib_sequence_publication.py --out "$OUT/sequence-publication" --sanitize; then failures+=(sequence-publication); fi

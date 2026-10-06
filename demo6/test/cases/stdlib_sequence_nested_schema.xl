@@ -1,0 +1,77 @@
+class SchemaItem
+    string text = "class\0你"
+end
+
+enum SchemaSmall as int8
+    low = -128
+    high = 127
+end
+
+func schemaText() as bool
+    Stack<string> leaf = Stack::<string>()
+    assert(leaf.push("a\0你"))
+    Stack<Stack<string>> middle = Stack::<Stack<string>>()
+    assert(middle.push(leaf))
+    Stack<Stack<Stack<string>>> outer = Stack::<Stack<Stack<string>>>()
+    assert(outer.push(middle))
+    Stack<Stack<Stack<string>>> copy = outer.clone()
+    assert(copy.equals(outer))
+    middle.clear()
+    assert(leaf.push("retained\0"))
+    Stack<Stack<string>> observed = copy.pop()
+    assert(observed.count() == 0)
+    assert(observed.push(leaf))
+    Stack<string> independent = observed.pop()
+    assert(independent.pop() == "retained\0" and leaf.pop() == "a\0你")
+    return true
+end
+
+func schemaChar() as bool
+    Stack<char?> leaf = Stack::<char?>()
+    assert(leaf.push(null) and leaf.push('你') and leaf.push('\0'))
+    Stack<Stack<char?>> second = Stack::<Stack<char?>>()
+    assert(second.push(leaf))
+    Stack<Stack<Stack<char?>>> third = Stack::<Stack<Stack<char?>>>()
+    assert(third.push(second))
+    Stack<Stack<Stack<Stack<char?>>>> fourth = Stack::<Stack<Stack<Stack<char?>>>>()
+    assert(fourth.push(third))
+    Stack<Stack<Stack<char?>>> observed3 = fourth.pop()
+    Stack<Stack<char?>> observed2 = observed3.pop()
+    Stack<char?> observed1 = observed2.pop()
+    char? zero = '\0'
+    char? ni = '你'
+    assert(observed1.pop() == zero and observed1.pop() == ni and observed1.pop() == null)
+    return true
+end
+
+func schemaOptional() as bool
+    Stack<c_uint?> values = Stack::<c_uint?>()
+    assert(values.push(c_uint(4294967295)))
+    Stack<Stack<c_uint?>?> outer = Stack::<Stack<c_uint?>?>()
+    assert(outer.push(null) and outer.push(values))
+    Stack<Stack<c_uint?>?> copy = outer.clone()
+    Stack<c_uint?>? observed = copy.pop()
+    c_uint? maximum = c_uint(4294967295)
+    assert(observed != null and observed.pop() == maximum and copy.pop() == null)
+    Stack<SchemaSmall> enums = Stack::<SchemaSmall>()
+    assert(enums.push(SchemaSmall.low))
+    Stack<Stack<SchemaSmall>> nested = Stack::<Stack<SchemaSmall>>()
+    assert(nested.push(enums))
+    Stack<SchemaSmall> enumRead = nested.pop()
+    assert(enumRead.pop() == SchemaSmall.low)
+    return true
+end
+
+func schemaNominal() as bool
+    SchemaItem item = SchemaItem()
+    Stack<SchemaItem?> leaf = Stack::<SchemaItem?>()
+    assert(leaf.push(null) and leaf.push(item))
+    Stack<Stack<SchemaItem?>> outer = Stack::<Stack<SchemaItem?>>()
+    assert(outer.push(leaf))
+    Stack<SchemaItem?> observed = outer.pop()
+    SchemaItem? saved = observed.pop()
+    assert(saved != null and saved.text == "class\0你" and observed.pop() == null)
+    return true
+end
+
+assert(schemaText() and schemaChar() and schemaOptional() and schemaNominal())

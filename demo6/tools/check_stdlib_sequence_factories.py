@@ -23,7 +23,8 @@ def main() -> int:
     profiles=[('reference',['src/runtime/xl6_value_admission.c'],'xl6SequenceReferenceCreateV1'),
         ('nominal',['src/runtime/xl6_nominal_admission.c'],'xl6SequenceNominalCreateV1'),
         ('primitive',['src/runtime/xl6_value_admission.c'],'xl6SequencePrimitiveCreateV1'),
-        ('c_scalar',[],'xl6SequenceCScalarCreateV1'),('sequence',[],'xl6SequenceNestedCreateV1'),
+        ('c_scalar',[],'xl6SequenceCScalarCreateV1'),
+        ('sequence',['src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_value_admission.c'],'xl6SequenceNestedCreateTakeV2'),
         ('nullable_c_scalar',['src/runtime/xl6_nullable_native_u16.c'],'xl6SequenceNullableCScalarCreateV1'),
         ('numeric_enum',[],'xl6SequenceNumericEnumCreateV1'),('callable',[],'xl6SequenceCallableCreateV1'),
         ('future',[],'xl6SequenceFutureCreateV1')]
@@ -56,7 +57,10 @@ def main() -> int:
                 run(lane+'.build',[cc,*flags,f'-O{level}',f'-DXL6_FACTORY_PROFILE={index}',*sources,*links,'-o',str(binary)])
                 names={line.split()[-1].lstrip('_') for line in run(lane+'.symbols',[nm,'--defined-only',str(binary)]).splitlines() if line.split()}
                 assert {factory,'xl6SequenceCreateAdmittedV1','xl6SequenceCloneRoleV1'}<=names
-                assert not ({item[2] for item in profiles}-{factory}) & names
+                required={factory,'xl6SequencePrimitiveCreateV1'} if profile=='sequence' else {factory}
+                assert required<=names
+                assert not ({item[2] for item in profiles}-required) & names
+                assert 'xl6SequenceNestedCreateV1' not in names
                 assert not any(name.startswith(('xl6Stack','xrtTypedStack')) for name in names)
                 assert not {'xl6ArrayCreateV1','xl6ArrayCloneV1','xl6ArrayPushV1','xl6ArrayFromValueV1','xl6ArrayToValueV1'}&names
                 assert f'factory {index}: 100 ARRAY/STACK direct publication/clone cycles balanced' in run(lane+'.vectors',[str(binary)])
