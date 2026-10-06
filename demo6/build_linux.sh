@@ -176,6 +176,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_array_rand_shuffle.c"
   "$ROOT/src/runtime/xl6_collection_count.c"
   "$ROOT/src/runtime/xl6_array_scalar_read.c"
+  "$ROOT/src/runtime/xl6_array_string_read.c"
   "$ROOT/src/runtime/xl6_future_aggregate.c"
   "$ROOT/src/runtime/xl6_future_aggregate_array.c"
   "$ROOT/src/runtime/xl6_future_metadata.c"

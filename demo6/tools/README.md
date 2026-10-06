@@ -544,6 +544,14 @@ Read-only artifact selection requires ScalarRead/Sequence, not ArrayInput,
 Array facade or CollectionCount. This is not a full Array carrier migration or
 an allocation-prefix/OOM proof for source construction.
 
+The same gate's `--boundaries` mode verifies direct owned string-slot reads and
+consuming Array/index writes against both the native owner and explicit wire
+values. It closes 12 native/wire allocation prefixes; `--language` adds four
+complete generated-program prefixes, sync/continuation strict C/JIT/AOT, exact
+NUL/Unicode lengths, independent copies, generated functions reading a real
+native Array and pre-output IR corruption refusal. The Array/Stack parents
+invoke it separately. It does not certify the remaining Array carrier cutover.
+
 `check_stdlib_sequence_publication.py` exercises the shared resident
 creation/publication transaction and domain-preserving Array/Stack clone.
 Five real profiles run 100 lifetime/ownership cycles and complete native

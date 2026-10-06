@@ -14,13 +14,8 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
-                } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_at_i64_string_copy(v%u, v%u);\n",
-                                    (unsigned int)instruction->result,
-                                    (unsigned int)module->operands[instruction->firstOperand],
-                                    (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW ) {
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_array_set_i64_new(v%u, v%u, v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xl6ArrayValueSetTakeV1(v%u, v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1],
@@ -138,7 +133,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_INDEX_SET_XVALUE_KEY_NEW ) {
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_xvalue_index_set_xvalue_key_new(v%u, v%u, v%u);\n",
+                        "    v%u = xl6ValueIndexSetTakeV1(v%u, v%u, v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1],

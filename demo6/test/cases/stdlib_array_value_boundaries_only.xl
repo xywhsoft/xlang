@@ -1,0 +1,3 @@
+func text(array<string> values) as string
+    return values[-1]
+end

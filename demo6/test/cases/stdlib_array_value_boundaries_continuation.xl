@@ -1,0 +1,24 @@
+async func textLater(array<string> values, int index) as string
+    time.sleep(1)
+    values[index] = "中\0文"
+    return values[index]
+end
+func textItems(array<string> values) as generator<string>
+    values[-1] = "尾\0部"
+    yield values[-1]
+end
+array<string> values = array["old"]
+assert await textLater(values, -1) == "中\0文"
+string last = ""
+for item in textItems(values)
+    last = item
+end
+assert last == "尾\0部"
+bool caught = false
+try
+    string missing = await textLater(values, 1)
+catch RangeError failure
+    caught = true
+end
+assert caught
+println("Array value boundaries continuation ok")

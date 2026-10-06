@@ -31,16 +31,21 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < ir.instructionCount; ++i) {
         XL6_IrInstruction* instruction = &ir.instructions[i];
         if (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
-            !xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp)) continue;
-        assert(xl6IrArrayScalarReadRuntimeInstructionCompatible(&ir, instruction));
+            (!xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
+             instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)) continue;
+        bool stringRead=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
+        assert(stringRead ? xl6IrArrayStringReadRuntimeInstructionCompatible(&ir,instruction) :
+            xl6IrArrayScalarReadRuntimeInstructionCompatible(&ir, instruction));
         assert(xl6IrCallInstructionErrorAbi(&ir, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE);
-        assert(xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(instruction->runtimeOp) ==
+        assert(stringRead ? xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp)==
+            XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(instruction->runtimeOp)==
             XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE);
         const XL6_IrType* receiver = xl6IrArrayScalarReadReceiverType(&ir, instruction);
         assert(receiver && receiver->params[0] == instruction->type);
         XL6_IrInstruction saved = *instruction;
 #define MUTATE(Field, Value) do { instruction->Field = (Value); \
-    assert(!xl6IrArrayScalarReadRuntimeInstructionCompatible(&ir, instruction)); \
+    assert(!(stringRead ? xl6IrArrayStringReadRuntimeInstructionCompatible(&ir,instruction) : \
+        xl6IrArrayScalarReadRuntimeInstructionCompatible(&ir, instruction))); \
     rejected(&ir); *instruction = saved; ++mutations; } while (0)
         MUTATE(type, XL6_IR_TYPE_INVALID);
         MUTATE(result, XL6_IR_VALUE_INVALID);
@@ -89,6 +94,7 @@ int main(int argc, char** argv)
                 strcmp(function->debugName, "scalarU64") == 0 ? "U64" :
                 strcmp(function->debugName, "scalarBool") == 0 ? "BOOL" :
                 strcmp(function->debugName, "scalarF64") == 0 ? "F64" :
+                strcmp(function->debugName, "scalarString") == 0 ? "STRING" :
                 strcmp(function->debugName, "scalarSum") == 0 ? "SUM" : NULL;
             if (!suffix) continue;
             const XL6_IrType* result = xl6IrTypeGet(&ir.types, function->returnType);
@@ -105,13 +111,14 @@ int main(int argc, char** argv)
             const char* suffix = element->cAbi == XL6_IR_C_ABI_I64 ? "I64" :
                 element->cAbi == XL6_IR_C_ABI_U64 ? "U64" :
                 element->cAbi == XL6_IR_C_ABI_BOOL ? "BOOL" :
-                element->cAbi == XL6_IR_C_ABI_F64 ? "F64" : NULL;
+                element->cAbi == XL6_IR_C_ABI_F64 ? "F64" :
+                element->cAbi == XL6_IR_C_ABI_MANAGED_STRING ? "STRING" : NULL;
             if (!suffix) continue;
             xl6OutputPrintf(&output, "#define XL6_READ_%s_OWNER 0x%016llXULL\n#define XL6_READ_%s_ELEMENT 0x%016llXULL\n",
                 suffix, (unsigned long long)type->typeValueId, suffix, (unsigned long long)element->typeValueId);
             ++bindings;
         }
-        assert(bindings == 9 && !xl6OutputHasFailed(&output)); xl6OutputClose(&output);
+        assert((bindings == 9 || bindings==2) && !xl6OutputHasFailed(&output)); xl6OutputClose(&output);
     }
     printf("scalar read contract: %u operations; %u ABI/outcome mutations refused before C/header output\n", reads, mutations);
 done:

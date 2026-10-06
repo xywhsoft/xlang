@@ -18157,6 +18157,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
     case XL6_IR_RUNTIME_STRING_CONCAT:
     case XL6_IR_RUNTIME_STRING_UTF8_AT:
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_STRING_COPY:
+    case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY:
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY:
     case XL6_IR_RUNTIME_BOOL_TO_STRING:
     case XL6_IR_RUNTIME_I64_TO_STRING:
@@ -20134,7 +20135,8 @@ int xl6IrCollectionMemberRuntimeOpIs(XL6_IrRuntimeOp operation)
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
     return xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
-           operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;
+           operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||
+           operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
 }
 
 int xl6IrArrayScalarReadRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -20161,11 +20163,12 @@ const XL6_IrType* xl6IrArrayScalarReadReceiverType(
     return type && type->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
         type->kind == XL6_IR_TYPE_GENERIC_INSTANCE && type->paramCount == 1 && type->params ? type : NULL;
 }
-int xl6IrArrayScalarReadRuntimeInstructionCompatible(
+static int xl6IrArrayTypedReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
     if (!module || !instruction || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
-        !xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
+        (!xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY) ||
         instruction->result == XL6_IR_VALUE_INVALID ||
         instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
         instruction->targetSymbol || instruction->targetValue != XL6_IR_VALUE_INVALID ||
@@ -20181,12 +20184,29 @@ int xl6IrArrayScalarReadRuntimeInstructionCompatible(
     const XL6_IrType* index = key ? xl6IrTypeGet(&module->types, key->type) : NULL;
     if (!receiver || !receiver->typeValueId || receiver->params[0] != instruction->type ||
         !index || index->cAbi != XL6_IR_C_ABI_I64 || index->nullAbi != XL6_IR_NULL_ABI_NONE ||
-        !result || !result->typeValueId || result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-        result->nullAbi != XL6_IR_NULL_ABI_NONE) return 0;
+        !result || !result->typeValueId) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)
+        return result->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+            result->kind!=XL6_IR_TYPE_NULLABLE &&
+            result->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+            result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED;
+    if (result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
     XL6_IrCAbi expected = instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER ? XL6_IR_C_ABI_I64 :
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64 ? XL6_IR_C_ABI_U64 :
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL ? XL6_IR_C_ABI_BOOL : XL6_IR_C_ABI_F64;
     return result->cAbi == expected;
+}
+int xl6IrArrayScalarReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    return instruction && xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
+        xl6IrArrayTypedReadRuntimeInstructionCompatible(module,instruction);
+}
+int xl6IrArrayStringReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    return instruction && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY &&
+        xl6IrArrayTypedReadRuntimeInstructionCompatible(module,instruction);
 }
 
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -20254,6 +20274,8 @@ int xl6IrCollectionReadRuntimeInstructionCompatible(
         return xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp))
         return xl6IrArrayScalarReadRuntimeInstructionCompatible(module,instruction);
+    if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)
+        return xl6IrArrayStringReadRuntimeInstructionCompatible(module,instruction);
     if (module == NULL || instruction == NULL ||
         instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
         !xl6IrCollectionReadRuntimeOpIs(instruction->runtimeOp) ||
@@ -38376,19 +38398,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         if (!xl6IrArrayScalarReadRuntimeInstructionCompatible(module, instruction))
                             return xl6IrDiag(diags, NULL, "XLIR scalar Array read has no exact receiver, element or index ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY ) {
-                        const XL6_IrInstruction* index = instruction->operandCount > 1
-                            ? xl6IrValueDefinition(module, module->operands[instruction->firstOperand + 1], NULL) : NULL;
-                        const XL6_IrType* arrayType = left != NULL ? xl6IrTypeGet(&module->types, left->type) : NULL;
-                        const XL6_IrType* indexType = index != NULL ? xl6IrTypeGet(&module->types, index->type) : NULL;
-                        const XL6_IrType* resultType = xl6IrTypeGet(&module->types, instruction->type);
-                        if ( instruction->operandCount != 2 || instruction->immediateText != NULL ||
-                             arrayType == NULL || indexType == NULL || resultType == NULL ||
-                             arrayType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                             arrayType->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
-                             arrayType->paramCount != 1 || arrayType->params == NULL ||
-                             arrayType->params[0] != instruction->type ||
-                             indexType->cAbi != XL6_IR_C_ABI_I64 ||
-                             resultType->cAbi != XL6_IR_C_ABI_MANAGED_STRING )
+                        if (!xl6IrArrayStringReadRuntimeInstructionCompatible(module,instruction))
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime typed string array access has no owned element ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW ) {

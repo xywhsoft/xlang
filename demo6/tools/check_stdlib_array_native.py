@@ -95,6 +95,8 @@ def main() -> int:
     files += [root / name for name in ('tools/check_stdlib_array_scalar_read.py',
         'test/cases/stdlib_array_scalar_read_native_host.c', 'test/cases/stdlib_array_scalar_read_header.c',
         'src/runtime/xl6_array_scalar_read.c')]
+    files += [root / name for name in ('src/runtime/xl6_array_string_read.c',
+        'test/cases/stdlib_array_value_boundaries_header.c','test/cases/stdlib_array_value_boundaries_native_host.c')]
     files += [root / name for name in ('tools/check_stdlib_collection_count.py',
         'test/cases/stdlib_collection_count_native_host.c','test/cases/stdlib_collection_count_header.c','test/support/collection_count_native.c',
         'src/runtime/xl6_collection_count.c')]
@@ -405,6 +407,15 @@ def main() -> int:
             raise RuntimeError("Incomplete native/wire scalar Array read evidence")
         report["ScalarReadReport"] = {"Directory": str(child), "Checks": len(read["Rows"]),
             "Complete": True, "InputsUnchanged": True}
+        child=out/'value-boundaries'
+        command=[sys.executable,'tools/check_stdlib_array_scalar_read.py','--out',str(child),'--boundaries']
+        if args.sanitize: command += ['--sanitize']
+        run(child.name,command,timeout=600)
+        boundaries=json.loads((child/'results.json').read_text(encoding='utf-8'))
+        if not boundaries['Complete'] or not boundaries['InputsUnchanged'] or len(boundaries['Sweeps'])!=12:
+            raise RuntimeError('Incomplete native/wire Array value boundaries evidence')
+        report['ValueBoundariesReport']={'Directory':str(child),'Checks':len(boundaries['Rows']),
+            'ClosedPrefixes':len(boundaries['Sweeps']),'Complete':True,'InputsUnchanged':True}
         child = out / "sequence-publication"
         command = [sys.executable, "tools/check_stdlib_sequence_publication.py", "--out", str(child)]
         if args.sanitize:

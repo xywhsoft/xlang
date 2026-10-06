@@ -22,6 +22,7 @@ def main() -> int:
     parser.add_argument('--shared', action='store_true')
     parser.add_argument('--language', action='store_true')
     parser.add_argument('--public-directory', type=Path)
+    parser.add_argument('--boundaries', action='store_true', help='Owned string reads and consuming native/wire Array/index writes')
     args = parser.parse_args()
     root, out = Path(__file__).resolve().parents[1], args.out.resolve()
     cc, nm = shutil.which('gcc'), shutil.which('nm')
@@ -33,14 +34,22 @@ def main() -> int:
     sources = [host, 'test/support/collection_count_native.c', provider,
         'src/runtime/xl6_sequence.c', 'src/runtime/xl6_array.c',
         'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c']
+    if args.boundaries:
+        host='test/cases/stdlib_array_value_boundaries_native_host.c'
+        provider='src/runtime/xl6_array_string_read.c'
+        sources=[host,'test/support/collection_count_native.c',provider,
+            'src/runtime/xl6_sequence.c','src/runtime/xl6_array.c','src/runtime/xl6_array_erased.c',
+            'src/runtime/xl6_array_reference_value.c','src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c']
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable),
         root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h'}
     files.update(root / source for source in sources)
     files.add(root / 'test/cases/stdlib_array_scalar_read_header.c')
+    if args.boundaries: files.add(root/'test/cases/stdlib_array_value_boundaries_header.c')
     for directory in ('src/runtime', 'release/include'):
         files.update((root / directory).rglob('*.h'))
     fixtures = ['stdlib_array_scalar_read', 'stdlib_array_scalar_read_continuation']
+    if args.boundaries: fixtures=['stdlib_array_value_boundaries','stdlib_array_value_boundaries_continuation']
     public = None
     if args.language:
         files.update(root / f'test/cases/{name}.xl' for name in fixtures)
@@ -49,6 +58,7 @@ def main() -> int:
         files.update(root / path for path in ('test/cases/xlir_array_scalar_read_contract.c',
             'test/cases/stdlib_array_scalar_read_projection_host.c', 'test/cases/xlir_module_product_oom_host.c',
             'test/support/module_product_memory.c', 'test/support/module_product_memory.h'))
+        if args.boundaries: files.add(root/'test/cases/stdlib_array_value_boundaries_projection_host.c')
         if args.public_directory:
             public = json.loads((args.public_directory / 'build.json').read_text(encoding='utf-8-sig'))
             staged = json.loads((args.public_directory / 'artifact_sources.json').read_text(encoding='utf-8-sig'))
@@ -65,10 +75,13 @@ def main() -> int:
         files.add(product)
     inputs = [{'Path': str(path.resolve()), 'Sha256': digest(path)} for path in sorted(files)]
     rows = []
-    report = {'Complete': False, 'InputsUnchanged': False, 'Scope': __doc__, 'Inputs': inputs,
+    report = {'Complete': False, 'InputsUnchanged': False, 'Scope': __doc__ if not args.boundaries else
+        'Native/wire string/index write boundary migration, not whole Array carrier switch', 'Inputs': inputs,
         'Rows': rows, 'NativeRuntimeInstrumented': args.sanitize and not args.shared,
         'LanguageRuntimeInstrumented': False, 'Shared': args.shared, 'Language': args.language,
-        'ZeroAllocationChecks': 'FailAfter(0) around all four successful native and wire reads; not an OOM prefix sweep'}
+        'Boundaries':args.boundaries,'Sweeps':[],
+        'ZeroAllocationChecks': 'Not applicable to owned string copies' if args.boundaries else
+        'FailAfter(0) around all four successful native and wire reads; not an OOM prefix sweep'}
     out.mkdir(parents=True)
     env = dict(os.environ)
     if args.sanitize:
@@ -97,13 +110,15 @@ def main() -> int:
 
     try:
         leaf = out / ('header.exe' if os.name == 'nt' else 'header')
-        run('header.build', [cc, '-std=c11', '-pedantic-errors', '-Wall', '-Wextra', '-Werror', '-I.',
+        run('header.build', [cc, '-std=c11', '-pedantic-errors', '-Wall', '-Wextra', '-Werror', '-I.', '-Irelease',
+            'test/cases/stdlib_array_value_boundaries_header.c' if args.boundaries else
             'test/cases/stdlib_array_scalar_read_header.c', '-o', str(leaf)])
         run('header.run', [str(leaf)])
         obj = out / 'provider.o'
         run('provider.build', [cc, *flags, '-O0', '-c', provider, '-o', str(obj)])
         text = run('provider.symbols', [nm, '-g', str(obj)])
-        symbols = ('xl6ArrayReadI64V1', 'xl6ArrayReadU64V1', 'xl6ArrayReadBoolV1', 'xl6ArrayReadF64V1')
+        symbols = ('xl6ArrayReadStringV1',) if args.boundaries else (
+            'xl6ArrayReadI64V1', 'xl6ArrayReadU64V1', 'xl6ArrayReadBoolV1', 'xl6ArrayReadF64V1')
         assert all(name in text for name in symbols)
         assert not any(name in text for name in ('xrtTypedArrayGetValue', 'xl6ArrayInputAcquireV1', 'xl6ArrayCreateV1',
             'xrtValueClone', 'xrtAlloc', 'xrtValueInt', 'xrtValueFloat'))
@@ -113,6 +128,15 @@ def main() -> int:
             run(lane + '.build', [cc, *flags, *sanitized, f'-O{level}',
                 *([host] if args.shared else sources), *(links if args.shared else platform), '-o', str(binary)], 360)
             assert '100 physical cycles balanced' in run(lane + '.vectors', [str(binary)])
+            if args.boundaries:
+                for operation in ('copy-native','copy-wire','set-native','set-wire','append-native','append-wire'):
+                    for point in range(128):
+                        log=run(f'{lane}.{operation}.oom.{point}',[str(binary),operation,str(point)])
+                        assert 'balanced' in log
+                        if 'hit=0 balanced' in log:
+                            report['Sweeps'].append({'Lane':lane,'Operation':operation,'FirstNoHit':point})
+                            break
+                    else: raise AssertionError('Unclosed native/wire allocation prefix')
         if args.language:
             private = out / 'include/__xl_runtime'
             private.mkdir(parents=True)
@@ -145,7 +169,12 @@ def main() -> int:
                 text = run(name + '.contract', [str(contract), source, str(target), *([str(bindings)] if name == fixtures[0] else [])])
                 assert 'mutations refused before C/header output' in text and original == target.read_bytes()
                 code = original.decode('utf-8')
-                assert 'xl6_array_scalar_read.h' in code and 'static int64_t xlir_xvalue_array_at_i64_integer(' not in code
+                assert ('xl6_array_string_read.h' if args.boundaries else 'xl6_array_scalar_read.h') in code
+                assert 'static int64_t xlir_xvalue_array_at_i64_integer(' not in code
+                if args.boundaries:
+                    assert 'xlir_xvalue_array_at_i64_string_copy(' not in code
+                    assert 'xlir_xvalue_array_set_i64_new(' not in code
+                    assert 'xlir_xvalue_index_set_xvalue_key_new(' not in code
                 if name == fixtures[0]:
                     assert all(symbol + '(' in code for symbol in symbols)
                 for level in (0, 2):
@@ -156,9 +185,18 @@ def main() -> int:
                     run(name + f'.O{level}.build', [cc, *strict, f'-O{level}', '-include', str(target),
                         'test/cases/xlir_module_product_oom_host.c', str(memory), *links, '-o', str(binary)], 360)
                     assert 'balanced' in run(name + f'.O{level}.run', [str(binary)])
+                    if args.boundaries:
+                        for point in range(4097):
+                            proof=run(name+f'.O{level}.oom.{point}',[str(binary),str(point)])
+                            assert 'balanced' in proof
+                            if 'hit=0 balanced' in proof:
+                                report['Sweeps'].append({'Fixture':name,'Level':level,'FirstNoHit':point})
+                                break
+                        else: raise AssertionError('Unclosed language allocation prefix')
                     if name == fixtures[0]:
                         projected = out / (f'projection.O{level}' + ('.exe' if os.name == 'nt' else ''))
                         run(f'projection.O{level}.build', [cc, *strict, f'-O{level}', '-include', str(target), '-include', str(bindings),
+                            'test/cases/stdlib_array_value_boundaries_projection_host.c' if args.boundaries else
                             'test/cases/stdlib_array_scalar_read_projection_host.c', *links, '-o', str(projected)], 360)
                         assert '100 physical cycles balanced' in run(f'projection.O{level}.run', [str(projected)])
                 prefix = out / (name + '.product')

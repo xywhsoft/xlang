@@ -46,23 +46,79 @@ static xvalue* read(const xvalue* source, int64_t index, bool take)
 xvalue* xl6ArrayErasedReadV1(const xvalue* source, int64_t index) { return read(source,index,false); }
 xvalue* xl6ArrayErasedTakeV1(const xvalue* source, int64_t index) { return read(source,index,true); }
 typedef enum Write { SET, PUSH, INSERT } Write;
-static bool write(const xvalue* source, int64_t index, const xvalue* item, Write operation)
+static bool writePinned(XL6_Sequence* owner, const xvalueconverter* converter,
+    int64_t index, const xvalue* item, Write operation)
 {
-    if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
-    XL6_Sequence* owner=begin(source,&layout,&converter);
-    if (!owner) return false;
     xtypedarray* storage=xl6SequenceStorageV1(owner); size_t at;
     bool ok=false;
     if (operation==PUSH) ok=xl6SequenceAdmitValueV1(owner,item) && allocation(xrtTypedArrayPushValue(storage,item,converter));
     else if (xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),operation==INSERT,&at))
         ok=xl6SequenceAdmitValueV1(owner,item) && allocation(operation==SET ? xrtTypedArraySetValue(storage,at,item,converter) :
                                      xrtTypedArrayInsertValue(storage,at,item,converter));
+    return ok;
+}
+static bool write(const xvalue* source, int64_t index, const xvalue* item, Write operation)
+{
+    if (!item) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
+    XL6_Sequence* owner=begin(source,&layout,&converter);
+    if (!owner) return false;
+    bool ok=writePinned(owner,converter,index,item,operation);
     xl6SequenceEndV1(owner); return ok;
 }
 bool xl6ArrayErasedSetV1(const xvalue* source, int64_t index, const xvalue* item) { return write(source,index,item,SET); }
 bool xl6ArrayErasedPushV1(const xvalue* source, const xvalue* item) { return write(source,0,item,PUSH); }
 bool xl6ArrayErasedInsertV1(const xvalue* source, int64_t index, const xvalue* item) { return write(source,index,item,INSERT); }
+static void consume(xvalue* item)
+{
+    xerror* saved=xrtTakeError();
+    xrtValueRelease(item);
+    if (saved) { xrtClearError(); xrtSetErrorTake(saved); }
+}
+static bool writeTake(xvalue* source, int64_t index, xvalue* item, Write operation)
+{
+    if (!source || !item) {
+        xrtSetErrorKind(XERR_ARGUMENT); consume(item); return false;
+    }
+    XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
+    const xvalueconverter* converter=NULL;
+    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    bool ok=false;
+    if (status>0) {
+        ok=writePinned(owner,converter,index,item,operation);
+        /* Drop the consumed shell while the native operation pin still owns
+         * the receiver. Cleanup cannot retire storage or reenter its mutation. */
+        consume(item); xl6SequenceEndV1(owner); return ok;
+    }
+    if (!status) {
+        if (xrtValueType(source)!=XVALUE_ARRAY) xrtSetErrorKind(XERR_TYPE);
+        else if (operation==PUSH) return xrtValueArrayAppendNew(source,item);
+        else {
+            size_t at;
+            if (xl6ArrayIndexV1(index,xrtValueCount(source),false,&at))
+                return xrtValueArraySetNew(source,at,item);
+        }
+    }
+    consume(item); return false;
+}
+bool xl6ArrayValueAppendTakeV1(xvalue* source, xvalue* item)
+{ return writeTake(source,0,item,PUSH); }
+bool xl6ArrayValueSetTakeV1(xvalue* source, int64_t index, xvalue* item)
+{ return writeTake(source,index,item,SET); }
+bool xl6ValueIndexSetTakeV1(xvalue* source, const xvalue* key, xvalue* item)
+{
+    if (!source || !key || !item) {
+        xrtSetErrorKind(XERR_ARGUMENT); consume(item); return false;
+    }
+    int64_t index; xstrview text;
+    if (xrtValueType(key)==XVALUE_INT && xrtValueGetInt(key,&index)) {
+        if (xrtValueType(source)==XVALUE_INT_MAP) return xrtValueIntMapSetNew(source,index,item);
+        return xl6ArrayValueSetTakeV1(source,index,item);
+    }
+    if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT &&
+        xrtValueGetString(key,&text)) return xrtValueObjectSetNew(source,text,item);
+    xrtSetErrorKind(XERR_TYPE); consume(item); return false;
+}
 int64_t xl6ArrayErasedSizeV1(const xvalue* source)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;

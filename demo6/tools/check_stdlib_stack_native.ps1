@@ -74,6 +74,10 @@ try {
         'test/cases/stdlib_array_scalar_read_header.c','src/runtime/xl6_array_scalar_read.c',
         'test/cases/stdlib_array_scalar_read.xl','test/cases/stdlib_array_scalar_read_continuation.xl',
         'test/cases/xlir_array_scalar_read_contract.c','test/cases/stdlib_array_scalar_read_projection_host.c')
+    $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_string_read.c',
+        'test/cases/stdlib_array_value_boundaries_header.c','test/cases/stdlib_array_value_boundaries_native_host.c',
+        'test/cases/stdlib_array_value_boundaries_projection_host.c','test/cases/stdlib_array_value_boundaries.xl',
+        'test/cases/stdlib_array_value_boundaries_continuation.xl','test/cases/stdlib_array_value_boundaries_only.xl')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_publication.py','test/cases/stdlib_sequence_publication_native_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_factories.py','test/cases/stdlib_sequence_factory_only_host.c','test/support/sequence_factory_native.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_input.py','test/cases/stdlib_array_input_host.c',
@@ -286,6 +290,9 @@ try {
     Run 'array-scalar-read' $python @('tools/check_stdlib_array_scalar_read.py','--out',"$outPath/array-scalar-read",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
     $arrayScalarRead=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-scalar-read/results.json" -Raw | ConvertFrom-Json
     if (!$arrayScalarRead.Complete -or !$arrayScalarRead.InputsUnchanged) { throw 'Incomplete scalar Array read evidence' }
+    Run 'array-value-boundaries' $python @('tools/check_stdlib_array_scalar_read.py','--boundaries','--out',"$outPath/array-value-boundaries",'--language','--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $arrayBoundaries=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-value-boundaries/results.json" -Raw | ConvertFrom-Json
+    if (!$arrayBoundaries.Complete -or !$arrayBoundaries.InputsUnchanged -or $arrayBoundaries.Sweeps.Count-ne16) { throw 'Incomplete Array value boundary evidence' }
     Run 'sequence-publication' $python @('tools/check_stdlib_sequence_publication.py','--out',"$outPath/sequence-publication") -TimeoutMs 600000
     $sequencePublication=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-publication/results.json" -Raw | ConvertFrom-Json
     if (!$sequencePublication.Complete -or !$sequencePublication.InputsUnchanged -or $sequencePublication.Sweeps.Count-ne50) { throw 'Incomplete Sequence publication evidence' }

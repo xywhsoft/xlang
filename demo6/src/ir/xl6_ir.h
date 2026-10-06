@@ -6329,6 +6329,8 @@ const XL6_IrType* xl6IrArrayScalarReadReceiverType(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrArrayScalarReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
+int xl6IrArrayStringReadRuntimeInstructionCompatible(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionMemberRuntimeInstructionCompatible(

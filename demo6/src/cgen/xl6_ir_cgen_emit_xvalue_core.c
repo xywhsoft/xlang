@@ -618,6 +618,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             xl6OutputPuts("extern xvalue* xrtValueFuture(xfuture*);\n", out);
         if ( needs->needsXValueArrayRuntime )
             xl6OutputPuts("extern xvalue* xrtValueArray(void);\n"
+                           "#include <__xl_runtime/xl6_array_value_write.h>\n"
                            "extern bool xrtValueArrayAppendNew(xvalue*, xvalue*);\n"
                            "extern bool xrtValueArrayAppend(xvalue*, const xvalue*);\n", out);
         if ( needs->needsXValueArrayReadRuntime )
@@ -642,23 +643,9 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             needs->needsXValueArrayBoolReadRuntime || needs->needsXValueArrayF64ReadRuntime)
             xl6OutputPuts("#include <__xl_runtime/xl6_array_scalar_read.h>\n", out);
         if ( needs->needsXValueArrayStringReadRuntime )
-            xl6OutputPuts("extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
-                          "extern char* xrtStrDupN(const char*, size_t);\n"
-                          "static xlir_string xlir_xvalue_array_at_i64_string_copy(const xvalue* array, int64_t index)\n"
-                          "{ xvalue* item = xrtValueArrayAt(array, index); xlir_string_view value = {0}; xlir_string copied;\n"
-                          "  if (item == NULL || !xrtValueGetString(item, &value)) abort();\n"
-                          "  copied = xlir_string_from_utf8(value.Data, value.Size); if (copied.Data == NULL) abort();\n"
-                          "  return copied; }\n", out);
+            xl6OutputPuts("#include <__xl_runtime/xl6_array_string_read.h>\n",out);
         if ( needs->needsXValueArraySetRuntime ) {
-            xl6OutputPuts(
-                           "extern bool xrtValueArrayResolve(const xvalue*, int64_t, size_t*);\n"
-                           "extern bool xrtValueArraySetNew(xvalue*, size_t, xvalue*);\n"
-                           "static bool xlir_xvalue_array_set_i64_new(xvalue* array, int64_t index, xvalue* item)\n"
-                           "{\n"
-                           "    size_t resolved;\n"
-                           "    if (!xrtValueArrayResolve(array, index, &resolved)) { xrtValueRelease(item); return false; }\n"
-                           "    return xrtValueArraySetNew(array, resolved, item);\n"
-                           "}\n", out);
+            xl6OutputPuts("#include <__xl_runtime/xl6_array_value_write.h>\n",out);
         }
         if ( needs->needsXValueIntMapRuntime )
             xl6OutputPuts("extern xvalue* xrtValueIntMap(void);\n"

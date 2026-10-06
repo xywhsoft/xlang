@@ -251,22 +251,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "    return xrtValueNull();\n"
                 "}\n", out);
         if ( needs->needsXValueDynamicKeyIndexWriteRuntime )
-            xl6OutputPuts(
-                "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
-                "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
-                "static bool xlir_xvalue_index_set_xvalue_key_new(xvalue* collection, const xvalue* key, xvalue* item)\n"
-                "{\n"
-                "    int collectionType = xrtValueType(collection); int keyType = xrtValueType(key);\n"
-                "    int64_t index = 0; xlir_string_view text = {0};\n"
-                "    if (keyType == 2 && xrtValueGetInt(key, &index)) {\n"
-                "        if (collectionType == 9) return xlir_xvalue_array_set_i64_new(collection, index, item);\n"
-                "        if (collectionType == 10) return xrtValueIntMapSetNew(collection, index, item);\n"
-                "    } else if (keyType == 4 && collectionType == 12 && xrtValueGetString(key, &text)) {\n"
-                "        return xrtValueObjectSetNew(collection, text, item);\n"
-                "    }\n"
-                "    xrtValueRelease(item);\n"
-                "    return false;\n"
-                "}\n", out);
+            xl6OutputPuts("#include <__xl_runtime/xl6_array_value_write.h>\n",out);
         if ( needs->needsXValueContainsRuntime )
             xl6OutputPuts(
                 "typedef struct xvalueiter xvalueiter;\n"

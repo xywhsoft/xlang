@@ -1,0 +1,32 @@
+func scalarString(array<string> values, int index) as string
+    return values[index]
+end
+array<string> values = array["a\0你", "", "尾"]
+assert scalarString(values, 0) == "a\0你"
+assert scalarString(values, 1) == ""
+assert scalarString(values, -1) == "尾"
+auto copied = scalarString(values, 0)
+copied[0] = 'X'
+assert values[0] == "a\0你"
+values[-1] = "b\0c"
+assert values[-1] == "b\0c"
+assert values.append("z\0终")
+var alias = values
+alias[-1] = "再\0见"
+assert scalarString(values, -1) == "再\0见"
+list<string> typedSparse = [3: "old"]
+var sparse = typedSparse
+sparse[3] = "new\0text"
+assert string(sparse[3]) == "new\0text"
+dict<string> typedObject = {"a\0b": "old"}
+var object = typedObject
+object["a\0b"] = "new"
+assert string(object["a\0b"]) == "new"
+bool caught = false
+try
+    auto missing = scalarString(values, -9223372036854775808)
+catch RangeError failure
+    caught = true
+end
+assert caught
+println("Array value boundaries ok")
