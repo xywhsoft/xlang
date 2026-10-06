@@ -1,0 +1,40 @@
+async func schemaAsync(Stack<Stack<string>> source) as string
+    time.sleep(1)
+    try
+        Stack<string> leaf = source.pop()
+        return leaf.pop()
+    finally
+        source.clear()
+    end
+end
+
+func schemaItems(Stack<Stack<bytes>> source) as generator<bytes>
+    try
+        while source.count() > 0
+            Stack<bytes> leaf = source.pop()
+            yield leaf.pop()
+        end
+    finally
+        source.clear()
+    end
+end
+
+Stack<string> textLeaf = Stack::<string>()
+assert(textLeaf.push("async\0你"))
+Stack<Stack<string>> texts = Stack::<Stack<string>>()
+assert(texts.push(textLeaf))
+future<string> result = schemaAsync(texts)
+assert(await result == "async\0你" and await result == "async\0你")
+assert(texts.count() == 0 and textLeaf.count() == 0)
+
+Stack<bytes> byteLeaf = Stack::<bytes>()
+assert(byteLeaf.push(b"retained\0") and byteLeaf.push(b"first\xff"))
+Stack<Stack<bytes>> data = Stack::<Stack<bytes>>()
+assert(data.push(byteLeaf) and data.push(byteLeaf))
+bytes saved = b""
+for item in schemaItems(data)
+    saved = item
+    item[0] = 42
+    break
+end
+assert(saved == b"first\xff" and data.count() == 0 and byteLeaf.pop() == b"retained\0")

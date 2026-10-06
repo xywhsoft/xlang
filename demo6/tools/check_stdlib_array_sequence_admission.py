@@ -73,7 +73,9 @@ def main() -> int:
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else
                 [nm,*(['-D'] if args.shared else []),'--defined-only',str(product if args.shared else binary)]))
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert {'xl6SequenceNestedCreateV1','xl6SequenceAdmitsArrayV1','xl6SequenceAdmitsRoleV1'}<=names
+            assert {'xl6SequenceNestedCreateTakeV2','xl6SequenceSchemaCopyV1','xl6SequenceAdmitsSchemaV1',
+                'xl6SequenceAdmitsArrayV1','xl6SequenceAdmitsRoleV1'}<=names
+            assert 'xl6SequenceNestedCreateV1' not in names
             if not args.shared:
                 assert not {'xl6SequenceNominalCreateV1','xl6SequenceCScalarCreateV1','xl6ArrayDefaultCreateV1'} & names
             vectors=run(lane+'.vectors',[str(binary)])
@@ -88,7 +90,13 @@ def main() -> int:
                         if match[1]=='0':
                             sweeps.append({'Lane':lane,'Profile':profile,'Operation':operation,'FirstNoHit':point}); break
                     else: raise AssertionError('Unclosed allocation failure prefix')
-        assert len(sweeps)==368
+            for point in range(513):
+                text=run(f'{lane}.deep-create.{point}',[str(binary),'deep-create',str(point)])
+                match=re.search(r'hit=([01]) balanced',text); assert match,'Missing deep schema outcome'
+                if match[1]=='0':
+                    sweeps.append({'Lane':lane,'Profile':'depth64','Operation':'deep-create','FirstNoHit':point}); break
+            else: raise AssertionError('Unclosed recursive schema allocation prefix')
+        assert len(sweeps)==370
         report['InputsUnchanged']=all(digest(Path(row['Path']))==row['Sha256'] for row in inputs)
         assert report['InputsUnchanged']
         report['Complete']=True

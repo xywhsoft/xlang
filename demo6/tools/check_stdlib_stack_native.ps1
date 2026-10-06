@@ -99,6 +99,8 @@ try {
         'test/cases/stdlib_array_primitive_import_native_host.c','test/support/array_import_native.c',
         'tools/check_stdlib_sequence_recipe_emit.py','test/cases/xlir_sequence_recipe_emit_contract.c',
         'test/cases/stdlib_sequence_recipe_emit_host.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_schema_language.py',
+        'test/cases/stdlib_sequence_nested_schema.xl','test/cases/stdlib_sequence_nested_schema_continuation.xl')
     $files += @(Get-Item -LiteralPath 'src/runtime/xl6_array_string_read.c',
         'test/cases/stdlib_array_value_boundaries_header.c','test/cases/stdlib_array_value_boundaries_native_host.c',
         'test/cases/stdlib_array_value_boundaries_projection_host.c','test/cases/stdlib_array_value_boundaries.xl',
@@ -339,6 +341,10 @@ try {
     Run 'array-admitted-import' $python @('tools/check_stdlib_array_import.py','--out',"$outPath/array-admitted-import") -TimeoutMs 900000
     Run 'array-codec-import' $python @('tools/check_stdlib_array_primitive_admission.py','--imports','--out',"$outPath/array-codec-import") -TimeoutMs 900000
     Run 'sequence-recipe-emitter' $python @('tools/check_stdlib_sequence_recipe_emit.py','--out',"$outPath/sequence-recipe-emitter",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    Run 'sequence-schema-language' $python @('tools/check_stdlib_sequence_schema_language.py',
+        '--out',"$outPath/sequence-schema-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $sequenceSchema=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-schema-language/results.json" -Raw | ConvertFrom-Json
+    if (!$sequenceSchema.Complete -or !$sequenceSchema.InputsUnchanged -or $sequenceSchema.Sweeps.Count-ne10) { throw 'Incomplete recursive Sequence language schema evidence' }
     Run 'array-owned-read-native' $python @('tools/check_stdlib_array_primitive_admission.py','--reads','--out',"$outPath/array-owned-read-native") -TimeoutMs 900000
     Run 'array-native-iterator' $python @('tools/check_stdlib_array_primitive_admission.py','--iterator','--out',"$outPath/array-native-iterator") -TimeoutMs 900000
     $nativeIterator=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-native-iterator/results.json" -Raw | ConvertFrom-Json

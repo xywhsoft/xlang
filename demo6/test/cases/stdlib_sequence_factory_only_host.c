@@ -19,8 +19,9 @@ static xvalue* factory(unsigned int role,const xrttype** descriptor,unsigned int
         transfer=1; type=xrtTypeUInt16();
         value=xl6SequenceCScalarCreateV1(role,1001,element,type,element);
 #elif XL6_FACTORY_PROFILE == 4
-        value=xl6SequenceNestedCreateV1(role,1001,element,
-            XL6_SEQUENCE_ARRAY_V1,element,4001,1,sizeof(int64_t),xrtTypeInt64(),false);
+        value=xl6SequenceNestedCreateTakeV2(role,1001,element,
+            xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,element,4001,1,sizeof(int64_t),
+                xrtTypeInt64(),XL6_VALUE_ADMIT_I8,false,4001),false);
 #elif XL6_FACTORY_PROFILE == 5
         transfer=1; type=xl6NullableNativeU16TypeV1();
         value=xl6SequenceNullableCScalarCreateV1(role,1001,element,type,xrtTypeUInt16(),4001);

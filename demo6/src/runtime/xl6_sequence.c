@@ -330,6 +330,57 @@ bool xl6SequenceAdmitsRoleV1(const xvalue* value,XL6_SequenceRoleV1 role,uint64_
         transfer>=1 && transfer<=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 && size && type &&
         admitsRole(value,role,identity,element,transfer,size,type);
 }
+static bool samePolicy(const XL6_SequenceAdmissionV3* left,const XL6_SequenceAdmissionV3* right)
+{
+    return left->ops && left->ops==right->ops &&
+        left->elementIdentity==right->elementIdentity && left->transfer==right->transfer &&
+        left->size==right->size && left->type==right->type &&
+        left->boxedIdentity==right->boxedIdentity &&
+        (left->data==right->data || left->ops->Equivalent(left->data,right->data));
+}
+bool xl6SequenceSchemaCopyV1(const xvalue* value,XL6_SequenceRoleV1* role,
+    XL6_SequenceLayoutV1* layout,XL6_SequenceAdmissionV3* target)
+{
+    if (!value || !role || !layout || !target || !policyValid(target) || target->ops) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    bool ok=false;
+    if (xrtValueGetHandle(value,&raw,&actual,&user) && actual==&ops && raw && !user) {
+        const XL6_Sequence* owner=raw;
+        if (owner->cleared || xrtValueTypeId(value)!=owner->identity ||
+            (owner->role!=XL6_SEQUENCE_ARRAY_V1 && owner->role!=XL6_SEQUENCE_STACK_V1) ||
+            xrtAtomic32Load(&owner->admitted,XMEMORY_ACQUIRE)!=1) xrtSetErrorKind(XERR_STATE);
+        else if (owner->admission.ops->Retain(owner->admission.data)) {
+            *target=owner->admission;
+            *role=owner->role;
+            *layout=(XL6_SequenceLayoutV1){owner->identity,owner->elementIdentity,
+                owner->transfer,owner->size,owner->type};
+            ok=true;
+        }
+    } else xrtSetErrorKind(XERR_ARGUMENT);
+    mutationEnd(&mutation); return ok;
+}
+bool xl6SequenceAdmitsSchemaV1(const xvalue* value,XL6_SequenceRoleV1 role,
+    const XL6_SequenceLayoutV1* layout,const XL6_SequenceAdmissionV3* expected)
+{
+    if (!layout || !expected || !expected->ops || !expected->data || !value ||
+        (role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1) ||
+        xrtValueType(value)!=XVALUE_HANDLE || xrtValueTypeId(value)!=layout->identity) return false;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    bool result=false;
+    if (xrtValueGetHandle(value,&raw,&actual,&user) && actual==&ops && raw && !user) {
+        const XL6_Sequence* owner=raw;
+        result=owner->role==role && owner->identity==layout->identity &&
+            owner->elementIdentity==layout->elementIdentity && owner->transfer==layout->transfer &&
+            owner->size==layout->size && owner->type==layout->type &&
+            xrtAtomic32Load(&owner->admitted,XMEMORY_ACQUIRE)==1 && !owner->cleared &&
+            samePolicy(&owner->admission,expected);
+    }
+    mutationEnd(&mutation); return result;
+}
 static XL6_Sequence* borrow(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                          unsigned int transfer, size_t size, const xrttype* type)
 {

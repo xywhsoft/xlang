@@ -34,7 +34,7 @@ def main() -> int:
         ('nominal', ['src/runtime/xl6_nominal_admission.c'], 'xl6SequenceNominalCreateV1'),
         ('primitive', ['src/runtime/xl6_value_admission.c'], 'xl6SequencePrimitiveCreateV1'),
         ('c_scalar', [], 'xl6SequenceCScalarCreateV1'),
-        ('sequence', ['src/runtime/xl6_array_primitive_admission.c', 'src/runtime/xl6_value_admission.c'], 'xl6SequenceNestedCreateV1'),
+        ('sequence', ['src/runtime/xl6_array_primitive_admission.c', 'src/runtime/xl6_value_admission.c'], 'xl6SequenceNestedCreateTakeV2'),
         ('nullable_c_scalar', ['src/runtime/xl6_nullable_native_u16.c', 'src/runtime/xl6_nullable_native_u16_value.c'], 'xl6SequenceNullableCScalarCreateV1'),
         ('numeric_enum', [], 'xl6SequenceNumericEnumCreateV1'),
         ('callable', [], 'xl6SequenceCallableCreateV1'),

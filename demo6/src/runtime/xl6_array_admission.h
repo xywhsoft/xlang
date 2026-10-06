@@ -23,14 +23,14 @@ XL6_TEXT_API xvalue* xl6SequencePrimitiveCreateV1(unsigned int, uint64_t, uint64
  * equals the element identity. A type-id projection requires explicit identity;
  * an unbound ordinary UInt is not a type value. No custom descriptors. */
 XL6_TEXT_API xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);
-/* Nested Sequence references retain the same child owner. Identity, exact
- * ARRAY/STACK role and immutable physical tuple require a sealed profiled
- * native Sequence, not just Value.TypeId. The child descriptor is resident.
- * Nonnullable element identity equals child identity; nullable identity is
- * separate. No recursive traversal, borrowed schema/descriptor or code lease.
+/* The child schema exemplar is consumed on BOTH paths. Only its immutable
+ * role/layout/full admission metadata is retained, not the exemplar, its
+ * storage or its elements. Clones/cursors own the entire recursive schema,
+ * independently of source modules/wrappers. No layout-only nested admission.
+ * The chain is bounded at 64; slot checks do not traverse child contents.
+ * Nonnullable element identity equals child identity; nullable is separate.
  * Nonnullable resize growth is forbidden; nullable growth yields absent. */
-XL6_TEXT_API xvalue* xl6SequenceNestedCreateV1(unsigned int, uint64_t, uint64_t,
-    unsigned int, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);
+XL6_TEXT_API xvalue* xl6SequenceNestedCreateTakeV2(unsigned int, uint64_t, uint64_t, xvalue*, bool);
 /* Tagged native C scalars: absent has no payload domain; present uses the
  * exact builtin width/kind, with explicit identity for type values. The
  * optional descriptor must be an immutable resident profile getter result.

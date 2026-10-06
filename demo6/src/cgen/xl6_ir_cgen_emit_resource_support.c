@@ -378,7 +378,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNullableCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNumericEnumCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, unsigned int, bool, uint64_t);\n"
-            "extern xvalue* xl6SequenceNestedCreateV1(unsigned int, uint64_t, uint64_t, unsigned int, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);\n"
+            "extern xvalue* xl6SequenceNestedCreateTakeV2(unsigned int, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern bool xl6StackPushV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const void*);\n"
         "extern bool xl6StackTakeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool);\n"
         "extern bool xl6StackTryTakeV2(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool, bool*);\n"

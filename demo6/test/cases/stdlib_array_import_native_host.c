@@ -50,7 +50,7 @@ static xvalue* item(bool bad)
 #elif XL6_FACTORY_PROFILE == 4
     if (bad) { xvalue* fake=xrtValueArray(); assert(fake && xrtValueTypeIdBind(fake,3001)); return fake; }
     xvalue* child=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,3001,4001,1,sizeof(int64_t),
-        xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,4001);
+        xrtTypeInt64(),XL6_VALUE_ADMIT_I8,false,4001);
     assert(child); return child;
 #elif XL6_FACTORY_PROFILE == 7
     if (bad) { xvalue* fake=xrtValueUInt(65); assert(fake && xrtValueTypeIdBind(fake,3001)); return fake; }
@@ -127,6 +127,27 @@ static void vectors(void)
     xvalue* bad=wire(true); uint64_t identity=xrtValueTypeId(bad);
     assert(!xl6ArrayImportTakeV1(seed(true),bad)); error(XERR_TYPE);
     assert(xrtValueCount(bad)==3 && xrtValueTypeId(bad)==identity); xrtValueRelease(bad);
+#endif
+#if XL6_FACTORY_PROFILE == 4
+    /* Identical IDs and physical slots are not a logical schema witness:
+     * an I64 child must not enter the I8 child domain, through either path. */
+    xvalue* wide=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,3001,4001,1,sizeof(int64_t),
+        xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,4001);
+    assert(wide);
+    xvalue* wrongWire=xrtValueArray(); assert(wrongWire);
+    assert(xrtValueArrayAppend(wrongWire,wide) && xrtValueArrayAppend(wrongWire,wide));
+    assert(!xl6ArrayImportTakeV1(seed(true),wrongWire)); error(XERR_TYPE);
+    assert(xrtValueCount(wrongWire)==2 && xrtValueArrayGet(wrongWire,0)==wide);
+    xvalue* wrongNative=xl6SequenceNestedCreateTakeV2(XL6_SEQUENCE_ARRAY_V1,1001,3001,
+        xrtValueRetain(wide),false);
+    assert(wrongNative);
+    xvalue* projection=xl6ArrayEraseV1(wrongNative,1001,3001,3,xrtTypeValue()->Size,xrtTypeValue(),NULL);
+    assert(projection==wrongNative); xrtValueRelease(projection);
+    assert(xl6ArrayErasedPushV1(wrongNative,wide));
+    assert(!xl6ArrayImportTakeV1(seed(true),wrongNative)); error(XERR_TYPE);
+    assert(xl6ArrayErasedSizeV1(wrongNative)==1);
+    xvalue* preserved=xl6ArrayErasedReadV1(wrongNative,0); assert(preserved==wide); xrtValueRelease(preserved);
+    xrtValueRelease(wrongNative); xrtValueRelease(wrongWire); xrtValueRelease(wide);
 #endif
     destination=seed(true); assert(destination);
     xrtSetErrorKind(XERR_ARGUMENT); const xerror* prior=xrtGetError();

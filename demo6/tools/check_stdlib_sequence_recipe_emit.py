@@ -67,9 +67,15 @@ def main() -> int:
             proof=re.search(r'Sequence recipe emitter: (\d+) actual recipes; (\d+) refused mutations; layout-mask=(\d+); source carrier unchanged',log)
             assert proof and int(proof[2])==int(proof[1])*15
             mask|=int(proof[3]); proofs.append({'Fixture':fixture,'Recipes':int(proof[1]),'Mutations':int(proof[2]),'LayoutMask':int(proof[3])})
+            nested=re.search(r'Nested schema rejection: (\d+) descendant mutations refused before output',log)
+            assert nested,'Missing recursive schema rejection proof'
+            if fixture=='stdlib_array_layouts': assert int(nested[1])>0,'Missing actual nested recipes'
+            proofs[-1]['DescendantMutations']=int(nested[1])
             text=generated.read_text(encoding='utf-8')
             probe=text.split('int xl6_recipe_probe(void)',1)[1]
             assert 'xrtValueArray(' not in probe and 'xl6ArrayFromValueV1' not in probe
+            assert 'xl6SequenceNestedCreateV1' not in probe
+            if int(nested[1])>0: assert 'xl6SequenceNestedCreateTakeV2' in probe
             for level in (0,2):
                 lane=f'{fixture}.O{level}'; obj=out/(lane+'.o'); binary=out/(lane+('.exe' if os.name=='nt' else ''))
                 run(lane+'.compile',[cc,*strict,f'-O{level}','-Dmain=xl6RecipeLanguageMain','-c',str(generated),'-o',str(obj)])
