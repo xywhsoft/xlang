@@ -7089,13 +7089,53 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
     return NULL;
 }
 
+static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
+    XL6_IrTypeId typeId, XL6_IrSequenceRoleAbi role,
+    XL6_IrNominalIdentitySetId* setOut, size_t depth)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    if (setOut) *setOut=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!type || depth>64 || !type->typeValueId ||
+        type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        (role!=XL6_IR_SEQUENCE_ROLE_ARRAY && role!=XL6_IR_SEQUENCE_ROLE_STACK) ||
+        (role==XL6_IR_SEQUENCE_ROLE_ARRAY ? type->collectionAbi!=XL6_IR_COLLECTION_ARRAY :
+            type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_STACK)) return 0;
+    XL6_IrSequenceLayout expected=xl6IrSequenceLayoutForType(&module->types,type);
+    const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
+    const XL6_IrType* element=xl6IrTypeGet(&module->types,plan->elementType);
+    const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
+    if (plan->role!=role || !xl6IrSequenceLayoutEqual(plan,&expected) ||
+        !element || !base || !element->typeValueId || !base->typeValueId) return 0;
+    switch (plan->abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
+    case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
+    case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
+        return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
+    case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
+        return xl6IrSequenceConstructionRecipeDepth(module,plan->baseElementType,
+            plan->childRole,NULL,depth+1);
+    default: return 0;
+    }
+}
+int xl6IrSequenceConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    XL6_IrSequenceRoleAbi role,XL6_IrNominalIdentitySetId* setOut)
+{ return xl6IrSequenceConstructionRecipeDepth(module,typeId,role,setOut,0); }
+
 static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     XL6_IrTypeId typeId, XL6_IrNominalIdentitySetId* setOut, size_t depth)
 {
     const XL6_IrType* type = module ? xl6IrTypeGet(&module->types,typeId) : NULL;
     const XL6_IrSequenceLayout* plan = type ? &type->sequenceLayout : NULL;
     if (setOut) *setOut=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-    if (!plan || depth>64 || type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_STACK ||
+    if (!plan || depth>64 ||
+        !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_STACK,setOut) ||
+        type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_STACK ||
         plan->role!=XL6_IR_SEQUENCE_ROLE_STACK || plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
         plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
         plan->transferAbi!=xl6IrRuntimeResourcePayloadAbiForType(module,plan->elementType)) return 0;

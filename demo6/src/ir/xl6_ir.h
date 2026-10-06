@@ -6177,6 +6177,11 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
  * No wire Array or unsupported slot codec is silently accepted. */
 int xl6IrStackConstructionContract(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrNominalIdentitySetId*);
+/* Complete native ARRAY/STACK target recipe, not source-carrier authority.
+ * Re-derives physical fields and precomputed nominal sets; nested recipes
+ * are bounded. Source producer authorization remains a separate contract. */
+int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrSequenceRoleAbi, XL6_IrNominalIdentitySetId*);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
  * Typed construction, lowering, verification and statistics from developing
  * separate lists of operations which can fail without source throw syntax. */

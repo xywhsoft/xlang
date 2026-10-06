@@ -199,3 +199,15 @@ host 用其调用生成函数，检查 char、nullable、NULL 失败、BUSY、fi
 `check_stdlib_array_primitive_admission.py --reads` 重用 11 个真实物理闭包，
 检查 strict/safe/keyed native/wire 读取、codec、NUL、寿命和完整分配前缀。
 Array / Stack 父门已纳入这些测试；不表示源 Array carrier 已迁移完成。
+
+### B98 Sequence 构造配方 / Array 显式导入
+
+`tools/check_stdlib_array_import.py` 对九类实际构造闭包执行 O0/O2、
+wire/native 导入、真实拥有边、BUSY 和完整 OOM 前缀。
+`check_stdlib_array_primitive_admission.py --imports` 对 11 类实际 codec
+验证精确 text/NUL/nullable、同 codec 无装箱复制、不同 codec 转换和
+失败清理；Linux native lanes 用 ASan/UBSan/leak 插桩选定闭包全源。
+`check_stdlib_sequence_recipe_emit.py` 使用真实 Cgen 私有渲染器及实际
+语言类型；每配方 15 次损坏均在输出前拒绝，将九类 native target 构造
+实际编译并运行 100 轮。Array/Stack 父门接入以上子门。源 Array
+仍为 Value-v1；此门不能冒充整个语言 Array producer/carrier 已迁移。

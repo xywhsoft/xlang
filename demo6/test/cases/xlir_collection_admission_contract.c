@@ -187,11 +187,22 @@ static unsigned residentRecipe(const XL6_IrModule* ir, const XL6_IrType* type)
 }
 static void layouts(XL6_IrModule* ir)
 {
-    unsigned arrays=0, resident=0, mutations=0;
+    unsigned arrays=0, resident=0, mutations=0, recipes=0;
     for (size_t i=0;i<ir->types.count;++i) {
         XL6_IrType* type=&ir->types.items[i];
         XL6_IrCollectionCarrierAbi carrier=type->collectionCarrierAbi;
         XL6_IrSequenceLayout saved=type->sequenceLayout;
+        XL6_IrNominalIdentitySetId recipeSet=0;
+        int recipe=xl6IrSequenceConstructionRecipe(ir,(XL6_IrTypeId)(i+1),saved.role,&recipeSet);
+        if (recipe) {
+            ++recipes;
+            assert(saved.defaultAbi && saved.elementType && saved.baseElementType);
+            assert(!xl6IrSequenceConstructionRecipe(ir,(XL6_IrTypeId)(i+1),
+                saved.role==XL6_IR_SEQUENCE_ROLE_ARRAY ? XL6_IR_SEQUENCE_ROLE_STACK : XL6_IR_SEQUENCE_ROLE_ARRAY,NULL));
+            /* Native Array targets are real recipes, but still not source
+             * Stack producers or proof of global Array carrier cutover. */
+            if (saved.role==XL6_IR_SEQUENCE_ROLE_ARRAY) assert(!xl6IrStackConstructionContract(ir,(XL6_IrTypeId)(i+1),NULL));
+        }
         assert(carrier == (type->collectionAbi == XL6_IR_COLLECTION_NONE
             ? XL6_IR_COLLECTION_CARRIER_NONE : XL6_IR_COLLECTION_CARRIER_VALUE_V1));
         type->collectionCarrierAbi=carrier == XL6_IR_COLLECTION_CARRIER_NONE
@@ -201,6 +212,7 @@ static void layouts(XL6_IrModule* ir)
         type->collectionCarrierAbi=(XL6_IrCollectionCarrierAbi)UINT32_MAX; rejected(ir); ++mutations;
         type->collectionCarrierAbi=carrier;
 #define MUTATE(FIELD, VALUE) do { type->sequenceLayout.FIELD=(VALUE); rejected(ir); \
+    if (recipe) assert(!xl6IrSequenceConstructionRecipe(ir,(XL6_IrTypeId)(i+1),saved.role,NULL)); \
     type->sequenceLayout=saved; ++mutations; } while (0)
         MUTATE(abi,(XL6_IrSequenceLayoutAbi)UINT32_MAX);
         MUTATE(role,(XL6_IrSequenceRoleAbi)UINT32_MAX);
@@ -289,6 +301,7 @@ static void layouts(XL6_IrModule* ir)
     assert(xl6IrVerifyModule(ir,NULL));
     printf("array layout: %u arrays; %u real resident recipes; %u carrier/layout mutations refused before C/header output\n",
         arrays,resident,mutations);
+    printf("Sequence target recipes: %u closed ARRAY/STACK recipes; exact fields/role refused independently of source capability\n",recipes);
 }
 static XL6_IrInstruction* definition(XL6_IrModule* ir, XL6_IrValueId value)
 {

@@ -63,6 +63,9 @@ def main() -> int:
         "test/cases/stdlib_array_default_native_host.c", "test/support/array_default_native.c",
         "src/runtime/xl6_array_default.c")]
     files += [root / name for name in ("tools/check_stdlib_array_primitive_admission.py",
+        "tools/check_stdlib_array_import.py","test/cases/stdlib_array_import_native_host.c",
+        "test/cases/stdlib_array_import_header.c","test/cases/stdlib_array_primitive_import_native_host.c",
+        "test/support/array_import_native.c","src/runtime/xl6_array_import.c",
         "test/cases/stdlib_array_primitive_admission_native_host.c",
         "test/cases/stdlib_array_projection_identity_native_host.c",
         "test/cases/stdlib_sequence_retired_admission_abi.c",
@@ -135,7 +138,7 @@ def main() -> int:
                 evidence=json.loads(proof.read_text(encoding="utf-8"))
                 matching=evidence.get("Complete") and evidence.get("InputsUnchanged") and \
                     evidence.get("Sanitized")==args.sanitize
-                for flag,field in (("--projections","Projections"),("--iterator","Iterator"),("--reads","OwnedReads")):
+                for flag,field in (("--projections","Projections"),("--iterator","Iterator"),("--reads","OwnedReads"),("--imports","Imports")):
                     if flag in command: matching=matching and evidence.get(field) is True
                 if matching and evidence.get("Inputs") and all(Path(row["Path"]).is_file() and
                     digest(Path(row["Path"]))==row["Sha256"].lower() for row in evidence["Inputs"]):
@@ -312,7 +315,7 @@ def main() -> int:
             "Profiles": primitive["Profiles"], "ClosedPrefixes": len(primitive["Sweeps"]),
             "AllocationPositions": sum(row["FirstNoHit"]+1 for row in primitive["Sweeps"]),
             "Complete": True, "InputsUnchanged": True}
-        for mode in ("iterator","reads"):
+        for mode in ("iterator","reads","imports"):
             child=out / ("native-"+mode)
             command=[sys.executable,"tools/check_stdlib_array_primitive_admission.py","--"+mode,"--out",str(child)]
             if args.sanitize: command += ["--sanitize"]
@@ -322,6 +325,15 @@ def main() -> int:
                 raise RuntimeError("Incomplete native Array "+mode+" evidence")
             report[mode.title()+"Report"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
                 "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
+        child=out / "admitted-import"
+        command=[sys.executable,"tools/check_stdlib_array_import.py","--out",str(child)]
+        if args.sanitize: command += ["--sanitize"]
+        run(child.name,command,timeout=360)
+        evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or evidence["Profiles"]!=9 or len(evidence["Sweeps"])!=36:
+            raise RuntimeError("Incomplete profiled Array import evidence")
+        report["AdmittedImportReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
+            "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         child = out / "admission-c-scalar"
         command = [sys.executable, "tools/check_stdlib_array_c_scalar.py", "--out", str(child)]
         if args.sanitize:
