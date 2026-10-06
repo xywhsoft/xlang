@@ -70,6 +70,8 @@ file|include/__xl_runtime/xl6_array_string_read.h|%XL6_ROOT%\src\runtime\xl6_arr
 file|include/__xl_runtime/xl6_array_value_write.h|%XL6_ROOT%\src\runtime\xl6_array_value_write.h
 file|include/__xl_runtime/xl6_array_value_read.h|%XL6_ROOT%\src\runtime\xl6_array_value_read.h
 file|include/__xl_runtime/xl6_array_import.h|%XL6_ROOT%\src\runtime\xl6_array_import.h
+file|include/__xl_runtime/xl6_array_methods.h|%XL6_ROOT%\src\runtime\xl6_array_methods.h
+file|include/__xl_runtime/xl6_array_method_view.h|%XL6_ROOT%\src\runtime\xl6_array_method_view.h
 file|include/__xl_runtime/xl6_nominal_admission_abi.h|%XL6_ROOT%\src\runtime\xl6_nominal_admission_abi.h
 file|include/__xl_runtime/xl6_product_abi.h|%XL6_ROOT%\src\runtime\xl6_product_abi.h
 file|include/__xl_runtime/xl6_io_handle.h|%XL6_ROOT%\src\runtime\xl6_io_handle.h

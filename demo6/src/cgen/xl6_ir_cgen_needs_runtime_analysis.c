@@ -250,7 +250,7 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE )
-            needs->needsXValueArrayRemoveValueRuntime = 1;
+            needs->needsXValueArrayMethodsRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
                   XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD ) {
@@ -258,13 +258,12 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 module->instructions[i].typedCollectionOp;
             const XL6_IrType* resultType = xl6IrTypeGet(
                 &module->types, module->instructions[i].type);
-            needs->needsXValueTypedCollectionBaseRuntime = 1;
+            if (module->instructions[i].collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+                xl6IrCgenArrayMethodSymbol(typedCollectionOp))
+                needs->needsXValueArrayMethodsRuntime = 1;
+            else needs->needsXValueTypedCollectionBaseRuntime = 1;
             if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_RESIZE ) {
                 needs->needsXValueTypedArrayResizeRuntime = 1;
-            } else if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_INDEX_OF ) {
-                needs->needsXValueTypedArrayIndexOfRuntime = 1;
-            } else if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_REVERSE ) {
-                needs->needsXValueTypedArrayReverseRuntime = 1;
             } else if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_TAKE ) {
                 needs->needsXValueTypedCollectionTakeRuntime = 1;
                 needs->needsStringViews = 1;

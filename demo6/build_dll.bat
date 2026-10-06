@@ -179,6 +179,9 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_array_string_read.c ^
     src\runtime\xl6_array_value_read.c ^
     src\runtime\xl6_array_import.c ^
+    src\runtime\xl6_array_methods.c ^
+    src\runtime\xl6_array_method_insert.c ^
+    src\runtime\xl6_array_method_find.c ^
     src\runtime\xl6_future_aggregate.c src\runtime\xl6_future_aggregate_array.c src\runtime\xl6_future_metadata.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^
@@ -350,6 +353,9 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_array_string_read.c ^
     src\runtime\xl6_array_value_read.c ^
     src\runtime\xl6_array_import.c ^
+    src\runtime\xl6_array_methods.c ^
+    src\runtime\xl6_array_method_insert.c ^
+    src\runtime\xl6_array_method_find.c ^
     src\runtime\xl6_future_aggregate.c src\runtime\xl6_future_aggregate_array.c src\runtime\xl6_future_metadata.c ^
     src\runtime\xl6_text_chars.c ^
     src\runtime\xl6_text_glob.c ^

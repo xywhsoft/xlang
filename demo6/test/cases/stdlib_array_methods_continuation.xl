@@ -1,0 +1,46 @@
+int methodCleanup = 0
+async func methodsLater(array<int> values, bool fail) as int
+    try
+        time.sleep(1)
+        assert values.reserve(8)
+        assert values.insert(1, 9)
+        assert values.indexOf(9) == 1
+        assert values.removeValue(9)
+        assert values.reverse()
+        assert values.swap(0, 1)
+        if fail
+            values.swap(0, 99)
+        end
+        assert values.trim()
+        return values.capacity()
+    finally
+        methodCleanup += 1
+    end
+end
+func methodItems(array<int> values) as generator<int>
+    try
+        assert values.reverse()
+        yield values[0]
+        assert values.reverse()
+        yield values[0]
+    finally
+        methodCleanup += 1
+    end
+end
+array<int> values = array[4, 6]
+assert await methodsLater(values, false) == 2
+bool caught = false
+try
+    int unused = await methodsLater(values, true)
+catch RangeError failure
+    caught = true
+end
+assert caught and methodCleanup == 2
+int total = 0
+for value in methodItems(values)
+    total += value
+end
+assert total == 10 and methodCleanup == 3
+assert values.clear()
+assert values.trim() and values.capacity() == 0
+println("Array methods continuation ok")

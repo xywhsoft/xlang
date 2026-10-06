@@ -1,0 +1,3 @@
+func arrayInsertOnly(array<int> values, int item) as bool
+    return values.insert(0, item)
+end

@@ -30,6 +30,8 @@ frozen_files() {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" "$PY" release/xl release/libxl.so release/libxlc.so build_linux.sh
     printf '%s\0' tools/check_stdlib_stack_native.sh
+    printf '%s\0' tools/check_stdlib_array_methods.py tools/check_stdlib_array_methods_language.py test/cases/stdlib_array_methods.xl test/cases/stdlib_array_methods_continuation.xl
+    printf '%s\0' test/cases/stdlib_array_methods_header.c test/cases/stdlib_array_methods_native_host.c test/cases/xlir_array_methods_contract.c test/cases/stdlib_array_methods_projection_host.c
     printf '%s\0' tools/check_stdlib_array_import.py test/cases/stdlib_array_import_native_host.c test/cases/stdlib_array_import_header.c test/cases/stdlib_array_primitive_import_native_host.c test/support/array_import_native.c
     printf '%s\0' tools/check_stdlib_sequence_recipe_emit.py test/cases/xlir_sequence_recipe_emit_contract.c test/cases/stdlib_sequence_recipe_emit_host.c
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
@@ -240,6 +242,8 @@ if ! run array-scalar-read "$PY" tools/check_stdlib_array_scalar_read.py --out "
 if ! run array-value-boundaries "$PY" tools/check_stdlib_array_scalar_read.py --out "$OUT/array-value-boundaries" --boundaries --sanitize --language; then failures+=(array-value-boundaries); fi
 if ! run value-iterator-checked "$PY" tools/check_stdlib_array_scalar_read.py --out "$OUT/value-iterator-checked" --checked-iterator --sanitize --language; then failures+=(value-iterator-checked); fi
 if ! run array-owned-read-language "$PY" tools/check_stdlib_array_value_read.py --out "$OUT/array-owned-read-language" --sanitize; then failures+=(array-owned-read-language); fi
+if ! run array-methods "$PY" tools/check_stdlib_array_methods.py --out "$OUT/array-methods" --sanitize; then failures+=(array-methods); fi
+if ! run array-methods-language "$PY" tools/check_stdlib_array_methods_language.py --out "$OUT/array-methods-language" --sanitize; then failures+=(array-methods-language); fi
 if ! run array-admitted-import "$PY" tools/check_stdlib_array_import.py --out "$OUT/array-admitted-import" --sanitize; then failures+=(array-admitted-import); fi
 if ! run array-codec-import "$PY" tools/check_stdlib_array_primitive_admission.py --imports --out "$OUT/array-codec-import" --sanitize; then failures+=(array-codec-import); fi
 if ! run sequence-recipe-emitter "$PY" tools/check_stdlib_sequence_recipe_emit.py --out "$OUT/sequence-recipe-emitter"; then failures+=(sequence-recipe-emitter); fi
