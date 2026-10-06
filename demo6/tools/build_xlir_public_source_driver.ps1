@@ -44,6 +44,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_value_read.c',
     'src/runtime/xl6_array_import.c',
     'src/runtime/xl6_array_import_chain.c',
+    'src/runtime/xl6_array_algebra.c',
     'src/runtime/xl6_array_methods.c','src/runtime/xl6_array_method_insert.c','src/runtime/xl6_array_method_find.c',
     'src/runtime/xl6_array_extract_scalar.c','src/runtime/xl6_array_extract_string.c',
     'src/runtime/xl6_array_extract_value.c','src/runtime/xl6_collection_extract_value.c',

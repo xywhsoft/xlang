@@ -40,6 +40,7 @@ frozen_files() {
     printf '%s\0' test/cases/stdlib_array_extract_char_only.xl test/cases/stdlib_array_extract_f32_only.xl test/cases/stdlib_collection_extract_only.xl
     printf '%s\0' test/cases/stdlib_array_extract_trivial.xl test/cases/stdlib_array_extract_trivial_only.xl test/cases/stdlib_array_extract_nullable_char_only.xl test/cases/stdlib_array_extract_unreachable_c_scalar_only.xl tools/check_stdlib_array_trivial_extract.py test/cases/stdlib_array_extract_trivial_host.c
     printf '%s\0' tools/check_stdlib_array_import.py test/cases/stdlib_array_import_native_host.c test/cases/stdlib_array_import_header.c test/cases/stdlib_array_primitive_import_native_host.c test/support/array_import_native.c
+    printf '%s\0' src/runtime/xl6_array_algebra.c test/cases/stdlib_array_algebra_native_host.c test/support/array_algebra_native.c test/cases/stdlib_array_algebra_language.xl test/cases/xlir_array_algebra_outcome_contract.c
     printf '%s\0' src/runtime/xl6_array_import_chain.c test/cases/stdlib_array_import_chain_native_host.c
     printf '%s\0' tools/check_stdlib_sequence_recipe_emit.py test/cases/xlir_sequence_recipe_emit_contract.c test/cases/stdlib_sequence_recipe_emit_host.c
     printf '%s\0' tools/check_stdlib_sequence_schema_language.py test/cases/stdlib_sequence_nested_schema.xl test/cases/stdlib_sequence_nested_schema_continuation.xl
@@ -260,6 +261,8 @@ if ! run array-trivial-extraction "$PY" tools/check_stdlib_array_trivial_extract
 if ! run array-methods-language "$PY" tools/check_stdlib_array_methods_language.py --out "$OUT/array-methods-language" --sanitize; then failures+=(array-methods-language); fi
 if ! run array-admitted-import "$PY" tools/check_stdlib_array_import.py --out "$OUT/array-admitted-import" --sanitize; then failures+=(array-admitted-import); fi
 if ! run array-recursive-import "$PY" tools/check_stdlib_array_import.py --chain --out "$OUT/array-recursive-import" --sanitize; then failures+=(array-recursive-import); fi
+if ! run array-resident-algebra "$PY" tools/check_stdlib_array_import.py --algebra --out "$OUT/array-resident-algebra" --sanitize; then failures+=(array-resident-algebra); fi
+if ! run array-algebra-language "$PY" tools/check_stdlib_sequence_schema_language.py --algebra --out "$OUT/array-algebra-language" --sanitize; then failures+=(array-algebra-language); fi
 if ! run array-codec-import "$PY" tools/check_stdlib_array_primitive_admission.py --imports --out "$OUT/array-codec-import" --sanitize; then failures+=(array-codec-import); fi
 if ! run sequence-recipe-emitter "$PY" tools/check_stdlib_sequence_recipe_emit.py --out "$OUT/sequence-recipe-emitter"; then failures+=(sequence-recipe-emitter); fi
 if ! run sequence-schema-language "$PY" tools/check_stdlib_sequence_schema_language.py --out "$OUT/sequence-schema-language" --sanitize; then failures+=(sequence-schema-language); fi

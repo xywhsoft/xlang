@@ -28331,7 +28331,9 @@ static XL6_IrValueId xl6IrLowerCompoundValue(
             ctx, origin, node, type, previous, rhsId, rhs, XL6_IR_VALUE_INVALID);
     if (operation != XL6_IR_RUNTIME_NONE) {
         XL6_IrValueId operands[2];
-        if (node->operatorErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+        XL6_IrErrorAbi errorAbi=operation==XL6_IR_RUNTIME_XVALUE_ARRAY_CONCAT
+            ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
+        if (node->operatorErrorAbi != errorAbi ||
             !xl6IrCollectionAlgebraRuntimeSignatureValid(
                 &ctx->module->types, operation, type, type, rhs->storageType)) {
             xl6IrLowerDiag(ctx, origin, "XLIR compound algebra requires an exact RuntimeOp signature");

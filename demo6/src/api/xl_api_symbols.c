@@ -33,6 +33,7 @@
 #include "src/runtime/xl6_array_value_read.h"
 #include "src/runtime/xl6_array_import.h"
 #include "src/runtime/xl6_array_import_chain.h"
+#include "src/runtime/xl6_array_algebra.h"
 #include "src/runtime/xl6_array_methods.h"
 #include "src/runtime/xl6_array_extract.h"
 #include "src/runtime/xl6_value_admission.h"

@@ -78,7 +78,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 out);
         if ( needs->needsCollectionAlgebraRuntime ) {
             xl6OutputPuts(
-                "extern xvalue* xrtValueArrayConcat(const xvalue*, const xvalue*);\n"
+                "extern xvalue* xl6ArrayConcatV1(const xvalue*, const xvalue*);\n"
                 "extern xvalue* xrtValueSetUnion(const xvalue*, const xvalue*);\n"
                 "extern xvalue* xrtValueSetIntersection(const xvalue*, const xvalue*);\n"
                 "extern xvalue* xrtValueSetDifference(const xvalue*, const xvalue*);\n"

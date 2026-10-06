@@ -165,7 +165,7 @@ if ( -not [System.Linq.Enumerable]::SequenceEqual(
 $generatedText = [System.IO.File]::ReadAllText(
     $generated, [System.Text.Encoding]::UTF8)
 $requiredTokens = @(
-    "xrtValueArrayConcat(", "xlir_xvalue_list_merge_right(",
+    "xl6ArrayConcatV1(", "xlir_xvalue_list_merge_right(",
     "xlir_xvalue_list_without_i64_key(", "xlir_xvalue_dict_merge_right(",
     "xlir_xvalue_dict_without_string_key(", "xrtValueSetUnion(",
     "xrtValueSetIntersection(", "xrtValueSetDifference(",

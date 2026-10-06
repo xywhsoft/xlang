@@ -74,6 +74,7 @@ def main() -> int:
         "test/cases/stdlib_array_import_header.c","test/cases/stdlib_array_primitive_import_native_host.c",
         "test/support/array_import_native.c","src/runtime/xl6_array_import.c",
         "test/cases/stdlib_array_import_chain_native_host.c","src/runtime/xl6_array_import_chain.c",
+        "test/cases/stdlib_array_algebra_native_host.c","test/support/array_algebra_native.c","src/runtime/xl6_array_algebra.c",
         "test/cases/stdlib_array_primitive_admission_native_host.c",
         "test/cases/stdlib_array_projection_identity_native_host.c",
         "test/cases/stdlib_sequence_retired_admission_abi.c",
@@ -354,6 +355,15 @@ def main() -> int:
         report["RecursiveImportReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
             "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         child=out / "resident-methods"
+        algebra=out / "resident-algebra"
+        command=[sys.executable,"tools/check_stdlib_array_import.py","--algebra","--out",str(algebra)]
+        if args.sanitize: command += ["--sanitize"]
+        run(algebra.name,command,timeout=900)
+        evidence=json.loads((algebra/"results.json").read_text(encoding="utf-8"))
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or not evidence["Algebra"] or len(evidence["Sweeps"])!=72:
+            raise RuntimeError("Incomplete resident Array algebra evidence")
+        report["ResidentAlgebraReport"]={"Directory":str(algebra),"Checks":len(evidence["Rows"]),
+            "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}
         command=[sys.executable,"tools/check_stdlib_array_methods.py","--out",str(child)]
         if args.sanitize: command += ["--sanitize"]
         run(child.name,command,timeout=360)

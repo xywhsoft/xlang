@@ -180,6 +180,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_array_value_read.c"
   "$ROOT/src/runtime/xl6_array_import.c"
   "$ROOT/src/runtime/xl6_array_import_chain.c"
+  "$ROOT/src/runtime/xl6_array_algebra.c"
   "$ROOT/src/runtime/xl6_array_methods.c"
   "$ROOT/src/runtime/xl6_array_method_insert.c"
   "$ROOT/src/runtime/xl6_array_method_find.c"

@@ -199,6 +199,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_array_import_chain.c", D(R(SEQUENCE),R(ARRAY_INPUT),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_array_algebra.c", D(R(SEQUENCE),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_COLLECTION", "XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_array_methods.c", D(R(SEQUENCE)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_array_method_insert.c", D(R(SEQUENCE)),

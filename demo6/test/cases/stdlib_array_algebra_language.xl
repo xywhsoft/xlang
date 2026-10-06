@@ -1,0 +1,50 @@
+class AlgebraItem
+    int value = 7
+end
+
+array<int> left = array<int>[1, 2]
+array<int> right = array<int>[3, 4]
+auto joined = left + right
+assert joined.length == 4 and joined[0] == 1 and joined[3] == 4
+assert left.length == 2 and right.length == 2
+left += right
+assert left.length == 4 and joined.length == 4
+left[0] = 9
+assert joined[0] == 1 and right[0] == 3
+auto self = right + right
+assert self.length == 4 and self[2] == 3 and right.length == 2
+
+array<string> text = array<string>["a\0b", "你"]
+auto texts = text + text
+assert texts.length == 4 and texts[0] == "a\0b" and texts[3] == "你"
+array<char> chars = array<char>['A', '你']
+auto characters = chars + chars
+assert characters.length == 4 and characters[3] == '你'
+array<int8> narrow = array<int8>[-128, 127]
+auto narrows = narrow + narrow
+assert narrows.length == 4 and narrows[2] == -128
+array<int?> optional = array<int?>[null, 8]
+auto options = optional + optional
+assert options.length == 4 and options[2] == null and options[3] == optional[1]
+
+array<AlgebraItem> items = array<AlgebraItem>[AlgebraItem()]
+auto itemCopies = items + items
+itemCopies[0].value = 11
+assert items[0].value == 11 and itemCopies[1].value == 11
+
+func pair() as array<int>
+    return array<int>[20, 21]
+end
+auto calls = pair() + pair()
+assert calls.length == 4 and calls[3] == 21
+
+int finalized = 0
+func guarded() as array<int>
+    try
+        return pair() + pair()
+    finally
+        finalized += 1
+    end
+end
+auto guardedResult = guarded()
+assert guardedResult.length == 4 and finalized == 1
