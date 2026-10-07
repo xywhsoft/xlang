@@ -8801,7 +8801,6 @@ static int xl6IrLowerIntrinsicPersistenceParse(
     XL6_IrValueId operands[2];
     XL6_SymbolId textTemporary = 0;
     XL6_SymbolId targetTemporary = 0;
-    XL6_IrInstruction* instruction;
     size_t evaluationFirst;
 
     if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
@@ -8816,7 +8815,7 @@ static int xl6IrLowerIntrinsicPersistenceParse(
          intrinsic->resultType != call->storageType ||
          intrinsic->payloadType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
          intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID ) return 0;
     textBinding =
         &ctx->module->intrinsicOperands[intrinsic->firstOperand];
@@ -8856,8 +8855,8 @@ static int xl6IrLowerIntrinsicPersistenceParse(
             ctx, id, targetTemporary, borrowedTarget, 0, 0)) return 1;
     operands[0] = borrowedText;
     operands[1] = borrowedTarget;
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType,
+    *result = xl6IrLowerEmitRuntimeCallPayload(
+        ctx, id, id, call->storageType,
         intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE
             ? XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE
             : intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE
@@ -8865,11 +8864,8 @@ static int xl6IrLowerIntrinsicPersistenceParse(
                 : intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ
                     ? XL6_IR_RUNTIME_PERSISTENCE_JSON_READ
                     : XL6_IR_RUNTIME_PERSISTENCE_XLON_READ,
-        operands, 2);
+        NULL, intrinsic->payloadType, operands, 2);
     if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    instruction =
-        &ctx->module->instructions[ctx->module->instructionCount - 1];
-    instruction->payloadType = intrinsic->payloadType;
     if (!xl6IrLowerCompleteEvaluationBorrows(ctx, id, evaluationFirst, result))
         *result = XL6_IR_VALUE_INVALID;
     return 1;
@@ -11805,6 +11801,7 @@ static int xl6IrLowerResolveRuntimeBridge(
          strcmp(target->cName, "xl6_xrt_dynamic_fields_get") == 0 ||
          strcmp(target->cName, "xl6_xrt_dynamic_fields_set") == 0 ) {
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS;
+        target->errorAbi = xl6IrDynamicFieldsRuntimeBridgeErrorAbi(target->cName);
         if ( !xl6IrDynamicFieldsRuntimeBridgeTargetMatches(ctx->module, target) )
             return xl6IrLowerDiag(ctx, target->declaration,
                 "XLIR DynamicFields runtime bridge has no exact private helper ABI");
@@ -32546,10 +32543,11 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     }
     if ( !xl6IrBuildGeneratorMachines(module, diags) ||
          !xl6IrBuildCallableBridges(module, diags) ||
-         !xl6IrBuildPersistenceProjectPlans(module) ) {
+         !xl6IrBuildPersistenceProjectPlans(module) ||
+         !xl6IrBuildPersistenceRestorePlans(module) ) {
         if ( diags == NULL || diags->count == 0 )
             (void)xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering could not derive generator, callable or persistence projection facts");
+                "XLIR lowering could not derive generator, callable or persistence schema facts");
         xrtFree(ctx.loops);
         xrtFree(ctx.loopResources);
         xrtFree(ctx.exceptions);

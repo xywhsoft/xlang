@@ -263,6 +263,20 @@ $process=Start-Process @start
                         $generatedText.Contains($(if($json){'xrtJsonStringify('}else{'xl6XlonEncodeV1('}))-and
                         !$generatedText.Contains('xl6_xrt_xlon_stringify_options(')
                 }
+                if($case-in@('stdlib_persistence_restore_json_prune','stdlib_persistence_restore_xlon_prune')){
+                    $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
+                    $format=if($case-eq'stdlib_persistence_restore_json_prune'){'JSON'}else{'XLON'}
+                    $other=if($format-eq'JSON'){'XLON'}else{'JSON'}
+                    $entry=if($format-eq'JSON'){'xlir_persist_json_parse_t'}else{'xlir_persist_xlon_parse_t'}
+                    $otherEntry=if($format-eq'JSON'){'xlir_persist_xlon_parse_t'}else{'xlir_persist_json_parse_t'}
+                    $selectionMatches=('XRT_MODULE_'+$format+'_READ')-in$plan.NativeModules-and
+                        ('XRT_MODULE_'+$other+'_READ')-notin$plan.NativeModules-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(?:JSONL|XLONL)|^XRT_MODULE_(?:JSON|XLON)_FILE$'}).Count-and
+                        $generatedText.Contains('xl6_serialization_read.h')-and
+                        $generatedText.Contains('xl6SerializeRestoreReadFinishV1(')-and
+                        $generatedText.Contains($entry)-and!$generatedText.Contains($otherEntry)-and
+                        !$generatedText.Contains('_read_t')-and!$generatedText.Contains('xl6PersistenceProjectV1(')
+                }
                 if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune')){
                     $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
                     # Value formatting already depends on XLON_WRITE in the
@@ -529,7 +543,7 @@ $process=Start-Process @start
                         @($componentObjects|Where-Object {$_.Component.Source-in$selectedSources}|ForEach-Object NativeUndefined)
                     $required=@($required|Sort-Object -Unique)
                     $missing=@($required|Where-Object {$_-notin$defined})
-                    if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune','stdlib_serialization_visit_json_prune','stdlib_persistence_pretty_json_prune','stdlib_persistence_nominal_xlon_prune')){
+                    if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune','stdlib_serialization_visit_json_prune','stdlib_persistence_pretty_json_prune','stdlib_persistence_nominal_xlon_prune','stdlib_persistence_restore_json_prune','stdlib_persistence_restore_xlon_prune')){
                         $selectionMatches=$selectionMatches-and
                             !@(@($required)+@($defined)|Where-Object {$_-match '^xrt(?:Jsonl|Xlonl)'}).Count
                     }

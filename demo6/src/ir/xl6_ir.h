@@ -5667,6 +5667,37 @@ typedef struct XL6_IrPersistenceProjectSequence {
     XL6_IrCollectionAbi sourceAbi; /* LIST/SET -> wire ARRAY; never an IntMap guess. */
 } XL6_IrPersistenceProjectSequence;
 
+/* Restore assignment is a separate schema direction, not an inversion of
+ * projection's omit flags. These rows retain source order after inheritance
+ * flattening and distinguish nullable replacement from in-place class assign.
+ * Keys borrow the canonical ClassField literals for this module's lifetime. */
+typedef enum XL6_IrPersistenceRestoreAssignAbi {
+    XL6_IR_PERSIST_RESTORE_REPLACE = 1,
+    XL6_IR_PERSIST_RESTORE_CLASS_IN_PLACE
+} XL6_IrPersistenceRestoreAssignAbi;
+typedef struct XL6_IrPersistenceRestoreField {
+    size_t classField;
+    XL6_IrTypeId payloadType;
+    XL6_IrPersistenceProjectKeyAbi sourceKeyAbi;
+    const char* sourceKey;
+    XL6_IrPersistenceRestoreAssignAbi assignAbi;
+    int acceptNull;
+    int required;
+} XL6_IrPersistenceRestoreField;
+typedef struct XL6_IrPersistenceRestoreSchema {
+    size_t classLayout;
+    size_t firstField;
+    size_t fieldCount;
+    size_t dynamicField;
+    size_t dynamicHandleField;
+    XL6_SymbolId dynamicDestroySymbol;
+} XL6_IrPersistenceRestoreSchema;
+typedef struct XL6_IrPersistenceRestorePlan {
+    uint32 format;
+    size_t firstSchema;
+    size_t schemaCount;
+} XL6_IrPersistenceRestorePlan;
+
 /* A virtual method slot is a frontend-resolved callable contract.  It is
  * deliberately separate from an ordinary call target: its receiver may hold
  * any derived runtime object, and the selected implementation is determined
@@ -6049,6 +6080,15 @@ typedef struct XL6_IrModule {
     XL6_IrPersistenceProjectSequence* persistenceProjectSequences;
     size_t persistenceProjectSequenceCount;
     size_t persistenceProjectSequenceCapacity;
+    XL6_IrPersistenceRestorePlan* persistenceRestorePlans;
+    size_t persistenceRestorePlanCount;
+    size_t persistenceRestorePlanCapacity;
+    XL6_IrPersistenceRestoreSchema* persistenceRestoreSchemas;
+    size_t persistenceRestoreSchemaCount;
+    size_t persistenceRestoreSchemaCapacity;
+    XL6_IrPersistenceRestoreField* persistenceRestoreFields;
+    size_t persistenceRestoreFieldCount;
+    size_t persistenceRestoreFieldCapacity;
     XL6_IrClassDestroyStep* classDestroySteps;
     size_t classDestroyStepCount;
     size_t classDestroyStepCapacity;
@@ -6253,6 +6293,10 @@ int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module);
  * canonical plan and rejects omissions, extra rows, and altered identities. */
 int xl6IrBuildPersistenceProjectPlans(XL6_IrModule* module);
 int xl6IrVerifyPersistenceProjectPlans(const XL6_IrModule* module);
+int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module);
+int xl6IrVerifyPersistenceRestorePlans(const XL6_IrModule* module);
+const XL6_IrPersistenceRestoreSchema* xl6IrPersistenceRestoreSchemaGet(
+    const XL6_IrModule* module, XL6_IrTypeId type, uint32 format);
 XL6_IrTypeId xl6IrTypeInternPersistenceWire(
     XL6_IrModule*, XL6_IrTypeId sourceType, uint32 format);
 int xl6IrPersistenceWireMatches(const XL6_IrModule*, XL6_IrTypeId,
@@ -6507,6 +6551,7 @@ typedef struct XL6_IrDeclarationBinding {
     XL6_IrTypeId type;
 } XL6_IrDeclarationBinding;
 
+XL6_IrErrorAbi xl6IrDynamicFieldsRuntimeBridgeErrorAbi(const char* name);
 int xl6IrDynamicFieldsRuntimeBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrNodeIsPropertyUpdate(const XL6_IrNode* node);

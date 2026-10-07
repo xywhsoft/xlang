@@ -1,0 +1,46 @@
+class RestoreErrorRecord
+    derive value
+    int item = 1
+end
+class RestoreConstructorError
+    derive value
+    int item = 1
+    create()
+        throw ValueError("restore-constructor-original")
+    end
+end
+class RestoreDefaultError
+    derive value
+    int item = failingRestoreDefault()
+end
+func failingRestoreText() as string
+    throw ValueError("restore-input-original")
+end
+func failingRestoreDefault() as int
+    throw ValueError("restore-default-original")
+end
+int caught = 0
+try
+    RestoreErrorRecord ignored = json.parse::<RestoreErrorRecord>(failingRestoreText())
+catch e
+    assert(e.kind == "ValueError" and e.message == "restore-input-original")
+    caught += 1
+end
+try
+    RestoreErrorRecord ignored = xlon.read::<RestoreErrorRecord>(failingRestoreText())
+catch e
+    assert(e.kind == "ValueError" and e.message == "restore-input-original")
+    caught += 1
+end
+try
+    RestoreDefaultError ignored = json.parse::<RestoreDefaultError>("{\"item\":2}")
+catch e
+    assert(e.kind == "ValueError" and e.message == "restore-default-original")
+    caught += 1
+end
+assert(caught == 3)
+// Restoration runs declaration defaults, not the user create body.
+RestoreConstructorError withoutCreate = json.parse::<RestoreConstructorError>("{\"item\":2}")
+assert(withoutCreate.item == 2)
+RestoreErrorRecord recovered = xlon.parse::<RestoreErrorRecord>("{\"item\":9}")
+assert(recovered.item == 9)

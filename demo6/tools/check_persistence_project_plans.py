@@ -16,7 +16,11 @@ import subprocess
 import sys
 
 def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    hashed = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            hashed.update(chunk)
+    return hashed.hexdigest()
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -32,6 +36,7 @@ def main() -> int:
         parser.error('Require gcc, a fresh evidence directory, and a current-source Windows compiler')
     source = test_root / 'test/cases/xlir_persistence_project_plan_contract.c'
     semantic = test_root / 'test/cases/xlir_persistence_field_inclusion_contract.c'
+    bridge = test_root / 'test/cases/xlir_dynamic_fields_contract_host.c'
     cases = [('schema', test_root / 'test/cases/xlir_persistence_project_plan.xl'),
              ('sequences', test_root / 'test/cases/xlir_persistence_project_sequences.xl'),
              ('roots', test_root / 'test/cases/stdlib_array_persistence_language.xl'),
@@ -44,9 +49,11 @@ def main() -> int:
     cases.append(('writers', test_root / 'test/cases/stdlib_persistence_writer_language.xl'))
     cases.append(('nominal', test_root / 'test/cases/stdlib_persistence_nominal_language.xl'))
     cases.append(('pretty', test_root / 'test/cases/stdlib_persistence_pretty_language.xl'))
+    cases.append(('restore', test_root / 'test/cases/stdlib_persistence_restore_language.xl'))
     refusals = [test_root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
+             bridge, test_root / 'test/cases/xlir_dynamic_fields_contract.inc',
              *(path for _, path in cases), *refusals}
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
     files.add(product)
@@ -93,6 +100,12 @@ def main() -> int:
                 host_ready = True
             except Exception as error:
                 errors.append(str(error))
+            bridge_host = out / ('bridge.' + opt + ('.exe' if os.name == 'nt' else ''))
+            try:
+                run('bridge.build.' + opt, [cc, *flags, '-' + opt, str(bridge), *links, '-o', str(bridge_host)])
+                assert 'DynamicFields effect contracts verified' in run('bridge.' + opt, [str(bridge_host)])
+            except Exception as error:
+                errors.append(str(error))
             semantic_host = out / ('field.' + opt + ('.exe' if os.name == 'nt' else ''))
             try:
                 run('field.build.' + opt, [cc, *flags, '-' + opt, str(semantic), *links, '-o', str(semantic_host)])
@@ -116,6 +129,15 @@ def main() -> int:
                     else: assert count[0] == 2 and count[3] >= 10
                     if name == 'schema': assert count[1] >= 6 and count[2] >= 12
                     if name == 'sequences': assert len(ir['persistenceProjectSequences']) == 6
+                    assert 'persistenceRestorePlans' in ir and 'persistenceRestoreFields' in ir
+                    if name in ('defaults', 'restore'):
+                        assert len(ir['persistenceRestorePlans']) == 2 and ir['persistenceRestoreFields']
+                    if name == 'restore':
+                        assert len(ir['persistenceRestoreSchemas']) == 6
+                        assert len(ir['persistenceRestoreFields']) == 14
+                        assert any(row['acceptNull'] for row in ir['persistenceRestoreFields'])
+                        assert any(row['required'] for row in ir['persistenceRestoreFields'])
+                        assert any(row['assignAbi'] == 2 for row in ir['persistenceRestoreFields'])
                     results.append({'Case': name, 'Optimization': opt, 'Plans': count[0], 'Schemas': count[1],
                                     'Fields': count[2], 'Sequences': len(ir['persistenceProjectSequences']),
                                     'RejectedMutations': count[3], 'IrSha256': digest(target)})

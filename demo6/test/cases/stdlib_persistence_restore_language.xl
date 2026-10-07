@@ -1,0 +1,72 @@
+class RestoreBase
+    derive value
+    int inherited @json("base\0key") @xlon("基\0键") = 7
+end
+class RestoreChild
+    derive value
+    string childText @persist(name="子\0键") = "child-default"
+end
+class RestoreRecord extends RestoreBase
+    derive value
+    string text @json("名\0字") @xlon("名\0字") = "default"
+    private int hidden = 77
+    int skipped @persist(skip) = 88
+    int? optional = null
+    int mandatory @persist(required) = 1
+    RestoreChild nested = RestoreChild()
+    func hiddenValue() as int
+        return self.hidden
+    end
+end
+class RestoreOpen extends object
+    derive value
+    int declared @persist(name="decl\0ared") = 3
+end
+class RestoreUnused
+    derive value
+    int unused = 4
+end
+func neverRestore() as RestoreUnused
+    return json.parse::<RestoreUnused>("{\"unused\":5}")
+end
+
+RestoreRecord original = RestoreRecord()
+original.inherited = 42
+original.text = "a\0b"
+original.nested.childText = "nested\0text"
+RestoreRecord fromJson = json.parse::<RestoreRecord>(json.stringify(original))
+assert(fromJson.inherited == 42 and fromJson.text == "a\0b")
+assert(fromJson.hiddenValue() == 77 and fromJson.skipped == 88)
+assert(fromJson.optional == null and fromJson.mandatory == 1 and fromJson.nested.childText == "nested\0text")
+RestoreRecord fromXlon = xlon.parse::<RestoreRecord>(xlon.stringify(original))
+assert(fromXlon.inherited == 42 and fromXlon.text == "a\0b")
+assert(fromXlon.hiddenValue() == 77 and fromXlon.skipped == 88)
+assert(fromXlon.optional == null and fromXlon.mandatory == 1 and fromXlon.nested.childText == "nested\0text")
+
+var missing = json.parse::<RestoreRecord>("{}")
+assert(missing == null)
+var malformed = xlon.parse::<RestoreRecord>("{")
+assert(malformed == null)
+RestoreRecord defaults = json.parse::<RestoreRecord>("{\"mandatory\":2,\"optional\":null}")
+assert(defaults.inherited == 7 and defaults.text == "default" and defaults.optional == null)
+RestoreRecord withOptional = xlon.parse::<RestoreRecord>("{\"mandatory\":3,\"optional\":9}")
+assert((withOptional.optional ?? 0) == 9 and withOptional.mandatory == 3)
+RestoreOpen opened = json.parse::<RestoreOpen>("{\"decl\\u0000ared\":9,\"extra\":\"a\\u0000b\"}")
+assert(opened.declared == 9 and opened.extra == "a\0b")
+opened.extra = "c\0d"
+assert(opened.extra == "c\0d")
+RestoreOpen reopened = xlon.parse::<RestoreOpen>(xlon.stringify(opened))
+assert(reopened.declared == 9 and reopened.extra == "c\0d")
+
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert(root != "")
+string jsonPath = root + "/restore.json"
+string xlonPath = root + "/restore.xlon"
+assert(json.write(jsonPath, original) and xlon.write(xlonPath, original))
+RestoreRecord jsonFile = json.read::<RestoreRecord>(jsonPath)
+RestoreRecord xlonFile = xlon.read::<RestoreRecord>(xlonPath)
+assert(jsonFile.inherited == 42 and jsonFile.text == "a\0b" and jsonFile.nested.childText == "nested\0text")
+assert(xlonFile.inherited == 42 and xlonFile.text == "a\0b" and xlonFile.nested.childText == "nested\0text")
+var missingFile = json.read::<RestoreRecord>(root + "/missing.json")
+var nulFile = xlon.read::<RestoreRecord>(xlonPath + "\0other")
+assert(missingFile == null and nulFile == null)

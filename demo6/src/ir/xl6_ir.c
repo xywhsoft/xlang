@@ -1851,6 +1851,9 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->persistenceProjectSchemas);
     xrtFree(module->persistenceProjectFields);
     xrtFree(module->persistenceProjectSequences);
+    xrtFree(module->persistenceRestorePlans);
+    xrtFree(module->persistenceRestoreSchemas);
+    xrtFree(module->persistenceRestoreFields);
     xrtFree(module->classDestroySteps);
     xrtFree(module->classFields);
     xrtFree(module->classStaticFields);
@@ -6760,6 +6763,270 @@ int xl6IrVerifyPersistenceProjectPlans(const XL6_IrModule* module)
     xrtFree(walk.marked);
     xrtFree(walk.sequenceMarked);
     return ok;
+}
+
+typedef struct XL6_IrPersistenceRestoreWalk {
+    const XL6_IrModule* source;
+    XL6_IrModule* output;
+    unsigned char* marked;
+    uint32 format;
+    size_t plans, schemas, fields;
+    int verify;
+} XL6_IrPersistenceRestoreWalk;
+
+static uint32 xl6IrPersistenceRestoreOperationFormat(const XL6_IrInstruction* instruction)
+{
+    if (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL) return XL6_IR_PERSIST_FORMAT_NONE;
+    switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_READ: return XL6_IR_PERSIST_FORMAT_JSON;
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_READ: return XL6_IR_PERSIST_FORMAT_XLON;
+    default: return XL6_IR_PERSIST_FORMAT_NONE;
+    }
+}
+
+static int xl6IrPersistenceRestoreMarkType(XL6_IrPersistenceRestoreWalk*, XL6_IrTypeId, size_t);
+
+static int xl6IrPersistenceRestoreWalkFields(
+    XL6_IrPersistenceRestoreWalk* walk, size_t layoutIndex, size_t depth, int emit)
+{
+    const XL6_IrModule* source = walk->source;
+    const XL6_IrClassLayout* layout;
+    size_t first, field;
+    if (layoutIndex >= source->classLayoutCount || depth > source->classLayoutCount) return 0;
+    layout = &source->classLayouts[layoutIndex];
+    if (layout->firstField > source->classFieldCount ||
+        layout->fieldCount > source->classFieldCount - layout->firstField ||
+        layout->inheritedFieldCount > layout->fieldCount) return 0;
+    if (layout->baseType != XL6_IR_TYPE_INVALID) {
+        size_t base;
+        for (base = 0; base < source->classLayoutCount; ++base)
+            if (source->classLayouts[base].type == layout->baseType) break;
+        if (base == source->classLayoutCount) return 0;
+        if ((source->classLayouts[base].persistenceFormatMask & walk->format) != 0 &&
+            !xl6IrPersistenceRestoreWalkFields(walk, base, depth + 1, emit)) return 0;
+    }
+    first = layout->baseDeclaration != XL6_IR_NODE_INVALID &&
+        layout->baseType == XL6_IR_TYPE_INVALID &&
+        layout->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA
+        ? layout->inheritedFieldCount : 0;
+    for (field = first; field < layout->fieldCount; ++field) {
+        size_t index = layout->firstField + field;
+        const XL6_IrClassField* item = &source->classFields[index];
+        const XL6_IrType* type;
+        XL6_IrPersistenceRestoreField row;
+        uint32 flags = xl6IrBuildPersistenceFieldFlags(item, walk->format);
+        const char* key = walk->format == XL6_IR_PERSIST_FORMAT_JSON
+            ? item->jsonPersistenceKeyLiteral : item->xlonPersistenceKeyLiteral;
+        if ((flags & XL6_IR_FIELD_PERSIST_INCLUDED) == 0) continue;
+        if (!emit) {
+            if (!xl6IrPersistenceRestoreMarkType(walk, item->type, 0)) return 0;
+            continue;
+        }
+        type = xl6IrTypeGet(&source->types, item->type);
+        if (type == NULL) return 0;
+        memset(&row, 0, sizeof(row));
+        row.classField = index; row.payloadType = item->type;
+        row.sourceKeyAbi = key != NULL ? XL6_IR_PERSIST_PROJECT_KEY_C_LITERAL : XL6_IR_PERSIST_PROJECT_KEY_FIELD_NAME;
+        row.sourceKey = key != NULL ? key : item->name;
+        row.assignAbi = type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA
+            ? XL6_IR_PERSIST_RESTORE_CLASS_IN_PLACE : XL6_IR_PERSIST_RESTORE_REPLACE;
+        row.acceptNull = type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_NULLABLE;
+        row.required = (flags & XL6_IR_FIELD_PERSIST_REQUIRED) != 0;
+        if (row.sourceKey == NULL) return 0;
+        if (walk->verify) {
+            const XL6_IrPersistenceRestoreField* actual;
+            if (walk->fields >= source->persistenceRestoreFieldCount) return 0;
+            actual = &source->persistenceRestoreFields[walk->fields];
+            if (actual->classField != row.classField || actual->payloadType != row.payloadType ||
+                actual->sourceKeyAbi != row.sourceKeyAbi || actual->sourceKey != row.sourceKey ||
+                actual->assignAbi != row.assignAbi || actual->acceptNull != row.acceptNull ||
+                actual->required != row.required) return 0;
+        } else {
+            if (!xl6IrGrow((void**)&walk->output->persistenceRestoreFields,
+                &walk->output->persistenceRestoreFieldCapacity, walk->fields, sizeof(row))) return 0;
+            walk->output->persistenceRestoreFields[walk->fields] = row;
+            walk->output->persistenceRestoreFieldCount = walk->fields + 1;
+        }
+        ++walk->fields;
+    }
+    return 1;
+}
+
+static int xl6IrPersistenceRestoreMarkType(
+    XL6_IrPersistenceRestoreWalk* walk, XL6_IrTypeId typeId, size_t depth)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&walk->source->types, typeId);
+    size_t layout;
+    if (type == NULL || depth > walk->source->types.count) return 0;
+    if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA) {
+        for (layout = 0; layout < walk->source->classLayoutCount; ++layout)
+            if (walk->source->classLayouts[layout].type == typeId) break;
+        if (layout == walk->source->classLayoutCount) return 0;
+        if (walk->marked[layout]) return 1;
+        walk->marked[layout] = 1;
+        return xl6IrBuildPersistenceLayoutSupportedDepth(walk->source, typeId, walk->format, 0) &&
+            xl6IrPersistenceRestoreWalkFields(walk, layout, 0, 0);
+    }
+    return type->persistencePayloadType == XL6_IR_TYPE_INVALID ||
+        xl6IrPersistenceRestoreMarkType(walk, type->persistencePayloadType, depth + 1);
+}
+
+static int xl6IrPersistenceRestoreWalkArena(XL6_IrPersistenceRestoreWalk* walk)
+{
+    const XL6_IrModule* source = walk->source;
+    uint32 formats = 0;
+    size_t function, i, layout;
+    if ((source->functionCount && source->functions == NULL) ||
+        (source->instructionCount && source->instructions == NULL) ||
+        (source->classLayoutCount && source->classLayouts == NULL) ||
+        (source->classFieldCount && source->classFields == NULL)) return 0;
+    for (function = 0; function < source->functionCount; ++function) {
+        const XL6_IrFunction* body = &source->functions[function];
+        if (body->firstInstruction > source->instructionCount ||
+            body->instructionCount > source->instructionCount - body->firstInstruction) return 0;
+        if (!xl6IrPersistenceProjectFunctionUsed(source, body)) continue;
+        for (i = 0; i < body->instructionCount; ++i)
+            formats |= xl6IrPersistenceRestoreOperationFormat(&source->instructions[body->firstInstruction + i]);
+    }
+    if (formats == 0) return 1;
+    if (source->classLayoutCount != 0) {
+        walk->marked = (unsigned char*)xrtMalloc(source->classLayoutCount);
+        if (walk->marked == NULL) return 0;
+    }
+    for (walk->format = XL6_IR_PERSIST_FORMAT_JSON; walk->format <= XL6_IR_PERSIST_FORMAT_XLON; walk->format <<= 1) {
+        XL6_IrPersistenceRestorePlan plan;
+        if ((formats & walk->format) == 0) continue;
+        if (walk->marked != NULL) memset(walk->marked, 0, source->classLayoutCount);
+        for (function = 0; function < source->functionCount; ++function) {
+            const XL6_IrFunction* body = &source->functions[function];
+            if (!xl6IrPersistenceProjectFunctionUsed(source, body)) continue;
+            for (i = 0; i < body->instructionCount; ++i) {
+                const XL6_IrInstruction* instruction = &source->instructions[body->firstInstruction + i];
+                if (xl6IrPersistenceRestoreOperationFormat(instruction) == walk->format &&
+                    !xl6IrPersistenceRestoreMarkType(walk, instruction->payloadType, 0)) return 0;
+            }
+        }
+        plan.format = walk->format; plan.firstSchema = walk->schemas;
+        for (layout = 0; layout < source->classLayoutCount; ++layout) {
+            const XL6_IrClassLayout* item = &source->classLayouts[layout];
+            XL6_IrPersistenceRestoreSchema row;
+            if (!walk->marked[layout]) continue;
+            memset(&row, 0, sizeof(row));
+            row.classLayout = layout; row.firstField = walk->fields;
+            row.dynamicField = row.dynamicHandleField = XL6_IR_CLASS_FIELD_INDEX_INVALID;
+            if (!xl6IrPersistenceRestoreWalkFields(walk, layout, 0, 1)) return 0;
+            row.fieldCount = walk->fields - row.firstField;
+            if (item->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) {
+                if (item->persistenceDynamicField >= source->classFieldCount ||
+                    item->persistenceDynamicHandleField >= source->classFieldCount) return 0;
+                row.dynamicField = item->persistenceDynamicField;
+                row.dynamicHandleField = item->persistenceDynamicHandleField;
+                row.dynamicDestroySymbol = source->classFields[row.dynamicHandleField].nativeDestroySymbol;
+                if (row.dynamicDestroySymbol == 0 || xl6IrCallTargetGet(source, row.dynamicDestroySymbol) == NULL) return 0;
+            }
+            if (walk->verify) {
+                const XL6_IrPersistenceRestoreSchema* actual;
+                if (walk->schemas >= source->persistenceRestoreSchemaCount) return 0;
+                actual = &source->persistenceRestoreSchemas[walk->schemas];
+                if (actual->classLayout != row.classLayout || actual->firstField != row.firstField ||
+                    actual->fieldCount != row.fieldCount || actual->dynamicField != row.dynamicField ||
+                    actual->dynamicHandleField != row.dynamicHandleField ||
+                    actual->dynamicDestroySymbol != row.dynamicDestroySymbol) return 0;
+            } else {
+                if (!xl6IrGrow((void**)&walk->output->persistenceRestoreSchemas,
+                    &walk->output->persistenceRestoreSchemaCapacity, walk->schemas, sizeof(row))) return 0;
+                walk->output->persistenceRestoreSchemas[walk->schemas] = row;
+                walk->output->persistenceRestoreSchemaCount = walk->schemas + 1;
+            }
+            ++walk->schemas;
+        }
+        plan.schemaCount = walk->schemas - plan.firstSchema;
+        if (walk->verify) {
+            const XL6_IrPersistenceRestorePlan* actual;
+            if (walk->plans >= source->persistenceRestorePlanCount) return 0;
+            actual = &source->persistenceRestorePlans[walk->plans];
+            if (actual->format != plan.format || actual->firstSchema != plan.firstSchema ||
+                actual->schemaCount != plan.schemaCount) return 0;
+        } else {
+            if (!xl6IrGrow((void**)&walk->output->persistenceRestorePlans,
+                &walk->output->persistenceRestorePlanCapacity, walk->plans, sizeof(plan))) return 0;
+            walk->output->persistenceRestorePlans[walk->plans] = plan;
+            walk->output->persistenceRestorePlanCount = walk->plans + 1;
+        }
+        ++walk->plans;
+    }
+    return 1;
+}
+
+int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module)
+{
+    XL6_IrModule arena;
+    XL6_IrPersistenceRestoreWalk walk;
+    int ok;
+    if (module == NULL || module->stage != XL6_IR_STAGE_LOWERED) return 0;
+    memset(&arena, 0, sizeof(arena)); memset(&walk, 0, sizeof(walk));
+    walk.source = module; walk.output = &arena;
+    ok = xl6IrPersistenceRestoreWalkArena(&walk);
+    xrtFree(walk.marked);
+    if (!ok) {
+        xrtFree(arena.persistenceRestorePlans); xrtFree(arena.persistenceRestoreSchemas);
+        xrtFree(arena.persistenceRestoreFields); return 0;
+    }
+    xrtFree(module->persistenceRestorePlans); xrtFree(module->persistenceRestoreSchemas);
+    xrtFree(module->persistenceRestoreFields);
+#define XL6_IR_RESTORE_COMMIT(Name) \
+    module->Name##s = arena.Name##s; module->Name##Count = arena.Name##Count; module->Name##Capacity = arena.Name##Capacity
+    XL6_IR_RESTORE_COMMIT(persistenceRestorePlan);
+    XL6_IR_RESTORE_COMMIT(persistenceRestoreSchema);
+    XL6_IR_RESTORE_COMMIT(persistenceRestoreField);
+#undef XL6_IR_RESTORE_COMMIT
+    return 1;
+}
+
+int xl6IrVerifyPersistenceRestorePlans(const XL6_IrModule* module)
+{
+    XL6_IrPersistenceRestoreWalk walk;
+    int ok;
+    if (module == NULL) return 0;
+#define XL6_IR_RESTORE_CHECK(Name) \
+    if (module->Name##Count > module->Name##Capacity || (module->Name##Count && module->Name##s == NULL)) return 0
+    XL6_IR_RESTORE_CHECK(persistenceRestorePlan);
+    XL6_IR_RESTORE_CHECK(persistenceRestoreSchema);
+    XL6_IR_RESTORE_CHECK(persistenceRestoreField);
+#undef XL6_IR_RESTORE_CHECK
+    if (module->stage != XL6_IR_STAGE_LOWERED)
+        return module->persistenceRestorePlanCount == 0 && module->persistenceRestoreSchemaCount == 0 &&
+            module->persistenceRestoreFieldCount == 0;
+    memset(&walk, 0, sizeof(walk)); walk.source = module; walk.verify = 1;
+    ok = xl6IrPersistenceRestoreWalkArena(&walk) && walk.plans == module->persistenceRestorePlanCount &&
+        walk.schemas == module->persistenceRestoreSchemaCount && walk.fields == module->persistenceRestoreFieldCount;
+    xrtFree(walk.marked);
+    return ok;
+}
+
+const XL6_IrPersistenceRestoreSchema* xl6IrPersistenceRestoreSchemaGet(
+    const XL6_IrModule* module, XL6_IrTypeId type, uint32 format)
+{
+    size_t p, s;
+    if (module == NULL || module->persistenceRestorePlanCount > module->persistenceRestorePlanCapacity ||
+        module->persistenceRestoreSchemaCount > module->persistenceRestoreSchemaCapacity ||
+        module->classLayoutCount > module->classLayoutCapacity ||
+        (module->persistenceRestorePlanCount && module->persistenceRestorePlans == NULL) ||
+        (module->persistenceRestoreSchemaCount && module->persistenceRestoreSchemas == NULL)) return NULL;
+    for (p = 0; p < module->persistenceRestorePlanCount; ++p) {
+        const XL6_IrPersistenceRestorePlan* plan = &module->persistenceRestorePlans[p];
+        if (plan->format != format) continue;
+        if (plan->firstSchema > module->persistenceRestoreSchemaCount ||
+            plan->schemaCount > module->persistenceRestoreSchemaCount - plan->firstSchema) return NULL;
+        for (s = 0; s < plan->schemaCount; ++s) {
+            const XL6_IrPersistenceRestoreSchema* row = &module->persistenceRestoreSchemas[plan->firstSchema + s];
+            if (row->classLayout >= module->classLayoutCount || module->classLayouts == NULL) return NULL;
+            if (module->classLayouts[row->classLayout].type == type) return row;
+        }
+    }
+    return NULL;
 }
 
 /* Generic persistence calls keep the stdlib identity and the single concrete
@@ -13119,6 +13386,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         else
             intrinsic.kind = XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_OWNED;
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         intrinsic.payloadType = persistenceGenericType;
     } else if ( call->callKind == XL6_SEM_CALL_RUNTIME_INTRINSIC &&
                 callee != NULL && callee->kind == XL6_IR_NODE_NAME &&
@@ -19499,6 +19767,10 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW:
         return XL6_IR_CALL_ERROR_PHYSICAL_SCOPED_BOOL_RESULT;
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE:
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_READ:
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_READ:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     default:
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
@@ -29003,6 +29275,21 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 #include "src/ir/xl6_ir_net_datagram_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
 
+/* Only allocation/mutation can exhaust memory. Observe their native thread
+ * error before publishing a language handle; null is not a usable factory
+ * product. The borrowed lookup and retirement adapters remain no-raise. */
+XL6_IrErrorAbi xl6IrDynamicFieldsRuntimeBridgeErrorAbi(const char* name)
+{
+    if (name == NULL) return XL6_IR_ERROR_ABI_INVALID;
+    if (strcmp(name, "xl6_xrt_dynamic_fields_create") == 0 ||
+        strcmp(name, "xl6_xrt_dynamic_fields_set") == 0)
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
+    if (strcmp(name, "xl6_xrt_dynamic_fields_destroy") == 0 ||
+        strcmp(name, "xl6_xrt_dynamic_fields_get") == 0)
+        return XL6_IR_ERROR_ABI_NO_RAISE;
+    return XL6_IR_ERROR_ABI_INVALID;
+}
+
 int xl6IrDynamicFieldsRuntimeBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
@@ -29013,7 +29300,8 @@ int xl6IrDynamicFieldsRuntimeBridgeTargetMatches(
          target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS ||
          target->runtimeBridgeOperation != XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE ||
          target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) return 0;
+         target->errorAbi == XL6_IR_ERROR_ABI_INVALID ||
+         target->errorAbi != xl6IrDynamicFieldsRuntimeBridgeErrorAbi(target->cName) ) return 0;
     create = strcmp(target->cName, "xl6_xrt_dynamic_fields_create") == 0;
     destroy = strcmp(target->cName, "xl6_xrt_dynamic_fields_destroy") == 0;
     get = strcmp(target->cName, "xl6_xrt_dynamic_fields_get") == 0;
@@ -31853,6 +32141,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     if ( !xl6IrVerifyPersistenceProjectPlans(module) ) {
         return xl6IrDiag(diags, NULL, "XLIR persistence projection arena is not canonical");
     }
+    if ( !xl6IrVerifyPersistenceRestorePlans(module) ) {
+        return xl6IrDiag(diags, NULL, "XLIR persistence restore arena is not canonical");
+    }
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         XL6_IrPersistenceValueAbi expectedAbi;
@@ -32967,7 +33258,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          targetType != intrinsic->resultType ||
                          intrinsic->resultAbi !=
                              XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                          intrinsic->integerTarget !=
                              XL6_IR_INTEGER_TARGET_INVALID ||
                          intrinsic->payloadAbi !=
@@ -33436,7 +33727,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          intrinsic->firstOperand].abi !=
                              XL6_IR_INTRINSIC_OPERAND_BORROW ||
                      intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE )
+                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE )
                     return xl6IrDiag(diags, call,
                         "XLIR persistence parse intrinsic has no exact format, borrowed text, default-instance schema and owned class ABI");
                 break;
@@ -47710,6 +48001,32 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             "    {\"type\":%u,\"identity\":%llu,\"sourceAbi\":%d}%s\n",
             (unsigned)row->type, (unsigned long long)row->identity, (int)row->sourceAbi,
             i + 1 < module->persistenceProjectSequenceCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestorePlans\": [\n", out);
+    for (i = 0; i < module->persistenceRestorePlanCount; ++i) {
+        const XL6_IrPersistenceRestorePlan* row = &module->persistenceRestorePlans[i];
+        xl6OutputPrintf(out,
+            "    {\"format\":%u,\"firstSchema\":%lu,\"schemaCount\":%lu}%s\n",
+            (unsigned)row->format, (unsigned long)row->firstSchema, (unsigned long)row->schemaCount,
+            i + 1 < module->persistenceRestorePlanCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestoreSchemas\": [\n", out);
+    for (i = 0; i < module->persistenceRestoreSchemaCount; ++i) {
+        const XL6_IrPersistenceRestoreSchema* row = &module->persistenceRestoreSchemas[i];
+        xl6OutputPrintf(out,
+            "    {\"classLayout\":%lu,\"firstField\":%lu,\"fieldCount\":%lu,\"dynamicField\":%lu,\"dynamicHandleField\":%lu,\"dynamicDestroySymbol\":%u}%s\n",
+            (unsigned long)row->classLayout, (unsigned long)row->firstField, (unsigned long)row->fieldCount,
+            (unsigned long)row->dynamicField, (unsigned long)row->dynamicHandleField,
+            (unsigned)row->dynamicDestroySymbol, i + 1 < module->persistenceRestoreSchemaCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestoreFields\": [\n", out);
+    for (i = 0; i < module->persistenceRestoreFieldCount; ++i) {
+        const XL6_IrPersistenceRestoreField* row = &module->persistenceRestoreFields[i];
+        xl6OutputPrintf(out,
+            "    {\"classField\":%lu,\"payloadType\":%u,\"sourceKeyAbi\":%d,\"assignAbi\":%d,\"acceptNull\":%d,\"required\":%d}%s\n",
+            (unsigned long)row->classField, (unsigned)row->payloadType, (int)row->sourceKeyAbi,
+            (int)row->assignAbi, row->acceptNull, row->required,
+            i + 1 < module->persistenceRestoreFieldCount ? "," : "");
     }
     xl6OutputPuts("  ],\n  \"classLayouts\": [\n", out);
     for ( i = 0; i < module->classLayoutCount; ++i ) {

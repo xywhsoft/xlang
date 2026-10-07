@@ -102,6 +102,7 @@ static int xl6IrCgenEmitVirtualDispatcherPrototypes(
     return !xl6OutputHasFailed(out);
 }
 static void xl6IrCgenEmitCStringLiteral(XL6_Output* out, const char* text);
+static void xl6IrCgenEmitPersistenceByteView(XL6_Output*, const char*, int);
 
 /* Emit the target's physical call. Receiver projection and result conversion
  * have already been selected in CallTarget; no declaration lookup is needed. */
@@ -315,53 +316,23 @@ static int xl6IrCgenPersistenceTypeUsed(
     const XL6_IrModule* module, XL6_IrTypeId wanted,
     uint32 format, int restore)
 {
-    size_t instructionIndex;
     size_t layoutIndex;
-    if ( !restore ) {
-        for ( instructionIndex = 0;
-              instructionIndex < module->instructionCount; ++instructionIndex ) {
-            const XL6_IrInstruction* instruction =
-                &module->instructions[instructionIndex];
-            if ( (instruction->runtimeOp !=
-                      XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY &&
-                  instruction->runtimeOp !=
-                      XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY &&
-                  instruction->runtimeOp !=
-                      XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE &&
-                  instruction->runtimeOp !=
-                      XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE) ||
-                 xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp) !=
-                     format ) continue;
-            if ( xl6IrCgenPersistenceTypeReferencesDepth(
-                     module, instruction->payloadType, wanted, 0) ) return 1;
-        }
-    }
+    if (!restore) return 0;
     for ( layoutIndex = 0; layoutIndex < module->classLayoutCount;
           ++layoutIndex ) {
         const XL6_IrClassLayout* layout =
             &module->classLayouts[layoutIndex];
-        size_t fieldStart;
+        const XL6_IrPersistenceRestoreSchema* schema =
+            xl6IrPersistenceRestoreSchemaGet(module, layout->type, format);
         size_t fieldIndex;
-        if ( !xl6IrCgenPersistenceLayoutSupported(
-                 module, layout->type, format) ) continue;
-        fieldStart = layout->baseDeclaration != XL6_IR_NODE_INVALID &&
-                layout->baseType == XL6_IR_TYPE_INVALID &&
-                layout->persistenceObjectAbi ==
-                    XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA
-            ? layout->inheritedFieldCount : 0;
-        for ( fieldIndex = fieldStart; fieldIndex < layout->fieldCount;
+        if (schema == NULL) continue;
+        for ( fieldIndex = 0; fieldIndex < schema->fieldCount;
               ++fieldIndex ) {
-            const XL6_IrClassField* field =
-                &module->classFields[layout->firstField + fieldIndex];
-            const XL6_IrType* fieldType =
-                xl6IrTypeGet(&module->types, field->type);
-            if ( (xl6IrCgenPersistenceFieldFlags(field, format) &
-                  XL6_IR_FIELD_PERSIST_INCLUDED) == 0 ||
-                 fieldType == NULL ||
-                 (restore && fieldType->persistenceValueAbi ==
-                     XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA) ) continue;
+            const XL6_IrPersistenceRestoreField* field =
+                &module->persistenceRestoreFields[schema->firstField + fieldIndex];
+            if (field->assignAbi == XL6_IR_PERSIST_RESTORE_CLASS_IN_PLACE) continue;
             if ( xl6IrCgenPersistenceTypeReferencesDepth(
-                     module, field->type, wanted, 0) ) return 1;
+                     module, field->payloadType, wanted, 0) ) return 1;
         }
     }
     return 0;
@@ -667,6 +638,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
             out);
     }
     xl6OutputPuts(
+        "#include <__xl_runtime/xl6_serialization_read.h>\n"
         "typedef struct xvalueiter xvalueiter;\n"
         "typedef struct xvaluekey xvaluekey;\n"
         "extern xvalue* xrtValueObjectLifo(void);\n"
@@ -703,11 +675,11 @@ static int xl6IrCgenEmitPersistenceHelpers(
                  module, layout->type, format) ) continue;
         xl6OutputPrintf(out,
             "static bool xlir_persist_%s_assign_t%u(xvalue*, const xvalue*);\n"
-            "static xvalue* xlir_persist_%s_parse_t%u(xlir_string, xvalue*);\n",
+            "static bool xlir_persist_%s_parse_t%u(xlir_string, xvalue*, xvalue**);\n",
             formatName, (unsigned int)layout->type,
             formatName, (unsigned int)layout->type);
         if (readUsed) xl6OutputPrintf(out,
-            "static xvalue* xlir_persist_%s_read_t%u(xlir_string, xvalue*);\n",
+            "static bool xlir_persist_%s_read_t%u(xlir_string, xvalue*, xvalue**);\n",
             formatName, (unsigned int)layout->type);
         if ( layout->persistenceConstructionAbi ==
                  XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT )
@@ -720,18 +692,10 @@ static int xl6IrCgenEmitPersistenceHelpers(
           ++layoutIndex ) {
         const XL6_IrClassLayout* layout =
             &module->classLayouts[layoutIndex];
-        const XL6_IrClassLayout* base;
-        size_t fieldStart;
+        const XL6_IrPersistenceRestoreSchema* schema =
+            xl6IrPersistenceRestoreSchemaGet(module, layout->type, format);
         size_t fieldIndex;
-        if ( !xl6IrCgenPersistenceLayoutSupported(
-                 module, layout->type, format) ) continue;
-        base = layout->baseType != XL6_IR_TYPE_INVALID
-            ? xl6IrCgenClassLayout(module, layout->baseType) : NULL;
-        fieldStart = layout->baseDeclaration != XL6_IR_NODE_INVALID &&
-                layout->baseType == XL6_IR_TYPE_INVALID &&
-                layout->persistenceObjectAbi ==
-                    XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA
-            ? layout->inheritedFieldCount : 0;
+        if (schema == NULL) continue;
         if ( layout->persistenceConstructionAbi ==
                  XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT &&
              !xl6IrCgenEmitPersistenceClassDefault(
@@ -744,13 +708,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "    (void)borrowed; (void)item;\n"
             "    if (target == NULL || source == NULL || xrtValueType(source) == 0) return false;\n",
             formatName, (unsigned int)layout->type);
-        if ( base != NULL &&
-             (base->persistenceFormatMask & format) != 0 )
-            xl6OutputPrintf(out,
-                "    if (!xlir_persist_%s_assign_t%u(target, source)) return false;\n",
-                formatName, (unsigned int)layout->baseType);
-        else if ( layout->persistenceObjectAbi ==
-                        XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ) {
+        if (schema->dynamicField != XL6_IR_CLASS_FIELD_INDEX_INVALID) {
             xl6OutputPrintf(out,
                 "    {\n"
                 "        xrtdynamicfields* targetFields = xlir_persist_%s_dynamic_fields(target);\n"
@@ -762,30 +720,21 @@ static int xl6IrCgenEmitPersistenceHelpers(
                 "    }\n",
                 formatName);
         }
-        for ( fieldIndex = fieldStart; fieldIndex < layout->fieldCount;
+        for ( fieldIndex = 0; fieldIndex < schema->fieldCount;
               ++fieldIndex ) {
+            const XL6_IrPersistenceRestoreField* recipe =
+                &module->persistenceRestoreFields[schema->firstField + fieldIndex];
             const XL6_IrClassField* field =
-                &module->classFields[layout->firstField + fieldIndex];
-            const XL6_IrType* fieldType =
-                xl6IrTypeGet(&module->types, field->type);
-            uint32 flags = xl6IrCgenPersistenceFieldFlags(field, format);
-            const char* keyLiteral =
-                xl6IrCgenPersistenceFieldKeyLiteral(field, format);
-            if ( (flags & XL6_IR_FIELD_PERSIST_INCLUDED) == 0 ) continue;
-            xl6OutputPuts(
-                "    borrowed = xrtValueObjectGet(source, xrtStrView(", out);
-            if ( keyLiteral != NULL )
-                xl6OutputPuts(keyLiteral, out);
-            else
-                xl6IrCgenEmitCStringLiteral(out, field->name);
-            xl6OutputPuts("));\n", out);
+                &module->classFields[recipe->classField];
+            xl6OutputPuts("    borrowed = xrtValueObjectGet(source, (xstrview)", out);
+            xl6IrCgenEmitPersistenceByteView(out, recipe->sourceKey,
+                recipe->sourceKeyAbi == XL6_IR_PERSIST_PROJECT_KEY_C_LITERAL);
+            xl6OutputPuts(");\n", out);
             xl6OutputPuts("    if (borrowed != NULL", out);
-            if ( fieldType == NULL || fieldType->persistenceValueAbi !=
-                     XL6_IR_PERSISTENCE_VALUE_NULLABLE )
+            if (!recipe->acceptNull)
                 xl6OutputPuts(" && xrtValueType(borrowed) != 0", out);
             xl6OutputPuts(") {\n", out);
-            if ( fieldType != NULL && fieldType->persistenceValueAbi ==
-                     XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA ) {
+            if (recipe->assignAbi == XL6_IR_PERSIST_RESTORE_CLASS_IN_PLACE) {
                 xl6OutputPuts(
                     "        xvalue* nestedTarget = xrtValueObjectGet(target, xrtStrView(",
                     out);
@@ -803,40 +752,28 @@ static int xl6IrCgenEmitPersistenceHelpers(
                 xl6OutputPuts("), item)) return false;\n", out);
             }
             xl6OutputPuts("    }", out);
-            if ( (flags & XL6_IR_FIELD_PERSIST_REQUIRED) != 0 )
+            if (recipe->required)
                 xl6OutputPuts(" else { return false; }", out);
             xl6OutputPuts("\n", out);
         }
         xl6OutputPrintf(out,
             "    return true;\n"
             "}\n"
-            "static xvalue* xlir_persist_%s_parse_t%u(xlir_string text, xvalue* target)\n"
+            "static bool xlir_persist_%s_parse_t%u(xlir_string text, xvalue* target, xvalue** result)\n"
             "{\n"
-            "    xvalue* source;\n"
-            "    xvalue* result;\n"
-            "    if (text.Data == NULL || target == NULL) return xrtValueRetain(xrtValueNull());\n"
-            "    source = %s(text);\n"
-            "    if (source == NULL) return xrtValueRetain(xrtValueNull());\n"
-            "    result = xlir_persist_%s_assign_t%u(target, source)\n"
-            "        ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());\n"
-            "    xrtValueRelease(source);\n"
-            "    return result;\n"
+            "    xerror* prior = xrtTakeError();\n"
+            "    xvalue* source = text.Data != NULL && target != NULL ? %s(text) : NULL;\n"
+            "    return xl6SerializeRestoreReadFinishV1(source, target, xlir_persist_%s_assign_t%u, prior, result);\n"
             "}\n",
             formatName, (unsigned int)layout->type, parseName,
             formatName, (unsigned int)layout->type);
         if (readUsed) xl6OutputPrintf(out,
-            "static xvalue* xlir_persist_%s_read_t%u(xlir_string path, xvalue* target)\n"
+            "static bool xlir_persist_%s_read_t%u(xlir_string path, xvalue* target, xvalue** result)\n"
             "{\n"
-            "    xvalue* source;\n"
-            "    xvalue* result;\n"
+            "    xerror* prior = xrtTakeError();\n"
             "    const char* cpath = xlir_string_cstr(path);\n"
-            "    if (cpath == NULL || target == NULL) return xrtValueRetain(xrtValueNull());\n"
-            "    source = %s(cpath);\n"
-            "    if (source == NULL) return xrtValueRetain(xrtValueNull());\n"
-            "    result = xlir_persist_%s_assign_t%u(target, source)\n"
-            "        ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());\n"
-            "    xrtValueRelease(source);\n"
-            "    return result;\n"
+            "    xvalue* source = cpath != NULL && target != NULL ? %s(cpath) : NULL;\n"
+            "    return xl6SerializeRestoreReadFinishV1(source, target, xlir_persist_%s_assign_t%u, prior, result);\n"
             "}\n\n",
             formatName, (unsigned int)layout->type, readName,
             formatName, (unsigned int)layout->type);

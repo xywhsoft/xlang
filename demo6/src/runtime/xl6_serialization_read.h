@@ -22,4 +22,28 @@ static inline bool xl6SerializeReadFinishV1(xvalue* value, xerror* prior)
     xrtSetErrorTake(prior);
     return true;
 }
+
+/* Typed restore adapters share the nullable reader policy, with physical
+ * failure independent of the class/null output. `source` and `prior` are
+ * consumed; target and the synchronous assignment callback are borrowed. */
+static inline bool xl6SerializeRestoreReadFinishV1(xvalue* source, xvalue* target,
+    bool (*assign)(xvalue*, const xvalue*), xerror* prior, xvalue** output)
+{
+    xvalue* result;
+    xerror* failure;
+    if (output != NULL) *output = NULL;
+    if (output == NULL || assign == NULL) {
+        failure = xrtTakeError();
+        xrtValueRelease(source); xrtErrorFree(prior); xrtErrorFree(failure);
+        xrtClearError(); xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    result = source != NULL && target != NULL && assign(target, source)
+        ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());
+    failure = xrtTakeError();
+    xrtValueRelease(source);
+    xrtClearError(); xrtSetErrorTake(failure);
+    if (!xl6SerializeReadFinishV1(result, prior)) return false;
+    *output = result;
+    return true;
+}
 #endif
