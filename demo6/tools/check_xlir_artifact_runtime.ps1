@@ -234,19 +234,19 @@ $process=Start-Process @start
                         (('src/runtime/xl6_future_metadata.c'-in$selectedSources)-eq$metadata)-and
                         'src/api/xl_future_bridge.c'-notin$selectedSources
                 }
-                if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune')){
+                if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune')){
                     $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
                     # Value formatting already depends on XLON_WRITE in the
                     # shared runtime conversion closure. That baseline is not
                     # a configured XLON encoder; only demand absent unrelated
                     # line/file modules and absent physical encoder calls.
                     $fileWriter=$case-eq'stdlib_persistence_file_json_prune'
-                    $entry=if($fileWriter){'WriteFileV1'}elseif($case-eq'stdlib_persistence_sink_json_prune'){'WriteSinkV1'}else{'EncodeV1'}
+                    $entry=if($fileWriter){'WriteFileV1'}elseif($case-eq'stdlib_persistence_sink_json_prune'){'WriteSinkV1'}elseif($case-eq'stdlib_persistence_writer_json_prune'){'WriterValueV1'}else{'EncodeV1'}
                     $selectionMatches=('XRT_MODULE_JSON_FILE'-in$plan.NativeModules)-eq$fileWriter-and
                         'XRT_MODULE_JSON_WRITE'-in$plan.NativeModules-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(JSONL_|XLONL_|XLON_FILE)'}).Count-and
                         $generatedText.Contains('xl6Json'+$entry+'(')-and
-                        $generatedText-notmatch 'xl6(?:Xlon|Jsonl|Xlonl)(?:Encode|WriteFile|WriteSink)V1\('-and
+                        $generatedText-notmatch 'xl6(?:Xlon|Jsonl|Xlonl)(?:Encode|WriteFile|WriteSink|WriterValue|WriterName|WriterIndex)V1\('-and
                         $generatedText-notmatch '_(?:stringify|write_file|write_to)_configured\('-and
                         $generatedText-notmatch 'xlir_persist_plan_4'
                     if($entry-eq'EncodeV1'){$selectionMatches=$selectionMatches-and'XRT_MODULE_BUFFER'-in$plan.NativeModules}
@@ -500,7 +500,7 @@ $process=Start-Process @start
                         @($componentObjects|Where-Object {$_.Component.Source-in$selectedSources}|ForEach-Object NativeUndefined)
                     $required=@($required|Sort-Object -Unique)
                     $missing=@($required|Where-Object {$_-notin$defined})
-                    if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune')){
+                    if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune')){
                         $selectionMatches=$selectionMatches-and
                             !@(@($required)+@($defined)|Where-Object {$_-match '^xrt(?:Jsonl|Xlonl)'}).Count
                     }

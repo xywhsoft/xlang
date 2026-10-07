@@ -8747,12 +8747,21 @@ static int xl6IrLowerIntrinsicPersistenceInvocation(
         xl6IrPersistenceInvocationIntrinsic(intrinsic->kind);
     XL6_IrTypeId dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
     XL6_IrValueId arguments[3], normalized[3];
+    const XL6_IrClassField* writerField = NULL;
+    XL6_IrValueId writerReceiver = XL6_IR_VALUE_INVALID;
     size_t first = ctx->evaluationOwnerCount;
     size_t i;
     *result = XL6_IR_VALUE_INVALID;
     if (configured == NULL || intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
         intrinsic->resultType != call->storageType || dynamicType == XL6_IR_TYPE_INVALID ||
         !xl6IrPersistenceInvocationIntrinsicAbi(ctx->module, intrinsic)) return 0;
+    if (xl6IrPersistenceInvocationIsWriter(configured)) {
+        writerField = xl6IrPersistenceWriterReceiverField(ctx->module, configured, intrinsic->receiverType);
+        writerReceiver = xl6IrLowerNode(ctx, intrinsic->receiver);
+        if (writerField == NULL || writerReceiver == XL6_IR_VALUE_INVALID) return 1;
+        writerReceiver = xl6IrLowerProtectOwnedBorrow(ctx, id, writerReceiver);
+        if (writerReceiver == XL6_IR_VALUE_INVALID) return 1;
+    }
     for (i = 0; i < intrinsic->operandCount; ++i) {
         const XL6_IrIntrinsicOperand* binding =
             &ctx->module->intrinsicOperands[intrinsic->firstOperand + i];
@@ -8781,7 +8790,13 @@ static int xl6IrLowerIntrinsicPersistenceInvocation(
             (temporary != 0 && !xl6IrLowerProtectEvaluationStorage(
                 ctx, id, temporary, arguments[i], 0, 0))) return 1;
     }
-    if (intrinsic->persistenceOptionsOperand == SIZE_MAX) {
+    if (writerField != NULL) {
+        char* key = xl6IrCanonicalCStringBytes(writerField->name);
+        normalized[1] = key != NULL ? xl6IrLowerEmitRuntimeLiteralCall(ctx, id, writerField->type,
+            XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW, key, &writerReceiver, 1) : XL6_IR_VALUE_INVALID;
+        xrtFree(key);
+        if (normalized[1] == XL6_IR_VALUE_INVALID) return 1;
+    } else if (intrinsic->persistenceOptionsOperand == SIZE_MAX) {
         normalized[1] = xl6IrLowerEmitRuntimeLiteralCall(ctx, id, dynamicType,
             XL6_IR_RUNTIME_XVALUE_NULL, "null", NULL, 0);
         if (normalized[1] == XL6_IR_VALUE_INVALID) return 1;
@@ -8792,11 +8807,12 @@ static int xl6IrLowerIntrinsicPersistenceInvocation(
         arguments[intrinsic->persistenceSourceOperand], intrinsic->payloadType,
         configured->projectionFormat);
     if (normalized[0] == XL6_IR_VALUE_INVALID) return 1;
-    if (configured->action != XL6_IR_PERSISTENCE_INVOKE_ENCODE)
+    if (intrinsic->persistenceDestinationOperand != SIZE_MAX)
         normalized[2] = arguments[intrinsic->persistenceDestinationOperand];
-    *result = xl6IrLowerEmitRuntimeCallPayload(ctx, id, id, call->storageType,
-        configured->operation, NULL, intrinsic->payloadType, normalized,
-        configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2 : 3);
+    *result = xl6IrLowerEmitRuntimeCallMetadata(ctx, id, id, call->storageType,
+        configured->operation, NULL, intrinsic->payloadType,
+        writerField != NULL ? intrinsic->receiverType : XL6_IR_TYPE_INVALID, normalized,
+        intrinsic->persistenceDestinationOperand == SIZE_MAX ? 2 : 3);
     if (*result != XL6_IR_VALUE_INVALID &&
         !xl6IrLowerCompleteEvaluationBorrows(ctx, id, first, result))
         *result = XL6_IR_VALUE_INVALID;
@@ -12033,15 +12049,15 @@ static int xl6IrLowerResolveRuntimeBridge(
     }
     target->runtimeBridge = xl6IrRuntimeSerializationBridgeKind(target->cName);
     if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
-        if ( xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge) )
-            target->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        target->errorAbi = xl6IrRuntimeSerializationBridgeErrorAbi(target->cName);
         if ( !xl6IrRuntimeSerializationBridgeTargetMatches(ctx->module, target) )
             return xl6IrLowerDiag(ctx, target->declaration,
                 target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XLON_PARSE &&
-                target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_WRITER
+                target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT
                     ? "XLIR XLON runtime bridge has no exact parameter/result/callback/handle ABI" :
                 target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_VISIT ||
-                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER
+                (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER ||
+                 target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT)
                     ? "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
                     : "XLIR JSON value runtime bridge has no exact parameter/result ABI");
         return 1;
@@ -30116,6 +30132,11 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                         xl6IrLowerIntrinsicPersistenceStringify(
                             ctx, id, node, intrinsic, &result);
                     break;
+                case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
+                case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX:
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY:
                 case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY:
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY:

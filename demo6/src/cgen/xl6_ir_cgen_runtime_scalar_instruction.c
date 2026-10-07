@@ -220,11 +220,12 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             (unsigned int)module->operands[instruction->firstOperand],
                             (unsigned int)module->operands[instruction->firstOperand + 1]);
                     else {
-                        unsigned int destination = (unsigned int)module->operands[instruction->firstOperand + 2];
-                        xl6OutputPrintf(out, "    bool projection_ok_%u = %s(v%u, v%u, v%u",
+                        xl6OutputPrintf(out, "    bool projection_ok_%u = %s(v%u, v%u",
                             (unsigned int)instruction->result, configured->entry,
                             (unsigned int)module->operands[instruction->firstOperand],
-                            (unsigned int)module->operands[instruction->firstOperand + 1], destination);
+                            (unsigned int)module->operands[instruction->firstOperand + 1]);
+                        if (instruction->operandCount == 3)
+                            xl6OutputPrintf(out, ", v%u", (unsigned int)module->operands[instruction->firstOperand + 2]);
                         xl6OutputPrintf(out, ", &v%u);\n", (unsigned int)instruction->result);
                     }
                 } else if ( instruction->runtimeOp ==

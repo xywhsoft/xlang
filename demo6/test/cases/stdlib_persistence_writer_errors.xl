@@ -1,0 +1,36 @@
+// Invalid Writer state is a false value for steps and a checked error for finish.
+JsonWriter jsonWriter = JsonWriter()
+assert(jsonWriter.beginArray())
+assert(not jsonWriter.writeInt("not-an-array-key", 1))
+bool jsonFailed = false
+try
+    jsonWriter.finish()
+catch e
+    assert(e.kind == "RuntimeError")
+    jsonFailed = true
+end
+assert(jsonFailed)
+
+XlonWriter xlonWriter = XlonWriter()
+assert(xlonWriter.beginArray())
+assert(not xlonWriter.writeValue("not-an-array-key", 1))
+bool xlonFailed = false
+try
+    xlonWriter.finish()
+catch e
+    assert(e.kind == "RuntimeError")
+    xlonFailed = true
+end
+assert(xlonFailed)
+
+JsonWriter consumed = JsonWriter()
+assert(consumed.writeString("a\0b"))
+assert(json.parse(consumed.finish()) == "a\0b")
+bool repeatedFailed = false
+try
+    consumed.finish()
+catch e
+    assert(e.kind == "RuntimeError")
+    repeatedFailed = true
+end
+assert(repeatedFailed)
