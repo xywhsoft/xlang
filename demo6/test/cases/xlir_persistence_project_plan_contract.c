@@ -149,10 +149,40 @@ int main(int argc, char** argv)
             ALTER_OP(wire, persistenceWireFormat, wire->persistenceWireFormat == XL6_IR_PERSIST_FORMAT_JSON
                 ? XL6_IR_PERSIST_FORMAT_XLON : XL6_IR_PERSIST_FORMAT_JSON);
             ALTER_OP(wire, sourceTypeId, 1);
+        } else if (xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp) != NULL) {
+            const XL6_IrConfiguredPersistenceEncoder* row = xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp);
+            assert(xl6IrConfiguredPersistenceInstructionAbi(&ir, instruction));
+            assert(xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp) == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
+            ALTER_OP(instruction, payloadType, XL6_IR_TYPE_INVALID);
+            ALTER_OP(instruction, operandCount, 0);
+            ALTER_OP(instruction, targetSymbol, 1);
+            ALTER_OP(instruction, type, definition(&ir, ir.operands[instruction->firstOperand])->type);
+            ALTER_OP(instruction, runtimeOp, row->projectionFormat == XL6_IR_PERSIST_FORMAT_JSON
+                ? XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY
+                : XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY);
+            XL6_IrValueId* options = &ir.operands[instruction->firstOperand + 1];
+            XL6_IrValueId saved = *options;
+            *options = ir.operands[instruction->firstOperand];
+            rejectedOutput(&ir); *options = saved;
+            const XL6_IrInstruction* wire = definition(&ir, ir.operands[instruction->firstOperand]);
+            XL6_IrType* wireType = &ir.types.items[wire->type - 1];
+            ALTER_OP(wireType, persistenceWireFormat, XL6_IR_PERSIST_FORMAT_NONE);
         } else if (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                    instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY) {
             assert(xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp) == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
         }
+    }
+    for (size_t i = 0; i < ir.intrinsicCallCount; ++i) {
+        XL6_IrIntrinsicCall* intrinsic = &ir.intrinsicCalls[i];
+        if (xl6IrConfiguredPersistenceIntrinsic(intrinsic->kind) == NULL) continue;
+        ALTER_OP(intrinsic, errorAbi, XL6_IR_ERROR_ABI_NO_RAISE);
+        ALTER_OP(intrinsic, resultAbi, XL6_IR_INTRINSIC_RESULT_VALUE);
+        ALTER_OP(intrinsic, payloadType, XL6_IR_TYPE_INVALID);
+        ALTER_OP(intrinsic, payloadAbi, XL6_IR_ASYNC_RESULT_VOID);
+        ALTER_OP(intrinsic, persistenceSourceOperand, SIZE_MAX);
+        ALTER_OP(intrinsic, persistenceSourceOperand, 1 - intrinsic->persistenceSourceOperand);
+        XL6_IrIntrinsicOperand* source = &ir.intrinsicOperands[intrinsic->firstOperand + intrinsic->persistenceSourceOperand];
+        ALTER_OP(source, abi, XL6_IR_INTRINSIC_OPERAND_CONSUME);
     }
     if (!strcmp(argv[3], "sequences")) {
         assert(ir.persistenceProjectSequenceCount == 6);

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Actual lowered projection tables: schema/erased Array/unused-format pruning and corrupt-IR refusal.
 
-This checks IR data, not execution of the future PROJECT operation or serializers.
+This checks IR data and corrupt-IR refusal, not execution of PROJECT or serializers.
 O0/O2 optimize the contract host; the linked source compiler keeps its build mode.
 """
 from __future__ import annotations
@@ -36,6 +36,7 @@ def main() -> int:
              ('empty', root / 'test/cases/stdlib_dynamic_numeric_prune.xl'),
              ('defaults', root / 'test/cases/cgen_string_persistence_default_nul.xl')]
     cases.append(('readers', root / 'test/cases/stdlib_serialization_read_errors.xl'))
+    cases.append(('configured', root / 'test/cases/stdlib_persistence_configured_language.xl'))
     refusals = [root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
