@@ -1,0 +1,8 @@
+class RestoreNativeArrayJsonOnly
+    derive value
+    array<int8> items = []
+end
+RestoreNativeArrayJsonOnly item = json.parse::<RestoreNativeArrayJsonOnly>("{\"items\":[-128,127]}")
+assert(item != null and item.items.length == 2 and item.items[1] == 127)
+item.items.push(int8(7))
+assert(item.items[2] == 7)

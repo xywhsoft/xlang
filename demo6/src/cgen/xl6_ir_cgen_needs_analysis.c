@@ -1042,5 +1042,14 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( !xl6IrCgenRequireErrorResult(module, needs, function->returnType,
                  function->declaration, diags) ) return 0;
     }
+    for (i = 0; i < module->types.count; ++i) {
+        const XL6_IrType* type = &module->types.items[i];
+        if (type->persistenceRestoreCarrierAbi != XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 ||
+            (!xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(i + 1), XL6_IR_PERSIST_FORMAT_JSON, 1) &&
+             !xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(i + 1), XL6_IR_PERSIST_FORMAT_XLON, 1))) continue;
+        needs->needsArrayCreateRuntime = needs->needsArrayImportRuntime = 1;
+        needs->needsNominalIdentityRuntime = needs->needsXValueRuntime = 1;
+        needs->needsXValueHandleRuntime = needs->needsErrorRuntime = 1;
+    }
     return 1;
 }

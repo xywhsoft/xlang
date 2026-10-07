@@ -121743,11 +121743,12 @@ static bool __xrtTextValueParserNumber(
 {
 	size_t iStart = pParser->Offset;
 	bool bInteger = true;
-	int64 iInteger = 0;
-	uint64 iUnsigned = 0;
+	bool bNegative = __xrtTextValueParserPeek(pParser) == (uint8)'-';
+	bool bFits = true;
+	uint64 iMagnitude = 0;
 	double fValue = 0.0;
 
-	if ( __xrtTextValueParserPeek(pParser) == (uint8)'-' ) {
+	if ( bNegative ) {
 		__xrtTextValueParserAdvanceText(pParser, 1u);
 		if ( __xrtTextValueParserEnd(pParser) ) {
 			goto format_error;
@@ -121767,6 +121768,16 @@ static bool __xrtTextValueParserNumber(
 		(__xrtTextValueParserPeek(pParser) <= (uint8)'9')
 	) {
 		do {
+			/* 积累已验证的十进制幅值，不通过构造/清除错误探测类型。
+			 * UINT64_MAX 的合法输入不应分配范围错误或吞掉 MemoryError。 */
+			uint64 iDigit = (uint64)(__xrtTextValueParserPeek(pParser) - (uint8)'0');
+			if ( bFits ) {
+				if ( iMagnitude > (UINT64_MAX - iDigit) / UINT64_C(10) ) {
+					bFits = false;
+				} else {
+					iMagnitude = iMagnitude * UINT64_C(10) + iDigit;
+				}
+			}
 			__xrtTextValueParserAdvanceText(pParser, 1u);
 		} while (
 			!__xrtTextValueParserEnd(pParser) &&
@@ -121828,21 +121839,22 @@ static bool __xrtTextValueParserNumber(
 	}
 	pEvent->Raw.Data = pParser->Text.Data + iStart;
 	pEvent->Raw.Size = pParser->Offset - iStart;
-	if ( bInteger && xrtIntParse(pEvent->Raw, 10u, 0, &iInteger) ) {
-		pEvent->Type = XTEXT_VALUE_EVENT_INT;
-		pEvent->Value.Integer = iInteger;
-		return true;
-	}
-	if ( bInteger && pEvent->Raw.Size != 0u && pEvent->Raw.Data[0] != '-' ) {
-		xrtClearError();
-		if ( xrtUIntParse(pEvent->Raw, 10u, 0, &iUnsigned) ) {
+	if ( bInteger && bFits ) {
+		if ( !bNegative && iMagnitude > (uint64)INT64_MAX ) {
 			pEvent->Type = XTEXT_VALUE_EVENT_UINT;
-			pEvent->Value.Unsigned = iUnsigned;
+			pEvent->Value.Unsigned = iMagnitude;
+			return true;
+		}
+		if ( iMagnitude <= (uint64)INT64_MAX + (uint64)bNegative ) {
+			pEvent->Type = XTEXT_VALUE_EVENT_INT;
+			pEvent->Value.Integer = bNegative
+				? (iMagnitude == (uint64)INT64_MAX + UINT64_C(1)
+					? INT64_MIN : -(int64)iMagnitude)
+				: (int64)iMagnitude;
 			return true;
 		}
 	}
 	if ( bInteger && !pParser->Config.BigIntegerFloat ) {
-		xrtClearError();
 		__xrtTextValueLocationError(
 			pParser,
 			XERR_RANGE,
@@ -121852,8 +121864,11 @@ static bool __xrtTextValueParserNumber(
 		);
 		return false;
 	}
-	xrtClearError();
 	if ( !xrtNumParse(pEvent->Raw, 0, &fValue) || !isfinite(fValue) ) {
+		/* 实际浮点解析失败时，只翻译数值诊断，保留资源失败。 */
+		if ( xrtErrorKind(xrtGetError()) == XERR_MEMORY ) {
+			return false;
+		}
 		xrtClearError();
 		__xrtTextValueLocationError(
 			pParser,

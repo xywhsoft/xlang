@@ -1,0 +1,84 @@
+class DomainChild
+    derive value
+    int8 id = 1
+    array<int8> scratch
+end
+class DomainRecord
+    derive value
+    int8 tiny = 1
+    uint8 byteValue = 2
+    uint64 unsignedValue = 3
+    float32 single = 0.0
+    float real = 0.0
+    bool truth = false
+    char letter = 'A'
+    string text = "default"
+    var dynamic = null
+    int8? optional = null
+    array<int8> items = []
+    array<array<int8>> nestedItems = []
+    array<DomainChild> children = []
+    list<int8> listed
+    set<int8> unique
+    dict<string> named
+end
+
+string wire = "{\"tiny\":-128,\"byteValue\":255,\"unsignedValue\":18446744073709551615,\"single\":0.1,\"real\":2,\"truth\":true,\"letter\":20320,\"text\":\"a\\u0000b\",\"dynamic\":null,\"optional\":127,\"items\":[-128,127],\"nestedItems\":[[1,2],[]],\"children\":[{\"id\":127}],\"listed\":[1,2],\"unique\":[1,1,2],\"named\":{\"a\\u0000b\":\"c\\u0000d\"}}"
+DomainRecord value = json.parse::<DomainRecord>(wire)
+assert(value != null)
+assert(value.tiny == -128 and value.byteValue == 255)
+assert(value.unsignedValue == uint64(18446744073709551615))
+assert(value.single == float32(0.1) and value.real == 2.0)
+assert(value.truth and value.letter == '你' and value.text == "a\0b")
+assert(value.dynamic == null and (value.optional ?? int8(0)) == 127)
+assert(value.items.length == 2 and value.items[1] == 127)
+value.items.push(int8(3))
+assert(value.items[2] == 3)
+assert(value.nestedItems[0][1] == 2 and value.nestedItems[1].length == 0)
+assert(value.children[0].id == 127)
+assert(value.children[0].scratch.length == 0)
+value.children[0].scratch.push(int8(4))
+assert(value.children[0].scratch[0] == 4)
+assert(value.listed[1] == 2 and value.unique.length == 2)
+assert(value.named["a\0b"] == "c\0d")
+DomainRecord again = xlon.parse::<DomainRecord>(xlon.stringify(value))
+assert(again != null and again.items[2] == 3 and again.children[0].id == 127)
+assert(again.children[0].scratch[0] == 4)
+assert(again.unsignedValue == value.unsignedValue and again.letter == '你')
+assert(again.single == value.single and again.named["a\0b"] == "c\0d")
+DomainRecord jsonAgain = json.parse::<DomainRecord>(json.stringify(value))
+assert(jsonAgain != null and jsonAgain.letter == '你' and jsonAgain.nestedItems[0][1] == 2)
+DomainChild defaults = json.parse::<DomainChild>("{}")
+assert(defaults.id == 1)
+assert(json.parse::<DomainChild>("[]") == null)
+assert(json.parse::<DomainChild>("1") == null)
+assert(xlon.parse::<DomainChild>("[]") == null)
+assert(json.parse::<DomainRecord>("{\"tiny\":128}") == null)
+assert(json.parse::<DomainRecord>("{\"tiny\":-129}") == null)
+assert(json.parse::<DomainRecord>("{\"tiny\":1.5}") == null)
+assert(json.parse::<DomainRecord>("{\"tiny\":\"1\"}") == null)
+assert(json.parse::<DomainRecord>("{\"tiny\":true}") == null)
+assert(json.parse::<DomainRecord>("{\"tiny\":null}") == null)
+assert(json.parse::<DomainRecord>("{\"byteValue\":256}") == null)
+assert(json.parse::<DomainRecord>("{\"byteValue\":-1}") == null)
+assert(json.parse::<DomainRecord>("{\"unsignedValue\":-1}") == null)
+assert(json.parse::<DomainRecord>("{\"single\":3.5e38}") == null)
+assert(json.parse::<DomainRecord>("{\"truth\":1}") == null)
+assert(json.parse::<DomainRecord>("{\"text\":1}") == null)
+assert(json.parse::<DomainRecord>("{\"letter\":55296}") == null)
+assert(json.parse::<DomainRecord>("{\"letter\":1114112}") == null)
+assert(json.parse::<DomainRecord>("{\"optional\":128}") == null)
+assert(json.parse::<DomainRecord>("{\"items\":{}}") == null)
+assert(json.parse::<DomainRecord>("{\"items\":[128]}") == null)
+assert(json.parse::<DomainRecord>("{\"nestedItems\":[{}]}") == null)
+assert(json.parse::<DomainRecord>("{\"children\":[1]}") == null)
+assert(json.parse::<DomainRecord>("{\"children\":[{\"id\":128}]}") == null)
+assert(json.parse::<DomainRecord>("{\"listed\":[\"wrong\"]}") == null)
+assert(json.parse::<DomainRecord>("{\"unique\":{}}") == null)
+assert(json.parse::<DomainRecord>("{\"named\":[]}") == null)
+assert(json.parse::<DomainRecord>("{\"named\":{\"x\":1}}") == null)
+assert(xlon.parse::<DomainRecord>("{\"tiny\":128}") == null)
+assert(xlon.parse::<DomainRecord>("{\"items\":{}}") == null)
+assert(xlon.parse::<DomainRecord>("{\"text\":1}") == null)
+DomainRecord absent = json.parse::<DomainRecord>("{\"optional\":null}")
+assert(absent != null and absent.optional == null and absent.items.length == 0)

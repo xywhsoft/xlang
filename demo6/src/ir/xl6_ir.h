@@ -650,6 +650,12 @@ typedef struct XL6_IrType {
     XL6_IrOwnershipAbi ownershipAbi;
     XL6_IrNullAbi nullAbi;
     XL6_IrPersistenceValueAbi persistenceValueAbi;
+    /* Closed wire-to-scalar normalization domain. NONE for recursive values
+     * and unsupported nominal carriers; never inferred by the backend. */
+    XL6_ValueAdmissionV1 persistenceRestoreScalarAbi;
+    /* Decode-specific target carrier. The legacy collectionCarrierAbi is a
+     * source representation family, not permission to fabricate native data. */
+    XL6_IrCollectionCarrierAbi persistenceRestoreCarrierAbi;
     /* Exact recursive edge for NULLABLE and typed collection ABIs; INVALID
      * for terminal ABIs. */
     XL6_IrTypeId persistencePayloadType;
