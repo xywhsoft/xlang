@@ -1,0 +1,7 @@
+class IRProjectSecret
+    int hidden = 77
+end
+class IRProjectInvalid
+    derive value
+    private IRProjectSecret exposed @persist(include)
+end

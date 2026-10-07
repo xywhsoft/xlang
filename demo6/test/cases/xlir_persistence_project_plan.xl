@@ -1,0 +1,42 @@
+class IRProjectBase
+    derive value
+    int inherited @json("shared") @xlon("base") = 1
+end
+
+class IRProjectSecret
+    private int hidden = 77
+end
+
+class IRProjectChild extends IRProjectBase
+    derive value
+    int own @json("shared") @xlon("child") = 2
+    string binaryName @json("n\0ame") @xlon("other") = "a\0b"
+    string note @json(omit=empty) @xlon(omit=null) = ""
+    private string privateText = "private"
+    private IRProjectSecret privateSecret
+    IRProjectSecret skipped @persist(skip)
+    array<int> native = array<int>[1, 2]
+end
+
+class IRProjectOpen extends object
+    derive value
+    int declared = 3
+end
+
+class IRProjectUnused extends object
+    derive value
+    int unused = 4
+end
+
+func main(...) as int
+    IRProjectBase base = IRProjectBase()
+    IRProjectChild child = IRProjectChild()
+    IRProjectOpen opened = IRProjectOpen()
+    IRProjectSecret secret = IRProjectSecret()
+    string a = json.stringify(child)
+    string b = xlon.stringify(child)
+    string c = json.stringify(opened)
+    var mixed = {"class": child, "array": child.native}
+    string d = json.stringify(mixed)
+    return 0
+end

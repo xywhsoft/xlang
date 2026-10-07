@@ -150,6 +150,17 @@ static void xl6SemCollectFieldAttrConfig(
     }
 }
 
+int xl6SemFieldPersistenceIncluded(const XL6_AstNode* field, const char* format)
+{
+    XL6_SemFieldPersistConfig config;
+    if (field == NULL || field->kind != XL6_AST_FIELD ||
+        xl6SemAstHasFlag(field, XL6_AST_FLAG_STATIC) ||
+        (!xl6TextEquals(format, "json") && !xl6TextEquals(format, "xlon"))) return 0;
+    xl6SemCollectFieldAttrConfig(field, format, &config);
+    return !config.skip &&
+        (!xl6SemAstHasFlag(field, XL6_AST_FLAG_PRIVATE) || config.include);
+}
+
 static int xl6SemCheckFieldAttrArgs(XL6_DiagList* diags, const XL6_AstNode* attr)
 {
     int compareLike;

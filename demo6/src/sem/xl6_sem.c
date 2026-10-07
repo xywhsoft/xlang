@@ -22919,6 +22919,13 @@ static int xl6SemCheckDeriveValueFields(XL6_SemContext* ctx, XL6_AstNode* classN
         if ( member == NULL || member->kind != XL6_AST_FIELD || member->childCount == 0 ) {
             continue;
         }
+        /* Only fields selected by an enabled format need a persistence type.
+         * Keep this partition identical to Typed XLIR; a skipped/private or
+         * static resource must not prohibit persistence of its enclosing class. */
+        if ( !(xl6SemClassDeclHasFormatDerive(classNode, "json") &&
+               xl6SemFieldPersistenceIncluded(member, "json")) &&
+             !(xl6SemClassDeclHasFormatDerive(classNode, "xlon") &&
+               xl6SemFieldPersistenceIncluded(member, "xlon")) ) continue;
         fieldType = member->children[0];
         if ( !xl6SemTypeCanDeriveValue(ctx, fieldType) ) {
             xl6SemErrorNode(ctx, member, "derive value/json/xlon 字段必须是基础类型、动态 var/容器，或同样可持久化的 class");
