@@ -81,7 +81,7 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
         xl6OutputPuts(
             "typedef struct xrttype xrttype;\n"
             "extern const xrttype* xl6CharTypeV1(void);\n"
@@ -367,7 +367,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "    return hardFailure && processed == 0 ? -1 : processed;\n"
             "}\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime )
         xl6OutputPuts(
             "/* Sequence factories live in the resident typed runtime. */\n"
             "typedef struct xrttype xrttype;\n"
@@ -385,6 +385,8 @@ static int xl6IrCgenEmitResourceRuntime(
     if (needs->needsArrayImportRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_array_import_chain.h>\n"
             "extern xvalue* xl6ArrayEraseV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
+    if (needs->needsArrayCreateRuntime)
+        xl6OutputPuts("extern xvalue* xl6ArrayProjectionTakeV1(xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
     if (needs->needsStackResourceRuntime)
         xl6OutputPuts(
             "extern bool xl6StackPushV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const void*);\n"
@@ -396,7 +398,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern bool xl6StackTrimV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern bool xl6StackClearV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern int64_t xl6StackSizeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);\n",out);
-    if (needs->needsStackResourceRuntime || needs->needsArrayImportRuntime)
+    if (needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime)
         xl6OutputPuts(
             "extern const xrttype* xrtTypeBool(void);\n"
             "extern const xrttype* xrtTypeInt8(void);\n"

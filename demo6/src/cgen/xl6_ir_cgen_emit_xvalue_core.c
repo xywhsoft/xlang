@@ -20,7 +20,8 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                            "extern bool xrtValueGetChar(const xvalue*, uint32_t*);\n"
                            "extern xvalue* xrtValueRetain(const xvalue*);\n"
                            "extern xvalue* xrtValueClone(const xvalue*);\n"
-                           "extern xvalue* xrtValueDeepClone(const xvalue*);\n"
+                           "extern xvalue* xl6ValueCloneV1(const xvalue*);\n"
+                           "extern xvalue* xl6ValueDeepCloneV1(const xvalue*);\n"
                            "extern void xrtValueRelease(xvalue*);\n"
                            "#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
                            "extern bool xrtValueTruthy(const xvalue*);\n", out);

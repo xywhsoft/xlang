@@ -1,0 +1,50 @@
+class CreateItem
+    int value = 7
+end
+enum CreateSmall as int8
+    low = -128
+    high = 127
+end
+async func createReady() as int
+    return 42
+end
+func createNumbers() as array<int>
+    array<int> values
+    values.push(1)
+    return values
+end
+func createDynamic(var a, var b) as int
+    assert(int(a + b) == 10 and int(a - b) == 6 and int(a * b) == 16)
+    assert(int(a / b) == 4 and int(a % b) == 0)
+    assert(int(a & b) == 0 and int(a | b) == 10 and int(a ^ b) == 10)
+    assert(int(a << b) == 32 and int(a >> b) == 2)
+    assert(int(+a) == 8 and int(-a) == -8 and int(~a) == -9)
+    return 0
+end
+func createDynamicConcat(var a, var b) as var
+    return a + b
+end
+func main(...) as int
+    assert(createDynamic(8, 2) == 0)
+    assert(string(createDynamicConcat("a\0b", "\0你")) == "a\0b\0你")
+    auto numbers = createNumbers()
+    assert(numbers.length == 1 and numbers[0] == 1)
+    array<string> text = ["a\0你"]
+    array<bytes> binary = [b"a\0b"]
+    array<CreateItem> nominal = [CreateItem()]
+    array<c_int> physical = [c_int(-7)]
+    array<c_int?> optionalPhysical = [null, c_int(-7)]
+    array<CreateSmall> enumerated = [CreateSmall.low, CreateSmall.high]
+    array<array<int>> nested = [numbers, numbers]
+    array<func(int) as int> callbacks = [func(int value) as int => value + 1]
+    array<future<int>> futures = [createReady()]
+    assert(text[0] == "a\0你" and binary[0] == b"a\0b")
+    assert(nominal[0].value == 7 and physical[0] == c_int(-7))
+    c_int? expected = c_int(-7)
+    assert(optionalPhysical[0] == null and optionalPhysical[1] == expected)
+    assert(enumerated[0] == CreateSmall.low and nested[1][0] == 1)
+    assert(callbacks[0](1) == 2)
+    auto ready = futures[0]
+    assert(ready.wait())
+    return 0
+end

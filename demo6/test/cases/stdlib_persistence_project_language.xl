@@ -1,0 +1,44 @@
+class ProjectHidden
+    private int value = 77
+end
+
+class ProjectBase
+    derive value
+    int inherited @json("shared") @xlon("base") = 1
+end
+
+class ProjectRecord extends ProjectBase
+    derive value
+    int own @json("shared") @xlon("child") = 2
+    string label @json("名\0字") = "a\0b"
+    private ProjectHidden hidden = ProjectHidden()
+    ProjectHidden skipped @persist(skip) = ProjectHidden()
+    array<int> empty @persist(omit=empty) = array<int>[]
+    array<int> values = array<int>[1, 2]
+    list<int> sparse = list<int>[2: 20, 5: 50]
+    set<int> unique = set<int>{3, 4}
+end
+
+ProjectRecord source = ProjectRecord()
+var parsed = json.parse(json.stringify(source))
+assert(parsed["shared"] == 2)
+assert(parsed["名\0字"] == "a\0b")
+assert(parsed["hidden"] == null)
+assert(parsed["skipped"] == null)
+assert(parsed["empty"] == null)
+assert(parsed["values"][1] == 2)
+assert(parsed["sparse"][0] == 20)
+assert(parsed["sparse"][1] == 50)
+assert(parsed["unique"].length == 2)
+var extended = xlon.parse(xlon.stringify(source))
+assert(extended["base"] == 1)
+assert(extended["child"] == 2)
+assert(extended["label"] == "a\0b")
+assert(extended["values"][1] == 2)
+var mixed = {"record": source, "values": source.values}
+var restored = json.parse(json.stringify(mixed))
+assert(restored["record"]["values"][1] == 2)
+assert(restored["values"][0] == 1)
+assert(source.values[1] == 2)
+assert(source.sparse[5] == 50)
+assert(source.label == "a\0b")

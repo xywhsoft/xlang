@@ -664,7 +664,7 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
 }
 static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
-    const char* importChain,size_t importCount)
+    const char* importChain,size_t importCount,bool projectArrays)
 {
     const XL6_IrType* sequence=xl6IrTypeGet(&module->types,typeId);
     XL6_IrNominalIdentitySetId expectedSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
@@ -739,7 +739,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
              * on either path and retains only its immutable owned schema. */
             xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
             if (xl6IrCgenEmitSequenceCreateDepth(out,module,plan->baseElementType,
-                childResult,childSet,depth+1,importChain,importCount)<0) return -1;
+                childResult,childSet,depth+1,importChain,importCount,projectArrays)<0) return -1;
             xl6OutputPrintf(out,
                 "    %s = xl6SequenceNestedCreateTakeV2(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
                 XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
@@ -748,6 +748,14 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     default: return -1;
     }
 #undef XL6_SEQUENCE_CREATE_IDS
+    if (projectArrays && plan->role==XL6_IR_SEQUENCE_ROLE_ARRAY) {
+        xl6OutputPrintf(out,
+            "    %s = xl6ArrayProjectionTakeV1(%s, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s);\n",
+            result,result,(unsigned long long)sequence->typeValueId,
+            (unsigned long long)payload->typeValueId,transfer,payloadType,descriptor,
+            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
+                xl6IrCgenNativeValueConverterExpr(module,plan->elementType));
+    }
     if (importChain && depth<importCount) {
         xl6OutputPrintf(out,
             "    %s[%u] = %s ? xl6ArrayEraseV1(%s, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s) : NULL;\n",
@@ -762,7 +770,15 @@ static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* modul
     XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
 {
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
-    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0,NULL,0);
+    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0,NULL,0,false);
+}
+static int xl6IrCgenEmitArrayCreate(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (!xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction)) return -1;
+    char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)instruction->result);
+    return xl6IrCgenEmitSequenceCreateDepth(out,module,instruction->type,target,
+        instruction->sequenceAdmissionIdentitySet,0,NULL,0,true);
 }
 
 /* Explicit data boundary renderer. IR owns the complete chain and physical
@@ -778,7 +794,7 @@ static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* mod
         !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_ARRAY,&set)) return -1;
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
     xl6OutputPrintf(out,"    { xvalue* xlir_array_import_seeds[%u] = {0};\n",(unsigned)count);
-    if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count)<0) return -1;
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count,false)<0) return -1;
     xl6OutputPrintf(out,"    xrtValueRelease(%s);\n"
         "    %s = %s(xlir_array_import_seeds, %u, %s); }\n",
         target,target,sourceOwned ? "xl6ArrayImportChainSourceTakeV1" : "xl6ArrayImportChainTakeV1",

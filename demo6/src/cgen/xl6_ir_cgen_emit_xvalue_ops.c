@@ -48,19 +48,23 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                     "static xvalue* xlir_xvalue_binary_failure(const char* kind, const char* message)\n"
                     "{ (void)kind; (void)message; return xrtValueNull(); }\n",
                     out);
+            if (needs->needsXValueAddRuntime)
+                xl6OutputPuts(
+                    "extern bool xl6ArrayIsValueV1(const xvalue*);\n"
+                    "extern xvalue* xl6ArrayConcatDynamicV1(const xvalue*, const xvalue*);\n"
+                    "extern xvalue* xl6ValueStringConcatV1(const xvalue*, const xvalue*);\n", out);
             xl6OutputPuts(
-                "extern xvalue* xrtValueArrayConcat(const xvalue*, const xvalue*);\n"
                 "static xvalue* xlir_xvalue_binary(const xvalue* left, const xvalue* right, int op)\n"
                 "{\n"
-                "    int leftType = xrtValueType(left); int rightType = xrtValueType(right);\n"
+                "    int leftType = xrtValueType(left); int rightType = xrtValueType(right);\n", out);
+            if (needs->needsXValueAddRuntime)
+                xl6OutputPuts(
                 "    if (op == 0 && leftType == XVALUE_STRING && rightType == XVALUE_STRING) {\n"
-                "        xlir_string_view a; xlir_string_view b; char* joined; xvalue* result;\n"
-                "        if (!xrtValueGetString(left, &a) || !xrtValueGetString(right, &b)) return xrtValueNull();\n"
-                "        joined = xrtStrConcat(a, b); if (joined == NULL) return xrtValueNull();\n"
-                "        result = xrtValueString(xrtStrView(joined)); xrtFree(joined); return result;\n"
+                "        return xl6ValueStringConcatV1(left, right);\n"
                 "    }\n"
-                "    if (op == 0 && leftType == XVALUE_ARRAY && rightType == XVALUE_ARRAY)\n"
-                "        return xrtValueArrayConcat(left, right);\n"
+                "    if (op == 0 && xl6ArrayIsValueV1(left) && xl6ArrayIsValueV1(right))\n"
+                "        return xl6ArrayConcatDynamicV1(left, right);\n", out);
+            xl6OutputPuts(
                 "    if (!xlir_xvalue_is_numeric(leftType) || !xlir_xvalue_is_numeric(rightType)) return xrtValueNull();\n"
                 "    if (op >= 5) {\n"
                 "        if (leftType == XVALUE_FLOAT || rightType == XVALUE_FLOAT) return xrtValueNull();\n"

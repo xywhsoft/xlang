@@ -137,6 +137,13 @@ XL6_TEXT_API XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue*, XL6_SequenceRol
  * an admitted ARRAY; -1 for invalid/unbound/BUSY ARRAY state. */
 XL6_TEXT_API bool xl6SequenceBindProjectionV1(XL6_Sequence*, const xvalueconverter*);
 XL6_TEXT_API int xl6SequenceBeginErasedArrayV1(const xvalue*, XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
+/* Captured Handle fields from XRT's guarded graph callback. Exact resident
+ * ops are checked BEFORE the opaque pointer is dereferenced. The source
+ * Value is BUSY, so a public GetHandle probe is deliberately not used.
+ * Returns 0 for an unrelated handle, -1 for a refused native Array, or 1
+ * with an independent operation pin. Caller ends that pin on every path. */
+XL6_TEXT_API int xl6SequenceGraphBeginV1(const xvaluehandleops*, ptr, ptr, uint64_t,
+    XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
 XL6_TEXT_API XL6_Sequence* xl6SequenceBeginV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API XL6_Sequence* xl6SequenceIteratorBeginV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API XL6_Sequence* xl6SequenceBeginOtherV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, XL6_Sequence*);

@@ -52,7 +52,10 @@ typedef enum XL6_IrTypeKind {
      * the only value admitted for INOUT/OUT call operands; its sole parameter
      * is the exact pointee TypeId, so an erased C pointer never loses the
      * language-level storage contract. */
-    XL6_IR_TYPE_STORAGE_REF
+    XL6_IR_TYPE_STORAGE_REF,
+    /* Owned data snapshot for exactly one persistence format and logical
+     * source TypeId (params[0]). Never a source-language value or alias. */
+    XL6_IR_TYPE_PERSISTENCE_WIRE
 } XL6_IrTypeKind;
 
 /* Canonical collection identity.  All current containers share the erased
@@ -650,6 +653,7 @@ typedef struct XL6_IrType {
     /* Exact recursive edge for NULLABLE and typed collection ABIs; INVALID
      * for terminal ABIs. */
     XL6_IrTypeId persistencePayloadType;
+    uint32 persistenceWireFormat;
     /* Exact integer storage-normalization domain; C ABI I64 alone is not
      * enough to distinguish int8/uint8/.../int64 semantics. */
     XL6_IrIntegerTarget integerTarget;
@@ -1153,6 +1157,8 @@ typedef enum XL6_IrRuntimeOp {
      * sequenceAdmissionIdentitySet=the root recipe's set. Immediate ERROR_TEST
      * observes NULL_RESULT before publication; no generated element traversal. */
     XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN,
+    /* Source-free native Array construction with the complete closed recipe. */
+    XL6_IR_RUNTIME_ARRAY_CREATE,
     /* Imports one owned erased container into a concrete typed collection.
      * The operation consumes its source on success and failure, validates the
      * runtime container tag plus every element tag, and returns the same owned
@@ -1618,6 +1624,8 @@ typedef enum XL6_IrRuntimeOp {
        * returns an owned managed JSON string.  payloadType names the verified
        * class persistence schema consumed mechanically by Cgen. */
        XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY,
+       XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT,
        /* Borrows one managed JSON string and one fully initialized instance of
         * payloadType.  The verified schema overlays present serialized fields
         * onto that default instance and returns an owned retained class value. */
@@ -5573,6 +5581,47 @@ typedef struct XL6_IrClassLayout {
     XL6_SymbolId equalityTarget;
 } XL6_IrClassLayout;
 
+/* Persistence projection is immutable, flattened data owned by lowered IR.
+ * A field's declaration identity and byte-key representation are retained;
+ * a backend must not rediscover attributes, ancestry, or native storage.
+ * Key text borrows the ClassField arena for the module's entire lifetime. */
+typedef enum XL6_IrPersistenceProjectKeyAbi {
+    XL6_IR_PERSIST_PROJECT_KEY_FIELD_NAME = 1,
+    XL6_IR_PERSIST_PROJECT_KEY_C_LITERAL
+} XL6_IrPersistenceProjectKeyAbi;
+
+typedef struct XL6_IrPersistenceProjectField {
+    size_t classField;
+    uint32 omitFlags;
+    XL6_IrPersistenceProjectKeyAbi targetKeyAbi;
+    const char* targetKey;
+} XL6_IrPersistenceProjectField;
+
+typedef struct XL6_IrPersistenceProjectSchema {
+    size_t classLayout;
+    uint64 identity; /* Stable xvalue TypeId, never runtimeTypeTag. */
+    int disabled;   /* Explicit refusal for a reachable non-persistent class. */
+    size_t firstField;
+    size_t fieldCount;
+    size_t dynamicField;
+    size_t dynamicHandleField;
+    XL6_SymbolId dynamicDestroySymbol; /* Exact generated native Ops identity. */
+} XL6_IrPersistenceProjectSchema;
+
+typedef struct XL6_IrPersistenceProjectPlan {
+    uint32 format; /* JSON/JSONL or XLON/XLONL share one field schema. */
+    size_t firstSchema;
+    size_t schemaCount;
+    size_t firstSequence;
+    size_t sequenceCount;
+} XL6_IrPersistenceProjectPlan;
+
+typedef struct XL6_IrPersistenceProjectSequence {
+    XL6_IrTypeId type;
+    uint64 identity;
+    XL6_IrCollectionAbi sourceAbi; /* LIST/SET -> wire ARRAY; never an IntMap guess. */
+} XL6_IrPersistenceProjectSequence;
+
 /* A virtual method slot is a frontend-resolved callable contract.  It is
  * deliberately separate from an ordinary call target: its receiver may hold
  * any derived runtime object, and the selected implementation is determined
@@ -5943,6 +5992,18 @@ typedef struct XL6_IrModule {
     XL6_IrClassLayout* classLayouts;
     size_t classLayoutCount;
     size_t classLayoutCapacity;
+    XL6_IrPersistenceProjectPlan* persistenceProjectPlans;
+    size_t persistenceProjectPlanCount;
+    size_t persistenceProjectPlanCapacity;
+    XL6_IrPersistenceProjectSchema* persistenceProjectSchemas;
+    size_t persistenceProjectSchemaCount;
+    size_t persistenceProjectSchemaCapacity;
+    XL6_IrPersistenceProjectField* persistenceProjectFields;
+    size_t persistenceProjectFieldCount;
+    size_t persistenceProjectFieldCapacity;
+    XL6_IrPersistenceProjectSequence* persistenceProjectSequences;
+    size_t persistenceProjectSequenceCount;
+    size_t persistenceProjectSequenceCapacity;
     XL6_IrClassDestroyStep* classDestroySteps;
     size_t classDestroyStepCount;
     size_t classDestroyStepCapacity;
@@ -5997,6 +6058,11 @@ typedef struct XL6_IrModule {
 
 void xl6IrModuleInit(XL6_IrModule* module);
 void xl6IrModuleFree(XL6_IrModule* module);
+/* Owned canonical C literals at the source-to-IR boundary. Literal tokens
+ * decode language escapes; Bytes/Identifier encode already-semantic text. */
+char* xl6IrCanonicalCStringLiteral(const char* text);
+char* xl6IrCanonicalCStringBytes(const char* text);
+char* xl6IrCanonicalIdentifierCString(const char* text);
 /* Primary frontend entry: copy the semantic AST into owned typed XLIR. */
 int xl6IrBuildModuleFromAst(
     XL6_IrModule* module,
@@ -6136,6 +6202,17 @@ XL6_IrErrorAbi xl6IrCopyIntrinsicErrorAbi(const XL6_IrModule* module,
  * their derived destruction/persistence contracts before body lowering. */
 int xl6IrRefreshClassLayouts(XL6_IrModule* module);
 int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module);
+/* Rebuild transactionally after callable reachability is fixed. Failure
+ * leaves the previous arena intact. Verification independently streams the
+ * canonical plan and rejects omissions, extra rows, and altered identities. */
+int xl6IrBuildPersistenceProjectPlans(XL6_IrModule* module);
+int xl6IrVerifyPersistenceProjectPlans(const XL6_IrModule* module);
+XL6_IrTypeId xl6IrTypeInternPersistenceWire(
+    XL6_IrModule*, XL6_IrTypeId sourceType, uint32 format);
+int xl6IrPersistenceWireMatches(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrTypeId sourceType, uint32 format);
+int xl6IrPersistenceProjectInstructionAbi(
+    const XL6_IrModule*, const XL6_IrInstruction*);
 /* Validated execution provenance, distinct from instruction->sourceSpan. */
 XL6_IrNodeId xl6IrInstructionExecutionOrigin(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
@@ -6203,6 +6280,8 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
 int xl6IrArrayImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, size_t, size_t*);
 int xl6IrArrayImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrArrayCreateRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+XL6_IrRuntimeOp xl6IrArrayConstructionRuntimeOp(const XL6_IrModule*, XL6_IrTypeId);
 int xl6IrContextualArrayImportRequired(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
  * Typed construction, lowering, verification and statistics from developing

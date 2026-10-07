@@ -30,6 +30,8 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                         "XLIR C emitter shared runtime ABI is unresolved");
                 if ( sharedRuntime > 0 ) {
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
+                    return xl6IrCgenEmitArrayCreate(out,module,instruction)>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
                     char source[24];
                     if (!xl6IrArrayImportRuntimeInstructionCompatible(module,instruction))
@@ -197,6 +199,15 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->firstOperand],
                         (unsigned int)module->operands[
                             instruction->firstOperand + 1]);
+                } else if (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+                           instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) {
+                    if (!xl6IrPersistenceProjectInstructionAbi(module, instruction))
+                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
+                            "XLIR C emitter persistence projection ABI is unresolved");
+                    xl6OutputPrintf(out, "    v%u = xl6PersistenceProjectV1(v%u, &xlir_persist_plan_%u);\n",
+                        (unsigned int)instruction->result,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp));
                 } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                             instruction->runtimeOp ==
@@ -210,14 +221,14 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter persistence stringify ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_persist_%s_stringify_t%u(v%u, v%u);\n",
-                        (unsigned int)instruction->result,
-                        format,
-                        (unsigned int)instruction->payloadType,
+                        "    { size_t size = 0; char* text = %s(v%u, v%u, &size);\n"
+                        "      v%u = (xlir_string){text, text != NULL ? size : 0}; }\n",
+                        strcmp(format, "json") == 0 ? "xrtJsonStringify" : "xrtXlonStringify",
                         (unsigned int)module->operands[
                             instruction->firstOperand],
                         (unsigned int)module->operands[
-                            instruction->firstOperand + 1]);
+                            instruction->firstOperand + 1],
+                        (unsigned int)instruction->result);
                 } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
                             instruction->runtimeOp ==
@@ -230,11 +241,12 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter persistence write ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_persist_%s_write_t%u(v%u, v%u, v%u);\n",
-                        (unsigned int)instruction->result, format,
-                        (unsigned int)instruction->payloadType,
+                        "    { const char* path = xlir_string_cstr(v%u);\n"
+                        "      v%u = path != NULL && %s(path, v%u, v%u); }\n",
                         (unsigned int)module->operands[
                             instruction->firstOperand],
+                        (unsigned int)instruction->result,
+                        strcmp(format, "json") == 0 ? "xrtJsonStringifyFile" : "xrtXlonStringifyFile",
                         (unsigned int)module->operands[
                             instruction->firstOperand + 1],
                         (unsigned int)module->operands[
@@ -579,11 +591,11 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLONE ) {
-                    xl6OutputPrintf(out, "    v%u = xrtValueClone(v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xl6ValueCloneV1(v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DEEP_CLONE ) {
-                    xl6OutputPrintf(out, "    v%u = xrtValueDeepClone(v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xl6ValueDeepCloneV1(v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp ==

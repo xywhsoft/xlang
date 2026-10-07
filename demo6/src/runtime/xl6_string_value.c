@@ -1,4 +1,43 @@
 #include "src/runtime/xl6_string_type.h"
+#include "src/api/xl_foreign_error.h"
+#include <stdlib.h>
+
+/* Borrowed inputs, independent output and exact byte length, including NUL.
+ * Capture failures before every temporary is retired: allocator/drop hooks
+ * may report another error, but must not replace the operation's first one. */
+XL6_TEXT_API xvalue* xl6ValueStringConcatV1(const xvalue* left, const xvalue* right)
+{
+    xerror* incoming = xrtTakeError();
+    xl6_error_scope operation = {0};
+    if (!xl6ErrorScopeBegin(&operation)) abort();
+    xvalue* a = NULL; xvalue* b = NULL; xvalue* result = NULL;
+    char* joined = NULL; xstrview av = {0}, bv = {0};
+    if (!left || !right || xrtValueType(left) != XVALUE_STRING ||
+        xrtValueType(right) != XVALUE_STRING) {
+        xrtSetErrorKind(XERR_TYPE); goto done;
+    }
+    a = xrtValueRetain(left); b = xrtValueRetain(right);
+    if (!a || !b || !xrtValueGetString(a, &av) || !xrtValueGetString(b, &bv)) goto done;
+    if (av.Size > SIZE_MAX - bv.Size || av.Size + bv.Size == SIZE_MAX) {
+        xrtSetErrorKind(XERR_RANGE); goto done;
+    }
+    joined = xrtStrConcat(av, bv);
+    if (joined) result = xrtValueString((xstrview){joined, av.Size + bv.Size});
+done:
+    if (!result || xrtGetError()) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
+        xl6ErrorScopeCaptureFailure(&operation);
+    }
+    xrtFree(joined);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
+    xrtValueRelease(b); xrtValueRelease(a);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
+    if (operation.failed) { xrtValueRelease(result); result = NULL; }
+    xl6_error_result outcome = xl6ErrorScopeEnd(&operation);
+    if (!outcome.ok) { xrtErrorFree(incoming); xl6ErrorScopePropagateFailure(outcome); }
+    else xrtSetErrorTake(incoming);
+    return result;
+}
 
 /* Projection is a separate resident island from storage-only operations. */
 static bool toTyped(const xvalue* source, const xrttype* type, ptr target, ptr context)

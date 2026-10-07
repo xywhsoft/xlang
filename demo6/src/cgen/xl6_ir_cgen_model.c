@@ -242,26 +242,17 @@ static int xl6IrCgenPersistenceLayoutSupported(
         module, type, format, 0);
 }
 
-static int xl6IrCgenPersistenceValueProjectionSupported(
-    const XL6_IrModule* module, XL6_IrTypeId typeId, uint32 format)
-{
-    const XL6_IrType* type = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    return type != NULL &&
-        (format == XL6_IR_PERSIST_FORMAT_JSON ||
-         format == XL6_IR_PERSIST_FORMAT_XLON) &&
-        xl6IrCgenPersistenceTypeSupportedDepth(
-            module, typeId, format, 0, 0);
-}
 
 static uint32 xl6IrCgenPersistenceRuntimeFormat(XL6_IrRuntimeOp operation)
 {
     switch ( operation ) {
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_READ:
         return XL6_IR_PERSIST_FORMAT_JSON;
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT:
     case XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY:
     case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
     case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE:
@@ -315,8 +306,7 @@ static int xl6IrCgenPersistenceStringifyAbi(
         prettyType->cAbi == XL6_IR_C_ABI_BOOL &&
         resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
         resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-        xl6IrCgenPersistenceValueProjectionSupported(
-            module, instruction->payloadType, format);
+        xl6IrPersistenceWireMatches(module, source->type, instruction->payloadType, format);
 }
 
 static int xl6IrCgenPersistenceWriteAbi(
@@ -369,8 +359,7 @@ static int xl6IrCgenPersistenceWriteAbi(
         prettyType->cAbi == XL6_IR_C_ABI_BOOL &&
         resultType->cAbi == XL6_IR_C_ABI_BOOL &&
         resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-        xl6IrCgenPersistenceValueProjectionSupported(
-            module, instruction->payloadType, format);
+        xl6IrPersistenceWireMatches(module, source->type, instruction->payloadType, format);
 }
 
 static int xl6IrCgenPersistenceParseAbi(

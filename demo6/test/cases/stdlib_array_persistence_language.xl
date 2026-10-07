@@ -1,0 +1,6 @@
+array<int> source = array<int>[1, 2]
+assert(json.stringify(source) == "[1,2]")
+assert(xlon.stringify(source) == "[1,2]")
+var mixed = {"native": source}
+assert(json.parse(json.stringify(mixed))["native"][1] == 2)
+assert(xlon.parse(xlon.stringify(mixed))["native"][1] == 2)

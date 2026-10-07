@@ -16366,6 +16366,63 @@ XRT_EXTERN_C_BEGIN
 */
 XRT_API xvalue* xrtValueDeepClone(const xvalue* pValue);
 
+/* Optional resident extension of the same acyclic graph copier. No Handle
+ * ABI/global registry is changed. Captured handle fields may be inspected
+ * only after matching the exact immutable Ops identity; never dereference
+ * an unknown handle. During Copy the entire active source path is BUSY.
+ * Return 0 with a NULL output to use the ordinary Handle policy, 1 with an
+ * independently owned output on success, or -1 on failure. The copier owns
+ * any non-NULL output even on failure. Callbacks must not mutate/retain/drop
+ * any source graph node, nor retain the synchronous continuation capability.
+ * Next reuses the SAME identity memo and depth/cycle checks; it is the only
+ * permitted recursive entry. Independent nested GraphCopy calls do not
+ * preserve aliases and must not be used as the continuation. Next returns
+ * an owned value; unused results may be released. The traversal separately
+ * pins completed memo targets until it ends, even if an adapter declines. */
+typedef struct xvaluegraphnextv1 xvaluegraphnextv1;
+typedef int (*xvaluegraphhandlecopyv1)(const xvaluehandleops* pOps,
+	ptr pHandle, ptr pHandleUser, uint64 iTypeId, xvaluegraphnextv1* pNext,
+	xvalue** pTarget, ptr pUserData);
+/* Optional object schema projection before ordinary traversal. TypeId is
+ * captured before the source is guarded. Select object fields through the
+ * current capability, then recurse only through Next; excluded fields are
+ * never visited. The same 0/1/-1 and output-ownership contract applies. */
+typedef int (*xvaluegraphobjectcopyv1)(uint64 iTypeId,
+	xvaluegraphnextv1* pNext, xvalue** pTarget, ptr pUserData);
+/* Exact nominal sequence policies for data projection. Only the matching
+ * IntMap/Set identity is written as an Array, in its ordinary iteration order.
+ * Untyped/unlisted containers retain their representation. A listed identity
+ * on the wrong physical type fails closed. The immutable table is borrowed
+ * only for the synchronous copy; no registry or application callback is used. */
+typedef struct xvaluegraphsequencev1 {
+	uint64 TypeId;
+	xvaluetype Type; /* XVALUE_INT_MAP or XVALUE_SET */
+} xvaluegraphsequencev1;
+enum {
+	/* Data snapshots copy container data, not logical identities/lifecycle.
+	 * Unhandled opaque handles are retained, NOT cloned: the downstream
+	 * serializer/consumer still owns its unsupported-value policy. */
+	XVALUE_GRAPH_COPY_DATA_V1 = 1u
+};
+typedef struct xvaluegraphcopyv1 {
+	size_t Size;
+	uint32 Flags;
+	xvaluegraphhandlecopyv1 CopyHandle;
+	ptr UserData;
+	xvaluegraphobjectcopyv1 CopyObject;
+	const xvaluegraphsequencev1* Sequences;
+	size_t SequenceCount; /* requires XVALUE_GRAPH_COPY_DATA_V1 */
+} xvaluegraphcopyv1;
+XRT_API xvalue* xrtValueGraphCopyV1(const xvalue* pValue,
+	const xvaluegraphcopyv1* pConfig);
+XRT_API xvalue* xrtValueGraphNextV1(xvaluegraphnextv1* pNext,
+	const xvalue* pChild);
+/* Borrow one field of the current object without exposing an unguarded
+ * source shell. NULL means absent (unchanged error), or failure (new error).
+ * The edge must not be retained/released/mutated; pass it directly to Next. */
+XRT_API xvalue* xrtValueGraphObjectGetV1(xvaluegraphnextv1* pNext,
+	xstrview Key);
+
 
 
 /*

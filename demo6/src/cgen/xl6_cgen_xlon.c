@@ -161,16 +161,18 @@ static const char xl6XlonVisitor[] =
     "\n";
 
 static const char xl6XlonParse[] =
-    "xvalue* xl6_xrt_xlon_parse_options(xlir_string text, bool pretty, bool ignoreEncode, bool ignoreDecode)\n"
+    "#include <__xl_runtime/xl6_serialization_read.h>\n"
+    "xlir_result_xvalue xl6_xrt_xlon_parse_options(xlir_string text, bool pretty, bool ignoreEncode, bool ignoreDecode)\n"
     "{\n"
     "    xxlonreadconfig config;\n"
     "    xvalue* value;\n"
+    "    xerror* prior = xrtTakeError();\n"
     "    (void)pretty; (void)ignoreEncode;\n"
-    "    if ( text.Data == 0 ) { return 0; }\n"
+    "    if ( text.Data == 0 ) { xrtSetErrorTake(prior); return (xlir_result_xvalue){ true, NULL }; }\n"
     "    if ( !ignoreDecode ) value = xrtXlonParse(text);\n"
     "    else { config = xl6_xlon_read_config(true); value = xrtXlonRead(text, &config); }\n"
-    "    if (value == 0) xrtClearError();\n"
-    "    return value;\n"
+    "    bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+    "    return (xlir_result_xvalue){ ok, ok ? value : NULL };\n"
     "}\n"
     "\n";
 
@@ -195,17 +197,19 @@ static const char xl6XlonValid[] =
     "\n";
 
 static const char xl6XlonRead[] =
-    "xvalue* xl6_xrt_xlon_read_options(xlir_string path, bool pretty, bool ignoreEncode, bool ignoreDecode)\n"
+    "#include <__xl_runtime/xl6_serialization_read.h>\n"
+    "xlir_result_xvalue xl6_xrt_xlon_read_options(xlir_string path, bool pretty, bool ignoreEncode, bool ignoreDecode)\n"
     "{\n"
     "    xxlonreadconfig config;\n"
     "    xvalue* value;\n"
+    "    xerror* prior = xrtTakeError();\n"
     "    (void)pretty; (void)ignoreEncode;\n"
     "    const char* cpath = xlir_string_cstr(path);\n"
-    "    if ( cpath == 0 ) { return 0; }\n"
-    "    if ( !ignoreDecode ) value = xrtXlonParseFile(cpath);\n"
+    "    if ( cpath == 0 ) value = NULL;\n"
+    "    else if ( !ignoreDecode ) value = xrtXlonParseFile(cpath);\n"
     "    else { config = xl6_xlon_read_config(true); value = xrtXlonReadFile(cpath, &config); }\n"
-    "    if (value == 0) xrtClearError();\n"
-    "    return value;\n"
+    "    bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+    "    return (xlir_result_xvalue){ ok, ok ? value : NULL };\n"
     "}\n"
     "\n";
 

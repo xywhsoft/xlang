@@ -34,6 +34,8 @@
 #include "src/runtime/xl6_array_import.h"
 #include "src/runtime/xl6_array_import_chain.h"
 #include "src/runtime/xl6_array_algebra.h"
+#include "src/runtime/xl6_array_graph.h"
+#include "src/runtime/xl6_persistence_project.h"
 #include "src/runtime/xl6_array_methods.h"
 #include "src/runtime/xl6_array_extract.h"
 #include "src/runtime/xl6_value_admission.h"

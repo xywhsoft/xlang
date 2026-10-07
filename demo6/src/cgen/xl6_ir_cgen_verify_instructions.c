@@ -284,6 +284,8 @@ static int xl6IrCgenVerifyInstructions(
                         module, instruction)) ||
                    (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
                     !xl6IrArrayImportRuntimeInstructionCompatible(module,instruction)) ||
+                   (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE &&
+                    !xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction)) ||
                    (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT &&
                    (instruction->immediateText != NULL || instruction->operandCount != 1 ||
                     xl6IrCgenType(module, instruction->type) == NULL)) ||
@@ -436,6 +438,9 @@ static int xl6IrCgenVerifyInstructions(
                    !xl6IrCgenRuntimeI64PowAbi(module, instruction)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_TIME_APPROX &&
                    !xl6IrCgenRuntimeTimeApproxAbi(module, instruction)) ||
+                  ((instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
+                   !xl6IrPersistenceProjectInstructionAbi(module, instruction)) ||
                   ((instruction->runtimeOp ==
                         XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                     instruction->runtimeOp ==
@@ -604,11 +609,14 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_BYTES_RETAIN &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLONE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_DEEP_CLONE &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT &&
                    instruction->runtimeOp !=
                        XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST &&
                     instruction->runtimeOp !=
                         XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
+                    instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_CREATE &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_COUNT &&
                     instruction->runtimeOp !=
                         XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE &&
