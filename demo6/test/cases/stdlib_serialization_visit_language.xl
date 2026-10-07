@@ -1,0 +1,62 @@
+// Status results must not leave a native parser diagnostic on the language
+// error boundary. Exact event strings/bytes and borrowed callback owners survive
+// nested visits, temporary capture and replacement of the caller's function slot.
+int eventCount = 0
+array<var> savedEvents = []
+func continueVisit(var event) as bool
+    eventCount += 1
+    if event["type"] == "string" or event["type"] == "bytes" then
+        savedEvents.append(event)
+    end
+    return true
+end
+func stopVisit(var event) as bool
+    return false
+end
+func nestedVisit(var event) as bool
+    assert(json.visit("{", continueVisit) == json.visitInvalid)
+    assert(xlon.visit("{", continueVisit) == xlon.visitInvalid)
+    assert(json.visit("null", continueVisit) == json.visitComplete)
+    return true
+end
+func capturedVisitor(string marker) as func(var) as bool
+    return func(var event) as bool
+        assert(marker == "你\0好")
+        return true
+    end
+end
+func(var) as bool replaceVisitor = null
+replaceVisitor = func(var event) as bool
+    replaceVisitor = stopVisit
+    return true
+end
+
+assert(json.visit("{", continueVisit) == json.visitInvalid)
+assert(json.visit("", continueVisit) == json.visitInvalid)
+assert(json.visit("null\0junk", continueVisit) == json.visitInvalid)
+assert(xlon.visit("{", continueVisit) == xlon.visitInvalid)
+assert(xlon.visit("null\0junk", continueVisit) == xlon.visitInvalid)
+assert(json.visit("{", continueVisit, null) == json.visitInvalid)
+assert(xlon.visit("{", continueVisit, null) == xlon.visitInvalid)
+assert(xlon.visit("{", continueVisit, xlon.options()) == xlon.visitInvalid)
+assert(json.visit("[]", continueVisit, {"maxInputBytes": 1}) == json.visitInvalid)
+assert(xlon.visit("[]", continueVisit, {"maxInputBytes": 1}) == xlon.visitInvalid)
+assert(json.visit("[1]", stopVisit) == json.visitStopped)
+assert(xlon.visit("[1]", stopVisit, null) == xlon.visitStopped)
+assert(json.visit("[1,2]", nestedVisit) == json.visitComplete)
+assert(xlon.visit("[1,2]", nestedVisit, null) == xlon.visitComplete)
+assert(json.visit("null", capturedVisitor("你\0好"), null) == json.visitComplete)
+assert(xlon.visit("null", capturedVisitor("你\0好")) == xlon.visitComplete)
+assert(json.visit("[1,2]", replaceVisitor, null) == json.visitComplete)
+assert(json.visit("null", replaceVisitor) == json.visitStopped)
+assert(json.visit(`{"你\u0000好":"a\u0000b"}`, continueVisit) == json.visitComplete)
+assert(savedEvents.length == 1)
+assert(string(savedEvents[0]["key"]) == "你\0好")
+assert(string(savedEvents[0]["value"]) == "a\0b")
+assert(int(savedEvents[0]["byteOffset"]) >= 0)
+assert(int(savedEvents[0]["line"]) == 1)
+assert(int(savedEvents[0]["column"]) > 1)
+assert(xlon.visit(`bytes("YQBi")`, continueVisit) == xlon.visitComplete)
+assert(savedEvents.length == 2)
+assert(bytes(savedEvents[1]["value"]) == b"a\0b")
+assert(eventCount > 0)

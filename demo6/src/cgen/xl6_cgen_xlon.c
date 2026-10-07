@@ -152,11 +152,15 @@ static const char xl6XlonVisitor[] =
     "    xxlonreadconfig config;\n"
     "    int status;\n"
     "    (void)pretty; (void)ignoreEncode;\n"
-    "    if ( text.Data == 0 || (visitor.invoke_var == 0 && visitor.invoke_xcall == 0) ) { return xl6_serialization_callback_finish(&context, -1); }\n"
+    "    context.PriorError = xrtTakeError();\n"
+    "    if (visitor.invoke_var == 0 && visitor.invoke_xcall == 0) {\n"
+    "        xrtSetErrorKind(XERR_ARGUMENT); xl6_serialization_callback_fail(&context);\n"
+    "        return xl6_serialization_visit_finish(&context, -1); }\n"
+    "    if (text.Data == 0) return xl6_serialization_visit_finish(&context, -1);\n"
     "    context.Visitor = visitor;\n"
     "    config = xl6_xlon_read_config(ignoreDecode);\n"
     "    status = xrtXlonVisit(text, &config, xl6_xlon_visit_proc, &context);\n"
-    "    return xl6_serialization_callback_finish(&context, status);\n"
+    "    return xl6_serialization_visit_finish(&context, status);\n"
     "}\n"
     "\n";
 

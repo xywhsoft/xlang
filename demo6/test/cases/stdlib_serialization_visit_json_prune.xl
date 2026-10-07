@@ -1,0 +1,6 @@
+func continueVisit(var event) as bool
+    return true
+end
+int status = json.visit("[1]", continueVisit)
+assert(status == json.visitComplete)
+assert(json.visit("{", continueVisit, null) == json.visitInvalid)

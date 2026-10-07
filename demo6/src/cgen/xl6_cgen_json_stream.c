@@ -90,11 +90,15 @@ static const char xl6JsonStreamVisitor[] =
     "    xl6_serialization_visitor_context context = {0};\n"
     "    xjsonreadconfig config;\n"
     "    int status;\n"
-    "    if ( text.Data == 0 || (visitor.invoke_var == 0 && visitor.invoke_xcall == 0) ) { return xl6_serialization_callback_finish(&context, -1); }\n"
+    "    context.PriorError = xrtTakeError();\n"
+    "    if (visitor.invoke_var == 0 && visitor.invoke_xcall == 0) {\n"
+    "        xrtSetErrorKind(XERR_ARGUMENT); xl6_serialization_callback_fail(&context);\n"
+    "        return xl6_serialization_visit_finish(&context, -1); }\n"
+    "    if (text.Data == 0) return xl6_serialization_visit_finish(&context, -1);\n"
     "    xrtJsonReadConfigInit(&config);\n"
     "    context.Visitor = visitor;\n"
     "    status = xrtJsonVisit(text, &config, xl6_json_stream_visit_proc, &context);\n"
-    "    return xl6_serialization_callback_finish(&context, status);\n"
+    "    return xl6_serialization_visit_finish(&context, status);\n"
     "}\n\n";
 
 

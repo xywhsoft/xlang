@@ -203,20 +203,24 @@ void xl6CgenEmitStructuredOptionsRuntime(XL6_Output* out, unsigned operations)
         xl6OutputPuts(
             "XL6_Serialization_Visit_Result xl6_xrt_json_visit_configured(xlir_string text, XL6_Function visitor, xvalue* options)\n"
             "{ xl6_serialization_visitor_context context = {0}; xjsonreadconfig config; int status;\n"
-            "  context.Visitor = visitor;\n"
-            "  if (text.Data == NULL || (visitor.invoke_var == NULL && visitor.invoke_xcall == NULL) ||\n"
-            "      !xl6JsonReadOptions(options, &config)) return xl6_serialization_callback_finish(&context, -1);\n"
+            "  context.Visitor = visitor; context.PriorError = xrtTakeError();\n"
+            "  if ((visitor.invoke_var == NULL && visitor.invoke_xcall == NULL) || !xl6JsonReadOptions(options, &config)) {\n"
+            "      if (xrtGetError() == NULL) xrtSetErrorKind(XERR_ARGUMENT);\n"
+            "      xl6_serialization_callback_fail(&context); return xl6_serialization_visit_finish(&context, -1); }\n"
+            "  if (text.Data == NULL) return xl6_serialization_visit_finish(&context, -1);\n"
             "  status = xrtJsonVisit(text, &config, xl6_json_stream_visit_proc, &context);\n"
-            "  return xl6_serialization_callback_finish(&context, status); }\n\n", out);
+            "  return xl6_serialization_visit_finish(&context, status); }\n\n", out);
     if (operations & XL6_CGEN_CONFIG_XLON_VISIT)
         xl6OutputPuts(
             "XL6_Serialization_Visit_Result xl6_xrt_xlon_visit_configured(xlir_string text, XL6_Function visitor, xvalue* options)\n"
             "{ xl6_serialization_visitor_context context = {0}; xxlonreadconfig config; int status;\n"
-            "  context.Visitor = visitor;\n"
-            "  if (text.Data == NULL || (visitor.invoke_var == NULL && visitor.invoke_xcall == NULL) ||\n"
-            "      !xl6XlonReadOptions(options, &config)) return xl6_serialization_callback_finish(&context, -1);\n"
+            "  context.Visitor = visitor; context.PriorError = xrtTakeError();\n"
+            "  if ((visitor.invoke_var == NULL && visitor.invoke_xcall == NULL) || !xl6XlonReadOptions(options, &config)) {\n"
+            "      if (xrtGetError() == NULL) xrtSetErrorKind(XERR_ARGUMENT);\n"
+            "      xl6_serialization_callback_fail(&context); return xl6_serialization_visit_finish(&context, -1); }\n"
+            "  if (text.Data == NULL) return xl6_serialization_visit_finish(&context, -1);\n"
             "  status = xrtXlonVisit(text, &config, xl6_xlon_visit_proc, &context);\n"
-            "  return xl6_serialization_callback_finish(&context, status); }\n\n", out);
+            "  return xl6_serialization_visit_finish(&context, status); }\n\n", out);
     if (operations & (XL6_CGEN_CONFIG_JSON_VALID | XL6_CGEN_CONFIG_XLON_VALID |
                       XL6_CGEN_CONFIG_JSONL_VALID | XL6_CGEN_CONFIG_XLONL_VALID))
         xl6OutputPuts(
