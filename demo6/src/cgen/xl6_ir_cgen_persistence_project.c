@@ -14,17 +14,23 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
     XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t p, s, f;
+    int encode = 0, io = 0;
     if (module->persistenceProjectPlanCount == 0) return 1;
     if (!xl6IrVerifyPersistenceProjectPlans(module))
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR persistence projection tables are invalid");
     xl6OutputPuts("#include <__xl_runtime/xl6_persistence_project.h>\n", out);
     for (s = 0; s < module->instructionCount; ++s)
-        if (module->instructions[s].kind == XL6_IR_INSTR_RUNTIME_CALL &&
-            xl6IrConfiguredPersistenceRuntime(module->instructions[s].runtimeOp) != NULL) {
-            xl6OutputPuts("#include <__xl_runtime/xl6_serialization_encode.h>\n", out);
-            break;
+        if (module->instructions[s].kind == XL6_IR_INSTR_RUNTIME_CALL) {
+            const XL6_IrPersistenceInvocationContract* invocation =
+                xl6IrPersistenceInvocationRuntime(module->instructions[s].runtimeOp);
+            if (invocation != NULL) {
+                if (invocation->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE) encode = 1;
+                else io = 1;
+            }
         }
+    if (encode) xl6OutputPuts("#include <__xl_runtime/xl6_serialization_encode.h>\n", out);
+    if (io) xl6OutputPuts("#include <__xl_runtime/xl6_serialization_io.h>\n", out);
     for (p = 0; p < module->persistenceProjectPlanCount; ++p) {
         const XL6_IrPersistenceProjectPlan* plan = &module->persistenceProjectPlans[p];
         int open = 0;

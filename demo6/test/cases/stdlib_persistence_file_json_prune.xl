@@ -1,0 +1,8 @@
+class FilePruned
+    derive value
+    string label @json("名\0字") = "a\0b"
+    array<int> values = array<int>[1, 2]
+    private int secret = 3
+end
+// This parent is absent from the frozen root; no filesystem output is created.
+assert(not json.write("build/test/__xl_persistence_missing_20261007/one.json", FilePruned(), {}))

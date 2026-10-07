@@ -1,0 +1,112 @@
+class StreamBase
+    derive value
+    int inherited @json("shared") @xlon("base") = 1
+end
+class StreamRecord extends StreamBase
+    derive value
+    int child @json("shared") = 2
+    string text @json("名\0字") = "a\0b"
+    private int hidden = 77
+    int skipped @persist(skip) = 88
+    array<int> empty @persist(omit=empty) = array<int>[]
+    array<int> values = array<int>[1, 2]
+    list<int> sparse = list<int>[2: 20, 5: 50]
+    set<int> unique = set<int>{3, 4}
+end
+StreamRecord source = StreamRecord()
+array<StreamRecord> records = array<StreamRecord>[source, source]
+Buffer output = Buffer()
+int chunks = 0
+func consume(var part) as bool
+    chunks += 1
+    return output.append(bytes(part))
+end
+func capturedConsumer(Buffer target) as func(var) as bool
+    return func(var part) as bool
+        chunks += 1
+        return target.append(bytes(part))
+    end
+end
+assert(json.writeTo(source, capturedConsumer(output), {"escapeNonAscii": true}))
+var parsed = json.parse(output.text())
+assert(chunks > 0 and parsed["shared"] == 2)
+assert(parsed["名\0字"] == "a\0b")
+assert(parsed["hidden"] == null and parsed["skipped"] == null and parsed["empty"] == null)
+assert(parsed["values"][0] == 1 and parsed["sparse"][0] == 20 and parsed["unique"].length == 2)
+output = Buffer()
+assert(xlon.writeTo(source, consume))
+var extended = xlon.parse(output.text())
+assert(extended["base"] == 1 and extended["child"] == 2 and extended["text"] == "a\0b")
+output = Buffer()
+assert(jsonl.writeTo(records, consume, {"record": {"escapeNonAscii": true}}))
+var lines = jsonl.parse(output.text())
+assert(lines.length == 2 and lines[1]["名\0字"] == "a\0b" and lines[0]["shared"] == 2)
+output = Buffer()
+assert(xlonl.writeTo(records, consume, null))
+var xlines = xlonl.parse(output.text())
+assert(xlines.length == 2 and xlines[1]["base"] == 1 and xlines[0]["text"] == "a\0b")
+output = Buffer()
+assert(json.writeTo(value=null, sink=consume, options=null))
+assert(output.text() == "null")
+output = Buffer()
+assert(jsonl.writeTo(array<int>[], consume))
+assert(output.text() == "")
+int order = 0
+func orderedOptions() as var
+    assert(order == 0)
+    order = 1
+    return {}
+end
+func orderedSink() as func(var) as bool
+    assert(order == 1)
+    order = 2
+    return consume
+end
+func orderedSource() as StreamRecord
+    assert(order == 2)
+    order = 3
+    return source
+end
+output = Buffer()
+assert(json.writeTo(options=orderedOptions(), sink=orderedSink(), value=orderedSource()))
+assert(order == 3 and json.parse(output.text())["shared"] == 2)
+func genericWrite<T>(T item, func(var) as bool destination) as bool
+    return xlon.writeTo(item, destination, {})
+end
+output = Buffer()
+assert(genericWrite::<StreamRecord>(source, consume))
+assert(xlon.parse(output.text())["base"] == 1)
+Buffer nested = Buffer()
+func nestedConsume(var part) as bool
+    return nested.append(bytes(part))
+end
+func mutateAndReenter(var part) as bool
+    if chunks == 0 then
+        source.values[0] = 99
+        assert(json.writeTo("nested\0value", nestedConsume))
+    end
+    chunks += 1
+    return output.append(bytes(part))
+end
+chunks = 0
+output = Buffer()
+assert(json.writeTo(source, mutateAndReenter, {}))
+assert(source.values[0] == 99)
+assert(json.parse(output.text())["values"][0] == 1)
+assert(json.parse(nested.text()) == "nested\0value")
+// Retain the selected closure independently of a reassigned source slot.
+int originalCalls = 0
+int replacementCalls = 0
+func replacement(var part) as bool
+    replacementCalls += 1
+    return true
+end
+func(var) as bool replaceSelf = func(var part) as bool
+    originalCalls += 1
+    replaceSelf = replacement
+    return output.append(bytes(part))
+end
+output = Buffer()
+assert(json.writeTo(source, replaceSelf, {}))
+assert(originalCalls > 1 and replacementCalls == 0)
+assert(json.parse(output.text())["values"][0] == 99)

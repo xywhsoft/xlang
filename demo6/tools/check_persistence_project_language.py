@@ -2,7 +2,7 @@
 """Actual PROJECT language path, strict C/JIT/AOT and complete synchronous OOM prefix.
 
 Generated C and the host use O0/O2. Linked runtime/compiler optimization is
-recorded separately. Configured stringify covers all four encoders, not file/writer APIs.
+recorded separately. Configured encode/file/sink cover four formats, not nominal Writer APIs.
 """
 from __future__ import annotations
 import argparse
@@ -22,7 +22,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -31,7 +31,9 @@ def main() -> int:
     test_root = Path(__file__).resolve().parents[1]
     fixture_names = {'project': 'stdlib_persistence_project_language.xl',
                      'readers': 'stdlib_serialization_read_errors.xl',
-                     'configured': 'stdlib_persistence_configured_language.xl'}
+                     'configured': 'stdlib_persistence_configured_language.xl',
+                     'sinks': 'stdlib_persistence_sink_language.xl',
+                     'files': 'stdlib_persistence_file_language.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
@@ -39,7 +41,9 @@ def main() -> int:
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, oom_source,
              oom_host, memory, root / 'test/support/module_product_memory.h', product}
-    error_source = test_root / 'test/cases/stdlib_persistence_configured_errors.xl' if args.fixture == 'configured' else None
+    error_names = {'configured': 'stdlib_persistence_configured_errors.xl',
+                   'sinks': 'stdlib_persistence_sink_errors.xl', 'files': 'stdlib_persistence_file_errors.xl'}
+    error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
     public = None
     if args.public_directory:
@@ -75,6 +79,12 @@ def main() -> int:
               'RuntimeCompilerOptimization': 'O0' if public else 'See Linux product manifest',
               'OOMScope': 'Complete caller-thread module initialization and retirement prefix, no Future workers'}
     out.mkdir(parents=True)
+    run_environment = os.environ.copy()
+    if args.fixture == 'files':
+        scratch = out / 'files'
+        scratch.mkdir()
+        run_environment['XL6_PERSIST_FILE_ROOT'] = str(scratch)
+        report['FileOutputDirectory'] = str(scratch)
     if os.name == 'nt': shutil.copy2(product, out / 'xl.dll')
     else:
         shutil.copytree(root / 'src/runtime', includes / '__xl_runtime')
@@ -85,7 +95,7 @@ def main() -> int:
     strict = flags + ['-Wno-unused-function', '-Wno-unused-parameter', '-Wno-unused-variable', '-Wno-unused-label',
                       '-Wno-unused-const-variable', '-Wno-unused-but-set-variable', '-Wno-missing-field-initializers']
     def run(name: str, command: list[str], timeout: int = 360) -> str:
-        result = subprocess.run(command, cwd=root, capture_output=True, timeout=timeout)
+        result = subprocess.run(command, cwd=root, env=run_environment, capture_output=True, timeout=timeout)
         data = result.stdout + result.stderr
         (out / (name + '.log')).write_bytes(data)
         rows.append({'Name': name, 'Command': command, 'Exit': result.returncode, 'Complete': result.returncode == 0})
@@ -101,13 +111,19 @@ def main() -> int:
         generated = out / 'project.c'
         run('cgen', command('cgen-default', generated))
         text = generated.read_text(encoding='utf-8')
-        if args.fixture in ('project', 'configured'):
+        if args.fixture in ('project', 'configured', 'sinks', 'files'):
             assert 'xl6PersistenceProjectV1(' in text and 'xlir_persist_plan_2' in text and 'xlir_persist_plan_4' in text
             if args.fixture == 'configured':
                 assert 'xl6_serialization_encode.h' in text
                 assert all(name + '(' in text for name in
                            ('xl6JsonEncodeV1', 'xl6XlonEncodeV1', 'xl6JsonlEncodeV1', 'xl6XlonlEncodeV1'))
                 assert '_stringify_configured(' not in text
+            elif args.fixture in ('sinks', 'files'):
+                assert 'xl6_serialization_io.h' in text
+                suffix = 'WriteSinkV1' if args.fixture == 'sinks' else 'WriteFileV1'
+                assert all('xl6' + name + suffix + '(' in text for name in ('Json', 'Xlon', 'Jsonl', 'Xlonl'))
+                assert '_write_to_configured(' not in text and '_write_file_configured(' not in text
+                assert 'bool projection_ok_' in text
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text
@@ -127,7 +143,10 @@ def main() -> int:
         if error_source:
             errors_generated = out / 'errors.c'
             run('errors.cgen', command('cgen-default', errors_generated, error_source))
-            assert '_stringify_configured(' not in errors_generated.read_text(encoding='utf-8')
+            errors_text = errors_generated.read_text(encoding='utf-8')
+            assert '_stringify_configured(' not in errors_text
+            if args.fixture in ('sinks', 'files'):
+                assert '_write_to_configured(' not in errors_text and '_write_file_configured(' not in errors_text
             for level in (0, 2):
                 errors_binary = out / f'errors.O{level}.exe'
                 run(f'errors.O{level}.compile', [cc, *strict, f'-O{level}', '-include', str(errors_generated),

@@ -1632,6 +1632,14 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY,
        XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_STRINGIFY,
        XL6_IR_RUNTIME_PERSISTENCE_XLONL_CONFIG_STRINGIFY,
+       XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_WRITE,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_WRITE,
+       XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_WRITE,
+       XL6_IR_RUNTIME_PERSISTENCE_XLONL_CONFIG_WRITE,
+       XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_SINK,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_SINK,
+       XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_SINK,
+       XL6_IR_RUNTIME_PERSISTENCE_XLONL_CONFIG_SINK,
        /* Borrows one managed JSON string and one fully initialized instance of
         * payloadType.  The verified schema overlays present serialized fields
         * onto that default instance and returns an owned retained class value. */
@@ -2282,6 +2290,14 @@ typedef enum XL6_IrIntrinsicKind {
     XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY,
     XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY,
     XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_STRINGIFY,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_WRITE,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_WRITE,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_WRITE,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_WRITE,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_SINK,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_SINK,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_SINK,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_SINK,
     XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT
 } XL6_IrIntrinsicKind;
 
@@ -3393,10 +3409,13 @@ typedef struct XL6_IrIntrinsicCall {
      * persistence intrinsic.  payloadAbi remains INVALID for persistence. */
     XL6_IrTypeId payloadType;
     XL6_IrAsyncResultAbi payloadAbi;
-    /* Configured persistence only: source operand's textual evaluation
-     * ordinal. The other operand is options; physical encoding is wire-first.
-     * Zero on every other intrinsic. */
+    /* Persistence invocation roles are textual evaluation ordinals, never
+     * argument reordering. SIZE_MAX means an absent default option/target;
+     * physical arguments are wire, options, then optional destination.
+     * All three are zero on every other intrinsic. */
     size_t persistenceSourceOperand;
+    size_t persistenceOptionsOperand;
+    size_t persistenceDestinationOperand;
     /* Exact generic runtime-resource transfer ABI.  This is independent from
      * Future payloadAbi, which remains dedicated to async completion values. */
     XL6_IrRuntimeResourcePayloadAbi runtimeResourcePayloadAbi;
@@ -6229,23 +6248,30 @@ int xl6IrPersistenceProjectInstructionAbi(
     const XL6_IrModule*, const XL6_IrInstruction*);
 /* One closed descriptor owns public identity, record projection format and
  * physical encoder selection. Backends never rediscover a source overload. */
-typedef struct XL6_IrConfiguredPersistenceEncoder {
+typedef enum XL6_IrPersistenceInvocationAction {
+    XL6_IR_PERSISTENCE_INVOKE_ENCODE,
+    XL6_IR_PERSISTENCE_INVOKE_FILE,
+    XL6_IR_PERSISTENCE_INVOKE_SINK
+} XL6_IrPersistenceInvocationAction;
+typedef struct XL6_IrPersistenceInvocationContract {
     XL6_IrIntrinsicKind intrinsic;
     XL6_IrRuntimeOp operation;
     uint32 projectionFormat;
+    XL6_IrPersistenceInvocationAction action;
     int acceptsDefaultOptions;
     const char* sourceName;
-    const char* encoder;
+    const char* entry;
     const char* nativeModule;
-} XL6_IrConfiguredPersistenceEncoder;
-const XL6_IrConfiguredPersistenceEncoder* xl6IrConfiguredPersistenceIntrinsic(
+} XL6_IrPersistenceInvocationContract;
+const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationIntrinsic(
     XL6_IrIntrinsicKind);
-const XL6_IrConfiguredPersistenceEncoder* xl6IrConfiguredPersistenceRuntime(
+const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationRuntime(
     XL6_IrRuntimeOp);
-int xl6IrConfiguredPersistenceInstructionAbi(
+int xl6IrPersistenceInvocationInstructionAbi(
     const XL6_IrModule*, const XL6_IrInstruction*);
-int xl6IrConfiguredPersistenceIntrinsicAbi(
+int xl6IrPersistenceInvocationIntrinsicAbi(
     const XL6_IrModule*, const XL6_IrIntrinsicCall*);
+XL6_IrCallErrorPhysicalAbi xl6IrPersistenceInvocationErrorPhysicalAbi(XL6_IrRuntimeOp);
 /* Validated execution provenance, distinct from instruction->sourceSpan. */
 XL6_IrNodeId xl6IrInstructionExecutionOrigin(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);

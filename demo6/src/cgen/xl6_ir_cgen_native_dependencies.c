@@ -216,11 +216,13 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
         !visitor(context,"XRT_MODULE_XLON_FILE")) return 0;
     for (size_t i = 0; i < module->instructionCount; ++i) {
         const XL6_IrInstruction* instruction = &module->instructions[i];
-        const XL6_IrConfiguredPersistenceEncoder* configured =
+        const XL6_IrPersistenceInvocationContract* configured =
             instruction->kind == XL6_IR_INSTR_RUNTIME_CALL
-                ? xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp) : NULL;
+                ? xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) : NULL;
         if (configured != NULL && xl6IrCgenInstructionIsReachable(module, i) &&
-            (!visitor(context, configured->nativeModule) || !visitor(context, "XRT_MODULE_BUFFER"))) return 0;
+            (!visitor(context, configured->nativeModule) ||
+                (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE &&
+                    !visitor(context, "XRT_MODULE_BUFFER")))) return 0;
     }
     return 1;
 }

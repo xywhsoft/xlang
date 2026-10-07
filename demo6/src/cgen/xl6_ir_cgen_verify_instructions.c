@@ -438,8 +438,8 @@ static int xl6IrCgenVerifyInstructions(
                    !xl6IrCgenRuntimeI64PowAbi(module, instruction)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_TIME_APPROX &&
                    !xl6IrCgenRuntimeTimeApproxAbi(module, instruction)) ||
-                  (xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp) != NULL &&
-                   !xl6IrConfiguredPersistenceInstructionAbi(module, instruction)) ||
+                  (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL &&
+                   !xl6IrPersistenceInvocationInstructionAbi(module, instruction)) ||
                   ((instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
                     instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
                    !xl6IrPersistenceProjectInstructionAbi(module, instruction)) ||
@@ -692,7 +692,7 @@ static int xl6IrCgenVerifyInstructions(
                     !xl6IrCgenCheckedIntegerRuntimeOpIs(instruction->runtimeOp) &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_I64_POW &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_TIME_APPROX &&
-                   xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp) == NULL &&
+                   xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) == NULL &&
                    instruction->runtimeOp !=
                        XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY &&
                    instruction->runtimeOp !=

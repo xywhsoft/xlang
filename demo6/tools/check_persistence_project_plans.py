@@ -37,6 +37,8 @@ def main() -> int:
              ('defaults', root / 'test/cases/cgen_string_persistence_default_nul.xl')]
     cases.append(('readers', root / 'test/cases/stdlib_serialization_read_errors.xl'))
     cases.append(('configured', root / 'test/cases/stdlib_persistence_configured_language.xl'))
+    cases.append(('sinks', root / 'test/cases/stdlib_persistence_sink_language.xl'))
+    cases.append(('files', root / 'test/cases/stdlib_persistence_file_language.xl'))
     refusals = [root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
