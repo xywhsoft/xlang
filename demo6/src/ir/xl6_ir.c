@@ -19607,6 +19607,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeClassErrorPhysicalAbi(XL6_IrRuntimeOp ope
     case XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT:
     case XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND:
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
+    case XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE:
+        return XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER;
     default:
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
@@ -23045,6 +23047,42 @@ static int xl6IrInstructionHasIndependentFailureOrigin(
     return 0;
 }
 
+/* Resolve an explicit invocation through canonical layout/function metadata,
+ * never a source name, constructor overload, or diagnostic origin. */
+uint32 xl6IrClassDefaultInvocationFunction(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    const XL6_IrType* type;
+    const XL6_IrClassLayout* layout;
+    const XL6_IrFunction* function;
+    if (!module || !instruction || module->stage != XL6_IR_STAGE_LOWERED ||
+        instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp != XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE ||
+        instruction->type != instruction->payloadType || instruction->operandCount ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue || instruction->calleeType ||
+        instruction->runtimeIdentityType || instruction->opcode != XL6_IR_OPCODE_INVALID ||
+        instruction->collectionAbi != XL6_IR_COLLECTION_NONE ||
+        instruction->collectionAdmissionAbi != XL6_IR_COLLECTION_ADMISSION_NONE ||
+        instruction->collectionAdmissionIdentitySet || instruction->collectionAdmissionNullable ||
+        instruction->sequenceAdmissionIdentitySet ||
+        instruction->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
+        instruction->asyncResultAbi != XL6_IR_ASYNC_RESULT_INVALID) return 0;
+    type = xl6IrTypeGet(&module->types, instruction->type);
+    layout = xl6IrBuildClassLayoutByType(module, instruction->type);
+    if (!type || type->kind != XL6_IR_TYPE_CLASS ||
+        type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || !layout ||
+        layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT ||
+        !layout->persistenceDefaultFunction || layout->persistenceDefaultFunction > module->functionCount)
+        return 0;
+    function = &module->functions[layout->persistenceDefaultFunction - 1];
+    return function->kind == XL6_IR_FUNCTION_CLASS_DEFAULT && function->symbol &&
+        function->declaration == layout->declaration && function->returnType == instruction->type &&
+        !function->parameterCount && function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
+        ? layout->persistenceDefaultFunction : 0;
+}
+
 static int xl6IrVerifyPersistenceDefaultFunctions(const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t layoutIndex, programs = 0, functions = 0;
@@ -24204,6 +24242,12 @@ static int xl6IrBuildReachabilityFacts(
                         instruction->payloadType, format, 0, restoreVisited);
                     if (nested < 0) goto failed;
                     changed |= nested;
+                } else if ( instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
+                            instruction->runtimeOp == XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE ) {
+                    uint32 factory = xl6IrClassDefaultInvocationFunction(module, instruction);
+                    if (!factory) goto failed;
+                    changed |= xl6IrReachabilityPromote(&facts->functions[factory - 1],
+                        XL6_IR_REACHABILITY_TRANSITIVE);
                 } else if ( instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                             instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE ) {
@@ -37175,6 +37219,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ||
                             instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE ||
                           xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL ||
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
@@ -37765,6 +37810,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               instruction->runtimeIdentityType != instruction->type) )
                              return xl6IrDiag(diags, NULL,
                                  "XLIR runtime type rebind has no unique checked owner and exact target identity ABI");
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE ) {
+                        if (!xl6IrClassDefaultInvocationFunction(module, instruction))
+                            return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
+                                "XLIR class default invocation has no exact checked factory binding");
                     } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ) {
                         const XL6_IrType* resultType = xl6IrTypeGet(
@@ -45944,6 +45993,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
         return "xvalue-class-identity-bind";
     case XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT:
         return "xvalue-class-construction-commit";
+    case XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE:
+        return "class-default-invoke";
     case XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED:
         return "xvalue-type-rebind-owned";
     case XL6_IR_RUNTIME_XVALUE_TYPE_ID: return "xvalue-type-id";

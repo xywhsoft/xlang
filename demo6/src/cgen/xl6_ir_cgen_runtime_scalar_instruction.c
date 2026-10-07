@@ -30,6 +30,15 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                         "XLIR C emitter shared runtime ABI is unresolved");
                 if ( sharedRuntime > 0 ) {
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE) {
+                    uint32 factory = xl6IrClassDefaultInvocationFunction(module, instruction);
+                    if (!factory || module->functions[factory - 1].reachability == XL6_IR_REACHABILITY_UNREACHABLE)
+                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
+                            "XLIR class default invocation has no reachable factory");
+                    xl6OutputPrintf(out, "    %s r%lu = xlir_fn_%u();\n",
+                        xl6IrCgenErrorResultType(module, instruction->type),
+                        (unsigned long)(instruction - module->instructions),
+                        (unsigned)module->functions[factory - 1].symbol);
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
                     return xl6IrCgenEmitArrayCreate(out,module,instruction)>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {

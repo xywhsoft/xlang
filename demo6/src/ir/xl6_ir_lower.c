@@ -8850,8 +8850,8 @@ static int xl6IrLowerIntrinsicPersistenceParse(
      * during the final runtime operation. */
     if (textTemporary != 0 && !xl6IrLowerProtectEvaluationStorage(
             ctx, id, textTemporary, borrowedText, 0, 0)) return 1;
-    target = xl6IrLowerPersistenceClassDefault(
-        ctx, id, intrinsic->payloadType);
+    target = xl6IrLowerEmitRuntimeCallPayload(ctx, id, id, intrinsic->payloadType,
+        XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE, NULL, intrinsic->payloadType, NULL, 0);
     if ( target == XL6_IR_VALUE_INVALID ) return 1;
     borrowedTarget = xl6IrLowerBorrowRuntimeXValueOperand(
         ctx, id, call, target, &targetTemporary);
