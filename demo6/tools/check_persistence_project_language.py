@@ -28,7 +28,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore', 'restore-domains', 'restore-construction'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore', 'restore-domains', 'restore-construction', 'native-identity'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -46,7 +46,8 @@ def main() -> int:
                      'pretty': 'stdlib_persistence_pretty_language.xl',
                      'restore': 'stdlib_persistence_restore_language.xl',
                      'restore-domains': 'stdlib_persistence_restore_domains.xl',
-                     'restore-construction': 'stdlib_persistence_restore_construction.xl'}
+                     'restore-construction': 'stdlib_persistence_restore_construction.xl',
+                     'native-identity': 'stdlib_native_sequence_identity.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = test_root / 'test/cases/xlir_module_product_oom_host.c'
@@ -195,6 +196,11 @@ def main() -> int:
                     symbols[type_id] = call[1]
                     formats.setdefault(type_id, set()).add(format_name)
                 assert all(formats_for_type == {'json', 'xlon'} for formats_for_type in formats.values())
+        elif args.fixture == 'native-identity':
+            assert 'xl6SequencePrimitiveCreateV1(' in text and 'xl6SequenceNestedCreateTakeV2(' in text
+            assert 'xl6SequenceReferenceCreateV1(' in text and 'xl6StackEqualsV1(' in text
+            assert 'xl6_persistence_restore.h' in text and 'xlir_class_derive_equal_t' in text
+            assert 'xl6_xrt_array_create(' not in text and 'xl6_xrt_array_equals(' not in text
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text
