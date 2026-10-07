@@ -1,0 +1,6 @@
+class NominalPrunedRecord
+    derive xlon
+    int item @xlon("child") = 2
+    private int hidden = 77
+end
+assert(xlon.parse(xlon.stringify(NominalPrunedRecord(), xlon.options()))["child"] == 2)

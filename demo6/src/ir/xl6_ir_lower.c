@@ -8633,107 +8633,69 @@ static XL6_IrValueId xl6IrLowerPersistenceProject(
  * xvalue through the normal boxing ABI, anchors that owner, materializes the
  * default pretty flag, and preserves the semantic payload TypeId separately
  * on the RuntimeOp. */
-static int xl6IrLowerIntrinsicPersistenceStringify(
+static int xl6IrLowerIntrinsicPersistenceLegacy(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
     const XL6_IrIntrinsicCall* intrinsic, XL6_IrValueId* result)
 {
-    const XL6_IrIntrinsicOperand* sourceBinding;
-    const XL6_IrIntrinsicOperand* prettyBinding = NULL;
-    const XL6_IrNode* sourceNode;
-    const XL6_IrNode* prettyNode = NULL;
-    const XL6_IrType* sourceType;
-    const XL6_IrType* resultType;
-    XL6_IrTypeId boolType;
-    XL6_IrTypeId dynamicType;
-    XL6_IrValueId source;
-    XL6_IrValueId borrowed;
-    XL6_IrValueId pretty;
-    XL6_IrValueId operands[2];
-    XL6_SymbolId temporary = 0;
-    XL6_IrTypeId temporaryType = XL6_IR_TYPE_INVALID;
-    XL6_IrInstruction* instruction;
-    size_t evaluationFirst;
-
-    if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
-    if ( ctx == NULL || call == NULL || intrinsic == NULL || result == NULL ||
-         intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
-         (intrinsic->kind !=
-              XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY &&
-          intrinsic->kind !=
-              XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY) ||
-         (intrinsic->operandCount != 1 && intrinsic->operandCount != 2) ||
-         intrinsic->firstOperand >= ctx->module->intrinsicOperandCount ||
-         intrinsic->resultType != call->storageType ||
-         intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-         intrinsic->payloadType == XL6_IR_TYPE_INVALID ||
-         intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID ) return 0;
-    sourceBinding =
-        &ctx->module->intrinsicOperands[intrinsic->firstOperand];
-    if ( intrinsic->operandCount == 2 )
-        prettyBinding =
-            &ctx->module->intrinsicOperands[intrinsic->firstOperand + 1];
-    sourceNode = xl6IrNodeGet(ctx->module, sourceBinding->expression);
-    prettyNode = prettyBinding != NULL
-        ? xl6IrNodeGet(ctx->module, prettyBinding->expression) : NULL;
-    sourceType = sourceNode != NULL
-        ? xl6IrTypeGet(&ctx->module->types, sourceNode->storageType) : NULL;
-    resultType = xl6IrTypeGet(&ctx->module->types, call->storageType);
-    boolType = xl6IrLowerFindTypeByCAbi(
-        ctx->module, XL6_IR_C_ABI_BOOL);
-    dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-    if ( sourceNode == NULL || sourceType == NULL || resultType == NULL ||
-         boolType == XL6_IR_TYPE_INVALID || dynamicType == XL6_IR_TYPE_INVALID ||
-         sourceBinding->type != intrinsic->payloadType ||
-         sourceBinding->type != sourceNode->storageType ||
-         sourceBinding->abi !=
-             (sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-                 ? XL6_IR_INTRINSIC_OPERAND_BORROW
-                 : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
-         !xl6IrTypeCanBoxRuntimeXValue(ctx->module, sourceBinding->type) ||
-         resultType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-         (prettyBinding != NULL &&
-          (prettyNode == NULL ||
-           prettyBinding->type != prettyNode->storageType ||
-           prettyBinding->abi != XL6_IR_INTRINSIC_OPERAND_VALUE ||
-           xl6IrTypeGet(&ctx->module->types, prettyBinding->type) == NULL ||
-           xl6IrTypeGet(&ctx->module->types, prettyBinding->type)->cAbi !=
-               XL6_IR_C_ABI_BOOL)) ) return 0;
-
-    evaluationFirst=ctx->evaluationOwnerCount;
-    source = xl6IrLowerNode(ctx, sourceBinding->expression);
-    if ( source == XL6_IR_VALUE_INVALID ) return 1;
-    borrowed = xl6IrLowerBorrowDynamicOperand(
-        ctx, id, sourceNode, source, dynamicType, &temporary,
-        &temporaryType);
-    if ( borrowed == XL6_IR_VALUE_INVALID ||
-         (temporary != 0 && !xl6IrLowerProtectEvaluationStorage(ctx,id,temporary,borrowed,0,0)) ) return 1;
-    if ( prettyBinding != NULL ) {
-        pretty = xl6IrLowerNode(ctx, prettyBinding->expression);
-    } else {
-        if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, id, boolType,
-                              0, NULL, 0, &pretty) ) return 1;
-        instruction =
-            &ctx->module->instructions[ctx->module->instructionCount - 1];
-        instruction->immediateText = xrtStrDupN("false", 5);
-        if ( instruction->immediateText == NULL ) return 1;
+    XL6_IrTypeId dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+    XL6_IrTypeId boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+    XL6_IrValueId source = XL6_IR_VALUE_INVALID, pretty = XL6_IR_VALUE_INVALID;
+    XL6_IrValueId destination = XL6_IR_VALUE_INVALID, operands[3];
+    size_t first = ctx->evaluationOwnerCount;
+    int write = intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE ||
+        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE;
+    int json = intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY ||
+        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE;
+    *result = XL6_IR_VALUE_INVALID;
+    if (intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
+        intrinsic->resultType != call->storageType || dynamicType == XL6_IR_TYPE_INVALID ||
+        boolType == XL6_IR_TYPE_INVALID || !xl6IrPersistenceLegacyIntrinsicAbi(ctx->module, intrinsic)) return 0;
+    /* Roles choose the final native ABI, never the evaluation order. Anchor
+     * each owned temporary before the next expression can raise or replace it. */
+    for (size_t i = 0; i < intrinsic->operandCount; ++i) {
+        const XL6_IrIntrinsicOperand* binding =
+            &ctx->module->intrinsicOperands[intrinsic->firstOperand + i];
+        const XL6_IrNode* node = xl6IrNodeGet(ctx->module, binding->expression);
+        XL6_IrValueId value = xl6IrLowerNode(ctx, binding->expression);
+        XL6_SymbolId temporary = 0;
+        XL6_IrTypeId temporaryType = XL6_IR_TYPE_INVALID;
+        if (value == XL6_IR_VALUE_INVALID) return 1;
+        if (i == intrinsic->persistenceOptionsOperand) {
+            pretty = value;
+            continue;
+        }
+        if (i == intrinsic->persistenceDestinationOperand)
+            destination = xl6IrLowerBorrowManagedStringOperand(ctx, id, node, value, &temporary);
+        else
+            source = xl6IrLowerBorrowDynamicOperand(ctx, id, node, value,
+                dynamicType, &temporary, &temporaryType);
+        value = i == intrinsic->persistenceDestinationOperand ? destination : source;
+        if (value == XL6_IR_VALUE_INVALID || (temporary != 0 &&
+            !xl6IrLowerProtectEvaluationStorage(ctx, id, temporary, value, 0, 0))) return 1;
     }
-    if ( pretty == XL6_IR_VALUE_INVALID ) return 1;
-    operands[0] = xl6IrLowerPersistenceProject(ctx, id, borrowed,
-        intrinsic->payloadType,
-        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
-            ? XL6_IR_PERSIST_FORMAT_JSON : XL6_IR_PERSIST_FORMAT_XLON);
-    if (operands[0] == XL6_IR_VALUE_INVALID) return 1;
-    operands[1] = pretty;
-    *result = xl6IrLowerEmitRuntimeCallPayload(
-        ctx, id, id, call->storageType,
-        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
-            ? XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY
-            : XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY,
-        NULL, intrinsic->payloadType, operands, 2);
-    if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if (!xl6IrLowerCompleteEvaluationBorrows(ctx,id,evaluationFirst,result))
-        *result=XL6_IR_VALUE_INVALID;
+    if (intrinsic->persistenceOptionsOperand == SIZE_MAX) {
+        XL6_IrInstruction* constant;
+        if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, id, boolType, 0, NULL, 0, &pretty)) return 1;
+        constant = &ctx->module->instructions[ctx->module->instructionCount - 1];
+        constant->immediateText = xrtStrDupN("false", 5);
+        if (constant->immediateText == NULL) return 1;
+    }
+    if (source == XL6_IR_VALUE_INVALID || pretty == XL6_IR_VALUE_INVALID ||
+        (write && destination == XL6_IR_VALUE_INVALID)) return 1;
+    source = xl6IrLowerPersistenceProject(ctx, id, source, intrinsic->payloadType,
+        json ? XL6_IR_PERSIST_FORMAT_JSON : XL6_IR_PERSIST_FORMAT_XLON);
+    if (source == XL6_IR_VALUE_INVALID) return 1;
+    if (write) {
+        operands[0] = source; operands[1] = pretty; operands[2] = destination;
+    } else {
+        operands[0] = source; operands[1] = pretty;
+    }
+    *result = xl6IrLowerEmitRuntimeCallPayload(ctx, id, id, call->storageType,
+        write ? (json ? XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE : XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE)
+            : (json ? XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY : XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY),
+        NULL, intrinsic->payloadType, operands, write ? 3 : 2);
+    if (*result != XL6_IR_VALUE_INVALID && !xl6IrLowerCompleteEvaluationBorrows(ctx, id, first, result))
+        *result = XL6_IR_VALUE_INVALID;
     return 1;
 }
 
@@ -8819,133 +8781,6 @@ static int xl6IrLowerIntrinsicPersistenceInvocation(
     return 1;
 }
 
-/* File persistence keeps I/O explicit in XLIR.  Lowering anchors the path,
- * converts the semantic payload to a borrowed runtime xvalue through the same
- * boxing transaction as stringify, materializes the default pretty flag, and
- * selects one exact format RuntimeOp. */
-static int xl6IrLowerIntrinsicPersistenceWrite(
-    XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
-    const XL6_IrIntrinsicCall* intrinsic, XL6_IrValueId* result)
-{
-    const XL6_IrIntrinsicOperand* pathBinding;
-    const XL6_IrIntrinsicOperand* sourceBinding;
-    const XL6_IrIntrinsicOperand* prettyBinding = NULL;
-    const XL6_IrNode* pathNode;
-    const XL6_IrNode* sourceNode;
-    const XL6_IrNode* prettyNode = NULL;
-    const XL6_IrType* pathType;
-    const XL6_IrType* sourceType;
-    const XL6_IrType* resultType;
-    XL6_IrTypeId boolType;
-    XL6_IrTypeId dynamicType;
-    XL6_IrValueId path;
-    XL6_IrValueId borrowedPath;
-    XL6_IrValueId source;
-    XL6_IrValueId borrowedSource;
-    XL6_IrValueId pretty;
-    XL6_IrValueId operands[3];
-    XL6_SymbolId pathTemporary = 0;
-    XL6_SymbolId sourceTemporary = 0;
-    XL6_IrTypeId sourceTemporaryType = XL6_IR_TYPE_INVALID;
-    XL6_IrInstruction* instruction;
-    size_t evaluationFirst = ctx->evaluationOwnerCount;
-
-    if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
-    if ( ctx == NULL || call == NULL || intrinsic == NULL || result == NULL ||
-         intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
-         (intrinsic->kind != XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE &&
-          intrinsic->kind != XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE) ||
-         (intrinsic->operandCount != 2 && intrinsic->operandCount != 3) ||
-         intrinsic->firstOperand >= ctx->module->intrinsicOperandCount ||
-         intrinsic->resultType != call->storageType ||
-         intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-         intrinsic->payloadType == XL6_IR_TYPE_INVALID ||
-         intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID ) return 0;
-    pathBinding = &ctx->module->intrinsicOperands[intrinsic->firstOperand];
-    sourceBinding =
-        &ctx->module->intrinsicOperands[intrinsic->firstOperand + 1];
-    if ( intrinsic->operandCount == 3 )
-        prettyBinding =
-            &ctx->module->intrinsicOperands[intrinsic->firstOperand + 2];
-    pathNode = xl6IrNodeGet(ctx->module, pathBinding->expression);
-    sourceNode = xl6IrNodeGet(ctx->module, sourceBinding->expression);
-    prettyNode = prettyBinding != NULL
-        ? xl6IrNodeGet(ctx->module, prettyBinding->expression) : NULL;
-    pathType = pathNode != NULL
-        ? xl6IrTypeGet(&ctx->module->types, pathNode->storageType) : NULL;
-    sourceType = sourceNode != NULL
-        ? xl6IrTypeGet(&ctx->module->types, sourceNode->storageType) : NULL;
-    resultType = xl6IrTypeGet(&ctx->module->types, call->storageType);
-    boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
-    dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-    if ( pathNode == NULL || sourceNode == NULL || pathType == NULL ||
-         sourceType == NULL || resultType == NULL ||
-         boolType == XL6_IR_TYPE_INVALID || dynamicType == XL6_IR_TYPE_INVALID ||
-         pathBinding->type != pathNode->storageType ||
-         pathBinding->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
-         pathType->kind == XL6_IR_TYPE_NULLABLE ||
-         pathType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-         sourceBinding->type != sourceNode->storageType ||
-         sourceBinding->type != intrinsic->payloadType ||
-         sourceBinding->abi !=
-             (sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-                 ? XL6_IR_INTRINSIC_OPERAND_BORROW
-                 : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
-         !xl6IrTypeCanBoxRuntimeXValue(ctx->module, sourceBinding->type) ||
-         resultType->cAbi != XL6_IR_C_ABI_BOOL ||
-         (prettyBinding != NULL &&
-          (prettyNode == NULL ||
-           prettyBinding->type != prettyNode->storageType ||
-           prettyBinding->abi != XL6_IR_INTRINSIC_OPERAND_VALUE ||
-           xl6IrTypeGet(&ctx->module->types, prettyBinding->type) == NULL ||
-           xl6IrTypeGet(&ctx->module->types, prettyBinding->type)->cAbi !=
-               XL6_IR_C_ABI_BOOL)) ) return 0;
-
-    path = xl6IrLowerNode(ctx, pathBinding->expression);
-    if ( path == XL6_IR_VALUE_INVALID ) return 1;
-    borrowedPath = xl6IrLowerBorrowManagedStringOperand(
-        ctx, id, pathNode, path, &pathTemporary);
-    if ( borrowedPath == XL6_IR_VALUE_INVALID ||
-         (pathTemporary != 0 && !xl6IrLowerProtectEvaluationStorage(
-             ctx, id, pathTemporary, borrowedPath, 0, 0)) ) return 1;
-    source = xl6IrLowerNode(ctx, sourceBinding->expression);
-    if ( source == XL6_IR_VALUE_INVALID ) return 1;
-    borrowedSource = xl6IrLowerBorrowDynamicOperand(
-        ctx, id, sourceNode, source, dynamicType, &sourceTemporary,
-        &sourceTemporaryType);
-    if ( borrowedSource == XL6_IR_VALUE_INVALID ||
-         (sourceTemporary != 0 && !xl6IrLowerProtectEvaluationStorage(
-             ctx, id, sourceTemporary, borrowedSource, 0, 0)) ) return 1;
-    if ( prettyBinding != NULL ) {
-        pretty = xl6IrLowerNode(ctx, prettyBinding->expression);
-    } else {
-        if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, id, boolType,
-                              0, NULL, 0, &pretty) ) return 1;
-        instruction =
-            &ctx->module->instructions[ctx->module->instructionCount - 1];
-        instruction->immediateText = xrtStrDupN("false", 5);
-        if ( instruction->immediateText == NULL ) return 1;
-    }
-    if ( pretty == XL6_IR_VALUE_INVALID ) return 1;
-    operands[0] = borrowedPath;
-    operands[1] = xl6IrLowerPersistenceProject(ctx, id, borrowedSource,
-        intrinsic->payloadType,
-        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
-            ? XL6_IR_PERSIST_FORMAT_JSON : XL6_IR_PERSIST_FORMAT_XLON);
-    if (operands[1] == XL6_IR_VALUE_INVALID) return 1;
-    operands[2] = pretty;
-    *result = xl6IrLowerEmitRuntimeCallPayload(
-        ctx, id, id, call->storageType,
-        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
-            ? XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE
-            : XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE,
-        NULL, intrinsic->payloadType, operands, 3);
-    if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if (!xl6IrLowerCompleteEvaluationBorrows(ctx, id, evaluationFirst, result))
-        *result = XL6_IR_VALUE_INVALID;
-    return 1;
-}
 
 /* persistence parse<T> borrows its text and overlays parsed fields onto an explicitly
  * lowered default T instance.  The RuntimeOp therefore has no hidden
@@ -30129,7 +29964,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
                 case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
                     builtinLowered =
-                        xl6IrLowerIntrinsicPersistenceStringify(
+                        xl6IrLowerIntrinsicPersistenceLegacy(
                             ctx, id, node, intrinsic, &result);
                     break;
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
@@ -30155,7 +29990,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
                 case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
                     builtinLowered =
-                        xl6IrLowerIntrinsicPersistenceWrite(
+                        xl6IrLowerIntrinsicPersistenceLegacy(
                             ctx, id, node, intrinsic, &result);
                     break;
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:

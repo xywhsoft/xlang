@@ -21,26 +21,30 @@ def digest(path: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument('--test-root', type=Path)
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
+    test_root = args.test_root.resolve() if args.test_root else root
     cc = shutil.which('gcc')
     if not cc or out.exists() or (os.name == 'nt' and not args.public_directory):
         parser.error('Require gcc, a fresh evidence directory, and a current-source Windows compiler')
-    source = root / 'test/cases/xlir_persistence_project_plan_contract.c'
-    semantic = root / 'test/cases/xlir_persistence_field_inclusion_contract.c'
-    cases = [('schema', root / 'test/cases/xlir_persistence_project_plan.xl'),
-             ('sequences', root / 'test/cases/xlir_persistence_project_sequences.xl'),
-             ('roots', root / 'test/cases/stdlib_array_persistence_language.xl'),
-             ('empty', root / 'test/cases/stdlib_dynamic_numeric_prune.xl'),
-             ('defaults', root / 'test/cases/cgen_string_persistence_default_nul.xl')]
-    cases.append(('readers', root / 'test/cases/stdlib_serialization_read_errors.xl'))
-    cases.append(('configured', root / 'test/cases/stdlib_persistence_configured_language.xl'))
-    cases.append(('sinks', root / 'test/cases/stdlib_persistence_sink_language.xl'))
-    cases.append(('files', root / 'test/cases/stdlib_persistence_file_language.xl'))
-    cases.append(('writers', root / 'test/cases/stdlib_persistence_writer_language.xl'))
-    refusals = [root / ('test/cases/' + name + '.xl') for name in
+    source = test_root / 'test/cases/xlir_persistence_project_plan_contract.c'
+    semantic = test_root / 'test/cases/xlir_persistence_field_inclusion_contract.c'
+    cases = [('schema', test_root / 'test/cases/xlir_persistence_project_plan.xl'),
+             ('sequences', test_root / 'test/cases/xlir_persistence_project_sequences.xl'),
+             ('roots', test_root / 'test/cases/stdlib_array_persistence_language.xl'),
+             ('empty', test_root / 'test/cases/stdlib_dynamic_numeric_prune.xl'),
+             ('defaults', test_root / 'test/cases/cgen_string_persistence_default_nul.xl')]
+    cases.append(('readers', test_root / 'test/cases/stdlib_serialization_read_errors.xl'))
+    cases.append(('configured', test_root / 'test/cases/stdlib_persistence_configured_language.xl'))
+    cases.append(('sinks', test_root / 'test/cases/stdlib_persistence_sink_language.xl'))
+    cases.append(('files', test_root / 'test/cases/stdlib_persistence_file_language.xl'))
+    cases.append(('writers', test_root / 'test/cases/stdlib_persistence_writer_language.xl'))
+    cases.append(('nominal', test_root / 'test/cases/stdlib_persistence_nominal_language.xl'))
+    cases.append(('pretty', test_root / 'test/cases/stdlib_persistence_pretty_language.xl'))
+    refusals = [test_root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
              *(path for _, path in cases), *refusals}

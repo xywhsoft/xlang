@@ -1,0 +1,4 @@
+class NominalWithoutSchema
+    int item = 2
+end
+string invalid = xlon.stringify(NominalWithoutSchema(), xlon.options())

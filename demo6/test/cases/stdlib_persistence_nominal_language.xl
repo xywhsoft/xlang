@@ -1,0 +1,66 @@
+class NominalBase
+    derive value
+    int inherited @xlon("base") = 1
+end
+class NominalRecord extends NominalBase
+    derive value
+    int item @xlon("child") = 2
+    string text @xlon("名\0字") = "a\0b"
+    bytes data @json(skip) = b"a\0b"
+    private int hidden = 77
+    int skipped @persist(skip) = 88
+    array<int> empty @persist(omit=empty) = array<int>[]
+    list<int> sparse = list<int>[2: 20, 5: 50]
+end
+
+NominalRecord source = NominalRecord()
+XlonOptions options = xlon.options(pretty=true)
+string encoded = xlon.stringify(source, options)
+var decoded = xlon.parse(encoded)
+assert(decoded["base"] == 1 and decoded["child"] == 2)
+assert(decoded["名\0字"] == "a\0b")
+assert(decoded["data"] == b"a\0b")
+assert(decoded["hidden"] == null and decoded["skipped"] == null and decoded["empty"] == null)
+assert(decoded["sparse"][0] == 20 and decoded["sparse"][1] == 50)
+assert(options.pretty and not options.ignoreUnsupportedEncode)
+assert(source.sparse[5] == 50 and source.text == "a\0b")
+assert(json.parse(json.stringify(source))["item"] == 2)
+
+func nominalGeneric<T>(T item, XlonOptions flags) as string
+    return xlon.stringify(item, flags)
+end
+array<NominalRecord> records = array<NominalRecord>[source, source]
+var sequence = xlon.parse(nominalGeneric::<array<NominalRecord>>(records, options))
+assert(sequence[0]["base"] == 1 and sequence[1]["名\0字"] == "a\0b")
+assert(sequence[1]["sparse"][1] == 50 and sequence[0]["hidden"] == null)
+NominalRecord? absent = null
+assert(xlon.stringify(absent, options) == "null")
+assert(xlon.stringify(42, options) == "42")
+assert(xlon.parse(xlon.stringify("a\0b", options)) == "a\0b")
+options.ignoreUnsupportedDecode = true
+assert(xlon.stringify(source, options) == encoded)
+
+int nominalOrder = 0
+func orderedNominalOptions() as XlonOptions
+    assert(nominalOrder == 0)
+    nominalOrder = 1
+    return xlon.options(ignoreUnsupportedDecode=true)
+end
+func orderedNominalSource() as NominalRecord
+    assert(nominalOrder == 1)
+    nominalOrder = 2
+    return NominalRecord()
+end
+var ordered = xlon.parse(xlon.stringify(options=orderedNominalOptions(), value=orderedNominalSource()))
+assert(nominalOrder == 2 and ordered["child"] == 2 and ordered["hidden"] == null)
+
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert(root != "")
+string path = root + "/nominal.xlon"
+assert(xlon.write(options=options, value=source, path=path))
+var loaded = xlon.read(path)
+assert(loaded["base"] == 1 and loaded["child"] == 2 and loaded["名\0字"] == "a\0b")
+assert(loaded["data"] == b"a\0b" and loaded["hidden"] == null and loaded["skipped"] == null)
+assert(loaded["sparse"][1] == 50)
+assert(not xlon.write(root + "/missing/nominal.xlon", source, options))
+assert(not xlon.write(path + "\0other", source, options))

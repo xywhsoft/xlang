@@ -1,0 +1,22 @@
+class NominalErrorRecord
+    derive value
+    int item @xlon("child") = 2
+end
+int caught = 0
+func failingNominalOptions() as XlonOptions
+    throw ValueError("nominal-options-original")
+end
+try
+    string ignored = xlon.stringify(NominalErrorRecord(), failingNominalOptions())
+catch e
+    assert(e.kind == "ValueError" and e.message == "nominal-options-original")
+    caught += 1
+end
+try
+    xlon.write("unused", NominalErrorRecord(), failingNominalOptions())
+catch e
+    assert(e.kind == "ValueError" and e.message == "nominal-options-original")
+    caught += 1
+end
+assert(caught == 2)
+assert(xlon.parse(xlon.stringify(NominalErrorRecord(), xlon.options()))["child"] == 2)
