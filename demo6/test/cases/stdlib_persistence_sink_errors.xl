@@ -1,0 +1,50 @@
+func consume(var part) as bool
+    return true
+end
+func reject(var part) as bool
+    return false
+end
+func raiseFromSink(var part) as bool
+    throw ValueError "original-sink-error"
+    return true
+end
+int errors = 0
+try
+    json.writeTo(1, consume, {"unknown": true})
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    xlon.writeTo(1, consume, 42)
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    jsonl.writeTo(array<int>[1], consume, {"unknown": true})
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    xlonl.writeTo(array<int>[1], consume, {"record": {"unknown": true}})
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    json.writeTo(1, reject)
+catch e
+    assert(e.kind == "IOError")
+    errors += 1
+end
+try
+    xlon.writeTo(1, raiseFromSink)
+catch e
+    assert(e.kind == "ValueError" and e.message == "original-sink-error")
+    errors += 1
+end
+assert(not json.writeTo("a", consume, {"maxOutputBytes": 1}))
+assert(not xlonl.writeTo(array<int>[1, 2], consume, {"maxRecords": 1}))
+assert(errors == 6)

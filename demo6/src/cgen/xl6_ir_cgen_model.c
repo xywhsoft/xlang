@@ -245,7 +245,7 @@ static int xl6IrCgenPersistenceLayoutSupported(
 
 static uint32 xl6IrCgenPersistenceRuntimeFormat(XL6_IrRuntimeOp operation)
 {
-    const XL6_IrConfiguredPersistenceEncoder* configured = xl6IrConfiguredPersistenceRuntime(operation);
+    const XL6_IrPersistenceInvocationContract* configured = xl6IrPersistenceInvocationRuntime(operation);
     if (configured != NULL) return configured->projectionFormat;
     switch ( operation ) {
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT:

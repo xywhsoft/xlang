@@ -1,0 +1,69 @@
+// The runner supplies a fresh evidence directory; never write to the repo.
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert(root != "")
+class FileBase
+    derive value
+    int inherited @json("shared") @xlon("base") = 1
+end
+class FileRecord extends FileBase
+    derive value
+    int child @json("shared") = 2
+    string text @json("名\0字") = "a\0b"
+    private int hidden = 77
+    int skipped @persist(skip) = 88
+    array<int> empty @persist(omit=empty) = array<int>[]
+    array<int> values = array<int>[1, 2]
+    list<int> sparse = list<int>[2: 20, 5: 50]
+    set<int> unique = set<int>{3, 4}
+end
+FileRecord source = FileRecord()
+array<FileRecord> records = array<FileRecord>[source, source]
+string jsonPath = root + "/records.json"
+string xlonPath = root + "/records.xlon"
+string jsonlPath = root + "/records.jsonl"
+string xlonlPath = root + "/records.xlonl"
+assert(json.write(jsonPath, source, {"escapeNonAscii": true}))
+var parsed = json.read(jsonPath)
+assert(parsed["shared"] == 2 and parsed["名\0字"] == "a\0b")
+assert(parsed["hidden"] == null and parsed["skipped"] == null and parsed["empty"] == null)
+assert(parsed["values"][0] == 1 and parsed["sparse"][0] == 20 and parsed["unique"].length == 2)
+assert(xlon.write(xlonPath, source, {}))
+var extended = xlon.read(xlonPath)
+assert(extended["base"] == 1 and extended["child"] == 2 and extended["text"] == "a\0b")
+assert(jsonl.write(jsonlPath, records, {"record": {"escapeNonAscii": true}}))
+var lines = jsonl.read(jsonlPath)
+assert(lines.length == 2 and lines[1]["名\0字"] == "a\0b" and lines[0]["shared"] == 2)
+assert(xlonl.write(xlonlPath, records, null))
+var xlines = xlonl.read(xlonlPath)
+assert(xlines.length == 2 and xlines[1]["base"] == 1 and xlines[0]["text"] == "a\0b")
+assert(jsonl.write(path=jsonlPath, records=records))
+assert(xlonl.write(xlonlPath, records))
+assert(jsonl.read(jsonlPath)[1]["shared"] == 2 and xlonl.read(xlonlPath)[0]["base"] == 1)
+assert(not json.write(jsonPath + "\0suffix", source, {}))
+assert(json.read(jsonPath)["shared"] == 2)
+assert(not xlon.write(root + "/no-such-directory/file", source, {}))
+assert(not json.write(jsonPath, source, {"maxOutputBytes": 1}))
+assert(json.read(jsonPath)["名\0字"] == "a\0b")
+int order = 0
+func orderedOptions() as var
+    assert(order == 0)
+    order = 1
+    return {}
+end
+func orderedSource() as FileRecord
+    assert(order == 1)
+    order = 2
+    return source
+end
+func orderedPath() as string
+    assert(order == 2)
+    order = 3
+    return jsonPath
+end
+assert(json.write(options=orderedOptions(), value=orderedSource(), path=orderedPath()))
+assert(order == 3 and json.read(jsonPath)["shared"] == 2)
+func genericWrite<T>(string path, T item) as bool
+    return xlon.write(path, item, {})
+end
+assert(genericWrite::<FileRecord>(xlonPath, source))
+assert(xlon.read(xlonPath)["base"] == 1)

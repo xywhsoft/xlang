@@ -149,14 +149,27 @@ int main(int argc, char** argv)
             ALTER_OP(wire, persistenceWireFormat, wire->persistenceWireFormat == XL6_IR_PERSIST_FORMAT_JSON
                 ? XL6_IR_PERSIST_FORMAT_XLON : XL6_IR_PERSIST_FORMAT_JSON);
             ALTER_OP(wire, sourceTypeId, 1);
-        } else if (xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp) != NULL) {
-            const XL6_IrConfiguredPersistenceEncoder* row = xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp);
-            assert(xl6IrConfiguredPersistenceInstructionAbi(&ir, instruction));
-            assert(xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp) == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
+        } else if (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL) {
+            const XL6_IrPersistenceInvocationContract* row = xl6IrPersistenceInvocationRuntime(instruction->runtimeOp);
+            assert(xl6IrPersistenceInvocationInstructionAbi(&ir, instruction));
+            assert(xl6IrPersistenceInvocationErrorPhysicalAbi(instruction->runtimeOp) ==
+                (row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT :
+                    XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT));
             ALTER_OP(instruction, payloadType, XL6_IR_TYPE_INVALID);
             ALTER_OP(instruction, operandCount, 0);
             ALTER_OP(instruction, targetSymbol, 1);
             ALTER_OP(instruction, type, definition(&ir, ir.operands[instruction->firstOperand])->type);
+            if (row->action != XL6_IR_PERSISTENCE_INVOKE_ENCODE) {
+                assert(instruction->operandCount == 3 && i + 1 < ir.instructionCount);
+                XL6_IrInstruction* edge = &ir.instructions[i + 1];
+                assert(edge->kind == XL6_IR_INSTR_ERROR_TEST && edge->operandCount == 1 &&
+                    ir.operands[edge->firstOperand] == instruction->result);
+                ALTER_OP(edge, kind, XL6_IR_INSTR_VALUE);
+                XL6_IrValueId* destination = &ir.operands[instruction->firstOperand + 2];
+                XL6_IrValueId saved = *destination;
+                *destination = ir.operands[instruction->firstOperand];
+                rejectedOutput(&ir); *destination = saved;
+            }
             ALTER_OP(instruction, runtimeOp, row->projectionFormat == XL6_IR_PERSIST_FORMAT_JSON
                 ? XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY
                 : XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY);
@@ -174,13 +187,23 @@ int main(int argc, char** argv)
     }
     for (size_t i = 0; i < ir.intrinsicCallCount; ++i) {
         XL6_IrIntrinsicCall* intrinsic = &ir.intrinsicCalls[i];
-        if (xl6IrConfiguredPersistenceIntrinsic(intrinsic->kind) == NULL) continue;
+        if (xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) == NULL) continue;
         ALTER_OP(intrinsic, errorAbi, XL6_IR_ERROR_ABI_NO_RAISE);
-        ALTER_OP(intrinsic, resultAbi, XL6_IR_INTRINSIC_RESULT_VALUE);
+        ALTER_OP(intrinsic, resultAbi, intrinsic->resultAbi == XL6_IR_INTRINSIC_RESULT_VALUE
+            ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE);
         ALTER_OP(intrinsic, payloadType, XL6_IR_TYPE_INVALID);
         ALTER_OP(intrinsic, payloadAbi, XL6_IR_ASYNC_RESULT_VOID);
         ALTER_OP(intrinsic, persistenceSourceOperand, SIZE_MAX);
         ALTER_OP(intrinsic, persistenceSourceOperand, 1 - intrinsic->persistenceSourceOperand);
+        ALTER_OP(intrinsic, persistenceOptionsOperand, intrinsic->persistenceOptionsOperand == SIZE_MAX
+            ? 0 : SIZE_MAX);
+        if (intrinsic->persistenceDestinationOperand != SIZE_MAX) {
+            ALTER_OP(intrinsic, persistenceDestinationOperand, SIZE_MAX);
+            ALTER_OP(intrinsic, persistenceDestinationOperand, intrinsic->persistenceSourceOperand);
+            XL6_IrIntrinsicOperand* destination = &ir.intrinsicOperands[
+                intrinsic->firstOperand + intrinsic->persistenceDestinationOperand];
+            ALTER_OP(destination, abi, XL6_IR_INTRINSIC_OPERAND_CONSUME);
+        }
         XL6_IrIntrinsicOperand* source = &ir.intrinsicOperands[intrinsic->firstOperand + intrinsic->persistenceSourceOperand];
         ALTER_OP(source, abi, XL6_IR_INTRINSIC_OPERAND_CONSUME);
     }

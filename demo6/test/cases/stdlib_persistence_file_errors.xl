@@ -1,0 +1,26 @@
+int errors = 0
+try
+    json.write("unused", 1, {"unknown": true})
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    xlon.write("unused", 1, 42)
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    jsonl.write("unused", array<int>[1], {"unknown": true})
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+try
+    xlonl.write("unused", array<int>[1], {"record": {"unknown": true}})
+catch e
+    assert(e.kind != "MemoryError")
+    errors += 1
+end
+assert(errors == 4)

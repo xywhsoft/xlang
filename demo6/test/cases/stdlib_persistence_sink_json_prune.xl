@@ -1,0 +1,13 @@
+class SinkPruned
+    derive value
+    string label @json("名\0字") = "a\0b"
+    array<int> values = array<int>[1, 2]
+    private int secret = 3
+end
+Buffer output = Buffer()
+func consume(var chunk) as bool
+    return output.append(bytes(chunk))
+end
+assert(json.writeTo(SinkPruned(), consume, {"escapeNonAscii": true}))
+var parsed = json.parse(output.text())
+assert(parsed["名\0字"] == "a\0b" and parsed["values"][1] == 2 and parsed["secret"] == null)

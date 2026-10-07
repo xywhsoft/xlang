@@ -1851,7 +1851,8 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
      * instruction after a checked operation belongs to its cleanup route,
      * not necessarily to the original producer. Diagnostic location and
      * evaluation failure boundary are explicit independent inputs. */
-    if ((xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+    if ((xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeObjectPublicationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
@@ -8736,24 +8737,22 @@ static int xl6IrLowerIntrinsicPersistenceStringify(
     return 1;
 }
 
-/* Preserve the schema before erasure and all operand owners until the checked
- * wire encoder commits. Options evaluation follows source evaluation. */
-static int xl6IrLowerIntrinsicConfiguredPersistenceStringify(
+/* Preserve schema and owners before erasure. Evaluate textual arguments once
+ * in source order; role ordinals normalize only the committed runtime ABI. */
+static int xl6IrLowerIntrinsicPersistenceInvocation(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
     const XL6_IrIntrinsicCall* intrinsic, XL6_IrValueId* result)
 {
-    const XL6_IrConfiguredPersistenceEncoder* configured =
-        xl6IrConfiguredPersistenceIntrinsic(intrinsic->kind);
+    const XL6_IrPersistenceInvocationContract* configured =
+        xl6IrPersistenceInvocationIntrinsic(intrinsic->kind);
     XL6_IrTypeId dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-    XL6_IrValueId arguments[2];
+    XL6_IrValueId arguments[3], normalized[3];
     size_t first = ctx->evaluationOwnerCount;
     size_t i;
     *result = XL6_IR_VALUE_INVALID;
     if (configured == NULL || intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
         intrinsic->resultType != call->storageType || dynamicType == XL6_IR_TYPE_INVALID ||
-        intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-        (intrinsic->operandCount != 2 &&
-         !(intrinsic->operandCount == 1 && configured->acceptsDefaultOptions))) return 0;
+        !xl6IrPersistenceInvocationIntrinsicAbi(ctx->module, intrinsic)) return 0;
     for (i = 0; i < intrinsic->operandCount; ++i) {
         const XL6_IrIntrinsicOperand* binding =
             &ctx->module->intrinsicOperands[intrinsic->firstOperand + i];
@@ -8771,31 +8770,33 @@ static int xl6IrLowerIntrinsicConfiguredPersistenceStringify(
         }
         value = xl6IrLowerNode(ctx, binding->expression);
         if (value == XL6_IR_VALUE_INVALID) return 1;
+        if (i == intrinsic->persistenceDestinationOperand) {
+            arguments[i] = xl6IrLowerProtectOwnedBorrow(ctx, id, value);
+            if (arguments[i] == XL6_IR_VALUE_INVALID) return 1;
+            continue;
+        }
         arguments[i] = xl6IrLowerBorrowDynamicOperand(ctx, id, node, value,
             dynamicType, &temporary, &temporaryType);
         if (arguments[i] == XL6_IR_VALUE_INVALID ||
             (temporary != 0 && !xl6IrLowerProtectEvaluationStorage(
                 ctx, id, temporary, arguments[i], 0, 0))) return 1;
     }
-    if (intrinsic->operandCount == 1) {
-        arguments[1] = xl6IrLowerEmitRuntimeCall(ctx, id, dynamicType,
-            XL6_IR_RUNTIME_XVALUE_NULL, NULL, 0);
-        if (arguments[1] == XL6_IR_VALUE_INVALID) return 1;
-        ctx->module->instructions[ctx->module->instructionCount - 1].immediateText = xrtStrDupN("null", 4);
-        if (ctx->module->instructions[ctx->module->instructionCount - 1].immediateText == NULL) return 1;
-        arguments[1] = xl6IrLowerProtectOwnedBorrow(ctx, id, arguments[1]);
-        if (arguments[1] == XL6_IR_VALUE_INVALID) return 1;
-    }
-    {
-        XL6_IrValueId source = arguments[intrinsic->persistenceSourceOperand];
-        XL6_IrValueId options = arguments[1 - intrinsic->persistenceSourceOperand];
-        arguments[0] = xl6IrLowerPersistenceProject(ctx, id, source,
-            intrinsic->payloadType, configured->projectionFormat);
-        arguments[1] = options;
-    }
-    if (arguments[0] == XL6_IR_VALUE_INVALID) return 1;
+    if (intrinsic->persistenceOptionsOperand == SIZE_MAX) {
+        normalized[1] = xl6IrLowerEmitRuntimeLiteralCall(ctx, id, dynamicType,
+            XL6_IR_RUNTIME_XVALUE_NULL, "null", NULL, 0);
+        if (normalized[1] == XL6_IR_VALUE_INVALID) return 1;
+        normalized[1] = xl6IrLowerProtectOwnedBorrow(ctx, id, normalized[1]);
+        if (normalized[1] == XL6_IR_VALUE_INVALID) return 1;
+    } else normalized[1] = arguments[intrinsic->persistenceOptionsOperand];
+    normalized[0] = xl6IrLowerPersistenceProject(ctx, id,
+        arguments[intrinsic->persistenceSourceOperand], intrinsic->payloadType,
+        configured->projectionFormat);
+    if (normalized[0] == XL6_IR_VALUE_INVALID) return 1;
+    if (configured->action != XL6_IR_PERSISTENCE_INVOKE_ENCODE)
+        normalized[2] = arguments[intrinsic->persistenceDestinationOperand];
     *result = xl6IrLowerEmitRuntimeCallPayload(ctx, id, id, call->storageType,
-        configured->operation, NULL, intrinsic->payloadType, arguments, 2);
+        configured->operation, NULL, intrinsic->payloadType, normalized,
+        configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2 : 3);
     if (*result != XL6_IR_VALUE_INVALID &&
         !xl6IrLowerCompleteEvaluationBorrows(ctx, id, first, result))
         *result = XL6_IR_VALUE_INVALID;
@@ -16476,8 +16477,8 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
     operands = module->intrinsicOperands + intrinsic->firstOperand;
     if ( intrinsic->operandCount != 0 )
         source = xl6IrTypeGet(&module->types, operands[0].type);
-    if (xl6IrConfiguredPersistenceIntrinsic(intrinsic->kind) != NULL)
-        return xl6IrConfiguredPersistenceIntrinsicAbi(module, intrinsic);
+    if (xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) != NULL)
+        return xl6IrPersistenceInvocationIntrinsicAbi(module, intrinsic);
     switch ( intrinsic->kind ) {
     case XL6_IR_INTRINSIC_WEAK_LOCK:
         return call->callKind == XL6_SEM_CALL_RUNTIME_INTRINSIC &&
@@ -30119,7 +30120,15 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY:
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY:
                 case XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_STRINGIFY:
-                    builtinLowered = xl6IrLowerIntrinsicConfiguredPersistenceStringify(
+                case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_WRITE:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_WRITE:
+                case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_WRITE:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_WRITE:
+                case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_SINK:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_SINK:
+                case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_SINK:
+                case XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_SINK:
+                    builtinLowered = xl6IrLowerIntrinsicPersistenceInvocation(
                         ctx, id, node, intrinsic, &result);
                     break;
                 case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
