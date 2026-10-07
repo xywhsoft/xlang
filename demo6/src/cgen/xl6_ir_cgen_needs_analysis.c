@@ -489,6 +489,16 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                      XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO )
                 needs->needsSpecialQueueBatchRuntime = 1;
         }
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
+            needs->needsArrayImportRuntime=1;
+            needs->needsXValueRuntime=1;
+            needs->needsXValueHandleRuntime=1;
+            needs->needsErrorRuntime=1;
+            /* Descendant nominal recipes are needed even when the root is a
+             * Sequence-reference profile. Never limit this to the root set. */
+            needs->needsNominalIdentityRuntime=1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {

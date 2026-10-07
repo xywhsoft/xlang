@@ -771,7 +771,7 @@ static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* modul
  * Source producer/cast authorization will select this separately from the
  * native target recipe. Validate everything before emitting any C. */
 static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* module,
-    XL6_IrTypeId typeId,XL6_IrValueId result,const char* source)
+    XL6_IrTypeId typeId,XL6_IrValueId result,const char* source,bool sourceOwned)
 {
     size_t count=0; XL6_IrNominalIdentitySetId set=0;
     if (!source || !xl6IrArrayImportChainRecipe(module,typeId,NULL,0,&count) ||
@@ -780,8 +780,9 @@ static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* mod
     xl6OutputPrintf(out,"    { xvalue* xlir_array_import_seeds[%u] = {0};\n",(unsigned)count);
     if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count)<0) return -1;
     xl6OutputPrintf(out,"    xrtValueRelease(%s);\n"
-        "    %s = xl6ArrayImportChainTakeV1(xlir_array_import_seeds, %u, %s); }\n",
-        target,target,(unsigned)count,source);
+        "    %s = %s(xlir_array_import_seeds, %u, %s); }\n",
+        target,target,sourceOwned ? "xl6ArrayImportChainSourceTakeV1" : "xl6ArrayImportChainTakeV1",
+        (unsigned)count,source);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 

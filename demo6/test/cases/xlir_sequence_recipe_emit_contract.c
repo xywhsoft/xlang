@@ -15,7 +15,7 @@ static void refused(const XL6_IrModule* ir,XL6_IrTypeId id,XL6_IrNominalIdentity
     size_t count=0;
     if (!xl6IrArrayImportChainRecipe(ir,id,NULL,0,&count)) {
         assert(xl6OutputOpenMemory(&out));
-        assert(xl6IrCgenEmitArrayImportChain(&out,ir,id,id,"wire")<0);
+        assert(xl6IrCgenEmitArrayImportChain(&out,ir,id,id,"wire",false)<0);
         assert(out.buffer.Size==0); xl6OutputDiscard(&out);
     }
 }
@@ -154,7 +154,7 @@ int main(int argc,char** argv)
         XL6_IrTypeId id=(XL6_IrTypeId)(i+1); size_t count=0;
         if (!xl6IrArrayImportChainRecipe(&ir,id,NULL,0,&count)) continue;
         xl6OutputPrintf(&out,"    { xvalue* wire=xrtValueArray(); xvalue* v%u=NULL; assert(wire);\n",(unsigned)id);
-        assert(xl6IrCgenEmitArrayImportChain(&out,&ir,id,id,"wire")>0);
+        assert(xl6IrCgenEmitArrayImportChain(&out,&ir,id,id,"wire",false)>0);
         xl6OutputPrintf(&out,"    assert(v%u && xl6ArrayErasedSizeV1(v%u)==0);\n"
             "    xrtValueRelease(v%u); xrtValueRelease(wire); assert(!xrtGetError()); }\n",
             (unsigned)id,(unsigned)id,(unsigned)id);

@@ -56,6 +56,15 @@ static int xl6IrCgenNominalIdentitySetUsed(
             instruction->collectionAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->sequenceAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
+            const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
+            for (size_t depth=0;recipe && depth<=64;++depth) {
+                if (recipe->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 &&
+                    recipe->sequenceLayout.baseElementType==set->targetType) return 1;
+                if (recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) break;
+                recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
+            }
+        }
         if (instruction->payloadType != set->targetType) continue;
         if ( instruction->runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||

@@ -113,7 +113,7 @@ def main() -> int:
                     f'array-chain profile={index}: 25 complete graph cycles balanced' if args.chain else f'array-import profile={index}: 100 source/destination cycles balanced'
                 assert expected in run(lane+'.vectors',[str(binary)])
                 operations=('wire','native','self','copy') if args.algebra else \
-                    ('chain','wide','deep') if args.chain and index==2 else ('chain','wide') if args.chain else ('wire','native')
+                    ('chain','wide','deep','take') if args.chain and index==2 else ('chain','wide','take') if args.chain else ('wire','native')
                 for operation in operations:
                     for point in range(1025 if args.chain else 513):
                         log=run(f'{lane}.{operation}.{point}',[str(binary),operation,str(point)])

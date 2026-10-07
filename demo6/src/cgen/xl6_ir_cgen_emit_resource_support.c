@@ -81,7 +81,7 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
         xl6OutputPuts(
             "typedef struct xrttype xrttype;\n"
             "extern const xrttype* xl6CharTypeV1(void);\n"
@@ -367,9 +367,9 @@ static int xl6IrCgenEmitResourceRuntime(
             "    return hardFailure && processed == 0 ? -1 : processed;\n"
             "}\n\n",
             out);
-    if ( needs->needsStackResourceRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime )
         xl6OutputPuts(
-            "/* Stack storage/ownership live in the resident typed runtime. */\n"
+            "/* Sequence factories live in the resident typed runtime. */\n"
             "typedef struct xrttype xrttype;\n"
             "#include <__xl_runtime/xl6_nominal_admission_abi.h>\n"
             "extern xvalue* xl6SequencePrimitiveCreateV1(unsigned int, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, unsigned int, bool, uint64_t);\n"
@@ -378,7 +378,15 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNullableCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNumericEnumCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, unsigned int, bool, uint64_t);\n"
-            "extern xvalue* xl6SequenceNestedCreateTakeV2(unsigned int, uint64_t, uint64_t, xvalue*, bool);\n"
+            "extern xvalue* xl6SequenceCallableCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n"
+            "extern xvalue* xl6SequenceFutureCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n"
+            "extern xvalue* xl6SequenceNestedCreateTakeV2(unsigned int, uint64_t, uint64_t, xvalue*, bool);\n",
+            out);
+    if (needs->needsArrayImportRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_array_import_chain.h>\n"
+            "extern xvalue* xl6ArrayEraseV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
+    if (needs->needsStackResourceRuntime)
+        xl6OutputPuts(
             "extern bool xl6StackPushV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const void*);\n"
         "extern bool xl6StackTakeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool);\n"
         "extern bool xl6StackTryTakeV2(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool, bool*);\n"
@@ -387,7 +395,9 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern bool xl6StackEqualsV1(const xvalue*, const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern bool xl6StackTrimV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
             "extern bool xl6StackClearV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);\n"
-            "extern int64_t xl6StackSizeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);\n"
+            "extern int64_t xl6StackSizeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, bool);\n",out);
+    if (needs->needsStackResourceRuntime || needs->needsArrayImportRuntime)
+        xl6OutputPuts(
             "extern const xrttype* xrtTypeBool(void);\n"
             "extern const xrttype* xrtTypeInt8(void);\n"
             "extern const xrttype* xrtTypeUInt8(void);\n"

@@ -2131,7 +2131,7 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-         xl6IrTaggedNullableScalarSupported(element->cAbi) )
+         xl6IrNullableScalarElementAbi(ctx->module, nullableTypeId) != XL6_IR_C_ABI_UNSUPPORTED )
         operation = XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY;
     else if ( nullable->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
               nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -2252,7 +2252,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsScalar(
           resultType->cAbi != XL6_IR_C_ABI_U64 &&
           resultType->cAbi != XL6_IR_C_ABI_F32 &&
           resultType->cAbi != XL6_IR_C_ABI_F64 &&
-          resultType->cAbi != XL6_IR_C_ABI_TIME_I64) ||
+          resultType->cAbi != XL6_IR_C_ABI_TIME_I64 &&
+          xl6IrNativeScalarProfileForCAbi(resultType->cAbi) == XL6_NATIVE_SCALAR_NONE) ||
          resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
          resultType->nullAbi != XL6_IR_NULL_ABI_NONE ||
          resultType->typeValueId == 0 ||
@@ -2265,7 +2266,9 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsScalar(
     if ( result != XL6_IR_VALUE_INVALID )
         ctx->module->instructions[
             ctx->module->instructionCount - 1].payloadType = resultTypeId;
-    if (result != XL6_IR_VALUE_INVALID && resultType->cAbi == XL6_IR_C_ABI_F32 &&
+    if (result != XL6_IR_VALUE_INVALID &&
+        (resultType->cAbi == XL6_IR_C_ABI_F32 ||
+         xl6IrNativeScalarProfileForCAbi(resultType->cAbi) != XL6_NATIVE_SCALAR_NONE) &&
         !xl6IrLowerEmitRuntimeErrorEdge(ctx,origin,xl6IrNodeGet(ctx->module,origin),result))
         return XL6_IR_VALUE_INVALID;
     return result;
@@ -2492,7 +2495,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
          resultType->cAbi == XL6_IR_C_ABI_U64 ||
          resultType->cAbi == XL6_IR_C_ABI_F32 ||
          resultType->cAbi == XL6_IR_C_ABI_F64 ||
-         resultType->cAbi == XL6_IR_C_ABI_TIME_I64 )
+         resultType->cAbi == XL6_IR_C_ABI_TIME_I64 ||
+         xl6IrNativeScalarProfileForCAbi(resultType->cAbi) != XL6_NATIVE_SCALAR_NONE )
         return xl6IrLowerProjectBorrowedXValueAsScalar(
             ctx, origin, borrowed, resultTypeId);
     if ( resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
@@ -3917,7 +3921,10 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
             xl6IrLowerEmitRuntimeCallMetadata(ctx, origin, origin, targetType, runtimeOp, NULL,
                 runtimeOp == XL6_IR_RUNTIME_XVALUE_UNION_BOX ? loweredSourceType : XL6_IR_TYPE_INVALID,
                 (runtimeOp == XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR ||
-                 runtimeOp == XL6_IR_RUNTIME_XVALUE_ERROR_REF) ? loweredSourceType : XL6_IR_TYPE_INVALID,
+                 runtimeOp == XL6_IR_RUNTIME_XVALUE_ERROR_REF) ? loweredSourceType :
+                 runtimeOp == XL6_IR_RUNTIME_XVALUE_FUTURE_REF ?
+                     (sourceType->kind == XL6_IR_TYPE_NULLABLE ? sourceType->params[0] : loweredSourceType) :
+                     XL6_IR_TYPE_INVALID,
                 &source, 1);
         if ( boxed != XL6_IR_VALUE_INVALID &&
              (runtimeOp == XL6_IR_RUNTIME_XVALUE_NULLABLE_CLOSURE_BOX ||
@@ -3975,7 +3982,7 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValue(
  * other holder of the source value. */
 static XL6_IrValueId xl6IrLowerOwnCheckedCollectionSource(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
-    const XL6_IrNode* sourceNode, XL6_IrValueId source)
+    const XL6_IrNode* sourceNode, XL6_IrValueId source, bool independentImport)
 {
     XL6_IrTypeId sourceType = xl6IrLowerValueType(ctx, source);
     const XL6_IrType* type = xl6IrTypeGet(&ctx->module->types, sourceType);
@@ -3987,7 +3994,8 @@ static XL6_IrValueId xl6IrLowerOwnCheckedCollectionSource(
          sourceNode->valueCategory == XL6_IR_VALUE_RVALUE )
         return source;
     return xl6IrLowerEmitRuntimeCall(
-        ctx, origin, sourceType, XL6_IR_RUNTIME_XVALUE_CLONE, &source, 1);
+        ctx, origin, sourceType, independentImport ? XL6_IR_RUNTIME_XVALUE_RETAIN :
+            XL6_IR_RUNTIME_XVALUE_CLONE, &source, 1);
 }
 
 static int xl6IrLowerCheckedCollectionPayloadSupported(
@@ -4001,11 +4009,14 @@ static int xl6IrLowerCheckedCollectionProjectionRequired(
 {
     const XL6_IrType* target = xl6IrTypeGet(&module->types, targetType);
     const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceType);
+    size_t chainLength=0;
     return target != NULL && source != NULL && targetType != sourceType &&
            target->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
            target->collectionAbi != XL6_IR_COLLECTION_NONE &&
            target->paramCount == 1 && target->params != NULL &&
-           xl6IrLowerCheckedCollectionPayloadSupported(module, target->params[0]) &&
+           (target->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
+                xl6IrArrayImportChainRecipe(module,targetType,NULL,0,&chainLength) :
+                xl6IrLowerCheckedCollectionPayloadSupported(module, target->params[0])) &&
            (xl6IrLowerTypeIsDynamicXValueBuiltin(module, sourceType) ||
             (xl6IrTypeIsStaticallyShapedErasedCollection(
                  module, sourceType) &&
@@ -4033,33 +4044,39 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     XL6_IrBlockId failureBlock;
     XL6_IrInstruction* instruction;
     XL6_IrInstruction* test;
+    bool arrayImport=target && target->collectionAbi==XL6_IR_COLLECTION_ARRAY;
+    XL6_IrNodeId failureOrigin=arrayImport ? origin : sourceId;
+    const XL6_IrNode* failureNode=arrayImport ? xl6IrNodeGet(ctx->module,origin) : sourceNode;
 
     if ( ctx == NULL || sourceNode == NULL || source == XL6_IR_VALUE_INVALID ||
          target == NULL || sourceType == NULL ||
          !xl6IrLowerCheckedCollectionProjectionRequired(
              ctx->module, targetType, sourceNode->storageType) ||
          (errorPlan = xl6IrLowerExitPlan(
-              ctx, sourceId, XL6_SEM_EXIT_THROW)) == NULL ) {
+              ctx, failureOrigin, XL6_SEM_EXIT_THROW)) == NULL ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR checked collection projection has no exact source, element or failure ABI");
         return XL6_IR_VALUE_INVALID;
     }
     owned = xl6IrLowerOwnCheckedCollectionSource(
-        ctx, origin, sourceNode, source);
+        ctx, origin, sourceNode, source, arrayImport);
     if ( owned == XL6_IR_VALUE_INVALID ||
          xl6IrLowerValueType(ctx, owned) != sourceNode->storageType ) return XL6_IR_VALUE_INVALID;
-    result = xl6IrLowerEmitRuntimeCall(
-        ctx, origin, targetType,
-        XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND, &owned, 1);
+    result = xl6IrLowerEmitRuntimeCall(ctx, origin, targetType,
+        arrayImport ? XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN :
+            XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND, &owned, 1);
     if ( result == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     instruction = &ctx->module->instructions[ctx->module->instructionCount - 1];
     instruction->collectionAbi = target->collectionAbi;
     instruction->payloadType = target->params[0];
-    instruction->collectionAdmissionAbi=xl6IrCollectionAdmissionForPayload(ctx->module,
+    if (arrayImport) {
+        if (!xl6IrSequenceConstructionRecipe(ctx->module,targetType,XL6_IR_SEQUENCE_ROLE_ARRAY,
+                &instruction->sequenceAdmissionIdentitySet)) return XL6_IR_VALUE_INVALID;
+    } else instruction->collectionAdmissionAbi=xl6IrCollectionAdmissionForPayload(ctx->module,
         instruction->payloadType,&instruction->collectionAdmissionIdentitySet,&instruction->collectionAdmissionNullable);
     if ( !xl6IrLowerNewBlock(ctx, &successBlock) ||
          !xl6IrLowerNewBlock(ctx, &failureBlock) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_TEST, sourceId,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_TEST, failureOrigin,
                           XL6_IR_TYPE_INVALID, 0, &result, 1, NULL) )
         return XL6_IR_VALUE_INVALID;
     test = &ctx->module->instructions[ctx->module->instructionCount - 1];
@@ -4067,9 +4084,10 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     test->falseTarget = failureBlock;
     xl6IrLowerEnterBlock(ctx, failureBlock);
     if ( !xl6IrLowerEmitExceptionTransfer(
-             ctx, sourceId, sourceNode, errorPlan, 0) )
+             ctx, failureOrigin, failureNode, errorPlan, 0) )
         return XL6_IR_VALUE_INVALID;
     xl6IrLowerEnterBlock(ctx, successBlock);
+    if (arrayImport) return result; /* Factory/import owns exact identity; no retag. */
     return xl6IrLowerRebindRuntimeTypeIdentityOwned(
         ctx, origin, targetType, result);
 }
@@ -5084,7 +5102,8 @@ static int xl6IrLowerPrepareElementTargetPlan(
     }
     if (plan->memberAddress) {
         const XL6_IrClassField* field = xl6IrLowerClassFieldGet(
-            ctx->module, plan->receiver->storageType, lhs->text);
+            ctx->module, plan->receiver->type != XL6_IR_TYPE_INVALID
+                ? plan->receiver->type : plan->receiver->storageType, lhs->text);
         const XL6_IrType* fieldType = field != NULL
             ? xl6IrTypeGet(&ctx->module->types, field->type) : NULL;
         int declared = field != NULL || lhs->memberAbi == XL6_IR_MEMBER_ABI_CLASS_INLINE_UNION_FIELD;
@@ -24078,7 +24097,7 @@ static int xl6IrLowerIntrinsicErasedCollectionConvert(
     value = xl6IrLowerNode(ctx, binding->expression);
     if ( value == XL6_IR_VALUE_INVALID ) return 1;
     owned = xl6IrLowerOwnCheckedCollectionSource(
-        ctx, id, source, value);
+        ctx, id, source, value, false);
     if ( owned == XL6_IR_VALUE_INVALID ||
          xl6IrLowerValueType(ctx, owned) != source->storageType ) return 1;
     *result = xl6IrLowerEmitRuntimeCall(
@@ -26496,6 +26515,12 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
                 ctx, declarationId, declaration,
                 initializer->expression, expression,
                 initializer->type, errorPlan);
+        }
+        if (initializer->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
+            if (!expression || initializer->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE ||
+                !xl6IrContextualArrayImportRequired(ctx->module,expression->storageType,initializer->type) ||
+                !xl6IrLowerValueInitializerErrorPlan(ctx,declarationId,initializer)) return XL6_IR_VALUE_INVALID;
+            return xl6IrLowerNodeAsRuntimeXValue(ctx,declarationId,initializer->expression,expression,initializer->type);
         }
         if (xl6IrRuntimeBoxingErrorPhysicalAbi(initializer->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) {
             if (expression == NULL || initializer->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||

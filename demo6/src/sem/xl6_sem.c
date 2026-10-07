@@ -16690,6 +16690,18 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
     if ( xl6TextEquals(targetType->text, "var") ) {
         return xl6SemTypeCanBoxToVar(ctx, valueType);
     }
+    /* Checked Array import is an expected-type boundary, not generic
+     * covariance or a scalar var coercion. Runtime/XLIR must validate the
+     * container and the complete target element recipe before publication. */
+    {
+        const XL6_AstNode* source=xl6SemResolveAliasType(ctx,valueType);
+        const XL6_AstNode* target=xl6SemResolveAliasType(ctx,targetType);
+        if (source && target && xl6TextEquals(target->text,"array") &&
+            xl6SemTypeNodeGenericArgCount(target)==1 &&
+            xl6SemTypeNodeGenericArgCount(source)==0 &&
+            (xl6TextEquals(source->text,"var") || xl6TextEquals(source->text,"array")))
+            return 1;
+    }
     nullableInner = xl6SemNullableInnerType(targetType);
     if ( nullableInner != NULL ) {
         if ( xl6TextEquals(valueType->text, "null") ||
