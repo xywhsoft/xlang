@@ -3,11 +3,13 @@
 void xl6CgenEmitStructuredOptionsRuntime(XL6_Output* out, unsigned operations)
 {
     if (out == NULL || operations == 0) return;
-    xl6OutputPuts("#include <__xl_runtime/xl6_serialization_options.h>\n", out);
+    xl6OutputPuts("#include <__xl_runtime/xl6_serialization_options.h>\n"
+                 "#include <__xl_runtime/xl6_serialization_read.h>\n", out);
     if (operations & XL6_CGEN_CONFIG_READ_MASK)
         xl6OutputPuts(
             "static xlir_result_xvalue xl6_config_read_finish(xvalue* value, xerror* prior)\n"
-            "{ xrtClearError(); xrtSetErrorTake(prior); return (xlir_result_xvalue){ true, value }; }\n"
+            "{ bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n"
             "static xlir_result_xvalue xl6_config_read_option_error(xerror* prior)\n"
             "{ if (xrtGetError() == NULL) xrtSetErrorKind(XERR_ARGUMENT);\n"
             "  xrtErrorFree(prior); return (xlir_result_xvalue){ false, NULL }; }\n\n", out);

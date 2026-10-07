@@ -146,13 +146,14 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_UNARY_NEG ||
               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_UNARY_BIT_NOT) ) {
             needs->needsXValueBinaryRuntime = 1;
-            needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
-            needs->needsStringViewOperations = 1;
-            needs->needsXValueArrayRuntime = 1;
-            needs->needsXValueArrayReadRuntime = 1;
-            needs->needsXValueCountRuntime = 1;
+            /* Arithmetic consumes boxes directly. Array/count and managed
+             * string rendering belong to their actual RuntimeOps; dynamic
+             * addition requests its independent resident data adapters. */
         }
+        if (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_ADD)
+            needs->needsXValueAddRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCollectionAlgebraRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
@@ -737,7 +738,7 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             }
         }
     }
-    if ( needs->needsPersistenceFormats != XL6_IR_PERSIST_FORMAT_NONE ) {
+    if ( needs->needsPersistenceRestoreFormats != XL6_IR_PERSIST_FORMAT_NONE ) {
         for ( i = 0; i < module->classLayoutCount; ++i ) {
             if ( module->classLayouts[i].persistenceConstructionAbi ==
                      XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT ) {
@@ -750,10 +751,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             const XL6_IrClassLayout* layout = &module->classLayouts[i];
             if ( layout->persistenceObjectAbi !=
                      XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ) continue;
-            if ( ((needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0 &&
+            if ( ((needs->needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0 &&
                   xl6IrCgenPersistenceLayoutSupported(
                       module, layout->type, XL6_IR_PERSIST_FORMAT_JSON)) ||
-                 ((needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 &&
+                 ((needs->needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 &&
                   xl6IrCgenPersistenceLayoutSupported(
                       module, layout->type, XL6_IR_PERSIST_FORMAT_XLON)) ) {
                 needs->needsPersistenceDynamicFields = 1;

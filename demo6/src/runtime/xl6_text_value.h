@@ -39,6 +39,8 @@ XL6_TEXT_API const xrttype* xl6StringTypeV1(void);
 XL6_TEXT_API const xrttype* xl6CharTypeV1(void);
 XL6_TEXT_API const xvalueconverter* xl6CharConverterV1(void);
 XL6_TEXT_API const xvalueconverter* xl6StringConverterV1(void);
+/* Exact-length dynamic string addition; NULL is failure, never null data. */
+XL6_TEXT_API xvalue* xl6ValueStringConcatV1(const xvalue*, const xvalue*);
 XL6_TEXT_API bool xl6NullableStringEqualV1(xstrview, xstrview);
 XL6_TEXT_API const xvalueconverter* xl6NullableStringConverterV1(void);
 XL6_TEXT_API const xvalueconverter* xl6NullableBoolConverterV1(void);

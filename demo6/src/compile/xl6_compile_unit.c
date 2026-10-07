@@ -145,7 +145,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_time_value.c", D(R(NULLABLE_TIME)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_nullable_char_value.c", D(R(NULLABLE_CHAR)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_string_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING"}},
-    {"src/runtime/xl6_string_value.c", D(R(STRING_TYPE)), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}},
+    {"src/runtime/xl6_string_value.c", D(R(STRING_TYPE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}},
     {"src/runtime/xl6_array_value.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_char_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_char_value.c", D(R(CHAR_TYPE)), {"XRUNTIME_MODULE_TYPED_VALUE"}},
@@ -199,8 +199,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_array_import_chain.c", D(R(SEQUENCE),R(ARRAY_INPUT),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
-    {"src/runtime/xl6_array_algebra.c", D(R(SEQUENCE),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_array_algebra.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_INPUT)),
         {"XRT_MODULE_VALUE_COLLECTION", "XRUNTIME_MODULE_TYPED_ARRAY"}},
+    {"src/runtime/xl6_array_graph.c", D(R(SEQUENCE),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_GRAPH", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_persistence_project.c", D(R(ARRAY_GRAPH),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_persistence_project_open.c", D(R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_GRAPH", "XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD"}},
     {"src/runtime/xl6_array_methods.c", D(R(SEQUENCE)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_array_method_insert.c", D(R(SEQUENCE)),
@@ -439,6 +445,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         if (instruction->kind==XL6_IR_INSTR_AWAIT) REQUIRE(R(FUTURE_PAYLOAD));
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
         if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CREATE ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_ARRAY_CREATE ||
             instruction->runtimeOp == XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
             for (size_t depth=0;recipe && depth<=64;++depth) {
@@ -470,6 +477,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
              instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) &&
             xl6IrArrayTrivialExtractResult(xl6IrTypeGet(&module->types,instruction->type));
         if (trivialExtract || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
             (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
              instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) ||
             (instruction->runtimeOp >= XL6_IR_RUNTIME_AVL_TREE_CREATE &&
@@ -477,6 +485,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
             const XL6_IrType* created=(instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE ||
+                instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
                 instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN)
                 ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
             const XL6_IrType* extracted=trivialExtract ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
@@ -525,6 +534,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 /* A descriptor and its dynamic projection have separate
                  * dependencies. Stack-only storage never pulls a converter. */
                 bool projection=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
                     (trivialExtract ? slot==0 : (slot ? instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS :
                     instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
                     instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||

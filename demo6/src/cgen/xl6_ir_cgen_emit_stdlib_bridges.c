@@ -54,9 +54,12 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "{ return records != NULL ? xrtXlonlStringify(records, NULL) : NULL; }\n\n", out);
     if ( needs->needsJsonlReadFileBridgeRuntime )
         xl6OutputPuts(
-            "xvalue* xl6_xrt_jsonl_read_file(xlir_string path)\n"
-            "{ const char* name = xlir_string_cstr(path); xvalue* value = name != NULL ? xrtJsonlParseFile(name) : NULL;\n"
-            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
+            "#include <__xl_runtime/xl6_serialization_read.h>\n"
+            "xlir_result_xvalue xl6_xrt_jsonl_read_file(xlir_string path)\n"
+            "{ xerror* prior = xrtTakeError(); const char* name = xlir_string_cstr(path);\n"
+            "  xvalue* value = name != NULL ? xrtJsonlParseFile(name) : NULL;\n"
+            "  bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n\n", out);
     if ( needs->needsJsonlWriteFileBridgeRuntime )
         xl6OutputPuts(
             "bool xl6_xrt_jsonl_write_file(xlir_string path, xvalue* records)\n"
@@ -64,9 +67,12 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "  if (!ok) xrtClearError();\n  return ok; }\n\n", out);
     if ( needs->needsXlonlReadFileBridgeRuntime )
         xl6OutputPuts(
-            "xvalue* xl6_xrt_xlonl_read_file(xlir_string path)\n"
-            "{ const char* name = xlir_string_cstr(path); xvalue* value = name != NULL ? xrtXlonlParseFile(name) : NULL;\n"
-            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
+            "#include <__xl_runtime/xl6_serialization_read.h>\n"
+            "xlir_result_xvalue xl6_xrt_xlonl_read_file(xlir_string path)\n"
+            "{ xerror* prior = xrtTakeError(); const char* name = xlir_string_cstr(path);\n"
+            "  xvalue* value = name != NULL ? xrtXlonlParseFile(name) : NULL;\n"
+            "  bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n\n", out);
     if ( needs->needsXlonlWriteFileBridgeRuntime )
         xl6OutputPuts(
             "bool xl6_xrt_xlonl_write_file(xlir_string path, xvalue* records)\n"
@@ -74,9 +80,12 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "  if (!ok) xrtClearError();\n  return ok; }\n\n", out);
     if ( needs->needsJsonlParseBridgeRuntime )
         xl6OutputPuts(
-            "xvalue* xl6_xrt_jsonl_parse(xlir_string text)\n"
-            "{ xvalue* value = text.Data != NULL ? xrtJsonlParse(text) : NULL;\n"
-            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
+            "#include <__xl_runtime/xl6_serialization_read.h>\n"
+            "xlir_result_xvalue xl6_xrt_jsonl_parse(xlir_string text)\n"
+            "{ xerror* prior = xrtTakeError();\n"
+            "  xvalue* value = text.Data != NULL ? xrtJsonlParse(text) : NULL;\n"
+            "  bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n\n", out);
     if ( needs->needsJsonlValidBridgeRuntime || needs->needsXlonlValidBridgeRuntime )
         xl6OutputPuts(
             "static bool xl6_serialization_syntax_error(const xerror* failure)\n"
@@ -96,9 +105,12 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "  xrtErrorFree(prior); xrtSetErrorTake(failure); return false; }\n\n", out);
     if ( needs->needsXlonlParseBridgeRuntime )
         xl6OutputPuts(
-            "xvalue* xl6_xrt_xlonl_parse(xlir_string text)\n"
-            "{ xvalue* value = text.Data != NULL ? xrtXlonlParse(text) : NULL;\n"
-            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
+            "#include <__xl_runtime/xl6_serialization_read.h>\n"
+            "xlir_result_xvalue xl6_xrt_xlonl_parse(xlir_string text)\n"
+            "{ xerror* prior = xrtTakeError();\n"
+            "  xvalue* value = text.Data != NULL ? xrtXlonlParse(text) : NULL;\n"
+            "  bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n\n", out);
     if ( needs->needsXlonlValidBridgeRuntime )
         xl6OutputPuts(
             "bool xl6_xrt_xlonl_valid(xlir_string text)\n"

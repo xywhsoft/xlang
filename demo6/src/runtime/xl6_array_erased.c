@@ -28,6 +28,21 @@ xvalue* xl6ArrayEraseV1(const xvalue* source, uint64_t identity, uint64_t elemen
     if (xl6SequenceBindProjectionV1(owner,policy)) result=xrtValueRetain(source);
     xl6SequenceEndV1(owner); return result;
 }
+xvalue* xl6ArrayProjectionTakeV1(xvalue* source, uint64_t identity, uint64_t elementIdentity,
+    unsigned int transfer, size_t size, const xrttype* type, const xvalueconverter* converter)
+{
+    if (!source) { if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    xvalue* projected=xl6ArrayEraseV1(source,identity,elementIdentity,transfer,size,type,converter);
+    if (projected) { xrtValueRelease(source); return projected; }
+    xerror* failure=xrtTakeError();
+    xl6_error_scope cleanup={0};
+    if (!xl6ErrorScopeBegin(&cleanup)) abort();
+    xrtSetErrorTake(failure); xl6ErrorScopeCaptureFailure(&cleanup);
+    xrtValueRelease(source);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return NULL;
+}
 static xvalue* read(const xvalue* source, int64_t index, bool take)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;
@@ -177,6 +192,23 @@ xvalue* xl6ArrayErasedCloneV1(const xvalue* source)
         return NULL;
     }
     xl6SequenceEndV1(owner); return result;
+}
+xvalue* xl6ValueCloneV1(const xvalue* source)
+{
+    xerror* incoming=xrtTakeError();
+    xl6_error_scope operation={0};
+    if (!xl6ErrorScopeBegin(&operation)) abort();
+    XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
+    const xvalueconverter* converter=NULL;
+    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    if (owner) xl6SequenceEndV1(owner);
+    xvalue* result=status<0 ? NULL : status ? xl6ArrayErasedCloneV1(source) : xrtValueClone(source);
+    if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
+    if (operation.failed) { consume(result); result=NULL; }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
+    if (!outcome.ok) { xrtErrorFree(incoming); xl6ErrorScopePropagateFailure(outcome); }
+    else xrtSetErrorTake(incoming);
+    return result;
 }
 bool xl6ArrayErasedClearV1(const xvalue* source)
 {

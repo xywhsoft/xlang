@@ -1,0 +1,43 @@
+// Complete synchronous module/entry prefix; no Future worker allocations.
+int cloneFinally = 0
+func cloneErased(var value) as var
+    try
+        return clone(value)
+    finally
+        cloneFinally += 1
+    end
+end
+func cloneTemporary() as array<array<int>>
+    array<int> child = [3, 4]
+    return [child, child]
+end
+func main(...) as int
+    array<int> child = [1, 2]
+    array<array<int>> source = [child, child]
+    auto deep = clone(source)
+    child[0] = 9
+    assert(deep[0][0] == 1 and deep[1][0] == 1)
+    deep[0][1] = 7
+    assert(deep[1][1] == 7 and child[1] == 2)
+    var mixed = {"first": source, "again": source}
+    var copied = cloneErased(mixed)
+    assert(cloneFinally == 1 and int(copied["first"][0][0]) == 9)
+    copied["first"][0][0] = 11
+    assert(int(copied["again"][1][0]) == 11 and child[0] == 9)
+    auto temporary = clone(cloneTemporary())
+    temporary[0][0] = 12
+    assert(temporary[1][0] == 12 and temporary[0][1] == 4)
+    array<string> text = ["a\0你", "b"]
+    array<bytes> binary = [b"a\0b"]
+    auto copiedText = clone(text)
+    auto copiedBinary = clone(binary)
+    assert(copiedText[0] == "a\0你" and copiedBinary[0] == b"a\0b")
+    array<array<int>> wide
+    for index in range(40)
+        wide.push(array<int>[index])
+    end
+    auto wideCopy = clone(wide)
+    wide[39][0] = 99
+    assert(wideCopy[39][0] == 39 and wideCopy.length == 40)
+    return 0
+end

@@ -1,0 +1,11 @@
+func erasedConcat(var left, var right) as var
+    return left + right
+end
+array<int> source = array<int>[1, 2]
+var joined = erasedConcat(source, source)
+assert(joined.length == 4 and int(joined[2]) == 1)
+source[0] = 9
+assert(int(joined[0]) == 1)
+
+var mixed = erasedConcat(source, [3, 4])
+assert(mixed.length == 4 and int(mixed[0]) == 9 and int(mixed[3]) == 4)

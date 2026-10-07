@@ -1,0 +1,17 @@
+array<int> child = array<int>[1, 2]
+array<array<int>> source = [child, child]
+auto deep = clone(source)
+child[0] = 9
+assert(deep[0][0] == 1 and deep[1][0] == 1)
+deep[0][1] = 7
+assert(deep[1][1] == 7 and child[1] == 2)
+
+func erasedClone(var value) as var
+    return clone(value)
+end
+var mixed = {"native": source, "again": source}
+var result = erasedClone(mixed)
+child[0] = 10
+assert(int(result["native"][0][0]) == 9)
+result["native"][0][0] = 11
+assert(int(result["again"][1][0]) == 11 and child[0] == 10)

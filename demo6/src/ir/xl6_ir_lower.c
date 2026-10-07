@@ -284,38 +284,6 @@ static int xl6IrLowerDiag(XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const ch
     return 0;
 }
 
-/* A runtime string payload is already a C string literal by the time it
- * reaches XLIR.  This is intentionally here, at the source-to-IR boundary:
- * the C emitter receives no source spelling, quote style, raw-prefix, or
- * escape semantics to rediscover. */
-static int xl6IrLowerStringLiteralParts(
-    const char* text, size_t* outStart, size_t* outEnd, int* outRaw)
-{
-    size_t len;
-    size_t pos = 0;
-    size_t delimiter;
-    char quote;
-    if ( text == NULL || outStart == NULL || outEnd == NULL || outRaw == NULL ) return 0;
-    len = strlen(text);
-    if ( len > 1 && text[0] == 'r' && (text[1] == '\'' || text[1] == '\"') ) {
-        *outRaw = 1;
-        pos = 1;
-    } else {
-        *outRaw = 0;
-    }
-    if ( pos >= len || (text[pos] != '\'' && text[pos] != '\"') ) return 0;
-    quote = text[pos];
-    delimiter = pos + 2 < len && text[pos + 1] == quote && text[pos + 2] == quote ? 3 : 1;
-    if ( len < pos + delimiter * 2 ) return 0;
-    if ( delimiter == 3 ) {
-        if ( text[len - 1] != quote || text[len - 2] != quote || text[len - 3] != quote ) return 0;
-    } else if ( text[len - 1] != quote ) {
-        return 0;
-    }
-    *outStart = pos + delimiter;
-    *outEnd = len - delimiter;
-    return 1;
-}
 
 static XL6_IrTypeId xl6IrLowerFindTypeByCAbi(
     const XL6_IrModule* module, XL6_IrCAbi cAbi);
@@ -358,169 +326,6 @@ static int xl6IrLowerEmitNativeDestroyIfNotNull(
     return 1;
 }
 
-static int xl6IrLowerAppendCStringByte(char* output, size_t* length, unsigned char ch)
-{
-    size_t at = *length;
-    switch ( ch ) {
-    case '\n': output[at++] = '\\'; output[at++] = 'n'; break;
-    case '\r': output[at++] = '\\'; output[at++] = 'r'; break;
-    case '\t': output[at++] = '\\'; output[at++] = 't'; break;
-    case '\a': output[at++] = '\\'; output[at++] = 'a'; break;
-    case '\b': output[at++] = '\\'; output[at++] = 'b'; break;
-    case '\f': output[at++] = '\\'; output[at++] = 'f'; break;
-    case '\v': output[at++] = '\\'; output[at++] = 'v'; break;
-    case '\\': output[at++] = '\\'; output[at++] = '\\'; break;
-    case '\"': output[at++] = '\\'; output[at++] = '\"'; break;
-    default:
-        if ( ch < 0x20 || ch == 0x7f ) {
-            output[at++] = '\\';
-            output[at++] = (char)('0' + ((ch >> 6) & 7));
-            output[at++] = (char)('0' + ((ch >> 3) & 7));
-            output[at++] = (char)('0' + (ch & 7));
-        } else {
-            output[at++] = (char)ch;
-        }
-        break;
-    }
-    *length = at;
-    return 1;
-}
-
-/* Dynamic member names are already semantic identifiers rather than source
- * string tokens.  Encode their bytes directly into the same canonical C
- * literal form used by literal-key object operations, so Cgen never needs to
- * interpret member spelling or manufacture an object key. */
-static char* xl6IrLowerCanonicalCStringBytes(const char* text)
-{
-    size_t i;
-    size_t length = 0;
-    size_t textLength;
-    char* output;
-
-    if ( text == NULL ) return NULL;
-    textLength = strlen(text);
-    if ( textLength > (SIZE_MAX - 3) / 4 ) return NULL;
-    output = (char*)xrtCalloc(textLength * 4 + 3, sizeof(*output));
-    if ( output == NULL ) return NULL;
-    output[length++] = '"';
-    for ( i = 0; i < textLength; ++i ) {
-        xl6IrLowerAppendCStringByte(output, &length, (unsigned char)text[i]);
-    }
-    output[length++] = '"';
-    output[length] = '\0';
-    return output;
-}
-
-static int xl6IrLowerHexDigit(char ch)
-{
-    if ( ch >= '0' && ch <= '9' ) return ch - '0';
-    if ( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
-    if ( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
-    return -1;
-}
-
-/* Canonicalize one already-delimited string byte range.  Interpolated text
- * parts do not carry their source quotes, while ordinary literals do; sharing
- * this range routine gives both paths exactly the same escape semantics. */
-static char* xl6IrLowerCanonicalCStringRange(
-    const char* text, size_t start, size_t end, int raw)
-{
-    size_t i;
-    size_t length = 0;
-    size_t capacity;
-    char* output;
-    if ( text == NULL || start > end ) return NULL;
-    /* Every UTF-8 input byte may become a three-digit C escape, plus quotes
-     * and NUL.  Guard the allocation before calculating the capacity. */
-    if ( end - start > (SIZE_MAX - 3) / 4 ) return NULL;
-    capacity = (end - start) * 4 + 3;
-    output = (char*)xrtCalloc(capacity, sizeof(*output));
-    if ( output == NULL ) return NULL;
-    output[length++] = '\"';
-    for ( i = start; i < end; ++i ) {
-        unsigned char ch = (unsigned char)text[i];
-        if ( ch == '\r' ) {
-            if ( i + 1 < end && text[i + 1] == '\n' ) ++i;
-            ch = '\n';
-        }
-        if ( !raw && ch == '\\' ) {
-            int digit;
-            if ( ++i >= end ) { xrtFree(output); return NULL; }
-            ch = (unsigned char)text[i];
-            switch ( ch ) {
-            case '\\': case '\'': case '\"': case '?': break;
-            case 'a': ch = '\a'; break;
-            case 'b': ch = '\b'; break;
-            case 'f': ch = '\f'; break;
-            case 'n': ch = '\n'; break;
-            case 'r': ch = '\r'; break;
-            case 't': ch = '\t'; break;
-            case 'v': ch = '\v'; break;
-            case 'x':
-                if ( i + 1 >= end || (digit = xl6IrLowerHexDigit(text[i + 1])) < 0 )
-                    { xrtFree(output); return NULL; }
-                ch = (unsigned char)digit;
-                ++i;
-                while ( i + 1 < end && (digit = xl6IrLowerHexDigit(text[i + 1])) >= 0 ) {
-                    if ( ch > 0x0f ) { xrtFree(output); return NULL; }
-                    ch = (unsigned char)((ch << 4) | digit);
-                    ++i;
-                }
-                break;
-            default:
-                if ( ch < '0' || ch > '7' ) { xrtFree(output); return NULL; }
-                {
-                    unsigned int value = (unsigned int)(ch - '0');
-                    size_t count = 1;
-                    while ( count < 3 && i + 1 < end && text[i + 1] >= '0' && text[i + 1] <= '7' ) {
-                        value = value * 8u + (unsigned int)(text[++i] - '0');
-                        ++count;
-                    }
-                    if ( value > 0xffu ) { xrtFree(output); return NULL; }
-                    ch = (unsigned char)value;
-                }
-                break;
-            }
-        }
-        xl6IrLowerAppendCStringByte(output, &length, ch);
-    }
-    output[length++] = '\"';
-    output[length] = '\0';
-    return output;
-}
-
-static char* xl6IrLowerCanonicalCStringLiteral(const char* text)
-{
-    size_t start;
-    size_t end;
-    int raw;
-    if ( !xl6IrLowerStringLiteralParts(text, &start, &end, &raw) ) return NULL;
-    return xl6IrLowerCanonicalCStringRange(text, start, end, raw);
-}
-
-/* Named CallSite dictionary keys are semantic identifiers rather than source
- * string literals.  Encode that already-resolved spelling directly instead
- * of fabricating quoted AST text and sending it through the literal parser. */
-static char* xl6IrLowerCanonicalIdentifierCString(const char* text)
-{
-    size_t length;
-    size_t i;
-    char* output;
-    if ( text == NULL || text[0] == '\0' ) return NULL;
-    length = strlen(text);
-    if ( length > SIZE_MAX - 3 ) return NULL;
-    for ( i = 0; i < length; ++i ) {
-        unsigned char ch = (unsigned char)text[i];
-        if ( ch < 0x20 || ch == 0x7f || ch == '\\' || ch == '"' ) return NULL;
-    }
-    output = (char*)xrtMalloc(length + 3);
-    if ( output == NULL ) return NULL;
-    output[0] = '"';
-    memcpy(output + 1, text, length);
-    output[length + 1] = '"';
-    output[length + 2] = '\0';
-    return output;
-}
 
 /* Source integer spelling may use separators and XL-only octal/binary
  * prefixes.  Lower it once into a portable C payload rather than asking Cgen
@@ -2019,6 +1824,17 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     instruction->runtimeOp = runtimeOp;
     instruction->payloadType = payloadType;
     instruction->runtimeIdentityType = identityType;
+    if (runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
+        const XL6_IrType* array=xl6IrTypeGet(&ctx->module->types,type);
+        if (!array || array->paramCount!=1 || !array->params ||
+            !xl6IrSequenceConstructionRecipe(ctx->module,type,XL6_IR_SEQUENCE_ROLE_ARRAY,
+                &instruction->sequenceAdmissionIdentitySet)) {
+            xl6IrLowerDiag(ctx,origin,"Array construction requires a complete native Sequence recipe");
+            return XL6_IR_VALUE_INVALID;
+        }
+        instruction->collectionAbi=XL6_IR_COLLECTION_ARRAY;
+        instruction->payloadType=array->params[0];
+    }
     if (runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
         !xl6IrStackConstructionContract(ctx->module,type,&instruction->sequenceAdmissionIdentitySet)) {
         xl6IrLowerDiag(ctx,origin,"Stack construction requires a closed resident Sequence recipe; wire Array and unsupported element domains are not native slots");
@@ -2652,6 +2468,9 @@ static XL6_IrValueId xl6IrLowerMaybeBindRuntimeTypeIdentity(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId resultType,
     XL6_IrTypeId identityType, XL6_IrValueId owned)
 {
+    const XL6_IrInstruction* producer=xl6IrLowerValueDefinition(ctx->module,owned);
+    if (resultType==identityType && producer && producer->type==identityType &&
+        xl6IrArrayCreateRuntimeInstructionCompatible(ctx->module,producer)) return owned;
     if ( xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module, identityType) )
         return owned;
     return xl6IrLowerBindRuntimeTypeIdentity(
@@ -4176,7 +3995,7 @@ static XL6_IrValueId xl6IrLowerArrayLiteralAsRuntimeXValue(
     }
     boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
     array = xl6IrLowerEmitRuntimeCall(ctx, origin, targetType,
-                                      XL6_IR_RUNTIME_XVALUE_ARRAY_NEW, NULL, 0);
+                                      xl6IrArrayConstructionRuntimeOp(ctx->module,targetType), NULL, 0);
     if ( array != XL6_IR_VALUE_INVALID )
         array = xl6IrLowerMaybeBindRuntimeTypeIdentity(
             ctx, origin, targetType, targetType, array);
@@ -4390,7 +4209,7 @@ static XL6_IrValueId xl6IrLowerObjectLiteralAsRuntimeXValue(
             xl6IrLowerDiag(ctx, origin, "XLIR dynamic object literal requires canonical string keys");
             return XL6_IR_VALUE_INVALID;
         }
-        keyLiteral = xl6IrLowerCanonicalCStringLiteral(key->text);
+        keyLiteral = xl6IrCanonicalCStringLiteral(key->text);
         if ( keyLiteral == NULL ) return XL6_IR_VALUE_INVALID;
         boxed = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
         if ( boxed == XL6_IR_VALUE_INVALID ) { xrtFree(keyLiteral); return XL6_IR_VALUE_INVALID; }
@@ -4491,9 +4310,11 @@ static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
                                                  XL6_IR_RUNTIME_XVALUE_NULL,
                                                  "null", NULL, 0);
     }
-    /* A typed collection literal only fixes the frontend target type.  Its
-     * inner literal already carries the concrete container shape, so unwrap
-     * it before choosing an explicit xvalue construction ABI. */
+    /* An explicit generic collection literal owns its resolved representation even
+     * when a call/container slot immediately erases it to var. Construct that
+     * exact type first, then apply the ordinary owned xvalue widening. Using
+     * the erased destination as the factory type silently discards its native
+     * schema (e.g. pushing array<int>[n] into array<array<int>>). */
     if ( source->sourceKind == XL6_AST_TYPED_LITERAL && source->childCount >= 1 ) {
         XL6_IrNodeId literalId = ctx->module->children[source->firstChild];
         const XL6_IrNode* literal = xl6IrNodeGet(ctx->module, literalId);
@@ -4501,7 +4322,24 @@ static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
             xl6IrLowerDiag(ctx, origin, "XLIR typed collection literal has no normalized inner literal");
             return XL6_IR_VALUE_INVALID;
         }
-        return xl6IrLowerNodeAsRuntimeXValue(ctx, origin, literalId, literal, targetType);
+        /* A shape-only prefix such as array[...] or list[...] still accepts
+         * its enclosing expected element type; it declares no generic type.
+         * Only the normalized TYPE child is an explicit representation. */
+        if (source->childCount == 1)
+            return xl6IrLowerNodeAsRuntimeXValue(ctx, origin, literalId, literal, targetType);
+        const XL6_IrNode* declaredType = xl6IrNodeGet(ctx->module,
+            ctx->module->children[source->firstChild + 1]);
+        XL6_IrTypeId literalType = source->storageType;
+        if (!xl6IrLowerTypeIsRuntimeXValue(ctx->module, literalType) ||
+            source->childCount != 2 || declaredType == NULL ||
+            declaredType->sourceKind != XL6_AST_TYPE || declaredType->type != literalType) {
+            xl6IrLowerDiag(ctx, origin,
+                "XLIR typed collection literal has no exact explicit generic representation");
+            return XL6_IR_VALUE_INVALID;
+        }
+        value = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, literalId, literal, literalType);
+        return value == XL6_IR_VALUE_INVALID ? value :
+            xl6IrLowerBoxEvaluatedRuntimeXValue(ctx, origin, source, targetType, value);
     }
     if ( source->kind == XL6_IR_NODE_COLLECTION ) {
         /* The literal, rather than its surrounding declaration/call/return,
@@ -4816,7 +4654,7 @@ static XL6_IrValueId xl6IrLowerCallSiteAggregateNew(
     container = xl6IrLowerEmitRuntimeCall(
         ctx, origin, targetType,
         site->variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY
-            ? XL6_IR_RUNTIME_XVALUE_ARRAY_NEW
+            ? xl6IrArrayConstructionRuntimeOp(ctx->module,targetType)
             : XL6_IR_RUNTIME_XVALUE_OBJECT_NEW,
         NULL, 0);
     if ( container != XL6_IR_VALUE_INVALID )
@@ -4843,7 +4681,7 @@ static int xl6IrLowerCallSiteAggregateAppend(
             ctx, origin, boolType, XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW,
             operands, 2);
     } else {
-        char* keyLiteral = xl6IrLowerCanonicalIdentifierCString(binding->name);
+        char* keyLiteral = xl6IrCanonicalIdentifierCString(binding->name);
         if ( keyLiteral == NULL ) return 0;
         inserted = xl6IrLowerEmitRuntimeLiteralCall(
             ctx, origin, boolType, XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW,
@@ -5122,7 +4960,7 @@ static int xl6IrLowerPrepareElementTargetPlan(
             if (plan->callableSignature == XL6_IR_TYPE_INVALID) return 0;
             plan->writeOperation = XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_CLOSURE;
         }
-        plan->keyLiteral = xl6IrLowerCanonicalCStringBytes(lhs->text);
+        plan->keyLiteral = xl6IrCanonicalCStringBytes(lhs->text);
         if (plan->keyLiteral == NULL) return 0;
     } else if (!xl6IrLowerResolveElementTargetOperations(ctx, plan)) {
         xl6IrLowerDiag(ctx, origin, "XLIR index address has no exact paired read/write ABI");
@@ -5157,7 +4995,7 @@ static int xl6IrLowerPrepareElementTargetPlan(
         if ( plan->key->sourceKind != XL6_AST_STRING ||
              plan->key->text == NULL ) break;
         plan->keyLiteral =
-            xl6IrLowerCanonicalCStringLiteral(plan->key->text);
+            xl6IrCanonicalCStringLiteral(plan->key->text);
         if ( plan->keyLiteral != NULL ) return 1;
         break;
     case XL6_IR_INDEX_WRITE_XVALUE_OBJECT_STRING_SET_NEW:
@@ -5976,7 +5814,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
             return XL6_IR_VALUE_INVALID;
         }
     }
-    keyLiteral = xl6IrLowerCanonicalCStringLiteral(key->text);
+    keyLiteral = xl6IrCanonicalCStringLiteral(key->text);
     receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) { xrtFree(keyLiteral); return XL6_IR_VALUE_INVALID; }
     if (runtimeOp == XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY) {
@@ -6194,7 +6032,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetLiteral(
         xl6IrLowerDiag(ctx, origin, "XLIR dynamic member read requires a resolved xvalue receiver");
         return XL6_IR_VALUE_INVALID;
     }
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) {
         xrtFree(keyLiteral);
@@ -6231,7 +6069,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetInteger(
     receiver = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
     if ( receiver == NULL || !xl6IrLowerTypeIsRuntimeXValue(ctx->module, receiver->storageType) )
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) {
         xrtFree(keyLiteral);
@@ -6283,7 +6121,7 @@ static XL6_IrValueId xl6IrLowerClassInlineUnionFieldProject(
          !xl6IrLowerTypeIsRuntimeXValue(
              ctx->module, receiver->storageType) )
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     receiverValue = xl6IrLowerNode(
         ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) {
@@ -6312,7 +6150,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetStringCopy(
     receiver = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
     if ( receiver == NULL || !xl6IrLowerTypeIsRuntimeXValue(ctx->module, receiver->storageType) )
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) {
         xrtFree(keyLiteral); return XL6_IR_VALUE_INVALID;
@@ -6354,7 +6192,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetTaggedNullable(
          !xl6IrLowerTypeIsRuntimeXValue(ctx->module, receiver->storageType) ||
          field == NULL || field->type != node->storageType )
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) {
         xrtFree(keyLiteral);
@@ -6499,7 +6337,7 @@ static XL6_IrValueId xl6IrLowerSafeClassFieldProject(
     receiverValue = xl6IrLowerProtectOwnedBorrow(
         ctx, origin, receiverValue);
     if ( receiverValue == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     if ( keyLiteral == NULL ) return XL6_IR_VALUE_INVALID;
     borrowed = xl6IrLowerEmitRuntimeLiteralCall(
         ctx, origin, xl6IrLowerFindDynamicBuiltinType(ctx->module),
@@ -6703,7 +6541,7 @@ static XL6_IrValueId xl6IrLowerClassFieldProjectValue(
          receiverValue == XL6_IR_VALUE_INVALID ||
          xl6IrLowerValueType(ctx, receiverValue) != receiverType )
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     if ( keyLiteral == NULL ) {
         xrtFree(keyLiteral);
         return XL6_IR_VALUE_INVALID;
@@ -7040,7 +6878,7 @@ static XL6_IrValueId xl6IrLowerErrorKindIs(
     XL6_IrValueId result;
     if ( boolType == XL6_IR_TYPE_INVALID || error == XL6_IR_VALUE_INVALID ||
          kind == NULL || kind[0] == '\0' ) return XL6_IR_VALUE_INVALID;
-    literal = xl6IrLowerCanonicalCStringBytes(kind);
+    literal = xl6IrCanonicalCStringBytes(kind);
     if ( literal == NULL ) return XL6_IR_VALUE_INVALID;
     result = xl6IrLowerEmitRuntimeLiteralCall(ctx, origin, boolType,
                                                XL6_IR_RUNTIME_ERROR_KIND_IS,
@@ -7216,7 +7054,7 @@ static int xl6IrLowerUnionFieldSet(
                 "XLIR union class-field write has no exact object, field or layout ABI");
             return -1;
         }
-        keyLiteral = xl6IrLowerCanonicalCStringBytes(classMember->text);
+        keyLiteral = xl6IrCanonicalCStringBytes(classMember->text);
         object = xl6IrLowerNode(
             ctx, ctx->module->children[classMember->firstChild]);
         if ( keyLiteral == NULL || object == XL6_IR_VALUE_INVALID ) {
@@ -7325,7 +7163,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetClosure(
          !xl6IrLowerCallableTypesCompatible(
              ctx->module, field->type, node->storageType) )
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
+    keyLiteral = xl6IrCanonicalCStringBytes(node->text);
     receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) {
         xrtFree(keyLiteral);
@@ -7949,7 +7787,7 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
                           XL6_IR_TYPE_INVALID, 0, NULL, 0, NULL) )
         return XL6_IR_VALUE_INVALID;
     raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
-    raise->immediateText = xl6IrLowerCanonicalCStringBytes("TypeError");
+    raise->immediateText = xl6IrCanonicalCStringBytes("TypeError");
     if ( raise->immediateText == NULL ||
          !xl6IrLowerEmitExceptionTransfer(
              ctx, id, node, errorPlan, 0) ) return XL6_IR_VALUE_INVALID;
@@ -8171,7 +8009,7 @@ static XL6_IrValueId xl6IrLowerNominalNullableUnwrapCast(
                           XL6_IR_TYPE_INVALID, 0, NULL, 0, NULL) )
         return XL6_IR_VALUE_INVALID;
     raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
-    raise->immediateText = xl6IrLowerCanonicalCStringBytes("TypeError");
+    raise->immediateText = xl6IrCanonicalCStringBytes("TypeError");
     if ( raise->immediateText == NULL ||
          !xl6IrLowerEmitExceptionTransfer(
              ctx, id, node, errorPlan, 0) ) return XL6_IR_VALUE_INVALID;
@@ -8772,6 +8610,23 @@ static XL6_IrValueId xl6IrLowerTruthValue(
     return result;
 }
 
+static XL6_IrValueId xl6IrLowerPersistenceProject(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId id, XL6_IrValueId source,
+    XL6_IrTypeId payload, uint32 format)
+{
+    XL6_IrTypeId wireType = xl6IrTypeInternPersistenceWire(ctx->module, payload, format);
+    XL6_IrValueId wire;
+    if (wireType == XL6_IR_TYPE_INVALID) return XL6_IR_VALUE_INVALID;
+    wire = xl6IrLowerEmitRuntimeCallPayload(ctx, id, id, wireType,
+        format == XL6_IR_PERSIST_FORMAT_JSON
+            ? XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT
+            : XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT,
+        NULL, payload, &source, 1);
+    return wire != XL6_IR_VALUE_INVALID
+        ? xl6IrLowerProtectOwnedBorrow(ctx, id, wire)
+        : XL6_IR_VALUE_INVALID;
+}
+
 /* Persistence projection is already a closed recursive value operation in
  * Typed XLIR.  Lowering converts the semantic payload to one borrowed runtime
  * xvalue through the normal boxing ABI, anchors that owner, materializes the
@@ -8809,7 +8664,7 @@ static int xl6IrLowerIntrinsicPersistenceStringify(
          intrinsic->firstOperand >= ctx->module->intrinsicOperandCount ||
          intrinsic->resultType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
          intrinsic->payloadType == XL6_IR_TYPE_INVALID ||
          intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID ) return 0;
     sourceBinding =
@@ -8863,18 +8718,19 @@ static int xl6IrLowerIntrinsicPersistenceStringify(
         if ( instruction->immediateText == NULL ) return 1;
     }
     if ( pretty == XL6_IR_VALUE_INVALID ) return 1;
-    operands[0] = borrowed;
+    operands[0] = xl6IrLowerPersistenceProject(ctx, id, borrowed,
+        intrinsic->payloadType,
+        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
+            ? XL6_IR_PERSIST_FORMAT_JSON : XL6_IR_PERSIST_FORMAT_XLON);
+    if (operands[0] == XL6_IR_VALUE_INVALID) return 1;
     operands[1] = pretty;
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType,
+    *result = xl6IrLowerEmitRuntimeCallPayload(
+        ctx, id, id, call->storageType,
         intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
             ? XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY
             : XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY,
-        operands, 2);
+        NULL, intrinsic->payloadType, operands, 2);
     if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    instruction =
-        &ctx->module->instructions[ctx->module->instructionCount - 1];
-    instruction->payloadType = intrinsic->payloadType;
     if (!xl6IrLowerCompleteEvaluationBorrows(ctx,id,evaluationFirst,result))
         *result=XL6_IR_VALUE_INVALID;
     return 1;
@@ -8920,7 +8776,7 @@ static int xl6IrLowerIntrinsicPersistenceWrite(
          intrinsic->firstOperand >= ctx->module->intrinsicOperandCount ||
          intrinsic->resultType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
          intrinsic->payloadType == XL6_IR_TYPE_INVALID ||
          intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID ) return 0;
     pathBinding = &ctx->module->intrinsicOperands[intrinsic->firstOperand];
@@ -8990,18 +8846,19 @@ static int xl6IrLowerIntrinsicPersistenceWrite(
     }
     if ( pretty == XL6_IR_VALUE_INVALID ) return 1;
     operands[0] = borrowedPath;
-    operands[1] = borrowedSource;
+    operands[1] = xl6IrLowerPersistenceProject(ctx, id, borrowedSource,
+        intrinsic->payloadType,
+        intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
+            ? XL6_IR_PERSIST_FORMAT_JSON : XL6_IR_PERSIST_FORMAT_XLON);
+    if (operands[1] == XL6_IR_VALUE_INVALID) return 1;
     operands[2] = pretty;
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType,
+    *result = xl6IrLowerEmitRuntimeCallPayload(
+        ctx, id, id, call->storageType,
         intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
             ? XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE
             : XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE,
-        operands, 3);
+        NULL, intrinsic->payloadType, operands, 3);
     if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    instruction =
-        &ctx->module->instructions[ctx->module->instructionCount - 1];
-    instruction->payloadType = intrinsic->payloadType;
     if (!xl6IrLowerCompleteEvaluationBorrows(ctx, id, evaluationFirst, result))
         *result = XL6_IR_VALUE_INVALID;
     return 1;
@@ -9951,7 +9808,7 @@ static XL6_IrValueId xl6IrLowerEmitImplicitStringArgument(
          typeInfo->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
          text == NULL || text[0] == '\0' )
         return XL6_IR_VALUE_INVALID;
-    immediate = xl6IrLowerCanonicalCStringBytes(text);
+    immediate = xl6IrCanonicalCStringBytes(text);
     if ( immediate == NULL ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR implicit string argument has no canonical C payload");
@@ -10008,7 +9865,7 @@ static int xl6IrLowerEmitCheckedWrite(
                           XL6_IR_TYPE_INVALID, 0, &message, 1, NULL) )
         return 0;
     raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
-    raise->immediateText = xl6IrLowerCanonicalCStringBytes(errorKind);
+    raise->immediateText = xl6IrCanonicalCStringBytes(errorKind);
     if ( raise->immediateText == NULL ||
          !xl6IrLowerEmitExceptionTransfer(
               ctx, origin, node, errorPlan, 0) ) return 0;
@@ -11025,7 +10882,7 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
             xl6IrNodeGet(ctx->module, field->declaration);
         XL6_IrRuntimeOp createOp = type->collectionAbi ==
                 XL6_IR_COLLECTION_ARRAY
-            ? XL6_IR_RUNTIME_XVALUE_ARRAY_NEW
+            ? xl6IrArrayConstructionRuntimeOp(ctx->module,field->type)
             : type->collectionAbi == XL6_IR_COLLECTION_LIST
             ? XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW
             : type->collectionAbi == XL6_IR_COLLECTION_SET
@@ -11202,7 +11059,7 @@ static int xl6IrLowerDefaultClassInitializeBody(
                             "XLIR default class field has no resolved initializer ABI");
             return 0;
         }
-        keyLiteral = xl6IrLowerCanonicalCStringBytes(field->name);
+        keyLiteral = xl6IrCanonicalCStringBytes(field->name);
         if ( boxed == XL6_IR_VALUE_INVALID || keyLiteral == NULL ) {
             xrtFree(keyLiteral);
             return 0;
@@ -11272,7 +11129,7 @@ static int xl6IrLowerClassInitializeRuntimeTag(
          (boxedTag = xl6IrLowerEmitRuntimeCall(ctx, origin, erasedType,
                                                 XL6_IR_RUNTIME_XVALUE_I64, &rawTag, 1)) == XL6_IR_VALUE_INVALID )
         return 0;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(runtimeTagKey);
+    keyLiteral = xl6IrCanonicalCStringBytes(runtimeTagKey);
     if ( keyLiteral == NULL ) return 0;
     operands[0] = object;
     operands[1] = boxedTag;
@@ -14632,7 +14489,7 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING:
             literals[parameter] =
-                xl6IrLowerCanonicalCStringLiteral(expression->text);
+                xl6IrCanonicalCStringLiteral(expression->text);
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL:
             break;
@@ -14729,7 +14586,7 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING:
                     item->defaultLiteral =
-                        xl6IrLowerCanonicalCStringLiteral(expression->text);
+                        xl6IrCanonicalCStringLiteral(expression->text);
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL:
                     break;
@@ -20177,7 +20034,7 @@ static XL6_IrValueId xl6IrLowerAssert(XL6_IrLowerContext* ctx, XL6_IrNodeId id, 
                           message == XL6_IR_VALUE_INVALID ? 0 : 1, NULL) ) return XL6_IR_VALUE_INVALID;
     raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
     /* The error kind is an IR-owned ABI token, not a source string token. */
-    raise->immediateText = xl6IrLowerCanonicalCStringBytes("AssertionError");
+    raise->immediateText = xl6IrCanonicalCStringBytes("AssertionError");
     if ( raise->immediateText == NULL ) {
         xl6IrLowerDiag(ctx, id, "XLIR assertion has no canonical error kind ABI");
         return XL6_IR_VALUE_INVALID;
@@ -20450,7 +20307,7 @@ static XL6_IrValueId xl6IrLowerRangeFor(XL6_IrLowerContext* ctx, XL6_IrNodeId id
              !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_RAISE, id,
                               XL6_IR_TYPE_INVALID, 0, &message, 1, NULL) ) return 0;
         raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
-        raise->immediateText = xl6IrLowerCanonicalCStringBytes("RangeError");
+        raise->immediateText = xl6IrCanonicalCStringBytes("RangeError");
         if ( raise->immediateText == NULL ||
              !xl6IrLowerEmitExceptionTransfer(ctx, id, node, errorPlan, 0) ) {
             xl6IrLowerDiag(ctx, id,
@@ -23646,7 +23503,7 @@ static int xl6IrLowerProjectCallTargetPhysicalOperands(
         field = xl6IrLowerCallTargetNativeClassPhysicalField(
             ctx->module, target, parameter);
         keyLiteral = field != NULL
-            ? xl6IrLowerCanonicalCStringBytes(field->name) : NULL;
+            ? xl6IrCanonicalCStringBytes(field->name) : NULL;
         if ( field == NULL || keyLiteral == NULL ||
              xl6IrLowerValueType(ctx, operands[parameter]) !=
                  target->parameterTypes[parameter] ) {
@@ -23722,7 +23579,7 @@ static XL6_IrValueId xl6IrLowerManagedNativeObjectFromRaw(
     if (result == XL6_IR_VALUE_INVALID ||
         !xl6IrLowerClassInitializeRuntimeTag(ctx, origin, layout, result))
         return XL6_IR_VALUE_INVALID;
-    keyLiteral = xl6IrLowerCanonicalCStringBytes(field->name);
+    keyLiteral = xl6IrCanonicalCStringBytes(field->name);
     if ( boxed == XL6_IR_VALUE_INVALID || keyLiteral == NULL ) {
         xrtFree(keyLiteral);
         return XL6_IR_VALUE_INVALID;
@@ -25161,7 +25018,7 @@ static XL6_IrValueId xl6IrLowerTaskSpawnArrayTail(
          target->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
          boolType == XL6_IR_TYPE_INVALID ) return XL6_IR_VALUE_INVALID;
     container = xl6IrLowerEmitRuntimeCall(
-        ctx, origin, targetType, XL6_IR_RUNTIME_XVALUE_ARRAY_NEW,
+        ctx, origin, targetType, xl6IrArrayConstructionRuntimeOp(ctx->module,targetType),
         NULL, 0);
     if ( container != XL6_IR_VALUE_INVALID )
         container = xl6IrLowerMaybeBindRuntimeTypeIdentity(
@@ -26603,6 +26460,7 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
     if ( initializer->abi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY ) {
         if ( type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
              (initializer->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_NEW &&
+              initializer->runtimeOp != XL6_IR_RUNTIME_ARRAY_CREATE &&
               initializer->runtimeOp != XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW &&
               initializer->runtimeOp != XL6_IR_RUNTIME_XVALUE_OBJECT_NEW &&
               initializer->runtimeOp != XL6_IR_RUNTIME_XVALUE_SET_NEW) )
@@ -27398,11 +27256,8 @@ static int xl6IrLowerManagedBinary(
     if ( *result == XL6_IR_VALUE_INVALID ) goto done;
     if ( payloadType != XL6_IR_TYPE_INVALID )
         ctx->module->instructions[ctx->module->instructionCount - 1].payloadType = payloadType;
-    if ( dynamicResult && node->operatorErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
-         !xl6IrLowerEmitRuntimeErrorEdge(ctx, origin, node, *result) ) {
-        *result = XL6_IR_VALUE_INVALID;
-        goto done;
-    }
+    /* Allocating dynamic arithmetic shares the central checked-box producer
+     * path. Do not split a second error edge after its outcome/cleanup CFG. */
     if ( !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, result) ) {
         *result = XL6_IR_VALUE_INVALID;
         goto done;
@@ -31429,23 +31284,24 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
              (node->opcode == XL6_IR_OPCODE_POS ||
               node->opcode == XL6_IR_OPCODE_NEG ||
               node->opcode == XL6_IR_OPCODE_BIT_NOT) ) {
-            const XL6_IrNode* dynamicOperandNode = xl6IrNodeGet(
-                ctx->module, ctx->module->children[node->firstChild]);
             XL6_IrRuntimeOp unaryOp = node->opcode == XL6_IR_OPCODE_POS
                 ? XL6_IR_RUNTIME_XVALUE_UNARY_POS
                 : node->opcode == XL6_IR_OPCODE_NEG
                     ? XL6_IR_RUNTIME_XVALUE_UNARY_NEG
                     : XL6_IR_RUNTIME_XVALUE_UNARY_BIT_NOT;
-            XL6_SymbolId temporary = 0;
-            XL6_IrValueId borrowed = xl6IrLowerBorrowRuntimeXValueOperand(
-                ctx, id, dynamicOperandNode, values[0], &temporary);
+            size_t first = ctx->evaluationOwnerCount;
+            /* Unary arithmetic also allocates. Register its operand with the
+             * shared evaluation transaction before emitting the checked box;
+             * both success cleanup and the exceptional edge own that anchor. */
+            XL6_IrValueId borrowed = xl6IrLowerProtectOwnedBorrow(ctx, id, values[0]);
             if ( borrowed == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
             result = xl6IrLowerEmitRuntimeCall(
                 ctx, id, node->storageType, unaryOp, &borrowed, 1);
             if ( result == XL6_IR_VALUE_INVALID ||
-                 (temporary != 0 && !xl6IrLowerEmit(
-                     ctx, XL6_IR_INSTR_RELEASE, id, dynamicOperandNode->storageType,
-                     temporary, NULL, 0, NULL)) ) return XL6_IR_VALUE_INVALID;
+                 !xl6IrLowerCompleteEvaluationBorrows(ctx, id, first, &result) ) {
+                ctx->evaluationOwnerCount = first;
+                return XL6_IR_VALUE_INVALID;
+            }
             return result;
         }
         if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNARY, id, node->storageType, 0, values, 1, &result) ) return 0;
@@ -31723,7 +31579,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_RAISE, id, XL6_IR_TYPE_INVALID, 0,
                                   values, 1, NULL) ) return 0;
             raise = &ctx->module->instructions[ctx->module->instructionCount - 1];
-            raise->immediateText = xl6IrLowerCanonicalCStringBytes(
+            raise->immediateText = xl6IrCanonicalCStringBytes(
                 kindNode != NULL ? kindNode->text : "Error");
             if ( raise->immediateText == NULL ) {
                 xl6IrLowerDiag(ctx, id, "XLIR throw has no canonical error kind ABI");
@@ -32749,10 +32605,11 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         return 0;
     }
     if ( !xl6IrBuildGeneratorMachines(module, diags) ||
-         !xl6IrBuildCallableBridges(module, diags) ) {
+         !xl6IrBuildCallableBridges(module, diags) ||
+         !xl6IrBuildPersistenceProjectPlans(module) ) {
         if ( diags == NULL || diags->count == 0 )
             (void)xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering could not derive generator yield/liveness facts");
+                "XLIR lowering could not derive generator, callable or persistence projection facts");
         xrtFree(ctx.loops);
         xrtFree(ctx.loopResources);
         xrtFree(ctx.exceptions);

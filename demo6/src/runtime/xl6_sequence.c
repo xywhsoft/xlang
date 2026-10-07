@@ -462,6 +462,33 @@ int xl6SequenceBeginErasedArrayV1(const xvalue* value, XL6_Sequence** result,
     if (unbound) { xl6SequenceEndV1(owner); xrtSetErrorKind(XERR_STATE); }
     return status;
 }
+int xl6SequenceGraphBeginV1(const xvaluehandleops* actual, ptr raw, ptr user,
+    uint64_t identity, XL6_Sequence** result, XL6_SequenceLayoutV1* layout,
+    const xvalueconverter** converter)
+{
+    if (!result || !layout || !converter) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    if (actual!=&ops) return 0;
+    if (!raw || user) { xrtSetErrorKind(XERR_STATE); return -1; }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    XL6_Sequence* owner=raw; int status=0; bool rejected=false;
+    if (owner->role==XL6_SEQUENCE_ARRAY_V1) {
+        status=-1;
+        if (owner->cleared || !owner->storage || identity!=owner->identity)
+            xrtSetErrorKind(XERR_STATE);
+        else if (beginBody(owner)) {
+            if (!owner->projectionBound || !owner->admission.ops ||
+                xrtAtomic32Load(&owner->admitted,XMEMORY_ACQUIRE)!=1) rejected=true;
+            else {
+                *layout=(XL6_SequenceLayoutV1){owner->identity,owner->elementIdentity,
+                    owner->transfer,owner->size,owner->type};
+                *converter=owner->projection; *result=owner; status=1;
+            }
+        }
+    }
+    mutationEnd(&mutation);
+    if (rejected) { xl6SequenceEndV1(owner); xrtSetErrorKind(XERR_STATE); }
+    return status;
+}
 XL6_Sequence* xl6SequenceIteratorBeginV1(const xvalue* value, uint64_t identity, uint64_t elementIdentity,
                         unsigned int transfer, size_t size, const xrttype* type)
 { return beginAs(value,identity,elementIdentity,transfer,size,type,true); }

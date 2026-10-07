@@ -6,12 +6,15 @@ static int xl6IrCgenEmitModuleDefinitions(
 {
     size_t i;
     size_t parameter;
-    if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0 &&
+    if (!xl6IrCgenEmitPersistenceProjectPlans(out, module, diags)) return 0;
+    if ( (needs->needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0 &&
          !xl6IrCgenEmitPersistenceHelpers(
-             out, module, XL6_IR_PERSIST_FORMAT_JSON, diags) ) return 0;
-    if ( (needs->needsPersistenceFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 &&
+             out, module, XL6_IR_PERSIST_FORMAT_JSON,
+             (needs->needsPersistenceReadFormats & XL6_IR_PERSIST_FORMAT_JSON) != 0, diags) ) return 0;
+    if ( (needs->needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0 &&
          !xl6IrCgenEmitPersistenceHelpers(
-             out, module, XL6_IR_PERSIST_FORMAT_XLON, diags) ) return 0;
+             out, module, XL6_IR_PERSIST_FORMAT_XLON,
+             (needs->needsPersistenceReadFormats & XL6_IR_PERSIST_FORMAT_XLON) != 0, diags) ) return 0;
     for ( i = 0; i < module->types.count; ++i ) {
         XL6_IrTypeId type = (XL6_IrTypeId)(i + 1);
         if ( xl6IrCgenProductDropNeeded(module, type) &&

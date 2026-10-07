@@ -23,9 +23,12 @@ def main() -> int:
     parser.add_argument('--shared',action='store_true')
     parser.add_argument('--chain',action='store_true',help='Explicit full recursive Array data-import plans and alias preservation')
     parser.add_argument('--algebra',action='store_true',help='Resident Array concatenation and projection-preserving storage copies')
+    parser.add_argument('--graph',action='store_true',help='Shared XRT deep-clone/data-snapshot memo across native and wire graphs')
+    parser.add_argument('--project',action='store_true',help='Declarative class selection inside the shared native/wire graph memo')
+    parser.add_argument('--open',action='store_true',help='Include the independently pruned DynamicFields projection provider')
     args=parser.parse_args(); root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm')
-    if not cc or not nm or out.exists() or (args.sanitize and os.name=='nt') or (args.chain and args.algebra):
+    if not cc or not nm or out.exists() or (args.sanitize and os.name=='nt') or sum((args.chain,args.algebra,args.graph,args.project))>1 or (args.open and not args.project) or (args.project and args.shared):
         parser.error('Require gcc/nm, fresh evidence, Linux for sanitizers')
     profiles=[('reference',['src/runtime/xl6_value_admission.c'],'xl6SequenceReferenceCreateV1'),
         ('nominal',['src/runtime/xl6_nominal_admission.c'],'xl6SequenceNominalCreateV1'),
@@ -43,9 +46,18 @@ def main() -> int:
         common += ['src/runtime/xl6_array_import_chain.c','src/runtime/xl6_array_sequence_admission.c']
         host='test/cases/stdlib_array_import_chain_native_host.c'
     if args.algebra:
-        common.append('src/runtime/xl6_array_algebra.c')
+        common += ['src/runtime/xl6_array_algebra.c','src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c']
         host='test/cases/stdlib_array_algebra_native_host.c'
         support='test/support/array_algebra_native.c'
+    if args.graph:
+        common += ['src/runtime/xl6_array_graph.c']
+        host='test/cases/stdlib_array_graph_native_host.c'
+        support='test/support/array_graph_native.c'
+    if args.project:
+        common += ['src/runtime/xl6_array_graph.c','src/runtime/xl6_persistence_project.c']
+        if args.open: common.append('src/runtime/xl6_persistence_project_open.c')
+        host='test/cases/stdlib_persistence_project_native_host.c'
+        support='test/support/persistence_project_native.c'
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/host,root/support,
         root/'test/cases/stdlib_sequence_factory_only_host.c',root/'test/cases/stdlib_array_import_header.c',
         root/'test/cases/stdlib_array_import_native_host.c',
@@ -53,6 +65,7 @@ def main() -> int:
         root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
     files.update(root/name for name in common)
     files.add(root/'src/api/xl_foreign_error.h')
+    if args.project: files.update((root/'test/cases/stdlib_array_graph_native_host.c',root/'test/support/array_graph_native.c'))
     for profile,extras,_ in profiles: files.update(root/name for name in [f'src/runtime/xl6_array_{profile}_admission.c',*extras])
     for directory in ('src/runtime','release/include'): files.update((root/directory).rglob('*.h'))
     product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
@@ -60,12 +73,15 @@ def main() -> int:
     inputs=[{'Path':str(path.resolve()),'Sha256':digest(path)} for path in sorted(files)]
     out.mkdir(parents=True); rows=[]; sweeps=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Sweeps':sweeps,'Profiles':9,
-        'Scope':'Resident Array concatenation and projection-preserving storage copy; nine profiles' if args.algebra else
+        'Scope':'Declarative class field selection in shared native/wire graph memo; nine profiles' if args.project else
+            'Shared deep-clone/data snapshot native/wire graph memo; nine profiles' if args.graph else
+            'Resident Array concatenation and projection-preserving storage copy; nine profiles' if args.algebra else
             'Explicit recursive Array import chain; nine leaf families, not source carrier cutover' if args.chain else __doc__,
-        'Chain':args.chain,'Algebra':args.algebra,'SharedRuntime':args.shared,'Sanitized':args.sanitize,'RuntimeInstrumented':args.sanitize and not args.shared}
+        'Chain':args.chain,'Algebra':args.algebra,'Graph':args.graph,'Project':args.project,'Open':args.open,'SharedRuntime':args.shared,'Sanitized':args.sanitize,'RuntimeInstrumented':args.sanitize and not args.shared}
     env=dict(os.environ); flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
     links=[] if os.name=='nt' else ['-pthread','-lm']
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
+    if args.project: flags += [f'-DXL6_PROJECT_OPEN={int(args.open)}']
     if args.sanitize:
         flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
         env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
@@ -96,6 +112,7 @@ def main() -> int:
                     support_objects[variant]=str(obj)
             for index,(profile,extras,factory) in enumerate(profiles):
                 lane=f'{profile}.O{level}'; binary=out/(lane+('.exe' if os.name=='nt' else ''))
+                if args.graph or args.project: print(lane+': native/wire graph vectors and complete allocation prefixes',flush=True)
                 selected=[] if args.shared else [objects[name] for name in dict.fromkeys([*common,f'src/runtime/xl6_array_{profile}_admission.c',*extras])]
                 if not args.shared: selected.append(support_objects[index if index in (7,8) else 0])
                 linked=links if not args.shared else [str(product)] if os.name=='nt' else ['-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),*links]
@@ -104,18 +121,27 @@ def main() -> int:
                     names={line.split()[-1].lstrip('_') for line in run(lane+'.symbols',[nm,'--defined-only',str(binary)]).splitlines() if line.split()}
                     assert {factory,'xl6ArrayImportTakeV1','xl6ArrayInputAcquireV1'}<=names
                     if args.algebra: assert {'xl6ArrayConcatV1','xl6SequenceConcatPinnedV1'}<=names
+                    if args.graph: assert {'xl6ValueDeepCloneV1','xl6ValueDataSnapshotV1','xrtValueGraphCopyV1','xrtValueGraphNextV1'}<=names
+                    if args.project:
+                        assert {'xl6PersistenceProjectV1','xl6ValueDataProjectV1','xrtValueGraphObjectGetV1'}<=names
+                        assert ('xl6PersistenceProjectOpenV1' in names)==args.open
+                        assert ('xrtDynamicFieldsIterBegin' in names)==args.open
                     allowed={factory,'xl6SequencePrimitiveCreateV1'} if index==4 else {factory}
                     if args.chain: allowed.add('xl6SequenceNestedCreateTakeV2')
                     assert not ({row[2] for row in profiles}-allowed)&names
                     assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6StackCreateV1'}&names
                     assert not any(re.match(r'xl6(?:Log|Process|Regex)[A-Z]|xrtTypedStack',name) for name in names)
-                expected=f'array-algebra profile={index}: 100 source/destination cycles balanced' if args.algebra else \
+                expected=f'persistence-project profile={index} open={int(args.open)}: 25 projected graph cycles balanced' if args.project else \
+                    f'array-graph profile={index}: 25 mixed graph cycles balanced' if args.graph else \
+                    f'array-algebra profile={index}: 100 source/destination cycles balanced' if args.algebra else \
                     f'array-chain profile={index}: 25 complete graph cycles balanced' if args.chain else f'array-import profile={index}: 100 source/destination cycles balanced'
                 assert expected in run(lane+'.vectors',[str(binary)])
-                operations=('wire','native','self','copy') if args.algebra else \
+                operations=(('project','wide') if index in (0,4) else ('project',)) if args.project else \
+                    (('deep','data','mixed','mixed-data')+ (('wide','wide-data') if index in (0,4) else ())) if args.graph else \
+                    ('wire','native','self','copy','language-copy','dynamic','dynamic-string') if args.algebra else \
                     ('chain','wide','deep','take') if args.chain and index==2 else ('chain','wide','take') if args.chain else ('wire','native')
                 for operation in operations:
-                    for point in range(1025 if args.chain else 513):
+                    for point in range(4097 if args.graph or args.project else 1025 if args.chain else 513):
                         log=run(f'{lane}.{operation}.{point}',[str(binary),operation,str(point)])
                         hits=re.findall(r'hit=([01]) balanced',log); assert hits
                         if all(hit=='0' for hit in hits):

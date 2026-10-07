@@ -1,0 +1,23 @@
+// Malformed input remains nullable. Allocation exhaustion must leave the
+// language via the checked result, never silently substitute null/AssertionError.
+var options = null
+assert(json.parse("{") == null)
+assert(xlon.parse("{") == null)
+assert(jsonl.parse("{\n") == null)
+assert(xlonl.parse("{\n") == null)
+assert(json.parse("{", options) == null)
+assert(xlon.parse("{", options) == null)
+assert(jsonl.parse("{\n", options) == null)
+assert(xlonl.parse("{\n", options) == null)
+var jsonDefault = json.parse("{\"value\":42}")
+var xlonDefault = xlon.parse("{\"value\":42}")
+var jsonlDefault = jsonl.parse("{\"value\":42}\n")
+var xlonlDefault = xlonl.parse("{\"value\":42}\n")
+var jsonConfigured = json.parse("{\"value\":42}", options)
+var xlonConfigured = xlon.parse("{\"value\":42}", options)
+var jsonlConfigured = jsonl.parse("{\"value\":42}\n", options)
+var xlonlConfigured = xlonl.parse("{\"value\":42}\n", options)
+assert(jsonDefault["value"] == 42 and xlonDefault["value"] == 42)
+assert(jsonlDefault[0]["value"] == 42 and xlonlDefault[0]["value"] == 42)
+assert(jsonConfigured["value"] == 42 and xlonConfigured["value"] == 42)
+assert(jsonlConfigured[0]["value"] == 42 and xlonlConfigured[0]["value"] == 42)

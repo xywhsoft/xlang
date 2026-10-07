@@ -1,0 +1,28 @@
+// Synchronous caller-thread module prefix; Future allocation has its own gate.
+func oomArithmetic(var a, var b) as int
+    assert(int(a + b) == 10 and int(a - b) == 6 and int(a * b) == 16)
+    assert(int(a / b) == 4 and int(a % b) == 0)
+    assert(int(a & b) == 0 and int(a | b) == 10 and int(a ^ b) == 10)
+    assert(int(a << b) == 32 and int(a >> b) == 2)
+    assert(int(+a) == 8 and int(-a) == -8 and int(~a) == -9)
+    return 0
+end
+func oomConcat(var left, var right) as var
+    return left + right
+end
+func main(...) as int
+    array<int> values
+    values.push(1)
+    array<string> text = ["a\0你", "b"]
+    array<bytes> binary = [b"a\0b"]
+    array<array<int>> nested = [values, values]
+    auto shallow = copy(values)
+    values[0] = 2
+    assert(shallow[0] == 1 and nested[1][0] == 2)
+    assert(text[0] == "a\0你" and binary[0] == b"a\0b")
+    var joined = oomConcat(values, shallow)
+    assert(joined.length == 2 and int(joined[0]) == 2 and int(joined[1]) == 1)
+    assert(string(oomConcat("a\0b", "\0你")) == "a\0b\0你")
+    assert(oomArithmetic(8, 2) == 0)
+    return 0
+end

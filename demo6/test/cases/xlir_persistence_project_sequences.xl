@@ -1,0 +1,19 @@
+class IRProjectSequenceHolder
+    derive value
+    list<int> sparse = list<int>[2: 20, 5: 50]
+    set<int> unique = set<int>{1, 2}
+end
+
+func unusedSequence()
+    list<string> unused = list<string>[1: "unused"]
+end
+
+func main(...) as int
+    IRProjectSequenceHolder holder = IRProjectSequenceHolder()
+    array<int> values = array<int>[1, 2]
+    list<array<int>> nested = list[7: values]
+    var mixed = {"holder": holder, "nested": nested}
+    string a = json.stringify(mixed)
+    string b = xlon.stringify(mixed)
+    return 0
+end

@@ -184,8 +184,8 @@ static int xl6IrCgenVisitNativeGroup(XL6_IrCgenNativeGroup group, uint64_t opera
         if (operations & (XL6_CGEN_XLON_READ|XL6_CGEN_XLON_WRITE)) REQUIRE("XRT_MODULE_XLON_FILE");
         break;
     case XL6_IR_CGEN_NATIVE_PERSISTENCE:
-        if (operations & XL6_IR_PERSIST_FORMAT_JSON) REQUIRE("XRT_MODULE_JSON_FILE");
-        if (operations & XL6_IR_PERSIST_FORMAT_XLON) REQUIRE("XRT_MODULE_XLON_FILE");
+        if (operations & XL6_IR_PERSIST_FORMAT_JSON) REQUIRE("XRT_MODULE_JSON_WRITE");
+        if (operations & XL6_IR_PERSIST_FORMAT_XLON) REQUIRE("XRT_MODULE_XLON_WRITE");
         break;
     default: break;
     }
@@ -206,6 +206,14 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
             (uint64_t)needs.Field,visitor,context)) return 0;
 #include "src/cgen/xl6_ir_cgen_needs.inc"
 #undef XL6_IR_CGEN_NEED
+    if ((needs.needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_JSON) &&
+        !visitor(context,"XRT_MODULE_JSON_READ")) return 0;
+    if ((needs.needsPersistenceRestoreFormats & XL6_IR_PERSIST_FORMAT_XLON) &&
+        !visitor(context,"XRT_MODULE_XLON_READ")) return 0;
+    if ((needs.needsPersistenceFileFormats & XL6_IR_PERSIST_FORMAT_JSON) &&
+        !visitor(context,"XRT_MODULE_JSON_FILE")) return 0;
+    if ((needs.needsPersistenceFileFormats & XL6_IR_PERSIST_FORMAT_XLON) &&
+        !visitor(context,"XRT_MODULE_XLON_FILE")) return 0;
     return 1;
 }
 
@@ -217,9 +225,23 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     /* All Error text operations share one resident immutable-error provider.
      * This is a verified emission need, not a scan of generated C tokens. */
     if (needs.needsErrorRuntime && !visitor(context,"xl6ErrorCreateV1")) return 0;
+    for (size_t i=0;i<module->persistenceProjectSchemaCount;++i)
+        if (module->persistenceProjectSchemas[i].dynamicDestroySymbol &&
+            !visitor(context,"xl6PersistenceProjectOpenV1")) return 0;
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+        if ((instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
+            (!xl6IrPersistenceProjectInstructionAbi(module,instruction) ||
+             !visitor(context,"xl6PersistenceProjectV1"))) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CLONE &&
+            !visitor(context,"xl6ValueCloneV1")) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE &&
+            !visitor(context,"xl6ValueDeepCloneV1")) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE &&
+            (!xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction) ||
+             !visitor(context,"xl6ArrayProjectionTakeV1"))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
             (!xl6IrArrayImportRuntimeInstructionCompatible(module,instruction) ||
              !visitor(context,"xl6ArrayImportChainSourceTakeV1") ||
@@ -280,6 +302,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
     if (needs.needsXValueErrorBoxRuntime && !visitor(context,"xl6ErrorValueRefV1")) return 0;
+    if (needs.needsXValueAddRuntime &&
+        (!visitor(context,"xl6ArrayIsValueV1") || !visitor(context,"xl6ArrayConcatDynamicV1") ||
+         !visitor(context,"xl6ValueStringConcatV1"))) return 0;
     if (needs.needsXValueFutureRuntime && !visitor(context,"xl6PayloadBoxFutureV1")) return 0;
     if ((needs.needsXValueErrorProjectionRuntime || needs.needsXValueCheckedCastRuntime) &&
         !visitor(context,"xl6ErrorValueReadRefV1")) return 0;

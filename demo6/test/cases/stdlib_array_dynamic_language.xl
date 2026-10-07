@@ -1,0 +1,15 @@
+func erasedRead(var value) as int
+    assert(value.length == 2)
+    return int(value[0])
+end
+func erasedSet(var value)
+    value[1] = 8
+end
+func erasedType(var value) as bool
+    return value is array<int>
+end
+array<int> source = array<int>[1, 2]
+assert(erasedRead(source) == 1)
+erasedSet(source)
+assert(source[1] == 8)
+assert(erasedType(source))

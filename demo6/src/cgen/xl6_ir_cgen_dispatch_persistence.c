@@ -310,29 +310,6 @@ static int xl6IrCgenPersistenceTypeReferencesDepth(
         module, type->persistencePayloadType, wanted, depth + 1);
 }
 
-static int xl6IrCgenPersistenceProjectionRootUsed(
-    const XL6_IrModule* module, XL6_IrTypeId typeId,
-    uint32 format, int write)
-{
-    size_t instructionIndex;
-    if ( module == NULL ) return 0;
-    for ( instructionIndex = 0;
-          instructionIndex < module->instructionCount; ++instructionIndex ) {
-        const XL6_IrInstruction* instruction =
-            &module->instructions[instructionIndex];
-        int matches = write
-            ? (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
-               instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE)
-            : (instruction->runtimeOp ==
-                   XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
-               instruction->runtimeOp ==
-                   XL6_IR_RUNTIME_PERSISTENCE_XLON_STRINGIFY);
-        if ( matches && instruction->payloadType == typeId &&
-             xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp) == format )
-            return 1;
-    }
-    return 0;
-}
 
 static int xl6IrCgenPersistenceTypeUsed(
     const XL6_IrModule* module, XL6_IrTypeId wanted,
@@ -505,89 +482,9 @@ static int xl6IrCgenEmitPersistenceTypeHelpers(
     uint32 format, const char* formatName, XL6_DiagList* diags)
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
-    int project = xl6IrCgenPersistenceTypeUsed(
-        module, typeId, format, 0);
     int restore = xl6IrCgenPersistenceTypeUsed(
         module, typeId, format, 1);
-    if ( type == NULL || (!project && !restore) ) return 1;
-    if ( project ) {
-        xl6OutputPrintf(out,
-            "static xvalue* xlir_persist_%s_project_t%u(const xvalue* source)\n"
-            "{\n",
-            formatName, (unsigned int)typeId);
-        if ( type->persistenceValueAbi ==
-                 XL6_IR_PERSISTENCE_VALUE_XRT_CLONE ) {
-            xl6OutputPuts(
-                "    return source != NULL ? xrtValueClone(source) : xrtValueRetain(xrtValueNull());\n",
-                out);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA ) {
-            xl6OutputPrintf(out,
-                "    return source != NULL ? xlir_persist_%s_value_t%u(source) : xrtValueRetain(xrtValueNull());\n",
-                formatName, (unsigned int)typeId);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_NULLABLE ) {
-            xl6OutputPrintf(out,
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    return xlir_persist_%s_project_t%u(source);\n",
-                formatName, (unsigned int)type->persistencePayloadType);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_ARRAY ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; size_t index; size_t count;\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    result = xrtValueArray(); if (result == NULL) return NULL;\n"
-                "    count = xrtValueCount(source);\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        xvalue* item = xlir_persist_%s_project_t%u(xrtValueArrayGet(source, index));\n"
-                "        if (item == NULL || !xrtValueArrayAppendNew(result, item)) { xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    if (!xrtValueTypeIdBind(result, 0x%016llXULL)) { xrtValueRelease(result); return NULL; }\n"
-                "    return result;\n",
-                formatName, (unsigned int)type->persistencePayloadType,
-                (unsigned long long)type->typeValueId);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ||
-                    type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; xvalueiter* iterator; xvalue* borrowed = NULL; int step;\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    if (xrtValueType(source) != %d) return NULL;\n"
-                "    result = xrtValueArray(); if (result == NULL) return NULL;\n"
-                "    iterator = xrtValueIterCreate(source);\n"
-                "    if (iterator == NULL) { xrtValueRelease(result); return NULL; }\n"
-                "    while ((step = xrtValueIterAdvance(iterator, NULL, &borrowed)) > 0) {\n"
-                "        xvalue* item = xlir_persist_%s_project_t%u(borrowed);\n"
-                "        if (item == NULL || !xrtValueArrayAppendNew(result, item)) { xrtValueIterDestroy(iterator); xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    xrtValueIterDestroy(iterator);\n"
-                "    if (step < 0) { xrtValueRelease(result); return NULL; }\n"
-                "    return result;\n",
-                type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ? 10 : 11,
-                formatName, (unsigned int)type->persistencePayloadType);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; size_t index; size_t count; xlir_string_view key = {0};\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    if (xrtValueType(source) != 12) return NULL;\n"
-                "    result = xrtValueObject(); if (result == NULL) return NULL;\n"
-                "    count = xrtValueCount(source);\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        xvalue* borrowed = xrtValueObjectAt(source, index, &key);\n"
-                "        xvalue* item = borrowed != NULL ? xlir_persist_%s_project_t%u(borrowed) : NULL;\n"
-                "        if (item == NULL || !xrtValueObjectSetNew(result, key, item)) { xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    return result;\n",
-                formatName, (unsigned int)type->persistencePayloadType);
-        } else {
-            return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
-                "XLIR C emitter persistence projection has no exact value ABI");
-        }
-        xl6OutputPuts("}\n", out);
-    }
+    if ( type == NULL || !restore ) return 1;
     if ( restore ) {
         if ( !xl6IrCgenPersistenceTypeSupportedDepth(
                  module, typeId, format, 0, 1) )
@@ -688,13 +585,13 @@ static int xl6IrCgenEmitPersistenceTypeHelpers(
         }
         xl6OutputPuts("}\n", out);
     }
-    if ( project || restore ) xl6OutputPuts("\n", out);
+    if ( restore ) xl6OutputPuts("\n", out);
     return !xl6OutputHasFailed(out);
 }
 
 static int xl6IrCgenEmitPersistenceHelpers(
     XL6_Output* out, const XL6_IrModule* module, uint32 format,
-    XL6_DiagList* diags)
+    int readUsed, XL6_DiagList* diags)
 {
     const char* formatName;
     const char* stringifyName;
@@ -793,10 +690,6 @@ static int xl6IrCgenEmitPersistenceHelpers(
         out);
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
         XL6_IrTypeId typeId = (XL6_IrTypeId)(typeIndex + 1);
-        if ( xl6IrCgenPersistenceTypeUsed(module, typeId, format, 0) )
-            xl6OutputPrintf(out,
-                "static xvalue* xlir_persist_%s_project_t%u(const xvalue*);\n",
-                formatName, (unsigned int)typeId);
         if ( xl6IrCgenPersistenceTypeUsed(module, typeId, format, 1) )
             xl6OutputPrintf(out,
                 "static xvalue* xlir_persist_%s_restore_t%u(const xvalue*);\n",
@@ -809,17 +702,12 @@ static int xl6IrCgenEmitPersistenceHelpers(
         if ( !xl6IrCgenPersistenceLayoutSupported(
                  module, layout->type, format) ) continue;
         xl6OutputPrintf(out,
-            "static xvalue* xlir_persist_%s_value_t%u(const xvalue*);\n"
-            "static xlir_string xlir_persist_%s_stringify_t%u(const xvalue*, bool);\n"
-            "static bool xlir_persist_%s_write_t%u(xlir_string, const xvalue*, bool);\n"
             "static bool xlir_persist_%s_assign_t%u(xvalue*, const xvalue*);\n"
-            "static xvalue* xlir_persist_%s_parse_t%u(xlir_string, xvalue*);\n"
+            "static xvalue* xlir_persist_%s_parse_t%u(xlir_string, xvalue*);\n",
+            formatName, (unsigned int)layout->type,
+            formatName, (unsigned int)layout->type);
+        if (readUsed) xl6OutputPrintf(out,
             "static xvalue* xlir_persist_%s_read_t%u(xlir_string, xvalue*);\n",
-            formatName, (unsigned int)layout->type,
-            formatName, (unsigned int)layout->type,
-            formatName, (unsigned int)layout->type,
-            formatName, (unsigned int)layout->type,
-            formatName, (unsigned int)layout->type,
             formatName, (unsigned int)layout->type);
         if ( layout->persistenceConstructionAbi ==
                  XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT )
@@ -848,103 +736,6 @@ static int xl6IrCgenEmitPersistenceHelpers(
                  XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT &&
              !xl6IrCgenEmitPersistenceClassDefault(
                  out, module, layout, formatName, diags) ) return 0;
-        xl6OutputPrintf(out,
-            "static xvalue* xlir_persist_%s_value_t%u(const xvalue* source)\n"
-            "{\n"
-            "    const xvalue* borrowed;\n"
-            "    xvalue* item;\n"
-            "    xvalue* result;\n",
-            formatName, (unsigned int)layout->type);
-        xl6OutputPuts(
-            "    if (source == NULL || xrtValueType(source) == 0)\n"
-            "        return xrtValueRetain(xrtValueNull());\n", out);
-        if ( base != NULL &&
-             (base->persistenceFormatMask & format) != 0 )
-            xl6OutputPrintf(out,
-                "    result = xlir_persist_%s_value_t%u(source);\n",
-                formatName, (unsigned int)layout->baseType);
-        else if ( layout->persistenceObjectAbi ==
-                     XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA )
-            xl6OutputPrintf(out,
-                "    result = xrtDynamicFieldsToValue(xlir_persist_%s_dynamic_fields(source));\n",
-                formatName);
-        else
-            xl6OutputPuts("    result = xrtValueObject();\n", out);
-        xl6OutputPuts("    if (result == NULL) return NULL;\n", out);
-        for ( fieldIndex = fieldStart; fieldIndex < layout->fieldCount;
-              ++fieldIndex ) {
-            const XL6_IrClassField* field =
-                &module->classFields[layout->firstField + fieldIndex];
-            uint32 flags = xl6IrCgenPersistenceFieldFlags(field, format);
-            const char* keyLiteral =
-                xl6IrCgenPersistenceFieldKeyLiteral(field, format);
-            if ( (flags & XL6_IR_FIELD_PERSIST_INCLUDED) == 0 ) continue;
-            xl6OutputPuts("    borrowed = xrtValueObjectGet(source, xrtStrView(", out);
-            xl6IrCgenEmitCStringLiteral(out, field->name);
-            xl6OutputPuts("));\n", out);
-            xl6OutputPrintf(out,
-                "    item = borrowed != NULL ? xlir_persist_%s_project_t%u(borrowed) : xrtValueRetain(xrtValueNull());\n",
-                formatName, (unsigned int)field->type);
-            xl6OutputPuts(
-                "    if (item == NULL) { xrtValueRelease(result); return NULL; }\n",
-                out);
-            if ( (flags & (XL6_IR_FIELD_PERSIST_OMIT_EMPTY |
-                           XL6_IR_FIELD_PERSIST_OMIT_NULL)) != 0 ) {
-                xl6OutputPuts(
-                    (flags & XL6_IR_FIELD_PERSIST_OMIT_EMPTY) != 0
-                        ? "    if (xrtValueTruthy(item)) {\n"
-                        : "    if (xrtValueType(item) != 0) {\n",
-                    out);
-                xl6OutputPuts(
-                    "        if (!xrtValueObjectSetNew(result, xrtStrView(",
-                    out);
-                if ( keyLiteral != NULL )
-                    xl6OutputPuts(keyLiteral, out);
-                else
-                    xl6IrCgenEmitCStringLiteral(out, field->name);
-                xl6OutputPuts(
-                    "), item)) { xrtValueRelease(result); return NULL; }\n"
-                    "    } else {\n"
-                    "        xrtValueRelease(item);\n"
-                    "    }\n",
-                    out);
-            } else {
-                xl6OutputPuts(
-                    "    if (!xrtValueObjectSetNew(result, xrtStrView(", out);
-                if ( keyLiteral != NULL )
-                    xl6OutputPuts(keyLiteral, out);
-                else
-                    xl6IrCgenEmitCStringLiteral(out, field->name);
-                xl6OutputPuts(
-                    "), item)) { xrtValueRelease(result); return NULL; }\n",
-                    out);
-            }
-        }
-        xl6OutputPrintf(out,
-            "    return result;\n"
-            "}\n"
-            "static xlir_string xlir_persist_%s_stringify_t%u(const xvalue* source, bool pretty)\n"
-            "{\n"
-            "    xvalue* value = xlir_persist_%s_value_t%u(source);\n"
-            "    char* result; size_t size = 0;\n"
-            "    if (value == NULL) return (xlir_string){0};\n"
-            "    result = %s(value, pretty, &size);\n"
-            "    xrtValueRelease(value);\n"
-            "    return (xlir_string){result, result != NULL ? size : 0};\n"
-            "}\n"
-            "static bool xlir_persist_%s_write_t%u(xlir_string path, const xvalue* source, bool pretty)\n"
-            "{\n"
-            "    xvalue* value = xlir_persist_%s_value_t%u(source);\n"
-            "    bool result; const char* cpath = xlir_string_cstr(path);\n"
-            "    if (cpath == NULL || value == NULL) { xrtValueRelease(value); return false; }\n"
-            "    result = %s(cpath, value, pretty);\n"
-            "    xrtValueRelease(value);\n"
-            "    return result;\n"
-            "}\n\n",
-            formatName, (unsigned int)layout->type,
-            formatName, (unsigned int)layout->type, stringifyName,
-            formatName, (unsigned int)layout->type,
-            formatName, (unsigned int)layout->type, writeName);
         xl6OutputPrintf(out,
             "static bool xlir_persist_%s_assign_t%u(xvalue* target, const xvalue* source)\n"
             "{\n"
@@ -1030,7 +821,10 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "        ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());\n"
             "    xrtValueRelease(source);\n"
             "    return result;\n"
-            "}\n"
+            "}\n",
+            formatName, (unsigned int)layout->type, parseName,
+            formatName, (unsigned int)layout->type);
+        if (readUsed) xl6OutputPrintf(out,
             "static xvalue* xlir_persist_%s_read_t%u(xlir_string path, xvalue* target)\n"
             "{\n"
             "    xvalue* source;\n"
@@ -1044,8 +838,6 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "    xrtValueRelease(source);\n"
             "    return result;\n"
             "}\n\n",
-            formatName, (unsigned int)layout->type, parseName,
-            formatName, (unsigned int)layout->type,
             formatName, (unsigned int)layout->type, readName,
             formatName, (unsigned int)layout->type);
     }
@@ -1053,48 +845,6 @@ static int xl6IrCgenEmitPersistenceHelpers(
         if ( !xl6IrCgenEmitPersistenceTypeHelpers(
                  out, module, (XL6_IrTypeId)(typeIndex + 1),
                  format, formatName, diags) ) return 0;
-    /* Class roots retain their schema-specific wrappers above.  Every other
-     * admitted xvalue root gets the same mechanical project-then-serialize
-     * boundary, selected solely by the RuntimeOp payload TypeId. */
-    for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
-        XL6_IrTypeId typeId = (XL6_IrTypeId)(typeIndex + 1);
-        int stringify = xl6IrCgenPersistenceProjectionRootUsed(
-            module, typeId, format, 0);
-        int write = xl6IrCgenPersistenceProjectionRootUsed(
-            module, typeId, format, 1);
-        if ( (!stringify && !write) ||
-             xl6IrCgenClassLayout(module, typeId) != NULL ) continue;
-        if ( !xl6IrCgenPersistenceValueProjectionSupported(
-                 module, typeId, format) )
-            return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
-                "XLIR C emitter persistence root has no exact projection ABI");
-        if ( stringify )
-            xl6OutputPrintf(out,
-                "static xlir_string xlir_persist_%s_stringify_t%u(const xvalue* source, bool pretty)\n"
-                "{\n"
-                "    xvalue* value = xlir_persist_%s_project_t%u(source);\n"
-                "    char* result; size_t size = 0;\n"
-                "    if (value == NULL) return (xlir_string){0};\n"
-                "    result = %s(value, pretty, &size);\n"
-                "    xrtValueRelease(value);\n"
-                "    return (xlir_string){result, result != NULL ? size : 0};\n"
-                "}\n\n",
-                formatName, (unsigned int)typeId,
-                formatName, (unsigned int)typeId, stringifyName);
-        if ( write )
-            xl6OutputPrintf(out,
-                "static bool xlir_persist_%s_write_t%u(xlir_string path, const xvalue* source, bool pretty)\n"
-                "{\n"
-                "    xvalue* value = xlir_persist_%s_project_t%u(source);\n"
-                "    bool result; const char* cpath = xlir_string_cstr(path);\n"
-                "    if (cpath == NULL || value == NULL) { xrtValueRelease(value); return false; }\n"
-                "    result = %s(cpath, value, pretty);\n"
-                "    xrtValueRelease(value);\n"
-                "    return result;\n"
-                "}\n\n",
-                formatName, (unsigned int)typeId,
-                formatName, (unsigned int)typeId, writeName);
-    }
     if ( xl6OutputHasFailed(out) )
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR C emitter persistence helper output failed");

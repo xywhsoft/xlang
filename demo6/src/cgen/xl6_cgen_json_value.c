@@ -3,13 +3,17 @@
 void xl6CgenEmitJsonValueRuntime(
     XL6_Output* out, unsigned operations, int hasXrtDeclarations)
 {
+    if (operations & (XL6_CGEN_JSON_PARSE | XL6_CGEN_JSON_PARSE_FILE))
+        xl6OutputPuts("#include <__xl_runtime/xl6_serialization_read.h>\n", out);
     if ( (operations & XL6_CGEN_JSON_PARSE) != 0 ) {
         if ( !hasXrtDeclarations )
             xl6OutputPuts("extern xvalue* xrtJsonParse(xstrview);\nextern void xrtClearError(void);\n", out);
         xl6OutputPuts(
-            "xvalue* xl6_xrt_json_parse(xlir_string text)\n"
-            "{ xvalue* value = text.Data != NULL ? xrtJsonParse(text) : NULL;\n"
-            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
+            "xlir_result_xvalue xl6_xrt_json_parse(xlir_string text)\n"
+            "{ xerror* prior = xrtTakeError();\n"
+            "  xvalue* value = text.Data != NULL ? xrtJsonParse(text) : NULL;\n"
+            "  bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n\n", out);
     }
     if ( (operations & XL6_CGEN_JSON_VALID) != 0 ) {
         if ( !hasXrtDeclarations )
@@ -23,10 +27,11 @@ void xl6CgenEmitJsonValueRuntime(
         if ( !hasXrtDeclarations )
             xl6OutputPuts("extern xvalue* xrtJsonParseFile(const char*);\nextern void xrtClearError(void);\n", out);
         xl6OutputPuts(
-            "xvalue* xl6_xrt_json_parse_file(xlir_string path)\n"
-            "{ const char* cpath = xlir_string_cstr(path);\n"
+            "xlir_result_xvalue xl6_xrt_json_parse_file(xlir_string path)\n"
+            "{ xerror* prior = xrtTakeError(); const char* cpath = xlir_string_cstr(path);\n"
             "  xvalue* value = cpath != NULL ? xrtJsonParseFile(cpath) : NULL;\n"
-            "  if (value == NULL) xrtClearError();\n  return value; }\n\n", out);
+            "  bool ok = xl6SerializeReadFinishV1(value, prior);\n"
+            "  return (xlir_result_xvalue){ ok, ok ? value : NULL }; }\n\n", out);
     }
     if ( (operations & XL6_CGEN_JSON_STRINGIFY) != 0 ) {
         if ( !hasXrtDeclarations )

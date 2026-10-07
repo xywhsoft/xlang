@@ -1,0 +1,7 @@
+func numericOnly(var left, var right) as var
+    return (-left * right) ^ right
+end
+func main(...) as int
+    assert(int(numericOnly(8, 2)) == -14)
+    return 0
+end

@@ -21,6 +21,17 @@ static void values(const xvalue* value, size_t size)
 
 static void algebraVectors(void)
 {
+    const char aText[]="a\0b", bText[]="\0\xE4\xBD\xA0";
+    const char expectedText[]="a\0b\0\xE4\xBD\xA0";
+    xvalue* aString=xrtValueString((xstrview){aText,sizeof(aText)-1});
+    xvalue* bString=xrtValueString((xstrview){bText,sizeof(bText)-1}); assert(aString && bString);
+    xrtSetErrorKind(XERR_IO); const xerror* stringIncoming=xrtGetError(); assert(stringIncoming);
+    xvalue* text=xl6ValueStringConcatV1(aString,bString); xstrview actualText={0};
+    assert(text && xrtGetError()==stringIncoming); xrtClearError();
+    assert(xrtValueGetString(text,&actualText) && actualText.Size==sizeof(expectedText)-1 &&
+        !memcmp(actualText.Data,expectedText,sizeof(expectedText)-1));
+    assert(!xl6ValueStringConcatV1(aString,xrtValueBool(true))); error(XERR_TYPE);
+    xrtValueRelease(text); xrtValueRelease(bString); xrtValueRelease(aString);
     xvalue* source=wire(false);
     xvalue* left=xl6ArrayImportTakeV1(seed(true),source);
     xvalue* right=xl6ArrayImportTakeV1(seed(true),source); assert(left && right);
@@ -55,9 +66,19 @@ static void algebraVectors(void)
     xvalue* shape=factory(XL6_SEQUENCE_ARRAY_V1,&type,&transfer); assert(shape); xrtValueRelease(shape);
     xvalue* copy=xl6SequenceCloneRoleV1(left,XL6_SEQUENCE_ARRAY_V1,1001,3001,transfer,type->Size,type);
     assert(copy && copy!=left); observed(copy); /* Projection must survive copy. */
+    xvalue* languageCopy=xl6ValueCloneV1(left);
+    assert(languageCopy && languageCopy!=left); observed(languageCopy);
+    assert(xl6ArrayIsValueV1(left) && xl6ArrayIsValueV1(source));
+    assert(!xl6ArrayIsValueV1(NULL) && !xl6ArrayIsValueV1(xrtValueBool(true)));
+    xvalue* dynamic=xl6ArrayConcatDynamicV1(left,source);
+    assert(dynamic && xrtValueType(dynamic)==XVALUE_ARRAY && xrtValueCount(dynamic)==4);
+    xvalue* dynamicReverse=xl6ArrayConcatDynamicV1(source,left);
+    assert(dynamicReverse && xrtValueType(dynamicReverse)==XVALUE_ARRAY && xrtValueCount(dynamicReverse)==4);
     XL6_Sequence* a=NULL; XL6_SequenceLayoutV1 layout; const xvalueconverter* converter=NULL;
     assert(xl6SequenceBeginErasedArrayV1(left,&a,&layout,&converter)==1);
     assert(!xl6ArrayConcatV1(left,right)); error(XERR_STATE);
+    assert(!xl6ValueCloneV1(left)); error(XERR_STATE);
+    assert(!xl6ArrayConcatDynamicV1(left,right)); error(XERR_STATE);
     xl6SequenceEndV1(a);
     assert(!xl6ArrayConcatV1(source,left)); error(XERR_TYPE);
     assert(!xl6ArrayConcatV1(left,source)); xrtClearError();
@@ -72,6 +93,7 @@ static void algebraVectors(void)
     xrtValueRelease(left); xrtValueRelease(right); xrtValueRelease(source);
     values(joined,4); values(self,4); observed(copy);
     xrtValueRelease(joined); xrtValueRelease(self); xrtValueRelease(copy); xrtValueRelease(wireJoined);
+    xrtValueRelease(languageCopy); xrtValueRelease(dynamic); xrtValueRelease(dynamicReverse);
 }
 
 static int faultAlgebra(const char* operation, size_t point)
@@ -82,15 +104,32 @@ static int faultAlgebra(const char* operation, size_t point)
     const xrttype* type; unsigned int transfer;
     xvalue* shape=factory(XL6_SEQUENCE_ARRAY_V1,&type,&transfer); assert(shape); xrtValueRelease(shape);
     bool wireMode=!strcmp(operation,"wire"), selfMode=!strcmp(operation,"self"), copyMode=!strcmp(operation,"copy");
-    assert(wireMode || selfMode || copyMode || !strcmp(operation,"native"));
+    bool languageCopyMode=!strcmp(operation,"language-copy"), dynamicMode=!strcmp(operation,"dynamic");
+    bool stringMode=!strcmp(operation,"dynamic-string");
+    xvalue* aString=NULL; xvalue* bString=NULL;
+    if (stringMode) {
+        aString=xrtValueString((xstrview){"a\0b",3});
+        bString=xrtValueString((xstrview){"\0c",2}); assert(aString && bString);
+    }
+    assert(wireMode || selfMode || copyMode || languageCopyMode || dynamicMode || stringMode || !strcmp(operation,"native"));
     assert(xrtMemDebugFailAfter(point));
-    xvalue* result=copyMode ? xl6SequenceCloneRoleV1(left,XL6_SEQUENCE_ARRAY_V1,1001,3001,
+    xvalue* result=stringMode ? xl6ValueStringConcatV1(aString,bString) :
+        languageCopyMode ? xl6ValueCloneV1(left) : dynamicMode ? xl6ArrayConcatDynamicV1(left,source) :
+        copyMode ? xl6SequenceCloneRoleV1(left,XL6_SEQUENCE_ARRAY_V1,1001,3001,
         transfer,type->Size,type) : xl6ArrayConcatV1(wireMode ? source : left,wireMode ? source : selfMode ? left : right);
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
     if (hit) { assert(!result); error(XERR_MEMORY); }
-    else { assert(result); if (!wireMode) values(result,copyMode ? 2 : 4); }
+    else {
+        assert(result);
+        if (stringMode) {
+            xstrview text={0}; assert(xrtValueGetString(result,&text));
+            assert(text.Size==5 && !memcmp(text.Data,"a\0b\0c",5));
+        } else if (dynamicMode) assert(xrtValueType(result)==XVALUE_ARRAY && xrtValueCount(result)==4);
+        else if (!wireMode) values(result,copyMode || languageCopyMode ? 2 : 4);
+    }
     observed(left); observed(right); assert(xrtValueCount(source)==2);
     xrtValueRelease(result); xrtValueRelease(left); xrtValueRelease(right); xrtValueRelease(source);
+    xrtValueRelease(bString); xrtValueRelease(aString);
     balanced(&before);
     printf("array-algebra profile=%u operation=%s point=%zu hit=%u balanced\n",XL6_FACTORY_PROFILE,operation,point,hit);
     return 0;

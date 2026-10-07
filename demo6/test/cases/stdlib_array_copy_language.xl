@@ -1,0 +1,18 @@
+array<int> source = array<int>[1, 2]
+auto shallow = copy(source)
+source[0] = 9
+assert(shallow[0] == 1 and source[0] == 9)
+shallow[1] = 8
+assert(source[1] == 2)
+
+array<string> text = array<string>["a\0你", "b"]
+auto textCopy = copy(text)
+text[0] = "changed"
+assert(textCopy[0] == "a\0你")
+
+func erasedCopy(var value) as var
+    return copy(value)
+end
+var erased = erasedCopy(source)
+source[0] = 10
+assert(int(erased[0]) == 9)

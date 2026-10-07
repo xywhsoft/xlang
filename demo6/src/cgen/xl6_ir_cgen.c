@@ -60,6 +60,7 @@
 #include "src/cgen/xl6_ir_cgen_debug.c"
 #include "src/cgen/xl6_ir_cgen_function_emit.c"
 #include "src/cgen/xl6_ir_cgen_dispatch_persistence.c"
+#include "src/cgen/xl6_ir_cgen_persistence_project.c"
 #include "src/cgen/xl6_ir_cgen_verify_declarations.c"
 #include "src/cgen/xl6_ir_cgen_verify_primitive_sequences.c"
 #include "src/cgen/xl6_ir_cgen_verify_instructions.c"
