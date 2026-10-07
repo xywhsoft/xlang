@@ -23,9 +23,11 @@ static inline bool xl6SerializeReadFinishV1(xvalue* value, xerror* prior)
     return true;
 }
 
-/* Typed restore adapters share the nullable reader policy, with physical
- * failure independent of the class/null output. `source` and `prior` are
- * consumed; target and the synchronous assignment callback are borrowed. */
+/* Parsing/ordinary I/O use the nullable reader policy. Declaration factories
+ * and assignment are language execution: ALL their failures propagate, not
+ * just exhaustion. Keep the two error boundaries separate so an original
+ * initializer/destructor exception cannot become a successful null result.
+ * `source` and `prior` are consumed; target and assign are borrowed. */
 static inline bool xl6SerializeRestoreReadFinishV1(xvalue* source, xvalue* target,
     bool (*assign)(xvalue*, const xvalue*), xerror* prior, xvalue** output)
 {
@@ -37,12 +39,19 @@ static inline bool xl6SerializeRestoreReadFinishV1(xvalue* source, xvalue* targe
         xrtValueRelease(source); xrtErrorFree(prior); xrtErrorFree(failure);
         xrtClearError(); xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
+    if (!xl6SerializeReadFinishV1(source, prior)) return false;
+    prior = xrtTakeError();
     result = source != NULL && target != NULL && assign(target, source)
         ? xrtValueRetain(target) : xrtValueRetain(xrtValueNull());
     failure = xrtTakeError();
     xrtValueRelease(source);
-    xrtClearError(); xrtSetErrorTake(failure);
-    if (!xl6SerializeReadFinishV1(result, prior)) return false;
+    if (failure != NULL) {
+        xrtValueRelease(result);
+        xrtErrorFree(prior);
+        xrtClearError(); xrtSetErrorTake(failure);
+        return false;
+    }
+    xrtClearError(); xrtSetErrorTake(prior);
     *output = result;
     return true;
 }

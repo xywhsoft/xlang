@@ -1834,7 +1834,6 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->enumPayloads);
     for ( i = 0; i < module->classFieldCount; ++i ) {
         xrtFree(module->classFields[i].name);
-        xrtFree(module->classFields[i].persistenceDefaultLiteral);
         xrtFree(module->classFields[i].jsonPersistenceKeyLiteral);
         xrtFree(module->classFields[i].xlonPersistenceKeyLiteral);
     }
@@ -4849,219 +4848,6 @@ static int xl6IrBuildFieldDeriveIncluded(
     return 1;
 }
 
-static int xl6IrBuildPersistenceDigitValue(char ch)
-{
-    if ( ch >= '0' && ch <= '9' ) return ch - '0';
-    if ( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
-    if ( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
-    return -1;
-}
-
-/* Persistence defaults cross the frontend/backend boundary as portable C
- * payloads.  Canonicalize the small literal subset here, while the typed node
- * still exists, instead of making Cgen parse XL numeric syntax. */
-static char* xl6IrBuildPersistenceIntegerLiteral(
-    const char* text, int forceUnsigned)
-{
-    const char* cursor = text;
-    uint64_t value = 0;
-    int base = 10;
-    int digits = 0;
-    char buffer[32];
-    int length;
-    if ( text == NULL || text[0] == '\0' ) return NULL;
-    if ( cursor[0] == '0' && cursor[1] == 'x' ) { base = 16; cursor += 2; }
-    else if ( cursor[0] == '0' && cursor[1] == 'o' ) { base = 8; cursor += 2; }
-    else if ( cursor[0] == '0' && cursor[1] == 'b' ) { base = 2; cursor += 2; }
-    while ( *cursor != '\0' ) {
-        int digit;
-        if ( *cursor == '_' ) { ++cursor; continue; }
-        digit = xl6IrBuildPersistenceDigitValue(*cursor);
-        if ( digit < 0 || digit >= base ||
-             value > (UINT64_MAX - (uint64_t)digit) / (uint64_t)base )
-            return NULL;
-        value = value * (uint64_t)base + (uint64_t)digit;
-        ++digits;
-        ++cursor;
-    }
-    if ( digits == 0 ) return NULL;
-    length = forceUnsigned || value > (uint64_t)INT64_MAX
-        ? snprintf(buffer, sizeof(buffer), "%lluULL", (unsigned long long)value)
-        : snprintf(buffer, sizeof(buffer), "%lluLL", (unsigned long long)value);
-    return length > 0 && (size_t)length < sizeof(buffer)
-        ? xrtStrDupN(buffer, (size_t)length) : NULL;
-}
-
-static char* xl6IrBuildPersistenceFloatLiteral(const char* text)
-{
-    size_t i;
-    size_t length = 0;
-    size_t digits = 0;
-    int seenDot = 0;
-    int seenExponent = 0;
-    int exponentNeedsDigit = 0;
-    int exponentSignSeen = 0;
-    char* output;
-    if ( text == NULL || text[0] == '\0' ) return NULL;
-    output = (char*)xrtMalloc(strlen(text) + 1);
-    if ( output == NULL ) return NULL;
-    for ( i = 0; text[i] != '\0'; ++i ) {
-        char ch = text[i];
-        if ( ch == '_' ) continue;
-        if ( ch >= '0' && ch <= '9' ) {
-            ++digits;
-            exponentNeedsDigit = 0;
-        } else if ( ch == '.' && !seenDot && !seenExponent ) {
-            seenDot = 1;
-        } else if ( (ch == 'e' || ch == 'E') &&
-                    !seenExponent && digits != 0 ) {
-            seenExponent = 1;
-            exponentNeedsDigit = 1;
-            exponentSignSeen = 0;
-        } else if ( (ch == '+' || ch == '-') && seenExponent &&
-                    exponentNeedsDigit && !exponentSignSeen ) {
-            exponentSignSeen = 1;
-        } else {
-            xrtFree(output);
-            return NULL;
-        }
-        output[length++] = ch;
-    }
-    if ( digits == 0 || exponentNeedsDigit || (!seenDot && !seenExponent) ) {
-        xrtFree(output);
-        return NULL;
-    }
-    output[length] = '\0';
-    return output;
-}
-
-static int xl6IrBuildClassFieldPersistenceDefault(
-    XL6_IrModule* module, const XL6_IrNode* field,
-    XL6_IrClassField* item)
-{
-    const XL6_IrType* type;
-    const XL6_IrNode* expression;
-    const XL6_IrNode* arguments;
-    const char* literal = NULL;
-    if ( module == NULL || field == NULL || item == NULL ||
-         (type = xl6IrTypeGet(&module->types, item->type)) == NULL ) return 0;
-    item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_NONE;
-    item->persistenceDefaultLiteral = NULL;
-    if ( item->initializerAbi ==
-             XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY ) {
-        item->persistenceDefaultAbi = type->collectionAbi ==
-                XL6_IR_COLLECTION_ARRAY
-            ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY
-            : type->collectionAbi == XL6_IR_COLLECTION_LIST
-            ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST
-            : type->collectionAbi == XL6_IR_COLLECTION_SET
-            ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET
-            : type->collectionAbi == XL6_IR_COLLECTION_DICT
-            ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_DICT
-            : XL6_IR_PERSISTENCE_DEFAULT_NONE;
-        return item->persistenceDefaultAbi !=
-            XL6_IR_PERSISTENCE_DEFAULT_NONE;
-    }
-    if ( item->initializerAbi == XL6_IR_INITIALIZER_NULL_SENTINEL ||
-         item->initializerAbi == XL6_IR_INITIALIZER_TAGGED_NULL ||
-         item->initializerAbi == XL6_IR_INITIALIZER_XVALUE_NULL ||
-         item->initializerAbi == XL6_IR_INITIALIZER_CLASS_NULL ) {
-        item->persistenceDefaultAbi =
-            XL6_IR_PERSISTENCE_DEFAULT_XVALUE_NULL;
-        return 1;
-    }
-    if ( item->initializerAbi == XL6_IR_INITIALIZER_SCALAR_ZERO ) {
-        if ( type->cAbi == XL6_IR_C_ABI_BOOL ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_BOOL;
-            literal = "false";
-        } else if ( type->cAbi == XL6_IR_C_ABI_I64 ||
-                    type->cAbi == XL6_IR_C_ABI_TIME_I64 ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_I64;
-            literal = "0LL";
-        } else if ( type->cAbi == XL6_IR_C_ABI_U64 ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_U64;
-            literal = "0ULL";
-        } else if ( type->cAbi == XL6_IR_C_ABI_F64 ||
-                    type->cAbi == XL6_IR_C_ABI_F32 ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_F64;
-            literal = "0.0";
-        }
-    } else if ( item->initializerAbi == XL6_IR_INITIALIZER_STRING_EMPTY ) {
-        item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_STRING;
-        literal = "\"\"";
-    } else if ( item->initializerAbi == XL6_IR_INITIALIZER_EXPLICIT &&
-                item->initializer != XL6_IR_NODE_INVALID &&
-                (expression = xl6IrNodeGet(module, item->initializer)) != NULL ) {
-        if ( type->cAbi == XL6_IR_C_ABI_BOOL &&
-             expression->sourceKind == XL6_AST_BOOL &&
-             expression->text != NULL &&
-             (strcmp(expression->text, "true") == 0 ||
-              strcmp(expression->text, "false") == 0) ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_BOOL;
-            literal = expression->text;
-        } else if ( type->cAbi == XL6_IR_C_ABI_I64 &&
-                    expression->sourceKind == XL6_AST_INT ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_I64;
-            item->persistenceDefaultLiteral =
-                xl6IrBuildPersistenceIntegerLiteral(expression->text, 0);
-        } else if ( type->cAbi == XL6_IR_C_ABI_U64 &&
-                    expression->sourceKind == XL6_AST_INT ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_U64;
-            item->persistenceDefaultLiteral =
-                xl6IrBuildPersistenceIntegerLiteral(expression->text, 1);
-        } else if ( type->cAbi == XL6_IR_C_ABI_F64 &&
-                    expression->sourceKind == XL6_AST_FLOAT ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_F64;
-            item->persistenceDefaultLiteral =
-                xl6IrBuildPersistenceFloatLiteral(expression->text);
-        } else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-                    expression->sourceKind == XL6_AST_STRING ) {
-            item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_STRING;
-            item->persistenceDefaultLiteral = xl6IrCanonicalCStringLiteral(expression->text);
-        } else if ( type->kind == XL6_IR_TYPE_CLASS &&
-                    expression->sourceKind == XL6_AST_CALL &&
-                    expression->callKind == XL6_SEM_CALL_CONSTRUCTOR &&
-                    expression->childCount == 2 &&
-                    (arguments = xl6IrNodeGet(module,
-                         module->children[expression->firstChild + 1])) != NULL &&
-                    arguments->kind == XL6_IR_NODE_LIST &&
-                    arguments->childCount == 0 ) {
-            item->persistenceDefaultAbi =
-                XL6_IR_PERSISTENCE_DEFAULT_CLASS;
-        } else if ( type->collectionAbi != XL6_IR_COLLECTION_NONE &&
-                    ((((type->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
-                        expression->sourceKind == XL6_AST_ARRAY_LITERAL) ||
-                       (type->collectionAbi == XL6_IR_COLLECTION_LIST &&
-                        expression->sourceKind == XL6_AST_LIST_LITERAL) ||
-                       (type->collectionAbi == XL6_IR_COLLECTION_SET &&
-                        expression->sourceKind == XL6_AST_SET_LITERAL) ||
-                       (type->collectionAbi == XL6_IR_COLLECTION_DICT &&
-                        expression->sourceKind == XL6_AST_DICT_LITERAL)) &&
-                       expression->childCount == 0) ||
-                     (expression->sourceKind == XL6_AST_TYPED_LITERAL &&
-                      expression->childCount == 1)) ) {
-            item->persistenceDefaultAbi = type->collectionAbi ==
-                    XL6_IR_COLLECTION_ARRAY
-                ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY
-                : type->collectionAbi == XL6_IR_COLLECTION_LIST
-                ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST
-                : type->collectionAbi == XL6_IR_COLLECTION_SET
-                ? XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET
-                : XL6_IR_PERSISTENCE_DEFAULT_EMPTY_DICT;
-        }
-    }
-    if ( literal != NULL )
-        item->persistenceDefaultLiteral =
-            xrtStrDupN(literal, strlen(literal));
-    if ( item->persistenceDefaultAbi >= XL6_IR_PERSISTENCE_DEFAULT_BOOL &&
-         item->persistenceDefaultAbi <= XL6_IR_PERSISTENCE_DEFAULT_STRING &&
-         item->persistenceDefaultLiteral == NULL ) {
-        item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_NONE;
-        return 0;
-    }
-    return 1;
-}
-
 /* Nullability precedes payload defaults for every storage location. In
  * particular string? starts null, while string starts as an empty string. */
 static XL6_IrInitializerAbi xl6IrNullDefaultInitializerAbi(const XL6_IrType* type)
@@ -5126,8 +4912,6 @@ static int xl6IrBuildClassLayoutAppendField(
     item->initializerRuntimeResourceKeyOrderAbi =
         XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
     item->initializerErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
-    item->persistenceDefaultAbi = XL6_IR_PERSISTENCE_DEFAULT_NONE;
-    item->persistenceDefaultLiteral = NULL;
     fieldType = xl6IrTypeGet(&module->types, item->type);
     item->nativeDestroySymbol =
         (field->flags & XL6_AST_FLAG_NATIVE) != 0 && fieldType != NULL &&
@@ -5230,8 +5014,6 @@ static int xl6IrBuildClassLayoutAppendField(
                    fieldType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
             item->initializerAbi = XL6_IR_INITIALIZER_XVALUE_NULL;
     }
-    if ( !xl6IrBuildClassFieldPersistenceDefault(module, field, item) )
-        return 0;
     item->name = xrtStrDupN(field->text, strlen(field->text));
     item->stringDeriveIncluded =
         xl6IrBuildFieldDeriveIncluded(module, field, "string");
@@ -5245,7 +5027,6 @@ static int xl6IrBuildClassLayoutAppendField(
              module, field, "xlon", &item->xlonPersistenceFlags,
              &item->xlonPersistenceKeyLiteral) ) {
         xrtFree(item->name);
-        xrtFree(item->persistenceDefaultLiteral);
         xrtFree(item->jsonPersistenceKeyLiteral);
         xrtFree(item->xlonPersistenceKeyLiteral);
         memset(item, 0, sizeof(*item));
@@ -5691,34 +5472,51 @@ int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module)
     return 1;
 }
 
-static int xl6IrBuildPersistenceLayoutConstructible(
+/* Declaration construction has exactly the field vocabulary used by normal
+ * lowering. Expression trees and resource contracts are verified by their
+ * ordinary IR plans; persistence does not reinterpret literals or constructors.
+ * A concrete base owns its own field slice. A declaration-only base is already
+ * expanded into this layout's inherited prefix. */
+static int xl6IrClassDeclarationConstructible(
     const XL6_IrModule* module, const XL6_IrClassLayout* layout, size_t depth)
 {
     size_t field;
     if ( module == NULL || layout == NULL ||
          depth > module->classLayoutCount ||
-         layout->persistenceObjectAbi !=
-             XL6_IR_PERSISTENCE_OBJECT_CLOSED_SCHEMA ||
-         layout->baseDeclaration != XL6_IR_NODE_INVALID ||
-         layout->baseType != XL6_IR_TYPE_INVALID ||
-         layout->hashAbi != XL6_IR_CLASS_HASH_ABI_RUNTIME_REFERENCE ||
-         layout->equalityAbi !=
-             XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_REFERENCE ||
-         layout->destroyStepCount != 0 ) return 0;
+         layout->firstField > module->classFieldCount ||
+         layout->fieldCount > module->classFieldCount - layout->firstField ) return 0;
+    if (layout->baseType != XL6_IR_TYPE_INVALID &&
+        !xl6IrClassDeclarationConstructible(module,
+            xl6IrBuildClassLayoutByType(module, layout->baseType), depth + 1)) return 0;
     for ( field = 0; field < layout->fieldCount; ++field ) {
         const XL6_IrClassField* item =
             &module->classFields[layout->firstField + field];
-        if ( item->persistenceDefaultAbi ==
-                 XL6_IR_PERSISTENCE_DEFAULT_NONE ) return 0;
-        if ( item->persistenceDefaultAbi ==
-                 XL6_IR_PERSISTENCE_DEFAULT_CLASS &&
-             !xl6IrBuildPersistenceLayoutConstructible(
-                 module, xl6IrBuildClassLayoutByType(module, item->type),
-                 depth + 1) ) return 0;
+        switch (item->initializerAbi) {
+        case XL6_IR_INITIALIZER_EXPLICIT:
+        case XL6_IR_INITIALIZER_SCALAR_ZERO:
+        case XL6_IR_INITIALIZER_STRING_EMPTY:
+        case XL6_IR_INITIALIZER_NULL_SENTINEL:
+        case XL6_IR_INITIALIZER_TAGGED_NULL:
+        case XL6_IR_INITIALIZER_XVALUE_NULL:
+        case XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY:
+        case XL6_IR_INITIALIZER_UNION_ZERO:
+        case XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT:
+            break;
+        default:
+            return 0;
+        }
     }
     return 1;
 }
 
+static int xl6IrBuildPersistenceLayoutConstructible(
+    const XL6_IrModule* module, const XL6_IrClassLayout* layout, size_t depth)
+{
+    return layout != NULL && layout->persistenceFormatMask != XL6_IR_PERSIST_FORMAT_NONE &&
+        (layout->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_CLOSED_SCHEMA ||
+         layout->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) &&
+        xl6IrClassDeclarationConstructible(module, layout, depth);
+}
 static int xl6IrBuildPersistenceConstructionAbis(XL6_IrModule* module)
 {
     size_t layoutIndex;
@@ -5728,7 +5526,7 @@ static int xl6IrBuildPersistenceConstructionAbis(XL6_IrModule* module)
         module->classLayouts[layoutIndex].persistenceConstructionAbi =
             xl6IrBuildPersistenceLayoutConstructible(
                 module, &module->classLayouts[layoutIndex], 0)
-                ? XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT
+                ? XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT
                 : XL6_IR_PERSISTENCE_CONSTRUCTION_NONE;
     return xl6IrRefreshPersistenceTypeAbis(module);
 }
@@ -5996,7 +5794,7 @@ static int xl6IrBuildPersistenceTypeSupportedDepth(
         return layout != NULL &&
                (!needsClassConstruction ||
                 layout->persistenceConstructionAbi ==
-                    XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT) &&
+                    XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT) &&
                xl6IrBuildPersistenceLayoutSupportedDepth(
                    module, typeId, format, depth + 1);
     }
@@ -23200,69 +22998,6 @@ static int xl6IrVerifyClassDestroyPlanDepth(
         XL6_IR_TYPE_INVALID, cursor, end, depth + 1);
 }
 
-static int xl6IrVerifyPersistenceDefault(
-    const XL6_IrModule* module, const XL6_IrClassField* field)
-{
-    const XL6_IrType* type = module != NULL && field != NULL
-        ? xl6IrTypeGet(&module->types, field->type) : NULL;
-    if ( type == NULL ||
-         field->persistenceDefaultAbi < XL6_IR_PERSISTENCE_DEFAULT_NONE ||
-         field->persistenceDefaultAbi > XL6_IR_PERSISTENCE_DEFAULT_CLASS )
-        return 0;
-    switch ( field->persistenceDefaultAbi ) {
-    case XL6_IR_PERSISTENCE_DEFAULT_NONE:
-        return field->persistenceDefaultLiteral == NULL;
-    case XL6_IR_PERSISTENCE_DEFAULT_XVALUE_NULL:
-        return field->persistenceDefaultLiteral == NULL &&
-               type->nullAbi != XL6_IR_NULL_ABI_NONE;
-    case XL6_IR_PERSISTENCE_DEFAULT_BOOL:
-        return type->cAbi == XL6_IR_C_ABI_BOOL &&
-               field->persistenceDefaultLiteral != NULL &&
-               (strcmp(field->persistenceDefaultLiteral, "true") == 0 ||
-                strcmp(field->persistenceDefaultLiteral, "false") == 0);
-    case XL6_IR_PERSISTENCE_DEFAULT_I64:
-        return (type->cAbi == XL6_IR_C_ABI_I64 ||
-                type->cAbi == XL6_IR_C_ABI_TIME_I64) &&
-               xl6IrIsCanonicalIntegerLiteral(
-                   field->persistenceDefaultLiteral);
-    case XL6_IR_PERSISTENCE_DEFAULT_U64:
-        return type->cAbi == XL6_IR_C_ABI_U64 &&
-               xl6IrIsCanonicalUnsignedIntegerLiteral(
-                   field->persistenceDefaultLiteral);
-    case XL6_IR_PERSISTENCE_DEFAULT_F64:
-        return (type->cAbi == XL6_IR_C_ABI_F64 ||
-                type->cAbi == XL6_IR_C_ABI_F32) &&
-               xl6IrIsCanonicalFloatLiteral(
-                   field->persistenceDefaultLiteral);
-    case XL6_IR_PERSISTENCE_DEFAULT_STRING:
-        return type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-               xl6IrIsCanonicalCStringLiteral(
-                   field->persistenceDefaultLiteral);
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY:
-        return field->persistenceDefaultLiteral == NULL &&
-               type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               type->collectionAbi == XL6_IR_COLLECTION_ARRAY;
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST:
-        return field->persistenceDefaultLiteral == NULL &&
-               type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               type->collectionAbi == XL6_IR_COLLECTION_LIST;
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET:
-        return field->persistenceDefaultLiteral == NULL &&
-               type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               type->collectionAbi == XL6_IR_COLLECTION_SET;
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_DICT:
-        return field->persistenceDefaultLiteral == NULL &&
-               type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               type->collectionAbi == XL6_IR_COLLECTION_DICT;
-    case XL6_IR_PERSISTENCE_DEFAULT_CLASS:
-        return field->persistenceDefaultLiteral == NULL &&
-               type->kind == XL6_IR_TYPE_CLASS &&
-               type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
-    default:
-        return 0;
-    }
-}
-
 /* These functions are ordinary verified CFG, but their decoder binding is a
  * closed ABI: one factory per admitted layout, no arguments, owned checked
  * class result, and no source-call-target masquerading as a factory. The
@@ -23290,7 +23025,7 @@ static int xl6IrVerifyPersistenceDefaultFunctions(const XL6_IrModule* module, XL
         const XL6_IrFunction* function;
         size_t i, returns = 0, boundaries = 0;
         if (module->stage != XL6_IR_STAGE_LOWERED ||
-            layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT) {
+            layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT) {
             if (layout->persistenceDefaultFunction != 0) goto invalid;
             continue;
         }
@@ -23397,7 +23132,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
               layout->persistenceConstructionAbi !=
                   (xl6IrBuildPersistenceLayoutConstructible(
                        module, layout, 0)
-                       ? XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT
+                       ? XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT
                        : XL6_IR_PERSISTENCE_CONSTRUCTION_NONE) ||
               ((layout->persistenceObjectAbi ==
                     XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_ROOT ||
@@ -23614,7 +23349,6 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                         item->initializerAbi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY
                              ? XL6_IR_ERROR_ABI_MAY_RAISE
                              : XL6_IR_ERROR_ABI_NO_RAISE) ||
-                   !xl6IrVerifyPersistenceDefault(module, item) ||
                    item->nativeDestroySymbol != expectedNativeDestroy ) return 0;
             for ( other = 0; other < field; ++other ) {
                 if ( strcmp(item->name, module->classFields[layout->firstField + other].name) == 0 ) return 0;
@@ -46571,30 +46305,11 @@ static const char* xl6IrPersistenceValueAbiName(
     }
 }
 
-static const char* xl6IrPersistenceDefaultAbiName(
-    XL6_IrPersistenceDefaultAbi abi)
-{
-    switch ( abi ) {
-    case XL6_IR_PERSISTENCE_DEFAULT_XVALUE_NULL: return "xvalue-null";
-    case XL6_IR_PERSISTENCE_DEFAULT_BOOL: return "bool";
-    case XL6_IR_PERSISTENCE_DEFAULT_I64: return "i64";
-    case XL6_IR_PERSISTENCE_DEFAULT_U64: return "u64";
-    case XL6_IR_PERSISTENCE_DEFAULT_F64: return "f64";
-    case XL6_IR_PERSISTENCE_DEFAULT_STRING: return "string";
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY: return "empty-array";
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST: return "empty-list";
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET: return "empty-set";
-    case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_DICT: return "empty-dict";
-    case XL6_IR_PERSISTENCE_DEFAULT_CLASS: return "class";
-    default: return "none";
-    }
-}
-
 static const char* xl6IrPersistenceConstructionAbiName(
     XL6_IrPersistenceConstructionAbi abi)
 {
-    return abi == XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT
-        ? "schema-default" : "none";
+    return abi == XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT
+        ? "declaration-default" : "none";
 }
 
 static const char* xl6IrClassHashAbiName(XL6_IrClassHashAbi abi)
@@ -46900,17 +46615,13 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->classFieldCount; ++i ) {
         const XL6_IrClassField* field = &module->classFields[i];
         xl6OutputPrintf(out,
-                        "  class-field f%lu owner=t%u type=t%u declaration=n%u initializer=n%u destroy=s%u name=%s init=%s persist-default=%s/%s resource=%s payload=t%u/%s key=t%u/%s/%s error=%s json=0x%X/%s xlon=0x%X/%s string=%d compare=%d\n",
+                        "  class-field f%lu owner=t%u type=t%u declaration=n%u initializer=n%u destroy=s%u name=%s init=%s resource=%s payload=t%u/%s key=t%u/%s/%s error=%s json=0x%X/%s xlon=0x%X/%s string=%d compare=%d\n",
                         (unsigned long)i, (unsigned int)field->ownerType,
                         (unsigned int)field->type, (unsigned int)field->declaration,
                         (unsigned int)field->initializer,
                         (unsigned int)field->nativeDestroySymbol,
                           field->name != NULL ? field->name : "",
                           xl6IrInitializerAbiName(field->initializerAbi),
-                          xl6IrPersistenceDefaultAbiName(
-                              field->persistenceDefaultAbi),
-                          field->persistenceDefaultLiteral != NULL
-                              ? field->persistenceDefaultLiteral : "-",
                           xl6IrRuntimeResourceOpName(
                              field->initializerRuntimeResourceOp),
                          (unsigned int)field->initializerPayloadType,
@@ -48284,14 +47995,11 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->classFieldCount; ++i ) {
         const XL6_IrClassField* field = &module->classFields[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"initializer\":%u,\"nativeDestroySymbol\":%u,\"initializerAbi\":%d,\"initializerAbiName\":\"%s\",\"persistenceDefaultAbi\":%d,\"persistenceDefaultAbiName\":\"%s\",\"persistenceDefaultHasLiteral\":%d,\"initializerRuntimeResourceOp\":%d,\"initializerRuntimeResourceOpName\":\"%s\",\"initializerPayloadType\":%u,\"initializerRuntimeResourcePayloadAbi\":%d,\"initializerRuntimeResourcePayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyType\":%u,\"initializerRuntimeResourceKeyPayloadAbi\":%d,\"initializerRuntimeResourceKeyPayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyOrderAbi\":%d,\"initializerRuntimeResourceKeyOrderAbiName\":\"%s\",\"initializerErrorAbi\":%d,\"initializerErrorAbiName\":\"%s\",\"jsonPersistenceFlags\":%u,\"jsonRenamed\":%d,\"xlonPersistenceFlags\":%u,\"xlonRenamed\":%d,\"stringDeriveIncluded\":%d,\"compareDeriveIncluded\":%d}%s\n",
+            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"initializer\":%u,\"nativeDestroySymbol\":%u,\"initializerAbi\":%d,\"initializerAbiName\":\"%s\",\"initializerRuntimeResourceOp\":%d,\"initializerRuntimeResourceOpName\":\"%s\",\"initializerPayloadType\":%u,\"initializerRuntimeResourcePayloadAbi\":%d,\"initializerRuntimeResourcePayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyType\":%u,\"initializerRuntimeResourceKeyPayloadAbi\":%d,\"initializerRuntimeResourceKeyPayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyOrderAbi\":%d,\"initializerRuntimeResourceKeyOrderAbiName\":\"%s\",\"initializerErrorAbi\":%d,\"initializerErrorAbiName\":\"%s\",\"jsonPersistenceFlags\":%u,\"jsonRenamed\":%d,\"xlonPersistenceFlags\":%u,\"xlonRenamed\":%d,\"stringDeriveIncluded\":%d,\"compareDeriveIncluded\":%d}%s\n",
             (unsigned long)i, (unsigned int)field->ownerType, (unsigned int)field->type,
             (unsigned int)field->declaration, (unsigned int)field->initializer,
              (unsigned int)field->nativeDestroySymbol,
              (int)field->initializerAbi, xl6IrInitializerAbiName(field->initializerAbi),
-             (int)field->persistenceDefaultAbi,
-             xl6IrPersistenceDefaultAbiName(field->persistenceDefaultAbi),
-             field->persistenceDefaultLiteral != NULL,
              (int)field->initializerRuntimeResourceOp,
              xl6IrRuntimeResourceOpName(
                  field->initializerRuntimeResourceOp),

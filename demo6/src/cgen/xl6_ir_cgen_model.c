@@ -148,7 +148,7 @@ static int xl6IrCgenPersistenceTypeSupportedDepth(
         return layout != NULL &&
                (!needsClassConstruction ||
                 layout->persistenceConstructionAbi ==
-                    XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT) &&
+                    XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT) &&
                xl6IrPersistenceRestoreSchemaGet(module, typeId, format) != NULL;
     }
     case XL6_IR_PERSISTENCE_VALUE_NULLABLE:

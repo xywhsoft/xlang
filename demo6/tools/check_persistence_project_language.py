@@ -28,7 +28,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore', 'restore-domains'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore', 'restore-domains', 'restore-construction'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -45,7 +45,8 @@ def main() -> int:
                      'nominal': 'stdlib_persistence_nominal_language.xl',
                      'pretty': 'stdlib_persistence_pretty_language.xl',
                      'restore': 'stdlib_persistence_restore_language.xl',
-                     'restore-domains': 'stdlib_persistence_restore_domains.xl'}
+                     'restore-domains': 'stdlib_persistence_restore_domains.xl',
+                     'restore-construction': 'stdlib_persistence_restore_construction.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = test_root / 'test/cases/xlir_module_product_oom_host.c'
@@ -60,13 +61,15 @@ def main() -> int:
                    'nominal': 'stdlib_persistence_nominal_errors.xl',
                    'pretty': 'stdlib_persistence_pretty_errors.xl',
                    'restore': 'stdlib_persistence_restore_errors.xl',
-                   'restore-domains': 'stdlib_persistence_restore_errors.xl'}
+                   'restore-domains': 'stdlib_persistence_restore_errors.xl',
+                   'restore-construction': 'stdlib_persistence_restore_construction_errors.xl'}
     error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
     status_names = {'visitors': 'xlir_serialization_visit_status_host.c',
                     'pretty': 'xlir_persistence_pretty_status_host.c',
                     'restore': 'xlir_persistence_restore_status_host.c',
-                    'restore-domains': 'xlir_persistence_restore_status_host.c'}
+                    'restore-domains': 'xlir_persistence_restore_status_host.c',
+                    'restore-construction': 'xlir_persistence_restore_status_host.c'}
     status_host = test_root / 'test/cases' / status_names[args.fixture] if args.fixture in status_names else None
     if status_host: files.add(status_host)
     invalid_source = test_root / 'test/cases/stdlib_persistence_nominal_nonderived_invalid.xl' if args.fixture == 'nominal' else None
@@ -170,25 +173,28 @@ def main() -> int:
             assert 'xl6_serialization_visit_finish(' in text
             assert 'xl6_xrt_json_visit_configured(' in text and 'xl6_xrt_xlon_visit_configured(' in text
             assert 'static XL6_Serialization_Visit_Result xl6_serialization_callback_finish(' not in text
-        elif args.fixture in ('restore', 'restore-domains'):
+        elif args.fixture in ('restore', 'restore-domains', 'restore-construction'):
             assert 'xlir_persist_json_parse_t' in text and 'xlir_persist_xlon_parse_t' in text
             assert 'xrtValueObjectGet(source, (xstrview){' in text
             assert 'xl6SerializeRestoreReadFinishV1(' in text and 'bool projection_ok_' in text
             assert 'xl6PersistenceRestoreScalarV1(' in text and 'xl6_persistence_restore.h' in text
-            if args.fixture == 'restore-domains':
+            if args.fixture in ('restore-domains', 'restore-construction'):
                 assert 'xl6PersistenceRestoreArrayTakeV1(' in text and 'xl6SequencePrimitiveCreateV1(' in text
                 assert 'for (index = 0; index < count;' not in text
                 factories = re.findall(r'static xvalue\* xlir_persist_(json|xlon)_default_t(\d+)\(void\)\s*\{([^}]+)\}', text)
-                assert len(factories) == 2 and {row[0] for row in factories} == {'json', 'xlon'}
-                assert factories[0][1] == factories[1][1]
-                symbols = []
-                for _, _, body in factories:
+                assert len(factories) == (2 if args.fixture == 'restore-domains' else 6)
+                assert {row[0] for row in factories} == {'json', 'xlon'}
+                symbols = {}
+                formats = {}
+                for format_name, type_id, body in factories:
                     assert 'outcome.ok ? outcome.value : NULL' in body
                     assert 'xrtValueObjectSetNew' not in body and '->Create(' not in body
                     call = re.search(r'outcome = (xlir_fn_\d+)\(\);', body)
                     assert call
-                    symbols.append(call[1])
-                assert symbols[0] == symbols[1]
+                    assert type_id not in symbols or symbols[type_id] == call[1]
+                    symbols[type_id] = call[1]
+                    formats.setdefault(type_id, set()).add(format_name)
+                assert all(formats_for_type == {'json', 'xlon'} for formats_for_type in formats.values())
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text

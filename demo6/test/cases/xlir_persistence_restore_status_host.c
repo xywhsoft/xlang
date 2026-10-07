@@ -81,6 +81,22 @@ static bool allocateAssignment(xvalue* target, const xvalue* source)
     if (item == NULL) return false;
     xrtValueRelease(item); return true;
 }
+static const xerror* assignmentFailure;
+static unsigned assignmentCalls;
+static bool failedAssignment(xvalue* target, const xvalue* source)
+{
+    assert(target && source);
+    ++assignmentCalls;
+    xrtSetErrorKind(XERR_VALUE);
+    assignmentFailure = xrtGetError();
+    return false;
+}
+static bool successfulAssignment(xvalue* target, const xvalue* source)
+{
+    assert(target && source);
+    ++assignmentCalls;
+    return true;
+}
 int main(void)
 {
     xl6ProductMemoryBegin(SIZE_MAX);
@@ -99,6 +115,30 @@ int main(void)
     assert(xl6SerializeRestoreReadFinishV1(source, target, rejectAssignment, NULL, &output));
     assert(output != NULL && xrtValueType(output) == XVALUE_NULL && xrtGetError() == NULL);
     xrtValueRelease(output);
+    /* Parser rejection is nullable; executing a declaration is not. */
+    xrtSetErrorKind(XERR_ARGUMENT);
+    xerror* prior = xrtTakeError(); assert(prior);
+    xrtSetErrorKind(XERR_VALUE);
+    assert(xl6SerializeRestoreReadFinishV1(NULL, target, failedAssignment, prior, &output));
+    assert(xrtValueType(output) == XVALUE_NULL && xrtGetError() == prior && !assignmentCalls);
+    xrtValueRelease(output); xrtClearError();
+    source = xrtValueObject(); assert(source);
+    xrtSetErrorKind(XERR_ARGUMENT);
+    prior = xrtTakeError(); assert(prior);
+    assert(!xl6SerializeRestoreReadFinishV1(source, target, failedAssignment, prior, &output));
+    assert(output == NULL && assignmentCalls == 1 && assignmentFailure == xrtGetError() &&
+        xrtErrorKind(assignmentFailure) == XERR_VALUE);
+    xrtClearError(); assignmentFailure = NULL;
+    source = xrtValueObject(); assert(source);
+    xrtSetErrorKind(XERR_VALUE);
+    prior = xrtTakeError(); assert(prior);
+    assert(xl6SerializeRestoreReadFinishV1(source, target, successfulAssignment, prior, &output));
+    assert(output == target && assignmentCalls == 2 && xrtGetError() == prior);
+    xrtValueRelease(output); xrtClearError();
+    xrtSetErrorKind(XERR_MEMORY);
+    assert(!xl6SerializeRestoreReadFinishV1(NULL, target, successfulAssignment, NULL, &output));
+    assert(output == NULL && assignmentCalls == 2 && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    xrtClearError();
     source = xrtValueObject(); assert(source != NULL);
     assert(xrtMemDebugFailAfter(0));
     assert(!xl6SerializeRestoreReadFinishV1(source, target, allocateAssignment, NULL, &output));

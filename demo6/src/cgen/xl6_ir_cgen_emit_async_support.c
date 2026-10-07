@@ -166,7 +166,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     }
     if ( needs->needsClassValueIdentityRuntime ) {
         size_t instructionIndex;
-        size_t persistenceLayoutIndex;
         xl6OutputPuts(
             "typedef uint64_t (*xlir_value_identity_hash)(const xvalue*, void*);\n"
             "typedef bool (*xlir_value_identity_equal)(const xvalue*, const xvalue*, void*);\n"
@@ -174,26 +173,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "extern bool xrtValueEqual(const xvalue*, const xvalue*);\n"
             "#include \"__xl_runtime/xl6_code_lease.h\"\n",
             out);
-        for ( persistenceLayoutIndex = 0;
-              persistenceLayoutIndex < module->classLayoutCount;
-              ++persistenceLayoutIndex ) {
-            const XL6_IrClassLayout* persistenceLayout =
-                &module->classLayouts[persistenceLayoutIndex];
-            if ( persistenceLayout->persistenceConstructionAbi !=
-                     XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT ) continue;
-            xl6OutputPrintf(out,
-                "static uint64_t xlir_class_reference_hash_t%u(const xvalue* value, void* data)\n"
-                "{ (void)data; if (value == NULL) abort(); return (uint64_t)(uintptr_t)value; }\n"
-                "static bool xlir_class_reference_equal_t%u(const xvalue* left, const xvalue* right, void* data)\n"
-                "{ (void)data; return left == right; }\n"
-                "static xvalue* xlir_class_identity_bind_t%u(xvalue* value)\n"
-                "{ if (value == NULL || !xl6ClassRuntimeV2Get()->BindIdentity(value, xlir_class_reference_hash_t%u, xlir_class_reference_equal_t%u)) abort(); return value; }\n\n",
-                (unsigned int)persistenceLayout->type,
-                (unsigned int)persistenceLayout->type,
-                (unsigned int)persistenceLayout->type,
-                (unsigned int)persistenceLayout->type,
-                (unsigned int)persistenceLayout->type);
-        }
         for ( instructionIndex = 0;
               instructionIndex < module->instructionCount;
               ++instructionIndex ) {
@@ -241,9 +220,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                  classType->typeValueId == 0 )
                 return xl6IrCgenDiag(diags, module, instruction->origin,
                     "XLIR C emitter class value identity layout is unresolved");
-            if ( layout->persistenceConstructionAbi ==
-                     XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT )
-                continue;
             if ( layout->hashAbi ==
                      XL6_IR_CLASS_HASH_ABI_RUNTIME_REFERENCE &&
                  layout->equalityAbi ==

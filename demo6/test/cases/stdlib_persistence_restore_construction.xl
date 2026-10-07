@@ -1,0 +1,92 @@
+int declarationCalls = 0
+int createCalls = 0
+int retired = 0
+func declarationValue() as int
+    declarationCalls += 1
+    return 7
+end
+class ConstructionBase
+    derive value
+    int baseValue = declarationValue()
+    create()
+        createCalls += 1
+    end
+end
+class ConstructionMiddle extends ConstructionBase
+    derive value
+    int middleValue = declarationValue() + 1
+end
+class ConstructionItem extends ConstructionMiddle
+    derive value
+    int itemValue = declarationValue() * 2
+    string text = "a\0" + "b"
+    array<int8> numbers = [int8(1), int8(2)]
+    create(int replacement)
+        createCalls += 1
+        self.itemValue = replacement
+    end
+    destroy()
+        retired += 1
+    end
+end
+class ConstructionOpen extends object
+    derive value
+    int declared = declarationValue()
+end
+class ConstructionEnvelope
+    derive value
+    array<ConstructionItem> items = []
+    ConstructionItem? optional = null
+    array<ConstructionOpen> opened = []
+end
+class ConstructionKey
+    derive value
+    derive hash
+    derive equals
+    int id = 17 + 2
+    string text = "k" + "\0v"
+end
+class ConstructionKeys
+    derive value
+    set<ConstructionKey> keys
+end
+
+// Force an independent base TypeId as well as the declaration-only middle.
+ConstructionBase base = ConstructionBase()
+assert base.baseValue == 7 and declarationCalls == 1 and createCalls == 1, "construction contract line 51"
+declarationCalls = 0
+createCalls = 0
+ConstructionItem ordinary = ConstructionItem(99)
+assert ordinary.baseValue == 7 and ordinary.middleValue == 8 and ordinary.itemValue == 99, "construction contract line 55"
+assert declarationCalls == 3 and createCalls == 1, "construction contract line 56"
+declarationCalls = 0
+createCalls = 0
+ConstructionEnvelope restored = json.parse::<ConstructionEnvelope>("{\"items\":[{}],\"optional\":{},\"opened\":[{\"extra\":\"c\\u0000d\"}]}")
+assert restored != null and declarationCalls == 7 and createCalls == 0, "construction contract line 60"
+assert restored.items[0].baseValue == 7 and restored.items[0].middleValue == 8, "construction contract line 61"
+assert restored.items[0].itemValue == 14 and restored.items[0].text == "a\0b", "construction contract line 62"
+assert restored.items[0].numbers[1] == 2, "construction contract line 63"
+assert restored.opened[0].declared == 7 and restored.opened[0].extra == "c\0d", "construction contract line 64"
+declarationCalls = 0
+ConstructionEnvelope again = xlon.parse::<ConstructionEnvelope>(xlon.stringify(restored))
+assert again != null and declarationCalls == 7 and createCalls == 0, "construction contract line 67"
+assert again.items[0].text == "a\0b" and again.opened[0].extra == "c\0d", "construction contract line 68"
+assert again.items[0] != restored.items[0], "independently restored reference-class identity"
+ConstructionEnvelope jsonAgain = json.parse::<ConstructionEnvelope>(json.stringify(restored))
+assert jsonAgain != null and jsonAgain.items[0].text == "a\0b", "JSON construction roundtrip"
+// Successful retirement runs user destroy; failed construction never arms it.
+func exerciseRetirement()
+    ConstructionEnvelope local = json.parse::<ConstructionEnvelope>("{\"items\":[{}]}")
+    assert local.items[0].itemValue == 14, "construction contract line 73"
+end
+int before = retired
+exerciseRetirement()
+assert retired == before + 1, "construction contract line 77"
+ConstructionEnvelope recovered = json.parse::<ConstructionEnvelope>("{\"items\":[{}]}")
+assert recovered.items[0].itemValue == 14, "construction contract line 95"
+ConstructionKeys keyed = json.parse::<ConstructionKeys>("{\"keys\":[{},{}]}")
+assert keyed != null and keyed.keys.length == 1, "factory preserves derived hash and equality"
+ConstructionKeys keyedAgain = xlon.parse::<ConstructionKeys>(xlon.stringify(keyed))
+assert keyedAgain != null and keyedAgain.keys.length == 1, "value identity survives XLON restore"
+ConstructionKey key = json.parse::<ConstructionKey>("{}")
+assert keyedAgain.keys.contains(key), "restored set uses declared value identity"

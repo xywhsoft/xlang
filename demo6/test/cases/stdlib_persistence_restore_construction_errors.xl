@@ -1,0 +1,60 @@
+int calls = 0
+int retired = 0
+int failAt = 1
+func failingDeclaration() as int
+    calls += 1
+    if calls == failAt then
+        throw ValueError("declaration-default-original")
+    end
+    return calls
+end
+class RestoreFailureBase
+    derive value
+    int first = failingDeclaration()
+end
+class RestoreFailureItem extends RestoreFailureBase
+    derive value
+    int second = failingDeclaration()
+    destroy()
+        retired += 1
+    end
+end
+class RestoreFailureEnvelope
+    derive value
+    array<RestoreFailureItem> items = []
+    RestoreFailureItem? optional = null
+end
+int caught = 0
+try
+    RestoreFailureEnvelope ignored = json.parse::<RestoreFailureEnvelope>("{\"items\":[{}]}")
+catch e
+    assert e.kind == "ValueError" and e.message == "declaration-default-original"
+    caught += 1
+end
+assert caught == 1 and calls == 1 and retired == 0
+calls = 0
+failAt = 2
+try
+    RestoreFailureEnvelope ignored = xlon.parse::<RestoreFailureEnvelope>("{\"optional\":{}}")
+catch e
+    assert e.kind == "ValueError" and e.message == "declaration-default-original"
+    caught += 1
+end
+assert caught == 2 and calls == 2 and retired == 0
+calls = 0
+failAt = 4
+// The first element has committed; the second has not. Only the first retires.
+try
+    RestoreFailureEnvelope ignored = json.parse::<RestoreFailureEnvelope>("{\"items\":[{},{}]}")
+catch e
+    assert e.kind == "ValueError" and e.message == "declaration-default-original"
+    caught += 1
+end
+assert caught == 3 and calls == 4 and retired == 1
+calls = 0
+failAt = 0
+RestoreFailureEnvelope recovered = xlon.parse::<RestoreFailureEnvelope>("{\"optional\":{}}")
+assert recovered != null and calls == 2 and retired == 1
+// Wire shape mismatch remains a nullable success, not an invented exception.
+assert json.parse::<RestoreFailureEnvelope>("{\"items\":[1]}") == null
+assert json.parse::<RestoreFailureEnvelope>("[") == null

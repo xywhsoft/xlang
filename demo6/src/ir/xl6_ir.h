@@ -5408,26 +5408,6 @@ typedef struct XL6_IrEnumLayout {
  * an xvalue object slot, so its reference default deliberately differs from a
  * local concrete-class declaration: the former is null until the constructor
  * replaces it, while the latter may invoke a verified default constructor. */
-/* A persistence decoder sometimes has to materialize a class value which did
- * not already exist in the outer parse target (for example `Stats?` or an
- * `array<Item>` element).  This is an owned, source-free field construction
- * contract.  The optional literal is canonical C payload data and is never
- * reparsed by Cgen. */
-typedef enum XL6_IrPersistenceDefaultAbi {
-    XL6_IR_PERSISTENCE_DEFAULT_NONE = 0,
-    XL6_IR_PERSISTENCE_DEFAULT_XVALUE_NULL,
-    XL6_IR_PERSISTENCE_DEFAULT_BOOL,
-    XL6_IR_PERSISTENCE_DEFAULT_I64,
-    XL6_IR_PERSISTENCE_DEFAULT_U64,
-    XL6_IR_PERSISTENCE_DEFAULT_F64,
-    XL6_IR_PERSISTENCE_DEFAULT_STRING,
-    XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY,
-    XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST,
-    XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET,
-    XL6_IR_PERSISTENCE_DEFAULT_EMPTY_DICT,
-    XL6_IR_PERSISTENCE_DEFAULT_CLASS
-} XL6_IrPersistenceDefaultAbi;
-
 typedef struct XL6_IrClassField {
     XL6_IrNativeHandlePolicyAbi nativeHandlePolicyAbi;
     const char* nativeHandlePolicyCName; /* Immutable declaration-registry lifetime. */
@@ -5447,9 +5427,6 @@ typedef struct XL6_IrClassField {
     XL6_IrRuntimeResourcePayloadAbi initializerRuntimeResourceKeyPayloadAbi;
     XL6_IrRuntimeResourceKeyOrderAbi initializerRuntimeResourceKeyOrderAbi;
     XL6_IrErrorAbi initializerErrorAbi;
-    XL6_IrPersistenceDefaultAbi persistenceDefaultAbi;
-    /* Canonical C scalar/string literal for the matching literal ABI. */
-    char* persistenceDefaultLiteral;
     /* Exact pure-native destructor transferred with a field assignment, or
      * zero when the field is not an owning native resource. */
     XL6_SymbolId nativeDestroySymbol;
@@ -5512,12 +5489,13 @@ typedef enum XL6_IrPersistenceObjectAbi {
     XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA
 } XL6_IrPersistenceObjectAbi;
 
-/* Whether a decoder may construct this class without executing a user create
- * body.  SCHEMA_DEFAULT means every base/field has a verified persistence
- * default and no open dynamic-storage allocation is required. */
+/* Restore uses the ordinary declaration-construction program, including
+ * base/field expressions, identity binding, open storage and lifecycle commit.
+ * It skips this object's create bodies, not constructor calls in expressions.
+ * There is no second literal-only field default vocabulary. */
 typedef enum XL6_IrPersistenceConstructionAbi {
     XL6_IR_PERSISTENCE_CONSTRUCTION_NONE = 0,
-    XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT
+    XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT
 } XL6_IrPersistenceConstructionAbi;
 
 #define XL6_IR_CLASS_FIELD_INDEX_INVALID ((size_t)-1)
