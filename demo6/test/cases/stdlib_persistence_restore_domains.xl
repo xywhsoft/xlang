@@ -1,7 +1,18 @@
+class DomainMarker
+    derive value
+    int mark = 1
+    create()
+        self.mark = 9
+    end
+end
 class DomainChild
     derive value
     int8 id = 1
     array<int8> scratch
+    DomainMarker marker = DomainMarker()
+    create()
+        self.id = 42
+    end
 end
 class DomainRecord
     derive value
@@ -37,6 +48,9 @@ assert(value.items[2] == 3)
 assert(value.nestedItems[0][1] == 2 and value.nestedItems[1].length == 0)
 assert(value.children[0].id == 127)
 assert(value.children[0].scratch.length == 0)
+// Restore skips DomainChild.create, but its declaration expression
+// DomainMarker() is an ordinary constructor invocation and must run create.
+assert(value.children[0].marker.mark == 9)
 value.children[0].scratch.push(int8(4))
 assert(value.children[0].scratch[0] == 4)
 assert(value.listed[1] == 2 and value.unique.length == 2)
@@ -50,6 +64,11 @@ DomainRecord jsonAgain = json.parse::<DomainRecord>(json.stringify(value))
 assert(jsonAgain != null and jsonAgain.letter == '你' and jsonAgain.nestedItems[0][1] == 2)
 DomainChild defaults = json.parse::<DomainChild>("{}")
 assert(defaults.id == 1)
+assert(defaults.marker.mark == 9)
+DomainRecord childDefaults = json.parse::<DomainRecord>("{\"children\":[{}]}")
+assert(childDefaults.children[0].id == 1 and childDefaults.children[0].marker.mark == 9)
+DomainRecord childAssigned = xlon.parse::<DomainRecord>("{\"children\":[{\"marker\":{\"mark\":2}}]}")
+assert(childAssigned.children[0].id == 1 and childAssigned.children[0].marker.mark == 2)
 assert(json.parse::<DomainChild>("[]") == null)
 assert(json.parse::<DomainChild>("1") == null)
 assert(xlon.parse::<DomainChild>("[]") == null)

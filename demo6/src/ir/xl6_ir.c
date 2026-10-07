@@ -12,6 +12,11 @@ _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_
 #include <limits.h>
 #include <wchar.h>
 
+int xl6IrFunctionHasIndependentFailureBoundary(XL6_IrFunctionKind kind)
+{
+    return kind == XL6_IR_FUNCTION_NAMED_ADAPTER || kind == XL6_IR_FUNCTION_CLASS_DEFAULT;
+}
+
 static int xl6IrRuntimeCallableSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type);
 static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
@@ -3055,7 +3060,7 @@ static int xl6IrWalkExitRoute(const XL6_IrModule* module, const XL6_IrExitPlan* 
             plan->firstCleanup != 0 || plan->cleanupCount != 0) return 0;
         for (f = 0; f < module->functionCount; ++f) {
             const XL6_IrFunction* function = &module->functions[f];
-            if (function->declaration == plan->origin && function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER &&
+            if (function->declaration == plan->origin && xl6IrFunctionHasIndependentFailureBoundary(function->kind) &&
                 function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE) ++owners;
         }
         if (owners != 1) return 0;
@@ -23258,6 +23263,89 @@ static int xl6IrVerifyPersistenceDefault(
     }
 }
 
+/* These functions are ordinary verified CFG, but their decoder binding is a
+ * closed ABI: one factory per admitted layout, no arguments, owned checked
+ * class result, and no source-call-target masquerading as a factory. The
+ * ordinary construction/instantiation verifiers prove field initialization
+ * and rollback; the successful return must be that layout's committed owner. */
+static int xl6IrInstructionHasIndependentFailureOrigin(
+    const XL6_IrModule* module, size_t instruction, XL6_IrNodeId origin)
+{
+    size_t i;
+    for (i = 0; i < module->functionCount; ++i) {
+        const XL6_IrFunction* function = &module->functions[i];
+        if (instruction >= function->firstInstruction &&
+            instruction - function->firstInstruction < function->instructionCount &&
+            function->declaration == origin && function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
+            xl6IrFunctionHasIndependentFailureBoundary(function->kind)) return 1;
+    }
+    return 0;
+}
+
+static int xl6IrVerifyPersistenceDefaultFunctions(const XL6_IrModule* module, XL6_DiagList* diags)
+{
+    size_t layoutIndex, programs = 0, functions = 0;
+    for (layoutIndex = 0; layoutIndex < module->classLayoutCount; ++layoutIndex) {
+        const XL6_IrClassLayout* layout = &module->classLayouts[layoutIndex];
+        const XL6_IrFunction* function;
+        size_t i, returns = 0, boundaries = 0;
+        if (module->stage != XL6_IR_STAGE_LOWERED ||
+            layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT) {
+            if (layout->persistenceDefaultFunction != 0) goto invalid;
+            continue;
+        }
+        if (layout->persistenceDefaultFunction == 0 ||
+            layout->persistenceDefaultFunction > module->functionCount) goto invalid;
+        function = &module->functions[layout->persistenceDefaultFunction - 1];
+        if (function->kind != XL6_IR_FUNCTION_CLASS_DEFAULT || function->symbol == 0 ||
+            xl6IrCallTargetGet(module, function->symbol) != NULL ||
+            function->declaration != layout->declaration || function->parameterCount != 0 ||
+            function->returnType != layout->type || function->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+            function->firstInstruction > module->instructionCount ||
+            function->instructionCount > module->instructionCount - function->firstInstruction) goto invalid;
+        for (i = 0; i < layoutIndex; ++i)
+            if (module->classLayouts[i].persistenceDefaultFunction == layout->persistenceDefaultFunction)
+                goto invalid;
+        for (i = 0; i < module->functionCount; ++i)
+            if (i != layout->persistenceDefaultFunction - 1 &&
+                module->functions[i].symbol == function->symbol) goto invalid;
+        for (i = 0; i < module->exitPlanCount; ++i)
+            boundaries += module->exitPlans[i].point == XL6_IR_EXIT_POINT_FUNCTION_FAILURE &&
+                module->exitPlans[i].origin == function->declaration;
+        if (boundaries != 1) goto invalid;
+        for (i = function->firstInstruction;
+             i < function->firstInstruction + function->instructionCount; ++i) {
+            const XL6_IrInstruction* instruction = &module->instructions[i];
+            const XL6_IrInstruction* loaded;
+            const XL6_IrInstruction* committed = NULL;
+            size_t producer;
+            if (instruction->kind != XL6_IR_INSTR_RETURN) continue;
+            if (instruction->operandCount != 1 || instruction->firstOperand >= module->operandCount)
+                goto invalid;
+            loaded = xl6IrValueDefinition(module, module->operands[instruction->firstOperand], NULL);
+            if (loaded == NULL || loaded->kind != XL6_IR_INSTR_LOAD || loaded->targetSymbol == 0) goto invalid;
+            for (producer = function->firstInstruction; producer < i; ++producer) {
+                const XL6_IrInstruction* item = &module->instructions[producer];
+                if (item->kind != XL6_IR_INSTR_STORE || item->targetSymbol != loaded->targetSymbol) continue;
+                if (committed != NULL || item->operandCount != 1 || item->firstOperand >= module->operandCount)
+                    goto invalid;
+                committed = xl6IrValueDefinition(module, module->operands[item->firstOperand], NULL);
+            }
+            if (committed == NULL || committed->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+                committed->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT ||
+                committed->payloadType != layout->type || committed->origin != layout->declaration) goto invalid;
+            ++returns;
+        }
+        if (returns != 1) goto invalid;
+        ++programs;
+    }
+    for (layoutIndex = 0; layoutIndex < module->functionCount; ++layoutIndex)
+        if (module->functions[layoutIndex].kind == XL6_IR_FUNCTION_CLASS_DEFAULT) ++functions;
+    if (programs == functions) return 1;
+invalid:
+    return xl6IrDiag(diags, NULL, "XLIR persistence default factory binding is not canonical");
+}
+
 static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
 {
     size_t i;
@@ -24219,13 +24307,77 @@ static int xl6IrReachabilityMarkSymbol(
     return changed;
 }
 
+/* Restore's only implicit executable edge is the verified declaration-default
+ * factory used for a class inside a nullable/collection carrier. Direct class
+ * fields are restored in place. Follow typed contracts, never source names or
+ * generated C, and retain exactly the factories demanded by reachable reads. */
+static int xl6IrReachabilityRestoreDefaults(
+    const XL6_IrModule* module, XL6_IrReachabilityFacts* facts,
+    XL6_IrTypeId typeId, uint32 format, int construct, uint8* visited)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
+    const XL6_IrClassLayout* layout;
+    int changed = 0;
+    uint8 bit = format == XL6_IR_PERSIST_FORMAT_JSON ? 1u : 2u;
+    size_t field;
+    if (type == NULL || visited == NULL) return -1;
+    if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA && construct) {
+        layout = xl6IrBuildClassLayoutByType(module, typeId);
+        if (layout == NULL || layout->persistenceDefaultFunction == 0 ||
+            layout->persistenceDefaultFunction > module->functionCount ||
+            module->functions[layout->persistenceDefaultFunction - 1].kind !=
+                XL6_IR_FUNCTION_CLASS_DEFAULT) return -1;
+        changed |= xl6IrReachabilityPromote(
+            &facts->functions[layout->persistenceDefaultFunction - 1],
+            XL6_IR_REACHABILITY_TRANSITIVE);
+    }
+    /* Promote before the cycle guard: a type first visited in place may later
+     * also be required through a constructing carrier. */
+    if ((visited[typeId - 1] & bit) != 0) return changed;
+    visited[typeId - 1] |= bit;
+    switch (type->persistenceValueAbi) {
+    case XL6_IR_PERSISTENCE_VALUE_XRT_CLONE:
+        return changed;
+    case XL6_IR_PERSISTENCE_VALUE_NULLABLE:
+    case XL6_IR_PERSISTENCE_VALUE_ARRAY:
+    case XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE:
+    case XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE:
+    case XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT: {
+        int nested = xl6IrReachabilityRestoreDefaults(module, facts,
+            type->persistencePayloadType, format, 1, visited);
+        return nested < 0 ? -1 : changed | nested;
+    }
+    case XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA:
+        layout = xl6IrBuildClassLayoutByType(module, typeId);
+        if (layout == NULL || layout->firstField > module->classFieldCount ||
+            layout->fieldCount > module->classFieldCount - layout->firstField) return -1;
+        for (field = 0; field < layout->fieldCount; ++field) {
+            const XL6_IrClassField* item = &module->classFields[layout->firstField + field];
+            int nested;
+            if ((xl6IrBuildPersistenceFieldFlags(item, format) &
+                    XL6_IR_FIELD_PERSIST_INCLUDED) == 0) continue;
+            nested = xl6IrReachabilityRestoreDefaults(module, facts, item->type, format, 0, visited);
+            if (nested < 0) return -1;
+            changed |= nested;
+        }
+        return changed;
+    default:
+        return -1;
+    }
+}
+
 static int xl6IrBuildReachabilityFacts(
     const XL6_IrModule* module, XL6_IrReachabilityFacts* facts)
 {
     size_t i;
     int changed;
+    uint8* restoreVisited = NULL;
     if ( module == NULL || facts == NULL || module->stage != XL6_IR_STAGE_LOWERED ) return 0;
     memset(facts, 0, sizeof(*facts));
+    if (module->types.count != 0) {
+        restoreVisited = (uint8*)xrtCalloc(module->types.count, sizeof(*restoreVisited));
+        if (restoreVisited == NULL) goto failed;
+    }
     if ( module->functionCount != 0 ) {
         facts->functions = (XL6_IrReachability*)xrtCalloc(
             module->functionCount, sizeof(*facts->functions));
@@ -24277,6 +24429,19 @@ static int xl6IrBuildReachabilityFacts(
                     changed |= xl6IrReachabilityMarkSymbol(
                         module, facts, instruction->targetSymbol,
                         XL6_IR_REACHABILITY_TRANSITIVE);
+                } else if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
+                           instruction->payloadType != XL6_IR_TYPE_INVALID &&
+                           (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_READ)) {
+                    uint32 format = instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_READ
+                        ? XL6_IR_PERSIST_FORMAT_JSON : XL6_IR_PERSIST_FORMAT_XLON;
+                    int nested = xl6IrReachabilityRestoreDefaults(module, facts,
+                        instruction->payloadType, format, 0, restoreVisited);
+                    if (nested < 0) goto failed;
+                    changed |= nested;
                 } else if ( instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                             instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE ) {
@@ -24356,9 +24521,11 @@ static int xl6IrBuildReachabilityFacts(
             }
         }
     } while ( changed );
+    xrtFree(restoreVisited);
     return 1;
 
 failed:
+    xrtFree(restoreVisited);
     xl6IrReachabilityFactsFree(facts);
     return 0;
 }
@@ -27055,7 +27222,7 @@ static XL6_IrNodeId xl6IrInstantiationFunctionExecutionOrigin(
          module->functions == NULL ) return 0;
     execution = xl6IrInstantiationExecutionOrigin(module, context, origin);
     function = &module->functions[instance->function - 1];
-    return function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER
+    return xl6IrFunctionHasIndependentFailureBoundary(function->kind)
         ? function->declaration : execution;
 }
 
@@ -27134,7 +27301,7 @@ static int xl6IrVerifyInstantiations(const XL6_IrModule* module, XL6_DiagList* d
             module, i + 1, instance->site);
         reason = "execution site";
         if ( executionSite == 0 ||
-             (function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER
+             (xl6IrFunctionHasIndependentFailureBoundary(function->kind)
                   ? executionSite != function->declaration
                   : xl6IrCleanupEnclosingCallable(module, executionSite) !=
                         function->declaration) ) goto invalid;
@@ -30785,7 +30952,7 @@ static int xl6IrVerifyOrderedUnwindRoute(const XL6_IrModule* module,
             module->instructions[end].errorScope == begin->errorScope) break;
     if (end + 1 >= limit) return 0;
     if (plan->point == XL6_IR_EXIT_POINT_FUNCTION_FAILURE) {
-        if (function->kind != XL6_IR_FUNCTION_NAMED_ADAPTER || function->declaration != plan->origin) return 0;
+        if (!xl6IrFunctionHasIndependentFailureBoundary(function->kind) || function->declaration != plan->origin) return 0;
         handler = XL6_IR_NODE_INVALID;
     } else if (!xl6IrScopeFailureTarget(module, xl6IrExitPlanEvaluationOrigin(module, plan), &depth, &region, &handler)) return 0;
     route = &module->instructions[end + 1];
@@ -36139,6 +36306,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         const XL6_IrNode* owner;
         int namedAdapterOwner = 0;
         int classFinalizerParameter = 0;
+        int classDefaultTemporary = 0;
         size_t j;
         if ( storage->kind < XL6_IR_STORAGE_GLOBAL || storage->kind > XL6_IR_STORAGE_TEMPORARY ||
              storage->symbol == 0 || xl6IrTypeGet(&module->types, storage->type) == NULL ||
@@ -36152,6 +36320,19 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if (storage->moduleTraceAbi != xl6IrModuleStorageTraceFor(module, storage))
             return xl6IrDiag(diags, NULL, "XLIR module storage ownership trace ABI is unresolved");
         owner = xl6IrNodeGet(module, storage->owner);
+        if (module->stage == XL6_IR_STAGE_LOWERED && storage->kind == XL6_IR_STORAGE_TEMPORARY &&
+            owner->kind == XL6_IR_NODE_TYPE_DECL && owner->sourceKind == XL6_AST_CLASS) {
+            size_t owners = 0;
+            for (j = 0; j < module->functionCount; ++j) {
+                const XL6_IrFunction* program = &module->functions[j];
+                const XL6_IrClassLayout* layout;
+                if (program->kind != XL6_IR_FUNCTION_CLASS_DEFAULT || program->declaration != storage->owner)
+                    continue;
+                layout = xl6IrBuildClassLayoutByType(module, program->returnType);
+                if (layout != NULL && layout->persistenceDefaultFunction == j + 1) ++owners;
+            }
+            classDefaultTemporary = owners == 1;
+        }
         if (module->stage == XL6_IR_STAGE_LOWERED && storage->kind == XL6_IR_STORAGE_PARAMETER) {
             for (j = 0; j < module->functionCount; ++j) {
                 const XL6_IrFunction* program = &module->functions[j];
@@ -36176,7 +36357,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if ( (storage->kind == XL6_IR_STORAGE_GLOBAL && storage->owner != module->root) ||
              (storage->kind != XL6_IR_STORAGE_GLOBAL &&
                owner->kind != XL6_IR_NODE_FUNC_DECL && storage->owner != module->root &&
-               !namedAdapterOwner && !classFinalizerParameter) ) {
+               !namedAdapterOwner && !classFinalizerParameter && !classDefaultTemporary) ) {
             return xl6IrDiag(diags, NULL, "XLIR storage owner does not match its scope ABI");
         }
         for ( j = 0; j < i; ++j ) {
@@ -42863,6 +43044,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         module->operands[test->firstOperand] != instruction->result ||
                         test->trueTarget == test->falseTarget ||
                         (!xl6IrNodeRequiresThrowExitPlan(module, test->origin) &&
+                         !xl6IrInstructionHasIndependentFailureOrigin(module,
+                             block->firstInstruction + j + 1, test->origin) &&
                          (xl6IrNodeGet(module, test->origin) == NULL ||
                           xl6IrNodeGet(module, test->origin)->exitKind != XL6_SEM_EXIT_THROW)))
                         return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
@@ -43338,6 +43521,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              if ( function->kind != XL6_IR_FUNCTION_MODULE_INIT &&
                   function->kind != XL6_IR_FUNCTION_MODULE_FINI &&
                   function->kind != XL6_IR_FUNCTION_CLASS_FINI &&
+                  function->kind != XL6_IR_FUNCTION_CLASS_DEFAULT &&
                   function->kind != XL6_IR_FUNCTION_USER &&
                   function->kind != XL6_IR_FUNCTION_ASYNC_WORKER &&
                   function->kind != XL6_IR_FUNCTION_NAMED_ADAPTER &&
@@ -43987,6 +44171,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (function->kind == XL6_IR_FUNCTION_USER ||
                        function->kind == XL6_IR_FUNCTION_ASYNC_WORKER ||
                        function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER ||
+                       function->kind == XL6_IR_FUNCTION_CLASS_DEFAULT ||
                        function->kind == XL6_IR_FUNCTION_GENERATOR_WORKER) ) {
                     if ( function->returnType == XL6_IR_TYPE_INVALID && instruction->operandCount != 0 )
                         return xl6IrDiag(diags, NULL, "XLIR void return has a value ABI");
@@ -44013,7 +44198,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             }
             if ( (function->kind == XL6_IR_FUNCTION_USER ||
                   function->kind == XL6_IR_FUNCTION_ASYNC_WORKER ||
-                  function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER) &&
+                  function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER ||
+                  function->kind == XL6_IR_FUNCTION_CLASS_DEFAULT) &&
                  function->returnType != XL6_IR_TYPE_INVALID ) {
                 size_t blockIndex, entryLocal;
                 int changed;
@@ -44069,6 +44255,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
          !xl6IrVerifyCallableBridges(module, diags) ||
          !xl6IrVerifyCallbackBoundaries(module, diags) ||
          !xl6IrVerifyInstantiations(module, diags) ||
+         !xl6IrVerifyPersistenceDefaultFunctions(module, diags) ||
          !xl6IrVerifyAsyncMachines(module, diags) ||
          !xl6IrVerifyGeneratorMachines(module, diags) ||
          !xl6IrVerifyReachability(module, diags) ) return 0;
@@ -44180,6 +44367,7 @@ static const char* xl6IrFunctionKindName(XL6_IrFunctionKind kind)
         case XL6_IR_FUNCTION_GENERATOR_WORKER: return "generator-worker";
         case XL6_IR_FUNCTION_MODULE_FINI: return "module-fini";
         case XL6_IR_FUNCTION_CLASS_FINI: return "class-fini";
+        case XL6_IR_FUNCTION_CLASS_DEFAULT: return "class-default";
         default: return "invalid";
     }
 }
@@ -48051,7 +48239,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->classLayoutCount; ++i ) {
         const XL6_IrClassLayout* layout = &module->classLayouts[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"type\":%u,\"declaration\":%u,\"baseType\":%u,\"baseDeclaration\":%u,\"runtimeTypeTag\":%u,\"firstField\":%lu,\"fieldCount\":%lu,\"inheritedFieldCount\":%lu,\"hasExplicitCreate\":%d,\"firstDestroyStep\":%lu,\"destroyStepCount\":%lu,\"destroyFunction\":%u,\"persistenceFormatMask\":%u,\"persistenceObjectAbi\":%d,\"persistenceObjectAbiName\":\"%s\",\"persistenceConstructionAbi\":%d,\"persistenceConstructionAbiName\":\"%s\",\"persistenceDynamicField\":%lu,\"persistenceDynamicHandleField\":%lu,\"copyAbi\":%d,\"copyAbiName\":\"%s\",\"copyTarget\":%u,\"cloneAbi\":%d,\"cloneAbiName\":\"%s\",\"cloneTarget\":%u,\"stringAbi\":%d,\"stringAbiName\":\"%s\",\"stringTarget\":%u,\"hashAbi\":%d,\"hashAbiName\":\"%s\",\"hashTarget\":%u,\"equalityAbi\":%d,\"equalityAbiName\":\"%s\",\"equalityTarget\":%u}%s\n",
+            "    {\"id\":%lu,\"type\":%u,\"declaration\":%u,\"baseType\":%u,\"baseDeclaration\":%u,\"runtimeTypeTag\":%u,\"firstField\":%lu,\"fieldCount\":%lu,\"inheritedFieldCount\":%lu,\"hasExplicitCreate\":%d,\"firstDestroyStep\":%lu,\"destroyStepCount\":%lu,\"destroyFunction\":%u,\"persistenceDefaultFunction\":%u,\"persistenceFormatMask\":%u,\"persistenceObjectAbi\":%d,\"persistenceObjectAbiName\":\"%s\",\"persistenceConstructionAbi\":%d,\"persistenceConstructionAbiName\":\"%s\",\"persistenceDynamicField\":%lu,\"persistenceDynamicHandleField\":%lu,\"copyAbi\":%d,\"copyAbiName\":\"%s\",\"copyTarget\":%u,\"cloneAbi\":%d,\"cloneAbiName\":\"%s\",\"cloneTarget\":%u,\"stringAbi\":%d,\"stringAbiName\":\"%s\",\"stringTarget\":%u,\"hashAbi\":%d,\"hashAbiName\":\"%s\",\"hashTarget\":%u,\"equalityAbi\":%d,\"equalityAbiName\":\"%s\",\"equalityTarget\":%u}%s\n",
             (unsigned long)i, (unsigned int)layout->type,
             (unsigned int)layout->declaration, (unsigned int)layout->baseType,
             (unsigned int)layout->baseDeclaration, (unsigned int)layout->runtimeTypeTag,
@@ -48060,6 +48248,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
              (unsigned long)layout->firstDestroyStep,
              (unsigned long)layout->destroyStepCount,
              (unsigned int)layout->destroyFunction,
+             (unsigned int)layout->persistenceDefaultFunction,
              (unsigned int)layout->persistenceFormatMask,
              (int)layout->persistenceObjectAbi,
              xl6IrPersistenceObjectAbiName(layout->persistenceObjectAbi),

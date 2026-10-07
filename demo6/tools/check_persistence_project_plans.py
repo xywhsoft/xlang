@@ -138,14 +138,20 @@ def main() -> int:
                         assert len(ir['persistenceRestoreFields']) == 14
                     if name == 'restore_domains':
                         assert len(ir['persistenceRestorePlans']) == 2
-                        assert len(ir['persistenceRestoreSchemas']) == 4 and len(ir['persistenceRestoreFields']) == 36
+                        assert len(ir['persistenceRestoreSchemas']) == 6 and len(ir['persistenceRestoreFields']) == 40
                         assert any(row['persistenceRestoreCarrierAbi'] == 2 for row in ir['types'])
                         assert any(row['acceptNull'] for row in ir['persistenceRestoreFields'])
-                        # This fixture deliberately uses non-required scalar/collection
-                        # fields. Direct nested-class assignment and required rows are
-                        # covered by the separate restore fixture, not manufactured here.
+                        # Nullable/native scalar carriers and a nested declaration
+                        # constructor coexist; required rows remain in restore.
                         assert all(not row['required'] for row in ir['persistenceRestoreFields'])
-                        assert all(row['assignAbi'] == 1 for row in ir['persistenceRestoreFields'])
+                        assert sum(row['assignAbi'] == 2 for row in ir['persistenceRestoreFields']) == 2
+                        types = {row['id']: row for row in ir['types']}
+                        layouts = {types[row['type']]['name']: row for row in ir['classLayouts']}
+                        factory = ir['functions'][layouts['DomainChild']['persistenceDefaultFunction'] - 1]
+                        assert factory['kindName'] == 'class-default' and factory['reachability'] == 'transitive'
+                        assert factory['parameterCount'] == 0 and factory['errorAbi'] == 'may-raise'
+                        marker = ir['functions'][layouts['DomainMarker']['persistenceDefaultFunction'] - 1]
+                        assert marker['kindName'] == 'class-default' and marker['reachability'] == 'unreachable'
                     results.append({'Case': name, 'Optimization': opt, 'Plans': count[0], 'Schemas': count[1],
                                     'Fields': count[2], 'Sequences': len(ir['persistenceProjectSequences']),
                                     'RejectedMutations': count[3], 'IrSha256': digest(target)})
