@@ -54,6 +54,8 @@ frozen_files() {
     printf '%s\0' tools/check_persistence_project_language.py test/cases/stdlib_native_sequence_identity.xl
     printf '%s\0' tools/check_xlir_class_identity_plan.py test/cases/xlir_class_identity_plan_contract.c test/cases/stdlib_class_identity_inherited.xl test/cases/cgen_derive_string_hash_equals.xl
     printf '%s\0' tools/check_xlir_class_default_invocation.py test/cases/xlir_class_default_invocation_contract.c
+    printf '%s\0' tools/check_stdlib_callable_variadic_array.py test/cases/stdlib_callable_variadic_array.xl test/cases/stdlib_callable_variadic_array_unused.xl
+    printf '%s\0' test/cases/stdlib_callable_variadic_array_runtime.c test/cases/stdlib_callable_variadic_array_contract.c
     printf '%s\0' test/cases/stdlib_persistence_root_default.xl test/cases/stdlib_persistence_root_default_errors.xl
     printf '%s\0' test/cases/stdlib_persistence_restore_construction.xl test/cases/stdlib_persistence_restore_domains.xl test/cases/stdlib_persistence_restore_language.xl test/cases/stdlib_persistence_restore_array_json_prune.xl
     printf '%s\0' test/cases/stdlib_sequence_clear_native_host.c test/cases/xlir_time_text_closure_host.c
@@ -278,6 +280,7 @@ if ! run sequence-publication "$PY" tools/check_stdlib_sequence_publication.py -
 if ! run sequence-identity "$PY" tools/check_stdlib_sequence_identity.py --out "$OUT/sequence-identity" --sanitize; then failures+=(sequence-identity); fi
 if ! run class-identity-plan "$PY" tools/check_xlir_class_identity_plan.py --out "$OUT/class-identity-plan"; then failures+=(class-identity-plan); fi
 if ! run class-default-invocation "$PY" tools/check_xlir_class_default_invocation.py --out "$OUT/class-default-invocation"; then failures+=(class-default-invocation); fi
+if ! run callable-variadic-array "$PY" tools/check_stdlib_callable_variadic_array.py --out "$OUT/callable-variadic-array"; then failures+=(callable-variadic-array); fi
 if ! run persistence-root-default "$PY" tools/check_persistence_project_language.py --fixture root-default --out "$OUT/persistence-root-default"; then failures+=(persistence-root-default); fi
 if ! run sequence-identity-language "$PY" tools/check_persistence_project_language.py --fixture native-identity --out "$OUT/sequence-identity-language"; then failures+=(sequence-identity-language); fi
 if ! run sequence-factories "$PY" tools/check_stdlib_sequence_factories.py --out "$OUT/sequence-factories" --sanitize; then failures+=(sequence-factories); fi

@@ -691,6 +691,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 signature->kind == XL6_IR_TYPE_FUNCTION) {
                 const XL6_IrCallableBridge* bridge = xl6IrCallableBridgeGet(module, signatureType);
                 if (!bridge) return 0;
+                if (forward && bridge->variadicCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1)
+                    needs->needsCallableArrayFrameProducer = 1;
                 for (parameter = 0; parameter < bridge->parameterCount; ++parameter)
                     if (module->callableBridgeParameters[bridge->firstParameter + parameter].nativeScalarProfile != XL6_NATIVE_SCALAR_NONE)
                         needs->needsCallableNativeScalarCodec = 1;

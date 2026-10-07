@@ -1,0 +1,16 @@
+func dormant(...) as array
+    return arg
+end
+// Materialize the closed variadic signature without erasing or calling it.
+func dormantSignature(func(...) as array callback) as array
+    return callback()
+end
+func scalar(int value) as int
+    return value
+end
+func(int) as int typed = scalar
+var erased = xcall(typed)
+func main(...) as int
+    assert(erased(42) == 42)
+    return 0
+end

@@ -281,6 +281,8 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern xvalue* xrtValuePointer(void*);\n"
                 "extern char* xrtStrDup(const char*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
+            if (needs->needsCallableArrayFrameProducer)
+                xl6OutputPuts("extern xvalue* xl6ArrayCallFramePackV1(uint64_t, uint64_t, const xrtcallframe*, size_t);\n",out);
             if (needs->needsCallableF32Reader)
                 xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n", out);
             if (needs->needsCallableIntegerCodec)

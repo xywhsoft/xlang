@@ -4503,6 +4503,11 @@ typedef struct XL6_IrCallableBridge {
     XL6_IrCallableBridgeErrorBoundaryAbi forwardErrorBoundaryAbi;
     XL6_IrCallableBridgeErrorBoundaryAbi reverseErrorBoundaryAbi;
     XL6_IrCallableErasureAbi erasureAbi;
+    /* Explicit forward-adapter producer, not the signature's legacy carrier.
+     * ARRAY variadics own a native ANY Sequence; dict variadics remain Value.
+     * The element identity is the canonical var identity, never a Cgen guess. */
+    XL6_IrCollectionCarrierAbi variadicCarrierAbi;
+    uint64 variadicElementIdentity;
     XL6_IrCallbackCleanupAbi cleanupAbi;
     XL6_IrCallbackErrorAbi errorAbi;
     int reverseSupported;

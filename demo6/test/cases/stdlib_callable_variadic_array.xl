@@ -1,0 +1,37 @@
+func pack(...) as array
+    return arg
+end
+func count(int base = 7, ...) as int
+    return base + arg.length
+end
+func keywordCount(int base = 7, ***) as int
+    return base + arg.length
+end
+
+func(...) as array typedPack = pack
+func(int, ...) as int typedCount = count
+func(int, ***) as int typedKeywords = keywordCount
+var erasedPack = xcall(typedPack)
+var erasedCount = xcall(typedCount)
+var erasedKeywords = xcall(typedKeywords)
+
+func main(...) as int
+    var empty = erasedPack()
+    assert(empty.length == 0)
+    bytes payload = b"\0A\xff\0"
+    array source = [1, 2]
+    var packed = erasedPack("a\0你", payload, null, 42, true, source)
+    assert(packed.length == 6)
+    assert(packed[0] == "a\0你" and packed[1] == payload)
+    assert(packed[2] == null and packed[3] == 42 and packed[4] == true)
+    packed[3] = 99
+    assert(packed[3] == 99 and source[0] == 1)
+    var again = erasedPack("b", 12)
+    assert(again.length == 2 and packed.length == 6 and packed[0] == "a\0你")
+    assert(erasedCount() == 7)
+    assert(erasedCount(10, "a", payload) == 12)
+    assert(erasedCount(base = 13) == 13)
+    assert(erasedKeywords() == 7)
+    assert(erasedKeywords(5, first = "a\0你", second = payload) == 7)
+    return 0
+end

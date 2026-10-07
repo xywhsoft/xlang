@@ -353,14 +353,17 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
     }
     if ( arrayVariadic ) {
         const size_t variadicIndex = signature->paramCount - 1;
+        const XL6_IrType* array = xl6IrTypeGet(&module->types,
+            module->callableBridgeParameters[bridge->firstParameter + variadicIndex].type);
+        if (!array || !array->typeValueId || !bridge->variadicElementIdentity ||
+            bridge->variadicCarrierAbi != XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1)
+            return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
+                "XLIR runtime callable variadic producer has no native Array contract");
         xl6OutputPrintf(out,
-            "    a%lu = xrtValueArray();\n"
-            "    if (a%lu == NULL) goto argument_fail;\n"
-            "    { size_t variadicIndex; for (variadicIndex = %lu; variadicIndex < frame->ArgumentCount; ++variadicIndex) {\n"
-            "        if (frame->Arguments[variadicIndex] == NULL || !xrtValueArrayAppend(a%lu, frame->Arguments[variadicIndex])) goto argument_fail;\n"
-            "    } }\n",
-            (unsigned long)variadicIndex, (unsigned long)variadicIndex,
-            (unsigned long)fixedCount, (unsigned long)variadicIndex,
+            "    a%lu = xl6ArrayCallFramePackV1(0x%016llXULL, 0x%016llXULL, frame, %lu);\n"
+            "    if (a%lu == NULL) goto argument_fail;\n",
+            (unsigned long)variadicIndex, (unsigned long long)array->typeValueId,
+            (unsigned long long)bridge->variadicElementIdentity, (unsigned long)fixedCount,
             (unsigned long)variadicIndex);
     }
     for ( i = 0; i < bridge->parameterCount; ++i ) {

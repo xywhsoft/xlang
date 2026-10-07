@@ -25,6 +25,7 @@
 #include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_erased.h"
+#include "src/runtime/xl6_array_call_frame.h"
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_array_shuffle.h"
 #include "src/runtime/xl6_collection_count.h"
