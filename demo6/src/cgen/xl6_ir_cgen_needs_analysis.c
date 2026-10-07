@@ -75,9 +75,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                 module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_READ)
                 needs->needsPersistenceRestoreFormats |= xl6IrCgenPersistenceRuntimeFormat(module->instructions[i].runtimeOp);
-            if (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
-                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE ||
-                module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
+            if (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
                 module->instructions[i].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_READ)
                 needs->needsPersistenceFileFormats |= xl6IrCgenPersistenceRuntimeFormat(module->instructions[i].runtimeOp);
             needs->needsStringRuntime = 1;

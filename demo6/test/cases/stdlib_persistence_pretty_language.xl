@@ -1,0 +1,36 @@
+class PrettyRecord
+    derive value
+    int item @json("child") = 2
+    private int hidden = 77
+end
+int prettyOrder = 0
+func orderedPretty() as bool
+    assert(prettyOrder == 0)
+    prettyOrder = 1
+    return true
+end
+func orderedPrettySource() as PrettyRecord
+    assert(prettyOrder == 1)
+    prettyOrder = 2
+    return PrettyRecord()
+end
+var decoded = json.parse(json.stringify(pretty=orderedPretty(), value=orderedPrettySource()))
+assert(prettyOrder == 2 and decoded["child"] == 2 and decoded["hidden"] == null)
+PrettyRecord source = PrettyRecord()
+assert(json.parse(json.stringify(value=source, pretty=false))["child"] == 2)
+assert(json.parse(json.stringify(value=source))["hidden"] == null)
+assert(json.parse(json.stringify(source, true))["child"] == 2)
+assert(json.parse(json.stringify(source, options={"pretty": true}))["child"] == 2)
+// Give both formats an explicit plan in the structural gate.
+assert(xlon.parse(xlon.stringify(source))["item"] == 2)
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert(root != "")
+string path = root + "/pretty.json"
+prettyOrder = 0
+assert(json.write(pretty=orderedPretty(), value=orderedPrettySource(), path=path))
+assert(prettyOrder == 2)
+assert(json.read(path)["child"] == 2 and json.read(path)["hidden"] == null)
+assert(json.write(value=source, path=path))
+assert(json.write(value=source, path=path, pretty=false))
+assert(not json.write(value=source, path=path + "\0other", pretty=true))
+assert(not json.write(value=source, path=root + "/missing/pretty.json", pretty=true))

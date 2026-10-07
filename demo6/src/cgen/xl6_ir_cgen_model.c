@@ -311,58 +311,6 @@ static int xl6IrCgenPersistenceStringifyAbi(
         xl6IrPersistenceWireMatches(module, source->type, instruction->payloadType, format);
 }
 
-static int xl6IrCgenPersistenceWriteAbi(
-    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
-{
-    const XL6_IrInstruction* path;
-    const XL6_IrInstruction* source;
-    const XL6_IrInstruction* pretty;
-    const XL6_IrType* pathType;
-    const XL6_IrType* sourceType;
-    const XL6_IrType* prettyType;
-    const XL6_IrType* resultType;
-    uint32 format;
-    if ( module == NULL || instruction == NULL ||
-         instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
-         (instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE &&
-          instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE) ||
-         instruction->operandCount != 3 ||
-         instruction->firstOperand > module->operandCount ||
-         instruction->operandCount >
-             module->operandCount - instruction->firstOperand ||
-         instruction->immediateText != NULL ||
-         instruction->targetSymbol != 0 ||
-         instruction->targetValue != XL6_IR_VALUE_INVALID ||
-         instruction->calleeType != XL6_IR_TYPE_INVALID ||
-         instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
-         instruction->payloadType == XL6_IR_TYPE_INVALID ||
-         instruction->opcode != XL6_IR_OPCODE_INVALID ) return 0;
-    format = xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp);
-    path = xl6IrCgenValueDefinition(
-        module, module->operands[instruction->firstOperand], NULL);
-    source = xl6IrCgenValueDefinition(
-        module, module->operands[instruction->firstOperand + 1], NULL);
-    pretty = xl6IrCgenValueDefinition(
-        module, module->operands[instruction->firstOperand + 2], NULL);
-    pathType = path != NULL
-        ? xl6IrTypeGet(&module->types, path->type) : NULL;
-    sourceType = source != NULL
-        ? xl6IrTypeGet(&module->types, source->type) : NULL;
-    prettyType = pretty != NULL
-        ? xl6IrTypeGet(&module->types, pretty->type) : NULL;
-    resultType = xl6IrTypeGet(&module->types, instruction->type);
-    return path != NULL && source != NULL && pretty != NULL &&
-        pathType != NULL && sourceType != NULL && prettyType != NULL &&
-        resultType != NULL && pathType->kind != XL6_IR_TYPE_NULLABLE &&
-        pathType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-        pathType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-        sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-        sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-        prettyType->cAbi == XL6_IR_C_ABI_BOOL &&
-        resultType->cAbi == XL6_IR_C_ABI_BOOL &&
-        resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-        xl6IrPersistenceWireMatches(module, source->type, instruction->payloadType, format);
-}
 
 static int xl6IrCgenPersistenceParseAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)

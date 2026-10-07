@@ -4993,8 +4993,15 @@ static const char xl6StdXlonStringifyBody[] =
     "end\n";
 
 static const char xl6StdXlonStringifyOptionsBody[] =
-    "func __xl_std_xlon_stringify(var value, XlonOptions options) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_xlon_stringify_options(value, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode))\n"
+    /* A language facade must keep T until PROJECT has selected its schema.
+     * Encoding options map to the same configured native contract; decode
+     * policy is deliberately not forwarded to the writer. */
+    "func __xl_std_xlon_stringify<T>(T value, XlonOptions options) as string\n"
+    "    int unsupported = 0\n"
+    "    if options.ignoreUnsupportedEncode\n"
+    "        unsupported = 1\n"
+    "    end\n"
+    "    return __xl_std_xlon_stringify(value, {\"pretty\": options.pretty, \"unsupported\": unsupported})\n"
     "end\n";
 
 static const char xl6StdXlonWriteBody[] =
@@ -5003,8 +5010,12 @@ static const char xl6StdXlonWriteBody[] =
     "end\n";
 
 static const char xl6StdXlonWriteOptionsBody[] =
-    "func __xl_std_xlon_write(string path, var value, XlonOptions options) as bool\n"
-    "    return __xl_std_runtime_xlon_write_options(path, value, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "func __xl_std_xlon_write<T>(string path, T value, XlonOptions options) as bool\n"
+    "    int unsupported = 0\n"
+    "    if options.ignoreUnsupportedEncode\n"
+    "        unsupported = 1\n"
+    "    end\n"
+    "    return __xl_std_xlon_write(path, value, {\"pretty\": options.pretty, \"unsupported\": unsupported})\n"
     "end\n";
 
 static const char xl6StdXlonVisitBody[] =

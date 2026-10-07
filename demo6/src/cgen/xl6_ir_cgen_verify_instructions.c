@@ -457,11 +457,6 @@ static int xl6IrCgenVerifyInstructions(
                     instruction->runtimeOp ==
                         XL6_IR_RUNTIME_PERSISTENCE_XLON_READ) &&
                    !xl6IrCgenPersistenceParseAbi(module, instruction)) ||
-                  ((instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
-                    instruction->runtimeOp ==
-                        XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE) &&
-                   !xl6IrCgenPersistenceWriteAbi(module, instruction)) ||
                  ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_ADD ||
                    instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_SUB ||
                    instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_MUL ||

@@ -52,6 +52,30 @@ XL6_SERIALIZATION_FILE_V1(xl6JsonlWriteFileV1, xjsonlwriteconfig, xl6JsonlWriteO
 XL6_SERIALIZATION_FILE_V1(xl6XlonlWriteFileV1, xxlonlwriteconfig, xl6XlonlWriteOptions, xrtXlonlWriteFile)
 #undef XL6_SERIALIZATION_FILE_V1
 
+/* bool/default facades share the same status/output boundary, without an
+ * options dictionary or boolean boxing. The native writer and path owner
+ * obey exactly the configured writer's failure and retirement contract. */
+#define XL6_SERIALIZATION_FILE_PRETTY_V1(Name, Write) \
+static inline bool Name(const xvalue* wire, bool pretty, xstrview path, bool* result) \
+{ \
+    xerror* prior; char* name; bool written; \
+    if (result == NULL) { xrtSetErrorKind(XERR_ARGUMENT); return false; } \
+    *result = false; prior = xrtTakeError(); \
+    if (wire == NULL) return xl6SerializeWriteFailV1(prior, XERR_ARGUMENT); \
+    if (path.Data == NULL || memchr(path.Data, 0, path.Size) != NULL) { \
+        xrtSetErrorKind(XERR_ARGUMENT); return xl6SerializeWriteFinishV1(false, prior, result); \
+    } \
+    name = xrtStrDupView(path); \
+    if (name == NULL) return xl6SerializeWriteFailV1(prior, XERR_MEMORY); \
+    written = Write(name, wire, pretty); \
+    { xerror* failure = xrtTakeError(); xrtFree(name); \
+      xrtClearError(); xrtSetErrorTake(failure); } \
+    return xl6SerializeWriteFinishV1(written, prior, result); \
+}
+XL6_SERIALIZATION_FILE_PRETTY_V1(xl6JsonWriteFilePrettyV1, xrtJsonStringifyFile)
+XL6_SERIALIZATION_FILE_PRETTY_V1(xl6XlonWriteFilePrettyV1, xrtXlonStringifyFile)
+#undef XL6_SERIALIZATION_FILE_PRETTY_V1
+
 /* Exact typed closure ABI: status + bool output + borrowed dynamic argument.
  * The generated caller has verified func(var) as bool, not XL6_Function's
  * erased invoke_var bridge. No callable/result boxing is necessary. */

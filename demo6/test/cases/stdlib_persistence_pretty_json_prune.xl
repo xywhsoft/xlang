@@ -1,0 +1,6 @@
+class PrettyPrunedRecord
+    derive json
+    int item @json("child") = 2
+    private int hidden = 77
+end
+assert(json.parse(json.stringify(pretty=true, value=PrettyPrunedRecord()))["child"] == 2)

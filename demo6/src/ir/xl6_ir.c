@@ -6019,33 +6019,39 @@ static const XL6_IrClassField* xl6IrManagedNativeConstructorField(
 static const XL6_IrPersistenceInvocationContract xl6IrPersistenceInvocations[] = {
     {XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY,
      XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY, XL6_IR_PERSIST_FORMAT_JSON, XL6_IR_PERSISTENCE_INVOKE_ENCODE, 0,
-     "__xl_std_json_stringify", "xl6JsonEncodeV1", "XRT_MODULE_JSON_WRITE"},
+     "__xl_std_json_stringify", "xl6JsonEncodeV1", "XRT_MODULE_JSON_WRITE", 0},
     {XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY,
      XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY, XL6_IR_PERSIST_FORMAT_XLON, XL6_IR_PERSISTENCE_INVOKE_ENCODE, 0,
-     "__xl_std_xlon_stringify", "xl6XlonEncodeV1", "XRT_MODULE_XLON_WRITE"},
+     "__xl_std_xlon_stringify", "xl6XlonEncodeV1", "XRT_MODULE_XLON_WRITE", 0},
     {XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY,
      XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_STRINGIFY, XL6_IR_PERSIST_FORMAT_JSON, XL6_IR_PERSISTENCE_INVOKE_ENCODE, 1,
-     "__xl_std_jsonl_stringify", "xl6JsonlEncodeV1", "XRT_MODULE_JSONL_WRITE"},
+     "__xl_std_jsonl_stringify", "xl6JsonlEncodeV1", "XRT_MODULE_JSONL_WRITE", 0},
     {XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_STRINGIFY,
      XL6_IR_RUNTIME_PERSISTENCE_XLONL_CONFIG_STRINGIFY, XL6_IR_PERSIST_FORMAT_XLON, XL6_IR_PERSISTENCE_INVOKE_ENCODE, 1,
-     "__xl_std_xlonl_stringify", "xl6XlonlEncodeV1", "XRT_MODULE_XLONL_WRITE"},
+     "__xl_std_xlonl_stringify", "xl6XlonlEncodeV1", "XRT_MODULE_XLONL_WRITE", 0},
 #define XL6_PERSIST_IO(Format, Kind, Entry, RecordFormat, Defaults) \
     {XL6_IR_INTRINSIC_PERSISTENCE_##Kind##_CONFIG_WRITE, \
      XL6_IR_RUNTIME_PERSISTENCE_##Kind##_CONFIG_WRITE, RecordFormat, XL6_IR_PERSISTENCE_INVOKE_FILE, Defaults, \
-     "__xl_std_" Format "_write", "xl6" #Entry "WriteFileV1", "XRT_MODULE_" #Kind "_FILE"}, \
+     "__xl_std_" Format "_write", "xl6" #Entry "WriteFileV1", "XRT_MODULE_" #Kind "_FILE", 0}, \
     {XL6_IR_INTRINSIC_PERSISTENCE_##Kind##_CONFIG_SINK, \
      XL6_IR_RUNTIME_PERSISTENCE_##Kind##_CONFIG_SINK, RecordFormat, XL6_IR_PERSISTENCE_INVOKE_SINK, 1, \
-     "__xl_std_" Format "_write_to", "xl6" #Entry "WriteSinkV1", "XRT_MODULE_" #Kind "_WRITE"}
+     "__xl_std_" Format "_write_to", "xl6" #Entry "WriteSinkV1", "XRT_MODULE_" #Kind "_WRITE", 0}
     XL6_PERSIST_IO("json", JSON, Json, XL6_IR_PERSIST_FORMAT_JSON, 0),
     XL6_PERSIST_IO("xlon", XLON, Xlon, XL6_IR_PERSIST_FORMAT_XLON, 0),
     XL6_PERSIST_IO("jsonl", JSONL, Jsonl, XL6_IR_PERSIST_FORMAT_JSON, 1),
     XL6_PERSIST_IO("xlonl", XLONL, Xlonl, XL6_IR_PERSIST_FORMAT_XLON, 1),
 #undef XL6_PERSIST_IO
+    {XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE,
+     XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE, XL6_IR_PERSIST_FORMAT_JSON, XL6_IR_PERSISTENCE_INVOKE_FILE, 1,
+     "__xl_std_json_write", "xl6JsonWriteFilePrettyV1", "XRT_MODULE_JSON_FILE", 1},
+    {XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE,
+     XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE, XL6_IR_PERSIST_FORMAT_XLON, XL6_IR_PERSISTENCE_INVOKE_FILE, 1,
+     "__xl_std_xlon_write", "xl6XlonWriteFilePrettyV1", "XRT_MODULE_XLON_FILE", 1},
 #define XL6_PERSIST_WRITER(Format, Kind, Suffix, Method, Entry, RecordFormat) \
     {XL6_IR_INTRINSIC_PERSISTENCE_##Kind##_WRITER_##Suffix, \
      XL6_IR_RUNTIME_PERSISTENCE_##Kind##_WRITER_##Suffix, RecordFormat, \
      XL6_IR_PERSISTENCE_INVOKE_WRITER_##Suffix, 0, \
-     "xl6_xrt_" Format "_writer_value" Method, "xl6" #Entry "V1", "XRT_MODULE_" #Kind "_WRITE"}
+     "xl6_xrt_" Format "_writer_value" Method, "xl6" #Entry "V1", "XRT_MODULE_" #Kind "_WRITE", 0}
     XL6_PERSIST_WRITER("json", JSON, VALUE, "", JsonWriterValue, XL6_IR_PERSIST_FORMAT_JSON),
     XL6_PERSIST_WRITER("json", JSON, NAME, "_key", JsonWriterName, XL6_IR_PERSIST_FORMAT_JSON),
     XL6_PERSIST_WRITER("xlon", XLON, VALUE, "", XlonWriterValue, XL6_IR_PERSIST_FORMAT_XLON),
@@ -6142,6 +6148,21 @@ static const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationName
     return NULL;
 }
 
+static const XL6_IrPersistenceInvocationContract* xl6IrPersistenceLegacyContract(XL6_IrIntrinsicKind kind)
+{
+    switch (kind) {
+    case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
+        return xl6IrPersistenceInvocationIntrinsic(XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY);
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
+        return xl6IrPersistenceInvocationIntrinsic(XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY);
+    case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
+        return xl6IrPersistenceInvocationIntrinsic(XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_WRITE);
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
+        return xl6IrPersistenceInvocationIntrinsic(XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_WRITE);
+    default: return NULL;
+    }
+}
+
 /* Textual order and parameter roles are separate facts. Do not reorder named
  * expressions: an options callback may observe or mutate the source value. */
 static int xl6IrPersistenceInvocationOperands(const XL6_IrModule* module,
@@ -6173,6 +6194,9 @@ static int xl6IrPersistenceInvocationOperands(const XL6_IrModule* module,
         if (arg->sourceKind == XL6_AST_ARG) slot = positional++;
         else if (arg->sourceKind == XL6_AST_NAMED_ARG && arg->text != NULL) {
             if (!strcmp(arg->text, "options") && !xl6IrPersistenceInvocationIsWriter(row)) { slot = optionsSlot; *namedOptions = 1; }
+            else if (!strcmp(arg->text, "pretty") &&
+                (row->intrinsic == XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY ||
+                 row->intrinsic == XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_WRITE)) slot = optionsSlot;
             else if (!strcmp(arg->text, "value") ||
                 (args->childCount == arity - 1 && row->acceptsDefaultOptions && !strcmp(arg->text, "records"))) slot = sourceSlot;
             else if (row->action == XL6_IR_PERSISTENCE_INVOKE_FILE && !strcmp(arg->text, "path")) slot = 0;
@@ -13032,40 +13056,47 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 (strcmp(callee->text, "__xl_std_json_stringify") == 0 ||
                  strcmp(callee->text, "__xl_std_xlon_stringify") == 0) &&
                 (operandCount == 1 ||
-                 (operandCount == 2 && strcmp(callee->text, "__xl_std_json_stringify") == 0 &&
+                 (operandCount == 2 && persistenceOptionsOrdinal < operandCount &&
+                  !persistenceNamedOptions && strcmp(callee->text, "__xl_std_json_stringify") == 0 &&
                   xl6IrTypeGet(&module->types,
-                      module->nodes[operands[1] - 1].storageType) != NULL &&
+                      module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType) != NULL &&
                   xl6IrTypeGet(&module->types,
-                      module->nodes[operands[1] - 1].storageType)->cAbi ==
+                      module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType)->cAbi ==
                       XL6_IR_C_ABI_BOOL)) ) {
         intrinsic.kind = strcmp(callee->text, "__xl_std_json_stringify") == 0
             ? XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
             : XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_OWNED;
         intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        if ( operandCount != 0 )
+        intrinsic.persistenceSourceOperand = persistenceSourceOrdinal;
+        intrinsic.persistenceOptionsOperand = persistenceOptionsOrdinal;
+        intrinsic.persistenceDestinationOperand = SIZE_MAX;
+        if ( persistenceSourceOrdinal < operandCount )
             intrinsic.payloadType =
-                module->nodes[operands[0] - 1].storageType;
+                module->nodes[operands[persistenceSourceOrdinal] - 1].storageType;
     } else if ( xl6IrPersistenceProjectionCallKind(call->callKind) &&
                 callee != NULL && callee->kind == XL6_IR_NODE_NAME &&
                 callee->text != NULL &&
                 (strcmp(callee->text, "__xl_std_json_write") == 0 ||
                  strcmp(callee->text, "__xl_std_xlon_write") == 0) &&
                 (operandCount == 2 ||
-                 (operandCount == 3 &&
+                 (operandCount == 3 && persistenceOptionsOrdinal < operandCount && !persistenceNamedOptions &&
                   xl6IrTypeGet(&module->types,
-                      module->nodes[operands[2] - 1].storageType) != NULL &&
+                      module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType) != NULL &&
                   xl6IrTypeGet(&module->types,
-                      module->nodes[operands[2] - 1].storageType)->cAbi ==
+                      module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType)->cAbi ==
                       XL6_IR_C_ABI_BOOL)) ) {
         intrinsic.kind = strcmp(callee->text, "__xl_std_json_write") == 0
             ? XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
             : XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE;
         intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_VALUE;
         intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        if ( operandCount > 1 )
+        intrinsic.persistenceSourceOperand = persistenceSourceOrdinal;
+        intrinsic.persistenceOptionsOperand = persistenceOptionsOrdinal;
+        intrinsic.persistenceDestinationOperand = persistenceDestinationOrdinal;
+        if ( persistenceSourceOrdinal < operandCount )
             intrinsic.payloadType =
-                module->nodes[operands[1] - 1].storageType;
+                module->nodes[operands[persistenceSourceOrdinal] - 1].storageType;
     } else if ( call->callKind == XL6_SEM_CALL_RUNTIME_INTRINSIC &&
                 persistenceGenericName != NULL &&
                 (strcmp(persistenceGenericName->text,
@@ -13365,16 +13396,16 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         if ( (operandCount == 1 || operandCount == 2) && result != NULL &&
              sourceType != NULL &&
              intrinsic.payloadType ==
-                  module->nodes[operands[0] - 1].storageType &&
+                  module->nodes[operands[persistenceSourceOrdinal] - 1].storageType &&
              result->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
              result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
              xl6IrBuildPersistenceValueProjectionSupported(
                  module, intrinsic.payloadType, intrinsic.kind) &&
              (operandCount == 1 ||
               (xl6IrTypeGet(&module->types,
-                   module->nodes[operands[1] - 1].storageType) != NULL &&
+                   module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType) != NULL &&
                xl6IrTypeGet(&module->types,
-                   module->nodes[operands[1] - 1].storageType)->cAbi ==
+                   module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType)->cAbi ==
                    XL6_IR_C_ABI_BOOL)) )
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
@@ -13414,19 +13445,22 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         {
             const XL6_IrType* valueType = operandCount > 1
                 ? xl6IrTypeGet(&module->types,
-                    module->nodes[operands[1] - 1].storageType) : NULL;
+                    module->nodes[operands[persistenceSourceOrdinal] - 1].storageType) : NULL;
             const XL6_IrType* prettyType = operandCount > 2
                 ? xl6IrTypeGet(&module->types,
-                    module->nodes[operands[2] - 1].storageType) : NULL;
+                    module->nodes[operands[persistenceOptionsOrdinal] - 1].storageType) : NULL;
+            const XL6_IrType* pathType = persistenceDestinationOrdinal < operandCount
+                ? xl6IrTypeGet(&module->types,
+                    module->nodes[operands[persistenceDestinationOrdinal] - 1].storageType) : NULL;
             if ( (operandCount == 2 || operandCount == 3) &&
                  result != NULL && sourceType != NULL && valueType != NULL &&
                  intrinsic.payloadType ==
-                     module->nodes[operands[1] - 1].storageType &&
+                     module->nodes[operands[persistenceSourceOrdinal] - 1].storageType &&
                  result->cAbi == XL6_IR_C_ABI_BOOL &&
                  result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                 sourceType->kind != XL6_IR_TYPE_NULLABLE &&
-                 sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-                 sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                 pathType != NULL && pathType->kind != XL6_IR_TYPE_NULLABLE &&
+                 pathType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+                 pathType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                  xl6IrBuildPersistenceValueProjectionSupported(
                      module, intrinsic.payloadType, intrinsic.kind) &&
                  (prettyType == NULL || prettyType->cAbi == XL6_IR_C_ABI_BOOL) )
@@ -18997,7 +19031,66 @@ static int xl6IrPersistenceInvocationIntrinsicStructure(
 int xl6IrPersistenceInvocationIntrinsicAbi(
     const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic)
 {
+    const XL6_IrPersistenceInvocationContract* row = intrinsic != NULL
+        ? xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) : NULL;
+    if (row != NULL && row->nativePretty) return xl6IrPersistenceLegacyIntrinsicAbi(module, intrinsic);
     return xl6IrPersistenceInvocationIntrinsicStructure(module, intrinsic) &&
+        xl6IrBuildPersistenceValueProjectionSupported(module, intrinsic->payloadType, intrinsic->kind);
+}
+
+static int xl6IrPersistenceLegacyIntrinsicStructure(
+    const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic)
+{
+    const XL6_IrPersistenceInvocationContract* row = intrinsic != NULL
+        ? xl6IrPersistenceLegacyContract(intrinsic->kind) : NULL;
+    const XL6_IrNode* call = intrinsic != NULL ? xl6IrNodeGet(module, intrinsic->origin) : NULL;
+    const XL6_IrNode* callee = call != NULL && call->childCount == 2
+        ? xl6IrNodeGet(module, module->children[call->firstChild]) : NULL;
+    const XL6_IrType* result = intrinsic != NULL ? xl6IrTypeGet(&module->types, intrinsic->resultType) : NULL;
+    XL6_IrNodeId* expressions = NULL;
+    size_t count = 0, source = 0, options = SIZE_MAX, destination = SIZE_MAX;
+    int namedOptions = 0, valid;
+    if (row == NULL || call == NULL || callee == NULL || result == NULL ||
+        !xl6IrPersistenceProjectionCallKind(call->callKind) ||
+        callee->kind != XL6_IR_NODE_NAME || callee->text == NULL || strcmp(callee->text, row->sourceName) ||
+        intrinsic->firstOperand > module->intrinsicOperandCount ||
+        intrinsic->operandCount > module->intrinsicOperandCount - intrinsic->firstOperand ||
+        intrinsic->receiver != XL6_IR_NODE_INVALID || intrinsic->receiverType != XL6_IR_TYPE_INVALID ||
+        intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID ||
+        intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+        intrinsic->resultAbi != (row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
+            ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE) ||
+        result->cAbi != (row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
+            ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_BOOL) ||
+        result->ownershipAbi != (row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
+            ? XL6_IR_OWNERSHIP_ABI_MANAGED : XL6_IR_OWNERSHIP_ABI_TRIVIAL)) return 0;
+    valid = xl6IrPersistenceInvocationOperands(module, call, row, &expressions, &count,
+        &source, &options, &destination, &namedOptions) && !namedOptions &&
+        count == intrinsic->operandCount && source == intrinsic->persistenceSourceOperand &&
+        options == intrinsic->persistenceOptionsOperand && destination == intrinsic->persistenceDestinationOperand &&
+        (options == SIZE_MAX || row->projectionFormat == XL6_IR_PERSIST_FORMAT_JSON);
+    for (size_t i = 0; valid && i < count; ++i) {
+        const XL6_IrIntrinsicOperand* binding = &module->intrinsicOperands[intrinsic->firstOperand + i];
+        const XL6_IrNode* expression = xl6IrNodeGet(module, expressions[i]);
+        const XL6_IrType* type = xl6IrTypeGet(&module->types, binding->type);
+        valid = expression != NULL && type != NULL && binding->expression == expressions[i] &&
+            binding->type == expression->storageType && binding->abi ==
+                (type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+                    ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE);
+        if (i == source) valid = valid && binding->type == intrinsic->payloadType;
+        else if (i == options) valid = valid && type->kind != XL6_IR_TYPE_NULLABLE &&
+            type->cAbi == XL6_IR_C_ABI_BOOL && type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+        else if (i == destination) valid = valid && xl6IrPersistenceInvocationDestinationType(module, row, binding->type);
+        else valid = 0;
+    }
+    xrtFree(expressions);
+    return valid;
+}
+
+int xl6IrPersistenceLegacyIntrinsicAbi(const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic)
+{
+    return module != NULL && intrinsic != NULL &&
+        xl6IrPersistenceLegacyIntrinsicStructure(module, intrinsic) &&
         xl6IrBuildPersistenceValueProjectionSupported(module, intrinsic->payloadType, intrinsic->kind);
 }
 
@@ -19057,8 +19150,8 @@ int xl6IrPersistenceInvocationInstructionAbi(
     if (source == NULL || options == NULL || optionType == NULL || resultType == NULL ||
         !xl6IrPersistenceWireMatches(module, source->type, instruction->payloadType, configured->projectionFormat) ||
         optionType->kind == XL6_IR_TYPE_PERSISTENCE_WIRE ||
-        optionType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-        optionType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        optionType->cAbi != (configured->nativePretty ? XL6_IR_C_ABI_BOOL : XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) ||
+        optionType->ownershipAbi != (configured->nativePretty ? XL6_IR_OWNERSHIP_ABI_TRIVIAL : XL6_IR_OWNERSHIP_ABI_MANAGED) ||
         resultType->cAbi != (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
             ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_BOOL) ||
         resultType->ownershipAbi != (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
@@ -32519,6 +32612,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 return xl6IrDiag(diags, call,
                     "XLIR non-resource intrinsic has a runtime resource operation ABI");
             if (xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) == NULL &&
+                xl6IrPersistenceLegacyContract(intrinsic->kind) == NULL &&
                 (intrinsic->persistenceSourceOperand != 0 || intrinsic->persistenceOptionsOperand != 0 ||
                  intrinsic->persistenceDestinationOperand != 0))
                 return xl6IrDiag(diags, call,
@@ -32780,30 +32874,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
-                {
-                    const XL6_IrNode* callee = call->childCount == 2
-                        ? xl6IrNodeGet(
-                            module, module->children[call->firstChild]) : NULL;
-                    const char* expected = intrinsic->kind ==
-                            XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY
-                        ? "__xl_std_json_stringify"
-                        : "__xl_std_xlon_stringify";
-                    if ( !xl6IrPersistenceProjectionCallKind(
-                             call->callKind) ||
-                         callee == NULL || callee->kind != XL6_IR_NODE_NAME ||
-                         callee->text == NULL ||
-                          strcmp(callee->text, expected) != 0 ||
-                         intrinsic->resultAbi !=
-                             XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-                         intrinsic->integerTarget !=
-                             XL6_IR_INTEGER_TARGET_INVALID ||
-                         intrinsic->payloadType == XL6_IR_TYPE_INVALID ||
-                         intrinsic->payloadAbi !=
-                             XL6_IR_ASYNC_RESULT_INVALID )
-                        return xl6IrDiag(diags, call,
-                            "XLIR persistence stringify intrinsic has no canonical format identity and class schema ABI");
-                }
+                if (!xl6IrPersistenceLegacyIntrinsicStructure(module, intrinsic))
+                    return xl6IrDiag(diags, call,
+                        "XLIR legacy persistence has no exact source-order roles, schema and bool ABI");
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME:
@@ -32860,29 +32933,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
-                {
-                    const XL6_IrNode* callee = call->childCount == 2
-                        ? xl6IrNodeGet(
-                            module, module->children[call->firstChild]) : NULL;
-                    const char* expected = intrinsic->kind ==
-                            XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE
-                        ? "__xl_std_json_write" : "__xl_std_xlon_write";
-                    if ( !xl6IrPersistenceProjectionCallKind(
-                             call->callKind) ||
-                         callee == NULL || callee->kind != XL6_IR_NODE_NAME ||
-                         callee->text == NULL ||
-                         strcmp(callee->text, expected) != 0 ||
-                         intrinsic->resultAbi !=
-                             XL6_IR_INTRINSIC_RESULT_VALUE ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-                         intrinsic->integerTarget !=
-                             XL6_IR_INTEGER_TARGET_INVALID ||
-                         intrinsic->payloadType == XL6_IR_TYPE_INVALID ||
-                         intrinsic->payloadAbi !=
-                             XL6_IR_ASYNC_RESULT_INVALID )
-                        return xl6IrDiag(diags, call,
-                            "XLIR persistence write intrinsic has no canonical format identity and class schema ABI");
-                }
+                if (!xl6IrPersistenceLegacyIntrinsicStructure(module, intrinsic))
+                    return xl6IrDiag(diags, call,
+                        "XLIR legacy persistence has no exact source-order roles, schema and bool ABI");
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
@@ -33329,45 +33382,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY:
-                {
-                    const XL6_IrIntrinsicOperand* pretty =
-                        intrinsic->operandCount == 2
-                            ? &module->intrinsicOperands[
-                                intrinsic->firstOperand + 1] : NULL;
-                    const XL6_IrType* prettyType = pretty != NULL
-                        ? xl6IrTypeGet(&module->types, pretty->type) : NULL;
-                    if ( !xl6IrPersistenceProjectionCallKind(
-                             call->callKind) ||
-                         (intrinsic->operandCount != 1 &&
-                          intrinsic->operandCount != 2) ||
-                         source == NULL ||
-                         intrinsic->payloadType !=
-                              module->intrinsicOperands[
-                                  intrinsic->firstOperand].type ||
-                          !xl6IrBuildPersistenceValueProjectionSupported(
-                              module, intrinsic->payloadType,
-                              intrinsic->kind) ||
-                         result->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-                         result->ownershipAbi !=
-                             XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                         module->intrinsicOperands[
-                              intrinsic->firstOperand].abi !=
-                              (source->ownershipAbi ==
-                                   XL6_IR_OWNERSHIP_ABI_MANAGED
-                                  ? XL6_IR_INTRINSIC_OPERAND_BORROW
-                                  : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
-                         (pretty != NULL &&
-                          (pretty->abi !=
-                               XL6_IR_INTRINSIC_OPERAND_VALUE ||
-                           prettyType == NULL ||
-                           prettyType->cAbi != XL6_IR_C_ABI_BOOL)) ||
-                         intrinsic->resultAbi !=
-                             XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi !=
-                             XL6_IR_ERROR_ABI_MAY_RAISE )
-                        return xl6IrDiag(diags, call,
-                            "XLIR persistence stringify intrinsic has no exact format, borrowed persistence value, pretty flag and owned string ABI");
-                }
+                if (!xl6IrPersistenceLegacyIntrinsicAbi(module, intrinsic))
+                    return xl6IrDiag(diags, call,
+                        "XLIR legacy persistence has no exact source-order roles, schema and bool ABI");
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME:
@@ -33394,50 +33411,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE:
-                {
-                    const XL6_IrIntrinsicOperand* value =
-                        intrinsic->operandCount >= 2
-                            ? &module->intrinsicOperands[
-                                intrinsic->firstOperand + 1] : NULL;
-                    const XL6_IrIntrinsicOperand* pretty =
-                        intrinsic->operandCount == 3
-                            ? &module->intrinsicOperands[
-                                intrinsic->firstOperand + 2] : NULL;
-                    const XL6_IrType* valueType = value != NULL
-                        ? xl6IrTypeGet(&module->types, value->type) : NULL;
-                    const XL6_IrType* prettyType = pretty != NULL
-                        ? xl6IrTypeGet(&module->types, pretty->type) : NULL;
-                    if ( !xl6IrPersistenceProjectionCallKind(
-                             call->callKind) ||
-                         (intrinsic->operandCount != 2 &&
-                          intrinsic->operandCount != 3) ||
-                         source == NULL ||
-                         source->kind == XL6_IR_TYPE_NULLABLE ||
-                         source->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-                         source->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                         value == NULL || valueType == NULL ||
-                         intrinsic->payloadType != value->type ||
-                         !xl6IrBuildPersistenceValueProjectionSupported(
-                             module, intrinsic->payloadType, intrinsic->kind) ||
-                         result->cAbi != XL6_IR_C_ABI_BOOL ||
-                         result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                         module->intrinsicOperands[
-                             intrinsic->firstOperand].abi !=
-                                 XL6_IR_INTRINSIC_OPERAND_BORROW ||
-                         value->abi !=
-                              (valueType->ownershipAbi ==
-                                   XL6_IR_OWNERSHIP_ABI_MANAGED
-                                  ? XL6_IR_INTRINSIC_OPERAND_BORROW
-                                  : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
-                         (pretty != NULL &&
-                          (pretty->abi != XL6_IR_INTRINSIC_OPERAND_VALUE ||
-                           prettyType == NULL ||
-                           prettyType->cAbi != XL6_IR_C_ABI_BOOL)) ||
-                         intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE )
-                        return xl6IrDiag(diags, call,
-                            "XLIR persistence write intrinsic has no exact format, borrowed path/value, pretty flag and boolean ABI");
-                }
+                if (!xl6IrPersistenceLegacyIntrinsicAbi(module, intrinsic))
+                    return xl6IrDiag(diags, call,
+                        "XLIR legacy persistence has no exact source-order roles, schema and bool ABI");
                 break;
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE:
@@ -37777,49 +37753,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                  "XLIR persistence stringify operation has no exact format, projected value, pretty flag and owned string ABI");
-                    } else if ( instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
-                                instruction->runtimeOp ==
-                                    XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE ) {
-                        const XL6_IrInstruction* pretty =
-                            instruction->operandCount == 3
-                                ? xl6IrValueDefinition(
-                                    module,
-                                    module->operands[
-                                        instruction->firstOperand + 2],
-                                    NULL)
-                                : NULL;
-                        const XL6_IrType* pathType = left != NULL
-                            ? xl6IrTypeGet(&module->types, left->type) : NULL;
-                        const XL6_IrType* sourceType = right != NULL
-                            ? xl6IrTypeGet(&module->types, right->type) : NULL;
-                        const XL6_IrType* prettyType = pretty != NULL
-                            ? xl6IrTypeGet(&module->types, pretty->type) : NULL;
-                        if ( instruction->operandCount != 3 ||
-                             instruction->immediateText != NULL ||
-                             instruction->targetSymbol != 0 ||
-                             instruction->targetValue != XL6_IR_VALUE_INVALID ||
-                             instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                             instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
-                             instruction->opcode != XL6_IR_OPCODE_INVALID ||
-                             instruction->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
-                             instruction->integerSourceAbi != XL6_IR_INTEGER_SOURCE_INVALID ||
-                             left == NULL || right == NULL || pretty == NULL ||
-                             pathType == NULL || sourceType == NULL ||
-                             prettyType == NULL ||
-                             pathType->kind == XL6_IR_TYPE_NULLABLE ||
-                             pathType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-                             pathType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             sourceType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                             sourceType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             prettyType->cAbi != XL6_IR_C_ABI_BOOL ||
-                             !xl6IrTypeIsBool(module, instruction->type) ||
-                             !xl6IrPersistenceWireMatches(module, right->type,
-                                 instruction->payloadType,
-                                 xl6IrPersistenceRuntimeFormat(instruction->runtimeOp)) )
-                            return xl6IrDiag(diags,
-                                xl6IrNodeGet(module, instruction->origin),
-                                "XLIR persistence write operation has no exact format, borrowed path/value, pretty flag and boolean ABI");
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                                 instruction->runtimeOp ==

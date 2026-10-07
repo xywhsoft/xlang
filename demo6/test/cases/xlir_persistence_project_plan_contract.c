@@ -209,7 +209,13 @@ int main(int argc, char** argv)
     }
     for (size_t i = 0; i < ir.intrinsicCallCount; ++i) {
         XL6_IrIntrinsicCall* intrinsic = &ir.intrinsicCalls[i];
-        if (xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) == NULL) continue;
+        int legacy = intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY ||
+            intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY ||
+            intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE ||
+            intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE;
+        if (xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) == NULL && !legacy) continue;
+        if (legacy && intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_VERIFIED)
+            assert(xl6IrPersistenceLegacyIntrinsicAbi(&ir, intrinsic));
         ALTER_OP(intrinsic, errorAbi, XL6_IR_ERROR_ABI_NO_RAISE);
         ALTER_OP(intrinsic, resultAbi, intrinsic->resultAbi == XL6_IR_INTRINSIC_RESULT_VALUE
             ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE);
@@ -232,6 +238,12 @@ int main(int argc, char** argv)
         }
         XL6_IrIntrinsicOperand* source = &ir.intrinsicOperands[intrinsic->firstOperand + intrinsic->persistenceSourceOperand];
         ALTER_OP(source, abi, XL6_IR_INTRINSIC_OPERAND_CONSUME);
+        if (legacy && intrinsic->persistenceOptionsOperand != SIZE_MAX) {
+            XL6_IrIntrinsicOperand* pretty = &ir.intrinsicOperands[
+                intrinsic->firstOperand + intrinsic->persistenceOptionsOperand];
+            ALTER_OP(pretty, type, XL6_IR_TYPE_INVALID);
+            ALTER_OP(pretty, abi, XL6_IR_INTRINSIC_OPERAND_CONSUME);
+        }
     }
     if (!strcmp(argv[3], "sequences")) {
         assert(ir.persistenceProjectSequenceCount == 6);

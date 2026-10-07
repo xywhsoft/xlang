@@ -1,0 +1,22 @@
+class PrettyErrorRecord
+    derive value
+    int item @json("child") = 2
+end
+int caught = 0
+func failingPretty() as bool
+    throw ValueError("pretty-original")
+end
+try
+    string ignored = json.stringify(value=PrettyErrorRecord(), pretty=failingPretty())
+catch e
+    assert(e.kind == "ValueError" and e.message == "pretty-original")
+    caught += 1
+end
+try
+    json.write(value=PrettyErrorRecord(), pretty=failingPretty(), path="unused")
+catch e
+    assert(e.kind == "ValueError" and e.message == "pretty-original")
+    caught += 1
+end
+assert(caught == 2)
+assert(json.parse(json.stringify(value=PrettyErrorRecord(), pretty=false))["child"] == 2)

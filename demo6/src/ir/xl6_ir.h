@@ -6278,6 +6278,8 @@ typedef struct XL6_IrPersistenceInvocationContract {
     const char* sourceName;
     const char* entry;
     const char* nativeModule;
+    /* Exact physical option operand. Pretty facades bypass xvalue boxing. */
+    int nativePretty;
 } XL6_IrPersistenceInvocationContract;
 const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationIntrinsic(
     XL6_IrIntrinsicKind);
@@ -6286,6 +6288,10 @@ const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationRuntime(
 int xl6IrPersistenceInvocationInstructionAbi(
     const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrPersistenceInvocationIntrinsicAbi(
+    const XL6_IrModule*, const XL6_IrIntrinsicCall*);
+/* Legacy bool/default facades keep source-order operands and exact role
+ * ordinals, but retain the unboxed native bool ABI. */
+int xl6IrPersistenceLegacyIntrinsicAbi(
     const XL6_IrModule*, const XL6_IrIntrinsicCall*);
 XL6_IrCallErrorPhysicalAbi xl6IrPersistenceInvocationErrorPhysicalAbi(XL6_IrRuntimeOp);
 int xl6IrPersistenceInvocationIsWriter(const XL6_IrPersistenceInvocationContract*);

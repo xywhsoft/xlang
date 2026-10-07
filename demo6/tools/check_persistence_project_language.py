@@ -23,7 +23,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -36,7 +36,9 @@ def main() -> int:
                      'sinks': 'stdlib_persistence_sink_language.xl',
                      'files': 'stdlib_persistence_file_language.xl',
                      'writers': 'stdlib_persistence_writer_language.xl',
-                     'visitors': 'stdlib_serialization_visit_language.xl'}
+                     'visitors': 'stdlib_serialization_visit_language.xl',
+                     'nominal': 'stdlib_persistence_nominal_language.xl',
+                     'pretty': 'stdlib_persistence_pretty_language.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
@@ -47,11 +49,17 @@ def main() -> int:
     error_names = {'configured': 'stdlib_persistence_configured_errors.xl',
                    'sinks': 'stdlib_persistence_sink_errors.xl', 'files': 'stdlib_persistence_file_errors.xl',
                    'writers': 'stdlib_persistence_writer_errors.xl',
-                   'visitors': 'stdlib_serialization_visit_errors.xl'}
+                   'visitors': 'stdlib_serialization_visit_errors.xl',
+                   'nominal': 'stdlib_persistence_nominal_errors.xl',
+                   'pretty': 'stdlib_persistence_pretty_errors.xl'}
     error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
-    status_host = test_root / 'test/cases/xlir_serialization_visit_status_host.c' if args.fixture == 'visitors' else None
+    status_names = {'visitors': 'xlir_serialization_visit_status_host.c',
+                    'pretty': 'xlir_persistence_pretty_status_host.c'}
+    status_host = test_root / 'test/cases' / status_names[args.fixture] if args.fixture in status_names else None
     if status_host: files.add(status_host)
+    invalid_source = test_root / 'test/cases/stdlib_persistence_nominal_nonderived_invalid.xl' if args.fixture == 'nominal' else None
+    if invalid_source: files.add(invalid_source)
     public = None
     if args.public_directory:
         manifest = args.public_directory.resolve() / 'build.json'
@@ -87,7 +95,7 @@ def main() -> int:
               'OOMScope': 'Complete caller-thread module initialization and retirement prefix, no Future workers'}
     out.mkdir(parents=True)
     run_environment = os.environ.copy()
-    if args.fixture == 'files':
+    if args.fixture in ('files', 'nominal', 'pretty'):
         scratch = out / 'files'
         scratch.mkdir()
         run_environment['XL6_PERSIST_FILE_ROOT'] = str(scratch)
@@ -101,13 +109,13 @@ def main() -> int:
     if not public: flags += ['-D_GNU_SOURCE']
     strict = flags + ['-Wno-unused-function', '-Wno-unused-parameter', '-Wno-unused-variable', '-Wno-unused-label',
                       '-Wno-unused-const-variable', '-Wno-unused-but-set-variable', '-Wno-missing-field-initializers']
-    def run(name: str, command: list[str], timeout: int = 360) -> str:
+    def run(name: str, command: list[str], timeout: int = 360, expected: int = 0) -> str:
         result = subprocess.run(command, cwd=root, env=run_environment, capture_output=True, timeout=timeout)
         data = result.stdout + result.stderr
         (out / (name + '.log')).write_bytes(data)
-        rows.append({'Name': name, 'Command': command, 'Exit': result.returncode, 'Complete': result.returncode == 0})
+        rows.append({'Name': name, 'Command': command, 'Exit': result.returncode, 'ExpectedExit': expected, 'Complete': result.returncode == expected})
         if not name.startswith('oom.point.') or result.returncode: print(f'{name}: {result.returncode}', flush=True)
-        if result.returncode: raise RuntimeError(name + ': ' + data[-6000:].decode(errors='replace'))
+        if result.returncode != expected: raise RuntimeError(name + ': ' + data[-6000:].decode(errors='replace'))
         return data.decode(errors='replace')
     def command(mode: str, target: Path, input_source: Path = source) -> list[str]:
         if public: return [str(cli), str(input_source), mode, str(target)]
@@ -115,12 +123,20 @@ def main() -> int:
         if mode == 'run': return [str(cli), 'run', str(input_source), '--inc-path', str(includes)]
         return [str(cli), 'build', str(input_source), '--inc-path', str(includes), '-o', str(target)]
     try:
+        if invalid_source:
+            rejected = run('invalid.schema', command('cgen-default', out / 'invalid.c', invalid_source), expected=1)
+            assert 'persistence' in rejected.lower() or '持久化' in rejected or 'verified admission ABI' in rejected
         generated = out / 'project.c'
         run('cgen', command('cgen-default', generated))
         text = generated.read_text(encoding='utf-8')
-        if args.fixture in ('project', 'configured', 'sinks', 'files', 'writers'):
+        if args.fixture in ('project', 'configured', 'sinks', 'files', 'writers', 'nominal', 'pretty'):
             assert 'xl6PersistenceProjectV1(' in text and 'xlir_persist_plan_2' in text and 'xlir_persist_plan_4' in text
-            if args.fixture == 'configured':
+            if args.fixture == 'nominal':
+                assert 'xl6XlonEncodeV1(' in text and 'xl6XlonWriteFileV1(' in text
+                assert 'xl6_xrt_xlon_stringify_options(' not in text and 'xl6_xrt_xlon_write_options(' not in text
+            elif args.fixture == 'pretty':
+                assert 'xrtJsonStringify(' in text and 'xl6JsonWriteFilePrettyV1(' in text
+            elif args.fixture == 'configured':
                 assert 'xl6_serialization_encode.h' in text
                 assert all(name + '(' in text for name in
                            ('xl6JsonEncodeV1', 'xl6XlonEncodeV1', 'xl6JsonlEncodeV1', 'xl6XlonlEncodeV1'))

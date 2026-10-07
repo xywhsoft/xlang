@@ -250,28 +250,6 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->firstOperand + 1],
                         (unsigned int)instruction->result);
                 } else if ( instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE ) {
-                    const char* format = instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITE
-                        ? "json" : "xlon";
-                    if ( !xl6IrCgenPersistenceWriteAbi(module, instruction) )
-                        return xl6IrCgenRuntimeEmitDiag(diags, module,
-                            instruction->origin,
-                            "XLIR C emitter persistence write ABI is unresolved");
-                    xl6OutputPrintf(out,
-                        "    { const char* path = xlir_string_cstr(v%u);\n"
-                        "      v%u = path != NULL && %s(path, v%u, v%u); }\n",
-                        (unsigned int)module->operands[
-                            instruction->firstOperand],
-                        (unsigned int)instruction->result,
-                        strcmp(format, "json") == 0 ? "xrtJsonStringifyFile" : "xrtXlonStringifyFile",
-                        (unsigned int)module->operands[
-                            instruction->firstOperand + 1],
-                        (unsigned int)module->operands[
-                            instruction->firstOperand + 2]);
-                } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
                             instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
