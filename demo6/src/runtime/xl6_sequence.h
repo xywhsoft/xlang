@@ -67,6 +67,11 @@ typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;
 enum { XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 = 4 };
+/* Callbacks re-enter Value identity with fresh XRT graph contexts. Bound the
+ * shared per-thread native Hash/Equal call path, including untyped ANY graphs,
+ * independently of their schema depth. Refusal is a normal XERR_RANGE, not C
+ * stack exhaustion; this does not impose a limit on container element count. */
+enum { XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1 = 64 };
 typedef struct XL6_SequenceLayoutV1 {
     uint64_t identity, elementIdentity;
     unsigned int transfer;
@@ -150,6 +155,13 @@ XL6_TEXT_API XL6_Sequence* xl6SequenceBeginOtherV1(const xvalue*, uint64_t, uint
 XL6_TEXT_API xtypedarray* xl6SequenceStorageV1(XL6_Sequence*);
 XL6_TEXT_API void xl6SequenceEndV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceEqualsV1(const xvalue*, const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
+/* ARRAY/STACK identities share this structural comparison with their guarded
+ * xvalue handle callbacks. Primitive/string slots use their typed descriptors;
+ * reference slots use Value equality/hash, Future slots use reference identity.
+ * Role and exact sealed logical/physical policy are part of the domain. Hash
+ * failure leaves the public output unchanged; no addresses of movable storage,
+ * physical padding, C string sentinel or invented reference ordering are used.
+ * CURSOR is stateful execution machinery and refuses key Hash/Equal. */
 XL6_TEXT_API bool xl6SequenceEqualsRoleV1(const xvalue*, const xvalue*, XL6_SequenceRoleV1, uint64_t, uint64_t, unsigned int, size_t, const xrttype*);
 XL6_TEXT_API const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV1(xrtownershipref);
 /* Native-reference TraceSlot is authorized separately by exact resident ops

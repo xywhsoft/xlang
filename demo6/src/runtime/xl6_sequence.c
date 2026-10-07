@@ -114,7 +114,9 @@ static bool retain(void* opaque, void** result, void* user)
     else xrtSetErrorKind(XERR_STATE);
     mutationEnd(&mutation); return ok;
 }
-static const xvaluehandleops ops = {retain,drop,NULL,NULL};
+static uint64 identityHash(ptr, ptr);
+static bool identityEqual(ptr, ptr, ptr);
+static const xvaluehandleops ops = {retain,drop,identityHash,identityEqual};
 /* A destructor/allocator callback may release the caller's last handle.
  * Pin and publish BUSY in one participating transition. BUSY nodes REFUSE
  * graph inspection before any storage read, just like XRT's busy Value
@@ -709,32 +711,178 @@ xvalue* xl6SequenceConcatPinnedV1(XL6_Sequence* left, XL6_Sequence* right)
     }
     return copyPinned(left,right);
 }
+/* Identity callbacks receive captured handles from XRT's guarded call, not a
+ * public Value which could be queried while BUSY. Pin the actual owner before
+ * observing slots; native cursors are execution state, not value sequences. */
+static bool identityBegin(XL6_Sequence* owner)
+{
+    bool ready = false;
+    xrtownershipscope mutation = {0};
+    mutationBegin(&mutation);
+    if (!owner) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner->role == XL6_SEQUENCE_CURSOR_V1) xrtSetErrorKind(XERR_UNSUPPORTED);
+    else if (owner->iterator.prepared) xrtSetErrorKind(XERR_STATE);
+    else ready = beginBody(owner);
+    mutationEnd(&mutation);
+    return ready;
+}
+
+static bool identityDomain(const XL6_Sequence* a, const XL6_Sequence* b)
+{
+    return a->role == b->role && a->identity == b->identity &&
+        a->elementIdentity == b->elementIdentity && a->transfer == b->transfer &&
+        a->size == b->size && a->type == b->type &&
+        ((!a->admission.ops && !b->admission.ops) || samePolicy(&a->admission,&b->admission));
+}
+
+/* One equality implementation for direct language calls and dynamic identity.
+ * The typed descriptor defines primitive/string semantics. Managed carriers
+ * have structural/nominal equality, not a fabricated total-order Compare.
+ * Futures use control-block reference identity, never their changing payload. */
+/* TinyCC's PE writer does not implement C TLS relocations. Keep call-path
+ * metadata on the native caller stack, indexed by the real XRT thread token.
+ * The short lane lock protects only links/counters: no user callback, XRT
+ * error construction, allocator or ownership transition runs while held.
+ * Frames own no Value edges and require no per-thread heap/key retirement. */
+typedef struct IdentityFrame {
+    struct IdentityFrame* next;
+    uint64 thread;
+    unsigned depth;
+} IdentityFrame;
+typedef struct IdentityLane { xatomic32 lock; IdentityFrame* active; } IdentityLane;
+static IdentityLane identityLanes[64];
+static IdentityLane* identityLane(uint64 thread)
+{ return &identityLanes[(thread * UINT64_C(0x9E3779B97F4A7C15)) >> 58]; }
+static void identityLock(IdentityLane* lane)
+{
+    uint32 expected;
+    do { expected = 0; } while (!xrtAtomic32CompareExchange(&lane->lock,&expected,1,
+        XMEMORY_ACQUIRE,XMEMORY_RELAXED));
+}
+static void identityUnlock(IdentityLane* lane)
+{ xrtAtomic32Store(&lane->lock,0,XMEMORY_RELEASE); }
+static bool identityEnter(IdentityFrame* frame)
+{
+    xrtownershipscope observation = {0};
+    mutationBegin(&observation); frame->thread = observation.Thread; mutationEnd(&observation);
+    IdentityLane* lane = identityLane(frame->thread);
+    identityLock(lane);
+    IdentityFrame* prior = lane->active;
+    while (prior && prior->thread != frame->thread) prior = prior->next;
+    unsigned depth = prior ? prior->depth : 0;
+    bool ready = depth < XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1;
+    if (ready) {
+        frame->depth = depth + 1; frame->next = lane->active; lane->active = frame;
+    }
+    identityUnlock(lane);
+    if (!ready) xrtSetErrorKind(XERR_RANGE);
+    return ready;
+}
+static void identityLeave(IdentityFrame* frame)
+{
+    IdentityLane* lane = identityLane(frame->thread);
+    identityLock(lane);
+    IdentityFrame** link = &lane->active;
+    while (*link && (*link)->thread != frame->thread) link = &(*link)->next;
+    if (*link != frame) abort(); /* Internal per-thread call paths are LIFO. */
+    *link = frame->next; identityUnlock(lane);
+}
+static bool equalPinnedBody(XL6_Sequence* a, XL6_Sequence* b)
+{
+    if (!identityDomain(a,b)) return false;
+    if (a == b) return true;
+    size_t count = xrtTypedArrayCount(a->storage);
+    if (count != xrtTypedArrayCount(b->storage)) return false;
+    for (size_t i = 0; i < count; ++i) {
+        const void* left = xrtTypedArrayConstGet(a->storage,i);
+        const void* right = xrtTypedArrayConstGet(b->storage,i);
+        if (!left || !right) return false;
+        bool equal;
+        if (a->transfer == 3) {
+            equal = xl6SequenceReferenceEqualV1(*(xvalue* const*)left,*(xvalue* const*)right);
+        } else if (a->transfer == XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+            equal = *(xfuture* const*)left == *(xfuture* const*)right;
+        } else {
+            int order;
+            if (!xrtTypeCompareValue(a->type,left,right,&order)) return false;
+            equal = order == 0;
+        }
+        if (xrtGetError() || !equal) return false;
+    }
+    return true;
+}
+static bool equalPinned(XL6_Sequence* a, XL6_Sequence* b)
+{
+    IdentityFrame frame = {0};
+    if (!identityEnter(&frame)) return false;
+    bool equal = equalPinnedBody(a,b);
+    identityLeave(&frame); return equal;
+}
+
+static uint64 mixIdentity(uint64 hash, uint64 item)
+{ return hash ^ (item + UINT64_C(0x9E3779B97F4A7C15) + (hash << 6) + (hash >> 2)); }
+
+static uint64 identityHash(ptr opaque, ptr user)
+{
+    XL6_Sequence* owner = opaque;
+    if (user) { xrtSetErrorKind(XERR_ARGUMENT); return 0; }
+    if (!identityBegin(owner)) return 0;
+    IdentityFrame frame = {0};
+    if (!identityEnter(&frame)) { xl6SequenceEndV1(owner); return 0; }
+    size_t count = xrtTypedArrayCount(owner->storage);
+    uint64 hash = mixIdentity(owner->identity,(uint64)owner->role);
+    hash = mixIdentity(hash,owner->elementIdentity);
+    hash = mixIdentity(hash,(uint64)count);
+    bool ready = true;
+    for (size_t i = 0; ready && i < count; ++i) {
+        const void* slot = xrtTypedArrayConstGet(owner->storage,i);
+        uint64 item;
+        if (!slot) { ready = false; break; }
+        if (owner->transfer == 3) {
+            const xvalue* value = *(xvalue* const*)slot;
+            ready = xrtValueHash(value ? value : xrtValueNull(),&item);
+        } else if (owner->transfer == XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+            item = (uint64)(uintptr_t)*(xfuture* const*)slot;
+        } else {
+            ready = xrtTypeHashValue(owner->type,slot,&item);
+        }
+        /* A custom typed callback may return a payload alongside an error.
+         * Stop here; the guarded XRT Hash boundary discards this result. */
+        if (xrtGetError()) ready = false;
+        if (ready) hash = mixIdentity(hash,item);
+    }
+    xl6SequenceEndV1(owner);
+    identityLeave(&frame);
+    return ready ? hash : 0;
+}
+
+static bool identityEqual(ptr left, ptr right, ptr user)
+{
+    XL6_Sequence* a = left;
+    XL6_Sequence* b = right;
+    if (user) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (!identityBegin(a)) return false;
+    if (b != a && !identityBegin(b)) { xl6SequenceEndV1(a); return false; }
+    bool equal = equalPinned(a,b);
+    if (b != a) xl6SequenceEndV1(b);
+    xl6SequenceEndV1(a);
+    return equal;
+}
+
 bool xl6SequenceEqualsRoleV1(const xvalue* left, const xvalue* right, XL6_SequenceRoleV1 role, uint64_t identity, uint64_t elementIdentity,
                       unsigned int transfer, size_t size, const xrttype* type)
 {
+    xerror* prior = xrtTakeError();
     XL6_Sequence* a = xl6SequenceBeginRoleV1(left,role,identity,elementIdentity,transfer,size,type);
-    if (!a) return false;
-    XL6_Sequence* b = xl6SequenceBeginOtherV1(right,identity,elementIdentity,transfer,size,type,a);
-    if (!b) { xl6SequenceEndV1(a); return false; }
-    bool equal = xl6SequenceAdmissionEquivalentV1(a,b);
-    if (!equal) goto done;
-    if (transfer != 3) {
-        equal = xrtTypedArrayEquals(a->storage,b->storage);
-        goto done;
-    }
-    /* Language managed carriers have equality but no total ordering. Their
-     * xrttype intentionally has no Compare; delegate to XRT value equality,
-     * not a made-up ordering or comparison of physical pointer bytes. */
-    size_t count = xrtTypedArrayCount(a->storage);
-    if (count != xrtTypedArrayCount(b->storage)) { equal = false; goto done; }
-    for (size_t depth=0; depth<count; ++depth) {
-        const xvalue* x = *(xvalue* const*)xrtTypedArrayConstGet(a->storage,count-depth-1u);
-        const xvalue* y = *(xvalue* const*)xrtTypedArrayConstGet(b->storage,count-depth-1u);
-        if (!xl6SequenceReferenceEqualV1(x,y)) { equal = false; break; }
-    }
-done:
-    if (b != a) xl6SequenceEndV1(b);
-    xl6SequenceEndV1(a); return equal;
+    XL6_Sequence* b = a ? xl6SequenceBeginOtherV1(right,identity,elementIdentity,transfer,size,type,a) : NULL;
+    bool equal = b && equalPinned(a,b);
+    xerror* failure = xrtTakeError();
+    if (b && b != a) xl6SequenceEndV1(b);
+    if (a) xl6SequenceEndV1(a);
+    xrtClearError();
+    if (failure) { xrtErrorFree(prior); xrtClearError(); xrtSetErrorTake(failure); }
+    else xrtSetErrorTake(prior);
+    return !failure && equal;
 }
 bool xl6SequenceEqualsV1(const xvalue* left, const xvalue* right, uint64_t identity, uint64_t elementIdentity,
                       unsigned int transfer, size_t size, const xrttype* type)

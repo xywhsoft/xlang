@@ -1,0 +1,49 @@
+// Independent native fields must use structural identity in all execution lanes.
+// Keys are not mutated while stored in a set; no immutable snapshot is implied.
+class NativeSequenceKey
+    derive value
+    derive hash
+    derive equals
+    array<int8> items = [int8(1), int8(2)]
+    array<string> words = ["a\0你", ""]
+    array<array<int8>> nested = [[int8(7)], []]
+    int transient @compare(skip) = 0
+end
+NativeSequenceKey first = NativeSequenceKey()
+NativeSequenceKey second = NativeSequenceKey()
+second.transient = 99
+assert first == second and not (first != second), "independent native fields compare structurally"
+NativeSequenceKey jsonCopy = json.parse::<NativeSequenceKey>(json.stringify(first))
+NativeSequenceKey xlonCopy = xlon.parse::<NativeSequenceKey>(xlon.stringify(first))
+assert first == jsonCopy and jsonCopy == xlonCopy, "native identity survives independent restore"
+assert jsonCopy.words[0] == "a\0你" and xlonCopy.nested[0][0] == 7
+NativeSequenceKey changed = NativeSequenceKey()
+changed.words[0] = "a"
+assert first != changed, "native text identity includes bytes beyond NUL"
+NativeSequenceKey reordered = NativeSequenceKey()
+reordered.items[0] = int8(2)
+reordered.items[1] = int8(1)
+assert first != reordered, "native array identity includes element order"
+set<NativeSequenceKey> keys = set{first, second, jsonCopy, xlonCopy, changed, reordered}
+assert keys.length == 3 and keys.contains(second) and keys.contains(jsonCopy)
+class NativeBytesKey
+    derive hash
+    derive equals
+    array<bytes> payloads = [b"a\0b", b""]
+end
+NativeBytesKey binary = NativeBytesKey()
+NativeBytesKey binaryCopy = NativeBytesKey()
+assert binary == binaryCopy
+binaryCopy.payloads[0] = b"a"
+assert binary != binaryCopy
+class NativeStackKey
+    derive hash
+    derive equals
+    Stack<string> items = Stack::<string>()
+end
+NativeStackKey stackFirst = NativeStackKey()
+NativeStackKey stackCopy = NativeStackKey()
+assert stackFirst.items.push("a\0你") and stackCopy.items.push("a\0你")
+assert stackFirst == stackCopy and stackFirst.items.equals(stackCopy.items)
+set<NativeStackKey> stacks = set{stackFirst, stackCopy}
+assert stacks.length == 1

@@ -33,6 +33,9 @@ try {
             'test/support/stack_native.c','test/support/stack_take_found.h',
             'test/cases/stdlib_sequence_take_status_native_host.c','test/cases/stdlib_stack_retired_try_abi.c',
             'test/cases/xlir_module_product_oom_host.c',
+            'tools/check_stdlib_sequence_identity.py','test/cases/stdlib_sequence_identity_native_host.c',
+            'test/support/sequence_identity_native.c','tools/check_persistence_project_language.py',
+            'test/cases/stdlib_native_sequence_identity.xl',
             'tools/check_stdlib_fixed_stack.py','test/cases/xlir_fixed_stack_contract.c',
             'test/cases/stdlib_fixed_stack_only.xl','test/cases/stdlib_fixed_stack.xl',
             'test/cases/xlir_generic_tuple_returns.xl','test/cases/sem_fixed_stack_private_error.xl',
@@ -368,6 +371,13 @@ try {
     Run 'sequence-publication' $python @('tools/check_stdlib_sequence_publication.py','--out',"$outPath/sequence-publication") -TimeoutMs 600000
     $sequencePublication=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-publication/results.json" -Raw | ConvertFrom-Json
     if (!$sequencePublication.Complete -or !$sequencePublication.InputsUnchanged -or $sequencePublication.Sweeps.Count-ne50) { throw 'Incomplete Sequence publication evidence' }
+    Run 'sequence-identity' $python @('tools/check_stdlib_sequence_identity.py','--out',"$outPath/sequence-identity") -TimeoutMs 600000
+    $sequenceIdentity=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-identity/results.json" -Raw | ConvertFrom-Json
+    if (!$sequenceIdentity.Complete -or !$sequenceIdentity.InputsUnchanged -or $sequenceIdentity.Sweeps.Count-ne2) { throw 'Incomplete Sequence identity evidence' }
+    Run 'sequence-identity-language' $python @('tools/check_persistence_project_language.py','--fixture','native-identity',
+        '--out',"$outPath/sequence-identity-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $sequenceIdentityLanguage=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-identity-language/report.json" -Raw | ConvertFrom-Json
+    if (!$sequenceIdentityLanguage.Complete -or !$sequenceIdentityLanguage.InputsUnchanged -or $sequenceIdentityLanguage.Sweeps.Count-ne2) { throw 'Incomplete language Sequence identity evidence' }
     Run 'sequence-factories' $python @('tools/check_stdlib_sequence_factories.py','--out',"$outPath/sequence-factories") -TimeoutMs 600000
     $sequenceFactories=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-factories/results.json" -Raw | ConvertFrom-Json
     if (!$sequenceFactories.Complete -or !$sequenceFactories.InputsUnchanged -or $sequenceFactories.Profiles-ne9) { throw 'Incomplete construction-only native closures' }
