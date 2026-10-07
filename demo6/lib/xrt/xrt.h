@@ -12653,7 +12653,10 @@ typedef struct xsetentry xsetentry;
 
 
 
-/* 哈希器必须保证相等元素产生相同哈希值，回调中不得调用同一集合的 API。 */
+/* 哈希器必须保证相等元素产生相同哈希值，回调中不得调用同一集合的 API。
+ * Hash/Equal 在独立的线程错误边界执行；回调设置错误时忽略返回值并停止
+ * 操作，成功时保留调用前错误。查询失败与正常缺失可通过线程错误区分，
+ * 插入/合并和集合运算不得提交失败回调的结果。零哈希是合法成功值。 */
 typedef uint64 (*xsethash)(const void* pItem, ptr pUserData);
 
 
@@ -13018,6 +13021,7 @@ typedef bool (*xvalueownershiptrace)(const xvalue* pValue,
 /*
 	语义值哈希器只借用已经绑定 TypeId 的容器值。回调可以通过只读 Value API
 	观察该值及其字段，也可以递归哈希字段，但不得修改、保留或释放输入值。
+	可通过线程错误报告失败；公开 Hash/Set 键边界忽略失败返回值。
 */
 typedef uint64 (*xvalueidentityhash)(const xvalue* pValue, ptr pUserData);
 
@@ -13027,6 +13031,7 @@ typedef uint64 (*xvalueidentityhash)(const xvalue* pValue, ptr pUserData);
 /*
 	语义值相等器只借用同一 TypeId 和同一策略域中的两个容器值。回调可以
 	递归比较字段，但不得修改、保留或释放任一输入值。
+	可通过线程错误报告失败；无错误的 false 是普通不相等结果。
 */
 typedef bool (*xvalueidentityequal)(
 	const xvalue* pLeft,
@@ -13046,7 +13051,9 @@ typedef void (*xvaluehandledrop)(ptr pHandle, ptr pUserData);
 
 
 
-/* 句柄哈希器必须与相等器成对提供、保持一致且不得重入父 Value。 */
+/* 句柄哈希器必须与相等器成对提供、保持一致且不得重入父 Value。
+ * 哈希/相等回调可通过线程错误报告失败；调用边界忽略失败返回值，
+ * 保留原始错误，且不得据此插入或移除集合元素。成功保留原先错误。 */
 typedef uint64 (*xvaluehandlehash)(ptr pHandle, ptr pUserData);
 
 
@@ -13396,6 +13403,7 @@ XRT_API bool xrtValueTakeHandle(xvalue* pValue, ptr* pHandle);
 
 
 /* 为可哈希标量或显式身份容器计算一致哈希；指针和句柄哈希只在当前进程内有效。 */
+/* 哈希失败时输出保持不变；回调返回零但未报告错误是合法结果。 */
 XRT_API bool xrtValueHash(const xvalue* pValue, uint64* pHash);
 
 
@@ -46833,6 +46841,15 @@ bool __xrtSetValid(const xset* pSet);
 
 /* 检查集合当前是否允许查询或推进外置迭代器。 */
 bool __xrtSetCanRead(const xset* pSet);
+
+/* Separate callback failure from a successful absent lookup. The output is
+ * unchanged on failure; successful key callbacks preserve the ambient error. */
+bool __xrtSetHasChecked(const xset* pSet, const void* pItem, bool* pPresent);
+
+/* Separate a failed callback from a successfully false subset relation. */
+bool __xrtSetIsSubsetChecked(
+	const xset* pLeft, const xset* pRight, bool bProper, bool* pSubset
+);
 
 
 
@@ -97135,6 +97152,9 @@ bool __xrtValueEqualKnown(const xvalue* pLeft, const xvalue* pRight)
 static bool __xrtOwnershipBody_ValueHash(const xvalue* pValue, uint64* pHash)
 {
 	const xvalue* tValues[1];
+	xerror* pPrior;
+	xerror* pFailure;
+	uint64 iHash;
 
 	if ( !__xrtValueCanRead(pValue) ||
 		!__xrtValueOutputValid(pValue, pHash, sizeof(*pHash)) ) {
@@ -97148,16 +97168,33 @@ static bool __xrtOwnershipBody_ValueHash(const xvalue* pValue, uint64* pHash)
 		__xrtErrorSetType();
 		return false;
 	}
+	/* Built-in scalar hashes are infallible after validation. Keep their hot
+	 * path free of callback error scopes; custom identities are not scalars. */
+	if ( pValue->Type != XVALUE_HANDLE && pValue->IdentityHash == NULL ) {
+		*pHash = __xrtValueHashKnown(pValue);
+		return true;
+	}
+	pPrior = xrtTakeError();
 	if ( pValue->Type == XVALUE_HANDLE ) {
 		tValues[0] = pValue;
 		if ( !__xrtValueCallbackProtect(tValues, 1) ) {
+			xrtErrorFree(pPrior);
 			return false;
 		}
-		*pHash = __xrtValueHashKnown(pValue);
+		iHash = __xrtValueHashKnown(pValue);
+		pFailure = xrtTakeError();
 		__xrtValueCallbackUnprotect(tValues, 1);
-		return true;
+	} else {
+		iHash = __xrtValueHashKnown(pValue);
+		pFailure = xrtTakeError();
 	}
-	*pHash = __xrtValueHashKnown(pValue);
+	if ( pFailure != NULL ) {
+		xrtErrorFree(pPrior);
+		xrtClearError(); xrtSetErrorTake(pFailure);
+		return false;
+	}
+	xrtClearError(); xrtSetErrorTake(pPrior);
+	*pHash = iHash;
 	return true;
 }
 
@@ -97204,13 +97241,22 @@ static bool __xrtOwnershipBody_ValueScalarEqual(
 		 (pRight->Type == XVALUE_HANDLE) &&
 		 (pLeft->Data.Handle.Ops == pRight->Data.Handle.Ops) &&
 		 (pLeft->Data.Handle.UserData == pRight->Data.Handle.UserData) ) {
+		xerror* pPrior = xrtTakeError();
+		xerror* pFailure;
 		tValues[0] = pLeft;
 		tValues[1] = pRight;
 		if ( !__xrtValueCallbackProtect(tValues, 2) ) {
+			xrtErrorFree(pPrior);
 			return false;
 		}
 		bEqual = __xrtValueEqualKnown(pLeft, pRight);
+		pFailure = xrtTakeError();
 		__xrtValueCallbackUnprotect(tValues, 2);
+		if ( pFailure != NULL ) {
+			xrtErrorFree(pPrior); xrtClearError(); xrtSetErrorTake(pFailure);
+			return false;
+		}
+		xrtClearError(); xrtSetErrorTake(pPrior);
 		return bEqual;
 	}
 	return __xrtValueEqualKnown(pLeft, pRight);
@@ -104291,18 +104337,38 @@ bool __xrtSetCanMutate(xset* pSet)
 
 
 
+/* Key callbacks execute in a fresh error boundary. An ambient error is not a
+ * callback failure; a newly reported error wins and the payload is discarded.
+ * This also preserves the original failure through later rollback callbacks. */
+static bool __xrtSetKeyFinish(xerror* pPrior)
+{
+	xerror* pFailure = xrtTakeError();
+	if ( pFailure != NULL ) {
+		xrtErrorFree(pPrior);
+		xrtClearError(); xrtSetErrorTake(pFailure);
+		return false;
+	}
+	xrtSetErrorTake(pPrior);
+	return true;
+}
+
 /* 调用自定义哈希器期间拒绝同一集合的 API 重入。 */
-static uint64 __xrtSetHashValue(xset* pSet, const void* pItem)
+static bool __xrtSetHashValue(xset* pSet, const void* pItem, uint64* pHash)
 {
 	uint64 iHash;
+	xerror* pPrior;
 
 	if ( pSet->Hash == __xrtSetDefaultHash ) {
-		return __xrtSetDefaultHash(pItem, pSet);
+		*pHash = __xrtSetDefaultHash(pItem, pSet);
+		return true;
 	}
+	pPrior = xrtTakeError();
 	pSet->Flags |= XRT_SET_FLAG_BUSY;
 	iHash = pSet->Hash(pItem, pSet->KeyUserData);
 	pSet->Flags &= ~XRT_SET_FLAG_BUSY;
-	return iHash;
+	if ( !__xrtSetKeyFinish(pPrior) ) return false;
+	*pHash = iHash;
+	return true;
 }
 
 
@@ -104311,18 +104377,24 @@ static uint64 __xrtSetHashValue(xset* pSet, const void* pItem)
 static bool __xrtSetItemsEqual(
 	xset* pSet,
 	const void* pLeft,
-	const void* pRight
+	const void* pRight,
+	bool* pEqual
 )
 {
 	bool bEqual;
+	xerror* pPrior;
 
 	if ( pSet->Equal == __xrtSetDefaultEqual ) {
-		return __xrtSetDefaultEqual(pLeft, pRight, pSet);
+		*pEqual = __xrtSetDefaultEqual(pLeft, pRight, pSet);
+		return true;
 	}
+	pPrior = xrtTakeError();
 	pSet->Flags |= XRT_SET_FLAG_BUSY;
 	bEqual = pSet->Equal(pLeft, pRight, pSet->KeyUserData);
 	pSet->Flags &= ~XRT_SET_FLAG_BUSY;
-	return bEqual;
+	if ( !__xrtSetKeyFinish(pPrior) ) return false;
+	*pEqual = bEqual;
+	return true;
 }
 
 
@@ -104618,17 +104690,20 @@ static xsetentry* __xrtSetAllocEntry(
 		xrtFree(pAllocation);
 		return NULL;
 	}
-	if (
-		(pSet->Copy != __xrtSetDefaultCopy) &&
-		(
-			(__xrtSetHashValue((xset*)pSet, pStored) != iHash) ||
-			!__xrtSetItemsEqual((xset*)pSet, pItem, pStored)
-		)
-	) {
-		__xrtSetDropItem((xset*)pSet, pStored);
-		xrtFree(pAllocation);
-		__xrtErrorSetInvalidState();
-		return NULL;
+	if ( pSet->Copy != __xrtSetDefaultCopy ) {
+		uint64 iStoredHash;
+		bool bEqual;
+		bool bValid = __xrtSetHashValue((xset*)pSet, pStored, &iStoredHash) &&
+			__xrtSetItemsEqual((xset*)pSet, pItem, pStored, &bEqual);
+		if ( !bValid || iStoredHash != iHash || !bEqual ) {
+			xerror* pFailure;
+			if ( bValid ) __xrtErrorSetInvalidState();
+			pFailure = xrtTakeError();
+			__xrtSetDropItem((xset*)pSet, pStored);
+			xrtFree(pAllocation);
+			xrtClearError(); xrtSetErrorTake(pFailure);
+			return NULL;
+		}
 	}
 
 	return pEntry;
@@ -104637,48 +104712,46 @@ static xsetentry* __xrtSetAllocEntry(
 
 
 /* 计算哈希并在桶链中查找等价元素。 */
-static xsetentry* __xrtSetFind(
+static bool __xrtSetFind(
 	const xset* pSet,
 	const void* pItem,
+	xsetentry** ppEntry,
 	uint64* pHash,
 	xsetentry*** ppLink
 )
 {
 	xset* pMutable = (xset*)pSet;
-	uint64 iHash = __xrtSetHashValue(pMutable, pItem);
+	uint64 iHash;
 	xsetentry** pLink;
 	xsetentry* pEntry;
 
-	if ( pHash != NULL ) {
-		*pHash = iHash;
-	}
+	*ppEntry = NULL;
 	if ( ppLink != NULL ) {
 		*ppLink = NULL;
 	}
+	if ( !__xrtSetHashValue(pMutable, pItem, &iHash) ) return false;
+	if ( pHash != NULL ) *pHash = iHash;
 	if ( pSet->BucketCount == 0 ) {
-		return NULL;
+		return true;
 	}
 	pLink = &((xset*)pSet)->Buckets[(size_t)iHash & (pSet->BucketCount - 1u)];
 	pEntry = *pLink;
 	while ( pEntry != NULL ) {
-		if (
-			(pEntry->Hash == iHash) &&
-			__xrtSetItemsEqual(
-				pMutable,
-				pItem,
-				__xrtSetItem(pSet, pEntry)
-			)
-		) {
-			if ( ppLink != NULL ) {
-				*ppLink = pLink;
+		if ( pEntry->Hash == iHash ) {
+			bool bEqual;
+			if ( !__xrtSetItemsEqual(pMutable, pItem,
+				__xrtSetItem(pSet, pEntry), &bEqual) ) return false;
+			if ( bEqual ) {
+				if ( ppLink != NULL ) *ppLink = pLink;
+				*ppEntry = pEntry;
+				return true;
 			}
-			return pEntry;
 		}
 		pLink = &pEntry->BucketNext;
 		pEntry = *pLink;
 	}
 
-	return NULL;
+	return true;
 }
 
 
@@ -104779,7 +104852,7 @@ static xsetentry* __xrtSetGetOrAddEntry(
 	if ( pNew != NULL ) {
 		*pNew = false;
 	}
-	pEntry = __xrtSetFind(pSet, pItem, &iHash, NULL);
+	if ( !__xrtSetFind(pSet, pItem, &pEntry, &iHash, NULL) ) return NULL;
 	if ( pEntry != NULL ) {
 		return pEntry;
 	}
@@ -104918,6 +104991,13 @@ static bool __xrtSetCompatible(const xset* pLeft, const xset* pRight)
 
 
 /* 创建一个继承源集合策略但仍为空的新集合。 */
+static void __xrtSetDestroyPreserveError(xset* pSet)
+{
+	xerror* pFailure = xrtTakeError();
+	xrtSetDestroy(pSet);
+	xrtClearError(); xrtSetErrorTake(pFailure);
+}
+
 static xset* __xrtSetCreateLike(const xset* pSource)
 {
 	xset* pResult = xrtSetCreateAligned(
@@ -104935,7 +105015,7 @@ static xset* __xrtSetCreateLike(const xset* pSource)
 			pSource->Equal,
 			pSource->KeyUserData
 		) ) {
-			xrtSetDestroy(pResult);
+			__xrtSetDestroyPreserveError(pResult);
 			return NULL;
 		}
 	}
@@ -104946,7 +105026,7 @@ static xset* __xrtSetCreateLike(const xset* pSource)
 			pSource->Drop,
 			pSource->LifecycleUserData
 		) ) {
-			xrtSetDestroy(pResult);
+			__xrtSetDestroyPreserveError(pResult);
 			return NULL;
 		}
 	}
@@ -104977,6 +105057,7 @@ static bool __xrtSetMergeInto(xset* pTarget, const xset* pSource)
 static void __xrtSetReleaseStaged(xset* pSet, xsetentry* pFirst)
 {
 	xsetentry* pEntry = pFirst;
+	xerror* pFailure = xrtTakeError();
 
 	while ( pEntry != NULL ) {
 		xsetentry* pNext = pEntry->OrderNext;
@@ -104985,6 +105066,7 @@ static void __xrtSetReleaseStaged(xset* pSet, xsetentry* pFirst)
 		xrtFree(pEntry->Allocation);
 		pEntry = pNext;
 	}
+	xrtClearError(); xrtSetErrorTake(pFailure);
 }
 
 
@@ -105006,7 +105088,11 @@ static bool __xrtSetMergeAtomic(xset* pTarget, const xset* pSource)
 		xsetentry* pEntry;
 		uint64 iHash;
 
-		if ( __xrtSetFind(pTarget, pItem, &iHash, NULL) == NULL ) {
+		if ( !__xrtSetFind(pTarget, pItem, &pEntry, &iHash, NULL) ) {
+			__xrtSetReleaseStaged(pTarget, pStagedFirst);
+			return false;
+		}
+		if ( pEntry == NULL ) {
 			pEntry = __xrtSetAllocEntry(pTarget, pItem, iHash);
 			if ( pEntry == NULL ) {
 				__xrtSetReleaseStaged(pTarget, pStagedFirst);
@@ -105335,6 +105421,7 @@ XRT_API bool xrtSetAdd(xset* pSet, const void* pItem)
 /* 返回集合内部的规范元素，缺失是正常结果。 */
 XRT_API const void* xrtSetGet(const xset* pSet, const void* pItem)
 {
+	xsetentry* pEntry;
 	if ( !__xrtSetCanRead(pSet) ) {
 		return NULL;
 	}
@@ -105346,15 +105433,30 @@ XRT_API const void* xrtSetGet(const xset* pSet, const void* pItem)
 		return NULL;
 	}
 
-	return __xrtSetItem(pSet, __xrtSetFind(pSet, pItem, NULL, NULL));
+	if ( !__xrtSetFind(pSet, pItem, &pEntry, NULL, NULL) ) return NULL;
+	return __xrtSetItem(pSet, pEntry);
 }
 
 
 
 /* 判断等价元素是否存在。 */
+bool __xrtSetHasChecked(const xset* pSet, const void* pItem, bool* pPresent)
+{
+	xsetentry* pEntry;
+	if ( !__xrtSetCanRead(pSet) ) return false;
+	if ( pItem == NULL || pPresent == NULL ||
+		__xrtSetOwnsCoreRange(pSet, pItem, pSet->ItemSize) ) {
+		__xrtErrorSetInvalidArgument(); return false;
+	}
+	if ( !__xrtSetFind(pSet, pItem, &pEntry, NULL, NULL) ) return false;
+	*pPresent = pEntry != NULL;
+	return true;
+}
+
 XRT_API bool xrtSetHas(const xset* pSet, const void* pItem)
 {
-	return xrtSetGet(pSet, pItem) != NULL;
+	bool bPresent;
+	return __xrtSetHasChecked(pSet, pItem, &bPresent) && bPresent;
 }
 
 
@@ -105375,7 +105477,7 @@ XRT_API bool xrtSetRemove(xset* pSet, const void* pItem)
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	pEntry = __xrtSetFind(pSet, pItem, NULL, &pLink);
+	if ( !__xrtSetFind(pSet, pItem, &pEntry, NULL, &pLink) ) return false;
 	if ( pEntry == NULL ) {
 		return false;
 	}
@@ -105404,7 +105506,7 @@ XRT_API bool xrtSetTake(xset* pSet, const void* pItem, ptr pValue)
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	pEntry = __xrtSetFind(pSet, pItem, NULL, &pLink);
+	if ( !__xrtSetFind(pSet, pItem, &pEntry, NULL, &pLink) ) return false;
 	if ( pEntry == NULL ) {
 		return false;
 	}
@@ -105446,7 +105548,7 @@ bool __xrtSetMoveOut(
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	pEntry = __xrtSetFind(pSet, pItem, NULL, &pLink);
+	if ( !__xrtSetFind(pSet, pItem, &pEntry, NULL, &pLink) ) return false;
 	if ( pEntry == NULL ) {
 		return false;
 	}
@@ -105644,7 +105746,7 @@ XRT_API xset* xrtSetClone(const xset* pSet)
 	}
 	if ( !xrtSetReserve(pResult, pSet->Count) ||
 		!__xrtSetMergeInto(pResult, pSet) ) {
-		xrtSetDestroy(pResult);
+		__xrtSetDestroyPreserveError(pResult);
 		__xrtSetUnprotectRead(pSet, bProtected);
 		return NULL;
 	}
@@ -105712,7 +105814,7 @@ XRT_API xset* xrtSetUnion(const xset* pLeft, const xset* pRight)
 		return NULL;
 	}
 	if ( !xrtSetMerge(pResult, pRight) ) {
-		xrtSetDestroy(pResult);
+		__xrtSetDestroyPreserveError(pResult);
 		return NULL;
 	}
 
@@ -105755,16 +105857,22 @@ static xset* __xrtSetFilter(
 		(pResult != NULL) &&
 		!xrtSetReserve(pResult, pLeft->Count)
 	) {
-		xrtSetDestroy(pResult);
+		__xrtSetDestroyPreserveError(pResult);
 		pResult = NULL;
 	}
 	pEntry = pLeft->First;
 	while ( (pResult != NULL) && (pEntry != NULL) ) {
 		const void* pItem = __xrtSetItem(pLeft, pEntry);
+		bool bPresent;
 
-		if ( xrtSetHas(pRight, pItem) == bKeepPresent ) {
+		if ( !__xrtSetHasChecked(pRight, pItem, &bPresent) ) {
+			__xrtSetDestroyPreserveError(pResult);
+			pResult = NULL;
+			break;
+		}
+		if ( bPresent == bKeepPresent ) {
 			if ( !xrtSetAdd(pResult, pItem) ) {
-				xrtSetDestroy(pResult);
+				__xrtSetDestroyPreserveError(pResult);
 				pResult = NULL;
 				break;
 			}
@@ -105821,20 +105929,22 @@ XRT_API xset* xrtSetSymmetricDifference(
 		return NULL;
 	}
 	if ( !__xrtSetProtectRead(pLeft, &bLeftProtected) ) {
-		xrtSetDestroy(pResult);
+		__xrtSetDestroyPreserveError(pResult);
 		return NULL;
 	}
 	if ( !__xrtSetProtectRead(pRight, &bRightProtected) ) {
 		__xrtSetUnprotectRead(pLeft, bLeftProtected);
-		xrtSetDestroy(pResult);
+		__xrtSetDestroyPreserveError(pResult);
 		return NULL;
 	}
 	pEntry = pRight->First;
 	while ( pEntry != NULL ) {
 		const void* pItem = __xrtSetItem(pRight, pEntry);
+		bool bPresent;
 
-		if ( !xrtSetHas(pLeft, pItem) && !xrtSetAdd(pResult, pItem) ) {
-			xrtSetDestroy(pResult);
+		if ( !__xrtSetHasChecked(pLeft, pItem, &bPresent) ||
+			(!bPresent && !xrtSetAdd(pResult, pItem)) ) {
+			__xrtSetDestroyPreserveError(pResult);
 			pResult = NULL;
 			break;
 		}
@@ -105849,16 +105959,18 @@ XRT_API xset* xrtSetSymmetricDifference(
 
 
 /* 判断左集合是否为右集合的子集，可选择严格子集。 */
-XRT_API bool xrtSetIsSubset(
+bool __xrtSetIsSubsetChecked(
 	const xset* pLeft,
 	const xset* pRight,
-	bool bProper
+	bool bProper,
+	bool* pSubset
 )
 {
 	xsetentry* pEntry;
 	bool bLeftProtected;
 	bool bRightProtected;
 	bool bResult = true;
+	bool bReady = true;
 
 	if (
 		!__xrtSetCanRead(pLeft) ||
@@ -105874,10 +105986,12 @@ XRT_API bool xrtSetIsSubset(
 		(pLeft->Count > pRight->Count) ||
 		(bProper && (pLeft->Count == pRight->Count))
 	) {
-		return false;
+		*pSubset = false;
+		return true;
 	}
 	if ( pLeft == pRight ) {
-		return !bProper;
+		*pSubset = !bProper;
+		return true;
 	}
 	if ( !__xrtSetProtectRead(pLeft, &bLeftProtected) ) {
 		return false;
@@ -105888,7 +106002,12 @@ XRT_API bool xrtSetIsSubset(
 	}
 	pEntry = pLeft->First;
 	while ( pEntry != NULL ) {
-		if ( !xrtSetHas(pRight, __xrtSetItem(pLeft, pEntry)) ) {
+		bool bPresent;
+		if ( !__xrtSetHasChecked(pRight, __xrtSetItem(pLeft, pEntry), &bPresent) ) {
+			bReady = false;
+			break;
+		}
+		if ( !bPresent ) {
 			bResult = false;
 			break;
 		}
@@ -105897,7 +106016,20 @@ XRT_API bool xrtSetIsSubset(
 
 	__xrtSetUnprotectRead(pRight, bRightProtected);
 	__xrtSetUnprotectRead(pLeft, bLeftProtected);
-	return bResult;
+	if ( bReady ) {
+		*pSubset = bResult;
+	}
+	return bReady;
+}
+
+XRT_API bool xrtSetIsSubset(
+	const xset* pLeft,
+	const xset* pRight,
+	bool bProper
+)
+{
+	bool bSubset;
+	return __xrtSetIsSubsetChecked(pLeft, pRight, bProper, &bSubset) && bSubset;
 }
 
 
@@ -105951,7 +106083,9 @@ XRT_API bool xrtSetIsDisjoint(
 	}
 	pEntry = pScan->First;
 	while ( pEntry != NULL ) {
-		if ( xrtSetHas(pLookup, __xrtSetItem(pScan, pEntry)) ) {
+		bool bPresent;
+		if ( !__xrtSetHasChecked(pLookup, __xrtSetItem(pScan, pEntry), &bPresent) ||
+			bPresent ) {
 			bResult = false;
 			break;
 		}
@@ -108444,13 +108578,25 @@ XRT_API bool xrtValueArrayAppendTake(xvalue* pArray, xvalue** pItem)
 
 
 
+/* Retire a consumed temporary without allowing a destructor error to replace
+ * the operation's original failure. Successful retirement retains its normal
+ * error behavior; no second owner or collection implementation is introduced. */
+static bool __xrtValueConsumeNewResult(bool bResult, xvalue* pItem)
+{
+	xerror* pFailure = bResult ? NULL : xrtTakeError();
+	xrtValueRelease(pItem);
+	if ( pFailure != NULL ) {
+		xrtClearError(); xrtSetErrorTake(pFailure);
+	}
+	return bResult;
+}
+
 /* 无论成功失败都消费临时值。 */
 static bool __xrtOwnershipBody_ValueArrayAppendNew(xvalue* pArray, xvalue* pItem)
 {
 	bool bResult = (pItem != NULL) && xrtValueArrayAppendTake(pArray, &pItem);
 
-	xrtValueRelease(pItem);
-	return bResult;
+	return __xrtValueConsumeNewResult(bResult, pItem);
 }
 
 XRT_API bool xrtValueArrayAppendNew(xvalue* pArray, xvalue* pItem)
@@ -108558,8 +108704,7 @@ static bool __xrtOwnershipBody_ValueArrayInsertNew(
 	bool bResult = (pItem != NULL) &&
 		xrtValueArrayInsertTake(pArray, iIndex, &pItem);
 
-	xrtValueRelease(pItem);
-	return bResult;
+	return __xrtValueConsumeNewResult(bResult, pItem);
 }
 
 XRT_API bool xrtValueArrayInsertNew(
@@ -108704,8 +108849,7 @@ static bool __xrtOwnershipBody_ValueArraySetNew(
 	bool bResult = (pItem != NULL) &&
 		xrtValueArraySetTake(pArray, iIndex, &pItem);
 
-	xrtValueRelease(pItem);
-	return bResult;
+	return __xrtValueConsumeNewResult(bResult, pItem);
 }
 
 XRT_API bool xrtValueArraySetNew(
@@ -109044,8 +109188,7 @@ static bool __xrtOwnershipBody_ValueIntMapSetNew(
 	bool bResult = (pItem != NULL) &&
 		xrtValueIntMapSetTake(pMap, iKey, &pItem);
 
-	xrtValueRelease(pItem);
-	return bResult;
+	return __xrtValueConsumeNewResult(bResult, pItem);
 }
 
 XRT_API bool xrtValueIntMapSetNew(
@@ -109358,8 +109501,7 @@ static bool __xrtOwnershipBody_ValueObjectSetNew(
 	bool bResult = (pItem != NULL) &&
 		xrtValueObjectSetTake(pObject, Key, &pItem);
 
-	xrtValueRelease(pItem);
-	return bResult;
+	return __xrtValueConsumeNewResult(bResult, pItem);
 }
 
 XRT_API bool xrtValueObjectSetNew(
@@ -109467,13 +109609,15 @@ static bool __xrtOwnershipBody_ValueSetAdd(xvalue* pSet, const xvalue* pItem)
 	);
 	xvalue* pKey = (xvalue*)pItem;
 	bool bResult;
+	bool bReady;
 
 	if ( (pBacking == NULL) || !__xrtValueSetItemValid(pItem) ) {
 		return false;
 	}
 	pSet->Flags |= XRT_VALUE_FLAG_BUSY;
-	bResult = xrtSetHas(&pBacking->Items, &pKey);
+	bReady = __xrtSetHasChecked(&pBacking->Items, &pKey, &bResult);
 	pSet->Flags &= ~XRT_VALUE_FLAG_BUSY;
+	if ( !bReady ) return false;
 	if ( bResult ) {
 		return true;
 	}
@@ -109520,8 +109664,7 @@ static bool __xrtOwnershipBody_ValueSetAddNew(xvalue* pSet, xvalue* pItem)
 {
 	bool bResult = (pItem != NULL) && xrtValueSetAddTake(pSet, &pItem);
 
-	xrtValueRelease(pItem);
-	return bResult;
+	return __xrtValueConsumeNewResult(bResult, pItem);
 }
 
 XRT_API bool xrtValueSetAddNew(xvalue* pSet, xvalue* pItem)
@@ -111374,6 +111517,9 @@ static bool __xrtValueHandleEqual(
 		pRight->Data.Handle.Data,
 		pLeft->Data.Handle.UserData
 	);
+	/* The public graph call owns a fresh error scope. Stop at the first failed
+	 * callback; do not memoize it as equal or run callbacks for later fields. */
+	bEqual = bEqual && (xrtGetError() == NULL);
 	__xrtValueCallbackUnprotect(
 		pContext->Guards,
 		pContext->GuardCount
@@ -111410,7 +111556,8 @@ static bool __xrtValueEqual(
 		return true;
 	}
 	if ( (pLeft->IdentityEqual != NULL) || (pRight->IdentityEqual != NULL) ) {
-		return __xrtValueEqualKnown(pLeft, pRight);
+		bEqual = __xrtValueEqualKnown(pLeft, pRight);
+		return bEqual && (xrtGetError() == NULL);
 	}
 	if ( iDepth >= XRT_VALUE_DEPTH_MAX ) {
 		__xrtErrorSetValue();
@@ -111490,6 +111637,8 @@ static bool __xrtOwnershipBody_ValueEqual(const xvalue* pLeft, const xvalue* pRi
 {
 	xvalueequalcontext Context;
 	bool bEqual;
+	xerror* pPrior;
+	xerror* pFailure;
 
 	if ( (pLeft == NULL) || (pRight == NULL) ) {
 		__xrtErrorSetInvalidArgument();
@@ -111501,8 +111650,16 @@ static bool __xrtOwnershipBody_ValueEqual(const xvalue* pLeft, const xvalue* pRi
 		return false;
 	}
 	memset(&Context, 0, sizeof(Context));
+	pPrior = xrtTakeError();
 	bEqual = __xrtValueEqual(&Context, pLeft, pRight, 0);
+	pFailure = xrtTakeError();
 	__xrtValueEqualUnit(&Context);
+	xrtClearError();
+	if ( pFailure != NULL ) {
+		xrtErrorFree(pPrior); xrtClearError(); xrtSetErrorTake(pFailure);
+		return false;
+	}
+	xrtSetErrorTake(pPrior);
 	return bEqual;
 }
 
@@ -197387,7 +197544,10 @@ static bool __xrtOwnershipBody_ValueSetMerge(
 	if ( !__xrtValueCollectionProtect(pTarget, pSource) ) {
 		return false;
 	}
-	bSubset = xrtSetIsSubset(pSourceItems, pTargetItems, false);
+	if ( !__xrtSetIsSubsetChecked(pSourceItems, pTargetItems, false, &bSubset) ) {
+		__xrtValueCollectionUnprotect(pTarget, pSource);
+		return false;
+	}
 	if ( bSubset ) {
 		__xrtValueCollectionUnprotect(pTarget, pSource);
 		return true;
