@@ -354,112 +354,29 @@ static int xl6IrCgenEmitPersistenceClassDefault(
     const XL6_IrClassLayout* layout, const char* formatName,
     XL6_DiagList* diags)
 {
-    const XL6_IrType* classType = layout != NULL
-        ? xl6IrTypeGet(&module->types, layout->type) : NULL;
-    size_t fieldIndex;
+    const XL6_IrFunction* factory;
     if ( out == NULL || module == NULL || layout == NULL ||
-         classType == NULL || classType->typeValueId == 0 ||
          module->abi.classStorageAbi != XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2 ||
          layout->persistenceConstructionAbi !=
-             XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT )
+             XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT ||
+         layout->persistenceDefaultFunction == 0 ||
+         layout->persistenceDefaultFunction > module->functionCount )
         return xl6IrCgenDiag(diags, module,
             layout != NULL ? layout->declaration : XL6_IR_NODE_INVALID,
-            "XLIR C emitter persistence class default has no exact construction ABI");
+            "XLIR C emitter persistence class default has no lowered factory ABI");
+    factory = &module->functions[layout->persistenceDefaultFunction - 1];
+    if (factory->kind != XL6_IR_FUNCTION_CLASS_DEFAULT ||
+        factory->reachability == XL6_IR_REACHABILITY_UNREACHABLE)
+        return xl6IrCgenDiag(diags, module, layout->declaration,
+            "XLIR C emitter persistence class default has no reachable factory");
     xl6OutputPrintf(out,
         "static xvalue* xlir_persist_%s_default_t%u(void)\n"
         "{\n"
-        "    xvalue* result = xl6ClassRuntimeV2Get()->Create(%s, NULL);\n"
-        "    xvalue* item;\n"
-        "    if (result == NULL) return NULL;\n"
-        "    if (!xrtValueTypeIdBind(result, 0x%016llXULL)) { xrtValueRelease(result); return NULL; }\n"
-        "    result = xlir_class_identity_bind_t%u(result);\n"
-        "    item = xrtValueInt(INT64_C(%u));\n"
-        "    if (item == NULL || !xrtValueObjectSetNew(result, xrtStrView(\"$xlir.class.runtime-type\"), item)) { xrtValueRelease(result); return NULL; }\n",
+        "    %s outcome = xlir_fn_%u();\n"
+        "    return outcome.ok ? outcome.value : NULL;\n"
+        "}\n\n",
         formatName, (unsigned int)layout->type,
-        module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
-            ? "(xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)" : "NULL",
-        (unsigned long long)classType->typeValueId,
-        (unsigned int)layout->type,
-        (unsigned int)layout->runtimeTypeTag);
-    for ( fieldIndex = 0; fieldIndex < layout->fieldCount; ++fieldIndex ) {
-        const XL6_IrClassField* field =
-            &module->classFields[layout->firstField + fieldIndex];
-        const XL6_IrType* fieldType =
-            xl6IrTypeGet(&module->types, field->type);
-        switch ( field->persistenceDefaultAbi ) {
-        case XL6_IR_PERSISTENCE_DEFAULT_XVALUE_NULL:
-            xl6OutputPuts("    item = xrtValueRetain(xrtValueNull());\n", out);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_BOOL:
-            xl6OutputPrintf(out, "    item = xrtValueBool(%s);\n",
-                field->persistenceDefaultLiteral);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_I64:
-            xl6OutputPrintf(out, "    item = xrtValueInt((int64_t)(%s));\n",
-                field->persistenceDefaultLiteral);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_U64:
-            xl6OutputPrintf(out, "    item = xrtValueUInt((uint64_t)(%s));\n",
-                field->persistenceDefaultLiteral);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_F64:
-            xl6OutputPrintf(out, "    item = xrtValueFloat((double)(%s));\n",
-                field->persistenceDefaultLiteral);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_STRING:
-            xl6OutputPrintf(out,
-                "    item = xrtValueString((xstrview){%s, sizeof(%s) - 1u});\n",
-                field->persistenceDefaultLiteral,
-                field->persistenceDefaultLiteral);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_ARRAY:
-            if ( fieldType == NULL || fieldType->typeValueId == 0 )
-                return xl6IrCgenDiag(diags, module, field->declaration,
-                    "XLIR C emitter persistence array default has no exact type identity");
-            if (fieldType->persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) {
-                if (!xl6IrCgenEmitPersistenceSequenceSeed(out, module, field->type, "item", diags)) return 0;
-                break;
-            }
-            xl6OutputPrintf(out,
-                "    item = xrtValueArray();\n"
-                "    if (item != NULL && !xrtValueTypeIdBind(item, 0x%016llXULL)) { xrtValueRelease(item); item = NULL; }\n",
-                (unsigned long long)fieldType->typeValueId);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST:
-        case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET:
-        case XL6_IR_PERSISTENCE_DEFAULT_EMPTY_DICT:
-            if ( fieldType == NULL || fieldType->typeValueId == 0 )
-                return xl6IrCgenDiag(diags, module, field->declaration,
-                    "XLIR C emitter persistence collection default has no exact type identity");
-            xl6OutputPrintf(out,
-                "    item = %s();\n"
-                "    if (item != NULL && !xrtValueTypeIdBind(item, 0x%016llXULL)) { xrtValueRelease(item); item = NULL; }\n",
-                field->persistenceDefaultAbi ==
-                        XL6_IR_PERSISTENCE_DEFAULT_EMPTY_LIST
-                    ? "xrtValueIntMap"
-                : field->persistenceDefaultAbi ==
-                        XL6_IR_PERSISTENCE_DEFAULT_EMPTY_SET
-                    ? "xrtValueSet" : "xrtValueObject",
-                (unsigned long long)fieldType->typeValueId);
-            break;
-        case XL6_IR_PERSISTENCE_DEFAULT_CLASS:
-            xl6OutputPrintf(out,
-                "    item = xlir_persist_%s_default_t%u();\n",
-                formatName, (unsigned int)field->type);
-            break;
-        default:
-            return xl6IrCgenDiag(diags, module, field->declaration,
-                "XLIR C emitter persistence field has no exact default ABI");
-        }
-        xl6OutputPuts(
-            "    if (item == NULL || !xrtValueObjectSetNew(result, xrtStrView(",
-            out);
-        xl6IrCgenEmitCStringLiteral(out, field->name);
-        xl6OutputPuts(
-            "), item)) { xrtValueRelease(result); return NULL; }\n",
-            out);
-    }
-    xl6OutputPuts("    return xl6ClassRuntimeV2Get()->CommitTake(result);\n}\n\n", out);
+        xl6IrCgenErrorResultType(module, layout->type), (unsigned int)factory->symbol);
     return !xl6OutputHasFailed(out);
 }
 
@@ -666,7 +583,8 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "static bool xlir_persist_%s_read_t%u(xlir_string, xvalue*, xvalue**);\n",
             formatName, (unsigned int)layout->type);
         if ( layout->persistenceConstructionAbi ==
-                 XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT )
+                 XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT &&
+             xl6IrCgenPersistenceTypeUsed(module, layout->type, format, 1) )
             xl6OutputPrintf(out,
                 "static xvalue* xlir_persist_%s_default_t%u(void);\n",
                 formatName, (unsigned int)layout->type);
@@ -682,6 +600,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
         if (schema == NULL) continue;
         if ( layout->persistenceConstructionAbi ==
                  XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT &&
+             xl6IrCgenPersistenceTypeUsed(module, layout->type, format, 1) &&
              !xl6IrCgenEmitPersistenceClassDefault(
                  out, module, layout, formatName, diags) ) return 0;
         xl6OutputPrintf(out,

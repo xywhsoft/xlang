@@ -488,7 +488,7 @@ static const XL6_IrExitPlan* xl6IrLowerExitPlan(
     const XL6_IrNode* node;
     size_t i;
     if (kind == XL6_SEM_EXIT_THROW && ctx->functionIndex < ctx->module->functionCount &&
-        ctx->module->functions[ctx->functionIndex].kind == XL6_IR_FUNCTION_NAMED_ADAPTER) {
+        xl6IrFunctionHasIndependentFailureBoundary(ctx->module->functions[ctx->functionIndex].kind)) {
         XL6_IrNodeId owner = ctx->module->functions[ctx->functionIndex].declaration;
         for (i = 0; i < ctx->module->exitPlanCount; ++i)
             if (ctx->module->exitPlans[i].point == XL6_IR_EXIT_POINT_FUNCTION_FAILURE &&
@@ -31665,6 +31665,33 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
     }
 }
 
+static int xl6IrLowerAddFunctionFailurePlan(XL6_IrLowerContext* ctx, XL6_IrNodeId origin)
+{
+    XL6_IrModule* module = ctx->module;
+    XL6_IrExitPlan* plan;
+    size_t step;
+    if (!xl6IrLowerGrow((void**)&module->exitPlans, &module->exitPlanCapacity,
+            module->exitPlanCount, sizeof(*module->exitPlans))) { ctx->failed = 1; return 0; }
+    plan = &module->exitPlans[module->exitPlanCount++];
+    memset(plan, 0, sizeof(*plan));
+    plan->origin = origin;
+    plan->point = XL6_IR_EXIT_POINT_FUNCTION_FAILURE;
+    plan->kind = XL6_SEM_EXIT_THROW;
+    plan->firstStep = module->exitStepCount;
+    for (step = 0; step < 2; ++step) {
+        XL6_IrExitStep* item;
+        if (!xl6IrLowerGrow((void**)&module->exitSteps, &module->exitStepCapacity,
+                module->exitStepCount, sizeof(*module->exitSteps))) { ctx->failed = 1; return 0; }
+        item = &module->exitSteps[module->exitStepCount++];
+        memset(item, 0, sizeof(*item));
+        item->kind = step == 0 ? XL6_IR_EXIT_STEP_PARAMETERS : XL6_IR_EXIT_STEP_TERMINAL;
+        item->origin = origin;
+        item->failureTarget = step == 0 ? origin : XL6_IR_NODE_INVALID;
+        ++plan->stepCount;
+    }
+    return 1;
+}
+
 static int xl6IrLowerBeginNamedAdapterFunction(
     XL6_IrLowerContext* ctx, const XL6_IrClosureTarget* closure)
 {
@@ -31761,30 +31788,7 @@ static int xl6IrLowerBeginNamedAdapterFunction(
     /* A generated callable has a distinct invocation boundary. Its source
      * NAME belongs to the creator's lexical scopes; defaults belong to the
      * adapted declaration. Neither source ancestry owns this invocation. */
-    {
-        XL6_IrExitPlan* plan;
-        size_t step;
-        if (!xl6IrLowerGrow((void**)&module->exitPlans, &module->exitPlanCapacity,
-                module->exitPlanCount, sizeof(*module->exitPlans))) { ctx->failed = 1; return 0; }
-        plan = &module->exitPlans[module->exitPlanCount++];
-        memset(plan, 0, sizeof(*plan));
-        plan->origin = closure->declaration;
-        plan->point = XL6_IR_EXIT_POINT_FUNCTION_FAILURE;
-        plan->kind = XL6_SEM_EXIT_THROW;
-        plan->firstStep = module->exitStepCount;
-        for (step = 0; step < 2; ++step) {
-            XL6_IrExitStep* item;
-            if (!xl6IrLowerGrow((void**)&module->exitSteps, &module->exitStepCapacity,
-                    module->exitStepCount, sizeof(*module->exitSteps))) { ctx->failed = 1; return 0; }
-            item = &module->exitSteps[module->exitStepCount++];
-            memset(item, 0, sizeof(*item));
-            item->kind = step == 0 ? XL6_IR_EXIT_STEP_PARAMETERS : XL6_IR_EXIT_STEP_TERMINAL;
-            item->origin = closure->declaration;
-            item->failureTarget = step == 0 ? closure->declaration : XL6_IR_NODE_INVALID;
-            ++plan->stepCount;
-        }
-    }
-    return 1;
+    return xl6IrLowerAddFunctionFailurePlan(ctx, closure->declaration);
 }
 
 static int xl6IrLowerNamedAdapterBody(
@@ -31944,6 +31948,43 @@ done:
         xl6IrLowerDiag(ctx, closure->declaration,
                         "XLIR named function adapter CFG could not be materialized exactly");
     return ok;
+}
+
+/* Default reconstruction is an ordinary checked invocation, independent of
+ * the lexical scopes in which its class declaration appeared. */
+static int xl6IrLowerPersistenceDefaultFunctions(XL6_IrLowerContext* ctx)
+{
+    XL6_IrModule* module = ctx->module;
+    for (size_t layoutIndex = 0; layoutIndex < module->classLayoutCount; ++layoutIndex) {
+        XL6_IrClassLayout* layout = &module->classLayouts[layoutIndex];
+        XL6_IrTypeId type = layout->type;
+        XL6_IrNodeId origin = layout->declaration;
+        XL6_IrValueId result;
+        XL6_SymbolId pending;
+        size_t first = ctx->evaluationOwnerCount;
+        if (layout->persistenceDefaultFunction != 0 ||
+            layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT)
+            continue;
+        if (module->functionCount >= UINT32_MAX ||
+            !xl6IrLowerBeginFunction(ctx, origin, XL6_IR_FUNCTION_CLASS_DEFAULT)) return 0;
+        /* Initializer lowering can grow arenas. Do not keep an arena pointer
+         * across the call, and publish the function identity beforehand. */
+        layout->persistenceDefaultFunction = (uint32)module->functionCount;
+        module->functions[ctx->functionIndex].symbol = xl6IrLowerNewSyntheticSymbol(ctx);
+        module->functions[ctx->functionIndex].debugName = "<persistence-default>";
+        module->functions[ctx->functionIndex].returnType = type;
+        module->functions[ctx->functionIndex].errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        if (module->functions[ctx->functionIndex].symbol == 0 ||
+            !xl6IrLowerAddFunctionFailurePlan(ctx, origin)) return 0;
+        result = xl6IrLowerPersistenceClassDefault(ctx, origin, type);
+        if (result == XL6_IR_VALUE_INVALID) return 0;
+        pending = xl6IrLowerPrepareReturnValue(ctx, origin, type, result);
+        if (ctx->failed || !xl6IrLowerEmitTerminal(ctx, XL6_IR_INSTR_RETURN,
+                origin, &result, 1, pending)) return 0;
+        ctx->evaluationOwnerCount = first;
+        xl6IrLowerEndFunction(ctx);
+    }
+    return !ctx->failed;
 }
 
 /* Class destruction is an effect-bearing IR program, including every base
@@ -32213,6 +32254,8 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     if ( module == NULL || module->stage != XL6_IR_STAGE_TYPED || !xl6IrVerifyModule(module, diags) ) return 0;
     xrtFree(module->blocks); module->blocks = NULL; module->blockCount = 0; module->blockCapacity = 0;
     xrtFree(module->functions); module->functions = NULL; module->functionCount = 0; module->functionCapacity = 0;
+    for (i = 0; i < module->classLayoutCount; ++i)
+        module->classLayouts[i].persistenceDefaultFunction = 0;
     xl6IrLowerClearCallTargets(module);
     xl6IrLowerClearExports(module);
     xl6IrLowerClearGenericSpecializations(module);
@@ -32362,6 +32405,10 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     if ( !xl6IrLowerInitializeClassStaticFields(&ctx) ) ctx.failed = 1;
     (void)xl6IrLowerNode(&ctx, module->root);
     xl6IrLowerEndFunction(&ctx);
+    /* Initializers may instantiate generic bodies or closures. Materialize
+     * factories before walking those executable declarations so dependencies
+     * use the ordinary lowering pass, not a second backend implementation. */
+    if (!ctx.failed && !xl6IrLowerPersistenceDefaultFunctions(&ctx)) ctx.failed = 1;
     {
         const XL6_IrNode* root = xl6IrNodeGet(module, module->root);
         for ( i = 0; root != NULL && i < root->childCount; ++i ) {
@@ -32470,7 +32517,10 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         }
         xrtFree(module->blocks); module->blocks = NULL; module->blockCount = 0; module->blockCapacity = 0;
         xrtFree(module->functions); module->functions = NULL; module->functionCount = 0; module->functionCapacity = 0;
-        for (i = 0; i < module->classLayoutCount; ++i) module->classLayouts[i].destroyFunction = 0;
+        for (i = 0; i < module->classLayoutCount; ++i) {
+            module->classLayouts[i].destroyFunction = 0;
+            module->classLayouts[i].persistenceDefaultFunction = 0;
+        }
         xl6IrLowerClearCallTargets(module);
         xl6IrLowerClearExports(module);
         xl6IrLowerClearGenericSpecializations(module);

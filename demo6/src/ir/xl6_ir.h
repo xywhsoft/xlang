@@ -2101,8 +2101,16 @@ typedef enum XL6_IrFunctionKind {
     /* A lowered derived-to-base destruction program. Its single immutable
      * receiver is borrowed from the runtime finalizer, never retained or
      * released. CALL outcomes and first-failure continuation are ordinary CFG. */
-    XL6_IR_FUNCTION_CLASS_FINI
+    XL6_IR_FUNCTION_CLASS_FINI,
+    /* A source-argument-free declaration-default factory. Ordinary constructor
+     * lowering owns allocation, initializer evaluation, rollback and commit;
+     * no user create body is invoked. Its owned result has the normal checked
+     * function ABI and is shared by all persistence wire formats. */
+    XL6_IR_FUNCTION_CLASS_DEFAULT
 } XL6_IrFunctionKind;
+
+/* Generated invocations have no source-owned lexical failure route. */
+int xl6IrFunctionHasIndependentFailureBoundary(XL6_IrFunctionKind kind);
 
 /* Error propagation is a function ABI effect.  It is fixed by lowering and
  * call-graph closure before any backend sees a function or a call target. */
@@ -5614,6 +5622,9 @@ typedef struct XL6_IrClassLayout {
     uint32 persistenceFormatMask;
     XL6_IrPersistenceObjectAbi persistenceObjectAbi;
     XL6_IrPersistenceConstructionAbi persistenceConstructionAbi;
+    /* One-based lowered factory, zero in typed IR or when construction is not
+     * admitted. This is executable IR, not a backend field-initializer recipe. */
+    uint32 persistenceDefaultFunction;
     /* Global ClassField arena indices for the open-object storage chain:
      * object.__fields and DynamicFields.handle.  CLOSED layouts keep both at
      * INVALID.  OPEN schemas inherit the exact same pair from the builtin

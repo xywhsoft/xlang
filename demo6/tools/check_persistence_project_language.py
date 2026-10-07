@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -177,6 +178,17 @@ def main() -> int:
             if args.fixture == 'restore-domains':
                 assert 'xl6PersistenceRestoreArrayTakeV1(' in text and 'xl6SequencePrimitiveCreateV1(' in text
                 assert 'for (index = 0; index < count;' not in text
+                factories = re.findall(r'static xvalue\* xlir_persist_(json|xlon)_default_t(\d+)\(void\)\s*\{([^}]+)\}', text)
+                assert len(factories) == 2 and {row[0] for row in factories} == {'json', 'xlon'}
+                assert factories[0][1] == factories[1][1]
+                symbols = []
+                for _, _, body in factories:
+                    assert 'outcome.ok ? outcome.value : NULL' in body
+                    assert 'xrtValueObjectSetNew' not in body and '->Create(' not in body
+                    call = re.search(r'outcome = (xlir_fn_\d+)\(\);', body)
+                    assert call
+                    symbols.append(call[1])
+                assert symbols[0] == symbols[1]
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text

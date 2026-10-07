@@ -139,6 +139,31 @@ int main(int argc, char** argv)
         !xl6IrLowerModule(&ir, &parse.diags)) goto done;
     assert(xl6IrVerifyPersistenceProjectPlans(&ir) && xl6IrVerifyPersistenceRestorePlans(&ir) &&
         xl6IrVerifyModule(&ir, NULL));
+    for (size_t i = 0; i < ir.classLayoutCount; ++i) {
+        XL6_IrClassLayout* layout = &ir.classLayouts[i];
+        if (!layout->persistenceDefaultFunction) {
+            ALTER_OP(layout, persistenceDefaultFunction, UINT32_MAX);
+            continue;
+        }
+        XL6_IrFunction* factory = &ir.functions[layout->persistenceDefaultFunction - 1];
+        assert(factory->kind == XL6_IR_FUNCTION_CLASS_DEFAULT && factory->parameterCount == 0 &&
+            factory->returnType == layout->type && factory->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
+        ALTER_OP(layout, persistenceDefaultFunction, 0);
+        ALTER_OP(layout, persistenceDefaultFunction, UINT32_MAX);
+        ALTER_OP(factory, kind, XL6_IR_FUNCTION_USER);
+        ALTER_OP(factory, symbol, 0);
+        ALTER_OP(factory, parameterCount, 1);
+        ALTER_OP(factory, returnType, XL6_IR_TYPE_INVALID);
+        ALTER_OP(factory, declaration, ir.root);
+        ALTER_OP(factory, errorAbi, XL6_IR_ERROR_ABI_NO_RAISE);
+        ALTER_OP(factory, reachability, factory->reachability == XL6_IR_REACHABILITY_UNREACHABLE
+            ? XL6_IR_REACHABILITY_ROOT : XL6_IR_REACHABILITY_UNREACHABLE);
+        for (size_t instruction = factory->firstInstruction;
+             instruction < factory->firstInstruction + factory->instructionCount; ++instruction) {
+            XL6_IrInstruction* row = &ir.instructions[instruction];
+            if (row->kind == XL6_IR_INSTR_RETURN) ALTER_OP(row, operandCount, 0);
+        }
+    }
     size_t restoreImports = 0, restoreArrays = 0;
     for (size_t i = 0; i < ir.persistenceRestoreFieldCount; ++i)
         if (xl6IrTypeGet(&ir.types, ir.persistenceRestoreFields[i].payloadType)->persistenceRestoreCarrierAbi ==
