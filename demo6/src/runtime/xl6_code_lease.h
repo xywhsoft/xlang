@@ -138,6 +138,50 @@ typedef struct XL6_ClassRuntimeV2 {
  * outcome, including failure without an allocated error. V1 remains a
  * separate, unchanged void-callback ABI; never cast between the tables. */
 XL6_CODE_LEASE_API const XL6_ClassRuntimeV2* xl6ClassRuntimeV2Get(void);
+/* Canonical IR identity schema, immutable and borrowed from the creating code
+ * owner until EVERY copied backing/cursor/lifetime tail has ended. Field names
+ * are exact byte keys; field identity distinguishes logical layouts across
+ * separately compiled modules. runtimeTypeTag is local to each module, never
+ * the cross-module equality domain. NONE leaves a language-defined protocol to
+ * ordinary IR calls; no native fallback may silently replace that protocol. */
+typedef enum XL6_ClassIdentityModeV3 {
+    XL6_CLASS_IDENTITY_NONE_V3 = 0,
+    XL6_CLASS_IDENTITY_REFERENCE_V3 = 1,
+    XL6_CLASS_IDENTITY_DERIVED_V3 = 2
+} XL6_ClassIdentityModeV3;
+typedef struct XL6_ClassIdentityFieldV3 {
+    const char* name;
+    size_t nameSize;
+    uint64_t identity;
+} XL6_ClassIdentityFieldV3;
+typedef struct XL6_ClassIdentitySchemaV3 {
+    size_t size;
+    uint64_t identity;
+    uint32_t runtimeTypeTag;
+    XL6_ClassIdentityModeV3 hashMode, equalMode;
+    const XL6_ClassIdentityFieldV3* fields;
+    size_t fieldCount;
+} XL6_ClassIdentitySchemaV3;
+enum { XL6_CLASS_IDENTITY_DEPTH_MAX_V3 = 64 };
+/* V3 installs the schema with the lifetime at creation, not in identity user
+ * data and not after publication. COW/deep clones share that immutable schema
+ * and its one real CodeLease edge. No per-class executable identity callback
+ * is generated: both callbacks and field traversal are resident.
+ * BindIdentityTake consumes one owner on BOTH outcomes (only matching resident
+ * hash/equality pairs may bind); failure returns NULL, without abort.
+ * Equal returns an explicit status, writes the payload only on success, and
+ * preserves the first failing field diagnostic. Output must be independent
+ * caller-owned storage. Prepared objects bind after TypeId, BEFORE field/tag
+ * initialization and CommitTake; only actual Hash/Equal reads require fields.
+ * V1/V2 are separate unchanged lifetime/context ABIs, never cast to V3. */
+typedef struct XL6_ClassRuntimeV3 {
+    struct xvalue* (*Create)(const XL6_CodeOwner*, bool (*)(struct xvalue*, void*),
+        const XL6_ClassIdentitySchemaV3*);
+    struct xvalue* (*CommitTake)(struct xvalue*);
+    struct xvalue* (*BindIdentityTake)(struct xvalue*);
+    bool (*Equal)(const struct xvalue*, const struct xvalue*, bool*);
+} XL6_ClassRuntimeV3;
+XL6_CODE_LEASE_API const XL6_ClassRuntimeV3* xl6ClassRuntimeV3Get(void);
 /* Only the resident Class factory's exact lifetime/finalizer family, never
  * arbitrary legacy CodeFinalizerBind contexts. Requires complete graph admission. */
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ClassOwnershipAdapterV1(struct xrtownershipref);
