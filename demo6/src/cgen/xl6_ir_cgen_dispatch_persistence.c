@@ -358,7 +358,7 @@ static int xl6IrCgenEmitPersistenceClassDefault(
     if ( out == NULL || module == NULL || layout == NULL ||
          module->abi.classStorageAbi != XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2 ||
          layout->persistenceConstructionAbi !=
-             XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT ||
+             XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT ||
          layout->persistenceDefaultFunction == 0 ||
          layout->persistenceDefaultFunction > module->functionCount )
         return xl6IrCgenDiag(diags, module,
@@ -583,7 +583,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "static bool xlir_persist_%s_read_t%u(xlir_string, xvalue*, xvalue**);\n",
             formatName, (unsigned int)layout->type);
         if ( layout->persistenceConstructionAbi ==
-                 XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT &&
+                 XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT &&
              xl6IrCgenPersistenceTypeUsed(module, layout->type, format, 1) )
             xl6OutputPrintf(out,
                 "static xvalue* xlir_persist_%s_default_t%u(void);\n",
@@ -599,7 +599,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
         size_t fieldIndex;
         if (schema == NULL) continue;
         if ( layout->persistenceConstructionAbi ==
-                 XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT &&
+                 XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT &&
              xl6IrCgenPersistenceTypeUsed(module, layout->type, format, 1) &&
              !xl6IrCgenEmitPersistenceClassDefault(
                  out, module, layout, formatName, diags) ) return 0;

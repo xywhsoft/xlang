@@ -143,6 +143,7 @@ int main(int argc, char** argv)
         XL6_IrClassLayout* layout = &ir.classLayouts[i];
         if (!layout->persistenceDefaultFunction) {
             ALTER_OP(layout, persistenceDefaultFunction, UINT32_MAX);
+            ALTER_OP(layout, persistenceConstructionAbi, XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT);
             continue;
         }
         XL6_IrFunction* factory = &ir.functions[layout->persistenceDefaultFunction - 1];
@@ -150,6 +151,7 @@ int main(int argc, char** argv)
             factory->returnType == layout->type && factory->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
         ALTER_OP(layout, persistenceDefaultFunction, 0);
         ALTER_OP(layout, persistenceDefaultFunction, UINT32_MAX);
+        ALTER_OP(layout, persistenceConstructionAbi, XL6_IR_PERSISTENCE_CONSTRUCTION_NONE);
         ALTER_OP(factory, kind, XL6_IR_FUNCTION_USER);
         ALTER_OP(factory, symbol, 0);
         ALTER_OP(factory, parameterCount, 1);

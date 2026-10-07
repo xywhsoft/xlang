@@ -1,0 +1,14 @@
+// Pending core contract: equality currently leaves XERR_TYPE pending for
+// independently constructed native Array fields. Keep this distinct from the
+// declaration-factory/retirement matrix; do not claim native Array derivation
+// is validated by a class with only scalar/string identity fields.
+class NativeIdentityRecord
+    derive value
+    derive hash
+    derive equals
+    array<int8> items = [int8(1), int8(2)]
+end
+NativeIdentityRecord first = NativeIdentityRecord()
+NativeIdentityRecord second = json.parse::<NativeIdentityRecord>(json.stringify(first))
+bool equal = first == second
+// The module-product harness requires no ambient error on either bool result.

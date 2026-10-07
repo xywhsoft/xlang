@@ -740,14 +740,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
     }
     if ( needs->needsPersistenceRestoreFormats != XL6_IR_PERSIST_FORMAT_NONE ) {
         for ( i = 0; i < module->classLayoutCount; ++i ) {
-            if ( module->classLayouts[i].persistenceConstructionAbi ==
-                     XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT ) {
-                needs->needsClassValueIdentityRuntime = 1;
-                needs->needsXValueRuntime = 1;
-                needs->needsXValueObjectRuntime = 1;
-            }
-        }
-        for ( i = 0; i < module->classLayoutCount; ++i ) {
             const XL6_IrClassLayout* layout = &module->classLayouts[i];
             if ( layout->persistenceObjectAbi !=
                      XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ) continue;

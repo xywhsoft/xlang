@@ -51,6 +51,7 @@ def main() -> int:
     cases.append(('pretty', test_root / 'test/cases/stdlib_persistence_pretty_language.xl'))
     cases.append(('restore', test_root / 'test/cases/stdlib_persistence_restore_language.xl'))
     cases.append(('restore_domains', test_root / 'test/cases/stdlib_persistence_restore_domains.xl'))
+    cases.append(('restore_construction', test_root / 'test/cases/stdlib_persistence_restore_construction.xl'))
     refusals = [test_root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
@@ -152,6 +153,20 @@ def main() -> int:
                         assert factory['parameterCount'] == 0 and factory['errorAbi'] == 'may-raise'
                         marker = ir['functions'][layouts['DomainMarker']['persistenceDefaultFunction'] - 1]
                         assert marker['kindName'] == 'class-default' and marker['reachability'] == 'unreachable'
+                    if name == 'restore_construction':
+                        assert len(ir['persistenceRestorePlans']) == 2
+                        types = {row['id']: row for row in ir['types']}
+                        layouts = {types[row['type']]['name']: row for row in ir['classLayouts']}
+                        for class_name in ('ConstructionItem', 'ConstructionOpen', 'ConstructionKey'):
+                            layout = layouts[class_name]
+                            assert layout['persistenceConstructionAbiName'] == 'declaration-default'
+                            factory = ir['functions'][layout['persistenceDefaultFunction'] - 1]
+                            assert factory['kindName'] == 'class-default' and factory['reachability'] == 'transitive'
+                        for class_name in ('ConstructionEnvelope', 'ConstructionKeys'):
+                            factory = ir['functions'][layouts[class_name]['persistenceDefaultFunction'] - 1]
+                            assert factory['reachability'] == 'unreachable'
+                        assert layouts['ConstructionItem']['destroyStepCount'] == 1
+                        assert all('persistenceDefaultAbi' not in field for field in ir['classFields'])
                     results.append({'Case': name, 'Optimization': opt, 'Plans': count[0], 'Schemas': count[1],
                                     'Fields': count[2], 'Sequences': len(ir['persistenceProjectSequences']),
                                     'RejectedMutations': count[3], 'IrSha256': digest(target)})

@@ -31963,7 +31963,7 @@ static int xl6IrLowerPersistenceDefaultFunctions(XL6_IrLowerContext* ctx)
         XL6_SymbolId pending;
         size_t first = ctx->evaluationOwnerCount;
         if (layout->persistenceDefaultFunction != 0 ||
-            layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT)
+            layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT)
             continue;
         if (module->functionCount >= UINT32_MAX ||
             !xl6IrLowerBeginFunction(ctx, origin, XL6_IR_FUNCTION_CLASS_DEFAULT)) return 0;
