@@ -9501,6 +9501,22 @@ static int xl6SemCheckPersistenceStdlibCall(
         isWrite = 1;
     }
 
+    /* Only JSON's boolean overload uses the legacy pretty intrinsic plan.
+     * Dynamic configuration (including dictionary literals and named options)
+     * must resolve the declared overload normally, preserving its exact
+     * argument types for the configured XLIR contract. XLON has no public
+     * boolean overload; its nominal XlonOptions facade is also resolved here. */
+    prettyExpr = xl6SemPersistenceCallArg(node, "options", isWrite ? 2 : 1);
+    if (prettyExpr != NULL) {
+        XL6_AstNode* optionType = xl6SemInferAutoTypeNode(ctx, prettyExpr);
+        const XL6_AstNode* resolved = xl6SemResolveAliasType(ctx, optionType);
+        int legacyPretty = xl6SemPersistenceCallArg(node, "pretty", isWrite ? 2 : 1) == prettyExpr &&
+            xl6TextEquals(format, "json") && resolved != NULL &&
+            xl6TextEquals(resolved->text, "bool") && !xl6SemTypeIsNullable(resolved);
+        xl6AstFree(optionType);
+        if (!legacyPretty) return -1;
+    }
+
     valueExpr = isWrite ? xl6SemPersistenceCallArg(node, "value", 1) :
                           xl6SemPersistenceCallArg(node, "value", 0);
     valueType = xl6SemInferAutoTypeNode(ctx, valueExpr);

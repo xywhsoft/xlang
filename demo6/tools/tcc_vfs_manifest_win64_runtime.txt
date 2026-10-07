@@ -18,6 +18,7 @@ file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
 file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%\release\include\xruntime_decl.h
 file|include/__xl_runtime/xl6_serialization_options.h|%XL6_ROOT%\src\runtime\xl6_serialization_options.h
+file|include/__xl_runtime/xl6_serialization_encode.h|%XL6_ROOT%\src\runtime\xl6_serialization_encode.h
 file|include/__xl_runtime/xl6_serialization_read.h|%XL6_ROOT%\src\runtime\xl6_serialization_read.h
 file|include/__xl_runtime/xl6_code_owner.h|%XL6_ROOT%\src\runtime\xl6_code_owner.h
 file|include/__xl_runtime/xl6_log.h|%XL6_ROOT%\src\runtime\xl6_log.h

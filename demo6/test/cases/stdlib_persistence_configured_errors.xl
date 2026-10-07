@@ -1,0 +1,52 @@
+// Ordinary configuration/limit failures must be checked failures, not a
+// successful null string or a fabricated allocation-exhaustion error.
+int rejected = 0
+try
+    string ignored = json.stringify(1, {"unknown": true})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = xlon.stringify(1, 42)
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = jsonl.stringify(array<int>[1], {"unknown": true})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = xlonl.stringify(array<int>[1], {"record": {"unknown": true}})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = json.stringify("a", {"maxOutputBytes": 1})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = xlon.stringify("a", {"maxOutputBytes": 1})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = jsonl.stringify(array<int>[1, 2], {"maxRecords": 1})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+try
+    string ignored = xlonl.stringify(array<int>[1, 2], {"maxRecords": 1})
+catch e
+    assert(e.kind != "MemoryError")
+    rejected += 1
+end
+assert(rejected == 8)

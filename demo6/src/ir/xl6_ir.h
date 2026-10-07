@@ -1626,6 +1626,12 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY,
        XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT,
        XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT,
+       /* Closed configured encoders consume only a verified wire value and
+        * borrowed options. JSONL/XLONL use the corresponding record schema. */
+       XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY,
+       XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_STRINGIFY,
+       XL6_IR_RUNTIME_PERSISTENCE_XLONL_CONFIG_STRINGIFY,
        /* Borrows one managed JSON string and one fully initialized instance of
         * payloadType.  The verified schema overlays present serialized fields
         * onto that default instance and returns an owned retained class value. */
@@ -2272,6 +2278,10 @@ typedef enum XL6_IrIntrinsicKind {
      * closed checked Cast ABI.  This family starts with raw pointers; adding
      * another target requires verifier, lowering and runtime support rather
      * than a source-name fallback in Cgen. */
+    XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_STRINGIFY,
     XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT
 } XL6_IrIntrinsicKind;
 
@@ -3383,6 +3393,10 @@ typedef struct XL6_IrIntrinsicCall {
      * persistence intrinsic.  payloadAbi remains INVALID for persistence. */
     XL6_IrTypeId payloadType;
     XL6_IrAsyncResultAbi payloadAbi;
+    /* Configured persistence only: source operand's textual evaluation
+     * ordinal. The other operand is options; physical encoding is wire-first.
+     * Zero on every other intrinsic. */
+    size_t persistenceSourceOperand;
     /* Exact generic runtime-resource transfer ABI.  This is independent from
      * Future payloadAbi, which remains dedicated to async completion values. */
     XL6_IrRuntimeResourcePayloadAbi runtimeResourcePayloadAbi;
@@ -6213,6 +6227,25 @@ int xl6IrPersistenceWireMatches(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId sourceType, uint32 format);
 int xl6IrPersistenceProjectInstructionAbi(
     const XL6_IrModule*, const XL6_IrInstruction*);
+/* One closed descriptor owns public identity, record projection format and
+ * physical encoder selection. Backends never rediscover a source overload. */
+typedef struct XL6_IrConfiguredPersistenceEncoder {
+    XL6_IrIntrinsicKind intrinsic;
+    XL6_IrRuntimeOp operation;
+    uint32 projectionFormat;
+    int acceptsDefaultOptions;
+    const char* sourceName;
+    const char* encoder;
+    const char* nativeModule;
+} XL6_IrConfiguredPersistenceEncoder;
+const XL6_IrConfiguredPersistenceEncoder* xl6IrConfiguredPersistenceIntrinsic(
+    XL6_IrIntrinsicKind);
+const XL6_IrConfiguredPersistenceEncoder* xl6IrConfiguredPersistenceRuntime(
+    XL6_IrRuntimeOp);
+int xl6IrConfiguredPersistenceInstructionAbi(
+    const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrConfiguredPersistenceIntrinsicAbi(
+    const XL6_IrModule*, const XL6_IrIntrinsicCall*);
 /* Validated execution provenance, distinct from instruction->sourceSpan. */
 XL6_IrNodeId xl6IrInstructionExecutionOrigin(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);

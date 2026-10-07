@@ -19,6 +19,12 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR persistence projection tables are invalid");
     xl6OutputPuts("#include <__xl_runtime/xl6_persistence_project.h>\n", out);
+    for (s = 0; s < module->instructionCount; ++s)
+        if (module->instructions[s].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+            xl6IrConfiguredPersistenceRuntime(module->instructions[s].runtimeOp) != NULL) {
+            xl6OutputPuts("#include <__xl_runtime/xl6_serialization_encode.h>\n", out);
+            break;
+        }
     for (p = 0; p < module->persistenceProjectPlanCount; ++p) {
         const XL6_IrPersistenceProjectPlan* plan = &module->persistenceProjectPlans[p];
         int open = 0;

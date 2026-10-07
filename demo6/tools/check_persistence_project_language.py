@@ -2,7 +2,7 @@
 """Actual PROJECT language path, strict C/JIT/AOT and complete synchronous OOM prefix.
 
 Generated C and the host use O0/O2. Linked runtime/compiler optimization is
-recorded separately; this does not certify configured writers or all formats.
+recorded separately. Configured stringify covers all four encoders, not file/writer APIs.
 """
 from __future__ import annotations
 import argparse
@@ -22,21 +22,25 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
     if not cc or out.exists() or (os.name == 'nt' and not args.public_directory):
         parser.error('Require gcc, fresh evidence, and a Windows current-source driver or Linux current products')
     test_root = Path(__file__).resolve().parents[1]
-    source = test_root / ('test/cases/stdlib_persistence_project_language.xl' if args.fixture == 'project'
-                     else 'test/cases/stdlib_serialization_read_errors.xl')
-    oom_source = source if args.fixture == 'project' else test_root / 'test/cases/stdlib_serialization_read_oom.xl'
+    fixture_names = {'project': 'stdlib_persistence_project_language.xl',
+                     'readers': 'stdlib_serialization_read_errors.xl',
+                     'configured': 'stdlib_persistence_configured_language.xl'}
+    source = test_root / 'test/cases' / fixture_names[args.fixture]
+    oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
     memory = root / 'test/support/module_product_memory.c'
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, oom_source,
              oom_host, memory, root / 'test/support/module_product_memory.h', product}
+    error_source = test_root / 'test/cases/stdlib_persistence_configured_errors.xl' if args.fixture == 'configured' else None
+    if error_source: files.add(error_source)
     public = None
     if args.public_directory:
         manifest = args.public_directory.resolve() / 'build.json'
@@ -97,8 +101,13 @@ def main() -> int:
         generated = out / 'project.c'
         run('cgen', command('cgen-default', generated))
         text = generated.read_text(encoding='utf-8')
-        if args.fixture == 'project':
+        if args.fixture in ('project', 'configured'):
             assert 'xl6PersistenceProjectV1(' in text and 'xlir_persist_plan_2' in text and 'xlir_persist_plan_4' in text
+            if args.fixture == 'configured':
+                assert 'xl6_serialization_encode.h' in text
+                assert all(name + '(' in text for name in
+                           ('xl6JsonEncodeV1', 'xl6XlonEncodeV1', 'xl6JsonlEncodeV1', 'xl6XlonlEncodeV1'))
+                assert '_stringify_configured(' not in text
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text
@@ -115,6 +124,18 @@ def main() -> int:
         run('jit', command('run', out / 'jit'))
         run('aot.emit', command('exe', out / 'aot'))
         run('aot.run', [str(out / ('aot.exe' if os.name == 'nt' else 'aot'))])
+        if error_source:
+            errors_generated = out / 'errors.c'
+            run('errors.cgen', command('cgen-default', errors_generated, error_source))
+            assert '_stringify_configured(' not in errors_generated.read_text(encoding='utf-8')
+            for level in (0, 2):
+                errors_binary = out / f'errors.O{level}.exe'
+                run(f'errors.O{level}.compile', [cc, *strict, f'-O{level}', '-include', str(errors_generated),
+                    str(oom_host), str(out / f'memory.O{level}.o'), *links, '-o', str(errors_binary)])
+                assert 'balanced' in run(f'errors.O{level}.baseline', [str(errors_binary)])
+            run('errors.jit', command('run', out / 'errors.jit', error_source))
+            run('errors.aot.emit', command('exe', out / 'errors.aot', error_source))
+            run('errors.aot.run', [str(out / ('errors.aot.exe' if os.name == 'nt' else 'errors.aot'))])
         oom_generated = generated
         if oom_source != source:
             oom_generated = out / 'readers.oom.c'

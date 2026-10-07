@@ -208,6 +208,16 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp));
+                } else if (xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp) != NULL) {
+                    const XL6_IrConfiguredPersistenceEncoder* configured =
+                        xl6IrConfiguredPersistenceRuntime(instruction->runtimeOp);
+                    if (!xl6IrConfiguredPersistenceInstructionAbi(module, instruction))
+                        return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
+                            "XLIR C emitter configured persistence encoder ABI is unresolved");
+                    xl6OutputPrintf(out, "    v%u = %s(v%u, v%u);\n",
+                        (unsigned int)instruction->result, configured->encoder,
+                        (unsigned int)module->operands[instruction->firstOperand],
+                        (unsigned int)module->operands[instruction->firstOperand + 1]);
                 } else if ( instruction->runtimeOp ==
                                 XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY ||
                             instruction->runtimeOp ==

@@ -234,7 +234,20 @@ $process=Start-Process @start
                         (('src/runtime/xl6_future_metadata.c'-in$selectedSources)-eq$metadata)-and
                         'src/api/xl_future_bridge.c'-notin$selectedSources
                 }
-                if($case-eq'stdlib_text_join_only'){
+                if($case-eq'stdlib_persistence_configured_json_prune'){
+                    $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
+                    # Value formatting already depends on XLON_WRITE in the
+                    # shared runtime conversion closure. That baseline is not
+                    # a configured XLON encoder; only demand absent unrelated
+                    # line/file modules and absent physical encoder calls.
+                    $selectionMatches='XRT_MODULE_JSON_WRITE'-in$plan.NativeModules-and
+                        'XRT_MODULE_BUFFER'-in$plan.NativeModules-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(JSONL_|XLONL_|(?:JSON|XLON)_FILE)'}).Count-and
+                        $generatedText.Contains('xl6JsonEncodeV1(')-and
+                        $generatedText-notmatch 'xl6(?:Xlon|Jsonl|Xlonl)EncodeV1\('-and
+                        $generatedText-notmatch '_stringify_configured\('-and
+                        $generatedText-notmatch 'xlir_persist_plan_4'
+                }elseif($case-eq'stdlib_text_join_only'){
                     $selectionMatches='src/runtime/xl6_text_join.c'-in$selectedSources-and
                         !@($selectedSources|Where-Object {$_-match 'xl6_text_(?!join\.)'}).Count-and
                         'XRT_MODULE_STRING_SPLIT'-notin$plan.NativeModules
@@ -484,6 +497,10 @@ $process=Start-Process @start
                         @($componentObjects|Where-Object {$_.Component.Source-in$selectedSources}|ForEach-Object NativeUndefined)
                     $required=@($required|Sort-Object -Unique)
                     $missing=@($required|Where-Object {$_-notin$defined})
+                    if($case-eq'stdlib_persistence_configured_json_prune'){
+                        $selectionMatches=$selectionMatches-and
+                            !@(@($required)+@($defined)|Where-Object {$_-match '^xrt(?:Jsonl|Xlonl)'}).Count
+                    }
                 }
                 $saved=@(Get-Content -LiteralPath "$prefix.build.err.log"|ForEach-Object {if($_-match '^temporary files kept: (.+)$'){$Matches[1]}})
                 if($saved.Count-eq1){

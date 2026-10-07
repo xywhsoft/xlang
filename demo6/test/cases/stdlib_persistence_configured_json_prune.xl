@@ -1,0 +1,10 @@
+class ConfiguredPruned
+    derive value
+    string label @json("名\0字") = "a\0b"
+    array<int> values = array<int>[1, 2]
+    private int secret = 3
+end
+var parsed = json.parse(json.stringify(ConfiguredPruned(), {"escapeNonAscii": true}))
+assert(parsed["名\0字"] == "a\0b")
+assert(parsed["values"][1] == 2)
+assert(parsed["secret"] == null)

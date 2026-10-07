@@ -1,0 +1,92 @@
+class ConfiguredHidden
+    private int secret = 77
+end
+
+class ConfiguredBase
+    derive value
+    int first @json("shared") @xlon("base") = 1
+end
+
+class ConfiguredRecord extends ConfiguredBase
+    derive value
+    int second @json("shared") @xlon("child") = 2
+    string label @json("名\0字") = "a\0b"
+    private ConfiguredHidden hidden = ConfiguredHidden()
+    ConfiguredHidden skipped @persist(skip) = ConfiguredHidden()
+    array<int> empty @persist(omit=empty) = array<int>[]
+    array<int> values = array<int>[1, 2]
+    list<int> sparse = list<int>[2: 20, 5: 50]
+    set<int> unique = set<int>{3, 4}
+end
+
+ConfiguredRecord source = ConfiguredRecord()
+int configuredOrder = 0
+func orderedOptions() as var
+    assert(configuredOrder == 0)
+    configuredOrder = 1
+    return {}
+end
+func orderedSource() as ConfiguredRecord
+    assert(configuredOrder == 1)
+    configuredOrder = 2
+    return ConfiguredRecord()
+end
+func configuredGeneric<T>(T item) as string
+    return json.stringify(item, {})
+end
+var options = {"pretty": true, "escapeNonAscii": true}
+string jsonText = json.stringify(source, options)
+var parsed = json.parse(jsonText)
+assert(parsed["shared"] == 2)
+assert(parsed["名\0字"] == "a\0b")
+assert(parsed["hidden"] == null)
+assert(parsed["skipped"] == null)
+assert(parsed["empty"] == null)
+assert(parsed["values"][1] == 2)
+assert(parsed["sparse"][0] == 20)
+assert(parsed["unique"].length == 2)
+var extended = xlon.parse(xlon.stringify(source, {"pretty": true}))
+assert(extended["base"] == 1)
+assert(extended["child"] == 2)
+assert(extended["label"] == "a\0b")
+assert(extended["values"][1] == 2)
+
+array<ConfiguredRecord> records = array<ConfiguredRecord>[source, source]
+var lines = jsonl.parse(jsonl.stringify(records, {"record": {"escapeNonAscii": true}}))
+assert(lines.length == 2)
+assert(lines[0]["shared"] == 2)
+assert(lines[1]["名\0字"] == "a\0b")
+assert(lines[0]["hidden"] == null)
+assert(lines[1]["values"][1] == 2)
+var xlines = xlonl.parse(xlonl.stringify(records, {"record": {"pretty": false}}))
+assert(xlines.length == 2)
+assert(xlines[0]["base"] == 1)
+assert(xlines[1]["child"] == 2)
+assert(xlines[1]["label"] == "a\0b")
+var defaultLines = jsonl.parse(jsonl.stringify(records))
+var defaultXlines = xlonl.parse(xlonl.stringify(records))
+assert(defaultLines[0]["shared"] == 2)
+assert(defaultXlines[1]["child"] == 2)
+assert(jsonl.stringify(array<int>[]) == "")
+assert(xlonl.stringify(array<int>[], null) == "")
+assert(json.stringify("a\0b", null) == json.stringify("a\0b"))
+assert(json.stringify(null, null) == "null")
+assert(xlon.stringify(options=null, value=null) == "null")
+assert(options["pretty"] == true)
+var named = json.parse(json.stringify(options=options, value=source))
+assert(named["shared"] == 2)
+var namedX = xlon.parse(xlon.stringify(options={"pretty": false}, value=source))
+assert(namedX["child"] == 2)
+var namedLines = jsonl.parse(jsonl.stringify(options={}, value=records))
+var namedXlines = xlonl.parse(xlonl.stringify(options={}, value=records))
+assert(namedLines[1]["名\0字"] == "a\0b")
+assert(namedXlines[0]["label"] == "a\0b")
+var ordered = json.parse(json.stringify(options=orderedOptions(), value=orderedSource()))
+assert(configuredOrder == 2)
+assert(ordered["shared"] == 2)
+var generic = json.parse(configuredGeneric::<ConfiguredRecord>(source))
+assert(generic["shared"] == 2)
+assert(generic["名\0字"] == "a\0b")
+assert(source.values[1] == 2)
+assert(source.sparse[5] == 50)
+assert(source.label == "a\0b")
