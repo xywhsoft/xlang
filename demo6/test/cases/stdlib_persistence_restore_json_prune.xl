@@ -1,0 +1,6 @@
+class RestoreJsonOnly
+    derive json
+    int item @json("a\0b") = 1
+end
+RestoreJsonOnly restored = json.parse::<RestoreJsonOnly>("{\"a\\u0000b\":9}")
+assert(restored.item == 9)

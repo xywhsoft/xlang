@@ -129,78 +129,9 @@ static const XL6_IrClassLayout* xl6IrCgenClassLayout(
     return NULL;
 }
 
-static uint32 xl6IrCgenPersistenceFieldFlags(
-    const XL6_IrClassField* field, uint32 format)
-{
-    if ( field == NULL ) return 0;
-    if ( format == XL6_IR_PERSIST_FORMAT_JSON )
-        return field->jsonPersistenceFlags;
-    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
-        return field->xlonPersistenceFlags;
-    return 0;
-}
-
-static const char* xl6IrCgenPersistenceFieldKeyLiteral(
-    const XL6_IrClassField* field, uint32 format)
-{
-    if ( field == NULL ) return NULL;
-    if ( format == XL6_IR_PERSIST_FORMAT_JSON )
-        return field->jsonPersistenceKeyLiteral;
-    if ( format == XL6_IR_PERSIST_FORMAT_XLON )
-        return field->xlonPersistenceKeyLiteral;
-    return NULL;
-}
-
 static int xl6IrCgenPersistenceTypeSupportedDepth(
     const XL6_IrModule* module, XL6_IrTypeId type,
     uint32 format, size_t depth, int needsClassConstruction);
-
-static int xl6IrCgenPersistenceLayoutSupportedDepth(
-    const XL6_IrModule* module, XL6_IrTypeId type,
-    uint32 format, size_t depth)
-{
-    const XL6_IrClassLayout* layout = xl6IrCgenClassLayout(module, type);
-    size_t field;
-    size_t fieldStart;
-    if ( module == NULL || layout == NULL ||
-         (format != XL6_IR_PERSIST_FORMAT_JSON &&
-          format != XL6_IR_PERSIST_FORMAT_XLON) ||
-         (layout->persistenceFormatMask & format) == 0 ||
-         (layout->persistenceObjectAbi !=
-              XL6_IR_PERSISTENCE_OBJECT_CLOSED_SCHEMA &&
-          layout->persistenceObjectAbi !=
-              XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) ||
-         (layout->baseDeclaration != XL6_IR_NODE_INVALID &&
-          layout->baseType == XL6_IR_TYPE_INVALID &&
-          layout->persistenceObjectAbi !=
-              XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) ) return 0;
-    if ( depth > module->classLayoutCount ) return 1;
-    if ( layout->baseType != XL6_IR_TYPE_INVALID ) {
-        const XL6_IrClassLayout* base =
-            xl6IrCgenClassLayout(module, layout->baseType);
-        if ( base == NULL ) return 0;
-        if ( base->persistenceFormatMask != XL6_IR_PERSIST_FORMAT_NONE &&
-             !xl6IrCgenPersistenceLayoutSupportedDepth(
-                 module, layout->baseType, format, depth + 1) ) return 0;
-        if ( base->persistenceFormatMask == XL6_IR_PERSIST_FORMAT_NONE &&
-             base->persistenceObjectAbi !=
-                 XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_ROOT ) return 0;
-    }
-    fieldStart = layout->baseDeclaration != XL6_IR_NODE_INVALID &&
-            layout->baseType == XL6_IR_TYPE_INVALID &&
-            layout->persistenceObjectAbi ==
-                XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA
-        ? layout->inheritedFieldCount : 0;
-    for ( field = fieldStart; field < layout->fieldCount; ++field ) {
-        const XL6_IrClassField* item =
-            &module->classFields[layout->firstField + field];
-        if ( (xl6IrCgenPersistenceFieldFlags(item, format) &
-              XL6_IR_FIELD_PERSIST_INCLUDED) != 0 &&
-             !xl6IrCgenPersistenceTypeSupportedDepth(
-                  module, item->type, format, depth + 1, 0) ) return 0;
-    }
-    return 1;
-}
 
 static int xl6IrCgenPersistenceTypeSupportedDepth(
     const XL6_IrModule* module, XL6_IrTypeId typeId,
@@ -218,8 +149,7 @@ static int xl6IrCgenPersistenceTypeSupportedDepth(
                (!needsClassConstruction ||
                 layout->persistenceConstructionAbi ==
                     XL6_IR_PERSISTENCE_CONSTRUCTION_SCHEMA_DEFAULT) &&
-               xl6IrCgenPersistenceLayoutSupportedDepth(
-                   module, typeId, format, depth + 1);
+               xl6IrPersistenceRestoreSchemaGet(module, typeId, format) != NULL;
     }
     case XL6_IR_PERSISTENCE_VALUE_NULLABLE:
     case XL6_IR_PERSISTENCE_VALUE_ARRAY:
@@ -238,8 +168,7 @@ static int xl6IrCgenPersistenceTypeSupportedDepth(
 static int xl6IrCgenPersistenceLayoutSupported(
     const XL6_IrModule* module, XL6_IrTypeId type, uint32 format)
 {
-    return xl6IrCgenPersistenceLayoutSupportedDepth(
-        module, type, format, 0);
+    return xl6IrPersistenceRestoreSchemaGet(module, type, format) != NULL;
 }
 
 

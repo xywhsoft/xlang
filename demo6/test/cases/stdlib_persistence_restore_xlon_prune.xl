@@ -1,0 +1,6 @@
+class RestoreXlonOnly
+    derive xlon
+    int item @xlon("名\0字") = 1
+end
+RestoreXlonOnly restored = xlon.parse::<RestoreXlonOnly>("{\"名\\u0000字\":9}")
+assert(restored.item == 9)

@@ -112,6 +112,12 @@ static void inspect(const XL6_IrModule* ir)
     memcpy(saved, &(Row)->Member, sizeof(saved)); \
     (Row)->Member = (Value); rejectedOutputAt(&ir, __LINE__, #Member); memcpy(&(Row)->Member, saved, sizeof(saved)); \
 } while (0)
+#define ALTER_RESTORE(Row, Member, Value) do { \
+    unsigned char saved[sizeof((Row)->Member)]; \
+    memcpy(saved, &(Row)->Member, sizeof(saved)); \
+    (Row)->Member = (Value); assert(!xl6IrVerifyPersistenceRestorePlans(&ir)); \
+    rejectedOutputAt(&ir, __LINE__, #Member); memcpy(&(Row)->Member, saved, sizeof(saved)); \
+} while (0)
 
 int main(int argc, char** argv)
 {
@@ -126,7 +132,72 @@ int main(int argc, char** argv)
     if (!xl6SemCheckModule(parse.root, &parse.diags, "project_plan_contract") ||
         !xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags) ||
         !xl6IrLowerModule(&ir, &parse.diags)) goto done;
-    assert(xl6IrVerifyPersistenceProjectPlans(&ir) && xl6IrVerifyModule(&ir, NULL));
+    assert(xl6IrVerifyPersistenceProjectPlans(&ir) && xl6IrVerifyPersistenceRestorePlans(&ir) &&
+        xl6IrVerifyModule(&ir, NULL));
+    assert(xl6IrDynamicFieldsRuntimeBridgeErrorAbi(NULL) == XL6_IR_ERROR_ABI_INVALID &&
+        xl6IrDynamicFieldsRuntimeBridgeErrorAbi("not_a_bridge") == XL6_IR_ERROR_ABI_INVALID);
+    for (size_t i = 0; i < ir.callTargetCount; ++i) {
+        XL6_IrCallTarget* target = &ir.callTargets[i];
+        if (target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS) continue;
+        XL6_IrErrorAbi saved = target->errorAbi;
+        assert(saved == xl6IrDynamicFieldsRuntimeBridgeErrorAbi(target->cName));
+        assert(target->errorPhysicalAbi == (saved == XL6_IR_ERROR_ABI_MAY_RAISE
+            ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_NONE));
+        target->errorAbi = saved == XL6_IR_ERROR_ABI_MAY_RAISE
+            ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
+        rejectedOutput(&ir); target->errorAbi = saved;
+    }
+    if (!ir.persistenceRestorePlanCount) {
+        assert(!ir.persistenceRestoreSchemaCount && !ir.persistenceRestoreFieldCount);
+        ALTER_RESTORE(&ir, persistenceRestorePlanCount, 1);
+    } else {
+        ALTER_RESTORE(&ir, persistenceRestorePlanCount, 0);
+        ALTER_RESTORE(&ir, persistenceRestorePlanCount, SIZE_MAX);
+        ALTER_RESTORE(&ir, persistenceRestorePlans, NULL);
+        ALTER_RESTORE(&ir, persistenceRestorePlanCapacity, 0);
+        ALTER_RESTORE(&ir, persistenceRestoreSchemas, NULL);
+        ALTER_RESTORE(&ir, persistenceRestoreSchemaCount, 0);
+        if (ir.persistenceRestoreFieldCount) {
+            ALTER_RESTORE(&ir, persistenceRestoreFields, NULL);
+            ALTER_RESTORE(&ir, persistenceRestoreFieldCount, 0);
+            ALTER_RESTORE(&ir, persistenceRestoreFieldCapacity, 0);
+        }
+        for (size_t i = 0; i < ir.persistenceRestorePlanCount; ++i) {
+            XL6_IrPersistenceRestorePlan* row = &ir.persistenceRestorePlans[i];
+            ALTER_RESTORE(row, format, XL6_IR_PERSIST_FORMAT_NONE);
+            ALTER_RESTORE(row, firstSchema, SIZE_MAX); ALTER_RESTORE(row, schemaCount, SIZE_MAX);
+        }
+        for (size_t i = 0; i < ir.persistenceRestoreSchemaCount; ++i) {
+            XL6_IrPersistenceRestoreSchema* row = &ir.persistenceRestoreSchemas[i];
+            assert(row == xl6IrPersistenceRestoreSchemaGet(&ir,
+                ir.classLayouts[row->classLayout].type,
+                i < ir.persistenceRestorePlans[0].schemaCount
+                    ? ir.persistenceRestorePlans[0].format : ir.persistenceRestorePlans[1].format));
+            ALTER_RESTORE(row, classLayout, SIZE_MAX);
+            ALTER_RESTORE(row, firstField, SIZE_MAX); ALTER_RESTORE(row, fieldCount, SIZE_MAX);
+            ALTER_RESTORE(row, dynamicField, SIZE_MAX - 1);
+            ALTER_RESTORE(row, dynamicHandleField, SIZE_MAX - 1);
+            ALTER_RESTORE(row, dynamicDestroySymbol, UINT32_MAX);
+        }
+        for (size_t i = 0; i < ir.persistenceRestoreFieldCount; ++i) {
+            XL6_IrPersistenceRestoreField* row = &ir.persistenceRestoreFields[i];
+            ALTER_RESTORE(row, classField, SIZE_MAX);
+            ALTER_RESTORE(row, payloadType, XL6_IR_TYPE_INVALID);
+            ALTER_RESTORE(row, sourceKeyAbi, 0); ALTER_RESTORE(row, sourceKey, NULL);
+            ALTER_RESTORE(row, sourceKey, "not-canonical"); ALTER_RESTORE(row, assignAbi, 0);
+            ALTER_RESTORE(row, acceptNull, !row->acceptNull); ALTER_RESTORE(row, required, !row->required);
+        }
+        XL6_IrPersistenceRestorePlan* plans = ir.persistenceRestorePlans;
+        XL6_IrPersistenceRestoreSchema* schemas = ir.persistenceRestoreSchemas;
+        XL6_IrPersistenceRestoreField* fields = ir.persistenceRestoreFields;
+        size_t first = ir.functions[0].firstInstruction;
+        ir.functions[0].firstInstruction = SIZE_MAX;
+        assert(!xl6IrBuildPersistenceRestorePlans(&ir));
+        assert(ir.persistenceRestorePlans == plans && ir.persistenceRestoreSchemas == schemas &&
+            ir.persistenceRestoreFields == fields);
+        ir.functions[0].firstInstruction = first;
+        assert(xl6IrBuildPersistenceRestorePlans(&ir) && xl6IrVerifyModule(&ir, NULL));
+    }
     for (size_t i = 0; i < ir.callTargetCount; ++i) {
         XL6_IrCallTarget* target = &ir.callTargets[i];
         if (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
@@ -161,6 +232,18 @@ int main(int argc, char** argv)
             ALTER_OP(wire, persistenceWireFormat, wire->persistenceWireFormat == XL6_IR_PERSIST_FORMAT_JSON
                 ? XL6_IR_PERSIST_FORMAT_XLON : XL6_IR_PERSIST_FORMAT_JSON);
             ALTER_OP(wire, sourceTypeId, 1);
+        } else if (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE ||
+                   instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE ||
+                   instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_READ ||
+                   instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_READ) {
+            assert(xl6IrRuntimeContainerAllocationErrorPhysicalAbi(instruction->runtimeOp) ==
+                XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT);
+            assert(i + 1 < ir.instructionCount);
+            XL6_IrInstruction* edge = &ir.instructions[i + 1];
+            assert(edge->kind == XL6_IR_INSTR_ERROR_TEST);
+            ALTER_OP(instruction, payloadType, XL6_IR_TYPE_INVALID);
+            ALTER_OP(instruction, operandCount, 0);
+            ALTER_OP(edge, kind, XL6_IR_INSTR_VALUE);
         } else if (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL) {
             const XL6_IrPersistenceInvocationContract* row = xl6IrPersistenceInvocationRuntime(instruction->runtimeOp);
             assert(xl6IrPersistenceInvocationInstructionAbi(&ir, instruction));
@@ -209,6 +292,13 @@ int main(int argc, char** argv)
     }
     for (size_t i = 0; i < ir.intrinsicCallCount; ++i) {
         XL6_IrIntrinsicCall* intrinsic = &ir.intrinsicCalls[i];
+        if (intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE ||
+            intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_PARSE ||
+            intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_READ ||
+            intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_READ) {
+            assert(intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
+            ALTER_OP(intrinsic, errorAbi, XL6_IR_ERROR_ABI_NO_RAISE);
+        }
         int legacy = intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY ||
             intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_XLON_STRINGIFY ||
             intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITE ||
@@ -325,6 +415,8 @@ int main(int argc, char** argv)
     assert(xl6OutputOpenFile(&output, argv[2])); xl6IrDumpModuleJson(&output, &ir); xl6OutputClose(&output);
     printf("Projection plans: %zu plans, %zu schemas, %zu fields; %u mutations refused before C/header\n",
         ir.persistenceProjectPlanCount, ir.persistenceProjectSchemaCount, ir.persistenceProjectFieldCount, mutations);
+    printf("Restore plans: %zu plans, %zu schemas, %zu fields\n",
+        ir.persistenceRestorePlanCount, ir.persistenceRestoreSchemaCount, ir.persistenceRestoreFieldCount);
     ok = 1;
 done:
     for (size_t i = 0; i < parse.diags.count; ++i) fprintf(stderr, "%d:%d: %s\n",

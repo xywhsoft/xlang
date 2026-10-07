@@ -273,7 +273,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter persistence parse ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_persist_%s_%s_t%u(v%u, v%u);\n",
+                        "    bool projection_ok_%u = xlir_persist_%s_%s_t%u(v%u, v%u, &v%u);\n",
                         (unsigned int)instruction->result,
                         format,
                         isRead ? "read" : "parse",
@@ -281,7 +281,8 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         (unsigned int)module->operands[
                             instruction->firstOperand],
                         (unsigned int)module->operands[
-                            instruction->firstOperand + 1]);
+                            instruction->firstOperand + 1],
+                        (unsigned int)instruction->result);
                 } else if ( xl6IrCollectionAlgebraRuntimeOpIs(
                                 instruction->runtimeOp) ) {
                     if ( !xl6IrCgenEmitCollectionAlgebraInstruction(

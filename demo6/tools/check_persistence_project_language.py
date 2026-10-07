@@ -16,14 +16,18 @@ import subprocess
 import sys
 
 def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    hashed = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            hashed.update(chunk)
+    return hashed.hexdigest()
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -38,7 +42,8 @@ def main() -> int:
                      'writers': 'stdlib_persistence_writer_language.xl',
                      'visitors': 'stdlib_serialization_visit_language.xl',
                      'nominal': 'stdlib_persistence_nominal_language.xl',
-                     'pretty': 'stdlib_persistence_pretty_language.xl'}
+                     'pretty': 'stdlib_persistence_pretty_language.xl',
+                     'restore': 'stdlib_persistence_restore_language.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
@@ -51,11 +56,13 @@ def main() -> int:
                    'writers': 'stdlib_persistence_writer_errors.xl',
                    'visitors': 'stdlib_serialization_visit_errors.xl',
                    'nominal': 'stdlib_persistence_nominal_errors.xl',
-                   'pretty': 'stdlib_persistence_pretty_errors.xl'}
+                   'pretty': 'stdlib_persistence_pretty_errors.xl',
+                   'restore': 'stdlib_persistence_restore_errors.xl'}
     error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
     status_names = {'visitors': 'xlir_serialization_visit_status_host.c',
-                    'pretty': 'xlir_persistence_pretty_status_host.c'}
+                    'pretty': 'xlir_persistence_pretty_status_host.c',
+                    'restore': 'xlir_persistence_restore_status_host.c'}
     status_host = test_root / 'test/cases' / status_names[args.fixture] if args.fixture in status_names else None
     if status_host: files.add(status_host)
     invalid_source = test_root / 'test/cases/stdlib_persistence_nominal_nonderived_invalid.xl' if args.fixture == 'nominal' else None
@@ -95,7 +102,7 @@ def main() -> int:
               'OOMScope': 'Complete caller-thread module initialization and retirement prefix, no Future workers'}
     out.mkdir(parents=True)
     run_environment = os.environ.copy()
-    if args.fixture in ('files', 'nominal', 'pretty'):
+    if args.fixture in ('files', 'nominal', 'pretty', 'restore'):
         scratch = out / 'files'
         scratch.mkdir()
         run_environment['XL6_PERSIST_FILE_ROOT'] = str(scratch)
@@ -159,6 +166,10 @@ def main() -> int:
             assert 'xl6_serialization_visit_finish(' in text
             assert 'xl6_xrt_json_visit_configured(' in text and 'xl6_xrt_xlon_visit_configured(' in text
             assert 'static XL6_Serialization_Visit_Result xl6_serialization_callback_finish(' not in text
+        elif args.fixture == 'restore':
+            assert 'xlir_persist_json_parse_t' in text and 'xlir_persist_xlon_parse_t' in text
+            assert 'xrtValueObjectGet(source, (xstrview){' in text
+            assert 'xl6SerializeRestoreReadFinishV1(' in text and 'bool projection_ok_' in text
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text
