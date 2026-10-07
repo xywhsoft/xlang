@@ -13606,6 +13606,32 @@ XRT_API bool xrtValueObjectIdentityBindV1(xvalue* pObject, xvalueidentityhash pH
 	xvalueidentityequal pEqual, const xvalueobjectownershipv1* pExpectedPolicy);
 XRT_API const xrtownershipadapterv1* xrtValueObjectOwnershipAdapterV1(
 	xrtownershipref Reference, const xvalueobjectownershipv1* pExpectedPolicy);
+/* Synchronous, callback-scoped read access to an exact certified lifecycle
+ * family. Right may be NULL; otherwise both objects must match ExpectedPolicy.
+ * Prepared construction objects are allowed, but finalizing, claimed, cleared,
+ * dead or reentrant receivers are refused BEFORE the visitor is called.
+ * The caller owns live shells throughout the call. Each distinct receiver is
+ * BUSY and each distinct physical backing is pinned until the visitor returns:
+ * direct slot writes/retain/clone/release of receivers are refused; independent
+ * COW aliases may detach, without invalidating the borrowed original slots.
+ * Views, lifetime contexts and field values are borrowed only during Visit;
+ * never retain a view, release/mutate borrowed fields, or escape via longjmp.
+ * This protects shell/slot reentrancy, not transitive payload mutations or
+ * concurrent operations on the SAME object. Normal caller synchronization is
+ * still required. This read does not authorize collector admission or a host.
+ * false is explicit failure even without a diagnostic; true with a new error
+ * is failure too. Only success restores the prior diagnostic. No allocation
+ * or producer policy callback is required by the read boundary itself. */
+typedef struct xvalueobjectreadv1 xvalueobjectreadv1;
+typedef bool (*xvalueobjectreadvisitv1)(const xvalueobjectreadv1* pLeft,
+	const xvalueobjectreadv1* pRight, ptr pContext);
+XRT_API bool xrtValueObjectReadV1(const xvalue* pLeft, const xvalue* pRight,
+	const xvalueobjectownershipv1* pExpectedPolicy, xvalueobjectreadvisitv1 pVisit, ptr pContext);
+XRT_API const void* xrtValueObjectReadLifetimeV1(const xvalueobjectreadv1* pView);
+XRT_API uint64 xrtValueObjectReadTypeIdV1(const xvalueobjectreadv1* pView);
+/* Exact byte key, including embedded NUL. A missing field returns NULL without
+ * an error; NULL data with a nonzero key size is an invalid argument. */
+XRT_API const xvalue* xrtValueObjectReadGetV1(const xvalueobjectreadv1* pView, xstrview Key);
 /* Borrowed discovery anchors for this instance's live, explicitly certified
  * Object backings. Policy identity is exact; COW/deep-clone backings are each
  * visited once, with their shared Lifetime UserData (possibly NULL). Ordinary
@@ -111330,6 +111356,13 @@ typedef struct xvalueobjectbacking {
 	struct xvalueobjectbacking* DiscoveryNext;
 } xvalueobjectbacking;
 
+/* Only the synchronous ReadV1 boundary constructs these opaque stack views.
+ * Backing pins protect slots; shell BUSY protects the receiver, not children. */
+struct xvalueobjectreadv1 {
+	const xvalueobjectbacking* Object;
+	uint64 TypeId;
+};
+
 static bool __xrtValueObjectPolicyValid(const xvalueobjectownershipv1*);
 static bool __xrtValueObjectPolicyCallbacks(const xvalueobjectbacking*, const xvalueobjectownershipv1*);
 
@@ -114428,6 +114461,91 @@ XRT_API xvalue* xrtValueObjectGet(const xvalue* pObject, xstrview Key)
 		__xrtValueObjectKey(Key)
 	);
 	return pSlot != NULL ? (xvalue*)*pSlot : NULL;
+}
+
+static bool __xrtValueObjectReadPrepareV1(const xvalue* pValue,
+	const xvalueobjectownershipv1* pPolicy, xvalueobjectreadv1* pView)
+{
+	const xvalueobjectbacking* pObject;
+	if (pValue == NULL) { __xrtErrorSetInvalidArgument(); return false; }
+	if (pValue->Type != XVALUE_OBJECT) { __xrtErrorSetType(); return false; }
+	if (__xrtAtomicRefLoad(&pValue->RefCount) <= 0 || pValue->OwnershipClaim != NULL ||
+		(pValue->Flags & (XRT_VALUE_FLAG_STATIC | XRT_VALUE_FLAG_BUSY |
+		 XRT_VALUE_FLAG_FINALIZING | XRT_VALUE_FLAG_OWNERSHIP_CLEARED)) != 0) {
+		__xrtErrorSetInvalidState(); return false;
+	}
+	pObject = (const xvalueobjectbacking*)pValue->Data.Backing;
+	if (pObject == NULL || pObject->Base.Type != XVALUE_OBJECT ||
+		__xrtAtomicRefLoad(&pObject->Base.RefCount) <= 0 || pObject->Base.OwnershipClaim != NULL ||
+		pObject->ReceiverClaim != NULL ||
+		(pObject->Base.Flags & (XRT_VALUE_BACKING_FINALIZING | XRT_VALUE_BACKING_OWNERSHIP_CLEARED)) != 0 ||
+		pObject->OwnershipPolicy != pPolicy || !__xrtValueObjectPolicyCallbacks(pObject, pPolicy) ||
+		pObject->Lifetime->OwnershipPolicy != pPolicy || pObject->Lifetime->OwnershipClaim != NULL ||
+		pObject->Lifetime->OwnershipCleared || __xrtAtomicRefLoad(&pObject->Lifetime->RefCount) <= 0 ||
+		pValue->IdentityUserData != NULL || pValue->IdentityHash != pObject->OwnedIdentityHash ||
+		pValue->IdentityEqual != pObject->OwnedIdentityEqual) {
+		__xrtErrorSetInvalidState(); return false;
+	}
+	pView->Object = pObject; pView->TypeId = pValue->TypeId;
+	return true;
+}
+static bool __xrtOwnershipBody_ValueObjectReadV1(const xvalue* pLeft, const xvalue* pRight,
+	const xvalueobjectownershipv1* pPolicy, xvalueobjectreadvisitv1 pVisit, ptr pContext)
+{
+	xvalueobjectreadv1 Left = {0}, Right = {0};
+	const xvalue* tValues[2] = {pLeft, pRight};
+	xvaluebacking* tPins[2] = {NULL, NULL};
+	size_t iCount = pRight != NULL ? 2 : 1, iPins = 0;
+	xerror* pPrior = xrtTakeError();
+	xerror* pFailure;
+	bool bProtected = false, bSuccess = false;
+	if (!__xrtValueObjectPolicyValid(pPolicy) || pVisit == NULL) {
+		__xrtErrorSetInvalidArgument(); goto done;
+	}
+	if (!__xrtValueObjectReadPrepareV1(pLeft, pPolicy, &Left) ||
+		(pRight != NULL && !__xrtValueObjectReadPrepareV1(pRight, pPolicy, &Right))) goto done;
+	tPins[0] = (xvaluebacking*)Left.Object;
+	if (!__xrtValueBackingRetain(tPins[0])) goto done;
+	iPins = 1;
+	if (pRight != NULL && Right.Object != Left.Object) {
+		tPins[1] = (xvaluebacking*)Right.Object;
+		if (!__xrtValueBackingRetain(tPins[1])) goto done;
+		iPins = 2;
+	}
+	if (!__xrtValueCallbackProtect(tValues, iCount)) goto done;
+	bProtected = true;
+	bSuccess = pVisit(&Left, pRight != NULL ? &Right : NULL, pContext);
+done:
+	pFailure = xrtTakeError();
+	if (bProtected) __xrtValueCallbackUnprotect(tValues, iCount);
+	/* Each pin still has its caller-owned shell: these drops cannot finalize a
+	 * backing or run foreign release code. Restore the selected error last. */
+	while (iPins != 0) __xrtValueBackingRelease(tPins[--iPins]);
+	xrtClearError();
+	if (bSuccess && pFailure == NULL) xrtSetErrorTake(pPrior);
+	else { xrtErrorFree(pPrior); xrtSetErrorTake(pFailure); bSuccess = false; }
+	return bSuccess;
+}
+XRT_API bool xrtValueObjectReadV1(const xvalue* pLeft, const xvalue* pRight,
+	const xvalueobjectownershipv1* pPolicy, xvalueobjectreadvisitv1 pVisit, ptr pContext)
+{ XRT_VALUE_MUTATION_RETURN(bool, __xrtOwnershipBody_ValueObjectReadV1(pLeft, pRight, pPolicy, pVisit, pContext)); }
+XRT_API const void* xrtValueObjectReadLifetimeV1(const xvalueobjectreadv1* pView)
+{
+	if (pView == NULL) { __xrtErrorSetInvalidArgument(); return NULL; }
+	return pView->Object->Lifetime->UserData;
+}
+XRT_API uint64 xrtValueObjectReadTypeIdV1(const xvalueobjectreadv1* pView)
+{
+	if (pView == NULL) { __xrtErrorSetInvalidArgument(); return 0; }
+	return pView->TypeId;
+}
+XRT_API const xvalue* xrtValueObjectReadGetV1(const xvalueobjectreadv1* pView, xstrview Key)
+{
+	const xvalue* const* pSlot;
+	if (pView == NULL) { __xrtErrorSetInvalidArgument(); return NULL; }
+	if (!__xrtValueObjectKeyValid(Key)) return NULL;
+	pSlot = (const xvalue* const*)xrtMapConstGet(&pView->Object->Items, __xrtValueObjectKey(Key));
+	return pSlot != NULL ? *pSlot : NULL;
 }
 
 
