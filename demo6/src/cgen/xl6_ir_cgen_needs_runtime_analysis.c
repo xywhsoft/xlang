@@ -11,6 +11,16 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableNativeScalarCodec=1;
             needs->needsXValueRuntime=1;
         }
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY) {
+            const XL6_IrType* type=xl6IrTypeGet(&module->types,module->instructions[i].type);
+            if (type && xl6IrNativeScalarProfileForCAbi(type->cAbi)!=XL6_NATIVE_SCALAR_NONE)
+                needs->needsCallableNativeScalarCodec=1;
+        }
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY &&
+            xl6IrNativeScalarProfileForCAbi(xl6IrNullableScalarElementAbi(module,module->instructions[i].type))!=
+                XL6_NATIVE_SCALAR_NONE) needs->needsCallableNativeScalarCodec=1;
         if (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
             xl6IrCgenSpecialF64RuntimeOpIs(module->instructions[i].runtimeOp))
             needs->needsSpecialF64Runtime = 1;

@@ -650,6 +650,11 @@ static int xl6IrCgenRuntimeFutureXValueRefAbi(
         sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
         sourceType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
         sourceType->paramCount == 1 && sourceType->params != NULL &&
+        instruction->runtimeIdentityType ==
+            (sourceType->kind == XL6_IR_TYPE_NULLABLE ? sourceType->params[0] : source->type) &&
+        xl6IrFutureProjectionPayloadType(module,source->type,
+            sourceType->kind == XL6_IR_TYPE_NULLABLE ? XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY :
+                XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY) != XL6_IR_TYPE_INVALID &&
         xl6IrTypeGet(&module->types, sourceType->params[0]) != NULL &&
         resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
         resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;

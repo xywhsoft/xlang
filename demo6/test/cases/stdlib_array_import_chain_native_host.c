@@ -143,6 +143,10 @@ static void chainVectors(void)
     count=plan(seeds,true); xrtSetErrorKind(XERR_ARGUMENT); const xerror* prior=xrtGetError();
     result=xl6ArrayImportChainTakeV1(seeds,count,source);
     assert(result && xrtGetError()==prior); xrtClearError(); xrtValueRelease(result);
+    count=plan(seeds,true); xvalue* retained=xrtValueRetain(source);
+    result=xl6ArrayImportChainSourceTakeV1(seeds,count,retained);
+    assert(result && xrtValueCount(source)==4 && xrtValueArrayGet(source,0)==original);
+    clearPlan(seeds,count); chainObserved(result,3,true); xrtValueRelease(result);
     /* Truncation and incorrect child policy fail before input traversal. */
     count=plan(seeds,false); xvalue* remaining=xrtValueRetain(seeds[count-1]);
     assert(!xl6ArrayImportChainTakeV1(seeds,count-1,source)); error(XERR_TYPE);
@@ -166,6 +170,7 @@ static void chainVectors(void)
     count=plan(seeds,false); xvalue* borrowed=seeds[0];
     assert(!xl6ArrayImportChainTakeV1(seeds,count,borrowed)); error(XERR_ARGUMENT);
     assert(!xl6ArrayImportChainTakeV1(NULL,1,source)); error(XERR_ARGUMENT);
+    assert(!xl6ArrayImportChainSourceTakeV1(NULL,1,xrtValueRetain(source))); error(XERR_ARGUMENT);
     count=plan(seeds,false);
     assert(!xl6ArrayImportChainTakeV1(seeds,66,source)); error(XERR_ARGUMENT);
     for (size_t i=0;i<count;++i) xrtValueRelease(seeds[i]);
@@ -204,6 +209,13 @@ static void chainVectors(void)
     xl6_error_result outcome=xl6ErrorScopeEnd(&outerScope);
     assert(!outcome.ok && outcome.error && xrtErrorKind(outcome.error)==XERR_TYPE);
     xrtErrorFree(outcome.error); xrtClearError(); xrtValueRelease(source);
+    count=plan(seeds,false); raw=(void*)(uintptr_t)1;
+    source=xrtValueHandleTake(&raw,&failingOps,NULL); assert(source && !raw);
+    before=cleanupCalls; memset(&outerScope,0,sizeof(outerScope)); assert(xl6ErrorScopeBegin(&outerScope));
+    assert(!xl6ArrayImportChainSourceTakeV1(seeds,count,source) && cleanupCalls==before+1);
+    clearPlan(seeds,count); outcome=xl6ErrorScopeEnd(&outerScope);
+    assert(!outcome.ok && outcome.error && xrtErrorKind(outcome.error)==XERR_TYPE);
+    xrtErrorFree(outcome.error); xrtClearError();
 }
 static void chainFault(const char* operation,size_t point)
 {
@@ -216,7 +228,11 @@ static void chainFault(const char* operation,size_t point)
 #endif
     { assert(!deep); source=wide ? sourceWide(24) : sourceWire(32,true); count=plan(seeds,!wide); }
     xvalue* first=xrtValueArrayGet(source,0);
-    assert(xrtMemDebugFailAfter(point)); xvalue* result=xl6ArrayImportChainTakeV1(seeds,count,source);
+    bool owned=!strcmp(operation,"take");
+    xvalue* consumed=owned ? xrtValueRetain(source) : NULL;
+    assert(xrtMemDebugFailAfter(point));
+    xvalue* result=owned ? xl6ArrayImportChainSourceTakeV1(seeds,count,consumed) :
+        xl6ArrayImportChainTakeV1(seeds,count,source);
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
     if (hit) { assert(!result); error(XERR_MEMORY); }
     else {

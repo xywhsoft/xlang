@@ -30,6 +30,12 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                         "XLIR C emitter shared runtime ABI is unresolved");
                 if ( sharedRuntime > 0 ) {
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
+                    char source[24];
+                    if (!xl6IrArrayImportRuntimeInstructionCompatible(module,instruction))
+                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR Array import contract is unresolved");
+                    snprintf(source,sizeof(source),"v%u",(unsigned)module->operands[instruction->firstOperand]);
+                    return xl6IrCgenEmitArrayImportChain(out,module,instruction->type,instruction->result,source,true);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPE_ID ) {
                     if ( instruction->immediateText != NULL ||
                          instruction->operandCount != 1 )
@@ -546,10 +552,10 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter Future dynamic reference box ABI is unresolved");
                     xl6OutputPrintf(out,
-                                    "    v%u = v%u != NULL ? xrtValueFuture(v%u) : xrtValueRetain(xrtValueNull());\n",
+                                    "    v%u = xl6PayloadBoxFutureV1(v%u, 0x%016llXULL);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
-                                    (unsigned int)module->operands[instruction->firstOperand]);
+                                    (unsigned long long)xl6IrTypeGet(&module->types,instruction->runtimeIdentityType)->typeValueId);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX ) {
                     if ( !xl6IrCgenRuntimeNullableStringBoxAbi(module, instruction) )

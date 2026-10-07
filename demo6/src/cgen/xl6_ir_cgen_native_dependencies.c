@@ -220,6 +220,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
+            (!xl6IrArrayImportRuntimeInstructionCompatible(module,instruction) ||
+             !visitor(context,"xl6ArrayImportChainSourceTakeV1") ||
+             !visitor(context,"xl6ArrayEraseV1"))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_CONCAT &&
             !visitor(context,"xl6ArrayConcatV1")) return 0;
             const char* method=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ?
@@ -276,6 +280,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
     if (needs.needsXValueErrorBoxRuntime && !visitor(context,"xl6ErrorValueRefV1")) return 0;
+    if (needs.needsXValueFutureRuntime && !visitor(context,"xl6PayloadBoxFutureV1")) return 0;
     if ((needs.needsXValueErrorProjectionRuntime || needs.needsXValueCheckedCastRuntime) &&
         !visitor(context,"xl6ErrorValueReadRefV1")) return 0;
     if (needs.needsXValueToStringRuntime && !visitor(context,"xl6ValueTextV1")) return 0;

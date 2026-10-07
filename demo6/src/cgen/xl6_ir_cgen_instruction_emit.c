@@ -415,6 +415,7 @@ static int xl6IrCgenEmitInstruction(
                                      XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST ||
                                  source->runtimeOp ==
                                      XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND ||
+                                 source->runtimeOp == XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
                                   source->runtimeOp ==
                                       XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED ||
                                   source->runtimeOp == XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||

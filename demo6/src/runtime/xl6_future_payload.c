@@ -1,10 +1,27 @@
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_VALUE
 #define XRT_MODULE_FUTURE
-#include "lib/xrt/xrt.h"
+#define XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE
+#include "lib/xruntime/xruntime.h"
 #include "xl6_future_payload.h"
 #include "xl6_closure.h"
 #include "xl6_generator.h"
+
+xvalue* xl6PayloadBoxFutureV1(xfuture* future, uint64_t identity)
+{
+    if (!identity) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    if (!future) return xrtValueRetain(xrtValueNull());
+    xvalue* value = xrtValueFuture(future);
+    if (!value) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
+        return NULL;
+    }
+    if (xrtValueTypeIdBind(value, identity)) return value;
+    if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
+    xerror* failure = xrtTakeError();
+    xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(failure);
+    return NULL;
+}
 
 static void xl6FuturePayloadDropValue(void* value, void* context)
 { (void)context; xrtFree(value); }

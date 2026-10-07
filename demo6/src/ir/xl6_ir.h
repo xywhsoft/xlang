@@ -1147,6 +1147,12 @@ typedef enum XL6_IrRuntimeOp {
      * success.  collectionAbi carries that tag; lowering immediately emits
      * ERROR_TEST so a failed cast cannot enter user storage. */
     XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST,
+    /* Consumes an erased owned source and imports the complete verified Array
+     * recipe into an independently owned, projected resident Sequence. The
+     * source is never retagged. collectionAbi=ARRAY, payloadType=exact element,
+     * sequenceAdmissionIdentitySet=the root recipe's set. Immediate ERROR_TEST
+     * observes NULL_RESULT before publication; no generated element traversal. */
+    XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN,
     /* Imports one owned erased container into a concrete typed collection.
      * The operation consumes its source on success and failure, validates the
      * runtime container tag plus every element tag, and returns the same owned
@@ -2979,7 +2985,7 @@ typedef struct XL6_IrInstruction {
     XL6_IrCollectionAdmissionAbi collectionAdmissionAbi;
     XL6_IrNominalIdentitySetId collectionAdmissionIdentitySet;
     bool collectionAdmissionNullable;
-    /* Source Stack construction owns an exact resident Sequence recipe.
+    /* Source Stack construction / Array checked import own an exact resident Sequence recipe.
      * Only nominal recipes carry a set; NONE on every other instruction. */
     XL6_IrNominalIdentitySetId sequenceAdmissionIdentitySet;
     /* Valid exactly for typed Array RESIZE; INVALID elsewhere. Logical
@@ -6196,6 +6202,8 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
  * publishing any output. NULL/zero queries length; short buffers are unchanged. */
 int xl6IrArrayImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, size_t, size_t*);
+int xl6IrArrayImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrContextualArrayImportRequired(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
  * Typed construction, lowering, verification and statistics from developing
  * separate lists of operations which can fail without source throw syntax. */

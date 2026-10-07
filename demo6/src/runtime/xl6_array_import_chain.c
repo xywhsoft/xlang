@@ -135,9 +135,13 @@ static bool fill(Import* ctx,size_t depth,XL6_Sequence* target,const xvalue* sou
 done:
     xl6ArrayInputReleaseV1(&input); return ok && !xrtGetError();
 }
-xvalue* xl6ArrayImportChainTakeV1(xvalue** seeds,size_t count,const xvalue* source)
+static xvalue* importChain(xvalue** seeds,size_t count,const xvalue* source,bool sourceOwned)
 {
-    if (!seeds || !count || count>MAX_CHAIN) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    if (!seeds || !count || count>MAX_CHAIN) {
+        xrtSetErrorKind(XERR_ARGUMENT);
+        if (sourceOwned) releasePreservingError((xvalue*)source);
+        return NULL;
+    }
     xerror* incoming=xrtTakeError();
     xl6_error_scope operation={0};
     if (!xl6ErrorScopeBegin(&operation)) abort();
@@ -183,6 +187,7 @@ done:
         releasePreservingError((xvalue*)ctx.memo[i].source);
     }
     xrtFree(ctx.memo); releasePreservingError(observed);
+    if (sourceOwned) releasePreservingError((xvalue*)source);
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { releasePreservingError(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
@@ -190,3 +195,7 @@ done:
     else xrtSetErrorTake(incoming);
     return result;
 }
+xvalue* xl6ArrayImportChainTakeV1(xvalue** seeds,size_t count,const xvalue* source)
+{ return importChain(seeds,count,source,false); }
+xvalue* xl6ArrayImportChainSourceTakeV1(xvalue** seeds,size_t count,xvalue* source)
+{ return importChain(seeds,count,source,true); }

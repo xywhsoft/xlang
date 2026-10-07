@@ -1,6 +1,7 @@
 #ifndef XL6_FUTURE_PAYLOAD_H
 #define XL6_FUTURE_PAYLOAD_H
 #include <stdbool.h>
+#include <stdint.h>
 struct xpromise;
 struct xerror;
 struct xrtownershipref;
@@ -59,4 +60,10 @@ XL6_FUTURE_PAYLOAD_API const struct xrtownershipadapterv1* xl6PayloadOwnershipAd
  * diagnostic fails, the allocation-free XRT cancellation kind still wins, so
  * observation cannot turn cancellation into a failed Future. */
 XL6_FUTURE_PAYLOAD_API bool xl6PayloadObserveOutcome(int, const struct xerror*);
+struct xfuture;
+struct xvalue;
+/* Borrow the physical Future and retain it in an owned erased value whose
+ * immutable identity is the exact non-null future<T> TypeId. A null Future
+ * becomes canonical null, never a differently typed null sentinel. */
+XL6_FUTURE_PAYLOAD_API struct xvalue* xl6PayloadBoxFutureV1(struct xfuture*, uint64_t);
 #endif

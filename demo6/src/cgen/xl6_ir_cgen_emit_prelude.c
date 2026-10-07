@@ -85,7 +85,7 @@ static int xl6IrCgenEmitRuntimePrelude(
         needs->needsAsyncStringResult || needs->needsAsyncXValueResult ||
         needs->needsAsyncTaskRuntime || needs->needsAsyncReadyRuntime ||
         needs->needsAsyncMachineRuntime || needs->needsFutureContinuationRuntime ||
-        needs->needsFutureAwaitRuntime)
+        needs->needsFutureAwaitRuntime || needs->needsXValueFutureRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_future_payload.h>\n", out);
     if ( needs->needsForeignErrorRuntime || needs->needsXCallRuntime ||
          needs->needsGeneratorRuntime )

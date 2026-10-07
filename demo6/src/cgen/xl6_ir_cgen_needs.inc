@@ -41,6 +41,7 @@ XL6_IR_CGEN_NEED(int, needsChannelResourceRuntime, CHANNEL)
 XL6_IR_CGEN_NEED(int, needsSpecialQueueBatchRuntime, QUEUES)
 /* Declaration-only; selected resident providers own their native roots. */
 XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, NONE)
+XL6_IR_CGEN_NEED(int, needsArrayImportRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsAvlTreeResourceRuntime, TREE)
 XL6_IR_CGEN_NEED(int, needsSyncResourceRuntime, SYNC)
 XL6_IR_CGEN_NEED(int, needsXValueCountRuntime, VALUE)

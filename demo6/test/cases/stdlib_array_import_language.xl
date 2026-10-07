@@ -1,0 +1,137 @@
+class ImportItem
+    int value = 7
+end
+
+enum ImportSmall as int8
+    low = -128
+    high = 127
+end
+
+func rawNumbers() as array
+    return [1, 2, 3]
+end
+
+func importedReturn() as array<int>
+    return rawNumbers()
+end
+
+func sum(array<int> values) as int
+    int total = 0
+    for item in values
+        total += item
+    end
+    return total
+end
+
+var raw = [1, 2, 3]
+array<int> values = raw
+assert(values.length == 3 and values[2] == 3)
+values[0] = 9
+assert(raw[0] == 1 and values[0] == 9)
+array<int> second = rawNumbers()
+auto joined = values + second
+assert(joined.length == 6 and joined[0] == 9 and joined[5] == 3)
+assert(sum(rawNumbers()) == 6 and importedReturn()[1] == 2)
+
+var textSource = ["a\0你", "b"]
+array<string> text = textSource
+assert(text[0] == "a\0你" and string.byteLen(text[0]) == 5)
+var charSource = ['A', '你', '\0']
+array<char> chars = charSource
+assert(chars[1] == '你' and chars[2] == '\0')
+var narrowSource = [int8(-128), int8(127)]
+array<int8> narrow = narrowSource
+assert(narrow[0] == int8(-128) and narrow[1] == int8(127))
+var optionalSource = [null, 8]
+array<int?> optional = optionalSource
+int? eight = 8
+assert(optional[0] == null and optional[1] == eight)
+
+var binarySource = [b"a\0b", b"\xff"]
+array<bytes> binary = binarySource
+assert(binary[0] == b"a\0b" and binary[1] == b"\xff")
+ImportItem object = ImportItem()
+var objectsSource = [object, null]
+array<ImportItem?> objects = objectsSource
+assert(objects[0] != null and objects[1] == null)
+auto savedObject = objects[0]
+if savedObject != null then
+    savedObject.value = 11
+end
+assert(object.value == 11)
+var cSource = [c_int(-7)]
+array<c_int> cValues = cSource
+assert(cValues[0] == c_int(-7))
+var cOptionalSource = [null, c_int(-7)]
+array<c_int?> cOptional = cOptionalSource
+c_int? expectedC = c_int(-7)
+assert(cOptional[0] == null and cOptional[1] == expectedC)
+var cFloatSource = [c_float(1.25)]
+array<c_float> cFloats = cFloatSource
+assert(cFloats[0] == c_float(1.25))
+var cBoolSource = [c_bool(true)]
+array<c_bool> cBools = cBoolSource
+assert(cBools[0] == c_bool(true))
+var enumSource = [ImportSmall.low, ImportSmall.high]
+array<ImportSmall> enums = enumSource
+assert(enums[0] == ImportSmall.low and enums[1] == ImportSmall.high)
+
+var child = [4, 5]
+var nestedSource = [child, child]
+array<array<int>> nested = nestedSource
+nested[0][0] = 12
+assert(nested[1][0] == 12 and child[0] == 4)
+var deepSource = [nestedSource]
+array<array<array<int>>> deep = deepSource
+assert(deep[0][1][1] == 5)
+var nominalChild = [object]
+var nominalOuter = [nominalChild]
+array<array<ImportItem>> nominalNested = nominalOuter
+assert(nominalNested[0][0].value == 11)
+
+func(int) as int callback = func(int value) as int
+    return value + 1
+end
+var callableSource = [callback, null]
+array<(func(int) as int)?> functions = callableSource
+auto observed = functions[0]
+assert(observed != null and functions[1] == null)
+if observed != null then
+    assert(observed(7) == 8)
+end
+
+async func completed() as int
+    return 77
+end
+future<int> pending = completed()
+var futureSource = [pending, null]
+array<future<int>?> futures = futureSource
+auto observedFuture = futures[0]
+assert(observedFuture != null and futures[1] == null)
+if observedFuture != null then
+    assert(await observedFuture == 77)
+end
+
+// Failed leaf admission must not replace the already-published target.
+var invalid = ["not an integer"]
+bool caught = false
+try
+    values = invalid
+catch e
+    if e.kind != "TypeError" then
+        throw
+    end
+    caught = e.kind == "TypeError"
+end
+assert(caught and values[0] == 9 and invalid[0] == "not an integer")
+
+int finalized = 0
+func checkedReturn() as array<int>
+    try
+        return rawNumbers()
+    finally
+        finalized += 1
+    end
+end
+auto guarded = checkedReturn()
+assert(guarded[2] == 3 and finalized == 1)

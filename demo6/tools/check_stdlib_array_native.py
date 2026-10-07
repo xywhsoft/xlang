@@ -350,7 +350,7 @@ def main() -> int:
         if args.sanitize: command += ["--sanitize"]
         run(child.name,command,timeout=900)
         evidence=json.loads((child/"results.json").read_text(encoding="utf-8"))
-        if not evidence["Complete"] or not evidence["InputsUnchanged"] or not evidence["Chain"] or len(evidence["Sweeps"])!=38:
+        if not evidence["Complete"] or not evidence["InputsUnchanged"] or not evidence["Chain"] or len(evidence["Sweeps"])!=56:
             raise RuntimeError("Incomplete recursive Array import evidence")
         report["RecursiveImportReport"]={"Directory":str(child),"Checks":len(evidence["Rows"]),
             "ClosedPrefixes":len(evidence["Sweeps"]),"Complete":True,"InputsUnchanged":True}

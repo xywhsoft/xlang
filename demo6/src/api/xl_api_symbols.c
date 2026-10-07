@@ -188,6 +188,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6ContinuationOwnership", (const void*)xl6ContinuationOwnership) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationWatchRegister", (const void*)xl6ContinuationWatchRegister)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6PayloadDropGet", (const void*)xl6PayloadDropGet) ||
+        !xlApiAddTccSymbol(s, "xl6PayloadBoxFutureV1", (const void*)xl6PayloadBoxFutureV1) ||
         !xlApiAddTccSymbol(s, "xl6PayloadTraceGet", (const void*)xl6PayloadTraceGet) ||
         !xlApiAddTccSymbol(s, "xl6PayloadResolveOwned", (const void*)xl6PayloadResolveOwned) ||
         !xlApiAddTccSymbol(s, "xl6PayloadObserveOutcome", (const void*)xl6PayloadObserveOutcome)) return 0;

@@ -282,6 +282,8 @@ static int xl6IrCgenVerifyInstructions(
                         XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
                     !xl6IrCgenRuntimeCollectionCheckedRebindAbi(
                         module, instruction)) ||
+                   (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
+                    !xl6IrArrayImportRuntimeInstructionCompatible(module,instruction)) ||
                    (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT &&
                    (instruction->immediateText != NULL || instruction->operandCount != 1 ||
                     xl6IrCgenType(module, instruction->type) == NULL)) ||
@@ -606,6 +608,7 @@ static int xl6IrCgenVerifyInstructions(
                        XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST &&
                     instruction->runtimeOp !=
                         XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
+                    instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_COUNT &&
                     instruction->runtimeOp !=
                         XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE &&

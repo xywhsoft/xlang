@@ -358,6 +358,20 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
     if ( instruction->runtimeOp ==
          XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY ) {
         if ( result->cName[0] == '\0' ) return 0;
+        const XL6_IrType* element = xl6IrTypeGet(&module->types,instruction->payloadType);
+        XL6_NativeScalarProfileV1 profile = element
+            ? xl6IrNativeScalarProfileForCAbi(element->cAbi) : XL6_NATIVE_SCALAR_NONE;
+        if (profile != XL6_NATIVE_SCALAR_NONE) {
+            xl6OutputPrintf(out,
+                "    bool projection_null_%u = v%u != NULL && xrtValueType(v%u) == 0;\n"
+                "    bool projection_ok_%u = projection_null_%u || xl6ValueReadNativeScalarV1(v%u, %u, 0x%016llXULL, &v%u.value);\n"
+                "    v%u.hasValue = projection_ok_%u && !projection_null_%u;\n",
+                (unsigned int)instruction->result,(unsigned int)operand,(unsigned int)operand,
+                (unsigned int)instruction->result,(unsigned int)instruction->result,(unsigned int)operand,
+                (unsigned int)profile,(unsigned long long)element->typeValueId,(unsigned int)instruction->result,
+                (unsigned int)instruction->result,(unsigned int)instruction->result,(unsigned int)instruction->result);
+            return !xl6OutputHasFailed(out);
+        }
         xl6OutputPrintf(out, "    v%u = xlir_xvalue_project_%s(v%u);\n",
             (unsigned int)instruction->result, result->cName,
             (unsigned int)operand);
@@ -425,6 +439,13 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (unsigned long long)exactTypeValueId);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY ) {
+        XL6_NativeScalarProfileV1 profile = xl6IrNativeScalarProfileForCAbi(result->cAbi);
+        if (profile != XL6_NATIVE_SCALAR_NONE) {
+            xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueReadNativeScalarV1(v%u, %u, 0x%016llXULL, &v%u);\n",
+                (unsigned int)instruction->result,(unsigned int)operand,(unsigned int)profile,
+                (unsigned long long)result->typeValueId,(unsigned int)instruction->result);
+            return !xl6OutputHasFailed(out);
+        }
         if (result->cAbi==XL6_IR_C_ABI_F32) {
             xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueReadF32V1(v%u, 0x%016llXULL, &v%u);\n",
                 (unsigned int)instruction->result,(unsigned int)operand,

@@ -21,15 +21,18 @@ def main() -> int:
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--sanitize', action='store_true', help='Host/generated C only, not the shared product')
     parser.add_argument('--algebra', action='store_true', help='Array concatenation outcome, source independence and cleanup')
+    parser.add_argument('--import-arrays', action='store_true', help='Actual erased-to-native Array language import')
     args = parser.parse_args()
     root, out = Path(__file__).resolve().parents[1], args.out.resolve()
     cc = shutil.which('gcc')
-    if not cc or out.exists() or (args.sanitize and os.name == 'nt'):
+    if not cc or out.exists() or (args.sanitize and os.name == 'nt') or (args.algebra and args.import_arrays):
         parser.error('Require gcc, fresh evidence and Linux for sanitizers')
     cases = ['stdlib_sequence_nested_schema', 'stdlib_sequence_nested_schema_continuation',
              'stdlib_stack_admitted_construction', 'stdlib_stack_nested_factory_only', 'stdlib_stack_factory_only']
     if args.algebra:
         cases = ['stdlib_array_algebra_language']
+    if args.import_arrays:
+        cases = ['stdlib_array_import_language']
     runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     compiler = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
     cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
@@ -42,6 +45,8 @@ def main() -> int:
     files.update(root / f'test/cases/{case}.xl' for case in cases)
     if args.algebra:
         files.add(root / 'test/cases/xlir_array_algebra_outcome_contract.c')
+    if args.import_arrays:
+        files.add(root / 'test/cases/xlir_array_import_outcome_contract.c')
     public = None
     if args.public_directory:
         public = json.loads((args.public_directory / 'build.json').read_text(encoding='utf-8-sig'))
@@ -63,7 +68,8 @@ def main() -> int:
         shutil.copy2(runtime, out / 'xl.dll')
     rows, sweeps, failures = [], [], []
     report = {'Complete': False, 'InputsUnchanged': False,
-              'Scope': 'Array concatenation outcome, source independence and cleanup' if args.algebra else __doc__, 'Inputs': inputs,
+              'Scope': 'Actual erased-to-native Array language import' if args.import_arrays else
+                  'Array concatenation outcome, source independence and cleanup' if args.algebra else __doc__, 'Inputs': inputs,
               'Rows': rows, 'Sweeps': sweeps, 'Failures': failures, 'Cases': cases,
               'SanitizedHost': args.sanitize, 'SharedRuntimeInstrumented': False, 'PublicSourceDriver': public is not None}
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED', '-I.', '-Irelease',
@@ -73,7 +79,7 @@ def main() -> int:
     links = [str(runtime)] if os.name == 'nt' else ['-Lrelease', '-lxl', '-Wl,-rpath,' + str(root / 'release'),
                                                      '-pthread', '-lm', '-ldl']
     env = dict(os.environ)
-    if args.algebra and public:
+    if (args.algebra or args.import_arrays) and public:
         # The private Sequence handle ops are inseparable from their factories
         # and consumers. Use the complete frozen source runtime/compiler here,
         # not a new concat object mixed with the released DLL's old owner ops.
@@ -106,12 +112,14 @@ def main() -> int:
                 '--format', 'json', '--emit', target]
 
     try:
-        if args.algebra:
+        if args.algebra or args.import_arrays:
+            contract_case = 'xlir_array_import_outcome_contract' if args.import_arrays else 'xlir_array_algebra_outcome_contract'
             contract = out / ('outcome_contract.exe' if os.name == 'nt' else 'outcome_contract')
             contract_links = links if public else ['-Lrelease', '-lxlc', *links]
-            run('outcome.contract.build', [cc, *flags, '-O0', 'test/cases/xlir_array_algebra_outcome_contract.c',
+            run('outcome.contract.build', [cc, *flags, '-O0', f'test/cases/{contract_case}.c',
                                            *contract_links, '-o', contract])
-            assert b'Array algebra outcome:' in run('outcome.contract', [contract])
+            expected_contract = b'Array import outcome:' if args.import_arrays else b'Array algebra outcome:'
+            assert expected_contract in run('outcome.contract', [contract])
         for level in (0, 2):
             run(f'memory.O{level}.build', [cc, *flags, f'-O{level}', '-c',
                 'test/support/module_product_memory.c', '-o', out / f'memory.O{level}.o'])
@@ -129,7 +137,17 @@ def main() -> int:
                     assert path.read_bytes() == repeated.read_bytes(), 'Nondeterministic ' + mode
                 code = target.read_text(encoding='utf-8')
                 assert 'xl6SequenceNestedCreateV1' not in code
-                if args.algebra:
+                if args.import_arrays:
+                    assert 'xl6ArrayImportChainSourceTakeV1(' in code
+                    assert 'xl6CollectionCheckedTakeV1(' not in code and 'xrtValueRebindTypeId' not in code
+                    lowered = json.loads((out / (case + '.json')).read_text(encoding='utf-8'))
+                    imports = [row for row in lowered['instructions'] if row['runtimeOpName'] == 'array-import-chain']
+                    assert len(imports) >= 15 and all(int(row['operandCount']) == 1 for row in imports)
+                    for row in imports:
+                        test = lowered['instructions'][int(row['index']) + 1]
+                        assert test['kindName'] == 'error-test' and test['operands'] == [int(row['result'])]
+                        assert int(test['trueTarget']) != int(test['falseTarget']), 'Unchecked Array import result'
+                elif args.algebra:
                     assert 'xl6ArrayConcatV1(' in code and 'xrtValueArrayConcat(' not in code
                     lowered = json.loads((out / (case + '.json')).read_text(encoding='utf-8'))
                     concat = [row for row in lowered['instructions'] if row['runtimeOpName'] == 'xvalue-array-concat']

@@ -29,4 +29,9 @@ typedef struct xvalue xvalue;
  * and preserves the primary error. Publication is single-result, not atomic
  * replacement of an already-published language container. */
 XL6_ARRAY_IMPORT_CHAIN_API xvalue* xl6ArrayImportChainTakeV1(xvalue**, size_t, const xvalue*);
+/* Language checked-import boundary. In addition to the seed contract above,
+ * consumes one owned source reference on BOTH paths (also for invalid seed
+ * arguments). It does not rebind/modify the source shell. Source destruction
+ * participates in the same first-error transaction before publication. */
+XL6_ARRAY_IMPORT_CHAIN_API xvalue* xl6ArrayImportChainSourceTakeV1(xvalue**, size_t, xvalue*);
 #endif
