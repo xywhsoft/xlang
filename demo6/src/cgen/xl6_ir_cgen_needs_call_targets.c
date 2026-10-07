@@ -263,10 +263,13 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsClosureRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER ) {
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER ||
+                    target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT ) {
             needs->needsJsonWriterBridgeRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsStringViews = 1;
+            needs->needsResultBool = 1;
+            needs->needsResultString = 1;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY ) {
             needs->needsJsonlStringifyBridgeRuntime = 1;
             needs->needsXValueRuntime = 1;
@@ -335,7 +338,7 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsClosureRuntime = 1;
             }
         } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XLON_PARSE &&
-                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_WRITER ) {
+                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT ) {
             switch ( target->runtimeBridge ) {
             case XL6_IR_RUNTIME_BRIDGE_XLON_PARSE:
                 needs->xlonBridgeOperations |= XL6_CGEN_XLON_PARSE; break;
@@ -353,11 +356,16 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 needs->needsClosureRuntime = 1;
                 break;
             case XL6_IR_RUNTIME_BRIDGE_XLON_WRITER:
+            case XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT:
                 needs->xlonBridgeOperations |= XL6_CGEN_XLON_WRITER; break;
             default: break;
             }
             needs->needsXValueRuntime = 1;
             needs->needsStringViews = 1;
+            if (needs->xlonBridgeOperations & XL6_CGEN_XLON_WRITER) {
+                needs->needsResultBool = 1;
+                needs->needsResultString = 1;
+            }
         } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR ) {
             needs->needsTakeCstrBridgeRuntime = 1;

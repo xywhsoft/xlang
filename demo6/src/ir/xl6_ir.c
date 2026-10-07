@@ -5653,7 +5653,9 @@ static void xl6IrBuildExpectedPersistenceTypeAbi(
                     type->cAbi == XL6_IR_C_ABI_U64 ||
                     type->cAbi == XL6_IR_C_ABI_F64 ||
                     type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
+                    type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+                    type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
                     (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                      !xl6IrBuildPersistenceTypeContainsClass(
                          module, typeId, 0)) ) {
@@ -6011,6 +6013,9 @@ static int xl6IrBuildPersistenceXlonLayoutSupported(
         module, typeId, XL6_IR_PERSIST_FORMAT_XLON, 0);
 }
 
+static const XL6_IrClassField* xl6IrManagedNativeConstructorField(
+    const XL6_IrModule*, XL6_IrTypeId);
+
 static const XL6_IrPersistenceInvocationContract xl6IrPersistenceInvocations[] = {
     {XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY,
      XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY, XL6_IR_PERSIST_FORMAT_JSON, XL6_IR_PERSISTENCE_INVOKE_ENCODE, 0,
@@ -6034,9 +6039,80 @@ static const XL6_IrPersistenceInvocationContract xl6IrPersistenceInvocations[] =
     XL6_PERSIST_IO("json", JSON, Json, XL6_IR_PERSIST_FORMAT_JSON, 0),
     XL6_PERSIST_IO("xlon", XLON, Xlon, XL6_IR_PERSIST_FORMAT_XLON, 0),
     XL6_PERSIST_IO("jsonl", JSONL, Jsonl, XL6_IR_PERSIST_FORMAT_JSON, 1),
-    XL6_PERSIST_IO("xlonl", XLONL, Xlonl, XL6_IR_PERSIST_FORMAT_XLON, 1)
+    XL6_PERSIST_IO("xlonl", XLONL, Xlonl, XL6_IR_PERSIST_FORMAT_XLON, 1),
 #undef XL6_PERSIST_IO
+#define XL6_PERSIST_WRITER(Format, Kind, Suffix, Method, Entry, RecordFormat) \
+    {XL6_IR_INTRINSIC_PERSISTENCE_##Kind##_WRITER_##Suffix, \
+     XL6_IR_RUNTIME_PERSISTENCE_##Kind##_WRITER_##Suffix, RecordFormat, \
+     XL6_IR_PERSISTENCE_INVOKE_WRITER_##Suffix, 0, \
+     "xl6_xrt_" Format "_writer_value" Method, "xl6" #Entry "V1", "XRT_MODULE_" #Kind "_WRITE"}
+    XL6_PERSIST_WRITER("json", JSON, VALUE, "", JsonWriterValue, XL6_IR_PERSIST_FORMAT_JSON),
+    XL6_PERSIST_WRITER("json", JSON, NAME, "_key", JsonWriterName, XL6_IR_PERSIST_FORMAT_JSON),
+    XL6_PERSIST_WRITER("xlon", XLON, VALUE, "", XlonWriterValue, XL6_IR_PERSIST_FORMAT_XLON),
+    XL6_PERSIST_WRITER("xlon", XLON, NAME, "_key", XlonWriterName, XL6_IR_PERSIST_FORMAT_XLON),
+    XL6_PERSIST_WRITER("xlon", XLON, INDEX, "_index", XlonWriterIndex, XL6_IR_PERSIST_FORMAT_XLON)
+#undef XL6_PERSIST_WRITER
 };
+
+int xl6IrPersistenceInvocationIsWriter(const XL6_IrPersistenceInvocationContract* row)
+{
+    return row != NULL && row->action >= XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE &&
+        row->action <= XL6_IR_PERSISTENCE_INVOKE_WRITER_INDEX;
+}
+
+static size_t xl6IrPersistenceInvocationSourceArity(const XL6_IrPersistenceInvocationContract* row)
+{
+    return xl6IrPersistenceInvocationIsWriter(row)
+        ? (row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE ? 1u : 2u)
+        : row != NULL && row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2u : 3u;
+}
+
+static int xl6IrPersistenceNativeNameMatches(const XL6_IrNode* declaration, const char* name)
+{
+    size_t length = strlen(name);
+    return declaration != NULL && declaration->kind == XL6_IR_NODE_FUNC_DECL &&
+        (declaration->sourceKind == XL6_AST_NATIVE_EXTERN_FUNC ||
+         declaration->sourceKind == XL6_AST_NATIVE_EXTERN_SPECIAL ||
+         (declaration->flags & XL6_AST_FLAG_EXTERN) != 0) && declaration->text != NULL &&
+        (strcmp(declaration->text, name) == 0 ||
+         (strlen(declaration->text) == length + 2 && declaration->text[0] == '"' &&
+          declaration->text[length + 1] == '"' && !memcmp(declaration->text + 1, name, length)));
+}
+
+/* Exact nominal storage and destructor identity, not a source class-name
+ * convention. This contract is used at admission, lowering and verification. */
+const XL6_IrClassField* xl6IrPersistenceWriterReceiverField(
+    const XL6_IrModule* module, const XL6_IrPersistenceInvocationContract* row, XL6_IrTypeId type)
+{
+    const XL6_IrClassField* field = xl6IrPersistenceInvocationIsWriter(row)
+        ? xl6IrManagedNativeConstructorField(module, type) : NULL;
+    const XL6_IrNode* destroy = field != NULL
+        ? xl6IrSymbolNodeGet(module, field->nativeDestroySymbol) : NULL;
+    return field != NULL && field->nativeDestroySymbol != 0 &&
+        xl6IrPersistenceNativeNameMatches(destroy, row->projectionFormat == XL6_IR_PERSIST_FORMAT_JSON
+            ? "xl6_xrt_json_writer_destroy" : "xl6_xrt_xlon_writer_destroy") ? field : NULL;
+}
+
+static const XL6_IrPersistenceInvocationContract* xl6IrPersistenceWriterCall(
+    const XL6_IrModule* module, const XL6_IrNode* call, const XL6_IrNode* callee)
+{
+    const XL6_IrNode* declaration;
+    const XL6_IrNode* receiver;
+    size_t i;
+    if (call == NULL || call->targetSymbol == 0 || callee == NULL ||
+        callee->kind != XL6_IR_NODE_MEMBER || callee->childCount != 1) return NULL;
+    declaration = xl6IrSymbolNodeGet(module, call->targetSymbol);
+    receiver = xl6IrNodeGet(module, module->children[callee->firstChild]);
+    if (declaration == NULL || receiver == NULL ||
+        declaration->declarationOwnerType != receiver->storageType) return NULL;
+    for (i = 0; i < sizeof(xl6IrPersistenceInvocations) / sizeof(xl6IrPersistenceInvocations[0]); ++i) {
+        const XL6_IrPersistenceInvocationContract* row = &xl6IrPersistenceInvocations[i];
+        if (xl6IrPersistenceInvocationIsWriter(row) &&
+            xl6IrPersistenceNativeNameMatches(declaration, row->sourceName) &&
+            xl6IrPersistenceWriterReceiverField(module, row, receiver->storageType) != NULL) return row;
+    }
+    return NULL;
+}
 
 const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationIntrinsic(
     XL6_IrIntrinsicKind kind)
@@ -6061,7 +6137,8 @@ static const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationName
     size_t i;
     if (callee == NULL || callee->kind != XL6_IR_NODE_NAME || callee->text == NULL) return NULL;
     for (i = 0; i < sizeof(xl6IrPersistenceInvocations) / sizeof(xl6IrPersistenceInvocations[0]); ++i)
-        if (strcmp(callee->text, xl6IrPersistenceInvocations[i].sourceName) == 0) return &xl6IrPersistenceInvocations[i];
+        if (!xl6IrPersistenceInvocationIsWriter(&xl6IrPersistenceInvocations[i]) &&
+            strcmp(callee->text, xl6IrPersistenceInvocations[i].sourceName) == 0) return &xl6IrPersistenceInvocations[i];
     return NULL;
 }
 
@@ -6077,12 +6154,14 @@ static int xl6IrPersistenceInvocationOperands(const XL6_IrModule* module,
     unsigned slots = 0;
     size_t positional = 0, arity, sourceSlot, optionsSlot;
     if (call == NULL || call->childCount != 2 || row == NULL) return 0;
-    arity = row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2 : 3;
-    sourceSlot = row->action == XL6_IR_PERSISTENCE_INVOKE_FILE ? 1 : 0;
-    optionsSlot = arity - 1;
+    arity = xl6IrPersistenceInvocationSourceArity(row);
+    sourceSlot = xl6IrPersistenceInvocationIsWriter(row) ? arity - 1 :
+        row->action == XL6_IR_PERSISTENCE_INVOKE_FILE ? 1 : 0;
+    optionsSlot = xl6IrPersistenceInvocationIsWriter(row) ? SIZE_MAX : arity - 1;
     args = xl6IrNodeGet(module, module->children[call->firstChild + 1]);
     if (args == NULL || args->kind != XL6_IR_NODE_LIST ||
-        args->childCount < arity - 1 || args->childCount > arity) return 0;
+        args->childCount < arity - (row->acceptsDefaultOptions || !xl6IrPersistenceInvocationIsWriter(row) ? 1u : 0u) ||
+        args->childCount > arity) return 0;
     operands = (XL6_IrNodeId*)xrtCalloc(args->childCount + 1, sizeof(*operands));
     if (operands == NULL) return 0;
     *namedOptions = 0; *sourceOrdinal = 0;
@@ -6093,11 +6172,13 @@ static int xl6IrPersistenceInvocationOperands(const XL6_IrModule* module,
         if (arg == NULL || arg->childCount != 1 || arg->flags != 0) goto invalid;
         if (arg->sourceKind == XL6_AST_ARG) slot = positional++;
         else if (arg->sourceKind == XL6_AST_NAMED_ARG && arg->text != NULL) {
-            if (!strcmp(arg->text, "options")) { slot = optionsSlot; *namedOptions = 1; }
+            if (!strcmp(arg->text, "options") && !xl6IrPersistenceInvocationIsWriter(row)) { slot = optionsSlot; *namedOptions = 1; }
             else if (!strcmp(arg->text, "value") ||
                 (args->childCount == arity - 1 && row->acceptsDefaultOptions && !strcmp(arg->text, "records"))) slot = sourceSlot;
             else if (row->action == XL6_IR_PERSISTENCE_INVOKE_FILE && !strcmp(arg->text, "path")) slot = 0;
             else if (row->action == XL6_IR_PERSISTENCE_INVOKE_SINK && !strcmp(arg->text, "sink")) slot = 1;
+            else if (row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_NAME && !strcmp(arg->text, "key")) slot = 0;
+            else if (row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_INDEX && !strcmp(arg->text, "index")) slot = 0;
             else goto invalid;
         } else goto invalid;
         if (slot >= arity || (slots & (1u << slot))) goto invalid;
@@ -6133,6 +6214,12 @@ static int xl6IrPersistenceInvocationDestinationType(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     const XL6_IrType* result;
+    if (row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_NAME)
+        return type != NULL && type->kind == XL6_IR_TYPE_BUILTIN &&
+            type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    if (row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_INDEX)
+        return type != NULL && type->kind == XL6_IR_TYPE_BUILTIN &&
+            type->cAbi == XL6_IR_C_ABI_I64 && type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     if (type == NULL) return 0;
     if (row->action == XL6_IR_PERSISTENCE_INVOKE_FILE)
         return type->kind != XL6_IR_TYPE_NULLABLE && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
@@ -6159,7 +6246,7 @@ static const XL6_IrPersistenceInvocationContract* xl6IrPersistenceInvocationSour
     const XL6_IrModule* module, const XL6_IrPersistenceInvocationContract* row,
     const XL6_IrNodeId* operands, size_t count, size_t optionsOrdinal, int namedOptions)
 {
-    size_t arity = row != NULL && row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2 : 3;
+    size_t arity = xl6IrPersistenceInvocationSourceArity(row);
     const XL6_IrType* options = optionsOrdinal != SIZE_MAX
         ? xl6IrTypeGet(&module->types, xl6IrPersistenceInvocationInputType(module,
             &module->nodes[operands[optionsOrdinal] - 1])) : NULL;
@@ -11501,6 +11588,7 @@ int xl6IrTypeCanBoxRuntimeXValue(
            type->cAbi == XL6_IR_C_ABI_F64 ||
            type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
            type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+           type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
            type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
            type->cAbi == XL6_IR_C_ABI_RAW_POINTER ||
            type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE;
@@ -12685,6 +12773,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
     size_t persistenceDestinationOrdinal = SIZE_MAX;
     int persistenceNamedOptions = 0;
     const XL6_IrPersistenceInvocationContract* configured = NULL;
+    const XL6_IrPersistenceInvocationContract* writer = NULL;
     size_t i;
     /* Dynamic function calls are necessarily open.  Dynamic method syntax is
      * different: a `var` receiver may name one of the closed collection
@@ -12695,7 +12784,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
     if ( call == NULL || call->kind != XL6_IR_NODE_CALL ||
          call->childCount != 2 ) return 1;
     callee = xl6IrNodeGet(module, module->children[call->firstChild]);
+    writer = xl6IrPersistenceWriterCall(module, call, callee);
     if ( call->targetSymbol != 0 &&
+         writer == NULL &&
          !(call->callKind == XL6_SEM_CALL_DIRECT && callee != NULL &&
            callee->kind == XL6_IR_NODE_NAME && callee->text != NULL &&
            (xl6IrPersistenceInvocationName(callee) != NULL ||
@@ -12703,10 +12794,10 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             strcmp(callee->text, "__xl_std_xlon_stringify") == 0 ||
             strcmp(callee->text, "__xl_std_json_write") == 0 ||
             strcmp(callee->text, "__xl_std_xlon_write") == 0)) ) return 1;
-    if (xl6IrPersistenceInvocationOperands(module, call, xl6IrPersistenceInvocationName(callee),
+    if (xl6IrPersistenceInvocationOperands(module, call, writer != NULL ? writer : xl6IrPersistenceInvocationName(callee),
             &operands, &operandCount, &persistenceSourceOrdinal,
             &persistenceOptionsOrdinal, &persistenceDestinationOrdinal, &persistenceNamedOptions)) {
-        configured = xl6IrPersistenceInvocationSource(module, xl6IrPersistenceInvocationName(callee),
+        configured = xl6IrPersistenceInvocationSource(module, writer != NULL ? writer : xl6IrPersistenceInvocationName(callee),
             operands, operandCount, persistenceOptionsOrdinal, persistenceNamedOptions);
     } else if (!xl6IrBuildIntrinsicPositionalOperands(module, call, &operands, &operandCount)) return 1;
     operandExpressions = operands;
@@ -12921,7 +13012,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             module, xl6IrBuildStringConversionSourceType(
                 &module->nodes[stringMemberReceiver - 1]),
             &intrinsic.stringClassType);
-    } else if (xl6IrPersistenceProjectionCallKind(call->callKind) && configured != NULL) {
+    } else if ((writer != NULL || xl6IrPersistenceProjectionCallKind(call->callKind)) && configured != NULL) {
         intrinsic.kind = configured->intrinsic;
         intrinsic.resultAbi = configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
             ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE;
@@ -12931,6 +13022,10 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         intrinsic.persistenceDestinationOperand = persistenceDestinationOrdinal;
         intrinsic.payloadType = xl6IrPersistenceInvocationInputType(module,
             &module->nodes[operands[persistenceSourceOrdinal] - 1]);
+        if (writer != NULL) {
+            intrinsic.receiver = module->children[callee->firstChild];
+            intrinsic.receiverType = module->nodes[intrinsic.receiver - 1].storageType;
+        }
     } else if ( xl6IrPersistenceProjectionCallKind(call->callKind) &&
                 callee != NULL && callee->kind == XL6_IR_NODE_NAME &&
                 callee->text != NULL &&
@@ -13283,6 +13378,11 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                    XL6_IR_C_ABI_BOOL)) )
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
+    case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
+    case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME:
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX:
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY:
     case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY:
     case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY:
@@ -13303,6 +13403,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             result->ownershipAbi == (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
                 ? XL6_IR_OWNERSHIP_ABI_MANAGED : XL6_IR_OWNERSHIP_ABI_TRIVIAL) &&
             (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ||
+                configured->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE ||
                 xl6IrPersistenceInvocationDestinationType(module, configured,
                     module->nodes[operands[persistenceDestinationOrdinal] - 1].storageType)) &&
             xl6IrBuildPersistenceValueProjectionSupported(module, intrinsic.payloadType, intrinsic.kind))
@@ -18810,7 +18911,9 @@ int xl6IrPersistenceProjectInstructionAbi(
     return 0;
 }
 
-int xl6IrPersistenceInvocationIntrinsicAbi(
+/* Structural facts remain exact even in an uninstantiated generic body.
+ * Projection admission is a separate obligation of executable calls. */
+static int xl6IrPersistenceInvocationIntrinsicStructure(
     const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic)
 {
     const XL6_IrPersistenceInvocationContract* row;
@@ -18827,6 +18930,30 @@ int xl6IrPersistenceInvocationIntrinsicAbi(
             ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE) ||
         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
         intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_INVALID) return 0;
+    if (xl6IrPersistenceInvocationIsWriter(row)) {
+        const XL6_IrNode* receiver = xl6IrNodeGet(module, intrinsic->receiver);
+        const XL6_IrIntrinsicOperand* key;
+        source = &module->intrinsicOperands[intrinsic->firstOperand + intrinsic->persistenceSourceOperand];
+        sourceType = xl6IrTypeGet(&module->types, source->type);
+        resultType = xl6IrTypeGet(&module->types, intrinsic->resultType);
+        arity = row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE ? 1 : 2;
+        if (receiver == NULL || receiver->storageType != intrinsic->receiverType ||
+            xl6IrPersistenceWriterReceiverField(module, row, intrinsic->receiverType) == NULL ||
+            intrinsic->operandCount != arity || intrinsic->persistenceOptionsOperand != SIZE_MAX ||
+            sourceType == NULL || intrinsic->payloadType != source->type ||
+            source->abi != (sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+                ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
+            resultType == NULL || resultType->cAbi != XL6_IR_C_ABI_BOOL ||
+            resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+        if (arity == 1) return intrinsic->persistenceDestinationOperand == SIZE_MAX;
+        if (intrinsic->persistenceDestinationOperand >= arity ||
+            intrinsic->persistenceDestinationOperand == intrinsic->persistenceSourceOperand) return 0;
+        key = &module->intrinsicOperands[intrinsic->firstOperand + intrinsic->persistenceDestinationOperand];
+        return xl6IrPersistenceInvocationDestinationType(module, row, key->type) &&
+            key->abi == (row->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_NAME
+                ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE);
+    }
+    if (intrinsic->receiver != XL6_IR_NODE_INVALID || intrinsic->receiverType != XL6_IR_TYPE_INVALID) return 0;
     arity = row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2 : 3;
     if ((intrinsic->operandCount != arity &&
             !(intrinsic->operandCount == arity - 1 && row->acceptsDefaultOptions)) ||
@@ -18838,7 +18965,6 @@ int xl6IrPersistenceInvocationIntrinsicAbi(
     sourceType = xl6IrTypeGet(&module->types, source->type);
     resultType = xl6IrTypeGet(&module->types, intrinsic->resultType);
     if (sourceType == NULL || resultType == NULL || intrinsic->payloadType != source->type ||
-        !xl6IrBuildPersistenceValueProjectionSupported(module, source->type, intrinsic->kind) ||
         resultType->cAbi != (row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
             ? XL6_IR_C_ABI_MANAGED_STRING : XL6_IR_C_ABI_BOOL) ||
         resultType->ownershipAbi != (row->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
@@ -18868,6 +18994,13 @@ int xl6IrPersistenceInvocationIntrinsicAbi(
     return 1;
 }
 
+int xl6IrPersistenceInvocationIntrinsicAbi(
+    const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic)
+{
+    return xl6IrPersistenceInvocationIntrinsicStructure(module, intrinsic) &&
+        xl6IrBuildPersistenceValueProjectionSupported(module, intrinsic->payloadType, intrinsic->kind);
+}
+
 int xl6IrPersistenceInvocationInstructionAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
@@ -18878,17 +19011,46 @@ int xl6IrPersistenceInvocationInstructionAbi(
     const XL6_IrType* resultType;
     if (module == NULL || instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
         (configured = xl6IrPersistenceInvocationRuntime(instruction->runtimeOp)) == NULL ||
-        instruction->operandCount != (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ? 2u : 3u) ||
+        instruction->operandCount != (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE ||
+            configured->action == XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE ? 2u : 3u) ||
         instruction->firstOperand > module->operandCount ||
         instruction->operandCount > module->operandCount - instruction->firstOperand ||
         instruction->immediateText != NULL || instruction->targetSymbol != 0 ||
         instruction->targetValue != XL6_IR_VALUE_INVALID || instruction->calleeType != XL6_IR_TYPE_INVALID ||
-        instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
+        (!xl6IrPersistenceInvocationIsWriter(configured) && instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID) ||
         instruction->opcode != XL6_IR_OPCODE_INVALID ||
         instruction->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
         instruction->integerSourceAbi != XL6_IR_INTEGER_SOURCE_INVALID ||
         instruction->asyncResultAbi != XL6_IR_ASYNC_RESULT_INVALID) return 0;
     source = xl6IrValueDefinition(module, module->operands[instruction->firstOperand], NULL);
+    if (xl6IrPersistenceInvocationIsWriter(configured)) {
+        const XL6_IrClassField* field = xl6IrPersistenceWriterReceiverField(
+            module, configured, instruction->runtimeIdentityType);
+        const XL6_IrInstruction* handle = xl6IrValueDefinition(module,
+            module->operands[instruction->firstOperand + 1], NULL);
+        const XL6_IrInstruction* receiver;
+        char* literal = field != NULL ? xl6IrCanonicalCStringBytes(field->name) : NULL;
+        int valid = field != NULL && literal != NULL && handle != NULL &&
+            handle->kind == XL6_IR_INSTR_RUNTIME_CALL &&
+            handle->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW &&
+            handle->type == field->type && handle->operandCount == 1 &&
+            handle->firstOperand < module->operandCount && handle->immediateText != NULL &&
+            !strcmp(handle->immediateText, literal);
+        xrtFree(literal);
+        if (!valid) return 0;
+        receiver = xl6IrValueDefinition(module, module->operands[handle->firstOperand], NULL);
+        resultType = xl6IrTypeGet(&module->types, instruction->type);
+        if (receiver == NULL || receiver->type != instruction->runtimeIdentityType || source == NULL ||
+            !xl6IrPersistenceWireMatches(module, source->type, instruction->payloadType, configured->projectionFormat) ||
+            resultType == NULL || resultType->cAbi != XL6_IR_C_ABI_BOOL ||
+            resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+        if (configured->action != XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE) {
+            const XL6_IrInstruction* key = xl6IrValueDefinition(module,
+                module->operands[instruction->firstOperand + 2], NULL);
+            if (key == NULL || !xl6IrPersistenceInvocationDestinationType(module, configured, key->type)) return 0;
+        }
+        return 1;
+    }
     options = xl6IrValueDefinition(module, module->operands[instruction->firstOperand + 1], NULL);
     optionType = options != NULL ? xl6IrTypeGet(&module->types, options->type) : NULL;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
@@ -28262,7 +28424,8 @@ typedef enum XL6_IrSerializationBridgeShape {
     XL6_IR_SERIALIZATION_BRIDGE_CONFIG_STATUS,
     XL6_IR_SERIALIZATION_BRIDGE_NULLABLE_READ,
     XL6_IR_SERIALIZATION_BRIDGE_FACTORY,
-    XL6_IR_SERIALIZATION_BRIDGE_METHOD
+    XL6_IR_SERIALIZATION_BRIDGE_METHOD,
+    XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD
 } XL6_IrSerializationBridgeShape;
 
 typedef struct XL6_IrSerializationBridgeContract {
@@ -28295,48 +28458,48 @@ static const XL6_IrSerializationBridgeContract xl6IrSerializationBridgeContracts
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 1, { XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_FACTORY },
     { "xl6_xrt_json_writer_destroy", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
       XL6_IR_C_ABI_VOID, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_begin_object", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_begin_object_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_end_object", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_begin_array", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_begin_array_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_end_array", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_null", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_null_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_bool", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_bool_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_int", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_int_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_uint", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_uint_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_float", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_float_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_string", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_string_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_value", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_value_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_json_writer_finish", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
-      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_json_writer_begin_object", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_begin_object_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_end_object", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_begin_array", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_begin_array_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_end_array", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_null", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_null_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_bool", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_bool_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_int", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_int_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_uint", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_uint_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_float", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_float_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_string", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_string_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_value", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_value_key", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_json_writer_finish", XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
+      XL6_IR_C_ABI_MANAGED_STRING, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
     { "xl6_xrt_xlon_parse_options", XL6_IR_RUNTIME_BRIDGE_XLON_PARSE,
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_NULLABLE_READ },
     { "xl6_xrt_xlon_valid_options", XL6_IR_RUNTIME_BRIDGE_XLON_VALID,
@@ -28357,106 +28520,106 @@ static const XL6_IrSerializationBridgeContract xl6IrSerializationBridgeContracts
       XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, 3, { XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_FACTORY },
     { "xl6_xrt_xlon_writer_destroy", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
       XL6_IR_C_ABI_VOID, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_array", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_array_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_array_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_end_array", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_list", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_list_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_list_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_end_list", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_dict", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_dict_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_dict_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_end_dict", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_set", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_set_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_begin_set_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_end_set", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_null", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_null_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_null_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_bool", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_bool_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_bool_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_int", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_int_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_int_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_uint", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_uint_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_uint_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_char", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_char_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_char_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_float", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_float_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_float_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_string", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_string_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_string_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_bytes", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_bytes_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_bytes_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_tag", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_tag_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_tag_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_time", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_time_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_time_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_value", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_value_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_value_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
-    { "xl6_xrt_xlon_writer_finish", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
-      XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_METHOD },
+    { "xl6_xrt_xlon_writer_begin_array", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_array_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_array_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_end_array", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_list", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_list_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_list_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_end_list", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_dict", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_dict_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_dict_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_end_dict", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_set", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_set_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_begin_set_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_end_set", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_null", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_null_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_null_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_bool", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_bool_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_bool_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_BOOL }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_int", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_int_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_int_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_uint", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_uint_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_uint_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_U64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_char", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_char_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_char_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_CHAR_U32 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_float", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_float_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_float_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_F64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_string", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_string_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_string_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_bytes", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_bytes_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_bytes_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_BYTES }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_tag", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_tag_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_tag_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 4, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_time", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_time_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_time_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_I64 }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_value", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 2, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_value_key", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_value_index", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_BOOL, 3, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_C_ABI_I64, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
+    { "xl6_xrt_xlon_writer_finish", XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
+      XL6_IR_C_ABI_MANAGED_STRING, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR }, XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD },
     { "xl6_xrt_jsonl_stringify", XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY,
       XL6_IR_C_ABI_RAW_POINTER, 1, { XL6_IR_C_ABI_RUNTIME_XVALUE_PTR } },
     { "xl6_xrt_xlonl_stringify", XL6_IR_RUNTIME_BRIDGE_XLONL_STRINGIFY,
@@ -28553,7 +28716,9 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeSerializationBridgeKind(const char* name)
 
 int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind kind)
 {
-    return kind == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE ||
+    return kind == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT ||
+           kind == XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT ||
+           kind == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE ||
            kind == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE_FILE ||
            kind == XL6_IR_RUNTIME_BRIDGE_XLON_PARSE ||
            kind == XL6_IR_RUNTIME_BRIDGE_XLON_READ ||
@@ -28583,6 +28748,14 @@ int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind
            kind == XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_READ_FILE ||
            kind == XL6_IR_RUNTIME_BRIDGE_XLONL_CONFIG_WRITE_FILE ||
            kind == XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE;
+}
+
+XL6_IrErrorAbi xl6IrRuntimeSerializationBridgeErrorAbi(const char* name)
+{
+    const XL6_IrSerializationBridgeContract* contract = xl6IrSerializationBridgeContract(name);
+    return contract != NULL && (contract->shape == XL6_IR_SERIALIZATION_BRIDGE_FACTORY ||
+        xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(contract->kind))
+        ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
 }
 
 static int xl6IrSerializationBridgeDynamicValueType(const XL6_IrType* type)
@@ -28652,10 +28825,15 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
          contract->shape == XL6_IR_SERIALIZATION_BRIDGE_DECODER ||
          contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CONFIG_READ ||
          contract->shape == XL6_IR_SERIALIZATION_BRIDGE_NULLABLE_READ ||
-         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CONFIG_STATUS ) {
+         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CONFIG_STATUS ||
+         contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD ) {
         if ( target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
              (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
               target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) ) return 0;
+    } else if (contract->shape == XL6_IR_SERIALIZATION_BRIDGE_FACTORY) {
+        if (target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+            (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
+             target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR)) return 0;
     } else if ( target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
                 (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
                  target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE) ) return 0;
@@ -28682,6 +28860,10 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
             return 0;
         } else if ( contract->result == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
             if ( !xl6IrSerializationBridgeDynamicValueType(result) ) return 0;
+        } else if ( contract->result == XL6_IR_C_ABI_MANAGED_STRING ) {
+            if ( result->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                 result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ) return 0;
         } else if ( !xl6IrBufferRuntimeBridgeResultMatches(result, contract->result) ) {
             return 0;
         }
@@ -28696,7 +28878,8 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
         if ( type == NULL ||
              target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE )
             return 0;
-        if ( contract->shape == XL6_IR_SERIALIZATION_BRIDGE_METHOD && i == 0 ) {
+        if ((contract->shape == XL6_IR_SERIALIZATION_BRIDGE_METHOD ||
+             contract->shape == XL6_IR_SERIALIZATION_BRIDGE_CHECKED_METHOD) && i == 0 ) {
             if ( type->kind != XL6_IR_TYPE_CLASS ||
                  target->parameterPhysicalFieldDeclarations[i] == XL6_IR_NODE_INVALID ||
                  !xl6IrBufferRuntimeBridgeParameterMatches(module, target, i, abi, ownership,
@@ -28889,6 +29072,13 @@ static int xl6IrRuntimeBridgeTargetMatches(
     }
     if (xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge))
         return xl6IrRuntimeNetDatagramBridgeTargetMatches(module, target);
+    /* Serialization factories report failures through the native error slot;
+     * checked Writer methods use result carriers. The registry verifies both
+     * physical forms, before the legacy scalar-bridge effect gate. */
+    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE ||
+         (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_JSON_VALID &&
+          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE) )
+        return xl6IrRuntimeSerializationBridgeTargetMatches(module, target);
     if ( target->cName == NULL ||
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
@@ -28979,10 +29169,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
         return xl6IrRuntimeHttp1BridgeTargetMatches(module, target);
     if ( xl6IrRuntimeStringBridgeKindIs(target->runtimeBridge) )
         return xl6IrRuntimeStringBridgeTargetMatches(module, target);
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE ||
-         (target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_JSON_VALID &&
-          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XLON_CONFIG_DECODE) )
-        return xl6IrRuntimeSerializationBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE &&
          target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW )
         return xl6IrRuntimeDirectBridgeTargetMatches(module, target);
@@ -32228,6 +32414,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             size_t prior;
              if ( call == NULL || call->kind != XL6_IR_NODE_CALL ||
                   (call->targetSymbol != 0 &&
+                   !xl6IrPersistenceInvocationIsWriter(xl6IrPersistenceInvocationIntrinsic(intrinsic->kind)) &&
                    !(call->callKind == XL6_SEM_CALL_DIRECT &&
                      (intrinsic->kind ==
                           XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY ||
@@ -32618,6 +32805,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             "XLIR persistence stringify intrinsic has no canonical format identity and class schema ABI");
                 }
                 break;
+            case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY:
@@ -32649,9 +32841,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     if (bindingMatches && xl6IrPersistenceInvocationSource(module, configured, expressions,
                             count, optionsOrdinal, namedOptions) != configured) bindingMatches = 0;
                     xrtFree(expressions);
-                    if (!xl6IrPersistenceProjectionCallKind(call->callKind) || callee == NULL ||
-                        callee->kind != XL6_IR_NODE_NAME || callee->text == NULL ||
-                        strcmp(callee->text, configured->sourceName) != 0 ||
+                    if ((xl6IrPersistenceInvocationIsWriter(configured)
+                            ? xl6IrPersistenceWriterCall(module, call, callee) != configured ||
+                              intrinsic->receiver != module->children[callee->firstChild] ||
+                              !xl6IrPersistenceInvocationIntrinsicStructure(module, intrinsic)
+                            : !xl6IrPersistenceProjectionCallKind(call->callKind) || callee == NULL ||
+                              callee->kind != XL6_IR_NODE_NAME || callee->text == NULL ||
+                              strcmp(callee->text, configured->sourceName) != 0) ||
                         intrinsic->resultAbi != (configured->action == XL6_IR_PERSISTENCE_INVOKE_ENCODE
                             ? XL6_IR_INTRINSIC_RESULT_OWNED : XL6_IR_INTRINSIC_RESULT_VALUE) ||
                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
@@ -33173,6 +33369,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             "XLIR persistence stringify intrinsic has no exact format, borrowed persistence value, pretty flag and owned string ABI");
                 }
                 break;
+            case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME:
+            case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY:
             case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY:
             case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY:
@@ -34324,6 +34525,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   intrinsic->kind != XL6_IR_INTRINSIC_DYNAMIC_COLLECTION_MEMBER &&
                   intrinsic->kind != XL6_IR_INTRINSIC_WEAK_LOCK &&
                   intrinsic->kind != XL6_IR_INTRINSIC_RUNTIME_RESOURCE &&
+                  !xl6IrPersistenceInvocationIsWriter(xl6IrPersistenceInvocationIntrinsic(intrinsic->kind)) &&
                   (intrinsic->receiver != XL6_IR_NODE_INVALID ||
                    intrinsic->receiverType != XL6_IR_TYPE_INVALID) )
                 return xl6IrDiag(diags, call,
@@ -36887,7 +37089,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_FUTURE_REF ||
                         instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL)) !=
+                            XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL ||
+                        xl6IrPersistenceInvocationIsWriter(
+                            xl6IrPersistenceInvocationRuntime(instruction->runtimeOp)))) !=
                       (instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID)) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous runtime identity TypeId");
@@ -43982,6 +44186,11 @@ static const char* xl6IrIntrinsicKindName(XL6_IrIntrinsicKind kind)
     case XL6_IR_INTRINSIC_BOOL_CONVERT: return "bool-convert";
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY:
         return "persistence-json-stringify";
+    case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE: return "persistence-json-writer-value";
+    case XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME: return "persistence-json-writer-name";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE: return "persistence-xlon-writer-value";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME: return "persistence-xlon-writer-name";
+    case XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX: return "persistence-xlon-writer-index";
     case XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY: return "persistence-json-config-stringify";
     case XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_STRINGIFY: return "persistence-xlon-config-stringify";
     case XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_STRINGIFY: return "persistence-jsonl-config-stringify";
@@ -44549,6 +44758,7 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_JSON_WRITE_FILE: return "json-write-file";
     case XL6_IR_RUNTIME_BRIDGE_JSON_VISIT: return "json-visit";
     case XL6_IR_RUNTIME_BRIDGE_JSON_WRITER: return "json-writer";
+    case XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT: return "json-writer-result";
     case XL6_IR_RUNTIME_BRIDGE_XLON_PARSE: return "xlon-parse";
     case XL6_IR_RUNTIME_BRIDGE_XLON_VALID: return "xlon-valid";
     case XL6_IR_RUNTIME_BRIDGE_XLON_READ: return "xlon-read";
@@ -44556,6 +44766,7 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_XLON_WRITE: return "xlon-write";
     case XL6_IR_RUNTIME_BRIDGE_XLON_VISIT: return "xlon-visit";
     case XL6_IR_RUNTIME_BRIDGE_XLON_WRITER: return "xlon-writer";
+    case XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT: return "xlon-writer-result";
     case XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY: return "jsonl-stringify";
     case XL6_IR_RUNTIME_BRIDGE_XLONL_STRINGIFY: return "xlonl-stringify";
     case XL6_IR_RUNTIME_BRIDGE_JSONL_READ_FILE: return "jsonl-read-file";
@@ -45374,6 +45585,11 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_F64_POSITIVE_INFINITY: return "f64-positive-infinity";
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY:
         return "persistence-json-stringify";
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITER_VALUE: return "persistence-json-writer-value";
+    case XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITER_NAME: return "persistence-json-writer-name";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITER_VALUE: return "persistence-xlon-writer-value";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITER_NAME: return "persistence-xlon-writer-name";
+    case XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITER_INDEX: return "persistence-xlon-writer-index";
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY: return "persistence-json-config-stringify";
     case XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY: return "persistence-xlon-config-stringify";
     case XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_STRINGIFY: return "persistence-jsonl-config-stringify";

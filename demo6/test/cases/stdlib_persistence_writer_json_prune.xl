@@ -1,0 +1,7 @@
+class WriterOnly
+    derive value
+    string text @json("名\0字") = "a\0b"
+end
+JsonWriter writer = JsonWriter()
+assert(writer.writeValue(WriterOnly()))
+assert(json.parse(writer.finish())["名\0字"] == "a\0b")

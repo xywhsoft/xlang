@@ -97,75 +97,17 @@ static const char xl6JsonStreamVisitor[] =
     "    return xl6_serialization_callback_finish(&context, status);\n"
     "}\n\n";
 
-static const char xl6JsonStreamWriter[] =
-    "static xjsonwriter* xl6_json_stream_writer(void* writer)\n"
-    "{\n"
-    "    return (xjsonwriter*)writer;\n"
-    "}\n\n"
-    "static bool xl6_json_stream_writer_name(void* writer, xlir_string key)\n"
-    "{\n"
-    "    return writer != 0 && key.Data != 0 && xrtJsonWriterName(xl6_json_stream_writer(writer), key);\n"
-    "}\n\n"
-    "void* xl6_xrt_json_writer_create_default(void)\n"
-    "{\n"
-    "    xjsonwriteconfig config;\n"
-    "    xrtJsonWriteConfigInit(&config);\n"
-    "    return xrtJsonWriterCreate(&config);\n"
-    "}\n\n"
-    "void* xl6_xrt_json_writer_create_pretty(XL6_JSON_STREAM_BOOL pretty)\n"
-    "{\n"
-    "    xjsonwriteconfig config;\n"
-    "    xrtJsonWriteConfigInit(&config);\n"
-    "    if ( pretty != 0 ) { config.Flags |= XJSON_WRITE_PRETTY; }\n"
-    "    return xrtJsonWriterCreate(&config);\n"
-    "}\n\n"
-    "XL6_JSON_STREAM_DESTROY xl6_xrt_json_writer_destroy(void* writer)\n"
-    "{\n"
-    "    xrtJsonWriterFree(xl6_json_stream_writer(writer));\n"
-    "    XL6_JSON_STREAM_DESTROY_RETURN;\n"
-    "}\n\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_begin_object(void* writer) { return writer != 0 && xrtJsonWriterObject(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_begin_object_key(void* writer, xlir_string key) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterObject(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_end_object(void* writer) { return writer != 0 && xrtJsonWriterEnd(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_begin_array(void* writer) { return writer != 0 && xrtJsonWriterArray(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_begin_array_key(void* writer, xlir_string key) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterArray(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_end_array(void* writer) { return writer != 0 && xrtJsonWriterEnd(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_null(void* writer) { return writer != 0 && xrtJsonWriterNull(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_null_key(void* writer, xlir_string key) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterNull(xl6_json_stream_writer(writer)); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_bool(void* writer, XL6_JSON_STREAM_BOOL value) { return writer != 0 && xrtJsonWriterBool(xl6_json_stream_writer(writer), value != 0); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_bool_key(void* writer, xlir_string key, XL6_JSON_STREAM_BOOL value) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterBool(xl6_json_stream_writer(writer), value != 0); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_int(void* writer, XL6_JSON_STREAM_INT value) { return writer != 0 && xrtJsonWriterInt(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_int_key(void* writer, xlir_string key, XL6_JSON_STREAM_INT value) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterInt(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_uint(void* writer, uint64_t value) { return writer != 0 && xrtJsonWriterUInt(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_uint_key(void* writer, xlir_string key, uint64_t value) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterUInt(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_float(void* writer, double value) { return writer != 0 && xrtJsonWriterFloat(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_float_key(void* writer, xlir_string key, double value) { return xl6_json_stream_writer_name(writer, key) && xrtJsonWriterFloat(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_string(void* writer, xlir_string value) { return writer != 0 && value.Data != 0 && xrtJsonWriterString(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_string_key(void* writer, xlir_string key, xlir_string value) { return value.Data != 0 && xl6_json_stream_writer_name(writer, key) && xrtJsonWriterString(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_value(void* writer, xvalue* value) { return writer != 0 && value != 0 && xrtJsonWriterValue(xl6_json_stream_writer(writer), value); }\n"
-    "XL6_JSON_STREAM_BOOL xl6_xrt_json_writer_value_key(void* writer, xlir_string key, xvalue* value) { return value != 0 && xl6_json_stream_writer_name(writer, key) && xrtJsonWriterValue(xl6_json_stream_writer(writer), value); }\n"
-    "void* xl6_xrt_json_writer_finish(void* writer)\n"
-    "{\n"
-    "    void* text = writer != 0 && xrtJsonWriterFinish(xl6_json_stream_writer(writer)) ?\n"
-    "        xrtJsonWriterTake(xl6_json_stream_writer(writer), 0) : 0;\n"
-    "    if (text == 0) xrtClearError();\n"
-    "    return text;\n"
-    "}\n";
 
 void xl6CgenEmitJsonStreamRuntime(
     XL6_Output* out, int hasVisitor, int hasWriter)
 {
     if ( out == NULL || (!hasVisitor && !hasWriter) ) return;
-    xl6OutputPuts("extern size_t strlen(const char*);\n", out);
-    xl6OutputPuts(xl6JsonStreamView, out);
     if ( hasVisitor ) {
+        xl6OutputPuts("extern size_t strlen(const char*);\n", out);
+        xl6OutputPuts(xl6JsonStreamView, out);
         xl6OutputPuts(xl6JsonStreamVisitor, out);
     }
     if ( hasWriter ) {
-        xl6OutputPuts(
-            "#define XL6_JSON_STREAM_BOOL bool\n#define XL6_JSON_STREAM_INT int64_t\n#define XL6_JSON_STREAM_DESTROY void\n#define XL6_JSON_STREAM_DESTROY_RETURN return\n",
-            out);
-        xl6OutputPuts(xl6JsonStreamWriter, out);
-        xl6OutputPuts("#undef XL6_JSON_STREAM_BOOL\n#undef XL6_JSON_STREAM_INT\n#undef XL6_JSON_STREAM_DESTROY\n#undef XL6_JSON_STREAM_DESTROY_RETURN\n", out);
+        xl6OutputPuts("#include <__xl_runtime/xl6_json_writer.h>\n", out);
     }
 }

@@ -53,4 +53,11 @@ expect(string.contains(prettyWriterText, "2"), 1)
 JsonWriter badWriter = JsonWriter()
 expect(badWriter.beginArray(), 1)
 expect(badWriter.writeInt("key", 1), 0)
-expectStr(badWriter.finish(), "")
+bool badFinish = false
+try
+    badWriter.finish()
+catch e
+    expectStr(e.kind, "RuntimeError")
+    badFinish = true
+end
+expect(badFinish, 1)

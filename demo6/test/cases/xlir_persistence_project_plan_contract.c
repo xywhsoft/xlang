@@ -33,9 +33,12 @@ static void literals(void)
     char* actual = xl6IrCanonicalCStringBytes("a\"b");
     assert(actual && !strcmp(actual, "\"a\\\"b\"")); xrtFree(actual);
 }
-static void rejectedOutput(const XL6_IrModule* ir)
+static void rejectedOutputAt(const XL6_IrModule* ir, unsigned line, const char* member)
 {
-    assert(!xl6IrVerifyModule(ir, NULL));
+    int accepted = xl6IrVerifyModule(ir, NULL);
+    if (accepted)
+        fprintf(stderr, "Unexpected accepted mutation %u at line %u: %s\n", mutations + 1, line, member);
+    assert(!accepted);
     for (unsigned header = 0; header < 2; ++header) {
         XL6_Output output; XL6_DiagList diagnostics; size_t size = SIZE_MAX;
         xl6DiagInit(&diagnostics); assert(xl6OutputOpenMemory(&output));
@@ -46,6 +49,7 @@ static void rejectedOutput(const XL6_IrModule* ir)
     }
     ++mutations;
 }
+#define rejectedOutput(Ir) rejectedOutputAt((Ir), __LINE__, "operand/table")
 static void rejected(const XL6_IrModule* ir)
 {
     assert(!xl6IrVerifyPersistenceProjectPlans(ir));
@@ -106,7 +110,7 @@ static void inspect(const XL6_IrModule* ir)
 #define ALTER_OP(Row, Member, Value) do { \
     unsigned char saved[sizeof((Row)->Member)]; \
     memcpy(saved, &(Row)->Member, sizeof(saved)); \
-    (Row)->Member = (Value); rejectedOutput(&ir); memcpy(&(Row)->Member, saved, sizeof(saved)); \
+    (Row)->Member = (Value); rejectedOutputAt(&ir, __LINE__, #Member); memcpy(&(Row)->Member, saved, sizeof(saved)); \
 } while (0)
 
 int main(int argc, char** argv)
@@ -125,6 +129,14 @@ int main(int argc, char** argv)
     assert(xl6IrVerifyPersistenceProjectPlans(&ir) && xl6IrVerifyModule(&ir, NULL));
     for (size_t i = 0; i < ir.callTargetCount; ++i) {
         XL6_IrCallTarget* target = &ir.callTargets[i];
+        if (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
+            (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER ||
+             target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLON_WRITER)) {
+            assert(target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
+                target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR);
+            ALTER_OP(target, errorAbi, XL6_IR_ERROR_ABI_NO_RAISE);
+            ALTER_OP(target, errorPhysicalAbi, XL6_IR_CALL_ERROR_PHYSICAL_NONE);
+        }
         if (!xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)) continue;
         assert(target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
             target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER);
@@ -160,15 +172,25 @@ int main(int argc, char** argv)
             ALTER_OP(instruction, targetSymbol, 1);
             ALTER_OP(instruction, type, definition(&ir, ir.operands[instruction->firstOperand])->type);
             if (row->action != XL6_IR_PERSISTENCE_INVOKE_ENCODE) {
-                assert(instruction->operandCount == 3 && i + 1 < ir.instructionCount);
+                assert(i + 1 < ir.instructionCount);
                 XL6_IrInstruction* edge = &ir.instructions[i + 1];
                 assert(edge->kind == XL6_IR_INSTR_ERROR_TEST && edge->operandCount == 1 &&
                     ir.operands[edge->firstOperand] == instruction->result);
                 ALTER_OP(edge, kind, XL6_IR_INSTR_VALUE);
-                XL6_IrValueId* destination = &ir.operands[instruction->firstOperand + 2];
-                XL6_IrValueId saved = *destination;
-                *destination = ir.operands[instruction->firstOperand];
-                rejectedOutput(&ir); *destination = saved;
+                if (instruction->operandCount == 3) {
+                    XL6_IrValueId* destination = &ir.operands[instruction->firstOperand + 2];
+                    XL6_IrValueId saved = *destination;
+                    *destination = ir.operands[instruction->firstOperand];
+                    rejectedOutput(&ir); *destination = saved;
+                }
+            }
+            if (xl6IrPersistenceInvocationIsWriter(row)) {
+                ALTER_OP(instruction, runtimeIdentityType, XL6_IR_TYPE_INVALID);
+                XL6_IrInstruction* handle = (XL6_IrInstruction*)definition(&ir,
+                    ir.operands[instruction->firstOperand + 1]);
+                assert(handle && handle->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW);
+                ALTER_OP(handle, immediateText, "\"not-the-writer-field\"");
+                ALTER_OP(handle, runtimeOp, XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_RAW_POINTER);
             }
             ALTER_OP(instruction, runtimeOp, row->projectionFormat == XL6_IR_PERSIST_FORMAT_JSON
                 ? XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_STRINGIFY
@@ -197,6 +219,10 @@ int main(int argc, char** argv)
         ALTER_OP(intrinsic, persistenceSourceOperand, 1 - intrinsic->persistenceSourceOperand);
         ALTER_OP(intrinsic, persistenceOptionsOperand, intrinsic->persistenceOptionsOperand == SIZE_MAX
             ? 0 : SIZE_MAX);
+        if (xl6IrPersistenceInvocationIsWriter(xl6IrPersistenceInvocationIntrinsic(intrinsic->kind))) {
+            ALTER_OP(intrinsic, receiverType, XL6_IR_TYPE_INVALID);
+            ALTER_OP(intrinsic, receiver, XL6_IR_NODE_INVALID);
+        }
         if (intrinsic->persistenceDestinationOperand != SIZE_MAX) {
             ALTER_OP(intrinsic, persistenceDestinationOperand, SIZE_MAX);
             ALTER_OP(intrinsic, persistenceDestinationOperand, intrinsic->persistenceSourceOperand);

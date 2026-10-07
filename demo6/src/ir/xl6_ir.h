@@ -1640,6 +1640,11 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_PERSISTENCE_XLON_CONFIG_SINK,
        XL6_IR_RUNTIME_PERSISTENCE_JSONL_CONFIG_SINK,
        XL6_IR_RUNTIME_PERSISTENCE_XLONL_CONFIG_SINK,
+       XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITER_VALUE,
+       XL6_IR_RUNTIME_PERSISTENCE_JSON_WRITER_NAME,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITER_VALUE,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITER_NAME,
+       XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITER_INDEX,
        /* Borrows one managed JSON string and one fully initialized instance of
         * payloadType.  The verified schema overlays present serialized fields
         * onto that default instance and returns an owned retained class value. */
@@ -2298,6 +2303,11 @@ typedef enum XL6_IrIntrinsicKind {
     XL6_IR_INTRINSIC_PERSISTENCE_XLON_CONFIG_SINK,
     XL6_IR_INTRINSIC_PERSISTENCE_JSONL_CONFIG_SINK,
     XL6_IR_INTRINSIC_PERSISTENCE_XLONL_CONFIG_SINK,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_VALUE,
+    XL6_IR_INTRINSIC_PERSISTENCE_JSON_WRITER_NAME,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME,
+    XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX,
     XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT
 } XL6_IrIntrinsicKind;
 
@@ -3812,6 +3822,7 @@ typedef enum XL6_IrRuntimeBridgeKind {
      * managed native Writer factories/methods/destroy use a separate role. */
     XL6_IR_RUNTIME_BRIDGE_JSON_VISIT,
     XL6_IR_RUNTIME_BRIDGE_JSON_WRITER,
+    XL6_IR_RUNTIME_BRIDGE_JSON_WRITER_RESULT,
     /* XLON options preserve language bool and exact visitor/native-handle ABI. */
     XL6_IR_RUNTIME_BRIDGE_XLON_PARSE,
     XL6_IR_RUNTIME_BRIDGE_XLON_VALID,
@@ -3820,6 +3831,7 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_XLON_WRITE,
     XL6_IR_RUNTIME_BRIDGE_XLON_VISIT,
     XL6_IR_RUNTIME_BRIDGE_XLON_WRITER,
+    XL6_IR_RUNTIME_BRIDGE_XLON_WRITER_RESULT,
     /* Line-oriented formats share the XRT value model, but each adapter has
      * its own verified dependency so JSONL never drags in XLONL or vice versa. */
     XL6_IR_RUNTIME_BRIDGE_JSONL_STRINGIFY,
@@ -6166,6 +6178,7 @@ int xl6IrRuntimeXlangBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Visitor status codes and callback exceptions are independent outcomes. */
 int xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(XL6_IrRuntimeBridgeKind kind);
+XL6_IrErrorAbi xl6IrRuntimeSerializationBridgeErrorAbi(const char* name);
 int xl6IrRuntimeSerializationBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Resolve generated-program TCP declarations into exact component roles. */
@@ -6251,7 +6264,10 @@ int xl6IrPersistenceProjectInstructionAbi(
 typedef enum XL6_IrPersistenceInvocationAction {
     XL6_IR_PERSISTENCE_INVOKE_ENCODE,
     XL6_IR_PERSISTENCE_INVOKE_FILE,
-    XL6_IR_PERSISTENCE_INVOKE_SINK
+    XL6_IR_PERSISTENCE_INVOKE_SINK,
+    XL6_IR_PERSISTENCE_INVOKE_WRITER_VALUE,
+    XL6_IR_PERSISTENCE_INVOKE_WRITER_NAME,
+    XL6_IR_PERSISTENCE_INVOKE_WRITER_INDEX
 } XL6_IrPersistenceInvocationAction;
 typedef struct XL6_IrPersistenceInvocationContract {
     XL6_IrIntrinsicKind intrinsic;
@@ -6272,6 +6288,9 @@ int xl6IrPersistenceInvocationInstructionAbi(
 int xl6IrPersistenceInvocationIntrinsicAbi(
     const XL6_IrModule*, const XL6_IrIntrinsicCall*);
 XL6_IrCallErrorPhysicalAbi xl6IrPersistenceInvocationErrorPhysicalAbi(XL6_IrRuntimeOp);
+int xl6IrPersistenceInvocationIsWriter(const XL6_IrPersistenceInvocationContract*);
+const XL6_IrClassField* xl6IrPersistenceWriterReceiverField(
+    const XL6_IrModule*, const XL6_IrPersistenceInvocationContract*, XL6_IrTypeId);
 /* Validated execution provenance, distinct from instruction->sourceSpan. */
 XL6_IrNodeId xl6IrInstructionExecutionOrigin(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);

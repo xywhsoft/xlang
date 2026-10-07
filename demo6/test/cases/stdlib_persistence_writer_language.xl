@@ -1,0 +1,105 @@
+class WriterBase
+    derive value
+    int inherited @json("shared") @xlon("base") = 1
+end
+class WriterRecord extends WriterBase
+    derive value
+    int child @json("shared") = 2
+    string text @json("名\0字") = "a\0b"
+    private int hidden = 77
+    int skipped @persist(skip) = 88
+    array<int> empty @persist(omit=empty) = array<int>[]
+    array<int> values = array<int>[1, 2]
+    list<int> sparse = list<int>[2: 20, 5: 50]
+    set<int> unique = set<int>{3, 4}
+end
+WriterRecord source = WriterRecord()
+JsonWriter plain = JsonWriter()
+assert(plain.writeValue(source))
+var parsed = json.parse(plain.finish())
+assert(parsed["shared"] == 2 and parsed["名\0字"] == "a\0b")
+assert(parsed["hidden"] == null and parsed["skipped"] == null and parsed["empty"] == null)
+assert(parsed["values"][1] == 2 and parsed["sparse"][0] == 20 and parsed["unique"].length == 2)
+JsonWriter keyed = json.writer()
+assert(keyed.beginObject())
+assert(keyed.writeValue("key\0name", source))
+assert(keyed.endObject())
+assert(json.parse(keyed.finish())["key\0name"]["shared"] == 2)
+XlonWriter extended = XlonWriter()
+assert(extended.writeValue(source))
+var restored = xlon.parse(extended.finish())
+assert(restored["base"] == 1 and restored["child"] == 2 and restored["text"] == "a\0b")
+XlonWriter named = xlon.writer()
+assert(named.beginDict())
+assert(named.writeValue("key\0name", source))
+assert(named.endDict())
+assert(xlon.parse(named.finish())["key\0name"]["base"] == 1)
+XlonWriter indexed = XlonWriter()
+assert(indexed.beginList())
+assert(indexed.writeValue(5, source))
+assert(indexed.endList())
+assert(xlon.parse(indexed.finish())[5]["child"] == 2)
+
+JsonWriter nullWriter = JsonWriter()
+assert(nullWriter.writeValue(null))
+assert(nullWriter.finish() == "null")
+XlonWriter binaryWriter = XlonWriter()
+bytes data = b"a\0b"
+assert(binaryWriter.writeValue(data))
+assert(xlon.parse(binaryWriter.finish()) == data)
+XlonWriter scalarWriter = XlonWriter()
+assert(scalarWriter.writeValue('你'))
+assert(xlon.parse(scalarWriter.finish()) == '你')
+
+JsonWriter primitives = JsonWriter()
+assert(primitives.beginObject())
+assert(primitives.writeString("text\0key", "v\0alue"))
+assert(primitives.writeInt("int", -9))
+assert(primitives.writeUInt("uint", uint64(19)))
+assert(primitives.writeFloat("float", 2.5))
+assert(primitives.writeBool("bool", true))
+assert(primitives.writeNull("null"))
+assert(primitives.endObject())
+var primitiveResult = json.parse(primitives.finish())
+assert(primitiveResult["text\0key"] == "v\0alue" and primitiveResult["int"] == -9)
+assert(primitiveResult["uint"] == 19 and primitiveResult["float"] == 2.5 and primitiveResult["bool"])
+XlonWriter byteMethods = XlonWriter()
+assert(byteMethods.beginDict())
+assert(byteMethods.writeBytes("bytes\0key", data))
+assert(byteMethods.writeChar("char", '你'))
+assert(byteMethods.endDict())
+assert(xlon.parse(byteMethods.finish())["bytes\0key"] == data)
+
+int evaluations = 0
+func nextKey() as string
+    evaluations = evaluations * 10 + 1
+    return "ordered\0key"
+end
+func nextRecord() as WriterRecord
+    evaluations = evaluations * 10 + 2
+    return source
+end
+JsonWriter ordered = JsonWriter()
+assert(ordered.beginObject())
+assert(ordered.writeValue(value=nextRecord(), key=nextKey()))
+assert(evaluations == 21)
+assert(ordered.endObject())
+assert(json.parse(ordered.finish())["ordered\0key"]["shared"] == 2)
+
+JsonWriter mutableSlot = JsonWriter()
+JsonWriter savedReceiver = mutableSlot
+func replaceReceiver() as WriterRecord
+    mutableSlot = JsonWriter()
+    return source
+end
+assert(mutableSlot.writeValue(replaceReceiver()))
+assert(json.parse(savedReceiver.finish())["shared"] == 2)
+assert(mutableSlot.writeValue(19))
+assert(json.parse(mutableSlot.finish()) == 19)
+
+func genericWriter<T>(JsonWriter writer, T value) as bool
+    return writer.writeValue(value)
+end
+JsonWriter generic = JsonWriter()
+assert(genericWriter::<WriterRecord>(generic, source))
+assert(json.parse(generic.finish())["shared"] == 2)

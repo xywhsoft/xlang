@@ -250,151 +250,18 @@ static const char xl6XlonWrite[] =
     "}\n"
     "\n";
 
-static const char xl6XlonWriter[] =
-    "static xxlonwriter* xl6_xlon_writer(void* writer)\n"
-    "{\n"
-    "    return (xxlonwriter*)writer;\n"
-    "}\n"
-    "\n"
-    "static bool xl6_xlon_writer_name(void* writer, xlir_string key)\n"
-    "{\n"
-    "    return writer != 0 && key.Data != 0 && xrtXlonWriterName(xl6_xlon_writer(writer), key);\n"
-    "}\n"
-    "\n"
-    "static bool xl6_xlon_writer_key(void* writer, XL6_XLON_INT key)\n"
-    "{\n"
-    "    return writer != 0 && xrtXlonWriterKey(xl6_xlon_writer(writer), key);\n"
-    "}\n"
-    "\n"
-    "void* xl6_xrt_xlon_writer_create_default(void)\n"
-    "{\n"
-    "    xxlonwriteconfig config = xl6_xlon_write_config(false, false);\n"
-    "    return xrtXlonWriterCreate(&config);\n"
-    "}\n"
-    "\n"
-    "void* xl6_xrt_xlon_writer_create_pretty(XL6_XLON_BOOL pretty)\n"
-    "{\n"
-    "    xxlonwriteconfig config = xl6_xlon_write_config(pretty != 0, false);\n"
-    "    return xrtXlonWriterCreate(&config);\n"
-    "}\n"
-    "\n"
-    "void* xl6_xrt_xlon_writer_create_options(XL6_XLON_BOOL pretty, XL6_XLON_BOOL ignoreEncode, XL6_XLON_BOOL ignoreDecode)\n"
-    "{\n"
-    "    xxlonwriteconfig config = xl6_xlon_write_config(pretty != 0, ignoreEncode != 0);\n"
-    "    (void)ignoreDecode;\n"
-    "    return xrtXlonWriterCreate(&config);\n"
-    "}\n"
-    "\n"
-    "XL6_XLON_DESTROY xl6_xrt_xlon_writer_destroy(void* writer)\n"
-    "{\n"
-    "    xrtXlonWriterFree(xl6_xlon_writer(writer));\n"
-    "    XL6_XLON_DESTROY_RETURN;\n"
-    "}\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_array(void* writer) { return writer != 0 && xrtXlonWriterArray(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_array_key(void* writer, xlir_string key) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterArray(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_array_index(void* writer, XL6_XLON_INT index) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterArray(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_end_array(void* writer) { return writer != 0 && xrtXlonWriterEnd(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_list(void* writer) { return writer != 0 && xrtXlonWriterIntMap(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_list_key(void* writer, xlir_string key) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterIntMap(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_list_index(void* writer, XL6_XLON_INT index) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterIntMap(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_end_list(void* writer) { return writer != 0 && xrtXlonWriterEnd(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_dict(void* writer) { return writer != 0 && xrtXlonWriterObject(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_dict_key(void* writer, xlir_string key) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterObject(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_dict_index(void* writer, XL6_XLON_INT index) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterObject(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_end_dict(void* writer) { return writer != 0 && xrtXlonWriterEnd(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_set(void* writer) { return writer != 0 && xrtXlonWriterSet(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_set_key(void* writer, xlir_string key) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterSet(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_begin_set_index(void* writer, XL6_XLON_INT index) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterSet(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_end_set(void* writer) { return writer != 0 && xrtXlonWriterEnd(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_null(void* writer) { return writer != 0 && xrtXlonWriterNull(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_null_key(void* writer, xlir_string key) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterNull(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_null_index(void* writer, XL6_XLON_INT index) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterNull(xl6_xlon_writer(writer)); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_bool(void* writer, XL6_XLON_BOOL value) { return writer != 0 && xrtXlonWriterBool(xl6_xlon_writer(writer), value != 0); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_bool_key(void* writer, xlir_string key, XL6_XLON_BOOL value) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterBool(xl6_xlon_writer(writer), value != 0); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_bool_index(void* writer, XL6_XLON_INT index, XL6_XLON_BOOL value) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterBool(xl6_xlon_writer(writer), value != 0); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_int(void* writer, XL6_XLON_INT value) { return writer != 0 && xrtXlonWriterInt(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_int_key(void* writer, xlir_string key, XL6_XLON_INT value) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterInt(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_int_index(void* writer, XL6_XLON_INT index, XL6_XLON_INT value) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterInt(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_uint(void* writer, uint64_t value) { return writer != 0 && xrtXlonWriterUInt(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_uint_key(void* writer, xlir_string key, uint64_t value) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterUInt(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_uint_index(void* writer, XL6_XLON_INT index, uint64_t value) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterUInt(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_char(void* writer, uint32_t value) { return writer != 0 && xrtXlonWriterChar(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_char_key(void* writer, xlir_string key, uint32_t value) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterChar(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_char_index(void* writer, XL6_XLON_INT index, uint32_t value) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterChar(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_float(void* writer, double value) { return writer != 0 && xrtXlonWriterFloat(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_float_key(void* writer, xlir_string key, double value) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterFloat(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_float_index(void* writer, XL6_XLON_INT index, double value) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterFloat(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_string(void* writer, xlir_string value) { return writer != 0 && value.Data != 0 && xrtXlonWriterString(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_string_key(void* writer, xlir_string key, xlir_string value) { return value.Data != 0 && xl6_xlon_writer_name(writer, key) && xrtXlonWriterString(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_string_index(void* writer, XL6_XLON_INT index, xlir_string value) { return value.Data != 0 && xl6_xlon_writer_key(writer, index) && xrtXlonWriterString(xl6_xlon_writer(writer), value); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_bytes(void* writer, xvalue* value) { xbytesview data; return writer != 0 && value != 0 && xrtValueGetBytes(value, &data) && xrtXlonWriterBytes(xl6_xlon_writer(writer), data); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_bytes_key(void* writer, xlir_string key, xvalue* value) { xbytesview data; return value != 0 && xrtValueGetBytes(value, &data) && xl6_xlon_writer_name(writer, key) && xrtXlonWriterBytes(xl6_xlon_writer(writer), data); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_bytes_index(void* writer, XL6_XLON_INT index, xvalue* value) { xbytesview data; return value != 0 && xrtValueGetBytes(value, &data) && xl6_xlon_writer_key(writer, index) && xrtXlonWriterBytes(xl6_xlon_writer(writer), data); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_tag(void* writer, xlir_string tag, xlir_string payload) { return writer != 0 && tag.Data != 0 && payload.Data != 0 && xrtXlonWriterTag(xl6_xlon_writer(writer), tag, payload); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_tag_key(void* writer, xlir_string key, xlir_string tag, xlir_string payload) { return tag.Data != 0 && payload.Data != 0 && xl6_xlon_writer_name(writer, key) && xrtXlonWriterTag(xl6_xlon_writer(writer), tag, payload); }\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_tag_index(void* writer, XL6_XLON_INT index, xlir_string tag, xlir_string payload) { return tag.Data != 0 && payload.Data != 0 && xl6_xlon_writer_key(writer, index) && xrtXlonWriterTag(xl6_xlon_writer(writer), tag, payload); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_time(void* writer, XL6_XLON_INT value) { return writer != 0 && xrtXlonWriterTime(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_time_key(void* writer, xlir_string key, XL6_XLON_INT value) { return xl6_xlon_writer_name(writer, key) && xrtXlonWriterTime(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_time_index(void* writer, XL6_XLON_INT index, XL6_XLON_INT value) { return xl6_xlon_writer_key(writer, index) && xrtXlonWriterTime(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_value(void* writer, xvalue* value) { return writer != 0 && value != 0 && xrtXlonWriterValue(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_value_key(void* writer, xlir_string key, xvalue* value) { return value != 0 && xl6_xlon_writer_name(writer, key) && xrtXlonWriterValue(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "XL6_XLON_BOOL xl6_xrt_xlon_writer_value_index(void* writer, XL6_XLON_INT index, xvalue* value) { return value != 0 && xl6_xlon_writer_key(writer, index) && xrtXlonWriterValue(xl6_xlon_writer(writer), value); }\n"
-    "\n"
-    "void* xl6_xrt_xlon_writer_finish(void* writer)\n"
-    "{\n"
-    "    void* text = writer != 0 && xrtXlonWriterFinish(xl6_xlon_writer(writer)) ?\n"
-    "        xrtXlonWriterTake(xl6_xlon_writer(writer), 0) : 0;\n"
-    "    if (text == 0) xrtClearError();\n"
-    "    return text;\n"
-    "}\n"
-    "\n";
 
 void xl6CgenEmitXlonRuntime(XL6_Output* out, unsigned operations)
 {
     if (out == NULL || operations == 0) return;
-    xl6OutputPuts("extern size_t strlen(const char*);\n", out);
-    xl6OutputPuts(xl6XlonView, out);
+    if (operations & ~XL6_CGEN_XLON_WRITER) {
+        xl6OutputPuts("extern size_t strlen(const char*);\n", out);
+        xl6OutputPuts(xl6XlonView, out);
+    }
     if (operations & (XL6_CGEN_XLON_PARSE | XL6_CGEN_XLON_VALID |
                       XL6_CGEN_XLON_READ | XL6_CGEN_XLON_VISIT))
         xl6OutputPuts(xl6XlonReadConfig, out);
-    if (operations & (XL6_CGEN_XLON_STRINGIFY | XL6_CGEN_XLON_WRITE | XL6_CGEN_XLON_WRITER))
+    if (operations & (XL6_CGEN_XLON_STRINGIFY | XL6_CGEN_XLON_WRITE))
         xl6OutputPuts(xl6XlonWriteConfig, out);
     if (operations & XL6_CGEN_XLON_PARSE) xl6OutputPuts(xl6XlonParse, out);
     if (operations & XL6_CGEN_XLON_VALID) xl6OutputPuts(xl6XlonValid, out);
@@ -405,10 +272,6 @@ void xl6CgenEmitXlonRuntime(XL6_Output* out, unsigned operations)
         xl6OutputPuts(xl6XlonVisitor, out);
     }
     if (operations & XL6_CGEN_XLON_WRITER) {
-        xl6OutputPuts(
-            "#define XL6_XLON_BOOL bool\n#define XL6_XLON_INT int64_t\n#define XL6_XLON_DESTROY void\n#define XL6_XLON_DESTROY_RETURN return\n",
-            out);
-        xl6OutputPuts(xl6XlonWriter, out);
-        xl6OutputPuts("#undef XL6_XLON_BOOL\n#undef XL6_XLON_INT\n#undef XL6_XLON_DESTROY\n#undef XL6_XLON_DESTROY_RETURN\n", out);
+        xl6OutputPuts("#include <__xl_runtime/xl6_xlon_writer.h>\n", out);
     }
 }

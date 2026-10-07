@@ -2,7 +2,8 @@
 """Actual PROJECT language path, strict C/JIT/AOT and complete synchronous OOM prefix.
 
 Generated C and the host use O0/O2. Linked runtime/compiler optimization is
-recorded separately. Configured encode/file/sink cover four formats, not nominal Writer APIs.
+recorded separately. Configured encode/file/sink cover four formats; Writer
+contracts cover JsonWriter and XlonWriter, not additional line Writer classes.
 """
 from __future__ import annotations
 import argparse
@@ -22,7 +23,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -33,7 +34,8 @@ def main() -> int:
                      'readers': 'stdlib_serialization_read_errors.xl',
                      'configured': 'stdlib_persistence_configured_language.xl',
                      'sinks': 'stdlib_persistence_sink_language.xl',
-                     'files': 'stdlib_persistence_file_language.xl'}
+                     'files': 'stdlib_persistence_file_language.xl',
+                     'writers': 'stdlib_persistence_writer_language.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
@@ -42,7 +44,8 @@ def main() -> int:
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, oom_source,
              oom_host, memory, root / 'test/support/module_product_memory.h', product}
     error_names = {'configured': 'stdlib_persistence_configured_errors.xl',
-                   'sinks': 'stdlib_persistence_sink_errors.xl', 'files': 'stdlib_persistence_file_errors.xl'}
+                   'sinks': 'stdlib_persistence_sink_errors.xl', 'files': 'stdlib_persistence_file_errors.xl',
+                   'writers': 'stdlib_persistence_writer_errors.xl'}
     error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
     public = None
@@ -111,13 +114,20 @@ def main() -> int:
         generated = out / 'project.c'
         run('cgen', command('cgen-default', generated))
         text = generated.read_text(encoding='utf-8')
-        if args.fixture in ('project', 'configured', 'sinks', 'files'):
+        if args.fixture in ('project', 'configured', 'sinks', 'files', 'writers'):
             assert 'xl6PersistenceProjectV1(' in text and 'xlir_persist_plan_2' in text and 'xlir_persist_plan_4' in text
             if args.fixture == 'configured':
                 assert 'xl6_serialization_encode.h' in text
                 assert all(name + '(' in text for name in
                            ('xl6JsonEncodeV1', 'xl6XlonEncodeV1', 'xl6JsonlEncodeV1', 'xl6XlonlEncodeV1'))
                 assert '_stringify_configured(' not in text
+            elif args.fixture == 'writers':
+                assert 'xl6_serialization_writer.h' in text
+                assert 'xl6_json_writer.h' in text and 'xl6_xlon_writer.h' in text
+                assert 'finishNative' not in text
+                assert all(name + '(' in text for name in ('xl6JsonWriterValueV1', 'xl6JsonWriterNameV1',
+                           'xl6XlonWriterValueV1', 'xl6XlonWriterNameV1', 'xl6XlonWriterIndexV1'))
+                assert 'bool projection_ok_' in text
             elif args.fixture in ('sinks', 'files'):
                 assert 'xl6_serialization_io.h' in text
                 suffix = 'WriteSinkV1' if args.fixture == 'sinks' else 'WriteFileV1'
