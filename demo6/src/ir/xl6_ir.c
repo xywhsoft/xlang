@@ -1851,6 +1851,8 @@ void xl6IrModuleFree(XL6_IrModule* module)
         xrtFree(module->protocolDispatchSlots[i].name);
     }
     xrtFree(module->classLayouts);
+    xrtFree(module->classIdentityPlans);
+    xrtFree(module->classIdentityFields);
     xrtFree(module->persistenceProjectPlans);
     xrtFree(module->persistenceProjectSchemas);
     xrtFree(module->persistenceProjectFields);
@@ -5695,6 +5697,10 @@ static int xl6IrRefreshClassLayoutsDetailed(
         return xl6IrClassLayoutFailure(
             module, failure, failureSize, NULL, XL6_IR_TYPE_INVALID,
             "cannot build persistence construction ABIs");
+    if ( !xl6IrBuildClassIdentityPlans(module) )
+        return xl6IrClassLayoutFailure(
+            module, failure, failureSize, NULL, XL6_IR_TYPE_INVALID,
+            "cannot build canonical identity plans");
     return 1;
 }
 
@@ -32051,6 +32057,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     if ( !xl6IrVerifyClassLayouts(module) ) {
         return xl6IrDiag(diags, NULL, "XLIR class layout arena is malformed");
     }
+    if ( !xl6IrVerifyClassIdentityPlans(module) ) {
+        return xl6IrDiag(diags, NULL, "XLIR class identity arena is not canonical");
+    }
     if ( !xl6IrVerifyPersistenceProjectPlans(module) ) {
         return xl6IrDiag(diags, NULL, "XLIR persistence projection arena is not canonical");
     }
@@ -47946,6 +47955,22 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (int)row->assignAbi, row->acceptNull, row->required,
             i + 1 < module->persistenceRestoreFieldCount ? "," : "");
     }
+    xl6OutputPuts("  ],\n  \"classIdentityPlans\": [\n", out);
+    for ( i = 0; i < module->classIdentityPlanCount; ++i ) {
+        const XL6_IrClassIdentityPlan* row = &module->classIdentityPlans[i];
+        xl6OutputPrintf(out,
+            "    {\"classLayout\":%lu,\"baseLayout\":%lu,\"identity\":\"%016llx\",\"runtimeTypeTag\":%u,\"hashAbi\":%d,\"hashTarget\":%u,\"equalityAbi\":%d,\"equalityTarget\":%u,\"residentKeyedPair\":%d,\"firstField\":%lu,\"fieldCount\":%lu}%s\n",
+            (unsigned long)row->classLayout, (unsigned long)row->baseLayout, (unsigned long long)row->identity,
+            (unsigned int)row->runtimeTypeTag, (int)row->hashAbi, (unsigned int)row->hashTarget,
+            (int)row->equalityAbi, (unsigned int)row->equalityTarget, row->residentKeyedPair,
+            (unsigned long)row->firstField, (unsigned long)row->fieldCount,
+            i + 1 == module->classIdentityPlanCount ? "" : ",");
+    }
+    xl6OutputPuts("  ],\n  \"classIdentityFields\": [\n", out);
+    for ( i = 0; i < module->classIdentityFieldCount; ++i )
+        xl6OutputPrintf(out, "    {\"classField\":%lu}%s\n",
+            (unsigned long)module->classIdentityFields[i].classField,
+            i + 1 == module->classIdentityFieldCount ? "" : ",");
     xl6OutputPuts("  ],\n  \"classLayouts\": [\n", out);
     for ( i = 0; i < module->classLayoutCount; ++i ) {
         const XL6_IrClassLayout* layout = &module->classLayouts[i];

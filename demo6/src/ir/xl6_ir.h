@@ -5621,6 +5621,30 @@ typedef struct XL6_IrClassLayout {
     XL6_SymbolId equalityTarget;
 } XL6_IrClassLayout;
 
+/* One canonical identity descriptor per concrete layout. The field vector is
+ * flattened base-first by IR, including an uninterned base's materialized
+ * prefix. Backends must not walk ancestry or reselect @compare attributes.
+ * Hash/equality retain their independent source contracts; only a complete
+ * resident pair is admitted to keyed collections. User targets remain calls,
+ * not a request to substitute the structural algorithm. */
+typedef struct XL6_IrClassIdentityPlan {
+    size_t classLayout;
+    size_t baseLayout; /* SIZE_MAX for a root/materialized uninterned base. */
+    uint64 identity;
+    uint32 runtimeTypeTag;
+    XL6_IrClassHashAbi hashAbi;
+    XL6_SymbolId hashTarget;
+    XL6_IrClassEqualityAbi equalityAbi;
+    XL6_SymbolId equalityTarget;
+    int residentKeyedPair;
+    size_t firstField;
+    size_t fieldCount;
+} XL6_IrClassIdentityPlan;
+
+typedef struct XL6_IrClassIdentityField {
+    size_t classField; /* Exact declaration/type/name in the ClassField arena. */
+} XL6_IrClassIdentityField;
+
 /* Persistence projection is immutable, flattened data owned by lowered IR.
  * A field's declaration identity and byte-key representation are retained;
  * a backend must not rediscover attributes, ancestry, or native storage.
@@ -6063,6 +6087,12 @@ typedef struct XL6_IrModule {
     XL6_IrClassLayout* classLayouts;
     size_t classLayoutCount;
     size_t classLayoutCapacity;
+    XL6_IrClassIdentityPlan* classIdentityPlans;
+    size_t classIdentityPlanCount;
+    size_t classIdentityPlanCapacity;
+    XL6_IrClassIdentityField* classIdentityFields;
+    size_t classIdentityFieldCount;
+    size_t classIdentityFieldCapacity;
     XL6_IrPersistenceProjectPlan* persistenceProjectPlans;
     size_t persistenceProjectPlanCount;
     size_t persistenceProjectPlanCapacity;
@@ -6282,6 +6312,13 @@ XL6_IrErrorAbi xl6IrCopyIntrinsicErrorAbi(const XL6_IrModule* module,
  * XLIR construction.  Append exactly the missing runtime layouts and rebuild
  * their derived destruction/persistence contracts before body lowering. */
 int xl6IrRefreshClassLayouts(XL6_IrModule* module);
+/* All stages own the same closed identity data. Rebuild is transactional,
+ * including OOM; verification allocates nothing and checks canonical order,
+ * complete coverage, exact nominal domain and independent protocol targets. */
+int xl6IrBuildClassIdentityPlans(XL6_IrModule* module);
+int xl6IrVerifyClassIdentityPlans(const XL6_IrModule* module);
+const XL6_IrClassIdentityPlan* xl6IrClassIdentityPlanGet(
+    const XL6_IrModule* module, XL6_IrTypeId type);
 int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module);
 /* Rebuild transactionally after callable reachability is fixed. Failure
  * leaves the previous arena intact. Verification independently streams the

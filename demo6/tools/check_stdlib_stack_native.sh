@@ -52,6 +52,7 @@ frozen_files() {
     printf '%s\0' tools/check_stdlib_sequence_clear.py test/support/sequence_clear_probe.c test/support/array_value_native.c
     printf '%s\0' tools/check_stdlib_sequence_identity.py test/cases/stdlib_sequence_identity_native_host.c test/support/sequence_identity_native.c
     printf '%s\0' tools/check_persistence_project_language.py test/cases/stdlib_native_sequence_identity.xl
+    printf '%s\0' tools/check_xlir_class_identity_plan.py test/cases/xlir_class_identity_plan_contract.c test/cases/stdlib_class_identity_inherited.xl test/cases/cgen_derive_string_hash_equals.xl
     printf '%s\0' test/cases/stdlib_sequence_clear_native_host.c test/cases/xlir_time_text_closure_host.c
     printf '%s\0' test/cases/stdlib_stack_clear_minimal.xl test/cases/stdlib_stack_clear_error.xl test/cases/stdlib_stack_clear_error_continuation.xl
     printf '%s\0' tools/check_stdlib_collection_admission.py test/cases/stdlib_collection_admission.xl test/cases/stdlib_collection_nominal_admission.xl
@@ -272,6 +273,7 @@ if ! run array-owned-read-native "$PY" tools/check_stdlib_array_primitive_admiss
 if ! run array-native-iterator "$PY" tools/check_stdlib_array_primitive_admission.py --out "$OUT/array-native-iterator" --iterator --sanitize; then failures+=(array-native-iterator); fi
 if ! run sequence-publication "$PY" tools/check_stdlib_sequence_publication.py --out "$OUT/sequence-publication" --sanitize; then failures+=(sequence-publication); fi
 if ! run sequence-identity "$PY" tools/check_stdlib_sequence_identity.py --out "$OUT/sequence-identity" --sanitize; then failures+=(sequence-identity); fi
+if ! run class-identity-plan "$PY" tools/check_xlir_class_identity_plan.py --out "$OUT/class-identity-plan"; then failures+=(class-identity-plan); fi
 if ! run sequence-identity-language "$PY" tools/check_persistence_project_language.py --fixture native-identity --out "$OUT/sequence-identity-language"; then failures+=(sequence-identity-language); fi
 if ! run sequence-factories "$PY" tools/check_stdlib_sequence_factories.py --out "$OUT/sequence-factories" --sanitize; then failures+=(sequence-factories); fi
 frozen_files | sort -zu >"$OUT/inputs.after.list"
