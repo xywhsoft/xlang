@@ -1,0 +1,45 @@
+func continueVisit(var event) as bool
+    return true
+end
+func raiseFromVisit(var event) as bool
+    throw ValueError "original-visit-error"
+    return true
+end
+func nestedThrow(var event) as bool
+    xlon.visit("null", raiseFromVisit, null)
+    return true
+end
+int errors = 0
+try
+    json.visit("null", continueVisit, {"unknown": true})
+catch e
+    assert(e.kind == "ValueError")
+    errors += 1
+end
+try
+    xlon.visit("null", continueVisit, 42)
+catch e
+    assert(e.kind == "ValueError")
+    errors += 1
+end
+try
+    json.visit("null", raiseFromVisit)
+catch e
+    assert(e.kind == "ValueError" and e.message == "original-visit-error")
+    errors += 1
+end
+try
+    xlon.visit("null", raiseFromVisit, null)
+catch e
+    assert(e.kind == "ValueError" and e.message == "original-visit-error")
+    errors += 1
+end
+try
+    json.visit("[1]", nestedThrow, null)
+catch e
+    assert(e.kind == "ValueError" and e.message == "original-visit-error")
+    errors += 1
+end
+assert(errors == 5)
+assert(json.visit("{", continueVisit) == json.visitInvalid)
+assert(xlon.visit("null", continueVisit) == xlon.visitComplete)

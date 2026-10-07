@@ -23,7 +23,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -35,7 +35,8 @@ def main() -> int:
                      'configured': 'stdlib_persistence_configured_language.xl',
                      'sinks': 'stdlib_persistence_sink_language.xl',
                      'files': 'stdlib_persistence_file_language.xl',
-                     'writers': 'stdlib_persistence_writer_language.xl'}
+                     'writers': 'stdlib_persistence_writer_language.xl',
+                     'visitors': 'stdlib_serialization_visit_language.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
     oom_host = root / 'test/cases/xlir_module_product_oom_host.c'
@@ -45,9 +46,12 @@ def main() -> int:
              oom_host, memory, root / 'test/support/module_product_memory.h', product}
     error_names = {'configured': 'stdlib_persistence_configured_errors.xl',
                    'sinks': 'stdlib_persistence_sink_errors.xl', 'files': 'stdlib_persistence_file_errors.xl',
-                   'writers': 'stdlib_persistence_writer_errors.xl'}
+                   'writers': 'stdlib_persistence_writer_errors.xl',
+                   'visitors': 'stdlib_serialization_visit_errors.xl'}
     error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
+    status_host = test_root / 'test/cases/xlir_serialization_visit_status_host.c' if args.fixture == 'visitors' else None
+    if status_host: files.add(status_host)
     public = None
     if args.public_directory:
         manifest = args.public_directory.resolve() / 'build.json'
@@ -134,10 +138,17 @@ def main() -> int:
                 assert all('xl6' + name + suffix + '(' in text for name in ('Json', 'Xlon', 'Jsonl', 'Xlonl'))
                 assert '_write_to_configured(' not in text and '_write_file_configured(' not in text
                 assert 'bool projection_ok_' in text
+        elif args.fixture == 'visitors':
+            assert 'xl6_serialization_callback.h' in text
+            assert 'xl6_serialization_visit_finish(' in text
+            assert 'xl6_xrt_json_visit_configured(' in text and 'xl6_xrt_xlon_visit_configured(' in text
+            assert 'static XL6_Serialization_Visit_Result xl6_serialization_callback_finish(' not in text
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
             assert 'xlir_result_xvalue xl6_xrt_xlonl_parse(' in text
-        assert '_project_t' not in text and '_stringify_t' not in text and '_value_t' not in text
+        assert '_project_t' not in text and '_stringify_t' not in text
+        # Verified callable adapters are not per-class persistence emitters.
+        assert '_value_t' not in text.replace('xlir_language_function_value_t', 'callable-adapter-')
         for level in (0, 2):
             binary, memory_object = out / f'project.O{level}.exe', out / f'memory.O{level}.o'
             run(f'O{level}.memory', [cc, *strict, f'-O{level}', '-c', str(memory), '-o', str(memory_object)])
@@ -147,6 +158,11 @@ def main() -> int:
             run(f'O{level}.compile', [cc, *strict, f'-O{level}', '-include', str(generated),
                 str(oom_host), str(memory_object), *links, '-o', str(binary)])
             assert 'balanced' in run(f'O{level}.baseline', [str(binary)])
+            if status_host:
+                status_binary = out / f'status.O{level}.exe'
+                run(f'O{level}.status.compile', [cc, *strict, f'-O{level}', '-include', str(generated),
+                    str(status_host), str(memory_object), *links, '-o', str(status_binary)])
+                assert 'ownership balanced' in run(f'O{level}.status.run', [str(status_binary)])
         run('jit', command('run', out / 'jit'))
         run('aot.emit', command('exe', out / 'aot'))
         run('aot.run', [str(out / ('aot.exe' if os.name == 'nt' else 'aot'))])

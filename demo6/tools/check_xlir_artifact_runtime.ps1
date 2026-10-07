@@ -7,6 +7,10 @@ $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 $priorProcessChild=$env:XL6_PROCESS_CHILD
 $processChildConfigured=$false
+$priorTccEnvironment=@{}
+foreach($variable in @('XL6_TCC_DLL','XL6_TCC_ROOT','XL6_TCC_LIB')){
+    $priorTccEnvironment[$variable]=[Environment]::GetEnvironmentVariable($variable,'Process')
+}
 try {
     $outputPath=[IO.Path]::GetFullPath($Directory)
     if(Test-Path -LiteralPath $outputPath){throw 'Preserve prior artifact-runtime evidence'}
@@ -27,6 +31,7 @@ try {
         $processChildConfigured=$true
     }
     $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
+        'release/xl.dll',
         'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',
         'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures+$processInputs)
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
@@ -111,9 +116,11 @@ try {
         $identity=[pscustomobject]@{Driver="$outputPath/xl.exe";DriverSha256=(Get-FileHash -LiteralPath "$outputPath/xl.exe").Hash}
         [IO.File]::WriteAllText("$outputPath/build.json",($identity|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
         & "$PSScriptRoot/stage_xlir_artifact_runtime_sources.ps1" -Directory $outputPath *> "$outputPath/stage.log"
-        $env:XL6_TCC_DLL=[IO.Path]::GetFullPath('release/xl.dll')
-        $env:XL6_TCC_ROOT=[IO.Path]::GetFullPath('res/tcc/win64/x86_64')
-        $env:XL6_TCC_LIB=[IO.Path]::GetFullPath('res/tcc/win64/x86_64/lib')
+        # PowerShell location and the process/.NET current directory can differ.
+        # Resolve provider paths against this frozen test root explicitly.
+        $env:XL6_TCC_DLL=Join-Path $rootPath 'release/xl.dll'
+        $env:XL6_TCC_ROOT=Join-Path $rootPath 'res/tcc/win64/x86_64'
+        $env:XL6_TCC_LIB=Join-Path $rootPath 'res/tcc/win64/x86_64/lib'
         $includes=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
         foreach($case in $cases){
             foreach($phase in @('cgen','run','build','execute')){
@@ -233,6 +240,15 @@ $process=Start-Process @start
                         (('src/runtime/xl6_sequence.c'-in$selectedSources)-eq($arrayInput-or('src/runtime/xl6_value_iterator.c'-in$selectedSources)))-and
                         (('src/runtime/xl6_future_metadata.c'-in$selectedSources)-eq$metadata)-and
                         'src/api/xl_future_bridge.c'-notin$selectedSources
+                }
+                if($case-eq'stdlib_serialization_visit_json_prune'){
+                    $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
+                    $selectionMatches='XRT_MODULE_JSON_READ'-in$plan.NativeModules-and
+                        'XRT_MODULE_XLON_READ'-notin$plan.NativeModules-and
+                        !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(?:JSONL|XLONL)|^XRT_MODULE_(?:JSON|XLON)_FILE$'}).Count-and
+                        $generatedText.Contains('xl6_serialization_callback.h')-and
+                        $generatedText.Contains('xl6_serialization_visit_finish(')-and
+                        !$generatedText.Contains('xl6_xrt_xlon_visit')
                 }
                 if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune')){
                     $generatedText=Get-Content -LiteralPath "$prefix.c" -Raw
@@ -500,7 +516,7 @@ $process=Start-Process @start
                         @($componentObjects|Where-Object {$_.Component.Source-in$selectedSources}|ForEach-Object NativeUndefined)
                     $required=@($required|Sort-Object -Unique)
                     $missing=@($required|Where-Object {$_-notin$defined})
-                    if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune')){
+                    if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune','stdlib_serialization_visit_json_prune')){
                         $selectionMatches=$selectionMatches-and
                             !@(@($required)+@($defined)|Where-Object {$_-match '^xrt(?:Jsonl|Xlonl)'}).Count
                     }
@@ -534,5 +550,8 @@ $process=Start-Process @start
     if(!$complete){throw 'Artifact runtime failures retained'}
 } finally {
     if($processChildConfigured){$env:XL6_PROCESS_CHILD=$priorProcessChild}
+    foreach($variable in $priorTccEnvironment.Keys){
+        [Environment]::SetEnvironmentVariable($variable,$priorTccEnvironment[$variable],'Process')
+    }
     Pop-Location
 }

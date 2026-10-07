@@ -22,7 +22,7 @@ end
 func nativeDiagnosticVisit(var event) as bool
     assert !xlon.valid("{bad}")
     assert json.visit("{", continueVisit) == json.visitInvalid
-    assert string.len(lastNativeError()) > 0
+    assert string.len(lastNativeError()) == 0
     return true
 end
 
@@ -44,7 +44,7 @@ for i in range(20)
     assert !xlon.valid("{bad}")
     assert json.visit("{", continueVisit) == json.visitInvalid
     assert xlon.visit("{bad}", continueVisit) == xlon.visitInvalid
-    assert string.len(lastNativeError()) > 0
+    assert string.len(lastNativeError()) == 0
     assert json.visit("null", nativeDiagnosticVisit) == json.visitComplete
     assert xlon.visit("null", nativeDiagnosticVisit) == xlon.visitComplete
     assert xlon.visit("null", recoveredVisit) == xlon.visitComplete

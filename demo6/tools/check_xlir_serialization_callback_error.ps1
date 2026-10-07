@@ -88,9 +88,9 @@ try {
         Invoke-Captured $xl ('cgen "{0}" --backend xlir --emit "{1}"' -f $source,$repeat) 0
         $c = [System.IO.File]::ReadAllText($cPath)
         if ($c -cne [System.IO.File]::ReadAllText($repeat)) { throw "$name C emission is not deterministic" }
-        if ([regex]::Matches($c, 'static int xl6_serialization_callback_call\(').Count -ne 1 -or
-            !$c.Contains("typedef xlir_result_c_int XL6_Serialization_Visit_Result;") -or
-            !$c.Contains("xrtSetErrorTake(context->CallbackError);") -or
+        if ([regex]::Matches($c, '#include <__xl_runtime/xl6_serialization_callback\.h>').Count -ne 1 -or
+            !$c.Contains("#define XL6_SERIALIZATION_STATUS_RESULT 1") -or
+            !$c.Contains("xl6_serialization_visit_finish(&context, status)") -or
             $c.Contains("xl6_function_call_var") -or
             $c -match '<[^>]*(?:xrt|xruntime|xl_runtime)\.h>') {
             throw "$name lost its single declaration-only callback boundary/result carrier"
