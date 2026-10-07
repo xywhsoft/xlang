@@ -1,3 +1,27 @@
+/* Closed enum-to-C mappings, not protocol selection. The independent IR
+ * verifier has already fixed targets, modes and the complete field vector. */
+static const char* xl6IrCgenClassHashModeV3(XL6_IrClassHashAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_CLASS_HASH_ABI_NONE:
+    case XL6_IR_CLASS_HASH_ABI_INTERNAL_CALL: return "XL6_CLASS_IDENTITY_NONE_V3";
+    case XL6_IR_CLASS_HASH_ABI_RUNTIME_REFERENCE: return "XL6_CLASS_IDENTITY_REFERENCE_V3";
+    case XL6_IR_CLASS_HASH_ABI_RUNTIME_DERIVED: return "XL6_CLASS_IDENTITY_DERIVED_V3";
+    default: return NULL;
+    }
+}
+
+static const char* xl6IrCgenClassEqualModeV3(XL6_IrClassEqualityAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_CLASS_EQUALITY_ABI_NONE:
+    case XL6_IR_CLASS_EQUALITY_ABI_INTERNAL_CALL: return "XL6_CLASS_IDENTITY_NONE_V3";
+    case XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_REFERENCE: return "XL6_CLASS_IDENTITY_REFERENCE_V3";
+    case XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_DERIVED: return "XL6_CLASS_IDENTITY_DERIVED_V3";
+    default: return NULL;
+    }
+}
+
 static int xl6IrCgenEmitAsyncAndCallableRuntime(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrCgenNeeds* needs, XL6_DiagList* diags)
@@ -167,29 +191,24 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
     if ( needs->needsClassValueIdentityRuntime ) {
         size_t instructionIndex;
         xl6OutputPuts(
-            "typedef uint64_t (*xlir_value_identity_hash)(const xvalue*, void*);\n"
-            "typedef bool (*xlir_value_identity_equal)(const xvalue*, const xvalue*, void*);\n"
-            "extern bool xrtValueHash(const xvalue*, uint64_t*);\n"
-            "extern bool xrtValueEqual(const xvalue*, const xvalue*);\n"
             "#include \"__xl_runtime/xl6_code_lease.h\"\n",
             out);
+        if (module->abi.classIdentityAbi != XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3)
+            return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
+                "XLIR class identity resident schema ABI is unresolved");
         for ( instructionIndex = 0;
               instructionIndex < module->instructionCount;
               ++instructionIndex ) {
             const XL6_IrInstruction* instruction =
                 &module->instructions[instructionIndex];
-            const XL6_IrClassLayout* layout;
-            const XL6_IrType* classType;
             const XL6_IrClassIdentityPlan* identityPlan;
+            const char* hashMode;
+            const char* equalMode;
             size_t priorInstruction;
             size_t fieldOffset;
-            int identityOp;
             if ( !xl6IrCgenInstructionIsReachable(module, instructionIndex) ||
-                 instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ) continue;
-            identityOp = instruction->runtimeOp ==
-                XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND;
-            if ( !identityOp && instruction->runtimeOp !=
-                 XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL ) continue;
+                 instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+                 instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLASS_NEW ) continue;
             for ( priorInstruction = 0;
                   priorInstruction < instructionIndex;
                   ++priorInstruction ) {
@@ -198,121 +217,45 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 if ( xl6IrCgenInstructionIsReachable(
                          module, priorInstruction) &&
                      prior->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                     (prior->runtimeOp ==
-                          XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ||
-                      prior->runtimeOp ==
-                          XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL) &&
-                     prior->payloadType == instruction->payloadType )
+                     prior->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLASS_NEW &&
+                     prior->type == instruction->type )
                     break;
             }
             if ( priorInstruction != instructionIndex ) continue;
-            if ( identityOp
-                     ? !xl6IrCgenRuntimeClassIdentityBindAbi(
-                           module, instruction)
-                     : !xl6IrCgenRuntimeClassDerivedEqualAbi(
-                           module, instruction) )
+            identityPlan = xl6IrClassIdentityPlanGet(module, instruction->type);
+            if (identityPlan == NULL ||
+                (hashMode = xl6IrCgenClassHashModeV3(identityPlan->hashAbi)) == NULL ||
+                (equalMode = xl6IrCgenClassEqualModeV3(identityPlan->equalityAbi)) == NULL)
                 return xl6IrCgenDiag(diags, module, instruction->origin,
-                    "XLIR C emitter class value identity helper ABI is unresolved");
-            layout = xl6IrCgenClassLayout(
-                module, instruction->payloadType);
-            classType = xl6IrTypeGet(
-                &module->types, instruction->payloadType);
-            identityPlan = xl6IrClassIdentityPlanGet(module, instruction->payloadType);
-            if ( layout == NULL || classType == NULL ||
-                 classType->typeValueId == 0 || identityPlan == NULL )
-                return xl6IrCgenDiag(diags, module, instruction->origin,
-                    "XLIR C emitter class value identity layout is unresolved");
-            if ( identityPlan->hashAbi ==
-                     XL6_IR_CLASS_HASH_ABI_RUNTIME_REFERENCE &&
-                 identityPlan->equalityAbi ==
-                     XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_REFERENCE ) {
+                    "XLIR C emitter class value identity schema is unresolved");
+            if (identityPlan->fieldCount != 0) {
                 xl6OutputPrintf(out,
-                    "static uint64_t xlir_class_reference_hash_t%u(const xvalue* value, void* data)\n"
-                    "{ (void)data; if (value == NULL) abort(); return (uint64_t)(uintptr_t)value; }\n"
-                    "static bool xlir_class_reference_equal_t%u(const xvalue* left, const xvalue* right, void* data)\n"
-                    "{ (void)data; return left == right; }\n"
-                    "static xvalue* xlir_class_identity_bind_t%u(xvalue* value)\n"
-                    "{ if (value == NULL || !xl6ClassRuntimeV2Get()->BindIdentity(value, xlir_class_reference_hash_t%u, xlir_class_reference_equal_t%u)) abort(); return value; }\n\n",
-                    (unsigned int)instruction->payloadType,
-                    (unsigned int)instruction->payloadType,
-                    (unsigned int)instruction->payloadType,
-                    (unsigned int)instruction->payloadType,
-                    (unsigned int)instruction->payloadType);
-                continue;
+                    "static const XL6_ClassIdentityFieldV3 xlir_class_identity_fields_t%u[] = {\n",
+                    (unsigned int)instruction->type);
+                for (fieldOffset = 0; fieldOffset < identityPlan->fieldCount; ++fieldOffset) {
+                    const XL6_IrClassField* field = &module->classFields[
+                        module->classIdentityFields[identityPlan->firstField + fieldOffset].classField];
+                    const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
+                    xl6OutputPuts("    {", out);
+                    xl6IrCgenEmitCStringLiteral(out, field->name);
+                    xl6OutputPrintf(out, ", %lu, UINT64_C(0x%016llX)},\n",
+                        (unsigned long)strlen(field->name),
+                        (unsigned long long)fieldType->typeValueId);
+                }
+                xl6OutputPuts("};\n", out);
             }
             xl6OutputPrintf(out,
-                "static bool xlir_class_derive_equal_t%u(const xvalue* left, const xvalue* right)\n"
-                "{\n"
-                "    xvalue* left_item; xvalue* right_item;\n"
-                "    if (left == right) return true;\n"
-                "    if (left == NULL || right == NULL || xrtValueType(left) == 0 || xrtValueType(right) == 0) return false;\n"
-                "    if (xlir_xvalue_object_get_literal_i64(left, xrtStrView(\"$xlir.class.runtime-type\")) != INT64_C(%u) ||\n"
-                "        xlir_xvalue_object_get_literal_i64(right, xrtStrView(\"$xlir.class.runtime-type\")) != INT64_C(%u)) abort();\n",
-                (unsigned int)instruction->payloadType,
-                (unsigned int)layout->runtimeTypeTag,
-                (unsigned int)layout->runtimeTypeTag);
-            for ( fieldOffset = 0;
-                  fieldOffset < identityPlan->fieldCount;
-                  ++fieldOffset ) {
-                const XL6_IrClassField* field = &module->classFields[
-                    module->classIdentityFields[identityPlan->firstField + fieldOffset].classField];
-                xl6OutputPuts(
-                    "    left_item = xrtValueObjectGet(left, xrtStrView(", out);
-                xl6IrCgenEmitCStringLiteral(out,
-                    field->name != NULL ? field->name : "");
-                xl6OutputPuts(
-                    ")); right_item = xrtValueObjectGet(right, xrtStrView(", out);
-                xl6IrCgenEmitCStringLiteral(out,
-                    field->name != NULL ? field->name : "");
-                xl6OutputPuts(
-                    "));\n"
-                    "    if (left_item == NULL || right_item == NULL) abort();\n"
-                    "    if (!xrtValueEqual(left_item, right_item)) return false;\n",
-                    out);
-            }
-            xl6OutputPuts("    return true;\n}\n", out);
-            if ( identityPlan->hashAbi ==
-                     XL6_IR_CLASS_HASH_ABI_RUNTIME_DERIVED &&
-                 identityPlan->hashTarget == 0 &&
-                 identityPlan->equalityAbi ==
-                     XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_DERIVED &&
-                 identityPlan->equalityTarget == 0 ) {
-            xl6OutputPrintf(out,
-                "static uint64_t xlir_class_derive_hash_t%u(const xvalue* value, void* data)\n"
-                "{\n"
-                "    uint64_t hash = 0x%016llXULL ^ 0x9E3779B97F4A7C15ULL; uint64_t item_hash; xvalue* item;\n"
-                "    (void)data;\n"
-                "    if (value == NULL || xrtValueType(value) == 0) abort();\n"
-                "    if (xlir_xvalue_object_get_literal_i64(value, xrtStrView(\"$xlir.class.runtime-type\")) != INT64_C(%u)) abort();\n",
-                (unsigned int)instruction->payloadType,
+                "static const XL6_ClassIdentitySchemaV3 xlir_class_identity_schema_t%u = {\n"
+                "    sizeof(XL6_ClassIdentitySchemaV3), UINT64_C(0x%016llX), %u,\n"
+                "    %s, %s, ",
+                (unsigned int)instruction->type,
                 (unsigned long long)identityPlan->identity,
-                (unsigned int)layout->runtimeTypeTag);
-            for ( fieldOffset = 0;
-                  fieldOffset < identityPlan->fieldCount;
-                  ++fieldOffset ) {
-                const XL6_IrClassField* field = &module->classFields[
-                    module->classIdentityFields[identityPlan->firstField + fieldOffset].classField];
-                xl6OutputPuts(
-                    "    item = xrtValueObjectGet(value, xrtStrView(", out);
-                xl6IrCgenEmitCStringLiteral(out,
-                    field->name != NULL ? field->name : "");
-                xl6OutputPuts(
-                    ")); if (item == NULL || !xrtValueHash(item, &item_hash)) abort();\n"
-                    "    hash ^= item_hash + 0x9E3779B97F4A7C15ULL + (hash << 6) + (hash >> 2);\n",
-                    out);
-            }
-            xl6OutputPuts("    return hash;\n}\n", out);
-            xl6OutputPrintf(out,
-                "static bool xlir_class_derive_equal_callback_t%u(const xvalue* left, const xvalue* right, void* data)\n"
-                "{ (void)data; return xlir_class_derive_equal_t%u(left, right); }\n"
-                "static xvalue* xlir_class_identity_bind_t%u(xvalue* value)\n"
-                "{ if (value == NULL || !xl6ClassRuntimeV2Get()->BindIdentity(value, xlir_class_derive_hash_t%u, xlir_class_derive_equal_callback_t%u)) abort(); return value; }\n\n",
-                (unsigned int)instruction->payloadType,
-                (unsigned int)instruction->payloadType,
-                (unsigned int)instruction->payloadType,
-                (unsigned int)instruction->payloadType,
-                (unsigned int)instruction->payloadType);
-            }
+                (unsigned int)identityPlan->runtimeTypeTag, hashMode, equalMode);
+            if (identityPlan->fieldCount != 0)
+                xl6OutputPrintf(out, "xlir_class_identity_fields_t%u",
+                    (unsigned int)instruction->type);
+            else xl6OutputPuts("NULL", out);
+            xl6OutputPrintf(out, ", %lu\n};\n\n", (unsigned long)identityPlan->fieldCount);
         }
     }
     if ( needs->needsClassDerivedToStringRuntime ) {

@@ -5233,6 +5233,14 @@ typedef enum XL6_IrClassStorageAbi {
     XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2
 } XL6_IrClassStorageAbi;
 
+/* Independent of lifecycle storage: language class identity is canonical
+ * readonly data executed by the resident runtime, never generated callbacks.
+ * Native wrapper factories retain their separately verified lifecycle ABI. */
+typedef enum XL6_IrClassIdentityAbi {
+    XL6_IR_CLASS_IDENTITY_NONE = 0,
+    XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3
+} XL6_IrClassIdentityAbi;
+
 typedef enum XL6_IrModuleContinuationAbi {
     XL6_IR_MODULE_CONTINUATION_NONE = 0,
     XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS
@@ -5294,6 +5302,7 @@ typedef struct XL6_IrModuleAbi {
     XL6_IrAsyncStorageAbi asyncStorageAbi;
     XL6_IrTaskStorageAbi taskStorageAbi;
     XL6_IrClassStorageAbi classStorageAbi;
+    XL6_IrClassIdentityAbi classIdentityAbi;
     XL6_IrModuleContinuationAbi continuationAbi;
     XL6_IrModuleExecutorOwnershipAbi executorOwnershipAbi;
     XL6_IrModuleTaskPoolOwnershipAbi taskPoolOwnershipAbi;
@@ -6797,9 +6806,12 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
  * null is the non-NULL XRT singleton; NULL always denotes boxing failure. */
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_IrRuntimeOp operation);
-/* Publication commits an already constructed object's callback contract.
- * Failure consumes the unpublished input; it is not an infallible type cast. */
-XL6_IrCallErrorPhysicalAbi xl6IrRuntimeObjectPublicationErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+/* Resident class identity binding/publication both consume the input owner
+ * and return NULL on failure, rather than acting as infallible type casts. */
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeClassErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+/* Boolean comparison is a payload, not failure status. Resident class
+ * equality has status/output; dynamic equality isolates callback failures. */
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeEqualityErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 int xl6IrCallErrorPhysicalUsesForeignScope(XL6_IrCallErrorPhysicalAbi abi);
 XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTypeId type);
 void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);

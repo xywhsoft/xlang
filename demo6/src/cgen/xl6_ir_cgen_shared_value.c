@@ -540,28 +540,29 @@ static int xl6IrCgenEmitSharedXValueRuntime(
     case XL6_IR_RUNTIME_XVALUE_CLASS_NEW:
         {
             const XL6_IrClassLayout* layout = xl6IrCgenClassLayout(module, instruction->type);
-            if (layout == NULL || module->abi.classStorageAbi != XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2)
+            if (layout == NULL || module->abi.classStorageAbi != XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2 ||
+                module->abi.classIdentityAbi != XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3)
                 return 0; /* The independent IR verifier owns this diagnostic. */
-            xl6OutputPrintf(out, "    v%u = xl6ClassRuntimeV2Get()->Create(%s, ",
+            xl6OutputPrintf(out, "    v%u = xl6ClassRuntimeV3Get()->Create(%s, ",
                 (unsigned int)instruction->result,
                 module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
                     ? "(xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)" : "NULL");
             if (layout->destroyFunction != 0)
                 xl6OutputPrintf(out, "xlir_class_destroy_finalizer_t%u", (unsigned int)instruction->type);
             else xl6OutputPuts("NULL", out);
-            xl6OutputPuts(");\n", out);
+            xl6OutputPrintf(out, ", &xlir_class_identity_schema_t%u);\n",
+                (unsigned int)instruction->type);
         }
         break;
     case XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND:
         xl6OutputPrintf(out,
-            "    v%u = xlir_class_identity_bind_t%u(v%u);\n",
+            "    v%u = xl6ClassRuntimeV3Get()->BindIdentityTake(v%u);\n",
             (unsigned int)instruction->result,
-            (unsigned int)instruction->payloadType,
              (unsigned int)module->operands[instruction->firstOperand]);
         break;
     case XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT:
         xl6OutputPrintf(out,
-            "    v%u = xl6ClassRuntimeV2Get()->CommitTake(v%u);\n",
+            "    v%u = xl6ClassRuntimeV3Get()->CommitTake(v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand]);
         break;

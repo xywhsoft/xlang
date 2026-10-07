@@ -275,9 +275,9 @@ try {
             Assert-InheritanceContract $typed $lowered $cText
         }
         foreach ( $required in @(
-            "xl6ClassRuntimeV2Get()->Create",
+            "xl6ClassRuntimeV3Get()->Create",
             "xlir_class_destroy_finalizer_t",
-            "xl6ClassRuntimeV2Get()->CommitTake"
+            "xl6ClassRuntimeV3Get()->CommitTake"
         ) ) {
             if ( ! $cText.Contains($required) ) {
                 throw "XLIR class lifecycle generated C is missing mechanical helper: $required"

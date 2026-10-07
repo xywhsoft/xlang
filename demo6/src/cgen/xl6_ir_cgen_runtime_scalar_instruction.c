@@ -452,13 +452,13 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter derived class equality ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xlir_class_derive_equal_t%u(v%u, v%u);\n",
+                        "    bool projection_ok_%u = xl6ClassRuntimeV3Get()->Equal(v%u, v%u, &v%u);\n",
                         (unsigned int)instruction->result,
-                        (unsigned int)instruction->payloadType,
                         (unsigned int)module->operands[
                             instruction->firstOperand],
                         (unsigned int)module->operands[
-                            instruction->firstOperand + 1]);
+                            instruction->firstOperand + 1],
+                        (unsigned int)instruction->result);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_NULL ) {
                     xl6OutputPrintf(out, "    v%u = xrtValueRetain(xrtValueNull());\n", (unsigned int)instruction->result);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_BOOL ) {

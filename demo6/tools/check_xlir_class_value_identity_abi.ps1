@@ -101,28 +101,33 @@ try {
     $generatedText = [System.IO.File]::ReadAllText(
         $generatedPath, [System.Text.Encoding]::UTF8)
     foreach ( $required in @(
-        "xlir_class_derive_equal_t", "xlir_class_derive_hash_t",
-        "xlir_class_reference_hash_t", "xlir_class_reference_equal_t",
-        "xlir_class_identity_bind_t", "xl6ClassRuntimeV2Get()->BindIdentity",
-        'xrtStrView("id")', 'xrtStrView("name")'
+        "XL6_ClassIdentitySchemaV3", "XL6_CLASS_IDENTITY_DERIVED_V3",
+        "XL6_CLASS_IDENTITY_REFERENCE_V3", "xl6ClassRuntimeV3Get()->Equal",
+        "xl6ClassRuntimeV3Get()->BindIdentityTake",
+        '"id", 2', '"name", 4'
     ) ) {
         if ( ! $generatedText.Contains($required) ) {
             throw "XLIR class value identity generated C lacks exact runtime data: $required"
         }
     }
     $helperStart = $generatedText.IndexOf(
-        "static bool xlir_class_derive_equal_t")
+        "static const XL6_ClassIdentityFieldV3 xlir_class_identity_fields_t$($recordType[0].id)[]")
     $helperEnd = if ( $helperStart -ge 0 ) {
-        $generatedText.IndexOf(
-            "static char* xlir_string_append_take", $helperStart)
+        $generatedText.IndexOf("};", $helperStart)
     } else { -1 }
     if ( $helperStart -lt 0 -or $helperEnd -le $helperStart ) {
         throw "XLIR class value identity helper boundary is missing"
     }
     $helperText = $generatedText.Substring(
         $helperStart, $helperEnd - $helperStart)
-    if ( $helperText.Contains('xrtStrView("transient")') ) {
+    if ( $helperText.Contains('"transient"') ) {
         throw "XLIR class value identity helper ignored the typed compare partition"
+    }
+    foreach ($forbidden in @('xlir_class_derive_equal_t', 'xlir_class_derive_hash_t',
+                            'xlir_class_reference_hash_t', 'xlir_class_identity_bind_t')) {
+        if ($generatedText.Contains($forbidden)) {
+            throw "XLIR generated C contains obsolete identity algorithms: $forbidden"
+        }
     }
 
     # The strict-C lane consumes the exported resident ABI instead of silently
