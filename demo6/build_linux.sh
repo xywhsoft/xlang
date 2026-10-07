@@ -232,6 +232,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_array_value.c"
     "$ROOT/src/runtime/xl6_array_reference_value.c"
     "$ROOT/src/runtime/xl6_array_erased.c"
+    "$ROOT/src/runtime/xl6_array_call_frame.c"
     "$ROOT/src/runtime/xl6_value_admission.c"
     "$ROOT/src/runtime/xl6_native_scalar_value.c"
     "$ROOT/src/runtime/xl6_error_value.c"

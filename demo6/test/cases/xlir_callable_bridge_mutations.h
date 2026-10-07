@@ -20,6 +20,13 @@ static void xlirCallableBridgeMutations(
         b->forwardErrorBoundaryAbi = XL6_IR_CALLABLE_ERROR_BOUNDARY_ISOLATED_STATUS; reject(ir); *b = saved;
         b->reverseErrorBoundaryAbi = XL6_IR_CALLABLE_ERROR_BOUNDARY_NATIVE_CALLBACK; reject(ir); *b = saved;
         b->erasureAbi = XL6_IR_CALLABLE_ERASURE_INVALID; reject(ir); *b = saved;
+        b->variadicCarrierAbi = saved.variadicCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+            ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1;
+        reject(ir); *b = saved;
+        b->variadicElementIdentity ^= UINT64_C(1); reject(ir); *b = saved;
+        if (saved.variadicElementIdentity) {
+            b->variadicElementIdentity = 0; reject(ir); *b = saved;
+        }
         b->cleanupAbi = XL6_IR_CALLBACK_CLEANUP_INVALID; reject(ir); *b = saved;
         b->errorAbi = XL6_IR_CALLBACK_ERROR_ASYNC_CAUSE; reject(ir); *b = saved;
         b->reverseSupported = !b->reverseSupported; reject(ir); *b = saved;

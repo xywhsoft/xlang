@@ -44,6 +44,13 @@ static int xl6IrCallableBridgeParameterPlan(
         parameter + 1 == signature->paramCount;
     if (variadic) {
         if (abi != XL6_IR_PARAMETER_ABI_BORROW) return 0;
+        if (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC &&
+            ((type->kind != XL6_IR_TYPE_BUILTIN && type->kind != XL6_IR_TYPE_GENERIC_INSTANCE) ||
+             type->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
+             type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || type->paramCount != 0 ||
+             !type->typeValueId || type->nominalSymbol != XL6_SYMBOL_ID_INVALID ||
+             !module->runtimeTypeMap.fallbackTypeValueId ||
+             !xl6IrFindDynamicXValueBuiltinType(module))) return 0;
         plan->decodeAbi = signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC
             ? XL6_IR_CALLABLE_BRIDGE_ARRAY_PACK : XL6_IR_CALLABLE_BRIDGE_DICT_PACK;
         plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN;
@@ -165,6 +172,14 @@ const XL6_IrCallableBridgeParameter* xl6IrCallableBridgeParameterGet(
     return &module->callableBridgeParameters[bridge->firstParameter + parameter];
 }
 
+static XL6_IrCollectionCarrierAbi xl6IrCallableVariadicCarrierAbi(const XL6_IrType* signature)
+{
+    return signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC
+        ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+        : signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC
+        ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_NONE;
+}
+
 int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t i, p;
@@ -181,6 +196,9 @@ int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags)
         memset(bridge, 0, sizeof(*bridge));
         bridge->signatureType = id; bridge->firstParameter = module->callableBridgeParameterCount;
         bridge->parameterCount = signature->paramCount; bridge->erasureAbi = signature->callableErasureAbi;
+        bridge->variadicCarrierAbi = xl6IrCallableVariadicCarrierAbi(signature);
+        bridge->variadicElementIdentity = bridge->variadicCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+            ? module->runtimeTypeMap.fallbackTypeValueId : 0;
         bridge->fixedParameterCount = signature->paramCount -
             (signature->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_FIXED ? 1 : 0);
         bridge->firstResult = module->callableBridgeResultCount;
@@ -245,6 +263,9 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
             bridge->forwardErrorBoundaryAbi != XL6_IR_CALLABLE_ERROR_BOUNDARY_NATIVE_CALLBACK ||
             bridge->reverseErrorBoundaryAbi != XL6_IR_CALLABLE_ERROR_BOUNDARY_ISOLATED_STATUS ||
             bridge->erasureAbi != signature->callableErasureAbi ||
+            bridge->variadicCarrierAbi != xl6IrCallableVariadicCarrierAbi(signature) ||
+            bridge->variadicElementIdentity != (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC
+                ? module->runtimeTypeMap.fallbackTypeValueId : 0) ||
             bridge->cleanupAbi != XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL ||
             bridge->errorAbi != XL6_IR_CALLBACK_ERROR_PRESERVE ||
             bridge->reverseSupported != xl6IrRuntimeCallableFieldSignatureSupported(module, id)) goto malformed;

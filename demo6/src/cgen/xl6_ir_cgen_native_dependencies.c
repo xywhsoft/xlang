@@ -317,6 +317,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         !visitor(context,"xl6ArrayRngShuffleV1")) return 0;
     if ((needs.randomBridgeOperations & XL6_CGEN_RAND_SHUFFLE_ARRAY) &&
         !visitor(context,"xl6ArrayRandShuffleV1")) return 0;
+    if (needs.needsCallableArrayFrameProducer && !visitor(context,"xl6ArrayCallFramePackV1")) return 0;
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
     if (needs.needsXValueErrorBoxRuntime && !visitor(context,"xl6ErrorValueRefV1")) return 0;

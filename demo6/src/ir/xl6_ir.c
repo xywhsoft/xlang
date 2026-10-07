@@ -11706,6 +11706,22 @@ int xl6IrTypeCanBoxRuntimeXValue(
            type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE;
 }
 
+/* Direct null is a canonical literal producer, not a stored C value. Its
+ * explicit runtime-null lowering is valid at dynamic argument boundaries;
+ * INVALID C ABI alone must never admit an arbitrary non-literal operand. */
+static int xl6IrDynamicCallArgumentCanBox(const XL6_IrModule* module, const XL6_IrNode* expression)
+{
+    if (!expression) return 0;
+    if (expression->sourceKind == XL6_AST_NULL) {
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,expression->storageType);
+        return expression->kind == XL6_IR_NODE_LITERAL && expression->childCount == 0 &&
+            type && type->kind == XL6_IR_TYPE_BUILTIN && type->cAbi == XL6_IR_C_ABI_UNSUPPORTED &&
+            type->paramCount == 0 && type->nominalSymbol == XL6_SYMBOL_ID_INVALID &&
+            module->runtimeTypeMap.nullTypeValueId && type->typeValueId == module->runtimeTypeMap.nullTypeValueId;
+    }
+    return xl6IrTypeCanBoxRuntimeXValue(module,expression->storageType);
+}
+
 static int xl6IrTypeIsOpenDynamicBuiltin(
     const XL6_IrModule* module, const XL6_IrType* type)
 {
@@ -11898,8 +11914,7 @@ static int xl6IrBuildDynamicCall(
         expression = xl6IrNodeGet(module, argument->expression);
         if ( expression == NULL ) goto fail;
         argument->type = expression->storageType;
-        argument->admission = xl6IrTypeCanBoxRuntimeXValue(
-            module, argument->type)
+        argument->admission = xl6IrDynamicCallArgumentCanBox(module,expression)
             ? XL6_IR_DYNAMIC_CALL_ARGUMENT_ADMISSION_VERIFIED
             : XL6_IR_DYNAMIC_CALL_ARGUMENT_ADMISSION_UNSUPPORTED_BOX_ABI;
         if ( wrapper->sourceKind == XL6_AST_NAMED_ARG ) {
@@ -11978,7 +11993,7 @@ static int xl6IrBuildDynamicMemberWrite(XL6_IrModule* module, XL6_IrNodeId id)
     argument.kind = XL6_IR_DYNAMIC_CALL_ARGUMENT_POSITIONAL;
     argument.expression = rhsId;
     argument.type = rhs->storageType;
-    argument.admission = xl6IrTypeCanBoxRuntimeXValue(module, argument.type)
+    argument.admission = xl6IrDynamicCallArgumentCanBox(module,rhs)
         ? XL6_IR_DYNAMIC_CALL_ARGUMENT_ADMISSION_VERIFIED
         : XL6_IR_DYNAMIC_CALL_ARGUMENT_ADMISSION_UNSUPPORTED_BOX_ABI;
     if (site.memberName == NULL ||
@@ -32640,7 +32655,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 const XL6_IrNode* expression =
                     xl6IrNodeGet(module, binding->expression);
                 XL6_IrDynamicCallArgumentAdmission expectedAdmission =
-                    xl6IrTypeCanBoxRuntimeXValue(module, binding->type)
+                    xl6IrDynamicCallArgumentCanBox(module, expression)
                         ? XL6_IR_DYNAMIC_CALL_ARGUMENT_ADMISSION_VERIFIED
                         : XL6_IR_DYNAMIC_CALL_ARGUMENT_ADMISSION_UNSUPPORTED_BOX_ABI;
                 size_t other;
@@ -47174,13 +47189,14 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     }
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* b = &module->callableBridges[i];
-        xl6OutputPrintf(out, "  callable-bridge %lu signature=t%u parameters=%lu..%lu fixed=%lu results=%lu..%lu result-type=t%u commit=%d frame-cleanup=%d forward-error=%d reverse-error=%d erasure=%d cleanup=%d error=%d reverse=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge %lu signature=t%u parameters=%lu..%lu fixed=%lu results=%lu..%lu result-type=t%u commit=%d frame-cleanup=%d forward-error=%d reverse-error=%d erasure=%d variadic-carrier=%d variadic-element=0x%016llX cleanup=%d error=%d reverse=%d\n",
             (unsigned long)i, (unsigned)b->signatureType, (unsigned long)b->firstParameter,
             (unsigned long)(b->firstParameter + b->parameterCount), (unsigned long)b->fixedParameterCount,
             (unsigned long)b->firstResult, (unsigned long)(b->firstResult + b->resultCount),
             (unsigned)b->resultType, (int)b->resultCommitAbi, (int)b->frameCleanupAbi,
             (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi,
-            (int)b->erasureAbi, (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported);
+            (int)b->erasureAbi, (int)b->variadicCarrierAbi, (unsigned long long)b->variadicElementIdentity,
+            (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported);
     }
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
@@ -48724,13 +48740,14 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridges\": [\n", out);
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* b = &module->callableBridges[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"signatureType\":%u,\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"firstResult\":%lu,\"resultCount\":%lu,\"resultType\":%u,\"resultCommitAbi\":%d,\"frameCleanupAbi\":%d,\"forwardErrorBoundaryAbi\":%d,\"reverseErrorBoundaryAbi\":%d,\"erasureAbi\":%d,\"cleanupAbi\":%d,\"errorAbi\":%d,\"reverseSupported\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"signatureType\":%u,\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"firstResult\":%lu,\"resultCount\":%lu,\"resultType\":%u,\"resultCommitAbi\":%d,\"frameCleanupAbi\":%d,\"forwardErrorBoundaryAbi\":%d,\"reverseErrorBoundaryAbi\":%d,\"erasureAbi\":%d,\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":%llu,\"cleanupAbi\":%d,\"errorAbi\":%d,\"reverseSupported\":%d}%s\n",
             (unsigned long)i, (unsigned)b->signatureType, (unsigned long)b->firstParameter,
             (unsigned long)b->parameterCount, (unsigned long)b->fixedParameterCount,
             (unsigned long)b->firstResult, (unsigned long)b->resultCount, (unsigned)b->resultType,
             (int)b->resultCommitAbi, (int)b->frameCleanupAbi,
             (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi,
-            (int)b->erasureAbi, (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported,
+            (int)b->erasureAbi, (int)b->variadicCarrierAbi, (unsigned long long)b->variadicElementIdentity,
+            (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported,
             i + 1 == module->callableBridgeCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"callableBridgeParameters\": [\n", out);
