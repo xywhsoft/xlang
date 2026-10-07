@@ -1,0 +1,52 @@
+int declarations = 0
+int creates = 0
+int retired = 0
+bool failDefault = false
+func rootDefaultNumber() as int
+    declarations += 1
+    if failDefault then
+        throw ValueError("root-default-original")
+    end
+    return 17
+end
+class RootDefaultRecord
+    derive value
+    derive hash
+    derive equals
+    int number = rootDefaultNumber()
+    string text = "a\0你"
+    array<int8> items = [int8(7), int8(9)]
+    create(int replacement)
+        creates += 1
+        self.number = replacement
+    end
+    destroy()
+        retired += 1
+    end
+end
+class RootDefaultEnvelope
+    derive value
+    RootDefaultRecord? optional = null
+    array<RootDefaultRecord> items = []
+end
+RootDefaultRecord first = json.parse::<RootDefaultRecord>("{}")
+RootDefaultRecord second = xlon.parse::<RootDefaultRecord>("{}")
+assert declarations == 2 and creates == 0 and first == second
+assert first.number == 17 and first.text == "a\0你" and first.items[1] == 9
+RootDefaultEnvelope nested = json.parse::<RootDefaultEnvelope>("{\"optional\":{},\"items\":[{}]}")
+assert declarations == 4 and creates == 0 and (nested.optional ?? first) == first and nested.items[0] == first
+func restoreRoot() as RootDefaultRecord
+    return xlon.parse::<RootDefaultRecord>("{}")
+end
+RootDefaultRecord returned = restoreRoot()
+assert declarations == 5 and creates == 0 and returned == first
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert root != ""
+string jsonPath = root + "/root-default.json"
+string xlonPath = root + "/root-default.xlon"
+assert json.write(jsonPath, first) and xlon.write(xlonPath, first)
+RootDefaultRecord jsonFile = json.read::<RootDefaultRecord>(jsonPath)
+RootDefaultRecord xlonFile = xlon.read::<RootDefaultRecord>(xlonPath)
+assert declarations == 7 and creates == 0 and jsonFile == first and xlonFile == first
+RootDefaultRecord recovered = json.parse::<RootDefaultRecord>("{}")
+assert recovered == first and creates == 0

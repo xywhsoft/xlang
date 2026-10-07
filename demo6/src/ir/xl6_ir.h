@@ -1953,7 +1953,11 @@ typedef enum XL6_IrRuntimeOp {
         * contract can be used for these native-capable operations. */
        XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY,
        XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY,
-       XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY
+       XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY,
+       /* Ordinary checked invocation of payloadType's declaration-default CFG.
+        * Exact ClassLayout binding; no source arguments or inline construction.
+        * Uses the same RESULT_CARRIER ABI as internal language calls. */
+       XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6809,6 +6813,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
 /* Resident class identity binding/publication both consume the input owner
  * and return NULL on failure, rather than acting as infallible type casts. */
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeClassErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+uint32 xl6IrClassDefaultInvocationFunction(const XL6_IrModule*, const XL6_IrInstruction*);
 /* Boolean comparison is a payload, not failure status. Resident class
  * equality has status/output; dynamic equality isolates callback failures. */
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeEqualityErrorPhysicalAbi(XL6_IrRuntimeOp operation);

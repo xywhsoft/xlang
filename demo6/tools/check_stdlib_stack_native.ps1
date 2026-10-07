@@ -129,6 +129,11 @@ try {
         'test/cases/stdlib_text_join_only.xl','test/cases/stdlib_text_join.xl','test/cases/stdlib_regex_set_only.xl',
         'test/cases/stdlib_pattern_builder.xl','test/cases/stdlib_pattern_builder_lifetime.xl',
         'test/cases/xlir_task_aggregate_array_abi.xl','test/cases/xlir_task_when_any_array_abi.xl')
+    $files += @(Get-Item -LiteralPath 'tools/check_xlir_class_default_invocation.py',
+        'test/cases/xlir_class_default_invocation_contract.c','test/cases/stdlib_persistence_root_default.xl',
+        'test/cases/stdlib_persistence_root_default_errors.xl','test/cases/stdlib_persistence_restore_construction.xl',
+        'test/cases/stdlib_persistence_restore_domains.xl','test/cases/stdlib_persistence_restore_language.xl',
+        'test/cases/stdlib_persistence_restore_array_json_prune.xl')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -377,7 +382,15 @@ try {
     Run 'class-identity-plan' $python @('tools/check_xlir_class_identity_plan.py','--public',$PublicDirectory,
         '--out',"$outPath/class-identity-plan") -TimeoutMs 600000
     $classIdentityPlan=Get-Content -Encoding UTF8 -LiteralPath "$outPath/class-identity-plan/results.json" -Raw | ConvertFrom-Json
-    if (!$classIdentityPlan.Complete -or !$classIdentityPlan.InputsUnchanged -or $classIdentityPlan.Rows.Count-ne48) { throw 'Incomplete class identity plan evidence' }
+    if (!$classIdentityPlan.Complete -or !$classIdentityPlan.InputsUnchanged -or $classIdentityPlan.Rows.Count-ne63) { throw 'Incomplete class identity plan evidence' }
+    Run 'class-default-invocation' $python @('tools/check_xlir_class_default_invocation.py','--public',$PublicDirectory,
+        '--out',"$outPath/class-default-invocation") -TimeoutMs 600000
+    $classDefault=Get-Content -Encoding UTF8 -LiteralPath "$outPath/class-default-invocation/results.json" -Raw | ConvertFrom-Json
+    if (!$classDefault.Complete -or !$classDefault.InputsUnchanged -or $classDefault.Rows.Count-ne22 -or $classDefault.Bindings.Count-ne10) { throw 'Incomplete class default invocation evidence' }
+    Run 'persistence-root-default' $python @('tools/check_persistence_project_language.py','--fixture','root-default',
+        '--public-directory',$PublicDirectory,'--out',"$outPath/persistence-root-default") -TimeoutMs 600000
+    $rootDefault=Get-Content -Encoding UTF8 -LiteralPath "$outPath/persistence-root-default/report.json" -Raw | ConvertFrom-Json
+    if (!$rootDefault.Complete -or !$rootDefault.InputsUnchanged -or $rootDefault.Sweeps.Count-ne2) { throw 'Incomplete root default language evidence' }
     $sequenceIdentity=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-identity/results.json" -Raw | ConvertFrom-Json
     if (!$sequenceIdentity.Complete -or !$sequenceIdentity.InputsUnchanged -or $sequenceIdentity.Sweeps.Count-ne2) { throw 'Incomplete Sequence identity evidence' }
     Run 'sequence-identity-language' $python @('tools/check_persistence_project_language.py','--fixture','native-identity',

@@ -1,0 +1,62 @@
+bool failDefault = true
+int creates = 0
+int retired = 0
+func failingRootDefault() as int
+    if failDefault then
+        throw ValueError("root-default-original")
+    end
+    return 7
+end
+class FailingRootDefault
+    derive value
+    int number = failingRootDefault()
+    string text = "a\0你"
+    create()
+        creates += 1
+    end
+    destroy()
+        retired += 1
+    end
+end
+func restoreRoot() as FailingRootDefault
+    return xlon.parse::<FailingRootDefault>("{}")
+end
+int caught = 0
+int finalized = 0
+try
+    FailingRootDefault ignored = json.parse::<FailingRootDefault>("{}")
+catch e
+    assert e.kind == "ValueError" and e.message == "root-default-original"
+    caught += 1
+finally
+    finalized += 1
+end
+try
+    FailingRootDefault ignored = restoreRoot()
+catch e
+    assert e.kind == "ValueError" and e.message == "root-default-original"
+    caught += 1
+finally
+    finalized += 1
+end
+// Default construction fails before either wire reader opens the path.
+try
+    FailingRootDefault ignored = json.read::<FailingRootDefault>("not-opened.json")
+catch e
+    assert e.kind == "ValueError" and e.message == "root-default-original"
+    caught += 1
+finally
+    finalized += 1
+end
+try
+    FailingRootDefault ignored = xlon.read::<FailingRootDefault>("not-opened.xlon")
+catch e
+    assert e.kind == "ValueError" and e.message == "root-default-original"
+    caught += 1
+finally
+    finalized += 1
+end
+assert caught == 4 and finalized == 4 and retired == 0 and creates == 0
+failDefault = false
+FailingRootDefault recovered = json.parse::<FailingRootDefault>("{}")
+assert recovered.number == 7 and recovered.text == "a\0你" and creates == 0

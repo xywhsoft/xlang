@@ -28,7 +28,7 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore', 'restore-domains', 'restore-construction', 'native-identity'), default='project')
+    parser.add_argument('--fixture', choices=('project', 'readers', 'configured', 'sinks', 'files', 'writers', 'visitors', 'nominal', 'pretty', 'restore', 'restore-domains', 'restore-construction', 'root-default', 'native-identity'), default='project')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     cc = shutil.which('gcc')
@@ -47,6 +47,7 @@ def main() -> int:
                      'restore': 'stdlib_persistence_restore_language.xl',
                      'restore-domains': 'stdlib_persistence_restore_domains.xl',
                      'restore-construction': 'stdlib_persistence_restore_construction.xl',
+                     'root-default': 'stdlib_persistence_root_default.xl',
                      'native-identity': 'stdlib_native_sequence_identity.xl'}
     source = test_root / 'test/cases' / fixture_names[args.fixture]
     oom_source = test_root / 'test/cases/stdlib_serialization_read_oom.xl' if args.fixture == 'readers' else source
@@ -64,6 +65,7 @@ def main() -> int:
                    'restore': 'stdlib_persistence_restore_errors.xl',
                    'restore-domains': 'stdlib_persistence_restore_errors.xl',
                    'restore-construction': 'stdlib_persistence_restore_construction_errors.xl'}
+    error_names['root-default'] = 'stdlib_persistence_root_default_errors.xl'
     error_source = test_root / 'test/cases' / error_names[args.fixture] if args.fixture in error_names else None
     if error_source: files.add(error_source)
     status_names = {'visitors': 'xlir_serialization_visit_status_host.c',
@@ -110,7 +112,7 @@ def main() -> int:
               'OOMScope': 'Complete caller-thread module initialization and retirement prefix, no Future workers'}
     out.mkdir(parents=True)
     run_environment = os.environ.copy()
-    if args.fixture in ('files', 'nominal', 'pretty', 'restore'):
+    if args.fixture in ('files', 'nominal', 'pretty', 'restore', 'root-default'):
         scratch = out / 'files'
         scratch.mkdir()
         run_environment['XL6_PERSIST_FILE_ROOT'] = str(scratch)
@@ -174,11 +176,13 @@ def main() -> int:
             assert 'xl6_serialization_visit_finish(' in text
             assert 'xl6_xrt_json_visit_configured(' in text and 'xl6_xrt_xlon_visit_configured(' in text
             assert 'static XL6_Serialization_Visit_Result xl6_serialization_callback_finish(' not in text
-        elif args.fixture in ('restore', 'restore-domains', 'restore-construction'):
+        elif args.fixture in ('restore', 'restore-domains', 'restore-construction', 'root-default'):
             assert 'xlir_persist_json_parse_t' in text and 'xlir_persist_xlon_parse_t' in text
             assert 'xrtValueObjectGet(source, (xstrview){' in text
             assert 'xl6SerializeRestoreReadFinishV1(' in text and 'bool projection_ok_' in text
             assert 'xl6PersistenceRestoreScalarV1(' in text and 'xl6_persistence_restore.h' in text
+            if args.fixture == 'root-default':
+                assert re.search(r'\br\d+ = xlir_fn_\d+\(\);', text)
             if args.fixture in ('restore-domains', 'restore-construction'):
                 assert 'xl6PersistenceRestoreArrayTakeV1(' in text and 'xl6SequencePrimitiveCreateV1(' in text
                 assert 'for (index = 0; index < count;' not in text
@@ -199,7 +203,8 @@ def main() -> int:
         elif args.fixture == 'native-identity':
             assert 'xl6SequencePrimitiveCreateV1(' in text and 'xl6SequenceNestedCreateTakeV2(' in text
             assert 'xl6SequenceReferenceCreateV1(' in text and 'xl6StackEqualsV1(' in text
-            assert 'xl6_persistence_restore.h' in text and 'xlir_class_derive_equal_t' in text
+            assert 'xl6_persistence_restore.h' in text and 'xlir_class_identity_schema_t' in text
+            assert 'xl6ClassRuntimeV3Get()->Equal(' in text and 'xlir_class_derive_equal_t' not in text
             assert 'xl6_xrt_array_create(' not in text and 'xl6_xrt_array_equals(' not in text
         else:
             assert 'xl6_serialization_read.h' in text and 'xlir_result_xvalue xl6_xrt_json_parse(' in text
