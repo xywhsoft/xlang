@@ -1,0 +1,109 @@
+// The native recursion guard is an operation failure, never false equality
+// (or true inequality), and must run the ordinary catch/finally cleanup CFG.
+class RecursiveIdentity
+    derive hash
+    derive equals
+    var next = null
+    int number = 7
+    string text = "a\0你"
+end
+
+RecursiveIdentity left = RecursiveIdentity()
+RecursiveIdentity right = RecursiveIdentity()
+for index in range(70)
+    RecursiveIdentity newLeft = RecursiveIdentity()
+    RecursiveIdentity newRight = RecursiveIdentity()
+    newLeft.next = left
+    newRight.next = right
+    left = newLeft
+    right = newRight
+end
+
+int caught = 0
+int finished = 0
+try
+    bool unexpected = left == right
+    assert false, "deep equality must fail before exposing a bool payload"
+catch e
+    assert e.kind == "RangeError"
+    caught += 1
+finally
+    finished += 1
+end
+try
+    bool unexpected = left != right
+    assert false, "a failed equality must not be negated into true"
+catch e
+    assert e.kind == "RangeError"
+    caught += 1
+finally
+    finished += 1
+end
+try
+    set<RecursiveIdentity> unexpected = set{left}
+    assert false, "deep hash must enter the checked keyed-collection boundary"
+catch e
+    assert e.kind == "RangeError"
+    caught += 1
+finally
+    finished += 1
+end
+var boxedLeft = left
+var boxedRight = right
+try
+    bool unexpected = boxedLeft == boxedRight
+    assert false, "boxed equality must expose callback failure independently"
+catch e
+    assert e.kind == "RangeError"
+    caught += 1
+finally
+    finished += 1
+end
+try
+    bool unexpected = boxedLeft != boxedRight
+    assert false, "boxed inequality must not negate a failed callback"
+catch e
+    assert e.kind == "RangeError"
+    caught += 1
+finally
+    finished += 1
+end
+RecursiveIdentity? nullableLeft = left
+RecursiveIdentity? nullableRight = right
+try
+    bool unexpected = nullableLeft != nullableRight
+    assert false, "nullable comparison must not lose a callback failure"
+catch e
+    assert e.kind == "RangeError"
+    caught += 1
+finally
+    finished += 1
+end
+assert caught == 6 and finished == 6
+
+// Ordinary false payloads are successful comparisons, not error statuses.
+var notEqualLeft = 7
+var notEqualRight = 8
+assert not (notEqualLeft == notEqualRight) and notEqualLeft != notEqualRight
+RecursiveIdentity? empty = null
+assert empty != nullableLeft and not (empty == nullableLeft)
+
+// The recursion lanes, read pins, error scope and evaluation owners must all
+// have unwound; a subsequent shallow operation is independent and succeeds.
+RecursiveIdentity shallow = RecursiveIdentity()
+RecursiveIdentity shallowSame = RecursiveIdentity()
+assert shallow == shallowSame and not (shallow != shallowSame)
+set<RecursiveIdentity> shallowKeys = set{shallow, shallowSame}
+assert shallowKeys.length == 1
+
+// Hash/equality contracts remain independent. Deriving only equals is valid
+// for direct ==/!= and must not silently acquire a structural hash protocol.
+class EqualityOnly
+    derive equals
+    int number = 11
+end
+EqualityOnly equalFirst = EqualityOnly()
+EqualityOnly equalSame = EqualityOnly()
+EqualityOnly equalOther = EqualityOnly()
+equalOther.number = 12
+assert equalFirst == equalSame and equalFirst != equalOther

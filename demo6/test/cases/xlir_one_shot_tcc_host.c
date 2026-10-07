@@ -26,6 +26,7 @@ static void provider_init(void);
 #else
 #include "xlir_one_shot_lifetime_host.c"
 #endif
+#include "src/runtime/xl6_future_metadata.h"
 
 static void* relocated_entry;
 typedef void (*joint_memdebug_snapshot_fn)(xmemdebugsnapshot*);
@@ -61,19 +62,13 @@ static void load_artifact(void)
      * dispatch and payload services override it with resident host addresses. */
 #define BIND(name) add_runtime_symbol(compiled_state, #name, (const void*)name)
 #ifdef JOINT_SOURCE_XRT
-    /* The released DLL supplies only the TCC provider in this lane. Every
-     * generated XRT call uses the host's current source implementation. */
-#define XL_XRT_SYMBOL(name) BIND(name);
-#include "src/api/xl_xrt_symbols.inc"
-#undef XL_XRT_SYMBOL
-    BIND(xl6ErrorScopeBegin);
-    BIND(xl6ErrorScopeBeginCleanup);
-    BIND(xl6ErrorScopeEnd);
-    BIND(xl6ForeignCallBegin);
-    BIND(xl6ForeignCallEnd);
-    BIND(xl6ErrorScopeCaptureFailure);
-    BIND(xl6ErrorScopePropagateFailure);
-    BIND(xl6ForeignCallbackFail);
+    /* Use the real complete source registrar, including resident error/text
+     * factories. A partial hand-maintained list let TinyCC resolve those from
+     * the provider DLL, mixing its allocations with the source XRT's frees.
+     * The released DLL supplies only the TCC provider in this lane. */
+    xl__tcc.tcc_add_symbol = tcc_add_symbol;
+    xl__tcc.ready = 1;
+    assert(xlApiAddDefaultRuntimeSymbols(compiled_state));
 #endif
     BIND(xl6ContinuationExecutorCreateGuaranteed);
     BIND(xl6ContinuationExecutorReserveOwned);
@@ -108,6 +103,7 @@ static void load_artifact(void)
     BIND(xl6ClosureRuntimeV2Get);
     BIND(xl6ClassRuntimeV1Get);
     BIND(xl6ClassRuntimeV2Get);
+    BIND(xl6ClassRuntimeV3Get);
     BIND(xl6SlotRuntimeV1Get);
     BIND(xl6GeneratorRuntimeV1Get);
     BIND(xl6GeneratorRuntimeV2Get);

@@ -668,13 +668,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
              (module->instructions[i].runtimeOp ==
                   XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL ||
               module->instructions[i].runtimeOp ==
-                  XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND) ) {
+                  XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CLASS_NEW) ) {
             needs->needsClassValueIdentityRuntime = 1;
             needs->needsXValueRuntime = 1;
-            needs->needsXValueObjectRuntime = 1;
-            needs->needsXValueObjectLiteralI64Runtime = 1;
-            needs->needsStringViews = 1;
-            needs->needsRuntimeTrap = 1;
         }
     }
     if ( needs->needsXCallRuntime ) {

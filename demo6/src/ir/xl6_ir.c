@@ -18640,6 +18640,9 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     if (module->abi.classStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_CLASS_STORAGE_NONE : XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2))
         return xl6IrDiag(diags, NULL, "XLIR class storage/prepared code ownership ABI is unresolved");
+    if (module->abi.classIdentityAbi != (module->stage == XL6_IR_STAGE_TYPED
+            ? XL6_IR_CLASS_IDENTITY_NONE : XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3))
+        return xl6IrDiag(diags, NULL, "XLIR class identity resident schema ABI is unresolved");
     for (i = 0; i < module->functionCount; ++i)
         initializers += module->functions[i].kind == XL6_IR_FUNCTION_MODULE_INIT;
     if (module->abi.codeOwnerAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
@@ -19598,10 +19601,27 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     }
 }
 
-XL6_IrCallErrorPhysicalAbi xl6IrRuntimeObjectPublicationErrorPhysicalAbi(XL6_IrRuntimeOp operation)
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeClassErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
-    return operation == XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT
-        ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    switch (operation) {
+    case XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT:
+    case XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND:
+        return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
+    default:
+        return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    }
+}
+
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeEqualityErrorPhysicalAbi(XL6_IrRuntimeOp operation)
+{
+    switch (operation) {
+    case XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL:
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
+    case XL6_IR_RUNTIME_XVALUE_EQUAL:
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+    default:
+        return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    }
 }
 
 int xl6IrCallErrorPhysicalUsesForeignScope(XL6_IrCallErrorPhysicalAbi abi)
@@ -19754,7 +19774,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi = xl6IrRuntimeContainerAllocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
-    stringAbi = xl6IrRuntimeObjectPublicationErrorPhysicalAbi(instruction->runtimeOp);
+    stringAbi = xl6IrRuntimeClassErrorPhysicalAbi(instruction->runtimeOp);
+    if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
+    stringAbi = xl6IrRuntimeEqualityErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_PROJECT) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->type);
@@ -42762,7 +42784,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  * its immediate ERROR_TEST names the construction invocation. */
                 if (xl6IrInstructionIsFallibleProjection(module, instruction) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                     xl6IrRuntimeObjectPublicationErrorPhysicalAbi(instruction->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
+                     xl6IrRuntimeClassErrorPhysicalAbi(instruction->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                      xl6IrRuntimeContainerAllocationErrorPhysicalAbi(instruction->runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
                     (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
@@ -47650,6 +47672,7 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "async-storage: %d\n", (int)module->abi.asyncStorageAbi);
     xl6OutputPrintf(out, "task-storage: %d\n", (int)module->abi.taskStorageAbi);
     xl6OutputPrintf(out, "class-storage: %d\n", (int)module->abi.classStorageAbi);
+    xl6OutputPrintf(out, "class-identity: %d\n", (int)module->abi.classIdentityAbi);
     xl6OutputPrintf(out, "module-continuation: %d\n", (int)module->abi.continuationAbi);
     xl6OutputPrintf(out, "module-executor-ownership: %d\n", (int)module->abi.executorOwnershipAbi);
     xl6OutputPrintf(out, "module-task-pool-ownership: %d\n", (int)module->abi.taskPoolOwnershipAbi);
@@ -47745,6 +47768,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"asyncStorageAbi\": %d,\n", (int)module->abi.asyncStorageAbi);
     xl6OutputPrintf(out, "  \"taskStorageAbi\": %d,\n", (int)module->abi.taskStorageAbi);
     xl6OutputPrintf(out, "  \"classStorageAbi\": %d,\n", (int)module->abi.classStorageAbi);
+    xl6OutputPrintf(out, "  \"classIdentityAbi\": %d,\n", (int)module->abi.classIdentityAbi);
     xl6OutputPrintf(out, "  \"functionParameterCount\": %lu,\n",
                     (unsigned long)module->functionParameterCount);
     xl6OutputPrintf(out,

@@ -47,8 +47,10 @@ static int fields(IdentityWalk* walk, size_t derived)
             const XL6_IrClassField* field = &module->classFields[index];
             if (field->compareDeriveIncluded != 0 && field->compareDeriveIncluded != 1) return 0;
             if (!field->compareDeriveIncluded) continue;
+            const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
             if (!field->name || !*field->name ||
-                !xl6IrTypeGet(&module->types, field->type) || walk->fieldCount == SIZE_MAX) return 0;
+                !fieldType || !fieldType->typeValueId ||
+                walk->fieldCount == SIZE_MAX) return 0;
             if (walk->verify) {
                 if (walk->fieldCount >= module->classIdentityFieldCount ||
                     module->classIdentityFields[walk->fieldCount].classField != index) return 0;

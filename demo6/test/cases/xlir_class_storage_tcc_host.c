@@ -19,6 +19,13 @@ static void capture_object(xvalue* value)
 static void destroyed_object(int64_t value)
 { assert(value == 42 && !atomic_load(&deleted)); ++destroyed_count; }
 typedef struct GraphWalk { xrtownershipref nodes[32]; size_t count, moduleEdges; } GraphWalk;
+static bool report_live_allocation(const xmemdebugallocation* allocation, void* unused)
+{
+    (void)unused;
+    fprintf(stderr, "Live allocation %p size=%llu at %s:%u\n", allocation->Address,
+        (unsigned long long)allocation->Size, allocation->File, allocation->Line);
+    return true;
+}
 static bool visit_owner(xrtownershipref edge, void* data)
 {
     GraphWalk* walk = data;
@@ -51,6 +58,10 @@ int main(void)
         assert(xlActivateModule(&context, module, NULL));
         xlApiLock(); assert(xlModuleBeginCallUnlocked(module)); xlApiUnlock(); result = start(mode);
         xlApiLock(); xlModuleEndCallUnlocked(module); assert(module->codeLeases == 1); xlApiUnlock();
+        if (result != (mode && mode % 2 == 0 ? 77 : 42) || destroyed_count || xrtGetError())
+            fprintf(stderr, "Class storage round=%u mode=%u result=%lld destroyed=%u error=%d message=%s\n",
+                round, mode, (long long)result, destroyed_count, (int)xrtErrorKind(xrtGetError()),
+                xrtGetError() ? xrtErrorMessage(xrtGetError()) : "none");
         assert(result == (mode && mode % 2 == 0 ? 77 : 42) && !destroyed_count && !xrtGetError());
         assert(escaped || escaped_cursor.Backing);
         xlDestroyModule(module); collect(); assert(!atomic_load(&deleted));
@@ -59,6 +70,19 @@ int main(void)
         xrtValueRelease(escaped); escaped = NULL; xrtValueIterEnd(&escaped_cursor);
         finish(); assert(atomic_load(&deleted) == 1 && destroyed_count == (unsigned)(mode % 2 != 0));
         xrtFree(context.lastError); xrtClearError(); xrtMemDebugSnapshot(&after);
+        if (before.LiveCount != after.LiveCount || before.LiveBytes != after.LiveBytes ||
+            after.AllocCount - before.AllocCount != after.FreeCount - before.FreeCount ||
+            before.InvalidFreeCount != after.InvalidFreeCount || before.DoubleFreeCount != after.DoubleFreeCount ||
+            before.UseAfterFreeCount != after.UseAfterFreeCount) {
+            fprintf(stderr, "Class storage ledger round=%u mode=%u live=%llu->%llu bytes=%llu->%llu alloc=%llu free=%llu invalid=%llu->%llu double=%llu->%llu uaf=%llu->%llu\n",
+                round, mode, (unsigned long long)before.LiveCount, (unsigned long long)after.LiveCount,
+                (unsigned long long)before.LiveBytes, (unsigned long long)after.LiveBytes,
+                (unsigned long long)(after.AllocCount - before.AllocCount), (unsigned long long)(after.FreeCount - before.FreeCount),
+                (unsigned long long)before.InvalidFreeCount, (unsigned long long)after.InvalidFreeCount,
+                (unsigned long long)before.DoubleFreeCount, (unsigned long long)after.DoubleFreeCount,
+                (unsigned long long)before.UseAfterFreeCount, (unsigned long long)after.UseAfterFreeCount);
+            (void)xrtMemDebugVisitLive(report_live_allocation, NULL);
+        }
         assert(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes &&
             after.AllocCount - before.AllocCount == after.FreeCount - before.FreeCount &&
             before.InvalidFreeCount == after.InvalidFreeCount && before.DoubleFreeCount == after.DoubleFreeCount &&

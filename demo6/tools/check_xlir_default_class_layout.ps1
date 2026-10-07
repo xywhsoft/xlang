@@ -29,8 +29,8 @@ try {
         throw "XLIR default-class layout Cgen failed"
     }
     $text = [System.IO.File]::ReadAllText($generated, [System.Text.Encoding]::UTF8)
-    foreach ( $required in @('xl6ClassRuntimeV2Get()->Create',
-            'xl6ClassRuntimeV2Get()->CommitTake', 'xrtValueObjectSetNew',
+    foreach ( $required in @('xl6ClassRuntimeV3Get()->Create',
+            'xl6ClassRuntimeV3Get()->CommitTake', 'xrtValueObjectSetNew',
             'xrtStrView("x")', 'xrtStrView("z")') ) {
         if ( ! $text.Contains($required) ) {
             throw "XLIR default-class layout generated C lacks required object ABI: $required"

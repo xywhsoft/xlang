@@ -35,10 +35,9 @@ static void materializedPrefix(const XL6_IrModule* ir, const XL6_IrClassIdentity
     assert(!xl6IrBuildClassIdentityPlans(&synthetic) && synthetic.classIdentityPlans == old);
     xrtFree(synthetic.classIdentityPlans); xrtFree(synthetic.classIdentityFields);
 }
-static void reject(XL6_IrModule* ir)
+static void rejectModule(XL6_IrModule* ir)
 {
     XL6_DiagList diags = {0}; XL6_Output out;
-    assert(!xl6IrVerifyClassIdentityPlans(ir));
     assert(!xl6IrVerifyModule(ir, &diags) && diags.count);
     assert(xl6OutputOpenMemory(&out) && !xl6IrCgenEmitC(&out, ir, &diags));
     char* text = xl6OutputTakeMemoryText(&out, NULL); assert(!text || !*text); xrtFree(text);
@@ -46,9 +45,40 @@ static void reject(XL6_IrModule* ir)
     text = xl6OutputTakeMemoryText(&out, NULL); assert(!text || !*text); xrtFree(text);
     xl6DiagFree(&diags); ++mutations;
 }
+static void reject(XL6_IrModule* ir)
+{
+    assert(!xl6IrVerifyClassIdentityPlans(ir));
+    rejectModule(ir);
+}
 static void check(XL6_IrModule* ir)
 {
     assert(xl6IrVerifyClassIdentityPlans(ir));
+    XL6_IrClassIdentityAbi identityAbi = ir->abi.classIdentityAbi;
+    assert(identityAbi == (ir->stage == XL6_IR_STAGE_TYPED ?
+        XL6_IR_CLASS_IDENTITY_NONE : XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3));
+    ir->abi.classIdentityAbi = (XL6_IrClassIdentityAbi)999;
+    rejectModule(ir); ir->abi.classIdentityAbi = identityAbi;
+    ir->abi.classIdentityAbi = identityAbi == XL6_IR_CLASS_IDENTITY_NONE ?
+        XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3 : XL6_IR_CLASS_IDENTITY_NONE;
+    rejectModule(ir); ir->abi.classIdentityAbi = identityAbi;
+    for (size_t i = 0; i < ir->instructionCount; ++i) {
+        const XL6_IrInstruction* instruction = &ir->instructions[i];
+        if (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+            (instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND &&
+             instruction->runtimeOp != XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL &&
+             instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_EQUAL)) continue;
+        assert(xl6IrCallInstructionErrorAbi(ir, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE);
+        assert(xl6IrCallInstructionErrorPhysicalAbi(ir, instruction) ==
+            (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ?
+             XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT :
+             instruction->runtimeOp == XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL ?
+             XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT : XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE));
+        XL6_IrInstruction* test = &ir->instructions[i + 1], saved = *test;
+        assert(test->kind == XL6_IR_INSTR_ERROR_TEST && test->operandCount == 1 &&
+            ir->operands[test->firstOperand] == instruction->result);
+        test->kind = XL6_IR_INSTR_INVALID; rejectModule(ir); *test = saved;
+        test->trueTarget = test->falseTarget; rejectModule(ir); *test = saved;
+    }
     for (size_t i = 0; i < ir->classIdentityPlanCount; ++i) {
         XL6_IrClassIdentityPlan* p = &ir->classIdentityPlans[i], saved = *p;
         const XL6_IrClassLayout* layout = &ir->classLayouts[i];
@@ -71,6 +101,9 @@ static void check(XL6_IrModule* ir)
         int included = ir->classFields[index].compareDeriveIncluded;
         ir->classFields[index].compareDeriveIncluded = 0; reject(ir);
         ir->classFields[index].compareDeriveIncluded = included;
+        XL6_IrType* fieldType = &ir->types.items[ir->classFields[index].type - 1];
+        uint64 identity = fieldType->typeValueId;
+        fieldType->typeValueId = 0; reject(ir); fieldType->typeValueId = identity;
     }
     size_t count = ir->classIdentityPlanCount;
     --ir->classIdentityPlanCount; reject(ir); ir->classIdentityPlanCount = count;

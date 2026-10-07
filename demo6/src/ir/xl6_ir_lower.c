@@ -1854,7 +1854,8 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     if ((xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
-         xl6IrRuntimeObjectPublicationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrRuntimeClassErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrRuntimeEqualityErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeCollectionCountErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
@@ -2410,12 +2411,10 @@ static XL6_IrValueId xl6IrLowerBindRuntimeTypeIdentity(
         const XL6_IrClassLayout* layout =
             xl6IrLowerClassLayoutGet(ctx->module, identityType);
         if ( xl6IrLowerClassLayoutHasRuntimeIdentity(layout) ) {
-            result = xl6IrLowerEmitRuntimeCall(
-                ctx, origin, resultType,
-                XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND, &result, 1);
-            if ( result != XL6_IR_VALUE_INVALID )
-                ctx->module->instructions[
-                    ctx->module->instructionCount - 1].payloadType = identityType;
+            result = xl6IrLowerEmitRuntimeCallPayload(
+                ctx, origin, origin, resultType,
+                XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND, NULL, identityType,
+                &result, 1);
         }
     }
     return result;
@@ -2515,7 +2514,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeDataCallPayload(
               XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
           xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) !=
               XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
-          xl6IrRuntimeObjectPublicationErrorPhysicalAbi(runtimeOp) !=
+          xl6IrRuntimeClassErrorPhysicalAbi(runtimeOp) !=
               XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
           xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) !=
               XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
@@ -27175,10 +27174,9 @@ static int xl6IrLowerManagedBinary(
         values[i] = xl6IrLowerAnchorEvaluationBorrow(ctx, origin, ownedType, owned);
         if ( values[i] == XL6_IR_VALUE_INVALID ) goto done;
     }
-    *result = xl6IrLowerEmitRuntimeCall(ctx, origin, node->storageType, operation, values, 2);
+    *result = xl6IrLowerEmitRuntimeCallPayload(ctx, origin, origin,
+        node->storageType, operation, NULL, payloadType, values, 2);
     if ( *result == XL6_IR_VALUE_INVALID ) goto done;
-    if ( payloadType != XL6_IR_TYPE_INVALID )
-        ctx->module->instructions[ctx->module->instructionCount - 1].payloadType = payloadType;
     /* Allocating dynamic arithmetic shares the central checked-box producer
      * path. Do not split a second error edge after its outcome/cleanup CFG. */
     if ( !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, result) ) {
@@ -32554,6 +32552,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     module->abi.asyncStorageAbi = XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2;
     module->abi.taskStorageAbi = XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2;
     module->abi.classStorageAbi = XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2;
+    module->abi.classIdentityAbi = XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3;
     module->abi.futureAggregateAbi = xl6IrModuleFutureAggregateRequirement(module);
     module->stage = XL6_IR_STAGE_LOWERED;
     if ( !xl6IrRefreshReachability(module) ) {

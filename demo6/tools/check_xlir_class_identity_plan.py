@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Closed class identity IR and inheritance acceptance, not checked native identity completion."""
+"""Real language resident class V3: canonical IR/checked CFG, C/JIT/AOT and init/fini."""
 import argparse
 import hashlib
 import json
@@ -23,7 +23,8 @@ def main():
     cc = shutil.which('gcc')
     if not cc or out.exists() or (os.name == 'nt' and not args.public) or (os.name != 'nt' and args.public):
         parser.error('Require gcc, fresh evidence root; Windows uses --public, Linux uses source products')
-    cases = ['stdlib_class_identity_inherited', 'cgen_derive_string_hash_equals', 'stdlib_native_sequence_identity']
+    cases = ['stdlib_class_identity_inherited', 'cgen_derive_string_hash_equals',
+             'stdlib_native_sequence_identity', 'stdlib_class_identity_checked']
     runtime = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxl.so')
     compiler = root / ('release/xlc.dll' if os.name == 'nt' else 'release/libxlc.so')
     cli = root / ('release/xl.exe' if os.name == 'nt' else 'release/xl')
@@ -51,7 +52,7 @@ def main():
     out.mkdir(parents=True)
     rows = []
     report = dict(Complete=False, InputsUnchanged=False, Inputs=inputs, Rows=rows,
-        Scope=__doc__, CheckedNativeIdentity=False, Platform=sys.platform)
+        Scope=__doc__, CheckedNativeIdentity=True, Platform=sys.platform)
     env = dict(os.environ)
     include = out / 'include/__xl_runtime'; include.mkdir(parents=True)
     for folder in ['src/runtime', 'release/include']:
@@ -106,6 +107,8 @@ def main():
                 run(case + '.' + mode + '.repeat', emit(source, mode, repeat))
                 assert target.read_bytes() == repeat.read_bytes()
             ir = json.loads((out / (case + '.json')).read_text())
+            assert ir['classIdentityAbi'] == 1
+            assert json.loads((out / (case + '.typed.json')).read_text())['classIdentityAbi'] == 0
             assert len(ir['classIdentityPlans']) == len(ir['classLayouts'])
             if case == 'stdlib_class_identity_inherited':
                 by_name = {t['name']: t['id'] for t in ir['types']}
@@ -119,6 +122,14 @@ def main():
                     # the independent C contract (dump intentionally omits names).
                     assert len(fields) == len(names)
             target = out / (case + '.c')
+            generated = target.read_text(encoding='utf-8')
+            for required in ('XL6_ClassIdentitySchemaV3', 'xl6ClassRuntimeV3Get()->Create',
+                             'xl6ClassRuntimeV3Get()->BindIdentityTake', 'xl6ClassRuntimeV3Get()->Equal'):
+                assert required in generated, required
+            for forbidden in ('xlir_class_derive_hash_t', 'xlir_class_derive_equal_t',
+                              'xlir_class_reference_hash_t', 'xlir_class_identity_bind_t',
+                              'xl6ClassRuntimeV2Get()->BindIdentity'):
+                assert forbidden not in generated, forbidden
             for level in [0, 2]:
                 binary = out / (case + f'.O{level}' + ('.exe' if os.name == 'nt' else ''))
                 run(case + f'.O{level}.build', [cc, *flags, f'-O{level}', '-include', target,
