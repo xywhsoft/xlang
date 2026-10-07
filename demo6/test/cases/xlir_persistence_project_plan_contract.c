@@ -7,6 +7,11 @@
 #include <string.h>
 
 static unsigned mutations;
+static int restoreResidentSymbol(void* context, const char* symbol)
+{
+    if (!strcmp(symbol, "xl6ArrayImportTakeV1")) ++*(size_t*)context;
+    return 1;
+}
 static const XL6_IrInstruction* definition(const XL6_IrModule* ir, XL6_IrValueId value)
 {
     for (size_t i = 0; i < ir->instructionCount; ++i)
@@ -134,6 +139,12 @@ int main(int argc, char** argv)
         !xl6IrLowerModule(&ir, &parse.diags)) goto done;
     assert(xl6IrVerifyPersistenceProjectPlans(&ir) && xl6IrVerifyPersistenceRestorePlans(&ir) &&
         xl6IrVerifyModule(&ir, NULL));
+    size_t restoreImports = 0, restoreArrays = 0;
+    for (size_t i = 0; i < ir.persistenceRestoreFieldCount; ++i)
+        if (xl6IrTypeGet(&ir.types, ir.persistenceRestoreFields[i].payloadType)->persistenceRestoreCarrierAbi ==
+            XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) ++restoreArrays;
+    assert(xl6IrCgenVisitResidentSymbols(&ir, NULL, NULL, restoreResidentSymbol, &restoreImports));
+    if (restoreArrays) assert(restoreImports);
     assert(xl6IrDynamicFieldsRuntimeBridgeErrorAbi(NULL) == XL6_IR_ERROR_ABI_INVALID &&
         xl6IrDynamicFieldsRuntimeBridgeErrorAbi("not_a_bridge") == XL6_IR_ERROR_ABI_INVALID);
     for (size_t i = 0; i < ir.callTargetCount; ++i) {
@@ -186,6 +197,13 @@ int main(int argc, char** argv)
             ALTER_RESTORE(row, sourceKeyAbi, 0); ALTER_RESTORE(row, sourceKey, NULL);
             ALTER_RESTORE(row, sourceKey, "not-canonical"); ALTER_RESTORE(row, assignAbi, 0);
             ALTER_RESTORE(row, acceptNull, !row->acceptNull); ALTER_RESTORE(row, required, !row->required);
+        }
+        for (size_t i = 0; i < ir.types.count; ++i) {
+            XL6_IrType* type = &ir.types.items[i];
+            ALTER_OP(type, persistenceRestoreScalarAbi, type->persistenceRestoreScalarAbi == XL6_VALUE_ADMIT_NONE
+                ? XL6_VALUE_ADMIT_ANY : XL6_VALUE_ADMIT_NONE);
+            ALTER_OP(type, persistenceRestoreCarrierAbi, type->persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_NONE
+                ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : XL6_IR_COLLECTION_CARRIER_NONE);
         }
         XL6_IrPersistenceRestorePlan* plans = ir.persistenceRestorePlans;
         XL6_IrPersistenceRestoreSchema* schemas = ir.persistenceRestoreSchemas;

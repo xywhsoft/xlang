@@ -50,6 +50,7 @@ def main() -> int:
     cases.append(('nominal', test_root / 'test/cases/stdlib_persistence_nominal_language.xl'))
     cases.append(('pretty', test_root / 'test/cases/stdlib_persistence_pretty_language.xl'))
     cases.append(('restore', test_root / 'test/cases/stdlib_persistence_restore_language.xl'))
+    cases.append(('restore_domains', test_root / 'test/cases/stdlib_persistence_restore_domains.xl'))
     refusals = [test_root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
@@ -135,9 +136,16 @@ def main() -> int:
                     if name == 'restore':
                         assert len(ir['persistenceRestoreSchemas']) == 6
                         assert len(ir['persistenceRestoreFields']) == 14
+                    if name == 'restore_domains':
+                        assert len(ir['persistenceRestorePlans']) == 2
+                        assert len(ir['persistenceRestoreSchemas']) == 4 and len(ir['persistenceRestoreFields']) == 36
+                        assert any(row['persistenceRestoreCarrierAbi'] == 2 for row in ir['types'])
                         assert any(row['acceptNull'] for row in ir['persistenceRestoreFields'])
-                        assert any(row['required'] for row in ir['persistenceRestoreFields'])
-                        assert any(row['assignAbi'] == 2 for row in ir['persistenceRestoreFields'])
+                        # This fixture deliberately uses non-required scalar/collection
+                        # fields. Direct nested-class assignment and required rows are
+                        # covered by the separate restore fixture, not manufactured here.
+                        assert all(not row['required'] for row in ir['persistenceRestoreFields'])
+                        assert all(row['assignAbi'] == 1 for row in ir['persistenceRestoreFields'])
                     results.append({'Case': name, 'Optimization': opt, 'Plans': count[0], 'Schemas': count[1],
                                     'Fields': count[2], 'Sequences': len(ir['persistenceProjectSequences']),
                                     'RejectedMutations': count[3], 'IrSha256': digest(target)})

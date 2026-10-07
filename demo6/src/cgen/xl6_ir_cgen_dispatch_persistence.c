@@ -338,6 +338,17 @@ static int xl6IrCgenPersistenceTypeUsed(
     return 0;
 }
 
+static int xl6IrCgenEmitPersistenceSequenceSeed(XL6_Output* out,
+    const XL6_IrModule* module, XL6_IrTypeId type, const char* result, XL6_DiagList* diags)
+{
+    XL6_IrNominalIdentitySetId set = XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!xl6IrSequenceConstructionRecipe(module, type, XL6_IR_SEQUENCE_ROLE_ARRAY, &set) ||
+        xl6IrCgenEmitSequenceCreateDepth(out, module, type, result, set, 0, NULL, 0, true) < 0)
+        return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
+            "XLIR persistence Array restore has no exact resident construction recipe");
+    return 1;
+}
+
 static int xl6IrCgenEmitPersistenceClassDefault(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrClassLayout* layout, const char* formatName,
@@ -405,6 +416,10 @@ static int xl6IrCgenEmitPersistenceClassDefault(
             if ( fieldType == NULL || fieldType->typeValueId == 0 )
                 return xl6IrCgenDiag(diags, module, field->declaration,
                     "XLIR C emitter persistence array default has no exact type identity");
+            if (fieldType->persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) {
+                if (!xl6IrCgenEmitPersistenceSequenceSeed(out, module, field->type, "item", diags)) return 0;
+                break;
+            }
             xl6OutputPrintf(out,
                 "    item = xrtValueArray();\n"
                 "    if (item != NULL && !xrtValueTypeIdBind(item, 0x%016llXULL)) { xrtValueRelease(item); item = NULL; }\n",
@@ -467,14 +482,18 @@ static int xl6IrCgenEmitPersistenceTypeHelpers(
             formatName, (unsigned int)typeId);
         if ( type->persistenceValueAbi ==
                  XL6_IR_PERSISTENCE_VALUE_XRT_CLONE ) {
-            xl6OutputPuts(
-                "    return source != NULL ? xrtValueClone(source) : xrtValueRetain(xrtValueNull());\n",
-                out);
+            if (type->persistenceRestoreScalarAbi == XL6_VALUE_ADMIT_NONE)
+                return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
+                    "XLIR persistence restore scalar has no canonical wire domain");
+            xl6OutputPrintf(out,
+                "    return xl6PersistenceRestoreScalarV1(source, %u, %s);\n",
+                (unsigned)type->persistenceRestoreScalarAbi,
+                format == XL6_IR_PERSIST_FORMAT_JSON ? "true" : "false");
         } else if ( type->persistenceValueAbi ==
                         XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA ) {
             xl6OutputPrintf(out,
                 "    xvalue* result;\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
+                "    if (source == NULL || xrtValueType(source) != XVALUE_OBJECT) return NULL;\n"
                 "    result = xlir_persist_%s_default_t%u();\n"
                 "    if (result == NULL || !xlir_persist_%s_assign_t%u(result, source)) { xrtValueRelease(result); return NULL; }\n"
                 "    return result;\n",
@@ -483,73 +502,31 @@ static int xl6IrCgenEmitPersistenceTypeHelpers(
         } else if ( type->persistenceValueAbi ==
                         XL6_IR_PERSISTENCE_VALUE_NULLABLE ) {
             xl6OutputPrintf(out,
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
+                "    if (source == NULL) return NULL;\n"
+                "    if (xrtValueType(source) == XVALUE_NULL) return xrtValueRetain(xrtValueNull());\n"
                 "    return xlir_persist_%s_restore_t%u(source);\n",
                 formatName, (unsigned int)type->persistencePayloadType);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_ARRAY ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; size_t index; size_t count;\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    result = xrtValueArray(); if (result == NULL) return NULL;\n"
-                "    count = xrtValueCount(source);\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        xvalue* item = xlir_persist_%s_restore_t%u(xrtValueArrayGet(source, index));\n"
-                "        if (item == NULL || !xrtValueArrayAppendNew(result, item)) { xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    if (!xrtValueTypeIdBind(result, 0x%016llXULL)) { xrtValueRelease(result); return NULL; }\n"
-                "    return result;\n",
-                formatName, (unsigned int)type->persistencePayloadType,
-                (unsigned long long)type->typeValueId);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; size_t index; size_t count;\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    if (xrtValueType(source) != 9) return NULL;\n"
-                "    result = xrtValueIntMap(); if (result == NULL) return NULL;\n"
-                "    count = xrtValueCount(source);\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        xvalue* item = xlir_persist_%s_restore_t%u(xrtValueArrayGet(source, index));\n"
-                "        if (item == NULL || !xrtValueIntMapSetNew(result, (int64_t)index, item)) { xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    if (!xrtValueTypeIdBind(result, 0x%016llXULL)) { xrtValueRelease(result); return NULL; }\n"
-                "    return result;\n",
-                formatName, (unsigned int)type->persistencePayloadType,
-                (unsigned long long)type->typeValueId);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; size_t index; size_t count;\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    if (xrtValueType(source) != 9) return NULL;\n"
-                "    result = xrtValueSet(); if (result == NULL) return NULL;\n"
-                "    count = xrtValueCount(source);\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        xvalue* item = xlir_persist_%s_restore_t%u(xrtValueArrayGet(source, index));\n"
-                "        if (item == NULL || !xrtValueSetAddNew(result, item)) { xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    if (!xrtValueTypeIdBind(result, 0x%016llXULL)) { xrtValueRelease(result); return NULL; }\n"
-                "    return result;\n",
-                formatName, (unsigned int)type->persistencePayloadType,
-                (unsigned long long)type->typeValueId);
-        } else if ( type->persistenceValueAbi ==
-                        XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT ) {
-            xl6OutputPrintf(out,
-                "    xvalue* result; size_t index; size_t count; xlir_string_view key = {0};\n"
-                "    if (source == NULL || xrtValueType(source) == 0) return xrtValueRetain(xrtValueNull());\n"
-                "    if (xrtValueType(source) != 12) return NULL;\n"
-                "    result = xrtValueObject(); if (result == NULL) return NULL;\n"
-                "    count = xrtValueCount(source);\n"
-                "    for (index = 0; index < count; ++index) {\n"
-                "        xvalue* borrowed = xrtValueObjectAt(source, index, &key);\n"
-                "        xvalue* item = borrowed != NULL ? xlir_persist_%s_restore_t%u(borrowed) : NULL;\n"
-                "        if (item == NULL || !xrtValueObjectSetNew(result, key, item)) { xrtValueRelease(result); return NULL; }\n"
-                "    }\n"
-                "    if (!xrtValueTypeIdBind(result, 0x%016llXULL)) { xrtValueRelease(result); return NULL; }\n"
-                "    return result;\n",
-                formatName, (unsigned int)type->persistencePayloadType,
-                (unsigned long long)type->typeValueId);
+        } else if (type->persistenceValueAbi >= XL6_IR_PERSISTENCE_VALUE_ARRAY &&
+                   type->persistenceValueAbi <= XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT) {
+            const char* kind = type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_ARRAY ? "XL6_PERSIST_RESTORE_ARRAY_V1" :
+                type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ? "XL6_PERSIST_RESTORE_LIST_V1" :
+                type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE ? "XL6_PERSIST_RESTORE_SET_V1" :
+                "XL6_PERSIST_RESTORE_DICT_V1";
+            if (type->persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) {
+                xl6OutputPrintf(out,
+                    "    xvalue* wire = xl6PersistenceRestoreCollectionV1(source, %s, 0x%016llXULL, xlir_persist_%s_restore_t%u);\n"
+                    "    xvalue* result = NULL;\n"
+                    "    if (wire == NULL) return NULL;\n",
+                    kind, (unsigned long long)type->typeValueId,
+                    formatName, (unsigned)type->persistencePayloadType);
+                if (!xl6IrCgenEmitPersistenceSequenceSeed(out, module, typeId, "result", diags)) return 0;
+                xl6OutputPuts("    return xl6PersistenceRestoreArrayTakeV1(result, wire);\n", out);
+            } else {
+                xl6OutputPrintf(out,
+                    "    return xl6PersistenceRestoreCollectionV1(source, %s, 0x%016llXULL, xlir_persist_%s_restore_t%u);\n",
+                    kind, (unsigned long long)type->typeValueId,
+                    formatName, (unsigned)type->persistencePayloadType);
+            }
         } else {
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C emitter persistence restore has no exact value ABI");
@@ -639,6 +616,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
     }
     xl6OutputPuts(
         "#include <__xl_runtime/xl6_serialization_read.h>\n"
+        "#include <__xl_runtime/xl6_persistence_restore.h>\n"
         "typedef struct xvalueiter xvalueiter;\n"
         "typedef struct xvaluekey xvaluekey;\n"
         "extern xvalue* xrtValueObjectLifo(void);\n"
@@ -660,6 +638,12 @@ static int xl6IrCgenEmitPersistenceHelpers(
         "extern bool xrtValueTypeIdBind(xvalue*, uint64_t);\n"
         "extern xvalue* xrtValueString(xlir_string_view);\n\n",
         out);
+    for (typeIndex = 0; typeIndex < module->types.count; ++typeIndex)
+        if (module->types.items[typeIndex].persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 &&
+            xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(typeIndex + 1), format, 1)) {
+            xl6OutputPuts("#include <__xl_runtime/xl6_persistence_restore_array.h>\n", out);
+            break;
+        }
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
         XL6_IrTypeId typeId = (XL6_IrTypeId)(typeIndex + 1);
         if ( xl6IrCgenPersistenceTypeUsed(module, typeId, format, 1) )
@@ -706,7 +690,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "    const xvalue* borrowed;\n"
             "    xvalue* item;\n"
             "    (void)borrowed; (void)item;\n"
-            "    if (target == NULL || source == NULL || xrtValueType(source) == 0) return false;\n",
+            "    if (target == NULL || source == NULL || xrtValueType(source) != XVALUE_OBJECT) return false;\n",
             formatName, (unsigned int)layout->type);
         if (schema->dynamicField != XL6_IR_CLASS_FIELD_INDEX_INVALID) {
             xl6OutputPrintf(out,
@@ -730,10 +714,9 @@ static int xl6IrCgenEmitPersistenceHelpers(
             xl6IrCgenEmitPersistenceByteView(out, recipe->sourceKey,
                 recipe->sourceKeyAbi == XL6_IR_PERSIST_PROJECT_KEY_C_LITERAL);
             xl6OutputPuts(");\n", out);
-            xl6OutputPuts("    if (borrowed != NULL", out);
+            xl6OutputPuts("    if (borrowed != NULL) {\n", out);
             if (!recipe->acceptNull)
-                xl6OutputPuts(" && xrtValueType(borrowed) != 0", out);
-            xl6OutputPuts(") {\n", out);
+                xl6OutputPuts("        if (xrtValueType(borrowed) == XVALUE_NULL) return false;\n", out);
             if (recipe->assignAbi == XL6_IR_PERSIST_RESTORE_CLASS_IN_PLACE) {
                 xl6OutputPuts(
                     "        xvalue* nestedTarget = xrtValueObjectGet(target, xrtStrView(",

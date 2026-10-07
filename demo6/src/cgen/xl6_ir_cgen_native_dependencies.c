@@ -238,6 +238,14 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for (size_t i=0;i<module->persistenceProjectSchemaCount;++i)
         if (module->persistenceProjectSchemas[i].dynamicDestroySymbol &&
             !visitor(context,"xl6PersistenceProjectOpenV1")) return 0;
+    /* Restore plans produce admitted Sequence owners without an explicit
+     * ARRAY_IMPORT instruction. Their declared resident dependency belongs
+     * here, not in a fallback scan of emitted C or a force-link-all workaround. */
+    for (size_t i=0;i<module->types.count;++i)
+        if (module->types.items[i].persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 &&
+            (xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(i + 1), XL6_IR_PERSIST_FORMAT_JSON, 1) ||
+             xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(i + 1), XL6_IR_PERSIST_FORMAT_XLON, 1)) &&
+            (!visitor(context,"xl6ArrayProjectionTakeV1") || !visitor(context,"xl6ArrayImportTakeV1"))) return 0;
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {

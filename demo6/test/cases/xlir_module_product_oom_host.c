@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "test/support/module_product_memory.h"
+extern int32_t xrtErrorLine(const xerror*);
+extern int32_t xrtErrorColumn(const xerror*);
 #if defined(XL6_PRODUCT_USER_ENTRY)
 /* Generated programs that do not construct arrays need not declare this
  * independent host argument factory. */
@@ -29,8 +31,9 @@ int main(int argc, char** argv)
     bool hit = xl6ProductMemoryEnd();
     xerror* failure = xrtTakeError();
     if (hit ? initialized || xrtErrorKind(failure) != XERR_MEMORY : !initialized || failure)
-        fprintf(stderr, "point=%zu initialized=%d hit=%d kind=%d message=%s\n", point,
-            initialized, hit, (int)xrtErrorKind(failure), failure ? xrtErrorMessage(failure) : "none");
+        fprintf(stderr, "point=%zu initialized=%d hit=%d kind=%d line=%d column=%d message=%s\n", point,
+            initialized, hit, (int)xrtErrorKind(failure), (int)xrtErrorLine(failure),
+            (int)xrtErrorColumn(failure), failure ? xrtErrorMessage(failure) : "none");
     assert(hit ? !initialized && xrtErrorKind(failure) == XERR_MEMORY : initialized && !failure);
     xlir_module_fini();
     assert(!xrtGetError() && !xlir_module_initialized);

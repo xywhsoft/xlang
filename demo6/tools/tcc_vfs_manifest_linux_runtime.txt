@@ -17,6 +17,10 @@ file|include/__xl_runtime/xl6_serialization_callback.h|%XL6_ROOT%/src/runtime/xl
 file|include/__xl_runtime/xl6_json_writer.h|%XL6_ROOT%/src/runtime/xl6_json_writer.h
 file|include/__xl_runtime/xl6_xlon_writer.h|%XL6_ROOT%/src/runtime/xl6_xlon_writer.h
 file|include/__xl_runtime/xl6_serialization_read.h|%XL6_ROOT%/src/runtime/xl6_serialization_read.h
+file|include/__xl_runtime/xl6_persistence_restore.h|%XL6_ROOT%/src/runtime/xl6_persistence_restore.h
+file|include/__xl_runtime/xl6_persistence_restore_array.h|%XL6_ROOT%/src/runtime/xl6_persistence_restore_array.h
+file|include/__xl_runtime/xl6_value_domain.h|%XL6_ROOT%/src/runtime/xl6_value_domain.h
+file|include/__xl_runtime/xl6_value_admission_abi.h|%XL6_ROOT%/src/runtime/xl6_value_admission_abi.h
 file|include/__xl_runtime/xl6_code_owner.h|%XL6_ROOT%/src/runtime/xl6_code_owner.h
 file|include/__xl_runtime/xl6_code_lease.h|%XL6_ROOT%/src/runtime/xl6_code_lease.h
 file|include/__xl_runtime/xl6_native_handle.h|%XL6_ROOT%/src/runtime/xl6_native_handle.h

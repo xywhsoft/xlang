@@ -6640,6 +6640,7 @@ static XL6_IrValueId xl6IrLowerClassFieldProject(
          (receiver->valueCategory == XL6_IR_VALUE_RVALUE ||
           xl6IrLowerValueIsOwnedXValue(ctx->module, receiverValue)) &&
          (node->ownership == XL6_IR_OWNERSHIP_MOVE ||
+          node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_XVALUE_BORROW ||
           node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_BOOL ||
           node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_I64 ||
           node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_U64 ||
@@ -6650,7 +6651,9 @@ static XL6_IrValueId xl6IrLowerClassFieldProject(
         /* An independent projection (owned reference/copy or scalar value)
          * ends the receiver borrow after the read. Scalar COPY results must
          * not leak an owned receiver such as array[index].field. Pointer and
-         * xvalue borrows keep their distinct parent lifetime contract. */
+         * raw-pointer borrows keep their distinct parent lifetime contract.
+         * A managed xvalue borrow can acquire an independent owner before
+         * retiring the temporary parent; do not abandon array[index].field. */
         receiverOwner = xl6IrLowerNewTempStorage(ctx, receiverType, origin);
         if ( receiverOwner == 0 || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE,
                  origin, receiverType, receiverOwner, &receiverValue, 1, NULL) ||
@@ -6667,6 +6670,9 @@ static XL6_IrValueId xl6IrLowerClassFieldProject(
      * repeats the same receiver evaluation. */
     result = xl6IrLowerClassFieldProjectValue(
         ctx, origin, node, receiverType, receiverValue);
+    if (result != XL6_IR_VALUE_INVALID && receiverOwner != 0 &&
+        node->memberAbi == XL6_IR_MEMBER_ABI_CLASS_FIELD_XVALUE_BORROW)
+        result = xl6IrLowerAcquireValueOwner(ctx, origin, result);
     if ( result != XL6_IR_VALUE_INVALID &&
          !xl6IrLowerCompleteEvaluationBorrows(ctx, origin, first, &result) )
         return XL6_IR_VALUE_INVALID;
