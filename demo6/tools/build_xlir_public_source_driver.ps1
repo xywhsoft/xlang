@@ -105,7 +105,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/backend/xl6_build_backend.c','src/compile/xl6_compile_unit.c','src/compile/xl6_imports.c',
     'src/compile/xl6_xrt_trim.c','src/resource/xl6_win_resource.c','src/package/xl6_package.c',
     'src/ast/xl6_ast.c','src/ast/xl6_ast_dump.c','src/type/xl6_type_model.c',
-    'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c','src/ir/xl6_ir_dump.c',
+    'src/ir/xl6_ir.c','src/ir/xl6_ir_class_identity.c','src/ir/xl6_ir_lower.c','src/ir/xl6_ir_dump.c',
     'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c',
     'src/diag/xl6_diag.c','src/common/xl6_output.c','src/common/xl6_console.c',
     'src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',

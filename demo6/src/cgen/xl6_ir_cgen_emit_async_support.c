@@ -180,6 +180,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 &module->instructions[instructionIndex];
             const XL6_IrClassLayout* layout;
             const XL6_IrType* classType;
+            const XL6_IrClassIdentityPlan* identityPlan;
             size_t priorInstruction;
             size_t fieldOffset;
             int identityOp;
@@ -216,13 +217,14 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 module, instruction->payloadType);
             classType = xl6IrTypeGet(
                 &module->types, instruction->payloadType);
+            identityPlan = xl6IrClassIdentityPlanGet(module, instruction->payloadType);
             if ( layout == NULL || classType == NULL ||
-                 classType->typeValueId == 0 )
+                 classType->typeValueId == 0 || identityPlan == NULL )
                 return xl6IrCgenDiag(diags, module, instruction->origin,
                     "XLIR C emitter class value identity layout is unresolved");
-            if ( layout->hashAbi ==
+            if ( identityPlan->hashAbi ==
                      XL6_IR_CLASS_HASH_ABI_RUNTIME_REFERENCE &&
-                 layout->equalityAbi ==
+                 identityPlan->equalityAbi ==
                      XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_REFERENCE ) {
                 xl6OutputPrintf(out,
                     "static uint64_t xlir_class_reference_hash_t%u(const xvalue* value, void* data)\n"
@@ -249,12 +251,11 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 (unsigned int)instruction->payloadType,
                 (unsigned int)layout->runtimeTypeTag,
                 (unsigned int)layout->runtimeTypeTag);
-            for ( fieldOffset = layout->inheritedFieldCount;
-                  fieldOffset < layout->fieldCount;
+            for ( fieldOffset = 0;
+                  fieldOffset < identityPlan->fieldCount;
                   ++fieldOffset ) {
                 const XL6_IrClassField* field = &module->classFields[
-                    layout->firstField + fieldOffset];
-                if ( !field->compareDeriveIncluded ) continue;
+                    module->classIdentityFields[identityPlan->firstField + fieldOffset].classField];
                 xl6OutputPuts(
                     "    left_item = xrtValueObjectGet(left, xrtStrView(", out);
                 xl6IrCgenEmitCStringLiteral(out,
@@ -270,12 +271,12 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                     out);
             }
             xl6OutputPuts("    return true;\n}\n", out);
-            if ( layout->hashAbi ==
+            if ( identityPlan->hashAbi ==
                      XL6_IR_CLASS_HASH_ABI_RUNTIME_DERIVED &&
-                 layout->hashTarget == 0 &&
-                 layout->equalityAbi ==
+                 identityPlan->hashTarget == 0 &&
+                 identityPlan->equalityAbi ==
                      XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_DERIVED &&
-                 layout->equalityTarget == 0 ) {
+                 identityPlan->equalityTarget == 0 ) {
             xl6OutputPrintf(out,
                 "static uint64_t xlir_class_derive_hash_t%u(const xvalue* value, void* data)\n"
                 "{\n"
@@ -284,14 +285,13 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "    if (value == NULL || xrtValueType(value) == 0) abort();\n"
                 "    if (xlir_xvalue_object_get_literal_i64(value, xrtStrView(\"$xlir.class.runtime-type\")) != INT64_C(%u)) abort();\n",
                 (unsigned int)instruction->payloadType,
-                (unsigned long long)classType->typeValueId,
+                (unsigned long long)identityPlan->identity,
                 (unsigned int)layout->runtimeTypeTag);
-            for ( fieldOffset = layout->inheritedFieldCount;
-                  fieldOffset < layout->fieldCount;
+            for ( fieldOffset = 0;
+                  fieldOffset < identityPlan->fieldCount;
                   ++fieldOffset ) {
                 const XL6_IrClassField* field = &module->classFields[
-                    layout->firstField + fieldOffset];
-                if ( !field->compareDeriveIncluded ) continue;
+                    module->classIdentityFields[identityPlan->firstField + fieldOffset].classField];
                 xl6OutputPuts(
                     "    item = xrtValueObjectGet(value, xrtStrView(", out);
                 xl6IrCgenEmitCStringLiteral(out,

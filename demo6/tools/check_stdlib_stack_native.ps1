@@ -36,6 +36,8 @@ try {
             'tools/check_stdlib_sequence_identity.py','test/cases/stdlib_sequence_identity_native_host.c',
             'test/support/sequence_identity_native.c','tools/check_persistence_project_language.py',
             'test/cases/stdlib_native_sequence_identity.xl',
+            'tools/check_xlir_class_identity_plan.py','test/cases/xlir_class_identity_plan_contract.c',
+            'test/cases/stdlib_class_identity_inherited.xl','test/cases/cgen_derive_string_hash_equals.xl',
             'tools/check_stdlib_fixed_stack.py','test/cases/xlir_fixed_stack_contract.c',
             'test/cases/stdlib_fixed_stack_only.xl','test/cases/stdlib_fixed_stack.xl',
             'test/cases/xlir_generic_tuple_returns.xl','test/cases/sem_fixed_stack_private_error.xl',
@@ -372,6 +374,10 @@ try {
     $sequencePublication=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-publication/results.json" -Raw | ConvertFrom-Json
     if (!$sequencePublication.Complete -or !$sequencePublication.InputsUnchanged -or $sequencePublication.Sweeps.Count-ne50) { throw 'Incomplete Sequence publication evidence' }
     Run 'sequence-identity' $python @('tools/check_stdlib_sequence_identity.py','--out',"$outPath/sequence-identity") -TimeoutMs 600000
+    Run 'class-identity-plan' $python @('tools/check_xlir_class_identity_plan.py','--public',$PublicDirectory,
+        '--out',"$outPath/class-identity-plan") -TimeoutMs 600000
+    $classIdentityPlan=Get-Content -Encoding UTF8 -LiteralPath "$outPath/class-identity-plan/results.json" -Raw | ConvertFrom-Json
+    if (!$classIdentityPlan.Complete -or !$classIdentityPlan.InputsUnchanged -or $classIdentityPlan.Rows.Count-ne48) { throw 'Incomplete class identity plan evidence' }
     $sequenceIdentity=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-identity/results.json" -Raw | ConvertFrom-Json
     if (!$sequenceIdentity.Complete -or !$sequenceIdentity.InputsUnchanged -or $sequenceIdentity.Sweeps.Count-ne2) { throw 'Incomplete Sequence identity evidence' }
     Run 'sequence-identity-language' $python @('tools/check_persistence_project_language.py','--fixture','native-identity',

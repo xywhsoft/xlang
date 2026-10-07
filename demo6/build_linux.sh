@@ -332,6 +332,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/diag/xl6_diag.c"
     "$ROOT/src/ast/xl6_ast.c"
   "$ROOT/src/ir/xl6_ir.c"
+  "$ROOT/src/ir/xl6_ir_class_identity.c"
   "$ROOT/src/ir/xl6_ir_lower.c"
     "$ROOT/src/cgen/xl6_cgen_shared_runtime.c"
     "$ROOT/src/cgen/xl6_ir_cgen.c"

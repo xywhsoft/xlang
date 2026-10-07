@@ -1,0 +1,46 @@
+// A derived identity covers the complete object, not only its own fields.
+class IdentityBase
+    int baseNumber = 7
+    string baseText = "a\0你"
+    int baseTransient @compare(skip) = 0
+end
+IdentityBase baseWitness = IdentityBase()
+class IdentityChild extends IdentityBase
+    derive hash
+    derive equals
+    int childNumber = 11
+end
+IdentityChild first = IdentityChild()
+IdentityChild same = IdentityChild()
+same.baseTransient = 99
+assert first == same and not (first != same)
+IdentityChild numberChanged = IdentityChild()
+numberChanged.baseNumber = 8
+IdentityChild textChanged = IdentityChild()
+textChanged.baseText = "a"
+IdentityChild ownChanged = IdentityChild()
+ownChanged.childNumber = 12
+assert first != numberChanged and first != textChanged and first != ownChanged
+set<IdentityChild> keys = set{first, same, numberChanged, textChanged, ownChanged}
+assert keys.length == 4 and keys.contains(same)
+
+// This base has no independently constructed instance. IR may nevertheless
+// intern its type later; both shapes must cover inherited fields.
+class UnconstructedIdentityBase
+    int inherited = 17
+    int skipped @compare(skip) = 0
+end
+class UnconstructedIdentityChild extends UnconstructedIdentityBase
+    derive hash
+    derive equals
+    int own = 23
+end
+UnconstructedIdentityChild inlineFirst = UnconstructedIdentityChild()
+UnconstructedIdentityChild inlineSame = UnconstructedIdentityChild()
+inlineSame.skipped = 100
+assert inlineFirst == inlineSame
+UnconstructedIdentityChild inlineChanged = UnconstructedIdentityChild()
+inlineChanged.inherited = 18
+assert inlineFirst != inlineChanged
+set<UnconstructedIdentityChild> inlineKeys = set{inlineFirst, inlineSame, inlineChanged}
+assert inlineKeys.length == 2
