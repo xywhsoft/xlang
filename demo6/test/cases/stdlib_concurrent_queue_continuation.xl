@@ -1,0 +1,48 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+extern "xlir_queue_cleanup_seen" func cleanupSeen()
+int queueContinuationCleanup = 0
+
+async func queueAcrossAwait(future<int> first, future<int> second, future<int> third) as int
+    SpscQueue<string> texts = SpscQueue::<string>(4)
+    MpscQueue<bytes> binary = MpscQueue::<bytes>(4)
+    MpmcQueue<func(int) as int> callbacks = MpmcQueue::<func(int) as int>(4)
+    try
+        assert(texts.tryPush("a\0你") == queueStatus.ok)
+        auto bytePush, byteCount = binary.pushBatch(array[b"a\0b", b"\xff\0"])
+        assert(bytePush == queueStatus.ok and byteCount == 2)
+        int captured = 5
+        auto callback = func(int input) as int => captured + input
+        assert(callbacks.tryPush(callback) == queueStatus.ok)
+        auto textStatus, text = texts.tryPop()
+        auto callbackStatus, callable = callbacks.tryPop()
+        assert(textStatus == queueStatus.ok and text != null and callbackStatus == queueStatus.ok and callable != null)
+        int a = await first
+        if text != null then assert(text == "a\0你") else assert(false) end
+        auto byteStatus, values = binary.popBatch(4)
+        assert(byteStatus == queueStatus.ok and values.length == 2)
+        int b = await second
+        assert(values[0] == b"a\0b" and values[1] == b"\xff\0")
+        bytes changed = values[0]
+        changed[0] = uint8(120)
+        assert(values[0] == b"a\0b" and changed == b"x\0b")
+        values[0] = changed
+        int c = await third
+        assert(values[0] == b"x\0b")
+        if text != null then assert(text == "a\0你") else assert(false) end
+        if callable != null then return a + b + c + callable(9) end
+        return -1
+    finally
+        texts.close()
+        binary.close()
+        callbacks.close()
+        queueContinuationCleanup += 1
+        cleanupSeen()
+    end
+end
+
+future<int> first = makeFuture()
+future<int> second = makeFuture()
+future<int> third = makeFuture()
+future<int> pending = queueAcrossAwait(first, second, third)
+int completed = await pending
+assert(completed == 137 and queueContinuationCleanup == 1)
