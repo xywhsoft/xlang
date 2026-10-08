@@ -4,6 +4,8 @@ static int xl6IrCgenEmitResourceRuntime(
 {
     size_t i;
     size_t parameter;
+    int nativeQueue=needs->needsSpscQueueRuntime || needs->needsMpscQueueRuntime || needs->needsMpmcQueueRuntime;
+    if (nativeQueue) xl6OutputPuts("#include <__xl_runtime/xl6_concurrent_queue_abi.h>\n",out);
     if ( needs->needsThreadResourceRuntime )
         xl6OutputPuts(
             "/* thread is a strongly typed XLIR runtime resource.  The worker\n"
@@ -81,7 +83,7 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || needs->needsSpecialQueueBatchRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || nativeQueue )
         xl6OutputPuts(
             "typedef struct xrttype xrttype;\n"
             "extern const xrttype* xl6CharTypeV1(void);\n"
@@ -293,81 +295,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "static bool xlir_special_queue_is_drained(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
             "{ xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; bool result; if (handle == NULL) return false; saved = xrtTakeError(); result = xrtChannelIsDrained(handle->channel); xlir_channel_finish_no_raise(saved); return result; }\n\n",
             out);
-    if ( needs->needsSpecialQueueBatchRuntime )
-        xl6OutputPuts(
-            "/* Batch queue RuntimeOps consume exact array<T> and payload TypeIds.\n"
-            " * This adapter performs only representation conversion and prefix\n"
-            " * transport; operation identity and effects were fixed in XLIR. */\n"
-            "typedef struct xrttype xrttype;\n"
-            "typedef struct xvalueconverter xvalueconverter;\n"
-            "extern const xrttype* xrtTypeBool(void);\n"
-            "extern const xrttype* xrtTypeInt8(void);\n"
-            "extern const xrttype* xrtTypeUInt8(void);\n"
-            "extern const xrttype* xrtTypeInt16(void);\n"
-            "extern const xrttype* xrtTypeUInt16(void);\n"
-            "extern const xrttype* xrtTypeInt32(void);\n"
-            "extern const xrttype* xrtTypeUInt32(void);\n"
-            "extern const xrttype* xrtTypeInt64(void);\n"
-            "extern const xrttype* xrtTypeUInt64(void);\n"
-            "extern const xrttype* xrtTypeFloat32(void);\n"
-            "extern const xrttype* xrtTypeFloat64(void);\n"
-            "extern const xrttype* xrtTypeTime(void);\n"
-            "extern const xrttype* xrtTypeType(void);\n"
-            "extern const xrttype* xrtTypeString(void);\n"
-            "extern const xrttype* xrtTypeStringView(void);\n"
-            "extern const xrttype* xrtTypeValue(void);\n"
-            "extern size_t xrtValueCount(const xvalue*);\n"
-            "extern xvalue* xrtValueArrayGet(const xvalue*, size_t);\n"
-            "extern bool xrtValueArrayRemove(xvalue*, size_t, size_t);\n"
-            "extern bool xrtValueArrayAppendNew(xvalue*, xvalue*);\n"
-            "extern bool xrtValueToTyped(const xvalue*, const xrttype*, void*, const xvalueconverter*);\n"
-            "extern xvalue* xrtValueFromTyped(const xrttype*, const void*, const xvalueconverter*);\n"
-            "extern void xrtTypeDropValue(const xrttype*, void*);\n"
-            "extern bool xrtValueTypeIdRebind(xvalue*, uint64_t);\n"
-            "static int64_t xlir_special_queue_push_batch(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, const xrttype* payloadType, const xvalueconverter* converter, uint64_t arrayTypeId, const xvalue* items)\n"
-            "{\n"
-            "    xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize);\n"
-            "    xerror* saved; void* slot = NULL; size_t count; size_t i; int64_t processed = 0; bool hardFailure = false;\n"
-            "    if (handle == NULL || payloadType == NULL || arrayTypeId == 0 || items == NULL || xrtValueTypeId(items) != arrayTypeId) return -1;\n"
-            "    saved = xrtTakeError(); count = xrtValueCount(items);\n"
-            "    if (count > (size_t)INT64_MAX) count = (size_t)INT64_MAX;\n"
-            "    if (count != 0) { slot = xrtMalloc(payloadSize); if (slot == NULL) hardFailure = true; }\n"
-            "    for (i = 0; slot != NULL && i < count; ++i) {\n"
-            "        xvalue* item = xrtValueArrayGet(items, i); xerror* failure;\n"
-            "        memset(slot, 0, payloadSize);\n"
-            "        if (item == NULL || !xrtValueToTyped(item, payloadType, slot, converter)) { hardFailure = true; break; }\n"
-            "        if (!xlir_channel_send(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize, slot, true)) {\n"
-            "            failure = xrtTakeError(); xrtTypeDropValue(payloadType, slot);\n"
-            "            if (failure != NULL) { xrtErrorFree(failure); hardFailure = true; }\n"
-            "            break;\n"
-            "        }\n"
-            "        xrtTypeDropValue(payloadType, slot); ++processed;\n"
-            "    }\n"
-            "    xrtFree(slot); xlir_channel_finish_no_raise(saved);\n"
-            "    return hardFailure && processed == 0 ? -1 : processed;\n"
-            "}\n"
-            "static int64_t xlir_special_queue_pop_batch_into(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, const xrttype* payloadType, const xvalueconverter* converter, uint64_t arrayTypeId, xvalue* output, int64_t capacity)\n"
-            "{\n"
-            "    xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize);\n"
-            "    xerror* saved; void* slot = NULL; size_t priorCount; int64_t processed = 0; bool hardFailure = false;\n"
-            "    if (handle == NULL || payloadType == NULL || arrayTypeId == 0 || output == NULL || capacity < 0 || (uint64_t)capacity > (uint64_t)SIZE_MAX || xrtValueTypeId(output) != arrayTypeId) return -1;\n"
-            "    saved = xrtTakeError(); priorCount = xrtValueCount(output);\n"
-            "    if (priorCount != 0 && !xrtValueArrayRemove(output, 0, priorCount)) hardFailure = true;\n"
-            "    if (!hardFailure && capacity != 0) { slot = xrtMalloc(payloadSize); if (slot == NULL) hardFailure = true; }\n"
-            "    while (slot != NULL && processed < capacity) {\n"
-            "        xvalue* item; memset(slot, 0, payloadSize);\n"
-            "        if (!xlir_channel_recv(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize, slot, XLIR_CHANNEL_RECV_TRY, 0)) break;\n"
-            "        item = xrtValueFromTyped(payloadType, slot, converter); xrtTypeDropValue(payloadType, slot);\n"
-            "        if (item == NULL) { hardFailure = true; break; }\n"
-            "        /* The closed array records T. Converted values retain their actual scalar/managed identity; canonical null/bool are immutable. */\n"
-            "        if (!xrtValueArrayAppendNew(output, item)) { hardFailure = true; break; }\n"
-            "        ++processed;\n"
-            "    }\n"
-            "    xrtFree(slot); xlir_channel_finish_no_raise(saved);\n"
-            "    return hardFailure && processed == 0 ? -1 : processed;\n"
-            "}\n\n",
-            out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || nativeQueue )
         xl6OutputPuts(
             "/* Sequence factories live in the resident typed runtime. */\n"
             "typedef struct xrttype xrttype;\n"
@@ -469,6 +397,9 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern bool xrtTypedTreeMerge(xtypedtree*, const xtypedtree*, bool);\n"
             "extern xtypedtree* xrtTypedTreeClone(const xtypedtree*);\n"
             "extern bool xrtTypedTreeEquals(const xtypedtree*, const xtypedtree*);\n"
+            "extern xvalue* xl6TypedTreeProjectTakeV1(xtypedtree*, bool, xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n"
+            "extern const xvalueconverter* xl6ArrayReferenceConverterV1(void);\n"
+            "extern const xrttype* xl6SequenceStorageTypeV1(unsigned int, const xrttype*);\n"
             "extern xvalue* xrtValueFromTyped(const xrttype*, const void*, const xvalueconverter*);\n"
             "extern bool xrtValueTypeIdRebind(xvalue*, uint64_t);\n"
             "extern bool xrtValueArrayAppendNew(xvalue*, xvalue*);\n"
@@ -523,8 +454,6 @@ static int xl6IrCgenEmitResourceRuntime(
             "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); xerror* saved; if (handle == NULL) return; saved = xrtTakeError(); (void)xrtTypedTreeClear(handle->tree); xlir_avl_finish_no_raise(saved); }\n"
             "static int64_t xlir_avl_count(const xvalue* object, uint64_t treeTypeId, uint64_t keyTypeId, uint64_t valueTypeId, unsigned int keyPayloadAbi, unsigned int keyOrderAbi, unsigned int valuePayloadAbi, const xrttype* keyType, const xrttype* valueType, size_t keySize, size_t valueSize)\n"
             "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); size_t result = handle != NULL ? xrtTypedTreeCount(handle->tree) : 0; return result > (size_t)INT64_MAX ? INT64_MAX : (int64_t)result; }\n"
-            "static xvalue* xlir_avl_collect(const xvalue* object, uint64_t treeTypeId, uint64_t keyTypeId, uint64_t valueTypeId, unsigned int keyPayloadAbi, unsigned int keyOrderAbi, unsigned int valuePayloadAbi, const xrttype* keyType, const xrttype* valueType, size_t keySize, size_t valueSize, uint64_t arrayTypeId, uint64_t itemTypeId, bool keys, const xvalueconverter* converter)\n"
-            "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); const void* key = NULL; const void* value; const xrttype* itemType; xvalue* array; if (handle == NULL || arrayTypeId == 0 || itemTypeId == 0) return NULL; itemType = keys ? keyType : valueType; array = xrtValueArray(); if (array == NULL) goto fail; value = xrtTypedTreeFirst(handle->tree, &key); while (value != NULL) { xvalue* item = xrtValueFromTyped(itemType, keys ? key : value, converter); if (item == NULL) goto fail; /* The closed array owns T; elements retain their actual dynamic identity. */ if (!xrtValueArrayAppendNew(array, item)) goto fail; value = xrtTypedTreeUpperBound(handle->tree, key, &key); } if (!xrtValueTypeIdBind(array, arrayTypeId)) goto fail; return array; fail: xrtValueRelease(array); xlir_avl_ensure_error(\"tree projection failed\"); return NULL; }\n"
             "static xvalue* xlir_avl_clone(const xvalue* object, uint64_t treeTypeId, uint64_t keyTypeId, uint64_t valueTypeId, unsigned int keyPayloadAbi, unsigned int keyOrderAbi, unsigned int valuePayloadAbi, const xrttype* keyType, const xrttype* valueType, size_t keySize, size_t valueSize)\n"
             "{ xlir_avl_handle* handle = xlir_avl_borrow(object, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); xtypedtree* clone; if (handle == NULL) return NULL; clone = xrtTypedTreeClone(handle->tree); if (clone == NULL) { xlir_avl_ensure_error(\"typed tree clone failed\"); return NULL; } return xlir_avl_wrap(clone, treeTypeId, keyTypeId, valueTypeId, keyPayloadAbi, keyOrderAbi, valuePayloadAbi, keyType, valueType, keySize, valueSize); }\n\n",
             out);

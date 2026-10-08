@@ -1,9 +1,11 @@
 func main(...) as int
     SpscQueue<int?> queue = SpscQueue::<int?>(2)
-    int? item = null
-    assert(queue.tryPush(null) and queue.tryPush(0))
-    assert(queue.tryPopInto(item) and item == null)
-    assert(queue.tryPopInto(item) and item != null and item == 0)
-    assert(not queue.tryPopInto(item))
+    assert(queue.tryPush(null) == queueStatus.ok and queue.tryPush(0) == queueStatus.ok)
+    auto nullStatus, nullItem = queue.tryPop()
+    assert(nullStatus == queueStatus.ok and nullItem == null)
+    auto valueStatus, item = queue.tryPop()
+    assert(valueStatus == queueStatus.ok and item != null and item == 0)
+    auto emptyStatus, absent = queue.tryPop()
+    assert(emptyStatus == queueStatus.empty and absent == null)
     return 0
 end

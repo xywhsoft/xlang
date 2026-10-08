@@ -1,0 +1,3 @@
+SpscQueue<int> queue = SpscQueue::<int>(2)
+int item = 0
+queue.tryPopInto(item)

@@ -1,0 +1,9 @@
+MpscQueue<int?> queue = MpscQueue::<int?>(2)
+auto pushedStatus, pushed = queue.pushBatch(array[7, null])
+assert(pushedStatus == queueStatus.ok and pushed == 2)
+auto status, values = queue.popBatch(4)
+assert(status == queueStatus.ok and values.length == 2 and values[1] == null)
+auto value = values[0]
+assert(value != null and value == 7)
+auto emptyStatus, empty = queue.tryPop()
+assert(emptyStatus == queueStatus.empty and empty == null)

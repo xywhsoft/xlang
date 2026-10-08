@@ -235,6 +235,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_array_call_frame.c"
     "$ROOT/src/runtime/xl6_array_entry.c"
     "$ROOT/src/runtime/xl6_array_producer.c"
+    "$ROOT/src/runtime/xl6_tree_projection.c"
     "$ROOT/src/runtime/xl6_queue_spsc.c"
     "$ROOT/src/runtime/xl6_queue_mpsc.c"
     "$ROOT/src/runtime/xl6_queue_mpmc.c"

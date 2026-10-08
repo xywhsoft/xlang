@@ -1,0 +1,3 @@
+MpscQueue<int?> queue = MpscQueue::<int?>(2)
+array<int> inputs = array[7]
+queue.pushBatch(inputs)

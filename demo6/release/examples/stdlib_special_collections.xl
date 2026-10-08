@@ -14,16 +14,21 @@ func main(...) as int
     println("avl=ok")
 
     SpscQueue<int> spsc = SpscQueue::<int>(4)
-    assert(spsc.tryPush(1) and spsc.tryPopInto(value) and value == 1)
+    assert(spsc.tryPush(1) == queueStatus.ok)
+    auto spscStatus, spscValue = spsc.tryPop()
+    assert(spscStatus == queueStatus.ok and spscValue != null and spscValue == 1)
     println("spsc=ok")
 
     MpscQueue<int> mpsc = MpscQueue::<int>(4)
-    assert(mpsc.tryPush(2) and mpsc.tryPopInto(value) and value == 2)
+    assert(mpsc.tryPush(2) == queueStatus.ok)
+    auto mpscStatus, mpscValue = mpsc.tryPop()
+    assert(mpscStatus == queueStatus.ok and mpscValue != null and mpscValue == 2)
     println("mpsc=ok")
 
     MpmcQueue<string> queue = MpmcQueue::<string>(8)
-    string text = ""
-    assert(queue.tryPush("hello") and queue.tryPopInto(text) and text == "hello")
+    assert(queue.tryPush("hello") == queueStatus.ok)
+    auto status, text = queue.tryPop()
+    assert(status == queueStatus.ok and text != null and text == "hello")
     println("mpmc=ok")
 
     WaitQueue<int> waits = WaitQueue::<int>(4)

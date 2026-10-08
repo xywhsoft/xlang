@@ -7,9 +7,10 @@ func main(...) as int
     var erased = values
     assert(type(erased[0]) == char and type(erased[1]) == char)
     SpscQueue<char> queue = SpscQueue::<char>(4)
-    assert(queue.pushBatch(values) == 3)
-    array<char> output = array<char>['A']
-    assert(queue.popBatchInto(output, 4) == 3)
+    auto pushStatus, pushed = queue.pushBatch(values)
+    assert(pushStatus == queueStatus.ok and pushed == 3)
+    auto popStatus, output = queue.popBatch(4)
+    assert(popStatus == queueStatus.ok and output.length == 3)
     assert(output[0] == '\0' and output[1] == '你' and output[2] == last)
     int count = 0
     for item in output

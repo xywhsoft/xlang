@@ -62,6 +62,15 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
         int aggregateClosure;
         if ( !xl6IrCgenInstructionIsReachable(module, i) ||
              instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ) continue;
+        XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
+        if (queueId) {
+            const XL6_IrType* queue=xl6IrTypeGet(&module->types,queueId);
+            const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->concurrentQueueSchemaType);
+            if (schema && schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
+                schema->sequenceLayout.baseElementType==type &&
+                instruction->runtimeOp==(reverse ? XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP :
+                    XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH)) return 1;
+        }
         aggregateClosure =
             (instruction->runtimeOp == XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||
              instruction->runtimeOp ==
@@ -159,10 +168,17 @@ static int xl6IrCgenProductDropDirectlyNeeded(
 {
     size_t i;
     if ( module == NULL ) return 0;
-    for ( i = 0; i < module->instructionCount; ++i )
-        if ( xl6IrCgenInstructionIsReachable(module, i) &&
-             module->instructions[i].kind == XL6_IR_INSTR_RELEASE &&
-             module->instructions[i].type == type ) return 1;
+    for ( i = 0; i < module->instructionCount; ++i ) {
+        const XL6_IrInstruction* instruction = &module->instructions[i];
+        if (!xl6IrCgenInstructionIsReachable(module, i) || instruction->type != type) continue;
+        if (instruction->kind == XL6_IR_INSTR_RELEASE) return 1;
+        /* Native queue results may own a popped prefix even on failure.
+         * STATUS_OUTPUT empties that result before the language error edge,
+         * so its rollback owns the whole product independently of RELEASE. */
+        if (xl6IrConcurrentQueueInstructionType(module, instruction) &&
+            xl6IrCallInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)
+            return 1;
+    }
     /* Export transactions also own a pending result until cleanup commits.
      * That root requires the same recursive product drop dependency as an
      * explicit RELEASE instruction, even when the body only returns it. */

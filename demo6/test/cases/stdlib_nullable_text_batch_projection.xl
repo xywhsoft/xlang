@@ -3,13 +3,16 @@ func main(...) as int
     string? text = "a\0b"
     SpscQueue<string?> queue = SpscQueue::<string?>(4)
     array<string?> inputs = array<string?>[null, empty, text]
-    array<string?> output = array<string?>["old"]
-    assert(queue.pushBatch(inputs) == 3)
-    assert(queue.popBatchInto(output, 2) == 2)
-    assert(output.length == 2 and output[0] == null and output[1] == empty)
-    assert(output[1] != null)
-    assert(queue.popBatchInto(output, 4) == 1)
+    auto pushStatus, pushed = queue.pushBatch(inputs)
+    assert(pushStatus == queueStatus.ok and pushed == 3)
+    auto firstStatus, first = queue.popBatch(2)
+    assert(firstStatus == queueStatus.ok and first.length == 2 and first[0] == null and first[1] == empty)
+    assert(first[1] != null)
+    auto secondStatus, output = queue.popBatch(4)
+    assert(secondStatus == queueStatus.ok)
     assert(output.length == 1 and output[0] == text)
-    assert(queue.popBatchInto(output, 0) == 0 and output.length == 0)
+    auto zeroStatus, zero = queue.popBatch(0)
+    assert(zeroStatus == queueStatus.ok and zero.length == 0)
+    assert(first.length == 2 and output.length == 1 and output[0] == text)
     return 0
 end

@@ -10,6 +10,8 @@
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_sequence.h"
+#include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_concurrent_queue.h"
 #include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -2654,7 +2656,13 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     }
     if ((adapter = xl6ClosureOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xl6CellOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6SequenceOwnershipAdapterV1(ref)) != NULL) return adapter;
+    {
+        const XL6_SequenceAdmissionOpsV2* policies[]={xl6ArrayFutureAdmissionOpsV2Get()};
+        if ((adapter=xl6SpscQueueOwnershipAdapterV1(ref,policies,1)) != NULL) return adapter;
+        if ((adapter=xl6MpscQueueOwnershipAdapterV1(ref,policies,1)) != NULL) return adapter;
+        if ((adapter=xl6MpmcQueueOwnershipAdapterV1(ref,policies,1)) != NULL) return adapter;
+        if ((adapter=xl6SequenceOwnershipAdapterV2(ref,policies,1)) != NULL) return adapter;
+    }
     if ((adapter = xl6ValueIteratorOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtValueCursorOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xl6CodeLeaseOwnershipAdapterV1(ref)) != NULL) return adapter;

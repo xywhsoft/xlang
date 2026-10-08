@@ -213,7 +213,9 @@ typedef enum XL6_IrRuntimeResourceOp {
      * return the processed prefix length as i64; POP additionally borrows
      * the mutable output array and takes one i64 capacity. */
     XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_PUSH_BATCH,
-    XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_BATCH_INTO
+    XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_BATCH_INTO,
+    XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP,
+    XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -226,7 +228,7 @@ typedef enum XL6_IrRuntimeResourcePayloadAbi {
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY,
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY,
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN,
-    /* Array recipe only; not admission for other resource payload ABIs. */
+    /* Closed Array/Stack and concurrent Queue recipes; not generic resource admission. */
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF
 } XL6_IrRuntimeResourcePayloadAbi;
 
@@ -1962,7 +1964,9 @@ typedef enum XL6_IrRuntimeOp {
        /* Ordinary checked invocation of payloadType's declaration-default CFG.
         * Exact ClassLayout binding; no source arguments or inline construction.
         * Uses the same RESULT_CARRIER ABI as internal language calls. */
-       XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE
+       XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE,
+       XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP,
+       XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6546,6 +6550,18 @@ XL6_IrTypeId xl6IrTypeInternArray(XL6_IrTypePool*, XL6_IrTypeId elementType);
 int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
     XL6_IrNominalIdentitySetId* admissionSetOut);
+int xl6IrConcurrentQueueSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
+    XL6_IrTypeId receiver,XL6_IrTypeId result,const XL6_IrTypeId*,size_t count);
+XL6_IrTypeId xl6IrConcurrentQueueInstructionType(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrConcurrentQueueInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+/* A typed tree producer returns the complete native Array recipe, not a
+ * logical identity rebound onto dynamic storage. */
+int xl6IrAvlProjectionContract(const XL6_IrModule*,XL6_IrTypeId tree,
+    XL6_IrTypeId result,int keys,XL6_IrNominalIdentitySetId*);
+XL6_IrRuntimeResourcePayloadAbi xl6IrRuntimeResourcePayloadAbiForOwnerType(
+    const XL6_IrModule*,XL6_IrTypeId owner,XL6_IrTypeId payload);
+XL6_IrErrorAbi xl6IrRuntimeResourceErrorAbiForOwnerType(
+    const XL6_IrModule*,XL6_IrRuntimeResourceOp,XL6_IrTypeId owner);
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 int xl6IrArrayTrivialExtractResult(const XL6_IrType*);
 XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi);

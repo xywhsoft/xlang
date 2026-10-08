@@ -250,7 +250,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_queue_spsc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_SPSC"}},
     {"src/runtime/xl6_queue_mpsc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPSC"}},
-    {"src/runtime/xl6_queue_mpmc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPMC"}}
+    {"src/runtime/xl6_queue_mpmc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPMC"}},
+    {"src/runtime/xl6_tree_projection.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

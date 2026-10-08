@@ -180,7 +180,9 @@ static int xl6IrCgenSpecialQueueRuntimeOpIs(XL6_IrRuntimeOp operation)
     return (operation >= XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
             operation <= XL6_IR_RUNTIME_SPECIAL_QUEUE_IS_DRAINED) ||
            operation == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
-           operation == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO;
+           operation == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
+           operation == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
+           operation == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH;
 }
 
 static int xl6IrCgenStackRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -350,52 +352,24 @@ static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module,
     const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types,typeId) : NULL;
     if (type == NULL) return "NULL";
     switch (type->nativeSlotAbi) {
-    case XL6_IR_NATIVE_SLOT_CHAR: return "xl6CharConverterV1()";
-    case XL6_IR_NATIVE_SLOT_STRING: return "xl6StringConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return "xl6NullableStringConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: return "xl6NullableU64ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: return "xl6NullableNativeI8ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: return "xl6NullableNativeU8ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: return "xl6NullableNativeI16ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: return "xl6NullableNativeU16ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: return "xl6NullableNativeI32ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "xl6NullableNativeU32ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "xl6NullableF32ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "xl6NullableF64ConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "xl6NullableTimeConverterV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "xl6NullableCharConverterV1()";
+#define XL6_IR_CGEN_SLOT_PROVIDER(Slot,Type,Converter) case XL6_IR_NATIVE_SLOT_##Slot: return #Converter "()";
+#include "src/cgen/xl6_ir_cgen_slot_providers.inc"
+#undef XL6_IR_CGEN_SLOT_PROVIDER
     default: return "NULL";
     }
 }
 static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi slot)
 {
     switch (slot) {
-    case XL6_IR_NATIVE_SLOT_NULLABLE_BOOL: return "xl6NullableBoolTypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_I64: return "xl6NullableI64TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_U64: return "xl6NullableU64TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID: return "xl6NullableU64TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I8: return "xl6NullableNativeI8TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U8: return "xl6NullableNativeU8TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I16: return "xl6NullableNativeI16TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U16: return "xl6NullableNativeU16TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_I32: return "xl6NullableNativeI32TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32: return "xl6NullableNativeU32TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_F32: return "xl6NullableF32TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_F64: return "xl6NullableF64TypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_TIME: return "xl6NullableTimeTypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_CHAR: return "xl6NullableCharTypeV1()";
+#define XL6_IR_CGEN_SLOT_PROVIDER(Slot,Type,Converter) case XL6_IR_NATIVE_SLOT_##Slot: return #Type "()";
+#include "src/cgen/xl6_ir_cgen_slot_providers.inc"
+#undef XL6_IR_CGEN_SLOT_PROVIDER
     case XL6_IR_NATIVE_SLOT_BOOL: return "xrtTypeBool()";
     case XL6_IR_NATIVE_SLOT_I64: return "xrtTypeInt64()";
     case XL6_IR_NATIVE_SLOT_U64: return "xrtTypeUInt64()";
     case XL6_IR_NATIVE_SLOT_F64: return "xrtTypeFloat64()";
     case XL6_IR_NATIVE_SLOT_TIME: return "xrtTypeTime()";
     case XL6_IR_NATIVE_SLOT_TYPE_ID: return "xrtTypeType()";
-    case XL6_IR_NATIVE_SLOT_CHAR: return "xl6CharTypeV1()";
-    case XL6_IR_NATIVE_SLOT_STRING: return "xl6StringTypeV1()";
-    case XL6_IR_NATIVE_SLOT_NULLABLE_STRING: return "xl6NullableStringTypeV1()";
     case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return "xrtTypeValue()";
     case XL6_IR_NATIVE_SLOT_FUTURE_PTR: return "xrtTypeFuture()";
     case XL6_IR_NATIVE_SLOT_F32: return "xrtTypeFloat32()";
