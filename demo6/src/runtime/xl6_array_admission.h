@@ -10,6 +10,10 @@
 /* The owner element identity may name nullable<T>; the final identity names
  * T's admitted boxed value domain. They must not be conflated by the backend. */
 XL6_TEXT_API xvalue* xl6SequenceReferenceCreateV1(unsigned int, uint64_t, uint64_t, unsigned int, bool, uint64_t);
+/* Exact canonical ANY reference policy on an operation-pinned owner. No
+ * allocation or storage reads. The caller must independently verify role,
+ * owner identity and the published resident reference projection. */
+XL6_TEXT_API bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence*, uint64_t);
 XL6_TEXT_API xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);
 /* Exact logical scalar/text policy on the selected physical slot descriptor.
  * Integer widths use int64 storage (including u8/u16/u32), not coercion rules.

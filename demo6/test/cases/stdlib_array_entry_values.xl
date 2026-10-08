@@ -1,0 +1,9 @@
+func main(...) as int
+    if arg.length == 3 then
+        assert(arg[0] == "a\0你" and arg[1] == b"\0A\xff" and arg[2] == null)
+        arg[0] = "changed"
+    else
+        assert(arg.length == 0)
+    end
+    return 0
+end

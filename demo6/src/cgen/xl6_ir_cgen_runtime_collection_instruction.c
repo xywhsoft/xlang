@@ -85,19 +85,19 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         module->operands[instruction->firstOperand];
                     if ( instruction->operandCount == 1 )
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_dynamic_collection_method(v%u, %s, NULL, NULL);\n",
+                            "    v%u = xl6DynamicCollectionCallTakeV1(v%u, %s, NULL, NULL);\n",
                             (unsigned int)instruction->result,
                             (unsigned int)receiver, operation);
                     else if ( instruction->operandCount == 2 )
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_dynamic_collection_method(v%u, %s, v%u, NULL);\n",
+                            "    v%u = xl6DynamicCollectionCallTakeV1(v%u, %s, v%u, NULL);\n",
                             (unsigned int)instruction->result,
                             (unsigned int)receiver, operation,
                             (unsigned int)module->operands[
                                 instruction->firstOperand + 1]);
                     else
                         xl6OutputPrintf(out,
-                            "    v%u = xlir_xvalue_dynamic_collection_method(v%u, %s, v%u, v%u);\n",
+                            "    v%u = xl6DynamicCollectionCallTakeV1(v%u, %s, v%u, v%u);\n",
                             (unsigned int)instruction->result,
                             (unsigned int)receiver, operation,
                             (unsigned int)module->operands[

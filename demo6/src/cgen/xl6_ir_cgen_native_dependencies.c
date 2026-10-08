@@ -18,7 +18,8 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
         if (module->storages[i].kind==XL6_IR_STORAGE_GLOBAL &&
             xl6IrCgenOwnershipView(module->storages[i].moduleTraceAbi)!=NULL)
             needs->needsModuleOwnershipViews=1;
-    if ((options && options->emitMainWrapper) || needs->needsNetTcpRuntime ||
+    if (module->abi.entryKind==XL6_IR_MODULE_ENTRY_XLANG_MAIN ||
+        (options && options->emitMainWrapper) || needs->needsNetTcpRuntime ||
         needs->needsNetDatagramRuntime || needs->needsNetTlsDialRuntime || needs->needsNetTlsServerRuntime) {
         needs->needsForeignErrorRuntime=1;
         needs->needsErrorRuntime=1;
@@ -232,9 +233,14 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if(module->abi.entryKind==XL6_IR_MODULE_ENTRY_XLANG_MAIN &&
+        (!visitor(context,"xl6ArrayEntryAcquireV1") ||
+         (options && options->emitMainWrapper && !visitor(context,"xl6ArrayOsArgvCreateV1")))) return 0;
     /* All Error text operations share one resident immutable-error provider.
      * This is a verified emission need, not a scan of generated C tokens. */
     if (needs.needsErrorRuntime && !visitor(context,"xl6ErrorCreateV1")) return 0;
+    if (needs.needsXValueDynamicCollectionRuntime && !visitor(context,"xl6DynamicCollectionCallTakeV1")) return 0;
+    if (needs.needsXValueContainsRuntime && !visitor(context,"xl6ValueContainsV1")) return 0;
     for (size_t i=0;i<module->persistenceProjectSchemaCount;++i)
         if (module->persistenceProjectSchemas[i].dynamicDestroySymbol &&
             !visitor(context,"xl6PersistenceProjectOpenV1")) return 0;
@@ -249,6 +255,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE &&
+            instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY && !visitor(context,"xl6ArrayMethodRemoveV1")) return 0;
         if ((instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
              instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
             (!xl6IrPersistenceProjectInstructionAbi(module,instruction) ||

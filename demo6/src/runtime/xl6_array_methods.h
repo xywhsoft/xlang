@@ -24,4 +24,8 @@ XL6_ARRAY_METHODS_API bool xl6ArrayMethodInsertV1(xvalue*,int64_t,const xvalue*)
 XL6_ARRAY_METHODS_API int64_t xl6ArrayMethodIndexOfV1(const xvalue*,const xvalue*);
 XL6_ARRAY_METHODS_API bool xl6ArrayMethodReverseV1(xvalue*);
 XL6_ARRAY_METHODS_API bool xl6ArrayMethodRemoveValueV1(xvalue*,const xvalue*);
+XL6_ARRAY_METHODS_API bool xl6ArrayMethodRemoveV1(xvalue*,int64_t,int64_t);
+/* Owned element, or NULL on failure. pop ignores index (which must be 0).
+ * Projection/admission complete under the operation pin before removal. */
+XL6_ARRAY_METHODS_API xvalue* xl6ArrayMethodTakeV1(xvalue*,int64_t,bool);
 #endif

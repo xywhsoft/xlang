@@ -65,6 +65,8 @@ file|include/__xl_runtime/xl6_array_algebra.h|%XL6_ROOT%\src\runtime\xl6_array_a
 file|include/__xl_runtime/xl6_array_graph.h|%XL6_ROOT%\src\runtime\xl6_array_graph.h
 file|include/__xl_runtime/xl6_persistence_project.h|%XL6_ROOT%\src\runtime\xl6_persistence_project.h
 file|include/__xl_runtime/xl6_array_methods.h|%XL6_ROOT%\src\runtime\xl6_array_methods.h
+file|include/__xl_runtime/xl6_dynamic_collection.h|%XL6_ROOT%\src\runtime\xl6_dynamic_collection.h
+file|include/__xl_runtime/xl6_value_contains.h|%XL6_ROOT%\src\runtime\xl6_value_contains.h
 file|include/__xl_runtime/xl6_array_default.h|%XL6_ROOT%\src\runtime\xl6_array_default.h
 file|include/__xl_runtime/xl6_array_extract.h|%XL6_ROOT%\src\runtime\xl6_array_extract.h
 file|include/__xl_runtime/xl6_value_default_abi.h|%XL6_ROOT%\src\runtime\xl6_value_default_abi.h

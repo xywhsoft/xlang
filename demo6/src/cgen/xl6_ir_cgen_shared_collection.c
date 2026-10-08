@@ -99,9 +99,9 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             module->operands[instruction->firstOperand + 1];
         if ( instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY )
             xl6OutputPrintf(out,
-                "    v%u = v%u >= 0 && xrtValueArrayRemove(v%u, (size_t)v%u, 1u);\n",
+                "    v%u = xl6ArrayMethodRemoveV1(v%u, v%u, 1);\n",
                 (unsigned int)instruction->result,
-                (unsigned int)operand, (unsigned int)collection,
+                (unsigned int)collection,
                 (unsigned int)operand);
         else if ( instruction->collectionAbi == XL6_IR_COLLECTION_LIST )
             xl6OutputPrintf(out,
@@ -119,7 +119,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 (unsigned int)instruction->result,
                 (unsigned int)collection, (unsigned int)operand);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CONTAINS ) {
-        xl6OutputPrintf(out, "    v%u = xlir_xvalue_contains(v%u, v%u);\n",
+        xl6OutputPrintf(out, "    v%u = xl6ValueContainsV1(v%u, v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);

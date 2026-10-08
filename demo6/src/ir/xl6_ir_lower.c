@@ -3979,31 +3979,32 @@ static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* source,
     XL6_IrTypeId targetType);
 
-/* A collection's static type can retain a typed-container representation in
- * other contexts.  Only this resolved conversion into a var slot chooses the
- * xvalue collection ABI, so Cgen never infers a representation from syntax. */
+/* Erasure into var changes the SSA type, not the collection representation.
+ * A heterogeneous literal first owns a canonical native ANY Array. */
 static XL6_IrValueId xl6IrLowerArrayLiteralAsRuntimeXValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* collection,
     XL6_IrTypeId targetType)
 {
     XL6_IrValueId array;
     XL6_IrTypeId boolType;
+    XL6_IrTypeId producerType=xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,targetType)
+        ? xl6IrArrayAnyType(ctx->module) : targetType;
     size_t i, constructionFirst = ctx->evaluationOwnerCount;
     if ( collection == NULL || collection->sourceKind != XL6_AST_ARRAY_LITERAL ||
-         !xl6IrLowerTypeIsRuntimeXValue(ctx->module, targetType) ) {
+         !xl6IrLowerTypeIsRuntimeXValue(ctx->module, targetType) || producerType==XL6_IR_TYPE_INVALID ) {
         xl6IrLowerDiag(ctx, origin, "XLIR dynamic collection conversion has no resolved array ABI");
         return XL6_IR_VALUE_INVALID;
     }
     boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
-    array = xl6IrLowerEmitRuntimeCall(ctx, origin, targetType,
-                                      xl6IrArrayConstructionRuntimeOp(ctx->module,targetType), NULL, 0);
+    array = xl6IrLowerEmitRuntimeCall(ctx, origin, producerType,
+                                      xl6IrArrayConstructionRuntimeOp(ctx->module,producerType), NULL, 0);
     if ( array != XL6_IR_VALUE_INVALID )
         array = xl6IrLowerMaybeBindRuntimeTypeIdentity(
-            ctx, origin, targetType, targetType, array);
+            ctx, origin, producerType, producerType, array);
     if ( array == XL6_IR_VALUE_INVALID || boolType == XL6_IR_TYPE_INVALID ) return XL6_IR_VALUE_INVALID;
     /* Keep the partial container on the same unwind stack as call operands.
      * Element evaluation may throw before the final destination STORE exists. */
-    array = xl6IrLowerProtectEvaluationValue(ctx, origin, targetType, array);
+    array = xl6IrLowerProtectEvaluationValue(ctx, origin, producerType, array);
     if (array == XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
     for ( i = 0; i < collection->childCount; ++i ) {
         XL6_IrNodeId itemId = ctx->module->children[collection->firstChild + i];
@@ -4011,7 +4012,7 @@ static XL6_IrValueId xl6IrLowerArrayLiteralAsRuntimeXValue(
         XL6_IrValueId boxed;
         XL6_IrValueId appended;
         if ( item == NULL ) return XL6_IR_VALUE_INVALID;
-        boxed = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
+        boxed = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, producerType);
         if ( boxed == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
         {
             XL6_IrValueId operands[2] = { array, boxed };
@@ -4023,7 +4024,7 @@ static XL6_IrValueId xl6IrLowerArrayLiteralAsRuntimeXValue(
     }
     if (!xl6IrLowerCommitEvaluationOwnerRange(ctx, origin, constructionFirst, constructionFirst + 1))
         return XL6_IR_VALUE_INVALID;
-    return array;
+    return producerType==targetType ? array : xl6IrLowerEmitValueCopy(ctx,origin,targetType,array);
 }
 
 /* `list<T>` preserves its sparse integer-key semantics through an XRT int
@@ -14555,9 +14556,17 @@ static int xl6IrLowerBuildModuleAbi(XL6_IrLowerContext* ctx)
             xl6IrTypeGet(&ctx->module->types, target->returnType);
         if ( result != NULL && result->cAbi != XL6_IR_C_ABI_I64 )
             return xl6IrLowerDiag(ctx, child, "XLIR module entry return has no canonical process ABI");
+        XL6_IrTypeId argumentType=target->parameterTypes[0];
+        XL6_IrTypeId element=xl6IrArrayAnyElementType(ctx->module,argumentType);
+        const XL6_IrType* elementType=xl6IrTypeGet(&ctx->module->types,element);
+        if (!elementType || !elementType->typeValueId)
+            return xl6IrLowerDiag(ctx,child,"XLIR module entry argument has no canonical ANY Array ABI");
         ctx->module->abi.entryKind = XL6_IR_MODULE_ENTRY_XLANG_MAIN;
         ctx->module->abi.entrySymbol = node->symbol;
         ctx->module->abi.entryArgumentAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+        ctx->module->abi.entryArgumentType = argumentType;
+        ctx->module->abi.entryArgumentCarrierAbi = XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1;
+        ctx->module->abi.entryArgumentElementIdentity = elementType->typeValueId;
         ctx->module->abi.entryReturnType = target->returnType;
     }
     return 1;
