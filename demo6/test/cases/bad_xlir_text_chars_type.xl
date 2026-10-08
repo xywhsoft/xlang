@@ -1,2 +1,2 @@
-extern "xl6TextCharsV1" func bad(string text, int size) as array<int>
+extern "xl6TextCharsV2" func bad(string text, int size) as array<int>
 auto result = bad("A", -1)

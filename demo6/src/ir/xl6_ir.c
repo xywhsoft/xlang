@@ -13728,6 +13728,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         }
         break;
     case XL6_IR_INTRINSIC_DYNAMIC_COLLECTION_MEMBER:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( result != NULL &&
              xl6IrDynamicCollectionOpOperandCountValid(
                  intrinsic.dynamicCollectionOp, operandCount) &&
@@ -19862,6 +19863,7 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL:
     case XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL:
+    case XL6_IR_RUNTIME_XVALUE_DYNAMIC_COLLECTION_METHOD:
     case XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST:
     case XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND:
     case XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN:
@@ -29407,6 +29409,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( module == NULL || target == NULL ) return 0;
     {
         const char* expected = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
+        if (target->nativeArrayResultAbi != xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName)) return 0;
         if (expected != NULL) {
             if (target->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
                 target->nativeHandlePolicyCName == NULL ||
@@ -33434,6 +33437,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          intrinsic->errorAbi !=
                              (intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
                               intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_REMOVE_VALUE ||
+                              intrinsic->kind == XL6_IR_INTRINSIC_DYNAMIC_COLLECTION_MEMBER ||
                               intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD
                                  ? XL6_IR_ERROR_ABI_MAY_RAISE
                                  : intrinsic->kind == XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER
@@ -34038,7 +34042,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              module, intrinsic->resultType) ||
                          intrinsic->collectionAbi != XL6_IR_COLLECTION_NONE ||
                          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                          intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
                         return xl6IrDiag(diags, call,
                             "XLIR dynamic collection member has no exact open receiver, operation, arity or owned result ABI");
@@ -35522,6 +35526,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
                     : xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER
+                    : target->nativeArrayResultAbi == XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1
+                    ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT
                     : target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR)))) )
             return xl6IrDiag(diags, NULL,
                 "XLIR call target semantic error effect has no exact physical observation ABI");
@@ -47061,7 +47067,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         const XL6_IrCallTarget* target = &module->callTargets[i];
         size_t parameter;
         xl6OutputPrintf(out,
-            "  call-target c%lu kind=%d bridge=%s operation=%s lifecycle=%s execution=%s effect=%s preparation=%s symbol=%u declaration=n%u cname=%s result=t%u physical-result=%s/n%u/s%u result-conversion=%s errors=%s/%s parameters=%lu variadic=%s reach=%s types=[",
+            "  call-target c%lu kind=%d bridge=%s operation=%s lifecycle=%s execution=%s effect=%s preparation=%s symbol=%u declaration=n%u cname=%s result=t%u native-array-result=%d physical-result=%s/n%u/s%u result-conversion=%s errors=%s/%s parameters=%lu variadic=%s reach=%s types=[",
             (unsigned long)i, (int)target->kind, xl6IrRuntimeBridgeName(target->runtimeBridge),
             xl6IrRuntimeBridgeOperationName(target->runtimeBridgeOperation),
             xl6IrCallTargetLifecycleAbiName(target->lifecycleAbi),
@@ -47071,6 +47077,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
             (unsigned int)target->symbol,
             (unsigned int)target->declaration, target->cName != NULL ? target->cName : "",
             (unsigned int)target->returnType,
+            (int)target->nativeArrayResultAbi,
             xl6IrCallResultPhysicalAbiName(target->resultPhysicalAbi),
             (unsigned int)target->resultPhysicalFieldDeclaration,
             (unsigned int)target->resultPhysicalDestroySymbol,
@@ -48537,7 +48544,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrCallTarget* target = &module->callTargets[i];
         size_t parameter;
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kind\":%d,\"runtimeBridge\":%d,\"runtimeBridgeName\":\"%s\",\"runtimeBridgeOperation\":%d,\"runtimeBridgeOperationName\":\"%s\",\"lifecycleAbi\":%d,\"lifecycleAbiName\":\"%s\",\"reachability\":\"%s\",\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"resultPhysicalAbi\":%d,\"resultPhysicalAbiName\":\"%s\",\"resultPhysicalFieldDeclaration\":%u,\"resultPhysicalDestroySymbol\":%u,\"workerReturnType\":%u,\"errorAbi\":%d,\"errorAbiName\":\"%s\",\"errorPhysicalAbi\":%d,\"errorPhysicalAbiName\":\"%s\",\"workerErrorAbi\":%d,\"workerErrorAbiName\":\"%s\",\"asyncResultAbi\":%d,\"asyncResultAbiName\":\"%s\",\"asyncDispatch\":%d,\"futureOutcomeAbi\":%d,\"asyncMachine\":%lu,\"asyncCompletionAbi\":%d,\"asyncCompletionAbiName\":\"%s\",\"generatorItemType\":%u,\"generatorYieldAbi\":%d,\"generatorYieldAbiName\":\"%s\",\"generatorMachine\":%lu,\"parameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"parameterTypes\":[",
+            "    {\"id\":%lu,\"kind\":%d,\"runtimeBridge\":%d,\"runtimeBridgeName\":\"%s\",\"runtimeBridgeOperation\":%d,\"runtimeBridgeOperationName\":\"%s\",\"lifecycleAbi\":%d,\"lifecycleAbiName\":\"%s\",\"reachability\":\"%s\",\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"nativeArrayResultAbi\":%d,\"resultPhysicalAbi\":%d,\"resultPhysicalAbiName\":\"%s\",\"resultPhysicalFieldDeclaration\":%u,\"resultPhysicalDestroySymbol\":%u,\"workerReturnType\":%u,\"errorAbi\":%d,\"errorAbiName\":\"%s\",\"errorPhysicalAbi\":%d,\"errorPhysicalAbiName\":\"%s\",\"workerErrorAbi\":%d,\"workerErrorAbiName\":\"%s\",\"asyncResultAbi\":%d,\"asyncResultAbiName\":\"%s\",\"asyncDispatch\":%d,\"futureOutcomeAbi\":%d,\"asyncMachine\":%lu,\"asyncCompletionAbi\":%d,\"asyncCompletionAbiName\":\"%s\",\"generatorItemType\":%u,\"generatorYieldAbi\":%d,\"generatorYieldAbiName\":\"%s\",\"generatorMachine\":%lu,\"parameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"parameterTypes\":[",
             (unsigned long)i, (int)target->kind,
             (int)target->runtimeBridge, xl6IrRuntimeBridgeName(target->runtimeBridge),
             (int)target->runtimeBridgeOperation,
@@ -48547,6 +48554,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             xl6IrReachabilityName(target->reachability), (unsigned int)target->symbol,
             (unsigned int)target->declaration, target->cName != NULL ? target->cName : "",
             (unsigned int)target->returnType,
+            (int)target->nativeArrayResultAbi,
             (int)target->resultPhysicalAbi,
             xl6IrCallResultPhysicalAbiName(target->resultPhysicalAbi),
             (unsigned int)target->resultPhysicalFieldDeclaration,

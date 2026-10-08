@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "src/runtime/xl6_text_value.h"
+#include "test/support/array_producer_test.h"
 static void expectText(xstrview result, const char* expected, size_t size)
 {
     assert(result.Data != NULL && result.Size == size);
@@ -51,7 +52,7 @@ static void checkJoinThreads(void)
     }
     assert(xrtErrorKind(xrtGetError()) == XERR_RANGE);
     xrtClearError();
-    assert(xrtValueCount(values) == 2);
+    assert(xl6TestArrayCount(values) == 2);
     xrtValueRelease(values);
     puts("string join threads ok: 2000 rounds");
 }
@@ -74,7 +75,7 @@ static void checkJoin(void)
     /* The typed join boundary must reject non-string elements without mutation. */
     assert(xrtValueArrayAppendNew(values, xrtValueInt(42)));
     assert(xl6TextJoinV1(values, (xstrview){",", 1}, -1, -1).Data == NULL);
-    assert(xrtErrorKind(xrtGetError()) == XERR_TYPE && xrtValueCount(values) == 3);
+    assert(xrtErrorKind(xrtGetError()) == XERR_TYPE && xl6TestArrayCount(values) == 3);
     xrtClearError(); xrtValueRelease(values);
     values = xrtValueArray(); assert(values != NULL);
     for (i = 0; i < sizeof(words) / sizeof(words[0]); ++i)
@@ -92,7 +93,7 @@ static void checkJoin(void)
             expectText(result, expected, sizeof(expected) - 1); ++succeeded;
         }
         xrtClearError(); expectBalanced(&before);
-        assert(xrtValueCount(values) == 7);
+        assert(xl6TestArrayCount(values) == 7);
     }
     assert(failed != 0 && succeeded != 0);
     xrtValueRelease(values); xrtValueRelease(wrong);
@@ -108,13 +109,13 @@ static void checkAllocationFailures(void)
     for (point = 0; point < 128; ++point) {
         xvalue* value; xmemdebugsnapshot before; bool triggered;
         xrtMemDebugSnapshot(&before); assert(xrtMemDebugFailAfter(point));
-        value = kind ? xl6TextLinesV1((xstrview){lines, sizeof(lines) - 1}, -1) :
-            xl6TextSplitV1(fields, comma, -1, -1);
+        value = kind ? xl6TextLinesV2(XL6_TEST_TEXT_ARRAY_IDS,(xstrview){lines, sizeof(lines) - 1}, -1) :
+            xl6TextSplitV2(XL6_TEST_TEXT_ARRAY_IDS,fields, comma, -1, -1);
         triggered = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
         if (triggered) {
             assert(value == NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY); ++failed;
         } else {
-            assert(value != NULL && xrtValueCount(value) == 20 && xrtGetError() == NULL); ++succeeded;
+            assert(value != NULL && xl6TestArrayCount(value) == 20 && xrtGetError() == NULL); ++succeeded;
         }
         xrtValueRelease(value); xrtClearError(); expectBalanced(&before);
     }
@@ -133,21 +134,20 @@ static void checkEnumeration(void)
     assert(result != NULL && xrtValueGetBytes(result, &octets));
     assert(octets.Size == sizeof(raw) && memcmp(octets.Data, raw, sizeof(raw)) == 0);
     xrtValueRelease(result);
-    result = xl6TextCharsV1((xstrview){text, sizeof(text) - 1}, -1);
-    assert(result != NULL && xrtValueCount(result) == 5);
+    result = xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,(xstrview){text, sizeof(text) - 1}, -1);
+    assert(result != NULL && xl6TestArrayCount(result) == 5);
     for (i = 0; i < 5; ++i) {
-        uint32_t actual;
-        assert(xrtValueGetChar(xrtValueArrayGet(result, i), &actual) && actual == characters[i]);
+        assert(xl6TestArrayCharAt(result,i)==characters[i]);
     }
     xrtValueRelease(result);
-    result = xl6TextCharsV1((xstrview){"a\0b", 3}, -1);
-    assert(result != NULL && xrtValueCount(result) == 3);
-    { uint32_t actual; assert(xrtValueGetChar(xrtValueArrayGet(result, 1), &actual) && actual == 0); }
+    result = xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,(xstrview){"a\0b", 3}, -1);
+    assert(result != NULL && xl6TestArrayCount(result) == 3);
+    assert(xl6TestArrayCharAt(result,1)==0);
     xrtValueRelease(result);
     for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
         xmemdebugsnapshot before;
         xrtMemDebugSnapshot(&before);
-        assert(xl6TextCharsV1((xstrview){invalid[i], strlen(invalid[i])}, -1) == NULL);
+        assert(xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,(xstrview){invalid[i], strlen(invalid[i])}, -1) == NULL);
         assert(xrtErrorKind(xrtGetError()) == XERR_VALUE);
         xrtClearError(); expectBalanced(&before);
     }
@@ -155,14 +155,14 @@ static void checkEnumeration(void)
     for (point = 0; point < 80; ++point) {
         bool triggered; xmemdebugsnapshot before;
         xrtMemDebugSnapshot(&before); assert(xrtMemDebugFailAfter(point));
-        result = kind ? xl6TextCharsV1((xstrview){text, sizeof(text) - 1}, -1) :
+        result = kind ? xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,(xstrview){text, sizeof(text) - 1}, -1) :
             xl6TextBytesV1((xstrview){text, sizeof(text) - 1}, -1);
         triggered = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
         if (triggered) {
             assert(result == NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY); ++rejected;
         } else {
             assert(result != NULL && xrtGetError() == NULL);
-            if (kind) assert(xrtValueCount(result) == 5);
+            if (kind) assert(xl6TestArrayCount(result) == 5);
             else assert(xrtValueGetBytes(result, &octets) && octets.Size == sizeof(text) - 1);
             ++completed;
         }

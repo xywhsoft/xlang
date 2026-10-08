@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
 #include "src/runtime/xl6_array_input.h"
+#include "src/runtime/xl6_array_producer.h"
 void xl6RegexSetDestroyV1(void* handle)
 { xrtRegexSetRelease(handle); }
 int64_t xl6RegexErrorIndexV1(const xerror* error)
@@ -55,19 +56,21 @@ static xregexsetmatcher* run(void* handle,xstrview text,int64_t start,int64_t si
     }
     return matcher;
 }
-xvalue* xl6RegexSetHitsV1(void* handle,xstrview text,int64_t start,int64_t size)
+xvalue* xl6RegexSetHitsV2(uint64_t identity,uint64_t element,void* handle,xstrview text,int64_t start,int64_t size)
 {
     xregexsetmatcher* matcher=run(handle,text,start,size);if(!matcher)return NULL;
-    xvalue* result=xrtValueArray();if(!result)goto fail;
+    XL6_ArrayProducerV1 result;
+    if(!xl6ArrayProducerBeginV1(&result,identity,element,XL6_VALUE_ADMIT_I64,xrtTypeInt64(),NULL))goto fail;
     size_t count=xrtRegexSetMatcherCount(matcher);
+    if(!xl6ArrayProducerReserveV1(&result,count))goto fail;
     for(size_t i=0;i<count;++i){
         size_t index=xrtRegexSetMatcherIndex(matcher,i);
-        if(index==XRT_NPOS)goto fail;
-        xvalue* item=xrtValueInt((int64_t)index);
-        if(!item||!xrtValueArrayAppendNew(result,item))goto fail;
+        if(index==XRT_NPOS||index>INT64_MAX){xrtSetErrorKind(XERR_RANGE);goto fail;}
+        int64_t item=(int64_t)index;
+        if(!xl6ArrayProducerPushV1(&result,&item))goto fail;
     }
-    xrtRegexSetMatcherFree(matcher);return result;
-fail: xrtValueRelease(result);xrtRegexSetMatcherFree(matcher);return NULL;
+    xrtRegexSetMatcherFree(matcher);return xl6ArrayProducerFinishV1(&result,true);
+fail: xrtRegexSetMatcherFree(matcher);return xl6ArrayProducerFinishV1(&result,false);
 }
 int64_t xl6RegexSetFirstV1(void* handle,xstrview text,int64_t start,int64_t size)
 {

@@ -1,0 +1,32 @@
+array<string> split = string.split("你\0|🙂||last|", "|")
+assert(split.length == 5 and split[0] == "你\0" and split[1] == "🙂"), "producer line 2"
+array<string> lines = string.splitLines("a\0\r\n\r你\n")
+assert(lines.length == 3 and lines[0] == "a\0" and lines[1] == "" and lines[2] == "你"), "producer line 4"
+array<string> fields = string.fields(" \t你\0🙂\v\fx ")
+assert(fields.length == 2 and fields[0] == "你\0🙂" and fields[1] == "x"), "producer line 6"
+array<char> chars = string.chars("A\0你🙂")
+assert(chars.length == 4 and chars[0] == 'A' and chars[1] == 0 and chars[2] == '你' and chars[3] == '🙂'), "producer line 8"
+auto set = regex.set(array["你", "a\0b", "missing"])
+array<int> hits = set.hits("你a\0b")
+assert(hits.length == 2 and hits[0] == 0 and hits[1] == 1), "producer line 11"
+var erasedText = split
+erasedText.append("new\0text")
+assert(split.length == 6 and split[5] == "new\0text"), "producer line 14"
+var erasedChars = chars
+erasedChars.append('Z')
+assert(chars.length == 5 and chars[4] == 'Z'), "producer line 17"
+var erasedHits = hits
+erasedHits.append(7)
+assert(hits.length == 3 and hits[2] == 7), "producer line 20"
+bool rejected = false
+try
+    erasedChars.append("not a char")
+catch TypeError
+    rejected = true
+end
+assert(rejected and chars.length == 5), "producer line 27"
+split[0] = "changed"
+assert(erasedText[0] == "changed"), "producer line 29"
+assert(string.split("", "|").length == 1), "producer line 30"
+assert(string.splitLines("").length == 0 and string.fields(" \t").length == 0), "producer line 31"
+assert(string.chars("").length == 0 and set.hits("none").length == 0), "producer line 32"

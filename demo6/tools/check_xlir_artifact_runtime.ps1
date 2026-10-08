@@ -151,6 +151,27 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-in@('stdlib_text_split_only','stdlib_text_chars_only','stdlib_regex_set_only')){
+                    $selectionMatches=$selectionMatches-and
+                        'src/runtime/xl6_array_producer.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_erased.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_primitive_admission.c'-in$selectedSources-and
+                        'src/runtime/xl6_array.c'-notin$selectedSources
+                    if($case-eq'stdlib_text_chars_only'){
+                        $selectionMatches=$selectionMatches-and
+                            'src/runtime/xl6_char_value.c'-in$selectedSources-and
+                            'src/runtime/xl6_text_split.c'-notin$selectedSources
+                    }else{
+                        $selectionMatches=$selectionMatches-and
+                            'src/runtime/xl6_char_value.c'-notin$selectedSources-and
+                            'src/runtime/xl6_char_type.c'-notin$selectedSources
+                    }
+                    if($case-eq'stdlib_text_split_only'){
+                        $selectionMatches=$selectionMatches-and
+                            'src/runtime/xl6_string_value.c'-in$selectedSources-and
+                            'src/runtime/xl6_text_chars.c'-notin$selectedSources
+                    }
+                }
                 if($case-in@('cgen_dynamic_container_reference','cgen_dynamic_container_methods')){
                     $selectionMatches='src/runtime/xl6_dynamic_collection.c'-in$selectedSources-and
                         'src/runtime/xl6_value_contains.c'-in$selectedSources-and
@@ -171,6 +192,7 @@ $process=Start-Process @start
                 }
                 if($case-eq'cgen_basic'){
                     $selectionMatches=$selectionMatches-and
+                        'src/runtime/xl6_array_producer.c'-notin$selectedSources-and
                         'src/runtime/xl6_array_entry.c'-notin$selectedSources-and
                         'src/runtime/xl6_array_os_argv.c'-notin$selectedSources-and
                         'src/runtime/xl6_dynamic_collection.c'-notin$selectedSources-and

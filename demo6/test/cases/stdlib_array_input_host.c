@@ -1,3 +1,4 @@
+#include "test/support/array_producer_test.h"
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array_erased.h"
@@ -151,7 +152,7 @@ static void consumers(void)
     const xstrview patterns[]={VIEW("a\0b"),VIEW("你")}; a=strings(patterns,2);
     void* set=xl6RegexSetCreateV1(a,0,4096,16,8,-1); assert(set); xrtValueRelease(a);
     expectText(xl6RegexSetPatternV1(set,0),VIEW("a\0b"));
-    xvalue* hits=xl6RegexSetHitsV1(set,VIEW("你a\0b"),0,-1); assert(hits && xrtValueCount(hits)==2);
+    xvalue* hits=xl6RegexSetHitsV2(XL6_TEST_INT_ARRAY_IDS,set,VIEW("你a\0b"),0,-1); assert(hits && xl6TestArrayCount(hits)==2);
     xrtValueRelease(hits); xl6RegexSetDestroyV1(set);
     void* b=xl6PatternBuilderCreateV1(); assert(b); xvalue* state=stateCreate(b);
     const xstrview paths[]={VIEW("/a/{id}"),VIEW("/b/{id}")}; a=strings(paths,2);
@@ -216,7 +217,7 @@ static void sweep(unsigned mode,size_t point)
     if (mode==5) xl6PatternEditDestroyV1(result);
     if (mode==6) {
         size_t expected=ok?2:0; assert((size_t)xl6PatternBuilderCountV1(builder)==expected);
-        xvalue* tags=xl6PatternBuilderTagsV1(builder,state); assert(tags && xrtValueCount(tags)==expected); xrtValueRelease(tags);
+        xvalue* tags=xl6PatternBuilderTagsV1(builder,state); assert(tags && xl6TestArrayCount(tags)==expected); xrtValueRelease(tags);
     }
     if (mode>=7) {
         if (result) { if (!xrtFutureDone(result)) assert(xrtFutureCancel(result)); xrtFutureDestroy(result); }

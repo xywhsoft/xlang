@@ -405,7 +405,7 @@ XL6_TEXT_API int64_t xl6TextByteLengthV1(xstrview text, int64_t size);
 XL6_TEXT_API int64_t xl6TextByteAtV1(xstrview text, int64_t index, int64_t size);
 XL6_TEXT_API uint32_t xl6TextCharAtV1(xstrview text, int64_t index, int64_t size);
 XL6_TEXT_API xvalue* xl6TextBytesV1(xstrview text, int64_t size);
-XL6_TEXT_API xvalue* xl6TextCharsV1(xstrview text, int64_t size);
+XL6_TEXT_API xvalue* xl6TextCharsV2(uint64_t ownerIdentity, uint64_t elementIdentity, xstrview text, int64_t size);
 XL6_TEXT_API int64_t xl6TextCompareV1(xstrview left, xstrview right, bool ignoreCase, int64_t leftSize, int64_t rightSize);
 XL6_TEXT_API bool xl6TextEqualsV1(xstrview left, xstrview right, bool ignoreCase, int64_t leftSize, int64_t rightSize);
 XL6_TEXT_API bool xl6TextContainsV1(xstrview text, xstrview part, bool ignoreCase, int64_t size, int64_t partSize);
@@ -425,9 +425,9 @@ XL6_TEXT_API double xl6TextSimilarityV1(xstrview left, xstrview right, int64_t l
 XL6_TEXT_API bool xl6TextApproxV1(xstrview left, xstrview right, double tolerance, int64_t leftSize, int64_t rightSize);
 /* Arrays use the current xvalue carrier; every element is exactly STRING.
  * Split outputs own each item; join borrows input elements only for the call. */
-XL6_TEXT_API xvalue* xl6TextSplitV1(xstrview text, xstrview separator, int64_t size, int64_t separatorSize);
-XL6_TEXT_API xvalue* xl6TextLinesV1(xstrview text, int64_t size);
-XL6_TEXT_API xvalue* xl6TextFieldsV1(xstrview text, int64_t size);
+XL6_TEXT_API xvalue* xl6TextSplitV2(uint64_t ownerIdentity, uint64_t elementIdentity, xstrview text, xstrview separator, int64_t size, int64_t separatorSize);
+XL6_TEXT_API xvalue* xl6TextLinesV2(uint64_t ownerIdentity, uint64_t elementIdentity, xstrview text, int64_t size);
+XL6_TEXT_API xvalue* xl6TextFieldsV2(uint64_t ownerIdentity, uint64_t elementIdentity, xstrview text, int64_t size);
 XL6_TEXT_API xstrview xl6TextJoinV1(const xvalue* values, xstrview separator, int64_t separatorSize, int64_t itemSize);
 /* Thread-affine owned input snapshot; mode 0 split / 1 lines / 2 fields.
  * Next owns its output, NULL means EOF unless the thread error is set.
@@ -556,7 +556,7 @@ XL6_TEXT_API void* xl6RegexSetCreateV1(const xvalue* patterns, int64_t flags, in
 XL6_TEXT_API void xl6RegexSetDestroyV1(void* handle);
 XL6_TEXT_API int64_t xl6RegexSetCountV1(void* handle);
 XL6_TEXT_API xstrview xl6RegexSetPatternV1(void* handle, int64_t index);
-XL6_TEXT_API xvalue* xl6RegexSetHitsV1(void* handle, xstrview text, int64_t start, int64_t size);
+XL6_TEXT_API xvalue* xl6RegexSetHitsV2(uint64_t ownerIdentity, uint64_t elementIdentity, void* handle, xstrview text, int64_t start, int64_t size);
 XL6_TEXT_API int64_t xl6RegexSetFirstV1(void* handle, xstrview text, int64_t start, int64_t size);
 XL6_TEXT_API bool xl6RegexSetTestV1(void* handle, xstrview text, int64_t start, int64_t size);
 #endif

@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_text_value.h"
+#include "test/support/array_producer_test.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -128,7 +129,7 @@ static void failures(void* regex)
                 xl6RegexReplaceBufferV1(regex,target,(xstrview){large,sizeof(large)},VIEW("<$0>"),-1,-1,-1);
             }
             if(kind==4)handle=xl6RegexSetCreateV1(patterns,0,1024,8,4,-1);
-            if(kind==5)hits=xl6RegexSetHitsV1(set,VIEW("ab"),0,-1);
+            if(kind==5)hits=xl6RegexSetHitsV2(XL6_TEST_INT_ARRAY_IDS,set,VIEW("ab"),0,-1);
             if(kind==6)output=xl6RegexSetPatternV1(set,0);
             if(kind==7)advanced=xl6RegexIteratorHasNextV1(prepared);
             if(kind==8)advanced=xl6RegexSplitHasNextV1(prepared);

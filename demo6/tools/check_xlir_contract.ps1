@@ -5294,7 +5294,7 @@ foreach ($required in @('XL6_IrStringBridgeContract', 'target->errorAbi != contr
     if (!$source.Contains($required)) { throw "XLIR string ABI registry is incomplete: $required" }
 }
 $nativeCollectionContracts = Read-Utf8 'src/abi/xl6_native_collection_contracts.inc'
-foreach ($required in @('xl6TextJoinV1', 'xl6TextSplitV1', 'xl6TextLinesV1')) {
+foreach ($required in @('xl6TextJoinV1', 'xl6TextSplitV2', 'xl6TextLinesV2')) {
     if (!$nativeCollectionContracts.Contains($required)) {throw "Resident text exact ABI missing: $required"}
 }
 foreach ($entry in @(@('src/runtime/xl6_text_pieces.h', 'xrtStrSplitNext'),
@@ -5316,7 +5316,7 @@ if (!(Read-Utf8 'tools\run_xlir_parameterized_guards.ps1').Contains("'check_xlir
 }
 foreach ( $required in @(
     "cgen_dynamic_to_typed_containers.xl", "--backend xlir",
-    "xl6TextLinesV1", "-Werror",
+    "xl6TextLinesV2", "-Werror",
     "xlir_dynamic_to_typed_containers_host.c"
 ) ) {
     if ( ! $languageFrontendSuite.Contains($required) ) { throw "XLIR dynamic collection bridge runtime gate is incomplete: $required" }

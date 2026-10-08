@@ -234,6 +234,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_array_erased.c"
     "$ROOT/src/runtime/xl6_array_call_frame.c"
     "$ROOT/src/runtime/xl6_array_entry.c"
+    "$ROOT/src/runtime/xl6_array_producer.c"
     "$ROOT/src/runtime/xl6_array_os_argv.c"
     "$ROOT/src/runtime/xl6_array_method_remove.c"
     "$ROOT/src/runtime/xl6_value_contains.c"

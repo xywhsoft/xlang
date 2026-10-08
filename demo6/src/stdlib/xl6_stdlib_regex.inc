@@ -116,7 +116,7 @@ const char* xl6StdlibRegexSetSource =
     "    extern \"xl6RegexSetDestroyV1\" destroy()\n"
     "    extern \"xl6RegexSetCountV1\" get count() as int\n"
     "    extern \"xl6RegexSetPatternV1\" func pattern(int index) as string\n"
-    "    extern \"xl6RegexSetHitsV1\" func hits(string text, int start = 0, int size = -1) as array<int>\n"
+    "    extern \"xl6RegexSetHitsV2\" func hits(string text, int start = 0, int size = -1) as array<int>\n"
     "    extern \"xl6RegexSetFirstV1\" func first(string text, int start = 0, int size = -1) as int\n"
     "    extern \"xl6RegexSetTestV1\" func test(string text, int start = 0, int size = -1) as bool\n"
     "end\n";

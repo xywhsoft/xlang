@@ -67,6 +67,31 @@ XRT 与 xruntime 的全部公共符号都进入 TCC 符号表。高级用户可�
 
 类型描述符的大小、对齐、字段偏移和原始方法入口属于 ABI 与内核能力，通过显式 `extern` 保留。除非未来出现明确的运行时反射场景，否则不将这些布局细节提升为普通语言成员，以免冻结编译器内部表示。
 
+## 外部原生 Array 生产者（B128）
+
+`string.chars/split/splitLines/fields` 和 `RegexSet.hits` 直接构造原生 typed
+Array。字符为 Unicode scalar `uint32`、字符串为拥有的双字段
+`xstrview`、匹配索引为 `int64`；不再逐元素创建 `xvalue` wire 数组。
+公开语言调用不变，私有桥接符号升级为 V2，不保留旧 V1 ABI 别名。
+
+闭合注册表通过 `nativeArrayResultAbi` 声明结果构造合同。IR 核验精确
+Array/元素 TypeUID、非 nullable 的 primitive layout、参数物理 ABI
+及 NULL-result 失败观察；Cgen 只传入已经核验的两个 TypeUID，不根据
+函数名字重新推断元素类型、转换 wire tag 或生成数组实现。
+
+resident producer 在同一错误事务内创建 owner、安装 admission 和
+projection、保留 owner pin 后写入真实 slot；失败时释放完整/部分
+结果再传播独立失败位。String/char 的 descriptor/codec 由各自 producer
+提供，通用构造器不依赖它们，因此整数结果不隐式选择 char 提供者。
+动态 `var` 容器方法为 may-raise，必须在调用后观察 NULL-result 并进入
+语言错误边，不能只在 runtime 设置错误、却跳过 `catch`。
+
+验收门为 `tools/check_stdlib_array_producer.py`。它覆盖精确 NUL/UTF-8
+输入、原生 slot/admission/projection、真实语言别名和错误捕获、伪造
+IR 合同拒绝、旧 C 消费者、完整分配失败前缀及 JIT/AOT；Linux 可用
+`--sanitize` 插桩所选原生路径。该门不代表全部 Array producer 或
+53 模块总验收完成，文件系统/其他 wire producer 等仍单独收口。
+
 ## 发布门槛
 
 - 仓库快照中的 XRT+xruntime 公共函数必须全部进入 TCC 符号表；

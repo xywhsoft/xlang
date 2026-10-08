@@ -1,0 +1,3 @@
+array<char> values = string.chars("A\0你🙂")
+assert values.length == 4 and values[0] == 'A' and values[1] == 0
+assert values[2] == '你' and values[3] == '🙂'

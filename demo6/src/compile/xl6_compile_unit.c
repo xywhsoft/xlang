@@ -61,10 +61,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_text_value.c", NULL, 0, {"XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_text_query.c", NULL, 0, {"XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_text_binary.c", NULL, 0, {"XRT_MODULE_VALUE"}},
-    {"src/runtime/xl6_text_chars.c", NULL, 0, {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_text_chars.c", D(R(ARRAY_PRODUCER),R(CHAR_VALUE)), {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_text_glob.c", NULL, 0, {"XRT_MODULE_STRING_GLOB", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_text_distance.c", NULL, 0, {"XRT_MODULE_UNICODE_DISTANCE", "XRT_MODULE_UNICODE_TEXT"}},
-    {"src/runtime/xl6_text_split.c", NULL, 0, {"XRT_MODULE_STRING_SPLIT", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_text_split.c", D(R(ARRAY_PRODUCER),R(STRING_VALUE)), {"XRT_MODULE_STRING_SPLIT", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_text_join.c", D(R(ARRAY_INPUT)), {"XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_text_iterator.c", NULL, 0, {"XRT_MODULE_STRING_SPLIT", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_number_format.c", NULL, 0, {"XRT_MODULE_NUMBER_FORMAT"}},
@@ -85,7 +85,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_regex_replace.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_REPLACE", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_regex_replace_buffer.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_REPLACE", "XRT_MODULE_BUFFER", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_regex_split.c", D(R(REGEX_CORE)), {"XRT_MODULE_REGEX_SPLIT", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
-    {"src/runtime/xl6_regex_set.c", D(R(REGEX_CORE),R(ARRAY_INPUT)), {"XRT_MODULE_REGEX_SET", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_regex_set.c", D(R(REGEX_CORE),R(ARRAY_INPUT),R(ARRAY_PRODUCER)), {"XRT_MODULE_REGEX_SET", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_regex_replace_func.c", D(R(REGEX_MATCH),R(CLOSURE)), {"XRT_MODULE_REGEX_REPLACE"}},
     {"src/runtime/xl6_regex_replace_func_buffer.c", D(R(REGEX_REPLACE_FUNC)), {"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_pattern_core.c", D(), {"XRT_MODULE_PATTERN", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE_TEXT"}},
@@ -245,7 +245,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_dynamic_collection.c", D(R(ARRAY_ERASED),R(ARRAY_METHODS_CORE),R(ARRAY_METHODS_INSERT),R(ARRAY_METHODS_FIND),R(ARRAY_METHODS_REMOVE),R(VALUE_CONTAINS),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_os_argv.c", D(R(ARRAY_ENTRY),R(FOREIGN_ERROR)),
-        {"XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
+        {"XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_array_producer.c", D(R(ARRAY_PRIMITIVE_ADMISSION),R(ARRAY_ERASED),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
